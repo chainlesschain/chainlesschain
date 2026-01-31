@@ -13,6 +13,341 @@ const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const EventEmitter = require('events');
+const os = require('os');
+const { SmartPlanCache } = require('./smart-plan-cache.js');
+
+/**
+ * 质量门禁检查器
+ * 在任务计划执行前进行并行质量检查
+ */
+class QualityGateChecker {
+  constructor(options = {}) {
+    this.availableTools = options.availableTools || [];
+    this.maxConcurrency = options.maxConcurrency || 8;
+    this.maxMemoryUsage = options.maxMemoryUsage || 0.85; // 85%
+    this.enabled = options.enabled !== false;
+
+    this.stats = {
+      totalChecks: 0,
+      passed: 0,
+      failed: 0,
+      warnings: 0,
+    };
+  }
+
+  /**
+   * 执行所有质量门禁检查（并行）
+   */
+  async runAllGates(taskPlan) {
+    if (!this.enabled) {
+      logger.info('[QualityGate] 质量门禁检查已禁用');
+      return { passed: true, gates: [], warnings: [] };
+    }
+
+    logger.info('[QualityGate] 开始并行质量门禁检查...');
+    this.stats.totalChecks++;
+
+    const startTime = Date.now();
+
+    // 并行执行所有质量门禁
+    const gateResults = await Promise.allSettled([
+      this.checkCyclicDependencies(taskPlan),
+      this.checkResourceFeasibility(taskPlan),
+      this.checkToolAvailability(taskPlan),
+      this.checkParameterCompleteness(taskPlan),
+    ]);
+
+    const duration = Date.now() - startTime;
+
+    // 汇总结果
+    const results = {
+      passed: true,
+      gates: [],
+      warnings: [],
+      errors: [],
+      duration,
+    };
+
+    gateResults.forEach((result, index) => {
+      const gateName = ['循环依赖', '资源评估', '工具可用性', '参数完整性'][index];
+
+      if (result.status === 'fulfilled') {
+        const gateResult = result.value;
+        results.gates.push({ name: gateName, ...gateResult });
+
+        if (!gateResult.passed) {
+          results.passed = false;
+          results.errors.push(`${gateName}检查失败: ${gateResult.message}`);
+        }
+
+        if (gateResult.warnings && gateResult.warnings.length > 0) {
+          results.warnings.push(...gateResult.warnings.map(w => `[${gateName}] ${w}`));
+          this.stats.warnings += gateResult.warnings.length;
+        }
+      } else {
+        // 门禁检查本身失败
+        results.warnings.push(`${gateName}检查异常: ${result.reason.message}`);
+        logger.warn(`[QualityGate] ${gateName}检查异常:`, result.reason);
+      }
+    });
+
+    // 更新统计
+    if (results.passed) {
+      this.stats.passed++;
+      logger.info(`[QualityGate] ✅ 所有质量门禁检查通过 (${duration}ms)`);
+    } else {
+      this.stats.failed++;
+      logger.error(`[QualityGate] ❌ 质量门禁检查失败 (${duration}ms):`, results.errors);
+    }
+
+    if (results.warnings.length > 0) {
+      logger.warn('[QualityGate] ⚠️ 质量门禁警告:', results.warnings);
+    }
+
+    return results;
+  }
+
+  /**
+   * 门禁1: 检测循环依赖
+   */
+  async checkCyclicDependencies(taskPlan) {
+    logger.debug('[QualityGate] 检查循环依赖...');
+
+    const { subtasks } = taskPlan;
+    if (!subtasks || subtasks.length === 0) {
+      return { passed: true, message: '无子任务，跳过检查' };
+    }
+
+    // 构建依赖图
+    const graph = new Map();
+    for (const task of subtasks) {
+      graph.set(task.step, task.dependencies || []);
+    }
+
+    // DFS检测环
+    const visited = new Set();
+    const recursionStack = new Set();
+
+    const hasCycle = (node) => {
+      if (recursionStack.has(node)) {
+        return true; // 发现环
+      }
+
+      if (visited.has(node)) {
+        return false;
+      }
+
+      visited.add(node);
+      recursionStack.add(node);
+
+      const dependencies = graph.get(node) || [];
+      for (const dep of dependencies) {
+        if (hasCycle(dep)) {
+          return true;
+        }
+      }
+
+      recursionStack.delete(node);
+      return false;
+    };
+
+    // 检查所有节点
+    for (const node of graph.keys()) {
+      if (hasCycle(node)) {
+        return {
+          passed: false,
+          message: `检测到循环依赖，涉及步骤: ${node}`,
+        };
+      }
+    }
+
+    return {
+      passed: true,
+      message: `无循环依赖（${subtasks.length}个子任务）`,
+    };
+  }
+
+  /**
+   * 门禁2: 评估资源合理性
+   */
+  async checkResourceFeasibility(taskPlan) {
+    logger.debug('[QualityGate] 评估资源合理性...');
+
+    const { subtasks } = taskPlan;
+    if (!subtasks || subtasks.length === 0) {
+      return { passed: true, message: '无子任务，跳过检查' };
+    }
+
+    const warnings = [];
+
+    // 检查并发数是否合理
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const memUsage = (totalMem - freeMem) / totalMem;
+
+    if (memUsage > this.maxMemoryUsage) {
+      warnings.push(`内存使用率过高 (${(memUsage * 100).toFixed(1)}% > ${(this.maxMemoryUsage * 100).toFixed(0)}%)`);
+    }
+
+    // 检查并发数
+    const estimatedConcurrency = Math.min(subtasks.length, this.maxConcurrency);
+    const cpuCores = os.cpus().length;
+
+    if (estimatedConcurrency > cpuCores * 2) {
+      warnings.push(`建议并发数(${estimatedConcurrency})超过CPU核心数(${cpuCores})的2倍`);
+    }
+
+    // 预估内存消耗（每个任务约100MB）
+    const estimatedMemoryMB = subtasks.length * 100;
+    const freeMemMB = freeMem / 1024 / 1024;
+
+    if (estimatedMemoryMB > freeMemMB * 0.5) {
+      warnings.push(`预估内存消耗(${estimatedMemoryMB.toFixed(0)}MB)可能超过可用内存(${freeMemMB.toFixed(0)}MB)的50%`);
+    }
+
+    return {
+      passed: true,
+      message: `资源评估完成 (${subtasks.length}任务, 预估${estimatedConcurrency}并发)`,
+      warnings,
+      metadata: {
+        memUsage: (memUsage * 100).toFixed(1) + '%',
+        estimatedConcurrency,
+        cpuCores,
+        freeMemMB: freeMemMB.toFixed(0),
+      },
+    };
+  }
+
+  /**
+   * 门禁3: 验证工具可用性
+   */
+  async checkToolAvailability(taskPlan) {
+    logger.debug('[QualityGate] 验证工具可用性...');
+
+    const { subtasks } = taskPlan;
+    if (!subtasks || subtasks.length === 0) {
+      return { passed: true, message: '无子任务，跳过检查' };
+    }
+
+    const requiredTools = new Set();
+    const missingTools = [];
+
+    // 收集所有需要的工具
+    for (const task of subtasks) {
+      if (task.tool) {
+        requiredTools.add(task.tool);
+      }
+    }
+
+    // 检查工具是否可用
+    for (const tool of requiredTools) {
+      // 如果有可用工具列表，检查是否在列表中
+      if (this.availableTools.length > 0 && !this.availableTools.includes(tool)) {
+        missingTools.push(tool);
+      }
+    }
+
+    if (missingTools.length > 0) {
+      return {
+        passed: false,
+        message: `缺少必需工具: ${missingTools.join(', ')}`,
+        metadata: {
+          required: Array.from(requiredTools),
+          missing: missingTools,
+        },
+      };
+    }
+
+    return {
+      passed: true,
+      message: `所有工具可用 (${requiredTools.size}个工具)`,
+      metadata: {
+        tools: Array.from(requiredTools),
+      },
+    };
+  }
+
+  /**
+   * 门禁4: 检查参数完整性
+   */
+  async checkParameterCompleteness(taskPlan) {
+    logger.debug('[QualityGate] 检查参数完整性...');
+
+    const { subtasks } = taskPlan;
+    if (!subtasks || subtasks.length === 0) {
+      return { passed: true, message: '无子任务，跳过检查' };
+    }
+
+    const warnings = [];
+    const incompleteT asks = [];
+
+    for (const task of subtasks) {
+      const issues = [];
+
+      // 检查必需字段
+      if (!task.step) issues.push('缺少step');
+      if (!task.title) issues.push('缺少title');
+      if (!task.tool && !task.action) issues.push('缺少tool或action');
+
+      // 检查依赖引用
+      if (task.dependencies && task.dependencies.length > 0) {
+        for (const depStep of task.dependencies) {
+          const depExists = subtasks.some(t => t.step === depStep);
+          if (!depExists) {
+            issues.push(`依赖步骤${depStep}不存在`);
+          }
+        }
+      }
+
+      if (issues.length > 0) {
+        incompleteTasks.push({
+          step: task.step,
+          title: task.title || '未命名',
+          issues,
+        });
+      }
+    }
+
+    if (incompleteTasks.length > 0) {
+      return {
+        passed: false,
+        message: `${incompleteTasks.length}个子任务参数不完整`,
+        metadata: {
+          incompleteTasks,
+        },
+      };
+    }
+
+    return {
+      passed: true,
+      message: `所有参数完整 (${subtasks.length}个子任务)`,
+    };
+  }
+
+  /**
+   * 获取统计信息
+   */
+  getStats() {
+    return {
+      ...this.stats,
+      passRate: this.stats.totalChecks > 0
+        ? ((this.stats.passed / this.stats.totalChecks) * 100).toFixed(2)
+        : '0.00',
+    };
+  }
+
+  /**
+   * 重置统计
+   */
+  reset() {
+    this.stats = {
+      totalChecks: 0,
+      passed: 0,
+      failed: 0,
+      warnings: 0,
+    };
+  }
+}
 
 class TaskPlannerEnhanced extends EventEmitter {
   constructor(dependencies) {
@@ -25,6 +360,23 @@ class TaskPlannerEnhanced extends EventEmitter {
 
     // 引擎延迟加载（避免循环依赖）
     this.engines = {};
+
+    // 质量门禁检查器
+    this.qualityGateChecker = new QualityGateChecker({
+      availableTools: dependencies.availableTools || [],
+      enabled: dependencies.enableQualityGates !== false, // 默认启用
+    });
+    logger.info('[TaskPlannerEnhanced] 质量门禁检查器已初始化');
+
+    // 智能计划缓存
+    this.planCache = new SmartPlanCache({
+      maxSize: dependencies.planCacheMaxSize || 1000,
+      similarityThreshold: dependencies.planCacheSimilarity || 0.85,
+      ttl: dependencies.planCacheTTL || 7 * 24 * 60 * 60 * 1000, // 7天
+      enabled: dependencies.enablePlanCache !== false, // 默认启用
+      llmManager: this.llmManager, // 用于embedding
+    });
+    logger.info('[TaskPlannerEnhanced] 智能计划缓存已初始化');
   }
 
   /**
@@ -66,6 +418,18 @@ class TaskPlannerEnhanced extends EventEmitter {
     logger.info('[TaskPlannerEnhanced] 开始拆解任务:', userRequest);
 
     try {
+      // 0. 智能缓存检查（优先级最高）
+      const cachedPlan = await this.planCache.get(userRequest);
+      if (cachedPlan) {
+        logger.info('[TaskPlannerEnhanced] ✅ 缓存命中，直接返回计划');
+        // 添加缓存标记
+        return {
+          ...cachedPlan,
+          fromCache: true,
+          cacheStats: this.planCache.getStats(),
+        };
+      }
+
       // 1. RAG增强: 检索相关上下文
       let ragContext = null;
       if (projectContext.projectId && projectContext.enableRAG !== false) {
@@ -75,42 +439,71 @@ class TaskPlannerEnhanced extends EventEmitter {
       // 2. 构建拆解提示词(异步,集成RAG上下文)
       const prompt = await this.buildDecomposePrompt(userRequest, projectContext, ragContext);
 
-      // 3. 调用LLM生成任务计划
+      // 3. ⚡ 多层降级策略: 调用LLM生成任务计划
       let response;
+      let taskPlan;
+
+      // 尝试1: 主LLM（本地Ollama或配置的主LLM）
       try {
+        logger.info('[TaskPlannerEnhanced] 尝试1: 主LLM');
         response = await this.llmManager.query(prompt, {
           systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
           temperature: 0.3,
           maxTokens: 2000
         });
-      } catch (llmError) {
-        logger.warn('[TaskPlannerEnhanced] 本地LLM失败，尝试使用后端AI服务:', llmError.message);
-        // 降级到后端AI服务
-        response = await this.queryBackendAI(prompt, {
-          systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
-          temperature: 0.3
-        });
+
+        taskPlan = JSON.parse(this.cleanAndFixJSON(response.text));
+        logger.info('[TaskPlannerEnhanced] ✅ 主LLM成功');
+
+      } catch (error1) {
+        logger.warn('[TaskPlannerEnhanced] 主LLM失败:', error1.message);
+
+        // 尝试2: 修复JSON格式错误
+        if (response && response.text) {
+          try {
+            logger.info('[TaskPlannerEnhanced] 尝试2: 修复JSON格式');
+            const cleaned = this.cleanAndFixJSON(response.text);
+            taskPlan = JSON.parse(cleaned);
+            logger.info('[TaskPlannerEnhanced] ✅ JSON修复成功');
+
+          } catch (error2) {
+            logger.warn('[TaskPlannerEnhanced] JSON修复失败:', error2.message);
+
+            // 尝试3: 备用LLM（后端AI服务）
+            try {
+              logger.info('[TaskPlannerEnhanced] 尝试3: 后端AI服务');
+              response = await this.queryBackendAI(prompt, {
+                systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
+                temperature: 0.3
+              });
+
+              taskPlan = JSON.parse(this.cleanAndFixJSON(response.text));
+              logger.info('[TaskPlannerEnhanced] ✅ 后端AI服务成功');
+
+            } catch (error3) {
+              logger.warn('[TaskPlannerEnhanced] 后端AI服务失败:', error3.message);
+
+              // 尝试4: 基于规则的分解（最后降级）
+              try {
+                logger.info('[TaskPlannerEnhanced] 尝试4: 基于规则的任务分解');
+                taskPlan = this.ruleBasedDecompose(userRequest, projectContext);
+                logger.info('[TaskPlannerEnhanced] ✅ 基于规则的分解成功');
+
+              } catch (error4) {
+                logger.error('[TaskPlannerEnhanced] 基于规则的分解也失败:', error4.message);
+                // 抛出错误，进入外层catch的createFallbackPlan
+                throw new Error('所有降级策略均失败');
+              }
+            }
+          }
+        } else {
+          // 没有响应文本，直接进入规则分解
+          logger.info('[TaskPlannerEnhanced] 无LLM响应，使用规则分解');
+          taskPlan = this.ruleBasedDecompose(userRequest, projectContext);
+        }
       }
 
-      logger.info('[TaskPlannerEnhanced] LLM响应:', response.text.substring(0, 200) + '...');
-
-      // 3. 解析JSON响应
-      let taskPlan;
-      try {
-        // 提取JSON（可能包含在代码块中）
-        const jsonMatch = response.text.match(/```json\n?([\s\S]*?)\n?```/) ||
-                         response.text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : response.text;
-        taskPlan = JSON.parse(jsonText);
-      } catch (parseError) {
-        logger.error('[TaskPlannerEnhanced] JSON解析失败:', parseError);
-        // 如果解析失败，尝试修复常见问题
-        const cleanedText = response.text
-          .replace(/```json\n?/g, '')
-          .replace(/```\n?/g, '')
-          .trim();
-        taskPlan = JSON.parse(cleanedText);
-      }
+      logger.info('[TaskPlannerEnhanced] 任务计划生成成功，共', taskPlan?.subtasks?.length || 0, '个子任务');
 
       // 4. 规范化任务计划
       const normalizedPlan = this.normalizePlan(taskPlan, userRequest);
@@ -121,6 +514,11 @@ class TaskPlannerEnhanced extends EventEmitter {
       }
 
       logger.info('[TaskPlannerEnhanced] 任务拆解成功，共', normalizedPlan.subtasks.length, '个子任务');
+
+      // 6. 缓存任务计划（异步，不等待）
+      this.planCache.set(userRequest, normalizedPlan).catch(error => {
+        logger.warn('[TaskPlannerEnhanced] 缓存任务计划失败:', error.message);
+      });
 
       return normalizedPlan;
     } catch (error) {
@@ -143,6 +541,11 @@ class TaskPlannerEnhanced extends EventEmitter {
           // 即使保存失败，也返回任务计划（至少可以在内存中使用）
         }
       }
+
+      // 缓存降级计划（异步，不等待）
+      this.planCache.set(userRequest, fallbackPlan).catch(error => {
+        logger.warn('[TaskPlannerEnhanced] 缓存降级计划失败:', error.message);
+      });
 
       return fallbackPlan;
     }
@@ -358,6 +761,103 @@ ${userRequest}
   /**
    * 创建降级方案（当LLM失败时）
    */
+  /**
+   * ⚡ 优化2: JSON清理和修复
+   * 尝试修复常见的JSON格式错误
+   */
+  cleanAndFixJSON(jsonText) {
+    let cleaned = jsonText
+      // 移除代码块标记
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      // 移除注释
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      // 移除尾随逗号
+      .replace(/,(\s*[}\]])/g, '$1')
+      // 修复单引号为双引号
+      .replace(/'/g, '"')
+      // 移除控制字符
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .trim();
+
+    // 尝试提取JSON对象
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * ⚡ 优化2: 基于规则的任务分解
+   * 当所有LLM都失败时的最后降级方案
+   */
+  ruleBasedDecompose(userRequest, projectContext) {
+    logger.info('[TaskPlannerEnhanced] 使用基于规则的任务分解');
+
+    // 关键词到工具的映射
+    const keywords = {
+      'react': ['tool_npm_project_setup', 'file_writer', 'code_generator'],
+      'vue': ['tool_npm_project_setup', 'file_writer', 'code_generator'],
+      'express': ['tool_npm_project_setup', 'file_writer', 'git_init'],
+      'python': ['tool_python_project_setup', 'file_writer'],
+      'flask': ['tool_python_project_setup', 'file_writer'],
+      'django': ['tool_python_project_setup', 'file_writer'],
+      'excel': ['tool_excel_generator'],
+      'word': ['tool_word_generator'],
+      'ppt': ['tool_ppt_generator'],
+      '文档': ['tool_word_generator'],
+      '表格': ['tool_excel_generator'],
+      '幻灯片': ['tool_ppt_generator'],
+      '演示': ['tool_ppt_generator']
+    };
+
+    const requestLower = userRequest.toLowerCase();
+
+    // 检测关键词
+    const detectedKeywords = Object.keys(keywords).filter(k =>
+      requestLower.includes(k)
+    );
+
+    let tools = [];
+    if (detectedKeywords.length > 0) {
+      // 使用检测到的关键词对应的工具
+      tools = detectedKeywords.flatMap(k => keywords[k]);
+      // 去重
+      tools = [...new Set(tools)];
+    } else {
+      // 默认工具链
+      tools = ['file_writer', 'generic_executor'];
+    }
+
+    return {
+      id: uuidv4(),
+      task_title: userRequest.substring(0, 50),
+      task_type: 'create',
+      user_request: userRequest,
+      estimated_duration: '5分钟',
+      subtasks: tools.map((tool, i) => ({
+        id: uuidv4(),
+        step: i + 1,
+        title: `执行 ${tool}`,
+        tool: tool,
+        action: 'execute',
+        description: userRequest,
+        params: { request: userRequest },
+        dependencies: i > 0 ? [i] : [],
+        output_files: [],
+        priority: 'normal'
+      })),
+      final_output: {
+        type: 'file',
+        files: []
+      },
+      created_at: new Date().toISOString()
+    };
+  }
+
   createFallbackPlan(userRequest, projectContext) {
     logger.info('[TaskPlannerEnhanced] 使用降级方案');
 
@@ -633,6 +1133,51 @@ ${userRequest}
           taskPlan: taskPlan
         });
       }
+
+      // 质量门禁检查
+      const gateResults = await this.qualityGateChecker.runAllGates(taskPlan);
+
+      if (!gateResults.passed) {
+        // 质量门禁未通过，终止执行
+        const errorMessage = `质量门禁检查失败: ${gateResults.errors.join('; ')}`;
+        logger.error('[TaskPlannerEnhanced]', errorMessage);
+
+        taskPlan.status = 'failed';
+        taskPlan.error_message = errorMessage;
+        taskPlan.completed_at = Date.now();
+
+        await this.updateTaskPlan(taskPlan.id, {
+          status: 'failed',
+          error_message: errorMessage,
+          completed_at: taskPlan.completed_at
+        });
+
+        this.emit('task-failed', { taskPlan, error: errorMessage, gateResults });
+        if (progressCallback) {
+          progressCallback({
+            type: 'task-failed',
+            taskPlan: taskPlan,
+            error: errorMessage,
+            gateResults
+          });
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      // 质量门禁通过，记录警告（如果有）
+      if (gateResults.warnings && gateResults.warnings.length > 0) {
+        logger.warn('[TaskPlannerEnhanced] 质量门禁警告:', gateResults.warnings);
+        this.emit('quality-gate-warnings', { taskPlan, warnings: gateResults.warnings });
+        if (progressCallback) {
+          progressCallback({
+            type: 'quality-gate-warnings',
+            warnings: gateResults.warnings
+          });
+        }
+      }
+
+      logger.info(`[TaskPlannerEnhanced] ✅ 质量门禁检查通过 (${gateResults.duration}ms)`);
 
       // 解析执行顺序（基于依赖关系）
       const executionOrder = this.resolveExecutionOrder(taskPlan.subtasks);

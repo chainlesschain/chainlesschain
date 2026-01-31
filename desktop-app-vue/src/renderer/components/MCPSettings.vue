@@ -44,6 +44,31 @@
         description="请先开启上方的「启用MCP系统」开关，然后重启应用后才能连接服务器。"
       />
 
+      <!-- MCP需要重启警告 -->
+      <a-alert
+        v-if="needsRestart"
+        type="info"
+        show-icon
+        closable
+        style="margin-bottom: 16px"
+        @close="needsRestart = false"
+      >
+        <template #message>
+          <strong>✨ MCP系统已启用</strong>
+        </template>
+        <template #description>
+          <div style="margin-bottom: 12px">
+            请重启应用以加载 MCP 服务器功能。重启后即可连接和使用 MCP 服务器。
+          </div>
+          <a-button type="primary" size="small" @click="handleRestartApp">
+            <reload-outlined /> 立即重启应用
+          </a-button>
+          <a-button size="small" style="margin-left: 8px" @click="needsRestart = false">
+            稍后重启
+          </a-button>
+        </template>
+      </a-alert>
+
       <!-- 服务器列表 -->
       <a-divider orientation="left"> 服务器列表 </a-divider>
 
@@ -933,6 +958,7 @@ const disconnectingServers = ref(new Set());
 const config = reactive({
   enabled: false,
 });
+const needsRestart = ref(false); // MCP启用后需要重启
 const metrics = reactive({
   totalCalls: 0,
   successfulCalls: 0,
@@ -1353,8 +1379,10 @@ const handleEnableChange = async (enabled) => {
 
     if (result?.success) {
       if (enabled) {
-        message.success("MCP系统已启用，请重启应用以加载 MCP 服务");
+        needsRestart.value = true; // 显示重启提示
+        message.success("MCP系统已启用");
       } else {
+        needsRestart.value = false;
         message.success("MCP系统已禁用");
       }
     } else {
@@ -1369,6 +1397,19 @@ const handleEnableChange = async (enabled) => {
       message.error("更新配置失败: " + error.message);
     }
     config.enabled = !enabled;
+  }
+};
+
+// 重启应用
+const handleRestartApp = async () => {
+  try {
+    const result = await window.electronAPI.invoke("system:restart");
+    if (!result?.success) {
+      message.error("重启失败: " + (result?.error || "未知错误"));
+    }
+  } catch (error) {
+    logger.error("[MCPSettings] 重启应用失败:", error);
+    message.error("重启失败: " + error.message);
   }
 };
 

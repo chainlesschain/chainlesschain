@@ -3,6 +3,8 @@ package com.chainlesschain.android.presentation.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -27,13 +29,26 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 /**
  * 新首页设计
  * 参考设计稿：顶部用户头像、品牌区域、功能入口网格、底部输入框
+ * 包含三大核心功能入口：
+ * 1. 知识库管理 - 个人第二大脑
+ * 2. 去中心化社交 - DID身份、P2P加密通讯
+ * 3. 项目管理 & 数字资产 - 项目管理、文件管理、智能合约
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewHomeScreen(
     viewModel: AuthViewModel,
     onProfileClick: () -> Unit = {},
-    onNavigateToFileBrowser: () -> Unit = {}
+    onNavigateToKnowledgeList: () -> Unit = {},
+    onNavigateToAIChat: () -> Unit = {},
+    onNavigateToLLMSettings: () -> Unit = {},
+    onNavigateToSocialFeed: () -> Unit = {},
+    onNavigateToMyQRCode: () -> Unit = {},
+    onNavigateToQRScanner: () -> Unit = {},
+    onNavigateToProjectTab: () -> Unit = {},
+    onNavigateToFileBrowser: () -> Unit = {},
+    onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToP2P: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
@@ -46,10 +61,11 @@ fun NewHomeScreen(
         // 顶部栏 - 用户头像
         HomeTopBar(onProfileClick = onProfileClick)
 
-        // 主内容区域
+        // 主内容区域 - 添加滚动支持
         Column(
             modifier = Modifier
                 .weight(1f)
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -60,12 +76,21 @@ fun NewHomeScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 功能入口网格 (3x2)
+            // 功能入口网格 (3x3 = 9个核心功能)
             FunctionEntryGrid(
-                onNavigateToFileBrowser = onNavigateToFileBrowser
+                onNavigateToKnowledgeList = onNavigateToKnowledgeList,
+                onNavigateToAIChat = onNavigateToAIChat,
+                onNavigateToLLMSettings = onNavigateToLLMSettings,
+                onNavigateToSocialFeed = onNavigateToSocialFeed,
+                onNavigateToMyQRCode = onNavigateToMyQRCode,
+                onNavigateToQRScanner = onNavigateToQRScanner,
+                onNavigateToProjectTab = onNavigateToProjectTab,
+                onNavigateToFileBrowser = onNavigateToFileBrowser,
+                onNavigateToRemoteControl = onNavigateToRemoteControl,
+                onNavigateToP2P = onNavigateToP2P
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         // 底部输入框
@@ -165,28 +190,61 @@ fun BrandSection() {
 
 /**
  * 功能入口网格
+ * 展示三大核心功能：知识库管理、去中心化社交、项目管理/数字资产
  */
 @Composable
 fun FunctionEntryGrid(
-    onNavigateToFileBrowser: () -> Unit = {}
+    onNavigateToKnowledgeList: () -> Unit = {},
+    onNavigateToAIChat: () -> Unit = {},
+    onNavigateToLLMSettings: () -> Unit = {},
+    onNavigateToSocialFeed: () -> Unit = {},
+    onNavigateToMyQRCode: () -> Unit = {},
+    onNavigateToQRScanner: () -> Unit = {},
+    onNavigateToProjectTab: () -> Unit = {},
+    onNavigateToFileBrowser: () -> Unit = {},
+    onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToP2P: () -> Unit = {}
 ) {
-    val functionItems = remember {
+    // 9 个核心功能入口，覆盖三大核心板块
+    val functionItems = remember(
+        onNavigateToKnowledgeList,
+        onNavigateToAIChat,
+        onNavigateToLLMSettings,
+        onNavigateToSocialFeed,
+        onNavigateToMyQRCode,
+        onNavigateToQRScanner,
+        onNavigateToProjectTab,
+        onNavigateToFileBrowser,
+        onNavigateToP2P,
+        onNavigateToRemoteControl
+    ) {
         listOf(
-            FunctionEntryItem("AI助手", Icons.Outlined.AutoAwesome, Color(0xFFFF6B9D), onClick = { /* TODO */ }),
-            FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF4CAF50), onClick = onNavigateToFileBrowser),
-            FunctionEntryItem("写作", Icons.Outlined.Edit, Color(0xFF2196F3)),
-            FunctionEntryItem("设计", Icons.Outlined.Palette, Color(0xFF9C27B0)),
-            FunctionEntryItem("播客", Icons.Outlined.Podcasts, Color(0xFFE91E63)),
-            FunctionEntryItem("工具箱", Icons.Outlined.Build, Color(0xFF009688))
+            // 第一行：知识库管理（个人第二大脑）
+            FunctionEntryItem("知识库", Icons.Outlined.Book, Color(0xFFFF6B9D), onClick = onNavigateToKnowledgeList),
+            FunctionEntryItem("AI对话", Icons.Outlined.Chat, Color(0xFF4CAF50), onClick = onNavigateToAIChat),
+            FunctionEntryItem("LLM设置", Icons.Outlined.Settings, Color(0xFF2196F3), onClick = onNavigateToLLMSettings),
+
+            // 第二行：去中心化社交（DID + P2P）
+            FunctionEntryItem("社交广场", Icons.Outlined.Forum, Color(0xFF9C27B0), onClick = onNavigateToSocialFeed),
+            FunctionEntryItem("我的二维码", Icons.Outlined.QrCode2, Color(0xFFE91E63), onClick = onNavigateToMyQRCode),
+            FunctionEntryItem("扫码添加", Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), onClick = onNavigateToQRScanner),
+
+            // 第三行：项目管理 & 数字资产 & 设备管理
+            FunctionEntryItem("项目管理", Icons.Outlined.Assignment, Color(0xFF00BCD4), onClick = onNavigateToProjectTab),
+            FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF8BC34A), onClick = onNavigateToFileBrowser),
+            // P2P设备管理
+            FunctionEntryItem("P2P设备", Icons.Outlined.Devices, Color(0xFFFF5722), onClick = onNavigateToP2P)
         )
     }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(360.dp), // 固定高度以适配3行卡片 (每行约120dp)
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        userScrollEnabled = false
+        userScrollEnabled = false  // 由父容器处理滚动
     ) {
         items(functionItems) { item ->
             FunctionEntryCard(

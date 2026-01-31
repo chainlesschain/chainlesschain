@@ -1,7 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
-    id("kotlin-kapt")
+    id("com.google.devtools.ksp")
     id("dagger.hilt.android.plugin")
 }
 
@@ -59,6 +59,7 @@ dependencies {
     implementation(project(":core-did"))
     implementation(project(":core-e2ee"))
     implementation(project(":core-ui"))
+    implementation(project(":core-network"))
 
     // Android Core
     implementation("androidx.core:core-ktx:1.12.0")
@@ -78,13 +79,13 @@ dependencies {
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
-    kapt("com.google.dagger:hilt-android-compiler:2.50")
+    ksp("com.google.dagger:hilt-android-compiler:2.50")
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
 
     // WorkManager with Hilt support
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     implementation("androidx.hilt:hilt-work:1.1.0")
-    kapt("androidx.hilt:hilt-compiler:1.1.0")
+    ksp("androidx.hilt:hilt-compiler:1.1.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
@@ -94,6 +95,28 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
+
+    // Accompanist (permissions)
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+
+    // ML Kit Barcode Scanning
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+
+    // Markwon (Markdown rendering and editing)
+    val markwonVersion = "4.6.2"
+    implementation("io.noties.markwon:core:$markwonVersion")
+    implementation("io.noties.markwon:editor:$markwonVersion")
+    implementation("io.noties.markwon:syntax-highlight:$markwonVersion")
+    implementation("io.noties.markwon:image-coil:$markwonVersion")
+    implementation("io.noties.markwon:ext-strikethrough:$markwonVersion")
+    implementation("io.noties.markwon:ext-tables:$markwonVersion")
+    implementation("io.noties.markwon:linkify:$markwonVersion")
+
+    // WebRTC (Voice/Video Call) - Disabled temporarily due to duplicate class conflicts
+    // implementation("io.getstream:stream-webrtc-android:1.1.3")
+    // implementation("io.getstream:stream-webrtc-android-ui:1.1.3")
+    // 或使用Google官方版本
+    // implementation("org.webrtc:google-webrtc:1.0.32006")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

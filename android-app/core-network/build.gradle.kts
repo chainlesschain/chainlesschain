@@ -36,6 +36,9 @@ dependencies {
     api("com.squareup.okhttp3:okhttp:4.12.0")
     api("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
+    // Jsoup for HTML parsing
+    api("org.jsoup:jsoup:1.17.2")
+
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
     ksp("com.google.dagger:hilt-compiler:2.50")
@@ -44,4 +47,5 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.9")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }

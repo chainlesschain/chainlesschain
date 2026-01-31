@@ -1,10 +1,21 @@
 /**
  * API Service Layer Verification Test
  * API 服务层验证测试
+ *
+ * NOTE: This is a manual browser test, not a vitest test.
+ * Run in browser console with:
+ *   import { testAPIService } from '@/services/__tests__/api.test.js'
+ *   testAPIService()
  */
 
+import { describe, it } from 'vitest';
 import { logger, createLogger } from '@/utils/logger';
 import api from '../api';
+
+// NOTE: Skipped - this file contains manual browser tests, not vitest tests
+describe.skip('API Service Layer Manual Tests', () => {
+  it('manual test placeholder', () => {});
+});
 
 /**
  * 手动测试函数

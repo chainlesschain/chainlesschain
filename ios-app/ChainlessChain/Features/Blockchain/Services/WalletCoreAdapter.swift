@@ -274,6 +274,144 @@ class WalletCoreAdapter {
 
         return wallet.getAddressForCoin(coin: coinType)
     }
+
+    // MARK: - Transaction Building & Signing
+
+    /// 签名以太坊交易（完整参数版本）
+    /// - Parameters:
+    ///   - wallet: 钱包对象
+    ///   - to: 接收地址
+    ///   - amount: 金额（Wei）
+    ///   - gasLimit: Gas限制
+    ///   - gasPrice: Gas价格（Wei）
+    ///   - nonce: Nonce
+    ///   - data: 交易数据（可选）
+    ///   - chainId: 链ID
+    /// - Returns: 签名后的原始交易（十六进制）
+    static func signTransaction(
+        wallet: Wallet,
+        to: String,
+        amount: String,
+        gasLimit: String,
+        gasPrice: String,
+        nonce: Int,
+        data: String? = nil,
+        chainId: Int
+    ) throws -> String {
+        // 从Keychain加载并解密私钥
+        guard let encryptedPrivateKey = wallet.encryptedPrivateKey else {
+            throw WalletCoreError.invalidPrivateKey
+        }
+
+        // 这里需要密码解锁，实际应该从WalletManager.unlockedWallets获取
+        // 为了避免循环依赖，这个方法应该接收已解锁的私钥
+        throw WalletCoreError.signatureFailed
+    }
+
+    /// 签名以太坊交易（使用私钥直接签名）
+    /// - Parameters:
+    ///   - privateKey: 私钥（十六进制）
+    ///   - to: 接收地址
+    ///   - amount: 金额（Wei）
+    ///   - gasLimit: Gas限制
+    ///   - gasPrice: Gas价格（Wei）
+    ///   - nonce: Nonce
+    ///   - data: 交易数据（可选）
+    ///   - chainId: 链ID
+    /// - Returns: 签名后的原始交易（十六进制）
+    static func signTransaction(
+        privateKey: String,
+        to: String,
+        amount: String,
+        gasLimit: String,
+        gasPrice: String,
+        nonce: Int,
+        data: String? = nil,
+        chainId: Int
+    ) throws -> String {
+        // 清理私钥
+        let cleanKey = privateKey.hasPrefix("0x") ? String(privateKey.dropFirst(2)) : privateKey
+        guard let privateKeyData = Data(hexString: cleanKey) else {
+            throw WalletCoreError.invalidPrivateKeyFormat
+        }
+
+        guard let privKey = PrivateKey(data: privateKeyData) else {
+            throw WalletCoreError.invalidPrivateKey
+        }
+
+        // 转换参数
+        guard let amountData = bigIntToData(amount),
+              let gasLimitData = bigIntToData(gasLimit),
+              let gasPriceData = bigIntToData(gasPrice) else {
+            throw WalletCoreError.invalidPrivateKey
+        }
+
+        let nonceData = Data(count: 8)
+        var nonceMutable = nonce
+        withUnsafeBytes(of: &nonceMutable) { bytes in
+            _ = nonceData
+        }
+
+        // 构建签名输入
+        let input = EthereumSigningInput.with {
+            $0.chainID = Data([UInt8(chainId)])
+            $0.nonce = bigIntToData(String(nonce)) ?? Data()
+            $0.gasPrice = gasPriceData
+            $0.gasLimit = gasLimitData
+            $0.toAddress = to
+            $0.privateKey = privateKeyData
+
+            if let txData = data, let dataBytes = Data(hexString: txData) {
+                $0.transaction = EthereumTransaction.with {
+                    $0.contractGeneric = EthereumTransaction.ContractGeneric.with {
+                        $0.amount = amountData
+                        $0.data = dataBytes
+                    }
+                }
+            } else {
+                $0.transaction = EthereumTransaction.with {
+                    $0.transfer = EthereumTransaction.Transfer.with {
+                        $0.amount = amountData
+                    }
+                }
+            }
+        }
+
+        // 签名
+        let output: EthereumSigningOutput = AnySigner.sign(input: input, coin: .ethereum)
+
+        // 检查错误
+        guard output.error == .ok else {
+            throw WalletCoreError.signatureFailed
+        }
+
+        // 返回签名后的交易
+        return "0x" + output.encoded.hexString
+    }
+
+    // MARK: - Helper Methods
+
+    /// 大整数字符串转Data
+    private static func bigIntToData(_ value: String) -> Data? {
+        // 移除0x前缀
+        let cleanValue = value.hasPrefix("0x") ? String(value.dropFirst(2)) : value
+
+        // 转换为十六进制Data
+        if let intValue = UInt64(cleanValue, radix: 16) {
+            var mutableValue = intValue.bigEndian
+            return Data(bytes: &mutableValue, count: MemoryLayout<UInt64>.size)
+        } else if let data = Data(hexString: cleanValue) {
+            return data
+        }
+
+        // 尝试十进制转换
+        if let decimalValue = UInt64(cleanValue) {
+            var mutableValue = decimalValue.bigEndian
+            return Data(bytes: &mutableValue, count: MemoryLayout<UInt64>.size)
+        }
+
+        return nil
+    }
 }
 
 // MARK: - Error Types

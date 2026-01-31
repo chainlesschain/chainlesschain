@@ -304,11 +304,59 @@
               </template>
               P2P加密消息
             </a-menu-item>
+            <a-menu-item key="p2p-device-pairing">
+              <template #icon>
+                <LinkOutlined />
+              </template>
+              设备配对
+            </a-menu-item>
+            <a-menu-item key="p2p-device-management">
+              <template #icon>
+                <MobileOutlined />
+              </template>
+              设备管理
+            </a-menu-item>
+            <a-menu-item key="p2p-file-transfer">
+              <template #icon>
+                <CloudDownloadOutlined />
+              </template>
+              文件传输
+            </a-menu-item>
+            <a-menu-item key="p2p-safety-numbers">
+              <template #icon>
+                <KeyOutlined />
+              </template>
+              安全号码验证
+            </a-menu-item>
+            <a-menu-item key="p2p-session-fingerprint">
+              <template #icon>
+                <ScanOutlined />
+              </template>
+              会话指纹
+            </a-menu-item>
+            <a-menu-item key="p2p-message-queue">
+              <template #icon>
+                <UnorderedListOutlined />
+              </template>
+              消息队列
+            </a-menu-item>
             <a-menu-item key="offline-queue">
               <template #icon>
                 <InboxOutlined />
               </template>
               离线消息队列
+            </a-menu-item>
+            <a-menu-item key="remote-control">
+              <template #icon>
+                <MobileOutlined />
+              </template>
+              远程控制
+            </a-menu-item>
+            <a-menu-item key="command-logs">
+              <template #icon>
+                <FileTextOutlined />
+              </template>
+              命令日志
             </a-menu-item>
           </a-sub-menu>
 
@@ -558,6 +606,27 @@
                 </template>
                 RAG配置
               </a-menu-item>
+              <a-menu-item key="mcp-settings">
+                <template #icon>
+                  <ApiOutlined />
+                </template>
+                <span>MCP服务器</span>
+                <a-badge
+                  count="新"
+                  :number-style="{
+                    backgroundColor: '#1890ff',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
+              </a-menu-item>
+              <a-menu-item key="token-usage">
+                <template #icon>
+                  <LineChartOutlined />
+                </template>
+                Token使用统计
+              </a-menu-item>
             </a-menu-item-group>
 
             <!-- 同步与安全 -->
@@ -580,11 +649,124 @@
                 </template>
                 UKey安全
               </a-menu-item>
+            </a-menu-item-group>
+
+            <!-- 监控与诊断 -->
+            <a-menu-item-group title="监控与诊断">
+              <a-menu-item key="workflow-optimizations">
+                <template #icon>
+                  <ThunderboltOutlined />
+                </template>
+                <span>工作流优化</span>
+                <a-badge
+                  count="新"
+                  :number-style="{
+                    backgroundColor: '#52c41a',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
+              </a-menu-item>
+              <a-menu-item key="llm-performance">
+                <template #icon>
+                  <LineChartOutlined />
+                </template>
+                <span>LLM性能监控</span>
+                <a-badge
+                  count="新"
+                  :number-style="{
+                    backgroundColor: '#52c41a',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
+              </a-menu-item>
               <a-menu-item key="database-performance">
                 <template #icon>
                   <DashboardOutlined />
                 </template>
                 数据库性能监控
+              </a-menu-item>
+              <a-menu-item key="error-monitor">
+                <template #icon>
+                  <BugOutlined />
+                </template>
+                <span>错误监控</span>
+                <a-badge
+                  count="AI"
+                  :number-style="{
+                    backgroundColor: '#1890ff',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
+              </a-menu-item>
+              <a-menu-item key="session-manager">
+                <template #icon>
+                  <HistoryOutlined />
+                </template>
+                <span>会话管理</span>
+                <a-badge
+                  count="新"
+                  :number-style="{
+                    backgroundColor: '#52c41a',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
+              </a-menu-item>
+              <a-menu-item key="memory-dashboard">
+                <template #icon>
+                  <DatabaseOutlined />
+                </template>
+                内存仪表板
+              </a-menu-item>
+              <a-menu-item key="tag-manager">
+                <template #icon>
+                  <TagsOutlined />
+                </template>
+                标签管理
+              </a-menu-item>
+            </a-menu-item-group>
+
+            <!-- Cowork 多代理协作 -->
+            <a-menu-item-group title="多代理协作">
+              <a-menu-item key="cowork-dashboard">
+                <template #icon>
+                  <TeamOutlined />
+                </template>
+                <span>Cowork 协作</span>
+                <a-badge
+                  count="新"
+                  :number-style="{
+                    backgroundColor: '#52c41a',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
+              </a-menu-item>
+              <a-menu-item key="cowork-tasks">
+                <template #icon>
+                  <UnorderedListOutlined />
+                </template>
+                任务监控
+              </a-menu-item>
+              <a-menu-item key="cowork-skills">
+                <template #icon>
+                  <ToolOutlined />
+                </template>
+                技能管理
+              </a-menu-item>
+              <a-menu-item key="cowork-analytics">
+                <template #icon>
+                  <BarChartOutlined />
+                </template>
+                数据分析
               </a-menu-item>
             </a-menu-item-group>
           </a-sub-menu>
@@ -1057,6 +1239,16 @@ import {
   ArrowRightOutlined,
   PushpinOutlined,
   AndroidOutlined,
+  LinkOutlined,
+  MobileOutlined,
+  CloudDownloadOutlined,
+  KeyOutlined,
+  ScanOutlined,
+  UnorderedListOutlined,
+  LineChartOutlined,
+  BarChartOutlined,
+  BugOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons-vue";
 import { useAppStore } from "../stores/app";
 import { useSocialStore } from "../stores/social";
@@ -1210,6 +1402,53 @@ const menuConfig = {
     path: "/database/performance",
     title: "数据库性能监控",
   },
+
+  // 监控与诊断模块
+  "workflow-optimizations": { path: "/workflow/optimizations", title: "工作流优化" },
+  "session-manager": { path: "/sessions", title: "会话管理" },
+  "error-monitor": { path: "/error/monitor", title: "错误监控" },
+  "memory-dashboard": { path: "/memory", title: "内存仪表板" },
+  "tag-manager": { path: "/tags", title: "标签管理" },
+  "llm-performance": { path: "/llm/performance", title: "LLM性能监控" },
+
+  // Cowork 多代理协作模块
+  "cowork-dashboard": { path: "/cowork", title: "Cowork 多代理协作" },
+  "cowork-tasks": { path: "/cowork/tasks", title: "任务监控" },
+  "cowork-skills": { path: "/cowork/skills", title: "技能管理" },
+  "cowork-analytics": { path: "/cowork/analytics", title: "数据分析" },
+
+  // MCP和高级AI配置
+  "mcp-settings": {
+    path: "/settings",
+    title: "MCP服务器",
+    query: { tab: "mcp" },
+  },
+  "token-usage": {
+    path: "/settings",
+    title: "Token使用统计",
+    query: { tab: "token-usage" },
+  },
+
+  // P2P高级功能
+  "p2p-device-pairing": { path: "/p2p/device-pairing", title: "设备配对" },
+  "p2p-device-management": {
+    path: "/p2p/device-management",
+    title: "设备管理",
+  },
+
+  // 远程控制功能
+  "remote-control": { path: "/remote/control", title: "远程控制" },
+  "command-logs": { path: "/remote/logs", title: "命令日志" },
+  "p2p-file-transfer": { path: "/p2p/file-transfer", title: "文件传输" },
+  "p2p-safety-numbers": {
+    path: "/p2p/safety-numbers",
+    title: "安全号码验证",
+  },
+  "p2p-session-fingerprint": {
+    path: "/p2p/session-fingerprint",
+    title: "会话指纹",
+  },
+  "p2p-message-queue": { path: "/p2p/message-queue", title: "消息队列" },
 };
 
 // 监听路由变化，更新选中的菜单项
@@ -2059,6 +2298,7 @@ const getMenuIcon = (key) => {
     "sync-conflicts": "ExclamationCircleOutlined",
     "ukey-settings": "SafetyOutlined",
     "database-performance": "DashboardOutlined",
+    "workflow-optimizations": "ThunderboltOutlined",
   };
   return iconMap[key] || "FileTextOutlined";
 };
@@ -2299,6 +2539,8 @@ const breadcrumbs = computed(() => {
       items.push({ title: "同步冲突管理", path: null });
     } else if (path === "/database/performance") {
       items.push({ title: "数据库性能监控", path: null });
+    } else if (path === "/workflow/optimizations") {
+      items.push({ title: "工作流优化", path: null });
     }
   }
 

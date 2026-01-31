@@ -110,7 +110,8 @@ class ConversationViewModel @Inject constructor(
 
         // 检查API Key（非Ollama模型需要）
         val provider = getProviderFromModel(conversation.model)
-        val apiKey = _uiState.value.currentApiKey
+        // 直接从repository获取最新API Key，不依赖uiState缓存
+        val apiKey = repository.getApiKey(provider)
         if (provider != LLMProvider.OLLAMA && apiKey.isNullOrEmpty()) {
             _uiState.update {
                 it.copy(error = "请先配置${provider.displayName} API Key，可在AI设置中配置")
@@ -167,7 +168,8 @@ class ConversationViewModel @Inject constructor(
 
                 // 流式获取AI响应
                 val provider = getProviderFromModel(conversation.model)
-                val apiKey = _uiState.value.currentApiKey
+                // 直接从repository获取最新API Key，确保使用最新配置
+                val apiKey = repository.getApiKey(provider)
 
                 var fullResponse = ""
 

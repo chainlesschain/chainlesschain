@@ -41,8 +41,8 @@ public class GasManager: ObservableObject {
 
     /// 获取Gas价格估算（三个档位）
     public func getGasPriceEstimate(chain: SupportedChain? = nil) async throws -> GasPriceEstimate {
-        let activeChain = chain ?? chainManager.activeChain
-        let config = NetworkConfig.config(for: activeChain)
+        let activeChain = chain ?? chainManager.currentChain
+        let config = chainManager.getConfig(for: activeChain)
 
         // 获取基础Gas价格
         let basePriceWei = try await rpcClient.getGasPrice(rpcUrl: config.rpcUrl)
@@ -82,8 +82,8 @@ public class GasManager: ObservableObject {
         data: String? = nil,
         chain: SupportedChain? = nil
     ) async throws -> String {
-        let activeChain = chain ?? chainManager.activeChain
-        let config = NetworkConfig.config(for: activeChain)
+        let activeChain = chain ?? chainManager.currentChain
+        let config = chainManager.getConfig(for: activeChain)
 
         // 简单转账使用默认Gas限制
         if data == nil && value != "0" {

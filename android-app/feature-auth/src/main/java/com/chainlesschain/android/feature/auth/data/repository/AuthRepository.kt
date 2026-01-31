@@ -116,6 +116,8 @@ class AuthRepository @Inject constructor(
                 // 检查用户数据是否存在
                 var user = getCurrentUser()
 
+                Timber.d("verifyPIN: getCurrentUser returned: ${if (user == null) "NULL" else "User(id=${user.id})"}")
+
                 // 如果用户数据缺失（可能因为旧版本logout清除了数据），重新创建
                 if (user == null) {
                     Timber.w("User data missing, regenerating...")
@@ -138,13 +140,14 @@ class AuthRepository @Inject constructor(
                         biometricEnabled = prefs[KEY_BIOMETRIC_ENABLED] ?: false
                     )
 
-                    Timber.d("User data regenerated: $userId")
+                    Timber.d("User data regenerated: userId=$userId")
                 } else {
                     // 更新最后登录时间
                     context.dataStore.edit { it[KEY_LAST_LOGIN_AT] = System.currentTimeMillis() }
+                    Timber.d("User exists, updated lastLoginAt: userId=${user.id}")
                 }
 
-                Timber.d("PIN verification successful")
+                Timber.d("PIN verification successful, returning user: ${user?.id}")
 
                 Result.success(user)
             } else {

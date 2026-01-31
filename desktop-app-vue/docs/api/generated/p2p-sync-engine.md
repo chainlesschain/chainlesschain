@@ -1,0 +1,381 @@
+# p2p-sync-engine
+
+**Source**: `src\main\sync\p2p-sync-engine.js`
+
+**Generated**: 2026-01-27T06:44:03.804Z
+
+---
+
+## class P2PSyncEngine
+
+```javascript
+class P2PSyncEngine
+```
+
+* P2P 数据同步引擎
+ * 负责去中心化组织的数据同步、冲突检测和解决
+ *
+ * @class P2PSyncEngine
+
+---
+
+## async initialize()
+
+```javascript
+async initialize()
+```
+
+* 初始化同步引擎
+   * @returns {Promise<void>}
+
+---
+
+## startAutoSync(orgId)
+
+```javascript
+startAutoSync(orgId)
+```
+
+* 启动自动同步
+   * @param {string} orgId - 组织ID
+
+---
+
+## stopAutoSync()
+
+```javascript
+stopAutoSync()
+```
+
+* 停止自动同步
+
+---
+
+## async sync(orgId, options =
+
+```javascript
+async sync(orgId, options =
+```
+
+* 执行同步
+   * @param {string} orgId - 组织ID
+   * @param {Object} options - 同步选项
+   * @returns {Promise<Object>} 同步结果
+
+---
+
+## async getPendingResources(orgId)
+
+```javascript
+async getPendingResources(orgId)
+```
+
+* 获取待同步的资源
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<Array>} 待同步资源列表
+
+---
+
+## async requestRemoteChanges(orgId, options =
+
+```javascript
+async requestRemoteChanges(orgId, options =
+```
+
+* 请求远程变更
+   * @param {string} orgId - 组织ID
+   * @param {Object} options - 请求选项
+   * @returns {Promise<Array>} 远程变更列表
+
+---
+
+## async applyRemoteChanges(orgId, changes)
+
+```javascript
+async applyRemoteChanges(orgId, changes)
+```
+
+* 应用远程变更
+   * @param {string} orgId - 组织ID
+   * @param {Array} changes - 远程变更列表
+   * @returns {Promise<Object>} 应用结果
+
+---
+
+## async applyChange(orgId, change)
+
+```javascript
+async applyChange(orgId, change)
+```
+
+* 应用单个变更
+   * @param {string} orgId - 组织ID
+   * @param {Object} change - 变更对象
+   * @returns {Promise<Object>} 应用结果
+
+---
+
+## async pushLocalChanges(orgId, resources)
+
+```javascript
+async pushLocalChanges(orgId, resources)
+```
+
+* 推送本地变更
+   * @param {string} orgId - 组织ID
+   * @param {Array} resources - 待推送资源列表
+   * @returns {Promise<number>} 推送数量
+
+---
+
+## detectConflict(localState, remoteState)
+
+```javascript
+detectConflict(localState, remoteState)
+```
+
+* 检测冲突
+   * @param {Object} localState - 本地状态
+   * @param {Object} remoteState - 远程状态
+   * @returns {Object} 冲突检测结果
+
+---
+
+## async recordConflict(orgId, resourceType, resourceId, localState, remoteChange)
+
+```javascript
+async recordConflict(orgId, resourceType, resourceId, localState, remoteChange)
+```
+
+* 记录冲突
+   * @param {string} orgId - 组织ID
+   * @param {string} resourceType - 资源类型
+   * @param {string} resourceId - 资源ID
+   * @param {Object} localState - 本地状态
+   * @param {Object} remoteChange - 远程变更
+   * @returns {Promise<string>} 冲突记录ID
+
+---
+
+## async resolveConflict(orgId, resourceType, resourceId, localState, remoteChange)
+
+```javascript
+async resolveConflict(orgId, resourceType, resourceId, localState, remoteChange)
+```
+
+* 解决冲突
+   * @param {string} orgId - 组织ID
+   * @param {string} resourceType - 资源类型
+   * @param {string} resourceId - 资源ID
+   * @param {Object} localState - 本地状态
+   * @param {Object} remoteChange - 远程变更
+   * @returns {Promise<boolean>} 是否成功解决
+
+---
+
+## async resolveLWW(orgId, resourceType, resourceId, localState, remoteChange)
+
+```javascript
+async resolveLWW(orgId, resourceType, resourceId, localState, remoteChange)
+```
+
+* Last-Write-Wins 冲突解决
+   * @param {string} orgId - 组织ID
+   * @param {string} resourceType - 资源类型
+   * @param {string} resourceId - 资源ID
+   * @param {Object} localState - 本地状态
+   * @param {Object} remoteChange - 远程变更
+   * @returns {Promise<boolean>} 是否成功解决
+
+---
+
+## getConflictResolutionStrategy(resourceType)
+
+```javascript
+getConflictResolutionStrategy(resourceType)
+```
+
+* 获取冲突解决策略
+   * @param {string} resourceType - 资源类型
+   * @returns {string} 策略名称
+
+---
+
+## getSyncState(orgId, resourceType, resourceId)
+
+```javascript
+getSyncState(orgId, resourceType, resourceId)
+```
+
+* 获取同步状态
+   * @param {string} orgId - 组织ID
+   * @param {string} resourceType - 资源类型
+   * @param {string} resourceId - 资源ID
+   * @returns {Object|null} 同步状态
+
+---
+
+## updateSyncState(orgId, resourceType, resourceId, updates)
+
+```javascript
+updateSyncState(orgId, resourceType, resourceId, updates)
+```
+
+* 更新同步状态
+   * @param {string} orgId - 组织ID
+   * @param {string} resourceType - 资源类型
+   * @param {string} resourceId - 资源ID
+   * @param {Object} updates - 更新字段
+
+---
+
+## async getResourceData(resourceType, resourceId)
+
+```javascript
+async getResourceData(resourceType, resourceId)
+```
+
+* 获取资源数据
+   * @param {string} resourceType - 资源类型
+   * @param {string} resourceId - 资源ID
+   * @returns {Promise<Object|null>} 资源数据
+
+---
+
+## async applyResourceChange(resourceType, resourceId, action, data)
+
+```javascript
+async applyResourceChange(resourceType, resourceId, action, data)
+```
+
+* 应用资源变更
+   * @param {string} resourceType - 资源类型
+   * @param {string} resourceId - 资源ID
+   * @param {string} action - 操作类型
+   * @param {Object} data - 数据
+   * @returns {Promise<void>}
+
+---
+
+## async signMessage(message)
+
+```javascript
+async signMessage(message)
+```
+
+* 签名消息
+   * @param {Object} message - 消息对象
+   * @returns {Promise<string>} 签名
+
+---
+
+## async verifyMessage(message)
+
+```javascript
+async verifyMessage(message)
+```
+
+* 验证消息签名
+   * @param {Object} message - 消息对象
+   * @returns {Promise<boolean>} 是否有效
+
+---
+
+## async handleSyncRequest(message)
+
+```javascript
+async handleSyncRequest(message)
+```
+
+* 处理同步请求
+   * @param {Object} message - 同步请求消息
+
+---
+
+## async handleSyncResponse(message)
+
+```javascript
+async handleSyncResponse(message)
+```
+
+* 处理同步响应
+   * @param {Object} message - 同步响应消息
+
+---
+
+## async handleSyncChange(message)
+
+```javascript
+async handleSyncChange(message)
+```
+
+* 处理同步变更
+   * @param {Object} message - 同步变更消息
+
+---
+
+## async handleSyncConflict(message)
+
+```javascript
+async handleSyncConflict(message)
+```
+
+* 处理同步冲突
+   * @param {Object} message - 同步冲突消息
+
+---
+
+## async getChangesSince(orgId, sinceTime, resourceTypes)
+
+```javascript
+async getChangesSince(orgId, sinceTime, resourceTypes)
+```
+
+* 获取指定时间之后的变更
+   * @param {string} orgId - 组织ID
+   * @param {number} sinceTime - 起始时间戳
+   * @param {Array} resourceTypes - 资源类型列表
+   * @returns {Promise<Array>} 变更列表
+
+---
+
+## async processQueue(orgId)
+
+```javascript
+async processQueue(orgId)
+```
+
+* 处理离线队列
+   * @param {string} orgId - 组织ID
+   * @returns {Promise<number>} 处理数量
+
+---
+
+## addToQueue(orgId, action, resourceType, resourceId, data)
+
+```javascript
+addToQueue(orgId, action, resourceType, resourceId, data)
+```
+
+* 添加到离线队列
+   * @param {string} orgId - 组织ID
+   * @param {string} action - 操作类型
+   * @param {string} resourceType - 资源类型
+   * @param {string} resourceId - 资源ID
+   * @param {Object} data - 数据
+   * @returns {string} 队列项ID
+
+---
+
+## getSyncStats(orgId)
+
+```javascript
+getSyncStats(orgId)
+```
+
+* 获取同步统计
+   * @param {string} orgId - 组织ID
+   * @returns {Object} 统计信息
+
+---
+

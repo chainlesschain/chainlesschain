@@ -355,7 +355,15 @@ enum class ResourceType {
     CONVERSATION,
     MESSAGE,
     CONTACT,
-    SETTING
+    SETTING,
+    // 社交功能资源类型
+    FRIEND,
+    FRIEND_GROUP,
+    POST,
+    POST_COMMENT,
+    POST_LIKE,
+    POST_SHARE,
+    NOTIFICATION
 }
 
 /**

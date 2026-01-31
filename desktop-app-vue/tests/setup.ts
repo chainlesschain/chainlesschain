@@ -6,8 +6,23 @@ import { vi, beforeEach, afterEach } from 'vitest';
 import { config } from '@vue/test-utils';
 
 // ============================================================
-// CRITICAL: Mock electron and logger FIRST before any other imports
+// CRITICAL: Mock electron, logger, and vue-i18n FIRST before any other imports
 // ============================================================
+
+// Mock vue-i18n to avoid actual i18n setup (must be hoisted)
+vi.mock('vue-i18n', () => ({
+  createI18n: vi.fn(() => ({
+    global: {
+      t: (key: string) => key,
+      locale: 'zh-CN',
+    },
+    install: vi.fn(),
+  })),
+  useI18n: vi.fn(() => ({
+    t: (key: string) => key,
+    locale: { value: 'zh-CN' },
+  })),
+}));
 
 // Mock electron module - must be hoisted to run before any module imports
 vi.mock('electron', () => ({
@@ -51,6 +66,63 @@ vi.mock('electron', () => ({
   },
   desktopCapturer: {
     getSources: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+// Mock ipc module to prevent module-level initialization errors
+// (social.js calls createRetryableIPC at module load time)
+vi.mock('@/utils/ipc', () => ({
+  createRetryableIPC: vi.fn(() => ({
+    invoke: vi.fn().mockResolvedValue({}),
+    on: vi.fn().mockReturnValue(() => {}),
+    once: vi.fn(),
+    removeListener: vi.fn(),
+    removeAllListeners: vi.fn(),
+  })),
+  ipcWithRetry: vi.fn((fn) => fn()),
+  ukeyAPI: {
+    detect: vi.fn().mockResolvedValue({ detected: false }),
+    verifyPIN: vi.fn().mockResolvedValue({ success: true }),
+  },
+  authAPI: {
+    verifyPassword: vi.fn().mockResolvedValue({ success: true }),
+  },
+}));
+
+// Also mock relative path versions of ipc
+vi.mock('../src/renderer/utils/ipc', () => ({
+  createRetryableIPC: vi.fn(() => ({
+    invoke: vi.fn().mockResolvedValue({}),
+    on: vi.fn().mockReturnValue(() => {}),
+    once: vi.fn(),
+    removeListener: vi.fn(),
+    removeAllListeners: vi.fn(),
+  })),
+  ipcWithRetry: vi.fn((fn) => fn()),
+  ukeyAPI: {
+    detect: vi.fn().mockResolvedValue({ detected: false }),
+    verifyPIN: vi.fn().mockResolvedValue({ success: true }),
+  },
+  authAPI: {
+    verifyPassword: vi.fn().mockResolvedValue({ success: true }),
+  },
+}));
+
+vi.mock('../../src/renderer/utils/ipc', () => ({
+  createRetryableIPC: vi.fn(() => ({
+    invoke: vi.fn().mockResolvedValue({}),
+    on: vi.fn().mockReturnValue(() => {}),
+    once: vi.fn(),
+    removeListener: vi.fn(),
+    removeAllListeners: vi.fn(),
+  })),
+  ipcWithRetry: vi.fn((fn) => fn()),
+  ukeyAPI: {
+    detect: vi.fn().mockResolvedValue({ detected: false }),
+    verifyPIN: vi.fn().mockResolvedValue({ success: true }),
+  },
+  authAPI: {
+    verifyPassword: vi.fn().mockResolvedValue({ success: true }),
   },
 }));
 
@@ -410,9 +482,34 @@ const mockElectronAPI = {
   },
 };
 
+// Mock IPC renderer for window.electron.ipcRenderer (used by stores like social.js)
+const mockIpcRenderer = {
+  invoke: vi.fn().mockResolvedValue({}),
+  on: vi.fn().mockReturnValue(() => {}),
+  once: vi.fn(),
+  send: vi.fn(),
+  removeListener: vi.fn(),
+  removeAllListeners: vi.fn(),
+};
+
+// Mock window.electronAPI for IPC calls (used by src/renderer/utils/ipc.js)
+const mockElectronIpcAPI = {
+  ...mockIpcRenderer,
+  // Add common IPC channel handlers
+  ukey: {
+    detect: vi.fn().mockResolvedValue({ detected: false }),
+    verifyPIN: vi.fn().mockResolvedValue({ success: true }),
+  },
+  auth: {
+    verifyPassword: vi.fn().mockResolvedValue({ success: true }),
+  },
+};
+
 // 挂载到全局
 global.window = global.window || {};
 (global.window as any).api = mockElectronAPI;
+(global.window as any).electronAPI = mockElectronIpcAPI;
+(global.window as any).electron = { ipcRenderer: mockIpcRenderer };
 
 // Mock localStorage
 const localStorageMock = {

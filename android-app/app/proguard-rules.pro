@@ -172,3 +172,42 @@
 -allowaccessmodification
 -repackageclasses
 
+# Aggressive optimization
+-optimizationpasses 5
+-mergeinterfacesaggressively
+# -optimizeaggressively  # Not supported by R8, only ProGuard
+
+# Optimizations
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+
+# ============== Moderation System ==============
+# Keep moderation models for JSON serialization
+-keep class com.chainlesschain.android.feature.p2p.moderation.** { *; }
+-keep class com.chainlesschain.android.core.database.entity.ModerationQueueEntity { *; }
+-keep class com.chainlesschain.android.core.database.entity.ContentType { *; }
+-keep class com.chainlesschain.android.core.database.entity.ModerationStatus { *; }
+
+# ============== WebRTC (if integrated) ==============
+-keep class org.webrtc.** { *; }
+-dontwarn org.webrtc.**
+
+# ============== Coil Image Loading ==============
+-keep class coil.** { *; }
+-keep interface coil.** { *; }
+
+# ============== Markwon (Markdown) ==============
+-keep class io.noties.markwon.** { *; }
+-dontwarn io.noties.markwon.**
+
+# ============== ZXing (QR Codes) ==============
+-keep class com.google.zxing.** { *; }
+-dontwarn com.google.zxing.**
+
+# ============== CameraX ==============
+-keep class androidx.camera.** { *; }
+-dontwarn androidx.camera.**
+
+# ============== ML Kit ==============
+-keep class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**
+

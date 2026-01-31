@@ -113,40 +113,50 @@ describe("RSSFetcher", () => {
   });
 
   describe("Event Emission", () => {
-    it("should emit fetch-start event", (done) => {
-      fetcher.on("fetch-start", (data) => {
-        expect(data).toHaveProperty("feedUrl");
-        done();
+    // NOTE: Converted from done() callback to Promise style (done() deprecated in Vitest 3.x)
+    it("should emit fetch-start event", async () => {
+      const eventPromise = new Promise((resolve) => {
+        fetcher.on("fetch-start", (data) => {
+          expect(data).toHaveProperty("feedUrl");
+          resolve();
+        });
       });
 
       // Trigger event manually for testing
       fetcher.emit("fetch-start", { feedUrl: "https://example.com/feed.xml" });
+      await eventPromise;
     });
 
-    it("should emit fetch-success event", (done) => {
-      fetcher.on("fetch-success", (data) => {
-        expect(data).toHaveProperty("feedUrl");
-        expect(data).toHaveProperty("feed");
-        done();
+    it("should emit fetch-success event", async () => {
+      const eventPromise = new Promise((resolve) => {
+        fetcher.on("fetch-success", (data) => {
+          expect(data).toHaveProperty("feedUrl");
+          expect(data).toHaveProperty("feed");
+          resolve();
+        });
       });
 
       fetcher.emit("fetch-success", {
         feedUrl: "https://example.com/feed.xml",
         feed: { title: "Test" },
       });
+      await eventPromise;
     });
 
-    it("should emit fetch-error event", (done) => {
-      fetcher.on("fetch-error", (data) => {
-        expect(data).toHaveProperty("feedUrl");
-        expect(data).toHaveProperty("error");
-        done();
+    it("should emit fetch-error event", async () => {
+      const eventPromise = new Promise((resolve) => {
+        fetcher.on("fetch-error", (data) => {
+          expect(data).toHaveProperty("feedUrl");
+          expect(data).toHaveProperty("error");
+          resolve();
+        });
       });
 
       fetcher.emit("fetch-error", {
         feedUrl: "https://example.com/feed.xml",
         error: new Error("Test error"),
       });
+      await eventPromise;
     });
   });
 });

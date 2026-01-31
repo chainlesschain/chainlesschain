@@ -31,7 +31,14 @@ object DatabaseMigrations {
             MIGRATION_7_8,
             MIGRATION_8_9,
             MIGRATION_9_10,
-            MIGRATION_10_11
+            MIGRATION_10_11,
+            MIGRATION_11_12,
+            MIGRATION_12_13,
+            MIGRATION_13_14,
+            MIGRATION_14_15,
+            MIGRATION_15_16,
+            MIGRATION_16_17,
+            MIGRATION_17_18
         )
     }
 
@@ -550,6 +557,391 @@ object DatabaseMigrations {
     }
 
     /**
+     * 迁移 11 -> 12
+     *
+     * 添加传输队列表和断点续传表
+     */
+    val MIGRATION_11_12 = object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 11 to 12")
+
+            // 创建 transfer_queue 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `transfer_queue` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `peerId` TEXT NOT NULL,
+                    `fileName` TEXT NOT NULL,
+                    `fileSize` INTEGER NOT NULL,
+                    `priority` TEXT NOT NULL DEFAULT 'NORMAL',
+                    `status` TEXT NOT NULL DEFAULT 'PENDING',
+                    `createdAt` INTEGER NOT NULL,
+                    `startedAt` INTEGER,
+                    `completedAt` INTEGER
+                )
+            """.trimIndent())
+
+            // 创建 transfer_checkpoint 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `transfer_checkpoint` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `transferId` TEXT NOT NULL,
+                    `chunkIndex` INTEGER NOT NULL,
+                    `offset` INTEGER NOT NULL,
+                    `size` INTEGER NOT NULL,
+                    `checksum` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            Log.i(TAG, "Migration 11 to 12 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 12 -> 13
+     *
+     * 为 projects 表添加新字段
+     */
+    val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 12 to 13")
+
+            // 添加项目相关新字段（如果之前版本没有）
+            try {
+                db.execSQL("ALTER TABLE `projects` ADD COLUMN `lastViewedFileId` TEXT")
+            } catch (e: Exception) {
+                Log.w(TAG, "Column lastViewedFileId may already exist", e)
+            }
+
+            Log.i(TAG, "Migration 12 to 13 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 13 -> 14
+     *
+     * 添加社交功能表（好友、动态、通知等）
+     */
+    val MIGRATION_13_14 = object : Migration(13, 14) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 13 to 14")
+
+            // ===== 创建好友相关表 =====
+
+            // 创建 friends 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `friends` (
+                    `did` TEXT NOT NULL PRIMARY KEY,
+                    `nickname` TEXT NOT NULL,
+                    `avatar` TEXT,
+                    `bio` TEXT,
+                    `remarkName` TEXT,
+                    `groupId` TEXT,
+                    `addedAt` INTEGER NOT NULL,
+                    `status` TEXT NOT NULL,
+                    `isBlocked` INTEGER NOT NULL DEFAULT 0,
+                    `lastActiveAt` INTEGER,
+                    `metadata` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 friends 索引
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_friends_did` ON `friends` (`did`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_friends_status` ON `friends` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_friends_groupId` ON `friends` (`groupId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_friends_addedAt` ON `friends` (`addedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_friends_lastActiveAt` ON `friends` (`lastActiveAt`)")
+
+            // 创建 friend_groups 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `friend_groups` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `name` TEXT NOT NULL,
+                    `sortOrder` INTEGER NOT NULL DEFAULT 0,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 friend_groups 索引
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_friend_groups_name` ON `friend_groups` (`name`)")
+
+            // ===== 创建动态相关表 =====
+
+            // 创建 posts 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `posts` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `authorDid` TEXT NOT NULL,
+                    `content` TEXT NOT NULL,
+                    `images` TEXT NOT NULL,
+                    `linkUrl` TEXT,
+                    `linkPreview` TEXT,
+                    `tags` TEXT NOT NULL,
+                    `mentions` TEXT NOT NULL,
+                    `visibility` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER,
+                    `isPinned` INTEGER NOT NULL DEFAULT 0,
+                    `likeCount` INTEGER NOT NULL DEFAULT 0,
+                    `commentCount` INTEGER NOT NULL DEFAULT 0,
+                    `shareCount` INTEGER NOT NULL DEFAULT 0,
+                    `isLiked` INTEGER NOT NULL DEFAULT 0,
+                    `metadata` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 posts 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_posts_authorDid` ON `posts` (`authorDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_posts_createdAt` ON `posts` (`createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_posts_visibility` ON `posts` (`visibility`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_posts_authorDid_createdAt` ON `posts` (`authorDid`, `createdAt`)")
+
+            // 创建 post_likes 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_likes` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `userDid` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 post_likes 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_likes_postId` ON `post_likes` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_likes_userDid` ON `post_likes` (`userDid`)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_post_likes_postId_userDid` ON `post_likes` (`postId`, `userDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_likes_createdAt` ON `post_likes` (`createdAt`)")
+
+            // 创建 post_comments 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_comments` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `authorDid` TEXT NOT NULL,
+                    `content` TEXT NOT NULL,
+                    `parentCommentId` TEXT,
+                    `createdAt` INTEGER NOT NULL,
+                    `likeCount` INTEGER NOT NULL DEFAULT 0,
+                    `isLiked` INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+
+            // 创建 post_comments 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_comments_postId` ON `post_comments` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_comments_authorDid` ON `post_comments` (`authorDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_comments_parentCommentId` ON `post_comments` (`parentCommentId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_comments_createdAt` ON `post_comments` (`createdAt`)")
+
+            // 创建 post_shares 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_shares` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `userDid` TEXT NOT NULL,
+                    `comment` TEXT,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 post_shares 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_shares_postId` ON `post_shares` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_shares_userDid` ON `post_shares` (`userDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_shares_createdAt` ON `post_shares` (`createdAt`)")
+
+            // ===== 创建通知表 =====
+
+            // 创建 notifications 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `notifications` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `type` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `content` TEXT NOT NULL,
+                    `actorDid` TEXT,
+                    `targetId` TEXT,
+                    `createdAt` INTEGER NOT NULL,
+                    `isRead` INTEGER NOT NULL DEFAULT 0,
+                    `data` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 notifications 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_type` ON `notifications` (`type`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_isRead` ON `notifications` (`isRead`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_createdAt` ON `notifications` (`createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_actorDid` ON `notifications` (`actorDid`)")
+
+            Log.i(TAG, "Migration 13 to 14 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 14 -> 15
+     *
+     * 添加社交功能增强表：举报和屏蔽用户
+     */
+    val MIGRATION_14_15 = object : Migration(14, 15) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 14 to 15")
+
+            // 创建 post_reports 表（举报动态）
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_reports` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `reporterDid` TEXT NOT NULL,
+                    `reason` TEXT NOT NULL,
+                    `description` TEXT,
+                    `status` TEXT NOT NULL DEFAULT 'PENDING',
+                    `createdAt` INTEGER NOT NULL,
+                    `handledAt` INTEGER,
+                    `handlerNote` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 post_reports 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_reports_postId` ON `post_reports` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_reports_reporterDid` ON `post_reports` (`reporterDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_reports_status` ON `post_reports` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_reports_createdAt` ON `post_reports` (`createdAt`)")
+
+            // 创建 blocked_users 表（屏蔽用户）
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `blocked_users` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `blockedDid` TEXT NOT NULL,
+                    `blockerDid` TEXT NOT NULL,
+                    `reason` TEXT,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 blocked_users 索引
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_blocked_users_blockerDid_blockedDid` ON `blocked_users` (`blockerDid`, `blockedDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_blocked_users_blockedDid` ON `blocked_users` (`blockedDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_blocked_users_blockerDid` ON `blocked_users` (`blockerDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_blocked_users_createdAt` ON `blocked_users` (`createdAt`)")
+
+            Log.i(TAG, "Migration 14 to 15 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 15 -> 16
+     *
+     * 添加动态编辑历史记录表
+     *
+     * @since v0.31.0
+     */
+    val MIGRATION_15_16 = object : Migration(15, 16) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 15 to 16")
+
+            // 创建 post_edit_history 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_edit_history` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `previousContent` TEXT NOT NULL,
+                    `previousImages` TEXT NOT NULL,
+                    `previousLinkUrl` TEXT,
+                    `previousLinkPreview` TEXT,
+                    `previousTags` TEXT NOT NULL,
+                    `editedAt` INTEGER NOT NULL,
+                    `editReason` TEXT,
+                    `metadata` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 post_edit_history 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_edit_history_postId` ON `post_edit_history` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_edit_history_editedAt` ON `post_edit_history` (`editedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_edit_history_postId_editedAt` ON `post_edit_history` (`postId`, `editedAt`)")
+
+            Log.i(TAG, "Migration 15 to 16 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 16 -> 17
+     *
+     * 添加通话历史记录表
+     */
+    val MIGRATION_16_17 = object : Migration(16, 17) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 16 to 17")
+
+            // 创建 call_history 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `call_history` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `peer_did` TEXT NOT NULL,
+                    `peer_name` TEXT NOT NULL,
+                    `peer_avatar` TEXT,
+                    `call_type` TEXT NOT NULL,
+                    `media_type` TEXT NOT NULL,
+                    `start_time` INTEGER NOT NULL,
+                    `end_time` INTEGER,
+                    `duration` INTEGER NOT NULL DEFAULT 0,
+                    `status` TEXT NOT NULL DEFAULT 'COMPLETED',
+                    `failure_reason` TEXT,
+                    `created_at` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 call_history 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_peer_did` ON `call_history` (`peer_did`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_start_time` ON `call_history` (`start_time`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_call_type` ON `call_history` (`call_type`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_media_type` ON `call_history` (`media_type`)")
+
+            Log.i(TAG, "Migration 16 to 17 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 17 -> 18
+     *
+     * 添加AI内容审核队列表
+     */
+    val MIGRATION_17_18 = object : Migration(17, 18) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 17 to 18")
+
+            // 创建 moderation_queue 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `moderation_queue` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `content_type` TEXT NOT NULL,
+                    `content_id` TEXT NOT NULL,
+                    `content_text` TEXT NOT NULL,
+                    `author_did` TEXT NOT NULL,
+                    `author_name` TEXT,
+                    `status` TEXT NOT NULL,
+                    `ai_result_json` TEXT NOT NULL,
+                    `human_decision` TEXT,
+                    `human_note` TEXT,
+                    `reviewer_did` TEXT,
+                    `appeal_status` TEXT NOT NULL,
+                    `appeal_text` TEXT,
+                    `appeal_at` INTEGER,
+                    `appeal_result` TEXT,
+                    `created_at` INTEGER NOT NULL,
+                    `reviewed_at` INTEGER
+                )
+            """.trimIndent())
+
+            // 创建 moderation_queue 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_status` ON `moderation_queue` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_created_at` ON `moderation_queue` (`created_at`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_content_type` ON `moderation_queue` (`content_type`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_author_did` ON `moderation_queue` (`author_did`)")
+
+            Log.i(TAG, "Migration 17 to 18 completed successfully")
+        }
+    }
+
+    /**
      * 迁移回调（用于迁移后的数据验证和清理）
      */
     class MigrationCallback : androidx.room.RoomDatabase.Callback() {
@@ -557,11 +949,15 @@ object DatabaseMigrations {
             super.onOpen(db)
             Log.d(TAG, "Database opened, version: ${db.version}")
 
-            // 启用 WAL 模式以提高性能
-            db.execSQL("PRAGMA journal_mode=WAL")
-
-            // 启用外键约束
-            db.execSQL("PRAGMA foreign_keys=ON")
+            // SQLCipher 不允许在 onOpen 中使用 execSQL 执行 PRAGMA
+            // 使用 query 方法代替
+            try {
+                db.query("PRAGMA journal_mode=WAL").use { }
+                db.query("PRAGMA foreign_keys=ON").use { }
+                Log.d(TAG, "PRAGMA settings applied successfully")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to apply PRAGMA settings: ${e.message}")
+            }
         }
 
         override fun onCreate(db: SupportSQLiteDatabase) {

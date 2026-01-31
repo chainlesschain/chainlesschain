@@ -77,6 +77,7 @@ class ProjectViewModel @Inject constructor(
     private val projectChatRepository: ProjectChatRepository,
     private val conversationRepository: ConversationRepository,
     private val llmAdapterFactory: LLMAdapterFactory,
+    private val llmConfigManager: com.chainlesschain.android.feature.ai.data.config.LLMConfigManager,
     private val externalFileRepository: ExternalFileRepository,
     private val fileImportRepository: FileImportRepository
 ) : ViewModel() {
@@ -161,7 +162,7 @@ class ProjectViewModel @Inject constructor(
     private val _currentModel = MutableStateFlow(DEFAULT_MODEL)
     val currentModel: StateFlow<String> = _currentModel.asStateFlow()
 
-    private val _currentProvider = MutableStateFlow(LLMProvider.DEEPSEEK)
+    private val _currentProvider = MutableStateFlow(llmConfigManager.getProvider())  // 从配置读取
     val currentProvider: StateFlow<LLMProvider> = _currentProvider.asStateFlow()
 
     // ===== Context Mode State =====
@@ -220,7 +221,9 @@ class ProjectViewModel @Inject constructor(
      * 设置当前用户
      */
     fun setCurrentUser(userId: String) {
+        Log.d(TAG, "setCurrentUser called: userId=$userId")
         _currentUserId.value = userId
+        Log.d(TAG, "currentUserId updated to: ${_currentUserId.value}")
         loadProjects()
         loadStatistics()
     }
@@ -364,7 +367,18 @@ class ProjectViewModel @Inject constructor(
         type: String = ProjectType.OTHER,
         tags: List<String>? = null
     ) {
-        val userId = _currentUserId.value ?: return
+        val userId = _currentUserId.value
+
+        // 添加日志和错误处理
+        Log.d(TAG, "createProject called. userId=$userId, name=$name")
+
+        if (userId == null) {
+            Log.e(TAG, "Cannot create project: userId is null")
+            viewModelScope.launch {
+                _uiEvents.emit(ProjectUiEvent.ShowError("请先登录"))
+            }
+            return
+        }
 
         viewModelScope.launch {
             _isLoading.value = true

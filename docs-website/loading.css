@@ -1,0 +1,442 @@
+/* ChainlessChain 页面加载动画 */
+
+/* 加载遮罩层 */
+#page-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-size: 400% 400%;
+    animation: gradientMove 8s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+#page-loader.loaded {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* 背景渐变流动 */
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 加载容器 */
+.loader-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+/* Logo容器 - 调整为矩形以适应logo的实际比例 */
+.loader-logo-wrapper {
+    position: relative;
+    width: 140px;
+    height: 160px; /* 增加高度以确保logo底部不被截断 */
+    animation: logoFloat 3s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-8px) scale(1.05);
+    }
+}
+
+/* Logo图片 - 参照原始设计 */
+.loader-logo {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* 移除白色背景，让logo融入渐变背景 */
+    background: transparent;
+    border-radius: 50%;
+    z-index: 2;
+    /* 复杂多层阴影创造立体3D效果 */
+    box-shadow:
+        inset 3px 3px 8px rgba(255, 255, 255, 0.8),
+        inset -2px -2px 6px rgba(0, 0, 0, 0.1),
+        0 4px 12px rgba(102, 126, 234, 0.3),
+        0 8px 24px rgba(118, 75, 162, 0.25),
+        0 0 20px rgba(240, 147, 251, 0.2);
+    /* 确保logo清晰显示 */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    animation: logoGlow 3s ease-in-out infinite;
+}
+
+@keyframes logoGlow {
+    0%, 100% {
+        box-shadow:
+            inset 3px 3px 8px rgba(255, 255, 255, 0.8),
+            inset -2px -2px 6px rgba(0, 0, 0, 0.1),
+            0 4px 12px rgba(102, 126, 234, 0.3),
+            0 8px 24px rgba(118, 75, 162, 0.25),
+            0 0 20px rgba(240, 147, 251, 0.2);
+    }
+    50% {
+        box-shadow:
+            inset 4px 4px 12px rgba(255, 255, 255, 0.9),
+            inset -3px -3px 10px rgba(0, 0, 0, 0.15),
+            0 6px 20px rgba(102, 126, 234, 0.4),
+            0 12px 40px rgba(118, 75, 162, 0.35),
+            0 0 30px rgba(240, 147, 251, 0.3),
+            0 0 60px rgba(255, 182, 193, 0.15);
+    }
+}
+
+/* 旋转环 - 外环 */
+.loader-ring-outer {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    width: 170px;
+    height: 170px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    /* 渐变色环，更加炫酷 */
+    border-top-color: rgba(255, 255, 255, 0.9);
+    border-right-color: rgba(240, 182, 255, 0.6);
+    animation: ringRotate 2s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+}
+
+/* 旋转环 - 内环 */
+.loader-ring-inner {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    width: 156px;
+    height: 156px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    /* 另一种渐变色，反向旋转形成对比 */
+    border-bottom-color: rgba(186, 225, 255, 0.7);
+    border-left-color: rgba(255, 255, 255, 0.4);
+    animation: ringRotate 1.5s linear infinite reverse;
+    filter: drop-shadow(0 0 8px rgba(186, 225, 255, 0.4));
+}
+
+@keyframes ringRotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 立体光影层 - 参照原始设计 */
+.loader-shadow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 182, 193, 0.4) 30%,
+        rgba(186, 85, 211, 0.2) 60%,
+        transparent 70%);
+    filter: blur(1px);
+    animation: shadowPulse 3s ease-in-out infinite;
+    z-index: 1;
+}
+
+@keyframes shadowPulse {
+    0%, 100% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* 外部光晕 */
+.loader-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    /* 彩色渐变光晕，更加梦幻 */
+    background: radial-gradient(circle at center,
+        rgba(255, 255, 255, 0.4) 0%,
+        rgba(240, 182, 255, 0.2) 30%,
+        rgba(186, 225, 255, 0.15) 50%,
+        transparent 70%);
+    animation: glowPulse 2s ease-in-out infinite;
+    z-index: 0;
+    /* 添加模糊效果 */
+    filter: blur(15px);
+}
+
+@keyframes glowPulse {
+    0%, 100% {
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+}
+
+/* 加载文字 */
+.loader-text {
+    color: white;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 2px;
+    animation: textFade 2s ease-in-out infinite;
+}
+
+@keyframes textFade {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* 加载提示 */
+.loader-tip {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    text-align: center;
+    margin-top: 10px;
+    animation: tipSlide 3s ease-in-out infinite;
+}
+
+@keyframes tipSlide {
+    0%, 100% {
+        opacity: 0.7;
+        transform: translateY(0);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-3px);
+    }
+}
+
+/* 进度条容器 */
+.loader-progress-container {
+    width: 200px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 20px;
+}
+
+/* 进度条 */
+.loader-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.8) 0%,
+        rgba(255, 255, 255, 1) 50%,
+        rgba(255, 255, 255, 0.8) 100%);
+    background-size: 200% 100%;
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: progressShine 1.5s linear infinite;
+}
+
+@keyframes progressShine {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 粒子效果 - 彩色梦幻粒子 */
+.loader-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    opacity: 0;
+    animation: particleFloat 3s ease-in-out infinite;
+    box-shadow: 0 0 10px currentColor;
+}
+
+.loader-particle:nth-child(1) {
+    top: 20%;
+    left: 10%;
+    background: rgba(240, 182, 255, 0.8);
+    animation-delay: 0s;
+}
+
+.loader-particle:nth-child(2) {
+    top: 60%;
+    left: 80%;
+    background: rgba(186, 225, 255, 0.8);
+    animation-delay: 0.5s;
+}
+
+.loader-particle:nth-child(3) {
+    top: 30%;
+    left: 70%;
+    background: rgba(255, 255, 255, 0.9);
+    animation-delay: 1s;
+}
+
+.loader-particle:nth-child(4) {
+    top: 80%;
+    left: 20%;
+    background: rgba(255, 200, 220, 0.8);
+    animation-delay: 1.5s;
+}
+
+@keyframes particleFloat {
+    0% {
+        opacity: 0;
+        transform: translateY(0) scale(1);
+    }
+    20% {
+        opacity: 0.8;
+    }
+    80% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-100px) scale(0.5);
+    }
+}
+
+/* 响应式 - 平板和手机 */
+@media (max-width: 768px) {
+    .loader-logo-wrapper {
+        width: 110px;
+        height: 130px; /* 保持椭圆比例 */
+    }
+
+    .loader-shadow {
+        width: 110px;
+        height: 110px;
+    }
+
+    .loader-ring-outer {
+        width: 140px;
+        height: 140px;
+        top: -15px;
+        left: -15px;
+        border-width: 2px; /* 稍细的边框 */
+    }
+
+    .loader-ring-inner {
+        width: 126px;
+        height: 126px;
+        top: -8px;
+        left: -8px;
+        border-width: 1.5px;
+    }
+
+    .loader-glow {
+        width: 160px;
+        height: 160px;
+        filter: blur(12px); /* 减少模糊以提升性能 */
+    }
+
+    .loader-text {
+        font-size: 20px;
+        letter-spacing: 1.5px;
+    }
+
+    .loader-tip {
+        font-size: 13px;
+    }
+
+    .loader-progress-container {
+        width: 160px;
+        height: 3px;
+    }
+
+    .loader-container {
+        gap: 25px;
+    }
+
+    /* 简化粒子效果 */
+    .loader-particle {
+        width: 4px;
+        height: 4px;
+        box-shadow: 0 0 6px currentColor;
+    }
+}
+
+/* 小屏手机优化 */
+@media (max-width: 480px) {
+    .loader-logo-wrapper {
+        width: 90px;
+        height: 110px;
+    }
+
+    .loader-shadow {
+        width: 90px;
+        height: 90px;
+    }
+
+    .loader-ring-outer {
+        width: 120px;
+        height: 120px;
+        top: -15px;
+        left: -15px;
+    }
+
+    .loader-ring-inner {
+        width: 106px;
+        height: 106px;
+    }
+
+    .loader-glow {
+        width: 140px;
+        height: 140px;
+    }
+
+    .loader-text {
+        font-size: 18px;
+    }
+
+    .loader-tip {
+        font-size: 12px;
+    }
+
+    .loader-progress-container {
+        width: 140px;
+    }
+
+    .loader-container {
+        gap: 20px;
+    }
+}
+
+/* 横屏优化 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .loader-container {
+        gap: 15px;
+    }
+
+    .loader-logo-wrapper {
+        width: 80px;
+        height: 96px;
+    }
+
+    .loader-text {
+        font-size: 16px;
+    }
+
+    .loader-tip {
+        font-size: 11px;
+    }
+}

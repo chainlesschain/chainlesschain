@@ -29,6 +29,8 @@ const val MESSAGE_QUEUE_ROUTE = "message_queue"
 const val DEVICE_MANAGEMENT_ROUTE = "device_management"
 const val FILE_TRANSFERS_ROUTE = "file_transfers/{peerId}/{peerName}"
 const val ALL_FILE_TRANSFERS_ROUTE = "all_file_transfers"
+const val CALL_HISTORY_ROUTE = "call_history"
+const val CALL_HISTORY_WITH_PEER_ROUTE = "call_history/{peerDid}"
 
 /**
  * 添加 P2P 导航图到主导航
@@ -300,6 +302,8 @@ fun NavGraphBuilder.p2pGraph(
                 }
             )
         }
+
+        // REMOVED: Call history routes - call feature has been disabled
     }
 }
 
@@ -342,4 +346,12 @@ fun NavController.navigateToFileTransfers(peerId: String, peerName: String) {
 
 fun NavController.navigateToAllFileTransfers() {
     navigate(ALL_FILE_TRANSFERS_ROUTE)
+}
+
+fun NavController.navigateToCallHistory() {
+    navigate(CALL_HISTORY_ROUTE)
+}
+
+fun NavController.navigateToCallHistoryWithPeer(peerDid: String) {
+    navigate("call_history/$peerDid")
 }

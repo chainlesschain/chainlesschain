@@ -1,5 +1,8 @@
 package com.chainlesschain.android.core.common
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+
 /**
  * 统一的Result类型，用于封装操作结果
  */
@@ -89,3 +92,17 @@ val <T> Result<T>.data: T
         is Result.Error -> throw exception
         is Result.Loading -> throw IllegalStateException("Cannot get data from Loading state")
     }
+
+/**
+ * Convert Flow<T> to Flow<Result<T>> with error handling
+ */
+fun <T> Flow<T>.asResult(): Flow<Result<T>> = flow {
+    try {
+        collect { value ->
+            emit(Result.Success(value))
+        }
+    } catch (e: Exception) {
+        @Suppress("UNCHECKED_CAST")
+        emit(Result.Error(e) as Result<T>)
+    }
+}

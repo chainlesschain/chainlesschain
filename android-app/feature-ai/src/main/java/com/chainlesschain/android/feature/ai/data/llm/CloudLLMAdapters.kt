@@ -469,7 +469,7 @@ class SparkAdapter @Inject constructor(
  * Doubao (豆包-火山引擎) API适配器
  *
  * 官方文档: https://www.volcengine.com/docs/82379/
- * 支持模型: doubao-seed-1-6-251015, doubao-pro-32k-240515
+ * 支持模型: doubao-seed-1-8-251228 (推荐), doubao-seed-1-6-251015, doubao-pro-32k-240515
  * API格式与OpenAI兼容
  */
 class DoubaoAdapter @Inject constructor(
@@ -511,33 +511,6 @@ class DoubaoAdapter @Inject constructor(
     }
 
     override suspend fun checkAvailability(): Boolean {
-        return try {
-            // 火山引擎API使用OpenAI兼容格式，发送一个简单的测试请求
-            val testMessages = listOf(
-                mapOf("role" to "user", "content" to "test")
-            )
-
-            val requestBody = mapOf(
-                "model" to "doubao-pro-32k",
-                "messages" to testMessages,
-                "max_tokens" to 10
-            )
-
-            val jsonBody = json.encodeToString(requestBody)
-            val request = Request.Builder()
-                .url("$baseUrl/chat/completions")
-                .post(jsonBody.toRequestBody("application/json".toMediaType()))
-                .addHeader("Authorization", "Bearer $apiKey")
-                .addHeader("Content-Type", "application/json")
-                .build()
-
-            client.newCall(request).execute().use { response ->
-                // 只要不是401/403认证错误，就认为API Key有效
-                // 其他错误可能是模型不存在等，但说明API Key本身是正确的
-                response.code != 401 && response.code != 403
-            }
-        } catch (e: Exception) {
-            false
-        }
+        return openAIAdapter.checkAvailability()
     }
 }

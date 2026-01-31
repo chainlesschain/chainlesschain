@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -23,6 +24,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -46,8 +48,29 @@ dependencies {
 
     // Coil图片加载
     api("io.coil-kt:coil-compose:2.6.0")
+    api("io.coil-kt:coil-svg:2.6.0")
+    api("io.coil-kt:coil-gif:2.6.0")
 
-    // Markdown rendering - using native Compose Text (no external dependency)
+    // 图片缩放（用于图片预览）
+    api("net.engawapg.lib:zoomable:1.6.1")
+
+    // QR Code generation
+    api("com.google.zxing:core:3.5.3")
+
+    // Markwon (Markdown rendering and editing)
+    val markwonVersion = "4.6.2"
+    api("io.noties.markwon:core:$markwonVersion")
+    api("io.noties.markwon:editor:$markwonVersion")
+    api("io.noties.markwon:syntax-highlight:$markwonVersion")
+    api("io.noties.markwon:image-coil:$markwonVersion")
+    api("io.noties.markwon:ext-strikethrough:$markwonVersion")
+    api("io.noties.markwon:ext-tables:$markwonVersion")
+    api("io.noties.markwon:linkify:$markwonVersion")
+
+    // Prism4j (syntax highlighting for Markwon)
+    api("io.noties:prism4j:2.0.0")
+    // Note: prism4j-bundler removed to avoid kapt conflicts
+    // Manual grammar registration will be used instead
 
     // Navigation
     api("androidx.navigation:navigation-compose:2.7.6")

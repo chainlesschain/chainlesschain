@@ -30,9 +30,12 @@ fun DeviceManagementScreen(
     viewModel: P2PDeviceViewModel = hiltViewModel()
 ) {
     val connectedDevices by viewModel.connectedDevices.collectAsState()
+    val discoveredDevices by viewModel.discoveredDevices.collectAsState()
+    val isScanning by viewModel.isScanning.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
     var showDisconnectDialog by remember { mutableStateOf<DeviceWithSession?>(null) }
+    var selectedTab by remember { mutableStateOf(0) } // 0=已连接, 1=发现的设备
 
     Scaffold(
         topBar = {
@@ -42,8 +45,50 @@ fun DeviceManagementScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
+                },
+                actions = {
+                    // 顶部扫描按钮（更明显）
+                    IconButton(
+                        onClick = {
+                            if (isScanning) {
+                                viewModel.stopScanning()
+                            } else {
+                                viewModel.startScanning()
+                                selectedTab = 1 // 切换到发现的设备页
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = if (isScanning) Icons.Default.Stop else Icons.Default.Search,
+                            contentDescription = if (isScanning) "停止扫描" else "扫描设备",
+                            tint = if (isScanning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             )
+        },
+        floatingActionButton = {
+            // 浮动扫描按钮
+            FloatingActionButton(
+                onClick = {
+                    if (isScanning) {
+                        viewModel.stopScanning()
+                    } else {
+                        viewModel.startScanning()
+                        selectedTab = 1 // 切换到发现的设备页
+                    }
+                },
+                containerColor = if (isScanning) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            ) {
+                Icon(
+                    imageVector = if (isScanning) Icons.Default.Stop else Icons.Default.Search,
+                    contentDescription = if (isScanning) "停止扫描" else "扫描设备"
+                )
+            }
         }
     ) { paddingValues ->
         Column(
@@ -54,26 +99,85 @@ fun DeviceManagementScreen(
             // 设备统计卡片
             DeviceStatisticsCard(
                 totalDevices = connectedDevices.size,
-                verifiedDevices = connectedDevices.count { it.isVerified }
+                verifiedDevices = connectedDevices.count { it.isVerified },
+                discoveredCount = discoveredDevices.size,
+                isScanning = isScanning
             )
 
             Divider()
 
-            // 设备列表
-            if (connectedDevices.isEmpty()) {
-                EmptyDeviceList()
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(connectedDevices, key = { it.deviceId }) { device ->
-                        DeviceCard(
-                            device = device,
-                            onClick = { onDeviceClick(device.deviceId) },
-                            onDisconnect = { showDisconnectDialog = device }
+            // Tab 切换（已连接 / 发现的设备）
+            TabRow(selectedTabIndex = selectedTab) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text("已连接 (${connectedDevices.size})") }
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("发现的设备 (${discoveredDevices.size})")
+                            if (isScanning) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        }
+                    }
+                )
+            }
+
+            // 内容区域
+            when (selectedTab) {
+                0 -> {
+                    // 已连接的设备
+                    if (connectedDevices.isEmpty()) {
+                        EmptyDeviceList(message = "暂无已连接设备", hint = "点击右下角按钮扫描新设备")
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(connectedDevices, key = { it.deviceId }) { device ->
+                                DeviceCard(
+                                    device = device,
+                                    onClick = { onDeviceClick(device.deviceId) },
+                                    onDisconnect = { showDisconnectDialog = device }
+                                )
+                            }
+                        }
+                    }
+                }
+                1 -> {
+                    // 发现的设备
+                    if (discoveredDevices.isEmpty()) {
+                        EmptyDeviceList(
+                            message = if (isScanning) "正在扫描附近设备..." else "未发现设备",
+                            hint = if (isScanning) "请稍候，正在搜索中" else "点击右下角按钮开始扫描"
                         )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(discoveredDevices, key = { it.deviceId }) { device ->
+                                DiscoveredDeviceCard(
+                                    device = device,
+                                    onConnect = {
+                                        viewModel.connectDevice(device)
+                                        viewModel.stopScanning()
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -114,7 +218,9 @@ fun DeviceManagementScreen(
 @Composable
 fun DeviceStatisticsCard(
     totalDevices: Int,
-    verifiedDevices: Int
+    verifiedDevices: Int,
+    discoveredCount: Int = 0,
+    isScanning: Boolean = false
 ) {
     Card(
         modifier = Modifier
@@ -147,7 +253,7 @@ fun DeviceStatisticsCard(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "总设备",
+                    text = "已连接",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -177,6 +283,35 @@ fun DeviceStatisticsCard(
                 )
                 Text(
                     text = "已验证",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                )
+            }
+
+            Divider(
+                modifier = Modifier
+                    .height(80.dp)
+                    .width(1.dp)
+            )
+
+            // 发现的设备数
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = if (isScanning) Icons.Default.Search else Icons.Default.DevicesOther,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp),
+                    tint = if (isScanning) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = discoveredCount.toString(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = if (isScanning) "扫描中" else "已发现",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -353,7 +488,10 @@ fun DeviceCard(
  * 空设备列表
  */
 @Composable
-fun EmptyDeviceList() {
+fun EmptyDeviceList(
+    message: String = "暂无已连接设备",
+    hint: String = "扫描附近设备以建立连接"
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -370,16 +508,113 @@ fun EmptyDeviceList() {
             )
 
             Text(
-                text = "暂无已连接设备",
+                text = message,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Text(
-                text = "扫描附近设备以建立连接",
+                text = hint,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
+        }
+    }
+}
+
+/**
+ * 发现的设备卡片
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DiscoveredDeviceCard(
+    device: com.chainlesschain.android.core.p2p.model.P2PDevice,
+    onConnect: () -> Unit
+) {
+    Card(
+        onClick = onConnect,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 设备图标
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PhoneAndroid,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // 设备信息
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = device.deviceName,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "设备ID: ${device.deviceId.take(16)}...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 地址信息
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SignalCellularAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                    Text(
+                        text = device.address ?: "未知地址",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // 连接按钮
+            FilledTonalButton(
+                onClick = onConnect,
+                modifier = Modifier.padding(start = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Link,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("连接")
+            }
         }
     }
 }

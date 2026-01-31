@@ -87,7 +87,7 @@ class LLMRecommendationEngine @Inject constructor() {
                 recommendations.add(
                     Recommendation(
                         provider = LLMProvider.DOUBAO,
-                        model = "doubao-seed-1-6-251015",
+                        model = "doubao-seed-1-8-251228",
                         score = 0.85f,
                         reason = "国内价格低，速度快（¥0.3/1M tokens）"
                     )
@@ -176,7 +176,7 @@ class LLMRecommendationEngine @Inject constructor() {
                 recommendations.add(
                     Recommendation(
                         provider = LLMProvider.DOUBAO,
-                        model = "doubao-seed-1-6-251015",
+                        model = "doubao-seed-1-8-251228",
                         score = 0.85f,
                         reason = "国内服务器，延迟低"
                     )

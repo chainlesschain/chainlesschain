@@ -74,8 +74,14 @@ fun ChainlessChainTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            // 使用透明状态栏以支持边到边显示
+            window.statusBarColor = Color.Transparent.toArgb()
+            window.navigationBarColor = Color.Transparent.toArgb()
+
+            // 配置状态栏和导航栏的图标颜色
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !darkTheme
+            insetsController.isAppearanceLightNavigationBars = !darkTheme
         }
     }
 

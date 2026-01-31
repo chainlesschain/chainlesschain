@@ -263,6 +263,79 @@ class WalletManager: ObservableObject {
         Logger.shared.info("钱包已锁定: \(walletId)")
     }
 
+    /// 获取已解锁的私钥
+    /// - Parameter walletId: 钱包ID
+    /// - Returns: 私钥（如果已解锁）
+    func getUnlockedPrivateKey(walletId: String) -> String? {
+        return unlockedWallets[walletId]
+    }
+
+    /// 导出私钥
+    /// - Parameters:
+    ///   - walletId: 钱包ID
+    ///   - password: 密码
+    /// - Returns: 私钥（十六进制字符串，带0x前缀）
+    /// - Throws: 密码错误或钱包不存在
+    ///
+    /// 参考: PC端 wallet-manager.js:722-745
+    func exportPrivateKey(walletId: String, password: String) async throws -> String {
+        // 验证密码长度
+        guard password.count >= 8 else {
+            throw WalletError.invalidPassword
+        }
+
+        // 从Keychain读取加密数据
+        let encryptedData = try keychainStorage.loadEncryptedWallet(walletId: walletId)
+
+        // 解密私钥
+        let privateKey = try keychainStorage.decrypt(
+            encrypted: encryptedData.encryptedPrivateKey,
+            password: password,
+            salt: encryptedData.salt,
+            iv: encryptedData.iv
+        )
+
+        Logger.shared.info("私钥导出成功: \(walletId)")
+
+        // 确保返回带0x前缀的格式
+        return privateKey.hasPrefix("0x") ? privateKey : "0x" + privateKey
+    }
+
+    /// 导出助记词
+    /// - Parameters:
+    ///   - walletId: 钱包ID
+    ///   - password: 密码
+    /// - Returns: 助记词（12个单词，空格分隔）
+    /// - Throws: 密码错误、钱包不存在、或钱包无助记词（从私钥导入的钱包）
+    ///
+    /// 参考: PC端 wallet-manager.js:753-775
+    func exportMnemonic(walletId: String, password: String) async throws -> String {
+        // 验证密码长度
+        guard password.count >= 8 else {
+            throw WalletError.invalidPassword
+        }
+
+        // 从Keychain读取加密数据
+        let encryptedData = try keychainStorage.loadEncryptedWallet(walletId: walletId)
+
+        // 检查是否有助记词（从私钥导入的钱包没有助记词）
+        guard let encryptedMnemonic = encryptedData.encryptedMnemonic else {
+            throw WalletError.noMnemonic
+        }
+
+        // 解密助记词
+        let mnemonic = try keychainStorage.decrypt(
+            encrypted: encryptedMnemonic,
+            password: password,
+            salt: encryptedData.salt,
+            iv: encryptedData.iv
+        )
+
+        Logger.shared.info("助记词导出成功: \(walletId)")
+
+        return mnemonic
+    }
+
     /// 删除钱包
     func deleteWallet(_ wallet: Wallet) async throws {
         // 从Keychain删除

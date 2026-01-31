@@ -40,7 +40,30 @@ class OpenAIClient extends EventEmitter {
    */
   async checkStatus() {
     try {
-      // 尝试列出模型
+      // 火山引擎特殊处理：使用简单的聊天测试代替模型列表
+      if (this.baseURL && this.baseURL.includes('volces.com')) {
+        logger.info('[OpenAIClient] 检测到火山引擎，使用聊天测试代替模型列表');
+
+        const testResponse = await this.client.post('/chat/completions', {
+          model: this.model,
+          messages: [{ role: 'user', content: 'hi' }],
+          max_tokens: 5,
+        }, {
+          timeout: 10000, // 10秒快速超时
+        });
+
+        return {
+          available: true,
+          models: [{
+            name: this.model,
+            created: Date.now(),
+            owned_by: 'volcengine'
+          }],
+          testResponse: testResponse.data,
+        };
+      }
+
+      // 标准OpenAI API：尝试列出模型
       const response = await this.client.get('/models');
 
       const models = response.data.data || [];

@@ -114,6 +114,7 @@ enum class LLMProvider(val displayName: String) {
                 LLMModel("spark-v3.0", "星火 v3.0", SPARK, 8192)
             ),
             DOUBAO to listOf(
+                LLMModel("doubao-seed-1-8-251228", "豆包 Seed 1.8 (推荐)", DOUBAO, 256000),
                 LLMModel("doubao-seed-1-6-251015", "豆包 Seed 1.6", DOUBAO, 256000),
                 LLMModel("doubao-seed-1-6-flash-250828", "豆包 Seed 1.6 快速版", DOUBAO, 256000),
                 LLMModel("doubao-pro-32k-240515", "豆包 Pro 32K", DOUBAO, 32000),

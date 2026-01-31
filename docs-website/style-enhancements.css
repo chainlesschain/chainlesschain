@@ -137,7 +137,7 @@ section {
    ========================================== */
 .hero {
     min-height: 85vh !important;
-    padding-top: 100px !important;
+    padding-top: 140px !important;
 }
 
 .hero-title {
@@ -231,14 +231,57 @@ section {
 }
 
 /* ==========================================
-   12. 导航栏优化
+   12. 导航栏优化 - 完全禁用闪烁
    ========================================== */
+/* 关键修复：完全禁用导航栏的所有过渡效果 */
+.navbar,
+.navbar *,
+.navbar::before,
+.navbar::after {
+    transition: none !important;
+    animation: none !important;
+}
+
+.navbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 1000 !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+.navbar.scrolled {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
 .nav-wrapper {
     padding: 12px 0 !important;
 }
 
 .nav-menu {
     gap: 24px !important;
+}
+
+/* 导航链接允许轻微的颜色过渡 */
+.nav-link {
+    transition: color 0.15s ease !important;
+}
+
+.nav-link::after {
+    transition: width 0.15s ease !important;
+}
+
+/* 下拉菜单也禁用过渡效果 */
+.dropdown-menu {
+    transition: none !important;
+}
+
+.nav-dropdown > .nav-link::after {
+    transition: none !important;
 }
 
 /* ==========================================
@@ -253,6 +296,10 @@ section {
         font-size: 26px !important;
     }
 
+    .hero {
+        padding-top: 130px !important;
+    }
+
     .hero-title {
         font-size: 32px !important;
     }
@@ -264,11 +311,12 @@ section {
 }
 
 /* ==========================================
-   14. 动画优化 - 更流畅
+   14. 动画优化 - 更流畅（移除全局 transition 避免闪烁）
    ========================================== */
-* {
+/* 注释掉全局 transition，避免导航栏闪烁 */
+/* * {
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
+} */
 
 /* ==========================================
    15. 色彩增强
@@ -414,13 +462,12 @@ a, button {
     font-size: 16px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
     box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
     letter-spacing: 0.5px;
 }
 
 .btn-version-primary:hover {
-    background: linear-gradient(135deg, #0050b3 0%, #003a8c 100%) !important;
     transform: translateY(-2px) !important;
     box-shadow: 0 6px 20px rgba(24, 144, 255, 0.45) !important;
 }
@@ -437,7 +484,7 @@ a, button {
     text-decoration: none !important;
     text-align: center !important;
     cursor: pointer !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -448,13 +495,6 @@ a, button {
     color: white !important;
     transform: translateY(-2px) !important;
     box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3) !important;
-}
-
-/* 箭头动画 */
-.btn-version-outline:hover::after {
-    content: ' →';
-    display: inline-block;
-    transition: transform 0.3s ease;
 }
 
 /* 响应式调整 */
@@ -735,4 +775,374 @@ a, button {
 .btn-hero-primary .btn-icon,
 .btn-hero-primary .btn-sub {
     color: white !important;
+}
+
+/* ==========================================
+   32. 顶部联系栏样式
+   ========================================== */
+.top-contact-bar {
+    background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%);
+    color: white;
+    padding: 16px 0;
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 998;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    /* 禁用过渡效果，避免闪烁 */
+    transition: none !important;
+}
+
+.top-contact-bar.hidden {
+    transform: translateY(-150%);
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.contact-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    cursor: pointer;
+    /* 禁用 transform，避免影响导航栏 */
+    transition: none !important;
+}
+
+.contact-item:hover {
+    /* 使用 opacity 代替 transform */
+    opacity: 0.9;
+}
+
+.contact-item .icon {
+    font-size: 24px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.contact-info .label {
+    font-size: 12px;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.contact-info .contact-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: white;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+}
+
+.contact-value:hover {
+    text-decoration: underline;
+}
+
+.contact-divider {
+    width: 1px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* 企业微信二维码弹窗 */
+.contact-item.wechat:hover .wechat-qr-popup {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.wechat-qr-popup {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    margin-top: 12px;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.wechat-qr-popup::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid white;
+}
+
+.qr-container {
+    text-align: center;
+}
+
+.qr-placeholder {
+    margin-bottom: 12px;
+}
+
+.qr-tip {
+    font-size: 14px;
+    color: #666;
+    margin: 0 0 12px 0;
+}
+
+.qr-link {
+    display: inline-block;
+    color: #1890ff;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border: 1px solid #1890ff;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.qr-link:hover {
+    background: #1890ff;
+    color: white;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .top-contact-bar {
+        top: 60px;
+        padding: 12px 0;
+    }
+
+    .contact-bar-content {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .contact-divider {
+        width: 80%;
+        height: 1px;
+    }
+
+    .contact-item .icon {
+        font-size: 20px;
+    }
+
+    .contact-info .contact-value {
+        font-size: 16px;
+    }
+}
+
+/* ==========================================
+   33. 最新功能板块样式
+   ========================================== */
+.new-features {
+    background: linear-gradient(180deg, #f7f9fc 0%, #ffffff 100%);
+    padding: 80px 0 !important;
+}
+
+.new-features .section-header {
+    text-align: center;
+    margin-bottom: 50px !important;
+}
+
+.version-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+}
+
+.new-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+.new-feature-card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.new-feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #1890ff 0%, #722ed1 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.new-feature-card:hover::before {
+    opacity: 1;
+}
+
+.new-feature-card.highlight {
+    border: 2px solid #1890ff;
+    box-shadow: 0 8px 24px rgba(24, 144, 255, 0.15);
+    background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
+}
+
+.new-feature-card.highlight::before {
+    opacity: 1;
+    height: 6px;
+}
+
+.new-feature-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    border-color: #1890ff;
+}
+
+.new-feature-card .feature-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
+}
+
+.new-feature-card .feature-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    display: block;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.new-feature-card h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 6px;
+}
+
+.new-feature-card h4 {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1890ff;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.feature-desc {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #666;
+    margin-bottom: 16px;
+}
+
+.feature-highlights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.highlight-tag {
+    display: inline-block;
+    background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
+    color: #0050b3;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid #91d5ff;
+}
+
+.features-cta {
+    text-align: center;
+    margin-top: 40px;
+}
+
+.btn-features-outline {
+    display: inline-block;
+    padding: 14px 32px;
+    border: 2px solid #1890ff;
+    color: #1890ff;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+.btn-features-outline:hover {
+    background: #1890ff;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(24, 144, 255, 0.3);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .new-features {
+        padding: 50px 0 !important;
+    }
+
+    .new-features-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .new-feature-card {
+        padding: 24px;
+    }
+
+    .new-feature-card .feature-icon {
+        font-size: 40px;
+    }
+
+    .new-feature-card h3 {
+        font-size: 20px;
+    }
 }

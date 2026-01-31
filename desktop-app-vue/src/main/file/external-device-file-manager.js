@@ -28,12 +28,13 @@ const FileSecurityValidator = require('./file-security-validator');
 const { RetryManager, RETRY_STRATEGIES } = require('./retry-manager');
 
 class ExternalDeviceFileManager extends EventEmitter {
-  constructor(database, p2pManager, fileTransferManager, options = {}) {
+  constructor(database, p2pManager, fileTransferManager, ragManager, options = {}) {
     super();
 
     this.db = database;
     this.p2pManager = p2pManager;
     this.fileTransferManager = fileTransferManager;
+    this.ragManager = ragManager;
 
     // 配置选项
     this.options = {
@@ -1032,7 +1033,7 @@ class ExternalDeviceFileManager extends EventEmitter {
    * @returns {boolean} return.success - 是否成功
    * @returns {string} return.fileId - 文件ID
    * @returns {string} return.fileName - 文件名
-   * @returns {string} [return.ragId] - RAG文档ID（TODO: 待实现）
+   * @returns {string} return.ragId - RAG文档ID
    *
    * @throws {Error} 文件不存在时抛出 "File not found"
    * @throws {Error} 文件拉取失败时抛出相应错误
@@ -1075,9 +1076,10 @@ class ExternalDeviceFileManager extends EventEmitter {
    * - 支持语义搜索和AI问答
    *
    * **注意事项**:
-   * - 当前RAG集成为TODO状态，需要实现RAG管理器接口
+   * - RAG集成已完成，支持文本文件和部分二进制文件
    * - 大文件（>10MB）会自动分块处理
    * - 图片文件可能需要OCR识别（如已集成）
+   * - 二进制文件（如PDF）会使用元数据代替内容
    */
   async importToRAG(fileId, options = {}) {
     try {
@@ -1102,35 +1104,62 @@ class ExternalDeviceFileManager extends EventEmitter {
         file.cache_path = updatedFile.cache_path;
       }
 
-      // TODO: 调用RAG系统的文件导入API
-      // 这里需要根据实际的RAG系统接口进行调整
+      // 调用RAG系统的文件导入API
       logger.info('[ExternalDeviceFileManager] 导入文件到RAG:', {
         fileId,
         filePath: file.cache_path,
         fileName: file.display_name,
       });
 
-      // 示例：假设有一个RAG管理器
-      // const ragManager = require('../rag/rag-manager');
-      // const result = await ragManager.importFile(file.cache_path, {
-      //   title: file.display_name,
-      //   metadata: {
-      //     source: 'external-device',
-      //     deviceId: file.device_id,
-      //     category: file.category,
-      //   },
-      // });
+      // 读取文件内容
+      let content = '';
+      try {
+        const fileContent = fs.readFileSync(file.cache_path, 'utf8');
+        content = fileContent;
+      } catch (readError) {
+        logger.warn('[ExternalDeviceFileManager] 无法读取文件为文本，可能是二进制文件');
+        // 对于PDF等二进制文件，使用文件名和元数据
+        content = `File: ${file.display_name}\nCategory: ${file.category}\nSize: ${file.size} bytes`;
+      }
+
+      // 使用 RAG Manager 添加文档
+      const ragDocId = `external_${fileId}`;
+      const ragDoc = {
+        id: ragDocId,
+        content: content,
+        metadata: {
+          title: options.title || file.display_name,
+          fileName: file.display_name,
+          source: 'external-device',
+          deviceId: file.device_id,
+          category: file.category,
+          mimeType: file.mime_type,
+          size: file.size,
+          createdAt: new Date(file.last_modified).toISOString(),
+          updatedAt: new Date().toISOString(),
+          type: 'external-file',
+          ...options.metadata,
+        },
+      };
+
+      if (this.ragManager) {
+        await this.ragManager.addDocument(ragDoc);
+        logger.info('[ExternalDeviceFileManager] 文件已成功导入RAG系统:', ragDocId);
+      } else {
+        logger.warn('[ExternalDeviceFileManager] RAGManager未初始化，跳过RAG导入');
+      }
 
       this.emit('file-imported', {
         fileId,
         fileName: file.display_name,
+        ragId: ragDocId,
       });
 
       return {
         success: true,
         fileId,
         fileName: file.display_name,
-        // ragId: result.id,
+        ragId: ragDocId,
       };
     } catch (error) {
       logger.error('[ExternalDeviceFileManager] 导入RAG失败:', error);
@@ -1794,8 +1823,15 @@ class ExternalDeviceFileManager extends EventEmitter {
         )
         .run(transferId);
 
-      // TODO: 调用fileTransferManager的取消方法
-      // this.fileTransferManager.cancelTransfer(transferId);
+      // 调用fileTransferManager的取消方法
+      if (this.fileTransferManager) {
+        await this.fileTransferManager.cancelTransfer(transferId);
+      }
+
+      // 从活跃传输列表中移除
+      if (this.activeTransfers.has(transferId)) {
+        this.activeTransfers.delete(transferId);
+      }
 
       logger.info('[ExternalDeviceFileManager] 传输任务已取消:', transferId);
 

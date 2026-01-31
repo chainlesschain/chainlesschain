@@ -121,7 +121,8 @@ class RulesValidator {
             (lines[index - 3]?.includes("this.db.run =") ||
               lines[index - 3]?.includes("exec(sql)") ||
               file.includes("sqlcipher-wrapper.js") ||
-              file.includes("database.js"));
+              file.includes("database.js") ||
+              file.includes("database-adapter.js"));
 
           // 检查是否是迁移脚本中的硬编码SQL
           const isMigrationScript =
@@ -558,7 +559,9 @@ class RulesValidator {
             if (pattern.test(line)) {
               // 检查是否在例外列表中
               const isException = exceptions.some((exc) => line.includes(exc));
-              if (isException) return;
+              if (isException) {
+                return;
+              }
 
               // 特殊处理：允许 rules-validator.js 和安全检查脚本中使用 exec
               if (
@@ -723,7 +726,9 @@ class RulesValidator {
               // 模拟模式的默认值
               (line.includes("123456") && line.includes("simulation"));
 
-            if (isPlaceholder) return;
+            if (isPlaceholder) {
+              return;
+            }
 
             if (severity === "CRITICAL" || severity === "HIGH") {
               this.errors.push({

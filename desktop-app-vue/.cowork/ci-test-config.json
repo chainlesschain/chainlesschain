@@ -1,0 +1,300 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "CI/CD test configuration for ChainlessChain",
+  "updated": "2026-01-27",
+  "exclusions": [
+    {
+      "pattern": "**/media/ocr-service.test.js",
+      "reason": "Requires Tesseract.js native dependencies",
+      "severity": "flaky",
+      "owner": "media-team",
+      "expires": "2026-03-01"
+    },
+    {
+      "pattern": "**/mcp/**",
+      "reason": "MCP tests require external servers",
+      "severity": "integration",
+      "owner": "mcp-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/p2p/**",
+      "reason": "P2P tests require network setup",
+      "severity": "integration",
+      "owner": "p2p-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/ukey/**",
+      "reason": "U-Key tests require hardware (Windows only)",
+      "severity": "hardware",
+      "owner": "security-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/blockchain/**",
+      "reason": "Blockchain tests slow (>5 min)",
+      "severity": "slow",
+      "owner": "blockchain-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/components/**",
+      "reason": "Vue component tests require DOM environment",
+      "severity": "environment",
+      "owner": "frontend-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/import/**",
+      "reason": "Import tests require large test fixtures",
+      "severity": "slow",
+      "owner": "import-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/extended-tools*.test.js",
+      "reason": "Extended tools require external APIs",
+      "severity": "integration",
+      "owner": "tools-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/*-ipc.test.js",
+      "reason": "IPC tests require Electron runtime",
+      "severity": "environment",
+      "owner": "electron-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/llm/session-manager*.test.js",
+      "reason": "Session manager tests flaky (timing issues)",
+      "severity": "flaky",
+      "owner": "llm-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/llm/llm-performance.test.js",
+      "reason": "Performance tests slow (>2 min)",
+      "severity": "slow",
+      "owner": "llm-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/tools/tool-manager.test.js",
+      "reason": "Tool manager tests flaky",
+      "severity": "flaky",
+      "owner": "tools-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/ai/skill-manager.test.js",
+      "reason": "Skill manager tests flaky",
+      "severity": "flaky",
+      "owner": "ai-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/document/word-engine.test.js",
+      "reason": "Word engine requires native modules",
+      "severity": "flaky",
+      "owner": "document-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/media/image-engine.test.js",
+      "reason": "Image engine requires Sharp native modules",
+      "severity": "flaky",
+      "owner": "media-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/did/did-invitation.test.js",
+      "reason": "DID invitation tests require network",
+      "severity": "integration",
+      "owner": "did-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/core/ipc-guard.test.js",
+      "reason": "IPC guard requires Electron runtime",
+      "severity": "environment",
+      "owner": "security-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/security/permission-system.test.js",
+      "reason": "Permission system tests flaky",
+      "severity": "flaky",
+      "owner": "security-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/api/**",
+      "reason": "API tests require backend services",
+      "severity": "integration",
+      "owner": "api-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/pages/**",
+      "reason": "Page tests require full Vue environment",
+      "severity": "environment",
+      "owner": "frontend-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/stores/**",
+      "reason": "Store tests require Pinia setup",
+      "severity": "environment",
+      "owner": "frontend-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/sync/**",
+      "reason": "Sync tests require network and timing",
+      "severity": "flaky",
+      "owner": "sync-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/ai/builtin-tools.test.js",
+      "reason": "Builtin tools tests flaky",
+      "severity": "flaky",
+      "owner": "ai-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/document/pdf-engine.test.js",
+      "reason": "PDF engine requires native modules",
+      "severity": "flaky",
+      "owner": "document-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/document/ppt-engine.test.js",
+      "reason": "PPT engine requires native modules",
+      "severity": "flaky",
+      "owner": "document-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/integration/p2p-sync-engine.test.js",
+      "reason": "P2P sync integration test (slow + network)",
+      "severity": "integration",
+      "owner": "p2p-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/components/planning-components.test.js",
+      "reason": "Planning components require Vue environment",
+      "severity": "environment",
+      "owner": "planning-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/pages/PlanningView.test.js",
+      "reason": "Planning view requires full Vue + router",
+      "severity": "environment",
+      "owner": "planning-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/core/function-caller.test.js",
+      "reason": "Function caller tests flaky",
+      "severity": "flaky",
+      "owner": "core-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/core/response-parser.test.js",
+      "reason": "Response parser tests flaky",
+      "severity": "flaky",
+      "owner": "core-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/media/speech-recognizer.test.js",
+      "reason": "Speech recognizer requires audio APIs",
+      "severity": "environment",
+      "owner": "media-team",
+      "expires": "2026-02-28"
+    },
+    {
+      "pattern": "**/planning/task-planner*.test.js",
+      "reason": "Task planner tests flaky",
+      "severity": "flaky",
+      "owner": "planning-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/planning/taskPlanner.test.js",
+      "reason": "Task planner tests flaky (duplicate)",
+      "severity": "flaky",
+      "owner": "planning-team",
+      "expires": "2026-02-15"
+    },
+    {
+      "pattern": "**/src/main/**/__tests__/**",
+      "reason": "Main process tests in __tests__ dirs (use tests/unit instead)",
+      "severity": "organizational",
+      "owner": "electron-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/src/renderer/**/__tests__/**",
+      "reason": "Renderer tests in __tests__ dirs (use tests/unit instead)",
+      "severity": "organizational",
+      "owner": "frontend-team",
+      "expires": null
+    },
+    {
+      "pattern": "**/tests/integration/**",
+      "reason": "Integration tests run separately",
+      "severity": "integration",
+      "owner": "qa-team",
+      "expires": null
+    }
+  ],
+  "criticalTests": [
+    {
+      "pattern": "tests/unit/database.test.js",
+      "reason": "Core database functionality",
+      "alwaysRun": true
+    },
+    {
+      "pattern": "tests/unit/config.test.js",
+      "reason": "Configuration management",
+      "alwaysRun": true
+    },
+    {
+      "pattern": "tests/unit/llm/llm-service.test.js",
+      "reason": "Core LLM service",
+      "alwaysRun": true
+    },
+    {
+      "pattern": "tests/unit/rag/rag-engine.test.js",
+      "reason": "Core RAG functionality",
+      "alwaysRun": true
+    },
+    {
+      "pattern": "tests/unit/did/did-manager.test.js",
+      "reason": "DID identity management",
+      "alwaysRun": true
+    }
+  ],
+  "metadata": {
+    "totalExclusions": 36,
+    "byReason": {
+      "flaky": 11,
+      "integration": 7,
+      "environment": 8,
+      "slow": 3,
+      "hardware": 1,
+      "organizational": 2
+    },
+    "expirationPolicy": "Review and fix expired exclusions monthly",
+    "maintenanceSchedule": "First Monday of each month"
+  }
+}

@@ -1,30 +1,43 @@
 version: '3.8'
 
 services:
-  # Whisper Local Speech Recognition Service
+  # Whisper.cpp Local Speech Recognition Service (v0.27.0)
+  # 高性能本地语音识别，支持 CPU 和 GPU (CUDA)
   whisper-service:
     build:
-      context: ./backend/whisper-service
+      context: ./desktop-app-vue/scripts/whisper-server
       dockerfile: Dockerfile
+      args:
+        - GPU_SUPPORT=${WHISPER_GPU:-cpu}
+    image: chainlesschain/whisper-server:${WHISPER_GPU:-cpu}
     container_name: chainlesschain-whisper
     ports:
-      - "8002:8000"
+      - "8002:8002"
     environment:
-      - WHISPER_HOST=0.0.0.0
-      - WHISPER_PORT=8000
-      - WHISPER_MODEL=base
-      - WHISPER_DEVICE=auto
+      - WHISPER_MODEL_DIR=/app/models
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL:-base}
+      - WHISPER_SERVER_PORT=8002
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-auto}
+      - WHISPER_MAX_FILE_SIZE=52428800
     volumes:
-      - whisper-models:/root/.cache/whisper
+      - whisper-models:/app/models
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8002/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     networks:
       - chainlesschain-network
+    # GPU 支持（需要 nvidia-container-toolkit）
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
 
   # Ollama - 本地LLM服务（CPU版本）
   ollama:

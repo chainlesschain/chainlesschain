@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>官网更新预览 - v0.21.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+        h1 {
+            color: #1890ff;
+            margin-bottom: 10px;
+        }
+        .version {
+            color: #52c41a;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #f7f9fc;
+            border-radius: 8px;
+            border-left: 4px solid #1890ff;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        .feature-list {
+            list-style: none;
+        }
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e8e8e8;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        .icon {
+            margin-right: 8px;
+        }
+        .highlight {
+            background: linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #d48806;
+        }
+        .btn-preview {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .btn-preview:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(24,144,255,0.4);
+        }
+        .screenshot {
+            background: #e6f7ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .screenshot-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #0050b3;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #1890ff;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1890ff;
+            display: block;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 ChainlessChain 官网更新预览</h1>
+        <p class="version">版本：v0.21.0 | 更新日期：2026-01-28</p>
+
+        <div class="section">
+            <h2>📞 核心更新 1：顶部联系栏</h2>
+            <p><span class="highlight">最显著位置展示联系方式</span></p>
+            <ul class="feature-list">
+                <li><span class="icon">📞</span> <strong>400电话</strong>：400-1068-687（支持一键拨打）</li>
+                <li><span class="icon">💬</span> <strong>企业微信</strong>：悬停显示二维码弹窗</li>
+                <li><span class="icon">📧</span> <strong>商务合作</strong>：zhanglongfa@chainlesschain.com</li>
+            </ul>
+            <div class="screenshot">
+                <div class="screenshot-title">联系栏位置示意</div>
+                <p>位于导航栏正下方，蓝色渐变背景，全屏宽度</p>
+                <p>三个联系方式横向排列，使用分隔线分隔</p>
+                <p>移动端自动切换为纵向堆叠布局</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>✨ 核心更新 2：最新功能板块</h2>
+            <p><span class="highlight">展示 v0.21.0 的8大新功能</span></p>
+            <ul class="feature-list">
+                <li><span class="icon">🔌</span> <strong>MCP集成 (POC v0.1.0)</strong> - Model Context Protocol标准化工具</li>
+                <li><span class="icon">📊</span> <strong>LLM性能仪表板</strong> - Token监控、成本分析、ECharts可视化</li>
+                <li><span class="icon">💬</span> <strong>智能会话管理 (v0.22.0)</strong> - 自动压缩节省30-40% Token</li>
+                <li><span class="icon">🩺</span> <strong>AI错误诊断</strong> - 本地Ollama LLM智能诊断</li>
+                <li><span class="icon">⚙️</span> <strong>Manus优化 (v0.24.0)</strong> - Context工程、任务跟踪</li>
+                <li><span class="icon">👥</span> <strong>Cowork多Agent协作 (v1.0.0)</strong> - Claude Cowork风格系统</li>
+                <li><span class="icon">🚀</span> <strong>GitHub发布自动化</strong> - 全自动CI/CD流程</li>
+                <li><span class="icon">📱</span> <strong>Android Phase 5</strong> - P2P网络、DID身份系统</li>
+            </ul>
+            <div class="screenshot">
+                <div class="screenshot-title">新功能板块示意</div>
+                <p>8个功能卡片，网格布局，每卡片包含图标、标题、描述、标签</p>
+                <p>MCP和Cowork卡片高亮显示（蓝色边框+渐变背景）</p>
+                <p>悬停效果：向上浮动，阴影加深</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📊 数据更新</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-number">v0.21.0</span>
+                    <span class="stat-label">最新版本</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">98%</span>
+                    <span class="stat-label">整体完成度</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">165</span>
+                    <span class="stat-label">Vue组件</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">149</span>
+                    <span class="stat-label">API端点</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>📝 文件更新清单</h2>
+            <ul class="feature-list">
+                <li><span class="icon">✅</span> <code>index.html</code> - 添加联系栏、新功能板块、企业微信二维码、更新版本号</li>
+                <li><span class="icon">✅</span> <code>style-enhancements.css</code> - 新增两大板块完整样式 + 二维码弹窗样式</li>
+                <li><span class="icon">✅</span> <code>README.md</code> - 更新版本、功能、联系方式说明</li>
+                <li><span class="icon">✅</span> <code>UPDATE_GUIDE.md</code> - 详细更新指南文档</li>
+                <li><span class="icon">✅</span> <code>PREVIEW_v0.21.0.html</code> - 本预览页面</li>
+                <li><span class="icon">🆕</span> <code>generate-qr-code.html</code> - 企业微信二维码生成工具</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>✅ 企业微信二维码已集成</h2>
+            <ul class="feature-list">
+                <li><span class="icon">✅</span> <strong>企业微信链接</strong>：https://work.weixin.qq.com/ca/cawcde653996f7ecb2</li>
+                <li><span class="icon">✅</span> <strong>实现方式</strong>：使用在线API自动生成，无需手动上传</li>
+                <li><span class="icon">✅</span> <strong>功能完整</strong>：悬停显示二维码 + 点击跳转链接</li>
+                <li><span class="icon">🛠️</span> <strong>生成工具</strong>：打开 <code>generate-qr-code.html</code> 下载不同尺寸二维码</li>
+                <li><span class="icon">📖</span> <strong>详细说明</strong>：查看 <code>UPDATE_GUIDE.md</code></li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>🚀 下一步操作</h2>
+            <ul class="feature-list">
+                <li><span class="icon">1️⃣</span> 本地测试：<code>python -m http.server 8000</code> 或 <code>npx http-server -p 8000</code></li>
+                <li><span class="icon">2️⃣</span> 访问：<code>http://localhost:8000</code> 查看主页</li>
+                <li><span class="icon">3️⃣</span> 访问：<code>http://localhost:8000/generate-qr-code.html</code> 生成二维码</li>
+                <li><span class="icon">4️⃣</span> 检查所有功能：
+                    <ul style="margin-left: 30px; margin-top: 10px;">
+                        <li>✅ 顶部联系栏显示正常</li>
+                        <li>✅ 400电话可点击拨打</li>
+                        <li>✅ 企业微信悬停显示二维码</li>
+                        <li>✅ 最新功能板块正常显示</li>
+                        <li>✅ 移动端响应式布局正常</li>
+                    </ul>
+                </li>
+                <li><span class="icon">5️⃣</span> 提交代码并部署到服务器</li>
+            </ul>
+        </div>
+
+        <a href="index.html" class="btn-preview">🔍 查看完整官网</a>
+        <a href="UPDATE_GUIDE.md" class="btn-preview" style="margin-left: 10px;">📖 查看更新指南</a>
+    </div>
+</body>
+</html>

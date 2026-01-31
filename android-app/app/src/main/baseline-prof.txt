@@ -1,0 +1,59 @@
+# Baseline Profile for ChainlessChain Android App
+# This file specifies which classes and methods should be pre-compiled by ART
+# to improve app startup performance and reduce jank.
+#
+# Format: HSP (Human readable, Standalone Profile format)
+# See: https://developer.android.com/topic/performance/baselineprofiles
+
+# Application
+Lcom/chainlesschain/android/ChainlessChainApplication;
+HSPLcom/chainlesschain/android/ChainlessChainApplication;->onCreate()V
+HSPLcom/chainlesschain/android/ChainlessChainApplication;->initTimber()V
+
+# MainActivity
+Lcom/chainlesschain/android/MainActivity;
+HSPLcom/chainlesschain/android/MainActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLcom/chainlesschain/android/MainActivity;->setupSplashScreen(Landroidx/core/splashscreen/SplashScreen;)V
+
+# Navigation
+Lcom/chainlesschain/android/navigation/NavGraphKt;
+HSPLcom/chainlesschain/android/navigation/NavGraphKt;->NavGraph(Landroidx/navigation/NavHostController;Ljava/lang/String;Landroidx/compose/runtime/Composer;I)V
+
+# MainContainer
+Lcom/chainlesschain/android/presentation/MainContainerKt;
+HSPLcom/chainlesschain/android/presentation/MainContainerKt;->MainContainer(Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function1;Lcom/chainlesschain/android/feature/auth/presentation/AuthViewModel;Landroidx/compose/runtime/Composer;II)V
+
+# Theme
+Lcom/chainlesschain/android/core/ui/theme/ThemeKt;
+HSPLcom/chainlesschain/android/core/ui/theme/ThemeKt;->ChainlessChainTheme(ZZLkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+
+# AuthViewModel
+Lcom/chainlesschain/android/feature/auth/presentation/AuthViewModel;
+HSPLcom/chainlesschain/android/feature/auth/presentation/AuthViewModel;-><init>(Lcom/chainlesschain/android/feature/auth/domain/repository/AuthRepository;)V
+HSPLcom/chainlesschain/android/feature/auth/presentation/AuthViewModel;->getUiState()Lkotlinx/coroutines/flow/StateFlow;
+
+# Database (critical for startup)
+Lcom/chainlesschain/android/core/database/ChainlessChainDatabase;
+HSPLcom/chainlesschain/android/core/database/ChainlessChainDatabase;->getInstance(Landroid/content/Context;[B)Lcom/chainlesschain/android/core/database/ChainlessChainDatabase;
+
+# Hilt generated components (critical for DI)
+Lcom/chainlesschain/android/ChainlessChainApplication_HiltComponents$SingletonC;
+Lcom/chainlesschain/android/MainActivity_HiltComponents$ActivityC;
+
+# Compose runtime (critical for UI)
+Landroidx/compose/runtime/ComposerKt;
+Landroidx/compose/runtime/ComposerImpl;
+Landroidx/compose/ui/platform/AndroidCompositionLocals_androidKt;
+
+# Compose UI (critical for rendering)
+Landroidx/compose/ui/node/LayoutNode;
+Landroidx/compose/ui/node/MeasureAndLayoutDelegate;
+Landroidx/compose/foundation/layout/BoxKt;
+
+# Coroutines (critical for async operations)
+Lkotlinx/coroutines/CoroutineDispatcher;
+Lkotlinx/coroutines/android/HandlerDispatcher;
+
+# Timber (logging)
+Ltimber/log/Timber;
+HSPLtimber/log/Timber;->d(Ljava/lang/String;[Ljava/lang/Object;)V
