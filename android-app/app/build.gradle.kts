@@ -310,6 +310,10 @@ dependencies {
     implementation("io.noties.markwon:syntax-highlight:4.6.2")
     implementation("io.noties.markwon:image-coil:4.6.2")
 
+    // ===== Phase 1: WebRTC 远程控制 =====
+    // WebRTC for P2P remote control
+    implementation("org.webrtc:google-webrtc:1.0.32006")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.9")

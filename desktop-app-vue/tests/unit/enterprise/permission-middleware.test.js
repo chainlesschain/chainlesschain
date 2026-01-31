@@ -43,7 +43,7 @@ describe('PermissionMiddleware Unit Tests', () => {
     // Load modules
     DatabaseManager = require('../../../src/main/database');
     DIDManager = require('../../../src/main/did/did-manager');
-    PermissionManager = require('../../../src/main/organization/permission-manager');
+    PermissionManager = require('../../../src/main/collaboration/permission-manager');
     PermissionMiddleware = require('../../../src/main/organization/permission-middleware');
 
     // Initialize database
@@ -94,10 +94,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       memberDID = member.did;
 
       // Create organization
-      const orgData = db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_123', 'did:test:org123', 'Test Org', ownerDID, 'startup', Date.now());
+      const now = Date.now();
+      db.prepare(`
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_123', 'did:test:org123', 'Test Org', ownerDID, 'startup', now, now);
 
       org = { org_id: 'org_123', org_did: 'did:test:org123' };
 
@@ -250,10 +251,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       memberDID = member.did;
 
       // Create organization
+      const now = Date.now();
       db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_456', 'did:test:org456', 'Test Org', ownerDID, 'company', Date.now());
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_456', 'did:test:org456', 'Test Org', ownerDID, 'company', now, now);
 
       org = { org_id: 'org_456', org_did: 'did:test:org456' };
 
@@ -352,10 +354,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       memberDID = member.did;
 
       // Create organization
+      const now = Date.now();
       db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_789', 'did:test:org789', 'Test Org', owner.did, 'startup', Date.now());
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_789', 'did:test:org789', 'Test Org', owner.did, 'startup', now, now);
 
       org = { org_id: 'org_789' };
 
@@ -455,10 +458,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       viewerDID = viewer.did;
 
       // Create organization
+      const now = Date.now();
       db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_role', 'did:test:orgrole', 'Role Test Org', ownerDID, 'company', Date.now());
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_role', 'did:test:orgrole', 'Role Test Org', ownerDID, 'company', now, now);
 
       org = { org_id: 'org_role' };
 
@@ -563,10 +567,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       );
       ownerDID = owner.did;
 
+      const now = Date.now();
       db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_cache', 'did:test:orgcache', 'Cache Test Org', ownerDID, 'startup', Date.now());
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_cache', 'did:test:orgcache', 'Cache Test Org', ownerDID, 'startup', now, now);
 
       org = { org_id: 'org_cache' };
 
@@ -666,10 +671,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       );
       ownerDID = owner.did;
 
+      const now = Date.now();
       db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_rate', 'did:test:orgrate', 'Rate Test Org', ownerDID, 'startup', Date.now());
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_rate', 'did:test:orgrate', 'Rate Test Org', ownerDID, 'startup', now, now);
 
       org = { org_id: 'org_rate' };
 
@@ -785,10 +791,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       );
       memberDID = member.did;
 
+      const now = Date.now();
       db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_audit', 'did:test:orgaudit', 'Audit Test Org', ownerDID, 'company', Date.now());
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_audit', 'did:test:orgaudit', 'Audit Test Org', ownerDID, 'company', now, now);
 
       org = { org_id: 'org_audit' };
 
@@ -889,10 +896,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       );
       ownerDID = owner.did;
 
+      const now = Date.now();
       db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_error', 'did:test:orgerror', 'Error Test Org', ownerDID, 'startup', Date.now());
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_error', 'did:test:orgerror', 'Error Test Org', ownerDID, 'startup', now, now);
 
       org = { org_id: 'org_error' };
 
@@ -986,10 +994,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       );
       memberDID = member.did;
 
+      const now = Date.now();
       db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_own', 'did:test:orgown', 'Ownership Test Org', ownerDID, 'startup', Date.now());
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_own', 'did:test:orgown', 'Ownership Test Org', ownerDID, 'startup', now, now);
 
       org = { org_id: 'org_own' };
 
@@ -1004,10 +1013,12 @@ describe('PermissionMiddleware Unit Tests', () => {
       `).run(org.org_id, memberDID, 'member', 'active', Date.now());
 
       // Create a test folder
+      const folderNow = Date.now();
       db.prepare(`
-        INSERT INTO org_knowledge_folders (id, org_id, name, created_by, created_at)
-        VALUES (?, ?, ?, ?, ?)
-      `).run('folder_123', org.org_id, 'Test Folder', ownerDID, Date.now());
+        INSERT INTO org_knowledge_folders (id, org_id, name, created_by, created_at, updated_at, permissions)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('folder_123', org.org_id, 'Test Folder', ownerDID, folderNow, folderNow, '{}');
+      // Note: Added const folderNow above
     });
 
     it('should check resource ownership (folder)', async () => {
@@ -1064,10 +1075,11 @@ describe('PermissionMiddleware Unit Tests', () => {
       );
       memberDID = member.did;
 
+      const now = Date.now();
       db.prepare(`
-        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('org_log', 'did:test:orglog', 'Log Test Org', ownerDID, 'company', Date.now());
+        INSERT INTO organization_info (org_id, org_did, name, owner_did, type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('org_log', 'did:test:orglog', 'Log Test Org', ownerDID, 'company', now, now);
 
       org = { org_id: 'org_log' };
 

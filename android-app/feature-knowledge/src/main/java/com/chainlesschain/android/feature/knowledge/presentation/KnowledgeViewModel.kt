@@ -8,6 +8,7 @@ import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.feature.knowledge.data.repository.KnowledgeRepository
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeItem
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
+import com.chainlesschain.android.feature.auth.data.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -20,7 +21,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class KnowledgeViewModel @Inject constructor(
-    private val repository: KnowledgeRepository
+    private val repository: KnowledgeRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     // UI状态
@@ -113,8 +115,18 @@ class KnowledgeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // TODO: 从AuthRepository获取deviceId
-            val deviceId = "device-${System.currentTimeMillis()}"
+            // 从AuthRepository获取真实的设备ID
+            val deviceId = authRepository.getCurrentUser()?.deviceId
+                ?: run {
+                    // 如果无法获取用户信息，使用备用方案
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = "无法获取设备信息，请重新登录"
+                        )
+                    }
+                    return@launch
+                }
 
             when (val result = repository.createItem(
                 title = title,

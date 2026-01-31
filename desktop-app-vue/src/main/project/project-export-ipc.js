@@ -7,8 +7,8 @@
  */
 
 const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain, dialog } = require('electron');
 const path = require('path');
+const PathSecurity = require('./path-security.js');
 
 /**
  * 注册项目导出分享相关的 IPC 处理器
@@ -21,6 +21,8 @@ const path = require('path');
  * @param {Function} dependencies.getProjectConfig - 获取项目配置
  * @param {Function} dependencies.copyDirectory - 复制目录函数
  * @param {Function} dependencies.convertSlidesToOutline - 转换幻灯片为大纲
+ * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} dependencies.dialog - Dialog对象（可选，用于测试注入）
  */
 function registerProjectExportIPC({
   database,
@@ -30,8 +32,15 @@ function registerProjectExportIPC({
   saveDatabase,
   getProjectConfig,
   copyDirectory,
-  convertSlidesToOutline
+  convertSlidesToOutline,
+  ipcMain: injectedIpcMain,
+  dialog: injectedDialog
 }) {
+  // 支持依赖注入，用于测试
+  const electron = require('electron');
+  const ipcMain = injectedIpcMain || electron.ipcMain;
+  const dialog = injectedDialog || electron.dialog;
+
   logger.info('[Project Export IPC] Registering Project Export/Share IPC handlers...');
 
   // ============================================================
@@ -486,24 +495,52 @@ ${content.substring(0, 2000)}
       const fs = require('fs').promises;
       const projectConfig = getProjectConfig();
 
-      // 解析目标路径
-      const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
+      // 1. 获取项目信息
+      const db = getDatabaseConnection();
+      const project = await db.get('SELECT * FROM projects WHERE id = ?', [projectId]);
+      if (!project) {
+        throw new Error('项目不存在');
+      }
 
-      // 确保目标目录存在
-      const targetDir = path.dirname(resolvedTargetPath);
+      // 2. 验证目标路径安全性（确保在项目目录内）
+      const projectRoot = projectConfig.resolveProjectPath(project.root_path || project.folder_path);
+      const safeTargetPath = PathSecurity.validateFilePath(targetPath, projectRoot);
+
+      // 3. 验证外部源文件路径（防止读取敏感系统文件）
+      // 检查是否包含危险字符或路径遍历
+      if (PathSecurity.containsDangerousChars(externalPath)) {
+        throw new Error('外部文件路径包含非法字符');
+      }
+
+      // 验证外部文件是否存在且可读
+      try {
+        await fs.access(externalPath, fs.constants.R_OK);
+      } catch (error) {
+        throw new Error('外部文件不存在或无法访问');
+      }
+
+      // 4. 验证文件扩展名（可选，根据配置）
+      const allowedExtensions = projectConfig.getAllConfig().allowedFileTypes || [];
+      if (allowedExtensions.length > 0) {
+        if (!PathSecurity.validateFileExtension(externalPath, allowedExtensions)) {
+          throw new Error(`不支持的文件类型: ${path.extname(externalPath)}`);
+        }
+      }
+
+      // 5. 确保目标目录存在
+      const targetDir = path.dirname(safeTargetPath);
       await fs.mkdir(targetDir, { recursive: true });
 
-      // 复制文件（保留外部源文件）
-      await fs.copyFile(externalPath, resolvedTargetPath);
+      // 6. 复制文件（保留外部源文件）
+      await fs.copyFile(externalPath, safeTargetPath);
 
-      // 获取文件信息
-      const stats = await fs.stat(resolvedTargetPath);
-      const content = await fs.readFile(resolvedTargetPath, 'utf-8');
+      // 7. 获取文件信息
+      const stats = await fs.stat(safeTargetPath);
+      const content = await fs.readFile(safeTargetPath, 'utf-8');
 
-      // 添加到数据库
-      const db = getDatabaseConnection();
+      // 8. 添加到数据库
       const fileId = require('crypto').randomUUID();
-      const fileName = path.basename(resolvedTargetPath);
+      const fileName = PathSecurity.sanitizeFilename(path.basename(safeTargetPath));
       const fileExt = path.extname(fileName).substring(1);
 
       const insertSQL = `
@@ -530,7 +567,7 @@ ${content.substring(0, 2000)}
         success: true,
         fileId: fileId,
         fileName: fileName,
-        path: resolvedTargetPath,
+        path: safeTargetPath,
         size: stats.size
       };
     } catch (error) {
@@ -544,39 +581,47 @@ ${content.substring(0, 2000)}
    */
   ipcMain.handle('project:export-file', async (_event, params) => {
     try {
-      const { projectPath, targetPath, isDirectory } = params;
+      const { projectId, projectPath, targetPath, isDirectory } = params;
       logger.info(`[Main] 导出文件参数:`, params);
 
       const fs = require('fs').promises;
       const projectConfig = getProjectConfig();
 
-      // 解析项目内路径
-      const resolvedSourcePath = projectConfig.resolveProjectPath(projectPath);
-      logger.info(`[Main] 解析后的源路径: ${resolvedSourcePath}`);
+      // 1. 获取项目信息
+      const db = getDatabaseConnection();
+      const project = await db.get('SELECT * FROM projects WHERE id = ?', [projectId]);
+      if (!project) {
+        throw new Error('项目不存在');
+      }
+
+      // 2. 验证源路径安全性（确保在项目目录内）
+      const projectRoot = projectConfig.resolveProjectPath(project.root_path || project.folder_path);
+      const safeSourcePath = PathSecurity.validateFilePath(projectPath, projectRoot);
+      logger.info(`[Main] 验证后的源路径: ${safeSourcePath}`);
       logger.info(`[Main] 目标路径: ${targetPath}`);
 
-      // 检查源文件/文件夹是否存在
+      // 3. 检查源文件/文件夹是否存在
       try {
-        await fs.access(resolvedSourcePath);
+        await fs.access(safeSourcePath);
       } catch (err) {
-        logger.error(`[Main] 源文件不存在: ${resolvedSourcePath}`);
+        logger.error(`[Main] 源文件不存在: ${safeSourcePath}`);
         throw new Error(`源文件不存在: ${projectPath}`);
       }
 
-      const stats = await fs.stat(resolvedSourcePath);
+      const stats = await fs.stat(safeSourcePath);
 
       if (stats.isDirectory()) {
         // 递归复制目录
-        logger.info(`[Main] 复制目录: ${resolvedSourcePath} -> ${targetPath}`);
-        await copyDirectory(resolvedSourcePath, targetPath);
+        logger.info(`[Main] 复制目录: ${safeSourcePath} -> ${targetPath}`);
+        await copyDirectory(safeSourcePath, targetPath);
       } else {
         // 确保目标目录存在
         const targetDir = path.dirname(targetPath);
         await fs.mkdir(targetDir, { recursive: true });
 
         // 复制单个文件
-        logger.info(`[Main] 复制文件: ${resolvedSourcePath} -> ${targetPath}`);
-        await fs.copyFile(resolvedSourcePath, targetPath);
+        logger.info(`[Main] 复制文件: ${safeSourcePath} -> ${targetPath}`);
+        await fs.copyFile(safeSourcePath, targetPath);
       }
 
       logger.info(`[Main] 文件导出成功: ${targetPath}`);

@@ -23,6 +23,9 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 fun ProfileScreen(
     onLogout: () -> Unit,
     onNavigateToLLMSettings: () -> Unit = {},
+    onNavigateToKnowledgeList: () -> Unit = {},
+    onNavigateToAIChat: () -> Unit = {},
+    onNavigateToP2P: () -> Unit = {},
     viewModel: AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -35,12 +38,7 @@ fun ProfileScreen(
     ) {
         // 顶部栏
         TopAppBar(
-            title = { Text("我的", fontWeight = FontWeight.Bold) },
-            actions = {
-                IconButton(onClick = {}) {
-                    Icon(Icons.Default.Settings, contentDescription = "设置")
-                }
-            }
+            title = { Text("我的", fontWeight = FontWeight.Bold) }
         )
 
         LazyColumn(
@@ -137,7 +135,7 @@ fun ProfileScreen(
                     icon = Icons.Default.Book,
                     title = "知识库",
                     subtitle = "管理我的知识库",
-                    onClick = {}
+                    onClick = onNavigateToKnowledgeList
                 )
             }
 
@@ -146,7 +144,7 @@ fun ProfileScreen(
                     icon = Icons.Default.Chat,
                     title = "AI对话",
                     subtitle = "智能助手对话记录",
-                    onClick = {}
+                    onClick = onNavigateToAIChat
                 )
             }
 
@@ -164,53 +162,7 @@ fun ProfileScreen(
                     icon = Icons.Default.Devices,
                     title = "P2P设备管理",
                     subtitle = "管理连接的设备",
-                    onClick = {}
-                )
-            }
-
-            item {
-                ProfileMenuItem(
-                    icon = Icons.Default.Bookmark,
-                    title = "我的收藏",
-                    subtitle = "查看收藏的内容",
-                    onClick = {}
-                )
-            }
-
-            // 系统设置
-            item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "系统",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            item {
-                ProfileMenuItem(
-                    icon = Icons.Default.Settings,
-                    title = "设置",
-                    subtitle = "应用设置",
-                    onClick = {}
-                )
-            }
-
-            item {
-                ProfileMenuItem(
-                    icon = Icons.Default.Info,
-                    title = "关于",
-                    subtitle = "应用信息和版本",
-                    onClick = {}
-                )
-            }
-
-            item {
-                ProfileMenuItem(
-                    icon = Icons.Default.Help,
-                    title = "帮助与反馈",
-                    subtitle = "获取帮助",
-                    onClick = {}
+                    onClick = onNavigateToP2P
                 )
             }
 

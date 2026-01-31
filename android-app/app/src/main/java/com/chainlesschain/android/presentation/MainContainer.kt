@@ -114,6 +114,9 @@ fun MainContainer(
                     ProfileScreen(
                         onLogout = onLogout,
                         onNavigateToLLMSettings = onNavigateToLLMSettings,
+                        onNavigateToKnowledgeList = onNavigateToKnowledgeList,
+                        onNavigateToAIChat = onNavigateToAIChat,
+                        onNavigateToP2P = onNavigateToP2P,
                         viewModel = viewModel
                     )
                 }

@@ -121,7 +121,7 @@ class ConversationViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                _uiState.update { it.copy(isSending = true, streamingContent = "") }
+                _uiState.update { it.copy(isSending = true) }
                 _streamingContent.value = ""
 
                 // 添加用户消息
@@ -150,11 +150,11 @@ class ConversationViewModel @Inject constructor(
                 // 准备消息历史（包含RAG上下文）
                 val messageHistory = _messages.value.toMutableList()
 
-                // 如果有RAG上下文，添加系统消息
+                // 如果有RAG上下文，添加系统消息（使用唯一ID避免冲突）
                 if (ragContext.isNotEmpty()) {
                     messageHistory.add(
                         Message(
-                            id = "rag-context",
+                            id = "rag-context-${System.currentTimeMillis()}",
                             conversationId = conversation.id,
                             role = MessageRole.SYSTEM,
                             content = ragContext,
@@ -202,8 +202,7 @@ class ConversationViewModel @Inject constructor(
 
                         _uiState.update {
                             it.copy(
-                                isSending = false,
-                                streamingContent = ""
+                                isSending = false
                             )
                         }
                         _streamingContent.value = ""
@@ -352,7 +351,6 @@ data class ConversationUiState(
     val isSending: Boolean = false,
     val error: String? = null,
     val operationSuccess: Boolean = false,
-    val streamingContent: String = "",
     val currentModel: LLMModel? = null,
     val currentApiKey: String? = null,
     val llmAvailable: Boolean = false

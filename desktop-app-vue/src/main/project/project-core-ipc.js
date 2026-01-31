@@ -9,6 +9,9 @@
 const { logger, createLogger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 const crypto = require("crypto");
+const FileCacheManager = require("./file-cache-manager.js");
+const ConflictError = require("../errors/conflict-error.js");
+const { getSyncLockManager } = require("./sync-lock-manager.js");
 
 /**
  * 注册所有 Project Core IPC 处理器
@@ -26,60 +29,89 @@ function registerProjectCoreIPC({
 }) {
   logger.info("[Project Core IPC] Registering Project Core IPC handlers...");
 
+  // 创建文件缓存管理器实例
+  const fileCacheManager = new FileCacheManager(database);
+
+  // 获取同步锁管理器实例
+  const syncLockManager = getSyncLockManager();
+
   // ============================================================
   // 项目 CRUD 操作 (Project CRUD Operations)
   // ============================================================
 
   /**
-   * 获取所有项目（本地SQLite）
+   * 获取所有项目（本地SQLite，支持分页）
    * Channel: 'project:get-all'
    */
-  ipcMain.handle("project:get-all", async (_event, userId) => {
+  ipcMain.handle("project:get-all", async (_event, userId, options = {}) => {
     try {
-      logger.info("[Main] ===== 开始获取项目列表 =====");
+      const {
+        offset = 0,
+        limit = 0,  // 0 表示不分页，返回所有
+        sortBy = 'updated_at',
+        sortOrder = 'DESC'
+      } = options;
+
+      logger.info("[Main] ⚡ 获取项目列表:", { userId, offset, limit, sortBy, sortOrder });
+
       if (!database) {
         throw new Error("数据库未初始化");
       }
 
-      logger.info("[Main] 获取项目列表，userId:", userId);
-      const projects = database.getProjects(userId);
-      logger.info("[Main] 原始项目数量:", projects ? projects.length : 0);
+      const startTime = Date.now();
+
+      // 获取项目列表（支持分页）
+      const projects = database.getProjects(userId, {
+        offset,
+        limit,
+        sortBy,
+        sortOrder
+      });
+
+      // 获取总数
+      const total = database.getProjectsCount(userId);
+
+      const duration = Date.now() - startTime;
+
+      logger.info(
+        `[Main] ⚡ 返回 ${projects.length}/${total} 个项目 (耗时 ${duration}ms)`
+      );
 
       if (!projects || projects.length === 0) {
-        logger.info("[Main] 没有项目，返回空数组");
-        return [];
+        return {
+          projects: [],
+          total: 0,
+          hasMore: false
+        };
       }
 
-      // 打印第一个项目的键，帮助调试
-      if (projects[0]) {
-        logger.info("[Main] 第一个项目的键:", Object.keys(projects[0]));
-        logger.info("[Main] 第一个项目的部分数据:", {
-          id: projects[0].id,
-          name: projects[0].name,
-          project_type: projects[0].project_type,
-        });
-      }
-
-      logger.info("[Main] 开始清理数据...");
+      // 清理数据
       const cleaned = removeUndefinedValues(projects);
-      logger.info(
-        "[Main] 清理完成，清理后的项目数量:",
-        cleaned ? cleaned.length : 0,
-      );
 
       // 确保返回的是有效的数组
       if (!cleaned || !Array.isArray(cleaned)) {
         logger.warn("[Main] 清理后的结果不是数组，返回空数组");
-        return [];
+        return {
+          projects: [],
+          total: 0,
+          hasMore: false
+        };
       }
 
-      logger.info("[Main] 准备返回项目列表");
-      return cleaned;
+      return {
+        projects: cleaned,
+        total,
+        hasMore: limit > 0 && (offset + limit < total)
+      };
     } catch (error) {
       logger.error("[Main] 获取项目列表失败:", error);
       logger.error("[Main] 错误堆栈:", error.stack);
       // 出错时返回空数组而不是抛出异常，避免IPC序列化错误
-      return [];
+      return {
+        projects: [],
+        total: 0,
+        hasMore: false
+      };
     }
   });
 
@@ -990,7 +1022,7 @@ function registerProjectCoreIPC({
   // ============================================================
 
   /**
-   * 获取项目文件列表（直接从文件系统读取）
+   * 获取项目文件列表（优化版本：使用缓存+分页）
    * Channel: 'project:get-files'
    */
   ipcMain.handle(
@@ -998,172 +1030,139 @@ function registerProjectCoreIPC({
     async (_event, projectId, fileType = null, pageNum = 1, pageSize = 50) => {
       try {
         logger.info(
-          "[Main] 获取项目文件, ProjectId:",
+          "[Main] ⚡ 获取项目文件(优化版), ProjectId:",
           projectId,
           ", FileType:",
           fileType,
+          ", Page:",
+          pageNum,
+          "/",
+          pageSize
         );
+
+        const startTime = Date.now();
 
         if (!database) {
           throw new Error("数据库未初始化");
         }
 
-        const project = database.db
-          .prepare("SELECT * FROM projects WHERE id = ?")
-          .get(projectId);
-        if (!project) {
-          throw new Error("项目不存在");
-        }
+        // 计算分页参数
+        const offset = (pageNum - 1) * pageSize;
+        const limit = pageSize;
 
-        const rootPath = project.root_path || project.folder_path;
-        logger.info("[Main] 项目根路径:", rootPath);
-
-        if (!rootPath) {
-          // 尝试自动修复
-          try {
-            const { getProjectConfig } = require("./project-config");
-            const projectConfig = getProjectConfig();
-            const projectRootPath = require("path").join(
-              projectConfig.getProjectsRootPath(),
-              projectId,
-            );
-
-            logger.info("[Main] 自动修复：创建项目目录:", projectRootPath);
-            await require("fs").promises.mkdir(projectRootPath, {
-              recursive: true,
-            });
-
-            await database.updateProject(projectId, {
-              root_path: projectRootPath,
-            });
-
-            project.root_path = projectRootPath;
-          } catch (repairError) {
-            logger.error("[Main] 自动修复失败:", repairError.message);
-            return [];
-          }
-        }
-
-        const finalRootPath = project.root_path || project.folder_path;
-        if (!finalRootPath) {
-          return [];
-        }
-
-        const fs = require("fs").promises;
-        const path = require("path");
-
-        // 检查项目目录是否存在
-        try {
-          await fs.access(finalRootPath);
-        } catch (error) {
-          logger.error("[Main] 项目目录不存在:", finalRootPath);
-          return [];
-        }
-
-        // 递归读取文件系统
-        const files = [];
-
-        async function scanDirectory(dirPath, relativePath = "") {
-          try {
-            const entries = await fs.readdir(dirPath, { withFileTypes: true });
-
-            for (const entry of entries) {
-              // 跳过隐藏文件和特定目录
-              if (
-                /(^|[/\\])\.|node_modules|\.git|dist|build|out/.test(entry.name)
-              ) {
-                continue;
-              }
-
-              const fullPath = path.join(dirPath, entry.name);
-              const fileRelativePath = relativePath
-                ? path.join(relativePath, entry.name)
-                : entry.name;
-              const isFolder = entry.isDirectory();
-
-              try {
-                const stats = await fs.stat(fullPath);
-
-                const fileInfo = {
-                  id:
-                    "fs_" +
-                    crypto
-                      .createHash("sha256")
-                      .update(fileRelativePath)
-                      .digest("hex")
-                      .substring(0, 16),
-                  project_id: projectId,
-                  file_name: entry.name,
-                  file_path: fileRelativePath.replace(/\\/g, "/"),
-                  file_type: isFolder
-                    ? "folder"
-                    : path.extname(entry.name).substring(1) || "file",
-                  is_folder: isFolder,
-                  file_size: stats.size || 0,
-                  created_at: stats.birthtimeMs || Date.now(),
-                  updated_at: stats.mtimeMs || Date.now(),
-                  sync_status: "synced",
-                  deleted: 0,
-                  version: 1,
-                };
-
-                files.push(fileInfo);
-
-                if (isFolder) {
-                  await scanDirectory(fullPath, fileRelativePath);
-                }
-              } catch (statError) {
-                logger.error(
-                  `[Main] 无法读取文件状态 ${fileRelativePath}:`,
-                  statError.message,
-                );
-              }
-            }
-          } catch (readError) {
-            logger.error(`[Main] 无法读取目录 ${dirPath}:`, readError.message);
-          }
-        }
-
-        await scanDirectory(finalRootPath);
-
-        // 从数据库读取文件记录
-        const dbFiles = database.getProjectFiles(projectId);
-        const dbFileMap = {};
-        dbFiles.forEach((f) => {
-          if (f.file_path) {
-            dbFileMap[f.file_path] = f;
-          }
+        // 使用文件缓存管理器获取文件
+        const result = await fileCacheManager.getFiles(projectId, {
+          offset,
+          limit,
+          fileType,
+          parentPath: null, // 获取所有文件（不限制父路径）
+          forceRefresh: false // 不强制刷新，优先使用缓存
         });
 
-        // 合并文件系统和数据库数据
-        const mergedFiles = files.map((fsFile) => {
-          const dbFile = dbFileMap[fsFile.file_path];
-          if (dbFile) {
-            return {
-              ...dbFile,
-              ...fsFile,
-              id: dbFile.id,
-            };
-          } else {
-            return fsFile;
-          }
-        });
+        const duration = Date.now() - startTime;
+        logger.info(
+          `[Main] ⚡ 返回 ${result.files.length}/${result.total} 个文件` +
+          ` (来自${result.fromCache ? '缓存' : '文件系统'}, 耗时 ${duration}ms)`
+        );
 
-        // 如果指定了文件类型，进行过滤
-        let filteredFiles = mergedFiles;
-        if (fileType) {
-          filteredFiles = mergedFiles.filter((f) => f.file_type === fileType);
-        }
-
-        const result = removeUndefinedValues(filteredFiles);
-        logger.info(`[Main] 返回 ${result.length} 个文件`);
-
-        return result;
+        // 返回与旧版本兼容的格式
+        return {
+          files: removeUndefinedValues(result.files),
+          total: result.total,
+          hasMore: result.hasMore,
+          fromCache: result.fromCache
+        };
       } catch (error) {
         logger.error("[Main] 获取项目文件失败:", error);
         throw error;
       }
     },
+  );
+
+  /**
+   * 刷新项目文件缓存
+   * Channel: 'project:refresh-files'
+   */
+  ipcMain.handle("project:refresh-files", async (_event, projectId) => {
+    try {
+      logger.info("[Main] ⚡ 强制刷新文件缓存:", projectId);
+
+      const result = await fileCacheManager.getFiles(projectId, {
+        offset: 0,
+        limit: 100,
+        forceRefresh: true // 强制刷新
+      });
+
+      logger.info(`[Main] ⚡ 缓存已刷新，共 ${result.total} 个文件`);
+
+      return {
+        success: true,
+        total: result.total
+      };
+    } catch (error) {
+      logger.error("[Main] 刷新文件缓存失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 清理项目文件缓存
+   * Channel: 'project:clear-file-cache'
+   */
+  ipcMain.handle("project:clear-file-cache", async (_event, projectId) => {
+    try {
+      logger.info("[Main] ⚡ 清理文件缓存:", projectId);
+
+      await fileCacheManager.clearCache(projectId);
+      await fileCacheManager.stopFileWatcher(projectId);
+
+      logger.info("[Main] ⚡ 缓存已清理");
+
+      return { success: true };
+    } catch (error) {
+      logger.error("[Main] 清理文件缓存失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取项目子目录文件列表（懒加载）
+   * Channel: 'project:get-files-lazy'
+   */
+  ipcMain.handle(
+    "project:get-files-lazy",
+    async (_event, projectId, parentPath = '', pageNum = 1, pageSize = 100) => {
+      try {
+        logger.info(
+          "[Main] ⚡ 懒加载文件, ProjectId:",
+          projectId,
+          ", ParentPath:",
+          parentPath
+        );
+
+        const offset = (pageNum - 1) * pageSize;
+
+        const result = await fileCacheManager.getFiles(projectId, {
+          offset,
+          limit: pageSize,
+          parentPath, // 仅加载指定目录的直接子项
+          forceRefresh: false
+        });
+
+        logger.info(
+          `[Main] ⚡ 返回 ${result.files.length} 个子文件`
+        );
+
+        return {
+          files: removeUndefinedValues(result.files),
+          total: result.total,
+          hasMore: result.hasMore
+        };
+      } catch (error) {
+        logger.error("[Main] 懒加载文件失败:", error);
+        throw error;
+      }
+    }
   );
 
   /**
@@ -1204,38 +1203,105 @@ function registerProjectCoreIPC({
   });
 
   /**
-   * 更新文件
+   * 更新文件（支持乐观锁）
    * Channel: 'project:update-file'
    */
   ipcMain.handle("project:update-file", async (_event, fileUpdate) => {
     try {
-      const { projectId, fileId, content, is_base64 } = fileUpdate;
+      const { projectId, fileId, content, is_base64, expectedVersion } = fileUpdate;
 
-      // 调用后端API
-      const ProjectFileAPI = require("./project-file-api");
-      const result = await ProjectFileAPI.updateFile(projectId, fileId, {
-        content,
-        is_base64,
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+
+      // ✅ 乐观锁：检查版本号
+      if (expectedVersion !== undefined) {
+        const currentFile = database.db
+          .prepare("SELECT * FROM project_files WHERE id = ?")
+          .get(fileId);
+
+        if (!currentFile) {
+          throw new Error("文件不存在");
+        }
+
+        const currentVersion = currentFile.version || 1;
+
+        // 版本不匹配，说明文件已被其他用户修改
+        if (currentVersion !== expectedVersion) {
+          logger.warn(
+            `[Main] ⚠️ 文件版本冲突: ${fileId}, 期望版本 ${expectedVersion}, 当前版本 ${currentVersion}`
+          );
+
+          throw new ConflictError("文件已被其他用户修改", {
+            fileId,
+            fileName: currentFile.file_name,
+            expectedVersion,
+            currentVersion,
+            currentContent: currentFile.content,
+            yourContent: content,
+            updatedAt: currentFile.updated_at
+          });
+        }
+      }
+
+      // 尝试调用后端API
+      try {
+        const ProjectFileAPI = require("./project-file-api");
+        const result = await ProjectFileAPI.updateFile(projectId, fileId, {
+          content,
+          is_base64,
+        });
+
+        if (result.success && result.status !== 0) {
+          // 后端成功，同时更新本地数据库并增加版本号
+          database.updateProjectFile({
+            ...fileUpdate,
+            version: (expectedVersion || 1) + 1,
+            updated_at: Date.now()
+          });
+
+          return {
+            success: true,
+            version: (expectedVersion || 1) + 1
+          };
+        }
+      } catch (apiError) {
+        logger.warn("[Main] 后端API调用失败，降级到本地数据库:", apiError.message);
+      }
+
+      // 降级到本地数据库
+      logger.info("[Main] 使用本地数据库更新文件");
+
+      // 更新并增加版本号
+      const newVersion = (expectedVersion || 1) + 1;
+      database.updateProjectFile({
+        ...fileUpdate,
+        version: newVersion,
+        updated_at: Date.now()
       });
 
-      // 如果后端不可用，降级到本地数据库
-      if (!result.success || result.status === 0) {
-        logger.warn("[Main] 后端服务不可用，使用本地数据库");
-        if (!database) {
-          throw new Error("数据库未初始化");
-        }
-        database.updateProjectFile(fileUpdate);
-        return { success: true };
+      return {
+        success: true,
+        version: newVersion
+      };
+    } catch (error) {
+      // 如果是冲突错误，直接抛出（不降级）
+      if (error instanceof ConflictError) {
+        throw error;
       }
 
-      return result;
-    } catch (error) {
       logger.error("[Main] 更新文件失败:", error);
-      // 降级到本地数据库
+
+      // 其他错误尝试降级
       if (database) {
-        database.updateProjectFile(fileUpdate);
-        return { success: true };
+        try {
+          database.updateProjectFile(fileUpdate);
+          return { success: true };
+        } catch (dbError) {
+          logger.error("[Main] 降级到本地数据库也失败:", dbError);
+        }
       }
+
       throw error;
     }
   });
@@ -1401,12 +1467,15 @@ function registerProjectCoreIPC({
   // ============================================================
 
   /**
-   * 同步项目
+   * 同步项目（支持防抖和锁）
    * Channel: 'project:sync'
    */
   ipcMain.handle("project:sync", async (_event, userId) => {
-    try {
-      logger.info("[Main] project:sync 开始同步，userId:", userId);
+    // 使用全局同步锁（用户级别）
+    const lockKey = `user-${userId}`;
+
+    return syncLockManager.withLock(lockKey, 'sync-all', async () => {
+      logger.info("[Main] 🔄 开始同步所有项目, userId:", userId);
 
       const { getProjectHTTPClient } = require("./http-client");
       const httpClient = getProjectHTTPClient();
@@ -1519,19 +1588,22 @@ function registerProjectCoreIPC({
         }
       }
 
+      logger.info("[Main] 🔄 ✅ 同步完成");
       return { success: true };
-    } catch (error) {
-      logger.error("[Main] 同步项目失败:", error);
-      throw error;
-    }
+    }, {
+      throwOnLocked: false,  // 不抛出错误，返回 skipped
+      debounce: 2000  // 2秒防抖
+    });
   });
 
   /**
-   * 同步单个项目
+   * 同步单个项目（支持锁）
    * Channel: 'project:sync-one'
    */
   ipcMain.handle("project:sync-one", async (_event, projectId) => {
-    try {
+    return syncLockManager.withLock(projectId, 'sync-one', async () => {
+      logger.info("[Main] 🔄 开始同步单个项目:", projectId);
+
       const { getProjectHTTPClient } = require("./http-client");
       const httpClient = getProjectHTTPClient();
 
@@ -1552,11 +1624,12 @@ function registerProjectCoreIPC({
         synced_at: Date.now(),
       });
 
+      logger.info("[Main] 🔄 ✅ 项目同步完成:", projectId);
       return { success: true };
-    } catch (error) {
-      logger.error("[Main] 同步单个项目失败:", error);
-      throw error;
-    }
+    }, {
+      throwOnLocked: true,  // 抛出错误，告知用户正在同步
+      debounce: 1000  // 1秒防抖
+    });
   });
 
   // ============================================================

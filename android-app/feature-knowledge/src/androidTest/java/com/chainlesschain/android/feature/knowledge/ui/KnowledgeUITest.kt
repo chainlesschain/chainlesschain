@@ -438,7 +438,6 @@ class KnowledgeUITest {
         isDeleted = false,
         isFavorite = isFavorite,
         isPinned = isPinned,
-        syncStatus = "synced",
-        attachments = null
+        syncStatus = "synced"
     )
 }

@@ -12,6 +12,7 @@ const { logger, createLogger } = require("./utils/logger.js");
 const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
+const SqlSecurity = require("./database/sql-security.js");
 
 const disableNativeDb =
   process.env.CHAINLESSCHAIN_DISABLE_NATIVE_DB === "1" ||
@@ -4784,8 +4785,14 @@ class DatabaseManager {
    */
   softDelete(tableName, id) {
     try {
+      // ✅ 安全验证：防止SQL注入
+      const safeTableName = SqlSecurity.validateTableName(
+        tableName,
+        SqlSecurity.getAllowedTables()
+      );
+
       const stmt = this.db.prepare(
-        `UPDATE ${tableName}
+        `UPDATE ${safeTableName}
          SET deleted = 1,
              updated_at = ?,
              sync_status = 'pending'
@@ -4836,8 +4843,14 @@ class DatabaseManager {
    */
   restoreSoftDeleted(tableName, id) {
     try {
+      // ✅ 安全验证：防止SQL注入
+      const safeTableName = SqlSecurity.validateTableName(
+        tableName,
+        SqlSecurity.getAllowedTables()
+      );
+
       const stmt = this.db.prepare(
-        `UPDATE ${tableName}
+        `UPDATE ${safeTableName}
          SET deleted = 0,
              updated_at = ?,
              sync_status = 'pending'
@@ -4866,8 +4879,14 @@ class DatabaseManager {
     const cutoffTime = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
 
     try {
+      // ✅ 安全验证：防止SQL注入
+      const safeTableName = SqlSecurity.validateTableName(
+        tableName,
+        SqlSecurity.getAllowedTables()
+      );
+
       const stmt = this.db.prepare(
-        `DELETE FROM ${tableName}
+        `DELETE FROM ${safeTableName}
          WHERE deleted = 1
            AND updated_at < ?`,
       );
@@ -4939,8 +4958,14 @@ class DatabaseManager {
 
     for (const tableName of syncTables) {
       try {
+        // ✅ 安全验证：即使是内部表名也验证
+        const safeTableName = SqlSecurity.validateTableName(
+          tableName,
+          SqlSecurity.getAllowedTables()
+        );
+
         const stmt = this.db.prepare(
-          `SELECT COUNT(*) as count FROM ${tableName} WHERE deleted = 1`,
+          `SELECT COUNT(*) as count FROM ${safeTableName} WHERE deleted = 1`,
         );
 
         stmt.step();
@@ -5490,24 +5515,45 @@ class DatabaseManager {
    * @param {string} userId - 用户ID
    * @returns {Array} 项目列表
    */
-  getProjects(userId) {
+  getProjects(userId, options = {}) {
     if (!this.db) {
       logger.error("[DatabaseManager] 数据库未初始化");
       return [];
     }
-    const stmt = this.db.prepare(`
+
+    const { offset = 0, limit = 0, sortBy = 'updated_at', sortOrder = 'DESC' } = options;
+
+    // ✅ 安全验证：防止SQL注入
+    const safeSortBy = SqlSecurity.validateColumnName(sortBy, [
+      'id', 'name', 'created_at', 'updated_at', 'project_type', 'status'
+    ]);
+    const safeSortOrder = SqlSecurity.validateOrder(sortOrder);
+
+    let query = `
       SELECT
         id, user_id, name, description, project_type, status,
         root_path, file_count, total_size, template_id, cover_image_url,
         tags, metadata, created_at, updated_at, synced_at, sync_status
       FROM projects
       WHERE user_id = ? AND deleted = 0
-      ORDER BY updated_at DESC
-    `);
+      ORDER BY ${safeSortBy} ${safeSortOrder}
+    `;
+
+    const params = [userId];
+
+    // 添加分页
+    if (limit > 0) {
+      const safeLimit = SqlSecurity.validateLimit(limit);
+      const safeOffset = SqlSecurity.validateOffset(offset);
+      query += ' LIMIT ? OFFSET ?';
+      params.push(safeLimit, safeOffset);
+    }
+
+    const stmt = this.db.prepare(query);
 
     let projects = [];
     try {
-      projects = stmt.all(userId);
+      projects = stmt.all(...params);
     } catch (err) {
       logger.error("[Database] getProjects 查询失败:", err);
       // 返回空数组
@@ -5528,6 +5574,32 @@ class DatabaseManager {
       }
       return cleaned;
     });
+  }
+
+  /**
+   * 获取项目总数
+   * @param {string} userId - 用户ID
+   * @returns {number} 项目总数
+   */
+  getProjectsCount(userId) {
+    if (!this.db) {
+      logger.error("[DatabaseManager] 数据库未初始化");
+      return 0;
+    }
+
+    const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count
+      FROM projects
+      WHERE user_id = ? AND deleted = 0
+    `);
+
+    try {
+      const result = stmt.get(userId);
+      return result?.count || 0;
+    } catch (err) {
+      logger.error("[Database] getProjectsCount 查询失败:", err);
+      return 0;
+    }
   }
 
   /**
@@ -6322,18 +6394,21 @@ class DatabaseManager {
    * @returns {Object} 包含消息列表和总数的对象
    */
   getMessagesByConversation(conversationId, options = {}) {
-    const order = options.order || "ASC";
-    let query = `SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ${order}`;
+    // ✅ 安全验证：防止SQL注入
+    const safeOrder = SqlSecurity.validateOrder(options.order || "ASC");
+    let query = `SELECT * FROM messages WHERE conversation_id = ? ORDER BY timestamp ${safeOrder}`;
     const params = [conversationId];
 
     // 添加分页支持
     if (options.limit) {
+      const safeLimit = SqlSecurity.validateLimit(options.limit);
       query += " LIMIT ?";
-      params.push(options.limit);
+      params.push(safeLimit);
 
       if (options.offset) {
+        const safeOffset = SqlSecurity.validateOffset(options.offset);
         query += " OFFSET ?";
-        params.push(options.offset);
+        params.push(safeOffset);
       }
     }
 
