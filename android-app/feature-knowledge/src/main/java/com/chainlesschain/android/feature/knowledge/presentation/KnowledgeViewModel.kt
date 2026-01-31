@@ -8,7 +8,7 @@ import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.feature.knowledge.data.repository.KnowledgeRepository
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeItem
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
-import com.chainlesschain.android.feature.auth.data.repository.AuthRepository
+// // import com.chainlesschain.android.feature.auth.data.repository.AuthRepository // 临时注释以修复编译
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -21,8 +21,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class KnowledgeViewModel @Inject constructor(
-    private val repository: KnowledgeRepository,
-    private val authRepository: AuthRepository
+    private val repository: KnowledgeRepository
+    // // private val authRepository: AuthRepository // 临时注释以修复编译
 ) : ViewModel() {
 
     // UI状态

@@ -311,8 +311,8 @@ dependencies {
     implementation("io.noties.markwon:image-coil:4.6.2")
 
     // ===== Phase 1: WebRTC 远程控制 =====
-    // WebRTC for P2P remote control
-    implementation("org.webrtc:google-webrtc:1.0.32006")
+    // WebRTC for P2P remote control (使用 core-p2p 中已有的 ch.threema:webrtc-android:134.0.0)
+    // implementation("org.webrtc:google-webrtc:1.0.32006") // 与现有依赖冲突，已移除
 
     // Testing
     testImplementation("junit:junit:4.13.2")
