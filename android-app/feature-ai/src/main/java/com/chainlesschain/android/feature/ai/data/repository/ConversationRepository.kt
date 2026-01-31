@@ -141,15 +141,15 @@ class ConversationRepository @Inject constructor(
         currentInputTokens = 0
         currentOutputTokens = 0
 
-        // 估算输入token（简单估算：字符数 / 4）
+        // 估算输入token（区分中英文字符）
         val inputText = messages.joinToString(" ") { it.content }
-        currentInputTokens = (inputText.length / 4).coerceAtLeast(1)
+        currentInputTokens = estimateTokenCount(inputText)
 
         val adapter = llmAdapterFactory.createAdapter(provider, apiKey)
         return adapter.streamChat(messages, model).onEach { chunk ->
             // 估算输出token
             if (chunk.content.isNotEmpty() && !chunk.isDone) {
-                currentOutputTokens += (chunk.content.length / 4).coerceAtLeast(1)
+                currentOutputTokens += estimateTokenCount(chunk.content)
             }
         }
     }
@@ -319,6 +319,34 @@ class ConversationRepository @Inject constructor(
      */
     fun clearAllApiKeys() {
         securePreferences.clearAllApiKeys()
+    }
+
+    /**
+     * 更准确地估算Token数量
+     * 中文字符约2个字符/token，英文约4个字符/token
+     */
+    private fun estimateTokenCount(text: String): Int {
+        if (text.isEmpty()) return 0
+
+        var chineseChars = 0
+        var otherChars = 0
+
+        for (char in text) {
+            when (char.code) {
+                in 0x4E00..0x9FFF,  // CJK统一汉字
+                in 0x3400..0x4DBF,  // CJK扩展A
+                in 0x20000..0x2A6DF, // CJK扩展B
+                in 0x2A700..0x2B73F, // CJK扩展C
+                in 0x2B740..0x2B81F, // CJK扩展D
+                in 0x2B820..0x2CEAF  // CJK扩展E
+                -> chineseChars++
+                else -> otherChars++
+            }
+        }
+
+        // 中文字符约2字符/token，英文约4字符/token
+        val tokens = (chineseChars / 2) + (otherChars / 4)
+        return tokens.coerceAtLeast(1)
     }
 
     // 实体转领域模型

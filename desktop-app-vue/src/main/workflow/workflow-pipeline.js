@@ -33,7 +33,7 @@ class WorkflowPipeline extends EventEmitter {
 
     // 核心组件
     this.stateMachine = new WorkflowStateMachine(this.id);
-    this.qualityGateManager = new QualityGateManager({
+    this.qualityGateManager = options.qualityGateManager || new QualityGateManager({
       llmService: options.llmService,
     });
     this.progressEmitter = options.progressEmitter || new ProgressEmitter({
@@ -703,7 +703,7 @@ class WorkflowManager extends EventEmitter {
         if (this.mainWindow && this.mainWindow.webContents) {
           try {
             this.mainWindow.webContents.send(event, data);
-          } catch (error) {
+          } catch (_error) {
             logger.warn(`[WorkflowManager] IPC 转发失败: ${event}`);
           }
         }

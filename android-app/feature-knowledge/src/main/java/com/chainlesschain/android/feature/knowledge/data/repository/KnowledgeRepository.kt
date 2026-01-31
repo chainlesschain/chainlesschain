@@ -11,6 +11,7 @@ import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeItem
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
 import com.chainlesschain.android.feature.knowledge.domain.model.SyncStatus
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.encodeToString
@@ -76,11 +77,12 @@ class KnowledgeRepository @Inject constructor(
 
     /**
      * 搜索知识库条目（分页）
+     * 使用FTS4全文搜索提供高性能搜索
      */
     fun searchItems(query: String): Flow<PagingData<KnowledgeItem>> {
         return Pager(
             config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
-            pagingSourceFactory = { knowledgeItemDao.searchItemsSimple(query) }
+            pagingSourceFactory = { knowledgeItemDao.searchItems(query) }
         ).flow.map { pagingData ->
             pagingData.map { entity -> entity.toDomainModel() }
         }
@@ -136,9 +138,8 @@ class KnowledgeRepository @Inject constructor(
         tags: List<String> = emptyList()
     ): Result<Unit> {
         return try {
-            // 先获取原条目
-            val items = knowledgeItemDao.getItemsList(limit = 1, offset = 0)
-            val entity = items.firstOrNull { it.id == id }
+            // 先获取原条目（直接按ID查询）
+            val entity = knowledgeItemDao.getItemById(id).first()
                 ?: return Result.error(IllegalArgumentException(), "条目不存在")
 
             // 更新

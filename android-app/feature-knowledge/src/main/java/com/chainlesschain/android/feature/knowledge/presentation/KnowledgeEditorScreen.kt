@@ -98,7 +98,7 @@ fun KnowledgeEditorScreen(
                                 )
                             }
                         },
-                        enabled = !uiState.isLoading
+                        enabled = !uiState.isLoading && title.isNotBlank()
                     ) {
                         if (uiState.isLoading) {
                             CircularProgressIndicator(
@@ -125,9 +125,16 @@ fun KnowledgeEditorScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                label = { Text("标题") },
+                label = { Text("标题 *") },
+                placeholder = { Text("请输入标题") },
                 singleLine = true,
-                enabled = !isPreviewMode
+                enabled = !isPreviewMode,
+                isError = title.isBlank() && title.isNotEmpty(),
+                supportingText = {
+                    if (title.isBlank() && title.isNotEmpty()) {
+                        Text("标题不能为空")
+                    }
+                }
             )
 
             // 标签输入
