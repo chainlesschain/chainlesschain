@@ -1,8 +1,8 @@
 package com.chainlesschain.android.core.p2p.di
 
 import android.content.Context
-// import com.chainlesschain.android.core.database.dao.ExternalFileDao
-// import com.chainlesschain.android.core.p2p.FileIndexProtocolHandler
+import com.chainlesschain.android.core.database.dao.ExternalFileDao
+import com.chainlesschain.android.core.p2p.FileIndexProtocolHandler
 import com.chainlesschain.android.core.p2p.P2PNetworkCoordinator
 import com.chainlesschain.android.core.p2p.connection.AutoReconnectManager
 import com.chainlesschain.android.core.p2p.connection.HeartbeatManager
@@ -132,24 +132,24 @@ object P2PNetworkModule {
 
     /**
      * 提供文件索引协议处理器
-     *
-     * 注: 暂时禁用，因为依赖feature-file-browser模块
      */
-    // @Provides
-    // @Singleton
-    // fun provideFileIndexProtocolHandler(
-    //     @ApplicationContext context: Context,
-    //     externalFileDao: ExternalFileDao,
-    //     fileTransferManager: FileTransferManager,
-    //     json: Json
-    // ): FileIndexProtocolHandler {
-    //     return FileIndexProtocolHandler(
-    //         context = context,
-    //         externalFileDao = externalFileDao,
-    //         fileTransferManager = fileTransferManager,
-    //         json = json
-    //     )
-    // }
+    @Provides
+    @Singleton
+    fun provideFileIndexProtocolHandler(
+        @ApplicationContext context: Context,
+        externalFileDao: ExternalFileDao,
+        fileTransferManager: FileTransferManager,
+        connectionManager: P2PConnectionManager,
+        json: Json
+    ): FileIndexProtocolHandler {
+        return FileIndexProtocolHandler(
+            context = context,
+            externalFileDao = externalFileDao,
+            fileTransferManager = fileTransferManager,
+            connectionManager = connectionManager,
+            json = json
+        )
+    }
 
     /**
      * 提供P2P网络协调器
@@ -160,14 +160,15 @@ object P2PNetworkModule {
         connectionManager: P2PConnectionManager,
         networkMonitor: NetworkMonitor,
         heartbeatManager: HeartbeatManager,
-        autoReconnectManager: AutoReconnectManager
+        autoReconnectManager: AutoReconnectManager,
+        fileIndexProtocolHandler: FileIndexProtocolHandler
     ): P2PNetworkCoordinator {
         return P2PNetworkCoordinator(
             connectionManager = connectionManager,
             networkMonitor = networkMonitor,
             heartbeatManager = heartbeatManager,
-            autoReconnectManager = autoReconnectManager
-            // fileIndexProtocolHandler 已从构造函数中移除
+            autoReconnectManager = autoReconnectManager,
+            fileIndexProtocolHandler = fileIndexProtocolHandler
         )
     }
 }

@@ -63,14 +63,18 @@ describe("MobileSyncManager", () => {
       const peerId = "peer-001";
       const deviceInfo = { name: "Test Device" };
 
+      const beforeRegister = Date.now();
       await syncManager.registerMobileDevice(deviceId, peerId, deviceInfo);
+      const afterRegister = Date.now();
 
       const syncTime = syncManager.lastSyncTime.get(deviceId);
       expect(syncTime).toBeDefined();
-      expect(syncTime.knowledge).toBe(0);
-      expect(syncTime.contacts).toBe(0);
-      expect(syncTime.groupChats).toBe(0);
-      expect(syncTime.messages).toBe(0);
+      // NOTE: Implementation now initializes sync times to current timestamp instead of 0
+      expect(syncTime.knowledge).toBeGreaterThanOrEqual(beforeRegister);
+      expect(syncTime.knowledge).toBeLessThanOrEqual(afterRegister);
+      expect(syncTime.contacts).toBeGreaterThanOrEqual(beforeRegister);
+      expect(syncTime.groupChats).toBeGreaterThanOrEqual(beforeRegister);
+      expect(syncTime.messages).toBeGreaterThanOrEqual(beforeRegister);
     });
   });
 

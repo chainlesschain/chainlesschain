@@ -8,7 +8,7 @@ try {
   logger.info("[Database] sql.js not available (will use better-sqlite3)");
 }
 
-const { logger, createLogger } = require('./utils/logger.js');
+const { logger, createLogger } = require("./utils/logger.js");
 const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
@@ -91,7 +91,7 @@ class DatabaseManager {
    */
   initializeQueryCache() {
     try {
-      const LRU = require('lru-cache');
+      const LRU = require("lru-cache");
       this.queryCache = new LRU({
         max: 500, // 最多缓存500个查询
         maxSize: 10 * 1024 * 1024, // 最大10MB
@@ -105,9 +105,12 @@ class DatabaseManager {
         ttl: 1000 * 60 * 5, // 5分钟过期
         updateAgeOnGet: true, // 访问时更新年龄
       });
-      logger.info('[Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)');
+      logger.info("[Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)");
     } catch (error) {
-      logger.warn('[Database] 查询缓存初始化失败，将不使用查询缓存:', error.message);
+      logger.warn(
+        "[Database] 查询缓存初始化失败，将不使用查询缓存:",
+        error.message,
+      );
       this.queryCache = null;
     }
   }
@@ -120,7 +123,9 @@ class DatabaseManager {
   getPreparedStatement(sql) {
     if (!this.preparedStatements.has(sql)) {
       if (!this.db || !this.db.prepare) {
-        throw new Error('Database not initialized or does not support prepare()');
+        throw new Error(
+          "Database not initialized or does not support prepare()",
+        );
       }
       this.preparedStatements.set(sql, this.db.prepare(sql));
     }
@@ -132,7 +137,7 @@ class DatabaseManager {
    */
   clearPreparedStatements() {
     this.preparedStatements.clear();
-    logger.info('[Database] Prepared statement缓存已清除');
+    logger.info("[Database] Prepared statement缓存已清除");
   }
 
   /**
@@ -1436,6 +1441,46 @@ class DatabaseManager {
       );
 
       -- ============================
+      -- 远程控制 - 文件传输表
+      -- ============================
+
+      -- 文件传输记录表
+      CREATE TABLE IF NOT EXISTS file_transfers (
+        id TEXT PRIMARY KEY,
+        device_did TEXT NOT NULL,
+        direction TEXT NOT NULL CHECK(direction IN ('upload', 'download')),
+        file_name TEXT NOT NULL,
+        file_size INTEGER NOT NULL,
+        total_chunks INTEGER NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('in_progress', 'completed', 'failed', 'cancelled', 'expired')),
+        progress REAL DEFAULT 0,
+        error TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        metadata TEXT
+      );
+
+      -- ============================
+      -- 远程控制 - 远程桌面表
+      -- ============================
+
+      -- 远程桌面会话表
+      CREATE TABLE IF NOT EXISTS remote_desktop_sessions (
+        id TEXT PRIMARY KEY,
+        device_did TEXT NOT NULL,
+        display_id INTEGER,
+        quality INTEGER NOT NULL DEFAULT 80,
+        max_fps INTEGER NOT NULL DEFAULT 30,
+        status TEXT NOT NULL CHECK(status IN ('active', 'stopped', 'expired')),
+        started_at INTEGER NOT NULL,
+        stopped_at INTEGER,
+        duration INTEGER,
+        frame_count INTEGER DEFAULT 0,
+        bytes_sent INTEGER DEFAULT 0
+      );
+
+      -- ============================
       -- 区块链相关表
       -- ============================
 
@@ -1546,6 +1591,17 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
       CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+
+      -- 文件传输索引
+      CREATE INDEX IF NOT EXISTS idx_file_transfers_device ON file_transfers(device_did);
+      CREATE INDEX IF NOT EXISTS idx_file_transfers_status ON file_transfers(status);
+      CREATE INDEX IF NOT EXISTS idx_file_transfers_created ON file_transfers(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_file_transfers_direction ON file_transfers(direction);
+
+      -- 远程桌面索引
+      CREATE INDEX IF NOT EXISTS idx_remote_desktop_device ON remote_desktop_sessions(device_did);
+      CREATE INDEX IF NOT EXISTS idx_remote_desktop_status ON remote_desktop_sessions(status);
+      CREATE INDEX IF NOT EXISTS idx_remote_desktop_started ON remote_desktop_sessions(started_at DESC);
 
       -- ============================
       -- 企业版（去中心化组织）表结构
@@ -2367,6 +2423,181 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_file_transfer_tasks_status ON file_transfer_tasks(status);
       CREATE INDEX IF NOT EXISTS idx_file_transfer_tasks_device ON file_transfer_tasks(device_id);
       CREATE INDEX IF NOT EXISTS idx_file_sync_logs_created_at ON file_sync_logs(created_at DESC);
+
+      -- ============================
+      -- Cowork 多代理协作系统表结构
+      -- ============================
+
+      -- Cowork 团队表
+      CREATE TABLE IF NOT EXISTS cowork_teams (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'paused', 'completed', 'failed', 'destroyed', 'archived')),
+        max_agents INTEGER DEFAULT 5,
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        metadata TEXT  -- JSON格式：团队配置、描述等
+      );
+
+      -- Cowork 代理表
+      CREATE TABLE IF NOT EXISTS cowork_agents (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        status TEXT DEFAULT 'idle' CHECK(status IN ('idle', 'busy', 'waiting', 'terminated', 'removed')),
+        assigned_task TEXT,
+        created_at INTEGER NOT NULL,
+        terminated_at INTEGER,
+        metadata TEXT,  -- JSON格式：能力、加入时间等
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE
+      );
+
+      -- Cowork 任务表
+      CREATE TABLE IF NOT EXISTS cowork_tasks (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        description TEXT NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'assigned', 'running', 'completed', 'failed')),
+        priority INTEGER DEFAULT 0,
+        assigned_to TEXT,  -- agent_id
+        result TEXT,  -- JSON格式
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_to) REFERENCES cowork_agents(id) ON DELETE SET NULL
+      );
+
+      -- Cowork 消息表
+      CREATE TABLE IF NOT EXISTS cowork_messages (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        from_agent TEXT NOT NULL,
+        to_agent TEXT,  -- NULL表示广播
+        message TEXT NOT NULL,  -- JSON格式
+        timestamp INTEGER NOT NULL,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (from_agent) REFERENCES cowork_agents(id) ON DELETE CASCADE,
+        FOREIGN KEY (to_agent) REFERENCES cowork_agents(id) ON DELETE CASCADE
+      );
+
+      -- Cowork 审计日志表
+      CREATE TABLE IF NOT EXISTS cowork_audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        team_id TEXT NOT NULL,
+        agent_id TEXT,
+        operation TEXT NOT NULL,  -- 'read', 'write', 'delete', 'execute'
+        resource_type TEXT,  -- 'file', 'task', 'message'
+        resource_path TEXT,
+        timestamp INTEGER NOT NULL,
+        success INTEGER DEFAULT 1,
+        error_message TEXT,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (agent_id) REFERENCES cowork_agents(id) ON DELETE SET NULL
+      );
+
+      -- Cowork 性能指标表
+      CREATE TABLE IF NOT EXISTS cowork_metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        team_id TEXT NOT NULL,
+        agent_id TEXT,
+        metric_type TEXT NOT NULL,  -- 'token_usage', 'cost', 'duration', 'error_rate'
+        metric_value REAL NOT NULL,
+        tokens_used INTEGER,
+        cost REAL,
+        timestamp INTEGER NOT NULL,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (agent_id) REFERENCES cowork_agents(id) ON DELETE SET NULL
+      );
+
+      -- Cowork 检查点表（用于长时运行任务）
+      CREATE TABLE IF NOT EXISTS cowork_checkpoints (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        task_id TEXT,
+        checkpoint_data TEXT NOT NULL,  -- JSON格式：完整的团队状态快照
+        timestamp INTEGER NOT NULL,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (task_id) REFERENCES cowork_tasks(id) ON DELETE CASCADE
+      );
+
+      -- Cowork 文件沙箱权限表
+      CREATE TABLE IF NOT EXISTS cowork_sandbox_permissions (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        path TEXT NOT NULL,  -- 允许访问的路径
+        permission TEXT DEFAULT 'read' CHECK(permission IN ('read', 'write', 'execute')),
+        granted_at INTEGER NOT NULL,
+        granted_by TEXT,  -- user_did
+        expires_at INTEGER,
+        is_active INTEGER DEFAULT 1,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        UNIQUE(team_id, path, permission)
+      );
+
+      -- Cowork 决策投票表
+      CREATE TABLE IF NOT EXISTS cowork_decisions (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        decision_type TEXT NOT NULL,  -- 'task_assignment', 'conflict_resolution', 'custom'
+        description TEXT,
+        options TEXT,  -- JSON格式：投票选项
+        votes TEXT,  -- JSON格式：{agentId: vote}
+        result TEXT,  -- JSON格式：投票结果
+        threshold REAL DEFAULT 0.5,
+        passed INTEGER,  -- 0或1
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE
+      );
+
+      -- Cowork 索引
+      CREATE INDEX IF NOT EXISTS idx_cowork_teams_status ON cowork_teams(status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_teams_created_at ON cowork_teams(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_agents_team ON cowork_agents(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_agents_status ON cowork_agents(status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_team ON cowork_tasks(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_status ON cowork_tasks(status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_assigned_to ON cowork_tasks(assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_priority ON cowork_tasks(priority DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_team ON cowork_messages(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_from ON cowork_messages(from_agent);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_to ON cowork_messages(to_agent);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_timestamp ON cowork_messages(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_team ON cowork_audit_log(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_agent ON cowork_audit_log(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_operation ON cowork_audit_log(operation);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_timestamp ON cowork_audit_log(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_team ON cowork_metrics(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_agent ON cowork_metrics(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_type ON cowork_metrics(metric_type);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_timestamp ON cowork_metrics(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_checkpoints_team ON cowork_checkpoints(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_checkpoints_task ON cowork_checkpoints(task_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_checkpoints_timestamp ON cowork_checkpoints(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_team ON cowork_sandbox_permissions(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_path ON cowork_sandbox_permissions(path);
+      CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_active ON cowork_sandbox_permissions(is_active);
+      CREATE INDEX IF NOT EXISTS idx_cowork_decisions_team ON cowork_decisions(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_decisions_type ON cowork_decisions(decision_type);
+      CREATE INDEX IF NOT EXISTS idx_cowork_decisions_created_at ON cowork_decisions(created_at DESC);
+
+      -- 🚀 Phase 4: Additional Composite Indexes for Performance
+      -- Cowork-specific composite indexes for common query patterns
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_team_status ON cowork_tasks(team_id, status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_team_priority ON cowork_tasks(team_id, priority DESC, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_agents_team_status ON cowork_agents(team_id, status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_team_timestamp ON cowork_messages(team_id, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_team_operation ON cowork_audit_log(team_id, operation, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_path_timestamp ON cowork_audit_log(resource_path, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_team_type ON cowork_metrics(team_id, metric_type, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_team_path ON cowork_sandbox_permissions(team_id, path, is_active);
     `);
 
       logger.info("[Database] ✓ 所有表和索引创建成功");
@@ -2821,9 +3052,9 @@ class DatabaseManager {
       `);
 
       // 获取当前迁移版本
-      const currentVersion = this.db.prepare(
-        "SELECT version FROM migration_version WHERE id = 1"
-      ).get();
+      const currentVersion = this.db
+        .prepare("SELECT version FROM migration_version WHERE id = 1")
+        .get();
 
       // 定义最新迁移版本号
       const LATEST_VERSION = 2; // 增加版本号当有新迁移时
@@ -2841,13 +3072,17 @@ class DatabaseManager {
 
       // 更新迁移版本
       if (currentVersion) {
-        this.db.prepare(
-          "UPDATE migration_version SET version = ?, last_updated = ? WHERE id = 1"
-        ).run(LATEST_VERSION, Date.now());
+        this.db
+          .prepare(
+            "UPDATE migration_version SET version = ?, last_updated = ? WHERE id = 1",
+          )
+          .run(LATEST_VERSION, Date.now());
       } else {
-        this.db.prepare(
-          "INSERT INTO migration_version (id, version, last_updated) VALUES (1, ?, ?)"
-        ).run(LATEST_VERSION, Date.now());
+        this.db
+          .prepare(
+            "INSERT INTO migration_version (id, version, last_updated) VALUES (1, ?, ?)",
+          )
+          .run(LATEST_VERSION, Date.now());
       }
 
       logger.info(`[Database] 迁移版本已更新到 v${LATEST_VERSION}`);
@@ -4398,9 +4633,9 @@ class DatabaseManager {
 
       // 清理缓存
       this.clearPreparedStatements();
-      if (this.queryCache && typeof this.queryCache.clear === 'function') {
+      if (this.queryCache && typeof this.queryCache.clear === "function") {
         this.queryCache.clear();
-        logger.info('[Database] 查询缓存已清除');
+        logger.info("[Database] 查询缓存已清除");
       }
 
       this.db.close();
@@ -4781,7 +5016,9 @@ class DatabaseManager {
    * @returns {number} 添加的关系数量
    */
   addRelations(relations) {
-    if (!relations || relations.length === 0) {return 0;}
+    if (!relations || relations.length === 0) {
+      return 0;
+    }
 
     const stmt = this.db.prepare(`
       INSERT OR IGNORE INTO knowledge_relations (id, source_id, target_id, relation_type, weight, metadata, created_at)
@@ -4824,7 +5061,9 @@ class DatabaseManager {
    * @returns {number} 删除的关系数量
    */
   deleteRelations(noteId, types = []) {
-    if (!noteId) {return 0;}
+    if (!noteId) {
+      return 0;
+    }
 
     let query;
     let params;
@@ -5851,7 +6090,9 @@ class DatabaseManager {
     const stmt = this.db.prepare("SELECT * FROM conversations WHERE id = ?");
     const conversation = stmt.get(conversationId);
 
-    if (!conversation) {return null;}
+    if (!conversation) {
+      return null;
+    }
 
     // 解析 context_data
     if (conversation.context_data) {
@@ -5880,7 +6121,9 @@ class DatabaseManager {
 
     const conversation = stmt.get(projectId);
 
-    if (!conversation) {return null;}
+    if (!conversation) {
+      return null;
+    }
 
     // 解析 context_data
     if (conversation.context_data) {
@@ -6018,10 +6261,15 @@ class DatabaseManager {
     let messageType = messageData.type || messageData.message_type;
     if (!messageType) {
       // 向后兼容：根据role推断message_type
-      if (messageData.role === "user") {messageType = "USER";}
-      else if (messageData.role === "assistant") {messageType = "ASSISTANT";}
-      else if (messageData.role === "system") {messageType = "SYSTEM";}
-      else {messageType = "ASSISTANT";} // 默认值
+      if (messageData.role === "user") {
+        messageType = "USER";
+      } else if (messageData.role === "assistant") {
+        messageType = "ASSISTANT";
+      } else if (messageData.role === "system") {
+        messageType = "SYSTEM";
+      } else {
+        messageType = "ASSISTANT";
+      } // 默认值
     }
 
     // 序列化metadata为JSON字符串
@@ -6104,10 +6352,15 @@ class DatabaseManager {
       }
       // 向后兼容：如果没有message_type，根据role设置
       if (!msg.message_type) {
-        if (msg.role === "user") {msg.message_type = "USER";}
-        else if (msg.role === "assistant") {msg.message_type = "ASSISTANT";}
-        else if (msg.role === "system") {msg.message_type = "SYSTEM";}
-        else {msg.message_type = "ASSISTANT";}
+        if (msg.role === "user") {
+          msg.message_type = "USER";
+        } else if (msg.role === "assistant") {
+          msg.message_type = "ASSISTANT";
+        } else if (msg.role === "system") {
+          msg.message_type = "SYSTEM";
+        } else {
+          msg.message_type = "ASSISTANT";
+        }
       }
       return msg;
     });
@@ -6222,10 +6475,15 @@ class DatabaseManager {
       }
       // 向后兼容：如果没有message_type，根据role设置
       if (!msg.message_type) {
-        if (msg.role === "user") {msg.message_type = "USER";}
-        else if (msg.role === "assistant") {msg.message_type = "ASSISTANT";}
-        else if (msg.role === "system") {msg.message_type = "SYSTEM";}
-        else {msg.message_type = "ASSISTANT";}
+        if (msg.role === "user") {
+          msg.message_type = "USER";
+        } else if (msg.role === "assistant") {
+          msg.message_type = "ASSISTANT";
+        } else if (msg.role === "system") {
+          msg.message_type = "SYSTEM";
+        } else {
+          msg.message_type = "ASSISTANT";
+        }
       }
       return msg;
     });

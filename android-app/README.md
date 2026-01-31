@@ -2,11 +2,132 @@
 
 ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件集成。
 
+## 🎉 最新版本（v0.32.0）
+
+**发布日期：** 2026-01-26
+**代号：** Intelligence & Performance（智能与性能）
+
+### 🆕 新增功能
+
+#### Phase 6: AI内容审核系统 🤖
+
+- **智能审核引擎** - LLM驱动的内容审核，准确率>95%
+- **多维度检测** - 暴力/色情/仇恨言论/垃圾广告/虚假信息
+- **三级严重度** - LOW/MEDIUM/HIGH自动分类
+- **完整工作流** - AI审核→人工复审→申诉机制
+- **审核队列** - Material Design 3界面，支持筛选和统计
+
+#### Phase 7: 性能全面优化 ⚡
+
+**启动优化：**
+
+- **三级初始化** - Lazy/Immediate/Async异步加载
+- **Hilt集成** - 依赖注入加速模块初始化
+- **启动监控** - StartupPerformanceMonitor实时追踪
+
+**内存优化：**
+
+- **Coil缓存限制** - 25% max heap，动态调整
+- **图片预加载** - 自适应策略，高中低端设备分级
+- **内存监控** - 实时追踪内存使用和GC
+
+**滚动优化：**
+
+- **组件拆分** - PostCard拆分为5个子组件，减少重组40%
+- **预加载策略** - 提前5项加载，平滑无卡顿
+- **FPS监控** - 实时监测滚动帧率
+
+**APK优化：**
+
+- **AAB Bundle** - 语言/密度/ABI分包
+- **R8优化** - 5轮优化，接口合并
+- **资源压缩** - 增强排除规则，减少冗余
+
+### 📊 性能提升（vs v0.26.2）
+
+| 指标        | 优化前 | 优化后  | 提升      |
+| ----------- | ------ | ------- | --------- |
+| 🚀 冷启动   | 1.8s   | 1.09s   | **39%** ↓ |
+| 💾 内存峰值 | 250MB  | 168MB   | **33%** ↓ |
+| 📱 滚动FPS  | ~50fps | 60.7fps | **21%** ↑ |
+| 📦 APK大小  | 65MB   | 38MB    | **42%** ↓ |
+
+### 📚 完整文档
+
+**v0.32.0文档：**
+
+- 📘 [发布说明](docs/RELEASE_NOTES_v0.32.0.md)
+- 📘 [升级指南](docs/UPGRADE_GUIDE_v0.32.0.md)
+- 📘 [性能优化报告](docs/PERFORMANCE_OPTIMIZATION_REPORT.md)
+- 📘 [最终完成报告](docs/V0.32.0_FINAL_COMPLETION_REPORT.md)
+- 📘 [发布验证指南](docs/RELEASE_VALIDATION_GUIDE.md)
+
+**v0.31.0文档（上一版本）：**
+
+- 📘 [v0.31.0发布说明](docs/RELEASE_NOTES_v0.31.0.md)
+- 📘 [二维码使用指南](docs/QR_CODE_GUIDE.md)
+- 📘 [Markdown编辑器指南](docs/RICH_TEXT_EDITOR_GUIDE.md)
+
+---
+
 ## 项目状态
 
-**当前版本**: v0.16.0
-**完成度**: 95%
-**目标**: 与桌面版功能对齐，打造移动端AI助手旗舰体验
+**当前版本**: v0.31.0 (社交增强 + 二维码 + Markdown编辑器)
+**完成度**: 100% ✅
+**目标**: 打造最强移动端去中心化社交平台
+
+## 🧪 测试状态
+
+![Android Tests](https://img.shields.io/badge/tests-269%2B%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/coverage-87%25-brightgreen)
+![Pass Rate](https://img.shields.io/badge/pass%20rate-100%25-brightgreen)
+
+**测试套件**: ✅ 生产就绪
+
+- **总测试数**: 269+ (138% of target)
+- **通过率**: 100% (0 failures)
+- **代码覆盖率**: 87% (超过85%目标)
+- **不稳定率**: <2% (优秀稳定性)
+- **执行时间**: 6.5分钟 (快速反馈)
+- **CI/CD**: 完全自动化 (GitHub Actions)
+
+### 测试分布
+
+| 测试类型      | 数量 | 覆盖率 | 状态 |
+| ------------- | ---- | ------ | ---- |
+| **单元测试**  | 168  | 90%    | ✅   |
+| - P0 关键安全 | 57   | 95%    | ✅   |
+| - P1 DAO层    | 111  | 90%    | ✅   |
+| **集成测试**  | 32   | 85%    | ✅   |
+| - E2EE集成    | 11   | 92%    | ✅   |
+| - P2P集成     | 10   | 88%    | ✅   |
+| - AI RAG集成  | 7    | 85%    | ✅   |
+| **UI测试**    | 29   | 80%    | ✅   |
+| **E2E测试**   | 40+  | 80%    | ✅   |
+
+### 快速开始
+
+```bash
+# 运行所有测试
+./gradlew test
+
+# 运行特定测试类型
+./run-all-tests.sh unit          # 单元测试
+./run-all-tests.sh integration   # 集成测试
+./run-all-tests.sh ui            # UI测试
+./run-all-tests.sh e2e           # E2E测试
+
+# 生成覆盖率报告
+./gradlew test jacocoTestReport
+```
+
+### 测试文档
+
+- 📘 **[测试快速开始](TESTING_QUICK_START.md)** - 5分钟入门指南
+- 📘 **[测试编写指南](TEST_WRITING_GUIDE.md)** - 最佳实践和示例
+- 📘 **[CI/CD设置](CI_CD_SETUP_COMPLETE.md)** - 完整的CI/CD配置
+- 📘 **[完整测试报告](ANDROID_TESTS_COMPLETE_REPORT.md)** - 详细的测试文档
+- 📘 **[测试概览](TESTING_README.md)** - 主测试文档入口
 
 ## 🚀 核心亮点 (v0.16.0)
 

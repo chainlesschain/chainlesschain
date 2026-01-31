@@ -12,6 +12,13 @@ import com.chainlesschain.android.core.database.dao.TransferCheckpointDao
 import com.chainlesschain.android.core.database.dao.TransferQueueDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.dao.ProjectChatMessageDao
+import com.chainlesschain.android.core.database.dao.social.FriendDao
+import com.chainlesschain.android.core.database.dao.social.PostDao
+import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
+import com.chainlesschain.android.core.database.dao.social.NotificationDao
+import com.chainlesschain.android.core.database.dao.social.PostEditHistoryDao
+import com.chainlesschain.android.core.database.dao.call.CallHistoryDao
+import com.chainlesschain.android.core.database.dao.ModerationQueueDao
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
@@ -27,6 +34,18 @@ import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.KnowledgeItemFts
+import com.chainlesschain.android.core.database.entity.social.FriendEntity
+import com.chainlesschain.android.core.database.entity.social.FriendGroupEntity
+import com.chainlesschain.android.core.database.entity.social.PostEntity
+import com.chainlesschain.android.core.database.entity.social.PostLikeEntity
+import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
+import com.chainlesschain.android.core.database.entity.social.PostShareEntity
+import com.chainlesschain.android.core.database.entity.social.NotificationEntity
+import com.chainlesschain.android.core.database.entity.social.PostReportEntity
+import com.chainlesschain.android.core.database.entity.social.BlockedUserEntity
+import com.chainlesschain.android.core.database.entity.social.PostEditHistoryEntity
+import com.chainlesschain.android.core.database.entity.call.CallHistoryEntity
+import com.chainlesschain.android.core.database.entity.ModerationQueueEntity
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileImportHistoryEntity
 import com.chainlesschain.android.core.database.fts.ProjectFileFts
@@ -57,8 +76,23 @@ import com.chainlesschain.android.core.database.util.Converters
         ProjectChatMessageEntity::class,
         ExternalFileEntity::class,
         FileImportHistoryEntity::class,
+        // 社交功能实体
+        FriendEntity::class,
+        FriendGroupEntity::class,
+        PostEntity::class,
+        PostLikeEntity::class,
+        PostCommentEntity::class,
+        PostShareEntity::class,
+        NotificationEntity::class,
+        PostReportEntity::class,
+        BlockedUserEntity::class,
+        PostEditHistoryEntity::class,
+        // 通话功能实体
+        CallHistoryEntity::class,
+        // AI审核功能实体
+        ModerationQueueEntity::class,
     ],
-    version = 13,
+    version = 18,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -96,6 +130,19 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
 
     // 文件导入历史DAO
     abstract fun fileImportHistoryDao(): FileImportHistoryDao
+
+    // 社交功能DAO
+    abstract fun friendDao(): FriendDao
+    abstract fun postDao(): PostDao
+    abstract fun postInteractionDao(): PostInteractionDao
+    abstract fun notificationDao(): NotificationDao
+    abstract fun postEditHistoryDao(): PostEditHistoryDao
+
+    // 通话功能DAO
+    abstract fun callHistoryDao(): CallHistoryDao
+
+    // AI审核功能DAO
+    abstract fun moderationQueueDao(): ModerationQueueDao
 
     companion object {
         const val DATABASE_NAME = "chainlesschain.db"

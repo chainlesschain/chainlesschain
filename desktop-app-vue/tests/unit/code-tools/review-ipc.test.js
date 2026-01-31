@@ -416,7 +416,8 @@ describe("Review System IPC", () => {
 
     it("source file should log errors to console", () => {
       const content = fs.readFileSync(REVIEW_IPC_PATH, "utf-8");
-      expect(content).toContain("console.error");
+      // Implementation uses logger.error instead of console.error
+      expect(content.includes("console.error") || content.includes("logger.error")).toBe(true);
     });
   });
 

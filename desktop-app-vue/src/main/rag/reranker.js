@@ -1,20 +1,31 @@
 /**
  * Reranker - 重排序模块
  * 用于对检索结果进行二次排序，提升 RAG 检索质量
+ *
+ * v0.27.0: 新增 BGE Reranker 支持
  */
 
 const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
+const { getBGERerankerClient } = require('./bge-reranker-client');
 
 class Reranker extends EventEmitter {
   constructor(llmManager) {
     super();
     this.llmManager = llmManager;
+    this.bgeClient = null; // BGE Reranker 客户端（延迟初始化）
     this.config = {
       enabled: true,
-      method: 'llm', // 'llm' | 'crossencoder' | 'hybrid'
+      method: 'llm', // 'llm' | 'crossencoder' | 'hybrid' | 'bge' | 'bge-hybrid'
       topK: 5, // 重排序后保留的文档数量
       scoreThreshold: 0.3, // 最低分数阈值
+      // BGE 配置
+      bgeConfig: {
+        enabled: false,
+        serverUrl: 'http://localhost:8002/rerank',
+        modelName: 'BAAI/bge-reranker-base',
+        hybridWeights: { bge: 0.6, vector: 0.4 },
+      },
     };
   }
 
@@ -46,6 +57,12 @@ class Reranker extends EventEmitter {
           break;
         case 'hybrid':
           rerankedDocs = await this.rerankHybrid(query, documents, topK);
+          break;
+        case 'bge':
+          rerankedDocs = await this.rerankWithBGE(query, documents, topK);
+          break;
+        case 'bge-hybrid':
+          rerankedDocs = await this.rerankWithBGEHybrid(query, documents, topK);
           break;
         default:
           logger.warn(`[Reranker] 未知的重排序方法: ${method}，使用默认 LLM 方法`);
@@ -323,6 +340,142 @@ ${docList}
   setEnabled(enabled) {
     this.config.enabled = enabled;
     logger.info(`[Reranker] 重排序${enabled ? '已启用' : '已禁用'}`);
+  }
+
+  // ========================================
+  // BGE Reranker 相关方法 (v0.27.0)
+  // ========================================
+
+  /**
+   * 初始化 BGE Reranker 客户端
+   * @returns {Object} BGE 客户端实例
+   */
+  _initBGEClient() {
+    if (!this.bgeClient) {
+      this.bgeClient = getBGERerankerClient({
+        serverUrl: this.config.bgeConfig?.serverUrl || 'http://localhost:8002/rerank',
+        modelName: this.config.bgeConfig?.modelName || 'BAAI/bge-reranker-base',
+      });
+      logger.info('[Reranker] BGE Reranker 客户端已初始化');
+    }
+    return this.bgeClient;
+  }
+
+  /**
+   * 使用 BGE Reranker 进行重排序
+   * @param {string} query - 用户查询
+   * @param {Array} documents - 文档列表
+   * @param {number} topK - 返回数量
+   * @returns {Promise<Array>} 重排序后的文档列表
+   */
+  async rerankWithBGE(query, documents, topK) {
+    try {
+      const client = this._initBGEClient();
+
+      // 检查服务是否可用
+      const status = await client.checkStatus();
+      if (!status.available) {
+        logger.warn('[Reranker] BGE 服务不可用，回退到关键词匹配');
+        return this.rerankWithKeywordMatch(query, documents, topK);
+      }
+
+      // 调用 BGE Reranker
+      const rerankedDocs = await client.rerank(query, documents, { topK });
+
+      logger.info(`[Reranker] BGE 重排序完成: ${documents.length} -> ${rerankedDocs.length} 文档`);
+      return rerankedDocs;
+    } catch (error) {
+      logger.error('[Reranker] BGE 重排序失败:', error);
+      // 回退到关键词匹配
+      return this.rerankWithKeywordMatch(query, documents, topK);
+    }
+  }
+
+  /**
+   * 使用 BGE + 向量相似度混合重排序
+   * @param {string} query - 用户查询
+   * @param {Array} documents - 文档列表
+   * @param {number} topK - 返回数量
+   * @returns {Promise<Array>} 重排序后的文档列表
+   */
+  async rerankWithBGEHybrid(query, documents, topK) {
+    try {
+      const client = this._initBGEClient();
+
+      // 检查服务是否可用
+      const status = await client.checkStatus();
+      if (!status.available) {
+        logger.warn('[Reranker] BGE 服务不可用，回退到混合重排序');
+        return this.rerankHybrid(query, documents, topK);
+      }
+
+      // 先用 BGE 重排序
+      const bgeReranked = await client.rerank(query, documents, {
+        topK: Math.min(topK * 2, documents.length), // 获取更多用于混合计算
+      });
+
+      // 计算混合分数
+      const weights = this.config.bgeConfig?.hybridWeights || { bge: 0.6, vector: 0.4 };
+      const hybridDocs = client.calculateHybridScore(bgeReranked, weights);
+
+      logger.info(`[Reranker] BGE-Hybrid 重排序完成: 权重 BGE=${weights.bge}, Vector=${weights.vector}`);
+      return hybridDocs.slice(0, topK);
+    } catch (error) {
+      logger.error('[Reranker] BGE-Hybrid 重排序失败:', error);
+      // 回退到普通混合重排序
+      return this.rerankHybrid(query, documents, topK);
+    }
+  }
+
+  /**
+   * 更新 BGE 配置
+   * @param {Object} bgeConfig - BGE 配置
+   */
+  updateBGEConfig(bgeConfig) {
+    this.config.bgeConfig = {
+      ...this.config.bgeConfig,
+      ...bgeConfig,
+    };
+
+    // 如果客户端已初始化，更新其配置
+    if (this.bgeClient) {
+      this.bgeClient.updateConfig({
+        serverUrl: bgeConfig.serverUrl,
+        modelName: bgeConfig.modelName,
+      });
+    }
+
+    logger.info('[Reranker] BGE 配置已更新:', this.config.bgeConfig);
+  }
+
+  /**
+   * 检查 BGE 服务状态
+   * @returns {Promise<Object>} BGE 服务状态
+   */
+  async checkBGEStatus() {
+    try {
+      const client = this._initBGEClient();
+      return await client.checkStatus();
+    } catch (error) {
+      return {
+        available: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * 获取 BGE 统计数据
+   * @returns {Object} BGE 统计数据
+   */
+  getBGEStats() {
+    if (!this.bgeClient) {
+      return { initialized: false };
+    }
+    return {
+      initialized: true,
+      ...this.bgeClient.getStats(),
+    };
   }
 }
 

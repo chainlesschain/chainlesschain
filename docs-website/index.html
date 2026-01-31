@@ -92,11 +92,355 @@
             cursor: pointer;
             font-weight: 600;
         }
+
+        /* ========== 导航栏样式 - 简化版防止闪烁 ========== */
+        .navbar {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            z-index: 1000 !important;
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px) !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+            /* 关键：禁用所有过渡效果 */
+            transition: none !important;
+        }
+
+        /* 确保body和html没有transform等属性干扰fixed定位 */
+        html, body {
+            padding-top: 0 !important;
+            transform: none !important;
+            perspective: none !important;
+            transform-style: flat !important;
+            overflow-x: hidden !important;
+        }
+
+        /* Hero区域必须居中 */
+        .hero {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            /* 增加上边距，避免被导航栏和联系栏遮挡 */
+            /* 导航栏70px + 联系栏约80px = 150px，再加70px间距 = 220px */
+            padding-top: 220px !important;
+        }
+
+        /* 移动端Hero区域调整 */
+        @media (max-width: 768px) {
+            .hero {
+                /* 移动端：导航栏60px + 60px间距 = 120px (联系栏改为悬浮，不占空间) */
+                padding-top: 120px !important;
+                min-height: auto !important;
+                padding-bottom: 80px !important;
+            }
+        }
+
+        .hero .container {
+            width: 100% !important;
+            max-width: 1200px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+
+        .hero-content {
+            text-align: center !important;
+            width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            margin-top: 40px !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        .hero-title {
+            text-align: center !important;
+            width: 100% !important;
+        }
+
+        .hero-subtitle,
+        .version-tags,
+        .trust-badges,
+        .hero-cta,
+        .hero-stats {
+            text-align: center !important;
+            width: 100% !important;
+            display: flex !important;
+            justify-content: center !important;
+            flex-wrap: wrap !important;
+        }
+
+        /* 隐藏装饰元素避免布局问题 */
+        .floating-shape,
+        .hero-decoration {
+            display: none !important;
+        }
+
+        /* 禁用所有浮动 */
+        .hero *,
+        .hero-content * {
+            float: none !important;
+        }
+
+        /* ========== 顶部联系栏样式修复 ========== */
+        .top-contact-bar {
+            background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%) !important;
+            color: white !important;
+            padding: 16px 0 !important;
+            position: fixed !important;
+            top: 70px !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            z-index: 998 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+            /* 始终显示，不隐藏 */
+            transform: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* 禁用隐藏效果 */
+        .top-contact-bar.hidden {
+            transform: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        }
+
+        .contact-bar-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            cursor: pointer;
+            /* 移除 transform transition，避免影响导航栏 */
+        }
+
+        .contact-item:hover {
+            /* 使用 opacity 代替 transform */
+            opacity: 0.9;
+        }
+
+        .contact-item .icon {
+            font-size: 24px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .contact-info .label {
+            font-size: 12px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .contact-info .contact-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+        }
+
+        .contact-divider {
+            width: 1px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* 企业微信二维码弹窗 */
+        .wechat-qr-popup {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            margin-top: 12px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .contact-item.wechat:hover .wechat-qr-popup {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .wechat-qr-popup::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 8px solid white;
+        }
+
+        .qr-container {
+            text-align: center;
+        }
+
+        .qr-tip {
+            font-size: 14px;
+            color: #666;
+            margin: 0 0 12px 0;
+        }
+
+        @media (max-width: 768px) {
+            /* 移动端：将联系栏改为右侧悬浮按钮 */
+            .top-contact-bar {
+                position: fixed !important;
+                top: auto !important;
+                bottom: 80px !important;
+                right: 16px !important;
+                left: auto !important;
+                width: 56px !important;
+                height: 56px !important;
+                background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%) !important;
+                border-radius: 50% !important;
+                padding: 0 !important;
+                box-shadow: 0 4px 20px rgba(24, 144, 255, 0.4) !important;
+                z-index: 997 !important;
+                transition: all 0.3s ease !important;
+            }
+
+            .top-contact-bar:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 24px rgba(24, 144, 255, 0.5) !important;
+            }
+
+            /* 联系栏收起状态：只显示电话图标 */
+            .contact-bar-content {
+                width: 56px;
+                height: 56px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .contact-item {
+                display: none !important;
+            }
+
+            /* 只显示第一个联系项的图标作为触发按钮 */
+            .contact-item.hotline {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                padding: 0;
+                margin: 0;
+                gap: 0;
+            }
+
+            .contact-item.hotline .icon {
+                font-size: 28px !important;
+                margin: 0 !important;
+                animation: pulse 2s ease-in-out infinite;
+                filter: none !important;
+            }
+
+            .contact-item.hotline .contact-info {
+                display: none !important;
+            }
+
+            .contact-divider {
+                display: none !important;
+            }
+
+            /* 联系栏展开状态 */
+            .top-contact-bar.expanded {
+                border-radius: 16px !important;
+                width: calc(100% - 32px) !important;
+                max-width: 320px !important;
+                height: auto !important;
+                padding: 20px !important;
+            }
+
+            .top-contact-bar.expanded .contact-bar-content {
+                width: 100%;
+                height: auto;
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .top-contact-bar.expanded .contact-item {
+                display: flex !important;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.15);
+                border-radius: 8px;
+                backdrop-filter: blur(10px);
+                transition: background 0.2s ease;
+            }
+
+            .top-contact-bar.expanded .contact-item:hover {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            .top-contact-bar.expanded .contact-item.hotline {
+                gap: 12px;
+            }
+
+            .top-contact-bar.expanded .contact-item.hotline .contact-info {
+                display: flex !important;
+            }
+
+            .top-contact-bar.expanded .contact-item .icon {
+                font-size: 24px !important;
+                animation: none !important;
+            }
+
+            .contact-info .contact-value {
+                font-size: 16px;
+            }
+
+            /* 脉冲动画 */
+            @keyframes pulse {
+                0%, 100% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.1);
+                }
+            }
+
+            /* 移动端菜单打开时不隐藏悬浮按钮 */
+            body.mobile-menu-open .top-contact-bar {
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+        }
     </style>
 
     <!-- 直接加载CSS,避免样式闪烁 -->
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="style-enhancements.css">
+    <link rel="stylesheet" href="css/style.css?v=10.0">
+    <!-- Loading动画样式 -->
+    <link rel="stylesheet" href="loading-animation-v2.css?v=1.0">
+    <!-- 暂时禁用可能冲突的CSS文件来排查问题 -->
+    <!-- <link rel="stylesheet" href="style-enhancements.css?v=9.0"> -->
+    <!-- <link rel="stylesheet" href="visual-enhancements.css?v=9.0"> -->
+    <!-- <link rel="stylesheet" href="fix-center.css?v=9.0"> -->
 
     <!-- 字体优化 -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -140,7 +484,7 @@
         },
         "downloadUrl": "https://www.chainlesschain.com/download.html",
         "screenshot": "https://www.chainlesschain.com/images/screenshots/main-interface.png",
-        "softwareVersion": "0.26.0",
+        "softwareVersion": "0.21.0",
         "releaseNotes": "https://www.chainlesschain.com/changelog.html",
         "featureList": [
             "个人AI知识库管理",
@@ -261,8 +605,41 @@
         ]
     }
     </script>
+
+    <!-- 页面加载动画CSS -->
+    <link rel="stylesheet" href="loading.css">
+    <!-- 移动端优化CSS -->
+    <link rel="stylesheet" href="mobile-optimize.css">
 </head>
 <body>
+    <!-- 页面加载动画 -->
+    <div id="page-loader">
+        <div class="loader-container">
+            <!-- 粒子效果 -->
+            <div class="loader-particle"></div>
+            <div class="loader-particle"></div>
+            <div class="loader-particle"></div>
+            <div class="loader-particle"></div>
+
+            <!-- Logo容器 -->
+            <div class="loader-logo-wrapper">
+                <div class="loader-glow"></div>
+                <div class="loader-shadow"></div>
+                <div class="loader-ring-outer"></div>
+                <div class="loader-ring-inner"></div>
+                <img src="logo.png" alt="ChainlessChain Logo" class="loader-logo">
+            </div>
+
+            <!-- 加载文字 -->
+            <div class="loader-text">ChainlessChain</div>
+            <div class="loader-tip">无链之链 · 让数据主权回归个人</div>
+
+            <!-- 进度条 -->
+            <div class="loader-progress-container">
+                <div class="loader-progress-bar"></div>
+            </div>
+        </div>
+    </div>
     <!-- Navigation -->
     <nav class="navbar" id="navbar">
         <div class="container">
@@ -378,13 +755,58 @@
         </div>
     </nav>
 
+    <!-- 顶部联系栏 - 显著位置 -->
+    <div class="top-contact-bar">
+        <div class="container">
+            <div class="contact-bar-content">
+                <div class="contact-item hotline">
+                    <span class="icon">📞</span>
+                    <div class="contact-info">
+                        <span class="label">客服热线</span>
+                        <a href="tel:400-1068-687" class="contact-value">400-1068-687</a>
+                    </div>
+                </div>
+                <div class="contact-divider"></div>
+                <div class="contact-item wechat">
+                    <span class="icon">💬</span>
+                    <div class="contact-info">
+                        <span class="label">企业微信</span>
+                        <a href="https://work.weixin.qq.com/ca/cawcde653996f7ecb2" target="_blank" class="contact-value">扫码添加 ↓</a>
+                    </div>
+                    <div class="wechat-qr-popup">
+                        <div class="qr-container">
+                            <div class="qr-placeholder">
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://work.weixin.qq.com/ca/cawcde653996f7ecb2"
+                                     alt="企业微信二维码"
+                                     width="200"
+                                     height="200"
+                                     loading="lazy"
+                                     onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22200%22%3E%3Crect width=%22200%22 height=%22200%22 fill=%22%23f0f0f0%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2214%22 fill=%22%23666%22%3E企业微信二维码%3C/text%3E%3C/svg%3E'">
+                            </div>
+                            <p class="qr-tip">扫码添加企业微信客服</p>
+                            <a href="https://work.weixin.qq.com/ca/cawcde653996f7ecb2" target="_blank" class="qr-link">点击直接打开 →</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="contact-divider"></div>
+                <div class="contact-item email">
+                    <span class="icon">📧</span>
+                    <div class="contact-info">
+                        <span class="label">商务合作</span>
+                        <a href="mailto:zhanglongfa@chainlesschain.com" class="contact-value">zhanglongfa@chainlesschain.com</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Hero Section - 优化版 -->
-    <section id="home" class="hero">
+    <section id="home" class="hero" style="display: flex; align-items: center; justify-content: center;">
         <div class="hero-background">
             <div class="hero-gradient"></div>
         </div>
-        <div class="container">
-            <div class="hero-content">
+        <div class="container" style="width: 100%;">
+            <div class="hero-content" style="text-align: center; width: 100%;">
                 <!-- 主标题 - 更新为双版本定位 -->
                 <h1 class="hero-title animate-fade-in">
                     让数据主权回归个人<br>
@@ -449,7 +871,7 @@
                         <span class="stat-label">代码行数</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number">145</span>
+                        <span class="stat-number">165</span>
                         <span class="stat-label">Vue组件</span>
                     </div>
                     <div class="stat-item">
@@ -461,8 +883,8 @@
                         <span class="stat-label">AI引擎</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number">115</span>
-                        <span class="stat-label">技能工具</span>
+                        <span class="stat-number">149</span>
+                        <span class="stat-label">API端点</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-number">0</span>
@@ -1138,7 +1560,7 @@
                     <div class="download-icon">💻</div>
                     <h3>Windows 桌面版</h3>
                     <p class="download-desc">支持 Windows 10/11 (64位)</p>
-                    <p class="download-version">最新版本：v0.17.0</p>
+                    <p class="download-version">最新版本：v0.21.0</p>
                     <p class="file-size">文件大小：156 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1159,7 +1581,7 @@
                     <div class="download-icon">🍎</div>
                     <h3>macOS 桌面版</h3>
                     <p class="download-desc">支持 macOS 10.15+ (Intel & Apple Silicon)</p>
-                    <p class="download-version">最新版本：v0.17.0</p>
+                    <p class="download-version">最新版本：v0.21.0</p>
                     <p class="file-size">文件大小：180 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1174,7 +1596,7 @@
                     <div class="download-icon">🐧</div>
                     <h3>Linux 桌面版</h3>
                     <p class="download-desc">支持 Ubuntu 20.04+ / Debian / Fedora</p>
-                    <p class="download-version">最新版本：v0.17.0</p>
+                    <p class="download-version">最新版本：v0.21.0</p>
                     <p class="file-size">文件大小：145 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1189,7 +1611,7 @@
                     <div class="download-icon">📱</div>
                     <h3>Android 移动版</h3>
                     <p class="download-desc">支持 Android 7.0 (API 24) 及以上</p>
-                    <p class="download-version">最新版本：v0.17.0</p>
+                    <p class="download-version">最新版本：v0.21.0</p>
                     <p class="file-size">文件大小：45 MB</p>
                     <a href="https://github.com/chainlesschain/chainlesschain/releases/latest"
                        class="btn-download"
@@ -1493,6 +1915,134 @@
                     <h3>开源生态</h3>
                     <p>核心代码开源，支持插件扩展，打造开放的AI生态系统</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 最新功能 v0.21.0 -->
+    <section class="new-features">
+        <div class="container">
+            <div class="section-header">
+                <span class="version-badge">🎉 v0.21.0 新版本</span>
+                <h2 class="section-title">最新功能亮点</h2>
+                <p class="section-subtitle">持续创新，为您带来更强大的AI能力</p>
+            </div>
+            <div class="new-features-grid">
+                <!-- MCP Integration -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">POC v0.1.0</div>
+                    <div class="feature-icon">🔌</div>
+                    <h3>MCP 集成</h3>
+                    <h4>Model Context Protocol</h4>
+                    <p class="feature-desc">标准化AI工具集成，支持文件系统、PostgreSQL、SQLite、Git服务器，具备深度防御安全架构。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">✨ 标准化接口</span>
+                        <span class="highlight-tag">🔒 深度防御</span>
+                        <span class="highlight-tag">🛠️ 工具测试UI</span>
+                    </div>
+                </div>
+
+                <!-- LLM Performance Dashboard -->
+                <div class="new-feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>LLM 性能仪表板</h3>
+                    <h4>智能成本分析</h4>
+                    <p class="feature-desc">实时监控Token使用量、成本分析、性能指标，通过ECharts可视化展示，帮助您优化AI使用策略。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">📈 实时监控</span>
+                        <span class="highlight-tag">💰 成本优化</span>
+                        <span class="highlight-tag">📉 可视化图表</span>
+                    </div>
+                </div>
+
+                <!-- SessionManager -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.22.0</div>
+                    <div class="feature-icon">💬</div>
+                    <h3>智能会话管理</h3>
+                    <h4>SessionManager</h4>
+                    <p class="feature-desc">自动压缩节省30-40% Token，支持会话搜索、标签管理、导入/导出、自动摘要生成。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">⚡ 30-40% Token节省</span>
+                        <span class="highlight-tag">🔍 智能搜索</span>
+                        <span class="highlight-tag">📝 自动摘要</span>
+                    </div>
+                </div>
+
+                <!-- ErrorMonitor -->
+                <div class="new-feature-card">
+                    <div class="feature-icon">🩺</div>
+                    <h3>AI 错误诊断</h3>
+                    <h4>ErrorMonitor</h4>
+                    <p class="feature-desc">本地Ollama LLM智能诊断，自动分类错误严重程度，提供修复策略建议，完全免费。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🤖 本地AI诊断</span>
+                        <span class="highlight-tag">🎯 自动分类</span>
+                        <span class="highlight-tag">🆓 完全免费</span>
+                    </div>
+                </div>
+
+                <!-- Manus Optimizations -->
+                <div class="new-feature-card">
+                    <div class="feature-badge">v0.24.0</div>
+                    <div class="feature-icon">⚙️</div>
+                    <h3>Manus 优化</h3>
+                    <h4>智能上下文工程</h4>
+                    <p class="feature-desc">KV-Cache优化、工具屏蔽、任务跟踪(todo.md)、多Agent系统，提升AI响应效率。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🚀 性能提升</span>
+                        <span class="highlight-tag">📋 任务跟踪</span>
+                        <span class="highlight-tag">🤝 多Agent</span>
+                    </div>
+                </div>
+
+                <!-- Cowork Multi-Agent -->
+                <div class="new-feature-card highlight">
+                    <div class="feature-badge">v1.0.0</div>
+                    <div class="feature-icon">👥</div>
+                    <h3>Cowork 多Agent协作</h3>
+                    <h4>团队智能化协作</h4>
+                    <p class="feature-desc">Claude Cowork风格多Agent系统，13核心操作，安全文件访问控制，长任务检查点恢复，扩展技能框架。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">👥 13核心操作</span>
+                        <span class="highlight-tag">🔒 文件沙箱</span>
+                        <span class="highlight-tag">♻️ 检查点恢复</span>
+                        <span class="highlight-tag">🎯 ~90%测试覆盖</span>
+                    </div>
+                </div>
+
+                <!-- GitHub Release Automation -->
+                <div class="new-feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>发布自动化</h3>
+                    <h4>GitHub Release</h4>
+                    <p class="feature-desc">全自动化发布流程，多平台构建优化，确保每个版本稳定可靠。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">⚙️ 自动化CI/CD</span>
+                        <span class="highlight-tag">📦 多平台构建</span>
+                        <span class="highlight-tag">✅ 质量保证</span>
+                    </div>
+                </div>
+
+                <!-- Android Phase 5 -->
+                <div class="new-feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Android 应用</h3>
+                    <h4>Phase 5 完成</h4>
+                    <p class="feature-desc">P2P网络(WebRTC、NSD发现)、DID身份系统(did:key、Ed25519)，移动端功能日趋完善。</p>
+                    <div class="feature-highlights">
+                        <span class="highlight-tag">🌐 P2P网络</span>
+                        <span class="highlight-tag">🔑 DID身份</span>
+                        <span class="highlight-tag">📲 移动优先</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 更新日志链接 -->
+            <div class="features-cta">
+                <a href="https://github.com/chainlesschain/chainlesschain/blob/main/CHANGELOG.md" target="_blank" class="btn-features-outline">
+                    查看完整更新日志 →
+                </a>
             </div>
         </div>
     </section>
@@ -1951,6 +2501,76 @@
     document.addEventListener('DOMContentLoaded', function() {
         detectOS();
     });
+
+    // 图片懒加载完成后添加 loaded 类
+    window.addEventListener('load', function() {
+        const lazyImages = document.querySelectorAll('img[loading="lazy"]');
+        lazyImages.forEach(function(img) {
+            if (img.complete) {
+                img.classList.add('loaded');
+            } else {
+                img.addEventListener('load', function() {
+                    this.classList.add('loaded');
+                });
+            }
+        });
+    });
+
+    // 导航栏滚动效果 - 优化版（移除频繁刷新）
+    let scrollTimeout;
+    window.addEventListener('scroll', function() {
+        // 使用防抖，避免过度触发
+        if (scrollTimeout) {
+            window.cancelAnimationFrame(scrollTimeout);
+        }
+
+        scrollTimeout = window.requestAnimationFrame(function() {
+            const navbar = document.getElementById('navbar');
+
+            if (navbar) {
+                // 只添加/移除class，不强制刷新所有样式
+                if (window.scrollY > 50) {
+                    navbar.classList.add('scrolled');
+                } else {
+                    navbar.classList.remove('scrolled');
+                }
+            }
+        });
+    });
+
+    // 滚动到视口时的动画效果
+    function handleScrollAnimations() {
+        const elements = document.querySelectorAll('.product-card, .feature-item, .scenario-card, .download-card, .version-card');
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        elements.forEach(function(element) {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(20px)';
+            element.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(element);
+        });
+    }
+
+    // 页面加载完成后初始化滚动动画
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', handleScrollAnimations);
+    } else {
+        handleScrollAnimations();
+    }
     </script>
+
+    <!-- 页面加载动画JS -->
+    <script src="js/loading.js"></script>
 </body>
 </html>

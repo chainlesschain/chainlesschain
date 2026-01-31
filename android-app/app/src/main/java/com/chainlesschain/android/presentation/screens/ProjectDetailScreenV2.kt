@@ -41,8 +41,18 @@ fun ProjectDetailScreenV2(
     onNavigateBack: () -> Unit = {},
     onNavigateToSteps: (String) -> Unit = {},
     onNavigateToFileBrowser: (String) -> Unit = {},
-    viewModel: ProjectViewModel = hiltViewModel()
+    viewModel: ProjectViewModel = hiltViewModel(),
+    authViewModel: com.chainlesschain.android.feature.auth.presentation.AuthViewModel = hiltViewModel()
 ) {
+    // 获取认证状态并初始化用户上下文
+    val authState by authViewModel.uiState.collectAsState()
+
+    LaunchedEffect(authState.currentUser) {
+        authState.currentUser?.let { user ->
+            viewModel.setCurrentUser(user.id)
+        }
+    }
+
     // 加载项目详情
     LaunchedEffect(projectId) {
         viewModel.loadProjectDetail(projectId)

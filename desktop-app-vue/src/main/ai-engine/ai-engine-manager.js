@@ -18,6 +18,11 @@ class AIEngineManager {
     // 增强版任务规划器（需要初始化）
     this.taskPlannerEnhanced = null;
 
+    // 工作流优化模块（Phase 3）
+    this.decisionEngine = null;
+    this.criticalPathOptimizer = null;
+    this.agentPool = null;
+
     // 依赖项（延迟注入）
     this.llmManager = null;
     this.database = null;
@@ -60,11 +65,113 @@ class AIEngineManager {
         logger.info('[AIEngineManager] 增强版任务规划器已初始化');
       }
 
+      // 初始化工作流优化模块（Phase 3）
+      await this.initializeWorkflowOptimizations();
+
       return true;
     } catch (error) {
       logger.error('[AIEngineManager] 初始化失败:', error);
       throw error;
     }
+  }
+
+  /**
+   * 初始化工作流优化模块
+   * @private
+   */
+  async initializeWorkflowOptimizations() {
+    try {
+      // 读取配置
+      const config = this._loadWorkflowConfig();
+
+      // 1. LLM决策引擎
+      if (config.phase3.llmDecision.enabled) {
+        const { LLMDecisionEngine } = require('./llm-decision-engine');
+        this.decisionEngine = new LLMDecisionEngine({
+          enabled: true,
+          llmManager: this.llmManager,
+          database: this.database,
+          highConfidenceThreshold: config.phase3.llmDecision.highConfidenceThreshold,
+          contextLengthThreshold: config.phase3.llmDecision.contextLengthThreshold,
+          subtaskCountThreshold: config.phase3.llmDecision.subtaskCountThreshold,
+        });
+        logger.info('[AIEngineManager] ✓ LLM决策引擎已初始化');
+      }
+
+      // 2. 关键路径优化器
+      if (config.phase3.criticalPath.enabled) {
+        const { CriticalPathOptimizer } = require('./critical-path-optimizer');
+        this.criticalPathOptimizer = new CriticalPathOptimizer({
+          enabled: true,
+          priorityBoost: config.phase3.criticalPath.priorityBoost,
+        });
+        logger.info('[AIEngineManager] ✓ 关键路径优化器已初始化');
+      }
+
+      // 3. 代理池（可选，通常在TeammateTool中管理）
+      if (config.phase3.agentPool.enabled) {
+        const { AgentPool } = require('./cowork/agent-pool');
+        this.agentPool = new AgentPool({
+          minSize: config.phase3.agentPool.minSize,
+          maxSize: config.phase3.agentPool.maxSize,
+          warmupOnInit: config.phase3.agentPool.warmupOnInit,
+        });
+
+        // 初始化代理池
+        await this.agentPool.initialize();
+        logger.info('[AIEngineManager] ✓ 代理池已初始化');
+      }
+
+      logger.info('[AIEngineManager] 工作流优化模块初始化完成');
+    } catch (error) {
+      logger.warn('[AIEngineManager] 工作流优化模块初始化部分失败:', error.message);
+      // 不抛出错误，允许部分失败
+    }
+  }
+
+  /**
+   * 加载工作流配置
+   * @private
+   */
+  _loadWorkflowConfig() {
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const configPath = path.join(process.cwd(), '.chainlesschain', 'config.json');
+
+      if (fs.existsSync(configPath)) {
+        const data = fs.readFileSync(configPath, 'utf-8');
+        const config = JSON.parse(data);
+        if (config.workflow && config.workflow.optimizations) {
+          return config.workflow.optimizations;
+        }
+      }
+    } catch (error) {
+      logger.warn('[AIEngineManager] 加载工作流配置失败，使用默认值:', error.message);
+    }
+
+    // 返回默认配置
+    return {
+      enabled: true,
+      phase3: {
+        llmDecision: {
+          enabled: true,
+          highConfidenceThreshold: 0.9,
+          contextLengthThreshold: 10000,
+          subtaskCountThreshold: 3,
+        },
+        criticalPath: {
+          enabled: true,
+          priorityBoost: 2.0,
+        },
+        agentPool: {
+          enabled: true,
+          minSize: 3,
+          maxSize: 10,
+          warmupOnInit: true,
+        },
+      },
+    };
   }
 
   /**
@@ -76,6 +183,36 @@ class AIEngineManager {
       throw new Error('增强版任务规划器未初始化，请先调用 initialize()');
     }
     return this.taskPlannerEnhanced;
+  }
+
+  /**
+   * 获取工作流优化统计
+   * @returns {Object}
+   */
+  getWorkflowStats() {
+    const stats = {};
+
+    // Plan Cache stats (from taskPlannerEnhanced)
+    if (this.taskPlannerEnhanced && this.taskPlannerEnhanced.planCache) {
+      stats.planCache = this.taskPlannerEnhanced.planCache.getStats();
+    }
+
+    // Decision Engine stats
+    if (this.decisionEngine) {
+      stats.decisionEngine = this.decisionEngine.getStats();
+    }
+
+    // Agent Pool stats
+    if (this.agentPool) {
+      stats.agentPool = this.agentPool.getStats();
+    }
+
+    // Critical Path Optimizer stats
+    if (this.criticalPathOptimizer) {
+      stats.criticalPathOptimizer = this.criticalPathOptimizer.getStats();
+    }
+
+    return stats;
   }
 
   /**

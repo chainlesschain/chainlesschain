@@ -141,16 +141,25 @@ class OpenAIAdapter @Inject constructor(
 
     override suspend fun checkAvailability(): Boolean {
         return try {
+            android.util.Log.d("OpenAIAdapter", "checkAvailability: baseUrl=$baseUrl, apiKey=${apiKey.take(10)}...")
+            val url = "$baseUrl/models"
+            android.util.Log.d("OpenAIAdapter", "checkAvailability: requesting URL=$url")
+
             val request = Request.Builder()
-                .url("$baseUrl/models")
+                .url(url)
                 .get()
                 .addHeader("Authorization", "Bearer $apiKey")
                 .build()
 
-            client.newCall(request).execute().use { response ->
+            android.util.Log.d("OpenAIAdapter", "checkAvailability: executing request...")
+            val result = client.newCall(request).execute().use { response ->
+                android.util.Log.d("OpenAIAdapter", "checkAvailability: response code=${response.code}, message=${response.message}")
                 response.isSuccessful
             }
+            android.util.Log.d("OpenAIAdapter", "checkAvailability: result=$result")
+            result
         } catch (e: Exception) {
+            android.util.Log.e("OpenAIAdapter", "checkAvailability: exception", e)
             false
         }
     }

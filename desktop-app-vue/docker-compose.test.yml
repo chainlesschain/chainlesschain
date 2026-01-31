@@ -1,0 +1,119 @@
+# Docker Compose for Testing Infrastructure
+#
+# Provides isolated test environments for:
+# - SoftHSM (PKCS#11 crypto testing)
+# - PostgreSQL (backend integration tests)
+# - Redis (caching integration tests)
+# - Qdrant (RAG/vector search tests)
+#
+# Usage:
+#   docker-compose -f docker-compose.test.yml up -d softhsm
+#   docker-compose -f docker-compose.test.yml down
+
+version: '3.8'
+
+services:
+  # SoftHSM - Software-based HSM for PKCS#11 testing
+  softhsm:
+    build:
+      context: ./tests/docker/softhsm
+      dockerfile: Dockerfile
+    container_name: chainlesschain-softhsm-test
+    volumes:
+      # Persist token data
+      - softhsm-tokens:/var/lib/softhsm/tokens
+      # Share workspace with host
+      - ./tests/integration/ukey:/workspace
+    environment:
+      - SOFTHSM2_CONF=/etc/softhsm/softhsm2.conf
+      - PKCS11_MODULE_PATH=/usr/lib/softhsm/libsofthsm2.so
+    networks:
+      - test-network
+    # Keep container running for interactive testing
+    command: tail -f /dev/null
+
+  # PostgreSQL - Backend database integration tests
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: chainlesschain-postgres-test
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: chainlesschain_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Caching integration tests
+  redis-test:
+    image: redis:7-alpine
+    container_name: chainlesschain-redis-test
+    ports:
+      - "6380:6379"
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Qdrant - Vector database for RAG tests
+  qdrant-test:
+    image: qdrant/qdrant:v1.7.4
+    container_name: chainlesschain-qdrant-test
+    ports:
+      - "6334:6333"
+      - "6335:6334"
+    volumes:
+      - qdrant-test-data:/qdrant/storage
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:6333/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Ollama - LLM inference for integration tests (optional, GPU required)
+  ollama-test:
+    image: ollama/ollama:latest
+    container_name: chainlesschain-ollama-test
+    ports:
+      - "11435:11434"
+    volumes:
+      - ollama-test-data:/root/.ollama
+    networks:
+      - test-network
+    # Only start if GPU is available
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    profiles:
+      - gpu
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  softhsm-tokens:
+    driver: local
+  postgres-test-data:
+    driver: local
+  qdrant-test-data:
+    driver: local
+  ollama-test-data:
+    driver: local

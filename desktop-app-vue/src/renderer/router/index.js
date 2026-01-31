@@ -158,6 +158,82 @@ const socialPages = createRouteGroup("social", {
     ),
 });
 
+// 监控与诊断页面组（中优先级）
+const monitoringPages = createRouteGroup("monitoring", {
+  sessionManager: () =>
+    import(
+      /* webpackChunkName: "monitoring-sessions" */ "../pages/SessionManagerPage.vue"
+    ),
+  errorMonitor: () =>
+    import(
+      /* webpackChunkName: "monitoring-errors" */ "../pages/ErrorMonitorPage.vue"
+    ),
+  memoryDashboard: () =>
+    import(
+      /* webpackChunkName: "monitoring-memory" */ "../pages/MemoryDashboardPage.vue"
+    ),
+  tagManager: () =>
+    import(
+      /* webpackChunkName: "monitoring-tags" */ "../pages/TagManagerPage.vue"
+    ),
+  llmPerformance: () =>
+    import(
+      /* webpackChunkName: "monitoring-llm" */ "../pages/LLMPerformancePage.vue"
+    ),
+  databasePerformance: () =>
+    import(
+      /* webpackChunkName: "monitoring-database" */ "../pages/DatabasePerformancePage.vue"
+    ),
+});
+
+// Cowork 多代理协作页面组（中优先级）
+const coworkPages = createRouteGroup("cowork", {
+  dashboard: () =>
+    import(
+      /* webpackChunkName: "cowork-dashboard" */ "../pages/CoworkDashboard.vue"
+    ),
+  tasks: () =>
+    import(
+      /* webpackChunkName: "cowork-tasks" */ "../pages/TaskMonitor.vue"
+    ),
+  skills: () =>
+    import(
+      /* webpackChunkName: "cowork-skills" */ "../pages/SkillManager.vue"
+    ),
+  analytics: () =>
+    import(
+      /* webpackChunkName: "cowork-analytics" */ "../pages/CoworkAnalytics.vue"
+    ),
+});
+
+// P2P高级功能页面组（低优先级）
+const p2pAdvancedPages = createRouteGroup("p2p-advanced", {
+  devicePairing: () =>
+    import(
+      /* webpackChunkName: "p2p-device-pairing" */ "../pages/p2p/DevicePairingPage.vue"
+    ),
+  deviceManagement: () =>
+    import(
+      /* webpackChunkName: "p2p-device-mgmt" */ "../pages/p2p/DeviceManagementPage.vue"
+    ),
+  fileTransfer: () =>
+    import(
+      /* webpackChunkName: "p2p-file-transfer" */ "../pages/p2p/FileTransferPage.vue"
+    ),
+  safetyNumbers: () =>
+    import(
+      /* webpackChunkName: "p2p-safety-numbers" */ "../pages/p2p/SafetyNumbersPage.vue"
+    ),
+  sessionFingerprint: () =>
+    import(
+      /* webpackChunkName: "p2p-session-fp" */ "../pages/p2p/SessionFingerprintPage.vue"
+    ),
+  messageQueue: () =>
+    import(
+      /* webpackChunkName: "p2p-msg-queue" */ "../pages/p2p/MessageQueuePage.vue"
+    ),
+});
+
 // 其他功能页面（按需加载）
 const miscPages = {
   webIDE: lazyRoute(
@@ -358,6 +434,25 @@ const routes = [
         component: () => import("../pages/p2p/MessageQueuePage.vue"),
         meta: { title: "消息队列", requiresAuth: false },
       },
+      // ===== 远程控制 =====
+      {
+        path: "remote/control",
+        name: "RemoteControl",
+        component: () =>
+          import(
+            /* webpackChunkName: "remote-control" */ "../pages/RemoteControl.vue"
+          ),
+        meta: { title: "远程控制", requiresAuth: false },
+      },
+      {
+        path: "remote/logs",
+        name: "CommandLogs",
+        component: () =>
+          import(
+            /* webpackChunkName: "command-logs" */ "../pages/CommandLogsPage.vue"
+          ),
+        meta: { title: "命令日志", requiresAuth: false },
+      },
       // ===== 测试页面 =====
       {
         path: "test/android-features",
@@ -555,6 +650,26 @@ const routes = [
         component: () => import("../pages/AIPromptsPage.vue"),
         meta: { title: "AI助手" },
       },
+      // ===== 工作流监控 =====
+      {
+        path: "workflow",
+        name: "WorkflowMonitor",
+        component: () => import("../pages/WorkflowMonitorPage.vue"),
+        meta: { title: "工作流监控" },
+      },
+      {
+        path: "workflow/:id",
+        name: "WorkflowDetail",
+        component: () => import("../pages/WorkflowMonitorPage.vue"),
+        meta: { title: "工作流详情" },
+      },
+      // ===== 工作流优化 =====
+      {
+        path: "workflow/optimizations",
+        name: "WorkflowOptimizations",
+        component: () => import("../components/WorkflowOptimizationsDashboard.vue"),
+        meta: { title: "工作流优化" },
+      },
       // Web IDE
       {
         path: "webide",
@@ -710,6 +825,31 @@ const routes = [
         name: "MemoryDashboard",
         component: () => import("../pages/MemoryDashboardPage.vue"),
         meta: { title: "Memory Bank 仪表板" },
+      },
+      // ===== Cowork 多代理协作路由 =====
+      {
+        path: "cowork",
+        name: "CoworkDashboard",
+        component: coworkPages.dashboard,
+        meta: { title: "Cowork 多代理协作" },
+      },
+      {
+        path: "cowork/tasks",
+        name: "CoworkTasks",
+        component: coworkPages.tasks,
+        meta: { title: "任务监控" },
+      },
+      {
+        path: "cowork/skills",
+        name: "CoworkSkills",
+        component: coworkPages.skills,
+        meta: { title: "技能管理" },
+      },
+      {
+        path: "cowork/analytics",
+        name: "CoworkAnalytics",
+        component: coworkPages.analytics,
+        meta: { title: "数据分析" },
       },
       {
         path: "error/monitor",

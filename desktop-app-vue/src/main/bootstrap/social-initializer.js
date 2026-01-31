@@ -43,10 +43,16 @@ function registerSocialInitializers(factory) {
         dataPath: path.join(app.getPath("userData"), "p2p"),
       });
 
-      // P2P 初始化可能较慢，使用异步初始化
+      // P2P 初始化可能较慢，使用异步初始化 + 超时保护
       // 返回 p2pManager，稍后在后台完成完整初始化
-      p2pManager._initPromise = p2pManager
-        .initialize()
+      const P2P_INIT_TIMEOUT = 30000; // 30秒超时
+
+      p2pManager._initPromise = Promise.race([
+        p2pManager.initialize(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('P2P初始化超时')), P2P_INIT_TIMEOUT)
+        )
+      ])
         .then((initialized) => {
           if (initialized) {
             logger.info("[Social] P2P管理器初始化成功");
@@ -56,7 +62,10 @@ function registerSocialInitializers(factory) {
           return initialized;
         })
         .catch((error) => {
-          logger.error("[Social] P2P管理器初始化失败:", error);
+          logger.error("[Social] P2P管理器初始化失败:", error.message);
+          if (error.message.includes('超时')) {
+            logger.warn("[Social] P2P初始化超时，可能是网络问题或配置错误");
+          }
           return false;
         });
 

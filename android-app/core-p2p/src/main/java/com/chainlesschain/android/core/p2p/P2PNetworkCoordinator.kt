@@ -4,7 +4,7 @@ import android.util.Log
 import com.chainlesschain.android.core.p2p.connection.AutoReconnectManager
 import com.chainlesschain.android.core.p2p.connection.HeartbeatManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
-import com.chainlesschain.android.core.p2p.model.FileProtocolTypes
+import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.network.NetworkEvent
@@ -33,11 +33,9 @@ class P2PNetworkCoordinator @Inject constructor(
     private val connectionManager: P2PConnectionManager,
     private val networkMonitor: NetworkMonitor,
     private val heartbeatManager: HeartbeatManager,
-    private val autoReconnectManager: AutoReconnectManager
-    // fileIndexProtocolHandler: 暂时移除，依赖feature-file-browser模块
+    private val autoReconnectManager: AutoReconnectManager,
+    private val fileIndexProtocolHandler: FileIndexProtocolHandler
 ) {
-    // 临时变量，用于保持原有代码逻辑不变
-    private val fileIndexProtocolHandler: Any? = null
 
     companion object {
         private const val TAG = "P2PNetworkCoordinator"
@@ -372,13 +370,24 @@ class P2PNetworkCoordinator @Inject constructor(
 
     /**
      * 处理文件协议消息
-     *
-     * 注: 暂时禁用，因为依赖feature-file-browser模块
      */
     private fun handleFileProtocolMessage(message: P2PMessage) {
-        // 文件索引处理器未启用，忽略文件协议消息
-        Log.w(TAG, "File index protocol handler not available, ignoring file protocol message")
-        // TODO: 重新启用 feature-file-browser 后恢复此功能
+        when (message.type) {
+            MessageType.FILE_INDEX_REQUEST,
+            MessageType.FILE_PULL_REQUEST -> {
+                // 委托给文件索引协议处理器
+                try {
+                    fileIndexProtocolHandler.handleMessage(message)
+                    Log.d(TAG, "File protocol message handled: ${message.type}")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error handling file protocol message", e)
+                }
+            }
+            else -> {
+                // 非文件协议消息，忽略
+                Log.v(TAG, "Non-file protocol message: ${message.type}")
+            }
+        }
     }
 
     /**

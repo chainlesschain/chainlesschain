@@ -51,8 +51,12 @@ fun ProjectScreen(
 
     // 初始化用户上下文
     LaunchedEffect(authState.currentUser) {
+        android.util.Log.d("ProjectScreen", "LaunchedEffect triggered: authState.currentUser=${authState.currentUser?.id}")
         authState.currentUser?.let { user ->
+            android.util.Log.d("ProjectScreen", "Calling setCurrentUser with userId=${user.id}")
             projectViewModel.setCurrentUser(user.id)
+        } ?: run {
+            android.util.Log.w("ProjectScreen", "authState.currentUser is NULL")
         }
     }
 

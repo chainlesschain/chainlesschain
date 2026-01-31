@@ -117,6 +117,7 @@ class ConflictResolver @Inject constructor() {
             ResourceType.MESSAGE -> resolveMessageConflict(conflict)
             ResourceType.CONTACT -> resolveContactConflict(conflict)
             ResourceType.SETTING -> resolveSettingConflict(conflict)
+            else -> resolveLastWriteWins(conflict) // 处理其他类型（FRIEND, POST等）
         }
     }
 
@@ -244,6 +245,7 @@ class ConflictResolver @Inject constructor() {
             ResourceType.MESSAGE -> ConflictStrategy.LAST_WRITE_WINS
             ResourceType.CONTACT -> ConflictStrategy.CUSTOM
             ResourceType.SETTING -> ConflictStrategy.CUSTOM
+            else -> ConflictStrategy.LAST_WRITE_WINS // 其他类型使用默认策略
         }
     }
 }

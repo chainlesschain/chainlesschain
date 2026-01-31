@@ -1,0 +1,159 @@
+{
+  "name": "Code Review Team",
+  "description": "Automated code review team with security, performance, quality, and architecture experts",
+  "version": "1.0.0",
+  "type": "code-review",
+  "config": {
+    "maxAgents": 4,
+    "autoAssignTasks": true,
+    "parallelExecution": true,
+    "conflictResolution": "llm",
+    "workingHours": "24/7"
+  },
+  "agents": [
+    {
+      "name": "Security Reviewer",
+      "role": "security-reviewer",
+      "description": "Scans code for security vulnerabilities and OWASP Top 10 issues",
+      "capabilities": [
+        "security-scan",
+        "owasp-check",
+        "vulnerability-detection",
+        "sql-injection-check",
+        "xss-check",
+        "authentication-review",
+        "authorization-review",
+        "crypto-audit"
+      ],
+      "priority": 1,
+      "config": {
+        "checkOWASP": true,
+        "checkCVE": true,
+        "severityThreshold": "medium",
+        "autoFix": false
+      },
+      "llmPrompt": "You are a security expert. Review the code for security vulnerabilities including:\n- SQL injection\n- XSS (Cross-Site Scripting)\n- Authentication/authorization flaws\n- Insecure cryptography\n- Sensitive data exposure\n- Security misconfigurations\n\nProvide specific line numbers and remediation suggestions."
+    },
+    {
+      "name": "Performance Analyzer",
+      "role": "performance-reviewer",
+      "description": "Analyzes code performance, complexity, and optimization opportunities",
+      "capabilities": [
+        "complexity-analysis",
+        "memory-check",
+        "algorithm-optimization",
+        "big-o-analysis",
+        "bottleneck-detection",
+        "cache-optimization",
+        "database-query-optimization"
+      ],
+      "priority": 2,
+      "config": {
+        "maxComplexity": 10,
+        "checkMemoryLeaks": true,
+        "profiling": true
+      },
+      "llmPrompt": "You are a performance expert. Analyze the code for:\n- Time complexity (Big O)\n- Space complexity\n- Memory leaks\n- Inefficient algorithms\n- Database query optimization\n- Caching opportunities\n- Bottlenecks\n\nProvide specific optimization suggestions with expected performance improvements."
+    },
+    {
+      "name": "Code Quality Expert",
+      "role": "quality-reviewer",
+      "description": "Ensures code quality, maintainability, and adherence to best practices",
+      "capabilities": [
+        "style-check",
+        "best-practices",
+        "code-smells",
+        "duplication-detection",
+        "naming-conventions",
+        "documentation-check",
+        "error-handling-review"
+      ],
+      "priority": 3,
+      "config": {
+        "checkStyle": true,
+        "checkDuplication": true,
+        "minDocCoverage": 80,
+        "enforceNaming": true
+      },
+      "llmPrompt": "You are a code quality expert. Review the code for:\n- Code smells (long methods, large classes, etc.)\n- Duplication\n- Naming conventions\n- Documentation quality\n- Error handling\n- Maintainability\n- Readability\n\nProvide specific refactoring suggestions to improve code quality."
+    },
+    {
+      "name": "Architecture Validator",
+      "role": "architecture-reviewer",
+      "description": "Validates architectural patterns, design principles, and code structure",
+      "capabilities": [
+        "architecture-validation",
+        "design-patterns",
+        "solid-principles",
+        "dependency-check",
+        "coupling-analysis",
+        "cohesion-analysis",
+        "layering-validation"
+      ],
+      "priority": 4,
+      "config": {
+        "checkSOLID": true,
+        "checkPatterns": true,
+        "maxCoupling": 5,
+        "enforceLayering": true
+      },
+      "llmPrompt": "You are an architecture expert. Review the code for:\n- SOLID principles violations\n- Design pattern usage\n- Dependency management\n- Coupling and cohesion\n- Layering and separation of concerns\n- Architectural consistency\n\nProvide architectural improvement suggestions aligned with best practices."
+    }
+  ],
+  "workflow": {
+    "type": "parallel",
+    "steps": [
+      {
+        "name": "Parallel Review",
+        "description": "All agents review code simultaneously",
+        "agents": ["security-reviewer", "performance-reviewer", "quality-reviewer", "architecture-reviewer"],
+        "parallelExecution": true
+      },
+      {
+        "name": "Aggregate Results",
+        "description": "Combine findings from all agents",
+        "dependsOn": ["Parallel Review"]
+      },
+      {
+        "name": "Prioritize Issues",
+        "description": "Sort issues by severity and impact",
+        "dependsOn": ["Aggregate Results"]
+      },
+      {
+        "name": "Generate Report",
+        "description": "Create comprehensive review report",
+        "dependsOn": ["Prioritize Issues"]
+      }
+    ]
+  },
+  "output": {
+    "format": "markdown",
+    "sections": [
+      "Executive Summary",
+      "Security Issues",
+      "Performance Issues",
+      "Quality Issues",
+      "Architecture Issues",
+      "Recommendations",
+      "Metrics"
+    ],
+    "includeMetrics": true,
+    "includeCodeSnippets": true
+  },
+  "metrics": {
+    "track": [
+      "issues_found",
+      "critical_issues",
+      "high_issues",
+      "medium_issues",
+      "low_issues",
+      "review_time",
+      "files_reviewed",
+      "lines_reviewed"
+    ]
+  },
+  "usageExample": {
+    "description": "Review authentication module for security and quality",
+    "code": "const team = await cowork.createTeam({ template: 'code-review' });\nconst task = await cowork.assignTask(team.id, {\n  type: 'code-review',\n  input: {\n    files: ['src/auth/login.js', 'src/auth/register.js'],\n    aspects: ['security', 'performance', 'quality']\n  }\n});"
+  }
+}

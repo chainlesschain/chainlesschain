@@ -26,8 +26,8 @@ import javax.inject.Singleton
 @Serializable
 data class OllamaConfig(
     val url: String = "http://localhost:11434",
-    val model: String = "qwen2:7b",
-    val embeddingModel: String = "nomic-embed-text"
+    val model: String = "qwen2.5:latest",
+    val embeddingModel: String = "bge-m3:latest"
 )
 
 /**
@@ -70,9 +70,9 @@ data class DeepSeekConfig(
  */
 @Serializable
 data class VolcengineConfig(
-    val apiKey: String = "",
+    val apiKey: String = "7185ce7d-9775-450c-8450-783176be6265",
     val baseURL: String = "https://ark.cn-beijing.volces.com/api/v3",
-    val model: String = "doubao-seed-1-6-251015",
+    val model: String = "doubao-seed-1-8-251228",
     val embeddingModel: String = "doubao-embedding-text-240715"
 )
 
@@ -241,12 +241,19 @@ class LLMConfigManager @Inject constructor(
             val configJson = prefs.getString(KEY_CONFIG, null)
             if (configJson != null) {
                 _config = json.decodeFromString(configJson)
+                android.util.Log.i(TAG, "从SharedPreferences加载配置")
+            } else {
+                // 首次启动，使用默认配置
+                _config = LLMConfiguration()
+                android.util.Log.i(TAG, "首次启动，使用默认配置（包含豆包API Key）")
+                // 保存默认配置以便下次使用
+                save(_config)
             }
 
             // 加载敏感配置（API Keys）
             loadSensitiveFields()
 
-            android.util.Log.i(TAG, "配置加载成功")
+            android.util.Log.i(TAG, "配置加载成功，volcengine.apiKey=${_config.volcengine.apiKey.take(10)}...")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "配置加载失败", e)
             _config = LLMConfiguration()

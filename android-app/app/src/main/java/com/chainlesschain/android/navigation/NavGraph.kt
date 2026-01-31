@@ -36,7 +36,12 @@ import com.chainlesschain.android.feature.ai.presentation.usage.UsageStatisticsS
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
-import com.chainlesschain.android.feature.filebrowser.ui.GlobalFileBrowserScreen
+import com.chainlesschain.android.feature.p2p.ui.social.PostDetailScreen
+import com.chainlesschain.android.feature.p2p.ui.social.PublishPostScreen
+import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
+import com.chainlesschain.android.feature.p2p.ui.social.QRCodeScannerScreen
+import com.chainlesschain.android.feature.p2p.ui.social.EditPostScreen
+import com.chainlesschain.android.feature.filebrowser.ui.SafeFileBrowserScreen
 
 /**
  * 应用导航图
@@ -44,7 +49,8 @@ import com.chainlesschain.android.feature.filebrowser.ui.GlobalFileBrowserScreen
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    startDestination: String
+    startDestination: String,
+    authViewModel: AuthViewModel
 ) {
     NavHost(
         navController = navController,
@@ -53,6 +59,7 @@ fun NavGraph(
         // 设置PIN码界面
         composable(route = Screen.SetupPin.route) {
             SetupPinScreen(
+                viewModel = authViewModel,  // 传递共享的AuthViewModel
                 onSetupComplete = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.SetupPin.route) { inclusive = true }
@@ -64,6 +71,7 @@ fun NavGraph(
         // 登录界面
         composable(route = Screen.Login.route) {
             LoginScreen(
+                viewModel = authViewModel,  // 传递共享的AuthViewModel
                 onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
@@ -75,14 +83,52 @@ fun NavGraph(
         // 主界面（使用新的MainContainer）
         composable(route = Screen.Home.route) {
             MainContainer(
+                viewModel = authViewModel,  // 传递共享的AuthViewModel
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
                     }
                 },
+                // 知识库管理功能
+                onNavigateToKnowledgeList = {
+                    navController.navigate(Screen.KnowledgeList.route)
+                },
+                onNavigateToAIChat = {
+                    navController.navigate(Screen.ConversationList.route)
+                },
+                // 项目管理功能
                 onNavigateToProjectDetail = { projectId ->
                     navController.navigate(Screen.ProjectDetail.createRoute(projectId))
                 },
+                // 社交功能
+                onNavigateToFriendDetail = { did ->
+                    navController.navigate(Screen.FriendDetail.createRoute(did))
+                },
+                onNavigateToAddFriend = {
+                    navController.navigate(Screen.AddFriend.route)
+                },
+                onNavigateToPublishPost = {
+                    navController.navigate(Screen.PublishPost.route)
+                },
+                onNavigateToPostDetail = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                },
+                onNavigateToUserProfile = { did ->
+                    navController.navigate(Screen.UserProfile.createRoute(did))
+                },
+                onNavigateToEditPost = { postId ->
+                    navController.navigate(Screen.EditPost.createRoute(postId))
+                },
+                onNavigateToComment = { commentId ->
+                    navController.navigate(Screen.CommentDetail.createRoute(commentId))
+                },
+                onNavigateToMyQRCode = {
+                    navController.navigate(Screen.MyQRCode.route)
+                },
+                onNavigateToQRScanner = {
+                    navController.navigate(Screen.QRCodeScanner.route)
+                },
+                // LLM 和系统功能
                 onNavigateToLLMSettings = {
                     navController.navigate(Screen.LLMSettings.route)
                 },
@@ -91,6 +137,12 @@ fun NavGraph(
                 },
                 onNavigateToFileBrowser = {
                     navController.navigate(Screen.FileBrowser.route)
+                },
+                onNavigateToRemoteControl = {
+                    navController.navigate(Screen.RemoteControl.route)
+                },
+                onNavigateToP2P = {
+                    navController.navigate(Screen.DeviceManagement.route)
                 }
             )
         }
@@ -237,6 +289,8 @@ fun NavGraph(
             )
         }
 
+        // ===== LLM功能路由 =====
+
         // LLM设置界面
         composable(route = Screen.LLMSettings.route) {
             LLMSettingsScreen(
@@ -322,7 +376,7 @@ fun NavGraph(
                 else -> emptyList()
             }
 
-            GlobalFileBrowserScreen(
+            SafeFileBrowserScreen(
                 projectId = projectId,
                 availableProjects = availableProjects,
                 onNavigateBack = {
@@ -334,6 +388,277 @@ fun NavGraph(
                 }
             )
         }
+
+        // ===== 社交功能路由 =====
+
+        // 发布动态页面
+        composable(route = Screen.PublishPost.route) {
+            PublishPostScreen(
+                myDid = "did:example:123456", // TODO: 从实际的 DID 服务获取
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 动态详情页面
+        composable(
+            route = "${Screen.PostDetail.route}/{postId}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            PostDetailScreen(
+                postId = postId,
+                myDid = "did:example:123456", // TODO: 从实际的 DID 服务获取
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToUserProfile = { did ->
+                    navController.navigate(Screen.UserProfile.createRoute(did))
+                }
+            )
+        }
+
+        // 好友详情页面
+        composable(
+            route = "${Screen.FriendDetail.route}/{did}",
+            arguments = listOf(
+                navArgument("did") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val did = backStackEntry.arguments?.getString("did") ?: return@composable
+            com.chainlesschain.android.feature.p2p.ui.social.FriendDetailScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToPost = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                },
+                onNavigateToChat = { did ->
+                    // TODO: Navigate to P2P chat when implemented
+                    navController.navigate(Screen.ConversationList.route)
+                }
+            )
+        }
+
+        // 用户资料页面
+        composable(
+            route = "${Screen.UserProfile.route}/{did}",
+            arguments = listOf(
+                navArgument("did") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val did = backStackEntry.arguments?.getString("did") ?: return@composable
+            com.chainlesschain.android.feature.p2p.ui.social.UserProfileScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToPost = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                },
+                onNavigateToChat = { did ->
+                    // TODO: Navigate to P2P chat when implemented
+                    navController.navigate(Screen.ConversationList.route)
+                }
+            )
+        }
+
+        // 添加好友页面
+        composable(route = Screen.AddFriend.route) {
+            com.chainlesschain.android.feature.p2p.ui.social.AddFriendScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToQRScanner = {
+                    navController.navigate(Screen.QRCodeScanner.route)
+                }
+            )
+        }
+
+        // P2P设备管理页面
+        composable(route = Screen.DeviceManagement.route) {
+            com.chainlesschain.android.feature.p2p.ui.DeviceManagementScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onDeviceClick = { deviceId ->
+                    // TODO: 添加设备详情页面导航（如果需要）
+                }
+            )
+        }
+
+        // 评论详情页面
+        composable(
+            route = "${Screen.CommentDetail.route}/{commentId}",
+            arguments = listOf(
+                navArgument("commentId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val commentId = backStackEntry.arguments?.getString("commentId") ?: return@composable
+            com.chainlesschain.android.feature.p2p.ui.social.CommentDetailScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToUserProfile = { did ->
+                    navController.navigate(Screen.UserProfile.createRoute(did))
+                }
+            )
+        }
+
+        // ===== v0.31.0 新增功能 =====
+
+        // 我的二维码页面
+        composable(route = Screen.MyQRCode.route) {
+            MyQRCodeScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onShowToast = { message ->
+                    // TODO: 实现Toast显示（可以通过SnackbarHost或MainActivity处理）
+                }
+            )
+        }
+
+        // 二维码扫描页面
+        composable(route = Screen.QRCodeScanner.route) {
+            QRCodeScannerScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onQRCodeScanned = { qrCode ->
+                    // 扫描成功，解析二维码内容并导航到对应页面
+                    navController.popBackStack()
+
+                    // 解析二维码URL
+                    val uri = android.net.Uri.parse(qrCode)
+                    when (uri.host) {
+                        "add-friend" -> {
+                            // 获取DID并导航到用户资料页面
+                            val did = uri.getQueryParameter("did")
+                            if (did != null) {
+                                navController.navigate(Screen.UserProfile.createRoute(did))
+                            }
+                        }
+                        "post" -> {
+                            // 导航到动态详情页面
+                            val postId = uri.getQueryParameter("id")
+                            if (postId != null) {
+                                navController.navigate(Screen.PostDetail.createRoute(postId))
+                            }
+                        }
+                        "group" -> {
+                            // TODO: 导航到群组页面（待实现）
+                        }
+                    }
+                }
+            )
+        }
+
+        // 编辑动态页面
+        composable(
+            route = "${Screen.EditPost.route}/{postId}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            EditPostScreen(
+                postId = postId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onPostUpdated = {
+                    // 更新成功，可以刷新动态列表
+                }
+            )
+        }
+
+        // ===== 远程控制功能路由（Phase 2）=====
+        // 注意：由于 WebRTC 依赖问题，远程控制功能暂时禁用
+        // 待添加 WebRTC 依赖后恢复这些路由
+        // 详见：android-app/QUICK_FIX_REMOTE_CONTROL.md
+
+        /*
+        // 远程控制主界面
+        composable(route = Screen.RemoteControl.route) {
+            com.chainlesschain.android.remote.ui.RemoteControlScreen(
+                onNavigateToAIChat = {
+                    navController.navigate(Screen.RemoteAIChat.route)
+                },
+                onNavigateToRAGSearch = {
+                    navController.navigate(Screen.RemoteRAGSearch.route)
+                },
+                onNavigateToAgentControl = {
+                    navController.navigate(Screen.RemoteAgentControl.route)
+                },
+                onNavigateToScreenshot = {
+                    navController.navigate(Screen.RemoteScreenshot.route)
+                },
+                onNavigateToSystemMonitor = {
+                    navController.navigate(Screen.RemoteSystemMonitor.route)
+                },
+                onNavigateToCommandHistory = {
+                    navController.navigate(Screen.RemoteCommandHistory.route)
+                }
+            )
+        }
+
+        // 远程 AI 对话界面
+        composable(route = Screen.RemoteAIChat.route) {
+            com.chainlesschain.android.remote.ui.ai.RemoteAIChatScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 远程 RAG 搜索界面
+        composable(route = Screen.RemoteRAGSearch.route) {
+            com.chainlesschain.android.remote.ui.ai.RemoteRAGSearchScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 远程 Agent 控制界面
+        composable(route = Screen.RemoteAgentControl.route) {
+            com.chainlesschain.android.remote.ui.ai.RemoteAgentControlScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 远程截图界面
+        composable(route = Screen.RemoteScreenshot.route) {
+            com.chainlesschain.android.remote.ui.system.RemoteScreenshotScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 系统监控界面
+        composable(route = Screen.RemoteSystemMonitor.route) {
+            com.chainlesschain.android.remote.ui.system.SystemMonitorScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 命令历史界面
+        composable(route = Screen.RemoteCommandHistory.route) {
+            com.chainlesschain.android.remote.ui.history.CommandHistoryScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        */
     }
 }
 
@@ -360,6 +685,8 @@ sealed class Screen(val route: String) {
     data object StepDetail : Screen("step_detail") {
         fun createRoute(projectId: String) = "step_detail/$projectId"
     }
+
+    // LLM功能路由
     data object LLMSettings : Screen("llm_settings")
     data object UsageStatistics : Screen("usage_statistics")
     data object LLMTest : Screen("llm_test") {
@@ -372,6 +699,41 @@ sealed class Screen(val route: String) {
             "file_browser"
         }
     }
+
+    // 社交功能路由
+    data object PublishPost : Screen("publish_post")
+    data object PostDetail : Screen("post_detail") {
+        fun createRoute(postId: String) = "post_detail/$postId"
+    }
+    data object FriendDetail : Screen("friend_detail") {
+        fun createRoute(did: String) = "friend_detail/$did"
+    }
+    data object UserProfile : Screen("user_profile") {
+        fun createRoute(did: String) = "user_profile/$did"
+    }
+    data object AddFriend : Screen("add_friend")
+    data object CommentDetail : Screen("comment_detail") {
+        fun createRoute(commentId: String) = "comment_detail/$commentId"
+    }
+
+    // v0.31.0 新增
+    data object MyQRCode : Screen("my_qrcode")
+    data object QRCodeScanner : Screen("qrcode_scanner")
+    data object EditPost : Screen("edit_post") {
+        fun createRoute(postId: String) = "edit_post/$postId"
+    }
+
+    // P2P设备管理
+    data object DeviceManagement : Screen("device_management")
+
+    // 远程控制功能路由（Phase 2）
+    data object RemoteControl : Screen("remote_control")
+    data object RemoteAIChat : Screen("remote_ai_chat")
+    data object RemoteRAGSearch : Screen("remote_rag_search")
+    data object RemoteAgentControl : Screen("remote_agent_control")
+    data object RemoteScreenshot : Screen("remote_screenshot")
+    data object RemoteSystemMonitor : Screen("remote_system_monitor")
+    data object RemoteCommandHistory : Screen("remote_command_history")
 }
 
 /**
@@ -396,10 +758,29 @@ fun getStartDestination(viewModel: AuthViewModel = hiltViewModel()): String {
 fun AISettingsPlaceholder(
     onNavigateBack: () -> Unit
 ) {
+    PlaceholderScreen(
+        title = "AI 设置",
+        message = "AI 设置功能开发中...",
+        icon = Icons.Default.Settings,
+        onNavigateBack = onNavigateBack
+    )
+}
+
+/**
+ * 通用占位界面
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlaceholderScreen(
+    title: String,
+    message: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Settings,
+    onNavigateBack: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI 设置") },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
@@ -419,13 +800,13 @@ fun AISettingsPlaceholder(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Settings,
+                    imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
                 Text(
-                    text = "AI 设置功能开发中...",
+                    text = message,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

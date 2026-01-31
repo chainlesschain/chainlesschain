@@ -9,13 +9,16 @@
  * - BehaviorTracker: User behavior learning and recommendations
  * - ContextAssociator: Cross-session knowledge extraction and association
  * - MemorySyncService: Filesystem synchronization service (v2.2.0)
+ * - MemGPTCore: Long-term memory with self-editing (v2.3.0)
+ * - MemoryHierarchy: Working/Recall/Archival memory layers (v2.3.0)
+ * - MemorySearchEngine: Advanced memory retrieval (v2.3.0)
  *
  * Part of the Memory Bank system (.chainlesschain/memory/)
  *
  * @module memory
- * @version 2.2.0
+ * @version 2.3.0
  * @since 2026-01-17
- * @updated 2026-01-18
+ * @updated 2026-01-26
  */
 
 const { logger, createLogger } = require('../utils/logger.js');
@@ -47,6 +50,12 @@ const { registerMemoryDashboardIPC } = require("./memory-dashboard-ipc");
 // Sync Service (v2.2.0)
 const { MemorySyncService } = require("./memory-sync-service");
 const { registerMemorySyncIPC } = require("./memory-sync-ipc");
+
+// MemGPT Long-term Memory (v2.3.0)
+const { MemGPTCore, getMemGPTCore, MEMGPT_TOOLS } = require("./memgpt-core");
+const { MemoryHierarchy, MemoryType, MemoryImportance, WorkingMemory, RecallMemory, ArchivalMemory } = require("./memory-hierarchy");
+const { MemorySearchEngine, SearchMode } = require("./memory-search");
+const { registerMemGPTIPC } = require("./memgpt-ipc");
 
 /**
  * Initialize all memory managers
@@ -329,6 +338,19 @@ module.exports = {
   // Sync Service (v2.2.0)
   MemorySyncService,
 
+  // MemGPT Long-term Memory (v2.3.0)
+  MemGPTCore,
+  getMemGPTCore,
+  MEMGPT_TOOLS,
+  MemoryHierarchy,
+  MemoryType,
+  MemoryImportance,
+  WorkingMemory,
+  RecallMemory,
+  ArchivalMemory,
+  MemorySearchEngine,
+  SearchMode,
+
   // IPC Registration
   registerPreferenceManagerIPC,
   registerLearnedPatternManagerIPC,
@@ -339,6 +361,7 @@ module.exports = {
   registerMemoryDashboardIPC,
   registerMemorySyncIPC,
   registerMemorySystemIPC,
+  registerMemGPTIPC,
 
   // Initialization and Lifecycle
   initializeMemorySystem,

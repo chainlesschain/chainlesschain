@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# Pre-commit hook for ChainlessChain Android
+# Runs tests for affected modules only
+#
+# Installation:
+#   git config core.hooksPath .githooks
+#   chmod +x .githooks/pre-commit  (Linux/Mac only)
+#
+
+set -e
+
+echo "🧪 Running pre-commit tests..."
+
+# Get changed Kotlin files
+changed_files=$(git diff --cached --name-only --diff-filter=ACMR | grep "\.kt$" || true)
+
+if [ -z "$changed_files" ]; then
+    echo "✅ No Kotlin files changed, skipping tests"
+    exit 0
+fi
+
+echo "📝 Changed files:"
+echo "$changed_files"
+echo ""
+
+# Identify affected modules
+affected_modules=""
+
+for file in $changed_files; do
+    # Extract module path (e.g., core-e2ee, core-database, feature-ai)
+    if [[ $file =~ ^(core-[^/]+|feature-[^/]+|app)/ ]]; then
+        module="${BASH_REMATCH[1]}"
+        if [[ ! " $affected_modules " =~ " $module " ]]; then
+            affected_modules="$affected_modules $module"
+        fi
+    fi
+done
+
+if [ -z "$affected_modules" ]; then
+    echo "✅ No testable modules affected, skipping tests"
+    exit 0
+fi
+
+echo "📦 Affected modules:$affected_modules"
+echo ""
+
+# Run tests for each affected module
+test_failed=0
+
+for module in $affected_modules; do
+    echo "🧪 Testing $module..."
+
+    # Run unit tests for the module
+    if ! ./gradlew :$module:testDebugUnitTest --no-daemon --quiet; then
+        echo "❌ Tests failed in $module"
+        test_failed=1
+    else
+        echo "✅ $module tests passed"
+    fi
+    echo ""
+done
+
+if [ $test_failed -eq 1 ]; then
+    echo "❌ Pre-commit tests FAILED!"
+    echo "   Fix the failing tests before committing."
+    echo "   Or use 'git commit --no-verify' to skip (not recommended)"
+    exit 1
+fi
+
+echo "✅ All pre-commit tests passed!"
+echo ""
+exit 0

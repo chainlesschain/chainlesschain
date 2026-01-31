@@ -1,0 +1,158 @@
+{
+  "name": "Documentation Team",
+  "description": "Automated documentation team with API, user guide, and architecture specialists",
+  "version": "1.0.0",
+  "type": "documentation",
+  "config": {
+    "maxAgents": 3,
+    "autoAssignTasks": true,
+    "parallelExecution": true,
+    "conflictResolution": "merge",
+    "outputFormat": "markdown"
+  },
+  "agents": [
+    {
+      "name": "API Doc Writer",
+      "role": "api-doc-writer",
+      "description": "Generates comprehensive API documentation from code",
+      "capabilities": [
+        "api-documentation",
+        "swagger-generation",
+        "openapi-spec",
+        "jsdoc-generation",
+        "example-generation",
+        "endpoint-documentation",
+        "parameter-documentation"
+      ],
+      "priority": 1,
+      "config": {
+        "format": "openapi-3.0",
+        "includeExamples": true,
+        "includeErrorCodes": true,
+        "generatePostman": true
+      },
+      "llmPrompt": "You are an API documentation expert. Generate comprehensive API documentation including:\n- Endpoint descriptions\n- Request/response schemas\n- Parameter details (query, path, body)\n- Authentication requirements\n- Error responses\n- Usage examples (curl, JavaScript, Python)\n- Rate limiting info\n\nProvide clear, accurate, developer-friendly documentation in OpenAPI/Swagger format."
+    },
+    {
+      "name": "User Guide Creator",
+      "role": "user-guide-writer",
+      "description": "Creates user-friendly guides and tutorials",
+      "capabilities": [
+        "user-guide-writing",
+        "tutorial-creation",
+        "how-to-guides",
+        "quick-start-guides",
+        "troubleshooting-guides",
+        "screenshot-integration",
+        "video-script-writing"
+      ],
+      "priority": 2,
+      "config": {
+        "targetAudience": "developers",
+        "includeScreenshots": true,
+        "includeCodeExamples": true,
+        "includeVideoScripts": false
+      },
+      "llmPrompt": "You are a technical writer. Create user-friendly documentation:\n- Quick start guide (5-10 minutes)\n- Step-by-step tutorials\n- How-to guides for common tasks\n- Troubleshooting section (FAQ)\n- Code examples with explanations\n- Best practices\n\nWrite in clear, concise language. Use active voice. Include practical examples."
+    },
+    {
+      "name": "Architecture Documenter",
+      "role": "architecture-doc-writer",
+      "description": "Documents system architecture, design decisions, and technical specifications",
+      "capabilities": [
+        "architecture-documentation",
+        "adr-writing",
+        "system-diagrams",
+        "data-flow-diagrams",
+        "component-diagrams",
+        "deployment-diagrams",
+        "technical-specifications"
+      ],
+      "priority": 3,
+      "config": {
+        "diagramFormat": "mermaid",
+        "includeADR": true,
+        "includeDataFlow": true,
+        "includeDeployment": true
+      },
+      "llmPrompt": "You are a system architect and technical writer. Document the architecture:\n- System overview (high-level)\n- Component architecture\n- Data flow diagrams (Mermaid)\n- Technology stack\n- Design decisions (ADR format)\n- Deployment architecture\n- Security architecture\n- Scalability considerations\n\nProvide clear diagrams and explain architectural choices with rationale."
+    }
+  ],
+  "workflow": {
+    "type": "parallel",
+    "steps": [
+      {
+        "name": "Code Analysis",
+        "description": "Analyze codebase structure and extract documentation-ready information",
+        "agents": ["api-doc-writer", "user-guide-writer", "architecture-doc-writer"],
+        "parallelExecution": true
+      },
+      {
+        "name": "API Documentation",
+        "description": "Generate API documentation and OpenAPI specs",
+        "agents": ["api-doc-writer"],
+        "dependsOn": ["Code Analysis"]
+      },
+      {
+        "name": "User Guide Creation",
+        "description": "Create user guides and tutorials",
+        "agents": ["user-guide-writer"],
+        "dependsOn": ["Code Analysis"]
+      },
+      {
+        "name": "Architecture Documentation",
+        "description": "Document system architecture and design decisions",
+        "agents": ["architecture-doc-writer"],
+        "dependsOn": ["Code Analysis"]
+      },
+      {
+        "name": "Documentation Assembly",
+        "description": "Combine all documentation into cohesive set",
+        "dependsOn": ["API Documentation", "User Guide Creation", "Architecture Documentation"]
+      },
+      {
+        "name": "Cross-Reference Linking",
+        "description": "Add cross-references between different doc sections",
+        "dependsOn": ["Documentation Assembly"]
+      },
+      {
+        "name": "Quality Check",
+        "description": "Verify documentation completeness and accuracy",
+        "dependsOn": ["Cross-Reference Linking"]
+      }
+    ]
+  },
+  "output": {
+    "format": "markdown",
+    "structure": {
+      "api": "docs/api/",
+      "guides": "docs/guides/",
+      "architecture": "docs/architecture/",
+      "diagrams": "docs/diagrams/"
+    },
+    "files": {
+      "api": "API.md",
+      "quickStart": "QUICK_START.md",
+      "userGuide": "USER_GUIDE.md",
+      "architecture": "ARCHITECTURE.md",
+      "adr": "architecture/decisions/",
+      "openapi": "api/openapi.yaml"
+    },
+    "includeTableOfContents": true,
+    "includeSearchIndex": true
+  },
+  "metrics": {
+    "track": [
+      "pages_generated",
+      "api_endpoints_documented",
+      "diagrams_created",
+      "code_examples_count",
+      "doc_coverage",
+      "generation_time"
+    ]
+  },
+  "usageExample": {
+    "description": "Generate complete documentation for authentication module",
+    "code": "const team = await cowork.createTeam({ template: 'documentation' });\nconst task = await cowork.assignTask(team.id, {\n  type: 'documentation',\n  input: {\n    modules: ['src/auth'],\n    includeAPI: true,\n    includeGuides: true,\n    includeArchitecture: true\n  }\n});"
+  }
+}

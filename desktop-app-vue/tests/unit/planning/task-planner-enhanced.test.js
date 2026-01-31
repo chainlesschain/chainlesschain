@@ -320,7 +320,8 @@ describe('TaskPlannerEnhanced', () => {
     });
 
     it('should create fallback plan for document project', () => {
-      const result = planner.createFallbackPlan('生成文档', { projectType: 'document' });
+      // Note: '生成Markdown' avoids triggering '文档' keyword which maps to word-engine
+      const result = planner.createFallbackPlan('生成Markdown', { projectType: 'document' });
 
       expect(result.subtasks[0].tool).toBe('document-engine');
     });

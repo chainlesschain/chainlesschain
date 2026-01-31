@@ -21,9 +21,21 @@
 
     <!-- 相机权限（QR码扫描） -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
-    <!-- 录音权限（语音输入） -->
+    <!-- 录音权限（语音输入、语音通话） -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- WebRTC通话权限 -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+
+    <!-- Wake Lock（通话期间保持屏幕唤醒） -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <!-- 振动权限（反馈） -->
     <uses-permission android:name="android.permission.VIBRATE" />

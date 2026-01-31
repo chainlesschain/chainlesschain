@@ -44,3 +44,6 @@ test.txt
 # Temporary reports
 *_REPORT.txt
 *_COMPLETION_REPORT.txt
+
+# Test generated directories
+test-auto-mkdir/

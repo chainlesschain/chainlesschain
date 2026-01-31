@@ -13,7 +13,12 @@ import com.chainlesschain.android.core.p2p.filetransfer.FileTransferTransport
 import com.chainlesschain.android.core.p2p.filetransfer.TransferProgressTracker
 import com.chainlesschain.android.feature.p2p.repository.FileTransferRepository
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
+import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
+import com.chainlesschain.android.feature.p2p.repository.social.PostRepository
+import com.chainlesschain.android.feature.p2p.repository.social.NotificationRepository
+import com.chainlesschain.android.feature.p2p.repository.social.SocialSyncAdapter
 import com.chainlesschain.android.feature.p2p.queue.OfflineMessageQueue
+import com.chainlesschain.android.core.p2p.sync.SyncManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -126,4 +131,8 @@ object P2PModule {
             sessionManager = sessionManager
         )
     }
+
+    // ===== Social Dependencies =====
+    // SocialSyncAdapter, FriendRepository, PostRepository, NotificationRepository
+    // are provided automatically via @Inject constructor
 }
