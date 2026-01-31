@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
 import { nextTick } from 'vue';
-import { mockElectronAPI } from '../setup';
+import { mockElectronAPI } from '../../setup';
 
 describe('核心组件测试', () => {
   beforeEach(() => {

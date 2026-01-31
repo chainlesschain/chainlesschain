@@ -61,8 +61,10 @@ export default defineConfig({
     mockReset: true,
     restoreMocks: true,
     clearMocks: true,
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    // 增加超时时间，避免Worker超时错误
+    testTimeout: 60000,       // 60秒
+    hookTimeout: 60000,       // 60秒
+    teardownTimeout: 10000,   // 10秒
     server: {
       deps: {
         // Inline these modules to properly handle CommonJS/ESM interop

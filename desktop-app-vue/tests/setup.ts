@@ -2,7 +2,7 @@
  * Vitest 测试环境设置
  */
 
-import { vi, beforeEach } from 'vitest';
+import { vi, beforeEach, afterEach } from 'vitest';
 import { config } from '@vue/test-utils';
 
 // ============================================================
@@ -174,6 +174,27 @@ const resetWordEngineMocks = () => {
 
 resetWordEngineMocks();
 beforeEach(() => {
+  resetWordEngineMocks();
+});
+
+// Global cleanup after each test to prevent resource leaks and timeout errors
+afterEach(() => {
+  // Clear all timers (setTimeout, setInterval)
+  vi.clearAllTimers();
+
+  // Clear all mock call history
+  vi.clearAllMocks();
+
+  // Force garbage collection if available (Node.js --expose-gc flag)
+  if (global.gc) {
+    try {
+      global.gc();
+    } catch (e) {
+      // GC not available, continue
+    }
+  }
+
+  // Reset WordEngine mocks to prevent state leakage between tests
   resetWordEngineMocks();
 });
 

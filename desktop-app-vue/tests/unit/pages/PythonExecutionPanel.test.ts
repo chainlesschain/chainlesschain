@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount, VueWrapper } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import PythonExecutionPanel from '@renderer/components/projects/PythonExecutionPanel.vue';
-import { mockElectronAPI } from '../setup';
+import { mockElectronAPI } from '../../setup';
 
 describe('PythonExecutionPanel 组件', () => {
   let wrapper: VueWrapper<any>;

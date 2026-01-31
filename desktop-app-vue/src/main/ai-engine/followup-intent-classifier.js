@@ -44,6 +44,8 @@ class FollowupIntentClassifier {
           "改",
           "修改",
           "换成",
+          "换",
+          "换个",
           "不要",
           "去掉",
           "删除",
@@ -53,10 +55,11 @@ class FollowupIntentClassifier {
           "另外",
         ],
         patterns: [
-          /(改|换)成/,
+          /(改|换)(成|个)/,
           /(加|增加|还要|另外).+(功能|页面|按钮|模块)/,
           /不要|去掉|删除/,
           /等等|等一下|先别/,
+          /还要.*(修改|改)/,
         ],
       },
 
@@ -71,12 +74,14 @@ class FollowupIntentClassifier {
           "字体",
           "大小",
           "位置",
+          "标题",
         ],
         patterns: [
           /^(用|采用|使用)/,
-          /(颜色|字体|大小|位置)(是|用|为)/,
+          /(颜色|字体|大小|位置|标题).*(是|用|为)/,
           /^.{1,20}(应该|具体)(是|为)/,
           /^数据(来源|是)/,
+          /.*(用|采用).*(字体|颜色|大小)/,
         ],
       },
 
@@ -84,8 +89,10 @@ class FollowupIntentClassifier {
         keywords: ["算了", "不用", "停止", "取消", "暂停", "先不"],
         patterns: [
           /^(算了|不用|停止|取消|暂停)/,
+          /(算了|不用了|停止|取消|暂停)/,
           /^先不.*(了|吧)/,
           /不做了|别做了/,
+          /先不做/,
         ],
       },
     };
@@ -152,14 +159,17 @@ class FollowupIntentClassifier {
   _ruleBasedClassify(userInput) {
     const input = userInput.trim();
 
-    // 空输入或过短输入 → 继续执行
-    if (input.length === 0 || input.length <= 2) {
+    // 空输入 → 继续执行
+    if (input.length === 0) {
       return {
         intent: "CONTINUE_EXECUTION",
         confidence: 0.9,
-        reason: "输入过短，判定为确认继续",
+        reason: "空输入，判定为确认继续",
       };
     }
+
+    // 过短但可能是取消任务的输入，不提前返回
+    // "算了"、"不用" 等都是有效的取消指令
 
     const scores = {
       CONTINUE_EXECUTION: 0,
@@ -170,22 +180,30 @@ class FollowupIntentClassifier {
 
     // 遍历每个意图类型，计算匹配分数
     for (const [intent, config] of Object.entries(this.rules)) {
+      // CANCEL_TASK 权重更高（用户想取消时应该立即响应）
+      const weightMultiplier = intent === "CANCEL_TASK" ? 1.5 : 1.0;
+
       // 关键词匹配 (每个匹配 +0.3)
       for (const keyword of config.keywords) {
         if (input.includes(keyword)) {
-          scores[intent] += 0.3;
+          scores[intent] += 0.3 * weightMultiplier;
         }
       }
 
       // 正则模式匹配 (每个匹配 +0.5)
       for (const pattern of config.patterns) {
         if (pattern.test(input)) {
-          scores[intent] += 0.5;
+          scores[intent] += 0.5 * weightMultiplier;
         }
       }
     }
 
-    // 特殊规则：完全匹配
+    // 特殊规则：取消任务（最高优先级）
+    if (/(算了|不用了?|停止|取消|暂停|先不做)/.test(input)) {
+      scores.CANCEL_TASK = Math.max(scores.CANCEL_TASK, 1.0);
+    }
+
+    // 特殊规则：继续执行（完全匹配）
     if (/^(好的?|嗯|行|OK|ok|继续)$/i.test(input)) {
       scores.CONTINUE_EXECUTION = 1.0;
     }

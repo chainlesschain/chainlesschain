@@ -52,15 +52,26 @@ const mockReadFile = vi.fn(async () => "{}");
 const mockUnlink = vi.fn(async () => undefined);
 const mockReaddir = vi.fn(async () => []);
 
-vi.mock("fs", () => ({
-  promises: {
-    mkdir: mockMkdir,
-    writeFile: mockWriteFile,
-    readFile: mockReadFile,
-    unlink: mockUnlink,
-    readdir: mockReaddir,
-  },
-}));
+// Create promises object at module level to ensure same reference
+const mockFsPromises = {
+  mkdir: mockMkdir,
+  writeFile: mockWriteFile,
+  readFile: mockReadFile,
+  unlink: mockUnlink,
+  readdir: mockReaddir,
+};
+
+vi.mock("fs", async () => {
+  const actual = await vi.importActual("fs");
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      promises: mockFsPromises,
+    },
+    promises: mockFsPromises,
+  };
+});
 
 // Mock path (CommonJS format)
 const mockJoin = vi.fn((...args) => args.join("/"));
@@ -76,9 +87,13 @@ vi.mock("path", () => ({
 // Mock uuid (named export format)
 const mockUuidV4 = vi.fn(() => "mocked-uuid-1234");
 
-vi.mock("uuid", () => ({
-  v4: mockUuidV4,
-}));
+vi.mock("uuid", async () => {
+  const actual = await vi.importActual("uuid");
+  return {
+    ...actual,
+    v4: mockUuidV4,
+  };
+});
 
 // Mock PromptCompressor
 const mockPromptCompressor = {
@@ -112,6 +127,17 @@ describe("SessionManager", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
+    // CRITICAL: Reset modules to ensure mocks are applied
+    vi.resetModules();
+
+    // Reset mock function calls but keep the same function references
+    mockMkdir.mockClear();
+    mockWriteFile.mockClear();
+    mockReadFile.mockClear();
+    mockUnlink.mockClear();
+    mockReaddir.mockClear();
+    mockUuidV4.mockClear();
+
     // Mock database with proper chaining support
     mockDatabase = {
       prepare: vi.fn(() => createMockStatement()),
@@ -123,8 +149,10 @@ describe("SessionManager", () => {
       isInitialized: true,
     };
 
-    // Dynamic import
-    const module = await import("../../../src/main/llm/session-manager.js");
+    // Dynamic import - now the mocks will be fresh
+    const module = await import(
+      "../../../src/main/llm/session-manager.js?t=" + Date.now()
+    );
     SessionManager = module.SessionManager;
   });
 
@@ -292,7 +320,7 @@ describe("SessionManager", () => {
 
       expect(mockMkdir).toHaveBeenCalledWith(
         expect.stringContaining("sessions"),
-        { recursive: true }
+        { recursive: true },
       );
     });
 
@@ -341,7 +369,7 @@ describe("SessionManager", () => {
 
     it("conversationId是必需的", async () => {
       await expect(sessionManager.createSession({})).rejects.toThrow(
-        "conversationId 是必需的"
+        "conversationId 是必需的",
       );
     });
 
@@ -417,7 +445,7 @@ describe("SessionManager", () => {
       mockDatabase.prepare.mockReturnValueOnce(
         createMockStatement({
           get: vi.fn(() => mockSessionData),
-        })
+        }),
       );
 
       const session = await sessionManager.loadSession("sess-123");
@@ -432,7 +460,7 @@ describe("SessionManager", () => {
       mockDatabase.prepare.mockReturnValueOnce(
         createMockStatement({
           get: vi.fn(() => null),
-        })
+        }),
       );
 
       const session = await sessionManager.loadSession("nonexistent");
@@ -464,7 +492,7 @@ describe("SessionManager", () => {
       mockDatabase.prepare.mockReturnValueOnce(
         createMockStatement({
           get: vi.fn(() => mockSessionData),
-        })
+        }),
       );
 
       sessionManager.sessionCache.set("sess-123", { cached: true });
@@ -495,10 +523,17 @@ describe("SessionManager", () => {
     });
 
     it("应该更新元数据中的消息计数", async () => {
-      const session = { id: "sess-1", messages: [], metadata: { messageCount: 0 } };
+      const session = {
+        id: "sess-1",
+        messages: [],
+        metadata: { messageCount: 0 },
+      };
       sessionManager.sessionCache.set("sess-1", session);
 
-      await sessionManager.addMessage("sess-1", { role: "user", content: "Hi" });
+      await sessionManager.addMessage("sess-1", {
+        role: "user",
+        content: "Hi",
+      });
 
       expect(session.metadata.messageCount).toBe(1);
     });
@@ -509,7 +544,10 @@ describe("SessionManager", () => {
       sessionManager.sessionCache.set("sess-1", session);
       const saveSpy = vi.spyOn(sessionManager, "saveSession");
 
-      await sessionManager.addMessage("sess-1", { role: "user", content: "Test" });
+      await sessionManager.addMessage("sess-1", {
+        role: "user",
+        content: "Test",
+      });
 
       expect(saveSpy).toHaveBeenCalled();
     });
@@ -517,11 +555,18 @@ describe("SessionManager", () => {
     it("达到压缩阈值时应触发压缩", async () => {
       sessionManager.compressionThreshold = 2;
       sessionManager.enableCompression = true;
-      const session = { id: "sess-1", messages: [{ role: "user", content: "msg1" }], metadata: {} };
+      const session = {
+        id: "sess-1",
+        messages: [{ role: "user", content: "msg1" }],
+        metadata: {},
+      };
       sessionManager.sessionCache.set("sess-1", session);
       const compressSpy = vi.spyOn(sessionManager, "compressSession");
 
-      await sessionManager.addMessage("sess-1", { role: "user", content: "msg2" });
+      await sessionManager.addMessage("sess-1", {
+        role: "user",
+        content: "msg2",
+      });
 
       expect(compressSpy).toHaveBeenCalled();
     });
@@ -538,7 +583,11 @@ describe("SessionManager", () => {
         role: "user",
         content: `Message ${i}`,
       }));
-      const session = { id: "sess-1", messages, metadata: { compressionCount: 0 } };
+      const session = {
+        id: "sess-1",
+        messages,
+        metadata: { compressionCount: 0 },
+      };
       sessionManager.sessionCache.set("sess-1", session);
 
       await sessionManager.compressSession("sess-1");
@@ -547,7 +596,11 @@ describe("SessionManager", () => {
     });
 
     it("应该更新压缩计数", async () => {
-      const session = { id: "sess-1", messages: [], metadata: { compressionCount: 0 } };
+      const session = {
+        id: "sess-1",
+        messages: [],
+        metadata: { compressionCount: 0 },
+      };
       sessionManager.sessionCache.set("sess-1", session);
 
       await sessionManager.compressSession("sess-1");
@@ -592,7 +645,12 @@ describe("SessionManager", () => {
     });
 
     it("应该触发session-saved事件", async () => {
-      const session = { id: "sess-1", conversationId: "conv-1", messages: [], metadata: {} };
+      const session = {
+        id: "sess-1",
+        conversationId: "conv-1",
+        messages: [],
+        metadata: {},
+      };
       sessionManager.sessionCache.set("sess-1", session);
       const listener = vi.fn();
       sessionManager.on("session-saved", listener);
@@ -623,7 +681,11 @@ describe("SessionManager", () => {
     });
 
     it("文件内容应该是JSON格式", async () => {
-      const session = { id: "sess-1", messages: [{ role: "user", content: "test" }], metadata: {} };
+      const session = {
+        id: "sess-1",
+        messages: [{ role: "user", content: "test" }],
+        metadata: {},
+      };
       sessionManager.sessionCache.set("sess-1", session);
 
       await sessionManager.saveSessionToFile(session);
@@ -641,9 +703,7 @@ describe("SessionManager", () => {
 
     it("应该从文件加载会话", async () => {
       const sessionData = { id: "sess-1", messages: [], metadata: {} };
-      mockReadFile.mockResolvedValueOnce(
-        JSON.stringify(sessionData)
-      );
+      mockReadFile.mockResolvedValueOnce(JSON.stringify(sessionData));
 
       const session = await sessionManager.loadSessionFromFile("sess-1");
 
@@ -652,12 +712,10 @@ describe("SessionManager", () => {
     });
 
     it("文件不存在时应抛出错误", async () => {
-      mockReadFile.mockRejectedValueOnce(
-        new Error("ENOENT")
-      );
+      mockReadFile.mockRejectedValueOnce(new Error("ENOENT"));
 
       await expect(
-        sessionManager.loadSessionFromFile("nonexistent")
+        sessionManager.loadSessionFromFile("nonexistent"),
       ).rejects.toThrow();
     });
 
@@ -665,7 +723,7 @@ describe("SessionManager", () => {
       mockReadFile.mockResolvedValueOnce("invalid-json{");
 
       await expect(
-        sessionManager.loadSessionFromFile("sess-1")
+        sessionManager.loadSessionFromFile("sess-1"),
       ).rejects.toThrow();
     });
   });
@@ -679,7 +737,10 @@ describe("SessionManager", () => {
     it("应该获取有效消息", async () => {
       const session = {
         id: "sess-1",
-        messages: [{ role: "user", content: "msg1" }, { role: "assistant", content: "msg2" }],
+        messages: [
+          { role: "user", content: "msg1" },
+          { role: "assistant", content: "msg2" },
+        ],
         compressedHistory: null,
         metadata: {},
       };
@@ -864,7 +925,10 @@ describe("SessionManager", () => {
 
     it("应该获取所有标签", async () => {
       mockDatabase.prepare.mockReturnValueOnce({
-        all: vi.fn(() => [{ tags: '["tag1","tag2"]' }, { tags: '["tag2","tag3"]' }]),
+        all: vi.fn(() => [
+          { tags: '["tag1","tag2"]' },
+          { tags: '["tag2","tag3"]' },
+        ]),
       });
 
       const tags = await sessionManager.getAllTags();
@@ -915,7 +979,9 @@ describe("SessionManager", () => {
     });
 
     it("应该从JSON导入", async () => {
-      const sessionData = { session: { id: "imported", messages: [], metadata: {} } };
+      const sessionData = {
+        session: { id: "imported", messages: [], metadata: {} },
+      };
       const json = JSON.stringify(sessionData);
 
       await sessionManager.importFromJSON(json);
@@ -930,7 +996,10 @@ describe("SessionManager", () => {
       ];
       sessions.forEach((s) => sessionManager.sessionCache.set(s.id, s));
 
-      const exported = await sessionManager.exportMultiple(["sess-1", "sess-2"]);
+      const exported = await sessionManager.exportMultiple([
+        "sess-1",
+        "sess-2",
+      ]);
 
       expect(Array.isArray(exported)).toBe(true);
     });
@@ -993,7 +1062,12 @@ describe("SessionManager", () => {
     });
 
     it("应该保存为模板", async () => {
-      const session = { id: "sess-1", title: "Template", messages: [], metadata: {} };
+      const session = {
+        id: "sess-1",
+        title: "Template",
+        messages: [],
+        metadata: {},
+      };
       sessionManager.sessionCache.set("sess-1", session);
 
       await sessionManager.saveAsTemplate("sess-1", "My Template");
@@ -1012,7 +1086,10 @@ describe("SessionManager", () => {
         })),
       });
 
-      const session = await sessionManager.createFromTemplate("template-1", "conv-1");
+      const session = await sessionManager.createFromTemplate(
+        "template-1",
+        "conv-1",
+      );
 
       expect(session).toBeDefined();
     });

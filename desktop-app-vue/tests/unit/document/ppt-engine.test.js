@@ -9,21 +9,28 @@ import path from "path";
 import os from "os";
 
 // Mock dependencies
-vi.mock("pptxgenjs", () => {
+// IMPORTANT: Source uses `const pptxgen = require('pptxgenjs')` then `new pptxgen()`
+// So we must return the constructor function as the default export
+const mockPptxGenConstructor = vi.fn(function () {
   return {
-    default: vi.fn(() => ({
-      author: "",
-      title: "",
-      company: "",
-      slides: [],
-      addSlide: vi.fn(() => ({
-        background: null,
-        addText: vi.fn(),
-        addChart: vi.fn(),
-        addImage: vi.fn(),
-      })),
-      writeFile: vi.fn().mockResolvedValue(undefined),
+    author: "",
+    title: "",
+    company: "",
+    slides: [],
+    addSlide: vi.fn(() => ({
+      background: null,
+      addText: vi.fn(),
+      addChart: vi.fn(),
+      addImage: vi.fn(),
     })),
+    writeFile: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
+vi.mock("pptxgenjs", () => {
+  // For CommonJS require(), Vitest will use `default` export
+  return {
+    default: mockPptxGenConstructor,
   };
 });
 
@@ -59,19 +66,23 @@ describe("PPT引擎测试", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
+    // CRITICAL: Reset modules to ensure mocks are applied
+    vi.resetModules();
+
     // Create temporary directory for test files
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ppt-test-"));
     testPptxPath = path.join(tmpDir, "test.pptx");
 
-    // Import mocked modules
-    const pptxgenModule = await import("pptxgenjs");
-    mockPptxgen = pptxgenModule.default;
+    // Use the module-level mock constructor
+    mockPptxgen = mockPptxGenConstructor;
 
     mockFs = await import("fs");
     mockHttp = await import("http");
 
     // Import PPTEngine after mocks
-    const module = await import("../../../src/main/engines/ppt-engine.js");
+    const module = await import(
+      "../../../src/main/engines/ppt-engine.js?t=" + Date.now()
+    );
     PPTEngine = module.default;
     pptEngine = new PPTEngine();
   });
