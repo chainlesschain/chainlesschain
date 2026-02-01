@@ -7,6 +7,14 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+// Mock electron BEFORE any imports
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn(),
+  },
+}));
+
 describe('Project Git IPC 简化测试', () => {
   let handlers;
   let mockIpcMain;
