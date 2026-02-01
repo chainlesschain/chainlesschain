@@ -4,9 +4,9 @@
  * 测试 WebRTC 连接建立、数据通道管理、消息传输等功能
  */
 
-const { describe, it, expect, beforeEach, afterEach, vi } = require('vitest');
-const WebRTCDataChannelManager = require('../../src/main/p2p/webrtc-data-channel');
-const { EventEmitter } = require('events');
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import WebRTCDataChannelManager from '../../src/main/p2p/webrtc-data-channel.js';
+import { EventEmitter } from 'events';
 
 describe('WebRTCDataChannelManager', () => {
   let manager;
