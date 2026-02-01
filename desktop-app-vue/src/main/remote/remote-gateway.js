@@ -12,18 +12,20 @@
  * @module remote/remote-gateway
  */
 
-const { logger } = require('../utils/logger');
-const { EventEmitter } = require('events');
-const { P2PCommandAdapter } = require('./p2p-command-adapter');
-const { PermissionGate } = require('./permission-gate');
-const { CommandRouter } = require('./command-router');
+const { logger } = require("../utils/logger");
+const { EventEmitter } = require("events");
+const { P2PCommandAdapter } = require("./p2p-command-adapter");
+const { PermissionGate } = require("./permission-gate");
+const { CommandRouter } = require("./command-router");
 
 // 导入命令处理器
-const AICommandHandler = require('./handlers/ai-handler');
-const SystemCommandHandler = require('./handlers/system-handler');
-const { FileTransferHandler } = require('./handlers/file-transfer-handler');
-const { RemoteDesktopHandler } = require('./handlers/remote-desktop-handler');
-const KnowledgeHandler = require('./handlers/knowledge-handler');
+const AICommandHandler = require("./handlers/ai-handler");
+const SystemCommandHandler = require("./handlers/system-handler");
+const { FileTransferHandler } = require("./handlers/file-transfer-handler");
+const { RemoteDesktopHandler } = require("./handlers/remote-desktop-handler");
+const KnowledgeHandler = require("./handlers/knowledge-handler");
+const CommandHistoryHandler = require("./handlers/command-history-handler");
+const { DeviceManagerHandler } = require("./handlers/device-manager-handler");
 
 /**
  * 远程网关类
@@ -46,8 +48,8 @@ class RemoteGateway extends EventEmitter {
       enableP2P: options.enableP2P !== false,
       enableWebSocket: options.enableWebSocket !== false,
       wsPort: options.wsPort || 18789,
-      wsHost: options.wsHost || '127.0.0.1',
-      ...options
+      wsHost: options.wsHost || "127.0.0.1",
+      ...options,
     };
 
     // 核心组件
@@ -69,7 +71,7 @@ class RemoteGateway extends EventEmitter {
       successCommands: 0,
       failedCommands: 0,
       permissionDenied: 0,
-      connectedDevices: 0
+      connectedDevices: 0,
     };
   }
 
@@ -78,11 +80,11 @@ class RemoteGateway extends EventEmitter {
    */
   async initialize() {
     if (this.initialized) {
-      logger.info('[RemoteGateway] 已经初始化');
+      logger.info("[RemoteGateway] 已经初始化");
       return;
     }
 
-    logger.info('[RemoteGateway] 初始化远程网关...');
+    logger.info("[RemoteGateway] 初始化远程网关...");
 
     try {
       // 1. 初始化权限验证器
@@ -106,11 +108,11 @@ class RemoteGateway extends EventEmitter {
       this.running = true;
       this.stats.startTime = Date.now();
 
-      logger.info('[RemoteGateway] ✅ 远程网关初始化完成');
+      logger.info("[RemoteGateway] ✅ 远程网关初始化完成");
 
-      this.emit('initialized');
+      this.emit("initialized");
     } catch (error) {
-      logger.error('[RemoteGateway] ❌ 初始化失败:', error);
+      logger.error("[RemoteGateway] ❌ 初始化失败:", error);
       throw error;
     }
   }
@@ -119,97 +121,113 @@ class RemoteGateway extends EventEmitter {
    * 初始化权限验证器
    */
   async initializePermissionGate() {
-    logger.info('[RemoteGateway] 初始化权限验证器...');
+    logger.info("[RemoteGateway] 初始化权限验证器...");
 
     this.permissionGate = new PermissionGate(
       this.didManager,
       this.ukeyManager,
       this.database,
-      this.options.permission || {}
+      this.options.permission || {},
     );
 
     await this.permissionGate.initialize();
 
-    logger.info('[RemoteGateway] 权限验证器已初始化');
+    logger.info("[RemoteGateway] 权限验证器已初始化");
   }
 
   /**
    * 初始化命令路由器
    */
   async initializeCommandRouter() {
-    logger.info('[RemoteGateway] 初始化命令路由器...');
+    logger.info("[RemoteGateway] 初始化命令路由器...");
 
     this.commandRouter = new CommandRouter({
       enableLogging: this.options.enableCommandLogging !== false,
-      enableStats: this.options.enableCommandStats !== false
+      enableStats: this.options.enableCommandStats !== false,
     });
 
-    logger.info('[RemoteGateway] 命令路由器已初始化');
+    logger.info("[RemoteGateway] 命令路由器已初始化");
   }
 
   /**
    * 初始化 P2P 命令适配器
    */
   async initializeP2PCommandAdapter() {
-    logger.info('[RemoteGateway] 初始化 P2P 命令适配器...');
+    logger.info("[RemoteGateway] 初始化 P2P 命令适配器...");
 
     this.p2pCommandAdapter = new P2PCommandAdapter(
       this.p2pManager,
       this.permissionGate,
-      this.options.p2p || {}
+      this.options.p2p || {},
     );
 
     await this.p2pCommandAdapter.initialize();
 
-    logger.info('[RemoteGateway] P2P 命令适配器已初始化');
+    logger.info("[RemoteGateway] P2P 命令适配器已初始化");
   }
 
   /**
    * 注册命令处理器
    */
   async registerCommandHandlers() {
-    logger.info('[RemoteGateway] 注册命令处理器...');
+    logger.info("[RemoteGateway] 注册命令处理器...");
 
     // 1. AI 命令处理器
     this.handlers.ai = new AICommandHandler(
       this.aiEngine,
       this.ragManager,
-      this.database
+      this.database,
     );
-    this.commandRouter.registerHandler('ai', this.handlers.ai);
+    this.commandRouter.registerHandler("ai", this.handlers.ai);
 
     // 2. 系统命令处理器
-    this.handlers.system = new SystemCommandHandler(
-      this.mainWindow
-    );
-    this.commandRouter.registerHandler('system', this.handlers.system);
+    this.handlers.system = new SystemCommandHandler(this.mainWindow);
+    this.commandRouter.registerHandler("system", this.handlers.system);
 
     // 3. 文件传输处理器
     this.handlers.file = new FileTransferHandler(
       this.database,
-      this.options.fileTransfer || {}
+      this.options.fileTransfer || {},
     );
-    this.commandRouter.registerHandler('file', this.handlers.file);
+    this.commandRouter.registerHandler("file", this.handlers.file);
 
     // 4. 远程桌面处理器
     this.handlers.desktop = new RemoteDesktopHandler(
       this.database,
-      this.options.remoteDesktop || {}
+      this.options.remoteDesktop || {},
     );
-    this.commandRouter.registerHandler('desktop', this.handlers.desktop);
+    this.commandRouter.registerHandler("desktop", this.handlers.desktop);
 
     // 5. 知识库处理器
     this.handlers.knowledge = new KnowledgeHandler(
       this.database,
-      this.ragManager
+      this.ragManager,
     );
-    this.commandRouter.registerHandler('knowledge', this.handlers.knowledge);
+    this.commandRouter.registerHandler("knowledge", this.handlers.knowledge);
+
+    // 6. 命令历史处理器
+    this.handlers.history = new CommandHistoryHandler(
+      this.database,
+      this.options.commandHistory || {},
+    );
+    this.commandRouter.registerHandler("history", this.handlers.history);
+
+    // 7. 设备管理处理器
+    this.handlers.device = new DeviceManagerHandler(
+      this.database,
+      this.p2pManager,
+      this.permissionGate,
+      this.options.deviceManager || {},
+    );
+    this.commandRouter.registerHandler("device", this.handlers.device);
 
     // TODO: 添加更多处理器
     // - channel: 多渠道消息处理器
     // - browser: 浏览器自动化处理器
 
-    logger.info(`[RemoteGateway] 已注册 ${Object.keys(this.handlers).length} 个命令处理器`);
+    logger.info(
+      `[RemoteGateway] 已注册 ${Object.keys(this.handlers).length} 个命令处理器`,
+    );
   }
 
   /**
@@ -218,26 +236,29 @@ class RemoteGateway extends EventEmitter {
   setupEventHandlers() {
     // 监听 P2P 命令事件
     if (this.p2pCommandAdapter) {
-      this.p2pCommandAdapter.on('command', async (data) => {
+      this.p2pCommandAdapter.on("command", async (data) => {
         await this.handleCommand(data);
       });
 
-      this.p2pCommandAdapter.on('device:connected', (peerId) => {
+      this.p2pCommandAdapter.on("device:connected", (peerId) => {
         this.stats.connectedDevices++;
-        this.emit('device:connected', peerId);
+        this.emit("device:connected", peerId);
       });
 
-      this.p2pCommandAdapter.on('device:disconnected', (peerId) => {
-        this.stats.connectedDevices = Math.max(0, this.stats.connectedDevices - 1);
-        this.emit('device:disconnected', peerId);
+      this.p2pCommandAdapter.on("device:disconnected", (peerId) => {
+        this.stats.connectedDevices = Math.max(
+          0,
+          this.stats.connectedDevices - 1,
+        );
+        this.emit("device:disconnected", peerId);
       });
 
-      this.p2pCommandAdapter.on('device:registered', (data) => {
-        this.emit('device:registered', data);
+      this.p2pCommandAdapter.on("device:registered", (data) => {
+        this.emit("device:registered", data);
       });
     }
 
-    logger.info('[RemoteGateway] 事件监听已设置');
+    logger.info("[RemoteGateway] 事件监听已设置");
   }
 
   /**
@@ -249,6 +270,7 @@ class RemoteGateway extends EventEmitter {
 
     this.stats.totalCommands++;
 
+    const startTime = Date.now();
     logger.info(`[RemoteGateway] 处理命令: ${method} from ${peerId}`);
 
     try {
@@ -256,8 +278,8 @@ class RemoteGateway extends EventEmitter {
       const response = await this.commandRouter.route(request, {
         peerId,
         did: auth.did,
-        channel: 'p2p',
-        timestamp: Date.now()
+        channel: "p2p",
+        timestamp: Date.now(),
       });
 
       // 2. 发送响应
@@ -270,28 +292,78 @@ class RemoteGateway extends EventEmitter {
         this.stats.successCommands++;
       }
 
-      // 4. 触发事件
-      this.emit('command:completed', {
+      const duration = Date.now() - startTime;
+
+      // 4. 记录命令历史
+      if (this.handlers.history) {
+        this.handlers.history
+          .recordCommand({
+            requestId: id,
+            method,
+            params,
+            context: {
+              peerId,
+              did: auth.did,
+              channel: "p2p",
+            },
+            result: response.result,
+            error: response.error,
+            duration,
+            timestamp: startTime,
+          })
+          .catch((err) => {
+            logger.warn("[RemoteGateway] 记录命令历史失败:", err);
+          });
+      }
+
+      // 5. 触发事件
+      this.emit("command:completed", {
         method,
         peerId,
         success: !response.error,
-        duration: Date.now() - (auth.timestamp || Date.now())
+        duration,
       });
     } catch (error) {
-      logger.error('[RemoteGateway] 处理命令失败:', error);
+      logger.error("[RemoteGateway] 处理命令失败:", error);
+
+      const duration = Date.now() - startTime;
 
       // 发送错误响应
-      sendResponse({
-        jsonrpc: '2.0',
+      const errorResponse = {
+        jsonrpc: "2.0",
         id,
         error: {
           code: -32603,
-          message: 'Internal Error',
-          data: error.message
-        }
-      });
+          message: "Internal Error",
+          data: error.message,
+        },
+      };
+
+      sendResponse(errorResponse);
 
       this.stats.failedCommands++;
+
+      // 记录错误命令历史
+      if (this.handlers.history) {
+        this.handlers.history
+          .recordCommand({
+            requestId: id,
+            method,
+            params,
+            context: {
+              peerId,
+              did: auth?.did,
+              channel: "p2p",
+            },
+            result: null,
+            error: errorResponse.error,
+            duration,
+            timestamp: startTime,
+          })
+          .catch((err) => {
+            logger.warn("[RemoteGateway] 记录命令历史失败:", err);
+          });
+      }
     }
   }
 
@@ -300,7 +372,7 @@ class RemoteGateway extends EventEmitter {
    */
   async sendCommand(peerId, method, params, options = {}) {
     if (!this.p2pCommandAdapter) {
-      throw new Error('P2P Command Adapter not initialized');
+      throw new Error("P2P Command Adapter not initialized");
     }
 
     logger.info(`[RemoteGateway] 发送命令: ${method} to ${peerId}`);
@@ -310,12 +382,12 @@ class RemoteGateway extends EventEmitter {
         peerId,
         method,
         params,
-        options
+        options,
       );
 
       return response;
     } catch (error) {
-      logger.error('[RemoteGateway] 发送命令失败:', error);
+      logger.error("[RemoteGateway] 发送命令失败:", error);
       throw error;
     }
   }
@@ -325,7 +397,9 @@ class RemoteGateway extends EventEmitter {
    */
   broadcastEvent(method, params, targetDevices = null) {
     if (!this.p2pCommandAdapter) {
-      logger.warn('[RemoteGateway] P2P Command Adapter not initialized, cannot broadcast');
+      logger.warn(
+        "[RemoteGateway] P2P Command Adapter not initialized, cannot broadcast",
+      );
       return;
     }
 
@@ -350,10 +424,14 @@ class RemoteGateway extends EventEmitter {
    */
   async setDevicePermission(did, level, options = {}) {
     if (!this.permissionGate) {
-      throw new Error('Permission Gate not initialized');
+      throw new Error("Permission Gate not initialized");
     }
 
-    return await this.permissionGate.setDevicePermissionLevel(did, level, options);
+    return await this.permissionGate.setDevicePermissionLevel(
+      did,
+      level,
+      options,
+    );
   }
 
   /**
@@ -361,7 +439,7 @@ class RemoteGateway extends EventEmitter {
    */
   async getDevicePermission(did) {
     if (!this.permissionGate) {
-      throw new Error('Permission Gate not initialized');
+      throw new Error("Permission Gate not initialized");
     }
 
     return await this.permissionGate.getDevicePermissionLevel(did);
@@ -385,9 +463,13 @@ class RemoteGateway extends EventEmitter {
     const stats = {
       ...this.stats,
       uptime: this.stats.startTime ? Date.now() - this.stats.startTime : 0,
-      successRate: this.stats.totalCommands > 0
-        ? (this.stats.successCommands / this.stats.totalCommands * 100).toFixed(2) + '%'
-        : '0%'
+      successRate:
+        this.stats.totalCommands > 0
+          ? (
+              (this.stats.successCommands / this.stats.totalCommands) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
     };
 
     // 添加路由器统计
@@ -412,7 +494,7 @@ class RemoteGateway extends EventEmitter {
    * 停止网关
    */
   async stop() {
-    logger.info('[RemoteGateway] 停止远程网关...');
+    logger.info("[RemoteGateway] 停止远程网关...");
 
     this.running = false;
 
@@ -426,9 +508,9 @@ class RemoteGateway extends EventEmitter {
       this.permissionGate.stopCleanup();
     }
 
-    logger.info('[RemoteGateway] 远程网关已停止');
+    logger.info("[RemoteGateway] 远程网关已停止");
 
-    this.emit('stopped');
+    this.emit("stopped");
   }
 
   /**
