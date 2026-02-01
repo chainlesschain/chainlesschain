@@ -160,7 +160,7 @@ describe("IPC Error Handler", () => {
 
       try {
         await wrapped({});
-      } catch (_error) {
+      } catch {
         // Expected error - intentionally ignored
       }
 
@@ -206,13 +206,13 @@ describe("IPC Error Handler", () => {
 
       try {
         await wrapped1({});
-      } catch (_e) {
+      } catch {
         /* Expected error - intentionally ignored */
       }
 
       try {
         await wrapped2({});
-      } catch (_e) {
+      } catch {
         /* Expected error - intentionally ignored */
       }
 
@@ -230,7 +230,7 @@ describe("IPC Error Handler", () => {
 
       try {
         await wrapped({});
-      } catch (_e) {
+      } catch {
         /* Expected error - intentionally ignored */
       }
 
