@@ -23,6 +23,7 @@ const AICommandHandler = require('./handlers/ai-handler');
 const SystemCommandHandler = require('./handlers/system-handler');
 const { FileTransferHandler } = require('./handlers/file-transfer-handler');
 const { RemoteDesktopHandler } = require('./handlers/remote-desktop-handler');
+const KnowledgeHandler = require('./handlers/knowledge-handler');
 
 /**
  * 远程网关类
