@@ -198,8 +198,14 @@ class RemoteGateway extends EventEmitter {
     );
     this.commandRouter.registerHandler('desktop', this.handlers.desktop);
 
+    // 5. 知识库处理器
+    this.handlers.knowledge = new KnowledgeHandler(
+      this.database,
+      this.ragManager
+    );
+    this.commandRouter.registerHandler('knowledge', this.handlers.knowledge);
+
     // TODO: 添加更多处理器
-    // - knowledge: 知识库处理器
     // - channel: 多渠道消息处理器
     // - browser: 浏览器自动化处理器
 
