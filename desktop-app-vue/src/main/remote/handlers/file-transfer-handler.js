@@ -100,6 +100,31 @@ class FileTransferHandler {
       case 'listTransfers':
         return await this.listTransfers(params, context);
 
+      // 基本文件操作
+      case 'read':
+        return await this.readFile(params, context);
+
+      case 'write':
+        return await this.writeFile(params, context);
+
+      case 'list':
+        return await this.listDirectory(params, context);
+
+      case 'delete':
+        return await this.deleteFile(params, context);
+
+      case 'move':
+        return await this.moveFile(params, context);
+
+      case 'copy':
+        return await this.copyFile(params, context);
+
+      case 'stat':
+        return await this.getFileStats(params, context);
+
+      case 'exists':
+        return await this.fileExists(params, context);
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -806,6 +831,269 @@ class FileTransferHandler {
     }
 
     return cleaned;
+  }
+
+  /**
+   * 读取文件内容
+   */
+  async readFile(params, context) {
+    const { filePath, encoding = 'utf8' } = params;
+    if (!filePath) throw new Error('File path is required');
+
+    logger.info(`[FileTransferHandler] 读取文件: ${filePath}`);
+
+    const fullPath = this._resolvePath(filePath);
+    const stats = await fs.stat(fullPath);
+
+    if (!stats.isFile()) {
+      throw new Error('Path is not a file');
+    }
+
+    const content = await fs.readFile(fullPath, encoding);
+
+    return {
+      filePath,
+      content,
+      size: stats.size,
+      encoding
+    };
+  }
+
+  /**
+   * 写入文件内容
+   */
+  async writeFile(params, context) {
+    const { filePath, content, encoding = 'utf8', createDir = false } = params;
+    if (!filePath) throw new Error('File path is required');
+    if (content === undefined) throw new Error('Content is required');
+
+    logger.info(`[FileTransferHandler] 写入文件: ${filePath}`);
+
+    const fullPath = this._resolvePath(filePath);
+
+    if (createDir) {
+      await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    }
+
+    await fs.writeFile(fullPath, content, encoding);
+
+    const stats = await fs.stat(fullPath);
+
+    return {
+      filePath,
+      size: stats.size,
+      message: 'File written successfully'
+    };
+  }
+
+  /**
+   * 列出目录内容
+   */
+  async listDirectory(params, context) {
+    const { dirPath = '.', recursive = false, filter = null } = params;
+
+    logger.info(`[FileTransferHandler] 列出目录: ${dirPath}`);
+
+    const fullPath = this._resolvePath(dirPath);
+    const stats = await fs.stat(fullPath);
+
+    if (!stats.isDirectory()) {
+      throw new Error('Path is not a directory');
+    }
+
+    const items = await fs.readdir(fullPath, { withFileTypes: true });
+    const results = [];
+
+    for (const item of items) {
+      const itemPath = path.join(fullPath, item.name);
+      const itemStats = await fs.stat(itemPath);
+
+      const fileInfo = {
+        name: item.name,
+        path: path.relative(this._getBasePath(), itemPath),
+        isDirectory: item.isDirectory(),
+        isFile: item.isFile(),
+        size: itemStats.size,
+        createdAt: itemStats.birthtime.getTime(),
+        modifiedAt: itemStats.mtime.getTime()
+      };
+
+      // 应用过滤器
+      if (filter && !item.name.includes(filter)) {
+        continue;
+      }
+
+      results.push(fileInfo);
+
+      // 递归列出子目录
+      if (recursive && item.isDirectory()) {
+        const subItems = await this.listDirectory(
+          { dirPath: path.join(dirPath, item.name), recursive: true, filter },
+          context
+        );
+        results.push(...subItems.items);
+      }
+    }
+
+    return {
+      dirPath,
+      items: results,
+      total: results.length
+    };
+  }
+
+  /**
+   * 删除文件或目录
+   */
+  async deleteFile(params, context) {
+    const { filePath, recursive = false } = params;
+    if (!filePath) throw new Error('File path is required');
+
+    logger.info(`[FileTransferHandler] 删除文件: ${filePath}`);
+
+    const fullPath = this._resolvePath(filePath);
+    const stats = await fs.stat(fullPath);
+
+    if (stats.isDirectory()) {
+      if (!recursive) {
+        throw new Error('Cannot delete directory without recursive flag');
+      }
+      await fs.rm(fullPath, { recursive: true, force: true });
+    } else {
+      await fs.unlink(fullPath);
+    }
+
+    return {
+      filePath,
+      message: 'File deleted successfully'
+    };
+  }
+
+  /**
+   * 移动文件
+   */
+  async moveFile(params, context) {
+    const { sourcePath, targetPath, overwrite = false } = params;
+    if (!sourcePath || !targetPath) {
+      throw new Error('Source and target paths are required');
+    }
+
+    logger.info(`[FileTransferHandler] 移动文件: ${sourcePath} -> ${targetPath}`);
+
+    const fullSourcePath = this._resolvePath(sourcePath);
+    const fullTargetPath = this._resolvePath(targetPath);
+
+    if (!overwrite) {
+      try {
+        await fs.access(fullTargetPath);
+        throw new Error('Target file already exists');
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+
+    await fs.rename(fullSourcePath, fullTargetPath);
+
+    return {
+      sourcePath,
+      targetPath,
+      message: 'File moved successfully'
+    };
+  }
+
+  /**
+   * 复制文件
+   */
+  async copyFile(params, context) {
+    const { sourcePath, targetPath, overwrite = false } = params;
+    if (!sourcePath || !targetPath) {
+      throw new Error('Source and target paths are required');
+    }
+
+    logger.info(`[FileTransferHandler] 复制文件: ${sourcePath} -> ${targetPath}`);
+
+    const fullSourcePath = this._resolvePath(sourcePath);
+    const fullTargetPath = this._resolvePath(targetPath);
+
+    if (!overwrite) {
+      try {
+        await fs.access(fullTargetPath);
+        throw new Error('Target file already exists');
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+    }
+
+    await fs.copyFile(fullSourcePath, fullTargetPath);
+
+    const stats = await fs.stat(fullTargetPath);
+
+    return {
+      sourcePath,
+      targetPath,
+      size: stats.size,
+      message: 'File copied successfully'
+    };
+  }
+
+  /**
+   * 获取文件统计信息
+   */
+  async getFileStats(params, context) {
+    const { filePath } = params;
+    if (!filePath) throw new Error('File path is required');
+
+    const fullPath = this._resolvePath(filePath);
+    const stats = await fs.stat(fullPath);
+
+    return {
+      filePath,
+      isDirectory: stats.isDirectory(),
+      isFile: stats.isFile(),
+      size: stats.size,
+      createdAt: stats.birthtime.getTime(),
+      modifiedAt: stats.mtime.getTime(),
+      accessedAt: stats.atime.getTime()
+    };
+  }
+
+  /**
+   * 检查文件是否存在
+   */
+  async fileExists(params, context) {
+    const { filePath } = params;
+    if (!filePath) throw new Error('File path is required');
+
+    const fullPath = this._resolvePath(filePath);
+
+    try {
+      await fs.access(fullPath);
+      return { filePath, exists: true };
+    } catch (error) {
+      return { filePath, exists: false };
+    }
+  }
+
+  /**
+   * 解析文件路径（安全性检查）
+   */
+  _resolvePath(filePath) {
+    const basePath = this._getBasePath();
+    const resolvedPath = path.resolve(basePath, filePath);
+
+    // 确保路径在允许的基础路径内（防止路径遍历攻击）
+    if (!resolvedPath.startsWith(basePath)) {
+      throw new Error('Access denied: Path outside allowed directory');
+    }
+
+    return resolvedPath;
+  }
+
+  /**
+   * 获取基础路径
+   */
+  _getBasePath() {
+    return app.getPath('userData');
   }
 }
 
