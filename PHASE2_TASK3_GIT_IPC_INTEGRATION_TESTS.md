@@ -513,23 +513,72 @@ Test Files  1 passed (1)
 
 ---
 
+## 🔧 技术挑战与解决方案
+
+### 当前技术挑战
+
+**Electron 模块 Mock 问题**:
+- **问题**: Vitest 的 ES6 import mock 与源代码的 CommonJS require() 不兼容
+- **表现**: `vi.mock('electron')` 无法正确拦截 `require('electron')` 调用
+- **影响**: 测试框架已搭建，但需要解决模块 mock 机制
+
+**已尝试的解决方案**:
+1. ✅ 源代码添加依赖注入支持 (已完成)
+2. ✅ 创建 handler 捕获模式 (已完成)
+3. ❌ 全局 vi.mock('electron') - 未生效
+4. ❌ beforeEach 中动态 import - 仍有缓存问题
+
+**推荐解决方案**:
+1. **使用 Vitest 的 setupFiles**: 在测试启动前全局mock electron
+2. **改用 Jest**: Jest 的 CommonJS mock 支持更好
+3. **重构源代码**: 将 electron require 移到函数外部，使用参数注入
+4. **E2E 测试替代**: 使用真实 Electron 环境进行集成测试
+
+### 已完成的核心工作
+
+1. ✅ **源代码依赖注入改造**: 所有 14 个处理器支持 ipcMain 注入
+2. ✅ **Bug 修复**: 修复了 27 个 catch 块的变量错误
+3. ✅ **测试用例编写**: 55 个测试用例覆盖所有场景
+4. ✅ **测试框架搭建**: Mock 结构和测试逻辑已完成
+
 ## 🚀 后续改进建议
 
-### 1. E2E 测试补充
+### 1. 解决 Electron Mock 问题 (优先级: 高)
+
+```javascript
+// 方案 A: 使用 setup 文件
+// vitest.config.js
+export default {
+  test: {
+    setupFiles: ['./tests/setup-electron-mock.js']
+  }
+}
+
+// tests/setup-electron-mock.js
+import { vi } from 'vitest';
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn()
+  }
+}));
+```
+
+### 2. E2E 测试补充
 
 在实际 Git 仓库中测试:
 - 真实的 Git 操作流程
 - 实际的合并冲突解决
 - 大型仓库克隆和操作
 
-### 2. 性能测试
+### 3. 性能测试
 
 补充性能测试:
 - 10万个 commits 的 log 操作
 - 大型 diff 的渲染
 - 并发 Git 操作
 
-### 3. 集成测试
+### 4. 集成测试
 
 与后端 Git API 服务的集成测试:
 - 真实的网络请求
