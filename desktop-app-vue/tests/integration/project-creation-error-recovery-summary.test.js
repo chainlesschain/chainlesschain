@@ -50,6 +50,8 @@ describe('项目创建 - 后端API失败恢复测试', () => {
     // Mock project config
     mockProjectConfig = {
       getProjectPath: (projectId) => path.join(testProjectDir, projectId),
+      getProjectsRootPath: () => testProjectDir,
+    };
 
     // Mock database
     mockDatabase = createMockDatabase();
@@ -87,6 +89,7 @@ describe('项目创建 - 后端API失败恢复测试', () => {
       name: '超时测试项目',
       type: 'web',
       description: 'API超时测试',
+    };
 
     await expect(async () => {
       await createProjectWithTransaction({
@@ -97,7 +100,8 @@ describe('项目创建 - 后端API失败恢复测试', () => {
         replaceUndefinedWithNull: (obj) => obj,
       });
     }).rejects.toThrow('API timeout');
-
+  });
+});
 
 describe('项目创建错误恢复 - 核心场景总结', () => {
   let mockHttpClient;

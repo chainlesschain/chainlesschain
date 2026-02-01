@@ -191,6 +191,20 @@ class SQLCipherWrapper {
     this.db = null;
     this.key = options.key || null;
     this.__betterSqliteCompat = true; // 标记兼容性
+
+    // 将 options 中的属性暴露为实例属性，以便测试和外部访问
+    if (options.readonly !== undefined) {
+      this.readonly = options.readonly;
+    }
+    if (options.fileMustExist !== undefined) {
+      this.fileMustExist = options.fileMustExist;
+    }
+    if (options.verbose !== undefined) {
+      this.verbose = options.verbose;
+    }
+    if (options.timeout !== undefined) {
+      this.timeout = options.timeout;
+    }
   }
 
   /**
