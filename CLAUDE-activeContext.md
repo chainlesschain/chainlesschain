@@ -48,10 +48,34 @@
 - [x] MCP 系统单元测试完善 (32 测试全部通过)
 - [x] MCP 端到端集成测试 (31 测试全部通过)
 - [x] Context Window Optimization 系统实现 (KV-Cache 优化, 17 handlers)
+- [x] Prompt Compressor IPC 系统实现 (上下文压缩, 10 handlers)
 
 ### 最近完成
 
-0. **Context Window Optimization 系统实现** (2026-02-02):
+0. **Prompt Compressor IPC 系统实现** (2026-02-02):
+   - 新建 `src/main/llm/prompt-compressor-ipc.js` - 10 个 IPC 通道（~500 行）
+     - 配置管理：get-config、set-config、reset-config
+     - 压缩操作：compress、preview、estimate-tokens、get-recommendations
+     - 统计信息：get-stats、get-history、clear-history
+   - 利用现有 `PromptCompressor` 类：
+     - 消息去重（完全匹配 + 相似度检测）
+     - 历史截断（保留最近 N 条消息）
+     - 智能总结（需 LLM Manager）
+   - 新增功能：
+     - 压缩预览（不实际执行，估算效果）
+     - 压缩建议（针对当前消息给出优化建议）
+     - 压缩历史追踪（统计压缩效果）
+   - 新建 `scripts/test-prompt-compressor.js` - 集成测试（15 个测试用例）
+   - 更新 `src/main/ipc/ipc-registry.js` - 注册 Prompt Compressor IPC
+   - 更新 `package.json` - 添加 test:compressor 脚本
+   - **功能特点**:
+     - 三种压缩策略可独立启用/禁用
+     - 相似度阈值可调（默认 0.9）
+     - 自动保留 System 消息和最后一条用户消息
+     - 压缩率追踪（目标 0.6-0.7，节省 30-40% tokens）
+   - **测试结果**: 15 个集成测试全部通过
+
+1. **Context Window Optimization 系统实现** (2026-02-02):
    - 新建 `src/main/llm/context-engineering-ipc.js` - 17 个 IPC 通道（~600 行）
      - 统计和配置：get-stats、reset-stats、get-config、set-config
      - Prompt 优化：optimize-messages、estimate-tokens

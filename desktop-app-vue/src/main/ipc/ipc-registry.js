@@ -268,6 +268,19 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 Prompt Compressor 系统 (上下文压缩, 10 handlers)
+    logger.info("[IPC Registry] Registering Prompt Compressor IPC...");
+    try {
+      const { registerPromptCompressorIPC } = require("../llm/prompt-compressor-ipc");
+      registerPromptCompressorIPC({ llmManager: llmManager || null });
+      logger.info("[IPC Registry] ✓ Prompt Compressor IPC registered (10 handlers)");
+    } catch (compressorError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Prompt Compressor IPC registration failed (non-fatal):",
+        compressorError.message,
+      );
+    }
+
     // Logger 服务 (日志管理器)
     logger.info("[IPC Registry] Registering Logger IPC...");
     const { registerLoggerIPC } = require("./logger-ipc");
