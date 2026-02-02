@@ -1,8 +1,9 @@
 /**
  * Team Task Management IPC Handlers
  *
- * Provides 45 IPC handlers for enterprise task management:
- * - Board management (8)
+ * Provides 49 IPC handlers for enterprise task management:
+ * - Board management (9)
+ * - Task query (4)
  * - Task CRUD (12)
  * - Checklists (5)
  * - Comments and activity (6)
@@ -20,7 +21,7 @@ const { logger } = require('../utils/logger.js');
  * Register all team task management IPC handlers
  */
 function registerTaskIPC(database) {
-  logger.info('[IPC] 注册团队任务管理IPC处理器 (45个handlers)');
+  logger.info('[IPC] 注册团队任务管理IPC处理器 (49个handlers)');
 
   // ========================================
   // Board Management (8 handlers)
@@ -604,7 +605,7 @@ function registerTaskIPC(database) {
     }
   });
 
-  logger.info('[IPC] 团队任务管理IPC处理器注册完成 (45个handlers)');
+  logger.info('[IPC] 团队任务管理IPC处理器注册完成 (49个handlers)');
 }
 
 module.exports = {

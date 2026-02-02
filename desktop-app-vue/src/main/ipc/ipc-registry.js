@@ -294,6 +294,32 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 Token Tracker 系统 (Token 追踪与成本管理, 12 handlers)
+    logger.info("[IPC Registry] Registering Token Tracker IPC...");
+    try {
+      const { registerTokenTrackerIPC } = require("../llm/token-tracker-ipc");
+      registerTokenTrackerIPC({ tokenTracker: tokenTracker || null, database: database || null });
+      logger.info("[IPC Registry] ✓ Token Tracker IPC registered (12 handlers)");
+    } catch (trackerError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Token Tracker IPC registration failed (non-fatal):",
+        trackerError.message,
+      );
+    }
+
+    // 🔥 Stream Controller 系统 (流式输出控制, 12 handlers)
+    logger.info("[IPC Registry] Registering Stream Controller IPC...");
+    try {
+      const { registerStreamControllerIPC } = require("../llm/stream-controller-ipc");
+      registerStreamControllerIPC({ mainWindow: mainWindow || null });
+      logger.info("[IPC Registry] ✓ Stream Controller IPC registered (12 handlers)");
+    } catch (streamError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Stream Controller IPC registration failed (non-fatal):",
+        streamError.message,
+      );
+    }
+
     // 🔥 Team Task Management 系统 (任务看板, 49 handlers)
     logger.info("[IPC Registry] Registering Team Task Management IPC...");
     try {
