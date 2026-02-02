@@ -1120,6 +1120,274 @@ _此文件会自动更新,也可手动编辑。_
     return stats;
   }
 
+  // ============================================================
+  // Phase 6: 会话记忆提取
+  // ============================================================
+
+  /**
+   * 保存内容到永久记忆
+   * @param {string} content - 要保存的内容
+   * @param {Object} options - 选项
+   * @param {string} [options.type='conversation'] - 类型 (conversation, discovery, solution, preference)
+   * @param {string} [options.section] - MEMORY.md 章节名 (可选)
+   * @returns {Promise<Object>} 保存结果
+   */
+  async saveToMemory(content, options = {}) {
+    const type = options.type || "conversation";
+    const timestamp = new Date().toISOString().split("T")[0];
+
+    try {
+      // 根据类型决定保存位置
+      if (type === "daily" || type === "conversation") {
+        // 保存到 Daily Notes
+        const formattedContent = `### ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })} - 对话记录
+
+${content}
+`;
+        await this.writeDailyNote(formattedContent, { append: true });
+        logger.info("[PermanentMemoryManager] 对话已保存到 Daily Notes");
+
+        return {
+          savedTo: "daily_notes",
+          date: timestamp,
+          type,
+        };
+      } else {
+        // 保存到 MEMORY.md
+        const sectionMap = {
+          discovery: "📚 重要技术发现",
+          solution: "🐛 常见问题解决方案",
+          preference: "🧑 用户偏好",
+          architecture: "🏗️ 架构决策",
+          config: "🔧 系统配置",
+        };
+
+        const section = options.section || sectionMap[type] || "📚 重要技术发现";
+        const formattedContent = `### ${timestamp}
+
+${content}
+`;
+        await this.appendToMemory(formattedContent, { section });
+        logger.info("[PermanentMemoryManager] 内容已保存到 MEMORY.md:", section);
+
+        return {
+          savedTo: "memory_md",
+          section,
+          date: timestamp,
+          type,
+        };
+      }
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 保存到记忆失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从对话中提取重要信息并保存到永久记忆
+   * @param {Array<Object>} messages - 对话消息数组 [{role, content}]
+   * @param {string} conversationTitle - 对话标题
+   * @returns {Promise<Object>} 提取结果
+   */
+  async extractFromConversation(messages, conversationTitle = "") {
+    if (!messages || messages.length === 0) {
+      throw new Error("[PermanentMemoryManager] 消息列表为空");
+    }
+
+    try {
+      // 构建对话摘要
+      const conversationSummary = this._buildConversationSummary(
+        messages,
+        conversationTitle,
+      );
+
+      // 保存到 Daily Notes
+      const timestamp = new Date().toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      const dailyContent = `### ${timestamp} - ${conversationTitle || "对话记录"}
+
+**消息数**: ${messages.length}
+
+${conversationSummary}
+`;
+
+      await this.writeDailyNote(dailyContent, { append: true });
+
+      logger.info(
+        "[PermanentMemoryManager] 对话摘要已保存到 Daily Notes:",
+        conversationTitle,
+      );
+
+      // 尝试提取技术发现 (如果有 LLM 管理器)
+      let discoveries = [];
+      if (this.llmManager) {
+        try {
+          discoveries = await this._extractDiscoveries(messages);
+          if (discoveries.length > 0) {
+            const discoveriesContent = discoveries
+              .map((d) => `- ${d}`)
+              .join("\n");
+            await this.appendToMemory(
+              `### ${new Date().toISOString().split("T")[0]} - 从对话中提取\n\n${discoveriesContent}\n`,
+              { section: "📚 重要技术发现" },
+            );
+            logger.info(
+              "[PermanentMemoryManager] 技术发现已保存:",
+              discoveries.length,
+            );
+          }
+        } catch (error) {
+          logger.warn("[PermanentMemoryManager] 技术发现提取失败:", error.message);
+        }
+      }
+
+      return {
+        savedTo: "daily_notes",
+        messageCount: messages.length,
+        title: conversationTitle,
+        discoveriesExtracted: discoveries.length,
+        timestamp: Date.now(),
+      };
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 提取对话记忆失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 构建对话摘要
+   * @private
+   * @param {Array<Object>} messages - 消息数组
+   * @param {string} title - 对话标题
+   * @returns {string} 对话摘要
+   */
+  _buildConversationSummary(messages, title) {
+    const lines = [];
+
+    // 收集关键内容
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      const role = msg.role === "user" ? "👤 用户" : "🤖 AI";
+      const content = msg.content || "";
+
+      // 截断过长的内容
+      const truncatedContent =
+        content.length > 500
+          ? content.substring(0, 500) + "..."
+          : content;
+
+      lines.push(`**${role}**: ${truncatedContent}`);
+
+      // 最多显示最后5条消息
+      if (i >= messages.length - 5 && i < messages.length - 1) {
+        continue;
+      } else if (i < messages.length - 5) {
+        if (i === 0) {
+          lines.push("\n*... 中间省略 ...*\n");
+        }
+        continue;
+      }
+    }
+
+    return lines.join("\n\n");
+  }
+
+  /**
+   * 使用 LLM 提取技术发现
+   * @private
+   * @param {Array<Object>} messages - 消息数组
+   * @returns {Promise<Array<string>>} 技术发现列表
+   */
+  async _extractDiscoveries(messages) {
+    if (!this.llmManager) {
+      return [];
+    }
+
+    try {
+      // 构建提取 prompt
+      const conversationText = messages
+        .map((m) => `${m.role}: ${m.content}`)
+        .join("\n\n");
+
+      const prompt = `请从以下对话中提取值得记住的技术发现、解决方案或最佳实践。
+只列出关键点，每个发现用一行描述。如果没有值得记录的内容，返回空。
+
+对话内容:
+${conversationText.substring(0, 3000)}
+
+请用简洁的中文列出发现（每行一个）:`;
+
+      // 调用 LLM (如果可用)
+      if (this.llmManager.chat) {
+        const response = await this.llmManager.chat({
+          messages: [{ role: "user", content: prompt }],
+          maxTokens: 500,
+        });
+
+        if (response && response.content) {
+          // 解析响应，提取每行作为一个发现
+          const discoveries = response.content
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line && !line.startsWith("#") && line.length > 5);
+
+          return discoveries.slice(0, 5); // 最多5个发现
+        }
+      }
+
+      return [];
+    } catch (error) {
+      logger.warn("[PermanentMemoryManager] LLM 提取失败:", error.message);
+      return [];
+    }
+  }
+
+  /**
+   * 获取 MEMORY.md 章节列表
+   * @returns {Promise<Array<Object>>} 章节列表
+   */
+  async getMemorySections() {
+    try {
+      const content = await this.readMemory();
+      const sections = [];
+
+      // 匹配所有 ## 开头的章节
+      const sectionRegex = /^## (.+)$/gm;
+      let match;
+
+      while ((match = sectionRegex.exec(content)) !== null) {
+        const title = match[1].trim();
+        const startIndex = match.index;
+
+        // 找到下一个章节或文件末尾
+        const nextMatch = sectionRegex.exec(content);
+        const endIndex = nextMatch ? nextMatch.index : content.length;
+        sectionRegex.lastIndex = nextMatch
+          ? nextMatch.index
+          : sectionRegex.lastIndex;
+
+        // 提取章节内容
+        const sectionContent = content.substring(startIndex, endIndex);
+        const itemCount = (sectionContent.match(/^- /gm) || []).length +
+          (sectionContent.match(/^### /gm) || []).length;
+
+        sections.push({
+          title,
+          itemCount,
+          hasContent: sectionContent.trim().length > title.length + 10,
+        });
+      }
+
+      return sections;
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 获取章节列表失败:", error);
+      return [];
+    }
+  }
+
   /**
    * 销毁实例
    */

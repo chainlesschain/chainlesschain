@@ -6,6 +6,19 @@
       <div class="conversation-content">
         <!-- 消息列表 -->
         <div ref="messagesContainerRef" class="messages-container">
+          <!-- 对话操作栏 -->
+          <div v-if="messages.length > 0" class="conversation-actions">
+            <a-button
+              type="text"
+              size="small"
+              @click="handleSaveConversation"
+              :loading="savingConversation"
+            >
+              <template #icon><BookOutlined /></template>
+              保存对话到记忆
+            </a-button>
+          </div>
+
           <!-- 欢迎消息 -->
           <div v-if="messages.length === 0" class="welcome-message">
             <div class="welcome-icon">
@@ -78,6 +91,33 @@
                   <span class="message-time">{{
                     formatTime(message.timestamp)
                   }}</span>
+                  <a-dropdown :trigger="['click']" class="save-memory-dropdown">
+                    <a-button
+                      type="text"
+                      size="small"
+                      class="save-memory-btn"
+                      :class="{ saved: message.savedToMemory }"
+                    >
+                      <template #icon>
+                        <CheckOutlined v-if="message.savedToMemory" />
+                        <BookOutlined v-else />
+                      </template>
+                      <span class="btn-text">{{ message.savedToMemory ? '已保存' : '保存记忆' }}</span>
+                    </a-button>
+                    <template #overlay>
+                      <a-menu @click="(e) => handleSaveToMemory(message, e.key)">
+                        <a-menu-item key="daily">
+                          <SaveOutlined /> 保存到 Daily Notes
+                        </a-menu-item>
+                        <a-menu-item key="discovery">
+                          <BookOutlined /> 保存为技术发现
+                        </a-menu-item>
+                        <a-menu-item key="solution">
+                          <BookOutlined /> 保存为解决方案
+                        </a-menu-item>
+                      </a-menu>
+                    </template>
+                  </a-dropdown>
                 </div>
                 <div
                   class="message-text"
@@ -165,13 +205,16 @@
 <script setup>
 import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted, nextTick, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { message as antMessage } from "ant-design-vue";
 import { useAuthStore } from "@/stores/auth";
 import {
   RobotOutlined,
   UserOutlined,
   LoadingOutlined,
+  BookOutlined,
+  SaveOutlined,
+  CheckOutlined,
 } from "@ant-design/icons-vue";
 import ConversationInput from "@/components/projects/ConversationInput.vue";
 import BrowserPreview from "@/components/projects/BrowserPreview.vue";
@@ -187,6 +230,7 @@ const messages = ref([]);
 const isThinking = ref(false);
 const messagesContainerRef = ref(null);
 const inputRef = ref(null);
+const savingConversation = ref(false);
 
 // 用户信息
 const userName = computed(() => authStore.currentUser?.username || "用户");
@@ -459,6 +503,91 @@ const handleStepCancel = (step) => {
   // TODO: 实现步骤取消
 };
 
+// 保存整个对话到记忆
+const handleSaveConversation = async () => {
+  if (messages.value.length === 0) {
+    antMessage.warning("对话为空，无法保存");
+    return;
+  }
+
+  try {
+    savingConversation.value = true;
+
+    if (!window.electronAPI?.invoke) {
+      antMessage.warning("IPC 未就绪，无法保存");
+      return;
+    }
+
+    // 获取对话标题
+    const conversation = conversations.value.find(
+      (c) => c.id === activeConversationId.value,
+    );
+    const title = conversation?.title || "对话记录";
+
+    // 调用 IPC 提取并保存对话
+    const result = await window.electronAPI.invoke(
+      "memory:extract-from-conversation",
+      {
+        messages: messages.value.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        conversationTitle: title,
+      },
+    );
+
+    if (result?.success) {
+      antMessage.success(
+        `已保存到 Daily Notes (${result.result.messageCount} 条消息)`,
+      );
+    } else {
+      antMessage.error(result?.error || "保存失败");
+    }
+  } catch (error) {
+    logger.error("[AIChatPage] 保存对话失败:", error);
+    antMessage.error("保存失败: " + error.message);
+  } finally {
+    savingConversation.value = false;
+  }
+};
+
+// 保存到永久记忆
+const handleSaveToMemory = async (message, type) => {
+  if (message.savedToMemory) {
+    antMessage.info("该消息已保存到记忆");
+    return;
+  }
+
+  try {
+    // 构建要保存的内容
+    const content = message.content;
+
+    // 调用 IPC 保存
+    if (!window.electronAPI?.invoke) {
+      antMessage.warning("IPC 未就绪，无法保存");
+      return;
+    }
+
+    const result = await window.electronAPI.invoke("memory:save-to-memory", {
+      content,
+      type,
+    });
+
+    if (result?.success) {
+      message.savedToMemory = true;
+      const locationText = result.result.savedTo === "daily_notes"
+        ? "Daily Notes"
+        : `MEMORY.md (${result.result.section})`;
+      antMessage.success(`已保存到 ${locationText}`);
+    } else {
+      antMessage.error(result?.error || "保存失败");
+    }
+  } catch (error) {
+    logger.error("[AIChatPage] 保存到记忆失败:", error);
+    antMessage.error("保存失败: " + error.message);
+  }
+};
+
 // 滚动到底部
 const scrollToBottom = () => {
   if (messagesContainerRef.value) {
@@ -593,10 +722,39 @@ const enhanceCodeBlocks = () => {
   });
 };
 
+// 键盘快捷键处理
+const handleKeyboard = (e) => {
+  // Ctrl+Shift+M: 保存最后一条 AI 消息到记忆
+  if (e.ctrlKey && e.shiftKey && e.key === "M") {
+    e.preventDefault();
+    const lastAiMessage = [...messages.value]
+      .reverse()
+      .find((m) => m.role === "assistant");
+    if (lastAiMessage && !lastAiMessage.savedToMemory) {
+      handleSaveToMemory(lastAiMessage, "daily");
+    } else if (lastAiMessage?.savedToMemory) {
+      antMessage.info("该消息已保存到记忆");
+    } else {
+      antMessage.warning("没有可保存的 AI 消息");
+    }
+  }
+
+  // Ctrl+Shift+S: 保存整个对话到记忆
+  if (e.ctrlKey && e.shiftKey && e.key === "S") {
+    e.preventDefault();
+    if (messages.value.length > 0) {
+      handleSaveConversation();
+    }
+  }
+};
+
 // 组件挂载时加载数据
 onMounted(async () => {
   await loadConversations();
   enhanceCodeBlocks();
+
+  // 注册键盘快捷键
+  window.addEventListener("keydown", handleKeyboard);
 });
 
 // 监听消息变化，自动滚动并增强代码块
@@ -650,6 +808,23 @@ watch(
 
     &:hover {
       background: #9ca3af;
+    }
+  }
+}
+
+// 对话操作栏
+.conversation-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+
+  :deep(.ant-btn) {
+    color: #9ca3af;
+
+    &:hover {
+      color: #667eea;
     }
   }
 }
@@ -748,6 +923,34 @@ watch(
 .message-time {
   font-size: 12px;
   color: #9ca3af;
+}
+
+.save-memory-dropdown {
+  margin-left: auto;
+}
+
+.save-memory-btn {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  font-size: 12px;
+  color: #9ca3af;
+
+  &:hover {
+    color: #667eea;
+  }
+
+  &.saved {
+    opacity: 1;
+    color: #52c41a;
+  }
+
+  .btn-text {
+    margin-left: 4px;
+  }
+}
+
+.message-wrapper:hover .save-memory-btn {
+  opacity: 1;
 }
 
 .message-text {

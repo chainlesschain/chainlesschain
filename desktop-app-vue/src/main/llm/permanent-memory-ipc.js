@@ -260,7 +260,65 @@ function registerPermanentMemoryIPC(permanentMemory) {
     }
   });
 
-  logger.info("[PermanentMemoryIPC] IPC 通道注册完成 (含混合搜索、索引管理)");
+  // ============================================
+  // 会话记忆提取 (Phase 6)
+  // ============================================
+
+  /**
+   * memory:save-to-memory
+   * 保存内容到永久记忆 (可以是对话摘要、技术发现等)
+   */
+  ipcMain.handle(
+    "memory:save-to-memory",
+    async (event, { content, type = "conversation", section = null }) => {
+      try {
+        const result = await permanentMemory.saveToMemory(content, {
+          type,
+          section,
+        });
+        return { success: true, result };
+      } catch (error) {
+        logger.error("[PermanentMemoryIPC] 保存到记忆失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * memory:extract-from-conversation
+   * 从对话中提取重要信息并保存到永久记忆
+   */
+  ipcMain.handle(
+    "memory:extract-from-conversation",
+    async (event, { messages, conversationTitle = "" }) => {
+      try {
+        const result = await permanentMemory.extractFromConversation(
+          messages,
+          conversationTitle,
+        );
+        return { success: true, result };
+      } catch (error) {
+        logger.error("[PermanentMemoryIPC] 提取对话记忆失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * memory:get-memory-sections
+   * 获取 MEMORY.md 的章节列表
+   */
+  ipcMain.handle("memory:get-memory-sections", async (event) => {
+    try {
+      const sections = await permanentMemory.getMemorySections();
+      return { success: true, sections };
+    } catch (error) {
+      logger.error("[PermanentMemoryIPC] 获取记忆章节失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  logger.info("[PermanentMemoryIPC] IPC 通道注册完成 (含混合搜索、索引管理、会话记忆提取)");
 }
 
 /**
@@ -284,6 +342,10 @@ function unregisterPermanentMemoryIPC() {
   ipcMain.removeHandler("memory:stop-file-watcher");
   ipcMain.removeHandler("memory:get-embedding-cache-stats");
   ipcMain.removeHandler("memory:clear-embedding-cache");
+  // Phase 6
+  ipcMain.removeHandler("memory:save-to-memory");
+  ipcMain.removeHandler("memory:extract-from-conversation");
+  ipcMain.removeHandler("memory:get-memory-sections");
 
   logger.info("[PermanentMemoryIPC] IPC 通道注销完成");
 }

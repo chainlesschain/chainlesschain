@@ -725,6 +725,21 @@
                 </template>
                 内存仪表板
               </a-menu-item>
+              <a-menu-item key="permanent-memory">
+                <template #icon>
+                  <BookOutlined />
+                </template>
+                <span>永久记忆</span>
+                <a-badge
+                  count="新"
+                  :number-style="{
+                    backgroundColor: '#1890ff',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
+              </a-menu-item>
               <a-menu-item key="tag-manager">
                 <template #icon>
                   <TagsOutlined />
@@ -1249,6 +1264,7 @@ import {
   BarChartOutlined,
   BugOutlined,
   HistoryOutlined,
+  BookOutlined,
 } from "@ant-design/icons-vue";
 import { useAppStore } from "../stores/app";
 import { useSocialStore } from "../stores/social";
@@ -1408,6 +1424,7 @@ const menuConfig = {
   "session-manager": { path: "/sessions", title: "会话管理" },
   "error-monitor": { path: "/error/monitor", title: "错误监控" },
   "memory-dashboard": { path: "/memory", title: "内存仪表板" },
+  "permanent-memory": { path: "/memory/permanent", title: "永久记忆" },
   "tag-manager": { path: "/tags", title: "标签管理" },
   "llm-performance": { path: "/llm/performance", title: "LLM性能监控" },
 
