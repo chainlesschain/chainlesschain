@@ -322,6 +322,278 @@ function registerPermanentMemoryIPC(permanentMemory) {
 }
 
 /**
+ * 注册高级搜索和分析 IPC 通道 (Phase 7)
+ * @param {Object} advancedSearch - AdvancedMemorySearch 实例
+ * @param {Object} memoryAnalytics - MemoryAnalytics 实例
+ * @param {Object} semanticChunker - SemanticChunker 实例
+ */
+function registerAdvancedMemoryIPC(advancedSearch, memoryAnalytics, semanticChunker) {
+  logger.info("[PermanentMemoryIPC] 注册高级搜索和分析 IPC 通道");
+
+  // ============================================
+  // 高级搜索 (Phase 7)
+  // ============================================
+
+  if (advancedSearch) {
+    /**
+     * memory:advanced-search
+     * 高级搜索 - 支持时间过滤、分面搜索、层级搜索
+     */
+    ipcMain.handle(
+      "memory:advanced-search",
+      async (event, { query, options = {} }) => {
+        try {
+          const results = await advancedSearch.search(query, options);
+          return { success: true, ...results };
+        } catch (error) {
+          logger.error("[PermanentMemoryIPC] 高级搜索失败:", error);
+          return { success: false, error: error.message };
+        }
+      },
+    );
+
+    /**
+     * memory:search-by-tier
+     * 按记忆层级搜索 (working, recall, archival)
+     */
+    ipcMain.handle(
+      "memory:search-by-tier",
+      async (event, { query, tier, options = {} }) => {
+        try {
+          const results = await advancedSearch.searchByTier(query, tier, options);
+          return { success: true, ...results };
+        } catch (error) {
+          logger.error("[PermanentMemoryIPC] 层级搜索失败:", error);
+          return { success: false, error: error.message };
+        }
+      },
+    );
+
+    /**
+     * memory:search-by-date-range
+     * 按时间范围搜索
+     */
+    ipcMain.handle(
+      "memory:search-by-date-range",
+      async (event, { query, dateFrom, dateTo, options = {} }) => {
+        try {
+          const results = await advancedSearch.searchByDateRange(
+            query,
+            dateFrom,
+            dateTo,
+            options,
+          );
+          return { success: true, ...results };
+        } catch (error) {
+          logger.error("[PermanentMemoryIPC] 时间范围搜索失败:", error);
+          return { success: false, error: error.message };
+        }
+      },
+    );
+
+    /**
+     * memory:get-important-memories
+     * 获取重要记忆
+     */
+    ipcMain.handle(
+      "memory:get-important-memories",
+      async (event, { minImportance = 4, limit = 50 }) => {
+        try {
+          const memories = await advancedSearch.getImportantMemories({
+            minImportance,
+            limit,
+          });
+          return { success: true, memories };
+        } catch (error) {
+          logger.error("[PermanentMemoryIPC] 获取重要记忆失败:", error);
+          return { success: false, error: error.message };
+        }
+      },
+    );
+
+    /**
+     * memory:get-recent-memories
+     * 获取最近记忆
+     */
+    ipcMain.handle(
+      "memory:get-recent-memories",
+      async (event, { days = 7, limit = 50 }) => {
+        try {
+          const memories = await advancedSearch.getRecentMemories({ days, limit });
+          return { success: true, memories };
+        } catch (error) {
+          logger.error("[PermanentMemoryIPC] 获取最近记忆失败:", error);
+          return { success: false, error: error.message };
+        }
+      },
+    );
+
+    /**
+     * memory:set-importance
+     * 设置记忆重要性
+     */
+    ipcMain.handle(
+      "memory:set-importance",
+      async (event, { memoryId, importance }) => {
+        try {
+          const result = await advancedSearch.setImportance(memoryId, importance);
+          return { success: result };
+        } catch (error) {
+          logger.error("[PermanentMemoryIPC] 设置重要性失败:", error);
+          return { success: false, error: error.message };
+        }
+      },
+    );
+
+    /**
+     * memory:get-memory-tier-stats
+     * 获取记忆层级统计
+     */
+    ipcMain.handle("memory:get-memory-tier-stats", async (event) => {
+      try {
+        const stats = await advancedSearch.getMemoryStats();
+        return { success: true, stats };
+      } catch (error) {
+        logger.error("[PermanentMemoryIPC] 获取层级统计失败:", error);
+        return { success: false, error: error.message };
+      }
+    });
+  }
+
+  // ============================================
+  // 记忆分析 (Phase 7)
+  // ============================================
+
+  if (memoryAnalytics) {
+    /**
+     * memory:get-dashboard-data
+     * 获取综合仪表板数据
+     */
+    ipcMain.handle("memory:get-dashboard-data", async (event) => {
+      try {
+        const data = await memoryAnalytics.getDashboardData();
+        return { success: true, data };
+      } catch (error) {
+        logger.error("[PermanentMemoryIPC] 获取仪表板数据失败:", error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    /**
+     * memory:get-overview
+     * 获取记忆概览
+     */
+    ipcMain.handle("memory:get-overview", async (event) => {
+      try {
+        const overview = await memoryAnalytics.getOverview();
+        return { success: true, overview };
+      } catch (error) {
+        logger.error("[PermanentMemoryIPC] 获取概览失败:", error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    /**
+     * memory:get-trends
+     * 获取趋势数据
+     */
+    ipcMain.handle("memory:get-trends", async (event, { days = 30 }) => {
+      try {
+        const trends = await memoryAnalytics.getTrends(days);
+        return { success: true, trends };
+      } catch (error) {
+        logger.error("[PermanentMemoryIPC] 获取趋势数据失败:", error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    /**
+     * memory:get-top-keywords
+     * 获取热门关键词
+     */
+    ipcMain.handle("memory:get-top-keywords", async (event, { limit = 10 }) => {
+      try {
+        const keywords = await memoryAnalytics.getTopKeywords(limit);
+        return { success: true, keywords };
+      } catch (error) {
+        logger.error("[PermanentMemoryIPC] 获取热门关键词失败:", error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    /**
+     * memory:get-search-statistics
+     * 获取搜索统计
+     */
+    ipcMain.handle("memory:get-search-statistics", async (event) => {
+      try {
+        const stats = await memoryAnalytics.getSearchStatistics();
+        return { success: true, stats };
+      } catch (error) {
+        logger.error("[PermanentMemoryIPC] 获取搜索统计失败:", error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    /**
+     * memory:get-health-score
+     * 获取记忆健康度评分
+     */
+    ipcMain.handle("memory:get-health-score", async (event) => {
+      try {
+        const healthScore = await memoryAnalytics.calculateHealthScore();
+        return { success: true, healthScore };
+      } catch (error) {
+        logger.error("[PermanentMemoryIPC] 获取健康度评分失败:", error);
+        return { success: false, error: error.message };
+      }
+    });
+  }
+
+  // ============================================
+  // 语义分块 (Phase 7)
+  // ============================================
+
+  if (semanticChunker) {
+    /**
+     * memory:chunk-document
+     * 对文档进行语义分块
+     */
+    ipcMain.handle(
+      "memory:chunk-document",
+      async (event, { content, metadata = {} }) => {
+        try {
+          const chunks = semanticChunker.chunk(content, metadata);
+          return { success: true, chunks };
+        } catch (error) {
+          logger.error("[PermanentMemoryIPC] 语义分块失败:", error);
+          return { success: false, error: error.message };
+        }
+      },
+    );
+
+    /**
+     * memory:update-chunker-config
+     * 更新分块器配置
+     */
+    ipcMain.handle(
+      "memory:update-chunker-config",
+      async (event, { config }) => {
+        try {
+          semanticChunker.updateConfig(config);
+          return { success: true };
+        } catch (error) {
+          logger.error("[PermanentMemoryIPC] 更新分块配置失败:", error);
+          return { success: false, error: error.message };
+        }
+      },
+    );
+  }
+
+  logger.info("[PermanentMemoryIPC] 高级搜索和分析 IPC 通道注册完成");
+}
+
+/**
  * 注销 PermanentMemory IPC 通道
  */
 function unregisterPermanentMemoryIPC() {
@@ -350,7 +622,39 @@ function unregisterPermanentMemoryIPC() {
   logger.info("[PermanentMemoryIPC] IPC 通道注销完成");
 }
 
+/**
+ * 注销高级搜索和分析 IPC 通道
+ */
+function unregisterAdvancedMemoryIPC() {
+  logger.info("[PermanentMemoryIPC] 注销高级搜索和分析 IPC 通道");
+
+  // 高级搜索
+  ipcMain.removeHandler("memory:advanced-search");
+  ipcMain.removeHandler("memory:search-by-tier");
+  ipcMain.removeHandler("memory:search-by-date-range");
+  ipcMain.removeHandler("memory:get-important-memories");
+  ipcMain.removeHandler("memory:get-recent-memories");
+  ipcMain.removeHandler("memory:set-importance");
+  ipcMain.removeHandler("memory:get-memory-tier-stats");
+
+  // 记忆分析
+  ipcMain.removeHandler("memory:get-dashboard-data");
+  ipcMain.removeHandler("memory:get-overview");
+  ipcMain.removeHandler("memory:get-trends");
+  ipcMain.removeHandler("memory:get-top-keywords");
+  ipcMain.removeHandler("memory:get-search-statistics");
+  ipcMain.removeHandler("memory:get-health-score");
+
+  // 语义分块
+  ipcMain.removeHandler("memory:chunk-document");
+  ipcMain.removeHandler("memory:update-chunker-config");
+
+  logger.info("[PermanentMemoryIPC] 高级搜索和分析 IPC 通道注销完成");
+}
+
 module.exports = {
   registerPermanentMemoryIPC,
   unregisterPermanentMemoryIPC,
+  registerAdvancedMemoryIPC,
+  unregisterAdvancedMemoryIPC,
 };

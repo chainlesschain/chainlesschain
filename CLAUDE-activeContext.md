@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-02 (Clawdbot 永久记忆集成 Phase 6 完成 - AI 对话保存记忆)
+> **最后更新**: 2026-02-02 (Hooks 系统实现 - Claude Code 风格)
 
 ---
 
@@ -40,8 +40,57 @@
 - [x] Clawdbot 永久记忆集成 Phase 3-5 (预压缩刷新、Embedding 缓存、文件监听)
 - [x] Clawdbot 永久记忆集成 Phase 6 (UI 集成)
 - [x] Clawdbot 永久记忆集成 Phase 7 (测试和文档)
+- [x] Hooks 系统实现 (Claude Code 风格)
+- [x] MCP 系统自动化测试 (32 个测试用例)
+- [x] Plan Mode 系统实现 (Claude Code 风格)
 
 ### 最近完成
+
+0. **Plan Mode 系统实现 - Claude Code 风格** (2026-02-02):
+   - 新建 `src/main/ai-engine/plan-mode/` 目录 - 完整计划模式系统（~700 行）
+     - `index.js` - PlanModeManager、ExecutionPlan、PlanItem 类
+     - `plan-mode-ipc.js` - 14 个 IPC 通道
+     - `__tests__/plan-mode.test.js` - 单元测试（48 个测试用例）
+   - 新建 `scripts/test-plan-mode.js` - 集成测试（17 个测试用例）
+   - 更新 `src/main/ipc/ipc-registry.js` - 注册 Plan Mode IPC
+   - 更新 `package.json` - 添加 test:plan-mode 和 test:plan-mode:integration 脚本
+   - **功能特点**:
+     - 安全分析模式：只允许 Read/Search/Analyze 工具，禁止 Write/Execute/Delete
+     - 计划生成和存储：自动记录被阻止的操作到计划
+     - 审批流程：全部审批或部分审批，支持拒绝
+     - 与 Hooks 系统集成：通过 PreToolUse 钩子实现权限控制
+     - 统计和历史：跟踪计划创建/审批/拒绝统计，保存计划历史
+   - **测试结果**: 48 单元测试 + 17 集成测试全部通过
+
+1. **MCP 系统自动化测试** (2026-02-02):
+   - 新建 `scripts/test-mcp-system.js` - 独立测试脚本（~690 行）
+     - MCPSecurityPolicy 测试（7 用例）：路径验证、禁止路径、只读模式、审计日志
+     - MCPConfigLoader 测试（5 用例）：配置加载、验证、服务器配置获取
+     - MCPFunctionExecutor 测试（5 用例）：函数转换、缓存、执行
+     - MCPToolAdapter 测试（7 用例）：工具注册、标识、服务器信息
+     - MCPPerformanceMonitor 测试（8 用例）：指标记录、错误跟踪、报告生成
+   - **测试结果**: 32 passed, 0 failed
+   - **运行命令**: `node scripts/test-mcp-system.js`
+   - **功能状态**: MCP 系统核心组件测试覆盖完成
+
+1. **Hooks 系统实现 - Claude Code 风格** (2026-02-02):
+   - 新建 `src/main/hooks/` 目录 - 完整钩子系统（~1500 行）
+     - `index.js` - 主入口、HookSystem 类、单例管理
+     - `hook-registry.js` - 钩子注册表、21 种事件类型
+     - `hook-executor.js` - 钩子执行器（async/command/script）
+     - `hook-middleware.js` - 5 种中间件工厂（IPC/Tool/Session/File/Agent）
+     - `hooks-ipc.js` - 11 个 IPC 通道
+     - `hooks-integration.js` - 便捷集成工具
+     - `types.d.ts` - TypeScript 类型定义
+     - `__tests__/hook-system.test.js` - 单元测试（20+ 测试用例）
+   - 新建 `src/main/bootstrap/hooks-initializer.js` - Bootstrap 集成
+   - 更新 `src/main/bootstrap/index.js` - 添加 Phase 0 hooks 初始化
+   - 更新 `src/main/ipc/ipc-registry.js` - 注册 Hooks IPC
+   - 更新 `src/main/ai-engine/function-caller.js` - 工具调用钩子集成
+   - 新建 `.chainlesschain/hooks.example.json` - JSON 配置示例
+   - 新建 `.chainlesschain/hooks/example-hooks.js` - 脚本钩子示例
+   - 更新 `docs/design/HOOKS_SYSTEM_DESIGN.md` - 完整设计文档（800+ 行）
+   - **功能状态**: 完成，支持 21 种钩子事件、4 种钩子类型、优先级系统
 
 1. **Clawdbot 永久记忆集成 Phase 6 增强 - AI 对话保存记忆** (2026-02-02):
    - 更新 `src/main/llm/permanent-memory-ipc.js` - 新增 3 个 IPC 通道

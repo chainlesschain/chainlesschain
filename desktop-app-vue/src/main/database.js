@@ -2623,6 +2623,701 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_cowork_audit_path_timestamp ON cowork_audit_log(resource_path, timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_cowork_metrics_team_type ON cowork_metrics(team_id, metric_type, timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_team_path ON cowork_sandbox_permissions(team_id, path, is_active);
+
+      -- ============================
+      -- 企业版组织协作功能表结构 (Enterprise Collaboration)
+      -- ============================
+
+      -- ============================
+      -- 模块1: 实时协作编辑 (Real-time Collaboration)
+      -- ============================
+
+      -- 文档协作锁表（Section Locking）
+      CREATE TABLE IF NOT EXISTS collab_document_locks (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL,
+        org_id TEXT,
+        locked_by_did TEXT NOT NULL,
+        locked_by_name TEXT,
+        lock_type TEXT NOT NULL CHECK(lock_type IN ('full', 'section')),
+        section_start INTEGER,
+        section_end INTEGER,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+      );
+
+      -- 冲突历史表
+      CREATE TABLE IF NOT EXISTS collab_conflict_history (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL,
+        org_id TEXT,
+        conflict_type TEXT NOT NULL CHECK(conflict_type IN ('concurrent_edit', 'merge_conflict', 'version_mismatch')),
+        local_version INTEGER NOT NULL,
+        remote_version INTEGER NOT NULL,
+        local_content TEXT,
+        remote_content TEXT,
+        local_user_did TEXT,
+        remote_user_did TEXT,
+        resolved_by_did TEXT,
+        resolution_strategy TEXT CHECK(resolution_strategy IN ('local_wins', 'remote_wins', 'manual_merge', 'auto_merge')),
+        merged_content TEXT,
+        resolved_at INTEGER,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+      );
+
+      -- 光标位置表（用户感知系统）
+      CREATE TABLE IF NOT EXISTS collab_cursor_positions (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL,
+        user_did TEXT NOT NULL,
+        user_name TEXT NOT NULL,
+        user_color TEXT NOT NULL,
+        cursor_line INTEGER,
+        cursor_column INTEGER,
+        selection_start_line INTEGER,
+        selection_start_column INTEGER,
+        selection_end_line INTEGER,
+        selection_end_column INTEGER,
+        last_activity INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        UNIQUE(knowledge_id, user_did)
+      );
+
+      -- 协作统计表
+      CREATE TABLE IF NOT EXISTS collab_stats (
+        id TEXT PRIMARY KEY,
+        knowledge_id TEXT NOT NULL UNIQUE,
+        org_id TEXT,
+        total_edits INTEGER DEFAULT 0,
+        total_collaborators INTEGER DEFAULT 0,
+        total_conflicts INTEGER DEFAULT 0,
+        total_comments INTEGER DEFAULT 0,
+        total_sessions INTEGER DEFAULT 0,
+        last_edit_at INTEGER,
+        last_conflict_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+      );
+
+      -- 协作模块索引
+      CREATE INDEX IF NOT EXISTS idx_collab_locks_knowledge ON collab_document_locks(knowledge_id);
+      CREATE INDEX IF NOT EXISTS idx_collab_locks_user ON collab_document_locks(locked_by_did);
+      CREATE INDEX IF NOT EXISTS idx_collab_locks_expires ON collab_document_locks(expires_at);
+      CREATE INDEX IF NOT EXISTS idx_collab_conflicts_knowledge ON collab_conflict_history(knowledge_id);
+      CREATE INDEX IF NOT EXISTS idx_collab_conflicts_resolved ON collab_conflict_history(resolved_at);
+      CREATE INDEX IF NOT EXISTS idx_collab_cursors_knowledge ON collab_cursor_positions(knowledge_id);
+      CREATE INDEX IF NOT EXISTS idx_collab_cursors_activity ON collab_cursor_positions(last_activity DESC);
+      CREATE INDEX IF NOT EXISTS idx_collab_stats_org ON collab_stats(org_id);
+
+      -- ============================
+      -- 模块2: 团队任务管理 (Team Task Management)
+      -- ============================
+
+      -- 任务看板表
+      CREATE TABLE IF NOT EXISTS task_boards (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        board_type TEXT DEFAULT 'kanban' CHECK(board_type IN ('kanban', 'scrum', 'custom')),
+        owner_did TEXT NOT NULL,
+        settings TEXT, -- JSON: 看板配置
+        is_archived INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 看板列表
+      CREATE TABLE IF NOT EXISTS task_board_columns (
+        id TEXT PRIMARY KEY,
+        board_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        position INTEGER NOT NULL,
+        wip_limit INTEGER, -- 工作进行中限制
+        is_done_column INTEGER DEFAULT 0,
+        color TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (board_id) REFERENCES task_boards(id) ON DELETE CASCADE
+      );
+
+      -- 团队任务表
+      CREATE TABLE IF NOT EXISTS team_tasks (
+        id TEXT PRIMARY KEY,
+        board_id TEXT NOT NULL,
+        column_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        priority TEXT DEFAULT 'medium' CHECK(priority IN ('critical', 'high', 'medium', 'low')),
+        status TEXT DEFAULT 'open' CHECK(status IN ('open', 'in_progress', 'review', 'done', 'cancelled')),
+        task_type TEXT DEFAULT 'task' CHECK(task_type IN ('epic', 'story', 'task', 'subtask', 'bug', 'feature')),
+        parent_task_id TEXT,
+        assignee_did TEXT,
+        reporter_did TEXT NOT NULL,
+        due_date INTEGER,
+        start_date INTEGER,
+        story_points INTEGER,
+        estimated_hours REAL,
+        actual_hours REAL,
+        labels TEXT, -- JSON array
+        position INTEGER DEFAULT 0,
+        sprint_id TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        FOREIGN KEY (board_id) REFERENCES task_boards(id) ON DELETE CASCADE,
+        FOREIGN KEY (column_id) REFERENCES task_board_columns(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_task_id) REFERENCES team_tasks(id) ON DELETE CASCADE
+      );
+
+      -- 任务分配表（多人分配）
+      CREATE TABLE IF NOT EXISTS task_assignees (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        user_did TEXT NOT NULL,
+        role TEXT DEFAULT 'assignee' CHECK(role IN ('assignee', 'reviewer', 'watcher')),
+        assigned_at INTEGER NOT NULL,
+        assigned_by TEXT,
+        FOREIGN KEY (task_id) REFERENCES team_tasks(id) ON DELETE CASCADE,
+        UNIQUE(task_id, user_did, role)
+      );
+
+      -- 任务标签表
+      CREATE TABLE IF NOT EXISTS task_labels (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        color TEXT NOT NULL,
+        description TEXT,
+        created_at INTEGER NOT NULL,
+        UNIQUE(org_id, name)
+      );
+
+      -- 任务检查清单表
+      CREATE TABLE IF NOT EXISTS task_checklists (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        position INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES team_tasks(id) ON DELETE CASCADE
+      );
+
+      -- 检查清单项表
+      CREATE TABLE IF NOT EXISTS task_checklist_items (
+        id TEXT PRIMARY KEY,
+        checklist_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        is_done INTEGER DEFAULT 0,
+        assignee_did TEXT,
+        due_date INTEGER,
+        position INTEGER DEFAULT 0,
+        completed_at INTEGER,
+        completed_by TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (checklist_id) REFERENCES task_checklists(id) ON DELETE CASCADE
+      );
+
+      -- 任务评论表
+      CREATE TABLE IF NOT EXISTS task_comments (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        author_did TEXT NOT NULL,
+        author_name TEXT,
+        content TEXT NOT NULL,
+        parent_id TEXT,
+        mentions TEXT, -- JSON array of DIDs
+        is_edited INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES team_tasks(id) ON DELETE CASCADE,
+        FOREIGN KEY (parent_id) REFERENCES task_comments(id) ON DELETE CASCADE
+      );
+
+      -- 任务附件表
+      CREATE TABLE IF NOT EXISTS task_attachments (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_size INTEGER,
+        mime_type TEXT,
+        uploader_did TEXT NOT NULL,
+        uploader_name TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES team_tasks(id) ON DELETE CASCADE
+      );
+
+      -- 任务活动日志表
+      CREATE TABLE IF NOT EXISTS task_activity_log (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        actor_did TEXT NOT NULL,
+        actor_name TEXT,
+        action TEXT NOT NULL,
+        field_changed TEXT,
+        old_value TEXT,
+        new_value TEXT,
+        metadata TEXT, -- JSON
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (task_id) REFERENCES team_tasks(id) ON DELETE CASCADE
+      );
+
+      -- 任务依赖表
+      CREATE TABLE IF NOT EXISTS task_dependencies (
+        id TEXT PRIMARY KEY,
+        task_id TEXT NOT NULL,
+        depends_on_task_id TEXT NOT NULL,
+        dependency_type TEXT DEFAULT 'blocks' CHECK(dependency_type IN ('blocks', 'blocked_by', 'relates_to', 'duplicates')),
+        lag_days INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        created_by TEXT,
+        FOREIGN KEY (task_id) REFERENCES team_tasks(id) ON DELETE CASCADE,
+        FOREIGN KEY (depends_on_task_id) REFERENCES team_tasks(id) ON DELETE CASCADE,
+        UNIQUE(task_id, depends_on_task_id, dependency_type)
+      );
+
+      -- Sprint 表
+      CREATE TABLE IF NOT EXISTS task_sprints (
+        id TEXT PRIMARY KEY,
+        board_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        goal TEXT,
+        start_date INTEGER,
+        end_date INTEGER,
+        status TEXT DEFAULT 'planning' CHECK(status IN ('planning', 'active', 'completed', 'cancelled')),
+        velocity_planned INTEGER,
+        velocity_completed INTEGER,
+        velocity_average REAL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (board_id) REFERENCES task_boards(id) ON DELETE CASCADE
+      );
+
+      -- 团队报告表
+      CREATE TABLE IF NOT EXISTS team_reports (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        board_id TEXT,
+        report_type TEXT NOT NULL CHECK(report_type IN ('daily_standup', 'weekly', 'sprint_review', 'retrospective', 'custom')),
+        author_did TEXT NOT NULL,
+        author_name TEXT,
+        yesterday_work TEXT,
+        today_plan TEXT,
+        blockers TEXT,
+        notes TEXT,
+        ai_summary TEXT,
+        report_date INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (board_id) REFERENCES task_boards(id) ON DELETE SET NULL
+      );
+
+      -- 任务工作流规则表
+      CREATE TABLE IF NOT EXISTS task_workflow_rules (
+        id TEXT PRIMARY KEY,
+        board_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        trigger_event TEXT NOT NULL CHECK(trigger_event IN ('task_created', 'task_moved', 'task_assigned', 'task_completed', 'due_date_approaching', 'custom')),
+        trigger_conditions TEXT, -- JSON: 触发条件
+        actions TEXT NOT NULL, -- JSON: 执行动作
+        enabled INTEGER DEFAULT 1,
+        priority INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (board_id) REFERENCES task_boards(id) ON DELETE CASCADE
+      );
+
+      -- 任务管理模块索引
+      CREATE INDEX IF NOT EXISTS idx_task_boards_org ON task_boards(org_id);
+      CREATE INDEX IF NOT EXISTS idx_task_boards_owner ON task_boards(owner_did);
+      CREATE INDEX IF NOT EXISTS idx_task_boards_archived ON task_boards(is_archived);
+      CREATE INDEX IF NOT EXISTS idx_task_columns_board ON task_board_columns(board_id);
+      CREATE INDEX IF NOT EXISTS idx_task_columns_position ON task_board_columns(board_id, position);
+      CREATE INDEX IF NOT EXISTS idx_team_tasks_board ON team_tasks(board_id);
+      CREATE INDEX IF NOT EXISTS idx_team_tasks_column ON team_tasks(column_id);
+      CREATE INDEX IF NOT EXISTS idx_team_tasks_assignee ON team_tasks(assignee_did);
+      CREATE INDEX IF NOT EXISTS idx_team_tasks_parent ON team_tasks(parent_task_id);
+      CREATE INDEX IF NOT EXISTS idx_team_tasks_sprint ON team_tasks(sprint_id);
+      CREATE INDEX IF NOT EXISTS idx_team_tasks_status ON team_tasks(status);
+      CREATE INDEX IF NOT EXISTS idx_team_tasks_priority ON team_tasks(priority);
+      CREATE INDEX IF NOT EXISTS idx_team_tasks_due ON team_tasks(due_date);
+      CREATE INDEX IF NOT EXISTS idx_team_tasks_board_status ON team_tasks(board_id, status);
+      CREATE INDEX IF NOT EXISTS idx_task_assignees_task ON task_assignees(task_id);
+      CREATE INDEX IF NOT EXISTS idx_task_assignees_user ON task_assignees(user_did);
+      CREATE INDEX IF NOT EXISTS idx_task_labels_org ON task_labels(org_id);
+      CREATE INDEX IF NOT EXISTS idx_task_checklists_task ON task_checklists(task_id);
+      CREATE INDEX IF NOT EXISTS idx_task_checklist_items_list ON task_checklist_items(checklist_id);
+      CREATE INDEX IF NOT EXISTS idx_task_comments_task ON task_comments(task_id);
+      CREATE INDEX IF NOT EXISTS idx_task_comments_author ON task_comments(author_did);
+      CREATE INDEX IF NOT EXISTS idx_task_attachments_task ON task_attachments(task_id);
+      CREATE INDEX IF NOT EXISTS idx_task_activity_task ON task_activity_log(task_id);
+      CREATE INDEX IF NOT EXISTS idx_task_activity_actor ON task_activity_log(actor_did);
+      CREATE INDEX IF NOT EXISTS idx_task_activity_created ON task_activity_log(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_task_dependencies_task ON task_dependencies(task_id);
+      CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends ON task_dependencies(depends_on_task_id);
+      CREATE INDEX IF NOT EXISTS idx_task_sprints_board ON task_sprints(board_id);
+      CREATE INDEX IF NOT EXISTS idx_task_sprints_status ON task_sprints(status);
+      CREATE INDEX IF NOT EXISTS idx_team_reports_org ON team_reports(org_id);
+      CREATE INDEX IF NOT EXISTS idx_team_reports_board ON team_reports(board_id);
+      CREATE INDEX IF NOT EXISTS idx_team_reports_date ON team_reports(report_date DESC);
+      CREATE INDEX IF NOT EXISTS idx_task_workflow_board ON task_workflow_rules(board_id);
+      CREATE INDEX IF NOT EXISTS idx_task_workflow_enabled ON task_workflow_rules(enabled);
+
+      -- ============================
+      -- 模块3: 组织权限增强 (Organization Permission Enhancement)
+      -- ============================
+
+      -- 资源类型注册表
+      CREATE TABLE IF NOT EXISTS permission_resource_types (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        display_name TEXT,
+        description TEXT,
+        available_actions TEXT NOT NULL, -- JSON array: ['read', 'write', 'delete', 'admin']
+        parent_type TEXT,
+        created_at INTEGER NOT NULL
+      );
+
+      -- 细粒度权限授予表
+      CREATE TABLE IF NOT EXISTS permission_grants (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        grantee_type TEXT NOT NULL CHECK(grantee_type IN ('user', 'role', 'team')),
+        grantee_id TEXT NOT NULL,
+        resource_type TEXT NOT NULL,
+        resource_id TEXT, -- NULL means all resources of this type
+        permission TEXT NOT NULL,
+        conditions TEXT, -- JSON: 条件表达式
+        granted_by TEXT NOT NULL,
+        expires_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE(org_id, grantee_type, grantee_id, resource_type, resource_id, permission)
+      );
+
+      -- 权限继承表
+      CREATE TABLE IF NOT EXISTS permission_inheritance (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        parent_resource_type TEXT NOT NULL,
+        parent_resource_id TEXT NOT NULL,
+        child_resource_type TEXT NOT NULL,
+        child_resource_id TEXT NOT NULL,
+        inherit_permissions TEXT, -- JSON array: 继承的权限列表，NULL表示全部继承
+        created_at INTEGER NOT NULL,
+        UNIQUE(org_id, parent_resource_type, parent_resource_id, child_resource_type, child_resource_id)
+      );
+
+      -- 审批工作流表
+      CREATE TABLE IF NOT EXISTS approval_workflows (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        trigger_resource_type TEXT NOT NULL,
+        trigger_action TEXT NOT NULL,
+        trigger_conditions TEXT, -- JSON
+        approval_type TEXT DEFAULT 'sequential' CHECK(approval_type IN ('sequential', 'parallel', 'any_one')),
+        approvers TEXT NOT NULL, -- JSON array of steps
+        timeout_hours INTEGER DEFAULT 72,
+        on_timeout TEXT DEFAULT 'reject' CHECK(on_timeout IN ('approve', 'reject', 'escalate')),
+        enabled INTEGER DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        UNIQUE(org_id, name)
+      );
+
+      -- 审批请求表
+      CREATE TABLE IF NOT EXISTS approval_requests (
+        id TEXT PRIMARY KEY,
+        workflow_id TEXT NOT NULL,
+        org_id TEXT NOT NULL,
+        requester_did TEXT NOT NULL,
+        requester_name TEXT,
+        resource_type TEXT NOT NULL,
+        resource_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        request_data TEXT, -- JSON: 请求详情
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected', 'cancelled', 'expired')),
+        current_step INTEGER DEFAULT 0,
+        total_steps INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        FOREIGN KEY (workflow_id) REFERENCES approval_workflows(id) ON DELETE CASCADE
+      );
+
+      -- 审批响应表
+      CREATE TABLE IF NOT EXISTS approval_responses (
+        id TEXT PRIMARY KEY,
+        request_id TEXT NOT NULL,
+        approver_did TEXT NOT NULL,
+        approver_name TEXT,
+        step INTEGER NOT NULL,
+        decision TEXT NOT NULL CHECK(decision IN ('approve', 'reject', 'delegate')),
+        delegated_to TEXT,
+        comment TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (request_id) REFERENCES approval_requests(id) ON DELETE CASCADE
+      );
+
+      -- 权限委托表
+      CREATE TABLE IF NOT EXISTS permission_delegations (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        delegator_did TEXT NOT NULL,
+        delegate_did TEXT NOT NULL,
+        delegate_name TEXT,
+        permissions TEXT NOT NULL, -- JSON array
+        resource_scope TEXT, -- JSON: 资源范围限制
+        reason TEXT,
+        start_date INTEGER NOT NULL,
+        end_date INTEGER NOT NULL,
+        status TEXT DEFAULT 'active' CHECK(status IN ('pending', 'active', 'revoked', 'expired')),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 组织团队表（子团队）
+      CREATE TABLE IF NOT EXISTS org_teams (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        parent_team_id TEXT,
+        lead_did TEXT,
+        lead_name TEXT,
+        avatar TEXT,
+        settings TEXT, -- JSON
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (parent_team_id) REFERENCES org_teams(id) ON DELETE CASCADE,
+        UNIQUE(org_id, name)
+      );
+
+      -- 团队成员表
+      CREATE TABLE IF NOT EXISTS org_team_members (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        member_did TEXT NOT NULL,
+        member_name TEXT,
+        team_role TEXT DEFAULT 'member' CHECK(team_role IN ('lead', 'member', 'guest')),
+        joined_at INTEGER NOT NULL,
+        invited_by TEXT,
+        FOREIGN KEY (team_id) REFERENCES org_teams(id) ON DELETE CASCADE,
+        UNIQUE(team_id, member_did)
+      );
+
+      -- 权限模块索引
+      CREATE INDEX IF NOT EXISTS idx_perm_resource_types_name ON permission_resource_types(name);
+      CREATE INDEX IF NOT EXISTS idx_perm_grants_org ON permission_grants(org_id);
+      CREATE INDEX IF NOT EXISTS idx_perm_grants_grantee ON permission_grants(grantee_type, grantee_id);
+      CREATE INDEX IF NOT EXISTS idx_perm_grants_resource ON permission_grants(resource_type, resource_id);
+      CREATE INDEX IF NOT EXISTS idx_perm_grants_expires ON permission_grants(expires_at);
+      CREATE INDEX IF NOT EXISTS idx_perm_inheritance_org ON permission_inheritance(org_id);
+      CREATE INDEX IF NOT EXISTS idx_perm_inheritance_parent ON permission_inheritance(parent_resource_type, parent_resource_id);
+      CREATE INDEX IF NOT EXISTS idx_perm_inheritance_child ON permission_inheritance(child_resource_type, child_resource_id);
+      CREATE INDEX IF NOT EXISTS idx_approval_workflows_org ON approval_workflows(org_id);
+      CREATE INDEX IF NOT EXISTS idx_approval_workflows_trigger ON approval_workflows(trigger_resource_type, trigger_action);
+      CREATE INDEX IF NOT EXISTS idx_approval_requests_workflow ON approval_requests(workflow_id);
+      CREATE INDEX IF NOT EXISTS idx_approval_requests_org ON approval_requests(org_id);
+      CREATE INDEX IF NOT EXISTS idx_approval_requests_requester ON approval_requests(requester_did);
+      CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON approval_requests(status);
+      CREATE INDEX IF NOT EXISTS idx_approval_requests_resource ON approval_requests(resource_type, resource_id);
+      CREATE INDEX IF NOT EXISTS idx_approval_responses_request ON approval_responses(request_id);
+      CREATE INDEX IF NOT EXISTS idx_approval_responses_approver ON approval_responses(approver_did);
+      CREATE INDEX IF NOT EXISTS idx_perm_delegations_org ON permission_delegations(org_id);
+      CREATE INDEX IF NOT EXISTS idx_perm_delegations_delegator ON permission_delegations(delegator_did);
+      CREATE INDEX IF NOT EXISTS idx_perm_delegations_delegate ON permission_delegations(delegate_did);
+      CREATE INDEX IF NOT EXISTS idx_perm_delegations_status ON permission_delegations(status);
+      CREATE INDEX IF NOT EXISTS idx_perm_delegations_dates ON permission_delegations(start_date, end_date);
+      CREATE INDEX IF NOT EXISTS idx_org_teams_org ON org_teams(org_id);
+      CREATE INDEX IF NOT EXISTS idx_org_teams_parent ON org_teams(parent_team_id);
+      CREATE INDEX IF NOT EXISTS idx_org_teams_lead ON org_teams(lead_did);
+      CREATE INDEX IF NOT EXISTS idx_org_team_members_team ON org_team_members(team_id);
+      CREATE INDEX IF NOT EXISTS idx_org_team_members_member ON org_team_members(member_did);
+
+      -- ============================
+      -- 模块4: 跨组织协作 (Cross-Organization Collaboration)
+      -- ============================
+
+      -- 组织合作关系表
+      CREATE TABLE IF NOT EXISTS org_partnerships (
+        id TEXT PRIMARY KEY,
+        initiator_org_id TEXT NOT NULL,
+        initiator_org_name TEXT,
+        partner_org_id TEXT NOT NULL,
+        partner_org_name TEXT,
+        partnership_type TEXT DEFAULT 'standard' CHECK(partnership_type IN ('standard', 'strategic', 'trusted', 'limited')),
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'active', 'suspended', 'terminated')),
+        trust_level INTEGER DEFAULT 1 CHECK(trust_level >= 1 AND trust_level <= 5),
+        agreement_hash TEXT, -- 合作协议哈希
+        agreement_content TEXT,
+        initiated_by TEXT NOT NULL,
+        approved_by TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        expires_at INTEGER,
+        UNIQUE(initiator_org_id, partner_org_id)
+      );
+
+      -- 共享工作空间表
+      CREATE TABLE IF NOT EXISTS shared_workspaces (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        workspace_type TEXT DEFAULT 'project' CHECK(workspace_type IN ('project', 'research', 'event', 'custom')),
+        created_by_org_id TEXT NOT NULL,
+        created_by_did TEXT NOT NULL,
+        visibility TEXT DEFAULT 'private' CHECK(visibility IN ('private', 'members', 'public')),
+        settings TEXT, -- JSON
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'archived', 'deleted')),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 工作空间成员组织表
+      CREATE TABLE IF NOT EXISTS shared_workspace_orgs (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        org_id TEXT NOT NULL,
+        org_name TEXT,
+        role TEXT DEFAULT 'member' CHECK(role IN ('owner', 'admin', 'member', 'viewer')),
+        joined_at INTEGER NOT NULL,
+        invited_by TEXT,
+        status TEXT DEFAULT 'active' CHECK(status IN ('pending', 'active', 'suspended', 'left')),
+        FOREIGN KEY (workspace_id) REFERENCES shared_workspaces(id) ON DELETE CASCADE,
+        UNIQUE(workspace_id, org_id)
+      );
+
+      -- 工作空间成员（个人）表
+      CREATE TABLE IF NOT EXISTS shared_workspace_members (
+        id TEXT PRIMARY KEY,
+        workspace_id TEXT NOT NULL,
+        member_did TEXT NOT NULL,
+        member_name TEXT,
+        member_org_id TEXT NOT NULL,
+        role TEXT DEFAULT 'member' CHECK(role IN ('admin', 'contributor', 'viewer')),
+        permissions TEXT, -- JSON: 自定义权限
+        joined_at INTEGER NOT NULL,
+        invited_by TEXT,
+        FOREIGN KEY (workspace_id) REFERENCES shared_workspaces(id) ON DELETE CASCADE,
+        UNIQUE(workspace_id, member_did)
+      );
+
+      -- 跨组织资源共享表
+      CREATE TABLE IF NOT EXISTS cross_org_shares (
+        id TEXT PRIMARY KEY,
+        source_org_id TEXT NOT NULL,
+        target_org_id TEXT,
+        target_workspace_id TEXT,
+        resource_type TEXT NOT NULL CHECK(resource_type IN ('knowledge', 'project', 'task_board', 'file', 'template')),
+        resource_id TEXT NOT NULL,
+        resource_name TEXT,
+        share_type TEXT DEFAULT 'link' CHECK(share_type IN ('link', 'copy', 'sync')),
+        permissions TEXT NOT NULL, -- JSON: ['read', 'comment', 'edit']
+        encryption_key_id TEXT,
+        shared_by TEXT NOT NULL,
+        access_count INTEGER DEFAULT 0,
+        last_accessed_at INTEGER,
+        expires_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (target_workspace_id) REFERENCES shared_workspaces(id) ON DELETE CASCADE
+      );
+
+      -- B2B 数据交换表
+      CREATE TABLE IF NOT EXISTS b2b_data_transactions (
+        id TEXT PRIMARY KEY,
+        sender_org_id TEXT NOT NULL,
+        sender_org_name TEXT,
+        receiver_org_id TEXT NOT NULL,
+        receiver_org_name TEXT,
+        transaction_type TEXT NOT NULL CHECK(transaction_type IN ('data_share', 'data_request', 'data_sync', 'data_export')),
+        data_type TEXT NOT NULL,
+        data_hash TEXT,
+        data_size INTEGER,
+        encryption_method TEXT,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled', 'rejected')),
+        error_message TEXT,
+        initiated_by TEXT NOT NULL,
+        approved_by TEXT,
+        metadata TEXT, -- JSON
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        completed_at INTEGER
+      );
+
+      -- 跨组织审计日志表
+      CREATE TABLE IF NOT EXISTS cross_org_audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_org_id TEXT NOT NULL,
+        target_org_id TEXT,
+        workspace_id TEXT,
+        actor_did TEXT NOT NULL,
+        actor_name TEXT,
+        action TEXT NOT NULL,
+        resource_type TEXT,
+        resource_id TEXT,
+        details TEXT, -- JSON
+        ip_address TEXT,
+        created_at INTEGER NOT NULL
+      );
+
+      -- 跨组织发现配置表
+      CREATE TABLE IF NOT EXISTS cross_org_discovery (
+        id TEXT PRIMARY KEY,
+        org_id TEXT NOT NULL UNIQUE,
+        org_name TEXT NOT NULL,
+        org_description TEXT,
+        org_avatar TEXT,
+        is_discoverable INTEGER DEFAULT 0,
+        discovery_tags TEXT, -- JSON array
+        contact_did TEXT,
+        contact_email TEXT,
+        verified INTEGER DEFAULT 0,
+        reputation_score REAL DEFAULT 0,
+        partnership_count INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- 跨组织模块索引
+      CREATE INDEX IF NOT EXISTS idx_partnerships_initiator ON org_partnerships(initiator_org_id);
+      CREATE INDEX IF NOT EXISTS idx_partnerships_partner ON org_partnerships(partner_org_id);
+      CREATE INDEX IF NOT EXISTS idx_partnerships_status ON org_partnerships(status);
+      CREATE INDEX IF NOT EXISTS idx_partnerships_type ON org_partnerships(partnership_type);
+      CREATE INDEX IF NOT EXISTS idx_shared_workspaces_created_by ON shared_workspaces(created_by_org_id);
+      CREATE INDEX IF NOT EXISTS idx_shared_workspaces_status ON shared_workspaces(status);
+      CREATE INDEX IF NOT EXISTS idx_shared_workspace_orgs_workspace ON shared_workspace_orgs(workspace_id);
+      CREATE INDEX IF NOT EXISTS idx_shared_workspace_orgs_org ON shared_workspace_orgs(org_id);
+      CREATE INDEX IF NOT EXISTS idx_shared_workspace_members_workspace ON shared_workspace_members(workspace_id);
+      CREATE INDEX IF NOT EXISTS idx_shared_workspace_members_member ON shared_workspace_members(member_did);
+      CREATE INDEX IF NOT EXISTS idx_shared_workspace_members_org ON shared_workspace_members(member_org_id);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_shares_source ON cross_org_shares(source_org_id);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_shares_target ON cross_org_shares(target_org_id);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_shares_workspace ON cross_org_shares(target_workspace_id);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_shares_resource ON cross_org_shares(resource_type, resource_id);
+      CREATE INDEX IF NOT EXISTS idx_b2b_transactions_sender ON b2b_data_transactions(sender_org_id);
+      CREATE INDEX IF NOT EXISTS idx_b2b_transactions_receiver ON b2b_data_transactions(receiver_org_id);
+      CREATE INDEX IF NOT EXISTS idx_b2b_transactions_status ON b2b_data_transactions(status);
+      CREATE INDEX IF NOT EXISTS idx_b2b_transactions_type ON b2b_data_transactions(transaction_type);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_audit_source ON cross_org_audit_log(source_org_id);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_audit_target ON cross_org_audit_log(target_org_id);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_audit_actor ON cross_org_audit_log(actor_did);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_audit_created ON cross_org_audit_log(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_discovery_discoverable ON cross_org_discovery(is_discoverable);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_discovery_verified ON cross_org_discovery(verified);
+      CREATE INDEX IF NOT EXISTS idx_cross_org_discovery_reputation ON cross_org_discovery(reputation_score DESC);
     `);
 
       logger.info("[Database] ✓ 所有表和索引创建成功");
