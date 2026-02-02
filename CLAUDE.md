@@ -109,7 +109,7 @@ Token usage tracking, cost analysis, and performance monitoring with ECharts vis
 
 ### SessionManager
 
-**Status**: ✅ Implemented v0.26.2 | **Docs**: [`docs/features/SESSION_MANAGER.md`](docs/features/SESSION_MANAGER.md)
+**Status**: ✅ Implemented v0.29.0 | **Docs**: [`docs/features/SESSION_MANAGER.md`](docs/features/SESSION_MANAGER.md)
 
 Intelligent session context management with auto-compression (30-40% token savings), search, tags, export/import, auto-summary, and Permanent Memory integration.
 
@@ -191,6 +191,74 @@ Enterprise-grade error handling for IPC channels:
 
 **Key Files**: `src/main/utils/ipc-error-handler.js`
 
+### Permission Engine (Enterprise RBAC)
+
+**Status**: ✅ Implemented v0.29.0
+
+Enterprise-grade Role-Based Access Control system:
+
+- **Resource-Level Permissions**: Fine-grained access control on individual resources
+- **Permission Inheritance**: Parent-child resource permission propagation
+- **Permission Delegation**: Temporary permission grants with time bounds
+- **Team-Based Permissions**: Team membership-driven access control
+- **Audit Logging**: Complete permission change history
+
+**Key Files**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`, `src/main/permission/delegation-manager.js`
+
+### Team Manager
+
+**Status**: ✅ Implemented v0.29.0
+
+Organization sub-team management system:
+
+- **Team CRUD**: Create, update, delete teams with hierarchy support
+- **Member Management**: Add/remove members, set team leads
+- **Team Hierarchy**: Parent-child team relationships
+- **Team Reports**: Daily standup and weekly report system with AI summaries
+
+**Key Files**: `src/main/permission/team-manager.js`, `src/main/task/team-report-manager.js`
+
+### Context Engineering (KV-Cache Optimization)
+
+**Status**: ✅ Implemented v0.29.0
+
+KV-Cache optimization system for improved LLM performance:
+
+- **Static/Dynamic Separation**: Place static content first for cache hits (60-85% hit rate)
+- **Tool Definition Serialization**: Deterministic ordering by name
+- **Task Context Management**: Goal restatement to prevent "lost in the middle"
+- **Error History Tracking**: Learn from past errors
+- **Recoverable Compression**: Preserve references for later recovery
+- **Token Estimation**: Chinese/English auto-detection
+
+**Key Files**: `src/main/llm/context-engineering.js`, `src/main/llm/context-engineering-ipc.js` (17 IPC handlers)
+
+### Plan Mode (Claude Code Style)
+
+**Status**: ✅ Implemented v0.29.0
+
+Safe planning mode inspired by Claude Code:
+
+- **Security Analysis Mode**: Only allow Read/Search/Analyze tools
+- **Plan Generation**: Auto-record blocked operations to plan
+- **Approval Workflow**: Full/partial approval, rejection support
+- **Hooks Integration**: Works with PreToolUse hooks for permission control
+
+**Key Files**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js` (14 IPC handlers)
+
+### Skills System (Markdown Skills)
+
+**Status**: ✅ Implemented v0.29.0
+
+Extensible skill system with Markdown definitions:
+
+- **Three-Layer Loading**: bundled → managed → workspace (higher layers override)
+- **Gate Checks**: Platform, binary dependencies, environment variables
+- **/skill Commands**: User command parsing and auto-execution
+- **Built-in Skills**: code-review, git-commit, explain-code
+
+**Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers)
+
 ## Architecture Overview
 
 ### Desktop Application Structure
@@ -202,13 +270,22 @@ desktop-app-vue/
 │   ├── database.js        # SQLite/SQLCipher database
 │   ├── ukey/              # U-Key hardware integration
 │   ├── llm/               # LLM service integration
-│   │   ├── session-manager.js      # Session context management
+│   │   ├── session-manager.js           # Session context management
 │   │   ├── permanent-memory-manager.js  # Clawdbot memory system
-│   │   └── permanent-memory-ipc.js      # Memory IPC handlers
+│   │   ├── permanent-memory-ipc.js      # Memory IPC handlers
+│   │   ├── context-engineering.js       # KV-Cache optimization
+│   │   └── context-engineering-ipc.js   # Context Engineering IPC (17 handlers)
 │   ├── rag/               # RAG retrieval system
 │   │   ├── rag-manager.js          # Vector search
 │   │   ├── hybrid-search-engine.js # Vector + BM25 fusion
 │   │   └── bm25-search.js          # Okapi BM25 implementation
+│   ├── permission/        # Enterprise RBAC system (v0.29.0)
+│   │   ├── permission-engine.js        # RBAC permission engine
+│   │   ├── team-manager.js             # Team management
+│   │   ├── delegation-manager.js       # Permission delegation
+│   │   └── approval-workflow-manager.js # Approval workflows
+│   ├── task/              # Task management (v0.29.0)
+│   │   └── team-report-manager.js      # Daily/weekly reports
 │   ├── hooks/             # Hooks system (Claude Code inspired)
 │   │   ├── index.js               # Main entry, HookSystem class
 │   │   ├── hook-registry.js       # Hook registration and management
@@ -222,6 +299,14 @@ desktop-app-vue/
 │   ├── utils/             # Utility modules
 │   │   └── ipc-error-handler.js    # IPC error middleware
 │   └── ai-engine/         # AI engine and multi-agent
+│       ├── plan-mode/             # Plan Mode (Claude Code style)
+│       │   ├── index.js           # PlanModeManager
+│       │   └── plan-mode-ipc.js   # Plan Mode IPC (14 handlers)
+│       └── cowork/
+│           └── skills/            # Skills system
+│               ├── index.js       # Skill loader
+│               ├── skills-ipc.js  # Skills IPC (17 handlers)
+│               └── builtin/       # Built-in skills (code-review, git-commit, explain-code)
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
@@ -316,7 +401,7 @@ cd backend/project-service && mvn test
 cd backend/ai-service && pytest
 ```
 
-**Test Coverage** (v0.26.2): ~75% code coverage, 233+ test cases, 99.6% pass rate
+**Test Coverage** (v0.29.0): ~75% code coverage, 233+ test cases, 99.6% pass rate
 
 ## Code Style & Commit Conventions
 
@@ -326,9 +411,8 @@ Example: `feat(rag): add reranker support`
 
 ## Known Limitations
 
-1. **U-Key**: Windows only
-2. **Mobile App**: 10% complete
-3. **GPU**: Docker Ollama requires NVIDIA GPU
+1. **U-Key**: Windows only (macOS/Linux simulation mode)
+2. **GPU**: Docker Ollama requires NVIDIA GPU for acceleration
 
 ## Important File Locations
 
@@ -336,7 +420,11 @@ Example: `feat(rag): add reranker support`
 - **Database schema**: `desktop-app-vue/src/main/database.js`
 - **IPC handlers**: `desktop-app-vue/src/main/index.js`, `src/main/ipc/ipc-registry.js`
 - **Memory system**: `src/main/llm/permanent-memory-manager.js`, `src/main/llm/permanent-memory-ipc.js`
+- **Context Engineering**: `src/main/llm/context-engineering.js`, `src/main/llm/context-engineering-ipc.js`
 - **Search engine**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
+- **Permission system**: `src/main/permission/permission-engine.js`, `src/main/permission/team-manager.js`
+- **Plan Mode**: `src/main/ai-engine/plan-mode/index.js`, `src/main/ai-engine/plan-mode/plan-mode-ipc.js`
+- **Skills system**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js`
 - **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`
 - **P2P/WebRTC**: `src/main/p2p/webrtc-data-channel.js`
