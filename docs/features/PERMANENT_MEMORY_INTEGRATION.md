@@ -18,13 +18,30 @@
 | Phase 2 | 混合搜索引擎         | ✅ 完成 |
 | Phase 2 | RRF 融合算法         | ✅ 完成 |
 | Phase 2 | 搜索性能优化 (<20ms) | ✅ 完成 |
+| Phase 3 | 预压缩记忆刷新       | ✅ 完成 |
+| Phase 4 | Embedding 缓存       | ✅ 完成 |
+| Phase 5 | 文件监听和自动索引   | ✅ 完成 |
+| Phase 6 | UI 集成              | ✅ 完成 |
+| Phase 6 | AI 对话保存到记忆    | ✅ 完成 |
 
 **核心文件**:
 
-- `src/main/llm/permanent-memory-manager.js` (841 行)
-- `src/main/llm/permanent-memory-ipc.js` (183 行)
+后端：
+- `src/main/llm/permanent-memory-manager.js` (1150+ 行)
+- `src/main/llm/permanent-memory-ipc.js` (295 行)
+- `src/main/llm/memory-file-watcher.js` (600 行)
 - `src/main/rag/hybrid-search-engine.js` (292 行)
 - `src/main/rag/bm25-search.js` (310 行)
+- `src/main/rag/embedding-cache.js` (560 行)
+
+前端：
+- `src/renderer/stores/memory.js` (350+ 行)
+- `src/renderer/components/memory/PermanentMemoryPanel.vue`
+- `src/renderer/components/memory/DailyNotesTimeline.vue`
+- `src/renderer/components/memory/MemoryEditor.vue`
+- `src/renderer/components/memory/MemorySearchPanel.vue`
+- `src/renderer/components/memory/MemoryStatsPanel.vue`
+- `src/renderer/pages/PermanentMemoryPage.vue`
 
 ---
 

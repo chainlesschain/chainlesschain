@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-01 (Clawdbot 永久记忆集成 Phase 3-5 完成)
+> **最后更新**: 2026-02-02 (Clawdbot 永久记忆集成 Phase 6 完成 - AI 对话保存记忆)
 
 ---
 
@@ -37,10 +37,48 @@
 - [x] Android 端 P2P 网络心跳机制和自动重连
 - [x] Clawdbot 永久记忆集成 Phase 1 (基础架构)
 - [x] Clawdbot 永久记忆集成 Phase 2 (混合搜索引擎)
+- [x] Clawdbot 永久记忆集成 Phase 3-5 (预压缩刷新、Embedding 缓存、文件监听)
+- [x] Clawdbot 永久记忆集成 Phase 6 (UI 集成)
 
 ### 最近完成
 
-1. **Clawdbot 永久记忆集成 Phase 2** (2026-02-01):
+1. **Clawdbot 永久记忆集成 Phase 6 增强 - AI 对话保存记忆** (2026-02-02):
+   - 更新 `src/main/llm/permanent-memory-ipc.js` - 新增 3 个 IPC 通道
+     - `memory:save-to-memory` - 保存内容到永久记忆
+     - `memory:extract-from-conversation` - 从对话提取并保存记忆
+     - `memory:get-memory-sections` - 获取 MEMORY.md 章节列表
+   - 更新 `src/main/llm/permanent-memory-manager.js` - 新增记忆保存方法（+200 行）
+     - `saveToMemory()` - 保存到 Daily Notes 或 MEMORY.md
+     - `extractFromConversation()` - 对话摘要提取与保存
+     - `getMemorySections()` - 章节列表解析
+     - `_buildConversationSummary()` - 对话摘要构建
+     - `_extractDiscoveries()` - LLM 辅助技术发现提取
+   - 更新 `src/renderer/stores/memory.js` - 新增 store actions
+     - `saveToMemory()` - 保存到记忆
+     - `extractFromConversation()` - 对话记忆提取
+     - `loadMemorySections()` - 加载章节列表
+   - 更新 `src/renderer/pages/AIChatPage.vue` - 添加保存记忆 UI
+     - AI 消息旁添加"保存记忆"下拉按钮（Daily Notes/技术发现/解决方案）
+     - 对话顶部添加"保存对话到记忆"按钮
+     - 保存成功/失败提示
+   - **功能状态**: Phase 6 完成，AI 对话可一键保存到永久记忆
+
+2. **Clawdbot 永久记忆集成 Phase 6 (UI 集成)** (2026-02-02):
+   - 新建 `src/renderer/stores/memory.js` - Pinia 状态管理（~350 行）
+     - 完整的 IPC 调用封装
+     - Daily Notes、MEMORY.md、混合搜索状态管理
+     - 索引统计和缓存管理
+   - 新建 `src/renderer/components/memory/` 组件目录
+     - `PermanentMemoryPanel.vue` - 主面板组件（统计卡片、标签页切换）
+     - `DailyNotesTimeline.vue` - Daily Notes 时间轴视图
+     - `MemoryEditor.vue` - MEMORY.md 编辑器（章节跳转、追加内容）
+     - `MemorySearchPanel.vue` - 混合搜索 UI（权重调整、结果展示）
+     - `MemoryStatsPanel.vue` - 统计面板（Embedding 缓存、文件监听状态）
+   - 新建 `src/renderer/pages/PermanentMemoryPage.vue` - 页面入口
+   - 更新 `src/renderer/router/index.js` - 添加 /memory/permanent 路由
+   - **功能状态**: Phase 6 完成,UI 可访问路径 /memory/permanent
+
+2. **Clawdbot 永久记忆集成 Phase 2** (2026-02-01):
    - 新建 `bm25-search.js` - BM25 全文搜索引擎（~300 行）
      - Okapi BM25 算法实现
      - 中文/英文分词器

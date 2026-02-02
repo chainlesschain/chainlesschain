@@ -826,6 +826,12 @@ const routes = [
         component: () => import("../pages/MemoryDashboardPage.vue"),
         meta: { title: "Memory Bank 仪表板" },
       },
+      {
+        path: "memory/permanent",
+        name: "PermanentMemory",
+        component: () => import("../pages/PermanentMemoryPage.vue"),
+        meta: { title: "永久记忆" },
+      },
       // ===== Cowork 多代理协作路由 =====
       {
         path: "cowork",
