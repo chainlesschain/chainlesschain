@@ -7,16 +7,16 @@
  * @module p2p/webrtc-data-channel
  */
 
-const { EventEmitter } = require('events');
-const { logger } = require('../utils/logger');
+const { EventEmitter } = require("events");
+const { logger } = require("../utils/logger");
 
 // 动态导入 wrtc（如果安装）
 let wrtc;
 try {
-  wrtc = require('wrtc');
-  logger.info('[WebRTC] wrtc 模块已加载');
+  wrtc = require("wrtc");
+  logger.info("[WebRTC] wrtc 模块已加载");
 } catch (error) {
-  logger.warn('[WebRTC] wrtc 模块未安装，将使用模拟模式');
+  logger.warn("[WebRTC] wrtc 模块未安装，将使用模拟模式");
 }
 
 /**
@@ -29,10 +29,10 @@ class WebRTCDataChannelManager extends EventEmitter {
     this.signalServer = signalServer;
     this.options = {
       iceServers: options.iceServers || [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
       ],
-      ...options
+      ...options,
     };
 
     // 活动的连接（peerId -> Connection）
@@ -45,7 +45,7 @@ class WebRTCDataChannelManager extends EventEmitter {
     this.stats = {
       totalConnections: 0,
       activeConnections: 0,
-      failedConnections: 0
+      failedConnections: 0,
     };
   }
 
@@ -53,12 +53,12 @@ class WebRTCDataChannelManager extends EventEmitter {
    * 初始化管理器
    */
   async initialize() {
-    logger.info('[WebRTC] 初始化数据通道管理器...');
+    logger.info("[WebRTC] 初始化数据通道管理器...");
 
     try {
       // 检查 wrtc 是否可用
       if (!wrtc) {
-        logger.warn('[WebRTC] 使用模拟模式（生产环境需要安装 wrtc）');
+        logger.warn("[WebRTC] 使用模拟模式（生产环境需要安装 wrtc）");
         this.useMockMode = true;
       }
 
@@ -67,9 +67,9 @@ class WebRTCDataChannelManager extends EventEmitter {
         this.setupSignalingHandlers();
       }
 
-      logger.info('[WebRTC] ✅ 数据通道管理器初始化完成');
+      logger.info("[WebRTC] ✅ 数据通道管理器初始化完成");
     } catch (error) {
-      logger.error('[WebRTC] ❌ 初始化失败:', error);
+      logger.error("[WebRTC] ❌ 初始化失败:", error);
       throw error;
     }
   }
@@ -79,16 +79,16 @@ class WebRTCDataChannelManager extends EventEmitter {
    */
   setupSignalingHandlers() {
     // 监听来自 Android 客户端的 offer
-    this.signalServer.on('webrtc:offer', async (data) => {
+    this.signalServer.on("webrtc:offer", async (data) => {
       await this.handleOffer(data);
     });
 
     // 监听 ICE candidate
-    this.signalServer.on('webrtc:ice-candidate', async (data) => {
+    this.signalServer.on("webrtc:ice-candidate", async (data) => {
       await this.handleIceCandidate(data);
     });
 
-    logger.info('[WebRTC] 信令处理器已设置');
+    logger.info("[WebRTC] 信令处理器已设置");
   }
 
   /**
@@ -104,15 +104,15 @@ class WebRTCDataChannelManager extends EventEmitter {
 
     // 真实模式
     const pc = new wrtc.RTCPeerConnection({
-      iceServers: this.options.iceServers
+      iceServers: this.options.iceServers,
     });
 
     const connection = {
       peerId,
       pc,
       dataChannel: null,
-      state: 'connecting',
-      createdAt: Date.now()
+      state: "connecting",
+      createdAt: Date.now(),
     };
 
     // 监听 ICE candidate
@@ -128,10 +128,13 @@ class WebRTCDataChannelManager extends EventEmitter {
       logger.info(`[WebRTC] 连接状态变更: ${peerId} -> ${pc.connectionState}`);
       connection.state = pc.connectionState;
 
-      if (pc.connectionState === 'connected') {
+      if (pc.connectionState === "connected") {
         this.stats.activeConnections++;
-        this.emit('connection:established', peerId);
-      } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        this.emit("connection:established", peerId);
+      } else if (
+        pc.connectionState === "failed" ||
+        pc.connectionState === "closed"
+      ) {
         this.handleConnectionFailure(peerId);
       }
     };
@@ -157,32 +160,57 @@ class WebRTCDataChannelManager extends EventEmitter {
     logger.info(`[WebRTC] 收到 offer: ${peerId}`);
 
     try {
+      // 验证 offer
+      if (!offer || typeof offer !== "object") {
+        throw new Error("Invalid offer");
+      }
+
       // 创建对等连接
       const connection = this.createPeerConnection(peerId);
 
-      // 设置远程描述
-      await connection.pc.setRemoteDescription(new wrtc.RTCSessionDescription(offer));
+      if (this.useMockMode) {
+        // Mock mode: simulate offer/answer exchange
+        await connection.pc.setRemoteDescription(offer);
+        const answer = await connection.pc.createAnswer();
+        await connection.pc.setLocalDescription(answer);
+        this.sendAnswer(peerId, answer);
 
-      // 创建 answer
-      const answer = await connection.pc.createAnswer();
-      await connection.pc.setLocalDescription(answer);
-
-      // 发送 answer
-      this.sendAnswer(peerId, answer);
-
-      // 处理待处理的 ICE candidates
-      const pending = this.pendingIceCandidates.get(peerId);
-      if (pending) {
-        for (const candidate of pending) {
-          await connection.pc.addIceCandidate(new wrtc.RTCIceCandidate(candidate));
+        // 处理待处理的 ICE candidates (mock mode)
+        const pending = this.pendingIceCandidates.get(peerId);
+        if (pending) {
+          this.pendingIceCandidates.delete(peerId);
         }
-        this.pendingIceCandidates.delete(peerId);
+      } else {
+        // Real mode: use wrtc
+        // 设置远程描述
+        await connection.pc.setRemoteDescription(
+          new wrtc.RTCSessionDescription(offer),
+        );
+
+        // 创建 answer
+        const answer = await connection.pc.createAnswer();
+        await connection.pc.setLocalDescription(answer);
+
+        // 发送 answer
+        this.sendAnswer(peerId, answer);
+
+        // 处理待处理的 ICE candidates
+        const pending = this.pendingIceCandidates.get(peerId);
+        if (pending) {
+          for (const candidate of pending) {
+            await connection.pc.addIceCandidate(
+              new wrtc.RTCIceCandidate(candidate),
+            );
+          }
+          this.pendingIceCandidates.delete(peerId);
+        }
       }
 
       logger.info(`[WebRTC] answer 已发送: ${peerId}`);
     } catch (error) {
       logger.error(`[WebRTC] 处理 offer 失败: ${peerId}`, error);
       this.stats.failedConnections++;
+      this.emit("connection:failed", peerId);
     }
   }
 
@@ -198,7 +226,14 @@ class WebRTCDataChannelManager extends EventEmitter {
 
     if (connection && connection.pc.remoteDescription) {
       try {
-        await connection.pc.addIceCandidate(new wrtc.RTCIceCandidate(candidate));
+        if (this.useMockMode) {
+          // Mock mode: simulate adding ICE candidate
+          // No actual operation needed in mock mode
+        } else {
+          await connection.pc.addIceCandidate(
+            new wrtc.RTCIceCandidate(candidate),
+          );
+        }
       } catch (error) {
         logger.error(`[WebRTC] 添加 ICE candidate 失败: ${peerId}`, error);
       }
@@ -228,25 +263,25 @@ class WebRTCDataChannelManager extends EventEmitter {
     // 监听消息
     channel.onmessage = (event) => {
       logger.debug(`[WebRTC] 收到消息: ${peerId}`);
-      this.emit('message', peerId, event.data);
+      this.emit("message", peerId, event.data);
     };
 
     // 监听打开
     channel.onopen = () => {
       logger.info(`[WebRTC] 数据通道已打开: ${peerId}`);
-      this.emit('channel:open', peerId);
+      this.emit("channel:open", peerId);
     };
 
     // 监听关闭
     channel.onclose = () => {
       logger.info(`[WebRTC] 数据通道已关闭: ${peerId}`);
-      this.emit('channel:close', peerId);
+      this.emit("channel:close", peerId);
     };
 
     // 监听错误
     channel.onerror = (error) => {
       logger.error(`[WebRTC] 数据通道错误: ${peerId}`, error);
-      this.emit('channel:error', peerId, error);
+      this.emit("channel:error", peerId, error);
     };
   }
 
@@ -260,7 +295,7 @@ class WebRTCDataChannelManager extends EventEmitter {
       throw new Error(`No data channel for peer: ${peerId}`);
     }
 
-    if (connection.dataChannel.readyState !== 'open') {
+    if (connection.dataChannel.readyState !== "open") {
       throw new Error(`Data channel not open for peer: ${peerId}`);
     }
 
@@ -273,7 +308,7 @@ class WebRTCDataChannelManager extends EventEmitter {
    */
   sendAnswer(peerId, answer) {
     if (this.signalServer) {
-      this.signalServer.send('webrtc:answer', { peerId, answer });
+      this.signalServer.send("webrtc:answer", { peerId, answer });
     }
   }
 
@@ -282,7 +317,7 @@ class WebRTCDataChannelManager extends EventEmitter {
    */
   sendIceCandidate(peerId, candidate) {
     if (this.signalServer) {
-      this.signalServer.send('webrtc:ice-candidate', { peerId, candidate });
+      this.signalServer.send("webrtc:ice-candidate", { peerId, candidate });
     }
   }
 
@@ -303,10 +338,13 @@ class WebRTCDataChannelManager extends EventEmitter {
       this.connections.delete(peerId);
     }
 
-    this.stats.activeConnections = Math.max(0, this.stats.activeConnections - 1);
+    this.stats.activeConnections = Math.max(
+      0,
+      this.stats.activeConnections - 1,
+    );
     this.stats.failedConnections++;
 
-    this.emit('connection:failed', peerId);
+    this.emit("connection:failed", peerId);
   }
 
   /**
@@ -324,7 +362,10 @@ class WebRTCDataChannelManager extends EventEmitter {
         connection.pc.close();
       }
       this.connections.delete(peerId);
-      this.stats.activeConnections = Math.max(0, this.stats.activeConnections - 1);
+      this.stats.activeConnections = Math.max(
+        0,
+        this.stats.activeConnections - 1,
+      );
     }
   }
 
@@ -333,7 +374,7 @@ class WebRTCDataChannelManager extends EventEmitter {
    */
   getConnectionState(peerId) {
     const connection = this.connections.get(peerId);
-    return connection ? connection.state : 'disconnected';
+    return connection ? connection.state : "disconnected";
   }
 
   /**
@@ -342,7 +383,7 @@ class WebRTCDataChannelManager extends EventEmitter {
   getStats() {
     return {
       ...this.stats,
-      connections: this.connections.size
+      connections: this.connections.size,
     };
   }
 
@@ -352,28 +393,33 @@ class WebRTCDataChannelManager extends EventEmitter {
   createMockConnection(peerId) {
     logger.info(`[WebRTC] 创建模拟连接: ${peerId}`);
 
+    const mockPc = {
+      connectionState: "connected",
+      remoteDescription: null,
+      setRemoteDescription: async (desc) => {
+        mockPc.remoteDescription = desc;
+      },
+      createAnswer: async () => ({ type: "answer", sdp: "mock-sdp" }),
+      setLocalDescription: async () => {},
+      close: () => {},
+    };
+
     const connection = {
       peerId,
-      pc: {
-        connectionState: 'connected',
-        setRemoteDescription: async () => {},
-        createAnswer: async () => ({ type: 'answer', sdp: 'mock-sdp' }),
-        setLocalDescription: async () => {},
-        close: () => {}
-      },
+      pc: mockPc,
       dataChannel: {
-        readyState: 'open',
+        readyState: "open",
         send: (data) => {
           logger.debug(`[WebRTC] [Mock] 发送消息: ${peerId}`);
           // 模拟接收回显
           setTimeout(() => {
-            this.emit('message', peerId, data);
+            this.emit("message", peerId, data);
           }, 100);
         },
-        close: () => {}
+        close: () => {},
       },
-      state: 'connected',
-      createdAt: Date.now()
+      state: "connected",
+      createdAt: Date.now(),
     };
 
     this.connections.set(peerId, connection);
@@ -382,8 +428,8 @@ class WebRTCDataChannelManager extends EventEmitter {
 
     // 模拟连接建立
     setTimeout(() => {
-      this.emit('connection:established', peerId);
-      this.emit('channel:open', peerId);
+      this.emit("connection:established", peerId);
+      this.emit("channel:open", peerId);
     }, 500);
 
     return connection;
@@ -393,7 +439,7 @@ class WebRTCDataChannelManager extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    logger.info('[WebRTC] 清理资源...');
+    logger.info("[WebRTC] 清理资源...");
 
     for (const [peerId] of this.connections) {
       this.disconnect(peerId);
@@ -402,7 +448,7 @@ class WebRTCDataChannelManager extends EventEmitter {
     this.connections.clear();
     this.pendingIceCandidates.clear();
 
-    logger.info('[WebRTC] 清理完成');
+    logger.info("[WebRTC] 清理完成");
   }
 }
 

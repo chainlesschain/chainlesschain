@@ -14,11 +14,14 @@
  * @since 2026-02-01
  */
 
-const { logger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const crypto = require('crypto');
-const { EventEmitter } = require('events');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const crypto = require("crypto");
+const { EventEmitter } = require("events");
+const { HybridSearchEngine } = require("../rag/hybrid-search-engine");
+const { MemoryFileWatcher } = require("./memory-file-watcher");
+const { EmbeddingCache } = require("../rag/embedding-cache");
 
 /**
  * PermanentMemoryManager 类
@@ -40,11 +43,11 @@ class PermanentMemoryManager extends EventEmitter {
     super();
 
     if (!options.memoryDir) {
-      throw new Error('[PermanentMemoryManager] memoryDir 参数是必需的');
+      throw new Error("[PermanentMemoryManager] memoryDir 参数是必需的");
     }
 
     if (!options.database) {
-      throw new Error('[PermanentMemoryManager] database 参数是必需的');
+      throw new Error("[PermanentMemoryManager] database 参数是必需的");
     }
 
     this.memoryDir = options.memoryDir;
@@ -59,21 +62,82 @@ class PermanentMemoryManager extends EventEmitter {
     this.maxDailyNotesRetention = options.maxDailyNotesRetention || 30;
 
     // 子目录路径
-    this.dailyNotesDir = path.join(this.memoryDir, 'daily');
-    this.memoryFilePath = path.join(this.memoryDir, 'MEMORY.md');
-    this.indexDir = path.join(this.memoryDir, 'index');
+    this.dailyNotesDir = path.join(this.memoryDir, "daily");
+    this.memoryFilePath = path.join(this.memoryDir, "MEMORY.md");
+    this.indexDir = path.join(this.memoryDir, "index");
 
     // 内存缓存
     this.dailyNotesCache = new Map();
     this.memoryContentCache = null;
     this.fileHashCache = new Map();
 
-    logger.info('[PermanentMemoryManager] 初始化完成', {
+    // 混合搜索引擎 (Phase 2)
+    this.hybridSearchEngine = null;
+    if (this.ragManager) {
+      try {
+        this.hybridSearchEngine = new HybridSearchEngine({
+          ragManager: this.ragManager,
+          vectorWeight: 0.6,
+          textWeight: 0.4,
+          rrfK: 60,
+          language: "zh",
+        });
+        logger.info("[PermanentMemoryManager] 混合搜索引擎已初始化");
+      } catch (error) {
+        logger.warn(
+          "[PermanentMemoryManager] 混合搜索引擎初始化失败:",
+          error.message,
+        );
+      }
+    }
+
+    // Embedding 缓存 (Phase 4)
+    this.embeddingCache = null;
+    if (options.enableEmbeddingCache !== false) {
+      try {
+        this.embeddingCache = new EmbeddingCache({
+          database: this.db,
+          maxCacheSize: 100000,
+          cacheExpiration: 30 * 24 * 60 * 60 * 1000, // 30天
+          enableAutoCleanup: true,
+        });
+        logger.info("[PermanentMemoryManager] Embedding 缓存已初始化");
+      } catch (error) {
+        logger.warn(
+          "[PermanentMemoryManager] Embedding 缓存初始化失败:",
+          error.message,
+        );
+      }
+    }
+
+    // 文件监听器 (Phase 5)
+    this.fileWatcher = null;
+    if (this.enableAutoIndexing) {
+      try {
+        this.fileWatcher = new MemoryFileWatcher({
+          memoryDir: this.memoryDir,
+          database: this.db,
+          debounceMs: 1500,
+          onChangeCallback: this._handleFileChange.bind(this),
+        });
+        logger.info("[PermanentMemoryManager] 文件监听器已初始化");
+      } catch (error) {
+        logger.warn(
+          "[PermanentMemoryManager] 文件监听器初始化失败:",
+          error.message,
+        );
+      }
+    }
+
+    logger.info("[PermanentMemoryManager] 初始化完成", {
       记忆目录: this.memoryDir,
       启用DailyNotes: this.enableDailyNotes,
       启用长期记忆: this.enableLongTermMemory,
       启用自动索引: this.enableAutoIndexing,
       保留天数: this.maxDailyNotesRetention,
+      混合搜索: !!this.hybridSearchEngine,
+      Embedding缓存: !!this.embeddingCache,
+      文件监听: !!this.fileWatcher,
     });
   }
 
@@ -99,7 +163,7 @@ class PermanentMemoryManager extends EventEmitter {
         await this.ensureMemoryFileExists();
       }
 
-      logger.info('[PermanentMemoryManager] 目录结构创建完成');
+      logger.info("[PermanentMemoryManager] 目录结构创建完成");
 
       // 清理过期 Daily Notes
       if (this.enableDailyNotes) {
@@ -109,9 +173,19 @@ class PermanentMemoryManager extends EventEmitter {
       // 初始化统计
       await this.initializeTodayStats();
 
+      // 启动 Embedding 缓存自动清理 (Phase 4)
+      if (this.embeddingCache) {
+        this.embeddingCache.startAutoCleanup();
+      }
+
+      // 启动文件监听 (Phase 5)
+      if (this.fileWatcher && this.enableAutoIndexing) {
+        await this.startFileWatcher();
+      }
+
       return true;
     } catch (error) {
-      logger.error('[PermanentMemoryManager] 初始化失败:', error);
+      logger.error("[PermanentMemoryManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -122,12 +196,12 @@ class PermanentMemoryManager extends EventEmitter {
   async ensureMemoryFileExists() {
     try {
       await fs.access(this.memoryFilePath);
-      logger.info('[PermanentMemoryManager] MEMORY.md 已存在');
+      logger.info("[PermanentMemoryManager] MEMORY.md 已存在");
     } catch (error) {
       // 文件不存在,创建默认内容
       const defaultContent = this.getDefaultMemoryContent();
-      await fs.writeFile(this.memoryFilePath, defaultContent, 'utf-8');
-      logger.info('[PermanentMemoryManager] MEMORY.md 已创建');
+      await fs.writeFile(this.memoryFilePath, defaultContent, "utf-8");
+      logger.info("[PermanentMemoryManager] MEMORY.md 已创建");
     }
   }
 
@@ -135,7 +209,7 @@ class PermanentMemoryManager extends EventEmitter {
    * 获取 MEMORY.md 默认内容
    */
   getDefaultMemoryContent() {
-    const now = new Date().toISOString().split('T')[0];
+    const now = new Date().toISOString().split("T")[0];
     return `# ChainlessChain 长期记忆
 
 > 本文件由 PermanentMemoryManager 自动维护
@@ -190,7 +264,7 @@ _此文件会自动更新,也可手动编辑。_
    */
   async writeDailyNote(content, options = {}) {
     if (!this.enableDailyNotes) {
-      throw new Error('[PermanentMemoryManager] Daily Notes 功能未启用');
+      throw new Error("[PermanentMemoryManager] Daily Notes 功能未启用");
     }
 
     const append = options.append !== false;
@@ -209,19 +283,21 @@ _此文件会自动更新,也可手动编辑。_
 
       if (fileExists && append) {
         // 追加模式
-        const separator = '\n\n';
-        await fs.appendFile(filePath, separator + content, 'utf-8');
-        logger.info('[PermanentMemoryManager] Daily Note 已追加:', today);
+        const separator = "\n\n";
+        await fs.appendFile(filePath, separator + content, "utf-8");
+        logger.info("[PermanentMemoryManager] Daily Note 已追加:", today);
       } else {
         // 创建或覆盖模式
         const header = this.getDailyNoteHeader(today);
-        const fullContent = fileExists ? content : header + '\n\n' + content;
+        const fullContent = fileExists ? content : header + "\n\n" + content;
         await fs.writeFile(
           filePath,
-          fileExists ? await this.readDailyNote(today) + '\n\n' + content : fullContent,
-          'utf-8'
+          fileExists
+            ? (await this.readDailyNote(today)) + "\n\n" + content
+            : fullContent,
+          "utf-8",
         );
-        logger.info('[PermanentMemoryManager] Daily Note 已写入:', today);
+        logger.info("[PermanentMemoryManager] Daily Note 已写入:", today);
       }
 
       // 更新缓存
@@ -231,11 +307,11 @@ _此文件会自动更新,也可手动编辑。_
       await this.updateDailyNoteMetadata(today);
 
       // 触发事件
-      this.emit('daily-note-updated', { date: today, filePath });
+      this.emit("daily-note-updated", { date: today, filePath });
 
       return filePath;
     } catch (error) {
-      logger.error('[PermanentMemoryManager] 写入 Daily Note 失败:', error);
+      logger.error("[PermanentMemoryManager] 写入 Daily Note 失败:", error);
       throw error;
     }
   }
@@ -247,7 +323,7 @@ _此文件会自动更新,也可手动编辑。_
    */
   async readDailyNote(date) {
     if (!this.enableDailyNotes) {
-      throw new Error('[PermanentMemoryManager] Daily Notes 功能未启用');
+      throw new Error("[PermanentMemoryManager] Daily Notes 功能未启用");
     }
 
     // 检查缓存
@@ -258,14 +334,14 @@ _此文件会自动更新,也可手动编辑。_
     const filePath = this.getDailyNoteFilePath(date);
 
     try {
-      const content = await fs.readFile(filePath, 'utf-8');
+      const content = await fs.readFile(filePath, "utf-8");
       this.dailyNotesCache.set(date, content);
       return content;
     } catch (error) {
-      if (error.code === 'ENOENT') {
+      if (error.code === "ENOENT") {
         return null; // 文件不存在
       }
-      logger.error('[PermanentMemoryManager] 读取 Daily Note 失败:', error);
+      logger.error("[PermanentMemoryManager] 读取 Daily Note 失败:", error);
       throw error;
     }
   }
@@ -279,7 +355,7 @@ _此文件会自动更新,也可手动编辑。_
    */
   async appendToMemory(content, options = {}) {
     if (!this.enableLongTermMemory) {
-      throw new Error('[PermanentMemoryManager] 长期记忆功能未启用');
+      throw new Error("[PermanentMemoryManager] 长期记忆功能未启用");
     }
 
     try {
@@ -292,27 +368,24 @@ _此文件会自动更新,也可手动编辑。_
         newContent = this.appendToSection(currentContent, section, content);
       } else {
         // 追加到文件末尾
-        newContent = currentContent + '\n\n' + content;
+        newContent = currentContent + "\n\n" + content;
       }
 
       // 更新最后更新时间
-      const today = new Date().toISOString().split('T')[0];
-      newContent = newContent.replace(
-        /> 最后更新: .+/,
-        `> 最后更新: ${today}`
-      );
+      const today = new Date().toISOString().split("T")[0];
+      newContent = newContent.replace(/> 最后更新: .+/, `> 最后更新: ${today}`);
 
-      await fs.writeFile(this.memoryFilePath, newContent, 'utf-8');
+      await fs.writeFile(this.memoryFilePath, newContent, "utf-8");
 
       // 清除缓存
       this.memoryContentCache = null;
 
-      logger.info('[PermanentMemoryManager] MEMORY.md 已更新', { section });
+      logger.info("[PermanentMemoryManager] MEMORY.md 已更新", { section });
 
       // 触发事件
-      this.emit('memory-updated', { section, filePath: this.memoryFilePath });
+      this.emit("memory-updated", { section, filePath: this.memoryFilePath });
     } catch (error) {
-      logger.error('[PermanentMemoryManager] 追加到 MEMORY.md 失败:', error);
+      logger.error("[PermanentMemoryManager] 追加到 MEMORY.md 失败:", error);
       throw error;
     }
   }
@@ -323,7 +396,7 @@ _此文件会自动更新,也可手动编辑。_
    */
   async readMemory() {
     if (!this.enableLongTermMemory) {
-      throw new Error('[PermanentMemoryManager] 长期记忆功能未启用');
+      throw new Error("[PermanentMemoryManager] 长期记忆功能未启用");
     }
 
     // 检查缓存
@@ -332,11 +405,11 @@ _此文件会自动更新,也可手动编辑。_
     }
 
     try {
-      const content = await fs.readFile(this.memoryFilePath, 'utf-8');
+      const content = await fs.readFile(this.memoryFilePath, "utf-8");
       this.memoryContentCache = content;
       return content;
     } catch (error) {
-      logger.error('[PermanentMemoryManager] 读取 MEMORY.md 失败:', error);
+      logger.error("[PermanentMemoryManager] 读取 MEMORY.md 失败:", error);
       throw error;
     }
   }
@@ -349,16 +422,19 @@ _此文件会自动更新,也可手动编辑。_
    * @returns {string} 更新后的内容
    */
   appendToSection(content, section, newContent) {
-    const sectionRegex = new RegExp(`(## ${section}[\\s\\S]*?)(?=\\n## |$)`, 'i');
+    const sectionRegex = new RegExp(
+      `(## ${section}[\\s\\S]*?)(?=\\n## |$)`,
+      "i",
+    );
     const match = content.match(sectionRegex);
 
     if (match) {
       const sectionContent = match[1];
-      const updatedSection = sectionContent.trimEnd() + '\n\n' + newContent;
+      const updatedSection = sectionContent.trimEnd() + "\n\n" + newContent;
       return content.replace(sectionRegex, updatedSection);
     } else {
       // 章节不存在,追加到末尾
-      return content + '\n\n## ' + section + '\n\n' + newContent;
+      return content + "\n\n## " + section + "\n\n" + newContent;
     }
   }
 
@@ -399,7 +475,7 @@ _此文件会自动更新,也可手动编辑。_
    * @returns {string} 今日日期
    */
   getTodayDate() {
-    return new Date().toISOString().split('T')[0];
+    return new Date().toISOString().split("T")[0];
   }
 
   /**
@@ -408,7 +484,7 @@ _此文件会自动更新,也可手动编辑。_
    * @returns {string} SHA-256 hash
    */
   hashContent(content) {
-    return crypto.createHash('sha256').update(content).digest('hex');
+    return crypto.createHash("sha256").update(content).digest("hex");
   }
 
   /**
@@ -418,7 +494,9 @@ _此文件会自动更新,也可手动编辑。_
   async updateDailyNoteMetadata(date) {
     try {
       const content = await this.readDailyNote(date);
-      if (!content) return;
+      if (!content) {
+        return;
+      }
 
       const metadata = this.parseDailyNoteMetadata(content);
 
@@ -438,12 +516,12 @@ _此文件会自动更新,也可手动编辑。_
         metadata.discoveriesCount,
         metadata.wordCount,
         now,
-        now
+        now,
       );
 
-      logger.info('[PermanentMemoryManager] Daily Note 元数据已更新:', date);
+      logger.info("[PermanentMemoryManager] Daily Note 元数据已更新:", date);
     } catch (error) {
-      logger.error('[PermanentMemoryManager] 更新元数据失败:', error);
+      logger.error("[PermanentMemoryManager] 更新元数据失败:", error);
     }
   }
 
@@ -453,10 +531,14 @@ _此文件会自动更新,也可手动编辑。_
    * @returns {Object} 元数据对象
    */
   parseDailyNoteMetadata(content) {
-    const conversationCount = (content.match(/### \d{2}:\d{2} - /g) || []).length;
+    const conversationCount = (content.match(/### \d{2}:\d{2} - /g) || [])
+      .length;
     const completedTasks = (content.match(/- \[x\]/gi) || []).length;
     const pendingTasks = (content.match(/- \[ \]/g) || []).length;
-    const discoveriesCount = (content.match(/## 💡 技术发现[\s\S]*?(?=\n## |$)/i)?.[0].match(/^- /gm) || []).length;
+    const discoveriesCount = (
+      content.match(/## 💡 技术发现[\s\S]*?(?=\n## |$)/i)?.[0].match(/^- /gm) ||
+      []
+    ).length;
     const wordCount = content.length;
 
     return {
@@ -480,7 +562,9 @@ _此文件会自动更新,也可手动编辑。_
       let deletedCount = 0;
 
       for (const file of files) {
-        if (!file.endsWith('.md')) continue;
+        if (!file.endsWith(".md")) {
+          continue;
+        }
 
         const filePath = path.join(this.dailyNotesDir, file);
         const stats = await fs.stat(filePath);
@@ -489,15 +573,17 @@ _此文件会自动更新,也可手动编辑。_
         if (age > retentionMs) {
           await fs.unlink(filePath);
           deletedCount++;
-          logger.info('[PermanentMemoryManager] 已删除过期 Daily Note:', file);
+          logger.info("[PermanentMemoryManager] 已删除过期 Daily Note:", file);
         }
       }
 
       if (deletedCount > 0) {
-        logger.info(`[PermanentMemoryManager] 清理完成,删除 ${deletedCount} 个过期文件`);
+        logger.info(
+          `[PermanentMemoryManager] 清理完成,删除 ${deletedCount} 个过期文件`,
+        );
       }
     } catch (error) {
-      logger.error('[PermanentMemoryManager] 清理过期文件失败:', error);
+      logger.error("[PermanentMemoryManager] 清理过期文件失败:", error);
     }
   }
 
@@ -513,7 +599,7 @@ _此文件会自动更新,也可手动编辑。_
       `);
       stmt.run(today, Date.now());
     } catch (error) {
-      logger.error('[PermanentMemoryManager] 初始化统计失败:', error);
+      logger.error("[PermanentMemoryManager] 初始化统计失败:", error);
     }
   }
 
@@ -533,13 +619,15 @@ _此文件会自动更新,也可手动编辑。_
 
       // 统计缓存
       const cachedEmbeddingsCount = this.db
-        .prepare('SELECT COUNT(*) as count FROM embedding_cache')
+        .prepare("SELECT COUNT(*) as count FROM embedding_cache")
         .get().count;
 
       // 统计索引文件
       const indexedFilesCount = this.db
-        .prepare('SELECT COUNT(*) as count FROM memory_file_hashes WHERE index_status = ?')
-        .get('indexed').count;
+        .prepare(
+          "SELECT COUNT(*) as count FROM memory_file_hashes WHERE index_status = ?",
+        )
+        .get("indexed").count;
 
       // 更新统计表
       const stmt = this.db.prepare(`
@@ -558,7 +646,7 @@ _此文件会自动更新,也可手动编辑。_
         cachedEmbeddingsCount,
         indexedFilesCount,
         Date.now(),
-        today
+        today,
       );
 
       return {
@@ -569,7 +657,7 @@ _此文件会自动更新,也可手动编辑。_
         date: today,
       };
     } catch (error) {
-      logger.error('[PermanentMemoryManager] 获取统计失败:', error);
+      logger.error("[PermanentMemoryManager] 获取统计失败:", error);
       throw error;
     }
   }
@@ -580,7 +668,7 @@ _此文件会自动更新,也可手动编辑。_
   async countDailyNotes() {
     try {
       const files = await fs.readdir(this.dailyNotesDir);
-      return files.filter((f) => f.endsWith('.md')).length;
+      return files.filter((f) => f.endsWith(".md")).length;
     } catch (error) {
       return 0;
     }
@@ -610,26 +698,453 @@ _此文件会自动更新,也可手动编辑。_
         .prepare(
           `SELECT * FROM daily_notes_metadata
            ORDER BY date DESC
-           LIMIT ?`
+           LIMIT ?`,
         )
         .all(limit);
 
       return rows;
     } catch (error) {
-      logger.error('[PermanentMemoryManager] 获取最近 Daily Notes 失败:', error);
+      logger.error(
+        "[PermanentMemoryManager] 获取最近 Daily Notes 失败:",
+        error,
+      );
       return [];
     }
   }
 
   /**
+   * 混合搜索记忆 (Vector + BM25)
+   * @param {string} query - 查询字符串
+   * @param {Object} options - 搜索选项
+   * @param {number} [options.limit=10] - 返回结果数量
+   * @param {boolean} [options.searchDailyNotes=true] - 搜索 Daily Notes
+   * @param {boolean} [options.searchMemory=true] - 搜索 MEMORY.md
+   * @param {number} [options.vectorWeight=0.6] - Vector 权重
+   * @param {number} [options.textWeight=0.4] - BM25 权重
+   * @returns {Promise<Array<Object>>} 搜索结果
+   */
+  async searchMemory(query, options = {}) {
+    if (!this.hybridSearchEngine) {
+      logger.warn(
+        "[PermanentMemoryManager] 混合搜索引擎未初始化，回退到简单搜索",
+      );
+      return this.simpleSearch(query, options);
+    }
+
+    const limit = options.limit || 10;
+    const searchDailyNotes = options.searchDailyNotes !== false;
+    const searchMemory = options.searchMemory !== false;
+
+    try {
+      // 收集待搜索的文档
+      const documents = [];
+
+      // 添加 Daily Notes
+      if (searchDailyNotes) {
+        const dailyNotesDocs = await this.getDailyNotesDocuments();
+        documents.push(...dailyNotesDocs);
+      }
+
+      // 添加 MEMORY.md
+      if (searchMemory) {
+        const memoryDoc = await this.getMemoryDocument();
+        if (memoryDoc) {
+          documents.push(memoryDoc);
+        }
+      }
+
+      // 索引文档
+      await this.hybridSearchEngine.indexDocuments(documents);
+
+      // 更新权重（如果提供）
+      if (
+        options.vectorWeight !== undefined ||
+        options.textWeight !== undefined
+      ) {
+        this.hybridSearchEngine.updateWeights(
+          options.vectorWeight || 0.6,
+          options.textWeight || 0.4,
+        );
+      }
+
+      // 执行搜索
+      const results = await this.hybridSearchEngine.search(query, {
+        limit,
+        vectorLimit: options.vectorLimit || 20,
+        bm25Limit: options.bm25Limit || 20,
+        threshold: options.threshold || 0,
+      });
+
+      return results;
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 混合搜索失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 简单搜索（回退方案，不使用混合搜索）
+   * @param {string} query - 查询字符串
+   * @param {Object} options - 搜索选项
+   * @returns {Promise<Array<Object>>} 搜索结果
+   */
+  async simpleSearch(query, options = {}) {
+    const limit = options.limit || 10;
+    const results = [];
+
+    try {
+      // 搜索 Daily Notes
+      if (options.searchDailyNotes !== false) {
+        const dailyNotes = await this.getRecentDailyNotes(30);
+        for (const note of dailyNotes) {
+          const content = await this.readDailyNote(note.date);
+          if (content && content.toLowerCase().includes(query.toLowerCase())) {
+            results.push({
+              document: {
+                id: `daily-${note.date}`,
+                content,
+                metadata: { type: "daily_note", date: note.date },
+              },
+              score: 0.5,
+              source: "simple",
+            });
+          }
+        }
+      }
+
+      // 搜索 MEMORY.md
+      if (options.searchMemory !== false) {
+        const memoryContent = await this.readMemory();
+        if (
+          memoryContent &&
+          memoryContent.toLowerCase().includes(query.toLowerCase())
+        ) {
+          results.push({
+            document: {
+              id: "memory",
+              content: memoryContent,
+              metadata: { type: "long_term_memory" },
+            },
+            score: 0.7,
+            source: "simple",
+          });
+        }
+      }
+
+      // 按分数排序
+      results.sort((a, b) => b.score - a.score);
+
+      return results.slice(0, limit);
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 简单搜索失败:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 获取 Daily Notes 文档列表
+   * @returns {Promise<Array<Object>>} 文档列表
+   */
+  async getDailyNotesDocuments() {
+    const documents = [];
+
+    try {
+      const recentNotes = await this.getRecentDailyNotes(30);
+
+      for (const note of recentNotes) {
+        const content = await this.readDailyNote(note.date);
+        if (content) {
+          documents.push({
+            id: `daily-${note.date}`,
+            content,
+            metadata: {
+              type: "daily_note",
+              date: note.date,
+              wordCount: note.word_count,
+            },
+          });
+        }
+      }
+
+      return documents;
+    } catch (error) {
+      logger.error(
+        "[PermanentMemoryManager] 获取 Daily Notes 文档失败:",
+        error,
+      );
+      return [];
+    }
+  }
+
+  /**
+   * 获取 MEMORY.md 文档
+   * @returns {Promise<Object|null>} MEMORY.md 文档
+   */
+  async getMemoryDocument() {
+    try {
+      const content = await this.readMemory();
+      if (content) {
+        return {
+          id: "memory",
+          content,
+          metadata: {
+            type: "long_term_memory",
+            wordCount: content.length,
+          },
+        };
+      }
+      return null;
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 获取 MEMORY.md 文档失败:", error);
+      return null;
+    }
+  }
+
+  // ============================================================
+  // Phase 5: 文件监听和自动索引
+  // ============================================================
+
+  /**
+   * 启动文件监听
+   * @returns {Promise<void>}
+   */
+  async startFileWatcher() {
+    if (!this.fileWatcher) {
+      logger.warn("[PermanentMemoryManager] 文件监听器未初始化");
+      return;
+    }
+
+    try {
+      await this.fileWatcher.start();
+
+      // 监听索引需求事件
+      this.fileWatcher.on("index-needed", async (data) => {
+        await this._handleIndexNeeded(data);
+      });
+
+      // 监听索引删除事件
+      this.fileWatcher.on("index-delete", async (data) => {
+        await this._handleIndexDelete(data);
+      });
+
+      logger.info("[PermanentMemoryManager] 文件监听已启动");
+      this.emit("file-watcher-started");
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 启动文件监听失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 停止文件监听
+   * @returns {Promise<void>}
+   */
+  async stopFileWatcher() {
+    if (!this.fileWatcher) {
+      return;
+    }
+
+    try {
+      await this.fileWatcher.stop();
+      logger.info("[PermanentMemoryManager] 文件监听已停止");
+      this.emit("file-watcher-stopped");
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 停止文件监听失败:", error);
+    }
+  }
+
+  /**
+   * 处理文件变化回调
+   * @private
+   * @param {string} event - 事件类型
+   * @param {string} filePath - 文件路径
+   * @param {string} relativePath - 相对路径
+   */
+  async _handleFileChange(event, filePath, relativePath) {
+    logger.info("[PermanentMemoryManager] 文件变化:", { event, relativePath });
+
+    // 清除相关缓存
+    if (relativePath.startsWith("daily/")) {
+      const date = path.basename(relativePath, ".md");
+      this.dailyNotesCache.delete(date);
+    } else if (relativePath === "MEMORY.md") {
+      this.memoryContentCache = null;
+    }
+
+    // 触发事件
+    this.emit("file-changed", { event, filePath, relativePath });
+  }
+
+  /**
+   * 处理索引需求
+   * @private
+   * @param {Object} data - 文件数据
+   */
+  async _handleIndexNeeded(data) {
+    const { filePath, relativePath, content, contentHash } = data;
+
+    try {
+      logger.info("[PermanentMemoryManager] 开始索引文件:", relativePath);
+
+      // 如果有 RAG 管理器，进行索引
+      if (this.ragManager && this.hybridSearchEngine) {
+        // 将文件添加到混合搜索引擎
+        const document = {
+          id: relativePath,
+          content,
+          metadata: {
+            filePath,
+            contentHash,
+            indexedAt: Date.now(),
+          },
+        };
+
+        await this.hybridSearchEngine.indexDocuments([document]);
+
+        // 更新索引状态
+        if (this.fileWatcher) {
+          this.fileWatcher.updateIndexStatus(relativePath, "indexed", 1);
+        }
+
+        logger.info("[PermanentMemoryManager] 文件索引完成:", relativePath);
+      }
+
+      this.emit("file-indexed", { relativePath, contentHash });
+    } catch (error) {
+      logger.error(
+        "[PermanentMemoryManager] 索引文件失败:",
+        relativePath,
+        error,
+      );
+
+      if (this.fileWatcher) {
+        this.fileWatcher.updateIndexStatus(
+          relativePath,
+          "failed",
+          0,
+          error.message,
+        );
+      }
+
+      this.emit("index-error", { relativePath, error });
+    }
+  }
+
+  /**
+   * 处理索引删除
+   * @private
+   * @param {Object} data - 文件数据
+   */
+  async _handleIndexDelete(data) {
+    const { relativePath } = data;
+
+    try {
+      logger.info("[PermanentMemoryManager] 删除索引:", relativePath);
+
+      // TODO: 从混合搜索引擎中删除文档
+      // 目前 HybridSearchEngine 没有 removeDocument 方法
+
+      this.emit("file-unindexed", { relativePath });
+    } catch (error) {
+      logger.error(
+        "[PermanentMemoryManager] 删除索引失败:",
+        relativePath,
+        error,
+      );
+    }
+  }
+
+  /**
+   * 全量重建索引
+   * @returns {Promise<Object>} 重建结果
+   */
+  async rebuildIndex() {
+    if (!this.fileWatcher) {
+      throw new Error("[PermanentMemoryManager] 文件监听器未初始化");
+    }
+
+    try {
+      logger.info("[PermanentMemoryManager] 开始全量重建索引");
+
+      // 扫描目录获取需要索引的文件
+      const filesToIndex = await this.fileWatcher.scanDirectory();
+
+      let indexed = 0;
+      let failed = 0;
+
+      for (const file of filesToIndex) {
+        try {
+          await this._handleIndexNeeded(file);
+          indexed++;
+        } catch (error) {
+          logger.warn(
+            `[PermanentMemoryManager] 索引文件失败: ${file.relativePath}`,
+            error.message,
+          );
+          failed++;
+        }
+      }
+
+      const result = {
+        total: filesToIndex.length,
+        indexed,
+        failed,
+        timestamp: Date.now(),
+      };
+
+      logger.info("[PermanentMemoryManager] 全量重建索引完成:", result);
+      this.emit("index-rebuilt", result);
+
+      return result;
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 全量重建索引失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取索引统计
+   * @returns {Object} 统计信息
+   */
+  getIndexStats() {
+    const stats = {
+      embeddingCache: this.embeddingCache
+        ? this.embeddingCache.getStats()
+        : null,
+      fileWatcher: this.fileWatcher ? this.fileWatcher.getStats() : null,
+      indexedFiles: this.fileWatcher
+        ? this.fileWatcher.getIndexedFiles().length
+        : 0,
+    };
+
+    return stats;
+  }
+
+  /**
    * 销毁实例
    */
-  destroy() {
+  async destroy() {
+    // 停止文件监听
+    if (this.fileWatcher) {
+      await this.fileWatcher.destroy();
+    }
+
+    // 清理 Embedding 缓存
+    if (this.embeddingCache) {
+      this.embeddingCache.destroy();
+    }
+
     this.dailyNotesCache.clear();
     this.memoryContentCache = null;
     this.fileHashCache.clear();
+
+    // 清理混合搜索引擎
+    if (this.hybridSearchEngine) {
+      this.hybridSearchEngine.clear();
+    }
+
     this.removeAllListeners();
-    logger.info('[PermanentMemoryManager] 实例已销毁');
+    logger.info("[PermanentMemoryManager] 实例已销毁");
   }
 }
 

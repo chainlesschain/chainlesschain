@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-01-20 (Android P2P 网络心跳和自动重连)
+> **最后更新**: 2026-02-01 (Clawdbot 永久记忆集成 Phase 3-5 完成)
 
 ---
 
@@ -35,10 +35,69 @@
 - [x] Android 端单元测试增强
 - [x] PC 端 IPC 错误处理优化（无限重试、静默失败）
 - [x] Android 端 P2P 网络心跳机制和自动重连
+- [x] Clawdbot 永久记忆集成 Phase 1 (基础架构)
+- [x] Clawdbot 永久记忆集成 Phase 2 (混合搜索引擎)
 
 ### 最近完成
 
-1. **Android P2P 网络心跳和自动重连** (2026-01-20):
+1. **Clawdbot 永久记忆集成 Phase 2** (2026-02-01):
+   - 新建 `bm25-search.js` - BM25 全文搜索引擎（~300 行）
+     - Okapi BM25 算法实现
+     - 中文/英文分词器
+     - 词频 (TF) 和逆文档频率 (IDF) 计算
+     - 可调参数: k1=1.5, b=0.75
+   - 新建 `hybrid-search-engine.js` - 混合搜索引擎（~330 行）
+     - 结合 Vector Search (语义) 和 BM25 Search (关键词)
+     - RRF (Reciprocal Rank Fusion) 融合算法
+     - 权重动态调整 (默认 Vector 0.6 + BM25 0.4)
+     - 并行执行双路搜索
+   - 更新 `permanent-memory-manager.js` - 集成混合搜索（+160 行）
+     - searchMemory() 混合搜索方法
+     - simpleSearch() 回退搜索
+     - getDailyNotesDocuments() 文档获取
+     - getMemoryDocument() MEMORY.md 获取
+   - 更新 `permanent-memory-ipc.js` - 添加搜索 IPC 通道
+     - memory:search 混合搜索通道
+   - 新建 `test-hybrid-search.js` - 测试脚本（~340 行）
+     - 8 个测试场景全部通过 ✅
+     - 验证 BM25 关键词匹配
+     - 验证混合搜索融合
+     - 验证权重调整
+     - 搜索延迟 < 20ms
+   - 安装依赖: natural (自然语言处理库)
+   - **功能状态**: Phase 2 完成,支持混合搜索 (Vector + BM25)
+
+2. **Clawdbot 永久记忆集成 Phase 1** (2026-02-01):
+   - 新建 `009_embedding_cache.sql` - 数据库迁移（~180 行）
+     - embedding_cache 表 (Embedding 缓存)
+     - memory_file_hashes 表 (文件 Hash 跟踪)
+     - daily_notes_metadata 表 (Daily Notes 元数据)
+     - memory_sections 表 (MEMORY.md 分类)
+     - memory_stats 表 (记忆统计)
+   - 新建 `permanent-memory-manager.js` - 核心管理器（~650 行）
+     - Daily Notes 自动记录 (memory/daily/YYYY-MM-DD.md)
+     - MEMORY.md 长期知识萃取
+     - 元数据自动解析和统计
+     - 文件 Hash 计算和缓存
+     - 过期 Daily Notes 自动清理
+   - 新建 `permanent-memory-ipc.js` - IPC 处理器（~130 行）
+     - 7 个 IPC 通道：write-daily-note、read-daily-note、read-memory、append-to-memory 等
+   - 新建 `test-permanent-memory.js` - 测试脚本（~380 行）
+     - 10 个测试用例全部通过 ✅
+     - 验证 Daily Notes 写入/读取
+     - 验证 MEMORY.md 追加
+     - 验证元数据解析和统计
+   - 集成到主应用
+     - 更新 `ipc-registry.js` - 添加 PermanentMemory IPC 注册
+     - 更新 `core-initializer.js` - 添加 permanentMemoryManager 初始化
+   - 新建 `docs/features/PERMANENT_MEMORY_INTEGRATION.md` - 技术方案文档（~1400 行）
+     - 7 个 Phase 实施计划
+     - 核心功能设计
+     - 技术细节和代码示例
+     - 测试计划
+   - **功能状态**: Phase 1 完成,支持 Daily Notes 和 MEMORY.md 基础功能
+
+3. **Android P2P 网络心跳和自动重连** (2026-01-20):
    - 新建 HeartbeatManager.kt - 心跳管理器（~300 行）
      - 15 秒心跳间隔，35 秒连接超时
      - 设备注册/注销、心跳记录
@@ -65,7 +124,7 @@
    - 新建 SignalingClientTest.kt（14 个测试用例）
    - Android core-p2p 模块完成度升至 90%
 
-2. **iOS 图片消息和群组聊天** (2026-01-20):
+4. **iOS 图片消息和群组聊天** (2026-01-20):
    - P2PViewModel 扩展 - ChatMessage 支持图片数据（imageData、thumbnailData、imageSize）
    - 新增 sendImageMessages/sendImageMessage 方法 - 图片压缩、Base64 编码
    - P2PChatView 图片发送集成 - sendImages 函数完整实现
@@ -81,7 +140,7 @@
    - AddMemberView - 添加新成员
    - iOS 版本升级至 v0.2.7，完成度 88%
 
-3. **PC 端 IPC 错误处理优化** (2026-01-20):
+5. **PC 端 IPC 错误处理优化** (2026-01-20):
    - 修复 social.js 通知加载无限重试问题（添加 MAX_RETRIES 限制）
    - 修复 GlobalSettingsWizard.vue 配置加载失败（添加默认值回退）
    - 修复插件系统 IPC 错误处理（PluginSlot.vue, usePluginExtensions.js）
@@ -92,7 +151,7 @@
    - 修复 conversation.js、AIChatPage.vue 对话列表加载
    - 所有修复统一采用：IPC 未就绪时静默处理，避免控制台错误刷屏
 
-4. **Android 离线消息队列** (2026-01-20):
+6. **Android 离线消息队列** (2026-01-20):
    - 新建 OfflineQueueEntity.kt - 离线消息实体
    - 新建 OfflineQueueDao.kt - 数据访问层（~200 行）
    - 新建 OfflineMessageQueue.kt - 队列管理器（~300 行）
@@ -102,12 +161,12 @@
    - 数据库迁移 v3→v4
    - Android 版本升级至 v0.5.0，完成度 70%
 
-5. **Android 单元测试** (2026-01-20):
+7. **Android 单元测试** (2026-01-20):
    - 新建 OfflineMessageQueueTest.kt（26 个测试用例）
    - 新建 P2PMessageRepositoryTest.kt（18 个测试用例）
    - 总测试用例达到 120+
 
-6. **iOS 综合优化** (2026-01-20):
+8. **iOS 综合优化** (2026-01-20):
    - 新建 MessageDeliveryManager.swift（~450 行）- 消息投递可靠性管理
    - 新建 ImagePickerView.swift（~450 行）- 图片选择器组件
    - 新建 EnhancedUIComponents.swift（~500 行）- 增强 UI 组件
@@ -121,7 +180,7 @@
    - 内存监控和缓存清理
    - iOS 版本升级至 v0.2.6，完成度 82%
 
-7. **iOS 单元测试框架** (2026-01-20):
+9. **iOS 单元测试框架** (2026-01-20):
    - 新建 CoreCommonTests.swift - 通用工具测试
    - 新建 CoreSecurityTests.swift - 安全加密测试
    - 新建 CoreDatabaseTests.swift - 数据库操作测试
@@ -129,28 +188,28 @@
    - 新建 CoreE2EETests.swift - 端到端加密测试
    - 新建 CoreP2PTests.swift - P2P 网络测试
 
-8. **iOS 向量数据库持久化** (2026-01-20):
-   - 新建 VectorStoreRepository.swift（~400 行）
-   - SQLite 存储 embeddings（BLOB 编码）
-   - Embedding 缓存支持过期机制
-   - 余弦相似度搜索实现
-   - VectorStore 集成持久化层
+10. **iOS 向量数据库持久化** (2026-01-20):
+    - 新建 VectorStoreRepository.swift（~400 行）
+    - SQLite 存储 embeddings（BLOB 编码）
+    - Embedding 缓存支持过期机制
+    - 余弦相似度搜索实现
+    - VectorStore 集成持久化层
 
-9. **iOS 离线消息队列** (2026-01-20):
-   - 新建 OfflineMessageQueue.swift（~400 行）
-   - 离线消息持久化到 SQLite
-   - 指数退避重试机制
-   - 消息优先级队列
-   - P2PManager 集成离线队列
+11. **iOS 离线消息队列** (2026-01-20):
+    - 新建 OfflineMessageQueue.swift（~400 行）
+    - 离线消息持久化到 SQLite
+    - 指数退避重试机制
+    - 消息优先级队列
+    - P2PManager 集成离线队列
 
-10. **iOS P2P 消息系统增强** (2026-01-20):
+12. **iOS P2P 消息系统增强** (2026-01-20):
     - 新建 P2PMessageRepository.swift（~400 行）
     - 新建 P2PContactRepository.swift（~350 行）
     - 增强 SignalProtocolManager Double Ratchet 实现
     - 添加自动重连机制（指数退避）
     - P2PViewModel 消息持久化支持
 
-11. **iOS AI 对话持久化** (2026-01-20):
+13. **iOS AI 对话持久化** (2026-01-20):
     - 新建 AIConversationRepository.swift（~400 行）
     - 实现对话和消息的完整 CRUD 操作
     - 对话列表持久化、自动刷新统计
@@ -161,7 +220,7 @@
     - 下拉刷新支持
     - iOS 版本升级至 v0.2.2，完成度 65%
 
-12. **LLM 按模型预算限制** (2026-01-18):
+14. **LLM 按模型预算限制** (2026-01-18):
     - 新建 LLMModelBudgetPanel.vue 组件（588 行）
     - 支持按模型设置日/周/月预算限额（USD）
     - 进度条显示当前支出 vs 限额
@@ -169,7 +228,7 @@
     - 支持 8 个提供商：Ollama、OpenAI、Anthropic、DeepSeek、火山引擎、阿里云、智谱AI、Moonshot
     - 集成到 LLM Performance Dashboard
     - 后端已有：llm_model_budgets 表、IPC 通道
-13. **SessionManager 前端 UI 增强** (2026-01-18):
+15. **SessionManager 前端 UI 增强** (2026-01-18):
     - 会话预览 Popover：悬停 0.5 秒显示摘要、最近消息、标签、时间
     - 键盘快捷键：Ctrl+F/A/D/E、Delete、Escape、? 帮助
     - 会话复制：深拷贝会话及消息、标签，标题加"- 副本"后缀
@@ -177,11 +236,11 @@
     - 新建 SessionPreviewCard.vue、TagManagerPage.vue
     - 修改 SessionList.vue、SessionManagerPage.vue、router/index.js
     - 新增 6 个 IPC 通道（duplicate、rename-tag、merge-tags、delete-tag 等）
-14. **应用启动稳定性修复** (2026-01-18):
+16. **应用启动稳定性修复** (2026-01-18):
     - 修复 UnifiedConfigManager EISDIR 错误（config.json/rules.md 被错误创建为目录）
     - 修复 MobileBridge 信令服务器连接失败阻塞后续初始化的问题
     - 清理 desktop-app-vue/.chainlesschain/ 下错误创建的目录
-15. **SessionManager v0.21.0 增强** (2026-01-16):
+17. **SessionManager v0.21.0 增强** (2026-01-16):
     - 会话搜索：按标题和内容全文搜索
     - 标签系统：添加/移除标签、按标签过滤
     - 导出/导入：JSON 和 Markdown 格式导出、JSON 导入
@@ -193,9 +252,9 @@
     - 新增 20+ IPC 通道
     - 新增数据库迁移 008_session_templates.sql
     - 更新测试脚本（13 项测试）
-16. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
-17. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
-18. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
+18. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
+19. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
+20. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
 
 ### 待处理
 
