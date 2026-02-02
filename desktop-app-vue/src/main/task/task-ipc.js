@@ -126,6 +126,54 @@ function registerTaskIPC(database) {
   });
 
   // ========================================
+  // Task Query (3 handlers)
+  // ========================================
+
+  ipcMain.handle('task:get-tasks', async (_event, params) => {
+    try {
+      const { getTaskManager } = require('./task-manager');
+      const manager = getTaskManager(database);
+      return await manager.getTasks(params.boardId, params.options || {});
+    } catch (error) {
+      logger.error('[IPC] task:get-tasks failed:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('task:get-sprints', async (_event, params) => {
+    try {
+      const { getTaskBoardManager } = require('./task-board-manager');
+      const manager = getTaskBoardManager(database);
+      return await manager.getSprints(params.boardId);
+    } catch (error) {
+      logger.error('[IPC] task:get-sprints failed:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('task:get-labels', async (_event, params) => {
+    try {
+      const { getTaskBoardManager } = require('./task-board-manager');
+      const manager = getTaskBoardManager(database);
+      return await manager.getLabels(params.orgId);
+    } catch (error) {
+      logger.error('[IPC] task:get-labels failed:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('task:create-label', async (_event, params) => {
+    try {
+      const { getTaskBoardManager } = require('./task-board-manager');
+      const manager = getTaskBoardManager(database);
+      return await manager.createLabel(params.orgId, params);
+    } catch (error) {
+      logger.error('[IPC] task:create-label failed:', error);
+      throw error;
+    }
+  });
+
+  // ========================================
   // Task CRUD (12 handlers)
   // ========================================
 
