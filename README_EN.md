@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.28.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.29.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,38 +19,39 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.28.0 (2026-02-01)
+## ⭐ Current Version: v0.29.0 (2026-02-02)
 
-### Latest Updates - Permanent Memory System + Comprehensive Test Suite 🎉
+### Latest Updates - Enterprise RBAC + Context Engineering + Claude Code Style Tools
 
-**Clawdbot Permanent Memory Integration** - Cross-session AI memory persistence with Vector + BM25 hybrid search
+**Enterprise RBAC + KV-Cache Optimization** - Enterprise permission engine, context window optimization, Plan Mode and Skills system enhancements
 
 #### New Core Features
 
-- ✅ **Permanent Memory System** - Daily Notes auto-logging + MEMORY.md long-term knowledge extraction
+- ✅ **Permission Engine** - Enterprise RBAC permission engine (resource-level, inheritance, delegation, team permissions)
+- ✅ **Team Manager** - Organization sub-team management (create/update/delete teams, member management, hierarchy)
+- ✅ **Team Report Manager** - Team daily/weekly report system (Daily Standup, AI summary generation)
+- ✅ **Context Engineering** - KV-Cache optimization (17 IPC channels, token estimation, recoverable compression)
+- ✅ **Plan Mode** - Claude Code style plan mode (security analysis, approval workflow, 14 IPC channels)
+- ✅ **Skills System** - Markdown Skills enhancement (three-layer loading, gate checks, /skill commands)
+
+#### v0.28.0 Features Recap
+
+- ✅ **Permanent Memory System** - Daily Notes auto-logging + MEMORY.md long-term extraction
 - ✅ **Hybrid Search Engine** - Vector (semantic) + BM25 (keyword) dual-path parallel search
-- ✅ **RRF Fusion Algorithm** - Intelligent result fusion, search latency < 20ms
-- ✅ **Streaming Creation with Resume** - Project creation supports resumable uploads, more reliable for large files
-- ✅ **P2P Remote Control System** - Complete remote control and Git IPC integration
-
-#### Phase 2 Test Suite Complete
-
-- ✅ **233 Test Cases** - Covering unit tests, integration tests, E2E, performance, security
-- ✅ **99.6% Pass Rate** - Fixed 29 bugs
-- ✅ **OWASP Top 10 Coverage 80%** - Comprehensive security validation
-- ✅ **Performance Benchmarks Established** - 142K ops/s project operations, 271K ops/s file operations
+- ✅ **Hooks System** - 21 hook events, 4 hook types, priority system
+- ✅ **MCP Integration Tests** - 32 unit tests + 31 end-to-end tests all passed
 
 #### Performance Improvement Summary
 
-| Metric                  | Before   | After | Improvement            |
-| ----------------------- | -------- | ----- | ---------------------- |
-| Task Success Rate       | 40%      | 70%   | **+75%**               |
-| Hybrid Search Latency   | -        | <20ms | **Ultra Fast**         |
-| Test Coverage           | ~30%     | ~75%  | **+150%**              |
-| LLM Planning Cost       | Baseline | -70%  | **$2,550/month saved** |
-| Agent Acquisition Speed | Baseline | 10x   | **+900%**              |
+| Metric                | Before   | After  | Improvement            |
+| --------------------- | -------- | ------ | ---------------------- |
+| Task Success Rate     | 40%      | 70%    | **+75%**               |
+| KV-Cache Hit Rate     | -        | 60-85% | **Very High**          |
+| Hybrid Search Latency | -        | <20ms  | **Ultra Fast**         |
+| Test Coverage         | ~30%     | ~75%   | **+150%**              |
+| LLM Planning Cost     | Baseline | -70%   | **$2,550/month saved** |
 
-See: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Full Changelog](./docs/CHANGELOG.md)
+See: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [Full Changelog](./docs/CHANGELOG.md)
 
 - ✅ **Documentation Structure Reorganization** - Reorganized documentation directory with new categories: flows/, implementation-reports/, status-reports/, test-reports/
 - ✅ **Desktop App Root Directory Reorganization** - Optimized desktop-app-vue project structure for improved code maintainability
@@ -137,12 +138,18 @@ See: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs]
 ## Core Features
 
 - 🔐 **Military-Grade Security**: SQLCipher AES-256 encryption + Cross-Platform USB Key hardware keys + Signal protocol E2E encryption ✅
-- 🧠 **Permanent Memory System**: Daily Notes auto-logging + MEMORY.md long-term extraction + Hybrid Search (Vector+BM25) ✅ ⭐NEW
+- 🧠 **Permanent Memory System**: Daily Notes auto-logging + MEMORY.md long-term extraction + Hybrid Search (Vector+BM25) ✅
+- 🎯 **Context Engineering**: KV-Cache optimization + Token estimation + Recoverable compression + Task context management ✅ ⭐NEW
+- 📋 **Plan Mode**: Claude Code style plan mode + Security analysis + Approval workflow ✅ ⭐NEW
+- 🛡️ **Enterprise Permissions**: RBAC permission engine + Resource-level control + Permission inheritance + Delegation ✅ ⭐NEW
+- 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
+- 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW
+- 🎨 **Skills System**: Markdown Skills + Three-layer loading + /skill commands + Gate checks ✅ ⭐NEW
 - 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging ✅
 - 🌐 **Fully Decentralized**: P2P network (libp2p 3.1.2) + DHT + local data storage, no central servers needed ✅
 - 📁 **P2P File Transfer**: Large file chunked transfer (64KB) + resume capability + real-time progress + SHA-256 verification ✅
 - 🧠 **AI Native**: Support for 14+ cloud LLM providers + Ollama local deployment + RAG-enhanced retrieval ✅
-- 🔌 **MCP Integration**: Model Context Protocol support, 5 official servers + security sandbox + UI management ✅
+- 🔌 **MCP Integration**: Model Context Protocol support, 5 official servers + security sandbox + 63 test cases ✅
 - ⚙️ **Unified Configuration**: `.chainlesschain/` centralized config directory + auto-initialization + multi-level priority ✅
 - 💰 **Token Budget Management**: LLM cost tracking + monthly budget control + overspending alerts + detailed analytics ✅
 - 🎯 **16 AI Engines**: Code/document/spreadsheet/PPT/PDF/image/video specialized processing, covering all scenarios ✅
