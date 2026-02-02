@@ -53,10 +53,52 @@
 - [x] Response Cache IPC 系统实现 (响应缓存, 11 handlers)
 - [x] Token Tracker IPC 系统实现 (Token 追踪与成本管理, 12 handlers)
 - [x] Stream Controller IPC 系统实现 (流式输出控制, 12 handlers)
+- [x] Resource Monitor IPC 系统实现 (资源监控与降级, 13 handlers)
+- [x] Message Aggregator IPC 系统实现 (消息批量聚合, 10 handlers)
 
 ### 最近完成
 
-0. **Token Tracker IPC 和 Stream Controller IPC 系统实现** (2026-02-02):
+0. **Resource Monitor IPC 和 Message Aggregator IPC 系统实现** (2026-02-02):
+   - **Resource Monitor IPC** - 新建 `src/main/utils/resource-monitor-ipc.js` (~550 行)
+     - 13 个 IPC 通道：
+       - 状态查询（4）：get-memory-status、get-disk-status、get-level、get-report
+       - 降级策略（3）：get-strategy、get-all-strategies、check-disk-space
+       - 监控控制（4）：start-monitoring、stop-monitoring、force-gc、update-level
+       - 配置管理（2）：get-thresholds、set-thresholds
+     - 利用现有 `ResourceMonitor` 类：
+       - 内存监控（系统和进程级别）
+       - 磁盘空间检查（跨平台）
+       - 三级资源水平（normal/warning/critical）
+       - 优雅降级策略（图片处理、OCR、批量导入）
+   - **Message Aggregator IPC** - 新建 `src/main/utils/message-aggregator-ipc.js` (~400 行)
+     - 10 个 IPC 通道：
+       - 消息操作（3）：push、push-batch、flush
+       - 统计信息（2）：get-stats、reset-stats
+       - 配置管理（3）：get-config、set-config、get-queue-status
+       - 生命周期（2）：set-window、destroy
+     - 利用现有 `MessageAggregator` 类：
+       - 批量消息推送（减少 50% 前端渲染压力）
+       - 按事件类型分组
+       - 可配置批量间隔和最大批量大小
+       - 统计信息追踪（消息数、批次数、效率）
+   - 新建 `scripts/test-resource-monitor.js` - 16 个测试用例
+   - 新建 `scripts/test-message-aggregator.js` - 15 个测试用例
+   - 更新 `src/main/ipc/ipc-registry.js` - 注册 Resource Monitor IPC 和 Message Aggregator IPC
+   - 更新 `package.json` - 添加 test:resource 和 test:aggregator 脚本
+   - **测试结果**: 31 个集成测试全部通过
+   - **Claude Code 风格特性总计**: 10 系统，127 IPC 通道
+     - Hooks System: 11 handlers
+     - Plan Mode: 14 handlers
+     - Markdown Skills: 17 handlers
+     - Context Engineering: 17 handlers
+     - Prompt Compressor: 10 handlers
+     - Response Cache: 11 handlers
+     - Token Tracker: 12 handlers
+     - Stream Controller: 12 handlers
+     - Resource Monitor: 13 handlers
+     - Message Aggregator: 10 handlers
+
+1. **Token Tracker IPC 和 Stream Controller IPC 系统实现** (2026-02-02):
    - **Token Tracker IPC** - 新建 `src/main/llm/token-tracker-ipc.js` (~500 行)
      - 12 个 IPC 通道：
        - 统计信息（5）：get-usage-stats、get-time-series、get-cost-breakdown、get-pricing、calculate-cost
