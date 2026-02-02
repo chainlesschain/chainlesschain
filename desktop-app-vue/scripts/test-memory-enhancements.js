@@ -88,6 +88,238 @@ function logResult(testName, success, details = "") {
   }
 }
 
+// ============================================================
+// Phase 7 New Tests
+// ============================================================
+
+// Test SemanticChunker
+async function testSemanticChunker() {
+  console.log("\n📄 Testing SemanticChunker\n");
+
+  try {
+    const { SemanticChunker } = require("../src/main/rag/semantic-chunker");
+
+    // Test 1: Initialization
+    const chunker = new SemanticChunker();
+    logResult("Initialization", chunker !== null);
+    logResult("Default target chunk size", chunker.config.targetChunkSize === 500);
+
+    // Test 2: Custom config
+    const customChunker = new SemanticChunker({
+      targetChunkSize: 300,
+      overlapSize: 30,
+    });
+    logResult("Custom config", customChunker.config.targetChunkSize === 300);
+
+    // Test 3: Chunk simple text
+    const simpleChunker = new SemanticChunker({ targetChunkSize: 100, minChunkSize: 20 });
+    let text = "";
+    for (let i = 0; i < 20; i++) text += "This is a simple test. ";
+    const chunks = simpleChunker.chunk(text, { id: "test-doc" });
+    logResult("Chunk simple text", Array.isArray(chunks) && chunks.length > 0);
+
+    // Test 4: Chunk Markdown
+    const mdChunker = new SemanticChunker({ targetChunkSize: 200, minChunkSize: 50 });
+    const markdown = `# Title
+
+## Section 1
+This is content for section 1. It has some text.
+
+## Section 2
+This is content for section 2. It also has some text.
+
+### Subsection 2.1
+More detailed content here.
+`;
+    const mdChunks = mdChunker.chunk(markdown, { id: "markdown-doc" });
+    logResult("Chunk Markdown", Array.isArray(mdChunks) && mdChunks.length >= 1);
+    logResult("Chunk metadata", mdChunks[0] && mdChunks[0].metadata.chunkIndex !== undefined);
+
+    // Test 5: Empty text
+    const emptyChunks = chunker.chunk("", {});
+    logResult("Empty text returns empty array", emptyChunks.length === 0);
+
+    // Test 6: Batch chunking
+    const batchChunker = new SemanticChunker({ targetChunkSize: 100, minChunkSize: 20 });
+    let content1 = "", content2 = "";
+    for (let i = 0; i < 5; i++) { content1 += "First document. "; content2 += "Second document. "; }
+    const allChunks = batchChunker.chunkDocuments([
+      { id: "doc1", content: content1, metadata: {} },
+      { id: "doc2", content: content2, metadata: {} },
+    ]);
+    logResult("Batch chunking", Array.isArray(allChunks) && allChunks.length > 0);
+
+    // Test 7: Word count
+    const wcChunker = new SemanticChunker({ targetChunkSize: 500, minChunkSize: 10 });
+    const wcChunks = wcChunker.chunk("Hello world 你好世界", { id: "word-test" });
+    logResult("Word count metadata", wcChunks.length > 0 && wcChunks[0].metadata.wordCount > 0);
+
+    // Test 8: Update config
+    chunker.updateConfig({ targetChunkSize: 800 });
+    logResult("Update config", chunker.config.targetChunkSize === 800);
+
+    console.log("\n  SemanticChunker tests completed.\n");
+    return true;
+  } catch (error) {
+    console.error("  ❌ SemanticChunker test failed:", error.message);
+    return false;
+  }
+}
+
+// Test AdvancedMemorySearch
+async function testAdvancedMemorySearch() {
+  console.log("\n🔍 Testing AdvancedMemorySearch\n");
+
+  try {
+    const { AdvancedMemorySearch, MEMORY_TIERS, MEMORY_TYPES, IMPORTANCE_LEVELS } =
+      require("../src/main/rag/advanced-memory-search");
+
+    // Mock database
+    const mockDb = {
+      prepare: (sql) => ({
+        run: () => {},
+        get: () => ({ count: 5 }),
+        all: () => [],
+      }),
+    };
+
+    // Test 1: Initialization
+    const search = new AdvancedMemorySearch({ database: mockDb });
+    logResult("Initialization", search !== null);
+
+    // Test 2: Require database
+    let threw = false;
+    try { new AdvancedMemorySearch({}); } catch (e) { threw = true; }
+    logResult("Require database parameter", threw);
+
+    // Test 3: Constants exported
+    logResult("MEMORY_TIERS.WORKING", MEMORY_TIERS.WORKING === "working");
+    logResult("MEMORY_TIERS.RECALL", MEMORY_TIERS.RECALL === "recall");
+    logResult("MEMORY_TIERS.ARCHIVAL", MEMORY_TIERS.ARCHIVAL === "archival");
+    logResult("MEMORY_TYPES.DAILY_NOTE", MEMORY_TYPES.DAILY_NOTE === "daily_note");
+    logResult("IMPORTANCE_LEVELS.CRITICAL", IMPORTANCE_LEVELS.CRITICAL === 5);
+
+    // Test 4: Search method
+    const results = await search.search("test query", { limit: 10 });
+    logResult("Execute search", results !== null && results.results !== undefined);
+    logResult("Search pagination", results.pagination !== undefined);
+
+    // Test 5: Search by tier
+    const tierResults = await search.searchByTier("test", MEMORY_TIERS.WORKING);
+    logResult("Search by tier", tierResults !== null);
+
+    // Test 6: Search by date range
+    const dateResults = await search.searchByDateRange("test", "2026-01-01", "2026-02-02");
+    logResult("Search by date range", dateResults !== null);
+
+    // Test 7: Get important memories
+    const important = await search.getImportantMemories({ minImportance: 4 });
+    logResult("Get important memories", Array.isArray(important));
+
+    // Test 8: Get recent memories
+    const recent = await search.getRecentMemories({ days: 7 });
+    logResult("Get recent memories", Array.isArray(recent));
+
+    // Test 9: Clear cache
+    search.clearCache();
+    logResult("Clear cache", search.searchCache.size === 0);
+
+    console.log("\n  AdvancedMemorySearch tests completed.\n");
+    return true;
+  } catch (error) {
+    console.error("  ❌ AdvancedMemorySearch test failed:", error.message);
+    return false;
+  }
+}
+
+// Test MemoryAnalytics
+async function testMemoryAnalytics() {
+  console.log("\n📊 Testing MemoryAnalytics\n");
+
+  try {
+    const { MemoryAnalytics } = require("../src/main/rag/memory-analytics");
+
+    // Mock database
+    const mockDb = {
+      prepare: (sql) => ({
+        run: () => {},
+        get: () => {
+          if (sql.includes("daily_notes_metadata") && sql.includes("SELECT")) {
+            return { totalNotes: 10, totalWords: 5000, avgWordsPerNote: 500, count: 7 };
+          }
+          if (sql.includes("memory_sections") && sql.includes("SELECT")) {
+            return { totalSections: 5, avgImportance: 3.5, count: 3 };
+          }
+          if (sql.includes("embedding_cache")) {
+            return { totalEmbeddings: 100, totalAccesses: 500 };
+          }
+          if (sql.includes("memory_file_hashes")) {
+            return { totalFiles: 20, indexedFiles: 18, failedFiles: 2 };
+          }
+          if (sql.includes("memory_stats") && sql.includes("SELECT")) {
+            return { hybrid_search_count: 50, cache_hits: 40, cache_misses: 10, avg_search_latency: 15 };
+          }
+          return {};
+        },
+        all: () => [],
+      }),
+    };
+
+    // Test 1: Initialization
+    const analytics = new MemoryAnalytics({ database: mockDb });
+    logResult("Initialization", analytics !== null);
+
+    // Test 2: Require database
+    let threw = false;
+    try { new MemoryAnalytics({}); } catch (e) { threw = true; }
+    logResult("Require database parameter", threw);
+
+    // Test 3: Get overview
+    const overview = await analytics.getOverview();
+    logResult("Get overview", overview !== null && overview.dailyNotes !== undefined);
+    logResult("Overview has all sections", overview.memorySections !== undefined && overview.index !== undefined);
+
+    // Test 4: Get trends
+    const trends = await analytics.getTrends(30);
+    logResult("Get trends", trends !== null && trends.daily !== undefined);
+    logResult("Trends has weekly data", trends.weekly !== undefined);
+
+    // Test 5: Get top keywords
+    const keywords = await analytics.getTopKeywords(10);
+    logResult("Get top keywords", Array.isArray(keywords));
+
+    // Test 6: Get search statistics
+    const stats = await analytics.getSearchStatistics();
+    logResult("Get search statistics", stats !== null && stats.today !== undefined);
+
+    // Test 7: Calculate health score
+    const health = await analytics.calculateHealthScore();
+    logResult("Calculate health score", health !== null && health.totalScore !== undefined);
+    logResult("Health score has grade", health.grade !== undefined);
+    logResult("Health score max is 100", health.maxScore === 100);
+    logResult("Health score has suggestions", Array.isArray(health.suggestions));
+
+    // Test 8: Get dashboard data
+    const dashboard = await analytics.getDashboardData();
+    logResult("Get dashboard data", dashboard !== null && dashboard.overview !== undefined);
+    logResult("Dashboard has timestamp", dashboard.generatedAt !== undefined);
+
+    // Test 9: Record search event
+    await analytics.recordSearchEvent("hybrid", 15, false);
+    logResult("Record search event", true);
+
+    console.log("\n  MemoryAnalytics tests completed.\n");
+    return true;
+  } catch (error) {
+    console.error("  ❌ MemoryAnalytics test failed:", error.message);
+    return false;
+  }
+}
+
+// ============================================================
+// Existing Tests
+// ============================================================
+
 // Test AutoBackupManager
 async function testAutoBackupManager() {
   console.log("\n📦 Testing AutoBackupManager\n");
@@ -395,6 +627,20 @@ async function main() {
   const results = {};
 
   try {
+    // Phase 7 new modules
+    if (moduleToTest === "all" || moduleToTest === "chunker") {
+      results.chunker = await testSemanticChunker();
+    }
+
+    if (moduleToTest === "all" || moduleToTest === "search") {
+      results.search = await testAdvancedMemorySearch();
+    }
+
+    if (moduleToTest === "all" || moduleToTest === "analytics") {
+      results.analytics = await testMemoryAnalytics();
+    }
+
+    // Existing modules
     if (moduleToTest === "all" || moduleToTest === "backup") {
       results.backup = await testAutoBackupManager();
     }

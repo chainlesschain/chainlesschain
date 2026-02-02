@@ -11,6 +11,7 @@ const { SkillMdParser } = require("./skill-md-parser");
 const { SkillLoader, LAYER_PRIORITY } = require("./skill-loader");
 const { SkillGating } = require("./skill-gating");
 const { MarkdownSkill } = require("./markdown-skill");
+const { registerSkillsIPC, unregisterSkillsIPC } = require("./skills-ipc");
 
 module.exports = {
   // 基类
@@ -29,4 +30,8 @@ module.exports = {
   SkillGating,
   MarkdownSkill,
   LAYER_PRIORITY,
+
+  // IPC 处理器
+  registerSkillsIPC,
+  unregisterSkillsIPC,
 };

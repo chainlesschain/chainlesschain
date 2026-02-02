@@ -242,6 +242,19 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 Markdown Skills 系统 (Claude Code 风格, 17 handlers)
+    logger.info("[IPC Registry] Registering Markdown Skills IPC...");
+    try {
+      const { registerSkillsIPC } = require("../ai-engine/cowork/skills/skills-ipc");
+      registerSkillsIPC({ hookSystem, workspacePath: process.cwd() });
+      logger.info("[IPC Registry] ✓ Markdown Skills IPC registered (17 handlers)");
+    } catch (skillsError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Markdown Skills IPC registration failed (non-fatal):",
+        skillsError.message,
+      );
+    }
+
     // Logger 服务 (日志管理器)
     logger.info("[IPC Registry] Registering Logger IPC...");
     const { registerLoggerIPC } = require("./logger-ipc");
