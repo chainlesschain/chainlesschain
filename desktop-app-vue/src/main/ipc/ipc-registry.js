@@ -281,6 +281,19 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 Response Cache 系统 (响应缓存, 11 handlers)
+    logger.info("[IPC Registry] Registering Response Cache IPC...");
+    try {
+      const { registerResponseCacheIPC } = require("../llm/response-cache-ipc");
+      registerResponseCacheIPC({ responseCache: responseCache || null, database: database || null });
+      logger.info("[IPC Registry] ✓ Response Cache IPC registered (11 handlers)");
+    } catch (cacheError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Response Cache IPC registration failed (non-fatal):",
+        cacheError.message,
+      );
+    }
+
     // Logger 服务 (日志管理器)
     logger.info("[IPC Registry] Registering Logger IPC...");
     const { registerLoggerIPC } = require("./logger-ipc");
