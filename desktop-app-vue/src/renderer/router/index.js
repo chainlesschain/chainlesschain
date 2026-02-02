@@ -206,6 +206,46 @@ const coworkPages = createRouteGroup("cowork", {
     ),
 });
 
+// 企业版协作页面组（中优先级）
+const enterpriseCollabPages = createRouteGroup("enterprise-collab", {
+  collabEditor: () =>
+    import(
+      /* webpackChunkName: "collab-editor" */ "../pages/collaboration/CollabEditorPage.vue"
+    ),
+  taskDashboard: () =>
+    import(
+      /* webpackChunkName: "task-dashboard" */ "../pages/tasks/TaskDashboardPage.vue"
+    ),
+  taskBoard: () =>
+    import(
+      /* webpackChunkName: "task-board" */ "../pages/tasks/TaskBoardPage.vue"
+    ),
+  taskReports: () =>
+    import(
+      /* webpackChunkName: "task-reports" */ "../pages/tasks/TaskReportsPage.vue"
+    ),
+  permissionSettings: () =>
+    import(
+      /* webpackChunkName: "perm-settings" */ "../pages/permissions/PermissionSettingsPage.vue"
+    ),
+  approvalCenter: () =>
+    import(
+      /* webpackChunkName: "approval-center" */ "../pages/permissions/ApprovalCenterPage.vue"
+    ),
+  teamSettings: () =>
+    import(
+      /* webpackChunkName: "team-settings" */ "../pages/permissions/TeamSettingsPage.vue"
+    ),
+  partnerCenter: () =>
+    import(
+      /* webpackChunkName: "partner-center" */ "../pages/crossorg/PartnerCenterPage.vue"
+    ),
+  sharedWorkspaces: () =>
+    import(
+      /* webpackChunkName: "shared-workspaces" */ "../pages/crossorg/SharedWorkspacesPage.vue"
+    ),
+});
+
 // P2P高级功能页面组（低优先级）
 const p2pAdvancedPages = createRouteGroup("p2p-advanced", {
   devicePairing: () =>
@@ -887,6 +927,82 @@ const routes = [
         name: "PermissionManagement",
         component: () => import("../pages/PermissionManagementPage.vue"),
         meta: { title: "权限管理" },
+      },
+      // ===== 企业版: 实时协作编辑 =====
+      {
+        path: "collab/editor/:id",
+        name: "CollabEditor",
+        component: enterpriseCollabPages.collabEditor,
+        meta: { title: "协作编辑器" },
+      },
+      // ===== 企业版: 团队任务管理 =====
+      {
+        path: "tasks/dashboard",
+        name: "TaskDashboard",
+        component: enterpriseCollabPages.taskDashboard,
+        meta: { title: "任务仪表板" },
+      },
+      {
+        path: "tasks/board/:id",
+        name: "TaskBoard",
+        component: enterpriseCollabPages.taskBoard,
+        meta: { title: "任务看板" },
+      },
+      {
+        path: "tasks/reports",
+        name: "TaskReports",
+        component: enterpriseCollabPages.taskReports,
+        meta: { title: "团队报告" },
+      },
+      // ===== 企业版: 权限和审批 =====
+      {
+        path: "org/:orgId/permissions",
+        name: "OrgPermissions",
+        component: enterpriseCollabPages.permissionSettings,
+        meta: { title: "权限设置" },
+      },
+      {
+        path: "org/:orgId/approvals",
+        name: "ApprovalCenter",
+        component: enterpriseCollabPages.approvalCenter,
+        meta: { title: "审批中心" },
+      },
+      {
+        path: "org/:orgId/teams",
+        name: "TeamSettings",
+        component: enterpriseCollabPages.teamSettings,
+        meta: { title: "团队设置" },
+      },
+      // ===== 企业版: 跨组织协作 =====
+      {
+        path: "crossorg/partners",
+        name: "PartnerCenter",
+        component: enterpriseCollabPages.partnerCenter,
+        meta: { title: "合作伙伴中心" },
+      },
+      {
+        path: "crossorg/workspaces",
+        name: "SharedWorkspaces",
+        component: enterpriseCollabPages.sharedWorkspaces,
+        meta: { title: "共享工作空间" },
+      },
+      {
+        path: "crossorg/workspace/:id",
+        name: "SharedWorkspaceDetail",
+        component: () => import("../pages/crossorg/SharedWorkspaceDetailPage.vue"),
+        meta: { title: "共享工作空间详情" },
+      },
+      {
+        path: "crossorg/transactions",
+        name: "B2BTransactions",
+        component: () => import("../pages/crossorg/B2BTransactionsPage.vue"),
+        meta: { title: "B2B数据交换" },
+      },
+      {
+        path: "crossorg/audit",
+        name: "CrossOrgAudit",
+        component: () => import("../pages/crossorg/CrossOrgAuditPage.vue"),
+        meta: { title: "跨组织审计日志" },
       },
     ],
   },
