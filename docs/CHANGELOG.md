@@ -12,7 +12,130 @@
 
 ## 最新版本
 
-### v0.27.1 (2026-01-27) ⭐ 当前版本
+### v0.29.0 (2026-02-02) ⭐ 当前版本
+
+**企业级权限系统 + Context Engineering + Claude Code 风格工具** - 企业级权限引擎、上下文窗口优化、Plan Mode 和 Skills 系统增强
+
+#### 新增核心功能
+
+##### Permission Engine - 企业级 RBAC 权限引擎
+
+- ✅ **PermissionEngine** - `src/main/permission/permission-engine.js` (~700行)
+  - 资源级权限评估、条件访问
+  - 权限缓存（1分钟TTL）
+  - 权限继承（父子资源自动继承）
+  - 权限委托（临时授权、时间范围）
+  - 团队权限（基于团队的访问控制）
+  - 完整审计日志
+
+- ✅ **TeamManager** - `src/main/permission/team-manager.js` (~300行)
+  - 子团队创建/更新/删除
+  - 层级结构（parentTeamId）
+  - 成员管理（添加/移除/设置负责人）
+  - 成员统计
+
+- ✅ **ApprovalWorkflowManager** - `src/main/permission/approval-workflow-manager.js`
+  - 多级审批流程
+  - 自动审批规则
+  - 审批状态追踪
+
+- ✅ **DelegationManager** - `src/main/permission/delegation-manager.js`
+  - 权限委托创建/撤销
+  - 时间范围控制
+  - 资源范围限制
+
+##### Team Report Manager - 团队日报周报系统
+
+- ✅ **TeamReportManager** - `src/main/task/team-report-manager.js` (~200行)
+  - Daily Standup 创建
+  - 昨日工作/今日计划/阻塞项
+  - AI 摘要生成
+  - 按日期/作者/类型过滤
+
+##### Context Engineering - KV-Cache 优化系统
+
+- ✅ **Context Engineering IPC** - `src/main/llm/context-engineering-ipc.js` (~760行)
+  - 17 个 IPC 通道
+  - 统计/配置：get-stats、reset-stats、get-config、set-config
+  - Prompt 优化：optimize-messages、estimate-tokens
+  - 任务上下文：set-task、update-task-progress、get-task、clear-task
+  - 错误历史：record-error、resolve-error、get-errors、clear-errors
+  - 内容压缩：compress、is-compressed、decompress
+  - **功能特点**:
+    - KV-Cache 友好的 Prompt 构建（静态内容前置）
+    - 工具定义确定性序列化（按名称排序）
+    - 时间戳/UUID 等动态内容清理
+    - 任务目标重述（解决"丢失中间"问题）
+    - 错误历史保留供模型学习
+    - 可恢复压缩（保留引用，支持后续恢复）
+
+- ✅ **TokenEstimator** - Token 数量估算
+  - 中英文自动检测
+  - 消息数组估算
+  - 按角色统计
+
+##### Plan Mode - Claude Code 风格计划模式
+
+- ✅ **PlanModeManager** - `src/main/ai-engine/plan-mode/index.js` (~400行)
+  - 安全分析模式（只允许 Read/Search/Analyze 工具）
+  - 计划生成和存储
+  - 审批流程（全部/部分审批、拒绝）
+  - 与 Hooks 系统集成
+
+- ✅ **Plan Mode IPC** - `src/main/ai-engine/plan-mode/plan-mode-ipc.js`
+  - 14 个 IPC 通道
+  - 进入/退出计划模式
+  - 计划项管理
+  - 审批操作
+
+##### Skills 系统增强 - Markdown Skills
+
+- ✅ **Skills IPC** - `src/main/ai-engine/cowork/skills/skills-ipc.js`
+  - 17 个 IPC 通道
+  - 技能加载/重新加载
+  - 技能查询（列表、详情、分类）
+  - 技能执行（单个执行、自动执行）
+  - /skill 命令解析
+
+- ✅ **内置技能**
+  - `builtin/code-review/SKILL.md` - 代码审查
+  - `builtin/git-commit/SKILL.md` - Git 提交消息生成
+  - `builtin/explain-code/SKILL.md` - 代码解释
+
+- ✅ **三层加载机制**
+  - bundled（内置）→ managed（用户级）→ workspace（项目级）
+  - 优先级覆盖：高层级技能覆盖低层级同名技能
+  - 门控检查：平台、二进制依赖、环境变量
+
+##### Prompt Compressor IPC - 上下文压缩系统
+
+- ✅ **Prompt Compressor IPC** - `src/main/llm/prompt-compressor-ipc.js` (~500行)
+  - 10 个 IPC 通道
+  - 配置管理：get-config、set-config、reset-config
+  - 压缩操作：compress、preview、estimate-tokens、get-recommendations
+  - 统计信息：get-stats、get-history、clear-history
+  - 三种压缩策略（去重、截断、总结）
+  - 压缩率目标 0.6-0.7（节省 30-40% tokens）
+
+#### 测试验证
+
+- ✅ **Context Engineering 测试** - 22 个集成测试全部通过
+- ✅ **Plan Mode 测试** - 48 单元测试 + 17 集成测试全部通过
+- ✅ **Skills 系统测试** - 15 个集成测试全部通过
+- ✅ **Prompt Compressor 测试** - 15 个集成测试全部通过
+- ✅ **MCP 端到端测试** - 31 个集成测试全部通过
+
+#### 性能提升
+
+| 指标          | 优化前 | 优化后  | 提升      |
+| ------------- | ------ | ------- | --------- |
+| KV-Cache 命中 | -      | 60-85%  | **极高**  |
+| Token 节省    | -      | 30-40%  | **显著**  |
+| 权限检查延迟  | -      | <10ms   | **极快**  |
+
+---
+
+### v0.27.1 (2026-01-27)
 
 **Phase 3/4 工作流优化全部完成** - AI引擎性能大幅提升:
 

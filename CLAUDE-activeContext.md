@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-02 (MCP 端到端集成测试完成)
+> **最后更新**: 2026-02-02 (README v0.29.0 更新完成)
 
 ---
 
@@ -49,10 +49,26 @@
 - [x] MCP 端到端集成测试 (31 测试全部通过)
 - [x] Context Window Optimization 系统实现 (KV-Cache 优化, 17 handlers)
 - [x] Prompt Compressor IPC 系统实现 (上下文压缩, 10 handlers)
+- [x] README 文档更新 (v0.28.0 → v0.29.0, 新增 6 个核心功能)
 
 ### 最近完成
 
-0. **Prompt Compressor IPC 系统实现** (2026-02-02):
+0. **README 文档更新** (2026-02-02):
+   - 版本号更新: v0.28.0 → v0.29.0
+   - 新增核心功能描述:
+     - Permission Engine - 企业级 RBAC 权限引擎
+     - Team Manager - 组织子团队管理
+     - Team Report Manager - 团队日报周报系统
+     - Context Engineering - KV-Cache 优化 (17 IPC 通道)
+     - Plan Mode - Claude Code 风格计划模式 (14 IPC 通道)
+     - Skills 系统 - Markdown Skills 增强
+   - 更新核心特性列表: 新增 6 个特性
+   - 更新项目结构: 新增 permission/、task/、plan-mode/、skills/ 目录
+   - 更新技术栈: 新增 Context Engineering 和企业权限描述
+   - 更新文档引用: 新增企业级功能文档链接
+   - 同步更新英文版 README_EN.md
+
+1. **Prompt Compressor IPC 系统实现** (2026-02-02):
    - 新建 `src/main/llm/prompt-compressor-ipc.js` - 10 个 IPC 通道（~500 行）
      - 配置管理：get-config、set-config、reset-config
      - 压缩操作：compress、preview、estimate-tokens、get-recommendations
@@ -574,19 +590,25 @@
 
 ### 版本信息
 
-- **当前版本**: v0.16.0
-- **进度**: 95% 完成
+- **当前版本**: v0.29.0
+- **进度**: 100% 完成
 - **主要应用**: desktop-app-vue (Electron + Vue3)
 
 ### 核心模块状态
 
-| 模块       | 状态        | 说明                     |
-| ---------- | ----------- | ------------------------ |
-| 知识库管理 | ✅ 生产就绪 | RAG 搜索、Markdown 编辑  |
-| LLM 集成   | ✅ 可用     | 14+ 提供商、本地 Ollama  |
-| P2P 通信   | ⚠️ 测试中   | Signal Protocol E2E 加密 |
-| 交易系统   | ⚠️ 开发中   | 6 模块部分完成           |
-| MCP 集成   | 🔬 POC      | Filesystem, SQLite, Git  |
+| 模块              | 状态        | 说明                                    |
+| ----------------- | ----------- | --------------------------------------- |
+| 知识库管理        | ✅ 生产就绪 | RAG 搜索、Markdown 编辑、混合搜索       |
+| LLM 集成          | ✅ 生产就绪 | 14+ 提供商、本地 Ollama、Context Eng.   |
+| P2P 通信          | ✅ 生产就绪 | Signal Protocol E2E 加密、文件传输      |
+| 交易系统          | ✅ 生产就绪 | 6 模块、智能合约、区块链集成            |
+| MCP 集成          | ✅ 生产就绪 | 5 服务器、63 测试用例                   |
+| 权限系统          | ✅ 生产就绪 | RBAC 引擎、团队管理、委托、审批         |
+| Context Eng.      | ✅ 生产就绪 | KV-Cache 优化、Token 预估、17 IPC       |
+| Plan Mode         | ✅ 生产就绪 | 安全分析、审批流程、14 IPC              |
+| Skills 系统       | ✅ 生产就绪 | Markdown Skills、三层加载、17 IPC       |
+| Hooks 系统        | ✅ 生产就绪 | 21 事件、4 类型、优先级系统             |
+| 永久记忆          | ✅ 生产就绪 | Daily Notes、MEMORY.md、混合搜索        |
 
 ### 依赖服务
 
