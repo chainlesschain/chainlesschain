@@ -294,6 +294,27 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 Team Task Management 系统 (任务看板, 49 handlers)
+    logger.info("[IPC Registry] Registering Team Task Management IPC...");
+    try {
+      const { registerTaskIPC } = require("../task/task-ipc");
+      registerTaskIPC(database);
+      logger.info("[IPC Registry] ✓ Team Task Management IPC registered (49 handlers)");
+      logger.info("[IPC Registry]   - Board Management: 9 handlers");
+      logger.info("[IPC Registry]   - Task Query: 4 handlers");
+      logger.info("[IPC Registry]   - Task CRUD: 12 handlers");
+      logger.info("[IPC Registry]   - Checklists: 5 handlers");
+      logger.info("[IPC Registry]   - Comments/Activity: 6 handlers");
+      logger.info("[IPC Registry]   - Attachments: 4 handlers");
+      logger.info("[IPC Registry]   - Sprint Management: 5 handlers");
+      logger.info("[IPC Registry]   - Reports/Analytics: 5 handlers");
+    } catch (taskError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Team Task Management IPC registration failed (non-fatal):",
+        taskError.message,
+      );
+    }
+
     // Logger 服务 (日志管理器)
     logger.info("[IPC Registry] Registering Logger IPC...");
     const { registerLoggerIPC } = require("./logger-ipc");

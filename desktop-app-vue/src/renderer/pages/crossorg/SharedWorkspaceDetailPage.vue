@@ -22,8 +22,8 @@
     <a-tabs v-model:activeKey="activeTab">
       <!-- 成员 -->
       <a-tab-pane key="members" tab="成员管理">
-        <a-row :gutter="24}>
-          <a-col :span="8}>
+        <a-row :gutter="24">
+          <a-col :span="8">
             <a-card title="参与组织">
               <a-list :data-source="workspaceOrgs" :loading="loading">
                 <template #renderItem="{ item }">
@@ -37,7 +37,7 @@
               </a-list>
             </a-card>
           </a-col>
-          <a-col :span="16}>
+          <a-col :span="16">
             <a-card title="成员列表">
               <template #extra>
                 <a-button type="primary" size="small" @click="showAddMember = true">

@@ -9,7 +9,7 @@
       </template>
     </a-page-header>
 
-    <a-row :gutter="16} class="stats-row">
+    <a-row :gutter="16" class="stats-row">
       <a-col :span="6">
         <a-card>
           <a-statistic title="发出交易" :value="stats.outgoingCount" />
