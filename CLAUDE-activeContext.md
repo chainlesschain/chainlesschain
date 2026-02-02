@@ -51,10 +51,50 @@
 - [x] Prompt Compressor IPC 系统实现 (上下文压缩, 10 handlers)
 - [x] README 文档更新 (v0.28.0 → v0.29.0, 新增 6 个核心功能)
 - [x] Response Cache IPC 系统实现 (响应缓存, 11 handlers)
+- [x] Token Tracker IPC 系统实现 (Token 追踪与成本管理, 12 handlers)
+- [x] Stream Controller IPC 系统实现 (流式输出控制, 12 handlers)
 
 ### 最近完成
 
-0. **Response Cache IPC 系统实现** (2026-02-02):
+0. **Token Tracker IPC 和 Stream Controller IPC 系统实现** (2026-02-02):
+   - **Token Tracker IPC** - 新建 `src/main/llm/token-tracker-ipc.js` (~500 行)
+     - 12 个 IPC 通道：
+       - 统计信息（5）：get-usage-stats、get-time-series、get-cost-breakdown、get-pricing、calculate-cost
+       - 预算管理（3）：get-budget、set-budget、reset-budget-counters
+       - 操作（3）：record-usage、export-report、get-conversation-stats
+       - 控制（1）：set-exchange-rate
+     - 利用现有 `TokenTracker` 类：
+       - 多提供商定价数据（OpenAI、Anthropic、DeepSeek、Volcengine、Ollama）
+       - 日/周/月预算管理
+       - 预算告警（警告/严重）
+       - 成本报告 CSV 导出
+   - **Stream Controller IPC** - 新建 `src/main/llm/stream-controller-ipc.js` (~500 行)
+     - 12 个 IPC 通道：
+       - 生命周期（4）：create、start、complete、destroy
+       - 控制（3）：pause、resume、cancel
+       - 状态（3）：get-status、get-stats、list-active
+       - 缓冲（2）：get-buffer、clear-buffer
+     - 利用现有 `StreamController` 类：
+       - 流式输出暂停/恢复/取消
+       - AbortController 集成
+       - 内容缓冲
+       - 统计信息（throughput、duration）
+   - 新建 `scripts/test-token-tracker.js` - 15 个测试用例
+   - 新建 `scripts/test-stream-controller.js` - 21 个测试用例
+   - 更新 `src/main/ipc/ipc-registry.js` - 注册 Token Tracker IPC 和 Stream Controller IPC
+   - 更新 `package.json` - 添加 test:tracker 和 test:stream 脚本
+   - **测试结果**: 36 个集成测试全部通过
+   - **Claude Code 风格特性总计**: 8 系统，104 IPC 通道
+     - Hooks System: 11 handlers
+     - Plan Mode: 14 handlers
+     - Markdown Skills: 17 handlers
+     - Context Engineering: 17 handlers
+     - Prompt Compressor: 10 handlers
+     - Response Cache: 11 handlers
+     - Token Tracker: 12 handlers
+     - Stream Controller: 12 handlers
+
+1. **Response Cache IPC 系统实现** (2026-02-02):
    - 新建 `src/main/llm/response-cache-ipc.js` - 11 个 IPC 通道（~400 行）
      - 统计信息：get-stats、get-stats-by-provider、get-hit-rate-trend
      - 配置管理：get-config、set-config

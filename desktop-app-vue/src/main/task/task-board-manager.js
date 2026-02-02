@@ -875,6 +875,94 @@ class TaskBoardManager extends EventEmitter {
     ];
   }
 
+  // ========================================
+  // Sprint Query
+  // ========================================
+
+  /**
+   * Get all sprints for a board
+   */
+  async getSprints(boardId) {
+    try {
+      const db = this.database.getDatabase();
+
+      const sprints = db.prepare(`
+        SELECT * FROM task_sprints
+        WHERE board_id = ?
+        ORDER BY start_date DESC
+      `).all(boardId);
+
+      return {
+        success: true,
+        sprints: sprints || []
+      };
+    } catch (error) {
+      logger.error('[TaskBoard] Error getting sprints:', error);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // Label Management
+  // ========================================
+
+  /**
+   * Get all labels for an organization
+   */
+  async getLabels(orgId) {
+    try {
+      const db = this.database.getDatabase();
+
+      const labels = db.prepare(`
+        SELECT * FROM task_labels
+        WHERE org_id = ?
+        ORDER BY name ASC
+      `).all(orgId);
+
+      return {
+        success: true,
+        labels: labels || []
+      };
+    } catch (error) {
+      logger.error('[TaskBoard] Error getting labels:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new label
+   */
+  async createLabel(orgId, labelData) {
+    try {
+      const db = this.database.getDatabase();
+      const now = Date.now();
+      const labelId = uuidv4();
+
+      db.prepare(`
+        INSERT INTO task_labels (id, org_id, name, color, description, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(
+        labelId,
+        orgId,
+        labelData.name,
+        labelData.color || '#1890ff',
+        labelData.description || '',
+        now
+      );
+
+      logger.info(`[TaskBoard] Created label ${labelId} for org ${orgId}`);
+
+      return { success: true, labelId };
+    } catch (error) {
+      logger.error('[TaskBoard] Error creating label:', error);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // Private Methods
+  // ========================================
+
   _checkConditions(conditions, task, context) {
     for (const [field, expected] of Object.entries(conditions)) {
       const actual = task[field] || context[field];
