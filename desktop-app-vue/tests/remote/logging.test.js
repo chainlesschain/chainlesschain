@@ -4,23 +4,74 @@
  * 测试 CommandLogger、StatisticsCollector 和 LoggingManager
  */
 
-const { describe, it, expect, beforeEach, afterEach, vi } = require('vitest');
-const Database = require('better-sqlite3');
-const { LoggingManager, CommandLogger, StatisticsCollector, LogLevel, TimePeriod } = require('../../src/main/remote/logging');
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  LoggingManager,
+  CommandLogger,
+  StatisticsCollector,
+  LogLevel,
+  TimePeriod,
+} from "../../src/main/remote/logging.js";
 
-describe('Logging System', () => {
+// Mock database
+function createMockDatabase() {
+  const tables = new Map([
+    ["remote_command_logs", true],
+    ["remote_statistics", true],
+  ]);
+  const logs = [];
+  const stats = [];
+
+  return {
+    exec: vi.fn(),
+    prepare: vi.fn((sql) => ({
+      run: vi.fn((...args) => {
+        if (sql.includes("INSERT INTO remote_command_logs")) {
+          logs.push({ id: logs.length + 1, ...args });
+          return { lastInsertRowid: logs.length };
+        }
+        if (sql.includes("INSERT INTO remote_statistics")) {
+          stats.push({ id: stats.length + 1, ...args });
+          return { lastInsertRowid: stats.length };
+        }
+        return { changes: 1 };
+      }),
+      get: vi.fn((...args) => {
+        if (sql.includes("sqlite_master")) {
+          const tableName = args[0] || "remote_command_logs";
+          return tables.has(tableName) ? { name: tableName } : null;
+        }
+        return logs[0] || null;
+      }),
+      all: vi.fn((...args) => {
+        if (sql.includes("sqlite_master")) {
+          return [{ name: "remote_command_logs" }];
+        }
+        if (sql.includes("remote_statistics")) {
+          return stats;
+        }
+        return logs;
+      }),
+    })),
+    close: vi.fn(),
+    _logs: logs,
+    _stats: stats,
+  };
+}
+
+describe("Logging System", () => {
   let db;
   let loggingManager;
 
   beforeEach(() => {
-    // 创建内存数据库
-    db = new Database(':memory:');
+    // 创建 mock 数据库
+    db = createMockDatabase();
 
     // 创建 LoggingManager
     loggingManager = new LoggingManager(db, {
       enableAutoCleanup: false, // 测试时禁用自动清理
       enableRealTimeStats: true,
-      enablePersistentStats: true
+      enablePersistentStats: true,
     });
   });
 
@@ -29,24 +80,28 @@ describe('Logging System', () => {
     db.close();
   });
 
-  describe('CommandLogger', () => {
-    it('should initialize database tables', () => {
-      const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='remote_command_logs'").all();
+  describe("CommandLogger", () => {
+    it("should initialize database tables", () => {
+      const tables = db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='remote_command_logs'",
+        )
+        .all();
       expect(tables).toHaveLength(1);
     });
 
-    it('should log command successfully', () => {
+    it("should log command successfully", () => {
       const logId = loggingManager.log({
-        requestId: 'req-123',
-        deviceDid: 'did:example:device1',
-        deviceName: 'Test Device',
-        namespace: 'ai',
-        action: 'chat',
-        params: { message: 'Hello' },
-        result: { response: 'Hi' },
-        status: 'success',
+        requestId: "req-123",
+        deviceDid: "did:example:device1",
+        deviceName: "Test Device",
+        namespace: "ai",
+        action: "chat",
+        params: { message: "Hello" },
+        result: { response: "Hi" },
+        status: "success",
         level: LogLevel.INFO,
-        duration: 1500
+        duration: 1500,
       });
 
       expect(logId).toBeGreaterThan(0);
@@ -54,56 +109,56 @@ describe('Logging System', () => {
       // 验证日志已保存
       const log = loggingManager.getLogById(logId);
       expect(log).toBeDefined();
-      expect(log.request_id).toBe('req-123');
-      expect(log.device_did).toBe('did:example:device1');
-      expect(log.command_namespace).toBe('ai');
-      expect(log.command_action).toBe('chat');
-      expect(log.params).toEqual({ message: 'Hello' });
-      expect(log.result).toEqual({ response: 'Hi' });
-      expect(log.status).toBe('success');
+      expect(log.request_id).toBe("req-123");
+      expect(log.device_did).toBe("did:example:device1");
+      expect(log.command_namespace).toBe("ai");
+      expect(log.command_action).toBe("chat");
+      expect(log.params).toEqual({ message: "Hello" });
+      expect(log.result).toEqual({ response: "Hi" });
+      expect(log.status).toBe("success");
       expect(log.duration).toBe(1500);
     });
 
-    it('should log success command', () => {
+    it("should log success command", () => {
       const logId = loggingManager.logSuccess({
-        requestId: 'req-success',
-        deviceDid: 'did:example:device1',
-        namespace: 'system',
-        action: 'getStatus',
-        duration: 500
+        requestId: "req-success",
+        deviceDid: "did:example:device1",
+        namespace: "system",
+        action: "getStatus",
+        duration: 500,
       });
 
       const log = loggingManager.getLogById(logId);
-      expect(log.status).toBe('success');
+      expect(log.status).toBe("success");
       expect(log.level).toBe(LogLevel.INFO);
     });
 
-    it('should log failure command', () => {
+    it("should log failure command", () => {
       const logId = loggingManager.logFailure({
-        requestId: 'req-failure',
-        deviceDid: 'did:example:device1',
-        namespace: 'system',
-        action: 'execCommand',
-        error: 'Command not allowed',
-        duration: 100
+        requestId: "req-failure",
+        deviceDid: "did:example:device1",
+        namespace: "system",
+        action: "execCommand",
+        error: "Command not allowed",
+        duration: 100,
       });
 
       const log = loggingManager.getLogById(logId);
-      expect(log.status).toBe('failure');
+      expect(log.status).toBe("failure");
       expect(log.level).toBe(LogLevel.ERROR);
-      expect(log.error).toBe('Command not allowed');
+      expect(log.error).toBe("Command not allowed");
     });
 
-    it('should query logs with pagination', () => {
+    it("should query logs with pagination", () => {
       // 插入多条日志
       for (let i = 0; i < 50; i++) {
         loggingManager.log({
           requestId: `req-${i}`,
-          deviceDid: 'did:example:device1',
-          namespace: 'ai',
-          action: 'chat',
-          status: 'success',
-          duration: 1000 + i
+          deviceDid: "did:example:device1",
+          namespace: "ai",
+          action: "chat",
+          status: "success",
+          duration: 1000 + i,
         });
       }
 
@@ -119,194 +174,196 @@ describe('Logging System', () => {
       expect(result2.offset).toBe(10);
     });
 
-    it('should filter logs by device', () => {
+    it("should filter logs by device", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       loggingManager.log({
-        requestId: 'req-2',
-        deviceDid: 'did:example:device2',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-2",
+        deviceDid: "did:example:device2",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
-      const result = loggingManager.queryLogs({ deviceDid: 'did:example:device1' });
+      const result = loggingManager.queryLogs({
+        deviceDid: "did:example:device1",
+      });
       expect(result.logs).toHaveLength(1);
-      expect(result.logs[0].device_did).toBe('did:example:device1');
+      expect(result.logs[0].device_did).toBe("did:example:device1");
     });
 
-    it('should filter logs by namespace', () => {
+    it("should filter logs by namespace", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       loggingManager.log({
-        requestId: 'req-2',
-        deviceDid: 'did:example:device1',
-        namespace: 'system',
-        action: 'getStatus',
-        status: 'success'
+        requestId: "req-2",
+        deviceDid: "did:example:device1",
+        namespace: "system",
+        action: "getStatus",
+        status: "success",
       });
 
-      const result = loggingManager.queryLogs({ namespace: 'system' });
+      const result = loggingManager.queryLogs({ namespace: "system" });
       expect(result.logs).toHaveLength(1);
-      expect(result.logs[0].command_namespace).toBe('system');
+      expect(result.logs[0].command_namespace).toBe("system");
     });
 
-    it('should filter logs by status', () => {
+    it("should filter logs by status", () => {
       loggingManager.logSuccess({
-        requestId: 'req-success',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat'
+        requestId: "req-success",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
       });
 
       loggingManager.logFailure({
-        requestId: 'req-failure',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        error: 'Error'
+        requestId: "req-failure",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        error: "Error",
       });
 
-      const result = loggingManager.queryLogs({ status: 'failure' });
+      const result = loggingManager.queryLogs({ status: "failure" });
       expect(result.logs).toHaveLength(1);
-      expect(result.logs[0].status).toBe('failure');
+      expect(result.logs[0].status).toBe("failure");
     });
 
-    it('should filter logs by time range', () => {
+    it("should filter logs by time range", () => {
       const now = Date.now();
       const hourAgo = now - 60 * 60 * 1000;
 
       loggingManager.log({
-        requestId: 'req-old',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success',
-        timestamp: hourAgo
+        requestId: "req-old",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
+        timestamp: hourAgo,
       });
 
       loggingManager.log({
-        requestId: 'req-new',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success',
-        timestamp: now
+        requestId: "req-new",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
+        timestamp: now,
       });
 
       const result = loggingManager.queryLogs({
-        startTime: now - 30 * 60 * 1000 // Last 30 minutes
+        startTime: now - 30 * 60 * 1000, // Last 30 minutes
       });
 
       expect(result.logs).toHaveLength(1);
-      expect(result.logs[0].request_id).toBe('req-new');
+      expect(result.logs[0].request_id).toBe("req-new");
     });
 
-    it('should search logs', () => {
+    it("should search logs", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        deviceName: 'Test Device',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        deviceName: "Test Device",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       loggingManager.log({
-        requestId: 'req-2',
-        deviceDid: 'did:example:device2',
-        deviceName: 'Another Device',
-        namespace: 'system',
-        action: 'screenshot',
-        status: 'success'
+        requestId: "req-2",
+        deviceDid: "did:example:device2",
+        deviceName: "Another Device",
+        namespace: "system",
+        action: "screenshot",
+        status: "success",
       });
 
-      const result = loggingManager.queryLogs({ search: 'screenshot' });
+      const result = loggingManager.queryLogs({ search: "screenshot" });
       expect(result.logs).toHaveLength(1);
-      expect(result.logs[0].command_action).toBe('screenshot');
+      expect(result.logs[0].command_action).toBe("screenshot");
     });
 
-    it('should get recent logs', () => {
+    it("should get recent logs", () => {
       for (let i = 0; i < 30; i++) {
         loggingManager.log({
           requestId: `req-${i}`,
-          deviceDid: 'did:example:device1',
-          namespace: 'ai',
-          action: 'chat',
-          status: 'success'
+          deviceDid: "did:example:device1",
+          namespace: "ai",
+          action: "chat",
+          status: "success",
         });
       }
 
       const result = loggingManager.getRecentLogs(10);
       expect(result.logs).toHaveLength(10);
       // Should be sorted by timestamp DESC
-      expect(result.logs[0].request_id).toBe('req-29');
+      expect(result.logs[0].request_id).toBe("req-29");
     });
 
-    it('should get failure logs', () => {
+    it("should get failure logs", () => {
       loggingManager.logSuccess({
-        requestId: 'req-success',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat'
+        requestId: "req-success",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
       });
 
       loggingManager.logFailure({
-        requestId: 'req-failure-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        error: 'Error 1'
+        requestId: "req-failure-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        error: "Error 1",
       });
 
       loggingManager.logFailure({
-        requestId: 'req-failure-2',
-        deviceDid: 'did:example:device1',
-        namespace: 'system',
-        action: 'execCommand',
-        error: 'Error 2'
+        requestId: "req-failure-2",
+        deviceDid: "did:example:device1",
+        namespace: "system",
+        action: "execCommand",
+        error: "Error 2",
       });
 
       const result = loggingManager.getFailureLogs();
       expect(result.logs).toHaveLength(2);
     });
 
-    it('should get log stats', () => {
+    it("should get log stats", () => {
       loggingManager.logSuccess({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        duration: 1000
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        duration: 1000,
       });
 
       loggingManager.logSuccess({
-        requestId: 'req-2',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        duration: 2000
+        requestId: "req-2",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        duration: 2000,
       });
 
       loggingManager.logFailure({
-        requestId: 'req-3',
-        deviceDid: 'did:example:device1',
-        namespace: 'system',
-        action: 'execCommand',
-        error: 'Error',
-        duration: 500
+        requestId: "req-3",
+        deviceDid: "did:example:device1",
+        namespace: "system",
+        action: "execCommand",
+        error: "Error",
+        duration: 500,
       });
 
       const stats = loggingManager.getLogStats();
@@ -318,40 +375,40 @@ describe('Logging System', () => {
       expect(stats.avgDuration).toBeGreaterThan(0);
     });
 
-    it('should export logs as JSON', () => {
+    it("should export logs as JSON", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
-      const json = loggingManager.exportLogs({ format: 'json' });
+      const json = loggingManager.exportLogs({ format: "json" });
       expect(json).toBeDefined();
       const logs = JSON.parse(json);
       expect(Array.isArray(logs)).toBe(true);
       expect(logs).toHaveLength(1);
     });
 
-    it('should cleanup old logs', () => {
+    it("should cleanup old logs", () => {
       const oldTimestamp = Date.now() - 40 * 24 * 60 * 60 * 1000; // 40 days ago
 
       loggingManager.log({
-        requestId: 'req-old',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success',
-        timestamp: oldTimestamp
+        requestId: "req-old",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
+        timestamp: oldTimestamp,
       });
 
       loggingManager.log({
-        requestId: 'req-new',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-new",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       const deletedCount = loggingManager.cleanupLogs();
@@ -359,37 +416,37 @@ describe('Logging System', () => {
 
       const result = loggingManager.queryLogs({});
       expect(result.total).toBe(1);
-      expect(result.logs[0].request_id).toBe('req-new');
+      expect(result.logs[0].request_id).toBe("req-new");
     });
   });
 
-  describe('StatisticsCollector', () => {
-    it('should track real-time stats', () => {
+  describe("StatisticsCollector", () => {
+    it("should track real-time stats", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success',
-        duration: 1000
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
+        duration: 1000,
       });
 
       loggingManager.log({
-        requestId: 'req-2',
-        deviceDid: 'did:example:device1',
-        namespace: 'system',
-        action: 'getStatus',
-        status: 'success',
-        duration: 500
+        requestId: "req-2",
+        deviceDid: "did:example:device1",
+        namespace: "system",
+        action: "getStatus",
+        status: "success",
+        duration: 500,
       });
 
       loggingManager.logFailure({
-        requestId: 'req-3',
-        deviceDid: 'did:example:device2',
-        namespace: 'system',
-        action: 'execCommand',
-        error: 'Error',
-        duration: 200
+        requestId: "req-3",
+        deviceDid: "did:example:device2",
+        namespace: "system",
+        action: "execCommand",
+        error: "Error",
+        duration: 200,
       });
 
       const stats = loggingManager.getRealTimeStats();
@@ -400,59 +457,59 @@ describe('Logging System', () => {
       expect(parseFloat(stats.successRate)).toBeCloseTo(66.67, 1);
     });
 
-    it('should track stats by device', () => {
+    it("should track stats by device", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       loggingManager.log({
-        requestId: 'req-2',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-2",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       loggingManager.log({
-        requestId: 'req-3',
-        deviceDid: 'did:example:device2',
-        namespace: 'system',
-        action: 'getStatus',
-        status: 'success'
+        requestId: "req-3",
+        deviceDid: "did:example:device2",
+        namespace: "system",
+        action: "getStatus",
+        status: "success",
       });
 
       const stats = loggingManager.getRealTimeStats();
-      expect(stats.byDevice['did:example:device1'].totalCount).toBe(2);
-      expect(stats.byDevice['did:example:device2'].totalCount).toBe(1);
+      expect(stats.byDevice["did:example:device1"].totalCount).toBe(2);
+      expect(stats.byDevice["did:example:device2"].totalCount).toBe(1);
     });
 
-    it('should track stats by namespace', () => {
+    it("should track stats by namespace", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       loggingManager.log({
-        requestId: 'req-2',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'ragSearch',
-        status: 'success'
+        requestId: "req-2",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "ragSearch",
+        status: "success",
       });
 
       loggingManager.log({
-        requestId: 'req-3',
-        deviceDid: 'did:example:device1',
-        namespace: 'system',
-        action: 'getStatus',
-        status: 'success'
+        requestId: "req-3",
+        deviceDid: "did:example:device1",
+        namespace: "system",
+        action: "getStatus",
+        status: "success",
       });
 
       const stats = loggingManager.getRealTimeStats();
@@ -460,95 +517,95 @@ describe('Logging System', () => {
       expect(stats.byNamespace.system.totalCount).toBe(1);
     });
 
-    it('should track recent commands', () => {
+    it("should track recent commands", () => {
       for (let i = 0; i < 15; i++) {
         loggingManager.log({
           requestId: `req-${i}`,
-          deviceDid: 'did:example:device1',
-          namespace: 'ai',
-          action: 'chat',
-          status: 'success'
+          deviceDid: "did:example:device1",
+          namespace: "ai",
+          action: "chat",
+          status: "success",
         });
       }
 
       const stats = loggingManager.getRealTimeStats();
       expect(stats.recentCommands).toHaveLength(10); // Only returns 10 most recent
-      expect(stats.recentCommands[0].requestId).toBe('req-14'); // Most recent first
+      expect(stats.recentCommands[0].requestId).toBe("req-14"); // Most recent first
     });
 
-    it('should get device activity', () => {
+    it("should get device activity", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       loggingManager.log({
-        requestId: 'req-2',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-2",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       loggingManager.log({
-        requestId: 'req-3',
-        deviceDid: 'did:example:device2',
-        namespace: 'system',
-        action: 'getStatus',
-        status: 'success'
+        requestId: "req-3",
+        deviceDid: "did:example:device2",
+        namespace: "system",
+        action: "getStatus",
+        status: "success",
       });
 
       const activity = loggingManager.getDeviceActivity(7);
       expect(activity).toHaveLength(2);
-      expect(activity[0].device_did).toBe('did:example:device1');
+      expect(activity[0].device_did).toBe("did:example:device1");
       expect(activity[0].total_commands).toBe(2);
     });
 
-    it('should get command ranking', () => {
+    it("should get command ranking", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success',
-        duration: 1000
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
+        duration: 1000,
       });
 
       loggingManager.log({
-        requestId: 'req-2',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success',
-        duration: 1500
+        requestId: "req-2",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
+        duration: 1500,
       });
 
       loggingManager.log({
-        requestId: 'req-3',
-        deviceDid: 'did:example:device1',
-        namespace: 'system',
-        action: 'getStatus',
-        status: 'success',
-        duration: 500
+        requestId: "req-3",
+        deviceDid: "did:example:device1",
+        namespace: "system",
+        action: "getStatus",
+        status: "success",
+        duration: 500,
       });
 
       const ranking = loggingManager.getCommandRanking(10);
       expect(ranking).toHaveLength(2);
-      expect(ranking[0].command).toBe('ai.chat');
+      expect(ranking[0].command).toBe("ai.chat");
       expect(ranking[0].total_count).toBe(2);
       expect(ranking[0].avg_duration).toBeGreaterThan(0);
     });
 
-    it('should reset real-time stats', () => {
+    it("should reset real-time stats", () => {
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success'
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
       });
 
       let stats = loggingManager.getRealTimeStats();
@@ -562,27 +619,27 @@ describe('Logging System', () => {
     });
   });
 
-  describe('LoggingManager', () => {
-    it('should get dashboard data', () => {
+  describe("LoggingManager", () => {
+    it("should get dashboard data", () => {
       // 添加一些测试数据
       for (let i = 0; i < 20; i++) {
         loggingManager.log({
           requestId: `req-${i}`,
-          deviceDid: 'did:example:device1',
-          namespace: i % 2 === 0 ? 'ai' : 'system',
-          action: i % 2 === 0 ? 'chat' : 'getStatus',
-          status: i % 5 === 0 ? 'failure' : 'success',
-          duration: 1000 + i * 100
+          deviceDid: "did:example:device1",
+          namespace: i % 2 === 0 ? "ai" : "system",
+          action: i % 2 === 0 ? "chat" : "getStatus",
+          status: i % 5 === 0 ? "failure" : "success",
+          duration: 1000 + i * 100,
         });
       }
 
       const dashboard = loggingManager.getDashboard({ days: 7 });
 
-      expect(dashboard).toHaveProperty('realTime');
-      expect(dashboard).toHaveProperty('logStats');
-      expect(dashboard).toHaveProperty('deviceActivity');
-      expect(dashboard).toHaveProperty('commandRanking');
-      expect(dashboard).toHaveProperty('recentLogs');
+      expect(dashboard).toHaveProperty("realTime");
+      expect(dashboard).toHaveProperty("logStats");
+      expect(dashboard).toHaveProperty("deviceActivity");
+      expect(dashboard).toHaveProperty("commandRanking");
+      expect(dashboard).toHaveProperty("recentLogs");
 
       expect(dashboard.realTime.totalCommands).toBe(20);
       expect(dashboard.deviceActivity).toHaveLength(1);
@@ -590,15 +647,15 @@ describe('Logging System', () => {
       expect(dashboard.recentLogs.logs).toHaveLength(20);
     });
 
-    it('should integrate logger and stats collector', () => {
+    it("should integrate logger and stats collector", () => {
       // 记录日志应该自动更新统计
       loggingManager.log({
-        requestId: 'req-1',
-        deviceDid: 'did:example:device1',
-        namespace: 'ai',
-        action: 'chat',
-        status: 'success',
-        duration: 1000
+        requestId: "req-1",
+        deviceDid: "did:example:device1",
+        namespace: "ai",
+        action: "chat",
+        status: "success",
+        duration: 1000,
       });
 
       const stats = loggingManager.getRealTimeStats();

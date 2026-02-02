@@ -244,11 +244,45 @@ function registerCoreInitializers(factory) {
   });
 
   // ========================================
-  // Session 管理器
+  // 永久记忆管理 (Clawdbot 风格)
+  // ========================================
+  factory.register({
+    name: "permanentMemoryManager",
+    dependsOn: ["database"],
+    async init(context) {
+      const {
+        PermanentMemoryManager,
+      } = require("../llm/permanent-memory-manager");
+      const {
+        getUnifiedConfigManager,
+      } = require("../config/unified-config-manager");
+
+      const configManager = getUnifiedConfigManager();
+      const memoryDir = configManager.paths.memory;
+
+      const permanentMemoryManager = new PermanentMemoryManager({
+        memoryDir,
+        database: context.database.db,
+        llmManager: context.llmManager || null,
+        ragManager: context.ragManager || null,
+        enableDailyNotes: true,
+        enableLongTermMemory: true,
+        enableAutoIndexing: false, // Phase 5 实现后启用
+        maxDailyNotesRetention: 30,
+      });
+
+      await permanentMemoryManager.initialize();
+      logger.info("[PermanentMemoryManager] 永久记忆管理器已初始化");
+      return permanentMemoryManager;
+    },
+  });
+
+  // ========================================
+  // Session 管理器 (Phase 3: 集成永久记忆刷新)
   // ========================================
   factory.register({
     name: "sessionManager",
-    dependsOn: ["database", "llmManager"],
+    dependsOn: ["database", "llmManager", "permanentMemoryManager"],
     async init(context) {
       const { SessionManager } = require("../llm/session-manager");
       const {
@@ -261,11 +295,13 @@ function registerCoreInitializers(factory) {
       const sessionManager = new SessionManager({
         database: context.database,
         llmManager: context.llmManager,
+        permanentMemoryManager: context.permanentMemoryManager, // Phase 3
         sessionsDir,
         maxHistoryMessages: 10,
         compressionThreshold: 10,
         enableAutoSave: true,
         enableCompression: true,
+        enableMemoryFlush: true, // Phase 3: 启用预压缩记忆刷新
       });
 
       await sessionManager.initialize();

@@ -1,9 +1,30 @@
 # ChainlessChain × Clawdbot 永久记忆集成方案
 
-**状态**: 🔬 设计阶段
-**版本**: v0.1.0
+**状态**: ✅ 已实现 (Phase 1 & 2)
+**版本**: v0.26.2
 **创建时间**: 2026-02-01
+**更新时间**: 2026-02-01
 **参考**: [Clawdbot Memory Docs](https://docs.openclaw.ai/concepts/memory)
+
+## 实现进度
+
+| 阶段    | 功能                 | 状态    |
+| ------- | -------------------- | ------- |
+| Phase 1 | Daily Notes 管理     | ✅ 完成 |
+| Phase 1 | MEMORY.md 长期记忆   | ✅ 完成 |
+| Phase 1 | 元数据解析           | ✅ 完成 |
+| Phase 1 | IPC 通道 (7个)       | ✅ 完成 |
+| Phase 2 | BM25 全文搜索        | ✅ 完成 |
+| Phase 2 | 混合搜索引擎         | ✅ 完成 |
+| Phase 2 | RRF 融合算法         | ✅ 完成 |
+| Phase 2 | 搜索性能优化 (<20ms) | ✅ 完成 |
+
+**核心文件**:
+
+- `src/main/llm/permanent-memory-manager.js` (841 行)
+- `src/main/llm/permanent-memory-ipc.js` (183 行)
+- `src/main/rag/hybrid-search-engine.js` (292 行)
+- `src/main/rag/bm25-search.js` (310 行)
 
 ---
 
@@ -46,12 +67,12 @@ Clawdbot 通过以下机制实现跨会话的永久记忆:
 
 ### ChainlessChain 现有能力
 
-| 模块 | 功能 | 文件路径 |
-|------|------|----------|
-| SessionManager | 会话持久化、智能压缩、摘要生成 | `src/main/llm/session-manager.js` |
-| RAG Manager | 向量检索、Query Rewriter、Reranker | `src/main/rag/rag-manager.js` |
-| Memory Bank | CLAUDE-*.md 文档系统 | 根目录 |
-| Database | SQLite/SQLCipher 加密存储 | `src/main/database.js` |
+| 模块           | 功能                               | 文件路径                          |
+| -------------- | ---------------------------------- | --------------------------------- |
+| SessionManager | 会话持久化、智能压缩、摘要生成     | `src/main/llm/session-manager.js` |
+| RAG Manager    | 向量检索、Query Rewriter、Reranker | `src/main/rag/rag-manager.js`     |
+| Memory Bank    | CLAUDE-\*.md 文档系统              | 根目录                            |
+| Database       | SQLite/SQLCipher 加密存储          | `src/main/database.js`            |
 
 ### 集成目标
 
@@ -68,15 +89,15 @@ Clawdbot 通过以下机制实现跨会话的永久记忆:
 
 ## 系统对比
 
-| 功能维度 | Clawdbot | ChainlessChain | 集成策略 |
-|---------|----------|----------------|---------|
-| **会话管理** | Daily Notes (Markdown) | SessionManager (JSON) | 扩展为双格式支持 |
-| **长期记忆** | MEMORY.md | Memory Bank (CLAUDE-*.md) | 统一到 MEMORY.md |
-| **预压缩机制** | Pre-compaction flush | PromptCompressor | 增强压缩前刷新 |
-| **搜索能力** | Vector + BM25 | 仅 Vector | 添加 BM25 层 |
-| **索引更新** | 文件监听 | 手动触发 | 添加文件监听 |
-| **Embedding 缓存** | SQLite | 无 | 添加缓存层 |
-| **存储格式** | Markdown | JSON + Markdown | 兼容两者 |
+| 功能维度           | Clawdbot               | ChainlessChain             | 集成策略         |
+| ------------------ | ---------------------- | -------------------------- | ---------------- |
+| **会话管理**       | Daily Notes (Markdown) | SessionManager (JSON)      | 扩展为双格式支持 |
+| **长期记忆**       | MEMORY.md              | Memory Bank (CLAUDE-\*.md) | 统一到 MEMORY.md |
+| **预压缩机制**     | Pre-compaction flush   | PromptCompressor           | 增强压缩前刷新   |
+| **搜索能力**       | Vector + BM25          | 仅 Vector                  | 添加 BM25 层     |
+| **索引更新**       | 文件监听               | 手动触发                   | 添加文件监听     |
+| **Embedding 缓存** | SQLite                 | 无                         | 添加缓存层       |
+| **存储格式**       | Markdown               | JSON + Markdown            | 兼容两者         |
 
 ---
 
@@ -142,7 +163,7 @@ class HybridSearchEngine {
     // 1. 并行执行 Vector Search 和 BM25 Search
     const [vectorResults, bm25Results] = await Promise.all([
       this.vectorSearch.search(query, options),
-      this.bm25Search.search(query, options)
+      this.bm25Search.search(query, options),
     ]);
 
     // 2. 加权融合
@@ -178,22 +199,22 @@ class SessionManager {
 
     // 使用 LLM 提取重要信息
     const extraction = await this.llmManager.chat({
-      model: 'qwen2:7b',
+      model: "qwen2:7b",
       messages: [
         {
-          role: 'system',
+          role: "system",
           content: `提取以下对话中的:
 1. 重要决策和偏好
 2. 技术发现和解决方案
 3. 待办任务
-格式化为 Markdown。`
+格式化为 Markdown。`,
         },
         {
-          role: 'user',
-          content: JSON.stringify(session.messages.slice(-10))
-        }
+          role: "user",
+          content: JSON.stringify(session.messages.slice(-10)),
+        },
       ],
-      stream: false
+      stream: false,
     });
 
     // 保存到 Daily Notes 和 MEMORY.md
@@ -229,20 +250,28 @@ class EmbeddingCache {
   }
 
   async get(contentHash, model) {
-    const row = this.db.prepare(`
+    const row = this.db
+      .prepare(
+        `
       SELECT embedding FROM embedding_cache
       WHERE content_hash = ? AND model = ?
-    `).get(contentHash, model);
+    `,
+      )
+      .get(contentHash, model);
 
     return row ? this.deserializeEmbedding(row.embedding) : null;
   }
 
   async set(contentHash, embedding, model) {
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT OR REPLACE INTO embedding_cache
       (content_hash, embedding, model, created_at)
       VALUES (?, ?, ?, ?)
-    `).run(contentHash, this.serializeEmbedding(embedding), model, Date.now());
+    `,
+      )
+      .run(contentHash, this.serializeEmbedding(embedding), model, Date.now());
   }
 
   serializeEmbedding(embedding) {
@@ -260,7 +289,7 @@ class EmbeddingCache {
 #### 5. **FileWatcher** (新增)
 
 ```javascript
-const chokidar = require('chokidar');
+const chokidar = require("chokidar");
 
 class MemoryFileWatcher {
   constructor(memoryDir, onChangeCallback) {
@@ -274,22 +303,22 @@ class MemoryFileWatcher {
     this.watcher = chokidar.watch(this.memoryDir, {
       ignored: /node_modules|\.git/,
       persistent: true,
-      ignoreInitial: true
+      ignoreInitial: true,
     });
 
     this.watcher
-      .on('add', path => this.handleChange('add', path))
-      .on('change', path => this.handleChange('change', path))
-      .on('unlink', path => this.handleChange('unlink', path));
+      .on("add", (path) => this.handleChange("add", path))
+      .on("change", (path) => this.handleChange("change", path))
+      .on("unlink", (path) => this.handleChange("unlink", path));
 
-    logger.info('[MemoryFileWatcher] 启动文件监听:', this.memoryDir);
+    logger.info("[MemoryFileWatcher] 启动文件监听:", this.memoryDir);
   }
 
   handleChange(event, filePath) {
     // Debounce (1.5s)
     clearTimeout(this.debounceTimer);
     this.debounceTimer = setTimeout(() => {
-      logger.info('[MemoryFileWatcher] 文件变化:', event, filePath);
+      logger.info("[MemoryFileWatcher] 文件变化:", event, filePath);
       this.onChangeCallback(event, filePath);
     }, 1500);
   }
@@ -297,7 +326,7 @@ class MemoryFileWatcher {
   stop() {
     if (this.watcher) {
       this.watcher.close();
-      logger.info('[MemoryFileWatcher] 停止文件监听');
+      logger.info("[MemoryFileWatcher] 停止文件监听");
     }
   }
 }
@@ -310,6 +339,7 @@ class MemoryFileWatcher {
 ### 1. Daily Notes 自动记录
 
 **触发时机**:
+
 - 每次 LLM 对话结束后
 - SessionManager 压缩前
 - 用户手动触发
@@ -320,6 +350,7 @@ class MemoryFileWatcher {
 # 2026-02-01 运行日志
 
 ## 📌 今日概览
+
 - 总对话数: 12
 - 活跃会话: 3
 - 创建笔记: 5
@@ -327,26 +358,31 @@ class MemoryFileWatcher {
 ## 💬 重要对话
 
 ### 15:30 - 讨论 Clawdbot 记忆集成
+
 - 用户询问如何集成 Clawdbot 的永久记忆功能
 - 设计了双层记忆架构 (Daily Notes + MEMORY.md)
 - 决定添加混合搜索 (Vector + BM25)
 
 ### 16:45 - 优化数据库查询
+
 - 发现 `notes` 表查询慢 (>500ms)
 - 添加了 `(user_id, created_at)` 复合索引
 - 性能提升 80% (100ms)
 
 ## ✅ 完成任务
+
 - [x] 创建 PERMANENT_MEMORY_INTEGRATION.md 文档
 - [x] 设计 PermanentMemoryManager 类
 - [x] 设计 HybridSearchEngine 类
 
 ## 📝 待办事项
+
 - [ ] 实现 PreCompactionMemoryFlush
 - [ ] 实现 EmbeddingCache
 - [ ] 编写单元测试
 
 ## 💡 技术发现
+
 - Clawdbot 使用 1.5s debounce 避免频繁索引
 - BM25 权重建议 0.4 (Vector 0.6)
 - Embedding 缓存可节省 70% 计算时间
@@ -355,6 +391,7 @@ class MemoryFileWatcher {
 ### 2. MEMORY.md 长期知识萃取
 
 **触发时机**:
+
 - 预压缩刷新时,LLM 识别到长期知识
 - 用户手动标记重要信息
 - 周/月总结时批量萃取
@@ -372,11 +409,13 @@ class MemoryFileWatcher {
 ## 🧑 用户偏好
 
 ### 开发习惯
+
 - 偏好使用中文交流
 - 代码风格: 简洁、安全优先
 - 喜欢详细的文档和注释
 
 ### 技术栈偏好
+
 - LLM: 优先使用本地 Ollama (qwen2:7b)
 - 数据库: SQLite + SQLCipher
 - UI: Ant Design Vue
@@ -386,12 +425,14 @@ class MemoryFileWatcher {
 ## 🏗️ 架构决策
 
 ### ADR-001: 使用双层记忆架构
+
 - **日期**: 2026-02-01
 - **背景**: SessionManager 仅支持 JSON 格式,难以人工阅读和编辑
 - **决策**: 采用 Daily Notes (Markdown) + MEMORY.md 双层架构
 - **后果**: 提升可读性,支持手动编辑,便于长期维护
 
 ### ADR-002: 混合搜索 (Vector + BM25)
+
 - **日期**: 2026-02-01
 - **背景**: 纯 Vector Search 对关键词匹配效果差
 - **决策**: 引入 BM25,加权融合 (0.6 Vector + 0.4 BM25)
@@ -402,11 +443,13 @@ class MemoryFileWatcher {
 ## 🐛 常见问题解决方案
 
 ### 数据库锁问题
+
 - **问题**: SQLite "database is locked" 错误
 - **原因**: 并发写入、长事务、WAL 模式未启用
 - **解决**: 启用 WAL 模式,设置 busy_timeout=5000
 
 ### Embedding 计算慢
+
 - **问题**: 每次搜索都重新计算 Embedding
 - **原因**: 无缓存机制
 - **解决**: 使用 EmbeddingCache (SQLite),基于 content_hash 缓存
@@ -416,11 +459,13 @@ class MemoryFileWatcher {
 ## 📚 重要技术发现
 
 ### Clawdbot 预压缩刷新机制
+
 - 在 Token 达到 `contextWindow - reserveTokensFloor - softThresholdTokens` 时触发
 - 使用静默 LLM 调用 (`NO_REPLY`)
 - 每次压缩循环只刷新一次 (防止无限循环)
 
 ### BM25 权重调优
+
 - 经验值: Vector 0.6, BM25 0.4
 - 技术文档查询可提高 BM25 权重至 0.5
 - 对话式查询可降低 BM25 权重至 0.3
@@ -430,12 +475,14 @@ class MemoryFileWatcher {
 ## 🔧 系统配置
 
 ### LLM 提供商优先级
+
 1. Ollama (本地免费)
 2. DeepSeek (性价比高)
 3. 阿里云 Qwen
 4. OpenAI (紧急备用)
 
 ### 数据库配置
+
 - 启用 SQLCipher 加密
 - WAL 模式
 - 默认 PIN: 123456 (仅开发环境)
@@ -478,7 +525,7 @@ class MemoryFileWatcher {
 **BM25 实现** (使用 `natural` 库):
 
 ```javascript
-const natural = require('natural');
+const natural = require("natural");
 
 class BM25Search {
   constructor() {
@@ -488,7 +535,7 @@ class BM25Search {
 
   async indexDocuments(docs) {
     this.documents = docs;
-    docs.forEach(doc => {
+    docs.forEach((doc) => {
       this.tfidf.addDocument(doc.content);
     });
   }
@@ -501,7 +548,7 @@ class BM25Search {
         results.push({
           document: this.documents[i],
           score: score,
-          source: 'bm25'
+          source: "bm25",
         });
       }
     });
@@ -520,20 +567,20 @@ class BM25Search {
 
 ```javascript
 const permanentMemory = new PermanentMemoryManager({
-  memoryDir: '.chainlesschain/memory',
+  memoryDir: ".chainlesschain/memory",
   llmManager,
-  ragManager
+  ragManager,
 });
 
 // 启动文件监听
 permanentMemory.startFileWatcher();
 
 // 文件变化时自动重建索引
-permanentMemory.on('file-changed', async (event, filePath) => {
-  logger.info('[PermanentMemory] 检测到文件变化:', filePath);
+permanentMemory.on("file-changed", async (event, filePath) => {
+  logger.info("[PermanentMemory] 检测到文件变化:", filePath);
 
   // 只对 Markdown 文件重建索引
-  if (filePath.endsWith('.md')) {
+  if (filePath.endsWith(".md")) {
     await permanentMemory.rebuildIndex(filePath);
   }
 });
@@ -594,16 +641,19 @@ async rebuildIndex(filePath) {
 ### Phase 1: 基础架构 (1-2 天)
 
 **任务**:
+
 1. 创建 `PermanentMemoryManager` 类
 2. 实现 Daily Notes 写入功能
 3. 实现 MEMORY.md 追加功能
 4. 创建数据库迁移 (添加 `embedding_cache` 表)
 
 **文件**:
+
 - `src/main/llm/permanent-memory-manager.js` (新增)
 - `src/main/database/migrations/009_embedding_cache.sql` (新增)
 
 **测试**:
+
 - `scripts/test-permanent-memory.js` (新增)
 
 ---
@@ -611,17 +661,20 @@ async rebuildIndex(filePath) {
 ### Phase 2: 混合搜索引擎 (2-3 天)
 
 **任务**:
+
 1. 创建 `HybridSearchEngine` 类
 2. 实现 `BM25Search` 类
 3. 实现加权融合算法 (RRF)
 4. 集成到 RAG Manager
 
 **文件**:
+
 - `src/main/rag/hybrid-search-engine.js` (新增)
 - `src/main/rag/bm25-search.js` (新增)
 - `src/main/rag/rag-manager.js` (修改)
 
 **测试**:
+
 - `tests/unit/rag/hybrid-search-engine.test.js` (新增)
 - `tests/unit/rag/bm25-search.test.js` (新增)
 
@@ -630,16 +683,19 @@ async rebuildIndex(filePath) {
 ### Phase 3: 预压缩记忆刷新 (1-2 天)
 
 **任务**:
+
 1. 扩展 `SessionManager.compressMessages()`
 2. 实现 `flushMemoryBeforeCompaction()`
 3. 集成 LLM 提取重要信息
 4. 自动写入 Daily Notes 和 MEMORY.md
 
 **文件**:
+
 - `src/main/llm/session-manager.js` (修改)
 - `src/main/llm/session-manager-ipc.js` (修改)
 
 **测试**:
+
 - `scripts/test-precompaction-flush.js` (新增)
 
 ---
@@ -647,15 +703,18 @@ async rebuildIndex(filePath) {
 ### Phase 4: Embedding 缓存 (1 天)
 
 **任务**:
+
 1. 创建 `EmbeddingCache` 类
 2. 实现 SQLite 存储
 3. 集成到 RAG Manager
 
 **文件**:
+
 - `src/main/rag/embedding-cache.js` (新增)
 - `src/main/rag/embeddings-service.js` (修改)
 
 **测试**:
+
 - `tests/unit/rag/embedding-cache.test.js` (新增)
 
 ---
@@ -663,16 +722,19 @@ async rebuildIndex(filePath) {
 ### Phase 5: 文件监听和自动索引 (1-2 天)
 
 **任务**:
+
 1. 创建 `MemoryFileWatcher` 类
 2. 实现 chokidar 文件监听
 3. 实现增量索引更新
 4. 实现 file hash 跟踪
 
 **文件**:
+
 - `src/main/llm/memory-file-watcher.js` (新增)
 - `src/main/rag/index-manager.js` (新增)
 
 **测试**:
+
 - `tests/integration/memory-file-watcher.test.js` (新增)
 
 ---
@@ -680,6 +742,7 @@ async rebuildIndex(filePath) {
 ### Phase 6: UI 集成 (2-3 天)
 
 **任务**:
+
 1. 创建 PermanentMemoryPanel.vue 组件
 2. 显示 Daily Notes 时间轴
 3. 显示 MEMORY.md 内容
@@ -687,12 +750,14 @@ async rebuildIndex(filePath) {
 5. 支持混合搜索 UI
 
 **文件**:
+
 - `src/renderer/components/memory/PermanentMemoryPanel.vue` (新增)
 - `src/renderer/components/memory/DailyNotesTimeline.vue` (新增)
 - `src/renderer/components/memory/MemoryEditor.vue` (新增)
 - `src/renderer/stores/memory.js` (新增)
 
 **测试**:
+
 - 手动测试 UI 交互
 
 ---
@@ -700,12 +765,14 @@ async rebuildIndex(filePath) {
 ### Phase 7: 测试和文档 (1-2 天)
 
 **任务**:
+
 1. 编写单元测试 (覆盖率 >80%)
 2. 编写集成测试
 3. 更新用户文档
 4. 更新开发者文档
 
 **文件**:
+
 - `docs/features/PERMANENT_MEMORY_USER_GUIDE.md` (新增)
 - `CLAUDE.md` (更新)
 
@@ -721,19 +788,25 @@ async rebuildIndex(filePath) {
 # YYYY-MM-DD 运行日志
 
 ## 📌 今日概览
+
 - 统计信息
 
 ## 💬 重要对话
+
 ### HH:MM - 标题
+
 - 要点
 
 ## ✅ 完成任务
+
 - [x] 任务
 
 ## 📝 待办事项
+
 - [ ] 任务
 
 ## 💡 技术发现
+
 - 发现内容
 ```
 
@@ -743,28 +816,38 @@ async rebuildIndex(filePath) {
 # ChainlessChain 长期记忆
 
 ## 🧑 用户偏好
+
 ### 分类
+
 - 内容
 
 ## 🏗️ 架构决策
+
 ### ADR-XXX: 标题
+
 - **日期**: YYYY-MM-DD
 - **背景**: ...
 - **决策**: ...
 - **后果**: ...
 
 ## 🐛 常见问题解决方案
+
 ### 问题标题
+
 - **问题**: ...
 - **原因**: ...
 - **解决**: ...
 
 ## 📚 重要技术发现
+
 ### 发现标题
+
 - 详细内容
 
 ## 🔧 系统配置
+
 ### 配置项
+
 - 内容
 ```
 
@@ -830,7 +913,7 @@ function fusionRank(vectorResults, bm25Results, options = {}) {
   const mergedResults = Array.from(scoreMap.entries())
     .map(([docId, score]) => ({
       documentId: docId,
-      score: score
+      score: score,
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -854,7 +937,7 @@ function deserializeEmbedding(buffer) {
   const float32Array = new Float32Array(
     buffer.buffer,
     buffer.byteOffset,
-    buffer.length / Float32Array.BYTES_PER_ELEMENT
+    buffer.length / Float32Array.BYTES_PER_ELEMENT,
   );
   return Array.from(float32Array);
 }
@@ -890,31 +973,31 @@ async hasFileChanged(filePath) {
 
 ### 单元测试
 
-| 测试文件 | 覆盖模块 | 测试用例数 |
-|---------|---------|-----------|
-| `permanent-memory-manager.test.js` | PermanentMemoryManager | 15+ |
-| `hybrid-search-engine.test.js` | HybridSearchEngine | 12+ |
-| `bm25-search.test.js` | BM25Search | 10+ |
-| `embedding-cache.test.js` | EmbeddingCache | 8+ |
-| `memory-file-watcher.test.js` | MemoryFileWatcher | 10+ |
+| 测试文件                           | 覆盖模块               | 测试用例数 |
+| ---------------------------------- | ---------------------- | ---------- |
+| `permanent-memory-manager.test.js` | PermanentMemoryManager | 15+        |
+| `hybrid-search-engine.test.js`     | HybridSearchEngine     | 12+        |
+| `bm25-search.test.js`              | BM25Search             | 10+        |
+| `embedding-cache.test.js`          | EmbeddingCache         | 8+         |
+| `memory-file-watcher.test.js`      | MemoryFileWatcher      | 10+        |
 
 ### 集成测试
 
-| 测试文件 | 场景 |
-|---------|------|
-| `permanent-memory-complete-workflow.test.js` | 完整工作流测试 |
-| `precompaction-flush-integration.test.js` | 预压缩刷新测试 |
-| `hybrid-search-integration.test.js` | 混合搜索集成测试 |
+| 测试文件                                     | 场景             |
+| -------------------------------------------- | ---------------- |
+| `permanent-memory-complete-workflow.test.js` | 完整工作流测试   |
+| `precompaction-flush-integration.test.js`    | 预压缩刷新测试   |
+| `hybrid-search-integration.test.js`          | 混合搜索集成测试 |
 
 ### 性能测试
 
-| 指标 | 目标值 | 测试方法 |
-|------|--------|---------|
-| Daily Notes 写入延迟 | <100ms | 1000 次写入平均 |
-| MEMORY.md 追加延迟 | <50ms | 1000 次追加平均 |
-| 混合搜索延迟 | <500ms | 1000 docs 查询 |
-| Embedding 缓存命中率 | >80% | 10000 次查询统计 |
-| 文件监听响应延迟 | <2s | 1000 次文件变化 |
+| 指标                 | 目标值 | 测试方法         |
+| -------------------- | ------ | ---------------- |
+| Daily Notes 写入延迟 | <100ms | 1000 次写入平均  |
+| MEMORY.md 追加延迟   | <50ms  | 1000 次追加平均  |
+| 混合搜索延迟         | <500ms | 1000 docs 查询   |
+| Embedding 缓存命中率 | >80%   | 10000 次查询统计 |
+| 文件监听响应延迟     | <2s    | 1000 次文件变化  |
 
 ---
 
@@ -979,16 +1062,16 @@ async hasFileChanged(filePath) {
 
 ## IPC 通道
 
-| 通道 | 功能 | 参数 |
-|------|------|------|
-| `memory:get-daily-note` | 获取指定日期的 Daily Note | `{ date: 'YYYY-MM-DD' }` |
-| `memory:write-daily-note` | 写入今日 Daily Note | `{ content: string }` |
-| `memory:get-long-term-memory` | 获取 MEMORY.md 内容 | - |
-| `memory:append-to-memory` | 追加到 MEMORY.md | `{ content: string }` |
-| `memory:search` | 混合搜索 | `{ query: string, options: {} }` |
-| `memory:rebuild-index` | 重建索引 | `{ filePath?: string }` |
-| `memory:extract-from-session` | 从会话提取记忆 | `{ sessionId: string }` |
-| `memory:get-stats` | 获取记忆统计 | - |
+| 通道                          | 功能                      | 参数                             |
+| ----------------------------- | ------------------------- | -------------------------------- |
+| `memory:get-daily-note`       | 获取指定日期的 Daily Note | `{ date: 'YYYY-MM-DD' }`         |
+| `memory:write-daily-note`     | 写入今日 Daily Note       | `{ content: string }`            |
+| `memory:get-long-term-memory` | 获取 MEMORY.md 内容       | -                                |
+| `memory:append-to-memory`     | 追加到 MEMORY.md          | `{ content: string }`            |
+| `memory:search`               | 混合搜索                  | `{ query: string, options: {} }` |
+| `memory:rebuild-index`        | 重建索引                  | `{ filePath?: string }`          |
+| `memory:extract-from-session` | 从会话提取记忆            | `{ sessionId: string }`          |
+| `memory:get-stats`            | 获取记忆统计              | -                                |
 
 ---
 
@@ -997,15 +1080,15 @@ async hasFileChanged(filePath) {
 ### 创建 PermanentMemoryManager
 
 ```javascript
-const { PermanentMemoryManager } = require('./llm/permanent-memory-manager');
+const { PermanentMemoryManager } = require("./llm/permanent-memory-manager");
 
 const permanentMemory = new PermanentMemoryManager({
-  memoryDir: path.join(app.getPath('userData'), '.chainlesschain', 'memory'),
+  memoryDir: path.join(app.getPath("userData"), ".chainlesschain", "memory"),
   llmManager: llmManagerInstance,
   ragManager: ragManagerInstance,
   enableDailyNotes: true,
   enableLongTermMemory: true,
-  enableAutoIndexing: true
+  enableAutoIndexing: true,
 });
 
 await permanentMemory.initialize();
@@ -1043,10 +1126,10 @@ SQLite "database is locked" 错误
 ### 混合搜索
 
 ```javascript
-const results = await permanentMemory.searchMemory('如何优化数据库', {
+const results = await permanentMemory.searchMemory("如何优化数据库", {
   limit: 10,
   vectorWeight: 0.6,
-  textWeight: 0.4
+  textWeight: 0.4,
 });
 
 console.log(results);
@@ -1064,10 +1147,10 @@ console.log(results);
 
 ```javascript
 // 自动提取
-await permanentMemory.extractMemoryFromSession('session-123');
+await permanentMemory.extractMemoryFromSession("session-123");
 
 // 手动触发
-ipcMain.handle('memory:extract-from-session', async (event, { sessionId }) => {
+ipcMain.handle("memory:extract-from-session", async (event, { sessionId }) => {
   return await permanentMemory.extractMemoryFromSession(sessionId);
 });
 ```
@@ -1079,12 +1162,14 @@ ipcMain.handle('memory:extract-from-session', async (event, { sessionId }) => {
 ### Q1: 为什么需要 Daily Notes 和 MEMORY.md 两层记忆?
 
 **A**:
+
 - **Daily Notes**: 记录临时上下文,便于追溯某天的活动,类似日记
 - **MEMORY.md**: 萃取长期知识,避免重要信息淹没在日志中
 
 ### Q2: 混合搜索比纯 Vector Search 好在哪?
 
 **A**:
+
 - **Vector Search**: 擅长语义理解,但对关键词精确匹配较弱
 - **BM25 Search**: 擅长关键词匹配,但缺乏语义理解
 - **Hybrid**: 结合两者优势,召回率和准确率都更高
@@ -1092,12 +1177,14 @@ ipcMain.handle('memory:extract-from-session', async (event, { sessionId }) => {
 ### Q3: Embedding 缓存能节省多少计算时间?
 
 **A**:
+
 - 测试数据显示,缓存命中率 >80% 时,可节省 70% 的 Embedding 计算时间
 - 对于相同内容的重复查询,几乎是瞬时响应
 
 ### Q4: 文件监听会影响性能吗?
 
 **A**:
+
 - 使用 1.5s debounce,避免频繁触发
 - 只监听 Markdown 文件,忽略 node_modules/.git
 - 异步索引更新,不阻塞主线程
@@ -1105,6 +1192,7 @@ ipcMain.handle('memory:extract-from-session', async (event, { sessionId }) => {
 ### Q5: 如何手动标记重要信息到 MEMORY.md?
 
 **A**:
+
 - 在 UI 中选中文本,点击"保存到长期记忆"按钮
 - 或使用快捷键 Ctrl+Shift+M
 - 或在聊天框输入 `/remember <内容>`
@@ -1124,6 +1212,7 @@ ipcMain.handle('memory:extract-from-session', async (event, { sessionId }) => {
 ## 更新日志
 
 ### 2026-02-01
+
 - 初始版本 v0.1.0
 - 完成架构设计
 - 完成核心功能设计

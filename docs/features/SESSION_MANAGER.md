@@ -1,10 +1,12 @@
 # SessionManager (会话管理系统)
 
-**Status**: ✅ Implemented (v0.22.0 - Auto-Summary)
+**Status**: ✅ Implemented (v0.26.2 - Permanent Memory Integration)
 **Added**: 2026-01-16
-**Updated**: 2026-01-18
+**Updated**: 2026-02-01
 
 SessionManager 实现智能会话上下文管理，支持跨会话连续对话和 Token 优化。基于 OpenClaude 最佳实践设计。
+
+**相关系统**: [Permanent Memory](./PERMANENT_MEMORY_INTEGRATION.md) | [Hybrid Search](./PERMANENT_MEMORY_INTEGRATION.md#混合搜索)
 
 ## 核心功能
 
@@ -31,6 +33,12 @@ SessionManager 实现智能会话上下文管理，支持跨会话连续对话�
 15. **后台摘要生成**: 定期检查并为无摘要会话自动生成
 16. **批量摘要生成**: 一键为所有符合条件的会话生成摘要
 17. **摘要覆盖率统计**: 追踪自动/手动生成的摘要比例
+
+### Permanent Memory 集成 (v0.26.2)
+
+18. **Daily Notes 自动记录**: 会话活动自动记录到 `memory/daily/YYYY-MM-DD.md`
+19. **Pre-compaction Flush**: 压缩前自动保存关键信息到 MEMORY.md
+20. **混合搜索**: 支持 Vector + BM25 双路搜索历史会话和记忆
 
 ## 使用方式
 

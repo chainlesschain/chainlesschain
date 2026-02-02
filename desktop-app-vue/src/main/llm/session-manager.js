@@ -14,7 +14,7 @@
  * @since 2026-01-16
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -30,6 +30,7 @@ class SessionManager extends EventEmitter {
    * @param {Object} options - 配置选项
    * @param {Object} options.database - 数据库实例
    * @param {Object} options.llmManager - LLM 管理器实例（用于智能总结）
+   * @param {Object} [options.permanentMemoryManager] - 永久记忆管理器实例（Phase 3）
    * @param {string} options.sessionsDir - 会话存储目录
    * @param {number} [options.maxHistoryMessages=10] - 最大历史消息数
    * @param {number} [options.compressionThreshold=10] - 触发压缩的消息数阈值
@@ -39,6 +40,7 @@ class SessionManager extends EventEmitter {
    * @param {number} [options.autoSummaryThreshold=5] - 触发自动摘要的消息数阈值
    * @param {number} [options.autoSummaryInterval=300000] - 后台自动摘要检查间隔（毫秒，默认5分钟）
    * @param {boolean} [options.enableBackgroundSummary=true] - 启用后台摘要生成
+   * @param {boolean} [options.enableMemoryFlush=true] - 启用预压缩记忆刷新（Phase 3）
    */
   constructor(options = {}) {
     super();
@@ -49,6 +51,7 @@ class SessionManager extends EventEmitter {
 
     this.db = options.database;
     this.llmManager = options.llmManager || null;
+    this.permanentMemoryManager = options.permanentMemoryManager || null;
     this.sessionsDir =
       options.sessionsDir ||
       path.join(process.cwd(), ".chainlesschain", "memory", "sessions");
@@ -62,6 +65,9 @@ class SessionManager extends EventEmitter {
     this.autoSummaryThreshold = options.autoSummaryThreshold || 5;
     this.autoSummaryInterval = options.autoSummaryInterval || 5 * 60 * 1000; // 默认5分钟
     this.enableBackgroundSummary = options.enableBackgroundSummary !== false;
+
+    // 预压缩记忆刷新配置 (Phase 3)
+    this.enableMemoryFlush = options.enableMemoryFlush !== false;
 
     // 后台任务状态
     this._backgroundSummaryTimer = null;
@@ -90,6 +96,8 @@ class SessionManager extends EventEmitter {
       自动摘要: this.enableAutoSummary,
       摘要阈值: this.autoSummaryThreshold,
       后台摘要: this.enableBackgroundSummary,
+      记忆刷新: this.enableMemoryFlush,
+      永久记忆: !!this.permanentMemoryManager,
     });
   }
 
@@ -429,6 +437,20 @@ class SessionManager extends EventEmitter {
 
       logger.info("[SessionManager] 开始压缩会话:", sessionId);
 
+      // 🚀 Phase 3: 预压缩记忆刷新
+      if (
+        this.enableMemoryFlush &&
+        this.permanentMemoryManager &&
+        this.llmManager
+      ) {
+        try {
+          await this.flushMemoryBeforeCompaction(sessionId);
+        } catch (error) {
+          logger.error("[SessionManager] 预压缩记忆刷新失败:", error.message);
+          // 继续压缩流程，不因记忆刷新失败而中断
+        }
+      }
+
       // 使用 PromptCompressor 压缩
       const result = await this.promptCompressor.compress(session.messages, {
         preserveSystemMessage: true,
@@ -476,6 +498,195 @@ class SessionManager extends EventEmitter {
       logger.error("[SessionManager] 压缩会话失败:", error);
       throw error;
     }
+  }
+
+  /**
+   * 预压缩记忆刷新 (Phase 3)
+   * 在压缩前提取重要信息并保存到 Daily Notes 和 MEMORY.md
+   * @param {string} sessionId - 会话 ID
+   * @returns {Promise<void>}
+   */
+  async flushMemoryBeforeCompaction(sessionId) {
+    logger.info("[SessionManager] 开始预压缩记忆刷新:", sessionId);
+
+    try {
+      const session = await this.loadSession(sessionId);
+
+      // 提取最近的消息（避免传递过多上下文）
+      const recentMessages = session.messages.slice(-10);
+
+      if (recentMessages.length === 0) {
+        logger.info("[SessionManager] 没有消息需要提取记忆");
+        return;
+      }
+
+      // 构建 LLM Prompt
+      const extractionPrompt = this.buildMemoryExtractionPrompt(recentMessages);
+
+      // 使用 LLM 提取重要信息
+      const response = await this.llmManager.chat({
+        model: "qwen2:7b", // 使用本地模型，免费
+        messages: [
+          {
+            role: "system",
+            content: `你是一个记忆提取助手。从对话中提取重要信息，分为两类：
+1. **今日活动** (保存到 Daily Notes): 对话摘要、完成的任务、待办事项、技术发现
+2. **长期记忆** (保存到 MEMORY.md): 用户偏好、架构决策、问题解决方案、重要配置
+
+请以 JSON 格式返回，格式如下：
+{
+  "dailyNotes": "今日活动的 Markdown 内容",
+  "longTermMemory": "长期记忆的 Markdown 内容",
+  "shouldSave": true/false
+}`,
+          },
+          {
+            role: "user",
+            content: extractionPrompt,
+          },
+        ],
+        stream: false,
+        temperature: 0.3, // 低温度，确保稳定输出
+      });
+
+      // 解析响应
+      const extraction = this.parseMemoryExtraction(response.content);
+
+      if (!extraction.shouldSave) {
+        logger.info("[SessionManager] LLM 判断无需保存记忆");
+        return;
+      }
+
+      // 保存到 Daily Notes
+      if (extraction.dailyNotes && extraction.dailyNotes.trim()) {
+        await this.permanentMemoryManager.writeDailyNote(
+          extraction.dailyNotes,
+          {
+            append: true,
+          },
+        );
+        logger.info("[SessionManager] Daily Notes 已更新");
+      }
+
+      // 保存到 MEMORY.md
+      if (extraction.longTermMemory && extraction.longTermMemory.trim()) {
+        // 根据内容判断章节
+        const section = this.detectMemorySection(extraction.longTermMemory);
+        await this.permanentMemoryManager.appendToMemory(
+          extraction.longTermMemory,
+          {
+            section,
+          },
+        );
+        logger.info(`[SessionManager] MEMORY.md 已更新 (章节: ${section})`);
+      }
+
+      logger.info("[SessionManager] 预压缩记忆刷新完成");
+    } catch (error) {
+      logger.error("[SessionManager] 预压缩记忆刷新失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 构建记忆提取 Prompt
+   * @param {Array<Object>} messages - 消息列表
+   * @returns {string} Prompt 字符串
+   */
+  buildMemoryExtractionPrompt(messages) {
+    const conversationText = messages
+      .map((msg, idx) => {
+        const role = msg.role === "user" ? "用户" : "AI";
+        const content = msg.content.substring(0, 500); // 限制长度
+        return `[${idx + 1}] ${role}: ${content}`;
+      })
+      .join("\n\n");
+
+    return `请从以下对话中提取重要信息：
+
+${conversationText}
+
+请分析并提取：
+1. **今日活动**: 对话主题、完成的任务、待办事项、技术发现
+2. **长期记忆**: 用户偏好、架构决策、问题解决方案、重要配置
+
+如果没有重要信息需要保存，请设置 shouldSave 为 false。`;
+  }
+
+  /**
+   * 解析记忆提取结果
+   * @param {string} content - LLM 响应内容
+   * @returns {Object} 解析后的对象
+   */
+  parseMemoryExtraction(content) {
+    try {
+      // 尝试提取 JSON 代码块
+      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+
+      // 尝试直接解析
+      const parsed = JSON.parse(content);
+      return parsed;
+    } catch (error) {
+      logger.warn("[SessionManager] 无法解析 LLM 响应，使用简单模式");
+
+      // 回退：简单提取
+      return {
+        dailyNotes: `## ${new Date().toLocaleTimeString()} - 对话记录\n\n${content.substring(0, 200)}`,
+        longTermMemory: "",
+        shouldSave: true,
+      };
+    }
+  }
+
+  /**
+   * 检测记忆内容应该保存到哪个章节
+   * @param {string} content - 记忆内容
+   * @returns {string} 章节名称
+   */
+  detectMemorySection(content) {
+    const lowerContent = content.toLowerCase();
+
+    if (lowerContent.includes("偏好") || lowerContent.includes("习惯")) {
+      return "🧑 用户偏好";
+    }
+
+    if (
+      lowerContent.includes("决策") ||
+      lowerContent.includes("架构") ||
+      lowerContent.includes("设计")
+    ) {
+      return "🏗️ 架构决策";
+    }
+
+    if (
+      lowerContent.includes("问题") ||
+      lowerContent.includes("错误") ||
+      lowerContent.includes("解决")
+    ) {
+      return "🐛 常见问题解决方案";
+    }
+
+    if (
+      lowerContent.includes("发现") ||
+      lowerContent.includes("技巧") ||
+      lowerContent.includes("最佳")
+    ) {
+      return "📚 重要技术发现";
+    }
+
+    if (
+      lowerContent.includes("配置") ||
+      lowerContent.includes("环境") ||
+      lowerContent.includes("变量")
+    ) {
+      return "🔧 系统配置";
+    }
+
+    // 默认章节
+    return "📚 重要技术发现";
   }
 
   /**
@@ -1327,7 +1538,9 @@ class SessionManager extends EventEmitter {
    */
   _generateContextPrompt(session) {
     const msgs = session.messages;
-    if (msgs.length === 0) {return "";}
+    if (msgs.length === 0) {
+      return "";
+    }
 
     let prompt = "[对话上下文提示]\n";
     prompt += `这是一个续接的对话，标题："${session.title}"\n`;

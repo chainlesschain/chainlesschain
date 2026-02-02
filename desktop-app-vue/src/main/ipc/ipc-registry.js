@@ -167,10 +167,13 @@ function registerAllIPC(dependencies) {
     const mcpClientManager = app ? app.mcpManager || null : null;
     const mcpToolAdapter = app ? app.mcpAdapter || null : null;
 
-    // 🔥 获取高级特性依赖（SessionManager, ErrorMonitor, Multi-Agent）
+    // 🔥 获取高级特性依赖（SessionManager, ErrorMonitor, Multi-Agent, PermanentMemory）
     const sessionManager = app ? app.sessionManager || null : null;
     const errorMonitor = app ? app.errorMonitor || null : null;
     const agentOrchestrator = app ? app.agentOrchestrator || null : null;
+    const permanentMemoryManager = app
+      ? app.permanentMemoryManager || null
+      : null;
 
     registerLLMIPC({
       llmManager: llmManager || null,
@@ -197,6 +200,18 @@ function registerAllIPC(dependencies) {
       );
     }
     logger.info("[IPC Registry] ✓ LLM IPC registered (14 handlers)");
+
+    // PermanentMemory 永久记忆管理 (Clawdbot 风格, 7 handlers)
+    if (permanentMemoryManager) {
+      logger.info("[IPC Registry] Registering PermanentMemory IPC...");
+      const {
+        registerPermanentMemoryIPC,
+      } = require("../llm/permanent-memory-ipc");
+      registerPermanentMemoryIPC(permanentMemoryManager);
+      logger.info(
+        "[IPC Registry] ✓ PermanentMemory IPC registered (7 handlers)",
+      );
+    }
 
     // Logger 服务 (日志管理器)
     logger.info("[IPC Registry] Registering Logger IPC...");
@@ -356,8 +371,13 @@ function registerAllIPC(dependencies) {
         const {
           registerExternalDeviceFileIPC,
         } = require("../file/external-device-file-ipc");
-        registerExternalDeviceFileIPC(require("electron").ipcMain, externalFileManager);
-        logger.info("[IPC Registry] ✓ External Device File IPC registered (15 handlers)");
+        registerExternalDeviceFileIPC(
+          require("electron").ipcMain,
+          externalFileManager,
+        );
+        logger.info(
+          "[IPC Registry] ✓ External Device File IPC registered (15 handlers)",
+        );
       }
     }
 
@@ -971,9 +991,7 @@ function registerAllIPC(dependencies) {
     }
 
     logger.info("[IPC Registry] ========================================");
-    logger.info(
-      "[IPC Registry] Phase 9 Complete: Cowork system ready!",
-    );
+    logger.info("[IPC Registry] Phase 9 Complete: Cowork system ready!");
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
@@ -982,12 +1000,16 @@ function registerAllIPC(dependencies) {
 
     try {
       logger.info("[IPC Registry] Registering Workflow Optimizations IPC...");
-      const { registerWorkflowOptimizationsIPC } = require("./workflow-optimizations-ipc");
+      const {
+        registerWorkflowOptimizationsIPC,
+      } = require("./workflow-optimizations-ipc");
       registerWorkflowOptimizationsIPC({
         database: database || null,
         aiEngineManager: aiEngineManager || null,
       });
-      logger.info("[IPC Registry] ✓ Workflow Optimizations IPC registered (7 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Workflow Optimizations IPC registered (7 handlers)",
+      );
       logger.info("[IPC Registry]   - Status & Statistics: 2 handlers");
       logger.info("[IPC Registry]   - Toggle & Configuration: 3 handlers");
       logger.info("[IPC Registry]   - Reports & Health: 2 handlers");

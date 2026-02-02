@@ -2,11 +2,12 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.27.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.28.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
+![Tests](https://img.shields.io/badge/tests-233-brightgreen.svg)
 
 **去中心化 · 隐私优先 · AI原生**
 
@@ -18,35 +19,38 @@
 
 ---
 
-## ⭐ 当前版本: v0.27.1 (2026-01-27)
+## ⭐ 当前版本: v0.28.0 (2026-02-01)
 
-### 最新更新 - Phase 3/4 工作流优化全部完成 🎉
+### 最新更新 - 永久记忆系统 + 全面测试体系 🎉
 
-**AI引擎性能大幅提升** - 新增7个智能优化模块，任务执行成功率从40%提升至70%
+**Clawdbot 永久记忆集成** - 实现 AI 对话跨会话记忆持久化，结合 Vector + BM25 混合搜索
 
-#### 核心优化模块 (6,344行新代码)
+#### 新增核心功能
 
-- ✅ **智能任务计划缓存** - 语义相似度匹配，LLM成本减少70%，缓存命中率60-85%
-- ✅ **LLM辅助多代理决策** - 三层智能决策引擎，多代理利用率提升20%，准确率92%
-- ✅ **代理池复用系统** - 代理获取速度提升10倍，创建开销减少85%
-- ✅ **关键路径优化** - CPM算法智能调度，复杂任务执行时间减少15-36%
-- ✅ **实时质量检查** - 文件监控即时反馈，问题发现快1800倍，返工时间减少50%
-- ✅ **自动阶段转换** - 事件驱动工作流，消除人为错误100%
-- ✅ **智能检查点策略** - 动态间隔优化，IO开销减少30%
+- ✅ **永久记忆系统** - Daily Notes 自动记录 + MEMORY.md 长期知识萃取
+- ✅ **混合搜索引擎** - Vector (语义) + BM25 (关键词) 双路并行搜索
+- ✅ **RRF 融合算法** - 智能结果融合，搜索延迟 < 20ms
+- ✅ **流式创建断点续传** - 项目创建支持断点续传，大文件传输更可靠
+- ✅ **P2P 远程控制系统** - 完整的远程控制和 Git IPC 集成
+
+#### Phase 2 测试体系完成
+
+- ✅ **233 个测试用例** - 覆盖单元测试、集成测试、E2E、性能、安全
+- ✅ **99.6% 通过率** - 修复 29 个 bug
+- ✅ **OWASP Top 10 覆盖 80%** - 全面安全防护验证
+- ✅ **性能基准建立** - 142K ops/s 项目操作，271K ops/s 文件操作
 
 #### 性能提升总结
 
-| 指标 | 优化前 | 优化后 | 提升 |
-|-----|--------|--------|------|
-| 任务成功率 | 40% | 70% | **+75%** |
-| LLM规划成本 | 基准 | -70% | **月省$2,550** |
-| 缓存命中率 | 20% | 60-85% | **+3-4x** |
-| 多代理利用率 | 70% | 90% | **+20%** |
-| 代理获取速度 | 基准 | 10x | **+900%** |
-| 任务执行时间 | 基准 | -25% | **更快** |
-| 质量发现速度 | 30分钟 | <1秒 | **1800x** |
+| 指标         | 优化前 | 优化后 | 提升           |
+| ------------ | ------ | ------ | -------------- |
+| 任务成功率   | 40%    | 70%    | **+75%**       |
+| 混合搜索延迟 | -      | <20ms  | **极速**       |
+| 测试覆盖率   | ~30%   | ~75%   | **+150%**      |
+| LLM规划成本  | 基准   | -70%   | **月省$2,550** |
+| 代理获取速度 | 基准   | 10x    | **+900%**      |
 
-详见: [Phase 3/4 完成总结](./docs/features/WORKFLOW_PHASE3_COMPLETION_SUMMARY.md) | [完整版本历史](./docs/CHANGELOG.md)
+详见: [Phase 2 测试总结](./PHASE2_FINAL_SUMMARY.md) | [永久记忆文档](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [完整版本历史](./docs/CHANGELOG.md)
 
 ### 项目状态 (整体完成度: 100%)
 
@@ -61,6 +65,7 @@
 ## 核心特性
 
 - 🔐 **军事级安全**: SQLCipher AES-256加密 + U盾硬件密钥 + Signal协议E2E加密
+- 🧠 **永久记忆系统**: Daily Notes自动记录 + MEMORY.md长期萃取 + 混合搜索(Vector+BM25)
 - 📊 **统一日志系统**: 集中式logger管理 + 日志级别控制 + 结构化日志
 - 🌐 **完全去中心化**: P2P网络(libp2p 3.1.2) + DHT + 本地数据存储
 - 🧠 **AI原生**: 支持14+云LLM提供商 + Ollama本地部署 + RAG增强检索
@@ -71,7 +76,8 @@
 - ⛓️ **区块链集成**: 6个智能合约 + HD钱包系统 + LayerZero跨链桥
 - 🏢 **企业版**: 多身份架构 + RBAC权限 + 知识库协作 + DID邀请链接
 - 📱 **跨设备协作**: Git同步 + 桌面-移动端双向同步 + 多设备P2P通信
-- 🔓 **开源自主**: 226,000+行代码,243个Vue组件,完全透明可审计
+- 🧪 **全面测试体系**: 233测试用例 + 99.6%通过率 + OWASP安全验证 + 性能基准
+- 🔓 **开源自主**: 230,000+行代码,243个Vue组件,完全透明可审计
 
 更多特性详见 [功能详解](./docs/FEATURES.md)
 
@@ -117,6 +123,7 @@
 #### 工作流智能优化 (Phase 1-4, 17项全部完成)
 
 **Phase 1-2 核心优化 (8项)**
+
 - ✅ RAG并行化 - 耗时减少60% (3s→1s)
 - ✅ 消息聚合 - 前端性能提升50%
 - ✅ 工具缓存 - 重复调用减少15%
@@ -127,6 +134,7 @@
 - ✅ 质量门禁并行 - 早期错误拦截
 
 **Phase 3-4 智能优化 (9项)**
+
 - ✅ 智能计划缓存 - LLM成本减少70%，命中率60-85%
 - ✅ LLM辅助决策 - 多代理利用率提升20%，准确率92%
 - ✅ 代理池复用 - 获取速度10x，开销减少85%
@@ -138,6 +146,29 @@
 **总体提升**: 任务成功率 40%→70% (+75%) | LLM成本 -70% | 执行速度 +25%
 
 详细功能说明见 [功能文档](./docs/FEATURES.md) | [Cowork快速开始](./docs/features/COWORK_QUICK_START.md) | [Phase 3/4总结](./docs/features/WORKFLOW_PHASE3_COMPLETION_SUMMARY.md)
+
+### 5️⃣ 永久记忆系统 (100% 完成) ✅
+
+- ✅ Daily Notes自动记录(memory/daily/YYYY-MM-DD.md)
+- ✅ MEMORY.md长期知识萃取(分类存储+自动更新)
+- ✅ 混合搜索引擎(Vector语义+BM25关键词双路搜索)
+- ✅ RRF融合算法(Reciprocal Rank Fusion智能排序)
+- ✅ Embedding缓存(减少重复计算+文件Hash跟踪)
+- ✅ 过期自动清理(可配置保留天数)
+- ✅ 元数据统计(知识分类、标签、引用跟踪)
+
+详细功能说明见 [永久记忆集成文档](./docs/features/PERMANENT_MEMORY_INTEGRATION.md)
+
+### 6️⃣ 全面测试体系 (100% 完成) ✅
+
+- ✅ **233个测试用例** - 覆盖所有核心模块
+- ✅ **99.6%通过率** - 高质量代码保障
+- ✅ **8个测试文件** - 单元/集成/E2E/性能/安全
+- ✅ **OWASP Top 10覆盖80%** - XSS/SQL注入/路径遍历防护验证
+- ✅ **性能基准建立** - 142K ops/s项目操作，271K ops/s文件操作
+- ✅ **29个Bug修复** - 测试驱动的质量提升
+
+详细功能说明见 [Phase 2 测试总结](./PHASE2_FINAL_SUMMARY.md)
 
 ## 🚀 快速开始
 
@@ -203,7 +234,11 @@ chainlesschain/
 │   │   │   ├── config/       # 配置管理
 │   │   │   ├── database/     # 数据库操作
 │   │   │   ├── llm/          # LLM集成 (16个AI引擎)
+│   │   │   │   ├── permanent-memory-manager.js  # 永久记忆管理器
+│   │   │   │   └── permanent-memory-ipc.js      # 永久记忆IPC通道
 │   │   │   ├── rag/          # RAG检索系统
+│   │   │   │   ├── bm25-search.js         # BM25全文搜索引擎
+│   │   │   │   └── hybrid-search-engine.js # 混合搜索引擎
 │   │   │   ├── did/          # DID身份系统
 │   │   │   ├── p2p/          # P2P网络 (libp2p)
 │   │   │   ├── mcp/          # MCP集成
@@ -218,7 +253,11 @@ chainlesschain/
 │   │   │   └── monitoring/   # 监控和日志
 │   │   └── renderer/         # 渲染进程 (Vue3 + 243个组件)
 │   ├── contracts/            # 智能合约 (Hardhat + Solidity)
-│   └── tests/                # 测试套件 (单元/集成/E2E/AI引擎)
+│   └── tests/                # 测试套件 (233个测试用例)
+│       ├── unit/             # 单元测试 (IPC处理器、数据库、Git)
+│       ├── integration/      # 集成测试 (后端集成、用户旅程)
+│       ├── performance/      # 性能测试 (负载、内存泄漏)
+│       └── security/         # 安全测试 (OWASP Top 10)
 ├── backend/
 │   ├── project-service/      # Spring Boot 3.1.11 (Java 17)
 │   └── ai-service/           # FastAPI + Ollama + Qdrant
@@ -239,10 +278,12 @@ chainlesschain/
 
 ### PC端
 
-- Electron 39.2.6 + Vue 3.4 + Ant Design Vue 4.1
+- Electron 39.2.7 + Vue 3.4 + Ant Design Vue 4.1
 - SQLite/SQLCipher (AES-256) + libp2p 3.1.2
 - 16个专用AI引擎 + 17项智能优化 + 115个技能 + 300个工具
+- 永久记忆: Daily Notes + MEMORY.md + 混合搜索(Vector+BM25)
 - 工作流优化: 智能缓存 + LLM决策 + 代理池 + 关键路径 + 实时质量
+- 测试框架: Vitest + 233测试用例 + 99.6%通过率
 
 ### 后端
 
@@ -314,6 +355,14 @@ chainlesschain/
 - [⛓️ 区块链文档](./docs/BLOCKCHAIN.md) - 区块链集成和跨链桥
 - [🔧 API参考](./docs/API_REFERENCE.md) - API接口文档
 - [📚 用户手册](./docs/USER_MANUAL_COMPLETE.md) - 完整用户使用手册
+
+**永久记忆与测试文档**:
+
+- [🧠 永久记忆集成](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) - Daily Notes + MEMORY.md + 混合搜索
+- [🧪 Phase 2 测试总结](./PHASE2_FINAL_SUMMARY.md) - 233测试用例，99.6%通过率
+- [🔒 安全测试报告](./PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10覆盖80%
+- [📊 IPC处理器测试](./PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66个IPC处理器测试
+- [💾 数据库边界测试](./PHASE2_TASK8_DATABASE_TESTS.md) - 14个边界条件测试
 
 **工作流优化文档**:
 
