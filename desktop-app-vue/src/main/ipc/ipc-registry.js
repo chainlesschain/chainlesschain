@@ -346,6 +346,19 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 Progress Emitter 系统 (统一进度通知, 12 handlers)
+    logger.info("[IPC Registry] Registering Progress Emitter IPC...");
+    try {
+      const { registerProgressEmitterIPC } = require("../utils/progress-emitter-ipc");
+      registerProgressEmitterIPC({ mainWindow: mainWindow || null });
+      logger.info("[IPC Registry] ✓ Progress Emitter IPC registered (12 handlers)");
+    } catch (progressError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Progress Emitter IPC registration failed (non-fatal):",
+        progressError.message,
+      );
+    }
+
     // 🔥 Team Task Management 系统 (任务看板, 49 handlers)
     logger.info("[IPC Registry] Registering Team Task Management IPC...");
     try {
