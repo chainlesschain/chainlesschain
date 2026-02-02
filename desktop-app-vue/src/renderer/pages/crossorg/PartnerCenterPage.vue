@@ -15,9 +15,9 @@
       </template>
     </a-page-header>
 
-    <a-row :gutter="24}>
+    <a-row :gutter="24">
       <!-- 合作伙伴列表 -->
-      <a-col :span="16}>
+      <a-col :span="16">
         <a-card title="我的合作伙伴">
           <template #extra>
             <a-segmented v-model:value="partnerFilter" :options="filterOptions" />
