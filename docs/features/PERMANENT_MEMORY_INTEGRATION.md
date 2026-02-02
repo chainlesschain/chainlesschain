@@ -23,6 +23,7 @@
 | Phase 5 | 文件监听和自动索引   | ✅ 完成 |
 | Phase 6 | UI 集成              | ✅ 完成 |
 | Phase 6 | AI 对话保存到记忆    | ✅ 完成 |
+| Phase 7 | 测试和文档           | ✅ 完成 |
 
 **核心文件**:
 
@@ -987,6 +988,18 @@ async hasFileChanged(filePath) {
 ---
 
 ## 测试计划
+
+### 已完成测试
+
+**脚本测试 (scripts/)**:
+
+| 测试脚本                     | 覆盖功能                           | 状态        |
+| ---------------------------- | ---------------------------------- | ----------- |
+| `test-memory-save.js`        | saveToMemory, extractFromConversation, getMemorySections | ✅ 6/6 通过 |
+| `test-hybrid-search.js`      | 混合搜索 (Vector + BM25)           | ✅ 8/8 通过 |
+| `test-embedding-cache.js`    | Embedding 缓存读写                 | ✅ 通过     |
+| `test-precompaction-flush.js`| 预压缩记忆刷新                     | ✅ 通过     |
+| `test-memory-file-watcher.js`| 文件监听和自动索引                 | ✅ 通过     |
 
 ### 单元测试
 

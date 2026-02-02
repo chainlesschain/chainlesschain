@@ -35,6 +35,10 @@
             <p class="welcome-hint">
               输入你的需求开始对话，或使用 @ 来引用知识库和文件
             </p>
+            <p class="welcome-hint shortcut-hint">
+              <span class="shortcut-key">Ctrl+Shift+M</span> 保存消息到记忆 |
+              <span class="shortcut-key">Ctrl+Shift+S</span> 保存对话
+            </p>
           </div>
 
           <!-- 对话消息 -->
@@ -757,6 +761,11 @@ onMounted(async () => {
   window.addEventListener("keydown", handleKeyboard);
 });
 
+// 组件卸载时清理
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeyboard);
+});
+
 // 监听消息变化，自动滚动并增强代码块
 watch(
   () => messages.value.length,
@@ -858,6 +867,22 @@ watch(
     font-size: 14px;
     color: #9ca3af;
     margin-top: 32px;
+
+    &.shortcut-hint {
+      margin-top: 16px;
+      font-size: 12px;
+    }
+  }
+
+  .shortcut-key {
+    display: inline-block;
+    padding: 2px 6px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 11px;
+    color: #6b7280;
   }
 }
 
