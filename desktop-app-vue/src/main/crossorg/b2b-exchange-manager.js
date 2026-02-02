@@ -423,7 +423,7 @@ class B2BExchangeManager extends EventEmitter {
   /**
    * Get transaction statistics
    */
-  async getTransactionStats(orgId, options = {}) {
+  async getTransactionStats(orgId, _options = {}) {
     try {
       const db = this.database.getDatabase();
 
