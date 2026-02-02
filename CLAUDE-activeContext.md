@@ -47,10 +47,34 @@
 - [x] Memory 目录增强功能 (语义分块、分层搜索、分析仪表盘)
 - [x] MCP 系统单元测试完善 (32 测试全部通过)
 - [x] MCP 端到端集成测试 (31 测试全部通过)
+- [x] Context Window Optimization 系统实现 (KV-Cache 优化, 17 handlers)
 
 ### 最近完成
 
-0. **MCP 端到端集成测试** (2026-02-02):
+0. **Context Window Optimization 系统实现** (2026-02-02):
+   - 新建 `src/main/llm/context-engineering-ipc.js` - 17 个 IPC 通道（~600 行）
+     - 统计和配置：get-stats、reset-stats、get-config、set-config
+     - Prompt 优化：optimize-messages、estimate-tokens
+     - 任务上下文：set-task、update-task-progress、get-task、clear-task
+     - 错误历史：record-error、resolve-error、get-errors、clear-errors
+     - 内容压缩：compress、is-compressed、decompress
+   - 利用现有核心类：
+     - `ContextEngineering` - KV-Cache 优化、静态/动态内容分离
+     - `RecoverableCompressor` - 可恢复压缩（保留 URL/路径，丢弃内容）
+   - 新增 `TokenEstimator` 类 - Token 数量估算（中/英文自动检测）
+   - 新建 `scripts/test-context-engineering.js` - 集成测试（22 个测试用例）
+   - 更新 `src/main/ipc/ipc-registry.js` - 注册 Context Engineering IPC
+   - 更新 `package.json` - 添加 test:context 脚本
+   - **功能特点**:
+     - KV-Cache 友好的 Prompt 构建（静态内容前置）
+     - 工具定义确定性序列化（按名称排序）
+     - 时间戳/UUID 等动态内容清理
+     - 任务目标重述（解决"丢失中间"问题）
+     - 错误历史保留供模型学习
+     - 可恢复压缩（保留引用，支持后续恢复）
+   - **测试结果**: 22 个集成测试全部通过
+
+1. **MCP 端到端集成测试** (2026-02-02):
    - 新建 `scripts/test-mcp-integration.js` - 集成测试脚本（~920 行）
    - 6 个测试套件：
      - Server Connection Lifecycle（5 测试）

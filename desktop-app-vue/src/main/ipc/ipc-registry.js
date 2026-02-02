@@ -255,6 +255,19 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 Context Engineering 系统 (KV-Cache 优化, 17 handlers)
+    logger.info("[IPC Registry] Registering Context Engineering IPC...");
+    try {
+      const { registerContextEngineeringIPC } = require("../llm/context-engineering-ipc");
+      registerContextEngineeringIPC();
+      logger.info("[IPC Registry] ✓ Context Engineering IPC registered (17 handlers)");
+    } catch (contextError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Context Engineering IPC registration failed (non-fatal):",
+        contextError.message,
+      );
+    }
+
     // Logger 服务 (日志管理器)
     logger.info("[IPC Registry] Registering Logger IPC...");
     const { registerLoggerIPC } = require("./logger-ipc");
