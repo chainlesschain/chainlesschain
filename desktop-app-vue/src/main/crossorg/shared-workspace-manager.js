@@ -130,7 +130,7 @@ class SharedWorkspaceManager extends EventEmitter {
   /**
    * Archive a workspace
    */
-  async archiveWorkspace(workspaceId, archivedByDid) {
+  async archiveWorkspace(workspaceId, _archivedByDid) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -230,7 +230,7 @@ class SharedWorkspaceManager extends EventEmitter {
   /**
    * Remove an organization from workspace
    */
-  async removeOrg(workspaceId, orgId, removedByDid) {
+  async removeOrg(workspaceId, orgId, _removedByDid) {
     try {
       const db = this.database.getDatabase();
 
@@ -335,7 +335,7 @@ class SharedWorkspaceManager extends EventEmitter {
   /**
    * Remove a member from workspace
    */
-  async removeMember(workspaceId, memberDid, removedByDid) {
+  async removeMember(workspaceId, memberDid, _removedByDid) {
     try {
       const db = this.database.getDatabase();
 
@@ -364,7 +364,7 @@ class SharedWorkspaceManager extends EventEmitter {
   /**
    * Update member role
    */
-  async updateMemberRole(workspaceId, memberDid, role, permissions, updatedByDid) {
+  async updateMemberRole(workspaceId, memberDid, role, permissions, _updatedByDid) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
