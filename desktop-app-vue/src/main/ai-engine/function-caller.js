@@ -208,6 +208,52 @@ class FunctionCaller {
   }
 
   /**
+   * 🔥 设置 HookSystem（用于工具调用钩子）
+   * @param {HookSystem} hookSystem - Hooks 系统实例
+   */
+  setHookSystem(hookSystem) {
+    if (!hookSystem) {
+      logger.warn('[Function Caller] HookSystem 为空，跳过设置');
+      return;
+    }
+
+    this.hookSystem = hookSystem;
+
+    // 使用中间件包装所有已注册的工具
+    if (hookSystem.toolMiddleware) {
+      this._wrapToolsWithHooks();
+    }
+
+    logger.info('[Function Caller] HookSystem已设置');
+  }
+
+  /**
+   * 使用 Hooks 中间件包装所有工具
+   * @private
+   */
+  _wrapToolsWithHooks() {
+    if (!this.hookSystem || !this.hookSystem.toolMiddleware) {
+      return;
+    }
+
+    const middleware = this.hookSystem.toolMiddleware;
+    const originalTools = new Map(this.tools);
+
+    for (const [name, tool] of originalTools) {
+      if (tool.handler && !tool._hooksWrapped) {
+        const wrappedHandler = middleware.wrap(name, tool.handler);
+        this.tools.set(name, {
+          ...tool,
+          handler: wrappedHandler,
+          _hooksWrapped: true,
+        });
+      }
+    }
+
+    logger.info(`[Function Caller] 已使用 Hooks 包装 ${originalTools.size} 个工具`);
+  }
+
+  /**
    * 注册内置工具
    * @private
    */
@@ -828,10 +874,20 @@ function initializeInteractions() {
       logger.warn(`[Function Caller] 工具 "${name}" 已存在，将被覆盖`);
     }
 
+    // 🔥 如果 HookSystem 已设置，自动包装 handler
+    let wrappedHandler = handler;
+    let hooksWrapped = false;
+
+    if (this.hookSystem && this.hookSystem.toolMiddleware) {
+      wrappedHandler = this.hookSystem.toolMiddleware.wrap(name, handler);
+      hooksWrapped = true;
+    }
+
     this.tools.set(name, {
       name,
-      handler,
+      handler: wrappedHandler,
       schema,
+      _hooksWrapped: hooksWrapped,
     });
 
     // 🔥 同步到掩码系统
@@ -840,11 +896,11 @@ function initializeInteractions() {
         name,
         description: schema?.description || '',
         parameters: schema?.parameters || {},
-        handler,
+        handler: wrappedHandler,
       });
     }
 
-    logger.info(`[Function Caller] 注册工具: ${name}`);
+    logger.info(`[Function Caller] 注册工具: ${name}${hooksWrapped ? ' (hooks enabled)' : ''}`);
   }
 
   /**

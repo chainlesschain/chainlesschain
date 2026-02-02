@@ -420,4 +420,36 @@ module.exports = {
   createSessionHookMiddleware,
   createFileHookMiddleware,
   createAgentHookMiddleware,
+
+  // 集成工具 (懒加载以避免循环依赖)
+  get integrateWithIPC() {
+    return require('./hooks-integration').integrateWithIPC;
+  },
+  get createHookedToolRegister() {
+    return require('./hooks-integration').createHookedToolRegister;
+  },
+  get triggerHook() {
+    return require('./hooks-integration').triggerHook;
+  },
+  get registerHook() {
+    return require('./hooks-integration').registerHook;
+  },
+  get registerHooks() {
+    return require('./hooks-integration').registerHooks;
+  },
+  get isHooksAvailable() {
+    return require('./hooks-integration').isHooksAvailable;
+  },
+  get getHooksStats() {
+    return require('./hooks-integration').getHooksStats;
+  },
+  get createConditionalHook() {
+    return require('./hooks-integration').createConditionalHook;
+  },
+  get createLoggingHook() {
+    return require('./hooks-integration').createLoggingHook;
+  },
+  get createValidationHook() {
+    return require('./hooks-integration').createValidationHook;
+  },
 };

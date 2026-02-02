@@ -148,6 +148,21 @@ Cross-session persistent memory inspired by Clawdbot architecture:
 - **Auto-indexing**: File watching with 1.5s debounce, automatic index rebuild
 - **Embedding Cache**: SQLite-based cache to avoid redundant computation
 
+### Hooks System (Claude Code Inspired)
+
+**Status**: ✅ Implemented v0.27.0 | **Docs**: [`docs/design/HOOKS_SYSTEM_DESIGN.md`](docs/design/HOOKS_SYSTEM_DESIGN.md)
+
+Extensible hooks system inspired by Claude Code, enabling custom logic at key operation points:
+
+- **21 Hook Events**: PreToolUse, PostToolUse, SessionStart, PreCompact, FileModified, etc.
+- **4 Hook Types**: Sync, Async, Command (shell), Script (JS/Python/Bash)
+- **Priority System**: SYSTEM(0) → HIGH(100) → NORMAL(500) → LOW(900) → MONITOR(1000)
+- **Middleware Integration**: IPC, Tool, Session, File, Agent middleware factories
+- **Configuration**: `.chainlesschain/hooks.json` (project) and `~/.chainlesschain/hooks.json` (user)
+- **Script Hooks**: Auto-load from `.chainlesschain/hooks/*.js`
+
+**Key Files**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
+
 **Key Files**: `src/main/llm/permanent-memory-manager.js`, `src/main/llm/permanent-memory-ipc.js`
 
 ### Hybrid Search Engine
@@ -194,6 +209,12 @@ desktop-app-vue/
 │   │   ├── rag-manager.js          # Vector search
 │   │   ├── hybrid-search-engine.js # Vector + BM25 fusion
 │   │   └── bm25-search.js          # Okapi BM25 implementation
+│   ├── hooks/             # Hooks system (Claude Code inspired)
+│   │   ├── index.js               # Main entry, HookSystem class
+│   │   ├── hook-registry.js       # Hook registration and management
+│   │   ├── hook-executor.js       # Hook execution engine
+│   │   ├── hook-middleware.js     # IPC/Tool/Session middleware
+│   │   └── hooks-ipc.js           # IPC handlers for hooks
 │   ├── did/               # DID identity system
 │   ├── p2p/               # P2P network (libp2p + Signal)
 │   │   └── webrtc-data-channel.js  # WebRTC data channel manager
@@ -316,9 +337,11 @@ Example: `feat(rag): add reranker support`
 - **IPC handlers**: `desktop-app-vue/src/main/index.js`, `src/main/ipc/ipc-registry.js`
 - **Memory system**: `src/main/llm/permanent-memory-manager.js`, `src/main/llm/permanent-memory-ipc.js`
 - **Search engine**: `src/main/rag/hybrid-search-engine.js`, `src/main/rag/bm25-search.js`
+- **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`
 - **P2P/WebRTC**: `src/main/p2p/webrtc-data-channel.js`
 - **Docker**: `docker-compose.yml`, `docker-compose.cloud.yml`
+- **Hooks config**: `.chainlesschain/hooks.json`, `.chainlesschain/hooks/*.js`
 
 ## Troubleshooting
 

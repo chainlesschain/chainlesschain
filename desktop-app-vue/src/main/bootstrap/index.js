@@ -16,6 +16,10 @@ const {
 } = require("./social-initializer");
 const { registerAIInitializers } = require("./ai-initializer");
 const { registerTradeInitializers } = require("./trade-initializer");
+const {
+  registerHooksInitializer,
+  bindHooksToManagers,
+} = require("./hooks-initializer");
 const { logger } = require("../utils/logger.js");
 
 /**
@@ -23,6 +27,11 @@ const { logger } = require("../utils/logger.js");
  * @type {Array<{name: string, modules: string[], progress: number}>}
  */
 const INIT_PHASES = [
+  {
+    name: "阶段 0: Hooks 系统",
+    progress: 2,
+    modules: ["hookSystem"],
+  },
   {
     name: "阶段 1: 核心基础设施",
     progress: 10,
@@ -127,6 +136,10 @@ const INIT_PHASES = [
  * @param {InitializerFactory} factory - 初始化器工厂
  */
 function registerAllInitializers(factory) {
+  // 🔥 Phase 0: Hooks 系统 (最先初始化，供其他模块使用)
+  registerHooksInitializer(factory);
+
+  // 原有初始化器
   registerCoreInitializers(factory);
   registerSocialInitializers(factory);
   registerAIInitializers(factory);
@@ -163,6 +176,16 @@ async function bootstrapApplication(options = {}) {
   // 执行分阶段初始化
   await initializerFactory.runPhased(INIT_PHASES, context);
 
+  // 获取所有实例
+  const instances = initializerFactory.getAllInstances();
+
+  // 🔥 Post-init: 绑定 Hooks 到其他管理器
+  try {
+    await bindHooksToManagers(instances);
+  } catch (error) {
+    logger.warn("[Bootstrap] Hooks 绑定失败 (非致命):", error.message);
+  }
+
   // 打印统计信息
   initializerFactory.printStats();
 
@@ -171,7 +194,7 @@ async function bootstrapApplication(options = {}) {
   logger.info(`[Bootstrap] 应用初始化完成，总耗时: ${duration}ms`);
   logger.info("=".repeat(60));
 
-  return initializerFactory.getAllInstances();
+  return instances;
 }
 
 /**
@@ -228,11 +251,13 @@ module.exports = {
   registerSocialInitializers,
   registerAIInitializers,
   registerTradeInitializers,
+  registerHooksInitializer,
 
   // 初始化函数
   bootstrapApplication,
   lazyLoadModule,
   setupP2PPostInit,
+  bindHooksToManagers,
 
   // 获取器
   getModule,

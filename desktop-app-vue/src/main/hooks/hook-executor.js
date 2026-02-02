@@ -68,7 +68,17 @@ class HookExecutor extends EventEmitter {
     });
 
     if (hooks.length === 0) {
-      return { result: HookResult.CONTINUE, data: eventData };
+      return {
+        result: HookResult.CONTINUE,
+        data: eventData,
+        prevented: false,
+        preventReason: null,
+        modifications: {},
+        hookResults: [],
+        totalHooks: 0,
+        executedHooks: 0,
+        totalTime: 0,
+      };
     }
 
     const event = {

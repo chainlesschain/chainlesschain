@@ -213,6 +213,35 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 Hooks 系统 (Claude Code 风格, 11 handlers)
+    logger.info("[IPC Registry] Registering Hooks IPC...");
+    let hookSystem = null;
+    try {
+      const { registerHooksIPC } = require("../hooks/hooks-ipc");
+      const { getHookSystem } = require("../hooks");
+      hookSystem = getHookSystem();
+      registerHooksIPC({ hookSystem });
+      logger.info("[IPC Registry] ✓ Hooks IPC registered (11 handlers)");
+    } catch (hooksError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Hooks IPC registration failed (non-fatal):",
+        hooksError.message,
+      );
+    }
+
+    // 🔥 Plan Mode 系统 (Claude Code 风格, 14 handlers)
+    logger.info("[IPC Registry] Registering Plan Mode IPC...");
+    try {
+      const { registerPlanModeIPC } = require("../ai-engine/plan-mode/plan-mode-ipc");
+      registerPlanModeIPC({ hookSystem, functionCaller });
+      logger.info("[IPC Registry] ✓ Plan Mode IPC registered (14 handlers)");
+    } catch (planModeError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Plan Mode IPC registration failed (non-fatal):",
+        planModeError.message,
+      );
+    }
+
     // Logger 服务 (日志管理器)
     logger.info("[IPC Registry] Registering Logger IPC...");
     const { registerLoggerIPC } = require("./logger-ipc");

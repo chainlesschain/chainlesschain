@@ -1,14 +1,20 @@
 /**
  * Test Script for Memory System Enhancements
  *
- * Tests the four new memory modules:
- * 1. AutoBackupManager - Automatic backup management
- * 2. UsageReportGenerator - Usage analytics and reports
- * 3. BehaviorTracker - User behavior learning
- * 4. ContextAssociator - Cross-session knowledge association
+ * Tests the memory modules:
+ * Phase 7 (New):
+ * 1. SemanticChunker - Semantic document chunking
+ * 2. AdvancedMemorySearch - Advanced search with tiers/facets
+ * 3. MemoryAnalytics - Memory analytics and health score
+ *
+ * Existing modules:
+ * 4. AutoBackupManager - Automatic backup management
+ * 5. UsageReportGenerator - Usage analytics and reports
+ * 6. BehaviorTracker - User behavior learning
+ * 7. ContextAssociator - Cross-session knowledge association
  *
  * Usage: node scripts/test-memory-enhancements.js [module]
- *   Modules: backup, report, behavior, context, all (default)
+ *   Modules: chunker, search, analytics, backup, report, behavior, context, all (default)
  */
 
 const path = require("path");

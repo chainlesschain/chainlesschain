@@ -438,6 +438,139 @@ class SkillRegistry extends EventEmitter {
     }
     return null;
   }
+
+  // ==========================================
+  // 三层加载支持
+  // ==========================================
+
+  /**
+   * 设置技能加载器
+   * @param {SkillLoader} loader - 技能加载器实例
+   */
+  setLoader(loader) {
+    this._loader = loader;
+
+    // 监听加载器事件
+    loader.on("skill-loaded", ({ layer, definition }) => {
+      this.emit("skill-loaded", { layer, definition });
+    });
+
+    loader.on("skill-overridden", ({ skillName, oldSource, newSource }) => {
+      this.emit("skill-overridden", { skillName, oldSource, newSource });
+    });
+
+    loader.on("load-error", ({ definition, error }) => {
+      this.emit("load-error", { definition, error });
+    });
+
+    this._log("SkillLoader 已设置");
+  }
+
+  /**
+   * 从加载器加载所有技能（三层加载）
+   * @returns {Promise<{loaded: number, registered: number, errors: Array}>}
+   */
+  async loadAllSkills() {
+    if (!this._loader) {
+      throw new Error("SkillLoader not set. Call setLoader() first.");
+    }
+
+    // 加载所有层级
+    const loadResult = await this._loader.loadAll();
+
+    // 创建技能实例并注册
+    const instances = this._loader.createSkillInstances();
+    let registered = 0;
+
+    for (const skill of instances) {
+      try {
+        this.register(skill);
+        registered++;
+      } catch (error) {
+        this._log(`注册技能失败 ${skill.skillId}: ${error.message}`, "error");
+        loadResult.errors.push({
+          skillId: skill.skillId,
+          error: error.message,
+        });
+      }
+    }
+
+    this._log(`三层加载完成: ${loadResult.loaded} 加载, ${registered} 注册`);
+
+    return {
+      loaded: loadResult.loaded,
+      registered,
+      errors: loadResult.errors,
+    };
+  }
+
+  /**
+   * 按来源获取技能
+   * @param {'bundled'|'managed'|'workspace'} source - 来源
+   * @returns {Array<BaseSkill>}
+   */
+  getSkillsBySource(source) {
+    return this.getAllSkills().filter((skill) => {
+      // MarkdownSkill 有 source 属性
+      return skill.source === source;
+    });
+  }
+
+  /**
+   * 获取用户可调用的技能
+   * @returns {Array<BaseSkill>}
+   */
+  getUserInvocableSkills() {
+    return this.getAllSkills().filter((skill) => {
+      // MarkdownSkill 有 userInvocable 和 hidden 属性
+      const isInvocable = skill.userInvocable !== false;
+      const isHidden = skill.hidden === true;
+      const isEnabled = skill.config?.enabled !== false;
+      return isInvocable && !isHidden && isEnabled;
+    });
+  }
+
+  /**
+   * 获取技能定义（原始 SKILL.md 数据）
+   * @param {string} skillId - 技能 ID
+   * @returns {object|null}
+   */
+  getSkillDefinition(skillId) {
+    const skill = this.skills.get(skillId);
+    if (skill && typeof skill.getDefinition === "function") {
+      return skill.getDefinition();
+    }
+    return null;
+  }
+
+  /**
+   * 重新加载所有技能
+   * @returns {Promise<object>}
+   */
+  async reloadAllSkills() {
+    if (!this._loader) {
+      throw new Error("SkillLoader not set. Call setLoader() first.");
+    }
+
+    // 注销所有现有技能
+    for (const skillId of Array.from(this.skills.keys())) {
+      this.unregister(skillId);
+    }
+
+    // 重新加载
+    return await this.loadAllSkills();
+  }
+
+  /**
+   * 获取三层目录信息
+   * @returns {object|null}
+   */
+  getSkillSources() {
+    if (!this._loader) {
+      return null;
+    }
+    return this._loader.getLayerPaths();
+  }
 }
 
 // 单例
