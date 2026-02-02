@@ -1356,28 +1356,33 @@ ${conversationText.substring(0, 3000)}
 
       // 匹配所有 ## 开头的章节
       const sectionRegex = /^## (.+)$/gm;
+      const matches = [];
       let match;
 
+      // 先收集所有匹配
       while ((match = sectionRegex.exec(content)) !== null) {
-        const title = match[1].trim();
-        const startIndex = match.index;
+        matches.push({
+          title: match[1].trim(),
+          index: match.index,
+        });
+      }
 
-        // 找到下一个章节或文件末尾
-        const nextMatch = sectionRegex.exec(content);
-        const endIndex = nextMatch ? nextMatch.index : content.length;
-        sectionRegex.lastIndex = nextMatch
-          ? nextMatch.index
-          : sectionRegex.lastIndex;
+      // 然后处理每个章节
+      for (let i = 0; i < matches.length; i++) {
+        const current = matches[i];
+        const nextIndex = i + 1 < matches.length
+          ? matches[i + 1].index
+          : content.length;
 
         // 提取章节内容
-        const sectionContent = content.substring(startIndex, endIndex);
+        const sectionContent = content.substring(current.index, nextIndex);
         const itemCount = (sectionContent.match(/^- /gm) || []).length +
           (sectionContent.match(/^### /gm) || []).length;
 
         sections.push({
-          title,
+          title: current.title,
           itemCount,
-          hasContent: sectionContent.trim().length > title.length + 10,
+          hasContent: sectionContent.trim().length > current.title.length + 10,
         });
       }
 

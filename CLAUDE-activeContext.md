@@ -39,6 +39,7 @@
 - [x] Clawdbot 永久记忆集成 Phase 2 (混合搜索引擎)
 - [x] Clawdbot 永久记忆集成 Phase 3-5 (预压缩刷新、Embedding 缓存、文件监听)
 - [x] Clawdbot 永久记忆集成 Phase 6 (UI 集成)
+- [x] Clawdbot 永久记忆集成 Phase 7 (测试和文档)
 
 ### 最近完成
 
@@ -47,10 +48,10 @@
      - `memory:save-to-memory` - 保存内容到永久记忆
      - `memory:extract-from-conversation` - 从对话提取并保存记忆
      - `memory:get-memory-sections` - 获取 MEMORY.md 章节列表
-   - 更新 `src/main/llm/permanent-memory-manager.js` - 新增记忆保存方法（+200 行）
+   - 更新 `src/main/llm/permanent-memory-manager.js` - 新增记忆保存方法（+270 行）
      - `saveToMemory()` - 保存到 Daily Notes 或 MEMORY.md
      - `extractFromConversation()` - 对话摘要提取与保存
-     - `getMemorySections()` - 章节列表解析
+     - `getMemorySections()` - 章节列表解析（修复无限循环 bug）
      - `_buildConversationSummary()` - 对话摘要构建
      - `_extractDiscoveries()` - LLM 辅助技术发现提取
    - 更新 `src/renderer/stores/memory.js` - 新增 store actions
@@ -60,7 +61,9 @@
    - 更新 `src/renderer/pages/AIChatPage.vue` - 添加保存记忆 UI
      - AI 消息旁添加"保存记忆"下拉按钮（Daily Notes/技术发现/解决方案）
      - 对话顶部添加"保存对话到记忆"按钮
+     - 键盘快捷键: `Ctrl+Shift+M` 保存最后 AI 消息, `Ctrl+Shift+S` 保存对话
      - 保存成功/失败提示
+   - 新增 `scripts/test-memory-save.js` - 测试脚本（6 个测试全部通过）
    - **功能状态**: Phase 6 完成，AI 对话可一键保存到永久记忆
 
 2. **Clawdbot 永久记忆集成 Phase 6 (UI 集成)** (2026-02-02):
