@@ -345,7 +345,7 @@ class ResourceSharingManager extends EventEmitter {
   /**
    * Get share analytics
    */
-  async getShareAnalytics(orgId, options = {}) {
+  async getShareAnalytics(orgId, _options = {}) {
     try {
       const db = this.database.getDatabase();
 
@@ -400,7 +400,7 @@ class ResourceSharingManager extends EventEmitter {
   /**
    * Sync resource (for copy type shares)
    */
-  async syncResource(shareId, syncByDid) {
+  async syncResource(shareId, _syncByDid) {
     try {
       const db = this.database.getDatabase();
       const now = Date.now();
@@ -538,15 +538,15 @@ class ResourceSharingManager extends EventEmitter {
   // Helper Methods
   // ========================================
 
-  async _createShareKey(shareId, sourceOrgId) {
+  async _createShareKey(shareId, _sourceOrgId) {
     // Generate a symmetric key for resource encryption
-    const key = crypto.randomBytes(32);
+    const _key = crypto.randomBytes(32);
     const keyId = uuidv4();
 
     // In production, this would be stored encrypted with org's public key
     // For now, store as base64
-    const db = this.database.getDatabase();
-    const now = Date.now();
+    const _db = this.database.getDatabase();
+    const _now = Date.now();
 
     // Store in a separate key table (would need to add this table)
     // For simplicity, return the key ID and key would be stored securely
@@ -555,7 +555,7 @@ class ResourceSharingManager extends EventEmitter {
     return keyId;
   }
 
-  async _getShareKey(keyId, accessorOrgId) {
+  async _getShareKey(_keyId, _accessorOrgId) {
     // In production, decrypt the key using accessor's credentials
     // Return placeholder for now
     return null;
