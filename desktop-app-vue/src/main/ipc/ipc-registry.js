@@ -320,6 +320,32 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 Resource Monitor 系统 (资源监控与降级, 13 handlers)
+    logger.info("[IPC Registry] Registering Resource Monitor IPC...");
+    try {
+      const { registerResourceMonitorIPC } = require("../utils/resource-monitor-ipc");
+      registerResourceMonitorIPC({ mainWindow: mainWindow || null });
+      logger.info("[IPC Registry] ✓ Resource Monitor IPC registered (13 handlers)");
+    } catch (resourceError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Resource Monitor IPC registration failed (non-fatal):",
+        resourceError.message,
+      );
+    }
+
+    // 🔥 Message Aggregator 系统 (消息批量聚合, 10 handlers)
+    logger.info("[IPC Registry] Registering Message Aggregator IPC...");
+    try {
+      const { registerMessageAggregatorIPC } = require("../utils/message-aggregator-ipc");
+      registerMessageAggregatorIPC({ mainWindow: mainWindow || null });
+      logger.info("[IPC Registry] ✓ Message Aggregator IPC registered (10 handlers)");
+    } catch (aggregatorError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Message Aggregator IPC registration failed (non-fatal):",
+        aggregatorError.message,
+      );
+    }
+
     // 🔥 Team Task Management 系统 (任务看板, 49 handlers)
     logger.info("[IPC Registry] Registering Team Task Management IPC...");
     try {
