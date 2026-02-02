@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-02 (Hooks 系统实现 - Claude Code 风格)
+> **最后更新**: 2026-02-02 (MCP 端到端集成测试完成)
 
 ---
 
@@ -43,10 +43,69 @@
 - [x] Hooks 系统实现 (Claude Code 风格)
 - [x] MCP 系统自动化测试 (32 个测试用例)
 - [x] Plan Mode 系统实现 (Claude Code 风格)
+- [x] Markdown Skills 系统增强 (Claude Code 风格)
+- [x] Memory 目录增强功能 (语义分块、分层搜索、分析仪表盘)
+- [x] MCP 系统单元测试完善 (32 测试全部通过)
+- [x] MCP 端到端集成测试 (31 测试全部通过)
 
 ### 最近完成
 
-0. **Plan Mode 系统实现 - Claude Code 风格** (2026-02-02):
+0. **MCP 端到端集成测试** (2026-02-02):
+   - 新建 `scripts/test-mcp-integration.js` - 集成测试脚本（~920 行）
+   - 6 个测试套件：
+     - Server Connection Lifecycle（5 测试）
+     - Tool Registration and Execution（8 测试）
+     - Error Handling and Recovery（4 测试）
+     - Performance Metrics（6 测试）
+     - Security Policy Enforcement（5 测试）
+     - Complete Integration Flow（3 测试）
+   - MockMCPServer 类实现完整服务器模拟
+   - 修复 `avgTime` → `avgLatency` 属性名称不匹配问题
+   - **测试结果**: 31 passed, 0 failed, 306ms
+
+1. **Memory 目录增强功能** (2026-02-02):
+   - 新建 `src/main/rag/semantic-chunker.js` - 语义文档分块器（~400 行）
+     - Markdown 感知分割（标题、列表、代码块）
+     - 可配置块大小、重叠、分隔符
+     - 批量文档处理
+   - 新建 `src/main/rag/advanced-memory-search.js` - 高级记忆搜索（~500 行）
+     - 分层记忆：WORKING（7天）、RECALL（8-30天）、ARCHIVAL（30+天）
+     - 重要性过滤（CRITICAL/HIGH/NORMAL/LOW/TRIVIAL）
+     - 时间范围搜索、类型过滤
+   - 新建 `src/main/rag/memory-analytics.js` - 记忆分析仪表盘（~400 行）
+     - 统计概览（总记忆数、日记数、活跃天数）
+     - 趋势分析（30天分布）
+     - 健康评分（A+ 到 F 评级）
+   - 更新 `permanent-memory-ipc.js` - 新增 18 个 IPC 通道
+     - 高级搜索：advanced-search、search-by-tier、search-by-date-range
+     - 分析：get-dashboard-data、get-overview、get-trends、get-health-score
+     - 分块器：chunk-document、chunk-documents
+   - 新建 `scripts/test-memory-enhancements.js` - 40 测试全部通过
+
+2. **Markdown Skills 系统增强 - Claude Code 风格** (2026-02-02):
+   - 新建 `src/main/ai-engine/cowork/skills/skills-ipc.js` - 17 个 IPC 通道
+     - 技能加载/重新加载
+     - 技能查询（列表、详情、分类）
+     - 技能执行（单个执行、自动执行、查找匹配）
+     - 用户命令解析（/skill-name 格式）
+     - 技能管理（启用/禁用、创建新技能）
+   - 新建 3 个内置技能 SKILL.md：
+     - `builtin/code-review/SKILL.md` - 代码审查技能
+     - `builtin/git-commit/SKILL.md` - Git 提交消息生成
+     - `builtin/explain-code/SKILL.md` - 代码解释技能
+   - 新建 `scripts/test-markdown-skills.js` - 集成测试（15 个测试用例）
+   - 更新 `src/main/ai-engine/cowork/skills/index.js` - 导出 IPC 处理器
+   - 更新 `src/main/ipc/ipc-registry.js` - 注册 Skills IPC
+   - 更新 `package.json` - 添加 test:skills 和 test:skills:integration 脚本
+   - **功能特点**:
+     - 三层加载机制：bundled（内置）→ managed（用户级）→ workspace（项目级）
+     - 优先级覆盖：高层级技能覆盖低层级同名技能
+     - 门控检查：平台、二进制依赖、环境变量
+     - /skill-name 命令调用：解析用户输入触发技能
+     - Hooks 系统集成：技能执行前后触发钩子
+   - **测试结果**: 15 个集成测试全部通过
+
+3. **Plan Mode 系统实现 - Claude Code 风格** (2026-02-02):
    - 新建 `src/main/ai-engine/plan-mode/` 目录 - 完整计划模式系统（~700 行）
      - `index.js` - PlanModeManager、ExecutionPlan、PlanItem 类
      - `plan-mode-ipc.js` - 14 个 IPC 通道
@@ -62,7 +121,7 @@
      - 统计和历史：跟踪计划创建/审批/拒绝统计，保存计划历史
    - **测试结果**: 48 单元测试 + 17 集成测试全部通过
 
-1. **MCP 系统自动化测试** (2026-02-02):
+4. **MCP 系统自动化测试** (2026-02-02):
    - 新建 `scripts/test-mcp-system.js` - 独立测试脚本（~690 行）
      - MCPSecurityPolicy 测试（7 用例）：路径验证、禁止路径、只读模式、审计日志
      - MCPConfigLoader 测试（5 用例）：配置加载、验证、服务器配置获取
@@ -73,7 +132,7 @@
    - **运行命令**: `node scripts/test-mcp-system.js`
    - **功能状态**: MCP 系统核心组件测试覆盖完成
 
-1. **Hooks 系统实现 - Claude Code 风格** (2026-02-02):
+5. **Hooks 系统实现 - Claude Code 风格** (2026-02-02):
    - 新建 `src/main/hooks/` 目录 - 完整钩子系统（~1500 行）
      - `index.js` - 主入口、HookSystem 类、单例管理
      - `hook-registry.js` - 钩子注册表、21 种事件类型
@@ -92,7 +151,7 @@
    - 更新 `docs/design/HOOKS_SYSTEM_DESIGN.md` - 完整设计文档（800+ 行）
    - **功能状态**: 完成，支持 21 种钩子事件、4 种钩子类型、优先级系统
 
-1. **Clawdbot 永久记忆集成 Phase 6 增强 - AI 对话保存记忆** (2026-02-02):
+6. **Clawdbot 永久记忆集成 Phase 6 增强 - AI 对话保存记忆** (2026-02-02):
    - 更新 `src/main/llm/permanent-memory-ipc.js` - 新增 3 个 IPC 通道
      - `memory:save-to-memory` - 保存内容到永久记忆
      - `memory:extract-from-conversation` - 从对话提取并保存记忆
@@ -115,7 +174,7 @@
    - 新增 `scripts/test-memory-save.js` - 测试脚本（6 个测试全部通过）
    - **功能状态**: Phase 6 完成，AI 对话可一键保存到永久记忆
 
-2. **Clawdbot 永久记忆集成 Phase 6 (UI 集成)** (2026-02-02):
+7. **Clawdbot 永久记忆集成 Phase 6 (UI 集成)** (2026-02-02):
    - 新建 `src/renderer/stores/memory.js` - Pinia 状态管理（~350 行）
      - 完整的 IPC 调用封装
      - Daily Notes、MEMORY.md、混合搜索状态管理
@@ -130,7 +189,7 @@
    - 更新 `src/renderer/router/index.js` - 添加 /memory/permanent 路由
    - **功能状态**: Phase 6 完成,UI 可访问路径 /memory/permanent
 
-2. **Clawdbot 永久记忆集成 Phase 2** (2026-02-01):
+8. **Clawdbot 永久记忆集成 Phase 2** (2026-02-01):
    - 新建 `bm25-search.js` - BM25 全文搜索引擎（~300 行）
      - Okapi BM25 算法实现
      - 中文/英文分词器
@@ -157,7 +216,7 @@
    - 安装依赖: natural (自然语言处理库)
    - **功能状态**: Phase 2 完成,支持混合搜索 (Vector + BM25)
 
-2. **Clawdbot 永久记忆集成 Phase 1** (2026-02-01):
+9. **Clawdbot 永久记忆集成 Phase 1** (2026-02-01):
    - 新建 `009_embedding_cache.sql` - 数据库迁移（~180 行）
      - embedding_cache 表 (Embedding 缓存)
      - memory_file_hashes 表 (文件 Hash 跟踪)
@@ -187,119 +246,119 @@
      - 测试计划
    - **功能状态**: Phase 1 完成,支持 Daily Notes 和 MEMORY.md 基础功能
 
-3. **Android P2P 网络心跳和自动重连** (2026-01-20):
-   - 新建 HeartbeatManager.kt - 心跳管理器（~300 行）
-     - 15 秒心跳间隔，35 秒连接超时
-     - 设备注册/注销、心跳记录
-     - 连接超时检测和事件发送
-     - 指数退避重连延迟（2s, 4s, 8s, 16s, 32s, 60s max）
-     - 最多 5 次重连尝试
-   - 新建 AutoReconnectManager.kt - 自动重连管理器（~280 行）
-     - 设备信息缓存用于重连
-     - 重连任务队列和调度
-     - 暂停/恢复重连能力
-     - 重连状态事件发送
-   - 更新 SignalingClient.kt - 信令超时处理
-     - 连接超时 10 秒
-     - Socket 读取超时 30 秒
-     - 自动重连（最多 3 次）
-     - 连接状态流和事件流
-   - 更新 P2PConnectionManager.kt - 集成心跳和重连
-     - 心跳消息自动处理
-     - 连接断开自动触发重连
-     - 设备状态查询 API
-   - 新建 P2PNetworkModule.kt - 依赖注入配置
-   - 新建 HeartbeatManagerTest.kt（18 个测试用例）
-   - 新建 AutoReconnectManagerTest.kt（18 个测试用例）
-   - 新建 SignalingClientTest.kt（14 个测试用例）
-   - Android core-p2p 模块完成度升至 90%
+10. **Android P2P 网络心跳和自动重连** (2026-01-20):
+    - 新建 HeartbeatManager.kt - 心跳管理器（~300 行）
+      - 15 秒心跳间隔，35 秒连接超时
+      - 设备注册/注销、心跳记录
+      - 连接超时检测和事件发送
+      - 指数退避重连延迟（2s, 4s, 8s, 16s, 32s, 60s max）
+      - 最多 5 次重连尝试
+    - 新建 AutoReconnectManager.kt - 自动重连管理器（~280 行）
+      - 设备信息缓存用于重连
+      - 重连任务队列和调度
+      - 暂停/恢复重连能力
+      - 重连状态事件发送
+    - 更新 SignalingClient.kt - 信令超时处理
+      - 连接超时 10 秒
+      - Socket 读取超时 30 秒
+      - 自动重连（最多 3 次）
+      - 连接状态流和事件流
+    - 更新 P2PConnectionManager.kt - 集成心跳和重连
+      - 心跳消息自动处理
+      - 连接断开自动触发重连
+      - 设备状态查询 API
+    - 新建 P2PNetworkModule.kt - 依赖注入配置
+    - 新建 HeartbeatManagerTest.kt（18 个测试用例）
+    - 新建 AutoReconnectManagerTest.kt（18 个测试用例）
+    - 新建 SignalingClientTest.kt（14 个测试用例）
+    - Android core-p2p 模块完成度升至 90%
 
-4. **iOS 图片消息和群组聊天** (2026-01-20):
-   - P2PViewModel 扩展 - ChatMessage 支持图片数据（imageData、thumbnailData、imageSize）
-   - 新增 sendImageMessages/sendImageMessage 方法 - 图片压缩、Base64 编码
-   - P2PChatView 图片发送集成 - sendImages 函数完整实现
-   - ImageMessageView 组件 - 异步加载、尺寸计算、点击放大
-   - ImageViewerOverlay 组件 - 全屏查看、缩放平移、保存/分享
-   - MultipleImagesMessageView 组件 - 多图网格布局
-   - EnhancedMessageBubble 支持图片 - isImageMessage 判断、图片上下文菜单
-   - P2PMessageRepository 群组支持 - getGroupConversations、createGroupConversation、addGroupMember、removeGroupMember
-   - GroupChatView 完整视图 - 成员头像栏、消息列表、输入栏
-   - GroupChatViewModel 逻辑 - 群组创建、成员管理、消息发送
-   - GroupMessageBubble 组件 - 显示发送者名称和头像
-   - GroupSettingsView - 群组设置、成员列表、退出群组
-   - AddMemberView - 添加新成员
-   - iOS 版本升级至 v0.2.7，完成度 88%
+11. **iOS 图片消息和群组聊天** (2026-01-20):
+    - P2PViewModel 扩展 - ChatMessage 支持图片数据（imageData、thumbnailData、imageSize）
+    - 新增 sendImageMessages/sendImageMessage 方法 - 图片压缩、Base64 编码
+    - P2PChatView 图片发送集成 - sendImages 函数完整实现
+    - ImageMessageView 组件 - 异步加载、尺寸计算、点击放大
+    - ImageViewerOverlay 组件 - 全屏查看、缩放平移、保存/分享
+    - MultipleImagesMessageView 组件 - 多图网格布局
+    - EnhancedMessageBubble 支持图片 - isImageMessage 判断、图片上下文菜单
+    - P2PMessageRepository 群组支持 - getGroupConversations、createGroupConversation、addGroupMember、removeGroupMember
+    - GroupChatView 完整视图 - 成员头像栏、消息列表、输入栏
+    - GroupChatViewModel 逻辑 - 群组创建、成员管理、消息发送
+    - GroupMessageBubble 组件 - 显示发送者名称和头像
+    - GroupSettingsView - 群组设置、成员列表、退出群组
+    - AddMemberView - 添加新成员
+    - iOS 版本升级至 v0.2.7，完成度 88%
 
-5. **PC 端 IPC 错误处理优化** (2026-01-20):
-   - 修复 social.js 通知加载无限重试问题（添加 MAX_RETRIES 限制）
-   - 修复 GlobalSettingsWizard.vue 配置加载失败（添加默认值回退）
-   - 修复插件系统 IPC 错误处理（PluginSlot.vue, usePluginExtensions.js）
-   - 修复 MCP 设置 IPC 错误处理（MCPSettings.vue）
-   - 修复 LoginPage.vue 数据同步和窗口最大化错误
-   - 修复 project.js 项目同步错误处理
-   - 修复 PluginManagement.vue、PluginMarketplace.vue 插件列表加载
-   - 修复 conversation.js、AIChatPage.vue 对话列表加载
-   - 所有修复统一采用：IPC 未就绪时静默处理，避免控制台错误刷屏
+12. **PC 端 IPC 错误处理优化** (2026-01-20):
+    - 修复 social.js 通知加载无限重试问题（添加 MAX_RETRIES 限制）
+    - 修复 GlobalSettingsWizard.vue 配置加载失败（添加默认值回退）
+    - 修复插件系统 IPC 错误处理（PluginSlot.vue, usePluginExtensions.js）
+    - 修复 MCP 设置 IPC 错误处理（MCPSettings.vue）
+    - 修复 LoginPage.vue 数据同步和窗口最大化错误
+    - 修复 project.js 项目同步错误处理
+    - 修复 PluginManagement.vue、PluginMarketplace.vue 插件列表加载
+    - 修复 conversation.js、AIChatPage.vue 对话列表加载
+    - 所有修复统一采用：IPC 未就绪时静默处理，避免控制台错误刷屏
 
-6. **Android 离线消息队列** (2026-01-20):
-   - 新建 OfflineQueueEntity.kt - 离线消息实体
-   - 新建 OfflineQueueDao.kt - 数据访问层（~200 行）
-   - 新建 OfflineMessageQueue.kt - 队列管理器（~300 行）
-   - 支持指数退避重试（1s, 2s, 5s, 10s, 30s）
-   - 支持消息优先级（HIGH, NORMAL, LOW）
-   - 支持过期消息自动清理
-   - 数据库迁移 v3→v4
-   - Android 版本升级至 v0.5.0，完成度 70%
+13. **Android 离线消息队列** (2026-01-20):
+    - 新建 OfflineQueueEntity.kt - 离线消息实体
+    - 新建 OfflineQueueDao.kt - 数据访问层（~200 行）
+    - 新建 OfflineMessageQueue.kt - 队列管理器（~300 行）
+    - 支持指数退避重试（1s, 2s, 5s, 10s, 30s）
+    - 支持消息优先级（HIGH, NORMAL, LOW）
+    - 支持过期消息自动清理
+    - 数据库迁移 v3→v4
+    - Android 版本升级至 v0.5.0，完成度 70%
 
-7. **Android 单元测试** (2026-01-20):
-   - 新建 OfflineMessageQueueTest.kt（26 个测试用例）
-   - 新建 P2PMessageRepositoryTest.kt（18 个测试用例）
-   - 总测试用例达到 120+
+14. **Android 单元测试** (2026-01-20):
+    - 新建 OfflineMessageQueueTest.kt（26 个测试用例）
+    - 新建 P2PMessageRepositoryTest.kt（18 个测试用例）
+    - 总测试用例达到 120+
 
-8. **iOS 综合优化** (2026-01-20):
-   - 新建 MessageDeliveryManager.swift（~450 行）- 消息投递可靠性管理
-   - 新建 ImagePickerView.swift（~450 行）- 图片选择器组件
-   - 新建 EnhancedUIComponents.swift（~500 行）- 增强 UI 组件
-   - 新建 PerformanceManager.swift（~400 行）- 性能监控管理
-   - P2PChatView 重构 - 集成所有优化组件
-   - 消息状态动画（AnimatedMessageStatus）
-   - 正在输入指示器（TypingIndicator）
-   - Toast 提示系统
-   - 连接状态横幅
-   - 暗黑模式适配
-   - 内存监控和缓存清理
-   - iOS 版本升级至 v0.2.6，完成度 82%
+15. **iOS 综合优化** (2026-01-20):
+    - 新建 MessageDeliveryManager.swift（~450 行）- 消息投递可靠性管理
+    - 新建 ImagePickerView.swift（~450 行）- 图片选择器组件
+    - 新建 EnhancedUIComponents.swift（~500 行）- 增强 UI 组件
+    - 新建 PerformanceManager.swift（~400 行）- 性能监控管理
+    - P2PChatView 重构 - 集成所有优化组件
+    - 消息状态动画（AnimatedMessageStatus）
+    - 正在输入指示器（TypingIndicator）
+    - Toast 提示系统
+    - 连接状态横幅
+    - 暗黑模式适配
+    - 内存监控和缓存清理
+    - iOS 版本升级至 v0.2.6，完成度 82%
 
-9. **iOS 单元测试框架** (2026-01-20):
-   - 新建 CoreCommonTests.swift - 通用工具测试
-   - 新建 CoreSecurityTests.swift - 安全加密测试
-   - 新建 CoreDatabaseTests.swift - 数据库操作测试
-   - 新建 CoreDIDTests.swift - DID 身份测试
-   - 新建 CoreE2EETests.swift - 端到端加密测试
-   - 新建 CoreP2PTests.swift - P2P 网络测试
+16. **iOS 单元测试框架** (2026-01-20):
+    - 新建 CoreCommonTests.swift - 通用工具测试
+    - 新建 CoreSecurityTests.swift - 安全加密测试
+    - 新建 CoreDatabaseTests.swift - 数据库操作测试
+    - 新建 CoreDIDTests.swift - DID 身份测试
+    - 新建 CoreE2EETests.swift - 端到端加密测试
+    - 新建 CoreP2PTests.swift - P2P 网络测试
 
-10. **iOS 向量数据库持久化** (2026-01-20):
+17. **iOS 向量数据库持久化** (2026-01-20):
     - 新建 VectorStoreRepository.swift（~400 行）
     - SQLite 存储 embeddings（BLOB 编码）
     - Embedding 缓存支持过期机制
     - 余弦相似度搜索实现
     - VectorStore 集成持久化层
 
-11. **iOS 离线消息队列** (2026-01-20):
+18. **iOS 离线消息队列** (2026-01-20):
     - 新建 OfflineMessageQueue.swift（~400 行）
     - 离线消息持久化到 SQLite
     - 指数退避重试机制
     - 消息优先级队列
     - P2PManager 集成离线队列
 
-12. **iOS P2P 消息系统增强** (2026-01-20):
+19. **iOS P2P 消息系统增强** (2026-01-20):
     - 新建 P2PMessageRepository.swift（~400 行）
     - 新建 P2PContactRepository.swift（~350 行）
     - 增强 SignalProtocolManager Double Ratchet 实现
     - 添加自动重连机制（指数退避）
     - P2PViewModel 消息持久化支持
 
-13. **iOS AI 对话持久化** (2026-01-20):
+20. **iOS AI 对话持久化** (2026-01-20):
     - 新建 AIConversationRepository.swift（~400 行）
     - 实现对话和消息的完整 CRUD 操作
     - 对话列表持久化、自动刷新统计
@@ -310,7 +369,7 @@
     - 下拉刷新支持
     - iOS 版本升级至 v0.2.2，完成度 65%
 
-14. **LLM 按模型预算限制** (2026-01-18):
+21. **LLM 按模型预算限制** (2026-01-18):
     - 新建 LLMModelBudgetPanel.vue 组件（588 行）
     - 支持按模型设置日/周/月预算限额（USD）
     - 进度条显示当前支出 vs 限额
@@ -318,7 +377,7 @@
     - 支持 8 个提供商：Ollama、OpenAI、Anthropic、DeepSeek、火山引擎、阿里云、智谱AI、Moonshot
     - 集成到 LLM Performance Dashboard
     - 后端已有：llm_model_budgets 表、IPC 通道
-15. **SessionManager 前端 UI 增强** (2026-01-18):
+22. **SessionManager 前端 UI 增强** (2026-01-18):
     - 会话预览 Popover：悬停 0.5 秒显示摘要、最近消息、标签、时间
     - 键盘快捷键：Ctrl+F/A/D/E、Delete、Escape、? 帮助
     - 会话复制：深拷贝会话及消息、标签，标题加"- 副本"后缀
@@ -326,11 +385,11 @@
     - 新建 SessionPreviewCard.vue、TagManagerPage.vue
     - 修改 SessionList.vue、SessionManagerPage.vue、router/index.js
     - 新增 6 个 IPC 通道（duplicate、rename-tag、merge-tags、delete-tag 等）
-16. **应用启动稳定性修复** (2026-01-18):
+23. **应用启动稳定性修复** (2026-01-18):
     - 修复 UnifiedConfigManager EISDIR 错误（config.json/rules.md 被错误创建为目录）
     - 修复 MobileBridge 信令服务器连接失败阻塞后续初始化的问题
     - 清理 desktop-app-vue/.chainlesschain/ 下错误创建的目录
-17. **SessionManager v0.21.0 增强** (2026-01-16):
+24. **SessionManager v0.21.0 增强** (2026-01-16):
     - 会话搜索：按标题和内容全文搜索
     - 标签系统：添加/移除标签、按标签过滤
     - 导出/导入：JSON 和 Markdown 格式导出、JSON 导入
@@ -342,15 +401,16 @@
     - 新增 20+ IPC 通道
     - 新增数据库迁移 008_session_templates.sql
     - 更新测试脚本（13 项测试）
-18. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
-19. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
-20. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
+25. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
+26. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
+27. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
 
 ### 待处理
 
 - [x] LLM Performance Dashboard UI 完善 ✅ 按模型预算已完成
 - [x] SessionManager 前端 UI 组件（会话管理页面）✅ 已完成
-- [ ] 增强 .chainlesschain/memory/ 目录实际使用
+- [x] 增强 .chainlesschain/memory/ 目录实际使用 ✅ SemanticChunker + AdvancedMemorySearch + MemoryAnalytics
+- [x] MCP 端到端集成测试 ✅ 31 测试全部通过
 
 ---
 
