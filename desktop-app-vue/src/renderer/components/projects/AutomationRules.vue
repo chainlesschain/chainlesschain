@@ -81,7 +81,6 @@
         </template>
 
         <template #header>
-          <a-statistic-group>
             <a-row :gutter="16">
               <a-col :span="8">
                 <a-statistic
@@ -103,7 +102,6 @@
                 />
               </a-col>
             </a-row>
-          </a-statistic-group>
         </template>
       </a-list>
 

@@ -34,7 +34,7 @@ function registerSocialInitializers(factory) {
   factory.register({
     name: "p2pManager",
     dependsOn: ["database"],
-    async init(context) {
+    async init(_context) {
       const P2PManager = require("../p2p/p2p-manager");
       const p2pManager = new P2PManager({
         port: 9000,
@@ -140,13 +140,27 @@ function registerSocialInitializers(factory) {
   factory.register({
     name: "organizationManager",
     dependsOn: ["database", "didManager", "p2pManager"],
+    required: false,  // Non-critical, app can run without organization features
     async init(context) {
-      const OrganizationManager = require("../organization/organization-manager");
-      return new OrganizationManager(
-        context.database,
-        context.didManager,
-        context.p2pManager,
-      );
+      try {
+        if (!context.database || !context.database.db) {
+          throw new Error("Database not initialized or missing db instance");
+        }
+
+        const OrganizationManager = require("../organization/organization-manager");
+        // BUGFIX: Pass the raw db object, not the DatabaseManager instance
+        const manager = new OrganizationManager(
+          context.database.db,
+          context.didManager,
+          context.p2pManager,
+        );
+        logger.info('[Bootstrap] ✓ OrganizationManager initialized successfully');
+        return manager;
+      } catch (error) {
+        logger.error('[Bootstrap] OrganizationManager initialization failed:', error);
+        // Return null to indicate initialization failure
+        return null;
+      }
     },
   });
 

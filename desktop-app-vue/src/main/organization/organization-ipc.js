@@ -6,7 +6,7 @@
  * @description 提供组织创建、成员管理、权限控制、邀请管理、知识库等完整的企业协作功能 IPC 接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -35,6 +35,11 @@ function registerOrganizationIPC({
   const electronApp = injectedApp || electron.app;
 
   logger.info('[Organization IPC] Registering Organization IPC handlers...');
+  logger.info('[Organization IPC] organizationManager初始化状态:', {
+    exists: !!organizationManager,
+    type: typeof organizationManager,
+    constructor: organizationManager?.constructor?.name
+  });
 
   // ============================================================
   // 组织基础操作 (Basic Organization Operations) - 12 handlers

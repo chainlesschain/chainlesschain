@@ -135,17 +135,17 @@ dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 const props = defineProps({
-  visible: {
+  open: {
     type: Boolean,
-    default: false
+    default: false,
   },
   token: {
     type: String,
-    default: ''
-  }
+    default: "",
+  },
 });
 
-const emit = defineEmits(['update:visible', 'accepted', 'rejected']);
+const emit = defineEmits(["update:open", "accepted", "rejected"]);
 
 const validating = ref(false);
 const loading = ref(false);
@@ -153,8 +153,8 @@ const invitationInfo = ref(null);
 const error = ref('');
 
 const visible = computed({
-  get: () => props.visible,
-  set: (val) => emit('update:visible', val)
+  get: () => props.open,
+  set: (val) => emit("update:open", val),
 });
 
 const validateToken = async () => {
@@ -263,7 +263,7 @@ const getTimeRemaining = (expiresAt) => {
   return `${dayjs(expiresAt).fromNow()}过期`;
 };
 
-watch(() => props.visible, (val) => {
+watch(() => props.open, (val) => {
   if (val) {
     validateToken();
   } else {
@@ -273,7 +273,7 @@ watch(() => props.visible, (val) => {
 });
 
 watch(() => props.token, () => {
-  if (props.visible) {
+  if (props.open) {
     validateToken();
   }
 });

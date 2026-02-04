@@ -129,20 +129,54 @@ export function lazyLoad(loader, options = {}) {
 export function lazyRoute(loader, options = {}) {
   const {
     chunkName,
-    loadingComponent = () => h('div', { class: 'route-loading' }, 'Loading...'),
-    errorComponent = () => h('div', { class: 'route-error' }, 'Failed to load page'),
+    retryAttempts = 3,
+    retryDelay = 1000,
+    onLoaded = null,
+    onError = null,
     ...restOptions
   } = options;
 
-  return lazyLoad(loader, {
-    chunkName: chunkName || 'route',
-    loadingComponent,
-    errorComponent,
-    delay: 0, // Show loading immediately for routes
-    timeout: 15000, // 15s timeout for routes
-    retryAttempts: 3,
-    ...restOptions,
-  });
+  const resolvedChunkName = chunkName || "route";
+  let retryCount = 0;
+
+  const loaderWithRetry = async () => {
+    try {
+      const component = await loader();
+
+      if (onLoaded) {
+        onLoaded(component);
+      }
+
+      logger.info(`[CodeSplitting] ✓ Route loaded: ${resolvedChunkName}`);
+      return component;
+    } catch (error) {
+      logger.error(
+        `[CodeSplitting] Route load failed (attempt ${retryCount + 1}/${retryAttempts}):`,
+        resolvedChunkName,
+        error
+      );
+
+      if (retryCount < retryAttempts - 1) {
+        retryCount++;
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryDelay * retryCount)
+        );
+        return loaderWithRetry();
+      }
+
+      if (onError) {
+        onError(error);
+      }
+
+      throw error;
+    }
+  };
+
+  const routeComponent = () => loaderWithRetry();
+  routeComponent.__chunkName = resolvedChunkName;
+  routeComponent.__lazyRoute = true;
+
+  return routeComponent;
 }
 
 /**

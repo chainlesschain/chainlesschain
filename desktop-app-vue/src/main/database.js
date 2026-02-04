@@ -4,11 +4,11 @@ try {
   const sqlJsModule = require("sql.js");
   // sql.js exports a function as default export
   initSqlJs = sqlJsModule.default || sqlJsModule;
-} catch (err) {
+} catch (_err) {
   logger.info("[Database] sql.js not available (will use better-sqlite3)");
 }
 
-const { logger, createLogger } = require("./utils/logger.js");
+const { logger } = require("./utils/logger.js");
 const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
@@ -24,8 +24,8 @@ let createBetterSQLiteAdapter;
 try {
   const dbModule = require("./database/index");
   createDatabaseAdapter = dbModule.createDatabaseAdapter;
-} catch (e) {
-  logger.warn("[Database] 加密模块不可用，将使用sql.js:", e.message);
+} catch (_e) {
+  logger.warn("[Database] 加密模块不可用，将使用sql.js:", _e.message);
   createDatabaseAdapter = null;
 }
 
@@ -34,8 +34,8 @@ if (!disableNativeDb) {
   try {
     const betterSqliteModule = require("./database/better-sqlite-adapter");
     createBetterSQLiteAdapter = betterSqliteModule.createBetterSQLiteAdapter;
-  } catch (e) {
-    logger.warn("[Database] Better-SQLite3 适配器不可用:", e.message);
+  } catch (_e) {
+    logger.warn("[Database] Better-SQLite3 适配器不可用:", _e.message);
     createBetterSQLiteAdapter = null;
   }
 } else {
@@ -49,7 +49,7 @@ if (!disableNativeDb) {
 let app;
 try {
   app = require("electron").app;
-} catch (e) {
+} catch (_e) {
   // In test environment, use global.app if available
   app = global.app || {
     isPackaged: false,
@@ -60,7 +60,7 @@ try {
 let getAppConfig;
 try {
   getAppConfig = require("./config/database-config").getAppConfig;
-} catch (e) {
+} catch (_e) {
   // Fallback for testing
   getAppConfig = () => ({ enableEncryption: false });
 }
@@ -274,7 +274,7 @@ class DatabaseManager {
    * 使用数据库适配器初始化（支持加密）
    */
   async initializeWithAdapter() {
-    const appConfig = getAppConfig();
+    const _appConfig = getAppConfig();
 
     // 创建数据库适配器
     this.adapter = await createDatabaseAdapter({
@@ -315,6 +315,17 @@ class DatabaseManager {
   async initializeWithSqlJs() {
     this.SQL = await initSqlJs({
       locateFile: (file) => {
+        // Prefer Node resolution (works with pnpm workspace layouts)
+        try {
+          const resolved = require.resolve(`sql.js/dist/${file}`);
+          if (fs.existsSync(resolved)) {
+            logger.info("Found sql.js WASM via require.resolve:", resolved);
+            return resolved;
+          }
+        } catch (_resolveError) {
+          // Continue to manual path probing
+        }
+
         const possiblePaths = [];
 
         if (app && app.isPackaged) {
@@ -4536,7 +4547,7 @@ class DatabaseManager {
       const columns = stmt.all();
       stmt.free();
       return columns.some((col) => col.name === columnName);
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }
@@ -4966,7 +4977,7 @@ class DatabaseManager {
         sql: sql.substring(0, 100), // First 100 chars of SQL
         paramCount: Array.isArray(params) ? params.length : 0,
       });
-    } catch (error) {
+    } catch (_error) {
       // Silently fail if performance monitoring is not available
       // Don't let performance tracking break the database operations
     }
@@ -6910,8 +6921,8 @@ class DatabaseManager {
     if (conversation.context_data) {
       try {
         conversation.context_data = JSON.parse(conversation.context_data);
-      } catch (e) {
-        logger.error("解析 context_data 失败:", e);
+      } catch (_e) {
+        logger.error("解析 context_data 失败:", _e);
       }
     }
 
@@ -6941,8 +6952,8 @@ class DatabaseManager {
     if (conversation.context_data) {
       try {
         conversation.context_data = JSON.parse(conversation.context_data);
-      } catch (e) {
-        logger.error("解析 context_data 失败:", e);
+      } catch (_e) {
+        logger.error("解析 context_data 失败:", _e);
       }
     }
 
@@ -6988,8 +6999,8 @@ class DatabaseManager {
       if (conv.context_data) {
         try {
           conv.context_data = JSON.parse(conv.context_data);
-        } catch (e) {
-          logger.error("解析 context_data 失败:", e);
+        } catch (_e) {
+          logger.error("解析 context_data 失败:", _e);
         }
       }
       return conv;
@@ -7160,8 +7171,8 @@ class DatabaseManager {
       if (msg.metadata) {
         try {
           msg.metadata = JSON.parse(msg.metadata);
-        } catch (e) {
-          logger.warn("[Database] 无法解析消息metadata:", msg.id, e);
+        } catch (_e) {
+          logger.warn("[Database] 无法解析消息metadata:", msg.id, _e);
           msg.metadata = null;
         }
       }
@@ -7283,8 +7294,8 @@ class DatabaseManager {
       if (msg.metadata) {
         try {
           msg.metadata = JSON.parse(msg.metadata);
-        } catch (e) {
-          logger.warn("[Database] 无法解析消息metadata:", msg.id, e);
+        } catch (_e) {
+          logger.warn("[Database] 无法解析消息metadata:", msg.id, _e);
           msg.metadata = null;
         }
       }
@@ -7736,7 +7747,7 @@ class DatabaseManager {
       case "json":
         try {
           return JSON.parse(row.value);
-        } catch (e) {
+        } catch (_e) {
           return null;
         }
       default:
@@ -7779,7 +7790,7 @@ class DatabaseManager {
         case "json":
           try {
             value = JSON.parse(value);
-          } catch (e) {
+          } catch (_e) {
             value = null;
           }
           break;

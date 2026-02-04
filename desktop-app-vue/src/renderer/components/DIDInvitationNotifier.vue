@@ -299,18 +299,37 @@ const expiredInvitations = ref([]);
 const acceptingIds = ref([]);
 const rejectingIds = ref([]);
 let refreshInterval = null;
+let retryCount = 0;
+const MAX_RETRIES = 5;
+const isFeatureAvailable = ref(true);
 
 // 计算属性
 const pendingCount = computed(() => pendingInvitations.value.length);
 
 // 加载待处理邀请
 const loadPendingInvitations = async () => {
+  // 如果功能不可用，跳过加载
+  if (!isFeatureAvailable.value) {
+    return;
+  }
+
   loading.value = true;
   try {
     const invitations = await window.ipc.invoke('org:get-pending-did-invitations');
     pendingInvitations.value = invitations || [];
+    retryCount = 0; // 成功后重置重试计数
   } catch (error) {
-    logger.error('加载待处理邀请失败:', error);
+    logger.error('加载待处理邀请失败 - 错误类型:', error?.name, '错误消息:', error?.message, '完整错误:', error);
+
+    retryCount++;
+    if (retryCount >= MAX_RETRIES) {
+      logger.warn(`组织邀请加载已失败 ${MAX_RETRIES} 次，停止自动刷新。可能原因：组织管理器未初始化。`);
+      isFeatureAvailable.value = false;
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    }
   } finally {
     loading.value = false;
   }
@@ -329,7 +348,7 @@ const loadHistoryInvitations = async () => {
     rejectedInvitations.value = [];
     expiredInvitations.value = [];
   } catch (error) {
-    logger.error('加载历史邀请失败:', error);
+    logger.error('加载历史邀请失败 - 错误类型:', error?.name, '错误消息:', error?.message, '完整错误:', error);
   } finally {
     loadingHistory.value = false;
   }
@@ -454,12 +473,19 @@ const getRoleColor = (role) => {
 
 // 生命周期
 onMounted(async () => {
+  // 尝试首次加载
   await loadPendingInvitations();
 
-  // 每30秒刷新一次
-  refreshInterval = setInterval(() => {
-    loadPendingInvitations();
-  }, 30000);
+  // 只有当功能可用时，才启动定时刷新
+  if (isFeatureAvailable.value) {
+    // 每30秒刷新一次
+    refreshInterval = setInterval(() => {
+      loadPendingInvitations();
+    }, 30000);
+    logger.info('组织邀请自动刷新已启动 (30秒间隔)');
+  } else {
+    logger.info('组织邀请功能不可用，跳过自动刷新');
+  }
 });
 
 onUnmounted(() => {

@@ -192,7 +192,7 @@
 
         <!-- 学习统计 -->
         <a-form-item label="学习统计">
-          <a-statistic-group>
+          <a-space :size="16" wrap>
             <a-statistic
               title="总转录次数"
               :value="learningStats.totalTranscriptions"
@@ -208,7 +208,7 @@
               title="自定义词汇"
               :value="learningStats.vocabularySize"
             />
-          </a-statistic-group>
+          </a-space>
         </a-form-item>
 
         <!-- 操作按钮 -->

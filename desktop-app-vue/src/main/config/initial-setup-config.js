@@ -98,8 +98,8 @@ class InitialSetupConfig {
       appConfig.set("app.edition", this.config.edition);
     }
 
-    // 2. 应用项目路径
-    if (this.config.paths?.projectRoot) {
+    // 2. 应用项目路径 (需要数据库)
+    if (database && this.config.paths?.projectRoot) {
       await database.setSetting(
         "project.rootPath",
         this.config.paths.projectRoot,
@@ -129,8 +129,8 @@ class InitialSetupConfig {
       llmConfig.save();
     }
 
-    // 5. 应用企业版配置
-    if (this.config.edition === "enterprise" && this.config.enterprise) {
+    // 5. 应用企业版配置 (需要数据库)
+    if (database && this.config.edition === "enterprise" && this.config.enterprise) {
       await database.setSetting(
         "enterprise.serverUrl",
         this.config.enterprise.serverUrl,

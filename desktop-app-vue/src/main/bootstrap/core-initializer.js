@@ -103,12 +103,52 @@ function registerCoreInitializers(factory) {
   // ========================================
   factory.register({
     name: "templateManager",
-    dependsOn: ["database"],
+    required: false,  // Non-critical, app can run without templates
     async init(context) {
-      const ProjectTemplateManager = require("../template/template-manager");
-      const manager = new ProjectTemplateManager(context.database);
-      await manager.initialize();
-      return manager;
+      try {
+        if (!context.database || !context.database.db) {
+          throw new Error("Database not initialized or missing db instance");
+        }
+
+        const ProjectTemplateManager = require("../template/template-manager");
+        // BUGFIX: Pass the raw db object, not the DatabaseManager instance
+        const manager = new ProjectTemplateManager(context.database.db);
+        await manager.initialize();
+        logger.info('[Bootstrap] ✓ TemplateManager initialized successfully');
+        return manager;
+      } catch (error) {
+        logger.error('[Bootstrap] TemplateManager initialization failed:', error);
+        // Return a mock manager to prevent IPC errors
+        return {
+          isMock: true,
+          getAllTemplates: async () => [],
+          getTemplateById: async () => null,
+          searchTemplates: async () => [],
+          getTemplateStats: async () => ({ total: 0, categories: {} }),
+          getRecentTemplates: async () => [],
+          getPopularTemplates: async () => [],
+          recommendTemplates: async () => [],
+          createTemplate: async (templateData = {}) => ({
+            ...templateData,
+            id: templateData.id || `mock-${Date.now()}`,
+            is_mock: true,
+          }),
+          updateTemplate: async (templateId, updates = {}) => ({
+            id: templateId,
+            ...updates,
+            is_mock: true,
+          }),
+          deleteTemplate: async () => true,
+          recordTemplateUsage: async () => true,
+          rateTemplate: async () => true,
+          renderPrompt: () => '',
+          renderTemplateString: () => '',
+          validateTemplate: () => ({ valid: false, errors: ['Template manager unavailable'] }),
+          previewTemplate: () => '',
+          extractVariables: () => [],
+          getDefaultVariables: () => ({})
+        };
+      }
     },
   });
 
@@ -337,11 +377,11 @@ function registerCoreInitializers(factory) {
   factory.register({
     name: "multiAgent",
     dependsOn: ["llmManager"],
-    async init(context) {
+    async init(_context) {
       const { createMultiAgentSystem } = require("../ai-engine/multi-agent");
       const { orchestrator, agents } = createMultiAgentSystem({
-        llmManager: context.llmManager,
-        functionCaller: context.functionCaller,
+        llmManager: _context.llmManager,
+        functionCaller: _context.functionCaller,
       });
       return { orchestrator, agents };
     },

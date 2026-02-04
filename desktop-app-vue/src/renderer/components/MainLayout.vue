@@ -1265,6 +1265,7 @@ import {
   BugOutlined,
   HistoryOutlined,
   BookOutlined,
+  SearchOutlined,
 } from "@ant-design/icons-vue";
 import { useAppStore } from "../stores/app";
 import { useSocialStore } from "../stores/social";
