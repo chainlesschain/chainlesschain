@@ -314,6 +314,9 @@ describe("TaskExecutor", () => {
       const node = new TaskNode(task, { maxRetries: 2 });
       executor.taskGraph.set(node.id, node);
 
+      // Disable smart retry to ensure traditional retry is used
+      executor.useSmartRetry = false;
+
       let attempts = 0;
       const mockExecutor = vi.fn().mockImplementation(() => {
         attempts++;
@@ -417,9 +420,13 @@ describe("TaskExecutor", () => {
     });
 
     it("应该限制并发数", async () => {
-      executor.config.MAX_CONCURRENCY = 2;
+      // Create a new executor with fixed concurrency (disable dynamic concurrency)
+      const fixedExecutor = new TaskExecutor({
+        MAX_CONCURRENCY: 2,
+        useDynamicConcurrency: false,
+      });
 
-      executor.addTasks([
+      fixedExecutor.addTasks([
         { id: "task-1" },
         { id: "task-2" },
         { id: "task-3" },
@@ -428,21 +435,29 @@ describe("TaskExecutor", () => {
 
       let currentRunning = 0;
       let maxConcurrent = 0;
+      const concurrentSnapshots = [];
 
       const mockExecutor = vi.fn().mockImplementation(() => {
         currentRunning++;
+        const snapshot = currentRunning;
+        concurrentSnapshots.push(snapshot);
         maxConcurrent = Math.max(maxConcurrent, currentRunning);
         return new Promise((resolve) =>
           setTimeout(() => {
             currentRunning--;
             resolve({ result: "success" });
-          }, 50),
+          }, 100),
         );
       });
 
-      await executor.executeAll(mockExecutor);
+      await fixedExecutor.executeAll(mockExecutor);
 
+      // Check that max concurrency never exceeded 2
       expect(maxConcurrent).toBeLessThanOrEqual(2);
+      // Also verify all snapshots were within limit
+      concurrentSnapshots.forEach(snapshot => {
+        expect(snapshot).toBeLessThanOrEqual(2);
+      });
     });
 
     it("应该检测循环依赖", async () => {

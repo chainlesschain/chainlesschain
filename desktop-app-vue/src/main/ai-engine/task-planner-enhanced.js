@@ -279,7 +279,7 @@ class QualityGateChecker {
     }
 
     const warnings = [];
-    const incompleteT asks = [];
+    const incompleteTasks = [];
 
     for (const task of subtasks) {
       const issues = [];

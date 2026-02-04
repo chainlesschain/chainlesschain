@@ -338,6 +338,9 @@ describe('OrgP2PNetwork Unit Tests', () => {
     });
 
     it('should send heartbeat messages', async () => {
+      // Clear previous calls from initialize
+      p2pManager.node.services.pubsub.publish.mockClear();
+
       await orgP2PNetwork.sendHeartbeat(mockOrgId);
 
       expect(p2pManager.node.services.pubsub.publish).toHaveBeenCalled();
@@ -434,6 +437,9 @@ describe('OrgP2PNetwork Unit Tests', () => {
     });
 
     it('should broadcast message to all members', async () => {
+      // Clear previous calls from initialize
+      p2pManager.node.services.pubsub.publish.mockClear();
+
       const message = {
         type: MessageType.BROADCAST,
         content: 'Hello organization!'
@@ -676,7 +682,8 @@ describe('OrgP2PNetwork Unit Tests', () => {
       ]);
 
       expect(eventSpy).toHaveBeenCalledTimes(2);
-      expect(orgP2PNetwork.getOnlineMemberCount(mockOrgId)).toBe(2);
+      // Include current user (added during initialize) + 2 members
+      expect(orgP2PNetwork.getOnlineMemberCount(mockOrgId)).toBe(3);
     });
   });
 
@@ -1013,7 +1020,8 @@ describe('OrgP2PNetwork Unit Tests', () => {
       expect(stats.subscribed).toBe(true);
       expect(stats.topic).toBe(mockTopic);
       expect(stats.mode).toBe('pubsub');
-      expect(stats.onlineMemberCount).toBe(2);
+      // Include current user (added during initialize) + 2 members
+      expect(stats.onlineMemberCount).toBe(3);
       expect(stats.onlineMembers).toContain(mockMemberDID);
       expect(stats.onlineMembers).toContain(mockMemberDID2);
       expect(stats.heartbeatActive).toBe(true);
@@ -1028,7 +1036,8 @@ describe('OrgP2PNetwork Unit Tests', () => {
       const members = orgP2PNetwork.getOnlineMembers(mockOrgId);
 
       expect(members).toBeInstanceOf(Array);
-      expect(members.length).toBe(2);
+      // Include current user (added during initialize) + 2 members
+      expect(members.length).toBe(3);
       expect(members).toContain(mockMemberDID);
       expect(members).toContain(mockMemberDID2);
     });
@@ -1039,7 +1048,8 @@ describe('OrgP2PNetwork Unit Tests', () => {
 
       const count = orgP2PNetwork.getOnlineMemberCount(mockOrgId);
 
-      expect(count).toBe(2);
+      // Include current user (added during initialize) + 2 members
+      expect(count).toBe(3);
     });
 
     it('should check if member is online', () => {

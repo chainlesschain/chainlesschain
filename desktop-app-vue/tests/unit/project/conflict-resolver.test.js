@@ -194,28 +194,30 @@ describe('ConflictResolver 集成测试', () => {
 
     mockDatabase = {
       db: {
-        prepare: vi.fn((sql) => ({
-          get: vi.fn((id) => {
-            if (sql.includes('project_files')) {
-              return files.get(id) || null;
-            }
-            return null;
-          }),
-          run: vi.fn((...args) => {
-            // Mock UPDATE
-            if (sql.includes('UPDATE project_files')) {
-              const fileId = args[args.length - 1];
-              const file = files.get(fileId);
-              if (file) {
-                // 更新文件
-                Object.assign(file, {
-                  version: (file.version || 1) + 1,
-                  updated_at: Date.now(),
-                });
+        prepare(sql) {
+          return {
+            get(id) {
+              if (sql.includes('project_files')) {
+                return files.get(id) || null;
               }
-            }
-          }),
-        })),
+              return null;
+            },
+            run(...args) {
+              // Mock UPDATE
+              if (sql.includes('UPDATE project_files')) {
+                const fileId = args[args.length - 1];
+                const file = files.get(fileId);
+                if (file) {
+                  // 更新文件
+                  Object.assign(file, {
+                    version: (file.version || 1) + 1,
+                    updated_at: Date.now(),
+                  });
+                }
+              }
+            },
+          };
+        },
       },
     };
 
@@ -329,33 +331,22 @@ describe('ConflictResolver 集成测试', () => {
   });
 
   test('应该能获取所有活跃冲突', async () => {
+    // 添加第二个文件到 files Map
+    files.set('file-456', {
+      id: 'file-456',
+      file_name: 'test2.txt',
+      content: 'Original content 2',
+      version: 1,
+      updated_at: Date.now() - 10000,
+      modified_by: 'user-1',
+    });
+
     // 创建多个冲突
     await conflictResolver.detectConflict({
       fileId: 'file-123',
       content: 'New content 1',
       version: 0,
       modifiedBy: 'user-2',
-    });
-
-    // 添加第二个文件
-    mockDatabase.db.prepare().get = vi.fn((id) => {
-      if (id === 'file-456') {
-        return {
-          id: 'file-456',
-          file_name: 'test2.txt',
-          content: 'Original content 2',
-          version: 1,
-        };
-      }
-      if (id === 'file-123') {
-        return {
-          id: 'file-123',
-          file_name: 'test.txt',
-          content: 'Original content',
-          version: 1,
-        };
-      }
-      return null;
     });
 
     await conflictResolver.detectConflict({

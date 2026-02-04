@@ -1,0 +1,51 @@
+# Reduce Claude Code memory usage by limiting repo scope.
+# Start by ignoring everything, then allowlist what we need.
+**
+
+# Allow only the minimum areas for project-management E2E work
+!desktop-app-vue/src/**
+!desktop-app-vue/tests/**
+!tests/**
+
+# Allow key config files (root + desktop app)
+!package.json
+!package-lock.json
+!playwright.config.ts
+!desktop-app-vue/package.json
+!desktop-app-vue/playwright.config.ts
+!desktop-app-vue/vite.config.*
+!desktop-app-vue/tsconfig.json
+
+# Still exclude heavy/derived folders even inside allowlisted areas
+**/node_modules/
+**/dist/
+**/build/
+**/out/
+**/.vite/
+**/.gradle/
+**/DerivedData/
+**/coverage/
+**/tmp/
+**/temp/
+**/.cache/
+**/.next/
+**/.nuxt/
+**/.parcel-cache/
+
+# Logs and large artifacts
+**/*.log
+**/*.tmp
+**/*.cache
+**/*.map
+**/*.zip
+**/*.tar
+**/*.tar.gz
+**/*.7z
+**/*.iso
+
+# Local/runtime data
+data/
+.chainlesschain/cache/
+.chainlesschain/logs/
+.chainlesschain/checkpoints/
+.chainlesschain/memory/

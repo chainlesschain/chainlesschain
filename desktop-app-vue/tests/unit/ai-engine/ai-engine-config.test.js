@@ -63,12 +63,12 @@ describe("AIEngineConfig", () => {
     });
 
     it("应该包含工具沙箱配置", () => {
-      expect(DEFAULT_CONFIG.sandboxConfig).toBeDefined();
-      expect(DEFAULT_CONFIG.sandboxConfig.timeout).toBe(30000);
-      expect(DEFAULT_CONFIG.sandboxConfig.retries).toBe(2);
-      expect(DEFAULT_CONFIG.sandboxConfig.retryDelay).toBe(1000);
-      expect(DEFAULT_CONFIG.sandboxConfig.enableValidation).toBe(true);
-      expect(DEFAULT_CONFIG.sandboxConfig.enableSnapshot).toBe(true);
+      expect(DEFAULT_CONFIG.toolSandboxConfig).toBeDefined();
+      expect(DEFAULT_CONFIG.toolSandboxConfig.timeout).toBe(30000);
+      expect(DEFAULT_CONFIG.toolSandboxConfig.retries).toBe(2);
+      expect(DEFAULT_CONFIG.toolSandboxConfig.retryDelay).toBe(1000);
+      expect(DEFAULT_CONFIG.toolSandboxConfig.enableValidation).toBe(true);
+      expect(DEFAULT_CONFIG.toolSandboxConfig.enableSnapshot).toBe(true);
     });
 
     it("应该包含性能监控配置", () => {

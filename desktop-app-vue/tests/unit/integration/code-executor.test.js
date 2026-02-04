@@ -8,20 +8,13 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// NOTE: Skipped - import path is incorrect (module not found at ../../src/main/engines/code-executor.js)
-describe.skip('CodeExecutor', () => {
-  let CodeExecutor, getCodeExecutor;
+// Import the CommonJS module
+const { CodeExecutor, getCodeExecutor } = require('../../../src/main/engines/code-executor.js');
+
+describe('CodeExecutor', () => {
   let codeExecutor;
 
-  beforeEach(async () => {
-    // 清除之前的模块缓存
-    vi.resetModules();
-
-    // 动态导入模块
-    const module = await import('../../src/main/engines/code-executor.js');
-    CodeExecutor = module.CodeExecutor;
-    getCodeExecutor = module.getCodeExecutor;
-
+  beforeEach(() => {
     // 创建新实例
     codeExecutor = new CodeExecutor();
   });

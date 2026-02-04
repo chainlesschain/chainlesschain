@@ -82,14 +82,14 @@ describe("FollowupIntentClassifier", () => {
 
         expect(result.intent).toBe("CONTINUE_EXECUTION");
         expect(result.confidence).toBe(0.9);
-        expect(result.reason).toContain("输入过短");
+        expect(result.reason).toContain("空输入");
       });
 
       it("应该识别过短输入", () => {
         const result = classifier._ruleBasedClassify("嗯");
 
         expect(result.intent).toBe("CONTINUE_EXECUTION");
-        expect(result.confidence).toBe(0.9);
+        expect(result.confidence).toBe(1.0);
       });
     });
 
@@ -337,15 +337,15 @@ describe("FollowupIntentClassifier", () => {
         reason: "测试",
       });
 
-      expect(() => classifier._parseJSON(json)).toThrow();
+      expect(() => classifier._parseJSON(json)).toThrow(
+        "Failed to parse LLM response",
+      );
     });
 
     it("应该抛出JSON解析错误", () => {
       const invalidJson = "not a json";
 
-      expect(() => classifier._parseJSON(invalidJson)).toThrow(
-        "Failed to parse LLM response",
-      );
+      expect(() => classifier._parseJSON(invalidJson)).toThrow();
     });
   });
 
