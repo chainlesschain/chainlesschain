@@ -119,13 +119,17 @@ function extractWordRequest(userMessage, aiResponse) {
     const userMsgLower = (userMessage || "").toLowerCase();
     const aiResponseLower = (aiResponse || "").toLowerCase();
 
+    // BUGFIX: 增加更多文档关键词，支持 "生成...文档" 模式
     const wordKeywords = [
       "word",
       "docx",
       "doc文档",
       "word文档",
+      "文档",  // ✅ 通用关键词，匹配 "病历记录文档"、"技术文档" 等
       "生成文档",
       "创建文档",
+      "生成一份",  // ✅ 匹配 "生成一份病历记录"
+      "文书",  // ✅ 匹配 "医疗文书"
     ];
     const hasWordKeyword = wordKeywords.some(
       (keyword) =>
