@@ -1814,7 +1814,11 @@ onMounted(async () => {
             await window.electronAPI.project.createQuick(createData);
           logger.info("[ProjectDetail] 项目创建成功:", createdProject);
 
-          // 添加到项目列表
+          // 添加到项目列表 - 确保 projects 是数组
+          if (!Array.isArray(projectStore.projects)) {
+            logger.warn("[ProjectDetail] projectStore.projects 不是数组，重置为空数组");
+            projectStore.projects = [];
+          }
           projectStore.projects.unshift(createdProject);
 
           // 🔥 保存用户输入，准备自动发送
