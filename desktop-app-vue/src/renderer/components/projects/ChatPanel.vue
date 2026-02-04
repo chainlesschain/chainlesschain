@@ -2762,7 +2762,8 @@ const handlePlanConfirm = async (message) => {
       userMessage: prompt,
       conversationId: currentConversation.value?.id,
       context: contextMode.value,
-      signal: abortController.value.signal, // 传递 abort signal
+      // BUGFIX: AbortSignal cannot be serialized through Electron IPC (circular references)
+      // Removed: signal: abortController.value.signal
     });
 
     // 添加AI响应消息
@@ -3297,6 +3298,7 @@ const executeChatWithInput = async (input) => {
     abortController.value = new AbortController();
 
     // 调用AI对话API
+    // BUGFIX: AbortSignal cannot be serialized through Electron IPC (circular references cause stack overflow)
     const response = await window.electronAPI.project.aiChat({
       projectId: props.projectId,
       userMessage: input,
@@ -3305,7 +3307,7 @@ const executeChatWithInput = async (input) => {
       currentFile: cleanCurrentFile,
       projectInfo: projectInfo,
       fileList: fileList,
-      signal: abortController.value.signal, // 传递 abort signal
+      // Removed: signal: abortController.value.signal
     });
 
     logger.info("[ChatPanel] AI响应:", response);
