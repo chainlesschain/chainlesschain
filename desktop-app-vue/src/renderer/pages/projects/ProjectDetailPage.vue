@@ -1855,7 +1855,12 @@ onMounted(async () => {
     }
 
     // 加载项目详情
-    await projectStore.fetchProjectById(projectId.value);
+    try {
+      await projectStore.fetchProjectById(projectId.value);
+    } catch (error) {
+      logger.error("[ProjectDetail] 加载项目详情失败:", error);
+      // 继续执行，不阻塞页面加载
+    }
 
     if (!currentProject.value) {
       loading.value = false;
@@ -1863,7 +1868,12 @@ onMounted(async () => {
     }
 
     // 加载项目文件（使用统一的加载函数）
-    await loadFilesWithSync(projectId.value);
+    try {
+      await loadFilesWithSync(projectId.value);
+    } catch (error) {
+      logger.error("[ProjectDetail] 加载项目文件失败:", error);
+      // 继续执行，不阻塞页面加载
+    }
     updateFileTreeMode(); // 根据文件数量选择最佳模式
     logger.info("[ProjectDetail] 初始文件树已加载");
 
@@ -1983,7 +1993,10 @@ onMounted(async () => {
     });
   } catch (error) {
     logger.error("Load project failed:", error);
-    message.error("加载项目失败：" + error.message);
+    logger.error("错误类型:", error?.name);
+    logger.error("错误消息:", error?.message);
+    logger.error("错误堆栈:", error?.stack);
+    message.error("加载项目失败：" + (error?.message || "未知错误"));
   } finally {
     loading.value = false;
   }
