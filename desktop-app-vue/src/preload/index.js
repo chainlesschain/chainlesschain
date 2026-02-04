@@ -4,6 +4,25 @@ const { contextBridge, ipcRenderer } = require("electron");
  * 清理对象中的 undefined 值
  * Electron IPC 不支持传递 undefined 值，需要转换为 null 或移除
  */
+function isAbortSignal(obj) {
+  if (!obj || typeof obj !== "object") {
+    return false;
+  }
+
+  // Cross-realm safe detection
+  const tag = Object.prototype.toString.call(obj);
+  if (tag === "[object AbortSignal]") {
+    return true;
+  }
+
+  // Duck-typing fallback
+  return (
+    typeof obj.aborted === "boolean" &&
+    typeof obj.addEventListener === "function" &&
+    typeof obj.removeEventListener === "function"
+  );
+}
+
 function removeUndefined(obj, seen = new WeakSet()) {
   if (obj === undefined || obj === null) {
     return null;
@@ -27,7 +46,7 @@ function removeUndefined(obj, seen = new WeakSet()) {
   }
 
   // BUGFIX: Skip AbortSignal objects (cannot be serialized through IPC)
-  if (obj instanceof AbortSignal) {
+  if (isAbortSignal(obj)) {
     console.warn("[Preload] AbortSignal detected, skipping (not serializable)");
     return null;
   }

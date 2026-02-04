@@ -232,7 +232,9 @@ function registerAllIPC(dependencies) {
     // 🔥 Plan Mode 系统 (Claude Code 风格, 14 handlers)
     logger.info("[IPC Registry] Registering Plan Mode IPC...");
     try {
-      const { registerPlanModeIPC } = require("../ai-engine/plan-mode/plan-mode-ipc");
+      const {
+        registerPlanModeIPC,
+      } = require("../ai-engine/plan-mode/plan-mode-ipc");
       registerPlanModeIPC({ hookSystem, functionCaller: null }); // TODO: Initialize functionCaller
       logger.info("[IPC Registry] ✓ Plan Mode IPC registered (14 handlers)");
     } catch (planModeError) {
@@ -245,9 +247,13 @@ function registerAllIPC(dependencies) {
     // 🔥 Markdown Skills 系统 (Claude Code 风格, 17 handlers)
     logger.info("[IPC Registry] Registering Markdown Skills IPC...");
     try {
-      const { registerSkillsIPC } = require("../ai-engine/cowork/skills/skills-ipc");
+      const {
+        registerSkillsIPC,
+      } = require("../ai-engine/cowork/skills/skills-ipc");
       registerSkillsIPC({ hookSystem, workspacePath: process.cwd() });
-      logger.info("[IPC Registry] ✓ Markdown Skills IPC registered (17 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Markdown Skills IPC registered (17 handlers)",
+      );
     } catch (skillsError) {
       logger.warn(
         "[IPC Registry] ⚠️  Markdown Skills IPC registration failed (non-fatal):",
@@ -258,9 +264,13 @@ function registerAllIPC(dependencies) {
     // 🔥 Context Engineering 系统 (KV-Cache 优化, 17 handlers)
     logger.info("[IPC Registry] Registering Context Engineering IPC...");
     try {
-      const { registerContextEngineeringIPC } = require("../llm/context-engineering-ipc");
+      const {
+        registerContextEngineeringIPC,
+      } = require("../llm/context-engineering-ipc");
       registerContextEngineeringIPC();
-      logger.info("[IPC Registry] ✓ Context Engineering IPC registered (17 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Context Engineering IPC registered (17 handlers)",
+      );
     } catch (contextError) {
       logger.warn(
         "[IPC Registry] ⚠️  Context Engineering IPC registration failed (non-fatal):",
@@ -271,9 +281,13 @@ function registerAllIPC(dependencies) {
     // 🔥 Prompt Compressor 系统 (上下文压缩, 10 handlers)
     logger.info("[IPC Registry] Registering Prompt Compressor IPC...");
     try {
-      const { registerPromptCompressorIPC } = require("../llm/prompt-compressor-ipc");
+      const {
+        registerPromptCompressorIPC,
+      } = require("../llm/prompt-compressor-ipc");
       registerPromptCompressorIPC({ llmManager: llmManager || null });
-      logger.info("[IPC Registry] ✓ Prompt Compressor IPC registered (10 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Prompt Compressor IPC registered (10 handlers)",
+      );
     } catch (compressorError) {
       logger.warn(
         "[IPC Registry] ⚠️  Prompt Compressor IPC registration failed (non-fatal):",
@@ -285,8 +299,13 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] Registering Response Cache IPC...");
     try {
       const { registerResponseCacheIPC } = require("../llm/response-cache-ipc");
-      registerResponseCacheIPC({ responseCache: responseCache || null, database: database || null });
-      logger.info("[IPC Registry] ✓ Response Cache IPC registered (11 handlers)");
+      registerResponseCacheIPC({
+        responseCache: responseCache || null,
+        database: database || null,
+      });
+      logger.info(
+        "[IPC Registry] ✓ Response Cache IPC registered (11 handlers)",
+      );
     } catch (cacheError) {
       logger.warn(
         "[IPC Registry] ⚠️  Response Cache IPC registration failed (non-fatal):",
@@ -298,8 +317,13 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] Registering Token Tracker IPC...");
     try {
       const { registerTokenTrackerIPC } = require("../llm/token-tracker-ipc");
-      registerTokenTrackerIPC({ tokenTracker: tokenTracker || null, database: database || null });
-      logger.info("[IPC Registry] ✓ Token Tracker IPC registered (12 handlers)");
+      registerTokenTrackerIPC({
+        tokenTracker: tokenTracker || null,
+        database: database || null,
+      });
+      logger.info(
+        "[IPC Registry] ✓ Token Tracker IPC registered (12 handlers)",
+      );
     } catch (trackerError) {
       logger.warn(
         "[IPC Registry] ⚠️  Token Tracker IPC registration failed (non-fatal):",
@@ -310,9 +334,13 @@ function registerAllIPC(dependencies) {
     // 🔥 Stream Controller 系统 (流式输出控制, 12 handlers)
     logger.info("[IPC Registry] Registering Stream Controller IPC...");
     try {
-      const { registerStreamControllerIPC } = require("../llm/stream-controller-ipc");
+      const {
+        registerStreamControllerIPC,
+      } = require("../llm/stream-controller-ipc");
       registerStreamControllerIPC({ mainWindow: mainWindow || null });
-      logger.info("[IPC Registry] ✓ Stream Controller IPC registered (12 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Stream Controller IPC registered (12 handlers)",
+      );
     } catch (streamError) {
       logger.warn(
         "[IPC Registry] ⚠️  Stream Controller IPC registration failed (non-fatal):",
@@ -323,9 +351,13 @@ function registerAllIPC(dependencies) {
     // 🔥 Resource Monitor 系统 (资源监控与降级, 13 handlers)
     logger.info("[IPC Registry] Registering Resource Monitor IPC...");
     try {
-      const { registerResourceMonitorIPC } = require("../utils/resource-monitor-ipc");
+      const {
+        registerResourceMonitorIPC,
+      } = require("../utils/resource-monitor-ipc");
       registerResourceMonitorIPC({ mainWindow: mainWindow || null });
-      logger.info("[IPC Registry] ✓ Resource Monitor IPC registered (13 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Resource Monitor IPC registered (13 handlers)",
+      );
     } catch (resourceError) {
       logger.warn(
         "[IPC Registry] ⚠️  Resource Monitor IPC registration failed (non-fatal):",
@@ -336,9 +368,13 @@ function registerAllIPC(dependencies) {
     // 🔥 Message Aggregator 系统 (消息批量聚合, 10 handlers)
     logger.info("[IPC Registry] Registering Message Aggregator IPC...");
     try {
-      const { registerMessageAggregatorIPC } = require("../utils/message-aggregator-ipc");
+      const {
+        registerMessageAggregatorIPC,
+      } = require("../utils/message-aggregator-ipc");
       registerMessageAggregatorIPC({ mainWindow: mainWindow || null });
-      logger.info("[IPC Registry] ✓ Message Aggregator IPC registered (10 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Message Aggregator IPC registered (10 handlers)",
+      );
     } catch (aggregatorError) {
       logger.warn(
         "[IPC Registry] ⚠️  Message Aggregator IPC registration failed (non-fatal):",
@@ -349,9 +385,13 @@ function registerAllIPC(dependencies) {
     // 🔥 Progress Emitter 系统 (统一进度通知, 12 handlers)
     logger.info("[IPC Registry] Registering Progress Emitter IPC...");
     try {
-      const { registerProgressEmitterIPC } = require("../utils/progress-emitter-ipc");
+      const {
+        registerProgressEmitterIPC,
+      } = require("../utils/progress-emitter-ipc");
       registerProgressEmitterIPC({ mainWindow: mainWindow || null });
-      logger.info("[IPC Registry] ✓ Progress Emitter IPC registered (12 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Progress Emitter IPC registered (12 handlers)",
+      );
     } catch (progressError) {
       logger.warn(
         "[IPC Registry] ⚠️  Progress Emitter IPC registration failed (non-fatal):",
@@ -364,7 +404,9 @@ function registerAllIPC(dependencies) {
     try {
       const { registerTaskIPC } = require("../task/task-ipc");
       registerTaskIPC(database);
-      logger.info("[IPC Registry] ✓ Team Task Management IPC registered (49 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Team Task Management IPC registered (49 handlers)",
+      );
       logger.info("[IPC Registry]   - Board Management: 9 handlers");
       logger.info("[IPC Registry]   - Task Query: 4 handlers");
       logger.info("[IPC Registry]   - Task CRUD: 12 handlers");
@@ -385,7 +427,9 @@ function registerAllIPC(dependencies) {
     try {
       const { registerPermissionIPC } = require("../permission/permission-ipc");
       registerPermissionIPC(database);
-      logger.info("[IPC Registry] ✓ Permission System IPC registered (28 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Permission System IPC registered (28 handlers)",
+      );
       logger.info("[IPC Registry]   - Permission Management: 8 handlers");
       logger.info("[IPC Registry]   - Approval Workflows: 8 handlers");
       logger.info("[IPC Registry]   - Delegation: 4 handlers");
@@ -608,7 +652,7 @@ function registerAllIPC(dependencies) {
       logger.info("[IPC Registry] Organization 依赖状态:", {
         organizationManager: !!organizationManager,
         dbManager: !!dbManager,
-        versionManager: !!versionManager
+        versionManager: !!versionManager,
       });
       const {
         registerOrganizationIPC,
@@ -620,7 +664,9 @@ function registerAllIPC(dependencies) {
       });
       logger.info("[IPC Registry] ✓ Organization IPC registered (32 handlers)");
     } else {
-      logger.error("[IPC Registry] ❌ organizationManager 和 dbManager 都未初始化，跳过 Organization IPC 注册");
+      logger.error(
+        "[IPC Registry] ❌ organizationManager 和 dbManager 都未初始化，跳过 Organization IPC 注册",
+      );
       logger.error("[IPC Registry] 企业版功能将不可用");
     }
 
@@ -765,6 +811,13 @@ function registerAllIPC(dependencies) {
       logger.info("[IPC Registry] ✓ File IPC registered (17 handlers)");
     }
 
+    // Office 文件操作 (类模式 - Office 文件处理)
+    logger.info("[IPC Registry] Registering Office File IPC...");
+    const FileIPC = require("../ipc/file-ipc");
+    const fileIPC = new FileIPC();
+    fileIPC.registerHandlers(mainWindow);
+    logger.info("[IPC Registry] ✓ Office File IPC registered");
+
     // 模板管理 (函数模式 - 大模块，20 handlers)
     if (app.templateManager) {
       logger.info("[IPC Registry] Registering Template IPC...");
@@ -775,7 +828,9 @@ function registerAllIPC(dependencies) {
       });
       logger.info("[IPC Registry] ✓ Template IPC registered (20 handlers)");
     } else {
-      logger.error("[IPC Registry] ❌ templateManager 未初始化，跳过 Template IPC 注册");
+      logger.error(
+        "[IPC Registry] ❌ templateManager 未初始化，跳过 Template IPC 注册",
+      );
       logger.error("[IPC Registry] 模板功能将不可用，可能导致部分页面出错");
     }
 
