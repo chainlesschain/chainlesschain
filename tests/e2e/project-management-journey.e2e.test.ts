@@ -140,7 +140,7 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
   test('Phase 2.2: Update project metadata', async () => {
     const updates = {
       description: 'Updated: Full lifecycle E2E test',
-      status: 'planning',
+      status: 'draft',
       tags: JSON.stringify(['e2e', 'journey', 'pm', 'sprint']),
     };
 
@@ -149,7 +149,7 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
 
     const project: any = await callIPC(window, 'project:get', projectId);
     expect(project).toBeDefined();
-    expect(project.status).toBe('planning');
+    expect(project.status).toBe('draft');
       });
 
   test('Phase 2.3: Add deliverable files', async () => {
@@ -189,7 +189,7 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
       name: 'Sprint Board',
       description: 'Main task board for project execution',
       boardType: 'scrum',
-      createdBy: TEST_USER_DID,
+      ownerDid: TEST_USER_DID,
     });
 
     expect(createResult).toBeDefined();

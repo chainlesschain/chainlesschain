@@ -1301,12 +1301,15 @@ const startAICreation = async (createData) => {
   isLoading.value = true;
 
   try {
+    // BUGFIX: 深拷贝 createData 以确保是纯对象（避免 Vue 响应式代理导致的克隆错误）
+    const pureCreateData = JSON.parse(JSON.stringify(createData));
+
     // 导入projectStore
     const { useProjectStore } = await import("@/stores/project");
     const projectStore = useProjectStore();
 
     // 调用流式创建
-    await projectStore.createProjectStream(createData, (progressUpdate) => {
+    await projectStore.createProjectStream(pureCreateData, (progressUpdate) => {
       logger.info("[ChatPanel] 收到创建进度更新:", progressUpdate);
 
       // 更新消息中的进度信息

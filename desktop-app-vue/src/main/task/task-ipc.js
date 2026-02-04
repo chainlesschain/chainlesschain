@@ -180,9 +180,17 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:create-task', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return await manager.createTask(params);
+      // If boardId is provided, create a team task (board task)
+      if (params.boardId) {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        return await manager.createTask(params);
+      } else {
+        // Otherwise, create a project task
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return await manager.createTask(params);
+      }
     } catch (error) {
       logger.error('[IPC] task:create-task failed:', error);
       throw error;
@@ -191,9 +199,18 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:get-task', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return { success: true, task: await manager.getTask(params.taskId) };
+      // Try team task first
+      try {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        const task = await manager.getTask(params.taskId);
+        return { success: true, task };
+      } catch (teamTaskError) {
+        // Fall back to project task
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return { success: true, task: await manager.getTask(params.taskId) };
+      }
     } catch (error) {
       logger.error('[IPC] task:get-task failed:', error);
       throw error;
@@ -202,9 +219,19 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:update-task', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return await manager.updateTask(params.taskId, params.updates, params.actorDid);
+      // Try team task first (check if task exists in team_tasks)
+      const db = database.getDatabase();
+      const isTeamTask = db.prepare('SELECT id FROM team_tasks WHERE id = ?').get(params.taskId);
+
+      if (isTeamTask) {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        return await manager.updateTask(params.taskId, params.updates, params.actorDid);
+      } else {
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return await manager.updateTask(params.taskId, params.updates, params.actorDid);
+      }
     } catch (error) {
       logger.error('[IPC] task:update-task failed:', error);
       throw error;
