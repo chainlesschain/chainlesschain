@@ -587,13 +587,27 @@ export const useProjectStore = defineStore("project", {
       logger.info("[Store] 当前文件数:", this.projectFiles.length);
 
       try {
-        const files = await window.electronAPI.project.getFiles(projectId);
+        const response = await window.electronAPI.project.getFiles(projectId);
         const elapsed = Date.now() - startTime;
 
         logger.info("[Store] ✓ IPC 返回，耗时:", elapsed, "ms");
-        logger.info("[Store] 接收文件数:", files?.length || 0);
+        logger.info("[Store] 响应类型:", typeof response);
+        logger.info("[Store] 响应是否为数组:", Array.isArray(response));
 
-        if (files && files.length > 0) {
+        // BUGFIX: IPC 可能返回 { files: [], total: 0 } 或直接返回数组
+        let files;
+        if (Array.isArray(response)) {
+          files = response;
+        } else if (response && Array.isArray(response.files)) {
+          files = response.files;
+        } else {
+          logger.warn("[Store] IPC 返回格式异常，使用空数组");
+          files = [];
+        }
+
+        logger.info("[Store] 接收文件数:", files.length);
+
+        if (files.length > 0) {
           logger.info(
             "[Store] 前3个文件:",
             files
@@ -604,7 +618,7 @@ export const useProjectStore = defineStore("project", {
         }
 
         // 强制创建新数组引用，确保 Vue 响应式系统能检测到变化
-        this.projectFiles = files ? [...files] : [];
+        this.projectFiles = [...files];
 
         logger.info("[Store] ✓ projectFiles 已更新");
         logger.info("[Store] 新长度:", this.projectFiles.length);
