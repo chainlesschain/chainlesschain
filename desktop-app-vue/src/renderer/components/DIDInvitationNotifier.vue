@@ -259,7 +259,6 @@ const pendingCount = computed(() => pendingInvitations.value.length);
 
 // 加载待处理邀请
 const loadPendingInvitations = async () => {
-  // 如果功能不可用，跳过加载
   if (!isFeatureAvailable.value) {
     return;
   }
@@ -270,7 +269,7 @@ const loadPendingInvitations = async () => {
       "org:get-pending-did-invitations",
     );
     pendingInvitations.value = invitations || [];
-    retryCount = 0; // 成功后重置重试计数
+    retryCount = 0;
   } catch (error) {
     logger.error(
       "加载待处理邀请失败 - 错误类型:",
@@ -321,10 +320,10 @@ const loadHistoryInvitations = async () => {
       error,
     );
   } finally {
+
     loadingHistory.value = false;
   }
 };
-
 // 接受邀请
 const handleAccept = async (invitation) => {
   acceptingIds.value.push(invitation.id);
@@ -465,12 +464,9 @@ const getRoleColor = (role) => {
 
 // 生命周期
 onMounted(async () => {
-  // 尝试首次加载
   await loadPendingInvitations();
 
-  // 只有当功能可用时，才启动定时刷新
   if (isFeatureAvailable.value) {
-    // 每30秒刷新一次
     refreshInterval = setInterval(() => {
       loadPendingInvitations();
     }, 30000);
