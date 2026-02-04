@@ -4,6 +4,31 @@
  */
 
 const path = require('path');
+const os = require('os');
+
+// Mock electron module early to avoid undefined app in plain Node
+const mockApp = {
+  isPackaged: false,
+  getPath: (name) => {
+    if (name === 'userData') {
+      return path.join(os.tmpdir(), 'chainlesschain-diagnose');
+    }
+    return os.tmpdir();
+  },
+};
+
+require.cache[require.resolve('electron')] = {
+  exports: {
+    app: mockApp,
+    ipcMain: {
+      handle: () => {},
+      on: () => {},
+    },
+  },
+};
+
+global.app = mockApp;
+
 const { app } = require('electron');
 
 // Mock electron app for testing
@@ -21,8 +46,8 @@ if (!app.getPath) {
 process.env.NODE_ENV = 'development';
 process.env.DEFAULT_PASSWORD = '123456';
 
-const { bootstrapApplication } = require('../dist/main/bootstrap');
-const { logger } = require('../dist/main/utils/logger.js');
+const { bootstrapApplication } = require('../src/main/bootstrap');
+const { logger } = require('../src/main/utils/logger.js');
 
 async function diagnose() {
   logger.info('='.repeat(60));

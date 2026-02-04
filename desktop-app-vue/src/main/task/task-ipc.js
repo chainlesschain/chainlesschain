@@ -251,9 +251,19 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:move-task', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return await manager.moveTask(params.taskId, params.columnId, params.position, params.actorDid);
+      // Check which table the task is in
+      const db = database.getDatabase();
+      const isTeamTask = db.prepare('SELECT id FROM team_tasks WHERE id = ?').get(params.taskId);
+
+      if (isTeamTask) {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        return await manager.moveTask(params.taskId, params.columnId, params.position, params.actorDid);
+      } else {
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return await manager.moveTask(params.taskId, params.columnId, params.position, params.actorDid);
+      }
     } catch (error) {
       logger.error('[IPC] task:move-task failed:', error);
       throw error;
@@ -262,9 +272,19 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:assign-task', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return await manager.assignTask(params.taskId, params.userDid, params.role, params.assignedBy);
+      // Check if it's a team task
+      const db = database.getDatabase();
+      const isTeamTask = db.prepare('SELECT id FROM team_tasks WHERE id = ?').get(params.taskId);
+
+      if (isTeamTask) {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        return await manager.assignTask(params.taskId, params.userDid, params.role, params.assignedBy);
+      } else {
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return await manager.assignTask(params.taskId, params.userDid, params.role, params.assignedBy);
+      }
     } catch (error) {
       logger.error('[IPC] task:assign-task failed:', error);
       throw error;
@@ -273,9 +293,19 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:set-priority', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return await manager.setPriority(params.taskId, params.priority, params.actorDid);
+      // Check which table the task is in
+      const db = database.getDatabase();
+      const isTeamTask = db.prepare('SELECT id FROM team_tasks WHERE id = ?').get(params.taskId);
+
+      if (isTeamTask) {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        return await manager.setPriority(params.taskId, params.priority, params.actorDid);
+      } else {
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return await manager.setPriority(params.taskId, params.priority, params.actorDid);
+      }
     } catch (error) {
       logger.error('[IPC] task:set-priority failed:', error);
       throw error;
@@ -284,9 +314,19 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:set-due-date', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return await manager.setDueDate(params.taskId, params.dueDate, params.actorDid);
+      // Check which table the task is in
+      const db = database.getDatabase();
+      const isTeamTask = db.prepare('SELECT id FROM team_tasks WHERE id = ?').get(params.taskId);
+
+      if (isTeamTask) {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        return await manager.setDueDate(params.taskId, params.dueDate, params.actorDid);
+      } else {
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return await manager.setDueDate(params.taskId, params.dueDate, params.actorDid);
+      }
     } catch (error) {
       logger.error('[IPC] task:set-due-date failed:', error);
       throw error;
@@ -343,9 +383,19 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:create-checklist', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return await manager.createChecklist(params.taskId, params.title);
+      // Check which table the task is in
+      const db = database.getDatabase();
+      const isTeamTask = db.prepare('SELECT id FROM team_tasks WHERE id = ?').get(params.taskId);
+
+      if (isTeamTask) {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        return await manager.createChecklist(params.taskId, params.title);
+      } else {
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return await manager.createChecklist(params.taskId, params.title);
+      }
     } catch (error) {
       logger.error('[IPC] task:create-checklist failed:', error);
       throw error;
@@ -354,9 +404,26 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:add-checklist-item', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return await manager.addChecklistItem(params.checklistId, params.content, params.assigneeDid);
+      // Get the task_id from the checklist
+      const db = database.getDatabase();
+      const checklist = db.prepare('SELECT task_id FROM task_checklists WHERE id = ?').get(params.checklistId);
+
+      if (!checklist) {
+        throw new Error(`Checklist not found: ${params.checklistId}`);
+      }
+
+      // Check which table the task is in
+      const isTeamTask = db.prepare('SELECT id FROM team_tasks WHERE id = ?').get(checklist.task_id);
+
+      if (isTeamTask) {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        return await manager.addChecklistItem(params.checklistId, params.content, params.assigneeDid);
+      } else {
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return await manager.addChecklistItem(params.checklistId, params.content, params.assigneeDid);
+      }
     } catch (error) {
       logger.error('[IPC] task:add-checklist-item failed:', error);
       throw error;
@@ -402,9 +469,19 @@ function registerTaskIPC(database) {
 
   ipcMain.handle('task:add-comment', async (_event, params) => {
     try {
-      const { getTaskManager } = require('./task-manager');
-      const manager = getTaskManager(database);
-      return await manager.addComment(params.taskId, params.comment);
+      // Check which table the task is in
+      const db = database.getDatabase();
+      const isTeamTask = db.prepare('SELECT id FROM team_tasks WHERE id = ?').get(params.taskId);
+
+      if (isTeamTask) {
+        const { getTeamTaskManager } = require('./team-task-manager');
+        const manager = getTeamTaskManager(database);
+        return await manager.addComment(params.taskId, params.comment);
+      } else {
+        const { getTaskManager } = require('./task-manager');
+        const manager = getTaskManager(database);
+        return await manager.addComment(params.taskId, params.comment);
+      }
     } catch (error) {
       logger.error('[IPC] task:add-comment failed:', error);
       throw error;
