@@ -26,6 +26,12 @@ function removeUndefined(obj, seen = new WeakSet()) {
     return obj.toISOString();
   }
 
+  // BUGFIX: Skip AbortSignal objects (cannot be serialized through IPC)
+  if (obj instanceof AbortSignal) {
+    console.warn("[Preload] AbortSignal detected, skipping (not serializable)");
+    return null;
+  }
+
   // Detect circular references
   if (seen.has(obj)) {
     console.warn("[Preload] Circular reference detected, skipping");
@@ -48,6 +54,11 @@ function removeUndefined(obj, seen = new WeakSet()) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       const value = obj[key];
       const valueType = typeof value;
+
+      // BUGFIX: Skip 'signal' property (AbortSignal objects)
+      if (key === "signal") {
+        continue;
+      }
 
       // Skip functions, symbols, and undefined values
       if (
@@ -1265,6 +1276,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("project:stats:start", projectId, projectPath),
     stopStats: (projectId) =>
       ipcRenderer.invoke("project:stats:stop", projectId),
+
+    // 项目统计（嵌套对象，支持 project:stats:* 格式）
+    stats: {
+      start: (projectId, projectPath) =>
+        ipcRenderer.invoke("project:stats:start", projectId, projectPath),
+      stop: (projectId) => ipcRenderer.invoke("project:stats:stop", projectId),
+      update: (projectId) =>
+        ipcRenderer.invoke("project:stats:update", projectId),
+      get: (projectId) => ipcRenderer.invoke("project:stats:get", projectId),
+    },
 
     // 事件监听（修复版 - 保存包装函数引用以支持正确的off）
     on: (event, callback) => {
@@ -2569,16 +2590,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("task:create-board", removeUndefined(params)),
     updateBoard: (params) =>
       ipcRenderer.invoke("task:update-board", removeUndefined(params)),
-    deleteBoard: (params) =>
-      ipcRenderer.invoke("task:delete-board", params),
+    deleteBoard: (params) => ipcRenderer.invoke("task:delete-board", params),
+    archiveBoard: (params) =>
+      ipcRenderer.invoke("task:archive-board", removeUndefined(params)),
     getBoards: (params) => ipcRenderer.invoke("task:get-boards", params),
     getBoard: (params) => ipcRenderer.invoke("task:get-board", params),
     createColumn: (params) =>
       ipcRenderer.invoke("task:create-column", removeUndefined(params)),
     updateColumn: (params) =>
       ipcRenderer.invoke("task:update-column", removeUndefined(params)),
-    deleteColumn: (params) =>
-      ipcRenderer.invoke("task:delete-column", params),
+    deleteColumn: (params) => ipcRenderer.invoke("task:delete-column", params),
     createLabel: (params) =>
       ipcRenderer.invoke("task:create-label", removeUndefined(params)),
     // Task CRUD
@@ -2586,14 +2607,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("task:create-task", removeUndefined(params)),
     updateTask: (params) =>
       ipcRenderer.invoke("task:update-task", removeUndefined(params)),
-    deleteTask: (params) =>
-      ipcRenderer.invoke("task:delete-task", params),
+    deleteTask: (params) => ipcRenderer.invoke("task:delete-task", params),
     getTask: (params) => ipcRenderer.invoke("task:get-task", params),
     getTasks: (params) => ipcRenderer.invoke("task:get-tasks", params),
     assignTask: (params) =>
       ipcRenderer.invoke("task:assign-task", removeUndefined(params)),
-    unassignTask: (params) =>
-      ipcRenderer.invoke("task:unassign-task", params),
+    unassignTask: (params) => ipcRenderer.invoke("task:unassign-task", params),
     moveTask: (params) =>
       ipcRenderer.invoke("task:move-task", removeUndefined(params)),
     setDueDate: (params) =>
@@ -2605,8 +2624,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     addLabel: (params) =>
       ipcRenderer.invoke("task:add-label", removeUndefined(params)),
     // Checklists
-    addChecklist: (params) =>
-      ipcRenderer.invoke("task:add-checklist", removeUndefined(params)),
+    createChecklist: (params) =>
+      ipcRenderer.invoke("task:create-checklist", removeUndefined(params)),
+    addChecklistItem: (params) =>
+      ipcRenderer.invoke("task:add-checklist-item", removeUndefined(params)),
     updateChecklist: (params) =>
       ipcRenderer.invoke("task:update-checklist", removeUndefined(params)),
     deleteChecklist: (params) =>
@@ -2620,26 +2641,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("task:update-comment", removeUndefined(params)),
     deleteComment: (params) =>
       ipcRenderer.invoke("task:delete-comment", params),
-    getComments: (params) =>
-      ipcRenderer.invoke("task:get-comments", params),
+    getComments: (params) => ipcRenderer.invoke("task:get-comments", params),
     // Sprint Management
     createSprint: (params) =>
       ipcRenderer.invoke("task:create-sprint", removeUndefined(params)),
     updateSprint: (params) =>
       ipcRenderer.invoke("task:update-sprint", removeUndefined(params)),
-    deleteSprint: (params) =>
-      ipcRenderer.invoke("task:delete-sprint", params),
-    startSprint: (params) =>
-      ipcRenderer.invoke("task:start-sprint", params),
+    deleteSprint: (params) => ipcRenderer.invoke("task:delete-sprint", params),
+    startSprint: (params) => ipcRenderer.invoke("task:start-sprint", params),
     completeSprint: (params) =>
       ipcRenderer.invoke("task:complete-sprint", params),
+    moveToSprint: (params) =>
+      ipcRenderer.invoke("task:move-to-sprint", removeUndefined(params)),
     // Reports and Analytics
     getBoardAnalytics: (params) =>
       ipcRenderer.invoke("task:get-board-analytics", params),
-    exportBoard: (params) =>
-      ipcRenderer.invoke("task:export-board", params),
+    exportBoard: (params) => ipcRenderer.invoke("task:export-board", params),
     getSprintStats: (params) =>
       ipcRenderer.invoke("task:get-sprint-stats", params),
+    createReport: (params) =>
+      ipcRenderer.invoke("task:create-report", removeUndefined(params)),
     createTeamReport: (params) =>
       ipcRenderer.invoke("task:create-team-report", removeUndefined(params)),
     getTeamReports: (params) =>

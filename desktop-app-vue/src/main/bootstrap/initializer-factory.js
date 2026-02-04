@@ -35,6 +35,8 @@ class InitializerFactory {
     this.results = new Map();
     /** @type {Object} */
     this.instances = {};
+    /** @type {Map<string, Promise<InitResult>>} */
+    this.runningPromises = new Map();
     /** @type {Function} */
     this.progressCallback = null;
     this.currentProgress = 0;
@@ -93,6 +95,10 @@ class InitializerFactory {
    * @returns {Promise<InitResult>}
    */
   async runOne(name, context = {}) {
+    if (this.runningPromises.has(name)) {
+      return this.runningPromises.get(name);
+    }
+
     const config = this.initializers.get(name);
     if (!config) {
       return {
@@ -103,70 +109,88 @@ class InitializerFactory {
       };
     }
 
-    // 检查依赖
-    for (const dep of config.dependsOn || []) {
-      const depResult = this.results.get(dep);
-      if (!depResult || !depResult.success) {
-        logger.warn(
-          `[InitializerFactory] ${name} 依赖的 ${dep} 未初始化成功，跳过`,
+    const runPromise = (async () => {
+      // 检查依赖（若依赖正在初始化，等待其完成）
+      for (const dep of config.dependsOn || []) {
+        const depResult = this.results.get(dep);
+        if (!depResult) {
+          const depPromise = this.runningPromises.get(dep);
+          if (depPromise) {
+            await depPromise;
+          }
+        }
+        const finalDepResult = this.results.get(dep);
+        if (!finalDepResult || !finalDepResult.success) {
+          logger.warn(
+            `[InitializerFactory] ${name} 依赖的 ${dep} 未初始化成功，跳过`,
+          );
+          return {
+            success: false,
+            name,
+            duration: 0,
+            error: new Error(`依赖 ${dep} 未初始化成功`),
+          };
+        }
+      }
+
+      const startTime = Date.now();
+      try {
+        logger.info(`[InitializerFactory] 初始化 ${name}...`);
+
+        // 合并已初始化的实例到上下文
+        const fullContext = { ...this.instances, ...context };
+        const instance = await config.init(fullContext);
+
+        const duration = Date.now() - startTime;
+        const result = {
+          success: true,
+          name,
+          duration,
+          instance,
+        };
+
+        this.results.set(name, result);
+        if (instance !== undefined) {
+          this.instances[name] = instance;
+        }
+
+        logger.info(
+          `[InitializerFactory] ✓ ${name} 初始化成功 (${duration}ms)`,
         );
-        return {
+        return result;
+      } catch (error) {
+        const duration = Date.now() - startTime;
+        const result = {
           success: false,
           name,
-          duration: 0,
-          error: new Error(`依赖 ${dep} 未初始化成功`),
-        };
-      }
-    }
-
-    const startTime = Date.now();
-    try {
-      logger.info(`[InitializerFactory] 初始化 ${name}...`);
-
-      // 合并已初始化的实例到上下文
-      const fullContext = { ...this.instances, ...context };
-      const instance = await config.init(fullContext);
-
-      const duration = Date.now() - startTime;
-      const result = {
-        success: true,
-        name,
-        duration,
-        instance,
-      };
-
-      this.results.set(name, result);
-      if (instance !== undefined) {
-        this.instances[name] = instance;
-      }
-
-      logger.info(`[InitializerFactory] ✓ ${name} 初始化成功 (${duration}ms)`);
-      return result;
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      const result = {
-        success: false,
-        name,
-        duration,
-        error,
-      };
-
-      this.results.set(name, result);
-
-      if (config.required) {
-        logger.error(
-          `[InitializerFactory] ✗ ${name} 初始化失败 (必需模块):`,
+          duration,
           error,
-        );
-        throw error;
-      } else {
-        logger.warn(
-          `[InitializerFactory] ⚠ ${name} 初始化失败 (非必需，继续启动):`,
-          error.message,
-        );
-      }
+        };
 
-      return result;
+        this.results.set(name, result);
+
+        if (config.required) {
+          logger.error(
+            `[InitializerFactory] ✗ ${name} 初始化失败 (必需模块):`,
+            error,
+          );
+          throw error;
+        } else {
+          logger.warn(
+            `[InitializerFactory] ⚠ ${name} 初始化失败 (非必需，继续启动):`,
+            error.message,
+          );
+        }
+
+        return result;
+      }
+    })();
+
+    this.runningPromises.set(name, runPromise);
+    try {
+      return await runPromise;
+    } finally {
+      this.runningPromises.delete(name);
     }
   }
 

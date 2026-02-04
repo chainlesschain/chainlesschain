@@ -111,10 +111,15 @@ export async function callIPC<T>(
         let apiPath = channel;
         if (channel.includes(':')) {
           // 将 'project:get-all' 转换为 'project.getAll'
-          const [module, method] = channel.split(':');
-          // 将 kebab-case 转换为 camelCase
-          const camelMethod = method.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-          apiPath = `${module}.${camelMethod}`;
+          // 将 'project:stats:start' 转换为 'project.stats.start'
+          const parts = channel.split(':');
+          const convertedParts = parts.map((part, index) => {
+            // 第一部分保持不变（模块名）
+            if (index === 0) return part;
+            // 其他部分将 kebab-case 转换为 camelCase
+            return part.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+          });
+          apiPath = convertedParts.join('.');
         }
 
         const pathParts = apiPath.split('.');

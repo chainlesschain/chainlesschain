@@ -38,22 +38,55 @@ async function diagnose() {
   const dbFileContent = fs.readFileSync(dbFilePath, 'utf8');
 
   // Extract the SQL from createTables() method
-  const sqlMatch = dbFileContent.match(/this\.db\.exec\(`\s*([\s\S]*?)\s*`\);/);
-  if (!sqlMatch) {
-    console.error('✗ Could not extract SQL from database.js');
-    process.exit(1);
-  }
+  // Find the createTables function and extract its exec() call
+  const createTablesMatch = dbFileContent.match(/createTables\(\)\s*\{[\s\S]*?this\.db\.exec\(`([\s\S]*?)`\);/);
+  if (!createTablesMatch) {
+    console.error('✗ Could not extract SQL from createTables() in database.js');
+    console.error('Trying alternative extraction...');
 
-  const fullSQL = sqlMatch[1];
+    // Try to find just the first exec call after createTables
+    const altMatch = dbFileContent.match(/createTables[\s\S]{0,500}?this\.db\.exec\(`([\s\S]*?)`\);/);
+    if (!altMatch) {
+      console.error('✗ Could not extract SQL - both methods failed');
+      process.exit(1);
+    }
+    var fullSQL = altMatch[1];
+  } else {
+    var fullSQL = createTablesMatch[1];
+  }
   console.log(`✓ Extracted ${fullSQL.length} characters of SQL\n`);
 
+  // Show first 500 characters
+  console.log('First 500 characters of extracted SQL:');
+  console.log('-'.repeat(60));
+  console.log(fullSQL.substring(0, 500).trim());
+  console.log('-'.repeat(60));
+  console.log('');
+
   // Split SQL into individual statements
-  const statements = fullSQL
+  // Remove comment lines first, THEN split
+  const cleanedSQL = fullSQL
+    .split('\n')
+    .filter(line => !line.trim().startsWith('--'))
+    .join('\n');
+
+  const statements = cleanedSQL
     .split(';')
     .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--'));
+    .filter(s => s.length > 10); // Ignore very short fragments
 
   console.log(`✓ Found ${statements.length} SQL statements\n`);
+
+  // Show first 3 statements
+  console.log('First 3 statements after splitting:');
+  console.log('='.repeat(60));
+  for (let i = 0; i < Math.min(3, statements.length); i++) {
+    const preview = statements[i].substring(0, 100).replace(/\s+/g, ' ');
+    console.log(`[${i + 1}] ${preview}`);
+  }
+  console.log('='.repeat(60));
+  console.log('');
+
   console.log('='.repeat(60));
   console.log('Testing each statement...');
   console.log('='.repeat(60));

@@ -593,32 +593,47 @@ export const useProjectStore = defineStore("project", {
         logger.info("[Store] ✓ IPC 返回，耗时:", elapsed, "ms");
         logger.info("[Store] 响应类型:", typeof response);
         logger.info("[Store] 响应是否为数组:", Array.isArray(response));
+        logger.info("[Store] 响应内容:", JSON.stringify(response).substring(0, 200));
 
         // BUGFIX: IPC 可能返回 { files: [], total: 0 } 或直接返回数组
-        let files;
-        if (Array.isArray(response)) {
-          files = response;
-        } else if (response && Array.isArray(response.files)) {
-          files = response.files;
-        } else {
-          logger.warn("[Store] IPC 返回格式异常，使用空数组");
+        let files = [];
+
+        try {
+          if (Array.isArray(response)) {
+            // 直接返回数组（旧版 API）
+            files = response;
+            logger.info("[Store] 使用数组格式响应");
+          } else if (response && typeof response === 'object' && Array.isArray(response.files)) {
+            // 返回对象格式（新版 API）
+            files = response.files;
+            logger.info("[Store] 使用对象格式响应，total:", response.total);
+          } else if (response && typeof response === 'object' && response.files === undefined) {
+            // 可能是错误对象或空对象
+            logger.warn("[Store] 响应对象中没有 files 属性:", response);
+            files = [];
+          } else {
+            logger.warn("[Store] IPC 返回格式异常，使用空数组", response);
+            files = [];
+          }
+        } catch (parseError) {
+          logger.error("[Store] 解析响应失败:", parseError);
           files = [];
         }
 
-        logger.info("[Store] 接收文件数:", files.length);
+        logger.info("[Store] 解析后文件数:", files.length);
 
         if (files.length > 0) {
           logger.info(
             "[Store] 前3个文件:",
             files
               .slice(0, 3)
-              .map((f) => f.file_name)
+              .map((f) => f?.file_name || '未知')
               .join(", "),
           );
         }
 
         // 强制创建新数组引用，确保 Vue 响应式系统能检测到变化
-        this.projectFiles = [...files];
+        this.projectFiles = Array.isArray(files) ? [...files] : [];
 
         logger.info("[Store] ✓ projectFiles 已更新");
         logger.info("[Store] 新长度:", this.projectFiles.length);

@@ -1074,6 +1074,22 @@ function registerProjectCoreIPC({
         };
       } catch (error) {
         logger.error("[Main] 获取项目文件失败:", error);
+        logger.error("[Main] Error details - message:", error?.message);
+        logger.error("[Main] Error details - stack:", error?.stack);
+
+        // 对于新项目或没有文件的项目，返回空结果而不是抛出错误
+        if (error?.message?.includes("not found") ||
+            error?.message?.includes("No such file") ||
+            error?.message?.includes("ENOENT")) {
+          logger.warn("[Main] 项目文件不存在，返回空结果");
+          return {
+            files: [],
+            total: 0,
+            hasMore: false,
+            fromCache: false
+          };
+        }
+
         throw error;
       }
     },

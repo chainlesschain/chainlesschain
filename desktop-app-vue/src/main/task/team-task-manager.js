@@ -302,6 +302,121 @@ class TeamTaskManager {
       throw error;
     }
   }
+
+  /**
+   * Create a checklist for a task
+   */
+  async createChecklist(taskId, title) {
+    try {
+      const db = this.database.getDatabase();
+      const now = Date.now();
+      const checklistId = uuidv4();
+
+      db.prepare(`
+        INSERT INTO task_checklists (id, task_id, title, position, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(checklistId, taskId, title, 0, now, now);
+
+      logger.info('[TeamTaskManager] ✓ Checklist created:', checklistId);
+
+      return {
+        success: true,
+        checklistId,
+        checklist: {
+          id: checklistId,
+          taskId,
+          title,
+          createdAt: now
+        }
+      };
+    } catch (error) {
+      logger.error('[TeamTaskManager] Create checklist failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add an item to a checklist
+   */
+  async addChecklistItem(checklistId, content, assigneeDid) {
+    try {
+      const db = this.database.getDatabase();
+      const now = Date.now();
+      const itemId = uuidv4();
+
+      db.prepare(`
+        INSERT INTO task_checklist_items (
+          id, checklist_id, content, is_done, assignee_did,
+          position, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(itemId, checklistId, content, 0, assigneeDid || null, 0, now, now);
+
+      logger.info('[TeamTaskManager] ✓ Checklist item added:', itemId);
+
+      return {
+        success: true,
+        itemId,
+        item: {
+          id: itemId,
+          checklistId,
+          content,
+          isDone: false,
+          assigneeDid,
+          createdAt: now
+        }
+      };
+    } catch (error) {
+      logger.error('[TeamTaskManager] Add checklist item failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add a comment to a task
+   */
+  async addComment(taskId, commentData) {
+    try {
+      const db = this.database.getDatabase();
+      const now = Date.now();
+      const commentId = uuidv4();
+
+      db.prepare(`
+        INSERT INTO task_comments (
+          id, task_id, author_did, author_name, content, parent_id,
+          mentions, is_edited, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        commentId,
+        taskId,
+        commentData.authorDid,
+        commentData.authorName || '',
+        commentData.content,
+        commentData.parentId || null,
+        commentData.mentions ? JSON.stringify(commentData.mentions) : null,
+        0,
+        now,
+        now
+      );
+
+      logger.info('[TeamTaskManager] ✓ Comment added:', commentId);
+
+      return {
+        success: true,
+        commentId,
+        comment: {
+          id: commentId,
+          taskId,
+          authorDid: commentData.authorDid,
+          authorName: commentData.authorName,
+          content: commentData.content,
+          createdAt: now
+        }
+      };
+    } catch (error) {
+      logger.error('[TeamTaskManager] Add comment failed:', error);
+      throw error;
+    }
+  }
 }
 
 // Singleton instance
