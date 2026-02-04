@@ -18,11 +18,22 @@ class InitialSetupIPC {
   registerHandlers() {
     // 获取设置状态
     ipcMain.handle("initial-setup:get-status", async () => {
-      return {
-        completed: !this.config.isFirstTimeSetup(),
-        completedAt: this.config.get("completedAt"),
-        edition: this.config.get("edition"),
-      };
+      try {
+        return {
+          completed: !this.config.isFirstTimeSetup(),
+          completedAt: this.config.get("completedAt"),
+          edition: this.config.get("edition"),
+        };
+      } catch (error) {
+        logger.error("[InitialSetupIPC] 获取设置状态失败:", error);
+        // 返回默认状态，假设未完成设置
+        return {
+          completed: false,
+          completedAt: null,
+          edition: null,
+          error: error.message,
+        };
+      }
     });
 
     // 获取当前配置

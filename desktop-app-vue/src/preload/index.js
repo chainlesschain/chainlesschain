@@ -2051,7 +2051,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("contact:add-from-qr", qrData),
     getAllContacts: () => ipcRenderer.invoke("contact:get-all"),
     getContact: (did) => ipcRenderer.invoke("contact:get", did),
-    getContacts: (options) => ipcRenderer.invoke("contact:get-all"), // 别名，兼容测试
+    getContacts: (_options) => ipcRenderer.invoke("contact:get-all"), // 别名，兼容测试
     updateContact: (did, updates) =>
       ipcRenderer.invoke("contact:update", did, updates),
     deleteContact: (did) => ipcRenderer.invoke("contact:delete", did),
@@ -2489,6 +2489,161 @@ contextBridge.exposeInMainWorld("electronAPI", {
      */
     ensureDirectories: () =>
       ipcRenderer.invoke("memory-sync:ensure-directories"),
+  },
+
+  // ==========================================
+  // Team Management (团队管理)
+  // ==========================================
+  team: {
+    createTeam: (params) =>
+      ipcRenderer.invoke("team:create-team", removeUndefined(params)),
+    updateTeam: (params) =>
+      ipcRenderer.invoke("team:update-team", removeUndefined(params)),
+    deleteTeam: (params) =>
+      ipcRenderer.invoke("team:delete-team", removeUndefined(params)),
+    addMember: (params) =>
+      ipcRenderer.invoke("team:add-member", removeUndefined(params)),
+    removeMember: (params) =>
+      ipcRenderer.invoke("team:remove-member", removeUndefined(params)),
+    setLead: (params) =>
+      ipcRenderer.invoke("team:set-lead", removeUndefined(params)),
+    getTeams: (params) => ipcRenderer.invoke("team:get-teams", params),
+    getTeamMembers: (params) =>
+      ipcRenderer.invoke("team:get-team-members", params),
+  },
+
+  // ==========================================
+  // Permission Management (权限管理)
+  // ==========================================
+  perm: {
+    grantPermission: (params) =>
+      ipcRenderer.invoke("perm:grant-permission", removeUndefined(params)),
+    revokePermission: (params) =>
+      ipcRenderer.invoke("perm:revoke-permission", removeUndefined(params)),
+    checkPermission: (params) =>
+      ipcRenderer.invoke("perm:check-permission", params),
+    getUserPermissions: (params) =>
+      ipcRenderer.invoke("perm:get-user-permissions", params),
+    getResourcePermissions: (params) =>
+      ipcRenderer.invoke("perm:get-resource-permissions", params),
+    bulkGrant: (params) =>
+      ipcRenderer.invoke("perm:bulk-grant", removeUndefined(params)),
+    inheritPermissions: (params) =>
+      ipcRenderer.invoke("perm:inherit-permissions", removeUndefined(params)),
+    getEffectivePermissions: (params) =>
+      ipcRenderer.invoke("perm:get-effective-permissions", params),
+    // Approval Workflows
+    createWorkflow: (params) =>
+      ipcRenderer.invoke("perm:create-workflow", removeUndefined(params)),
+    updateWorkflow: (params) =>
+      ipcRenderer.invoke("perm:update-workflow", removeUndefined(params)),
+    deleteWorkflow: (params) =>
+      ipcRenderer.invoke("perm:delete-workflow", params),
+    submitApproval: (params) =>
+      ipcRenderer.invoke("perm:submit-approval", removeUndefined(params)),
+    approveRequest: (params) =>
+      ipcRenderer.invoke("perm:approve-request", removeUndefined(params)),
+    rejectRequest: (params) =>
+      ipcRenderer.invoke("perm:reject-request", removeUndefined(params)),
+    getPendingApprovals: (params) =>
+      ipcRenderer.invoke("perm:get-pending-approvals", params),
+    getApprovalHistory: (params) =>
+      ipcRenderer.invoke("perm:get-approval-history", params),
+    // Delegation
+    delegatePermissions: (params) =>
+      ipcRenderer.invoke("perm:delegate-permissions", removeUndefined(params)),
+    revokeDelegation: (params) =>
+      ipcRenderer.invoke("perm:revoke-delegation", params),
+    getDelegations: (params) =>
+      ipcRenderer.invoke("perm:get-delegations", params),
+    acceptDelegation: (params) =>
+      ipcRenderer.invoke("perm:accept-delegation", params),
+  },
+
+  // ==========================================
+  // Task Management (任务管理)
+  // ==========================================
+  task: {
+    // Board Management
+    createBoard: (params) =>
+      ipcRenderer.invoke("task:create-board", removeUndefined(params)),
+    updateBoard: (params) =>
+      ipcRenderer.invoke("task:update-board", removeUndefined(params)),
+    deleteBoard: (params) =>
+      ipcRenderer.invoke("task:delete-board", params),
+    getBoards: (params) => ipcRenderer.invoke("task:get-boards", params),
+    getBoard: (params) => ipcRenderer.invoke("task:get-board", params),
+    createColumn: (params) =>
+      ipcRenderer.invoke("task:create-column", removeUndefined(params)),
+    updateColumn: (params) =>
+      ipcRenderer.invoke("task:update-column", removeUndefined(params)),
+    deleteColumn: (params) =>
+      ipcRenderer.invoke("task:delete-column", params),
+    createLabel: (params) =>
+      ipcRenderer.invoke("task:create-label", removeUndefined(params)),
+    // Task CRUD
+    createTask: (params) =>
+      ipcRenderer.invoke("task:create-task", removeUndefined(params)),
+    updateTask: (params) =>
+      ipcRenderer.invoke("task:update-task", removeUndefined(params)),
+    deleteTask: (params) =>
+      ipcRenderer.invoke("task:delete-task", params),
+    getTask: (params) => ipcRenderer.invoke("task:get-task", params),
+    getTasks: (params) => ipcRenderer.invoke("task:get-tasks", params),
+    assignTask: (params) =>
+      ipcRenderer.invoke("task:assign-task", removeUndefined(params)),
+    unassignTask: (params) =>
+      ipcRenderer.invoke("task:unassign-task", params),
+    moveTask: (params) =>
+      ipcRenderer.invoke("task:move-task", removeUndefined(params)),
+    setDueDate: (params) =>
+      ipcRenderer.invoke("task:set-due-date", removeUndefined(params)),
+    setPriority: (params) =>
+      ipcRenderer.invoke("task:set-priority", removeUndefined(params)),
+    setEstimate: (params) =>
+      ipcRenderer.invoke("task:set-estimate", removeUndefined(params)),
+    addLabel: (params) =>
+      ipcRenderer.invoke("task:add-label", removeUndefined(params)),
+    // Checklists
+    addChecklist: (params) =>
+      ipcRenderer.invoke("task:add-checklist", removeUndefined(params)),
+    updateChecklist: (params) =>
+      ipcRenderer.invoke("task:update-checklist", removeUndefined(params)),
+    deleteChecklist: (params) =>
+      ipcRenderer.invoke("task:delete-checklist", params),
+    toggleChecklistItem: (params) =>
+      ipcRenderer.invoke("task:toggle-checklist-item", removeUndefined(params)),
+    // Comments
+    addComment: (params) =>
+      ipcRenderer.invoke("task:add-comment", removeUndefined(params)),
+    updateComment: (params) =>
+      ipcRenderer.invoke("task:update-comment", removeUndefined(params)),
+    deleteComment: (params) =>
+      ipcRenderer.invoke("task:delete-comment", params),
+    getComments: (params) =>
+      ipcRenderer.invoke("task:get-comments", params),
+    // Sprint Management
+    createSprint: (params) =>
+      ipcRenderer.invoke("task:create-sprint", removeUndefined(params)),
+    updateSprint: (params) =>
+      ipcRenderer.invoke("task:update-sprint", removeUndefined(params)),
+    deleteSprint: (params) =>
+      ipcRenderer.invoke("task:delete-sprint", params),
+    startSprint: (params) =>
+      ipcRenderer.invoke("task:start-sprint", params),
+    completeSprint: (params) =>
+      ipcRenderer.invoke("task:complete-sprint", params),
+    // Reports and Analytics
+    getBoardAnalytics: (params) =>
+      ipcRenderer.invoke("task:get-board-analytics", params),
+    exportBoard: (params) =>
+      ipcRenderer.invoke("task:export-board", params),
+    getSprintStats: (params) =>
+      ipcRenderer.invoke("task:get-sprint-stats", params),
+    createTeamReport: (params) =>
+      ipcRenderer.invoke("task:create-team-report", removeUndefined(params)),
+    getTeamReports: (params) =>
+      ipcRenderer.invoke("task:get-team-reports", params),
   },
 
   // ==========================================

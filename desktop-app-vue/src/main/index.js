@@ -9,20 +9,22 @@
 // Load environment variables first (optional in production)
 try {
   require("dotenv").config();
-} catch (err) {
+} catch (_err) {
   // dotenv is optional in production builds
 }
 
+console.log("[DEBUG] Starting Electron main process...");
 const { app, BrowserWindow, ipcMain, Notification } = require("electron");
+console.log("[DEBUG] Electron modules loaded");
 const { logger } = require("./utils/logger.js");
+console.log("[DEBUG] Logger loaded");
 const path = require("path");
-const fs = require("fs");
+console.log("[DEBUG] Node modules loaded");
 
 // Bootstrap 模块
 const {
   bootstrapApplication,
   lazyLoadModule,
-  getModule,
   getAllModules,
   setupP2PPostInit,
 } = require("./bootstrap");
@@ -184,22 +186,46 @@ class ChainlessChainApp {
       }
 
       logger.info("[Main] Bootstrap 初始化完成");
+      logger.info("[Main] Initialized modules:", Object.keys(instances));
+      logger.info("[Main] templateManager status:", {
+        exists: !!this.templateManager,
+        type: typeof this.templateManager,
+        isFunction: typeof this.templateManager?.getAllTemplates === 'function'
+      });
     } catch (error) {
       logger.error("[Main] Bootstrap 初始化失败:", error);
+      logger.error("[Main] Bootstrap 错误详情:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
+      });
+
+      // 显示致命错误对话框（暂时注释掉以便调试）
+      // const { dialog } = require("electron");
+      // dialog.showErrorBox(
+      //   "应用初始化失败",
+      //   `应用初始化过程中发生错误，无法继续启动。\n\n错误: ${error?.message || "未知错误"}\n\n请查看日志文件获取详细信息。`
+      // );
+
+      // // 退出应用
+      // app.quit();
+      // return;
     }
 
     // 初始化 Initial Setup IPC
-    if (this.database) {
-      const { getLLMConfig } = require("./llm/llm-config");
-      this.initialSetupIPC = new InitialSetupIPC(
-        app,
-        this.database,
-        getAppConfig(),
-        getLLMConfig(),
-      );
-      if (this.dbEncryptionIPC) {
-        this.dbEncryptionIPC.setDatabaseManager(this.database);
-      }
+    // IMPORTANT: Always create InitialSetupIPC to ensure IPC handlers are registered
+    // even if database initialization fails. This prevents "检查设置状态失败" errors in App.vue
+    const { getLLMConfig } = require("./llm/llm-config");
+    this.initialSetupIPC = new InitialSetupIPC(
+      app,
+      this.database, // Pass null if database initialization failed
+      getAppConfig(),
+      getLLMConfig(),
+    );
+
+    // Set database manager for encryption IPC if both exist
+    if (this.database && this.dbEncryptionIPC) {
+      this.dbEncryptionIPC.setDatabaseManager(this.database);
     }
 
     // P2P 后续初始化
@@ -409,7 +435,7 @@ class ChainlessChainApp {
       registerTaskTrackerIPC();
       registerMultiAgentIPC({
         llmManager: this.llmManager,
-        functionCaller: this.functionCaller,
+        functionCaller: null, // TODO: Initialize functionCaller
       });
 
       logger.info("[Main] 高级IPC handlers注册完成");
@@ -489,7 +515,7 @@ class ChainlessChainApp {
         } else {
           ipcMain.handle(channel, () => disabledResponse);
         }
-      } catch (e) {
+      } catch (_e) {
         // 已注册
       }
     }
@@ -525,7 +551,11 @@ class ChainlessChainApp {
     this.setupIPC();
 
     if (process.env.NODE_ENV === "development") {
-      this.mainWindow.loadURL("http://localhost:5173");
+      const devServerUrl =
+        process.env.VITE_DEV_SERVER_URL ||
+        process.env.DEV_SERVER_URL ||
+        "http://localhost:5173";
+      this.mainWindow.loadURL(devServerUrl);
       this.mainWindow.webContents.openDevTools();
     } else {
       this.mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));

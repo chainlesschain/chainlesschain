@@ -113,8 +113,14 @@ watch(
     try {
       await templateStore.loadTemplatesByCategory(category, subcategory)
     } catch (error) {
-      logger.error('[TemplateGallery] 加载模板失败:', error)
-      message.error('加载模板失败: ' + error.message)
+      logger.error('[TemplateGallery] 加载模板失败 - 错误类型:', error?.name, '错误消息:', error?.message, '完整错误:', error)
+
+      // 检查是否是功能不可用
+      if (!templateStore.isFeatureAvailable) {
+        logger.warn('[TemplateGallery] 模板功能不可用，跳过错误提示')
+      } else {
+        message.error('加载模板失败: ' + (error?.message || '未知错误'))
+      }
     }
   },
   { immediate: true }

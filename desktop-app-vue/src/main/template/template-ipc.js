@@ -6,7 +6,7 @@
  * @description 项目模板管理模块，提供模板查询、创建、使用、评价等功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -18,6 +18,11 @@ function registerTemplateIPC({
   templateManager
 }) {
   logger.info('[Template IPC] Registering Template IPC handlers...');
+  logger.info('[Template IPC] templateManager初始化状态:', {
+    exists: !!templateManager,
+    type: typeof templateManager,
+    constructor: templateManager?.constructor?.name
+  });
 
   // ============================================================
   // 模板查询操作 (6 handlers)

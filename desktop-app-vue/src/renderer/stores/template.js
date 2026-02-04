@@ -9,6 +9,9 @@ export const useTemplateStore = defineStore('template', () => {
   const loading = ref(false)
   const currentCategory = ref(null)
   const currentSubcategory = ref(null)
+  const isFeatureAvailable = ref(true)
+  const retryCount = ref(0)
+  const MAX_RETRIES = 3
 
   // Getters
   const filteredTemplates = computed(() => {
@@ -41,6 +44,12 @@ export const useTemplateStore = defineStore('template', () => {
 
   // Actions
   async function fetchTemplates(filters = {}) {
+    // 如果功能不可用，直接返回空数组
+    if (!isFeatureAvailable.value) {
+      logger.warn('[TemplateStore] 模板功能不可用，跳过加载')
+      return []
+    }
+
     loading.value = true
     try {
       // 加载项目模板（包含职业专用模板）
@@ -48,16 +57,32 @@ export const useTemplateStore = defineStore('template', () => {
 
       if (result.success) {
         templates.value = result.templates || []
+        retryCount.value = 0 // 成功后重置计数
         logger.info('[TemplateStore] 成功加载项目模板:', templates.value.length)
       } else {
-        logger.error('[TemplateStore] 加载项目模板失败:', result.error)
+        logger.error('[TemplateStore] 加载项目模板失败 - 错误详情:', result.error, '完整结果:', JSON.stringify(result))
         templates.value = []
+
+        // 增加重试计数
+        retryCount.value++
+        if (retryCount.value >= MAX_RETRIES) {
+          logger.warn(`[TemplateStore] 模板加载已失败 ${MAX_RETRIES} 次，标记功能不可用。可能原因：模板管理器未初始化。`)
+          isFeatureAvailable.value = false
+        }
       }
 
       return templates.value
     } catch (error) {
-      logger.error('[TemplateStore] 加载模板异常:', error)
+      logger.error('[TemplateStore] 加载模板异常 - 错误类型:', error.name, '错误消息:', error.message, '完整错误:', error)
       templates.value = []
+
+      // 增加重试计数
+      retryCount.value++
+      if (retryCount.value >= MAX_RETRIES) {
+        logger.warn(`[TemplateStore] 模板加载已失败 ${MAX_RETRIES} 次，标记功能不可用。可能原因：模板管理器未初始化。`)
+        isFeatureAvailable.value = false
+      }
+
       throw error
     } finally {
       loading.value = false

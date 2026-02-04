@@ -20,7 +20,6 @@
               title="图谱统计"
               size="small"
             >
-              <a-statistic-group>
                 <a-row :gutter="[16, 16]">
                   <a-col :span="12">
                     <a-statistic
@@ -45,7 +44,6 @@
                     </a-statistic>
                   </a-col>
                 </a-row>
-              </a-statistic-group>
 
               <a-divider />
 

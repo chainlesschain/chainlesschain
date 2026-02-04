@@ -499,7 +499,11 @@ class ChainlessChainApp {
     });
 
     if (process.env.NODE_ENV === "development") {
-      this.mainWindow.loadURL("http://localhost:5173");
+      const devServerUrl =
+        process.env.VITE_DEV_SERVER_URL ||
+        process.env.DEV_SERVER_URL ||
+        "http://localhost:5173";
+      this.mainWindow.loadURL(devServerUrl);
       this.mainWindow.webContents.openDevTools();
     } else {
       this.mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));

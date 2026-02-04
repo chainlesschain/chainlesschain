@@ -233,7 +233,7 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] Registering Plan Mode IPC...");
     try {
       const { registerPlanModeIPC } = require("../ai-engine/plan-mode/plan-mode-ipc");
-      registerPlanModeIPC({ hookSystem, functionCaller });
+      registerPlanModeIPC({ hookSystem, functionCaller: null }); // TODO: Initialize functionCaller
       logger.info("[IPC Registry] ✓ Plan Mode IPC registered (14 handlers)");
     } catch (planModeError) {
       logger.warn(
@@ -377,6 +377,23 @@ function registerAllIPC(dependencies) {
       logger.warn(
         "[IPC Registry] ⚠️  Team Task Management IPC registration failed (non-fatal):",
         taskError.message,
+      );
+    }
+
+    // 🔥 Permission System (RBAC, 28 handlers)
+    logger.info("[IPC Registry] Registering Permission System IPC...");
+    try {
+      const { registerPermissionIPC } = require("../permission/permission-ipc");
+      registerPermissionIPC(database);
+      logger.info("[IPC Registry] ✓ Permission System IPC registered (28 handlers)");
+      logger.info("[IPC Registry]   - Permission Management: 8 handlers");
+      logger.info("[IPC Registry]   - Approval Workflows: 8 handlers");
+      logger.info("[IPC Registry]   - Delegation: 4 handlers");
+      logger.info("[IPC Registry]   - Team Management: 8 handlers");
+    } catch (permError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Permission System IPC registration failed (non-fatal):",
+        permError.message,
       );
     }
 
@@ -588,6 +605,11 @@ function registerAllIPC(dependencies) {
     // 组织管理 (函数模式 - 大模块，32 handlers)
     if (organizationManager || dbManager) {
       logger.info("[IPC Registry] Registering Organization IPC...");
+      logger.info("[IPC Registry] Organization 依赖状态:", {
+        organizationManager: !!organizationManager,
+        dbManager: !!dbManager,
+        versionManager: !!versionManager
+      });
       const {
         registerOrganizationIPC,
       } = require("../organization/organization-ipc");
@@ -597,6 +619,9 @@ function registerAllIPC(dependencies) {
         versionManager,
       });
       logger.info("[IPC Registry] ✓ Organization IPC registered (32 handlers)");
+    } else {
+      logger.error("[IPC Registry] ❌ organizationManager 和 dbManager 都未初始化，跳过 Organization IPC 注册");
+      logger.error("[IPC Registry] 企业版功能将不可用");
     }
 
     // 企业版仪表板 (函数模式 - 中模块，10 handlers)
@@ -741,13 +766,18 @@ function registerAllIPC(dependencies) {
     }
 
     // 模板管理 (函数模式 - 大模块，20 handlers)
-    logger.info("[IPC Registry] Registering Template IPC...");
-    const { registerTemplateIPC } = require("../template/template-ipc");
+    if (app.templateManager) {
+      logger.info("[IPC Registry] Registering Template IPC...");
+      const { registerTemplateIPC } = require("../template/template-ipc");
 
-    registerTemplateIPC({
-      templateManager: app.templateManager,
-    });
-    logger.info("[IPC Registry] ✓ Template IPC registered (20 handlers)");
+      registerTemplateIPC({
+        templateManager: app.templateManager,
+      });
+      logger.info("[IPC Registry] ✓ Template IPC registered (20 handlers)");
+    } else {
+      logger.error("[IPC Registry] ❌ templateManager 未初始化，跳过 Template IPC 注册");
+      logger.error("[IPC Registry] 模板功能将不可用，可能导致部分页面出错");
+    }
 
     // 知识管理 (函数模式 - 中等模块，17 handlers)
     if (dbManager || versionManager || knowledgePaymentManager) {

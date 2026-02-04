@@ -17,12 +17,12 @@ function registerHooksInitializer(factory) {
   // =====================================================
   // Hooks 系统初始化器 (Phase 0 - 最先初始化)
   // =====================================================
-  factory.register('hookSystem', {
-    name: 'Hooks System',
-    priority: -100, // 最高优先级，确保最先初始化
-    dependencies: [], // 无依赖
+  factory.register({
+    name: 'hookSystem',
+    required: false,
+    dependsOn: [], // 无依赖
 
-    async initialize(context) {
+    async init(_context) {
       const { initializeHookSystem } = require('../hooks');
 
       // 获取配置路径
