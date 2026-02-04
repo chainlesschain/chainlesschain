@@ -111,8 +111,8 @@ function registerCoreInitializers(factory) {
         }
 
         const ProjectTemplateManager = require("../template/template-manager");
-        // BUGFIX: Pass the raw db object, not the DatabaseManager instance
-        const manager = new ProjectTemplateManager(context.database.db);
+        // BUGFIX: Pass DatabaseManager instance (needs both db and saveToFile())
+        const manager = new ProjectTemplateManager(context.database);
         await manager.initialize();
         logger.info('[Bootstrap] ✓ TemplateManager initialized successfully');
         return manager;

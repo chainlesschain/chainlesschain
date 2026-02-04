@@ -9,7 +9,16 @@ const { v4: uuidv4 } = require('uuid');
  */
 class ProjectTemplateManager {
   constructor(database) {
-    this.db = database;
+    // Support both DatabaseManager and raw db object
+    if (database && database.db && typeof database.saveToFile === 'function') {
+      // DatabaseManager instance
+      this.dbManager = database;
+      this.db = database.db;
+    } else {
+      // Raw db object (fallback for compatibility)
+      this.db = database;
+      this.dbManager = null;
+    }
     this.templatesLoaded = false;
     this.handlebars = null;
   }
@@ -287,7 +296,10 @@ class ProjectTemplateManager {
         0
       ]);
 
-      this.db.saveToFile();
+      // Save to file using DatabaseManager method (if available)
+      if (this.dbManager && typeof this.dbManager.saveToFile === 'function') {
+        this.dbManager.saveToFile();
+      }
 
       // 调试日志：验证写入后的数据
       const verify = this.db.prepare('SELECT id, LENGTH(prompt_template) as len FROM project_templates WHERE id = ?').get([templateData.id]);
@@ -542,7 +554,10 @@ class ProjectTemplateManager {
       `);
       updateStmt.run([now, templateId]);
 
-      this.db.saveToFile();
+      // Save to file using DatabaseManager method (if available)
+      if (this.dbManager && typeof this.dbManager.saveToFile === 'function') {
+        this.dbManager.saveToFile();
+      }
     } catch (error) {
       logger.error('[TemplateManager] 记录模板使用失败:', error);
     }
@@ -626,7 +641,10 @@ class ProjectTemplateManager {
         templateId
       ]);
 
-      this.db.saveToFile();
+      // Save to file using DatabaseManager method (if available)
+      if (this.dbManager && typeof this.dbManager.saveToFile === 'function') {
+        this.dbManager.saveToFile();
+      }
     } catch (error) {
       logger.error('[TemplateManager] 提交评价失败:', error);
       throw new Error(`提交评价失败: ${error.message}`);
@@ -706,7 +724,10 @@ class ProjectTemplateManager {
         0
       ]);
 
-      this.db.saveToFile();
+      // Save to file using DatabaseManager method (if available)
+      if (this.dbManager && typeof this.dbManager.saveToFile === 'function') {
+        this.dbManager.saveToFile();
+      }
 
       return {
         id: templateId,
@@ -812,7 +833,10 @@ class ProjectTemplateManager {
       `);
 
       stmt.run(values);
-      this.db.saveToFile();
+      // Save to file using DatabaseManager method (if available)
+      if (this.dbManager && typeof this.dbManager.saveToFile === 'function') {
+        this.dbManager.saveToFile();
+      }
 
       // 返回更新后的模板
       return await this.getTemplateById(templateId);
