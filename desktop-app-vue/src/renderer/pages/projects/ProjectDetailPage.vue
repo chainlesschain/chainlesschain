@@ -1801,12 +1801,13 @@ onMounted(async () => {
           logger.info("[ProjectDetail] AI创建数据:", aiCreationData.value);
 
           // 🔥 自动创建项目（使用快速创建方法，不调用后端）
-          const createData = {
+          // BUGFIX: 确保 createData 是纯对象，避免传递响应式代理
+          const createData = JSON.parse(JSON.stringify({
             name: aiCreationData.value.name || "新项目",
             projectType: aiCreationData.value.projectType || "document",
             userId: aiCreationData.value.userId,
             status: "draft",
-          };
+          }));
 
           logger.info("[ProjectDetail] 创建项目参数:", createData);
           const createdProject =

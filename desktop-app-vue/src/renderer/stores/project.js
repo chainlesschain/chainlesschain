@@ -449,8 +449,10 @@ export const useProjectStore = defineStore("project", {
         logger.info(
           "[Store] 调用window.electronAPI.project.createStream，传递纯数据",
         );
+        // BUGFIX: 深拷贝 pureData 确保移除所有响应式代理
+        const serializedData = JSON.parse(JSON.stringify(pureData));
         window.electronAPI.project
-          .createStream(pureData, callbacks)
+          .createStream(serializedData, callbacks)
           .catch((err) => {
             logger.error("[Store] createStream Promise rejected:", err);
             reject(err);
