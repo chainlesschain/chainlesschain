@@ -7,7 +7,7 @@
  */
 
 const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain } = require('electron');
+const { ipcMain: electronIpcMain } = require('electron');
 const path = require('path');
 
 /**
@@ -18,13 +18,15 @@ const path = require('path');
  * @param {Object} dependencies.gitManager - Git 管理器
  * @param {Object} dependencies.fileSyncManager - 文件同步管理器
  * @param {Object} dependencies.mainWindow - 主窗口实例
+ * @param {Object} dependencies.ipcMain - IPC Main 实例（可选，用于测试）
  */
 function registerProjectGitIPC({
   getProjectConfig,
   GitAPI,
   gitManager,
   fileSyncManager,
-  mainWindow
+  mainWindow,
+  ipcMain = electronIpcMain
 }) {
   logger.info('[Project Git IPC] Registering Project Git IPC handlers...');
 

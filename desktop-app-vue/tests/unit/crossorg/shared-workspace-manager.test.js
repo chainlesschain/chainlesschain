@@ -37,7 +37,8 @@ const createMockDatabase = () => {
               workspace_id: args[1],
               org_id: args[2],
               org_name: args[3],
-              role: args[4]
+              role: 'admin', // Hardcoded in SQL
+              joined_at: args[4]
             });
             return { changes: 1 };
           }

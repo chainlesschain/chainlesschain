@@ -295,7 +295,7 @@ class ConflictResolver extends EventEmitter {
 
     // 2. 检查版本号
     const currentVersion = currentFile.version || 1;
-    const expectedVersion = version || currentVersion;
+    const expectedVersion = version !== undefined && version !== null ? version : currentVersion;
 
     if (currentVersion !== expectedVersion) {
       // 版本冲突
