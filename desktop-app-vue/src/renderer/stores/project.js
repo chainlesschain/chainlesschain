@@ -557,7 +557,11 @@ export const useProjectStore = defineStore("project", {
         // 删除项目（包含本地和后端）
         await window.electronAPI.project.delete(projectId);
 
-        // 更新store
+        // 更新store - 确保 projects 是数组
+        if (!Array.isArray(this.projects)) {
+          logger.warn("[Store] deleteProject: this.projects 不是数组，重置为空数组");
+          this.projects = [];
+        }
         this.projects = this.projects.filter((p) => p.id !== projectId);
         this.pagination.total--;
 
@@ -611,8 +615,15 @@ export const useProjectStore = defineStore("project", {
         return this.projectFiles;
       } catch (error) {
         logger.error("[Store] ========== loadProjectFiles 错误 ==========");
-        logger.error("[Store] Error:", error);
-        throw error;
+        logger.error("[Store] 错误类型:", error?.name);
+        logger.error("[Store] 错误消息:", error?.message);
+        logger.error("[Store] 错误堆栈:", error?.stack);
+        logger.error("[Store] 完整错误:", error);
+        logger.error("[Store] 项目ID:", projectId);
+        // 返回空数组而不是抛出错误，避免阻塞页面加载
+        this.projectFiles = [];
+        logger.warn("[Store] 已将 projectFiles 重置为空数组");
+        return [];
       }
     },
 
