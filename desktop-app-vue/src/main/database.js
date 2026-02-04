@@ -2948,9 +2948,6 @@ class DatabaseManager {
       );
 
       -- 任务管理模块索引
-      CREATE INDEX IF NOT EXISTS idx_task_boards_org ON task_boards(org_id);
-      CREATE INDEX IF NOT EXISTS idx_task_boards_owner ON task_boards(owner_did);
-      CREATE INDEX IF NOT EXISTS idx_task_boards_archived ON task_boards(is_archived);
       CREATE INDEX IF NOT EXISTS idx_task_columns_board ON task_board_columns(board_id);
       CREATE INDEX IF NOT EXISTS idx_task_columns_position ON task_board_columns(board_id, position);
       CREATE INDEX IF NOT EXISTS idx_team_tasks_board ON team_tasks(board_id);
@@ -3331,6 +3328,8 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_cross_org_discovery_reputation ON cross_org_discovery(reputation_score DESC);
     `);
 
+      this.ensureTaskBoardOwnerSchema();
+
       logger.info("[Database] ✓ 所有表和索引创建成功");
 
       // 保存更改
@@ -3355,6 +3354,63 @@ class DatabaseManager {
       this.migrateDatabase();
     } catch (error) {
       logger.warn("[Database] 数据库迁移失败（可忽略）:", error.message);
+    }
+  }
+
+  /**
+   * Ensure task_boards has required columns and related indexes.
+   */
+  ensureTaskBoardOwnerSchema() {
+    try {
+      const tableInfo = this.db
+        .prepare("PRAGMA table_info(task_boards)")
+        .all();
+      const hasOwnerDid = tableInfo.some((col) => col.name === "owner_did");
+      const hasIsArchived = tableInfo.some(
+        (col) => col.name === "is_archived",
+      );
+      const hasOrgId = tableInfo.some((col) => col.name === "org_id");
+
+      if (!hasOwnerDid) {
+        logger.info("[Database] 添加 task_boards.owner_did 列");
+        this.db.run("ALTER TABLE task_boards ADD COLUMN owner_did TEXT");
+        this.saveToFile();
+      }
+
+      if (!hasIsArchived) {
+        logger.info("[Database] 添加 task_boards.is_archived 列");
+        this.db.run(
+          "ALTER TABLE task_boards ADD COLUMN is_archived INTEGER DEFAULT 0",
+        );
+        this.saveToFile();
+      }
+
+      if (hasOrgId) {
+        this.db.run(
+          "CREATE INDEX IF NOT EXISTS idx_task_boards_org ON task_boards(org_id)",
+        );
+      } else {
+        logger.warn("[Database] task_boards.org_id 列缺失，跳过索引创建");
+      }
+
+      if (hasOwnerDid || !hasOwnerDid) {
+        this.db.run(
+          "CREATE INDEX IF NOT EXISTS idx_task_boards_owner ON task_boards(owner_did)",
+        );
+      }
+
+      if (hasIsArchived || !hasIsArchived) {
+        this.db.run(
+          "CREATE INDEX IF NOT EXISTS idx_task_boards_archived ON task_boards(is_archived)",
+        );
+      }
+
+      this.saveToFile();
+    } catch (error) {
+      logger.warn(
+        "[Database] task_boards.owner_did 迁移失败（可忽略）:",
+        error.message,
+      );
     }
   }
 

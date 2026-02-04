@@ -677,4 +677,20 @@ class TaskManager {
   }
 }
 
-module.exports = TaskManager;
+// Singleton instance cache
+let taskManagerInstance = null;
+
+/**
+ * Get TaskManager singleton instance
+ */
+function getTaskManager(database) {
+  if (!taskManagerInstance) {
+    taskManagerInstance = new TaskManager(database);
+  }
+  return taskManagerInstance;
+}
+
+module.exports = {
+  TaskManager,
+  getTaskManager
+};
