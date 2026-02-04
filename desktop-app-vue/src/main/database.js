@@ -684,6 +684,10 @@ class DatabaseManager {
     logger.info("[Database] 开始创建数据库表...");
 
     try {
+      // 暂时禁用外键约束以避免表创建顺序问题
+      logger.info("[Database] 禁用外键约束...");
+      this.db.run("PRAGMA foreign_keys = OFF");
+
       // 使用exec()一次性执行所有SQL语句
       // 这样可以避免多次调用导致的statement关闭问题
       this.db.exec(`
@@ -849,6 +853,7 @@ class DatabaseManager {
         content_hash TEXT,
         version INTEGER DEFAULT 1,
         fs_path TEXT,
+        is_folder INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict', 'error')),
@@ -3328,6 +3333,10 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_cross_org_discovery_reputation ON cross_org_discovery(reputation_score DESC);
     `);
 
+      // 重新启用外键约束
+      logger.info("[Database] 重新启用外键约束...");
+      this.db.run("PRAGMA foreign_keys = ON");
+
       this.ensureTaskBoardOwnerSchema();
 
       logger.info("[Database] ✓ 所有表和索引创建成功");
@@ -3393,17 +3402,12 @@ class DatabaseManager {
         logger.warn("[Database] task_boards.org_id 列缺失，跳过索引创建");
       }
 
-      if (hasOwnerDid || !hasOwnerDid) {
-        this.db.run(
-          "CREATE INDEX IF NOT EXISTS idx_task_boards_owner ON task_boards(owner_did)",
-        );
-      }
-
-      if (hasIsArchived || !hasIsArchived) {
-        this.db.run(
-          "CREATE INDEX IF NOT EXISTS idx_task_boards_archived ON task_boards(is_archived)",
-        );
-      }
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_task_boards_owner ON task_boards(owner_did)",
+      );
+      this.db.run(
+        "CREATE INDEX IF NOT EXISTS idx_task_boards_archived ON task_boards(is_archived)",
+      );
 
       this.saveToFile();
     } catch (error) {
@@ -3547,6 +3551,12 @@ class DatabaseManager {
         logger.info("[Database] 添加 project_files.deleted 列");
         this.db.run(
           "ALTER TABLE project_files ADD COLUMN deleted INTEGER DEFAULT 0",
+        );
+      }
+      if (!filesSyncInfo.some((col) => col.name === "is_folder")) {
+        logger.info("[Database] 添加 project_files.is_folder 列");
+        this.db.run(
+          "ALTER TABLE project_files ADD COLUMN is_folder INTEGER DEFAULT 0",
         );
       }
 
@@ -3844,7 +3854,33 @@ class DatabaseManager {
         .get();
 
       // 定义最新迁移版本号
-      const LATEST_VERSION = 2; // 增加版本号当有新迁移时
+      const LATEST_VERSION = 4; // 增加版本号当有新迁移时（包含 is_folder 列）
+
+      // BUGFIX: 总是检查关键列是否存在，即使版本号正确
+      // 这确保了即使迁移版本号被更新但列没有添加的情况也能被修复
+      try {
+        const filesSyncInfo = this.db
+          .prepare("PRAGMA table_info(project_files)")
+          .all();
+        if (!filesSyncInfo.some((col) => col.name === "is_folder")) {
+          logger.warn("[Database] 检测到 project_files 缺少 is_folder 列，强制运行迁移");
+          this.runMigrations();
+          // 更新版本号
+          if (currentVersion) {
+            this.db
+              .prepare("UPDATE migration_version SET version = ?, last_updated = ? WHERE id = 1")
+              .run(LATEST_VERSION, Date.now());
+          } else {
+            this.db
+              .prepare("INSERT INTO migration_version (id, version, last_updated) VALUES (1, ?, ?)")
+              .run(LATEST_VERSION, Date.now());
+          }
+          logger.info("[Database] 迁移版本已更新到 v" + LATEST_VERSION);
+          return;
+        }
+      } catch (checkError) {
+        logger.error("[Database] 检查列失败:", checkError);
+      }
 
       // 如果版本已是最新，跳过迁移
       if (currentVersion && currentVersion.version >= LATEST_VERSION) {
@@ -6823,9 +6859,9 @@ class DatabaseManager {
       const stmt = this.db.prepare(`
         INSERT OR REPLACE INTO project_files (
           id, project_id, file_path, file_name, file_type,
-          file_size, content, content_hash, version, fs_path,
+          file_size, content, content_hash, version, fs_path, is_folder,
           created_at, updated_at, sync_status, synced_at, device_id, deleted
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       safeFiles.forEach((file) => {
@@ -6847,6 +6883,7 @@ class DatabaseManager {
         const syncedAt = file.synced_at ?? file.syncedAt ?? null;
         const deviceId = file.device_id ?? file.deviceId ?? null;
         const deleted = file.deleted ?? 0;
+        const isFolder = file.is_folder ?? file.isFolder ?? 0;
 
         // 如果没有file_size但有content，自动计算大小
         let actualFileSize = fileSize;
@@ -6888,6 +6925,7 @@ class DatabaseManager {
           contentHash,
           version,
           fsPath,
+          isFolder,
           createdAt,
           updatedAt,
           syncStatus,
