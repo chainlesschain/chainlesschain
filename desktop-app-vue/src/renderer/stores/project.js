@@ -179,9 +179,11 @@ export const useProjectStore = defineStore("project", {
       this.loading = true;
       try {
         // 1. 从本地SQLite加载
-        const localProjects = await electronAPI.project.getAll(userId);
+        const response = await electronAPI.project.getAll(userId);
+        // BUGFIX: IPC 返回的是 { projects: [], total: 0, hasMore: false }
+        const localProjects = Array.isArray(response) ? response : (response.projects || []);
         this.projects = localProjects;
-        this.pagination.total = localProjects.length;
+        this.pagination.total = response.total || localProjects.length;
 
         // 2. 后台同步
         if (forceSync || this.shouldSync()) {
@@ -214,7 +216,11 @@ export const useProjectStore = defineStore("project", {
         this.createProgress = 90;
         this.createStatus = "项目创建成功！";
 
-        // 添加到列表
+        // 添加到列表 - 确保 projects 是数组
+        if (!Array.isArray(this.projects)) {
+          logger.warn("[Store] this.projects 不是数组，重置为空数组");
+          this.projects = [];
+        }
         this.projects.unshift(response);
         this.pagination.total++;
 
@@ -377,6 +383,11 @@ export const useProjectStore = defineStore("project", {
             // 添加到项目列表
             if (data.projectId) {
               logger.info("[Store] 添加项目到列表");
+              // 确保 projects 是数组
+              if (!Array.isArray(this.projects)) {
+                logger.warn("[Store] this.projects 不是数组，重置为空数组");
+                this.projects = [];
+              }
               this.projects.unshift({
                 id: data.projectId,
                 name: pureData.name || "未命名项目",
@@ -700,8 +711,11 @@ export const useProjectStore = defineStore("project", {
         await electronAPI.project.sync(userId);
 
         // 重新加载本地数据
-        const localProjects = await electronAPI.project.getAll(userId);
+        const response = await electronAPI.project.getAll(userId);
+        // BUGFIX: IPC 返回的是 { projects: [], total: 0, hasMore: false }
+        const localProjects = Array.isArray(response) ? response : (response.projects || []);
         this.projects = localProjects;
+        this.pagination.total = response.total || localProjects.length;
 
         // 更新最后同步时间
         localStorage.setItem("project_last_sync", Date.now().toString());
