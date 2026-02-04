@@ -523,76 +523,10 @@ class FileIPC {
 
     // ============ 通用文件操作 ============
 
-    // 读取文件内容（优化：大文件流式读取）
-    logger.info("[File IPC] Registering file:readContent handler...");
-    ipcMain.handle("file:readContent", async (event, filePath) => {
-      try {
-        logger.info("[File IPC] ========== 读取文件 ==========");
-        logger.info("[File IPC] 接收到的路径:", filePath);
-        logger.info("[File IPC] 路径类型:", typeof filePath);
-        logger.info("[File IPC] 是否为绝对路径:", path.isAbsolute(filePath));
-
-        // 检查文件是否存在
-        try {
-          await fs.access(filePath);
-          logger.info("[File IPC] ✓ 文件存在");
-        } catch (err) {
-          logger.error("[File IPC] ✗ 文件不存在:", err.message);
-          throw new Error(`文件不存在: ${filePath}`);
-        }
-
-        // 获取文件大小
-        const stats = await fs.stat(filePath);
-        const fileSizeInMB = stats.size / (1024 * 1024);
-        const LARGE_FILE_THRESHOLD = 5; // 5MB
-
-        logger.info("[File IPC] 文件大小:", fileSizeInMB.toFixed(2), "MB");
-
-        // 大文件使用流式读取（优化：防止内存溢出）
-        if (fileSizeInMB > LARGE_FILE_THRESHOLD) {
-          logger.info("[File IPC] 使用流式读取（文件 > 5MB）");
-
-          if (!this.largeFileReader) {
-            const LargeFileReader = require("../file/large-file-reader");
-            this.largeFileReader = new LargeFileReader();
-          }
-
-          // 读取文件头部（前1000行）
-          const lines = await this.largeFileReader.getFileHead(filePath, 1000);
-          const content = lines.join("\n");
-
-          logger.info("[File IPC] ✓ 流式读取成功，返回前1000行");
-
-          return {
-            success: true,
-            content,
-            isPartial: true,
-            fileSize: stats.size,
-            message: `文件较大（${fileSizeInMB.toFixed(2)}MB），已加载前1000行。使用大文件查看器查看完整内容。`,
-          };
-        }
-
-        // 小文件直接读取
-        const content = await fs.readFile(filePath, "utf-8");
-        logger.info("[File IPC] ✓ 读取成功，内容长度:", content.length);
-        logger.info("[File IPC] 内容预览:", content.substring(0, 100));
-
-        return {
-          success: true,
-          content,
-          isPartial: false,
-          fileSize: stats.size,
-        };
-      } catch (error) {
-        logger.error("[File IPC] ========== 读取文件失败 ==========");
-        logger.error("[File IPC] 错误:", error.message);
-        logger.error("[File IPC] 堆栈:", error.stack);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    });
+    // 注意：file:readContent 已在 file/file-ipc.js 中注册（第86行），
+    // 此处跳过注册以避免 IPC 通道冲突。
+    // 读取文件内容的功能现在由 file/file-ipc.js 提供。
+    logger.info("[File IPC] Skipping file:readContent (already registered in file/file-ipc.js)");
 
     // 写入文件内容
     ipcMain.handle("file:writeContent", async (event, filePath, content) => {
@@ -1004,17 +938,18 @@ class FileIPC {
     logger.info("[File IPC] 文件操作IPC处理器已注册");
 
     // 验证关键处理器是否成功注册
+    // 注意：file:readContent 已在 file/file-ipc.js 中注册，此处不再验证
     const handlers = ipcMain.eventNames();
     const fileReadContentExists = handlers.includes("file:readContent");
     if (fileReadContentExists) {
       logger.info(
-        "[File IPC] ✓ file:readContent handler successfully registered!",
+        "[File IPC] ✓ file:readContent handler confirmed (registered in file/file-ipc.js)",
       );
     } else {
-      logger.error(
-        "[File IPC] ❌ CRITICAL: file:readContent handler was NOT registered!",
+      logger.warn(
+        "[File IPC] ⚠ file:readContent handler not found in eventNames()",
       );
-      logger.error("[File IPC] This is a bug in the registration logic.");
+      logger.warn("[File IPC] This may be normal if file/file-ipc.js hasn't registered it yet.");
     }
   }
 
