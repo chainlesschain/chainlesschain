@@ -27,7 +27,6 @@ import java.io.FileOutputStream
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
 class FileImportRepositoryTest {
 
     private lateinit var context: Context

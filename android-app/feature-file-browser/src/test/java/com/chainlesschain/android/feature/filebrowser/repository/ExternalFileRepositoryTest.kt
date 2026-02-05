@@ -33,7 +33,6 @@ import kotlin.test.assertTrue
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
 class ExternalFileRepositoryTest {
 
     private lateinit var repository: ExternalFileRepository

@@ -263,7 +263,10 @@ dependencies {
     // 核心模块
     implementation(project(":core-common"))
     implementation(project(":core-database"))
+    implementation(project(":core-did"))
+    implementation(project(":core-e2ee"))
     implementation(project(":core-network"))
+    implementation(project(":core-p2p"))
     implementation(project(":core-security"))
     implementation(project(":core-ui"))
 

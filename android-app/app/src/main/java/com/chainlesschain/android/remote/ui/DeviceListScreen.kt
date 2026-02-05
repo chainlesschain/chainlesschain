@@ -395,7 +395,7 @@ fun getDeviceIcon(deviceType: String) = when (deviceType) {
 
 fun getOSIcon(osType: String) = when (osType) {
     "Windows" -> Icons.Default.Window
-    "macOS" -> Icons.Default.Apple
+    "macOS" -> Icons.Default.Laptop // Apple icon not available in Material Icons
     "Linux" -> Icons.Default.Terminal
     else -> Icons.Default.Computer
 }
