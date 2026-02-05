@@ -8,6 +8,7 @@ import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -71,7 +72,7 @@ class KnowledgeRepositoryTest {
         val id = "test-id"
         val title = "更新标题"
         val content = "更新内容"
-        coEvery { dao.getItemsList(1, 0) } returns listOf(testEntity)
+        coEvery { dao.getItemById(id) } returns flowOf(testEntity)
         coEvery { dao.update(any()) } returns Unit
 
         // When
@@ -101,7 +102,8 @@ class KnowledgeRepositoryTest {
         // Given
         val id = "test-id"
         val entity = testEntity.copy(isFavorite = false)
-        coEvery { dao.getItemsList(1, 0) } returns listOf(entity)
+        val slot = slot<KnowledgeItemEntity>()
+        coEvery { dao.getItemByIdSync(id) } returns entity
         coEvery { dao.update(any()) } returns Unit
 
         // When
@@ -109,7 +111,8 @@ class KnowledgeRepositoryTest {
 
         // Then
         assertTrue(result.isSuccess)
-        coVerify { dao.update(match { it.isFavorite == true }) }
+        coVerify { dao.update(capture(slot)) }
+        assertTrue(slot.captured.isFavorite)
     }
 
     @Test
@@ -117,7 +120,8 @@ class KnowledgeRepositoryTest {
         // Given
         val id = "test-id"
         val entity = testEntity.copy(isPinned = false)
-        coEvery { dao.getItemsList(1, 0) } returns listOf(entity)
+        val slot = slot<KnowledgeItemEntity>()
+        coEvery { dao.getItemByIdSync(id) } returns entity
         coEvery { dao.update(any()) } returns Unit
 
         // When
@@ -125,7 +129,8 @@ class KnowledgeRepositoryTest {
 
         // Then
         assertTrue(result.isSuccess)
-        coVerify { dao.update(match { it.isPinned == true }) }
+        coVerify { dao.update(capture(slot)) }
+        assertTrue(slot.captured.isPinned)
     }
 
     @Test
