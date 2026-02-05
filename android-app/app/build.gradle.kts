@@ -8,8 +8,8 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("io.gitlab.arturbosch.detekt") version "1.23.4"
-    id("com.google.gms.google-services") // Firebase
-    id("com.google.firebase.crashlytics") // Crashlytics
+    // id("com.google.gms.google-services") // Firebase - Temporarily disabled
+    // id("com.google.firebase.crashlytics") // Crashlytics - Temporarily disabled
     jacoco
 }
 
@@ -129,7 +129,10 @@ android {
         freeCompilerArgs += listOf(
             "-opt-in=kotlin.RequiresOptIn",
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
-            "-opt-in=kotlinx.coroutines.FlowPreview"
+            "-opt-in=kotlinx.coroutines.FlowPreview",
+            "-opt-in=androidx.compose.material3.ExperimentalMaterial3Api",
+            "-Xcontext-receivers",
+            "-XXLanguage:+BreakContinueInInlineLambdas"
         )
     }
 
