@@ -177,6 +177,22 @@ class DoubleRatchet {
     ): RatchetMessage {
         Log.d(TAG, "Encrypting message: ${plaintext.size} bytes")
 
+        // 如果 sendChainKey 未初始化（全零），这发生在 receiver 第一次发送回复时
+        val isSendChainKeyUninitialized = state.sendChainKey.all { it == 0.toByte() }
+        if (isSendChainKeyUninitialized && state.sendMessageNumber == 0) {
+            Log.d(TAG, "Initializing send chain key on first reply")
+            // 生成新的发送密钥对
+            state.sendRatchetKeyPair = X25519KeyPair.generate()
+
+            // 派生发送链密钥：DH(new send key, received ratchet key)
+            val (newRootKey, sendChainKey) = HKDF.deriveRootKey(
+                state.rootKey,
+                state.sendRatchetKeyPair.computeSharedSecret(state.receiveRatchetKey)
+            )
+            state.rootKey = newRootKey
+            state.sendChainKey = sendChainKey
+        }
+
         // 从链密钥派生消息密钥
         val messageKeys = HKDF.deriveMessageKey(state.sendChainKey)
 
@@ -221,6 +237,20 @@ class DoubleRatchet {
         if (!message.header.ratchetKey.contentEquals(state.receiveRatchetKey)) {
             skipMessageKeys(state, message.header.previousChainLength)
             dhRatchet(state, message.header.ratchetKey)
+        } else {
+            // 如果 ratchetKey 匹配但 receiveChainKey 未初始化（全零）
+            // 这发生在 receiver 第一次接收消息时
+            val isReceiveChainKeyUninitialized = state.receiveChainKey.all { it == 0.toByte() }
+            if (isReceiveChainKeyUninitialized && state.receiveMessageNumber == 0) {
+                Log.d(TAG, "Initializing receive chain key on first message")
+                // 派生接收链密钥：DH(receiver's key, sender's ratchet key)
+                val (newRootKey, receiveChainKey) = HKDF.deriveRootKey(
+                    state.rootKey,
+                    state.sendRatchetKeyPair.computeSharedSecret(message.header.ratchetKey)
+                )
+                state.rootKey = newRootKey
+                state.receiveChainKey = receiveChainKey
+            }
         }
 
         // 跳过丢失的消息
@@ -229,12 +259,12 @@ class DoubleRatchet {
         // 从链密钥派生消息密钥
         val messageKeys = HKDF.deriveMessageKey(state.receiveChainKey)
 
-        // 更新接收链密钥
+        // 解密消息 - 先解密，确保成功后再更新状态
+        val plaintext = AESCipher.decrypt(message.ciphertext, messageKeys)
+
+        // 解密成功后才更新接收链密钥和消息序号
         state.receiveChainKey = HKDF.deriveNextChainKey(state.receiveChainKey)
         state.receiveMessageNumber++
-
-        // 解密消息
-        val plaintext = AESCipher.decrypt(message.ciphertext, messageKeys)
 
         Log.d(TAG, "Message decrypted: ${plaintext.size} bytes")
 
