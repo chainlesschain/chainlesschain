@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.remote.commands.AgentAction
+import com.chainlesschain.android.remote.p2p.ConnectionState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,6 +41,8 @@ fun RemoteAgentControlScreen(
     val uiState by viewModel.uiState.collectAsState()
     val agents by viewModel.agents.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
+    val connectedPeer by viewModel.connectedPeer.collectAsState()
+    val actionEnabled = connectionState == ConnectionState.CONNECTED && !uiState.isLoading
 
     Scaffold(
         topBar = {
@@ -51,7 +54,7 @@ fun RemoteAgentControlScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.refreshAllAgents() }) {
+                    IconButton(onClick = { viewModel.refreshAllAgents(forceRemote = true) }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                 },
@@ -69,6 +72,20 @@ fun RemoteAgentControlScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Connection: $connectionState", style = MaterialTheme.typography.bodyMedium)
+            connectedPeer?.let { peer ->
+                Text(
+                    text = "Target: ${peer.peerId} (${peer.did})",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (uiState.isLoading) {
+                Text(
+                    text = "Refreshing agents...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
 
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(agents) { agent ->
@@ -85,14 +102,24 @@ fun RemoteAgentControlScreen(
                             Text(agent.name, fontWeight = FontWeight.Bold)
                             Text(agent.description, style = MaterialTheme.typography.bodySmall)
                             Text("Status: ${agent.status}", style = MaterialTheme.typography.bodySmall)
+                            Text("Type: ${agent.type}", style = MaterialTheme.typography.bodySmall)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(onClick = { viewModel.controlAgent(agent.id, AgentAction.START) }) {
+                                Button(
+                                    onClick = { viewModel.controlAgent(agent.id, AgentAction.START) },
+                                    enabled = actionEnabled
+                                ) {
                                     Text("Start")
                                 }
-                                Button(onClick = { viewModel.controlAgent(agent.id, AgentAction.STOP) }) {
+                                Button(
+                                    onClick = { viewModel.controlAgent(agent.id, AgentAction.STOP) },
+                                    enabled = actionEnabled
+                                ) {
                                     Text("Stop")
                                 }
-                                Button(onClick = { viewModel.controlAgent(agent.id, AgentAction.RESTART) }) {
+                                Button(
+                                    onClick = { viewModel.controlAgent(agent.id, AgentAction.RESTART) },
+                                    enabled = actionEnabled
+                                ) {
                                     Text("Restart")
                                 }
                             }

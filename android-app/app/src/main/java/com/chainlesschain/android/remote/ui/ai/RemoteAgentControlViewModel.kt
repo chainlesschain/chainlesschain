@@ -6,6 +6,7 @@ import com.chainlesschain.android.remote.commands.AICommands
 import com.chainlesschain.android.remote.commands.AgentAction
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
+import com.chainlesschain.android.remote.p2p.PeerInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,14 +26,14 @@ class RemoteAgentControlViewModel @Inject constructor(
     val uiState: StateFlow<RemoteAgentControlUiState> = _uiState.asStateFlow()
 
     val connectionState: StateFlow<ConnectionState> = p2pClient.connectionState
+    val connectedPeer: StateFlow<PeerInfo?> = p2pClient.connectedPeer
 
     private val _agents = MutableStateFlow<List<AgentInfo>>(emptyList())
     val agents: StateFlow<List<AgentInfo>> = _agents.asStateFlow()
 
     init {
         initializeAgents()
-        loadAgentsFromRemote()
-        refreshAllAgents()
+        refreshAllAgents(forceRemote = true)
     }
 
     private fun initializeAgents() {
@@ -63,6 +64,16 @@ class RemoteAgentControlViewModel @Inject constructor(
                 val error = result.exceptionOrNull()?.message ?: "Agent control failed"
                 Timber.e(result.exceptionOrNull(), "Agent control failed")
                 _uiState.update { it.copy(error = error) }
+            }
+        }
+    }
+
+    private suspend fun queryAgentStatusInternal(agentId: String) {
+        val result = aiCommands.controlAgent(AgentAction.STATUS, agentId)
+        if (result.isSuccess) {
+            val response = result.getOrNull()
+            if (response != null && response.success) {
+                updateAgentStatus(agentId, AgentAction.STATUS, response.status)
             }
         }
     }
@@ -108,31 +119,43 @@ class RemoteAgentControlViewModel @Inject constructor(
         }
     }
 
-    private fun loadAgentsFromRemote() {
-        viewModelScope.launch {
-            val result = aiCommands.listAgents()
-            val payload = result.getOrNull() ?: return@launch
-            if (payload.agents.isEmpty()) return@launch
-            _agents.value = payload.agents.map { remote ->
-                AgentInfo(
-                    id = remote.id,
-                    name = remote.name,
-                    description = remote.description ?: "Remote agent",
-                    status = mapRemoteStatus(remote.status) ?: AgentStatus.STOPPED,
-                    type = mapRemoteType(remote.type)
-                )
-            }
+    private suspend fun loadAgentsFromRemote(): Boolean {
+        val result = aiCommands.listAgents()
+        val payload = result.getOrNull() ?: return false
+        if (payload.agents.isEmpty()) return false
+
+        _agents.value = payload.agents.map { remote ->
+            AgentInfo(
+                id = remote.id,
+                name = remote.name,
+                description = remote.description ?: "Remote agent",
+                status = mapRemoteStatus(remote.status) ?: AgentStatus.STOPPED,
+                type = mapRemoteType(remote.type)
+            )
         }
+        return true
     }
 
     fun queryAgentStatus(agentId: String) {
-        controlAgent(agentId, AgentAction.STATUS)
+        viewModelScope.launch {
+            queryAgentStatusInternal(agentId)
+        }
     }
 
-    fun refreshAllAgents() {
+    fun refreshAllAgents(forceRemote: Boolean = false) {
         viewModelScope.launch {
-            _agents.value.forEach { agent ->
-                queryAgentStatus(agent.id)
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                if (forceRemote || _agents.value.isEmpty()) {
+                    loadAgentsFromRemote()
+                }
+                _agents.value.forEach { agent ->
+                    queryAgentStatusInternal(agent.id)
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = e.message ?: "Failed to refresh agents") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }

@@ -1,4 +1,4 @@
-package com.chainlesschain.android.remote.ui.system
+﻿package com.chainlesschain.android.remote.ui.system
 
 import android.content.ContentValues
 import android.content.Context
@@ -23,13 +23,10 @@ import java.io.IOException
 import javax.inject.Inject
 
 /**
- * 远程截图 ViewModel
+ * 杩滅▼鎴浘 ViewModel
  *
- * 功能：
- * - 截取 PC 端屏幕
- * - 显示截图
- * - 保存截图到本地
- * - 截图历史记录
+ * 鍔熻兘锛? * - 鎴彇 PC 绔睆骞? * - 鏄剧ず鎴浘
+ * - 淇濆瓨鎴浘鍒版湰鍦? * - 鎴浘鍘嗗彶璁板綍
  */
 @HiltViewModel
 class RemoteScreenshotViewModel @Inject constructor(
@@ -38,19 +35,17 @@ class RemoteScreenshotViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    // UI 状态
-    private val _uiState = MutableStateFlow(RemoteScreenshotUiState())
+    // UI 鐘舵€?    private val _uiState = MutableStateFlow(RemoteScreenshotUiState())
     val uiState: StateFlow<RemoteScreenshotUiState> = _uiState.asStateFlow()
 
-    // 连接状态
-    val connectionState: StateFlow<ConnectionState> = p2pClient.connectionState
+    // 杩炴帴鐘舵€?    val connectionState: StateFlow<ConnectionState> = p2pClient.connectionState
 
-    // 截图历史
+    // 鎴浘鍘嗗彶
     private val _screenshots = MutableStateFlow<List<ScreenshotItem>>(emptyList())
     val screenshots: StateFlow<List<ScreenshotItem>> = _screenshots.asStateFlow()
 
     /**
-     * 截图
+     * 鎴浘
      */
     fun takeScreenshot(display: Int = 0, format: String = "png", quality: Int = 80) {
         viewModelScope.launch {
@@ -61,12 +56,11 @@ class RemoteScreenshotViewModel @Inject constructor(
             if (result.isSuccess) {
                 val response = result.getOrNull()
                 if (response != null) {
-                    // 解析 Base64 图片
+                    // 瑙ｆ瀽 Base64 鍥剧墖
                     val bitmap = decodeBase64ToBitmap(response.data)
 
                     if (bitmap != null) {
-                        // 创建截图项
-                        val screenshotItem = ScreenshotItem(
+                        // 鍒涘缓鎴浘椤?                        val screenshotItem = ScreenshotItem(
                             id = System.currentTimeMillis().toString(),
                             bitmap = bitmap,
                             timestamp = response.timestamp,
@@ -76,28 +70,25 @@ class RemoteScreenshotViewModel @Inject constructor(
                             format = response.format
                         )
 
-                        // 添加到历史
-                        _screenshots.update { list ->
-                            (listOf(screenshotItem) + list).take(10) // 保留最近 10 张
-                        }
+                        // 娣诲姞鍒板巻鍙?                        _screenshots.update { list ->
+                            (listOf(screenshotItem) + list).take(10) // 淇濈暀鏈€杩?10 寮?                        }
 
-                        // 设置为当前截图
-                        _uiState.update { it.copy(
+                        // 璁剧疆涓哄綋鍓嶆埅鍥?                        _uiState.update { it.copy(
                             currentScreenshot = screenshotItem,
                             isTakingScreenshot = false
                         )}
 
-                        Timber.d("截图成功: ${response.width}x${response.height}")
+                        Timber.d("鎴浘鎴愬姛: ${response.width}x${response.height}")
                     } else {
                         _uiState.update { it.copy(
                             isTakingScreenshot = false,
-                            error = "图片解码失败"
+                            error = "鍥剧墖瑙ｇ爜澶辫触"
                         )}
                     }
                 }
             } else {
-                val error = result.exceptionOrNull()?.message ?: "截图失败"
-                Timber.e(result.exceptionOrNull(), "截图失败")
+                val error = result.exceptionOrNull()?.message ?: "鎴浘澶辫触"
+                Timber.e(result.exceptionOrNull(), "鎴浘澶辫触")
                 _uiState.update { it.copy(
                     isTakingScreenshot = false,
                     error = error
@@ -107,8 +98,7 @@ class RemoteScreenshotViewModel @Inject constructor(
     }
 
     /**
-     * 保存截图到相册
-     */
+     * 淇濆瓨鎴浘鍒扮浉鍐?     */
     fun saveScreenshot(screenshot: ScreenshotItem) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null) }
@@ -122,34 +112,33 @@ class RemoteScreenshotViewModel @Inject constructor(
                 )}
 
                 if (saved) {
-                    Timber.d("截图已保存到相册")
+                    Timber.d("鎴浘宸蹭繚瀛樺埌鐩稿唽")
                 }
             } catch (e: Exception) {
-                Timber.e(e, "保存截图失败")
+                Timber.e(e, "淇濆瓨鎴浘澶辫触")
                 _uiState.update { it.copy(
                     isSaving = false,
-                    error = "保存失败: ${e.message}"
+                    error = "淇濆瓨澶辫触: ${e.message}"
                 )}
             }
         }
     }
 
     /**
-     * 解码 Base64 为 Bitmap
+     * 瑙ｇ爜 Base64 涓?Bitmap
      */
     private fun decodeBase64ToBitmap(base64String: String): Bitmap? {
         return try {
             val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
             BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
         } catch (e: Exception) {
-            Timber.e(e, "Base64 解码失败")
+            Timber.e(e, "Base64 瑙ｇ爜澶辫触")
             null
         }
     }
 
     /**
-     * 保存图片到相册
-     */
+     * 淇濆瓨鍥剧墖鍒扮浉鍐?     */
     private fun saveImageToGallery(bitmap: Bitmap, format: String): Boolean {
         return try {
             val filename = "Screenshot_${System.currentTimeMillis()}.$format"
@@ -164,7 +153,7 @@ class RemoteScreenshotViewModel @Inject constructor(
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // Android 10+ 使用 MediaStore
+                // Android 10+ 浣跨敤 MediaStore
                 val contentValues = ContentValues().apply {
                     put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
                     put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
@@ -183,8 +172,7 @@ class RemoteScreenshotViewModel @Inject constructor(
                     true
                 } ?: false
             } else {
-                // Android 9 及以下使用传统方式
-                val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+                // Android 9 鍙婁互涓嬩娇鐢ㄤ紶缁熸柟寮?                val picturesDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
                 val appDir = java.io.File(picturesDir, "ChainlessChain")
                 if (!appDir.exists()) {
                     appDir.mkdirs()
@@ -195,8 +183,7 @@ class RemoteScreenshotViewModel @Inject constructor(
                     bitmap.compress(compressFormat, 100, outputStream)
                 }
 
-                // 通知媒体扫描器
-                val contentValues = ContentValues().apply {
+                // 閫氱煡濯掍綋鎵弿鍣?                val contentValues = ContentValues().apply {
                     put(MediaStore.Images.Media.DATA, file.absolutePath)
                 }
                 context.contentResolver.insert(
@@ -207,63 +194,67 @@ class RemoteScreenshotViewModel @Inject constructor(
                 true
             }
         } catch (e: IOException) {
-            Timber.e(e, "保存图片失败")
+            Timber.e(e, "淇濆瓨鍥剧墖澶辫触")
             false
         }
     }
 
     /**
-     * 选择截图
+     * 閫夋嫨鎴浘
      */
     fun selectScreenshot(screenshot: ScreenshotItem) {
         _uiState.update { it.copy(currentScreenshot = screenshot) }
     }
 
     /**
-     * 设置显示器
-     */
+     * 璁剧疆鏄剧ず鍣?     */
     fun setDisplay(display: Int) {
         _uiState.update { it.copy(selectedDisplay = display) }
     }
 
+    fun setFormat(format: String) {
+        val normalized = format.lowercase()
+        _uiState.update {
+            it.copy(format = if (normalized == "jpg" || normalized == "jpeg") "jpeg" else "png")
+        }
+    }
+
     /**
-     * 设置质量
+     * 璁剧疆璐ㄩ噺
      */
     fun setQuality(quality: Int) {
         _uiState.update { it.copy(quality = quality) }
     }
 
     /**
-     * 清除错误
+     * 娓呴櫎閿欒
      */
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
 
     /**
-     * 清除保存成功状态
-     */
+     * 娓呴櫎淇濆瓨鎴愬姛鐘舵€?     */
     fun clearSaveSuccess() {
         _uiState.update { it.copy(saveSuccess = false) }
     }
 }
 
 /**
- * UI 状态
- */
+ * UI 鐘舵€? */
 data class RemoteScreenshotUiState(
     val isTakingScreenshot: Boolean = false,
     val isSaving: Boolean = false,
     val error: String? = null,
     val currentScreenshot: ScreenshotItem? = null,
     val selectedDisplay: Int = 0,
+    val format: String = "png",
     val quality: Int = 80,
     val saveSuccess: Boolean = false
 )
 
 /**
- * 截图项
- */
+ * 鎴浘椤? */
 data class ScreenshotItem(
     val id: String,
     val bitmap: Bitmap,
@@ -273,3 +264,4 @@ data class ScreenshotItem(
     val display: Int,
     val format: String
 )
+
