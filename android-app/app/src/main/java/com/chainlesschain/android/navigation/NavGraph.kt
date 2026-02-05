@@ -43,6 +43,16 @@ import com.chainlesschain.android.presentation.MainContainer
 import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
 import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
+import com.chainlesschain.android.remote.ui.DeviceListScreen
+import com.chainlesschain.android.remote.ui.RemoteControlScreen
+import com.chainlesschain.android.remote.ui.ai.RemoteAgentControlScreen
+import com.chainlesschain.android.remote.ui.ai.RemoteAIChatScreen
+import com.chainlesschain.android.remote.ui.ai.RemoteRAGSearchScreen
+import com.chainlesschain.android.remote.ui.desktop.RemoteDesktopScreen
+import com.chainlesschain.android.remote.ui.file.FileTransferScreen
+import com.chainlesschain.android.remote.ui.history.CommandHistoryScreen
+import com.chainlesschain.android.remote.ui.system.RemoteScreenshotScreen
+import com.chainlesschain.android.remote.ui.system.SystemMonitorScreen
 
 @Composable
 fun NavGraph(
@@ -220,14 +230,52 @@ fun NavGraph(
         registerPlaceholder(navController, Screen.MyQRCode.route, "My QR Code")
         registerPlaceholder(navController, Screen.QRCodeScanner.route, "QR Scanner")
         registerPlaceholder(navController, "${Screen.EditPost.route}/{postId}", "Edit Post", "postId")
-        registerPlaceholder(navController, Screen.DeviceManagement.route, "Device Management")
-        registerPlaceholder(navController, Screen.RemoteControl.route, "Remote Control")
-        registerPlaceholder(navController, Screen.RemoteAIChat.route, "Remote AI Chat")
-        registerPlaceholder(navController, Screen.RemoteRAGSearch.route, "Remote RAG Search")
-        registerPlaceholder(navController, Screen.RemoteAgentControl.route, "Remote Agent Control")
-        registerPlaceholder(navController, Screen.RemoteScreenshot.route, "Remote Screenshot")
-        registerPlaceholder(navController, Screen.RemoteSystemMonitor.route, "Remote System Monitor")
-        registerPlaceholder(navController, Screen.RemoteCommandHistory.route, "Remote Command History")
+        composable(Screen.DeviceManagement.route) {
+            DeviceListScreen(
+                onNavigateToDeviceDetail = { navController.navigate(Screen.RemoteControl.route) },
+                onNavigateToDeviceScan = { navController.navigate(Screen.RemoteControl.route) },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.RemoteControl.route) {
+            RemoteControlScreen(
+                onNavigateToAIChat = { navController.navigate(Screen.RemoteAIChat.route) },
+                onNavigateToRAGSearch = { navController.navigate(Screen.RemoteRAGSearch.route) },
+                onNavigateToAgentControl = { navController.navigate(Screen.RemoteAgentControl.route) },
+                onNavigateToScreenshot = { navController.navigate(Screen.RemoteScreenshot.route) },
+                onNavigateToSystemMonitor = { navController.navigate(Screen.RemoteSystemMonitor.route) },
+                onNavigateToCommandHistory = { navController.navigate(Screen.RemoteCommandHistory.route) },
+                onNavigateToRemoteDesktop = { navController.navigate(Screen.RemoteDesktop.route) },
+                onNavigateToFileTransfer = { navController.navigate(Screen.RemoteFileTransfer.route) }
+            )
+        }
+        composable(Screen.RemoteAIChat.route) {
+            RemoteAIChatScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteRAGSearch.route) {
+            RemoteRAGSearchScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteAgentControl.route) {
+            RemoteAgentControlScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteScreenshot.route) {
+            RemoteScreenshotScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteSystemMonitor.route) {
+            SystemMonitorScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteCommandHistory.route) {
+            CommandHistoryScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteDesktop.route) {
+            RemoteDesktopScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteFileTransfer.route) {
+            FileTransferScreen(
+                deviceDid = "pc-default",
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
     }
 }
 
@@ -298,6 +346,8 @@ sealed class Screen(val route: String) {
     data object RemoteScreenshot : Screen("remote_screenshot")
     data object RemoteSystemMonitor : Screen("remote_system_monitor")
     data object RemoteCommandHistory : Screen("remote_command_history")
+    data object RemoteDesktop : Screen("remote_desktop")
+    data object RemoteFileTransfer : Screen("remote_file_transfer")
 }
 
 @Composable
