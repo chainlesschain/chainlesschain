@@ -3,13 +3,17 @@ package com.chainlesschain.android.remote.ui.system
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,6 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.remote.p2p.ConnectionState
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,13 +93,53 @@ fun SystemMonitorScreen(
                 ) {
                     Text(if (uiState.isAutoRefreshEnabled) "Stop Auto" else "Start Auto")
                 }
+                Button(
+                    onClick = {
+                        val next = when (uiState.refreshInterval) {
+                            3 -> 5
+                            5 -> 10
+                            else -> 3
+                        }
+                        viewModel.setRefreshInterval(next)
+                    }
+                ) {
+                    Text("${uiState.refreshInterval}s")
+                }
             }
 
             status?.let { s ->
-                Text("CPU: ${s.cpu.usage} (${s.cpu.cores} cores)", fontWeight = FontWeight.Medium)
-                Text("Memory: ${s.memory.usagePercent}")
-                Text("Host: ${s.system.hostname}")
-                Text("Platform: ${s.system.platform} ${s.system.arch}")
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard(
+                        modifier = Modifier.weight(1f),
+                        title = "CPU",
+                        value = s.cpu.usage,
+                        subtitle = "${s.cpu.cores} cores"
+                    )
+                    MetricCard(
+                        modifier = Modifier.weight(1f),
+                        title = "Memory",
+                        value = s.memory.usagePercent,
+                        subtitle = formatBytes(s.memory.used) + " / " + formatBytes(s.memory.total)
+                    )
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("Host: ${s.system.hostname}", fontWeight = FontWeight.Medium)
+                        Text("Platform: ${s.system.platform} ${s.system.arch}")
+                        Text("Uptime: ${formatDuration(s.system.uptime)}")
+                    }
+                }
             } ?: Text("No status data yet.")
 
             info?.let { systemInfo ->
@@ -103,7 +150,8 @@ fun SystemMonitorScreen(
             }
 
             Text(
-                text = "CPU samples: ${cpuHistory.size}, Memory samples: ${memoryHistory.size}",
+                text = "CPU samples: ${cpuHistory.size}, Memory samples: ${memoryHistory.size}" +
+                    " | Last refresh: ${formatTime(uiState.lastRefreshTime)}",
                 style = MaterialTheme.typography.bodySmall
             )
             uiState.error?.let { error ->
@@ -116,4 +164,59 @@ fun SystemMonitorScreen(
             }
         }
     }
+}
+
+@Composable
+private fun MetricCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String,
+    subtitle: String
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(title, style = MaterialTheme.typography.labelMedium)
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+private fun formatTime(timestamp: Long): String {
+    if (timestamp <= 0L) return "--"
+    val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    return sdf.format(Date(timestamp))
+}
+
+private fun formatBytes(bytes: Long): String {
+    val kb = 1024.0
+    val mb = kb * 1024
+    val gb = mb * 1024
+    return when {
+        bytes >= gb -> String.format(Locale.US, "%.2f GB", bytes / gb)
+        bytes >= mb -> String.format(Locale.US, "%.1f MB", bytes / mb)
+        bytes >= kb -> String.format(Locale.US, "%.1f KB", bytes / kb)
+        else -> "$bytes B"
+    }
+}
+
+private fun formatDuration(seconds: Long): String {
+    val d = seconds / 86400
+    val h = (seconds % 86400) / 3600
+    val m = (seconds % 3600) / 60
+    val s = seconds % 60
+    return buildString {
+        if (d > 0) append("${d}d ")
+        if (h > 0 || d > 0) append("${h}h ")
+        if (m > 0 || h > 0 || d > 0) append("${m}m ")
+        append("${s}s")
+    }.trim()
 }

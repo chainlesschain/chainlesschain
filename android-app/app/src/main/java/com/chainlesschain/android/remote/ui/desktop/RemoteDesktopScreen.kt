@@ -2,6 +2,7 @@ package com.chainlesschain.android.remote.ui.desktop
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -37,7 +38,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -53,8 +56,7 @@ fun RemoteDesktopScreen(
     val displays by viewModel.displays.collectAsState()
     val stats by viewModel.statistics.collectAsState()
     var inputText by remember { mutableStateOf("") }
-    var renderWidthPx by remember { mutableStateOf(1) }
-    var renderHeightPx by remember { mutableStateOf(1) }
+    var renderSize by remember { mutableStateOf(IntSize(1, 1)) }
 
     Scaffold(
         topBar = {
@@ -108,25 +110,70 @@ fun RemoteDesktopScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .onSizeChanged {
-                                renderWidthPx = if (it.width <= 0) 1 else it.width
-                                renderHeightPx = if (it.height <= 0) 1 else it.height
+                                renderSize = IntSize(
+                                    width = if (it.width <= 0) 1 else it.width,
+                                    height = if (it.height <= 0) 1 else it.height
+                                )
                             }
-                            .pointerInput(uiState.isConnected) {
+                            .pointerInput(uiState.isConnected, currentFrame, renderSize) {
+                                if (!uiState.isConnected) return@pointerInput
+                                detectTapGestures(
+                                    onTap = { offset ->
+                                        val frame = currentFrame ?: return@detectTapGestures
+                                        val (x, y) = mapToFrameCoordinates(
+                                            x = offset.x,
+                                            y = offset.y,
+                                            renderWidth = renderSize.width,
+                                            renderHeight = renderSize.height,
+                                            frameWidth = frame.width,
+                                            frameHeight = frame.height
+                                        )
+                                        viewModel.sendMouseMove(x, y)
+                                        viewModel.sendMouseClick(button = "left", double = false)
+                                    },
+                                    onDoubleTap = { offset ->
+                                        val frame = currentFrame ?: return@detectTapGestures
+                                        val (x, y) = mapToFrameCoordinates(
+                                            x = offset.x,
+                                            y = offset.y,
+                                            renderWidth = renderSize.width,
+                                            renderHeight = renderSize.height,
+                                            frameWidth = frame.width,
+                                            frameHeight = frame.height
+                                        )
+                                        viewModel.sendMouseMove(x, y)
+                                        viewModel.sendMouseClick(button = "left", double = true)
+                                    },
+                                    onLongPress = { offset ->
+                                        val frame = currentFrame ?: return@detectTapGestures
+                                        val (x, y) = mapToFrameCoordinates(
+                                            x = offset.x,
+                                            y = offset.y,
+                                            renderWidth = renderSize.width,
+                                            renderHeight = renderSize.height,
+                                            frameWidth = frame.width,
+                                            frameHeight = frame.height
+                                        )
+                                        viewModel.sendMouseMove(x, y)
+                                        viewModel.sendMouseClick(button = "right", double = false)
+                                    }
+                                )
+                            }
+                            .pointerInput(uiState.isConnected, currentFrame, renderSize) {
                                 if (!uiState.isConnected) return@pointerInput
                                 detectDragGestures(
                                     onDrag = { change, _ ->
                                         val frame = currentFrame
                                         if (frame == null) return@detectDragGestures
-                                        val x = (change.position.x / renderWidthPx * frame.width)
-                                            .toInt()
-                                            .coerceIn(0, frame.width - 1)
-                                        val y = (change.position.y / renderHeightPx * frame.height)
-                                            .toInt()
-                                            .coerceIn(0, frame.height - 1)
+                                        val (x, y) = mapToFrameCoordinates(
+                                            x = change.position.x,
+                                            y = change.position.y,
+                                            renderWidth = renderSize.width,
+                                            renderHeight = renderSize.height,
+                                            frameWidth = frame.width,
+                                            frameHeight = frame.height
+                                        )
                                         viewModel.sendMouseMove(x, y)
-                                    },
-                                    onDragEnd = {
-                                        viewModel.sendMouseClick()
                                     }
                                 )
                             },
@@ -186,7 +233,13 @@ fun RemoteDesktopScreen(
                     onClick = { viewModel.sendMouseScroll(0, 120) },
                     enabled = uiState.isConnected
                 ) {
-                    Text("Scroll")
+                    Text("Scroll Down")
+                }
+                Button(
+                    onClick = { viewModel.sendMouseScroll(0, -120) },
+                    enabled = uiState.isConnected
+                ) {
+                    Text("Scroll Up")
                 }
             }
 
@@ -209,4 +262,27 @@ fun RemoteDesktopScreen(
             }
         }
     }
+}
+
+private fun mapToFrameCoordinates(
+    x: Float,
+    y: Float,
+    renderWidth: Int,
+    renderHeight: Int,
+    frameWidth: Int,
+    frameHeight: Int
+): Pair<Int, Int> {
+    val safeRenderWidth = renderWidth.coerceAtLeast(1)
+    val safeRenderHeight = renderHeight.coerceAtLeast(1)
+    val safeFrameWidth = frameWidth.coerceAtLeast(1)
+    val safeFrameHeight = frameHeight.coerceAtLeast(1)
+
+    val mappedX = (x / safeRenderWidth * safeFrameWidth)
+        .toInt()
+        .coerceIn(0, safeFrameWidth - 1)
+    val mappedY = (y / safeRenderHeight * safeFrameHeight)
+        .toInt()
+        .coerceIn(0, safeFrameHeight - 1)
+
+    return mappedX to mappedY
 }
