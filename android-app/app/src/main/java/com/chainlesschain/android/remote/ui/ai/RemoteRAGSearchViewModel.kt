@@ -1,4 +1,4 @@
-package com.chainlesschain.android.remote.ui.ai
+﻿package com.chainlesschain.android.remote.ui.ai
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,132 +7,114 @@ import com.chainlesschain.android.remote.commands.SearchResult
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
-/**
- * 远程 RAG 搜索 ViewModel
- *
- * 功能：
- * - 搜索 PC 端知识库
- * - 显示搜索结果
- * - 查看结果详情
- */
 @HiltViewModel
 class RemoteRAGSearchViewModel @Inject constructor(
     private val aiCommands: AICommands,
     private val p2pClient: P2PClient
 ) : ViewModel() {
 
-    // UI 状态
     private val _uiState = MutableStateFlow(RemoteRAGSearchUiState())
     val uiState: StateFlow<RemoteRAGSearchUiState> = _uiState.asStateFlow()
 
-    // 连接状态
     val connectionState: StateFlow<ConnectionState> = p2pClient.connectionState
 
-    // 搜索结果
     private val _searchResults = MutableStateFlow<List<SearchResult>>(emptyList())
     val searchResults: StateFlow<List<SearchResult>> = _searchResults.asStateFlow()
 
-    // 搜索历史
     private val _searchHistory = MutableStateFlow<List<String>>(emptyList())
     val searchHistory: StateFlow<List<String>> = _searchHistory.asStateFlow()
 
-    /**
-     * 执行搜索
-     */
-    fun search(query: String, topK: Int = 10) {
-        if (query.isBlank()) return
+    fun search(query: String, topK: Int = _uiState.value.topK) {
+        val q = query.trim()
+        if (q.isEmpty()) return
+        if (connectionState.value != ConnectionState.CONNECTED) {
+            _uiState.update { it.copy(error = "Not connected to PC") }
+            return
+        }
 
-        viewModelScope.launch {
-            _uiState.update { it.copy(
+        _uiState.update {
+            it.copy(
                 isSearching = true,
                 error = null,
-                currentQuery = query
-            )}
-
-            // 调用 RAG 搜索
-            val result = aiCommands.ragSearch(
-                query = query,
-                topK = topK
+                currentQuery = q,
+                requestedTopK = topK.coerceIn(1, 50)
             )
+        }
 
+        viewModelScope.launch {
+            val result = aiCommands.ragSearch(query = q, topK = _uiState.value.requestedTopK)
             if (result.isSuccess) {
                 val response = result.getOrNull()
                 if (response != null) {
                     _searchResults.value = response.results
-                    _uiState.update { it.copy(
-                        isSearching = false,
-                        totalResults = response.total
-                    )}
-
-                    // 添加到搜索历史
-                    addToHistory(query)
+                    _uiState.update {
+                        it.copy(
+                            isSearching = false,
+                            totalResults = response.total,
+                            hasMore = response.results.size >= it.requestedTopK && it.requestedTopK < 50
+                        )
+                    }
+                    addToHistory(q)
+                } else {
+                    _uiState.update { it.copy(isSearching = false, error = "Empty response") }
                 }
             } else {
-                val error = result.exceptionOrNull()?.message ?: "搜索失败"
-                Timber.e(result.exceptionOrNull(), "搜索失败")
-                _uiState.update { it.copy(
-                    isSearching = false,
-                    error = error
-                )}
+                val error = result.exceptionOrNull()?.message ?: "Search failed"
+                Timber.e(result.exceptionOrNull(), "RAG search failed")
+                _uiState.update { it.copy(isSearching = false, error = error) }
             }
         }
     }
 
-    /**
-     * 添加到搜索历史
-     */
+    fun loadMore() {
+        val currentQuery = _uiState.value.currentQuery ?: return
+        if (_uiState.value.isSearching) return
+        val nextTopK = (_uiState.value.requestedTopK + 10).coerceAtMost(50)
+        if (nextTopK == _uiState.value.requestedTopK) return
+        search(currentQuery, nextTopK)
+    }
+
+    fun retryCurrentQuery() {
+        val q = _uiState.value.currentQuery ?: return
+        search(q, _uiState.value.requestedTopK)
+    }
+
     private fun addToHistory(query: String) {
         val history = _searchHistory.value.toMutableList()
-        // 移除重复项
         history.remove(query)
-        // 添加到开头
         history.add(0, query)
-        // 限制历史记录数量
-        if (history.size > 10) {
-            history.removeAt(history.lastIndex)
-        }
+        if (history.size > 10) history.removeAt(history.lastIndex)
         _searchHistory.value = history
     }
 
-    /**
-     * 清除搜索结果
-     */
     fun clearResults() {
         _searchResults.value = emptyList()
-        _uiState.update { it.copy(
-            currentQuery = null,
-            totalResults = 0,
-            error = null
-        )}
+        _uiState.update { it.copy(currentQuery = null, totalResults = 0, error = null, hasMore = false) }
     }
 
-    /**
-     * 清除错误
-     */
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
 
-    /**
-     * 设置 topK
-     */
     fun setTopK(topK: Int) {
-        _uiState.update { it.copy(topK = topK) }
+        _uiState.update { it.copy(topK = topK.coerceIn(1, 20), requestedTopK = topK.coerceIn(1, 50)) }
     }
 }
 
-/**
- * UI 状态
- */
 data class RemoteRAGSearchUiState(
     val isSearching: Boolean = false,
     val error: String? = null,
     val currentQuery: String? = null,
     val totalResults: Int = 0,
-    val topK: Int = 10
+    val topK: Int = 10,
+    val requestedTopK: Int = 10,
+    val hasMore: Boolean = false
 )

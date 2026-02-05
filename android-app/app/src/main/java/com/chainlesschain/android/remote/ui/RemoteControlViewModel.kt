@@ -1,29 +1,26 @@
-package com.chainlesschain.android.remote.ui
+﻿package com.chainlesschain.android.remote.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.remote.client.RemoteCommandClient
 import com.chainlesschain.android.remote.commands.AICommands
 import com.chainlesschain.android.remote.commands.SystemCommands
-import com.chainlesschain.android.remote.commands.SystemStatus
 import com.chainlesschain.android.remote.commands.SystemInfo
+import com.chainlesschain.android.remote.commands.SystemStatus
 import com.chainlesschain.android.remote.p2p.ConnectionState
 import com.chainlesschain.android.remote.p2p.P2PClient
 import com.chainlesschain.android.remote.p2p.PeerInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
-/**
- * 远程控制界面 ViewModel
- *
- * 功能：
- * - PC 设备连接管理
- * - 系统状态监控
- * - 命令快捷入口
- */
 @HiltViewModel
 class RemoteControlViewModel @Inject constructor(
     private val p2pClient: P2PClient,
@@ -32,56 +29,39 @@ class RemoteControlViewModel @Inject constructor(
     private val systemCommands: SystemCommands
 ) : ViewModel() {
 
-    // UI 状态
     private val _uiState = MutableStateFlow(RemoteControlUiState())
     val uiState: StateFlow<RemoteControlUiState> = _uiState.asStateFlow()
 
-    // 连接状态（从 P2PClient）
     val connectionState: StateFlow<ConnectionState> = p2pClient.connectionState
-
-    // 已连接的节点
     val connectedPeer: StateFlow<PeerInfo?> = p2pClient.connectedPeer
 
     init {
-        // 监听连接状态变化
         observeConnectionState()
-
-        // 自动刷新系统状态（如果已连接）
         startAutoRefreshStatus()
     }
 
-    /**
-     * 监听连接状态变化
-     */
     private fun observeConnectionState() {
         viewModelScope.launch {
-            connectionState.collect { state ->
+            connectionState.collectLatest { state ->
                 when (state) {
                     ConnectionState.CONNECTED -> {
-                        // 连接成功，立即获取系统信息和状态
+                        addRecentAction("Connected")
                         refreshSystemInfo()
                         refreshSystemStatus()
                     }
                     ConnectionState.DISCONNECTED, ConnectionState.ERROR -> {
-                        // 连接断开，清空状态
-                        _uiState.update { it.copy(
-                            systemStatus = null,
-                            systemInfo = null
-                        )}
+                        _uiState.update { it.copy(systemStatus = null, systemInfo = null) }
                     }
-                    else -> {}
+                    else -> Unit
                 }
             }
         }
     }
 
-    /**
-     * 自动刷新系统状态（每 10 秒）
-     */
     private fun startAutoRefreshStatus() {
         viewModelScope.launch {
             while (true) {
-                kotlinx.coroutines.delay(10000)  // 10 秒
+                delay(10_000)
                 if (connectionState.value == ConnectionState.CONNECTED) {
                     refreshSystemStatus()
                 }
@@ -89,100 +69,75 @@ class RemoteControlViewModel @Inject constructor(
         }
     }
 
-    /**
-     * 连接到 PC
-     */
     fun connectToPC(pcPeerId: String, pcDID: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-
             val result = p2pClient.connect(pcPeerId, pcDID)
-
             if (result.isSuccess) {
-                Timber.d("连接成功")
                 _uiState.update { it.copy(isLoading = false) }
+                addRecentAction("Connected to $pcPeerId")
             } else {
-                Timber.e(result.exceptionOrNull(), "连接失败")
-                _uiState.update { it.copy(
-                    isLoading = false,
-                    error = result.exceptionOrNull()?.message ?: "连接失败"
-                )}
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = result.exceptionOrNull()?.message ?: "Connect failed"
+                    )
+                }
             }
         }
     }
 
-    /**
-     * 断开连接
-     */
     fun disconnect() {
         viewModelScope.launch {
             p2pClient.disconnect()
-            _uiState.update { it.copy(
-                systemStatus = null,
-                systemInfo = null,
-                error = null
-            )}
+            _uiState.update { it.copy(systemStatus = null, systemInfo = null, error = null) }
+            addRecentAction("Disconnected")
         }
     }
 
-    /**
-     * 刷新系统状态
-     */
     fun refreshSystemStatus() {
         viewModelScope.launch {
             val result = systemCommands.getStatus()
-
             if (result.isSuccess) {
-                _uiState.update { it.copy(
-                    systemStatus = result.getOrNull(),
-                    lastRefreshTime = System.currentTimeMillis()
-                )}
+                _uiState.update {
+                    it.copy(
+                        systemStatus = result.getOrNull(),
+                        lastRefreshTime = System.currentTimeMillis()
+                    )
+                }
+                addRecentAction("System status refreshed")
             } else {
-                Timber.e(result.exceptionOrNull(), "获取系统状态失败")
+                Timber.e(result.exceptionOrNull(), "Failed to refresh status")
             }
         }
     }
 
-    /**
-     * 刷新系统信息
-     */
     fun refreshSystemInfo() {
         viewModelScope.launch {
             val result = systemCommands.getInfo()
-
             if (result.isSuccess) {
                 _uiState.update { it.copy(systemInfo = result.getOrNull()) }
+                addRecentAction("System info updated")
             } else {
-                Timber.e(result.exceptionOrNull(), "获取系统信息失败")
+                Timber.e(result.exceptionOrNull(), "Failed to refresh system info")
             }
         }
     }
 
-    /**
-     * 截图
-     */
     fun takeScreenshot(onSuccess: (String) -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-
             val result = systemCommands.screenshot()
-
             _uiState.update { it.copy(isLoading = false) }
-
             if (result.isSuccess) {
-                val response = result.getOrNull()
-                if (response != null) {
-                    onSuccess(response.data)  // Base64 图片数据
-                }
+                result.getOrNull()?.let { onSuccess(it.data) }
+                addRecentAction("Screenshot requested")
             } else {
-                onError(result.exceptionOrNull()?.message ?: "截图失败")
+                onError(result.exceptionOrNull()?.message ?: "Screenshot failed")
             }
         }
     }
 
-    /**
-     * 发送通知
-     */
     fun sendNotification(
         title: String,
         body: String,
@@ -191,34 +146,33 @@ class RemoteControlViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-
             val result = systemCommands.notify(title, body)
-
             _uiState.update { it.copy(isLoading = false) }
-
             if (result.isSuccess) {
                 onSuccess()
+                addRecentAction("Notification: $title")
             } else {
-                onError(result.exceptionOrNull()?.message ?: "发送通知失败")
+                onError(result.exceptionOrNull()?.message ?: "Notify failed")
             }
         }
     }
 
-    /**
-     * 清除错误
-     */
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+
+    private fun addRecentAction(action: String) {
+        _uiState.update {
+            it.copy(recentActions = (listOf(action) + it.recentActions).take(10))
+        }
+    }
 }
 
-/**
- * UI 状态
- */
 data class RemoteControlUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val systemStatus: SystemStatus? = null,
     val systemInfo: SystemInfo? = null,
-    val lastRefreshTime: Long = 0
+    val lastRefreshTime: Long = 0,
+    val recentActions: List<String> = emptyList()
 )

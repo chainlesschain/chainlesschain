@@ -111,6 +111,12 @@ fun RemoteControlScreen(
                 }
             }
 
+            item {
+                RecentActionsPanel(
+                    actions = uiState.recentActions
+                )
+            }
+
             // 3. AI 命令快捷入口
             item {
                 CommandShortcutsSection(
@@ -670,5 +676,31 @@ fun formatBytes(bytes: Long): String {
         mb >= 1 -> String.format("%.2f MB", mb)
         kb >= 1 -> String.format("%.2f KB", kb)
         else -> "$bytes B"
+    }
+}
+
+@Composable
+fun RecentActionsPanel(actions: List<String>) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.History, contentDescription = null)
+                Text("最近操作", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            Divider()
+            if (actions.isEmpty()) {
+                Text("暂无操作记录", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                actions.forEach { action ->
+                    Text("• $action", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
     }
 }
