@@ -1,13 +1,24 @@
 package com.chainlesschain.android.core.e2ee.verification
 
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.*
+import java.security.Security
 
 /**
  * SessionFingerprint 测试
  */
 class SessionFingerprintTest {
+
+    @Before
+    fun setupBouncyCastle() {
+        // 注册BouncyCastle安全提供者（用于X25519加密）
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(BouncyCastleProvider())
+        }
+    }
 
     @Test
     fun `test generate fingerprint`() {
