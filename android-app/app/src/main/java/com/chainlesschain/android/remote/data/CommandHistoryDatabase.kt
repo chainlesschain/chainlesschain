@@ -6,15 +6,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-/**
- * 命令历史数据库
- */
 @Database(
     entities = [
         CommandHistoryEntity::class,
-        FileTransferEntity::class
+        FileTransferEntity::class,
+        RegisteredDeviceEntity::class
     ],
-    version = 2, // 增加版本号
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class, FileTransferConverters::class)
@@ -22,6 +20,7 @@ abstract class CommandHistoryDatabase : RoomDatabase() {
 
     abstract fun commandHistoryDao(): CommandHistoryDao
     abstract fun fileTransferDao(): FileTransferDao
+    abstract fun registeredDeviceDao(): RegisteredDeviceDao
 
     companion object {
         @Volatile

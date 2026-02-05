@@ -93,6 +93,13 @@ class AICommands @Inject constructor(
     suspend fun getModels(): Result<ModelsResponse> {
         return client.invoke("ai.getModels", emptyMap())
     }
+
+    /**
+     * 获取远端 Agent 列表
+     */
+    suspend fun listAgents(): Result<AgentsResponse> {
+        return client.invoke("ai.listAgents", emptyMap())
+    }
 }
 
 /**
@@ -195,6 +202,21 @@ data class AIModel(
     val provider: String,
     val capabilities: List<String>,
     val maxTokens: Int
+)
+
+@Serializable
+data class AgentsResponse(
+    val agents: List<RemoteAgentInfo>,
+    val total: Int = 0
+)
+
+@Serializable
+data class RemoteAgentInfo(
+    val id: String,
+    val name: String,
+    val description: String? = null,
+    val status: String? = null,
+    val type: String? = null
 )
 
 /**

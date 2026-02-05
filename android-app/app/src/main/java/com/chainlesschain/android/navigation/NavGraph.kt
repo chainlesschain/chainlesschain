@@ -44,6 +44,7 @@ import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
 import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
 import com.chainlesschain.android.remote.ui.DeviceListScreen
+import com.chainlesschain.android.remote.ui.DeviceScanScreen
 import com.chainlesschain.android.remote.ui.RemoteControlScreen
 import com.chainlesschain.android.remote.ui.ai.RemoteAgentControlScreen
 import com.chainlesschain.android.remote.ui.ai.RemoteAIChatScreen
@@ -232,13 +233,45 @@ fun NavGraph(
         registerPlaceholder(navController, "${Screen.EditPost.route}/{postId}", "Edit Post", "postId")
         composable(Screen.DeviceManagement.route) {
             DeviceListScreen(
-                onNavigateToDeviceDetail = { navController.navigate(Screen.RemoteControl.route) },
-                onNavigateToDeviceScan = { navController.navigate(Screen.RemoteControl.route) },
+                onNavigateToDeviceDetail = { peerId ->
+                    navController.navigate(Screen.RemoteControl.createRoute(peerId, "did:key:$peerId"))
+                },
+                onNavigateToDeviceScan = { navController.navigate(Screen.DeviceScan.route) },
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+        composable(Screen.DeviceScan.route) {
+            DeviceScanScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onDeviceSelected = { peerId ->
+                    navController.navigate(Screen.RemoteControl.createRoute(peerId, "did:key:$peerId"))
+                }
             )
         }
         composable(Screen.RemoteControl.route) {
             RemoteControlScreen(
+                onNavigateToAIChat = { navController.navigate(Screen.RemoteAIChat.route) },
+                onNavigateToRAGSearch = { navController.navigate(Screen.RemoteRAGSearch.route) },
+                onNavigateToAgentControl = { navController.navigate(Screen.RemoteAgentControl.route) },
+                onNavigateToScreenshot = { navController.navigate(Screen.RemoteScreenshot.route) },
+                onNavigateToSystemMonitor = { navController.navigate(Screen.RemoteSystemMonitor.route) },
+                onNavigateToCommandHistory = { navController.navigate(Screen.RemoteCommandHistory.route) },
+                onNavigateToRemoteDesktop = { navController.navigate(Screen.RemoteDesktop.route) },
+                onNavigateToFileTransfer = { navController.navigate(Screen.RemoteFileTransfer.route) }
+            )
+        }
+        composable(
+            route = "${Screen.RemoteControl.route}/{peerId}/{did}",
+            arguments = listOf(
+                navArgument("peerId") { type = NavType.StringType },
+                navArgument("did") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val peerId = backStackEntry.arguments?.getString("peerId")
+            val did = backStackEntry.arguments?.getString("did")
+            RemoteControlScreen(
+                defaultPeerId = peerId,
+                defaultDid = did,
                 onNavigateToAIChat = { navController.navigate(Screen.RemoteAIChat.route) },
                 onNavigateToRAGSearch = { navController.navigate(Screen.RemoteRAGSearch.route) },
                 onNavigateToAgentControl = { navController.navigate(Screen.RemoteAgentControl.route) },
@@ -339,7 +372,10 @@ sealed class Screen(val route: String) {
         fun createRoute(postId: String) = "edit_post/$postId"
     }
     data object DeviceManagement : Screen("device_management")
-    data object RemoteControl : Screen("remote_control")
+    data object DeviceScan : Screen("device_scan")
+    data object RemoteControl : Screen("remote_control") {
+        fun createRoute(peerId: String, did: String) = "remote_control/$peerId/$did"
+    }
     data object RemoteAIChat : Screen("remote_ai_chat")
     data object RemoteRAGSearch : Screen("remote_rag_search")
     data object RemoteAgentControl : Screen("remote_agent_control")

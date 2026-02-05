@@ -11,34 +11,42 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceListScreen(
     onNavigateToDeviceDetail: (String) -> Unit = {},
     onNavigateToDeviceScan: () -> Unit = {},
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    viewModel: DeviceListViewModel = hiltViewModel()
 ) {
-    val devices = listOf(
-        "pc-primary-001" to "Office Workstation",
-        "pc-laptop-002" to "Travel Laptop"
-    )
+    val devices by viewModel.devices.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.seedIfEmpty()
+    }
 
     Scaffold(
         topBar = {
@@ -68,44 +76,55 @@ fun DeviceListScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Known devices",
+                text = "Registered devices",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
 
-            devices.forEach { (did, name) ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    onClick = { onNavigateToDeviceDetail(did) }
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+            if (devices.isEmpty()) {
+                Text(
+                    text = "No registered devices. Tap + to scan and register.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                devices.forEach { device ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        onClick = { onNavigateToDeviceDetail(device.peerId) }
                     ) {
-                        Icon(Icons.Default.Computer, contentDescription = null)
-                        Column(
+                        Row(
                             modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 12.dp)
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = name, fontWeight = FontWeight.Medium)
-                            Text(
-                                text = did,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Icon(Icons.Default.Computer, contentDescription = null)
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 12.dp)
+                            ) {
+                                Text(text = device.deviceName, fontWeight = FontWeight.Medium)
+                                Text(
+                                    text = "${device.peerId} • ${device.ipAddress}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            TextButton(onClick = { viewModel.remove(device.peerId) }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            }
+                            Icon(Icons.Default.ChevronRight, contentDescription = null)
                         }
-                        Icon(Icons.Default.ChevronRight, contentDescription = null)
                     }
                 }
             }
 
-            Divider(modifier = Modifier.padding(top = 4.dp))
+            HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
             Text(
-                text = "Tip: open a device to start remote control.",
+                text = "Tip: tap a device card to open remote control.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

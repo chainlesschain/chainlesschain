@@ -14,7 +14,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.R
 
 @Composable
 fun SocialScreen(
@@ -26,8 +28,13 @@ fun SocialScreen(
     onNavigateToEditPost: (String) -> Unit = {},
     onNavigateToComment: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
     var selectedTab by rememberSaveable { mutableStateOf(0) }
-    val tabs = listOf("Friends", "Timeline", "Notifications")
+    val tabs = listOf(
+        context.getString(R.string.social_tab_friends),
+        context.getString(R.string.social_tab_timeline),
+        context.getString(R.string.social_tab_notifications)
+    )
 
     Scaffold { paddingValues ->
         Column(
@@ -47,9 +54,9 @@ fun SocialScreen(
 
             Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 when (selectedTab) {
-                    0 -> Text("Friends screen is temporarily simplified for build stability.")
-                    1 -> Text("Timeline screen is temporarily simplified for build stability.")
-                    else -> Text("Notifications screen is temporarily simplified for build stability.")
+                    0 -> Text(context.getString(R.string.social_friends_placeholder))
+                    1 -> Text(context.getString(R.string.social_timeline_placeholder))
+                    else -> Text(context.getString(R.string.social_notifications_placeholder))
                 }
             }
         }

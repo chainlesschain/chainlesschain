@@ -101,18 +101,33 @@ class ConversationViewModel @Inject constructor(
         content: String,
         enableRAG: Boolean = true
     ) {
-        val conversation = _currentConversation.value ?: return
+        android.util.Log.d("ConversationViewModel", "sendMessage called with content: ${content.take(50)}")
+
+        val conversation = _currentConversation.value
+        if (conversation == null) {
+            android.util.Log.e("ConversationViewModel", "No conversation loaded! Cannot send message.")
+            _uiState.update { it.copy(error = "请先创建或选择一个对话") }
+            return
+        }
+
+        android.util.Log.d("ConversationViewModel", "Current conversation: id=${conversation.id}, model=${conversation.model}")
 
         if (content.isBlank()) {
+            android.util.Log.w("ConversationViewModel", "Message content is blank")
             _uiState.update { it.copy(error = "消息不能为空") }
             return
         }
 
         // 检查API Key（非Ollama模型需要）
         val provider = getProviderFromModel(conversation.model)
+        android.util.Log.d("ConversationViewModel", "Detected provider: $provider for model: ${conversation.model}")
+
         // 直接从repository获取最新API Key，不依赖uiState缓存
         val apiKey = repository.getApiKey(provider)
+        android.util.Log.d("ConversationViewModel", "API Key present: ${!apiKey.isNullOrEmpty()}")
+
         if (provider != LLMProvider.OLLAMA && apiKey.isNullOrEmpty()) {
+            android.util.Log.w("ConversationViewModel", "API Key missing for provider: $provider")
             _uiState.update {
                 it.copy(error = "请先配置${provider.displayName} API Key，可在AI设置中配置")
             }
@@ -121,6 +136,7 @@ class ConversationViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                android.util.Log.d("ConversationViewModel", "Starting message send process")
                 _uiState.update { it.copy(isSending = true) }
                 _streamingContent.value = ""
 
@@ -171,6 +187,8 @@ class ConversationViewModel @Inject constructor(
                 // 直接从repository获取最新API Key，确保使用最新配置
                 val apiKey = repository.getApiKey(provider)
 
+                android.util.Log.d("ConversationViewModel", "Calling sendMessageStream with provider=$provider, model=${conversation.model}, messageCount=${messageHistory.size}")
+
                 var fullResponse = ""
 
                 repository.sendMessageStream(
@@ -180,7 +198,10 @@ class ConversationViewModel @Inject constructor(
                     provider = provider,
                     apiKey = apiKey
                 ).collect { chunk ->
+                    android.util.Log.d("ConversationViewModel", "Received chunk: content='${chunk.content.take(50)}', isDone=${chunk.isDone}, error=${chunk.error}")
+
                     if (chunk.error != null) {
+                        android.util.Log.e("ConversationViewModel", "Stream error: ${chunk.error}")
                         _uiState.update {
                             it.copy(
                                 isSending = false,
@@ -195,6 +216,7 @@ class ConversationViewModel @Inject constructor(
                     _streamingContent.value = fullResponse
 
                     if (chunk.isDone) {
+                        android.util.Log.i("ConversationViewModel", "Stream complete, total response length: ${fullResponse.length}")
                         // 保存AI响应
                         repository.saveAssistantMessage(
                             conversationId = conversation.id,
@@ -209,7 +231,9 @@ class ConversationViewModel @Inject constructor(
                         _streamingContent.value = ""
                     }
                 }
+                android.util.Log.d("ConversationViewModel", "Stream collection completed")
             } catch (e: Exception) {
+                android.util.Log.e("ConversationViewModel", "Exception in sendMessage", e)
                 _uiState.update {
                     it.copy(
                         isSending = false,
@@ -334,10 +358,18 @@ class ConversationViewModel @Inject constructor(
     /**
      * 从模型名称推断提供商
      */
-    private fun getProviderFromModel(model: String): LLMProvider {
+    fun getProviderFromModel(model: String): LLMProvider {
         return when {
             model.startsWith("gpt") -> LLMProvider.OPENAI
             model.startsWith("deepseek") -> LLMProvider.DEEPSEEK
+            model.startsWith("doubao") -> LLMProvider.DOUBAO
+            model.startsWith("claude") -> LLMProvider.CLAUDE
+            model.startsWith("gemini") -> LLMProvider.GEMINI
+            model.startsWith("qwen") -> LLMProvider.QWEN
+            model.startsWith("ernie") -> LLMProvider.ERNIE
+            model.startsWith("glm") -> LLMProvider.CHATGLM
+            model.startsWith("moonshot") -> LLMProvider.MOONSHOT
+            model.startsWith("spark") -> LLMProvider.SPARK
             model.contains("/") || model.contains(":") -> LLMProvider.OLLAMA
             else -> LLMProvider.CUSTOM
         }
