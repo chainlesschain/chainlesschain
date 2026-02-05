@@ -22,9 +22,11 @@ val hasGoogleServices = listOf(
 if (hasGoogleServices) {
     apply(plugin = "com.google.gms.google-services")
     apply(plugin = "com.google.firebase.crashlytics")
-    logger.lifecycle("✓ Firebase enabled (google-services.json found)")
-} else {
-    logger.warn("⚠ Firebase disabled (google-services.json not found)")
+    logger.lifecycle("鉁?Firebase enabled (google-services.json found)")
+}
+
+    else {
+    logger.warn("鈿?Firebase disabled (google-services.json not found)")
     logger.warn("  To enable Firebase: Add google-services.json to app/")
 }
 
@@ -46,10 +48,10 @@ android {
             useSupportLibrary = true
         }
 
-        // 多语言支持
+        // 澶氳瑷€鏀寔
         resourceConfigurations.addAll(listOf("zh", "en"))
 
-        // NDK支持
+        // NDK鏀寔
         ndk {
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
         }
@@ -57,7 +59,7 @@ android {
 
     signingConfigs {
         create("release") {
-            // 从 keystore.properties 读取签名配置
+            // 浠?keystore.properties 璇诲彇绛惧悕閰嶇疆
             val keystorePropertiesFile = rootProject.file("keystore.properties")
             if (keystorePropertiesFile.exists()) {
                 val keystoreProperties = Properties()
@@ -67,8 +69,10 @@ android {
                 storePassword = keystoreProperties["release.storePassword"] as String
                 keyAlias = keystoreProperties["release.keyAlias"] as String
                 keyPassword = keystoreProperties["release.keyPassword"] as String
-            } else {
-                // 如果配置文件不存在，使用debug密钥（仅用于开发测试）
+            }
+
+    else {
+                // 濡傛灉閰嶇疆鏂囦欢涓嶅瓨鍦紝浣跨敤debug瀵嗛挜锛堜粎鐢ㄤ簬寮€鍙戞祴璇曪級
                 logger.warn("keystore.properties not found. Using debug keystore for release build.")
                 logger.warn("Please create keystore.properties from keystore.properties.template for production builds.")
                 storeFile = file("../keystore/debug.keystore")
@@ -98,35 +102,35 @@ android {
         }
     }
 
-    // Phase 7.4: App Bundle配置 - 按需分发
+    // Phase 7.4: App Bundle閰嶇疆 - 鎸夐渶鍒嗗彂
     bundle {
-        // 按语言分包
+        // 鎸夎瑷€鍒嗗寘
         language {
             enableSplit = true
         }
 
-        // 按屏幕密度分包
+        // 鎸夊睆骞曞瘑搴﹀垎鍖?
         density {
             enableSplit = true
         }
 
-        // 按CPU架构分包
+        // 鎸塁PU鏋舵瀯鍒嗗寘
         abi {
             enableSplit = true
         }
     }
 
-    // Phase 7.4: APK Splits配置 - 分架构打包
+    // Phase 7.4: APK Splits閰嶇疆 - 鍒嗘灦鏋勬墦鍖?
     splits {
-        // 按CPU架构分包
+        // 鎸塁PU鏋舵瀯鍒嗗寘
         abi {
             isEnable = true
             reset()
             include("armeabi-v7a", "arm64-v8a")
-            isUniversalApk = true  // 同时生成通用APK（用于测试）
+            isUniversalApk = true  // 鍚屾椂鐢熸垚閫氱敤APK锛堢敤浜庢祴璇曪級
         }
 
-        // 按屏幕密度分包
+        // 鎸夊睆骞曞瘑搴﹀垎鍖?
         density {
             isEnable = true
             reset()
@@ -165,7 +169,7 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/LICENSE*"
             excludes += "/META-INF/NOTICE*"
-            // Phase 7.4: 排除更多冗余文件以减小APK体积
+            // Phase 7.4: 鎺掗櫎鏇村鍐椾綑鏂囦欢浠ュ噺灏廇PK浣撶Н
             excludes += "/META-INF/*.kotlin_module"
             excludes += "/META-INF/DEPENDENCIES"
             excludes += "/META-INF/INDEX.LIST"
@@ -176,8 +180,8 @@ android {
         }
         jniLibs {
             pickFirsts += "**/libc++_shared.so"
-            // Phase 7.4: 仅保留必要的CPU架构
-            useLegacyPackaging = false  // 使用新的压缩方式
+            // Phase 7.4: 浠呬繚鐣欏繀瑕佺殑CPU鏋舵瀯
+            useLegacyPackaging = false  // 浣跨敤鏂扮殑鍘嬬缉鏂瑰紡
         }
     }
 
@@ -260,7 +264,7 @@ configurations.all {
 }
 
 dependencies {
-    // 核心模块
+    // 鏍稿績妯″潡
     implementation(project(":core-common"))
     implementation(project(":core-database"))
     implementation(project(":core-did"))
@@ -270,11 +274,11 @@ dependencies {
     implementation(project(":core-security"))
     implementation(project(":core-ui"))
 
-    // 功能模块
+    // 鍔熻兘妯″潡
     implementation(project(":feature-auth"))
     implementation(project(":feature-knowledge"))
     implementation(project(":feature-ai"))
-    implementation(project(":feature-p2p"))
+    // implementation(project(":feature-p2p")) // Temporarily disabled due to Hilt compilation errors
     implementation(project(":feature-project"))
     implementation(project(":feature-file-browser"))
 
@@ -330,31 +334,28 @@ dependencies {
     // Jsoup for HTML parsing (link preview)
     implementation("org.jsoup:jsoup:1.17.2")
 
-    // ===== v0.31.0 新增依赖 =====
+    // ===== v0.31.0 鏂板渚濊禆 =====
 
-    // 二维码生成
-    implementation("com.google.zxing:core:3.5.2")
+    // 浜岀淮鐮佺敓鎴?    implementation("com.google.zxing:core:3.5.2")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
-    // CameraX（二维码扫描）
-    implementation("androidx.camera:camera-core:1.3.1")
+    // CameraX锛堜簩缁寸爜鎵弿锛?    implementation("androidx.camera:camera-core:1.3.1")
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
 
-    // ML Kit条形码扫描
-    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    // ML Kit鏉″舰鐮佹壂鎻?    implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
-    // 权限管理
+    // 鏉冮檺绠＄悊
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
 
-    // Markdown渲染（富文本编辑器）
+    // Markdown娓叉煋锛堝瘜鏂囨湰缂栬緫鍣級
     implementation("io.noties.markwon:core:4.6.2")
     implementation("io.noties.markwon:editor:4.6.2")
     implementation("io.noties.markwon:syntax-highlight:4.6.2")
     implementation("io.noties.markwon:image-coil:4.6.2")
 
-    // ===== Phase 1: WebRTC 远程控制 =====
+    // ===== Phase 1: WebRTC 杩滅▼鎺у埗 =====
     // WebRTC comes transitively from core-p2p module (ch.threema:webrtc-android:134.0.0)
 
     // BouncyCastle for DID crypto
@@ -392,6 +393,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
-    // LeakCanary - 内存泄漏检测（仅 Debug）
+    // LeakCanary - Memory leak detection (Debug only)
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.13")
 }
+

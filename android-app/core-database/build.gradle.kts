@@ -80,3 +80,6 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.room:room-testing:$roomVersion")
 }
+
+// Apply Jacoco configuration for code coverage
+apply(from = rootProject.file("jacoco-config.gradle.kts"))

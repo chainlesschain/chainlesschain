@@ -21,6 +21,9 @@ import javax.inject.Singleton
 class DeviceIdManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    // Test injection point - allows tests to provide plain SharedPreferences
+    internal var testSharedPreferences: SharedPreferences? = null
+
     private val masterKey: MasterKey by lazy {
         MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -28,7 +31,7 @@ class DeviceIdManager @Inject constructor(
     }
 
     private val sharedPreferences: SharedPreferences by lazy {
-        EncryptedSharedPreferences.create(
+        testSharedPreferences ?: EncryptedSharedPreferences.create(
             context,
             PREFS_NAME,
             masterKey,
@@ -84,10 +87,9 @@ class DeviceIdManager @Inject constructor(
 
             // 生成设备指纹
             val androidId = try {
-                Settings.Secure.getString(
-                    context.contentResolver,
-                    Settings.Secure.ANDROID_ID
-                )
+                context.contentResolver?.let {
+                    Settings.Secure.getString(it, Settings.Secure.ANDROID_ID)
+                } ?: "unknown"
             } catch (e: Exception) {
                 Timber.w(e, "无法获取 ANDROID_ID")
                 "unknown"
@@ -134,10 +136,9 @@ class DeviceIdManager @Inject constructor(
             deviceId = getDeviceId(),
             fingerprint = getDeviceFingerprint(),
             androidId = try {
-                Settings.Secure.getString(
-                    context.contentResolver,
-                    Settings.Secure.ANDROID_ID
-                )
+                context.contentResolver?.let {
+                    Settings.Secure.getString(it, Settings.Secure.ANDROID_ID)
+                } ?: "unavailable"
             } catch (e: Exception) {
                 "unavailable"
             }

@@ -376,9 +376,9 @@ class DatabaseMigrationsTest {
         // When
         callback.onOpen(mockDatabase)
 
-        // Then
+        // Then - SQLCipher使用query而非execSQL处理PRAGMA
         verify {
-            mockDatabase.execSQL("PRAGMA journal_mode=WAL")
+            mockDatabase.query("PRAGMA journal_mode=WAL")
         }
     }
 
@@ -390,9 +390,9 @@ class DatabaseMigrationsTest {
         // When
         callback.onOpen(mockDatabase)
 
-        // Then
+        // Then - SQLCipher使用query而非execSQL处理PRAGMA
         verify {
-            mockDatabase.execSQL("PRAGMA foreign_keys=ON")
+            mockDatabase.query("PRAGMA foreign_keys=ON")
         }
     }
 
