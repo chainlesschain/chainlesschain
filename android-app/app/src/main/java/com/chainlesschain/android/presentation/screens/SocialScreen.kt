@@ -9,10 +9,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chainlesschain.android.feature.p2p.ui.social.FriendListScreen
-import com.chainlesschain.android.feature.p2p.ui.social.TimelineScreen
-import com.chainlesschain.android.feature.p2p.ui.social.NotificationCenterScreen
+// P2P social screens temporarily disabled - compilation issues
+// import com.chainlesschain.android.feature.p2p.ui.social.FriendListScreen
+// import com.chainlesschain.android.feature.p2p.ui.social.TimelineScreen
+// import com.chainlesschain.android.feature.p2p.ui.social.NotificationCenterScreen
 import com.chainlesschain.android.feature.p2p.viewmodel.DIDViewModel
 import com.chainlesschain.android.feature.p2p.viewmodel.social.FriendViewModel
 import com.chainlesschain.android.feature.p2p.viewmodel.social.NotificationViewModel
@@ -65,23 +67,23 @@ fun SocialScreen(
         ) {
             when (selectedTab) {
                 0 -> key("friends") {
-                    FriendListScreen(
-                        onNavigateBack = { /* 在主容器中不需要返回 */ },
-                        onNavigateToFriendDetail = onNavigateToFriendDetail,
-                        onNavigateToAddFriend = onNavigateToAddFriend
-                    )
+                    // FriendListScreen temporarily disabled
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text("好友列表功能暂时禁用", modifier = Modifier.padding(16.dp))
+                    }
                 }
                 1 -> key("timeline") {
-                    TimelineScreen(
-                        myDid = effectiveMyDid,
-                        friendDids = effectiveFriendDids,
-                        onNavigateToPublishPost = onNavigateToPublishPost,
-                        onNavigateToPostDetail = onNavigateToPostDetail,
-                        onNavigateToUserProfile = onNavigateToUserProfile,
-                        onNavigateToEditPost = onNavigateToEditPost
-                    )
+                    // TimelineScreen temporarily disabled
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text("动态页面功能暂时禁用", modifier = Modifier.padding(16.dp))
+                    }
                 }
                 2 -> key("notifications") {
+                    // NotificationCenterScreen temporarily disabled
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text("通知中心功能暂时禁用", modifier = Modifier.padding(16.dp))
+                    }
+                    /*
                     NotificationCenterScreen(
                         onNavigateBack = { /* 在主容器中不需要返回 */ },
                         onNavigateToFriendRequest = onNavigateToUserProfile,
@@ -89,6 +91,7 @@ fun SocialScreen(
                         onNavigateToPost = onNavigateToPostDetail,
                         onNavigateToComment = onNavigateToComment
                     )
+                    */
                 }
             }
         }

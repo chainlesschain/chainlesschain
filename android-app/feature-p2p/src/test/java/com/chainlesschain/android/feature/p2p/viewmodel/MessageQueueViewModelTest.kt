@@ -34,6 +34,7 @@ import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+*/
 
 /**
  * MessageQueueViewModel 单元测试

@@ -30,7 +30,6 @@ import java.io.File
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28])
 class MediaStoreScannerTest {
 
     private lateinit var context: Context

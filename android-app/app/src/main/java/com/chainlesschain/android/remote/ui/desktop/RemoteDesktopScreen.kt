@@ -297,16 +297,13 @@ fun RemoteDesktopCanvas(
                     size.height / imageBitmap.height
                 )
 
-                val scaledWidth = imageBitmap.width * scale
-                val scaledHeight = imageBitmap.height * scale
-
-                val offsetX = (size.width - scaledWidth) / 2
-                val offsetY = (size.height - scaledHeight) / 2
+                // Draw image centered (simplified - no scaling for now)
+                val offsetX = (size.width - imageBitmap.width) / 2
+                val offsetY = (size.height - imageBitmap.height) / 2
 
                 drawImage(
                     image = imageBitmap,
-                    dstOffset = androidx.compose.ui.geometry.Offset(offsetX, offsetY),
-                    dstSize = androidx.compose.ui.geometry.Size(scaledWidth, scaledHeight)
+                    topLeft = Offset(offsetX, offsetY)
                 )
             }
         } else {

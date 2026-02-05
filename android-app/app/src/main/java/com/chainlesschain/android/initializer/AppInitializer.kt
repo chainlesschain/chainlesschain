@@ -4,10 +4,11 @@ import android.app.Application
 import android.util.Log
 import com.chainlesschain.android.BuildConfig
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.crashlytics.FirebaseCrashlytics
-import com.google.firebase.ktx.Firebase
+// Firebase imports - disabled when google-services.json is not available
+// import com.google.firebase.analytics.FirebaseAnalytics
+// import com.google.firebase.analytics.ktx.analytics
+// import com.google.firebase.crashlytics.FirebaseCrashlytics
+// import com.google.firebase.ktx.Firebase
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -129,11 +130,12 @@ class AppInitializer @Inject constructor(
                     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
                         // 仅记录 ERROR 和 ASSERT 级别
                         if (priority >= Log.ERROR) {
-                            // 上报到 Crashlytics
-                            if (t != null) {
-                                FirebaseCrashlytics.getInstance().recordException(t)
-                            }
-                            FirebaseCrashlytics.getInstance().log("[$tag] $message")
+                            // 上报到 Crashlytics (disabled - Firebase not available)
+                            // if (t != null) {
+                            //     FirebaseCrashlytics.getInstance().recordException(t)
+                            // }
+                            // FirebaseCrashlytics.getInstance().log("[$tag] $message")
+                            Log.e(tag, message, t)
                         }
                     }
                 })
@@ -148,24 +150,27 @@ class AppInitializer @Inject constructor(
      * 初始化崩溃报告
      *
      * 集成 Firebase Crashlytics 进行生产环境错误监控
+     * NOTE: Disabled when Firebase is not available (google-services.json missing)
      */
     private fun initializeCrashReporting() {
         try {
-            val crashlytics = FirebaseCrashlytics.getInstance()
+            // Firebase Crashlytics disabled - google-services.json not found
+            // val crashlytics = FirebaseCrashlytics.getInstance()
 
             // Debug 环境禁用自动收集（节省配额）
-            if (BuildConfig.DEBUG) {
-                crashlytics.setCrashlyticsCollectionEnabled(false)
-                Timber.d("Crashlytics: Disabled for debug builds")
-            } else {
-                crashlytics.setCrashlyticsCollectionEnabled(true)
-
-                // 设置自定义键值
-                crashlytics.setCustomKey("app_version", BuildConfig.VERSION_NAME)
-                crashlytics.setCustomKey("build_type", "release")
-
-                Timber.i("Crashlytics: Enabled for release builds")
-            }
+            // if (BuildConfig.DEBUG) {
+            //     crashlytics.setCrashlyticsCollectionEnabled(false)
+            //     Timber.d("Crashlytics: Disabled for debug builds")
+            // } else {
+            //     crashlytics.setCrashlyticsCollectionEnabled(true)
+            //
+            //     // 设置自定义键值
+            //     crashlytics.setCustomKey("app_version", BuildConfig.VERSION_NAME)
+            //     crashlytics.setCustomKey("build_type", "release")
+            //
+            //     Timber.i("Crashlytics: Enabled for release builds")
+            // }
+            Timber.w("Crashlytics: Disabled (Firebase not available)")
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize crash reporting")
         }
@@ -202,26 +207,29 @@ class AppInitializer @Inject constructor(
      * 初始化分析服务
      *
      * 集成 Firebase Analytics 进行用户行为分析
+     * NOTE: Disabled when Firebase is not available (google-services.json missing)
      */
     private suspend fun initializeAnalytics() {
         try {
-            val analytics = Firebase.analytics
+            // Firebase Analytics disabled - google-services.json not found
+            // val analytics = Firebase.analytics
 
             // Debug 环境禁用数据收集
-            analytics.setAnalyticsCollectionEnabled(!BuildConfig.DEBUG)
+            // analytics.setAnalyticsCollectionEnabled(!BuildConfig.DEBUG)
 
-            if (!BuildConfig.DEBUG) {
-                // 设置用户属性
-                analytics.setUserProperty("app_version", BuildConfig.VERSION_NAME)
-                analytics.setUserProperty("build_type", "release")
-
-                // 记录应用启动事件
-                analytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, null)
-
-                Timber.i("Analytics initialized and enabled")
-            } else {
-                Timber.d("Analytics disabled for debug builds")
-            }
+            // if (!BuildConfig.DEBUG) {
+            //     // 设置用户属性
+            //     analytics.setUserProperty("app_version", BuildConfig.VERSION_NAME)
+            //     analytics.setUserProperty("build_type", "release")
+            //
+            //     // 记录应用启动事件
+            //     analytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, null)
+            //
+            //     Timber.i("Analytics initialized and enabled")
+            // } else {
+            //     Timber.d("Analytics disabled for debug builds")
+            // }
+            Timber.w("Analytics: Disabled (Firebase not available)")
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize analytics")
         }

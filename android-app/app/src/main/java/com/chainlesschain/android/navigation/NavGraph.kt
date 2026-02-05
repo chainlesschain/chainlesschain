@@ -34,13 +34,18 @@ import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
 import com.chainlesschain.android.feature.ai.presentation.settings.LLMSettingsScreen
 import com.chainlesschain.android.feature.ai.presentation.usage.UsageStatisticsScreen
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
-import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
-import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
-import com.chainlesschain.android.feature.p2p.ui.social.PostDetailScreen
-import com.chainlesschain.android.feature.p2p.ui.social.PublishPostScreen
-import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
-import com.chainlesschain.android.feature.p2p.ui.social.QRCodeScannerScreen
-import com.chainlesschain.android.feature.p2p.ui.social.EditPostScreen
+// P2P navigation temporarily disabled - compilation issues with feature-p2p module imports
+// import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
+// import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
+// import com.chainlesschain.android.feature.p2p.ui.social.PostDetailScreen
+// import com.chainlesschain.android.feature.p2p.ui.social.PublishPostScreen
+// import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
+// import com.chainlesschain.android.feature.p2p.ui.social.EditPostScreen
+// import com.chainlesschain.android.feature.p2p.ui.social.FriendDetailScreen
+// import com.chainlesschain.android.feature.p2p.ui.social.AddFriendScreen
+// import com.chainlesschain.android.feature.p2p.ui.social.CommentDetailScreen
+// import com.chainlesschain.android.feature.p2p.ui.QRCodeScannerScreen
+// import com.chainlesschain.android.feature.p2p.ui.DeviceManagementScreen
 import com.chainlesschain.android.feature.filebrowser.ui.SafeFileBrowserScreen
 
 /**
@@ -244,15 +249,15 @@ fun NavGraph(
             )
         }
 
-        // P2P 功能导航图
-        p2pGraph(
-            navController = navController,
-            onNavigateToChat = { deviceId ->
-                // TODO: Navigate to P2P chat screen when implemented
-                // For now, just navigate to AI chat as placeholder
-                navController.navigate(Screen.ConversationList.route)
-            }
-        )
+        // P2P 功能导航图 - temporarily disabled
+        // p2pGraph(
+        //     navController = navController,
+        //     onNavigateToChat = { deviceId ->
+        //         // TODO: Navigate to P2P chat screen when implemented
+        //         // For now, just navigate to AI chat as placeholder
+        //         navController.navigate(Screen.ConversationList.route)
+        //     }
+        // )
 
         // 项目详情页 V2
         composable(
@@ -394,36 +399,38 @@ fun NavGraph(
 
         // ===== 社交功能路由 =====
 
-        // 发布动态页面
-        composable(route = Screen.PublishPost.route) {
-            PublishPostScreen(
-                myDid = "did:example:123456", // TODO: 从实际的 DID 服务获取
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
-        }
+        // 发布动态页面 - temporarily disabled
+        // composable(route = Screen.PublishPost.route) {
+        //     PublishPostScreen(
+        //         myDid = "did:example:123456", // TODO: 从实际的 DID 服务获取
+        //         onNavigateBack = {
+        //             navController.popBackStack()
+        //         }
+        //     )
+        // }
 
-        // 动态详情页面
-        composable(
-            route = "${Screen.PostDetail.route}/{postId}",
-            arguments = listOf(
-                navArgument("postId") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
-            PostDetailScreen(
-                postId = postId,
-                myDid = "did:example:123456", // TODO: 从实际的 DID 服务获取
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onNavigateToUserProfile = { did ->
-                    navController.navigate(Screen.UserProfile.createRoute(did))
-                }
-            )
-        }
+        // 动态详情页面 - temporarily disabled
+        // composable(
+        //     route = "${Screen.PostDetail.route}/{postId}",
+        //     arguments = listOf(
+        //         navArgument("postId") { type = NavType.StringType }
+        //     )
+        // ) { backStackEntry ->
+        //     val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+        //     PostDetailScreen(
+        //         postId = postId,
+        //         myDid = "did:example:123456", // TODO: 从实际的 DID 服务获取
+        //         onNavigateBack = {
+        //             navController.popBackStack()
+        //         },
+        //         onNavigateToUserProfile = { did ->
+        //             navController.navigate(Screen.UserProfile.createRoute(did))
+        //         }
+        //     )
+        // }
 
+        // P2P social screens temporarily disabled - compilation issues
+        /*
         // 好友详情页面
         composable(
             route = "${Screen.FriendDetail.route}/{did}",
@@ -577,6 +584,7 @@ fun NavGraph(
                 }
             )
         }
+        */
 
         // ===== 远程控制功能路由（Phase 2）=====
         // 注意：由于 WebRTC 依赖问题，远程控制功能暂时禁用
