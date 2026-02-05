@@ -86,7 +86,13 @@ class OpenAIAdapter @Inject constructor(
                                 val finishReason = streamResponse.choices.firstOrNull()?.finish_reason
 
                                 if (content != null) {
-                                    emit(StreamChunk(content, isDone = finishReason != null))
+                                    emit(StreamChunk(content, isDone = false))
+                                }
+
+                                // 如果有finish_reason，说明流式响应结束
+                                if (finishReason != null) {
+                                    emit(StreamChunk("", isDone = true))
+                                    break
                                 }
                             } catch (e: Exception) {
                                 // 忽略解析错误，继续处理下一行

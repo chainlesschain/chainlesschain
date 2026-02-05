@@ -46,7 +46,7 @@ include(":core-ui")
 include(":feature-auth")
 include(":feature-knowledge")
 include(":feature-ai")
-include(":feature-p2p") // Re-enabled to fix SignalClient connection issue
+include(":feature-p2p")
 include(":feature-project")
 include(":feature-file-browser")
 
