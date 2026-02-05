@@ -206,9 +206,8 @@ class KeyBackupManager {
      */
     fun exportBackupAsBase64(backup: EncryptedBackup): String {
         val backupJson = json.encodeToString(backup)
-        return android.util.Base64.encodeToString(
-            backupJson.toByteArray(Charsets.UTF_8),
-            android.util.Base64.NO_WRAP
+        return java.util.Base64.getEncoder().encodeToString(
+            backupJson.toByteArray(Charsets.UTF_8)
         )
     }
 
@@ -217,7 +216,7 @@ class KeyBackupManager {
      */
     fun importBackupFromBase64(base64: String): EncryptedBackup {
         val backupJson = String(
-            android.util.Base64.decode(base64, android.util.Base64.NO_WRAP),
+            java.util.Base64.getDecoder().decode(base64),
             Charsets.UTF_8
         )
         return json.decodeFromString(backupJson)

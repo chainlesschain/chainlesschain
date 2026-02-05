@@ -45,7 +45,8 @@ class AutoReconnectManagerTest {
         Dispatchers.setMain(testDispatcher)
         heartbeatManager = mockk(relaxed = true)
         every { heartbeatManager.reconnectEvents } returns mockReconnectEvents
-        autoReconnectManager = AutoReconnectManager(heartbeatManager)
+        // Inject testDispatcher to control all coroutines in AutoReconnectManager
+        autoReconnectManager = AutoReconnectManager(heartbeatManager, testDispatcher)
     }
 
     @After
@@ -268,7 +269,7 @@ class AutoReconnectManagerTest {
             }
         }
 
-        // Ensure collector is started - runCurrent() properly advances StandardTestDispatcher
+        // Ensure collector is started
         runCurrent()
 
         autoReconnectManager.start { }
@@ -300,7 +301,7 @@ class AutoReconnectManagerTest {
             }
         }
 
-        // Ensure collector is started - runCurrent() properly advances StandardTestDispatcher
+        // Ensure collector is started
         runCurrent()
 
         autoReconnectManager.start { /* success */ }
@@ -336,7 +337,7 @@ class AutoReconnectManagerTest {
             }
         }
 
-        // Ensure collector is started - runCurrent() properly advances StandardTestDispatcher
+        // Ensure collector is started
         runCurrent()
 
         autoReconnectManager.start { throw Exception("Connection failed") }
@@ -370,7 +371,7 @@ class AutoReconnectManagerTest {
             }
         }
 
-        // Ensure collector is started - runCurrent() properly advances StandardTestDispatcher
+        // Ensure collector is started
         runCurrent()
 
         autoReconnectManager.start { throw Exception("Connection failed") }

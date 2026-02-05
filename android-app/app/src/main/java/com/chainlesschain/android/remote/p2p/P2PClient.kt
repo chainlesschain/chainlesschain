@@ -426,16 +426,9 @@ class DataChannel {
 }
 
 /**
- * DID 管理器接口（需要实现）
- */
-interface DIDManager {
-    suspend fun getCurrentDID(): String
-    suspend fun sign(data: String): String
-}
-
-/**
  * 信令客户端接口（需要实现）
+ * 注意: 此接口已被 SignalClient.kt 中的实现类替代
  */
-interface SignalClient {
+interface LegacySignalClient {
     // TODO: 定义信令相关方法
 }

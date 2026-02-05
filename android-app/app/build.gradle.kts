@@ -22,11 +22,9 @@ val hasGoogleServices = listOf(
 if (hasGoogleServices) {
     apply(plugin = "com.google.gms.google-services")
     apply(plugin = "com.google.firebase.crashlytics")
-    logger.lifecycle("鉁?Firebase enabled (google-services.json found)")
-}
-
-    else {
-    logger.warn("鈿?Firebase disabled (google-services.json not found)")
+    logger.lifecycle("✓ Firebase enabled (google-services.json found)")
+} else {
+    logger.warn("⚠ Firebase disabled (google-services.json not found)")
     logger.warn("  To enable Firebase: Add google-services.json to app/")
 }
 
@@ -48,10 +46,10 @@ android {
             useSupportLibrary = true
         }
 
-        // 澶氳瑷€鏀寔
+        // Multi-language support
         resourceConfigurations.addAll(listOf("zh", "en"))
 
-        // NDK鏀寔
+        // NDK support
         ndk {
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
         }
@@ -59,7 +57,7 @@ android {
 
     signingConfigs {
         create("release") {
-            // 浠?keystore.properties 璇诲彇绛惧悕閰嶇疆
+            // Read signing config from keystore.properties
             val keystorePropertiesFile = rootProject.file("keystore.properties")
             if (keystorePropertiesFile.exists()) {
                 val keystoreProperties = Properties()
@@ -69,10 +67,8 @@ android {
                 storePassword = keystoreProperties["release.storePassword"] as String
                 keyAlias = keystoreProperties["release.keyAlias"] as String
                 keyPassword = keystoreProperties["release.keyPassword"] as String
-            }
-
-    else {
-                // 濡傛灉閰嶇疆鏂囦欢涓嶅瓨鍦紝浣跨敤debug瀵嗛挜锛堜粎鐢ㄤ簬寮€鍙戞祴璇曪級
+            } else {
+                // If config file doesn't exist, use debug keystore (for development/testing only)
                 logger.warn("keystore.properties not found. Using debug keystore for release build.")
                 logger.warn("Please create keystore.properties from keystore.properties.template for production builds.")
                 storeFile = file("../keystore/debug.keystore")
@@ -102,35 +98,36 @@ android {
         }
     }
 
-    // Phase 7.4: App Bundle閰嶇疆 - 鎸夐渶鍒嗗彂
+    // Phase 7.4: App Bundle configuration - on-demand delivery
     bundle {
-        // 鎸夎瑷€鍒嗗寘
+        // Language-based splits
         language {
             enableSplit = true
         }
 
-        // 鎸夊睆骞曞瘑搴﹀垎鍖?
+        // Density-based splits
         density {
             enableSplit = true
         }
 
-        // 鎸塁PU鏋舵瀯鍒嗗寘
+        // CPU architecture-based splits
         abi {
             enableSplit = true
         }
     }
 
-    // Phase 7.4: APK Splits閰嶇疆 - 鍒嗘灦鏋勬墦鍖?
+    // Phase 7.4: APK Splits configuration - architecture-based packaging
     splits {
-        // 鎸塁PU鏋舵瀯鍒嗗寘
+        // CPU architecture-based splits
         abi {
             isEnable = true
             reset()
             include("armeabi-v7a", "arm64-v8a")
-            isUniversalApk = true  // 鍚屾椂鐢熸垚閫氱敤APK锛堢敤浜庢祴璇曪級
+            // Also generate universal APK (for testing)
+            isUniversalApk = true
         }
 
-        // 鎸夊睆骞曞瘑搴﹀垎鍖?
+        // Density-based splits
         density {
             isEnable = true
             reset()
@@ -169,7 +166,7 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/LICENSE*"
             excludes += "/META-INF/NOTICE*"
-            // Phase 7.4: 鎺掗櫎鏇村鍐椾綑鏂囦欢浠ュ噺灏廇PK浣撶Н
+            // Phase 7.4: Exclude more redundant files to reduce APK size
             excludes += "/META-INF/*.kotlin_module"
             excludes += "/META-INF/DEPENDENCIES"
             excludes += "/META-INF/INDEX.LIST"
@@ -180,8 +177,9 @@ android {
         }
         jniLibs {
             pickFirsts += "**/libc++_shared.so"
-            // Phase 7.4: 浠呬繚鐣欏繀瑕佺殑CPU鏋舵瀯
-            useLegacyPackaging = false  // 浣跨敤鏂扮殑鍘嬬缉鏂瑰紡
+            // Phase 7.4: Keep only necessary CPU architectures
+            // Use new compression method
+            useLegacyPackaging = false
         }
     }
 
@@ -264,7 +262,7 @@ configurations.all {
 }
 
 dependencies {
-    // 鏍稿績妯″潡
+    // Core modules
     implementation(project(":core-common"))
     implementation(project(":core-database"))
     implementation(project(":core-did"))
@@ -274,7 +272,7 @@ dependencies {
     implementation(project(":core-security"))
     implementation(project(":core-ui"))
 
-    // 鍔熻兘妯″潡
+    // Feature modules
     implementation(project(":feature-auth"))
     implementation(project(":feature-knowledge"))
     implementation(project(":feature-ai"))
@@ -334,28 +332,31 @@ dependencies {
     // Jsoup for HTML parsing (link preview)
     implementation("org.jsoup:jsoup:1.17.2")
 
-    // ===== v0.31.0 鏂板渚濊禆 =====
+    // ===== v0.31.0 new dependencies =====
 
-    // 浜岀淮鐮佺敓鎴?    implementation("com.google.zxing:core:3.5.2")
+    // QR code generation
+    implementation("com.google.zxing:core:3.5.2")
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 
-    // CameraX锛堜簩缁寸爜鎵弿锛?    implementation("androidx.camera:camera-core:1.3.1")
+    // CameraX (QR code scanning)
+    implementation("androidx.camera:camera-core:1.3.1")
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
 
-    // ML Kit鏉″舰鐮佹壂鎻?    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+    // ML Kit barcode scanning
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
-    // 鏉冮檺绠＄悊
+    // Permission management
     implementation("com.google.accompanist:accompanist-permissions:0.32.0")
 
-    // Markdown娓叉煋锛堝瘜鏂囨湰缂栬緫鍣級
+    // Markdown rendering (rich text editor)
     implementation("io.noties.markwon:core:4.6.2")
     implementation("io.noties.markwon:editor:4.6.2")
     implementation("io.noties.markwon:syntax-highlight:4.6.2")
     implementation("io.noties.markwon:image-coil:4.6.2")
 
-    // ===== Phase 1: WebRTC 杩滅▼鎺у埗 =====
+    // ===== Phase 1: WebRTC remote control =====
     // WebRTC comes transitively from core-p2p module (ch.threema:webrtc-android:134.0.0)
 
     // BouncyCastle for DID crypto
@@ -396,4 +397,3 @@ dependencies {
     // LeakCanary - Memory leak detection (Debug only)
     debugImplementation("com.squareup.leakcanary:leakcanary-android:2.13")
 }
-

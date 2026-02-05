@@ -161,8 +161,8 @@ class SessionFingerprintTest {
 
     @Test
     fun `test generate color fingerprint`() {
-        // Given
-        val fingerprint = "123456789abcdef012345"
+        // Given - Need at least 24 characters to generate 8 colors
+        val fingerprint = "123456789abcdef012345678"
 
         // When
         val colorFingerprint = SessionFingerprint.generateColorFingerprint(fingerprint)
