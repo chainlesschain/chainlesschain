@@ -11,6 +11,7 @@ import com.chainlesschain.android.core.database.entity.social.PostLikeEntity
 import com.chainlesschain.android.core.database.entity.social.PostShareEntity
 import com.chainlesschain.android.core.database.entity.social.PostReportEntity
 import com.chainlesschain.android.core.database.entity.social.PostEditHistoryEntity
+import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
 import com.chainlesschain.android.core.database.entity.social.ReportReason
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -453,6 +454,57 @@ class PostRepository @Inject constructor(
     suspend fun hasUserSharedPost(postId: String, userDid: String): Result<Boolean> {
         return try {
             Result.Success(interactionDao.hasUserSharedPost(postId, userDid))
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    // ===== 收藏管理 (v0.32.0) =====
+
+    /**
+     * 获取用户的收藏列表
+     */
+    fun getUserBookmarks(userDid: String): Flow<Result<List<PostBookmarkEntity>>> {
+        return interactionDao.getUserBookmarks(userDid)
+            .asResult()
+    }
+
+    /**
+     * 收藏动态
+     */
+    suspend fun bookmarkPost(postId: String, userDid: String): Result<Unit> {
+        return try {
+            val bookmark = PostBookmarkEntity(
+                id = "${postId}_${userDid}",
+                postId = postId,
+                userDid = userDid,
+                createdAt = System.currentTimeMillis()
+            )
+            interactionDao.insertBookmark(bookmark)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 取消收藏
+     */
+    suspend fun unbookmarkPost(postId: String, userDid: String): Result<Unit> {
+        return try {
+            interactionDao.deleteBookmark(postId, userDid)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 检查是否已收藏
+     */
+    suspend fun hasUserBookmarkedPost(postId: String, userDid: String): Result<Boolean> {
+        return try {
+            Result.Success(interactionDao.hasUserBookmarkedPost(postId, userDid))
         } catch (e: Exception) {
             Result.Error(e)
         }

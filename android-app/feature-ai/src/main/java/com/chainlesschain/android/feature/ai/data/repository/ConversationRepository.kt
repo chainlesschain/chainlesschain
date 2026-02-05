@@ -115,11 +115,8 @@ class ConversationRepository @Inject constructor(
 
             conversationDao.insertMessage(entity)
 
-            // 更新对话的消息数量和更新时间
-            conversationDao.updateConversationTimestamp(
-                conversationId,
-                System.currentTimeMillis()
-            )
+            // 更新对话的消息数量和更新时间（强制同步）
+            syncConversationStats(conversationId)
 
             Result.success(entity.toDomainModel())
         } catch (e: Exception) {
@@ -178,11 +175,8 @@ class ConversationRepository @Inject constructor(
 
             conversationDao.insertMessage(entity)
 
-            // 更新对话的消息数量和更新时间
-            conversationDao.updateConversationTimestamp(
-                conversationId,
-                System.currentTimeMillis()
-            )
+            // 更新对话的消息数量和更新时间（强制同步）
+            syncConversationStats(conversationId)
 
             // 记录token使用统计
             if (provider != null) {
@@ -325,28 +319,43 @@ class ConversationRepository @Inject constructor(
      * 更准确地估算Token数量
      * 中文字符约2个字符/token，英文约4个字符/token
      */
+    /**
+     * 估算文本的 Token 数量
+     *
+     * 采用更精确的中英文混合估算策略：
+     * - 中文字符（CJK统一汉字）: ~2个字符 = 1 token
+     * - 英文及其他字符: ~4个字符 = 1 token
+     *
+     * 这种方法比简单的字节数/4更准确，特别是对中英文混合文本。
+     *
+     * @param text 待估算的文本
+     * @return 估算的 token 数量
+     */
     private fun estimateTokenCount(text: String): Int {
         if (text.isEmpty()) return 0
 
-        var chineseChars = 0
-        var otherChars = 0
+        // 统计中文字符数（CJK统一汉字范围：U+4E00 到 U+9FFF）
+        val chineseChars = text.count { it.code in 0x4E00..0x9FFF }
 
-        for (char in text) {
-            when (char.code) {
-                in 0x4E00..0x9FFF,  // CJK统一汉字
-                in 0x3400..0x4DBF,  // CJK扩展A
-                in 0x20000..0x2A6DF, // CJK扩展B
-                in 0x2A700..0x2B73F, // CJK扩展C
-                in 0x2B740..0x2B81F, // CJK扩展D
-                in 0x2B820..0x2CEAF  // CJK扩展E
-                -> chineseChars++
-                else -> otherChars++
-            }
-        }
+        // 其他字符数（英文、标点、空格等）
+        val otherChars = text.length - chineseChars
 
-        // 中文字符约2字符/token，英文约4字符/token
-        val tokens = (chineseChars / 2) + (otherChars / 4)
-        return tokens.coerceAtLeast(1)
+        // 中文约0.5 token/字符，英文约0.25 token/字符
+        val estimatedTokens = (chineseChars / 2.0 + otherChars / 4.0).toInt()
+
+        return estimatedTokens.coerceAtLeast(1)
+    }
+
+    /**
+     * 同步会话统计信息（消息数量 + 更新时间）
+     */
+    private suspend fun syncConversationStats(conversationId: String) {
+        val messageCount = conversationDao.getMessageCount(conversationId)
+        conversationDao.updateConversationStats(
+            conversationId = conversationId,
+            messageCount = messageCount,
+            timestamp = System.currentTimeMillis()
+        )
     }
 
     // 实体转领域模型
@@ -369,4 +378,3 @@ class ConversationRepository @Inject constructor(
         tokenCount = tokenCount
     )
 }
-

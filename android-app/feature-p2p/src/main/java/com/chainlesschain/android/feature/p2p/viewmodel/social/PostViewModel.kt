@@ -278,6 +278,27 @@ class PostViewModel @Inject constructor(
             }
     }
 
+    /**
+     * 切换收藏状态
+     *
+     * @since v0.32.0
+     */
+    fun toggleBookmark(postId: String, currentlyBookmarked: Boolean) = launchSafely {
+        if (currentlyBookmarked) {
+            postRepository.unbookmarkPost(postId, currentMyDid)
+                .onSuccess {
+                    sendEvent(PostEvent.ShowToast("已取消收藏"))
+                }
+        } else {
+            postRepository.bookmarkPost(postId, currentMyDid)
+                .onSuccess {
+                    sendEvent(PostEvent.ShowToast("收藏成功"))
+                }
+        }.onError { error ->
+            handleError(error)
+        }
+    }
+
     // ===== 评论 =====
 
     /**

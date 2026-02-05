@@ -4,6 +4,7 @@ import androidx.room.*
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.core.database.entity.social.PostLikeEntity
 import com.chainlesschain.android.core.database.entity.social.PostShareEntity
+import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -271,4 +272,72 @@ interface PostInteractionDao {
      */
     @Query("DELETE FROM post_shares WHERE createdAt < :cutoffTime")
     suspend fun cleanupOldShares(cutoffTime: Long)
+
+    // ===== 收藏相关 (v0.32.0) =====
+
+    /**
+     * 获取动态的所有收藏
+     */
+    @Query("SELECT * FROM post_bookmarks WHERE postId = :postId ORDER BY createdAt DESC")
+    fun getPostBookmarks(postId: String): Flow<List<PostBookmarkEntity>>
+
+    /**
+     * 获取用户的所有收藏
+     */
+    @Query("SELECT * FROM post_bookmarks WHERE userDid = :userDid ORDER BY createdAt DESC")
+    fun getUserBookmarks(userDid: String): Flow<List<PostBookmarkEntity>>
+
+    /**
+     * 检查用户是否收藏了动态
+     */
+    @Query("SELECT COUNT(*) > 0 FROM post_bookmarks WHERE postId = :postId AND userDid = :userDid")
+    suspend fun hasUserBookmarkedPost(postId: String, userDid: String): Boolean
+
+    /**
+     * 获取用户的收藏记录
+     */
+    @Query("SELECT * FROM post_bookmarks WHERE postId = :postId AND userDid = :userDid")
+    suspend fun getUserBookmark(postId: String, userDid: String): PostBookmarkEntity?
+
+    /**
+     * 插入收藏
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookmark(bookmark: PostBookmarkEntity)
+
+    /**
+     * 删除收藏
+     */
+    @Delete
+    suspend fun deleteBookmark(bookmark: PostBookmarkEntity)
+
+    /**
+     * 根据动态 ID 和用户 DID 删除收藏
+     */
+    @Query("DELETE FROM post_bookmarks WHERE postId = :postId AND userDid = :userDid")
+    suspend fun deleteBookmark(postId: String, userDid: String)
+
+    /**
+     * 删除动态的所有收藏
+     */
+    @Query("DELETE FROM post_bookmarks WHERE postId = :postId")
+    suspend fun deletePostBookmarks(postId: String)
+
+    /**
+     * 获取用户的收藏数
+     */
+    @Query("SELECT COUNT(*) FROM post_bookmarks WHERE userDid = :userDid")
+    suspend fun getUserBookmarkCount(userDid: String): Int
+
+    /**
+     * 批量插入收藏
+     */
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBookmarks(bookmarks: List<PostBookmarkEntity>)
+
+    /**
+     * 清理旧的收藏记录
+     */
+    @Query("DELETE FROM post_bookmarks WHERE createdAt < :cutoffTime")
+    suspend fun cleanupOldBookmarks(cutoffTime: Long)
 }

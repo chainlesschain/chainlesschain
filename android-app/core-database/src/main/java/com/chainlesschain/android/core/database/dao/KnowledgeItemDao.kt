@@ -52,6 +52,12 @@ interface KnowledgeItemDao {
     fun getItemById(id: String): Flow<KnowledgeItemEntity?>
 
     /**
+     * 根据ID获取条目（同步）
+     */
+    @Query("SELECT * FROM knowledge_items WHERE id = :id AND isDeleted = 0")
+    suspend fun getItemByIdSync(id: String): KnowledgeItemEntity?
+
+    /**
      * 全文搜索（FTS4）
      * 使用FTS4虚拟表提供高性能全文搜索
      */
@@ -91,6 +97,12 @@ interface KnowledgeItemDao {
      */
     @Update
     suspend fun update(item: KnowledgeItemEntity)
+
+    /**
+     * 批量更新条目
+     */
+    @Update
+    suspend fun updateAll(items: List<KnowledgeItemEntity>): Int
 
     /**
      * 软删除条目

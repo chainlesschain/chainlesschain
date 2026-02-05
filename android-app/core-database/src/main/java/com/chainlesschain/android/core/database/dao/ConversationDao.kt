@@ -65,6 +65,20 @@ interface ConversationDao {
         timestamp: Long = System.currentTimeMillis()
     )
 
+    /**
+     * 更新会话消息数与最后活动时间（强制同步）
+     */
+    @Query("""
+        UPDATE conversations
+        SET updatedAt = :timestamp, messageCount = :messageCount
+        WHERE id = :conversationId
+    """)
+    suspend fun updateConversationStats(
+        conversationId: String,
+        messageCount: Int,
+        timestamp: Long = System.currentTimeMillis()
+    )
+
     // ===== 消息相关 =====
 
     /**

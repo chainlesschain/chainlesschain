@@ -2,12 +2,18 @@ package com.chainlesschain.android.initializer
 
 import android.app.Application
 import android.util.Log
+import com.chainlesschain.android.BuildConfig
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.ktx.Firebase
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -98,12 +104,41 @@ class AppInitializer @Inject constructor(
 
     /**
      * 初始化日志系统
+     *
+     * 根据构建类型配置 Timber 日志级别：
+     * - Debug: VERBOSE 级别，输出详细日志
+     * - Release: ERROR 级别，仅输出错误
      */
     private fun initializeLogging() {
         try {
-            // 配置日志级别
-            // TODO: 根据BuildConfig.DEBUG配置日志级别
-            Log.d(TAG, "Logging initialized")
+            // 移除所有已存在的日志树（避免重复）
+            Timber.uprootAll()
+
+            if (BuildConfig.DEBUG) {
+                // Debug环境：使用详细日志树
+                Timber.plant(object : Timber.DebugTree() {
+                    override fun createStackElementTag(element: StackTraceElement): String {
+                        // 显示类名和方法名，方便调试
+                        return "CC/${super.createStackElementTag(element)}:${element.lineNumber}"
+                    }
+                })
+                Timber.d("Logging initialized: DEBUG mode (VERBOSE level)")
+            } else {
+                // Release环境：仅记录错误和崩溃
+                Timber.plant(object : Timber.Tree() {
+                    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+                        // 仅记录 ERROR 和 ASSERT 级别
+                        if (priority >= Log.ERROR) {
+                            // 上报到 Crashlytics
+                            if (t != null) {
+                                FirebaseCrashlytics.getInstance().recordException(t)
+                            }
+                            FirebaseCrashlytics.getInstance().log("[$tag] $message")
+                        }
+                    }
+                })
+                Timber.d("Logging initialized: RELEASE mode (ERROR level only)")
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize logging", e)
         }
@@ -111,13 +146,28 @@ class AppInitializer @Inject constructor(
 
     /**
      * 初始化崩溃报告
+     *
+     * 集成 Firebase Crashlytics 进行生产环境错误监控
      */
     private fun initializeCrashReporting() {
         try {
-            // TODO: 集成Firebase Crashlytics或其他崩溃报告服务
-            Log.d(TAG, "Crash reporting initialized")
+            val crashlytics = FirebaseCrashlytics.getInstance()
+
+            // Debug 环境禁用自动收集（节省配额）
+            if (BuildConfig.DEBUG) {
+                crashlytics.setCrashlyticsCollectionEnabled(false)
+                Timber.d("Crashlytics: Disabled for debug builds")
+            } else {
+                crashlytics.setCrashlyticsCollectionEnabled(true)
+
+                // 设置自定义键值
+                crashlytics.setCustomKey("app_version", BuildConfig.VERSION_NAME)
+                crashlytics.setCustomKey("build_type", "release")
+
+                Timber.i("Crashlytics: Enabled for release builds")
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize crash reporting", e)
+            Timber.e(e, "Failed to initialize crash reporting")
         }
     }
 
@@ -150,13 +200,30 @@ class AppInitializer @Inject constructor(
 
     /**
      * 初始化分析服务
+     *
+     * 集成 Firebase Analytics 进行用户行为分析
      */
     private suspend fun initializeAnalytics() {
         try {
-            // TODO: 集成分析服务（如Firebase Analytics）
-            Log.d(TAG, "Analytics initialized")
+            val analytics = Firebase.analytics
+
+            // Debug 环境禁用数据收集
+            analytics.setAnalyticsCollectionEnabled(!BuildConfig.DEBUG)
+
+            if (!BuildConfig.DEBUG) {
+                // 设置用户属性
+                analytics.setUserProperty("app_version", BuildConfig.VERSION_NAME)
+                analytics.setUserProperty("build_type", "release")
+
+                // 记录应用启动事件
+                analytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, null)
+
+                Timber.i("Analytics initialized and enabled")
+            } else {
+                Timber.d("Analytics disabled for debug builds")
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize analytics", e)
+            Timber.e(e, "Failed to initialize analytics")
         }
     }
 

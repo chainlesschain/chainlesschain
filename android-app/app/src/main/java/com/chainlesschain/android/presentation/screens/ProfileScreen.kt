@@ -23,6 +23,7 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 fun ProfileScreen(
     onLogout: () -> Unit,
     onNavigateToLLMSettings: () -> Unit = {},
+    onNavigateToUsageStatistics: () -> Unit = {},
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
@@ -154,6 +155,15 @@ fun ProfileScreen(
                     title = "AI配置",
                     subtitle = "配置LLM提供商和API密钥",
                     onClick = onNavigateToLLMSettings
+                )
+            }
+
+            item {
+                ProfileMenuItem(
+                    icon = Icons.Default.Analytics,
+                    title = "使用统计",
+                    subtitle = "查看Token使用和成本统计",
+                    onClick = onNavigateToUsageStatistics
                 )
             }
 

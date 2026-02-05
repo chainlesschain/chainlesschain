@@ -35,6 +35,7 @@ fun MainContainer(
     onNavigateToMyQRCode: () -> Unit = {},
     onNavigateToQRScanner: () -> Unit = {},
     onNavigateToLLMSettings: () -> Unit = {},
+    onNavigateToUsageStatistics: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
@@ -80,6 +81,7 @@ fun MainContainer(
                     NewHomeScreen(
                         viewModel = viewModel,
                         onProfileClick = onProfileClick,
+                        onNavigateToUsageStatistics = onNavigateToUsageStatistics,
                         onNavigateToKnowledgeList = onNavigateToKnowledgeList,
                         onNavigateToAIChat = onNavigateToAIChat,
                         onNavigateToLLMSettings = onNavigateToLLMSettings,
@@ -114,6 +116,7 @@ fun MainContainer(
                     ProfileScreen(
                         onLogout = onLogout,
                         onNavigateToLLMSettings = onNavigateToLLMSettings,
+                        onNavigateToUsageStatistics = onNavigateToUsageStatistics,
                         onNavigateToKnowledgeList = onNavigateToKnowledgeList,
                         onNavigateToAIChat = onNavigateToAIChat,
                         onNavigateToP2P = onNavigateToP2P,

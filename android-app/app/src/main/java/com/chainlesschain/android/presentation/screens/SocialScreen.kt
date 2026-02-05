@@ -13,6 +13,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.feature.p2p.ui.social.FriendListScreen
 import com.chainlesschain.android.feature.p2p.ui.social.TimelineScreen
 import com.chainlesschain.android.feature.p2p.ui.social.NotificationCenterScreen
+import com.chainlesschain.android.feature.p2p.viewmodel.DIDViewModel
+import com.chainlesschain.android.feature.p2p.viewmodel.social.FriendViewModel
 import com.chainlesschain.android.feature.p2p.viewmodel.social.NotificationViewModel
 
 /**
@@ -29,12 +31,23 @@ fun SocialScreen(
     onNavigateToUserProfile: (String) -> Unit = {},
     onNavigateToEditPost: (String) -> Unit = {},
     onNavigateToComment: (String) -> Unit = {},
-    myDid: String = "did:example:123456", // TODO: 从实际的 DID 服务获取
-    friendDids: List<String> = emptyList(), // TODO: 从好友列表获取
-    notificationViewModel: NotificationViewModel = hiltViewModel()
+    myDid: String = "",
+    friendDids: List<String> = emptyList(),
+    notificationViewModel: NotificationViewModel = hiltViewModel(),
+    didViewModel: DIDViewModel = hiltViewModel(),
+    friendViewModel: FriendViewModel = hiltViewModel()
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(1) } // 默认显示动态
     val unreadCount by notificationViewModel.uiState.collectAsState()
+    val didDocument by didViewModel.didDocument.collectAsState()
+    val friendState by friendViewModel.uiState.collectAsState()
+
+    val effectiveMyDid = if (myDid.isNotBlank()) myDid else didDocument?.id.orEmpty()
+    val effectiveFriendDids = if (friendDids.isNotEmpty()) {
+        friendDids
+    } else {
+        friendState.friends.map { it.did }
+    }
 
     Scaffold(
         topBar = {
@@ -60,8 +73,8 @@ fun SocialScreen(
                 }
                 1 -> key("timeline") {
                     TimelineScreen(
-                        myDid = myDid,
-                        friendDids = friendDids,
+                        myDid = effectiveMyDid,
+                        friendDids = effectiveFriendDids,
                         onNavigateToPublishPost = onNavigateToPublishPost,
                         onNavigateToPostDetail = onNavigateToPostDetail,
                         onNavigateToUserProfile = onNavigateToUserProfile,

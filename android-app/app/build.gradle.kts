@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,6 +8,8 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("io.gitlab.arturbosch.detekt") version "1.23.4"
+    id("com.google.gms.google-services") // Firebase
+    id("com.google.firebase.crashlytics") // Crashlytics
     jacoco
 }
 
@@ -37,11 +42,25 @@ android {
 
     signingConfigs {
         create("release") {
-            // TODO: 配置正式签名证书
-            storeFile = file("../keystore/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            // 从 keystore.properties 读取签名配置
+            val keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                val keystoreProperties = Properties()
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+
+                storeFile = file(keystoreProperties["release.storeFile"] as String)
+                storePassword = keystoreProperties["release.storePassword"] as String
+                keyAlias = keystoreProperties["release.keyAlias"] as String
+                keyPassword = keystoreProperties["release.keyPassword"] as String
+            } else {
+                // 如果配置文件不存在，使用debug密钥（仅用于开发测试）
+                logger.warn("keystore.properties not found. Using debug keystore for release build.")
+                logger.warn("Please create keystore.properties from keystore.properties.template for production builds.")
+                storeFile = file("../keystore/debug.keystore")
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
         }
     }
 
@@ -313,6 +332,14 @@ dependencies {
     // ===== Phase 1: WebRTC 远程控制 =====
     // WebRTC for P2P remote control (使用 core-p2p 中已有的 ch.threema:webrtc-android:134.0.0)
     // implementation("org.webrtc:google-webrtc:1.0.32006") // 与现有依赖冲突，已移除
+
+    // ===== Firebase Crashlytics =====
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+
+    // Firebase Crashlytics (version managed by BoM)
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
