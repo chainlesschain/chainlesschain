@@ -1,6 +1,9 @@
 package com.chainlesschain.android.feature.knowledge.ui
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.test.*
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity

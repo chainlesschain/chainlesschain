@@ -138,6 +138,7 @@ fun LLMSettingsScreen(
                         currentProvider = currentProvider,
                         validationErrors = state.validationErrors,
                         onProviderChange = { viewModel.switchProvider(it) },
+                        onNavigateToUsageStatistics = onNavigateToUsageStatistics,
                         onUpdateOllama = { url, model, embedding ->
                             viewModel.updateOllamaConfig(url, model, embedding)
                         },
@@ -167,6 +168,7 @@ fun LLMSettingsScreen(
                         currentProvider = currentProvider,
                         validationErrors = emptyList(),
                         onProviderChange = {},
+                        onNavigateToUsageStatistics = onNavigateToUsageStatistics,
                         onUpdateOllama = { _, _, _ -> },
                         onUpdateOpenAI = { _, _, _ -> },
                         onUpdateDeepSeek = { _, _, _ -> },
@@ -211,6 +213,7 @@ fun LLMSettingsScreen(
                         currentProvider = currentProvider,
                         validationErrors = emptyList(),
                         onProviderChange = {},
+                        onNavigateToUsageStatistics = onNavigateToUsageStatistics,
                         onUpdateOllama = { _, _, _ -> },
                         onUpdateOpenAI = { _, _, _ -> },
                         onUpdateDeepSeek = { _, _, _ -> },
@@ -306,6 +309,7 @@ private fun LLMSettingsContent(
     currentProvider: LLMProvider,
     validationErrors: List<String>,
     onProviderChange: (LLMProvider) -> Unit,
+    onNavigateToUsageStatistics: () -> Unit,
     onUpdateOllama: (String, String, String) -> Unit,
     onUpdateOpenAI: (String, String, String) -> Unit,
     onUpdateDeepSeek: (String, String, String) -> Unit,
@@ -320,6 +324,48 @@ private fun LLMSettingsContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onNavigateToUsageStatistics),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Analytics,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "使用统计",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        Text(
+                            text = "查看各模型的Token使用与成本统计",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
         // 提供商选择器
         item {
             ProviderSelector(

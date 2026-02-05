@@ -38,6 +38,9 @@ dependencies {
     implementation(project(":core-database"))
     implementation(project(":core-security"))
 
+    // Feature modules (for AI summarization)
+    implementation(project(":feature-ai"))
+
     // Android Core
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")

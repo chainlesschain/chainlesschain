@@ -39,6 +39,7 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 fun NewHomeScreen(
     viewModel: AuthViewModel,
     onProfileClick: () -> Unit = {},
+    onNavigateToUsageStatistics: () -> Unit = {},
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToLLMSettings: () -> Unit = {},
@@ -56,10 +57,13 @@ fun NewHomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
+        .background(MaterialTheme.colorScheme.surface)
     ) {
         // 顶部栏 - 用户头像
-        HomeTopBar(onProfileClick = onProfileClick)
+        HomeTopBar(
+            onProfileClick = onProfileClick,
+            onNavigateToUsageStatistics = onNavigateToUsageStatistics
+        )
 
         // 主内容区域 - 添加滚动支持
         Column(
@@ -78,6 +82,7 @@ fun NewHomeScreen(
 
             // 功能入口网格 (3x3 = 9个核心功能)
             FunctionEntryGrid(
+                onNavigateToUsageStatistics = onNavigateToUsageStatistics,
                 onNavigateToKnowledgeList = onNavigateToKnowledgeList,
                 onNavigateToAIChat = onNavigateToAIChat,
                 onNavigateToLLMSettings = onNavigateToLLMSettings,
@@ -114,11 +119,21 @@ fun NewHomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeTopBar(
-    onProfileClick: () -> Unit
+    onProfileClick: () -> Unit,
+    onNavigateToUsageStatistics: () -> Unit
 ) {
     TopAppBar(
         title = { },
         actions = {
+            // 使用统计入口
+            IconButton(onClick = onNavigateToUsageStatistics) {
+                Icon(
+                    imageVector = Icons.Default.Analytics,
+                    contentDescription = "使用统计",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
             // 用户头像按钮
             IconButton(onClick = onProfileClick) {
                 Box(
@@ -194,6 +209,7 @@ fun BrandSection() {
  */
 @Composable
 fun FunctionEntryGrid(
+    onNavigateToUsageStatistics: () -> Unit = {},
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToLLMSettings: () -> Unit = {},
@@ -205,8 +221,9 @@ fun FunctionEntryGrid(
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {}
 ) {
-    // 9 个核心功能入口，覆盖三大核心板块
+    // 10 个核心功能入口，采用“8宫格 + 更多”布局
     val functionItems = remember(
+        onNavigateToUsageStatistics,
         onNavigateToKnowledgeList,
         onNavigateToAIChat,
         onNavigateToLLMSettings,
@@ -220,39 +237,201 @@ fun FunctionEntryGrid(
     ) {
         listOf(
             // 第一行：知识库管理（个人第二大脑）
-            FunctionEntryItem("知识库", Icons.Outlined.Book, Color(0xFFFF6B9D), onClick = onNavigateToKnowledgeList),
-            FunctionEntryItem("AI对话", Icons.Outlined.Chat, Color(0xFF4CAF50), onClick = onNavigateToAIChat),
-            FunctionEntryItem("LLM设置", Icons.Outlined.Settings, Color(0xFF2196F3), onClick = onNavigateToLLMSettings),
+            FunctionEntryItem("知识库", Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
+            FunctionEntryItem("AI对话", Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
+            FunctionEntryItem("LLM设置", Icons.Outlined.Settings, Color(0xFF2196F3), FeatureGroup.CORE_WORK, onClick = onNavigateToLLMSettings),
 
             // 第二行：去中心化社交（DID + P2P）
-            FunctionEntryItem("社交广场", Icons.Outlined.Forum, Color(0xFF9C27B0), onClick = onNavigateToSocialFeed),
-            FunctionEntryItem("我的二维码", Icons.Outlined.QrCode2, Color(0xFFE91E63), onClick = onNavigateToMyQRCode),
-            FunctionEntryItem("扫码添加", Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), onClick = onNavigateToQRScanner),
+            FunctionEntryItem("社交广场", Icons.Outlined.Forum, Color(0xFF9C27B0), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToSocialFeed),
+            FunctionEntryItem("我的二维码", Icons.Outlined.QrCode2, Color(0xFFE91E63), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToMyQRCode),
+            FunctionEntryItem("扫码添加", Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToQRScanner),
 
             // 第三行：项目管理 & 数字资产 & 设备管理
-            FunctionEntryItem("项目管理", Icons.Outlined.Assignment, Color(0xFF00BCD4), onClick = onNavigateToProjectTab),
-            FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF8BC34A), onClick = onNavigateToFileBrowser),
+            FunctionEntryItem("项目管理", Icons.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
+            FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
             // P2P设备管理
-            FunctionEntryItem("P2P设备", Icons.Outlined.Devices, Color(0xFFFF5722), onClick = onNavigateToP2P)
+            FunctionEntryItem("P2P设备", Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),
+            // 第四行：统计分析
+            FunctionEntryItem("使用统计", Icons.Outlined.Analytics, Color(0xFF3F51B5), FeatureGroup.DATA_STATISTICS, onClick = onNavigateToUsageStatistics)
         )
     }
+    var showMoreSheet by remember { mutableStateOf(false) }
+    val primaryItems = functionItems.take(8)
+    val remainingItems = functionItems.drop(8)
+    val displayItems = primaryItems + FunctionEntryItem(
+        title = "更多",
+        icon = Icons.Outlined.MoreHoriz,
+        color = Color(0xFF607D8B),
+        group = FeatureGroup.SYSTEM,
+        onClick = { showMoreSheet = true }
+    )
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
         modifier = Modifier
             .fillMaxWidth()
-            .height(360.dp), // 固定高度以适配3行卡片 (每行约120dp)
+            .height(360.dp), // 固定高度，保持首页视觉紧凑
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         userScrollEnabled = false  // 由父容器处理滚动
     ) {
-        items(functionItems) { item ->
+        items(displayItems) { item ->
             FunctionEntryCard(
                 icon = item.icon,
                 title = item.title,
                 backgroundColor = item.color,
                 onClick = item.onClick ?: {}
             )
+        }
+    }
+
+    if (showMoreSheet) {
+        val deviceItems = remainingItems.filter { it.group == FeatureGroup.DEVICE_CONNECTION }
+        val dataItems = remainingItems.filter { it.group == FeatureGroup.DATA_STATISTICS }
+        val otherItems = remainingItems - deviceItems.toSet() - dataItems.toSet()
+
+        ModalBottomSheet(
+            onDismissRequest = { showMoreSheet = false }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "更多功能",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (deviceItems.isNotEmpty()) {
+                    Text(
+                        text = "设备与连接",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    deviceItems.forEach { item ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp)
+                                .clickable {
+                                    showMoreSheet = false
+                                    item.onClick?.invoke()
+                                },
+                            colors = CardDefaults.cardColors(
+                                containerColor = item.color.copy(alpha = 0.15f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.title,
+                                    tint = item.color
+                                )
+                                Text(
+                                    text = item.title,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (dataItems.isNotEmpty()) {
+                    Text(
+                        text = "数据与统计",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    dataItems.forEach { item ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp)
+                                .clickable {
+                                    showMoreSheet = false
+                                    item.onClick?.invoke()
+                                },
+                            colors = CardDefaults.cardColors(
+                                containerColor = item.color.copy(alpha = 0.15f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.title,
+                                    tint = item.color
+                                )
+                                Text(
+                                    text = item.title,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (otherItems.isNotEmpty()) {
+                    Text(
+                        text = "其他功能",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    otherItems.forEach { item ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 10.dp)
+                                .clickable {
+                                    showMoreSheet = false
+                                    item.onClick?.invoke()
+                                },
+                            colors = CardDefaults.cardColors(
+                                containerColor = item.color.copy(alpha = 0.15f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.title,
+                                    tint = item.color
+                                )
+                                Text(
+                                    text = item.title,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 }
@@ -378,5 +557,14 @@ data class FunctionEntryItem(
     val title: String,
     val icon: ImageVector,
     val color: Color,
+    val group: FeatureGroup,
     val onClick: (() -> Unit)? = null
 )
+
+enum class FeatureGroup {
+    CORE_WORK,
+    CORE_SOCIAL,
+    DEVICE_CONNECTION,
+    DATA_STATISTICS,
+    SYSTEM
+}

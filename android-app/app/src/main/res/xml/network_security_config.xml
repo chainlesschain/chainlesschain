@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 生产环境配置：默认禁用明文流量 -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- 信任系统证书 -->
+            <certificates src="system" />
+            <!-- 可选：信任用户安装的证书（用于调试，生产环境建议移除） -->
+            <!-- <certificates src="user" /> -->
+        </trust-anchors>
+    </base-config>
+
+    <!-- 开发环境配置：仅允许 localhost 明文流量 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- 本地开发服务器 -->
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android 模拟器 host -->
+        <domain includeSubdomains="true">192.168.1.1</domain> <!-- 局域网开发 -->
+    </domain-config>
+
+    <!-- 可选：针对特定域名的配置 -->
+    <!-- 示例：仅允许特定服务器使用明文流量（不推荐） -->
+    <!--
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">example-dev-server.com</domain>
+    </domain-config>
+    -->
+
+    <!-- 可选：证书固定（Certificate Pinning）增强安全性 -->
+    <!--
+    <domain-config>
+        <domain includeSubdomains="true">api.chainlesschain.com</domain>
+        <pin-set expiration="2027-01-01">
+            <pin digest="SHA-256">base64_encoded_public_key_hash</pin>
+            <pin digest="SHA-256">backup_public_key_hash</pin>
+        </pin-set>
+    </domain-config>
+    -->
+</network-security-config>

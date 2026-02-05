@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.knowledge
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.paging.PagingData
 import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.core.common.util.DeviceIdManager
 import com.chainlesschain.android.feature.knowledge.data.repository.KnowledgeRepository
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeItem
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
@@ -10,6 +11,7 @@ import com.chainlesschain.android.feature.knowledge.domain.model.SyncStatus
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeViewModel
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,6 +39,7 @@ class KnowledgeViewModelTest {
 
     private lateinit var viewModel: KnowledgeViewModel
     private val repository = mockk<KnowledgeRepository>(relaxed = true)
+    private val deviceIdManager = mockk<DeviceIdManager>(relaxed = true)
 
     private val testItem = KnowledgeItem(
         id = "test-id",
@@ -56,8 +59,9 @@ class KnowledgeViewModelTest {
 
         // 默认Mock行为
         coEvery { repository.getItems() } returns flowOf(PagingData.empty())
+        every { deviceIdManager.getDeviceId() } returns "test-device-id"
 
-        viewModel = KnowledgeViewModel(repository)
+        viewModel = KnowledgeViewModel(repository, deviceIdManager)
     }
 
     @After

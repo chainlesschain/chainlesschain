@@ -49,7 +49,8 @@ dependencies {
 
     // WebRTC (for P2P connections)
     // Using Threema's maintained WebRTC build (m134)
-    implementation("ch.threema:webrtc-android:134.0.0")
+    // 使用 api 以便传递依赖到 app 模块
+    api("ch.threema:webrtc-android:134.0.0")
 
     // Protobuf (for message serialization)
     implementation("com.google.protobuf:protobuf-javalite:3.25.1")

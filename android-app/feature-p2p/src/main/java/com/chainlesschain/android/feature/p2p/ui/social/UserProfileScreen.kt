@@ -158,9 +158,9 @@ fun UserProfileScreen(
                                             authorAvatar = uiState.userInfo!!.avatar,
                                             onPostClick = { onNavigateToPost(post.id) },
                                             onAuthorClick = { /* Already on user profile */ },
-                                            onLikeClick = { /* TODO: Like post */ },
+                                            onLikeClick = { viewModel.toggleLike(post.id, post.isLiked, post.authorDid) },
                                             onCommentClick = { onNavigateToPost(post.id) },
-                                            onShareClick = { /* TODO: Share post */ },
+                                            onShareClick = { viewModel.sharePost(post.id, post.authorDid) },
                                             onMoreClick = { /* TODO: Show post menu */ },
                                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                                         )

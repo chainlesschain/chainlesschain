@@ -93,8 +93,10 @@ fun TimelineScreen(
     var selectedVersion by remember { mutableStateOf<PostEditHistoryEntity?>(null) }
 
     // 初始化
-    LaunchedEffect(Unit) {
-        viewModel.initialize(myDid, friendDids)
+    LaunchedEffect(myDid, friendDids) {
+        if (myDid.isNotBlank()) {
+            viewModel.initialize(myDid, friendDids)
+        }
     }
 
     // 收集事件

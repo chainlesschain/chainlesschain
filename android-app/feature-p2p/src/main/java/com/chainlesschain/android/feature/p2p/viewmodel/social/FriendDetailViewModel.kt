@@ -10,8 +10,11 @@ import com.chainlesschain.android.core.common.viewmodel.UiEvent
 import com.chainlesschain.android.core.common.viewmodel.UiState
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.PostEntity
+import com.chainlesschain.android.core.database.entity.social.PostShareEntity
 import com.chainlesschain.android.core.p2p.realtime.PresenceInfo
 import com.chainlesschain.android.core.p2p.realtime.PresenceManager
+import com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
+import com.chainlesschain.android.core.p2p.realtime.NotificationType
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import com.chainlesschain.android.feature.p2p.repository.social.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,12 +32,14 @@ class FriendDetailViewModel @Inject constructor(
     private val friendRepository: FriendRepository,
     private val postRepository: PostRepository,
     private val presenceManager: PresenceManager,
+    private val realtimeEventManager: RealtimeEventManager,
     savedStateHandle: SavedStateHandle
 ) : BaseViewModel<FriendDetailUiState, FriendDetailEvent>(
     initialState = FriendDetailUiState()
 ) {
 
     private val friendDid: String = savedStateHandle.get<String>("did") ?: ""
+    private var currentMyDid: String = "" // 当前登录用户的 DID
 
     init {
         if (friendDid.isNotBlank()) {
@@ -42,6 +47,13 @@ class FriendDetailViewModel @Inject constructor(
             loadFriendPosts()
             observePresence()
         }
+    }
+
+    /**
+     * 设置当前用户 DID
+     */
+    fun setCurrentMyDid(myDid: String) {
+        currentMyDid = myDid
     }
 
     /**
@@ -190,6 +202,82 @@ class FriendDetailViewModel @Inject constructor(
             }.onError { error ->
                 handleError(error)
             }
+    }
+
+    // ===== 动态互动功能 (v0.32.0) =====
+
+    /**
+     * 切换点赞状态
+     */
+    fun toggleLike(postId: String, currentlyLiked: Boolean, authorDid: String) = launchSafely {
+        if (currentlyLiked) {
+            postRepository.unlikePost(postId, currentMyDid)
+        } else {
+            postRepository.likePost(postId, currentMyDid)
+                .onSuccess {
+                    // 发送实时通知给动态作者
+                    if (authorDid != currentMyDid) {
+                        realtimeEventManager.sendNotification(
+                            targetDid = authorDid,
+                            notificationType = NotificationType.LIKE,
+                            title = "收到新的点赞",
+                            content = "有人赞了你的动态",
+                            targetId = postId
+                        )
+                    }
+                }
+        }.onError { error ->
+            handleError(error)
+        }
+    }
+
+    /**
+     * 分享动态
+     */
+    fun sharePost(postId: String, authorDid: String) = launchSafely {
+        val share = PostShareEntity(
+            id = "share_${System.currentTimeMillis()}",
+            postId = postId,
+            userDid = currentMyDid,
+            createdAt = System.currentTimeMillis()
+        )
+
+        postRepository.sharePost(share)
+            .onSuccess {
+                sendEvent(FriendDetailEvent.ShowToast("分享成功"))
+
+                // 发送实时通知给动态作者
+                if (authorDid != currentMyDid) {
+                    realtimeEventManager.sendNotification(
+                        targetDid = authorDid,
+                        notificationType = NotificationType.POST,
+                        title = "动态被分享",
+                        content = "有人分享了你的动态",
+                        targetId = postId
+                    )
+                }
+            }.onError { error ->
+                handleError(error)
+            }
+    }
+
+    /**
+     * 切换收藏状态
+     */
+    fun toggleBookmark(postId: String, currentlyBookmarked: Boolean) = launchSafely {
+        if (currentlyBookmarked) {
+            postRepository.unbookmarkPost(postId, currentMyDid)
+                .onSuccess {
+                    sendEvent(FriendDetailEvent.ShowToast("已取消收藏"))
+                }
+        } else {
+            postRepository.bookmarkPost(postId, currentMyDid)
+                .onSuccess {
+                    sendEvent(FriendDetailEvent.ShowToast("收藏成功"))
+                }
+        }.onError { error ->
+            handleError(error)
+        }
     }
 }
 

@@ -132,6 +132,9 @@ fun NavGraph(
                 onNavigateToLLMSettings = {
                     navController.navigate(Screen.LLMSettings.route)
                 },
+                onNavigateToUsageStatistics = {
+                    navController.navigate(Screen.UsageStatistics.route)
+                },
                 onNavigateToLLMTest = {
                     navController.navigate(Screen.LLMTest.route)
                 },

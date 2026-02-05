@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.core.common.util.DeviceIdManager
 import com.chainlesschain.android.feature.knowledge.data.repository.KnowledgeRepository
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeItem
 import com.chainlesschain.android.feature.knowledge.domain.model.KnowledgeType
@@ -21,7 +22,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class KnowledgeViewModel @Inject constructor(
-    private val repository: KnowledgeRepository
+    private val repository: KnowledgeRepository,
+    private val deviceIdManager: DeviceIdManager
     // // private val authRepository: AuthRepository // 临时注释以修复编译
 ) : ViewModel() {
 
@@ -115,18 +117,8 @@ class KnowledgeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // 从AuthRepository获取真实的设备ID
-            val deviceId = authRepository.getCurrentUser()?.deviceId
-                ?: run {
-                    // 如果无法获取用户信息，使用备用方案
-                    _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            errorMessage = "无法获取设备信息，请重新登录"
-                        )
-                    }
-                    return@launch
-                }
+            // 使用 DeviceIdManager 获取持久化的设备ID
+            val deviceId = deviceIdManager.getDeviceId()
 
             when (val result = repository.createItem(
                 title = title,

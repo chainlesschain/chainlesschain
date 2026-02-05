@@ -3,6 +3,9 @@ package com.chainlesschain.android.feature.filebrowser.ai
 import android.content.ContentResolver
 import android.net.Uri
 import android.util.Log
+import com.chainlesschain.android.feature.ai.data.llm.OllamaAdapter
+import com.chainlesschain.android.feature.ai.domain.model.Message
+import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
@@ -38,8 +41,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class FileSummarizer @Inject constructor(
-    // TODO: Add OllamaAdapter dependency when feature-ai module is fixed
-    // private val ollamaAdapter: OllamaAdapter
+    private val ollamaAdapter: OllamaAdapter
 ) {
 
     companion object {
@@ -181,25 +183,25 @@ class FileSummarizer @Inject constructor(
             content
         }
 
-        // TODO: Try LLM summarization first (if Ollama is available)
-        // val llmAvailable = try {
-        //     ollamaAdapter.checkAvailability()
-        // } catch (e: Exception) {
-        //     Log.w(TAG, "Ollama not available, falling back to rule-based", e)
-        //     false
-        // }
-        //
-        // if (llmAvailable) {
-        //     try {
-        //         val llmSummary = tryLLMSummarization(truncatedContent, fileType, fileName, maxLength)
-        //         if (llmSummary != null) {
-        //             Log.d(TAG, "Successfully generated LLM summary")
-        //             return llmSummary
-        //         }
-        //     } catch (e: Exception) {
-        //         Log.w(TAG, "LLM summarization failed, falling back to rule-based", e)
-        //     }
-        // }
+        // Try LLM summarization first (if Ollama is available)
+        val llmAvailable = try {
+            ollamaAdapter.checkAvailability()
+        } catch (e: Exception) {
+            Log.w(TAG, "Ollama not available, falling back to rule-based", e)
+            false
+        }
+
+        if (llmAvailable) {
+            try {
+                val llmSummary = tryLLMSummarization(truncatedContent, fileType, fileName, maxLength)
+                if (llmSummary != null) {
+                    Log.d(TAG, "Successfully generated LLM summary")
+                    return llmSummary
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "LLM summarization failed, falling back to rule-based", e)
+            }
+        }
 
         // Fallback to rule-based summarization
         Log.d(TAG, "Using rule-based summarization")
@@ -460,7 +462,6 @@ class FileSummarizer @Inject constructor(
 
     /**
      * Try LLM-based summarization using Ollama
-     * TODO: Re-enable when feature-ai module is fixed
      *
      * @param content File content
      * @param fileType File type
@@ -468,15 +469,12 @@ class FileSummarizer @Inject constructor(
      * @param maxLength Maximum summary length
      * @return Summary result or null if LLM failed
      */
-    @Suppress("UNUSED_PARAMETER")
     private suspend fun tryLLMSummarization(
         content: String,
         fileType: FileType,
         fileName: String,
         maxLength: Int
-    ): SummaryResult? = null
-    /*
-    = withContext(Dispatchers.IO) {
+    ): SummaryResult? = withContext(Dispatchers.IO) {
         try {
             // Build prompt based on file type
             val prompt = buildSummaryPrompt(content, fileType, fileName, maxLength)
@@ -522,7 +520,6 @@ class FileSummarizer @Inject constructor(
             null
         }
     }
-    */
 
     /**
      * Build summary prompt based on file type

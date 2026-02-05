@@ -36,9 +36,17 @@ class DIDViewModel @Inject constructor(
     val operationResult: StateFlow<OperationResult?> = _operationResult.asStateFlow()
 
     init {
-        loadDIDDocument()
-        loadIdentityKeyFingerprint()
-        loadDeviceCount()
+        viewModelScope.launch {
+            try {
+                didManager.initialize()
+            } catch (e: Exception) {
+                _operationResult.value = OperationResult.Error("初始化 DID 失败: ${e.message}")
+            }
+
+            loadDIDDocument()
+            loadIdentityKeyFingerprint()
+            loadDeviceCount()
+        }
     }
 
     /**

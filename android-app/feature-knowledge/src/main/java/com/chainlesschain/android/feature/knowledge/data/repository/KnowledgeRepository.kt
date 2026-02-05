@@ -80,9 +80,10 @@ class KnowledgeRepository @Inject constructor(
      * 使用FTS4全文搜索提供高性能搜索
      */
     fun searchItems(query: String): Flow<PagingData<KnowledgeItem>> {
+        val ftsQuery = buildFtsQuery(query)
         return Pager(
             config = PagingConfig(pageSize = PAGE_SIZE, enablePlaceholders = false),
-            pagingSourceFactory = { knowledgeItemDao.searchItems(query) }
+            pagingSourceFactory = { knowledgeItemDao.searchItems(ftsQuery) }
         ).flow.map { pagingData ->
             pagingData.map { entity -> entity.toDomainModel() }
         }
@@ -163,8 +164,7 @@ class KnowledgeRepository @Inject constructor(
      */
     suspend fun toggleFavorite(id: String): Result<Unit> {
         return try {
-            val items = knowledgeItemDao.getItemsList(limit = 1, offset = 0)
-            val entity = items.firstOrNull { it.id == id }
+            val entity = knowledgeItemDao.getItemByIdSync(id)
                 ?: return Result.error(IllegalArgumentException(), "条目不存在")
 
             val updated = entity.copy(
@@ -184,8 +184,7 @@ class KnowledgeRepository @Inject constructor(
      */
     suspend fun togglePinned(id: String): Result<Unit> {
         return try {
-            val items = knowledgeItemDao.getItemsList(limit = 1, offset = 0)
-            val entity = items.firstOrNull { it.id == id }
+            val entity = knowledgeItemDao.getItemByIdSync(id)
                 ?: return Result.error(IllegalArgumentException(), "条目不存在")
 
             val updated = entity.copy(
@@ -237,5 +236,19 @@ class KnowledgeRepository @Inject constructor(
             isFavorite = isFavorite,
             isPinned = isPinned
         )
+    }
+
+    /**
+     * 构建安全的FTS查询
+     */
+    private fun buildFtsQuery(query: String): String {
+        val normalized = query.trim().replace(Regex("\\s+"), " ")
+        if (normalized.isEmpty()) return ""
+        return normalized
+            .split(" ")
+            .joinToString(" ") { token ->
+                val safeToken = token.replace("\"", "")
+                "$safeToken*"
+            }
     }
 }

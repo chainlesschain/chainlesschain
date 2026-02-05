@@ -44,6 +44,7 @@ import com.chainlesschain.android.core.database.entity.social.NotificationEntity
 import com.chainlesschain.android.core.database.entity.social.PostReportEntity
 import com.chainlesschain.android.core.database.entity.social.BlockedUserEntity
 import com.chainlesschain.android.core.database.entity.social.PostEditHistoryEntity
+import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
 import com.chainlesschain.android.core.database.entity.call.CallHistoryEntity
 import com.chainlesschain.android.core.database.entity.ModerationQueueEntity
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
@@ -87,6 +88,7 @@ import com.chainlesschain.android.core.database.util.Converters
         PostReportEntity::class,
         BlockedUserEntity::class,
         PostEditHistoryEntity::class,
+        PostBookmarkEntity::class,
         // 通话功能实体
         CallHistoryEntity::class,
         // AI审核功能实体

@@ -332,33 +332,214 @@ class WebRTCClient @Inject constructor(
  * 信令客户端接口
  */
 interface SignalClient {
-    suspend fun sendOffer(peerId: String, offer: SessionDescription)
-    suspend fun sendIceCandidate(peerId: String, candidate: IceCandidate)
-    suspend fun waitForAnswer(peerId: String, timeout: Long): SessionDescription
+    suspend fun sendOffer(peerId: String, offer: org.webrtc.SessionDescription)
+    suspend fun sendIceCandidate(peerId: String, candidate: org.webrtc.IceCandidate)
+    suspend fun waitForAnswer(peerId: String, timeout: Long): org.webrtc.SessionDescription
 }
 
 /**
- * 简化的信令客户端实现（基于 WebSocket）
+ * WebSocket 信令客户端实现
+ *
+ * 使用 OkHttp WebSocket 实现与信令服务器的通信
  */
-class WebSocketSignalClient @Inject constructor() : SignalClient {
-    // TODO: 实现实际的 WebSocket 连接
-    private val answerChannel = kotlinx.coroutines.channels.Channel<SessionDescription>(1)
+class WebSocketSignalClient @Inject constructor(
+    private val okHttpClient: okhttp3.OkHttpClient,
+    private val signalingConfig: com.chainlesschain.android.remote.config.SignalingConfig
+) : SignalClient {
 
-    override suspend fun sendOffer(peerId: String, offer: SessionDescription) {
+    private var webSocket: okhttp3.WebSocket? = null
+    private val answerChannel = kotlinx.coroutines.channels.Channel<org.webrtc.SessionDescription>(1)
+    private val iceCandidateChannel = kotlinx.coroutines.channels.Channel<org.webrtc.IceCandidate>(kotlinx.coroutines.channels.Channel.UNLIMITED)
+
+    private var currentPeerId: String? = null
+    private var isConnected = false
+    private var reconnectAttempts = 0
+
+    /**
+     * 连接到信令服务器
+     */
+    suspend fun connect(): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            if (isConnected) {
+                Timber.d("已连接到信令服务器")
+                return@withContext Result.success(Unit)
+            }
+
+            val signalingUrl = signalingConfig.getSignalingUrl()
+            Timber.d("连接到信令服务器: $signalingUrl")
+
+            val request = okhttp3.Request.Builder()
+                .url(signalingUrl)
+                .build()
+
+            val listener = object : okhttp3.WebSocketListener() {
+                override fun onOpen(webSocket: okhttp3.WebSocket, response: okhttp3.Response) {
+                    Timber.d("✅ WebSocket 连接已建立")
+                    isConnected = true
+                }
+
+                override fun onMessage(webSocket: okhttp3.WebSocket, text: String) {
+                    Timber.d("收到信令消息: ${text.take(100)}...")
+                    handleSignalingMessage(text)
+                }
+
+                override fun onFailure(webSocket: okhttp3.WebSocket, t: Throwable, response: okhttp3.Response?) {
+                    Timber.e(t, "❌ WebSocket 连接失败 (尝试 ${reconnectAttempts + 1}/${com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS})")
+                    isConnected = false
+
+                    // 自动重连（带重试次数限制）
+                    if (reconnectAttempts < com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS) {
+                        reconnectAttempts++
+                        CoroutineScope(Dispatchers.IO).launch {
+                            delay(com.chainlesschain.android.remote.config.SignalingConfig.RECONNECT_DELAY_MS)
+                            Timber.d("尝试重新连接 (${reconnectAttempts}/${com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS})...")
+                            connect()
+                        }
+                    } else {
+                        Timber.e("❌ 达到最大重连次数，停止重连")
+                    }
+                }
+
+                override fun onClosed(webSocket: okhttp3.WebSocket, code: Int, reason: String) {
+                    Timber.d("WebSocket 连接已关闭: code=$code, reason=$reason")
+                    isConnected = false
+                }
+            }
+
+            webSocket = okHttpClient.newWebSocket(request, listener)
+
+            // 等待连接建立
+            var waited = 0
+            while (!isConnected && waited < com.chainlesschain.android.remote.config.SignalingConfig.CONNECT_TIMEOUT_MS.toInt()) {
+                delay(100)
+                waited += 100
+            }
+
+            if (isConnected) {
+                reconnectAttempts = 0 // 重置重连计数
+                Timber.d("✅ 信令服务器连接成功")
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("连接超时"))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "❌ 连接信令服务器失败")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 处理信令消息
+     */
+    private fun handleSignalingMessage(message: String) {
+        try {
+            val json = org.json.JSONObject(message)
+            val type = json.getString("type")
+
+            when (type) {
+                "answer" -> {
+                    val sdp = json.getString("sdp")
+                    val answer = org.webrtc.SessionDescription(
+                        org.webrtc.SessionDescription.Type.ANSWER,
+                        sdp
+                    )
+                    CoroutineScope(Dispatchers.IO).launch {
+                        answerChannel.send(answer)
+                    }
+                    Timber.d("✅ 收到 Answer")
+                }
+
+                "ice-candidate" -> {
+                    val sdpMid = json.getString("sdpMid")
+                    val sdpMLineIndex = json.getInt("sdpMLineIndex")
+                    val sdp = json.getString("candidate")
+
+                    val candidate = org.webrtc.IceCandidate(sdpMid, sdpMLineIndex, sdp)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        iceCandidateChannel.send(candidate)
+                    }
+                    Timber.d("✅ 收到 ICE Candidate")
+                }
+
+                "error" -> {
+                    val errorMsg = json.optString("message", "Unknown error")
+                    Timber.e("收到错误消息: $errorMsg")
+                }
+
+                else -> {
+                    Timber.w("未知消息类型: $type")
+                }
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "处理信令消息失败: $message")
+        }
+    }
+
+    override suspend fun sendOffer(peerId: String, offer: org.webrtc.SessionDescription) {
         Timber.d("发送 Offer to $peerId")
-        // TODO: 通过 WebSocket 发送
+        currentPeerId = peerId
+
+        val json = org.json.JSONObject().apply {
+            put("type", "offer")
+            put("peerId", peerId)
+            put("sdp", offer.description)
+        }
+
+        sendMessage(json.toString())
     }
 
-    override suspend fun sendIceCandidate(peerId: String, candidate: IceCandidate) {
+    override suspend fun sendIceCandidate(peerId: String, candidate: org.webrtc.IceCandidate) {
         Timber.d("发送 ICE Candidate to $peerId")
-        // TODO: 通过 WebSocket 发送
+
+        val json = org.json.JSONObject().apply {
+            put("type", "ice-candidate")
+            put("peerId", peerId)
+            put("sdpMid", candidate.sdpMid)
+            put("sdpMLineIndex", candidate.sdpMLineIndex)
+            put("candidate", candidate.sdp)
+        }
+
+        sendMessage(json.toString())
     }
 
-    override suspend fun waitForAnswer(peerId: String, timeout: Long): SessionDescription {
+    override suspend fun waitForAnswer(peerId: String, timeout: Long): org.webrtc.SessionDescription {
         Timber.d("等待 Answer from $peerId")
-        // TODO: 从 WebSocket 接收
         return withTimeout(timeout) {
             answerChannel.receive()
         }
+    }
+
+    /**
+     * 接收 ICE Candidate（用于处理远端发来的 ICE）
+     */
+    suspend fun receiveIceCandidate(): org.webrtc.IceCandidate {
+        return iceCandidateChannel.receive()
+    }
+
+    /**
+     * 发送消息到 WebSocket
+     */
+    private fun sendMessage(message: String) {
+        if (!isConnected) {
+            Timber.e("WebSocket 未连接，无法发送消息")
+            return
+        }
+
+        val sent = webSocket?.send(message) ?: false
+        if (sent) {
+            Timber.d("✅ 消息已发送: ${message.take(100)}...")
+        } else {
+            Timber.e("❌ 消息发送失败")
+        }
+    }
+
+    /**
+     * 断开连接
+     */
+    fun disconnect() {
+        Timber.d("断开信令服务器连接")
+        webSocket?.close(1000, "Normal closure")
+        webSocket = null
+        isConnected = false
     }
 }

@@ -58,6 +58,8 @@ class MyQRCodeViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         try {
+            didManager.initialize()
+
             // 获取当前用户DID身份
             val identity = didManager.currentIdentity.value
                 ?: throw IllegalStateException("用户身份未初始化，请先完成注册")

@@ -1,10 +1,11 @@
 package com.chainlesschain.android.remote.crypto
 
 import android.util.Base64
+import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
+import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
+import org.bouncycastle.crypto.signers.Ed25519Signer
 import timber.log.Timber
 import java.security.MessageDigest
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,10 +37,8 @@ class DIDSigner @Inject constructor(
             // 2. 将数据转换为字节
             val dataBytes = data.toByteArray(Charsets.UTF_8)
 
-            // 3. 计算签名
-            // TODO: 实际项目中应使用 Ed25519 签名
-            // 这里使用 HMAC-SHA256 作为简化实现
-            val signature = signWithHMAC(dataBytes, privateKey)
+            // 3. 使用 Ed25519 计算签名
+            val signature = signWithEd25519(dataBytes, privateKey)
 
             // 4. Base64 编码
             val signatureBase64 = Base64.encodeToString(signature, Base64.NO_WRAP)
@@ -75,9 +74,8 @@ class DIDSigner @Inject constructor(
             // 2. 将数据转换为字节
             val dataBytes = data.toByteArray(Charsets.UTF_8)
 
-            // 3. 验证签名
-            // TODO: 实际项目中应使用 Ed25519 验证
-            val isValid = verifyWithHMAC(dataBytes, signatureBytes, publicKeyBytes)
+            // 3. 使用 Ed25519 验证签名
+            val isValid = verifyWithEd25519(dataBytes, signatureBytes, publicKeyBytes)
 
             Timber.d("签名验证结果: $isValid")
             Result.success(isValid)
@@ -88,29 +86,42 @@ class DIDSigner @Inject constructor(
     }
 
     /**
-     * 使用 HMAC-SHA256 签名（简化实现）
-     *
-     * 注意：生产环境应使用 Ed25519
+     * 使用 Ed25519 签名（符合 DID 标准）
      */
-    private fun signWithHMAC(data: ByteArray, key: ByteArray): ByteArray {
-        val mac = Mac.getInstance("HmacSHA256")
-        val secretKey = SecretKeySpec(key, "HmacSHA256")
-        mac.init(secretKey)
-        return mac.doFinal(data)
+    private fun signWithEd25519(data: ByteArray, privateKey: ByteArray): ByteArray {
+        // Ed25519 私钥长度必须是 32 字节
+        require(privateKey.size == 32) { "Ed25519 private key must be 32 bytes" }
+
+        val privateKeyParams = Ed25519PrivateKeyParameters(privateKey, 0)
+        val signer = Ed25519Signer()
+        signer.init(true, privateKeyParams)
+        signer.update(data, 0, data.size)
+        return signer.generateSignature()
     }
 
     /**
-     * 使用 HMAC-SHA256 验证（简化实现）
-     *
-     * 注意：生产环境应使用 Ed25519
+     * 使用 Ed25519 验证签名（符合 DID 标准）
      */
-    private fun verifyWithHMAC(
+    private fun verifyWithEd25519(
         data: ByteArray,
         signature: ByteArray,
-        key: ByteArray
+        publicKey: ByteArray
     ): Boolean {
-        val expectedSignature = signWithHMAC(data, key)
-        return signature.contentEquals(expectedSignature)
+        return try {
+            // Ed25519 公钥长度必须是 32 字节
+            require(publicKey.size == 32) { "Ed25519 public key must be 32 bytes" }
+            // Ed25519 签名长度必须是 64 字节
+            require(signature.size == 64) { "Ed25519 signature must be 64 bytes" }
+
+            val publicKeyParams = Ed25519PublicKeyParameters(publicKey, 0)
+            val verifier = Ed25519Signer()
+            verifier.init(false, publicKeyParams)
+            verifier.update(data, 0, data.size)
+            verifier.verifySignature(signature)
+        } catch (e: Exception) {
+            Timber.e(e, "Ed25519 验证异常")
+            false
+        }
     }
 
     /**

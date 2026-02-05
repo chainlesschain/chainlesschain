@@ -154,7 +154,7 @@ class ConversationViewModel @Inject constructor(
                 if (ragContext.isNotEmpty()) {
                     messageHistory.add(
                         Message(
-                            id = "rag-context-${System.currentTimeMillis()}",
+                            id = "rag-context-${java.util.UUID.randomUUID()}",
                             conversationId = conversation.id,
                             role = MessageRole.SYSTEM,
                             content = ragContext,
@@ -187,6 +187,7 @@ class ConversationViewModel @Inject constructor(
                                 error = chunk.error
                             )
                         }
+                        _streamingContent.value = ""
                         return@collect
                     }
 

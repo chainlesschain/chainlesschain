@@ -35,7 +35,8 @@ class PostEditPolicyTest {
             id = UUID.randomUUID().toString(),
             authorDid = authorDid,
             content = "Test post content",
-            images = null,
+            images = emptyList(),  // 修复: 改为emptyList()而不是null
+            visibility = PostVisibility.PUBLIC,  // 修复: 添加必需的visibility参数
             createdAt = createdAt,
             updatedAt = updatedAt,
             likeCount = likeCount,
