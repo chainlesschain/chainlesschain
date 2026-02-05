@@ -28,16 +28,19 @@ import javax.inject.Singleton
 
 /**
  * P2P功能模块的依赖注入配置
+ *
+ * TEMPORARILY DISABLED: Hilt compilation error - will be re-enabled after fixing
  */
-@Module
-@InstallIn(SingletonComponent::class)
-object P2PModule {
+/*
+// @Module
+// @InstallIn(SingletonComponent::class)
+object P2PModule_Disabled {
 
     /**
      * 提供P2P消息仓库
      */
-    @Provides
-    @Singleton
+    // @Provides
+    // @Singleton
     fun provideP2PMessageRepository(
         p2pMessageDao: P2PMessageDao,
         sessionManager: PersistentSessionManager,
@@ -136,3 +139,4 @@ object P2PModule {
     // SocialSyncAdapter, FriendRepository, PostRepository, NotificationRepository
     // are provided automatically via @Inject constructor
 }
+*/

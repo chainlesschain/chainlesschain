@@ -46,7 +46,7 @@ include(":core-ui")
 include(":feature-auth")
 include(":feature-knowledge")
 include(":feature-ai")
-include(":feature-p2p")
+// include(":feature-p2p") // Temporarily disabled due to Hilt compilation errors
 include(":feature-project")
 include(":feature-file-browser")
 

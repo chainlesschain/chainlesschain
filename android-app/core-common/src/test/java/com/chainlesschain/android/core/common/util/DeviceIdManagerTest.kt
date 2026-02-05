@@ -26,6 +26,12 @@ class DeviceIdManagerTest {
     fun setup() {
         context = RuntimeEnvironment.getApplication()
         deviceIdManager = DeviceIdManager(context)
+
+        // Inject plain SharedPreferences for testing (avoid EncryptedSharedPreferences/KeyStore issues in Robolectric)
+        deviceIdManager.testSharedPreferences = context.getSharedPreferences(
+            "chainlesschain_device_prefs",
+            Context.MODE_PRIVATE
+        )
     }
 
     @After
@@ -68,6 +74,10 @@ class DeviceIdManagerTest {
 
         // When - 创建新实例（模拟应用重启）
         val newManager = DeviceIdManager(context)
+        newManager.testSharedPreferences = context.getSharedPreferences(
+            "chainlesschain_device_prefs",
+            Context.MODE_PRIVATE
+        )
         val retrievedDeviceId = newManager.getDeviceId()
 
         // Then

@@ -55,3 +55,6 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("org.robolectric:robolectric:4.11")
 }
+
+// Apply Jacoco configuration for code coverage
+apply(from = rootProject.file("jacoco-config.gradle.kts"))
