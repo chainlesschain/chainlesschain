@@ -149,7 +149,8 @@ data class FingerprintColor(
         val r8 = (r * 255) / 15
         val g8 = (g * 255) / 15
         val b8 = (b * 255) / 15
-        return android.graphics.Color.rgb(r8, g8, b8)
+        // Directly compute ARGB color value for compatibility with Robolectric
+        return (0xFF shl 24) or (r8 shl 16) or (g8 shl 8) or b8
     }
 
     /**

@@ -81,10 +81,12 @@ class MessageQueue {
         if (message != null) {
             // 标记为发送中
             val index = pendingOutgoingMessages.indexOf(message)
-            pendingOutgoingMessages[index] = message.copy(status = MessageStatus.SENDING)
+            val updatedMessage = message.copy(status = MessageStatus.SENDING)
+            pendingOutgoingMessages[index] = updatedMessage
+            return@withLock updatedMessage
         }
 
-        message
+        null
     }
 
     /**
@@ -173,10 +175,12 @@ class MessageQueue {
         if (message != null) {
             // 标记为处理中
             val index = pendingIncomingMessages.indexOf(message)
-            pendingIncomingMessages[index] = message.copy(status = MessageStatus.PROCESSING)
+            val updatedMessage = message.copy(status = MessageStatus.PROCESSING)
+            pendingIncomingMessages[index] = updatedMessage
+            return@withLock updatedMessage
         }
 
-        message
+        null
     }
 
     /**

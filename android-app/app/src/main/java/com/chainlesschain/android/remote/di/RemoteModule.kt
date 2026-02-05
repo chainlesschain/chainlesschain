@@ -7,6 +7,8 @@ import com.chainlesschain.android.remote.crypto.DIDKeyStore
 import com.chainlesschain.android.remote.data.CommandHistoryDao
 import com.chainlesschain.android.remote.data.CommandHistoryDatabase
 import com.chainlesschain.android.remote.data.FileTransferDao
+import com.chainlesschain.android.remote.p2p.DIDManager
+import com.chainlesschain.android.remote.p2p.DIDManagerImpl
 import com.chainlesschain.android.remote.webrtc.SignalClient
 import com.chainlesschain.android.remote.webrtc.WebSocketSignalClient
 import dagger.Binds
@@ -37,6 +39,12 @@ abstract class RemoteModule {
     abstract fun bindSignalClient(
         impl: WebSocketSignalClient
     ): SignalClient
+
+    @Binds
+    @Singleton
+    abstract fun bindDIDManager(
+        impl: DIDManagerImpl
+    ): DIDManager
 
     companion object {
 

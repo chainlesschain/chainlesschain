@@ -19,7 +19,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class AutoReconnectManager @Inject constructor(
-    private val heartbeatManager: HeartbeatManager
+    private val heartbeatManager: HeartbeatManager,
+    dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
 
     companion object {
@@ -29,7 +30,7 @@ class AutoReconnectManager @Inject constructor(
         const val QUEUE_PROCESS_INTERVAL_MS = 1_000L
     }
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val scope = CoroutineScope(dispatcher + SupervisorJob())
 
     // 待重连设备队列
     private val reconnectQueue = ConcurrentHashMap<String, ReconnectTask>()

@@ -57,16 +57,16 @@ class DiagnosticTest {
         println("Bob shared secret:   ${bobResult.sharedSecret.joinToString("") { "%02x".format(it) }}")
 
         assertArrayEquals(
+            "X3DH shared secrets should match",
             aliceResult.sharedSecret,
-            bobResult.sharedSecret,
-            "X3DH shared secrets should match"
+            bobResult.sharedSecret
         )
 
         // Associated data should also match
         assertArrayEquals(
+            "Associated data should match",
             aliceResult.associatedData,
-            bobResult.associatedData,
-            "Associated data should match"
+            bobResult.associatedData
         )
     }
 
@@ -84,7 +84,7 @@ class DiagnosticTest {
         println("Secret 1: ${secret1.joinToString("") { "%02x".format(it) }}")
         println("Secret 2: ${secret2.joinToString("") { "%02x".format(it) }}")
 
-        assertArrayEquals(secret1, secret2, "DH shared secrets should be symmetric")
-        assertEquals(32, secret1.size, "DH secret should be 32 bytes")
+        assertArrayEquals("DH shared secrets should be symmetric", secret1, secret2)
+        assertEquals("DH secret should be 32 bytes", 32, secret1.size)
     }
 }
