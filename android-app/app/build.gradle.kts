@@ -8,9 +8,24 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("io.gitlab.arturbosch.detekt") version "1.23.4"
-    // id("com.google.gms.google-services") // Firebase - Temporarily disabled
-    // id("com.google.firebase.crashlytics") // Crashlytics - Temporarily disabled
     jacoco
+}
+
+// Check if google-services.json exists
+val hasGoogleServices = listOf(
+    "google-services.json",
+    "src/debug/google-services.json",
+    "src/release/google-services.json"
+).map { file(it) }.any { it.exists() }
+
+// Apply Firebase plugins only if google-services.json exists
+if (hasGoogleServices) {
+    apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
+    logger.lifecycle("✓ Firebase enabled (google-services.json found)")
+} else {
+    logger.warn("⚠ Firebase disabled (google-services.json not found)")
+    logger.warn("  To enable Firebase: Add google-services.json to app/")
 }
 
 android {
@@ -238,6 +253,10 @@ tasks.register<JacocoReport>("jacocoE2ETestReport") {
 configurations.all {
     // Exclude old annotations-java5 to avoid duplicate classes with annotations:23.0.0
     exclude(group = "org.jetbrains", module = "annotations-java5")
+    // Exclude google-webrtc to avoid conflict with threema webrtc-android (from core-p2p)
+    exclude(group = "org.webrtc", module = "google-webrtc")
+    // Exclude old bouncycastle to use newer version (1.77)
+    exclude(group = "org.bouncycastle", module = "bcprov-jdk15on")
 }
 
 dependencies {
@@ -333,16 +352,21 @@ dependencies {
     implementation("io.noties.markwon:image-coil:4.6.2")
 
     // ===== Phase 1: WebRTC 远程控制 =====
-    // WebRTC for P2P remote control (使用 core-p2p 中已有的 ch.threema:webrtc-android:134.0.0)
-    // implementation("org.webrtc:google-webrtc:1.0.32006") // 与现有依赖冲突，已移除
+    // WebRTC comes transitively from core-p2p module (ch.threema:webrtc-android:134.0.0)
+
+    // BouncyCastle for DID crypto
+    implementation("org.bouncycastle:bcprov-jdk18on:1.77")
+
+    // Paging Compose
+    implementation("androidx.paging:paging-compose:3.2.1")
 
     // ===== Firebase Crashlytics =====
-    // Import the Firebase BoM
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-
-    // Firebase Crashlytics (version managed by BoM)
-    implementation("com.google.firebase:firebase-crashlytics-ktx")
-    implementation("com.google.firebase:firebase-analytics-ktx")
+    // Only include if google-services.json exists
+    if (hasGoogleServices) {
+        implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+        implementation("com.google.firebase:firebase-crashlytics-ktx")
+        implementation("com.google.firebase:firebase-analytics-ktx")
+    }
 
     // Testing
     testImplementation("junit:junit:4.13.2")

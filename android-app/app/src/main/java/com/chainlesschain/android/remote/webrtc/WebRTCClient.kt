@@ -130,6 +130,14 @@ class WebRTCClient @Inject constructor(
                     Timber.d("ICE 连接状态: $newState")
                 }
 
+                override fun onIceConnectionReceivingChange(receiving: Boolean) {
+                    Timber.d("ICE 连接接收状态: $receiving")
+                }
+
+                override fun onIceCandidatesRemoved(candidates: Array<out IceCandidate>) {
+                    Timber.d("ICE 候选已移除: ${candidates.size}")
+                }
+
                 override fun onIceGatheringChange(newState: PeerConnection.IceGatheringState) {
                     Timber.d("ICE 收集状态: $newState")
                 }
