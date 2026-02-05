@@ -1,9 +1,11 @@
 package com.chainlesschain.android.core.e2ee.backup
 
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.*
+import java.security.Security
 
 /**
  * KeyBackupManager 测试
@@ -14,6 +16,10 @@ class KeyBackupManagerTest {
 
     @Before
     fun setup() {
+        // 注册BouncyCastle安全提供者（用于X25519加密）
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(BouncyCastleProvider())
+        }
         backupManager = KeyBackupManager()
     }
 

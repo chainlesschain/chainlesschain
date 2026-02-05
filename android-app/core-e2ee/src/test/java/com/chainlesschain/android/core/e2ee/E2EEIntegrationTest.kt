@@ -3,8 +3,11 @@ package com.chainlesschain.android.core.e2ee
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.X3DHKeyExchange
 import com.chainlesschain.android.core.e2ee.session.E2EESession
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.junit.Before
 import org.junit.Test
 import org.junit.Assert.*
+import java.security.Security
 
 /**
  * 端到端加密集成测试
@@ -12,6 +15,14 @@ import org.junit.Assert.*
  * 测试完整的E2EE流程：X3DH + Double Ratchet
  */
 class E2EEIntegrationTest {
+
+    @Before
+    fun setupBouncyCastle() {
+        // 注册BouncyCastle安全提供者（用于X25519加密）
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(BouncyCastleProvider())
+        }
+    }
 
     @Test
     fun `test complete E2EE session - Alice to Bob`() {
