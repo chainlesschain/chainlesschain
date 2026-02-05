@@ -1,4 +1,4 @@
-package com.chainlesschain.android.remote.ui
+﻿package com.chainlesschain.android.remote.ui
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
@@ -35,6 +35,8 @@ import java.util.*
 @Composable
 fun RemoteControlScreen(
     viewModel: RemoteControlViewModel = hiltViewModel(),
+    defaultPeerId: String? = null,
+    defaultDid: String? = null,
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToRAGSearch: () -> Unit = {},
     onNavigateToAgentControl: () -> Unit = {},
@@ -83,11 +85,11 @@ fun RemoteControlScreen(
                     connectionState = connectionState,
                     connectedPeer = connectedPeer,
                     onConnect = {
-                        // TODO: 实际项目中应该显示设备选择对话框
-                        // 这里使用测试数据
+                        val peerId = defaultPeerId ?: "pc-test-001"
+                        val did = defaultDid ?: "did:key:test-pc"
                         viewModel.connectToPC(
-                            pcPeerId = "pc-test-001",
-                            pcDID = "did:key:test-pc"
+                            pcPeerId = peerId,
+                            pcDID = did
                         )
                     },
                     onDisconnect = { viewModel.disconnect() }

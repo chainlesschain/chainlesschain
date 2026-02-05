@@ -26,7 +26,8 @@ import kotlin.math.pow
 @Singleton
 class WebSocketSignalingClient @Inject constructor(
     private val okHttpClient: OkHttpClient,
-    private val json: Json
+    private val json: Json,
+    private val signalingConfig: com.chainlesschain.android.remote.config.SignalingConfig
 ) : SignalingClient {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -64,10 +65,13 @@ class WebSocketSignalingClient @Inject constructor(
                 this@WebSocketSignalingClient.token = token
 
                 _connectionState.value = ConnectionState.CONNECTING
-                Timber.d("Connecting to signaling server: $SIGNALING_SERVER_URL")
+
+                // Use configured signaling URL instead of hardcoded
+                val signalingUrl = signalingConfig.getSignalingUrl()
+                Timber.d("Connecting to signaling server: $signalingUrl")
 
                 val request = Request.Builder()
-                    .url(SIGNALING_SERVER_URL)
+                    .url(signalingUrl)
                     .addHeader("Authorization", "Bearer $token")
                     .addHeader("X-User-Id", userId)
                     .build()

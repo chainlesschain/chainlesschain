@@ -51,6 +51,7 @@ interface LLMAdapter {
 /**
  * OpenAI API请求体
  */
+@kotlinx.serialization.Serializable
 data class OpenAIChatRequest(
     val model: String,
     val messages: List<OpenAIMessage>,
@@ -59,6 +60,7 @@ data class OpenAIChatRequest(
     val stream: Boolean = false
 )
 
+@kotlinx.serialization.Serializable
 data class OpenAIMessage(
     val role: String,
     val content: String
@@ -67,17 +69,20 @@ data class OpenAIMessage(
 /**
  * OpenAI API响应
  */
+@kotlinx.serialization.Serializable
 data class OpenAIChatResponse(
     val id: String,
     val choices: List<OpenAIChoice>,
-    val usage: OpenAIUsage?
+    val usage: OpenAIUsage? = null
 )
 
+@kotlinx.serialization.Serializable
 data class OpenAIChoice(
     val message: OpenAIMessage,
-    val finish_reason: String?
+    val finish_reason: String? = null
 )
 
+@kotlinx.serialization.Serializable
 data class OpenAIUsage(
     val prompt_tokens: Int,
     val completion_tokens: Int,
@@ -87,19 +92,22 @@ data class OpenAIUsage(
 /**
  * OpenAI流式响应
  */
+@kotlinx.serialization.Serializable
 data class OpenAIStreamResponse(
     val id: String,
     val choices: List<OpenAIStreamChoice>
 )
 
+@kotlinx.serialization.Serializable
 data class OpenAIStreamChoice(
     val delta: OpenAIDelta,
-    val finish_reason: String?
+    val finish_reason: String? = null
 )
 
+@kotlinx.serialization.Serializable
 data class OpenAIDelta(
-    val role: String?,
-    val content: String?
+    val role: String? = null,
+    val content: String? = null
 )
 
 /**

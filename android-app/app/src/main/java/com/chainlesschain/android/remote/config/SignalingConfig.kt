@@ -20,7 +20,7 @@ class SignalingConfig @Inject constructor() {
          * 2. BuildConfig.SIGNALING_URL（如果配置）
          * 3. 默认值（本地开发环境）
          */
-        const val DEFAULT_SIGNALING_URL = "ws://10.0.2.2:9001" // Android 模拟器访问宿主机
+        const val DEFAULT_SIGNALING_URL = "ws://192.168.3.59:9001" // 真实设备访问PC局域网IP
 
         /**
          * 生产环境信令服务器（配合 desktop-app-vue 的信令服务器）

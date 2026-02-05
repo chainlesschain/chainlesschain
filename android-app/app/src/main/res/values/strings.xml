@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ChainlessChain</string>
+
+    <!-- Social Screen -->
+    <string name="social_tab_friends">Friends</string>
+    <string name="social_tab_timeline">Timeline</string>
+    <string name="social_tab_notifications">Notifications</string>
+    <string name="social_friends_placeholder">Friends screen is temporarily simplified for build stability.</string>
+    <string name="social_timeline_placeholder">Timeline screen is temporarily simplified for build stability.</string>
+    <string name="social_notifications_placeholder">Notifications screen is temporarily simplified for build stability.</string>
 </resources>

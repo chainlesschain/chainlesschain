@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">无链之链</string>
+
+    <!-- Social Screen -->
+    <string name="social_tab_friends">好友</string>
+    <string name="social_tab_timeline">动态</string>
+    <string name="social_tab_notifications">通知</string>
+    <string name="social_friends_placeholder">好友页面为了构建稳定性暂时简化。</string>
+    <string name="social_timeline_placeholder">动态页面为了构建稳定性暂时简化。</string>
+    <string name="social_notifications_placeholder">通知页面为了构建稳定性暂时简化。</string>
+</resources>
