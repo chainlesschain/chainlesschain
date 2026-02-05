@@ -94,7 +94,7 @@ import com.chainlesschain.android.core.database.util.Converters
         // AI审核功能实体
         ModerationQueueEntity::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

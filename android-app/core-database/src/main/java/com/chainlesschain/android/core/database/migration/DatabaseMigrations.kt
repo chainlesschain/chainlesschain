@@ -38,7 +38,8 @@ object DatabaseMigrations {
             MIGRATION_14_15,
             MIGRATION_15_16,
             MIGRATION_16_17,
-            MIGRATION_17_18
+            MIGRATION_17_18,
+            MIGRATION_18_19
         )
     }
 
@@ -938,6 +939,40 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_author_did` ON `moderation_queue` (`author_did`)")
 
             Log.i(TAG, "Migration 17 to 18 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 18 -> 19
+     *
+     * 添加动态收藏表（post_bookmarks）
+     *
+     * @since v0.32.0
+     */
+    val MIGRATION_18_19 = object : Migration(18, 19) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 18 to 19")
+
+            // 先删除可能存在的损坏的表
+            db.execSQL("DROP TABLE IF EXISTS `post_bookmarks`")
+
+            // 创建 post_bookmarks 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_bookmarks` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `userDid` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 post_bookmarks 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_bookmarks_postId` ON `post_bookmarks` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_bookmarks_userDid` ON `post_bookmarks` (`userDid`)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_post_bookmarks_postId_userDid` ON `post_bookmarks` (`postId`, `userDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_bookmarks_createdAt` ON `post_bookmarks` (`createdAt`)")
+
+            Log.i(TAG, "Migration 18 to 19 completed successfully")
         }
     }
 
