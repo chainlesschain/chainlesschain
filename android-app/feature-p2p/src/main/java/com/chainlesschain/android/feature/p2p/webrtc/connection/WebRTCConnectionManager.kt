@@ -1,4 +1,4 @@
-package com.chainlesschain.android.feature.p2p.webrtc.connection
+﻿package com.chainlesschain.android.feature.p2p.webrtc.connection
 
 import android.content.Context
 import com.chainlesschain.android.feature.p2p.webrtc.signaling.SignalingClient
@@ -10,6 +10,7 @@ import org.webrtc.*
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 /**
  * WebRTC peer connection manager
@@ -68,9 +69,7 @@ class WebRTCConnectionManager @Inject constructor(
                         }
 
                         override fun onCreateFailure(error: String?) {
-                            continuation.resumeWithException(
-                                Exception("Failed to create offer: $error")
-                            )
+                            continuation.resumeWith(Result.failure(Exception("Failed to create offer: $error")))
                         }
 
                         override fun onSetSuccess() {}
@@ -86,9 +85,7 @@ class WebRTCConnectionManager @Inject constructor(
                         }
 
                         override fun onSetFailure(error: String?) {
-                            continuation.resumeWithException(
-                                Exception("Failed to set local description: $error")
-                            )
+                            continuation.resumeWith(Result.failure(Exception("Failed to set local description: $error")))
                         }
 
                         override fun onCreateSuccess(sdp: SessionDescription?) {}
@@ -100,7 +97,7 @@ class WebRTCConnectionManager @Inject constructor(
                 val offerMessage = SignalingMessage.Offer(
                     from = localUserId,
                     to = remotePeerId,
-                    sdp = offerSdp.description
+                    sdp = offerSdp?.description ?: throw Exception("Offer SDP is null")
                 )
                 signalingClient.send(offerMessage)
 
@@ -136,9 +133,7 @@ class WebRTCConnectionManager @Inject constructor(
                         }
 
                         override fun onSetFailure(error: String?) {
-                            continuation.resumeWithException(
-                                Exception("Failed to set remote description: $error")
-                            )
+                            continuation.resumeWith(Result.failure(Exception("Failed to set remote description: $error")))
                         }
 
                         override fun onCreateSuccess(sdp: SessionDescription?) {}
@@ -154,9 +149,7 @@ class WebRTCConnectionManager @Inject constructor(
                         }
 
                         override fun onCreateFailure(error: String?) {
-                            continuation.resumeWithException(
-                                Exception("Failed to create answer: $error")
-                            )
+                            continuation.resumeWith(Result.failure(Exception("Failed to create answer: $error")))
                         }
 
                         override fun onSetSuccess() {}
@@ -172,9 +165,7 @@ class WebRTCConnectionManager @Inject constructor(
                         }
 
                         override fun onSetFailure(error: String?) {
-                            continuation.resumeWithException(
-                                Exception("Failed to set local description: $error")
-                            )
+                            continuation.resumeWith(Result.failure(Exception("Failed to set local description: $error")))
                         }
 
                         override fun onCreateSuccess(sdp: SessionDescription?) {}
@@ -193,7 +184,7 @@ class WebRTCConnectionManager @Inject constructor(
                 val answerMessage = SignalingMessage.Answer(
                     from = offer.to,
                     to = offer.from,
-                    sdp = answerSdp.description
+                    sdp = answerSdp?.description ?: throw Exception("Answer SDP is null")
                 )
                 signalingClient.send(answerMessage)
 
@@ -231,9 +222,7 @@ class WebRTCConnectionManager @Inject constructor(
                         }
 
                         override fun onSetFailure(error: String?) {
-                            continuation.resumeWithException(
-                                Exception("Failed to set remote description: $error")
-                            )
+                            continuation.resumeWith(Result.failure(Exception("Failed to set remote description: $error")))
                         }
 
                         override fun onCreateSuccess(sdp: SessionDescription?) {}
@@ -399,6 +388,10 @@ class WebRTCConnectionManager @Inject constructor(
                 }
             }
 
+            override fun onIceConnectionReceivingChange(receiving: Boolean) {
+                Timber.d("ICE connection receiving change: $receiving for $remotePeerId")
+            }
+
             override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
                 Timber.i("Peer connection state changed: $newState for $remotePeerId")
             }
@@ -513,3 +506,4 @@ private fun PeerConnection.IceConnectionState.toPeerConnectionState(): PeerConne
         PeerConnection.IceConnectionState.CLOSED -> PeerConnectionState.CLOSED
     }
 }
+

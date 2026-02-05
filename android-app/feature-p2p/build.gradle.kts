@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
@@ -121,9 +121,7 @@ dependencies {
     implementation("io.noties.markwon:ext-strikethrough:$markwonVersion")
     implementation("io.noties.markwon:ext-tables:$markwonVersion")
     implementation("io.noties.markwon:linkify:$markwonVersion")
-
-    // WebRTC (Google official)
-    implementation("org.webrtc:google-webrtc:1.0.32006")
+    // WebRTC comes from core-p2p (ch.threema:webrtc-android)
 
     // Testing
     testImplementation("junit:junit:4.13.2")
@@ -138,3 +136,4 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
+

@@ -4,6 +4,7 @@ import com.chainlesschain.android.feature.p2p.webrtc.channel.ChannelType
 import com.chainlesschain.android.feature.p2p.webrtc.channel.DataChannelManager
 import com.chainlesschain.android.feature.p2p.webrtc.channel.IncomingMessage
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
