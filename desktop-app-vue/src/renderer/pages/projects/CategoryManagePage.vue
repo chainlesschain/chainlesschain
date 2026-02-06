@@ -294,6 +294,7 @@ import { logger, createLogger } from "@/utils/logger";
 import { ref, computed, onMounted } from "vue";
 import { message, Empty } from "ant-design-vue";
 import { useCategoryStore } from "@/stores/category";
+import { useProjectStore } from "@/stores/project";
 import {
   PlusOutlined,
   EditOutlined,
@@ -305,6 +306,7 @@ import {
 } from "@ant-design/icons-vue";
 
 const categoryStore = useCategoryStore();
+const projectStore = useProjectStore();
 
 const loading = ref(false);
 const editDialogVisible = ref(false);

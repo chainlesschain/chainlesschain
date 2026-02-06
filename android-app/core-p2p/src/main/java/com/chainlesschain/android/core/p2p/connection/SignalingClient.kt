@@ -120,6 +120,10 @@ class SignalingClient @Inject constructor() {
     private var totalHeartbeatsReceived = 0
     private var connectionStartTime = 0L
 
+    // 消息 ACK 系统
+    private val pendingMessages = ConcurrentHashMap<String, PendingSignalingMessage>()
+    private var ackProcessorJob: Job? = null
+
     /**
      * 启动信令服务器（等待连接）
      */
@@ -364,6 +368,211 @@ class SignalingClient @Inject constructor() {
             Log.d(TAG, "Sent signaling message: ${message::class.simpleName}")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send message", e)
+        }
+    }
+
+    /**
+     * 发送信令消息并等待确认
+     *
+     * @param message 要发送的消息
+     * @param requireAck 是否需要确认（如果 P2PFeatureFlags.enableMessageAck 关闭，将忽略此参数）
+     * @return 发送结果
+     */
+    suspend fun sendMessageWithAck(
+        message: SignalingMessage,
+        requireAck: Boolean = true
+    ): SignalingResult {
+        // 如果功能关闭或不需要确认，直接发送
+        if (!P2PFeatureFlags.enableMessageAck || !requireAck) {
+            return try {
+                sendMessage(message)
+                SignalingResult.Success
+            } catch (e: Exception) {
+                SignalingResult.Failed(e.message ?: "Unknown error")
+            }
+        }
+
+        // 生成消息 ID
+        val messageId = message.messageId ?: UUID.randomUUID().toString()
+
+        // 创建带 ID 的消息副本
+        val messageWithId = when (message) {
+            is SignalingMessage.Offer -> message.copy(messageId = messageId)
+            is SignalingMessage.Answer -> message.copy(messageId = messageId)
+            is SignalingMessage.Candidate -> message.copy(messageId = messageId)
+            else -> message // 心跳等消息不需要 ACK
+        }
+
+        // 如果是不需要 ACK 的消息类型，直接发送
+        if (messageWithId.messageId == null) {
+            return try {
+                sendMessage(messageWithId)
+                SignalingResult.Success
+            } catch (e: Exception) {
+                SignalingResult.Failed(e.message ?: "Unknown error")
+            }
+        }
+
+        // 创建待确认消息记录
+        val pendingMessage = PendingSignalingMessage(
+            messageId = messageId,
+            message = messageWithId,
+            sentAt = System.currentTimeMillis(),
+            retryCount = 0
+        )
+
+        pendingMessages[messageId] = pendingMessage
+
+        // 发送消息并等待 ACK
+        return withTimeoutOrNull(MESSAGE_ACK_TIMEOUT_MS * (MAX_MESSAGE_RETRIES + 1)) {
+            sendAndWaitForAck(pendingMessage)
+        } ?: run {
+            pendingMessages.remove(messageId)
+            SignalingResult.Timeout
+        }
+    }
+
+    /**
+     * 发送消息并等待 ACK（带重试）
+     */
+    private suspend fun sendAndWaitForAck(pendingMessage: PendingSignalingMessage): SignalingResult {
+        val messageId = pendingMessage.messageId
+
+        while (pendingMessage.retryCount <= MAX_MESSAGE_RETRIES) {
+            try {
+                // 发送消息
+                sendMessage(pendingMessage.message)
+                pendingMessage.sentAt = System.currentTimeMillis()
+
+                // 等待 ACK
+                val ackReceived = waitForAck(messageId, MESSAGE_ACK_TIMEOUT_MS)
+
+                if (ackReceived) {
+                    pendingMessages.remove(messageId)
+                    Log.d(TAG, "Message $messageId acknowledged")
+                    return SignalingResult.Success
+                }
+
+                // 未收到 ACK，准备重试
+                pendingMessage.retryCount++
+
+                if (pendingMessage.retryCount <= MAX_MESSAGE_RETRIES) {
+                    // 指数退避
+                    val retryDelay = RETRANSMIT_BASE_DELAY_MS * (1L shl (pendingMessage.retryCount - 1))
+                    Log.w(TAG, "Message $messageId not acknowledged, retrying in ${retryDelay}ms (attempt ${pendingMessage.retryCount}/$MAX_MESSAGE_RETRIES)")
+                    delay(retryDelay)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error sending message $messageId", e)
+                pendingMessage.retryCount++
+            }
+        }
+
+        pendingMessages.remove(messageId)
+        Log.e(TAG, "Message $messageId failed after $MAX_MESSAGE_RETRIES retries")
+        return SignalingResult.MaxRetriesExceeded
+    }
+
+    /**
+     * 等待指定消息的 ACK
+     */
+    private suspend fun waitForAck(messageId: String, timeoutMs: Long): Boolean {
+        val startTime = System.currentTimeMillis()
+
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            // 检查消息是否已被确认（从 pendingMessages 中移除）
+            if (!pendingMessages.containsKey(messageId)) {
+                return true
+            }
+
+            // 检查是否收到了 ACK
+            val pending = pendingMessages[messageId]
+            if (pending?.acknowledged == true) {
+                return true
+            }
+
+            delay(50) // 轮询间隔
+        }
+
+        return false
+    }
+
+    /**
+     * 处理收到的 ACK 消息
+     */
+    private fun handleMessageAck(ackMessageId: String) {
+        val pending = pendingMessages[ackMessageId]
+        if (pending != null) {
+            pending.acknowledged = true
+            pendingMessages.remove(ackMessageId)
+            Log.d(TAG, "ACK received for message: $ackMessageId")
+        } else {
+            Log.w(TAG, "Received ACK for unknown message: $ackMessageId")
+        }
+    }
+
+    /**
+     * 处理收到的 NACK 消息
+     */
+    private fun handleMessageNack(nackMessageId: String, reason: String) {
+        val pending = pendingMessages[nackMessageId]
+        if (pending != null) {
+            Log.w(TAG, "NACK received for message $nackMessageId: $reason")
+            // NACK 可能触发立即重传或标记失败
+            // 当前实现依赖超时机制进行重传
+        }
+    }
+
+    /**
+     * 发送 ACK 确认消息
+     */
+    private suspend fun sendAck(messageId: String) {
+        if (!P2PFeatureFlags.enableMessageAck) return
+
+        val ackMessage = SignalingMessage.MessageAck(ackMessageId = messageId)
+        sendMessage(ackMessage)
+        Log.d(TAG, "ACK sent for message: $messageId")
+    }
+
+    /**
+     * 启动 ACK 超时检查处理器
+     */
+    private fun startAckProcessor() {
+        stopAckProcessor()
+
+        if (!P2PFeatureFlags.enableMessageAck) return
+
+        ackProcessorJob = scope.launch {
+            while (isActive) {
+                delay(1000) // 每秒检查一次
+                cleanupTimedOutMessages()
+            }
+        }
+    }
+
+    /**
+     * 停止 ACK 处理器
+     */
+    private fun stopAckProcessor() {
+        ackProcessorJob?.cancel()
+        ackProcessorJob = null
+    }
+
+    /**
+     * 清理超时的待确认消息
+     */
+    private fun cleanupTimedOutMessages() {
+        val now = System.currentTimeMillis()
+        val maxAge = MESSAGE_ACK_TIMEOUT_MS * (MAX_MESSAGE_RETRIES + 1)
+
+        pendingMessages.entries.removeIf { (id, msg) ->
+            val age = now - msg.sentAt
+            if (age > maxAge) {
+                Log.w(TAG, "Removing timed out message: $id")
+                true
+            } else {
+                false
+            }
         }
     }
 
