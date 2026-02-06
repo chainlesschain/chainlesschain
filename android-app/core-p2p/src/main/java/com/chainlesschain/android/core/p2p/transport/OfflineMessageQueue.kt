@@ -336,6 +336,10 @@ class OfflineMessageQueue @Inject constructor(
         var totalMessages = 0
         var totalDevices = 0
         var oldestMessageAge = 0L
+        var highPriorityCount = 0
+        var normalPriorityCount = 0
+        var lowPriorityCount = 0
+        var pendingRetryCount = 0
 
         val now = System.currentTimeMillis()
 
@@ -348,13 +352,28 @@ class OfflineMessageQueue @Inject constructor(
                 if (age > oldestMessageAge) {
                     oldestMessageAge = age
                 }
+
+                queue.forEach { msg ->
+                    when (msg.priority) {
+                        MessagePriority.HIGH -> highPriorityCount++
+                        MessagePriority.NORMAL -> normalPriorityCount++
+                        MessagePriority.LOW -> lowPriorityCount++
+                    }
+                    if (msg.nextRetryAt > 0 && msg.nextRetryAt > now) {
+                        pendingRetryCount++
+                    }
+                }
             }
         }
 
         return OfflineQueueStats(
             totalMessages = totalMessages,
             totalDevices = totalDevices,
-            oldestMessageAgeMs = oldestMessageAge
+            oldestMessageAgeMs = oldestMessageAge,
+            highPriorityCount = highPriorityCount,
+            normalPriorityCount = normalPriorityCount,
+            lowPriorityCount = lowPriorityCount,
+            pendingRetryCount = pendingRetryCount
         )
     }
 
@@ -474,5 +493,9 @@ sealed class OfflineQueueEvent {
 data class OfflineQueueStats(
     val totalMessages: Int,
     val totalDevices: Int,
-    val oldestMessageAgeMs: Long
+    val oldestMessageAgeMs: Long,
+    val highPriorityCount: Int = 0,
+    val normalPriorityCount: Int = 0,
+    val lowPriorityCount: Int = 0,
+    val pendingRetryCount: Int = 0
 )

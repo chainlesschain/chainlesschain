@@ -139,7 +139,7 @@ async function getStats(database, organizationManager, orgId, dateRange) {
         onlineMembers,
         storageUsed,
         storageLimit: 10 * 1024 * 1024 * 1024, // 10GB
-        bandwidthUsed: 0, // TODO: Implement bandwidth tracking
+        bandwidthUsed: getBandwidthUsed(db, orgId, dateRange)
         bandwidthLimit: 100 * 1024 * 1024 * 1024, // 100GB
         networkHealth,
         activeConnections: networkStats?.connectedPeers || 0,
