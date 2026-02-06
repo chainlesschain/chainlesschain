@@ -252,6 +252,54 @@ function registerPluginIPC({
   );
 
   // ============================================
+  // UI 注册表查询 IPC 处理器 (运行时注册的UI元素)
+  // ============================================
+
+  // 获取注册的页面列表
+  ipcMain.handle("plugin:get-registered-pages", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      const pages = pluginManager.getRegisteredPages(pluginId);
+      return { success: true, pages };
+    }),
+  );
+
+  // 获取注册的菜单列表
+  ipcMain.handle("plugin:get-registered-menus", (_event, options = {}) =>
+    safeInvoke(() => {
+      ensureManager();
+      const { position = null, pluginId = null } = options;
+      const menus = pluginManager.getRegisteredMenus(position, pluginId);
+      return { success: true, menus };
+    }),
+  );
+
+  // 获取注册的组件列表
+  ipcMain.handle("plugin:get-registered-components", (_event, options = {}) =>
+    safeInvoke(() => {
+      ensureManager();
+      const { slot = null, pluginId = null } = options;
+      const components = pluginManager.getRegisteredComponents(slot, pluginId);
+      return { success: true, components };
+    }),
+  );
+
+  // 获取所有已注册的UI元素
+  ipcMain.handle("plugin:get-all-registered-ui", (_event, pluginId = null) =>
+    safeInvoke(() => {
+      ensureManager();
+      return {
+        success: true,
+        ui: {
+          pages: pluginManager.getRegisteredPages(pluginId),
+          menus: pluginManager.getRegisteredMenus(null, pluginId),
+          components: pluginManager.getRegisteredComponents(null, pluginId),
+        },
+      };
+    }),
+  );
+
+  // ============================================
   // 插件设置相关 IPC 处理器
   // ============================================
 

@@ -400,8 +400,88 @@ class KnowledgeCommentsManager extends EventEmitter {
    * @private
    */
   async _notifyMentionedUsers(knowledgeId, mentions, authorName, content) {
-    // TODO: Implement notification system integration
+    if (!mentions || mentions.length === 0) {
+      return;
+    }
+
     logger.info(`[KnowledgeComments] Notifying mentioned users:`, mentions);
+
+    try {
+      // 获取知识条目信息
+      const knowledge = this.database.prepare(`
+        SELECT title FROM knowledge_items WHERE id = ?
+      `).get(knowledgeId);
+
+      const knowledgeTitle = knowledge?.title || '知识条目';
+
+      // 截取评论内容预览
+      const contentPreview = content.length > 100
+        ? content.substring(0, 100) + '...'
+        : content;
+
+      for (const mention of mentions) {
+        // 查找被@的用户
+        const user = this.database.prepare(`
+          SELECT did, nickname, email FROM contacts
+          WHERE nickname = ? OR did = ?
+        `).get(mention, mention);
+
+        if (!user) {
+          logger.warn(`[KnowledgeComments] 未找到被@的用户: ${mention}`);
+          continue;
+        }
+
+        // 创建通知记录
+        const notificationId = uuidv4();
+        const now = Date.now();
+
+        this.database.prepare(`
+          INSERT INTO notifications (
+            id, type, recipient_did, title, content,
+            metadata, read, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          notificationId,
+          'mention',
+          user.did,
+          `${authorName} 在评论中提到了你`,
+          `在「${knowledgeTitle}」中: ${contentPreview}`,
+          JSON.stringify({
+            knowledgeId,
+            authorName,
+            mention,
+          }),
+          0, // unread
+          now
+        );
+
+        // 通过 P2P 发送实时通知
+        if (this.p2pManager && typeof this.p2pManager.sendNotification === 'function') {
+          await this.p2pManager.sendNotification(user.did, {
+            type: 'mention',
+            title: `${authorName} 在评论中提到了你`,
+            body: `在「${knowledgeTitle}」中: ${contentPreview}`,
+            data: {
+              knowledgeId,
+              notificationId,
+            },
+          });
+        }
+
+        // 触发事件
+        this.emit('user:mentioned', {
+          notificationId,
+          recipientDid: user.did,
+          authorName,
+          knowledgeId,
+          knowledgeTitle,
+        });
+
+        logger.info(`[KnowledgeComments] 已通知用户: ${user.did}`);
+      }
+    } catch (error) {
+      logger.error('[KnowledgeComments] 通知用户失败:', error);
+    }
   }
 }
 

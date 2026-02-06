@@ -224,6 +224,13 @@ class GlobalFileBrowserViewModel @Inject constructor(
      * Load files based on current filters
      */
     private fun loadFiles() {
+        // Don't load files if there's a scan error
+        val currentScanProgress = _scanProgress.value
+        if (currentScanProgress is MediaStoreScanner.ScanProgress.Error) {
+            _uiState.value = FileBrowserUiState.Error(currentScanProgress.message)
+            return
+        }
+
         loadFilesJob?.cancel()
         loadFilesJob = viewModelScope.launch {
             _uiState.value = FileBrowserUiState.Loading

@@ -420,6 +420,47 @@ class RemoteGateway extends EventEmitter {
   }
 
   /**
+   * 断开设备连接
+   * @param {string} peerId - 设备的 Peer ID 或 DID
+   * @returns {Promise<Object>} 断开结果
+   */
+  async disconnectDevice(peerId) {
+    logger.info(`[RemoteGateway] 断开设备连接: ${peerId}`);
+
+    try {
+      // 1. 通过 P2P 适配器断开连接
+      if (this.p2pCommandAdapter) {
+        await this.p2pCommandAdapter.disconnectPeer(peerId);
+      }
+
+      // 2. 通过设备管理处理器更新状态
+      if (this.handlers.device) {
+        await this.handlers.device.disconnectDevice(
+          { deviceDid: peerId },
+          { channel: 'local' }
+        );
+      }
+
+      // 3. 更新统计
+      this.stats.connectedDevices = Math.max(0, this.stats.connectedDevices - 1);
+
+      // 4. 触发事件
+      this.emit('device:disconnected', peerId);
+
+      logger.info(`[RemoteGateway] ✓ 设备已断开: ${peerId}`);
+
+      return {
+        success: true,
+        peerId,
+        message: 'Device disconnected successfully',
+      };
+    } catch (error) {
+      logger.error(`[RemoteGateway] 断开设备失败: ${peerId}`, error);
+      throw error;
+    }
+  }
+
+  /**
    * 设置设备权限
    */
   async setDevicePermission(did, level, options = {}) {

@@ -747,14 +747,14 @@ class DeviceManagerHandler extends EventEmitter {
    * 连接到设备
    */
   async connectToDevice(params, context) {
-    const { deviceDid } = params;
+    const { deviceDid, timeout = 30000 } = params;
     if (!deviceDid) {
       throw new Error("Device DID is required");
     }
 
     logger.info(`[DeviceManagerHandler] 连接到设备: ${deviceDid}`);
 
-    // 更新设备状态
+    // 更新设备状态为连接中
     await this.database.run(
       "UPDATE devices SET status = ?, last_seen_at = ?, updated_at = ? WHERE device_did = ?",
       [DeviceStatus.CONNECTING, Date.now(), Date.now(), deviceDid],
@@ -762,13 +762,91 @@ class DeviceManagerHandler extends EventEmitter {
 
     await this.logActivity(deviceDid, "connection_attempt", {});
 
-    // TODO: 实际的 P2P 连接逻辑
+    // 执行 P2P 连接
+    try {
+      if (!this.p2pManager) {
+        throw new Error("P2P Manager not initialized");
+      }
 
-    return {
-      deviceDid,
-      status: DeviceStatus.CONNECTING,
-      message: "Connecting to device...",
-    };
+      // 查找设备的 Peer ID
+      const device = this.database
+        .prepare("SELECT peer_id, multiaddr FROM devices WHERE device_did = ?")
+        .get(deviceDid);
+
+      if (!device) {
+        throw new Error("Device not found in database");
+      }
+
+      let connected = false;
+
+      // 尝试通过 Peer ID 或多地址连接
+      if (device.peer_id) {
+        // 使用 P2P Manager 连接到 Peer
+        if (typeof this.p2pManager.connectToPeer === 'function') {
+          connected = await Promise.race([
+            this.p2pManager.connectToPeer(device.peer_id, device.multiaddr),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Connection timeout')), timeout)
+            ),
+          ]);
+        } else if (typeof this.p2pManager.dial === 'function') {
+          // 兼容 libp2p dial 方法
+          const multiaddr = device.multiaddr || `/p2p/${device.peer_id}`;
+          await Promise.race([
+            this.p2pManager.dial(multiaddr),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Connection timeout')), timeout)
+            ),
+          ]);
+          connected = true;
+        }
+      }
+
+      if (connected) {
+        // 连接成功，更新状态
+        await this.database.run(
+          "UPDATE devices SET status = ?, last_seen_at = ?, updated_at = ? WHERE device_did = ?",
+          [DeviceStatus.ONLINE, Date.now(), Date.now(), deviceDid],
+        );
+
+        await this.logActivity(deviceDid, "connected", {
+          peerId: device.peer_id,
+        });
+
+        // 发送连接事件
+        this.emit("device:connected", { deviceDid, peerId: device.peer_id });
+
+        logger.info(`[DeviceManagerHandler] ✓ 设备连接成功: ${deviceDid}`);
+
+        return {
+          deviceDid,
+          peerId: device.peer_id,
+          status: DeviceStatus.ONLINE,
+          message: "Device connected successfully",
+        };
+      } else {
+        throw new Error("Connection failed");
+      }
+    } catch (error) {
+      // 连接失败，更新状态
+      await this.database.run(
+        "UPDATE devices SET status = ?, updated_at = ? WHERE device_did = ?",
+        [DeviceStatus.OFFLINE, Date.now(), deviceDid],
+      );
+
+      await this.logActivity(deviceDid, "connection_failed", {
+        error: error.message,
+      });
+
+      logger.error(`[DeviceManagerHandler] 设备连接失败: ${deviceDid}`, error);
+
+      return {
+        deviceDid,
+        status: DeviceStatus.OFFLINE,
+        message: `Connection failed: ${error.message}`,
+        error: error.message,
+      };
+    }
   }
 
   /**

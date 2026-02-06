@@ -350,24 +350,96 @@ class AutomationManager extends EventEmitter {
    * 生成报告
    */
   async generateReport(config) {
-    const { reportType, projectId, outputPath } = config;
-
+    const { reportType, projectId, outputPath, format = 'md' } = config;
     logger.info(`[AutomationManager] 生成报告: ${reportType}`);
 
-    // 根据类型生成不同报告
-    switch (reportType) {
-      case 'daily':
-        // 生成每日进度报告
-        break;
-      case 'weekly':
-        // 生成周报
-        break;
-      case 'analytics':
-        // 生成数据分析报告
-        break;
-    }
+    try {
+      let reportData = {};
+      let reportContent = '';
+      const now = new Date();
 
-    // TODO: 实现报告生成逻辑
+      switch (reportType) {
+        case 'daily':
+          reportData = await this.collectDailyReportData(projectId, now);
+          reportContent = this.formatDailyReport(reportData);
+          break;
+        case 'weekly':
+          reportData = await this.collectWeeklyReportData(projectId, now);
+          reportContent = this.formatWeeklyReport(reportData);
+          break;
+        case 'analytics':
+          reportData = await this.collectAnalyticsData(projectId, config.dateRange);
+          reportContent = this.formatAnalyticsReport(reportData);
+          break;
+      }
+
+      if (outputPath) {
+        const fs = require('fs').promises;
+        const path = require('path');
+        await fs.mkdir(path.dirname(outputPath), { recursive: true });
+        await fs.writeFile(outputPath, reportContent, 'utf-8');
+        logger.info(`[AutomationManager] ✓ 报告已保存: ${outputPath}`);
+      }
+
+      return { success: true, reportType, content: reportContent, data: reportData };
+    } catch (error) {
+      logger.error('[AutomationManager] 生成报告失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async collectDailyReportData(projectId, date) {
+    const startOfDay = new Date(date); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date); endOfDay.setHours(23, 59, 59, 999);
+    const project = this.database.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+    const completedTasks = this.database.prepare(`
+      SELECT title FROM tasks WHERE project_id = ? AND status = 'completed'
+      AND completed_at BETWEEN ? AND ?
+    `).all(projectId, startOfDay.getTime(), endOfDay.getTime());
+    return { project, date: date.toISOString().split('T')[0], completedTasks };
+  }
+
+  async collectWeeklyReportData(projectId, date) {
+    const endOfWeek = new Date(date);
+    const startOfWeek = new Date(date); startOfWeek.setDate(startOfWeek.getDate() - 7);
+    const project = this.database.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
+    const taskStats = this.database.prepare(`SELECT status, COUNT(*) as count FROM tasks WHERE project_id = ? GROUP BY status`).all(projectId);
+    const completedTasks = this.database.prepare(`
+      SELECT title FROM tasks WHERE project_id = ? AND status = 'completed' AND completed_at BETWEEN ? AND ?
+    `).all(projectId, startOfWeek.getTime(), endOfWeek.getTime());
+    return { project, startDate: startOfWeek.toISOString().split('T')[0], endDate: endOfWeek.toISOString().split('T')[0], taskStats, completedTasks };
+  }
+
+  async collectAnalyticsData(projectId, dateRange) {
+    const { start, end } = dateRange || { start: Date.now() - 30 * 24 * 60 * 60 * 1000, end: Date.now() };
+    const taskTrend = this.database.prepare(`
+      SELECT DATE(completed_at / 1000, 'unixepoch') as date, COUNT(*) as count
+      FROM tasks WHERE project_id = ? AND status = 'completed' AND completed_at BETWEEN ? AND ?
+      GROUP BY DATE(completed_at / 1000, 'unixepoch')
+    `).all(projectId, start, end);
+    return { projectId, taskTrend };
+  }
+
+  formatDailyReport(data) {
+    let report = `# ${data.project?.name || '项目'} - 每日报告\n\n**日期:** ${data.date}\n\n`;
+    report += `## 今日完成 (${data.completedTasks.length})\n\n`;
+    data.completedTasks.forEach(t => { report += `- [x] ${t.title}\n`; });
+    return report;
+  }
+
+  formatWeeklyReport(data) {
+    let report = `# ${data.project?.name || '项目'} - 周报\n\n**周期:** ${data.startDate} ~ ${data.endDate}\n\n`;
+    report += `## 任务概览\n\n`;
+    data.taskStats.forEach(s => { report += `- ${s.status}: ${s.count}\n`; });
+    report += `\n## 本周完成 (${data.completedTasks.length})\n\n`;
+    data.completedTasks.slice(0, 20).forEach(t => { report += `- [x] ${t.title}\n`; });
+    return report;
+  }
+
+  formatAnalyticsReport(data) {
+    let report = `# 项目分析报告\n\n## 任务完成趋势\n\n`;
+    data.taskTrend.forEach(t => { report += `- ${t.date}: ${t.count} 个任务\n`; });
+    return report;
   }
 
   /**
@@ -375,31 +447,100 @@ class AutomationManager extends EventEmitter {
    */
   async sendNotification(config) {
     const { title, message, channels = ['desktop'] } = config;
-
     logger.info(`[AutomationManager] 发送通知: ${title}`);
+    const results = {};
 
-    // 发送到不同渠道
     for (const channel of channels) {
-      switch (channel) {
-        case 'desktop':
-          // 桌面通知
-          const { Notification } = require('electron');
-          const notification = new Notification({
-            title: title,
-            body: message
-          });
-          notification.show();
-          break;
+      try {
+        switch (channel) {
+          case 'desktop':
+            const { Notification } = require('electron');
+            const notification = new Notification({ title, body: message });
+            notification.show();
+            results.desktop = { success: true };
+            break;
 
-        case 'email':
-          // TODO: 邮件通知
-          break;
+          case 'email':
+            results.email = await this.sendEmailNotification(config);
+            break;
 
-        case 'webhook':
-          // TODO: Webhook通知
-          break;
+          case 'webhook':
+            results.webhook = await this.sendWebhookNotification(config);
+            break;
+        }
+      } catch (error) {
+        results[channel] = { success: false, error: error.message };
       }
     }
+    return results;
+  }
+
+  async sendEmailNotification(config) {
+    const { title, message, emailConfig = {} } = config;
+    const { to, smtpHost, smtpPort = 587, smtpUser, smtpPass } = emailConfig;
+    if (!to) return { success: false, error: '缺少收件人' };
+
+    try {
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: smtpHost || process.env.SMTP_HOST,
+        port: smtpPort,
+        auth: { user: smtpUser || process.env.SMTP_USER, pass: smtpPass || process.env.SMTP_PASS }
+      });
+      const info = await transporter.sendMail({
+        from: process.env.SMTP_FROM || 'ChainlessChain <noreply@local>',
+        to: Array.isArray(to) ? to.join(', ') : to,
+        subject: title,
+        text: message,
+        html: `<h2>${title}</h2><p>${message.replace(/\n/g, '<br>')}</p>`
+      });
+      logger.info(`[AutomationManager] ✓ 邮件已发送: ${info.messageId}`);
+      return { success: true, messageId: info.messageId };
+    } catch (error) {
+      if (error.code === 'MODULE_NOT_FOUND') return { success: false, error: 'nodemailer 未安装' };
+      throw error;
+    }
+  }
+
+  async sendWebhookNotification(config) {
+    const { title, message, webhookConfig = {} } = config;
+    const { url, method = 'POST', headers = {}, secret } = webhookConfig;
+    if (!url) return { success: false, error: '缺少 Webhook URL' };
+
+    const https = require('https');
+    const http = require('http');
+    const crypto = require('crypto');
+    const { URL } = require('url');
+
+    const payload = JSON.stringify({ title, message, timestamp: new Date().toISOString() });
+    const reqHeaders = { 'Content-Type': 'application/json', ...headers };
+    if (secret) reqHeaders['X-Signature'] = `sha256=${crypto.createHmac('sha256', secret).update(payload).digest('hex')}`;
+
+    const parsedUrl = new URL(url);
+    const httpModule = parsedUrl.protocol === 'https:' ? https : http;
+
+    return new Promise((resolve, reject) => {
+      const req = httpModule.request({
+        hostname: parsedUrl.hostname, port: parsedUrl.port,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: method.toUpperCase(), headers: reqHeaders, timeout: 30000
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            logger.info(`[AutomationManager] ✓ Webhook 成功: ${res.statusCode}`);
+            resolve({ success: true, statusCode: res.statusCode });
+          } else {
+            resolve({ success: false, statusCode: res.statusCode, error: data });
+          }
+        });
+      });
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('超时')); });
+      req.write(payload);
+      req.end();
+    });
   }
 
   /**
@@ -487,29 +628,223 @@ class AutomationManager extends EventEmitter {
 
   /**
    * 条件匹配
+   * @param {Object} data - 要匹配的数据
+   * @param {Object} condition - 条件配置
+   * @returns {boolean} 是否匹配
    */
   matchesCondition(data, condition) {
-    // 简单的条件匹配实现
-    // TODO: 实现更复杂的条件逻辑
+    if (!condition || Object.keys(condition).length === 0) {
+      return true; // 无条件时默认匹配
+    }
+
+    // 支持的操作符
+    const operators = {
+      eq: (a, b) => a === b,
+      ne: (a, b) => a !== b,
+      gt: (a, b) => a > b,
+      gte: (a, b) => a >= b,
+      lt: (a, b) => a < b,
+      lte: (a, b) => a <= b,
+      contains: (a, b) => String(a).includes(String(b)),
+      startsWith: (a, b) => String(a).startsWith(String(b)),
+      endsWith: (a, b) => String(a).endsWith(String(b)),
+      regex: (a, b) => new RegExp(b).test(String(a)),
+      in: (a, b) => Array.isArray(b) && b.includes(a),
+      notIn: (a, b) => Array.isArray(b) && !b.includes(a),
+      exists: (a, b) => b ? a !== undefined && a !== null : a === undefined || a === null,
+    };
+
+    // 递归匹配逻辑
+    const matchSingle = (dataValue, conditionValue) => {
+      // 如果条件是对象且包含操作符
+      if (typeof conditionValue === 'object' && conditionValue !== null && !Array.isArray(conditionValue)) {
+        for (const [op, expected] of Object.entries(conditionValue)) {
+          if (operators[op]) {
+            if (!operators[op](dataValue, expected)) {
+              return false;
+            }
+          } else {
+            // 嵌套对象匹配
+            if (typeof dataValue !== 'object' || dataValue === null) {
+              return false;
+            }
+            if (!matchSingle(dataValue[op], expected)) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      // 直接值比较
+      return dataValue === conditionValue;
+    };
+
+    // 处理逻辑运算符
+    if (condition.$and) {
+      return condition.$and.every(subCond => this.matchesCondition(data, subCond));
+    }
+
+    if (condition.$or) {
+      return condition.$or.some(subCond => this.matchesCondition(data, subCond));
+    }
+
+    if (condition.$not) {
+      return !this.matchesCondition(data, condition.$not);
+    }
+
+    // 遍历所有条件字段
+    for (const [field, conditionValue] of Object.entries(condition)) {
+      if (field.startsWith('$')) continue; // 跳过逻辑运算符
+
+      // 获取嵌套字段值 (支持 "a.b.c" 格式)
+      const fieldParts = field.split('.');
+      let dataValue = data;
+      for (const part of fieldParts) {
+        if (dataValue === undefined || dataValue === null) {
+          dataValue = undefined;
+          break;
+        }
+        dataValue = dataValue[part];
+      }
+
+      if (!matchSingle(dataValue, conditionValue)) {
+        return false;
+      }
+    }
+
     return true;
   }
 
   /**
    * 计算下次执行时间
+   * @param {string} ruleId - 规则ID
+   * @returns {number|null} 下次执行的时间戳（毫秒）
    */
   calculateNextRun(ruleId) {
     const rule = this.rules.get(ruleId);
     if (!rule) {return null;}
 
-    const triggerConfig = JSON.parse(rule.trigger_config);
+    const triggerConfig = typeof rule.trigger_config === 'string'
+      ? JSON.parse(rule.trigger_config)
+      : rule.trigger_config;
 
     if (rule.trigger_type === 'schedule') {
-      // 使用node-cron计算下次执行时间
-      // TODO: 实现精确的下次执行时间计算
-      return Date.now() + 60000; // 临时返回1分钟后
+      const cronExpression = triggerConfig.cron || triggerConfig.schedule;
+      if (!cronExpression) {
+        return null;
+      }
+
+      // 解析 cron 表达式并计算下次执行时间
+      return this.getNextCronTime(cronExpression);
+    }
+
+    if (rule.trigger_type === 'interval') {
+      // 间隔触发
+      const interval = triggerConfig.interval || 60000; // 默认1分钟
+      const lastRun = rule.last_run_at || Date.now();
+      return lastRun + interval;
     }
 
     return null;
+  }
+
+  /**
+   * 解析 cron 表达式并计算下次执行时间
+   * 支持标准 5 字段 cron: 分 时 日 月 周
+   * @param {string} cronExpression - cron 表达式
+   * @returns {number} 下次执行的时间戳
+   */
+  getNextCronTime(cronExpression) {
+    const parts = cronExpression.trim().split(/\s+/);
+    if (parts.length < 5) {
+      logger.warn(`[AutomationManager] 无效的 cron 表达式: ${cronExpression}`);
+      return Date.now() + 60000; // 默认1分钟后
+    }
+
+    const [minutePart, hourPart, dayPart, monthPart, weekdayPart] = parts;
+
+    // 解析单个字段
+    const parseField = (field, min, max) => {
+      if (field === '*') {
+        return Array.from({ length: max - min + 1 }, (_, i) => min + i);
+      }
+
+      const values = new Set();
+
+      // 处理逗号分隔的多个值
+      for (const segment of field.split(',')) {
+        // 处理步长 (*/5 或 1-10/2)
+        if (segment.includes('/')) {
+          const [range, step] = segment.split('/');
+          const stepNum = parseInt(step, 10);
+          let start = min, end = max;
+
+          if (range !== '*') {
+            if (range.includes('-')) {
+              [start, end] = range.split('-').map(n => parseInt(n, 10));
+            } else {
+              start = parseInt(range, 10);
+            }
+          }
+
+          for (let i = start; i <= end; i += stepNum) {
+            values.add(i);
+          }
+        }
+        // 处理范围 (1-5)
+        else if (segment.includes('-')) {
+          const [start, end] = segment.split('-').map(n => parseInt(n, 10));
+          for (let i = start; i <= end; i++) {
+            values.add(i);
+          }
+        }
+        // 单个值
+        else {
+          values.add(parseInt(segment, 10));
+        }
+      }
+
+      return Array.from(values).filter(v => v >= min && v <= max).sort((a, b) => a - b);
+    };
+
+    const minutes = parseField(minutePart, 0, 59);
+    const hours = parseField(hourPart, 0, 23);
+    const days = parseField(dayPart, 1, 31);
+    const months = parseField(monthPart, 1, 12);
+    const weekdays = parseField(weekdayPart, 0, 6); // 0=周日
+
+    // 从当前时间开始查找下一个匹配时间
+    const now = new Date();
+    const maxIterations = 366 * 24 * 60; // 最多查找一年
+
+    for (let i = 0; i < maxIterations; i++) {
+      const candidate = new Date(now.getTime() + i * 60000); // 每次增加1分钟
+
+      const minute = candidate.getMinutes();
+      const hour = candidate.getHours();
+      const day = candidate.getDate();
+      const month = candidate.getMonth() + 1;
+      const weekday = candidate.getDay();
+
+      // 检查是否匹配
+      if (
+        minutes.includes(minute) &&
+        hours.includes(hour) &&
+        days.includes(day) &&
+        months.includes(month) &&
+        weekdays.includes(weekday)
+      ) {
+        // 确保是未来时间
+        if (candidate.getTime() > now.getTime()) {
+          return candidate.getTime();
+        }
+      }
+    }
+
+    // 如果找不到，返回1小时后
+    logger.warn(`[AutomationManager] 无法计算下次执行时间: ${cronExpression}`);
+    return Date.now() + 3600000;
   }
 
   /**

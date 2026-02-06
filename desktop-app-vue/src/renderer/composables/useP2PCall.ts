@@ -112,8 +112,24 @@ export interface UseP2PCallReturn {
 
 // ==================== Electron IPC ====================
 
-// 获取 ipcRenderer
-const ipcRenderer = (window as any).require?.('electron')?.ipcRenderer;
+// 获取 ipcRenderer（用于事件监听）
+const ipcRenderer =
+  (window as any).electron?.ipcRenderer ??
+  (window as any).require?.('electron')?.ipcRenderer;
+
+// 统一 IPC invoke 入口（兼容多种注入方式）
+const ipcInvoke =
+  (window as any).ipc?.invoke?.bind((window as any).ipc) ??
+  (window as any).electron?.ipcRenderer?.invoke?.bind((window as any).electron?.ipcRenderer) ??
+  (window as any).electronAPI?.invoke?.bind((window as any).electronAPI) ??
+  (window as any).require?.('electron')?.ipcRenderer?.invoke?.bind((window as any).require?.('electron')?.ipcRenderer);
+
+const invokeIPC = async <T = any>(channel: string, ...args: any[]): Promise<T> => {
+  if (!ipcInvoke) {
+    throw new Error('IPC invoke is not available');
+  }
+  return ipcInvoke(channel, ...args) as Promise<T>;
+};
 
 // ==================== Composable ====================
 
@@ -129,7 +145,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const startAudioCall = async (peerId: string, options: CallOptions = {}): Promise<string | null> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:start-call', {
+      const result: IPCResult = await invokeIPC('p2p-enhanced:start-call', {
         peerId,
         type: 'audio',
         options
@@ -159,7 +175,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const startVideoCall = async (peerId: string, options: CallOptions = {}): Promise<string | null> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:start-call', {
+      const result: IPCResult = await invokeIPC('p2p-enhanced:start-call', {
         peerId,
         type: 'video',
         options
@@ -193,7 +209,7 @@ export function useP2PCall(): UseP2PCallReturn {
     options: CallOptions = {}
   ): Promise<string | null> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:start-call', {
+      const result: IPCResult = await invokeIPC('p2p-enhanced:start-call', {
         peerId,
         type: 'screen',
         options: {
@@ -227,7 +243,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const getScreenSources = async (options: CallOptions = {}): Promise<ScreenSource[]> => {
     try {
-      const result: IPCResult<ScreenSource[]> = await ipcRenderer.invoke('screen-share:get-sources', options);
+      const result: IPCResult<ScreenSource[]> = await invokeIPC('screen-share:get-sources', options);
       if (result.success && result.sources) {
         return result.sources;
       } else {
@@ -246,7 +262,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const acceptCall = async (callId: string): Promise<boolean> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:accept-call', {
+      const result: IPCResult = await invokeIPC('p2p-enhanced:accept-call', {
         callId
       });
 
@@ -273,7 +289,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const rejectCall = async (callId: string, reason: string = 'rejected'): Promise<boolean> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:reject-call', {
+      const result: IPCResult = await invokeIPC('p2p-enhanced:reject-call', {
         callId,
         reason
       });
@@ -299,7 +315,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const endCall = async (callId: string): Promise<boolean> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:end-call', {
+      const result: IPCResult = await invokeIPC('p2p-enhanced:end-call', {
         callId
       });
 
@@ -324,7 +340,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const toggleMute = async (callId: string): Promise<boolean | null> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:toggle-mute', {
+      const result: IPCResult = await invokeIPC('p2p-enhanced:toggle-mute', {
         callId
       });
 
@@ -346,7 +362,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const toggleVideo = async (callId: string): Promise<boolean | null> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:toggle-video', {
+      const result: IPCResult = await invokeIPC('p2p-enhanced:toggle-video', {
         callId
       });
 
@@ -368,7 +384,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const getCallInfo = async (callId: string): Promise<CallInfo | null> => {
     try {
-      const result: IPCResult<CallInfo> = await ipcRenderer.invoke('p2p-enhanced:get-call-info', {
+      const result: IPCResult<CallInfo> = await invokeIPC('p2p-enhanced:get-call-info', {
         callId
       });
 
@@ -388,7 +404,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const getActiveCalls = async (): Promise<CallInfo[]> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:get-active-calls');
+      const result: IPCResult = await invokeIPC('p2p-enhanced:get-active-calls');
 
       if (result.success && result.calls) {
         activeCalls.value = result.calls;
@@ -407,7 +423,7 @@ export function useP2PCall(): UseP2PCallReturn {
    */
   const getCallStats = async (): Promise<CallStats | null> => {
     try {
-      const result: IPCResult = await ipcRenderer.invoke('p2p-enhanced:get-stats');
+      const result: IPCResult = await invokeIPC('p2p-enhanced:get-stats');
 
       if (result.success && result.stats?.voiceVideoManager) {
         callStats.value = result.stats.voiceVideoManager;

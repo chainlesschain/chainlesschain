@@ -270,17 +270,69 @@ ${html}
       }
     });
 
-    // 截图功能（可选，暂时返回成功）
-    ipcMain.handle('webide:captureScreenshot', async (event, options) => {
+    // 截图功能
+    ipcMain.handle('webide:captureScreenshot', async (event, options = {}) => {
       try {
-        logger.info('[WebIDE IPC] 处理截图请求');
+        logger.info('[WebIDE IPC] 处理截图请求', options);
 
-        // TODO: 实现截图功能
-        // 可以使用 Electron 的 webContents.capturePage()
+        const webContents = event.sender;
+
+        // 获取截图区域
+        let rect = null;
+        if (options.rect) {
+          rect = {
+            x: Math.round(options.rect.x || 0),
+            y: Math.round(options.rect.y || 0),
+            width: Math.round(options.rect.width),
+            height: Math.round(options.rect.height),
+          };
+        }
+
+        // 使用 Electron 的 webContents.capturePage() 截图
+        const image = rect
+          ? await webContents.capturePage(rect)
+          : await webContents.capturePage();
+
+        if (image.isEmpty()) {
+          throw new Error('截图失败：图像为空');
+        }
+
+        // 根据格式返回数据
+        const format = options.format || 'png';
+        const quality = options.quality || 90;
+
+        let imageData;
+        let mimeType;
+
+        if (format === 'jpeg' || format === 'jpg') {
+          imageData = image.toJPEG(quality);
+          mimeType = 'image/jpeg';
+        } else {
+          imageData = image.toPNG();
+          mimeType = 'image/png';
+        }
+
+        // 保存到文件（如果指定了路径）
+        if (options.savePath) {
+          await fs.writeFile(options.savePath, imageData);
+          logger.info(`[WebIDE IPC] 截图已保存: ${options.savePath}`);
+
+          return {
+            success: true,
+            filePath: options.savePath,
+            size: image.getSize(),
+          };
+        }
+
+        // 返回 base64 数据
+        const base64 = imageData.toString('base64');
 
         return {
           success: true,
-          message: '截图功能开发中',
+          data: base64,
+          mimeType,
+          size: image.getSize(),
+          format,
         };
       } catch (error) {
         logger.error('[WebIDE IPC] 截图失败:', error);

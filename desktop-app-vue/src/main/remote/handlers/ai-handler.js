@@ -67,26 +67,58 @@ class AICommandHandler {
     logger.info(`[AIHandler] 处理对话请求: "${message.substring(0, 50)}..." (来自: ${context.did})`);
 
     try {
-      // TODO: 调用实际的 AI Engine
-      // 这里暂时返回模拟响应，实际实现需要集成现有的 AI 引擎
+      let response;
 
-      // 模拟响应
-      const response = {
-        conversationId: conversationId || `conv-${Date.now()}`,
-        reply: `收到您的消息："${message}"。这是来自 PC 端的模拟回复。`,
-        model: model || 'qwen-72b',
-        tokens: {
-          prompt: 50,
-          completion: 100,
-          total: 150
-        },
-        metadata: {
-          source: 'remote',
-          did: context.did,
-          channel: context.channel || 'p2p',
-          timestamp: Date.now()
-        }
-      };
+      // 使用实际的 AI Engine
+      if (this.aiEngine && typeof this.aiEngine.chat === 'function') {
+        const aiResult = await this.aiEngine.chat({
+          message,
+          conversationId,
+          model: model || this.options.defaultModel,
+          systemPrompt,
+          temperature: temperature || 0.7,
+        });
+
+        response = {
+          conversationId: aiResult.conversationId || conversationId || `conv-${Date.now()}`,
+          reply: aiResult.content || aiResult.reply || aiResult.message,
+          model: aiResult.model || model || 'default',
+          tokens: aiResult.usage || {
+            prompt: 0,
+            completion: 0,
+            total: 0
+          },
+          metadata: {
+            source: 'remote',
+            did: context.did,
+            channel: context.channel || 'p2p',
+            timestamp: Date.now()
+          }
+        };
+      } else if (this.aiEngine && typeof this.aiEngine.query === 'function') {
+        // 兼容 LLMManager.query 接口
+        const aiResult = await this.aiEngine.query(message, {
+          model: model || this.options.defaultModel,
+          temperature: temperature || 0.7,
+        });
+
+        response = {
+          conversationId: conversationId || `conv-${Date.now()}`,
+          reply: typeof aiResult === 'string' ? aiResult : (aiResult.content || aiResult.reply),
+          model: model || 'default',
+          tokens: aiResult.usage || { prompt: 0, completion: 0, total: 0 },
+          metadata: {
+            source: 'remote',
+            did: context.did,
+            channel: context.channel || 'p2p',
+            timestamp: Date.now()
+          }
+        };
+      } else {
+        // 后备：返回错误信息而非模拟数据
+        logger.warn('[AIHandler] AI Engine 不可用，返回错误');
+        throw new Error('AI Engine 未初始化或不可用');
+      }
 
       // 保存对话历史到数据库（可选）
       if (this.database) {
@@ -183,32 +215,44 @@ class AICommandHandler {
     logger.info(`[AIHandler] RAG 搜索: "${query}" (topK: ${topK})`);
 
     try {
-      // TODO: 调用实际的 RAG Manager
-      // 这里暂时返回模拟响应
+      let results = [];
 
-      // 模拟搜索结果
-      const results = [
-        {
-          noteId: 'note-1',
-          title: '知识点 1',
-          content: `这是关于 "${query}" 的第一条相关知识`,
-          score: 0.95,
+      // 使用实际的 RAG Manager
+      if (this.ragManager && typeof this.ragManager.search === 'function') {
+        const searchResults = await this.ragManager.search(query, {
+          limit: topK,
+          filter: filters,
+        });
+
+        results = (searchResults || []).map(item => ({
+          noteId: item.id,
+          title: item.title || item.metadata?.title || 'Untitled',
+          content: item.content || '',
+          score: item.score || 0,
           metadata: {
-            createdAt: Date.now() - 86400000,
-            tags: ['AI', 'knowledge']
+            createdAt: item.created_at || item.createdAt,
+            tags: item.tags || item.metadata?.tags || [],
+            type: item.type || item.metadata?.type,
           }
-        },
-        {
-          noteId: 'note-2',
-          title: '知识点 2',
-          content: `这是关于 "${query}" 的第二条相关知识`,
-          score: 0.87,
+        }));
+      } else if (this.ragManager && typeof this.ragManager.retrieve === 'function') {
+        // 兼容 RAGManager.retrieve 接口
+        const searchResults = await this.ragManager.retrieve(query, { topK });
+
+        results = (searchResults || []).map(item => ({
+          noteId: item.id,
+          title: item.title || 'Untitled',
+          content: item.content || '',
+          score: item.score || 0,
           metadata: {
-            createdAt: Date.now() - 172800000,
-            tags: ['search']
+            createdAt: item.created_at,
+            type: item.type,
           }
-        }
-      ];
+        }));
+      } else {
+        logger.warn('[AIHandler] RAG Manager 不可用');
+        throw new Error('RAG Manager 未初始化或不可用');
+      }
 
       return {
         query,
@@ -226,31 +270,178 @@ class AICommandHandler {
    * 控制 AI Agent
    */
   async controlAgent(params, context) {
-    const { action, agentId } = params;
+    const { action, agentId, config } = params;
 
     // 验证参数
-    if (!action || !['start', 'stop', 'restart', 'status'].includes(action)) {
-      throw new Error('Parameter "action" must be one of: start, stop, restart, status');
+    if (!action || !['start', 'stop', 'restart', 'status', 'list'].includes(action)) {
+      throw new Error('Parameter "action" must be one of: start, stop, restart, status, list');
     }
 
-    if (!agentId) {
+    if (action !== 'list' && !agentId) {
       throw new Error('Parameter "agentId" is required');
     }
 
-    logger.info(`[AIHandler] 控制 Agent: ${action} ${agentId}`);
+    logger.info(`[AIHandler] 控制 Agent: ${action} ${agentId || 'all'}`);
 
     try {
-      // TODO: 实现实际的 Agent 控制逻辑
+      let response;
 
-      // 模拟响应
-      const response = {
-        success: true,
-        agentId,
-        action,
-        status: action === 'start' ? 'running' : action === 'stop' ? 'stopped' : 'running',
-        timestamp: Date.now()
-      };
+      // 获取 AgentPool 引用（如果可用）
+      const agentPool = this.aiEngine?.agentPool || this.options.agentPool;
 
+      switch (action) {
+        case 'start': {
+          if (agentPool && typeof agentPool.acquire === 'function') {
+            // 从池中获取或创建代理
+            const agent = await agentPool.acquire({
+              id: agentId,
+              capabilities: config?.capabilities || ['general'],
+            });
+
+            response = {
+              success: true,
+              agentId: agent.id || agentId,
+              status: 'running',
+              capabilities: agent.capabilities || ['general'],
+              startedAt: Date.now(),
+            };
+          } else {
+            // 记录到数据库
+            if (this.database) {
+              this.database.prepare(`
+                INSERT OR REPLACE INTO ai_agents (id, status, config, started_at, updated_at)
+                VALUES (?, 'running', ?, ?, ?)
+              `).run(agentId, JSON.stringify(config || {}), Date.now(), Date.now());
+            }
+
+            response = {
+              success: true,
+              agentId,
+              status: 'running',
+              startedAt: Date.now(),
+            };
+          }
+          break;
+        }
+
+        case 'stop': {
+          if (agentPool && typeof agentPool.release === 'function') {
+            // 释放代理回池
+            await agentPool.release(agentId);
+          }
+
+          // 更新数据库状态
+          if (this.database) {
+            this.database.prepare(`
+              UPDATE ai_agents SET status = 'stopped', stopped_at = ?, updated_at = ?
+              WHERE id = ?
+            `).run(Date.now(), Date.now(), agentId);
+          }
+
+          response = {
+            success: true,
+            agentId,
+            status: 'stopped',
+            stoppedAt: Date.now(),
+          };
+          break;
+        }
+
+        case 'restart': {
+          // 停止然后启动
+          if (agentPool && typeof agentPool.release === 'function') {
+            await agentPool.release(agentId);
+          }
+
+          if (agentPool && typeof agentPool.acquire === 'function') {
+            const agent = await agentPool.acquire({
+              id: agentId,
+              capabilities: config?.capabilities || ['general'],
+            });
+
+            response = {
+              success: true,
+              agentId: agent.id || agentId,
+              status: 'running',
+              restartedAt: Date.now(),
+            };
+          } else {
+            if (this.database) {
+              this.database.prepare(`
+                UPDATE ai_agents SET status = 'running', started_at = ?, updated_at = ?
+                WHERE id = ?
+              `).run(Date.now(), Date.now(), agentId);
+            }
+
+            response = {
+              success: true,
+              agentId,
+              status: 'running',
+              restartedAt: Date.now(),
+            };
+          }
+          break;
+        }
+
+        case 'status': {
+          let agentStatus = 'unknown';
+          let agentInfo = null;
+
+          if (agentPool && typeof agentPool.getAgentStatus === 'function') {
+            agentStatus = await agentPool.getAgentStatus(agentId);
+          } else if (this.database) {
+            agentInfo = this.database.prepare(`
+              SELECT * FROM ai_agents WHERE id = ?
+            `).get(agentId);
+            agentStatus = agentInfo?.status || 'not_found';
+          }
+
+          response = {
+            success: true,
+            agentId,
+            status: agentStatus,
+            info: agentInfo,
+            timestamp: Date.now(),
+          };
+          break;
+        }
+
+        case 'list': {
+          let agents = [];
+
+          if (agentPool && typeof agentPool.getStats === 'function') {
+            const poolStats = agentPool.getStats();
+            agents = [
+              { type: 'available', count: poolStats.available || 0 },
+              { type: 'busy', count: poolStats.busy || 0 },
+            ];
+          }
+
+          if (this.database) {
+            const dbAgents = this.database.prepare(`
+              SELECT id, status, config, started_at, stopped_at, updated_at
+              FROM ai_agents
+              ORDER BY updated_at DESC
+              LIMIT 100
+            `).all();
+
+            agents = dbAgents.map(a => ({
+              ...a,
+              config: a.config ? JSON.parse(a.config) : null,
+            }));
+          }
+
+          response = {
+            success: true,
+            agents,
+            total: agents.length,
+            timestamp: Date.now(),
+          };
+          break;
+        }
+      }
+
+      logger.info(`[AIHandler] Agent 控制成功: ${action} ${agentId || 'all'}`);
       return response;
     } catch (error) {
       logger.error('[AIHandler] 控制 Agent 失败:', error);
@@ -265,32 +456,61 @@ class AICommandHandler {
     logger.info('[AIHandler] 获取模型列表');
 
     try {
-      // TODO: 从配置或 AI Engine 获取实际模型列表
+      let models = [];
 
-      // 模拟模型列表
-      const models = [
-        {
-          id: 'gpt-4',
-          name: 'GPT-4',
-          provider: 'openai',
+      // 从 AI Engine 获取实际模型列表
+      if (this.aiEngine && typeof this.aiEngine.getAvailableModels === 'function') {
+        const availableModels = await this.aiEngine.getAvailableModels();
+        models = (availableModels || []).map(m => ({
+          id: m.id || m.name,
+          name: m.name || m.id,
+          provider: m.provider || 'unknown',
+          capabilities: m.capabilities || ['chat'],
+          maxTokens: m.maxTokens || m.contextLength || 4096,
+        }));
+      } else if (this.aiEngine && typeof this.aiEngine.listModels === 'function') {
+        const availableModels = await this.aiEngine.listModels();
+        models = (availableModels || []).map(m => ({
+          id: m.id || m.model || m.name,
+          name: m.name || m.model || m.id,
+          provider: m.provider || 'ollama',
           capabilities: ['chat', 'completion'],
-          maxTokens: 8192
-        },
-        {
-          id: 'claude-3-opus',
-          name: 'Claude 3 Opus',
-          provider: 'anthropic',
-          capabilities: ['chat', 'completion'],
-          maxTokens: 200000
-        },
-        {
-          id: 'qwen-72b',
-          name: 'Qwen 72B',
-          provider: 'ollama',
-          capabilities: ['chat', 'completion'],
-          maxTokens: 32768
+          maxTokens: m.contextLength || 4096,
+        }));
+      }
+
+      // 如果没有从 AI Engine 获取到模型，使用默认配置
+      if (models.length === 0) {
+        models = [
+          {
+            id: 'qwen2:7b',
+            name: 'Qwen2 7B',
+            provider: 'ollama',
+            capabilities: ['chat', 'completion'],
+            maxTokens: 32768
+          },
+          {
+            id: 'llama3:8b',
+            name: 'Llama 3 8B',
+            provider: 'ollama',
+            capabilities: ['chat', 'completion'],
+            maxTokens: 8192
+          }
+        ];
+
+        // 尝试从环境变量获取配置的模型
+        const configuredModels = process.env.LLM_MODELS;
+        if (configuredModels) {
+          try {
+            const parsed = JSON.parse(configuredModels);
+            if (Array.isArray(parsed)) {
+              models = parsed;
+            }
+          } catch (e) {
+            // 忽略解析错误
+          }
         }
-      ];
+      }
 
       return {
         models,

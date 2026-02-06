@@ -105,15 +105,17 @@ function registerRemoteIPCHandlers(gateway, loggingManager = null) {
     }
   });
 
-  // 8. 断开设备连接（如果支持）
+  // 8. 断开设备连接
   ipcMain.handle('remote:disconnect-device', async (event, { peerId }) => {
     try {
       logger.info(`[RemoteIPC] 断开设备: ${peerId}`);
 
-      // TODO: 实现设备断开逻辑
-      // gateway.disconnectDevice(peerId);
+      if (!gateway) {
+        return { success: false, error: '远程网关未初始化' };
+      }
 
-      return { success: true };
+      const result = await gateway.disconnectDevice(peerId);
+      return result;
     } catch (error) {
       logger.error('[RemoteIPC] 断开设备失败:', error);
       return { success: false, error: error.message };

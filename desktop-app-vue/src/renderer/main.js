@@ -1,3 +1,4 @@
+import "@/utils/ipc-shim";
 import { logger, createLogger } from '@/utils/logger';
 import { createApp } from "vue";
 import { createPinia } from "pinia";

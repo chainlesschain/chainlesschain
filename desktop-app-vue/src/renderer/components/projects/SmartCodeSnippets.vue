@@ -240,13 +240,13 @@ const title = ref('Hello World');
 onMounted(() => {
   logger.info('Component mounted');
 });
-<\/script>
+\x3C/script>
 
 <style scoped>
 .component {
   padding: 20px;
 }
-<\/style>`,
+\x3C/style>`,
     usageCount: 45,
     rating: 5,
   },

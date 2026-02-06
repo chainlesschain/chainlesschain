@@ -230,6 +230,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { getIpcBridge } from '@/utils/ipc-shim'
 import {
   ReloadOutlined,
   BarChartOutlined,
@@ -242,7 +243,7 @@ import {
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 
-const { ipcRenderer } = window.require('electron')
+const ipcRenderer = getIpcBridge()
 
 // 设备列表
 const loading = ref(false)
@@ -480,6 +481,7 @@ function formatUptime(ms) {
 
 // 监听设备事件
 onMounted(() => {
+  if (!ipcRenderer?.on) {return}
   refreshDevices()
 
   // 监听设备连接事件
@@ -500,6 +502,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (!ipcRenderer?.removeAllListeners) {return}
   ipcRenderer.removeAllListeners('remote:device-connected')
   ipcRenderer.removeAllListeners('remote:device-registered')
   ipcRenderer.removeAllListeners('remote:device-disconnected')

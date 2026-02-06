@@ -714,16 +714,103 @@ class DBSyncManager extends EventEmitter {
 
   /**
    * 解决冲突
+   * @param {string} conflictId - 冲突ID (格式: tableName:recordId)
+   * @param {string} resolution - 解决策略: 'local', 'remote', 'merge'
+   * @param {Object} mergedData - 合并后的数据（仅当 resolution='merge' 时需要）
    */
-  async resolveConflict(conflictId, resolution) {
+  async resolveConflict(conflictId, resolution, mergedData = null) {
     logger.info("[DBSyncManager] 解决冲突:", conflictId, resolution);
 
-    // TODO: 根据解决策略更新本地或远程数据
-    // 这里需要根据实际情况实现具体逻辑
+    // 解析冲突ID
+    const [tableName, recordId] = conflictId.split(':');
+    if (!tableName || !recordId) {
+      throw new Error(`无效的冲突ID: ${conflictId}`);
+    }
 
     try {
-      await this.httpClient.resolveConflict(conflictId, resolution, null);
-      this.emit("conflict-resolved", { conflictId, resolution });
+      const now = Date.now();
+
+      switch (resolution) {
+        case 'local': {
+          // 保留本地数据，推送到远程
+          const localRecord = this.database.db
+            .prepare(`SELECT * FROM ${tableName} WHERE id = ?`)
+            .get(recordId);
+
+          if (!localRecord) {
+            throw new Error(`本地记录不存在: ${tableName}.${recordId}`);
+          }
+
+          // 标记为待同步，让下次同步推送到远程
+          this.database.db.run(
+            `UPDATE ${tableName}
+             SET sync_status = 'pending', updated_at = ?
+             WHERE id = ?`,
+            [now, recordId]
+          );
+
+          // 通知远程服务器解决冲突（使用本地版本覆盖远程）
+          const backendRecord = this.fieldMapper.toBackend(localRecord, tableName);
+          await this.httpClient.resolveConflict(conflictId, resolution, backendRecord);
+          break;
+        }
+
+        case 'remote': {
+          // 接受远程数据，覆盖本地
+          // 从后端获取最新数据
+          const remoteData = await this.httpClient.getRecord(tableName, recordId);
+
+          if (remoteData) {
+            const converted = this.fieldMapper.toLocal(remoteData, tableName);
+            converted.sync_status = 'synced';
+            converted.synced_at = now;
+
+            this.insertOrUpdateLocal(tableName, converted);
+          }
+
+          // 通知远程服务器冲突已解决
+          await this.httpClient.resolveConflict(conflictId, resolution, null);
+          break;
+        }
+
+        case 'merge': {
+          // 使用合并后的数据
+          if (!mergedData) {
+            throw new Error('合并解决策略需要提供 mergedData');
+          }
+
+          // 更新本地数据
+          mergedData.sync_status = 'pending';
+          mergedData.updated_at = now;
+          mergedData.id = recordId;
+
+          this.insertOrUpdateLocal(tableName, mergedData);
+
+          // 推送合并后的数据到远程
+          const backendMerged = this.fieldMapper.toBackend(mergedData, tableName);
+          await this.httpClient.resolveConflict(conflictId, resolution, backendMerged);
+          break;
+        }
+
+        default:
+          throw new Error(`未知的解决策略: ${resolution}`);
+      }
+
+      // 更新冲突状态表（如果有）
+      try {
+        this.database.db.run(
+          `UPDATE sync_conflicts
+           SET status = 'resolved', resolution = ?, resolved_at = ?
+           WHERE record_id = ? AND table_name = ? AND status = 'pending'`,
+          [resolution, now, recordId, tableName]
+        );
+      } catch (e) {
+        // 冲突表可能不存在，忽略
+      }
+
+      logger.info(`[DBSyncManager] 冲突已解决: ${conflictId} -> ${resolution}`);
+      this.emit("conflict-resolved", { conflictId, resolution, tableName, recordId });
+
     } catch (error) {
       logger.error("[DBSyncManager] 解决冲突失败:", error);
       throw error;

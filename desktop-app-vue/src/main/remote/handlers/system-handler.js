@@ -135,25 +135,77 @@ class SystemCommandHandler {
 
   /**
    * 截图
+   * 使用 Electron desktopCapturer 获取屏幕截图
    */
   async screenshot(params, context) {
-    const { display = 0, format = 'png', quality = 80 } = params;
+    const { display = 0, format = 'png', quality = 80, thumbnail = false } = params;
 
     logger.info(`[SystemHandler] 截图请求 (display: ${display}, format: ${format})`);
 
     try {
-      // TODO: 实现实际的截图功能（使用 electron 的 desktopCapturer 或 node-screenshot）
-      // 这里返回模拟响应
+      const { desktopCapturer, screen } = require('electron');
 
-      // 模拟 base64 图片数据
-      const base64Data = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      // 获取所有显示器
+      const displays = screen.getAllDisplays();
+      const targetDisplay = displays[display] || displays[0];
+
+      if (!targetDisplay) {
+        throw new Error('No display available');
+      }
+
+      const { width, height } = targetDisplay.size;
+
+      // 获取屏幕源
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: thumbnail
+          ? { width: Math.floor(width / 4), height: Math.floor(height / 4) }
+          : { width, height },
+      });
+
+      // 找到目标显示器的源
+      const source = sources.find(s =>
+        s.display_id === targetDisplay.id.toString() ||
+        s.name.includes('Screen') ||
+        s.name.includes('整个屏幕') ||
+        s.name.includes('Entire Screen')
+      ) || sources[display] || sources[0];
+
+      if (!source) {
+        throw new Error('No screen source found');
+      }
+
+      // 获取缩略图作为 NativeImage
+      const image = source.thumbnail;
+
+      if (!image || image.isEmpty()) {
+        throw new Error('Failed to capture screenshot');
+      }
+
+      // 转换为指定格式
+      let base64Data;
+      let mimeType;
+
+      if (format === 'jpeg' || format === 'jpg') {
+        base64Data = image.toJPEG(quality).toString('base64');
+        mimeType = 'image/jpeg';
+      } else {
+        base64Data = image.toPNG().toString('base64');
+        mimeType = 'image/png';
+      }
+
+      const imageSize = image.getSize();
+
+      logger.info(`[SystemHandler] ✓ 截图成功: ${imageSize.width}x${imageSize.height}`);
 
       return {
-        format,
+        format: format === 'jpg' ? 'jpeg' : format,
+        mimeType,
         data: base64Data,
-        width: 1920,
-        height: 1080,
+        width: imageSize.width,
+        height: imageSize.height,
         display,
+        displayId: targetDisplay.id,
         timestamp: Date.now()
       };
     } catch (error) {

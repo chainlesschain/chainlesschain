@@ -36,6 +36,13 @@ class PluginManager extends EventEmitter {
     this.plugins = new Map(); // pluginId -> { id, manifest, state, sandbox, api }
     this.extensionPoints = new Map(); // 扩展点注册表
 
+    // UI 注册表
+    this.uiRegistry = {
+      pages: new Map(),      // routePath -> { pluginId, component, title, icon, ... }
+      menus: new Map(),      // menuId -> { pluginId, label, icon, action, position, ... }
+      components: new Map(), // componentId -> { pluginId, component, slots, props, ... }
+    };
+
     // 系统服务上下文（传递给插件API）
     this.systemContext = {};
 
@@ -650,19 +657,234 @@ class PluginManager extends EventEmitter {
   // 扩展点处理函数（Phase 3-4 实现）
   // ============================================
 
+  /**
+   * 处理UI页面扩展
+   * @param {Object} context - 扩展上下文
+   * @param {string} context.pluginId - 插件ID
+   * @param {Object} context.config - 页面配置
+   */
   async handleUIPageExtension(context) {
-    logger.info("[PluginManager] 处理UI页面扩展:", context);
-    // Phase 3 实现
+    const { pluginId, config } = context;
+    logger.info("[PluginManager] 处理UI页面扩展:", pluginId, config);
+
+    const {
+      path: routePath,
+      title,
+      icon,
+      component,
+      componentPath,
+      requireAuth = false,
+      meta = {},
+    } = config;
+
+    if (!routePath) {
+      throw new Error("页面路由路径(path)是必需的");
+    }
+
+    const pageId = `plugin:${pluginId}:${routePath}`;
+
+    this.uiRegistry.pages.set(pageId, {
+      id: pageId,
+      pluginId,
+      path: `/plugin/${pluginId}${routePath}`,
+      originalPath: routePath,
+      title: title || pluginId,
+      icon: icon || "AppstoreOutlined",
+      component,
+      componentPath,
+      requireAuth,
+      meta: {
+        ...meta,
+        isPluginPage: true,
+        pluginId,
+      },
+      registeredAt: Date.now(),
+    });
+
+    logger.info(`[PluginManager] ✓ 页面已注册: ${pageId}`);
+    this.emit("ui:page:registered", { pluginId, pageId, path: routePath });
+
+    return { success: true, pageId };
   }
 
+  /**
+   * 处理UI菜单扩展
+   * @param {Object} context - 扩展上下文
+   * @param {string} context.pluginId - 插件ID
+   * @param {Object} context.config - 菜单配置
+   */
   async handleUIMenuExtension(context) {
-    logger.info("[PluginManager] 处理UI菜单扩展:", context);
-    // Phase 3 实现
+    const { pluginId, config } = context;
+    logger.info("[PluginManager] 处理UI菜单扩展:", pluginId, config);
+
+    const {
+      id: menuId,
+      label,
+      icon,
+      action,
+      route,
+      position = "sidebar",
+      order = 100,
+      parent = null,
+      children = [],
+      visible = true,
+    } = config;
+
+    const fullMenuId = `plugin:${pluginId}:${menuId || label}`;
+
+    this.uiRegistry.menus.set(fullMenuId, {
+      id: fullMenuId,
+      pluginId,
+      label,
+      icon: icon || "AppstoreOutlined",
+      action,
+      route: route ? `/plugin/${pluginId}${route}` : null,
+      position,
+      order,
+      parent,
+      children: children.map((child) => ({
+        ...child,
+        id: `plugin:${pluginId}:${child.id || child.label}`,
+        route: child.route ? `/plugin/${pluginId}${child.route}` : null,
+      })),
+      visible,
+      registeredAt: Date.now(),
+    });
+
+    logger.info(`[PluginManager] ✓ 菜单已注册: ${fullMenuId}`);
+    this.emit("ui:menu:registered", { pluginId, menuId: fullMenuId });
+
+    return { success: true, menuId: fullMenuId };
   }
 
+  /**
+   * 处理UI组件扩展
+   * @param {Object} context - 扩展上下文
+   * @param {string} context.pluginId - 插件ID
+   * @param {Object} context.config - 组件配置
+   */
   async handleUIComponentExtension(context) {
-    logger.info("[PluginManager] 处理UI组件扩展:", context);
-    // Phase 3 实现
+    const { pluginId, config } = context;
+    logger.info("[PluginManager] 处理UI组件扩展:", pluginId, config);
+
+    const {
+      name,
+      component,
+      componentPath,
+      slot,
+      props = {},
+      order = 100,
+    } = config;
+
+    if (!name) {
+      throw new Error("组件名称(name)是必需的");
+    }
+
+    const componentId = `plugin:${pluginId}:${name}`;
+
+    this.uiRegistry.components.set(componentId, {
+      id: componentId,
+      pluginId,
+      name,
+      component,
+      componentPath,
+      slot,
+      props,
+      order,
+      registeredAt: Date.now(),
+    });
+
+    logger.info(`[PluginManager] ✓ 组件已注册: ${componentId}`);
+    this.emit("ui:component:registered", { pluginId, componentId });
+
+    return { success: true, componentId };
+  }
+
+  // ============================================
+  // UI 注册表查询方法
+  // ============================================
+
+  /**
+   * 获取所有注册的页面
+   * @param {string} pluginId - 可选，按插件ID过滤
+   * @returns {Array} 页面列表
+   */
+  getRegisteredPages(pluginId = null) {
+    const pages = Array.from(this.uiRegistry.pages.values());
+    if (pluginId) {
+      return pages.filter((p) => p.pluginId === pluginId);
+    }
+    return pages;
+  }
+
+  /**
+   * 获取所有注册的菜单
+   * @param {string} position - 可选，按位置过滤 (sidebar/header/context)
+   * @param {string} pluginId - 可选，按插件ID过滤
+   * @returns {Array} 菜单列表
+   */
+  getRegisteredMenus(position = null, pluginId = null) {
+    let menus = Array.from(this.uiRegistry.menus.values());
+
+    if (position) {
+      menus = menus.filter((m) => m.position === position);
+    }
+    if (pluginId) {
+      menus = menus.filter((m) => m.pluginId === pluginId);
+    }
+
+    return menus.sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * 获取所有注册的组件
+   * @param {string} slot - 可选，按插槽过滤
+   * @param {string} pluginId - 可选，按插件ID过滤
+   * @returns {Array} 组件列表
+   */
+  getRegisteredComponents(slot = null, pluginId = null) {
+    let components = Array.from(this.uiRegistry.components.values());
+
+    if (slot) {
+      components = components.filter((c) => c.slot === slot);
+    }
+    if (pluginId) {
+      components = components.filter((c) => c.pluginId === pluginId);
+    }
+
+    return components.sort((a, b) => a.order - b.order);
+  }
+
+  /**
+   * 注销插件的所有UI扩展
+   * @param {string} pluginId - 插件ID
+   */
+  unregisterPluginUI(pluginId) {
+    // 移除页面
+    for (const [id, page] of this.uiRegistry.pages) {
+      if (page.pluginId === pluginId) {
+        this.uiRegistry.pages.delete(id);
+        this.emit("ui:page:unregistered", { pluginId, pageId: id });
+      }
+    }
+
+    // 移除菜单
+    for (const [id, menu] of this.uiRegistry.menus) {
+      if (menu.pluginId === pluginId) {
+        this.uiRegistry.menus.delete(id);
+        this.emit("ui:menu:unregistered", { pluginId, menuId: id });
+      }
+    }
+
+    // 移除组件
+    for (const [id, component] of this.uiRegistry.components) {
+      if (component.pluginId === pluginId) {
+        this.uiRegistry.components.delete(id);
+        this.emit("ui:component:unregistered", { pluginId, componentId: id });
+      }
+    }
+
+    logger.info(`[PluginManager] 已注销插件 ${pluginId} 的所有UI扩展`);
   }
 
   async handleDataImporterExtension(context) {

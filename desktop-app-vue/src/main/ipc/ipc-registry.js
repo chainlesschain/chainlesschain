@@ -605,6 +605,14 @@ function registerAllIPC(dependencies) {
       const { registerP2PIPC } = require("../p2p/p2p-ipc");
       registerP2PIPC({ p2pManager });
       logger.info("[IPC Registry] ✓ P2P IPC registered (18 handlers)");
+
+      // 嵌入式信令服务器 (函数模式 - 小模块，11 handlers)
+      // Note: Signaling server IPC is registered with p2pManager as provider
+      // The signaling server may be started later during P2P initialization
+      logger.info("[IPC Registry] Registering Signaling Server IPC...");
+      const { registerSignalingIPC } = require("../p2p/signaling-ipc");
+      registerSignalingIPC({ p2pManager });
+      logger.info("[IPC Registry] ✓ Signaling Server IPC registered (11 handlers)");
     }
 
     // 外部设备文件管理 (函数模式 - 中等模块，15 handlers)

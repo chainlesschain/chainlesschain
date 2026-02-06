@@ -640,16 +640,39 @@ class DIDManager extends EventEmitter {
       this.db.saveToFile();
 
       // 更新 DID 文档中的资料
-      const didDocument = JSON.parse(identity.did_document);
-      if (didDocument.profile) {
+      const signedDocument = JSON.parse(identity.did_document);
+      const { proof, ...didDocument } = signedDocument;
+
+      if (didDocument.profile || updates.nickname || updates.bio) {
         didDocument.profile = {
-          ...didDocument.profile,
+          ...(didDocument.profile || {}),
           ...updates,
         };
         didDocument.updated = new Date().toISOString();
 
-        // 重新签名文档（需要私钥）
-        // TODO: 实现重新签名逻辑
+        // 重新签名文档
+        // 需要获取私钥来签名
+        if (identity.private_key) {
+          try {
+            const privateKeyBase64 = identity.private_key;
+            const secretKey = naclUtil.decodeBase64(privateKeyBase64);
+
+            // 使用 signDIDDocument 重新签名
+            const resignedDocument = this.signDIDDocument(didDocument, secretKey);
+
+            // 更新数据库中的 DID 文档
+            this.db
+              .prepare(`UPDATE identities SET did_document = ? WHERE did = ?`)
+              .run(JSON.stringify(resignedDocument), did);
+            this.db.saveToFile();
+
+            logger.info("[DIDManager] DID 文档已重新签名:", did);
+          } catch (signError) {
+            logger.warn("[DIDManager] 重新签名失败，保留旧签名:", signError.message);
+          }
+        } else {
+          logger.warn("[DIDManager] 无法重新签名：私钥不可用");
+        }
       }
 
       logger.info("[DIDManager] 身份资料已更新:", did);
