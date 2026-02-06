@@ -806,6 +806,15 @@ class ChainlessChainApp {
       this.menuManager = null;
     }
 
+    // 清理浏览器资源
+    try {
+      const { cleanupBrowser } = require("./browser/browser-ipc");
+      await cleanupBrowser();
+      logger.info("[Main] Browser cleanup completed");
+    } catch (error) {
+      logger.error("[Main] Browser cleanup error:", error);
+    }
+
     const {
       getBackendServiceManager,
     } = require("./api/backend-service-manager");

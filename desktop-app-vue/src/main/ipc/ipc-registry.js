@@ -473,6 +473,12 @@ function registerAllIPC(dependencies) {
     registerWebSearchIPC();
     logger.info("[IPC Registry] ✓ Web Search IPC registered (4 handlers)");
 
+    // 浏览器自动化控制 (Browser Control，12 handlers)
+    logger.info("[IPC Registry] Registering Browser IPC...");
+    const { registerBrowserIPC } = require("../browser/browser-ipc");
+    registerBrowserIPC();
+    logger.info("[IPC Registry] ✓ Browser IPC registered (12 handlers)");
+
     // ============================================================
     // 第二阶段模块 (核心功能)
     // ============================================================
