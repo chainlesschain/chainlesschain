@@ -83,7 +83,7 @@
                     @click="handleClick(record.ref)"
                     :loading="loading.action === record.ref"
                   >
-                    <PointerOutlined />
+                    <AimOutlined />
                   </a-button>
                 </a-tooltip>
 
@@ -178,7 +178,7 @@
           h: {{ Math.round(detailsModal.element.position.height) }}
         </a-descriptions-item>
         <a-descriptions-item label="属性">
-          <a-tag v-for="(value, key) in detailsModal.element.attributes" :key="key" v-if="value">
+          <a-tag v-for="[key, value] in detailAttributes" :key="key">
             {{ key }}: {{ value }}
           </a-tag>
         </a-descriptions-item>
@@ -188,12 +188,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   ScanOutlined,
   ClearOutlined,
-  PointerOutlined,
+  AimOutlined,
   EditOutlined,
   InfoCircleOutlined
 } from '@ant-design/icons-vue';
@@ -223,6 +223,11 @@ const typeDialog = reactive({
 const detailsModal = reactive({
   visible: false,
   element: null
+});
+
+const detailAttributes = computed(() => {
+  const attrs = detailsModal.element?.attributes || {};
+  return Object.entries(attrs).filter(([, value]) => Boolean(value));
 });
 
 // 表格列定义

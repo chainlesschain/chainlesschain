@@ -390,8 +390,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, h } from 'vue';
+import { message, Modal } from 'ant-design-vue';
 import { useRouter } from 'vue-router';
 import {
   QuestionCircleOutlined,
@@ -530,13 +530,46 @@ const getPermissionLabel = (perm) => {
 };
 
 const showDeveloperGuide = () => {
-  // TODO: 打开开发者指南
-  message.info('开发者指南');
+  Modal.info({
+    title: '插件开发者指南',
+    width: 700,
+    content: h('div', { style: 'max-height: 400px; overflow-y: auto' }, [
+      h('h4', '1. 插件结构'),
+      h('p', '每个插件需要包含 manifest.json 配置文件，定义插件的元数据、权限和入口点。'),
+      h('h4', { style: 'margin-top: 16px' }, '2. 必要文件'),
+      h('ul', [
+        h('li', 'manifest.json - 插件配置文件'),
+        h('li', 'index.js - 插件主入口'),
+        h('li', 'README.md - 插件说明文档')
+      ]),
+      h('h4', { style: 'margin-top: 16px' }, '3. 权限声明'),
+      h('p', '在 manifest.json 中声明所需权限，如 database:read、llm:query 等。'),
+      h('h4', { style: 'margin-top: 16px' }, '4. API 文档'),
+      h('p', '完整的 API 文档请访问官方开发者文档网站。')
+    ]),
+    okText: '关闭'
+  });
 };
 
 const showTerms = () => {
-  // TODO: 显示发布协议
-  message.info('插件发布协议');
+  Modal.info({
+    title: '插件发布协议',
+    width: 700,
+    content: h('div', { style: 'max-height: 400px; overflow-y: auto' }, [
+      h('h4', '插件发布须知'),
+      h('p', '发布插件即表示您同意以下条款：'),
+      h('ol', [
+        h('li', '您确认拥有该插件的完整版权或已获得合法授权。'),
+        h('li', '插件不包含任何恶意代码、后门或其他有害内容。'),
+        h('li', '插件遵守当地法律法规，不含违法违规内容。'),
+        h('li', '您同意用户对插件的评价和反馈。'),
+        h('li', '平台有权下架违规插件。'),
+        h('li', '您同意为插件提供必要的维护和支持。')
+      ]),
+      h('p', { style: 'margin-top: 16px; color: #666' }, '最后更新: 2025年1月')
+    ]),
+    okText: '我已阅读并同意'
+  });
 };
 </script>
 

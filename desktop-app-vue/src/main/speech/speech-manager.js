@@ -556,6 +556,14 @@ class SpeechManager extends EventEmitter {
   }
 
   /**
+   * 搜索转录历史
+   */
+  async searchHistory(query, options = {}) {
+    this.ensureInitialized();
+    return await this.storage.searchTranscriptionHistory(query, options);
+  }
+
+  /**
    * 删除转录历史
    */
   async deleteHistory(id) {

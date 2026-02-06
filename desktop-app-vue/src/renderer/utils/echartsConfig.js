@@ -3,7 +3,7 @@
  * 替代 import * as echarts，减少包体积 2-3MB
  */
 
-import { use, init } from 'echarts/core';
+import { use, init, graphic } from 'echarts/core';
 
 // 引入图表类型（按需引入）
 import {
@@ -103,7 +103,7 @@ use([
 ]);
 
 // 导出 init 函数供组件使用
-export { init };
+export { init, graphic };
 
 // 导出常用的工具函数
 export { use, registerTheme, registerMap, connect, disconnect } from 'echarts/core';

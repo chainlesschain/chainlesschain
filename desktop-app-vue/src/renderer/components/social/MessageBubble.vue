@@ -319,7 +319,7 @@
 import { logger, createLogger } from '@/utils/logger';
 
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { message as antMessage } from 'ant-design-vue'
+import { message as antMessage, Modal } from 'ant-design-vue'
 import {
   UserOutlined,
   FileOutlined,
@@ -528,8 +528,26 @@ const handleMenuClick = async ({ key }) => {
       }
       break
     case 'delete':
-      // TODO: 实现删除消息功能
-      emit('message-deleted', props.message.id)
+      // 确认删除消息
+      Modal.confirm({
+        title: '删除消息',
+        content: '确定要删除这条消息吗？此操作不可恢复。',
+        okText: '删除',
+        okType: 'danger',
+        cancelText: '取消',
+        onOk: async () => {
+          try {
+            // 调用IPC删除消息
+            await window.electron.ipcRenderer.invoke('chat:delete-message', props.message.id);
+            // 通知父组件消息已删除
+            emit('message-deleted', props.message.id);
+            antMessage.success('消息已删除');
+          } catch (error) {
+            logger.error('删除消息失败:', error);
+            antMessage.error('删除失败');
+          }
+        }
+      });
       break
   }
 }

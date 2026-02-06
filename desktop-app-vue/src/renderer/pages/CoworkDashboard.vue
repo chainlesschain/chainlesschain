@@ -457,21 +457,45 @@ async function handleDestroyTeam(team) {
 
 async function handlePauseTeam(team) {
   try {
-    // TODO: 实现暂停团队功能（后端需要添加相应接口）
-    message.info("暂停团队功能即将上线");
+    coworkLogger.info("暂停团队:", team.id);
+    const result = await window.electronAPI.invoke("cowork:pause-team", {
+      teamId: team.id,
+    });
+
+    if (result.success) {
+      // 更新本地状态
+      team.status = "paused";
+      message.success("团队已暂停");
+      // 刷新团队列表
+      await store.loadTeams();
+    } else {
+      message.error(result.error || "暂停团队失败");
+    }
   } catch (error) {
     coworkLogger.error("暂停团队失败:", error);
-    message.error("暂停团队失败");
+    message.error("暂停团队失败: " + error.message);
   }
 }
 
 async function handleResumeTeam(team) {
   try {
-    // TODO: 实现恢复团队功能（后端需要添加相应接口）
-    message.info("恢复团队功能即将上线");
+    coworkLogger.info("恢复团队:", team.id);
+    const result = await window.electronAPI.invoke("cowork:resume-team", {
+      teamId: team.id,
+    });
+
+    if (result.success) {
+      // 更新本地状态
+      team.status = "active";
+      message.success("团队已恢复");
+      // 刷新团队列表
+      await store.loadTeams();
+    } else {
+      message.error(result.error || "恢复团队失败");
+    }
   } catch (error) {
     coworkLogger.error("恢复团队失败:", error);
-    message.error("恢复团队失败");
+    message.error("恢复团队失败: " + error.message);
   }
 }
 

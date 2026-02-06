@@ -365,7 +365,8 @@
 import { logger, createLogger } from '@/utils/logger';
 
 import { ref, reactive, computed, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
+import { h } from 'vue';
 import {
   CloudServerOutlined,
   ApiOutlined,
@@ -486,9 +487,103 @@ const handleReset = () => {
 };
 
 // 测试语音识别
+const testResult = ref('');
+const isRecording = ref(false);
+let mediaRecorder = null;
+let audioChunks = [];
+
 const handleTest = () => {
-  message.info('打开语音识别测试窗口...');
-  // TODO: 打开测试窗口
+  testResult.value = '';
+
+  Modal.confirm({
+    title: '语音识别测试',
+    width: 600,
+    icon: h(SoundOutlined),
+    content: h('div', { style: 'padding: 16px 0' }, [
+      h('p', { style: 'margin-bottom: 16px' }, '点击"开始录音"按钮，说话后点击"停止录音"进行识别测试。'),
+      h('div', { style: 'text-align: center; margin: 24px 0' }, [
+        h('div', {
+          style: 'width: 80px; height: 80px; border-radius: 50%; background: #f0f0f0; display: inline-flex; align-items: center; justify-content: center; font-size: 32px'
+        }, '🎤')
+      ]),
+      h('p', { style: 'color: #666; font-size: 12px; text-align: center' },
+        `当前引擎: ${config.defaultEngine === 'whisper-local' ? '本地 Whisper' : config.defaultEngine === 'whisper-api' ? 'OpenAI Whisper API' : 'Web Speech'}`
+      )
+    ]),
+    okText: '开始录音',
+    cancelText: '关闭',
+    onOk: async () => {
+      await startTestRecording();
+    }
+  });
+};
+
+const startTestRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      // 停止所有音轨
+      stream.getTracks().forEach(track => track.stop());
+
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+
+      message.loading('正在识别...', 0);
+
+      try {
+        // 将 Blob 转换为 ArrayBuffer
+        const arrayBuffer = await audioBlob.arrayBuffer();
+
+        // 调用语音识别
+        const result = await window.electron.ipcRenderer.invoke('speech:transcribe', {
+          audioData: Array.from(new Uint8Array(arrayBuffer)),
+          engine: config.defaultEngine,
+          options: {
+            language: config.whisperLocal.defaultLanguage,
+          }
+        });
+
+        message.destroy();
+
+        if (result.success) {
+          Modal.success({
+            title: '识别结果',
+            content: h('div', [
+              h('p', { style: 'font-size: 16px; padding: 16px; background: #f6ffed; border-radius: 4px' }, result.text || '(无识别内容)'),
+              h('p', { style: 'color: #666; margin-top: 8px' }, `耗时: ${result.duration || 0}ms`)
+            ])
+          });
+        } else {
+          message.error('识别失败: ' + (result.error || '未知错误'));
+        }
+      } catch (error) {
+        message.destroy();
+        logger.error('语音识别失败:', error);
+        message.error('识别失败: ' + error.message);
+      }
+    };
+
+    mediaRecorder.start();
+    message.success('开始录音，请说话...');
+
+    // 5秒后自动停止
+    setTimeout(() => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        message.info('录音结束');
+      }
+    }, 5000);
+
+  } catch (error) {
+    logger.error('无法访问麦克风:', error);
+    message.error('无法访问麦克风: ' + error.message);
+  }
 };
 
 // 引擎切换

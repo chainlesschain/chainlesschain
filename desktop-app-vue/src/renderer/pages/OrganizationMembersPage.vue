@@ -484,7 +484,9 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+
+let onlineStatusInterval = null;
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import {
@@ -513,6 +515,7 @@ const identityStore = useIdentityStore();
 // 状态
 const loading = ref(false);
 const members = ref([]);
+const onlineStatusMap = ref(new Map()); // 成员DID到在线状态的映射
 const searchKeyword = ref('');
 const roleFilter = ref('');
 const showInviteModal = ref(false);
@@ -552,9 +555,35 @@ const canInviteMembers = computed(() => {
 
 // 统计
 const onlineCount = computed(() => {
-  // TODO: 实现在线状态检测
-  return members.value.filter(m => m.is_active).length;
+  // 统计在线成员数量
+  return members.value.filter(m => onlineStatusMap.value.get(m.member_did) === true).length;
 });
+
+// 检查成员在线状态
+const checkOnlineStatus = async () => {
+  if (members.value.length === 0) return;
+
+  try {
+    const memberDids = members.value.map(m => m.member_did);
+    const result = await window.ipc.invoke('p2p:check-presence', memberDids);
+
+    if (result && result.status) {
+      // 更新在线状态映射
+      const newMap = new Map();
+      for (const [did, isOnline] of Object.entries(result.status)) {
+        newMap.set(did, isOnline);
+      }
+      onlineStatusMap.value = newMap;
+    }
+  } catch (error) {
+    logger.error('检查在线状态失败:', error);
+  }
+};
+
+// 获取成员在线状态
+const isOnline = (memberDid) => {
+  return onlineStatusMap.value.get(memberDid) === true;
+};
 
 const adminCount = computed(() => {
   return members.value.filter(m => ['owner', 'admin'].includes(m.role)).length;
@@ -809,6 +838,18 @@ const getPermissionCount = (member) => {
 // 生命周期
 onMounted(async () => {
   await loadMembers();
+  // 首次检查在线状态
+  await checkOnlineStatus();
+  // 每30秒刷新一次在线状态
+  onlineStatusInterval = setInterval(checkOnlineStatus, 30000);
+});
+
+onUnmounted(() => {
+  // 清理定时器
+  if (onlineStatusInterval) {
+    clearInterval(onlineStatusInterval);
+    onlineStatusInterval = null;
+  }
 });
 </script>
 

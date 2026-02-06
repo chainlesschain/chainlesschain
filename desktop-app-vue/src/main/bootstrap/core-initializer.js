@@ -79,7 +79,7 @@ function registerCoreInitializers(factory) {
     async init() {
       const {
         getPerformanceMonitor,
-      } = require("../../utils/performance-monitor");
+      } = require("../performance/performance-monitor");
       const monitor = getPerformanceMonitor();
       monitor.start();
       return monitor;

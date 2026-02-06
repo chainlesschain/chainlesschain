@@ -276,6 +276,56 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 移动分组对话框 -->
+    <a-modal
+      v-model:open="showMoveGroupModal"
+      title="移动到分组"
+      @ok="handleSaveMoveGroup"
+      @cancel="showMoveGroupModal = false"
+    >
+      <p style="margin-bottom: 16px;">
+        将 <strong>{{ moveGroupForm.friendName }}</strong> 移动到：
+      </p>
+      <a-form layout="vertical">
+        <a-form-item label="选择现有分组">
+          <a-select
+            v-model:value="moveGroupForm.targetGroup"
+            placeholder="选择分组"
+            style="width: 100%"
+          >
+            <a-select-option
+              v-for="group in friendGroups"
+              :key="group"
+              :value="group"
+            >
+              {{ group }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-divider>或</a-divider>
+        <a-form-item label="创建新分组">
+          <a-input
+            v-model:value="moveGroupForm.newGroupName"
+            placeholder="输入新分组名称"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- 删除确认对话框 -->
+    <a-modal
+      v-model:open="showDeleteConfirm"
+      title="删除好友"
+      ok-text="确认删除"
+      cancel-text="取消"
+      ok-type="danger"
+      @ok="confirmDeleteFriend"
+      @cancel="cancelDeleteFriend"
+    >
+      <p>确定要删除好友 <strong>{{ deletingFriend?.nickname || deletingFriend?.friend_did }}</strong> 吗？</p>
+      <p style="color: #ff4d4f;">删除后将无法恢复聊天记录。</p>
+    </a-modal>
   </div>
 </template>
 
@@ -319,6 +369,19 @@ const editForm = ref({
   groupName: "我的好友",
   notes: "",
 });
+
+// 移动分组相关
+const showMoveGroupModal = ref(false);
+const moveGroupForm = ref({
+  friendDid: "",
+  friendName: "",
+  targetGroup: "",
+  newGroupName: "",
+});
+
+// 删除好友相关
+const showDeleteConfirm = ref(false);
+const deletingFriend = ref(null);
 
 // 计算属性
 const friendGroups = computed(() => {
@@ -427,8 +490,8 @@ async function handleAddFriend() {
 }
 
 function handleSendMessage(friend) {
-  // TODO: 打开聊天窗口
-  message.info("聊天功能开发中...");
+  // 跳转到 P2P 聊天页面
+  window.location.hash = `#/p2p/chat/${friend.friend_did}`;
 }
 
 function handleVoiceCall(friend) {
@@ -451,8 +514,14 @@ function handleMenuAction(action, friend) {
       showEditModal.value = true;
       break;
     case "move":
-      // TODO: 移动分组
-      message.info("移动分组功能开发中...");
+      // 打开移动分组对话框
+      moveGroupForm.value = {
+        friendDid: friend.friend_did,
+        friendName: friend.nickname || friend.friend_did,
+        targetGroup: friend.group_name || "我的好友",
+        newGroupName: "",
+      };
+      showMoveGroupModal.value = true;
       break;
     case "delete":
       handleDeleteFriend(friend);
@@ -483,8 +552,72 @@ async function handleSaveEdit() {
 }
 
 async function handleDeleteFriend(friend) {
-  // TODO: 删除好友确认
-  message.info("删除好友功能开发中...");
+  // 显示删除确认对话框
+  deletingFriend.value = friend;
+  showDeleteConfirm.value = true;
+}
+
+// 确认删除好友
+async function confirmDeleteFriend() {
+  if (!deletingFriend.value) {return;}
+
+  try {
+    const result = await ipcRenderer.invoke("friend:remove", {
+      friendDid: deletingFriend.value.friend_did,
+    });
+
+    if (result.success) {
+      message.success("好友已删除");
+      showDeleteConfirm.value = false;
+      deletingFriend.value = null;
+      await loadFriends();
+    } else {
+      message.error("删除好友失败: " + result.error);
+    }
+  } catch (error) {
+    logger.error("删除好友失败:", error);
+    message.error("删除好友失败: " + error.message);
+  }
+}
+
+// 取消删除
+function cancelDeleteFriend() {
+  showDeleteConfirm.value = false;
+  deletingFriend.value = null;
+}
+
+// 保存移动分组
+async function handleSaveMoveGroup() {
+  const targetGroup = moveGroupForm.value.newGroupName.trim() || moveGroupForm.value.targetGroup;
+
+  if (!targetGroup) {
+    message.warning("请选择或输入分组名称");
+    return;
+  }
+
+  try {
+    const result = await ipcRenderer.invoke("friend:update", {
+      friendDid: moveGroupForm.value.friendDid,
+      groupName: targetGroup,
+    });
+
+    if (result.success) {
+      message.success("已移动到分组: " + targetGroup);
+      showMoveGroupModal.value = false;
+      moveGroupForm.value = {
+        friendDid: "",
+        friendName: "",
+        targetGroup: "",
+        newGroupName: "",
+      };
+      await loadFriends();
+    } else {
+      message.error("移动分组失败: " + result.error);
+    }
+  } catch (error) {
+    logger.error("移动分组失败:", error);
+    message.error("移动分组失败: " + error.message);
+  }
 }
 
 // 监听在线状态变化事件

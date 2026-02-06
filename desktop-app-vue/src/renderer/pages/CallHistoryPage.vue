@@ -186,6 +186,7 @@ const filterType = ref("all");
 const callHistory = ref([]);
 const showDetails = ref(false);
 const selectedRecord = ref(null);
+const friendsMap = ref(new Map()); // 好友DID到昵称的映射
 
 // 计算属性
 const filteredHistory = computed(() => {
@@ -196,6 +197,22 @@ const filteredHistory = computed(() => {
 });
 
 // 方法
+const loadFriendsList = async () => {
+  try {
+    const result = await window.electron.ipcRenderer.invoke("friend:list");
+    if (result.success && result.friends) {
+      // 建立 DID 到昵称的映射
+      const map = new Map();
+      result.friends.forEach((friend) => {
+        map.set(friend.friend_did, friend.display_name || friend.nickname || friend.friend_did.substring(0, 8) + "...");
+      });
+      friendsMap.value = map;
+    }
+  } catch (error) {
+    logger.error("加载好友列表失败:", error);
+  }
+};
+
 const loadCallHistory = async () => {
   try {
     loading.value = true;
@@ -301,7 +318,10 @@ const handleDelete = (record) => {
 
 // 辅助函数
 const getPeerName = (peerId) => {
-  // TODO: 从好友列表获取昵称
+  // 从好友列表获取昵称
+  if (friendsMap.value.has(peerId)) {
+    return friendsMap.value.get(peerId);
+  }
   return peerId.substring(0, 8) + "...";
 };
 
@@ -371,7 +391,9 @@ const formatBytes = (bytes) => {
 };
 
 // 生命周期
-onMounted(() => {
+onMounted(async () => {
+  // 先加载好友列表，再加载通话记录
+  await loadFriendsList();
   loadCallHistory();
 });
 </script>

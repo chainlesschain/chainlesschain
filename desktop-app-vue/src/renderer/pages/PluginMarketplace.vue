@@ -408,7 +408,10 @@
 import { logger, createLogger } from "@/utils/logger";
 
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { message } from "ant-design-vue";
+
+const router = useRouter();
 import {
   ShopOutlined,
   SearchOutlined,
@@ -582,8 +585,11 @@ const installPlugin = async (plugin) => {
 
 const managePlugin = (plugin) => {
   // 跳转到插件管理页面
-  // TODO: 实现路由跳转
-  message.info("跳转到插件管理页面");
+  detailDrawerVisible.value = false;
+  router.push({
+    path: '/settings/plugins',
+    query: { pluginId: plugin.id }
+  });
 };
 
 const formatNumber = (num) => {

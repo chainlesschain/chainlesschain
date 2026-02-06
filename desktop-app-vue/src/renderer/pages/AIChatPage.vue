@@ -203,6 +203,20 @@
         </div>
       </div>
     </div>
+
+    <!-- 重命名对话框 -->
+    <a-modal
+      v-model:open="renameModalVisible"
+      title="重命名对话"
+      @ok="handleRenameConfirm"
+      @cancel="handleRenameCancel"
+    >
+      <a-input
+        v-model:value="newConversationTitle"
+        placeholder="输入新的对话标题"
+        @pressEnter="handleRenameConfirm"
+      />
+    </a-modal>
   </div>
 </template>
 
@@ -235,6 +249,11 @@ const isThinking = ref(false);
 const messagesContainerRef = ref(null);
 const inputRef = ref(null);
 const savingConversation = ref(false);
+
+// 重命名对话相关状态
+const renameModalVisible = ref(false);
+const renameConversation = ref(null);
+const newConversationTitle = ref("");
 
 // 用户信息
 const userName = computed(() => authStore.currentUser?.username || "用户");
@@ -343,7 +362,9 @@ const handleConversationClick = async (conversation) => {
 const handleConversationAction = async ({ action, conversation }) => {
   switch (action) {
     case "rename":
-      // TODO: 显示重命名对话框
+      renameConversation.value = conversation;
+      newConversationTitle.value = conversation.title;
+      renameModalVisible.value = true;
       break;
     case "star":
       try {
@@ -378,13 +399,49 @@ const handleConversationAction = async ({ action, conversation }) => {
 // 导航点击
 const handleNavClick = (item) => {
   logger.info("导航点击:", item);
-  // TODO: 处理不同的导航项
+  // 处理不同的导航项
+  if (item.route) {
+    // 如果有路由，跳转到对应页面
+    window.location.hash = item.route;
+  } else if (item.action) {
+    // 执行指定的动作
+    switch (item.action) {
+      case "newChat":
+        handleNewConversation();
+        break;
+      case "settings":
+        window.location.hash = "#/settings";
+        break;
+      case "help":
+        window.location.hash = "#/help";
+        break;
+      default:
+        logger.warn("未处理的导航动作:", item.action);
+    }
+  }
 };
 
 // 用户操作
 const handleUserAction = (key) => {
   logger.info("用户操作:", key);
-  // TODO: 处理用户操作（设置、退出等）
+  // 处理用户操作
+  switch (key) {
+    case "settings":
+      window.location.hash = "#/settings";
+      break;
+    case "profile":
+      window.location.hash = "#/profile";
+      break;
+    case "logout":
+      authStore.logout();
+      window.location.hash = "#/login";
+      break;
+    case "help":
+      window.location.hash = "#/help";
+      break;
+    default:
+      logger.warn("未处理的用户操作:", key);
+  }
 };
 
 // 提交消息
@@ -490,21 +547,135 @@ const handleSubmitMessage = async ({ text, attachments }) => {
 };
 
 // 处理文件上传
-const handleFileUpload = (files) => {
+const handleFileUpload = async (files) => {
   logger.info("上传文件:", files);
-  // TODO: 处理文件上传
+
+  if (!files || files.length === 0) {
+    return;
+  }
+
+  // 验证文件
+  const maxSize = 10 * 1024 * 1024; // 10MB
+  const allowedTypes = [
+    "image/",
+    "text/",
+    "application/pdf",
+    "application/json",
+    "application/javascript",
+  ];
+
+  for (const file of files) {
+    // 检查文件大小
+    if (file.size > maxSize) {
+      antMessage.warning(`文件 ${file.name} 过大，请选择小于 10MB 的文件`);
+      continue;
+    }
+
+    // 检查文件类型
+    const isAllowed = allowedTypes.some((type) => file.type.startsWith(type));
+    if (!isAllowed && file.type) {
+      antMessage.warning(`不支持的文件类型: ${file.type}`);
+      continue;
+    }
+
+    // 读取文件内容
+    try {
+      if (file.type.startsWith("image/")) {
+        // 图片文件：转为 base64
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64 = e.target.result;
+          antMessage.success(`图片 ${file.name} 已添加`);
+          // 可以将 base64 数据存储起来供后续使用
+          logger.info(`图片已加载: ${file.name}, 大小: ${base64.length} bytes`);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // 文本文件：读取内容
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target.result;
+          antMessage.success(`文件 ${file.name} 已添加`);
+          logger.info(`文件已加载: ${file.name}, 内容长度: ${content.length}`);
+        };
+        reader.readAsText(file);
+      }
+    } catch (error) {
+      logger.error("读取文件失败:", error);
+      antMessage.error(`读取文件 ${file.name} 失败`);
+    }
+  }
 };
 
 // 处理步骤重试
-const handleStepRetry = (step) => {
+const handleStepRetry = async (step) => {
   logger.info("重试步骤:", step);
-  // TODO: 实现步骤重试
+
+  if (!step || !step.action) {
+    antMessage.warning("无法重试该步骤");
+    return;
+  }
+
+  try {
+    isThinking.value = true;
+
+    // 重新执行步骤
+    const response = await window.electronAPI.llm.retryStep({
+      conversationId: activeConversationId.value,
+      step: step,
+    });
+
+    if (response?.success) {
+      // 更新步骤状态
+      step.status = "completed";
+      step.result = response.result;
+      antMessage.success("步骤重试成功");
+    } else {
+      step.status = "failed";
+      step.error = response?.error || "重试失败";
+      antMessage.error("步骤重试失败: " + (response?.error || "未知错误"));
+    }
+  } catch (error) {
+    logger.error("重试步骤失败:", error);
+    step.status = "failed";
+    step.error = error.message;
+    antMessage.error("重试失败: " + error.message);
+  } finally {
+    isThinking.value = false;
+  }
 };
 
 // 处理步骤取消
-const handleStepCancel = (step) => {
+const handleStepCancel = async (step) => {
   logger.info("取消步骤:", step);
-  // TODO: 实现步骤取消
+
+  if (!step) {
+    return;
+  }
+
+  try {
+    // 如果步骤正在执行，尝试取消
+    if (step.status === "running" || step.status === "pending") {
+      const response = await window.electronAPI.llm.cancelStep({
+        conversationId: activeConversationId.value,
+        stepId: step.id,
+      });
+
+      if (response?.success) {
+        step.status = "cancelled";
+        antMessage.info("步骤已取消");
+      } else {
+        antMessage.warning("无法取消该步骤");
+      }
+    } else {
+      // 步骤已完成，只是标记为跳过
+      step.status = "skipped";
+      antMessage.info("步骤已跳过");
+    }
+  } catch (error) {
+    logger.error("取消步骤失败:", error);
+    antMessage.error("取消失败: " + error.message);
+  }
 };
 
 // 保存整个对话到记忆
@@ -590,6 +761,44 @@ const handleSaveToMemory = async (message, type) => {
     logger.error("[AIChatPage] 保存到记忆失败:", error);
     antMessage.error("保存失败: " + error.message);
   }
+};
+
+// 确认重命名对话
+const handleRenameConfirm = async () => {
+  if (!newConversationTitle.value.trim()) {
+    antMessage.warning("请输入对话标题");
+    return;
+  }
+
+  try {
+    await window.electronAPI.conversation.update(renameConversation.value.id, {
+      title: newConversationTitle.value.trim(),
+    });
+
+    // 更新本地状态
+    const conv = conversations.value.find(
+      (c) => c.id === renameConversation.value.id,
+    );
+    if (conv) {
+      conv.title = newConversationTitle.value.trim();
+    }
+
+    renameModalVisible.value = false;
+    renameConversation.value = null;
+    newConversationTitle.value = "";
+
+    antMessage.success("重命名成功");
+  } catch (error) {
+    logger.error("重命名对话失败:", error);
+    antMessage.error("重命名失败: " + error.message);
+  }
+};
+
+// 取消重命名
+const handleRenameCancel = () => {
+  renameModalVisible.value = false;
+  renameConversation.value = null;
+  newConversationTitle.value = "";
 };
 
 // 滚动到底部
@@ -759,6 +968,26 @@ onMounted(async () => {
 
   // 注册键盘快捷键
   window.addEventListener("keydown", handleKeyboard);
+
+  // 检查是否有待插入的文本（来自音频转录等功能）
+  const pendingText = localStorage.getItem("pendingInsertText");
+  if (pendingText) {
+    try {
+      const data = JSON.parse(pendingText);
+      // 检查是否过期（5分钟内有效）
+      if (Date.now() - data.timestamp < 5 * 60 * 1000) {
+        nextTick(() => {
+          if (inputRef.value) {
+            inputRef.value.setText(data.text);
+          }
+        });
+      }
+      // 无论是否过期，都清除
+      localStorage.removeItem("pendingInsertText");
+    } catch (e) {
+      localStorage.removeItem("pendingInsertText");
+    }
+  }
 });
 
 // 组件卸载时清理

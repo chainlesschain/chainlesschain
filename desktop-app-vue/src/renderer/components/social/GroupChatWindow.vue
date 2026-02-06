@@ -651,18 +651,100 @@ const handleRemoveMember = async (memberDid) => {
   }
 };
 
-const handleSelectImage = () => {
-  // TODO: 实现图片选择
-  antMessage.info('图片发送功能开发中');
+const handleSelectImage = async () => {
+  try {
+    // 打开图片选择对话框
+    const result = await ipcRenderer.invoke('dialog:open-file', {
+      title: '选择图片',
+      filters: [
+        { name: '图片', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'] }
+      ],
+      properties: ['openFile']
+    });
+
+    if (result.canceled || !result.filePaths?.length) {
+      return;
+    }
+
+    const filePath = result.filePaths[0];
+    const fileName = filePath.split(/[\\/]/).pop();
+
+    // 发送图片消息
+    await ipcRenderer.invoke('group:send-message', currentGroup.value.id, fileName, {
+      type: 'image',
+      filePath: filePath
+    });
+
+    antMessage.success('图片发送成功');
+    await loadGroupMessages(currentGroup.value.id);
+    scrollToBottom();
+  } catch (error) {
+    logger.error('发送图片失败:', error);
+    antMessage.error('发送图片失败');
+  }
 };
 
-const handleSelectFile = () => {
-  // TODO: 实现文件选择
-  antMessage.info('文件发送功能开发中');
+const handleSelectFile = async () => {
+  try {
+    // 打开文件选择对话框
+    const result = await ipcRenderer.invoke('dialog:open-file', {
+      title: '选择文件',
+      properties: ['openFile']
+    });
+
+    if (result.canceled || !result.filePaths?.length) {
+      return;
+    }
+
+    const filePath = result.filePaths[0];
+    const fileName = filePath.split(/[\\/]/).pop();
+
+    // 发送文件消息
+    await ipcRenderer.invoke('group:send-message', currentGroup.value.id, fileName, {
+      type: 'file',
+      filePath: filePath
+    });
+
+    antMessage.success('文件发送成功');
+    await loadGroupMessages(currentGroup.value.id);
+    scrollToBottom();
+  } catch (error) {
+    logger.error('发送文件失败:', error);
+    antMessage.error('发送文件失败');
+  }
 };
 
-const handleScroll = () => {
-  // TODO: 实现滚动加载
+const handleScroll = async () => {
+  const container = messagesContainer.value;
+  if (!container || !currentGroup.value) return;
+
+  // 当滚动到顶部时加载更多消息
+  if (container.scrollTop === 0 && messages.value.length > 0) {
+    try {
+      const offset = messages.value.length;
+      const olderMessages = await ipcRenderer.invoke(
+        'group:get-messages',
+        currentGroup.value.id,
+        50,
+        offset
+      );
+
+      if (olderMessages && olderMessages.length > 0) {
+        // 保存当前滚动位置
+        const oldHeight = container.scrollHeight;
+
+        // 将旧消息添加到列表开头
+        messages.value = [...olderMessages.reverse(), ...messages.value];
+
+        // 恢复滚动位置
+        nextTick(() => {
+          container.scrollTop = container.scrollHeight - oldHeight;
+        });
+      }
+    } catch (error) {
+      logger.error('加载更多消息失败:', error);
+    }
+  }
 };
 
 const scrollToBottom = () => {

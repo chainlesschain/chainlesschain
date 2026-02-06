@@ -3,6 +3,8 @@
  * 提供AI驱动的代码生成、测试生成、代码审查和重构功能
  */
 
+const { logger } = require('../utils/logger.js');
+
 class CodeEngine {
   constructor() {
     this.llmManager = null;

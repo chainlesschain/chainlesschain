@@ -466,7 +466,7 @@ import { logger, createLogger } from '@/utils/logger';
 
 import { ref, computed, onMounted, h } from 'vue';
 import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 import { useIdentityStore } from '@/stores/identityStore';
 import {
   TeamOutlined,
@@ -478,7 +478,8 @@ import {
   AppstoreOutlined,
   UnorderedListOutlined,
   DownOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  ShareAltOutlined
 } from '@ant-design/icons-vue';
 import KnowledgeCard from '@/components/KnowledgeCard.vue';
 import KnowledgePermissionSelector from '@/components/KnowledgePermissionSelector.vue';
@@ -711,8 +712,30 @@ async function deleteKnowledge(item) {
  * 分享知识
  */
 function shareKnowledge(item) {
-  // TODO: 实现分享功能
-  message.info('分享功能开发中...');
+  const shareUrl = `chainlesschain://org/${currentOrgId.value}/knowledge/${item.id}`;
+
+  Modal.confirm({
+    title: '分享知识',
+    icon: h(ShareAltOutlined),
+    content: h('div', { class: 'share-content' }, [
+      h('p', `标题: ${item.title}`),
+      h('p', { style: 'margin-top: 12px; font-weight: bold' }, '分享链接:'),
+      h('div', {
+        style: 'padding: 8px 12px; background: #f5f5f5; border-radius: 4px; word-break: break-all; font-family: monospace; margin-top: 8px'
+      }, shareUrl)
+    ]),
+    okText: '复制链接',
+    cancelText: '关闭',
+    onOk: async () => {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        message.success('链接已复制到剪贴板');
+      } catch (error) {
+        logger.error('复制链接失败:', error);
+        message.error('复制失败，请手动复制');
+      }
+    }
+  });
 }
 
 /**
@@ -823,8 +846,20 @@ async function viewHistory(item) {
  * 预览版本
  */
 function previewVersion(version) {
-  // TODO: 实现版本预览
-  message.info('版本预览功能开发中...');
+  Modal.info({
+    title: `版本预览 - ${formatTime(version.created_at)}`,
+    width: 800,
+    content: h('div', { class: 'version-preview' }, [
+      h('div', { style: 'margin-bottom: 12px; color: #666' }, [
+        h('span', `修改者: ${version.created_by?.substring(0, 12) || '未知'}...`),
+        h('span', { style: 'margin-left: 16px' }, `版本号: ${version.version || 'v1'}`)
+      ]),
+      h('div', {
+        style: 'max-height: 400px; overflow-y: auto; padding: 16px; background: #fafafa; border-radius: 4px; white-space: pre-wrap; font-family: monospace'
+      }, version.content || '(无内容)')
+    ]),
+    okText: '关闭'
+  });
 }
 
 /**
@@ -854,8 +889,42 @@ async function restoreVersion(version) {
  * 对比版本差异
  */
 function compareVersions(version) {
-  // TODO: 实现版本对比
-  message.info('版本对比功能开发中...');
+  // 找到当前版本在历史中的索引
+  const currentIndex = versionHistory.value.findIndex(v => v.id === version.id);
+  const previousVersion = currentIndex < versionHistory.value.length - 1
+    ? versionHistory.value[currentIndex + 1]
+    : null;
+
+  if (!previousVersion) {
+    message.info('这是最早的版本，无法对比');
+    return;
+  }
+
+  // 简单的文本差异对比
+  const oldContent = previousVersion.content || '';
+  const newContent = version.content || '';
+
+  Modal.info({
+    title: '版本对比',
+    width: 1000,
+    content: h('div', { class: 'version-compare' }, [
+      h('div', { style: 'display: flex; gap: 16px' }, [
+        h('div', { style: 'flex: 1' }, [
+          h('h4', { style: 'margin-bottom: 8px; color: #999' }, `旧版本 (${formatTime(previousVersion.created_at)})`),
+          h('div', {
+            style: 'height: 300px; overflow-y: auto; padding: 12px; background: #fff5f5; border: 1px solid #ffd6d6; border-radius: 4px; white-space: pre-wrap; font-family: monospace; font-size: 12px'
+          }, oldContent || '(无内容)')
+        ]),
+        h('div', { style: 'flex: 1' }, [
+          h('h4', { style: 'margin-bottom: 8px; color: #52c41a' }, `新版本 (${formatTime(version.created_at)})`),
+          h('div', {
+            style: 'height: 300px; overflow-y: auto; padding: 12px; background: #f6ffed; border: 1px solid #b7eb8f; border-radius: 4px; white-space: pre-wrap; font-family: monospace; font-size: 12px'
+          }, newContent || '(无内容)')
+        ])
+      ])
+    ]),
+    okText: '关闭'
+  });
 }
 
 /**

@@ -1075,6 +1075,118 @@ class TeammateTool extends EventEmitter {
     };
   }
 
+  /**
+   * 14. pauseTeam - 暂停团队
+   * @param {string} teamId - 团队 ID
+   * @returns {Promise<Object>} 暂停结果
+   */
+  async pauseTeam(teamId) {
+    const team = this.teams.get(teamId);
+
+    if (!team) {
+      throw new Error(`团队不存在: ${teamId}`);
+    }
+
+    if (team.status === TeamStatus.PAUSED) {
+      return {
+        success: true,
+        message: "团队已处于暂停状态",
+        teamId,
+        status: team.status,
+      };
+    }
+
+    if (team.status !== TeamStatus.ACTIVE) {
+      throw new Error(`无法暂停状态为 ${team.status} 的团队`);
+    }
+
+    // 更新状态
+    team.status = TeamStatus.PAUSED;
+    team.metadata.pausedAt = Date.now();
+    team.metadata.updatedAt = Date.now();
+
+    // 暂停所有正在执行的任务
+    for (const task of team.tasks) {
+      if (task.status === "running") {
+        task.status = "paused";
+        task.pausedAt = Date.now();
+      }
+    }
+
+    // 持久化
+    await this._saveTeamConfig(team);
+
+    this._log(`团队已暂停: ${team.name}`);
+    this.emit("team-paused", { teamId, team });
+
+    return {
+      success: true,
+      teamId,
+      status: team.status,
+      message: "团队已暂停",
+    };
+  }
+
+  /**
+   * 15. resumeTeam - 恢复团队
+   * @param {string} teamId - 团队 ID
+   * @returns {Promise<Object>} 恢复结果
+   */
+  async resumeTeam(teamId) {
+    const team = this.teams.get(teamId);
+
+    if (!team) {
+      throw new Error(`团队不存在: ${teamId}`);
+    }
+
+    if (team.status === TeamStatus.ACTIVE) {
+      return {
+        success: true,
+        message: "团队已处于活跃状态",
+        teamId,
+        status: team.status,
+      };
+    }
+
+    if (team.status !== TeamStatus.PAUSED) {
+      throw new Error(`无法恢复状态为 ${team.status} 的团队`);
+    }
+
+    // 计算暂停时长
+    const pauseDuration = team.metadata.pausedAt
+      ? Date.now() - team.metadata.pausedAt
+      : 0;
+
+    // 更新状态
+    team.status = TeamStatus.ACTIVE;
+    team.metadata.resumedAt = Date.now();
+    team.metadata.updatedAt = Date.now();
+    team.metadata.totalPauseDuration =
+      (team.metadata.totalPauseDuration || 0) + pauseDuration;
+
+    // 恢复所有暂停的任务
+    for (const task of team.tasks) {
+      if (task.status === "paused") {
+        task.status = "running";
+        task.resumedAt = Date.now();
+      }
+    }
+
+    // 持久化
+    await this._saveTeamConfig(team);
+
+    this._log(`团队已恢复: ${team.name}`);
+    this.emit("team-resumed", { teamId, team, pauseDuration });
+
+    return {
+      success: true,
+      teamId,
+      status: team.status,
+      pauseDuration,
+      message: "团队已恢复",
+    };
+  }
+
   // ==========================================
   // 辅助方法
   // ==========================================
