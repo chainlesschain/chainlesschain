@@ -233,10 +233,11 @@ class WebRTCPeerConnection @Inject constructor(
                             // 取消连接超时
                             iceConnectionJob?.cancel()
                             iceRestartAttempts = 0
+                            turnFallbackAttempted = false // 重置 TURN 回退状态
                             currentDevice?.let {
                                 _connectionState.value = ConnectionState.Connected(it)
                             }
-                            Log.i(TAG, "ICE connection established")
+                            Log.i(TAG, "ICE connection established${if (iceServerConfig.getConfigSummary().transportPolicy == "RELAY") " (via TURN relay)" else ""}")
                         }
                         PeerConnection.IceConnectionState.DISCONNECTED -> {
                             // ICE 断开，可能是临时的网络问题
