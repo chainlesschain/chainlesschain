@@ -180,7 +180,17 @@ class ConversationViewModel @Inject constructor(
                 }
 
                 // 添加当前用户消息
-                messageHistory.add(userMessageResult.getOrNull()!!)
+                val userMessage = userMessageResult.getOrNull()
+                if (userMessage == null) {
+                    _uiState.update {
+                        it.copy(
+                            isSending = false,
+                            error = "娣诲姞娑堟伅澶辫触"
+                        )
+                    }
+                    return@launch
+                }
+                messageHistory.add(userMessage)
 
                 // 流式获取AI响应
                 val provider = getProviderFromModel(conversation.model)

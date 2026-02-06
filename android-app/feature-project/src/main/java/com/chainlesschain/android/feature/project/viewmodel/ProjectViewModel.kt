@@ -997,7 +997,12 @@ class ProjectViewModel @Inject constructor(
                 return
             }
 
-            val placeholderMessage = placeholderResult.getOrNull()!!
+            val placeholderMessage = placeholderResult.getOrNull()
+            if (placeholderMessage == null) {
+                _uiEvents.emit(ProjectUiEvent.ShowError("Failed to create response placeholder"))
+                _isAiResponding.value = false
+                return
+            }
 
             // Get API key for the provider
             val apiKey = conversationRepository.getApiKey(_currentProvider.value)

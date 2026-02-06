@@ -530,7 +530,35 @@ class InteractiveTaskPlanner extends EventEmitter {
 
     if (adjustments.includeExamples !== undefined) {
       // 添加或移除示例生成步骤
-      // TODO: 实现具体逻辑
+      if (adjustments.includeExamples) {
+        // 检查是否已有示例步骤
+        const hasExampleStep = session.taskPlan.subtasks.some(
+          st => st.type === 'example' || st.title?.includes('示例')
+        );
+
+        if (!hasExampleStep) {
+          // 添加示例生成步骤
+          session.taskPlan.subtasks.push({
+            id: uuidv4(),
+            title: '生成使用示例',
+            description: '创建代码示例和使用场景演示',
+            type: 'example',
+            estimated_tokens: 500,
+            order: session.taskPlan.subtasks.length + 1,
+            status: 'pending',
+          });
+        }
+      } else {
+        // 移除示例步骤
+        session.taskPlan.subtasks = session.taskPlan.subtasks.filter(
+          st => st.type !== 'example' && !st.title?.includes('示例')
+        );
+
+        // 重新编号
+        session.taskPlan.subtasks.forEach((st, idx) => {
+          st.order = idx + 1;
+        });
+      }
     }
 
     // 重新格式化Plan
@@ -595,25 +623,146 @@ class InteractiveTaskPlanner extends EventEmitter {
    * 从模板生成Plan
    */
   async generatePlanFromTemplate(template, userRequest, projectContext) {
-    // 使用模板的结构，结合用户需求
-    // TODO: 实现具体逻辑
+    const planId = uuidv4();
+    const now = Date.now();
 
-    // 这里简化处理，实际应该根据模板的fields和structure生成
+    // 解析模板结构
+    const templateSteps = template.steps || template.subtasks || [];
+    const templateFields = template.fields || {};
+    const templateVariables = template.variables || {};
+
+    // 将用户请求中的信息提取为变量值
+    const extractedVariables = this.extractVariablesFromRequest(
+      userRequest,
+      templateVariables
+    );
+
+    // 根据模板步骤生成子任务
+    const subtasks = templateSteps.map((step, index) => {
+      // 替换步骤中的变量占位符
+      const title = this.replaceVariables(step.title || step.name, extractedVariables);
+      const description = this.replaceVariables(step.description || '', extractedVariables);
+
+      return {
+        id: uuidv4(),
+        title,
+        description,
+        type: step.type || 'task',
+        order: index + 1,
+        estimated_tokens: step.estimatedTokens || step.estimated_tokens || 200,
+        dependencies: step.dependencies || [],
+        tools: step.tools || [],
+        status: 'pending',
+      };
+    });
+
+    // 如果模板没有步骤，创建基础步骤
+    if (subtasks.length === 0) {
+      subtasks.push(
+        {
+          id: uuidv4(),
+          title: '分析需求',
+          description: `分析用户需求: ${userRequest}`,
+          type: 'analysis',
+          order: 1,
+          estimated_tokens: 200,
+          status: 'pending',
+        },
+        {
+          id: uuidv4(),
+          title: '执行任务',
+          description: template.description || '根据模板执行主要任务',
+          type: 'execution',
+          order: 2,
+          estimated_tokens: 500,
+          status: 'pending',
+        },
+        {
+          id: uuidv4(),
+          title: '验证结果',
+          description: '验证输出是否满足需求',
+          type: 'validation',
+          order: 3,
+          estimated_tokens: 100,
+          status: 'pending',
+        }
+      );
+    }
+
+    // 确定输出文件
+    const outputFiles = [];
+    if (template.outputFiles) {
+      for (const file of template.outputFiles) {
+        outputFiles.push({
+          path: this.replaceVariables(file.path || file, extractedVariables),
+          type: file.type || 'code',
+        });
+      }
+    }
+
+    // 计算预估时长
+    const totalTokens = subtasks.reduce((sum, st) => sum + (st.estimated_tokens || 0), 0);
+    const estimatedMinutes = Math.ceil(totalTokens / 500); // 假设每500 token约1分钟
+
     return {
-      id: uuidv4(),
-      task_title: template.title,
-      task_type: template.category || 'create',
+      id: planId,
+      task_title: this.replaceVariables(template.title, extractedVariables),
+      task_type: template.category || template.type || 'create',
       user_request: userRequest,
-      estimated_duration: template.estimatedTime || '未知',
-      subtasks: [],
+      template_id: template.id,
+      template_name: template.title,
+      estimated_duration: template.estimatedTime || `约${estimatedMinutes}分钟`,
+      estimated_tokens: totalTokens,
+      subtasks,
+      variables: extractedVariables,
       final_output: {
         type: template.outputType || 'file',
-        description: template.description,
-        files: []
+        description: template.description || template.outputDescription,
+        files: outputFiles,
       },
+      context: projectContext,
       status: 'pending',
-      created_at: Date.now()
+      created_at: now,
     };
+  }
+
+  /**
+   * 从用户请求中提取变量值
+   */
+  extractVariablesFromRequest(request, templateVariables) {
+    const extracted = {};
+
+    for (const [varName, varConfig] of Object.entries(templateVariables)) {
+      const pattern = varConfig.pattern || varConfig.regex;
+
+      if (pattern) {
+        // 使用正则表达式提取
+        const regex = new RegExp(pattern, 'i');
+        const match = request.match(regex);
+        if (match) {
+          extracted[varName] = match[1] || match[0];
+        }
+      } else if (varConfig.default) {
+        extracted[varName] = varConfig.default;
+      }
+    }
+
+    return extracted;
+  }
+
+  /**
+   * 替换字符串中的变量占位符
+   */
+  replaceVariables(text, variables) {
+    if (!text || typeof text !== 'string') return text;
+
+    let result = text;
+    for (const [key, value] of Object.entries(variables)) {
+      // 支持 {{variable}} 和 ${variable} 格式
+      result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+      result = result.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value);
+    }
+    return result;
   }
 
   /**

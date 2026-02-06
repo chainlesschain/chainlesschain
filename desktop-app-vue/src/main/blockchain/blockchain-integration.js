@@ -354,16 +354,76 @@ class BlockchainIntegration extends EventEmitter {
 
       // 部署托管合约（如果还没有部署）
       let contractAddress = options.contractAddress;
+      let contractAbi;
       if (!contractAddress) {
         const deployment = await this.blockchainAdapter.deployEscrowContract(
           options.walletId,
           options.password
         );
         contractAddress = deployment.address;
+        contractAbi = deployment.abi;
+      } else {
+        // 使用现有合约，获取 ABI
+        const { getEscrowContractArtifact } = require('./contract-artifacts');
+        contractAbi = getEscrowContractArtifact().abi;
       }
 
-      // TODO: 调用托管合约的创建方法
-      // 这里需要根据实际的托管合约ABI来实现
+      // 调用托管合约的创建方法
+      const { ethers } = require('ethers');
+      const wallet = await this.blockchainAdapter.walletManager.unlockWallet(
+        options.walletId,
+        options.password
+      );
+      const provider = this.blockchainAdapter.getProvider();
+      const signer = wallet.provider ? wallet : wallet.connect(provider);
+
+      const escrowContract = new ethers.Contract(contractAddress, contractAbi, signer);
+
+      // 生成托管 ID (bytes32)
+      const escrowIdBytes32 = ethers.id(localEscrowId);
+
+      // 根据支付类型创建托管
+      let txHash;
+      if (escrow.payment_type === 'erc20' && escrow.token_address) {
+        // ERC20 代币托管
+        const amount = ethers.parseUnits(
+          escrow.amount.toString(),
+          escrow.token_decimals || 18
+        );
+
+        // 先批准代币转移
+        const tokenContract = new ethers.Contract(
+          escrow.token_address,
+          ['function approve(address spender, uint256 amount) returns (bool)'],
+          signer
+        );
+        const approveTx = await tokenContract.approve(contractAddress, amount);
+        await approveTx.wait();
+
+        // 创建 ERC20 托管
+        const tx = await escrowContract.createERC20Escrow(
+          escrowIdBytes32,
+          escrow.seller_address,
+          escrow.arbitrator_address || ethers.ZeroAddress,
+          escrow.token_address,
+          amount
+        );
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      } else {
+        // 原生币托管 (ETH/MATIC)
+        const amount = ethers.parseEther(escrow.amount.toString());
+        const tx = await escrowContract.createNativeEscrow(
+          escrowIdBytes32,
+          escrow.seller_address,
+          escrow.arbitrator_address || ethers.ZeroAddress,
+          { value: amount }
+        );
+        const receipt = await tx.wait();
+        txHash = receipt.hash;
+      }
+
+      logger.info(`[BlockchainIntegration] 链上托管创建成功, txHash: ${txHash}`);
 
       // 保存映射关系
       const db = this.database.db;
@@ -404,8 +464,42 @@ class BlockchainIntegration extends EventEmitter {
         throw new Error('托管未部署到链上');
       }
 
-      // TODO: 查询链上托管状态
-      // 这里需要根据实际的托管合约ABI来实现
+      // 查询链上托管状态
+      const { ethers } = require('ethers');
+      const { getEscrowContractArtifact } = require('./contract-artifacts');
+
+      const provider = this.blockchainAdapter.getProvider();
+      const contractAbi = getEscrowContractArtifact().abi;
+      const escrowContract = new ethers.Contract(mapping.contract_address, contractAbi, provider);
+
+      // 生成托管 ID (bytes32)
+      const escrowIdBytes32 = ethers.id(localEscrowId);
+
+      // 查询链上托管数据
+      const onChainEscrow = await escrowContract.getEscrow(escrowIdBytes32);
+
+      // 状态枚举映射
+      const stateMap = ['created', 'funded', 'delivered', 'completed', 'refunded', 'disputed'];
+      const paymentTypeMap = ['native', 'erc20'];
+
+      // 解析链上数据
+      const chainStatus = {
+        escrowId: onChainEscrow.id,
+        buyer: onChainEscrow.buyer,
+        seller: onChainEscrow.seller,
+        arbitrator: onChainEscrow.arbitrator,
+        amount: onChainEscrow.amount.toString(),
+        paymentType: paymentTypeMap[Number(onChainEscrow.paymentType)] || 'unknown',
+        tokenAddress: onChainEscrow.tokenAddress,
+        state: stateMap[Number(onChainEscrow.state)] || 'unknown',
+        createdAt: Number(onChainEscrow.createdAt) * 1000, // 转换为毫秒
+        completedAt: Number(onChainEscrow.completedAt) * 1000,
+      };
+
+      // 同步状态到本地托管管理器
+      if (this.escrowManager && typeof this.escrowManager.updateEscrowStatus === 'function') {
+        await this.escrowManager.updateEscrowStatus(localEscrowId, chainStatus.state);
+      }
 
       // 更新同步时间
       const db = this.database.db;
@@ -414,9 +508,13 @@ class BlockchainIntegration extends EventEmitter {
         [Date.now(), localEscrowId]
       );
 
-      logger.info(`[BlockchainIntegration] 托管状态同步成功`);
+      logger.info(`[BlockchainIntegration] 托管状态同步成功: ${chainStatus.state}`);
 
-      return { status: 'synced' };
+      return {
+        status: 'synced',
+        chainStatus,
+        syncedAt: Date.now(),
+      };
     } catch (error) {
       logger.error('[BlockchainIntegration] 托管状态同步失败:', error);
       throw error;

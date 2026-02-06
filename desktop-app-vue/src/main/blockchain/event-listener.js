@@ -287,10 +287,57 @@ class BlockchainEventListener extends EventEmitter {
   async processERC20Event(eventName, eventData) {
     if (eventName === 'Transfer') {
       const [from, to, value] = eventData.args;
+      const contractAddress = eventData.log?.address || eventData.address;
       logger.info(`[EventListener] ERC-20 转账: ${from} -> ${to}, 数量: ${value.toString()}`);
 
       // 同步到本地资产管理器
-      // TODO: 实现资产余额同步逻辑
+      if (this.assetManager) {
+        try {
+          // 查找本地资产映射
+          const db = this.database.db;
+          const mapping = db.prepare(`
+            SELECT local_asset_id FROM blockchain_asset_mapping
+            WHERE contract_address = ? AND asset_type = 'token'
+          `).get(contractAddress?.toLowerCase());
+
+          if (mapping) {
+            const localAssetId = mapping.local_asset_id;
+
+            // 更新发送者余额（如果不是零地址）
+            if (from !== ethers.ZeroAddress) {
+              const fromBalance = await this.blockchainAdapter.getTokenBalance(
+                contractAddress,
+                from
+              );
+              await this.assetManager.updateBalance?.(localAssetId, from, fromBalance);
+              logger.info(`[EventListener] 更新发送者余额: ${from} = ${fromBalance}`);
+            }
+
+            // 更新接收者余额（如果不是零地址）
+            if (to !== ethers.ZeroAddress) {
+              const toBalance = await this.blockchainAdapter.getTokenBalance(
+                contractAddress,
+                to
+              );
+              await this.assetManager.updateBalance?.(localAssetId, to, toBalance);
+              logger.info(`[EventListener] 更新接收者余额: ${to} = ${toBalance}`);
+            }
+
+            // 触发事件
+            this.emit('token:transfer', {
+              contractAddress,
+              from,
+              to,
+              value: value.toString(),
+              localAssetId,
+              blockNumber: eventData.log?.blockNumber,
+              transactionHash: eventData.log?.transactionHash,
+            });
+          }
+        } catch (error) {
+          logger.error('[EventListener] ERC-20 余额同步失败:', error);
+        }
+      }
     }
   }
 
@@ -300,10 +347,76 @@ class BlockchainEventListener extends EventEmitter {
   async processERC721Event(eventName, eventData) {
     if (eventName === 'Transfer') {
       const [from, to, tokenId] = eventData.args;
+      const contractAddress = eventData.log?.address || eventData.address;
       logger.info(`[EventListener] NFT 转账: ${from} -> ${to}, Token ID: ${tokenId.toString()}`);
 
       // 同步到本地资产管理器
-      // TODO: 实现 NFT 所有权同步逻辑
+      if (this.assetManager) {
+        try {
+          // 查找本地资产映射
+          const db = this.database.db;
+          const mapping = db.prepare(`
+            SELECT local_asset_id FROM blockchain_asset_mapping
+            WHERE contract_address = ? AND asset_type = 'nft'
+          `).get(contractAddress?.toLowerCase());
+
+          if (mapping) {
+            const localAssetId = mapping.local_asset_id;
+
+            // 判断是铸造、转账还是销毁
+            const isMint = from === ethers.ZeroAddress;
+            const isBurn = to === ethers.ZeroAddress;
+
+            if (isMint) {
+              // NFT 铸造：记录新的 NFT
+              logger.info(`[EventListener] NFT 铸造: Token ID ${tokenId} -> ${to}`);
+              await this.assetManager.recordNFTMint?.({
+                assetId: localAssetId,
+                tokenId: tokenId.toString(),
+                owner: to,
+                contractAddress,
+                blockNumber: eventData.log?.blockNumber,
+                transactionHash: eventData.log?.transactionHash,
+              });
+            } else if (isBurn) {
+              // NFT 销毁：标记 NFT 为已销毁
+              logger.info(`[EventListener] NFT 销毁: Token ID ${tokenId} from ${from}`);
+              await this.assetManager.recordNFTBurn?.({
+                assetId: localAssetId,
+                tokenId: tokenId.toString(),
+                previousOwner: from,
+              });
+            } else {
+              // NFT 转账：更新所有权
+              logger.info(`[EventListener] NFT 所有权变更: Token ID ${tokenId}, ${from} -> ${to}`);
+              await this.assetManager.updateNFTOwnership?.({
+                assetId: localAssetId,
+                tokenId: tokenId.toString(),
+                previousOwner: from,
+                newOwner: to,
+                contractAddress,
+                blockNumber: eventData.log?.blockNumber,
+                transactionHash: eventData.log?.transactionHash,
+              });
+            }
+
+            // 触发事件
+            this.emit('nft:transfer', {
+              contractAddress,
+              from,
+              to,
+              tokenId: tokenId.toString(),
+              localAssetId,
+              isMint,
+              isBurn,
+              blockNumber: eventData.log?.blockNumber,
+              transactionHash: eventData.log?.transactionHash,
+            });
+          }
+        } catch (error) {
+          logger.error('[EventListener] NFT 所有权同步失败:', error);
+        }
+      }
     }
   }
 
@@ -373,7 +486,135 @@ class BlockchainEventListener extends EventEmitter {
   async processBountyEvent(eventName, eventData) {
     logger.info(`[EventListener] 悬赏事件: ${eventName}`, eventData.args);
 
-    // TODO: 实现悬赏合约事件处理逻辑
+    const contractAddress = eventData.log?.address || eventData.address;
+    const blockNumber = eventData.log?.blockNumber;
+    const transactionHash = eventData.log?.transactionHash;
+
+    switch (eventName) {
+      case 'BountyCreated': {
+        const [bountyId, creator, amount, deadline] = eventData.args;
+        logger.info(`[EventListener] 悬赏创建: ID=${bountyId}, 创建者=${creator}, 金额=${amount.toString()}, 截止=${deadline.toString()}`);
+
+        // 同步到本地数据库
+        const db = this.database.db;
+        db.prepare(`
+          INSERT OR REPLACE INTO blockchain_bounties
+          (id, bounty_id, contract_address, creator, amount, deadline, status, created_at, block_number, tx_hash)
+          VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+        `).run(
+          `${contractAddress}-${bountyId}`,
+          bountyId.toString(),
+          contractAddress,
+          creator,
+          amount.toString(),
+          Number(deadline) * 1000, // 转换为毫秒
+          Date.now(),
+          blockNumber,
+          transactionHash
+        );
+
+        this.emit('bounty:created', {
+          bountyId: bountyId.toString(),
+          creator,
+          amount: amount.toString(),
+          deadline: Number(deadline) * 1000,
+          contractAddress,
+          transactionHash,
+        });
+        break;
+      }
+
+      case 'SubmissionMade': {
+        const [bountyId, submitter, submissionId] = eventData.args;
+        logger.info(`[EventListener] 悬赏提交: bountyId=${bountyId}, 提交者=${submitter}, submissionId=${submissionId}`);
+
+        const db = this.database.db;
+        db.prepare(`
+          INSERT INTO blockchain_bounty_submissions
+          (id, bounty_id, submitter, submission_id, status, submitted_at, tx_hash)
+          VALUES (?, ?, ?, ?, 'pending', ?, ?)
+        `).run(
+          `${contractAddress}-${bountyId}-${submissionId}`,
+          bountyId.toString(),
+          submitter,
+          submissionId.toString(),
+          Date.now(),
+          transactionHash
+        );
+
+        this.emit('bounty:submission', {
+          bountyId: bountyId.toString(),
+          submitter,
+          submissionId: submissionId.toString(),
+          contractAddress,
+          transactionHash,
+        });
+        break;
+      }
+
+      case 'BountyAwarded': {
+        const [bountyId, winner, amount] = eventData.args;
+        logger.info(`[EventListener] 悬赏发放: bountyId=${bountyId}, 获奖者=${winner}, 金额=${amount.toString()}`);
+
+        const db = this.database.db;
+        db.prepare(`
+          UPDATE blockchain_bounties
+          SET status = 'completed', winner = ?, awarded_amount = ?, completed_at = ?
+          WHERE bounty_id = ? AND contract_address = ?
+        `).run(winner, amount.toString(), Date.now(), bountyId.toString(), contractAddress);
+
+        this.emit('bounty:awarded', {
+          bountyId: bountyId.toString(),
+          winner,
+          amount: amount.toString(),
+          contractAddress,
+          transactionHash,
+        });
+        break;
+      }
+
+      case 'BountyCancelled': {
+        const [bountyId, creator] = eventData.args;
+        logger.info(`[EventListener] 悬赏取消: bountyId=${bountyId}, 创建者=${creator}`);
+
+        const db = this.database.db;
+        db.prepare(`
+          UPDATE blockchain_bounties
+          SET status = 'cancelled', cancelled_at = ?
+          WHERE bounty_id = ? AND contract_address = ?
+        `).run(Date.now(), bountyId.toString(), contractAddress);
+
+        this.emit('bounty:cancelled', {
+          bountyId: bountyId.toString(),
+          creator,
+          contractAddress,
+          transactionHash,
+        });
+        break;
+      }
+
+      case 'BountyExpired': {
+        const [bountyId] = eventData.args;
+        logger.info(`[EventListener] 悬赏过期: bountyId=${bountyId}`);
+
+        const db = this.database.db;
+        db.prepare(`
+          UPDATE blockchain_bounties
+          SET status = 'expired', expired_at = ?
+          WHERE bounty_id = ? AND contract_address = ?
+        `).run(Date.now(), bountyId.toString(), contractAddress);
+
+        this.emit('bounty:expired', {
+          bountyId: bountyId.toString(),
+          contractAddress,
+          transactionHash,
+        });
+        break;
+      }
+
+      default:
+        logger.info(`[EventListener] 未处理的悬赏事件: ${eventName}`);
+    }
   }
 
   /**

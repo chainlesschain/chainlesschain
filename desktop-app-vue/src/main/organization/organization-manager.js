@@ -1627,17 +1627,136 @@ class OrganizationManager {
    * @param {Object} data - 知识库变更数据
    * @returns {Promise<void>}
    */
+  /**
+   * 同步知识库变更
+   * @param {string} orgId - 组织ID
+   * @param {Object} data - 变更数据
+   * @param {string} data.type - 变更类型 (create|update|delete)
+   * @param {string} data.knowledgeId - 知识库条目ID
+   * @param {Object} data.content - 变更内容
+   * @param {string} data.authorDID - 作者DID
+   * @param {number} data.timestamp - 变更时间戳
+   */
   async syncKnowledgeChange(orgId, data) {
     try {
-      // 这里需要与知识库管理器集成
-      // 暂时记录日志
-      logger.info('[OrganizationManager] 知识库变更:', data.type, data.knowledgeId);
+      const { type, knowledgeId, content, authorDID, timestamp } = data;
+      logger.info('[OrganizationManager] 知识库变更:', type, knowledgeId);
 
-      // TODO: 集成知识库管理器,应用知识库变更
-      // await knowledgeManager.applyRemoteChange(data);
+      // 检查是否为本地已有的变更（避免重复应用）
+      const existing = this.db.prepare(`
+        SELECT id, updated_at FROM organization_knowledge
+        WHERE org_id = ? AND knowledge_id = ?
+      `).get(orgId, knowledgeId);
+
+      if (existing && existing.updated_at >= timestamp) {
+        logger.info('[OrganizationManager] 跳过已同步的知识库变更:', knowledgeId);
+        return { skipped: true };
+      }
+
+      // 根据变更类型处理
+      switch (type) {
+        case 'create':
+          await this.createKnowledgeEntry(orgId, knowledgeId, content, authorDID, timestamp);
+          break;
+
+        case 'update':
+          await this.updateKnowledgeEntry(orgId, knowledgeId, content, authorDID, timestamp);
+          break;
+
+        case 'delete':
+          await this.deleteKnowledgeEntry(orgId, knowledgeId, authorDID, timestamp);
+          break;
+
+        default:
+          logger.warn('[OrganizationManager] 未知的知识库变更类型:', type);
+          return { success: false, error: '未知变更类型' };
+      }
+
+      // 触发 RAG 索引更新（如果可用）
+      try {
+        const { getRAGManager } = require('../rag/rag-manager');
+        const ragManager = getRAGManager();
+
+        if (ragManager && ragManager.isInitialized) {
+          if (type === 'delete') {
+            await ragManager.removeFromIndex(`org_knowledge_${knowledgeId}`);
+          } else {
+            await ragManager.addToIndex({
+              id: `org_knowledge_${knowledgeId}`,
+              title: content?.title || '',
+              content: content?.content || '',
+              type: 'organization_knowledge',
+              org_id: orgId,
+              created_at: timestamp,
+            });
+          }
+        }
+      } catch (ragError) {
+        logger.warn('[OrganizationManager] RAG索引更新失败:', ragError.message);
+      }
+
+      logger.info('[OrganizationManager] ✓ 知识库变更已应用:', knowledgeId);
+      return { success: true };
     } catch (error) {
       logger.error('[OrganizationManager] 同步知识库变更失败:', error);
+      return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * 创建知识库条目
+   */
+  async createKnowledgeEntry(orgId, knowledgeId, content, authorDID, timestamp) {
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO organization_knowledge
+      (id, org_id, knowledge_id, title, content, author_did, created_at, updated_at, sync_status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'synced')
+    `);
+
+    stmt.run(
+      `${orgId}_${knowledgeId}`,
+      orgId,
+      knowledgeId,
+      content?.title || '',
+      JSON.stringify(content),
+      authorDID,
+      timestamp,
+      timestamp
+    );
+  }
+
+  /**
+   * 更新知识库条目
+   */
+  async updateKnowledgeEntry(orgId, knowledgeId, content, authorDID, timestamp) {
+    const stmt = this.db.prepare(`
+      UPDATE organization_knowledge
+      SET title = ?, content = ?, author_did = ?, updated_at = ?, sync_status = 'synced'
+      WHERE org_id = ? AND knowledge_id = ?
+    `);
+
+    stmt.run(
+      content?.title || '',
+      JSON.stringify(content),
+      authorDID,
+      timestamp,
+      orgId,
+      knowledgeId
+    );
+  }
+
+  /**
+   * 删除知识库条目
+   */
+  async deleteKnowledgeEntry(orgId, knowledgeId, authorDID, timestamp) {
+    // 软删除：标记为已删除而非物理删除
+    const stmt = this.db.prepare(`
+      UPDATE organization_knowledge
+      SET is_deleted = 1, deleted_by = ?, deleted_at = ?, sync_status = 'synced'
+      WHERE org_id = ? AND knowledge_id = ?
+    `);
+
+    stmt.run(authorDID, timestamp, orgId, knowledgeId);
   }
 
   /**
@@ -2093,14 +2212,92 @@ class OrganizationManager {
   /**
    * 处理知识库事件
    * @param {string} orgId - 组织ID
-   * @param {string} type - 事件类型
+   * @param {string} type - 事件类型 (knowledge:create|knowledge:update|knowledge:delete|knowledge:sync)
    * @param {Object} data - 事件数据
-   * @returns {Promise<void>}
+   * @returns {Promise<Object>} 处理结果
    */
   async handleKnowledgeEvent(orgId, type, data) {
-    // 这里可以实现知识库同步逻辑
     logger.info(`[OrganizationManager] 处理知识库事件: ${type}`, data);
-    // TODO: 实现知识库同步
+
+    try {
+      switch (type) {
+        case 'knowledge:create':
+        case 'knowledge:update':
+        case 'knowledge:delete':
+          // 调用知识库同步方法
+          return await this.syncKnowledgeChange(orgId, {
+            type: type.split(':')[1], // 'create', 'update', 'delete'
+            knowledgeId: data.knowledgeId || data.id,
+            content: data.content || data,
+            authorDID: data.authorDID || data.author,
+            timestamp: data.timestamp || Date.now(),
+          });
+
+        case 'knowledge:sync':
+          // 批量同步
+          if (Array.isArray(data.changes)) {
+            const results = [];
+            for (const change of data.changes) {
+              const result = await this.syncKnowledgeChange(orgId, change);
+              results.push(result);
+            }
+            return {
+              success: true,
+              total: data.changes.length,
+              applied: results.filter(r => r.success).length,
+              skipped: results.filter(r => r.skipped).length,
+            };
+          }
+          return { success: false, error: '无效的同步数据格式' };
+
+        case 'knowledge:request':
+          // 请求知识库数据（用于新成员加入时的初始同步）
+          return await this.getOrgKnowledgeForSync(orgId, data.since || 0);
+
+        default:
+          logger.warn('[OrganizationManager] 未知的知识库事件类型:', type);
+          return { success: false, error: '未知事件类型' };
+      }
+    } catch (error) {
+      logger.error('[OrganizationManager] 处理知识库事件失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 获取组织知识库数据用于同步
+   * @param {string} orgId - 组织ID
+   * @param {number} since - 时间戳，获取此时间之后的数据
+   * @returns {Promise<Object>} 知识库数据
+   */
+  async getOrgKnowledgeForSync(orgId, since = 0) {
+    try {
+      const knowledge = this.db.prepare(`
+        SELECT knowledge_id, title, content, author_did, created_at, updated_at, is_deleted
+        FROM organization_knowledge
+        WHERE org_id = ? AND updated_at > ? AND sync_status = 'synced'
+        ORDER BY updated_at ASC
+        LIMIT 1000
+      `).all(orgId, since);
+
+      return {
+        success: true,
+        knowledge: knowledge.map(k => ({
+          knowledgeId: k.knowledge_id,
+          title: k.title,
+          content: JSON.parse(k.content || '{}'),
+          authorDID: k.author_did,
+          createdAt: k.created_at,
+          updatedAt: k.updated_at,
+          isDeleted: k.is_deleted === 1,
+        })),
+        count: knowledge.length,
+        lastTimestamp: knowledge.length > 0 ? knowledge[knowledge.length - 1].updated_at : since,
+      };
+    } catch (error) {
+      logger.error('[OrganizationManager] 获取同步知识库数据失败:', error);
+      return { success: false, error: error.message };
+    }
   }
 }
 

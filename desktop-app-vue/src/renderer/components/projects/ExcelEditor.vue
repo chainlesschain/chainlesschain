@@ -236,7 +236,7 @@ onMounted(async () => {
     if (!window.jspreadsheet) {
       // 如果使用 CDN，在 index.html 中添加：
       // <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce/dist/jspreadsheet.min.css" />
-      // <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce/dist/index.min.js"><\/script>
+      // <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce/dist/index.min.js">\x3C/script>
       logger.warn('jspreadsheet not loaded, using basic table');
       initBasicTable();
     } else {

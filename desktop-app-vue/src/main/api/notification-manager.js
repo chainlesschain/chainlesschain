@@ -14,6 +14,15 @@ class APINotificationManager {
     this.enabled = true;
     this.notificationQueue = [];
     this.isProcessing = false;
+    this.mainWindow = null;
+  }
+
+  /**
+   * 设置主窗口引用
+   * @param {BrowserWindow} window - Electron 主窗口
+   */
+  setMainWindow(window) {
+    this.mainWindow = window;
   }
 
   /**
@@ -38,8 +47,8 @@ class APINotificationManager {
     });
 
     notification.on('click', () => {
-      // TODO: 打开 RSS 阅读器
       logger.info('[Notification] 用户点击了 RSS 通知');
+      this.openRSSReader(feedTitle, items);
     });
 
     notification.show();
@@ -67,8 +76,8 @@ class APINotificationManager {
     });
 
     notification.on('click', () => {
-      // TODO: 打开邮件阅读器
       logger.info('[Notification] 用户点击了邮件通知');
+      this.openEmailReader(accountEmail, emails);
     });
 
     notification.show();
@@ -241,11 +250,97 @@ class APINotificationManager {
   }
 
   /**
+   * 打开 RSS 阅读器
+   * @param {string} feedTitle - Feed 标题
+   * @param {Array} items - 新文章列表
+   */
+  openRSSReader(feedTitle, items = []) {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      logger.warn('[Notification] 主窗口不可用，无法打开 RSS 阅读器');
+      return;
+    }
+
+    // 激活窗口
+    if (this.mainWindow.isMinimized()) {
+      this.mainWindow.restore();
+    }
+    this.mainWindow.focus();
+
+    // 发送导航事件到渲染进程
+    this.mainWindow.webContents.send('notification:navigate', {
+      route: '/rss',
+      params: {
+        feedTitle,
+        highlightItems: items.slice(0, 10).map(item => item.id || item.link),
+      },
+    });
+
+    logger.info(`[Notification] 打开 RSS 阅读器: ${feedTitle}`);
+  }
+
+  /**
+   * 打开邮件阅读器
+   * @param {string} accountEmail - 邮箱账户
+   * @param {Array} emails - 新邮件列表
+   */
+  openEmailReader(accountEmail, emails = []) {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      logger.warn('[Notification] 主窗口不可用，无法打开邮件阅读器');
+      return;
+    }
+
+    // 激活窗口
+    if (this.mainWindow.isMinimized()) {
+      this.mainWindow.restore();
+    }
+    this.mainWindow.focus();
+
+    // 发送导航事件到渲染进程
+    this.mainWindow.webContents.send('notification:navigate', {
+      route: '/email',
+      params: {
+        account: accountEmail,
+        folder: 'inbox',
+        highlightEmails: emails.slice(0, 10).map(email => email.id || email.messageId),
+      },
+    });
+
+    logger.info(`[Notification] 打开邮件阅读器: ${accountEmail}`);
+  }
+
+  /**
+   * 打开特定路由
+   * @param {string} route - 路由路径
+   * @param {Object} params - 路由参数
+   */
+  navigateTo(route, params = {}) {
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      logger.warn('[Notification] 主窗口不可用，无法导航');
+      return false;
+    }
+
+    // 激活窗口
+    if (this.mainWindow.isMinimized()) {
+      this.mainWindow.restore();
+    }
+    this.mainWindow.focus();
+
+    // 发送导航事件
+    this.mainWindow.webContents.send('notification:navigate', {
+      route,
+      params,
+    });
+
+    return true;
+  }
+
+  /**
    * 清理资源
    */
   cleanup() {
     this.notificationQueue = [];
     this.isProcessing = false;
+    this.mainWindow = null;
   }
 }
 

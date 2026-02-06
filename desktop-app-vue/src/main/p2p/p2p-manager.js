@@ -21,6 +21,7 @@ const TransportDiagnostics = require("./transport-diagnostics");
 const { ConnectionPool } = require("./connection-pool");
 const { WebRTCQualityMonitor } = require("./webrtc-quality-monitor");
 const NSDService = require("./nsd-service");
+const SignalingServer = require("./signaling-server");
 
 // 动态导入 ESM 模块
 let createLibp2p, tcp, noise, mplex, kadDHT, mdns, bootstrap, multiaddr;
@@ -75,6 +76,10 @@ class P2PManager extends EventEmitter {
 
     // NSD 服务（用于 Android 设备发现）
     this.nsdService = new NSDService();
+
+    // Embedded signaling server for mobile bridge
+    this.signalingServer = null;
+    this.useEmbeddedSignaling = config.useEmbeddedSignaling !== false; // Default: enabled
   }
 
   /**
@@ -503,6 +508,11 @@ class P2PManager extends EventEmitter {
 
       // 广播当前设备信息
       this.broadcastDeviceInfo();
+
+      // 启动嵌入式信令服务器（用于移动端 WebRTC 连接）
+      if (this.useEmbeddedSignaling) {
+        await this.startSignalingServer();
+      }
 
       // 启动 NSD 服务（让 Android 设备能发现本机）
       this.startNSDService();
@@ -1783,6 +1793,9 @@ class P2PManager extends EventEmitter {
   async close() {
     logger.info("[P2PManager] 关闭 P2P 节点");
 
+    // 停止嵌入式信令服务器
+    await this.stopSignalingServer();
+
     // 停止 NSD 服务
     this.stopNSDService();
 
@@ -2014,6 +2027,98 @@ class P2PManager extends EventEmitter {
     }
 
     return this.webrtcQualityMonitor.getOptimizationSuggestions(peerId);
+  }
+
+  /**
+   * 启动嵌入式信令服务器
+   */
+  async startSignalingServer() {
+    try {
+      logger.info("[P2PManager] 启动嵌入式信令服务器...");
+
+      // 获取信令服务器配置
+      const signalingConfig = {
+        port: this.p2pConfig?.signaling?.port || 9001,
+        host: this.p2pConfig?.signaling?.host || "0.0.0.0",
+        maxConnections: this.p2pConfig?.signaling?.maxConnections || 100,
+        heartbeatInterval: this.p2pConfig?.signaling?.heartbeatInterval || 30000,
+        messageQueueSize: this.p2pConfig?.signaling?.messageQueueSize || 100,
+        messageTTL: this.p2pConfig?.signaling?.messageTTL || 86400000,
+      };
+
+      this.signalingServer = new SignalingServer(signalingConfig);
+
+      // 监听信令服务器事件
+      this.signalingServer.on("started", ({ port, host }) => {
+        logger.info(`[P2PManager] 信令服务器已启动: ${host}:${port}`);
+        this.emit("signaling:started", { port, host });
+      });
+
+      this.signalingServer.on("stopped", () => {
+        logger.info("[P2PManager] 信令服务器已停止");
+        this.emit("signaling:stopped");
+      });
+
+      this.signalingServer.on("connection", ({ connectionId, clientIP }) => {
+        logger.info(`[P2PManager] 信令服务器新连接: ${connectionId} from ${clientIP}`);
+        this.emit("signaling:connection", { connectionId, clientIP });
+      });
+
+      this.signalingServer.on("error", (error) => {
+        logger.error("[P2PManager] 信令服务器错误:", error);
+        this.emit("signaling:error", error);
+      });
+
+      await this.signalingServer.start();
+
+      logger.info("[P2PManager] 嵌入式信令服务器已启动");
+    } catch (error) {
+      logger.error("[P2PManager] 启动信令服务器失败:", error);
+      this.signalingServer = null;
+    }
+  }
+
+  /**
+   * 停止嵌入式信令服务器
+   */
+  async stopSignalingServer() {
+    if (this.signalingServer) {
+      try {
+        await this.signalingServer.stop();
+        this.signalingServer = null;
+        logger.info("[P2PManager] 嵌入式信令服务器已停止");
+      } catch (error) {
+        logger.error("[P2PManager] 停止信令服务器失败:", error);
+      }
+    }
+  }
+
+  /**
+   * 获取信令服务器实例
+   * @returns {SignalingServer|null}
+   */
+  getSignalingServer() {
+    return this.signalingServer;
+  }
+
+  /**
+   * 获取信令服务器状态
+   * @returns {Object}
+   */
+  getSignalingServerStatus() {
+    if (!this.signalingServer) {
+      return {
+        enabled: this.useEmbeddedSignaling,
+        running: false,
+        message: "Signaling server not initialized",
+      };
+    }
+
+    return {
+      enabled: this.useEmbeddedSignaling,
+      running: this.signalingServer.isServerRunning(),
+      stats: this.signalingServer.getStats(),
+    };
   }
 
   /**

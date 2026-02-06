@@ -1074,8 +1074,29 @@ _此文件会自动更新,也可手动编辑。_
     try {
       logger.info("[PermanentMemoryManager] 删除索引:", relativePath);
 
-      // TODO: 从混合搜索引擎中删除文档
-      // 目前 HybridSearchEngine 没有 removeDocument 方法
+      // 从混合搜索引擎中删除文档
+      if (this.hybridSearchEngine && typeof this.hybridSearchEngine.removeDocument === 'function') {
+        // 使用 relativePath 作为文档 ID
+        this.hybridSearchEngine.removeDocument(relativePath);
+        logger.info("[PermanentMemoryManager] 从混合搜索引擎中删除文档成功:", relativePath);
+      }
+
+      // 从 RAG Manager 中删除（如果支持）
+      if (this.ragManager && typeof this.ragManager.deleteDocument === 'function') {
+        await this.ragManager.deleteDocument(relativePath);
+        logger.info("[PermanentMemoryManager] 从 RAG Manager 中删除文档成功:", relativePath);
+      }
+
+      // 从嵌入缓存中删除
+      if (this.database) {
+        try {
+          this.database.prepare(`
+            DELETE FROM embedding_cache WHERE document_id = ?
+          `).run(relativePath);
+        } catch (e) {
+          // 表可能不存在，忽略
+        }
+      }
 
       this.emit("file-unindexed", { relativePath });
     } catch (error) {

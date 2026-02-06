@@ -391,14 +391,15 @@ fun TimelineScreen(
     }
 
     // 举报对话框
-    if (showReportDialog && reportTargetPost != null) {
+    val currentReportTargetPost = reportTargetPost
+    if (showReportDialog && currentReportTargetPost != null) {
         ReportDialog(
             onDismiss = {
                 showReportDialog = false
                 reportTargetPost = null
             },
             onConfirm = { reason, description ->
-                viewModel.reportPost(reportTargetPost!!.id, myDid, reason, description)
+                viewModel.reportPost(currentReportTargetPost.id, myDid, reason, description)
                 showReportDialog = false
                 reportTargetPost = null
             }
@@ -422,9 +423,10 @@ fun TimelineScreen(
     }
 
     // 历史版本详情对话框
-    if (showVersionDialog && selectedVersion != null) {
+    val currentSelectedVersion = selectedVersion
+    if (showVersionDialog && currentSelectedVersion != null) {
         HistoryVersionDialog(
-            history = selectedVersion!!,
+            history = currentSelectedVersion,
             onDismiss = {
                 showVersionDialog = false
                 selectedVersion = null

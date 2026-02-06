@@ -201,30 +201,76 @@ class PluginAPI {
   buildUIAPI() {
     return {
       // 注册组件
-      registerComponent: this.createSecureMethod('ui:component', (componentDef) => {
-        // TODO: 实现组件注册
+      registerComponent: this.createSecureMethod('ui:component', async (componentDef) => {
         logger.info(`[PluginAPI] 注册组件:`, componentDef);
-        return { success: true };
+
+        const { pluginManager } = this.context;
+        if (!pluginManager) {
+          throw new Error('插件管理器不可用');
+        }
+
+        return await pluginManager.handleUIComponentExtension({
+          pluginId: this.pluginId,
+          config: componentDef,
+        });
       }),
 
       // 注册页面
-      registerPage: this.createSecureMethod('ui:page', (pageDef) => {
-        // TODO: 实现页面注册
+      registerPage: this.createSecureMethod('ui:page', async (pageDef) => {
         logger.info(`[PluginAPI] 注册页面:`, pageDef);
-        return { success: true };
+
+        const { pluginManager } = this.context;
+        if (!pluginManager) {
+          throw new Error('插件管理器不可用');
+        }
+
+        return await pluginManager.handleUIPageExtension({
+          pluginId: this.pluginId,
+          config: pageDef,
+        });
       }),
 
       // 注册菜单
-      registerMenu: this.createSecureMethod('ui:menu', (menuDef) => {
-        // TODO: 实现菜单注册
+      registerMenu: this.createSecureMethod('ui:menu', async (menuDef) => {
         logger.info(`[PluginAPI] 注册菜单:`, menuDef);
-        return { success: true };
+
+        const { pluginManager } = this.context;
+        if (!pluginManager) {
+          throw new Error('插件管理器不可用');
+        }
+
+        return await pluginManager.handleUIMenuExtension({
+          pluginId: this.pluginId,
+          config: menuDef,
+        });
       }),
 
       // 显示对话框
       showDialog: this.createSecureMethod('ui:dialog', (dialogOptions) => {
         const { dialog } = require('electron');
         return dialog.showMessageBox(dialogOptions);
+      }),
+
+      // 显示通知
+      showNotification: this.createSecureMethod('ui:notification', (options) => {
+        const { Notification } = require('electron');
+        const notification = new Notification({
+          title: options.title || this.pluginId,
+          body: options.body || '',
+          icon: options.icon,
+        });
+        notification.show();
+        return { success: true };
+      }),
+
+      // 发送消息到渲染进程
+      sendToRenderer: this.createSecureMethod('ui:ipc', (channel, data) => {
+        const { mainWindow } = this.context;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send(`plugin:${this.pluginId}:${channel}`, data);
+          return { success: true };
+        }
+        return { success: false, error: '主窗口不可用' };
       }),
     };
   }

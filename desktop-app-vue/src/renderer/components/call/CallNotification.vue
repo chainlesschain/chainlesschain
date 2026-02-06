@@ -81,6 +81,7 @@
 import { logger, createLogger } from '@/utils/logger';
 
 import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { getIpcBridge } from '@/utils/ipc-shim';
 import {
   PhoneOutlined,
   VideoCameraOutlined,
@@ -89,7 +90,7 @@ import {
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 
-const { ipcRenderer } = window.require('electron');
+const ipcRenderer = getIpcBridge();
 
 // Props
 const props = defineProps({
@@ -200,6 +201,7 @@ const handleCallEnded = (event, data) => {
 
 // 生命周期
 onMounted(() => {
+  if (!ipcRenderer?.on) {return;}
   ipcRenderer.on('p2p-enhanced:call-incoming', handleIncomingCall);
   ipcRenderer.on('p2p-enhanced:call-ended', handleCallEnded);
   ipcRenderer.on('p2p-enhanced:call-rejected', handleCallEnded);
@@ -207,6 +209,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopRingtone();
+  if (!ipcRenderer?.removeListener) {return;}
   ipcRenderer.removeListener('p2p-enhanced:call-incoming', handleIncomingCall);
   ipcRenderer.removeListener('p2p-enhanced:call-ended', handleCallEnded);
   ipcRenderer.removeListener('p2p-enhanced:call-rejected', handleCallEnded);

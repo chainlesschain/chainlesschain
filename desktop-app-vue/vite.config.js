@@ -70,6 +70,7 @@ export default defineConfig({
     // Add parent node_modules to resolve path for workspace dependencies
     preserveSymlinks: false,
     dedupe: ['vue', 'vue-router', 'pinia'],
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json', '.vue'],
   },
   optimizeDeps: {
     include: ['monaco-editor'],

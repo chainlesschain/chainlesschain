@@ -239,10 +239,76 @@ class RealtimeTradingEngine extends EventEmitter {
         throw new Error('资产余额不足');
       }
     } else {
-      // 买单：检查资金余额（这里简化处理）
-      // 实际应该检查用户的资金账户
+      // 买单：检查资金余额
       const requiredAmount = order.price * order.quantity;
-      // TODO: 实现资金余额检查
+
+      // 获取用户资金账户余额
+      const fundBalance = await this.getUserFundBalance(order.user_did);
+
+      // 获取该用户已锁定的资金（未成交的买单）
+      const lockedFunds = await this.getLockedFunds(order.user_did);
+
+      // 可用余额 = 总余额 - 已锁定
+      const availableBalance = fundBalance - lockedFunds;
+
+      if (availableBalance < requiredAmount) {
+        throw new Error(`资金余额不足: 需要 ${requiredAmount}, 可用 ${availableBalance}`);
+      }
+
+      logger.info(`[RealtimeTradingEngine] 资金余额检查通过: 用户=${order.user_did}, 需要=${requiredAmount}, 可用=${availableBalance}`);
+    }
+  }
+
+  /**
+   * 获取用户资金账户余额
+   * @param {string} userDid - 用户DID
+   * @returns {Promise<number>} 余额
+   */
+  async getUserFundBalance(userDid) {
+    try {
+      // 查询用户资金账户
+      const account = this.database.prepare(`
+        SELECT balance FROM user_fund_accounts WHERE user_did = ?
+      `).get(userDid);
+
+      if (account) {
+        return parseFloat(account.balance) || 0;
+      }
+
+      // 如果没有资金账户记录，尝试从钱包或资产管理器获取
+      if (this.assetManager && typeof this.assetManager.getFundBalance === 'function') {
+        return await this.assetManager.getFundBalance(userDid);
+      }
+
+      // 默认返回0
+      return 0;
+    } catch (error) {
+      logger.warn(`[RealtimeTradingEngine] 获取资金余额失败: ${userDid}`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * 获取用户已锁定的资金（未成交的买单占用）
+   * @param {string} userDid - 用户DID
+   * @returns {Promise<number>} 锁定金额
+   */
+  async getLockedFunds(userDid) {
+    try {
+      // 计算所有未成交买单的锁定资金
+      const result = this.database.prepare(`
+        SELECT COALESCE(SUM(remaining_quantity * price), 0) as locked
+        FROM marketplace_orders
+        WHERE user_did = ?
+          AND side = 'buy'
+          AND status IN ('open', 'partial', 'pending')
+          AND price IS NOT NULL
+      `).get(userDid);
+
+      return parseFloat(result?.locked) || 0;
+    } catch (error) {
+      logger.warn(`[RealtimeTradingEngine] 获取锁定资金失败: ${userDid}`, error);
+      return 0;
     }
   }
 

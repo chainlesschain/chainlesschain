@@ -1,6 +1,7 @@
 const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const { EventEmitter } = require('events');
 
 /**
  * P2P 数据同步引擎
@@ -8,11 +9,13 @@ const crypto = require('crypto');
  *
  * @class P2PSyncEngine
  */
-class P2PSyncEngine {
-  constructor(db, didManager, p2pManager) {
+class P2PSyncEngine extends EventEmitter {
+  constructor(db, didManager, p2pManager, mainWindow = null) {
+    super();
     this.db = db;
     this.didManager = didManager;
     this.p2pManager = p2pManager;
+    this.mainWindow = mainWindow;
 
     // 同步配置
     this.config = {
@@ -20,7 +23,9 @@ class P2PSyncEngine {
       queueProcessInterval: 5000, // 5秒
       maxRetryCount: 5,
       batchSize: 50,
-      defaultStrategy: 'lww' // Last-Write-Wins
+      defaultStrategy: 'lww', // Last-Write-Wins
+      responseTimeout: 10000, // 响应超时时间 10秒
+      minResponses: 1, // 最少响应数量
     };
 
     // 同步定时器
@@ -30,6 +35,10 @@ class P2PSyncEngine {
     // 同步状态
     this.syncing = false;
     this.lastSyncTime = null;
+    this.localDID = null;
+
+    // 响应收集器
+    this.pendingRequests = new Map();
   }
 
   /**
@@ -38,6 +47,17 @@ class P2PSyncEngine {
    */
   async initialize() {
     logger.info('[P2PSyncEngine] 初始化同步引擎...');
+
+    // 获取本地 DID
+    if (this.didManager) {
+      try {
+        const identity = await this.didManager.getDefaultIdentity();
+        this.localDID = identity?.did || null;
+        logger.info(`[P2PSyncEngine] 本地 DID: ${this.localDID}`);
+      } catch (error) {
+        logger.warn('[P2PSyncEngine] 获取本地 DID 失败:', error.message);
+      }
+    }
 
     // 注册 P2P 消息处理器
     if (this.p2pManager) {
@@ -48,6 +68,14 @@ class P2PSyncEngine {
     }
 
     logger.info('[P2PSyncEngine] ✓ 同步引擎初始化完成');
+  }
+
+  /**
+   * 设置主窗口引用
+   * @param {BrowserWindow} mainWindow - Electron 主窗口
+   */
+  setMainWindow(mainWindow) {
+    this.mainWindow = mainWindow;
   }
 
   /**
@@ -183,24 +211,125 @@ class P2PSyncEngine {
       return [];
     }
 
+    const requestId = uuidv4();
+    const timeout = options.timeout || this.config.responseTimeout;
+    const minResponses = options.minResponses || this.config.minResponses;
+
     const message = {
       type: 'sync:request',
+      request_id: requestId,
       org_id: orgId,
       last_sync_time: this.lastSyncTime || 0,
-      resource_types: options.resourceTypes || ['knowledge', 'project', 'member', 'role']
+      resource_types: options.resourceTypes || ['knowledge', 'project', 'member', 'role'],
+      sender_did: this.localDID,
+      timestamp: Date.now(),
     };
 
     try {
+      // 创建响应收集器
+      const collector = this.createResponseCollector(requestId, timeout, minResponses);
+
       // 广播同步请求
       await this.p2pManager.broadcastToOrg(orgId, message);
+      logger.info(`[P2PSyncEngine] 已广播同步请求: ${requestId}`);
 
-      // 等待收集响应（简化版：实际应该收集多个节点的响应）
-      // TODO: 实现响应收集和聚合机制
-      return [];
+      // 等待收集响应
+      const responses = await collector.promise;
+      logger.info(`[P2PSyncEngine] 收到 ${responses.length} 个响应`);
+
+      // 聚合和去重变更
+      const aggregatedChanges = this.aggregateChanges(responses);
+      logger.info(`[P2PSyncEngine] 聚合后变更: ${aggregatedChanges.length} 条`);
+
+      return aggregatedChanges;
     } catch (error) {
       logger.error('[P2PSyncEngine] 请求远程变更失败:', error);
       return [];
+    } finally {
+      // 清理收集器
+      this.pendingRequests.delete(requestId);
     }
+  }
+
+  /**
+   * 创建响应收集器
+   * @param {string} requestId - 请求ID
+   * @param {number} timeout - 超时时间（毫秒）
+   * @param {number} minResponses - 最少响应数量
+   * @returns {Object} 收集器对象
+   */
+  createResponseCollector(requestId, timeout, minResponses) {
+    const responses = [];
+    let resolvePromise;
+    let timeoutId;
+
+    const promise = new Promise((resolve) => {
+      resolvePromise = resolve;
+
+      // 设置超时
+      timeoutId = setTimeout(() => {
+        logger.info(`[P2PSyncEngine] 响应收集超时: ${requestId}, 已收集 ${responses.length} 个响应`);
+        resolve(responses);
+      }, timeout);
+    });
+
+    const collector = {
+      promise,
+      responses,
+      addResponse: (response) => {
+        responses.push(response);
+        logger.debug(`[P2PSyncEngine] 收到响应 ${responses.length} for ${requestId}`);
+
+        // 如果达到最小响应数且已有足够响应，提前解决
+        if (responses.length >= minResponses) {
+          // 给予额外 2 秒收集更多响应
+          setTimeout(() => {
+            if (this.pendingRequests.has(requestId)) {
+              clearTimeout(timeoutId);
+              resolvePromise(responses);
+            }
+          }, 2000);
+        }
+      },
+    };
+
+    this.pendingRequests.set(requestId, collector);
+    return collector;
+  }
+
+  /**
+   * 聚合多个响应的变更
+   * @param {Array} responses - 响应列表
+   * @returns {Array} 去重后的变更列表
+   */
+  aggregateChanges(responses) {
+    const changeMap = new Map();
+
+    for (const response of responses) {
+      const changes = response.changes || [];
+
+      for (const change of changes) {
+        const key = `${change.resourceType || change.resource_type}:${change.resourceId || change.resource_id}`;
+        const existing = changeMap.get(key);
+
+        // 使用最新的变更（按时间戳比较）
+        if (!existing || (change.timestamp || 0) > (existing.timestamp || 0)) {
+          changeMap.set(key, {
+            resource_type: change.resourceType || change.resource_type,
+            resource_id: change.resourceId || change.resource_id,
+            action: change.action,
+            data: change.data,
+            version: change.version,
+            vector_clock: change.vectorClock || change.vector_clock,
+            author_did: change.authorDID || change.author_did,
+            timestamp: change.timestamp,
+          });
+        }
+      }
+    }
+
+    // 按时间戳排序
+    return Array.from(changeMap.values()).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
   }
 
   /**
@@ -659,9 +788,19 @@ class P2PSyncEngine {
    * @returns {Promise<string>} 签名
    */
   async signMessage(message) {
-    // 简化版：使用哈希作为签名
-    // TODO: 使用 DID 私钥进行真实签名
     const content = JSON.stringify(message);
+
+    // 尝试使用 DID 私钥进行签名
+    if (this.didManager && typeof this.didManager.signData === 'function') {
+      try {
+        const signature = await this.didManager.signData(content);
+        return signature;
+      } catch (error) {
+        logger.warn('[P2PSyncEngine] DID 签名失败，使用哈希签名:', error.message);
+      }
+    }
+
+    // 后备：使用 SHA-256 哈希作为简化签名
     return crypto.createHash('sha256').update(content).digest('hex');
   }
 
@@ -671,8 +810,32 @@ class P2PSyncEngine {
    * @returns {Promise<boolean>} 是否有效
    */
   async verifyMessage(message) {
-    // TODO: 使用 DID 公钥验证签名
-    return true;
+    const { signature, sender_did, ...content } = message;
+
+    if (!signature || !sender_did) {
+      logger.warn('[P2PSyncEngine] 消息缺少签名或发送者DID');
+      return false;
+    }
+
+    // 尝试使用 DID 公钥验证签名
+    if (this.didManager && typeof this.didManager.verifySignature === 'function') {
+      try {
+        const isValid = await this.didManager.verifySignature(
+          JSON.stringify(content),
+          signature,
+          sender_did
+        );
+        return isValid;
+      } catch (error) {
+        logger.warn('[P2PSyncEngine] DID 签名验证失败:', error.message);
+      }
+    }
+
+    // 后备：验证哈希签名
+    const expectedHash = crypto.createHash('sha256')
+      .update(JSON.stringify(content))
+      .digest('hex');
+    return signature === expectedHash;
   }
 
   // ========== P2P 消息处理器 ==========
@@ -680,24 +843,42 @@ class P2PSyncEngine {
   /**
    * 处理同步请求
    * @param {Object} message - 同步请求消息
+   * @param {string} senderPeerId - 发送者的 Peer ID
    */
-  async handleSyncRequest(message) {
+  async handleSyncRequest(message, senderPeerId = null) {
     logger.info('[P2PSyncEngine] 收到同步请求:', message);
 
-    const { org_id, last_sync_time, resource_types } = message;
+    const { org_id, last_sync_time, resource_types, request_id } = message;
 
     // 获取变更列表
     const changes = await this.getChangesSince(org_id, last_sync_time, resource_types);
 
-    // 发送响应
+    // 构建响应
     const response = {
       type: 'sync:response',
+      request_id,
       org_id,
-      changes
+      changes,
+      sender_did: this.localDID,
+      timestamp: Date.now(),
     };
 
-    // TODO: 发送给请求者
-    logger.info('[P2PSyncEngine] 同步响应:', response);
+    // 签名响应
+    response.signature = await this.signMessage(response);
+
+    // 发送给请求者
+    if (senderPeerId && this.p2pManager) {
+      try {
+        await this.p2pManager.sendToTarget(senderPeerId, response);
+        logger.info(`[P2PSyncEngine] ✓ 同步响应已发送给 ${senderPeerId}: ${changes.length} 条变更`);
+      } catch (error) {
+        logger.error('[P2PSyncEngine] 发送同步响应失败:', error);
+      }
+    } else {
+      logger.warn('[P2PSyncEngine] 无法发送响应：缺少发送者信息');
+    }
+
+    return response;
   }
 
   /**
@@ -707,10 +888,25 @@ class P2PSyncEngine {
   async handleSyncResponse(message) {
     logger.info('[P2PSyncEngine] 收到同步响应:', message);
 
-    const { org_id, changes } = message;
+    const { request_id, org_id, changes, sender_did } = message;
 
-    // 应用远程变更
-    await this.applyRemoteChanges(org_id, changes);
+    // 如果有对应的请求收集器，添加响应
+    if (request_id && this.pendingRequests.has(request_id)) {
+      const collector = this.pendingRequests.get(request_id);
+      collector.addResponse({
+        senderDID: sender_did,
+        changes: changes || [],
+        timestamp: message.timestamp || Date.now(),
+      });
+      logger.info(`[P2PSyncEngine] 响应已添加到收集器: ${request_id}`);
+      return;
+    }
+
+    // 兼容旧版本：直接应用远程变更
+    if (changes && changes.length > 0) {
+      logger.info(`[P2PSyncEngine] 直接应用远程变更: ${changes.length} 条`);
+      await this.applyRemoteChanges(org_id, changes);
+    }
   }
 
   /**
@@ -739,7 +935,49 @@ class P2PSyncEngine {
    */
   async handleSyncConflict(message) {
     logger.info('[P2PSyncEngine] 收到同步冲突:', message);
-    // TODO: 显示冲突通知给用户
+
+    const { org_id, resource_type, resource_id, local_version, remote_version } = message;
+
+    // 记录冲突到数据库
+    try {
+      this.db.prepare(`
+        INSERT INTO sync_conflicts (
+          id, org_id, resource_type, resource_id,
+          local_version, remote_version, status, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+      `).run(
+        uuidv4(),
+        org_id,
+        resource_type,
+        resource_id,
+        JSON.stringify(local_version),
+        JSON.stringify(remote_version),
+        Date.now()
+      );
+    } catch (error) {
+      logger.error('[P2PSyncEngine] 记录冲突失败:', error);
+    }
+
+    // 发送通知给用户
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('sync:conflict', {
+        orgId: org_id,
+        resourceType: resource_type,
+        resourceId: resource_id,
+        localVersion: local_version,
+        remoteVersion: remote_version,
+        message: `同步冲突: ${resource_type} - ${resource_id}`,
+      });
+    }
+
+    // 触发事件
+    this.emit('conflict', {
+      orgId: org_id,
+      resourceType: resource_type,
+      resourceId: resource_id,
+      localVersion: local_version,
+      remoteVersion: remote_version,
+    });
   }
 
   /**
@@ -749,9 +987,82 @@ class P2PSyncEngine {
    * @param {Array} resourceTypes - 资源类型列表
    * @returns {Promise<Array>} 变更列表
    */
-  async getChangesSince(orgId, sinceTime, resourceTypes) {
-    // TODO: 实现获取变更逻辑
-    return [];
+  async getChangesSince(orgId, sinceTime, resourceTypes = ['knowledge', 'project', 'member', 'role']) {
+    const changes = [];
+
+    try {
+      // 获取知识库变更
+      if (resourceTypes.includes('knowledge')) {
+        const knowledgeChanges = this.db.prepare(`
+          SELECT id, 'knowledge' as resource_type, 'update' as action,
+                 title, content, author_did, updated_at as timestamp
+          FROM organization_knowledge
+          WHERE org_id = ? AND updated_at > ? AND sync_status = 'synced'
+          ORDER BY updated_at ASC
+          LIMIT 500
+        `).all(orgId, sinceTime);
+
+        changes.push(...knowledgeChanges.map(k => ({
+          id: k.id,
+          resourceType: 'knowledge',
+          resourceId: k.id,
+          action: k.action,
+          data: { title: k.title, content: k.content },
+          authorDID: k.author_did,
+          timestamp: k.timestamp,
+        })));
+      }
+
+      // 获取成员变更
+      if (resourceTypes.includes('member')) {
+        const memberChanges = this.db.prepare(`
+          SELECT member_did as id, 'member' as resource_type,
+                 role, status, joined_at, updated_at as timestamp
+          FROM organization_members
+          WHERE org_id = ? AND updated_at > ?
+          ORDER BY updated_at ASC
+          LIMIT 200
+        `).all(orgId, sinceTime);
+
+        changes.push(...memberChanges.map(m => ({
+          id: m.id,
+          resourceType: 'member',
+          resourceId: m.id,
+          action: 'update',
+          data: { role: m.role, status: m.status, joinedAt: m.joined_at },
+          timestamp: m.timestamp,
+        })));
+      }
+
+      // 获取角色变更
+      if (resourceTypes.includes('role')) {
+        const roleChanges = this.db.prepare(`
+          SELECT id, 'role' as resource_type, name, permissions, updated_at as timestamp
+          FROM organization_roles
+          WHERE org_id = ? AND updated_at > ?
+          ORDER BY updated_at ASC
+          LIMIT 100
+        `).all(orgId, sinceTime);
+
+        changes.push(...roleChanges.map(r => ({
+          id: r.id,
+          resourceType: 'role',
+          resourceId: r.id,
+          action: 'update',
+          data: { name: r.name, permissions: JSON.parse(r.permissions || '[]') },
+          timestamp: r.timestamp,
+        })));
+      }
+
+      // 按时间排序
+      changes.sort((a, b) => a.timestamp - b.timestamp);
+
+      logger.info(`[P2PSyncEngine] 获取到 ${changes.length} 条变更 (since ${new Date(sinceTime).toISOString()})`);
+      return changes;
+    } catch (error) {
+      logger.error('[P2PSyncEngine] 获取变更失败:', error);
+      return [];
+    }
   }
 
   /**
@@ -778,17 +1089,38 @@ class P2PSyncEngine {
     for (const item of items) {
       try {
         // 标记为处理中
-        this.db.run(`
+        this.db.prepare(`
           UPDATE sync_queue SET status = 'processing' WHERE id = ?
-        `, [item.id]);
+        `).run(item.id);
 
-        // 执行同步操作
-        // TODO: 实现队列项处理
+        // 解析队列项数据
+        const data = JSON.parse(item.data || '{}');
+
+        // 根据操作类型执行同步
+        const syncMessage = {
+          type: 'sync:change',
+          org_id: item.org_id,
+          resource_type: item.resource_type,
+          resource_id: item.resource_id,
+          action: item.action,
+          data,
+          sender_did: this.localDID,
+          timestamp: item.created_at,
+        };
+
+        // 签名消息
+        syncMessage.signature = await this.signMessage(syncMessage);
+
+        // 广播到组织网络
+        if (this.p2pManager) {
+          await this.p2pManager.broadcastToOrg(item.org_id, syncMessage);
+          logger.info(`[P2PSyncEngine] ✓ 队列项已同步: ${item.resource_type}/${item.resource_id}`);
+        }
 
         // 标记为完成
-        this.db.run(`
-          UPDATE sync_queue SET status = 'completed' WHERE id = ?
-        `, [item.id]);
+        this.db.prepare(`
+          UPDATE sync_queue SET status = 'completed', completed_at = ? WHERE id = ?
+        `).run(Date.now(), item.id);
 
         processed++;
       } catch (error) {
