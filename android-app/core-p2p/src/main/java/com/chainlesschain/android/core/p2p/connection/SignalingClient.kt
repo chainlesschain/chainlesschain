@@ -45,10 +45,22 @@ class SignalingClient @Inject constructor() {
         const val READ_TIMEOUT_MS = 30_000
 
         /** 最大重连尝试次数 */
-        const val MAX_RECONNECT_ATTEMPTS = 3
+        const val MAX_RECONNECT_ATTEMPTS = 5
 
         /** 重连基础延迟（毫秒） */
         const val RECONNECT_BASE_DELAY_MS = 1_000L
+
+        /** 最大重连延迟（毫秒） */
+        const val MAX_RECONNECT_DELAY_MS = 30_000L
+
+        /** 心跳间隔（毫秒） */
+        const val HEARTBEAT_INTERVAL_MS = 15_000L
+
+        /** 心跳超时（毫秒）- 连续N次无响应视为断开 */
+        const val HEARTBEAT_TIMEOUT_MS = 45_000L
+
+        /** 心跳响应超时（毫秒） */
+        const val HEARTBEAT_RESPONSE_TIMEOUT_MS = 5_000L
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -85,6 +97,16 @@ class SignalingClient @Inject constructor() {
     // 重连状态
     private var reconnectAttempts = 0
     private var reconnectJob: Job? = null
+
+    // 心跳状态
+    private var heartbeatJob: Job? = null
+    private var lastHeartbeatResponse = 0L
+    private var pendingHeartbeatId: String? = null
+
+    // 连接健康度统计
+    private var totalHeartbeatsSent = 0
+    private var totalHeartbeatsReceived = 0
+    private var connectionStartTime = 0L
 
     /**
      * 启动信令服务器（等待连接）
@@ -182,12 +204,17 @@ class SignalingClient @Inject constructor() {
 
                 _connectionState.value = SignalingConnectionState.Connected
                 reconnectAttempts = 0
+                connectionStartTime = System.currentTimeMillis()
+                lastHeartbeatResponse = System.currentTimeMillis()
 
                 Log.i(TAG, "Connected to signaling server: $host:$port")
 
                 scope.launch {
                     _connectionEvents.emit(SignalingConnectionEvent.Connected(host, port))
                 }
+
+                // 启动心跳
+                startHeartbeat()
 
                 // 监听消息
                 listenForMessages()
@@ -225,24 +252,33 @@ class SignalingClient @Inject constructor() {
 
     /**
      * 安排重连
+     *
+     * 使用带抖动的指数退避策略，避免雷群效应
      */
     private fun scheduleReconnect() {
         val host = currentHost ?: return
         val port = currentPort
 
         reconnectAttempts++
-        val delay = RECONNECT_BASE_DELAY_MS * (1L shl (reconnectAttempts - 1).coerceAtMost(4))
 
-        Log.i(TAG, "Scheduling reconnect to $host:$port in ${delay}ms (attempt $reconnectAttempts)")
+        // 指数退避：baseDelay * 2^(attempt-1)，带最大限制
+        val exponentialDelay = RECONNECT_BASE_DELAY_MS * (1L shl (reconnectAttempts - 1).coerceAtMost(5))
+        val cappedDelay = exponentialDelay.coerceAtMost(MAX_RECONNECT_DELAY_MS)
+
+        // 添加 ±20% 的抖动，避免多客户端同时重连
+        val jitter = (cappedDelay * 0.2 * (Math.random() * 2 - 1)).toLong()
+        val finalDelay = (cappedDelay + jitter).coerceAtLeast(RECONNECT_BASE_DELAY_MS)
+
+        Log.i(TAG, "Scheduling reconnect to $host:$port in ${finalDelay}ms (attempt $reconnectAttempts/$MAX_RECONNECT_ATTEMPTS)")
 
         _connectionState.value = SignalingConnectionState.Reconnecting(reconnectAttempts)
 
         scope.launch {
-            _connectionEvents.emit(SignalingConnectionEvent.Reconnecting(reconnectAttempts, delay))
+            _connectionEvents.emit(SignalingConnectionEvent.Reconnecting(reconnectAttempts, finalDelay))
         }
 
         reconnectJob = scope.launch {
-            delay(delay)
+            delay(finalDelay)
             doConnect(host, port)
         }
     }
@@ -278,6 +314,7 @@ class SignalingClient @Inject constructor() {
      */
     fun disconnect() {
         cancelReconnect()
+        stopHeartbeat()
 
         writer?.close()
         reader?.close()
@@ -349,8 +386,33 @@ class SignalingClient @Inject constructor() {
                         val message = wrapper.toSignalingMessage()
 
                         Log.d(TAG, "Received signaling message: ${message::class.simpleName}")
-                        kotlinx.coroutines.runBlocking {
-                            _signalingMessages.emit(message)
+
+                        // 处理心跳相关消息
+                        when (message) {
+                            is SignalingMessage.HeartbeatAck -> {
+                                handleHeartbeatResponse(message.id)
+                                // 不需要传递给上层
+                            }
+                            is SignalingMessage.Heartbeat -> {
+                                // 收到对方心跳，发送响应
+                                scope.launch {
+                                    sendMessage(SignalingMessage.HeartbeatAck(message.id))
+                                }
+                            }
+                            is SignalingMessage.Close -> {
+                                Log.i(TAG, "Received close message: ${message.reason}")
+                                _connectionState.value = SignalingConnectionState.Disconnected
+                                scope.launch {
+                                    _connectionEvents.emit(SignalingConnectionEvent.RemoteClosed(message.reason))
+                                    _signalingMessages.emit(message)
+                                }
+                            }
+                            else -> {
+                                // 其他消息传递给上层
+                                kotlinx.coroutines.runBlocking {
+                                    _signalingMessages.emit(message)
+                                }
+                            }
                         }
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to parse message", e)
@@ -360,6 +422,7 @@ class SignalingClient @Inject constructor() {
 
             // 连接正常关闭
             Log.i(TAG, "Connection closed by remote")
+            stopHeartbeat()
             _connectionState.value = SignalingConnectionState.Disconnected
             scope.launch {
                 _connectionEvents.emit(SignalingConnectionEvent.Disconnected)
@@ -372,13 +435,141 @@ class SignalingClient @Inject constructor() {
 
         } catch (e: SocketTimeoutException) {
             Log.w(TAG, "Read timeout, connection may be stale")
+            stopHeartbeat()
             handleConnectionFailure("Read timeout", e)
         } catch (e: Exception) {
             if (_connectionState.value is SignalingConnectionState.Connected) {
                 Log.e(TAG, "Error listening for messages", e)
+                stopHeartbeat()
                 handleConnectionFailure(e.message ?: "Connection error", e)
             }
         }
+    }
+
+    /**
+     * 启动心跳
+     */
+    private fun startHeartbeat() {
+        stopHeartbeat()
+
+        heartbeatJob = scope.launch {
+            Log.i(TAG, "Heartbeat started")
+
+            while (coroutineContext.isActive) {
+                delay(HEARTBEAT_INTERVAL_MS)
+
+                if (_connectionState.value !is SignalingConnectionState.Connected) {
+                    Log.d(TAG, "Heartbeat stopped: not connected")
+                    break
+                }
+
+                // 检查上次心跳响应时间
+                val timeSinceLastResponse = System.currentTimeMillis() - lastHeartbeatResponse
+                if (timeSinceLastResponse > HEARTBEAT_TIMEOUT_MS) {
+                    Log.w(TAG, "Heartbeat timeout: ${timeSinceLastResponse}ms since last response")
+                    handleHeartbeatTimeout()
+                    break
+                }
+
+                // 发送心跳
+                sendHeartbeat()
+            }
+        }
+    }
+
+    /**
+     * 停止心跳
+     */
+    private fun stopHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+        pendingHeartbeatId = null
+    }
+
+    /**
+     * 发送心跳
+     */
+    private suspend fun sendHeartbeat() {
+        val heartbeatId = "hb_${System.currentTimeMillis()}"
+        pendingHeartbeatId = heartbeatId
+
+        val heartbeatMessage = SignalingMessage.Heartbeat(heartbeatId)
+        sendMessage(heartbeatMessage)
+
+        totalHeartbeatsSent++
+        Log.d(TAG, "Heartbeat sent: $heartbeatId (total: $totalHeartbeatsSent)")
+    }
+
+    /**
+     * 处理心跳响应
+     */
+    private fun handleHeartbeatResponse(heartbeatId: String) {
+        if (heartbeatId == pendingHeartbeatId) {
+            lastHeartbeatResponse = System.currentTimeMillis()
+            pendingHeartbeatId = null
+            totalHeartbeatsReceived++
+
+            Log.d(TAG, "Heartbeat response received: $heartbeatId (total: $totalHeartbeatsReceived)")
+        } else {
+            Log.w(TAG, "Unexpected heartbeat response: $heartbeatId (expected: $pendingHeartbeatId)")
+        }
+    }
+
+    /**
+     * 处理心跳超时
+     */
+    private fun handleHeartbeatTimeout() {
+        Log.w(TAG, "Connection appears dead, initiating reconnect")
+
+        _connectionState.value = SignalingConnectionState.Failed("Heartbeat timeout")
+
+        scope.launch {
+            _connectionEvents.emit(SignalingConnectionEvent.HeartbeatTimeout)
+        }
+
+        // 关闭当前连接并尝试重连
+        try {
+            writer?.close()
+            reader?.close()
+            clientSocket?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error closing socket after heartbeat timeout", e)
+        }
+
+        writer = null
+        reader = null
+        clientSocket = null
+
+        // 触发重连
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            scheduleReconnect()
+        }
+    }
+
+    /**
+     * 获取连接健康度统计
+     */
+    fun getHealthStats(): ConnectionHealthStats {
+        val uptime = if (connectionStartTime > 0 && _connectionState.value is SignalingConnectionState.Connected) {
+            System.currentTimeMillis() - connectionStartTime
+        } else {
+            0L
+        }
+
+        val healthPercentage = if (totalHeartbeatsSent > 0) {
+            (totalHeartbeatsReceived.toFloat() / totalHeartbeatsSent * 100).toInt()
+        } else {
+            100
+        }
+
+        return ConnectionHealthStats(
+            isConnected = _connectionState.value is SignalingConnectionState.Connected,
+            uptimeMs = uptime,
+            heartbeatsSent = totalHeartbeatsSent,
+            heartbeatsReceived = totalHeartbeatsReceived,
+            healthPercentage = healthPercentage,
+            reconnectAttempts = reconnectAttempts
+        )
     }
 
     /**
@@ -387,6 +578,7 @@ class SignalingClient @Inject constructor() {
     fun release() {
         disconnect()
         stopServer()
+        stopHeartbeat()
         scope.cancel()
     }
 }
@@ -435,6 +627,12 @@ sealed class SignalingConnectionEvent {
 
     /** 服务器错误 */
     data class ServerError(val reason: String) : SignalingConnectionEvent()
+
+    /** 心跳超时 */
+    data object HeartbeatTimeout : SignalingConnectionEvent()
+
+    /** 远程关闭 */
+    data class RemoteClosed(val reason: String) : SignalingConnectionEvent()
 }
 
 /**
@@ -443,8 +641,8 @@ sealed class SignalingConnectionEvent {
 @Serializable
 data class SignalingMessageWrapper(
     val type: String,
-    val fromDeviceId: String,
-    val data: String
+    val fromDeviceId: String = "",
+    val data: String = ""
 ) {
     companion object {
         fun fromSignalingMessage(message: SignalingMessage): SignalingMessageWrapper {
@@ -464,6 +662,19 @@ data class SignalingMessageWrapper(
                     fromDeviceId = message.fromDeviceId,
                     data = Json.encodeToString(message.iceCandidate)
                 )
+                is SignalingMessage.Heartbeat -> SignalingMessageWrapper(
+                    type = "heartbeat",
+                    data = message.id
+                )
+                is SignalingMessage.HeartbeatAck -> SignalingMessageWrapper(
+                    type = "heartbeat_ack",
+                    data = message.id
+                )
+                is SignalingMessage.Close -> SignalingMessageWrapper(
+                    type = "close",
+                    fromDeviceId = message.fromDeviceId,
+                    data = message.reason
+                )
             }
         }
     }
@@ -481,6 +692,12 @@ data class SignalingMessageWrapper(
             "candidate" -> SignalingMessage.Candidate(
                 fromDeviceId = fromDeviceId,
                 iceCandidate = Json.decodeFromString(data)
+            )
+            "heartbeat" -> SignalingMessage.Heartbeat(id = data)
+            "heartbeat_ack" -> SignalingMessage.HeartbeatAck(id = data)
+            "close" -> SignalingMessage.Close(
+                fromDeviceId = fromDeviceId,
+                reason = data
             )
             else -> throw IllegalArgumentException("Unknown message type: $type")
         }

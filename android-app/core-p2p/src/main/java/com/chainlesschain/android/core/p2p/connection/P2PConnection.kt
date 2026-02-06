@@ -114,4 +114,34 @@ sealed class SignalingMessage {
         val fromDeviceId: String,
         val iceCandidate: IceCandidate
     ) : SignalingMessage()
+
+    /** 心跳消息 */
+    data class Heartbeat(
+        val id: String,
+        val timestamp: Long = System.currentTimeMillis()
+    ) : SignalingMessage()
+
+    /** 心跳响应消息 */
+    data class HeartbeatAck(
+        val id: String,
+        val timestamp: Long = System.currentTimeMillis()
+    ) : SignalingMessage()
+
+    /** 连接关闭消息 */
+    data class Close(
+        val fromDeviceId: String,
+        val reason: String
+    ) : SignalingMessage()
 }
+
+/**
+ * 连接健康度统计
+ */
+data class ConnectionHealthStats(
+    val isConnected: Boolean,
+    val uptimeMs: Long,
+    val heartbeatsSent: Int,
+    val heartbeatsReceived: Int,
+    val healthPercentage: Int,
+    val reconnectAttempts: Int
+)
