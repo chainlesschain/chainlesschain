@@ -158,13 +158,11 @@ declare global {
     };
   }
 
-  interface Navigator {
-    connection?: {
-      effectiveType?: string;
-      downlink?: number;
-      rtt?: number;
-      saveData?: boolean;
-    };
+  interface NavigatorConnection {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+    saveData?: boolean;
   }
 }
 
@@ -305,12 +303,13 @@ class PerformanceMonitor {
     }
 
     // 收集网络信息
-    if (navigator.connection) {
+    const navConnection = (navigator as any).connection as NavigatorConnection | undefined;
+    if (navConnection) {
       const network: NetworkMetric = {
-        effectiveType: navigator.connection.effectiveType,
-        downlink: navigator.connection.downlink,
-        rtt: navigator.connection.rtt,
-        saveData: navigator.connection.saveData,
+        effectiveType: navConnection.effectiveType,
+        downlink: navConnection.downlink,
+        rtt: navConnection.rtt,
+        saveData: navConnection.saveData,
       };
 
       this.currentMetrics.value.network = network;

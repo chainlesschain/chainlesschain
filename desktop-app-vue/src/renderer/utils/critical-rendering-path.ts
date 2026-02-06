@@ -357,8 +357,8 @@ export class FontOptimizationManager {
           if (rule.type === CSSRule.FONT_FACE_RULE) {
             const fontFaceRule = rule as CSSFontFaceRule;
             // 如果不存在则添加font-display
-            if (!fontFaceRule.style.fontDisplay) {
-              fontFaceRule.style.fontDisplay = this.options.fontDisplay;
+            if (!fontFaceRule.style.getPropertyValue('font-display')) {
+              fontFaceRule.style.setProperty('font-display', this.options.fontDisplay);
 
               if (this.options.debug) {
                 logger.info(

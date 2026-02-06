@@ -178,10 +178,7 @@ export const contentVisibilityDirective: ObjectDirective<ContentVisibilityElemen
     el.__contentVisibilityOptions__ = options;
 
     if (debug) {
-      logger.info('[ContentVisibility] Applied to:', el.tagName, {
-        height,
-        auto,
-      });
+      logger.info(`[ContentVisibility] Applied to: ${el.tagName}`, { height, auto });
     }
   },
 

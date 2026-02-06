@@ -781,7 +781,7 @@ class AdvancedAnalytics {
       }
     }
 
-    logger.info('[Analytics] Generated', String(this.recommendations.length), 'recommendations');
+    logger.info(`[Analytics] Generated ${this.recommendations.length} recommendations`);
   }
 
   /**

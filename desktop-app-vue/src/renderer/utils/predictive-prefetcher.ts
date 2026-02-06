@@ -25,11 +25,11 @@ interface PerformanceTrackerInterface {
   trackFileOperation: (operation: string, file: string, startTime: number) => number;
 }
 
-// 导入外部模块 (使用类型断言)
-import indexedDBCacheModule from './indexeddb-cache';
+// 导入外部模块
+import { fileCacheManager } from './indexeddb-cache';
 import performanceTrackerModule from './performance-tracker';
 
-const indexedDBCache = indexedDBCacheModule as unknown as IndexedDBCacheInterface;
+const indexedDBCache = fileCacheManager as unknown as IndexedDBCacheInterface;
 const performanceTracker = performanceTrackerModule as unknown as PerformanceTrackerInterface;
 
 // ==================== 类型定义 ====================
@@ -604,8 +604,9 @@ class PredictivePrefetcher {
       // 检查是否在缓存中
       const cached = await indexedDBCache.getFile(prediction.path);
       if (cached) {
+        const cachedData = typeof cached === 'object' && cached !== null ? cached : {};
         this.prefetchedFiles.set(prediction.path, {
-          ...cached,
+          ...(cachedData as Record<string, unknown>),
           prefetchedAt: Date.now(),
           prediction,
         } as PrefetchedFileData);

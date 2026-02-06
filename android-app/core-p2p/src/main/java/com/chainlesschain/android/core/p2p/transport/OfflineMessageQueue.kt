@@ -363,6 +363,15 @@ class OfflineMessageQueue @Inject constructor(
 }
 
 /**
+ * 消息优先级
+ */
+enum class MessagePriority {
+    HIGH,    // 高优先级：立即发送
+    NORMAL,  // 普通优先级：按顺序发送
+    LOW      // 低优先级：延迟发送
+}
+
+/**
  * 离线消息
  */
 @Serializable
@@ -372,7 +381,9 @@ data class OfflineMessage(
     val message: P2PMessage,
     val enqueuedAt: Long,
     val expiresAt: Long,
-    val retryCount: Int
+    val retryCount: Int,
+    val priority: MessagePriority = MessagePriority.NORMAL,
+    val nextRetryAt: Long = 0L
 )
 
 /**

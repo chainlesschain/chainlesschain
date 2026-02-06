@@ -124,16 +124,17 @@ interface ExtendedPerformance extends Performance {
   memory?: PerformanceMemory;
 }
 
-// 扩展 Navigator 接口以包含 connection 属性
+// Navigator connection 类型 (不扩展 Navigator 避免类型冲突)
 interface NetworkInformation {
-  effectiveType: string;
-  downlink: number;
-  rtt: number;
-  saveData: boolean;
+  effectiveType?: string;
+  downlink?: number;
+  rtt?: number;
+  saveData?: boolean;
 }
 
-interface ExtendedNavigator extends Navigator {
-  connection?: NetworkInformation;
+// 获取 navigator.connection 的辅助函数
+function getNavigatorConnection(): NetworkInformation | undefined {
+  return (navigator as any).connection;
 }
 
 // ==================== 自适应性能类 ====================
@@ -235,13 +236,13 @@ class AdaptivePerformance {
    * Get connection information
    */
   private getConnectionInfo(): ConnectionInfo {
-    const extendedNavigator = navigator as ExtendedNavigator;
-    if (extendedNavigator.connection) {
+    const connection = getNavigatorConnection();
+    if (connection) {
       return {
-        effectiveType: extendedNavigator.connection.effectiveType,
-        downlink: extendedNavigator.connection.downlink,
-        rtt: extendedNavigator.connection.rtt,
-        saveData: extendedNavigator.connection.saveData,
+        effectiveType: connection.effectiveType || 'unknown',
+        downlink: connection.downlink,
+        rtt: connection.rtt,
+        saveData: connection.saveData,
       };
     }
 
