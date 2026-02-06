@@ -130,14 +130,18 @@ class OfflineMessageQueue @Inject constructor(
     }
 
     /**
-     * 获取设备的所有待发送消息
+     * 获取设备的所有待发送消息（按优先级和入队时间排序）
      *
      * @param deviceId 设备 ID
      * @return 消息列表
      */
     suspend fun getMessages(deviceId: String): List<OfflineMessage> = mutex.withLock {
         val now = System.currentTimeMillis()
-        messageCache[deviceId]?.filter { it.expiresAt > now } ?: emptyList()
+        messageCache[deviceId]?.filter { it.expiresAt > now }
+            ?.sortedWith(
+                compareBy<OfflineMessage> { it.priority.ordinal }
+                    .thenBy { it.enqueuedAt }
+            ) ?: emptyList()
     }
 
     /**

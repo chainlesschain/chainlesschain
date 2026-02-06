@@ -474,7 +474,7 @@ class AdvancedAnalytics {
     // Keep only last 100 data points for each metric
     (Object.keys(this.performanceTrends) as (keyof PerformanceTrends)[]).forEach((key) => {
       if (this.performanceTrends[key].length > 100) {
-        this.performanceTrends[key] = this.performanceTrends[key].slice(-100) as typeof this.performanceTrends[typeof key];
+        (this.performanceTrends[key] as any[]).splice(0, this.performanceTrends[key].length - 100);
       }
     });
   }

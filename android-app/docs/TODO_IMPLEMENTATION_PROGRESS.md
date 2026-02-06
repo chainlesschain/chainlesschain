@@ -129,7 +129,14 @@ signalClient.sendIceCandidate(peerId, candidate)
 ## 🎯 下一步任务
 
 - [x] 修复 WebRTC 类型引用编译错误 ✅ (2026-02-06)
-- [ ] 任务 #2: 完善离线消息队列管理功能
+- [x] 任务 #2: 完善离线消息队列管理功能 ✅ (2026-02-06)
+      - 新增 `MessagePriority` 枚举（HIGH/NORMAL/LOW）
+      - 新增指数退避重试（1s, 2s, 5s, 10s, 30s）
+      - 新增 `getRetryableMessages()` 获取可重试消息
+      - 新增 `enqueueBatch()` 批量入队
+      - 新增 `markSentBatch()` 批量确认
+      - 优化消息排序（按优先级 + 入队时间）
+      - 增强统计信息（优先级分布、待重试数）
 - [ ] 任务 #3: 配置生产环境签名证书
 - [ ] 任务 #4: 实现社交功能 - 点赞/收藏/分享
 - [ ] 任务 #5: 实现 AI 文件智能摘要功能

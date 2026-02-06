@@ -3,7 +3,7 @@
  * 使用 Bootstrap 模块进行模块化初始化
  *
  * @version 2.0.0
- * @description �?3800+ 行优化到 ~800 �? */
+ * @description 从3800+ 行优化到 ~800 行 */
 
 // Load environment variables first (optional in production)
 try {
@@ -73,7 +73,7 @@ console.error = (...args) => {
 };
 
 /**
- * ChainlessChain 应用�?(优化�?
+ * ChainlessChain 应用类(优化版
  */
 class ChainlessChainApp {
   constructor() {
@@ -137,7 +137,7 @@ class ChainlessChainApp {
   }
 
   async onReady() {
-    logger.info("ChainlessChain Vue 启动�?..(优化�?");
+    logger.info("ChainlessChain Vue 启动中..(优化版");
 
     // 创建启动画面
     if (process.env.NODE_ENV !== "test") {
@@ -251,9 +251,9 @@ class ChainlessChainApp {
           },
         );
 
-        logger.info("[Main] �?ExternalDeviceFileManager 初始化完�?);
+        logger.info("[Main] ✓ ExternalDeviceFileManager 初始化完成);
       } catch (error) {
-        logger.error("[Main] ExternalDeviceFileManager 初始化失�?", error);
+        logger.error("[Main] ExternalDeviceFileManager 初始化失败", error);
       }
     }
 
@@ -277,7 +277,7 @@ class ChainlessChainApp {
   }
 
   /**
-   * �?bootstrap 实例应用�?this
+   * 从bootstrap 实例应用到this
    */
   applyInstances(instances) {
     // 核心模块
@@ -501,15 +501,15 @@ class ChainlessChainApp {
         this.registerMCPFallbackHandlers();
       }
     } catch (error) {
-      logger.error("[Main] MCP系统初始化失�?", error);
+      logger.error("[Main] MCP系统初始化失败", error);
       this.registerMCPFallbackHandlers();
     }
   }
 
   /**
-   * MCP 回退处理�?   */
+   * MCP 回退处理器   */
   registerMCPFallbackHandlers() {
-    logger.info("[Main] 注册MCP回退处理�?);
+    logger.info("[Main] 注册MCP回退处理器);
     const disabledResponse = {
       success: false,
       error: "MCP system is disabled",
@@ -636,7 +636,7 @@ class ChainlessChainApp {
       const DBSyncManager = require("./sync/db-sync-manager");
       this.syncManager = new DBSyncManager(this.database, this.mainWindow);
     } catch (error) {
-      logger.error("[Main] 数据库同步管理器初始化失�?", error);
+      logger.error("[Main] 数据库同步管理器初始化失败", error);
     }
   }
 
@@ -766,7 +766,7 @@ class ChainlessChainApp {
       alert.level === "critical"
         ? "⚠️ LLM 成本预算告警"
         : "💰 LLM 成本预算提醒";
-    const body = `${alert.period}预算已使�?${alert.percentage.toFixed(0)}%`;
+    const body = `${alert.period}预算已使用${alert.percentage.toFixed(0)}%`;
 
     if (Notification.isSupported()) {
       const notification = new Notification({
@@ -814,11 +814,11 @@ class ChainlessChainApp {
       return;
     }
     this.ukeyManager.on("device-inserted", () => {
-      logger.info("[Main] U-Key 设备已插�?);
+      logger.info("[Main] U-Key 设备已插入);
       this.mainWindow?.webContents.send("ukey:device-inserted");
     });
     this.ukeyManager.on("device-removed", () => {
-      logger.info("[Main] U-Key 设备已移�?);
+      logger.info("[Main] U-Key 设备已移除);
       this.mainWindow?.webContents.send("ukey:device-removed");
     });
   }
@@ -921,7 +921,7 @@ ipcMain.handle(
       });
 
       logger.info(
-        `[FileTree] 加载目录: ${dirPath || "/"}, 文件�? ${validNodes.length}`,
+        `[FileTree] 加载目录: ${dirPath || "/"}, 文件数 ${validNodes.length}`,
       );
 
       return {
