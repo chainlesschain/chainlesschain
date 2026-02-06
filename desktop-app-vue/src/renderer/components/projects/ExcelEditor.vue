@@ -5,10 +5,18 @@
       <div class="header-left">
         <FileExcelOutlined class="file-icon" />
         <span class="file-name">{{ file.file_name }}</span>
-        <a-tag v-if="hasChanges" color="orange" size="small">
+        <a-tag
+          v-if="hasChanges"
+          color="orange"
+          size="small"
+        >
           未保存
         </a-tag>
-        <a-tag v-if="saving" color="blue" size="small">
+        <a-tag
+          v-if="saving"
+          color="blue"
+          size="small"
+        >
           <LoadingOutlined />
           保存中...
         </a-tag>
@@ -36,13 +44,21 @@
         </a-tooltip>
 
         <a-tooltip title="下载Excel文件">
-          <a-button type="text" size="small" @click="handleDownload">
+          <a-button
+            type="text"
+            size="small"
+            @click="handleDownload"
+          >
             <DownloadOutlined />
           </a-button>
         </a-tooltip>
 
         <a-tooltip title="全屏">
-          <a-button type="text" size="small" @click="toggleFullscreen">
+          <a-button
+            type="text"
+            size="small"
+            @click="toggleFullscreen"
+          >
             <FullscreenOutlined v-if="!isFullscreen" />
             <FullscreenExitOutlined v-else />
           </a-button>
@@ -52,8 +68,14 @@
 
     <!-- Excel工具栏 -->
     <div class="excel-toolbar">
-      <a-tabs v-model:activeKey="activeTab" size="small">
-        <a-tab-pane key="home" tab="开始">
+      <a-tabs
+        v-model:active-key="activeTab"
+        size="small"
+      >
+        <a-tab-pane
+          key="home"
+          tab="开始"
+        >
           <div class="toolbar-group">
             <a-button-group size="small">
               <a-button @click="handleFormat('bold')">
@@ -75,11 +97,21 @@
               style="width: 80px"
               @change="handleFontSizeChange"
             >
-              <a-select-option :value="10">10</a-select-option>
-              <a-select-option :value="12">12</a-select-option>
-              <a-select-option :value="14">14</a-select-option>
-              <a-select-option :value="16">16</a-select-option>
-              <a-select-option :value="18">18</a-select-option>
+              <a-select-option :value="10">
+                10
+              </a-select-option>
+              <a-select-option :value="12">
+                12
+              </a-select-option>
+              <a-select-option :value="14">
+                14
+              </a-select-option>
+              <a-select-option :value="16">
+                16
+              </a-select-option>
+              <a-select-option :value="18">
+                18
+              </a-select-option>
             </a-select>
 
             <a-divider type="vertical" />
@@ -98,47 +130,83 @@
           </div>
         </a-tab-pane>
 
-        <a-tab-pane key="insert" tab="插入">
+        <a-tab-pane
+          key="insert"
+          tab="插入"
+        >
           <div class="toolbar-group">
-            <a-button size="small" @click="insertRow">
+            <a-button
+              size="small"
+              @click="insertRow"
+            >
               插入行
             </a-button>
-            <a-button size="small" @click="insertColumn">
+            <a-button
+              size="small"
+              @click="insertColumn"
+            >
               插入列
             </a-button>
-            <a-button size="small" @click="insertChart">
+            <a-button
+              size="small"
+              @click="insertChart"
+            >
               <BarChartOutlined />
               图表
             </a-button>
           </div>
         </a-tab-pane>
 
-        <a-tab-pane key="data" tab="数据">
+        <a-tab-pane
+          key="data"
+          tab="数据"
+        >
           <div class="toolbar-group">
-            <a-button size="small" @click="sortAscending">
+            <a-button
+              size="small"
+              @click="sortAscending"
+            >
               <SortAscendingOutlined />
               升序
             </a-button>
-            <a-button size="small" @click="sortDescending">
+            <a-button
+              size="small"
+              @click="sortDescending"
+            >
               <SortDescendingOutlined />
               降序
             </a-button>
-            <a-button size="small" @click="showFilter">
+            <a-button
+              size="small"
+              @click="showFilter"
+            >
               <FilterOutlined />
               筛选
             </a-button>
           </div>
         </a-tab-pane>
 
-        <a-tab-pane key="formula" tab="公式">
+        <a-tab-pane
+          key="formula"
+          tab="公式"
+        >
           <div class="toolbar-group">
-            <a-button size="small" @click="insertFormula('SUM')">
+            <a-button
+              size="small"
+              @click="insertFormula('SUM')"
+            >
               Σ SUM
             </a-button>
-            <a-button size="small" @click="insertFormula('AVERAGE')">
+            <a-button
+              size="small"
+              @click="insertFormula('AVERAGE')"
+            >
               AVERAGE
             </a-button>
-            <a-button size="small" @click="insertFormula('COUNT')">
+            <a-button
+              size="small"
+              @click="insertFormula('COUNT')"
+            >
               COUNT
             </a-button>
           </div>
@@ -147,8 +215,14 @@
     </div>
 
     <!-- Excel表格区域 -->
-    <div class="excel-content" ref="excelContainer">
-      <div id="spreadsheet-container" class="spreadsheet-container"></div>
+    <div
+      ref="excelContainer"
+      class="excel-content"
+    >
+      <div
+        id="spreadsheet-container"
+        class="spreadsheet-container"
+      />
     </div>
 
     <!-- 状态栏 -->
@@ -163,10 +237,17 @@
       </div>
 
       <div class="footer-right">
-        <span v-if="lastSaved" class="status-item">
+        <span
+          v-if="lastSaved"
+          class="status-item"
+        >
           上次保存: {{ lastSaved }}
         </span>
-        <a-button type="link" size="small" @click="showHelp">
+        <a-button
+          type="link"
+          size="small"
+          @click="showHelp"
+        >
           帮助
         </a-button>
       </div>
@@ -214,7 +295,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['change', 'save']);
+const emit = defineEmits(['change', 'save', 'update:file']);
 
 // 响应式状态
 const excelContainer = ref(null);
@@ -263,7 +344,7 @@ onUnmounted(() => {
 // 初始化jspreadsheet
 const initJspreadsheet = () => {
   const container = document.getElementById('spreadsheet-container');
-  if (!container) return;
+  if (!container) {return;}
 
   // 解析Excel数据或创建空表格
   const data = parseExcelData(props.file.content);
@@ -289,7 +370,7 @@ const initJspreadsheet = () => {
 // 初始化基本表格（降级方案）
 const initBasicTable = () => {
   const container = document.getElementById('spreadsheet-container');
-  if (!container) return;
+  if (!container) {return;}
 
   const data = parseExcelData(props.file.content);
   let html = '<table class="basic-excel-table"><thead><tr>';
@@ -377,7 +458,7 @@ const getSpreadsheetData = () => {
 
   // 降级方案：从DOM中提取数据
   const container = document.getElementById('spreadsheet-container');
-  if (!container) return [];
+  if (!container) {return [];}
 
   const rows = container.querySelectorAll('tbody tr');
   return Array.from(rows).map(row => {
@@ -443,7 +524,7 @@ const insertFormula = (formula) => {
 
 // 保存文件
 const handleSave = async () => {
-  if (!hasChanges.value || saving.value) return;
+  if (!hasChanges.value || saving.value) {return;}
 
   saving.value = true;
 
@@ -453,7 +534,8 @@ const handleSave = async () => {
 
     await window.electron.ipcRenderer.invoke('file-sync:save', props.file.id, content, props.projectId);
 
-    props.file.content = content;
+    // Emit update event instead of mutating prop directly
+    emit('update:file', { ...props.file, content });
     hasChanges.value = false;
     lastSaved.value = formatDistanceToNow(new Date(), {
       addSuffix: true,
