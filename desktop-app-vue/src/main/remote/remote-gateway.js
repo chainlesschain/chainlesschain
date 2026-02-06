@@ -221,9 +221,10 @@ class RemoteGateway extends EventEmitter {
     );
     this.commandRouter.registerHandler("device", this.handlers.device);
 
-    // TODO: 添加更多处理器
-    // - channel: 多渠道消息处理器
-    // - browser: 浏览器自动化处理器
+    // 未来扩展处理器（按需实现）:
+    // - ChannelHandler: 多渠道消息处理器（微信、Telegram等）
+    // - BrowserHandler: 浏览器自动化处理器（Playwright/Puppeteer）
+    // 当需要这些功能时，创建相应的Handler类并在此注册
 
     logger.info(
       `[RemoteGateway] 已注册 ${Object.keys(this.handlers).length} 个命令处理器`,
@@ -437,22 +438,25 @@ class RemoteGateway extends EventEmitter {
       if (this.handlers.device) {
         await this.handlers.device.disconnectDevice(
           { deviceDid: peerId },
-          { channel: 'local' }
+          { channel: "local" },
         );
       }
 
       // 3. 更新统计
-      this.stats.connectedDevices = Math.max(0, this.stats.connectedDevices - 1);
+      this.stats.connectedDevices = Math.max(
+        0,
+        this.stats.connectedDevices - 1,
+      );
 
       // 4. 触发事件
-      this.emit('device:disconnected', peerId);
+      this.emit("device:disconnected", peerId);
 
       logger.info(`[RemoteGateway] ✓ 设备已断开: ${peerId}`);
 
       return {
         success: true,
         peerId,
-        message: 'Device disconnected successfully',
+        message: "Device disconnected successfully",
       };
     } catch (error) {
       logger.error(`[RemoteGateway] 断开设备失败: ${peerId}`, error);

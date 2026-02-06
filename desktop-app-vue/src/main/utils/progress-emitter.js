@@ -11,30 +11,30 @@
  * v0.18.0: 新建文件，统一多媒体处理的进度通知
  */
 
-const { logger, createLogger } = require('./logger.js');
-const { EventEmitter } = require('events');
+const { logger, createLogger } = require("./logger.js");
+const { EventEmitter } = require("events");
 
 /**
  * 进度阶段枚举
  */
 const ProgressStage = {
-  PENDING: 'pending',           // 等待中
-  PREPARING: 'preparing',       // 准备中
-  PROCESSING: 'processing',     // 处理中
-  FINALIZING: 'finalizing',     // 收尾中
-  COMPLETED: 'completed',       // 已完成
-  FAILED: 'failed',             // 失败
-  CANCELLED: 'cancelled',       // 已取消
+  PENDING: "pending", // 等待中
+  PREPARING: "preparing", // 准备中
+  PROCESSING: "processing", // 处理中
+  FINALIZING: "finalizing", // 收尾中
+  COMPLETED: "completed", // 已完成
+  FAILED: "failed", // 失败
+  CANCELLED: "cancelled", // 已取消
 };
 
 /**
  * 默认配置
  */
 const DEFAULT_CONFIG = {
-  autoForwardToIPC: true,       // 自动转发到 IPC（Electron）
-  persistProgress: false,       // 持久化进度
-  throttleInterval: 100,        // 节流间隔（毫秒）
-  enableHierarchy: true,        // 启用层级进度
+  autoForwardToIPC: true, // 自动转发到 IPC（Electron）
+  persistProgress: false, // 持久化进度
+  throttleInterval: 100, // 节流间隔（毫秒）
+  enableHierarchy: true, // 启用层级进度
 };
 
 /**
@@ -55,7 +55,7 @@ class ProgressEmitter extends EventEmitter {
     // IPC 窗口引用（Electron）
     this.mainWindow = null;
 
-    logger.info('[ProgressEmitter] 初始化统一进度通知系统');
+    logger.info("[ProgressEmitter] 初始化统一进度通知系统");
   }
 
   /**
@@ -64,7 +64,7 @@ class ProgressEmitter extends EventEmitter {
    */
   setMainWindow(window) {
     this.mainWindow = window;
-    logger.info('[ProgressEmitter] IPC 转发已启用');
+    logger.info("[ProgressEmitter] IPC 转发已启用");
   }
 
   /**
@@ -75,11 +75,11 @@ class ProgressEmitter extends EventEmitter {
    */
   createTracker(taskId, options = {}) {
     const {
-      title = taskId,              // 任务标题
-      description = '',            // 任务描述
-      totalSteps = 100,            // 总步数（用于计算百分比）
-      parentTaskId = null,         // 父任务ID（层级进度）
-      metadata = {},               // 元数据
+      title = taskId, // 任务标题
+      description = "", // 任务描述
+      totalSteps = 100, // 总步数（用于计算百分比）
+      parentTaskId = null, // 父任务ID（层级进度）
+      metadata = {}, // 元数据
     } = options;
 
     // 初始化任务信息
@@ -94,7 +94,7 @@ class ProgressEmitter extends EventEmitter {
       startTime: Date.now(),
       endTime: null,
       duration: 0,
-      message: '',
+      message: "",
       metadata: metadata,
       parentTaskId: parentTaskId,
       childTasks: [],
@@ -126,11 +126,16 @@ class ProgressEmitter extends EventEmitter {
        * @param {string} message - 进度消息
        * @param {number} increment - 步进增量（默认1）
        */
-      step: (message = '', increment = 1) => {
+      step: (message = "", increment = 1) => {
         const task = this.tasks.get(taskId);
-        if (!task) {return;}
+        if (!task) {
+          return;
+        }
 
-        task.currentStep = Math.min(task.currentStep + increment, task.totalSteps);
+        task.currentStep = Math.min(
+          task.currentStep + increment,
+          task.totalSteps,
+        );
         task.percent = Math.round((task.currentStep / task.totalSteps) * 100);
         task.message = message;
 
@@ -147,9 +152,11 @@ class ProgressEmitter extends EventEmitter {
        * @param {number} percent - 百分比 (0-100)
        * @param {string} message - 进度消息
        */
-      setPercent: (percent, message = '') => {
+      setPercent: (percent, message = "") => {
         const task = this.tasks.get(taskId);
-        if (!task) {return;}
+        if (!task) {
+          return;
+        }
 
         task.percent = Math.min(Math.max(percent, 0), 100);
         task.currentStep = Math.round((task.percent / 100) * task.totalSteps);
@@ -166,9 +173,11 @@ class ProgressEmitter extends EventEmitter {
        * @param {string} stage - 阶段（使用 ProgressStage 枚举）
        * @param {string} message - 消息
        */
-      setStage: (stage, message = '') => {
+      setStage: (stage, message = "") => {
         const task = this.tasks.get(taskId);
-        if (!task) {return;}
+        if (!task) {
+          return;
+        }
 
         task.stage = stage;
         task.message = message;
@@ -185,13 +194,15 @@ class ProgressEmitter extends EventEmitter {
        */
       complete: (result = {}) => {
         const task = this.tasks.get(taskId);
-        if (!task) {return;}
+        if (!task) {
+          return;
+        }
 
         task.stage = ProgressStage.COMPLETED;
         task.percent = 100;
         task.endTime = Date.now();
         task.duration = task.endTime - task.startTime;
-        task.message = result.message || '任务完成';
+        task.message = result.message || "任务完成";
 
         this.emitProgress(taskId, {
           stage: ProgressStage.COMPLETED,
@@ -216,7 +227,9 @@ class ProgressEmitter extends EventEmitter {
        */
       error: (error) => {
         const task = this.tasks.get(taskId);
-        if (!task) {return;}
+        if (!task) {
+          return;
+        }
 
         const errorMessage = error instanceof Error ? error.message : error;
 
@@ -246,9 +259,11 @@ class ProgressEmitter extends EventEmitter {
        * 取消任务
        * @param {string} reason - 取消原因
        */
-      cancel: (reason = '用户取消') => {
+      cancel: (reason = "用户取消") => {
         const task = this.tasks.get(taskId);
-        if (!task) {return;}
+        if (!task) {
+          return;
+        }
 
         task.stage = ProgressStage.CANCELLED;
         task.endTime = Date.now();
@@ -284,7 +299,9 @@ class ProgressEmitter extends EventEmitter {
    */
   emitProgress(taskId, progress) {
     const task = this.tasks.get(taskId);
-    if (!task) {return;}
+    if (!task) {
+      return;
+    }
 
     // 更新任务信息
     Object.assign(task, progress);
@@ -321,16 +338,20 @@ class ProgressEmitter extends EventEmitter {
     };
 
     // 发送本地事件
-    this.emit('progress', eventData);
+    this.emit("progress", eventData);
     this.emit(`progress:${taskId}`, eventData);
 
     // IPC 转发（Electron）
-    if (this.config.autoForwardToIPC && this.mainWindow && this.mainWindow.webContents) {
+    if (
+      this.config.autoForwardToIPC &&
+      this.mainWindow &&
+      this.mainWindow.webContents
+    ) {
       try {
-        this.mainWindow.webContents.send('task-progress', eventData);
+        this.mainWindow.webContents.send("task-progress", eventData);
         this.mainWindow.webContents.send(`task-progress:${taskId}`, eventData);
       } catch (error) {
-        logger.warn('[ProgressEmitter] IPC 转发失败:', error.message);
+        logger.warn("[ProgressEmitter] IPC 转发失败:", error.message);
       }
     }
 
@@ -345,17 +366,25 @@ class ProgressEmitter extends EventEmitter {
    * @param {string} childTaskId - 子任务ID
    */
   updateParentProgress(childTaskId) {
-    if (!this.config.enableHierarchy) {return;}
+    if (!this.config.enableHierarchy) {
+      return;
+    }
 
     const parentTaskId = this.taskHierarchy.get(childTaskId);
-    if (!parentTaskId) {return;}
+    if (!parentTaskId) {
+      return;
+    }
 
     const parentTask = this.tasks.get(parentTaskId);
-    if (!parentTask) {return;}
+    if (!parentTask) {
+      return;
+    }
 
     // 聚合所有子任务的进度
     const childIds = parentTask.childTasks;
-    if (childIds.length === 0) {return;}
+    if (childIds.length === 0) {
+      return;
+    }
 
     let totalPercent = 0;
     let completedCount = 0;
@@ -363,7 +392,9 @@ class ProgressEmitter extends EventEmitter {
 
     for (const childId of childIds) {
       const childTask = this.tasks.get(childId);
-      if (!childTask) {continue;}
+      if (!childTask) {
+        continue;
+      }
 
       totalPercent += childTask.percent;
 
@@ -379,7 +410,9 @@ class ProgressEmitter extends EventEmitter {
 
     // 更新父任务
     parentTask.percent = avgPercent;
-    parentTask.currentStep = Math.round((avgPercent / 100) * parentTask.totalSteps);
+    parentTask.currentStep = Math.round(
+      (avgPercent / 100) * parentTask.totalSteps,
+    );
 
     // 如果所有子任务完成，父任务也完成
     if (completedCount === childIds.length) {
@@ -399,10 +432,58 @@ class ProgressEmitter extends EventEmitter {
    * @param {string} taskId - 任务ID
    * @param {Object} eventData - 事件数据
    */
-  persistTaskProgress(taskId, eventData) {
-    // TODO: 实现进度持久化（如保存到数据库或文件）
-    // 这里仅记录日志作为占位
-    logger.info(`[ProgressEmitter] 持久化进度: ${taskId} - ${eventData.percent}%`);
+  async persistTaskProgress(taskId, eventData) {
+    if (!this.config.persistProgress) {
+      return;
+    }
+
+    try {
+      // 尝试使用数据库持久化
+      const { getDatabase } = require("../database");
+      const db = getDatabase();
+
+      if (db) {
+        // 确保表存在
+        await db.run(`
+          CREATE TABLE IF NOT EXISTS task_progress (
+            task_id TEXT PRIMARY KEY,
+            task_name TEXT,
+            stage TEXT,
+            percent INTEGER,
+            message TEXT,
+            details TEXT,
+            started_at INTEGER,
+            updated_at INTEGER
+          )
+        `);
+
+        const taskInfo = this.tasks.get(taskId);
+        const now = Date.now();
+
+        await db.run(
+          `INSERT OR REPLACE INTO task_progress
+           (task_id, task_name, stage, percent, message, details, started_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            taskId,
+            taskInfo?.taskName || "Unknown",
+            eventData.stage || ProgressStage.PROCESSING,
+            eventData.percent || 0,
+            eventData.message || "",
+            JSON.stringify(eventData.details || {}),
+            taskInfo?.startTime || now,
+            now,
+          ],
+        );
+
+        logger.debug(
+          `[ProgressEmitter] 进度已持久化: ${taskId} - ${eventData.percent}%`,
+        );
+      }
+    } catch (error) {
+      // 持久化失败不影响主流程
+      logger.warn(`[ProgressEmitter] 进度持久化失败: ${error.message}`);
+    }
   }
 
   /**
@@ -443,7 +524,7 @@ class ProgressEmitter extends EventEmitter {
     this.tasks.clear();
     this.taskHierarchy.clear();
     this.lastEmitTime.clear();
-    logger.info('[ProgressEmitter] 所有任务已清空');
+    logger.info("[ProgressEmitter] 所有任务已清空");
   }
 }
 

@@ -96,7 +96,9 @@ function registerAllIPC(dependencies) {
     // 清除所有注册状态以便重新注册
     try {
       ipcGuard.resetAll();
-      logger.info("[IPC Registry] ✓ Registration state cleared, proceeding with fresh registration...");
+      logger.info(
+        "[IPC Registry] ✓ Registration state cleared, proceeding with fresh registration...",
+      );
     } catch (e) {
       logger.error("[IPC Registry] ❌ Failed to clear registration state:", e);
       // 继续执行，不要返回
@@ -245,7 +247,10 @@ function registerAllIPC(dependencies) {
       const {
         registerPlanModeIPC,
       } = require("../ai-engine/plan-mode/plan-mode-ipc");
-      registerPlanModeIPC({ hookSystem, functionCaller: null }); // TODO: Initialize functionCaller
+      registerPlanModeIPC({
+        hookSystem,
+        functionCaller: aiEngineManager?.functionCaller || null,
+      });
       logger.info("[IPC Registry] ✓ Plan Mode IPC registered (14 handlers)");
     } catch (planModeError) {
       logger.warn(
@@ -612,7 +617,9 @@ function registerAllIPC(dependencies) {
       logger.info("[IPC Registry] Registering Signaling Server IPC...");
       const { registerSignalingIPC } = require("../p2p/signaling-ipc");
       registerSignalingIPC({ p2pManager });
-      logger.info("[IPC Registry] ✓ Signaling Server IPC registered (11 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ Signaling Server IPC registered (11 handlers)",
+      );
     }
 
     // 外部设备文件管理 (函数模式 - 中等模块，15 handlers)
