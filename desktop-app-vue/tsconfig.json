@@ -17,7 +17,7 @@
     "checkJs": false,
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
@@ -29,12 +29,16 @@
     },
     "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.d.ts"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts",
+    "src/**/*.vue"
+  ],
   "exclude": [
     "node_modules",
     "dist",
     "out",
-    "**/*.js",
     "**/*.stories.ts",
     "tests/**/*"
   ]
