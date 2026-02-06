@@ -239,18 +239,21 @@ const handleSearch = () => {
           const msgTime = msg.timestamp;
 
           switch (filterTime.value) {
-            case 'today':
+            case 'today': {
               const todayStart = new Date().setHours(0, 0, 0, 0);
               if (msgTime < todayStart) {return false;}
               break;
-            case 'week':
+            }
+            case 'week': {
               const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
               if (msgTime < weekAgo) {return false;}
               break;
-            case 'month':
+            }
+            case 'month': {
               const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
               if (msgTime < monthAgo) {return false;}
               break;
+            }
           }
         }
 

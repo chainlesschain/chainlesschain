@@ -1113,7 +1113,7 @@ pandoc document.md -o document.docx
       case 'doc':
         return await this.exportToDocx(sourcePath, outputPath);
 
-      case 'html':
+      case 'html': {
         const markdownContent = await fs.readFile(sourcePath, 'utf-8');
         const htmlContent = this.markdownToHTML(markdownContent);
         const fullHTML = this.generateHTML('business_report', {
@@ -1124,8 +1124,9 @@ pandoc document.md -o document.docx
         }).replace(/<body>[\s\S]*<\/body>/, `<body>${htmlContent}</body>`);
         await fs.writeFile(outputPath, fullHTML, 'utf-8');
         return { success: true, path: outputPath };
+      }
 
-      case 'txt':
+      case 'txt': {
         const txtContent = await fs.readFile(sourcePath, 'utf-8');
         // 移除Markdown标记
         const plainText = txtContent
@@ -1135,6 +1136,7 @@ pandoc document.md -o document.docx
           .replace(/\[(.+?)\]\(.+?\)/g, '$1');
         await fs.writeFile(outputPath, plainText, 'utf-8');
         return { success: true, path: outputPath };
+      }
 
       default:
         throw new Error(`不支持的格式: ${format}`);
@@ -1182,7 +1184,7 @@ pandoc document.md -o document.docx
           result = await this.createMarkdownFromDescription(description, projectPath, llmManager);
           break;
 
-        case 'export_pdf':
+        case 'export_pdf': {
           // 如果没有Markdown文件，先创建一个
           const mdFilesForPDF = await this.findMarkdownFiles(projectPath);
           if (mdFilesForPDF.length === 0 && description) {
@@ -1191,8 +1193,9 @@ pandoc document.md -o document.docx
           }
           result = await this.exportDocumentToPDF(projectPath, outputFiles);
           break;
+        }
 
-        case 'export_docx':
+        case 'export_docx': {
           // 如果没有Markdown文件，先创建一个
           const mdFilesForDocx = await this.findMarkdownFiles(projectPath);
           if (mdFilesForDocx.length === 0 && description) {
@@ -1201,8 +1204,9 @@ pandoc document.md -o document.docx
           }
           result = await this.exportDocumentToDocx(projectPath, outputFiles);
           break;
+        }
 
-        case 'export_html':
+        case 'export_html': {
           // 如果没有Markdown文件，先创建一个
           const mdFilesForHTML = await this.findMarkdownFiles(projectPath);
           if (mdFilesForHTML.length === 0 && description) {
@@ -1211,6 +1215,7 @@ pandoc document.md -o document.docx
           }
           result = await this.exportDocumentToHTML(projectPath, outputFiles);
           break;
+        }
 
         default:
           result = await this.createDocumentFromDescription(description, projectPath, llmManager);

@@ -438,7 +438,7 @@ const handleMenuClick = async ({ key }) => {
         }
       }
       break;
-    case 'import':
+    case 'import': {
       // Handle import via file input
       const input = document.createElement('input');
       input.type = 'file';
@@ -459,6 +459,7 @@ const handleMenuClick = async ({ key }) => {
       };
       input.click();
       break;
+    }
     case 'delete':
       Modal.confirm({
         title: 'Delete Workflow',

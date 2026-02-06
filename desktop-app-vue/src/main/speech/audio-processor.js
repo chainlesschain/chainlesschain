@@ -576,10 +576,11 @@ class AudioProcessor extends EventEmitter {
           case 'convert':
             result = await this.convertToWhisperFormat(audioPaths[i]);
             break;
-          case 'normalize':
+          case 'normalize': {
             const outputPath = path.join(this.config.tempDir, `normalized_${uuidv4()}.wav`);
             result = await this.normalizeVolume(audioPaths[i], outputPath);
             break;
+          }
           case 'metadata':
             result = await this.getMetadata(audioPaths[i]);
             break;
