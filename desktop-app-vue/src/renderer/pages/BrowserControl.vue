@@ -175,6 +175,13 @@
       class="mt-4"
     />
 
+    <!-- Phase 5: 诊断工具面板 -->
+    <diagnostics-panel
+      v-if="browserStatus.isRunning && activeTargetId"
+      :targetId="activeTargetId"
+      class="mt-4"
+    />
+
     <!-- 截图预览模态框 -->
     <a-modal
       v-model:open="screenshotModal.visible"
@@ -205,6 +212,7 @@ import {
 } from '@ant-design/icons-vue';
 import SnapshotPanel from '../components/browser/SnapshotPanel.vue';
 import AIControlPanel from '../components/browser/AIControlPanel.vue';
+import DiagnosticsPanel from '../components/browser/DiagnosticsPanel.vue';
 
 // 状态管理
 const browserStatus = reactive({

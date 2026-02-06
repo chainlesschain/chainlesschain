@@ -86,11 +86,21 @@ function registerAllIPC(dependencies) {
 
   // 检查是否已经注册过（防止重复注册）
   if (ipcGuard.isModuleRegistered("ipc-registry")) {
-    logger.info(
-      "[IPC Registry] ⚠️  IPC Registry already initialized, skipping registration...",
+    logger.warn(
+      "[IPC Registry] ⚠️  IPC Registry already marked as initialized!",
     );
-    ipcGuard.printStats();
-    return registeredModules;
+    logger.warn(
+      "[IPC Registry] This may indicate a stale registration state. Clearing and re-registering...",
+    );
+
+    // 清除所有注册状态以便重新注册
+    try {
+      ipcGuard.resetAll();
+      logger.info("[IPC Registry] ✓ Registration state cleared, proceeding with fresh registration...");
+    } catch (e) {
+      logger.error("[IPC Registry] ❌ Failed to clear registration state:", e);
+      // 继续执行，不要返回
+    }
   }
 
   try {
