@@ -738,6 +738,10 @@ class WebRTCPeerConnection @Inject constructor(
         peerConnectionFactory = null
         eglBase = null
         pendingIceCandidates.clear()
+        turnFallbackAttempted = false
+
+        // 恢复正常的 ICE 策略
+        iceServerConfig.useNormalPolicy()
     }
 }
 

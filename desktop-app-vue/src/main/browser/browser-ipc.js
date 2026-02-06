@@ -511,7 +511,126 @@ function registerBrowserIPC() {
     return { success: true };
   }));
 
-  logger.info('[Browser IPC] All Browser IPC handlers registered (Phase 1 + Phase 2 + Phase 3)');
+  // ==================== Phase 4: Extended Actions ====================
+
+  /**
+   * Execute scroll action
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - Scroll options
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:action:scroll', withErrorHandler(async (event, targetId, options = {}) => {
+    const { ScrollAction } = require('./actions');
+    const engine = getBrowserEngine();
+    const scrollAction = new ScrollAction(engine);
+    return scrollAction.execute(targetId, options);
+  }));
+
+  /**
+   * Execute keyboard action
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - Keyboard options
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:action:keyboard', withErrorHandler(async (event, targetId, options = {}) => {
+    const { KeyboardAction } = require('./actions');
+    const engine = getBrowserEngine();
+    const keyboardAction = new KeyboardAction(engine);
+    return keyboardAction.execute(targetId, options);
+  }));
+
+  /**
+   * Execute file upload action
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - Upload options
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:action:upload', withErrorHandler(async (event, targetId, options = {}) => {
+    const { UploadAction } = require('./actions');
+    const engine = getBrowserEngine();
+    const uploadAction = new UploadAction(engine);
+    return uploadAction.execute(targetId, options);
+  }));
+
+  /**
+   * Execute multi-tab action
+   * @param {string} targetId - Primary tab ID
+   * @param {Object} options - Multi-tab options
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:action:multiTab', withErrorHandler(async (event, targetId, options = {}) => {
+    const { MultiTabAction } = require('./actions');
+    const engine = getBrowserEngine();
+    const multiTabAction = new MultiTabAction(engine);
+    return multiTabAction.execute(targetId, options);
+  }));
+
+  // ==================== Phase 4: Advanced Scanning ====================
+
+  /**
+   * Advanced page scan (Shadow DOM + iframes)
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - Scan options
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:scan:advanced', withErrorHandler(async (event, targetId, options = {}) => {
+    const { ShadowDOMScanner, IframeScanner } = require('./advanced');
+    const engine = getBrowserEngine();
+
+    const result = {
+      shadowDOM: null,
+      iframes: null
+    };
+
+    if (options.scanShadowDOM !== false) {
+      const shadowScanner = new ShadowDOMScanner(engine);
+      result.shadowDOM = await shadowScanner.scan(targetId, options.shadowOptions);
+    }
+
+    if (options.scanIframes !== false) {
+      const iframeScanner = new IframeScanner(engine);
+      result.iframes = await iframeScanner.scan(targetId, options.iframeOptions);
+    }
+
+    return result;
+  }));
+
+  // ==================== Phase 5: OCR ====================
+
+  /**
+   * OCR recognize text
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - OCR options
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:ocr:recognize', withErrorHandler(async (event, targetId, options = {}) => {
+    const { OCREngine } = require('./diagnostics');
+    const engine = getBrowserEngine();
+    const page = engine.getPage(targetId);
+    const ocr = new OCREngine(options);
+    return ocr.recognizeFromPage(page, options);
+  }));
+
+  // ==================== Phase 5: Screenshot Comparison ====================
+
+  /**
+   * Compare screenshots
+   * @param {Buffer|string} baseline - Baseline screenshot
+   * @param {Buffer|string} current - Current screenshot
+   * @param {Object} options - Compare options
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:screenshot:compare', withErrorHandler(async (event, baseline, current, options = {}) => {
+    const { ScreenshotDiff } = require('./diagnostics');
+    const diff = new ScreenshotDiff(options);
+    return diff.compare(
+      Buffer.isBuffer(baseline) ? baseline : Buffer.from(baseline, 'base64'),
+      Buffer.isBuffer(current) ? current : Buffer.from(current, 'base64'),
+      options
+    );
+  }));
+
+  logger.info('[Browser IPC] All Browser IPC handlers registered (Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5)');
 }
 
 /**
@@ -526,6 +645,17 @@ async function cleanupBrowser() {
       logger.error('[Browser] Cleanup error', { error: error.message });
     }
   }
+
+  // Cleanup workflow and recording systems
+  try {
+    const { cleanupWorkflowSystem } = require('./workflow');
+    cleanupWorkflowSystem();
+  } catch (e) { /* Workflow module may not be loaded */ }
+
+  try {
+    const { cleanupRecordingSystem } = require('./recording');
+    cleanupRecordingSystem();
+  } catch (e) { /* Recording module may not be loaded */ }
 }
 
 module.exports = {

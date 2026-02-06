@@ -135,7 +135,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { init } from '../../utils/echartsConfig';
+import { init, graphic } from '../../utils/echartsConfig';
 import dayjs from 'dayjs';
 import { CloseOutlined } from '@ant-design/icons-vue';
 
@@ -319,7 +319,7 @@ const updateChart = () => {
           color: '#5470c6',
         },
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(84, 112, 198, 0.3)' },
             { offset: 1, color: 'rgba(84, 112, 198, 0.05)' },
           ]),
