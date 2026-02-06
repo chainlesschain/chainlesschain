@@ -25,8 +25,14 @@ object ProjectRoute {
     const val CREATE = "project/create"
     const val FILE = "project/{projectId}/file/{fileId}"
 
+    // 任务相关路由
+    const val TASK_LIST = "project/tasks"
+    const val TASK_CREATE = "project/tasks/create"
+    const val TASK_DETAIL = "project/tasks/{taskId}"
+
     fun detailRoute(projectId: String) = "project/detail/$projectId"
     fun fileRoute(projectId: String, fileId: String) = "project/$projectId/file/$fileId"
+    fun taskDetailRoute(taskId: String) = "project/tasks/$taskId"
 }
 
 /**
@@ -55,6 +61,27 @@ fun NavController.navigateToCreateProject(navOptions: NavOptions? = null) {
  */
 fun NavController.navigateToProjectFile(projectId: String, fileId: String, navOptions: NavOptions? = null) {
     navigate(ProjectRoute.fileRoute(projectId, fileId), navOptions)
+}
+
+/**
+ * 导航到任务列表
+ */
+fun NavController.navigateToTaskList(navOptions: NavOptions? = null) {
+    navigate(ProjectRoute.TASK_LIST, navOptions)
+}
+
+/**
+ * 导航到创建任务
+ */
+fun NavController.navigateToCreateTask(navOptions: NavOptions? = null) {
+    navigate(ProjectRoute.TASK_CREATE, navOptions)
+}
+
+/**
+ * 导航到任务详情
+ */
+fun NavController.navigateToTaskDetail(taskId: String, navOptions: NavOptions? = null) {
+    navigate(ProjectRoute.taskDetailRoute(taskId), navOptions)
 }
 
 /**

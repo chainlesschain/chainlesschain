@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.dao.TaskDao
 import com.chainlesschain.android.feature.project.repository.ProjectChatRepository
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
+import com.chainlesschain.android.feature.project.repository.TaskRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -41,5 +42,17 @@ object ProjectModule {
         projectDao: ProjectDao
     ): ProjectChatRepository {
         return ProjectChatRepository(projectChatMessageDao, projectDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTaskDao(database: ChainlessChainDatabase): TaskDao {
+        return database.taskDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideTaskRepository(taskDao: TaskDao): TaskRepository {
+        return TaskRepository(taskDao)
     }
 }
