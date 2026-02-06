@@ -319,11 +319,7 @@ class PCStatusHandler extends EventEmitter {
         usagePercent: memoryUsagePercent
       },
       disk: diskUsage,
-      network: {
-        // TODO: 实现网络流量监控
-        bytesReceived: 0,
-        bytesSent: 0
-      },
+      network: this.getNetworkStats(),
       timestamp: Date.now()
     };
   }

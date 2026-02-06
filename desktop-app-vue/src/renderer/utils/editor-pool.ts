@@ -515,19 +515,19 @@ export function createMilkdownEditorFactory(): EditorFactory {
       throw new Error(`Container not found: ${containerId}`);
     }
 
-    const editor = await (Editor as unknown as {
-      make(): {
-        config(fn: (ctx: { set(key: string, value: unknown): void }) => void): unknown;
-        use(plugin: unknown): unknown;
-        create(): Promise<MilkdownEditorInstance>;
-      };
-    }).make()
+    interface EditorChain {
+      config(fn: (ctx: { set(key: string, value: unknown): void }) => void): EditorChain;
+      use(plugin: unknown): EditorChain;
+      create(): Promise<MilkdownEditorInstance>;
+    }
+    const editorBuilder = (Editor as unknown as { make(): EditorChain }).make();
+    const editor = await editorBuilder
       .config((ctx: { set(key: string, value: unknown): void }) => {
         ctx.set('rootElement', container);
         ctx.set('defaultValue', options.value || '');
       })
-      .use(nord)
-      .use(commonmark)
+      .use(nord as unknown)
+      .use(commonmark as unknown)
       .create();
 
     return editor;
