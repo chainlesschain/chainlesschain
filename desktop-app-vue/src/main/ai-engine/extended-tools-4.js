@@ -554,18 +554,20 @@ class ExtendedTools4 {
 
           if (type === 'memory') {
             switch (action) {
-              case 'get':
+              case 'get': {
                 const cached = memoryCache.get(key);
                 if (cached && cached.expiry > Date.now()) {
                   return { success: true, value: cached.value, exists: true };
                 }
                 memoryCache.delete(key);
                 return { success: true, value: null, exists: false };
+              }
 
-              case 'set':
+              case 'set': {
                 const expiry = ttl ? Date.now() + (ttl * 1000) : Infinity;
                 memoryCache.set(key, { value, expiry });
                 return { success: true };
+              }
 
               case 'delete':
                 memoryCache.delete(key);
@@ -575,9 +577,10 @@ class ExtendedTools4 {
                 memoryCache.clear();
                 return { success: true };
 
-              case 'has':
+              case 'has': {
                 const exists = memoryCache.has(key);
                 return { success: true, exists };
+              }
 
               default:
                 throw new Error(`未知操作: ${action}`);
