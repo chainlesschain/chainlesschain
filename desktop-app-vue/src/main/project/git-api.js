@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 
 /**
  * Git API 封装
@@ -16,7 +16,7 @@ const { logger, createLogger } = require('../utils/logger.js');
 class GitAPI {
   constructor() {
     // 后端服务地址
-    this.baseURL = process.env.PROJECT_SERVICE_URL || 'http://localhost:9090';
+    this.baseURL = process.env.PROJECT_SERVICE_URL || "http://localhost:9090";
     this.timeout = 30000; // 30 秒超时
   }
 
@@ -28,22 +28,75 @@ class GitAPI {
    * @private
    */
   async _call(endpoint, data = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+
     try {
-      // TODO: 实现实际的 HTTP 请求调用后端服务
-      // 目前返回失败状态，让调用方降级到本地 Git
+      // 使用 fetch 调用后端服务
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // 后端不可用，返回失败让调用方降级到本地 Git
+        return {
+          success: false,
+          status: response.status,
+          message: `HTTP ${response.status}: ${response.statusText}`,
+          data: null,
+        };
+      }
+
+      const result = await response.json();
+
       return {
-        success: false,
-        status: 0,
-        message: '后端服务未配置，使用本地 Git',
-        data: null
+        success: true,
+        status: response.status,
+        message: "OK",
+        data: result,
       };
     } catch (error) {
+      // 网络错误或超时，降级到本地 Git
+      if (error.name === "AbortError") {
+        logger.warn(`[GitAPI] Request to ${endpoint} timed out`);
+        return {
+          success: false,
+          status: 0,
+          message: "请求超时，使用本地 Git",
+          data: null,
+        };
+      }
+
+      // 连接失败（后端未运行）
+      if (
+        error.code === "ECONNREFUSED" ||
+        error.cause?.code === "ECONNREFUSED"
+      ) {
+        logger.debug(`[GitAPI] Backend not available, will use local Git`);
+        return {
+          success: false,
+          status: 0,
+          message: "后端服务未启动，使用本地 Git",
+          data: null,
+        };
+      }
+
       logger.error(`[GitAPI] Error calling ${endpoint}:`, error);
       return {
         success: false,
         status: 0,
         message: error.message,
-        data: null
+        data: null,
       };
     }
   }
@@ -55,7 +108,7 @@ class GitAPI {
    * @returns {Promise<Object>} 操作结果
    */
   async init(repoPath, remoteUrl = null) {
-    return this._call('/api/git/init', { repoPath, remoteUrl });
+    return this._call("/api/git/init", { repoPath, remoteUrl });
   }
 
   /**
@@ -64,7 +117,7 @@ class GitAPI {
    * @returns {Promise<Object>} 状态信息
    */
   async status(repoPath) {
-    return this._call('/api/git/status', { repoPath });
+    return this._call("/api/git/status", { repoPath });
   }
 
   /**
@@ -76,7 +129,12 @@ class GitAPI {
    * @returns {Promise<Object>} 提交结果
    */
   async commit(repoPath, message, author, autoGenerate = false) {
-    return this._call('/api/git/commit', { repoPath, message, author, autoGenerate });
+    return this._call("/api/git/commit", {
+      repoPath,
+      message,
+      author,
+      autoGenerate,
+    });
   }
 
   /**
@@ -86,8 +144,8 @@ class GitAPI {
    * @param {string} branch - 分支名称
    * @returns {Promise<Object>} 推送结果
    */
-  async push(repoPath, remote = 'origin', branch = 'main') {
-    return this._call('/api/git/push', { repoPath, remote, branch });
+  async push(repoPath, remote = "origin", branch = "main") {
+    return this._call("/api/git/push", { repoPath, remote, branch });
   }
 
   /**
@@ -97,8 +155,8 @@ class GitAPI {
    * @param {string} branch - 分支名称
    * @returns {Promise<Object>} 拉取结果
    */
-  async pull(repoPath, remote = 'origin', branch = 'main') {
-    return this._call('/api/git/pull', { repoPath, remote, branch });
+  async pull(repoPath, remote = "origin", branch = "main") {
+    return this._call("/api/git/pull", { repoPath, remote, branch });
   }
 
   /**
@@ -108,7 +166,7 @@ class GitAPI {
    * @returns {Promise<Object>} 提交日志
    */
   async log(repoPath, limit = 10) {
-    return this._call('/api/git/log', { repoPath, limit });
+    return this._call("/api/git/log", { repoPath, limit });
   }
 
   /**
@@ -119,7 +177,7 @@ class GitAPI {
    * @returns {Promise<Object>} 差异信息
    */
   async diff(repoPath, ref1, ref2) {
-    return this._call('/api/git/diff', { repoPath, ref1, ref2 });
+    return this._call("/api/git/diff", { repoPath, ref1, ref2 });
   }
 
   /**
@@ -128,7 +186,7 @@ class GitAPI {
    * @returns {Promise<Object>} 分支列表
    */
   async branches(repoPath) {
-    return this._call('/api/git/branches', { repoPath });
+    return this._call("/api/git/branches", { repoPath });
   }
 
   /**
@@ -139,7 +197,11 @@ class GitAPI {
    * @returns {Promise<Object>} 创建结果
    */
   async createBranch(repoPath, branchName, fromBranch = null) {
-    return this._call('/api/git/create-branch', { repoPath, branchName, fromBranch });
+    return this._call("/api/git/create-branch", {
+      repoPath,
+      branchName,
+      fromBranch,
+    });
   }
 
   /**
@@ -149,7 +211,7 @@ class GitAPI {
    * @returns {Promise<Object>} 切换结果
    */
   async checkoutBranch(repoPath, branchName) {
-    return this._call('/api/git/checkout', { repoPath, branchName });
+    return this._call("/api/git/checkout", { repoPath, branchName });
   }
 
   /**
@@ -160,7 +222,11 @@ class GitAPI {
    * @returns {Promise<Object>} 合并结果
    */
   async merge(repoPath, sourceBranch, targetBranch) {
-    return this._call('/api/git/merge', { repoPath, sourceBranch, targetBranch });
+    return this._call("/api/git/merge", {
+      repoPath,
+      sourceBranch,
+      targetBranch,
+    });
   }
 
   /**
@@ -172,7 +238,12 @@ class GitAPI {
    * @returns {Promise<Object>} 解决结果
    */
   async resolveConflicts(repoPath, filePath, useOurs, strategy) {
-    return this._call('/api/git/resolve-conflicts', { repoPath, filePath, useOurs, strategy });
+    return this._call("/api/git/resolve-conflicts", {
+      repoPath,
+      filePath,
+      useOurs,
+      strategy,
+    });
   }
 
   /**
@@ -181,7 +252,7 @@ class GitAPI {
    * @returns {Promise<Object>} 生成的提交消息
    */
   async generateCommitMessage(repoPath) {
-    return this._call('/api/git/generate-commit-message', { repoPath });
+    return this._call("/api/git/generate-commit-message", { repoPath });
   }
 }
 

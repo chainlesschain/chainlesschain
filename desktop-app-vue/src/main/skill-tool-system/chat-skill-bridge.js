@@ -9,9 +9,9 @@
  * 4. 支持多轮对话中的工具调用
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const ToolRunner = require('./tool-runner');
+const { logger, createLogger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const ToolRunner = require("./tool-runner");
 
 class ChatSkillBridge extends EventEmitter {
   constructor(skillManager, toolManager, skillExecutor, aiScheduler) {
@@ -26,6 +26,20 @@ class ChatSkillBridge extends EventEmitter {
 
     // 工具调用模式检测规则
     this.toolCallPatterns = this.buildToolCallPatterns();
+
+    // 统计信息
+    this._stats = {
+      totalInterceptions: 0,
+      toolCallsDetected: 0,
+      toolCallsExecuted: 0,
+      successfulExecutions: 0,
+      failedExecutions: 0,
+      skillMatchHits: 0,
+      avgExecutionTime: 0,
+      totalExecutionTime: 0,
+      lastUsed: null,
+      toolUsageCount: {},
+    };
   }
 
   /**
@@ -36,38 +50,38 @@ class ChatSkillBridge extends EventEmitter {
    * @returns {Object} 处理结果
    */
   async interceptAndProcess(userMessage, aiResponse, context = {}) {
-    logger.info('[ChatSkillBridge] 开始拦截处理');
-    logger.info('[ChatSkillBridge] 用户消息:', userMessage);
-    logger.info('[ChatSkillBridge] AI响应长度:', aiResponse.length);
+    logger.info("[ChatSkillBridge] 开始拦截处理");
+    logger.info("[ChatSkillBridge] 用户消息:", userMessage);
+    logger.info("[ChatSkillBridge] AI响应长度:", aiResponse.length);
 
     try {
       // 1. 检测是否包含工具调用意图
       const toolCallIntent = this.detectToolCallIntent(userMessage, aiResponse);
 
       if (!toolCallIntent.detected) {
-        logger.info('[ChatSkillBridge] 未检测到工具调用意图');
+        logger.info("[ChatSkillBridge] 未检测到工具调用意图");
         return {
           shouldIntercept: false,
           originalResponse: aiResponse,
-          toolCalls: []
+          toolCalls: [],
         };
       }
 
-      logger.info('[ChatSkillBridge] 检测到工具调用意图:', toolCallIntent);
+      logger.info("[ChatSkillBridge] 检测到工具调用意图:", toolCallIntent);
 
       // 2. 提取工具调用参数
       const toolCalls = this.extractToolCalls(aiResponse, toolCallIntent);
 
       if (toolCalls.length === 0) {
-        logger.info('[ChatSkillBridge] 未能提取工具调用');
+        logger.info("[ChatSkillBridge] 未能提取工具调用");
         return {
           shouldIntercept: false,
           originalResponse: aiResponse,
-          toolCalls: []
+          toolCalls: [],
         };
       }
 
-      logger.info('[ChatSkillBridge] 提取到', toolCalls.length, '个工具调用');
+      logger.info("[ChatSkillBridge] 提取到", toolCalls.length, "个工具调用");
 
       // 3. 执行工具调用
       const executionResults = await this.executeToolCalls(toolCalls, context);
@@ -76,7 +90,7 @@ class ChatSkillBridge extends EventEmitter {
       const enhancedResponse = this.buildEnhancedResponse(
         aiResponse,
         toolCalls,
-        executionResults
+        executionResults,
       );
 
       return {
@@ -85,15 +99,14 @@ class ChatSkillBridge extends EventEmitter {
         enhancedResponse: enhancedResponse.text,
         toolCalls,
         executionResults,
-        summary: enhancedResponse.summary
+        summary: enhancedResponse.summary,
       };
-
     } catch (error) {
-      logger.error('[ChatSkillBridge] 处理失败:', error);
+      logger.error("[ChatSkillBridge] 处理失败:", error);
       return {
         shouldIntercept: false,
         originalResponse: aiResponse,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -106,7 +119,7 @@ class ChatSkillBridge extends EventEmitter {
       detected: false,
       confidence: 0,
       patterns: [],
-      tools: []
+      tools: [],
     };
 
     // 检测1：用户消息中的动作关键词
@@ -114,7 +127,7 @@ class ChatSkillBridge extends EventEmitter {
     if (userIntentScore > 0.7) {
       intent.detected = true;
       intent.confidence = Math.max(intent.confidence, userIntentScore);
-      intent.patterns.push('user_action_keywords');
+      intent.patterns.push("user_action_keywords");
     }
 
     // 检测2：AI响应中的JSON操作块
@@ -122,7 +135,7 @@ class ChatSkillBridge extends EventEmitter {
     if (hasJSONOps) {
       intent.detected = true;
       intent.confidence = Math.max(intent.confidence, 0.95);
-      intent.patterns.push('json_operations');
+      intent.patterns.push("json_operations");
     }
 
     // 检测3：AI响应中的工具名称提及
@@ -130,7 +143,7 @@ class ChatSkillBridge extends EventEmitter {
     if (mentionedTools.length > 0) {
       intent.detected = true;
       intent.confidence = Math.max(intent.confidence, 0.8);
-      intent.patterns.push('tool_mentions');
+      intent.patterns.push("tool_mentions");
       intent.tools = mentionedTools;
     }
 
@@ -139,7 +152,7 @@ class ChatSkillBridge extends EventEmitter {
     if (hasFileOps) {
       intent.detected = true;
       intent.confidence = Math.max(intent.confidence, 0.85);
-      intent.patterns.push('file_operation_description');
+      intent.patterns.push("file_operation_description");
     }
 
     return intent;
@@ -150,21 +163,21 @@ class ChatSkillBridge extends EventEmitter {
    */
   scoreUserIntent(message) {
     const actionKeywords = [
-      { words: ['创建', '新建', '生成', 'create', 'generate'], weight: 0.9 },
-      { words: ['写入', '保存', 'write', 'save'], weight: 0.85 },
-      { words: ['读取', '查看', 'read', 'view'], weight: 0.8 },
-      { words: ['修改', '更新', 'edit', 'update'], weight: 0.85 },
-      { words: ['删除', 'delete', 'remove'], weight: 0.9 },
-      { words: ['搜索', '查找', 'search', 'find'], weight: 0.75 },
-      { words: ['分析', 'analyze'], weight: 0.7 },
-      { words: ['文件', 'file'], weight: 0.6 }
+      { words: ["创建", "新建", "生成", "create", "generate"], weight: 0.9 },
+      { words: ["写入", "保存", "write", "save"], weight: 0.85 },
+      { words: ["读取", "查看", "read", "view"], weight: 0.8 },
+      { words: ["修改", "更新", "edit", "update"], weight: 0.85 },
+      { words: ["删除", "delete", "remove"], weight: 0.9 },
+      { words: ["搜索", "查找", "search", "find"], weight: 0.75 },
+      { words: ["分析", "analyze"], weight: 0.7 },
+      { words: ["文件", "file"], weight: 0.6 },
     ];
 
     const messageLower = message.toLowerCase();
     let maxScore = 0;
 
     actionKeywords.forEach(({ words, weight }) => {
-      const matched = words.some(word => messageLower.includes(word));
+      const matched = words.some((word) => messageLower.includes(word));
       if (matched) {
         maxScore = Math.max(maxScore, weight);
       }
@@ -191,11 +204,11 @@ class ChatSkillBridge extends EventEmitter {
 
       // 检查是否包含操作字段
       if (Array.isArray(parsed)) {
-        return parsed.some(op => op.type && op.path);
+        return parsed.some((op) => op.type && op.path);
       }
 
       if (parsed.operations && Array.isArray(parsed.operations)) {
-        return parsed.operations.some(op => op.type && op.path);
+        return parsed.operations.some((op) => op.type && op.path);
       }
 
       return false;
@@ -209,17 +222,28 @@ class ChatSkillBridge extends EventEmitter {
    */
   detectToolMentions(text) {
     const builtinToolNames = [
-      'file_reader', 'file_writer', 'file_deleter', 'file_searcher',
-      'directory_creator', 'text_processor', 'json_processor', 'yaml_processor',
-      'code_executor', 'shell_executor', 'git_operator', 'network_requester'
+      "file_reader",
+      "file_writer",
+      "file_deleter",
+      "file_searcher",
+      "directory_creator",
+      "text_processor",
+      "json_processor",
+      "yaml_processor",
+      "code_executor",
+      "shell_executor",
+      "git_operator",
+      "network_requester",
     ];
 
     const mentioned = [];
     const textLower = text.toLowerCase();
 
-    builtinToolNames.forEach(toolName => {
-      if (textLower.includes(toolName.replace(/_/g, ' ')) ||
-          textLower.includes(toolName)) {
+    builtinToolNames.forEach((toolName) => {
+      if (
+        textLower.includes(toolName.replace(/_/g, " ")) ||
+        textLower.includes(toolName)
+      ) {
         mentioned.push(toolName);
       }
     });
@@ -232,14 +256,23 @@ class ChatSkillBridge extends EventEmitter {
    */
   detectFileOperationDescription(text) {
     const fileOpPhrases = [
-      '创建文件', '写入文件', '保存到文件',
-      '创建一个', '会创建', '将创建',
-      'create a file', 'write to', 'save to',
-      'create the file', 'creating file'
+      "创建文件",
+      "写入文件",
+      "保存到文件",
+      "创建一个",
+      "会创建",
+      "将创建",
+      "create a file",
+      "write to",
+      "save to",
+      "create the file",
+      "creating file",
     ];
 
     const textLower = text.toLowerCase();
-    return fileOpPhrases.some(phrase => textLower.includes(phrase.toLowerCase()));
+    return fileOpPhrases.some((phrase) =>
+      textLower.includes(phrase.toLowerCase()),
+    );
   }
 
   /**
@@ -249,19 +282,22 @@ class ChatSkillBridge extends EventEmitter {
     const toolCalls = [];
 
     // 方法1：从JSON块提取
-    if (intent.patterns.includes('json_operations')) {
+    if (intent.patterns.includes("json_operations")) {
       const jsonCalls = this.extractFromJSON(aiResponse);
       toolCalls.push(...jsonCalls);
     }
 
     // 方法2：从工具提及中推断
-    if (intent.patterns.includes('tool_mentions')) {
-      const mentionCalls = this.extractFromToolMentions(aiResponse, intent.tools);
+    if (intent.patterns.includes("tool_mentions")) {
+      const mentionCalls = this.extractFromToolMentions(
+        aiResponse,
+        intent.tools,
+      );
       toolCalls.push(...mentionCalls);
     }
 
     // 方法3：从文件操作描述中推断
-    if (intent.patterns.includes('file_operation_description')) {
+    if (intent.patterns.includes("file_operation_description")) {
       const descCalls = this.extractFromFileDescription(aiResponse);
       toolCalls.push(...descCalls);
     }
@@ -290,7 +326,7 @@ class ChatSkillBridge extends EventEmitter {
           operations = parsed.operations;
         }
 
-        operations.forEach(op => {
+        operations.forEach((op) => {
           const toolCall = this.mapOperationToToolCall(op);
           if (toolCall) {
             calls.push(toolCall);
@@ -298,7 +334,7 @@ class ChatSkillBridge extends EventEmitter {
         });
       }
     } catch (e) {
-      logger.error('[ChatSkillBridge] JSON提取失败:', e);
+      logger.error("[ChatSkillBridge] JSON提取失败:", e);
     }
 
     return calls;
@@ -309,35 +345,40 @@ class ChatSkillBridge extends EventEmitter {
    */
   mapOperationToToolCall(operation) {
     const typeMap = {
-      'CREATE': 'file_writer',
-      'WRITE': 'file_writer',
-      'READ': 'file_reader',
-      'UPDATE': 'file_writer',
-      'EDIT': 'file_writer',
-      'DELETE': 'file_deleter',
-      'REMOVE': 'file_deleter',
-      'SEARCH': 'file_searcher',
-      'FIND': 'file_searcher'
+      CREATE: "file_writer",
+      WRITE: "file_writer",
+      READ: "file_reader",
+      UPDATE: "file_writer",
+      EDIT: "file_writer",
+      DELETE: "file_deleter",
+      REMOVE: "file_deleter",
+      SEARCH: "file_searcher",
+      FIND: "file_searcher",
     };
 
-    const opType = (operation.type || '').toUpperCase();
+    const opType = (operation.type || "").toUpperCase();
     const toolName = typeMap[opType];
 
     if (!toolName) {
-      logger.warn('[ChatSkillBridge] 未知操作类型:', opType);
+      logger.warn("[ChatSkillBridge] 未知操作类型:", opType);
       return null;
     }
 
     // 验证必需参数
     if (!operation.path) {
-      logger.error('[ChatSkillBridge] 操作缺少path参数:', operation);
+      logger.error("[ChatSkillBridge] 操作缺少path参数:", operation);
       return null;
     }
 
     // 对于写入操作，验证content参数
-    if ((opType === 'CREATE' || opType === 'WRITE' || opType === 'UPDATE' || opType === 'EDIT') &&
-        operation.content === undefined) {
-      logger.error('[ChatSkillBridge] 写入操作缺少content参数:', operation);
+    if (
+      (opType === "CREATE" ||
+        opType === "WRITE" ||
+        opType === "UPDATE" ||
+        opType === "EDIT") &&
+      operation.content === undefined
+    ) {
+      logger.error("[ChatSkillBridge] 写入操作缺少content参数:", operation);
       return null;
     }
 
@@ -348,10 +389,10 @@ class ChatSkillBridge extends EventEmitter {
         content: operation.content,
         language: operation.language,
         reason: operation.reason,
-        encoding: 'utf-8'
+        encoding: "utf-8",
       },
-      source: 'json_block',
-      originalOperation: operation
+      source: "json_block",
+      originalOperation: operation,
     };
   }
 
@@ -382,7 +423,7 @@ class ChatSkillBridge extends EventEmitter {
     for (const call of toolCalls) {
       try {
         logger.info(`[ChatSkillBridge] 执行工具: ${call.toolName}`);
-        logger.info('[ChatSkillBridge] 参数:', call.parameters);
+        logger.info("[ChatSkillBridge] 参数:", call.parameters);
 
         // 获取工具
         const tool = await this.toolManager.getToolByName(call.toolName);
@@ -390,7 +431,7 @@ class ChatSkillBridge extends EventEmitter {
           results.push({
             toolCall: call,
             success: false,
-            error: `工具不存在: ${call.toolName}`
+            error: `工具不存在: ${call.toolName}`,
           });
           continue;
         }
@@ -399,29 +440,28 @@ class ChatSkillBridge extends EventEmitter {
         const result = await this.toolRunner.executeTool(
           call.toolName,
           call.parameters,
-          context
+          context,
         );
 
         results.push({
           toolCall: call,
           success: result.success,
           result: result.result,
-          error: result.error
+          error: result.error,
         });
 
         // 触发事件
-        this.emit('tool-executed', {
+        this.emit("tool-executed", {
           tool: call.toolName,
           success: result.success,
-          result
+          result,
         });
-
       } catch (error) {
         logger.error(`[ChatSkillBridge] 工具执行失败:`, error);
         results.push({
           toolCall: call,
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -433,7 +473,7 @@ class ChatSkillBridge extends EventEmitter {
    * 构建增强响应
    */
   buildEnhancedResponse(originalResponse, toolCalls, executionResults) {
-    const successCount = executionResults.filter(r => r.success).length;
+    const successCount = executionResults.filter((r) => r.success).length;
     const failureCount = executionResults.length - successCount;
 
     // 构建执行摘要
@@ -441,31 +481,31 @@ class ChatSkillBridge extends EventEmitter {
       totalCalls: toolCalls.length,
       successCount,
       failureCount,
-      tools: toolCalls.map(c => c.toolName)
+      tools: toolCalls.map((c) => c.toolName),
     };
 
     // 构建详细结果文本
-    let resultText = '\n\n---\n**工具执行结果：**\n\n';
+    let resultText = "\n\n---\n**工具执行结果：**\n\n";
 
     executionResults.forEach((result, index) => {
       const call = result.toolCall;
-      const status = result.success ? '✓ 成功' : '✗ 失败';
+      const status = result.success ? "✓ 成功" : "✗ 失败";
 
       resultText += `${index + 1}. **${call.toolName}** - ${status}\n`;
-      resultText += `   - 路径: \`${call.parameters.filePath || call.parameters.path || '未知'}\`\n`;
+      resultText += `   - 路径: \`${call.parameters.filePath || call.parameters.path || "未知"}\`\n`;
 
       if (result.success) {
-        if (call.toolName === 'file_reader' && result.result) {
+        if (call.toolName === "file_reader" && result.result) {
           const preview = result.result.substring(0, 100);
-          resultText += `   - 内容预览: ${preview}${result.result.length > 100 ? '...' : ''}\n`;
-        } else if (call.toolName === 'file_writer') {
+          resultText += `   - 内容预览: ${preview}${result.result.length > 100 ? "..." : ""}\n`;
+        } else if (call.toolName === "file_writer") {
           resultText += `   - 已写入 ${call.parameters.content?.length || 0} 字节\n`;
         }
       } else {
         resultText += `   - 错误: ${result.error}\n`;
       }
 
-      resultText += '\n';
+      resultText += "\n";
     });
 
     // 组合响应
@@ -473,7 +513,7 @@ class ChatSkillBridge extends EventEmitter {
 
     return {
       text: enhancedText,
-      summary
+      summary,
     };
   }
 
@@ -483,21 +523,21 @@ class ChatSkillBridge extends EventEmitter {
   buildToolCallPatterns() {
     return {
       file_operations: {
-        keywords: ['文件', 'file', '创建', 'create', '写入', 'write'],
-        tools: ['file_reader', 'file_writer', 'file_deleter']
+        keywords: ["文件", "file", "创建", "create", "写入", "write"],
+        tools: ["file_reader", "file_writer", "file_deleter"],
       },
       code_execution: {
-        keywords: ['运行', 'run', '执行', 'execute', '代码', 'code'],
-        tools: ['code_executor', 'shell_executor']
+        keywords: ["运行", "run", "执行", "execute", "代码", "code"],
+        tools: ["code_executor", "shell_executor"],
       },
       data_processing: {
-        keywords: ['解析', 'parse', '处理', 'process', 'json', 'yaml'],
-        tools: ['json_processor', 'yaml_processor', 'text_processor']
+        keywords: ["解析", "parse", "处理", "process", "json", "yaml"],
+        tools: ["json_processor", "yaml_processor", "text_processor"],
       },
       git_operations: {
-        keywords: ['git', '提交', 'commit', '推送', 'push', '拉取', 'pull'],
-        tools: ['git_operator']
-      }
+        keywords: ["git", "提交", "commit", "推送", "push", "拉取", "pull"],
+        tools: ["git_operator"],
+      },
     };
   }
 
@@ -505,22 +545,22 @@ class ChatSkillBridge extends EventEmitter {
    * 智能模式：使用AI调度器选择技能
    */
   async intelligentMode(userMessage, context) {
-    logger.info('[ChatSkillBridge] 使用智能模式');
+    logger.info("[ChatSkillBridge] 使用智能模式");
 
     try {
       const result = await this.aiScheduler.smartSchedule(userMessage, context);
       return {
         success: true,
-        mode: 'intelligent',
+        mode: "intelligent",
         skill: result.skill,
-        result: result.result
+        result: result.result,
       };
     } catch (error) {
-      logger.error('[ChatSkillBridge] 智能模式失败:', error);
+      logger.error("[ChatSkillBridge] 智能模式失败:", error);
       return {
         success: false,
-        mode: 'intelligent',
-        error: error.message
+        mode: "intelligent",
+        error: error.message,
       };
     }
   }
@@ -529,9 +569,67 @@ class ChatSkillBridge extends EventEmitter {
    * 获取统计信息
    */
   getStats() {
+    const stats = this._stats;
     return {
-      // TODO: 实现统计
+      totalInterceptions: stats.totalInterceptions,
+      toolCallsDetected: stats.toolCallsDetected,
+      toolCallsExecuted: stats.toolCallsExecuted,
+      successfulExecutions: stats.successfulExecutions,
+      failedExecutions: stats.failedExecutions,
+      skillMatchHits: stats.skillMatchHits,
+      successRate:
+        stats.toolCallsExecuted > 0
+          ? (
+              (stats.successfulExecutions / stats.toolCallsExecuted) *
+              100
+            ).toFixed(1) + "%"
+          : "N/A",
+      avgExecutionTime:
+        stats.toolCallsExecuted > 0
+          ? Math.round(stats.totalExecutionTime / stats.toolCallsExecuted) +
+            "ms"
+          : "N/A",
+      lastUsed: stats.lastUsed,
+      topTools: Object.entries(stats.toolUsageCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, count]) => ({ name, count })),
     };
+  }
+
+  /**
+   * 更新统计信息
+   * @private
+   */
+  _updateStats(type, data = {}) {
+    this._stats.lastUsed = new Date().toISOString();
+
+    switch (type) {
+      case "interception":
+        this._stats.totalInterceptions++;
+        break;
+      case "detection":
+        this._stats.toolCallsDetected += data.count || 1;
+        break;
+      case "execution":
+        this._stats.toolCallsExecuted++;
+        if (data.success) {
+          this._stats.successfulExecutions++;
+        } else {
+          this._stats.failedExecutions++;
+        }
+        if (data.duration) {
+          this._stats.totalExecutionTime += data.duration;
+        }
+        if (data.toolName) {
+          this._stats.toolUsageCount[data.toolName] =
+            (this._stats.toolUsageCount[data.toolName] || 0) + 1;
+        }
+        break;
+      case "skillMatch":
+        this._stats.skillMatchHits++;
+        break;
+    }
   }
 }
 
