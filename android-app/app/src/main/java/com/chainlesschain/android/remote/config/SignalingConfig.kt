@@ -1,68 +1,60 @@
-package com.chainlesschain.android.remote.config
+﻿package com.chainlesschain.android.remote.config
 
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * 信令服务器配置
- *
- * 管理 WebRTC 信令服务器的连接参数
- */
 @Singleton
-class SignalingConfig @Inject constructor() {
+class SignalingConfig @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     companion object {
-        /**
-         * 信令服务器 URL
-         *
-         * 优先级：
-         * 1. 环境变量 SIGNALING_SERVER_URL
-         * 2. BuildConfig.SIGNALING_URL（如果配置）
-         * 3. 默认值（本地开发环境）
-         */
-        const val DEFAULT_SIGNALING_URL = "ws://192.168.3.59:9001" // 真实设备访问PC局域网IP
-
-        /**
-         * 生产环境信令服务器（配合 desktop-app-vue 的信令服务器）
-         *
-         * 使用 Cloudflare Tunnel 或 ngrok 可以暴露本地信令服务器：
-         * - Cloudflare: cloudflared tunnel --url http://localhost:9001
-         * - ngrok: ngrok http 9001
-         */
+        const val DEFAULT_SIGNALING_URL = "ws://192.168.3.59:9001"
         const val PRODUCTION_SIGNALING_URL = "wss://your-signaling-server.com"
 
-        /**
-         * 连接超时（毫秒）
-         */
         const val CONNECT_TIMEOUT_MS = 10000L
-
-        /**
-         * 重连延迟（毫秒）
-         */
         const val RECONNECT_DELAY_MS = 3000L
-
-        /**
-         * 最大重连次数
-         */
         const val MAX_RECONNECT_ATTEMPTS = 5
-
-        /**
-         * WebSocket 心跳间隔（秒）
-         */
         const val PING_INTERVAL_SECONDS = 20L
+
+        private const val PREFS_NAME = "signaling_prefs"
+        private const val KEY_CUSTOM_URL = "custom_signaling_url"
+        private const val ENV_SIGNALING_URL = "SIGNALING_SERVER_URL"
     }
 
-    /**
-     * 获取当前环境的信令服务器 URL
-     */
+    private val prefs by lazy {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
     fun getSignalingUrl(): String {
-        // TODO: 从 SharedPreferences 或配置文件读取用户自定义 URL
-        return System.getenv("SIGNALING_SERVER_URL") ?: DEFAULT_SIGNALING_URL
+        val envValue = System.getenv(ENV_SIGNALING_URL)?.trim().orEmpty()
+        if (envValue.isNotBlank()) {
+            return envValue
+        }
+
+        val storedValue = prefs.getString(KEY_CUSTOM_URL, null)?.trim().orEmpty()
+        if (storedValue.isNotBlank()) {
+            return storedValue
+        }
+
+        return DEFAULT_SIGNALING_URL
     }
 
-    /**
-     * 判断是否使用生产环境
-     */
+    fun setCustomSignalingUrl(url: String?) {
+        val value = url?.trim().orEmpty()
+        if (value.isBlank()) {
+            prefs.edit().remove(KEY_CUSTOM_URL).apply()
+        } else {
+            prefs.edit().putString(KEY_CUSTOM_URL, value).apply()
+        }
+    }
+
+    fun clearCustomSignalingUrl() {
+        prefs.edit().remove(KEY_CUSTOM_URL).apply()
+    }
+
     fun isProduction(): Boolean {
         return getSignalingUrl().startsWith("wss://")
     }
