@@ -762,30 +762,29 @@ function registerAllIPC(dependencies) {
 
     // 项目导出分享 (函数模式 - 大模块，17 handlers)
     // 🔥 始终注册，handlers 内部会处理 database/llmManager 为 null 的情况
-      logger.info("[IPC Registry] Registering Project Export/Share IPC...");
-      const {
-        registerProjectExportIPC,
-      } = require("../project/project-export-ipc");
+    logger.info("[IPC Registry] Registering Project Export/Share IPC...");
+    const {
+      registerProjectExportIPC,
+    } = require("../project/project-export-ipc");
 
-      // 获取必要的依赖函数
-      const { getDatabaseConnection, saveDatabase } = require("../database");
-      const { getProjectConfig } = require("../project/project-config");
-      const { copyDirectory } = require("../utils/file-utils");
+    // 获取必要的依赖函数
+    const { getDatabaseConnection, saveDatabase } = require("../database");
+    const { getProjectConfig } = require("../project/project-config");
+    const { copyDirectory } = require("../utils/file-utils");
 
-      registerProjectExportIPC({
-        database,
-        llmManager,
-        mainWindow,
-        getDatabaseConnection,
-        saveDatabase,
-        getProjectConfig,
-        copyDirectory,
-        convertSlidesToOutline: app.convertSlidesToOutline?.bind(app),
-      });
-      logger.info(
-        "[IPC Registry] ✓ Project Export/Share IPC registered (17 handlers)",
-      );
-    }
+    registerProjectExportIPC({
+      database: database || null,
+      llmManager: llmManager || null,
+      mainWindow: mainWindow || null,
+      getDatabaseConnection,
+      saveDatabase,
+      getProjectConfig,
+      copyDirectory,
+      convertSlidesToOutline: app.convertSlidesToOutline?.bind(app),
+    });
+    logger.info(
+      "[IPC Registry] ✓ Project Export/Share IPC registered (17 handlers)",
+    );
 
     // 项目RAG检索 (函数模式 - 中等模块，10 handlers)
     logger.info("[IPC Registry] Registering Project RAG IPC...");

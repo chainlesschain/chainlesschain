@@ -601,7 +601,7 @@ class BrowserEngine extends EventEmitter {
           result = { selected: options.value };
           break;
 
-        case 'drag':
+        case 'drag': {
           if (!options.target) {
             throw new Error('Target is required for drag action');
           }
@@ -613,6 +613,7 @@ class BrowserEngine extends EventEmitter {
           await locator.dragTo(targetLocator);
           result = { dragged: true, target: options.target };
           break;
+        }
 
         case 'hover':
           await locator.hover();

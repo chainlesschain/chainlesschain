@@ -54,7 +54,8 @@ class ProjectToolsHandler {
           };
 
           // 创建基础Express服务器
-          const serverJs = `const express = require('express');
+          {
+            const serverJs = `const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -68,8 +69,9 @@ app.listen(PORT, () => {
   logger.info(\`Server running on port \${PORT}\`);
 });
 `;
-          await fs.writeFile(path.join(projectPath, 'server.js'), serverJs, 'utf-8');
-          filesCreated.push('server.js');
+            await fs.writeFile(path.join(projectPath, 'server.js'), serverJs, 'utf-8');
+            filesCreated.push('server.js');
+          }
           break;
 
         case 'koa':
@@ -99,10 +101,12 @@ app.listen(PORT, () => {
           };
 
           // 创建基础index.js
-          const indexJs = `logger.info('Hello from ${projectName}!');
+          {
+            const indexJs = `logger.info('Hello from ${projectName}!');
 `;
-          await fs.writeFile(path.join(projectPath, 'index.js'), indexJs, 'utf-8');
-          filesCreated.push('index.js');
+            await fs.writeFile(path.join(projectPath, 'index.js'), indexJs, 'utf-8');
+            filesCreated.push('index.js');
+          }
       }
 
       // 写入package.json
@@ -211,7 +215,7 @@ ${packageManager} start
 
       // 根据项目类型创建不同的结构
       switch (projectType) {
-        case 'flask':
+        case 'flask': {
           await fs.mkdir(path.join(projectPath, 'app'), { recursive: true });
 
           const appPy = `from flask import Flask
@@ -228,6 +232,7 @@ if __name__ == '__main__':
           await fs.writeFile(path.join(projectPath, 'app.py'), appPy, 'utf-8');
           filesCreated.push('app.py');
           break;
+        }
 
         case 'ml':
           await fs.mkdir(path.join(projectPath, 'data', 'raw'), { recursive: true });
@@ -241,11 +246,13 @@ if __name__ == '__main__':
         default: // package or script
           await fs.mkdir(path.join(projectPath, projectName), { recursive: true });
 
-          const initPy = `"""${projectName} package."""
+          {
+            const initPy = `"""${projectName} package."""
 __version__ = '0.1.0'
 `;
-          await fs.writeFile(path.join(projectPath, projectName, '__init__.py'), initPy, 'utf-8');
-          filesCreated.push(`${projectName}/__init__.py`);
+            await fs.writeFile(path.join(projectPath, projectName, '__init__.py'), initPy, 'utf-8');
+            filesCreated.push(`${projectName}/__init__.py`);
+          }
       }
 
       // 创建requirements.txt
