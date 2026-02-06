@@ -5,15 +5,248 @@
  * @module cowork-store
  * @version 1.0.0
  * @since 2026-01-27
+ * v0.30.0: 迁移到 TypeScript
  */
 
 import { logger, createLogger } from '@/utils/logger';
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia';
 
 const coworkLogger = createLogger('cowork-store');
 
-export const useCoworkStore = defineStore("cowork", {
-  state: () => ({
+// ==================== 类型定义 ====================
+
+/**
+ * 团队状态类型
+ */
+export type TeamStatus = 'active' | 'paused' | 'completed' | 'failed';
+
+/**
+ * 任务状态类型
+ */
+export type TaskStatus = 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+
+/**
+ * 排序顺序
+ */
+export type SortOrder = 'asc' | 'desc';
+
+/**
+ * 团队配置
+ */
+export interface TeamConfig {
+  maxAgents?: number;
+  timeout?: number;
+  [key: string]: any;
+}
+
+/**
+ * 团队
+ */
+export interface Team {
+  id: string;
+  name: string;
+  description?: string;
+  status: TeamStatus;
+  config?: TeamConfig;
+  createdAt?: number;
+  updatedAt?: number;
+  [key: string]: any;
+}
+
+/**
+ * 任务
+ */
+export interface Task {
+  id: string;
+  name: string;
+  description?: string;
+  status: TaskStatus;
+  teamId?: string;
+  progress?: number;
+  progressMessage?: string;
+  result?: any;
+  completedAt?: number;
+  createdAt?: number;
+  [key: string]: any;
+}
+
+/**
+ * 技能
+ */
+export interface Skill {
+  name: string;
+  type?: string;
+  description?: string;
+  [key: string]: any;
+}
+
+/**
+ * 技能执行历史记录
+ */
+export interface SkillExecutionRecord {
+  task: Task;
+  result: any;
+  skill: string;
+  timestamp: number;
+}
+
+/**
+ * 代理
+ */
+export interface Agent {
+  id: string;
+  name?: string;
+  type?: string;
+  status?: string;
+  [key: string]: any;
+}
+
+/**
+ * 代理信息
+ */
+export interface AgentInfo {
+  name?: string;
+  type?: string;
+  capabilities?: string[];
+  [key: string]: any;
+}
+
+/**
+ * 全局统计
+ */
+export interface GlobalStats {
+  totalTeams: number;
+  activeTeams: number;
+  totalAgents: number;
+  totalTasks: number;
+  runningTasks: number;
+  completedTasks: number;
+  failedTasks: number;
+  totalSkills: number;
+  successRate: number;
+  averageExecutionTime: number;
+}
+
+/**
+ * 团队筛选条件
+ */
+export interface TeamFilters {
+  searchQuery: string;
+  status: TeamStatus | null;
+  sortBy: string;
+  sortOrder: SortOrder;
+}
+
+/**
+ * 任务筛选条件
+ */
+export interface TaskFilters {
+  searchQuery: string;
+  status: TaskStatus | null;
+  teamId: string | null;
+  sortBy: string;
+  sortOrder: SortOrder;
+}
+
+/**
+ * 分页信息
+ */
+export interface Pagination {
+  offset: number;
+  limit: number;
+  total: number;
+}
+
+/**
+ * 加载状态
+ */
+export interface LoadingState {
+  teams: boolean;
+  teamDetail: boolean;
+  tasks: boolean;
+  taskDetail: boolean;
+  skills: boolean;
+  stats: boolean;
+  agents: boolean;
+}
+
+/**
+ * 事件监听器记录
+ */
+export interface EventListenerRecord {
+  event: string;
+  listener: (...args: any[]) => void;
+}
+
+/**
+ * IPC 响应结果
+ */
+export interface IPCResult<T = any> {
+  success: boolean;
+  team?: T;
+  teams?: T[];
+  status?: T;
+  members?: T[];
+  task?: T;
+  tasks?: T[];
+  skills?: T[];
+  stats?: T;
+  result?: any;
+  skill?: string;
+  error?: string;
+  message?: string;
+}
+
+/**
+ * Cowork Store 状态
+ */
+export interface CoworkState {
+  // 团队管理
+  teams: Team[];
+  currentTeam: Team | null;
+  selectedTeamIds: string[];
+
+  // 任务管理
+  tasks: Task[];
+  currentTask: Task | null;
+  selectedTaskIds: string[];
+
+  // 技能管理
+  skills: Skill[];
+  currentSkill: Skill | null;
+  skillExecutionHistory: SkillExecutionRecord[];
+
+  // 代理管理
+  agents: Agent[];
+  currentTeamMembers: Agent[];
+
+  // 统计信息
+  globalStats: GlobalStats;
+  teamStats: Record<string, any>;
+  skillStats: Record<string, any>;
+
+  // 筛选和排序
+  teamFilters: TeamFilters;
+  taskFilters: TaskFilters;
+
+  // 分页
+  teamPagination: Pagination;
+  taskPagination: Pagination;
+
+  // 加载状态
+  loading: LoadingState;
+
+  // 错误状态
+  error: string | null;
+
+  // 事件监听器
+  eventListeners: EventListenerRecord[];
+}
+
+// ==================== Store ====================
+
+export const useCoworkStore = defineStore('cowork', {
+  state: (): CoworkState => ({
     // ==========================================
     // 团队管理
     // ==========================================
@@ -93,19 +326,19 @@ export const useCoworkStore = defineStore("cowork", {
 
     // 团队筛选条件
     teamFilters: {
-      searchQuery: "",
-      status: null, // null | 'active' | 'paused' | 'completed' | 'failed'
-      sortBy: "created_at",
-      sortOrder: "desc",
+      searchQuery: '',
+      status: null,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
     },
 
     // 任务筛选条件
     taskFilters: {
-      searchQuery: "",
-      status: null, // null | 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled'
-      teamId: null, // 按团队筛选
-      sortBy: "created_at",
-      sortOrder: "desc",
+      searchQuery: '',
+      status: null,
+      teamId: null,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
     },
 
     // ==========================================
@@ -161,23 +394,21 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 根据筛选条件过滤后的团队列表
      */
-    filteredTeams: (state) => {
-      let result = [...state.teams];
+    filteredTeams(): Team[] {
+      let result = [...this.teams];
 
       // 按状态筛选
-      if (state.teamFilters.status) {
-        result = result.filter(
-          (team) => team.status === state.teamFilters.status,
-        );
+      if (this.teamFilters.status) {
+        result = result.filter((team) => team.status === this.teamFilters.status);
       }
 
       // 按搜索关键词筛选
-      if (state.teamFilters.searchQuery) {
-        const query = state.teamFilters.searchQuery.toLowerCase();
+      if (this.teamFilters.searchQuery) {
+        const query = this.teamFilters.searchQuery.toLowerCase();
         result = result.filter(
           (team) =>
             team.name.toLowerCase().includes(query) ||
-            (team.description && team.description.toLowerCase().includes(query)),
+            (team.description && team.description.toLowerCase().includes(query))
         );
       }
 
@@ -187,36 +418,36 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 活跃的团队列表
      */
-    activeTeams: (state) => {
-      return state.teams.filter((team) => team.status === "active");
+    activeTeams(): Team[] {
+      return this.teams.filter((team) => team.status === 'active');
     },
 
     /**
      * 暂停的团队列表
      */
-    pausedTeams: (state) => {
-      return state.teams.filter((team) => team.status === "paused");
+    pausedTeams(): Team[] {
+      return this.teams.filter((team) => team.status === 'paused');
     },
 
     /**
      * 已完成的团队列表
      */
-    completedTeams: (state) => {
-      return state.teams.filter((team) => team.status === "completed");
+    completedTeams(): Team[] {
+      return this.teams.filter((team) => team.status === 'completed');
     },
 
     /**
      * 是否有选中的团队
      */
-    hasSelectedTeams: (state) => {
-      return state.selectedTeamIds.length > 0;
+    hasSelectedTeams(): boolean {
+      return this.selectedTeamIds.length > 0;
     },
 
     /**
      * 选中的团队数量
      */
-    selectedTeamCount: (state) => {
-      return state.selectedTeamIds.length;
+    selectedTeamCount(): number {
+      return this.selectedTeamIds.length;
     },
 
     // ==========================================
@@ -226,30 +457,26 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 根据筛选条件过滤后的任务列表
      */
-    filteredTasks: (state) => {
-      let result = [...state.tasks];
+    filteredTasks(): Task[] {
+      let result = [...this.tasks];
 
       // 按状态筛选
-      if (state.taskFilters.status) {
-        result = result.filter(
-          (task) => task.status === state.taskFilters.status,
-        );
+      if (this.taskFilters.status) {
+        result = result.filter((task) => task.status === this.taskFilters.status);
       }
 
       // 按团队筛选
-      if (state.taskFilters.teamId) {
-        result = result.filter(
-          (task) => task.teamId === state.taskFilters.teamId,
-        );
+      if (this.taskFilters.teamId) {
+        result = result.filter((task) => task.teamId === this.taskFilters.teamId);
       }
 
       // 按搜索关键词筛选
-      if (state.taskFilters.searchQuery) {
-        const query = state.taskFilters.searchQuery.toLowerCase();
+      if (this.taskFilters.searchQuery) {
+        const query = this.taskFilters.searchQuery.toLowerCase();
         result = result.filter(
           (task) =>
             task.name.toLowerCase().includes(query) ||
-            (task.description && task.description.toLowerCase().includes(query)),
+            (task.description && task.description.toLowerCase().includes(query))
         );
       }
 
@@ -259,43 +486,43 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 运行中的任务列表
      */
-    runningTasks: (state) => {
-      return state.tasks.filter((task) => task.status === "running");
+    runningTasks(): Task[] {
+      return this.tasks.filter((task) => task.status === 'running');
     },
 
     /**
      * 待处理的任务列表
      */
-    pendingTasks: (state) => {
-      return state.tasks.filter((task) => task.status === "pending");
+    pendingTasks(): Task[] {
+      return this.tasks.filter((task) => task.status === 'pending');
     },
 
     /**
      * 已完成的任务列表
      */
-    completedTasks: (state) => {
-      return state.tasks.filter((task) => task.status === "completed");
+    completedTasks(): Task[] {
+      return this.tasks.filter((task) => task.status === 'completed');
     },
 
     /**
      * 失败的任务列表
      */
-    failedTasks: (state) => {
-      return state.tasks.filter((task) => task.status === "failed");
+    failedTasks(): Task[] {
+      return this.tasks.filter((task) => task.status === 'failed');
     },
 
     /**
      * 是否有选中的任务
      */
-    hasSelectedTasks: (state) => {
-      return state.selectedTaskIds.length > 0;
+    hasSelectedTasks(): boolean {
+      return this.selectedTaskIds.length > 0;
     },
 
     /**
      * 选中的任务数量
      */
-    selectedTaskCount: (state) => {
-      return state.selectedTaskIds.length;
+    selectedTaskCount(): number {
+      return this.selectedTaskIds.length;
     },
 
     // ==========================================
@@ -305,10 +532,10 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 按类型分组的技能
      */
-    skillsByType: (state) => {
-      const grouped = {};
-      state.skills.forEach((skill) => {
-        const type = skill.type || "other";
+    skillsByType(): Record<string, Skill[]> {
+      const grouped: Record<string, Skill[]> = {};
+      this.skills.forEach((skill) => {
+        const type = skill.type || 'other';
         if (!grouped[type]) {
           grouped[type] = [];
         }
@@ -320,8 +547,8 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * Office 类型的技能
      */
-    officeSkills: (state) => {
-      return state.skills.filter((skill) => skill.type === "office");
+    officeSkills(): Skill[] {
+      return this.skills.filter((skill) => skill.type === 'office');
     },
 
     // ==========================================
@@ -331,22 +558,22 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 是否正在加载任何内容
      */
-    isLoading: (state) => {
-      return Object.values(state.loading).some((loading) => loading);
+    isLoading(): boolean {
+      return Object.values(this.loading).some((loading) => loading);
     },
 
     /**
      * 是否正在加载团队
      */
-    isLoadingTeams: (state) => {
-      return state.loading.teams;
+    isLoadingTeams(): boolean {
+      return this.loading.teams;
     },
 
     /**
      * 是否正在加载任务
      */
-    isLoadingTasks: (state) => {
-      return state.loading.tasks;
+    isLoadingTasks(): boolean {
+      return this.loading.tasks;
     },
   },
 
@@ -358,17 +585,20 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 创建团队
      */
-    async createTeam(teamName, config = {}) {
+    async createTeam(teamName: string, config: TeamConfig = {}): Promise<IPCResult<Team>> {
       this.loading.teams = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke("cowork:create-team", {
-          teamName,
-          config,
-        });
+        const result: IPCResult<Team> = await (window as any).electronAPI.invoke(
+          'cowork:create-team',
+          {
+            teamName,
+            config,
+          }
+        );
 
-        if (result.success) {
+        if (result.success && result.team) {
           // 添加到团队列表
           this.teams.unshift(result.team);
 
@@ -380,8 +610,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 创建团队失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 创建团队失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.teams = false;
@@ -391,7 +621,7 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 加载团队列表
      */
-    async loadTeams(options = {}) {
+    async loadTeams(options: { status?: TeamStatus | null } = {}): Promise<IPCResult<Team[]>> {
       this.loading.teams = true;
       this.error = null;
 
@@ -400,9 +630,9 @@ export const useCoworkStore = defineStore("cowork", {
           status: options.status || null,
         };
 
-        const result = await window.electronAPI.invoke(
-          "cowork:discover-teams",
-          params,
+        const result: IPCResult<Team[]> = await (window as any).electronAPI.invoke(
+          'cowork:discover-teams',
+          params
         );
 
         if (result.success) {
@@ -413,8 +643,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 加载团队列表失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 加载团队列表失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.teams = false;
@@ -424,17 +654,17 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 加载团队详情
      */
-    async loadTeamDetail(teamId) {
+    async loadTeamDetail(teamId: string): Promise<IPCResult<Team>> {
       this.loading.teamDetail = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke(
-          "cowork:get-team-status",
-          { teamId },
+        const result: IPCResult<Team> = await (window as any).electronAPI.invoke(
+          'cowork:get-team-status',
+          { teamId }
         );
 
-        if (result.success) {
+        if (result.success && result.status) {
           this.currentTeam = result.status;
 
           // 更新团队列表中的数据
@@ -448,8 +678,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 加载团队详情失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 加载团队详情失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.teamDetail = false;
@@ -459,13 +689,13 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 更新团队配置
      */
-    async updateTeamConfig(teamId, config) {
+    async updateTeamConfig(teamId: string, config: TeamConfig): Promise<IPCResult> {
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke(
-          "cowork:update-team-config",
-          { teamId, config },
+        const result: IPCResult = await (window as any).electronAPI.invoke(
+          'cowork:update-team-config',
+          { teamId, config }
         );
 
         if (result.success) {
@@ -485,8 +715,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 更新团队配置失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 更新团队配置失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -494,11 +724,11 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 销毁团队
      */
-    async destroyTeam(teamId, reason = "") {
+    async destroyTeam(teamId: string, reason: string = ''): Promise<IPCResult> {
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke("cowork:destroy-team", {
+        const result: IPCResult = await (window as any).electronAPI.invoke('cowork:destroy-team', {
           teamId,
           reason,
         });
@@ -523,8 +753,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 销毁团队失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 销毁团队失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -536,11 +766,15 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 请求加入团队
      */
-    async requestJoinTeam(teamId, agentId, agentInfo = {}) {
+    async requestJoinTeam(
+      teamId: string,
+      agentId: string,
+      agentInfo: AgentInfo = {}
+    ): Promise<IPCResult> {
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke("cowork:request-join", {
+        const result: IPCResult = await (window as any).electronAPI.invoke('cowork:request-join', {
           teamId,
           agentId,
           agentInfo,
@@ -555,8 +789,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 代理加入团队失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 代理加入团队失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -564,28 +798,28 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 列出团队成员
      */
-    async listTeamMembers(teamId) {
+    async listTeamMembers(teamId: string): Promise<IPCResult<Agent[]>> {
       this.loading.agents = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke(
-          "cowork:list-team-members",
-          { teamId },
+        const result: IPCResult<Agent[]> = await (window as any).electronAPI.invoke(
+          'cowork:list-team-members',
+          { teamId }
         );
 
         if (result.success) {
           this.currentTeamMembers = result.members || [];
 
           coworkLogger.info(
-            `列出团队成员成功: ${teamId}, ${result.members.length} 个成员`,
+            `列出团队成员成功: ${teamId}, ${(result.members || []).length} 个成员`
           );
         }
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 列出团队成员失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 列出团队成员失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.agents = false;
@@ -595,13 +829,17 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 终止代理
      */
-    async terminateAgent(teamId, agentId, reason = "") {
+    async terminateAgent(
+      teamId: string,
+      agentId: string,
+      reason: string = ''
+    ): Promise<IPCResult> {
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke(
-          "cowork:terminate-agent",
-          { teamId, agentId, reason },
+        const result: IPCResult = await (window as any).electronAPI.invoke(
+          'cowork:terminate-agent',
+          { teamId, agentId, reason }
         );
 
         if (result.success) {
@@ -613,8 +851,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 终止代理失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 终止代理失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -626,16 +864,23 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 分配任务
      */
-    async assignTask(teamId, agentId, task) {
+    async assignTask(
+      teamId: string,
+      agentId: string,
+      task: Partial<Task>
+    ): Promise<IPCResult<Task>> {
       this.loading.tasks = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke("cowork:assign-task", {
-          teamId,
-          agentId,
-          task,
-        });
+        const result: IPCResult<Task> = await (window as any).electronAPI.invoke(
+          'cowork:assign-task',
+          {
+            teamId,
+            agentId,
+            task,
+          }
+        );
 
         if (result.success) {
           // 添加到任务列表
@@ -651,8 +896,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 分配任务失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 分配任务失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.tasks = false;
@@ -662,14 +907,14 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 加载所有活跃任务
      */
-    async loadActiveTasks() {
+    async loadActiveTasks(): Promise<IPCResult<Task[]>> {
       this.loading.tasks = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke(
-          "cowork:task-get-all-active",
-          {},
+        const result: IPCResult<Task[]> = await (window as any).electronAPI.invoke(
+          'cowork:task-get-all-active',
+          {}
         );
 
         if (result.success) {
@@ -680,8 +925,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 加载活跃任务失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 加载活跃任务失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.tasks = false;
@@ -691,17 +936,17 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 加载任务详情
      */
-    async loadTaskDetail(taskId) {
+    async loadTaskDetail(taskId: string): Promise<IPCResult<Task>> {
       this.loading.taskDetail = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke(
-          "cowork:task-get-status",
-          { taskId },
+        const result: IPCResult<Task> = await (window as any).electronAPI.invoke(
+          'cowork:task-get-status',
+          { taskId }
         );
 
-        if (result.success) {
+        if (result.success && result.status) {
           this.currentTask = result.status;
 
           // 更新任务列表中的数据
@@ -715,8 +960,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 加载任务详情失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 加载任务详情失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.taskDetail = false;
@@ -726,11 +971,11 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 暂停任务
      */
-    async pauseTask(taskId) {
+    async pauseTask(taskId: string): Promise<IPCResult> {
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke("cowork:task-pause", {
+        const result: IPCResult = await (window as any).electronAPI.invoke('cowork:task-pause', {
           taskId,
         });
 
@@ -743,8 +988,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 暂停任务失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 暂停任务失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -752,11 +997,11 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 恢复任务
      */
-    async resumeTask(taskId) {
+    async resumeTask(taskId: string): Promise<IPCResult> {
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke("cowork:task-resume", {
+        const result: IPCResult = await (window as any).electronAPI.invoke('cowork:task-resume', {
           taskId,
         });
 
@@ -769,8 +1014,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 恢复任务失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 恢复任务失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -778,11 +1023,11 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 取消任务
      */
-    async cancelTask(taskId, reason = "") {
+    async cancelTask(taskId: string, reason: string = ''): Promise<IPCResult> {
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke("cowork:task-cancel", {
+        const result: IPCResult = await (window as any).electronAPI.invoke('cowork:task-cancel', {
           taskId,
           reason,
         });
@@ -796,8 +1041,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 取消任务失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 取消任务失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -809,14 +1054,14 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 加载已注册技能列表
      */
-    async loadSkills() {
+    async loadSkills(): Promise<IPCResult<Skill[]>> {
       this.loading.skills = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke(
-          "cowork:skill-list-all",
-          {},
+        const result: IPCResult<Skill[]> = await (window as any).electronAPI.invoke(
+          'cowork:skill-list-all',
+          {}
         );
 
         if (result.success) {
@@ -827,8 +1072,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 加载技能列表失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 加载技能列表失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.skills = false;
@@ -838,13 +1083,13 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 测试技能匹配
      */
-    async testSkillMatch(task) {
+    async testSkillMatch(task: Partial<Task>): Promise<IPCResult<Skill[]>> {
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke(
-          "cowork:skill-find-for-task",
-          { task },
+        const result: IPCResult<Skill[]> = await (window as any).electronAPI.invoke(
+          'cowork:skill-find-for-task',
+          { task }
         );
 
         if (result.success) {
@@ -853,8 +1098,8 @@ export const useCoworkStore = defineStore("cowork", {
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 技能匹配测试失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 技能匹配测试失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -862,21 +1107,24 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 自动执行任务（使用最佳技能）
      */
-    async autoExecuteTask(task, context = {}) {
+    async autoExecuteTask(
+      task: Partial<Task>,
+      context: Record<string, any> = {}
+    ): Promise<IPCResult> {
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke(
-          "cowork:skill-auto-execute",
-          { task, context },
+        const result: IPCResult = await (window as any).electronAPI.invoke(
+          'cowork:skill-auto-execute',
+          { task, context }
         );
 
         if (result.success) {
           // 记录执行历史
           this.skillExecutionHistory.unshift({
-            task,
+            task: task as Task,
             result: result.result,
-            skill: result.skill,
+            skill: result.skill || '',
             timestamp: Date.now(),
           });
 
@@ -885,15 +1133,13 @@ export const useCoworkStore = defineStore("cowork", {
             this.skillExecutionHistory = this.skillExecutionHistory.slice(0, 50);
           }
 
-          coworkLogger.info(
-            `自动执行任务成功: ${task.name} (使用技能: ${result.skill})`,
-          );
+          coworkLogger.info(`自动执行任务成功: ${task.name} (使用技能: ${result.skill})`);
         }
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 自动执行任务失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 自动执行任务失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -905,23 +1151,26 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 加载全局统计信息
      */
-    async loadStats() {
+    async loadStats(): Promise<IPCResult<GlobalStats>> {
       this.loading.stats = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke("cowork:get-stats", {});
+        const result: IPCResult<GlobalStats> = await (window as any).electronAPI.invoke(
+          'cowork:get-stats',
+          {}
+        );
 
-        if (result.success) {
-          this.globalStats = result.stats || this.globalStats;
+        if (result.success && result.stats) {
+          this.globalStats = result.stats;
 
           coworkLogger.info(`加载统计信息成功:`, this.globalStats);
         }
 
         return result;
       } catch (error) {
-        coworkLogger.error("[CoworkStore] 加载统计信息失败:", error);
-        this.error = error.message;
+        coworkLogger.error('[CoworkStore] 加载统计信息失败:', error as any);
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.stats = false;
@@ -935,14 +1184,14 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 初始化事件监听器
      */
-    initEventListeners() {
-      if (!window.electronAPI || !window.electronAPI.on) {
-        coworkLogger.warn("electronAPI.on 不可用，跳过事件监听");
+    initEventListeners(): void {
+      if (!(window as any).electronAPI || !(window as any).electronAPI.on) {
+        coworkLogger.warn('electronAPI.on 不可用，跳过事件监听');
         return;
       }
 
       // 监听团队更新事件
-      const teamUpdatedListener = (event, data) => {
+      const teamUpdatedListener = (_event: any, data: { team: Team }) => {
         const { team } = data;
         const index = this.teams.findIndex((t) => t.id === team.id);
         if (index !== -1) {
@@ -958,16 +1207,19 @@ export const useCoworkStore = defineStore("cowork", {
           this.currentTeam = { ...this.currentTeam, ...team };
         }
 
-        coworkLogger.info("[Event] 团队更新:", team);
+        coworkLogger.info('[Event] 团队更新:', team);
       };
-      window.electronAPI.on("cowork:team-updated", teamUpdatedListener);
+      (window as any).electronAPI.on('cowork:team-updated', teamUpdatedListener);
       this.eventListeners.push({
-        event: "cowork:team-updated",
+        event: 'cowork:team-updated',
         listener: teamUpdatedListener,
       });
 
       // 监听任务进度更新事件
-      const taskProgressListener = (event, data) => {
+      const taskProgressListener = (
+        _event: any,
+        data: { taskId: string; progress: number; message: string }
+      ) => {
         const { taskId, progress, message } = data;
         const index = this.tasks.findIndex((t) => t.id === taskId);
         if (index !== -1) {
@@ -981,18 +1233,16 @@ export const useCoworkStore = defineStore("cowork", {
           this.currentTask.progressMessage = message;
         }
 
-        coworkLogger.info(
-          `[Event] 任务进度更新: ${taskId} - ${progress}% - ${message}`,
-        );
+        coworkLogger.info(`[Event] 任务进度更新: ${taskId} - ${progress}% - ${message}`);
       };
-      window.electronAPI.on("cowork:task-progress", taskProgressListener);
+      (window as any).electronAPI.on('cowork:task-progress', taskProgressListener);
       this.eventListeners.push({
-        event: "cowork:task-progress",
+        event: 'cowork:task-progress',
         listener: taskProgressListener,
       });
 
       // 监听代理加入事件
-      const agentJoinedListener = (event, data) => {
+      const agentJoinedListener = (_event: any, data: { teamId: string; agent: Agent }) => {
         const { teamId, agent } = data;
 
         // 如果是当前团队，刷新成员列表
@@ -1002,25 +1252,25 @@ export const useCoworkStore = defineStore("cowork", {
 
         coworkLogger.info(`[Event] 代理加入: ${agent.id} -> ${teamId}`);
       };
-      window.electronAPI.on("cowork:agent-joined", agentJoinedListener);
+      (window as any).electronAPI.on('cowork:agent-joined', agentJoinedListener);
       this.eventListeners.push({
-        event: "cowork:agent-joined",
+        event: 'cowork:agent-joined',
         listener: agentJoinedListener,
       });
 
       // 监听任务完成事件
-      const taskCompletedListener = (event, data) => {
+      const taskCompletedListener = (_event: any, data: { taskId: string; result: any }) => {
         const { taskId, result } = data;
         const index = this.tasks.findIndex((t) => t.id === taskId);
         if (index !== -1) {
-          this.tasks[index].status = "completed";
+          this.tasks[index].status = 'completed';
           this.tasks[index].result = result;
           this.tasks[index].completedAt = Date.now();
         }
 
         // 更新当前任务
         if (this.currentTask && this.currentTask.id === taskId) {
-          this.currentTask.status = "completed";
+          this.currentTask.status = 'completed';
           this.currentTask.result = result;
           this.currentTask.completedAt = Date.now();
         }
@@ -1030,30 +1280,30 @@ export const useCoworkStore = defineStore("cowork", {
 
         coworkLogger.info(`[Event] 任务完成: ${taskId}`);
       };
-      window.electronAPI.on("cowork:task-completed", taskCompletedListener);
+      (window as any).electronAPI.on('cowork:task-completed', taskCompletedListener);
       this.eventListeners.push({
-        event: "cowork:task-completed",
+        event: 'cowork:task-completed',
         listener: taskCompletedListener,
       });
 
-      coworkLogger.info("事件监听器初始化完成");
+      coworkLogger.info('事件监听器初始化完成');
     },
 
     /**
      * 清理事件监听器
      */
-    cleanupEventListeners() {
-      if (!window.electronAPI || !window.electronAPI.off) {
+    cleanupEventListeners(): void {
+      if (!(window as any).electronAPI || !(window as any).electronAPI.off) {
         return;
       }
 
       this.eventListeners.forEach(({ event, listener }) => {
-        window.electronAPI.off(event, listener);
+        (window as any).electronAPI.off(event, listener);
       });
 
       this.eventListeners = [];
 
-      coworkLogger.info("事件监听器清理完成");
+      coworkLogger.info('事件监听器清理完成');
     },
 
     // ==========================================
@@ -1063,7 +1313,7 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 选择/取消选择团队
      */
-    toggleTeamSelection(teamId) {
+    toggleTeamSelection(teamId: string): void {
       const index = this.selectedTeamIds.indexOf(teamId);
       if (index !== -1) {
         this.selectedTeamIds.splice(index, 1);
@@ -1075,14 +1325,14 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 清空团队选择
      */
-    clearTeamSelection() {
+    clearTeamSelection(): void {
       this.selectedTeamIds = [];
     },
 
     /**
      * 选择/取消选择任务
      */
-    toggleTaskSelection(taskId) {
+    toggleTaskSelection(taskId: string): void {
       const index = this.selectedTaskIds.indexOf(taskId);
       if (index !== -1) {
         this.selectedTaskIds.splice(index, 1);
@@ -1094,7 +1344,7 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 清空任务选择
      */
-    clearTaskSelection() {
+    clearTaskSelection(): void {
       this.selectedTaskIds = [];
     },
 
@@ -1105,39 +1355,39 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 设置团队筛选条件
      */
-    setTeamFilters(filters) {
+    setTeamFilters(filters: Partial<TeamFilters>): void {
       this.teamFilters = { ...this.teamFilters, ...filters };
     },
 
     /**
      * 清空团队筛选条件
      */
-    clearTeamFilters() {
+    clearTeamFilters(): void {
       this.teamFilters = {
-        searchQuery: "",
+        searchQuery: '',
         status: null,
-        sortBy: "created_at",
-        sortOrder: "desc",
+        sortBy: 'created_at',
+        sortOrder: 'desc',
       };
     },
 
     /**
      * 设置任务筛选条件
      */
-    setTaskFilters(filters) {
+    setTaskFilters(filters: Partial<TaskFilters>): void {
       this.taskFilters = { ...this.taskFilters, ...filters };
     },
 
     /**
      * 清空任务筛选条件
      */
-    clearTaskFilters() {
+    clearTaskFilters(): void {
       this.taskFilters = {
-        searchQuery: "",
+        searchQuery: '',
         status: null,
         teamId: null,
-        sortBy: "created_at",
-        sortOrder: "desc",
+        sortBy: 'created_at',
+        sortOrder: 'desc',
       };
     },
 
@@ -1148,12 +1398,12 @@ export const useCoworkStore = defineStore("cowork", {
     /**
      * 重置所有状态（用于登出或切换用户）
      */
-    reset() {
+    reset(): void {
       this.cleanupEventListeners();
 
       this.$reset(); // Pinia 内置的重置方法
 
-      coworkLogger.info("Store 已重置");
+      coworkLogger.info('Store 已重置');
     },
   },
 });

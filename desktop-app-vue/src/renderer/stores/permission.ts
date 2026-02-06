@@ -8,8 +8,260 @@
 
 import { defineStore } from 'pinia';
 
+// ==================== 类型定义 ====================
+
+/**
+ * 权限信息
+ */
+export interface Permission {
+  grantId: string;
+  granteeDid: string;
+  orgId: string;
+  resourceType: string;
+  resourceId: string;
+  permissions: string[];
+  grantedBy: string;
+  grantedAt: number;
+  expiresAt?: number;
+  [key: string]: any;
+}
+
+/**
+ * 授予权限数据
+ */
+export interface GrantPermissionData {
+  granteeDid: string;
+  orgId: string;
+  resourceType: string;
+  resourceId: string;
+  permissions: string[];
+  grantedBy: string;
+  expiresAt?: number;
+  [key: string]: any;
+}
+
+/**
+ * 检查权限数据
+ */
+export interface CheckPermissionData {
+  userDid: string;
+  orgId: string;
+  resourceType: string;
+  resourceId: string;
+  permission: string;
+  [key: string]: any;
+}
+
+/**
+ * 批量授予权限数据
+ */
+export interface BulkGrantData {
+  granteeDid: string;
+  resourceType: string;
+  resourceId: string;
+  permissions: string[];
+  [key: string]: any;
+}
+
+/**
+ * 工作流信息
+ */
+export interface Workflow {
+  id: string;
+  orgId: string;
+  name: string;
+  description?: string;
+  steps: WorkflowStep[];
+  status: 'active' | 'inactive' | 'archived';
+  createdAt: number;
+  updatedAt?: number;
+  [key: string]: any;
+}
+
+/**
+ * 工作流步骤
+ */
+export interface WorkflowStep {
+  id: string;
+  name: string;
+  approverDid?: string;
+  approverRole?: string;
+  order: number;
+  [key: string]: any;
+}
+
+/**
+ * 工作流数据
+ */
+export interface WorkflowData {
+  orgId: string;
+  name: string;
+  description?: string;
+  steps: WorkflowStep[];
+  [key: string]: any;
+}
+
+/**
+ * 审批请求
+ */
+export interface ApprovalRequest {
+  id: string;
+  workflowId: string;
+  requesterId: string;
+  requesterName?: string;
+  resourceType: string;
+  resourceId: string;
+  requestType: string;
+  status: 'pending' | 'approved' | 'rejected';
+  currentStep: number;
+  comment?: string;
+  createdAt: number;
+  updatedAt?: number;
+  [key: string]: any;
+}
+
+/**
+ * 审批请求数据
+ */
+export interface SubmitApprovalData {
+  workflowId: string;
+  resourceType: string;
+  resourceId: string;
+  requestType: string;
+  requesterId: string;
+  comment?: string;
+  [key: string]: any;
+}
+
+/**
+ * 委托信息
+ */
+export interface Delegation {
+  id: string;
+  delegatorDid: string;
+  delegateDid: string;
+  orgId: string;
+  permissions: string[];
+  status: 'pending' | 'active' | 'expired' | 'revoked';
+  startTime: number;
+  endTime: number;
+  createdAt: number;
+  [key: string]: any;
+}
+
+/**
+ * 委托数据
+ */
+export interface DelegationData {
+  delegatorDid: string;
+  delegateDid: string;
+  orgId: string;
+  permissions: string[];
+  startTime: number;
+  endTime: number;
+  [key: string]: any;
+}
+
+/**
+ * 团队信息
+ */
+export interface Team {
+  id: string;
+  orgId: string;
+  name: string;
+  description?: string;
+  parentTeamId?: string | null;
+  leadDid?: string;
+  leadName?: string;
+  memberCount: number;
+  createdAt: number;
+  updatedAt?: number;
+  [key: string]: any;
+}
+
+/**
+ * 团队数据
+ */
+export interface TeamData {
+  orgId: string;
+  name: string;
+  description?: string;
+  parentTeamId?: string | null;
+  leadDid?: string;
+  leadName?: string;
+  [key: string]: any;
+}
+
+/**
+ * 团队成员
+ */
+export interface TeamMember {
+  id: string;
+  teamId: string;
+  memberDid: string;
+  memberName: string;
+  role: 'lead' | 'member' | 'admin';
+  joinedAt: number;
+  invitedBy?: string;
+  [key: string]: any;
+}
+
+/**
+ * 统计信息
+ */
+export interface PermissionStats {
+  totalPermissions: number;
+  activeWorkflows: number;
+  pendingApprovalCount: number;
+  activeDelegations: number;
+  teamCount: number;
+}
+
+/**
+ * 加载状态
+ */
+export interface LoadingState {
+  permissions: boolean;
+  workflows: boolean;
+  approvals: boolean;
+  delegations: boolean;
+  teams: boolean;
+}
+
+/**
+ * IPC 响应
+ */
+export interface IPCResponse<T = any> {
+  success: boolean;
+  message?: string;
+  [key: string]: any;
+}
+
+/**
+ * Permission Store 状态
+ */
+export interface PermissionState {
+  myPermissions: Permission[];
+  resourcePermissions: Permission[];
+  effectivePermissions: string[];
+  workflows: Workflow[];
+  currentWorkflow: Workflow | null;
+  pendingApprovals: ApprovalRequest[];
+  approvalHistory: ApprovalRequest[];
+  outgoingDelegations: Delegation[];
+  incomingDelegations: Delegation[];
+  teams: Team[];
+  currentTeam: Team | null;
+  teamMembers: TeamMember[];
+  stats: PermissionStats;
+  loading: LoadingState;
+  error: string | null;
+}
+
+// ==================== Store ====================
+
 export const usePermissionStore = defineStore('permission', {
-  state: () => ({
+  state: (): PermissionState => ({
     // ==========================================
     // 权限管理
     // ==========================================
@@ -97,36 +349,36 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 是否有待审批请求
      */
-    hasPendingApprovals: (state) => {
-      return state.pendingApprovals.length > 0;
+    hasPendingApprovals(): boolean {
+      return this.pendingApprovals.length > 0;
     },
 
     /**
      * 待审批请求数量
      */
-    pendingApprovalCount: (state) => {
-      return state.pendingApprovals.length;
+    pendingApprovalCount(): number {
+      return this.pendingApprovals.length;
     },
 
     /**
      * 活跃的委托数量
      */
-    activeDelegationCount: (state) => {
-      return state.outgoingDelegations.filter((d) => d.status === 'active').length;
+    activeDelegationCount(): number {
+      return this.outgoingDelegations.filter((d) => d.status === 'active').length;
     },
 
     /**
      * 根团队列表
      */
-    rootTeams: (state) => {
-      return state.teams.filter((t) => !t.parentTeamId);
+    rootTeams(): Team[] {
+      return this.teams.filter((t) => !t.parentTeamId);
     },
 
     /**
      * 是否正在加载
      */
-    isLoading: (state) => {
-      return Object.values(state.loading).some((loading) => loading);
+    isLoading(): boolean {
+      return Object.values(this.loading).some((loading) => loading);
     },
   },
 
@@ -138,12 +390,15 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 授予权限
      */
-    async grantPermission(permissionData) {
+    async grantPermission(permissionData: GrantPermissionData): Promise<IPCResponse> {
       this.loading.permissions = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke('perm:grant-permission', permissionData);
+        const result = await (window as any).electronAPI.invoke(
+          'perm:grant-permission',
+          permissionData
+        );
 
         if (result.success) {
           // 刷新权限列表
@@ -153,7 +408,7 @@ export const usePermissionStore = defineStore('permission', {
         return result;
       } catch (error) {
         console.error('[PermissionStore] 授予权限失败:', error);
-        this.error = error.message;
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.permissions = false;
@@ -163,9 +418,9 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 撤销权限
      */
-    async revokePermission(grantId, revokedBy) {
+    async revokePermission(grantId: string, revokedBy: string): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:revoke-permission', {
+        const result = await (window as any).electronAPI.invoke('perm:revoke-permission', {
           grantId,
           revokedBy,
         });
@@ -186,9 +441,9 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 检查权限
      */
-    async checkPermission(checkData) {
+    async checkPermission(checkData: CheckPermissionData): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:check-permission', checkData);
+        const result = await (window as any).electronAPI.invoke('perm:check-permission', checkData);
         return result;
       } catch (error) {
         console.error('[PermissionStore] 检查权限失败:', error);
@@ -199,11 +454,11 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 加载用户权限
      */
-    async loadUserPermissions(userDid, orgId) {
+    async loadUserPermissions(userDid: string, orgId: string): Promise<IPCResponse> {
       this.loading.permissions = true;
 
       try {
-        const result = await window.electronAPI.invoke('perm:get-user-permissions', {
+        const result = await (window as any).electronAPI.invoke('perm:get-user-permissions', {
           userDid,
           orgId,
         });
@@ -224,11 +479,15 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 加载资源权限
      */
-    async loadResourcePermissions(orgId, resourceType, resourceId) {
+    async loadResourcePermissions(
+      orgId: string,
+      resourceType: string,
+      resourceId: string
+    ): Promise<IPCResponse> {
       this.loading.permissions = true;
 
       try {
-        const result = await window.electronAPI.invoke('perm:get-resource-permissions', {
+        const result = await (window as any).electronAPI.invoke('perm:get-resource-permissions', {
           orgId,
           resourceType,
           resourceId,
@@ -250,9 +509,14 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 获取有效权限
      */
-    async loadEffectivePermissions(userDid, orgId, resourceType, resourceId) {
+    async loadEffectivePermissions(
+      userDid: string,
+      orgId: string,
+      resourceType: string,
+      resourceId: string
+    ): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:get-effective-permissions', {
+        const result = await (window as any).electronAPI.invoke('perm:get-effective-permissions', {
           userDid,
           orgId,
           resourceType,
@@ -273,9 +537,9 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 批量授予权限
      */
-    async bulkGrantPermissions(grants, grantedBy) {
+    async bulkGrantPermissions(grants: BulkGrantData[], grantedBy: string): Promise<IPCResponse> {
       try {
-        return await window.electronAPI.invoke('perm:bulk-grant', {
+        return await (window as any).electronAPI.invoke('perm:bulk-grant', {
           grants,
           grantedBy,
         });
@@ -292,11 +556,14 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 加载工作流列表
      */
-    async loadWorkflows(orgId, options = {}) {
+    async loadWorkflows(
+      orgId: string,
+      options: Record<string, any> = {}
+    ): Promise<IPCResponse> {
       this.loading.workflows = true;
 
       try {
-        const result = await window.electronAPI.invoke('perm:get-workflows', {
+        const result = await (window as any).electronAPI.invoke('perm:get-workflows', {
           orgId,
           ...options,
         });
@@ -317,14 +584,22 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 创建工作流
      */
-    async createWorkflow(workflowData) {
+    async createWorkflow(workflowData: WorkflowData): Promise<IPCResponse> {
       this.loading.workflows = true;
 
       try {
-        const result = await window.electronAPI.invoke('perm:create-workflow', workflowData);
+        const result = await (window as any).electronAPI.invoke(
+          'perm:create-workflow',
+          workflowData
+        );
 
         if (result.success) {
-          this.workflows.push({ id: result.workflowId, ...workflowData });
+          this.workflows.push({
+            id: result.workflowId,
+            ...workflowData,
+            status: 'active',
+            createdAt: Date.now(),
+          } as Workflow);
         }
 
         return result;
@@ -339,9 +614,12 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 更新工作流
      */
-    async updateWorkflow(workflowId, updates) {
+    async updateWorkflow(
+      workflowId: string,
+      updates: Partial<Workflow>
+    ): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:update-workflow', {
+        const result = await (window as any).electronAPI.invoke('perm:update-workflow', {
           workflowId,
           updates,
         });
@@ -363,9 +641,11 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 删除工作流
      */
-    async deleteWorkflow(workflowId) {
+    async deleteWorkflow(workflowId: string): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:delete-workflow', { workflowId });
+        const result = await (window as any).electronAPI.invoke('perm:delete-workflow', {
+          workflowId,
+        });
 
         if (result.success) {
           this.workflows = this.workflows.filter((w) => w.id !== workflowId);
@@ -381,9 +661,12 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 提交审批请求
      */
-    async submitApproval(requestData) {
+    async submitApproval(requestData: SubmitApprovalData): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:submit-approval', requestData);
+        const result = await (window as any).electronAPI.invoke(
+          'perm:submit-approval',
+          requestData
+        );
         return result;
       } catch (error) {
         console.error('[PermissionStore] 提交审批失败:', error);
@@ -394,11 +677,11 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 加载待审批请求
      */
-    async loadPendingApprovals(approverDid, orgId) {
+    async loadPendingApprovals(approverDid: string, orgId: string): Promise<IPCResponse> {
       this.loading.approvals = true;
 
       try {
-        const result = await window.electronAPI.invoke('perm:get-pending-approvals', {
+        const result = await (window as any).electronAPI.invoke('perm:get-pending-approvals', {
           approverDid,
           orgId,
         });
@@ -419,9 +702,13 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 批准请求
      */
-    async approveRequest(requestId, approverDid, comment = null) {
+    async approveRequest(
+      requestId: string,
+      approverDid: string,
+      comment: string | null = null
+    ): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:approve-request', {
+        const result = await (window as any).electronAPI.invoke('perm:approve-request', {
           requestId,
           approverDid,
           comment,
@@ -442,9 +729,13 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 拒绝请求
      */
-    async rejectRequest(requestId, approverDid, comment = null) {
+    async rejectRequest(
+      requestId: string,
+      approverDid: string,
+      comment: string | null = null
+    ): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:reject-request', {
+        const result = await (window as any).electronAPI.invoke('perm:reject-request', {
           requestId,
           approverDid,
           comment,
@@ -464,11 +755,14 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 加载审批历史
      */
-    async loadApprovalHistory(orgId, options = {}) {
+    async loadApprovalHistory(
+      orgId: string,
+      options: Record<string, any> = {}
+    ): Promise<IPCResponse> {
       this.loading.approvals = true;
 
       try {
-        const result = await window.electronAPI.invoke('perm:get-approval-history', {
+        const result = await (window as any).electronAPI.invoke('perm:get-approval-history', {
           orgId,
           options,
         });
@@ -493,14 +787,22 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 委托权限
      */
-    async delegatePermissions(delegationData) {
+    async delegatePermissions(delegationData: DelegationData): Promise<IPCResponse> {
       this.loading.delegations = true;
 
       try {
-        const result = await window.electronAPI.invoke('perm:delegate-permissions', delegationData);
+        const result = await (window as any).electronAPI.invoke(
+          'perm:delegate-permissions',
+          delegationData
+        );
 
         if (result.success) {
-          this.outgoingDelegations.push({ id: result.delegationId, ...delegationData });
+          this.outgoingDelegations.push({
+            id: result.delegationId,
+            ...delegationData,
+            status: 'active',
+            createdAt: Date.now(),
+          } as Delegation);
         }
 
         return result;
@@ -515,9 +817,9 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 撤销委托
      */
-    async revokeDelegation(delegationId, revokerDid) {
+    async revokeDelegation(delegationId: string, revokerDid: string): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:revoke-delegation', {
+        const result = await (window as any).electronAPI.invoke('perm:revoke-delegation', {
           delegationId,
           revokerDid,
         });
@@ -536,11 +838,15 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 加载委托
      */
-    async loadDelegations(userDid, orgId, options = {}) {
+    async loadDelegations(
+      userDid: string,
+      orgId: string,
+      options: Record<string, any> = {}
+    ): Promise<IPCResponse> {
       this.loading.delegations = true;
 
       try {
-        const result = await window.electronAPI.invoke('perm:get-delegations', {
+        const result = await (window as any).electronAPI.invoke('perm:get-delegations', {
           userDid,
           orgId,
           options,
@@ -563,9 +869,9 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 接受委托
      */
-    async acceptDelegation(delegationId, delegateDid) {
+    async acceptDelegation(delegationId: string, delegateDid: string): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('perm:accept-delegation', {
+        const result = await (window as any).electronAPI.invoke('perm:accept-delegation', {
           delegationId,
           delegateDid,
         });
@@ -591,11 +897,11 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 加载团队列表
      */
-    async loadTeams(orgId, options = {}) {
+    async loadTeams(orgId: string, options: Record<string, any> = {}): Promise<IPCResponse> {
       this.loading.teams = true;
 
       try {
-        const result = await window.electronAPI.invoke('team:get-teams', {
+        const result = await (window as any).electronAPI.invoke('team:get-teams', {
           orgId,
           options,
         });
@@ -616,14 +922,19 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 创建团队
      */
-    async createTeam(teamData) {
+    async createTeam(teamData: TeamData): Promise<IPCResponse> {
       this.loading.teams = true;
 
       try {
-        const result = await window.electronAPI.invoke('team:create-team', teamData);
+        const result = await (window as any).electronAPI.invoke('team:create-team', teamData);
 
         if (result.success) {
-          this.teams.push({ id: result.teamId, ...teamData, memberCount: 0 });
+          this.teams.push({
+            id: result.teamId,
+            ...teamData,
+            memberCount: 0,
+            createdAt: Date.now(),
+          } as Team);
         }
 
         return result;
@@ -638,9 +949,9 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 更新团队
      */
-    async updateTeam(teamId, updates) {
+    async updateTeam(teamId: string, updates: Partial<Team>): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('team:update-team', {
+        const result = await (window as any).electronAPI.invoke('team:update-team', {
           teamId,
           updates,
         });
@@ -662,9 +973,9 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 删除团队
      */
-    async deleteTeam(teamId) {
+    async deleteTeam(teamId: string): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('team:delete-team', { teamId });
+        const result = await (window as any).electronAPI.invoke('team:delete-team', { teamId });
 
         if (result.success) {
           this.teams = this.teams.filter((t) => t.id !== teamId);
@@ -684,11 +995,13 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 加载团队成员
      */
-    async loadTeamMembers(teamId) {
+    async loadTeamMembers(teamId: string): Promise<IPCResponse> {
       this.loading.teams = true;
 
       try {
-        const result = await window.electronAPI.invoke('team:get-team-members', { teamId });
+        const result = await (window as any).electronAPI.invoke('team:get-team-members', {
+          teamId,
+        });
 
         if (result.success) {
           this.teamMembers = result.members || [];
@@ -707,9 +1020,15 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 添加团队成员
      */
-    async addTeamMember(teamId, memberDid, memberName, role, invitedBy) {
+    async addTeamMember(
+      teamId: string,
+      memberDid: string,
+      memberName: string,
+      role: TeamMember['role'],
+      invitedBy: string
+    ): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('team:add-member', {
+        const result = await (window as any).electronAPI.invoke('team:add-member', {
           teamId,
           memberDid,
           memberName,
@@ -720,10 +1039,12 @@ export const usePermissionStore = defineStore('permission', {
         if (result.success) {
           this.teamMembers.push({
             id: result.memberId,
+            teamId,
             memberDid,
             memberName,
             role,
             joinedAt: Date.now(),
+            invitedBy,
           });
 
           // 更新成员计数
@@ -743,9 +1064,9 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 移除团队成员
      */
-    async removeTeamMember(teamId, memberDid) {
+    async removeTeamMember(teamId: string, memberDid: string): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('team:remove-member', {
+        const result = await (window as any).electronAPI.invoke('team:remove-member', {
           teamId,
           memberDid,
         });
@@ -769,9 +1090,9 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 设置团队负责人
      */
-    async setTeamLead(teamId, leadDid, leadName) {
+    async setTeamLead(teamId: string, leadDid: string, leadName: string): Promise<IPCResponse> {
       try {
-        const result = await window.electronAPI.invoke('team:set-lead', {
+        const result = await (window as any).electronAPI.invoke('team:set-lead', {
           teamId,
           leadDid,
           leadName,
@@ -799,7 +1120,7 @@ export const usePermissionStore = defineStore('permission', {
     /**
      * 重置所有状态
      */
-    reset() {
+    reset(): void {
       this.$reset();
     },
   },
