@@ -239,8 +239,36 @@ const currentStepIndex = computed(() => {
 // ==========================================
 
 async function handleCreateCheckpoint() {
-  message.info("创建检查点功能即将上线");
-  // TODO: 调用 IPC 创建检查点
+  if (!props.task?.id) {
+    message.warning("无效的任务");
+    return;
+  }
+
+  loading.value = true;
+  try {
+    // 调用 IPC 创建检查点
+    const result = await window.electron.ipcRenderer.invoke("cowork:create-checkpoint", {
+      taskId: props.task.id,
+      description: `检查点 - ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}`,
+      state: {
+        progress: props.task.progress,
+        currentStep: currentStepIndex.value,
+        status: props.task.status,
+      },
+    });
+
+    if (result.success) {
+      message.success("检查点创建成功");
+      emit("refresh");
+    } else {
+      message.error(result.error || "创建检查点失败");
+    }
+  } catch (error) {
+    taskDetailLogger.error("创建检查点失败:", error);
+    message.error("创建检查点失败: " + error.message);
+  } finally {
+    loading.value = false;
+  }
 }
 
 // ==========================================
