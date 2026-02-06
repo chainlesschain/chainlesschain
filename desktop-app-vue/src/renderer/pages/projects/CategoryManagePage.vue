@@ -371,7 +371,7 @@ const secondaryCount = computed(() => {
   );
 });
 const totalCount = computed(() => primaryCount.value + secondaryCount.value);
-const projectCount = computed(() => 0); // TODO: 从项目store获取
+const projectCount = computed(() => projectStore.pagination?.total || projectStore.projects?.length || 0);
 
 // 获取分类标题
 const getCategoryHeader = (category) => {
