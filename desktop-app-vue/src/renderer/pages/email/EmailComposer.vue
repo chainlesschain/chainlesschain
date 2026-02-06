@@ -8,14 +8,8 @@
     @cancel="handleCancel"
     @update:open="emit('update:visible', $event)"
   >
-    <a-form
-      :model="emailForm"
-      layout="vertical"
-    >
-      <a-form-item
-        label="收件人"
-        required
-      >
+    <a-form :model="emailForm" layout="vertical">
+      <a-form-item label="收件人" required>
         <a-select
           v-model:value="emailForm.to"
           mode="tags"
@@ -51,67 +45,37 @@
         </a-col>
       </a-row>
 
-      <a-form-item
-        label="主题"
-        required
-      >
-        <a-input
-          v-model:value="emailForm.subject"
-          placeholder="邮件主题"
-        />
+      <a-form-item label="主题" required>
+        <a-input v-model:value="emailForm.subject" placeholder="邮件主题" />
       </a-form-item>
 
-      <a-form-item
-        label="内容"
-        required
-      >
+      <a-form-item label="内容" required>
         <a-tabs v-model:active-key="contentType">
-          <a-tab-pane
-            key="text"
-            tab="纯文本"
-          >
+          <a-tab-pane key="text" tab="纯文本">
             <a-textarea
               v-model:value="emailForm.text"
               :rows="12"
               placeholder="输入邮件内容..."
             />
           </a-tab-pane>
-          <a-tab-pane
-            key="html"
-            tab="富文本"
-          >
+          <a-tab-pane key="html" tab="富文本">
             <div class="html-editor">
               <div class="editor-toolbar">
                 <a-space>
-                  <a-button
-                    size="small"
-                    @click="insertFormat('bold')"
-                  >
+                  <a-button size="small" @click="insertFormat('bold')">
                     <BoldOutlined />
                   </a-button>
-                  <a-button
-                    size="small"
-                    @click="insertFormat('italic')"
-                  >
+                  <a-button size="small" @click="insertFormat('italic')">
                     <ItalicOutlined />
                   </a-button>
-                  <a-button
-                    size="small"
-                    @click="insertFormat('underline')"
-                  >
+                  <a-button size="small" @click="insertFormat('underline')">
                     <UnderlineOutlined />
                   </a-button>
                   <a-divider type="vertical" />
-                  <a-button
-                    size="small"
-                    @click="insertFormat('link')"
-                  >
+                  <a-button size="small" @click="insertFormat('link')">
                     <LinkOutlined />
                   </a-button>
-                  <a-button
-                    size="small"
-                    @click="insertFormat('image')"
-                  >
+                  <a-button size="small" @click="insertFormat('image')">
                     <PictureOutlined />
                   </a-button>
                 </a-space>
@@ -140,10 +104,7 @@
           style="margin-top: 8px; font-size: 12px; color: #999"
         >
           总大小: {{ formatSize(totalSize) }}
-          <span
-            v-if="totalSize > 25 * 1024 * 1024"
-            style="color: #ff4d4f"
-          >
+          <span v-if="totalSize > 25 * 1024 * 1024" style="color: #ff4d4f">
             (建议不超过 25MB)
           </span>
         </div>
@@ -174,17 +135,9 @@
 
     <template #footer>
       <a-space>
-        <a-button @click="saveDraft">
-          <SaveOutlined /> 保存草稿
-        </a-button>
-        <a-button @click="handleCancel">
-          取消
-        </a-button>
-        <a-button
-          type="primary"
-          :loading="sending"
-          @click="sendEmail"
-        >
+        <a-button @click="saveDraft"> <SaveOutlined /> 保存草稿 </a-button>
+        <a-button @click="handleCancel"> 取消 </a-button>
+        <a-button type="primary" :loading="sending" @click="sendEmail">
           <SendOutlined /> 发送
         </a-button>
       </a-space>
@@ -224,9 +177,16 @@ const props = defineProps({
     type: Object,
     default: null,
   },
+  draft: {
+    type: Object,
+    default: null,
+  },
 });
 
-const emit = defineEmits(["update:visible", "sent"]);
+const emit = defineEmits(["update:visible", "sent", "draft-saved"]);
+
+// 当前编辑的草稿 ID
+const currentDraftId = ref(null);
 
 // 状态
 const sending = ref(false);
@@ -268,7 +228,9 @@ const removeFile = (file) => {
 const insertFormat = (format) => {
   // 简单的格式插入
   const textarea = document.querySelector(".html-editor textarea");
-  if (!textarea) {return;}
+  if (!textarea) {
+    return;
+  }
 
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
@@ -348,6 +310,18 @@ const sendEmail = async () => {
     );
 
     if (result.success) {
+      // 如果是从草稿发送的，删除草稿
+      if (currentDraftId.value) {
+        try {
+          await window.electron.ipcRenderer.invoke(
+            "email:delete-draft",
+            currentDraftId.value,
+          );
+        } catch (e) {
+          // 静默忽略删除草稿失败
+          console.warn("删除草稿失败:", e);
+        }
+      }
       message.success("邮件发送成功");
       emit("sent");
       resetForm();
@@ -360,9 +334,41 @@ const sendEmail = async () => {
   }
 };
 
-const saveDraft = () => {
-  // TODO: 实现保存草稿功能
-  message.info("草稿保存功能开发中");
+const saveDraft = async () => {
+  try {
+    const draftData = {
+      id: currentDraftId.value, // 如果有，则更新现有草稿
+      to: emailForm.to,
+      cc: emailForm.cc,
+      bcc: emailForm.bcc,
+      subject: emailForm.subject,
+      text: emailForm.text,
+      html: emailForm.html,
+      attachments: fileList.value.map((f) => ({
+        name: f.name,
+        size: f.size,
+        type: f.type,
+      })),
+      replyToId: props.replyTo?.id || null,
+      forwardId: props.forward?.id || null,
+    };
+
+    const result = await window.electron.ipcRenderer.invoke(
+      "email:save-draft",
+      props.accountId,
+      draftData,
+    );
+
+    // 保存返回的草稿 ID（用于后续更新）
+    if (result.draftId) {
+      currentDraftId.value = result.draftId;
+    }
+
+    message.success("草稿已保存");
+    emit("draft-saved");
+  } catch (error) {
+    message.error("保存草稿失败: " + error.message);
+  }
 };
 
 const handleCancel = () => {
@@ -389,8 +395,12 @@ const clearForward = () => {
 };
 
 const formatSize = (bytes) => {
-  if (bytes < 1024) {return bytes + " B";}
-  if (bytes < 1024 * 1024) {return (bytes / 1024).toFixed(2) + " KB";}
+  if (bytes < 1024) {
+    return bytes + " B";
+  }
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(2) + " KB";
+  }
   return (bytes / 1024 / 1024).toFixed(2) + " MB";
 };
 
@@ -399,6 +409,22 @@ watch(
   () => props.visible,
   (newVal) => {
     if (newVal) {
+      // 如果是编辑草稿
+      if (props.draft) {
+        currentDraftId.value = props.draft.id;
+        emailForm.to = props.draft.to || [];
+        emailForm.cc = props.draft.cc || [];
+        emailForm.bcc = props.draft.bcc || [];
+        emailForm.subject = props.draft.subject || "";
+        emailForm.text = props.draft.text || "";
+        emailForm.html = props.draft.html || "";
+        // 如果有 HTML 内容，切换到 HTML 模式
+        if (props.draft.html) {
+          contentType.value = "html";
+        }
+        return;
+      }
+
       // 如果是回复邮件
       if (props.replyTo) {
         emailForm.to = [props.replyTo.from_address];
@@ -417,6 +443,7 @@ watch(
       }
     } else {
       resetForm();
+      currentDraftId.value = null;
     }
   },
 );

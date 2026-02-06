@@ -21,6 +21,7 @@
               <InboxOutlined v-if="dataRef.name === 'INBOX'" />
               <SendOutlined v-else-if="dataRef.name === 'Sent'" />
               <DeleteOutlined v-else-if="dataRef.name === 'Trash'" />
+              <FormOutlined v-else-if="dataRef.name === 'Drafts'" />
               <FolderOutlined v-else />
             </template>
           </a-tree>
@@ -62,7 +63,72 @@
             </a-space>
           </template>
 
+          <!-- 草稿列表 -->
           <a-list
+            v-if="isDraftView"
+            :data-source="drafts"
+            :loading="loading"
+            item-layout="vertical"
+            size="small"
+            style="height: calc(100vh - 200px); overflow-y: auto"
+          >
+            <template #renderItem="{ item }">
+              <a-list-item
+                :class="{
+                  'email-item': true,
+                  'email-selected': selectedDraft?.id === item.id,
+                }"
+                style="cursor: pointer"
+                @click="selectDraft(item)"
+              >
+                <a-list-item-meta>
+                  <template #title>
+                    <a-space>
+                      <FormOutlined style="color: #1890ff" />
+                      <span>{{ item.subject || "(无主题)" }}</span>
+                    </a-space>
+                  </template>
+
+                  <template #description>
+                    <div class="email-meta">
+                      <span class="email-from">
+                        收件人: {{ item.to_address?.join(", ") || "(未设置)" }}
+                      </span>
+                      <span class="email-date">
+                        {{ formatTime(item.updated_at) }}
+                      </span>
+                    </div>
+                  </template>
+                </a-list-item-meta>
+
+                <template #actions>
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click.stop="editDraft(item)"
+                  >
+                    编辑
+                  </a-button>
+                  <a-popconfirm
+                    title="确定删除此草稿？"
+                    @confirm="deleteDraft(item)"
+                  >
+                    <a-button type="link" size="small" danger @click.stop>
+                      删除
+                    </a-button>
+                  </a-popconfirm>
+                </template>
+              </a-list-item>
+            </template>
+
+            <template #empty>
+              <a-empty description="暂无草稿" />
+            </template>
+          </a-list>
+
+          <!-- 邮件列表 -->
+          <a-list
+            v-else
             :data-source="emails"
             :loading="loading"
             item-layout="vertical"
@@ -239,9 +305,91 @@
           </div>
         </a-card>
 
+        <!-- 草稿预览 -->
+        <a-card v-else-if="selectedDraft" :bordered="false">
+          <template #title>
+            <div class="email-header">
+              <h3>{{ selectedDraft.subject || "(无主题)" }}</h3>
+              <a-tag color="blue"> 草稿 </a-tag>
+            </div>
+          </template>
+
+          <template #extra>
+            <a-space>
+              <a-button type="primary" @click="editDraft(selectedDraft)">
+                <EditOutlined /> 继续编辑
+              </a-button>
+              <a-popconfirm
+                title="确定删除此草稿？"
+                @confirm="deleteDraft(selectedDraft)"
+              >
+                <a-button danger> <DeleteOutlined /> 删除 </a-button>
+              </a-popconfirm>
+            </a-space>
+          </template>
+
+          <div class="email-details">
+            <a-descriptions :column="1" size="small">
+              <a-descriptions-item label="收件人">
+                {{ selectedDraft.to_address?.join(", ") || "(未设置)" }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                v-if="selectedDraft.cc_address?.length > 0"
+                label="抄送"
+              >
+                {{ selectedDraft.cc_address.join(", ") }}
+              </a-descriptions-item>
+              <a-descriptions-item
+                v-if="selectedDraft.bcc_address?.length > 0"
+                label="密送"
+              >
+                {{ selectedDraft.bcc_address.join(", ") }}
+              </a-descriptions-item>
+              <a-descriptions-item label="更新时间">
+                {{ formatFullTime(selectedDraft.updated_at) }}
+              </a-descriptions-item>
+            </a-descriptions>
+          </div>
+
+          <a-divider />
+
+          <div class="email-content">
+            {{
+              selectedDraft.text_content ||
+              selectedDraft.html_content ||
+              "(无内容)"
+            }}
+          </div>
+
+          <!-- 附件列表 -->
+          <div
+            v-if="selectedDraft.attachments?.length > 0"
+            class="email-attachments"
+          >
+            <a-divider>附件 ({{ selectedDraft.attachments.length }})</a-divider>
+            <a-list :data-source="selectedDraft.attachments" size="small">
+              <template #renderItem="{ item }">
+                <a-list-item>
+                  <a-list-item-meta>
+                    <template #avatar>
+                      <FileOutlined style="font-size: 24px" />
+                    </template>
+                    <template #title>
+                      {{ item.name }}
+                    </template>
+                    <template #description>
+                      {{ formatSize(item.size) }}
+                    </template>
+                  </a-list-item-meta>
+                </a-list-item>
+              </template>
+            </a-list>
+          </div>
+        </a-card>
+
         <a-empty
           v-else
-          description="请选择一封邮件"
+          :description="isDraftView ? '请选择一封草稿' : '请选择一封邮件'"
           style="margin-top: 100px"
         />
       </a-col>
@@ -252,8 +400,10 @@
       v-model:open="composerVisible"
       :account-id="accountId"
       :reply-to="replyToEmail"
-      :forward="forwardEmail"
+      :forward="forwardEmailData"
+      :draft="editingDraft"
       @sent="onEmailSent"
+      @draft-saved="onDraftSaved"
     />
   </div>
 </template>
@@ -288,6 +438,7 @@ import {
   FileOutlined,
   DownloadOutlined,
   ReloadOutlined,
+  FormOutlined,
 } from "@ant-design/icons-vue";
 import EmailComposer from "./EmailComposer.vue";
 
@@ -310,18 +461,35 @@ const composerVisible = ref(false);
 const replyToEmail = ref(null);
 const forwardEmailData = ref(null);
 
+// 草稿相关状态
+const drafts = ref([]);
+const isDraftView = ref(false);
+const selectedDraft = ref(null);
+const editingDraft = ref(null);
+
 // 计算属性
 const unreadCount = computed(() => {
   return emails.value.filter((e) => !e.is_read).length;
 });
 
 const mailboxTree = computed(() => {
-  return mailboxes.value.map((mb) => ({
+  const tree = mailboxes.value.map((mb) => ({
     key: mb.id,
     title: mb.display_name,
     name: mb.name,
     children: [],
   }));
+
+  // 添加草稿箱选项
+  tree.push({
+    key: "drafts",
+    title: `草稿箱 (${drafts.value.length})`,
+    name: "Drafts",
+    isDraft: true,
+    children: [],
+  });
+
+  return tree;
 });
 
 const sanitizedContent = computed(() => {
@@ -581,6 +749,7 @@ const saveToKnowledge = async () => {
 const showComposer = () => {
   replyToEmail.value = null;
   forwardEmailData.value = null;
+  editingDraft.value = null;
   composerVisible.value = true;
 };
 
@@ -611,8 +780,12 @@ const handleMenuClick = async ({ key }) => {
         break;
 
       case "markUnread":
-        // TODO: 实现标记未读
-        message.info("功能开发中");
+        await window.electron.ipcRenderer.invoke(
+          "email:mark-as-unread",
+          selectedEmail.value.id,
+        );
+        selectedEmail.value.is_read = 0;
+        message.success("已标记为未读");
         break;
 
       case "archive":
@@ -647,16 +820,87 @@ const handleFilterChange = ({ key }) => {
   }
 };
 
-const onMailboxSelect = (keys) => {
+const onMailboxSelect = async (keys) => {
   if (keys.length > 0) {
     selectedMailbox.value = keys;
-    loadEmails(keys[0]);
+    selectedEmail.value = null;
+    selectedDraft.value = null;
+
+    // 判断是否选择草稿箱
+    if (keys[0] === "drafts") {
+      isDraftView.value = true;
+      await loadDrafts();
+    } else {
+      isDraftView.value = false;
+      await loadEmails(keys[0]);
+    }
   }
 };
 
-const onEmailSent = () => {
+// 草稿相关方法
+const loadDrafts = async () => {
+  loading.value = true;
+  try {
+    const result = await window.electron.ipcRenderer.invoke(
+      "email:get-drafts",
+      accountId.value,
+    );
+
+    if (result.success) {
+      drafts.value = result.drafts;
+    }
+  } catch (error) {
+    message.error("加载草稿失败: " + error.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const selectDraft = (draft) => {
+  selectedDraft.value = draft;
+  selectedEmail.value = null;
+};
+
+const editDraft = (draft) => {
+  editingDraft.value = {
+    id: draft.id,
+    to: draft.to_address,
+    cc: draft.cc_address,
+    bcc: draft.bcc_address,
+    subject: draft.subject,
+    text: draft.text_content,
+    html: draft.html_content,
+    attachments: draft.attachments,
+  };
+  composerVisible.value = true;
+};
+
+const deleteDraft = async (draft) => {
+  try {
+    await window.electron.ipcRenderer.invoke("email:delete-draft", draft.id);
+    message.success("草稿已删除");
+    await loadDrafts();
+    if (selectedDraft.value?.id === draft.id) {
+      selectedDraft.value = null;
+    }
+  } catch (error) {
+    message.error("删除草稿失败: " + error.message);
+  }
+};
+
+const onEmailSent = async () => {
   message.success("邮件发送成功");
   composerVisible.value = false;
+  editingDraft.value = null;
+  // 如果是从草稿发送的，刷新草稿列表
+  if (isDraftView.value) {
+    await loadDrafts();
+  }
+};
+
+const onDraftSaved = async () => {
+  // 刷新草稿列表
+  await loadDrafts();
 };
 
 const formatTime = (timestamp) => {
@@ -689,8 +933,10 @@ watch(
 );
 
 // 生命周期
-onMounted(() => {
-  loadMailboxes();
+onMounted(async () => {
+  await loadMailboxes();
+  // 加载草稿数量（用于显示在邮箱树中）
+  await loadDrafts();
 });
 </script>
 
