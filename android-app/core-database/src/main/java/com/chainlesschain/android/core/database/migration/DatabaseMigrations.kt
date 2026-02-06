@@ -39,7 +39,8 @@ object DatabaseMigrations {
             MIGRATION_15_16,
             MIGRATION_16_17,
             MIGRATION_17_18,
-            MIGRATION_18_19
+            MIGRATION_18_19,
+            MIGRATION_19_20
         )
     }
 
@@ -973,6 +974,52 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_bookmarks_createdAt` ON `post_bookmarks` (`createdAt`)")
 
             Log.i(TAG, "Migration 18 to 19 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 19 -> 20
+     *
+     * 添加任务（Todo）表
+     *
+     * @since v0.33.0
+     */
+    val MIGRATION_19_20 = object : Migration(19, 20) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 19 to 20")
+
+            // 创建 tasks 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `tasks` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `userId` TEXT NOT NULL,
+                    `projectId` TEXT,
+                    `title` TEXT NOT NULL,
+                    `description` TEXT,
+                    `status` TEXT NOT NULL DEFAULT 'pending',
+                    `priority` TEXT NOT NULL DEFAULT 'medium',
+                    `assignedTo` TEXT,
+                    `labels` TEXT,
+                    `dueDate` INTEGER,
+                    `reminderAt` INTEGER,
+                    `estimateHours` REAL,
+                    `actualHours` REAL,
+                    `steps` TEXT,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER NOT NULL,
+                    `completedAt` INTEGER
+                )
+            """.trimIndent())
+
+            // 创建索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_userId` ON `tasks` (`userId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_projectId` ON `tasks` (`projectId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_status` ON `tasks` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_priority` ON `tasks` (`priority`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_dueDate` ON `tasks` (`dueDate`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_createdAt` ON `tasks` (`createdAt`)")
+
+            Log.i(TAG, "Migration 19 to 20 completed successfully")
         }
     }
 

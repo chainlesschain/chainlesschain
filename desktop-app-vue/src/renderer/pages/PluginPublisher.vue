@@ -398,6 +398,7 @@ import {
   InboxOutlined,
   CloudUploadOutlined,
 } from '@ant-design/icons-vue';
+import { logger } from '@/utils/logger';
 
 const router = useRouter();
 
@@ -480,11 +481,36 @@ const beforeUpload = (file) => {
   return false; // 阻止自动上传
 };
 
-const handleFileChange = (info) => {
+const handleFileChange = async (info) => {
   if (info.fileList.length > 0) {
     pluginFile.value = info.fileList[0].originFileObj;
-    // TODO: 解析ZIP文件，读取manifest.json
-    // manifestData.value = await parseManifest(pluginFile.value);
+
+    // 解析ZIP文件，读取manifest.json
+    try {
+      const arrayBuffer = await pluginFile.value.arrayBuffer();
+      const result = await window.electron.ipcRenderer.invoke('plugin:parse-zip', {
+        buffer: Array.from(new Uint8Array(arrayBuffer)),
+        fileName: pluginFile.value.name
+      });
+
+      if (result.success && result.manifest) {
+        manifestData.value = result.manifest;
+        // 自动填充插件信息
+        if (result.manifest.name) pluginInfo.value.name = result.manifest.name;
+        if (result.manifest.id) pluginInfo.value.id = result.manifest.id;
+        if (result.manifest.version) pluginInfo.value.version = result.manifest.version;
+        if (result.manifest.description) pluginInfo.value.description = result.manifest.description;
+        if (result.manifest.author) pluginInfo.value.author = result.manifest.author;
+        if (result.manifest.category) pluginInfo.value.category = result.manifest.category;
+        if (result.manifest.permissions) pluginInfo.value.permissions = result.manifest.permissions;
+        message.success('成功解析插件配置');
+      } else {
+        message.warning('无法解析manifest.json，请手动填写信息');
+      }
+    } catch (error) {
+      logger.error('解析ZIP文件失败:', error);
+      message.warning('解析失败，请手动填写插件信息');
+    }
   } else {
     pluginFile.value = null;
     manifestData.value = null;
@@ -492,15 +518,32 @@ const handleFileChange = (info) => {
 };
 
 const publishPlugin = async () => {
+  if (!pluginFile.value) {
+    message.error('请先上传插件文件');
+    return;
+  }
+
   publishing.value = true;
 
   try {
-    // TODO: 调用发布API
-    // await window.electronAPI.plugin.publishToMarketplace(pluginInfo.value, pluginFile.value);
+    // 读取文件为ArrayBuffer
+    const arrayBuffer = await pluginFile.value.arrayBuffer();
 
-    message.success('插件发布成功！');
-    router.push('/plugins/marketplace');
+    // 调用发布API
+    const result = await window.electron.ipcRenderer.invoke('plugin:publish', {
+      pluginInfo: pluginInfo.value,
+      fileBuffer: Array.from(new Uint8Array(arrayBuffer)),
+      fileName: pluginFile.value.name
+    });
+
+    if (result.success) {
+      message.success('插件发布成功！');
+      router.push('/plugins/marketplace');
+    } else {
+      message.error('发布失败: ' + (result.error || '未知错误'));
+    }
   } catch (error) {
+    logger.error('发布插件失败:', error);
     message.error('发布失败: ' + error.message);
   } finally {
     publishing.value = false;

@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.project.di
 import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ProjectChatMessageDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
+import com.chainlesschain.android.core.database.dao.TaskDao
 import com.chainlesschain.android.feature.project.repository.ProjectChatRepository
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
 import dagger.Module

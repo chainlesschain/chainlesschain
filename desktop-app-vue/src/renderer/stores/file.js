@@ -2,6 +2,7 @@ import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
+import { useIdentityStore } from './identityStore';
 
 /**
  * 文件管理Store - Phase 2
@@ -72,8 +73,13 @@ export const useFileStore = defineStore('file', () => {
    * 我锁定的文件
    */
   const myLockedFiles = computed(() => {
-    // TODO: 获取当前用户DID
-    return lockedFiles.value; // .filter(f => f.locked_by === currentUserDID);
+    // 获取当前用户DID
+    const identityStore = useIdentityStore();
+    const currentUserDID = identityStore.currentUserDID;
+    if (!currentUserDID) {
+      return lockedFiles.value;
+    }
+    return lockedFiles.value.filter(f => f.locked_by === currentUserDID);
   });
 
   /**

@@ -1350,18 +1350,50 @@ const handleRetryTask = async (taskPlan) => {
 };
 
 // 处理文件点击（预览）
-const handleFileClick = ({ file, subtask, taskPlan }) => {
+const handleFileClick = async ({ file, subtask, taskPlan }) => {
   logger.info('Preview file:', file);
-  message.info(`预览文件: ${file}`);
-  // TODO: 实现文件预览功能
+
+  try {
+    // 获取文件路径
+    const filePath = typeof file === 'string' ? file : file.path;
+
+    // 调用IPC读取文件内容
+    const result = await window.electronAPI.file.readContent(filePath);
+
+    if (result.success) {
+      // 打开文件预览模态框
+      Modal.info({
+        title: `文件预览: ${filePath.split(/[\\/]/).pop()}`,
+        width: 800,
+        content: h('pre', {
+          style: 'max-height: 500px; overflow: auto; background: #f5f5f5; padding: 16px; border-radius: 4px; font-size: 12px;'
+        }, result.content),
+        okText: '关闭'
+      });
+    } else {
+      message.error('无法预览文件: ' + (result.error || '未知错误'));
+    }
+  } catch (error) {
+    logger.error('Preview file failed:', error);
+    message.error('预览失败: ' + error.message);
+  }
 };
 
 // 处理继续编辑（根据这个来改）
 const handleContinueEdit = ({ file, taskPlan }) => {
   logger.info('Continue edit file:', file);
-  message.success(`将基于 ${file.name} 继续编辑`);
-  // TODO: 打开编辑器并加载文件内容
-  // router.push(`/projects/${taskPlan.project_id}/edit?file=${file.path}`);
+
+  // 获取文件路径
+  const filePath = typeof file === 'string' ? file : file.path;
+  const fileName = filePath.split(/[\\/]/).pop();
+
+  message.success(`将基于 ${fileName} 继续编辑`);
+
+  // 跳转到项目详情页并打开文件编辑器
+  router.push({
+    path: `/projects/${taskPlan.project_id}`,
+    query: { file: filePath, mode: 'edit' }
+  });
 };
 
 // 项目相关处理函数

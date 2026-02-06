@@ -125,7 +125,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import { init } from '../../utils/echartsConfig';
+import { init, graphic } from '../../utils/echartsConfig';
 import {
   ToolOutlined,
   CheckCircleOutlined,
@@ -260,7 +260,7 @@ const initUsageChart = () => {
         type: 'bar',
         data: sorted.map(t => t.usage_count || 0),
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          color: new graphic.LinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#667eea' },
             { offset: 1, color: '#764ba2' },
           ]),
@@ -314,7 +314,7 @@ const initTimeChart = () => {
         type: 'bar',
         data: sorted.map(t => t.avg_execution_time.toFixed(2)),
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#f093fb' },
             { offset: 1, color: '#f5576c' },
           ]),

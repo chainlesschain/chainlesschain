@@ -2,6 +2,7 @@ import { logger, createLogger } from "@/utils/logger";
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { message } from "ant-design-vue";
+import { useIdentityStore } from "./identityStore";
 
 /**
  * 任务管理Store - Phase 1
@@ -115,9 +116,13 @@ export const useTaskStore = defineStore("task", () => {
    * 我的任务（已分配给当前用户）
    */
   const myTasks = computed(() => {
-    // TODO: 获取当前用户DID
-    // return tasks.value.filter(task => task.assigned_to === currentUserDID);
-    return tasks.value;
+    // 获取当前用户DID
+    const identityStore = useIdentityStore();
+    const currentUserDID = identityStore.currentUserDID;
+    if (!currentUserDID) {
+      return tasks.value;
+    }
+    return tasks.value.filter(task => task.assigned_to === currentUserDID);
   });
 
   /**

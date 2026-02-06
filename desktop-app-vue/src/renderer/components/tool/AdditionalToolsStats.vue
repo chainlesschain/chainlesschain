@@ -520,7 +520,7 @@
 import { logger, createLogger } from '@/utils/logger';
 
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { init } from '../../utils/echartsConfig';
+import { init, graphic } from '../../utils/echartsConfig';
 import { message, Modal } from 'ant-design-vue';
 import dayjs from 'dayjs';
 import {
@@ -1288,7 +1288,7 @@ const initUsageChart = () => {
         type: 'bar',
         data: data.map(t => t.usage_count),
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          color: new graphic.LinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#667eea' },
             { offset: 1, color: '#764ba2' },
           ]),

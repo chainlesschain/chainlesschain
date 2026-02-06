@@ -314,7 +314,7 @@ const organizationIdentities = computed(() => {
     orgId: ctx.org_id,
     orgName: ctx.display_name,
     avatar: ctx.avatar,
-    role: 'member' // TODO: Get actual role from member data
+    role: ctx.member_role || ctx.role || 'member'
   }));
 });
 
