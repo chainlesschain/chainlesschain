@@ -278,7 +278,115 @@ function registerBrowserIPC() {
     return result;
   }));
 
-  logger.info('[Browser IPC] All Browser IPC handlers registered');
+  // ==================== Phase 2: 智能快照和元素操作 ====================
+
+  /**
+   * 获取页面快照
+   * @param {string} targetId - 标签页 ID
+   * @param {Object} options - 快照选项
+   * @returns {Promise<Object>} 快照对象
+   */
+  ipcMain.handle('browser:snapshot', withErrorHandler(async (event, targetId, options = {}) => {
+    const engine = getBrowserEngine();
+    const snapshot = await engine.takeSnapshot(targetId, options);
+
+    logger.info('[Browser IPC] Snapshot taken', {
+      targetId,
+      elementsCount: snapshot.elementsCount
+    });
+
+    return snapshot;
+  }));
+
+  /**
+   * 执行元素操作
+   * @param {string} targetId - 标签页 ID
+   * @param {string} action - 操作类型 (click/type/select/drag/hover)
+   * @param {string} ref - 元素引用
+   * @param {Object} options - 操作选项
+   * @returns {Promise<Object>} 操作结果
+   */
+  ipcMain.handle('browser:act', withErrorHandler(async (event, targetId, action, ref, options = {}) => {
+    const engine = getBrowserEngine();
+    const result = await engine.act(targetId, action, ref, options);
+
+    logger.info('[Browser IPC] Element action executed', {
+      targetId,
+      action,
+      ref
+    });
+
+    return result;
+  }));
+
+  /**
+   * 查找元素
+   * @param {string} targetId - 标签页 ID
+   * @param {string} ref - 元素引用
+   * @returns {Promise<Object>} 元素对象
+   */
+  ipcMain.handle('browser:findElement', withErrorHandler(async (event, targetId, ref) => {
+    const engine = getBrowserEngine();
+    const element = engine.findElement(targetId, ref);
+
+    if (!element) {
+      throw new Error(`Element ${ref} not found`);
+    }
+
+    logger.debug('[Browser IPC] Element found', { targetId, ref });
+
+    return element;
+  }));
+
+  /**
+   * 验证引用是否有效
+   * @param {string} targetId - 标签页 ID
+   * @param {string} ref - 元素引用
+   * @returns {Promise<boolean>}
+   */
+  ipcMain.handle('browser:validateRef', withErrorHandler(async (event, targetId, ref) => {
+    const engine = getBrowserEngine();
+    const isValid = engine.validateRef(targetId, ref);
+
+    logger.debug('[Browser IPC] Reference validated', {
+      targetId,
+      ref,
+      isValid
+    });
+
+    return isValid;
+  }));
+
+  /**
+   * 清除快照缓存
+   * @param {string} targetId - 标签页 ID（可选）
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:clearSnapshot', withErrorHandler(async (event, targetId = null) => {
+    const engine = getBrowserEngine();
+    engine.clearSnapshot(targetId);
+
+    logger.info('[Browser IPC] Snapshot cleared', { targetId });
+
+    return { success: true };
+  }));
+
+  /**
+   * 获取快照统计
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:getSnapshotStats', withErrorHandler(async (event) => {
+    const engine = getBrowserEngine();
+    const stats = engine.getSnapshotStats();
+
+    logger.debug('[Browser IPC] Snapshot stats retrieved', {
+      totalSnapshots: stats.totalSnapshots
+    });
+
+    return stats;
+  }));
+
+  logger.info('[Browser IPC] All Browser IPC handlers registered (Phase 1 + Phase 2)');
 }
 
 /**

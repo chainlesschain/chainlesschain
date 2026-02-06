@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-06 (浏览器控制 Phase 1 完成)
+> **最后更新**: 2026-02-06 (浏览器控制 Phase 2 完成)
 
 ---
 
@@ -49,6 +49,7 @@
 - [x] MCP 端到端集成测试 (31 测试全部通过)
 - [x] Context Window Optimization 系统实现 (KV-Cache 优化, 17 handlers)
 - [x] 浏览器自动化控制 Phase 1 (基础集成: BrowserEngine + 12 IPC 接口 + 前端 UI + 测试)
+- [x] 浏览器自动化控制 Phase 2 (智能快照: SnapshotEngine + ElementLocator + 6 IPC + SnapshotPanel)
 - [x] Prompt Compressor IPC 系统实现 (上下文压缩, 10 handlers)
 - [x] README 文档更新 (v0.28.0 → v0.29.0, 新增 6 个核心功能)
 - [x] Response Cache IPC 系统实现 (响应缓存, 11 handlers)
