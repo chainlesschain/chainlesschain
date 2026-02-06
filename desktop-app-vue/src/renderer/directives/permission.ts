@@ -6,15 +6,32 @@
  * - v-permission:hide="'member.manage'" - 如果没有权限则隐藏元素（默认）
  */
 
-import { logger, createLogger } from '@/utils/logger';
+import type { Directive, DirectiveBinding, App } from 'vue';
+import { logger } from '@/utils/logger';
 import { useIdentityStore } from '../stores/identity';
+
+type PermissionMode = 'hide' | 'disable' | 'readonly';
+
+interface PermissionModifiers {
+  disable?: boolean;
+  readonly?: boolean;
+}
+
+interface PermissionElement extends HTMLElement {
+  _hasPermission?: boolean;
+  _permissionValue?: string;
+  _permissionMode?: PermissionMode;
+  __vueParentComponent?: {
+    props?: {
+      disabled?: boolean;
+    };
+  };
+}
 
 /**
  * 检查用户是否具有指定权限
- * @param {string} permission - 权限字符串
- * @returns {Promise<boolean>}
  */
-async function checkPermission(permission) {
+async function checkPermission(permission: string): Promise<boolean> {
   const identityStore = useIdentityStore();
 
   // 如果不在组织上下文中，返回true（个人模式无权限限制）
@@ -32,10 +49,8 @@ async function checkPermission(permission) {
 
 /**
  * 处理元素的显示/隐藏
- * @param {HTMLElement} el
- * @param {boolean} hasPermission
  */
-function handleHide(el, hasPermission) {
+function handleHide(el: HTMLElement, hasPermission: boolean): void {
   if (!hasPermission) {
     el.style.display = 'none';
   } else {
@@ -45,10 +60,8 @@ function handleHide(el, hasPermission) {
 
 /**
  * 处理元素的禁用状态
- * @param {HTMLElement} el
- * @param {boolean} hasPermission
  */
-function handleDisable(el, hasPermission) {
+function handleDisable(el: PermissionElement, hasPermission: boolean): void {
   if (!hasPermission) {
     el.setAttribute('disabled', 'disabled');
     el.classList.add('permission-disabled');
@@ -81,10 +94,8 @@ function handleDisable(el, hasPermission) {
 
 /**
  * 处理元素的只读状态
- * @param {HTMLElement} el
- * @param {boolean} hasPermission
  */
-function handleReadonly(el, hasPermission) {
+function handleReadonly(el: HTMLElement, hasPermission: boolean): void {
   if (!hasPermission) {
     el.setAttribute('readonly', 'readonly');
     el.classList.add('permission-readonly');
@@ -97,10 +108,28 @@ function handleReadonly(el, hasPermission) {
 }
 
 /**
+ * 根据模式处理元素
+ */
+function applyPermissionMode(el: PermissionElement, hasPermission: boolean, mode: PermissionMode): void {
+  switch (mode) {
+    case 'disable':
+      handleDisable(el, hasPermission);
+      break;
+    case 'readonly':
+      handleReadonly(el, hasPermission);
+      break;
+    case 'hide':
+    default:
+      handleHide(el, hasPermission);
+      break;
+  }
+}
+
+/**
  * 自定义权限指令
  */
-export const permission = {
-  async mounted(el, binding) {
+export const permission: Directive<PermissionElement, string> = {
+  async mounted(el: PermissionElement, binding: DirectiveBinding<string, PermissionMode, PermissionModifiers>) {
     const { value, arg, modifiers } = binding;
 
     // 如果没有指定权限，直接返回
@@ -115,26 +144,16 @@ export const permission = {
     // 存储权限状态到元素上
     el._hasPermission = hasPermission;
     el._permissionValue = value;
-    el._permissionMode = arg || 'hide'; // 默认是hide模式
 
     // 根据模式处理元素
-    const mode = arg || (modifiers.disable ? 'disable' : modifiers.readonly ? 'readonly' : 'hide');
+    const mode: PermissionMode =
+      (arg as PermissionMode) || (modifiers.disable ? 'disable' : modifiers.readonly ? 'readonly' : 'hide');
+    el._permissionMode = mode;
 
-    switch (mode) {
-      case 'disable':
-        handleDisable(el, hasPermission);
-        break;
-      case 'readonly':
-        handleReadonly(el, hasPermission);
-        break;
-      case 'hide':
-      default:
-        handleHide(el, hasPermission);
-        break;
-    }
+    applyPermissionMode(el, hasPermission, mode);
   },
 
-  async updated(el, binding) {
+  async updated(el: PermissionElement, binding: DirectiveBinding<string, PermissionMode, PermissionModifiers>) {
     const { value, arg, modifiers } = binding;
 
     // 如果权限值没有变化，不重新检查
@@ -148,36 +167,25 @@ export const permission = {
     el._permissionValue = value;
 
     // 根据模式处理元素
-    const mode = arg || (modifiers.disable ? 'disable' : modifiers.readonly ? 'readonly' : 'hide');
+    const mode: PermissionMode =
+      (arg as PermissionMode) || (modifiers.disable ? 'disable' : modifiers.readonly ? 'readonly' : 'hide');
     el._permissionMode = mode;
 
-    switch (mode) {
-      case 'disable':
-        handleDisable(el, hasPermission);
-        break;
-      case 'readonly':
-        handleReadonly(el, hasPermission);
-        break;
-      case 'hide':
-      default:
-        handleHide(el, hasPermission);
-        break;
-    }
+    applyPermissionMode(el, hasPermission, mode);
   },
 
-  unmounted(el) {
+  unmounted(el: PermissionElement) {
     // 清理
     delete el._hasPermission;
     delete el._permissionValue;
     delete el._permissionMode;
-  }
+  },
 };
 
 /**
  * 注册指令到Vue应用
- * @param {import('vue').App} app
  */
-export function registerPermissionDirective(app) {
+export function registerPermissionDirective(app: App): void {
   app.directive('permission', permission);
 }
 
