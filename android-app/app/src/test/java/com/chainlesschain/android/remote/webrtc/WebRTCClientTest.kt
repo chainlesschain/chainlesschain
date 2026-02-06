@@ -7,17 +7,11 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.Config
 import org.webrtc.*
 import java.nio.ByteBuffer
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 /**
  * WebRTCClient 单元测试
@@ -33,8 +27,6 @@ import kotlin.test.assertTrue
  * 覆盖率目标: 85%+
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [33])
 class WebRTCClientTest {
 
     private lateinit var webRTCClient: WebRTCClient

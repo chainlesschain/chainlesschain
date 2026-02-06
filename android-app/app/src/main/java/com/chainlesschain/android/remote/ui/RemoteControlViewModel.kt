@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -60,7 +61,7 @@ class RemoteControlViewModel @Inject constructor(
 
     private fun startAutoRefreshStatus() {
         viewModelScope.launch {
-            while (coroutineContext.isActive) {
+            while (true) {
                 delay(10_000)
                 if (connectionState.value == ConnectionState.CONNECTED) {
                     refreshSystemStatus()
