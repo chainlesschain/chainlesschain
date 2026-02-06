@@ -735,30 +735,33 @@ function registerAllIPC(dependencies) {
 
     // 项目AI功能 (函数模式 - 中等模块，16 handlers)
     // 🔥 始终注册，handlers 内部会处理 llmManager/database 为 null 的情况
-    logger.info("[IPC Registry] Registering Project AI IPC...");
-      const { registerProjectAIIPC } = require("../project/project-ai-ipc");
-      registerProjectAIIPC({
-        database,
-        llmManager: llmManager || null,
-        aiEngineManager: aiEngineManager || null,
-        chatSkillBridge: chatSkillBridge || null,
-        mainWindow: mainWindow || null,
-        scanAndRegisterProjectFiles:
-          app?.scanAndRegisterProjectFiles?.bind(app) || null,
-        // 🔥 MCP 集成：传递 MCP 依赖用于项目AI会话工具调用
-        mcpClientManager,
-        mcpToolAdapter,
-      });
-      if (!llmManager) {
-        logger.info(
-          "[IPC Registry] ⚠️  LLM manager not initialized (Project AI handlers registered with degraded functionality)",
-        );
-      }
-      logger.info("[IPC Registry] ✓ Project AI IPC registered (16 handlers)");
+    const { registerProjectAIIPC } = require("../project/project-ai-ipc");
+    registerProjectAIIPC({
+      database: database || null,
+      llmManager: llmManager || null,
+      aiEngineManager: aiEngineManager || null,
+      chatSkillBridge: chatSkillBridge || null,
+      mainWindow: mainWindow || null,
+      scanAndRegisterProjectFiles:
+        app?.scanAndRegisterProjectFiles?.bind(app) || null,
+      // 🔥 MCP 集成：传递 MCP 依赖用于项目AI会话工具调用
+      mcpClientManager,
+      mcpToolAdapter,
+    });
+    if (!database) {
+      logger.info(
+        "[IPC Registry] ⚠️  Database not initialized (Project AI handlers registered with degraded functionality)",
+      );
     }
+    if (!llmManager) {
+      logger.info(
+        "[IPC Registry] ⚠️  LLM manager not initialized (Project AI handlers registered with degraded functionality)",
+      );
+    }
+    logger.info("[IPC Registry] ✓ Project AI IPC registered (16 handlers)");
 
     // 项目导出分享 (函数模式 - 大模块，17 handlers)
-    if (database || llmManager) {
+    // 🔥 始终注册，handlers 内部会处理 database/llmManager 为 null 的情况
       logger.info("[IPC Registry] Registering Project Export/Share IPC...");
       const {
         registerProjectExportIPC,

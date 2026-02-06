@@ -156,7 +156,7 @@ class ExtendedTools5 {
 
           for (const type of analysis) {
             switch (type) {
-              case 'trend':
+              case 'trend': {
                 // 简单线性回归计算趋势
                 const n = data.length;
                 const sumX = data.reduce((sum, _, i) => sum + i, 0);
@@ -173,8 +173,9 @@ class ExtendedTools5 {
                   direction: slope > 0 ? 'upward' : slope < 0 ? 'downward' : 'stable'
                 };
                 break;
+              }
 
-              case 'forecast':
+              case 'forecast': {
                 // 简单移动平均预测
                 const window = Math.min(5, data.length);
                 const recent = data.slice(-window).map(d => d.value);
@@ -182,8 +183,9 @@ class ExtendedTools5 {
 
                 results.forecast = Array(forecastPeriods).fill(avg);
                 break;
+              }
 
-              case 'anomaly':
+              case 'anomaly': {
                 // 基于标准差的异常检测
                 const values = data.map(d => d.value);
                 const mean = values.reduce((a, b) => a + b, 0) / values.length;
@@ -194,6 +196,7 @@ class ExtendedTools5 {
                   Math.abs(d.value - mean) > 2 * stdDev
                 ).map(d => ({ timestamp: d.timestamp, value: d.value }));
                 break;
+              }
             }
           }
 
