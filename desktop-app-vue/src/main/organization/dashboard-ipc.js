@@ -535,6 +535,77 @@ async function getActivityHeatmap(database, orgId) {
   }
 }
 
+/**
+ * Get bandwidth usage for the organization
+ * Calculates total bytes transferred based on sync and P2P activity logs
+ * @param {Object} db - Database instance
+ * @param {string} orgId - Organization ID
+ * @param {Object} dateRange - Date range filter
+ * @returns {number} Bandwidth used in bytes
+ */
+function getBandwidthUsed(db, orgId, dateRange) {
+  try {
+    const now = Date.now();
+    const startTime = dateRange?.start || (now - 30 * 24 * 60 * 60 * 1000); // Default: last 30 days
+
+    let totalBytes = 0;
+
+    // 1. Calculate from P2P sync transfer logs
+    try {
+      const syncBytes = db.prepare(`
+        SELECT COALESCE(SUM(bytes_transferred), 0) as total
+        FROM p2p_transfer_logs
+        WHERE org_id = ? AND timestamp >= ?
+      `).get(orgId, startTime);
+      totalBytes += parseInt(syncBytes?.total || 0);
+    } catch (e) {
+      // Table might not exist
+    }
+
+    // 2. Calculate from file sync activities
+    try {
+      const fileSyncBytes = db.prepare(`
+        SELECT COALESCE(SUM(file_size), 0) as total
+        FROM sync_queue
+        WHERE org_id = ? AND created_at >= ? AND status = 'completed'
+      `).get(orgId, startTime);
+      totalBytes += parseInt(fileSyncBytes?.total || 0);
+    } catch (e) {
+      // Table might not exist
+    }
+
+    // 3. Calculate from knowledge sync (estimate based on content size)
+    try {
+      const knowledgeBytes = db.prepare(`
+        SELECT COALESCE(SUM(LENGTH(content)), 0) as total
+        FROM organization_knowledge
+        WHERE org_id = ? AND updated_at >= ? AND sync_status = 'synced'
+      `).get(orgId, startTime);
+      // Multiply by 2 to account for upload + download
+      totalBytes += parseInt(knowledgeBytes?.total || 0) * 2;
+    } catch (e) {
+      // Table might not exist
+    }
+
+    // 4. Calculate from message sync
+    try {
+      const messageBytes = db.prepare(`
+        SELECT COALESCE(SUM(LENGTH(content) + LENGTH(COALESCE(metadata, ''))), 0) as total
+        FROM p2p_messages
+        WHERE org_id = ? AND created_at >= ?
+      `).get(orgId, startTime);
+      totalBytes += parseInt(messageBytes?.total || 0);
+    } catch (e) {
+      // Table might not exist
+    }
+
+    return totalBytes;
+  } catch (error) {
+    logger.warn('[DashboardIPC] Error calculating bandwidth:', error.message);
+    return 0;
+  }
+}
+
 module.exports = {
   registerDashboardIPC
 };
