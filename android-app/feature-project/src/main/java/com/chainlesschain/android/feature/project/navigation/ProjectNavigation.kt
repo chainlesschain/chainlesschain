@@ -13,7 +13,10 @@ import com.chainlesschain.android.feature.project.ui.CreateProjectScreen
 import com.chainlesschain.android.feature.project.ui.FileEditorScreen
 import com.chainlesschain.android.feature.project.ui.ProjectDetailScreen
 import com.chainlesschain.android.feature.project.ui.ProjectListScreen
+import com.chainlesschain.android.feature.project.ui.screens.TaskListScreen
+import com.chainlesschain.android.feature.project.ui.screens.TaskCreateScreen
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
+import com.chainlesschain.android.feature.project.viewmodel.TaskViewModel
 
 /**
  * 项目导航路由
@@ -170,6 +173,74 @@ fun NavGraphBuilder.projectNavGraph(
                 projectId = projectId,
                 fileId = fileId,
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // 任务列表
+        composable(route = ProjectRoute.TASK_LIST) {
+            val viewModel: TaskViewModel = hiltViewModel()
+
+            TaskListScreen(
+                viewModel = viewModel,
+                userId = userId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTask = { taskId ->
+                    navController.navigateToTaskDetail(taskId)
+                },
+                onNavigateToCreateTask = {
+                    navController.navigateToCreateTask()
+                }
+            )
+        }
+
+        // 创建任务
+        composable(route = ProjectRoute.TASK_CREATE) {
+            val viewModel: TaskViewModel = hiltViewModel()
+
+            TaskCreateScreen(
+                viewModel = viewModel,
+                userId = userId,
+                onNavigateBack = { navController.popBackStack() },
+                onTaskCreated = { taskId ->
+                    navController.navigateToTaskDetail(
+                        taskId,
+                        NavOptions.Builder()
+                            .setPopUpTo(ProjectRoute.TASK_LIST, false)
+                            .build()
+                    )
+                }
+            )
+        }
+
+        // 任务详情
+        composable(
+            route = ProjectRoute.TASK_DETAIL,
+            arguments = listOf(
+                navArgument("taskId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val taskId = backStackEntry.arguments?.getString("taskId") ?: return@composable
+            val viewModel: TaskViewModel = hiltViewModel()
+
+            LaunchedEffect(userId, taskId) {
+                viewModel.setCurrentUser(userId)
+                viewModel.selectTask(taskId)
+            }
+
+            // TODO: 实现 TaskDetailScreen
+            // 暂时重定向到 TaskListScreen
+            TaskListScreen(
+                viewModel = viewModel,
+                userId = userId,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToTask = { id ->
+                    if (id != taskId) {
+                        navController.navigateToTaskDetail(id)
+                    }
+                },
+                onNavigateToCreateTask = {
+                    navController.navigateToCreateTask()
+                }
             )
         }
     }

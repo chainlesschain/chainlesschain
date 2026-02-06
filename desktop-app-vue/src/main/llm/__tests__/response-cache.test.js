@@ -7,21 +7,23 @@
  * - LRU 淘汰策略
  */
 
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 const { ResponseCache, calculateCacheKey } = require('../response-cache');
 
 // Mock logger
-jest.mock('../../utils/logger.js', () => ({
+vi.mock('../../utils/logger.js', () => ({
   logger: {
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
-  createLogger: jest.fn(() => ({
-    info: jest.fn(),
-    warn: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+  createLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   })),
 }));
 
@@ -71,10 +73,10 @@ describe('ResponseCache', () => {
   beforeEach(() => {
     // Create mock database
     mockDb = {
-      prepare: jest.fn(() => ({
-        get: jest.fn(),
-        run: jest.fn(() => ({ changes: 1 })),
-        all: jest.fn(() => []),
+      prepare: vi.fn(() => ({
+        get: vi.fn(),
+        run: vi.fn(() => ({ changes: 1 })),
+        all: vi.fn(() => []),
       })),
     };
 
@@ -124,7 +126,7 @@ describe('ResponseCache', () => {
   describe('get', () => {
     it('should return miss when cache is empty', async () => {
       mockDb.prepare.mockReturnValue({
-        get: jest.fn().mockReturnValue(null),
+        get: vi.fn().mockReturnValue(null),
       });
 
       const result = await cache.get('openai', 'gpt-4', []);
@@ -140,7 +142,7 @@ describe('ResponseCache', () => {
       };
 
       mockDb.prepare.mockReturnValue({
-        get: jest.fn().mockReturnValue({
+        get: vi.fn().mockReturnValue({
           id: 'cache-1',
           response_content: JSON.stringify(cachedResponse),
           response_tokens: 50,
@@ -148,7 +150,7 @@ describe('ResponseCache', () => {
           tokens_saved: 250,
           expires_at: Date.now() + 100000,
         }),
-        run: jest.fn(),
+        run: vi.fn(),
       });
 
       const result = await cache.get('openai', 'gpt-4', []);
@@ -161,12 +163,12 @@ describe('ResponseCache', () => {
 
     it('should return miss for expired entries', async () => {
       mockDb.prepare.mockReturnValue({
-        get: jest.fn().mockReturnValue({
+        get: vi.fn().mockReturnValue({
           id: 'cache-1',
           response_content: '{}',
           expires_at: Date.now() - 1000, // Expired
         }),
-        run: jest.fn(),
+        run: vi.fn(),
       });
 
       const result = await cache.get('openai', 'gpt-4', []);
@@ -190,8 +192,8 @@ describe('ResponseCache', () => {
 
   describe('set', () => {
     it('should store response in cache', async () => {
-      const mockRun = jest.fn();
-      const mockGet = jest.fn().mockReturnValue({ count: 0 });
+      const mockRun = vi.fn();
+      const mockGet = vi.fn().mockReturnValue({ count: 0 });
 
       mockDb.prepare.mockReturnValue({
         run: mockRun,
@@ -211,10 +213,10 @@ describe('ResponseCache', () => {
     });
 
     it('should estimate tokens when not provided', async () => {
-      const mockRun = jest.fn();
+      const mockRun = vi.fn();
       mockDb.prepare.mockReturnValue({
         run: mockRun,
-        get: jest.fn().mockReturnValue({ count: 0 }),
+        get: vi.fn().mockReturnValue({ count: 0 }),
       });
 
       const response = {
@@ -240,7 +242,7 @@ describe('ResponseCache', () => {
   describe('clear', () => {
     it('should clear all cache entries', async () => {
       mockDb.prepare.mockReturnValue({
-        run: jest.fn().mockReturnValue({ changes: 50 }),
+        run: vi.fn().mockReturnValue({ changes: 50 }),
       });
 
       const count = await cache.clear();
@@ -255,7 +257,7 @@ describe('ResponseCache', () => {
   describe('clearExpired', () => {
     it('should clear expired entries', async () => {
       mockDb.prepare.mockReturnValue({
-        run: jest.fn().mockReturnValue({ changes: 10 }),
+        run: vi.fn().mockReturnValue({ changes: 10 }),
       });
 
       const count = await cache.clearExpired();
@@ -274,7 +276,7 @@ describe('ResponseCache', () => {
 
       mockDb.prepare
         .mockReturnValueOnce({
-          get: jest.fn().mockReturnValue({
+          get: vi.fn().mockReturnValue({
             total_entries: 100,
             total_hits: 500,
             total_tokens_saved: 10000,
@@ -282,7 +284,7 @@ describe('ResponseCache', () => {
           }),
         })
         .mockReturnValueOnce({
-          get: jest.fn().mockReturnValue({ count: 3 }),
+          get: vi.fn().mockReturnValue({ count: 3 }),
         });
 
       const stats = await cache.getStats();
@@ -299,7 +301,7 @@ describe('ResponseCache', () => {
   describe('getStatsByProvider', () => {
     it('should return provider-grouped statistics', async () => {
       mockDb.prepare.mockReturnValue({
-        all: jest.fn().mockReturnValue([
+        all: vi.fn().mockReturnValue([
           { provider: 'openai', entries: 50, hits: 200, tokens_saved: 5000 },
           { provider: 'anthropic', entries: 30, hits: 100, tokens_saved: 3000 },
         ]),
@@ -330,9 +332,9 @@ describe('ResponseCache', () => {
 
   describe('_enforceMaxSize', () => {
     it('should evict entries when cache is full', async () => {
-      const mockRun = jest.fn();
+      const mockRun = vi.fn();
       mockDb.prepare.mockReturnValue({
-        get: jest.fn().mockReturnValue({ count: 100 }), // At max size
+        get: vi.fn().mockReturnValue({ count: 100 }), // At max size
         run: mockRun,
       });
 
@@ -344,7 +346,7 @@ describe('ResponseCache', () => {
 
     it('should not evict when under limit', async () => {
       mockDb.prepare.mockReturnValue({
-        get: jest.fn().mockReturnValue({ count: 50 }),
+        get: vi.fn().mockReturnValue({ count: 50 }),
       });
 
       const initialEvictions = cache.stats.evictions;

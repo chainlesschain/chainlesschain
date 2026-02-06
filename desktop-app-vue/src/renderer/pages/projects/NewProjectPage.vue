@@ -20,7 +20,10 @@
               自定义创建
             </span>
           </template>
-          <AIProjectCreator @create="handleCreateProject" />
+          <AIProjectCreator
+            :initial-template="selectedTemplateForCreator"
+            @create="handleCreateProject"
+          />
         </a-tab-pane>
 
         <!-- 手动创建 -->
@@ -122,6 +125,7 @@ const activeTab = ref("ai");
 const showTemplateRecommendModal = ref(false);
 const showTemplateSelectorModal = ref(false);
 const hasShownTemplateRecommend = ref(false);
+const selectedTemplateForCreator = ref(null); // 传递给 AIProjectCreator 的模板
 
 // 返回项目列表
 const handleBack = () => {
@@ -181,10 +185,10 @@ const handleTemplateRecommendDecline = () => {
 const handleTemplateSelectFromModal = async (template) => {
   showTemplateSelectorModal.value = false;
   // 将模板信息传递给 AIProjectCreator
+  selectedTemplateForCreator.value = template;
   message.success(`已选择模板：${template.display_name || template.name}`);
   // 切换到 AI 创建标签页
   activeTab.value = "ai";
-  // TODO: 将模板信息传递给 AIProjectCreator 组件
 };
 
 const handleTemplateSelectorCancel = () => {

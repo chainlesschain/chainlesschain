@@ -353,6 +353,28 @@ class P2PConnectionManager @Inject constructor(
                 Log.d(TAG, "Received ICE candidate from: ${message.fromDeviceId}")
                 connections[message.fromDeviceId]?.addIceCandidate(message.iceCandidate)
             }
+            is SignalingMessage.Heartbeat -> {
+                Log.v(TAG, "Received heartbeat: ${message.id}")
+                // 心跳由 HeartbeatManager 处理
+            }
+            is SignalingMessage.HeartbeatAck -> {
+                Log.v(TAG, "Received heartbeat ack: ${message.id}")
+                // 心跳响应由 HeartbeatManager 处理
+            }
+            is SignalingMessage.Close -> {
+                Log.d(TAG, "Received close from: ${message.fromDeviceId}, reason: ${message.reason}")
+                scope.launch {
+                    disconnectDevice(message.fromDeviceId)
+                }
+            }
+            is SignalingMessage.MessageAck -> {
+                Log.v(TAG, "Received message ack for: ${message.ackMessageId}")
+                // ACK 由传输层处理
+            }
+            is SignalingMessage.MessageNack -> {
+                Log.w(TAG, "Received message nack for: ${message.nackMessageId}, reason: ${message.reason}")
+                // NACK 由传输层处理
+            }
         }
     }
 

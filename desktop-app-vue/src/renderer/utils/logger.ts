@@ -12,18 +12,80 @@ import {
   sanitizeData,
 } from '../../shared/logger-config.js';
 
+// ==================== 类型定义 ====================
+
+/**
+ * 日志级别
+ */
+export type LogLevel = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
+
+/**
+ * 日志级别数值
+ */
+export type LogLevelValue = 0 | 1 | 2 | 3 | 4;
+
+/**
+ * 日志配置
+ */
+export interface LoggerConfig {
+  level: LogLevelValue;
+  console: boolean;
+  file: boolean;
+  fileConfig: {
+    maxSize: number;
+    maxFiles: number;
+    compress: boolean;
+  };
+  stackTrace: boolean;
+  timestamp: boolean;
+  module: boolean;
+  performance: {
+    enabled: boolean;
+    slowThreshold: number;
+  };
+}
+
+/**
+ * 日志数据
+ */
+export interface LogData {
+  [key: string]: any;
+}
+
+/**
+ * 日志条目
+ */
+export interface LogEntry {
+  level: LogLevel;
+  module: string;
+  message: string;
+  data: LogData;
+  timestamp: string;
+  stack: string | null;
+}
+
+// ==================== 日志类 ====================
+
+/**
+ * 渲染进程日志器
+ */
 class RendererLogger {
-  constructor(module = 'renderer') {
+  private module: string;
+  private config: LoggerConfig;
+  private performanceMarks: Map<string, number>;
+  private ipcAvailable: boolean;
+
+  constructor(module: string = 'renderer') {
     this.module = module;
-    this.config = { ...DEFAULT_CONFIG };
+    this.config = { ...DEFAULT_CONFIG } as LoggerConfig;
     this.performanceMarks = new Map();
-    this.ipcAvailable = typeof window !== 'undefined' && window.electronAPI;
+    this.ipcAvailable = typeof window !== 'undefined' && !!(window as any).electronAPI;
   }
 
   /**
    * 写入日志
    */
-  log(level, message, data = {}) {
+  log(level: LogLevelValue, message: string, data: LogData = {}): void {
     if (level < this.config.level) return;
 
     const sanitized = sanitizeData(data);
@@ -51,18 +113,18 @@ class RendererLogger {
     // 通过IPC发送到主进程
     if (this.ipcAvailable && this.config.file) {
       try {
-        window.electronAPI.invoke('logger:write', {
+        (window as any).electronAPI.invoke('logger:write', {
           level: LOG_LEVEL_NAMES[level],
           module: this.module,
           message,
           data: sanitized,
           timestamp: new Date().toISOString(),
           stack: level >= LOG_LEVELS.ERROR ? getStackTrace() : null,
-        }).catch(err => {
-          logger.error('发送日志到主进程失败:', err);
+        } as LogEntry).catch((err: Error) => {
+          console.error('发送日志到主进程失败:', err);
         });
       } catch (error) {
-        logger.error('IPC日志发送失败:', error);
+        console.error('IPC日志发送失败:', error);
       }
     }
   }
@@ -70,42 +132,42 @@ class RendererLogger {
   /**
    * DEBUG级别日志
    */
-  debug(message, data) {
+  debug(message: string, data?: LogData): void {
     this.log(LOG_LEVELS.DEBUG, message, data);
   }
 
   /**
    * INFO级别日志
    */
-  info(message, data) {
+  info(message: string, data?: LogData): void {
     this.log(LOG_LEVELS.INFO, message, data);
   }
 
   /**
    * WARN级别日志
    */
-  warn(message, data) {
+  warn(message: string, data?: LogData): void {
     this.log(LOG_LEVELS.WARN, message, data);
   }
 
   /**
    * ERROR级别日志
    */
-  error(message, data) {
+  error(message: string, data?: LogData): void {
     this.log(LOG_LEVELS.ERROR, message, data);
   }
 
   /**
    * FATAL级别日志
    */
-  fatal(message, data) {
+  fatal(message: string, data?: LogData): void {
     this.log(LOG_LEVELS.FATAL, message, data);
   }
 
   /**
    * 性能监控 - 开始
    */
-  perfStart(label) {
+  perfStart(label: string): void {
     if (!this.config.performance.enabled) return;
     this.performanceMarks.set(label, performance.now());
   }
@@ -113,7 +175,7 @@ class RendererLogger {
   /**
    * 性能监控 - 结束
    */
-  perfEnd(label, data = {}) {
+  perfEnd(label: string, data: LogData = {}): number | undefined {
     if (!this.config.performance.enabled) return;
 
     const startTime = this.performanceMarks.get(label);
@@ -139,7 +201,7 @@ class RendererLogger {
   /**
    * 创建子日志器
    */
-  child(subModule) {
+  child(subModule: string): RendererLogger {
     const childLogger = new RendererLogger(`${this.module}:${subModule}`);
     childLogger.config = this.config;
     return childLogger;
@@ -148,18 +210,18 @@ class RendererLogger {
   /**
    * 更新配置
    */
-  setConfig(config) {
+  setConfig(config: Partial<LoggerConfig>): void {
     this.config = { ...this.config, ...config };
   }
 
   /**
    * 捕获未处理的错误
    */
-  captureErrors() {
+  captureErrors(): void {
     if (typeof window === 'undefined') return;
 
     // 捕获未处理的Promise拒绝
-    window.addEventListener('unhandledrejection', (event) => {
+    window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
       this.error('未处理的Promise拒绝', {
         reason: event.reason,
         promise: event.promise,
@@ -167,7 +229,7 @@ class RendererLogger {
     });
 
     // 捕获全局错误
-    window.addEventListener('error', (event) => {
+    window.addEventListener('error', (event: ErrorEvent) => {
       this.error('全局错误', {
         message: event.message,
         filename: event.filename,
@@ -178,8 +240,9 @@ class RendererLogger {
     });
 
     // Vue错误处理器（如果使用Vue）
-    if (window.app && window.app.config) {
-      window.app.config.errorHandler = (err, instance, info) => {
+    const app = (window as any).app;
+    if (app && app.config) {
+      app.config.errorHandler = (err: Error, instance: any, info: string) => {
         this.error('Vue错误', {
           error: err.message,
           component: instance?.$options?.name,
@@ -197,7 +260,7 @@ export const logger = new RendererLogger('renderer');
 export { RendererLogger };
 
 // 便捷方法
-export const createLogger = (module) => new RendererLogger(module);
+export const createLogger = (module: string): RendererLogger => new RendererLogger(module);
 
 // 自动捕获错误
 if (typeof window !== 'undefined') {

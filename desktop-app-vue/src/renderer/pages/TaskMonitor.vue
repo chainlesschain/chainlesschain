@@ -568,7 +568,14 @@ watch(teamFilter, (newValue) => {
 function handleTableChange(pagination, filters, sorter) {
   tablePagination.value = pagination;
 
-  // TODO: 根据 sorter 更新排序
+  // 根据 sorter 更新排序
+  if (sorter && sorter.field) {
+    store.setTaskFilters({
+      sortField: sorter.field,
+      sortOrder: sorter.order || null // 'ascend' | 'descend' | null
+    });
+  }
+
   taskLogger.info("表格变化:", { pagination, filters, sorter });
 }
 

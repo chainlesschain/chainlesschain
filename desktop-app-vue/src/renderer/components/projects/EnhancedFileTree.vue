@@ -1153,10 +1153,10 @@ const handleExternalFileDrop = async (files, targetNode) => {
   emit('refresh');
 };
 
-// 获取当前项目ID（需要从父组件传入或从store获取）
+// 获取当前项目ID
 const getCurrentProjectId = () => {
-  // TODO: 实际应从父组件props传入或从store获取
-  return props.projectId || window.electronAPI.getCurrentProject?.()?.id;
+  // 从父组件 props 获取项目ID（required prop）
+  return props.projectId;
 };
 
 // Git状态颜色

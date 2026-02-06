@@ -62,7 +62,7 @@ function registerAIInitializers(factory) {
   factory.register({
     name: "gitAutoCommit",
     async init() {
-      const GitAutoCommit = require("../git-auto-commit");
+      const GitAutoCommit = require("../git/git-auto-commit");
       return new GitAutoCommit({
         enabled: false,
         interval: 5 * 60 * 1000,

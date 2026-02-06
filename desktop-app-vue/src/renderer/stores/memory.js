@@ -513,13 +513,42 @@ export const useMemoryStore = defineStore("memory", {
      */
     async saveEditing() {
       if (this.activeTab === "memory") {
-        // 保存 MEMORY.md - 需要完整覆盖
-        // TODO: 实现 updateMemory IPC
-        this.cancelEditing();
+        // 保存 MEMORY.md - 完整覆盖
+        const success = await this.updateMemory(this.editingContent);
+        if (success) {
+          this.cancelEditing();
+        }
       } else {
         // 保存 Daily Note
         await this.writeDailyNote(this.editingContent, { append: false });
         this.cancelEditing();
+      }
+    },
+
+    /**
+     * 更新 MEMORY.md（完整覆盖）
+     * @param {string} content - 新的完整内容
+     * @returns {Promise<boolean>} 是否成功
+     */
+    async updateMemory(content) {
+      this.loading.memory = true;
+      try {
+        const result = await window.electron.ipcRenderer.invoke(
+          "memory:update-memory",
+          { content }
+        );
+        if (result.success) {
+          this.memoryContent = content;
+          return true;
+        } else {
+          this.error = result.error || "更新失败";
+          return false;
+        }
+      } catch (error) {
+        this.error = error.message;
+        return false;
+      } finally {
+        this.loading.memory = false;
       }
     },
 

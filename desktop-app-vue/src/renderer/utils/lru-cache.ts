@@ -3,12 +3,66 @@
  * 用于缓存文件元数据、文件类型检测结果等昂贵的计算
  */
 
-export class LRUCache {
+// ==================== 类型定义 ====================
+
+/**
+ * 缓存条目
+ */
+interface CacheEntry<T> {
+  value: T;
+  timestamp: number;
+}
+
+/**
+ * LRU 缓存统计
+ */
+export interface LRUCacheStats {
+  size: number;
+  capacity: number;
+  usage: string;
+  ttl: number;
+}
+
+/**
+ * 文件元数据缓存统计
+ */
+export interface FileMetadataCacheStats {
+  type: LRUCacheStats & { hits: number; misses: number; hitRate: string };
+  stats: LRUCacheStats & { hits: number; misses: number; hitRate: string };
+  syntax: LRUCacheStats & { hits: number; misses: number; hitRate: string };
+  ocr: LRUCacheStats & { hits: number; misses: number; hitRate: string };
+}
+
+/**
+ * 缓存命中统计
+ */
+interface CacheHitStats {
+  typeHits: number;
+  typeMisses: number;
+  statsHits: number;
+  statsMisses: number;
+  syntaxHits: number;
+  syntaxMisses: number;
+  ocrHits: number;
+  ocrMisses: number;
+}
+
+// ==================== LRU Cache 类 ====================
+
+/**
+ * LRU 缓存实现
+ */
+export class LRUCache<T = any> {
+  private capacity: number;
+  private ttl: number;
+  private cache: Map<string, CacheEntry<T>>;
+  private accessOrder: string[];
+
   /**
-   * @param {number} capacity - 缓存容量（最大条目数）
-   * @param {number} ttl - 缓存过期时间（毫秒），默认5分钟
+   * @param capacity - 缓存容量（最大条目数）
+   * @param ttl - 缓存过期时间（毫秒），默认5分钟
    */
-  constructor(capacity = 100, ttl = 5 * 60 * 1000) {
+  constructor(capacity: number = 100, ttl: number = 5 * 60 * 1000) {
     this.capacity = capacity;
     this.ttl = ttl;
     this.cache = new Map();
@@ -17,15 +71,15 @@ export class LRUCache {
 
   /**
    * 获取缓存值
-   * @param {string} key - 缓存键
-   * @returns {any} 缓存值，如果不存在或已过期则返回 undefined
+   * @param key - 缓存键
+   * @returns 缓存值，如果不存在或已过期则返回 undefined
    */
-  get(key) {
+  get(key: string): T | undefined {
     if (!this.cache.has(key)) {
       return undefined;
     }
 
-    const entry = this.cache.get(key);
+    const entry = this.cache.get(key)!;
 
     // 检查是否过期
     if (Date.now() - entry.timestamp > this.ttl) {
@@ -41,10 +95,10 @@ export class LRUCache {
 
   /**
    * 设置缓存值
-   * @param {string} key - 缓存键
-   * @param {any} value - 缓存值
+   * @param key - 缓存键
+   * @param value - 缓存值
    */
-  set(key, value) {
+  set(key: string, value: T): void {
     // 如果已存在，先删除旧的
     if (this.cache.has(key)) {
       this.delete(key);
@@ -67,9 +121,9 @@ export class LRUCache {
 
   /**
    * 删除缓存条目
-   * @param {string} key - 缓存键
+   * @param key - 缓存键
    */
-  delete(key) {
+  delete(key: string): void {
     this.cache.delete(key);
     const index = this.accessOrder.indexOf(key);
     if (index > -1) {
@@ -80,30 +134,30 @@ export class LRUCache {
   /**
    * 清空缓存
    */
-  clear() {
+  clear(): void {
     this.cache.clear();
     this.accessOrder = [];
   }
 
   /**
    * 获取缓存大小
-   * @returns {number}
+   * @returns 缓存大小
    */
-  size() {
+  size(): number {
     return this.cache.size;
   }
 
   /**
    * 检查键是否存在且未过期
-   * @param {string} key - 缓存键
-   * @returns {boolean}
+   * @param key - 缓存键
+   * @returns 是否存在
    */
-  has(key) {
+  has(key: string): boolean {
     if (!this.cache.has(key)) {
       return false;
     }
 
-    const entry = this.cache.get(key);
+    const entry = this.cache.get(key)!;
     if (Date.now() - entry.timestamp > this.ttl) {
       this.delete(key);
       return false;
@@ -116,7 +170,7 @@ export class LRUCache {
    * 更新访问顺序
    * @private
    */
-  _updateAccessOrder(key) {
+  private _updateAccessOrder(key: string): void {
     const index = this.accessOrder.indexOf(key);
     if (index > -1) {
       this.accessOrder.splice(index, 1);
@@ -126,9 +180,9 @@ export class LRUCache {
 
   /**
    * 获取缓存统计信息
-   * @returns {Object}
+   * @returns 统计信息
    */
-  getStats() {
+  getStats(): LRUCacheStats {
     return {
       size: this.cache.size,
       capacity: this.capacity,
@@ -138,25 +192,34 @@ export class LRUCache {
   }
 }
 
+// ==================== 文件元数据缓存类 ====================
+
 /**
  * 文件元数据缓存管理器
  * 专门用于缓存文件类型检测、语法高亮配置等昂贵操作
  */
 export class FileMetadataCache {
+  // 文件类型检测缓存（容量500，TTL 10分钟）
+  private typeCache: LRUCache<any>;
+
+  // 文件统计信息缓存（容量200，TTL 5分钟）
+  private statsCache: LRUCache<any>;
+
+  // 语法高亮配置缓存（容量100，TTL 15分钟）
+  private syntaxCache: LRUCache<any>;
+
+  // OCR结果缓存（容量50，TTL 30分钟）
+  private ocrCache: LRUCache<string>;
+
+  // 缓存命中统计
+  private stats: CacheHitStats;
+
   constructor() {
-    // 文件类型检测缓存（容量500，TTL 10分钟）
     this.typeCache = new LRUCache(500, 10 * 60 * 1000);
-
-    // 文件统计信息缓存（容量200，TTL 5分钟）
     this.statsCache = new LRUCache(200, 5 * 60 * 1000);
-
-    // 语法高亮配置缓存（容量100，TTL 15分钟）
     this.syntaxCache = new LRUCache(100, 15 * 60 * 1000);
-
-    // OCR结果缓存（容量50，TTL 30分钟）
     this.ocrCache = new LRUCache(50, 30 * 60 * 1000);
 
-    // 缓存命中统计
     this.stats = {
       typeHits: 0,
       typeMisses: 0,
@@ -171,10 +234,10 @@ export class FileMetadataCache {
 
   /**
    * 获取文件类型信息
-   * @param {string} filePath - 文件路径
-   * @returns {Object|undefined}
+   * @param filePath - 文件路径
+   * @returns 类型信息
    */
-  getFileType(filePath) {
+  getFileType(filePath: string): any | undefined {
     const result = this.typeCache.get(filePath);
     if (result) {
       this.stats.typeHits++;
@@ -186,19 +249,19 @@ export class FileMetadataCache {
 
   /**
    * 设置文件类型信息
-   * @param {string} filePath - 文件路径
-   * @param {Object} typeInfo - 类型信息
+   * @param filePath - 文件路径
+   * @param typeInfo - 类型信息
    */
-  setFileType(filePath, typeInfo) {
+  setFileType(filePath: string, typeInfo: any): void {
     this.typeCache.set(filePath, typeInfo);
   }
 
   /**
    * 获取文件统计信息
-   * @param {string} filePath - 文件路径
-   * @returns {Object|undefined}
+   * @param filePath - 文件路径
+   * @returns 统计信息
    */
-  getFileStats(filePath) {
+  getFileStats(filePath: string): any | undefined {
     const result = this.statsCache.get(filePath);
     if (result) {
       this.stats.statsHits++;
@@ -210,19 +273,19 @@ export class FileMetadataCache {
 
   /**
    * 设置文件统计信息
-   * @param {string} filePath - 文件路径
-   * @param {Object} stats - 统计信息
+   * @param filePath - 文件路径
+   * @param stats - 统计信息
    */
-  setFileStats(filePath, stats) {
+  setFileStats(filePath: string, stats: any): void {
     this.statsCache.set(filePath, stats);
   }
 
   /**
    * 获取语法高亮配置
-   * @param {string} language - 语言类型
-   * @returns {Object|undefined}
+   * @param language - 语言类型
+   * @returns 配置信息
    */
-  getSyntaxConfig(language) {
+  getSyntaxConfig(language: string): any | undefined {
     const result = this.syntaxCache.get(language);
     if (result) {
       this.stats.syntaxHits++;
@@ -234,19 +297,19 @@ export class FileMetadataCache {
 
   /**
    * 设置语法高亮配置
-   * @param {string} language - 语言类型
-   * @param {Object} config - 配置信息
+   * @param language - 语言类型
+   * @param config - 配置信息
    */
-  setSyntaxConfig(language, config) {
+  setSyntaxConfig(language: string, config: any): void {
     this.syntaxCache.set(language, config);
   }
 
   /**
    * 获取OCR结果
-   * @param {string} imageHash - 图片哈希
-   * @returns {string|undefined}
+   * @param imageHash - 图片哈希
+   * @returns OCR识别文本
    */
-  getOCRResult(imageHash) {
+  getOCRResult(imageHash: string): string | undefined {
     const result = this.ocrCache.get(imageHash);
     if (result) {
       this.stats.ocrHits++;
@@ -258,17 +321,17 @@ export class FileMetadataCache {
 
   /**
    * 设置OCR结果
-   * @param {string} imageHash - 图片哈希
-   * @param {string} text - OCR识别文本
+   * @param imageHash - 图片哈希
+   * @param text - OCR识别文本
    */
-  setOCRResult(imageHash, text) {
+  setOCRResult(imageHash: string, text: string): void {
     this.ocrCache.set(imageHash, text);
   }
 
   /**
    * 清空所有缓存
    */
-  clearAll() {
+  clearAll(): void {
     this.typeCache.clear();
     this.statsCache.clear();
     this.syntaxCache.clear();
@@ -277,24 +340,24 @@ export class FileMetadataCache {
 
   /**
    * 获取缓存统计信息
-   * @returns {Object}
+   * @returns 统计信息
    */
-  getStats() {
+  getStats(): FileMetadataCacheStats {
     const typeHitRate = this.stats.typeHits + this.stats.typeMisses > 0
       ? ((this.stats.typeHits / (this.stats.typeHits + this.stats.typeMisses)) * 100).toFixed(2)
-      : 0;
+      : '0';
 
     const statsHitRate = this.stats.statsHits + this.stats.statsMisses > 0
       ? ((this.stats.statsHits / (this.stats.statsHits + this.stats.statsMisses)) * 100).toFixed(2)
-      : 0;
+      : '0';
 
     const syntaxHitRate = this.stats.syntaxHits + this.stats.syntaxMisses > 0
       ? ((this.stats.syntaxHits / (this.stats.syntaxHits + this.stats.syntaxMisses)) * 100).toFixed(2)
-      : 0;
+      : '0';
 
     const ocrHitRate = this.stats.ocrHits + this.stats.ocrMisses > 0
       ? ((this.stats.ocrHits / (this.stats.ocrHits + this.stats.ocrMisses)) * 100).toFixed(2)
-      : 0;
+      : '0';
 
     return {
       type: {

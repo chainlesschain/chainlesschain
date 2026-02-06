@@ -96,14 +96,16 @@ object P2PNetworkModule {
         deviceDiscovery: DeviceDiscovery,
         signalingClient: SignalingClient,
         heartbeatManager: HeartbeatManager,
-        autoReconnectManager: AutoReconnectManager
+        autoReconnectManager: AutoReconnectManager,
+        iceServerConfig: IceServerConfig
     ): P2PConnectionManager {
         return P2PConnectionManager(
             context = context,
             deviceDiscovery = deviceDiscovery,
             signalingClient = signalingClient,
             heartbeatManager = heartbeatManager,
-            autoReconnectManager = autoReconnectManager
+            autoReconnectManager = autoReconnectManager,
+            iceServerConfig = iceServerConfig
         )
     }
 

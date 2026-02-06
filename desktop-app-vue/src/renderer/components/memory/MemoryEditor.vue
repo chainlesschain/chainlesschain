@@ -179,10 +179,18 @@ const cancelEdit = () => {
 
 // 保存编辑
 const saveEdit = async () => {
-  // TODO: 实现 updateMemory IPC（完整覆盖）
-  // 目前先使用 message 提示
-  message.info('编辑功能开发中，请使用"添加记忆"功能');
-  viewMode.value = 'preview';
+  if (!localContent.value.trim()) {
+    message.warning('内容不能为空');
+    return;
+  }
+
+  const success = await memoryStore.updateMemory(localContent.value);
+  if (success) {
+    message.success('记忆已保存');
+    viewMode.value = 'preview';
+  } else {
+    message.error('保存失败: ' + (memoryStore.error || '未知错误'));
+  }
 };
 
 // 添加记忆

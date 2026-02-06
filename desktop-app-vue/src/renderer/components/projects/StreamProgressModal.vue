@@ -240,8 +240,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, h } from 'vue';
+import { message, Modal } from 'ant-design-vue';
 import {
   CheckCircleOutlined,
   LoadingOutlined,
@@ -390,9 +390,27 @@ const formatFileSize = (bytes) => {
 
 const handleFileClick = (file) => {
   if (file.content) {
-    // 可以显示文件预览
-    message.info(`查看文件: ${file.name}`);
-    // TODO: 可以打开一个模态框显示文件内容
+    // 打开模态框显示文件内容
+    Modal.info({
+      title: file.name || '文件内容',
+      width: 800,
+      content: h('div', { style: 'max-height: 500px; overflow: auto;' }, [
+        h('pre', {
+          style: `
+            background: #f6f8fa;
+            padding: 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+          `
+        }, file.content)
+      ]),
+      okText: '关闭',
+    });
   } else if (file.path) {
     // 显示文件路径信息
     message.info(`文件路径: ${file.path}`);

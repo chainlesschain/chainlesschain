@@ -166,7 +166,7 @@ import { logger, createLogger } from '@/utils/logger';
 
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
-import { init } from '../../utils/echartsConfig';
+import { init, graphic } from '../../utils/echartsConfig';
 import {
   PieChartOutlined,
   ReloadOutlined,
@@ -393,7 +393,7 @@ const renderGrowthChart = (data) => {
         data: data.counts,
         smooth: true,
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(24, 144, 255, 0.5)' },
             { offset: 1, color: 'rgba(24, 144, 255, 0.05)' },
           ]),
@@ -437,7 +437,7 @@ const renderActivityChart = (data) => {
         type: 'bar',
         data: data.counts,
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#83bff6' },
             { offset: 0.5, color: '#188df0' },
             { offset: 1, color: '#188df0' },

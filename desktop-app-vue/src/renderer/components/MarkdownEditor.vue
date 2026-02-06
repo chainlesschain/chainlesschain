@@ -275,12 +275,10 @@ onBeforeUnmount(() => {
 
 // 获取编辑器内容
 function getEditorContent() {
-  if (!milkdownEditor) {return '';}
-  return milkdownEditor.action((ctx) => {
-    const view = ctx.get(rootCtx);
-    // TODO: 获取实际内容
-    return props.modelValue;
-  });
+  if (!milkdownEditor) {return props.modelValue || '';}
+  // Milkdown 通过 listener 插件自动同步内容到 props.modelValue
+  // 所以直接返回 props.modelValue 即为编辑器当前内容
+  return props.modelValue || '';
 }
 
 // 更新编辑器内容
