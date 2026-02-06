@@ -7,6 +7,8 @@ import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.monitor.ConnectionQualityMonitor
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -266,7 +268,7 @@ class DataChannelTransport @Inject constructor(
             fromDeviceId = "",
             toDeviceId = "",
             type = MessageType.BATCH_ACK,
-            payload = kotlinx.serialization.json.Json.encodeToString(kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.builtins.serializer<String>()), ackList),
+            payload = kotlinx.serialization.json.Json.encodeToString(ListSerializer(String.serializer()), ackList),
             requiresAck = false
         )
 
