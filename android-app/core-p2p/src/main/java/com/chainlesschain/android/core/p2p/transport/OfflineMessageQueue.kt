@@ -167,12 +167,14 @@ class OfflineMessageQueue @Inject constructor(
     }
 
     /**
-     * 标记消息发送失败（增加重试计数）
+     * 标记消息发送失败（增加重试计数，使用指数退避）
+     *
+     * @return Result<Long?> 返回下次重试的延迟时间（毫秒），null 表示已达最大重试次数
      */
-    suspend fun markFailed(deviceId: String, messageId: String): Result<Boolean> = mutex.withLock {
+    suspend fun markFailed(deviceId: String, messageId: String): Result<Long?> = mutex.withLock {
         try {
-            val queue = messageCache[deviceId] ?: return Result.success(false)
-            val message = queue.find { it.id == messageId } ?: return Result.success(false)
+            val queue = messageCache[deviceId] ?: return Result.success(null)
+            val message = queue.find { it.id == messageId } ?: return Result.success(null)
 
             val newRetryCount = message.retryCount + 1
             if (newRetryCount >= MAX_RETRY_COUNT) {
@@ -181,22 +183,88 @@ class OfflineMessageQueue @Inject constructor(
                 deleteMessageFile(deviceId, messageId)
                 Log.w(TAG, "Message exceeded max retries, removed: $messageId")
                 _events.emit(OfflineQueueEvent.MessageDropped(deviceId, messageId, "Max retries exceeded"))
-                return Result.success(false)
+                return Result.success(null)
             }
 
-            // 更新重试计数
+            // 计算指数退避延迟
+            val delayIndex = minOf(newRetryCount - 1, RETRY_DELAYS.size - 1)
+            val retryDelay = RETRY_DELAYS[delayIndex]
+            val nextRetryAt = System.currentTimeMillis() + retryDelay
+
+            // 更新重试计数和下次重试时间
             val index = queue.indexOfFirst { it.id == messageId }
             if (index >= 0) {
-                queue[index] = message.copy(retryCount = newRetryCount)
+                queue[index] = message.copy(
+                    retryCount = newRetryCount,
+                    nextRetryAt = nextRetryAt
+                )
                 saveMessage(deviceId, queue[index])
             }
 
-            Log.d(TAG, "Message retry count increased: $messageId ($newRetryCount/$MAX_RETRY_COUNT)")
+            Log.d(TAG, "Message retry scheduled: $messageId ($newRetryCount/$MAX_RETRY_COUNT) delay=${retryDelay}ms")
             _events.emit(OfflineQueueEvent.MessageRetrying(deviceId, messageId, newRetryCount))
 
-            Result.success(true)
+            Result.success(retryDelay)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to mark message as failed", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 获取可重试的消息（已到达重试时间）
+     */
+    suspend fun getRetryableMessages(deviceId: String): List<OfflineMessage> = mutex.withLock {
+        val now = System.currentTimeMillis()
+        messageCache[deviceId]?.filter {
+            it.expiresAt > now && (it.nextRetryAt == 0L || it.nextRetryAt <= now)
+        }?.sortedWith(
+            compareBy<OfflineMessage> { it.priority.ordinal }
+                .thenBy { it.enqueuedAt }
+        ) ?: emptyList()
+    }
+
+    /**
+     * 批量入队消息
+     */
+    suspend fun enqueueBatch(
+        deviceId: String,
+        messages: List<P2PMessage>,
+        expiryMs: Long = DEFAULT_EXPIRY_MS,
+        priority: MessagePriority = MessagePriority.NORMAL
+    ): Result<Int> {
+        var successCount = 0
+        messages.forEach { message ->
+            val result = enqueue(deviceId, message, expiryMs, priority)
+            if (result.isSuccess) successCount++
+        }
+        Log.d(TAG, "Batch enqueued $successCount/${messages.size} messages for $deviceId")
+        return Result.success(successCount)
+    }
+
+    /**
+     * 批量标记发送成功
+     */
+    suspend fun markSentBatch(deviceId: String, messageIds: List<String>): Result<Int> = mutex.withLock {
+        try {
+            val queue = messageCache[deviceId] ?: return Result.success(0)
+            var removedCount = 0
+
+            messageIds.forEach { messageId ->
+                if (queue.removeIf { it.id == messageId }) {
+                    deleteMessageFile(deviceId, messageId)
+                    removedCount++
+                }
+            }
+
+            if (removedCount > 0) {
+                Log.d(TAG, "Batch marked $removedCount messages as sent for $deviceId")
+                _events.emit(OfflineQueueEvent.BatchSent(deviceId, removedCount))
+            }
+
+            Result.success(removedCount)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to batch mark messages as sent", e)
             Result.failure(e)
         }
     }
@@ -392,6 +460,7 @@ data class OfflineMessage(
 sealed class OfflineQueueEvent {
     data class MessageEnqueued(val deviceId: String, val messageId: String) : OfflineQueueEvent()
     data class MessageSent(val deviceId: String, val messageId: String) : OfflineQueueEvent()
+    data class BatchSent(val deviceId: String, val count: Int) : OfflineQueueEvent()
     data class MessageRetrying(val deviceId: String, val messageId: String, val retryCount: Int) : OfflineQueueEvent()
     data class MessageDropped(val deviceId: String, val messageId: String, val reason: String) : OfflineQueueEvent()
     data class ConnectionRestored(val deviceId: String, val pendingCount: Int) : OfflineQueueEvent()

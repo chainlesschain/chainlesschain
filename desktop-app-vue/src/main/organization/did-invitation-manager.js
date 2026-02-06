@@ -360,8 +360,80 @@ class DIDInvitationManager {
 
       logger.info(`[DIDInvitationManager] ✓ 邀请已保存到本地`);
 
-      // 4. 触发通知（可以通过IPC通知前端）
-      // TODO: 实现通知机制
+      // 4. 触发通知
+      // 获取组织信息用于通知
+      let orgName = '未知组织';
+      try {
+        const org = this.orgManager?.getOrganization?.(invitation.orgId);
+        orgName = org?.name || invitation.orgId;
+      } catch (e) {
+        // 忽略
+      }
+
+      // 获取邀请者信息
+      let inviterName = invitation.inviterDID;
+      try {
+        const inviter = this.didManager?.getIdentityByDID?.(invitation.inviterDID);
+        inviterName = inviter?.nickname || inviter?.name || invitation.inviterDID.slice(-8);
+      } catch (e) {
+        // 忽略
+      }
+
+      // 创建通知记录
+      const notificationId = uuidv4();
+      const now = Date.now();
+
+      try {
+        this.db.prepare(`
+          INSERT INTO notifications (id, type, recipient_did, title, content, metadata, read, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(
+          notificationId,
+          'invitation',
+          invitation.inviteeDID,
+          `${inviterName} 邀请你加入组织`,
+          `你收到了加入「${orgName}」的邀请，角色: ${invitation.role}`,
+          JSON.stringify({
+            invitationId: invitation.invitationId,
+            orgId: invitation.orgId,
+            inviterDID: invitation.inviterDID,
+            role: invitation.role,
+            expiresAt: invitation.expiresAt,
+          }),
+          0, // unread
+          now
+        );
+      } catch (e) {
+        logger.warn('[DIDInvitationManager] 保存通知失败:', e.message);
+      }
+
+      // 通过 IPC 通知前端
+      const { BrowserWindow } = require('electron');
+      const mainWindow = BrowserWindow.getAllWindows()[0];
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('invitation:received', {
+          notificationId,
+          invitationId: invitation.invitationId,
+          orgId: invitation.orgId,
+          orgName,
+          inviterDID: invitation.inviterDID,
+          inviterName,
+          role: invitation.role,
+          message: invitation.message,
+          expiresAt: invitation.expiresAt,
+          receivedAt: now,
+        });
+        logger.info('[DIDInvitationManager] ✓ 已通知前端');
+      }
+
+      // 触发事件
+      if (typeof this.emit === 'function') {
+        this.emit('invitation:received', {
+          invitationId: invitation.invitationId,
+          orgId: invitation.orgId,
+          inviterDID: invitation.inviterDID,
+        });
+      }
     } catch (error) {
       logger.error('[DIDInvitationManager] 处理邀请失败:', error);
     }
