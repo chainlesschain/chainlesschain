@@ -2,6 +2,8 @@ package com.chainlesschain.android.core.p2p.connection
 
 import android.content.Context
 import android.util.Log
+import com.chainlesschain.android.core.p2p.config.P2PFeatureFlags
+import com.chainlesschain.android.core.p2p.ice.IceServerConfig
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -25,7 +27,8 @@ import javax.inject.Inject
  * 使用WebRTC DataChannel进行点对点数据传输
  */
 class WebRTCPeerConnection @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val iceServerConfig: IceServerConfig
 ) : P2PConnection {
 
     companion object {
@@ -41,18 +44,8 @@ class WebRTCPeerConnection @Inject constructor(
         /** ICE 重启最大尝试次数 */
         const val MAX_ICE_RESTART_ATTEMPTS = 3
 
-        // STUN服务器配置 - 使用lazy初始化以支持测试时的mock
-        // 包含多个备用服务器以提高连接成功率
-        private val ICE_SERVERS: List<PeerConnection.IceServer> by lazy {
-            listOf(
-                // Google STUN 服务器
-                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-                PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
-                PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer(),
-                // 备用 STUN 服务器
-                PeerConnection.IceServer.builder("stun:stun.stunprotocol.org:3478").createIceServer()
-            )
-        }
+        /** TURN 回退前的等待时间（毫秒） */
+        const val TURN_FALLBACK_DELAY_MS = 5_000L
     }
 
     // WebRTC组件
@@ -74,6 +67,9 @@ class WebRTCPeerConnection @Inject constructor(
     private var iceConnectionJob: Job? = null
     private val pendingIceCandidates = mutableListOf<IceCandidate>()
     private var isRemoteDescriptionSet = false
+
+    // TURN 回退状态
+    private var turnFallbackAttempted = false
 
     // 协程作用域
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())

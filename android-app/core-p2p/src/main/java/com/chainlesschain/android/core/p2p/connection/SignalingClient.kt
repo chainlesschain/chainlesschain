@@ -232,6 +232,9 @@ class SignalingClient @Inject constructor() {
                 // 启动心跳
                 startHeartbeat()
 
+                // 启动 ACK 处理器
+                startAckProcessor()
+
                 // 监听消息
                 listenForMessages()
 
@@ -331,6 +334,10 @@ class SignalingClient @Inject constructor() {
     fun disconnect() {
         cancelReconnect()
         stopHeartbeat()
+        stopAckProcessor()
+
+        // 清理待确认消息
+        pendingMessages.clear()
 
         writer?.close()
         reader?.close()
@@ -814,8 +821,15 @@ class SignalingClient @Inject constructor() {
         disconnect()
         stopServer()
         stopHeartbeat()
+        stopAckProcessor()
+        pendingMessages.clear()
         scope.cancel()
     }
+
+    /**
+     * 获取待确认消息数量
+     */
+    fun getPendingMessageCount(): Int = pendingMessages.size
 }
 
 /**
@@ -877,7 +891,8 @@ sealed class SignalingConnectionEvent {
 data class SignalingMessageWrapper(
     val type: String,
     val fromDeviceId: String = "",
-    val data: String = ""
+    val data: String = "",
+    val messageId: String? = null
 ) {
     companion object {
         fun fromSignalingMessage(message: SignalingMessage): SignalingMessageWrapper {
@@ -885,17 +900,20 @@ data class SignalingMessageWrapper(
                 is SignalingMessage.Offer -> SignalingMessageWrapper(
                     type = "offer",
                     fromDeviceId = message.fromDeviceId,
-                    data = Json.encodeToString(message.sessionDescription)
+                    data = Json.encodeToString(message.sessionDescription),
+                    messageId = message.messageId
                 )
                 is SignalingMessage.Answer -> SignalingMessageWrapper(
                     type = "answer",
                     fromDeviceId = message.fromDeviceId,
-                    data = Json.encodeToString(message.sessionDescription)
+                    data = Json.encodeToString(message.sessionDescription),
+                    messageId = message.messageId
                 )
                 is SignalingMessage.Candidate -> SignalingMessageWrapper(
                     type = "candidate",
                     fromDeviceId = message.fromDeviceId,
-                    data = Json.encodeToString(message.iceCandidate)
+                    data = Json.encodeToString(message.iceCandidate),
+                    messageId = message.messageId
                 )
                 is SignalingMessage.Heartbeat -> SignalingMessageWrapper(
                     type = "heartbeat",
@@ -910,6 +928,14 @@ data class SignalingMessageWrapper(
                     fromDeviceId = message.fromDeviceId,
                     data = message.reason
                 )
+                is SignalingMessage.MessageAck -> SignalingMessageWrapper(
+                    type = "message_ack",
+                    data = message.ackMessageId
+                )
+                is SignalingMessage.MessageNack -> SignalingMessageWrapper(
+                    type = "message_nack",
+                    data = "${message.nackMessageId}|${message.reason}"
+                )
             }
         }
     }
@@ -918,15 +944,18 @@ data class SignalingMessageWrapper(
         return when (type) {
             "offer" -> SignalingMessage.Offer(
                 fromDeviceId = fromDeviceId,
-                sessionDescription = Json.decodeFromString(data)
+                sessionDescription = Json.decodeFromString(data),
+                messageId = messageId
             )
             "answer" -> SignalingMessage.Answer(
                 fromDeviceId = fromDeviceId,
-                sessionDescription = Json.decodeFromString(data)
+                sessionDescription = Json.decodeFromString(data),
+                messageId = messageId
             )
             "candidate" -> SignalingMessage.Candidate(
                 fromDeviceId = fromDeviceId,
-                iceCandidate = Json.decodeFromString(data)
+                iceCandidate = Json.decodeFromString(data),
+                messageId = messageId
             )
             "heartbeat" -> SignalingMessage.Heartbeat(id = data)
             "heartbeat_ack" -> SignalingMessage.HeartbeatAck(id = data)
@@ -934,7 +963,43 @@ data class SignalingMessageWrapper(
                 fromDeviceId = fromDeviceId,
                 reason = data
             )
+            "message_ack" -> SignalingMessage.MessageAck(ackMessageId = data)
+            "message_nack" -> {
+                val parts = data.split("|", limit = 2)
+                SignalingMessage.MessageNack(
+                    nackMessageId = parts.getOrElse(0) { "" },
+                    reason = parts.getOrElse(1) { "Unknown" }
+                )
+            }
             else -> throw IllegalArgumentException("Unknown message type: $type")
         }
     }
+}
+
+/**
+ * 待确认的信令消息
+ */
+data class PendingSignalingMessage(
+    val messageId: String,
+    val message: SignalingMessage,
+    var sentAt: Long,
+    var retryCount: Int,
+    @Volatile var acknowledged: Boolean = false
+)
+
+/**
+ * 信令发送结果
+ */
+sealed class SignalingResult {
+    /** 发送成功 */
+    data object Success : SignalingResult()
+
+    /** 发送失败 */
+    data class Failed(val reason: String) : SignalingResult()
+
+    /** 超时 */
+    data object Timeout : SignalingResult()
+
+    /** 达到最大重试次数 */
+    data object MaxRetriesExceeded : SignalingResult()
 }
