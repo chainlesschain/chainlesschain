@@ -90,6 +90,8 @@ const aiPages = createRouteGroup("ai", {
     import(/* webpackChunkName: "ai-chat" */ "../pages/AIChatPage.vue"),
   prompts: () =>
     import(/* webpackChunkName: "ai-prompts" */ "../pages/AIPromptsPage.vue"),
+  browserControl: () =>
+    import(/* webpackChunkName: "ai-browser" */ "../pages/BrowserControl.vue"),
 });
 
 // 设置页面组（低优先级）
@@ -689,6 +691,13 @@ const routes = [
         name: "AIPrompts",
         component: () => import("../pages/AIPromptsPage.vue"),
         meta: { title: "AI助手" },
+      },
+      // 浏览器自动化控制
+      {
+        path: "ai/browser",
+        name: "BrowserControl",
+        component: () => import("../pages/BrowserControl.vue"),
+        meta: { title: "浏览器控制" },
       },
       // ===== 工作流监控 =====
       {

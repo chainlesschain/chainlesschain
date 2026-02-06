@@ -28,7 +28,7 @@ class DeviceScanViewModel @Inject constructor(
         }
     }
 
-    fun discoverDevices(fallbackDevices: List<DiscoveredDevice>) {
+    fun discoverDevices(fallbackDevices: List<DiscoveredDevice> = emptyList()) {
         viewModelScope.launch {
             val discovered = discoveryService.discoverPeers().getOrDefault(emptyList()).map {
                 DiscoveredDevice(
@@ -38,10 +38,10 @@ class DeviceScanViewModel @Inject constructor(
                     isRegistered = false
                 )
             }
-            if (discovered.isNotEmpty()) {
-                setDiscovered(discovered)
-            } else {
-                setDiscovered(fallbackDevices)
+            when {
+                discovered.isNotEmpty() -> setDiscovered(discovered)
+                fallbackDevices.isNotEmpty() -> setDiscovered(fallbackDevices)
+                else -> setDiscovered(emptyList())
             }
         }
     }

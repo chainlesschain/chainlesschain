@@ -1,4 +1,4 @@
-package com.chainlesschain.android.remote.ui
+﻿package com.chainlesschain.android.remote.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -71,13 +71,7 @@ fun DeviceScanScreen(
     LaunchedEffect(isScanning) {
         if (isScanning) {
             delay(1500)
-            viewModel.discoverDevices(
-                fallbackDevices = listOf(
-                    DiscoveredDevice("peer-001", "Office Workstation", "192.168.1.100", false),
-                    DiscoveredDevice("peer-002", "Home Desktop", "192.168.1.101", false),
-                    DiscoveredDevice("peer-003", "Meeting Room PC", "192.168.1.110", false)
-                )
-            )
+            viewModel.discoverDevices()
             isScanning = false
         }
     }
@@ -352,3 +346,4 @@ data class DiscoveredDevice(
     val ipAddress: String,
     val isRegistered: Boolean
 )
+
