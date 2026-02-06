@@ -218,6 +218,7 @@
 import { logger, createLogger } from '@/utils/logger';
 
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { getIpcBridge } from '@/utils/ipc-shim';
 import {
   PhoneOutlined,
   AudioOutlined,
@@ -230,7 +231,7 @@ import {
 } from '@ant-design/icons-vue';
 import { message } from 'ant-design-vue';
 
-const { ipcRenderer } = window.require('electron');
+const ipcRenderer = getIpcBridge();
 
 // Props
 const props = defineProps({
@@ -450,7 +451,7 @@ const getUserMedia = async () => {
 
     return localStream;
   } catch (error) {
-    logger.error('获取媒体流失败:', error);
+    logger.error('获取媒体流失败', error);
     message.error('无法访问摄像头或麦克风');
     throw error;
   }
@@ -537,6 +538,7 @@ onMounted(async () => {
   await getUserMedia();
 
   // 注册事件监听
+  if (!ipcRenderer?.on) {return;}
   ipcRenderer.on('p2p-enhanced:call-connected', handleCallConnected);
   ipcRenderer.on('p2p-enhanced:call-ended', handleCallEnded);
   ipcRenderer.on('p2p-enhanced:call-remote-stream', handleRemoteStream);
@@ -550,6 +552,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   cleanup();
+  if (!ipcRenderer?.removeListener) {return;}
 
   // 移除事件监听
   ipcRenderer.removeListener('p2p-enhanced:call-connected', handleCallConnected);
