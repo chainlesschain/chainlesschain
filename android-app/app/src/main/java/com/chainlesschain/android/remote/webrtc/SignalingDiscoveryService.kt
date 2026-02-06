@@ -1,8 +1,11 @@
 package com.chainlesschain.android.remote.webrtc
 
 import com.chainlesschain.android.remote.config.SignalingConfig
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import okhttp3.OkHttpClient
@@ -27,13 +30,16 @@ class SignalingDiscoveryService @Inject constructor(
         try {
             ws = okHttpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
-                    val msg = JSONObject().apply { put("type", "list-peers") }
+                    val msg = JSONObject().apply {
+                        put("type", "list-peers")
+                        put("requestId", System.currentTimeMillis())
+                    }
                     webSocket.send(msg.toString())
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
-                    val peers = parsePeerPayload(text)
-                    if (peers != null) {
+                    val peers = parsePeerPayload(text) ?: return
+                    if (!deferred.isCompleted) {
                         deferred.complete(peers)
                     }
                 }
@@ -42,6 +48,11 @@ class SignalingDiscoveryService @Inject constructor(
                     if (!deferred.isCompleted) deferred.complete(emptyList())
                 }
             })
+
+            CoroutineScope(Dispatchers.IO).launch {
+                delay(timeoutMs)
+                if (!deferred.isCompleted) deferred.complete(emptyList())
+            }
 
             val result = withTimeout(timeoutMs) { deferred.await() }
             Result.success(result)
@@ -61,20 +72,24 @@ class SignalingDiscoveryService @Inject constructor(
             val array = when {
                 json.has("peers") -> json.optJSONArray("peers")
                 json.has("data") -> json.optJSONArray("data")
+                json.has("result") -> json.optJSONArray("result")
                 else -> null
             } ?: return emptyList()
 
             buildList {
                 for (i in 0 until array.length()) {
                     val item = array.optJSONObject(i) ?: continue
-                    val peerId = item.optString("peerId", item.optString("id"))
+                    val peerId = item.optString("peerId", item.optString("id")).trim()
                     if (peerId.isBlank()) continue
+                    val did = item.optString("did").trim().ifEmpty { "did:key:$peerId" }
+                    val name = item.optString("deviceName", item.optString("name", peerId)).ifBlank { peerId }
+                    val ip = item.optString("ipAddress", item.optString("ip", "")).trim()
                     add(
                         DiscoveredPeer(
                             peerId = peerId,
-                            deviceName = item.optString("deviceName", item.optString("name", peerId)),
-                            ipAddress = item.optString("ipAddress", item.optString("ip", "")),
-                            did = item.optString("did", "did:key:$peerId")
+                            deviceName = name,
+                            ipAddress = ip,
+                            did = did
                         )
                     )
                 }
