@@ -608,7 +608,7 @@ class SignalingClient @Inject constructor() {
 
                         Log.d(TAG, "Received signaling message: ${message::class.simpleName}")
 
-                        // 处理心跳相关消息
+                        // 处理消息
                         when (message) {
                             is SignalingMessage.HeartbeatAck -> {
                                 handleHeartbeatResponse(message.id)
@@ -620,6 +620,14 @@ class SignalingClient @Inject constructor() {
                                     sendMessage(SignalingMessage.HeartbeatAck(message.id))
                                 }
                             }
+                            is SignalingMessage.MessageAck -> {
+                                // 处理消息确认
+                                handleMessageAck(message.ackMessageId)
+                            }
+                            is SignalingMessage.MessageNack -> {
+                                // 处理消息否定确认
+                                handleMessageNack(message.nackMessageId, message.reason)
+                            }
                             is SignalingMessage.Close -> {
                                 Log.i(TAG, "Received close message: ${message.reason}")
                                 _connectionState.value = SignalingConnectionState.Disconnected
@@ -628,8 +636,14 @@ class SignalingClient @Inject constructor() {
                                     _signalingMessages.emit(message)
                                 }
                             }
-                            else -> {
-                                // 其他消息传递给上层
+                            is SignalingMessage.Offer,
+                            is SignalingMessage.Answer,
+                            is SignalingMessage.Candidate -> {
+                                // 对需要确认的消息发送 ACK
+                                message.messageId?.let { msgId ->
+                                    scope.launch { sendAck(msgId) }
+                                }
+                                // 传递给上层
                                 kotlinx.coroutines.runBlocking {
                                     _signalingMessages.emit(message)
                                 }
