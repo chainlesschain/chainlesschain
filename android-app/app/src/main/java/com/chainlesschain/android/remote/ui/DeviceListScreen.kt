@@ -37,7 +37,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceListScreen(
-    onNavigateToDeviceDetail: (String, String) -> Unit = {},
+    onNavigateToDeviceDetail: (String, String) -> Unit = { _, _ -> },
     onNavigateToDeviceScan: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
     viewModel: DeviceListViewModel = hiltViewModel()

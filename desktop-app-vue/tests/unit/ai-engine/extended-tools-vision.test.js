@@ -32,7 +32,7 @@ describe('VisionToolsHandler', () => {
 
     // Dynamic import
     const module = await import('../../../src/main/ai-engine/extended-tools-vision.js');
-    VisionToolsHandler = module.default || module.VisionToolsHandler;
+    VisionToolsHandler = module.VisionToolsHandler; // Named export, not default
 
     handler = new VisionToolsHandler();
 
@@ -49,11 +49,12 @@ describe('VisionToolsHandler', () => {
         model: 'gpt-4-vision',
         duration: 1500,
       }),
-      describeImage: vi.fn().mockResolvedValue({
-        description: 'Image description',
+      generateDescription: vi.fn().mockResolvedValue({
+        text: 'Image description',
         model: 'gpt-4-vision',
+        detailed: false,
       }),
-      extractText: vi.fn().mockResolvedValue({
+      performOCR: vi.fn().mockResolvedValue({
         text: 'Extracted text from image',
         confidence: 0.95,
       }),
@@ -238,6 +239,7 @@ describe('VisionToolsHandler', () => {
       expect(result.success).toBe(true);
       expect(result.description).toBe('Image description');
       expect(result.model).toBe('gpt-4-vision');
+      expect(mockVisionManager.generateDescription).toHaveBeenCalled();
     });
 
     it('应该支持详细描述', async () => {

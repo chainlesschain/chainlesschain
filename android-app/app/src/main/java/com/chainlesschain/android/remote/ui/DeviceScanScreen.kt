@@ -58,7 +58,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun DeviceScanScreen(
     onNavigateBack: () -> Unit = {},
-    onDeviceSelected: (String) -> Unit = {},
+    onDeviceSelected: (String, String) -> Unit = { _, _ -> },
     viewModel: DeviceScanViewModel = hiltViewModel()
 ) {
     var isScanning by remember { mutableStateOf(false) }
@@ -117,7 +117,7 @@ fun DeviceScanScreen(
                             device = device,
                             onClick = {
                                 if (device.isRegistered) {
-                                    onDeviceSelected(device.peerId)
+                                    onDeviceSelected(device.peerId, device.did)
                                 } else {
                                     selectedDevice = device
                                     showRegisterDialog = true
@@ -142,7 +142,7 @@ fun DeviceScanScreen(
             onConfirm = { deviceName ->
                 val target = selectedDevice ?: return@RegisterDeviceDialog
                 viewModel.registerDevice(target, deviceName) {
-                    onDeviceSelected(target.peerId)
+                    onDeviceSelected(target.peerId, target.did)
                 }
                 showRegisterDialog = false
                 selectedDevice = null
@@ -344,6 +344,6 @@ data class DiscoveredDevice(
     val peerId: String,
     val deviceName: String,
     val ipAddress: String,
-    val isRegistered: Boolean
+    val did: String = "did:key:$peerId",
+    val isRegistered: Boolean = false
 )
-

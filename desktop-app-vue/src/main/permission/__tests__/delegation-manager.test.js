@@ -3,25 +3,25 @@
  *
  * Tests for permission delegation between users.
  *
+ * @jest-environment node
  * @module permission/__tests__/delegation-manager.test
  */
 
-const { describe, it, expect, beforeEach, vi } = require("vitest");
 const { DelegationManager } = require("../delegation-manager.js");
 
 // Mock logger
-vi.mock("../../utils/logger.js", () => ({
+jest.mock("../../utils/logger.js", () => ({
   logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
   },
 }));
 
 // Mock uuid
-vi.mock("uuid", () => ({
-  v4: vi.fn(() => "test-delegation-uuid"),
+jest.mock("uuid", () => ({
+  v4: jest.fn(() => "test-delegation-uuid"),
 }));
 
 describe("DelegationManager", () => {
@@ -30,18 +30,18 @@ describe("DelegationManager", () => {
   let mockDatabase;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
 
     mockDb = {
-      prepare: vi.fn(() => ({
-        run: vi.fn(),
-        get: vi.fn(),
-        all: vi.fn(() => []),
+      prepare: jest.fn(() => ({
+        run: jest.fn(),
+        get: jest.fn(),
+        all: jest.fn(() => []),
       })),
     };
 
     mockDatabase = {
-      getDatabase: vi.fn(() => mockDb),
+      getDatabase: jest.fn(() => mockDb),
     };
 
     manager = new DelegationManager(mockDatabase);
@@ -117,8 +117,8 @@ describe("DelegationManager", () => {
     });
 
     it("should create delegation with pending status", async () => {
-      const runMock = vi.fn();
-      mockDb.prepare = vi.fn(() => ({
+      const runMock = jest.fn();
+      mockDb.prepare = jest.fn(() => ({
         run: runMock,
       }));
 
@@ -155,8 +155,8 @@ describe("DelegationManager", () => {
     });
 
     it("should throw on database error", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        run: vi.fn(() => {
+      mockDb.prepare = jest.fn(() => ({
+        run: jest.fn(() => {
           throw new Error("Database connection failed");
         }),
       }));
@@ -190,9 +190,9 @@ describe("DelegationManager", () => {
         status: "active",
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => mockDelegation),
-        run: vi.fn(),
+      mockDb.prepare = jest.fn(() => ({
+        get: jest.fn(() => mockDelegation),
+        run: jest.fn(),
       }));
 
       const result = await manager.revokeDelegation(
@@ -204,8 +204,8 @@ describe("DelegationManager", () => {
     });
 
     it("should return error if delegation not found", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => null),
+      mockDb.prepare = jest.fn(() => ({
+        get: jest.fn(() => null),
       }));
 
       const result = await manager.revokeDelegation("nonexistent", "user-123");
@@ -222,8 +222,8 @@ describe("DelegationManager", () => {
         status: "active",
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => mockDelegation),
+      mockDb.prepare = jest.fn(() => ({
+        get: jest.fn(() => mockDelegation),
       }));
 
       const result = await manager.revokeDelegation(
@@ -236,15 +236,15 @@ describe("DelegationManager", () => {
     });
 
     it("should update status to revoked", async () => {
-      const runMock = vi.fn();
+      const runMock = jest.fn();
       const mockDelegation = {
         id: "delegation-123",
         delegator_did: "user-123",
         status: "active",
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => mockDelegation),
+      mockDb.prepare = jest.fn(() => ({
+        get: jest.fn(() => mockDelegation),
         run: runMock,
       }));
 
@@ -292,8 +292,8 @@ describe("DelegationManager", () => {
         },
       ];
 
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => mockDelegations),
+      mockDb.prepare = jest.fn(() => ({
+        all: jest.fn(() => mockDelegations),
       }));
 
       const result = await manager.getDelegations("user-123", "org-1");
@@ -303,8 +303,8 @@ describe("DelegationManager", () => {
     });
 
     it("should filter delegations by type (delegated)", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => []),
+      mockDb.prepare = jest.fn(() => ({
+        all: jest.fn(() => []),
       }));
 
       const result = await manager.getDelegations("user-123", "org-1", {
@@ -317,8 +317,8 @@ describe("DelegationManager", () => {
     });
 
     it("should filter delegations by type (received)", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => []),
+      mockDb.prepare = jest.fn(() => ({
+        all: jest.fn(() => []),
       }));
 
       const result = await manager.getDelegations("user-123", "org-1", {
@@ -329,8 +329,8 @@ describe("DelegationManager", () => {
     });
 
     it("should filter delegations by status", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => []),
+      mockDb.prepare = jest.fn(() => ({
+        all: jest.fn(() => []),
       }));
 
       const result = await manager.getDelegations("user-123", "org-1", {
@@ -341,8 +341,8 @@ describe("DelegationManager", () => {
     });
 
     it("should filter by both type and status", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => []),
+      mockDb.prepare = jest.fn(() => ({
+        all: jest.fn(() => []),
       }));
 
       const result = await manager.getDelegations("user-123", "org-1", {
@@ -371,8 +371,8 @@ describe("DelegationManager", () => {
         created_at: 1698000000000,
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => [mockDelegation]),
+      mockDb.prepare = jest.fn(() => ({
+        all: jest.fn(() => [mockDelegation]),
       }));
 
       const result = await manager.getDelegations("user-123", "org-1");
@@ -407,8 +407,8 @@ describe("DelegationManager", () => {
         created_at: Date.now(),
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => [mockDelegation]),
+      mockDb.prepare = jest.fn(() => ({
+        all: jest.fn(() => [mockDelegation]),
       }));
 
       const result = await manager.getDelegations("user-123", "org-1");
@@ -418,8 +418,8 @@ describe("DelegationManager", () => {
     });
 
     it("should return empty array when no delegations found", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => []),
+      mockDb.prepare = jest.fn(() => ({
+        all: jest.fn(() => []),
       }));
 
       const result = await manager.getDelegations("user-123", "org-1");
@@ -442,9 +442,9 @@ describe("DelegationManager", () => {
         status: "pending",
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => mockDelegation),
-        run: vi.fn(),
+      mockDb.prepare = jest.fn(() => ({
+        get: jest.fn(() => mockDelegation),
+        run: jest.fn(),
       }));
 
       const result = await manager.acceptDelegation(
@@ -456,8 +456,8 @@ describe("DelegationManager", () => {
     });
 
     it("should return error if delegation not found", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => null),
+      mockDb.prepare = jest.fn(() => ({
+        get: jest.fn(() => null),
       }));
 
       const result = await manager.acceptDelegation("nonexistent", "user-456");
@@ -468,8 +468,8 @@ describe("DelegationManager", () => {
 
     it("should return error if user is not the delegate", async () => {
       // The query includes delegate_did check, so it returns null if wrong user
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => null),
+      mockDb.prepare = jest.fn(() => ({
+        get: jest.fn(() => null),
       }));
 
       const result = await manager.acceptDelegation(
@@ -483,8 +483,8 @@ describe("DelegationManager", () => {
 
     it("should return error if delegation is not pending", async () => {
       // Query includes status = 'pending', so non-pending returns null
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => null),
+      mockDb.prepare = jest.fn(() => ({
+        get: jest.fn(() => null),
       }));
 
       const result = await manager.acceptDelegation(
@@ -497,7 +497,7 @@ describe("DelegationManager", () => {
     });
 
     it("should update status to active", async () => {
-      const runMock = vi.fn();
+      const runMock = jest.fn();
       const mockDelegation = {
         id: "delegation-123",
         delegator_did: "user-123",
@@ -505,8 +505,8 @@ describe("DelegationManager", () => {
         status: "pending",
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => mockDelegation),
+      mockDb.prepare = jest.fn(() => ({
+        get: jest.fn(() => mockDelegation),
         run: runMock,
       }));
 
