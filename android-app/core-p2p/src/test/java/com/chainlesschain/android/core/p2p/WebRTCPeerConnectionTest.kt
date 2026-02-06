@@ -105,4 +105,97 @@ class WebRTCPeerConnectionTest {
         // WebRTC initialization requires native library which isn't available in JVM tests
         // Integration testing should be done in androidTest
     }
+
+    // ===== ICE 状态枚举测试 =====
+
+    @Test
+    fun `IceConnectionState should have all expected values`() {
+        val states = IceConnectionState.values()
+        assertEquals(7, states.size)
+        assertTrue(states.contains(IceConnectionState.NEW))
+        assertTrue(states.contains(IceConnectionState.CHECKING))
+        assertTrue(states.contains(IceConnectionState.CONNECTED))
+        assertTrue(states.contains(IceConnectionState.COMPLETED))
+        assertTrue(states.contains(IceConnectionState.FAILED))
+        assertTrue(states.contains(IceConnectionState.DISCONNECTED))
+        assertTrue(states.contains(IceConnectionState.CLOSED))
+    }
+
+    @Test
+    fun `IceGatheringState should have all expected values`() {
+        val states = IceGatheringState.values()
+        assertEquals(3, states.size)
+        assertTrue(states.contains(IceGatheringState.NEW))
+        assertTrue(states.contains(IceGatheringState.GATHERING))
+        assertTrue(states.contains(IceGatheringState.COMPLETE))
+    }
+
+    // ===== ConnectionHealthStats 测试 =====
+
+    @Test
+    fun `ConnectionHealthStats should contain all required fields`() {
+        val stats = ConnectionHealthStats(
+            isConnected = true,
+            uptimeMs = 120000L,
+            heartbeatsSent = 8,
+            heartbeatsReceived = 7,
+            healthPercentage = 87,
+            reconnectAttempts = 2
+        )
+
+        assertTrue(stats.isConnected)
+        assertEquals(120000L, stats.uptimeMs)
+        assertEquals(8, stats.heartbeatsSent)
+        assertEquals(7, stats.heartbeatsReceived)
+        assertEquals(87, stats.healthPercentage)
+        assertEquals(2, stats.reconnectAttempts)
+    }
+
+    @Test
+    fun `ConnectionHealthStats health percentage should be calculated correctly`() {
+        // 100% health
+        val perfectStats = ConnectionHealthStats(
+            isConnected = true,
+            uptimeMs = 60000L,
+            heartbeatsSent = 10,
+            heartbeatsReceived = 10,
+            healthPercentage = 100,
+            reconnectAttempts = 0
+        )
+        assertEquals(100, perfectStats.healthPercentage)
+
+        // 50% health
+        val halfStats = ConnectionHealthStats(
+            isConnected = true,
+            uptimeMs = 60000L,
+            heartbeatsSent = 10,
+            heartbeatsReceived = 5,
+            healthPercentage = 50,
+            reconnectAttempts = 1
+        )
+        assertEquals(50, halfStats.healthPercentage)
+    }
+
+    // ===== SignalingMessage 扩展测试 =====
+
+    @Test
+    fun `SignalingMessage Heartbeat should have default timestamp`() {
+        val heartbeat = SignalingMessage.Heartbeat("hb_1")
+        assertEquals("hb_1", heartbeat.id)
+        assertTrue(heartbeat.timestamp > 0)
+    }
+
+    @Test
+    fun `SignalingMessage HeartbeatAck should have default timestamp`() {
+        val ack = SignalingMessage.HeartbeatAck("hb_1")
+        assertEquals("hb_1", ack.id)
+        assertTrue(ack.timestamp > 0)
+    }
+
+    @Test
+    fun `SignalingMessage Close should contain fromDeviceId and reason`() {
+        val close = SignalingMessage.Close("device_123", "Connection terminated")
+        assertEquals("device_123", close.fromDeviceId)
+        assertEquals("Connection terminated", close.reason)
+    }
 }

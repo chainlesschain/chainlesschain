@@ -187,4 +187,136 @@ class SignalingClientTest {
         assertEquals(2, event.attempt)
         assertEquals(4000L, event.delayMs)
     }
+
+    // ===== 心跳相关测试 =====
+
+    @Test
+    fun `HEARTBEAT_INTERVAL_MS should be reasonable value`() {
+        // 心跳间隔应该在合理范围内（5-30秒）
+        assertTrue(SignalingClient.HEARTBEAT_INTERVAL_MS >= 5_000)
+        assertTrue(SignalingClient.HEARTBEAT_INTERVAL_MS <= 30_000)
+    }
+
+    @Test
+    fun `HEARTBEAT_TIMEOUT_MS should be greater than interval`() {
+        // 心跳超时应该大于心跳间隔
+        assertTrue(SignalingClient.HEARTBEAT_TIMEOUT_MS > SignalingClient.HEARTBEAT_INTERVAL_MS)
+    }
+
+    @Test
+    fun `MAX_RECONNECT_DELAY_MS should be reasonable value`() {
+        // 最大重连延迟应该在合理范围内（10-60秒）
+        assertTrue(SignalingClient.MAX_RECONNECT_DELAY_MS >= 10_000)
+        assertTrue(SignalingClient.MAX_RECONNECT_DELAY_MS <= 60_000)
+    }
+
+    // ===== 健康度统计测试 =====
+
+    @Test
+    fun `getHealthStats should return valid stats when disconnected`() {
+        // When
+        val stats = signalingClient.getHealthStats()
+
+        // Then
+        assertFalse(stats.isConnected)
+        assertEquals(0L, stats.uptimeMs)
+        assertEquals(0, stats.heartbeatsSent)
+        assertEquals(0, stats.heartbeatsReceived)
+        assertEquals(100, stats.healthPercentage) // 未发送心跳时默认100%
+        assertEquals(0, stats.reconnectAttempts)
+    }
+
+    @Test
+    fun `ConnectionHealthStats should contain all required fields`() {
+        val stats = ConnectionHealthStats(
+            isConnected = true,
+            uptimeMs = 60000L,
+            heartbeatsSent = 10,
+            heartbeatsReceived = 9,
+            healthPercentage = 90,
+            reconnectAttempts = 1
+        )
+
+        assertTrue(stats.isConnected)
+        assertEquals(60000L, stats.uptimeMs)
+        assertEquals(10, stats.heartbeatsSent)
+        assertEquals(9, stats.heartbeatsReceived)
+        assertEquals(90, stats.healthPercentage)
+        assertEquals(1, stats.reconnectAttempts)
+    }
+
+    // ===== 新事件类型测试 =====
+
+    @Test
+    fun `HeartbeatTimeout event should exist`() {
+        val event: SignalingConnectionEvent = SignalingConnectionEvent.HeartbeatTimeout
+        assertTrue(event is SignalingConnectionEvent.HeartbeatTimeout)
+    }
+
+    @Test
+    fun `RemoteClosed event should contain reason`() {
+        val event = SignalingConnectionEvent.RemoteClosed("Server shutdown")
+        assertEquals("Server shutdown", event.reason)
+    }
+
+    // ===== 信令消息类型测试 =====
+
+    @Test
+    fun `Heartbeat message should contain id and timestamp`() {
+        val message = SignalingMessage.Heartbeat("hb_123", 1234567890L)
+        assertEquals("hb_123", message.id)
+        assertEquals(1234567890L, message.timestamp)
+    }
+
+    @Test
+    fun `HeartbeatAck message should contain id and timestamp`() {
+        val message = SignalingMessage.HeartbeatAck("hb_123", 1234567890L)
+        assertEquals("hb_123", message.id)
+        assertEquals(1234567890L, message.timestamp)
+    }
+
+    @Test
+    fun `Close message should contain deviceId and reason`() {
+        val message = SignalingMessage.Close("device_123", "User requested")
+        assertEquals("device_123", message.fromDeviceId)
+        assertEquals("User requested", message.reason)
+    }
+
+    // ===== 消息包装器测试 =====
+
+    @Test
+    fun `SignalingMessageWrapper should serialize Heartbeat correctly`() {
+        val message = SignalingMessage.Heartbeat("hb_test")
+        val wrapper = SignalingMessageWrapper.fromSignalingMessage(message)
+
+        assertEquals("heartbeat", wrapper.type)
+        assertEquals("hb_test", wrapper.data)
+    }
+
+    @Test
+    fun `SignalingMessageWrapper should serialize HeartbeatAck correctly`() {
+        val message = SignalingMessage.HeartbeatAck("hb_test")
+        val wrapper = SignalingMessageWrapper.fromSignalingMessage(message)
+
+        assertEquals("heartbeat_ack", wrapper.type)
+        assertEquals("hb_test", wrapper.data)
+    }
+
+    @Test
+    fun `SignalingMessageWrapper should deserialize heartbeat correctly`() {
+        val wrapper = SignalingMessageWrapper(type = "heartbeat", data = "hb_123")
+        val message = wrapper.toSignalingMessage()
+
+        assertTrue(message is SignalingMessage.Heartbeat)
+        assertEquals("hb_123", (message as SignalingMessage.Heartbeat).id)
+    }
+
+    @Test
+    fun `SignalingMessageWrapper should deserialize heartbeat_ack correctly`() {
+        val wrapper = SignalingMessageWrapper(type = "heartbeat_ack", data = "hb_123")
+        val message = wrapper.toSignalingMessage()
+
+        assertTrue(message is SignalingMessage.HeartbeatAck)
+        assertEquals("hb_123", (message as SignalingMessage.HeartbeatAck).id)
+    }
 }

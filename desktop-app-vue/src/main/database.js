@@ -3371,13 +3371,9 @@ class DatabaseManager {
    */
   ensureTaskBoardOwnerSchema() {
     try {
-      const tableInfo = this.db
-        .prepare("PRAGMA table_info(task_boards)")
-        .all();
+      const tableInfo = this.db.prepare("PRAGMA table_info(task_boards)").all();
       const hasOwnerDid = tableInfo.some((col) => col.name === "owner_did");
-      const hasIsArchived = tableInfo.some(
-        (col) => col.name === "is_archived",
-      );
+      const hasIsArchived = tableInfo.some((col) => col.name === "is_archived");
       const hasOrgId = tableInfo.some((col) => col.name === "org_id");
 
       if (!hasOwnerDid) {
@@ -3854,7 +3850,7 @@ class DatabaseManager {
         .get();
 
       // 定义最新迁移版本号
-      const LATEST_VERSION = 4; // 增加版本号当有新迁移时（包含 is_folder 列）
+      const LATEST_VERSION = 5; // 增加版本号当有新迁移时（v5: email_drafts 表）
 
       // BUGFIX: 总是检查关键列是否存在，即使版本号正确
       // 这确保了即使迁移版本号被更新但列没有添加的情况也能被修复
@@ -3863,16 +3859,22 @@ class DatabaseManager {
           .prepare("PRAGMA table_info(project_files)")
           .all();
         if (!filesSyncInfo.some((col) => col.name === "is_folder")) {
-          logger.warn("[Database] 检测到 project_files 缺少 is_folder 列，强制运行迁移");
+          logger.warn(
+            "[Database] 检测到 project_files 缺少 is_folder 列，强制运行迁移",
+          );
           this.runMigrations();
           // 更新版本号
           if (currentVersion) {
             this.db
-              .prepare("UPDATE migration_version SET version = ?, last_updated = ? WHERE id = 1")
+              .prepare(
+                "UPDATE migration_version SET version = ?, last_updated = ? WHERE id = 1",
+              )
               .run(LATEST_VERSION, Date.now());
           } else {
             this.db
-              .prepare("INSERT INTO migration_version (id, version, last_updated) VALUES (1, ?, ?)")
+              .prepare(
+                "INSERT INTO migration_version (id, version, last_updated) VALUES (1, ?, ?)",
+              )
               .run(LATEST_VERSION, Date.now());
           }
           logger.info("[Database] 迁移版本已更新到 v" + LATEST_VERSION);
@@ -4375,6 +4377,36 @@ class DatabaseManager {
           logger.error(
             "[Database] 创建 ErrorMonitor AI 诊断系统表失败:",
             errorAnalysisError,
+          );
+        }
+      }
+
+      // 迁移14: Email 草稿系统 (v0.29.0)
+      const emailDraftsTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='email_drafts'",
+        )
+        .get();
+
+      if (!emailDraftsTableExists) {
+        logger.info("[Database] 创建 Email 草稿系统表...");
+        try {
+          const migrationSQL = fs.readFileSync(
+            path.join(
+              __dirname,
+              "database",
+              "migrations",
+              "017_email_drafts.sql",
+            ),
+            "utf-8",
+          );
+          this.db.exec(migrationSQL);
+          this.saveToFile();
+          logger.info("[Database] ✓ Email 草稿系统表创建完成");
+        } catch (emailDraftsError) {
+          logger.error(
+            "[Database] 创建 Email 草稿系统表失败:",
+            emailDraftsError,
           );
         }
       }

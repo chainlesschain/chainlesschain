@@ -6,11 +6,16 @@ import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.coroutines.coroutineContext
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -34,6 +39,21 @@ class DataChannelTransport @Inject constructor(
 
         /** 分片大小（64KB） */
         private const val CHUNK_SIZE = 64 * 1024
+
+        /** 高水位线（缓冲区阈值，超过此值暂停发送） */
+        private const val HIGH_WATER_MARK = 1024 * 1024  // 1MB
+
+        /** 低水位线（缓冲区恢复阈值，低于此值恢复发送） */
+        private const val LOW_WATER_MARK = 256 * 1024    // 256KB
+
+        /** 最大发送速率（字节/秒），0 表示不限制 */
+        private const val MAX_SEND_RATE = 0L
+
+        /** 发送队列最大容量 */
+        private const val MAX_QUEUE_SIZE = 1000
+
+        /** 背压等待超时（毫秒） */
+        private const val BACKPRESSURE_TIMEOUT_MS = 30_000L
     }
 
     // 统计信息
@@ -61,6 +81,28 @@ class DataChannelTransport @Inject constructor(
 
     // 协程作用域
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    // 流控制状态
+    private val _flowControlState = MutableSharedFlow<FlowControlState>(
+        extraBufferCapacity = 1,
+        onBufferOverflow = kotlinx.coroutines.channels.BufferOverflow.DROP_OLDEST
+    )
+    val flowControlState: Flow<FlowControlState> = _flowControlState.asSharedFlow()
+
+    @Volatile
+    private var isPaused = false
+
+    @Volatile
+    private var currentBufferedAmount = 0L
+
+    // 发送速率限制
+    private var lastSendTime = 0L
+    private var bytesSentInWindow = 0L
+    private val rateLimitWindowMs = 1000L  // 1秒窗口
+
+    // 发送队列
+    private val sendQueue = java.util.concurrent.LinkedBlockingDeque<QueuedMessage>(MAX_QUEUE_SIZE)
+    private var sendJob: Job? = null
 
     init {
         // 监听连接收到的消息
@@ -289,7 +331,227 @@ class DataChannelTransport @Inject constructor(
         // TODO: 添加时间戳到Fragment，清理超时的分片
         fragmentCache.clear()
     }
+
+    /**
+     * 更新缓冲区状态（由 DataChannel Observer 调用）
+     */
+    fun updateBufferedAmount(amount: Long) {
+        val previousAmount = currentBufferedAmount
+        currentBufferedAmount = amount
+
+        Log.v(TAG, "Buffered amount: $amount bytes")
+
+        // 检查是否需要暂停/恢复发送
+        when {
+            amount > HIGH_WATER_MARK && !isPaused -> {
+                isPaused = true
+                Log.w(TAG, "High water mark reached ($amount > $HIGH_WATER_MARK), pausing sends")
+                scope.launch {
+                    _flowControlState.emit(FlowControlState.Paused(amount, HIGH_WATER_MARK))
+                }
+            }
+            amount < LOW_WATER_MARK && isPaused -> {
+                isPaused = false
+                Log.i(TAG, "Low water mark reached ($amount < $LOW_WATER_MARK), resuming sends")
+                scope.launch {
+                    _flowControlState.emit(FlowControlState.Resumed(amount))
+                    // 处理队列中的待发送消息
+                    processSendQueue()
+                }
+            }
+        }
+    }
+
+    /**
+     * 带流控制的发送
+     */
+    suspend fun sendWithFlowControl(message: P2PMessage): SendResult {
+        // 检查队列容量
+        if (sendQueue.size >= MAX_QUEUE_SIZE) {
+            Log.w(TAG, "Send queue full, dropping message ${message.id}")
+            return SendResult.QueueFull
+        }
+
+        return if (isPaused) {
+            // 暂停状态，加入队列
+            val queued = QueuedMessage(message, System.currentTimeMillis())
+            sendQueue.offer(queued)
+            Log.d(TAG, "Message queued due to backpressure: ${message.id}")
+            SendResult.Queued(sendQueue.size)
+        } else {
+            // 正常发送
+            val success = sendWithRateLimit(message)
+            if (success) {
+                SendResult.Sent
+            } else {
+                SendResult.Failed("Send failed")
+            }
+        }
+    }
+
+    /**
+     * 带速率限制的发送
+     */
+    private suspend fun sendWithRateLimit(message: P2PMessage): Boolean {
+        if (MAX_SEND_RATE > 0) {
+            val now = System.currentTimeMillis()
+
+            // 检查是否在新窗口
+            if (now - lastSendTime > rateLimitWindowMs) {
+                lastSendTime = now
+                bytesSentInWindow = 0
+            }
+
+            // 检查是否超过速率限制
+            val messageSize = message.payload.length.toLong()
+            if (bytesSentInWindow + messageSize > MAX_SEND_RATE) {
+                // 等待到下一个窗口
+                val waitTime = rateLimitWindowMs - (now - lastSendTime)
+                if (waitTime > 0) {
+                    Log.d(TAG, "Rate limiting, waiting ${waitTime}ms")
+                    delay(waitTime)
+                }
+                lastSendTime = System.currentTimeMillis()
+                bytesSentInWindow = 0
+            }
+
+            bytesSentInWindow += messageSize
+        }
+
+        return send(message)
+    }
+
+    /**
+     * 处理发送队列
+     */
+    private suspend fun processSendQueue() {
+        while (!isPaused && sendQueue.isNotEmpty()) {
+            val queued = sendQueue.poll() ?: break
+
+            // 检查消息是否过期
+            val age = System.currentTimeMillis() - queued.enqueuedAt
+            if (age > BACKPRESSURE_TIMEOUT_MS) {
+                Log.w(TAG, "Queued message expired after ${age}ms: ${queued.message.id}")
+                failedMessages.incrementAndGet()
+                continue
+            }
+
+            val success = sendWithRateLimit(queued.message)
+            if (!success) {
+                Log.w(TAG, "Failed to send queued message: ${queued.message.id}")
+                failedMessages.incrementAndGet()
+            }
+        }
+
+        if (sendQueue.isNotEmpty()) {
+            Log.d(TAG, "Queue processing paused, ${sendQueue.size} messages remaining")
+        }
+    }
+
+    /**
+     * 启动发送队列处理器
+     */
+    fun startQueueProcessor() {
+        sendJob?.cancel()
+        sendJob = scope.launch {
+            while (isActive) {
+                if (!isPaused && sendQueue.isNotEmpty()) {
+                    processSendQueue()
+                }
+                delay(100) // 检查间隔
+            }
+        }
+    }
+
+    /**
+     * 停止发送队列处理器
+     */
+    fun stopQueueProcessor() {
+        sendJob?.cancel()
+        sendJob = null
+    }
+
+    /**
+     * 获取流控制统计
+     */
+    fun getFlowControlStats(): FlowControlStats {
+        return FlowControlStats(
+            isPaused = isPaused,
+            bufferedAmount = currentBufferedAmount,
+            queueSize = sendQueue.size,
+            highWaterMark = HIGH_WATER_MARK.toLong(),
+            lowWaterMark = LOW_WATER_MARK.toLong()
+        )
+    }
+
+    /**
+     * 清空发送队列
+     */
+    fun clearQueue() {
+        val count = sendQueue.size
+        sendQueue.clear()
+        Log.i(TAG, "Cleared $count messages from send queue")
+    }
+
+    /**
+     * 释放资源
+     */
+    fun release() {
+        stopQueueProcessor()
+        clearQueue()
+        scope.cancel()
+    }
 }
+
+/**
+ * 流控制状态
+ */
+sealed class FlowControlState {
+    /** 正常 */
+    data object Normal : FlowControlState()
+
+    /** 暂停发送（背压） */
+    data class Paused(val bufferedAmount: Long, val threshold: Long) : FlowControlState()
+
+    /** 恢复发送 */
+    data class Resumed(val bufferedAmount: Long) : FlowControlState()
+}
+
+/**
+ * 发送结果
+ */
+sealed class SendResult {
+    /** 发送成功 */
+    data object Sent : SendResult()
+
+    /** 已加入队列 */
+    data class Queued(val queuePosition: Int) : SendResult()
+
+    /** 队列已满 */
+    data object QueueFull : SendResult()
+
+    /** 发送失败 */
+    data class Failed(val reason: String) : SendResult()
+}
+
+/**
+ * 队列消息
+ */
+data class QueuedMessage(
+    val message: P2PMessage,
+    val enqueuedAt: Long
+)
+
+/**
+ * 流控制统计
+ */
+data class FlowControlStats(
+    val isPaused: Boolean,
+    val bufferedAmount: Long,
+    val queueSize: Int,
+    val highWaterMark: Long,
+    val lowWaterMark: Long
+)
 
 /**
  * 消息分片

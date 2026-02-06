@@ -20,12 +20,21 @@ import kotlin.coroutines.resume
  * - Handles SDP offer/answer exchange
  * - Manages ICE candidate gathering and exchange
  * - Monitors connection state
+ * - Automatic reconnection and recovery
+ * - Offline message queue integration
  */
 @Singleton
 class WebRTCConnectionManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val signalingClient: SignalingClient
 ) {
+    companion object {
+        private const val MAX_RECONNECT_ATTEMPTS = 3
+        private const val RECONNECT_DELAY_MS = 2000L
+        private const val CONNECTION_TIMEOUT_MS = 30_000L
+        private const val ICE_RESTART_DELAY_MS = 5000L
+    }
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val peerConnectionFactory: PeerConnectionFactory by lazy {
@@ -35,14 +44,48 @@ class WebRTCConnectionManager @Inject constructor(
     private val peerConnections = mutableMapOf<String, PeerConnection>()
     private val pendingIceCandidates = mutableMapOf<String, MutableList<IceCandidate>>()
 
+    // 连接恢复状态
+    private val reconnectAttempts = mutableMapOf<String, Int>()
+    private val reconnectJobs = mutableMapOf<String, Job>()
+    private val connectionTimeoutJobs = mutableMapOf<String, Job>()
+
     private val _connectionStates = MutableStateFlow<Map<String, PeerConnectionState>>(emptyMap())
     val connectionStates: StateFlow<Map<String, PeerConnectionState>> = _connectionStates.asStateFlow()
+
+    // 连接事件流
+    private val _connectionEvents = MutableSharedFlow<ConnectionEvent>(extraBufferCapacity = 64)
+    val connectionEvents: SharedFlow<ConnectionEvent> = _connectionEvents.asSharedFlow()
+
+    // 本地用户 ID 缓存
+    private var cachedLocalUserId: String? = null
 
     init {
         // Listen for signaling messages
         scope.launch {
             signalingClient.incomingMessages.collect { message ->
                 handleSignalingMessage(message)
+            }
+        }
+
+        // 监控连接状态变化
+        scope.launch {
+            connectionStates.collect { states ->
+                states.forEach { (peerId, state) ->
+                    when (state) {
+                        PeerConnectionState.FAILED -> handleConnectionFailed(peerId)
+                        PeerConnectionState.DISCONNECTED -> handleConnectionDisconnected(peerId)
+                        PeerConnectionState.CONNECTED, PeerConnectionState.COMPLETED -> {
+                            // 连接成功，重置重连计数
+                            reconnectAttempts.remove(peerId)
+                            connectionTimeoutJobs[peerId]?.cancel()
+                            connectionTimeoutJobs.remove(peerId)
+                            scope.launch {
+                                _connectionEvents.emit(ConnectionEvent.Connected(peerId))
+                            }
+                        }
+                        else -> {}
+                    }
+                }
             }
         }
     }
@@ -58,6 +101,12 @@ class WebRTCConnectionManager @Inject constructor(
         return withContext(Dispatchers.Default) {
             try {
                 Timber.d("Creating offer for peer: $remotePeerId")
+
+                // 缓存本地用户 ID 用于重连
+                cachedLocalUserId = localUserId
+
+                // 启动连接超时监控
+                startConnectionTimeout(remotePeerId)
 
                 val peerConnection = getOrCreatePeerConnection(remotePeerId, localUserId)
 
@@ -465,9 +514,218 @@ class WebRTCConnectionManager @Inject constructor(
     }
 
     /**
+     * 处理连接失败
+     */
+    private fun handleConnectionFailed(peerId: String) {
+        val attempts = reconnectAttempts.getOrDefault(peerId, 0)
+
+        if (attempts < MAX_RECONNECT_ATTEMPTS) {
+            Timber.w("Connection failed for $peerId, scheduling reconnect (attempt ${attempts + 1}/$MAX_RECONNECT_ATTEMPTS)")
+
+            reconnectJobs[peerId]?.cancel()
+            reconnectJobs[peerId] = scope.launch {
+                delay(RECONNECT_DELAY_MS * (attempts + 1))
+                attemptReconnect(peerId)
+            }
+        } else {
+            Timber.e("Connection failed for $peerId after $MAX_RECONNECT_ATTEMPTS attempts")
+            scope.launch {
+                _connectionEvents.emit(ConnectionEvent.Failed(peerId, "Max reconnect attempts reached"))
+            }
+            cleanupPeerConnection(peerId)
+        }
+    }
+
+    /**
+     * 处理连接断开（可能是临时的）
+     */
+    private fun handleConnectionDisconnected(peerId: String) {
+        Timber.w("Connection disconnected for $peerId, waiting for recovery...")
+
+        // 给连接一些时间自动恢复
+        reconnectJobs[peerId]?.cancel()
+        reconnectJobs[peerId] = scope.launch {
+            delay(ICE_RESTART_DELAY_MS)
+
+            // 检查是否仍然断开
+            val currentState = _connectionStates.value[peerId]
+            if (currentState == PeerConnectionState.DISCONNECTED) {
+                Timber.i("Connection still disconnected for $peerId, attempting ICE restart")
+                attemptIceRestart(peerId)
+            }
+        }
+    }
+
+    /**
+     * 尝试重新连接
+     */
+    private suspend fun attemptReconnect(peerId: String) {
+        val localUserId = cachedLocalUserId ?: return
+
+        Timber.i("Attempting reconnect to $peerId")
+        reconnectAttempts[peerId] = reconnectAttempts.getOrDefault(peerId, 0) + 1
+
+        scope.launch {
+            _connectionEvents.emit(ConnectionEvent.Reconnecting(peerId, reconnectAttempts[peerId] ?: 1))
+        }
+
+        // 关闭旧连接
+        closePeerConnection(peerId)
+
+        // 创建新的 offer
+        val result = createOffer(peerId, localUserId)
+        if (result.isFailure) {
+            Timber.e(result.exceptionOrNull(), "Failed to create offer during reconnect")
+            handleConnectionFailed(peerId)
+        }
+    }
+
+    /**
+     * 尝试 ICE 重启
+     */
+    private suspend fun attemptIceRestart(peerId: String) {
+        val peerConnection = peerConnections[peerId] ?: return
+        val localUserId = cachedLocalUserId ?: return
+
+        Timber.i("Attempting ICE restart for $peerId")
+
+        scope.launch {
+            _connectionEvents.emit(ConnectionEvent.IceRestarting(peerId))
+        }
+
+        try {
+            // 创建带 ICE restart 的新 offer
+            val constraints = MediaConstraints().apply {
+                mandatory.add(MediaConstraints.KeyValuePair("IceRestart", "true"))
+            }
+
+            val offerSdp = suspendCancellableCoroutine { continuation ->
+                peerConnection.createOffer(object : SdpObserver {
+                    override fun onCreateSuccess(sdp: SessionDescription?) {
+                        continuation.resume(sdp, null)
+                    }
+
+                    override fun onCreateFailure(error: String?) {
+                        continuation.resumeWith(Result.failure(Exception("Failed to create ICE restart offer: $error")))
+                    }
+
+                    override fun onSetSuccess() {}
+                    override fun onSetFailure(error: String?) {}
+                }, constraints)
+            }
+
+            // 设置本地描述
+            suspendCancellableCoroutine<Unit> { continuation ->
+                peerConnection.setLocalDescription(object : SdpObserver {
+                    override fun onSetSuccess() {
+                        continuation.resume(Unit, null)
+                    }
+
+                    override fun onSetFailure(error: String?) {
+                        continuation.resumeWith(Result.failure(Exception("Failed to set local description: $error")))
+                    }
+
+                    override fun onCreateSuccess(sdp: SessionDescription?) {}
+                    override fun onCreateFailure(error: String?) {}
+                }, offerSdp)
+            }
+
+            // 发送 offer
+            val offerMessage = SignalingMessage.Offer(
+                from = localUserId,
+                to = peerId,
+                sdp = offerSdp?.description ?: throw Exception("Offer SDP is null")
+            )
+            signalingClient.send(offerMessage)
+
+            Timber.i("ICE restart offer sent to $peerId")
+        } catch (e: Exception) {
+            Timber.e(e, "ICE restart failed for $peerId")
+            handleConnectionFailed(peerId)
+        }
+    }
+
+    /**
+     * 清理单个对等连接
+     */
+    private fun cleanupPeerConnection(peerId: String) {
+        reconnectJobs[peerId]?.cancel()
+        reconnectJobs.remove(peerId)
+        connectionTimeoutJobs[peerId]?.cancel()
+        connectionTimeoutJobs.remove(peerId)
+        reconnectAttempts.remove(peerId)
+        pendingIceCandidates.remove(peerId)
+
+        peerConnections.remove(peerId)?.apply {
+            close()
+            dispose()
+        }
+
+        val newStates = _connectionStates.value.toMutableMap()
+        newStates.remove(peerId)
+        _connectionStates.value = newStates
+    }
+
+    /**
+     * 启动连接超时监控
+     */
+    private fun startConnectionTimeout(peerId: String) {
+        connectionTimeoutJobs[peerId]?.cancel()
+        connectionTimeoutJobs[peerId] = scope.launch {
+            delay(CONNECTION_TIMEOUT_MS)
+
+            val currentState = _connectionStates.value[peerId]
+            if (currentState != PeerConnectionState.CONNECTED && currentState != PeerConnectionState.COMPLETED) {
+                Timber.e("Connection timeout for $peerId")
+                scope.launch {
+                    _connectionEvents.emit(ConnectionEvent.Timeout(peerId))
+                }
+                handleConnectionFailed(peerId)
+            }
+        }
+    }
+
+    /**
+     * 获取连接统计信息
+     */
+    fun getConnectionStats(): ConnectionStats {
+        val states = _connectionStates.value
+        return ConnectionStats(
+            totalConnections = peerConnections.size,
+            connectedCount = states.count { it.value == PeerConnectionState.CONNECTED || it.value == PeerConnectionState.COMPLETED },
+            connectingCount = states.count { it.value == PeerConnectionState.NEW || it.value == PeerConnectionState.CHECKING },
+            failedCount = states.count { it.value == PeerConnectionState.FAILED },
+            disconnectedCount = states.count { it.value == PeerConnectionState.DISCONNECTED }
+        )
+    }
+
+    /**
+     * 手动触发重连
+     */
+    suspend fun reconnect(peerId: String, localUserId: String): Result<Unit> {
+        cachedLocalUserId = localUserId
+        reconnectAttempts[peerId] = 0
+        return withContext(Dispatchers.Default) {
+            try {
+                attemptReconnect(peerId)
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
      * Cleanup resources
      */
     fun cleanup() {
+        // 取消所有重连任务
+        reconnectJobs.values.forEach { it.cancel() }
+        reconnectJobs.clear()
+        connectionTimeoutJobs.values.forEach { it.cancel() }
+        connectionTimeoutJobs.clear()
+        reconnectAttempts.clear()
+
         scope.cancel()
         peerConnections.values.forEach { pc ->
             pc.close()
@@ -478,6 +736,29 @@ class WebRTCConnectionManager @Inject constructor(
         peerConnectionFactory.dispose()
     }
 }
+
+/**
+ * 连接事件
+ */
+sealed class ConnectionEvent {
+    data class Connected(val peerId: String) : ConnectionEvent()
+    data class Disconnected(val peerId: String) : ConnectionEvent()
+    data class Failed(val peerId: String, val reason: String) : ConnectionEvent()
+    data class Reconnecting(val peerId: String, val attempt: Int) : ConnectionEvent()
+    data class IceRestarting(val peerId: String) : ConnectionEvent()
+    data class Timeout(val peerId: String) : ConnectionEvent()
+}
+
+/**
+ * 连接统计
+ */
+data class ConnectionStats(
+    val totalConnections: Int,
+    val connectedCount: Int,
+    val connectingCount: Int,
+    val failedCount: Int,
+    val disconnectedCount: Int
+)
 
 /**
  * Peer connection state
