@@ -12,7 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import delay
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -181,8 +181,10 @@ class WebRTCPeerConnection @Inject constructor(
 
     /**
      * 创建PeerConnection
+     *
+     * @param forceTurnRelay 是否强制使用 TURN 中继模式
      */
-    private fun createPeerConnection() {
+    private fun createPeerConnection(forceTurnRelay: Boolean = false) {
         // 重置 ICE 状态
         iceRestartAttempts = 0
         pendingIceCandidates.clear()
@@ -190,15 +192,18 @@ class WebRTCPeerConnection @Inject constructor(
         _iceGatheringState.value = IceGatheringState.NEW
         _iceConnectionState.value = IceConnectionState.NEW
 
-        val rtcConfig = PeerConnection.RTCConfiguration(ICE_SERVERS).apply {
-            bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
-            rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
-            tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
-            // 启用 ICE 候选池，加速连接建立
-            iceCandidatePoolSize = 2
-            // 使用所有可用网络接口
-            continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
+        // 如果需要强制使用 TURN，切换传输策略
+        if (forceTurnRelay && P2PFeatureFlags.enableTurnFallback) {
+            iceServerConfig.forceRelay()
+            Log.i(TAG, "Forcing TURN relay mode")
+        } else {
+            iceServerConfig.useNormalPolicy()
         }
+
+        // 使用配置化的 ICE 服务器
+        val rtcConfig = iceServerConfig.getRtcConfiguration()
+
+        Log.d(TAG, "Creating PeerConnection with ${iceServerConfig.getConfigSummary()}")
 
         peerConnection = peerConnectionFactory?.createPeerConnection(
             rtcConfig,
@@ -607,10 +612,53 @@ class WebRTCPeerConnection @Inject constructor(
         if (iceRestartAttempts < MAX_ICE_RESTART_ATTEMPTS) {
             Log.w(TAG, "ICE connection failed, attempting restart (${iceRestartAttempts + 1}/$MAX_ICE_RESTART_ATTEMPTS)")
             attemptIceRestart()
+        } else if (P2PFeatureFlags.enableTurnFallback && !turnFallbackAttempted && hasTurnServersConfigured()) {
+            // 尝试 TURN 回退
+            Log.w(TAG, "ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS attempts, falling back to TURN relay")
+            attemptTurnFallback()
         } else {
-            Log.e(TAG, "ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS restart attempts")
-            _connectionState.value = ConnectionState.Failed("ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS attempts")
-            onIceConnectionFailed?.invoke("ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS attempts")
+            val reason = if (turnFallbackAttempted) {
+                "ICE connection failed after TURN fallback"
+            } else {
+                "ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS attempts"
+            }
+            Log.e(TAG, reason)
+            _connectionState.value = ConnectionState.Failed(reason)
+            onIceConnectionFailed?.invoke(reason)
+        }
+    }
+
+    /**
+     * 检查是否配置了 TURN 服务器
+     */
+    private fun hasTurnServersConfigured(): Boolean {
+        return iceServerConfig.getConfigSummary().turnServerCount > 0
+    }
+
+    /**
+     * 尝试使用 TURN 服务器回退
+     */
+    private fun attemptTurnFallback() {
+        turnFallbackAttempted = true
+        iceRestartAttempts = 0
+
+        Log.i(TAG, "Attempting TURN fallback")
+
+        // 关闭当前连接
+        peerConnection?.close()
+        peerConnection = null
+        dataChannel?.close()
+        dataChannel = null
+
+        scope.launch {
+            // 短暂延迟后重建连接
+            delay(TURN_FALLBACK_DELAY_MS)
+
+            // 使用 TURN 模式重新创建连接
+            createPeerConnection(forceTurnRelay = true)
+
+            // 重新创建 Offer
+            createOffer()
         }
     }
 

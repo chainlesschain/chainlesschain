@@ -729,8 +729,8 @@ const handleRejectInvitation = async (invitationId) => {
 // 处理下拉菜单操作
 const handleAction = (key, projectId) => {
   if (key === "manage") {
-    // TODO: 打开管理协作者对话框
-    message.info("管理协作者功能开发中...");
+    // 跳转到项目协作者管理页面
+    router.push(`/projects/${projectId}/collaborators`);
   } else if (key === "leave") {
     Modal.confirm({
       title: "确认退出",
@@ -740,13 +740,17 @@ const handleAction = (key, projectId) => {
       cancelText: "取消",
       onOk: async () => {
         try {
-          // TODO: 调用后端API退出协作
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          // 调用后端API退出协作
+          const result = await window.electron.ipcRenderer.invoke("collab:leave-project", projectId);
 
-          collaborationProjects.value = collaborationProjects.value.filter(
-            (p) => p.id !== projectId,
-          );
-          message.success("已退出协作项目");
+          if (result.success) {
+            collaborationProjects.value = collaborationProjects.value.filter(
+              (p) => p.id !== projectId,
+            );
+            message.success("已退出协作项目");
+          } else {
+            message.error(result.error || "退出失败");
+          }
         } catch (error) {
           logger.error("Leave project failed:", error);
           message.error("退出失败：" + error.message);
