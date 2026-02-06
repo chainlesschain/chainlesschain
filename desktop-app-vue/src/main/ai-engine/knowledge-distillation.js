@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 
 /**
  * 知识蒸馏模块 (Knowledge Distillation)
@@ -17,17 +17,17 @@ const { logger, createLogger } = require('../utils/logger.js');
  * 复杂度级别
  */
 const ComplexityLevel = {
-  SIMPLE: 'simple',      // 简单任务 → 小模型
-  MEDIUM: 'medium',      // 中等任务 → 大模型
-  COMPLEX: 'complex'     // 复杂任务 → 大模型
+  SIMPLE: "simple", // 简单任务 → 小模型
+  MEDIUM: "medium", // 中等任务 → 大模型
+  COMPLEX: "complex", // 复杂任务 → 大模型
 };
 
 /**
  * 模型类型
  */
 const ModelType = {
-  SMALL: 'small',   // qwen2:1.5b
-  LARGE: 'large'    // qwen2:7b
+  SMALL: "small", // qwen2:1.5b
+  LARGE: "large", // qwen2:7b
 };
 
 /**
@@ -37,14 +37,14 @@ class KnowledgeDistillation {
   constructor(config = {}) {
     this.config = {
       enableDistillation: true,
-      smallModel: 'qwen2:1.5b',
-      largeModel: 'qwen2:7b',
-      qualityThreshold: 0.7,           // 质量阈值
-      enableFallback: true,             // 启用回退
-      enableLearning: true,             // 启用学习
-      maxRetries: 1,                    // 最大重试次数
-      complexityThreshold: 0.35,        // 复杂度阈值（超过此值使用大模型）
-      ...config
+      smallModel: "qwen2:1.5b",
+      largeModel: "qwen2:7b",
+      qualityThreshold: 0.7, // 质量阈值
+      enableFallback: true, // 启用回退
+      enableLearning: true, // 启用学习
+      maxRetries: 1, // 最大重试次数
+      complexityThreshold: 0.35, // 复杂度阈值（超过此值使用大模型）
+      ...config,
     };
 
     this.db = null;
@@ -56,7 +56,7 @@ class KnowledgeDistillation {
       smallModelUsage: 0,
       largeModelUsage: 0,
       fallbacks: 0,
-      totalSavings: 0  // 节省的计算量(相对于全用大模型)
+      totalSavings: 0, // 节省的计算量(相对于全用大模型)
     };
 
     // 复杂度特征权重(可通过学习调整)
@@ -64,7 +64,7 @@ class KnowledgeDistillation {
       intentCount: 0.3,
       parameterComplexity: 0.2,
       taskType: 0.3,
-      contextSize: 0.2
+      contextSize: 0.2,
     };
   }
 
@@ -109,7 +109,7 @@ class KnowledgeDistillation {
       level,
       score,
       features,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -134,9 +134,8 @@ class KnowledgeDistillation {
       const paramCount = Object.keys(params).length;
       parameterComplexity += paramCount;
     }
-    const avgParamComplexity = intents.length > 0
-      ? parameterComplexity / intents.length
-      : 0;
+    const avgParamComplexity =
+      intents.length > 0 ? parameterComplexity / intents.length : 0;
     const parameterScore = Math.min(avgParamComplexity / 5, 1.0);
 
     // 特征3: 任务类型复杂度
@@ -150,7 +149,7 @@ class KnowledgeDistillation {
       intentCount: intentCountScore,
       parameterComplexity: parameterScore,
       taskType: taskTypeScore,
-      contextSize: contextScore
+      contextSize: contextScore,
     };
   }
 
@@ -164,25 +163,41 @@ class KnowledgeDistillation {
   _evaluateTaskTypeComplexity(intents) {
     // 简单任务类型 (0.2)
     const simpleTasks = new Set([
-      'CREATE_FILE', 'DELETE_FILE', 'RENAME_FILE',
-      'READ_FILE', 'LIST_FILES',
-      'SIMPLE_QUERY', 'GET_TIME', 'GET_WEATHER'
+      "CREATE_FILE",
+      "DELETE_FILE",
+      "RENAME_FILE",
+      "READ_FILE",
+      "LIST_FILES",
+      "SIMPLE_QUERY",
+      "GET_TIME",
+      "GET_WEATHER",
     ]);
 
     // 中等任务类型 (0.5)
     const mediumTasks = new Set([
-      'WRITE_FILE', 'UPDATE_FILE', 'SEARCH_FILES',
-      'GIT_ADD', 'GIT_COMMIT', 'GIT_PUSH',
-      'NPM_INSTALL', 'NPM_BUILD',
-      'COMPRESS_IMAGE', 'CONVERT_FORMAT'
+      "WRITE_FILE",
+      "UPDATE_FILE",
+      "SEARCH_FILES",
+      "GIT_ADD",
+      "GIT_COMMIT",
+      "GIT_PUSH",
+      "NPM_INSTALL",
+      "NPM_BUILD",
+      "COMPRESS_IMAGE",
+      "CONVERT_FORMAT",
     ]);
 
     // 复杂任务类型 (0.8)
     const complexTasks = new Set([
-      'CODE_GENERATION', 'CODE_REFACTOR', 'CODE_ANALYSIS',
-      'COMPLEX_QUERY', 'DATA_ANALYSIS',
-      'SECURITY_SCAN', 'PERFORMANCE_OPTIMIZATION',
-      'API_DESIGN', 'DATABASE_MIGRATION'
+      "CODE_GENERATION",
+      "CODE_REFACTOR",
+      "CODE_ANALYSIS",
+      "COMPLEX_QUERY",
+      "DATA_ANALYSIS",
+      "SECURITY_SCAN",
+      "PERFORMANCE_OPTIMIZATION",
+      "API_DESIGN",
+      "DATABASE_MIGRATION",
     ]);
 
     let totalScore = 0;
@@ -232,7 +247,7 @@ class KnowledgeDistillation {
       return {
         modelType: ModelType.LARGE,
         modelName: this.config.largeModel,
-        reason: 'distillation_disabled'
+        reason: "distillation_disabled",
       };
     }
 
@@ -243,23 +258,25 @@ class KnowledgeDistillation {
     // 通过调整阈值（从 0.3 降到 0.35），更多任务会被判定为 SIMPLE
     if (complexity.level === ComplexityLevel.SIMPLE) {
       modelType = ModelType.SMALL;
-      reason = 'simple_task';
+      reason = "simple_task";
     } else {
       modelType = ModelType.LARGE;
-      reason = complexity.level === ComplexityLevel.MEDIUM
-        ? 'medium_task'
-        : 'complex_task';
+      reason =
+        complexity.level === ComplexityLevel.MEDIUM
+          ? "medium_task"
+          : "complex_task";
     }
 
-    const modelName = modelType === ModelType.SMALL
-      ? this.config.smallModel
-      : this.config.largeModel;
+    const modelName =
+      modelType === ModelType.SMALL
+        ? this.config.smallModel
+        : this.config.largeModel;
 
     return {
       modelType,
       modelName,
       reason,
-      complexityScore: complexity.score
+      complexityScore: complexity.score,
     };
   }
 
@@ -276,19 +293,19 @@ class KnowledgeDistillation {
 
     // 检查1: 结果是否为空
     if (!result || Object.keys(result).length === 0) {
-      issues.push('empty_result');
+      issues.push("empty_result");
       score -= 0.5;
     }
 
     // 检查2: 是否包含错误
     if (result.error) {
-      issues.push('contains_error');
+      issues.push("contains_error");
       score -= 0.3;
     }
 
     // 检查3: 置信度检查(如果LLM返回了置信度)
     if (result.confidence !== undefined && result.confidence < 0.6) {
-      issues.push('low_confidence');
+      issues.push("low_confidence");
       score -= 0.2;
     }
 
@@ -296,13 +313,13 @@ class KnowledgeDistillation {
     const intents = task.intents || [];
     const processedIntents = result.processedIntents || [];
     if (processedIntents.length < intents.length) {
-      issues.push('incomplete_processing');
+      issues.push("incomplete_processing");
       score -= 0.2;
     }
 
     // 检查5: 输出格式正确性
     if (result.output === undefined && result.result === undefined) {
-      issues.push('missing_output');
+      issues.push("missing_output");
       score -= 0.3;
     }
 
@@ -313,7 +330,7 @@ class KnowledgeDistillation {
       isQualified,
       score,
       issues,
-      threshold: this.config.qualityThreshold
+      threshold: this.config.qualityThreshold,
     };
   }
 
@@ -329,11 +346,15 @@ class KnowledgeDistillation {
 
     // Step 1: 评估复杂度
     const complexity = this.evaluateComplexity(task);
-    logger.info(`[KnowledgeDistillation] 复杂度评估: ${complexity.level} (分数: ${complexity.score.toFixed(2)})`);
+    logger.info(
+      `[KnowledgeDistillation] 复杂度评估: ${complexity.level} (分数: ${complexity.score.toFixed(2)})`,
+    );
 
     // Step 2: 路由决策
     const routing = this.routeToModel(complexity);
-    logger.info(`[KnowledgeDistillation] 路由到: ${routing.modelName} (${routing.reason})`);
+    logger.info(
+      `[KnowledgeDistillation] 路由到: ${routing.modelName} (${routing.reason})`,
+    );
 
     // Step 3: 执行任务
     let result;
@@ -347,12 +368,20 @@ class KnowledgeDistillation {
       // Step 4: 质量检查(仅对小模型结果)
       if (routing.modelType === ModelType.SMALL) {
         const quality = this.checkQuality(result, task);
-        logger.info(`[KnowledgeDistillation] 质量检查: ${quality.isQualified ? '通过' : '未通过'} (分数: ${quality.score.toFixed(2)})`);
+        logger.info(
+          `[KnowledgeDistillation] 质量检查: ${quality.isQualified ? "通过" : "未通过"} (分数: ${quality.score.toFixed(2)})`,
+        );
 
         // Step 5: 回退策略
         if (!quality.isQualified && this.config.enableFallback) {
-          logger.info(`[KnowledgeDistillation] 质量不合格，回退到大模型 (问题: ${quality.issues.join(', ')})`);
-          result = await this._executeTask(task, this.config.largeModel, context);
+          logger.info(
+            `[KnowledgeDistillation] 质量不合格，回退到大模型 (问题: ${quality.issues.join(", ")})`,
+          );
+          result = await this._executeTask(
+            task,
+            this.config.largeModel,
+            context,
+          );
           finalModelType = ModelType.LARGE;
           usedFallback = true;
           this.stats.fallbacks++;
@@ -366,22 +395,17 @@ class KnowledgeDistillation {
       } else {
         this.stats.largeModelUsage++;
       }
-
     } catch (error) {
-      logger.error('[KnowledgeDistillation] 执行失败:', error);
+      logger.error("[KnowledgeDistillation] 执行失败:", error);
 
       // 如果小模型失败且启用回退，尝试大模型
       if (routing.modelType === ModelType.SMALL && this.config.enableFallback) {
-        logger.info('[KnowledgeDistillation] 小模型执行失败，回退到大模型');
-        try {
-          result = await this._executeTask(task, this.config.largeModel, context);
-          finalModelType = ModelType.LARGE;
-          usedFallback = true;
-          this.stats.fallbacks++;
-          this.stats.largeModelUsage++;
-        } catch (fallbackError) {
-          throw fallbackError;
-        }
+        logger.info("[KnowledgeDistillation] 小模型执行失败，回退到大模型");
+        result = await this._executeTask(task, this.config.largeModel, context);
+        finalModelType = ModelType.LARGE;
+        usedFallback = true;
+        this.stats.fallbacks++;
+        this.stats.largeModelUsage++;
       } else {
         throw error;
       }
@@ -394,7 +418,7 @@ class KnowledgeDistillation {
       routing,
       finalModelType,
       usedFallback,
-      context
+      context,
     });
 
     return {
@@ -403,8 +427,8 @@ class KnowledgeDistillation {
         complexity: complexity.level,
         complexityScore: complexity.score,
         modelUsed: finalModelType,
-        usedFallback
-      }
+        usedFallback,
+      },
     };
   }
 
@@ -419,7 +443,7 @@ class KnowledgeDistillation {
    */
   async _executeTask(task, modelName, context) {
     if (!this.llmManager) {
-      throw new Error('LLM管理器未初始化');
+      throw new Error("LLM管理器未初始化");
     }
 
     logger.info(`[KnowledgeDistillation] 使用模型 ${modelName} 执行任务...`);
@@ -433,11 +457,11 @@ class KnowledgeDistillation {
         model: modelName,
         temperature: context.temperature || 0.7,
         maxTokens: context.maxTokens || 2000,
-        ...context
+        ...context,
       });
 
       // 解析响应
-      const output = response.text || response.content || '';
+      const output = response.text || response.content || "";
       const confidence = this._estimateConfidence(output, modelName);
 
       return {
@@ -445,7 +469,7 @@ class KnowledgeDistillation {
         processedIntents: task.intents || [],
         output,
         confidence,
-        tokensUsed: response.usage?.total_tokens || 0
+        tokensUsed: response.usage?.total_tokens || 0,
       };
     } catch (error) {
       logger.error(`[KnowledgeDistillation] LLM执行失败:`, error);
@@ -456,7 +480,7 @@ class KnowledgeDistillation {
         processedIntents: task.intents || [],
         output: null,
         confidence: 0,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -467,9 +491,8 @@ class KnowledgeDistillation {
    */
   _buildTaskPrompt(task) {
     const intents = task.intents || [];
-    const intentStr = intents.length > 0
-      ? `任务意图: ${intents.join(', ')}\n`
-      : '';
+    const intentStr =
+      intents.length > 0 ? `任务意图: ${intents.join(", ")}\n` : "";
 
     return `${intentStr}${task.prompt || task.content || JSON.stringify(task)}`;
   }
@@ -479,22 +502,28 @@ class KnowledgeDistillation {
    * @private
    */
   _estimateConfidence(output, modelName) {
-    if (!output) return 0;
+    if (!output) {
+      return 0;
+    }
 
     // 基于模型大小的基础置信度
     let baseConfidence = 0.85;
-    if (modelName.includes('1.5b') || modelName.includes('small')) {
+    if (modelName.includes("1.5b") || modelName.includes("small")) {
       baseConfidence = 0.7;
-    } else if (modelName.includes('70b') || modelName.includes('large') || modelName.includes('opus')) {
+    } else if (
+      modelName.includes("70b") ||
+      modelName.includes("large") ||
+      modelName.includes("opus")
+    ) {
       baseConfidence = 0.95;
     }
 
     // 根据输出长度调整
     const outputLength = output.length;
     if (outputLength < 50) {
-      baseConfidence *= 0.8;  // 输出过短，可能不完整
+      baseConfidence *= 0.8; // 输出过短，可能不完整
     } else if (outputLength > 500) {
-      baseConfidence *= 1.05;  // 输出较详细
+      baseConfidence *= 1.05; // 输出较详细
     }
 
     return Math.min(baseConfidence, 1.0);
@@ -535,11 +564,10 @@ class KnowledgeDistillation {
         record.usedFallback ? 1 : 0,
         JSON.stringify(record.task.intents || []),
         JSON.stringify(record.context),
-        new Date().toISOString()
+        new Date().toISOString(),
       );
-
     } catch (error) {
-      logger.error('[KnowledgeDistillation] 记录蒸馏历史失败:', error);
+      logger.error("[KnowledgeDistillation] 记录蒸馏历史失败:", error);
     }
   }
 
@@ -555,17 +583,20 @@ class KnowledgeDistillation {
       totalRequests: this.stats.totalRequests,
       smallModelUsage: this.stats.smallModelUsage,
       largeModelUsage: this.stats.largeModelUsage,
-      smallModelRate: this.stats.totalRequests > 0
-        ? this.stats.smallModelUsage / this.stats.totalRequests
-        : 0,
+      smallModelRate:
+        this.stats.totalRequests > 0
+          ? this.stats.smallModelUsage / this.stats.totalRequests
+          : 0,
       fallbacks: this.stats.fallbacks,
-      fallbackRate: this.stats.smallModelUsage > 0
-        ? this.stats.fallbacks / this.stats.smallModelUsage
-        : 0,
+      fallbackRate:
+        this.stats.smallModelUsage > 0
+          ? this.stats.fallbacks / this.stats.smallModelUsage
+          : 0,
       totalSavings: this.stats.totalSavings,
-      savingsRate: this.stats.totalRequests > 0
-        ? this.stats.totalSavings / this.stats.totalRequests
-        : 0
+      savingsRate:
+        this.stats.totalRequests > 0
+          ? this.stats.totalSavings / this.stats.totalRequests
+          : 0,
     };
 
     // 数据库统计
@@ -580,17 +611,16 @@ class KnowledgeDistillation {
       const params = [];
 
       if (startTime) {
-        whereClauses.push('created_at >= ?');
+        whereClauses.push("created_at >= ?");
         params.push(startTime);
       }
       if (endTime) {
-        whereClauses.push('created_at <= ?');
+        whereClauses.push("created_at <= ?");
         params.push(endTime);
       }
 
-      const whereClause = whereClauses.length > 0
-        ? `WHERE ${whereClauses.join(' AND ')}`
-        : '';
+      const whereClause =
+        whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
       const query = `
         SELECT
@@ -618,12 +648,11 @@ class KnowledgeDistillation {
           avgComplexityScore: dbStats.avgComplexityScore || 0,
           simpleTaskRate: dbStats.simpleTaskRate || 0,
           mediumTaskRate: dbStats.mediumTaskRate || 0,
-          complexTaskRate: dbStats.complexTaskRate || 0
-        }
+          complexTaskRate: dbStats.complexTaskRate || 0,
+        },
       };
-
     } catch (error) {
-      logger.error('[KnowledgeDistillation] 获取蒸馏统计失败:', error);
+      logger.error("[KnowledgeDistillation] 获取蒸馏统计失败:", error);
       return { runtime: runtimeStats };
     }
   }
@@ -635,12 +664,14 @@ class KnowledgeDistillation {
    */
   async learnFromHistory() {
     if (!this.db || !this.config.enableLearning) {
-      return { success: false, reason: 'learning_disabled' };
+      return { success: false, reason: "learning_disabled" };
     }
 
     try {
       // 查询回退案例
-      const fallbackCases = this.db.prepare(`
+      const fallbackCases = this.db
+        .prepare(
+          `
         SELECT
           complexity_level,
           complexity_score,
@@ -649,29 +680,40 @@ class KnowledgeDistillation {
         WHERE used_fallback = 1
         ORDER BY created_at DESC
         LIMIT 100
-      `).all();
+      `,
+        )
+        .all();
 
       if (fallbackCases.length === 0) {
-        return { success: true, adjustments: 0, reason: 'no_fallback_cases' };
+        return { success: true, adjustments: 0, reason: "no_fallback_cases" };
       }
 
-      logger.info(`[KnowledgeDistillation] 从${fallbackCases.length}个回退案例中学习...`);
+      logger.info(
+        `[KnowledgeDistillation] 从${fallbackCases.length}个回退案例中学习...`,
+      );
 
       // 分析回退案例，调整复杂度阈值
       // 如果很多simple任务被回退，说明复杂度评估过于乐观，需要调整权重
-      const simpleFallbacks = fallbackCases.filter(c => c.complexity_level === 'simple').length;
+      const simpleFallbacks = fallbackCases.filter(
+        (c) => c.complexity_level === "simple",
+      ).length;
       const fallbackRate = simpleFallbacks / fallbackCases.length;
 
       if (fallbackRate > 0.3) {
         // 30%以上的simple任务被回退，说明需要更保守的评估
-        logger.info(`[KnowledgeDistillation] 检测到高回退率(${(fallbackRate * 100).toFixed(1)}%)，调整权重...`);
+        logger.info(
+          `[KnowledgeDistillation] 检测到高回退率(${(fallbackRate * 100).toFixed(1)}%)，调整权重...`,
+        );
 
         // 增加taskType权重，降低intentCount权重
         this.complexityWeights.taskType += 0.05;
         this.complexityWeights.intentCount -= 0.05;
 
         // 归一化权重
-        const total = Object.values(this.complexityWeights).reduce((a, b) => a + b, 0);
+        const total = Object.values(this.complexityWeights).reduce(
+          (a, b) => a + b,
+          0,
+        );
         for (const key in this.complexityWeights) {
           this.complexityWeights[key] /= total;
         }
@@ -680,7 +722,7 @@ class KnowledgeDistillation {
           success: true,
           adjustments: 1,
           newWeights: this.complexityWeights,
-          fallbackRate
+          fallbackRate,
         };
       }
 
@@ -688,11 +730,10 @@ class KnowledgeDistillation {
         success: true,
         adjustments: 0,
         fallbackRate,
-        reason: 'weights_optimal'
+        reason: "weights_optimal",
       };
-
     } catch (error) {
-      logger.error('[KnowledgeDistillation] 学习失败:', error);
+      logger.error("[KnowledgeDistillation] 学习失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -703,15 +744,26 @@ class KnowledgeDistillation {
   getPerformanceStats() {
     return {
       ...this.stats,
-      smallModelRate: this.stats.totalRequests > 0
-        ? (this.stats.smallModelUsage / this.stats.totalRequests * 100).toFixed(2) + '%'
-        : '0%',
-      fallbackRate: this.stats.smallModelUsage > 0
-        ? (this.stats.fallbacks / this.stats.smallModelUsage * 100).toFixed(2) + '%'
-        : '0%',
-      savingsRate: this.stats.totalRequests > 0
-        ? (this.stats.totalSavings / this.stats.totalRequests * 100).toFixed(2) + '%'
-        : '0%'
+      smallModelRate:
+        this.stats.totalRequests > 0
+          ? (
+              (this.stats.smallModelUsage / this.stats.totalRequests) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
+      fallbackRate:
+        this.stats.smallModelUsage > 0
+          ? ((this.stats.fallbacks / this.stats.smallModelUsage) * 100).toFixed(
+              2,
+            ) + "%"
+          : "0%",
+      savingsRate:
+        this.stats.totalRequests > 0
+          ? (
+              (this.stats.totalSavings / this.stats.totalRequests) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
     };
   }
 
@@ -727,5 +779,5 @@ class KnowledgeDistillation {
 module.exports = {
   KnowledgeDistillation,
   ComplexityLevel,
-  ModelType
+  ModelType,
 };
