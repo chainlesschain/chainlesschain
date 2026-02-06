@@ -246,12 +246,13 @@ class BrowserAutomationAgent extends EventEmitter {
           ...params.options
         });
 
-      case 'wait':
+      case 'wait': {
         const page = this.browserEngine.getPage(targetId);
         await page.waitForLoadState(params.state || 'networkidle', {
           timeout: params.timeout || 30000
         });
         return { waited: true, state: params.state };
+      }
 
       case 'screenshot':
         return await this.browserEngine.screenshot(targetId, params.options);
