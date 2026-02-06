@@ -43,6 +43,15 @@
             prefix=""
             :value-style="{ fontSize: '14px' }"
           />
+
+          <a-divider type="vertical" />
+
+          <router-link to="/workflow">
+            <a-button>
+              <template #icon><BranchesOutlined /></template>
+              工作流管理
+            </a-button>
+          </router-link>
         </a-space>
       </div>
 
@@ -175,6 +184,15 @@
       class="mt-4"
     />
 
+    <!-- Phase 4: 录制与回放面板 -->
+    <recording-panel
+      v-if="browserStatus.isRunning && activeTargetId"
+      :targetId="activeTargetId"
+      class="mt-4"
+      @recording-saved="handleRecordingSaved"
+      @workflow-created="handleWorkflowCreated"
+    />
+
     <!-- Phase 5: 诊断工具面板 -->
     <diagnostics-panel
       v-if="browserStatus.isRunning && activeTargetId"
@@ -213,6 +231,7 @@ import {
 import SnapshotPanel from '../components/browser/SnapshotPanel.vue';
 import AIControlPanel from '../components/browser/AIControlPanel.vue';
 import DiagnosticsPanel from '../components/browser/DiagnosticsPanel.vue';
+import RecordingPanel from '../components/browser/RecordingPanel.vue';
 
 // 状态管理
 const browserStatus = reactive({
@@ -419,6 +438,17 @@ const refreshTabs = async () => {
   } catch (error) {
     console.error('Refresh tabs error:', error);
   }
+};
+
+// Phase 4: 录制相关事件处理
+const handleRecordingSaved = (recording) => {
+  message.success(`录制 "${recording.name}" 已保存`);
+};
+
+const handleWorkflowCreated = (workflow) => {
+  message.success(`已创建工作流: ${workflow.name}`);
+  // 可选：跳转到工作流页面
+  // router.push(`/workflow/${workflow.id}`);
 };
 
 // 生命周期
