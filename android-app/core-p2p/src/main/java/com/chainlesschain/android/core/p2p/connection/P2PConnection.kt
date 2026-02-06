@@ -97,22 +97,28 @@ data class IceCandidate(
  * 信令消息（用于建立WebRTC连接）
  */
 sealed class SignalingMessage {
+    /** 获取消息ID（用于ACK确认） */
+    open val messageId: String? = null
+
     /** Offer消息 */
     data class Offer(
         val fromDeviceId: String,
-        val sessionDescription: SessionDescription
+        val sessionDescription: SessionDescription,
+        override val messageId: String? = null
     ) : SignalingMessage()
 
     /** Answer消息 */
     data class Answer(
         val fromDeviceId: String,
-        val sessionDescription: SessionDescription
+        val sessionDescription: SessionDescription,
+        override val messageId: String? = null
     ) : SignalingMessage()
 
     /** ICE候选消息 */
     data class Candidate(
         val fromDeviceId: String,
-        val iceCandidate: IceCandidate
+        val iceCandidate: IceCandidate,
+        override val messageId: String? = null
     ) : SignalingMessage()
 
     /** 心跳消息 */
@@ -131,6 +137,19 @@ sealed class SignalingMessage {
     data class Close(
         val fromDeviceId: String,
         val reason: String
+    ) : SignalingMessage()
+
+    /** 消息确认 */
+    data class MessageAck(
+        val ackMessageId: String,
+        val timestamp: Long = System.currentTimeMillis()
+    ) : SignalingMessage()
+
+    /** 消息否定确认（请求重传） */
+    data class MessageNack(
+        val nackMessageId: String,
+        val reason: String,
+        val timestamp: Long = System.currentTimeMillis()
     ) : SignalingMessage()
 }
 

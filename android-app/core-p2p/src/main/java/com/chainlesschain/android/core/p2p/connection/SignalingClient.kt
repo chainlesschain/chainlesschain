@@ -1,6 +1,7 @@
 package com.chainlesschain.android.core.p2p.connection
 
 import android.util.Log
+import com.chainlesschain.android.core.p2p.config.P2PFeatureFlags
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
@@ -13,6 +14,8 @@ import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
+import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.concurrent.thread
@@ -61,6 +64,15 @@ class SignalingClient @Inject constructor() {
 
         /** 心跳响应超时（毫秒） */
         const val HEARTBEAT_RESPONSE_TIMEOUT_MS = 5_000L
+
+        /** 消息确认超时（毫秒） */
+        const val MESSAGE_ACK_TIMEOUT_MS = 5_000L
+
+        /** 消息最大重传次数 */
+        const val MAX_MESSAGE_RETRIES = 3
+
+        /** 重传基础延迟（毫秒） */
+        const val RETRANSMIT_BASE_DELAY_MS = 1_000L
     }
 
     private val json = Json { ignoreUnknownKeys = true }
