@@ -394,6 +394,16 @@ class ChainlessChainApp {
         registerMultiAgentIPC,
       } = require("./ai-engine/multi-agent/multi-agent-ipc");
 
+      // Phase 4-5: Browser Workflow and Recording IPC
+      const {
+        registerWorkflowIPC,
+        initializeWorkflowSystem,
+      } = require("./browser/workflow");
+      const {
+        registerRecordingIPC,
+        initializeRecordingSystem,
+      } = require("./browser/recording");
+
       if (this.skillManager && this.toolManager) {
         registerSkillToolIPC({
           ipcMain,
@@ -437,6 +447,26 @@ class ChainlessChainApp {
         llmManager: this.llmManager,
         functionCaller: null, // TODO: Initialize functionCaller
       });
+
+      // Phase 4-5: Initialize and register Browser Workflow and Recording IPC
+      try {
+        const { getBrowserEngine } = require("./browser/browser-ipc");
+        const browserEngine = getBrowserEngine();
+
+        // Initialize workflow system with browser engine and database
+        if (this.database) {
+          initializeWorkflowSystem(browserEngine, this.database.db || this.database);
+          initializeRecordingSystem(browserEngine, this.database.db || this.database);
+        }
+
+        // Register IPC handlers
+        registerWorkflowIPC();
+        registerRecordingIPC();
+
+        logger.info("[Main] Browser Workflow and Recording IPC registered (Phase 4-5)");
+      } catch (browserError) {
+        logger.warn("[Main] Browser Workflow/Recording IPC registration skipped:", browserError.message);
+      }
 
       logger.info("[Main] 高级IPC handlers注册完成");
     } catch (error) {
