@@ -8,8 +8,244 @@
 
 import { defineStore } from 'pinia';
 
+// ==================== 类型定义 ====================
+
+/**
+ * 连接状态
+ */
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
+
+/**
+ * 锁类型
+ */
+export type LockType = 'full' | 'section' | 'paragraph';
+
+/**
+ * 冲突解决策略
+ */
+export type ConflictResolution = 'mine' | 'theirs' | 'merge' | 'custom';
+
+/**
+ * 导出格式
+ */
+export type ExportFormat = 'markdown' | 'html' | 'docx' | 'pdf';
+
+/**
+ * 协作文档
+ */
+export interface CollabDocument {
+  id: string;
+  title: string;
+  content?: string;
+  version: number;
+  lastModified?: number;
+  [key: string]: any;
+}
+
+/**
+ * 打开的文档
+ */
+export interface OpenDocument {
+  id: string;
+  openedAt: number;
+}
+
+/**
+ * 协作者
+ */
+export interface Collaborator {
+  did: string;
+  name: string;
+  avatar?: string;
+  isOnline: boolean;
+  lastSeen?: number;
+  color?: string;
+  [key: string]: any;
+}
+
+/**
+ * 光标位置
+ */
+export interface CursorPosition {
+  line: number;
+  column: number;
+  selection?: {
+    start: { line: number; column: number };
+    end: { line: number; column: number };
+  };
+  [key: string]: any;
+}
+
+/**
+ * 锁数据
+ */
+export interface Lock {
+  id: string;
+  knowledgeId: string;
+  userDid: string;
+  userName?: string;
+  lockType: LockType;
+  sectionStart?: number;
+  sectionEnd?: number;
+  acquiredAt: number;
+  expiresAt?: number;
+  [key: string]: any;
+}
+
+/**
+ * 锁定区域
+ */
+export interface LockedSection {
+  start?: number;
+  end?: number;
+}
+
+/**
+ * 冲突数据
+ */
+export interface Conflict {
+  id: string;
+  knowledgeId: string;
+  type: string;
+  localContent?: string;
+  remoteContent?: string;
+  conflictAt: number;
+  resolution?: ConflictResolution;
+  resolvedAt?: number;
+  resolvedByDid?: string;
+  [key: string]: any;
+}
+
+/**
+ * 评论数据
+ */
+export interface Comment {
+  id: string;
+  knowledgeId: string;
+  authorDid: string;
+  authorName?: string;
+  content: string;
+  lineNumber?: number;
+  resolved: boolean;
+  resolvedAt?: number;
+  resolvedByDid?: string;
+  createdAt: number;
+  replies?: Comment[];
+  [key: string]: any;
+}
+
+/**
+ * 版本历史
+ */
+export interface Version {
+  id: string;
+  knowledgeId: string;
+  version: number;
+  content?: string;
+  createdByDid: string;
+  createdByName?: string;
+  createdAt: number;
+  message?: string;
+  [key: string]: any;
+}
+
+/**
+ * 协作统计
+ */
+export interface CollabStats {
+  totalEdits: number;
+  totalCollaborators: number;
+  totalConflicts: number;
+  resolvedConflicts: number;
+  [key: string]: any;
+}
+
+/**
+ * 加载状态
+ */
+export interface CollabLoadingState {
+  document: boolean;
+  collaborators: boolean;
+  locks: boolean;
+  comments: boolean;
+  history: boolean;
+}
+
+/**
+ * 同步更新数据
+ */
+export interface SyncUpdate {
+  type: 'insert' | 'delete' | 'replace';
+  position?: number;
+  content?: string;
+  length?: number;
+  [key: string]: any;
+}
+
+/**
+ * 评论数据（创建）
+ */
+export interface CommentData {
+  content: string;
+  lineNumber?: number;
+  authorDid: string;
+  authorName?: string;
+  [key: string]: any;
+}
+
+/**
+ * API 响应结果
+ */
+export interface CollabApiResult {
+  success: boolean;
+  error?: string;
+  document?: CollabDocument;
+  comments?: Comment[];
+  comment?: Comment;
+  locks?: Lock[];
+  lock?: Lock;
+  conflict?: Conflict;
+  history?: Version[];
+  stats?: CollabStats;
+  [key: string]: any;
+}
+
+/**
+ * Collab Store 状态
+ */
+export interface CollabState {
+  // 文档管理
+  currentDocument: CollabDocument | null;
+  openDocuments: OpenDocument[];
+  // 用户感知
+  collaborators: Collaborator[];
+  cursorPositions: Record<string, CursorPosition>;
+  // 锁管理
+  locks: Lock[];
+  myLocks: Lock[];
+  // 冲突管理
+  pendingConflicts: Conflict[];
+  conflictHistory: Conflict[];
+  // 评论管理
+  comments: Comment[];
+  unresolvedCommentCount: number;
+  // 版本历史
+  versionHistory: Version[];
+  previewVersion: Version | null;
+  // 统计信息
+  stats: CollabStats;
+  // 加载状态
+  loading: CollabLoadingState;
+  // 连接状态
+  connectionStatus: ConnectionStatus;
+  // 错误状态
+  error: string | null;
+}
+
+// ==================== Store ====================
+
 export const useCollabStore = defineStore('collab', {
-  state: () => ({
+  state: (): CollabState => ({
     // ==========================================
     // 文档管理
     // ==========================================
@@ -98,7 +334,7 @@ export const useCollabStore = defineStore('collab', {
     // 连接状态
     // ==========================================
 
-    connectionStatus: 'disconnected', // 'disconnected' | 'connecting' | 'connected'
+    connectionStatus: 'disconnected',
 
     // ==========================================
     // 错误状态
@@ -111,22 +347,22 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 是否有未解决的冲突
      */
-    hasUnresolvedConflicts: (state) => {
-      return state.pendingConflicts.length > 0;
+    hasUnresolvedConflicts(): boolean {
+      return this.pendingConflicts.length > 0;
     },
 
     /**
      * 当前文档是否被锁定
      */
-    isDocumentLocked: (state) => {
-      return state.locks.some((lock) => lock.lockType === 'full');
+    isDocumentLocked(): boolean {
+      return this.locks.some((lock) => lock.lockType === 'full');
     },
 
     /**
      * 获取我的锁定区域
      */
-    myLockedSections: (state) => {
-      return state.myLocks.map((lock) => ({
+    myLockedSections(): LockedSection[] {
+      return this.myLocks.map((lock) => ({
         start: lock.sectionStart,
         end: lock.sectionEnd,
       }));
@@ -135,22 +371,22 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 在线协作者数量
      */
-    onlineCollaboratorCount: (state) => {
-      return state.collaborators.filter((c) => c.isOnline).length;
+    onlineCollaboratorCount(): number {
+      return this.collaborators.filter((c) => c.isOnline).length;
     },
 
     /**
      * 是否正在加载
      */
-    isLoading: (state) => {
-      return Object.values(state.loading).some((loading) => loading);
+    isLoading(): boolean {
+      return Object.values(this.loading).some((loading) => loading);
     },
 
     /**
      * 是否已连接
      */
-    isConnected: (state) => {
-      return state.connectionStatus === 'connected';
+    isConnected(): boolean {
+      return this.connectionStatus === 'connected';
     },
   },
 
@@ -162,18 +398,22 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 打开协作文档
      */
-    async openDocument(knowledgeId, userDid, userName) {
+    async openDocument(
+      knowledgeId: string,
+      userDid: string,
+      userName: string
+    ): Promise<CollabApiResult> {
       this.loading.document = true;
       this.error = null;
 
       try {
-        const result = await window.electronAPI.invoke('collab:open-document', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:open-document', {
           knowledgeId,
           userDid,
           userName,
         });
 
-        if (result.success) {
+        if (result.success && result.document) {
           this.currentDocument = result.document;
           this.connectionStatus = 'connected';
 
@@ -195,7 +435,7 @@ export const useCollabStore = defineStore('collab', {
         return result;
       } catch (error) {
         console.error('[CollabStore] 打开文档失败:', error);
-        this.error = error.message;
+        this.error = (error as Error).message;
         throw error;
       } finally {
         this.loading.document = false;
@@ -205,9 +445,9 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 关闭协作文档
      */
-    async closeDocument(knowledgeId, userDid) {
+    async closeDocument(knowledgeId: string, userDid: string): Promise<CollabApiResult> {
       try {
-        const result = await window.electronAPI.invoke('collab:close-document', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:close-document', {
           knowledgeId,
           userDid,
         });
@@ -229,7 +469,7 @@ export const useCollabStore = defineStore('collab', {
         return result;
       } catch (error) {
         console.error('[CollabStore] 关闭文档失败:', error);
-        this.error = error.message;
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -241,9 +481,13 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 同步更新
      */
-    async syncUpdate(knowledgeId, update, userDid) {
+    async syncUpdate(
+      knowledgeId: string,
+      update: SyncUpdate,
+      userDid: string
+    ): Promise<CollabApiResult> {
       try {
-        return await window.electronAPI.invoke('collab:sync-update', {
+        return await (window as any).electronAPI.invoke('collab:sync-update', {
           knowledgeId,
           update,
           userDid,
@@ -257,9 +501,13 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 更新光标位置
      */
-    async updateCursor(knowledgeId, userDid, cursorData) {
+    async updateCursor(
+      knowledgeId: string,
+      userDid: string,
+      cursorData: CursorPosition
+    ): Promise<void> {
       try {
-        await window.electronAPI.invoke('collab:update-cursor', {
+        await (window as any).electronAPI.invoke('collab:update-cursor', {
           knowledgeId,
           userDid,
           cursorData,
@@ -272,14 +520,14 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 设置协作者列表（从感知数据更新）
      */
-    setCollaborators(collaborators) {
+    setCollaborators(collaborators: Collaborator[]): void {
       this.collaborators = collaborators;
     },
 
     /**
      * 更新光标位置（本地状态）
      */
-    updateCursorPosition(userDid, position) {
+    updateCursorPosition(userDid: string, position: CursorPosition): void {
       this.cursorPositions[userDid] = position;
     },
 
@@ -290,7 +538,7 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 加载锁列表
      */
-    async loadLocks(knowledgeId) {
+    async loadLocks(knowledgeId: string): Promise<CollabApiResult> {
       this.loading.locks = true;
       try {
         // 获取文档的所有锁
@@ -304,9 +552,15 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 获取段落锁
      */
-    async acquireLock(knowledgeId, userDid, lockType, sectionStart, sectionEnd) {
+    async acquireLock(
+      knowledgeId: string,
+      userDid: string,
+      lockType: LockType,
+      sectionStart?: number,
+      sectionEnd?: number
+    ): Promise<CollabApiResult> {
       try {
-        const result = await window.electronAPI.invoke('collab:acquire-lock', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:acquire-lock', {
           knowledgeId,
           userDid,
           lockType,
@@ -314,7 +568,7 @@ export const useCollabStore = defineStore('collab', {
           sectionEnd,
         });
 
-        if (result.success) {
+        if (result.success && result.lock) {
           this.myLocks.push(result.lock);
           this.locks.push(result.lock);
         }
@@ -322,7 +576,7 @@ export const useCollabStore = defineStore('collab', {
         return result;
       } catch (error) {
         console.error('[CollabStore] 获取锁失败:', error);
-        this.error = error.message;
+        this.error = (error as Error).message;
         throw error;
       }
     },
@@ -330,9 +584,9 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 释放锁
      */
-    async releaseLock(lockId, userDid) {
+    async releaseLock(lockId: string, userDid: string): Promise<CollabApiResult> {
       try {
-        const result = await window.electronAPI.invoke('collab:release-lock', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:release-lock', {
           lockId,
           userDid,
         });
@@ -356,14 +610,17 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 请求冲突解决
      */
-    async requestConflictResolution(knowledgeId, conflictData) {
+    async requestConflictResolution(
+      knowledgeId: string,
+      conflictData: Partial<Conflict>
+    ): Promise<CollabApiResult> {
       try {
-        const result = await window.electronAPI.invoke('collab:request-conflict-resolution', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:request-conflict-resolution', {
           knowledgeId,
           conflictData,
         });
 
-        if (result.success) {
+        if (result.success && result.conflict) {
           this.pendingConflicts.push(result.conflict);
         }
 
@@ -377,9 +634,13 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 解决冲突
      */
-    async resolveConflict(conflictId, resolution, resolvedByDid) {
+    async resolveConflict(
+      conflictId: string,
+      resolution: ConflictResolution,
+      resolvedByDid: string
+    ): Promise<CollabApiResult> {
       try {
-        const result = await window.electronAPI.invoke('collab:resolve-conflict', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:resolve-conflict', {
           conflictId,
           resolution,
           resolvedByDid,
@@ -408,10 +669,10 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 加载评论
      */
-    async loadComments(knowledgeId) {
+    async loadComments(knowledgeId: string): Promise<CollabApiResult> {
       this.loading.comments = true;
       try {
-        const result = await window.electronAPI.invoke('collab:get-comments', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-comments', {
           knowledgeId,
         });
 
@@ -432,14 +693,14 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 添加行内评论
      */
-    async addComment(knowledgeId, commentData) {
+    async addComment(knowledgeId: string, commentData: CommentData): Promise<CollabApiResult> {
       try {
-        const result = await window.electronAPI.invoke('collab:add-inline-comment', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:add-inline-comment', {
           knowledgeId,
           ...commentData,
         });
 
-        if (result.success) {
+        if (result.success && result.comment) {
           this.comments.push(result.comment);
           this.unresolvedCommentCount++;
         }
@@ -454,9 +715,9 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 解决评论
      */
-    async resolveComment(commentId, resolvedByDid) {
+    async resolveComment(commentId: string, resolvedByDid: string): Promise<CollabApiResult> {
       try {
-        const result = await window.electronAPI.invoke('collab:resolve-comment', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:resolve-comment', {
           commentId,
           resolvedByDid,
         });
@@ -484,10 +745,13 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 获取文档历史
      */
-    async loadVersionHistory(knowledgeId, options = {}) {
+    async loadVersionHistory(
+      knowledgeId: string,
+      options: Record<string, any> = {}
+    ): Promise<CollabApiResult> {
       this.loading.history = true;
       try {
-        const result = await window.electronAPI.invoke('collab:get-document-history', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-document-history', {
           knowledgeId,
           ...options,
         });
@@ -508,9 +772,13 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 恢复版本
      */
-    async restoreVersion(knowledgeId, versionId, restoredByDid) {
+    async restoreVersion(
+      knowledgeId: string,
+      versionId: string,
+      restoredByDid: string
+    ): Promise<CollabApiResult> {
       try {
-        const result = await window.electronAPI.invoke('collab:restore-version', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:restore-version', {
           knowledgeId,
           versionId,
           restoredByDid,
@@ -530,13 +798,13 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 获取协作统计
      */
-    async loadStats(knowledgeId) {
+    async loadStats(knowledgeId: string): Promise<CollabApiResult> {
       try {
-        const result = await window.electronAPI.invoke('collab:get-stats', {
+        const result: CollabApiResult = await (window as any).electronAPI.invoke('collab:get-stats', {
           knowledgeId,
         });
 
-        if (result.success) {
+        if (result.success && result.stats) {
           this.stats = result.stats;
         }
 
@@ -554,9 +822,12 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 导出带评论的文档
      */
-    async exportWithComments(knowledgeId, format = 'markdown') {
+    async exportWithComments(
+      knowledgeId: string,
+      format: ExportFormat = 'markdown'
+    ): Promise<CollabApiResult> {
       try {
-        return await window.electronAPI.invoke('collab:export-with-comments', {
+        return await (window as any).electronAPI.invoke('collab:export-with-comments', {
           knowledgeId,
           format,
         });
@@ -573,7 +844,7 @@ export const useCollabStore = defineStore('collab', {
     /**
      * 重置所有状态
      */
-    reset() {
+    reset(): void {
       this.$reset();
     },
   },

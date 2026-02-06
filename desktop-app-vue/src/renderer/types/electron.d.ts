@@ -130,22 +130,30 @@ export interface NotificationAPI {
  * 项目 API
  */
 export interface ProjectAPI {
-  getAll(): Promise<any[]>;
+  getAll(userId?: string): Promise<any[] | { projects: any[]; total: number }>;
   getById(id: string): Promise<any>;
   create(project: any): Promise<{ id: string }>;
   update(id: string, updates: any): Promise<void>;
   delete(id: string): Promise<void>;
+  sync(userId: string): Promise<void>;
+  getFiles(projectId: string): Promise<any[] | { files: any[] }>;
+  createStream(data: any, callbacks: any): Promise<any>;
 }
 
 /**
  * 模板 API
  */
 export interface TemplateAPI {
-  getAll(): Promise<any[]>;
-  getById(id: string): Promise<any>;
-  create(template: any): Promise<{ id: string }>;
-  update(id: string, updates: any): Promise<void>;
-  delete(id: string): Promise<void>;
+  getAll(filters?: any): Promise<{ success: boolean; templates?: any[]; error?: string }>;
+  getById(id: string): Promise<{ success: boolean; template?: any; error?: string }>;
+  create(template: any): Promise<{ success: boolean; template?: any; id?: string; error?: string }>;
+  update(id: string, updates: any): Promise<{ success: boolean; template?: any; error?: string }>;
+  delete(id: string): Promise<{ success: boolean; error?: string }>;
+  recordUsage(templateId: string, userId?: string, projectId?: string, variables?: any): Promise<{ success: boolean; error?: string }>;
+  search(query: string, filters?: any): Promise<{ success: boolean; templates?: any[]; error?: string }>;
+  renderPrompt(id: string, vars: any): Promise<{ success: boolean; renderedPrompt?: string; error?: string }>;
+  duplicate(id: string, newName?: string): Promise<{ success: boolean; template?: any; error?: string }>;
+  getStats(): Promise<any>;
 }
 
 /**
