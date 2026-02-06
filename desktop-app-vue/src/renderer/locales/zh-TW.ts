@@ -1,4 +1,6 @@
-export default {
+import type { LocaleMessages } from './types';
+
+const zhTW: LocaleMessages = {
   common: {
     confirm: '確認',
     cancel: '取消',
@@ -36,14 +38,14 @@ export default {
     cut: '剪切',
     rename: '重命名',
     move: '移動',
-    settings: '設置'
+    settings: '設置',
   },
 
   app: {
     title: 'ChainlessChain',
     subtitle: '個人AI知識庫管理系統',
     initializing: '正在初始化...',
-    initializationFailed: '初始化失敗'
+    initializationFailed: '初始化失敗',
   },
 
   nav: {
@@ -52,7 +54,7 @@ export default {
     projects: '項目',
     chat: 'AI對話',
     settings: '設置',
-    about: '關於'
+    about: '關於',
   },
 
   auth: {
@@ -66,7 +68,7 @@ export default {
     rememberMe: '記住我',
     loginSuccess: '登錄成功',
     loginFailed: '登錄失敗',
-    logoutSuccess: '退出成功'
+    logoutSuccess: '退出成功',
   },
 
   knowledge: {
@@ -84,7 +86,7 @@ export default {
     createdAt: '創建時間',
     updatedAt: '更新時間',
     author: '作者',
-    noContent: '暫無內容'
+    noContent: '暫無內容',
   },
 
   project: {
@@ -108,7 +110,7 @@ export default {
     settings: '項目設置',
     collaboration: '協作',
     market: '市場',
-    categories: '分類管理'
+    categories: '分類管理',
   },
 
   chat: {
@@ -125,7 +127,7 @@ export default {
     stopGeneration: '停止生成',
     regenerate: '重新生成',
     copy: '複製',
-    delete: '刪除對話'
+    delete: '刪除對話',
   },
 
   file: {
@@ -143,13 +145,13 @@ export default {
     uploadSuccess: '上傳成功',
     uploadFailed: '上傳失敗',
     downloadSuccess: '下載成功',
-    downloadFailed: '下載失敗'
+    downloadFailed: '下載失敗',
   },
 
   editor: {
     markdown: 'Markdown編輯器',
     richText: '富文本編輯器',
-    code: '代碼編輯器',
+    codeEditor: '代碼編輯器',
     preview: '預覽',
     fullscreen: '全屏',
     exitFullscreen: '退出全屏',
@@ -163,10 +165,10 @@ export default {
     unorderedList: '無序列表',
     link: '鏈接',
     image: '圖片',
-    code: '代碼',
+    codeBlock: '代碼',
     table: '表格',
     undo: '撤銷',
-    redo: '重做'
+    redo: '重做',
   },
 
   settings: {
@@ -199,7 +201,7 @@ export default {
     gitEmail: 'Git郵箱',
     about: '關於',
     version: '版本',
-    checkUpdate: '檢查更新'
+    checkUpdate: '檢查更新',
   },
 
   ukey: {
@@ -213,7 +215,7 @@ export default {
     verifyPin: '驗證PIN碼',
     changePin: '修改PIN碼',
     pinError: 'PIN碼錯誤',
-    pinSuccess: 'PIN碼驗證成功'
+    pinSuccess: 'PIN碼驗證成功',
   },
 
   git: {
@@ -234,7 +236,7 @@ export default {
     pushSuccess: '推送成功',
     pushFailed: '推送失敗',
     pullSuccess: '拉取成功',
-    pullFailed: '拉取失敗'
+    pullFailed: '拉取失敗',
   },
 
   p2p: {
@@ -246,7 +248,7 @@ export default {
     messages: '消息',
     send: '發送消息',
     receive: '接收消息',
-    encryption: '端到端加密'
+    encryption: '端到端加密',
   },
 
   social: {
@@ -261,7 +263,7 @@ export default {
     newPost: '發布動態',
     like: '點贊',
     comment: '評論',
-    share: '分享'
+    share: '分享',
   },
 
   trade: {
@@ -275,7 +277,7 @@ export default {
     transfer: '轉賬',
     balance: '餘額',
     price: '價格',
-    amount: '數量'
+    amount: '數量',
   },
 
   template: {
@@ -288,7 +290,7 @@ export default {
     name: '模板名稱',
     description: '模板描述',
     category: '模板分類',
-    content: '模板內容'
+    content: '模板內容',
   },
 
   notification: {
@@ -296,7 +298,7 @@ export default {
     noNotifications: '暫無通知',
     markAsRead: '標記為已讀',
     markAllAsRead: '全部標記為已讀',
-    clear: '清空通知'
+    clear: '清空通知',
   },
 
   error: {
@@ -307,7 +309,7 @@ export default {
     notFound: '未找到',
     timeout: '請求超時',
     unknown: '未知錯誤',
-    tryAgain: '請重試'
+    tryAgain: '請重試',
   },
 
   validation: {
@@ -316,7 +318,7 @@ export default {
     url: '請輸入有效的URL',
     minLength: '長度不能少於{min}個字符',
     maxLength: '長度不能超過{max}個字符',
-    pattern: '格式不正確'
+    pattern: '格式不正確',
   },
 
   time: {
@@ -329,6 +331,8 @@ export default {
     yearsAgo: '{n}年前',
     yesterday: '昨天',
     today: '今天',
-    tomorrow: '明天'
-  }
+    tomorrow: '明天',
+  },
 };
+
+export default zhTW;

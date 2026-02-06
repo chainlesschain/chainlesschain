@@ -56,7 +56,7 @@ export interface IPCRetryOptions {
  */
 export type ProjectChannel =
   | 'project:get-all'
-  | 'project:get-by-id'
+  | 'project:get'
   | 'project:create'
   | 'project:update'
   | 'project:delete';
