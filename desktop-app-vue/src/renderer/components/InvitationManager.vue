@@ -762,8 +762,10 @@ const copyInviteLink = (invitation) => {
 
 // 获取邀请链接
 const getInviteLink = (invitation) => {
-  // TODO: 使用实际的应用URL
-  const baseUrl = 'chainlesschain://invite/';
+  // 使用自定义协议URL，支持桌面端和Web端
+  const baseUrl = window.location.protocol === 'file:'
+    ? 'chainlesschain://invite/' // 桌面端使用自定义协议
+    : `${window.location.origin}/invite/`; // Web端使用当前域名
   return `${baseUrl}${invitation.invite_code}`;
 };
 
