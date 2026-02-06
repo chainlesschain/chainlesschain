@@ -15,7 +15,7 @@ import { getLazyLoader } from '@/utils/image-lazy-loader';
 export interface LazyLoadOptions {
   root?: Element | null;
   rootMargin?: string;
-  threshold?: number | number[];
+  threshold?: number;
 }
 
 export interface LazyLoadValue {

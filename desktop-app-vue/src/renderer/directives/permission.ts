@@ -16,6 +16,7 @@ interface PermissionModifiers {
   disable?: boolean;
   readonly?: boolean;
 }
+type PermissionModifier = keyof PermissionModifiers;
 
 interface PermissionElement extends HTMLElement {
   _hasPermission?: boolean;
@@ -129,7 +130,7 @@ function applyPermissionMode(el: PermissionElement, hasPermission: boolean, mode
  * 自定义权限指令
  */
 export const permission: Directive<PermissionElement, string> = {
-  async mounted(el: PermissionElement, binding: DirectiveBinding<string, PermissionMode, PermissionModifiers>) {
+  async mounted(el: PermissionElement, binding: DirectiveBinding<string, PermissionModifier, PermissionMode>) {
     const { value, arg, modifiers } = binding;
 
     // 如果没有指定权限，直接返回
@@ -146,14 +147,13 @@ export const permission: Directive<PermissionElement, string> = {
     el._permissionValue = value;
 
     // 根据模式处理元素
-    const mode: PermissionMode =
-      (arg as PermissionMode) || (modifiers.disable ? 'disable' : modifiers.readonly ? 'readonly' : 'hide');
+    const mode: PermissionMode = arg || (modifiers.disable ? 'disable' : modifiers.readonly ? 'readonly' : 'hide');
     el._permissionMode = mode;
 
     applyPermissionMode(el, hasPermission, mode);
   },
 
-  async updated(el: PermissionElement, binding: DirectiveBinding<string, PermissionMode, PermissionModifiers>) {
+  async updated(el: PermissionElement, binding: DirectiveBinding<string, PermissionModifier, PermissionMode>) {
     const { value, arg, modifiers } = binding;
 
     // 如果权限值没有变化，不重新检查
@@ -167,8 +167,7 @@ export const permission: Directive<PermissionElement, string> = {
     el._permissionValue = value;
 
     // 根据模式处理元素
-    const mode: PermissionMode =
-      (arg as PermissionMode) || (modifiers.disable ? 'disable' : modifiers.readonly ? 'readonly' : 'hide');
+    const mode: PermissionMode = arg || (modifiers.disable ? 'disable' : modifiers.readonly ? 'readonly' : 'hide');
     el._permissionMode = mode;
 
     applyPermissionMode(el, hasPermission, mode);

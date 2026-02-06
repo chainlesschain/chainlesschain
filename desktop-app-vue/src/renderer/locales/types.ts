@@ -336,6 +336,7 @@ export interface TimeMessages {
 }
 
 export interface LocaleMessages {
+  [key: string]: unknown;
   common: CommonMessages;
   app: AppMessages;
   nav: NavMessages;

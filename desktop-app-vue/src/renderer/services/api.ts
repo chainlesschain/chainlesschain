@@ -93,7 +93,7 @@ export async function apiRequest<T = unknown>(
   // Use batching for GET requests
   if (enableBatching && method === 'GET') {
     return batcher.request(endpoint, params, {
-      enableCache,
+      skipCache: !enableCache,
       ...otherOptions,
     }) as Promise<T>;
   }
@@ -110,9 +110,12 @@ export async function apiRequest<T = unknown>(
     const jsonString = JSON.stringify(params);
 
     if (jsonString.length > DEFAULT_CONFIG.compressionThreshold) {
-      logger.info(`[API] Compressing request (${jsonString.length} bytes -> `, 'compression enabled)');
+      logger.info('[API] Compressing request', {
+        originalSize: jsonString.length,
+      });
 
-      body = await compress(jsonString, { base64: true });
+      const compressedPayload = await compress(jsonString, { base64: true });
+      body = typeof compressedPayload === 'string' ? compressedPayload : new TextDecoder().decode(compressedPayload);
       requestHeaders['Content-Encoding'] = 'gzip';
       requestHeaders['X-Original-Size'] = jsonString.length;
     } else {
@@ -149,10 +152,15 @@ export async function apiRequest<T = unknown>(
     if (contentEncoding === 'gzip' && enableCompression) {
       const compressedData = await response.text();
       const decompressedData = await decompress(compressedData, { fromBase64: true });
+      const decompressedText =
+        typeof decompressedData === 'string' ? decompressedData : new TextDecoder().decode(decompressedData);
 
-      logger.info('[API] Decompressed response:', compressedData.length, '->', decompressedData.length, 'bytes');
+      logger.info('[API] Decompressed response', {
+        compressedSize: compressedData.length,
+        decompressedSize: decompressedText.length,
+      });
 
-      return JSON.parse(decompressedData) as T;
+      return JSON.parse(decompressedText) as T;
     }
 
     // Parse JSON response
