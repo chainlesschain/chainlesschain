@@ -31,22 +31,4 @@ class DeviceListViewModel @Inject constructor(
             repository.remove(peerId)
         }
     }
-
-    fun seedIfEmpty() {
-        if (_devices.value.isNotEmpty()) return
-        viewModelScope.launch {
-            repository.registerOrUpdate(
-                peerId = "pc-primary-001",
-                did = "did:key:pc-primary-001",
-                deviceName = "Office Workstation",
-                ipAddress = "192.168.1.100"
-            )
-            repository.registerOrUpdate(
-                peerId = "pc-laptop-002",
-                did = "did:key:pc-laptop-002",
-                deviceName = "Travel Laptop",
-                ipAddress = "192.168.1.101"
-            )
-        }
-    }
 }

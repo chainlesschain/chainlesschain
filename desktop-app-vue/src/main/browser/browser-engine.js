@@ -11,6 +11,8 @@ const { chromium } = require('playwright-core');
 const { EventEmitter } = require('events');
 const path = require('path');
 const fs = require('fs').promises;
+const { SnapshotEngine } = require('./snapshot-engine');
+const { ElementLocator } = require('./element-locator');
 
 /**
  * 浏览器引擎类
@@ -36,6 +38,9 @@ class BrowserEngine extends EventEmitter {
     // 状态跟踪
     this.isRunning = false;
     this.startTime = null;
+
+    // Phase 2: 快照引擎
+    this.snapshotEngine = new SnapshotEngine();
   }
 
   /**
@@ -223,6 +228,9 @@ class BrowserEngine extends EventEmitter {
     try {
       const page = await context.newPage();
       const targetId = `tab-${this.nextTargetId++}`;
+
+      // 为页面添加 targetId 属性（用于快照引擎）
+      page._targetId = targetId;
 
       // 保存页面映射
       this.pages.set(targetId, page);
@@ -512,6 +520,176 @@ class BrowserEngine extends EventEmitter {
     }
   }
 
+  // ==================== Phase 2: 智能快照和元素操作 ====================
+
+  /**
+   * 获取页面快照
+   * @param {string} targetId - 标签页 ID
+   * @param {Object} options - 快照选项
+   * @param {boolean} options.interactive - 是否只包含可交互元素
+   * @param {boolean} options.visible - 是否只包含可见元素
+   * @param {boolean} options.roleRefs - 是否使用角色引用格式
+   * @returns {Promise<Object>} 快照对象
+   */
+  async takeSnapshot(targetId, options = {}) {
+    const page = this.getPage(targetId);
+
+    try {
+      const snapshot = await this.snapshotEngine.takeSnapshot(page, options);
+
+      this.emit('snapshot:taken', {
+        targetId,
+        elementsCount: snapshot.elementsCount
+      });
+
+      console.log(`[BrowserEngine] Snapshot taken for ${targetId}: ${snapshot.elementsCount} elements`);
+
+      return snapshot;
+    } catch (error) {
+      this.emit('snapshot:error', { targetId, error: error.message });
+      throw new Error(`Failed to take snapshot: ${error.message}`);
+    }
+  }
+
+  /**
+   * 执行元素操作
+   * @param {string} targetId - 标签页 ID
+   * @param {string} action - 操作类型 (click/type/select/drag/hover)
+   * @param {string} ref - 元素引用
+   * @param {Object} options - 操作选项
+   * @returns {Promise<Object>} 操作结果
+   */
+  async act(targetId, action, ref, options = {}) {
+    const page = this.getPage(targetId);
+
+    try {
+      // 从快照中查找元素
+      const element = this.snapshotEngine.findElement(targetId, ref);
+      if (!element) {
+        throw new Error(`Element ${ref} not found in snapshot. Run takeSnapshot() first.`);
+      }
+
+      // 使用 ElementLocator 定位元素
+      const locator = await ElementLocator.locate(page, element);
+
+      // 执行操作
+      let result = {};
+
+      switch (action.toLowerCase()) {
+        case 'click':
+          await locator.click({
+            button: options.button || 'left',
+            clickCount: options.double ? 2 : 1,
+            delay: options.delay
+          });
+          result = { clicked: true };
+          break;
+
+        case 'type':
+          if (!options.text) {
+            throw new Error('Text is required for type action');
+          }
+          await locator.fill(options.text);
+          result = { typed: options.text };
+          break;
+
+        case 'select':
+          if (!options.value) {
+            throw new Error('Value is required for select action');
+          }
+          await locator.selectOption(options.value);
+          result = { selected: options.value };
+          break;
+
+        case 'drag':
+          if (!options.target) {
+            throw new Error('Target is required for drag action');
+          }
+          const targetElement = this.snapshotEngine.findElement(targetId, options.target);
+          if (!targetElement) {
+            throw new Error(`Target element ${options.target} not found`);
+          }
+          const targetLocator = await ElementLocator.locate(page, targetElement);
+          await locator.dragTo(targetLocator);
+          result = { dragged: true, target: options.target };
+          break;
+
+        case 'hover':
+          await locator.hover();
+          result = { hovered: true };
+          break;
+
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+
+      // 可选的等待
+      if (options.waitFor) {
+        await page.waitForLoadState(options.waitFor);
+      }
+
+      this.emit('element:acted', {
+        targetId,
+        action,
+        ref,
+        result
+      });
+
+      console.log(`[BrowserEngine] Action ${action} executed on ${ref}`);
+
+      return {
+        success: true,
+        action,
+        ref,
+        ...result
+      };
+    } catch (error) {
+      this.emit('element:error', {
+        targetId,
+        action,
+        ref,
+        error: error.message
+      });
+      throw new Error(`Failed to execute ${action} on ${ref}: ${error.message}`);
+    }
+  }
+
+  /**
+   * 查找元素
+   * @param {string} targetId - 标签页 ID
+   * @param {string} ref - 元素引用
+   * @returns {Object|null} 元素对象
+   */
+  findElement(targetId, ref) {
+    return this.snapshotEngine.findElement(targetId, ref);
+  }
+
+  /**
+   * 验证引用是否有效
+   * @param {string} targetId - 标签页 ID
+   * @param {string} ref - 元素引用
+   * @returns {boolean}
+   */
+  validateRef(targetId, ref) {
+    return this.snapshotEngine.validateRef(targetId, ref);
+  }
+
+  /**
+   * 清除快照缓存
+   * @param {string} targetId - 标签页 ID（可选）
+   */
+  clearSnapshot(targetId = null) {
+    this.snapshotEngine.clearSnapshot(targetId);
+  }
+
+  /**
+   * 获取快照统计
+   * @returns {Object}
+   */
+  getSnapshotStats() {
+    return this.snapshotEngine.getStats();
+  }
+
   /**
    * 清理资源
    * @returns {Promise<void>}
@@ -520,6 +698,8 @@ class BrowserEngine extends EventEmitter {
     if (this.isRunning) {
       await this.stop();
     }
+    // 清理所有快照
+    this.snapshotEngine.clearSnapshot();
   }
 }
 

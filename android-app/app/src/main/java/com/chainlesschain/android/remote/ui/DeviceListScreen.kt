@@ -37,16 +37,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceListScreen(
-    onNavigateToDeviceDetail: (String) -> Unit = {},
+    onNavigateToDeviceDetail: (String, String) -> Unit = {},
     onNavigateToDeviceScan: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
     viewModel: DeviceListViewModel = hiltViewModel()
 ) {
     val devices by viewModel.devices.collectAsState()
-
-    LaunchedEffect(Unit) {
-        viewModel.seedIfEmpty()
-    }
 
     Scaffold(
         topBar = {
@@ -92,7 +88,7 @@ fun DeviceListScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        onClick = { onNavigateToDeviceDetail(device.peerId) }
+                        onClick = { onNavigateToDeviceDetail(device.peerId, device.did) }
                     ) {
                         Row(
                             modifier = Modifier

@@ -160,6 +160,14 @@
       />
     </a-card>
 
+    <!-- Phase 2: 快照面板 -->
+    <snapshot-panel
+      v-if="browserStatus.isRunning && activeTargetId"
+      :targetId="activeTargetId"
+      class="mt-4"
+      ref="snapshotPanelRef"
+    />
+
     <!-- 截图预览模态框 -->
     <a-modal
       v-model:open="screenshotModal.visible"
@@ -188,6 +196,7 @@ import {
   CloseOutlined,
   EyeOutlined
 } from '@ant-design/icons-vue';
+import SnapshotPanel from '../components/browser/SnapshotPanel.vue';
 
 // 状态管理
 const browserStatus = reactive({
@@ -214,6 +223,9 @@ const screenshotModal = reactive({
   visible: false,
   data: null
 });
+
+// Phase 2: 快照面板引用
+const snapshotPanelRef = ref(null);
 
 // 计算属性
 const uptimeFormatted = computed(() => {
