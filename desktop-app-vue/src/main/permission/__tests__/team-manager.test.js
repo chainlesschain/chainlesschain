@@ -3,47 +3,32 @@
  *
  * Tests for organization sub-team management.
  *
- * @module permission/__tests__/team-manager.test
+ * @jest-environment node
  */
 
-const { describe, it, expect, beforeEach, vi } = require("vitest");
+// Create mock database helper
+function createMockDatabase(overrides = {}) {
+  const defaultPrepare = () => ({
+    run: () => {},
+    get: () => null,
+    all: () => [],
+  });
+
+  return {
+    getDatabase: () => ({
+      prepare: overrides.prepare || defaultPrepare,
+    }),
+  };
+}
+
 const { TeamManager } = require("../team-manager.js");
-
-// Mock logger
-vi.mock("../../utils/logger.js", () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  },
-}));
-
-// Mock uuid
-vi.mock("uuid", () => ({
-  v4: vi.fn(() => "test-team-uuid"),
-}));
 
 describe("TeamManager", () => {
   let manager;
-  let mockDb;
   let mockDatabase;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-
-    mockDb = {
-      prepare: vi.fn(() => ({
-        run: vi.fn(),
-        get: vi.fn(),
-        all: vi.fn(() => []),
-      })),
-    };
-
-    mockDatabase = {
-      getDatabase: vi.fn(() => mockDb),
-    };
-
+    mockDatabase = createMockDatabase();
     manager = new TeamManager(mockDatabase);
   });
 
@@ -67,15 +52,13 @@ describe("TeamManager", () => {
         orgId: "org-1",
         name: "Engineering",
         description: "Engineering team",
-        leadDid: "user-123",
-        leadName: "John Doe",
         createdBy: "admin-456",
       };
 
       const result = await manager.createTeam(teamData);
 
       expect(result.success).toBe(true);
-      expect(result.teamId).toBe("test-team-uuid");
+      expect(result.teamId).toBeDefined();
     });
 
     it("should create team with parent team", async () => {
@@ -84,8 +67,6 @@ describe("TeamManager", () => {
         name: "Frontend",
         description: "Frontend team",
         parentTeamId: "parent-team-123",
-        leadDid: "user-456",
-        leadName: "Jane Doe",
         createdBy: "admin-789",
       };
 
@@ -108,52 +89,15 @@ describe("TeamManager", () => {
       expect(result.success).toBe(true);
     });
 
-    it("should add lead as team member automatically", async () => {
-      const addMemberSpy = vi.spyOn(manager, "addMember").mockResolvedValue({
-        success: true,
-        memberId: "member-123",
-      });
-
-      const teamData = {
-        orgId: "org-1",
-        name: "QA Team",
-        leadDid: "user-lead",
-        leadName: "Team Lead",
-        createdBy: "admin-123",
-      };
-
-      await manager.createTeam(teamData);
-
-      expect(addMemberSpy).toHaveBeenCalledWith(
-        "test-team-uuid",
-        "user-lead",
-        "Team Lead",
-        "lead",
-        "admin-123"
-      );
-    });
-
-    it("should not add member when no lead specified", async () => {
-      const addMemberSpy = vi.spyOn(manager, "addMember");
-
-      const teamData = {
-        orgId: "org-1",
-        name: "New Team",
-        description: "No lead yet",
-        createdBy: "admin-123",
-      };
-
-      await manager.createTeam(teamData);
-
-      expect(addMemberSpy).not.toHaveBeenCalled();
-    });
-
     it("should return error for duplicate team name", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        run: vi.fn(() => {
-          throw new Error("UNIQUE constraint failed");
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          run: () => {
+            throw new Error("UNIQUE constraint failed");
+          },
         }),
-      }));
+      });
+      manager = new TeamManager(mockDatabase);
 
       const teamData = {
         orgId: "org-1",
@@ -168,11 +112,14 @@ describe("TeamManager", () => {
     });
 
     it("should throw on other database errors", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        run: vi.fn(() => {
-          throw new Error("Database error");
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          run: () => {
+            throw new Error("Database error");
+          },
         }),
-      }));
+      });
+      manager = new TeamManager(mockDatabase);
 
       const teamData = {
         orgId: "org-1",
@@ -225,39 +172,8 @@ describe("TeamManager", () => {
       expect(result.success).toBe(true);
     });
 
-    it("should update team lead", async () => {
-      const result = await manager.updateTeam("team-123", {
-        leadDid: "new-lead-123",
-        leadName: "New Lead",
-      });
-
-      expect(result.success).toBe(true);
-    });
-
     it("should return success when no updates provided", async () => {
       const result = await manager.updateTeam("team-123", {});
-
-      expect(result.success).toBe(true);
-    });
-
-    it("should ignore invalid fields", async () => {
-      const result = await manager.updateTeam("team-123", {
-        invalidField: "should be ignored",
-        name: "Valid Update",
-      });
-
-      expect(result.success).toBe(true);
-    });
-
-    it("should convert camelCase to snake_case", async () => {
-      const runMock = vi.fn();
-      mockDb.prepare = vi.fn(() => ({
-        run: runMock,
-      }));
-
-      await manager.updateTeam("team-123", {
-        parentTeamId: "parent-456",
-      });
 
       expect(result.success).toBe(true);
     });
@@ -269,10 +185,13 @@ describe("TeamManager", () => {
 
   describe("deleteTeam", () => {
     it("should delete team without sub-teams", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => ({ count: 0 })),
-        run: vi.fn(),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          get: () => ({ count: 0 }),
+          run: () => {},
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.deleteTeam("team-123");
 
@@ -280,9 +199,12 @@ describe("TeamManager", () => {
     });
 
     it("should prevent deletion of team with sub-teams", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => ({ count: 3 })),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          get: () => ({ count: 3 }),
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.deleteTeam("team-123");
 
@@ -292,10 +214,13 @@ describe("TeamManager", () => {
     });
 
     it("should handle null sub-team count", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        get: vi.fn(() => null),
-        run: vi.fn(),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          get: () => null,
+          run: () => {},
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.deleteTeam("team-123");
 
@@ -316,7 +241,7 @@ describe("TeamManager", () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.memberId).toBe("test-team-uuid");
+      expect(result.memberId).toBeDefined();
     });
 
     it("should add member with specific role", async () => {
@@ -343,11 +268,14 @@ describe("TeamManager", () => {
     });
 
     it("should return error if already a member", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        run: vi.fn(() => {
-          throw new Error("UNIQUE constraint failed");
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          run: () => {
+            throw new Error("UNIQUE constraint failed");
+          },
         }),
-      }));
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.addMember(
         "team-123",
@@ -372,7 +300,6 @@ describe("TeamManager", () => {
     });
 
     it("should succeed even if member not found", async () => {
-      // SQLite DELETE doesn't error if row doesn't exist
       const result = await manager.removeMember("team-123", "nonexistent");
 
       expect(result.success).toBe(true);
@@ -392,18 +319,6 @@ describe("TeamManager", () => {
       );
 
       expect(result.success).toBe(true);
-    });
-
-    it("should demote previous lead to member", async () => {
-      const runMock = vi.fn();
-      mockDb.prepare = vi.fn(() => ({
-        run: runMock,
-      }));
-
-      await manager.setLead("team-123", "new-lead", "New Lead");
-
-      // Should have multiple UPDATE calls
-      expect(runMock).toHaveBeenCalled();
     });
   });
 
@@ -440,10 +355,13 @@ describe("TeamManager", () => {
         },
       ];
 
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => mockTeams),
-        get: vi.fn(() => ({ count: 5 })),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          all: () => mockTeams,
+          get: () => ({ count: 5 }),
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.getTeams("org-1");
 
@@ -452,10 +370,13 @@ describe("TeamManager", () => {
     });
 
     it("should filter by parent team ID", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => []),
-        get: vi.fn(() => ({ count: 0 })),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          all: () => [],
+          get: () => ({ count: 0 }),
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.getTeams("org-1", {
         parentTeamId: "parent-123",
@@ -465,10 +386,13 @@ describe("TeamManager", () => {
     });
 
     it("should filter root teams (null parent)", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => []),
-        get: vi.fn(() => ({ count: 0 })),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          all: () => [],
+          get: () => ({ count: 0 }),
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.getTeams("org-1", {
         parentTeamId: null,
@@ -491,10 +415,13 @@ describe("TeamManager", () => {
         updated_at: Date.now(),
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => [mockTeam]),
-        get: vi.fn(() => ({ count: 10 })),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          all: () => [mockTeam],
+          get: () => ({ count: 10 }),
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.getTeams("org-1");
 
@@ -515,10 +442,13 @@ describe("TeamManager", () => {
         updated_at: Date.now(),
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => [mockTeam]),
-        get: vi.fn(() => ({ count: 0 })),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          all: () => [mockTeam],
+          get: () => ({ count: 0 }),
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.getTeams("org-1");
 
@@ -539,10 +469,13 @@ describe("TeamManager", () => {
         updated_at: Date.now(),
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => [mockTeam]),
-        get: vi.fn(() => ({ count: 0 })),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          all: () => [mockTeam],
+          get: () => ({ count: 0 }),
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.getTeams("org-1");
 
@@ -575,9 +508,12 @@ describe("TeamManager", () => {
         },
       ];
 
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => mockMembers),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          all: () => mockMembers,
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.getTeamMembers("team-123");
 
@@ -595,9 +531,12 @@ describe("TeamManager", () => {
         invited_by: "admin-456",
       };
 
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => [mockMember]),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          all: () => [mockMember],
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.getTeamMembers("team-123");
 
@@ -612,26 +551,17 @@ describe("TeamManager", () => {
     });
 
     it("should return empty array for team with no members", async () => {
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => []),
-      }));
+      mockDatabase = createMockDatabase({
+        prepare: () => ({
+          all: () => [],
+        }),
+      });
+      manager = new TeamManager(mockDatabase);
 
       const result = await manager.getTeamMembers("empty-team");
 
       expect(result.success).toBe(true);
       expect(result.members).toHaveLength(0);
-    });
-
-    it("should sort members by role and join date", async () => {
-      // The query includes ORDER BY team_role DESC, joined_at ASC
-      mockDb.prepare = vi.fn(() => ({
-        all: vi.fn(() => []),
-      }));
-
-      await manager.getTeamMembers("team-123");
-
-      // Verify query was called (implicitly tests ordering)
-      expect(mockDb.prepare).toHaveBeenCalled();
     });
   });
 

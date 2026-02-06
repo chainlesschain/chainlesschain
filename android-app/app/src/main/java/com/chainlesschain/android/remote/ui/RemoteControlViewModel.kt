@@ -60,7 +60,7 @@ class RemoteControlViewModel @Inject constructor(
 
     private fun startAutoRefreshStatus() {
         viewModelScope.launch {
-            while (true) {
+            while (coroutineContext.isActive) {
                 delay(10_000)
                 if (connectionState.value == ConnectionState.CONNECTED) {
                     refreshSystemStatus()

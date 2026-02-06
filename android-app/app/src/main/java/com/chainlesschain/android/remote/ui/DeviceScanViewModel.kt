@@ -35,6 +35,7 @@ class DeviceScanViewModel @Inject constructor(
                     peerId = it.peerId,
                     deviceName = it.deviceName,
                     ipAddress = if (it.ipAddress.isBlank()) "unknown" else it.ipAddress,
+                    did = it.did,
                     isRegistered = false
                 )
             }
@@ -50,7 +51,7 @@ class DeviceScanViewModel @Inject constructor(
         viewModelScope.launch {
             repository.registerOrUpdate(
                 peerId = device.peerId,
-                did = "did:key:${device.peerId}",
+                did = device.did.ifBlank { "did:key:${device.peerId}" },
                 deviceName = deviceName,
                 ipAddress = device.ipAddress
             )
