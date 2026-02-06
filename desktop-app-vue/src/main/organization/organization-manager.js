@@ -2179,7 +2179,7 @@ class OrganizationManager {
    * @param {Object} message - 消息内容
    * @returns {Promise<void>}
    */
-  async broadcastOrgMessage(orgId, message) {
+  async broadcastOrgP2PMessage(orgId, message) {
     if (!this.orgP2PNetwork) {
       throw new Error('OrgP2PNetwork未初始化');
     }

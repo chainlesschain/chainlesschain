@@ -477,7 +477,7 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   PlusOutlined,
@@ -604,9 +604,12 @@ const displayTemplates = computed(() => {
     )
   }
 
-  pagination.total = templates.length
   return templates
 })
+
+watch(displayTemplates, (templates) => {
+  pagination.total = templates.length
+}, { immediate: true })
 
 // 方法
 function getCategoryLabel(category) {

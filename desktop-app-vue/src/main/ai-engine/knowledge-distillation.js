@@ -373,15 +373,11 @@ class KnowledgeDistillation {
       // 如果小模型失败且启用回退，尝试大模型
       if (routing.modelType === ModelType.SMALL && this.config.enableFallback) {
         logger.info('[KnowledgeDistillation] 小模型执行失败，回退到大模型');
-        try {
-          result = await this._executeTask(task, this.config.largeModel, context);
-          finalModelType = ModelType.LARGE;
-          usedFallback = true;
-          this.stats.fallbacks++;
-          this.stats.largeModelUsage++;
-        } catch (fallbackError) {
-          throw fallbackError;
-        }
+        result = await this._executeTask(task, this.config.largeModel, context);
+        finalModelType = ModelType.LARGE;
+        usedFallback = true;
+        this.stats.fallbacks++;
+        this.stats.largeModelUsage++;
       } else {
         throw error;
       }

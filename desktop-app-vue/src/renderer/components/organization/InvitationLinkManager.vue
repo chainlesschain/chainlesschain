@@ -412,9 +412,12 @@ const filteredLinks = computed(() => {
     );
   }
 
-  pagination.value.total = result.length;
   return result;
 });
+
+watch(filteredLinks, (items) => {
+  pagination.value.total = items.length;
+}, { immediate: true });
 
 // Methods
 const loadInvitationLinks = async () => {

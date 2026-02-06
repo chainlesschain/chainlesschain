@@ -111,10 +111,10 @@
     <!-- 互动统计 -->
     <div class="post-stats">
       <span class="stat-item">
-        <like-outlined /> {{ post.like_count }} 赞
+        <like-outlined /> {{ likeCount }} 赞
       </span>
       <span class="stat-item">
-        <comment-outlined /> {{ post.comment_count }} 评论
+        <comment-outlined /> {{ commentCount }} 评论
       </span>
     </div>
 
@@ -122,14 +122,14 @@
     <div class="post-actions">
       <a-button
         type="text"
-        :class="{ liked: post.liked }"
+        :class="{ liked }"
         @click="handleLike"
       >
         <template #icon>
-          <like-filled v-if="post.liked" />
+          <like-filled v-if="liked" />
           <like-outlined v-else />
         </template>
-        {{ post.liked ? '已赞' : '点赞' }}
+        {{ liked ? '已赞' : '点赞' }}
       </a-button>
       <a-button
         type="text"
@@ -214,7 +214,7 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { message as antMessage, Modal } from 'ant-design-vue';
 import {
   UserOutlined,
@@ -249,9 +249,22 @@ const comments = ref([]);
 const loadingComments = ref(false);
 const commentContent = ref('');
 const commenting = ref(false);
+const liked = ref(false);
+const likeCount = ref(0);
+const commentCount = ref(0);
 
 // 计算属性
 const isAuthor = computed(() => props.post.author_did === props.currentDid);
+
+watch(
+  () => props.post,
+  (post) => {
+    liked.value = Boolean(post?.liked);
+    likeCount.value = post?.like_count || 0;
+    commentCount.value = post?.comment_count || 0;
+  },
+  { immediate: true, deep: true }
+);
 
 // 工具函数
 const shortenDid = (did) => {
@@ -329,15 +342,15 @@ const handleDelete = () => {
 // 点赞/取消点赞
 const handleLike = async () => {
   try {
-    if (props.post.liked) {
+    if (liked.value) {
       await window.electronAPI.post.unlike(props.post.id);
-      props.post.liked = false;
-      props.post.like_count--;
+      liked.value = false;
+      likeCount.value = Math.max(0, likeCount.value - 1);
       emit('unliked', props.post.id);
     } else {
       await window.electronAPI.post.like(props.post.id);
-      props.post.liked = true;
-      props.post.like_count++;
+      liked.value = true;
+      likeCount.value += 1;
       emit('liked', props.post.id);
     }
   } catch (error) {
@@ -383,7 +396,7 @@ const handleComment = async () => {
     );
 
     comments.value.unshift(comment);
-    props.post.comment_count++;
+    commentCount.value += 1;
     commentContent.value = '';
 
     antMessage.success('评论已发表');
@@ -408,7 +421,7 @@ const handleDeleteComment = async (commentId) => {
       try {
         await window.electronAPI.post.deleteComment(commentId);
         comments.value = comments.value.filter(c => c.id !== commentId);
-        props.post.comment_count--;
+        commentCount.value = Math.max(0, commentCount.value - 1);
         antMessage.success('评论已删除');
       } catch (error) {
         logger.error('删除评论失败:', error);

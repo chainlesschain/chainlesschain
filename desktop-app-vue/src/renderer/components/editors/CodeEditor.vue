@@ -432,6 +432,7 @@ const runCode = async () => {
         };
 
         // 使用Function构造器创建沙箱
+        // eslint-disable-next-line no-new-func -- controlled local sandbox execution
         const func = new Function('console', code);
         func(sandboxConsole);
 

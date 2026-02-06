@@ -84,16 +84,17 @@
         </span>
 
         <!-- 快捷金额按钮 -->
-        <a-button
-          v-for="(quickAmount, index) in quickAmounts"
-          v-if="showQuickAmounts"
-          :key="index"
-          type="link"
-          size="small"
-          @click="setQuickAmount(quickAmount)"
-        >
-          {{ quickAmount.label }}
-        </a-button>
+        <template v-if="showQuickAmounts">
+          <a-button
+            v-for="(quickAmount, index) in quickAmounts"
+            :key="index"
+            type="link"
+            size="small"
+            @click="setQuickAmount(quickAmount)"
+          >
+            {{ quickAmount.label }}
+          </a-button>
+        </template>
       </a-space>
     </div>
 

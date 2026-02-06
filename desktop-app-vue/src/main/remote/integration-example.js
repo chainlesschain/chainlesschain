@@ -177,7 +177,8 @@ async function shutdownRemoteControl() {
  */
 async function example(mainWindow) {
   // 1. 初始化远程控制系统
-  const gateway = await initializeRemoteControl(app, mainWindow);
+  // eslint-disable-next-line no-undef
+  const gateway = await initializeRemoteControl(global.app, mainWindow);
 
   // 2. 获取已连接设备列表
   const devices = gateway.getConnectedDevices();

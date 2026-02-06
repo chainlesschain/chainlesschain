@@ -1,6 +1,6 @@
 <template>
   <a-modal
-    v-model:open="visible"
+    v-model:open="dialogVisible"
     title="文件访问授权"
     :width="700"
     :confirm-loading="confirming"
@@ -152,6 +152,11 @@ const props = defineProps({
 
 // Emits
 const emit = defineEmits(["update:visible", "grant", "deny"]);
+
+const dialogVisible = computed({
+  get: () => props.visible,
+  set: (value) => emit("update:visible", value),
+});
 
 // 状态
 const confirming = ref(false);

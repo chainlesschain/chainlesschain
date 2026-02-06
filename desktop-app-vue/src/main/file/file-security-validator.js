@@ -273,13 +273,14 @@ class FileSecurityValidator {
     const warnings = [];
 
     // 检查特殊字符
-    const dangerousChars = /[<>:"|?*\x00-\x1f]/;
-    if (dangerousChars.test(fileName)) {
+    const dangerousChars = /[<>:"|?*]/;
+    const hasControlChars = [...fileName].some((char) => char.charCodeAt(0) <= 31);
+    if (dangerousChars.test(fileName) || hasControlChars) {
       warnings.push('文件名包含特殊字符');
     }
 
     // 检查Unicode字符（可能用于欺骗）
-    const hasUnicode = /[^\x00-\x7F]/.test(fileName);
+    const hasUnicode = [...fileName].some((char) => char.charCodeAt(0) > 127);
     if (hasUnicode) {
       warnings.push('文件名包含非ASCII字符，请确认文件来源可信');
     }

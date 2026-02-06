@@ -537,7 +537,7 @@ class ProjectRAGManager extends EventEmitter {
     logger.info(`[ProjectRAG] 启动文件监听: ${projectPath}`);
 
     const watcher = chokidar.watch(projectPath, {
-      ignored: /(^|[\/\\])\../, // 忽略隐藏文件
+      ignored: /(^|[/\\])\./, // 忽略隐藏文件
       persistent: true,
       ignoreInitial: true,
       awaitWriteFinish: {

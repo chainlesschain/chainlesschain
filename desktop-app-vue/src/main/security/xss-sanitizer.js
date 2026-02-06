@@ -129,13 +129,13 @@ class XSSSanitizer {
     });
 
     // 3. 清理图片链接中的javascript:协议
-    cleaned = cleaned.replace(/!\[([^\]]*)\]\(javascript:[^\)]*\)/g, '![$1](#)');
+    cleaned = cleaned.replace(/!\[([^\]]*)\]\(javascript:[^)]*\)/g, '![$1](#)');
 
     // 4. 清理普通链接中的javascript:协议
-    cleaned = cleaned.replace(/\[([^\]]*)\]\(javascript:[^\)]*\)/g, '[$1](#)');
+    cleaned = cleaned.replace(/\[([^\]]*)\]\(javascript:[^)]*\)/g, '[$1](#)');
 
     // 5. 移除危险的data URI
-    cleaned = cleaned.replace(/!\[([^\]]*)\]\(data:(?!image\/)[^\)]*\)/g, '![$1](#)');
+    cleaned = cleaned.replace(/!\[([^\]]*)\]\(data:(?!image\/)[^)]*\)/g, '![$1](#)');
 
     return cleaned;
   }
@@ -295,7 +295,7 @@ class XSSSanitizer {
       '/': '&#x2F;',
     };
 
-    return String(str).replace(/[&<>"'\/]/g, (char) => entityMap[char]);
+    return String(str).replace(/[&<>"'/]/g, (char) => entityMap[char]);
   }
 
   /**
@@ -371,7 +371,12 @@ class XSSSanitizer {
     }
 
     // 3. 移除控制字符
-    cleaned = cleaned.replace(/[\x00-\x1F\x7F]/g, '');
+    cleaned = [...cleaned]
+      .filter((char) => {
+        const code = char.charCodeAt(0);
+        return !(code <= 31 || code === 127);
+      })
+      .join('');
 
     // 4. 编码HTML实体
     if (options.encodeHTML) {

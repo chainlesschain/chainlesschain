@@ -254,7 +254,7 @@ class ShadowDOMScanner {
       );
 
       let node;
-      while (node = walker.nextNode()) {
+      while ((node = walker.nextNode())) {
         if (node.shadowRoot) {
           const rect = node.getBoundingClientRect();
           hosts.push({

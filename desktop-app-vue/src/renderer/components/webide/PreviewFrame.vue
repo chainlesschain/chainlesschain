@@ -241,7 +241,7 @@ const generatePreviewHTML = () => {
     })();
 
     ${props.js}
-  <\/script>
+  ${'</scr' + 'ipt>'}
 </body>
 </html>`;
 };

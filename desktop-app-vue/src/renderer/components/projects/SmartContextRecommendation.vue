@@ -61,8 +61,7 @@
               <div class="item-actions">
                 <a-button
                   size="small"
-                  type="text"
-                  :type="selectedFiles.includes(file.id) ? 'primary' : 'default'"
+                  :type="selectedFiles.includes(file.id) ? 'primary' : 'text'"
                   @click.stop="toggleFileSelection(file)"
                 >
                   {{ selectedFiles.includes(file.id) ? '已选择' : '选择' }}

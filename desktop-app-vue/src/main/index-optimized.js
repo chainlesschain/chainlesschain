@@ -159,17 +159,18 @@ class ChainlessChainApp {
       logger.error("[Main] 启动后端服务失败:", error);
     }
 
-    // 🚀 使用 Bootstrap 模块进行初始�?    try {
+    // 使用 Bootstrap 模块进行初始化
+    try {
       const instances = await bootstrapApplication({
         progressCallback: (message, progress) => {
-          // 映射 bootstrap 进度�?5-85%
+          // 映射 bootstrap 进度 5-85%
           const mappedProgress = 5 + Math.round(progress * 0.8);
           this.splashWindow?.updateProgress(message, mappedProgress);
         },
         context: { mainWindow: this.mainWindow },
       });
 
-      // 保存实例引用�?this
+      // 保存实例引用到 this
       this.applyInstances(instances);
 
       // 设置 Token Tracker 预算告警
@@ -180,12 +181,12 @@ class ChainlessChainApp {
         });
       }
 
-      logger.info("[Main] Bootstrap 初始化完�?);
+      logger.info("[Main] Bootstrap 初始化完成");
     } catch (error) {
-      logger.error("[Main] Bootstrap 初始化失�?", error);
+      logger.error("[Main] Bootstrap 初始化失败:", error);
     }
 
-    // 初始�?Initial Setup IPC
+    // 初始化 Initial Setup IPC
     if (this.database) {
       const { getLLMConfig } = require("./llm/llm-config");
       this.initialSetupIPC = new InitialSetupIPC(
@@ -199,13 +200,14 @@ class ChainlessChainApp {
       }
     }
 
-    // P2P 后续初始�?    await setupP2PPostInit(
+    // P2P 后续初始化
+    await setupP2PPostInit(
       getAllModules(),
       () => this.setupP2PEncryptionEvents(),
       () => this.initializeMobileBridge(),
     );
 
-    // 注册技能工�?IPC
+    // 注册技能工具 IPC
     this.registerSkillToolIPC();
 
     // 注册高级特�?IPC
@@ -345,7 +347,7 @@ class ChainlessChainApp {
           skillManager: this.skillManager,
           toolManager: this.toolManager,
         });
-        logger.info("[Main] 技能工具IPC已注�?);
+        logger.info("[Main] ????IPC???");
       }
 
       registerVolcengineIPC();

@@ -37,7 +37,7 @@ const BASELINES = {
   skillMatching: 15,
   simpleTaskExecution: 200,
   decisionMaking: 25,
-  messageB roadcast: 30,
+  messageBroadcast: 30,
   resultMerging: 20,
 };
 

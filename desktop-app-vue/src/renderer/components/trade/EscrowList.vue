@@ -225,7 +225,7 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
   LockOutlined,
@@ -282,11 +282,12 @@ const filteredEscrows = computed(() => {
     );
   }
 
-  // 更新分页总数
-  pagination.value.total = result.length;
-
   return result;
 });
+
+watch(filteredEscrows, (items) => {
+  pagination.value.total = items.length;
+}, { immediate: true });
 
 // 表格列配置
 const columns = [

@@ -581,7 +581,7 @@ class ExtendedTools {
           } else if (targetFormat === 'plain') {
             const plain = markdown
               .replace(/[#*_~`]/g, '')
-              .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+              .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 
             return {
               success: true,

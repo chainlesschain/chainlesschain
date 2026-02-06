@@ -252,7 +252,7 @@ const updateFrame = (frame) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>预览</title>
-  <style>${cssCode.value}<\/style>
+  <style>${cssCode.value}</style>
 </head>
 <body>
   ${htmlCode.value}
@@ -260,7 +260,7 @@ const updateFrame = (frame) => {
     (function() {
       ${jsCode.value}
     })();
-  <\/script>
+  ${'</scr' + 'ipt>'}
 </body>
 </html>
   `;
@@ -329,7 +329,7 @@ const generateFullHTML = () => {
 </head>
 <body>
   ${htmlCode.value}
-  <script src="script.js"><\/script>
+  <script src="script.js">${'</scr' + 'ipt>'}
 </body>
 </html>`;
 };

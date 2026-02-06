@@ -303,7 +303,7 @@ class SnapshotEngine extends EventEmitter {
             // 添加 nth-child 避免歧义
             let sibling = current;
             let nth = 1;
-            while (sibling = sibling.previousElementSibling) {
+            while ((sibling = sibling.previousElementSibling)) {
               if (sibling.tagName === current.tagName) {
                 nth++;
               }

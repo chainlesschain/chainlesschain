@@ -498,7 +498,7 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
       }
 
       // 无序列表
-      if (line.match(/^[\-\*]\s+/)) {
+      if (line.match(/^[-*]\s+/)) {
         if (!inUnorderedList) {
           this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
           inOrderedList = false;
@@ -980,7 +980,7 @@ pandoc document.md -o document.docx
       }
 
       // 无序列表
-      if (line.match(/^[\-\*]\s+/)) {
+      if (line.match(/^[-*]\s+/)) {
         paragraphs.push(
           new Paragraph({
             children: this.parseInlineMarkdownForDocx(line.substring(2), docx),

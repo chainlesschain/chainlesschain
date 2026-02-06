@@ -203,7 +203,8 @@ const gitBranchSchema = z
       // Git 分支名规则
       if (name.startsWith('-')) return false;
       if (name.endsWith('.lock')) return false;
-      if (/[\s~^:?*\[\]\\]/.test(name)) return false;
+      if (/[\s~^:?*]/.test(name)) return false;
+      if (name.includes('[') || name.includes(']') || name.includes('\\')) return false;
       if (/\.\./.test(name)) return false;
       return true;
     },

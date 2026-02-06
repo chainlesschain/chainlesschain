@@ -468,7 +468,9 @@ class FileIntegrityChecker extends EventEmitter {
         // 删除对应的校验和文件
         try {
           await fs.unlink(`${backup.path}.checksum`);
-        } catch {}
+        } catch (_cleanupError) {
+          // 忽略缺失的校验和文件
+        }
         logger.info(`[FileIntegrity] 删除旧备份: ${backup.name}`);
       }
     } catch (error) {
