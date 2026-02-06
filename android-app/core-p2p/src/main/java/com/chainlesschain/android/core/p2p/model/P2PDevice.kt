@@ -208,7 +208,15 @@ enum class MessageType {
     CHAT_MESSAGE,
 
     /** 正在输入指示 */
-    TYPING_INDICATOR
+    TYPING_INDICATOR,
+
+    // Reliability Message Types
+
+    /** 批量确认 */
+    BATCH_ACK,
+
+    /** 分片否定确认（请求重传） */
+    FRAGMENT_NACK
 }
 
 /**
