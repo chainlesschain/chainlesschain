@@ -352,16 +352,17 @@ fun FriendListScreen(
     }
 
     // 备注名对话框
-    if (showRemarkDialog && remarkFriend != null) {
+    val currentRemarkFriend = remarkFriend
+    if (showRemarkDialog && currentRemarkFriend != null) {
         RemarkNameDialog(
-            currentRemarkName = remarkFriend!!.remarkName,
-            originalNickname = remarkFriend!!.nickname,
+            currentRemarkName = currentRemarkFriend.remarkName,
+            originalNickname = currentRemarkFriend.nickname,
             onDismiss = {
                 showRemarkDialog = false
                 remarkFriend = null
             },
             onConfirm = { newRemarkName ->
-                viewModel.updateRemarkName(remarkFriend!!.did, newRemarkName)
+                viewModel.updateRemarkName(currentRemarkFriend.did, newRemarkName)
                 showRemarkDialog = false
                 remarkFriend = null
             }

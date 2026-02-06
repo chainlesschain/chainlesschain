@@ -18,15 +18,32 @@ const { logger, createLogger } = require('../utils/logger.js');
 function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard }) {
   // 支持依赖注入，用于测试
   const ipcGuard = injectedIpcGuard || require('../ipc/ipc-guard');
-
-  // 防止重复注册
-  if (ipcGuard.isModuleRegistered('ukey-ipc')) {
-    logger.info('[UKey IPC] Handlers already registered, skipping...');
-    return;
-  }
-
   const electron = require('electron');
   const ipcMain = injectedIpcMain || electron.ipcMain;
+
+  // 防止重复注册 - 但始终先尝试清理可能存在的旧handler
+  if (ipcGuard.isModuleRegistered('ukey-ipc')) {
+    logger.info('[UKey IPC] Module already registered, checking handlers...');
+
+    // 尝试清理可能存在的旧handler
+    try {
+      ipcMain.removeHandler('ukey:detect');
+      ipcMain.removeHandler('ukey:verify-pin');
+      ipcMain.removeHandler('ukey:get-device-info');
+      ipcMain.removeHandler('ukey:sign');
+      ipcMain.removeHandler('ukey:encrypt');
+      ipcMain.removeHandler('ukey:decrypt');
+      ipcMain.removeHandler('ukey:lock');
+      ipcMain.removeHandler('ukey:get-public-key');
+      ipcMain.removeHandler('auth:verify-password');
+    } catch (e) {
+      // 忽略清理错误
+    }
+
+    // 清除注册标记以便重新注册
+    ipcGuard.unregisterModule('ukey-ipc');
+    logger.info('[UKey IPC] Cleared old registration, will re-register...');
+  }
 
   logger.info('[UKey IPC] Registering U-Key IPC handlers...');
 

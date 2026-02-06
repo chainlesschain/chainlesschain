@@ -231,12 +231,12 @@ export function useP2PCall(): UseP2PCallReturn {
       if (result.success && result.sources) {
         return result.sources;
       } else {
-        message.error('获取屏幕源失败: ' + result.error);
+        message.error('Failed to get screen sources: ' + result.error);
         return [];
       }
     } catch (error) {
-      logger.error('获取屏幕源失败:', error as any);
-      message.error('获取屏幕源失败');
+      logger.error('Failed to get screen sources:', error as any);
+      message.error('Failed to get screen sources');
       return [];
     }
   };

@@ -186,12 +186,13 @@ fun AddFriendScreen(
     }
 
     // 好友请求对话框
-    if (uiState.showRequestDialog && uiState.selectedUser != null) {
+    val selectedUser = uiState.selectedUser
+    if (uiState.showRequestDialog && selectedUser != null) {
         FriendRequestDialog(
-            user = uiState.selectedUser!!,
+            user = selectedUser,
             onDismiss = { viewModel.hideRequestDialog() },
             onConfirm = { message ->
-                viewModel.sendFriendRequest(uiState.selectedUser!!.did, message)
+                viewModel.sendFriendRequest(selectedUser.did, message)
                 viewModel.hideRequestDialog()
             }
         )
