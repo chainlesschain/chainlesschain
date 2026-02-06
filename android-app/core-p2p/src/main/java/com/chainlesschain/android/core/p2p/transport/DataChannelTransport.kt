@@ -1,6 +1,7 @@
 package com.chainlesschain.android.core.p2p.transport
 
 import android.util.Log
+import com.chainlesschain.android.core.p2p.config.P2PFeatureFlags
 import com.chainlesschain.android.core.p2p.connection.P2PConnection
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
@@ -9,13 +10,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import delay
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlin.coroutines.coroutineContext
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -54,6 +54,12 @@ class DataChannelTransport @Inject constructor(
 
         /** 背压等待超时（毫秒） */
         private const val BACKPRESSURE_TIMEOUT_MS = 30_000L
+
+        /** 分片超时时间（毫秒） */
+        private const val FRAGMENT_TIMEOUT_MS = 120_000L
+
+        /** 分片清理间隔（毫秒） */
+        private const val FRAGMENT_CLEANUP_INTERVAL_MS = 30_000L
     }
 
     // 统计信息
@@ -77,7 +83,7 @@ class DataChannelTransport @Inject constructor(
     private val _receivedMessages = MutableSharedFlow<P2PMessage>()
 
     // 消息分片缓存（用于重组大消息）
-    private val fragmentCache = ConcurrentHashMap<String, MutableList<MessageFragment>>()
+    private val fragmentCache = ConcurrentHashMap<String, FragmentAssemblyContext>()
 
     // 协程作用域
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
