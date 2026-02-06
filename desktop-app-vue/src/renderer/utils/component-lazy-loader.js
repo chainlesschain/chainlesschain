@@ -3,8 +3,7 @@
  * 组件懒加载工具，支持动态导入、预加载、错误重试
  *
  * Features:
- * - Dynamic import { logger, createLogger } from '@/utils/logger';
-import with code splitting
+ * - Dynamic import with code splitting
  * - Component preloading
  * - Automatic retry on failure
  * - Loading and error states
@@ -12,7 +11,10 @@ import with code splitting
  * - Prefetch on hover/visibility
  */
 
-import { defineAsyncComponent, h } from 'vue'
+import { defineAsyncComponent } from "vue";
+import { createLogger } from "@/utils/logger";
+
+const logger = createLogger("component-lazy-loader");
 
 class ComponentLazyLoader {
   constructor(options = {}) {
@@ -25,13 +27,13 @@ class ComponentLazyLoader {
       enablePrefetch: options.enablePrefetch !== false,
       prefetchDelay: options.prefetchDelay || 2000, // ms - delay before prefetching
       debug: options.debug || false,
-    }
+    };
 
     // State
-    this.loadedComponents = new Map() // path -> component
-    this.loadingComponents = new Map() // path -> Promise
-    this.failedComponents = new Map() // path -> retry count
-    this.prefetchQueue = new Set()
+    this.loadedComponents = new Map(); // path -> component
+    this.loadingComponents = new Map(); // path -> Promise
+    this.failedComponents = new Map(); // path -> retry count
+    this.prefetchQueue = new Set();
 
     // Statistics
     this.stats = {
@@ -41,10 +43,10 @@ class ComponentLazyLoader {
       prefetchedComponents: 0,
       averageLoadTime: 0,
       cacheHitRate: 0,
-    }
+    };
 
     if (this.options.debug) {
-      logger.info('[ComponentLazyLoader] Initialized')
+      logger.info("[ComponentLazyLoader] Initialized");
     }
   }
 
@@ -55,7 +57,7 @@ class ComponentLazyLoader {
    * @returns {Component} Vue async component
    */
   createLazyComponent(importFn, options = {}) {
-    this.stats.totalComponents++
+    this.stats.totalComponents++;
 
     const {
       loadingComponent,
@@ -63,32 +65,34 @@ class ComponentLazyLoader {
       delay = this.options.delay,
       timeout = this.options.timeout,
       onError,
-    } = options
+    } = options;
 
     return defineAsyncComponent({
       loader: async () => {
-        const startTime = performance.now()
+        const startTime = performance.now();
 
         try {
-          const component = await this.loadWithRetry(importFn)
-          const loadTime = performance.now() - startTime
+          const component = await this.loadWithRetry(importFn);
+          const loadTime = performance.now() - startTime;
 
-          this.stats.loadedComponents++
-          this.updateAverageLoadTime(loadTime)
+          this.stats.loadedComponents++;
+          this.updateAverageLoadTime(loadTime);
 
           if (this.options.debug) {
-            logger.info(`[ComponentLazyLoader] Loaded component (${Math.round(loadTime)}ms)`)
+            logger.info(
+              `[ComponentLazyLoader] Loaded component (${Math.round(loadTime)}ms)`,
+            );
           }
 
-          return component
+          return component;
         } catch (error) {
-          this.stats.failedComponents++
+          this.stats.failedComponents++;
 
           if (onError) {
-            onError(error)
+            onError(error);
           }
 
-          throw error
+          throw error;
         }
       },
 
@@ -96,7 +100,7 @@ class ComponentLazyLoader {
       errorComponent: errorComponent || this.getDefaultErrorComponent(),
       delay,
       timeout,
-    })
+    });
   }
 
   /**
@@ -104,20 +108,22 @@ class ComponentLazyLoader {
    */
   async loadWithRetry(importFn, retryCount = 0) {
     try {
-      return await importFn()
+      return await importFn();
     } catch (error) {
       if (retryCount < this.options.maxRetries) {
         if (this.options.debug) {
-          logger.info(`[ComponentLazyLoader] Retry ${retryCount + 1}/${this.options.maxRetries}`)
+          logger.info(
+            `[ComponentLazyLoader] Retry ${retryCount + 1}/${this.options.maxRetries}`,
+          );
         }
 
         // Wait before retrying (exponential backoff)
-        await this.delay(this.options.retryDelay * Math.pow(2, retryCount))
+        await this.delay(this.options.retryDelay * Math.pow(2, retryCount));
 
-        return this.loadWithRetry(importFn, retryCount + 1)
+        return this.loadWithRetry(importFn, retryCount + 1);
       }
 
-      throw error
+      throw error;
     }
   }
 
@@ -126,35 +132,37 @@ class ComponentLazyLoader {
    * @param {Function} importFn - Dynamic import function
    */
   async prefetch(importFn) {
-    if (!this.options.enablePrefetch) {return}
+    if (!this.options.enablePrefetch) {
+      return;
+    }
 
-    const key = importFn.toString()
+    const key = importFn.toString();
 
     // Already loaded or loading
     if (this.loadedComponents.has(key) || this.loadingComponents.has(key)) {
-      return
+      return;
     }
 
     // Add to queue
-    this.prefetchQueue.add(key)
+    this.prefetchQueue.add(key);
 
     try {
-      const loadingPromise = importFn()
-      this.loadingComponents.set(key, loadingPromise)
+      const loadingPromise = importFn();
+      this.loadingComponents.set(key, loadingPromise);
 
-      const component = await loadingPromise
+      const component = await loadingPromise;
 
-      this.loadedComponents.set(key, component)
-      this.stats.prefetchedComponents++
+      this.loadedComponents.set(key, component);
+      this.stats.prefetchedComponents++;
 
       if (this.options.debug) {
-        logger.info('[ComponentLazyLoader] Prefetched component')
+        logger.info("[ComponentLazyLoader] Prefetched component");
       }
     } catch (error) {
-      logger.error('[ComponentLazyLoader] Prefetch failed:', error)
+      logger.error("[ComponentLazyLoader] Prefetch failed:", error);
     } finally {
-      this.loadingComponents.delete(key)
-      this.prefetchQueue.delete(key)
+      this.loadingComponents.delete(key);
+      this.prefetchQueue.delete(key);
     }
   }
 
@@ -164,22 +172,22 @@ class ComponentLazyLoader {
    * @returns {Object} Event handlers
    */
   prefetchOnHover(importFn) {
-    let prefetchTimer = null
+    let prefetchTimer = null;
 
     return {
       onMouseenter: () => {
         prefetchTimer = setTimeout(() => {
-          this.prefetch(importFn)
-        }, this.options.prefetchDelay)
+          this.prefetch(importFn);
+        }, this.options.prefetchDelay);
       },
 
       onMouseleave: () => {
         if (prefetchTimer) {
-          clearTimeout(prefetchTimer)
-          prefetchTimer = null
+          clearTimeout(prefetchTimer);
+          prefetchTimer = null;
         }
       },
-    }
+    };
   }
 
   /**
@@ -188,25 +196,27 @@ class ComponentLazyLoader {
    * @param {Function} importFn - Dynamic import function
    */
   prefetchOnVisible(element, importFn) {
-    if (!('IntersectionObserver' in window)) {return}
+    if (!("IntersectionObserver" in window)) {
+      return;
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            this.prefetch(importFn)
-            observer.disconnect()
+            this.prefetch(importFn);
+            observer.disconnect();
           }
-        })
+        });
       },
       {
-        rootMargin: '50px',
-      }
-    )
+        rootMargin: "50px",
+      },
+    );
 
-    observer.observe(element)
+    observer.observe(element);
 
-    return () => observer.disconnect()
+    return () => observer.disconnect();
   }
 
   /**
@@ -216,14 +226,14 @@ class ComponentLazyLoader {
    */
   createLazyRoutes(routes) {
     return routes.map((route) => {
-      if (route.component && typeof route.component === 'function') {
+      if (route.component && typeof route.component === "function") {
         return {
           ...route,
           component: this.createLazyComponent(route.component, {
             loadingComponent: route.loadingComponent,
             errorComponent: route.errorComponent,
           }),
-        }
+        };
       }
 
       // Process nested routes
@@ -231,11 +241,11 @@ class ComponentLazyLoader {
         return {
           ...route,
           children: this.createLazyRoutes(route.children),
-        }
+        };
       }
 
-      return route
-    })
+      return route;
+    });
   }
 
   /**
@@ -244,16 +254,18 @@ class ComponentLazyLoader {
    */
   preloadRoutes(routePaths) {
     if (this.options.debug) {
-      logger.info(`[ComponentLazyLoader] Preloading ${routePaths.length} routes`)
+      logger.info(
+        `[ComponentLazyLoader] Preloading ${routePaths.length} routes`,
+      );
     }
 
     routePaths.forEach((path) => {
       // This requires route configuration to be accessible
       // Implementation depends on router setup
       if (this.options.debug) {
-        logger.info(`[ComponentLazyLoader] Preloading route: ${path}`)
+        logger.info(`[ComponentLazyLoader] Preloading route: ${path}`);
       }
-    })
+    });
   }
 
   /**
@@ -269,7 +281,7 @@ class ComponentLazyLoader {
           </div>
         </div>
       `,
-    }
+    };
   }
 
   /**
@@ -288,55 +300,57 @@ class ComponentLazyLoader {
       `,
       methods: {
         retry() {
-          window.location.reload()
+          window.location.reload();
         },
       },
-    }
+    };
   }
 
   /**
    * Update average load time
    */
   updateAverageLoadTime(newTime) {
-    const count = this.stats.loadedComponents
+    const count = this.stats.loadedComponents;
     this.stats.averageLoadTime =
-      ((this.stats.averageLoadTime * (count - 1)) + newTime) / count
+      (this.stats.averageLoadTime * (count - 1) + newTime) / count;
   }
 
   /**
    * Delay utility
    */
   delay(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms))
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
    * Get statistics
    */
   getStats() {
-    const totalLoaded = this.stats.loadedComponents + this.stats.prefetchedComponents
-    const cacheHitRate = this.stats.totalComponents > 0
-      ? Math.round((totalLoaded / this.stats.totalComponents) * 100)
-      : 0
+    const totalLoaded =
+      this.stats.loadedComponents + this.stats.prefetchedComponents;
+    const cacheHitRate =
+      this.stats.totalComponents > 0
+        ? Math.round((totalLoaded / this.stats.totalComponents) * 100)
+        : 0;
 
     return {
       ...this.stats,
       cacheHitRate: `${cacheHitRate}%`,
       queuedPrefetches: this.prefetchQueue.size,
       cachedComponents: this.loadedComponents.size,
-    }
+    };
   }
 
   /**
    * Clear cache
    */
   clearCache() {
-    this.loadedComponents.clear()
-    this.loadingComponents.clear()
-    this.failedComponents.clear()
+    this.loadedComponents.clear();
+    this.loadingComponents.clear();
+    this.failedComponents.clear();
 
     if (this.options.debug) {
-      logger.info('[ComponentLazyLoader] Cache cleared')
+      logger.info("[ComponentLazyLoader] Cache cleared");
     }
   }
 
@@ -344,42 +358,42 @@ class ComponentLazyLoader {
    * Destroy
    */
   destroy() {
-    this.clearCache()
-    this.prefetchQueue.clear()
+    this.clearCache();
+    this.prefetchQueue.clear();
 
     if (this.options.debug) {
-      logger.info('[ComponentLazyLoader] Destroyed')
+      logger.info("[ComponentLazyLoader] Destroyed");
     }
   }
 }
 
 // Singleton instance
-let loaderInstance = null
+let loaderInstance = null;
 
 /**
  * Get or create component lazy loader instance
  */
 export function getComponentLazyLoader(options) {
   if (!loaderInstance) {
-    loaderInstance = new ComponentLazyLoader(options)
+    loaderInstance = new ComponentLazyLoader(options);
   }
-  return loaderInstance
+  return loaderInstance;
 }
 
 /**
  * Convenience function: create lazy component
  */
 export function lazyComponent(importFn, options) {
-  const loader = getComponentLazyLoader()
-  return loader.createLazyComponent(importFn, options)
+  const loader = getComponentLazyLoader();
+  return loader.createLazyComponent(importFn, options);
 }
 
 /**
  * Convenience function: create lazy routes
  */
 export function lazyRoutes(routes) {
-  const loader = getComponentLazyLoader()
-  return loader.createLazyRoutes(routes)
+  const loader = getComponentLazyLoader();
+  return loader.createLazyRoutes(routes);
 }
 
-export default ComponentLazyLoader
+export default ComponentLazyLoader;

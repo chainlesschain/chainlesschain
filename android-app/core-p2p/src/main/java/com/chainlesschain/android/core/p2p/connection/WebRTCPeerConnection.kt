@@ -5,10 +5,17 @@ import android.util.Log
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
 import org.webrtc.*
 import javax.inject.Inject
 
@@ -25,11 +32,25 @@ class WebRTCPeerConnection @Inject constructor(
         private const val TAG = "WebRTCPeerConnection"
         private const val DATA_CHANNEL_LABEL = "chainlesschain-data"
 
+        /** ICE 收集超时（毫秒） */
+        const val ICE_GATHERING_TIMEOUT_MS = 10_000L
+
+        /** ICE 连接超时（毫秒） */
+        const val ICE_CONNECTION_TIMEOUT_MS = 30_000L
+
+        /** ICE 重启最大尝试次数 */
+        const val MAX_ICE_RESTART_ATTEMPTS = 3
+
         // STUN服务器配置 - 使用lazy初始化以支持测试时的mock
+        // 包含多个备用服务器以提高连接成功率
         private val ICE_SERVERS: List<PeerConnection.IceServer> by lazy {
             listOf(
+                // Google STUN 服务器
                 PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-                PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer()
+                PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+                PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer(),
+                // 备用 STUN 服务器
+                PeerConnection.IceServer.builder("stun:stun.stunprotocol.org:3478").createIceServer()
             )
         }
     }
@@ -45,10 +66,24 @@ class WebRTCPeerConnection @Inject constructor(
     private val _messages = MutableStateFlow<P2PMessage?>(null)
     private var currentDevice: P2PDevice? = null
 
+    // ICE 状态管理
+    private val _iceGatheringState = MutableStateFlow<IceGatheringState>(IceGatheringState.NEW)
+    private val _iceConnectionState = MutableStateFlow<IceConnectionState>(IceConnectionState.NEW)
+    private var iceRestartAttempts = 0
+    private var iceGatheringJob: Job? = null
+    private var iceConnectionJob: Job? = null
+    private val pendingIceCandidates = mutableListOf<IceCandidate>()
+    private var isRemoteDescriptionSet = false
+
+    // 协程作用域
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
     // 信令回调（由外部设置）
     var onOfferCreated: ((SessionDescription) -> Unit)? = null
     var onAnswerCreated: ((SessionDescription) -> Unit)? = null
     var onIceCandidateFound: ((IceCandidate) -> Unit)? = null
+    var onIceGatheringComplete: (() -> Unit)? = null
+    var onIceConnectionFailed: ((String) -> Unit)? = null
 
     init {
         initializeWebRTC()
@@ -152,10 +187,21 @@ class WebRTCPeerConnection @Inject constructor(
      * 创建PeerConnection
      */
     private fun createPeerConnection() {
+        // 重置 ICE 状态
+        iceRestartAttempts = 0
+        pendingIceCandidates.clear()
+        isRemoteDescriptionSet = false
+        _iceGatheringState.value = IceGatheringState.NEW
+        _iceConnectionState.value = IceConnectionState.NEW
+
         val rtcConfig = PeerConnection.RTCConfiguration(ICE_SERVERS).apply {
             bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
             rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
             tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
+            // 启用 ICE 候选池，加速连接建立
+            iceCandidatePoolSize = 2
+            // 使用所有可用网络接口
+            continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
         }
 
         peerConnection = peerConnectionFactory?.createPeerConnection(
@@ -168,17 +214,42 @@ class WebRTCPeerConnection @Inject constructor(
                 override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
                     Log.d(TAG, "ICE connection state changed: $state")
 
+                    // 更新内部状态
+                    _iceConnectionState.value = when (state) {
+                        PeerConnection.IceConnectionState.NEW -> IceConnectionState.NEW
+                        PeerConnection.IceConnectionState.CHECKING -> IceConnectionState.CHECKING
+                        PeerConnection.IceConnectionState.CONNECTED -> IceConnectionState.CONNECTED
+                        PeerConnection.IceConnectionState.COMPLETED -> IceConnectionState.COMPLETED
+                        PeerConnection.IceConnectionState.FAILED -> IceConnectionState.FAILED
+                        PeerConnection.IceConnectionState.DISCONNECTED -> IceConnectionState.DISCONNECTED
+                        PeerConnection.IceConnectionState.CLOSED -> IceConnectionState.CLOSED
+                        else -> IceConnectionState.NEW
+                    }
+
                     when (state) {
-                        PeerConnection.IceConnectionState.CONNECTED -> {
+                        PeerConnection.IceConnectionState.CONNECTED,
+                        PeerConnection.IceConnectionState.COMPLETED -> {
+                            // 取消连接超时
+                            iceConnectionJob?.cancel()
+                            iceRestartAttempts = 0
                             currentDevice?.let {
                                 _connectionState.value = ConnectionState.Connected(it)
                             }
+                            Log.i(TAG, "ICE connection established")
                         }
                         PeerConnection.IceConnectionState.DISCONNECTED -> {
-                            _connectionState.value = ConnectionState.Disconnected("ICE disconnected")
+                            // ICE 断开，可能是临时的网络问题
+                            Log.w(TAG, "ICE disconnected, waiting for recovery...")
+                            // 启动恢复超时
+                            startIceRecoveryTimeout()
                         }
                         PeerConnection.IceConnectionState.FAILED -> {
-                            _connectionState.value = ConnectionState.Failed("ICE connection failed")
+                            Log.e(TAG, "ICE connection failed")
+                            handleIceConnectionFailed()
+                        }
+                        PeerConnection.IceConnectionState.CHECKING -> {
+                            // 开始 ICE 连接检查，启动超时计时
+                            startIceConnectionTimeout()
                         }
                         else -> {}
                     }
@@ -186,27 +257,50 @@ class WebRTCPeerConnection @Inject constructor(
 
                 override fun onIceConnectionReceivingChange(receiving: Boolean) {
                     Log.d(TAG, "ICE connection receiving: $receiving")
+                    if (!receiving) {
+                        Log.w(TAG, "ICE not receiving data, connection may be degraded")
+                    }
                 }
 
                 override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {
                     Log.d(TAG, "ICE gathering state changed: $state")
+
+                    _iceGatheringState.value = when (state) {
+                        PeerConnection.IceGatheringState.NEW -> IceGatheringState.NEW
+                        PeerConnection.IceGatheringState.GATHERING -> IceGatheringState.GATHERING
+                        PeerConnection.IceGatheringState.COMPLETE -> IceGatheringState.COMPLETE
+                        else -> IceGatheringState.NEW
+                    }
+
+                    when (state) {
+                        PeerConnection.IceGatheringState.GATHERING -> {
+                            // 开始 ICE 收集，启动超时计时
+                            startIceGatheringTimeout()
+                        }
+                        PeerConnection.IceGatheringState.COMPLETE -> {
+                            // 取消收集超时
+                            iceGatheringJob?.cancel()
+                            Log.i(TAG, "ICE gathering complete")
+                            onIceGatheringComplete?.invoke()
+                        }
+                        else -> {}
+                    }
                 }
 
                 override fun onIceCandidate(candidate: org.webrtc.IceCandidate?) {
                     candidate?.let {
                         Log.d(TAG, "ICE candidate found: ${it.sdp}")
-                        onIceCandidateFound?.invoke(
-                            IceCandidate(
-                                sdpMid = it.sdpMid,
-                                sdpMLineIndex = it.sdpMLineIndex,
-                                sdp = it.sdp
-                            )
+                        val iceCandidate = IceCandidate(
+                            sdpMid = it.sdpMid,
+                            sdpMLineIndex = it.sdpMLineIndex,
+                            sdp = it.sdp
                         )
+                        onIceCandidateFound?.invoke(iceCandidate)
                     }
                 }
 
                 override fun onIceCandidatesRemoved(candidates: Array<out org.webrtc.IceCandidate>?) {
-                    Log.d(TAG, "ICE candidates removed")
+                    Log.d(TAG, "ICE candidates removed: ${candidates?.size ?: 0}")
                 }
 
                 override fun onAddStream(stream: MediaStream?) {
@@ -349,6 +443,8 @@ class WebRTCPeerConnection @Inject constructor(
             override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {}
             override fun onSetSuccess() {
                 Log.d(TAG, "Remote description set, creating answer")
+                isRemoteDescriptionSet = true
+                processPendingIceCandidates()
                 createAnswer()
             }
             override fun onCreateFailure(error: String?) {}
@@ -410,6 +506,8 @@ class WebRTCPeerConnection @Inject constructor(
             override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {}
             override fun onSetSuccess() {
                 Log.d(TAG, "Remote answer set")
+                isRemoteDescriptionSet = true
+                processPendingIceCandidates()
             }
             override fun onCreateFailure(error: String?) {}
             override fun onSetFailure(error: String?) {
@@ -420,22 +518,171 @@ class WebRTCPeerConnection @Inject constructor(
 
     /**
      * 添加远程ICE候选
+     *
+     * 如果远程描述尚未设置，候选将被缓存并在设置后添加
      */
     fun addIceCandidate(candidate: IceCandidate) {
+        if (!isRemoteDescriptionSet) {
+            Log.d(TAG, "Remote description not set, queuing ICE candidate")
+            pendingIceCandidates.add(candidate)
+            return
+        }
+
+        addIceCandidateInternal(candidate)
+    }
+
+    private fun addIceCandidateInternal(candidate: IceCandidate) {
         val iceCandidate = org.webrtc.IceCandidate(
             candidate.sdpMid,
             candidate.sdpMLineIndex,
             candidate.sdp
         )
 
-        peerConnection?.addIceCandidate(iceCandidate)
-        Log.d(TAG, "ICE candidate added")
+        val success = peerConnection?.addIceCandidate(iceCandidate) ?: false
+        if (success) {
+            Log.d(TAG, "ICE candidate added: ${candidate.sdp.take(50)}...")
+        } else {
+            Log.w(TAG, "Failed to add ICE candidate")
+        }
     }
+
+    /**
+     * 处理待处理的 ICE 候选
+     */
+    private fun processPendingIceCandidates() {
+        if (pendingIceCandidates.isEmpty()) return
+
+        Log.i(TAG, "Processing ${pendingIceCandidates.size} pending ICE candidates")
+        pendingIceCandidates.forEach { addIceCandidateInternal(it) }
+        pendingIceCandidates.clear()
+    }
+
+    /**
+     * 启动 ICE 收集超时
+     */
+    private fun startIceGatheringTimeout() {
+        iceGatheringJob?.cancel()
+        iceGatheringJob = scope.launch {
+            delay(ICE_GATHERING_TIMEOUT_MS)
+            if (_iceGatheringState.value == IceGatheringState.GATHERING) {
+                Log.w(TAG, "ICE gathering timeout after ${ICE_GATHERING_TIMEOUT_MS}ms")
+                // 收集超时不一定是致命错误，可能已有足够的候选
+                onIceGatheringComplete?.invoke()
+            }
+        }
+    }
+
+    /**
+     * 启动 ICE 连接超时
+     */
+    private fun startIceConnectionTimeout() {
+        iceConnectionJob?.cancel()
+        iceConnectionJob = scope.launch {
+            delay(ICE_CONNECTION_TIMEOUT_MS)
+            val state = _iceConnectionState.value
+            if (state == IceConnectionState.CHECKING || state == IceConnectionState.NEW) {
+                Log.e(TAG, "ICE connection timeout after ${ICE_CONNECTION_TIMEOUT_MS}ms")
+                handleIceConnectionFailed()
+            }
+        }
+    }
+
+    /**
+     * 启动 ICE 恢复超时（用于临时断开）
+     */
+    private fun startIceRecoveryTimeout() {
+        iceConnectionJob?.cancel()
+        iceConnectionJob = scope.launch {
+            // 给 15 秒恢复时间
+            delay(15_000L)
+            if (_iceConnectionState.value == IceConnectionState.DISCONNECTED) {
+                Log.w(TAG, "ICE recovery timeout, attempting restart")
+                attemptIceRestart()
+            }
+        }
+    }
+
+    /**
+     * 处理 ICE 连接失败
+     */
+    private fun handleIceConnectionFailed() {
+        iceConnectionJob?.cancel()
+
+        if (iceRestartAttempts < MAX_ICE_RESTART_ATTEMPTS) {
+            Log.w(TAG, "ICE connection failed, attempting restart (${iceRestartAttempts + 1}/$MAX_ICE_RESTART_ATTEMPTS)")
+            attemptIceRestart()
+        } else {
+            Log.e(TAG, "ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS restart attempts")
+            _connectionState.value = ConnectionState.Failed("ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS attempts")
+            onIceConnectionFailed?.invoke("ICE connection failed after $MAX_ICE_RESTART_ATTEMPTS attempts")
+        }
+    }
+
+    /**
+     * 尝试 ICE 重启
+     */
+    private fun attemptIceRestart() {
+        iceRestartAttempts++
+        Log.i(TAG, "Attempting ICE restart (attempt $iceRestartAttempts)")
+
+        // 使用 ICE restart 而非完全重建连接
+        val constraints = MediaConstraints().apply {
+            mandatory.add(MediaConstraints.KeyValuePair("IceRestart", "true"))
+        }
+
+        peerConnection?.createOffer(object : SdpObserver {
+            override fun onCreateSuccess(sdp: org.webrtc.SessionDescription?) {
+                sdp?.let {
+                    Log.d(TAG, "ICE restart offer created")
+                    peerConnection?.setLocalDescription(object : SdpObserver {
+                        override fun onCreateSuccess(p0: org.webrtc.SessionDescription?) {}
+                        override fun onSetSuccess() {
+                            Log.d(TAG, "ICE restart local description set")
+                            onOfferCreated?.invoke(
+                                SessionDescription(
+                                    type = SessionDescription.Type.OFFER,
+                                    sdp = it.description
+                                )
+                            )
+                        }
+                        override fun onCreateFailure(error: String?) {
+                            Log.e(TAG, "ICE restart create failure: $error")
+                        }
+                        override fun onSetFailure(error: String?) {
+                            Log.e(TAG, "ICE restart set failure: $error")
+                        }
+                    }, it)
+                }
+            }
+
+            override fun onSetSuccess() {}
+            override fun onCreateFailure(error: String?) {
+                Log.e(TAG, "Failed to create ICE restart offer: $error")
+                _connectionState.value = ConnectionState.Failed("ICE restart failed: $error")
+            }
+            override fun onSetFailure(error: String?) {}
+        }, constraints)
+    }
+
+    /**
+     * 获取 ICE 连接状态
+     */
+    fun getIceConnectionState(): IceConnectionState = _iceConnectionState.value
+
+    /**
+     * 获取 ICE 收集状态
+     */
+    fun getIceGatheringState(): IceGatheringState = _iceGatheringState.value
 
     /**
      * 释放资源
      */
     fun release() {
+        // 取消所有超时任务
+        iceGatheringJob?.cancel()
+        iceConnectionJob?.cancel()
+        scope.cancel()
+
         dataChannel?.dispose()
         peerConnection?.dispose()
         peerConnectionFactory?.dispose()
@@ -445,5 +692,28 @@ class WebRTCPeerConnection @Inject constructor(
         peerConnection = null
         peerConnectionFactory = null
         eglBase = null
+        pendingIceCandidates.clear()
     }
+}
+
+/**
+ * ICE 连接状态
+ */
+enum class IceConnectionState {
+    NEW,
+    CHECKING,
+    CONNECTED,
+    COMPLETED,
+    FAILED,
+    DISCONNECTED,
+    CLOSED
+}
+
+/**
+ * ICE 收集状态
+ */
+enum class IceGatheringState {
+    NEW,
+    GATHERING,
+    COMPLETE
 }
