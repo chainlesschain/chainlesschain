@@ -85,8 +85,12 @@ fun RemoteControlScreen(
                     connectionState = connectionState,
                     connectedPeer = connectedPeer,
                     onConnect = {
-                        val peerId = defaultPeerId ?: "pc-test-001"
-                        val did = defaultDid ?: "did:key:test-pc"
+                        val peerId = defaultPeerId?.trim().orEmpty()
+                        if (peerId.isBlank()) {
+                            viewModel.setError("请先在设备管理中选择要连接的设备")
+                            return@DeviceConnectionPanel
+                        }
+                        val did = defaultDid?.trim().takeUnless { it.isNullOrBlank() } ?: "did:key:$peerId"
                         viewModel.connectToPC(
                             pcPeerId = peerId,
                             pcDID = did
