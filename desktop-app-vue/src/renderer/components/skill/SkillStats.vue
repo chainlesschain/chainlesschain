@@ -112,7 +112,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import { init } from '../../utils/echartsConfig';
+import { init, graphic } from '../../utils/echartsConfig';
 import {
   AppstoreOutlined,
   CheckCircleOutlined,
@@ -262,7 +262,7 @@ const initUsageChart = () => {
         type: 'bar',
         data: sorted.map(s => s.usage_count || 0),
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          color: new graphic.LinearGradient(0, 0, 1, 0, [
             { offset: 0, color: '#83bff6' },
             { offset: 0.5, color: '#188df0' },
             { offset: 1, color: '#188df0' },
@@ -330,7 +330,7 @@ const initTrendChart = () => {
         smooth: true,
         data: dates.map(d => successRateByDate[d]?.toFixed(1) || 0),
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(58,77,233,0.8)' },
             { offset: 1, color: 'rgba(58,77,233,0.1)' },
           ]),

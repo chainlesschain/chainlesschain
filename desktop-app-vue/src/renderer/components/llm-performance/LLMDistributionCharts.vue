@@ -180,7 +180,7 @@
 import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { Empty } from "ant-design-vue";
 import { QuestionCircleOutlined } from "@ant-design/icons-vue";
-import { init } from "../../utils/echartsConfig";
+import { init, graphic } from "../../utils/echartsConfig";
 
 const props = defineProps({
   tokenDistribution: {
@@ -438,7 +438,7 @@ const renderModelCostChart = () => {
         type: "bar",
         data: topModels.map((item) => item.cost_usd).reverse(),
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          color: new graphic.LinearGradient(0, 0, 1, 0, [
             { offset: 0, color: "#83bff6" },
             { offset: 0.5, color: "#188df0" },
             { offset: 1, color: "#188df0" },

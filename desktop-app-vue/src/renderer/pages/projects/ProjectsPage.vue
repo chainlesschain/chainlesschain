@@ -1203,16 +1203,43 @@ const handleDeleteConversation = (conversation) => {
     okType: 'danger',
     cancelText: '取消',
     onOk: async () => {
-      // TODO: 实现删除对话功能
-      message.success('对话已删除');
+      try {
+        // 调用IPC删除对话
+        const result = await window.electronAPI.conversation.delete(conversation.id);
+        if (result.success) {
+          // 从本地列表中移除
+          recentConversations.value = recentConversations.value.filter(
+            c => c.id !== conversation.id
+          );
+          message.success('对话已删除');
+        } else {
+          message.error(result.error || '删除失败');
+        }
+      } catch (error) {
+        logger.error('Delete conversation failed:', error);
+        message.error('删除失败：' + error.message);
+      }
     },
   });
 };
 
 // 加载最近对话
 const loadRecentConversations = async () => {
-  // TODO: 从数据库加载最近对话
-  recentConversations.value = [];
+  try {
+    // 从数据库加载最近对话
+    const result = await window.electronAPI.conversation.getRecent({
+      limit: 10,
+      projectId: selectedProject.value?.id
+    });
+    if (result.success) {
+      recentConversations.value = result.conversations || [];
+    } else {
+      recentConversations.value = [];
+    }
+  } catch (error) {
+    logger.error('Load recent conversations failed:', error);
+    recentConversations.value = [];
+  }
 };
 
 // 执行任务计划

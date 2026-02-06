@@ -3,6 +3,7 @@ package com.chainlesschain.android.core.p2p.connection
 import android.content.Context
 import android.util.Log
 import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
+import com.chainlesschain.android.core.p2p.ice.IceServerConfig
 import com.chainlesschain.android.core.p2p.model.ConnectionStatus
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PDevice
@@ -25,7 +26,8 @@ class P2PConnectionManager @Inject constructor(
     private val deviceDiscovery: DeviceDiscovery,
     private val signalingClient: SignalingClient,
     private val heartbeatManager: HeartbeatManager,
-    private val autoReconnectManager: AutoReconnectManager
+    private val autoReconnectManager: AutoReconnectManager,
+    private val iceServerConfig: IceServerConfig
 ) {
 
     companion object {
@@ -162,7 +164,7 @@ class P2PConnectionManager @Inject constructor(
 
         try {
             // 创建WebRTC连接
-            val connection = WebRTCPeerConnection(context)
+            val connection = WebRTCPeerConnection(context, iceServerConfig)
 
             // 设置信令回调
             connection.onOfferCreated = { offer ->
