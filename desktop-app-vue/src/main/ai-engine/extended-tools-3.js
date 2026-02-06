@@ -239,37 +239,42 @@ class ExtendedTools3 {
               case 'mean':
                 statistics.mean = data.reduce((a, b) => a + b, 0) / data.length;
                 break;
-              case 'median':
+              case 'median': {
                 const mid = Math.floor(sorted.length / 2);
                 statistics.median = sorted.length % 2 === 0
                   ? (sorted[mid - 1] + sorted[mid]) / 2
                   : sorted[mid];
                 break;
-              case 'mode':
+              }
+              case 'mode': {
                 const freq = {};
                 data.forEach(v => freq[v] = (freq[v] || 0) + 1);
                 const maxFreq = Math.max(...Object.values(freq));
                 statistics.mode = Object.keys(freq).find(k => freq[k] === maxFreq);
                 break;
-              case 'variance':
+              }
+              case 'variance': {
                 const mean = data.reduce((a, b) => a + b, 0) / data.length;
                 statistics.variance = data.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / data.length;
                 break;
-              case 'stddev':
+              }
+              case 'stddev': {
                 const avg = data.reduce((a, b) => a + b, 0) / data.length;
                 const variance = data.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / data.length;
                 statistics.stddev = Math.sqrt(variance);
                 break;
+              }
               case 'min':
                 statistics.min = Math.min(...data);
                 break;
               case 'max':
                 statistics.max = Math.max(...data);
                 break;
-              case 'percentile':
+              case 'percentile': {
                 const index = Math.ceil((percentile / 100) * sorted.length) - 1;
                 statistics.percentile = sorted[Math.max(0, index)];
                 break;
+              }
             }
           }
 

@@ -205,7 +205,7 @@ test.describe('项目设置功能测试', () => {
 
       console.log('[Test] 通过IPC获取项目信息');
       try {
-        const projectInfo = await callIPC(window, 'project:get-by-id', project.id);
+        const projectInfo = await callIPC(window, 'project:get', project.id);
 
         if (projectInfo) {
           console.log('[Test] 项目信息:', {

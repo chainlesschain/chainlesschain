@@ -717,22 +717,25 @@ function registerAllIPC(dependencies) {
     // ============================================================
 
     // 项目核心管理 (函数模式 - 大模块，34 handlers)
-    if (database) {
-      logger.info("[IPC Registry] Registering Project Core IPC...");
-      const { registerProjectCoreIPC } = require("../project/project-core-ipc");
-      registerProjectCoreIPC({
-        database,
-        fileSyncManager,
-        removeUndefinedValues,
-        _replaceUndefinedWithNull,
-      });
-      logger.info("[IPC Registry] ✓ Project Core IPC registered (34 handlers)");
+    // 🔥 始终注册，handlers 内部会处理 database 为 null 的情况
+    logger.info("[IPC Registry] Registering Project Core IPC...");
+    const { registerProjectCoreIPC } = require("../project/project-core-ipc");
+    registerProjectCoreIPC({
+      database: database || null,
+      fileSyncManager,
+      removeUndefinedValues,
+      _replaceUndefinedWithNull,
+    });
+    if (!database) {
+      logger.info(
+        "[IPC Registry] ⚠️  Database not initialized (Project Core handlers registered with degraded functionality)",
+      );
     }
+    logger.info("[IPC Registry] ✓ Project Core IPC registered (34 handlers)");
 
     // 项目AI功能 (函数模式 - 中等模块，16 handlers)
-    // 🔥 只要有 database 就注册，handlers 内部会处理 llmManager 为 null 的情况
-    if (database) {
-      logger.info("[IPC Registry] Registering Project AI IPC...");
+    // 🔥 始终注册，handlers 内部会处理 llmManager/database 为 null 的情况
+    logger.info("[IPC Registry] Registering Project AI IPC...");
       const { registerProjectAIIPC } = require("../project/project-ai-ipc");
       registerProjectAIIPC({
         database,

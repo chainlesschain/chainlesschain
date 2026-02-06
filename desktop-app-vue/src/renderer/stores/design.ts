@@ -231,7 +231,7 @@ export const useDesignStore = defineStore('design', () => {
   async function loadProject(projectId: string): Promise<DesignProject> {
     loading.value = true;
     try {
-      const project = await electronAPI.invoke('project:get-by-id', projectId);
+      const project = await electronAPI.invoke('project:get', projectId);
 
       if (project.project_type !== 'design') {
         throw new Error('不是设计项目');

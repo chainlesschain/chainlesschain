@@ -396,7 +396,7 @@ class ExtendedTools4 {
               // 简单去除标签
               extracted = html.replace(/<[^>]*>/g, '');
               break;
-            case 'links':
+            case 'links': {
               // 简单正则提取链接
               const linkRegex = /<a[^>]*href="([^"]*)"[^>]*>/gi;
               extracted = [];
@@ -405,14 +405,17 @@ class ExtendedTools4 {
                 extracted.push(match[1]);
               }
               break;
-            case 'images':
+            }
+            case 'images': {
               // 简单正则提取图片
               const imgRegex = /<img[^>]*src="([^"]*)"[^>]*>/gi;
               extracted = [];
+              let match;
               while ((match = imgRegex.exec(html)) !== null) {
                 extracted.push(match[1]);
               }
               break;
+            }
             default:
               extracted = null;
           }
