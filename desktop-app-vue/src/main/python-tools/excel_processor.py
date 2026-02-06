@@ -229,7 +229,44 @@ class ExcelProcessor:
             return
 
         chart.title = chart_config.get('title', '图表')
-        # TODO: 添加更多图表配置
+
+        # 解析数据范围 (例如 "B2:C10")
+        try:
+            # 获取数据引用
+            min_col = ord(data_range[0].upper()) - ord('A') + 1
+            max_col = ord(data_range[3].upper()) - ord('A') + 1
+            min_row = int(data_range[1])
+            max_row = int(data_range[4:])
+
+            data = Reference(worksheet, min_col=min_col, min_row=min_row,
+                           max_col=max_col, max_row=max_row)
+            chart.add_data(data, titles_from_data=True)
+
+            # 类别标签
+            cats = Reference(worksheet, min_col=1, min_row=min_row+1, max_row=max_row)
+            chart.set_categories(cats)
+        except Exception:
+            pass  # 如果解析失败，继续使用默认设置
+
+        # 图表尺寸
+        chart.width = chart_config.get('width', 15)
+        chart.height = chart_config.get('height', 10)
+
+        # 图表样式
+        if chart_config.get('style'):
+            chart.style = chart_config.get('style')
+
+        # 图例位置
+        if chart_config.get('legend_position'):
+            chart.legend.position = chart_config.get('legend_position')
+
+        # Y轴标题
+        if chart_config.get('y_axis_title') and hasattr(chart, 'y_axis'):
+            chart.y_axis.title = chart_config.get('y_axis_title')
+
+        # X轴标题
+        if chart_config.get('x_axis_title') and hasattr(chart, 'x_axis'):
+            chart.x_axis.title = chart_config.get('x_axis_title')
 
         worksheet.add_chart(chart, position)
 

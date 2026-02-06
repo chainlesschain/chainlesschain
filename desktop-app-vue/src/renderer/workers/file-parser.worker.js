@@ -216,7 +216,7 @@ self.addEventListener('message', (event) => {
         };
         break;
 
-      case 'search':
+      case 'search': {
         // 在文件内容中搜索
         const searchRegex = new RegExp(payload.pattern, payload.flags || 'gi');
         const matches = [];
@@ -236,6 +236,7 @@ self.addEventListener('message', (event) => {
           count: matches.length,
         };
         break;
+      }
 
       default:
         result = {

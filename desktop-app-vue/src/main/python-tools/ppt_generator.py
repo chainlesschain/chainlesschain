@@ -142,13 +142,75 @@ class PPTGenerator:
 
     def _add_two_column_content(self, slide, content):
         """添加两栏内容"""
-        # TODO: 实现两栏布局
-        pass
+        left_content = content.get('left', [])
+        right_content = content.get('right', [])
+
+        # 左栏位置
+        left_left = Inches(0.5)
+        left_top = Inches(1.5)
+        left_width = Inches(4.5)
+        left_height = Inches(3.5)
+
+        # 右栏位置
+        right_left = Inches(5.2)
+        right_top = Inches(1.5)
+        right_width = Inches(4.5)
+        right_height = Inches(3.5)
+
+        # 添加左栏文本框
+        left_box = slide.shapes.add_textbox(left_left, left_top, left_width, left_height)
+        left_tf = left_box.text_frame
+        left_tf.word_wrap = True
+
+        for i, item in enumerate(left_content):
+            p = left_tf.add_paragraph() if i > 0 else left_tf.paragraphs[0]
+            p.text = str(item)
+            p.font.size = Pt(16)
+            p.level = 0
+
+        # 添加右栏文本框
+        right_box = slide.shapes.add_textbox(right_left, right_top, right_width, right_height)
+        right_tf = right_box.text_frame
+        right_tf.word_wrap = True
+
+        for i, item in enumerate(right_content):
+            p = right_tf.add_paragraph() if i > 0 else right_tf.paragraphs[0]
+            p.text = str(item)
+            p.font.size = Pt(16)
+            p.level = 0
 
     def _add_image_slide(self, slide, content):
         """添加图片幻灯片"""
-        # TODO: 实现图片插入
-        pass
+        image_path = content.get('image_path', content.get('path', ''))
+        caption = content.get('caption', '')
+
+        if not image_path or not os.path.exists(image_path):
+            # 如果图片不存在，添加占位文本
+            placeholder = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(2))
+            tf = placeholder.text_frame
+            p = tf.paragraphs[0]
+            p.text = f"[图片: {image_path}]"
+            p.font.size = Pt(18)
+            p.alignment = PP_ALIGN.CENTER
+            return
+
+        # 计算图片位置（居中）
+        img_left = Inches(1.5)
+        img_top = Inches(1.3)
+        img_width = Inches(7)
+        img_height = Inches(3.5)
+
+        # 添加图片
+        slide.shapes.add_picture(image_path, img_left, img_top, width=img_width)
+
+        # 添加图片说明
+        if caption:
+            caption_box = slide.shapes.add_textbox(Inches(1), Inches(5), Inches(8), Inches(0.5))
+            tf = caption_box.text_frame
+            p = tf.paragraphs[0]
+            p.text = caption
+            p.font.size = Pt(14)
+            p.alignment = PP_ALIGN.CENTER
 
 def main():
     """主函数"""

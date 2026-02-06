@@ -344,13 +344,39 @@ function withErrorHandling(channel, handler, options = {}) {
 /**
  * AI 错误诊断（集成 ErrorMonitor）
  * @param {AppError} error - 分类后的错误
- * @param {Object} _context - 上下文信息（预留给 AI 诊断使用）
+ * @param {Object} context - 上下文信息
+ * @param {Object} context.errorMonitor - ErrorMonitor 实例（可选）
  * @returns {Promise<Object>} 诊断结果
  */
-async function diagnoseError(error, _context) {
-  // TODO: 集成 ErrorMonitor AI
-  // 这里返回基本的诊断信息
+async function diagnoseError(error, context = {}) {
+  const { errorMonitor } = context;
 
+  // 如果有 ErrorMonitor 实例，使用 AI 诊断
+  if (errorMonitor && typeof errorMonitor.analyzeError === "function") {
+    try {
+      const aiAnalysis = await errorMonitor.analyzeError(error);
+
+      if (aiAnalysis && !aiAnalysis.error) {
+        return {
+          severity: aiAnalysis.severity || getSeverity(error.type),
+          suggestions: aiAnalysis.suggestions || [],
+          aiDiagnosis: aiAnalysis.aiDiagnosis || null,
+          autoFixResult: aiAnalysis.autoFixResult || null,
+          relatedIssues: aiAnalysis.relatedIssues || [],
+          documentation: getDocumentationLink(error.type),
+          canRetry: isRetryable(error.type),
+          analyzedByAI: true,
+        };
+      }
+    } catch (aiError) {
+      logger.warn(
+        "[IPC Error] AI 诊断失败，回退到基本诊断:",
+        aiError.message
+      );
+    }
+  }
+
+  // 回退到基本的诊断信息
   const suggestions = [];
 
   // 根据错误类型提供建议
@@ -393,6 +419,7 @@ async function diagnoseError(error, _context) {
     suggestions,
     documentation: getDocumentationLink(error.type),
     canRetry: isRetryable(error.type),
+    analyzedByAI: false,
   };
 }
 

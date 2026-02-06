@@ -422,20 +422,82 @@ class KnowledgeDistillation {
       throw new Error('LLM管理器未初始化');
     }
 
-    // 这里应该调用实际的LLM执行逻辑
-    // 暂时返回模拟结果
     logger.info(`[KnowledgeDistillation] 使用模型 ${modelName} 执行任务...`);
 
-    // TODO: 实际实现应该调用:
-    // return await this.llmManager.execute(task, { model: modelName, ...context });
+    try {
+      // 构建任务提示词
+      const taskPrompt = this._buildTaskPrompt(task);
 
-    // 模拟执行
-    return {
-      success: true,
-      processedIntents: task.intents || [],
-      output: `Task executed with ${modelName}`,
-      confidence: modelName.includes('1.5b') ? 0.75 : 0.95
-    };
+      // 调用 LLM 执行任务
+      const response = await this.llmManager.query(taskPrompt, {
+        model: modelName,
+        temperature: context.temperature || 0.7,
+        maxTokens: context.maxTokens || 2000,
+        ...context
+      });
+
+      // 解析响应
+      const output = response.text || response.content || '';
+      const confidence = this._estimateConfidence(output, modelName);
+
+      return {
+        success: true,
+        processedIntents: task.intents || [],
+        output,
+        confidence,
+        tokensUsed: response.usage?.total_tokens || 0
+      };
+    } catch (error) {
+      logger.error(`[KnowledgeDistillation] LLM执行失败:`, error);
+
+      // 返回失败结果，让调用方可以尝试降级
+      return {
+        success: false,
+        processedIntents: task.intents || [],
+        output: null,
+        confidence: 0,
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * 构建任务提示词
+   * @private
+   */
+  _buildTaskPrompt(task) {
+    const intents = task.intents || [];
+    const intentStr = intents.length > 0
+      ? `任务意图: ${intents.join(', ')}\n`
+      : '';
+
+    return `${intentStr}${task.prompt || task.content || JSON.stringify(task)}`;
+  }
+
+  /**
+   * 估计执行置信度
+   * @private
+   */
+  _estimateConfidence(output, modelName) {
+    if (!output) return 0;
+
+    // 基于模型大小的基础置信度
+    let baseConfidence = 0.85;
+    if (modelName.includes('1.5b') || modelName.includes('small')) {
+      baseConfidence = 0.7;
+    } else if (modelName.includes('70b') || modelName.includes('large') || modelName.includes('opus')) {
+      baseConfidence = 0.95;
+    }
+
+    // 根据输出长度调整
+    const outputLength = output.length;
+    if (outputLength < 50) {
+      baseConfidence *= 0.8;  // 输出过短，可能不完整
+    } else if (outputLength > 500) {
+      baseConfidence *= 1.05;  // 输出较详细
+    }
+
+    return Math.min(baseConfidence, 1.0);
   }
 
   /**

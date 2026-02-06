@@ -1195,7 +1195,7 @@ class TeammateTool extends EventEmitter {
    * 选择代理来执行任务
    * @private
    */
-  _selectAgentForTask(team, _task) {
+  _selectAgentForTask(team, task) {
     // 找到所有空闲的代理
     const idleAgents = team.agents.filter((a) => a.status === AgentStatus.IDLE);
 
@@ -1203,9 +1203,53 @@ class TeammateTool extends EventEmitter {
       throw new Error("没有空闲的代理");
     }
 
-    // 简单策略：选择第一个空闲的代理
-    // TODO: 可以根据代理的 capabilities 进行智能匹配
-    return idleAgents[0].id;
+    // 根据任务类型和代理能力进行智能匹配
+    const taskType = task.type || 'general';
+    const taskDescription = (task.description || '').toLowerCase();
+
+    // 计算每个代理的匹配分数
+    const scoredAgents = idleAgents.map(agent => {
+      let score = 0;
+      const capabilities = agent.capabilities || [];
+
+      // 1. 直接匹配任务类型
+      if (capabilities.includes(taskType)) {
+        score += 10;
+      }
+
+      // 2. 关键词匹配
+      const keywordMatches = {
+        'code': ['coding', 'programming', 'development', 'code-review'],
+        'test': ['testing', 'qa', 'quality-assurance'],
+        'doc': ['documentation', 'writing', 'docs'],
+        'design': ['design', 'ui', 'ux'],
+        'analysis': ['analysis', 'research', 'data'],
+        'review': ['review', 'code-review', 'audit']
+      };
+
+      for (const [keyword, relatedCapabilities] of Object.entries(keywordMatches)) {
+        if (taskDescription.includes(keyword)) {
+          for (const cap of relatedCapabilities) {
+            if (capabilities.includes(cap)) {
+              score += 5;
+            }
+          }
+        }
+      }
+
+      // 3. 通用能力加分
+      if (capabilities.includes('general') || capabilities.includes('all')) {
+        score += 2;
+      }
+
+      return { agent, score };
+    });
+
+    // 按分数排序，选择最高分的代理
+    scoredAgents.sort((a, b) => b.score - a.score);
+
+    // 如果没有匹配（所有分数为0），返回第一个空闲代理
+    return scoredAgents[0].agent.id;
   }
 
   /**
