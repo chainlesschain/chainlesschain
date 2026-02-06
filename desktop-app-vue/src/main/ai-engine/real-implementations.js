@@ -705,102 +705,97 @@ async function mergeVideosReal(params) {
     audio_mix = 'first'
   } = params;
 
-  return new Promise(async (resolve, reject) => {
-    try {
-      // 确保输出目录存在
-      const dir = path.dirname(output_path);
-      await fsp.mkdir(dir, { recursive: true });
+  // 确保输出目录存在
+  const dir = path.dirname(output_path);
+  await fsp.mkdir(dir, { recursive: true });
 
-      // 验证输入文件
-      if (!input_files || input_files.length === 0) {
-        return reject(new Error('至少需要一个输入文件'));
-      }
+  // 验证输入文件
+  if (!input_files || input_files.length === 0) {
+    throw new Error('至少需要一个输入文件');
+  }
 
-      // 创建临时文件列表
-      const tempListPath = path.join(dir, `temp_list_${Date.now()}.txt`);
-      const fileList = input_files.map(file => `file '${file.replace(/\\/g, '/')}'`).join('\n');
-      await fsp.writeFile(tempListPath, fileList);
+  // 创建临时文件列表
+  const tempListPath = path.join(dir, `temp_list_${Date.now()}.txt`);
+  const fileList = input_files.map(file => `file '${file.replace(/\\/g, '/')}'`).join('\n');
+  await fsp.writeFile(tempListPath, fileList);
 
-      // 创建FFmpeg命令 - 使用concat demuxer
-      const command = ffmpeg()
-        .input(tempListPath)
-        .inputOptions([
-          '-f', 'concat',
-          '-safe', '0'
-        ])
-        .outputOptions([
-          '-c', 'copy'  // 直接复制流，不重新编码
-        ])
-        .output(output_path);
+  return new Promise((resolve, reject) => {
+    // 创建FFmpeg命令 - 使用concat demuxer
+    const command = ffmpeg()
+      .input(tempListPath)
+      .inputOptions([
+        '-f', 'concat',
+        '-safe', '0'
+      ])
+      .outputOptions([
+        '-c', 'copy'  // 直接复制流，不重新编码
+      ])
+      .output(output_path);
 
-      command
-        .on('start', (commandLine) => {
-          logger.info('FFmpeg命令:', commandLine);
-        })
-        .on('progress', (progress) => {
-          if (progress.percent) {
-            logger.info(`合并进度: ${progress.percent.toFixed(2)}%`);
-          }
-        })
-        .on('end', async () => {
-          try {
-            // 清理临时文件
-            await fsp.unlink(tempListPath).catch(() => {});
-
-            // 获取输出文件信息
-            const stats = await fsp.stat(output_path);
-
-            // 获取视频元数据
-            ffmpeg.ffprobe(output_path, (err, metadata) => {
-              if (err) {
-                resolve({
-                  success: true,
-                  input_files,
-                  output_path,
-                  files_merged: input_files.length,
-                  output_size: stats.size,
-                  transition,
-                  audio_mix
-                });
-              } else {
-                const format = metadata.format;
-                const videoStream = metadata.streams.find(s => s.codec_type === 'video');
-
-                resolve({
-                  success: true,
-                  input_files,
-                  output_path,
-                  files_merged: input_files.length,
-                  total_duration: format.duration ? `${format.duration.toFixed(2)}s` : 'unknown',
-                  output_size: stats.size,
-                  output_format: format.format_name,
-                  video_codec: videoStream ? videoStream.codec_name : 'unknown',
-                  resolution: videoStream ? `${videoStream.width}x${videoStream.height}` : 'unknown',
-                  bitrate: format.bit_rate ? `${(format.bit_rate / 1000).toFixed(0)}kbps` : 'unknown',
-                  transition,
-                  audio_mix
-                });
-              }
-            });
-          } catch (error) {
-            resolve({
-              success: true,
-              output_path,
-              files_merged: input_files.length,
-              error: error.message
-            });
-          }
-        })
-        .on('error', async (err) => {
+    command
+      .on('start', (commandLine) => {
+        logger.info('FFmpeg命令:', commandLine);
+      })
+      .on('progress', (progress) => {
+        if (progress.percent) {
+          logger.info(`合并进度: ${progress.percent.toFixed(2)}%`);
+        }
+      })
+      .on('end', async () => {
+        try {
           // 清理临时文件
           await fsp.unlink(tempListPath).catch(() => {});
-          reject(new Error(`视频合并失败: ${err.message}`));
-        })
-        .run();
 
-    } catch (error) {
-      reject(error);
-    }
+          // 获取输出文件信息
+          const stats = await fsp.stat(output_path);
+
+          // 获取视频元数据
+          ffmpeg.ffprobe(output_path, (err, metadata) => {
+            if (err) {
+              resolve({
+                success: true,
+                input_files,
+                output_path,
+                files_merged: input_files.length,
+                output_size: stats.size,
+                transition,
+                audio_mix
+              });
+            } else {
+              const format = metadata.format;
+              const videoStream = metadata.streams.find(s => s.codec_type === 'video');
+
+              resolve({
+                success: true,
+                input_files,
+                output_path,
+                files_merged: input_files.length,
+                total_duration: format.duration ? `${format.duration.toFixed(2)}s` : 'unknown',
+                output_size: stats.size,
+                output_format: format.format_name,
+                video_codec: videoStream ? videoStream.codec_name : 'unknown',
+                resolution: videoStream ? `${videoStream.width}x${videoStream.height}` : 'unknown',
+                bitrate: format.bit_rate ? `${(format.bit_rate / 1000).toFixed(0)}kbps` : 'unknown',
+                transition,
+                audio_mix
+              });
+            }
+          });
+        } catch (error) {
+          resolve({
+            success: true,
+            output_path,
+            files_merged: input_files.length,
+            error: error.message
+          });
+        }
+      })
+      .on('error', async (err) => {
+        // 清理临时文件
+        await fsp.unlink(tempListPath).catch(() => {});
+        reject(new Error(`视频合并失败: ${err.message}`));
+      })
+      .run();
   });
 }
 

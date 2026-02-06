@@ -210,7 +210,7 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, computed, onMounted, h } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
   HistoryOutlined,
@@ -260,11 +260,12 @@ const filteredTransactions = computed(() => {
     );
   }
 
-  // 更新分页总数
-  pagination.value.total = result.length;
-
   return result;
 });
+
+watch(filteredTransactions, (items) => {
+  pagination.value.total = items.length;
+}, { immediate: true });
 
 // 表格列配置
 const columns = [

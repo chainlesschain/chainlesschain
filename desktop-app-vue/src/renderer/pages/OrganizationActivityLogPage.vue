@@ -229,7 +229,7 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
 import {
@@ -345,9 +345,12 @@ const filteredActivities = computed(() => {
     });
   }
 
-  pagination.total = result.length;
   return result;
 });
+
+watch(filteredActivities, (items) => {
+  pagination.total = items.length;
+}, { immediate: true });
 
 // 获取活动日志
 async function loadActivities() {

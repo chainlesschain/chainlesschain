@@ -947,13 +947,13 @@ class DataEngine {
     // 检查是否包含路径遍历字符
     const dangerousPatterns = [
       /\.\./,           // 父目录引用
-      /^[\/\\]/,        // 绝对路径
-      /[\/\\]{2,}/,     // 多个斜杠
-      /[\x00-\x1f]/,    // 控制字符
+      /^[/\\]/,         // 绝对路径
+      /[/\\]{2,}/,      // 多个斜杠
       /[<>:"|?*]/       // Windows不允许的字符
     ];
+    const hasControlChars = [...filePath].some((char) => char.charCodeAt(0) <= 31);
 
-    return !dangerousPatterns.some(pattern => pattern.test(filePath));
+    return !hasControlChars && !dangerousPatterns.some(pattern => pattern.test(filePath));
   }
 
   /**

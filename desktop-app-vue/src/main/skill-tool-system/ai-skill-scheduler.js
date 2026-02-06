@@ -256,7 +256,7 @@ class AISkillScheduler extends EventEmitter {
     const entities = {};
 
     // 提取文件路径
-    const pathMatch = userInput.match(/[\/\\]?[\w\-\.\/\\]+\.(txt|md|js|html|css|json|pdf|docx)/i);
+    const pathMatch = userInput.match(/[/\\]?[\w./\\-]+\.(txt|md|js|html|css|json|pdf|docx)/i);
     if (pathMatch) {
       entities.filePath = pathMatch[0];
     }

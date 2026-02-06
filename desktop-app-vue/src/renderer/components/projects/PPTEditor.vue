@@ -575,16 +575,17 @@ const isBinaryPPTX = ref(false);
 const initPPT = async () => {
   try {
     logger.info('[PPTEditor] 初始化PPT编辑器, file:', props.file);
+    let sourceContent = props.file.content;
 
     // 🔥 检测是否为二进制.pptx文件（无content或content无效）
-    if (!props.file.content || props.file.content.trim() === '') {
+    if (!sourceContent || sourceContent.trim() === '') {
       logger.warn('[PPTEditor] 文件内容为空，尝试从磁盘加载...');
 
       // 尝试从磁盘读取文件内容
       try {
         const result = await window.electronAPI.file.readContent(props.file.file_path);
         if (result && result.success && result.content) {
-          props.file.content = result.content;
+          sourceContent = result.content;
           logger.info('[PPTEditor] 从磁盘加载内容成功');
         } else {
           logger.warn('[PPTEditor] 检测到二进制.pptx文件，无法编辑');
@@ -599,9 +600,9 @@ const initPPT = async () => {
     }
 
     // 尝试解析JSON格式的演示文稿数据
-    const data = typeof props.file.content === 'string'
-      ? JSON.parse(props.file.content)
-      : props.file.content;
+    const data = typeof sourceContent === 'string'
+      ? JSON.parse(sourceContent)
+      : sourceContent;
 
     if (data.slides && Array.isArray(data.slides)) {
       slides.value = data.slides;
@@ -926,7 +927,6 @@ const handleSave = async () => {
       project_id: props.projectId
     });
 
-    props.file.content = content;
     hasChanges.value = false;
     lastSaved.value = formatDistanceToNow(new Date(), {
       addSuffix: true,

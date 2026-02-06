@@ -298,7 +298,7 @@
 import { logger, createLogger } from '@/utils/logger';
 
 import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { message, Modal } from 'ant-design-vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useIdentityStore } from '@/stores/identityStore';
 import {
@@ -649,36 +649,22 @@ async function handleLeaveOrganization() {
  * 删除组织
  */
 async function handleDeleteOrganization() {
-  // 二次确认
+  const orgName = orgData.value?.name || '';
+  const inputName = window.prompt(`此操作不可撤销，请输入组织名称 "${orgName}" 确认删除`);
+  if (inputName !== orgName) {
+    message.error('组织名称不匹配');
+    return;
+  }
+
   const confirmed = await new Promise(resolve => {
-    message.confirm({
+    Modal.confirm({
       title: '永久删除组织',
-      content: (
-        <div>
-          <p style="color: #f5222d; font-weight: bold">
-            此操作无法撤销！
-          </p>
-          <p>将永久删除：</p>
-          <ul>
-            <li>组织数据库</li>
-            <li>所有成员关系</li>
-            <li>所有项目和知识库</li>
-            <li>所有邀请记录</li>
-          </ul>
-          <p>请输入组织名称"<strong>{orgData.value?.name}</strong>"确认删除：</p>
-          <a-input id="confirm-input" placeholder="输入组织名称" />
-        </div>
-      ),
-      onOk: () => {
-        const input = document.getElementById('confirm-input');
-        if (input.value === orgData.value?.name) {
-          resolve(true);
-        } else {
-          message.error('组织名称不匹配');
-          resolve(false);
-        }
-      },
-      onCancel: () => resolve(false)
+      content: '将永久删除组织数据库、成员关系、项目和知识库、邀请记录。确认继续吗？',
+      okText: '确认删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: () => resolve(true),
+      onCancel: () => resolve(false),
     });
   });
 

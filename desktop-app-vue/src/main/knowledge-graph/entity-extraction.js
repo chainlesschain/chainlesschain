@@ -88,7 +88,7 @@ function extractEntities(text) {
   }
 
   // 4. 提取 Markdown 链接中的标题（作为概念）
-  const mdLinkPattern = /\[([^\]]+)\]\([^\)]+\)/g;
+  const mdLinkPattern = /\[([^\]]+)\]\([^)]+\)/g;
   while ((match = mdLinkPattern.exec(text)) !== null) {
     entities.push({
       type: ENTITY_TYPES.CONCEPT,
@@ -278,7 +278,7 @@ function extractSummary(text, maxLength = 200) {
     .replace(/```[\s\S]*?```/g, '') // 移除代码块
     .replace(/`[^`]+`/g, '')        // 移除行内代码
     .replace(/!\[.*?\]\(.*?\)/g, '') // 移除图片
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1') // 保留链接文本
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 保留链接文本
     .replace(/#{1,6}\s+/g, '')      // 移除标题标记
     .replace(/[*_~]/g, '')          // 移除强调标记
     .trim();

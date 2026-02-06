@@ -119,7 +119,7 @@
                     </a-descriptions-item>
                     <a-descriptions-item label="作者">
                       {{ commit.author || commit.commit.author.name }}
-                      <{{ commit.email || commit.commit.author.email }}>
+                      &lt;{{ commit.email || commit.commit.author.email }}&gt;
                     </a-descriptions-item>
                     <a-descriptions-item label="提交时间">
                       {{ formatFullDate(commit.timestamp || commit.commit.author.timestamp) }}

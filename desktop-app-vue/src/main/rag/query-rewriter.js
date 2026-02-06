@@ -277,8 +277,8 @@ class QueryRewriter extends EventEmitter {
           // 过滤掉空行、JSON符号、编号等
           return line &&
                  line.length > 5 &&
-                 !line.match(/^[\[\]{}]$/) &&
-                 !line.match(/^\d+[\.\)、]/) &&
+                 !['[', ']', '{', '}'].includes(line) &&
+                 !line.match(/^\d+[.)、]/) &&
                  !line.match(/^[-*]/) &&
                  line !== response.trim(); // 排除完整响应
         });
@@ -289,7 +289,7 @@ class QueryRewriter extends EventEmitter {
 
         // 移除列表标记
         cleaned = cleaned.replace(/^[-*•]\s*/, '');
-        cleaned = cleaned.replace(/^\d+[\.\)、]\s*/, '');
+        cleaned = cleaned.replace(/^\d+[.)、]\s*/, '');
 
         if (cleaned.length > 5) {
           variants.push(cleaned);

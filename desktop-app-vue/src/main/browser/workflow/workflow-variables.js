@@ -462,7 +462,7 @@ class VariableManager {
     }
 
     // Binary operation: a + b, a == b, etc.
-    const opMatch = expr.match(/^(.+?)\s*([\+\-\*\/\%\=\!\<\>]+)\s*(.+)$/);
+    const opMatch = expr.match(/^(.+?)\s*([+\-*/%=!<>]+)\s*(.+)$/);
     if (opMatch) {
       const [, left, op, right] = opMatch;
       const leftVal = this._evaluateExpression(left.trim());

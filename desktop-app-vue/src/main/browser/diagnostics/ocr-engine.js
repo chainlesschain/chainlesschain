@@ -281,9 +281,9 @@ class OCREngine {
     // Common patterns
     const commonPatterns = {
       emails: result.text.match(/[\w.-]+@[\w.-]+\.\w+/g) || [],
-      phones: result.text.match(/[\d\s\-\+\(\)]{10,}/g) || [],
+      phones: result.text.match(/[\d\s+()-]{10,}/g) || [],
       urls: result.text.match(/https?:\/\/[^\s]+/g) || [],
-      dates: result.text.match(/\d{1,4}[-\/]\d{1,2}[-\/]\d{1,4}/g) || [],
+      dates: result.text.match(/\d{1,4}[-/]\d{1,2}[-/]\d{1,4}/g) || [],
       numbers: result.text.match(/\$?[\d,]+\.?\d*/g) || []
     };
 

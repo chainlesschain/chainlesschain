@@ -384,7 +384,7 @@
             @click="insertVariable(name)"
             class="variable-tag"
           >
-            {{ '{{' + name + '}}' }}
+            {{ formatVariableTag(name) }}
           </a-tag>
         </div>
       </div>
@@ -451,6 +451,8 @@ const insertVariable = (name) => {
   const varText = `{{${name}}}`;
   navigator.clipboard.writeText(varText);
 };
+
+const formatVariableTag = (name) => `{{${name}}}`;
 </script>
 
 <style scoped>

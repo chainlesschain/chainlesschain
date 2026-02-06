@@ -304,7 +304,7 @@ class FileSyncManager extends EventEmitter {
     logger.info(`[FileSyncManager] 开始监听项目: ${projectId}, 路径: ${rootPath}`);
 
     const watcher = chokidar.watch(rootPath, {
-      ignored: /(^|[\/\\])\.|node_modules|\.git|dist|build|out/,
+      ignored: /(^|[/\\])\.|node_modules|\.git|dist|build|out/,
       persistent: true,
       ignoreInitial: true,
       awaitWriteFinish: {

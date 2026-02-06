@@ -662,7 +662,7 @@ const handleSelectFiles = async () => {
 const handleFilesSelected = (files) => {
   const filePaths = files.map(normalizeFilePath).filter(Boolean);
   if (filePaths.length === 0) {
-    message.warning('æ— æ³•èŽ·å–æ–‡ä»¶è·¯å¾„');
+    message.warning('????????');
     return;
   }
   uploadImages(filePaths);

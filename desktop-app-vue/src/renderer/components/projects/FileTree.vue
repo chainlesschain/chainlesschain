@@ -325,26 +325,27 @@ const filteredTreeData = computed(() => {
   };
 
   const filtered = filterTree(treeData.value);
-
-  // 搜索时自动展开所有匹配的节点
-  if (filtered.length > 0) {
-    const getAllKeys = (nodes) => {
-      let keys = [];
-      nodes.forEach(node => {
-        if (!node.isLeaf) {
-          keys.push(node.key);
-          if (node.children) {
-            keys = keys.concat(getAllKeys(node.children));
-          }
-        }
-      });
-      return keys;
-    };
-    expandedKeys.value = getAllKeys(filtered);
-  }
-
   return filtered;
 });
+
+const collectFolderKeys = (nodes) => {
+  let keys = [];
+  nodes.forEach(node => {
+    if (!node.isLeaf) {
+      keys.push(node.key);
+      if (node.children) {
+        keys = keys.concat(collectFolderKeys(node.children));
+      }
+    }
+  });
+  return keys;
+};
+
+watch([filteredTreeData, searchQuery], ([filtered, query]) => {
+  if (query && query.trim() && filtered.length > 0) {
+    expandedKeys.value = collectFolderKeys(filtered);
+  }
+}, { immediate: true });
 
 /**
  * 计算搜索结果数量

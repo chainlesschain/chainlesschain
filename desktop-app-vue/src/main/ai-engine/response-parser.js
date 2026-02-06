@@ -249,8 +249,9 @@ function validateOperation(operation, projectPath) {
 
   // 4. 检查文件名合法性
   const fileName = path.basename(operation.path);
-  const invalidChars = /[<>:"|?*\x00-\x1F]/;
-  if (invalidChars.test(fileName)) {
+  const invalidChars = /[<>:"|?*]/;
+  const hasControlChars = [...fileName].some((char) => char.charCodeAt(0) <= 31);
+  if (invalidChars.test(fileName) || hasControlChars) {
     return { valid: false, error: '文件名包含非法字符' };
   }
 

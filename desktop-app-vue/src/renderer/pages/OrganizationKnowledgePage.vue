@@ -464,7 +464,7 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, computed, onMounted, h } from 'vue';
+import { ref, computed, onMounted, watch, h } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
 import { useIdentityStore } from '@/stores/identityStore';
@@ -606,11 +606,12 @@ const filteredKnowledgeItems = computed(() => {
     items = items.filter(item => item.share_scope === filterScope.value);
   }
 
-  // 更新分页总数
-  pagination.value.total = items.length;
-
   return items;
 });
+
+watch(filteredKnowledgeItems, (items) => {
+  pagination.value.total = items.length;
+}, { immediate: true });
 
 // 我创建的知识
 const myKnowledgeItems = computed(() => {

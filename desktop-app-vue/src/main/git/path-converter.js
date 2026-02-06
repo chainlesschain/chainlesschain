@@ -188,7 +188,7 @@ class PathConverter {
     }
 
     // Windows绝对路径: C:/ or C:\
-    if (/^[A-Za-z]:[\/\\]/.test(inputPath)) {
+    if (/^[A-Za-z]:[/\\]/.test(inputPath)) {
       return true;
     }
 

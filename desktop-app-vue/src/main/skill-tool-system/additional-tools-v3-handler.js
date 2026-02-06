@@ -55,7 +55,7 @@ class AdditionalToolsV3Handler {
         }
 
         // 检测整数溢出
-        if (!contractCode.includes('SafeMath') && /\+|\-|\*/.test(contractCode)) {
+        if (!contractCode.includes('SafeMath') && /\+|-|\*/.test(contractCode)) {
           issues.push({
             severity: 'medium',
             type: 'integer-overflow',

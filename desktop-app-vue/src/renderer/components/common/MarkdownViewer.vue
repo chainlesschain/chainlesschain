@@ -90,7 +90,6 @@ const renderedContent = computed(() => {
     return rawHtml;
   } catch (err) {
     logger.error('Markdown parse error:', err);
-    error.value = 'Markdown解析失败: ' + err.message;
     // 发生错误时，转义文本以防止 XSS
     const div = document.createElement('div');
     div.textContent = content;

@@ -1264,7 +1264,7 @@ const loadRecentConversations = async () => {
     // 从数据库加载最近对话
     const result = await window.electronAPI.conversation.getRecent({
       limit: 10,
-      projectId: selectedProject.value?.id
+      projectId: createdProjectId.value || null
     });
     if (result.success) {
       recentConversations.value = result.conversations || [];

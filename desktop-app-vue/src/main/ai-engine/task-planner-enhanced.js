@@ -778,7 +778,12 @@ ${userRequest}
       // 修复单引号为双引号
       .replace(/'/g, '"')
       // 移除控制字符
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .split('')
+      .filter((char) => {
+        const code = char.charCodeAt(0);
+        return !((code <= 0x1f) || (code >= 0x7f && code <= 0x9f));
+      })
+      .join('')
       .trim();
 
     // 尝试提取JSON对象
