@@ -1024,8 +1024,37 @@ const handleOpenExternal = async () => {
  * 下载文件
  */
 const handleDownload = async () => {
-  // TODO: 实现文件下载功能
-  message.info('下载功能开发中');
+  if (!props.file?.file_path) {
+    message.error('文件路径不存在');
+    return;
+  }
+
+  try {
+    // 弹出保存文件对话框
+    const result = await window.electron.ipcRenderer.invoke('dialog:save-file', {
+      title: '保存文件',
+      defaultPath: props.file.file_name || props.file.name || 'downloaded_file',
+      filters: [
+        { name: '所有文件', extensions: ['*'] }
+      ]
+    });
+
+    if (result.canceled || !result.filePath) {
+      return;
+    }
+
+    // 复制文件到目标位置
+    const resolvedPath = await window.electronAPI.project.resolvePath(props.file.file_path);
+    await window.electron.ipcRenderer.invoke('file:copy', {
+      sourcePath: resolvedPath,
+      destinationPath: result.filePath
+    });
+
+    message.success('文件下载成功');
+  } catch (err) {
+    logger.error('下载文件失败:', err);
+    message.error('下载文件失败: ' + (err.message || '未知错误'));
+  }
 };
 
 /**

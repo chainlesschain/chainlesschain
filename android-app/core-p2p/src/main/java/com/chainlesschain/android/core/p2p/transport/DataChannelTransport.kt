@@ -266,7 +266,7 @@ class DataChannelTransport @Inject constructor(
             fromDeviceId = "",
             toDeviceId = "",
             type = MessageType.BATCH_ACK,
-            payload = kotlinx.serialization.json.Json.encodeToString(ackList),
+            payload = kotlinx.serialization.json.Json.encodeToString(kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.builtins.serializer<String>()), ackList),
             requiresAck = false
         )
 
@@ -745,7 +745,7 @@ class DataChannelTransport @Inject constructor(
                 isPaused = true
                 Log.w(TAG, "High water mark reached ($amount > $HIGH_WATER_MARK), pausing sends")
                 scope.launch {
-                    _flowControlState.emit(FlowControlState.Paused(amount, HIGH_WATER_MARK))
+                    _flowControlState.emit(FlowControlState.Paused(amount, HIGH_WATER_MARK.toLong()))
                 }
             }
             amount < LOW_WATER_MARK && isPaused -> {
