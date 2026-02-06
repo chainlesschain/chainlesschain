@@ -657,17 +657,26 @@ const handleConfirmInvite = async () => {
 
   inviting.value = true;
   try {
-    // TODO: 调用后端API发送邀请
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // 调用后端API发送邀请
+    const result = await window.electron.ipcRenderer.invoke("collab:send-invitation", {
+      projectId: inviteForm.value.projectId,
+      collaboratorDid: inviteForm.value.collaboratorDid,
+      role: inviteForm.value.role,
+      message: inviteForm.value.message,
+    });
 
-    message.success("邀请已发送");
-    showInviteModal.value = false;
-    inviteForm.value = {
-      projectId: null,
-      collaboratorDid: "",
-      role: "editor",
-      message: "",
-    };
+    if (result.success) {
+      message.success("邀请已发送");
+      showInviteModal.value = false;
+      inviteForm.value = {
+        projectId: null,
+        collaboratorDid: "",
+        role: "editor",
+        message: "",
+      };
+    } else {
+      message.error(result.error || "发送邀请失败");
+    }
   } catch (error) {
     logger.error("Invite failed:", error);
     message.error("邀请失败：" + error.message);
@@ -679,14 +688,18 @@ const handleConfirmInvite = async () => {
 // 接受邀请
 const handleAcceptInvitation = async (invitationId) => {
   try {
-    // TODO: 调用后端API接受邀请
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // 调用后端API接受邀请
+    const result = await window.electron.ipcRenderer.invoke("collab:accept-invitation", invitationId);
 
-    pendingInvitations.value = pendingInvitations.value.filter(
-      (inv) => inv.id !== invitationId,
-    );
-    message.success("已接受邀请");
-    await loadCollaborationProjects();
+    if (result.success) {
+      pendingInvitations.value = pendingInvitations.value.filter(
+        (inv) => inv.id !== invitationId,
+      );
+      message.success("已接受邀请");
+      await loadCollaborationProjects();
+    } else {
+      message.error(result.error || "接受邀请失败");
+    }
   } catch (error) {
     logger.error("Accept invitation failed:", error);
     message.error("接受失败：" + error.message);
@@ -696,13 +709,17 @@ const handleAcceptInvitation = async (invitationId) => {
 // 拒绝邀请
 const handleRejectInvitation = async (invitationId) => {
   try {
-    // TODO: 调用后端API拒绝邀请
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    // 调用后端API拒绝邀请
+    const result = await window.electron.ipcRenderer.invoke("collab:reject-invitation", invitationId);
 
-    pendingInvitations.value = pendingInvitations.value.filter(
-      (inv) => inv.id !== invitationId,
-    );
-    message.success("已拒绝邀请");
+    if (result.success) {
+      pendingInvitations.value = pendingInvitations.value.filter(
+        (inv) => inv.id !== invitationId,
+      );
+      message.success("已拒绝邀请");
+    } else {
+      message.error(result.error || "拒绝邀请失败");
+    }
   } catch (error) {
     logger.error("Reject invitation failed:", error);
     message.error("拒绝失败：" + error.message);
