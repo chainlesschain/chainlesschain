@@ -168,6 +168,13 @@
       ref="snapshotPanelRef"
     />
 
+    <!-- Phase 3: AI 控制面板 -->
+    <ai-control-panel
+      v-if="browserStatus.isRunning && activeTargetId"
+      :targetId="activeTargetId"
+      class="mt-4"
+    />
+
     <!-- 截图预览模态框 -->
     <a-modal
       v-model:open="screenshotModal.visible"
@@ -197,6 +204,7 @@ import {
   EyeOutlined
 } from '@ant-design/icons-vue';
 import SnapshotPanel from '../components/browser/SnapshotPanel.vue';
+import AIControlPanel from '../components/browser/AIControlPanel.vue';
 
 // 状态管理
 const browserStatus = reactive({

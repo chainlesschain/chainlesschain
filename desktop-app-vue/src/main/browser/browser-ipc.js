@@ -10,11 +10,13 @@
 const { ipcMain, app } = require('electron');
 const path = require('path');
 const { BrowserEngine } = require('./browser-engine');
+const { BrowserAutomationAgent } = require('./browser-automation-agent');
 const { createIPCErrorHandler } = require('../utils/ipc-error-handler');
 const { logger } = require('../utils/logger');
 
 // 创建浏览器引擎实例
 let browserEngine = null;
+let automationAgent = null;
 
 /**
  * 获取浏览器引擎实例
@@ -56,6 +58,42 @@ function getBrowserEngine() {
   }
 
   return browserEngine;
+}
+
+/**
+ * 获取 AI 自动化代理实例
+ * @returns {BrowserAutomationAgent}
+ */
+function getAutomationAgent() {
+  if (!automationAgent) {
+    const engine = getBrowserEngine();
+
+    // 获取 LLM 服务（延迟加载）
+    let llmService = null;
+    try {
+      const { getLLMService } = require('../llm/llm-service');
+      llmService = getLLMService();
+    } catch (error) {
+      logger.warn('[Browser] LLM Service not available, AI features disabled');
+    }
+
+    automationAgent = new BrowserAutomationAgent(llmService, engine);
+
+    // 监听事件
+    automationAgent.on('execution:started', (data) => {
+      logger.info('[Browser AI] Execution started', data);
+    });
+
+    automationAgent.on('execution:completed', (data) => {
+      logger.info('[Browser AI] Execution completed', data);
+    });
+
+    automationAgent.on('execution:failed', (data) => {
+      logger.error('[Browser AI] Execution failed', data);
+    });
+  }
+
+  return automationAgent;
 }
 
 /**
@@ -386,7 +424,94 @@ function registerBrowserIPC() {
     return stats;
   }));
 
-  logger.info('[Browser IPC] All Browser IPC handlers registered (Phase 1 + Phase 2)');
+  // ==================== Phase 3: AI 自然语言控制 ====================
+
+  /**
+   * 执行 AI 指令
+   * @param {string} targetId - 标签页 ID
+   * @param {string} prompt - 自然语言指令
+   * @param {Object} options - 执行选项
+   * @returns {Promise<Object>} 执行结果
+   */
+  ipcMain.handle('browser:aiExecute', withErrorHandler(async (event, targetId, prompt, options = {}) => {
+    const agent = getAutomationAgent();
+
+    if (!agent.llmService) {
+      throw new Error('LLM Service not available. Please configure LLM settings.');
+    }
+
+    const result = await agent.execute(targetId, prompt, options);
+
+    logger.info('[Browser IPC] AI command executed', {
+      targetId,
+      prompt,
+      stepsCount: result.steps.length
+    });
+
+    return result;
+  }));
+
+  /**
+   * 解析 AI 指令（仅解析，不执行）
+   * @param {string} targetId - 标签页 ID
+   * @param {string} prompt - 自然语言指令
+   * @returns {Promise<Array>} 操作步骤
+   */
+  ipcMain.handle('browser:aiParse', withErrorHandler(async (event, targetId, prompt) => {
+    const agent = getAutomationAgent();
+
+    if (!agent.llmService) {
+      throw new Error('LLM Service not available. Please configure LLM settings.');
+    }
+
+    const engine = getBrowserEngine();
+    const snapshot = await engine.takeSnapshot(targetId, {
+      interactive: true,
+      visible: true,
+      roleRefs: true
+    });
+
+    const steps = await agent.parseCommand(prompt, snapshot);
+
+    logger.info('[Browser IPC] AI command parsed', {
+      targetId,
+      prompt,
+      stepsCount: steps.length
+    });
+
+    return { steps, snapshot };
+  }));
+
+  /**
+   * 获取 AI 执行历史
+   * @param {number} limit - 返回数量限制
+   * @returns {Promise<Array>}
+   */
+  ipcMain.handle('browser:aiGetHistory', withErrorHandler(async (event, limit = 10) => {
+    const agent = getAutomationAgent();
+    const history = agent.getHistory(limit);
+
+    logger.debug('[Browser IPC] AI history retrieved', {
+      count: history.length
+    });
+
+    return history;
+  }));
+
+  /**
+   * 清除 AI 执行历史
+   * @returns {Promise<Object>}
+   */
+  ipcMain.handle('browser:aiClearHistory', withErrorHandler(async (event) => {
+    const agent = getAutomationAgent();
+    agent.clearHistory();
+
+    logger.info('[Browser IPC] AI history cleared');
+
+    return { success: true };
+  }));
+
+  logger.info('[Browser IPC] All Browser IPC handlers registered (Phase 1 + Phase 2 + Phase 3)');
 }
 
 /**

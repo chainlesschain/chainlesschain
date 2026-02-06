@@ -44,7 +44,7 @@ fun RemoteControlScreen(
     onNavigateToSystemMonitor: () -> Unit = {},
     onNavigateToCommandHistory: () -> Unit = {},
     onNavigateToRemoteDesktop: () -> Unit = {},
-    onNavigateToFileTransfer: () -> Unit = {}
+    onNavigateToFileTransfer: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
@@ -173,7 +173,15 @@ fun RemoteControlScreen(
                             title = "文件传输",
                             subtitle = "在 PC 和 Android 之间传输文件",
                             icon = Icons.Default.Folder,
-                            onClick = onNavigateToFileTransfer
+                            onClick = {
+                                val did = connectedPeer?.did
+                                    ?: defaultDid?.trim().orEmpty()
+                                if (did.isBlank()) {
+                                    viewModel.setError("请先连接或选择设备后再进行文件传输")
+                                } else {
+                                    onNavigateToFileTransfer(did)
+                                }
+                            }
                         ),
                         CommandShortcut(
                             title = "截图",

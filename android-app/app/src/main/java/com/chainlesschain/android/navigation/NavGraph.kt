@@ -233,8 +233,9 @@ fun NavGraph(
         registerPlaceholder(navController, "${Screen.EditPost.route}/{postId}", "Edit Post", "postId")
         composable(Screen.DeviceManagement.route) {
             DeviceListScreen(
-                onNavigateToDeviceDetail = { peerId ->
-                    navController.navigate(Screen.RemoteControl.createRoute(peerId, "did:key:$peerId"))
+                onNavigateToDeviceDetail = { peerId, did ->
+                    val resolvedDid = did.ifBlank { "did:key:$peerId" }
+                    navController.navigate(Screen.RemoteControl.createRoute(peerId, resolvedDid))
                 },
                 onNavigateToDeviceScan = { navController.navigate(Screen.DeviceScan.route) },
                 onNavigateBack = { navController.popBackStack() }
@@ -243,8 +244,9 @@ fun NavGraph(
         composable(Screen.DeviceScan.route) {
             DeviceScanScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onDeviceSelected = { peerId ->
-                    navController.navigate(Screen.RemoteControl.createRoute(peerId, "did:key:$peerId"))
+                onDeviceSelected = { peerId, did ->
+                    val resolvedDid = did.ifBlank { "did:key:$peerId" }
+                    navController.navigate(Screen.RemoteControl.createRoute(peerId, resolvedDid))
                 }
             )
         }
@@ -257,7 +259,9 @@ fun NavGraph(
                 onNavigateToSystemMonitor = { navController.navigate(Screen.RemoteSystemMonitor.route) },
                 onNavigateToCommandHistory = { navController.navigate(Screen.RemoteCommandHistory.route) },
                 onNavigateToRemoteDesktop = { navController.navigate(Screen.RemoteDesktop.route) },
-                onNavigateToFileTransfer = { navController.navigate(Screen.RemoteFileTransfer.route) }
+                onNavigateToFileTransfer = { did ->
+                    navController.navigate(Screen.RemoteFileTransfer.createRoute(did))
+                }
             )
         }
         composable(
@@ -279,7 +283,9 @@ fun NavGraph(
                 onNavigateToSystemMonitor = { navController.navigate(Screen.RemoteSystemMonitor.route) },
                 onNavigateToCommandHistory = { navController.navigate(Screen.RemoteCommandHistory.route) },
                 onNavigateToRemoteDesktop = { navController.navigate(Screen.RemoteDesktop.route) },
-                onNavigateToFileTransfer = { navController.navigate(Screen.RemoteFileTransfer.route) }
+                onNavigateToFileTransfer = { targetDid ->
+                    navController.navigate(Screen.RemoteFileTransfer.createRoute(targetDid))
+                }
             )
         }
         composable(Screen.RemoteAIChat.route) {
@@ -303,9 +309,13 @@ fun NavGraph(
         composable(Screen.RemoteDesktop.route) {
             RemoteDesktopScreen(onNavigateBack = { navController.popBackStack() })
         }
-        composable(Screen.RemoteFileTransfer.route) {
+        composable(
+            route = "${Screen.RemoteFileTransfer.route}/{did}",
+            arguments = listOf(navArgument("did") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val did = backStackEntry.arguments?.getString("did").orEmpty()
             FileTransferScreen(
-                deviceDid = "pc-default",
+                deviceDid = did,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -383,7 +393,9 @@ sealed class Screen(val route: String) {
     data object RemoteSystemMonitor : Screen("remote_system_monitor")
     data object RemoteCommandHistory : Screen("remote_command_history")
     data object RemoteDesktop : Screen("remote_desktop")
-    data object RemoteFileTransfer : Screen("remote_file_transfer")
+    data object RemoteFileTransfer : Screen("remote_file_transfer") {
+        fun createRoute(did: String) = "remote_file_transfer/$did"
+    }
 }
 
 @Composable
