@@ -415,8 +415,12 @@ class ChainlessChainApp {
       registerVolcengineIPC();
       registerSecureStorageIPC();
 
-      if (this.sessionManager) {
-        registerSessionManagerIPC({ sessionManager: this.sessionManager });
+      // Always register session IPC handlers - they will return errors if sessionManager is unavailable
+      registerSessionManagerIPC({ sessionManager: this.sessionManager });
+      if (!this.sessionManager) {
+        logger.warn(
+          "[Main] SessionManager 未初始化，session:* IPC handlers 将返回错误",
+        );
       }
 
       if (this.errorMonitor) {

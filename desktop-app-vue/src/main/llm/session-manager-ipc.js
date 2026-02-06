@@ -7,7 +7,7 @@
  * @since 2026-01-16
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -38,6 +38,12 @@ function registerSessionManagerIPC({
 
   // 创建可变的引用容器
   const managerRef = { current: sessionManager };
+
+  if (!sessionManager) {
+    logger.warn(
+      "[SessionManager IPC] SessionManager 为 null，handlers 将返回错误直到 SessionManager 被设置",
+    );
+  }
 
   // ============================================================
   // 会话管理
