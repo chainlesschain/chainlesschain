@@ -110,11 +110,12 @@ export function resolveIpcBridge(): IpcBridge {
     return cachedIpc;
   }
 
+  const win = getWindow();
   const rawCandidates: (Partial<IpcBridge> | null | undefined)[] = [
-    window.electron?.ipcRenderer,
-    window.ipc,
-    window.electronAPI && typeof window.electronAPI.invoke === "function"
-      ? (window.electronAPI as Partial<IpcBridge>)
+    win.electron?.ipcRenderer,
+    win.ipc,
+    win.electronAPI && typeof win.electronAPI.invoke === "function"
+      ? (win.electronAPI as Partial<IpcBridge>)
       : null,
     safeRequireElectronIpc(),
   ];
@@ -137,20 +138,21 @@ export function initIpcCompatibility(): void {
   }
 
   const ipc = resolveIpcBridge();
+  const win = getWindow();
 
   try {
-    if (!window.electron || typeof window.electron !== "object") {
+    if (!win.electron || typeof win.electron !== "object") {
       (window as any).electron = {};
     }
-    if (!window.electron!.ipcRenderer) {
-      window.electron!.ipcRenderer = ipc;
+    if (!win.electron?.ipcRenderer) {
+      (window as any).electron = { ...(window as any).electron, ipcRenderer: ipc };
     }
   } catch (_error) {
     // Ignore assignment failures in hardened contexts.
   }
 
   try {
-    if (!window.ipc) {
+    if (!win.ipc) {
       (window as any).ipc = ipc;
     }
   } catch (_error) {
@@ -159,11 +161,11 @@ export function initIpcCompatibility(): void {
 
   try {
     if (
-      window.electronAPI &&
-      typeof window.electronAPI === "object" &&
-      typeof window.electronAPI.invoke !== "function"
+      win.electronAPI &&
+      typeof win.electronAPI === "object" &&
+      typeof win.electronAPI.invoke !== "function"
     ) {
-      window.electronAPI.invoke = ipc.invoke;
+      (window as any).electronAPI.invoke = ipc.invoke;
     }
   } catch (_error) {
     // Ignore assignment failures in hardened contexts.

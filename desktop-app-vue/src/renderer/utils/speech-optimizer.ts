@@ -61,25 +61,54 @@ export interface RecognitionResult {
   error?: Error;
 }
 
-// ==================== 扩展全局类型 ====================
+// ==================== 内部类型定义 ====================
 
-declare global {
-  interface Window {
-    webkitAudioContext?: typeof AudioContext;
-    webkitSpeechRecognition?: typeof SpeechRecognition;
-  }
+/**
+ * 网络连接信息
+ */
+interface NetworkConnectionInfo {
+  effectiveType?: '2g' | '3g' | '4g' | 'slow-2g';
+  downlink?: number;
+  rtt?: number;
+  saveData?: boolean;
+}
 
-  interface Navigator {
-    connection?: {
-      effectiveType?: '2g' | '3g' | '4g' | 'slow-2g';
-      downlink?: number;
-      rtt?: number;
-      saveData?: boolean;
-    };
-    mozConnection?: Navigator['connection'];
-    webkitConnection?: Navigator['connection'];
-    deviceMemory?: number;
-  }
+/**
+ * 扩展的 Navigator 接口
+ */
+interface ExtendedNavigator {
+  connection?: NetworkConnectionInfo;
+  mozConnection?: NetworkConnectionInfo;
+  webkitConnection?: NetworkConnectionInfo;
+  deviceMemory?: number;
+  hardwareConcurrency: number;
+}
+
+/**
+ * 语音识别接口
+ */
+interface SpeechRecognitionInterface {
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+
+/**
+ * 语音识别构造函数
+ */
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInterface;
+}
+
+/**
+ * 扩展的 Window 接口
+ */
+interface ExtendedWindow {
+  AudioContext?: typeof AudioContext;
+  webkitAudioContext?: typeof AudioContext;
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
 }
 
 // ==================== 类实现 ====================
@@ -159,7 +188,11 @@ class SpeechPerformanceOptimizer {
 
     try {
       // 创建AudioContext
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      const extWindow = window as unknown as ExtendedWindow;
+      const AudioContextClass = extWindow.AudioContext || extWindow.webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error('AudioContext not supported');
+      }
       const audioContext = new AudioContextClass();
 
       // 解码音频数据
@@ -360,11 +393,12 @@ class SpeechPerformanceOptimizer {
    * 根据网络状况和设备性能动态调整
    */
   getOptimalSettings(): AudioSettings {
+    const extNavigator = navigator as unknown as ExtendedNavigator;
     const connection =
-      navigator.connection ||
-      navigator.mozConnection ||
-      navigator.webkitConnection;
-    const memory = navigator.deviceMemory || 4; // GB
+      extNavigator.connection ||
+      extNavigator.mozConnection ||
+      extNavigator.webkitConnection;
+    const memory = extNavigator.deviceMemory || 4; // GB
 
     const settings: AudioSettings = {
       sampleRate: 16000,
@@ -409,8 +443,9 @@ class SpeechPerformanceOptimizer {
 
     try {
       // 创建一个临时的SpeechRecognition实例
+      const extWindow = window as unknown as ExtendedWindow;
       const SpeechRecognitionClass =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+        extWindow.SpeechRecognition || extWindow.webkitSpeechRecognition;
       if (SpeechRecognitionClass) {
         const recognition = new SpeechRecognitionClass();
         recognition.lang = 'zh-CN';

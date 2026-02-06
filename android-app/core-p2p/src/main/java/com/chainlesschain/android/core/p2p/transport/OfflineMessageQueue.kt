@@ -30,6 +30,9 @@ import javax.inject.Singleton
  * - 连接恢复后自动重发
  * - 消息过期清理
  * - 按设备 ID 分组管理
+ * - 消息优先级处理
+ * - 指数退避重试
+ * - 批量操作
  */
 @Singleton
 class OfflineMessageQueue @Inject constructor(
@@ -40,7 +43,10 @@ class OfflineMessageQueue @Inject constructor(
         private const val QUEUE_DIR = "offline_messages"
         private const val MAX_MESSAGES_PER_DEVICE = 1000
         private const val DEFAULT_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000L  // 7天
-        private const val MAX_RETRY_COUNT = 3
+        private const val MAX_RETRY_COUNT = 5
+
+        // 指数退避重试延迟（毫秒）
+        private val RETRY_DELAYS = listOf(1000L, 2000L, 5000L, 10000L, 30000L)
     }
 
     private val json = Json {
@@ -79,11 +85,13 @@ class OfflineMessageQueue @Inject constructor(
      * @param deviceId 目标设备 ID
      * @param message 消息
      * @param expiryMs 过期时间（毫秒），默认 7 天
+     * @param priority 消息优先级，默认 NORMAL
      */
     suspend fun enqueue(
         deviceId: String,
         message: P2PMessage,
-        expiryMs: Long = DEFAULT_EXPIRY_MS
+        expiryMs: Long = DEFAULT_EXPIRY_MS,
+        priority: MessagePriority = MessagePriority.NORMAL
     ): Result<Unit> = mutex.withLock {
         try {
             val offlineMessage = OfflineMessage(
@@ -92,7 +100,9 @@ class OfflineMessageQueue @Inject constructor(
                 message = message,
                 enqueuedAt = System.currentTimeMillis(),
                 expiresAt = System.currentTimeMillis() + expiryMs,
-                retryCount = 0
+                retryCount = 0,
+                priority = priority,
+                nextRetryAt = 0L
             )
 
             // 检查队列容量
