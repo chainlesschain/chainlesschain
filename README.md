@@ -19,20 +19,23 @@
 
 ---
 
-## ⭐ 当前版本: v0.29.0 (2026-02-02)
+## ⭐ 当前版本: v0.29.0 (2026-02-06)
 
-### 最新更新 - 企业级权限系统 + Context Engineering + Claude Code 风格工具
+### 最新更新 - TypeScript 迁移 + 浏览器控制 + Claude Code 风格系统完善
 
-**Enterprise RBAC + KV-Cache Optimization** - 企业级权限引擎、上下文窗口优化、Plan Mode 和 Skills 系统增强
+**TypeScript Migration + Browser Control + 127 IPC Channels** - 前端 TypeScript 重构、浏览器自动化控制、10 个 Claude Code 风格子系统
 
 #### 新增核心功能
 
+- ✅ **TypeScript 迁移** - Stores 和 Composables 全面迁移到 TypeScript（类型安全、IDE 支持增强）
+- ✅ **浏览器控制系统** - BrowserEngine + SnapshotEngine（18 IPC 通道、智能快照、元素定位）
+- ✅ **Claude Code 风格系统** - 10 个子系统、127 IPC 通道完整实现
+  - Hooks System (11) | Plan Mode (14) | Skills (17) | Context Engineering (17)
+  - Prompt Compressor (10) | Response Cache (11) | Token Tracker (12)
+  - Stream Controller (12) | Resource Monitor (13) | Message Aggregator (10)
 - ✅ **Permission Engine** - 企业级 RBAC 权限引擎（资源级权限、继承、委托、团队权限）
-- ✅ **Team Manager** - 组织子团队管理（创建/更新/删除团队、成员管理、层级结构）
-- ✅ **Team Report Manager** - 团队日报周报系统（Daily Standup、AI 摘要生成）
 - ✅ **Context Engineering** - KV-Cache 优化（17 IPC 通道、Token 预估、可恢复压缩）
 - ✅ **Plan Mode** - Claude Code 风格计划模式（安全分析、审批流程、14 IPC 通道）
-- ✅ **Skills 系统** - Markdown Skills 增强（三层加载机制、门控检查、/skill 命令）
 
 #### v0.28.0 功能回顾
 
@@ -84,6 +87,8 @@
 - 🏢 **企业版**: 多身份架构 + RBAC权限 + 知识库协作 + DID邀请链接
 - 📱 **跨设备协作**: Git同步 + 桌面-移动端双向同步 + 多设备P2P通信
 - 🧪 **全面测试体系**: 233测试用例 + 99.6%通过率 + OWASP安全验证 + 性能基准
+- 🌐 **浏览器自动化**: BrowserEngine + SnapshotEngine + 智能元素定位 + 18个IPC通道
+- 📝 **TypeScript支持**: Stores/Composables TypeScript迁移 + 类型安全 + IDE增强
 - 🔓 **开源自主**: 230,000+行代码,243个Vue组件,完全透明可审计
 
 更多特性详见 [功能详解](./docs/FEATURES.md)
@@ -293,6 +298,12 @@ chainlesschain/
 │   │   │   ├── did/          # DID身份系统
 │   │   │   ├── p2p/          # P2P网络 (libp2p)
 │   │   │   ├── mcp/          # MCP集成
+│   │   │   ├── browser/      # 浏览器自动化控制 (新)
+│   │   │   │   ├── browser-engine.js         # 浏览器引擎 (Playwright)
+│   │   │   │   ├── browser-ipc.js            # 浏览器 IPC (12通道)
+│   │   │   │   ├── snapshot-engine.js        # 智能快照引擎
+│   │   │   │   ├── snapshot-ipc.js           # 快照 IPC (6通道)
+│   │   │   │   └── element-locator.js        # 元素定位器
 │   │   │   ├── ai-engine/    # AI引擎 + 工作流优化
 │   │   │   │   ├── cowork/   # Cowork多代理协作系统
 │   │   │   │   │   └── skills/               # Skills系统
@@ -309,7 +320,7 @@ chainlesschain/
 │   │   │   │   ├── task-executor.js              # 任务执行器
 │   │   │   │   └── task-planner-enhanced.js      # 增强型任务规划器
 │   │   │   └── monitoring/   # 监控和日志
-│   │   └── renderer/         # 渲染进程 (Vue3 + 243个组件)
+│   │   └── renderer/         # 渲染进程 (Vue3 + TypeScript迁移中)
 │   ├── contracts/            # 智能合约 (Hardhat + Solidity)
 │   └── tests/                # 测试套件 (233个测试用例)
 │       ├── unit/             # 单元测试 (IPC处理器、数据库、Git)
@@ -336,12 +347,14 @@ chainlesschain/
 
 ### PC端
 
-- Electron 39.2.7 + Vue 3.4 + Ant Design Vue 4.1
+- Electron 39.2.7 + Vue 3.4 + TypeScript 5.9 + Ant Design Vue 4.1
 - SQLite/SQLCipher (AES-256) + libp2p 3.1.2
 - 16个专用AI引擎 + 17项智能优化 + 115个技能 + 300个工具
 - 永久记忆: Daily Notes + MEMORY.md + 混合搜索(Vector+BM25)
 - Context Engineering: KV-Cache优化 + Token预估 + 可恢复压缩
 - 企业权限: RBAC引擎 + 团队管理 + 审批工作流 + 权限委托
+- 浏览器控制: Playwright + BrowserEngine + SnapshotEngine + 18 IPC通道
+- Claude Code风格: 10子系统 + 127 IPC通道 (Hooks/Plan Mode/Skills等)
 - 工作流优化: 智能缓存 + LLM决策 + 代理池 + 关键路径 + 实时质量
 - 测试框架: Vitest + 233测试用例 + 99.6%通过率
 
@@ -440,3 +453,4 @@ chainlesschain/
 - [🎯 Context Engineering](./desktop-app-vue/src/main/llm/context-engineering-ipc.js) - KV-Cache优化IPC
 - [🪝 Hooks系统](./docs/design/HOOKS_SYSTEM_DESIGN.md) - Claude Code风格钩子系统
 - [📋 Plan Mode](./desktop-app-vue/src/main/ai-engine/plan-mode/) - 计划模式系统
+- [🌐 浏览器控制](./desktop-app-vue/src/main/browser/) - BrowserEngine + SnapshotEngine

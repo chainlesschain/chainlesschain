@@ -19,20 +19,23 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.29.0 (2026-02-02)
+## ⭐ Current Version: v0.29.0 (2026-02-06)
 
-### Latest Updates - Enterprise RBAC + Context Engineering + Claude Code Style Tools
+### Latest Updates - TypeScript Migration + Browser Control + Claude Code Style Systems
 
-**Enterprise RBAC + KV-Cache Optimization** - Enterprise permission engine, context window optimization, Plan Mode and Skills system enhancements
+**TypeScript Migration + Browser Control + 127 IPC Channels** - Frontend TypeScript refactoring, browser automation control, 10 Claude Code style subsystems
 
 #### New Core Features
 
+- ✅ **TypeScript Migration** - Stores and Composables fully migrated to TypeScript (type safety, enhanced IDE support)
+- ✅ **Browser Control System** - BrowserEngine + SnapshotEngine (18 IPC channels, smart snapshots, element locator)
+- ✅ **Claude Code Style Systems** - 10 subsystems, 127 IPC channels fully implemented
+  - Hooks System (11) | Plan Mode (14) | Skills (17) | Context Engineering (17)
+  - Prompt Compressor (10) | Response Cache (11) | Token Tracker (12)
+  - Stream Controller (12) | Resource Monitor (13) | Message Aggregator (10)
 - ✅ **Permission Engine** - Enterprise RBAC permission engine (resource-level, inheritance, delegation, team permissions)
-- ✅ **Team Manager** - Organization sub-team management (create/update/delete teams, member management, hierarchy)
-- ✅ **Team Report Manager** - Team daily/weekly report system (Daily Standup, AI summary generation)
 - ✅ **Context Engineering** - KV-Cache optimization (17 IPC channels, token estimation, recoverable compression)
 - ✅ **Plan Mode** - Claude Code style plan mode (security analysis, approval workflow, 14 IPC channels)
-- ✅ **Skills System** - Markdown Skills enhancement (three-layer loading, gate checks, /skill commands)
 
 #### v0.28.0 Features Recap
 
@@ -773,12 +776,12 @@ const chainInfo = blockchainAdapter.getCurrentChainInfo();
 
 #### Choose Your Version
 
-- **Intel Chip (x64)**: Download `ChainlessChain-darwin-x64-0.26.0.zip` (~1.4GB)
+- **Intel Chip (x64)**: Download `ChainlessChain-darwin-x64-0.29.0.zip` (~1.4GB)
 - **Apple Silicon (M1/M2/M3)**: ARM64 version in development, please use x64 version with Rosetta
 
 #### Installation Steps
 
-1. Download `ChainlessChain-darwin-x64-0.26.0.zip`
+1. Download `ChainlessChain-darwin-x64-0.29.0.zip`
 2. Extract the file (double-click the zip file)
 3. Drag `ChainlessChain.app` to Applications folder
 4. Double-click to run (see notes below for first run)
@@ -807,11 +810,11 @@ const chainInfo = blockchainAdapter.getCurrentChainInfo();
 
 #### Download Version
 
-- **Windows x64 (64-bit)**: Download `ChainlessChain-win32-x64-0.26.0.zip` (~1.4GB)
+- **Windows x64 (64-bit)**: Download `ChainlessChain-win32-x64-0.29.0.zip` (~1.4GB)
 
 #### Installation Steps (Portable Version)
 
-1. Download `ChainlessChain-win32-x64-0.26.0.zip`
+1. Download `ChainlessChain-win32-x64-0.29.0.zip`
 2. Extract to any folder (recommended: `C:\Program Files\ChainlessChain\`)
 3. Double-click `ChainlessChain.exe` to run
 4. No administrator privileges required
@@ -841,8 +844,8 @@ npm run make:win
 
 #### Download Version
 
-- **Linux x64 ZIP Portable**: Download `ChainlessChain-linux-x64-0.26.0.zip` (~1.4GB)
-- **Linux x64 DEB Package**: Download `chainlesschain-desktop-vue_0.26.0_amd64.deb` (~923MB) ⭐Recommended
+- **Linux x64 ZIP Portable**: Download `ChainlessChain-linux-x64-0.29.0.zip` (~1.4GB)
+- **Linux x64 DEB Package**: Download `chainlesschain-desktop-vue_0.29.0_amd64.deb` (~923MB) ⭐Recommended
 
 #### Supported Distributions
 
@@ -858,7 +861,7 @@ npm run make:win
 1. Download the deb file
 2. Install:
    ```bash
-   sudo dpkg -i chainlesschain-desktop-vue_0.26.0_amd64.deb
+   sudo dpkg -i chainlesschain-desktop-vue_0.29.0_amd64.deb
    ```
 3. If dependency issues occur:
    ```bash
@@ -874,7 +877,7 @@ npm run make:win
 1. Download the zip file
 2. Extract to any directory:
    ```bash
-   unzip ChainlessChain-linux-x64-0.26.0.zip
+   unzip ChainlessChain-linux-x64-0.29.0.zip
    cd ChainlessChain-linux-x64
    ```
 3. Grant execute permission:
@@ -1712,10 +1715,39 @@ chainlesschain/
 │   │   │   ├── config/       # Configuration management
 │   │   │   ├── database/     # Database operations
 │   │   │   ├── llm/          # LLM integration (16 AI engines)
+│   │   │   │   ├── permanent-memory-manager.js  # Permanent Memory Manager
+│   │   │   │   ├── permanent-memory-ipc.js      # Permanent Memory IPC channels
+│   │   │   │   ├── context-engineering.js       # KV-Cache optimization core
+│   │   │   │   └── context-engineering-ipc.js   # Context Engineering IPC (17 channels)
 │   │   │   ├── rag/          # RAG retrieval system
+│   │   │   │   ├── bm25-search.js         # BM25 full-text search engine
+│   │   │   │   └── hybrid-search-engine.js # Hybrid search engine
+│   │   │   ├── permission/   # Enterprise RBAC system (NEW)
+│   │   │   │   ├── permission-engine.js        # RBAC permission engine
+│   │   │   │   ├── team-manager.js             # Team management
+│   │   │   │   ├── delegation-manager.js       # Permission delegation
+│   │   │   │   └── approval-workflow-manager.js # Approval workflow
+│   │   │   ├── task/         # Task management (NEW)
+│   │   │   │   └── team-report-manager.js      # Team daily/weekly reports
+│   │   │   ├── hooks/        # Hooks system (Claude Code style)
+│   │   │   │   ├── index.js               # Main entry
+│   │   │   │   ├── hook-registry.js       # Hook registry
+│   │   │   │   └── hook-executor.js       # Hook executor
 │   │   │   ├── did/          # DID identity system
 │   │   │   ├── p2p/          # P2P network (libp2p)
+│   │   │   │   └── webrtc-data-channel.js  # WebRTC data channel manager
 │   │   │   ├── mcp/          # MCP integration
+│   │   │   ├── utils/        # Utility modules
+│   │   │   │   └── ipc-error-handler.js    # IPC error middleware
+│   │   │   ├── ai-engine/    # AI engine and multi-agent
+│   │   │   │   ├── cowork/   # Cowork multi-agent collaboration system
+│   │   │   │   │   └── skills/               # Skills system
+│   │   │   │   │       ├── index.js          # Skill loader
+│   │   │   │   │       ├── skills-ipc.js     # Skills IPC (17 channels)
+│   │   │   │   │       └── builtin/          # Built-in skills (code-review, git-commit, explain-code)
+│   │   │   │   └── plan-mode/                # Plan Mode system (Claude Code style)
+│   │   │   │       ├── index.js              # PlanModeManager
+│   │   │   │       └── plan-mode-ipc.js      # Plan Mode IPC (14 channels)
 │   │   │   └── monitoring/   # Monitoring and logging
 │   │   └── renderer/         # Renderer process (Vue3 + 243 components)
 │   │       ├── components/   # Reusable components
@@ -1724,7 +1756,11 @@ chainlesschain/
 │   │       ├── services/     # Frontend service layer
 │   │       └── utils/        # Utility library
 │   ├── contracts/            # Smart contracts (Hardhat + Solidity)
-│   └── tests/                # Test suite (unit/integration/E2E)
+│   └── tests/                # Test suite (233 test cases)
+│       ├── unit/             # Unit tests (IPC handlers, database, Git)
+│       ├── integration/      # Integration tests (backend integration, user journey)
+│       ├── performance/      # Performance tests (load, memory leak)
+│       └── security/         # Security tests (OWASP Top 10)
 ├── backend/
 │   ├── project-service/      # Spring Boot 3.1.11 (Java 17)
 │   └── ai-service/           # FastAPI + Ollama + Qdrant
@@ -1848,26 +1884,30 @@ chainlesschain/
 
 ### Version History
 
-| Version | Date       | Major Updates                                                                                                                                                                                                                                                                                                                                            |
-| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v0.26.0 | 2026-01-19 | **Unified Logging+Android P2P UI+Memory Optimization**: Centralized logger system (700+ migrations), Android P2P complete UI (8 screens), ChatPanel 4-layer memory protection, added logger-ipc.js (120 lines), logger.js (245 lines), P2P docs (709 lines) ⭐LATEST                                                                                     | \n  | v0.25.0 | 2026-01-17 | **Manus AI Optimization + Multi-Agent System**: Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, 3 specialized Agents (Code Generation/Data Analysis/Document Processing), parallel/chain execution, added 5,500+ lines of code ⭐LATEST |
-| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP tools integrated into AI chat, invoke MCP server tools via Function Calling, added mcp-function-executor.js (268 lines)                                                                                                                                                                                                    |
-| v0.23.0 | 2026-01-15 | **SessionManager Enhancement + ErrorMonitor AI Diagnostics**: Session search/tags/export/summary/templates/batch operations, AI intelligent error diagnosis and auto-fix                                                                                                                                                                                 |
-| v0.22.0 | 2026-01-13 | **Blockchain Integration Complete**: Phase 4-6 complete (15 chain support + RPC management + event listening + complete UI), added 6,566 lines of code, 12 UI components, full test coverage ⭐Major Update                                                                                                                                              |
-| v0.21.0 | 2026-01-06 | **Deep Performance Optimization System**: Added 14,000+ lines of optimization code, 18 utility classes, 4 specialized components, smart image optimization system (WebP/AVIF), real-time performance monitoring (Core Web Vitals), frontend deep optimization (code splitting/lazy loading/virtual scrolling/intelligent prefetch), 8 detailed documents |
-| v0.20.0 | 2026-01-03 | **Testing Framework Upgrade + Performance Optimization**: Full migration to Vitest (94 test files/900+ cases), performance optimization integration (memory downgrade/disk check/concurrency control), security protection system, 4 core module unit tests                                                                                              |
-| v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools + Menu Integration**: AI engine P2 optimization complete (intent fusion/knowledge distillation/streaming response), V3 tool system restored (300 tools), application menu integration, production deployment                                                                                                                |
-| v0.19.0 | 2025-12-31 | **Codebase Refinement**: Updated project documentation, optimized template configuration, enhanced testing framework (62 test files), codebase restructuring                                                                                                                                                                                             |
-| v0.18.0 | 2025-12-30 | **Enterprise Edition + Skill/Tool Expansion**: Decentralized organizations (multi-identity + RBAC + 9 new tables) + skill/tool system expanded to 115 skills + 300 tools + Playwright testing + multi-database isolation                                                                                                                                 |
-| v0.17.0 | 2025-12-29 | **Blockchain Integration Phase 1-3**: Smart contract system (6 contracts + tests + deployment) + wallet system (HD + external) + skill/tool system + plugin system + browser extension + voice recognition Phase 3                                                                                                                                       |
-| v0.16.0 | 2025-12-28 | **Phase 3 Complete**: 8 trading modules (5625+ lines) + 19 AI engines + backend services (149 APIs) + database sync + testing framework                                                                                                                                                                                                                  |
-| v0.11.0 | 2025-12-18 | Image upload and OCR (Tesseract.js + Sharp)                                                                                                                                                                                                                                                                                                              |
-| v0.10.0 | 2025-12    | RAG reranker (3 algorithms) + query rewriting                                                                                                                                                                                                                                                                                                            |
-| v0.9.0  | 2025-11    | File import enhancement (PDF/Word/TXT)                                                                                                                                                                                                                                                                                                                   |
-| v0.8.0  | 2025-11    | Verifiable credentials system (W3C VC standard, 5 types)                                                                                                                                                                                                                                                                                                 |
-| v0.6.1  | 2025-10    | DHT network publishing (DID documents)                                                                                                                                                                                                                                                                                                                   |
-| v0.4.0  | 2025-09    | Git conflict resolution (visual UI) + AI commit messages                                                                                                                                                                                                                                                                                                 |
-| v0.1.0  | 2025-08    | First MVP release                                                                                                                                                                                                                                                                                                                                        |
+| Version | Date       | Major Updates |
+| ------- | ---------- | ------------- |
+| v0.29.0 | 2026-02-02 | **Enterprise RBAC + Context Engineering + Claude Code Style Tools**: Permission Engine (RBAC), Team Manager, Team Report Manager, Context Engineering (KV-Cache optimization, 17 IPC), Plan Mode (14 IPC), Skills System enhancement ⭐LATEST |
+| v0.28.0 | 2026-01-28 | **Permanent Memory + Hybrid Search + Hooks System**: Daily Notes auto-logging, MEMORY.md extraction, Vector+BM25 hybrid search, 21 hook events, 4 hook types, MCP integration tests (32+31) |
+| v0.27.0 | 2026-01-23 | **Hooks System + IPC Error Handler**: Claude Code-style hooks (21 events, 4 types, priority system), IPC error middleware (10 error types, ErrorMonitor integration), enterprise permission foundations |
+| v0.26.0 | 2026-01-19 | **Unified Logging + Android P2P UI + Memory Optimization**: Centralized logger system (700+ migrations), Android P2P complete UI (8 screens), ChatPanel 4-layer memory protection |
+| v0.25.0 | 2026-01-17 | **Manus AI Optimization + Multi-Agent System**: Context Engineering (KV-Cache), Tool Masking, TaskTrackerFile (todo.md), Recoverable Compression, 3 specialized Agents |
+| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP tools integrated into AI chat, invoke MCP server tools via Function Calling |
+| v0.23.0 | 2026-01-15 | **SessionManager Enhancement + ErrorMonitor AI Diagnostics**: Session search/tags/export/summary, AI error diagnosis |
+| v0.22.0 | 2026-01-13 | **Blockchain Integration Complete**: 15 chain support + RPC management + event listening + complete UI ⭐Major Update |
+| v0.21.0 | 2026-01-06 | **Deep Performance Optimization**: 14,000+ lines optimization code, smart image system (WebP/AVIF), Core Web Vitals monitoring |
+| v0.20.0 | 2026-01-03 | **Testing Framework Upgrade**: Full Vitest migration (94 files/900+ cases), performance optimization integration |
+| v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools**: AI engine optimization, 300 tools restored, application menu integration |
+| v0.19.0 | 2025-12-31 | **Codebase Refinement**: Documentation update, template optimization, testing framework enhancement |
+| v0.18.0 | 2025-12-30 | **Enterprise Edition + Skills Expansion**: Decentralized organizations, 115 skills + 300 tools, multi-database isolation |
+| v0.17.0 | 2025-12-29 | **Blockchain Integration Phase 1-3**: 6 smart contracts, wallet system, plugin system, browser extension |
+| v0.16.0 | 2025-12-28 | **Phase 3 Complete**: 8 trading modules, 19 AI engines, backend services (149 APIs), database sync |
+| v0.11.0 | 2025-12-18 | Image upload and OCR (Tesseract.js + Sharp) |
+| v0.10.0 | 2025-12    | RAG reranker (3 algorithms) + query rewriting |
+| v0.9.0  | 2025-11    | File import enhancement (PDF/Word/TXT) |
+| v0.8.0  | 2025-11    | Verifiable credentials system (W3C VC standard, 5 types) |
+| v0.6.1  | 2025-10    | DHT network publishing (DID documents) |
+| v0.4.0  | 2025-09    | Git conflict resolution (visual UI) + AI commit messages |
+| v0.1.0  | 2025-08    | First MVP release |
 
 ## 🛠️ Tech Stack
 

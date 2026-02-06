@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -537,7 +537,7 @@ class TaskManager {
    * @param {string} deleterDID - 删除者DID
    * @returns {Promise<Object>} 删除结果
    */
-  async deleteComment(commentId, deleterDID) {
+  async deleteComment(commentId, _deleterDID) {
     try {
       // 软删除
       this.db.prepare(
@@ -673,6 +673,193 @@ class TaskManager {
     } catch (error) {
       logger.error('[TaskManager] 获取看板列表失败:', error);
       return [];
+    }
+  }
+
+  /**
+   * 更新看板
+   * @param {string} boardId - 看板ID
+   * @param {Object} updates - 更新数据
+   * @param {string} updates.name - 看板名称
+   * @param {string} updates.description - 看板描述
+   * @param {Array<Object>} updates.columns - 列配置
+   * @param {Object} updates.filters - 筛选条件
+   * @returns {Promise<Object>} 更新结果
+   */
+  async updateBoard(boardId, updates) {
+    try {
+      logger.info('[TaskManager] 更新看板:', boardId);
+
+      // 检查看板是否存在
+      const board = this.db.prepare('SELECT * FROM task_boards WHERE id = ?').get(boardId);
+      if (!board) {
+        return { success: false, error: '看板不存在' };
+      }
+
+      // 构建更新SQL
+      const allowedFields = ['name', 'description', 'columns', 'filters', 'workspace_id'];
+      const updateParts = [];
+      const values = [];
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key)) {
+          updateParts.push(`${key} = ?`);
+          // JSON字段需要序列化
+          if (key === 'columns' || key === 'filters') {
+            values.push(JSON.stringify(value));
+          } else {
+            values.push(value);
+          }
+        }
+      }
+
+      if (updateParts.length === 0) {
+        return { success: true, message: '无需更新' };
+      }
+
+      // 添加更新时间
+      updateParts.push('updated_at = ?');
+      values.push(Date.now());
+      values.push(boardId);
+
+      this.db.prepare(`
+        UPDATE task_boards SET ${updateParts.join(', ')} WHERE id = ?
+      `).run(...values);
+
+      // 获取更新后的看板
+      const updatedBoard = this.db.prepare('SELECT * FROM task_boards WHERE id = ?').get(boardId);
+
+      logger.info('[TaskManager] ✓ 看板更新成功:', boardId);
+
+      return {
+        success: true,
+        board: {
+          ...updatedBoard,
+          columns: JSON.parse(updatedBoard.columns || '[]'),
+          filters: JSON.parse(updatedBoard.filters || '{}')
+        }
+      };
+    } catch (error) {
+      logger.error('[TaskManager] 更新看板失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 删除看板
+   * @param {string} boardId - 看板ID
+   * @param {Object} options - 选项
+   * @param {boolean} options.force - 强制删除（即使有任务）
+   * @param {boolean} options.archive - 改为归档而非删除
+   * @returns {Promise<Object>} 删除结果
+   */
+  async deleteBoard(boardId, options = {}) {
+    try {
+      logger.info('[TaskManager] 删除看板:', boardId);
+
+      // 检查看板是否存在
+      const board = this.db.prepare('SELECT * FROM task_boards WHERE id = ?').get(boardId);
+      if (!board) {
+        return { success: false, error: '看板不存在' };
+      }
+
+      // 检查是否有关联任务
+      const taskCount = this.db.prepare(`
+        SELECT COUNT(*) as count FROM tasks WHERE board_id = ?
+      `).get(boardId);
+
+      if (taskCount?.count > 0 && !options.force) {
+        if (options.archive) {
+          // 归档看板
+          this.db.prepare(`
+            UPDATE task_boards SET is_archived = 1, updated_at = ? WHERE id = ?
+          `).run(Date.now(), boardId);
+
+          logger.info('[TaskManager] ✓ 看板已归档:', boardId);
+          return {
+            success: true,
+            archived: true,
+            taskCount: taskCount.count,
+            message: `看板已归档，包含 ${taskCount.count} 个任务`
+          };
+        }
+
+        return {
+          success: false,
+          error: 'BOARD_HAS_TASKS',
+          taskCount: taskCount.count,
+          message: `看板包含 ${taskCount.count} 个任务，请使用强制删除或归档`
+        };
+      }
+
+      // 如果强制删除，先将任务的 board_id 设为 null
+      if (taskCount?.count > 0 && options.force) {
+        this.db.prepare(`
+          UPDATE tasks SET board_id = NULL, updated_at = ? WHERE board_id = ?
+        `).run(Date.now(), boardId);
+        logger.info(`[TaskManager] 已解除 ${taskCount.count} 个任务与看板的关联`);
+      }
+
+      // 删除看板
+      this.db.prepare('DELETE FROM task_boards WHERE id = ?').run(boardId);
+
+      logger.info('[TaskManager] ✓ 看板删除成功:', boardId);
+
+      return {
+        success: true,
+        deletedTaskLinks: taskCount?.count || 0
+      };
+    } catch (error) {
+      logger.error('[TaskManager] 删除看板失败:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * 获取单个看板详情
+   * @param {string} boardId - 看板ID
+   * @returns {Promise<Object>} 看板详情
+   */
+  async getBoard(boardId) {
+    try {
+      const board = this.db.prepare('SELECT * FROM task_boards WHERE id = ?').get(boardId);
+
+      if (!board) {
+        return null;
+      }
+
+      // 获取看板下的任务统计
+      const taskStats = this.db.prepare(`
+        SELECT
+          status,
+          COUNT(*) as count
+        FROM tasks
+        WHERE board_id = ?
+        GROUP BY status
+      `).all(boardId);
+
+      const stats = {
+        total: 0,
+        pending: 0,
+        in_progress: 0,
+        completed: 0,
+        cancelled: 0
+      };
+
+      taskStats.forEach(s => {
+        stats[s.status] = s.count;
+        stats.total += s.count;
+      });
+
+      return {
+        ...board,
+        columns: JSON.parse(board.columns || '[]'),
+        filters: JSON.parse(board.filters || '{}'),
+        taskStats: stats
+      };
+    } catch (error) {
+      logger.error('[TaskManager] 获取看板详情失败:', error);
+      return null;
     }
   }
 }

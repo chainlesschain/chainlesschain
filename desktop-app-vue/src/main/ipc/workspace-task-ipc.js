@@ -5,7 +5,7 @@
  * 注册所有工作区和任务相关的IPC接口（22个）
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -502,8 +502,14 @@ function registerWorkspaceTaskIPC(app) {
    */
   ipcMain.handle('tasks:board:update', async (event, { boardId, updates }) => {
     try {
-      // TODO: 实现看板更新逻辑
-      return { success: false, error: '功能开发中' };
+      if (!app.taskManager) {
+        return { success: false, error: '任务管理器未初始化' };
+      }
+
+      logger.info(`[IPC] 更新任务看板: ${boardId}`);
+      const result = await app.taskManager.updateBoard(boardId, updates);
+
+      return result;
     } catch (error) {
       logger.error('[IPC] 更新任务看板失败:', error);
       return { success: false, error: error.message };
@@ -513,12 +519,40 @@ function registerWorkspaceTaskIPC(app) {
   /**
    * 删除任务看板
    */
-  ipcMain.handle('tasks:board:delete', async (event, { boardId }) => {
+  ipcMain.handle('tasks:board:delete', async (event, { boardId, options = {} }) => {
     try {
-      // TODO: 实现看板删除逻辑
-      return { success: false, error: '功能开发中' };
+      if (!app.taskManager) {
+        return { success: false, error: '任务管理器未初始化' };
+      }
+
+      logger.info(`[IPC] 删除任务看板: ${boardId}, options:`, options);
+      const result = await app.taskManager.deleteBoard(boardId, options);
+
+      return result;
     } catch (error) {
       logger.error('[IPC] 删除任务看板失败:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 获取任务看板详情
+   */
+  ipcMain.handle('tasks:board:get', async (event, { boardId }) => {
+    try {
+      if (!app.taskManager) {
+        return { success: false, error: '任务管理器未初始化' };
+      }
+
+      const board = await app.taskManager.getBoard(boardId);
+
+      if (!board) {
+        return { success: false, error: '看板不存在' };
+      }
+
+      return { success: true, board };
+    } catch (error) {
+      logger.error('[IPC] 获取任务看板详情失败:', error);
       return { success: false, error: error.message };
     }
   });

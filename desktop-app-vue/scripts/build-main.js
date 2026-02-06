@@ -60,8 +60,13 @@ async function copyDir(src, dest) {
         // 回退到直接复制
         fs.copyFileSync(srcPath, destPath);
       }
+    } else if (entry.name.endsWith('.js')) {
+      // 开发环境的JS文件：使用Buffer确保UTF-8编码
+      const buffer = fs.readFileSync(srcPath);
+      const code = buffer.toString('utf8');
+      fs.writeFileSync(destPath, code, { encoding: 'utf8' });
     } else {
-      // 开发环境或非JS文件：直接复制
+      // 非JS文件：直接复制
       fs.copyFileSync(srcPath, destPath);
     }
   }
