@@ -210,8 +210,8 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, computed, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, h } from 'vue';
+import { message, Modal } from 'ant-design-vue';
 import {
   HistoryOutlined,
   ReloadOutlined,
@@ -412,8 +412,67 @@ const handleTableChange = (pag, filters, sorter) => {
 
 // 查看详情
 const handleViewDetail = (transaction) => {
-  // TODO: 打开交易详情
-  message.info('交易详情功能即将开放');
+  // 打开交易详情模态框
+  Modal.info({
+    title: '交易详情',
+    width: 600,
+    content: h('div', { style: 'max-height: 400px; overflow-y: auto;' }, [
+      h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '交易ID: '),
+        h('span', transaction.id)
+      ]),
+      h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '订单ID: '),
+        h('span', transaction.order_id || '-')
+      ]),
+      h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '订单标题: '),
+        h('span', transaction.order_title || '-')
+      ]),
+      h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '金额: '),
+        h('span', `${transaction.amount} ${transaction.currency || 'CNY'}`)
+      ]),
+      h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '状态: '),
+        h('span', getStatusText(transaction.status))
+      ]),
+      h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '买家DID: '),
+        h('span', { style: 'word-break: break-all;' }, transaction.buyer_did)
+      ]),
+      h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '卖家DID: '),
+        h('span', { style: 'word-break: break-all;' }, transaction.seller_did)
+      ]),
+      h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '创建时间: '),
+        h('span', new Date(transaction.created_at).toLocaleString())
+      ]),
+      transaction.completed_at && h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '完成时间: '),
+        h('span', new Date(transaction.completed_at).toLocaleString())
+      ]),
+      transaction.description && h('div', { style: 'margin-bottom: 12px;' }, [
+        h('strong', '描述: '),
+        h('span', transaction.description)
+      ])
+    ]),
+    okText: '关闭'
+  });
+};
+
+// 获取状态文本
+const getStatusText = (status) => {
+  const statusMap = {
+    pending: '待处理',
+    escrowed: '托管中',
+    completed: '已完成',
+    refunded: '已退款',
+    cancelled: '已取消',
+    disputed: '争议中'
+  };
+  return statusMap[status] || status;
 };
 
 // 确认收货

@@ -3,8 +3,10 @@
  * 提供一致的错误处理、日志记录和用户反馈
  */
 
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 import { message, notification } from "ant-design-vue";
+
+// ==================== 类型定义 ====================
 
 /**
  * 错误类型枚举
@@ -19,7 +21,9 @@ export const ErrorType = {
   IPC: "ipc",
   SERIALIZATION: "serialization",
   UNKNOWN: "unknown",
-};
+} as const;
+
+export type ErrorTypeValue = typeof ErrorType[keyof typeof ErrorType];
 
 /**
  * 错误级别
@@ -29,12 +33,40 @@ export const ErrorLevel = {
   WARNING: "warning",
   ERROR: "error",
   CRITICAL: "critical",
-};
+} as const;
+
+export type ErrorLevelValue = typeof ErrorLevel[keyof typeof ErrorLevel];
+
+/**
+ * 错误处理选项
+ */
+export interface ErrorHandleOptions {
+  showMessage?: boolean;
+  showNotification?: boolean;
+  logToConsole?: boolean;
+  logToFile?: boolean;
+  context?: Record<string, any> | null;
+}
+
+/**
+ * 错误监听器
+ */
+export type ErrorListener = (error: AppError) => void;
+
+/**
+ * 重试选项
+ */
+export interface RetryOptions {
+  maxRetries?: number;
+  retryDelay?: number;
+  onRetry?: ((error: Error, attempt: number) => void) | null;
+  shouldRetry?: (error: Error, attempt: number) => boolean;
+}
 
 /**
  * 错误消息映射
  */
-const ERROR_MESSAGES = {
+const ERROR_MESSAGES: Record<ErrorTypeValue, string> = {
   [ErrorType.NETWORK]: "网络连接失败，请检查网络设置",
   [ErrorType.DATABASE]: "数据库操作失败，请稍后重试",
   [ErrorType.VALIDATION]: "输入数据验证失败",
@@ -46,15 +78,22 @@ const ERROR_MESSAGES = {
   [ErrorType.UNKNOWN]: "发生未知错误，请联系技术支持",
 };
 
+// ==================== 应用错误类 ====================
+
 /**
  * 应用错误类
  */
 export class AppError extends Error {
+  public type: ErrorTypeValue;
+  public level: ErrorLevelValue;
+  public details: Record<string, any> | null;
+  public timestamp: string;
+
   constructor(
-    message,
-    type = ErrorType.UNKNOWN,
-    level = ErrorLevel.ERROR,
-    details = null,
+    message: string,
+    type: ErrorTypeValue = ErrorType.UNKNOWN,
+    level: ErrorLevelValue = ErrorLevel.ERROR,
+    details: Record<string, any> | null = null,
   ) {
     super(message);
     this.name = "AppError";
@@ -64,7 +103,7 @@ export class AppError extends Error {
     this.timestamp = new Date().toISOString();
   }
 
-  toJSON() {
+  toJSON(): Record<string, any> {
     return {
       name: this.name,
       message: this.message,
@@ -77,10 +116,16 @@ export class AppError extends Error {
   }
 }
 
+// ==================== 错误处理器类 ====================
+
 /**
  * 错误处理器类
  */
 class ErrorHandler {
+  private errorLog: AppError[];
+  private maxLogSize: number;
+  private listeners: ErrorListener[];
+
   constructor() {
     this.errorLog = [];
     this.maxLogSize = 100;
@@ -89,10 +134,8 @@ class ErrorHandler {
 
   /**
    * 处理错误
-   * @param {Error|AppError} error - 错误对象
-   * @param {Object} options - 处理选项
    */
-  handle(error, options = {}) {
+  handle(error: Error | AppError, options: ErrorHandleOptions = {}): AppError {
     const {
       showMessage = true,
       showNotification = false,
@@ -125,14 +168,14 @@ class ErrorHandler {
   /**
    * 标准化错误对象
    */
-  normalizeError(error, context = null) {
+  normalizeError(error: Error | AppError, context: Record<string, any> | null = null): AppError {
     if (error instanceof AppError) {
       return error;
     }
 
     // 根据错误消息推断错误类型
-    let type = ErrorType.UNKNOWN;
-    let level = ErrorLevel.ERROR;
+    let type: ErrorTypeValue = ErrorType.UNKNOWN;
+    let level: ErrorLevelValue = ErrorLevel.ERROR;
 
     const errorMessage = error.message || String(error);
 
@@ -191,7 +234,7 @@ class ErrorHandler {
   /**
    * 记录错误
    */
-  logError(error, logToConsole = true, logToFile = false) {
+  logError(error: AppError, logToConsole: boolean = true, logToFile: boolean = false): void {
     // 添加到内存日志
     this.errorLog.push(error);
     if (this.errorLog.length > this.maxLogSize) {
@@ -206,11 +249,11 @@ class ErrorHandler {
     }
 
     // 文件日志（通过 IPC 发送到主进程）
-    if (logToFile && window.electronAPI) {
-      window.electronAPI.logError(error.toJSON()).catch((err) => {
+    if (logToFile && (window as any).electronAPI) {
+      (window as any).electronAPI.logError(error.toJSON()).catch((err: Error) => {
         // IPC 未就绪时静默处理
         if (!err.message?.includes("No handler registered")) {
-          logger.error("[ErrorHandler] Failed to log to file:", err);
+          logger.error("[ErrorHandler] Failed to log to file:", err as any);
         }
       });
     }
@@ -219,7 +262,7 @@ class ErrorHandler {
   /**
    * 显示错误消息（Toast）
    */
-  showErrorMessage(error) {
+  showErrorMessage(error: AppError): void {
     const messageText =
       error.message ||
       ERROR_MESSAGES[error.type] ||
@@ -244,7 +287,7 @@ class ErrorHandler {
   /**
    * 显示错误通知（Notification）
    */
-  showErrorNotification(error) {
+  showErrorNotification(error: AppError): void {
     const messageText =
       error.message ||
       ERROR_MESSAGES[error.type] ||
@@ -275,8 +318,8 @@ class ErrorHandler {
   /**
    * 获取错误标题
    */
-  getErrorTitle(error) {
-    const titles = {
+  getErrorTitle(error: AppError): string {
+    const titles: Record<ErrorTypeValue, string> = {
       [ErrorType.NETWORK]: "网络错误",
       [ErrorType.DATABASE]: "数据库错误",
       [ErrorType.VALIDATION]: "验证错误",
@@ -294,14 +337,14 @@ class ErrorHandler {
   /**
    * 添加错误监听器
    */
-  addListener(listener) {
+  addListener(listener: ErrorListener): void {
     this.listeners.push(listener);
   }
 
   /**
    * 移除错误监听器
    */
-  removeListener(listener) {
+  removeListener(listener: ErrorListener): void {
     const index = this.listeners.indexOf(listener);
     if (index > -1) {
       this.listeners.splice(index, 1);
@@ -311,12 +354,12 @@ class ErrorHandler {
   /**
    * 通知所有监听器
    */
-  notifyListeners(error) {
+  private notifyListeners(error: AppError): void {
     this.listeners.forEach((listener) => {
       try {
         listener(error);
       } catch (err) {
-        logger.error("[ErrorHandler] Listener error:", err);
+        logger.error("[ErrorHandler] Listener error:", err as any);
       }
     });
   }
@@ -324,21 +367,21 @@ class ErrorHandler {
   /**
    * 获取错误日志
    */
-  getErrorLog() {
+  getErrorLog(): AppError[] {
     return [...this.errorLog];
   }
 
   /**
    * 清空错误日志
    */
-  clearErrorLog() {
+  clearErrorLog(): void {
     this.errorLog = [];
   }
 
   /**
    * 导出错误日志
    */
-  exportErrorLog() {
+  exportErrorLog(): string {
     return JSON.stringify(this.errorLog, null, 2);
   }
 }
@@ -346,10 +389,12 @@ class ErrorHandler {
 // 创建全局错误处理器实例
 const errorHandler = new ErrorHandler();
 
+// ==================== 便捷函数 ====================
+
 /**
  * 便捷函数：处理错误
  */
-export function handleError(error, options = {}) {
+export function handleError(error: Error | AppError, options: ErrorHandleOptions = {}): AppError {
   return errorHandler.handle(error, options);
 }
 
@@ -357,11 +402,11 @@ export function handleError(error, options = {}) {
  * 便捷函数：创建应用错误
  */
 export function createError(
-  message,
-  type = ErrorType.UNKNOWN,
-  level = ErrorLevel.ERROR,
-  details = null,
-) {
+  message: string,
+  type: ErrorTypeValue = ErrorType.UNKNOWN,
+  level: ErrorLevelValue = ErrorLevel.ERROR,
+  details: Record<string, any> | null = null,
+): AppError {
   return new AppError(message, type, level, details);
 }
 
@@ -369,12 +414,15 @@ export function createError(
  * 异步函数错误包装器
  * 自动捕获并处理异步函数中的错误
  */
-export function withErrorHandling(fn, options = {}) {
-  return async function (...args) {
+export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
+  fn: T,
+  options: ErrorHandleOptions = {},
+): T {
+  return (async function (...args: any[]) {
     try {
       return await fn.apply(this, args);
     } catch (error) {
-      handleError(error, {
+      handleError(error as Error, {
         context: {
           function: fn.name,
           arguments: args,
@@ -383,13 +431,13 @@ export function withErrorHandling(fn, options = {}) {
       });
       throw error;
     }
-  };
+  }) as T;
 }
 
 /**
  * Promise 错误处理
  */
-export function handlePromise(promise, options = {}) {
+export function handlePromise<T>(promise: Promise<T>, options: ErrorHandleOptions = {}): Promise<T> {
   return promise.catch((error) => {
     handleError(error, options);
     throw error;
@@ -400,7 +448,10 @@ export function handlePromise(promise, options = {}) {
  * 重试包装器
  * 自动重试失败的操作
  */
-export async function withRetry(fn, options = {}) {
+export async function withRetry<T>(
+  fn: () => Promise<T>,
+  options: RetryOptions = {},
+): Promise<T> {
   const {
     maxRetries = 3,
     retryDelay = 1000,
@@ -408,17 +459,17 @@ export async function withRetry(fn, options = {}) {
     shouldRetry = () => true,
   } = options;
 
-  let lastError;
+  let lastError: Error | undefined;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (error) {
-      lastError = error;
+      lastError = error as Error;
 
-      if (attempt < maxRetries && shouldRetry(error, attempt)) {
+      if (attempt < maxRetries && shouldRetry(lastError, attempt)) {
         if (onRetry) {
-          onRetry(error, attempt);
+          onRetry(lastError, attempt);
         }
 
         // 等待后重试
@@ -438,14 +489,14 @@ export async function withRetry(fn, options = {}) {
 /**
  * 超时包装器
  */
-export function withTimeout(
-  promise,
-  timeoutMs = 30000,
-  timeoutMessage = "操作超时",
-) {
+export function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number = 30000,
+  timeoutMessage: string = "操作超时",
+): Promise<T> {
   return Promise.race([
     promise,
-    new Promise((_, reject) => {
+    new Promise<T>((_, reject) => {
       setTimeout(() => {
         reject(createError(timeoutMessage, ErrorType.TIMEOUT));
       }, timeoutMs);
@@ -457,7 +508,7 @@ export function withTimeout(
  * 检查是否为 IPC 未就绪错误
  * 这类错误通常在应用启动时发生，可以静默重试
  */
-export function isIPCNotReadyError(error) {
+export function isIPCNotReadyError(error: Error | null | undefined): boolean {
   const message = error?.message || String(error);
   return (
     message.includes("No handler registered") ||
@@ -470,7 +521,7 @@ export function isIPCNotReadyError(error) {
  * 检查是否为序列化错误
  * 这类错误通常是因为尝试通过 IPC 传输不可序列化的对象
  */
-export function isSerializationError(error) {
+export function isSerializationError(error: Error | null | undefined): boolean {
   const message = error?.message || String(error);
   return (
     message.includes("could not be cloned") ||
@@ -483,14 +534,17 @@ export function isSerializationError(error) {
  * IPC 调用包装器
  * 自动处理 IPC 未就绪的情况，支持重试
  */
-export async function safeIPCCall(ipcFn, options = {}) {
+export async function safeIPCCall<T>(
+  ipcFn: () => Promise<T>,
+  options: { maxRetries?: number; retryDelay?: number; silent?: boolean } = {},
+): Promise<T | undefined> {
   const { maxRetries = 3, retryDelay = 500, silent = true } = options;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await ipcFn();
     } catch (error) {
-      if (isIPCNotReadyError(error) && attempt < maxRetries - 1) {
+      if (isIPCNotReadyError(error as Error) && attempt < maxRetries - 1) {
         if (!silent) {
           logger.warn(`[safeIPCCall] IPC 未就绪，第 ${attempt + 1} 次重试...`);
         }

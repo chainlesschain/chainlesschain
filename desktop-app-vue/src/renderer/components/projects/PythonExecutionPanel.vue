@@ -247,6 +247,7 @@ const emit = defineEmits(['execution-complete', 'execution-error']);
 
 // 执行状态
 const executing = ref(false);
+const currentExecutionId = ref(null); // 当前执行的进程ID
 const checking = ref(false);
 const activeTab = ref('stdout');
 
@@ -318,8 +319,11 @@ const handleExecute = async () => {
     }
 
     // 步骤2: 执行代码
+    // 生成执行ID用于追踪和停止
+    currentExecutionId.value = `exec_${Date.now()}`;
     const result = await window.api.code.executePython(props.code, {
       timeout: 30000,
+      executionId: currentExecutionId.value,
     });
 
     // 步骤3: 收集输出
@@ -408,11 +412,40 @@ const handleForceExecute = async () => {
 /**
  * 停止执行
  */
-const handleStop = () => {
-  // TODO: 实现停止逻辑
-  executing.value = false;
-  lastExecutionStatus.value = '已停止';
-  message.info('停止执行');
+const handleStop = async () => {
+  if (!executing.value) {
+    return;
+  }
+
+  try {
+    // 调用停止执行的 API
+    if (currentExecutionId.value && window.api?.code?.stopExecution) {
+      await window.api.code.stopExecution(currentExecutionId.value);
+    }
+
+    executing.value = false;
+    currentExecutionId.value = null;
+    lastExecutionStatus.value = '已停止';
+    stderr.value = '执行已被用户中断';
+
+    // 更新步骤状态
+    if (props.showSteps) {
+      steps.value.forEach(step => {
+        if (step.status === 'running') {
+          step.status = 'error';
+        }
+      });
+    }
+
+    message.warning('执行已停止');
+  } catch (error) {
+    logger.error('停止执行失败:', error);
+    // 即使API调用失败，也重置状态
+    executing.value = false;
+    currentExecutionId.value = null;
+    lastExecutionStatus.value = '已停止';
+    message.info('执行已停止');
+  }
 };
 
 /**

@@ -1,12 +1,19 @@
-import { logger, createLogger } from '@/utils/logger';
+/**
+ * IPC 通信封装
+ * 提供带重试机制的 IPC 调用
+ */
+
+import { logger } from '@/utils/logger';
+import type { ElectronAPI } from '@renderer/types/electron.d';
+import type { IPCRetryConfig, IPCRetryOptions } from '@renderer/types/ipc.d';
 
 // IPC通信封装
-const api = window.electronAPI;
+const api = (window as any).electronAPI as ElectronAPI;
 
 /**
  * 需要重试逻辑的 IPC 通道（在启动时可能未就绪）
  */
-const STARTUP_RETRY_CHANNELS = [
+const STARTUP_RETRY_CHANNELS: string[] = [
   'project:get-all',
   'template:getAll',
   'notification:get-all',
@@ -17,7 +24,7 @@ const STARTUP_RETRY_CHANNELS = [
 /**
  * IPC 重试配置
  */
-const RETRY_CONFIG = {
+const RETRY_CONFIG: IPCRetryConfig = {
   maxRetries: 5,          // 最大重试次数
   initialDelay: 100,      // 初始延迟 (毫秒)
   maxDelay: 2000,         // 最大延迟 (毫秒)
@@ -32,8 +39,8 @@ const RETRY_CONFIG = {
 /**
  * 检查错误是否可重试
  */
-function isRetryableError(error) {
-  if (!error) {return false;}
+function isRetryableError(error: Error | null | undefined): boolean {
+  if (!error) { return false; }
   const errorMessage = error.message || String(error);
   return RETRY_CONFIG.retryableErrors.some(pattern =>
     errorMessage.includes(pattern)
@@ -43,28 +50,24 @@ function isRetryableError(error) {
 /**
  * 延迟函数
  */
-function delay(ms) {
+function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
  * IPC 调用重试包装器
- *
- * @param {Function} ipcCall - IPC 调用函数
- * @param {Object} options - 重试选项
- * @param {number} options.maxRetries - 最大重试次数
- * @param {number} options.initialDelay - 初始延迟
- * @param {boolean} options.silentErrors - 是否静默错误（不在控制台输出）
- * @returns {Promise} IPC 调用结果
  */
-export async function ipcWithRetry(ipcCall, options = {}) {
+export async function ipcWithRetry<T>(
+  ipcCall: () => Promise<T>,
+  options: IPCRetryOptions = {}
+): Promise<T> {
   const {
     maxRetries = RETRY_CONFIG.maxRetries,
     initialDelay = RETRY_CONFIG.initialDelay,
     silentErrors = false,
   } = options;
 
-  let lastError;
+  let lastError: Error | undefined;
   let currentDelay = initialDelay;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -88,14 +91,14 @@ export async function ipcWithRetry(ipcCall, options = {}) {
 
       return result;
     } catch (error) {
-      lastError = error;
+      lastError = error as Error;
 
       // 检查是否可重试
-      if (!isRetryableError(error)) {
+      if (!isRetryableError(lastError)) {
         if (!silentErrors) {
-          logger.warn('[IPC Retry] 不可重试的错误:', error.message);
+          logger.warn('[IPC Retry] 不可重试的错误:', lastError.message);
         }
-        throw error;
+        throw lastError;
       }
 
       // 如果已达到最大重试次数，抛出错误
@@ -108,24 +111,31 @@ export async function ipcWithRetry(ipcCall, options = {}) {
 
       // 记录重试信息
       if (!silentErrors) {
-        logger.warn(`[IPC Retry] IPC 调用失败 (尝试 ${attempt + 1}/${maxRetries + 1}):`, error.message);
+        logger.warn(`[IPC Retry] IPC 调用失败 (尝试 ${attempt + 1}/${maxRetries + 1}):`, lastError.message);
       }
     }
   }
 
-  throw lastError;
+  throw lastError!;
 }
 
 /**
  * 创建带重试的 IPC 调用包装器
- *
- * @param {Object} ipcObject - IPC 对象 (如 window.electron.ipcRenderer)
- * @param {Object} options - 重试选项
- * @returns {Object} 包装后的 IPC 对象
  */
-export function createRetryableIPC(ipcObject, options = {}) {
+export interface RetryableIPC {
+  invoke<T = any>(channel: string, ...args: any[]): Promise<T>;
+  on?(channel: string, listener: (...args: any[]) => void): void;
+  once?(channel: string, listener: (...args: any[]) => void): void;
+  removeListener?(channel: string, listener: (...args: any[]) => void): void;
+  removeAllListeners?(channel: string): void;
+}
+
+export function createRetryableIPC(
+  ipcObject: RetryableIPC,
+  options: IPCRetryOptions = {}
+): RetryableIPC {
   return {
-    invoke: (channel, ...args) => ipcWithRetry(
+    invoke: <T>(channel: string, ...args: any[]) => ipcWithRetry<T>(
       () => ipcObject.invoke(channel, ...args),
       options
     ),
@@ -137,39 +147,53 @@ export function createRetryableIPC(ipcObject, options = {}) {
   };
 }
 
-// U盾API
+// ==================== API 模块 ====================
+
+/**
+ * U盾API
+ */
 export const ukeyAPI = {
   detect: () => api.ukey.detect(),
-  verifyPIN: (pin) => api.ukey.verifyPIN(pin),
+  verifyPIN: (pin: string) => api.ukey.verifyPIN(pin),
 };
 
-// 认证API
+/**
+ * 认证API
+ */
 export const authAPI = {
-  verifyPassword: (username, password) => api.auth.verifyPassword(username, password),
+  verifyPassword: (username: string, password: string) => api.auth.verifyPassword(username, password),
 };
 
-// 数据库API
+/**
+ * 数据库API
+ */
 export const dbAPI = {
   getKnowledgeItems: () => api.db.getKnowledgeItems(),
-  getKnowledgeItemById: (id) => api.db.getKnowledgeItemById(id),
-  addKnowledgeItem: (item) => api.db.addKnowledgeItem(item),
-  updateKnowledgeItem: (id, updates) => api.db.updateKnowledgeItem(id, updates),
-  deleteKnowledgeItem: (id) => api.db.deleteKnowledgeItem(id),
-  searchKnowledgeItems: (query) => api.db.searchKnowledgeItems(query),
+  getKnowledgeItemById: (id: string) => api.db.getKnowledgeItemById(id),
+  addKnowledgeItem: (item: any) => api.db.addKnowledgeItem(item),
+  updateKnowledgeItem: (id: string, updates: any) => api.db.updateKnowledgeItem(id, updates),
+  deleteKnowledgeItem: (id: string) => api.db.deleteKnowledgeItem(id),
+  searchKnowledgeItems: (query: string) => api.db.searchKnowledgeItems(query),
 };
 
-// LLM API
+/**
+ * LLM API
+ */
 export const llmAPI = {
   checkStatus: () => api.llm.checkStatus(),
-  query: (prompt, context) => api.llm.query(prompt, context),
+  query: (prompt: string, context?: any) => api.llm.query(prompt, context),
 };
 
-// Git API
+/**
+ * Git API
+ */
 export const gitAPI = {
   status: () => api.git.status(),
 };
 
-// 系统API
+/**
+ * 系统API
+ */
 export const systemAPI = {
   getVersion: () => api.system.getVersion(),
   minimize: () => api.system.minimize(),
@@ -177,19 +201,24 @@ export const systemAPI = {
   close: () => api.system.close(),
 };
 
+// ==================== 工具函数 ====================
+
 /**
  * 为 electronAPI 的特定方法添加重试包装
  * 这样在应用启动时，如果 IPC 处理程序还未就绪，会自动重试
  */
-function wrapAPIMethodWithRetry(method, channelName) {
+function wrapAPIMethodWithRetry<T extends (...args: any[]) => Promise<any>>(
+  method: T,
+  channelName: string
+): T {
   // 如果这个通道需要启动重试
   if (STARTUP_RETRY_CHANNELS.some(channel => channelName.includes(channel))) {
-    return function(...args) {
+    return (function(...args: any[]) {
       return ipcWithRetry(
         () => method(...args),
         { silentErrors: true } // 静默错误避免控制台污染
       );
-    };
+    }) as T;
   }
   // 否则返回原方法
   return method;
@@ -198,24 +227,24 @@ function wrapAPIMethodWithRetry(method, channelName) {
 /**
  * 递归包装对象的所有方法
  */
-function wrapAPIObject(obj, pathPrefix = '') {
-  const wrapped = {};
+function wrapAPIObject<T extends Record<string, any>>(obj: T, pathPrefix: string = ''): T {
+  const wrapped = {} as T;
 
   for (const key in obj) {
-    if (!Object.prototype.hasOwnProperty.call(obj, key)) {continue;}
+    if (!Object.prototype.hasOwnProperty.call(obj, key)) { continue; }
 
     const value = obj[key];
     const currentPath = pathPrefix ? `${pathPrefix}:${key}` : key;
 
     if (typeof value === 'function') {
       // 包装函数
-      wrapped[key] = wrapAPIMethodWithRetry(value, currentPath);
+      (wrapped as any)[key] = wrapAPIMethodWithRetry(value, currentPath);
     } else if (typeof value === 'object' && value !== null) {
       // 递归包装嵌套对象
-      wrapped[key] = wrapAPIObject(value, currentPath);
+      (wrapped as any)[key] = wrapAPIObject(value, currentPath);
     } else {
       // 其他类型直接复制
-      wrapped[key] = value;
+      (wrapped as any)[key] = value;
     }
   }
 
@@ -226,4 +255,4 @@ function wrapAPIObject(obj, pathPrefix = '') {
  * 导出带重试包装的 electronAPI
  * 使用方式：import { electronAPI } from '@/utils/ipc'
  */
-export const electronAPI = wrapAPIObject(window.electronAPI);
+export const electronAPI = wrapAPIObject((window as any).electronAPI as ElectronAPI);

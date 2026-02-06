@@ -112,6 +112,20 @@ function registerPermanentMemoryIPC(permanentMemory) {
     },
   );
 
+  /**
+   * memory:update-memory
+   * 更新 MEMORY.md（完整覆盖）
+   */
+  ipcMain.handle("memory:update-memory", async (event, { content }) => {
+    try {
+      await permanentMemory.updateMemory(content);
+      return { success: true };
+    } catch (error) {
+      logger.error("[PermanentMemoryIPC] 更新 MEMORY.md 失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // ============================================
   // 统计相关
   // ============================================

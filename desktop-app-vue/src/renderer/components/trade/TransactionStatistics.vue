@@ -163,7 +163,7 @@ import { logger, createLogger } from '@/utils/logger';
 
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
-import { init } from '../../utils/echartsConfig';
+import { init, graphic } from '../../utils/echartsConfig';
 import {
   BarChartOutlined,
   ReloadOutlined,
@@ -452,7 +452,7 @@ const renderAssetsChart = (data) => {
         type: 'bar',
         data: data.map(item => item.value),
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#83bff6' },
             { offset: 0.5, color: '#188df0' },
             { offset: 1, color: '#188df0' },
@@ -460,7 +460,7 @@ const renderAssetsChart = (data) => {
         },
         emphasis: {
           itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            color: new graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: '#2378f7' },
               { offset: 0.7, color: '#2378f7' },
               { offset: 1, color: '#83bff6' },

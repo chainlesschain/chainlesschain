@@ -333,9 +333,7 @@ class OfflineMessageQueue @Inject constructor(
     private suspend fun deleteMessageFile(deviceId: String, messageId: String) = withContext(Dispatchers.IO) {
         try {
             val file = File(File(queueDir, deviceId), "$messageId.json")
-            if (file.exists()) {
-                file.delete()
-            }
+            if (file.exists()) file.delete() else Unit
         } catch (e: Exception) {
             Log.w(TAG, "Failed to delete message file: $messageId", e)
         }

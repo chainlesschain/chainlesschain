@@ -415,6 +415,39 @@ _此文件会自动更新,也可手动编辑。_
   }
 
   /**
+   * 更新 MEMORY.md 内容（完整覆盖）
+   * @param {string} content - 新的完整内容
+   * @returns {Promise<void>}
+   */
+  async updateMemory(content) {
+    if (!this.enableLongTermMemory) {
+      throw new Error("[PermanentMemoryManager] 长期记忆功能未启用");
+    }
+
+    try {
+      // 更新最后更新时间
+      const today = new Date().toISOString().split("T")[0];
+      let newContent = content;
+      if (newContent.includes("> 最后更新:")) {
+        newContent = newContent.replace(/> 最后更新: .+/, `> 最后更新: ${today}`);
+      }
+
+      await fs.writeFile(this.memoryFilePath, newContent, "utf-8");
+
+      // 清除缓存
+      this.memoryContentCache = null;
+
+      logger.info("[PermanentMemoryManager] MEMORY.md 已完整更新");
+
+      // 触发事件
+      this.emit("memory-updated", { fullUpdate: true, filePath: this.memoryFilePath });
+    } catch (error) {
+      logger.error("[PermanentMemoryManager] 更新 MEMORY.md 失败:", error);
+      throw error;
+    }
+  }
+
+  /**
    * 追加内容到指定章节
    * @param {string} content - 原始内容
    * @param {string} section - 章节名称 (如 '🧑 用户偏好')

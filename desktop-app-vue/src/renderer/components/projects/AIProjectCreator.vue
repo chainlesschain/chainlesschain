@@ -251,7 +251,7 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { useAuthStore } from '@/stores/auth';
 import { useTemplateStore } from '@/stores/template';
@@ -271,6 +271,13 @@ import {
 } from '@ant-design/icons-vue';
 import TemplateSelectionModal from './TemplateSelectionModal.vue';
 import SkillToolSelector from './SkillToolSelector.vue';
+
+const props = defineProps({
+  initialTemplate: {
+    type: Object,
+    default: null,
+  },
+});
 
 const emit = defineEmits(['create']);
 const authStore = useAuthStore();
@@ -322,6 +329,21 @@ const rules = {
   ],
   // projectType不再必填，留空时让后端AI自动识别
 };
+
+// 监听初始模板变化
+watch(() => props.initialTemplate, (newTemplate) => {
+  if (newTemplate) {
+    selectedTemplate.value = newTemplate;
+    // 填充模板信息到表单
+    if (newTemplate.prompt_template) {
+      formData.userPrompt = newTemplate.prompt_template;
+    }
+    if (newTemplate.project_type) {
+      formData.projectType = newTemplate.project_type;
+    }
+    message.info(`已加载模板：${newTemplate.display_name || newTemplate.name}`);
+  }
+}, { immediate: true });
 
 // 示例需求
 const examples = [
