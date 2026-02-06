@@ -1,41 +1,43 @@
 ﻿package com.chainlesschain.android.remote.p2p
 
+import com.chainlesschain.android.remote.crypto.RemoteDIDManager
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * DID Manager Interface
  *
- * Defines operations for DID (Decentralized Identifier) management
+ * Defines operations for DID (Decentralized Identifier) management.
  */
 interface DIDManager {
     suspend fun getCurrentDID(): String
     suspend fun sign(data: String): String
 }
 
-/**
- * DID Manager Stub Implementation
- *
- * Temporary stub to allow compilation without feature-p2p module.
- * This class provides minimal functionality for remote control features.
- */
 @Singleton
-class DIDManagerImpl @Inject constructor() : DIDManager {
+class DIDManagerImpl @Inject constructor(
+    private val remoteDIDManager: RemoteDIDManager
+) : DIDManager {
 
-    /**
-     * Returns a stub DID string
-     * Real implementation should retrieve actual DID from core-did module
-     */
     override suspend fun getCurrentDID(): String {
-        return "did:stub:temporary"
+        ensureInitialized()
+        return remoteDIDManager.getCurrentDID()
     }
 
-    /**
-     * Returns a stub signature
-     * Real implementation should use actual cryptographic signing
-     */
     override suspend fun sign(data: String): String {
-        return "stub-signature-$data"
+        ensureInitialized()
+        return remoteDIDManager.sign(data)
+    }
+
+    private suspend fun ensureInitialized() {
+        if (remoteDIDManager.isInitialized()) {
+            return
+        }
+
+        val initResult = remoteDIDManager.initialize()
+        if (initResult.isFailure) {
+            throw initResult.exceptionOrNull()
+                ?: IllegalStateException("Failed to initialize RemoteDIDManager")
+        }
     }
 }
-
