@@ -110,6 +110,9 @@ class DataChannelTransport @Inject constructor(
     private val sendQueue = java.util.concurrent.LinkedBlockingDeque<QueuedMessage>(MAX_QUEUE_SIZE)
     private var sendJob: Job? = null
 
+    // 分片清理任务
+    private var fragmentCleanupJob: Job? = null
+
     init {
         // 监听连接收到的消息
         scope.launch {
@@ -117,6 +120,9 @@ class DataChannelTransport @Inject constructor(
                 handleReceivedMessage(message)
             }
         }
+
+        // 启动分片清理任务
+        startFragmentCleanup()
     }
 
     override suspend fun send(message: P2PMessage): Boolean {
