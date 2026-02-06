@@ -582,24 +582,27 @@ class SmartContractEngine extends EventEmitter {
         }
         return false;
 
-      case ConditionType.DELIVERY_CONFIRMED:
+      case ConditionType.DELIVERY_CONFIRMED: {
         // 检查是否确认交付
         const deliveryEvent = db.prepare(
           'SELECT * FROM contract_events WHERE contract_id = ? AND event_type = ? LIMIT 1'
         ).get(contractId, 'delivery_confirmed');
         return !!deliveryEvent;
+      }
 
-      case ConditionType.TIME_ELAPSED:
+      case ConditionType.TIME_ELAPSED: {
         // 检查时间是否到期
         const targetTime = conditionData.timestamp;
         return Date.now() >= targetTime;
+      }
 
-      case ConditionType.APPROVAL_COUNT:
+      case ConditionType.APPROVAL_COUNT: {
         // 检查批准数量
         const approvalCount = db.prepare(
           'SELECT COUNT(*) as count FROM contract_events WHERE contract_id = ? AND event_type = ?'
         ).get(contractId, 'approved');
         return approvalCount.count >= conditionData.requiredCount;
+      }
 
       case ConditionType.CUSTOM_LOGIC:
         // 自定义逻辑（待扩展）
@@ -720,7 +723,7 @@ class SmartContractEngine extends EventEmitter {
         }
         break;
 
-      case ContractType.SKILL_EXCHANGE:
+      case ContractType.SKILL_EXCHANGE: {
         // 技能交换：标记双方完成状态
         const db = this.database.db;
         const metadata = contract.metadata ? JSON.parse(contract.metadata) : {};
@@ -764,6 +767,7 @@ class SmartContractEngine extends EventEmitter {
           await this.escrowManager.refundEscrow(contract.escrow_id, '技能交换完成');
         }
         break;
+      }
 
       default:
         break;
@@ -1213,7 +1217,7 @@ class SmartContractEngine extends EventEmitter {
 
     // 根据合约类型部署不同的智能合约
     switch (contractType) {
-      case ContractType.SIMPLE_TRADE:
+      case ContractType.SIMPLE_TRADE: {
         // 部署托管合约 (EscrowContract)
         logger.info('[ContractEngine] 部署托管合约 (EscrowContract)');
         const escrowResult = await this.blockchainAdapter.deployEscrowContract(walletId, password);
@@ -1222,8 +1226,9 @@ class SmartContractEngine extends EventEmitter {
         contractName = `Escrow: ${title}`;
         abiJson = JSON.stringify(escrowResult.abi);
         break;
+      }
 
-      case ContractType.SUBSCRIPTION:
+      case ContractType.SUBSCRIPTION: {
         // 部署订阅合约 (SubscriptionContract)
         logger.info('[ContractEngine] 部署订阅合约 (SubscriptionContract)');
         const subResult = await this.blockchainAdapter.deploySubscriptionContract(walletId, password);
@@ -1232,8 +1237,9 @@ class SmartContractEngine extends EventEmitter {
         contractName = `Subscription: ${title}`;
         abiJson = JSON.stringify(subResult.abi);
         break;
+      }
 
-      case ContractType.BOUNTY:
+      case ContractType.BOUNTY: {
         // 部署悬赏合约 (BountyContract)
         logger.info('[ContractEngine] 部署悬赏合约 (BountyContract)');
         const bountyResult = await this.blockchainAdapter.deployBountyContract(walletId, password);
@@ -1242,9 +1248,10 @@ class SmartContractEngine extends EventEmitter {
         contractName = `Bounty: ${title}`;
         abiJson = JSON.stringify(bountyResult.abi);
         break;
+      }
 
       case ContractType.SKILL_EXCHANGE:
-      case ContractType.CUSTOM:
+      case ContractType.CUSTOM: {
         // 技能交换和自定义合约使用通用托管合约
         logger.info('[ContractEngine] 部署通用托管合约');
         const genericResult = await this.blockchainAdapter.deployEscrowContract(walletId, password);
@@ -1253,6 +1260,7 @@ class SmartContractEngine extends EventEmitter {
         contractName = `${contractType}: ${title}`;
         abiJson = JSON.stringify(genericResult.abi);
         break;
+      }
 
       default:
         throw new Error(`不支持的合约类型: ${contractType}`);

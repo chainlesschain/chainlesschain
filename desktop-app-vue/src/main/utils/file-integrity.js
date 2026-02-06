@@ -231,7 +231,7 @@ class FileIntegrityChecker extends EventEmitter {
           }
           break;
 
-        case 'json':
+        case 'json': {
           // JSON 文件解析检查
           const jsonContent = await fs.readFile(filePath, 'utf8');
           try {
@@ -241,6 +241,7 @@ class FileIntegrityChecker extends EventEmitter {
             result.issues.push('JSON 格式无效');
           }
           break;
+        }
 
         case 'png':
         case 'jpg':

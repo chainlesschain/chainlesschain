@@ -427,11 +427,12 @@ class BlockchainEventListener extends EventEmitter {
     logger.info(`[EventListener] 托管事件: ${eventName}`, eventData.args);
 
     switch (eventName) {
-      case 'EscrowCreated':
+      case 'EscrowCreated': {
         // 托管创建事件
         const [escrowId, buyer, seller, amount] = eventData.args;
         logger.info(`[EventListener] 托管已创建: ${escrowId}, 买家: ${buyer}, 卖家: ${seller}, 金额: ${amount.toString()}`);
         break;
+      }
 
       case 'EscrowCompleted':
         // 托管完成事件
@@ -457,11 +458,12 @@ class BlockchainEventListener extends EventEmitter {
     logger.info(`[EventListener] 订阅事件: ${eventName}`, eventData.args);
 
     switch (eventName) {
-      case 'Subscribed':
+      case 'Subscribed': {
         // 订阅事件
         const [planId, subscriber, endTime] = eventData.args;
         logger.info(`[EventListener] 新订阅: 计划 ${planId}, 订阅者: ${subscriber}, 结束时间: ${endTime.toString()}`);
         break;
+      }
 
       case 'SubscriptionRenewed':
         // 续订事件

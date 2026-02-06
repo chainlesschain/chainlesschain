@@ -724,10 +724,11 @@ class MemoryHierarchy extends EventEmitter {
       case 'working':
         return this.working.add(memory);
 
-      case 'recall':
+      case 'recall': {
         const id = memory.id || this.archival._generateId();
         this.recall.store(id, memory);
         return id;
+      }
 
       case 'archival':
         return await this.archival.store(memory);

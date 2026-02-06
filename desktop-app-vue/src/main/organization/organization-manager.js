@@ -1557,7 +1557,7 @@ class OrganizationManager {
         );
         break;
 
-      case 'add_member':
+      case 'add_member': {
         // 检查成员是否已存在
         const existingMember = this.db.prepare(
           `SELECT id FROM organization_members WHERE org_id = ? AND member_did = ?`
@@ -1571,6 +1571,7 @@ class OrganizationManager {
           );
         }
         break;
+      }
 
       default:
         logger.warn('[OrganizationManager] 未知的变更操作:', action);

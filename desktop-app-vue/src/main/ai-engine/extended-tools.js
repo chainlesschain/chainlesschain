@@ -23,9 +23,10 @@ class ExtendedTools {
           const { json, action, indent = 2 } = params;
 
           switch (action) {
-            case 'parse':
+            case 'parse': {
               const parsed = JSON.parse(json);
               return { success: true, result: parsed };
+            }
 
             case 'validate':
               try {
@@ -35,15 +36,17 @@ class ExtendedTools {
                 return { success: false, result: false, error: e.message };
               }
 
-            case 'format':
+            case 'format': {
               const obj = JSON.parse(json);
               const formatted = JSON.stringify(obj, null, indent);
               return { success: true, result: formatted };
+            }
 
-            case 'minify':
+            case 'minify': {
               const minObj = JSON.parse(json);
               const minified = JSON.stringify(minObj);
               return { success: true, result: minified };
+            }
 
             default:
               throw new Error(`未知的操作: ${action}`);
@@ -181,39 +184,43 @@ class ExtendedTools {
           const now = date ? new Date(date) : new Date();
 
           switch (action) {
-            case 'format':
+            case 'format': {
               const formatted = this._formatDate(now, format);
               return {
                 success: true,
                 result: formatted,
                 timestamp: now.getTime()
               };
+            }
 
-            case 'parse':
+            case 'parse': {
               const parsed = new Date(date);
               return {
                 success: true,
                 result: parsed.toISOString(),
                 timestamp: parsed.getTime()
               };
+            }
 
-            case 'add':
+            case 'add': {
               const added = this._addTime(now, amount, unit);
               return {
                 success: true,
                 result: added.toISOString(),
                 timestamp: added.getTime()
               };
+            }
 
-            case 'subtract':
+            case 'subtract': {
               const subtracted = this._addTime(now, -amount, unit);
               return {
                 success: true,
                 result: subtracted.toISOString(),
                 timestamp: subtracted.getTime()
               };
+            }
 
-            case 'diff':
+            case 'diff': {
               const target = new Date(date);
               const diff = target.getTime() - now.getTime();
               return {
@@ -221,6 +228,7 @@ class ExtendedTools {
                 result: Math.floor(diff / 1000 / 60 / 60 / 24) + ' 天',
                 timestamp: diff
               };
+            }
 
             default:
               throw new Error(`未知的操作: ${action}`);
@@ -250,7 +258,7 @@ class ExtendedTools {
           const { url, action, params: queryParams } = params;
 
           switch (action) {
-            case 'parse':
+            case 'parse': {
               const parsed = new URL(url);
               return {
                 success: true,
@@ -264,8 +272,9 @@ class ExtendedTools {
                   params: Object.fromEntries(parsed.searchParams)
                 }
               };
+            }
 
-            case 'build':
+            case 'build': {
               const base = url || 'https://example.com';
               const newUrl = new URL(base);
               if (queryParams) {
@@ -274,6 +283,7 @@ class ExtendedTools {
                 });
               }
               return { success: true, result: newUrl.toString() };
+            }
 
             case 'validate':
               try {
@@ -321,7 +331,7 @@ class ExtendedTools {
           const { action, algorithm, data, key, iv } = params;
 
           switch (action) {
-            case 'hash':
+            case 'hash': {
               const hash = crypto.createHash(algorithm);
               hash.update(data);
               return {
@@ -329,6 +339,7 @@ class ExtendedTools {
                 result: hash.digest('hex'),
                 algorithm
               };
+            }
 
             case 'encrypt':
               if (algorithm.startsWith('aes')) {
@@ -504,13 +515,14 @@ class ExtendedTools {
                 result: regex.test(text)
               };
 
-            case 'match':
+            case 'match': {
               const matches = text.match(regex);
               return {
                 success: true,
                 result: matches ? matches[0] : null,
                 matches: matches || []
               };
+            }
 
             case 'replace':
               return {
@@ -670,13 +682,14 @@ class ExtendedTools {
 
           for (let i = 0; i < count; i++) {
             switch (type) {
-              case 'number':
+              case 'number': {
                 const min = options.min || 0;
                 const max = options.max || 100;
                 results.push(Math.floor(Math.random() * (max - min + 1)) + min);
                 break;
+              }
 
-              case 'string':
+              case 'string': {
                 const length = options.length || 10;
                 const charset = options.charset || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
                 let str = '';
@@ -685,6 +698,7 @@ class ExtendedTools {
                 }
                 results.push(str);
                 break;
+              }
 
               case 'uuid':
                 results.push(crypto.randomUUID());
@@ -694,17 +708,19 @@ class ExtendedTools {
                 results.push(Math.random() < 0.5);
                 break;
 
-              case 'date':
+              case 'date': {
                 const start = new Date(2020, 0, 1);
                 const end = new Date();
                 const randomDate = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
                 results.push(randomDate.toISOString());
                 break;
+              }
 
-              case 'color':
+              case 'color': {
                 const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
                 results.push(color);
                 break;
+              }
 
               default:
                 throw new Error(`未知的类型: ${type}`);

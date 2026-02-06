@@ -453,12 +453,13 @@ class AutomationManager extends EventEmitter {
     for (const channel of channels) {
       try {
         switch (channel) {
-          case 'desktop':
+          case 'desktop': {
             const { Notification } = require('electron');
             const notification = new Notification({ title, body: message });
             notification.show();
             results.desktop = { success: true };
             break;
+          }
 
           case 'email':
             results.email = await this.sendEmailNotification(config);

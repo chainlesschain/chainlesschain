@@ -389,7 +389,7 @@ class StatisticsCollector extends EventEmitter {
           periodEnd: date.getTime() + 24 * 60 * 60 * 1000
         };
 
-      case TimePeriod.WEEK:
+      case TimePeriod.WEEK: {
         const day = date.getDay();
         date.setDate(date.getDate() - day);
         date.setHours(0, 0, 0, 0);
@@ -397,8 +397,9 @@ class StatisticsCollector extends EventEmitter {
           periodStart: date.getTime(),
           periodEnd: date.getTime() + 7 * 24 * 60 * 60 * 1000
         };
+      }
 
-      case TimePeriod.MONTH:
+      case TimePeriod.MONTH: {
         date.setDate(1);
         date.setHours(0, 0, 0, 0);
         const nextMonth = new Date(date);
@@ -407,8 +408,9 @@ class StatisticsCollector extends EventEmitter {
           periodStart: date.getTime(),
           periodEnd: nextMonth.getTime()
         };
+      }
 
-      case TimePeriod.YEAR:
+      case TimePeriod.YEAR: {
         date.setMonth(0, 1);
         date.setHours(0, 0, 0, 0);
         const nextYear = new Date(date);
@@ -417,6 +419,7 @@ class StatisticsCollector extends EventEmitter {
           periodStart: date.getTime(),
           periodEnd: nextYear.getTime()
         };
+      }
 
       default:
         throw new Error(`Unknown period type: ${periodType}`);

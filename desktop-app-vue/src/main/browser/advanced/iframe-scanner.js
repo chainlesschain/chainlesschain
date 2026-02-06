@@ -241,13 +241,15 @@ class IframeScanner {
         await locator.hover();
         return { success: true, action: 'hover', selector };
 
-      case 'getText':
+      case 'getText': {
         const text = await locator.textContent();
         return { success: true, action: 'getText', selector, text };
+      }
 
-      case 'getAttribute':
+      case 'getAttribute': {
         const value = await locator.getAttribute(options.attribute);
         return { success: true, action: 'getAttribute', selector, value };
+      }
 
       default:
         throw new Error(`Unknown action: ${action}`);

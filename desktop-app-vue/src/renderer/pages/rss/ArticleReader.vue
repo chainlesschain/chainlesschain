@@ -361,7 +361,7 @@ const handleMenuClick = async ({ key }) => {
         message.success('已标记为已读');
         break;
 
-      case 'markUnread':
+      case 'markUnread': {
         await window.electron.ipcRenderer.invoke('rss:mark-as-unread', selectedArticle.value.id);
         selectedArticle.value.is_read = 0;
 
@@ -373,6 +373,7 @@ const handleMenuClick = async ({ key }) => {
 
         message.success('已标记为未读');
         break;
+      }
 
       case 'archive':
         await window.electron.ipcRenderer.invoke('rss:archive-item', selectedArticle.value.id);

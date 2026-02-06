@@ -616,7 +616,7 @@ class AdditionalToolsV3Handler {
           };
           break;
 
-        case 'roi':
+        case 'roi': {
           const initialInv = cashFlows[0] ? Math.abs(cashFlows[0]) : presentValue;
           const returns = cashFlows.slice(1).reduce((sum, cf) => sum + cf, 0);
           result = {
@@ -625,6 +625,7 @@ class AdditionalToolsV3Handler {
             totalReturns: returns
           };
           break;
+        }
 
         case 'fv':
           // Future Value = PV * (1 + r)^n
@@ -1906,7 +1907,7 @@ class AdditionalToolsV3Handler {
       let result = {};
 
       switch (action) {
-        case 'create':
+        case 'create': {
           if (!evidence) {throw new Error('Evidence data is required');}
 
           const evidenceId = autoNumbering ? `EV-${Date.now()}-${Math.floor(Math.random() * 1000)}` : evidence.id;
@@ -1925,6 +1926,7 @@ class AdditionalToolsV3Handler {
             }
           };
           break;
+        }
 
         case 'retrieve':
           result = {
@@ -2173,7 +2175,7 @@ class AdditionalToolsV3Handler {
           };
           break;
 
-        case 'rate':
+        case 'rate': {
           if (!vendorId) {throw new Error('Vendor ID is required');}
           const rating = vendorData.rating || 4;
           result = {
@@ -2183,6 +2185,7 @@ class AdditionalToolsV3Handler {
             ratingDate: Date.now()
           };
           break;
+        }
 
         case 'evaluate':
           if (!vendorId) {throw new Error('Vendor ID is required');}

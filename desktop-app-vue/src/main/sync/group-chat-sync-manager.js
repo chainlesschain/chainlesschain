@@ -243,7 +243,7 @@ class GroupChatSyncManager extends EventEmitter {
 
     try {
       switch (payload.type) {
-        case 'group-chat:request-history':
+        case 'group-chat:request-history': {
           // 请求历史消息
           const history = await this.requestHistory(
             payload.groupId,
@@ -257,6 +257,7 @@ class GroupChatSyncManager extends EventEmitter {
             messages: history
           });
           break;
+        }
 
         case 'group-chat:send-message':
           // 移动端发送消息

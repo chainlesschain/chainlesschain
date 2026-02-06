@@ -233,7 +233,7 @@ class TemplateEngine {
           }
           break;
 
-        case 'email':
+        case 'email': {
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!emailRegex.test(value)) {
             errors.push({
@@ -242,6 +242,7 @@ class TemplateEngine {
             });
           }
           break;
+        }
 
         case 'url':
           try {

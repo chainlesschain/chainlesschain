@@ -522,7 +522,7 @@ const handleDelete = ({ key }) => {
   if (!worksheet) {return;}
 
   switch (key) {
-    case 'row':
+    case 'row': {
       const selectedRows = worksheet.getSelectedRows();
       if (selectedRows.length > 0) {
         worksheet.deleteRow(selectedRows.length);
@@ -530,7 +530,8 @@ const handleDelete = ({ key }) => {
         message.warning('请先选择要删除的行');
       }
       break;
-    case 'col':
+    }
+    case 'col': {
       const selectedCols = worksheet.getSelectedColumns();
       if (selectedCols.length > 0) {
         worksheet.deleteColumn(selectedCols.length);
@@ -538,6 +539,7 @@ const handleDelete = ({ key }) => {
         message.warning('请先选择要删除的列');
       }
       break;
+    }
   }
 };
 
