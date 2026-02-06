@@ -48,9 +48,7 @@ export interface LoggerConfig {
 /**
  * 日志数据
  */
-export interface LogData {
-  [key: string]: any;
-}
+export type LogData = any;
 
 /**
  * 日志条目

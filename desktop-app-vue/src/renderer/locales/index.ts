@@ -38,9 +38,11 @@ const i18n = createI18n({
   silentFallbackWarn: true,
 });
 
+const globalLocaleRef = i18n.global.locale as unknown as { value: SupportedLocale };
+
 // 语言切换函数
 export const setLocale = (locale: SupportedLocale): void => {
-  i18n.global.locale.value = locale;
+  globalLocaleRef.value = locale;
   try {
     localStorage.setItem('app-locale', locale);
   } catch (error) {
@@ -50,7 +52,7 @@ export const setLocale = (locale: SupportedLocale): void => {
 
 // 获取当前语言
 export const getLocale = (): SupportedLocale => {
-  return i18n.global.locale.value as SupportedLocale;
+  return globalLocaleRef.value;
 };
 
 // 支持的语言列表

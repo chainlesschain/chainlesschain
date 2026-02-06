@@ -1,15 +1,8 @@
 <template>
   <div class="image-upload-container">
-    <a-card
-      title="图片上传与 OCR 识别"
-      :bordered="false"
-    >
+    <a-card title="图片上传与 OCR 识别" :bordered="false">
       <!-- 上传选项 -->
-      <a-space
-        direction="vertical"
-        style="width: 100%"
-        :size="16"
-      >
+      <a-space direction="vertical" style="width: 100%" :size="16">
         <!-- 拖拽上传区域 -->
         <a-upload-dragger
           :before-upload="handleBeforeUpload"
@@ -20,9 +13,7 @@
           <p class="ant-upload-drag-icon">
             <camera-outlined :style="{ fontSize: '48px', color: '#1890ff' }" />
           </p>
-          <p class="ant-upload-text">
-            点击或拖拽图片到此区域上传
-          </p>
+          <p class="ant-upload-text">点击或拖拽图片到此区域上传</p>
           <p class="ant-upload-hint">
             支持单张或批量上传。支持 JPG、PNG、GIF、BMP、WebP 格式
           </p>
@@ -40,11 +31,7 @@
         </div>
 
         <!-- 上传选项配置 -->
-        <a-card
-          title="上传选项"
-          size="small"
-          :bordered="true"
-        >
+        <a-card title="上传选项" size="small" :bordered="true">
           <a-form layout="vertical">
             <a-row :gutter="16">
               <a-col :span="12">
@@ -53,21 +40,11 @@
                     v-model:value="uploadOptions.type"
                     style="width: 100%"
                   >
-                    <a-select-option value="note">
-                      笔记
-                    </a-select-option>
-                    <a-select-option value="article">
-                      文章
-                    </a-select-option>
-                    <a-select-option value="document">
-                      文档
-                    </a-select-option>
-                    <a-select-option value="book">
-                      书籍
-                    </a-select-option>
-                    <a-select-option value="code">
-                      代码
-                    </a-select-option>
+                    <a-select-option value="note"> 笔记 </a-select-option>
+                    <a-select-option value="article"> 文章 </a-select-option>
+                    <a-select-option value="document"> 文档 </a-select-option>
+                    <a-select-option value="book"> 书籍 </a-select-option>
+                    <a-select-option value="code"> 代码 </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
@@ -114,39 +91,27 @@
         </a-card>
 
         <!-- 上传进度 -->
-        <a-card
-          v-if="uploading"
-          title="上传进度"
-          size="small"
-          :bordered="true"
-        >
+        <a-card v-if="uploading" title="上传进度" size="small" :bordered="true">
           <a-progress
             :percent="uploadProgress.percentage"
             :status="uploadProgress.status"
           >
             <template #format="percent">
-              {{ uploadProgress.current }} / {{ uploadProgress.total }} ({{ percent }}%)
+              {{ uploadProgress.current }} / {{ uploadProgress.total }} ({{
+                percent
+              }}%)
             </template>
           </a-progress>
 
-          <div
-            v-if="currentUploading"
-            style="margin-top: 12px"
-          >
-            <a-spin
-              :spinning="true"
-              size="small"
-            />
+          <div v-if="currentUploading" style="margin-top: 12px">
+            <a-spin :spinning="true" size="small" />
             <span style="margin-left: 8px">
               正在处理: {{ currentUploading }}
             </span>
           </div>
 
           <!-- OCR 进度 -->
-          <div
-            v-if="ocrProgress.active"
-            style="margin-top: 12px"
-          >
+          <div v-if="ocrProgress.active" style="margin-top: 12px">
             <a-progress
               :percent="Math.round(ocrProgress.progress * 100)"
               size="small"
@@ -215,11 +180,7 @@
             >
               <div v-if="result.success">
                 <!-- 成功结果 -->
-                <a-descriptions
-                  :column="2"
-                  size="small"
-                  bordered
-                >
+                <a-descriptions :column="2" size="small" bordered>
                   <a-descriptions-item label="文件名">
                     {{ result.filename }}
                   </a-descriptions-item>
@@ -248,7 +209,13 @@
                   :bordered="false"
                   style="margin-top: 12px"
                 >
-                  <div style="max-height: 200px; overflow-y: auto; white-space: pre-wrap">
+                  <div
+                    style="
+                      max-height: 200px;
+                      overflow-y: auto;
+                      white-space: pre-wrap;
+                    "
+                  >
                     {{ result.ocrText }}
                   </div>
 
@@ -267,16 +234,10 @@
                 <!-- 操作按钮 -->
                 <div style="margin-top: 12px">
                   <a-space>
-                    <a-button
-                      size="small"
-                      @click="viewImage(result.imageId)"
-                    >
+                    <a-button size="small" @click="viewImage(result.imageId)">
                       <eye-outlined /> 查看图片
                     </a-button>
-                    <a-button
-                      size="small"
-                      @click="copyOCRText(result.ocrText)"
-                    >
+                    <a-button size="small" @click="copyOCRText(result.ocrText)">
                       <copy-outlined /> 复制文本
                     </a-button>
                     <a-button
@@ -292,11 +253,7 @@
 
               <div v-else>
                 <!-- 失败结果 -->
-                <a-alert
-                  :message="result.error"
-                  type="error"
-                  show-icon
-                />
+                <a-alert :message="result.error" type="error" show-icon />
               </div>
             </a-collapse-panel>
           </a-collapse>
@@ -310,11 +267,7 @@
         </a-card>
 
         <!-- 图片列表 -->
-        <a-card
-          title="已上传图片"
-          size="small"
-          :bordered="true"
-        >
+        <a-card title="已上传图片" size="small" :bordered="true">
           <template #extra>
             <a-space>
               <a-input-search
@@ -336,10 +289,7 @@
           </template>
 
           <!-- 统计信息 -->
-          <a-row
-            :gutter="16"
-            style="margin-bottom: 16px"
-          >
+          <a-row :gutter="16" style="margin-bottom: 16px">
             <a-col :span="8">
               <a-statistic
                 title="图片总数"
@@ -374,10 +324,7 @@
               <a-empty description="暂无图片" />
             </div>
 
-            <a-row
-              v-else
-              :gutter="[16, 16]"
-            >
+            <a-row v-else :gutter="[16, 16]">
               <a-col
                 v-for="image in images"
                 :key="image.id"
@@ -397,19 +344,33 @@
                       :src="`file://${image.thumbnail_path}`"
                       :alt="image.original_filename"
                       style="width: 100%; height: 150px; object-fit: cover"
-                    >
+                    />
                     <div
                       v-else
-                      style="height: 150px; display: flex; align-items: center; justify-content: center; background: #f5f5f5"
+                      style="
+                        height: 150px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: #f5f5f5;
+                      "
                     >
-                      <file-image-outlined :style="{ fontSize: '48px', color: '#ccc' }" />
+                      <file-image-outlined
+                        :style="{ fontSize: '48px', color: '#ccc' }"
+                      />
                     </div>
                   </template>
 
                   <a-card-meta>
                     <template #title>
                       <a-tooltip :title="image.original_filename">
-                        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">
+                        <div
+                          style="
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                          "
+                        >
                           {{ image.original_filename }}
                         </div>
                       </a-tooltip>
@@ -467,16 +428,12 @@
               :src="`file://${currentImage.path}`"
               :alt="currentImage.original_filename"
               style="width: 100%; border-radius: 4px"
-            >
+            />
           </a-col>
 
           <!-- 图片信息 -->
           <a-col :span="12">
-            <a-descriptions
-              :column="1"
-              bordered
-              size="small"
-            >
+            <a-descriptions :column="1" bordered size="small">
               <a-descriptions-item label="文件名">
                 {{ currentImage.original_filename }}
               </a-descriptions-item>
@@ -510,7 +467,13 @@
               size="small"
               style="margin-top: 16px"
             >
-              <div style="max-height: 300px; overflow-y: auto; white-space: pre-wrap">
+              <div
+                style="
+                  max-height: 300px;
+                  overflow-y: auto;
+                  white-space: pre-wrap;
+                "
+              >
                 {{ currentImage.ocr_text }}
               </div>
 
@@ -533,10 +496,7 @@
                 >
                   <folder-open-outlined /> 在文件夹中显示
                 </a-button>
-                <a-button
-                  danger
-                  @click="confirmDelete(currentImage.id)"
-                >
+                <a-button danger @click="confirmDelete(currentImage.id)">
                   <delete-outlined /> 删除
                 </a-button>
               </a-space>
@@ -549,10 +509,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, toRaw } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted, toRaw } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   CameraOutlined,
   FileImageOutlined,
@@ -565,11 +525,11 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   FolderOpenOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // 上传选项
 const uploadOptions = reactive({
-  type: 'note',
+  type: "note",
   tags: [],
   compress: true,
   performOCR: true,
@@ -577,11 +537,19 @@ const uploadOptions = reactive({
 });
 
 const normalizeFilePath = (file) => {
-  if (!file) {return '';}
-  if (typeof file === 'string') {return file;}
-  if (file.path) {return file.path;}
-  if (file.originFileObj?.path) {return file.originFileObj.path;}
-  return '';
+  if (!file) {
+    return "";
+  }
+  if (typeof file === "string") {
+    return file;
+  }
+  if (file.path) {
+    return file.path;
+  }
+  if (file.originFileObj?.path) {
+    return file.originFileObj.path;
+  }
+  return "";
 };
 
 const buildUploadOptions = () => {
@@ -592,7 +560,7 @@ const buildUploadOptions = () => {
     performOCR: !!raw.performOCR,
     addToKnowledge: true,
     addToIndex: !!raw.addToIndex,
-    knowledgeType: raw.type || 'note',
+    knowledgeType: raw.type || "note",
     tags: Array.isArray(raw.tags) ? [...raw.tags] : [],
   };
 };
@@ -603,9 +571,9 @@ const uploadProgress = reactive({
   current: 0,
   total: 0,
   percentage: 0,
-  status: 'normal',
+  status: "normal",
 });
-const currentUploading = ref('');
+const currentUploading = ref("");
 const ocrProgress = reactive({
   active: false,
   progress: 0,
@@ -613,13 +581,17 @@ const ocrProgress = reactive({
 
 // 上传结果
 const uploadResults = ref([]);
-const successCount = computed(() => uploadResults.value.filter(r => r.success).length);
-const failureCount = computed(() => uploadResults.value.filter(r => !r.success).length);
+const successCount = computed(
+  () => uploadResults.value.filter((r) => r.success).length,
+);
+const failureCount = computed(
+  () => uploadResults.value.filter((r) => !r.success).length,
+);
 
 // 图片列表
 const images = ref([]);
 const loadingImages = ref(false);
-const searchQuery = ref('');
+const searchQuery = ref("");
 const pagination = reactive({
   current: 1,
   pageSize: 12,
@@ -639,7 +611,11 @@ const currentImage = ref(null);
 
 // 文件选择前的处理
 const handleBeforeUpload = (file, fileList) => {
-  const files = fileList?.length ? fileList : Array.isArray(file) ? file : [file];
+  const files = fileList?.length
+    ? fileList
+    : Array.isArray(file)
+      ? file
+      : [file];
   handleFilesSelected(files);
   return false; // 阻止自动上传
 };
@@ -653,8 +629,8 @@ const handleSelectFiles = async () => {
       await uploadImages(result.filePaths);
     }
   } catch (error) {
-    logger.error('选择文件失败:', error);
-    message.error('选择文件失败: ' + error.message);
+    logger.error("选择文件失败:", error);
+    message.error("选择文件失败: " + error.message);
   }
 };
 
@@ -662,7 +638,7 @@ const handleSelectFiles = async () => {
 const handleFilesSelected = (files) => {
   const filePaths = files.map(normalizeFilePath).filter(Boolean);
   if (filePaths.length === 0) {
-    message.warning('????????');
+    message.warning("无法获取文件路径");
     return;
   }
   uploadImages(filePaths);
@@ -670,13 +646,15 @@ const handleFilesSelected = (files) => {
 
 // 上传图片
 const uploadImages = async (filePaths) => {
-  if (filePaths.length === 0) {return;}
+  if (filePaths.length === 0) {
+    return;
+  }
 
   uploading.value = true;
   uploadProgress.current = 0;
   uploadProgress.total = filePaths.length;
   uploadProgress.percentage = 0;
-  uploadProgress.status = 'active';
+  uploadProgress.status = "active";
   uploadResults.value = [];
 
   // 监听上传事件
@@ -686,7 +664,9 @@ const uploadImages = async (filePaths) => {
 
   const uploadCompleteHandler = (data) => {
     uploadProgress.current++;
-    uploadProgress.percentage = Math.round((uploadProgress.current / uploadProgress.total) * 100);
+    uploadProgress.percentage = Math.round(
+      (uploadProgress.current / uploadProgress.total) * 100,
+    );
   };
 
   const ocrProgressHandler = (data) => {
@@ -694,9 +674,9 @@ const uploadImages = async (filePaths) => {
     ocrProgress.progress = data.progress || 0;
   };
 
-  window.electronAPI.image.on('image:upload-start', uploadStartHandler);
-  window.electronAPI.image.on('image:upload-complete', uploadCompleteHandler);
-  window.electronAPI.image.on('image:ocr-progress', ocrProgressHandler);
+  window.electronAPI.image.on("image:upload-start", uploadStartHandler);
+  window.electronAPI.image.on("image:upload-complete", uploadCompleteHandler);
+  window.electronAPI.image.on("image:ocr-progress", ocrProgressHandler);
 
   try {
     const options = buildUploadOptions();
@@ -704,7 +684,10 @@ const uploadImages = async (filePaths) => {
     let results;
     if (filePaths.length === 1) {
       // 单张图片
-      const result = await window.electronAPI.image.upload(filePaths[0], options);
+      const result = await window.electronAPI.image.upload(
+        filePaths[0],
+        options,
+      );
       results = [{ success: true, path: filePaths[0], ...result }];
     } else {
       // 批量上传
@@ -712,27 +695,32 @@ const uploadImages = async (filePaths) => {
     }
 
     uploadResults.value = results;
-    uploadProgress.status = 'success';
+    uploadProgress.status = "success";
 
-    const successCount = results.filter(r => r.success).length;
-    message.success(`上传完成！成功 ${successCount} 张，失败 ${results.length - successCount} 张`);
+    const successCount = results.filter((r) => r.success).length;
+    message.success(
+      `上传完成！成功 ${successCount} 张，失败 ${results.length - successCount} 张`,
+    );
 
     // 刷新图片列表
     await loadImages();
     await loadStats();
   } catch (error) {
-    logger.error('上传失败:', error);
-    uploadProgress.status = 'exception';
-    message.error('上传失败: ' + error.message);
+    logger.error("上传失败:", error);
+    uploadProgress.status = "exception";
+    message.error("上传失败: " + error.message);
   } finally {
     uploading.value = false;
-    currentUploading.value = '';
+    currentUploading.value = "";
     ocrProgress.active = false;
 
     // 移除事件监听
-    window.electronAPI.image.off('image:upload-start', uploadStartHandler);
-    window.electronAPI.image.off('image:upload-complete', uploadCompleteHandler);
-    window.electronAPI.image.off('image:ocr-progress', ocrProgressHandler);
+    window.electronAPI.image.off("image:upload-start", uploadStartHandler);
+    window.electronAPI.image.off(
+      "image:upload-complete",
+      uploadCompleteHandler,
+    );
+    window.electronAPI.image.off("image:ocr-progress", ocrProgressHandler);
   }
 };
 
@@ -745,8 +733,8 @@ const loadImages = async () => {
     const options = {
       limit: pagination.pageSize,
       offset: offset,
-      orderBy: 'created_at',
-      order: 'DESC',
+      orderBy: "created_at",
+      order: "DESC",
     };
 
     const result = await window.electronAPI.image.listImages(options);
@@ -757,8 +745,8 @@ const loadImages = async () => {
       pagination.total = result.length;
     }
   } catch (error) {
-    logger.error('加载图片列表失败:', error);
-    message.error('加载图片列表失败: ' + error.message);
+    logger.error("加载图片列表失败:", error);
+    message.error("加载图片列表失败: " + error.message);
   } finally {
     loadingImages.value = false;
   }
@@ -771,7 +759,7 @@ const loadStats = async () => {
     Object.assign(imageStats, stats);
     pagination.total = stats.totalImages;
   } catch (error) {
-    logger.error('加载统计信息失败:', error);
+    logger.error("加载统计信息失败:", error);
   }
 };
 
@@ -785,13 +773,15 @@ const handleSearch = async () => {
   loadingImages.value = true;
 
   try {
-    const result = await window.electronAPI.image.searchImages(searchQuery.value);
+    const result = await window.electronAPI.image.searchImages(
+      searchQuery.value,
+    );
     images.value = result;
     pagination.total = result.length;
     message.info(`找到 ${result.length} 张图片`);
   } catch (error) {
-    logger.error('搜索失败:', error);
-    message.error('搜索失败: ' + error.message);
+    logger.error("搜索失败:", error);
+    message.error("搜索失败: " + error.message);
   } finally {
     loadingImages.value = false;
   }
@@ -811,35 +801,40 @@ const viewImage = async (imageId) => {
     currentImage.value = image;
     imageViewerVisible.value = true;
   } catch (error) {
-    logger.error('加载图片详情失败:', error);
-    message.error('加载图片详情失败: ' + error.message);
+    logger.error("加载图片详情失败:", error);
+    message.error("加载图片详情失败: " + error.message);
   }
 };
 
 // 复制 OCR 文本
 const copyOCRText = (text) => {
-  if (!text) {return;}
+  if (!text) {
+    return;
+  }
 
-  navigator.clipboard.writeText(text).then(() => {
-    message.success('文本已复制到剪贴板');
-  }).catch((error) => {
-    logger.error('复制失败:', error);
-    message.error('复制失败');
-  });
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      message.success("文本已复制到剪贴板");
+    })
+    .catch((error) => {
+      logger.error("复制失败:", error);
+      message.error("复制失败");
+    });
 };
 
 // 删除图片
 const deleteImage = async (imageId) => {
   Modal.confirm({
-    title: '确认删除',
-    content: '确定要删除这张图片吗？此操作不可恢复。',
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认删除",
+    content: "确定要删除这张图片吗？此操作不可恢复。",
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     onOk: async () => {
       try {
         await window.electronAPI.image.deleteImage(imageId);
-        message.success('删除成功');
+        message.success("删除成功");
         await loadImages();
         await loadStats();
 
@@ -847,8 +842,8 @@ const deleteImage = async (imageId) => {
           imageViewerVisible.value = false;
         }
       } catch (error) {
-        logger.error('删除失败:', error);
-        message.error('删除失败: ' + error.message);
+        logger.error("删除失败:", error);
+        message.error("删除失败: " + error.message);
       }
     },
   });
@@ -862,7 +857,7 @@ const confirmDelete = (imageId) => {
 // 在文件夹中打开
 const openInExplorer = (filePath) => {
   // 这里需要通过 IPC 调用系统命令
-  message.info('功能开发中...');
+  message.info("功能开发中...");
 };
 
 // 清除结果
@@ -875,52 +870,64 @@ const clearResults = () => {
 
 // 工具函数
 const formatFileSize = (bytes) => {
-  if (!bytes) {return '0 B';}
+  if (!bytes) {
+    return "0 B";
+  }
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+  return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 
 const getResultHeader = (result, index) => {
-  const status = result.success ? '✓' : '✗';
-  const filename = result.path ? result.path.split(/[/\\]/).pop() : `图片 ${index + 1}`;
+  const status = result.success ? "✓" : "✗";
+  const filename = result.path
+    ? result.path.split(/[/\\]/).pop()
+    : `图片 ${index + 1}`;
   return `${status} ${filename}`;
 };
 
 const getConfidenceColor = (confidence) => {
-  if (confidence >= 80) {return 'green';}
-  if (confidence >= 60) {return 'blue';}
-  if (confidence >= 40) {return 'orange';}
-  return 'red';
+  if (confidence >= 80) {
+    return "green";
+  }
+  if (confidence >= 60) {
+    return "blue";
+  }
+  if (confidence >= 40) {
+    return "orange";
+  }
+  return "red";
 };
 
 const getQualityColor = (quality) => {
   const colors = {
-    high: 'green',
-    medium: 'blue',
-    low: 'orange',
-    very_low: 'red',
-    unknown: 'default',
+    high: "green",
+    medium: "blue",
+    low: "orange",
+    very_low: "red",
+    unknown: "default",
   };
-  return colors[quality] || 'default';
+  return colors[quality] || "default";
 };
 
 const getQualityLabel = (quality) => {
   const labels = {
-    high: '高质量',
-    medium: '中等质量',
-    low: '低质量',
-    very_low: '很低质量',
-    unknown: '未知',
+    high: "高质量",
+    medium: "中等质量",
+    low: "低质量",
+    very_low: "很低质量",
+    unknown: "未知",
   };
-  return labels[quality] || '未知';
+  return labels[quality] || "未知";
 };
 
 // 组件挂载时加载数据

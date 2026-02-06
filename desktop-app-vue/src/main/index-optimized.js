@@ -3,7 +3,8 @@
  * 使用 Bootstrap 模块进行模块化初始化
  *
  * @version 2.0.0
- * @description �?3800+ 行优化到 ~800 �? */
+ * @description 从 3800+ 行优化到 ~800 行
+ */
 
 // Load environment variables first (optional in production)
 try {
@@ -71,7 +72,7 @@ console.error = (...args) => {
 };
 
 /**
- * ChainlessChain 应用�?(优化�?
+ * ChainlessChain 应用 (优化版)
  */
 class ChainlessChainApp {
   constructor() {
@@ -82,7 +83,8 @@ class ChainlessChainApp {
     this.initialSetupIPC = null;
     this.deepLinkHandler = null;
 
-    // 懒加载状�?    this.speechInitialized = false;
+    // 懒加载状态
+    this.speechInitialized = false;
     this.imageUploaderInitialized = false;
     this.videoImporterInitialized = false;
     this.blockchainInitialized = false;
@@ -134,7 +136,7 @@ class ChainlessChainApp {
   }
 
   async onReady() {
-    logger.info("ChainlessChain Vue 启动�?..(优化�?");
+    logger.info("ChainlessChain Vue 启动中... (优化版)");
 
     // 创建启动画面
     if (process.env.NODE_ENV !== "test") {
@@ -210,13 +212,14 @@ class ChainlessChainApp {
     // 注册技能工具 IPC
     this.registerSkillToolIPC();
 
-    // 注册高级特�?IPC
+    // 注册高级特性 IPC
     this.registerAdvancedFeaturesIPC();
 
-    // 初始�?MCP 系统
+    // 初始化 MCP 系统
     await this.initializeMCPSystem();
 
-    // 创建主窗�?    this.splashWindow?.updateProgress("创建主窗�?..", 95);
+    // 创建主窗口
+    this.splashWindow?.updateProgress("创建主窗口...", 95);
     await this.createWindow();
 
     // 处理启动时的协议URL
@@ -226,7 +229,7 @@ class ChainlessChainApp {
   }
 
   /**
-   * �?bootstrap 实例应用�?this
+   * 将 bootstrap 实例应用到 this
    */
   applyInstances(instances) {
     // 核心模块
@@ -264,7 +267,7 @@ class ChainlessChainApp {
       this.memorySyncService = instances.memoryBank.memorySyncService;
     }
 
-    // RAG �?Git
+    // RAG 与 Git
     this.ragManager = instances.ragManager;
     this.promptTemplateManager = instances.promptTemplateManager;
     if (instances.gitManager) {
@@ -298,7 +301,8 @@ class ChainlessChainApp {
       this.previewServer = instances.webideManager.previewServer;
     }
 
-    // 技能工�?    this.toolManager = instances.toolManager;
+    // 技能工具
+    this.toolManager = instances.toolManager;
     this.skillManager = instances.skillManager;
     this.skillExecutor = instances.skillExecutor;
     this.aiScheduler = instances.aiScheduler;
@@ -317,7 +321,7 @@ class ChainlessChainApp {
   }
 
   /**
-   * 注册技能工�?IPC
+   * 注册技能工具 IPC
    */
   registerSkillToolIPC() {
     try {
@@ -347,7 +351,7 @@ class ChainlessChainApp {
           skillManager: this.skillManager,
           toolManager: this.toolManager,
         });
-        logger.info("[Main] ????IPC???");
+        logger.info("[Main] 技能工具IPC已注册");
       }
 
       registerVolcengineIPC();
@@ -392,13 +396,14 @@ class ChainlessChainApp {
   }
 
   /**
-   * 注册高级特�?IPC
+   * 注册高级特性 IPC
    */
   registerAdvancedFeaturesIPC() {
-    // 这些将在 createWindow 后注�?  }
+    // 这些将在 createWindow 后注册
+  }
 
   /**
-   * 初始�?MCP 系统
+   * 初始化 MCP 系统
    */
   async initializeMCPSystem() {
     try {
@@ -418,15 +423,16 @@ class ChainlessChainApp {
         this.registerMCPFallbackHandlers();
       }
     } catch (error) {
-      logger.error("[Main] MCP系统初始化失�?", error);
+      logger.error("[Main] MCP系统初始化失败:", error);
       this.registerMCPFallbackHandlers();
     }
   }
 
   /**
-   * MCP 回退处理�?   */
+   * MCP 回退处理器
+   */
   registerMCPFallbackHandlers() {
-    logger.info("[Main] 注册MCP回退处理�?);
+    logger.info("[Main] 注册MCP回退处理器");
     const disabledResponse = {
       success: false,
       error: "MCP system is disabled",
@@ -461,7 +467,8 @@ class ChainlessChainApp {
           ipcMain.handle(channel, () => disabledResponse);
         }
       } catch (e) {
-        // 已注�?      }
+        // 已注册，忽略重复注册错误
+      }
     }
   }
 
@@ -544,14 +551,15 @@ class ChainlessChainApp {
     this.menuManager = new MenuManager(this.mainWindow);
     this.menuManager.createMenu();
 
-    // 初始化数据库同步管理�?    try {
+    // 初始化数据库同步管理器
+    try {
       const DBSyncManager = require("./sync/db-sync-manager");
       this.syncManager = new DBSyncManager(this.database, this.mainWindow);
     } catch (error) {
-      logger.error("[Main] 数据库同步管理器初始化失�?", error);
+      logger.error("[Main] 数据库同步管理器初始化失败:", error);
     }
 
-    // 注册所�?IPC
+    // 注册所有 IPC
     this.setupIPC();
   }
 
@@ -606,8 +614,7 @@ class ChainlessChainApp {
       logger.info("[Main] IPC Registry 注册完成");
     } catch (error) {
       logger.error("[Main] IPC Registry 注册失败:", error);
-    }
-    finally {
+    } finally {
       // Ensure critical auth/U-Key handlers exist even if non-critical IPC registration fails.
       try {
         const { registerUKeyIPC } = require("./ukey/ukey-ipc");
@@ -619,7 +626,7 @@ class ChainlessChainApp {
     }
   }
 
-  // ====== 懒加载方�?======
+  // ====== 懒加载方法 ======
 
   async initializeBlockchainModules() {
     if (this.blockchainInitialized) {
@@ -680,7 +687,7 @@ class ChainlessChainApp {
       alert.level === "critical"
         ? "⚠️ LLM 成本预算告警"
         : "💰 LLM 成本预算提醒";
-    const body = `${alert.period}预算已使�?${alert.percentage.toFixed(0)}%`;
+    const body = `${alert.period}预算已使用${alert.percentage.toFixed(0)}%`;
 
     if (Notification.isSupported()) {
       const notification = new Notification({
@@ -728,11 +735,11 @@ class ChainlessChainApp {
       return;
     }
     this.ukeyManager.on("device-inserted", () => {
-      logger.info("[Main] U-Key 设备已插�?);
+      logger.info("[Main] U-Key 设备已插入");
       this.mainWindow?.webContents.send("ukey:device-inserted");
     });
     this.ukeyManager.on("device-removed", () => {
-      logger.info("[Main] U-Key 设备已移�?);
+      logger.info("[Main] U-Key 设备已移除");
       this.mainWindow?.webContents.send("ukey:device-removed");
     });
   }
