@@ -359,9 +359,9 @@ object P2PErrorManager {
     /**
      * 按类型获取错误
      */
-    inline fun <reified T : P2PError> getErrorsByType(): List<T> {
+    fun <T : P2PError> getErrorsByType(clazz: Class<T>): List<T> {
         synchronized(errorHistory) {
-            return errorHistory.filterIsInstance<T>()
+            return errorHistory.filterIsInstance(clazz)
         }
     }
 

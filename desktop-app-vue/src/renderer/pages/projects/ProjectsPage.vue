@@ -1046,9 +1046,34 @@ const handleConversationalCreate = async ({ text, attachments }) => {
 };
 
 // 处理文件上传
-const handleFileUpload = (files) => {
+const handleFileUpload = async (files) => {
   logger.info('Files uploaded:', files);
-  // TODO: 处理文件上传
+
+  if (!files || files.length === 0) {
+    return;
+  }
+
+  try {
+    message.loading({ content: '正在上传文件...', key: 'file-upload' });
+
+    // 遍历上传每个文件
+    for (const file of files) {
+      const fileData = {
+        name: file.name,
+        size: file.size,
+        type: file.type || 'application/octet-stream',
+        file: file
+      };
+
+      // 使用 projectStore 上传文件到当前项目
+      await projectStore.uploadFile(fileData);
+    }
+
+    message.success({ content: `成功上传 ${files.length} 个文件`, key: 'file-upload' });
+  } catch (error) {
+    logger.error('文件上传失败:', error);
+    message.error({ content: '文件上传失败: ' + error.message, key: 'file-upload' });
+  }
 };
 
 // 处理类别切换
@@ -1077,8 +1102,18 @@ const handleTypeQuickSelect = (typeKey) => {
 const handleSuggestionClick = (params) => {
   if (params && params.question) {
     logger.info('Suggestion clicked from TaskMonitor:', params.question);
-    message.info(`正在处理建议：${params.question}`);
-    // TODO: 将建议作为新的对话输入，发送给AI处理
+
+    // 将建议作为新的对话输入，跳转到AI对话页面
+    // 使用 localStorage 临时存储建议内容
+    localStorage.setItem('pendingInsertText', JSON.stringify({
+      text: params.question,
+      source: 'task-suggestion',
+      timestamp: Date.now()
+    }));
+
+    // 跳转到 AI 对话页面
+    router.push('/ai/chat');
+    message.success('正在跳转到 AI 对话...');
   }
 };
 
