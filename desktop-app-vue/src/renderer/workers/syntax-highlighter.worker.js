@@ -262,7 +262,7 @@ self.addEventListener('message', (event) => {
         result = extractCodeStructure(payload.code, payload.language);
         break;
 
-      case 'tokenize':
+      case 'tokenize': {
         // 简单分词
         const tokens = payload.code.split(/\s+/).filter(Boolean);
         result = {
@@ -271,6 +271,7 @@ self.addEventListener('message', (event) => {
           count: tokens.length,
         };
         break;
+      }
 
       default:
         result = {

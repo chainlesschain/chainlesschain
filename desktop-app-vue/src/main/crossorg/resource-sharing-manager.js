@@ -538,32 +538,82 @@ class ResourceSharingManager extends EventEmitter {
   // Helper Methods
   // ========================================
 
-  async _createShareKey(shareId, _sourceOrgId) {
+  async _createShareKey(shareId, sourceOrgId) {
     // Generate a symmetric key for resource encryption
-    const _key = crypto.randomBytes(32);
+    const key = crypto.randomBytes(32);
     const keyId = uuidv4();
+    const now = Date.now();
 
-    // In production, this would be stored encrypted with org's public key
-    // For now, store as base64
-    const _db = this.database.getDatabase();
-    const _now = Date.now();
+    try {
+      const db = this.database.getDatabase();
 
-    // Store in a separate key table (would need to add this table)
-    // For simplicity, return the key ID and key would be stored securely
-    logger.debug(`[ResourceSharing] Created share key ${keyId} for ${shareId}`);
+      // Ensure share_keys table exists
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS share_keys (
+          id TEXT PRIMARY KEY,
+          share_id TEXT NOT NULL,
+          source_org_id TEXT NOT NULL,
+          encrypted_key TEXT NOT NULL,
+          algorithm TEXT DEFAULT 'aes-256-gcm',
+          created_at INTEGER NOT NULL,
+          expires_at INTEGER,
+          FOREIGN KEY (share_id) REFERENCES cross_org_shares(id) ON DELETE CASCADE
+        )
+      `);
 
-    return keyId;
+      // Store key as base64 (in production, encrypt with org's public key)
+      const encryptedKey = key.toString('base64');
+
+      db.prepare(`
+        INSERT INTO share_keys (id, share_id, source_org_id, encrypted_key, created_at)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(keyId, shareId, sourceOrgId, encryptedKey, now);
+
+      logger.debug(`[ResourceSharing] Created share key ${keyId} for ${shareId}`);
+      return keyId;
+    } catch (error) {
+      logger.error(`[ResourceSharing] Failed to create share key:`, error);
+      throw error;
+    }
   }
 
-  async _getShareKey(_keyId, _accessorOrgId) {
-    // In production, decrypt the key using accessor's credentials
-    // Return placeholder for now
-    return null;
+  async _getShareKey(keyId, accessorOrgId) {
+    try {
+      const db = this.database.getDatabase();
+
+      // Get the key and verify accessor has permission
+      const keyRecord = db.prepare(`
+        SELECT sk.encrypted_key, sk.share_id, sk.source_org_id
+        FROM share_keys sk
+        JOIN cross_org_shares cs ON sk.share_id = cs.id
+        WHERE sk.id = ?
+          AND (cs.target_org_id = ? OR cs.source_org_id = ?)
+          AND cs.status = 'active'
+      `).get(keyId, accessorOrgId, accessorOrgId);
+
+      if (!keyRecord) {
+        logger.warn(`[ResourceSharing] Share key ${keyId} not found or access denied`);
+        return null;
+      }
+
+      // Return the key (in production, decrypt using accessor's credentials)
+      return Buffer.from(keyRecord.encrypted_key, 'base64');
+    } catch (error) {
+      logger.error(`[ResourceSharing] Failed to get share key:`, error);
+      return null;
+    }
   }
 
   async _deleteShareKey(keyId) {
-    // Delete the encryption key
-    logger.debug(`[ResourceSharing] Deleted share key ${keyId}`);
+    try {
+      const db = this.database.getDatabase();
+
+      db.prepare(`DELETE FROM share_keys WHERE id = ?`).run(keyId);
+
+      logger.debug(`[ResourceSharing] Deleted share key ${keyId}`);
+    } catch (error) {
+      logger.error(`[ResourceSharing] Failed to delete share key:`, error);
+    }
   }
 
   _logAudit(sourceOrgId, targetOrgId, actorDid, action, details) {

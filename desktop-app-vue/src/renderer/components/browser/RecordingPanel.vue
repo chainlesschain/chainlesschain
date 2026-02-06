@@ -218,7 +218,7 @@
             v-if="!playbackState.playbackId"
             type="info"
             message="当前没有正在回放的录制"
-            description="请从"录制历史"标签页选择一个录制进行回放"
+            description="请从「录制历史」标签页选择一个录制进行回放"
             show-icon
           />
 

@@ -169,7 +169,7 @@ class ExtendedTools2 {
           const { action, ip, cidr } = params;
 
           switch (action) {
-            case 'validate':
+            case 'validate': {
               const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
               const ipv6Regex = /^([0-9a-f]{0,4}:){7}[0-9a-f]{0,4}$/i;
 
@@ -182,8 +182,9 @@ class ExtendedTools2 {
                 version,
                 result: { isValid, version }
               };
+            }
 
-            case 'parse':
+            case 'parse': {
               const parts = ip.split('.');
               return {
                 success: true,
@@ -192,6 +193,7 @@ class ExtendedTools2 {
                   binary: parts.map(p => parseInt(p).toString(2).padStart(8, '0')).join('.')
                 }
               };
+            }
 
             default:
               throw new Error(`未知操作: ${action}`);

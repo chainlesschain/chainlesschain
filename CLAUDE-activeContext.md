@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-06 (浏览器控制 Phase 2 完成)
+> **最后更新**: 2026-02-06 (Android TODO 任务全部完成)
 
 ---
 
@@ -10,6 +10,10 @@
 
 ### 活跃任务
 
+- [x] Android WebRTC 编译错误修复 (RemoteModule OkHttpClient)
+- [x] Android 离线消息队列增强 (优先级、指数退避、批量操作)
+- [x] Android 社交功能 - 点赞/收藏/分享动画
+- [x] Android AI 文件智能摘要 (FileSummarizer + FileSummaryCache)
 - [x] 完善 ErrorMonitor 自动修复（SQLite 锁、网络重连）
 - [x] 验证 Session 压缩效果
 - [x] 创建 Memory Bank 系统
@@ -60,7 +64,22 @@
 
 ### 最近完成
 
-0. **Resource Monitor IPC 和 Message Aggregator IPC 系统实现** (2026-02-02):
+0. **Android TODO 任务全部完成** (2026-02-06):
+   - **WebRTC 编译错误修复**：RemoteModule.kt 添加 OkHttpClient 提供方法
+   - **离线消息队列增强**：core-p2p/OfflineMessageQueue.kt
+     - MessagePriority 枚举（HIGH/NORMAL/LOW）
+     - 指数退避重试（1s, 2s, 5s, 10s, 30s）
+     - getRetryableMessages() / enqueueBatch() / markSentBatch()
+     - 增强统计信息（优先级分布、待重试数）
+   - **社交功能增强**：feature-p2p/PostCard.kt
+     - AnimatedLikeButton / AnimatedBookmarkButton（弹跳动画）
+     - 收藏按钮（isBookmarked, onBookmarkClick）
+   - **AI 文件智能摘要**：feature-ai/domain/summary/
+     - FileSummarizer.kt (~250 行) - 20+ 文件类型支持
+     - FileSummaryCache.kt (~200 行) - LRU + 磁盘缓存
+   - **CI/CD 配置验证**：8 个 GitHub Actions 工作流已就绪
+
+1. **Resource Monitor IPC 和 Message Aggregator IPC 系统实现** (2026-02-02):
    - **Resource Monitor IPC** - 新建 `src/main/utils/resource-monitor-ipc.js` (~550 行)
      - 13 个 IPC 通道：
        - 状态查询（4）：get-memory-status、get-disk-status、get-level、get-report
@@ -738,7 +757,7 @@
 ### 中优先级
 
 1. **测试覆盖率**: 核心模块覆盖率需达到 80%
-2. **TypeScript 迁移**: 渲染进程迁移到 TypeScript
+2. ~~**TypeScript 迁移**: 渲染进程 Pinia Stores 已全部迁移到 TypeScript ✅~~
 
 ### 低优先级
 
