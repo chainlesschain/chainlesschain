@@ -313,7 +313,7 @@ export function getFileTypeInfo(filePath: string, fileName: string): FileTypeInf
  * 获取缓存统计信息
  * @returns 缓存统计
  */
-export function getCacheStats(): CacheStats {
+export function getCacheStats() {
   return fileMetadataCache.getStats();
 }
 

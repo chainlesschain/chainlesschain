@@ -32,24 +32,6 @@ import type {
 } from '../types/multimedia';
 
 /**
- * ElectronAPI接口定义
- */
-interface ElectronAPI {
-  invoke(channel: string, params?: any): Promise<any>;
-  on(channel: string, listener: (...args: any[]) => void): void;
-  off(channel: string, listener: (...args: any[]) => void): void;
-}
-
-/**
- * 扩展Window接口
- */
-declare global {
-  interface Window {
-    electronAPI?: ElectronAPI;
-  }
-}
-
-/**
  * 多媒体API类
  */
 class MultimediaAPI implements IMultimediaAPI {

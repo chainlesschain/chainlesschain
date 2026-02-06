@@ -1,10 +1,26 @@
-import { defineStore } from 'pinia';
+/**
+ * Auth Store - 认证状态管理
+ */
 
+import { defineStore } from 'pinia';
 import { useAppStore } from './app';
+
+// ==================== 类型定义 ====================
+
+/**
+ * 当前用户信息
+ */
+export interface CurrentUser {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
+// ==================== Store ====================
 
 export const useAuthStore = defineStore('auth', {
   getters: {
-    currentUser: () => {
+    currentUser(): CurrentUser | null {
       const appStore = useAppStore();
       if (!appStore.isAuthenticated || !appStore.deviceId) {
         return null;
@@ -12,14 +28,14 @@ export const useAuthStore = defineStore('auth', {
 
       return {
         id: appStore.deviceId,
-        name: '用户', // 默认用户名
-        avatar: '', // 默认头像为空
+        name: '用户',
+        avatar: '',
       };
     },
   },
 
   actions: {
-    logout() {
+    logout(): void {
       const appStore = useAppStore();
       appStore.setAuthenticated(false);
       appStore.setDeviceId(null);
