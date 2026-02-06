@@ -3,7 +3,7 @@
  */
 
 import { logger } from '@/utils/logger';
-import { fileMetadataCache } from './lru-cache';
+import { fileMetadataCache, type FileMetadataCacheStats } from './lru-cache';
 
 // ==================== 类型定义 ====================
 
@@ -313,7 +313,7 @@ export function getFileTypeInfo(filePath: string, fileName: string): FileTypeInf
  * 获取缓存统计信息
  * @returns 缓存统计
  */
-export function getCacheStats() {
+export function getCacheStats(): FileMetadataCacheStats {
   return fileMetadataCache.getStats();
 }
 
