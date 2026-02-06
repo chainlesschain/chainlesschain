@@ -1,8 +1,138 @@
-import { logger, createLogger } from '@/utils/logger';
+/**
+ * App Store - 应用全局状态管理
+ */
+
+import { logger } from '@/utils/logger';
 import { defineStore } from "pinia";
 
+// ==================== 类型定义 ====================
+
+/**
+ * U-Key 状态
+ */
+export interface UKeyStatus {
+  detected: boolean;
+  unlocked: boolean;
+}
+
+/**
+ * 知识库项
+ */
+export interface KnowledgeItem {
+  id: string;
+  title: string;
+  content?: string;
+  [key: string]: any;
+}
+
+/**
+ * 聊天消息
+ */
+export interface ChatMessage {
+  id?: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp?: number;
+}
+
+/**
+ * Git 状态
+ */
+export interface GitStatus {
+  branch?: string;
+  ahead?: number;
+  behind?: number;
+  files?: any[];
+  [key: string]: any;
+}
+
+/**
+ * LLM 状态
+ */
+export interface LLMStatus {
+  available: boolean;
+  models: string[];
+}
+
+/**
+ * 应用配置
+ */
+export interface AppConfig {
+  theme: 'light' | 'dark';
+  llmModel: string;
+  gitRemote: string | null;
+  autoSync: boolean;
+  syncInterval: number;
+}
+
+/**
+ * 标签页
+ */
+export interface Tab {
+  key: string;
+  title: string;
+  path: string;
+  query?: Record<string, any> | null;
+  closable: boolean;
+}
+
+/**
+ * 菜单项
+ */
+export interface MenuInfo {
+  key: string;
+  title: string;
+  path: string;
+  icon?: string;
+  query?: Record<string, any> | null;
+  addedAt?: number;
+  visitedAt?: number;
+  pinnedAt?: number;
+}
+
+/**
+ * App State
+ */
+export interface AppState {
+  // 用户认证状态
+  isAuthenticated: boolean;
+  ukeyStatus: UKeyStatus;
+  deviceId: string | null;
+
+  // 知识库数据
+  knowledgeItems: KnowledgeItem[];
+  currentItem: KnowledgeItem | null;
+  searchQuery: string;
+  filteredItems: KnowledgeItem[];
+
+  // AI对话
+  messages: ChatMessage[];
+  isAITyping: boolean;
+
+  // 系统状态
+  gitStatus: GitStatus | null;
+  llmStatus: LLMStatus;
+  appConfig: AppConfig;
+
+  // UI状态
+  sidebarCollapsed: boolean;
+  chatPanelVisible: boolean;
+  loading: boolean;
+
+  // 多标签页管理
+  tabs: Tab[];
+  activeTabKey: string;
+
+  // 菜单收藏和快捷访问
+  favoriteMenus: MenuInfo[];
+  recentMenus: MenuInfo[];
+  pinnedMenus: MenuInfo[];
+}
+
+// ==================== Store ====================
+
 export const useAppStore = defineStore("app", {
-  state: () => ({
+  state: (): AppState => ({
     // 用户认证状态
     isAuthenticated: false,
     ukeyStatus: { detected: false, unlocked: false },
@@ -41,20 +171,20 @@ export const useAppStore = defineStore("app", {
         title: "首页",
         path: "/",
         query: null,
-        closable: false, // 首页不可关闭
+        closable: false,
       },
     ],
     activeTabKey: "home",
 
     // 菜单收藏和快捷访问
-    favoriteMenus: [], // 收藏的菜单项 [{key, title, path, icon, query}]
-    recentMenus: [], // 最近访问的菜单项 (最多10个)
-    pinnedMenus: [], // 置顶的菜单项
+    favoriteMenus: [],
+    recentMenus: [],
+    pinnedMenus: [],
   }),
 
   getters: {
     // 过滤后的知识库项
-    getFilteredItems: (state) => {
+    getFilteredItems: (state): KnowledgeItem[] => {
       if (!state.searchQuery.trim()) {
         return state.knowledgeItems;
       }
@@ -70,34 +200,34 @@ export const useAppStore = defineStore("app", {
 
   actions: {
     // 认证相关
-    setAuthenticated(authenticated) {
+    setAuthenticated(authenticated: boolean): void {
       this.isAuthenticated = authenticated;
     },
 
-    setUKeyStatus(status) {
+    setUKeyStatus(status: UKeyStatus): void {
       this.ukeyStatus = status;
     },
 
-    setDeviceId(deviceId) {
+    setDeviceId(deviceId: string | null): void {
       this.deviceId = deviceId;
     },
 
     // 知识库相关
-    setKnowledgeItems(items) {
+    setKnowledgeItems(items: KnowledgeItem[]): void {
       this.knowledgeItems = items;
       this.filterItems();
     },
 
-    setCurrentItem(item) {
+    setCurrentItem(item: KnowledgeItem | null): void {
       this.currentItem = item;
     },
 
-    addKnowledgeItem(item) {
+    addKnowledgeItem(item: KnowledgeItem): void {
       this.knowledgeItems.push(item);
       this.filterItems();
     },
 
-    updateKnowledgeItem(id, updates) {
+    updateKnowledgeItem(id: string, updates: Partial<KnowledgeItem>): void {
       const index = this.knowledgeItems.findIndex((item) => item.id === id);
       if (index !== -1) {
         this.knowledgeItems[index] = {
@@ -106,7 +236,6 @@ export const useAppStore = defineStore("app", {
         };
       }
 
-      // 更新当前项
       if (this.currentItem && this.currentItem.id === id) {
         this.currentItem = { ...this.currentItem, ...updates };
       }
@@ -114,13 +243,12 @@ export const useAppStore = defineStore("app", {
       this.filterItems();
     },
 
-    deleteKnowledgeItem(id) {
+    deleteKnowledgeItem(id: string): void {
       const index = this.knowledgeItems.findIndex((item) => item.id === id);
       if (index !== -1) {
         this.knowledgeItems.splice(index, 1);
       }
 
-      // 如果删除的是当前项，清空当前项
       if (this.currentItem && this.currentItem.id === id) {
         this.currentItem = null;
       }
@@ -128,12 +256,12 @@ export const useAppStore = defineStore("app", {
       this.filterItems();
     },
 
-    setSearchQuery(query) {
+    setSearchQuery(query: string): void {
       this.searchQuery = query;
       this.filterItems();
     },
 
-    filterItems() {
+    filterItems(): void {
       if (!this.searchQuery.trim()) {
         this.filteredItems = this.knowledgeItems;
         return;
@@ -148,53 +276,52 @@ export const useAppStore = defineStore("app", {
     },
 
     // AI对话相关
-    addMessage(message) {
+    addMessage(message: ChatMessage): void {
       this.messages.push(message);
     },
 
-    clearMessages() {
+    clearMessages(): void {
       this.messages = [];
     },
 
-    setIsAITyping(typing) {
+    setIsAITyping(typing: boolean): void {
       this.isAITyping = typing;
     },
 
     // 系统状态相关
-    setGitStatus(status) {
+    setGitStatus(status: GitStatus | null): void {
       this.gitStatus = status;
     },
 
-    setLLMStatus(status) {
+    setLLMStatus(status: LLMStatus): void {
       this.llmStatus = status;
     },
 
-    setAppConfig(config) {
+    setAppConfig(config: Partial<AppConfig>): void {
       this.appConfig = { ...this.appConfig, ...config };
     },
 
     // UI状态相关
-    setSidebarCollapsed(collapsed) {
+    setSidebarCollapsed(collapsed: boolean): void {
       this.sidebarCollapsed = collapsed;
     },
 
-    setChatPanelVisible(visible) {
+    setChatPanelVisible(visible: boolean): void {
       this.chatPanelVisible = visible;
     },
 
-    setLoading(loading) {
+    setLoading(loading: boolean): void {
       this.loading = loading;
     },
 
     // 登出
-    logout() {
+    logout(): void {
       this.isAuthenticated = false;
       this.ukeyStatus = { detected: false, unlocked: false };
       this.deviceId = null;
       this.knowledgeItems = [];
       this.currentItem = null;
       this.messages = [];
-      // 重置标签页
       this.tabs = [
         {
           key: "home",
@@ -208,56 +335,46 @@ export const useAppStore = defineStore("app", {
     },
 
     // 多标签页管理
-    addTab(tab) {
-      // 检查标签页是否已存在
+    addTab(tab: Omit<Tab, 'closable'> & { closable?: boolean }): void {
       const existingTab = this.tabs.find((t) => t.key === tab.key);
       if (existingTab) {
-        // 如果存在，激活该标签
         this.activeTabKey = tab.key;
         return;
       }
 
-      // 添加新标签页
       this.tabs.push({
         key: tab.key,
         title: tab.title,
         path: tab.path,
         query: tab.query || null,
-        closable: tab.closable !== false, // 默认可关闭
+        closable: tab.closable !== false,
       });
       this.activeTabKey = tab.key;
     },
 
-    removeTab(targetKey) {
-      const tabs = this.tabs;
-      let activeKey = this.activeTabKey;
-
-      // 不能关闭首页
+    removeTab(targetKey: string): void {
       if (targetKey === "home") {
         return;
       }
 
-      // 找到要删除的标签页的索引
-      const targetIndex = tabs.findIndex((tab) => tab.key === targetKey);
-      if (targetIndex === -1) {return;}
+      const targetIndex = this.tabs.findIndex((tab) => tab.key === targetKey);
+      if (targetIndex === -1) { return; }
 
-      // 如果关闭的是当前激活的标签，需要激活另一个标签
+      let activeKey = this.activeTabKey;
       if (targetKey === activeKey) {
-        // 优先激活下一个，如果没有下一个，激活上一个
-        const nextTab = tabs[targetIndex + 1] || tabs[targetIndex - 1];
+        const nextTab = this.tabs[targetIndex + 1] || this.tabs[targetIndex - 1];
         activeKey = nextTab ? nextTab.key : "home";
       }
 
-      // 移除标签页
-      this.tabs = tabs.filter((tab) => tab.key !== targetKey);
+      this.tabs = this.tabs.filter((tab) => tab.key !== targetKey);
       this.activeTabKey = activeKey;
     },
 
-    setActiveTab(key) {
+    setActiveTab(key: string): void {
       this.activeTabKey = key;
     },
 
-    closeAllTabs() {
+    closeAllTabs(): void {
       this.tabs = [
         {
           key: "home",
@@ -270,56 +387,36 @@ export const useAppStore = defineStore("app", {
       this.activeTabKey = "home";
     },
 
-    closeOtherTabs(targetKey) {
+    closeOtherTabs(targetKey: string): void {
       this.tabs = this.tabs.filter(
         (tab) => tab.key === targetKey || tab.key === "home",
       );
       this.activeTabKey = targetKey;
     },
 
-    // ==================== 菜单收藏和快捷访问 ====================
-
-    /**
-     * 添加收藏菜单
-     */
-    addFavoriteMenu(menu) {
-      // 检查是否已收藏
+    // 菜单收藏功能
+    addFavoriteMenu(menu: Omit<MenuInfo, 'addedAt'>): void {
       const exists = this.favoriteMenus.find((m) => m.key === menu.key);
-      if (exists) {return;}
+      if (exists) { return; }
 
-      // 添加到收藏列表
       this.favoriteMenus.push({
-        key: menu.key,
-        title: menu.title,
-        path: menu.path,
-        icon: menu.icon,
-        query: menu.query || null,
+        ...menu,
         addedAt: Date.now(),
       });
 
-      // 保存到 localStorage
       this.saveFavoritesToStorage();
     },
 
-    /**
-     * 移除收藏菜单
-     */
-    removeFavoriteMenu(key) {
+    removeFavoriteMenu(key: string): void {
       this.favoriteMenus = this.favoriteMenus.filter((m) => m.key !== key);
       this.saveFavoritesToStorage();
     },
 
-    /**
-     * 检查菜单是否已收藏
-     */
-    isFavoriteMenu(key) {
+    isFavoriteMenu(key: string): boolean {
       return this.favoriteMenus.some((m) => m.key === key);
     },
 
-    /**
-     * 切换收藏状态
-     */
-    toggleFavoriteMenu(menu) {
+    toggleFavoriteMenu(menu: Omit<MenuInfo, 'addedAt'>): void {
       if (this.isFavoriteMenu(menu.key)) {
         this.removeFavoriteMenu(menu.key);
       } else {
@@ -327,84 +424,52 @@ export const useAppStore = defineStore("app", {
       }
     },
 
-    /**
-     * 添加到最近访问
-     */
-    addRecentMenu(menu) {
-      // 移除已存在的相同项
+    addRecentMenu(menu: Omit<MenuInfo, 'visitedAt'>): void {
       this.recentMenus = this.recentMenus.filter((m) => m.key !== menu.key);
 
-      // 添加到列表开头
       this.recentMenus.unshift({
-        key: menu.key,
-        title: menu.title,
-        path: menu.path,
-        icon: menu.icon,
-        query: menu.query || null,
+        ...menu,
         visitedAt: Date.now(),
       });
 
-      // 限制最多10个
       if (this.recentMenus.length > 10) {
         this.recentMenus = this.recentMenus.slice(0, 10);
       }
 
-      // 保存到 localStorage
       this.saveRecentsToStorage();
     },
 
-    /**
-     * 清空最近访问
-     */
-    clearRecentMenus() {
+    clearRecentMenus(): void {
       this.recentMenus = [];
       this.saveRecentsToStorage();
     },
 
-    /**
-     * 置顶菜单
-     */
-    pinMenu(menu) {
-      // 检查是否已置顶
+    pinMenu(menu: Omit<MenuInfo, 'pinnedAt'>): void {
       const exists = this.pinnedMenus.find((m) => m.key === menu.key);
-      if (exists) {return;}
+      if (exists) { return; }
 
-      // 添加到置顶列表
       this.pinnedMenus.push({
-        key: menu.key,
-        title: menu.title,
-        path: menu.path,
-        icon: menu.icon,
-        query: menu.query || null,
+        ...menu,
         pinnedAt: Date.now(),
       });
 
       this.savePinnedToStorage();
     },
 
-    /**
-     * 取消置顶
-     */
-    unpinMenu(key) {
+    unpinMenu(key: string): void {
       this.pinnedMenus = this.pinnedMenus.filter((m) => m.key !== key);
       this.savePinnedToStorage();
     },
 
-    /**
-     * 检查菜单是否已置顶
-     */
-    isPinnedMenu(key) {
+    isPinnedMenu(key: string): boolean {
       return this.pinnedMenus.some((m) => m.key === key);
     },
 
-    /**
-     * 保存收藏到存储（优先使用 PreferenceManager，降级到 localStorage）
-     */
-    async saveFavoritesToStorage() {
+    // 存储操作
+    async saveFavoritesToStorage(): Promise<void> {
       try {
-        // Try PreferenceManager first
-        if (window.electronAPI?.invoke) {
-          await window.electronAPI.invoke(
+        if ((window as any).electronAPI?.invoke) {
+          await (window as any).electronAPI.invoke(
             "preference:set",
             "ui",
             "favoriteMenus",
@@ -417,24 +482,20 @@ export const useAppStore = defineStore("app", {
           "[AppStore] PreferenceManager not available, using localStorage",
         );
       }
-      // Fallback to localStorage
       try {
         localStorage.setItem(
           "favoriteMenus",
           JSON.stringify(this.favoriteMenus),
         );
       } catch (error) {
-        logger.error("[AppStore] Failed to save favorites:", error);
+        logger.error("[AppStore] Failed to save favorites:", error as any);
       }
     },
 
-    /**
-     * 保存最近访问到存储
-     */
-    async saveRecentsToStorage() {
+    async saveRecentsToStorage(): Promise<void> {
       try {
-        if (window.electronAPI?.invoke) {
-          await window.electronAPI.invoke(
+        if ((window as any).electronAPI?.invoke) {
+          await (window as any).electronAPI.invoke(
             "preference:set",
             "ui",
             "recentMenus",
@@ -450,17 +511,14 @@ export const useAppStore = defineStore("app", {
       try {
         localStorage.setItem("recentMenus", JSON.stringify(this.recentMenus));
       } catch (error) {
-        logger.error("[AppStore] Failed to save recents:", error);
+        logger.error("[AppStore] Failed to save recents:", error as any);
       }
     },
 
-    /**
-     * 保存置顶到存储
-     */
-    async savePinnedToStorage() {
+    async savePinnedToStorage(): Promise<void> {
       try {
-        if (window.electronAPI?.invoke) {
-          await window.electronAPI.invoke(
+        if ((window as any).electronAPI?.invoke) {
+          await (window as any).electronAPI.invoke(
             "preference:set",
             "ui",
             "pinnedMenus",
@@ -476,18 +534,14 @@ export const useAppStore = defineStore("app", {
       try {
         localStorage.setItem("pinnedMenus", JSON.stringify(this.pinnedMenus));
       } catch (error) {
-        logger.error("[AppStore] Failed to save pinned:", error);
+        logger.error("[AppStore] Failed to save pinned:", error as any);
       }
     },
 
-    /**
-     * 从存储加载收藏
-     */
-    async loadFavoritesFromStorage() {
+    async loadFavoritesFromStorage(): Promise<void> {
       try {
-        // Try PreferenceManager first
-        if (window.electronAPI?.invoke) {
-          const favorites = await window.electronAPI.invoke(
+        if ((window as any).electronAPI?.invoke) {
+          const favorites = await (window as any).electronAPI.invoke(
             "preference:get",
             "ui",
             "favoriteMenus",
@@ -503,24 +557,20 @@ export const useAppStore = defineStore("app", {
           "[AppStore] PreferenceManager not available, using localStorage",
         );
       }
-      // Fallback to localStorage
       try {
         const data = localStorage.getItem("favoriteMenus");
         if (data) {
           this.favoriteMenus = JSON.parse(data);
         }
       } catch (error) {
-        logger.error("[AppStore] Failed to load favorites:", error);
+        logger.error("[AppStore] Failed to load favorites:", error as any);
       }
     },
 
-    /**
-     * 从存储加载最近访问
-     */
-    async loadRecentsFromStorage() {
+    async loadRecentsFromStorage(): Promise<void> {
       try {
-        if (window.electronAPI?.invoke) {
-          const recents = await window.electronAPI.invoke(
+        if ((window as any).electronAPI?.invoke) {
+          const recents = await (window as any).electronAPI.invoke(
             "preference:get",
             "ui",
             "recentMenus",
@@ -542,17 +592,14 @@ export const useAppStore = defineStore("app", {
           this.recentMenus = JSON.parse(data);
         }
       } catch (error) {
-        logger.error("[AppStore] Failed to load recents:", error);
+        logger.error("[AppStore] Failed to load recents:", error as any);
       }
     },
 
-    /**
-     * 从存储加载置顶
-     */
-    async loadPinnedFromStorage() {
+    async loadPinnedFromStorage(): Promise<void> {
       try {
-        if (window.electronAPI?.invoke) {
-          const pinned = await window.electronAPI.invoke(
+        if ((window as any).electronAPI?.invoke) {
+          const pinned = await (window as any).electronAPI.invoke(
             "preference:get",
             "ui",
             "pinnedMenus",
@@ -574,14 +621,11 @@ export const useAppStore = defineStore("app", {
           this.pinnedMenus = JSON.parse(data);
         }
       } catch (error) {
-        logger.error("[AppStore] Failed to load pinned:", error);
+        logger.error("[AppStore] Failed to load pinned:", error as any);
       }
     },
 
-    /**
-     * 初始化菜单数据（异步）
-     */
-    async initMenuData() {
+    async initMenuData(): Promise<void> {
       await Promise.all([
         this.loadFavoritesFromStorage(),
         this.loadRecentsFromStorage(),
@@ -589,32 +633,26 @@ export const useAppStore = defineStore("app", {
       ]);
     },
 
-    /**
-     * 迁移 localStorage 数据到 PreferenceManager
-     * 仅运行一次，迁移完成后删除旧数据
-     */
-    async migrateFromLocalStorage() {
+    async migrateFromLocalStorage(): Promise<void> {
       try {
-        if (!window.electronAPI?.invoke) {return;}
+        if (!(window as any).electronAPI?.invoke) { return; }
 
-        // Check if already migrated
-        const migrated = await window.electronAPI.invoke(
+        const migrated = await (window as any).electronAPI.invoke(
           "preference:get",
           "system",
           "localStorageMigrated",
           false,
         );
-        if (migrated) {return;}
+        if (migrated) { return; }
 
         logger.info(
           "[AppStore] Migrating data from localStorage to PreferenceManager...",
         );
 
-        // Migrate favorites
         const favoritesData = localStorage.getItem("favoriteMenus");
         if (favoritesData) {
           const favorites = JSON.parse(favoritesData);
-          await window.electronAPI.invoke(
+          await (window as any).electronAPI.invoke(
             "preference:set",
             "ui",
             "favoriteMenus",
@@ -623,11 +661,10 @@ export const useAppStore = defineStore("app", {
           localStorage.removeItem("favoriteMenus");
         }
 
-        // Migrate recents
         const recentsData = localStorage.getItem("recentMenus");
         if (recentsData) {
           const recents = JSON.parse(recentsData);
-          await window.electronAPI.invoke(
+          await (window as any).electronAPI.invoke(
             "preference:set",
             "ui",
             "recentMenus",
@@ -636,11 +673,10 @@ export const useAppStore = defineStore("app", {
           localStorage.removeItem("recentMenus");
         }
 
-        // Migrate pinned
         const pinnedData = localStorage.getItem("pinnedMenus");
         if (pinnedData) {
           const pinned = JSON.parse(pinnedData);
-          await window.electronAPI.invoke(
+          await (window as any).electronAPI.invoke(
             "preference:set",
             "ui",
             "pinnedMenus",
@@ -649,8 +685,7 @@ export const useAppStore = defineStore("app", {
           localStorage.removeItem("pinnedMenus");
         }
 
-        // Mark as migrated
-        await window.electronAPI.invoke(
+        await (window as any).electronAPI.invoke(
           "preference:set",
           "system",
           "localStorageMigrated",
@@ -658,7 +693,7 @@ export const useAppStore = defineStore("app", {
         );
         logger.info("[AppStore] Migration complete");
       } catch (error) {
-        logger.error("[AppStore] Migration failed:", error);
+        logger.error("[AppStore] Migration failed:", error as any);
       }
     },
   },

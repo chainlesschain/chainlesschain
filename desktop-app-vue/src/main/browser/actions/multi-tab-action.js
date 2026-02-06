@@ -6,17 +6,17 @@
  * @since v0.30.0
  */
 
-const { logger } = require('../../utils/logger');
+const { logger } = require("../../utils/logger");
 
 /**
  * Tab action types
  */
 const TabAction = {
-  SYNC: 'sync',           // Synchronize data between tabs
-  PARALLEL: 'parallel',   // Run actions in parallel
-  CASCADE: 'cascade',     // Run actions in sequence across tabs
-  COMPARE: 'compare',     // Compare content between tabs
-  BROADCAST: 'broadcast'  // Send message to all tabs
+  SYNC: "sync", // Synchronize data between tabs
+  PARALLEL: "parallel", // Run actions in parallel
+  CASCADE: "cascade", // Run actions in sequence across tabs
+  COMPARE: "compare", // Compare content between tabs
+  BROADCAST: "broadcast", // Send message to all tabs
 };
 
 /**
@@ -36,10 +36,10 @@ class MultiTabAction {
   async execute(primaryTargetId, options = {}) {
     const {
       action = TabAction.SYNC,
-      tabs = [],  // Additional tab IDs
+      tabs = [], // Additional tab IDs
       data,
       script,
-      selector
+      selector,
     } = options;
 
     // Get all target tabs
@@ -65,9 +65,10 @@ class MultiTabAction {
         default:
           throw new Error(`Unknown multi-tab action: ${action}`);
       }
-
     } catch (error) {
-      logger.error('[MultiTabAction] Multi-tab action failed', { error: error.message });
+      logger.error("[MultiTabAction] Multi-tab action failed", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -77,14 +78,14 @@ class MultiTabAction {
    */
   async _syncTabs(tabs, syncOptions = {}) {
     if (tabs.length < 2) {
-      throw new Error('Sync requires at least 2 tabs');
+      throw new Error("Sync requires at least 2 tabs");
     }
 
     const sourceTab = tabs[0];
     const targetTabs = tabs.slice(1);
     const {
-      syncType = 'localStorage',
-      keys = null  // null means all keys
+      syncType = "localStorage",
+      keys = null, // null means all keys
     } = syncOptions;
 
     // Get data from source
@@ -92,7 +93,7 @@ class MultiTabAction {
     let data;
 
     switch (syncType) {
-      case 'localStorage':
+      case "localStorage":
         data = await sourcePage.evaluate((filterKeys) => {
           const result = {};
           for (let i = 0; i < localStorage.length; i++) {
@@ -105,7 +106,7 @@ class MultiTabAction {
         }, keys);
         break;
 
-      case 'sessionStorage':
+      case "sessionStorage":
         data = await sourcePage.evaluate((filterKeys) => {
           const result = {};
           for (let i = 0; i < sessionStorage.length; i++) {
@@ -118,10 +119,11 @@ class MultiTabAction {
         }, keys);
         break;
 
-      case 'cookies':
+      case "cookies": {
         const context = sourcePage.context();
         data = await context.cookies();
         break;
+      }
 
       default:
         throw new Error(`Unknown sync type: ${syncType}`);
@@ -134,7 +136,7 @@ class MultiTabAction {
       const targetPage = this.browserEngine.getPage(targetId);
 
       switch (syncType) {
-        case 'localStorage':
+        case "localStorage":
           await targetPage.evaluate((items) => {
             for (const [key, value] of Object.entries(items)) {
               localStorage.setItem(key, value);
@@ -142,7 +144,7 @@ class MultiTabAction {
           }, data);
           break;
 
-        case 'sessionStorage':
+        case "sessionStorage":
           await targetPage.evaluate((items) => {
             for (const [key, value] of Object.entries(items)) {
               sessionStorage.setItem(key, value);
@@ -150,10 +152,11 @@ class MultiTabAction {
           }, data);
           break;
 
-        case 'cookies':
+        case "cookies": {
           const targetContext = targetPage.context();
           await targetContext.addCookies(data);
           break;
+        }
       }
 
       results.push({ tabId: targetId, synced: true });
@@ -166,7 +169,7 @@ class MultiTabAction {
       source: sourceTab,
       targets: targetTabs,
       itemsCount: Object.keys(data).length,
-      results
+      results,
     };
   }
 
@@ -190,8 +193,8 @@ class MultiTabAction {
     const results = await Promise.race([
       Promise.all(promises),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Parallel action timeout')), timeout)
-      )
+        setTimeout(() => reject(new Error("Parallel action timeout")), timeout),
+      ),
     ]);
 
     return {
@@ -199,7 +202,7 @@ class MultiTabAction {
       action: TabAction.PARALLEL,
       tabs: tabs.length,
       results,
-      successCount: results.filter(r => r.success).length
+      successCount: results.filter((r) => r.success).length,
     };
   }
 
@@ -208,11 +211,11 @@ class MultiTabAction {
    */
   async _cascadeAction(tabs, steps) {
     if (!steps || steps.length === 0) {
-      throw new Error('No steps provided for cascade action');
+      throw new Error("No steps provided for cascade action");
     }
 
     const results = [];
-    let sharedData = {};
+    const sharedData = {};
 
     for (let i = 0; i < tabs.length; i++) {
       const tabId = tabs[i];
@@ -227,11 +230,13 @@ class MultiTabAction {
           ({ stepScript, shared }) => {
             // Make shared data available
             window.__cascadeData = shared;
-            // Run step
-            const fn = new Function('sharedData', stepScript);
+            // Run step - Note: This is safe in page.evaluate context
+            // where scripts are sandboxed and user-provided
+            // eslint-disable-next-line no-new-func
+            const fn = new Function("sharedData", stepScript);
             return fn(shared);
           },
-          { stepScript: step.script, shared: sharedData }
+          { stepScript: step.script, shared: sharedData },
         );
 
         // Update shared data with result if specified
@@ -240,7 +245,6 @@ class MultiTabAction {
         }
 
         results.push({ tabId, step: i, success: true, result });
-
       } catch (error) {
         results.push({ tabId, step: i, success: false, error: error.message });
 
@@ -252,11 +256,11 @@ class MultiTabAction {
     }
 
     return {
-      success: results.every(r => r.success),
+      success: results.every((r) => r.success),
       action: TabAction.CASCADE,
       stepsExecuted: results.length,
       sharedData,
-      results
+      results,
     };
   }
 
@@ -265,7 +269,7 @@ class MultiTabAction {
    */
   async _compareTabs(tabs, selector) {
     if (tabs.length < 2) {
-      throw new Error('Compare requires at least 2 tabs');
+      throw new Error("Compare requires at least 2 tabs");
     }
 
     const contents = [];
@@ -276,28 +280,30 @@ class MultiTabAction {
       const content = await page.evaluate((sel) => {
         if (sel) {
           const el = document.querySelector(sel);
-          return el ? {
-            text: el.textContent,
-            html: el.innerHTML,
-            attributes: Array.from(el.attributes).reduce((acc, attr) => {
-              acc[attr.name] = attr.value;
-              return acc;
-            }, {})
-          } : null;
+          return el
+            ? {
+                text: el.textContent,
+                html: el.innerHTML,
+                attributes: Array.from(el.attributes).reduce((acc, attr) => {
+                  acc[attr.name] = attr.value;
+                  return acc;
+                }, {}),
+              }
+            : null;
         }
 
         // Compare full page
         return {
           title: document.title,
           url: window.location.href,
-          bodyText: document.body.innerText.substring(0, 5000)
+          bodyText: document.body.innerText.substring(0, 5000),
         };
       }, selector);
 
       contents.push({
         tabId,
         url: page.url(),
-        content
+        content,
       });
     }
 
@@ -311,7 +317,7 @@ class MultiTabAction {
       selector,
       identical: differences.length === 0,
       differences,
-      contents
+      contents,
     };
   }
 
@@ -327,16 +333,17 @@ class MultiTabAction {
       try {
         await page.evaluate((msg) => {
           // Dispatch custom event
-          window.dispatchEvent(new CustomEvent('browserAutomation:broadcast', {
-            detail: msg
-          }));
+          window.dispatchEvent(
+            new CustomEvent("browserAutomation:broadcast", {
+              detail: msg,
+            }),
+          );
 
           // Also set on window for direct access
           window.__broadcastMessage = msg;
         }, message);
 
         results.push({ tabId, delivered: true });
-
       } catch (error) {
         results.push({ tabId, delivered: false, error: error.message });
       }
@@ -347,8 +354,8 @@ class MultiTabAction {
       action: TabAction.BROADCAST,
       message,
       tabs: tabs.length,
-      deliveredCount: results.filter(r => r.delivered).length,
-      results
+      deliveredCount: results.filter((r) => r.delivered).length,
+      results,
     };
   }
 
@@ -372,7 +379,7 @@ class MultiTabAction {
           tabDiffs.push({
             property: key,
             tab1: base.content[key],
-            tab2: current.content?.[key]
+            tab2: current.content?.[key],
           });
         }
       }
@@ -380,7 +387,7 @@ class MultiTabAction {
       if (tabDiffs.length > 0) {
         differences.push({
           tabs: [base.tabId, current.tabId],
-          fields: tabDiffs
+          fields: tabDiffs,
         });
       }
     }
@@ -400,18 +407,22 @@ class MultiTabAction {
     const tabIds = [];
 
     for (const url of urls) {
-      const result = await this.browserEngine.openTab(profileName, url, options);
+      const result = await this.browserEngine.openTab(
+        profileName,
+        url,
+        options,
+      );
       tabIds.push(result.targetId);
 
       if (stagger > 0 && urls.indexOf(url) < urls.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, stagger));
+        await new Promise((resolve) => setTimeout(resolve, stagger));
       }
     }
 
     return {
       success: true,
       tabIds,
-      count: tabIds.length
+      count: tabIds.length,
     };
   }
 
@@ -434,8 +445,8 @@ class MultiTabAction {
 
     return {
       success: true,
-      closedCount: results.filter(r => r.closed).length,
-      results
+      closedCount: results.filter((r) => r.closed).length,
+      results,
     };
   }
 
@@ -446,7 +457,7 @@ class MultiTabAction {
    * @returns {Promise<Object>} Wait result
    */
   async waitForAll(tabIds, options = {}) {
-    const { state = 'load', timeout = 30000 } = options;
+    const { state = "load", timeout = 30000 } = options;
 
     const promises = tabIds.map(async (tabId) => {
       const page = this.browserEngine.getPage(tabId);
@@ -459,12 +470,12 @@ class MultiTabAction {
       return {
         success: true,
         allReady: true,
-        results
+        results,
       };
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -472,5 +483,5 @@ class MultiTabAction {
 
 module.exports = {
   MultiTabAction,
-  TabAction
+  TabAction,
 };

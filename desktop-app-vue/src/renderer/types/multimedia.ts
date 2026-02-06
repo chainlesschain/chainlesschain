@@ -464,14 +464,6 @@ export interface TaskMetadata {
 // ==================== 组件Props类型 ====================
 
 /**
- * ProgressMonitor组件Props
- */
-export interface ProgressMonitorProps {
-  /** 最多保留的已完成任务数 */
-  maxCompletedTasks?: number;
-}
-
-/**
  * MediaProcessor组件Props
  */
 export interface MediaProcessorProps {
