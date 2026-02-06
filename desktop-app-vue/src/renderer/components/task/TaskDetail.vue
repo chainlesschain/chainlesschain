@@ -345,7 +345,7 @@ const task = computed(() => taskStore.currentTask);
 const activeTab = ref('detail');
 const editing = ref(false);
 const editForm = ref({});
-const workspaceMembers = ref([]); // TODO: Load from workspace store
+const workspaceMembers = computed(() => workspaceStore.currentWorkspaceMembers || []);
 
 // Computed
 const isOverdue = computed(() => {

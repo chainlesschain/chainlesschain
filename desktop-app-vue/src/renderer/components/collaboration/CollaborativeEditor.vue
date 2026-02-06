@@ -201,6 +201,7 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons-vue';
 import * as monaco from 'monaco-editor';
+import { useIdentityStore } from '@/stores/identityStore';
 
 const props = defineProps({
   knowledgeId: {
@@ -226,6 +227,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['content-changed', 'save', 'user-joined', 'user-left']);
+
+// Stores
+const identityStore = useIdentityStore();
 
 // Refs
 const editorContainer = ref(null);
@@ -448,7 +452,7 @@ async function saveSnapshot() {
       docId: props.knowledgeId,
       metadata: {
         description,
-        author: 'Current User', // TODO: Get from user profile
+        author: identityStore.currentIdentity?.display_name || identityStore.currentUserDID || 'Anonymous',
         timestamp: Date.now()
       }
     });

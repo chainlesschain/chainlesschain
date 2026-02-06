@@ -21,6 +21,7 @@ import com.chainlesschain.android.core.database.dao.call.CallHistoryDao
 import com.chainlesschain.android.core.database.dao.ModerationQueueDao
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
+import com.chainlesschain.android.core.database.dao.TaskDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
 import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
@@ -49,6 +50,7 @@ import com.chainlesschain.android.core.database.entity.call.CallHistoryEntity
 import com.chainlesschain.android.core.database.entity.ModerationQueueEntity
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileImportHistoryEntity
+import com.chainlesschain.android.core.database.entity.TaskEntity
 import com.chainlesschain.android.core.database.fts.ProjectFileFts
 import com.chainlesschain.android.core.database.util.Converters
 
@@ -93,8 +95,10 @@ import com.chainlesschain.android.core.database.util.Converters
         CallHistoryEntity::class,
         // AI审核功能实体
         ModerationQueueEntity::class,
+        // 任务功能实体
+        TaskEntity::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -145,6 +149,9 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
 
     // AI审核功能DAO
     abstract fun moderationQueueDao(): ModerationQueueDao
+
+    // 任务功能DAO
+    abstract fun taskDao(): TaskDao
 
     companion object {
         const val DATABASE_NAME = "chainlesschain.db"

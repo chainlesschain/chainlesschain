@@ -187,6 +187,7 @@ import {
   PaperclipOutlined
 } from '@ant-design/icons-vue';
 import { useTaskStore } from '../../stores/task';
+import { useWorkspaceStore } from '../../stores/workspace';
 
 // Props
 const props = defineProps({
@@ -205,6 +206,7 @@ const emit = defineEmits(['click', 'edit', 'delete', 'assign']);
 
 // Stores
 const taskStore = useTaskStore();
+const workspaceStore = useWorkspaceStore();
 
 // Computed
 const isOverdue = computed(() => {
@@ -298,7 +300,12 @@ function getDueDateTooltip() {
 }
 
 function getAssignedUserName() {
-  // TODO: 从用户信息获取真实姓名
+  // 从工作区成员信息获取真实姓名
+  const members = workspaceStore.currentWorkspaceMembers || [];
+  const member = members.find(m => m.member_did === props.task.assigned_to || m.did === props.task.assigned_to);
+  if (member) {
+    return member.display_name || member.nickname || member.name || props.task.assigned_to;
+  }
   return props.task.assigned_to;
 }
 
@@ -313,7 +320,15 @@ function getAvatarColor(did) {
 }
 
 function getAvatarText(did) {
-  // TODO: 从用户信息获取真实姓名首字母
+  // 从工作区成员信息获取真实姓名首字母
+  const members = workspaceStore.currentWorkspaceMembers || [];
+  const member = members.find(m => m.member_did === did || m.did === did);
+  if (member) {
+    const name = member.display_name || member.nickname || member.name;
+    if (name) {
+      return name.substring(0, 2).toUpperCase();
+    }
+  }
   return did.substring(0, 2).toUpperCase();
 }
 </script>

@@ -236,7 +236,11 @@ const sortedComments = computed(() => {
 
 // Methods
 function getAuthorName(authorDID) {
-  // TODO: 从用户信息获取真实姓名
+  // 从工作区成员信息获取真实姓名
+  const member = props.workspaceMembers.find(m => m.member_did === authorDID || m.did === authorDID);
+  if (member) {
+    return member.display_name || member.nickname || member.name || authorDID.substring(0, 10) + '...';
+  }
   return authorDID.substring(0, 10) + '...';
 }
 

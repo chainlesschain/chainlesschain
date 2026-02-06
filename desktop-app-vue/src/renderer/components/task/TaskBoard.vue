@@ -334,10 +334,14 @@ import {
 import TaskCard from './TaskCard.vue';
 import { useTaskStore } from '../../stores/task';
 import { useWorkspaceStore } from '../../stores/workspace';
+import { useProjectStore } from '../../stores/project';
+import { useRoute } from 'vue-router';
 
 // Stores
 const taskStore = useTaskStore();
 const workspaceStore = useWorkspaceStore();
+const projectStore = useProjectStore();
+const route = useRoute();
 
 // State
 const selectedBoardId = ref(null);
@@ -408,7 +412,19 @@ const columnTasks = computed(() => {
     cancelled: []
   };
 
+  // 获取搜索关键词进行本地过滤
+  const keyword = searchKeyword.value.toLowerCase().trim();
+
   taskStore.tasks.forEach(task => {
+    // 如果有搜索关键词，过滤不匹配的任务
+    if (keyword) {
+      const matchTitle = task.title?.toLowerCase().includes(keyword);
+      const matchDescription = task.description?.toLowerCase().includes(keyword);
+      const matchLabels = task.labels?.some(label => label.toLowerCase().includes(keyword));
+      if (!matchTitle && !matchDescription && !matchLabels) {
+        return;
+      }
+    }
     if (grouped[task.status]) {
       grouped[task.status].push(task);
     }
@@ -427,7 +443,16 @@ function filterBy(type, value) {
 }
 
 function handleSearch() {
-  // TODO: 实现搜索功能
+  // 实现搜索功能 - 根据关键词过滤任务
+  const keyword = searchKeyword.value.toLowerCase().trim();
+  if (keyword) {
+    taskStore.updateFilters({ keyword });
+  } else {
+    // 清空搜索时移除关键词过滤
+    const { keyword: _, ...restFilters } = taskStore.filters;
+    taskStore.filters = restFilters;
+    taskStore.loadTasks();
+  }
   logger.info('Search:', searchKeyword.value);
 }
 
@@ -484,7 +509,7 @@ async function handleSaveTask() {
 
   const taskData = {
     ...taskFormData.value,
-    project_id: 'current-project-id', // TODO: Get from context
+    project_id: route.params.projectId || projectStore.currentProject?.id || null,
     workspace_id: workspaceStore.currentWorkspaceId,
     org_id: workspaceStore.currentWorkspace?.org_id,
     due_date: taskFormData.value.due_date ? taskFormData.value.due_date.getTime() : null

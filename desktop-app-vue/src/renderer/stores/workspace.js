@@ -2,6 +2,7 @@ import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
+import { useIdentityStore } from './identityStore';
 
 /**
  * 工作区管理Store - Phase 1
@@ -88,10 +89,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     if (!currentWorkspace.value || !currentWorkspaceMembers.value.length) {
       return null;
     }
-    // TODO: 需要获取当前用户DID
-    // const currentMember = currentWorkspaceMembers.value.find(m => m.member_did === currentUserDID);
-    // return currentMember?.role;
-    return 'admin'; // 临时返回
+    // 获取当前用户DID
+    const identityStore = useIdentityStore();
+    const currentUserDID = identityStore.currentUserDID;
+    if (!currentUserDID) {
+      return null;
+    }
+    const currentMember = currentWorkspaceMembers.value.find(m => m.member_did === currentUserDID);
+    return currentMember?.role || null;
   });
 
   // ==================== Actions ====================

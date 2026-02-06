@@ -114,13 +114,17 @@ class DataChannelTransportTest {
             messageId = "msg_1",
             fragmentIndex = 2,
             totalFragments = 5,
-            data = "fragment data"
+            data = "fragment data",
+            fromDeviceId = "sender_device",
+            toDeviceId = "receiver_device"
         )
 
         assertEquals("msg_1", fragment.messageId)
         assertEquals(2, fragment.fragmentIndex)
         assertEquals(5, fragment.totalFragments)
         assertEquals("fragment data", fragment.data)
+        assertEquals("sender_device", fragment.fromDeviceId)
+        assertEquals("receiver_device", fragment.toDeviceId)
     }
 
     @Test
@@ -131,6 +135,19 @@ class DataChannelTransportTest {
         assertEquals(0, firstFragment.fragmentIndex)
         assertEquals(2, lastFragment.fragmentIndex)
         assertEquals(3, firstFragment.totalFragments)
+    }
+
+    @Test
+    fun `MessageFragment should have default empty device IDs for backward compatibility`() {
+        val fragment = MessageFragment(
+            messageId = "msg_1",
+            fragmentIndex = 0,
+            totalFragments = 1,
+            data = "data"
+        )
+
+        assertEquals("", fragment.fromDeviceId)
+        assertEquals("", fragment.toDeviceId)
     }
 
     // ===== 辅助方法 =====

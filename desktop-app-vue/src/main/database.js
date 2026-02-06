@@ -3850,7 +3850,7 @@ class DatabaseManager {
         .get();
 
       // 定义最新迁移版本号
-      const LATEST_VERSION = 5; // 增加版本号当有新迁移时（v5: email_drafts 表）
+      const LATEST_VERSION = 6; // 增加版本号当有新迁移时（v6: browser_workflows 表 Phase 4-5）
 
       // BUGFIX: 总是检查关键列是否存在，即使版本号正确
       // 这确保了即使迁移版本号被更新但列没有添加的情况也能被修复
@@ -4407,6 +4407,36 @@ class DatabaseManager {
           logger.error(
             "[Database] 创建 Email 草稿系统表失败:",
             emailDraftsError,
+          );
+        }
+      }
+
+      // 迁移18: 浏览器自动化 Phase 4-5 (v0.30.0)
+      const browserWorkflowsTableExists = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='browser_workflows'",
+        )
+        .get();
+
+      if (!browserWorkflowsTableExists) {
+        logger.info("[Database] 创建浏览器自动化系统表 (Phase 4-5)...");
+        try {
+          const migrationSQL = fs.readFileSync(
+            path.join(
+              __dirname,
+              "database",
+              "migrations",
+              "018_browser_workflows.sql",
+            ),
+            "utf-8",
+          );
+          this.db.exec(migrationSQL);
+          this.saveToFile();
+          logger.info("[Database] ✓ 浏览器自动化系统表创建完成");
+        } catch (browserWorkflowsError) {
+          logger.error(
+            "[Database] 创建浏览器自动化系统表失败:",
+            browserWorkflowsError,
           );
         }
       }

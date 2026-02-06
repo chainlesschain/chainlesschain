@@ -5,6 +5,7 @@ import com.chainlesschain.android.core.p2p.config.P2PFeatureFlags
 import com.chainlesschain.android.core.p2p.connection.P2PConnection
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
+import com.chainlesschain.android.core.p2p.monitor.ConnectionQualityMonitor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -28,7 +29,8 @@ import javax.inject.Inject
  * 支持消息分片、优先级队列、自动重传
  */
 class DataChannelTransport @Inject constructor(
-    private val connection: P2PConnection
+    private val connection: P2PConnection,
+    private val qualityMonitor: ConnectionQualityMonitor
 ) : MessageTransport {
 
     companion object {
@@ -88,6 +90,9 @@ class DataChannelTransport @Inject constructor(
 
     // 待确认消息（消息ID -> 消息）
     private val pendingAcks = ConcurrentHashMap<String, P2PMessage>()
+
+    // 消息发送时间跟踪（用于计算RTT）
+    private val messageSendTimes = ConcurrentHashMap<String, Long>()
 
     // 消息发送队列（按优先级）
     private val messageQueues = mapOf(
@@ -180,10 +185,13 @@ class DataChannelTransport @Inject constructor(
 
                 if (message.requiresAck) {
                     pendingAcks[message.id] = message
+                    // 记录发送时间用于计算RTT
+                    messageSendTimes[message.id] = System.currentTimeMillis()
                 }
 
                 sentMessages.incrementAndGet()
                 totalBytes.addAndGet(payload.length.toLong())
+                qualityMonitor.recordMessageSent()
 
                 Log.d(TAG, "Message sent: ${message.id}")
                 true
@@ -289,12 +297,15 @@ class DataChannelTransport @Inject constructor(
     }
 
     override fun getStatistics(): TransportStatistics {
+        // 从质量监控器获取平均RTT
+        val avgLatency = qualityMonitor.connectionQuality.value.averageRttMs
+
         return TransportStatistics(
             sentMessages = sentMessages.get(),
             receivedMessages = receivedMessages.get(),
             failedMessages = failedMessages.get(),
             pendingAcks = pendingAcks.size,
-            averageLatency = 0, // TODO: 实现延迟统计
+            averageLatency = avgLatency,
             totalBytes = totalBytes.get()
         )
     }
@@ -328,7 +339,9 @@ class DataChannelTransport @Inject constructor(
                 messageId = message.id,
                 fragmentIndex = i,
                 totalFragments = totalChunks,
-                data = chunk
+                data = chunk,
+                fromDeviceId = message.fromDeviceId,
+                toDeviceId = message.toDeviceId
             )
 
             val fragmentMessage = P2PMessage(
@@ -351,6 +364,13 @@ class DataChannelTransport @Inject constructor(
 
         sentMessages.incrementAndGet()
         totalBytes.addAndGet(payload.length.toLong())
+        qualityMonitor.recordMessageSent()
+
+        // 记录发送时间（用于分片消息的整体RTT计算）
+        if (message.requiresAck) {
+            pendingAcks[message.id] = message
+            messageSendTimes[message.id] = System.currentTimeMillis()
+        }
 
         return true
     }
@@ -421,7 +441,17 @@ class DataChannelTransport @Inject constructor(
         val removed = pendingAcks.remove(messageId)
         if (removed != null) {
             retransmissionManager.cancelRetransmission(messageId)
-            Log.d(TAG, "ACK received for message: $messageId")
+
+            // 计算RTT并报告给质量监控器
+            val sendTime = messageSendTimes.remove(messageId)
+            if (sendTime != null) {
+                val rttMs = System.currentTimeMillis() - sendTime
+                qualityMonitor.recordMessageAcked(rttMs)
+                Log.d(TAG, "ACK received for message: $messageId (RTT: ${rttMs}ms)")
+            } else {
+                qualityMonitor.recordMessageAcked()
+                Log.d(TAG, "ACK received for message: $messageId")
+            }
         }
 
         // 清理已完成的发送分片上下文
@@ -464,11 +494,14 @@ class DataChannelTransport @Inject constructor(
             val sortedFragments = context.fragments.sortedBy { it.fragmentIndex }
             val completePayload = sortedFragments.joinToString("") { it.data }
 
+            // 从第一个分片提取设备ID
+            val firstFragment = sortedFragments.first()
+
             // 创建完整消息
             val completeMessage = P2PMessage(
                 id = messageId,
-                fromDeviceId = "", // 从原始分片中提取
-                toDeviceId = "",
+                fromDeviceId = firstFragment.fromDeviceId,
+                toDeviceId = firstFragment.toDeviceId,
                 type = MessageType.TEXT,
                 payload = completePayload,
                 requiresAck = false
@@ -477,7 +510,7 @@ class DataChannelTransport @Inject constructor(
             fragmentCache.remove(messageId)
             processMessage(completeMessage)
 
-            Log.i(TAG, "Message reassembled: $messageId (${sortedFragments.size} fragments)")
+            Log.i(TAG, "Message reassembled: $messageId (${sortedFragments.size} fragments, from: ${firstFragment.fromDeviceId})")
         }
     }
 
@@ -869,6 +902,7 @@ class DataChannelTransport @Inject constructor(
         clearQueue()
         fragmentCache.clear()
         sentFragments.clear()
+        messageSendTimes.clear()
         retransmissionManager.cancelAll()
         scope.cancel()
     }
@@ -939,7 +973,13 @@ data class MessageFragment(
     val totalFragments: Int,
 
     /** 分片数据 */
-    val data: String
+    val data: String,
+
+    /** 发送方设备ID（用于重组时恢复） */
+    val fromDeviceId: String = "",
+
+    /** 接收方设备ID（用于重组时恢复） */
+    val toDeviceId: String = ""
 )
 
 /**
