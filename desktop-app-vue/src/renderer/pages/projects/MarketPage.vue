@@ -738,8 +738,8 @@ const handleBackToProjects = () => {
 
 // 查看详情
 const handleViewDetail = (projectId) => {
-  message.info("项目详情页开发中...");
-  // TODO: 跳转到项目详情页
+  // 跳转到项目详情页
+  router.push(`/projects/${projectId}`);
 };
 
 // 购买项目

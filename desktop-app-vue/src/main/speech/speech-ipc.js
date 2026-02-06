@@ -181,6 +181,22 @@ function registerSpeechIPC({ initializeSpeechManager }) {
     }
   });
 
+  /**
+   * 搜索转录历史
+   */
+  ipcMain.handle(
+    "speech:search-history",
+    async (_event, query, options = {}) => {
+      try {
+        const manager = await initializeSpeechManager();
+        return await manager.searchHistory(query, options);
+      } catch (error) {
+        logger.error("[Speech] 搜索转录历史失败:", error);
+        throw error;
+      }
+    },
+  );
+
   // ============================================================
   // 音频文件管理操作 (5 handlers)
   // ============================================================

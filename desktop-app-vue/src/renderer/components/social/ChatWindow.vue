@@ -195,7 +195,7 @@
 import { logger, createLogger } from '@/utils/logger';
 
 import { ref, computed, nextTick, watch, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { useSocialStore } from '../../stores/social'
 import { useP2PCall } from '../../composables/useP2PCall'
 import ConversationList from './ConversationList.vue'
@@ -417,10 +417,23 @@ const handleScreenSourceSelect = async (source) => {
 
 const handlePinSession = async (session) => {
   try {
-    // TODO: 实现置顶功能
-    message.success(session.is_pinned ? '已取消置顶' : '已置顶')
+    const newPinnedState = session.is_pinned ? 0 : 1;
+    // 调用IPC更新置顶状态
+    await window.electron.ipcRenderer.invoke('chat:update-session', {
+      sessionId: session.id,
+      updates: { is_pinned: newPinnedState }
+    });
+
+    // 更新本地状态
+    session.is_pinned = newPinnedState;
+
+    // 刷新会话列表
+    await socialStore.loadChatSessions();
+
+    message.success(newPinnedState ? '已置顶' : '已取消置顶');
   } catch (error) {
-    message.error('操作失败')
+    logger.error('置顶操作失败:', error);
+    message.error('操作失败');
   }
 }
 
@@ -434,8 +447,34 @@ const handleMarkRead = async (session) => {
 }
 
 const handleDeleteSession = (session) => {
-  // TODO: 实现删除会话
-  message.info('删除会话功能即将实现')
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除与 ${session.participant_name || session.participant_did?.substring(0, 12) + '...'} 的聊天记录吗？此操作不可恢复。`,
+    okText: '删除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk: async () => {
+      try {
+        // 调用IPC删除会话
+        await window.electron.ipcRenderer.invoke('chat:delete-session', session.id);
+
+        // 如果删除的是当前会话，清空当前会话
+        if (currentSession.value?.id === session.id) {
+          currentSession.value = null;
+          socialStore.currentChatSession = null;
+          socialStore.currentMessages = [];
+        }
+
+        // 刷新会话列表
+        await socialStore.loadChatSessions();
+
+        message.success('会话已删除');
+      } catch (error) {
+        logger.error('删除会话失败:', error);
+        message.error('删除失败');
+      }
+    }
+  });
 }
 
 const loadMoreMessages = async () => {

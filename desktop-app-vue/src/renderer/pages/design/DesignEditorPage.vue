@@ -116,6 +116,7 @@
                   :value="Math.round(selectedObjects[0].left)"
                   size="small"
                   style="width: 100%"
+                  @change="(value) => updateObjectPosition('left', value)"
                 />
               </div>
               <div class="property-item">
@@ -124,6 +125,7 @@
                   :value="Math.round(selectedObjects[0].top)"
                   size="small"
                   style="width: 100%"
+                  @change="(value) => updateObjectPosition('top', value)"
                 />
               </div>
               <div class="property-item">
@@ -132,6 +134,7 @@
                   :value="Math.round(selectedObjects[0].width)"
                   size="small"
                   style="width: 100%"
+                  @change="(value) => updateObjectDimension('width', value)"
                 />
               </div>
               <div class="property-item">
@@ -140,6 +143,7 @@
                   :value="Math.round(selectedObjects[0].height)"
                   size="small"
                   style="width: 100%"
+                  @change="(value) => updateObjectDimension('height', value)"
                 />
               </div>
             </div>
@@ -307,10 +311,118 @@ function handleSelectionChanged(objects) {
 /**
  * 更新对象名称
  */
-function updateObjectName(event) {
+async function updateObjectName(event) {
   const newName = event.target.value;
-  logger.info('[DesignEditorPage] Update object name:', newName);
-  // TODO: 实现更新逻辑
+
+  if (!selectedObjects.value.length || !selectedObjects.value[0]?.id) {
+    return;
+  }
+
+  const objectId = selectedObjects.value[0].id;
+
+  try {
+    // 更新数据库中的对象名称
+    await designStore.updateObjectProperties(objectId, { name: newName });
+
+    // 更新本地 selectedObjects 状态
+    selectedObjects.value[0].name = newName;
+
+    // 更新画布中对象的名称
+    if (canvasRef.value?.fabricCanvas?.value) {
+      const canvas = canvasRef.value.fabricCanvas.value;
+      const objects = canvas.getObjects();
+      const targetObj = objects.find(obj => obj.id === objectId);
+      if (targetObj) {
+        targetObj.set('name', newName);
+      }
+    }
+
+    logger.info('[DesignEditorPage] Object name updated:', newName);
+  } catch (error) {
+    logger.error('[DesignEditorPage] Failed to update object name:', error);
+  }
+}
+
+/**
+ * 更新对象位置
+ */
+async function updateObjectPosition(property, value) {
+  if (!selectedObjects.value.length || !selectedObjects.value[0]?.id) {
+    return;
+  }
+
+  const objectId = selectedObjects.value[0].id;
+
+  try {
+    // 更新画布中对象的位置
+    if (canvasRef.value?.fabricCanvas?.value) {
+      const canvas = canvasRef.value.fabricCanvas.value;
+      const objects = canvas.getObjects();
+      const targetObj = objects.find(obj => obj.id === objectId);
+      if (targetObj) {
+        targetObj.set(property, value);
+        targetObj.setCoords();
+        canvas.renderAll();
+
+        // 获取更新后的 fabric JSON 并保存
+        const fabricJson = targetObj.toJSON(['id', 'name']);
+        await designStore.updateObjectProperties(objectId, { fabricJson });
+
+        // 更新本地状态
+        selectedObjects.value[0][property] = value;
+      }
+    }
+
+    logger.info(`[DesignEditorPage] Object ${property} updated:`, value);
+  } catch (error) {
+    logger.error('[DesignEditorPage] Failed to update object position:', error);
+  }
+}
+
+/**
+ * 更新对象尺寸
+ */
+async function updateObjectDimension(property, value) {
+  if (!selectedObjects.value.length || !selectedObjects.value[0]?.id) {
+    return;
+  }
+
+  const objectId = selectedObjects.value[0].id;
+
+  try {
+    // 更新画布中对象的尺寸
+    if (canvasRef.value?.fabricCanvas?.value) {
+      const canvas = canvasRef.value.fabricCanvas.value;
+      const objects = canvas.getObjects();
+      const targetObj = objects.find(obj => obj.id === objectId);
+      if (targetObj) {
+        // 计算新的 scale 值
+        const currentValue = property === 'width' ? targetObj.width : targetObj.height;
+        const currentScale = property === 'width' ? targetObj.scaleX : targetObj.scaleY;
+        const newScale = (value / currentValue) * (currentScale || 1);
+
+        if (property === 'width') {
+          targetObj.set('scaleX', newScale);
+        } else {
+          targetObj.set('scaleY', newScale);
+        }
+
+        targetObj.setCoords();
+        canvas.renderAll();
+
+        // 获取更新后的 fabric JSON 并保存
+        const fabricJson = targetObj.toJSON(['id', 'name']);
+        await designStore.updateObjectProperties(objectId, { fabricJson });
+
+        // 更新本地状态
+        selectedObjects.value[0][property] = value;
+      }
+    }
+
+    logger.info(`[DesignEditorPage] Object ${property} updated:`, value);
+  } catch (error) {
+    logger.error('[DesignEditorPage] Failed to update object dimension:', error);
+  }
 }
 
 /**

@@ -244,6 +244,7 @@ const commentsVisible = ref(false);
 const saving = ref(false);
 const newCommentText = ref('');
 const currentVersionId = ref(null);
+const replyingToComment = ref(null); // 当前正在回复的评论
 
 // Computed
 const commentCount = computed(() => {
@@ -587,8 +588,49 @@ async function addComment() {
 
 // Reply to comment
 function replyToComment(commentId) {
-  // TODO: Implement reply functionality
-  message.info('Reply feature coming soon');
+  // 设置正在回复的评论
+  const comment = comments.value.find(c => c.id === commentId);
+  if (comment) {
+    replyingToComment.value = comment;
+    newCommentText.value = `@${comment.author || 'User'} `;
+    // 聚焦到评论输入框
+    message.info('请输入回复内容');
+  }
+}
+
+// 取消回复
+function cancelReply() {
+  replyingToComment.value = null;
+  newCommentText.value = '';
+}
+
+// 发送回复
+async function submitReply() {
+  if (!replyingToComment.value || !newCommentText.value.trim()) {
+    return;
+  }
+
+  try {
+    const result = await window.electron.ipcRenderer.invoke('knowledge:add-comment', {
+      knowledgeId: props.knowledgeId,
+      orgId: props.organizationId,
+      content: newCommentText.value,
+      parentId: replyingToComment.value.id, // 父评论ID
+      positionStart: replyingToComment.value.positionStart,
+      positionEnd: replyingToComment.value.positionEnd
+    });
+
+    if (result.success) {
+      message.success('Reply added');
+      cancelReply();
+      await loadComments();
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (error) {
+    logger.error('Error adding reply:', error);
+    message.error('Failed to add reply');
+  }
 }
 
 // Resolve comment

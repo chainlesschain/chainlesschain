@@ -350,7 +350,8 @@
 import { logger, createLogger } from '@/utils/logger';
 
 import { ref, onMounted, computed } from "vue";
-import { message } from "ant-design-vue";
+import { useRouter } from "vue-router";
+import { message, Modal } from "ant-design-vue";
 import {
   SoundOutlined,
   ReloadOutlined,
@@ -358,6 +359,8 @@ import {
   EditOutlined,
 } from "@ant-design/icons-vue";
 import AudioFileUpload from "../components/speech/AudioFileUpload.vue";
+
+const router = useRouter();
 
 // 标签页
 const activeTab = ref("upload");
@@ -457,8 +460,29 @@ const loadHistory = async () => {
 
 // 搜索历史
 const searchHistory = async () => {
-  // TODO: 实现搜索功能
-  message.info("搜索功能开发中");
+  if (!searchQuery.value.trim()) {
+    await loadHistory();
+    return;
+  }
+
+  loading.value = true;
+  try {
+    const list = await window.electronAPI.speech.searchHistory(
+      searchQuery.value,
+      {
+        limit: pagination.value.pageSize,
+        offset: 0,
+      },
+    );
+    historyList.value = list || [];
+    pagination.value.current = 1;
+    pagination.value.total = list.length;
+  } catch (error) {
+    logger.error("搜索失败:", error);
+    message.error("搜索失败");
+  } finally {
+    loading.value = false;
+  }
 };
 
 // 加载音频文件库
@@ -615,9 +639,46 @@ const copyText = (text) => {
 
 // 插入文本
 const handleInsertText = (text) => {
-  // TODO: 实现插入到编辑器的功能
-  logger.info("插入文本:", text);
-  message.success("文本已准备插入");
+  Modal.confirm({
+    title: "选择目标位置",
+    content: "请选择要插入文本的位置：",
+    okText: "插入到 AI 对话",
+    cancelText: "保存到知识库",
+    onOk: () => {
+      // 保存到 localStorage 供 AI 对话页面使用
+      localStorage.setItem("pendingInsertText", JSON.stringify({
+        text,
+        source: "audio-transcription",
+        timestamp: Date.now(),
+      }));
+      router.push("/ai/chat");
+      message.success("已跳转到 AI 对话页面");
+    },
+    onCancel: () => {
+      // 保存到知识库 - 使用 IPC 调用
+      saveToKnowledge(text);
+    },
+  });
+};
+
+// 保存到知识库
+const saveToKnowledge = async (text) => {
+  try {
+    const result = await window.electron.ipcRenderer.invoke("knowledge:create", {
+      title: `转录文本 ${new Date().toLocaleString()}`,
+      content: text,
+      type: "note",
+      tags: ["音频转录"],
+    });
+    if (result.success) {
+      message.success("已保存到知识库");
+    } else {
+      message.error("保存失败: " + (result.error || "未知错误"));
+    }
+  } catch (error) {
+    logger.error("保存到知识库失败:", error);
+    message.error("保存失败: " + error.message);
+  }
 };
 
 // 保存设置

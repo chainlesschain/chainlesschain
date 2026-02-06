@@ -357,6 +357,34 @@ function registerCoworkIPC(dependencies = {}) {
   });
 
   /**
+   * 暂停团队
+   */
+  ipcMain.handle("cowork:pause-team", async (event, { teamId }) => {
+    try {
+      logger.info(`[Cowork IPC] 暂停团队: ${teamId}`);
+      const result = await teammateTool.pauseTeam(teamId);
+      return { success: true, result };
+    } catch (error) {
+      logger.error(`[Cowork IPC] 暂停团队失败: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 恢复团队
+   */
+  ipcMain.handle("cowork:resume-team", async (event, { teamId }) => {
+    try {
+      logger.info(`[Cowork IPC] 恢复团队: ${teamId}`);
+      const result = await teammateTool.resumeTeam(teamId);
+      return { success: true, result };
+    } catch (error) {
+      logger.error(`[Cowork IPC] 恢复团队失败: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
    * 获取统计信息
    */
   ipcMain.handle("cowork:get-stats", async (event) => {

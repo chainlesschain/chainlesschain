@@ -1746,6 +1746,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getHistory: (limit, offset) =>
       ipcRenderer.invoke("speech:get-history", limit, offset),
     deleteHistory: (id) => ipcRenderer.invoke("speech:delete-history", id),
+    searchHistory: (query, options) =>
+      ipcRenderer.invoke("speech:search-history", query, options),
 
     // 音频文件管理
     getAudioFile: (id) => ipcRenderer.invoke("speech:get-audio-file", id),

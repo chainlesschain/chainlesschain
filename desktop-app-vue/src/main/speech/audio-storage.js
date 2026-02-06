@@ -384,6 +384,39 @@ class AudioStorage {
   }
 
   /**
+   * 搜索转录历史
+   * @param {string} query - 搜索关键词
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Array>}
+   */
+  async searchTranscriptionHistory(query, options = {}) {
+    const {
+      limit = 100,
+      offset = 0,
+    } = options;
+
+    const searchTerm = `%${query}%`;
+
+    const sql = `
+      SELECT h.*, a.file_name
+      FROM transcription_history h
+      LEFT JOIN audio_files a ON h.audio_file_id = a.id
+      WHERE h.text LIKE ?
+         OR a.file_name LIKE ?
+      ORDER BY h.created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    try {
+      const records = await this.db.all(sql, [searchTerm, searchTerm, limit, offset]);
+      return records || [];
+    } catch (error) {
+      logger.error('[AudioStorage] 搜索转录历史失败:', error);
+      throw error;
+    }
+  }
+
+  /**
    * 删除转录历史
    * @param {string} id - 历史记录ID
    * @returns {Promise<Object>}

@@ -380,9 +380,41 @@ export default {
       }
     };
 
-    const handleResend = (transfer) => {
-      // TODO: Implement resend
-      message.info('重新发送功能开发中...');
+    const handleResend = async (transfer) => {
+      // 只有失败的发送才能重发
+      if (transfer.direction !== 'upload' || transfer.status !== 'failed') {
+        message.warning('只能重新发送失败的文件');
+        return;
+      }
+
+      try {
+        // 重新发送文件
+        const transferId = await window.electron.invoke('p2p:send-file', {
+          peerId: transfer.peerId,
+          filePath: transfer.localPath,
+          fileName: transfer.fileName,
+          fileSize: transfer.fileSize,
+        });
+
+        // 添加新的传输记录
+        transfers.value.unshift({
+          id: transferId,
+          fileName: transfer.fileName,
+          fileSize: transfer.fileSize,
+          localPath: transfer.localPath,
+          direction: 'upload',
+          status: 'uploading',
+          progress: 0,
+          peerId: transfer.peerId,
+          peerName: transfer.peerName,
+          startTime: Date.now(),
+        });
+
+        message.success('正在重新发送文件...');
+      } catch (error) {
+        console.error('Resend file error:', error);
+        message.error('重新发送失败: ' + error.message);
+      }
     };
 
     const handleDelete = (transfer) => {

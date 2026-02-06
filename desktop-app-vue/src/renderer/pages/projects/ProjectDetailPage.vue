@@ -1632,10 +1632,15 @@ const handleFilePreviewFromModal = (file) => {
 // 从文件管理Modal下载文件
 const handleFileDownloadFromModal = async (file) => {
   try {
-    // TODO: 实现文件下载功能
     // 调用Electron API下载文件到用户指定位置
-    await window.electronAPI.file.saveAs(file.file_path);
-    message.success("文件下载成功");
+    const result = await window.electronAPI.file.saveAs(file.file_path);
+    if (result && result.success) {
+      message.success("文件下载成功");
+    } else if (result && result.canceled) {
+      // 用户取消了保存操作
+    } else {
+      message.error("下载失败");
+    }
   } catch (error) {
     logger.error("Download file failed:", error);
     message.error("下载失败：" + error.message);
@@ -1652,11 +1657,15 @@ const handleFileDeleteFromModal = async (file) => {
     cancelText: "取消",
     onOk: async () => {
       try {
-        // TODO: 实现文件删除功能
-        await window.electronAPI.project.deleteFile(projectId.value, file.id);
-        message.success("文件已删除");
-        // 刷新文件列表
-        await handleRefreshFiles();
+        // 调用Electron API删除项目文件
+        const result = await window.electronAPI.project.deleteFile(projectId.value, file.id);
+        if (result && result.success) {
+          message.success("文件已删除");
+          // 刷新文件列表
+          await handleRefreshFiles();
+        } else {
+          message.error("删除失败：" + (result?.error || "未知错误"));
+        }
       } catch (error) {
         logger.error("Delete file failed:", error);
         message.error("删除失败：" + error.message);
