@@ -369,7 +369,7 @@ class ChainlessChainApp {
   }
 
   /**
-   * 注册技能工�?IPC
+   * 注册技能工具 IPC
    */
   registerSkillToolIPC() {
     try {
@@ -485,14 +485,14 @@ class ChainlessChainApp {
   }
 
   /**
-   * 注册高级特�?IPC
+   * 注册高级特性 IPC
    */
   registerAdvancedFeaturesIPC() {
     // 这些将在 createWindow 后注册
   }
 
   /**
-   * 初始�?MCP 系统
+   * 初始化 MCP 系统
    */
   async initializeMCPSystem() {
     try {
