@@ -259,6 +259,34 @@ Extensible skill system with Markdown definitions:
 
 **Key Files**: `src/main/ai-engine/cowork/skills/index.js`, `src/main/ai-engine/cowork/skills/skills-ipc.js` (17 IPC handlers)
 
+### Browser Automation System
+
+**Status**: ✅ Implemented v0.29.0 | **Docs**: [`docs/design/modules/09_浏览器自动化系统.md`](docs/design/modules/09_浏览器自动化系统.md)
+
+Complete browser automation system with workflow editing, intelligent element location, and recording/playback:
+
+- **BrowserEngine** (~300 lines): Core automation engine, Puppeteer API compatible
+- **ElementLocator** (~450 lines): Multi-strategy element location (XPath/CSS/Text/Visual)
+- **SnapshotEngine** (~280 lines): Snapshot comparison and diagnostics
+- **RecordingEngine** (~250 lines): User action recording and playback
+- **SmartDiagnostics** (~350 lines): AI-powered diagnostics with auto-fix suggestions
+- **Performance**: 95%+ element location accuracy, <200ms snapshot comparison
+
+**Key Files**: `src/main/browser/browser-engine.js`, `src/main/browser/element-locator.js`, `src/main/browser/recording/recorder.js`
+
+### TypeScript Migration
+
+**Status**: ✅ Completed v0.29.0
+
+Full TypeScript migration for frontend state management:
+
+- **28 Pinia Stores**: All stores migrated to TypeScript (app.ts, auth.ts, session.ts, conversation.ts, llm.ts, task.ts, memory.ts, file.ts, workspace.ts, etc.)
+- **Type Safety**: Complete type definitions and interfaces
+- **IDE Support**: Full type inference and intelligent hints
+- **Compatibility**: Improved logger.info() call compatibility
+
+**Store Location**: `src/renderer/stores/*.ts`
+
 ## Architecture Overview
 
 ### Desktop Application Structure
@@ -295,6 +323,12 @@ desktop-app-vue/
 │   ├── did/               # DID identity system
 │   ├── p2p/               # P2P network (libp2p + Signal)
 │   │   └── webrtc-data-channel.js  # WebRTC data channel manager
+│   ├── browser/           # Browser automation system (v0.29.0)
+│   │   ├── browser-engine.js       # Core automation engine
+│   │   ├── element-locator.js      # Intelligent element location
+│   │   ├── actions/                # Automation actions (click, input, etc.)
+│   │   ├── diagnostics/            # Smart diagnostics and snapshots
+│   │   └── recording/              # Recording and playback
 │   ├── mcp/               # MCP integration
 │   ├── utils/             # Utility modules
 │   │   └── ipc-error-handler.js    # IPC error middleware
@@ -310,7 +344,7 @@ desktop-app-vue/
 └── src/renderer/          # Vue3 frontend
     ├── pages/             # Page components
     ├── components/        # Reusable components
-    └── stores/            # Pinia state management
+    └── stores/            # Pinia state management (28 TypeScript stores)
 ```
 
 ### Backend Services
@@ -336,10 +370,12 @@ SQLite with SQLCipher (AES-256). Key tables:
 
 ### Desktop App
 
-- **Electron**: 39.2.6, **Vue**: 3.4, **UI**: Ant Design Vue 4.1
+- **Electron**: 39.2.6, **Vue**: 3.4, **TypeScript**: 5.9.3, **UI**: Ant Design Vue 4.1
+- **State**: Pinia 2.1.7 (28 TypeScript stores)
 - **P2P**: libp2p 3.1.2, WebRTC (wrtc), **Crypto**: Signal Protocol
 - **Image**: Sharp, Tesseract.js, **Git**: isomorphic-git
 - **Search**: natural (BM25/TF-IDF), Qdrant (Vector)
+- **Browser Automation**: Custom engine with multi-strategy element location
 
 ### Backend
 
@@ -428,6 +464,8 @@ Example: `feat(rag): add reranker support`
 - **Hooks system**: `src/main/hooks/index.js`, `src/main/hooks/hook-registry.js`, `src/main/hooks/hook-executor.js`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`
 - **P2P/WebRTC**: `src/main/p2p/webrtc-data-channel.js`
+- **Browser automation**: `src/main/browser/browser-engine.js`, `src/main/browser/element-locator.js`, `src/main/browser/recording/`
+- **TypeScript stores**: `src/renderer/stores/*.ts` (28 stores)
 - **Docker**: `docker-compose.yml`, `docker-compose.cloud.yml`
 - **Hooks config**: `.chainlesschain/hooks.json`, `.chainlesschain/hooks/*.js`
 
@@ -459,7 +497,8 @@ Example: `feat(rag): add reranker support`
 
 ## Documentation References
 
-- **System Design**: `docs/design/系统设计_个人移动AI管理系统.md`
+- **System Design**: `docs/design/系统设计_主文档.md`, `docs/design/系统设计_个人移动AI管理系统.md`
+- **Browser Automation**: `docs/design/modules/09_浏览器自动化系统.md`
 - **Quick Start**: `QUICK_START.md`, `HOW_TO_RUN.md`
 - **README**: `README.md` (Chinese), `README_EN.md` (English)
 - **Memory System**: `docs/features/PERMANENT_MEMORY_INTEGRATION.md`

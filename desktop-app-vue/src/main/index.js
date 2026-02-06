@@ -189,14 +189,14 @@ class ChainlessChainApp {
       logger.info("[Main] templateManager status:", {
         exists: !!this.templateManager,
         type: typeof this.templateManager,
-        isFunction: typeof this.templateManager?.getAllTemplates === 'function'
+        isFunction: typeof this.templateManager?.getAllTemplates === "function",
       });
     } catch (error) {
       logger.error("[Main] Bootstrap 初始化失败", error);
       logger.error("[Main] Bootstrap 错误详情:", {
         name: error?.name,
         message: error?.message,
-        stack: error?.stack
+        stack: error?.stack,
       });
 
       // 显示致命错误对话框（暂时注释掉以便调试）
@@ -251,7 +251,7 @@ class ChainlessChainApp {
           },
         );
 
-        logger.info("[Main] ✓ ExternalDeviceFileManager 初始化完成);
+        logger.info("[Main] ✓ ExternalDeviceFileManager 初始化完成");
       } catch (error) {
         logger.error("[Main] ExternalDeviceFileManager 初始化失败", error);
       }
@@ -444,7 +444,7 @@ class ChainlessChainApp {
       registerTaskTrackerIPC();
       registerMultiAgentIPC({
         llmManager: this.llmManager,
-        functionCaller: null, // TODO: Initialize functionCaller
+        functionCaller: this.aiEngineManager?.functionCaller || null,
       });
 
       // Phase 4-5: Initialize and register Browser Workflow and Recording IPC
@@ -454,17 +454,28 @@ class ChainlessChainApp {
 
         // Initialize workflow system with browser engine and database
         if (this.database) {
-          initializeWorkflowSystem(browserEngine, this.database.db || this.database);
-          initializeRecordingSystem(browserEngine, this.database.db || this.database);
+          initializeWorkflowSystem(
+            browserEngine,
+            this.database.db || this.database,
+          );
+          initializeRecordingSystem(
+            browserEngine,
+            this.database.db || this.database,
+          );
         }
 
         // Register IPC handlers
         registerWorkflowIPC();
         registerRecordingIPC();
 
-        logger.info("[Main] Browser Workflow and Recording IPC registered (Phase 4-5)");
+        logger.info(
+          "[Main] Browser Workflow and Recording IPC registered (Phase 4-5)",
+        );
       } catch (browserError) {
-        logger.warn("[Main] Browser Workflow/Recording IPC registration skipped:", browserError.message);
+        logger.warn(
+          "[Main] Browser Workflow/Recording IPC registration skipped:",
+          browserError.message,
+        );
       }
 
       logger.info("[Main] 高级IPC handlers注册完成");
@@ -509,7 +520,7 @@ class ChainlessChainApp {
   /**
    * MCP 回退处理器   */
   registerMCPFallbackHandlers() {
-    logger.info("[Main] 注册MCP回退处理器);
+    logger.info("[Main] 注册MCP回退处理器");
     const disabledResponse = {
       success: false,
       error: "MCP system is disabled",
@@ -692,8 +703,7 @@ class ChainlessChainApp {
       logger.info("[Main] IPC Registry 注册完成");
     } catch (error) {
       logger.error("[Main] IPC Registry 注册失败:", error);
-    }
-    finally {
+    } finally {
       // Ensure critical auth/U-Key handlers exist even if non-critical IPC registration fails.
       try {
         const { registerUKeyIPC } = require("./ukey/ukey-ipc");
@@ -814,11 +824,11 @@ class ChainlessChainApp {
       return;
     }
     this.ukeyManager.on("device-inserted", () => {
-      logger.info("[Main] U-Key 设备已插入);
+      logger.info("[Main] U-Key 设备已插入");
       this.mainWindow?.webContents.send("ukey:device-inserted");
     });
     this.ukeyManager.on("device-removed", () => {
-      logger.info("[Main] U-Key 设备已移除);
+      logger.info("[Main] U-Key 设备已移除");
       this.mainWindow?.webContents.send("ukey:device-removed");
     });
   }

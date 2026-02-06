@@ -395,7 +395,7 @@ export class SmartImageLoader {
       };
 
       img.onerror = (error) => {
-        logger.error(`[SmartImage] Failed to load: ${src}`, error);
+        logger.error(`[SmartImage] Failed to load: ${src}`, { error });
         reject(error);
         this.loading.delete(src);
       };
