@@ -1,47 +1,192 @@
-import { logger, createLogger } from '@/utils/logger';
+/**
+ * File Store - 文件管理
+ * 负责文件上传、下载、共享、版本控制等功能
+ */
+
+import { logger } from '@/utils/logger';
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, type Ref, type ComputedRef } from 'vue';
 import { message } from 'ant-design-vue';
 import { useIdentityStore } from './identityStore';
 
+// ==================== 类型定义 ====================
+
 /**
- * 文件管理Store - Phase 2
- * 负责文件上传、下载、共享、版本控制等功能
+ * 文件锁定状态
  */
+export type FileLockStatus = 'unlocked' | 'locked' | 'exclusive';
+
+/**
+ * 文件类型
+ */
+export type FileType =
+  | 'document'
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'archive'
+  | 'code'
+  | 'spreadsheet'
+  | 'presentation'
+  | 'other';
+
+/**
+ * 文件
+ */
+export interface ProjectFile {
+  id: string;
+  name: string;
+  file_type: FileType;
+  size: number;
+  path: string;
+  hash?: string;
+  project_id?: string;
+  org_id?: string;
+  workspace_id?: string;
+  created_by: string;
+  lock_status: FileLockStatus;
+  locked_by?: string;
+  locked_at?: number;
+  lock_expires_at?: number;
+  version: number;
+  created_at: number;
+  updated_at: number;
+  [key: string]: any;
+}
+
+/**
+ * 文件版本
+ */
+export interface FileVersion {
+  id: string;
+  file_id: string;
+  version: number;
+  size: number;
+  hash: string;
+  created_by: string;
+  comment?: string;
+  created_at: number;
+}
+
+/**
+ * 文件共享
+ */
+export interface FileShare {
+  id: string;
+  file_id: string;
+  shared_by: string;
+  shared_with: string;
+  permission: 'view' | 'edit' | 'admin';
+  expires_at?: number;
+  created_at: number;
+}
+
+/**
+ * 文件上传数据
+ */
+export interface FileUploadData {
+  name: string;
+  path: string;
+  project_id?: string;
+  org_id?: string;
+  workspace_id?: string;
+  content?: ArrayBuffer | string;
+  [key: string]: any;
+}
+
+/**
+ * 文件共享数据
+ */
+export interface FileShareData {
+  file_id: string;
+  shared_with: string;
+  permission: 'view' | 'edit' | 'admin';
+  expires_at?: number;
+}
+
+/**
+ * 文件筛选条件
+ */
+export interface FileFilters {
+  project_id: string | null;
+  org_id: string | null;
+  workspace_id: string | null;
+  file_type: FileType | null;
+  locked: boolean | null;
+}
+
+/**
+ * 上传进度
+ */
+export interface UploadProgress {
+  [fileId: string]: number;
+}
+
+/**
+ * 按类型分组的文件
+ */
+export interface FilesByType {
+  [key: string]: ProjectFile[];
+}
+
+/**
+ * 文件统计
+ */
+export interface FileStats {
+  total: number;
+  locked: number;
+  shared: number;
+  byType: Record<string, number>;
+}
+
+/**
+ * IPC 结果
+ */
+interface IpcResult<T = any> {
+  success: boolean;
+  files?: ProjectFile[];
+  file?: ProjectFile;
+  versions?: FileVersion[];
+  share?: FileShare;
+  error?: string;
+}
+
+// ==================== Store ====================
+
 export const useFileStore = defineStore('file', () => {
   // ==================== State ====================
 
   // 文件列表
-  const files = ref([]);
+  const files: Ref<ProjectFile[]> = ref([]);
 
   // 当前查看的文件
-  const currentFile = ref(null);
+  const currentFile: Ref<ProjectFile | null> = ref(null);
 
   // 文件版本列表
-  const currentFileVersions = ref([]);
+  const currentFileVersions: Ref<FileVersion[]> = ref([]);
 
   // 共享文件列表
-  const sharedFiles = ref([]);
+  const sharedFiles: Ref<ProjectFile[]> = ref([]);
 
   // 上传进度
-  const uploadProgress = ref({});
+  const uploadProgress: Ref<UploadProgress> = ref({});
 
   // 加载状态
-  const loading = ref(false);
+  const loading: Ref<boolean> = ref(false);
 
   // 文件详情对话框可见性
-  const fileDetailVisible = ref(false);
+  const fileDetailVisible: Ref<boolean> = ref(false);
 
   // 版本查看器可见性
-  const versionViewerVisible = ref(false);
+  const versionViewerVisible: Ref<boolean> = ref(false);
 
   // 筛选条件
-  const filters = ref({
+  const filters: Ref<FileFilters> = ref({
     project_id: null,
     org_id: null,
     workspace_id: null,
     file_type: null,
-    locked: null
+    locked: null,
   });
 
   // ==================== Getters ====================
@@ -49,10 +194,10 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 按类型分组的文件
    */
-  const filesByType = computed(() => {
-    const groups = {};
+  const filesByType: ComputedRef<FilesByType> = computed(() => {
+    const groups: FilesByType = {};
 
-    files.value.forEach(file => {
+    files.value.forEach((file) => {
       if (!groups[file.file_type]) {
         groups[file.file_type] = [];
       }
@@ -65,35 +210,37 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 锁定的文件
    */
-  const lockedFiles = computed(() => {
-    return files.value.filter(f => f.lock_status !== 'unlocked');
+  const lockedFiles: ComputedRef<ProjectFile[]> = computed(() => {
+    return files.value.filter((f) => f.lock_status !== 'unlocked');
   });
 
   /**
    * 我锁定的文件
    */
-  const myLockedFiles = computed(() => {
-    // 获取当前用户DID
+  const myLockedFiles: ComputedRef<ProjectFile[]> = computed(() => {
     const identityStore = useIdentityStore();
     const currentUserDID = identityStore.currentUserDID;
     if (!currentUserDID) {
       return lockedFiles.value;
     }
-    return lockedFiles.value.filter(f => f.locked_by === currentUserDID);
+    return lockedFiles.value.filter((f) => f.locked_by === currentUserDID);
   });
 
   /**
    * 文件统计
    */
-  const fileStats = computed(() => {
+  const fileStats: ComputedRef<FileStats> = computed(() => {
     return {
       total: files.value.length,
       locked: lockedFiles.value.length,
       shared: sharedFiles.value.length,
-      byType: Object.keys(filesByType.value).reduce((acc, type) => {
-        acc[type] = filesByType.value[type].length;
-        return acc;
-      }, {})
+      byType: Object.keys(filesByType.value).reduce(
+        (acc, type) => {
+          acc[type] = filesByType.value[type].length;
+          return acc;
+        },
+        {} as Record<string, number>
+      ),
     };
   });
 
@@ -102,15 +249,15 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 加载文件列表
    */
-  async function loadFiles(queryFilters = {}) {
+  async function loadFiles(queryFilters: Partial<FileFilters> = {}): Promise<void> {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('file:list', {
+      const result: IpcResult = await (window as any).ipc.invoke('file:list', {
         filters: {
           ...filters.value,
-          ...queryFilters
-        }
+          ...queryFilters,
+        },
       });
 
       if (result.success) {
@@ -121,7 +268,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('加载文件列表异常');
-      logger.error('[FileStore] 加载文件列表异常:', error);
+      logger.error('[FileStore] 加载文件列表异常:', error as any);
     } finally {
       loading.value = false;
     }
@@ -130,12 +277,12 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 上传文件
    */
-  async function uploadFile(fileData) {
+  async function uploadFile(fileData: FileUploadData): Promise<ProjectFile | null> {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('file:upload', {
-        fileData
+      const result: IpcResult = await (window as any).ipc.invoke('file:upload', {
+        fileData,
       });
 
       if (result.success) {
@@ -145,14 +292,14 @@ export const useFileStore = defineStore('file', () => {
         // 重新加载文件列表
         await loadFiles();
 
-        return result.file;
+        return result.file || null;
       } else {
         message.error(`上传文件失败: ${result.error}`);
         return null;
       }
     } catch (error) {
       message.error('上传文件异常');
-      logger.error('[FileStore] 上传文件异常:', error);
+      logger.error('[FileStore] 上传文件异常:', error as any);
       return null;
     } finally {
       loading.value = false;
@@ -162,19 +309,19 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 删除文件
    */
-  async function deleteFile(fileId) {
+  async function deleteFile(fileId: string): Promise<boolean> {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('file:delete', {
-        fileId
+      const result: IpcResult = await (window as any).ipc.invoke('file:delete', {
+        fileId,
       });
 
       if (result.success) {
         message.success('文件已删除');
 
         // 从列表中移除
-        const index = files.value.findIndex(f => f.id === fileId);
+        const index = files.value.findIndex((f) => f.id === fileId);
         if (index !== -1) {
           files.value.splice(index, 1);
         }
@@ -192,7 +339,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('删除文件异常');
-      logger.error('[FileStore] 删除文件异常:', error);
+      logger.error('[FileStore] 删除文件异常:', error as any);
       return false;
     } finally {
       loading.value = false;
@@ -202,11 +349,11 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 锁定文件
    */
-  async function lockFile(fileId, expiresIn = 3600000) {
+  async function lockFile(fileId: string, expiresIn: number = 3600000): Promise<boolean> {
     try {
-      const result = await window.ipc.invoke('file:lock', {
+      const result: IpcResult = await (window as any).ipc.invoke('file:lock', {
         fileId,
-        expiresIn
+        expiresIn,
       });
 
       if (result.success) {
@@ -219,7 +366,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('锁定文件异常');
-      logger.error('[FileStore] 锁定文件异常:', error);
+      logger.error('[FileStore] 锁定文件异常:', error as any);
       return false;
     }
   }
@@ -227,10 +374,10 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 解锁文件
    */
-  async function unlockFile(fileId) {
+  async function unlockFile(fileId: string): Promise<boolean> {
     try {
-      const result = await window.ipc.invoke('file:unlock', {
-        fileId
+      const result: IpcResult = await (window as any).ipc.invoke('file:unlock', {
+        fileId,
       });
 
       if (result.success) {
@@ -243,7 +390,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('解锁文件异常');
-      logger.error('[FileStore] 解锁文件异常:', error);
+      logger.error('[FileStore] 解锁文件异常:', error as any);
       return false;
     }
   }
@@ -251,10 +398,10 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 加载文件版本列表
    */
-  async function loadFileVersions(fileId) {
+  async function loadFileVersions(fileId: string): Promise<void> {
     try {
-      const result = await window.ipc.invoke('file:versions', {
-        fileId
+      const result: IpcResult = await (window as any).ipc.invoke('file:versions', {
+        fileId,
       });
 
       if (result.success) {
@@ -265,20 +412,20 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('加载版本列表异常');
-      logger.error('[FileStore] 加载版本列表异常:', error);
+      logger.error('[FileStore] 加载版本列表异常:', error as any);
     }
   }
 
   /**
    * 回滚到指定版本
    */
-  async function rollbackToVersion(fileId, targetVersion) {
+  async function rollbackToVersion(fileId: string, targetVersion: number): Promise<boolean> {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('file:rollback', {
+      const result: IpcResult = await (window as any).ipc.invoke('file:rollback', {
         fileId,
-        targetVersion
+        targetVersion,
       });
 
       if (result.success) {
@@ -292,7 +439,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('回滚异常');
-      logger.error('[FileStore] 回滚异常:', error);
+      logger.error('[FileStore] 回滚异常:', error as any);
       return false;
     } finally {
       loading.value = false;
@@ -302,22 +449,22 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 共享文件
    */
-  async function shareFile(shareData) {
+  async function shareFile(shareData: FileShareData): Promise<FileShare | null> {
     try {
-      const result = await window.ipc.invoke('file:share', {
-        shareData
+      const result: IpcResult = await (window as any).ipc.invoke('file:share', {
+        shareData,
       });
 
       if (result.success) {
         message.success('文件已共享');
-        return result.share;
+        return result.share || null;
       } else {
         message.error(`共享失败: ${result.error}`);
         return null;
       }
     } catch (error) {
       message.error('共享异常');
-      logger.error('[FileStore] 共享异常:', error);
+      logger.error('[FileStore] 共享异常:', error as any);
       return null;
     }
   }
@@ -325,12 +472,12 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 加载共享文件列表
    */
-  async function loadSharedFiles(orgId) {
+  async function loadSharedFiles(orgId: string): Promise<void> {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('file:sharedFiles', {
-        orgId
+      const result: IpcResult = await (window as any).ipc.invoke('file:sharedFiles', {
+        orgId,
       });
 
       if (result.success) {
@@ -341,7 +488,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('加载共享文件异常');
-      logger.error('[FileStore] 加载共享文件异常:', error);
+      logger.error('[FileStore] 加载共享文件异常:', error as any);
     } finally {
       loading.value = false;
     }
@@ -350,14 +497,14 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 打开文件详情
    */
-  async function openFileDetail(fileId) {
+  async function openFileDetail(fileId: string): Promise<void> {
     try {
-      const result = await window.ipc.invoke('file:detail', {
-        fileId
+      const result: IpcResult = await (window as any).ipc.invoke('file:detail', {
+        fileId,
       });
 
       if (result.success) {
-        currentFile.value = result.file;
+        currentFile.value = result.file || null;
         fileDetailVisible.value = true;
 
         // 同时加载版本列表
@@ -367,14 +514,14 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('加载文件详情异常');
-      logger.error('[FileStore] 加载文件详情异常:', error);
+      logger.error('[FileStore] 加载文件详情异常:', error as any);
     }
   }
 
   /**
    * 关闭文件详情
    */
-  function closeFileDetail() {
+  function closeFileDetail(): void {
     fileDetailVisible.value = false;
     currentFile.value = null;
     currentFileVersions.value = [];
@@ -383,10 +530,10 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 更新筛选条件
    */
-  function updateFilters(newFilters) {
+  function updateFilters(newFilters: Partial<FileFilters>): void {
     filters.value = {
       ...filters.value,
-      ...newFilters
+      ...newFilters,
     };
     loadFiles();
   }
@@ -394,13 +541,13 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 清除筛选条件
    */
-  function clearFilters() {
+  function clearFilters(): void {
     filters.value = {
       project_id: null,
       org_id: null,
       workspace_id: null,
       file_type: null,
-      locked: null
+      locked: null,
     };
     loadFiles();
   }
@@ -408,7 +555,7 @@ export const useFileStore = defineStore('file', () => {
   /**
    * 重置Store
    */
-  function reset() {
+  function reset(): void {
     files.value = [];
     currentFile.value = null;
     currentFileVersions.value = [];
@@ -422,7 +569,7 @@ export const useFileStore = defineStore('file', () => {
       org_id: null,
       workspace_id: null,
       file_type: null,
-      locked: null
+      locked: null,
     };
   }
 
@@ -460,6 +607,6 @@ export const useFileStore = defineStore('file', () => {
     closeFileDetail,
     updateFilters,
     clearFilters,
-    reset
+    reset,
   };
 });
