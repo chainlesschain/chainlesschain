@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require('../utils/logger.js');
 
 /**
  * U-Key 硬件 IPC 处理器
@@ -16,10 +16,14 @@ const { logger, createLogger } = require('../utils/logger.js');
  * @param {Object} dependencies.ipcGuard - IPC Guard模块（可选，用于测试注入）
  */
 function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard }) {
+  logger.info('[UKey IPC] >>> registerUKeyIPC ENTRY, ukeyManager:', !!ukeyManager);
+
   // 支持依赖注入，用于测试
   const ipcGuard = injectedIpcGuard || require('../ipc/ipc-guard');
   const electron = require('electron');
   const ipcMain = injectedIpcMain || electron.ipcMain;
+
+  logger.info('[UKey IPC] >>> ipcMain available:', !!ipcMain, ', ipcMain.handle type:', typeof ipcMain?.handle);
 
   // 防止重复注册 - 但始终先尝试清理可能存在的旧handler
   if (ipcGuard.isModuleRegistered('ukey-ipc')) {
@@ -36,7 +40,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
       ipcMain.removeHandler('ukey:lock');
       ipcMain.removeHandler('ukey:get-public-key');
       ipcMain.removeHandler('auth:verify-password');
-    } catch (e) {
+    } catch {
       // 忽略清理错误
     }
 
@@ -55,33 +59,38 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
    * 检测 U-Key 设备
    * Channel: 'ukey:detect'
    */
-  ipcMain.handle('ukey:detect', async () => {
-    try {
-      if (!ukeyManager) {
+  try {
+    ipcMain.handle('ukey:detect', async () => {
+      try {
+        if (!ukeyManager) {
+          return {
+            detected: false,
+            unlocked: false,
+            error: 'U盾管理器未初始化',
+          };
+        }
+
+        const result = await ukeyManager.detect();
+
+        // 如果是驱动未初始化（非Windows平台），不记录错误日志
+        if (result.reason === 'driver_not_initialized') {
+          return result;
+        }
+
+        return result;
+      } catch (error) {
+        logger.error('[UKey IPC] U盾检测失败:', error);
         return {
           detected: false,
           unlocked: false,
-          error: 'U盾管理器未初始化',
+          error: error.message,
         };
       }
-
-      const result = await ukeyManager.detect();
-
-      // 如果是驱动未初始化（非Windows平台），不记录错误日志
-      if (result.reason === 'driver_not_initialized') {
-        return result;
-      }
-
-      return result;
-    } catch (error) {
-      logger.error('[UKey IPC] U盾检测失败:', error);
-      return {
-        detected: false,
-        unlocked: false,
-        error: error.message,
-      };
-    }
-  });
+    });
+    logger.info('[UKey IPC] >>> ukey:detect handler registered successfully');
+  } catch (error) {
+    logger.error('[UKey IPC] >>> FAILED to register ukey:detect handler:', error);
+  }
 
   /**
    * 验证 PIN 码
@@ -244,8 +253,8 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
       logger.info('[UKey IPC] ❌ 密码验证失败');
       logger.info('[UKey IPC] 用户名匹配:', username === DEFAULT_USERNAME);
       logger.info('[UKey IPC] 密码匹配:', password === DEFAULT_PASSWORD);
-      logger.info('[UKey IPC] 用户名严格相等:', username === DEFAULT_USERNAME, '宽松相等:', username == DEFAULT_USERNAME);
-      logger.info('[UKey IPC] 密码严格相等:', password === DEFAULT_PASSWORD, '宽松相等:', password == DEFAULT_PASSWORD);
+      logger.info('[UKey IPC] 用户名严格相等:', username === DEFAULT_USERNAME, '宽松相等:', username === DEFAULT_USERNAME);
+      logger.info('[UKey IPC] 密码严格相等:', password === DEFAULT_PASSWORD, '宽松相等:', password === DEFAULT_PASSWORD);
       return {
         success: false,
         error: '用户名或密码错误',

@@ -12,7 +12,38 @@
 
 ## 最新版本
 
-### v0.29.0 (2026-02-02) ⭐ 当前版本
+### v0.29.0 (2026-02-06) ⭐ 当前版本
+
+**TypeScript 迁移 + 浏览器控制 + Claude Code 风格系统完善** - 前端 TypeScript 重构、浏览器自动化控制、10 个 Claude Code 风格子系统
+
+#### 2026-02-06 更新
+
+##### TypeScript 迁移
+- ✅ **Stores TypeScript 迁移** - memory, task, file, workspace stores 全面迁移
+- ✅ **Composables TypeScript 迁移** - 核心 composables 迁移到 TypeScript
+- ✅ **类型安全增强** - 完整类型定义、IDE 支持改进
+
+##### 浏览器自动化控制
+- ✅ **BrowserEngine** - Playwright 集成、12 IPC 通道
+- ✅ **SnapshotEngine** - 智能快照引擎、元素定位
+- ✅ **Snapshot IPC** - 6 个快照相关 IPC 通道
+- ✅ **前端 UI** - SnapshotPanel 组件
+
+##### Claude Code 风格系统 (10 子系统, 127 IPC 通道)
+- ✅ **Hooks System** - 11 IPC handlers
+- ✅ **Plan Mode** - 14 IPC handlers
+- ✅ **Skills System** - 17 IPC handlers
+- ✅ **Context Engineering** - 17 IPC handlers
+- ✅ **Prompt Compressor** - 10 IPC handlers
+- ✅ **Response Cache** - 11 IPC handlers
+- ✅ **Token Tracker** - 12 IPC handlers
+- ✅ **Stream Controller** - 12 IPC handlers
+- ✅ **Resource Monitor** - 13 IPC handlers
+- ✅ **Message Aggregator** - 10 IPC handlers
+
+---
+
+### v0.29.0 (2026-02-02)
 
 **企业级权限系统 + Context Engineering + Claude Code 风格工具** - 企业级权限引擎、上下文窗口优化、Plan Mode 和 Skills 系统增强
 

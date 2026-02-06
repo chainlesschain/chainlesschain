@@ -1,6 +1,6 @@
 {
   "name": "chainlesschain-desktop-vue",
-  "version": "0.27.0",
+  "version": "0.29.0",
   "description": "ChainlessChain桌面应用 - 基于Electron和Vue3的个人AI知识库",
   "main": "dist/main/index.js",
   "scripts": {
@@ -267,7 +267,6 @@
     "@vitest/ui": "^3.0.0",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.7.0",
-    "vue-tsc": "^2.2.0",
     "ant-design-vue": "^4.1.0",
     "better-sqlite3": "^12.5.0",
     "chai": "^6.2.2",
@@ -296,6 +295,7 @@
     "vitest": "^3.0.0",
     "vue": "^3.4.0",
     "vue-router": "^4.2.5",
+    "vue-tsc": "^2.2.12",
     "wait-on": "^9.0.3",
     "webpack": "^5.104.1",
     "webpack-cli": "^6.0.1"

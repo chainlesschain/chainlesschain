@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.p2p.util
 
 import com.chainlesschain.android.core.database.entity.social.PostEntity
+import com.chainlesschain.android.core.database.entity.social.PostVisibility
 import org.junit.Assert.*
 import org.junit.Test
 import java.util.UUID
