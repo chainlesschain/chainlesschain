@@ -9,9 +9,9 @@
  */
 
 import { logger } from '@/utils/logger';
-import performanceTracker from '@/utils/performance-tracker';
-import serviceWorkerManager from '@/utils/service-worker-manager';
-import { createEditorPoolManager, createMonacoEditorFactory } from '@/utils/editor-pool';
+import performanceTracker from './performance-tracker';
+import serviceWorkerManager from './service-worker-manager';
+import { createEditorPoolManager, createMonacoEditorFactory } from './editor-pool';
 import type { Component, AsyncComponentLoader } from 'vue';
 
 // ==================== 类型定义 ====================
@@ -123,20 +123,22 @@ interface ElectronAPI {
   invoke: (channel: string, ...args: any[]) => Promise<any>;
 }
 
-// ==================== 扩展全局类型 ====================
+/**
+ * 扩展的 Window 接口（用于类型断言）
+ */
+interface ExtendedWindow extends Window {
+  electron?: ElectronAPI;
+}
 
-declare global {
-  interface Window {
-    electron?: ElectronAPI;
-  }
-
-  interface Performance {
-    memory?: {
-      usedJSHeapSize: number;
-      totalJSHeapSize: number;
-      jsHeapSizeLimit: number;
-    };
-  }
+/**
+ * 扩展的 Performance 接口（用于类型断言）
+ */
+interface ExtendedPerformance extends Performance {
+  memory?: {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+  };
 }
 
 // ==================== 函数实现 ====================
@@ -199,10 +201,11 @@ export function createEditorPool(monaco: MonacoNamespace): EditorPoolManager {
  */
 export function setupFileOperationTracking(): () => void {
   // Track file reads
-  const originalInvoke = window.electron?.invoke;
+  const extWindow = window as unknown as ExtendedWindow;
+  const originalInvoke = extWindow.electron?.invoke;
 
-  if (originalInvoke && window.electron) {
-    window.electron.invoke = async function (
+  if (originalInvoke && extWindow.electron) {
+    extWindow.electron.invoke = async function (
       channel: string,
       ...args: any[]
     ): Promise<any> {
@@ -232,8 +235,8 @@ export function setupFileOperationTracking(): () => void {
 
   return () => {
     // Cleanup function
-    if (originalInvoke && window.electron) {
-      window.electron.invoke = originalInvoke;
+    if (originalInvoke && extWindow.electron) {
+      extWindow.electron.invoke = originalInvoke;
     }
   };
 }
@@ -519,16 +522,17 @@ export function monitorMemoryUsage(
   callback: MemoryUsageCallback,
   interval: number = 5000
 ): () => void {
-  if (!performance.memory) {
+  const extPerformance = performance as ExtendedPerformance;
+  if (!extPerformance.memory) {
     logger.warn('[Memory] Performance.memory not available');
     return () => {};
   }
 
   const intervalId = setInterval(() => {
     const memory: MemoryInfo = {
-      used: Math.round(performance.memory!.usedJSHeapSize / 1024 / 1024),
-      total: Math.round(performance.memory!.totalJSHeapSize / 1024 / 1024),
-      limit: Math.round(performance.memory!.jsHeapSizeLimit / 1024 / 1024),
+      used: Math.round(extPerformance.memory!.usedJSHeapSize / 1024 / 1024),
+      total: Math.round(extPerformance.memory!.totalJSHeapSize / 1024 / 1024),
+      limit: Math.round(extPerformance.memory!.jsHeapSizeLimit / 1024 / 1024),
     };
 
     callback(memory);

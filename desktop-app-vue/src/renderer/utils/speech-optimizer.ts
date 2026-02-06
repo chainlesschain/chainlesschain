@@ -316,7 +316,14 @@ class SpeechPerformanceOptimizer {
    */
   async calculateAudioHash(audioData: ArrayBuffer | Float32Array): Promise<string> {
     // 使用SubtleCrypto API计算SHA-256哈希
-    const buffer = audioData instanceof Float32Array ? audioData.buffer : audioData;
+    let buffer: ArrayBuffer;
+    if (audioData instanceof Float32Array) {
+      // 创建一个新的 ArrayBuffer 副本以确保类型正确
+      buffer = new ArrayBuffer(audioData.byteLength);
+      new Uint8Array(buffer).set(new Uint8Array(audioData.buffer, audioData.byteOffset, audioData.byteLength));
+    } else {
+      buffer = audioData;
+    }
     const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');

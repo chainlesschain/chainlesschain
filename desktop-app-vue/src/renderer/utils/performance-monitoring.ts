@@ -198,13 +198,11 @@ declare global {
     };
   }
 
-  interface Navigator {
-    connection?: {
-      effectiveType: string;
-      downlink: number;
-      rtt: number;
-      saveData: boolean;
-    };
+  interface NavigatorConnection {
+    effectiveType?: string;
+    downlink?: number;
+    rtt?: number;
+    saveData?: boolean;
   }
 }
 
@@ -742,12 +740,13 @@ export class RealtimePerformanceMonitor {
       };
     }
 
-    if (this.options.enableNetwork && navigator.connection) {
+    const navConnection = (navigator as any).connection as NavigatorConnection | undefined;
+    if (this.options.enableNetwork && navConnection) {
       this.metrics.network = {
-        effectiveType: navigator.connection.effectiveType,
-        downlink: navigator.connection.downlink,
-        rtt: navigator.connection.rtt,
-        saveData: navigator.connection.saveData,
+        effectiveType: navConnection.effectiveType,
+        downlink: navConnection.downlink,
+        rtt: navConnection.rtt,
+        saveData: navConnection.saveData,
       };
     }
 

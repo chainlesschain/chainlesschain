@@ -95,29 +95,29 @@ export interface SmartLoadOptions extends LazyLoadOptions {
 }
 
 /**
- * 智能组件接口
+ * 智能组件类型
  */
-export interface SmartComponent extends Component {
+export type SmartComponent = Component & {
   prefetchOnHover: (element: HTMLElement | null) => void;
   prefetchOnVisible: (element: HTMLElement | null) => void;
-}
+};
 
 /**
  * 懒加载路由组件
  */
-export interface LazyRouteComponent extends (() => Promise<Component>) {
+export type LazyRouteComponent = (() => Promise<Component>) & {
   __chunkName: string;
   __lazyRoute: boolean;
-}
+};
 
 /**
  * 异步组件（带元数据）
  */
-export interface AsyncComponentWithMetadata extends Component {
+export type AsyncComponentWithMetadata = Component & {
   __chunkName?: string;
   __prefetchOnHover?: boolean;
   __prefetchOnViewport?: boolean;
-}
+};
 
 /**
  * 渐进式加载器队列项

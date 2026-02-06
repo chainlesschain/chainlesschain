@@ -163,12 +163,11 @@ interface NetworkInformation {
 }
 
 /**
- * Extended Navigator with connection property
+ * 获取 navigator.connection 的辅助函数 (避免类型冲突)
  */
-interface NavigatorWithConnection extends Navigator {
-  connection?: NetworkInformation;
-  mozConnection?: NetworkInformation;
-  webkitConnection?: NetworkInformation;
+function getNavigatorConnection(): NetworkInformation | undefined {
+  const nav = navigator as any;
+  return nav.connection || nav.mozConnection || nav.webkitConnection;
 }
 
 /**
@@ -345,8 +344,7 @@ export class SmartImageLoader {
 
       // Network-aware quality
       if (this.options.networkAware) {
-        const nav = navigator as NavigatorWithConnection;
-        const connection = nav.connection || nav.mozConnection || nav.webkitConnection;
+        const connection = getNavigatorConnection();
         if (connection) {
           const effectiveType = connection.effectiveType;
 

@@ -537,7 +537,7 @@ class AnimationController {
       'padding',
     ].some((p) => property.includes(p));
 
-    (element.style as Record<string, string>)[property] = needsUnit ? `${value}px` : String(value);
+    element.style.setProperty(property, needsUnit ? `${value}px` : String(value));
   }
 
   /**
