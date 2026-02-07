@@ -15,6 +15,7 @@ const createMockDatabase = () => {
 
   return {
     getDatabase: () => ({
+      exec: vi.fn(), // Add exec method for CREATE TABLE statements
       prepare: (sql) => ({
         run: vi.fn((...args) => {
           if (sql.includes('INSERT INTO cross_org_shares')) {
