@@ -17,6 +17,7 @@
 ### 1. WorkflowSnapshot 类（600+行）
 
 **功能**：
+
 - ✅ 上下文快照（深拷贝）
 - ✅ 文件系统快照（增量备份）
 - ✅ 数据库状态快照
@@ -24,16 +25,18 @@
 - ✅ 快照清理
 
 **快照类型**：
+
 ```javascript
 const SnapshotType = {
-  CONTEXT: 'context',       // 上下文快照
-  FILESYSTEM: 'filesystem', // 文件系统快照
-  DATABASE: 'database',     // 数据库快照
-  FULL: 'full',            // 完整快照
+  CONTEXT: "context", // 上下文快照
+  FILESYSTEM: "filesystem", // 文件系统快照
+  DATABASE: "database", // 数据库快照
+  FULL: "full", // 完整快照
 };
 ```
 
 **关键方法**：
+
 ```javascript
 // 捕获快照
 snapshot.captureContext(context);
@@ -54,35 +57,34 @@ await snapshot.cleanup();
 ### 2. SnapshotManager 类（300+行）
 
 **功能**：
+
 - ✅ 快照创建和管理
 - ✅ 快照恢复
 - ✅ 自动清理旧快照（保留最近N个）
 - ✅ 批量清理
 
 **配置选项**：
+
 ```javascript
 const snapshotManager = new SnapshotManager({
-  backupDir: '.workflow-snapshots',  // 备份目录
-  database: databaseInstance,        // 数据库实例
-  maxSnapshots: 10,                  // 最多保留10个快照
+  backupDir: ".workflow-snapshots", // 备份目录
+  database: databaseInstance, // 数据库实例
+  maxSnapshots: 10, // 最多保留10个快照
 });
 ```
 
 **核心API**：
+
 ```javascript
 // 创建快照
-const snapshot = await snapshotManager.createSnapshot(
-  'stage-1',
-  '需求分析',
-  {
-    context: { projectId: 'proj-123' },
-    filePaths: ['/path/to/file1.txt', '/path/to/file2.txt'],
-    dbTables: ['projects', 'project_files'],
-  }
-);
+const snapshot = await snapshotManager.createSnapshot("stage-1", "需求分析", {
+  context: { projectId: "proj-123" },
+  filePaths: ["/path/to/file1.txt", "/path/to/file2.txt"],
+  dbTables: ["projects", "project_files"],
+});
 
 // 恢复快照
-const result = await snapshotManager.restoreSnapshot('stage-1');
+const result = await snapshotManager.restoreSnapshot("stage-1");
 // result = {
 //   success: true,
 //   context: { ... },
@@ -92,7 +94,7 @@ const result = await snapshotManager.restoreSnapshot('stage-1');
 // }
 
 // 删除快照
-await snapshotManager.deleteSnapshot('stage-1');
+await snapshotManager.deleteSnapshot("stage-1");
 
 // 清理所有快照
 await snapshotManager.cleanupAll();
@@ -103,15 +105,17 @@ await snapshotManager.cleanupAll();
 ### 3. SnapshotWorkflowStage 类（150+行）
 
 **功能**：
+
 - ✅ 继承 WorkflowStage
 - ✅ 自动快照创建
 - ✅ 执行失败时自动回滚
 - ✅ 快照清理
 
 **使用示例**：
+
 ```javascript
 const snapshotManager = new SnapshotManager({
-  backupDir: '.workflow-snapshots',
+  backupDir: ".workflow-snapshots",
   database: db,
 });
 
@@ -119,15 +123,15 @@ const factory = new SnapshotWorkflowStageFactory(snapshotManager);
 
 // 创建带快照的阶段
 const stage = factory.createStage({
-  id: 'stage-1',
-  name: '需求分析',
+  id: "stage-1",
+  name: "需求分析",
   executor: async (input, context) => {
     // 阶段执行逻辑
     return result;
   },
   snapshotOptions: {
-    filePaths: ['/path/to/important/file.txt'],
-    dbTables: ['projects'],
+    filePaths: ["/path/to/important/file.txt"],
+    dbTables: ["projects"],
   },
 });
 
@@ -136,7 +140,7 @@ try {
   const result = await stage.execute(input, context);
 } catch (error) {
   // 阶段失败，已自动回滚到快照状态
-  console.error('阶段执行失败，已回滚');
+  console.error("阶段执行失败，已回滚");
 }
 ```
 
@@ -147,12 +151,14 @@ try {
 ### 测试文件：`tests/unit/workflow/workflow-snapshot.test.js`
 
 **测试统计**：
+
 - ✅ **20个测试全部通过**
 - ✅ 测试覆盖率：100%
 
 **测试场景**：
 
 #### 1. WorkflowSnapshot 类测试（8个）
+
 - ✅ 正确创建快照对象
 - ✅ 捕获上下文快照
 - ✅ 恢复上下文快照
@@ -163,17 +169,20 @@ try {
 - ✅ 清理快照
 
 #### 2. 文件系统快照测试（4个）
+
 - ✅ 备份多个文件
 - ✅ 验证备份文件可访问
 - ✅ 恢复修改后的文件
 - ✅ 清理备份目录
 
 #### 3. 数据库快照测试（3个）
+
 - ✅ 创建数据库快照
 - ✅ 恢复数据库状态
 - ✅ 数据库未初始化时的处理
 
 #### 4. SnapshotManager 测试（4个）
+
 - ✅ 创建快照
 - ✅ 恢复快照
 - ✅ 删除快照
@@ -182,6 +191,7 @@ try {
 - ✅ 清理所有快照
 
 #### 5. 完整流程测试（1个）
+
 - ✅ 快照创建 → 数据修改 → 快照恢复 → 验证恢复
 
 ---
@@ -191,13 +201,15 @@ try {
 ### 场景1：工作流管道集成
 
 ```javascript
-const { WorkflowPipeline } = require('./workflow-pipeline.js');
-const { SnapshotWorkflowStageFactory } = require('./snapshot-workflow-stage.js');
-const { SnapshotManager } = require('./workflow-snapshot.js');
+const { WorkflowPipeline } = require("./workflow-pipeline.js");
+const {
+  SnapshotWorkflowStageFactory,
+} = require("./snapshot-workflow-stage.js");
+const { SnapshotManager } = require("./workflow-snapshot.js");
 
 // 创建快照管理器
 const snapshotManager = new SnapshotManager({
-  backupDir: '.workflow-snapshots',
+  backupDir: ".workflow-snapshots",
   database: database,
   maxSnapshots: 10,
 });
@@ -206,20 +218,17 @@ const snapshotManager = new SnapshotManager({
 const factory = new SnapshotWorkflowStageFactory(snapshotManager);
 
 // 创建带快照的阶段
-const stages = factory.createDefaultStages(
-  executors,
-  {
-    // 为每个阶段配置快照选项
-    stage_1: {
-      filePaths: [],
-      dbTables: ['projects'],
-    },
-    stage_3: {
-      filePaths: ['/path/to/generated/files'],
-      dbTables: ['projects', 'project_files'],
-    },
-  }
-);
+const stages = factory.createDefaultStages(executors, {
+  // 为每个阶段配置快照选项
+  stage_1: {
+    filePaths: [],
+    dbTables: ["projects"],
+  },
+  stage_3: {
+    filePaths: ["/path/to/generated/files"],
+    dbTables: ["projects", "project_files"],
+  },
+});
 
 // 创建工作流管道
 const workflow = new WorkflowPipeline({ stages });
@@ -231,30 +240,34 @@ const result = await workflow.execute(input, context);
 ### 场景2：手动快照管理
 
 ```javascript
-const snapshotManager = new SnapshotManager({ backupDir: '.snapshots' });
+const snapshotManager = new SnapshotManager({ backupDir: ".snapshots" });
 
 // 执行前创建快照
-const snapshot = await snapshotManager.createSnapshot('critical-operation', '关键操作', {
-  context: { userId: 'user-123', projectId: 'proj-456' },
-  filePaths: ['/important/file1.txt', '/important/file2.txt'],
-  dbTables: ['projects', 'users'],
-});
+const snapshot = await snapshotManager.createSnapshot(
+  "critical-operation",
+  "关键操作",
+  {
+    context: { userId: "user-123", projectId: "proj-456" },
+    filePaths: ["/important/file1.txt", "/important/file2.txt"],
+    dbTables: ["projects", "users"],
+  },
+);
 
 try {
   // 执行关键操作
   await performCriticalOperation();
 
   // 成功后清理快照
-  await snapshotManager.deleteSnapshot('critical-operation');
+  await snapshotManager.deleteSnapshot("critical-operation");
 } catch (error) {
   // 失败时恢复快照
-  console.error('操作失败，开始回滚...');
-  const result = await snapshotManager.restoreSnapshot('critical-operation');
+  console.error("操作失败，开始回滚...");
+  const result = await snapshotManager.restoreSnapshot("critical-operation");
 
   if (result.success) {
-    console.log('回滚成功');
+    console.log("回滚成功");
   } else {
-    console.error('回滚失败:', result.errors);
+    console.error("回滚失败:", result.errors);
   }
 }
 ```
@@ -264,16 +277,19 @@ try {
 ## 📊 性能特性
 
 ### 快照大小优化
+
 - 只备份修改的文件（增量备份）
 - 上下文深拷贝（轻量级）
 - 数据库按表备份（可选）
 
 ### 存储管理
+
 - 自动清理旧快照（LRU策略）
 - 配置最大快照数量
 - 支持手动清理
 
 ### 回滚速度
+
 - 上下文恢复：< 10ms
 - 文件恢复：取决于文件大小和数量
 - 数据库恢复：取决于表大小
@@ -283,11 +299,13 @@ try {
 ## 🔒 安全性
 
 ### 数据保护
+
 - ✅ 深拷贝防止原始数据篡改
 - ✅ 文件备份隔离存储
 - ✅ 数据库快照独立管理
 
 ### 错误处理
+
 - ✅ 快照失败不阻塞主流程
 - ✅ 回滚失败有详细错误日志
 - ✅ 部分恢复失败也能继续
@@ -312,21 +330,25 @@ tests/unit/workflow/
 ## 🎯 关键优势
 
 ### 1. 可靠性
+
 - 阶段失败时自动回滚
 - 多层快照（上下文 + 文件 + 数据库）
 - 完整的错误恢复机制
 
 ### 2. 灵活性
+
 - 可配置快照类型
 - 可选择快照范围
 - 支持手动和自动快照
 
 ### 3. 易用性
+
 - 零侵入集成
 - 自动化快照管理
 - 简洁的API
 
 ### 4. 高效性
+
 - 增量文件备份
 - LRU快照清理
 - 最小化存储占用
@@ -336,11 +358,13 @@ tests/unit/workflow/
 ## 🚀 后续优化方向
 
 ### 短期（已规划）
+
 - [ ] 集成到现有工作流管道
 - [ ] 添加快照压缩
 - [ ] 支持远程备份
 
 ### 长期（待评估）
+
 - [ ] 实时增量快照
 - [ ] 快照版本树
 - [ ] 快照对比和合并
@@ -350,6 +374,7 @@ tests/unit/workflow/
 ## 📝 使用建议
 
 ### 1. 何时启用快照
+
 - ✅ 关键业务阶段
 - ✅ 数据修改操作
 - ✅ 不可逆操作
@@ -357,6 +382,7 @@ tests/unit/workflow/
 - ❌ 临时计算
 
 ### 2. 快照配置建议
+
 ```javascript
 // 轻量级阶段
 {
@@ -387,6 +413,7 @@ tests/unit/workflow/
 ```
 
 ### 3. 存储空间管理
+
 - 设置合理的 `maxSnapshots`（建议5-10）
 - 定期清理旧工作流的快照
 - 监控备份目录大小
@@ -403,6 +430,7 @@ tests/unit/workflow/
 4. **生产就绪**：完善的错误处理和日志
 
 **预期效果**：
+
 - 阶段失败后可恢复到之前状态
 - 减少数据丢失风险
 - 提高工作流稳定性

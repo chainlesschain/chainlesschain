@@ -15,54 +15,54 @@
 
 ```javascript
 // 1. LLM性能监控
-window.location.hash = '#/llm/performance'
+window.location.hash = "#/llm/performance";
 
 // 2. 数据库性能监控
-window.location.hash = '#/database/performance'
+window.location.hash = "#/database/performance";
 
 // 3. 错误监控
-window.location.hash = '#/error/monitor'
+window.location.hash = "#/error/monitor";
 
 // 4. 会话管理
-window.location.hash = '#/sessions'
+window.location.hash = "#/sessions";
 
 // 5. 内存仪表板
-window.location.hash = '#/memory'
+window.location.hash = "#/memory";
 
 // 6. 标签管理
-window.location.hash = '#/tags'
+window.location.hash = "#/tags";
 ```
 
 ### MCP和AI配置 (2项)
 
 ```javascript
 // 7. MCP服务器
-window.location.hash = '#/settings?tab=mcp'
+window.location.hash = "#/settings?tab=mcp";
 
 // 8. Token使用统计
-window.location.hash = '#/settings?tab=token-usage'
+window.location.hash = "#/settings?tab=token-usage";
 ```
 
 ### P2P高级功能 (6项)
 
 ```javascript
 // 9. 设备配对
-window.location.hash = '#/p2p/device-pairing'
+window.location.hash = "#/p2p/device-pairing";
 
 // 10. 设备管理
-window.location.hash = '#/p2p/device-management'
+window.location.hash = "#/p2p/device-management";
 
 // 11. 文件传输
-window.location.hash = '#/p2p/file-transfer'
+window.location.hash = "#/p2p/file-transfer";
 
 // 12. 安全号码验证
-window.location.hash = '#/p2p/safety-numbers'
+window.location.hash = "#/p2p/safety-numbers";
 
 // 13. 会话指纹
-window.location.hash = '#/p2p/session-fingerprint'
+window.location.hash = "#/p2p/session-fingerprint";
 
 // 14. 消息队列
-window.location.hash = '#/p2p/message-queue'
+window.location.hash = "#/p2p/message-queue";
 ```
 
 ## 一键测试所有路由
@@ -71,31 +71,31 @@ window.location.hash = '#/p2p/message-queue'
 
 ```javascript
 const testRoutes = [
-  '/llm/performance',
-  '/database/performance',
-  '/error/monitor',
-  '/sessions',
-  '/memory',
-  '/tags',
-  '/settings?tab=mcp',
-  '/settings?tab=token-usage',
-  '/p2p/device-pairing',
-  '/p2p/device-management',
-  '/p2p/file-transfer',
-  '/p2p/safety-numbers',
-  '/p2p/session-fingerprint',
-  '/p2p/message-queue'
+  "/llm/performance",
+  "/database/performance",
+  "/error/monitor",
+  "/sessions",
+  "/memory",
+  "/tags",
+  "/settings?tab=mcp",
+  "/settings?tab=token-usage",
+  "/p2p/device-pairing",
+  "/p2p/device-management",
+  "/p2p/file-transfer",
+  "/p2p/safety-numbers",
+  "/p2p/session-fingerprint",
+  "/p2p/message-queue",
 ];
 
 let index = 0;
 function testNext() {
   if (index >= testRoutes.length) {
-    console.log('✅ 所有路由测试完成！');
+    console.log("✅ 所有路由测试完成！");
     return;
   }
   const route = testRoutes[index];
   console.log(`[${index + 1}/14] 测试路由: ${route}`);
-  window.location.hash = '#' + route;
+  window.location.hash = "#" + route;
   index++;
   setTimeout(testNext, 2000); // 每2秒切换一次
 }
@@ -118,6 +118,7 @@ testNext();
 ### 方式2: 通过搜索功能
 
 如果应用有全局搜索（Ctrl+K），搜索：
+
 - "LLM性能"
 - "设备配对"
 - "错误监控"
@@ -126,6 +127,7 @@ testNext();
 ## 验证要点
 
 每个页面检查：
+
 - [ ] 页面正常加载（无白屏）
 - [ ] 页面标题正确
 - [ ] 无控制台错误
@@ -142,9 +144,9 @@ testNext();
 
 ```javascript
 // 查看当前路由状态
-console.log('当前路由:', window.location.hash);
-console.log('路由器实例:', window.$router);
-console.log('所有路由:', window.$router?.getRoutes());
+console.log("当前路由:", window.location.hash);
+console.log("路由器实例:", window.$router);
+console.log("所有路由:", window.$router?.getRoutes());
 ```
 
 ## 报告格式
