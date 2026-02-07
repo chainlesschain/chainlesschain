@@ -9,6 +9,7 @@
 ## 📋 任务概述
 
 为工作流管道系统编写完整的集成测试，验证：
+
 - 6阶段完整执行流程
 - 阶段失败和错误处理
 - 暂停/恢复/取消操作
@@ -26,6 +27,7 @@
 **文件**: `tests/integration/workflow-pipeline-integration.test.js` (756行)
 
 **测试套件**:
+
 1. **6阶段完整执行测试** (5个测试)
    - 成功执行所有6个阶段
    - 阶段间结果传递
@@ -77,6 +79,7 @@
 **文件**: `src/main/workflow/workflow-pipeline.js:36-38`
 
 **修复前**:
+
 ```javascript
 this.qualityGateManager = new QualityGateManager({
   llmService: options.llmService,
@@ -84,13 +87,17 @@ this.qualityGateManager = new QualityGateManager({
 ```
 
 **修复后**:
+
 ```javascript
-this.qualityGateManager = options.qualityGateManager || new QualityGateManager({
-  llmService: options.llmService,
-});
+this.qualityGateManager =
+  options.qualityGateManager ||
+  new QualityGateManager({
+    llmService: options.llmService,
+  });
 ```
 
 **影响**:
+
 - 允许在测试中注入mock的QualityGateManager
 - 避免测试被实际的质量门禁检查阻塞
 - 提高测试执行速度和可靠性
@@ -100,6 +107,7 @@ this.qualityGateManager = options.qualityGateManager || new QualityGateManager({
 ## 📊 测试结果
 
 ### 执行统计
+
 ```
 ✓ 24 个测试通过
 ⊘ 1 个测试跳过 (需要SnapshotWorkflowStage配置)
@@ -110,16 +118,16 @@ this.qualityGateManager = options.qualityGateManager || new QualityGateManager({
 
 ### 详细结果
 
-| 测试套件 | 测试数 | 通过 | 跳过 | 失败 |
-|----------|--------|------|------|------|
-| 6阶段完整执行 | 5 | 5 ✅ | 0 | 0 |
-| 阶段失败和回滚 | 4 | 3 ✅ | 1 ⊘ | 0 |
-| 暂停/恢复/取消 | 4 | 4 ✅ | 0 | 0 |
-| 质量门禁 | 3 | 3 ✅ | 0 | 0 |
-| 重试机制 | 1 | 1 ✅ | 0 | 0 |
-| 多工作流管理 | 5 | 5 ✅ | 0 | 0 |
-| 边界条件 | 3 | 3 ✅ | 0 | 0 |
-| **总计** | **25** | **24** ✅ | **1** ⊘ | **0** ❌ |
+| 测试套件       | 测试数 | 通过      | 跳过    | 失败     |
+| -------------- | ------ | --------- | ------- | -------- |
+| 6阶段完整执行  | 5      | 5 ✅      | 0       | 0        |
+| 阶段失败和回滚 | 4      | 3 ✅      | 1 ⊘     | 0        |
+| 暂停/恢复/取消 | 4      | 4 ✅      | 0       | 0        |
+| 质量门禁       | 3      | 3 ✅      | 0       | 0        |
+| 重试机制       | 1      | 1 ✅      | 0       | 0        |
+| 多工作流管理   | 5      | 5 ✅      | 0       | 0        |
+| 边界条件       | 3      | 3 ✅      | 0       | 0        |
+| **总计**       | **25** | **24** ✅ | **1** ⊘ | **0** ❌ |
 
 ---
 
@@ -205,17 +213,20 @@ desktop-app-vue/
 ## 🎯 关键成果
 
 ### 1. 高测试覆盖率
+
 - ✅ 24个测试用例，覆盖主要功能
 - ✅ 测试6个阶段的完整执行流程
 - ✅ 测试错误处理和恢复机制
 - ✅ 测试并发和边界条件
 
 ### 2. 发现并修复Bug
+
 - ✅ 修复 WorkflowPipeline 无法注入质量门禁的问题
 - ✅ 提高测试可控性和可靠性
 - ✅ 确保质量门禁可以被正确mock
 
 ### 3. 验证核心功能
+
 - ✅ 工作流管道正确执行6个阶段
 - ✅ 质量门禁正确执行检查
 - ✅ 暂停/恢复/取消机制正常工作
@@ -235,17 +246,18 @@ const mockQualityGateManager = {
     blocking: false,
     score: 1,
     checks: [],
-    message: '质量检查通过',
+    message: "质量检查通过",
   }),
   getGateByStage: vi.fn().mockReturnValue(null),
   getAllStatuses: vi.fn().mockReturnValue({}),
-  on: vi.fn(),  // EventEmitter方法
+  on: vi.fn(), // EventEmitter方法
   emit: vi.fn(),
   removeListener: vi.fn(),
 };
 ```
 
 **优势**:
+
 - 避免实际质量检查阻塞测试
 - 测试执行速度快（从失败到通过从60秒降到73秒）
 - 测试结果可预测
@@ -253,12 +265,13 @@ const mockQualityGateManager = {
 ### 2. 超时配置
 
 ```javascript
-test('应该能够并发执行多个工作流', async () => {
+test("应该能够并发执行多个工作流", async () => {
   // 测试逻辑
 }, 15000); // 15秒超时
 ```
 
 **优势**:
+
 - 适应集成测试的较长执行时间
 - 避免误判超时
 - 允许测试完整的工作流执行
@@ -266,7 +279,7 @@ test('应该能够并发执行多个工作流', async () => {
 ### 3. 事件驱动测试
 
 ```javascript
-workflow.on('workflow:stage-start', (data) => {
+workflow.on("workflow:stage-start", (data) => {
   if (data.stageIndex === 2) {
     workflow.pause();
   }
@@ -274,6 +287,7 @@ workflow.on('workflow:stage-start', (data) => {
 ```
 
 **优势**:
+
 - 测试异步事件处理
 - 验证事件触发时机
 - 确保事件数据正确
@@ -282,13 +296,13 @@ workflow.on('workflow:stage-start', (data) => {
 
 ## 📈 性能指标
 
-| 指标 | 数值 |
-|------|------|
-| 总测试数 | 25 |
-| 通过率 | 96% (24/25) |
-| 执行时间 | 73秒 |
-| 平均单测时间 | 3秒 |
-| 代码行数 | 756行 |
+| 指标         | 数值        |
+| ------------ | ----------- |
+| 总测试数     | 25          |
+| 通过率       | 96% (24/25) |
+| 执行时间     | 73秒        |
+| 平均单测时间 | 3秒         |
+| 代码行数     | 756行       |
 
 ---
 
@@ -332,12 +346,14 @@ workflow.on('workflow:stage-start', (data) => {
 任务4已成功完成，实现了工作流管道的完整集成测试。
 
 **关键成果**:
+
 - ✅ 创建756行集成测试代码
 - ✅ 24/25测试通过 (96%通过率)
 - ✅ 发现并修复WorkflowPipeline的Bug
 - ✅ 验证工作流管道核心功能
 
 **预期收益**:
+
 - 🔒 确保工作流管道稳定可靠
 - 🛡️ 防止回归bug
 - ♻️ 提高代码质量和可维护性

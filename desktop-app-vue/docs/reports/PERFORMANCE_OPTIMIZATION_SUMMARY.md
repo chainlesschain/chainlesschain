@@ -11,6 +11,7 @@
 本文档记录了项目管理模块的性能优化工作，主要解决大型项目（1000+ 文件）文件列表加载缓慢的问题。
 
 **优化成果**:
+
 - ⚡ **加载时间**: 5000ms → 50ms (99% 提升)
 - 📦 **内存占用**: 降低 70%
 - 🔄 **实时更新**: 支持文件系统监听
@@ -25,10 +26,12 @@
 **严重程度**: 🔴 高 (用户体验严重受影响)
 
 **影响范围**:
+
 - `project-core-ipc.js` - `project:get-files` 处理器
 - 所有需要显示文件列表的页面
 
 **性能瓶颈**:
+
 ```javascript
 // 旧实现 ❌
 ipcMain.handle("project:get-files", async (_event, projectId) => {
@@ -55,6 +58,7 @@ ipcMain.handle("project:get-files", async (_event, projectId) => {
 | 5000 文件 | 25000ms | 200MB |
 
 **用户影响**:
+
 - UI 冻结 5-25 秒
 - 无法操作其他功能
 - 首次加载体验极差
@@ -77,6 +81,7 @@ ipcMain.handle("project:get-files", async (_event, projectId) => {
 **文件**: `src/main/project/file-cache-manager.js` (485 行)
 
 **核心功能**:
+
 ```javascript
 class FileCacheManager {
   /**
@@ -113,26 +118,27 @@ class FileCacheManager {
   async getFromCache(projectId, options) {
     const { offset, limit, fileType, parentPath } = options;
 
-    let query = 'SELECT * FROM project_files WHERE project_id = ? AND deleted = 0';
+    let query =
+      "SELECT * FROM project_files WHERE project_id = ? AND deleted = 0";
     const params = [projectId];
 
     // 文件类型过滤
     if (fileType) {
-      query += ' AND file_type = ?';
+      query += " AND file_type = ?";
       params.push(fileType);
     }
 
     // 懒加载过滤
     if (parentPath !== null) {
-      query += ' AND file_path LIKE ?';
+      query += " AND file_path LIKE ?";
       params.push(`${parentPath}/%`);
     }
 
     // 排序
-    query += ' ORDER BY is_folder DESC, file_name ASC';
+    query += " ORDER BY is_folder DESC, file_name ASC";
 
     // 分页
-    query += ' LIMIT ? OFFSET ?';
+    query += " LIMIT ? OFFSET ?";
     params.push(limit, offset);
 
     const files = this.database.db.prepare(query).all(...params);
@@ -145,12 +151,12 @@ class FileCacheManager {
     const watcher = chokidar.watch(rootPath, {
       ignored: /(^|[/\\])\.|node_modules|\.git/,
       persistent: true,
-      ignoreInitial: true
+      ignoreInitial: true,
     });
 
-    watcher.on('add', (path) => this.handleFileAdded(projectId, path));
-    watcher.on('change', (path) => this.handleFileChanged(projectId, path));
-    watcher.on('unlink', (path) => this.handleFileDeleted(projectId, path));
+    watcher.on("add", (path) => this.handleFileAdded(projectId, path));
+    watcher.on("change", (path) => this.handleFileChanged(projectId, path));
+    watcher.on("unlink", (path) => this.handleFileDeleted(projectId, path));
 
     this.watchers.set(projectId, watcher);
   }
@@ -164,6 +170,7 @@ class FileCacheManager {
 #### ✅ `project:get-files` (重构)
 
 **优化前**:
+
 ```javascript
 ipcMain.handle("project:get-files", async (_event, projectId) => {
   // 扫描整个文件系统 (5秒)
@@ -175,33 +182,38 @@ ipcMain.handle("project:get-files", async (_event, projectId) => {
 ```
 
 **优化后**:
+
 ```javascript
-ipcMain.handle("project:get-files", async (_event, projectId, fileType, pageNum, pageSize) => {
-  const offset = (pageNum - 1) * pageSize;
+ipcMain.handle(
+  "project:get-files",
+  async (_event, projectId, fileType, pageNum, pageSize) => {
+    const offset = (pageNum - 1) * pageSize;
 
-  // 从缓存读取 (<50ms)
-  const result = await fileCacheManager.getFiles(projectId, {
-    offset,
-    limit: pageSize,
-    fileType
-  });
+    // 从缓存读取 (<50ms)
+    const result = await fileCacheManager.getFiles(projectId, {
+      offset,
+      limit: pageSize,
+      fileType,
+    });
 
-  return {
-    files: result.files,
-    total: result.total,
-    hasMore: result.hasMore,
-    fromCache: result.fromCache
-  };
-});
+    return {
+      files: result.files,
+      total: result.total,
+      hasMore: result.hasMore,
+      fromCache: result.fromCache,
+    };
+  },
+);
 ```
 
 #### ✅ `project:refresh-files` (新增)
 
 强制刷新文件缓存:
+
 ```javascript
 ipcMain.handle("project:refresh-files", async (_event, projectId) => {
   const result = await fileCacheManager.getFiles(projectId, {
-    forceRefresh: true
+    forceRefresh: true,
   });
 
   return { success: true, total: result.total };
@@ -211,6 +223,7 @@ ipcMain.handle("project:refresh-files", async (_event, projectId) => {
 #### ✅ `project:clear-file-cache` (新增)
 
 清理项目文件缓存:
+
 ```javascript
 ipcMain.handle("project:clear-file-cache", async (_event, projectId) => {
   await fileCacheManager.clearCache(projectId);
@@ -223,22 +236,26 @@ ipcMain.handle("project:clear-file-cache", async (_event, projectId) => {
 #### ✅ `project:get-files-lazy` (新增)
 
 按目录懒加载文件:
+
 ```javascript
-ipcMain.handle("project:get-files-lazy", async (_event, projectId, parentPath, pageNum, pageSize) => {
-  const offset = (pageNum - 1) * pageSize;
+ipcMain.handle(
+  "project:get-files-lazy",
+  async (_event, projectId, parentPath, pageNum, pageSize) => {
+    const offset = (pageNum - 1) * pageSize;
 
-  const result = await fileCacheManager.getFiles(projectId, {
-    offset,
-    limit: pageSize,
-    parentPath  // 仅加载指定目录的直接子项
-  });
+    const result = await fileCacheManager.getFiles(projectId, {
+      offset,
+      limit: pageSize,
+      parentPath, // 仅加载指定目录的直接子项
+    });
 
-  return {
-    files: result.files,
-    total: result.total,
-    hasMore: result.hasMore
-  };
-});
+    return {
+      files: result.files,
+      total: result.total,
+      hasMore: result.hasMore,
+    };
+  },
+);
 ```
 
 ---
@@ -250,7 +267,7 @@ ipcMain.handle("project:get-files-lazy", async (_event, projectId, parentPath, p
 ```javascript
 // 场景：加载 1000 文件的项目
 const startTime = Date.now();
-const files = await ipcRenderer.invoke('project:get-files', projectId);
+const files = await ipcRenderer.invoke("project:get-files", projectId);
 const duration = Date.now() - startTime;
 
 // 结果:
@@ -265,7 +282,13 @@ const duration = Date.now() - startTime;
 ```javascript
 // 首次加载（缓存为空）
 const startTime = Date.now();
-const result = await ipcRenderer.invoke('project:get-files', projectId, null, 1, 50);
+const result = await ipcRenderer.invoke(
+  "project:get-files",
+  projectId,
+  null,
+  1,
+  50,
+);
 const duration = Date.now() - startTime;
 
 // 结果:
@@ -277,7 +300,13 @@ const duration = Date.now() - startTime;
 
 // 后续加载（缓存已存在）
 const startTime2 = Date.now();
-const result2 = await ipcRenderer.invoke('project:get-files', projectId, null, 2, 50);
+const result2 = await ipcRenderer.invoke(
+  "project:get-files",
+  projectId,
+  null,
+  2,
+  50,
+);
 const duration2 = Date.now() - startTime2;
 
 // 结果:
@@ -292,31 +321,31 @@ const duration2 = Date.now() - startTime2;
 
 #### 加载时间对比
 
-| 文件数量 | 优化前 | 优化后 (首次) | 优化后 (缓存) | 提升比例 |
-|---------|--------|--------------|--------------|---------|
-| 100 | 500ms | 30ms | 5ms | 99% ⬆️ |
-| 500 | 2000ms | 50ms | 10ms | 99.5% ⬆️ |
-| 1000 | 5000ms | 50ms | 10ms | 99.8% ⬆️ |
-| 5000 | 25000ms | 100ms | 15ms | 99.9% ⬆️ |
-| 10000 | 60000ms | 150ms | 20ms | 99.97% ⬆️ |
+| 文件数量 | 优化前  | 优化后 (首次) | 优化后 (缓存) | 提升比例  |
+| -------- | ------- | ------------- | ------------- | --------- |
+| 100      | 500ms   | 30ms          | 5ms           | 99% ⬆️    |
+| 500      | 2000ms  | 50ms          | 10ms          | 99.5% ⬆️  |
+| 1000     | 5000ms  | 50ms          | 10ms          | 99.8% ⬆️  |
+| 5000     | 25000ms | 100ms         | 15ms          | 99.9% ⬆️  |
+| 10000    | 60000ms | 150ms         | 20ms          | 99.97% ⬆️ |
 
 #### 内存占用对比
 
-| 文件数量 | 优化前 | 优化后 | 节省 |
-|---------|--------|--------|------|
-| 100 | 5MB | 2MB | 60% ⬇️ |
-| 500 | 20MB | 2MB | 90% ⬇️ |
-| 1000 | 40MB | 2MB | 95% ⬇️ |
-| 5000 | 200MB | 2MB | 99% ⬇️ |
+| 文件数量 | 优化前 | 优化后 | 节省   |
+| -------- | ------ | ------ | ------ |
+| 100      | 5MB    | 2MB    | 60% ⬇️ |
+| 500      | 20MB   | 2MB    | 90% ⬇️ |
+| 1000     | 40MB   | 2MB    | 95% ⬇️ |
+| 5000     | 200MB  | 2MB    | 99% ⬇️ |
 
 #### 用户体验指标
 
-| 指标 | 优化前 | 优化后 | 改善 |
-|-----|--------|--------|------|
-| 首屏加载时间 | 5000ms | 50ms | 99% ⬆️ |
-| UI 响应性 | 冻结5秒 | 实时响应 | ✅ |
-| 滚动流畅度 | 卡顿 | 流畅 | ✅ |
-| 内存泄漏风险 | 高 | 低 | ✅ |
+| 指标         | 优化前  | 优化后   | 改善   |
+| ------------ | ------- | -------- | ------ |
+| 首屏加载时间 | 5000ms  | 50ms     | 99% ⬆️ |
+| UI 响应性    | 冻结5秒 | 实时响应 | ✅     |
+| 滚动流畅度   | 卡顿    | 流畅     | ✅     |
+| 内存泄漏风险 | 高      | 低       | ✅     |
 
 ---
 
@@ -328,45 +357,48 @@ const duration2 = Date.now() - startTime2;
 
 #### 测试覆盖矩阵
 
-| 类别 | 测试数量 | 通过率 |
-|-----|---------|--------|
-| 基础功能 | 4 | 100% ✅ |
-| 分页功能 | 3 | 100% ✅ |
-| 缓存状态 | 2 | 100% ✅ |
-| 文件监听 | 3 | 100% ✅ |
-| 性能测试 | 1 | 100% ✅ |
-| 边界条件 | 3 | 100% ✅ |
+| 类别     | 测试数量 | 通过率  |
+| -------- | -------- | ------- |
+| 基础功能 | 4        | 100% ✅ |
+| 分页功能 | 3        | 100% ✅ |
+| 缓存状态 | 2        | 100% ✅ |
+| 文件监听 | 3        | 100% ✅ |
+| 性能测试 | 1        | 100% ✅ |
+| 边界条件 | 3        | 100% ✅ |
 
 #### 关键测试场景
 
 ✅ **测试 1: 分页功能**
+
 ```javascript
 // 测试 50 个文件分 3 页加载
-const page1 = await manager.getFiles('test-project', { offset: 0, limit: 20 });
+const page1 = await manager.getFiles("test-project", { offset: 0, limit: 20 });
 expect(page1.files).toHaveLength(20);
 expect(page1.hasMore).toBe(true);
 
-const page2 = await manager.getFiles('test-project', { offset: 20, limit: 20 });
+const page2 = await manager.getFiles("test-project", { offset: 20, limit: 20 });
 expect(page2.files).toHaveLength(20);
 
-const page3 = await manager.getFiles('test-project', { offset: 40, limit: 20 });
+const page3 = await manager.getFiles("test-project", { offset: 40, limit: 20 });
 expect(page3.files).toHaveLength(10);
 expect(page3.hasMore).toBe(false);
 ```
 
 ✅ **测试 2: 文件监听**
+
 ```javascript
 // 启动监听
-manager.startFileWatcher('test-project', testRoot);
+manager.startFileWatcher("test-project", testRoot);
 
 // 创建新文件
-await fs.writeFile(path.join(testRoot, 'new-file.txt'), 'content');
+await fs.writeFile(path.join(testRoot, "new-file.txt"), "content");
 
 // 验证：文件被自动添加到缓存
 // (通过 handleFileAdded 回调验证)
 ```
 
 ✅ **测试 3: 性能测试**
+
 ```javascript
 // 100 个文件，缓存读取应该 < 100ms
 mockDb.queryResults = Array.from({ length: 100 }, ...);
@@ -385,6 +417,7 @@ expect(duration).toBeLessThan(100);
 #### 数据库索引优化
 
 为了进一步提升查询性能，建议添加以下索引:
+
 ```sql
 -- 项目ID索引
 CREATE INDEX idx_project_files_project_id ON project_files(project_id);
@@ -408,13 +441,14 @@ CREATE INDEX idx_project_files_query ON project_files(project_id, deleted, file_
 const watcher = chokidar.watch(rootPath, {
   ignored: /(^|[/\\])\.|node_modules|\.git|dist|build|out/,
   persistent: true,
-  ignoreInitial: true,  // 不触发初始扫描
-  awaitWriteFinish: {   // 等待写入完成
+  ignoreInitial: true, // 不触发初始扫描
+  awaitWriteFinish: {
+    // 等待写入完成
     stabilityThreshold: 2000,
-    pollInterval: 100
+    pollInterval: 100,
   },
-  depth: 10,  // 最大递归深度
-  atomic: true  // 原子操作监听
+  depth: 10, // 最大递归深度
+  atomic: true, // 原子操作监听
 });
 ```
 
@@ -427,12 +461,15 @@ if (cacheStatus.isEmpty) {
 }
 
 // 策略 2: 定期刷新（每30分钟）
-setInterval(() => {
-  scheduleBackgroundScan(projectId);
-}, 30 * 60 * 1000);
+setInterval(
+  () => {
+    scheduleBackgroundScan(projectId);
+  },
+  30 * 60 * 1000,
+);
 
 // 策略 3: 用户触发刷新
-ipcRenderer.invoke('project:refresh-files', projectId);
+ipcRenderer.invoke("project:refresh-files", projectId);
 ```
 
 ---
@@ -453,16 +490,19 @@ ipcRenderer.invoke('project:refresh-files', projectId);
 #### 未来改进
 
 **短期 (1-2周)**:
+
 - ⏳ 添加虚拟滚动组件（前端优化）
 - ⏳ 实现文件预加载策略
 - ⏳ 添加搜索索引（全文搜索）
 
 **中期 (1个月)**:
+
 - 📋 Worker 线程扫描（完全非阻塞）
 - 📋 智能预测加载（AI预测用户需要的文件）
 - 📋 缓存过期策略（LRU淘汰）
 
 **长期 (3个月)**:
+
 - 📋 分布式文件索引（支持云端项目）
 - 📋 实时协作（多人同时编辑）
 - 📋 增量快照（Git-like 版本控制）
@@ -496,6 +536,7 @@ ipcRenderer.invoke('project:refresh-files', projectId);
 ### 3.1 数据库迁移
 
 **添加索引**:
+
 ```bash
 # 运行数据库迁移脚本
 npm run db:migrate
@@ -507,18 +548,14 @@ sqlite3 data/chainlesschain.db < migrations/add-file-indexes.sql
 ### 3.2 配置调整
 
 **`.chainlesschain/config.json`**:
+
 ```json
 {
   "fileCache": {
     "enabled": true,
     "maxWatchers": 10,
-    "refreshInterval": 1800000,  // 30分钟
-    "ignorePatterns": [
-      "node_modules",
-      ".git",
-      "dist",
-      "build"
-    ]
+    "refreshInterval": 1800000, // 30分钟
+    "ignorePatterns": ["node_modules", ".git", "dist", "build"]
   }
 }
 ```
@@ -526,12 +563,14 @@ sqlite3 data/chainlesschain.db < migrations/add-file-indexes.sql
 ### 3.3 监控指标
 
 **关键指标**:
+
 - 平均文件加载时间 (目标 < 100ms)
 - 缓存命中率 (目标 > 90%)
 - 文件监听器数量 (目标 < 10)
 - 后台扫描队列长度 (目标 < 5)
 
 **告警规则**:
+
 - 文件加载时间 > 500ms → 警告
 - 缓存命中率 < 70% → 警告
 - 文件监听器数量 > 15 → 警告
@@ -550,12 +589,12 @@ sqlite3 data/chainlesschain.db < migrations/add-file-indexes.sql
 
 ### 性能提升
 
-| 指标 | 改善 |
-|-----|------|
-| 文件加载时间 | 99% ⬆️ |
-| 内存占用 | 95% ⬇️ |
-| UI 响应性 | 完全不阻塞 ✅ |
-| 用户满意度 | 极大提升 ✅ |
+| 指标         | 改善          |
+| ------------ | ------------- |
+| 文件加载时间 | 99% ⬆️        |
+| 内存占用     | 95% ⬇️        |
+| UI 响应性    | 完全不阻塞 ✅ |
+| 用户满意度   | 极大提升 ✅   |
 
 ### 下一步
 

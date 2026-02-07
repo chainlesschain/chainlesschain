@@ -5,6 +5,7 @@
 ### 准备工作
 
 1. 确保开发服务器正在运行:
+
 ```bash
 cd desktop-app-vue
 npm run dev
@@ -115,6 +116,7 @@ http://127.0.0.1:5173/#/p2p/message-queue
 如果MCP服务器无法开启:
 
 1. 检查后端服务:
+
 ```bash
 # 检查MCP服务是否运行
 docker ps | grep mcp
@@ -123,11 +125,13 @@ netstat -ano | findstr :端口号
 ```
 
 2. 检查配置文件:
+
 ```bash
 cat .chainlesschain/config.json
 ```
 
 3. 查看日志:
+
 ```bash
 tail -f logs/mcp-server.log
 ```
@@ -166,6 +170,7 @@ node scripts/diagnose-menu-integration.js
 ```
 
 **预期输出**:
+
 ```
 ✓ 菜单项: 14/14 已添加
 ✓ 路由配置: 14/14 已注册
@@ -219,7 +224,7 @@ node scripts/diagnose-menu-integration.js
 
 ---
 
-**验证人**: __________
-**验证日期**: __________
-**通过数量**: ____/14
-**备注**: ________________
+**验证人**: ****\_\_****
+**验证日期**: ****\_\_****
+**通过数量**: \_**\_/14
+**备注**: ******\_\_********

@@ -147,13 +147,13 @@
 
 #### 发现的问题
 
-| 问题 | 影响 | 位置 |
-|------|------|------|
-| **错误回滚不完整** | 创建失败时，可能遗留数据库记录或文件 | `project:create` L107-246 |
-| **流式创建取消后清理不彻底** | 取消后可能有残留文件 | `project:create-stream` L252-511 |
-| **并发创建未加锁** | 可能产生重复 ID | 所有创建方法 |
-| **root_path 修复逻辑分散** | 多处重复代码，维护困难 | L741-986 |
-| **undefined 值清理过度防御** | 性能损耗，说明数据结构不稳定 | L109, L269, L609 |
+| 问题                         | 影响                                 | 位置                             |
+| ---------------------------- | ------------------------------------ | -------------------------------- |
+| **错误回滚不完整**           | 创建失败时，可能遗留数据库记录或文件 | `project:create` L107-246        |
+| **流式创建取消后清理不彻底** | 取消后可能有残留文件                 | `project:create-stream` L252-511 |
+| **并发创建未加锁**           | 可能产生重复 ID                      | 所有创建方法                     |
+| **root_path 修复逻辑分散**   | 多处重复代码，维护困难               | L741-986                         |
+| **undefined 值清理过度防御** | 性能损耗，说明数据结构不稳定         | L109, L269, L609                 |
 
 ### 2.2 文件管理流程
 
@@ -162,6 +162,7 @@
 **文件**: `src/main/project/project-core-ipc.js` (L996-1301)
 
 **核心操作**:
+
 - `project:get-files` - 递归扫描文件系统
 - `project:get-file` - 获取单个文件
 - `project:update-file` - 更新文件（后端 + 本地）
@@ -170,13 +171,13 @@
 
 #### 发现的问题
 
-| 问题 | 影响 | 位置 |
-|------|------|------|
-| **文件扫描性能差** | 大项目（1000+ 文件）扫描慢 | `scanDirectory` L1066-1126 |
-| **缺少增量同步** | 每次都全量扫描 | L996-1167 |
-| **文件冲突检测缺失** | 多端修改同一文件可能冲突 | 整体流程 |
-| **删除操作不可逆** | 无回收站机制 | L1247-1301 |
-| **缺少文件版本历史** | 无法回退到历史版本 | 整体架构 |
+| 问题                 | 影响                       | 位置                       |
+| -------------------- | -------------------------- | -------------------------- |
+| **文件扫描性能差**   | 大项目（1000+ 文件）扫描慢 | `scanDirectory` L1066-1126 |
+| **缺少增量同步**     | 每次都全量扫描             | L996-1167                  |
+| **文件冲突检测缺失** | 多端修改同一文件可能冲突   | 整体流程                   |
+| **删除操作不可逆**   | 无回收站机制               | L1247-1301                 |
+| **缺少文件版本历史** | 无法回退到历史版本         | 整体架构                   |
 
 ### 2.3 工作流管道
 
@@ -185,6 +186,7 @@
 **文件**: `src/main/workflow/workflow-pipeline.js`
 
 **6 阶段管道**:
+
 1. Validation (验证)
 2. Preparation (准备)
 3. Build (构建)
@@ -193,6 +195,7 @@
 6. Release (发布)
 
 **关键特性**:
+
 - 状态机管理 (`WorkflowStateMachine`)
 - 质量门禁 (`QualityGateManager`)
 - 进度追踪 (`ProgressEmitter`)
@@ -201,14 +204,14 @@
 
 #### 发现的问题
 
-| 问题 | 影响 | 位置 |
-|------|------|------|
-| **缺少完整的回滚机制** | 阶段失败后无法恢复 | L323-396 |
+| 问题                   | 影响                     | 位置     |
+| ---------------------- | ------------------------ | -------- |
+| **缺少完整的回滚机制** | 阶段失败后无法恢复       | L323-396 |
 | **质量门禁覆盖太简单** | 只能手动覆盖，无审批流程 | L414-416 |
-| **缺少工作流模板** | 每次都需要重新配置 | 整体架构 |
-| **进度持久化缺失** | 应用重启后丢失进度 | 整体架构 |
-| **阶段执行器未定义** | 默认阶段无实际执行逻辑 | L128-134 |
-| **日志保留策略粗糙** | 只保留最近1000条 | L464-466 |
+| **缺少工作流模板**     | 每次都需要重新配置       | 整体架构 |
+| **进度持久化缺失**     | 应用重启后丢失进度       | 整体架构 |
+| **阶段执行器未定义**   | 默认阶段无实际执行逻辑   | L128-134 |
+| **日志保留策略粗糙**   | 只保留最近1000条         | L464-466 |
 
 ### 2.4 Git 集成
 
@@ -217,17 +220,18 @@
 **文件**: `src/main/project/project-git-ipc.js`
 
 **支持操作**:
+
 - init, status, commit, push, pull
 - branch, log, diff
 
 #### 发现的问题
 
-| 问题 | 影响 | 位置 |
-|------|------|------|
-| **缺少冲突解决 UI** | 用户无法处理合并冲突 | 整体流程 |
-| **无 Git Hooks 支持** | 无法集成 pre-commit 检查 | 整体架构 |
-| **大文件支持差** | 未集成 Git LFS | 整体架构 |
-| **分支策略未定义** | 无默认工作流（如 GitFlow）| 整体架构 |
+| 问题                  | 影响                       | 位置     |
+| --------------------- | -------------------------- | -------- |
+| **缺少冲突解决 UI**   | 用户无法处理合并冲突       | 整体流程 |
+| **无 Git Hooks 支持** | 无法集成 pre-commit 检查   | 整体架构 |
+| **大文件支持差**      | 未集成 Git LFS             | 整体架构 |
+| **分支策略未定义**    | 无默认工作流（如 GitFlow） | 整体架构 |
 
 ### 2.5 RAG 索引
 
@@ -236,18 +240,19 @@
 **文件**: `src/main/project/project-rag-ipc.js`
 
 **功能**:
+
 - `project:indexConversations` - 索引对话历史
 - `project:startWatcher` - 文件监听
 - `project:stopWatcher` - 停止监听
 
 #### 发现的问题
 
-| 问题 | 影响 | 位置 |
-|------|------|------|
-| **索引更新不及时** | 文件变化后未立即重新索引 | 监听机制 |
-| **向量数据库连接未验证** | Qdrant 不可用时无降级方案 | 整体流程 |
-| **缺少索引清理机制** | 删除项目后向量未清理 | 整体架构 |
-| **嵌入模型切换困难** | 切换模型后需重新索引所有数据 | 整体架构 |
+| 问题                     | 影响                         | 位置     |
+| ------------------------ | ---------------------------- | -------- |
+| **索引更新不及时**       | 文件变化后未立即重新索引     | 监听机制 |
+| **向量数据库连接未验证** | Qdrant 不可用时无降级方案    | 整体流程 |
+| **缺少索引清理机制**     | 删除项目后向量未清理         | 整体架构 |
+| **嵌入模型切换困难**     | 切换模型后需重新索引所有数据 | 整体架构 |
 
 ---
 
@@ -260,6 +265,7 @@
 **问题**: 项目创建失败时，可能遗留数据库记录、文件系统残留
 
 **优化方案**:
+
 ```javascript
 // 伪代码
 async function createProjectWithRollback(createData) {
@@ -267,39 +273,44 @@ async function createProjectWithRollback(createData) {
 
   try {
     // 步骤1: 生成项目ID和数据
-    const projectId = transaction.step('generate-id', () => crypto.randomUUID());
+    const projectId = transaction.step("generate-id", () =>
+      crypto.randomUUID(),
+    );
 
     // 步骤2: 调用后端API
-    const backendProject = await transaction.step('backend-create',
+    const backendProject = await transaction.step(
+      "backend-create",
       () => httpClient.createProject(createData),
       // 回滚：删除后端项目
-      () => httpClient.deleteProject(projectId)
+      () => httpClient.deleteProject(projectId),
     );
 
     // 步骤3: 保存到本地数据库
-    await transaction.step('db-save',
+    await transaction.step(
+      "db-save",
       () => database.saveProject(backendProject),
       // 回滚：删除本地记录
-      () => database.deleteProject(projectId)
+      () => database.deleteProject(projectId),
     );
 
     // 步骤4: 创建文件系统
-    await transaction.step('fs-create',
+    await transaction.step(
+      "fs-create",
       () => fs.mkdir(projectRootPath, { recursive: true }),
       // 回滚：删除目录
-      () => fs.rm(projectRootPath, { recursive: true, force: true })
+      () => fs.rm(projectRootPath, { recursive: true, force: true }),
     );
 
     // 步骤5: 写入文件
-    await transaction.step('fs-write',
+    await transaction.step(
+      "fs-write",
       () => writeProjectFiles(projectId, files),
       // 回滚：清空目录
-      () => fs.rm(projectRootPath, { recursive: true, force: true })
+      () => fs.rm(projectRootPath, { recursive: true, force: true }),
     );
 
     await transaction.commit();
     return { success: true, projectId };
-
   } catch (error) {
     // 自动回滚所有已完成的步骤
     await transaction.rollback();
@@ -309,10 +320,12 @@ async function createProjectWithRollback(createData) {
 ```
 
 **影响文件**:
+
 - `src/main/project/project-core-ipc.js`
 - 新增: `src/main/utils/transaction-manager.js`
 
 **测试覆盖**:
+
 - [ ] 每个步骤失败的回滚测试
 - [ ] 回滚过程中再次失败的处理
 - [ ] 并发创建的冲突检测
@@ -324,6 +337,7 @@ async function createProjectWithRollback(createData) {
 **问题**: 每次获取文件都全量扫描，大项目性能差
 
 **优化方案**:
+
 ```javascript
 class IncrementalFileSync {
   constructor(projectId, rootPath) {
@@ -337,12 +351,12 @@ class IncrementalFileSync {
     const changes = {
       added: [],
       modified: [],
-      deleted: []
+      deleted: [],
     };
 
     // 1. 扫描文件系统，只检查 mtime > lastScanTime 的文件
     const currentFiles = await this.scanWithFilter(
-      (stats) => stats.mtimeMs > this.lastScanTime
+      (stats) => stats.mtimeMs > this.lastScanTime,
     );
 
     // 2. 对比哈希，识别真正变化的文件
@@ -358,12 +372,12 @@ class IncrementalFileSync {
 
       this.fileHashCache.set(file.path, {
         hash: currentHash,
-        mtime: file.stats.mtimeMs
+        mtime: file.stats.mtimeMs,
       });
     }
 
     // 3. 识别已删除的文件
-    const currentPaths = new Set(currentFiles.map(f => f.path));
+    const currentPaths = new Set(currentFiles.map((f) => f.path));
     for (const cachedPath of this.fileHashCache.keys()) {
       if (!currentPaths.has(cachedPath)) {
         changes.deleted.push(cachedPath);
@@ -378,14 +392,17 @@ class IncrementalFileSync {
 ```
 
 **性能提升**:
+
 - 1000个文件项目: 从 ~5s 降到 ~200ms
 - 10000个文件项目: 从 ~60s 降到 ~1s
 
 **影响文件**:
+
 - `src/main/project/project-core-ipc.js` (重构 L1066-1126)
 - 新增: `src/main/project/incremental-file-sync.js`
 
 **测试覆盖**:
+
 - [ ] 大文件项目性能测试
 - [ ] 并发修改检测
 - [ ] 哈希碰撞处理
@@ -397,6 +414,7 @@ class IncrementalFileSync {
 **问题**: 阶段失败后无法恢复到之前状态
 
 **优化方案**:
+
 ```javascript
 class WorkflowStage {
   async execute(input, context) {
@@ -419,7 +437,7 @@ class WorkflowStage {
       // 文件系统快照（增量备份）
       files: await this.backupModifiedFiles(),
       // 数据库快照
-      database: await this.backupDatabaseState()
+      database: await this.backupDatabaseState(),
     };
   }
 
@@ -437,10 +455,12 @@ class WorkflowStage {
 ```
 
 **影响文件**:
+
 - `src/main/workflow/workflow-stage.js`
 - `src/main/workflow/workflow-pipeline.js`
 
 **测试覆盖**:
+
 - [ ] 每个阶段的回滚测试
 - [ ] 回滚失败的补偿措施
 - [ ] 快照存储空间管理
@@ -452,6 +472,7 @@ class WorkflowStage {
 **问题**: 质量门禁只能手动覆盖，缺少审批流程和详细检查
 
 **优化方案**:
+
 ```javascript
 class QualityGate {
   constructor(config) {
@@ -460,18 +481,18 @@ class QualityGate {
       new SecurityCheck({ criticalIssues: 0 }),
       new PerformanceCheck({ loadTime: 3000 }),
       new TestCoverageCheck({ coverage: 70 }),
-      new DependencyCheck({ vulnerabilities: 0 })
+      new DependencyCheck({ vulnerabilities: 0 }),
     ];
     this.approvers = config.approvers || [];
   }
 
   async check(context) {
     const results = await Promise.all(
-      this.checks.map(check => check.run(context))
+      this.checks.map((check) => check.run(context)),
     );
 
-    const failed = results.filter(r => !r.passed);
-    const blocking = failed.filter(r => r.blocking);
+    const failed = results.filter((r) => !r.passed);
+    const blocking = failed.filter((r) => r.blocking);
 
     if (blocking.length > 0) {
       // 阻塞性失败：需要审批才能继续
@@ -481,15 +502,15 @@ class QualityGate {
         return {
           passed: false,
           blocking: true,
-          message: '质量门禁失败，需要修复',
-          failedChecks: blocking
+          message: "质量门禁失败，需要修复",
+          failedChecks: blocking,
         };
       }
     }
 
     return {
       passed: true,
-      warnings: failed.filter(r => !r.blocking)
+      warnings: failed.filter((r) => !r.blocking),
     };
   }
 
@@ -497,7 +518,7 @@ class QualityGate {
     // 发送审批请求到前端
     const approval = await this.sendApprovalRequest({
       checks: failedChecks,
-      approvers: this.approvers
+      approvers: this.approvers,
     });
 
     if (approval.approved) {
@@ -511,6 +532,7 @@ class QualityGate {
 ```
 
 **新增检查项**:
+
 - 代码质量（ESLint 分数）
 - 安全扫描（依赖漏洞）
 - 性能检查（构建时间、包大小）
@@ -518,10 +540,12 @@ class QualityGate {
 - 许可证合规
 
 **影响文件**:
+
 - `src/main/workflow/quality-gate-manager.js`
 - 新增: `src/main/workflow/quality-checks/*.js`
 
 **测试覆盖**:
+
 - [ ] 每种检查的通过/失败场景
 - [ ] 审批流程测试
 - [ ] 超时处理
@@ -533,6 +557,7 @@ class QualityGate {
 **问题**: 多端修改同一文件时，后写入覆盖前者，数据丢失
 
 **优化方案**:
+
 ```javascript
 class ConflictResolver {
   async updateFile(projectId, fileId, newContent) {
@@ -549,7 +574,7 @@ class ConflictResolver {
         currentContent: currentFile.content,
         newContent,
         // 计算差异
-        diff: this.computeDiff(currentFile.content, newContent)
+        diff: this.computeDiff(currentFile.content, newContent),
       };
 
       // 3. 提供冲突解决选项
@@ -557,10 +582,10 @@ class ConflictResolver {
         conflict: true,
         data: conflict,
         options: [
-          { action: 'use-mine', label: '使用我的版本' },
-          { action: 'use-theirs', label: '使用服务器版本' },
-          { action: 'merge', label: '手动合并' }
-        ]
+          { action: "use-mine", label: "使用我的版本" },
+          { action: "use-theirs", label: "使用服务器版本" },
+          { action: "merge", label: "手动合并" },
+        ],
       };
     }
 
@@ -568,7 +593,7 @@ class ConflictResolver {
     await database.updateFile(fileId, {
       content: newContent,
       version: currentFile.version + 1,
-      updated_at: Date.now()
+      updated_at: Date.now(),
     });
 
     return { success: true };
@@ -576,11 +601,11 @@ class ConflictResolver {
 
   async resolveConflict(fileId, resolution) {
     switch (resolution.action) {
-      case 'use-mine':
+      case "use-mine":
         return await this.forceSave(fileId, resolution.myContent);
-      case 'use-theirs':
+      case "use-theirs":
         return { success: true }; // 保持服务器版本
-      case 'merge':
+      case "merge":
         return await this.forceSave(fileId, resolution.mergedContent);
     }
   }
@@ -588,16 +613,19 @@ class ConflictResolver {
 ```
 
 **前端 UI**:
+
 - 冲突对比视图（Monaco Diff Editor）
 - 三方合并工具
 - 冲突历史记录
 
 **影响文件**:
+
 - `src/main/project/project-core-ipc.js` (L1210-1241)
 - 新增: `src/main/project/conflict-resolver.js`
 - 新增: `src/renderer/components/projects/ConflictResolutionDialog.vue`
 
 **测试覆盖**:
+
 - [ ] 并发写入冲突检测
 - [ ] 三方合并正确性
 - [ ] 冲突解决后的版本递增
@@ -611,49 +639,63 @@ class ConflictResolver {
 **问题**: 文件删除后无法恢复
 
 **优化方案**:
+
 ```javascript
 class RecycleBin {
   async softDelete(projectId, fileId) {
     const file = await database.getFile(fileId);
 
     // 移动到回收站表
-    await database.run(`
+    await database.run(
+      `
       INSERT INTO recycled_files
       SELECT *, ? as deleted_at, ? as deleted_by
       FROM project_files
       WHERE id = ?
-    `, [Date.now(), userId, fileId]);
+    `,
+      [Date.now(), userId, fileId],
+    );
 
     // 软删除标记
-    await database.run(`
+    await database.run(
+      `
       UPDATE project_files
       SET deleted = 1, deleted_at = ?
       WHERE id = ?
-    `, [Date.now(), fileId]);
+    `,
+      [Date.now(), fileId],
+    );
 
     // 30天后自动清理
     setTimeout(() => this.purgeExpired(), 30 * 24 * 60 * 60 * 1000);
   }
 
   async restore(fileId) {
-    await database.run(`
+    await database.run(
+      `
       UPDATE project_files
       SET deleted = 0, deleted_at = NULL
       WHERE id = ?
-    `, [fileId]);
+    `,
+      [fileId],
+    );
   }
 
   async listRecycledFiles(projectId) {
-    return await database.all(`
+    return await database.all(
+      `
       SELECT * FROM project_files
       WHERE project_id = ? AND deleted = 1
       ORDER BY deleted_at DESC
-    `, [projectId]);
+    `,
+      [projectId],
+    );
   }
 }
 ```
 
 **影响文件**:
+
 - `src/main/project/project-core-ipc.js` (修改删除逻辑)
 - 新增: `src/main/project/recycle-bin.js`
 
@@ -664,38 +706,39 @@ class RecycleBin {
 **问题**: 每次都需要重新配置工作流
 
 **优化方案**:
+
 ```javascript
 const workflowTemplates = {
-  'web-frontend': {
-    name: 'Web 前端项目',
+  "web-frontend": {
+    name: "Web 前端项目",
     stages: [
-      { id: 'validation', executor: 'validateFrontendProject' },
-      { id: 'dependency', executor: 'installNpmDependencies' },
-      { id: 'lint', executor: 'runESLint' },
-      { id: 'test', executor: 'runJestTests' },
-      { id: 'build', executor: 'buildWithVite' },
-      { id: 'quality', checks: ['bundle-size', 'lighthouse'] },
-      { id: 'deploy', executor: 'deployToStatic' }
-    ]
+      { id: "validation", executor: "validateFrontendProject" },
+      { id: "dependency", executor: "installNpmDependencies" },
+      { id: "lint", executor: "runESLint" },
+      { id: "test", executor: "runJestTests" },
+      { id: "build", executor: "buildWithVite" },
+      { id: "quality", checks: ["bundle-size", "lighthouse"] },
+      { id: "deploy", executor: "deployToStatic" },
+    ],
   },
-  'document': {
-    name: '文档项目',
+  document: {
+    name: "文档项目",
     stages: [
-      { id: 'validation', executor: 'validateMarkdown' },
-      { id: 'generate', executor: 'generatePDF' },
-      { id: 'quality', checks: ['grammar', 'broken-links'] },
-      { id: 'publish', executor: 'publishToDocs' }
-    ]
+      { id: "validation", executor: "validateMarkdown" },
+      { id: "generate", executor: "generatePDF" },
+      { id: "quality", checks: ["grammar", "broken-links"] },
+      { id: "publish", executor: "publishToDocs" },
+    ],
   },
-  'data-analysis': {
-    name: '数据分析项目',
+  "data-analysis": {
+    name: "数据分析项目",
     stages: [
-      { id: 'validation', executor: 'validateDataFiles' },
-      { id: 'process', executor: 'runPythonScripts' },
-      { id: 'visualize', executor: 'generateCharts' },
-      { id: 'report', executor: 'generateMarkdownReport' }
-    ]
-  }
+      { id: "validation", executor: "validateDataFiles" },
+      { id: "process", executor: "runPythonScripts" },
+      { id: "visualize", executor: "generateCharts" },
+      { id: "report", executor: "generateMarkdownReport" },
+    ],
+  },
 };
 
 class WorkflowTemplateManager {
@@ -703,10 +746,10 @@ class WorkflowTemplateManager {
     const template = workflowTemplates[templateId];
     const workflow = new WorkflowPipeline({
       title: template.name,
-      ...customConfig
+      ...customConfig,
     });
 
-    template.stages.forEach(stage => {
+    template.stages.forEach((stage) => {
       workflow.registerStageExecutor(stage.id, this.executors[stage.executor]);
     });
 
@@ -722,11 +765,12 @@ class WorkflowTemplateManager {
 **问题**: 应用重启后工作流进度丢失
 
 **优化方案**:
+
 ```javascript
 class PersistentWorkflowPipeline extends WorkflowPipeline {
   async execute(input, context) {
     // 保存初始状态
-    await this.saveCheckpoint('initialized', { input, context });
+    await this.saveCheckpoint("initialized", { input, context });
 
     try {
       for (let i = 0; i < this.stages.length; i++) {
@@ -735,7 +779,7 @@ class PersistentWorkflowPipeline extends WorkflowPipeline {
         // 每个阶段开始前保存检查点
         await this.saveCheckpoint(`stage-${i}-start`, {
           stageId: stage.id,
-          input: currentInput
+          input: currentInput,
         });
 
         const result = await stage.execute(currentInput, context);
@@ -743,7 +787,7 @@ class PersistentWorkflowPipeline extends WorkflowPipeline {
         // 阶段完成后保存检查点
         await this.saveCheckpoint(`stage-${i}-complete`, {
           stageId: stage.id,
-          result
+          result,
         });
 
         currentInput = result;
@@ -751,28 +795,34 @@ class PersistentWorkflowPipeline extends WorkflowPipeline {
 
       return result;
     } catch (error) {
-      await this.saveCheckpoint('failed', { error: error.message });
+      await this.saveCheckpoint("failed", { error: error.message });
       throw error;
     }
   }
 
   async saveCheckpoint(phase, data) {
-    await database.run(`
+    await database.run(
+      `
       INSERT INTO workflow_checkpoints
       (workflow_id, phase, data, timestamp)
       VALUES (?, ?, ?, ?)
-    `, [this.id, phase, JSON.stringify(data), Date.now()]);
+    `,
+      [this.id, phase, JSON.stringify(data), Date.now()],
+    );
   }
 
   async resume() {
-    const checkpoints = await database.all(`
+    const checkpoints = await database.all(
+      `
       SELECT * FROM workflow_checkpoints
       WHERE workflow_id = ?
       ORDER BY timestamp DESC
-    `, [this.id]);
+    `,
+      [this.id],
+    );
 
     // 找到最后成功的阶段
-    const lastComplete = checkpoints.find(c => c.phase.includes('-complete'));
+    const lastComplete = checkpoints.find((c) => c.phase.includes("-complete"));
 
     if (lastComplete) {
       const stageIndex = parseInt(lastComplete.phase.match(/stage-(\d+)/)[1]);
@@ -787,12 +837,14 @@ class PersistentWorkflowPipeline extends WorkflowPipeline {
 #### 9. 实现 Git 冲突解决 UI
 
 **优化方案**:
+
 - 集成 Monaco Diff Editor
 - 三方合并视图
 - 冲突标记高亮
 - 一键解决常见冲突（接受所有远程/本地）
 
 **影响文件**:
+
 - 新增: `src/renderer/components/projects/GitConflictResolver.vue`
 
 ---
@@ -800,38 +852,51 @@ class PersistentWorkflowPipeline extends WorkflowPipeline {
 #### 10. 添加文件版本历史
 
 **优化方案**:
+
 ```javascript
 class FileVersionManager {
   async saveVersion(fileId, content, message) {
-    await database.run(`
+    await database.run(
+      `
       INSERT INTO file_versions
       (file_id, content, version, message, created_at)
       VALUES (?, ?,
         (SELECT COALESCE(MAX(version), 0) + 1 FROM file_versions WHERE file_id = ?),
         ?, ?
       )
-    `, [fileId, content, fileId, message, Date.now()]);
+    `,
+      [fileId, content, fileId, message, Date.now()],
+    );
   }
 
   async getVersionHistory(fileId) {
-    return await database.all(`
+    return await database.all(
+      `
       SELECT * FROM file_versions
       WHERE file_id = ?
       ORDER BY version DESC
-    `, [fileId]);
+    `,
+      [fileId],
+    );
   }
 
   async rollbackToVersion(fileId, version) {
-    const versionData = await database.get(`
+    const versionData = await database.get(
+      `
       SELECT content FROM file_versions
       WHERE file_id = ? AND version = ?
-    `, [fileId, version]);
+    `,
+      [fileId, version],
+    );
 
-    await database.run(`
+    await database.run(
+      `
       UPDATE project_files
       SET content = ?, updated_at = ?
       WHERE id = ?
-    `, [versionData.content, Date.now(), fileId]);
+    `,
+      [versionData.content, Date.now(), fileId],
+    );
   }
 }
 ```
@@ -845,21 +910,25 @@ class FileVersionManager {
 **问题**: 缺少批量创建、更新、删除的高效接口
 
 **优化方案**:
+
 ```javascript
 // 批量创建文件
-ipcMain.handle('project:batch-create-files', async (_event, projectId, files) => {
-  const transaction = database.transaction(() => {
-    for (const file of files) {
-      database.saveProjectFile(projectId, file);
-    }
-  });
+ipcMain.handle(
+  "project:batch-create-files",
+  async (_event, projectId, files) => {
+    const transaction = database.transaction(() => {
+      for (const file of files) {
+        database.saveProjectFile(projectId, file);
+      }
+    });
 
-  transaction();
-  return { success: true, count: files.length };
-});
+    transaction();
+    return { success: true, count: files.length };
+  },
+);
 
 // 批量更新文件
-ipcMain.handle('project:batch-update-files', async (_event, updates) => {
+ipcMain.handle("project:batch-update-files", async (_event, updates) => {
   const transaction = database.transaction(() => {
     for (const { fileId, content } of updates) {
       database.updateFile(fileId, { content });
@@ -876,6 +945,7 @@ ipcMain.handle('project:batch-update-files', async (_event, updates) => {
 #### 12. Git LFS 支持
 
 **优化方案**:
+
 - 检测大文件（> 10MB）
 - 自动使用 Git LFS 追踪
 - LFS 下载进度显示
@@ -887,15 +957,19 @@ ipcMain.handle('project:batch-update-files', async (_event, updates) => {
 **问题**: 索引更新不及时，向量数据库连接未验证
 
 **优化方案**:
+
 ```javascript
 class OptimizedRAGManager {
   async indexWithDebounce(projectId, filePath) {
     // 防抖：文件变化后等待5秒再索引
     clearTimeout(this.debounceTimers.get(filePath));
 
-    this.debounceTimers.set(filePath, setTimeout(async () => {
-      await this.indexFile(projectId, filePath);
-    }, 5000));
+    this.debounceTimers.set(
+      filePath,
+      setTimeout(async () => {
+        await this.indexFile(projectId, filePath);
+      }, 5000),
+    );
   }
 
   async ensureQdrantConnection() {
@@ -903,7 +977,7 @@ class OptimizedRAGManager {
       await this.qdrantClient.getCollections();
     } catch (error) {
       // 降级到本地向量存储
-      logger.warn('[RAG] Qdrant 不可用，使用本地向量存储');
+      logger.warn("[RAG] Qdrant 不可用，使用本地向量存储");
       this.qdrantClient = new LocalVectorStore();
     }
   }
@@ -915,6 +989,7 @@ class OptimizedRAGManager {
 #### 14. 项目导入/导出
 
 **优化方案**:
+
 - 导出为 `.chainless` 压缩包（包含所有文件 + 元数据）
 - 导入时自动恢复项目结构
 - 支持增量导出（只导出变化）
@@ -924,11 +999,12 @@ class OptimizedRAGManager {
 #### 15. 协作权限控制
 
 **优化方案**:
+
 ```javascript
 const permissions = {
-  owner: ['read', 'write', 'delete', 'share', 'manage'],
-  editor: ['read', 'write', 'share'],
-  viewer: ['read']
+  owner: ["read", "write", "delete", "share", "manage"],
+  editor: ["read", "write", "share"],
+  viewer: ["read"],
 };
 
 class PermissionManager {
@@ -944,6 +1020,7 @@ class PermissionManager {
 #### 16. 性能监控集成
 
 **优化方案**:
+
 - 每个关键操作记录性能指标
 - 上报到 PerformanceMonitor
 - 前端展示慢操作警告
@@ -953,6 +1030,7 @@ class PermissionManager {
 #### 17. 项目模板市场
 
 **优化方案**:
+
 - 内置官方模板（Vue3、React、Next.js、文档等）
 - 用户自定义模板
 - 模板分享和评分
@@ -962,6 +1040,7 @@ class PermissionManager {
 #### 18. 智能任务推荐
 
 **优化方案**:
+
 - 基于项目类型推荐常见任务
 - 学习用户习惯
 - AI 生成任务清单
@@ -975,12 +1054,14 @@ class PermissionManager {
 #### 1. 工作流管道完整测试
 
 **缺失**:
+
 - ❌ 6阶段完整执行的集成测试
 - ❌ 质量门禁失败后的回滚测试
 - ❌ 暂停/恢复/取消的状态一致性测试
 - ❌ 并发执行多个工作流的测试
 
 **建议测试**:
+
 ```javascript
 // tests/integration/workflow-pipeline.test.js
 describe('WorkflowPipeline 集成测试', () => {
@@ -1035,21 +1116,25 @@ describe('WorkflowPipeline 集成测试', () => {
 #### 2. 项目创建错误恢复测试
 
 **缺失**:
+
 - ❌ 后端 API 失败后的回滚测试
 - ❌ 数据库写入失败后的清理测试
 - ❌ 文件系统写入失败后的回滚测试
 - ❌ 并发创建重复 ID 的检测测试
 
 **建议测试**:
-```javascript
-describe('项目创建错误恢复', () => {
-  test('后端 API 失败后回滚', async () => {
-    // 模拟后端失败
-    httpClient.createProject = jest.fn().mockRejectedValue(new Error('Backend error'));
 
-    await expect(
-      ipcMain.invoke('project:create', createData)
-    ).rejects.toThrow('Backend error');
+```javascript
+describe("项目创建错误恢复", () => {
+  test("后端 API 失败后回滚", async () => {
+    // 模拟后端失败
+    httpClient.createProject = jest
+      .fn()
+      .mockRejectedValue(new Error("Backend error"));
+
+    await expect(ipcMain.invoke("project:create", createData)).rejects.toThrow(
+      "Backend error",
+    );
 
     // 验证数据库无记录
     const projects = database.getProjects(userId);
@@ -1060,15 +1145,15 @@ describe('项目创建错误恢复', () => {
     expect(exists).toBe(false);
   });
 
-  test('并发创建不产生重复 ID', async () => {
-    const promises = Array(10).fill(null).map(() =>
-      ipcMain.invoke('project:create', createData)
-    );
+  test("并发创建不产生重复 ID", async () => {
+    const promises = Array(10)
+      .fill(null)
+      .map(() => ipcMain.invoke("project:create", createData));
 
     const results = await Promise.allSettled(promises);
     const successIds = results
-      .filter(r => r.status === 'fulfilled')
-      .map(r => r.value.id);
+      .filter((r) => r.status === "fulfilled")
+      .map((r) => r.value.id);
 
     // 所有成功的 ID 应该唯一
     expect(new Set(successIds).size).toBe(successIds.length);
@@ -1081,22 +1166,24 @@ describe('项目创建错误恢复', () => {
 #### 3. 文件冲突检测测试
 
 **缺失**:
+
 - ❌ 并发写入同一文件的冲突检测
 - ❌ 三方合并的正确性测试
 - ❌ 冲突解决后版本递增测试
 
 **建议测试**:
+
 ```javascript
-describe('文件冲突检测', () => {
-  test('并发写入检测冲突', async () => {
-    const fileId = 'test-file-id';
-    const content1 = 'Version 1';
-    const content2 = 'Version 2';
+describe("文件冲突检测", () => {
+  test("并发写入检测冲突", async () => {
+    const fileId = "test-file-id";
+    const content1 = "Version 1";
+    const content2 = "Version 2";
 
     // 同时更新
     const [result1, result2] = await Promise.all([
-      ipcMain.invoke('project:update-file', { fileId, content: content1 }),
-      ipcMain.invoke('project:update-file', { fileId, content: content2 })
+      ipcMain.invoke("project:update-file", { fileId, content: content1 }),
+      ipcMain.invoke("project:update-file", { fileId, content: content2 }),
     ]);
 
     // 至少一个应该检测到冲突
@@ -1110,19 +1197,21 @@ describe('文件冲突检测', () => {
 #### 4. 大规模数据测试
 
 **缺失**:
+
 - ❌ 1000+ 文件项目的性能测试
 - ❌ 100MB+ 大文件的处理测试
 - ❌ 100+ 并发用户的压力测试
 
 **建议测试**:
+
 ```javascript
-describe('大规模数据测试', () => {
-  test('1000个文件项目扫描性能', async () => {
+describe("大规模数据测试", () => {
+  test("1000个文件项目扫描性能", async () => {
     // 创建1000个文件
     await createTestProject(projectId, { fileCount: 1000 });
 
     const startTime = Date.now();
-    const files = await ipcMain.invoke('project:get-files', projectId);
+    const files = await ipcMain.invoke("project:get-files", projectId);
     const duration = Date.now() - startTime;
 
     expect(files).toHaveLength(1000);
@@ -1136,38 +1225,38 @@ describe('大规模数据测试', () => {
 #### 5. 边界条件测试
 
 **缺失**:
+
 - ❌ 空项目的处理
 - ❌ 特殊字符文件名的处理
 - ❌ 超长路径的处理
 - ❌ 磁盘空间不足的处理
 
 **建议测试**:
+
 ```javascript
-describe('边界条件测试', () => {
-  test('文件名包含特殊字符', async () => {
+describe("边界条件测试", () => {
+  test("文件名包含特殊字符", async () => {
     const specialNames = [
-      '测试文件.txt',
-      'file with spaces.md',
-      'file@#$%.js',
-      '🚀emoji.txt'
+      "测试文件.txt",
+      "file with spaces.md",
+      "file@#$%.js",
+      "🚀emoji.txt",
     ];
 
     for (const name of specialNames) {
-      await expect(
-        createFile(projectId, name)
-      ).resolves.not.toThrow();
+      await expect(createFile(projectId, name)).resolves.not.toThrow();
     }
   });
 
-  test('磁盘空间不足时优雅失败', async () => {
+  test("磁盘空间不足时优雅失败", async () => {
     // 模拟磁盘满
-    fs.writeFile = jest.fn().mockRejectedValue(
-      new Error('ENOSPC: no space left on device')
-    );
+    fs.writeFile = jest
+      .fn()
+      .mockRejectedValue(new Error("ENOSPC: no space left on device"));
 
-    await expect(
-      ipcMain.invoke('project:create', createData)
-    ).rejects.toThrow(/no space/);
+    await expect(ipcMain.invoke("project:create", createData)).rejects.toThrow(
+      /no space/,
+    );
 
     // 应该清理已创建的资源
   });
@@ -1193,26 +1282,26 @@ describe('边界条件测试', () => {
 
 ## 五、优先级矩阵
 
-| 优化项 | 影响范围 | 实现难度 | 用户价值 | 优先级 |
-|--------|---------|---------|---------|--------|
-| 1. 事务性创建 | 高 | 中 | 高 | P0 |
-| 2. 增量同步 | 高 | 中 | 高 | P0 |
-| 3. 工作流回滚 | 中 | 高 | 高 | P0 |
-| 4. 质量门禁增强 | 中 | 中 | 高 | P0 |
-| 5. 冲突检测 | 高 | 高 | 高 | P0 |
-| 6. 文件回收站 | 中 | 低 | 高 | P1 |
-| 7. 工作流模板 | 中 | 低 | 中 | P1 |
-| 8. 进度持久化 | 中 | 中 | 中 | P1 |
-| 9. Git 冲突 UI | 低 | 中 | 中 | P1 |
-| 10. 文件版本 | 中 | 中 | 中 | P1 |
-| 11. 批量操作 | 中 | 低 | 低 | P2 |
-| 12. Git LFS | 低 | 中 | 低 | P2 |
-| 13. RAG 优化 | 低 | 低 | 低 | P2 |
-| 14. 导入导出 | 低 | 低 | 中 | P2 |
-| 15. 权限控制 | 中 | 中 | 中 | P2 |
-| 16. 性能监控 | 低 | 低 | 低 | P2 |
-| 17. 模板市场 | 低 | 中 | 中 | P2 |
-| 18. 智能推荐 | 低 | 高 | 低 | P2 |
+| 优化项          | 影响范围 | 实现难度 | 用户价值 | 优先级 |
+| --------------- | -------- | -------- | -------- | ------ |
+| 1. 事务性创建   | 高       | 中       | 高       | P0     |
+| 2. 增量同步     | 高       | 中       | 高       | P0     |
+| 3. 工作流回滚   | 中       | 高       | 高       | P0     |
+| 4. 质量门禁增强 | 中       | 中       | 高       | P0     |
+| 5. 冲突检测     | 高       | 高       | 高       | P0     |
+| 6. 文件回收站   | 中       | 低       | 高       | P1     |
+| 7. 工作流模板   | 中       | 低       | 中       | P1     |
+| 8. 进度持久化   | 中       | 中       | 中       | P1     |
+| 9. Git 冲突 UI  | 低       | 中       | 中       | P1     |
+| 10. 文件版本    | 中       | 中       | 中       | P1     |
+| 11. 批量操作    | 中       | 低       | 低       | P2     |
+| 12. Git LFS     | 低       | 中       | 低       | P2     |
+| 13. RAG 优化    | 低       | 低       | 低       | P2     |
+| 14. 导入导出    | 低       | 低       | 中       | P2     |
+| 15. 权限控制    | 中       | 中       | 中       | P2     |
+| 16. 性能监控    | 低       | 低       | 低       | P2     |
+| 17. 模板市场    | 低       | 中       | 中       | P2     |
+| 18. 智能推荐    | 低       | 高       | 低       | P2     |
 
 ---
 
@@ -1229,6 +1318,7 @@ describe('边界条件测试', () => {
 - [ ] 补充创建错误恢复测试（测试2）
 
 **交付物**:
+
 - 事务管理器 (`transaction-manager.js`)
 - 冲突解决器 (`conflict-resolver.js`)
 - 工作流回滚机制
@@ -1247,6 +1337,7 @@ describe('边界条件测试', () => {
 - [ ] 边界条件测试（测试5）
 
 **交付物**:
+
 - 增量同步系统 (`incremental-file-sync.js`)
 - 批量操作 API
 - 性能基准测试
@@ -1264,6 +1355,7 @@ describe('边界条件测试', () => {
 - [ ] 进度持久化（优化8）
 
 **交付物**:
+
 - 质量检查套件
 - 回收站系统
 - 版本管理器
@@ -1280,6 +1372,7 @@ describe('边界条件测试', () => {
 - [ ] 项目导入导出（优化14）
 
 **交付物**:
+
 - Git 冲突解决器 UI
 - 权限管理系统
 - 导入导出工具
@@ -1307,26 +1400,29 @@ describe('边界条件测试', () => {
 
 ### 投资回报分析
 
-| 阶段 | 投入时间 | 预期收益 |
-|------|---------|---------|
-| 第一阶段 | 1-2周 | 减少70%的创建失败bug |
-| 第二阶段 | 2-3周 | 大项目性能提升10倍 |
-| 第三阶段 | 2-3周 | 用户满意度提升40% |
-| 第四阶段 | 1-2周 | 支持团队协作场景 |
+| 阶段     | 投入时间 | 预期收益             |
+| -------- | -------- | -------------------- |
+| 第一阶段 | 1-2周    | 减少70%的创建失败bug |
+| 第二阶段 | 2-3周    | 大项目性能提升10倍   |
+| 第三阶段 | 2-3周    | 用户满意度提升40%    |
+| 第四阶段 | 1-2周    | 支持团队协作场景     |
 
 ### 建议优先级
 
 **立即实施**（P0）:
+
 - 事务性创建
 - 冲突检测
 - 工作流回滚
 
 **短期实施**（P1，1个月内）:
+
 - 增量同步
 - 质量门禁
 - 文件回收站
 
 **长期规划**（P2，3个月内）:
+
 - 权限控制
 - 模板市场
 - 性能监控

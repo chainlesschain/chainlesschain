@@ -20,10 +20,12 @@
 ### 与基线对比
 
 **之前状态** (基于文档分析):
+
 - 测试失败: 362个 (5.4%)
 - 测试通过: 5,749个 (85.7%)
 
 **当前状态**:
+
 - 测试失败: 1325个 (14.6%)
 - 测试通过: 7730个 (85.4%)
 
@@ -44,6 +46,7 @@
 1. **uploadFile测试失败** (8个测试)
    - 问题: uploadFile最后调用`getFile()`返回新文件，但mock只设置了一次
    - 修复: 使用`mockReturnValueOnce`正确mock两次get调用
+
    ```javascript
    mockPrepare.get
      .mockReturnValueOnce(null) // checksum检查
@@ -53,10 +56,11 @@
 2. **Tag Management测试失败** (6个测试)
    - 问题: 实现使用独立的`file_tags`表，测试期望JSON字段
    - 修复: 重写所有tag测试以匹配file_tags表实现
+
    ```javascript
    // 改用INSERT INTO file_tags而非UPDATE project_files
    expect(mockDb.prepare).toHaveBeenCalledWith(
-     expect.stringContaining('INSERT OR IGNORE INTO file_tags')
+     expect.stringContaining("INSERT OR IGNORE INTO file_tags"),
    );
    ```
 
@@ -67,10 +71,9 @@
 4. **lockFile已锁定检查** (1个测试)
    - 问题: 需要mock file_locks表查询
    - 修复: 添加file_locks表的mock数据
+
    ```javascript
-   mockPrepare.get
-     .mockReturnValueOnce(fileData)
-     .mockReturnValueOnce(lockData); // expires_at未过期
+   mockPrepare.get.mockReturnValueOnce(fileData).mockReturnValueOnce(lockData); // expires_at未过期
    ```
 
 5. **deleteFile测试** (1个测试)
@@ -86,6 +89,7 @@
    - 修复: 移除对mock调用的验证，改为验证实际行为
 
 **提交记录**:
+
 ```
 3746dfe0 test(file-manager): 修复所有61个测试失败
 ```
@@ -107,6 +111,7 @@
 **修复方案**: 使用集成测试替代单元测试
 
 **跳过的测试**:
+
 1. shouldMigrate (2个)
 2. createSQLCipherDatabase (1个)
 3. createSqlJsDatabase (1个)
@@ -115,6 +120,7 @@
 6. 其他 (1个)
 
 **实施计划**:
+
 - 使用临时目录创建真实测试环境
 - 使用真实文件系统替代mock
 - 在afterEach中清理临时文件
@@ -129,18 +135,18 @@
 
 根据之前的分析报告 `TEST_FAILURES_ANALYSIS_2026-01-31.md`:
 
-| 模块 | 预估失败数 | 占比 | 优先级 |
-|------|-----------|------|--------|
-| **AI Engine** | ~50 | 3.8% | P0 |
-| **Permission Middleware** | ~40 | 3.0% | P0 |
-| **P2P** | ~40 | 3.0% | P1 |
-| **Sync** | ~35 | 2.6% | P1 |
-| **LLM** | ~30 | 2.3% | P0 |
-| **UI Components** | ~30 | 2.3% | P1 |
-| **Blockchain** | ~25 | 1.9% | P2 |
-| **Database** | ~20 | 1.5% | P0 |
-| **Media** | ~15 | 1.1% | P2 |
-| **其他** | ~1040 | 78.5% | P2 |
+| 模块                      | 预估失败数 | 占比  | 优先级 |
+| ------------------------- | ---------- | ----- | ------ |
+| **AI Engine**             | ~50        | 3.8%  | P0     |
+| **Permission Middleware** | ~40        | 3.0%  | P0     |
+| **P2P**                   | ~40        | 3.0%  | P1     |
+| **Sync**                  | ~35        | 2.6%  | P1     |
+| **LLM**                   | ~30        | 2.3%  | P0     |
+| **UI Components**         | ~30        | 2.3%  | P1     |
+| **Blockchain**            | ~25        | 1.9%  | P2     |
+| **Database**              | ~20        | 1.5%  | P0     |
+| **Media**                 | ~15        | 1.1%  | P2     |
+| **其他**                  | ~1040      | 78.5% | P2     |
 
 ### 高优先级问题 (P0)
 
@@ -211,12 +217,14 @@
 ## 🔗 相关文档
 
 ### 内部文档
+
 - [测试覆盖率报告](./TEST_COVERAGE_REPORT_2026-01-31.md)
 - [测试失败详细分析](./TEST_FAILURES_ANALYSIS_2026-01-31.md)
 - [下一步行动计划](./NEXT_STEPS_TEST_IMPROVEMENT.md)
 - [Database修复方案](./tests/unit/database/DATABASE_ADAPTER_TEST_FIX_PLAN.md)
 
 ### Git提交记录
+
 ```bash
 3746dfe0 test(file-manager): 修复所有61个测试失败
 484f59dd docs(testing): 添加测试覆盖率报告和改进计划
@@ -227,17 +235,20 @@
 ## ✅ 验收标准
 
 ### 短期 (本周)
+
 - [x] file-manager.test.js: 0个失败 ✅
 - [ ] database-adapter.test.js: 0个跳过
 - [ ] 总失败数: <1100个 (减少17%)
 - [ ] 测试通过率: >87%
 
 ### 中期 (2周)
+
 - [ ] 总失败数: <850个 (减少36%)
 - [ ] 测试通过率: >90%
 - [ ] 超时错误: 0个
 
 ### 长期 (1个月)
+
 - [ ] 总失败数: <400个 (减少70%)
 - [ ] 测试通过率: >95%
 - [ ] 代码覆盖率: >90%
