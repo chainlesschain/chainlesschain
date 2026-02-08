@@ -58,6 +58,7 @@ import com.chainlesschain.android.remote.ui.file.FileTransferScreen
 import com.chainlesschain.android.remote.ui.history.CommandHistoryScreen
 import com.chainlesschain.android.remote.ui.system.RemoteScreenshotScreen
 import com.chainlesschain.android.remote.ui.system.SystemMonitorScreen
+import com.chainlesschain.android.feature.filebrowser.ui.SafeFileBrowserScreen
 import com.chainlesschain.android.feature.p2p.ui.ChatSessionListScreen
 import com.chainlesschain.android.feature.p2p.ui.P2PChatScreen
 
@@ -246,10 +247,17 @@ fun NavGraph(
         }
 
         composable(Screen.FileBrowser.route) {
-            PlaceholderScreen(
-                title = "File Browser",
-                message = "File browser is temporarily simplified for build stability.",
-                onNavigateBack = { navController.popBackStack() }
+            SafeFileBrowserScreen(
+                projectId = null,
+                availableProjects = emptyList(),
+                onNavigateBack = { navController.popBackStack() },
+                onFileImported = { fileId ->
+                    android.widget.Toast.makeText(
+                        navController.context,
+                        "文件已导入",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
             )
         }
 

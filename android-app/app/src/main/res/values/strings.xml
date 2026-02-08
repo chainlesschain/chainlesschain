@@ -13,4 +13,10 @@
     <!-- P2P Chat -->
     <string name="p2p_chat_title">Messages</string>
     <string name="p2p_chat_empty">No conversations yet</string>
+
+    <!-- File Statistics -->
+    <string name="file_statistics_title">File Statistics</string>
+    <string name="file_statistics_total">%1$d files, %2$s</string>
+    <string name="file_statistics_favorites">%d favorites</string>
+    <string name="file_statistics_imported">%d imported</string>
 </resources>
