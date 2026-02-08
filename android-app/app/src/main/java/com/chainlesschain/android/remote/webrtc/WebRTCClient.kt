@@ -1,14 +1,35 @@
-﻿package com.chainlesschain.android.remote.webrtc
+package com.chainlesschain.android.remote.webrtc
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.webrtc.*
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * WebRTC P2P connection state tracking
+ */
+enum class P2PConnectionState {
+    DISCONNECTED,
+    SIGNALING_CONNECTED,
+    REGISTERED,
+    CREATING_OFFER,
+    WAITING_ANSWER,
+    ICE_CONNECTING,
+    DATA_CHANNEL_OPEN,
+    READY,
+    FAILED
+}
+
 @Singleton
 class WebRTCClient @Inject constructor(
-    private val context: android.content.Context,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val signalClient: SignalClient
 ) {
     private var peerConnectionFactory: PeerConnectionFactory? = null
@@ -28,8 +49,14 @@ class WebRTCClient @Inject constructor(
 
     private var onMessageReceived: ((String) -> Unit)? = null
 
+    private val _connectionState = MutableStateFlow(P2PConnectionState.DISCONNECTED)
+    val connectionState: StateFlow<P2PConnectionState> = _connectionState.asStateFlow()
+
+    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 64)
+    val messages: SharedFlow<String> = _messages.asSharedFlow()
+
     companion object {
-        private const val DATA_CHANNEL_LABEL = "command-channel"
+        private const val DATA_CHANNEL_LABEL = "chainlesschain-data"
     }
 
     fun initialize() {
@@ -55,33 +82,52 @@ class WebRTCClient @Inject constructor(
         }
     }
 
-    suspend fun connect(pcPeerId: String): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun connect(pcPeerId: String, localPeerId: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            Timber.d("Connecting to PC: $pcPeerId")
+            Timber.d("Connecting to PC: $pcPeerId (local: $localPeerId)")
 
+            // 1. Connect to signaling server
             val connectResult = signalClient.connect()
             if (connectResult.isFailure) {
+                _connectionState.value = P2PConnectionState.FAILED
                 return@withContext Result.failure(
                     connectResult.exceptionOrNull() ?: Exception("Signal server connect failed")
                 )
             }
+            _connectionState.value = P2PConnectionState.SIGNALING_CONNECTED
 
+            // 2. Register with signaling server
+            signalClient.register(localPeerId, mapOf(
+                "name" to android.os.Build.MODEL,
+                "platform" to "android",
+                "version" to android.os.Build.VERSION.RELEASE
+            ))
+            _connectionState.value = P2PConnectionState.REGISTERED
+            Timber.d("Registered as $localPeerId")
+
+            // 3. Create PeerConnection and DataChannel
             createPeerConnection(pcPeerId)
             createDataChannel()
             startRemoteIceListener()
 
+            // 4. Create and send offer
+            _connectionState.value = P2PConnectionState.CREATING_OFFER
             val offer = createOffer()
             signalClient.sendOffer(pcPeerId, offer)
 
-            val answer = signalClient.waitForAnswer(pcPeerId, timeout = 10000)
+            // 5. Wait for answer
+            _connectionState.value = P2PConnectionState.WAITING_ANSWER
+            val answer = signalClient.waitForAnswer(pcPeerId, timeout = 15000)
             setRemoteDescription(answer)
             isRemoteDescriptionSet = true
             drainPendingRemoteCandidates()
 
+            _connectionState.value = P2PConnectionState.ICE_CONNECTING
             Timber.d("Connected: $pcPeerId")
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "Connect failed")
+            _connectionState.value = P2PConnectionState.FAILED
             Result.failure(e)
         }
     }
@@ -105,6 +151,15 @@ class WebRTCClient @Inject constructor(
 
                 override fun onConnectionChange(newState: PeerConnection.PeerConnectionState) {
                     Timber.d("Connection state: $newState")
+                    when (newState) {
+                        PeerConnection.PeerConnectionState.FAILED -> {
+                            _connectionState.value = P2PConnectionState.FAILED
+                        }
+                        PeerConnection.PeerConnectionState.DISCONNECTED -> {
+                            _connectionState.value = P2PConnectionState.DISCONNECTED
+                        }
+                        else -> { /* handled by other callbacks */ }
+                    }
                 }
 
                 override fun onDataChannel(dc: DataChannel) {
@@ -115,6 +170,21 @@ class WebRTCClient @Inject constructor(
 
                 override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState) {
                     Timber.d("ICE connection state: $newState")
+                    when (newState) {
+                        PeerConnection.IceConnectionState.CONNECTED,
+                        PeerConnection.IceConnectionState.COMPLETED -> {
+                            if (_connectionState.value == P2PConnectionState.ICE_CONNECTING) {
+                                _connectionState.value = P2PConnectionState.DATA_CHANNEL_OPEN
+                            }
+                        }
+                        PeerConnection.IceConnectionState.FAILED -> {
+                            _connectionState.value = P2PConnectionState.FAILED
+                        }
+                        PeerConnection.IceConnectionState.DISCONNECTED -> {
+                            _connectionState.value = P2PConnectionState.DISCONNECTED
+                        }
+                        else -> {}
+                    }
                 }
 
                 override fun onIceConnectionReceivingChange(receiving: Boolean) {
@@ -168,7 +238,11 @@ class WebRTCClient @Inject constructor(
             override fun onBufferedAmountChange(amount: Long) {}
 
             override fun onStateChange() {
-                Timber.d("Data channel state: ${channel.state()}")
+                val state = channel.state()
+                Timber.d("Data channel state: $state")
+                if (state == DataChannel.State.OPEN) {
+                    _connectionState.value = P2PConnectionState.READY
+                }
             }
 
             override fun onMessage(buffer: DataChannel.Buffer) {
@@ -179,6 +253,7 @@ class WebRTCClient @Inject constructor(
 
                     Timber.d("Message received: ${message.take(50)}...")
                     onMessageReceived?.invoke(message)
+                    _messages.tryEmit(message)
                 } catch (e: Exception) {
                     Timber.e(e, "Handle message failed")
                 }
@@ -275,6 +350,7 @@ class WebRTCClient @Inject constructor(
         peerConnection = null
 
         signalClient.disconnect()
+        _connectionState.value = P2PConnectionState.DISCONNECTED
     }
 
     fun cleanup() {
@@ -318,6 +394,7 @@ class WebRTCClient @Inject constructor(
 
 interface SignalClient {
     suspend fun connect(): Result<Unit>
+    suspend fun register(peerId: String, deviceInfo: Map<String, String>)
     suspend fun sendOffer(peerId: String, offer: org.webrtc.SessionDescription)
     suspend fun sendIceCandidate(peerId: String, candidate: org.webrtc.IceCandidate)
     suspend fun waitForAnswer(peerId: String, timeout: Long): org.webrtc.SessionDescription
@@ -406,38 +483,118 @@ class WebSocketSignalClient @Inject constructor(
         }
     }
 
+    override suspend fun register(peerId: String, deviceInfo: Map<String, String>) {
+        currentPeerId = peerId
+        Timber.d("Registering as $peerId")
+
+        val json = org.json.JSONObject().apply {
+            put("type", "register")
+            put("peerId", peerId)
+            put("deviceType", "mobile")
+            put("deviceInfo", org.json.JSONObject().apply {
+                deviceInfo.forEach { (key, value) -> put(key, value) }
+            })
+        }
+
+        sendWebSocketMessage(json.toString())
+    }
+
     private fun handleSignalingMessage(message: String) {
         try {
             val json = org.json.JSONObject(message)
-            val type = json.getString("type")
+            val type = json.optString("type", "")
 
             when (type) {
+                "registered" -> {
+                    val peerId = json.optString("peerId")
+                    val isReconnect = json.optBoolean("isReconnect", false)
+                    Timber.d("Registered successfully: peerId=$peerId, isReconnect=$isReconnect")
+                }
+
                 "answer" -> {
-                    val sdp = json.getString("sdp")
-                    val answer = org.webrtc.SessionDescription(
-                        org.webrtc.SessionDescription.Type.ANSWER,
-                        sdp
-                    )
-                    CoroutineScope(Dispatchers.IO).launch {
-                        answerChannel.send(answer)
+                    // Server forwards answer with nested "answer" or "sdp" object
+                    val sdpString = extractSdpFromMessage(json, "answer")
+                    if (sdpString != null) {
+                        val answer = org.webrtc.SessionDescription(
+                            org.webrtc.SessionDescription.Type.ANSWER,
+                            sdpString
+                        )
+                        CoroutineScope(Dispatchers.IO).launch {
+                            answerChannel.send(answer)
+                        }
+                        Timber.d("Answer received")
+                    } else {
+                        Timber.e("Answer received but could not extract SDP")
                     }
-                    Timber.d("Answer received")
                 }
 
                 "ice-candidate" -> {
-                    val sdpMid = json.getString("sdpMid")
-                    val sdpMLineIndex = json.getInt("sdpMLineIndex")
-                    val sdp = json.getString("candidate")
-
-                    val candidate = org.webrtc.IceCandidate(sdpMid, sdpMLineIndex, sdp)
-                    CoroutineScope(Dispatchers.IO).launch {
-                        iceCandidateChannel.send(candidate)
+                    val candidateObj = json.optJSONObject("candidate")
+                    if (candidateObj != null) {
+                        val sdpMid = candidateObj.optString("sdpMid", "0")
+                        val sdpMLineIndex = candidateObj.optInt("sdpMLineIndex", 0)
+                        val sdp = candidateObj.optString("candidate", "")
+                        if (sdp.isNotBlank()) {
+                            val candidate = org.webrtc.IceCandidate(sdpMid, sdpMLineIndex, sdp)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                iceCandidateChannel.send(candidate)
+                            }
+                            Timber.d("ICE candidate received")
+                        }
+                    } else {
+                        // Fallback: try flat fields for backward compatibility
+                        val sdpMid = json.optString("sdpMid", "0")
+                        val sdpMLineIndex = json.optInt("sdpMLineIndex", 0)
+                        val sdp = json.optString("candidate", "")
+                        if (sdp.isNotBlank()) {
+                            val candidate = org.webrtc.IceCandidate(sdpMid, sdpMLineIndex, sdp)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                iceCandidateChannel.send(candidate)
+                            }
+                            Timber.d("ICE candidate received (flat format)")
+                        }
                     }
-                    Timber.d("ICE candidate received")
+                }
+
+                "ice-candidates" -> {
+                    // Batch ICE candidates (sent by desktop mobile-bridge.js every 100ms)
+                    val candidatesArray = json.optJSONArray("candidates")
+                    if (candidatesArray != null) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            for (i in 0 until candidatesArray.length()) {
+                                val c = candidatesArray.optJSONObject(i) ?: continue
+                                val sdpMid = c.optString("sdpMid", "0")
+                                val sdpMLineIndex = c.optInt("sdpMLineIndex", 0)
+                                val sdp = c.optString("candidate", "")
+                                if (sdp.isNotBlank()) {
+                                    iceCandidateChannel.send(
+                                        org.webrtc.IceCandidate(sdpMid, sdpMLineIndex, sdp)
+                                    )
+                                }
+                            }
+                        }
+                        Timber.d("Batch ICE candidates received: ${candidatesArray.length()}")
+                    }
+                }
+
+                "peer-offline" -> {
+                    val offlinePeerId = json.optString("peerId")
+                    val messageType = json.optString("messageType")
+                    Timber.w("Peer offline: $offlinePeerId (attempted: $messageType)")
+                }
+
+                "peer-status-response" -> {
+                    val statusPeerId = json.optString("peerId")
+                    val status = json.optString("status")
+                    Timber.d("Peer status: $statusPeerId = $status")
+                }
+
+                "pong" -> {
+                    Timber.d("Pong received")
                 }
 
                 "error" -> {
-                    val errorMsg = json.optString("message", "Unknown error")
+                    val errorMsg = json.optString("error", json.optString("message", "Unknown error"))
                     Timber.e("Signaling error: $errorMsg")
                 }
 
@@ -450,17 +607,49 @@ class WebSocketSignalClient @Inject constructor(
         }
     }
 
+    /**
+     * Extract SDP string from a signaling message.
+     * The server may send SDP in different formats:
+     * - { "answer": { "type": "answer", "sdp": "..." } }
+     * - { "sdp": { "type": "answer", "sdp": "..." } }
+     * - { "sdp": "..." } (flat string)
+     */
+    private fun extractSdpFromMessage(json: org.json.JSONObject, key: String): String? {
+        // Try nested object under the key (e.g., "answer" or "offer")
+        val nested = json.optJSONObject(key)
+        if (nested != null) {
+            val sdp = nested.optString("sdp", "")
+            if (sdp.isNotBlank()) return sdp
+        }
+
+        // Try nested object under "sdp"
+        val sdpObj = json.optJSONObject("sdp")
+        if (sdpObj != null) {
+            val sdp = sdpObj.optString("sdp", "")
+            if (sdp.isNotBlank()) return sdp
+        }
+
+        // Try flat "sdp" string
+        val sdpStr = json.optString("sdp", "")
+        if (sdpStr.isNotBlank()) return sdpStr
+
+        return null
+    }
+
     override suspend fun sendOffer(peerId: String, offer: org.webrtc.SessionDescription) {
         Timber.d("Send offer to $peerId")
         currentPeerId = peerId
 
         val json = org.json.JSONObject().apply {
             put("type", "offer")
-            put("peerId", peerId)
-            put("sdp", offer.description)
+            put("to", peerId)
+            put("offer", org.json.JSONObject().apply {
+                put("type", "offer")
+                put("sdp", offer.description)
+            })
         }
 
-        sendMessage(json.toString())
+        sendWebSocketMessage(json.toString())
     }
 
     override suspend fun sendIceCandidate(peerId: String, candidate: org.webrtc.IceCandidate) {
@@ -468,13 +657,15 @@ class WebSocketSignalClient @Inject constructor(
 
         val json = org.json.JSONObject().apply {
             put("type", "ice-candidate")
-            put("peerId", peerId)
-            put("sdpMid", candidate.sdpMid)
-            put("sdpMLineIndex", candidate.sdpMLineIndex)
-            put("candidate", candidate.sdp)
+            put("to", peerId)
+            put("candidate", org.json.JSONObject().apply {
+                put("candidate", candidate.sdp)
+                put("sdpMid", candidate.sdpMid)
+                put("sdpMLineIndex", candidate.sdpMLineIndex)
+            })
         }
 
-        sendMessage(json.toString())
+        sendWebSocketMessage(json.toString())
     }
 
     override suspend fun waitForAnswer(peerId: String, timeout: Long): org.webrtc.SessionDescription {
@@ -488,7 +679,7 @@ class WebSocketSignalClient @Inject constructor(
         return iceCandidateChannel.receive()
     }
 
-    private fun sendMessage(message: String) {
+    private fun sendWebSocketMessage(message: String) {
         if (!isConnected) {
             Timber.e("WebSocket not connected, cannot send message")
             return

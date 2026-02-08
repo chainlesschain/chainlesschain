@@ -85,7 +85,8 @@ class FileImportRepositoryTest {
         // Verify small file stored in database
         assertNotNull(projectFile.content)
         assertEquals(smallFileContent, projectFile.content)
-        assertNull(projectFile.path) // No filesystem path for small files
+        // path falls back to displayPath when filePath is null
+        assertEquals("/storage/emulated/0/Documents/small_file.txt", projectFile.path)
 
         // Verify file entity
         assertEquals("project-1", projectFile.projectId)
@@ -111,18 +112,22 @@ class FileImportRepositoryTest {
             displayName = "large_file.pdf"
         )
 
-        val inputStream = ByteArrayInputStream(largeFileContent.toByteArray())
-        every { contentResolver.openInputStream(Uri.parse(externalFile.uri)) } returns inputStream andThen
-                ByteArrayInputStream(largeFileContent.toByteArray()) // For second read
+        // First call reads content (but size >= threshold, so goes to else branch)
+        // Second call copies to filesystem
+        val inputStream1 = ByteArrayInputStream(largeFileContent.toByteArray())
+        val inputStream2 = ByteArrayInputStream(largeFileContent.toByteArray())
+        every { contentResolver.openInputStream(Uri.parse(externalFile.uri)) } returns inputStream1 andThen inputStream2
 
-        val projectDir = mockk<File>(relaxed = true)
-        val targetFile = mockk<File>(relaxed = true)
-        val outputStream = mockk<FileOutputStream>(relaxed = true)
+        // Mock File constructor for filesystem operations
+        val mockProjectDir = mockk<File>(relaxed = true)
+        val mockTargetFile = mockk<File>(relaxed = true)
+        val byteArrayOutputStream = java.io.ByteArrayOutputStream()
 
         every { filesDir.absolutePath } returns "/data/app/files"
         mockkConstructor(File::class)
         every { anyConstructed<File>().mkdirs() } returns true
-        every { anyConstructed<File>().outputStream() } returns outputStream
+        every { anyConstructed<File>().absolutePath } returns "/data/app/files/projects/project-1/mock-file-id"
+        every { anyConstructed<File>().outputStream() } returns byteArrayOutputStream
 
         val project = createProject("project-1", fileCount = 0, totalSize = 0L)
         coEvery { projectDao.getProjectById("project-1") } returns project
@@ -142,11 +147,12 @@ class FileImportRepositoryTest {
 
         // Verify large file written to filesystem
         assertNull(projectFile.content) // No database content
-        // Note: In real implementation, path would be set to filesystem path
 
         // Verify DAO calls
         coVerify { projectDao.insertFile(any()) }
         coVerify { projectDao.updateProjectStats("project-1", 1, externalFile.size) }
+
+        unmockkConstructor(File::class)
     }
 
     @Test

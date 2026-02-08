@@ -4,11 +4,11 @@ import android.app.Application
 import android.util.Log
 import com.chainlesschain.android.BuildConfig
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
-// Firebase imports - disabled when google-services.json is not available
-// import com.google.firebase.analytics.FirebaseAnalytics
-// import com.google.firebase.analytics.ktx.analytics
-// import com.google.firebase.crashlytics.FirebaseCrashlytics
-// import com.google.firebase.ktx.Firebase
+// Firebase imports - conditionally available when google-services.json is present
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.ktx.analytics
+import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.google.firebase.ktx.Firebase
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -130,11 +130,10 @@ class AppInitializer @Inject constructor(
                     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
                         // 仅记录 ERROR 和 ASSERT 级别
                         if (priority >= Log.ERROR) {
-                            // 上报到 Crashlytics (disabled - Firebase not available)
-                            // if (t != null) {
-                            //     FirebaseCrashlytics.getInstance().recordException(t)
-                            // }
-                            // FirebaseCrashlytics.getInstance().log("[$tag] $message")
+                            if (t != null) {
+                                FirebaseCrashlytics.getInstance().recordException(t)
+                            }
+                            FirebaseCrashlytics.getInstance().log("[$tag] $message")
                             Log.e(tag, message, t)
                         }
                     }
@@ -154,23 +153,17 @@ class AppInitializer @Inject constructor(
      */
     private fun initializeCrashReporting() {
         try {
-            // Firebase Crashlytics disabled - google-services.json not found
-            // val crashlytics = FirebaseCrashlytics.getInstance()
+            val crashlytics = FirebaseCrashlytics.getInstance()
 
-            // Debug 环境禁用自动收集（节省配额）
-            // if (BuildConfig.DEBUG) {
-            //     crashlytics.setCrashlyticsCollectionEnabled(false)
-            //     Timber.d("Crashlytics: Disabled for debug builds")
-            // } else {
-            //     crashlytics.setCrashlyticsCollectionEnabled(true)
-            //
-            //     // 设置自定义键值
-            //     crashlytics.setCustomKey("app_version", BuildConfig.VERSION_NAME)
-            //     crashlytics.setCustomKey("build_type", "release")
-            //
-            //     Timber.i("Crashlytics: Enabled for release builds")
-            // }
-            Timber.w("Crashlytics: Disabled (Firebase not available)")
+            if (BuildConfig.DEBUG) {
+                crashlytics.setCrashlyticsCollectionEnabled(false)
+                Timber.d("Crashlytics: Disabled for debug builds")
+            } else {
+                crashlytics.setCrashlyticsCollectionEnabled(true)
+                crashlytics.setCustomKey("app_version", BuildConfig.VERSION_NAME)
+                crashlytics.setCustomKey("build_type", "release")
+                Timber.i("Crashlytics: Enabled for release builds")
+            }
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize crash reporting")
         }
@@ -211,25 +204,17 @@ class AppInitializer @Inject constructor(
      */
     private suspend fun initializeAnalytics() {
         try {
-            // Firebase Analytics disabled - google-services.json not found
-            // val analytics = Firebase.analytics
+            val analytics = Firebase.analytics
+            analytics.setAnalyticsCollectionEnabled(!BuildConfig.DEBUG)
 
-            // Debug 环境禁用数据收集
-            // analytics.setAnalyticsCollectionEnabled(!BuildConfig.DEBUG)
-
-            // if (!BuildConfig.DEBUG) {
-            //     // 设置用户属性
-            //     analytics.setUserProperty("app_version", BuildConfig.VERSION_NAME)
-            //     analytics.setUserProperty("build_type", "release")
-            //
-            //     // 记录应用启动事件
-            //     analytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, null)
-            //
-            //     Timber.i("Analytics initialized and enabled")
-            // } else {
-            //     Timber.d("Analytics disabled for debug builds")
-            // }
-            Timber.w("Analytics: Disabled (Firebase not available)")
+            if (!BuildConfig.DEBUG) {
+                analytics.setUserProperty("app_version", BuildConfig.VERSION_NAME)
+                analytics.setUserProperty("build_type", "release")
+                analytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, null)
+                Timber.i("Analytics initialized and enabled")
+            } else {
+                Timber.d("Analytics disabled for debug builds")
+            }
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize analytics")
         }
