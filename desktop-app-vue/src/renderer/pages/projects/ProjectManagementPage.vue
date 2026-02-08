@@ -300,7 +300,7 @@ import { useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
 import { useProjectStore } from "@/stores/project";
 import { useAuthStore } from "@/stores/auth";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import {
   FolderOutlined,
   FolderOpenOutlined,
@@ -669,7 +669,7 @@ const handleModalCancel = () => {
 };
 
 // 导出 Excel
-const handleExport = () => {
+const handleExport = async () => {
   try {
     const data = projectStore.filteredProjects.map((item) => ({
       项目名称: item.name,
@@ -682,12 +682,29 @@ const handleExport = () => {
       更新时间: formatDateTime(item.updated_at),
     }));
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "项目列表");
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("项目列表");
+
+    // 写入表头
+    const headers = Object.keys(data[0] || {});
+    ws.addRow(headers);
+
+    // 写入数据行
+    for (const row of data) {
+      ws.addRow(headers.map((h) => row[h]));
+    }
 
     const filename = `项目列表_${new Date().toLocaleDateString("zh-CN")}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
 
     message.success("导出成功");
   } catch (error) {
