@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
@@ -174,7 +173,7 @@ fun PostDetailScreen(
                         item {
                             EmptyState(
                                 title = "还没有评论",
-                                icon = Icons.AutoMirrored.Filled.Comment
+                                icon = Icons.Default.Comment
                             )
                         }
                     } else {

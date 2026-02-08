@@ -13,7 +13,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -713,7 +713,7 @@ fun AttachmentPreviewItem(
                         "VIDEO" -> Icons.Default.VideoLibrary
                         "AUDIO" -> Icons.Default.AudioFile
                         "DOCUMENT" -> Icons.Default.Description
-                        else -> Icons.AutoMirrored.Filled.InsertDriveFile
+                        else -> Icons.Default.InsertDriveFile
                     },
                     contentDescription = file.category,
                     modifier = Modifier.size(32.dp),
@@ -799,7 +799,7 @@ fun AttachmentBubble(
                             "VIDEO" -> Icons.Default.VideoLibrary
                             "AUDIO" -> Icons.Default.AudioFile
                             "DOCUMENT" -> Icons.Default.Description
-                            else -> Icons.AutoMirrored.Filled.InsertDriveFile
+                            else -> Icons.Default.InsertDriveFile
                         },
                         contentDescription = file.category,
                         modifier = Modifier.size(24.dp),

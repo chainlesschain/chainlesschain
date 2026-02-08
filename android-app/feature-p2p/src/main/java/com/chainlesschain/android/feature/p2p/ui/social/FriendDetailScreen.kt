@@ -9,7 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Message
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
@@ -376,7 +376,7 @@ private fun FriendInfoSection(
                 onClick = onSendMessage,
                 modifier = Modifier.weight(1f)
             ) {
-                Icon(Icons.AutoMirrored.Filled.Message, contentDescription = null)
+                Icon(Icons.Default.Message, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
                 Text("发消息")
             }

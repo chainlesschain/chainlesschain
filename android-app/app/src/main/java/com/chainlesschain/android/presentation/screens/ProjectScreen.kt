@@ -9,8 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
-import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -376,12 +374,12 @@ fun ProjectStatsCard(
                 label = "总项目"
             )
             ProjectStatItem(
-                icon = Icons.AutoMirrored.Outlined.TrendingUp,
+                icon = Icons.Outlined.TrendingUp,
                 value = activeProjects.toString(),
                 label = "进行中"
             )
             ProjectStatItem(
-                icon = Icons.AutoMirrored.Outlined.InsertDriveFile,
+                icon = Icons.Outlined.InsertDriveFile,
                 value = totalFiles.toString(),
                 label = "总文件"
             )
@@ -535,7 +533,7 @@ fun EnhancedProjectCard(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     FileStatBadge(
-                        icon = Icons.AutoMirrored.Outlined.InsertDriveFile,
+                        icon = Icons.Outlined.InsertDriveFile,
                         count = project.fileCount,
                         label = "文件"
                     )

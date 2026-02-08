@@ -11,7 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -568,6 +568,6 @@ fun getFileIcon(type: FileType): androidx.compose.ui.graphics.vector.ImageVector
         FileType.IMAGE -> Icons.Default.Image
         FileType.VIDEO -> Icons.Default.VideoLibrary
         FileType.AUDIO -> Icons.Default.AudioFile
-        FileType.OTHER -> Icons.AutoMirrored.Filled.InsertDriveFile
+        FileType.OTHER -> Icons.Default.InsertDriveFile
     }
 }
