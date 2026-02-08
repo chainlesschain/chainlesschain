@@ -774,12 +774,19 @@ const handleRenameConversation = async (conversation) => {
           return;
         }
 
-        // TODO: Implement conversation store for managing conversations
-        // await conversationStore.updateConversation(conversation.id, { title: newTitle });
-        // await loadRecentConversations();
-
-        message.info('对话重命名功能正在开发中');
-        logger.info('[ProjectsPage] TODO: Rename conversation:', conversation.id, 'to', newTitle);
+        try {
+          const result = await window.electronAPI.conversation.update(conversation.id, { title: newTitle });
+          if (result.success) {
+            conversation.title = newTitle;
+            await loadRecentConversations();
+            message.success('对话已重命名');
+          } else {
+            message.error(result.error || '重命名失败');
+          }
+        } catch (err) {
+          logger.error('[ProjectsPage] Rename conversation failed:', err);
+          message.error('重命名失败：' + err.message);
+        }
       }
     });
   } catch (error) {
@@ -793,12 +800,20 @@ const handleStarConversation = async (conversation) => {
   const isStarred = conversation.is_starred || false;
   const newStarredState = !isStarred;
 
-  // TODO: Implement conversation store for managing conversations
-  // await conversationStore.updateConversation(conversation.id, { is_starred: newStarredState });
-  // await loadRecentConversations();
-
-  message.info('对话收藏功能正在开发中');
-  logger.info('[ProjectsPage] TODO: Star conversation:', conversation.id, 'newState:', newStarredState);
+  try {
+    const result = await window.electronAPI.conversation.update(conversation.id, {
+      is_starred: newStarredState,
+    });
+    if (result.success) {
+      conversation.is_starred = newStarredState;
+      message.success(newStarredState ? '已收藏' : '已取消收藏');
+    } else {
+      message.error(result.error || '操作失败');
+    }
+  } catch (error) {
+    logger.error('[ProjectsPage] Star conversation failed:', error);
+    message.error('操作失败：' + error.message);
+  }
 };
 
 // 处理导航点击

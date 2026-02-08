@@ -3451,6 +3451,16 @@ class DatabaseManager {
         this.db.run("ALTER TABLE conversations ADD COLUMN context_data TEXT");
       }
 
+      const hasIsStarred = conversationsInfo.some(
+        (col) => col.name === "is_starred",
+      );
+      if (!hasIsStarred) {
+        logger.info("[Database] 添加 conversations.is_starred 列");
+        this.db.run(
+          "ALTER TABLE conversations ADD COLUMN is_starred INTEGER DEFAULT 0",
+        );
+      }
+
       // 检查 project_files 表是否有 fs_path 列
       const projectFilesInfo = this.db
         .prepare("PRAGMA table_info(project_files)")
