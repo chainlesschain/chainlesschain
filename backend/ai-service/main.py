@@ -407,13 +407,30 @@ async def create_project_stream(request: ProjectCreateRequest):
                 })
 
             elif project_type == "data":
-                # TODO: 实现data引擎的流式生成
+                # 数据引擎流式生成（带进度反馈）
+                yield format_sse({
+                    "type": "progress",
+                    "stage": "spec",
+                    "message": "正在分析数据需求..."
+                })
+
                 result = await data_engine.generate(
                     prompt=request.user_prompt,
                     context=intent_result
                 )
+
+                # 发送各文件生成进度
+                file_count = len(result.get("files", []))
+                for i, f in enumerate(result.get("files", [])):
+                    yield format_sse({
+                        "type": "progress",
+                        "stage": "content",
+                        "message": f"已生成: {f.get('path', '')} ({i + 1}/{file_count})"
+                    })
+
                 yield format_sse({
                     "type": "complete",
+                    "project_type": project_type,
                     "result": _encode_binary_files(result)
                 })
 

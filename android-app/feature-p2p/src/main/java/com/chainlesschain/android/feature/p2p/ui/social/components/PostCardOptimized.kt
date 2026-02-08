@@ -79,7 +79,7 @@ fun PostCardOptimized(
                 }
             )
 
-            Divider()
+            HorizontalDivider()
 
             // 互动按钮栏 - 独立组件，仅在互动数据变化时重组
             PostActionBar(

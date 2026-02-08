@@ -7,6 +7,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -117,7 +121,7 @@ fun ProjectScreen(
                             showSearchBar = false
                             searchQuery = ""
                         }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                         }
                     },
                     trailingIcon = {
@@ -193,7 +197,7 @@ fun ProjectScreen(
                     Box {
                         TextButton(onClick = { showSortMenu = true }) {
                             Icon(
-                                Icons.Default.Sort,
+                                Icons.AutoMirrored.Filled.Sort,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -372,12 +376,12 @@ fun ProjectStatsCard(
                 label = "总项目"
             )
             ProjectStatItem(
-                icon = Icons.Outlined.TrendingUp,
+                icon = Icons.AutoMirrored.Outlined.TrendingUp,
                 value = activeProjects.toString(),
                 label = "进行中"
             )
             ProjectStatItem(
-                icon = Icons.Outlined.InsertDriveFile,
+                icon = Icons.AutoMirrored.Outlined.InsertDriveFile,
                 value = totalFiles.toString(),
                 label = "总文件"
             )
@@ -531,7 +535,7 @@ fun EnhancedProjectCard(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     FileStatBadge(
-                        icon = Icons.Outlined.InsertDriveFile,
+                        icon = Icons.AutoMirrored.Outlined.InsertDriveFile,
                         count = project.fileCount,
                         label = "文件"
                     )

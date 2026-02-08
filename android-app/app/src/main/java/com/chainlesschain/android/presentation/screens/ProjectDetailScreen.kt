@@ -9,6 +9,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,7 +47,7 @@ fun ProjectDetailScreen(
                 title = { Text(project.name) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -70,7 +73,7 @@ fun ProjectDetailScreen(
                             onClick = { /* TODO */ },
                             leadingIcon = { Icon(Icons.Default.Download, null) }
                         )
-                        Divider()
+                        HorizontalDivider()
                         DropdownMenuItem(
                             text = { Text("删除项目", color = MaterialTheme.colorScheme.error) },
                             onClick = { /* TODO */ },
@@ -89,7 +92,7 @@ fun ProjectDetailScreen(
             // 项目头部信息
             ProjectHeader(project)
 
-            Divider()
+            HorizontalDivider()
 
             // Tab 栏
             ProjectTabBar(
@@ -97,7 +100,7 @@ fun ProjectDetailScreen(
                 onTabSelected = { selectedTab = it }
             )
 
-            Divider()
+            HorizontalDivider()
 
             // Tab 内容
             when (selectedTab) {
@@ -116,7 +119,7 @@ fun ProjectDetailScreen(
  */
 enum class ProjectTab(val displayName: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     FILES("文件", Icons.Default.Folder),
-    CHAT("对话", Icons.Default.Chat),
+    CHAT("对话", Icons.AutoMirrored.Filled.Chat),
     EDITOR("编辑", Icons.Default.Edit),
     GIT("Git", Icons.Default.Code),
     INFO("信息", Icons.Default.Info)
@@ -411,7 +414,7 @@ fun ProjectChatTab(project: ProjectEntity) {
         contentAlignment = Alignment.Center
     ) {
         EmptyState(
-            icon = Icons.Default.Chat,
+            icon = Icons.AutoMirrored.Filled.Chat,
             title = "项目AI对话",
             description = "与AI讨论项目内容，获取智能建议",
             actionText = "开始对话",
@@ -565,6 +568,6 @@ fun getFileIcon(type: FileType): androidx.compose.ui.graphics.vector.ImageVector
         FileType.IMAGE -> Icons.Default.Image
         FileType.VIDEO -> Icons.Default.VideoLibrary
         FileType.AUDIO -> Icons.Default.AudioFile
-        FileType.OTHER -> Icons.Default.InsertDriveFile
+        FileType.OTHER -> Icons.AutoMirrored.Filled.InsertDriveFile
     }
 }

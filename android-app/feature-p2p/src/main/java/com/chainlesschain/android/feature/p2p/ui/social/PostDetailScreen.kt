@@ -4,6 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -66,7 +70,7 @@ fun PostDetailScreen(
                 title = { Text("动态详情") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -130,7 +134,7 @@ fun PostDetailScreen(
                     }
 
                     item {
-                        Divider()
+                        HorizontalDivider()
                     }
 
                     // 评论标题
@@ -170,7 +174,7 @@ fun PostDetailScreen(
                         item {
                             EmptyState(
                                 title = "还没有评论",
-                                icon = Icons.Default.Comment
+                                icon = Icons.AutoMirrored.Filled.Comment
                             )
                         }
                     } else {
@@ -307,7 +311,7 @@ private fun CommentItem(
                         contentPadding = PaddingValues(horizontal = 8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Reply,
+                            imageVector = Icons.AutoMirrored.Filled.Reply,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )
@@ -335,7 +339,7 @@ private fun CommentItem(
         }
     }
 
-    Divider(modifier = Modifier.padding(start = 68.dp))
+    HorizontalDivider(modifier = Modifier.padding(start = 68.dp))
 }
 
 /**
@@ -374,7 +378,7 @@ private fun CommentInputBar(
                 enabled = enabled
             ) {
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "发送",
                     tint = if (enabled) {
                         MaterialTheme.colorScheme.primary

@@ -3,6 +3,9 @@ package com.chainlesschain.android.presentation.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -178,7 +181,7 @@ fun OverviewCards() {
                 value = "89",
                 change = "+15",
                 isPositive = true,
-                icon = Icons.Default.Chat
+                icon = Icons.AutoMirrored.Filled.Chat
             )
 
             // 任务完成率
@@ -246,7 +249,7 @@ fun StatsCard(
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                            imageVector = if (isPositive) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                             tint = MaterialTheme.colorScheme.onPrimary
@@ -303,7 +306,7 @@ fun DetailedStatsList() {
                 trend = "+12 本周"
             )
 
-            Divider()
+            HorizontalDivider()
 
             DetailedStatItem(
                 icon = Icons.Default.Schedule,
@@ -312,7 +315,7 @@ fun DetailedStatsList() {
                 trend = "-0.5 优化"
             )
 
-            Divider()
+            HorizontalDivider()
 
             DetailedStatItem(
                 icon = Icons.Default.Storage,
@@ -321,7 +324,7 @@ fun DetailedStatsList() {
                 trend = "总容量 10GB"
             )
 
-            Divider()
+            HorizontalDivider()
 
             DetailedStatItem(
                 icon = Icons.Default.Group,

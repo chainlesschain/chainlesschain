@@ -9,6 +9,8 @@ from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, Fi
 from sentence_transformers import SentenceTransformer
 import uuid
 
+from .crossencoder_reranker import get_reranker
+
 
 class RAGEngine:
     """RAG检索引擎"""
@@ -231,14 +233,14 @@ class RAGEngine:
         sources: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
-        增强检索（支持多源和重排）
+        增强检索（支持多源检索和CrossEncoder重排）
 
         Args:
             query: 查询文本
             project_id: 项目ID
             top_k: 返回结果数
-            use_reranker: 是否使用重排器（TODO）
-            sources: 检索来源列表 ['project', 'knowledge', 'conversation']
+            use_reranker: 是否使用CrossEncoder重排器
+            sources: 检索来源列表 ['project', 'knowledge']
 
         Returns:
             增强检索结果
@@ -247,35 +249,71 @@ class RAGEngine:
             raise Exception("RAG engine not ready")
 
         try:
-            # 默认检索项目内容
-            results = await self.search(query, project_id, top_k)
+            # 多源检索：根据sources参数从不同来源获取候选文档
+            all_sources = sources or ['project', 'knowledge']
+            # 重排时多取候选，让reranker从更大池中筛选
+            candidate_k = top_k * 3 if use_reranker else top_k
+            all_results = []
 
-            # TODO: 实现多源检索和重排逻辑
-            # 如果启用重排，使用更高级的模型重新排序
-            if use_reranker and results:
-                # Placeholder for reranker logic
-                pass
+            if 'project' in all_sources and project_id:
+                project_results = await self.search(query, project_id, candidate_k)
+                for r in project_results:
+                    r['source'] = 'project'
+                all_results.extend(project_results)
+
+            if 'knowledge' in all_sources:
+                knowledge_results = await self.search(query, None, candidate_k)
+                # 去除与项目结果重复的条目
+                existing_ids = {r['id'] for r in all_results}
+                for r in knowledge_results:
+                    if r['id'] not in existing_ids:
+                        r['source'] = 'knowledge'
+                        all_results.append(r)
+
+            # 如果启用重排，使用CrossEncoder重新排序
+            if use_reranker and all_results:
+                try:
+                    reranker = get_reranker()
+                    reranked = await reranker.rerank_async(query, all_results, top_k)
+                    # 将reranker得分回填并保留原始元数据
+                    results = []
+                    for ranked_doc in reranked:
+                        original_idx = ranked_doc.get('original_index', 0)
+                        if original_idx < len(all_results):
+                            merged = all_results[original_idx].copy()
+                            merged['rerank_score'] = ranked_doc['score']
+                            merged['score'] = ranked_doc['score']
+                            results.append(merged)
+                        else:
+                            results.append(ranked_doc)
+                except Exception as rerank_err:
+                    print(f"Reranker failed, falling back to vector scores: {rerank_err}")
+                    all_results.sort(key=lambda x: x.get('score', 0), reverse=True)
+                    results = all_results[:top_k]
+            else:
+                # 不使用重排时按向量得分排序
+                all_results.sort(key=lambda x: x.get('score', 0), reverse=True)
+                results = all_results[:top_k]
 
             # 计算来源分布
             source_dist = {}
             for result in results:
-                if result.get('project_id'):
-                    source_dist['project'] = source_dist.get('project', 0) + 1
-                else:
-                    source_dist['knowledge'] = source_dist.get('knowledge', 0) + 1
+                src = result.get('source', 'project' if result.get('project_id') else 'knowledge')
+                source_dist[src] = source_dist.get(src, 0) + 1
 
-            # 生成上下文摘要（可选，使用LLM）
+            # 生成上下文摘要（拼接top结果文本作为简要摘要）
             context_summary = None
             if results:
-                # TODO: 使用LLM生成上下文摘要
-                pass
+                top_texts = [r.get('text', '')[:200] for r in results[:3]]
+                context_summary = " ... ".join(t for t in top_texts if t)
 
             return {
                 "query": query,
                 "total_docs": len(results),
                 "sources": source_dist,
                 "context": results,
-                "summary": context_summary
+                "summary": context_summary,
+                "reranked": use_reranker
             }
 
         except Exception as e:

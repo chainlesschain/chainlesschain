@@ -192,7 +192,7 @@ fun PostCard(
                 }
             }
 
-            Divider()
+            HorizontalDivider()
 
             // 互动按钮栏
             Row(

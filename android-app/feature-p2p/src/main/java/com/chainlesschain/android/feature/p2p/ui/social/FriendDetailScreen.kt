@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
@@ -79,7 +81,7 @@ fun FriendDetailScreen(
                 title = { Text(uiState.friend?.remarkName ?: uiState.friend?.nickname ?: "好友详情") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -121,7 +123,7 @@ fun FriendDetailScreen(
                             onVideoCall = { viewModel.startVideoCall() },
                             onViewCallHistory = { onNavigateToCallHistory(friend.did) }
                         )
-                        Divider(modifier = Modifier.padding(vertical = 12.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     }
 
                     // 动态列表标题
@@ -204,7 +206,7 @@ fun FriendDetailScreen(
                         viewModel.showRemarkDialog()
                     }
                 )
-                Divider()
+                HorizontalDivider()
                 ListItem(
                     headlineContent = { Text("删除好友") },
                     leadingContent = { Icon(Icons.Default.PersonRemove, contentDescription = null) },
@@ -374,7 +376,7 @@ private fun FriendInfoSection(
                 onClick = onSendMessage,
                 modifier = Modifier.weight(1f)
             ) {
-                Icon(Icons.Default.Message, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.Message, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
                 Text("发消息")
             }

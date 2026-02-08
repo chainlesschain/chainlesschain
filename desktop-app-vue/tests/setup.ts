@@ -505,11 +505,9 @@ const mockElectronIpcAPI = {
   },
 };
 
-// 挂载到全局
-global.window = global.window || {};
-(global.window as any).api = mockElectronAPI;
-(global.window as any).electronAPI = mockElectronIpcAPI;
-(global.window as any).electron = { ipcRenderer: mockIpcRenderer };
+// NOTE: In Vitest v3 with jsdom, custom window properties set here do NOT
+// persist to test files. Each test file that needs window.electronAPI must
+// define its own mock (e.g., globalThis.electronAPI = { ... }).
 
 // Mock localStorage
 const localStorageMock = {

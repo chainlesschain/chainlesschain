@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -499,7 +500,7 @@ enum class ExploreContentCategory(
     ALL("探索", Icons.Outlined.Explore, Color(0xFF2196F3)),
     PHOTOGRAPHY("人像摄影", Icons.Outlined.CameraAlt, Color(0xFFE91E63)),
     EDUCATION("教育学习", Icons.Outlined.School, Color(0xFF4CAF50)),
-    FINANCE("财经分析", Icons.Outlined.TrendingUp, Color(0xFFFF9800)),
+    FINANCE("财经分析", Icons.AutoMirrored.Outlined.TrendingUp, Color(0xFFFF9800)),
     CREATIVE_DESIGN("创意设计", Icons.Outlined.Palette, Color(0xFF9C27B0)),
     LIFESTYLE("生活娱乐", Icons.Outlined.Celebration, Color(0xFF00BCD4))
 }

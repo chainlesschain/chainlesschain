@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.DriveFileMove
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -112,7 +114,7 @@ fun FriendListScreen(
                                     },
                                     leadingIcon = {
                                         Icon(
-                                            if (uiState.isGridView) Icons.Default.ViewList else Icons.Default.GridView,
+                                            if (uiState.isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
                                             contentDescription = null
                                         )
                                     }
@@ -208,7 +210,7 @@ fun FriendListScreen(
                         }
 
                         item {
-                            Divider(modifier = Modifier.padding(vertical = 8.dp))
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                         }
                     }
 
@@ -304,13 +306,13 @@ fun FriendListScreen(
                 )
                 ListItem(
                     headlineContent = { Text("移动到分组") },
-                    leadingContent = { Icon(Icons.Default.DriveFileMove, contentDescription = null) },
+                    leadingContent = { Icon(Icons.AutoMirrored.Filled.DriveFileMove, contentDescription = null) },
                     modifier = Modifier.clickable {
                         viewModel.hideFriendMenu()
                         viewModel.showGroupSelector(friend)
                     }
                 )
-                Divider()
+                HorizontalDivider()
                 ListItem(
                     headlineContent = { Text("删除好友") },
                     leadingContent = { Icon(Icons.Default.Delete, contentDescription = null) },

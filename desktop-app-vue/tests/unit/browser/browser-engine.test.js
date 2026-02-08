@@ -29,6 +29,22 @@ vi.mock('playwright-core', () => ({
   }
 }));
 
+// Mock snapshot-engine and element-locator to avoid transitive dependency issues
+vi.mock('../../../src/main/browser/snapshot-engine', () => {
+  const { EventEmitter } = require('events');
+  class MockSnapshotEngine extends EventEmitter {
+    constructor() { super(); this.snapshots = new Map(); this.nextRefId = 1; }
+    async takeSnapshot() { return { elements: [], timestamp: Date.now() }; }
+  }
+  return { SnapshotEngine: MockSnapshotEngine };
+});
+
+vi.mock('../../../src/main/browser/element-locator', () => ({
+  ElementLocator: class {
+    static async locate() { return null; }
+  }
+}));
+
 describe('BrowserEngine', () => {
   let browserEngine;
 

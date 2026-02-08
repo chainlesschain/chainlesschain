@@ -126,6 +126,17 @@ interface ExternalFileDao {
     @Query("UPDATE external_files SET isFavorite = :isFavorite WHERE id = :fileId")
     suspend fun updateFavorite(fileId: String, isFavorite: Boolean)
 
+    // ===== 导入状态 =====
+
+    @Query("UPDATE external_files SET isImported = 1, importedToProjectId = :projectId WHERE id = :fileId")
+    suspend fun markAsImported(fileId: String, projectId: String)
+
+    @Query("SELECT COUNT(*) FROM external_files WHERE isImported = 1")
+    suspend fun getImportedCount(): Int
+
+    @Query("SELECT COUNT(*) FROM external_files WHERE isFavorite = 1")
+    suspend fun getFavoriteCount(): Int
+
     // ===== 分类更新 =====
 
     @Query("UPDATE external_files SET category = :category WHERE id = :fileId")

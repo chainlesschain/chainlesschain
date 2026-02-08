@@ -772,75 +772,104 @@ const handleAction = (key, projectId) => {
   }
 };
 
-// 加载协作项目（混合真实数据和模拟数据）
+// 加载协作项目
 const loadCollaborationProjects = async () => {
-  // TODO: 从后端API获取实际数据
+  // 1. 尝试从后端加载协作项目
+  let backendProjects = [];
+  try {
+    const result = await window.electron.ipcRenderer.invoke(
+      "collab:get-projects",
+    );
+    if (result?.success && Array.isArray(result.projects)) {
+      backendProjects = result.projects.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        project_type: p.project_type || "document",
+        isOwner: p.isOwner || false,
+        myRole: p.myRole || "viewer",
+        collaborators: p.collaborators || [],
+        updated_at: p.updated_at,
+      }));
+    }
+  } catch {
+    logger.warn("[CollaborationPage] 后端协作项目加载失败，使用本地数据");
+  }
 
-  // 1. 从真实项目中获取（作为示例）
-  const realProjects = projectStore.projects.slice(0, 2).map((p) => ({
-    id: p.id,
-    name: p.name,
-    description: p.description,
-    project_type: p.project_type,
-    isOwner: true,
-    myRole: "owner",
-    collaborators: [{ did: "did:chainless:self", name: "我" }],
-    updated_at: p.updated_at,
-  }));
-
-  // 2. 模拟协作数据（用于演示）
-  const mockProjects = [
-    {
-      id: "collab-demo-1",
-      name: "【演示】ChainlessChain Web3协作文档",
-      description:
-        "去中心化协作文档项目，使用DID进行身份验证和权限管理（演示数据）",
-      project_type: "document",
+  if (backendProjects.length > 0) {
+    collaborationProjects.value = backendProjects;
+  } else {
+    // 后端无数据时：从本地项目 + 演示数据
+    const realProjects = projectStore.projects.slice(0, 2).map((p) => ({
+      id: p.id,
+      name: p.name,
+      description: p.description,
+      project_type: p.project_type,
       isOwner: true,
       myRole: "owner",
-      collaborators: [
-        { did: "did:chainless:abc123", name: "张三" },
-        { did: "did:chainless:def456", name: "李四" },
-        { did: "did:chainless:ghi789", name: "王五" },
-      ],
-      updated_at: Date.now() - 3600000,
-      _isDemo: true,
-    },
-    {
-      id: "collab-demo-2",
-      name: "【演示】去中心化交易平台前端",
-      description: "Web3交易平台的React前端开发（演示数据）",
-      project_type: "web",
-      isOwner: false,
-      myRole: "editor",
-      collaborators: [
-        { did: "did:chainless:owner1", name: "项目负责人" },
-        { did: "did:chainless:member1", name: "成员A" },
-        { did: "did:chainless:member2", name: "成员B" },
-        { did: "did:chainless:member3", name: "成员C" },
-        { did: "did:chainless:member4", name: "成员D" },
-        { did: "did:chainless:member5", name: "成员E" },
-      ],
-      updated_at: Date.now() - 7200000,
-      _isDemo: true,
-    },
-  ];
+      collaborators: [{ did: "did:chainless:self", name: "我" }],
+      updated_at: p.updated_at,
+    }));
 
-  // 3. 合并真实项目和模拟数据
-  collaborationProjects.value = [...realProjects, ...mockProjects];
+    const mockProjects = [
+      {
+        id: "collab-demo-1",
+        name: "【演示】ChainlessChain Web3协作文档",
+        description:
+          "去中心化协作文档项目，使用DID进行身份验证和权限管理（演示数据）",
+        project_type: "document",
+        isOwner: true,
+        myRole: "owner",
+        collaborators: [
+          { did: "did:chainless:abc123", name: "张三" },
+          { did: "did:chainless:def456", name: "李四" },
+          { did: "did:chainless:ghi789", name: "王五" },
+        ],
+        updated_at: Date.now() - 3600000,
+        _isDemo: true,
+      },
+      {
+        id: "collab-demo-2",
+        name: "【演示】去中心化交易平台前端",
+        description: "Web3交易平台的React前端开发（演示数据）",
+        project_type: "web",
+        isOwner: false,
+        myRole: "editor",
+        collaborators: [
+          { did: "did:chainless:owner1", name: "项目负责人" },
+          { did: "did:chainless:member1", name: "成员A" },
+          { did: "did:chainless:member2", name: "成员B" },
+          { did: "did:chainless:member3", name: "成员C" },
+          { did: "did:chainless:member4", name: "成员D" },
+          { did: "did:chainless:member5", name: "成员E" },
+        ],
+        updated_at: Date.now() - 7200000,
+        _isDemo: true,
+      },
+    ];
 
-  // 模拟邀请数据
+    collaborationProjects.value = [...realProjects, ...mockProjects];
+  }
+
+  // 2. 尝试加载协作邀请
+  try {
+    const invResult = await window.electron.ipcRenderer.invoke(
+      "collab:get-pending-invitations",
+    );
+    if (invResult?.success && Array.isArray(invResult.invitations)) {
+      pendingInvitations.value = invResult.invitations;
+      return;
+    }
+  } catch {
+    logger.warn("[CollaborationPage] 后端邀请加载失败，使用演示数据");
+  }
+
+  // 后端无数据时使用演示数据
   pendingInvitations.value = [
     {
       id: "inv-1",
-      inviter: {
-        did: "did:chainless:inviter1",
-        name: "赵六",
-      },
-      project: {
-        name: "数据分析项目",
-        description: "基于区块链的数据分析平台",
-      },
+      inviter: { did: "did:chainless:inviter1", name: "赵六" },
+      project: { name: "数据分析项目", description: "基于区块链的数据分析平台" },
       role: "editor",
       created_at: Date.now() - 1800000,
     },

@@ -35,7 +35,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.NoteAdd
+import androidx.compose.material.icons.automirrored.filled.NoteAdd
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -478,7 +478,7 @@ fun ProjectDetailScreen(
                         .padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.NoteAdd, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Filled.NoteAdd, contentDescription = null)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text("新建文件")
                 }

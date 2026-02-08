@@ -1,6 +1,8 @@
 package com.chainlesschain.project.aspect;
 
 import com.chainlesschain.project.annotation.OperationLog;
+import com.chainlesschain.project.entity.User;
+import com.chainlesschain.project.mapper.UserMapper;
 import com.chainlesschain.project.service.OperationLogService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,6 +36,9 @@ public class OperationLogAspect {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private UserMapper userMapper;
 
     @Around("@annotation(com.chainlesschain.project.annotation.OperationLog)")
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -79,8 +84,20 @@ public class OperationLogAspect {
         // 获取当前用户信息
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
-            log.setUsername(authentication.getName());
-            // TODO: 从数据库获取userId
+            String principal = authentication.getName();
+            log.setUsername(principal);
+            // 从数据库解析userId（支持DID和用户名两种认证方式）
+            try {
+                User user = userMapper.findByDid(principal);
+                if (user == null) {
+                    user = userMapper.findByUsername(principal);
+                }
+                if (user != null) {
+                    log.setUserId(user.getId());
+                }
+            } catch (Exception e) {
+                // userId查询失败不影响日志记录
+            }
         }
 
         // 设置操作信息

@@ -8,18 +8,18 @@
 
 ```javascript
 class StatsCleaner {
-  db; //
-  skillManager; //
-  toolManager; //
-  cleanupTasks; //
-  config; //
+  db; // 
+  skillManager; // 
+  toolManager; // 
+  cleanupTasks; // 
+  config; // 
 }
 ```
 
 ## 构造函数
 
 ```javascript
-new StatsCleaner();
+new StatsCleaner()
 ```
 
 ## 方法
@@ -166,6 +166,7 @@ new StatsCleaner();
 
 ---
 
+
 ## 事件
 
 如果该类继承自EventEmitter,可以监听以下事件:
@@ -175,12 +176,19 @@ new StatsCleaner();
 ## 示例
 
 ```javascript
-const statscleaner = new StatsCleaner(/* 参数 */);
+const statscleaner = new StatsCleaner();
 
-// 示例代码
-// TODO: 添加实际使用示例
+// 初始化并启动定时清理任务
+const result = statscleaner.scheduleDailyCleanup();
+
+// 每日清理任务
+const result = statscleaner.catch(/* error */);
+
+// 每周汇总任务
+const result = statscleaner.catch(/* error */);
+
 ```
 
 ---
 
-> 自动生成时间: 2026/1/19 10:52:38
+> 自动生成时间: 2026/2/8 20:25:18

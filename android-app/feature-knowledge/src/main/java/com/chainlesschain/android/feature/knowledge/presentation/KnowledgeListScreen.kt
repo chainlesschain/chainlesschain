@@ -185,7 +185,14 @@ fun FilterChips(
             } else null
         )
 
-        // TODO: 添加文件夹筛选
+        FilterChip(
+            selected = filterMode == FilterMode.FOLDER,
+            onClick = { onFilterChange(FilterMode.FOLDER) },
+            label = { Text("文件夹") },
+            leadingIcon = if (filterMode == FilterMode.FOLDER) {
+                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
+            } else null
+        )
     }
 }
 

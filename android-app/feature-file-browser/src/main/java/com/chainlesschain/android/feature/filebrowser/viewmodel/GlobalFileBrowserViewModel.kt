@@ -295,16 +295,19 @@ class GlobalFileBrowserViewModel @Inject constructor(
                     CategoryStats(
                         category = category.name,
                         count = externalFileRepository.getFileCountByCategory(category),
-                        totalSize = 0L // TODO: implement getTotalSizeByCategory if needed
+                        totalSize = externalFileRepository.getTotalSizeByCategory(category)
                     )
                 }
+
+                val favoriteCount = externalFileRepository.getFavoriteCount()
+                val importedCount = externalFileRepository.getImportedCount()
 
                 _statistics.value = FileBrowserStatistics(
                     totalFiles = totalFiles,
                     totalSize = totalSize,
                     categories = categoryStats,
-                    favoriteCount = 0, // TODO: implement if needed
-                    importedCount = 0  // TODO: implement if needed
+                    favoriteCount = favoriteCount,
+                    importedCount = importedCount
                 )
             } catch (e: Exception) {
                 android.util.Log.e(TAG, "Error loading statistics", e)
@@ -371,8 +374,7 @@ class GlobalFileBrowserViewModel @Inject constructor(
 
             when (result) {
                 is FileImportRepository.ImportResult.Success -> {
-                    // TODO: implement markAsImported in repository
-                    // externalFileRepository.markAsImported(fileId)
+                    externalFileRepository.markAsImported(fileId, projectId)
                     android.util.Log.d(TAG, "File imported successfully: ${result.projectFile.id}")
                 }
                 is FileImportRepository.ImportResult.Failure -> {
