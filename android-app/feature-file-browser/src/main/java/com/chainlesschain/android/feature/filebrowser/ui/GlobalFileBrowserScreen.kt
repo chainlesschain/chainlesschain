@@ -18,7 +18,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,6 +29,7 @@ import com.chainlesschain.android.feature.filebrowser.ui.components.FileListItem
 import com.chainlesschain.android.feature.filebrowser.ui.components.FilePreviewDialog
 import com.chainlesschain.android.feature.filebrowser.ui.components.FileBrowserSettingsDialog
 import com.chainlesschain.android.feature.filebrowser.ui.components.FileImportDialog
+import com.chainlesschain.android.feature.filebrowser.ui.components.FileStatisticsCard
 import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowserViewModel
 
 /**
@@ -38,15 +38,10 @@ import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowse
  * Full-featured file browsing UI with:
  * - Permission handling
  * - MediaStore scanning with progress
- * - Category filtering
+ * - Category filtering with per-category counts
  * - Search and sort
+ * - File statistics dashboard
  * - File import to projects
- *
- * @param projectId Optional project ID for context-aware file browsing
- * @param availableProjects List of available projects for file import (provided by parent)
- * @param onNavigateBack Callback invoked when user navigates back
- * @param onFileImported Callback invoked when a file is imported with the file ID
- * @param viewModel ViewModel for state management (injected by Hilt)
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,10 +61,13 @@ fun GlobalFileBrowserScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val sortBy by viewModel.sortBy.collectAsState()
     val sortDirection by viewModel.sortDirection.collectAsState()
+    @Suppress("UNUSED_VARIABLE")
     val aiClassifications by viewModel.aiClassifications.collectAsState()
     val isClassifying by viewModel.isClassifying.collectAsState()
+    val statistics by viewModel.statistics.collectAsState()
 
     var showSearchBar by remember { mutableStateOf(false) }
+    var statisticsExpanded by remember { mutableStateOf(false) }
     var fileToPreview by remember { mutableStateOf<ExternalFileEntity?>(null) }
     var fileToImport by remember { mutableStateOf<ExternalFileEntity?>(null) }
     var showSettings by remember { mutableStateOf(false) }
@@ -182,10 +180,11 @@ fun GlobalFileBrowserScreen(
                     }
                 )
             } else {
-                // Category tabs
+                // Category tabs with file counts
                 CategoryTabRow(
                     selectedCategory = selectedCategory,
-                    onCategorySelected = { viewModel.selectCategory(it) }
+                    onCategorySelected = { viewModel.selectCategory(it) },
+                    statistics = statistics
                 )
 
                 // Sort bar
@@ -226,6 +225,15 @@ fun GlobalFileBrowserScreen(
                         )
                     }
                     else -> {}
+                }
+
+                // File statistics card
+                statistics?.let { stats ->
+                    FileStatisticsCard(
+                        statistics = stats,
+                        isExpanded = statisticsExpanded,
+                        onToggleExpanded = { statisticsExpanded = !statisticsExpanded }
+                    )
                 }
 
                 // AI Classification progress indicator
@@ -282,16 +290,14 @@ fun GlobalFileBrowserScreen(
                                     onFileClick = { fileToPreview = file },
                                     onImportClick = {
                                         if (projectId != null) {
-                                            // If project is pre-selected, import directly
                                             viewModel.importFile(file.id, projectId)
                                             onFileImported(file.id)
                                         } else {
-                                            // Show project selector dialog
                                             fileToImport = file
                                         }
                                     },
                                     onFavoriteClick = { viewModel.toggleFavorite(file.id) },
-                                    showImportButton = true, // Always show import button
+                                    showImportButton = true,
                                     thumbnailCache = viewModel.thumbnailCache
                                 )
                                 HorizontalDivider()
@@ -340,12 +346,13 @@ fun GlobalFileBrowserScreen(
 }
 
 /**
- * Category Tab Row
+ * Category Tab Row with optional file counts
  */
 @Composable
 private fun CategoryTabRow(
     selectedCategory: FileCategory?,
-    onCategorySelected: (FileCategory?) -> Unit
+    onCategorySelected: (FileCategory?) -> Unit,
+    statistics: GlobalFileBrowserViewModel.FileBrowserStatistics? = null
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
@@ -353,30 +360,35 @@ private fun CategoryTabRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
+            val totalLabel = if (statistics != null) "全部 (${statistics.totalFiles})" else "全部"
             FilterChip(
                 selected = selectedCategory == null,
                 onClick = { onCategorySelected(null) },
-                label = { Text("全部") }
+                label = { Text(totalLabel) }
             )
         }
 
         items(FileCategory.values()) { category ->
+            val categoryCount = statistics?.categories
+                ?.find { it.category == category.name }?.count
+            val displayName = when (category) {
+                FileCategory.DOCUMENT -> "文档"
+                FileCategory.IMAGE -> "图片"
+                FileCategory.VIDEO -> "视频"
+                FileCategory.AUDIO -> "音频"
+                FileCategory.ARCHIVE -> "压缩包"
+                FileCategory.CODE -> "代码"
+                FileCategory.OTHER -> "其他"
+            }
+            val label = if (categoryCount != null && categoryCount > 0) {
+                "$displayName ($categoryCount)"
+            } else {
+                displayName
+            }
             FilterChip(
                 selected = selectedCategory == category,
                 onClick = { onCategorySelected(category) },
-                label = {
-                    Text(
-                        when (category) {
-                            FileCategory.DOCUMENT -> "文档"
-                            FileCategory.IMAGE -> "图片"
-                            FileCategory.VIDEO -> "视频"
-                            FileCategory.AUDIO -> "音频"
-                            FileCategory.ARCHIVE -> "压缩包"
-                            FileCategory.CODE -> "代码"
-                            FileCategory.OTHER -> "其他"
-                        }
-                    )
-                }
+                label = { Text(label) }
             )
         }
     }
