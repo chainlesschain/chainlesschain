@@ -8,12 +8,12 @@ const fs = require("fs").promises;
 const path = require("path");
 
 // 尝试加载Excel库（可选依赖）
-let xlsx = null;
+let ExcelJS = null;
 try {
-  xlsx = require("xlsx");
+  ExcelJS = require("exceljs");
 } catch (e) {
   logger.warn(
-    "[Data Engine] xlsx库未安装，Excel功能将不可用。安装命令: npm install xlsx",
+    "[Data Engine] exceljs库未安装，Excel功能将不可用。安装命令: npm install exceljs",
   );
 }
 
@@ -29,7 +29,7 @@ class DataEngine {
     };
 
     // 检查Excel支持
-    this.excelSupported = xlsx !== null;
+    this.excelSupported = ExcelJS !== null;
   }
 
   /**
@@ -80,19 +80,25 @@ class DataEngine {
    */
   async readExcel(filePath) {
     if (!this.excelSupported) {
-      throw new Error("Excel功能不可用，请安装xlsx库: npm install xlsx");
+      throw new Error("Excel功能不可用，请安装exceljs库: npm install exceljs");
     }
 
     try {
-      const buffer = await fs.readFile(filePath);
-      const workbook = xlsx.read(buffer, { type: "buffer" });
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filePath);
 
       // 默认读取第一个工作表
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet) {
+        throw new Error("Excel文件为空");
+      }
+      const sheetName = worksheet.name;
 
-      // 转换为JSON
-      const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+      // 转换为JSON（行数组格式）
+      const jsonData = [];
+      worksheet.eachRow({ includeEmpty: false }, (row) => {
+        jsonData.push(row.values.slice(1)); // row.values[0] is undefined (1-indexed)
+      });
 
       if (jsonData.length === 0) {
         throw new Error("Excel文件为空");
@@ -180,34 +186,31 @@ class DataEngine {
    */
   async writeExcel(filePath, data) {
     if (!this.excelSupported) {
-      throw new Error("Excel功能不可用，请安装xlsx库: npm install xlsx");
+      throw new Error("Excel功能不可用，请安装exceljs库: npm install exceljs");
     }
 
     try {
       const { headers, rows } = data;
 
-      // 创建工作簿
-      const workbook = xlsx.utils.book_new();
+      // 创建工作簿和工作表
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Sheet1");
 
-      // 准备数据（包含表头）
-      const wsData = [headers];
+      // 写入表头
+      worksheet.addRow(headers);
+
+      // 写入数据行
       for (const row of rows) {
         const rowData = headers.map((header) => row[header] || "");
-        wsData.push(rowData);
+        worksheet.addRow(rowData);
       }
-
-      // 创建工作表
-      const worksheet = xlsx.utils.aoa_to_sheet(wsData);
-
-      // 添加到工作簿
-      xlsx.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
       // 确保目录存在
       const dir = path.dirname(filePath);
       await fs.mkdir(dir, { recursive: true });
 
       // 写入文件
-      xlsx.writeFile(workbook, filePath);
+      await workbook.xlsx.writeFile(filePath);
 
       return {
         success: true,

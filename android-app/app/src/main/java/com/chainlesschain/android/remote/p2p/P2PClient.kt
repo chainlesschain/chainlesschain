@@ -63,7 +63,9 @@ class P2PClient @Inject constructor(
             }
             _connectionState.value = ConnectionState.CONNECTING
 
-            val result = webRTCClient.connect(pcPeerId)
+            // Generate a local peerId for signaling registration
+            val localPeerId = "mobile-${java.util.UUID.randomUUID().toString().take(8)}"
+            val result = webRTCClient.connect(pcPeerId, localPeerId)
             if (result.isFailure) {
                 _connectionState.value = ConnectionState.ERROR
                 return@withContext Result.failure(result.exceptionOrNull() ?: Exception("Connect failed"))

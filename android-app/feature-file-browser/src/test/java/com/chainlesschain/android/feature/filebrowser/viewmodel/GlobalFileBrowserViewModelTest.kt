@@ -311,17 +311,36 @@ class GlobalFileBrowserViewModelTest {
 
     @Test
     fun `importFile should call import repository`() = runTest {
-        val fileId = UUID.randomUUID().toString()
         val projectId = UUID.randomUUID().toString()
         val testFile = createTestFile("test.txt")
+        val scanProgressFlow = MutableStateFlow<MediaStoreScanner.ScanProgress>(
+            MediaStoreScanner.ScanProgress.Idle
+        )
 
+        every { mockScanner.scanProgress } returns scanProgressFlow
         every { mockFileRepository.getAllFiles(any(), any()) } returns flowOf(listOf(testFile))
+        coEvery { mockScanner.scanAllFiles() } coAnswers {
+            scanProgressFlow.value = MediaStoreScanner.ScanProgress.Completed(1)
+            Result.success(1)
+        }
         coEvery {
             mockImportRepository.importFileToProject(any(), any())
         } returns FileImportRepository.ImportResult.Success(mockk(relaxed = true))
 
-        // Load files first
-        viewModel.refresh()
+        // Recreate ViewModel with updated scanProgress mock
+        viewModel = GlobalFileBrowserViewModel(
+            mediaStoreScanner = mockScanner,
+            externalFileRepository = mockFileRepository,
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Grant permissions to trigger scan, which triggers loadFiles via scanProgress -> Completed
+        viewModel.onPermissionsGranted()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.importFile(testFile.id, projectId)

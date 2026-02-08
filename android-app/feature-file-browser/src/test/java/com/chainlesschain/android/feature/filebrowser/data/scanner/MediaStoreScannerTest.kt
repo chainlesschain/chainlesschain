@@ -45,11 +45,20 @@ class MediaStoreScannerTest {
 
         every { context.contentResolver } returns contentResolver
 
+        // Mock File constructor so File(filePath).exists() returns true
+        mockkConstructor(File::class)
+        every { anyConstructed<File>().exists() } returns true
+        val mockParent = mockk<File>(relaxed = true)
+        every { mockParent.name } returns "ParentFolder"
+        every { mockParent.absolutePath } returns "/storage/emulated/0/ParentFolder"
+        every { anyConstructed<File>().parentFile } returns mockParent
+
         mediaStoreScanner = MediaStoreScanner(context, externalFileDao)
     }
 
     @After
     fun tearDown() {
+        unmockkConstructor(File::class)
         clearAllMocks()
     }
 
@@ -446,15 +455,6 @@ class MediaStoreScannerTest {
         ))
 
         entries.forEach { entry ->
-            // Mock file existence
-            mockkStatic(File::class)
-            val mockFile = mockk<File>(relaxed = true)
-            every { mockFile.exists() } returns true
-            every { mockFile.parentFile } returns mockk(relaxed = true) {
-                every { name } returns "ParentFolder"
-            }
-            every { File(entry.path) } returns mockFile
-
             cursor.addRow(arrayOf(
                 entry.id,
                 entry.displayName,

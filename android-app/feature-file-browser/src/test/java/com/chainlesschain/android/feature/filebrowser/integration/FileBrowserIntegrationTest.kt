@@ -101,8 +101,8 @@ class FileBrowserIntegrationTest {
             mockFileRepository.getFilesByCategory(FileCategory.IMAGE, any(), any())
         } returns flowOf(testFiles.filter { it.category == FileCategory.IMAGE })
         every {
-            mockFileRepository.searchFiles("test", any(), any())
-        } returns flowOf(testFiles.filter { it.displayName.contains("test") })
+            mockFileRepository.searchFiles(any(), any(), any())
+        } returns flowOf(testFiles.filter { it.displayName.contains("file") })
 
         coEvery { mockFileRepository.getFilesCount() } returns 100
         coEvery { mockFileRepository.getTotalSize() } returns 102400L

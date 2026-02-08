@@ -30,9 +30,22 @@ class SignalingDiscoveryService @Inject constructor(
         try {
             ws = okHttpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
+                    // Register first so the server accepts our get-peers request
+                    val registerMsg = JSONObject().apply {
+                        put("type", "register")
+                        put("peerId", "discovery-${System.currentTimeMillis()}")
+                        put("deviceType", "mobile")
+                        put("deviceInfo", JSONObject().apply {
+                            put("name", android.os.Build.MODEL)
+                            put("platform", "android")
+                            put("version", android.os.Build.VERSION.RELEASE)
+                        })
+                    }
+                    webSocket.send(registerMsg.toString())
+
+                    // Then request peer list
                     val msg = JSONObject().apply {
-                        put("type", "list-peers")
-                        put("requestId", System.currentTimeMillis())
+                        put("type", "get-peers")
                     }
                     webSocket.send(msg.toString())
                 }
@@ -68,7 +81,8 @@ class SignalingDiscoveryService @Inject constructor(
         return try {
             val json = JSONObject(text)
             val type = json.optString("type")
-            if (type != "peer-list" && type != "peers" && type != "list-peers-result") return null
+            // Server may respond with "peers-list" (signaling-handlers.js) or other variants
+            if (type != "peer-list" && type != "peers-list" && type != "peers" && type != "list-peers-result") return null
             val array = when {
                 json.has("peers") -> json.optJSONArray("peers")
                 json.has("data") -> json.optJSONArray("data")
@@ -81,15 +95,27 @@ class SignalingDiscoveryService @Inject constructor(
                     val item = array.optJSONObject(i) ?: continue
                     val peerId = item.optString("peerId", item.optString("id")).trim()
                     if (peerId.isBlank()) continue
+
+                    // Extract device info from nested object or flat fields
+                    val deviceInfo = item.optJSONObject("deviceInfo")
+                    val name = deviceInfo?.optString("name", "")?.ifBlank { null }
+                        ?: item.optString("deviceName", item.optString("name", peerId)).ifBlank { peerId }
+                    val platform = deviceInfo?.optString("platform", "") ?: ""
+                    val deviceType = item.optString("deviceType", "")
+                    val isOnline = item.optBoolean("isOnline", true)
+
                     val did = item.optString("did").trim().ifEmpty { "did:key:$peerId" }
-                    val name = item.optString("deviceName", item.optString("name", peerId)).ifBlank { peerId }
                     val ip = item.optString("ipAddress", item.optString("ip", "")).trim()
+
                     add(
                         DiscoveredPeer(
                             peerId = peerId,
                             deviceName = name,
                             ipAddress = ip,
-                            did = did
+                            did = did,
+                            deviceType = deviceType,
+                            platform = platform,
+                            isOnline = isOnline
                         )
                     )
                 }
@@ -104,5 +130,8 @@ data class DiscoveredPeer(
     val peerId: String,
     val deviceName: String,
     val ipAddress: String,
-    val did: String
+    val did: String,
+    val deviceType: String = "",
+    val platform: String = "",
+    val isOnline: Boolean = true
 )
