@@ -109,7 +109,6 @@ describe("DatabaseMigrator", () => {
     // We do this by overriding the relevant prototype method portions
     // Actually, we need to mock fs.readFileSync and fs.renameSync.
     // Since we can't mock fs, we'll mock via the prototype:
-    const originalMigrate = migrator.migrate.bind(migrator);
     migrator.migrate = async function () {
       // Replace the fs-dependent parts by pre-setting SQL and mocking internal calls
       this.status = MigrationStatus.IN_PROGRESS;
@@ -158,7 +157,7 @@ describe("DatabaseMigrator", () => {
         for (const index of indexes) {
           try {
             targetDb.exec(index.sql);
-          } catch (error) {
+          } catch {
             // Index creation failure is non-fatal
           }
         }
@@ -486,7 +485,7 @@ describe("DatabaseMigrator", () => {
 
       try {
         await migrator.migrate();
-      } catch (e) {
+      } catch {
         /* expected */
       }
       expect(statusDuringInit).toBe(MigrationStatus.IN_PROGRESS);
@@ -528,7 +527,7 @@ describe("DatabaseMigrator", () => {
 
       try {
         await migrator.migrate();
-      } catch (e) {
+      } catch {
         /* expected */
       }
       expect(migrator.status).toBe(MigrationStatus.FAILED);
@@ -886,7 +885,7 @@ describe("DatabaseMigrator", () => {
 
       try {
         await migrator.migrate();
-      } catch (e) {
+      } catch {
         /* expected */
       }
       expect(statusCapture).toBe(MigrationStatus.IN_PROGRESS);
@@ -909,7 +908,7 @@ describe("DatabaseMigrator", () => {
 
       try {
         await migrator.migrate();
-      } catch (e) {
+      } catch {
         /* expected */
       }
       expect(migrator.status).toBe(MigrationStatus.FAILED);

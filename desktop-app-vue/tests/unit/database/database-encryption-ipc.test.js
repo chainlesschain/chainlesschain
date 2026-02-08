@@ -10,8 +10,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 // Mock dependencies
 // ============================================================
 
-// Logger is already mocked by setup.ts — import the mock reference
-import { logger as mockLogger } from "../../../src/main/utils/logger.js";
+// Logger is already mocked by setup.ts — import not needed since we verify
+// behavior through return values rather than logger spy calls.
 
 // Mock config-manager — returns a mock config instance
 const mockConfigInstance = {
