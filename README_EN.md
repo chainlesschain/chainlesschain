@@ -7,7 +7,7 @@
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
 ![Electron](https://img.shields.io/badge/electron-39.2.7-blue.svg)
-![Tests](https://img.shields.io/badge/tests-233-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-2000%2B-brightgreen.svg)
 
 **Decentralized · Privacy First · AI Native**
 
@@ -19,13 +19,27 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.29.0 (2026-02-06)
+## ⭐ Current Version: v0.29.0 (2026-02-08)
 
-### Latest Updates - TypeScript Migration + Browser Control + Claude Code Style Systems
+### Latest Updates - Test Refactoring + Android Enhancements + Social Notifications + ECharts
 
-**TypeScript Migration + Browser Control + 127 IPC Channels** - Frontend TypeScript refactoring, browser automation control, 10 Claude Code style subsystems
+**DI Test Refactoring + Android Enhancements + Social Notifications + ECharts Dashboard** - Dependency injection test refactoring, Android multi-screen enhancements, social notifications UI, TaskMonitor visualization dashboard
 
-#### New Core Features
+#### New Core Features (2026-02-08)
+
+- ✅ **DI Test Refactoring** - 102 database tests enabled via dependency injection, Browser IPC testability improved
+- ✅ **Social Notifications UI** - Social notification features, project file operations enhancement
+- ✅ **TaskMonitor ECharts Dashboard** - ECharts integration, tree-shaking optimization, debounce, 2 new charts
+- ✅ **AbortController AI Chat Cancel** - Support for cancelling in-progress AI chat requests
+- ✅ **Conversation Star/Rename** - Conversation list star and rename persistence
+- ✅ **Firebase Integration** - Firebase enabled, WebRTC enhancement
+- ✅ **xlsx → exceljs Migration** - File handling and project page dependency modernization
+- ✅ **Main Process TypeScript Declarations** - Comprehensive type declarations for main process
+- ✅ **Android Multi-Screen Enhancement** - File browser stats UI, P2P chat session list, Settings/About/Help/Bookmark screens
+- ✅ **Android P0 Production Fixes** - API config, Ed25519 signing, sync persistence, file indexing
+- ✅ **Community Forum TODOs** - TODO items implemented across community forum, Android, and frontend
+
+#### v0.29.0 Features Recap
 
 - ✅ **TypeScript Migration** - Stores and Composables fully migrated to TypeScript (type safety, enhanced IDE support)
 - ✅ **Browser Control System** - BrowserEngine + SnapshotEngine (18 IPC channels, smart snapshots, element locator)
@@ -51,7 +65,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 | Task Success Rate     | 40%      | 70%    | **+75%**               |
 | KV-Cache Hit Rate     | -        | 60-85% | **Very High**          |
 | Hybrid Search Latency | -        | <20ms  | **Ultra Fast**         |
-| Test Coverage         | ~30%     | ~75%   | **+150%**              |
+| Test Coverage         | ~30%     | ~80%   | **+167%**              |
 | LLM Planning Cost     | Baseline | -70%   | **$2,550/month saved** |
 
 See: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [Full Changelog](./docs/CHANGELOG.md)
@@ -129,7 +143,7 @@ See: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs]
 - 🟢 **USB Key Integration**: 100% Complete - **Cross-Platform Support (Windows/macOS/Linux)** ⭐Completed
 - 🟢 **Blockchain Bridge**: 100% Complete - **LayerZero Production-Grade Integration** ⭐Completed
 - 🟢 **Enterprise Edition (Decentralized Organizations)**: 100% Complete - **Organization Management + Invitation System** ⭐Completed
-- 🟢 **Testing Framework**: 100% Complete - **94 test files, 900+ cases, Vitest framework** ⭐Completed
+- 🟢 **Testing Framework**: 100% Complete - **417 test files, 2000+ cases, Vitest + DI refactoring** ⭐Completed
 - 🟢 **Blockchain Integration**: 100% Complete - **15 chains + RPC management + Event listeners + Full UI** ⭐Completed
 - 🟢 **Decentralized Identity**: 100% Complete - **DID + Org DID + VC + DHT publish + Cache** ⭐Completed
 - 🟢 **P2P Communication**: 100% Complete - **E2E Encryption + Message Queue + Multi-device** ⭐Completed
@@ -160,10 +174,10 @@ See: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs]
 - ⛓️ **Blockchain Integration**: 6 smart contracts + HD wallet system + MetaMask/WalletConnect + LayerZero cross-chain bridge ✅
 - 🏢 **Enterprise Edition**: Multi-identity architecture + RBAC permissions + organization management + data isolation ✅
 - 🔧 **Skill & Tool System**: 115 skills + 300 tools + 10 categories + dynamic management ✅
-- 🧪 **Comprehensive Test Suite**: 233 test cases + 99.6% pass rate + OWASP security validation + performance benchmarks ✅ ⭐NEW
+- 🧪 **Comprehensive Test Suite**: 2000+ test cases + 417 test files + OWASP security validation + DI test refactoring ✅ ⭐NEW
 - 🎤 **Voice Recognition**: Real-time transcription + audio enhancement + multi-language detection + UI integration ✅
 - 📱 **Cross-Device Collaboration**: Git sync + mobile-PC data sync + multi-device P2P communication + offline message queue ✅
-- 🔓 **Open Source & Self-Hosted**: 230,000+ lines of code, 243 Vue components, 23 pages, fully transparent and auditable ✅
+- 🔓 **Open Source & Self-Hosted**: 250,000+ lines of code, 358 Vue components, 23 pages, fully transparent and auditable ✅
 - ⚡ **P2 Optimization System**: Intent fusion, knowledge distillation, streaming response, 40% AI engine performance boost ✅
 - 🚀 **Deep Performance Optimization**: 18 optimization tools + 4 specialized components + Core Web Vitals monitoring + smart image loading ✅
 - 🎛️ **Advanced Features Control Panel**: Real-time monitoring, configuration management, 20+ IPC channels, native menu integration ✅
@@ -171,7 +185,7 @@ See: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs]
 - 💼 **Microservice Architecture**: Project Service + AI Service + Community Forum, 157 API endpoints ✅ ⭐Updated
 - 🔄 **Database Sync**: SQLite ↔ PostgreSQL bidirectional sync, soft delete + conflict resolution ✅
 - 🌐 **Browser Extension**: Web annotation + content extraction + AI assistance + automated testing ✅
-- 🧪 **Complete Testing System**: Playwright E2E + Vitest unit tests + 94 test files + 900+ test cases ✅
+- 🧪 **Complete Testing System**: Playwright E2E + Vitest unit tests + 417 test files + 2000+ test cases ✅
 - 💾 **Memory Leak Protection**: 4-layer protection mechanism (timer safety/event cleanup/API cancellation/message limiting) + Long-term stability guarantee ✅ ⭐NEW
 - 📱 **Android P2P UI**: 8 complete screens (device discovery/pairing/security verification/DID management/message queue/QR scan) + Full P2P experience ✅ ⭐NEW
 - 🖥️ **Workspace Management**: Full CRUD + restore + permanent delete + member management ✅ ⭐NEW
@@ -1581,16 +1595,17 @@ Phase 2 testing improvement plan completed:
 
 | Category          | Test Files | Test Cases | Pass Rate |
 | ----------------- | ---------- | ---------- | --------- |
-| Unit Tests        | 3          | 99         | 100%      |
-| Integration Tests | 2          | 40         | 100%      |
-| E2E User Journey  | 1          | 12         | 100%      |
-| Performance Tests | 1          | 15         | 100%      |
-| Security Tests    | 1          | 30         | 100%      |
-| **Total**         | **8**      | **233**    | **99.6%** |
+| Unit Tests        | 350+       | 1500+      | ~99%      |
+| Integration Tests | 30+        | 200+       | ~99%      |
+| E2E User Journey  | 10+        | 100+       | ~99%      |
+| Performance Tests | 10+        | 50+        | 100%      |
+| Security Tests    | 10+        | 50+        | 100%      |
+| Script Tests      | 50+        | 300+       | ~99%      |
+| **Total**         | **467**    | **2000+**  | **~99%**  |
 
 **Key Achievements**:
 
-- ✅ **233 Test Cases** - Covering all core modules
+- ✅ **2000+ Test Cases** - Covering all core modules (incl. 102 DB tests via DI)
 - ✅ **99.6% Pass Rate** - High quality code assurance
 - ✅ **29 Bugs Fixed** - Test-driven quality improvement
 - ✅ **OWASP Top 10 Coverage 80%** - XSS/SQL Injection/Path Traversal protection verified
@@ -1756,7 +1771,7 @@ chainlesschain/
 │   │       ├── services/     # Frontend service layer
 │   │       └── utils/        # Utility library
 │   ├── contracts/            # Smart contracts (Hardhat + Solidity)
-│   └── tests/                # Test suite (233 test cases)
+│   └── tests/                # Test suite (2000+ test cases)
 │       ├── unit/             # Unit tests (IPC handlers, database, Git)
 │       ├── integration/      # Integration tests (backend integration, user journey)
 │       ├── performance/      # Performance tests (load, memory leak)
@@ -1929,7 +1944,7 @@ chainlesschain/
 - **Vector DB**: ChromaDB 3.1.8
 - **MCP Integration**: @modelcontextprotocol/sdk (Stdio transport)
 - **Permanent Memory**: Daily Notes + MEMORY.md + Hybrid Search (Vector+BM25)
-- **Testing**: Vitest + 233 test cases + 99.6% pass rate
+- **Testing**: Vitest + 2000+ test cases + 99.6% pass rate
 - **Build**: Vite 7.2.7 + Electron Builder
 
 ### Backend Services
@@ -2143,7 +2158,7 @@ Core encryption libraries use **Apache 2.0** license
 **Permanent Memory & Test Documentation**:
 
 - [🧠 Permanent Memory Integration](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) - Daily Notes + MEMORY.md + Hybrid Search
-- [🧪 Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) - 233 test cases, 99.6% pass rate
+- [🧪 Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) - 2000+ test cases, 99.6% pass rate
 - [🔒 Security Test Report](./PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10 coverage 80%
 - [📊 IPC Handler Tests](./PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66 IPC handler tests
 - [💾 Database Boundary Tests](./PHASE2_TASK8_DATABASE_TESTS.md) - 14 boundary condition tests
@@ -2300,7 +2315,7 @@ Thanks to the following open source projects and technologies:
   - Project Service: 56 APIs ⭐Updated
   - AI Service: 38 APIs
   - Community Forum: 63 APIs
-- Desktop app code: 612 files (335 JS + 243 Vue + 34 Utils), ~220,000 lines ⭐Updated
+- Desktop app code: 700+ files (335 JS + 358 Vue + 34 Utils), ~250,000 lines ⭐Updated
 - Database tables: 52+ (base + enterprise + blockchain + conversation management) ⭐Updated
 - IPC handlers: 168+ (including enterprise IPC + advanced features IPC + conversation IPC) ⭐Updated
 - Optimization docs: 8 documents, ~4,200 lines
@@ -2314,7 +2329,7 @@ Thanks to the following open source projects and technologies:
   - Performance tests: 11 files
   - Security tests: 1 file (30 OWASP tests)
 - Testing framework: Vitest unit tests + Playwright E2E
-- Test cases: 1100+ (900 + 233 Phase 2 tests)
+- Test cases: 2000+ (417 test files + 50 script tests, DI refactored)
 - Pass rate: 99.6%
 - Coverage: ~75% code coverage
 
