@@ -28,7 +28,9 @@ import java.time.format.DateTimeFormatter
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookmarkScreen() {
+fun BookmarkScreen(
+    onNavigateBack: (() -> Unit)? = null
+) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedTag by remember { mutableStateOf<String?>(null) }
 
@@ -106,6 +108,13 @@ fun BookmarkScreen() {
         // 顶部栏
         TopAppBar(
             title = { Text("我的收藏", fontWeight = FontWeight.Bold) },
+            navigationIcon = {
+                if (onNavigateBack != null) {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                }
+            },
             actions = {
                 IconButton(onClick = { /* TODO: 搜索 */ }) {
                     Icon(Icons.Default.Search, contentDescription = "搜索")

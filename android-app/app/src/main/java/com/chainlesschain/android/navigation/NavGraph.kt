@@ -40,8 +40,12 @@ import com.chainlesschain.android.feature.auth.presentation.SetupPinScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeEditorScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
 import com.chainlesschain.android.presentation.MainContainer
+import com.chainlesschain.android.presentation.screens.AboutScreen
+import com.chainlesschain.android.presentation.screens.BookmarkScreen
+import com.chainlesschain.android.presentation.screens.HelpFeedbackScreen
 import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
 import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
+import com.chainlesschain.android.presentation.screens.SettingsScreen
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
 import com.chainlesschain.android.remote.ui.DeviceListScreen
 import com.chainlesschain.android.remote.ui.DeviceScanScreen
@@ -109,7 +113,11 @@ fun NavGraph(
                 onNavigateToLLMTest = { navController.navigate(Screen.LLMTest.route) },
                 onNavigateToFileBrowser = { navController.navigate(Screen.FileBrowser.route) },
                 onNavigateToRemoteControl = { navController.navigate(Screen.RemoteControl.route) },
-                onNavigateToP2P = { navController.navigate(Screen.DeviceManagement.route) }
+                onNavigateToP2P = { navController.navigate(Screen.DeviceManagement.route) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
+                onNavigateToAbout = { navController.navigate(Screen.About.route) },
+                onNavigateToHelpFeedback = { navController.navigate(Screen.HelpFeedback.route) },
+                onNavigateToBookmark = { navController.navigate(Screen.Bookmark.route) }
             )
         }
 
@@ -212,6 +220,26 @@ fun NavGraph(
             val providerName = backStackEntry.arguments?.getString("provider") ?: "DOUBAO"
             val provider = runCatching { LLMProvider.valueOf(providerName) }.getOrElse { LLMProvider.DOUBAO }
             LLMTestChatScreen(onNavigateBack = { navController.popBackStack() }, provider = provider)
+        }
+
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAbout = { navController.navigate(Screen.About.route) },
+                onNavigateToHelpFeedback = { navController.navigate(Screen.HelpFeedback.route) }
+            )
+        }
+
+        composable(Screen.About.route) {
+            AboutScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.HelpFeedback.route) {
+            HelpFeedbackScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(Screen.Bookmark.route) {
+            BookmarkScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         composable(Screen.FileBrowser.route) {
@@ -381,6 +409,10 @@ sealed class Screen(val route: String) {
     data object EditPost : Screen("edit_post") {
         fun createRoute(postId: String) = "edit_post/$postId"
     }
+    data object Settings : Screen("settings")
+    data object About : Screen("about")
+    data object HelpFeedback : Screen("help_feedback")
+    data object Bookmark : Screen("bookmark")
     data object DeviceManagement : Screen("device_management")
     data object DeviceScan : Screen("device_scan")
     data object RemoteControl : Screen("remote_control") {

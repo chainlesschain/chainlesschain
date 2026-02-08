@@ -40,6 +40,10 @@ fun MainContainer(
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {},
+    onNavigateToHelpFeedback: () -> Unit = {},
+    onNavigateToBookmark: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     // 使用 rememberSaveable 保存状态（进程重建后恢复）
@@ -120,6 +124,10 @@ fun MainContainer(
                         onNavigateToKnowledgeList = onNavigateToKnowledgeList,
                         onNavigateToAIChat = onNavigateToAIChat,
                         onNavigateToP2P = onNavigateToP2P,
+                        onNavigateToSettings = onNavigateToSettings,
+                        onNavigateToAbout = onNavigateToAbout,
+                        onNavigateToHelpFeedback = onNavigateToHelpFeedback,
+                        onNavigateToBookmark = onNavigateToBookmark,
                         viewModel = viewModel
                     )
                 }
@@ -139,6 +147,30 @@ fun MainContainer(
             onNavigateToLLMTest = {
                 showProfileDialog = false
                 onNavigateToLLMTest()
+            },
+            onNavigateToKnowledgeList = {
+                showProfileDialog = false
+                onNavigateToKnowledgeList()
+            },
+            onNavigateToAIChat = {
+                showProfileDialog = false
+                onNavigateToAIChat()
+            },
+            onNavigateToP2P = {
+                showProfileDialog = false
+                onNavigateToP2P()
+            },
+            onNavigateToSettings = {
+                showProfileDialog = false
+                onNavigateToSettings()
+            },
+            onNavigateToAbout = {
+                showProfileDialog = false
+                onNavigateToAbout()
+            },
+            onNavigateToHelpFeedback = {
+                showProfileDialog = false
+                onNavigateToHelpFeedback()
             },
             viewModel = viewModel
         )
