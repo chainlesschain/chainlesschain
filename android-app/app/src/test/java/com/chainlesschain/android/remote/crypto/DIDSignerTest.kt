@@ -41,8 +41,9 @@ class DIDSignerTest {
             firstArg()
         }
 
-        // 初始化真实的密钥存储和生成器
-        keyStore = AndroidDIDKeyStore()
+        // Use in-memory test implementation to avoid EncryptedSharedPreferences/KeyStore
+        // (not available in Robolectric). AndroidDIDKeyStore requires Android Keystore hardware.
+        keyStore = InMemoryDIDKeyStore()
         keyGenerator = DIDKeyGenerator(keyStore)
         signer = DIDSigner(keyStore)
     }
@@ -198,4 +199,31 @@ class DIDSignerTest {
         // Then
         assertEquals("Ed25519公钥长度应为32字节", 32, publicKeyBytes.size)
     }
+}
+
+/**
+ * In-memory DIDKeyStore implementation for unit tests.
+ *
+ * Avoids the need for Android Keystore / EncryptedSharedPreferences
+ * which are not available under Robolectric.
+ */
+private class InMemoryDIDKeyStore : DIDKeyStore {
+    private data class KeyPair(val privateKey: ByteArray, val publicKey: ByteArray)
+
+    private val store = mutableMapOf<String, KeyPair>()
+
+    override suspend fun getPrivateKey(did: String): ByteArray? = store[did]?.privateKey
+    override suspend fun getPublicKey(did: String): ByteArray? = store[did]?.publicKey
+
+    override suspend fun storeKeyPair(did: String, privateKey: ByteArray, publicKey: ByteArray) {
+        store[did] = KeyPair(privateKey, publicKey)
+    }
+
+    override suspend fun hasKeyPair(did: String): Boolean = store.containsKey(did)
+
+    override suspend fun removeKeyPair(did: String): Boolean {
+        return store.remove(did) != null
+    }
+
+    override suspend fun getAllKeyIds(): List<String> = store.keys.toList()
 }

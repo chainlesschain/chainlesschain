@@ -1,5 +1,6 @@
 package com.chainlesschain.android.core.p2p.filetransfer
 
+import android.net.Uri
 import android.util.Log
 import com.chainlesschain.android.core.database.dao.TransferQueueDao
 import com.chainlesschain.android.core.database.entity.TransferQueueEntity
@@ -251,10 +252,24 @@ class TransferScheduler @Inject constructor(
             _queueEvents.emit(QueueEvent.ItemStarted(queueItem))
             Log.i(TAG, "Starting transfer: ${queueItem.fileName}")
 
-            // TODO: 实际启动传输
-            // 这里需要根据queueItem的信息调用fileTransferManager
-            // 由于没有存储完整的文件URI和对等设备信息，这部分需要额外的元数据存储
-            // 或者在enqueue时就启动传输，这里只做调度控制
+            if (queueItem.isOutgoing) {
+                // 出站传输：使用实际文件 URI 发送文件
+                val fileUri = Uri.parse(
+                    queueItem.fileUri
+                        ?: throw IllegalStateException("No file URI for outgoing transfer: ${queueItem.fileName}")
+                )
+                val metadata = fileTransferManager.sendFile(fileUri, queueItem.peerId)
+
+                if (metadata == null) {
+                    throw IllegalStateException("FileTransferManager failed to initiate transfer for: ${queueItem.fileName}")
+                }
+
+                Log.i(TAG, "Outgoing transfer initiated: ${queueItem.fileName} -> ${queueItem.peerId}")
+            } else {
+                // 入站传输：接受已收到的传输请求
+                fileTransferManager.acceptTransfer(queueItem.transferId)
+                Log.i(TAG, "Incoming transfer accepted: ${queueItem.fileName} from ${queueItem.peerId}")
+            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start transfer: ${queueItem.fileName}", e)

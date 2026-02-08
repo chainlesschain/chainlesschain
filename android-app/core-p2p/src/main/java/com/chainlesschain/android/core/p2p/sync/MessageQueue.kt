@@ -4,6 +4,7 @@ import android.util.Log
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.transport.MessagePriority
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.ConcurrentHashMap
@@ -39,6 +40,13 @@ class MessageQueue @Inject constructor() {
 
     // 离线消息缓存（设备离线时收到的消息）
     private val offlineMessages = ConcurrentHashMap<String, MutableList<P2PMessage>>()
+
+    // 入站消息流（其他组件可以监听接收到的消息）
+    private val _incomingMessages = MutableSharedFlow<P2PMessage>(
+        replay = 0,
+        extraBufferCapacity = 100
+    )
+    val incomingMessages: Flow<P2PMessage> = _incomingMessages
 
     // 队列状态
     private val _queueState = MutableStateFlow(QueueState())
@@ -208,6 +216,24 @@ class MessageQueue @Inject constructor() {
         offlineMessages.clear()
         updateQueueState()
         Log.d(TAG, "All queues cleared")
+    }
+
+    /**
+     * 分发收到的消息到入站消息流
+     *
+     * 由上层组件（如P2PConnectionManager）调用，将收到的消息分发给监听者
+     *
+     * @param message 收到的消息
+     * @return 是否成功分发
+     */
+    suspend fun dispatchIncoming(message: P2PMessage): Boolean {
+        return _incomingMessages.tryEmit(message).also { success ->
+            if (success) {
+                Log.d(TAG, "Incoming message dispatched: ${message.id} (type: ${message.type})")
+            } else {
+                Log.w(TAG, "Failed to dispatch incoming message (buffer full): ${message.id}")
+            }
+        }
     }
 
     /**

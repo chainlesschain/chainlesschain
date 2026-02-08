@@ -209,7 +209,36 @@ export const useIdentityStore = defineStore('identity', () => {
       }
 
       // 3. Load identity contexts (from database)
-      // TODO: Load saved contexts from identity-contexts table
+      if (primaryDID.value) {
+        try {
+          const result = await (window as any).ipc.invoke('identity:get-all-contexts', {
+            userDID: primaryDID.value,
+          });
+          if (result?.success && Array.isArray(result.contexts)) {
+            for (const ctx of result.contexts) {
+              const contextId = ctx.context_id;
+              const matchingOrg = organizations.value.find((o) => o.orgId === ctx.org_id);
+              contexts.value[contextId] = {
+                type: ctx.context_type as ContextType,
+                displayName: ctx.display_name || '',
+                avatar: ctx.avatar || '',
+                localDB: ctx.db_path,
+                orgId: ctx.org_id || undefined,
+                orgName: matchingOrg?.name || ctx.display_name,
+                role: (matchingOrg?.role as OrgRole) || undefined,
+              };
+              if (ctx.is_active) {
+                currentContext.value = contextId;
+              }
+            }
+            logger.info(
+              `[IdentityStore] Loaded ${result.contexts.length} saved contexts from database`
+            );
+          }
+        } catch (error) {
+          logger.warn('[IdentityStore] Failed to load saved contexts:', error as any);
+        }
+      }
 
       logger.info('[IdentityStore] Identity store initialized successfully');
     } catch (error) {
@@ -286,10 +315,19 @@ export const useIdentityStore = defineStore('identity', () => {
       currentContext.value = contextId;
 
       // 4. Update P2P network identity
-      // TODO: Update P2P network identity info
-      // if (window.ipc) {
-      //   await window.ipc.invoke('p2p:update-identity', contextId);
-      // }
+      const targetIdentity = contexts.value[contextId];
+      if ((window as any).ipc && targetIdentity) {
+        try {
+          await (window as any).ipc.invoke('p2p:update-identity', {
+            contextId,
+            displayName: targetIdentity.displayName,
+            avatar: targetIdentity.avatar,
+            orgId: targetIdentity.orgId,
+          });
+        } catch {
+          logger.warn('[IdentityStore] P2P identity update not available');
+        }
+      }
 
       // 5. Save identity switch record
       await saveContextSwitch(contextId);
@@ -433,8 +471,30 @@ export const useIdentityStore = defineStore('identity', () => {
    * Save current context state
    */
   async function saveCurrentContext(): Promise<void> {
-    // TODO: Save to identity-contexts table
-    logger.info('[IdentityStore] Saving current context:', currentContext.value);
+    if (!primaryDID.value) return;
+
+    try {
+      const ctx = contexts.value[currentContext.value];
+      if (!ctx) return;
+
+      if (ctx.type === 'personal') {
+        await (window as any).ipc.invoke('identity:create-personal-context', {
+          userDID: primaryDID.value,
+          displayName: ctx.displayName,
+        });
+      } else if (ctx.type === 'organization' && ctx.orgId) {
+        await (window as any).ipc.invoke('identity:create-organization-context', {
+          userDID: primaryDID.value,
+          orgId: ctx.orgId,
+          orgDID: ctx.orgId,
+          displayName: ctx.displayName,
+          avatar: ctx.avatar,
+        });
+      }
+      logger.info('[IdentityStore] Saved current context:', currentContext.value);
+    } catch (error) {
+      logger.warn('[IdentityStore] Failed to save current context:', error as any);
+    }
   }
 
   /**
@@ -442,8 +502,17 @@ export const useIdentityStore = defineStore('identity', () => {
    * @param contextId - New context ID
    */
   async function saveContextSwitch(contextId: string): Promise<void> {
-    // TODO: Save to database, record switch time
-    logger.info('[IdentityStore] Recording identity switch:', contextId);
+    if (!primaryDID.value) return;
+
+    try {
+      await (window as any).ipc.invoke('identity:switch-context', {
+        userDID: primaryDID.value,
+        targetContextId: contextId,
+      });
+      logger.info('[IdentityStore] Recorded identity switch to:', contextId);
+    } catch (error) {
+      logger.warn('[IdentityStore] Failed to record context switch:', error as any);
+    }
   }
 
   /**

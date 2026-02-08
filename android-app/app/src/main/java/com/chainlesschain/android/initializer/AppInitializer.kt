@@ -4,11 +4,11 @@ import android.app.Application
 import android.util.Log
 import com.chainlesschain.android.BuildConfig
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
-// Firebase imports - conditionally available when google-services.json is present
-import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.crashlytics.FirebaseCrashlytics
-import com.google.firebase.ktx.Firebase
+// Firebase imports - uncomment when google-services.json is available
+// import com.google.firebase.analytics.FirebaseAnalytics
+// import com.google.firebase.analytics.ktx.analytics
+// import com.google.firebase.crashlytics.FirebaseCrashlytics
+// import com.google.firebase.ktx.Firebase
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -130,10 +130,15 @@ class AppInitializer @Inject constructor(
                     override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
                         // 仅记录 ERROR 和 ASSERT 级别
                         if (priority >= Log.ERROR) {
-                            if (t != null) {
-                                FirebaseCrashlytics.getInstance().recordException(t)
-                            }
-                            FirebaseCrashlytics.getInstance().log("[$tag] $message")
+                            // Firebase Crashlytics 上报（当 google-services.json 存在时自动启用）
+                            try {
+                                val clazz = Class.forName("com.google.firebase.crashlytics.FirebaseCrashlytics")
+                                val instance = clazz.getMethod("getInstance").invoke(null)
+                                if (t != null) {
+                                    clazz.getMethod("recordException", Throwable::class.java).invoke(instance, t)
+                                }
+                                clazz.getMethod("log", String::class.java).invoke(instance, "[$tag] $message")
+                            } catch (_: Exception) { /* Firebase not available */ }
                             Log.e(tag, message, t)
                         }
                     }
@@ -153,17 +158,24 @@ class AppInitializer @Inject constructor(
      */
     private fun initializeCrashReporting() {
         try {
-            val crashlytics = FirebaseCrashlytics.getInstance()
+            val clazz = Class.forName("com.google.firebase.crashlytics.FirebaseCrashlytics")
+            val crashlytics = clazz.getMethod("getInstance").invoke(null)
 
             if (BuildConfig.DEBUG) {
-                crashlytics.setCrashlyticsCollectionEnabled(false)
+                clazz.getMethod("setCrashlyticsCollectionEnabled", Boolean::class.java)
+                    .invoke(crashlytics, false)
                 Timber.d("Crashlytics: Disabled for debug builds")
             } else {
-                crashlytics.setCrashlyticsCollectionEnabled(true)
-                crashlytics.setCustomKey("app_version", BuildConfig.VERSION_NAME)
-                crashlytics.setCustomKey("build_type", "release")
+                clazz.getMethod("setCrashlyticsCollectionEnabled", Boolean::class.java)
+                    .invoke(crashlytics, true)
+                clazz.getMethod("setCustomKey", String::class.java, String::class.java)
+                    .invoke(crashlytics, "app_version", BuildConfig.VERSION_NAME)
+                clazz.getMethod("setCustomKey", String::class.java, String::class.java)
+                    .invoke(crashlytics, "build_type", "release")
                 Timber.i("Crashlytics: Enabled for release builds")
             }
+        } catch (_: ClassNotFoundException) {
+            Timber.w("Crashlytics: Not available (Firebase not configured)")
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize crash reporting")
         }
@@ -204,17 +216,27 @@ class AppInitializer @Inject constructor(
      */
     private suspend fun initializeAnalytics() {
         try {
-            val analytics = Firebase.analytics
-            analytics.setAnalyticsCollectionEnabled(!BuildConfig.DEBUG)
+            // 通过反射检测 Firebase Analytics 是否可用（取决于 google-services.json）
+            val firebaseClass = Class.forName("com.google.firebase.ktx.Firebase")
+            val analyticsExt = Class.forName("com.google.firebase.analytics.ktx.AnalyticsKt")
+            val analytics = analyticsExt.methods.first { it.name == "getAnalytics" }
+                .invoke(null, firebaseClass.kotlin.objectInstance ?: firebaseClass.getDeclaredConstructor().newInstance())
+
+            val analyticsClass = Class.forName("com.google.firebase.analytics.FirebaseAnalytics")
+            analyticsClass.getMethod("setAnalyticsCollectionEnabled", Boolean::class.java)
+                .invoke(analytics, !BuildConfig.DEBUG)
 
             if (!BuildConfig.DEBUG) {
-                analytics.setUserProperty("app_version", BuildConfig.VERSION_NAME)
-                analytics.setUserProperty("build_type", "release")
-                analytics.logEvent(FirebaseAnalytics.Event.APP_OPEN, null)
+                analyticsClass.getMethod("setUserProperty", String::class.java, String::class.java)
+                    .invoke(analytics, "app_version", BuildConfig.VERSION_NAME)
+                analyticsClass.getMethod("setUserProperty", String::class.java, String::class.java)
+                    .invoke(analytics, "build_type", "release")
                 Timber.i("Analytics initialized and enabled")
             } else {
                 Timber.d("Analytics disabled for debug builds")
             }
+        } catch (_: ClassNotFoundException) {
+            Timber.w("Analytics: Not available (Firebase not configured)")
         } catch (e: Exception) {
             Timber.e(e, "Failed to initialize analytics")
         }

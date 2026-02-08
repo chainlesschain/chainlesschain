@@ -399,14 +399,29 @@
           description="暂无使用记录"
         />
         <a-timeline v-else>
-          <!-- TODO: 从后端获取使用历史 -->
-          <a-timeline-item color="green">
+          <!-- DID邀请：显示被邀请人状态 -->
+          <a-timeline-item
+            v-if="selectedInvitation.type === 'did'"
+            :color="selectedInvitation.status === 'accepted' ? 'green' : selectedInvitation.status === 'rejected' ? 'red' : 'blue'"
+          >
+            <template #dot>
+              <CheckCircleOutlined v-if="selectedInvitation.status === 'accepted'" />
+              <ExclamationCircleOutlined v-else />
+            </template>
+            {{ formatDID(selectedInvitation.invited_did) }}
+            {{ selectedInvitation.status === 'accepted' ? '已接受邀请' : selectedInvitation.status === 'rejected' ? '已拒绝邀请' : '等待响应' }}
+            <div style="color: #8c8c8c; font-size: 12px">
+              {{ formatDate(selectedInvitation.updated_at || selectedInvitation.created_at) }}
+            </div>
+          </a-timeline-item>
+          <!-- 邀请码：显示使用次数摘要 -->
+          <a-timeline-item v-else color="green">
             <template #dot>
               <CheckCircleOutlined />
             </template>
-            用户 xxx 使用此邀请加入组织
+            邀请码已被使用 {{ selectedInvitation.used_count }} 次
             <div style="color: #8c8c8c; font-size: 12px">
-              2024-01-01 12:00:00
+              最大使用次数：{{ selectedInvitation.max_uses }}
             </div>
           </a-timeline-item>
         </a-timeline>
@@ -434,6 +449,7 @@ import {
   SafetyOutlined,
   QuestionCircleOutlined,
   IdcardOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
 import { useIdentityStore } from "@/stores/identity";
 import dayjs from "dayjs";
