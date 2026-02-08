@@ -6,6 +6,7 @@ import com.chainlesschain.marketplace.dto.PluginDTO;
 import com.chainlesschain.marketplace.dto.PluginQueryDTO;
 import com.chainlesschain.marketplace.entity.Plugin;
 import com.chainlesschain.marketplace.exception.ResourceNotFoundException;
+import com.chainlesschain.marketplace.service.FileStorageService;
 import com.chainlesschain.marketplace.service.PluginService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ import java.util.List;
 public class PluginController {
 
     private final PluginService pluginService;
+    private final FileStorageService fileStorageService;
 
     /**
      * Get plugin list
@@ -83,10 +85,11 @@ public class PluginController {
         // Get user DID from authentication
         String userDid = authentication.getName();
 
-        // TODO: Upload file to storage and get URL
-        String fileUrl = "https://storage.example.com/" + file.getOriginalFilename();
+        // Upload file to MinIO storage
+        String objectName = "plugins/" + dto.getPluginId() + "/" + file.getOriginalFilename();
+        String fileUrl = fileStorageService.uploadFile(file, objectName);
         Long fileSize = file.getSize();
-        String fileHash = "hash123";  // TODO: Calculate file hash
+        String fileHash = fileStorageService.calculateFileHash(file);
 
         Plugin plugin = pluginService.createPlugin(dto, userDid, fileUrl, fileSize, fileHash);
         return ApiResponse.success(plugin, "Plugin created successfully");

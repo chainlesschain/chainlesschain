@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -74,14 +75,10 @@ public class SearchController {
     @GetMapping("/suggestions")
     @Operation(summary = "搜索建议", description = "获取搜索关键词建议")
     public ResponseEntity<?> getSuggestions(@RequestParam String keyword) {
-        // TODO: 实现搜索建议功能
+        List<String> suggestions = searchService.getSuggestions(keyword);
         return ResponseEntity.ok(Map.of(
             "keyword", keyword,
-            "suggestions", new String[]{
-                keyword + " 教程",
-                keyword + " 示例",
-                keyword + " 文档"
-            }
+            "suggestions", suggestions
         ));
     }
 }

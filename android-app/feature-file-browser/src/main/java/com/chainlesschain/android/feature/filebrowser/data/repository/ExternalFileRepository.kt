@@ -132,6 +132,34 @@ class ExternalFileRepository @Inject constructor(
     }
 
     /**
+     * 标记文件为已导入
+     */
+    suspend fun markAsImported(fileId: String, projectId: String) {
+        externalFileDao.markAsImported(fileId, projectId)
+    }
+
+    /**
+     * 获取已导入文件数量
+     */
+    suspend fun getImportedCount(): Int {
+        return externalFileDao.getImportedCount()
+    }
+
+    /**
+     * 获取收藏文件数量
+     */
+    suspend fun getFavoriteCount(): Int {
+        return externalFileDao.getFavoriteCount()
+    }
+
+    /**
+     * 获取指定分类的总大小
+     */
+    suspend fun getTotalSizeByCategory(category: FileCategory): Long {
+        return externalFileDao.getTotalSizeByCategory(category) ?: 0L
+    }
+
+    /**
      * 获取文件总数
      */
     suspend fun getFilesCount(): Int {

@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
@@ -195,7 +196,7 @@ fun TimelineScreen(
                 uiState.timelinePosts.isEmpty() -> {
                     EmptyState(
                         title = "还没有动态",
-                        icon = Icons.Default.Article,
+                        icon = Icons.AutoMirrored.Filled.Article,
                         actionText = "发布第一条动态",
                         onAction = onNavigateToPublishPost
                     )
@@ -357,7 +358,7 @@ fun TimelineScreen(
                         )
                     }
 
-                    Divider()
+                    HorizontalDivider()
 
                     ListItem(
                         headlineContent = { Text("删除") },

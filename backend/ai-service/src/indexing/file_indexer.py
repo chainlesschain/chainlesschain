@@ -6,6 +6,7 @@ import os
 import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Set
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 from src.rag.rag_engine import RAGEngine
 
 logger = logging.getLogger(__name__)
@@ -154,8 +155,9 @@ class FileIndexer:
             更新结果
         """
         try:
-            # TODO: 实现增量更新（先删除旧的chunks，再添加新的）
-            # 目前简化实现：直接添加新chunks
+            # 增量更新：先删除该文件的旧chunks，再添加新chunks
+            deleted = await self._delete_file_chunks(project_id, file_path)
+            logger.info(f"删除旧索引: file_path={file_path}, deleted={deleted}")
 
             chunks = self._chunk_text(content, file_path)
             file_ext = Path(file_path).suffix[1:] if Path(file_path).suffix else 'unknown'
@@ -176,6 +178,7 @@ class FileIndexer:
             return {
                 "success": True,
                 "file_path": file_path,
+                "chunks_deleted": deleted,
                 "chunks_added": len(chunks)
             }
 
@@ -197,15 +200,41 @@ class FileIndexer:
             统计信息
         """
         try:
-            # 通过检索获取项目相关的所有点
-            # 这是一个简化实现，实际应该有专门的统计API
             collection_stats = await self.rag_engine.get_collection_stats()
 
-            # TODO: 添加项目特定的统计
+            # 项目特定统计：通过scroll获取该项目的点数和文件类型分布
+            project_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="project_id",
+                        match=MatchValue(value=project_id)
+                    )
+                ]
+            )
+            points, _ = self.rag_engine.client.scroll(
+                collection_name=self.rag_engine.collection_name,
+                scroll_filter=project_filter,
+                limit=10000,
+                with_payload=True,
+                with_vectors=False
+            )
+
+            file_types = {}
+            file_paths = set()
+            for point in points:
+                ft = point.payload.get('file_type', 'unknown')
+                file_types[ft] = file_types.get(ft, 0) + 1
+                fp = point.payload.get('file_path')
+                if fp:
+                    file_paths.add(fp)
+
             return {
                 "project_id": project_id,
                 "collection_stats": collection_stats,
-                "indexed": True
+                "project_chunks": len(points),
+                "project_files": len(file_paths),
+                "file_type_distribution": file_types,
+                "indexed": len(points) > 0
             }
 
         except Exception as e:
@@ -215,6 +244,48 @@ class FileIndexer:
                 "indexed": False,
                 "error": str(e)
             }
+
+    async def _delete_file_chunks(self, project_id: str, file_path: str) -> int:
+        """
+        删除指定文件的所有chunks
+
+        Args:
+            project_id: 项目ID
+            file_path: 文件相对路径
+
+        Returns:
+            删除的chunk数量
+        """
+        try:
+            # 先统计要删除的数量
+            scroll_filter = Filter(
+                must=[
+                    FieldCondition(key="project_id", match=MatchValue(value=project_id)),
+                    FieldCondition(key="file_path", match=MatchValue(value=file_path))
+                ]
+            )
+            points, _ = self.rag_engine.client.scroll(
+                collection_name=self.rag_engine.collection_name,
+                scroll_filter=scroll_filter,
+                limit=10000,
+                with_payload=False,
+                with_vectors=False
+            )
+
+            if not points:
+                return 0
+
+            point_ids = [p.id for p in points]
+            self.rag_engine.client.delete(
+                collection_name=self.rag_engine.collection_name,
+                points_selector=point_ids
+            )
+
+            return len(point_ids)
+
+        except Exception as e:
+            logger.error(f"删除文件chunks失败: project_id={project_id}, file_path={file_path}, error={e}")
+            return 0
 
     def _collect_files(
         self,

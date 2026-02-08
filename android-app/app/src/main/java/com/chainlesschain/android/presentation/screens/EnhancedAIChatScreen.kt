@@ -12,6 +12,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -97,7 +100,7 @@ fun EnhancedAIChatScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -415,7 +418,7 @@ fun CodeBlock(code: String) {
                 }
             }
 
-            Divider(color = Color.White.copy(alpha = 0.1f))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
             // 代码内容
             Text(
@@ -484,7 +487,7 @@ fun ChatInputBar(
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
-                    imageVector = Icons.Default.Send,
+                    imageVector = Icons.AutoMirrored.Filled.Send,
                     contentDescription = "发送",
                     modifier = Modifier.size(20.dp)
                 )
@@ -710,7 +713,7 @@ fun AttachmentPreviewItem(
                         "VIDEO" -> Icons.Default.VideoLibrary
                         "AUDIO" -> Icons.Default.AudioFile
                         "DOCUMENT" -> Icons.Default.Description
-                        else -> Icons.Default.InsertDriveFile
+                        else -> Icons.AutoMirrored.Filled.InsertDriveFile
                     },
                     contentDescription = file.category,
                     modifier = Modifier.size(32.dp),
@@ -796,7 +799,7 @@ fun AttachmentBubble(
                             "VIDEO" -> Icons.Default.VideoLibrary
                             "AUDIO" -> Icons.Default.AudioFile
                             "DOCUMENT" -> Icons.Default.Description
-                            else -> Icons.Default.InsertDriveFile
+                            else -> Icons.AutoMirrored.Filled.InsertDriveFile
                         },
                         contentDescription = file.category,
                         modifier = Modifier.size(24.dp),

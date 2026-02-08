@@ -380,14 +380,22 @@ class WebRTCConnectionManager @Inject constructor(
      * Create a new peer connection
      */
     private fun createPeerConnection(remotePeerId: String, localUserId: String): PeerConnection {
-        val rtcConfig = PeerConnection.RTCConfiguration(
-            listOf(
-                // Google STUN servers
-                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-                PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
-                // TODO: Add TURN server for better NAT traversal
-            )
-        ).apply {
+        val iceServers = mutableListOf(
+            // Google STUN servers
+            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+            // Public TURN server for NAT traversal in restrictive networks
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
+                .setUsername("openrelayproject")
+                .setPassword("openrelayproject")
+                .createIceServer(),
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:443?transport=tcp")
+                .setUsername("openrelayproject")
+                .setPassword("openrelayproject")
+                .createIceServer()
+        )
+
+        val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
             iceTransportsType = PeerConnection.IceTransportsType.ALL
             bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
             rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE

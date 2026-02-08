@@ -137,8 +137,16 @@ class ChainlessChainApplication : Application(), ImageLoaderFactory {
             // 这可以减少首次请求的延迟
             Timber.d("Network library initialization: Pre-connecting to API...")
 
-            // TODO: 添加具体的预连接逻辑
-            // 例如：OkHttp ConnectionPool 预热
+            // DNS 预解析和 TCP 预连接常用主机
+            val hosts = listOf("api.chainlesschain.com", "signaling.chainlesschain.com")
+            hosts.forEach { host ->
+                try {
+                    java.net.InetAddress.getAllByName(host)
+                    Timber.d("DNS pre-resolved: $host")
+                } catch (_: Exception) {
+                    // 预连接失败不影响应用启动
+                }
+            }
 
             Timber.d("Network library initialized")
         } catch (e: Exception) {

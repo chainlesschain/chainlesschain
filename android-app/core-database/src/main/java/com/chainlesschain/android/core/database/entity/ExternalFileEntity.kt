@@ -125,6 +125,12 @@ data class ExternalFileEntity(
     /** 是否收藏 */
     val isFavorite: Boolean = false,
 
+    /** 是否已导入项目 */
+    val isImported: Boolean = false,
+
+    /** 导入到的项目ID */
+    val importedToProjectId: String? = null,
+
     /** 文件扩展名 */
     val extension: String? = null
 ) {

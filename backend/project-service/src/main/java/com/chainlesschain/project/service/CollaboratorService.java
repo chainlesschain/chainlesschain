@@ -6,7 +6,9 @@ import com.chainlesschain.project.dto.CollaboratorAddRequest;
 import com.chainlesschain.project.dto.CollaboratorDTO;
 import com.chainlesschain.project.dto.PermissionUpdateRequest;
 import com.chainlesschain.project.entity.ProjectCollaborator;
+import com.chainlesschain.project.entity.User;
 import com.chainlesschain.project.mapper.ProjectCollaboratorMapper;
+import com.chainlesschain.project.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 public class CollaboratorService {
 
     private final ProjectCollaboratorMapper collaboratorMapper;
+    private final UserMapper userMapper;
 
     /**
      * 获取协作者列表
@@ -150,8 +153,9 @@ public class CollaboratorService {
     private CollaboratorDTO toDTO(ProjectCollaborator collaborator) {
         CollaboratorDTO dto = new CollaboratorDTO();
         BeanUtils.copyProperties(collaborator, dto);
-        // TODO: 从DID系统获取协作者名称
-        dto.setCollaboratorName(collaborator.getCollaboratorDid());
+        String did = collaborator.getCollaboratorDid();
+        User user = (did != null) ? userMapper.findByDid(did) : null;
+        dto.setCollaboratorName(user != null && user.getNickname() != null ? user.getNickname() : did);
         return dto;
     }
 }

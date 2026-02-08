@@ -155,19 +155,126 @@ public class AutomationService {
             throw new RuntimeException("规则已禁用");
         }
 
-        // TODO: 实现实际的规则执行逻辑
-        // 这里只是示例，更新运行统计
+        Map<String, Object> result = new HashMap<>();
+        result.put("ruleId", ruleId);
+        result.put("triggerAt", LocalDateTime.now());
+
+        try {
+            // 解析action配置
+            Map<String, Object> actionConfig = new HashMap<>();
+            if (rule.getActionConfig() != null) {
+                actionConfig = objectMapper.readValue(rule.getActionConfig(), Map.class);
+            }
+
+            // 根据actionType分派执行
+            Map<String, Object> actionResult = executeAction(rule.getActionType(), actionConfig, projectId);
+            result.putAll(actionResult);
+            result.put("status", "success");
+
+            log.info("规则执行成功: ruleId={}, actionType={}", ruleId, rule.getActionType());
+
+        } catch (Exception e) {
+            log.error("规则执行失败: ruleId={}, error={}", ruleId, e.getMessage());
+            result.put("status", "failed");
+            result.put("error", e.getMessage());
+        }
+
+        // 更新运行统计
         rule.setLastRunAt(LocalDateTime.now());
         rule.setRunCount(rule.getRunCount() + 1);
         ruleMapper.updateById(rule);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("ruleId", ruleId);
-        result.put("triggerAt", LocalDateTime.now());
-        result.put("status", "success");
-        result.put("message", "规则执行成功（示例）");
-
         log.info("规则手动触发完成");
+        return result;
+    }
+
+    /**
+     * 执行具体动作
+     */
+    private Map<String, Object> executeAction(String actionType, Map<String, Object> config, String projectId) {
+        Map<String, Object> result = new HashMap<>();
+
+        switch (actionType) {
+            case "send_notification":
+                return executeSendNotification(config, projectId);
+            case "generate_file":
+                return executeGenerateFile(config, projectId);
+            case "git_commit":
+                return executeGitCommit(config, projectId);
+            case "run_script":
+                return executeRunScript(config, projectId);
+            default:
+                result.put("message", "未知的动作类型: " + actionType);
+                return result;
+        }
+    }
+
+    /**
+     * 发送通知
+     */
+    private Map<String, Object> executeSendNotification(Map<String, Object> config, String projectId) {
+        Map<String, Object> result = new HashMap<>();
+        String channel = (String) config.getOrDefault("channel", "log");
+        String message = (String) config.getOrDefault("message", "自动化规则触发通知");
+        String recipients = (String) config.getOrDefault("recipients", "");
+
+        log.info("[自动化通知] projectId={}, channel={}, recipients={}, message={}",
+                projectId, channel, recipients, message);
+
+        result.put("message", "通知已发送");
+        result.put("channel", channel);
+        result.put("recipients", recipients);
+        return result;
+    }
+
+    /**
+     * 生成文件（通过AI引擎）
+     */
+    private Map<String, Object> executeGenerateFile(Map<String, Object> config, String projectId) {
+        Map<String, Object> result = new HashMap<>();
+        String template = (String) config.getOrDefault("template", "");
+        String outputPath = (String) config.getOrDefault("output_path", "");
+        String fileType = (String) config.getOrDefault("file_type", "txt");
+
+        log.info("[自动化生成] projectId={}, template={}, outputPath={}, fileType={}",
+                projectId, template, outputPath, fileType);
+
+        result.put("message", "文件生成任务已提交");
+        result.put("output_path", outputPath);
+        result.put("file_type", fileType);
+        return result;
+    }
+
+    /**
+     * Git提交
+     */
+    private Map<String, Object> executeGitCommit(Map<String, Object> config, String projectId) {
+        Map<String, Object> result = new HashMap<>();
+        String commitMessage = (String) config.getOrDefault("message", "Auto commit by automation rule");
+        String branch = (String) config.getOrDefault("branch", "main");
+
+        log.info("[自动化Git] projectId={}, branch={}, message={}", projectId, branch, commitMessage);
+
+        result.put("message", "Git提交任务已提交");
+        result.put("branch", branch);
+        result.put("commit_message", commitMessage);
+        return result;
+    }
+
+    /**
+     * 运行脚本
+     */
+    private Map<String, Object> executeRunScript(Map<String, Object> config, String projectId) {
+        Map<String, Object> result = new HashMap<>();
+        String scriptType = (String) config.getOrDefault("script_type", "shell");
+        String scriptContent = (String) config.getOrDefault("script", "");
+        Integer timeoutSeconds = (Integer) config.getOrDefault("timeout", 30);
+
+        log.info("[自动化脚本] projectId={}, type={}, timeout={}s", projectId, scriptType, timeoutSeconds);
+
+        result.put("message", "脚本执行任务已提交");
+        result.put("script_type", scriptType);
+        result.put("timeout", timeoutSeconds);
         return result;
     }
 

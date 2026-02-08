@@ -75,7 +75,7 @@ fun HistoryVersionDialog(
                     }
                 }
 
-                Divider()
+                HorizontalDivider()
 
                 // 内容区域（可滚动）
                 Column(

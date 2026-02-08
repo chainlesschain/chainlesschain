@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
@@ -67,7 +69,7 @@ fun UserProfileScreen(
                 title = { Text(uiState.userInfo?.nickname ?: "用户资料") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -107,7 +109,7 @@ fun UserProfileScreen(
                         onRejectRequest = { viewModel.rejectFriendRequest() }
                     )
 
-                    Divider()
+                    HorizontalDivider()
 
                     // Tab切换
                     TabRow(selectedTabIndex = uiState.selectedTab) {
@@ -286,7 +288,7 @@ private fun UserInfoSection(
                     onClick = onSendMessage,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Message, contentDescription = null)
+                    Icon(Icons.AutoMirrored.Filled.Message, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("发消息")
                 }

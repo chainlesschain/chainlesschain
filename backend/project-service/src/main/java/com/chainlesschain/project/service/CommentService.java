@@ -7,7 +7,9 @@ import com.chainlesschain.project.dto.CommentCreateRequest;
 import com.chainlesschain.project.dto.CommentDTO;
 import com.chainlesschain.project.dto.CommentUpdateRequest;
 import com.chainlesschain.project.entity.ProjectComment;
+import com.chainlesschain.project.entity.User;
 import com.chainlesschain.project.mapper.ProjectCommentMapper;
+import com.chainlesschain.project.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 public class CommentService {
 
     private final ProjectCommentMapper commentMapper;
+    private final UserMapper userMapper;
 
     /**
      * 获取评论列表
@@ -166,8 +169,9 @@ public class CommentService {
             dto.setReplyCount(0);
         }
 
-        // TODO: 从DID系统获取作者名称
-        dto.setAuthorName(comment.getAuthorDid());
+        String did = comment.getAuthorDid();
+        User user = (did != null) ? userMapper.findByDid(did) : null;
+        dto.setAuthorName(user != null && user.getNickname() != null ? user.getNickname() : did);
 
         return dto;
     }

@@ -11,6 +11,9 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.outlined.Assignment
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -238,7 +241,7 @@ fun FunctionEntryGrid(
         listOf(
             // 第一行：知识库管理（个人第二大脑）
             FunctionEntryItem("知识库", Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
-            FunctionEntryItem("AI对话", Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
+            FunctionEntryItem("AI对话", Icons.AutoMirrored.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
             FunctionEntryItem("LLM设置", Icons.Outlined.Settings, Color(0xFF2196F3), FeatureGroup.CORE_WORK, onClick = onNavigateToLLMSettings),
 
             // 第二行：去中心化社交（DID + P2P）
@@ -247,7 +250,7 @@ fun FunctionEntryGrid(
             FunctionEntryItem("扫码添加", Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToQRScanner),
 
             // 第三行：项目管理 & 数字资产 & 设备管理
-            FunctionEntryItem("项目管理", Icons.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
+            FunctionEntryItem("项目管理", Icons.AutoMirrored.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
             FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
             // P2P设备管理
             FunctionEntryItem("P2P设备", Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),
@@ -543,7 +546,7 @@ fun ChatInputBar(
                     modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Send,
+                        imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "发送"
                     )
                 }

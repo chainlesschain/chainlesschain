@@ -314,10 +314,25 @@ class FileIndexProtocolHandler @Inject constructor(
     }
 
     /**
-     * 获取本地设备 ID
+     * 获取本地设备 ID（优先使用 DID）
      */
     private fun getLocalDeviceId(): String {
-        // TODO: 从 DID Manager 或设备配置获取
+        // 尝试从 DID 存储文件读取（与 core-did DIDManager 共享）
+        try {
+            val didFile = java.io.File(context.filesDir, "did_keypair.json")
+            if (didFile.exists()) {
+                val content = didFile.readText()
+                val jsonObj = org.json.JSONObject(content)
+                val did = jsonObj.optString("did", "")
+                if (did.isNotEmpty()) {
+                    return did
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to read DID from storage, falling back to Android ID", e)
+        }
+
+        // 回退到 Android ID
         return android.provider.Settings.Secure.getString(
             context.contentResolver,
             android.provider.Settings.Secure.ANDROID_ID

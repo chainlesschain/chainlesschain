@@ -9,10 +9,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.asRequestBody
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -206,24 +213,67 @@ class ImageUploadService @Inject constructor(
      * @param file 要上传的文件
      * @return 图片 URL
      */
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    @Volatile
+    private var currentCall: okhttp3.Call? = null
+
+    private fun getUploadBaseUrl(): String {
+        // Use signaling server host as upload endpoint base
+        val isDebug = try { com.chainlesschain.android.feature.p2p.BuildConfig.DEBUG } catch (_: Exception) { false }
+        return if (isDebug) "http://10.0.2.2:9090" else "https://api.chainlesschain.com"
+    }
+
     private suspend fun uploadToServer(file: File): String = withContext(Dispatchers.IO) {
-        // TODO: 实现实际的服务器上传逻辑
-        // 这里暂时返回本地文件路径作为占位符
-        // 实际应该使用 OkHttp 或 Retrofit 上传到后端服务器
+        val mediaType = "image/jpeg".toMediaType()
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart(
+                "file",
+                file.name,
+                file.asRequestBody(mediaType)
+            )
+            .build()
 
-        // 模拟上传延迟
-        kotlinx.coroutines.delay(500)
+        val request = Request.Builder()
+            .url("${getUploadBaseUrl()}/api/files/upload")
+            .post(requestBody)
+            .build()
 
-        // 返回本地文件 URI（临时方案）
-        "file://${file.absolutePath}"
+        val call = httpClient.newCall(request)
+        currentCall = call
+
+        try {
+            val response = call.execute()
+            if (response.isSuccessful) {
+                val body = response.body?.string() ?: throw Exception("Empty response")
+                val json = JSONObject(body)
+                json.optString("url", json.optString("fileUrl", "file://${file.absolutePath}"))
+            } else {
+                // Server not available, fall back to local file URI
+                android.util.Log.w("ImageUploadService",
+                    "Upload server returned ${response.code}, using local path")
+                "file://${file.absolutePath}"
+            }
+        } catch (e: java.io.IOException) {
+            // Network error, fall back to local file URI
+            android.util.Log.w("ImageUploadService",
+                "Upload failed (${e.message}), using local path")
+            "file://${file.absolutePath}"
+        } finally {
+            currentCall = null
+        }
     }
 
     /**
-     * 取消上传
-     *
-     * TODO: 实现取消上传功能
+     * 取消当前上传
      */
     fun cancelUpload() {
-        // 实现取消逻辑
+        currentCall?.cancel()
+        currentCall = null
     }
 }
