@@ -234,6 +234,7 @@ import {
   Setting, Tools, SwitchButton, Sunny, Moon, List, Document
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getUnreadCount } from '@/api/notification'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -319,9 +320,20 @@ const handleCommand = async (command) => {
   }
 }
 
+const loadUnreadNotifications = async () => {
+  if (!userStore.isLoggedIn) return
+  try {
+    const res = await getUnreadCount()
+    if (res.code === 200) {
+      unreadNotifications.value = res.data || 0
+    }
+  } catch (e) {
+    // 静默失败，不影响页面加载
+  }
+}
+
 onMounted(() => {
-  // 加载未读通知数
-  // TODO: 从API获取
+  loadUnreadNotifications()
 })
 </script>
 

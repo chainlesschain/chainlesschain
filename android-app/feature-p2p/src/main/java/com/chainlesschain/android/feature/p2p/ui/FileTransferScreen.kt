@@ -76,7 +76,21 @@ fun FileTransferScreen(
                             actionLabel = "Open"
                         ).let { result ->
                             if (result == SnackbarResult.ActionPerformed && event.localPath != null) {
-                                // TODO: Open file
+                                val file = java.io.File(event.localPath)
+                                val uri = androidx.core.content.FileProvider.getUriForFile(
+                                    context, "${context.packageName}.fileprovider", file
+                                )
+                                val mimeType = android.webkit.MimeTypeMap.getSingleton()
+                                    .getMimeTypeFromExtension(file.extension) ?: "*/*"
+                                val openIntent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                    setDataAndType(uri, mimeType)
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                try {
+                                    context.startActivity(openIntent)
+                                } catch (_: android.content.ActivityNotFoundException) {
+                                    android.widget.Toast.makeText(context, "No app to open this file", android.widget.Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
                     }
@@ -116,7 +130,7 @@ fun FileTransferScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {

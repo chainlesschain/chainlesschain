@@ -37,6 +37,11 @@ class DatabaseAdapter {
     this.password = options.password; // 密码
     this.configPath = options.configPath; // 配置文件路径
     this.developmentMode = this.isDevelopmentMode(); // 开发模式标志
+    // DI for testability (Vitest v3 cannot mock CJS require)
+    this._createEncryptedDatabase =
+      options.createEncryptedDatabase || createEncryptedDatabase;
+    this._createUnencryptedDatabase =
+      options.createUnencryptedDatabase || createUnencryptedDatabase;
   }
 
   /**
@@ -229,7 +234,7 @@ class DatabaseAdapter {
     const keyResult = await this.getEncryptionKey();
 
     // 创建数据库
-    const db = createEncryptedDatabase(encryptedDbPath, keyResult.key);
+    const db = this._createEncryptedDatabase(encryptedDbPath, keyResult.key);
     db.open();
 
     logger.info("[DatabaseAdapter] SQLCipher 数据库已创建");
@@ -387,7 +392,7 @@ class DatabaseAdapter {
       });
 
       // 验证旧密钥是否正确（通过尝试读取数据库）
-      const testDb = createEncryptedDatabase(
+      const testDb = this._createEncryptedDatabase(
         this.getEncryptedDbPath(),
         oldKeyResult.key,
       );
