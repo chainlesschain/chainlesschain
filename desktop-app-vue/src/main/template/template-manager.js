@@ -908,7 +908,9 @@ class ProjectTemplateManager {
       WHERE id = ?
     `);
     stmt.run([now, templateId]);
-    this.db.saveToFile();
+    if (this.dbManager && typeof this.dbManager.saveToFile === "function") {
+      this.dbManager.saveToFile();
+    }
   }
 
   /**

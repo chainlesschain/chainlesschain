@@ -792,12 +792,24 @@ function createMockDatabase() {
   const mockAll = vi.fn();
   const mockSaveToFile = vi.fn();
 
-  const db = {
+  // The raw db object used for SQL operations
+  const rawDb = {
     prepare: mockPrepare,
-    saveToFile: mockSaveToFile,
     _templates: {},
     _ratings: {},
     _usageHistory: [],
+    _lastRunParams: null
+  };
+
+  // DatabaseManager-like wrapper with nested .db and .saveToFile
+  // so the constructor sets this.dbManager correctly
+  const db = {
+    db: rawDb,
+    prepare: mockPrepare,
+    saveToFile: mockSaveToFile,
+    _templates: rawDb._templates,
+    _ratings: rawDb._ratings,
+    _usageHistory: rawDb._usageHistory,
     _lastRunParams: null
   };
 
