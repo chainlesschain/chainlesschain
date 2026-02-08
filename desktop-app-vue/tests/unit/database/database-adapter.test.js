@@ -4,8 +4,8 @@
  * 覆盖场景: 数据库引擎选择、加密检测、回退逻辑
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import path from 'path';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import path from "path";
 
 // ============================================================
 // CRITICAL: Mock ALL dependencies BEFORE any imports
@@ -17,73 +17,73 @@ const fsMock = {
   readFileSync: vi.fn(),
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
-  unlinkSync: vi.fn()
+  unlinkSync: vi.fn(),
 };
 
-vi.mock('node:fs', () => fsMock);
-vi.mock('fs', () => fsMock);
+vi.mock("node:fs", () => fsMock);
+vi.mock("fs", () => fsMock);
 
 // Mock logger to prevent logging interference
-vi.mock('../../../src/shared/logger-config.js', () => ({
+vi.mock("../../../src/shared/logger-config.js", () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
-    debug: vi.fn()
+    debug: vi.fn(),
   },
   createLogger: vi.fn(() => ({
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
-    debug: vi.fn()
-  }))
+    debug: vi.fn(),
+  })),
 }));
 
-vi.mock('../../../src/main/utils/logger.js', () => ({
+vi.mock("../../../src/main/utils/logger.js", () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
-    debug: vi.fn()
+    debug: vi.fn(),
   },
   createLogger: vi.fn(() => ({
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
-    debug: vi.fn()
-  }))
+    debug: vi.fn(),
+  })),
 }));
 
 // Mock better-sqlite3 to prevent native binding loading
-vi.mock('better-sqlite3-multiple-ciphers', () => ({
+vi.mock("better-sqlite3-multiple-ciphers", () => ({
   default: vi.fn(() => ({
     prepare: vi.fn(),
     exec: vi.fn(),
-    close: vi.fn()
-  }))
+    close: vi.fn(),
+  })),
 }));
 
 // Mock KeyManager
 const mockKeyManagerInstance = {
   initialize: vi.fn().mockResolvedValue(undefined),
   getOrCreateKey: vi.fn().mockResolvedValue({
-    key: 'test-key-hex',
-    salt: 'test-salt-hex',
-    method: 'password'
+    key: "test-key-hex",
+    salt: "test-salt-hex",
+    method: "password",
   }),
   deriveKeyFromPassword: vi.fn().mockResolvedValue({
-    key: 'new-test-key-hex',
-    salt: 'new-test-salt-hex'
+    key: "new-test-key-hex",
+    salt: "new-test-salt-hex",
   }),
   saveKeyMetadata: vi.fn().mockResolvedValue(undefined),
   loadKeyMetadata: vi.fn().mockReturnValue(null),
-  close: vi.fn().mockResolvedValue(undefined)
+  close: vi.fn().mockResolvedValue(undefined),
 };
 
 const MockKeyManager = vi.fn(() => mockKeyManagerInstance);
 
-vi.mock('../../../src/main/database/key-manager', () => ({
-  KeyManager: MockKeyManager
+vi.mock("../../../src/main/database/key-manager", () => ({
+  KeyManager: MockKeyManager,
 }));
 
 // Mock SQLCipher wrapper (CRITICAL: Must be before database-migration mock)
@@ -92,43 +92,43 @@ const mockEncryptedDb = {
   prepare: vi.fn(() => ({
     run: vi.fn(),
     get: vi.fn(() => ({ count: 1 })),
-    all: vi.fn()
+    all: vi.fn(),
   })),
   exec: vi.fn(),
   close: vi.fn(),
-  rekey: vi.fn()
+  rekey: vi.fn(),
 };
 
 const mockCreateEncryptedDatabase = vi.fn(() => mockEncryptedDb);
 const mockCreateUnencryptedDatabase = vi.fn(() => mockEncryptedDb);
 
-vi.mock('../../../src/main/database/sqlcipher-wrapper', () => ({
+vi.mock("../../../src/main/database/sqlcipher-wrapper", () => ({
   createEncryptedDatabase: mockCreateEncryptedDatabase,
-  createUnencryptedDatabase: mockCreateUnencryptedDatabase
+  createUnencryptedDatabase: mockCreateUnencryptedDatabase,
 }));
 
-vi.mock('./sqlcipher-wrapper', () => ({
+vi.mock("./sqlcipher-wrapper", () => ({
   createEncryptedDatabase: mockCreateEncryptedDatabase,
-  createUnencryptedDatabase: mockCreateUnencryptedDatabase
+  createUnencryptedDatabase: mockCreateUnencryptedDatabase,
 }));
 
 // Mock database migration (CRITICAL: Mock all possible paths)
 const mockMigrateDatabase = vi.fn().mockResolvedValue({
   success: true,
-  message: 'Migration successful',
-  rowsProcessed: 100
+  message: "Migration successful",
+  rowsProcessed: 100,
 });
 
-vi.mock('../../../src/main/database/database-migration', () => ({
-  migrateDatabase: mockMigrateDatabase
+vi.mock("../../../src/main/database/database-migration", () => ({
+  migrateDatabase: mockMigrateDatabase,
 }));
 
-vi.mock('./database-migration', () => ({
-  migrateDatabase: mockMigrateDatabase
+vi.mock("./database-migration", () => ({
+  migrateDatabase: mockMigrateDatabase,
 }));
 
-vi.mock('@main/database/database-migration', () => ({
-  migrateDatabase: mockMigrateDatabase
+vi.mock("@main/database/database-migration", () => ({
+  migrateDatabase: mockMigrateDatabase,
 }));
 
 // Mock sql.js
@@ -136,21 +136,23 @@ const mockSqlJsDb = {
   run: vi.fn(),
   exec: vi.fn(),
   export: vi.fn(() => new Uint8Array([1, 2, 3])),
-  close: vi.fn()
+  close: vi.fn(),
 };
 
 const mockSqlJsDatabase = vi.fn(() => mockSqlJsDb);
-const mockInitSqlJs = vi.fn(() => Promise.resolve({
-  Database: mockSqlJsDatabase
-}));
+const mockInitSqlJs = vi.fn(() =>
+  Promise.resolve({
+    Database: mockSqlJsDatabase,
+  }),
+);
 
 // Mock sql.js for both CommonJS and ES modules
-vi.mock('sql.js', () => mockInitSqlJs);
+vi.mock("sql.js", () => mockInitSqlJs);
 
-describe('DatabaseAdapter', () => {
+describe("DatabaseAdapter", () => {
   let DatabaseAdapter, DatabaseEngine, createDatabaseAdapter;
   let adapter;
-  const testDbPath = path.join('/mock/path', 'test.db');
+  const testDbPath = path.join("/mock/path", "test.db");
 
   beforeEach(async () => {
     // 重置所有mocks
@@ -163,9 +165,13 @@ describe('DatabaseAdapter', () => {
     fsMock.writeFileSync.mockReturnValue(undefined);
     fsMock.mkdirSync.mockReturnValue(undefined);
 
-    // Reset database mocks
+    // Reset database mocks - must restore implementations cleared by mockReset
     mockEncryptedDb.open.mockClear();
-    mockEncryptedDb.prepare.mockClear();
+    mockEncryptedDb.prepare.mockImplementation(() => ({
+      run: vi.fn(),
+      get: vi.fn(() => ({ count: 1 })),
+      all: vi.fn(),
+    }));
     mockEncryptedDb.close.mockClear();
     mockEncryptedDb.rekey.mockClear();
     mockCreateEncryptedDatabase.mockReturnValue(mockEncryptedDb);
@@ -177,30 +183,31 @@ describe('DatabaseAdapter', () => {
     // Reset migration mock
     mockMigrateDatabase.mockResolvedValue({
       success: true,
-      message: 'Migration successful',
-      rowsProcessed: 100
+      message: "Migration successful",
+      rowsProcessed: 100,
     });
 
     // Reset KeyManager mock
     mockKeyManagerInstance.initialize.mockResolvedValue(undefined);
     mockKeyManagerInstance.getOrCreateKey.mockResolvedValue({
-      key: 'test-key-hex',
-      salt: 'test-salt-hex',
-      method: 'password'
+      key: "test-key-hex",
+      salt: "test-salt-hex",
+      method: "password",
     });
     mockKeyManagerInstance.deriveKeyFromPassword.mockResolvedValue({
-      key: 'new-test-key-hex',
-      salt: 'new-test-salt-hex'
+      key: "new-test-key-hex",
+      salt: "new-test-salt-hex",
     });
     mockKeyManagerInstance.loadKeyMetadata.mockReturnValue(null);
     mockKeyManagerInstance.saveKeyMetadata.mockResolvedValue(undefined);
     mockKeyManagerInstance.close.mockResolvedValue(undefined);
 
     // 设置默认环境
-    process.env.NODE_ENV = 'test';
+    process.env.NODE_ENV = "test";
 
     // 动态导入被测模块
-    const module = await import('../../../src/main/database/database-adapter.js');
+    const module =
+      await import("../../../src/main/database/database-adapter.js");
     DatabaseAdapter = module.DatabaseAdapter;
     DatabaseEngine = module.DatabaseEngine;
     createDatabaseAdapter = module.createDatabaseAdapter;
@@ -210,8 +217,8 @@ describe('DatabaseAdapter', () => {
     vi.clearAllMocks();
   });
 
-  describe('构造函数', () => {
-    it('应该使用默认选项创建实例', () => {
+  describe("构造函数", () => {
+    it("应该使用默认选项创建实例", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
       expect(adapter.dbPath).toBe(testDbPath);
@@ -219,41 +226,41 @@ describe('DatabaseAdapter', () => {
       expect(adapter.autoMigrate).toBe(true);
     });
 
-    it('应该支持禁用加密', () => {
+    it("应该支持禁用加密", () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       expect(adapter.encryptionEnabled).toBe(false);
     });
 
-    it('应该支持禁用自动迁移', () => {
+    it("应该支持禁用自动迁移", () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        autoMigrate: false
+        autoMigrate: false,
       });
 
       expect(adapter.autoMigrate).toBe(false);
     });
   });
 
-  describe('isDevelopmentMode', () => {
-    it('应该在NODE_ENV=development时返回true', () => {
-      process.env.NODE_ENV = 'development';
+  describe("isDevelopmentMode", () => {
+    it("应该在NODE_ENV=development时返回true", () => {
+      process.env.NODE_ENV = "development";
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
       expect(adapter.isDevelopmentMode()).toBe(true);
     });
 
-    it('应该在NODE_ENV=production时返回false', () => {
-      process.env.NODE_ENV = 'production';
+    it("应该在NODE_ENV=production时返回false", () => {
+      process.env.NODE_ENV = "production";
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
       expect(adapter.isDevelopmentMode()).toBe(false);
     });
 
-    it('应该在未设置NODE_ENV时返回true', () => {
+    it("应该在未设置NODE_ENV时返回true", () => {
       delete process.env.NODE_ENV;
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
@@ -261,45 +268,45 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('getDevDefaultPassword', () => {
-    it('应该返回环境变量中的密码', () => {
-      process.env.DEV_DB_PASSWORD = 'custom_dev_password';
+  describe("getDevDefaultPassword", () => {
+    it("应该返回环境变量中的密码", () => {
+      process.env.DEV_DB_PASSWORD = "custom_dev_password";
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
-      expect(adapter.getDevDefaultPassword()).toBe('custom_dev_password');
+      expect(adapter.getDevDefaultPassword()).toBe("custom_dev_password");
       delete process.env.DEV_DB_PASSWORD;
     });
 
-    it('应该在未设置环境变量时返回默认密码', () => {
+    it("应该在未设置环境变量时返回默认密码", () => {
       delete process.env.DEV_DB_PASSWORD;
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
-      expect(adapter.getDevDefaultPassword()).toBe('dev_password_2024');
+      expect(adapter.getDevDefaultPassword()).toBe("dev_password_2024");
     });
   });
 
-  describe('getEncryptedDbPath', () => {
-    it('应该正确生成加密数据库路径', () => {
-      adapter = new DatabaseAdapter({ dbPath: '/path/to/database.db' });
+  describe("getEncryptedDbPath", () => {
+    it("应该正确生成加密数据库路径", () => {
+      adapter = new DatabaseAdapter({ dbPath: "/path/to/database.db" });
 
       const encryptedPath = adapter.getEncryptedDbPath();
 
-      expect(encryptedPath).toBe('/path/to/database.encrypted.db');
+      expect(encryptedPath).toBe("/path/to/database.encrypted.db");
     });
 
-    it('应该处理没有扩展名的路径', () => {
-      adapter = new DatabaseAdapter({ dbPath: '/path/to/database' });
+    it("应该处理没有扩展名的路径", () => {
+      adapter = new DatabaseAdapter({ dbPath: "/path/to/database" });
 
       const encryptedPath = adapter.getEncryptedDbPath();
 
-      expect(encryptedPath).toBe('/path/to/database.encrypted');
+      expect(encryptedPath).toBe("/path/to/database.encrypted");
     });
   });
 
-  describe('detectEngine', () => {
-    it('应该在存在加密数据库时返回SQLCipher', () => {
+  describe("detectEngine", () => {
+    it("应该在存在加密数据库时返回SQLCipher", () => {
       fsMock.existsSync.mockImplementation((path) => {
-        return path.includes('.encrypted.db');
+        return path.includes(".encrypted.db");
       });
 
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
@@ -308,11 +315,11 @@ describe('DatabaseAdapter', () => {
       expect(engine).toBe(DatabaseEngine.SQLCIPHER);
     });
 
-    it('应该在开发模式且无密码时返回sql.js', () => {
-      process.env.NODE_ENV = 'development';
+    it("应该在开发模式且无密码时返回sql.js", () => {
+      process.env.NODE_ENV = "development";
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        password: null
+        password: null,
       });
       adapter.developmentMode = true;
 
@@ -323,10 +330,10 @@ describe('DatabaseAdapter', () => {
       expect(engine).toBe(DatabaseEngine.SQL_JS);
     });
 
-    it('应该在启用加密时返回SQLCipher', () => {
+    it("应该在启用加密时返回SQLCipher", () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: true
+        encryptionEnabled: true,
       });
 
       fsMock.existsSync.mockReturnValue(false);
@@ -336,10 +343,10 @@ describe('DatabaseAdapter', () => {
       expect(engine).toBe(DatabaseEngine.SQLCIPHER);
     });
 
-    it('应该在禁用加密时返回sql.js', () => {
+    it("应该在禁用加密时返回sql.js", () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       fsMock.existsSync.mockReturnValue(false);
@@ -350,22 +357,22 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('shouldMigrate', () => {
-    it('应该在原数据库存在但加密数据库不存在时返回true', () => {
+  describe("shouldMigrate", () => {
+    it("应该在原数据库存在但加密数据库不存在时返回true", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
       // Spy on shouldMigrate to test the logic indirectly
       const result = adapter.shouldMigrate();
 
       // In test environment with mocked fs, we verify the method exists and returns a boolean
-      expect(typeof result).toBe('boolean');
+      expect(typeof result).toBe("boolean");
     });
 
-    it('应该在原数据库不存在时返回false', () => {
+    it("应该在原数据库不存在时返回false", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
       // Mock fs.existsSync to return false for both paths
-      const fs = require('fs');
+      const fs = require("fs");
       const originalExistsSync = fs.existsSync;
       fs.existsSync = vi.fn().mockReturnValue(false);
 
@@ -378,11 +385,11 @@ describe('DatabaseAdapter', () => {
       expect(result).toBe(false);
     });
 
-    it('应该在加密数据库已存在时返回false', () => {
+    it("应该在加密数据库已存在时返回false", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
       // Mock fs.existsSync to return true for both paths (both databases exist)
-      const fs = require('fs');
+      const fs = require("fs");
       const originalExistsSync = fs.existsSync;
       fs.existsSync = vi.fn().mockReturnValue(true);
 
@@ -396,20 +403,20 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('initialize', () => {
-    it('应该成功初始化SQLCipher引擎', async () => {
+  describe("initialize", () => {
+    it("应该成功初始化SQLCipher引擎", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
-        password: 'test-password'
+        password: "test-password",
       });
 
       fsMock.existsSync.mockReturnValue(false);
 
       // Spy on performMigration to prevent actual migration
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
         success: true,
-        message: 'Migration mocked'
+        message: "Migration mocked",
       });
 
       // Clear mock history before initialize
@@ -418,7 +425,10 @@ describe('DatabaseAdapter', () => {
       await adapter.initialize();
 
       // Ensure keyManager is the mock instance
-      if (!adapter.keyManager || adapter.keyManager !== mockKeyManagerInstance) {
+      if (
+        !adapter.keyManager ||
+        adapter.keyManager !== mockKeyManagerInstance
+      ) {
         adapter.keyManager = mockKeyManagerInstance;
       }
 
@@ -427,10 +437,10 @@ describe('DatabaseAdapter', () => {
       expect(adapter.keyManager).toBe(mockKeyManagerInstance);
     });
 
-    it('应该成功初始化sql.js引擎', async () => {
+    it("应该成功初始化sql.js引擎", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       fsMock.existsSync.mockReturnValue(false);
@@ -441,21 +451,25 @@ describe('DatabaseAdapter', () => {
       expect(adapter.keyManager).toBeNull();
     });
 
-    it('应该在需要时自动执行迁移', async () => {
+    it("应该在需要时自动执行迁移", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
         autoMigrate: true,
-        password: 'test-password'
+        password: "test-password",
       });
 
       // Spy on shouldMigrate and force it to return true
-      const shouldMigrateSpy = vi.spyOn(adapter, 'shouldMigrate').mockReturnValue(true);
+      const shouldMigrateSpy = vi
+        .spyOn(adapter, "shouldMigrate")
+        .mockReturnValue(true);
 
       // Spy on performMigration
-      const performMigrationSpy = vi.spyOn(adapter, 'performMigration').mockResolvedValue({
-        success: true
-      });
+      const performMigrationSpy = vi
+        .spyOn(adapter, "performMigration")
+        .mockResolvedValue({
+          success: true,
+        });
 
       await adapter.initialize();
 
@@ -464,12 +478,12 @@ describe('DatabaseAdapter', () => {
       expect(performMigrationSpy).toHaveBeenCalled();
     });
 
-    it('应该在autoMigrate=false时跳过迁移', async () => {
+    it("应该在autoMigrate=false时跳过迁移", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
         autoMigrate: false,
-        password: 'test-password'
+        password: "test-password",
       });
 
       fsMock.existsSync.mockImplementation((filePath) => {
@@ -482,47 +496,54 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('getEncryptionKey', () => {
+  describe("getEncryptionKey", () => {
     beforeEach(async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        password: 'test-password'
+        password: "test-password",
       });
 
       fsMock.existsSync.mockReturnValue(false);
       // Mock performMigration to avoid real migration
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
 
       await adapter.initialize();
 
       // Ensure keyManager is the mock instance
-      if (!adapter.keyManager || adapter.keyManager !== mockKeyManagerInstance) {
+      if (
+        !adapter.keyManager ||
+        adapter.keyManager !== mockKeyManagerInstance
+      ) {
         adapter.keyManager = mockKeyManagerInstance;
       }
     });
 
-    it('应该从KeyManager获取密钥', async () => {
+    it("应该从KeyManager获取密钥", async () => {
       const keyResult = await adapter.getEncryptionKey();
 
       expect(keyResult).toBeDefined();
-      expect(keyResult.key).toBe('test-key-hex');
-      expect(keyResult.method).toBe('password');
+      expect(keyResult.key).toBe("test-key-hex");
+      expect(keyResult.method).toBe("password");
       expect(mockKeyManagerInstance.getOrCreateKey).toHaveBeenCalled();
     });
 
-    it('应该在开发模式无密码时使用默认密码', async () => {
-      process.env.NODE_ENV = 'development';
+    it("应该在开发模式无密码时使用默认密码", async () => {
+      process.env.NODE_ENV = "development";
       delete process.env.DEV_DB_PASSWORD;
 
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         password: null,
-        encryptionEnabled: true // Force encryption to initialize keyManager
+        encryptionEnabled: true, // Force encryption to initialize keyManager
       });
       adapter.developmentMode = true;
 
       fsMock.existsSync.mockReturnValue(false);
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
 
       await adapter.initialize();
 
@@ -535,34 +556,40 @@ describe('DatabaseAdapter', () => {
 
       expect(mockKeyManagerInstance.getOrCreateKey).toHaveBeenCalledWith(
         expect.objectContaining({
-          password: 'dev_password_2024'
-        })
+          password: "dev_password_2024",
+        }),
       );
     });
 
-    it('应该在keyManager未初始化时抛出错误', async () => {
+    it("应该在keyManager未初始化时抛出错误", async () => {
       adapter.keyManager = null;
 
-      await expect(adapter.getEncryptionKey()).rejects.toThrow('密钥管理器未初始化');
+      await expect(adapter.getEncryptionKey()).rejects.toThrow(
+        "密钥管理器未初始化",
+      );
     });
   });
 
-  describe('createSQLCipherDatabase', () => {
-    it('应该创建SQLCipher数据库实例', async () => {
+  describe("createSQLCipherDatabase", () => {
+    it("应该创建SQLCipher数据库实例", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        password: 'test-password'
+        password: "test-password",
       });
 
       fsMock.existsSync.mockReturnValue(false);
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
       await adapter.initialize();
 
       // Ensure keyManager is properly mocked
       adapter.keyManager = mockKeyManagerInstance;
 
       // Mock the entire createSQLCipherDatabase method to avoid native binding loading
-      const createDbSpy = vi.spyOn(adapter, 'createSQLCipherDatabase').mockResolvedValue(mockEncryptedDb);
+      const createDbSpy = vi
+        .spyOn(adapter, "createSQLCipherDatabase")
+        .mockResolvedValue(mockEncryptedDb);
 
       const db = await adapter.createSQLCipherDatabase();
 
@@ -572,20 +599,24 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('createSqlJsDatabase', () => {
-    it('应该创建sql.js数据库实例（新数据库）', async () => {
+  describe("createSqlJsDatabase", () => {
+    it("应该创建sql.js数据库实例（新数据库）", async () => {
       // Mock sql.js file path finding
       fsMock.existsSync.mockImplementation((filePath) => {
         // Return true for sql.js WASM file
-        if (filePath.includes('sql-wasm.wasm')) {return true;}
+        if (filePath.includes("sql-wasm.wasm")) {
+          return true;
+        }
         // Return false for database files
-        if (filePath === testDbPath) {return false;}
+        if (filePath === testDbPath) {
+          return false;
+        }
         return false;
       });
 
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       fsMock.readFileSync.mockClear();
@@ -601,30 +632,34 @@ describe('DatabaseAdapter', () => {
       expect(fsMock.readFileSync).not.toHaveBeenCalled(); // New database shouldn't read from file
     });
 
-    it('应该加载现有的sql.js数据库', async () => {
+    it("应该加载现有的sql.js数据库", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
 
       // Mock fs at runtime
-      const fs = require('fs');
+      const fs = require("fs");
       const originalExistsSync = fs.existsSync;
       const originalReadFileSync = fs.readFileSync;
 
       let readFileCalled = false;
       fs.existsSync = vi.fn().mockImplementation((filePath) => {
         // Return true for sql.js WASM file and existing database
-        if (filePath.includes('sql-wasm.wasm')) {return true;}
-        if (filePath === testDbPath || filePath.includes('test.db')) {return true;}
+        if (filePath.includes("sql-wasm.wasm")) {
+          return true;
+        }
+        if (filePath === testDbPath || filePath.includes("test.db")) {
+          return true;
+        }
         return false;
       });
 
       const testBuffer = Buffer.from([1, 2, 3]);
       fs.readFileSync = vi.fn().mockImplementation((filePath) => {
-        if (filePath === testDbPath || filePath.includes('test.db')) {
+        if (filePath === testDbPath || filePath.includes("test.db")) {
           readFileCalled = true;
           return testBuffer;
         }
@@ -646,13 +681,13 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('saveDatabase', () => {
-    it('应该保存sql.js数据库到文件', () => {
+  describe("saveDatabase", () => {
+    it("应该保存sql.js数据库到文件", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
       adapter.engine = DatabaseEngine.SQL_JS;
 
       // Mock fs at runtime
-      const fs = require('fs');
+      const fs = require("fs");
       const originalWriteFileSync = fs.writeFileSync;
       const originalExistsSync = fs.existsSync;
 
@@ -674,12 +709,12 @@ describe('DatabaseAdapter', () => {
       expect(writeFileCalled).toBe(true);
     });
 
-    it('应该在目录不存在时创建目录', () => {
+    it("应该在目录不存在时创建目录", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
       adapter.engine = DatabaseEngine.SQL_JS;
 
       // Mock fs at runtime
-      const fs = require('fs');
+      const fs = require("fs");
       const originalMkdirSync = fs.mkdirSync;
       const originalExistsSync = fs.existsSync;
       const originalWriteFileSync = fs.writeFileSync;
@@ -702,12 +737,12 @@ describe('DatabaseAdapter', () => {
       expect(mkdirCalled).toBe(true);
     });
 
-    it('应该在SQLCipher模式下跳过保存（自动保存）', () => {
+    it("应该在SQLCipher模式下跳过保存（自动保存）", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
       adapter.engine = DatabaseEngine.SQLCIPHER;
 
       // Mock fs at runtime
-      const fs = require('fs');
+      const fs = require("fs");
       const originalWriteFileSync = fs.writeFileSync;
       let writeFileCalled = false;
       fs.writeFileSync = vi.fn().mockImplementation(() => {
@@ -724,16 +759,18 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('close', () => {
-    it('应该关闭keyManager', async () => {
+  describe("close", () => {
+    it("应该关闭keyManager", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        password: 'test-password',
-        encryptionEnabled: true
+        password: "test-password",
+        encryptionEnabled: true,
       });
 
       fsMock.existsSync.mockReturnValue(false);
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
       await adapter.initialize();
 
       // Ensure keyManager is the mock instance
@@ -747,46 +784,54 @@ describe('DatabaseAdapter', () => {
       expect(mockKeyManagerInstance.close).toHaveBeenCalled();
     });
 
-    it('应该在keyManager不存在时正常关闭', async () => {
+    it("应该在keyManager不存在时正常关闭", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
       await adapter.initialize();
 
       await expect(adapter.close()).resolves.not.toThrow();
     });
   });
 
-  describe('辅助方法', () => {
+  describe("辅助方法", () => {
     beforeEach(async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        password: 'test-password'
+        password: "test-password",
       });
 
       fsMock.existsSync.mockReturnValue(false);
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
       await adapter.initialize();
     });
 
-    it('getEngine应该返回当前引擎', () => {
+    it("getEngine应该返回当前引擎", () => {
       const engine = adapter.getEngine();
 
       expect(engine).toBeDefined();
-      expect([DatabaseEngine.SQL_JS, DatabaseEngine.SQLCIPHER]).toContain(engine);
+      expect([DatabaseEngine.SQL_JS, DatabaseEngine.SQLCIPHER]).toContain(
+        engine,
+      );
     });
 
-    it('isEncrypted应该在使用SQLCipher时返回true', async () => {
+    it("isEncrypted应该在使用SQLCipher时返回true", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
-        password: 'test-password'
+        password: "test-password",
       });
 
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
       await adapter.initialize();
 
       const isEncrypted = adapter.isEncrypted();
@@ -795,64 +840,104 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('changePassword', () => {
+  describe("changePassword", () => {
     beforeEach(async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        password: 'old-password'
+        password: "old-password",
+        createEncryptedDatabase: mockCreateEncryptedDatabase,
       });
       adapter.encryptionEnabled = true;
 
       fsMock.existsSync.mockReturnValue(false);
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
       await adapter.initialize();
       adapter.engine = DatabaseEngine.SQLCIPHER;
     });
 
-    it.skip('应该成功修改数据库密码', async () => {
-      // SKIP REASON: This test requires SQLCipher native bindings which are not available in test environment.
-      // The changePassword method calls createEncryptedDatabase() internally for password verification,
-      // which attempts to load real native bindings. Since CommonJS require() is done at module load time,
-      // runtime mocking of the wrapper doesn't affect the already-imported reference.
-      //
-      // This functionality is tested in integration tests where real SQLCipher is available.
-      // The error handling paths are still covered by other unit tests in this suite.
+    it("应该成功修改数据库密码", async () => {
+      // Ensure keyManager is the mock instance
+      adapter.keyManager = mockKeyManagerInstance;
+
+      // Mock getOrCreateKey for old password verification
+      mockKeyManagerInstance.getOrCreateKey.mockResolvedValueOnce({
+        key: "old-key-hex",
+        salt: "old-salt-hex",
+        method: "password",
+      });
+
+      // Ensure mockEncryptedDb.prepare returns a usable statement mock
+      // (mockReset: true may have cleared the implementation)
+      mockEncryptedDb.prepare.mockImplementation(() => ({
+        run: vi.fn(),
+        get: vi.fn(() => ({ count: 1 })),
+        all: vi.fn(),
+      }));
+
+      // Mock deriveKeyFromPassword for new key generation
+      mockKeyManagerInstance.deriveKeyFromPassword.mockResolvedValueOnce({
+        key: "new-key-hex",
+        salt: "new-salt-hex",
+      });
+
+      const result = await adapter.changePassword(
+        "old-password",
+        "new-password",
+        mockEncryptedDb,
+      );
+
+      expect(result).toEqual({
+        success: true,
+        message: "密码修改成功",
+      });
+      expect(mockEncryptedDb.rekey).toHaveBeenCalledWith("new-key-hex");
+      expect(mockKeyManagerInstance.saveKeyMetadata).toHaveBeenCalledWith({
+        method: "password",
+        salt: "new-salt-hex",
+        encryptionEnabled: true,
+      });
     });
 
-    it('应该在旧密码错误时抛出错误', async () => {
+    it("应该在旧密码错误时抛出错误", async () => {
       const failingDb = {
         open: vi.fn(),
         prepare: vi.fn(() => {
-          throw new Error('Invalid password');
+          throw new Error("Invalid password");
         }),
-        close: vi.fn()
+        close: vi.fn(),
       };
       mockCreateEncryptedDatabase.mockReturnValueOnce(failingDb);
 
       await expect(
-        adapter.changePassword('wrong-password', 'new-password', mockEncryptedDb)
-      ).rejects.toThrow('旧密码验证失败');
+        adapter.changePassword(
+          "wrong-password",
+          "new-password",
+          mockEncryptedDb,
+        ),
+      ).rejects.toThrow("旧密码验证失败");
     });
 
-    it('应该在未加密数据库上抛出错误', async () => {
+    it("应该在未加密数据库上抛出错误", async () => {
       adapter.engine = DatabaseEngine.SQL_JS;
 
       await expect(
-        adapter.changePassword('old', 'new', mockSqlJsDb)
-      ).rejects.toThrow('数据库未使用加密，无法修改密码');
+        adapter.changePassword("old", "new", mockSqlJsDb),
+      ).rejects.toThrow("数据库未使用加密，无法修改密码");
     });
 
-    it('应该在keyManager未初始化时抛出错误', async () => {
+    it("应该在keyManager未初始化时抛出错误", async () => {
       adapter.keyManager = null;
 
       await expect(
-        adapter.changePassword('old', 'new', mockEncryptedDb)
-      ).rejects.toThrow('密钥管理器未初始化');
+        adapter.changePassword("old", "new", mockEncryptedDb),
+      ).rejects.toThrow("密钥管理器未初始化");
     });
   });
 
-  describe('createDatabaseAdapter工厂函数', () => {
-    it('应该创建并初始化DatabaseAdapter', async () => {
+  describe("createDatabaseAdapter工厂函数", () => {
+    it("应该创建并初始化DatabaseAdapter", async () => {
       fsMock.existsSync.mockReturnValue(false);
 
       // Mock performMigration on the prototype before creating instance
@@ -861,7 +946,7 @@ describe('DatabaseAdapter', () => {
 
       const createdAdapter = await createDatabaseAdapter({
         dbPath: testDbPath,
-        password: 'test-password'
+        password: "test-password",
       });
 
       expect(createdAdapter).toBeInstanceOf(DatabaseAdapter);
@@ -873,52 +958,54 @@ describe('DatabaseAdapter', () => {
   // 边界条件测试 - Phase 2 Task #8
   // ============================================================
 
-  describe('边界条件 - 数据库文件损坏', () => {
-    it('应该能够构造用于测试损坏文件的场景', () => {
+  describe("边界条件 - 数据库文件损坏", () => {
+    it("应该能够构造用于测试损坏文件的场景", () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       // Verify we can mock corrupted file scenarios
-      const corruptedData = Buffer.from('CORRUPTED DATA');
+      const corruptedData = Buffer.from("CORRUPTED DATA");
       expect(corruptedData).toBeDefined();
-      expect(corruptedData.toString()).toBe('CORRUPTED DATA');
+      expect(corruptedData.toString()).toBe("CORRUPTED DATA");
     });
 
-    it('应该能够处理数据库初始化错误', async () => {
+    it("应该能够处理数据库初始化错误", async () => {
       // Test that adapter properly handles initialization failures
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
-        password: 'test-password'
+        password: "test-password",
       });
 
       // Spy on initializeEncryption and force it to throw
-      vi.spyOn(adapter, 'initializeEncryption').mockRejectedValue(new Error('Database corrupted'));
+      vi.spyOn(adapter, "initializeEncryption").mockRejectedValue(
+        new Error("Database corrupted"),
+      );
 
-      await expect(adapter.initialize()).rejects.toThrow('Database corrupted');
+      await expect(adapter.initialize()).rejects.toThrow("Database corrupted");
     });
 
-    it('应该验证数据库文件格式', () => {
+    it("应该验证数据库文件格式", () => {
       // SQLite files start with "SQLite format 3"
-      const validHeader = Buffer.from('SQLite format 3\x00');
-      const invalidHeader = Buffer.from('INVALID HEADER\x00\x00');
+      const validHeader = Buffer.from("SQLite format 3\x00");
+      const invalidHeader = Buffer.from("INVALID HEADER\x00\x00");
 
-      expect(validHeader.toString('utf8', 0, 15)).toBe('SQLite format 3');
-      expect(invalidHeader.toString('utf8', 0, 15)).not.toBe('SQLite format 3');
+      expect(validHeader.toString("utf8", 0, 15)).toBe("SQLite format 3");
+      expect(invalidHeader.toString("utf8", 0, 15)).not.toBe("SQLite format 3");
     });
   });
 
-  describe('边界条件 - 磁盘空间不足', () => {
-    it('应该处理写入时磁盘空间不足错误', () => {
+  describe("边界条件 - 磁盘空间不足", () => {
+    it("应该处理写入时磁盘空间不足错误", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
       adapter.engine = DatabaseEngine.SQL_JS;
 
       // Mock writeFileSync to throw ENOSPC error directly on fsMock
       fsMock.writeFileSync.mockImplementationOnce(() => {
-        const error = new Error('ENOSPC: no space left on device');
-        error.code = 'ENOSPC';
+        const error = new Error("ENOSPC: no space left on device");
+        error.code = "ENOSPC";
         throw error;
       });
 
@@ -929,18 +1016,18 @@ describe('DatabaseAdapter', () => {
       expect(() => adapter.saveDatabase(mockSqlJsDb)).not.toThrow();
     });
 
-    it('应该处理临时文件创建失败', () => {
+    it("应该处理临时文件创建失败", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
       adapter.engine = DatabaseEngine.SQL_JS;
 
-      const fs = require('fs');
+      const fs = require("fs");
       const originalWriteFileSync = fs.writeFileSync;
       const originalExistsSync = fs.existsSync;
 
       fs.existsSync = vi.fn().mockReturnValue(true);
       fs.writeFileSync = vi.fn().mockImplementation(() => {
-        const error = new Error('ENOSPC: no space left on device');
-        error.code = 'ENOSPC';
+        const error = new Error("ENOSPC: no space left on device");
+        error.code = "ENOSPC";
         throw error;
       });
 
@@ -951,13 +1038,13 @@ describe('DatabaseAdapter', () => {
       fs.existsSync = originalExistsSync;
     });
 
-    it('应该检测到磁盘配额超限', () => {
+    it("应该检测到磁盘配额超限", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
       adapter.engine = DatabaseEngine.SQL_JS;
 
       fsMock.writeFileSync.mockImplementationOnce(() => {
-        const error = new Error('EDQUOT: disk quota exceeded');
-        error.code = 'EDQUOT';
+        const error = new Error("EDQUOT: disk quota exceeded");
+        error.code = "EDQUOT";
         throw error;
       });
 
@@ -968,46 +1055,50 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('边界条件 - 并发写入冲突', () => {
-    it('应该处理SQLite BUSY错误', async () => {
+  describe("边界条件 - 并发写入冲突", () => {
+    it("应该处理SQLite BUSY错误", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
-        password: 'test-password'
+        password: "test-password",
       });
 
       fsMock.existsSync.mockReturnValue(false);
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
       await adapter.initialize();
 
       // Mock database locked error
       const busyDb = {
         prepare: vi.fn(() => {
-          const error = new Error('SQLITE_BUSY: database is locked');
-          error.code = 'SQLITE_BUSY';
+          const error = new Error("SQLITE_BUSY: database is locked");
+          error.code = "SQLITE_BUSY";
           throw error;
         }),
-        close: vi.fn()
+        close: vi.fn(),
       };
 
-      expect(() => busyDb.prepare('SELECT 1')).toThrow('SQLITE_BUSY');
+      expect(() => busyDb.prepare("SELECT 1")).toThrow("SQLITE_BUSY");
     });
 
-    it('应该检测到并发写入冲突 (WAL模式)', async () => {
+    it("应该检测到并发写入冲突 (WAL模式)", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
-        password: 'test-password'
+        password: "test-password",
       });
 
       fsMock.existsSync.mockReturnValue(false);
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
       await adapter.initialize();
 
       // Simulate multiple concurrent writes
       const writes = Array.from({ length: 10 }, (_, i) => ({
         id: i,
-        status: 'pending'
+        status: "pending",
       }));
 
       // In a real scenario, these would conflict
@@ -1015,36 +1106,40 @@ describe('DatabaseAdapter', () => {
       expect(writes).toHaveLength(10);
     });
 
-    it('应该处理数据库锁定超时', async () => {
+    it("应该处理数据库锁定超时", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
-        password: 'test-password'
+        password: "test-password",
       });
 
       fsMock.existsSync.mockReturnValue(false);
-      vi.spyOn(adapter, 'performMigration').mockResolvedValue({ success: true });
+      vi.spyOn(adapter, "performMigration").mockResolvedValue({
+        success: true,
+      });
       await adapter.initialize();
 
       const timeoutDb = {
         prepare: vi.fn(() => {
-          const error = new Error('SQLITE_BUSY: database is locked');
-          error.code = 'SQLITE_BUSY';
+          const error = new Error("SQLITE_BUSY: database is locked");
+          error.code = "SQLITE_BUSY";
           throw error;
         }),
-        close: vi.fn()
+        close: vi.fn(),
       };
 
       // Simulate timeout waiting for lock
-      expect(() => timeoutDb.prepare('INSERT INTO test VALUES (1)')).toThrow('SQLITE_BUSY');
+      expect(() => timeoutDb.prepare("INSERT INTO test VALUES (1)")).toThrow(
+        "SQLITE_BUSY",
+      );
     });
   });
 
-  describe('边界条件 - 超大数据量', () => {
-    it('应该处理10万条记录的批量插入', async () => {
+  describe("边界条件 - 超大数据量", () => {
+    it("应该处理10万条记录的批量插入", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
@@ -1052,7 +1147,7 @@ describe('DatabaseAdapter', () => {
       // Mock batch insert
       const records = Array.from({ length: 100000 }, (_, i) => ({
         id: i,
-        data: `Record ${i}`
+        data: `Record ${i}`,
       }));
 
       // Verify large array creation works
@@ -1061,22 +1156,22 @@ describe('DatabaseAdapter', () => {
       expect(records[99999].id).toBe(99999);
     });
 
-    it('应该处理超大单个记录 (10MB)', async () => {
+    it("应该处理超大单个记录 (10MB)", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
 
       // Create 10MB of data
-      const largeData = 'x'.repeat(10 * 1024 * 1024);
+      const largeData = "x".repeat(10 * 1024 * 1024);
 
       expect(largeData.length).toBe(10 * 1024 * 1024);
 
       // Mock inserting large data
       const mockPrepare = vi.fn().mockReturnValue({
-        run: vi.fn()
+        run: vi.fn(),
       });
       mockSqlJsDb.prepare = mockPrepare;
 
@@ -1084,15 +1179,15 @@ describe('DatabaseAdapter', () => {
       expect(largeData.length).toBeGreaterThan(1024 * 1024);
     });
 
-    it('应该处理数据库文件大小超过4GB', async () => {
+    it("应该处理数据库文件大小超过4GB", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       // Mock checking database file size
       const mockStat = vi.fn().mockReturnValue({
-        size: 5 * 1024 * 1024 * 1024 // 5GB
+        size: 5 * 1024 * 1024 * 1024, // 5GB
       });
 
       // In real scenario, this would test large file handling
@@ -1100,26 +1195,26 @@ describe('DatabaseAdapter', () => {
       expect(fileSize).toBeGreaterThan(4 * 1024 * 1024 * 1024);
     });
 
-    it('应该处理超长文本字段 (1GB)', async () => {
+    it("应该处理超长文本字段 (1GB)", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
 
       // Simulate very long text (1GB would crash, so we test the limit concept)
       const maxTextSize = 1024 * 1024 * 1024; // 1GB limit
-      const largeText = 'x'.repeat(1024 * 1024); // 1MB sample
+      const largeText = "x".repeat(1024 * 1024); // 1MB sample
 
       expect(largeText.length).toBe(1024 * 1024);
       expect(maxTextSize).toBe(1024 * 1024 * 1024);
     });
 
-    it('应该处理表中100万行查询', async () => {
+    it("应该处理表中100万行查询", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
@@ -1127,7 +1222,7 @@ describe('DatabaseAdapter', () => {
       // Mock large result set
       const largeResultSet = Array.from({ length: 1000000 }, (_, i) => ({
         id: i,
-        name: `User ${i}`
+        name: `User ${i}`,
       }));
 
       expect(largeResultSet).toHaveLength(1000000);
@@ -1141,11 +1236,11 @@ describe('DatabaseAdapter', () => {
     });
   });
 
-  describe('边界条件 - 事务回滚', () => {
-    it('应该在错误时回滚事务', async () => {
+  describe("边界条件 - 事务回滚", () => {
+    it("应该在错误时回滚事务", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
@@ -1154,22 +1249,22 @@ describe('DatabaseAdapter', () => {
       const mockTransaction = {
         begin: vi.fn(),
         commit: vi.fn(),
-        rollback: vi.fn()
+        rollback: vi.fn(),
       };
 
       mockSqlJsDb.exec = vi.fn().mockImplementation((sql) => {
-        if (sql.includes('BEGIN')) {
+        if (sql.includes("BEGIN")) {
           mockTransaction.begin();
-        } else if (sql.includes('COMMIT')) {
-          throw new Error('Constraint violation');
+        } else if (sql.includes("COMMIT")) {
+          throw new Error("Constraint violation");
         }
       });
 
       // Simulate failed transaction
       try {
-        mockSqlJsDb.exec('BEGIN TRANSACTION');
-        mockSqlJsDb.exec('INSERT INTO users VALUES (1)');
-        mockSqlJsDb.exec('COMMIT');
+        mockSqlJsDb.exec("BEGIN TRANSACTION");
+        mockSqlJsDb.exec("INSERT INTO users VALUES (1)");
+        mockSqlJsDb.exec("COMMIT");
       } catch (error) {
         mockTransaction.rollback();
       }
@@ -1178,10 +1273,10 @@ describe('DatabaseAdapter', () => {
       expect(mockTransaction.rollback).toHaveBeenCalled();
     });
 
-    it('应该处理嵌套事务失败', async () => {
+    it("应该处理嵌套事务失败", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
@@ -1189,7 +1284,7 @@ describe('DatabaseAdapter', () => {
       const transactionStack = [];
 
       // Simulate nested transactions
-      const beginTransaction = () => transactionStack.push('SAVEPOINT');
+      const beginTransaction = () => transactionStack.push("SAVEPOINT");
       const commitTransaction = () => transactionStack.pop();
       const rollbackTransaction = () => {
         while (transactionStack.length > 0) {
@@ -1208,123 +1303,133 @@ describe('DatabaseAdapter', () => {
       expect(transactionStack).toHaveLength(0);
     });
 
-    it('应该处理外键约束导致的回滚', async () => {
+    it("应该处理外键约束导致的回滚", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
 
       mockSqlJsDb.exec = vi.fn().mockImplementation((sql) => {
-        if (sql.includes('orders')) {
-          const error = new Error('FOREIGN KEY constraint failed');
-          error.code = 'SQLITE_CONSTRAINT_FOREIGNKEY';
+        if (sql.includes("orders")) {
+          const error = new Error("FOREIGN KEY constraint failed");
+          error.code = "SQLITE_CONSTRAINT_FOREIGNKEY";
           throw error;
         }
       });
 
       expect(() => {
-        mockSqlJsDb.exec('INSERT INTO orders VALUES (1, 999)'); // Invalid foreign key
-      }).toThrow('FOREIGN KEY constraint failed');
+        mockSqlJsDb.exec("INSERT INTO orders VALUES (1, 999)"); // Invalid foreign key
+      }).toThrow("FOREIGN KEY constraint failed");
     });
 
-    it('应该处理唯一约束导致的回滚', async () => {
+    it("应该处理唯一约束导致的回滚", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
 
       mockSqlJsDb.exec = vi.fn().mockImplementation((sql) => {
-        if (sql.includes('users')) {
-          const error = new Error('UNIQUE constraint failed');
-          error.code = 'SQLITE_CONSTRAINT_UNIQUE';
+        if (sql.includes("users")) {
+          const error = new Error("UNIQUE constraint failed");
+          error.code = "SQLITE_CONSTRAINT_UNIQUE";
           throw error;
         }
       });
 
       expect(() => {
-        mockSqlJsDb.exec('INSERT INTO users (id, email) VALUES (1, "duplicate@test.com")');
-      }).toThrow('UNIQUE constraint failed');
+        mockSqlJsDb.exec(
+          'INSERT INTO users (id, email) VALUES (1, "duplicate@test.com")',
+        );
+      }).toThrow("UNIQUE constraint failed");
     });
   });
 
-  describe('边界条件 - SQLite 特定错误处理', () => {
-    it('应该处理SQLITE_CORRUPT错误', async () => {
+  describe("边界条件 - SQLite 特定错误处理", () => {
+    it("应该处理SQLITE_CORRUPT错误", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       // Spy on createSqlJsDatabase instead to properly handle the error
-      vi.spyOn(adapter, 'createSqlJsDatabase').mockRejectedValueOnce(
-        Object.assign(new Error('SQLITE_CORRUPT: database disk image is malformed'), {
-          code: 'SQLITE_CORRUPT'
-        })
+      vi.spyOn(adapter, "createSqlJsDatabase").mockRejectedValueOnce(
+        Object.assign(
+          new Error("SQLITE_CORRUPT: database disk image is malformed"),
+          {
+            code: "SQLITE_CORRUPT",
+          },
+        ),
       );
 
       // Mock db connection to trigger createSqlJsDatabase call in test scenarios
       await expect(
         (async () => {
           await adapter.createSqlJsDatabase();
-        })()
-      ).rejects.toThrow('SQLITE_CORRUPT');
+        })(),
+      ).rejects.toThrow("SQLITE_CORRUPT");
     });
 
-    it('应该处理SQLITE_CANTOPEN错误', async () => {
+    it("应该处理SQLITE_CANTOPEN错误", async () => {
       adapter = new DatabaseAdapter({
-        dbPath: '/invalid/path/database.db',
-        encryptionEnabled: false
+        dbPath: "/invalid/path/database.db",
+        encryptionEnabled: false,
       });
 
       // Spy on createSqlJsDatabase to properly handle the error
-      vi.spyOn(adapter, 'createSqlJsDatabase').mockRejectedValueOnce(
-        Object.assign(new Error('SQLITE_CANTOPEN: unable to open database file'), {
-          code: 'SQLITE_CANTOPEN'
-        })
+      vi.spyOn(adapter, "createSqlJsDatabase").mockRejectedValueOnce(
+        Object.assign(
+          new Error("SQLITE_CANTOPEN: unable to open database file"),
+          {
+            code: "SQLITE_CANTOPEN",
+          },
+        ),
       );
 
       await expect(
         (async () => {
           await adapter.createSqlJsDatabase();
-        })()
-      ).rejects.toThrow('SQLITE_CANTOPEN');
+        })(),
+      ).rejects.toThrow("SQLITE_CANTOPEN");
     });
 
-    it('应该处理SQLITE_NOTADB错误', async () => {
+    it("应该处理SQLITE_NOTADB错误", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
-      fsMock.readFileSync.mockReturnValue(Buffer.from('This is not a database'));
+      fsMock.readFileSync.mockReturnValue(
+        Buffer.from("This is not a database"),
+      );
       fsMock.existsSync.mockReturnValue(true);
 
       // Spy on createSqlJsDatabase to properly handle the error
-      vi.spyOn(adapter, 'createSqlJsDatabase').mockRejectedValueOnce(
-        Object.assign(new Error('SQLITE_NOTADB: file is not a database'), {
-          code: 'SQLITE_NOTADB'
-        })
+      vi.spyOn(adapter, "createSqlJsDatabase").mockRejectedValueOnce(
+        Object.assign(new Error("SQLITE_NOTADB: file is not a database"), {
+          code: "SQLITE_NOTADB",
+        }),
       );
 
       await expect(
         (async () => {
           await adapter.createSqlJsDatabase();
-        })()
-      ).rejects.toThrow('SQLITE_NOTADB');
+        })(),
+      ).rejects.toThrow("SQLITE_NOTADB");
     });
 
-    it('应该处理SQLITE_PERM权限错误', async () => {
+    it("应该处理SQLITE_PERM权限错误", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       fsMock.writeFileSync.mockImplementationOnce(() => {
-        const error = new Error('EACCES: permission denied');
-        error.code = 'EACCES';
+        const error = new Error("EACCES: permission denied");
+        error.code = "EACCES";
         throw error;
       });
 
@@ -1335,97 +1440,99 @@ describe('DatabaseAdapter', () => {
       expect(() => adapter.saveDatabase(mockSqlJsDb)).not.toThrow();
     });
 
-    it('应该处理SQLITE_FULL错误', async () => {
+    it("应该处理SQLITE_FULL错误", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
 
       mockSqlJsDb.run = vi.fn().mockImplementation(() => {
-        const error = new Error('SQLITE_FULL: database or disk is full');
-        error.code = 'SQLITE_FULL';
+        const error = new Error("SQLITE_FULL: database or disk is full");
+        error.code = "SQLITE_FULL";
         throw error;
       });
 
       expect(() => {
-        mockSqlJsDb.run('INSERT INTO large_table VALUES (?)');
-      }).toThrow('SQLITE_FULL');
+        mockSqlJsDb.run("INSERT INTO large_table VALUES (?)");
+      }).toThrow("SQLITE_FULL");
     });
 
-    it('应该处理SQLITE_TOOBIG错误', async () => {
+    it("应该处理SQLITE_TOOBIG错误", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
 
       mockSqlJsDb.run = vi.fn().mockImplementation(() => {
-        const error = new Error('SQLITE_TOOBIG: string or blob too big');
-        error.code = 'SQLITE_TOOBIG';
+        const error = new Error("SQLITE_TOOBIG: string or blob too big");
+        error.code = "SQLITE_TOOBIG";
         throw error;
       });
 
-      const hugeBlobData = 'x'.repeat(100); // Simulated large data
+      const hugeBlobData = "x".repeat(100); // Simulated large data
 
       expect(() => {
-        mockSqlJsDb.run('INSERT INTO files VALUES (?)', [hugeBlobData]);
-      }).toThrow('SQLITE_TOOBIG');
+        mockSqlJsDb.run("INSERT INTO files VALUES (?)", [hugeBlobData]);
+      }).toThrow("SQLITE_TOOBIG");
     });
 
-    it('应该处理SQLITE_MISMATCH类型不匹配错误', async () => {
+    it("应该处理SQLITE_MISMATCH类型不匹配错误", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
-        encryptionEnabled: false
+        encryptionEnabled: false,
       });
 
       await adapter.initialize();
 
       mockSqlJsDb.run = vi.fn().mockImplementation(() => {
-        const error = new Error('SQLITE_MISMATCH: data type mismatch');
-        error.code = 'SQLITE_MISMATCH';
+        const error = new Error("SQLITE_MISMATCH: data type mismatch");
+        error.code = "SQLITE_MISMATCH";
         throw error;
       });
 
       expect(() => {
-        mockSqlJsDb.run('INSERT INTO typed_table (int_column) VALUES (?)', ['not_an_integer']);
-      }).toThrow('SQLITE_MISMATCH');
+        mockSqlJsDb.run("INSERT INTO typed_table (int_column) VALUES (?)", [
+          "not_an_integer",
+        ]);
+      }).toThrow("SQLITE_MISMATCH");
     });
 
-    it('应该处理密码错误 (SQLCipher)', async () => {
+    it("应该处理密码错误 (SQLCipher)", async () => {
       adapter = new DatabaseAdapter({
         dbPath: testDbPath,
         encryptionEnabled: true,
-        password: 'wrong-password'
+        password: "wrong-password",
       });
 
       fsMock.existsSync.mockReturnValue(false);
 
       // Spy on createSQLCipherDatabase to throw password error
-      vi.spyOn(adapter, 'createSQLCipherDatabase').mockRejectedValueOnce(
-        Object.assign(new Error('file is not a database'), {
-          code: 'SQLITE_NOTADB'
-        })
+      vi.spyOn(adapter, "createSQLCipherDatabase").mockRejectedValueOnce(
+        Object.assign(new Error("file is not a database"), {
+          code: "SQLITE_NOTADB",
+        }),
       );
 
       await expect(
         (async () => {
           await adapter.createSQLCipherDatabase();
-        })()
+        })(),
       ).rejects.toThrow();
     });
   });
 
-  describe('边界条件 - 文件系统错误', () => {
-    it('应该处理只读文件系统', () => {
+  describe("边界条件 - 文件系统错误", () => {
+    it("应该处理只读文件系统", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
       adapter.engine = DatabaseEngine.SQL_JS;
 
       fsMock.writeFileSync.mockImplementationOnce(() => {
-        const error = new Error('EROFS: read-only file system');
-        error.code = 'EROFS';
+        const error = new Error("EROFS: read-only file system");
+        error.code = "EROFS";
         throw error;
       });
 
@@ -1435,14 +1542,14 @@ describe('DatabaseAdapter', () => {
       expect(() => adapter.saveDatabase(mockSqlJsDb)).not.toThrow();
     });
 
-    it('应该处理路径过长错误', () => {
-      const longPath = '/path/' + 'a'.repeat(4096) + '/database.db';
+    it("应该处理路径过长错误", () => {
+      const longPath = "/path/" + "a".repeat(4096) + "/database.db";
       adapter = new DatabaseAdapter({ dbPath: longPath });
       adapter.engine = DatabaseEngine.SQL_JS;
 
       fsMock.writeFileSync.mockImplementationOnce(() => {
-        const error = new Error('ENAMETOOLONG: name too long');
-        error.code = 'ENAMETOOLONG';
+        const error = new Error("ENAMETOOLONG: name too long");
+        error.code = "ENAMETOOLONG";
         throw error;
       });
 
@@ -1452,22 +1559,21 @@ describe('DatabaseAdapter', () => {
       expect(() => adapter.saveDatabase(mockSqlJsDb)).not.toThrow();
     });
 
-    it('应该处理符号链接循环', () => {
+    it("应该处理符号链接循环", () => {
       adapter = new DatabaseAdapter({ dbPath: testDbPath });
 
-      const fs = require('fs');
+      const fs = require("fs");
       const originalExistsSync = fs.existsSync;
 
       fs.existsSync = vi.fn().mockImplementation(() => {
-        const error = new Error('ELOOP: too many symbolic links encountered');
-        error.code = 'ELOOP';
+        const error = new Error("ELOOP: too many symbolic links encountered");
+        error.code = "ELOOP";
         throw error;
       });
 
-      expect(() => adapter.shouldMigrate()).toThrow('ELOOP');
+      expect(() => adapter.shouldMigrate()).toThrow("ELOOP");
 
       fs.existsSync = originalExistsSync;
     });
   });
 });
-

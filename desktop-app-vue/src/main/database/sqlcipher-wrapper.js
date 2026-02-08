@@ -6,7 +6,7 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const Database = require("better-sqlite3-multiple-ciphers");
+const defaultDatabase = require("better-sqlite3-multiple-ciphers");
 const fs = require("fs");
 
 /**
@@ -185,11 +185,13 @@ class StatementWrapper {
  * 提供与 sql.js 兼容的 API
  */
 class SQLCipherWrapper {
-  constructor(dbPath, options = {}) {
+  constructor(dbPath, options = {}, DatabaseClass, fsModule) {
     this.dbPath = dbPath;
     this.options = options;
     this.db = null;
     this.key = options.key || null;
+    this.DatabaseClass = DatabaseClass || defaultDatabase;
+    this._fs = fsModule || fs;
     this.__betterSqliteCompat = true; // 标记兼容性
 
     // 将 options 中的属性暴露为实例属性，以便测试和外部访问
@@ -219,11 +221,11 @@ class SQLCipherWrapper {
       // 如果提供了密钥，使用加密模式创建数据库
       if (this.key) {
         // 使用未加密模式打开，然后立即设置密钥
-        this.db = new Database(this.dbPath, this.options);
+        this.db = new this.DatabaseClass(this.dbPath, this.options);
         this._setupEncryption(this.key);
       } else {
         // 未加密模式
-        this.db = new Database(this.dbPath, this.options);
+        this.db = new this.DatabaseClass(this.dbPath, this.options);
       }
 
       // 启用外键约束
@@ -342,7 +344,7 @@ class SQLCipherWrapper {
       this.close();
 
       // 读取数据库文件
-      const buffer = fs.readFileSync(this.dbPath);
+      const buffer = this._fs.readFileSync(this.dbPath);
 
       // 重新打开数据库
       this.open();
@@ -441,8 +443,8 @@ class SQLCipherWrapper {
  * @param {Object} options - 其他选项
  * @returns {SQLCipherWrapper}
  */
-function createEncryptedDatabase(dbPath, key, options = {}) {
-  return new SQLCipherWrapper(dbPath, { ...options, key });
+function createEncryptedDatabase(dbPath, key, options = {}, DatabaseClass) {
+  return new SQLCipherWrapper(dbPath, { ...options, key }, DatabaseClass);
 }
 
 /**
@@ -451,8 +453,8 @@ function createEncryptedDatabase(dbPath, key, options = {}) {
  * @param {Object} options - 其他选项
  * @returns {SQLCipherWrapper}
  */
-function createUnencryptedDatabase(dbPath, options = {}) {
-  return new SQLCipherWrapper(dbPath, options);
+function createUnencryptedDatabase(dbPath, options = {}, DatabaseClass) {
+  return new SQLCipherWrapper(dbPath, options, DatabaseClass);
 }
 
 module.exports = {

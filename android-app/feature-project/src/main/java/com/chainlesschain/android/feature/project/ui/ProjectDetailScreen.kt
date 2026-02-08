@@ -21,21 +21,23 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.automirrored.filled.NoteAdd
+import androidx.compose.material.icons.filled.NoteAdd
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
@@ -84,11 +86,13 @@ import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectStatus
+import com.chainlesschain.android.core.database.entity.ProjectType
 import com.chainlesschain.android.feature.project.model.ChatContextMode
 import com.chainlesschain.android.feature.project.model.FileTreeNode
 import com.chainlesschain.android.feature.project.model.ProjectDetailState
 import com.chainlesschain.android.feature.project.model.TaskStep
 import com.chainlesschain.android.feature.project.model.ThinkingStage
+import com.chainlesschain.android.feature.project.model.UpdateProjectRequest
 import com.chainlesschain.android.feature.project.ui.components.BreadcrumbItem
 import com.chainlesschain.android.feature.project.ui.components.BreadcrumbNav
 import com.chainlesschain.android.feature.project.ui.components.FileSearchBar
@@ -151,7 +155,10 @@ fun ProjectDetailScreen(
     var showNewFileDialog by remember { mutableStateOf(false) }
     var showNewFolderDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
     var showAddBottomSheet by remember { mutableStateOf(false) }
+    var renameTargetNode by remember { mutableStateOf<FileTreeNode?>(null) }
+    var moveTargetNode by remember { mutableStateOf<FileTreeNode?>(null) }
 
     // 加载项目详情
     LaunchedEffect(projectId) {
@@ -218,7 +225,7 @@ fun ProjectDetailScreen(
                                     text = { Text("编辑项目") },
                                     leadingIcon = { Icon(Icons.Default.Edit, null) },
                                     onClick = {
-                                        // TODO: Navigate to edit
+                                        showEditDialog = true
                                         showMenu = false
                                     }
                                 )
@@ -391,6 +398,8 @@ fun ProjectDetailScreen(
                                     }
                                 },
                                 onDeleteFile = { viewModel.deleteFile(it) },
+                                onRenameFile = { node -> renameTargetNode = node },
+                                onMoveFile = { node -> moveTargetNode = node },
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -478,7 +487,7 @@ fun ProjectDetailScreen(
                         .padding(vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.AutoMirrored.Filled.NoteAdd, contentDescription = null)
+                    Icon(Icons.Default.NoteAdd, contentDescription = null)
                     Spacer(modifier = Modifier.width(16.dp))
                     Text("新建文件")
                 }
@@ -573,6 +582,49 @@ fun ProjectDetailScreen(
                 TextButton(onClick = { showNewFolderDialog = false }) {
                     Text("取消")
                 }
+            }
+        )
+    }
+
+    // 编辑项目对话框
+    if (showEditDialog) {
+        val state = detailState
+        if (state is ProjectDetailState.Success) {
+            EditProjectDialog(
+                project = state.project,
+                onDismiss = { showEditDialog = false },
+                onConfirm = { name, description, type ->
+                    viewModel.updateProject(
+                        projectId,
+                        UpdateProjectRequest(name = name, description = description, type = type)
+                    )
+                    showEditDialog = false
+                }
+            )
+        }
+    }
+
+    // 重命名文件对话框
+    renameTargetNode?.let { node ->
+        RenameFileDialog(
+            currentName = node.name,
+            onDismiss = { renameTargetNode = null },
+            onConfirm = { newName ->
+                viewModel.renameFile(node.id, newName)
+                renameTargetNode = null
+            }
+        )
+    }
+
+    // 移动文件对话框
+    moveTargetNode?.let { node ->
+        MoveFileDialog(
+            fileName = node.name,
+            folders = projectFiles.filter { it.type == "folder" && it.id != node.id },
+            onDismiss = { moveTargetNode = null },
+            onConfirm = { targetFolderId ->
+                viewModel.moveFile(node.id, targetFolderId)
+                moveTargetNode = null
             }
         )
     }
@@ -684,6 +736,8 @@ private fun FileTreeView(
     fileTree: List<FileTreeNode>,
     onNodeClick: (FileTreeNode) -> Unit,
     onDeleteFile: (String) -> Unit,
+    onRenameFile: (FileTreeNode) -> Unit,
+    onMoveFile: (FileTreeNode) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (fileTree.isEmpty()) {
@@ -717,7 +771,9 @@ private fun FileTreeView(
                     node = node,
                     depth = 0,
                     onNodeClick = onNodeClick,
-                    onDeleteFile = onDeleteFile
+                    onDeleteFile = onDeleteFile,
+                    onRenameFile = onRenameFile,
+                    onMoveFile = onMoveFile
                 )
             }
         }
@@ -748,7 +804,9 @@ private fun FileTreeNodeItem(
     node: FileTreeNode,
     depth: Int,
     onNodeClick: (FileTreeNode) -> Unit,
-    onDeleteFile: (String) -> Unit
+    onDeleteFile: (String) -> Unit,
+    onRenameFile: (FileTreeNode) -> Unit,
+    onMoveFile: (FileTreeNode) -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -782,7 +840,7 @@ private fun FileTreeNodeItem(
             } else {
                 Spacer(modifier = Modifier.width(24.dp))
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.InsertDriveFile,
+                    imageVector = Icons.Default.InsertDriveFile,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
@@ -826,6 +884,22 @@ private fun FileTreeNodeItem(
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
+                        text = { Text("重命名") },
+                        leadingIcon = { Icon(Icons.Default.EditNote, null) },
+                        onClick = {
+                            onRenameFile(node)
+                            showMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("移动到...") },
+                        leadingIcon = { Icon(Icons.Default.DriveFileMove, null) },
+                        onClick = {
+                            onMoveFile(node)
+                            showMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
                         text = { Text("删除") },
                         leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
                         onClick = {
@@ -849,7 +923,9 @@ private fun FileTreeNodeItem(
                         node = child,
                         depth = depth + 1,
                         onNodeClick = onNodeClick,
-                        onDeleteFile = onDeleteFile
+                        onDeleteFile = onDeleteFile,
+                        onRenameFile = onRenameFile,
+                        onMoveFile = onMoveFile
                     )
                 }
             }
@@ -939,4 +1015,237 @@ private fun formatActivityTime(timestamp: Long): String {
             sdf.format(Date(timestamp))
         }
     }
+}
+
+/**
+ * 编辑项目对话框
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditProjectDialog(
+    project: ProjectEntity,
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, description: String?, type: String) -> Unit
+) {
+    var editName by remember { mutableStateOf(project.name) }
+    var editDesc by remember { mutableStateOf(project.description ?: "") }
+    var editType by remember { mutableStateOf(project.type) }
+    var typeMenuExpanded by remember { mutableStateOf(false) }
+
+    val typeOptions = remember {
+        listOf(
+            ProjectType.DOCUMENT to "文档",
+            ProjectType.WEB to "网站",
+            ProjectType.APP to "应用",
+            ProjectType.DATA to "数据",
+            ProjectType.DESIGN to "设计",
+            ProjectType.RESEARCH to "研究",
+            ProjectType.ANDROID to "Android",
+            ProjectType.BACKEND to "后端",
+            ProjectType.OTHER to "其他"
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("编辑项目") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    label = { Text("项目名称") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = editDesc,
+                    onValueChange = { editDesc = it },
+                    label = { Text("项目描述") },
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                ExposedDropdownMenuBox(
+                    expanded = typeMenuExpanded,
+                    onExpandedChange = { typeMenuExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = typeOptions.firstOrNull { it.first == editType }?.second ?: editType,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("项目类型") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeMenuExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = typeMenuExpanded,
+                        onDismissRequest = { typeMenuExpanded = false }
+                    ) {
+                        typeOptions.forEach { (type, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    editType = type
+                                    typeMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(editName, editDesc.ifBlank { null }, editType)
+                },
+                enabled = editName.isNotBlank()
+            ) {
+                Text("保存")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+/**
+ * 重命名文件对话框
+ */
+@Composable
+private fun RenameFileDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var newName by remember { mutableStateOf(currentName) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("重命名") },
+        text = {
+            OutlinedTextField(
+                value = newName,
+                onValueChange = { newName = it },
+                label = { Text("新名称") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(newName) },
+                enabled = newName.isNotBlank() && newName != currentName
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+/**
+ * 移动文件对话框
+ */
+@Composable
+private fun MoveFileDialog(
+    fileName: String,
+    folders: List<ProjectFileEntity>,
+    onDismiss: () -> Unit,
+    onConfirm: (targetFolderId: String?) -> Unit
+) {
+    var selectedFolderId by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("移动 \"$fileName\"") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "选择目标文件夹:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // 根目录选项
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedFolderId = null },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (selectedFolderId == null)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Folder, null, tint = Color(0xFFFFC107))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("/ (根目录)", style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+
+                // 文件夹列表
+                folders.forEach { folder ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedFolderId = folder.id },
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selectedFolderId == folder.id)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Folder, null, tint = Color(0xFFFFC107))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(folder.name, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+
+                if (folders.isEmpty()) {
+                    Text(
+                        text = "没有其他文件夹",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(selectedFolderId) }) {
+                Text("移动")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }

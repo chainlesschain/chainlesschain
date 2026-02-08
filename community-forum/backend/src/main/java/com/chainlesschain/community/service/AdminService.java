@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.chainlesschain.community.common.PageResult;
 import com.chainlesschain.community.common.Result;
+import com.chainlesschain.community.entity.Notification;
 import com.chainlesschain.community.entity.Post;
+import com.chainlesschain.community.entity.Reply;
 import com.chainlesschain.community.entity.Report;
 import com.chainlesschain.community.entity.User;
 import com.chainlesschain.community.mapper.*;
@@ -40,6 +42,9 @@ public class AdminService {
 
     @Autowired
     private ReportMapper reportMapper;
+
+    @Autowired
+    private NotificationMapper notificationMapper;
 
     /**
      * 获取仪表盘统计数据
@@ -324,7 +329,17 @@ public class AdminService {
         post.setDeleted(1);
         postMapper.updateById(post);
 
-        // TODO: 可以发送通知给作者
+        // 发送通知给帖子作者
+        Notification notification = new Notification();
+        notification.setUserId(post.getUserId());
+        notification.setSenderId(SecurityUtil.getCurrentUserId());
+        notification.setType("SYSTEM");
+        notification.setTitle("帖子审核未通过");
+        notification.setContent("您的帖子「" + post.getTitle() + "」未通过审核" +
+                (reason != null ? "，原因：" + reason : ""));
+        notification.setLink("/posts/" + postId);
+        notification.setIsRead(0);
+        notificationMapper.insert(notification);
 
         return Result.success();
     }
@@ -427,8 +442,17 @@ public class AdminService {
         if ("DELETE".equals(action)) {
             if ("POST".equals(report.getTargetType())) {
                 deletePost(report.getTargetId());
+            } else if ("REPLY".equals(report.getTargetType())) {
+                // 逻辑删除回复
+                Reply reply = replyMapper.selectById(report.getTargetId());
+                if (reply != null && reply.getDeleted() == 0) {
+                    reply.setDeleted(1);
+                    replyMapper.updateById(reply);
+                }
+            } else if ("USER".equals(report.getTargetType())) {
+                // 封禁被举报用户
+                banUser(report.getTargetId(), result);
             }
-            // TODO: 处理其他类型的举报
         }
 
         return Result.success();

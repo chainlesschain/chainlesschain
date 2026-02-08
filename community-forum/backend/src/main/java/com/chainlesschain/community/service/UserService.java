@@ -13,6 +13,7 @@ import com.chainlesschain.community.mapper.*;
 import com.chainlesschain.community.util.SecurityUtil;
 import com.chainlesschain.community.vo.PostListVO;
 import com.chainlesschain.community.vo.UserVO;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -275,8 +276,22 @@ public class UserService {
      * 搜索用户
      */
     public Result<List<UserVO>> searchUsers(String keyword) {
-        // TODO: 实现用户搜索功能
-        return Result.success(List.of());
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return Result.success(List.of());
+        }
+
+        QueryWrapper<User> wrapper = new QueryWrapper<>();
+        wrapper.eq("deleted", 0)
+                .and(w -> w.like("nickname", keyword).or().like("username", keyword))
+                .orderByDesc("created_at")
+                .last("LIMIT 20");
+
+        List<User> users = userMapper.selectList(wrapper);
+        List<UserVO> voList = users.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+
+        return Result.success(voList);
     }
 
     /**

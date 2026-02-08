@@ -112,14 +112,28 @@ public class SearchService {
      * 获取热门搜索
      */
     public Result<List<String>> getHotSearches() {
-        // TODO: 实现热门搜索逻辑（可以基于Redis统计）
-        List<String> hotSearches = List.of(
-                "ChainlessChain",
-                "区块链",
-                "AI",
-                "去中心化",
-                "U盾"
-        );
+        // 基于热门帖子标题生成热搜关键词（无Redis，使用DB查询）
+        QueryWrapper<Post> wrapper = new QueryWrapper<>();
+        wrapper.select("title")
+                .eq("deleted", 0)
+                .eq("status", "PUBLISHED")
+                .orderByDesc("views_count")
+                .last("LIMIT 10");
+
+        List<Post> hotPosts = postMapper.selectList(wrapper);
+        List<String> hotSearches = new java.util.ArrayList<>(hotPosts.stream()
+                .map(Post::getTitle)
+                .collect(Collectors.toList()));
+
+        // 如果热帖不足，补充默认关键词
+        if (hotSearches.size() < 5) {
+            List<String> defaults = List.of("ChainlessChain", "区块链", "AI", "去中心化", "U盾");
+            for (String d : defaults) {
+                if (!hotSearches.contains(d) && hotSearches.size() < 10) {
+                    hotSearches.add(d);
+                }
+            }
+        }
 
         return Result.success(hotSearches);
     }
