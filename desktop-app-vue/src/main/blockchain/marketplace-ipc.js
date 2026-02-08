@@ -2,7 +2,7 @@
  * 交易市场 IPC
  * 处理订单创建、取消、匹配、交易等操作
  */
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain, clipboard, dialog, shell } = require("electron");
 const crypto = require("crypto");
 const path = require("path");

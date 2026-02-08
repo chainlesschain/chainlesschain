@@ -1,19 +1,10 @@
 <template>
   <div class="performance-dashboard">
-    <a-spin
-      :spinning="loading"
-      tip="加载性能数据..."
-    >
+    <a-spin :spinning="loading" tip="加载性能数据...">
       <!-- 顶部统计卡片 -->
-      <a-row
-        :gutter="16"
-        class="metrics-overview"
-      >
+      <a-row :gutter="16" class="metrics-overview">
         <a-col :span="6">
-          <a-card
-            size="small"
-            hoverable
-          >
+          <a-card size="small" hoverable>
             <a-statistic
               title="CPU 使用率"
               :value="metrics.cpu.usage"
@@ -31,10 +22,7 @@
           </a-card>
         </a-col>
         <a-col :span="6">
-          <a-card
-            size="small"
-            hoverable
-          >
+          <a-card size="small" hoverable>
             <a-statistic
               title="内存使用"
               :value="metrics.memory.usedMB"
@@ -46,16 +34,11 @@
                 <CloudOutlined />
               </template>
             </a-statistic>
-            <div class="stat-detail">
-              总计: {{ metrics.memory.totalMB }} MB
-            </div>
+            <div class="stat-detail">总计: {{ metrics.memory.totalMB }} MB</div>
           </a-card>
         </a-col>
         <a-col :span="6">
-          <a-card
-            size="small"
-            hoverable
-          >
+          <a-card size="small" hoverable>
             <a-statistic
               title="数据库查询 (P95)"
               :value="metrics.database.p95"
@@ -73,10 +56,7 @@
           </a-card>
         </a-col>
         <a-col :span="6">
-          <a-card
-            size="small"
-            hoverable
-          >
+          <a-card size="small" hoverable>
             <a-statistic
               title="IPC 延迟 (P95)"
               :value="metrics.ipc.p95"
@@ -96,10 +76,7 @@
       </a-row>
 
       <!-- 操作按钮 -->
-      <a-card
-        size="small"
-        class="action-toolbar"
-      >
+      <a-card size="small" class="action-toolbar">
         <a-space>
           <a-button @click="loadMetrics">
             <ReloadOutlined :spin="loading" /> 刷新
@@ -107,10 +84,7 @@
           <a-button @click="clearHistory">
             <ClearOutlined /> 清除历史
           </a-button>
-          <a-button
-            type="primary"
-            @click="exportReport"
-          >
+          <a-button type="primary" @click="exportReport">
             <ExportOutlined /> 导出报告
           </a-button>
           <a-switch
@@ -123,50 +97,26 @@
       </a-card>
 
       <!-- Tab 页签 -->
-      <a-tabs
-        v-model:active-key="activeTab"
-        class="performance-tabs"
-      >
+      <a-tabs v-model:active-key="activeTab" class="performance-tabs">
         <!-- CPU & 内存监控 -->
-        <a-tab-pane
-          key="system"
-          tab="系统资源"
-        >
+        <a-tab-pane key="system" tab="系统资源">
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-card
-                title="CPU 使用趋势"
-                size="small"
-              >
-                <div
-                  ref="cpuChart"
-                  style="height: 300px"
-                />
+              <a-card title="CPU 使用趋势" size="small">
+                <div ref="cpuChart" style="height: 300px" />
               </a-card>
             </a-col>
             <a-col :span="12">
-              <a-card
-                title="内存使用趋势"
-                size="small"
-              >
-                <div
-                  ref="memoryChart"
-                  style="height: 300px"
-                />
+              <a-card title="内存使用趋势" size="small">
+                <div ref="memoryChart" style="height: 300px" />
               </a-card>
             </a-col>
           </a-row>
         </a-tab-pane>
 
         <!-- 数据库性能 -->
-        <a-tab-pane
-          key="database"
-          tab="数据库性能"
-        >
-          <a-card
-            title="慢查询列表"
-            size="small"
-          >
+        <a-tab-pane key="database" tab="数据库性能">
+          <a-card title="慢查询列表" size="small">
             <a-table
               :columns="slowQueryColumns"
               :data-source="slowQueries"
@@ -195,15 +145,8 @@
             </a-table>
           </a-card>
 
-          <a-card
-            title="索引优化建议"
-            size="small"
-            style="margin-top: 16px"
-          >
-            <a-list
-              :data-source="indexSuggestions"
-              size="small"
-            >
+          <a-card title="索引优化建议" size="small" style="margin-top: 16px">
+            <a-list :data-source="indexSuggestions" size="small">
               <template #renderItem="{ item }">
                 <a-list-item>
                   <template #actions>
@@ -221,9 +164,9 @@
                     </template>
                     <template #description>
                       字段: <code>{{ item.columns.join(", ") }}</code>
-                      <br>
+                      <br />
                       原因: {{ item.reason }}
-                      <br>
+                      <br />
                       预计改善: {{ item.impact }}
                     </template>
                   </a-list-item-meta>
@@ -249,14 +192,8 @@
         </a-tab-pane>
 
         <!-- IPC 性能 -->
-        <a-tab-pane
-          key="ipc"
-          tab="IPC 调用"
-        >
-          <a-card
-            title="慢 IPC 调用"
-            size="small"
-          >
+        <a-tab-pane key="ipc" tab="IPC 调用">
+          <a-card title="慢 IPC 调用" size="small">
             <a-table
               :columns="slowIPCColumns"
               :data-source="slowIPCCalls"
@@ -276,11 +213,7 @@
             </a-table>
           </a-card>
 
-          <a-card
-            title="活跃 IPC 请求"
-            size="small"
-            style="margin-top: 16px"
-          >
+          <a-card title="活跃 IPC 请求" size="small" style="margin-top: 16px">
             <a-table
               :columns="activeIPCColumns"
               :data-source="activeIPCRequests"
@@ -305,10 +238,7 @@
         </a-tab-pane>
 
         <!-- AI 引擎性能 -->
-        <a-tab-pane
-          key="ai"
-          tab="AI 引擎"
-        >
+        <a-tab-pane key="ai" tab="AI 引擎">
           <a-row :gutter="16">
             <a-col :span="6">
               <a-card size="small">
@@ -384,15 +314,8 @@
             </a-col>
           </a-row>
 
-          <a-card
-            title="AI 引擎性能趋势"
-            size="small"
-            style="margin-top: 16px"
-          >
-            <div
-              ref="aiPerformanceChart"
-              style="height: 400px"
-            />
+          <a-card title="AI 引擎性能趋势" size="small" style="margin-top: 16px">
+            <div ref="aiPerformanceChart" style="height: 400px" />
           </a-card>
         </a-tab-pane>
       </a-tabs>
@@ -401,12 +324,12 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, reactive, onMounted, onUnmounted } from "vue";
 import { message, Empty } from "ant-design-vue";
 import dayjs from "dayjs";
-import { init } from '../utils/echartsConfig';
+import { init } from "../utils/echartsConfig";
 import {
   DashboardOutlined,
   CloudOutlined,
@@ -482,21 +405,33 @@ const activeIPCColumns = [
 
 // 方法
 function getMetricColor(value, warningThreshold, errorThreshold) {
-  if (value >= errorThreshold) {return { color: "#ff4d4f" };}
-  if (value >= warningThreshold) {return { color: "#faad14" };}
+  if (value >= errorThreshold) {
+    return { color: "#ff4d4f" };
+  }
+  if (value >= warningThreshold) {
+    return { color: "#faad14" };
+  }
   return { color: "#52c41a" };
 }
 
 function getAIMetricColor(metric, value) {
   const thresholds = aiThresholds[metric];
-  if (value >= thresholds.acceptable) {return { color: "#ff4d4f" };}
-  if (value >= thresholds.target) {return { color: "#faad14" };}
+  if (value >= thresholds.acceptable) {
+    return { color: "#ff4d4f" };
+  }
+  if (value >= thresholds.target) {
+    return { color: "#faad14" };
+  }
   return { color: "#52c41a" };
 }
 
 function getDurationColor(duration) {
-  if (duration >= 200) {return "red";}
-  if (duration >= 100) {return "orange";}
+  if (duration >= 200) {
+    return "red";
+  }
+  if (duration >= 100) {
+    return "orange";
+  }
   return "green";
 }
 
@@ -569,8 +504,12 @@ async function loadMetrics() {
       });
 
       // 只保留最近100个数据点
-      if (cpuHistory.value.length > 100) {cpuHistory.value.shift();}
-      if (memoryHistory.value.length > 100) {memoryHistory.value.shift();}
+      if (cpuHistory.value.length > 100) {
+        cpuHistory.value.shift();
+      }
+      if (memoryHistory.value.length > 100) {
+        memoryHistory.value.shift();
+      }
 
       // 更新图表
       renderCPUChart();
@@ -631,7 +570,9 @@ async function loadMetrics() {
 }
 
 function renderCPUChart() {
-  if (!cpuChartInstance) {return;}
+  if (!cpuChartInstance) {
+    return;
+  }
 
   const times = cpuHistory.value.map((item) =>
     dayjs(item.time).format("HH:mm:ss"),
@@ -663,7 +604,9 @@ function renderCPUChart() {
 }
 
 function renderMemoryChart() {
-  if (!memoryChartInstance) {return;}
+  if (!memoryChartInstance) {
+    return;
+  }
 
   const times = memoryHistory.value.map((item) =>
     dayjs(item.time).format("HH:mm:ss"),
@@ -695,7 +638,9 @@ function renderMemoryChart() {
 }
 
 function renderAIPerformanceChart() {
-  if (!aiPerformanceChartInstance) {return;}
+  if (!aiPerformanceChartInstance) {
+    return;
+  }
 
   const option = {
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },

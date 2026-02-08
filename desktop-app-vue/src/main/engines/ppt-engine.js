@@ -4,44 +4,44 @@
  * 使用PptxGenJS库实现
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const pptxgen = require('pptxgenjs');
-const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
+const { logger } = require("../utils/logger.js");
+const pptxgen = require("pptxgenjs");
+const fs = require("fs").promises;
+const path = require("path");
+const os = require("os");
 
 class PPTEngine {
   constructor() {
     // PPT主题配置
     this.themes = {
       business: {
-        name: '商务主题',
-        primaryColor: '1E40AF',
-        secondaryColor: '3B82F6',
-        backgroundColor: 'FFFFFF',
-        textColor: '1F2937'
+        name: "商务主题",
+        primaryColor: "1E40AF",
+        secondaryColor: "3B82F6",
+        backgroundColor: "FFFFFF",
+        textColor: "1F2937",
       },
       academic: {
-        name: '学术主题',
-        primaryColor: '7C3AED',
-        secondaryColor: 'A78BFA',
-        backgroundColor: 'FFFFFF',
-        textColor: '374151'
+        name: "学术主题",
+        primaryColor: "7C3AED",
+        secondaryColor: "A78BFA",
+        backgroundColor: "FFFFFF",
+        textColor: "374151",
       },
       creative: {
-        name: '创意主题',
-        primaryColor: 'EC4899',
-        secondaryColor: 'F472B6',
-        backgroundColor: 'FFFFFF',
-        textColor: '111827'
+        name: "创意主题",
+        primaryColor: "EC4899",
+        secondaryColor: "F472B6",
+        backgroundColor: "FFFFFF",
+        textColor: "111827",
       },
       dark: {
-        name: '深色主题',
-        primaryColor: '3B82F6',
-        secondaryColor: '60A5FA',
-        backgroundColor: '1F2937',
-        textColor: 'F9FAFB'
-      }
+        name: "深色主题",
+        primaryColor: "3B82F6",
+        secondaryColor: "60A5FA",
+        backgroundColor: "1F2937",
+        textColor: "F9FAFB",
+      },
     };
   }
 
@@ -53,24 +53,30 @@ class PPTEngine {
    */
   async generateFromOutline(outline, options = {}) {
     const {
-      theme = 'business',
-      author = '作者',
+      theme = "business",
+      author = "作者",
       outputPath,
-      llmManager
+      llmManager,
     } = options;
 
-    logger.info('[PPT Engine] 开始生成PPT:', outline.title);
+    logger.info("[PPT Engine] 开始生成PPT:", outline.title);
 
     try {
       const ppt = new pptxgen();
       ppt.author = author;
-      ppt.title = outline.title || '演示文稿';
-      ppt.company = 'ChainlessChain';
+      ppt.title = outline.title || "演示文稿";
+      ppt.company = "ChainlessChain";
 
       const themeConfig = this.themes[theme] || this.themes.business;
 
       // 生成标题页
-      this.createTitleSlide(ppt, outline.title, outline.subtitle, author, themeConfig);
+      this.createTitleSlide(
+        ppt,
+        outline.title,
+        outline.subtitle,
+        author,
+        themeConfig,
+      );
 
       // 生成内容页
       if (outline.sections) {
@@ -79,21 +85,25 @@ class PPTEngine {
 
           if (section.subsections) {
             for (const subsection of section.subsections) {
-              this.createContentSlide(ppt, {
-                title: subsection.title,
-                bulletPoints: subsection.points,
-                layout: 'content'
-              }, themeConfig);
+              this.createContentSlide(
+                ppt,
+                {
+                  title: subsection.title,
+                  bulletPoints: subsection.points,
+                  layout: "content",
+                },
+                themeConfig,
+              );
             }
           }
         }
       }
 
       // 生成结束页
-      this.createEndSlide(ppt, '谢谢观看', themeConfig);
+      this.createEndSlide(ppt, "谢谢观看", themeConfig);
 
       // 保存文件
-      const fileName = `${outline.title || 'presentation'}.pptx`;
+      const fileName = `${outline.title || "presentation"}.pptx`;
 
       // 使用安全的默认路径（临时目录而不是根目录）
       let filePath;
@@ -103,34 +113,34 @@ class PPTEngine {
         // 使用系统临时目录作为默认路径
         const tempDir = os.tmpdir();
         filePath = path.join(tempDir, fileName);
-        logger.info('[PPT Engine] 未指定输出路径，使用临时目录:', filePath);
+        logger.info("[PPT Engine] 未指定输出路径，使用临时目录:", filePath);
       }
 
       // 确保目录存在
-      const fs = require('fs').promises;
+      const fs = require("fs").promises;
       const dirPath = path.dirname(filePath);
-      logger.info('[PPT Engine] 检查目录:', dirPath);
+      logger.info("[PPT Engine] 检查目录:", dirPath);
       try {
         await fs.mkdir(dirPath, { recursive: true });
-        logger.info('[PPT Engine] ✓ 目录已确保存在');
+        logger.info("[PPT Engine] ✓ 目录已确保存在");
       } catch (mkdirError) {
-        logger.error('[PPT Engine] 创建目录失败:', mkdirError.message);
+        logger.error("[PPT Engine] 创建目录失败:", mkdirError.message);
         throw new Error(`无法创建目录 ${dirPath}: ${mkdirError.message}`);
       }
 
       await ppt.writeFile({ fileName: filePath });
 
-      logger.info('[PPT Engine] PPT生成成功:', filePath);
+      logger.info("[PPT Engine] PPT生成成功:", filePath);
 
       return {
         success: true,
         path: filePath,
         fileName,
         slideCount: ppt.slides.length,
-        theme
+        theme,
       };
     } catch (error) {
-      logger.error('[PPT Engine] 生成PPT失败:', error);
+      logger.error("[PPT Engine] 生成PPT失败:", error);
       throw new Error(`生成PPT失败: ${error.message}`);
     }
   }
@@ -142,31 +152,41 @@ class PPTEngine {
     const slide = ppt.addSlide();
     slide.background = { color: theme.backgroundColor };
 
-    slide.addText(title || '演示文稿标题', {
-      x: 0.5, y: 2.0, w: 9, h: 1.5,
-      fontSize: 44, bold: true,
+    slide.addText(title || "演示文稿标题", {
+      x: 0.5,
+      y: 2.0,
+      w: 9,
+      h: 1.5,
+      fontSize: 44,
+      bold: true,
       color: theme.primaryColor,
-      align: 'center',
-      fontFace: 'Microsoft YaHei'
+      align: "center",
+      fontFace: "Microsoft YaHei",
     });
 
     if (subtitle) {
       slide.addText(subtitle, {
-        x: 0.5, y: 3.8, w: 9, h: 0.8,
+        x: 0.5,
+        y: 3.8,
+        w: 9,
+        h: 0.8,
         fontSize: 24,
         color: theme.secondaryColor,
-        align: 'center',
-        fontFace: 'Microsoft YaHei'
+        align: "center",
+        fontFace: "Microsoft YaHei",
       });
     }
 
-    const date = new Date().toLocaleDateString('zh-CN');
+    const date = new Date().toLocaleDateString("zh-CN");
     slide.addText(`${author} | ${date}`, {
-      x: 0.5, y: 5.0, w: 9, h: 0.5,
+      x: 0.5,
+      y: 5.0,
+      w: 9,
+      h: 0.5,
       fontSize: 14,
       color: theme.textColor,
-      align: 'center',
-      fontFace: 'Microsoft YaHei'
+      align: "center",
+      fontFace: "Microsoft YaHei",
     });
   }
 
@@ -178,11 +198,15 @@ class PPTEngine {
     slide.background = { color: theme.primaryColor, transparency: 10 };
 
     slide.addText(sectionTitle, {
-      x: 0.5, y: 2.5, w: 9, h: 1.5,
-      fontSize: 40, bold: true,
+      x: 0.5,
+      y: 2.5,
+      w: 9,
+      h: 1.5,
+      fontSize: 40,
+      bold: true,
       color: theme.primaryColor,
-      align: 'center',
-      fontFace: 'Microsoft YaHei'
+      align: "center",
+      fontFace: "Microsoft YaHei",
     });
   }
 
@@ -193,28 +217,35 @@ class PPTEngine {
     const slide = ppt.addSlide();
     slide.background = { color: theme.backgroundColor };
 
-    slide.addText(slideData.title || '内容标题', {
-      x: 0.5, y: 0.5, w: 9, h: 0.8,
-      fontSize: 32, bold: true,
+    slide.addText(slideData.title || "内容标题", {
+      x: 0.5,
+      y: 0.5,
+      w: 9,
+      h: 0.8,
+      fontSize: 32,
+      bold: true,
       color: theme.primaryColor,
-      fontFace: 'Microsoft YaHei'
+      fontFace: "Microsoft YaHei",
     });
 
     if (slideData.bulletPoints && slideData.bulletPoints.length > 0) {
-      const bulletItems = slideData.bulletPoints.map(point => ({
+      const bulletItems = slideData.bulletPoints.map((point) => ({
         text: point,
         options: {
-          bullet: { type: 'number' },
+          bullet: { type: "number" },
           fontSize: 18,
-          color: theme.textColor
-        }
+          color: theme.textColor,
+        },
       }));
 
       slide.addText(bulletItems, {
-        x: 1.0, y: 1.8, w: 8, h: 3.5,
+        x: 1.0,
+        y: 1.8,
+        w: 8,
+        h: 3.5,
         fontSize: 18,
         color: theme.textColor,
-        fontFace: 'Microsoft YaHei'
+        fontFace: "Microsoft YaHei",
       });
     }
   }
@@ -226,12 +257,16 @@ class PPTEngine {
     const slide = ppt.addSlide();
     slide.background = { color: theme.backgroundColor };
 
-    slide.addText(message || '谢谢观看', {
-      x: 0.5, y: 2.5, w: 9, h: 1.5,
-      fontSize: 48, bold: true,
+    slide.addText(message || "谢谢观看", {
+      x: 0.5,
+      y: 2.5,
+      w: 9,
+      h: 1.5,
+      fontSize: 48,
+      bold: true,
       color: theme.primaryColor,
-      align: 'center',
-      fontFace: 'Microsoft YaHei'
+      align: "center",
+      fontFace: "Microsoft YaHei",
     });
   }
 
@@ -242,21 +277,24 @@ class PPTEngine {
   async handleProjectTask(params) {
     const { description, projectPath, llmManager } = params;
 
-    logger.info('[PPT Engine] 处理PPT生成任务');
+    logger.info("[PPT Engine] 处理PPT生成任务");
 
     try {
-      const outline = await this.generateOutlineFromDescription(description, llmManager);
+      const outline = await this.generateOutlineFromDescription(
+        description,
+        llmManager,
+      );
       const result = await this.generateFromOutline(outline, {
         outputPath: path.join(projectPath, `${outline.title}.pptx`),
-        llmManager
+        llmManager,
       });
 
       return {
-        type: 'presentation',
-        ...result
+        type: "presentation",
+        ...result,
       };
     } catch (error) {
-      logger.error('[PPT Engine] 任务执行失败:', error);
+      logger.error("[PPT Engine] 任务执行失败:", error);
       throw error;
     }
   }
@@ -269,13 +307,13 @@ class PPTEngine {
    */
   async generateFromMarkdown(markdownContent, options = {}) {
     const {
-      theme = 'business',
-      author = '作者',
+      theme = "business",
+      author = "作者",
       outputPath,
-      llmManager
+      llmManager,
     } = options;
 
-    logger.info('[PPT Engine] 从Markdown生成PPT');
+    logger.info("[PPT Engine] 从Markdown生成PPT");
 
     try {
       // 解析Markdown结构
@@ -283,10 +321,10 @@ class PPTEngine {
 
       // 如果解析失败或内容不够，使用LLM增强
       if (!outline.sections || outline.sections.length === 0) {
-        logger.info('[PPT Engine] Markdown解析内容不足，使用LLM增强...');
+        logger.info("[PPT Engine] Markdown解析内容不足，使用LLM增强...");
         const enhancedOutline = await this.generateOutlineFromDescription(
           markdownContent.substring(0, 1000),
-          llmManager
+          llmManager,
         );
         outline.sections = enhancedOutline.sections;
       }
@@ -296,10 +334,10 @@ class PPTEngine {
         theme,
         author,
         outputPath,
-        llmManager
+        llmManager,
       });
     } catch (error) {
-      logger.error('[PPT Engine] 从Markdown生成PPT失败:', error);
+      logger.error("[PPT Engine] 从Markdown生成PPT失败:", error);
       throw new Error(`从Markdown生成PPT失败: ${error.message}`);
     }
   }
@@ -310,11 +348,11 @@ class PPTEngine {
    * @returns {Object} PPT大纲
    */
   parseMarkdownToOutline(markdown) {
-    const lines = markdown.split('\n');
+    const lines = markdown.split("\n");
     const outline = {
-      title: '',
-      subtitle: '',
-      sections: []
+      title: "",
+      subtitle: "",
+      sections: [],
     };
 
     let currentSection = null;
@@ -324,7 +362,7 @@ class PPTEngine {
       const line = lines[i].trim();
 
       // 一级标题作为PPT标题
-      if (line.startsWith('# ')) {
+      if (line.startsWith("# ")) {
         if (!outline.title) {
           outline.title = line.substring(2).trim();
         } else {
@@ -334,37 +372,37 @@ class PPTEngine {
           }
           currentSection = {
             title: line.substring(2).trim(),
-            subsections: []
+            subsections: [],
           };
           currentSubsection = null;
         }
       }
       // 二级标题作为章节
-      else if (line.startsWith('## ')) {
+      else if (line.startsWith("## ")) {
         if (currentSection) {
           outline.sections.push(currentSection);
         }
         currentSection = {
           title: line.substring(3).trim(),
-          subsections: []
+          subsections: [],
         };
         currentSubsection = null;
       }
       // 三级标题作为子主题
-      else if (line.startsWith('### ')) {
+      else if (line.startsWith("### ")) {
         if (currentSection) {
           if (currentSubsection) {
             currentSection.subsections.push(currentSubsection);
           }
           currentSubsection = {
             title: line.substring(4).trim(),
-            points: []
+            points: [],
           };
         }
       }
       // 列表项作为要点
       else if (line.match(/^[-*+]\s+(.+)$/)) {
-        const point = line.replace(/^[-*+]\s+/, '').trim();
+        const point = line.replace(/^[-*+]\s+/, "").trim();
         if (currentSubsection) {
           currentSubsection.points.push(point);
         } else if (currentSection) {
@@ -372,7 +410,7 @@ class PPTEngine {
           if (!currentSubsection) {
             currentSubsection = {
               title: currentSection.title,
-              points: []
+              points: [],
             };
           }
           currentSubsection.points.push(point);
@@ -380,32 +418,32 @@ class PPTEngine {
       }
       // 数字列表
       else if (line.match(/^\d+\.\s+(.+)$/)) {
-        const point = line.replace(/^\d+\.\s+/, '').trim();
+        const point = line.replace(/^\d+\.\s+/, "").trim();
         if (currentSubsection) {
           currentSubsection.points.push(point);
         } else if (currentSection) {
           if (!currentSubsection) {
             currentSubsection = {
               title: currentSection.title,
-              points: []
+              points: [],
             };
           }
           currentSubsection.points.push(point);
         }
       }
       // 普通段落文本作为要点
-      else if (line && !line.startsWith('#') && currentSection) {
+      else if (line && !line.startsWith("#") && currentSection) {
         // 跳过太短的行和分隔线
         if (line.length > 10 && !line.match(/^[-=]+$/)) {
           if (!currentSubsection) {
             currentSubsection = {
               title: currentSection.title,
-              points: []
+              points: [],
             };
           }
           // 限制每个要点的长度
           if (line.length > 100) {
-            currentSubsection.points.push(line.substring(0, 100) + '...');
+            currentSubsection.points.push(line.substring(0, 100) + "...");
           } else {
             currentSubsection.points.push(line);
           }
@@ -429,7 +467,7 @@ class PPTEngine {
 
     // 设置默认副标题
     if (!outline.subtitle) {
-      outline.subtitle = new Date().toLocaleDateString('zh-CN');
+      outline.subtitle = new Date().toLocaleDateString("zh-CN");
     }
 
     return outline;
@@ -462,15 +500,15 @@ ${description}
 
       // 尝试使用本地LLM
       if (llmManager && llmManager.isInitialized) {
-        logger.info('[PPT Engine] 使用本地LLM服务');
+        logger.info("[PPT Engine] 使用本地LLM服务");
         const response = await llmManager.query(prompt, {
           temperature: 0.7,
-          maxTokens: 2000
+          maxTokens: 2000,
         });
         responseText = response.text;
       } else {
         // 降级到后端AI服务
-        logger.info('[PPT Engine] 本地LLM不可用，使用后端AI服务');
+        logger.info("[PPT Engine] 本地LLM不可用，使用后端AI服务");
         responseText = await this.queryBackendAI(prompt);
       }
 
@@ -480,7 +518,7 @@ ${description}
       }
       return this.getDefaultOutline(description);
     } catch (error) {
-      logger.error('[PPT Engine] 生成大纲失败:', error);
+      logger.error("[PPT Engine] 生成大纲失败:", error);
       return this.getDefaultOutline(description);
     }
   }
@@ -489,50 +527,53 @@ ${description}
    * 查询后端AI服务（降级方案）
    */
   async queryBackendAI(prompt) {
-    const http = require('http');
+    const http = require("http");
 
     return new Promise((resolve, reject) => {
       const postData = JSON.stringify({
         messages: [
-          { role: 'system', content: 'You are a helpful assistant. Return valid JSON only.' },
-          { role: 'user', content: prompt }
+          {
+            role: "system",
+            content: "You are a helpful assistant. Return valid JSON only.",
+          },
+          { role: "user", content: prompt },
         ],
-        temperature: 0.7
+        temperature: 0.7,
       });
 
       const options = {
-        hostname: 'localhost',
+        hostname: "localhost",
         port: 8001,
-        path: '/api/chat/stream',
-        method: 'POST',
+        path: "/api/chat/stream",
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData)
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(postData),
         },
-        timeout: 60000
+        timeout: 60000,
       };
 
       const req = http.request(options, (res) => {
-        let fullText = '';
-        let buffer = '';
+        let fullText = "";
+        let buffer = "";
 
-        res.on('data', (chunk) => {
+        res.on("data", (chunk) => {
           buffer += chunk.toString();
 
           // 处理SSE流
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
-                if (data.type === 'content' && data.content) {
+                if (data.type === "content" && data.content) {
                   fullText += data.content;
-                } else if (data.type === 'done') {
+                } else if (data.type === "done") {
                   resolve(fullText);
                   return;
-                } else if (data.type === 'error') {
+                } else if (data.type === "error") {
                   reject(new Error(data.error));
                   return;
                 }
@@ -543,21 +584,21 @@ ${description}
           }
         });
 
-        res.on('end', () => {
+        res.on("end", () => {
           if (fullText) {
             resolve(fullText);
           } else {
-            reject(new Error('后端AI服务未返回内容'));
+            reject(new Error("后端AI服务未返回内容"));
           }
         });
 
-        res.on('error', reject);
+        res.on("error", reject);
       });
 
-      req.on('error', reject);
-      req.on('timeout', () => {
+      req.on("error", reject);
+      req.on("timeout", () => {
         req.destroy();
-        reject(new Error('后端AI服务请求超时'));
+        reject(new Error("后端AI服务请求超时"));
       });
 
       req.write(postData);
@@ -571,27 +612,27 @@ ${description}
   getDefaultOutline(description) {
     return {
       title: description.substring(0, 50),
-      subtitle: '使用ChainlessChain生成',
+      subtitle: "使用ChainlessChain生成",
       sections: [
         {
-          title: '概述',
+          title: "概述",
           subsections: [
-            { title: '背景介绍', points: ['项目背景', '目标说明'] }
-          ]
+            { title: "背景介绍", points: ["项目背景", "目标说明"] },
+          ],
         },
         {
-          title: '详细内容',
+          title: "详细内容",
           subsections: [
-            { title: '主要内容', points: ['核心要点', '关键信息'] }
-          ]
+            { title: "主要内容", points: ["核心要点", "关键信息"] },
+          ],
         },
         {
-          title: '总结',
+          title: "总结",
           subsections: [
-            { title: '总结与展望', points: ['主要结论', '下一步计划'] }
-          ]
-        }
-      ]
+            { title: "总结与展望", points: ["主要结论", "下一步计划"] },
+          ],
+        },
+      ],
     };
   }
 
@@ -603,10 +644,10 @@ ${description}
    */
   addChart(slide, chartData, theme) {
     const {
-      type = 'bar',
-      title = '图表',
+      type = "bar",
+      title = "图表",
       data = [],
-      position = { x: 1, y: 2, w: 8, h: 4 }
+      position = { x: 1, y: 2, w: 8, h: 4 },
     } = chartData;
 
     try {
@@ -619,7 +660,7 @@ ${description}
         fontSize: 18,
         bold: true,
         color: theme.primaryColor,
-        fontFace: 'Microsoft YaHei'
+        fontFace: "Microsoft YaHei",
       });
 
       // 准备图表数据
@@ -628,13 +669,19 @@ ${description}
         y: position.y,
         w: position.w,
         h: position.h,
-        chartColors: [theme.primaryColor, theme.secondaryColor, '10B981', 'F59E0B', 'EF4444']
+        chartColors: [
+          theme.primaryColor,
+          theme.secondaryColor,
+          "10B981",
+          "F59E0B",
+          "EF4444",
+        ],
       };
 
       // 根据类型添加图表
       slide.addChart(type, data, chartConfig);
     } catch (error) {
-      logger.error('[PPT Engine] 添加图表失败:', error);
+      logger.error("[PPT Engine] 添加图表失败:", error);
     }
   }
 
@@ -647,7 +694,7 @@ ${description}
     const {
       path: imagePath,
       data: imageDataUrl,
-      position = { x: 2, y: 2, w: 6, h: 4 }
+      position = { x: 2, y: 2, w: 6, h: 4 },
     } = imageData;
 
     try {
@@ -656,7 +703,7 @@ ${description}
         y: position.y,
         w: position.w,
         h: position.h,
-        sizing: { type: 'contain' }
+        sizing: { type: "contain" },
       };
 
       // 支持文件路径或Data URL
@@ -668,7 +715,7 @@ ${description}
 
       slide.addImage(imageConfig);
     } catch (error) {
-      logger.error('[PPT Engine] 添加图片失败:', error);
+      logger.error("[PPT Engine] 添加图片失败:", error);
     }
   }
 }

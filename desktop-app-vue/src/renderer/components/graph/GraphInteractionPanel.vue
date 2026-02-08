@@ -1,11 +1,7 @@
 <template>
   <div class="graph-interaction-panel">
     <!-- 搜索节点 -->
-    <a-card
-      title="搜索节点"
-      size="small"
-      class="panel-card"
-    >
+    <a-card title="搜索节点" size="small" class="panel-card">
       <a-input-search
         v-model:value="searchQuery"
         placeholder="搜索笔记标题..."
@@ -18,14 +14,8 @@
       </a-input-search>
 
       <!-- 搜索结果 -->
-      <div
-        v-if="searchResults.length > 0"
-        class="search-results"
-      >
-        <a-list
-          size="small"
-          :data-source="searchResults"
-        >
+      <div v-if="searchResults.length > 0" class="search-results">
+        <a-list size="small" :data-source="searchResults">
           <template #renderItem="{ item }">
             <a-list-item @click="selectNode(item)">
               <a-list-item-meta>
@@ -47,15 +37,8 @@
     </a-card>
 
     <!-- 节点筛选 -->
-    <a-card
-      title="节点筛选"
-      size="small"
-      class="panel-card"
-    >
-      <a-form
-        layout="vertical"
-        size="small"
-      >
+    <a-card title="节点筛选" size="small" class="panel-card">
+      <a-form layout="vertical" size="small">
         <a-form-item label="节点类型">
           <a-checkbox-group
             v-model:value="selectedNodeTypes"
@@ -85,15 +68,8 @@
     </a-card>
 
     <!-- 路径查找 -->
-    <a-card
-      title="路径查找"
-      size="small"
-      class="panel-card"
-    >
-      <a-form
-        layout="vertical"
-        size="small"
-      >
+    <a-card title="路径查找" size="small" class="panel-card">
+      <a-form layout="vertical" size="small">
         <a-form-item label="起点">
           <a-select
             v-model:value="pathStart"
@@ -130,19 +106,13 @@
       </a-form>
 
       <!-- 路径结果 -->
-      <div
-        v-if="pathResult"
-        class="path-result"
-      >
+      <div v-if="pathResult" class="path-result">
         <a-alert
           :message="`找到 ${pathResult.length} 条路径`"
           type="success"
           show-icon
         />
-        <a-list
-          size="small"
-          :data-source="pathResult"
-        >
+        <a-list size="small" :data-source="pathResult">
           <template #renderItem="{ item, index }">
             <a-list-item @click="highlightPath(item)">
               <a-list-item-meta>
@@ -162,15 +132,8 @@
     </a-card>
 
     <!-- 社区检测 -->
-    <a-card
-      title="社区检测"
-      size="small"
-      class="panel-card"
-    >
-      <a-space
-        direction="vertical"
-        style="width: 100%"
-      >
+    <a-card title="社区检测" size="small" class="panel-card">
+      <a-space direction="vertical" style="width: 100%">
         <a-button
           type="primary"
           block
@@ -190,16 +153,11 @@
             :value-style="{ color: '#3f8600' }"
           />
 
-          <a-list
-            size="small"
-            :data-source="communities"
-          >
+          <a-list size="small" :data-source="communities">
             <template #renderItem="{ item, index }">
               <a-list-item @click="highlightCommunity(item)">
                 <a-list-item-meta>
-                  <template #title>
-                    社区 {{ index + 1 }}
-                  </template>
+                  <template #title> 社区 {{ index + 1 }} </template>
                   <template #description>
                     {{ item.nodes.length }} 个节点
                   </template>
@@ -217,15 +175,8 @@
     </a-card>
 
     <!-- 中心性分析 -->
-    <a-card
-      title="中心性分析"
-      size="small"
-      class="panel-card"
-    >
-      <a-space
-        direction="vertical"
-        style="width: 100%"
-      >
+    <a-card title="中心性分析" size="small" class="panel-card">
+      <a-space direction="vertical" style="width: 100%">
         <a-button
           type="primary"
           block
@@ -240,10 +191,7 @@
 
         <div v-if="centralityResults.length > 0">
           <a-tabs size="small">
-            <a-tab-pane
-              key="degree"
-              tab="度中心性"
-            >
+            <a-tab-pane key="degree" tab="度中心性">
               <a-list
                 size="small"
                 :data-source="centralityResults.slice(0, 10)"
@@ -263,10 +211,7 @@
               </a-list>
             </a-tab-pane>
 
-            <a-tab-pane
-              key="betweenness"
-              tab="介数中心性"
-            >
+            <a-tab-pane key="betweenness" tab="介数中心性">
               <a-list
                 size="small"
                 :data-source="betweennessResults.slice(0, 10)"
@@ -293,16 +238,16 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   SearchOutlined,
   AimOutlined,
   ClusterOutlined,
   DotChartOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   nodes: {
@@ -316,19 +261,19 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'filter-change',
-  'node-select',
-  'path-highlight',
-  'community-highlight',
+  "filter-change",
+  "node-select",
+  "path-highlight",
+  "community-highlight",
 ]);
 
 // 搜索
-const searchQuery = ref('');
+const searchQuery = ref("");
 const searchResults = ref([]);
 
 // 筛选
-const selectedNodeTypes = ref(['note', 'document', 'conversation', 'web_clip']);
-const selectedRelationTypes = ref(['link', 'tag', 'semantic', 'temporal']);
+const selectedNodeTypes = ref(["note", "document", "conversation", "web_clip"]);
+const selectedRelationTypes = ref(["link", "tag", "semantic", "temporal"]);
 const minRelationCount = ref(0);
 
 // 路径查找
@@ -347,21 +292,21 @@ const betweennessResults = ref([]);
 
 // 选项
 const nodeTypeOptions = [
-  { label: '笔记', value: 'note' },
-  { label: '文档', value: 'document' },
-  { label: '对话', value: 'conversation' },
-  { label: '网页剪藏', value: 'web_clip' },
+  { label: "笔记", value: "note" },
+  { label: "文档", value: "document" },
+  { label: "对话", value: "conversation" },
+  { label: "网页剪藏", value: "web_clip" },
 ];
 
 const relationTypeOptions = [
-  { label: '链接关系', value: 'link' },
-  { label: '标签关系', value: 'tag' },
-  { label: '语义关系', value: 'semantic' },
-  { label: '时间关系', value: 'temporal' },
+  { label: "链接关系", value: "link" },
+  { label: "标签关系", value: "tag" },
+  { label: "语义关系", value: "semantic" },
+  { label: "时间关系", value: "temporal" },
 ];
 
 const nodeOptions = computed(() => {
-  return props.nodes.map(node => ({
+  return props.nodes.map((node) => ({
     label: node.title,
     value: node.id,
   }));
@@ -375,9 +320,9 @@ const handleSearch = () => {
   }
 
   const query = searchQuery.value.toLowerCase();
-  searchResults.value = props.nodes.filter(node =>
-    node.title.toLowerCase().includes(query)
-  ).slice(0, 10);
+  searchResults.value = props.nodes
+    .filter((node) => node.title.toLowerCase().includes(query))
+    .slice(0, 10);
 };
 
 const handleSearchChange = () => {
@@ -388,7 +333,7 @@ const handleSearchChange = () => {
 
 // 筛选处理
 const handleFilterChange = () => {
-  emit('filter-change', {
+  emit("filter-change", {
     nodeTypes: selectedNodeTypes.value,
     relationTypes: selectedRelationTypes.value,
     minRelationCount: minRelationCount.value,
@@ -397,7 +342,7 @@ const handleFilterChange = () => {
 
 // 节点选择
 const selectNode = (node) => {
-  emit('node-select', node);
+  emit("node-select", node);
 };
 
 // 路径查找
@@ -405,25 +350,27 @@ const findPath = async () => {
   try {
     const result = await window.electronAPI.graph.findPath(
       pathStart.value,
-      pathEnd.value
+      pathEnd.value,
     );
     pathResult.value = result;
     message.success(`找到 ${result.length} 条路径`);
   } catch (error) {
-    logger.error('查找路径失败:', error);
-    message.error('查找路径失败');
+    logger.error("查找路径失败:", error);
+    message.error("查找路径失败");
   }
 };
 
 const highlightPath = (path) => {
-  emit('path-highlight', path);
+  emit("path-highlight", path);
 };
 
 const formatPath = (path) => {
-  return path.map(nodeId => {
-    const node = props.nodes.find(n => n.id === nodeId);
-    return node ? node.title : nodeId;
-  }).join(' → ');
+  return path
+    .map((nodeId) => {
+      const node = props.nodes.find((n) => n.id === nodeId);
+      return node ? node.title : nodeId;
+    })
+    .join(" → ");
 };
 
 // 社区检测
@@ -438,15 +385,15 @@ const detectCommunities = async () => {
     }));
     message.success(`检测到 ${result.length} 个社区`);
   } catch (error) {
-    logger.error('社区检测失败:', error);
-    message.error('社区检测失败');
+    logger.error("社区检测失败:", error);
+    message.error("社区检测失败");
   } finally {
     detectingCommunities.value = false;
   }
 };
 
 const highlightCommunity = (community) => {
-  emit('community-highlight', community);
+  emit("community-highlight", community);
 };
 
 // 中心性分析
@@ -457,26 +404,26 @@ const analyzeCentrality = async () => {
 
     // 度中心性
     centralityResults.value = result.degree
-      .map(item => ({
-        node: props.nodes.find(n => n.id === item.nodeId),
+      .map((item) => ({
+        node: props.nodes.find((n) => n.id === item.nodeId),
         degree: item.value,
       }))
-      .filter(item => item.node)
+      .filter((item) => item.node)
       .sort((a, b) => b.degree - a.degree);
 
     // 介数中心性
     betweennessResults.value = result.betweenness
-      .map(item => ({
-        node: props.nodes.find(n => n.id === item.nodeId),
+      .map((item) => ({
+        node: props.nodes.find((n) => n.id === item.nodeId),
         betweenness: item.value,
       }))
-      .filter(item => item.node)
+      .filter((item) => item.node)
       .sort((a, b) => b.betweenness - a.betweenness);
 
-    message.success('中心性分析完成');
+    message.success("中心性分析完成");
   } catch (error) {
-    logger.error('中心性分析失败:', error);
-    message.error('中心性分析失败');
+    logger.error("中心性分析失败:", error);
+    message.error("中心性分析失败");
   } finally {
     analyzingCentrality.value = false;
   }
@@ -485,10 +432,10 @@ const analyzeCentrality = async () => {
 // 工具函数
 const getNodeTypeLabel = (type) => {
   const labels = {
-    note: '笔记',
-    document: '文档',
-    conversation: '对话',
-    web_clip: '网页剪藏',
+    note: "笔记",
+    document: "文档",
+    conversation: "对话",
+    web_clip: "网页剪藏",
   };
   return labels[type] || type;
 };
@@ -499,8 +446,14 @@ const filterNodeOption = (input, option) => {
 
 const getColorForCommunity = (index) => {
   const colors = [
-    '#1890ff', '#52c41a', '#faad14', '#f5222d',
-    '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16',
+    "#1890ff",
+    "#52c41a",
+    "#faad14",
+    "#f5222d",
+    "#722ed1",
+    "#13c2c2",
+    "#eb2f96",
+    "#fa8c16",
   ];
   return colors[index % colors.length];
 };

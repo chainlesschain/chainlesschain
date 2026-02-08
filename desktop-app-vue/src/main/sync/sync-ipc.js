@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 数据同步 IPC 处理器
@@ -16,9 +16,9 @@ const { logger, createLogger } = require('../utils/logger.js');
  */
 function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
   // 支持依赖注入，用于测试
-  const ipcMain = injectedIpcMain || require('electron').ipcMain;
+  const ipcMain = injectedIpcMain || require("electron").ipcMain;
 
-  logger.info('[Sync IPC] Registering Sync IPC handlers...');
+  logger.info("[Sync IPC] Registering Sync IPC handlers...");
 
   // ============================================================
   // 同步控制 (Sync Control)
@@ -31,22 +31,22 @@ function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
    * @param {string} deviceId - 设备ID（可选，不提供则自动生成）
    * @returns {Promise<Object>} { success: boolean, error?: string }
    */
-  ipcMain.handle('sync:start', async (_event, deviceId) => {
+  ipcMain.handle("sync:start", async (_event, deviceId) => {
     try {
       if (!syncManager) {
-        return { success: false, error: '同步管理器未初始化' };
+        return { success: false, error: "同步管理器未初始化" };
       }
 
       const finalDeviceId = deviceId || `device-${Date.now()}`;
-      logger.info('[Sync IPC] 启动数据同步, 设备ID:', finalDeviceId);
+      logger.info("[Sync IPC] 启动数据同步, 设备ID:", finalDeviceId);
 
       await syncManager.initialize(finalDeviceId);
       await syncManager.syncAfterLogin();
 
-      logger.info('[Sync IPC] 数据同步完成');
+      logger.info("[Sync IPC] 数据同步完成");
       return { success: true };
     } catch (error) {
-      logger.error('[Sync IPC] 同步失败:', error);
+      logger.error("[Sync IPC] 同步失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -57,16 +57,18 @@ function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
    *
    * @returns {Promise<Object>} { success: boolean, data?: Object, error?: string }
    */
-  ipcMain.handle('sync:get-status', async () => {
+  ipcMain.handle("sync:get-status", async () => {
     try {
       if (!syncManager || !syncManager.httpClient) {
-        return { success: false, error: '同步管理器未初始化' };
+        return { success: false, error: "同步管理器未初始化" };
       }
 
-      const status = await syncManager.httpClient.getSyncStatus(syncManager.deviceId);
+      const status = await syncManager.httpClient.getSyncStatus(
+        syncManager.deviceId,
+      );
       return { success: true, data: status };
     } catch (error) {
-      logger.error('[Sync IPC] 获取同步状态失败:', error);
+      logger.error("[Sync IPC] 获取同步状态失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -77,18 +79,18 @@ function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
    *
    * @returns {Promise<Object>} { success: boolean, error?: string }
    */
-  ipcMain.handle('sync:incremental', async () => {
+  ipcMain.handle("sync:incremental", async () => {
     try {
       if (!syncManager) {
-        return { success: false, error: '同步管理器未初始化' };
+        return { success: false, error: "同步管理器未初始化" };
       }
 
-      logger.info('[Sync IPC] 手动触发增量同步');
+      logger.info("[Sync IPC] 手动触发增量同步");
       await syncManager.syncIncremental();
 
       return { success: true };
     } catch (error) {
-      logger.error('[Sync IPC] 增量同步失败:', error);
+      logger.error("[Sync IPC] 增量同步失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -110,21 +112,24 @@ function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
    * @param {string} resolution - 解决方案 ('local' | 'remote' | 'merge')
    * @returns {Promise<Object>} { success: boolean, error?: string }
    */
-  ipcMain.handle('sync:resolve-conflict', async (_event, conflictId, resolution) => {
-    try {
-      if (!syncManager) {
-        return { success: false, error: '同步管理器未初始化' };
+  ipcMain.handle(
+    "sync:resolve-conflict",
+    async (_event, conflictId, resolution) => {
+      try {
+        if (!syncManager) {
+          return { success: false, error: "同步管理器未初始化" };
+        }
+
+        logger.info("[Sync IPC] 解决冲突:", conflictId, resolution);
+        await syncManager.resolveConflict(conflictId, resolution);
+
+        return { success: true };
+      } catch (error) {
+        logger.error("[Sync IPC] 解决冲突失败:", error);
+        return { success: false, error: error.message };
       }
-
-      logger.info('[Sync IPC] 解决冲突:', conflictId, resolution);
-      await syncManager.resolveConflict(conflictId, resolution);
-
-      return { success: true };
-    } catch (error) {
-      logger.error('[Sync IPC] 解决冲突失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
+    },
+  );
 
   // ============================================================
   // 认证管理 (Authentication Management)
@@ -137,22 +142,22 @@ function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
    * @param {string} token - JWT token
    * @returns {Promise<Object>} { success: boolean, error?: string }
    */
-  ipcMain.handle('sync:set-auth-token', async (_event, token) => {
+  ipcMain.handle("sync:set-auth-token", async (_event, token) => {
     try {
       if (!syncManager) {
-        return { success: false, error: '同步管理器未初始化' };
+        return { success: false, error: "同步管理器未初始化" };
       }
 
-      if (!token || typeof token !== 'string') {
-        return { success: false, error: '无效的Token' };
+      if (!token || typeof token !== "string") {
+        return { success: false, error: "无效的Token" };
       }
 
       syncManager.setAuthToken(token);
-      logger.info('[Sync IPC] 认证Token已设置');
+      logger.info("[Sync IPC] 认证Token已设置");
 
       return { success: true, hasAuth: syncManager.hasAuth() };
     } catch (error) {
-      logger.error('[Sync IPC] 设置认证Token失败:', error);
+      logger.error("[Sync IPC] 设置认证Token失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -163,18 +168,18 @@ function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
    *
    * @returns {Promise<Object>} { success: boolean, error?: string }
    */
-  ipcMain.handle('sync:clear-auth-token', async () => {
+  ipcMain.handle("sync:clear-auth-token", async () => {
     try {
       if (!syncManager) {
-        return { success: false, error: '同步管理器未初始化' };
+        return { success: false, error: "同步管理器未初始化" };
       }
 
       syncManager.setAuthToken(null);
-      logger.info('[Sync IPC] 认证Token已清除');
+      logger.info("[Sync IPC] 认证Token已清除");
 
       return { success: true };
     } catch (error) {
-      logger.error('[Sync IPC] 清除认证Token失败:', error);
+      logger.error("[Sync IPC] 清除认证Token失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -185,16 +190,16 @@ function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
    *
    * @returns {Promise<Object>} { success: boolean, hasAuth: boolean, error?: string }
    */
-  ipcMain.handle('sync:has-auth', async () => {
+  ipcMain.handle("sync:has-auth", async () => {
     try {
       if (!syncManager) {
-        return { success: false, hasAuth: false, error: '同步管理器未初始化' };
+        return { success: false, hasAuth: false, error: "同步管理器未初始化" };
       }
 
       const hasAuth = syncManager.hasAuth();
       return { success: true, hasAuth };
     } catch (error) {
-      logger.error('[Sync IPC] 检查认证状态失败:', error);
+      logger.error("[Sync IPC] 检查认证状态失败:", error);
       return { success: false, hasAuth: false, error: error.message };
     }
   });
@@ -205,10 +210,10 @@ function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
    *
    * @returns {Promise<Object>} { success: boolean, config: Object, error?: string }
    */
-  ipcMain.handle('sync:get-config', async () => {
+  ipcMain.handle("sync:get-config", async () => {
     try {
       if (!syncManager || !syncManager.httpClient) {
-        return { success: false, error: '同步管理器未初始化' };
+        return { success: false, error: "同步管理器未初始化" };
       }
 
       const config = syncManager.httpClient.getConfig();
@@ -222,20 +227,20 @@ function registerSyncIPC({ syncManager, ipcMain: injectedIpcMain }) {
         },
       };
     } catch (error) {
-      logger.error('[Sync IPC] 获取同步配置失败:', error);
+      logger.error("[Sync IPC] 获取同步配置失败:", error);
       return { success: false, error: error.message };
     }
   });
 
-  logger.info('[Sync IPC] Registered 8 sync: handlers');
-  logger.info('[Sync IPC] - sync:start');
-  logger.info('[Sync IPC] - sync:get-status');
-  logger.info('[Sync IPC] - sync:incremental');
-  logger.info('[Sync IPC] - sync:resolve-conflict');
-  logger.info('[Sync IPC] - sync:set-auth-token');
-  logger.info('[Sync IPC] - sync:clear-auth-token');
-  logger.info('[Sync IPC] - sync:has-auth');
-  logger.info('[Sync IPC] - sync:get-config');
+  logger.info("[Sync IPC] Registered 8 sync: handlers");
+  logger.info("[Sync IPC] - sync:start");
+  logger.info("[Sync IPC] - sync:get-status");
+  logger.info("[Sync IPC] - sync:incremental");
+  logger.info("[Sync IPC] - sync:resolve-conflict");
+  logger.info("[Sync IPC] - sync:set-auth-token");
+  logger.info("[Sync IPC] - sync:clear-auth-token");
+  logger.info("[Sync IPC] - sync:has-auth");
+  logger.info("[Sync IPC] - sync:get-config");
 }
 
 module.exports = { registerSyncIPC };

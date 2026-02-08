@@ -3,23 +3,10 @@
     <!-- 编辑器头部 -->
     <div class="editor-header">
       <div class="header-left">
-        <component
-          :is="fileIcon"
-          class="file-icon"
-        />
+        <component :is="fileIcon" class="file-icon" />
         <span class="file-name">{{ file.file_name }}</span>
-        <a-tag
-          v-if="hasChanges"
-          color="orange"
-          size="small"
-        >
-          未保存
-        </a-tag>
-        <a-tag
-          v-if="saving"
-          color="blue"
-          size="small"
-        >
+        <a-tag v-if="hasChanges" color="orange" size="small"> 未保存 </a-tag>
+        <a-tag v-if="saving" color="blue" size="small">
           <LoadingOutlined />
           保存中...
         </a-tag>
@@ -47,11 +34,7 @@
         </a-tooltip>
 
         <a-tooltip title="刷新">
-          <a-button
-            type="text"
-            size="small"
-            @click="handleRefresh"
-          >
+          <a-button type="text" size="small" @click="handleRefresh">
             <ReloadOutlined />
           </a-button>
         </a-tooltip>
@@ -83,10 +66,7 @@
       </div>
 
       <div class="footer-right">
-        <span
-          v-if="lastSaved"
-          class="status-item"
-        >
+        <span v-if="lastSaved" class="status-item">
           上次保存: {{ lastSaved }}
         </span>
       </div>
@@ -95,10 +75,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   SaveOutlined,
   ReloadOutlined,
@@ -107,10 +87,10 @@ import {
   CodeOutlined,
   FileMarkdownOutlined,
   Html5Outlined,
-} from '@ant-design/icons-vue';
-import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
-import MonacoEditor from './MonacoEditor.vue';
+} from "@ant-design/icons-vue";
+import { formatDistanceToNow } from "date-fns";
+import { zhCN } from "date-fns/locale";
+import MonacoEditor from "./MonacoEditor.vue";
 
 const props = defineProps({
   file: {
@@ -123,14 +103,14 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['change', 'save']);
+const emit = defineEmits(["change", "save"]);
 
 // 响应式状态
 const editorRef = ref(null);
-const content = ref('');
+const content = ref("");
 const hasChanges = ref(false);
 const autoSave = ref(true); // 默认启用自动保存
-const lastSaved = ref('');
+const lastSaved = ref("");
 const saving = ref(false);
 
 // 文件图标映射
@@ -150,8 +130,8 @@ const iconMap = {
 
 // 计算属性
 const fileExtension = computed(() => {
-  const parts = props.file.file_name.split('.');
-  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : 'txt';
+  const parts = props.file.file_name.split(".");
+  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "txt";
 });
 
 const fileIcon = computed(() => {
@@ -160,26 +140,37 @@ const fileIcon = computed(() => {
 
 const fileSize = computed(() => {
   const bytes = new Blob([content.value]).size;
-  if (bytes < 1024) {return `${bytes} B`;}
-  if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)} KB`;}
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 });
 
 // 处理内容变化
 const handleChange = (newContent) => {
   hasChanges.value = true;
-  emit('change', newContent);
+  emit("change", newContent);
 };
 
 // 保存文件（使用 file-sync IPC 进行双向同步）
 const handleSave = async () => {
-  if (!hasChanges.value || saving.value) {return;}
+  if (!hasChanges.value || saving.value) {
+    return;
+  }
 
   saving.value = true;
 
   try {
     // 调用 file-sync:save IPC，实现数据库和文件系统的双向同步
-    await window.electron.ipcRenderer.invoke('file-sync:save', props.file.id, content.value, props.projectId);
+    await window.electron.ipcRenderer.invoke(
+      "file-sync:save",
+      props.file.id,
+      content.value,
+      props.projectId,
+    );
 
     hasChanges.value = false;
     lastSaved.value = formatDistanceToNow(new Date(), {
@@ -187,11 +178,11 @@ const handleSave = async () => {
       locale: zhCN,
     });
 
-    emit('save');
-    message.success('文件已保存');
+    emit("save");
+    message.success("文件已保存");
   } catch (error) {
-    logger.error('保存文件失败:', error);
-    message.error('保存文件失败: ' + error.message);
+    logger.error("保存文件失败:", error);
+    message.error("保存文件失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -200,12 +191,12 @@ const handleSave = async () => {
 // 刷新文件
 const handleRefresh = () => {
   if (hasChanges.value) {
-    message.warning('有未保存的更改，请先保存');
+    message.warning("有未保存的更改，请先保存");
     return;
   }
 
-  content.value = props.file.content || '';
-  message.success('文件已刷新');
+  content.value = props.file.content || "";
+  message.success("文件已刷新");
 };
 
 // 监听文件变化
@@ -213,11 +204,11 @@ watch(
   () => props.file,
   (newFile) => {
     if (newFile) {
-      content.value = newFile.content || '';
+      content.value = newFile.content || "";
       hasChanges.value = false;
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>
 

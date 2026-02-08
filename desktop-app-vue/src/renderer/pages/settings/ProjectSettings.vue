@@ -9,7 +9,7 @@
             disabled
           />
           <template #extra>
-            <div style="margin-top: 8px;">
+            <div style="margin-top: 8px">
               当前项目存储位置。修改此配置需要重启应用生效。
             </div>
           </template>
@@ -17,10 +17,7 @@
 
         <a-form-item>
           <a-space>
-            <a-button
-              type="primary"
-              @click="handleOpenFolder"
-            >
+            <a-button type="primary" @click="handleOpenFolder">
               <FolderOpenOutlined />
               打开项目目录
             </a-button>
@@ -33,22 +30,16 @@
       </a-form>
     </a-card>
 
-    <a-card
-      title="项目配置信息"
-      style="margin-top: 16px;"
-    >
-      <a-descriptions
-        bordered
-        :column="1"
-      >
+    <a-card title="项目配置信息" style="margin-top: 16px">
+      <a-descriptions bordered :column="1">
         <a-descriptions-item label="项目根目录">
-          {{ config.projectsRootPath || '未配置' }}
+          {{ config.projectsRootPath || "未配置" }}
         </a-descriptions-item>
         <a-descriptions-item label="最大项目大小">
           {{ config.maxProjectSizeMB || 1000 }} MB
         </a-descriptions-item>
         <a-descriptions-item label="自动同步">
-          {{ config.autoSync ? '启用' : '禁用' }}
+          {{ config.autoSync ? "启用" : "禁用" }}
         </a-descriptions-item>
         <a-descriptions-item label="同步间隔">
           {{ config.syncIntervalSeconds || 300 }} 秒
@@ -59,13 +50,13 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
-import { FolderOpenOutlined, ReloadOutlined } from '@ant-design/icons-vue';
+import { ref, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import { FolderOpenOutlined, ReloadOutlined } from "@ant-design/icons-vue";
 
-const projectsRootPath = ref('');
+const projectsRootPath = ref("");
 const config = ref({});
 
 // 加载配置
@@ -75,8 +66,8 @@ const loadConfig = async () => {
     config.value = projectConfig;
     projectsRootPath.value = projectConfig.projectsRootPath;
   } catch (error) {
-    logger.error('加载配置失败:', error);
-    message.error('加载配置失败：' + error.message);
+    logger.error("加载配置失败:", error);
+    message.error("加载配置失败：" + error.message);
   }
 };
 
@@ -84,21 +75,21 @@ const loadConfig = async () => {
 const handleRefreshConfig = async () => {
   try {
     await loadConfig();
-    message.success('配置已刷新');
+    message.success("配置已刷新");
   } catch (error) {
-    logger.error('刷新配置失败:', error);
-    message.error('刷新配置失败：' + error.message);
+    logger.error("刷新配置失败:", error);
+    message.error("刷新配置失败：" + error.message);
   }
 };
 
 // 打开项目目录
 const handleOpenFolder = async () => {
   try {
-    const { shell } = require('electron');
+    const { shell } = require("electron");
     await shell.openPath(projectsRootPath.value);
   } catch (error) {
-    logger.error('打开目录失败:', error);
-    message.error('打开目录失败：' + error.message);
+    logger.error("打开目录失败:", error);
+    message.error("打开目录失败：" + error.message);
   }
 };
 

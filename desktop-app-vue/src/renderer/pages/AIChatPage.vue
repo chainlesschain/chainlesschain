@@ -11,10 +11,12 @@
             <a-button
               type="text"
               size="small"
-              @click="handleSaveConversation"
               :loading="savingConversation"
+              @click="handleSaveConversation"
             >
-              <template #icon><BookOutlined /></template>
+              <template #icon>
+                <BookOutlined />
+              </template>
               保存对话到记忆
             </a-button>
           </div>
@@ -106,10 +108,14 @@
                         <CheckOutlined v-if="message.savedToMemory" />
                         <BookOutlined v-else />
                       </template>
-                      <span class="btn-text">{{ message.savedToMemory ? '已保存' : '保存记忆' }}</span>
+                      <span class="btn-text">{{
+                        message.savedToMemory ? "已保存" : "保存记忆"
+                      }}</span>
                     </a-button>
                     <template #overlay>
-                      <a-menu @click="(e) => handleSaveToMemory(message, e.key)">
+                      <a-menu
+                        @click="(e) => handleSaveToMemory(message, e.key)"
+                      >
                         <a-menu-item key="daily">
                           <SaveOutlined /> 保存到 Daily Notes
                         </a-menu-item>
@@ -214,7 +220,7 @@
       <a-input
         v-model:value="newConversationTitle"
         placeholder="输入新的对话标题"
-        @pressEnter="handleRenameConfirm"
+        @press-enter="handleRenameConfirm"
       />
     </a-modal>
   </div>
@@ -750,9 +756,10 @@ const handleSaveToMemory = async (message, type) => {
 
     if (result?.success) {
       message.savedToMemory = true;
-      const locationText = result.result.savedTo === "daily_notes"
-        ? "Daily Notes"
-        : `MEMORY.md (${result.result.section})`;
+      const locationText =
+        result.result.savedTo === "daily_notes"
+          ? "Daily Notes"
+          : `MEMORY.md (${result.result.section})`;
       antMessage.success(`已保存到 ${locationText}`);
     } else {
       antMessage.error(result?.error || "保存失败");

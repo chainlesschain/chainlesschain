@@ -1432,14 +1432,24 @@ const startTaskPlanning = async (userInput) => {
       } else if (props.currentFile?.type) {
         // 根据当前文件类型推断
         const fileTypeMap = {
-          'md': 'document', 'txt': 'document', 'doc': 'document', 'docx': 'document',
-          'xlsx': 'data', 'xls': 'data', 'csv': 'data',
-          'ppt': 'ppt', 'pptx': 'ppt',
-          'html': 'web', 'css': 'web', 'js': 'web',
-          'py': 'code', 'java': 'code', 'ts': 'code',
+          md: "document",
+          txt: "document",
+          doc: "document",
+          docx: "document",
+          xlsx: "data",
+          xls: "data",
+          csv: "data",
+          ppt: "ppt",
+          pptx: "ppt",
+          html: "web",
+          css: "web",
+          js: "web",
+          py: "code",
+          java: "code",
+          ts: "code",
         };
-        const ext = props.currentFile.name?.split('.').pop()?.toLowerCase();
-        projectType = fileTypeMap[ext] || 'document';
+        const ext = props.currentFile.name?.split(".").pop()?.toLowerCase();
+        projectType = fileTypeMap[ext] || "document";
       }
     } catch (e) {
       logger.warn("[ChatPanel] 无法获取项目类型，使用默认值:", e);

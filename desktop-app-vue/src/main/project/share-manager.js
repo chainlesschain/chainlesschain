@@ -3,9 +3,9 @@
  * 负责项目分享功能的创建、查询、更新和删除
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const crypto = require("crypto");
 
 class ShareManager {
   constructor(database) {
@@ -22,23 +22,31 @@ class ShareManager {
   async createOrUpdateShare(projectId, shareMode, options = {}) {
     try {
       const {
-        expiresInDays = null,  // 过期天数，null表示永不过期
-        regenerateToken = false // 是否重新生成token
+        expiresInDays = null, // 过期天数，null表示永不过期
+        regenerateToken = false, // 是否重新生成token
       } = options;
 
       // 检查项目是否存在
-      const project = this.database.prepare(`
+      const project = this.database
+        .prepare(
+          `
         SELECT id, name FROM projects WHERE id = ?
-      `).get(projectId);
+      `,
+        )
+        .get(projectId);
 
       if (!project) {
         throw new Error(`项目不存在: ${projectId}`);
       }
 
       // 检查是否已有分享记录
-      const existingShare = this.database.prepare(`
+      const existingShare = this.database
+        .prepare(
+          `
         SELECT * FROM project_shares WHERE project_id = ?
-      `).get(projectId);
+      `,
+        )
+        .get(projectId);
 
       const now = Date.now();
       let shareToken;
@@ -61,12 +69,14 @@ class ShareManager {
       // 计算过期时间
       let expiresAt = null;
       if (expiresInDays && expiresInDays > 0) {
-        expiresAt = now + (expiresInDays * 24 * 60 * 60 * 1000);
+        expiresAt = now + expiresInDays * 24 * 60 * 60 * 1000;
       }
 
       if (existingShare) {
         // 更新现有分享
-        this.database.prepare(`
+        this.database
+          .prepare(
+            `
           UPDATE project_shares
           SET share_mode = ?,
               share_link = ?,
@@ -74,29 +84,39 @@ class ShareManager {
               updated_at = ?,
               expires_at = ?
           WHERE id = ?
-        `).run(shareMode, shareLink, shareToken, now, expiresAt, shareId);
+        `,
+          )
+          .run(shareMode, shareLink, shareToken, now, expiresAt, shareId);
 
-        logger.info(`[ShareManager] 更新分享: ${projectId}, 模式: ${shareMode}`);
+        logger.info(
+          `[ShareManager] 更新分享: ${projectId}, 模式: ${shareMode}`,
+        );
       } else {
         // 创建新分享
-        this.database.prepare(`
+        this.database
+          .prepare(
+            `
           INSERT INTO project_shares (
             id, project_id, share_token, share_mode,
             share_link, access_count, created_at, updated_at, expires_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          shareId,
-          projectId,
-          shareToken,
-          shareMode,
-          shareLink,
-          0, // access_count
-          now,
-          now,
-          expiresAt
-        );
+        `,
+          )
+          .run(
+            shareId,
+            projectId,
+            shareToken,
+            shareMode,
+            shareLink,
+            0, // access_count
+            now,
+            now,
+            expiresAt,
+          );
 
-        logger.info(`[ShareManager] 创建分享: ${projectId}, 模式: ${shareMode}`);
+        logger.info(
+          `[ShareManager] 创建分享: ${projectId}, 模式: ${shareMode}`,
+        );
       }
 
       // 获取完整的分享信息
@@ -104,11 +124,10 @@ class ShareManager {
 
       return {
         success: true,
-        share: shareInfo
+        share: shareInfo,
       };
-
     } catch (error) {
-      logger.error('[ShareManager] 创建/更新分享失败:', error);
+      logger.error("[ShareManager] 创建/更新分享失败:", error);
       throw error;
     }
   }
@@ -119,11 +138,12 @@ class ShareManager {
    */
   generateShareToken() {
     // 生成32字节随机数据，转为base64url格式（URL安全）
-    return crypto.randomBytes(32)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
+    return crypto
+      .randomBytes(32)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
   }
 
   /**
@@ -133,10 +153,10 @@ class ShareManager {
    */
   generateShareLink(token) {
     // 开发环境使用localhost，生产环境使用实际域名
-    const isDev = process.env.NODE_ENV !== 'production';
+    const isDev = process.env.NODE_ENV !== "production";
     const baseUrl = isDev
-      ? 'http://localhost:5173'  // Vite开发服务器端口
-      : 'https://chainlesschain.com';
+      ? "http://localhost:5173" // Vite开发服务器端口
+      : "https://chainlesschain.com";
 
     return `${baseUrl}/share/project/${token}`;
   }
@@ -148,7 +168,9 @@ class ShareManager {
    */
   getShareByProjectId(projectId) {
     try {
-      const share = this.database.prepare(`
+      const share = this.database
+        .prepare(
+          `
         SELECT
           s.*,
           p.name as project_name,
@@ -158,7 +180,9 @@ class ShareManager {
         FROM project_shares s
         JOIN projects p ON s.project_id = p.id
         WHERE s.project_id = ?
-      `).get(projectId);
+      `,
+        )
+        .get(projectId);
 
       if (!share) {
         return null;
@@ -168,17 +192,16 @@ class ShareManager {
       if (share.expires_at && share.expires_at < Date.now()) {
         return {
           ...share,
-          is_expired: true
+          is_expired: true,
         };
       }
 
       return {
         ...share,
-        is_expired: false
+        is_expired: false,
       };
-
     } catch (error) {
-      logger.error('[ShareManager] 获取分享信息失败:', error);
+      logger.error("[ShareManager] 获取分享信息失败:", error);
       return null;
     }
   }
@@ -190,7 +213,9 @@ class ShareManager {
    */
   getShareByToken(token) {
     try {
-      const share = this.database.prepare(`
+      const share = this.database
+        .prepare(
+          `
         SELECT
           s.*,
           p.name as project_name,
@@ -202,7 +227,9 @@ class ShareManager {
         FROM project_shares s
         JOIN projects p ON s.project_id = p.id
         WHERE s.share_token = ?
-      `).get(token);
+      `,
+        )
+        .get(token);
 
       if (!share) {
         return null;
@@ -214,21 +241,20 @@ class ShareManager {
         return {
           ...share,
           is_expired: true,
-          accessible: false
+          accessible: false,
         };
       }
 
       // 检查分享模式
-      const accessible = share.share_mode === 'public';
+      const accessible = share.share_mode === "public";
 
       return {
         ...share,
         is_expired: false,
-        accessible
+        accessible,
       };
-
     } catch (error) {
-      logger.error('[ShareManager] 根据token获取分享失败:', error);
+      logger.error("[ShareManager] 根据token获取分享失败:", error);
       return null;
     }
   }
@@ -240,15 +266,19 @@ class ShareManager {
    */
   incrementAccessCount(token) {
     try {
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         UPDATE project_shares
         SET access_count = access_count + 1
         WHERE share_token = ?
-      `).run(token);
+      `,
+        )
+        .run(token);
 
       return result.changes > 0;
     } catch (error) {
-      logger.error('[ShareManager] 增加访问计数失败:', error);
+      logger.error("[ShareManager] 增加访问计数失败:", error);
       return false;
     }
   }
@@ -260,15 +290,18 @@ class ShareManager {
    */
   deleteShare(projectId) {
     try {
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         DELETE FROM project_shares WHERE project_id = ?
-      `).run(projectId);
+      `,
+        )
+        .run(projectId);
 
       logger.info(`[ShareManager] 删除分享: ${projectId}`);
       return result.changes > 0;
-
     } catch (error) {
-      logger.error('[ShareManager] 删除分享失败:', error);
+      logger.error("[ShareManager] 删除分享失败:", error);
       return false;
     }
   }
@@ -280,11 +313,7 @@ class ShareManager {
    */
   getPublicShares(options = {}) {
     try {
-      const {
-        limit = 20,
-        offset = 0,
-        projectType = null
-      } = options;
+      const { limit = 20, offset = 0, projectType = null } = options;
 
       let query = `
         SELECT
@@ -313,9 +342,8 @@ class ShareManager {
       const shares = this.database.prepare(query).all(...params);
 
       return shares;
-
     } catch (error) {
-      logger.error('[ShareManager] 获取公开分享失败:', error);
+      logger.error("[ShareManager] 获取公开分享失败:", error);
       return [];
     }
   }
@@ -334,7 +362,7 @@ class ShareManager {
           hasShare: false,
           accessCount: 0,
           isPublic: false,
-          isExpired: false
+          isExpired: false,
         };
       }
 
@@ -342,19 +370,18 @@ class ShareManager {
         hasShare: true,
         shareMode: share.share_mode,
         accessCount: share.access_count || 0,
-        isPublic: share.share_mode === 'public',
+        isPublic: share.share_mode === "public",
         isExpired: share.is_expired,
         createdAt: share.created_at,
-        expiresAt: share.expires_at
+        expiresAt: share.expires_at,
       };
-
     } catch (error) {
-      logger.error('[ShareManager] 获取分享统计失败:', error);
+      logger.error("[ShareManager] 获取分享统计失败:", error);
       return {
         hasShare: false,
         accessCount: 0,
         isPublic: false,
-        isExpired: false
+        isExpired: false,
       };
     }
   }
@@ -366,10 +393,14 @@ class ShareManager {
   cleanExpiredShares() {
     try {
       const now = Date.now();
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         DELETE FROM project_shares
         WHERE expires_at IS NOT NULL AND expires_at < ?
-      `).run(now);
+      `,
+        )
+        .run(now);
 
       const count = result.changes;
       if (count > 0) {
@@ -377,9 +408,8 @@ class ShareManager {
       }
 
       return count;
-
     } catch (error) {
-      logger.error('[ShareManager] 清理过期分享失败:', error);
+      logger.error("[ShareManager] 清理过期分享失败:", error);
       return 0;
     }
   }
@@ -402,5 +432,5 @@ function getShareManager(database) {
 
 module.exports = {
   ShareManager,
-  getShareManager
+  getShareManager,
 };

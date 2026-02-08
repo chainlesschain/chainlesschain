@@ -1,8 +1,6 @@
 <template>
   <div class="llm-quick-setup">
-    <a-typography-title :level="4">
-      AI 模型配置
-    </a-typography-title>
+    <a-typography-title :level="4"> AI 模型配置 </a-typography-title>
     <a-typography-paragraph type="secondary">
       配置您的 AI 模型服务。可以选择简化配置、高级配置或稍后设置。
     </a-typography-paragraph>
@@ -17,10 +15,7 @@
     />
 
     <!-- 简化模式 -->
-    <div
-      v-if="currentMode === 'simple'"
-      class="config-panel"
-    >
+    <div v-if="currentMode === 'simple'" class="config-panel">
       <a-alert
         message="简化模式"
         description="只需选择一个AI提供商，其他参数将使用默认值"
@@ -61,21 +56,14 @@
         </a-form-item>
 
         <!-- 云端提供商需要 API Key -->
-        <a-form-item
-          v-if="needsApiKey"
-          label="API密钥"
-          required
-        >
+        <a-form-item v-if="needsApiKey" label="API密钥" required>
           <a-input-password
             v-model:value="formData.apiKey"
             placeholder="输入您的API密钥"
             @change="emitUpdate"
           />
           <template #extra>
-            <a
-              :href="getApiKeyLink()"
-              target="_blank"
-            >
+            <a :href="getApiKeyLink()" target="_blank">
               <LinkOutlined /> 获取API密钥
             </a>
           </template>
@@ -84,11 +72,7 @@
         <!-- 测试连接按钮 -->
         <a-form-item>
           <a-space>
-            <a-button
-              type="primary"
-              :loading="testing"
-              @click="testConnection"
-            >
+            <a-button type="primary" :loading="testing" @click="testConnection">
               测试连接
             </a-button>
             <a-tag
@@ -103,10 +87,7 @@
     </div>
 
     <!-- 高级模式 -->
-    <div
-      v-if="currentMode === 'advanced'"
-      class="config-panel"
-    >
+    <div v-if="currentMode === 'advanced'" class="config-panel">
       <a-alert
         message="高级模式"
         description="完整配置所有AI参数，适合高级用户"
@@ -121,35 +102,19 @@
             v-model:value="formData.provider"
             @change="handleProviderChange"
           >
-            <a-select-option value="ollama">
-              Ollama (本地)
-            </a-select-option>
-            <a-select-option value="volcengine">
-              火山引擎
-            </a-select-option>
-            <a-select-option value="openai">
-              OpenAI
-            </a-select-option>
+            <a-select-option value="ollama"> Ollama (本地) </a-select-option>
+            <a-select-option value="volcengine"> 火山引擎 </a-select-option>
+            <a-select-option value="openai"> OpenAI </a-select-option>
             <a-select-option value="anthropic">
               Claude (Anthropic)
             </a-select-option>
-            <a-select-option value="deepseek">
-              DeepSeek
-            </a-select-option>
-            <a-select-option value="zhipu">
-              智谱AI
-            </a-select-option>
-            <a-select-option value="qianfan">
-              百度千帆
-            </a-select-option>
+            <a-select-option value="deepseek"> DeepSeek </a-select-option>
+            <a-select-option value="zhipu"> 智谱AI </a-select-option>
+            <a-select-option value="qianfan"> 百度千帆 </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          v-if="needsApiKey"
-          label="API密钥"
-          required
-        >
+        <a-form-item v-if="needsApiKey" label="API密钥" required>
           <a-input-password
             v-model:value="formData.apiKey"
             placeholder="输入API密钥"
@@ -176,11 +141,7 @@
         <!-- 测试连接按钮 -->
         <a-form-item>
           <a-space>
-            <a-button
-              type="primary"
-              :loading="testing"
-              @click="testConnection"
-            >
+            <a-button type="primary" :loading="testing" @click="testConnection">
               测试连接
             </a-button>
             <a-tag
@@ -195,10 +156,7 @@
     </div>
 
     <!-- 跳过模式 -->
-    <div
-      v-if="currentMode === 'skip'"
-      class="config-panel"
-    >
+    <div v-if="currentMode === 'skip'" class="config-panel">
       <a-result
         status="info"
         title="稍后配置"
@@ -213,10 +171,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, reactive } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, reactive } from "vue";
+import { message } from "ant-design-vue";
 import {
   RobotOutlined,
   CloudOutlined,
@@ -225,29 +183,29 @@ import {
   DatabaseOutlined,
   LinkOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   modelValue: {
     type: Object,
     default: () => ({
-      mode: 'simple',
-      provider: 'ollama',
-      apiKey: '',
-      baseUrl: '',
-      model: '',
+      mode: "simple",
+      provider: "ollama",
+      apiKey: "",
+      baseUrl: "",
+      model: "",
     }),
   },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(["update:modelValue"]);
 
-const currentMode = ref(props.modelValue.mode || 'simple');
+const currentMode = ref(props.modelValue.mode || "simple");
 const formData = reactive({
-  provider: props.modelValue.provider || 'ollama',
-  apiKey: props.modelValue.apiKey || '',
-  baseUrl: props.modelValue.baseUrl || '',
-  model: props.modelValue.model || '',
+  provider: props.modelValue.provider || "ollama",
+  apiKey: props.modelValue.apiKey || "",
+  baseUrl: props.modelValue.baseUrl || "",
+  model: props.modelValue.model || "",
 });
 
 // 测试连接相关
@@ -256,21 +214,21 @@ const testResult = ref(null);
 
 const modeOptions = [
   {
-    label: '简化配置',
-    value: 'simple',
+    label: "简化配置",
+    value: "simple",
   },
   {
-    label: '高级配置',
-    value: 'advanced',
+    label: "高级配置",
+    value: "advanced",
   },
   {
-    label: '稍后设置',
-    value: 'skip',
+    label: "稍后设置",
+    value: "skip",
   },
 ];
 
 const needsApiKey = computed(() => {
-  return formData.provider !== 'ollama';
+  return formData.provider !== "ollama";
 });
 
 watch(currentMode, () => {
@@ -279,15 +237,15 @@ watch(currentMode, () => {
 
 const handleProviderChange = () => {
   // 切换提供商时清空 API Key
-  if (formData.provider === 'ollama') {
-    formData.apiKey = '';
-    formData.baseUrl = '';
+  if (formData.provider === "ollama") {
+    formData.apiKey = "";
+    formData.baseUrl = "";
   }
   emitUpdate();
 };
 
 const emitUpdate = () => {
-  emit('update:modelValue', {
+  emit("update:modelValue", {
     mode: currentMode.value,
     provider: formData.provider,
     apiKey: formData.apiKey,
@@ -303,13 +261,13 @@ const testConnection = async () => {
 
   try {
     // 验证必填字段
-    if (formData.provider !== 'ollama' && !formData.apiKey) {
-      throw new Error('请先输入 API Key');
+    if (formData.provider !== "ollama" && !formData.apiKey) {
+      throw new Error("请先输入 API Key");
     }
 
     // 如果没有window.electronAPI，提示错误
     if (!window.electronAPI || !window.electronAPI.llm) {
-      throw new Error('LLM API 不可用');
+      throw new Error("LLM API 不可用");
     }
 
     // 构建完整的LLM配置对象
@@ -323,51 +281,52 @@ const testConnection = async () => {
 
     // 根据提供商添加特定配置
     switch (formData.provider) {
-      case 'ollama':
+      case "ollama":
         llmConfig.ollama = {
-          url: formData.baseUrl || 'http://localhost:11434',
-          model: formData.model || 'llama2',
+          url: formData.baseUrl || "http://localhost:11434",
+          model: formData.model || "llama2",
         };
         break;
-      case 'openai':
+      case "openai":
         llmConfig.openai = {
           apiKey: formData.apiKey,
-          baseURL: formData.baseUrl || 'https://api.openai.com/v1',
-          model: formData.model || 'gpt-3.5-turbo',
+          baseURL: formData.baseUrl || "https://api.openai.com/v1",
+          model: formData.model || "gpt-3.5-turbo",
         };
         break;
-      case 'anthropic':
+      case "anthropic":
         llmConfig.anthropic = {
           apiKey: formData.apiKey,
-          baseURL: formData.baseUrl || 'https://api.anthropic.com',
-          model: formData.model || 'claude-3-5-sonnet-20241022',
-          version: '2023-06-01',
+          baseURL: formData.baseUrl || "https://api.anthropic.com",
+          model: formData.model || "claude-3-5-sonnet-20241022",
+          version: "2023-06-01",
         };
         break;
-      case 'volcengine':
+      case "volcengine":
         llmConfig.volcengine = {
           apiKey: formData.apiKey,
-          baseURL: formData.baseUrl || 'https://ark.cn-beijing.volces.com/api/v3',
-          model: formData.model || 'doubao-pro-4k',
+          baseURL:
+            formData.baseUrl || "https://ark.cn-beijing.volces.com/api/v3",
+          model: formData.model || "doubao-pro-4k",
         };
         break;
-      case 'deepseek':
+      case "deepseek":
         llmConfig.deepseek = {
           apiKey: formData.apiKey,
-          baseURL: formData.baseUrl || 'https://api.deepseek.com/v1',
-          model: formData.model || 'deepseek-chat',
+          baseURL: formData.baseUrl || "https://api.deepseek.com/v1",
+          model: formData.model || "deepseek-chat",
         };
         break;
-      case 'zhipu':
+      case "zhipu":
         llmConfig.zhipu = {
           apiKey: formData.apiKey,
-          model: formData.model || 'glm-4',
+          model: formData.model || "glm-4",
         };
         break;
-      case 'qianfan':
+      case "qianfan":
         llmConfig.qianfan = {
           apiKey: formData.apiKey,
-          model: formData.model || 'ERNIE-Bot-turbo',
+          model: formData.model || "ERNIE-Bot-turbo",
         };
         break;
     }
@@ -381,23 +340,23 @@ const testConnection = async () => {
     if (result.available) {
       testResult.value = {
         success: true,
-        message: '连接成功！',
+        message: "连接成功！",
       };
-      message.success('LLM 服务连接成功');
+      message.success("LLM 服务连接成功");
     } else {
       testResult.value = {
         success: false,
-        message: '连接失败: ' + (result.error || '未知错误'),
+        message: "连接失败: " + (result.error || "未知错误"),
       };
-      message.error('连接失败');
+      message.error("连接失败");
     }
   } catch (error) {
-    logger.error('测试连接失败:', error);
+    logger.error("测试连接失败:", error);
     testResult.value = {
       success: false,
-      message: '测试失败: ' + error.message,
+      message: "测试失败: " + error.message,
     };
-    message.error('测试失败：' + error.message);
+    message.error("测试失败：" + error.message);
   } finally {
     testing.value = false;
   }
@@ -405,27 +364,29 @@ const testConnection = async () => {
 
 const getApiKeyLink = () => {
   const links = {
-    volcengine: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
-    openai: 'https://platform.openai.com/api-keys',
-    anthropic: 'https://console.anthropic.com/settings/keys',
-    deepseek: 'https://platform.deepseek.com/api_keys',
-    zhipu: 'https://open.bigmodel.cn/usercenter/apikeys',
-    qianfan: 'https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application',
+    volcengine:
+      "https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey",
+    openai: "https://platform.openai.com/api-keys",
+    anthropic: "https://console.anthropic.com/settings/keys",
+    deepseek: "https://platform.deepseek.com/api_keys",
+    zhipu: "https://open.bigmodel.cn/usercenter/apikeys",
+    qianfan:
+      "https://console.bce.baidu.com/qianfan/ais/console/applicationConsole/application",
   };
-  return links[formData.provider] || '#';
+  return links[formData.provider] || "#";
 };
 
 const getDefaultModel = () => {
   const models = {
-    ollama: 'llama2',
-    volcengine: 'doubao-pro-4k',
-    openai: 'gpt-3.5-turbo',
-    anthropic: 'claude-3-5-sonnet-20241022',
-    deepseek: 'deepseek-chat',
-    zhipu: 'glm-4',
-    qianfan: 'ERNIE-Bot-turbo',
+    ollama: "llama2",
+    volcengine: "doubao-pro-4k",
+    openai: "gpt-3.5-turbo",
+    anthropic: "claude-3-5-sonnet-20241022",
+    deepseek: "deepseek-chat",
+    zhipu: "glm-4",
+    qianfan: "ERNIE-Bot-turbo",
   };
-  return models[formData.provider] || '';
+  return models[formData.provider] || "";
 };
 </script>
 

@@ -25,7 +25,9 @@
           <a-button
             v-for="profession in professions"
             :key="profession.value"
-            :type="selectedProfession === profession.value ? 'primary' : 'default'"
+            :type="
+              selectedProfession === profession.value ? 'primary' : 'default'
+            "
             class="profession-btn"
             @click="selectProfession(profession.value)"
           >
@@ -60,47 +62,36 @@
             </a-col>
           </a-row>
         </div>
-        <a-empty
-          v-else
-          description="该职业暂无专用模板"
-        />
+        <a-empty v-else description="该职业暂无专用模板" />
       </div>
 
       <!-- 项目模板选择区域 -->
       <div class="template-section">
         <div class="section-header">
           <h3>项目模板</h3>
-          <a-button
-            type="link"
-            @click="showTemplateModal = true"
-          >
+          <a-button type="link" @click="showTemplateModal = true">
             <FileTextOutlined />
             浏览所有项目模板
           </a-button>
         </div>
 
         <!-- 已选择的模板 -->
-        <div
-          v-if="selectedTemplate"
-          class="selected-template-banner"
-        >
+        <div v-if="selectedTemplate" class="selected-template-banner">
           <div class="banner-content">
             <div class="banner-icon">
               <CheckCircleFilled style="color: #52c41a; font-size: 24px" />
             </div>
             <div class="banner-info">
               <div class="banner-title">
-                已选择模板：{{ selectedTemplate.display_name || selectedTemplate.name }}
+                已选择模板：{{
+                  selectedTemplate.display_name || selectedTemplate.name
+                }}
               </div>
               <div class="banner-description">
                 {{ selectedTemplate.description }}
               </div>
             </div>
-            <a-button
-              type="text"
-              danger
-              @click="clearTemplate"
-            >
+            <a-button type="text" danger @click="clearTemplate">
               <CloseCircleOutlined />
               清除
             </a-button>
@@ -110,15 +101,8 @@
         <!-- 示例卡片 -->
         <div class="examples-section">
           <a-row :gutter="[16, 16]">
-            <a-col
-              v-for="example in examples"
-              :key="example.title"
-              :span="8"
-            >
-              <div
-                class="example-card"
-                @click="fillExample(example)"
-              >
+            <a-col v-for="example in examples" :key="example.title" :span="8">
+              <div class="example-card" @click="fillExample(example)">
                 <div class="example-icon">
                   <component :is="example.icon" />
                 </div>
@@ -139,11 +123,7 @@
         @finish="handleSubmit"
       >
         <!-- 需求描述 -->
-        <a-form-item
-          label="需求描述"
-          name="userPrompt"
-          required
-        >
+        <a-form-item label="需求描述" name="userPrompt" required>
           <a-textarea
             v-model:value="formData.userPrompt"
             placeholder="详细描述您的项目需求，包括功能、技术栈、设计风格等..."
@@ -159,10 +139,7 @@
         <a-row :gutter="16">
           <!-- 项目名称 -->
           <a-col :span="12">
-            <a-form-item
-              label="项目名称（可选）"
-              name="name"
-            >
+            <a-form-item label="项目名称（可选）" name="name">
               <a-input
                 v-model:value="formData.name"
                 placeholder="留空由AI自动生成"
@@ -172,11 +149,7 @@
 
           <!-- 项目类型 -->
           <a-col :span="12">
-            <a-form-item
-              label="项目类型"
-              name="projectType"
-              required
-            >
+            <a-form-item label="项目类型" name="projectType" required>
               <a-select
                 v-model:value="formData.projectType"
                 placeholder="选择项目类型"
@@ -200,14 +173,8 @@
 
         <!-- 技能和工具选择（可选） -->
         <a-form-item label="技能和工具配置（可选）">
-          <a-collapse
-            :bordered="false"
-            ghost
-          >
-            <a-collapse-panel
-              key="1"
-              header="配置可用的技能和工具"
-            >
+          <a-collapse :bordered="false" ghost>
+            <a-collapse-panel key="1" header="配置可用的技能和工具">
               <SkillToolSelector
                 v-model="selectedSkillsAndTools"
                 :project-type="formData.projectType"
@@ -228,12 +195,7 @@
               <RobotOutlined />
               创建项目
             </a-button>
-            <a-button
-              size="large"
-              @click="handleReset"
-            >
-              重置
-            </a-button>
+            <a-button size="large" @click="handleReset"> 重置 </a-button>
           </div>
         </a-form-item>
       </a-form>
@@ -249,12 +211,12 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { message } from 'ant-design-vue';
-import { useAuthStore } from '@/stores/auth';
-import { useTemplateStore } from '@/stores/template';
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { message } from "ant-design-vue";
+import { useAuthStore } from "@/stores/auth";
+import { useTemplateStore } from "@/stores/template";
 import {
   RobotOutlined,
   CodeOutlined,
@@ -268,9 +230,9 @@ import {
   ReadOutlined,
   ExperimentOutlined,
   ArrowRightOutlined,
-} from '@ant-design/icons-vue';
-import TemplateSelectionModal from './TemplateSelectionModal.vue';
-import SkillToolSelector from './SkillToolSelector.vue';
+} from "@ant-design/icons-vue";
+import TemplateSelectionModal from "./TemplateSelectionModal.vue";
+import SkillToolSelector from "./SkillToolSelector.vue";
 
 const props = defineProps({
   initialTemplate: {
@@ -279,7 +241,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['create']);
+const emit = defineEmits(["create"]);
 const authStore = useAuthStore();
 const templateStore = useTemplateStore();
 
@@ -295,16 +257,16 @@ const selectedSkillsAndTools = ref({
 });
 
 // Prompt模板相关状态
-const selectedProfession = ref('medical');
+const selectedProfession = ref("medical");
 const promptTemplates = ref([]);
 const loadingPromptTemplates = ref(false);
 
 // 职业分类配置
 const professions = [
-  { label: '医疗', value: 'medical', icon: MedicineBoxOutlined },
-  { label: '法律', value: 'legal', icon: SafetyCertificateOutlined },
-  { label: '教育', value: 'education', icon: ReadOutlined },
-  { label: '研究', value: 'research', icon: ExperimentOutlined },
+  { label: "医疗", value: "medical", icon: MedicineBoxOutlined },
+  { label: "法律", value: "legal", icon: SafetyCertificateOutlined },
+  { label: "教育", value: "education", icon: ReadOutlined },
+  { label: "研究", value: "research", icon: ExperimentOutlined },
 ];
 
 // 过滤的Prompt模板（根据选中的职业）
@@ -312,61 +274,72 @@ const filteredPromptTemplates = computed(() => {
   if (!promptTemplates.value || promptTemplates.value.length === 0) {
     return [];
   }
-  return promptTemplates.value.filter(t => t.category === selectedProfession.value);
+  return promptTemplates.value.filter(
+    (t) => t.category === selectedProfession.value,
+  );
 });
 
 const formData = reactive({
-  userPrompt: '',
-  name: '',
-  projectType: '', // 留空让后端AI自动识别项目类型
+  userPrompt: "",
+  name: "",
+  projectType: "", // 留空让后端AI自动识别项目类型
 });
 
 // 表单验证规则
 const rules = {
   userPrompt: [
-    { required: true, message: '请输入项目需求描述', trigger: 'blur' },
-    { min: 20, message: '需求描述至少20个字符', trigger: 'blur' },
+    { required: true, message: "请输入项目需求描述", trigger: "blur" },
+    { min: 20, message: "需求描述至少20个字符", trigger: "blur" },
   ],
   // projectType不再必填，留空时让后端AI自动识别
 };
 
 // 监听初始模板变化
-watch(() => props.initialTemplate, (newTemplate) => {
-  if (newTemplate) {
-    selectedTemplate.value = newTemplate;
-    // 填充模板信息到表单
-    if (newTemplate.prompt_template) {
-      formData.userPrompt = newTemplate.prompt_template;
+watch(
+  () => props.initialTemplate,
+  (newTemplate) => {
+    if (newTemplate) {
+      selectedTemplate.value = newTemplate;
+      // 填充模板信息到表单
+      if (newTemplate.prompt_template) {
+        formData.userPrompt = newTemplate.prompt_template;
+      }
+      if (newTemplate.project_type) {
+        formData.projectType = newTemplate.project_type;
+      }
+      message.info(
+        `已加载模板：${newTemplate.display_name || newTemplate.name}`,
+      );
     }
-    if (newTemplate.project_type) {
-      formData.projectType = newTemplate.project_type;
-    }
-    message.info(`已加载模板：${newTemplate.display_name || newTemplate.name}`);
-  }
-}, { immediate: true });
+  },
+  { immediate: true },
+);
 
 // 示例需求
 const examples = [
   {
-    title: 'Todo应用',
-    description: '创建一个待办事项管理应用',
+    title: "Todo应用",
+    description: "创建一个待办事项管理应用",
     icon: CodeOutlined,
-    prompt: '创建一个现代化的待办事项管理应用，使用Vue3 + TypeScript开发。功能包括：添加、删除、编辑任务，设置优先级，标记完成状态，支持分类和搜索。界面要简洁美观，支持暗黑模式。',
-    type: 'web',
+    prompt:
+      "创建一个现代化的待办事项管理应用，使用Vue3 + TypeScript开发。功能包括：添加、删除、编辑任务，设置优先级，标记完成状态，支持分类和搜索。界面要简洁美观，支持暗黑模式。",
+    type: "web",
   },
   {
-    title: '博客系统',
-    description: '个人技术博客网站',
+    title: "博客系统",
+    description: "个人技术博客网站",
     icon: FileTextOutlined,
-    prompt: '开发一个个人技术博客系统，支持Markdown编写文章，代码高亮显示，文章分类和标签，评论功能，全文搜索。界面采用简约风格，响应式设计支持移动端访问。',
-    type: 'web',
+    prompt:
+      "开发一个个人技术博客系统，支持Markdown编写文章，代码高亮显示，文章分类和标签，评论功能，全文搜索。界面采用简约风格，响应式设计支持移动端访问。",
+    type: "web",
   },
   {
-    title: '数据看板',
-    description: '数据可视化分析看板',
+    title: "数据看板",
+    description: "数据可视化分析看板",
     icon: BarChartOutlined,
-    prompt: '构建一个数据可视化分析看板，展示销售数据、用户增长、收入趋势等指标。使用ECharts图表库，包含折线图、柱状图、饼图、地图等多种图表类型，支持时间范围筛选和数据导出。',
-    type: 'data',
+    prompt:
+      "构建一个数据可视化分析看板，展示销售数据、用户增长、收入趋势等指标。使用ECharts图表库，包含折线图、柱状图、饼图、地图等多种图表类型，支持时间范围筛选和数据导出。",
+    type: "data",
   },
 ];
 
@@ -374,7 +347,7 @@ const examples = [
 const fillExample = (example) => {
   formData.userPrompt = example.prompt;
   formData.projectType = example.type;
-  formData.name = '';
+  formData.name = "";
 };
 
 // 提交表单
@@ -383,9 +356,9 @@ const handleSubmit = async () => {
 
   // 构建 createData，避免传递 undefined 值（Electron IPC 不支持）
   const createData = {
-    userPrompt: formData.userPrompt || '',  // 确保不是 undefined
-    projectType: formData.projectType || 'general',  // 使用驼峰命名与后端一致，确保有默认值
-    userId: authStore.currentUser?.id || 'default-user',
+    userPrompt: formData.userPrompt || "", // 确保不是 undefined
+    projectType: formData.projectType || "general", // 使用驼峰命名与后端一致，确保有默认值
+    userId: authStore.currentUser?.id || "default-user",
   };
 
   // 只有当 name 有值时才添加到 createData
@@ -406,7 +379,7 @@ const handleSubmit = async () => {
     createData.templateId = selectedTemplate.value.id;
   }
 
-  emit('create', createData);
+  emit("create", createData);
 
   // 延迟重置creating状态，等待父组件显示进度
   setTimeout(() => {
@@ -431,14 +404,14 @@ const handleTemplateConfirm = async (template) => {
       // 初始化变量默认值
       templateVariables.value = {};
       template.variables.forEach((variable) => {
-        templateVariables.value[variable.name] = variable.default || '';
+        templateVariables.value[variable.name] = variable.default || "";
       });
 
       // 渲染提示词模板（使用默认值）
       await renderAndFillPrompt();
     } else {
       // 没有变量，直接使用提示词模板
-      formData.userPrompt = template.prompt_template || '';
+      formData.userPrompt = template.prompt_template || "";
     }
 
     // 设置项目类型
@@ -453,25 +426,27 @@ const handleTemplateConfirm = async (template) => {
 
     message.success(`已选择模板：${template.display_name || template.name}`);
   } catch (error) {
-    logger.error('处理模板选择失败:', error);
-    message.error('处理模板失败：' + error.message);
+    logger.error("处理模板选择失败:", error);
+    message.error("处理模板失败：" + error.message);
   }
 };
 
 // 渲染并填充提示词
 const renderAndFillPrompt = async () => {
   try {
-    if (!selectedTemplate.value) {return;}
+    if (!selectedTemplate.value) {
+      return;
+    }
 
     const renderedPrompt = await templateStore.renderPrompt(
       selectedTemplate.value.id,
-      templateVariables.value
+      templateVariables.value,
     );
     formData.userPrompt = renderedPrompt;
   } catch (error) {
-    logger.error('渲染提示词失败:', error);
+    logger.error("渲染提示词失败:", error);
     // 如果渲染失败，直接使用原始模板
-    formData.userPrompt = selectedTemplate.value.prompt_template || '';
+    formData.userPrompt = selectedTemplate.value.prompt_template || "";
   }
 };
 
@@ -479,8 +454,8 @@ const renderAndFillPrompt = async () => {
 const clearTemplate = () => {
   selectedTemplate.value = null;
   templateVariables.value = {};
-  formData.userPrompt = '';
-  formData.projectType = '';
+  formData.userPrompt = "";
+  formData.projectType = "";
 };
 
 // 取消模板选择
@@ -493,50 +468,66 @@ const handleTemplateCancel = () => {
 // 加载Prompt模板
 const loadPromptTemplates = async () => {
   try {
-    logger.info('[AIProjectCreator] 开始加载Prompt模板...');
+    logger.info("[AIProjectCreator] 开始加载Prompt模板...");
     loadingPromptTemplates.value = true;
 
     // 检查electronAPI
     if (!window.electronAPI || !window.electronAPI.promptTemplate) {
-      logger.error('[AIProjectCreator] ❌ electronAPI.promptTemplate 不可用');
-      message.error('Prompt模板API不可用');
+      logger.error("[AIProjectCreator] ❌ electronAPI.promptTemplate 不可用");
+      message.error("Prompt模板API不可用");
       return;
     }
 
     // 通过electronAPI加载所有Prompt模板
-    logger.info('[AIProjectCreator] 调用 electronAPI.promptTemplate.getAll()...');
+    logger.info(
+      "[AIProjectCreator] 调用 electronAPI.promptTemplate.getAll()...",
+    );
     const allTemplates = await window.electronAPI.promptTemplate.getAll();
     logger.info(`[AIProjectCreator] ✓ 获取到 ${allTemplates.length} 个模板`);
 
     // 显示所有分类
-    const categories = [...new Set(allTemplates.map(t => t.category))];
-    logger.info('[AIProjectCreator] 所有分类:', categories);
+    const categories = [...new Set(allTemplates.map((t) => t.category))];
+    logger.info("[AIProjectCreator] 所有分类:", categories);
 
     // 统计每个分类的数量
     const categoryCounts = {};
-    allTemplates.forEach(t => {
+    allTemplates.forEach((t) => {
       categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
     });
-    logger.info('[AIProjectCreator] 分类统计:', categoryCounts);
+    logger.info("[AIProjectCreator] 分类统计:", categoryCounts);
 
     // 只保留职业专用模板（medical, legal, education, research）
-    promptTemplates.value = allTemplates.filter(t =>
-      ['medical', 'legal', 'education', 'research'].includes(t.category)
+    promptTemplates.value = allTemplates.filter((t) =>
+      ["medical", "legal", "education", "research"].includes(t.category),
     );
 
-    logger.info(`[AIProjectCreator] ✓ 职业专用模板: ${promptTemplates.value.length} 个`);
-    logger.info('[AIProjectCreator] 医疗:', allTemplates.filter(t => t.category === 'medical').length);
-    logger.info('[AIProjectCreator] 法律:', allTemplates.filter(t => t.category === 'legal').length);
-    logger.info('[AIProjectCreator] 教育:', allTemplates.filter(t => t.category === 'education').length);
-    logger.info('[AIProjectCreator] 研究:', allTemplates.filter(t => t.category === 'research').length);
+    logger.info(
+      `[AIProjectCreator] ✓ 职业专用模板: ${promptTemplates.value.length} 个`,
+    );
+    logger.info(
+      "[AIProjectCreator] 医疗:",
+      allTemplates.filter((t) => t.category === "medical").length,
+    );
+    logger.info(
+      "[AIProjectCreator] 法律:",
+      allTemplates.filter((t) => t.category === "legal").length,
+    );
+    logger.info(
+      "[AIProjectCreator] 教育:",
+      allTemplates.filter((t) => t.category === "education").length,
+    );
+    logger.info(
+      "[AIProjectCreator] 研究:",
+      allTemplates.filter((t) => t.category === "research").length,
+    );
 
     if (promptTemplates.value.length === 0) {
-      logger.warn('[AIProjectCreator] ⚠️ 职业专用模板数量为0！');
-      message.warning('未找到职业专用模板');
+      logger.warn("[AIProjectCreator] ⚠️ 职业专用模板数量为0！");
+      message.warning("未找到职业专用模板");
     }
   } catch (error) {
-    logger.error('[AIProjectCreator] ❌ 加载Prompt模板失败:', error);
-    message.error('加载Prompt模板失败: ' + error.message);
+    logger.error("[AIProjectCreator] ❌ 加载Prompt模板失败:", error);
+    message.error("加载Prompt模板失败: " + error.message);
     promptTemplates.value = [];
   } finally {
     loadingPromptTemplates.value = false;
@@ -557,13 +548,16 @@ const fillPromptTemplate = async (template) => {
     if (variables.length > 0) {
       // 如果有变量，创建一个示例填充值的对象
       const exampleValues = {};
-      variables.forEach(varName => {
+      variables.forEach((varName) => {
         // 为每个变量提供一个示例值
         exampleValues[varName] = `[请填写${varName}]`;
       });
 
       // 使用electronAPI填充模板
-      const filledPrompt = await window.electronAPI.promptTemplate.fill(template.id, exampleValues);
+      const filledPrompt = await window.electronAPI.promptTemplate.fill(
+        template.id,
+        exampleValues,
+      );
       formData.userPrompt = filledPrompt;
     } else {
       // 没有变量，直接使用模板内容
@@ -572,10 +566,10 @@ const fillPromptTemplate = async (template) => {
 
     message.success(`已选择模板：${template.name}`);
   } catch (error) {
-    logger.error('Fill prompt template failed:', error);
+    logger.error("Fill prompt template failed:", error);
     // 如果填充失败，直接使用原始模板
     formData.userPrompt = template.template || template.description;
-    message.warning('已填充模板，但部分变量需要手动替换');
+    message.warning("已填充模板，但部分变量需要手动替换");
   }
 };
 

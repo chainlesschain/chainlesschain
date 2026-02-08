@@ -21,7 +21,7 @@
  * @updated 2026-01-26
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const path = require("path");
 
 // Existing managers
@@ -53,7 +53,14 @@ const { registerMemorySyncIPC } = require("./memory-sync-ipc");
 
 // MemGPT Long-term Memory (v2.3.0)
 const { MemGPTCore, getMemGPTCore, MEMGPT_TOOLS } = require("./memgpt-core");
-const { MemoryHierarchy, MemoryType, MemoryImportance, WorkingMemory, RecallMemory, ArchivalMemory } = require("./memory-hierarchy");
+const {
+  MemoryHierarchy,
+  MemoryType,
+  MemoryImportance,
+  WorkingMemory,
+  RecallMemory,
+  ArchivalMemory,
+} = require("./memory-hierarchy");
 const { MemorySearchEngine, SearchMode } = require("./memory-search");
 const { registerMemGPTIPC } = require("./memgpt-ipc");
 

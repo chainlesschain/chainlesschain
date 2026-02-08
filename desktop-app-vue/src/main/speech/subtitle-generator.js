@@ -5,9 +5,9 @@
  * 用于音频/视频转录结果的字幕导出
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
 
 /**
  * 时间格式化工具
@@ -24,7 +24,7 @@ class TimeFormatter {
     const secs = Math.floor(seconds % 60);
     const milliseconds = Math.floor((seconds % 1) * 1000);
 
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(milliseconds).padStart(3, '0')}`;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")},${String(milliseconds).padStart(3, "0")}`;
   }
 
   /**
@@ -38,7 +38,7 @@ class TimeFormatter {
     const secs = Math.floor(seconds % 60);
     const milliseconds = Math.floor((seconds % 1) * 1000);
 
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${String(milliseconds).padStart(3, "0")}`;
   }
 
   /**
@@ -47,8 +47,8 @@ class TimeFormatter {
    * @returns {number} 秒数
    */
   static parseSRTTime(timeString) {
-    const [time, ms] = timeString.split(',');
-    const [hours, minutes, seconds] = time.split(':').map(Number);
+    const [time, ms] = timeString.split(",");
+    const [hours, minutes, seconds] = time.split(":").map(Number);
     return hours * 3600 + minutes * 60 + seconds + Number(ms) / 1000;
   }
 
@@ -58,8 +58,8 @@ class TimeFormatter {
    * @returns {number} 秒数
    */
   static parseVTTTime(timeString) {
-    const [time, ms] = timeString.split('.');
-    const [hours, minutes, seconds] = time.split(':').map(Number);
+    const [time, ms] = timeString.split(".");
+    const [hours, minutes, seconds] = time.split(":").map(Number);
     return hours * 3600 + minutes * 60 + seconds + Number(ms) / 1000;
   }
 }
@@ -70,8 +70,8 @@ class TimeFormatter {
 class SubtitleEntry {
   constructor(index, startTime, endTime, text) {
     this.index = index;
-    this.startTime = startTime;  // 秒
-    this.endTime = endTime;      // 秒
+    this.startTime = startTime; // 秒
+    this.endTime = endTime; // 秒
     this.text = text;
   }
 
@@ -98,11 +98,11 @@ class SubtitleEntry {
 class SubtitleGenerator {
   constructor(config = {}) {
     this.config = {
-      maxCharsPerLine: 42,        // 每行最大字符数
-      maxLinesPerSubtitle: 2,     // 每条字幕最大行数
-      minDuration: 1.0,           // 最小显示时长（秒）
-      maxDuration: 7.0,           // 最大显示时长（秒）
-      charsPerSecond: 15,         // 每秒阅读字符数
+      maxCharsPerLine: 42, // 每行最大字符数
+      maxLinesPerSubtitle: 2, // 每条字幕最大行数
+      minDuration: 1.0, // 最小显示时长（秒）
+      maxDuration: 7.0, // 最大显示时长（秒）
+      charsPerSecond: 15, // 每秒阅读字符数
       segmentOnPunctuation: true, // 是否在标点符号处分段
       ...config,
     };
@@ -117,15 +117,15 @@ class SubtitleGenerator {
    */
   generateFromText(text, totalDuration, options = {}) {
     const {
-      wordsPerMinute = 150,       // 平均语速（字/分钟）
-      punctuationMarks = ['。', '！', '？', '.', '!', '?', '\n'],
+      wordsPerMinute = 150, // 平均语速（字/分钟）
+      punctuationMarks = ["。", "！", "？", ".", "!", "?", "\n"],
     } = options;
 
     // 按标点分句
     let sentences = this.splitBySentences(text, punctuationMarks);
 
     // 移除空句子
-    sentences = sentences.filter(s => s.trim().length > 0);
+    sentences = sentences.filter((s) => s.trim().length > 0);
 
     if (sentences.length === 0) {
       return [];
@@ -141,7 +141,10 @@ class SubtitleGenerator {
       // 计算这句话的时长（基于字符数和阅读速度）
       const duration = Math.max(
         this.config.minDuration,
-        Math.min(charCount / this.config.charsPerSecond, this.config.maxDuration)
+        Math.min(
+          charCount / this.config.charsPerSecond,
+          this.config.maxDuration,
+        ),
       );
 
       // 如果超过总时长，调整
@@ -150,12 +153,9 @@ class SubtitleGenerator {
       // 分行（如果需要）
       const lines = this.splitIntoLines(sentence);
 
-      subtitles.push(new SubtitleEntry(
-        i + 1,
-        currentTime,
-        endTime,
-        lines.join('\n')
-      ));
+      subtitles.push(
+        new SubtitleEntry(i + 1, currentTime, endTime, lines.join("\n")),
+      );
 
       currentTime = endTime;
     }
@@ -175,12 +175,9 @@ class SubtitleGenerator {
       const segment = segments[i];
       const lines = this.splitIntoLines(segment.text);
 
-      subtitles.push(new SubtitleEntry(
-        i + 1,
-        segment.start,
-        segment.end,
-        lines.join('\n')
-      ));
+      subtitles.push(
+        new SubtitleEntry(i + 1, segment.start, segment.end, lines.join("\n")),
+      );
     }
 
     return subtitles;
@@ -194,7 +191,7 @@ class SubtitleGenerator {
    */
   splitBySentences(text, punctuationMarks) {
     const sentences = [];
-    let currentSentence = '';
+    let currentSentence = "";
 
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
@@ -202,7 +199,7 @@ class SubtitleGenerator {
 
       if (punctuationMarks.includes(char)) {
         sentences.push(currentSentence);
-        currentSentence = '';
+        currentSentence = "";
       }
     }
 
@@ -220,9 +217,9 @@ class SubtitleGenerator {
    * @returns {Array<string>}
    */
   splitIntoLines(text) {
-    const words = text.split('');  // 中文按字符分，英文需要特殊处理
+    const words = text.split(""); // 中文按字符分，英文需要特殊处理
     const lines = [];
-    let currentLine = '';
+    let currentLine = "";
 
     for (const char of words) {
       if (currentLine.length + 1 > this.config.maxCharsPerLine) {
@@ -250,7 +247,7 @@ class SubtitleGenerator {
    * @returns {string}
    */
   toSRT(subtitles) {
-    return subtitles.map(sub => sub.toSRT()).join('\n');
+    return subtitles.map((sub) => sub.toSRT()).join("\n");
   }
 
   /**
@@ -259,8 +256,8 @@ class SubtitleGenerator {
    * @returns {string}
    */
   toVTT(subtitles) {
-    let content = 'WEBVTT\n\n';
-    content += subtitles.map(sub => sub.toVTT()).join('\n');
+    let content = "WEBVTT\n\n";
+    content += subtitles.map((sub) => sub.toVTT()).join("\n");
     return content;
   }
 
@@ -271,22 +268,24 @@ class SubtitleGenerator {
    */
   parseSRT(srtText) {
     const subtitles = [];
-    const blocks = srtText.split('\n\n').filter(b => b.trim());
+    const blocks = srtText.split("\n\n").filter((b) => b.trim());
 
     for (const block of blocks) {
-      const lines = block.split('\n');
+      const lines = block.split("\n");
 
       if (lines.length >= 3) {
         const index = parseInt(lines[0]);
-        const [startTime, endTime] = lines[1].split(' --> ');
-        const text = lines.slice(2).join('\n');
+        const [startTime, endTime] = lines[1].split(" --> ");
+        const text = lines.slice(2).join("\n");
 
-        subtitles.push(new SubtitleEntry(
-          index,
-          TimeFormatter.parseSRTTime(startTime),
-          TimeFormatter.parseSRTTime(endTime),
-          text
-        ));
+        subtitles.push(
+          new SubtitleEntry(
+            index,
+            TimeFormatter.parseSRTTime(startTime),
+            TimeFormatter.parseSRTTime(endTime),
+            text,
+          ),
+        );
       }
     }
 
@@ -302,23 +301,25 @@ class SubtitleGenerator {
     const subtitles = [];
 
     // 移除 WEBVTT 头部
-    const content = vttText.replace(/^WEBVTT\n+/, '');
-    const blocks = content.split('\n\n').filter(b => b.trim());
+    const content = vttText.replace(/^WEBVTT\n+/, "");
+    const blocks = content.split("\n\n").filter((b) => b.trim());
 
     let index = 1;
     for (const block of blocks) {
-      const lines = block.split('\n');
+      const lines = block.split("\n");
 
       if (lines.length >= 2) {
-        const [startTime, endTime] = lines[0].split(' --> ');
-        const text = lines.slice(1).join('\n');
+        const [startTime, endTime] = lines[0].split(" --> ");
+        const text = lines.slice(1).join("\n");
 
-        subtitles.push(new SubtitleEntry(
-          index++,
-          TimeFormatter.parseVTTTime(startTime),
-          TimeFormatter.parseVTTTime(endTime),
-          text
-        ));
+        subtitles.push(
+          new SubtitleEntry(
+            index++,
+            TimeFormatter.parseVTTTime(startTime),
+            TimeFormatter.parseVTTTime(endTime),
+            text,
+          ),
+        );
       }
     }
 
@@ -332,19 +333,19 @@ class SubtitleGenerator {
    * @param {string} format - 格式 (srt|vtt)
    * @returns {Promise<Object>}
    */
-  async saveSubtitleFile(subtitles, outputPath, format = 'srt') {
+  async saveSubtitleFile(subtitles, outputPath, format = "srt") {
     try {
       let content;
 
-      if (format.toLowerCase() === 'srt') {
+      if (format.toLowerCase() === "srt") {
         content = this.toSRT(subtitles);
-      } else if (format.toLowerCase() === 'vtt') {
+      } else if (format.toLowerCase() === "vtt") {
         content = this.toVTT(subtitles);
       } else {
         throw new Error(`不支持的字幕格式: ${format}`);
       }
 
-      await fs.writeFile(outputPath, content, 'utf-8');
+      await fs.writeFile(outputPath, content, "utf-8");
 
       logger.info(`[SubtitleGenerator] 字幕已保存: ${outputPath}`);
 
@@ -355,7 +356,7 @@ class SubtitleGenerator {
         subtitleCount: subtitles.length,
       };
     } catch (error) {
-      logger.error('[SubtitleGenerator] 保存字幕失败:', error);
+      logger.error("[SubtitleGenerator] 保存字幕失败:", error);
       throw error;
     }
   }
@@ -367,9 +368,9 @@ class SubtitleGenerator {
    * @param {string} format - 格式
    * @returns {Promise<Object>}
    */
-  async saveWhisperSubtitle(whisperResponse, outputPath, format = 'srt') {
+  async saveWhisperSubtitle(whisperResponse, outputPath, format = "srt") {
     try {
-      await fs.writeFile(outputPath, whisperResponse, 'utf-8');
+      await fs.writeFile(outputPath, whisperResponse, "utf-8");
 
       logger.info(`[SubtitleGenerator] Whisper 字幕已保存: ${outputPath}`);
 
@@ -379,7 +380,7 @@ class SubtitleGenerator {
         format: format,
       };
     } catch (error) {
-      logger.error('[SubtitleGenerator] 保存 Whisper 字幕失败:', error);
+      logger.error("[SubtitleGenerator] 保存 Whisper 字幕失败:", error);
       throw error;
     }
   }
@@ -391,7 +392,7 @@ class SubtitleGenerator {
    * @param {string} format - 格式
    * @returns {Promise<Array>}
    */
-  async batchGenerate(transcriptions, outputDir, format = 'srt') {
+  async batchGenerate(transcriptions, outputDir, format = "srt") {
     const results = [];
 
     for (const transcription of transcriptions) {
@@ -404,7 +405,11 @@ class SubtitleGenerator {
         const subtitles = this.generateFromText(text, duration);
 
         // 保存文件
-        const result = await this.saveSubtitleFile(subtitles, outputPath, format);
+        const result = await this.saveSubtitleFile(
+          subtitles,
+          outputPath,
+          format,
+        );
 
         results.push({
           success: true,
@@ -435,13 +440,13 @@ class SubtitleGenerator {
       let timeOffset = 0;
 
       for (const subtitlePath of subtitlePaths) {
-        const content = await fs.readFile(subtitlePath, 'utf-8');
+        const content = await fs.readFile(subtitlePath, "utf-8");
         const ext = path.extname(subtitlePath).toLowerCase();
 
         let subtitles;
-        if (ext === '.srt') {
+        if (ext === ".srt") {
           subtitles = this.parseSRT(content);
-        } else if (ext === '.vtt') {
+        } else if (ext === ".vtt") {
           subtitles = this.parseVTT(content);
         } else {
           throw new Error(`不支持的字幕格式: ${ext}`);
@@ -472,7 +477,7 @@ class SubtitleGenerator {
         sourceFiles: subtitlePaths.length,
       };
     } catch (error) {
-      logger.error('[SubtitleGenerator] 合并字幕失败:', error);
+      logger.error("[SubtitleGenerator] 合并字幕失败:", error);
       throw error;
     }
   }
@@ -484,12 +489,12 @@ class SubtitleGenerator {
    * @returns {Array<SubtitleEntry>}
    */
   adjustTiming(subtitles, offset) {
-    return subtitles.map(subtitle => {
+    return subtitles.map((subtitle) => {
       return new SubtitleEntry(
         subtitle.index,
         Math.max(0, subtitle.startTime + offset),
         Math.max(0, subtitle.endTime + offset),
-        subtitle.text
+        subtitle.text,
       );
     });
   }
@@ -500,7 +505,7 @@ class SubtitleGenerator {
    * @returns {Array<SubtitleEntry>}
    */
   filterEmpty(subtitles) {
-    return subtitles.filter(subtitle => subtitle.text.trim().length > 0);
+    return subtitles.filter((subtitle) => subtitle.text.trim().length > 0);
   }
 
   /**

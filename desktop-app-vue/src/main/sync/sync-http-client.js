@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const axios = require("axios");
 const config = require("./sync-config");
 const crypto = require("crypto");

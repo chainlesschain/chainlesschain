@@ -5,7 +5,7 @@
  * 支持流式识别和即时反馈
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
 const { Readable } = require("stream");
 const fs = require("fs").promises;

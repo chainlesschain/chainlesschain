@@ -7,12 +7,7 @@
         版本历史
       </h3>
       <a-space>
-        <a-button
-          size="small"
-          @click="emit('close')"
-        >
-          关闭
-        </a-button>
+        <a-button size="small" @click="emit('close')"> 关闭 </a-button>
         <a-button
           type="primary"
           size="small"
@@ -41,15 +36,12 @@
               />
             </template>
 
-            <a-card
-              size="small"
-              class="version-card"
-            >
+            <a-card size="small" class="version-card">
               <!-- 版本头部 -->
               <div class="version-header">
                 <div class="version-info">
                   <a-tag :color="index === 0 ? 'blue' : 'default'">
-                    {{ index === 0 ? '当前版本' : `v${version.version}` }}
+                    {{ index === 0 ? "当前版本" : `v${version.version}` }}
                   </a-tag>
                   <span class="version-time">
                     {{ formatDate(version.updated_at) }}
@@ -96,17 +88,11 @@
                   <UserOutlined />
                   <span>更新者：{{ getUserName(version.updated_by) }}</span>
                 </div>
-                <div
-                  v-if="version.git_commit_hash"
-                  class="detail-item"
-                >
+                <div v-if="version.git_commit_hash" class="detail-item">
                   <BranchesOutlined />
                   <span>提交：{{ shortenHash(version.git_commit_hash) }}</span>
                 </div>
-                <div
-                  v-if="version.cid"
-                  class="detail-item"
-                >
+                <div v-if="version.cid" class="detail-item">
                   <LinkOutlined />
                   <span>CID：{{ shortenCID(version.cid) }}</span>
                   <a-tooltip title="复制CID">
@@ -139,19 +125,24 @@
                 style="margin-top: 8px; padding: 0"
                 @click="toggleVersionExpand(version.id)"
               >
-                {{ expandedVersions.includes(version.id) ? '收起' : '展开内容预览' }}
+                {{
+                  expandedVersions.includes(version.id)
+                    ? "收起"
+                    : "展开内容预览"
+                }}
                 <component
-                  :is="expandedVersions.includes(version.id) ? UpOutlined : DownOutlined"
+                  :is="
+                    expandedVersions.includes(version.id)
+                      ? UpOutlined
+                      : DownOutlined
+                  "
                 />
               </a-button>
             </a-card>
           </a-timeline-item>
         </a-timeline>
 
-        <a-empty
-          v-else
-          description="暂无版本历史"
-        />
+        <a-empty v-else description="暂无版本历史" />
       </a-spin>
     </div>
 
@@ -176,14 +167,8 @@
       width="800px"
       :footer="null"
     >
-      <div
-        v-if="viewVersion"
-        class="version-view"
-      >
-        <a-descriptions
-          :column="1"
-          bordered
-        >
+      <div v-if="viewVersion" class="version-view">
+        <a-descriptions :column="1" bordered>
           <a-descriptions-item label="版本号">
             v{{ viewVersion.version }}
           </a-descriptions-item>
@@ -199,10 +184,7 @@
           >
             {{ viewVersion.git_commit_hash }}
           </a-descriptions-item>
-          <a-descriptions-item
-            v-if="viewVersion.cid"
-            label="CID"
-          >
+          <a-descriptions-item v-if="viewVersion.cid" label="CID">
             {{ viewVersion.cid }}
           </a-descriptions-item>
         </a-descriptions>
@@ -218,11 +200,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
-import { useIdentityStore } from '@/stores/identityStore';
+import { ref, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import { useIdentityStore } from "@/stores/identityStore";
 import {
   HistoryOutlined,
   ReloadOutlined,
@@ -236,23 +218,23 @@ import {
   UpOutlined,
   EyeOutlined,
   DiffOutlined,
-  RollbackOutlined
-} from '@ant-design/icons-vue';
-import VersionDiff from './VersionDiff.vue';
+  RollbackOutlined,
+} from "@ant-design/icons-vue";
+import VersionDiff from "./VersionDiff.vue";
 
 // ==================== Props & Emits ====================
 const props = defineProps({
   knowledgeId: {
     type: String,
-    required: true
+    required: true,
   },
   orgId: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 });
 
-const emit = defineEmits(['close', 'restore']);
+const emit = defineEmits(["close", "restore"]);
 
 // ==================== State ====================
 const loading = ref(false);
@@ -262,7 +244,7 @@ const expandedVersions = ref([]);
 const showCompareModal = ref(false);
 const compareVersions = ref({
   current: null,
-  target: null
+  target: null,
 });
 
 const showViewModal = ref(false);
@@ -277,19 +259,22 @@ async function loadVersionHistory() {
   try {
     loading.value = true;
 
-    const result = await window.electron.ipcRenderer.invoke('knowledge:get-version-history', {
-      knowledgeId: props.knowledgeId,
-      orgId: props.orgId
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "knowledge:get-version-history",
+      {
+        knowledgeId: props.knowledgeId,
+        orgId: props.orgId,
+      },
+    );
 
     if (result.success) {
       versions.value = result.versions || [];
     } else {
-      message.error(result.error || '加载版本历史失败');
+      message.error(result.error || "加载版本历史失败");
     }
   } catch (error) {
-    logger.error('加载版本历史失败:', error);
-    message.error('加载版本历史失败');
+    logger.error("加载版本历史失败:", error);
+    message.error("加载版本历史失败");
   } finally {
     loading.value = false;
   }
@@ -316,7 +301,7 @@ function handleViewVersion(version) {
 function handleCompareVersion(version) {
   compareVersions.value = {
     current: versions.value[0], // 当前版本
-    target: version
+    target: version,
   };
   showCompareModal.value = true;
 }
@@ -328,24 +313,27 @@ async function handleRestoreVersion(version) {
   try {
     // 获取当前用户DID（需要从identityStore获取）
     const identityStore = useIdentityStore ? useIdentityStore() : null;
-    const restoredBy = identityStore?.currentUserDID || 'system';
+    const restoredBy = identityStore?.currentUserDID || "system";
 
-    const result = await window.electron.ipcRenderer.invoke('knowledge:restore-version', {
-      knowledgeId: props.knowledgeId,
-      versionId: version.id,
-      restoredBy
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "knowledge:restore-version",
+      {
+        knowledgeId: props.knowledgeId,
+        versionId: version.id,
+        restoredBy,
+      },
+    );
 
     if (result.success) {
-      message.success('版本恢复成功');
-      emit('restore', version);
+      message.success("版本恢复成功");
+      emit("restore", version);
       await loadVersionHistory();
     } else {
-      message.error(result.error || '版本恢复失败');
+      message.error(result.error || "版本恢复失败");
     }
   } catch (error) {
-    logger.error('版本恢复失败:', error);
-    message.error('版本恢复失败');
+    logger.error("版本恢复失败:", error);
+    message.error("版本恢复失败");
   }
 }
 
@@ -365,15 +353,19 @@ function toggleVersionExpand(versionId) {
  * 获取版本颜色
  */
 function getVersionColor(version, index) {
-  if (index === 0) {return 'blue';} // 当前版本
-  return 'gray';
+  if (index === 0) {
+    return "blue";
+  } // 当前版本
+  return "gray";
 }
 
 /**
  * 获取版本图标
  */
 function getVersionIcon(version, index) {
-  if (index === 0) {return CheckCircleOutlined;} // 当前版本
+  if (index === 0) {
+    return CheckCircleOutlined;
+  } // 当前版本
   return ClockCircleOutlined;
 }
 
@@ -381,7 +373,9 @@ function getVersionIcon(version, index) {
  * 获取用户名
  */
 function getUserName(did) {
-  if (!did) {return '未知';}
+  if (!did) {
+    return "未知";
+  }
   // 缩短DID显示
   if (did.length > 20) {
     return `${did.slice(0, 10)}...${did.slice(-6)}`;
@@ -393,7 +387,9 @@ function getUserName(did) {
  * 缩短哈希值
  */
 function shortenHash(hash) {
-  if (!hash) {return '';}
+  if (!hash) {
+    return "";
+  }
   return hash.length > 12 ? `${hash.slice(0, 12)}...` : hash;
 }
 
@@ -401,7 +397,9 @@ function shortenHash(hash) {
  * 缩短CID
  */
 function shortenCID(cid) {
-  if (!cid) {return '';}
+  if (!cid) {
+    return "";
+  }
   return cid.length > 20 ? `${cid.slice(0, 10)}...${cid.slice(-10)}` : cid;
 }
 
@@ -409,9 +407,11 @@ function shortenCID(cid) {
  * 获取内容预览
  */
 function getContentPreview(content) {
-  if (!content) {return '暂无内容';}
-  const text = content.replace(/<[^>]*>/g, '').trim();
-  return text.length > 200 ? text.substring(0, 200) + '...' : text;
+  if (!content) {
+    return "暂无内容";
+  }
+  const text = content.replace(/<[^>]*>/g, "").trim();
+  return text.length > 200 ? text.substring(0, 200) + "..." : text;
 }
 
 /**
@@ -419,22 +419,24 @@ function getContentPreview(content) {
  */
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text);
-  message.success('已复制到剪贴板');
+  message.success("已复制到剪贴板");
 }
 
 /**
  * 格式化日期
  */
 function formatDate(timestamp) {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 }
 

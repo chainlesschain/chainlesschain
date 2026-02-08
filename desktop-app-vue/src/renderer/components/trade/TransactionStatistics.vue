@@ -25,15 +25,9 @@
 
       <a-spin :spinning="loading">
         <!-- 概览统计 -->
-        <a-row
-          :gutter="[16, 16]"
-          style="margin-bottom: 24px"
-        >
+        <a-row :gutter="[16, 16]" style="margin-bottom: 24px">
           <a-col :span="6">
-            <a-card
-              size="small"
-              hoverable
-            >
+            <a-card size="small" hoverable>
               <a-statistic
                 title="总交易数"
                 :value="statistics.totalTransactions"
@@ -46,10 +40,7 @@
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card
-              size="small"
-              hoverable
-            >
+            <a-card size="small" hoverable>
               <a-statistic
                 title="总交易额"
                 :value="statistics.totalVolume"
@@ -63,10 +54,7 @@
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card
-              size="small"
-              hoverable
-            >
+            <a-card size="small" hoverable>
               <a-statistic
                 title="成功率"
                 :value="statistics.successRate"
@@ -81,10 +69,7 @@
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card
-              size="small"
-              hoverable
-            >
+            <a-card size="small" hoverable>
               <a-statistic
                 title="平均金额"
                 :value="statistics.averageAmount"
@@ -103,53 +88,29 @@
         <a-row :gutter="[16, 16]">
           <!-- 交易趋势图 -->
           <a-col :span="12">
-            <a-card
-              title="交易趋势"
-              size="small"
-            >
-              <div
-                ref="trendChartRef"
-                style="width: 100%; height: 300px"
-              />
+            <a-card title="交易趋势" size="small">
+              <div ref="trendChartRef" style="width: 100%; height: 300px" />
             </a-card>
           </a-col>
 
           <!-- 交易类型分布 -->
           <a-col :span="12">
-            <a-card
-              title="交易类型分布"
-              size="small"
-            >
-              <div
-                ref="typeChartRef"
-                style="width: 100%; height: 300px"
-              />
+            <a-card title="交易类型分布" size="small">
+              <div ref="typeChartRef" style="width: 100%; height: 300px" />
             </a-card>
           </a-col>
 
           <!-- 交易状态分布 -->
           <a-col :span="12">
-            <a-card
-              title="交易状态分布"
-              size="small"
-            >
-              <div
-                ref="statusChartRef"
-                style="width: 100%; height: 300px"
-              />
+            <a-card title="交易状态分布" size="small">
+              <div ref="statusChartRef" style="width: 100%; height: 300px" />
             </a-card>
           </a-col>
 
           <!-- 热门资产 -->
           <a-col :span="12">
-            <a-card
-              title="热门交易资产 Top 10"
-              size="small"
-            >
-              <div
-                ref="assetsChartRef"
-                style="width: 100%; height: 300px"
-              />
+            <a-card title="热门交易资产 Top 10" size="small">
+              <div ref="assetsChartRef" style="width: 100%; height: 300px" />
             </a-card>
           </a-col>
         </a-row>
@@ -159,11 +120,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
-import { init, graphic } from '../../utils/echartsConfig';
+import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { message } from "ant-design-vue";
+import { init, graphic } from "../../utils/echartsConfig";
 import {
   BarChartOutlined,
   ReloadOutlined,
@@ -171,7 +132,7 @@ import {
   DollarOutlined,
   CheckCircleOutlined,
   CalculatorOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // 图表引用
 const trendChartRef = ref(null);
@@ -205,7 +166,7 @@ const loadStatistics = async () => {
     const userDid = currentIdentity?.did;
 
     if (!userDid) {
-      message.warning('请先创建DID身份');
+      message.warning("请先创建DID身份");
       return;
     }
 
@@ -224,14 +185,14 @@ const loadStatistics = async () => {
     statistics.successRate = data.successRate;
     statistics.averageAmount = data.averageAmount;
 
-    logger.info('[TransactionStatistics] 统计数据已加载');
+    logger.info("[TransactionStatistics] 统计数据已加载");
 
     // 渲染图表
     await nextTick();
     renderCharts(data);
   } catch (error) {
-    logger.error('[TransactionStatistics] 加载统计失败:', error);
-    message.error(error.message || '加载统计失败');
+    logger.error("[TransactionStatistics] 加载统计失败:", error);
+    message.error(error.message || "加载统计失败");
   } finally {
     loading.value = false;
   }
@@ -241,32 +202,32 @@ const loadStatistics = async () => {
 const getMockStatistics = () => {
   return {
     totalTransactions: 1234,
-    totalVolume: 567890.50,
+    totalVolume: 567890.5,
     successRate: 95.8,
     averageAmount: 460.25,
     trendData: {
-      dates: ['01-15', '01-16', '01-17', '01-18', '01-19', '01-20', '01-21'],
+      dates: ["01-15", "01-16", "01-17", "01-18", "01-19", "01-20", "01-21"],
       transactions: [120, 132, 101, 134, 145, 156, 168],
       volumes: [55000, 58000, 46000, 61000, 66000, 71000, 77000],
     },
     typeDistribution: [
-      { name: '资产交易', value: 450 },
-      { name: '订单购买', value: 320 },
-      { name: '合约执行', value: 280 },
-      { name: '托管释放', value: 184 },
+      { name: "资产交易", value: 450 },
+      { name: "订单购买", value: 320 },
+      { name: "合约执行", value: 280 },
+      { name: "托管释放", value: 184 },
     ],
     statusDistribution: [
-      { name: '已完成', value: 1083 },
-      { name: '进行中', value: 89 },
-      { name: '已取消', value: 42 },
-      { name: '失败', value: 20 },
+      { name: "已完成", value: 1083 },
+      { name: "进行中", value: 89 },
+      { name: "已取消", value: 42 },
+      { name: "失败", value: 20 },
     ],
     topAssets: [
-      { name: 'CNY', value: 450 },
-      { name: 'USD', value: 280 },
-      { name: 'BTC', value: 156 },
-      { name: 'ETH', value: 128 },
-      { name: 'USDT', value: 98 },
+      { name: "CNY", value: 450 },
+      { name: "USD", value: 280 },
+      { name: "BTC", value: 156 },
+      { name: "ETH", value: 128 },
+      { name: "USDT", value: 98 },
     ],
   };
 };
@@ -281,7 +242,9 @@ const renderCharts = (data) => {
 
 // 渲染交易趋势图
 const renderTrendChart = (data) => {
-  if (!trendChartRef.value) {return;}
+  if (!trendChartRef.value) {
+    return;
+  }
 
   if (!trendChart) {
     trendChart = init(trendChartRef.value);
@@ -289,47 +252,47 @@ const renderTrendChart = (data) => {
 
   const option = {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       axisPointer: {
-        type: 'cross',
+        type: "cross",
       },
     },
     legend: {
-      data: ['交易数', '交易额'],
+      data: ["交易数", "交易额"],
     },
     xAxis: {
-      type: 'category',
+      type: "category",
       data: data.dates,
     },
     yAxis: [
       {
-        type: 'value',
-        name: '交易数',
-        position: 'left',
+        type: "value",
+        name: "交易数",
+        position: "left",
       },
       {
-        type: 'value',
-        name: '交易额',
-        position: 'right',
+        type: "value",
+        name: "交易额",
+        position: "right",
       },
     ],
     series: [
       {
-        name: '交易数',
-        type: 'bar',
+        name: "交易数",
+        type: "bar",
         data: data.transactions,
         itemStyle: {
-          color: '#1890ff',
+          color: "#1890ff",
         },
       },
       {
-        name: '交易额',
-        type: 'line',
+        name: "交易额",
+        type: "line",
         yAxisIndex: 1,
         data: data.volumes,
         smooth: true,
         itemStyle: {
-          color: '#52c41a',
+          color: "#52c41a",
         },
       },
     ],
@@ -340,7 +303,9 @@ const renderTrendChart = (data) => {
 
 // 渲染交易类型分布图
 const renderTypeChart = (data) => {
-  if (!typeChartRef.value) {return;}
+  if (!typeChartRef.value) {
+    return;
+  }
 
   if (!typeChart) {
     typeChart = init(typeChartRef.value);
@@ -348,33 +313,33 @@ const renderTypeChart = (data) => {
 
   const option = {
     tooltip: {
-      trigger: 'item',
-      formatter: '{a} <br/>{b}: {c} ({d}%)',
+      trigger: "item",
+      formatter: "{a} <br/>{b}: {c} ({d}%)",
     },
     legend: {
       bottom: 10,
-      left: 'center',
+      left: "center",
     },
     series: [
       {
-        name: '交易类型',
-        type: 'pie',
-        radius: ['40%', '70%'],
+        name: "交易类型",
+        type: "pie",
+        radius: ["40%", "70%"],
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 10,
-          borderColor: '#fff',
+          borderColor: "#fff",
           borderWidth: 2,
         },
         label: {
           show: false,
-          position: 'center',
+          position: "center",
         },
         emphasis: {
           label: {
             show: true,
             fontSize: 16,
-            fontWeight: 'bold',
+            fontWeight: "bold",
           },
         },
         labelLine: {
@@ -390,7 +355,9 @@ const renderTypeChart = (data) => {
 
 // 渲染交易状态分布图
 const renderStatusChart = (data) => {
-  if (!statusChartRef.value) {return;}
+  if (!statusChartRef.value) {
+    return;
+  }
 
   if (!statusChart) {
     statusChart = init(statusChartRef.value);
@@ -398,23 +365,23 @@ const renderStatusChart = (data) => {
 
   const option = {
     tooltip: {
-      trigger: 'item',
+      trigger: "item",
     },
     legend: {
       bottom: 10,
-      left: 'center',
+      left: "center",
     },
     series: [
       {
-        name: '交易状态',
-        type: 'pie',
-        radius: '60%',
+        name: "交易状态",
+        type: "pie",
+        radius: "60%",
         data: data,
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
             shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)',
+            shadowColor: "rgba(0, 0, 0, 0.5)",
           },
         },
       },
@@ -426,7 +393,9 @@ const renderStatusChart = (data) => {
 
 // 渲染热门资产图
 const renderAssetsChart = (data) => {
-  if (!assetsChartRef.value) {return;}
+  if (!assetsChartRef.value) {
+    return;
+  }
 
   if (!assetsChart) {
     assetsChart = init(assetsChartRef.value);
@@ -434,36 +403,36 @@ const renderAssetsChart = (data) => {
 
   const option = {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       axisPointer: {
-        type: 'shadow',
+        type: "shadow",
       },
     },
     xAxis: {
-      type: 'category',
-      data: data.map(item => item.name),
+      type: "category",
+      data: data.map((item) => item.name),
     },
     yAxis: {
-      type: 'value',
+      type: "value",
     },
     series: [
       {
-        name: '交易次数',
-        type: 'bar',
-        data: data.map(item => item.value),
+        name: "交易次数",
+        type: "bar",
+        data: data.map((item) => item.value),
         itemStyle: {
           color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#83bff6' },
-            { offset: 0.5, color: '#188df0' },
-            { offset: 1, color: '#188df0' },
+            { offset: 0, color: "#83bff6" },
+            { offset: 0.5, color: "#188df0" },
+            { offset: 1, color: "#188df0" },
           ]),
         },
         emphasis: {
           itemStyle: {
             color: new graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: '#2378f7' },
-              { offset: 0.7, color: '#2378f7' },
-              { offset: 1, color: '#83bff6' },
+              { offset: 0, color: "#2378f7" },
+              { offset: 0.7, color: "#2378f7" },
+              { offset: 1, color: "#83bff6" },
             ]),
           },
         },
@@ -485,11 +454,11 @@ const handleResize = () => {
 // 生命周期
 onMounted(() => {
   loadStatistics();
-  window.addEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', handleResize);
+  window.removeEventListener("resize", handleResize);
   trendChart?.dispose();
   typeChart?.dispose();
   statusChart?.dispose();

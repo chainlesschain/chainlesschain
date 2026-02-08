@@ -6,20 +6,24 @@
         <a-typography-title :level="4" class="panel-title">
           <BookOutlined /> 永久记忆
         </a-typography-title>
-        <a-tag color="blue">{{ formattedStats.dailyNotes }}</a-tag>
-        <a-tag color="green">{{ formattedStats.indexed }}</a-tag>
+        <a-tag color="blue">
+          {{ formattedStats.dailyNotes }}
+        </a-tag>
+        <a-tag color="green">
+          {{ formattedStats.indexed }}
+        </a-tag>
       </div>
       <div class="header-right">
-        <a-button
-          type="text"
-          :loading="loading.stats"
-          @click="refreshStats"
-        >
-          <template #icon><ReloadOutlined /></template>
+        <a-button type="text" :loading="loading.stats" @click="refreshStats">
+          <template #icon>
+            <ReloadOutlined />
+          </template>
         </a-button>
         <a-dropdown>
           <a-button type="text">
-            <template #icon><SettingOutlined /></template>
+            <template #icon>
+              <SettingOutlined />
+            </template>
           </a-button>
           <template #overlay>
             <a-menu>
@@ -36,7 +40,7 @@
     </div>
 
     <!-- 标签页 -->
-    <a-tabs v-model:activeKey="activeTab" class="memory-tabs">
+    <a-tabs v-model:active-key="activeTab" class="memory-tabs">
       <!-- Daily Notes 标签页 -->
       <a-tab-pane key="daily" tab="Daily Notes">
         <DailyNotesTimeline />
@@ -54,7 +58,7 @@
 
       <!-- 统计标签页 -->
       <a-tab-pane key="stats" tab="统计">
-        <MemoryStatsPanel :stats="stats" :indexStats="indexStats" />
+        <MemoryStatsPanel :stats="stats" :index-stats="indexStats" />
       </a-tab-pane>
     </a-tabs>
 
@@ -64,48 +68,39 @@
       type="error"
       :message="error"
       closable
-      @close="clearError"
       class="error-alert"
+      @close="clearError"
     />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from 'vue';
-import { storeToRefs } from 'pinia';
-import { message } from 'ant-design-vue';
+import { computed, onMounted, watch } from "vue";
+import { storeToRefs } from "pinia";
+import { message } from "ant-design-vue";
 import {
   BookOutlined,
   ReloadOutlined,
   SettingOutlined,
   DatabaseOutlined,
   ClearOutlined,
-} from '@ant-design/icons-vue';
-import { useMemoryStore } from '@/stores/memory';
-import DailyNotesTimeline from './DailyNotesTimeline.vue';
-import MemoryEditor from './MemoryEditor.vue';
-import MemorySearchPanel from './MemorySearchPanel.vue';
-import MemoryStatsPanel from './MemoryStatsPanel.vue';
+} from "@ant-design/icons-vue";
+import { useMemoryStore } from "@/stores/memory";
+import DailyNotesTimeline from "./DailyNotesTimeline.vue";
+import MemoryEditor from "./MemoryEditor.vue";
+import MemorySearchPanel from "./MemorySearchPanel.vue";
+import MemoryStatsPanel from "./MemoryStatsPanel.vue";
 
 const memoryStore = useMemoryStore();
 
-const {
-  stats,
-  indexStats,
-  loading,
-  error,
-  activeTab,
-  formattedStats,
-} = storeToRefs(memoryStore);
+const { stats, indexStats, loading, error, activeTab, formattedStats } =
+  storeToRefs(memoryStore);
 
 const { clearError, loadStats, loadIndexStats, rebuildIndex } = memoryStore;
 
 // 刷新统计
 const refreshStats = async () => {
-  await Promise.all([
-    loadStats(),
-    loadIndexStats(),
-  ]);
+  await Promise.all([loadStats(), loadIndexStats()]);
 };
 
 // 重建索引
@@ -114,19 +109,21 @@ const handleRebuildIndex = async () => {
   if (result) {
     message.success(`索引重建完成: ${result.indexed} 个文件已索引`);
   } else {
-    message.error('索引重建失败');
+    message.error("索引重建失败");
   }
 };
 
 // 清空缓存
 const handleClearCache = async () => {
   try {
-    const result = await window.electronAPI.invoke('memory:clear-embedding-cache');
+    const result = await window.electronAPI.invoke(
+      "memory:clear-embedding-cache",
+    );
     if (result?.success) {
       message.success(`已清空 ${result.deleted} 条缓存`);
       await refreshStats();
     } else {
-      message.error(result?.error || '清空缓存失败');
+      message.error(result?.error || "清空缓存失败");
     }
   } catch (err) {
     message.error(err.message);

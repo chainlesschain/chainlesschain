@@ -9,42 +9,18 @@
           size="small"
           @change="changeLanguage"
         >
-          <a-select-option value="javascript">
-            JavaScript
-          </a-select-option>
-          <a-select-option value="typescript">
-            TypeScript
-          </a-select-option>
-          <a-select-option value="python">
-            Python
-          </a-select-option>
-          <a-select-option value="java">
-            Java
-          </a-select-option>
-          <a-select-option value="cpp">
-            C++
-          </a-select-option>
-          <a-select-option value="c">
-            C
-          </a-select-option>
-          <a-select-option value="html">
-            HTML
-          </a-select-option>
-          <a-select-option value="css">
-            CSS
-          </a-select-option>
-          <a-select-option value="json">
-            JSON
-          </a-select-option>
-          <a-select-option value="markdown">
-            Markdown
-          </a-select-option>
-          <a-select-option value="sql">
-            SQL
-          </a-select-option>
-          <a-select-option value="yaml">
-            YAML
-          </a-select-option>
+          <a-select-option value="javascript"> JavaScript </a-select-option>
+          <a-select-option value="typescript"> TypeScript </a-select-option>
+          <a-select-option value="python"> Python </a-select-option>
+          <a-select-option value="java"> Java </a-select-option>
+          <a-select-option value="cpp"> C++ </a-select-option>
+          <a-select-option value="c"> C </a-select-option>
+          <a-select-option value="html"> HTML </a-select-option>
+          <a-select-option value="css"> CSS </a-select-option>
+          <a-select-option value="json"> JSON </a-select-option>
+          <a-select-option value="markdown"> Markdown </a-select-option>
+          <a-select-option value="sql"> SQL </a-select-option>
+          <a-select-option value="yaml"> YAML </a-select-option>
         </a-select>
 
         <a-select
@@ -53,15 +29,9 @@
           size="small"
           @change="changeTheme"
         >
-          <a-select-option value="vs">
-            Light
-          </a-select-option>
-          <a-select-option value="vs-dark">
-            Dark
-          </a-select-option>
-          <a-select-option value="hc-black">
-            High Contrast
-          </a-select-option>
+          <a-select-option value="vs"> Light </a-select-option>
+          <a-select-option value="vs-dark"> Dark </a-select-option>
+          <a-select-option value="hc-black"> High Contrast </a-select-option>
         </a-select>
 
         <a-input-number
@@ -72,29 +42,21 @@
           style="width: 80px"
           @change="changeFontSize"
         >
-          <template #addonAfter>
-            px
-          </template>
+          <template #addonAfter> px </template>
         </a-input-number>
       </div>
 
       <div class="toolbar-spacer" />
 
       <div class="toolbar-right">
-        <a-button
-          size="small"
-          @click="formatCode"
-        >
+        <a-button size="small" @click="formatCode">
           <FormatPainterOutlined />
           格式化
         </a-button>
 
-        <a-button
-          size="small"
-          @click="toggleMinimap"
-        >
+        <a-button size="small" @click="toggleMinimap">
           <PictureOutlined />
-          {{ showMinimap ? '隐藏' : '显示' }}缩略图
+          {{ showMinimap ? "隐藏" : "显示" }}缩略图
         </a-button>
 
         <a-button
@@ -108,17 +70,9 @@
           运行
         </a-button>
 
-        <a-tag
-          v-if="lineCount > 0"
-          color="blue"
-        >
-          {{ lineCount }} 行
-        </a-tag>
+        <a-tag v-if="lineCount > 0" color="blue"> {{ lineCount }} 行 </a-tag>
 
-        <a-tag
-          v-if="hasChanges"
-          color="orange"
-        >
+        <a-tag v-if="hasChanges" color="orange">
           <ClockCircleOutlined />
           未保存
         </a-tag>
@@ -137,54 +91,39 @@
     </div>
 
     <!-- Monaco编辑器 -->
-    <div
-      ref="editorRef"
-      class="monaco-editor"
-    />
+    <div ref="editorRef" class="monaco-editor" />
 
     <!-- 输出面板 -->
-    <div
-      v-if="showOutput"
-      class="output-panel"
-    >
+    <div v-if="showOutput" class="output-panel">
       <div class="output-header">
         <span>
           <CodeOutlined />
           输出
         </span>
         <div class="output-actions">
-          <a-button
-            type="text"
-            size="small"
-            @click="clearOutput"
-          >
+          <a-button type="text" size="small" @click="clearOutput">
             <ClearOutlined />
             清空
           </a-button>
-          <a-button
-            type="text"
-            size="small"
-            @click="showOutput = false"
-          >
+          <a-button type="text" size="small" @click="showOutput = false">
             <CloseOutlined />
             关闭
           </a-button>
         </div>
       </div>
-      <pre
-        class="output-content"
-        :class="{ error: outputError }"
-      >{{ output }}</pre>
+      <pre class="output-content" :class="{ error: outputError }">{{
+        output
+      }}</pre>
     </div>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
-import { message } from 'ant-design-vue';
-import * as monaco from 'monaco-editor';
+import { ref, onMounted, onBeforeUnmount, watch, computed } from "vue";
+import { message } from "ant-design-vue";
+import * as monaco from "monaco-editor";
 import {
   SaveOutlined,
   PlayCircleOutlined,
@@ -194,7 +133,7 @@ import {
   ClearOutlined,
   CloseOutlined,
   PictureOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   file: {
@@ -203,7 +142,7 @@ const props = defineProps({
   },
   initialContent: {
     type: String,
-    default: '',
+    default: "",
   },
   autoSave: {
     type: Boolean,
@@ -211,17 +150,17 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['change', 'save']);
+const emit = defineEmits(["change", "save"]);
 
 // 状态
 const editorRef = ref(null);
 const editor = ref(null);
-const language = ref('javascript');
-const theme = ref('vs-dark');
+const language = ref("javascript");
+const theme = ref("vs-dark");
 const fontSize = ref(14);
 const saving = ref(false);
 const hasChanges = ref(false);
-const output = ref('');
+const output = ref("");
 const showOutput = ref(false);
 const outputError = ref(false);
 const running = ref(false);
@@ -231,42 +170,44 @@ let autoSaveTimer = null;
 
 // 可运行的语言
 const canRun = computed(() => {
-  return ['python', 'javascript'].includes(language.value);
+  return ["python", "javascript"].includes(language.value);
 });
 
 // 语言映射
 const languageMap = {
-  js: 'javascript',
-  ts: 'typescript',
-  py: 'python',
-  java: 'java',
-  cpp: 'cpp',
-  c: 'c',
-  html: 'html',
-  css: 'css',
-  json: 'json',
-  md: 'markdown',
-  sql: 'sql',
-  yml: 'yaml',
-  yaml: 'yaml',
-  vue: 'html',
-  jsx: 'javascript',
-  tsx: 'typescript',
+  js: "javascript",
+  ts: "typescript",
+  py: "python",
+  java: "java",
+  cpp: "cpp",
+  c: "c",
+  html: "html",
+  css: "css",
+  json: "json",
+  md: "markdown",
+  sql: "sql",
+  yml: "yaml",
+  yaml: "yaml",
+  vue: "html",
+  jsx: "javascript",
+  tsx: "typescript",
 };
 
 // 初始化Monaco Editor
 onMounted(() => {
-  if (!editorRef.value) {return;}
+  if (!editorRef.value) {
+    return;
+  }
 
   // 检测语言
   if (props.file?.file_name) {
-    const ext = props.file.file_name.split('.').pop().toLowerCase();
-    language.value = languageMap[ext] || 'javascript';
+    const ext = props.file.file_name.split(".").pop().toLowerCase();
+    language.value = languageMap[ext] || "javascript";
   }
 
   // 创建编辑器
   editor.value = monaco.editor.create(editorRef.value, {
-    value: props.initialContent || '',
+    value: props.initialContent || "",
     language: language.value,
     theme: theme.value,
     fontSize: fontSize.value,
@@ -275,9 +216,9 @@ onMounted(() => {
       enabled: showMinimap.value,
     },
     scrollBeyondLastLine: false,
-    wordWrap: 'on',
-    lineNumbers: 'on',
-    renderWhitespace: 'selection',
+    wordWrap: "on",
+    lineNumbers: "on",
+    renderWhitespace: "selection",
     folding: true,
     bracketPairColorization: {
       enabled: true,
@@ -292,7 +233,7 @@ onMounted(() => {
   editor.value.onDidChangeModelContent(() => {
     hasChanges.value = true;
     updateLineCount();
-    emit('change', editor.value.getValue());
+    emit("change", editor.value.getValue());
 
     if (props.autoSave) {
       scheduleAutoSave();
@@ -364,14 +305,16 @@ const updateLineCount = () => {
 // 格式化代码
 const formatCode = () => {
   if (editor.value) {
-    editor.value.getAction('editor.action.formatDocument').run();
-    message.success('代码已格式化');
+    editor.value.getAction("editor.action.formatDocument").run();
+    message.success("代码已格式化");
   }
 };
 
 // 保存
 const save = async () => {
-  if (!hasChanges.value) {return;}
+  if (!hasChanges.value) {
+    return;
+  }
 
   saving.value = true;
   try {
@@ -382,11 +325,11 @@ const save = async () => {
     }
 
     hasChanges.value = false;
-    emit('save', code);
-    message.success('已保存');
+    emit("save", code);
+    message.success("已保存");
   } catch (error) {
-    logger.error('[CodeEditor] 保存失败:', error);
-    message.error('保存失败: ' + error.message);
+    logger.error("[CodeEditor] 保存失败:", error);
+    message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -397,55 +340,56 @@ const runCode = async () => {
   const code = editor.value.getValue();
 
   if (!code.trim()) {
-    message.warning('代码为空');
+    message.warning("代码为空");
     return;
   }
 
   running.value = true;
   showOutput.value = true;
-  output.value = '执行中...\n';
+  output.value = "执行中...\n";
   outputError.value = false;
 
   try {
-    if (language.value === 'python') {
+    if (language.value === "python") {
       // 执行Python代码
       const result = await window.electronAPI.code.executePython(code);
 
       if (result.success) {
-        output.value = result.stdout || '执行完成（无输出）';
+        output.value = result.stdout || "执行完成（无输出）";
         if (result.stderr) {
-          output.value += '\n\n--- 错误/警告 ---\n' + result.stderr;
+          output.value += "\n\n--- 错误/警告 ---\n" + result.stderr;
         }
       } else {
-        output.value = 'Error: ' + (result.error || result.stderr || '执行失败');
+        output.value =
+          "Error: " + (result.error || result.stderr || "执行失败");
         outputError.value = true;
       }
-    } else if (language.value === 'javascript') {
+    } else if (language.value === "javascript") {
       // 执行JavaScript代码（沙箱模式）
       try {
         // 创建一个简单的控制台重定向
         const logs = [];
         const sandboxConsole = {
-          log: (...args) => logs.push(args.join(' ')),
-          error: (...args) => logs.push('ERROR: ' + args.join(' ')),
-          warn: (...args) => logs.push('WARN: ' + args.join(' ')),
+          log: (...args) => logs.push(args.join(" ")),
+          error: (...args) => logs.push("ERROR: " + args.join(" ")),
+          warn: (...args) => logs.push("WARN: " + args.join(" ")),
         };
 
         // 使用Function构造器创建沙箱
         // eslint-disable-next-line no-new-func -- controlled local sandbox execution
-        const func = new Function('console', code);
+        const func = new Function("console", code);
         func(sandboxConsole);
 
-        output.value = logs.length > 0 ? logs.join('\n') : '执行完成（无输出）';
+        output.value = logs.length > 0 ? logs.join("\n") : "执行完成（无输出）";
       } catch (error) {
-        output.value = 'Error: ' + error.message;
+        output.value = "Error: " + error.message;
         outputError.value = true;
       }
     }
   } catch (error) {
-    output.value = 'Error: ' + error.message;
+    output.value = "Error: " + error.message;
     outputError.value = true;
-    message.error('执行失败');
+    message.error("执行失败");
   } finally {
     running.value = false;
   }
@@ -453,7 +397,7 @@ const runCode = async () => {
 
 // 清空输出
 const clearOutput = () => {
-  output.value = '';
+  output.value = "";
   outputError.value = false;
 };
 
@@ -466,19 +410,25 @@ const scheduleAutoSave = () => {
 };
 
 // 监听文件变化
-watch(() => props.file, async () => {
-  if (editor.value && props.file?.file_path) {
-    try {
-      const result = await window.electronAPI.file.readContent(props.file.file_path);
-      if (result.success) {
-        editor.value.setValue(result.content || '');
-        hasChanges.value = false;
+watch(
+  () => props.file,
+  async () => {
+    if (editor.value && props.file?.file_path) {
+      try {
+        const result = await window.electronAPI.file.readContent(
+          props.file.file_path,
+        );
+        if (result.success) {
+          editor.value.setValue(result.content || "");
+          hasChanges.value = false;
+        }
+      } catch (error) {
+        logger.error("[CodeEditor] 读取文件失败:", error);
       }
-    } catch (error) {
-      logger.error('[CodeEditor] 读取文件失败:', error);
     }
-  }
-}, { deep: true });
+  },
+  { deep: true },
+);
 
 // 暴露方法
 defineExpose({
@@ -567,7 +517,7 @@ defineExpose({
   overflow-y: auto;
   padding: 12px;
   margin: 0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 13px;
   line-height: 1.6;
   background: #1e1e1e;

@@ -1,13 +1,8 @@
 <template>
-  <a-card
-    class="permission-manager-card"
-    :loading="loading"
-  >
+  <a-card class="permission-manager-card" :loading="loading">
     <template #title>
       <div class="card-header">
-        <span>
-          <SafetyOutlined /> Permission Management
-        </span>
+        <span> <SafetyOutlined /> Permission Management </span>
         <a-button
           v-if="canManageRoles"
           type="primary"
@@ -19,15 +14,12 @@
     </template>
 
     <a-tabs v-model:active-key="activeTab">
-      <a-tab-pane
-        key="roles"
-        tab="Roles"
-      >
+      <a-tab-pane key="roles" tab="Roles">
         <a-table
           :columns="roleColumns"
           :data-source="roles"
           :pagination="false"
-          :row-key="record => record.id"
+          :row-key="(record) => record.id"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'name'">
@@ -35,11 +27,7 @@
                 <a-tag :color="getRoleColor(record.name)">
                   {{ record.name }}
                 </a-tag>
-                <a-tag
-                  v-if="record.isBuiltin"
-                  color="blue"
-                  size="small"
-                >
+                <a-tag v-if="record.isBuiltin" color="blue" size="small">
                   Built-in
                 </a-tag>
               </div>
@@ -54,10 +42,7 @@
                 >
                   {{ perm }}
                 </a-tag>
-                <a-tag
-                  v-if="record.permissions.length > 3"
-                  size="small"
-                >
+                <a-tag v-if="record.permissions.length > 3" size="small">
                   +{{ record.permissions.length - 3 }} more
                 </a-tag>
               </a-space>
@@ -72,11 +57,7 @@
 
             <template v-if="column.key === 'actions'">
               <a-space>
-                <a-button
-                  type="link"
-                  size="small"
-                  @click="viewRole(record)"
-                >
+                <a-button type="link" size="small" @click="viewRole(record)">
                   View
                 </a-button>
                 <a-button
@@ -92,13 +73,7 @@
                   title="Are you sure you want to delete this role?"
                   @confirm="deleteRole(record)"
                 >
-                  <a-button
-                    type="link"
-                    size="small"
-                    danger
-                  >
-                    Delete
-                  </a-button>
+                  <a-button type="link" size="small" danger> Delete </a-button>
                 </a-popconfirm>
               </a-space>
             </template>
@@ -106,10 +81,7 @@
         </a-table>
       </a-tab-pane>
 
-      <a-tab-pane
-        key="permissions"
-        tab="Permissions"
-      >
+      <a-tab-pane key="permissions" tab="Permissions">
         <a-collapse v-model:active-key="activePermissions">
           <a-collapse-panel
             v-for="category in permissionCategories"
@@ -121,7 +93,7 @@
               :data-source="category.permissions"
               :pagination="false"
               size="small"
-              :row-key="record => record.key"
+              :row-key="(record) => record.key"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.key === 'roles'">
@@ -142,10 +114,7 @@
         </a-collapse>
       </a-tab-pane>
 
-      <a-tab-pane
-        key="matrix"
-        tab="Permission Matrix"
-      >
+      <a-tab-pane key="matrix" tab="Permission Matrix">
         <div class="permission-matrix">
           <a-table
             :columns="matrixColumns"
@@ -159,7 +128,10 @@
                 <a-checkbox
                   :checked="hasPermission(record.key, column.key)"
                   :disabled="!canManageRoles || isBuiltinRole(column.key)"
-                  @change="(e) => togglePermission(record.key, column.key, e.target.checked)"
+                  @change="
+                    (e) =>
+                      togglePermission(record.key, column.key, e.target.checked)
+                  "
                 />
               </template>
             </template>
@@ -184,20 +156,14 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="Role Name"
-          name="name"
-        >
+        <a-form-item label="Role Name" name="name">
           <a-input
             v-model:value="roleForm.name"
             placeholder="Enter role name"
           />
         </a-form-item>
 
-        <a-form-item
-          label="Description"
-          name="description"
-        >
+        <a-form-item label="Description" name="description">
           <a-textarea
             v-model:value="roleForm.description"
             placeholder="Enter role description"
@@ -205,10 +171,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="Permissions"
-          name="permissions"
-        >
+        <a-form-item label="Permissions" name="permissions">
           <a-tree
             v-model:checked-keys="roleForm.permissions"
             checkable
@@ -226,11 +189,7 @@
       :footer="null"
       width="600px"
     >
-      <a-descriptions
-        v-if="viewingRole"
-        bordered
-        :column="1"
-      >
+      <a-descriptions v-if="viewingRole" bordered :column="1">
         <a-descriptions-item label="Name">
           <a-tag :color="getRoleColor(viewingRole.name)">
             {{ viewingRole.name }}
@@ -238,22 +197,12 @@
         </a-descriptions-item>
 
         <a-descriptions-item label="Description">
-          {{ viewingRole.description || 'No description' }}
+          {{ viewingRole.description || "No description" }}
         </a-descriptions-item>
 
         <a-descriptions-item label="Type">
-          <a-tag
-            v-if="viewingRole.isBuiltin"
-            color="blue"
-          >
-            Built-in
-          </a-tag>
-          <a-tag
-            v-else
-            color="green"
-          >
-            Custom
-          </a-tag>
+          <a-tag v-if="viewingRole.isBuiltin" color="blue"> Built-in </a-tag>
+          <a-tag v-else color="green"> Custom </a-tag>
         </a-descriptions-item>
 
         <a-descriptions-item label="Members">
@@ -262,10 +211,7 @@
 
         <a-descriptions-item label="Permissions">
           <a-space wrap>
-            <a-tag
-              v-for="perm in viewingRole.permissions"
-              :key="perm"
-            >
+            <a-tag v-for="perm in viewingRole.permissions" :key="perm">
               {{ perm }}
             </a-tag>
           </a-space>
@@ -280,31 +226,28 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
-import {
-  SafetyOutlined,
-  PlusOutlined
-} from '@ant-design/icons-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import { SafetyOutlined, PlusOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
   organizationId: {
     type: String,
-    required: true
+    required: true,
   },
   currentUserRole: {
     type: String,
-    default: 'member'
-  }
+    default: "member",
+  },
 });
 
-const emit = defineEmits(['roleCreated', 'roleUpdated', 'roleDeleted']);
+const emit = defineEmits(["roleCreated", "roleUpdated", "roleDeleted"]);
 
 // State
 const loading = ref(false);
-const activeTab = ref('roles');
+const activeTab = ref("roles");
 const activePermissions = ref([]);
 const roles = ref([]);
 const roleDialogVisible = ref(false);
@@ -315,112 +258,197 @@ const viewingRole = ref(null);
 const roleFormRef = ref(null);
 
 const roleForm = reactive({
-  name: '',
-  description: '',
-  permissions: []
+  name: "",
+  description: "",
+  permissions: [],
 });
 
 const roleRules = {
   name: [
-    { required: true, message: 'Please enter role name', trigger: 'blur' },
-    { min: 2, max: 30, message: 'Name must be between 2 and 30 characters', trigger: 'blur' }
+    { required: true, message: "Please enter role name", trigger: "blur" },
+    {
+      min: 2,
+      max: 30,
+      message: "Name must be between 2 and 30 characters",
+      trigger: "blur",
+    },
   ],
   permissions: [
-    { required: true, message: 'Please select at least one permission', trigger: 'change', type: 'array', min: 1 }
-  ]
+    {
+      required: true,
+      message: "Please select at least one permission",
+      trigger: "change",
+      type: "array",
+      min: 1,
+    },
+  ],
 };
 
 // Table columns
 const roleColumns = [
-  { title: 'Role', dataIndex: 'name', key: 'name', width: 150 },
-  { title: 'Description', dataIndex: 'description', key: 'description' },
-  { title: 'Permissions', key: 'permissions', width: 300 },
-  { title: 'Members', key: 'memberCount', width: 100, align: 'center' },
-  { title: 'Actions', key: 'actions', width: 200, align: 'center' }
+  { title: "Role", dataIndex: "name", key: "name", width: 150 },
+  { title: "Description", dataIndex: "description", key: "description" },
+  { title: "Permissions", key: "permissions", width: 300 },
+  { title: "Members", key: "memberCount", width: 100, align: "center" },
+  { title: "Actions", key: "actions", width: 200, align: "center" },
 ];
 
 const permissionColumns = [
-  { title: 'Permission', dataIndex: 'label', key: 'label' },
-  { title: 'Description', dataIndex: 'description', key: 'description' },
-  { title: 'Roles', key: 'roles', width: 300 }
+  { title: "Permission", dataIndex: "label", key: "label" },
+  { title: "Description", dataIndex: "description", key: "description" },
+  { title: "Roles", key: "roles", width: 300 },
 ];
 
 // Permission categories
 const permissionCategories = [
   {
-    key: 'organization',
-    label: 'Organization Management',
+    key: "organization",
+    label: "Organization Management",
     permissions: [
-      { key: 'org.manage', label: 'Manage Organization', description: 'Edit organization settings' },
-      { key: 'org.delete', label: 'Delete Organization', description: 'Delete the organization' },
-      { key: 'org.view', label: 'View Organization', description: 'View organization details' }
-    ]
+      {
+        key: "org.manage",
+        label: "Manage Organization",
+        description: "Edit organization settings",
+      },
+      {
+        key: "org.delete",
+        label: "Delete Organization",
+        description: "Delete the organization",
+      },
+      {
+        key: "org.view",
+        label: "View Organization",
+        description: "View organization details",
+      },
+    ],
   },
   {
-    key: 'member',
-    label: 'Member Management',
+    key: "member",
+    label: "Member Management",
     permissions: [
-      { key: 'member.manage', label: 'Manage Members', description: 'Add, remove, and edit members' },
-      { key: 'member.invite', label: 'Invite Members', description: 'Create invitation links' },
-      { key: 'member.view', label: 'View Members', description: 'View member list' }
-    ]
+      {
+        key: "member.manage",
+        label: "Manage Members",
+        description: "Add, remove, and edit members",
+      },
+      {
+        key: "member.invite",
+        label: "Invite Members",
+        description: "Create invitation links",
+      },
+      {
+        key: "member.view",
+        label: "View Members",
+        description: "View member list",
+      },
+    ],
   },
   {
-    key: 'knowledge',
-    label: 'Knowledge Base',
+    key: "knowledge",
+    label: "Knowledge Base",
     permissions: [
-      { key: 'knowledge.create', label: 'Create Knowledge', description: 'Create new knowledge items' },
-      { key: 'knowledge.edit', label: 'Edit Knowledge', description: 'Edit knowledge items' },
-      { key: 'knowledge.delete', label: 'Delete Knowledge', description: 'Delete knowledge items' },
-      { key: 'knowledge.view', label: 'View Knowledge', description: 'View knowledge items' },
-      { key: 'knowledge.share', label: 'Share Knowledge', description: 'Share knowledge with others' }
-    ]
+      {
+        key: "knowledge.create",
+        label: "Create Knowledge",
+        description: "Create new knowledge items",
+      },
+      {
+        key: "knowledge.edit",
+        label: "Edit Knowledge",
+        description: "Edit knowledge items",
+      },
+      {
+        key: "knowledge.delete",
+        label: "Delete Knowledge",
+        description: "Delete knowledge items",
+      },
+      {
+        key: "knowledge.view",
+        label: "View Knowledge",
+        description: "View knowledge items",
+      },
+      {
+        key: "knowledge.share",
+        label: "Share Knowledge",
+        description: "Share knowledge with others",
+      },
+    ],
   },
   {
-    key: 'project',
-    label: 'Project Management',
+    key: "project",
+    label: "Project Management",
     permissions: [
-      { key: 'project.create', label: 'Create Projects', description: 'Create new projects' },
-      { key: 'project.edit', label: 'Edit Projects', description: 'Edit project details' },
-      { key: 'project.delete', label: 'Delete Projects', description: 'Delete projects' },
-      { key: 'project.view', label: 'View Projects', description: 'View project list' }
-    ]
+      {
+        key: "project.create",
+        label: "Create Projects",
+        description: "Create new projects",
+      },
+      {
+        key: "project.edit",
+        label: "Edit Projects",
+        description: "Edit project details",
+      },
+      {
+        key: "project.delete",
+        label: "Delete Projects",
+        description: "Delete projects",
+      },
+      {
+        key: "project.view",
+        label: "View Projects",
+        description: "View project list",
+      },
+    ],
   },
   {
-    key: 'role',
-    label: 'Role & Permission',
+    key: "role",
+    label: "Role & Permission",
     permissions: [
-      { key: 'role.manage', label: 'Manage Roles', description: 'Create, edit, and delete roles' },
-      { key: 'role.assign', label: 'Assign Roles', description: 'Assign roles to members' },
-      { key: 'role.view', label: 'View Roles', description: 'View role list' }
-    ]
-  }
+      {
+        key: "role.manage",
+        label: "Manage Roles",
+        description: "Create, edit, and delete roles",
+      },
+      {
+        key: "role.assign",
+        label: "Assign Roles",
+        description: "Assign roles to members",
+      },
+      { key: "role.view", label: "View Roles", description: "View role list" },
+    ],
+  },
 ];
 
 // Permission tree for role dialog
 const permissionTree = computed(() => {
-  return permissionCategories.map(category => ({
+  return permissionCategories.map((category) => ({
     key: category.key,
     label: category.label,
-    children: category.permissions.map(perm => ({
+    children: category.permissions.map((perm) => ({
       key: perm.key,
-      label: perm.label
-    }))
+      label: perm.label,
+    })),
   }));
 });
 
 // Matrix columns
 const matrixColumns = computed(() => {
   const cols = [
-    { title: 'Permission', dataIndex: 'label', key: 'permission', fixed: 'left', width: 200 }
+    {
+      title: "Permission",
+      dataIndex: "label",
+      key: "permission",
+      fixed: "left",
+      width: 200,
+    },
   ];
 
-  roles.value.forEach(role => {
+  roles.value.forEach((role) => {
     cols.push({
       title: role.name,
       key: role.name,
       width: 100,
-      align: 'center'
+      align: "center",
     });
   });
 
@@ -430,11 +458,11 @@ const matrixColumns = computed(() => {
 // Matrix data
 const matrixData = computed(() => {
   const data = [];
-  permissionCategories.forEach(category => {
-    category.permissions.forEach(perm => {
+  permissionCategories.forEach((category) => {
+    category.permissions.forEach((perm) => {
       data.push({
         key: perm.key,
-        label: perm.label
+        label: perm.label,
       });
     });
   });
@@ -443,7 +471,7 @@ const matrixData = computed(() => {
 
 // Computed
 const canManageRoles = computed(() => {
-  return ['owner', 'admin'].includes(props.currentUserRole);
+  return ["owner", "admin"].includes(props.currentUserRole);
 });
 
 // Lifecycle
@@ -455,18 +483,21 @@ onMounted(() => {
 async function loadRoles() {
   try {
     loading.value = true;
-    const result = await window.electron.ipcRenderer.invoke('organization:get-roles', {
-      orgId: props.organizationId
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "organization:get-roles",
+      {
+        orgId: props.organizationId,
+      },
+    );
 
     if (result.success) {
       roles.value = result.roles;
     } else {
-      message.error(result.error || 'Failed to load roles');
+      message.error(result.error || "Failed to load roles");
     }
   } catch (error) {
-    logger.error('Error loading roles:', error);
-    message.error('Failed to load roles');
+    logger.error("Error loading roles:", error);
+    message.error("Failed to load roles");
   } finally {
     loading.value = false;
   }
@@ -475,9 +506,9 @@ async function loadRoles() {
 function showCreateRoleDialog() {
   editingRole.value = null;
   Object.assign(roleForm, {
-    name: '',
-    description: '',
-    permissions: []
+    name: "",
+    description: "",
+    permissions: [],
   });
   roleDialogVisible.value = true;
 }
@@ -492,28 +523,31 @@ function editRole(role) {
   Object.assign(roleForm, {
     name: role.name,
     description: role.description,
-    permissions: [...role.permissions]
+    permissions: [...role.permissions],
   });
   roleDialogVisible.value = true;
 }
 
 async function deleteRole(role) {
   try {
-    const result = await window.electron.ipcRenderer.invoke('organization:delete-role', {
-      orgId: props.organizationId,
-      roleId: role.id
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "organization:delete-role",
+      {
+        orgId: props.organizationId,
+        roleId: role.id,
+      },
+    );
 
     if (result.success) {
-      message.success('Role deleted successfully');
+      message.success("Role deleted successfully");
       await loadRoles();
-      emit('roleDeleted', role);
+      emit("roleDeleted", role);
     } else {
-      message.error(result.error || 'Failed to delete role');
+      message.error(result.error || "Failed to delete role");
     }
   } catch (error) {
-    logger.error('Error deleting role:', error);
-    message.error('Failed to delete role');
+    logger.error("Error deleting role:", error);
+    message.error("Failed to delete role");
   }
 }
 
@@ -522,10 +556,12 @@ async function handleRoleSave() {
     await roleFormRef.value.validate();
     roleDialogLoading.value = true;
 
-    const action = editingRole.value ? 'organization:update-role' : 'organization:create-role';
+    const action = editingRole.value
+      ? "organization:update-role"
+      : "organization:create-role";
     const params = {
       orgId: props.organizationId,
-      ...roleForm
+      ...roleForm,
     };
 
     if (editingRole.value) {
@@ -535,17 +571,24 @@ async function handleRoleSave() {
     const result = await window.electron.ipcRenderer.invoke(action, params);
 
     if (result.success) {
-      message.success(`Role ${editingRole.value ? 'updated' : 'created'} successfully`);
+      message.success(
+        `Role ${editingRole.value ? "updated" : "created"} successfully`,
+      );
       roleDialogVisible.value = false;
       await loadRoles();
-      emit(editingRole.value ? 'roleUpdated' : 'roleCreated', result.role);
+      emit(editingRole.value ? "roleUpdated" : "roleCreated", result.role);
     } else {
-      message.error(result.error || `Failed to ${editingRole.value ? 'update' : 'create'} role`);
+      message.error(
+        result.error ||
+          `Failed to ${editingRole.value ? "update" : "create"} role`,
+      );
     }
   } catch (error) {
-    logger.error('Error saving role:', error);
+    logger.error("Error saving role:", error);
     if (!error.errorFields) {
-      message.error(`Failed to ${editingRole.value ? 'update' : 'create'} role`);
+      message.error(
+        `Failed to ${editingRole.value ? "update" : "create"} role`,
+      );
     }
   } finally {
     roleDialogLoading.value = false;
@@ -559,59 +602,66 @@ function handleRoleCancel() {
 
 function getRolesWithPermission(permission) {
   return roles.value
-    .filter(role => role.permissions.includes(permission))
-    .map(role => role.name);
+    .filter((role) => role.permissions.includes(permission))
+    .map((role) => role.name);
 }
 
 function hasPermission(permission, roleName) {
-  const role = roles.value.find(r => r.name === roleName);
+  const role = roles.value.find((r) => r.name === roleName);
   return role ? role.permissions.includes(permission) : false;
 }
 
 function isBuiltinRole(roleName) {
-  const role = roles.value.find(r => r.name === roleName);
+  const role = roles.value.find((r) => r.name === roleName);
   return role ? role.isBuiltin : false;
 }
 
 async function togglePermission(permission, roleName, checked) {
-  const role = roles.value.find(r => r.name === roleName);
-  if (!role || role.isBuiltin) {return;}
+  const role = roles.value.find((r) => r.name === roleName);
+  if (!role || role.isBuiltin) {
+    return;
+  }
 
   try {
     const permissions = checked
       ? [...role.permissions, permission]
-      : role.permissions.filter(p => p !== permission);
+      : role.permissions.filter((p) => p !== permission);
 
-    const result = await window.electron.ipcRenderer.invoke('organization:update-role', {
-      orgId: props.organizationId,
-      roleId: role.id,
-      permissions
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "organization:update-role",
+      {
+        orgId: props.organizationId,
+        roleId: role.id,
+        permissions,
+      },
+    );
 
     if (result.success) {
       await loadRoles();
     } else {
-      message.error(result.error || 'Failed to update permission');
+      message.error(result.error || "Failed to update permission");
     }
   } catch (error) {
-    logger.error('Error toggling permission:', error);
-    message.error('Failed to update permission');
+    logger.error("Error toggling permission:", error);
+    message.error("Failed to update permission");
   }
 }
 
 function getRoleColor(roleName) {
   const colors = {
-    owner: 'red',
-    admin: 'orange',
-    editor: 'blue',
-    member: 'green',
-    viewer: 'default'
+    owner: "red",
+    admin: "orange",
+    editor: "blue",
+    member: "green",
+    viewer: "default",
   };
-  return colors[roleName.toLowerCase()] || 'default';
+  return colors[roleName.toLowerCase()] || "default";
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) {return 'Unknown';}
+  if (!timestamp) {
+    return "Unknown";
+  }
   return new Date(timestamp).toLocaleDateString();
 }
 </script>

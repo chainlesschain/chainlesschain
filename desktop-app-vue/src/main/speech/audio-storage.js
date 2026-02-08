@@ -4,10 +4,10 @@
  * 管理音频文件的存储和数据库记录
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const path = require('path');
-const fs = require('fs').promises;
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const path = require("path");
+const fs = require("fs").promises;
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * 音频存储管理类
@@ -15,7 +15,7 @@ const { v4: uuidv4 } = require('uuid');
 class AudioStorage {
   constructor(databaseManager, storagePath = null) {
     this.db = databaseManager;
-    this.storagePath = storagePath || path.join(process.cwd(), 'data', 'audio');
+    this.storagePath = storagePath || path.join(process.cwd(), "data", "audio");
   }
 
   /**
@@ -25,11 +25,11 @@ class AudioStorage {
     try {
       // 确保存储目录存在
       await fs.mkdir(this.storagePath, { recursive: true });
-      logger.info('[AudioStorage] 存储目录已创建:', this.storagePath);
+      logger.info("[AudioStorage] 存储目录已创建:", this.storagePath);
 
       return true;
     } catch (error) {
-      logger.error('[AudioStorage] 初始化失败:', error);
+      logger.error("[AudioStorage] 初始化失败:", error);
       return false;
     }
   }
@@ -50,7 +50,7 @@ class AudioStorage {
 
       // 复制文件到存储目录
       await fs.copyFile(sourcePath, destPath);
-      logger.info('[AudioStorage] 文件已保存:', destFileName);
+      logger.info("[AudioStorage] 文件已保存:", destFileName);
 
       // 获取文件信息
       const stats = await fs.stat(destPath);
@@ -72,7 +72,7 @@ class AudioStorage {
         size: stats.size,
       };
     } catch (error) {
-      logger.error('[AudioStorage] 保存文件失败:', error);
+      logger.error("[AudioStorage] 保存文件失败:", error);
       throw error;
     }
   }
@@ -89,15 +89,15 @@ class AudioStorage {
       file_path,
       file_size = 0,
       duration = 0,
-      format = '',
+      format = "",
       sample_rate = 0,
       channels = 0,
       transcription_text = null,
       transcription_engine = null,
       transcription_confidence = null,
-      language = 'zh',
+      language = "zh",
       knowledge_id = null,
-      user_id = 'local-user',
+      user_id = "local-user",
     } = data;
 
     const sql = `
@@ -112,13 +112,23 @@ class AudioStorage {
 
     try {
       await this.db.run(sql, [
-        id, file_name, file_path, file_size,
-        duration, format, sample_rate, channels,
-        transcription_text, transcription_engine, transcription_confidence,
-        language, knowledge_id, user_id,
+        id,
+        file_name,
+        file_path,
+        file_size,
+        duration,
+        format,
+        sample_rate,
+        channels,
+        transcription_text,
+        transcription_engine,
+        transcription_confidence,
+        language,
+        knowledge_id,
+        user_id,
       ]);
 
-      logger.info('[AudioStorage] 音频记录已创建:', id);
+      logger.info("[AudioStorage] 音频记录已创建:", id);
 
       return {
         id,
@@ -130,7 +140,7 @@ class AudioStorage {
         transcription_text,
       };
     } catch (error) {
-      logger.error('[AudioStorage] 创建音频记录失败:', error);
+      logger.error("[AudioStorage] 创建音频记录失败:", error);
       throw error;
     }
   }
@@ -143,10 +153,18 @@ class AudioStorage {
    */
   async updateAudioRecord(id, updates) {
     const allowedFields = [
-      'file_name', 'file_path', 'file_size', 'duration',
-      'format', 'sample_rate', 'channels',
-      'transcription_text', 'transcription_engine', 'transcription_confidence',
-      'language', 'knowledge_id',
+      "file_name",
+      "file_path",
+      "file_size",
+      "duration",
+      "format",
+      "sample_rate",
+      "channels",
+      "transcription_text",
+      "transcription_engine",
+      "transcription_confidence",
+      "language",
+      "knowledge_id",
     ];
 
     const fields = [];
@@ -160,21 +178,21 @@ class AudioStorage {
     }
 
     if (fields.length === 0) {
-      return { success: false, message: '没有可更新的字段' };
+      return { success: false, message: "没有可更新的字段" };
     }
 
-    fields.push('updated_at = datetime(\'now\')');
+    fields.push("updated_at = datetime('now')");
     values.push(id);
 
-    const sql = `UPDATE audio_files SET ${fields.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE audio_files SET ${fields.join(", ")} WHERE id = ?`;
 
     try {
       await this.db.run(sql, values);
-      logger.info('[AudioStorage] 音频记录已更新:', id);
+      logger.info("[AudioStorage] 音频记录已更新:", id);
 
       return { success: true, id };
     } catch (error) {
-      logger.error('[AudioStorage] 更新音频记录失败:', error);
+      logger.error("[AudioStorage] 更新音频记录失败:", error);
       throw error;
     }
   }
@@ -191,7 +209,7 @@ class AudioStorage {
       const record = await this.db.get(sql, [id]);
       return record || null;
     } catch (error) {
-      logger.error('[AudioStorage] 获取音频记录失败:', error);
+      logger.error("[AudioStorage] 获取音频记录失败:", error);
       throw error;
     }
   }
@@ -203,11 +221,11 @@ class AudioStorage {
    */
   async getAllAudioFiles(options = {}) {
     const {
-      user_id = 'local-user',
+      user_id = "local-user",
       limit = 100,
       offset = 0,
-      orderBy = 'created_at',
-      order = 'DESC',
+      orderBy = "created_at",
+      order = "DESC",
     } = options;
 
     const sql = `
@@ -221,7 +239,7 @@ class AudioStorage {
       const records = await this.db.all(sql, [user_id, limit, offset]);
       return records || [];
     } catch (error) {
-      logger.error('[AudioStorage] 获取音频列表失败:', error);
+      logger.error("[AudioStorage] 获取音频列表失败:", error);
       throw error;
     }
   }
@@ -233,10 +251,7 @@ class AudioStorage {
    * @returns {Promise<Array>}
    */
   async searchAudioFiles(query, options = {}) {
-    const {
-      user_id = 'local-user',
-      limit = 50,
-    } = options;
+    const { user_id = "local-user", limit = 50 } = options;
 
     const sql = `
       SELECT * FROM audio_files
@@ -252,10 +267,15 @@ class AudioStorage {
     const searchPattern = `%${query}%`;
 
     try {
-      const records = await this.db.all(sql, [user_id, searchPattern, searchPattern, limit]);
+      const records = await this.db.all(sql, [
+        user_id,
+        searchPattern,
+        searchPattern,
+        limit,
+      ]);
       return records || [];
     } catch (error) {
-      logger.error('[AudioStorage] 搜索音频失败:', error);
+      logger.error("[AudioStorage] 搜索音频失败:", error);
       throw error;
     }
   }
@@ -271,26 +291,26 @@ class AudioStorage {
       const record = await this.getAudioRecord(id);
 
       if (!record) {
-        throw new Error('音频记录不存在');
+        throw new Error("音频记录不存在");
       }
 
       // 删除物理文件
       try {
         await fs.unlink(record.file_path);
-        logger.info('[AudioStorage] 文件已删除:', record.file_path);
+        logger.info("[AudioStorage] 文件已删除:", record.file_path);
       } catch (error) {
-        logger.warn('[AudioStorage] 删除文件失败:', error);
+        logger.warn("[AudioStorage] 删除文件失败:", error);
       }
 
       // 删除数据库记录
       const sql = `DELETE FROM audio_files WHERE id = ?`;
       await this.db.run(sql, [id]);
 
-      logger.info('[AudioStorage] 音频记录已删除:', id);
+      logger.info("[AudioStorage] 音频记录已删除:", id);
 
       return { success: true, id };
     } catch (error) {
-      logger.error('[AudioStorage] 删除音频失败:', error);
+      logger.error("[AudioStorage] 删除音频失败:", error);
       throw error;
     }
   }
@@ -308,7 +328,7 @@ class AudioStorage {
       text,
       confidence = null,
       duration = 0,
-      status = 'completed',
+      status = "completed",
       error = null,
     } = data;
 
@@ -321,15 +341,21 @@ class AudioStorage {
 
     try {
       await this.db.run(sql, [
-        id, audio_file_id, engine, text, confidence,
-        duration, status, error,
+        id,
+        audio_file_id,
+        engine,
+        text,
+        confidence,
+        duration,
+        status,
+        error,
       ]);
 
-      logger.info('[AudioStorage] 转录历史已添加:', id);
+      logger.info("[AudioStorage] 转录历史已添加:", id);
 
       return { id, audio_file_id, engine, text, status };
     } catch (error) {
-      logger.error('[AudioStorage] 添加转录历史失败:', error);
+      logger.error("[AudioStorage] 添加转录历史失败:", error);
       throw error;
     }
   }
@@ -350,7 +376,7 @@ class AudioStorage {
       const records = await this.db.all(sql, [audio_file_id]);
       return records || [];
     } catch (error) {
-      logger.error('[AudioStorage] 获取转录历史失败:', error);
+      logger.error("[AudioStorage] 获取转录历史失败:", error);
       throw error;
     }
   }
@@ -361,10 +387,7 @@ class AudioStorage {
    * @returns {Promise<Array>}
    */
   async getAllTranscriptionHistory(options = {}) {
-    const {
-      limit = 100,
-      offset = 0,
-    } = options;
+    const { limit = 100, offset = 0 } = options;
 
     const sql = `
       SELECT h.*, a.file_name
@@ -378,7 +401,7 @@ class AudioStorage {
       const records = await this.db.all(sql, [limit, offset]);
       return records || [];
     } catch (error) {
-      logger.error('[AudioStorage] 获取转录历史失败:', error);
+      logger.error("[AudioStorage] 获取转录历史失败:", error);
       throw error;
     }
   }
@@ -390,10 +413,7 @@ class AudioStorage {
    * @returns {Promise<Array>}
    */
   async searchTranscriptionHistory(query, options = {}) {
-    const {
-      limit = 100,
-      offset = 0,
-    } = options;
+    const { limit = 100, offset = 0 } = options;
 
     const searchTerm = `%${query}%`;
 
@@ -408,10 +428,15 @@ class AudioStorage {
     `;
 
     try {
-      const records = await this.db.all(sql, [searchTerm, searchTerm, limit, offset]);
+      const records = await this.db.all(sql, [
+        searchTerm,
+        searchTerm,
+        limit,
+        offset,
+      ]);
       return records || [];
     } catch (error) {
-      logger.error('[AudioStorage] 搜索转录历史失败:', error);
+      logger.error("[AudioStorage] 搜索转录历史失败:", error);
       throw error;
     }
   }
@@ -426,11 +451,11 @@ class AudioStorage {
 
     try {
       await this.db.run(sql, [id]);
-      logger.info('[AudioStorage] 转录历史已删除:', id);
+      logger.info("[AudioStorage] 转录历史已删除:", id);
 
       return { success: true, id };
     } catch (error) {
-      logger.error('[AudioStorage] 删除转录历史失败:', error);
+      logger.error("[AudioStorage] 删除转录历史失败:", error);
       throw error;
     }
   }
@@ -440,7 +465,7 @@ class AudioStorage {
    * @param {string} user_id - 用户ID
    * @returns {Promise<Object>}
    */
-  async getStats(user_id = 'local-user') {
+  async getStats(user_id = "local-user") {
     try {
       // 总文件数
       const countSql = `SELECT COUNT(*) as count FROM audio_files WHERE user_id = ?`;
@@ -468,7 +493,7 @@ class AudioStorage {
         transcribedFiles: transcribedResult.count || 0,
       };
     } catch (error) {
-      logger.error('[AudioStorage] 获取统计信息失败:', error);
+      logger.error("[AudioStorage] 获取统计信息失败:", error);
       throw error;
     }
   }
@@ -493,7 +518,7 @@ class AudioStorage {
           await this.deleteAudioFile(file.id);
           deletedCount++;
         } catch (error) {
-          logger.warn('[AudioStorage] 清理文件失败:', file.id, error);
+          logger.warn("[AudioStorage] 清理文件失败:", file.id, error);
         }
       }
 
@@ -505,7 +530,7 @@ class AudioStorage {
         totalFound: oldFiles.length,
       };
     } catch (error) {
-      logger.error('[AudioStorage] 清理旧文件失败:', error);
+      logger.error("[AudioStorage] 清理旧文件失败:", error);
       throw error;
     }
   }

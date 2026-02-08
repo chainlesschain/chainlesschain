@@ -4,7 +4,7 @@
  * 基于ShareDB实现OT (Operational Transformation) 算法
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const ShareDB = require("sharedb");
 const WebSocket = require("ws");
 const WebSocketJSONStream = require("@teamwork/websocket-json-stream");
@@ -690,11 +690,7 @@ class CollaborationManager extends EventEmitter {
       );
 
       if (!isMember) {
-        logger.warn(
-          "[CollaborationManager] 用户不是组织成员:",
-          userDID,
-          orgId,
-        );
+        logger.warn("[CollaborationManager] 用户不是组织成员:", userDID, orgId);
         return false;
       }
 

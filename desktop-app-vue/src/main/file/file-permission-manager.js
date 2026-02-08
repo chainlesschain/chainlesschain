@@ -3,8 +3,8 @@
  * 负责文件权限、共享、访问控制等功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
 
 class FilePermissionManager {
   /**
@@ -23,51 +23,66 @@ class FilePermissionManager {
    * @returns {Object} 权限信息
    */
   async grantPermission(permissionData, granterDID) {
-    const {
-      file_id,
-      member_did,
-      role,
-      permission
-    } = permissionData;
+    const { file_id, member_did, role, permission } = permissionData;
 
     // 验证权限值
-    const validPermissions = ['view', 'edit', 'manage'];
+    const validPermissions = ["view", "edit", "manage"];
     if (!validPermissions.includes(permission)) {
-      throw new Error('无效的权限类型');
+      throw new Error("无效的权限类型");
     }
 
     // 检查授权者是否有manage权限
-    const canGrant = await this.checkPermission(file_id, granterDID, 'manage');
+    const canGrant = await this.checkPermission(file_id, granterDID, "manage");
     if (!canGrant) {
-      throw new Error('无权限授予文件访问权限');
+      throw new Error("无权限授予文件访问权限");
     }
 
     // 检查是否已存在相同权限
-    const existing = this.db.prepare(`
+    const existing = this.db
+      .prepare(
+        `
       SELECT id FROM file_permissions
       WHERE file_id = ? AND member_did = ?
-    `).get(file_id, member_did);
+    `,
+      )
+      .get(file_id, member_did);
 
-    const permissionId = existing?.id || `perm_${uuidv4().replace(/-/g, '')}`;
+    const permissionId = existing?.id || `perm_${uuidv4().replace(/-/g, "")}`;
     const now = Date.now();
 
     if (existing) {
       // 更新现有权限
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         UPDATE file_permissions
         SET role = ?, permission = ?, granted_by = ?, granted_at = ?
         WHERE id = ?
-      `).run(role, permission, granterDID, now, permissionId);
+      `,
+        )
+        .run(role, permission, granterDID, now, permissionId);
 
-      logger.info('[FilePermissionManager] 权限更新成功');
+      logger.info("[FilePermissionManager] 权限更新成功");
     } else {
       // 插入新权限
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         INSERT INTO file_permissions (id, file_id, member_did, role, permission, granted_by, granted_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(permissionId, file_id, member_did, role, permission, granterDID, now);
+      `,
+        )
+        .run(
+          permissionId,
+          file_id,
+          member_did,
+          role,
+          permission,
+          granterDID,
+          now,
+        );
 
-      logger.info('[FilePermissionManager] 权限授予成功');
+      logger.info("[FilePermissionManager] 权限授予成功");
     }
 
     return this.getPermission(permissionId);
@@ -82,17 +97,21 @@ class FilePermissionManager {
    */
   async revokePermission(file_id, member_did, revokerDID) {
     // 检查撤销者是否有manage权限
-    const canRevoke = await this.checkPermission(file_id, revokerDID, 'manage');
+    const canRevoke = await this.checkPermission(file_id, revokerDID, "manage");
     if (!canRevoke) {
-      return { success: false, error: '无权限撤销文件访问权限' };
+      return { success: false, error: "无权限撤销文件访问权限" };
     }
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       DELETE FROM file_permissions
       WHERE file_id = ? AND member_did = ?
-    `).run(file_id, member_did);
+    `,
+      )
+      .run(file_id, member_did);
 
-    logger.info('[FilePermissionManager] 权限撤销成功');
+    logger.info("[FilePermissionManager] 权限撤销成功");
 
     return { success: true };
   }
@@ -106,14 +125,18 @@ class FilePermissionManager {
    */
   async checkPermission(fileId, userDID, requiredPermission) {
     // 获取文件信息
-    const file = this.db.prepare('SELECT * FROM project_files WHERE id = ?').get(fileId);
+    const file = this.db
+      .prepare("SELECT * FROM project_files WHERE id = ?")
+      .get(fileId);
     if (!file) {
       return false;
     }
 
     // 检查是否是文件所有者（通过项目判断）
     if (file.project_id) {
-      const project = this.db.prepare('SELECT user_id FROM projects WHERE id = ?').get(file.project_id);
+      const project = this.db
+        .prepare("SELECT user_id FROM projects WHERE id = ?")
+        .get(file.project_id);
       // 项目所有者拥有该项目下所有文件的所有权限
       if (project && project.user_id === userDID) {
         return true;
@@ -121,23 +144,34 @@ class FilePermissionManager {
     }
 
     // 检查直接权限
-    const directPermission = this.db.prepare(`
+    const directPermission = this.db
+      .prepare(
+        `
       SELECT permission FROM file_permissions
       WHERE file_id = ? AND member_did = ?
-    `).get(fileId, userDID);
+    `,
+      )
+      .get(fileId, userDID);
 
     if (directPermission) {
-      return this._hasRequiredPermission(directPermission.permission, requiredPermission);
+      return this._hasRequiredPermission(
+        directPermission.permission,
+        requiredPermission,
+      );
     }
 
     // 检查角色权限
     if (file.org_id) {
-      const rolePermissions = this.db.prepare(`
+      const rolePermissions = this.db
+        .prepare(
+          `
         SELECT fp.permission
         FROM file_permissions fp
         JOIN organization_members om ON fp.role = om.role
         WHERE fp.file_id = ? AND om.member_did = ? AND om.org_id = ?
-      `).all(fileId, userDID, file.org_id);
+      `,
+        )
+        .all(fileId, userDID, file.org_id);
 
       for (const perm of rolePermissions) {
         if (this._hasRequiredPermission(perm.permission, requiredPermission)) {
@@ -149,7 +183,7 @@ class FilePermissionManager {
       const hasOrgPermission = await this.organizationManager.checkPermission(
         file.org_id,
         userDID,
-        'file.manage'
+        "file.manage",
       );
 
       if (hasOrgPermission) {
@@ -166,7 +200,9 @@ class FilePermissionManager {
    * @returns {Object} 权限信息
    */
   getPermission(permissionId) {
-    return this.db.prepare('SELECT * FROM file_permissions WHERE id = ?').get(permissionId);
+    return this.db
+      .prepare("SELECT * FROM file_permissions WHERE id = ?")
+      .get(permissionId);
   }
 
   /**
@@ -175,11 +211,15 @@ class FilePermissionManager {
    * @returns {Array} 权限列表
    */
   getFilePermissions(fileId) {
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT * FROM file_permissions
       WHERE file_id = ?
       ORDER BY granted_at DESC
-    `).all(fileId);
+    `,
+      )
+      .all(fileId);
   }
 
   /**
@@ -188,13 +228,17 @@ class FilePermissionManager {
    * @returns {Array} 权限列表
    */
   getUserPermissions(userDID) {
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT fp.*, pf.file_name, pf.file_type
       FROM file_permissions fp
       JOIN project_files pf ON fp.file_id = pf.id
       WHERE fp.member_did = ?
       ORDER BY fp.granted_at DESC
-    `).all(userDID);
+    `,
+      )
+      .all(userDID);
   }
 
   /**
@@ -204,40 +248,48 @@ class FilePermissionManager {
    * @returns {Object} 共享信息
    */
   async shareFile(shareData, sharerDID) {
-    const {
-      file_id,
-      share_type,
-      target_id,
-      permission,
-      expires_in
-    } = shareData;
+    const { file_id, share_type, target_id, permission, expires_in } =
+      shareData;
 
     // 验证共享类型
-    const validShareTypes = ['workspace', 'user', 'role', 'public'];
+    const validShareTypes = ["workspace", "user", "role", "public"];
     if (!validShareTypes.includes(share_type)) {
-      throw new Error('无效的共享类型');
+      throw new Error("无效的共享类型");
     }
 
     // 检查分享者是否有权限
-    const canShare = await this.checkPermission(file_id, sharerDID, 'edit');
+    const canShare = await this.checkPermission(file_id, sharerDID, "edit");
     if (!canShare) {
-      throw new Error('无权限分享此文件');
+      throw new Error("无权限分享此文件");
     }
 
-    const shareId = `share_${uuidv4().replace(/-/g, '')}`;
+    const shareId = `share_${uuidv4().replace(/-/g, "")}`;
     const now = Date.now();
     const expiresAt = expires_in ? now + expires_in : null;
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO file_shares (id, file_id, share_type, target_id, permission, expires_at, created_by, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(file_id, share_type, target_id) DO UPDATE SET
         permission = excluded.permission,
         expires_at = excluded.expires_at,
         created_at = excluded.created_at
-    `).run(shareId, file_id, share_type, target_id, permission, expiresAt, sharerDID, now);
+    `,
+      )
+      .run(
+        shareId,
+        file_id,
+        share_type,
+        target_id,
+        permission,
+        expiresAt,
+        sharerDID,
+        now,
+      );
 
-    logger.info('[FilePermissionManager] 文件分享成功');
+    logger.info("[FilePermissionManager] 文件分享成功");
 
     return this.getShare(shareId);
   }
@@ -251,18 +303,22 @@ class FilePermissionManager {
   async unshareFile(shareId, revokerDID) {
     const share = this.getShare(shareId);
     if (!share) {
-      return { success: false, error: '共享不存在' };
+      return { success: false, error: "共享不存在" };
     }
 
     // 检查撤销者是否有权限
-    const canUnshare = await this.checkPermission(share.file_id, revokerDID, 'manage');
+    const canUnshare = await this.checkPermission(
+      share.file_id,
+      revokerDID,
+      "manage",
+    );
     if (!canUnshare && share.created_by !== revokerDID) {
-      return { success: false, error: '无权限取消此共享' };
+      return { success: false, error: "无权限取消此共享" };
     }
 
-    this.db.prepare('DELETE FROM file_shares WHERE id = ?').run(shareId);
+    this.db.prepare("DELETE FROM file_shares WHERE id = ?").run(shareId);
 
-    logger.info('[FilePermissionManager] 文件共享已取消');
+    logger.info("[FilePermissionManager] 文件共享已取消");
 
     return { success: true };
   }
@@ -273,7 +329,9 @@ class FilePermissionManager {
    * @returns {Object} 共享信息
    */
   getShare(shareId) {
-    return this.db.prepare('SELECT * FROM file_shares WHERE id = ?').get(shareId);
+    return this.db
+      .prepare("SELECT * FROM file_shares WHERE id = ?")
+      .get(shareId);
   }
 
   /**
@@ -284,11 +342,15 @@ class FilePermissionManager {
   getFileShares(fileId) {
     const now = Date.now();
 
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT * FROM file_shares
       WHERE file_id = ? AND (expires_at IS NULL OR expires_at > ?)
       ORDER BY created_at DESC
-    `).all(fileId, now);
+    `,
+      )
+      .all(fileId, now);
   }
 
   /**
@@ -302,44 +364,60 @@ class FilePermissionManager {
     const files = [];
 
     // 1. 直接分享给用户的文件
-    const directShares = this.db.prepare(`
+    const directShares = this.db
+      .prepare(
+        `
       SELECT pf.*, fs.permission as share_permission
       FROM file_shares fs
       JOIN project_files pf ON fs.file_id = pf.id
       WHERE fs.share_type = 'user' AND fs.target_id = ?
         AND (fs.expires_at IS NULL OR fs.expires_at > ?)
-    `).all(userDID, now);
+    `,
+      )
+      .all(userDID, now);
 
     files.push(...directShares);
 
     // 2. 公开分享的文件
-    const publicShares = this.db.prepare(`
+    const publicShares = this.db
+      .prepare(
+        `
       SELECT pf.*, fs.permission as share_permission
       FROM file_shares fs
       JOIN project_files pf ON fs.file_id = pf.id
       WHERE fs.share_type = 'public'
         AND (fs.expires_at IS NULL OR fs.expires_at > ?)
-        ${orgId ? 'AND pf.org_id = ?' : ''}
-    `).all(...(orgId ? [now, orgId] : [now]));
+        ${orgId ? "AND pf.org_id = ?" : ""}
+    `,
+      )
+      .all(...(orgId ? [now, orgId] : [now]));
 
     files.push(...publicShares);
 
     // 3. 基于角色的共享
     if (orgId) {
-      const member = this.db.prepare(`
+      const member = this.db
+        .prepare(
+          `
         SELECT role FROM organization_members
         WHERE org_id = ? AND member_did = ?
-      `).get(orgId, userDID);
+      `,
+        )
+        .get(orgId, userDID);
 
       if (member) {
-        const roleShares = this.db.prepare(`
+        const roleShares = this.db
+          .prepare(
+            `
           SELECT pf.*, fs.permission as share_permission
           FROM file_shares fs
           JOIN project_files pf ON fs.file_id = pf.id
           WHERE fs.share_type = 'role' AND fs.target_id = ?
             AND (fs.expires_at IS NULL OR fs.expires_at > ?)
             AND pf.org_id = ?
-        `).all(member.role, now, orgId);
+        `,
+          )
+          .all(member.role, now, orgId);
 
         files.push(...roleShares);
       }
@@ -355,10 +433,14 @@ class FilePermissionManager {
   cleanupExpiredShares() {
     const now = Date.now();
 
-    const result = this.db.prepare(`
+    const result = this.db
+      .prepare(
+        `
       DELETE FROM file_shares
       WHERE expires_at IS NOT NULL AND expires_at < ?
-    `).run(now);
+    `,
+      )
+      .run(now);
 
     logger.info(`[FilePermissionManager] 清理过期共享: ${result.changes} 条`);
 
@@ -371,9 +453,9 @@ class FilePermissionManager {
    */
   _hasRequiredPermission(grantedPermission, requiredPermission) {
     const permissionLevels = {
-      'view': 1,
-      'edit': 2,
-      'manage': 3
+      view: 1,
+      edit: 2,
+      manage: 3,
     };
 
     const granted = permissionLevels[grantedPermission] || 0;

@@ -38,19 +38,14 @@ class MemoryAnalytics {
    */
   async getDashboardData() {
     try {
-      const [
-        overview,
-        trends,
-        topKeywords,
-        searchStats,
-        healthScore,
-      ] = await Promise.all([
-        this.getOverview(),
-        this.getTrends(30),
-        this.getTopKeywords(10),
-        this.getSearchStatistics(),
-        this.calculateHealthScore(),
-      ]);
+      const [overview, trends, topKeywords, searchStats, healthScore] =
+        await Promise.all([
+          this.getOverview(),
+          this.getTrends(30),
+          this.getTopKeywords(10),
+          this.getSearchStatistics(),
+          this.calculateHealthScore(),
+        ]);
 
       return {
         overview,
@@ -73,7 +68,9 @@ class MemoryAnalytics {
   async getOverview() {
     try {
       // Daily Notes 统计
-      const dailyNotesStats = this.db.prepare(`
+      const dailyNotesStats = this.db
+        .prepare(
+          `
         SELECT
           COUNT(*) as totalNotes,
           COALESCE(SUM(word_count), 0) as totalWords,
@@ -82,32 +79,46 @@ class MemoryAnalytics {
           COALESCE(SUM(completed_tasks), 0) as totalCompletedTasks,
           COALESCE(AVG(word_count), 0) as avgWordsPerNote
         FROM daily_notes_metadata
-      `).get();
+      `,
+        )
+        .get();
 
       // Memory Sections 统计
-      const sectionsStats = this.db.prepare(`
+      const sectionsStats = this.db
+        .prepare(
+          `
         SELECT
           COUNT(*) as totalSections,
           COALESCE(AVG(importance), 3) as avgImportance
         FROM memory_sections
-      `).get();
+      `,
+        )
+        .get();
 
       // Embedding Cache 统计
-      const cacheStats = this.db.prepare(`
+      const cacheStats = this.db
+        .prepare(
+          `
         SELECT
           COUNT(*) as totalEmbeddings,
           COALESCE(SUM(access_count), 0) as totalAccesses
         FROM embedding_cache
-      `).get();
+      `,
+        )
+        .get();
 
       // 索引文件统计
-      const indexStats = this.db.prepare(`
+      const indexStats = this.db
+        .prepare(
+          `
         SELECT
           COUNT(*) as totalFiles,
           SUM(CASE WHEN index_status = 'indexed' THEN 1 ELSE 0 END) as indexedFiles,
           SUM(CASE WHEN index_status = 'failed' THEN 1 ELSE 0 END) as failedFiles
         FROM memory_file_hashes
-      `).get();
+      `,
+        )
+        .get();
 
       return {
         dailyNotes: {
@@ -120,7 +131,8 @@ class MemoryAnalytics {
         },
         memorySections: {
           total: sectionsStats?.totalSections || 0,
-          avgImportance: Math.round((sectionsStats?.avgImportance || 3) * 10) / 10,
+          avgImportance:
+            Math.round((sectionsStats?.avgImportance || 3) * 10) / 10,
         },
         embeddingCache: {
           totalEmbeddings: cacheStats?.totalEmbeddings || 0,
@@ -130,9 +142,12 @@ class MemoryAnalytics {
           totalFiles: indexStats?.totalFiles || 0,
           indexedFiles: indexStats?.indexedFiles || 0,
           failedFiles: indexStats?.failedFiles || 0,
-          indexRate: indexStats?.totalFiles > 0
-            ? Math.round((indexStats.indexedFiles / indexStats.totalFiles) * 100)
-            : 0,
+          indexRate:
+            indexStats?.totalFiles > 0
+              ? Math.round(
+                  (indexStats.indexedFiles / indexStats.totalFiles) * 100,
+                )
+              : 0,
         },
       };
     } catch (error) {
@@ -153,7 +168,9 @@ class MemoryAnalytics {
       const cutoffStr = cutoffDate.toISOString().split("T")[0];
 
       // Daily Notes 趋势
-      const dailyTrend = this.db.prepare(`
+      const dailyTrend = this.db
+        .prepare(
+          `
         SELECT
           date,
           word_count,
@@ -163,10 +180,14 @@ class MemoryAnalytics {
         FROM daily_notes_metadata
         WHERE date >= ?
         ORDER BY date ASC
-      `).all(cutoffStr);
+      `,
+        )
+        .all(cutoffStr);
 
       // 搜索趋势
-      const searchTrend = this.db.prepare(`
+      const searchTrend = this.db
+        .prepare(
+          `
         SELECT
           date,
           hybrid_search_count,
@@ -177,7 +198,9 @@ class MemoryAnalytics {
         FROM memory_stats
         WHERE date >= ?
         ORDER BY date ASC
-      `).all(cutoffStr);
+      `,
+        )
+        .all(cutoffStr);
 
       // 计算每周汇总
       const weeklyStats = this._aggregateByWeek(dailyTrend);
@@ -216,20 +239,28 @@ class MemoryAnalytics {
   async getTopKeywords(limit = 10) {
     try {
       // 从搜索历史提取
-      const searchKeywords = this.db.prepare(`
+      const searchKeywords = this.db
+        .prepare(
+          `
         SELECT query, COUNT(*) as count
         FROM search_history
         GROUP BY query
         ORDER BY count DESC
         LIMIT ?
-      `).all(limit);
+      `,
+        )
+        .all(limit);
 
       // 从标签提取
-      const tagKeywords = this.db.prepare(`
+      const tagKeywords = this.db
+        .prepare(
+          `
         SELECT tags
         FROM memory_sections
         WHERE tags IS NOT NULL AND tags != '[]'
-      `).all();
+      `,
+        )
+        .all();
 
       // 合并标签统计
       const tagCounts = {};
@@ -271,9 +302,7 @@ class MemoryAnalytics {
         }
       }
 
-      return uniqueKeywords
-        .sort((a, b) => b.count - a.count)
-        .slice(0, limit);
+      return uniqueKeywords.sort((a, b) => b.count - a.count).slice(0, limit);
     } catch (error) {
       logger.error("[MemoryAnalytics] 获取热门关键词失败:", error);
       return [];
@@ -289,7 +318,10 @@ class MemoryAnalytics {
       const today = new Date().toISOString().split("T")[0];
 
       // 今日统计
-      const todayStats = this.db.prepare(`
+      const todayStats =
+        this.db
+          .prepare(
+            `
         SELECT
           hybrid_search_count,
           vector_search_count,
@@ -299,10 +331,15 @@ class MemoryAnalytics {
           avg_search_latency
         FROM memory_stats
         WHERE date = ?
-      `).get(today) || {};
+      `,
+          )
+          .get(today) || {};
 
       // 总体统计
-      const totalStats = this.db.prepare(`
+      const totalStats =
+        this.db
+          .prepare(
+            `
         SELECT
           SUM(hybrid_search_count) as totalHybrid,
           SUM(vector_search_count) as totalVector,
@@ -311,15 +348,16 @@ class MemoryAnalytics {
           SUM(cache_misses) as totalCacheMisses,
           AVG(avg_search_latency) as avgLatency
         FROM memory_stats
-      `).get() || {};
+      `,
+          )
+          .get() || {};
 
       // 计算缓存命中率
       const totalHits = totalStats.totalCacheHits || 0;
       const totalMisses = totalStats.totalCacheMisses || 0;
       const totalRequests = totalHits + totalMisses;
-      const cacheHitRate = totalRequests > 0
-        ? Math.round((totalHits / totalRequests) * 100)
-        : 0;
+      const cacheHitRate =
+        totalRequests > 0 ? Math.round((totalHits / totalRequests) * 100) : 0;
 
       return {
         today: {
@@ -351,53 +389,91 @@ class MemoryAnalytics {
   async calculateHealthScore() {
     try {
       const scores = {
-        coverage: 0,      // 覆盖度 (0-25)
-        freshness: 0,     // 新鲜度 (0-25)
-        organization: 0,  // 组织度 (0-25)
-        utilization: 0,   // 利用率 (0-25)
+        coverage: 0, // 覆盖度 (0-25)
+        freshness: 0, // 新鲜度 (0-25)
+        organization: 0, // 组织度 (0-25)
+        utilization: 0, // 利用率 (0-25)
       };
 
       // 1. 覆盖度评分 - 基于 Daily Notes 数量
       const recentDays = 30;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - recentDays);
-      const dailyCount = this.db.prepare(`
+      const dailyCount =
+        this.db
+          .prepare(
+            `
         SELECT COUNT(*) as count FROM daily_notes_metadata
         WHERE date >= ?
-      `).get(cutoffDate.toISOString().split("T")[0])?.count || 0;
+      `,
+          )
+          .get(cutoffDate.toISOString().split("T")[0])?.count || 0;
 
-      scores.coverage = Math.min(25, Math.round((dailyCount / recentDays) * 25));
+      scores.coverage = Math.min(
+        25,
+        Math.round((dailyCount / recentDays) * 25),
+      );
 
       // 2. 新鲜度评分 - 基于最近活动
-      const lastWeekCount = this.db.prepare(`
+      const lastWeekCount =
+        this.db
+          .prepare(
+            `
         SELECT COUNT(*) as count FROM daily_notes_metadata
         WHERE date >= ?
-      `).get(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0])?.count || 0;
+      `,
+          )
+          .get(
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split("T")[0],
+          )?.count || 0;
 
       scores.freshness = Math.min(25, Math.round((lastWeekCount / 7) * 25));
 
       // 3. 组织度评分 - 基于标签和分类使用
-      const taggedCount = this.db.prepare(`
+      const taggedCount =
+        this.db
+          .prepare(
+            `
         SELECT COUNT(*) as count FROM memory_sections
         WHERE tags IS NOT NULL AND tags != '[]'
-      `).get()?.count || 0;
+      `,
+          )
+          .get()?.count || 0;
 
-      const totalSections = this.db.prepare(`
+      const totalSections =
+        this.db
+          .prepare(
+            `
         SELECT COUNT(*) as count FROM memory_sections
-      `).get()?.count || 1;
+      `,
+          )
+          .get()?.count || 1;
 
-      scores.organization = Math.min(25, Math.round((taggedCount / totalSections) * 25));
+      scores.organization = Math.min(
+        25,
+        Math.round((taggedCount / totalSections) * 25),
+      );
 
       // 4. 利用率评分 - 基于搜索和缓存使用
       const searchStats = await this.getSearchStatistics();
-      const totalSearches = (searchStats.total?.hybridSearchCount || 0) +
-                           (searchStats.total?.vectorSearchCount || 0) +
-                           (searchStats.total?.bm25SearchCount || 0);
+      const totalSearches =
+        (searchStats.total?.hybridSearchCount || 0) +
+        (searchStats.total?.vectorSearchCount || 0) +
+        (searchStats.total?.bm25SearchCount || 0);
 
-      scores.utilization = Math.min(25, Math.round(Math.log10(totalSearches + 1) * 8));
+      scores.utilization = Math.min(
+        25,
+        Math.round(Math.log10(totalSearches + 1) * 8),
+      );
 
       // 计算总分
-      const totalScore = scores.coverage + scores.freshness + scores.organization + scores.utilization;
+      const totalScore =
+        scores.coverage +
+        scores.freshness +
+        scores.organization +
+        scores.utilization;
 
       // 生成建议
       const suggestions = [];
@@ -444,10 +520,14 @@ class MemoryAnalytics {
       const today = new Date().toISOString().split("T")[0];
 
       // 确保今日记录存在
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         INSERT OR IGNORE INTO memory_stats (date, updated_at)
         VALUES (?, ?)
-      `).run(today, Date.now());
+      `,
+        )
+        .run(today, Date.now());
 
       // 更新统计
       const columnMap = {
@@ -459,14 +539,18 @@ class MemoryAnalytics {
       const column = columnMap[searchType] || "hybrid_search_count";
       const cacheColumn = cacheHit ? "cache_hits" : "cache_misses";
 
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         UPDATE memory_stats
         SET ${column} = ${column} + 1,
             ${cacheColumn} = ${cacheColumn} + 1,
             avg_search_latency = (avg_search_latency * ${column} + ?) / (${column} + 1),
             updated_at = ?
         WHERE date = ?
-      `).run(latency, Date.now(), today);
+      `,
+        )
+        .run(latency, Date.now(), today);
     } catch (error) {
       logger.warn("[MemoryAnalytics] 记录搜索事件失败:", error.message);
     }
@@ -521,13 +605,27 @@ class MemoryAnalytics {
    * @private
    */
   _getGrade(score) {
-    if (score >= 90) return "A+";
-    if (score >= 80) return "A";
-    if (score >= 70) return "B+";
-    if (score >= 60) return "B";
-    if (score >= 50) return "C+";
-    if (score >= 40) return "C";
-    if (score >= 30) return "D";
+    if (score >= 90) {
+      return "A+";
+    }
+    if (score >= 80) {
+      return "A";
+    }
+    if (score >= 70) {
+      return "B+";
+    }
+    if (score >= 60) {
+      return "B";
+    }
+    if (score >= 50) {
+      return "C+";
+    }
+    if (score >= 40) {
+      return "C";
+    }
+    if (score >= 30) {
+      return "D";
+    }
     return "F";
   }
 }

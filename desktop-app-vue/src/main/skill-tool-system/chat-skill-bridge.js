@@ -9,7 +9,7 @@
  * 4. 支持多轮对话中的工具调用
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const ToolRunner = require("./tool-runner");
 

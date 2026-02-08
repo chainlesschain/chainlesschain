@@ -1,5 +1,9 @@
 <template>
-  <div ref="messagesContainer" class="messages-container" data-testid="messages-container">
+  <div
+    ref="messagesContainer"
+    class="messages-container"
+    data-testid="messages-container"
+  >
     <!-- 空状态 -->
     <EmptyState
       v-if="messages.length === 0 && !isLoading"
@@ -52,11 +56,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import EmptyState from './EmptyState.vue';
-import MessageRenderer from './MessageRenderer.vue';
-import VirtualMessageList from '../projects/VirtualMessageList.vue';
-import ThinkingProcess from '../projects/ThinkingProcess.vue';
+import { ref } from "vue";
+import EmptyState from "./EmptyState.vue";
+import MessageRenderer from "./MessageRenderer.vue";
+import VirtualMessageList from "../projects/VirtualMessageList.vue";
+import ThinkingProcess from "../projects/ThinkingProcess.vue";
 
 defineProps({
   messages: {
@@ -71,18 +75,18 @@ defineProps({
     type: Object,
     default: () => ({
       show: false,
-      stage: '',
+      stage: "",
       progress: 0,
       showProgress: false,
-      progressText: '',
+      progressText: "",
       steps: [],
-      streamingContent: '',
+      streamingContent: "",
       showCancelButton: false,
     }),
   },
   contextMode: {
     type: String,
-    default: 'global',
+    default: "global",
   },
   currentFile: {
     type: Object,
@@ -95,18 +99,18 @@ defineProps({
 });
 
 defineEmits([
-  'scroll-to-bottom',
-  'load-more',
-  'intent-confirm',
-  'intent-correct',
-  'interview-answer',
-  'interview-skip',
-  'interview-complete',
-  'plan-confirm',
-  'plan-modify',
-  'plan-cancel',
-  'open-source',
-  'cancel-thinking',
+  "scroll-to-bottom",
+  "load-more",
+  "intent-confirm",
+  "intent-correct",
+  "interview-answer",
+  "interview-skip",
+  "interview-complete",
+  "plan-confirm",
+  "plan-modify",
+  "plan-cancel",
+  "open-source",
+  "cancel-thinking",
 ]);
 
 const messagesContainer = ref(null);

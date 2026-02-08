@@ -6,9 +6,9 @@
  * @module hooks/hook-registry
  */
 
-const { EventEmitter } = require('events');
-const path = require('path');
-const fs = require('fs').promises;
+const { EventEmitter } = require("events");
+const path = require("path");
+const fs = require("fs").promises;
 
 /**
  * 钩子优先级
@@ -25,10 +25,10 @@ const HookPriority = {
  * 钩子类型
  */
 const HookType = {
-  SYNC: 'sync', // 同步钩子
-  ASYNC: 'async', // 异步钩子
-  COMMAND: 'command', // Shell 命令钩子
-  SCRIPT: 'script', // 脚本文件钩子
+  SYNC: "sync", // 同步钩子
+  ASYNC: "async", // 异步钩子
+  COMMAND: "command", // Shell 命令钩子
+  SCRIPT: "script", // 脚本文件钩子
 };
 
 /**
@@ -36,33 +36,33 @@ const HookType = {
  */
 const HookEvents = [
   // IPC 相关
-  'PreIPCCall',
-  'PostIPCCall',
-  'IPCError',
+  "PreIPCCall",
+  "PostIPCCall",
+  "IPCError",
   // 工具调用相关
-  'PreToolUse',
-  'PostToolUse',
-  'ToolError',
+  "PreToolUse",
+  "PostToolUse",
+  "ToolError",
   // 会话相关
-  'SessionStart',
-  'SessionEnd',
-  'PreCompact',
-  'PostCompact',
+  "SessionStart",
+  "SessionEnd",
+  "PreCompact",
+  "PostCompact",
   // 用户交互相关
-  'UserPromptSubmit',
-  'AssistantResponse',
+  "UserPromptSubmit",
+  "AssistantResponse",
   // Agent 相关
-  'AgentStart',
-  'AgentStop',
-  'TaskAssigned',
-  'TaskCompleted',
+  "AgentStart",
+  "AgentStop",
+  "TaskAssigned",
+  "TaskCompleted",
   // 文件操作相关
-  'PreFileAccess',
-  'PostFileAccess',
-  'FileModified',
+  "PreFileAccess",
+  "PostFileAccess",
+  "FileModified",
   // 内存系统相关
-  'MemorySave',
-  'MemoryLoad',
+  "MemorySave",
+  "MemoryLoad",
 ];
 
 /**
@@ -133,7 +133,7 @@ class HookRegistry extends EventEmitter {
     const {
       id = this._generateId(),
       event,
-      name = 'unnamed-hook',
+      name = "unnamed-hook",
       type = HookType.ASYNC,
       priority = HookPriority.NORMAL,
       handler,
@@ -142,26 +142,28 @@ class HookRegistry extends EventEmitter {
       matcher = null,
       timeout = 30000,
       enabled = true,
-      description = '',
+      description = "",
       metadata = {},
     } = hookConfig;
 
     // 验证事件名称
     if (!event || !this.hooks.has(event)) {
-      throw new Error(`Invalid hook event: ${event}. Valid events: ${HookEvents.join(', ')}`);
+      throw new Error(
+        `Invalid hook event: ${event}. Valid events: ${HookEvents.join(", ")}`,
+      );
     }
 
     // 验证钩子类型和必需字段
     if ((type === HookType.SYNC || type === HookType.ASYNC) && !handler) {
-      throw new Error('Sync/Async hooks require a handler function');
+      throw new Error("Sync/Async hooks require a handler function");
     }
 
     if (type === HookType.COMMAND && !command) {
-      throw new Error('Command hooks require a command string');
+      throw new Error("Command hooks require a command string");
     }
 
     if (type === HookType.SCRIPT && !script) {
-      throw new Error('Script hooks require a script path');
+      throw new Error("Script hooks require a script path");
     }
 
     // 检查重复ID
@@ -202,7 +204,7 @@ class HookRegistry extends EventEmitter {
     this.hookById.set(id, hook);
     this.stats.totalRegistered++;
 
-    this.emit('hook-registered', { hook: this._sanitizeHook(hook) });
+    this.emit("hook-registered", { hook: this._sanitizeHook(hook) });
 
     return id;
   }
@@ -223,7 +225,9 @@ class HookRegistry extends EventEmitter {
    */
   unregister(hookId) {
     const hook = this.hookById.get(hookId);
-    if (!hook) return false;
+    if (!hook) {
+      return false;
+    }
 
     const eventHooks = this.hooks.get(hook.event);
     const index = eventHooks.findIndex((h) => h.id === hookId);
@@ -232,7 +236,7 @@ class HookRegistry extends EventEmitter {
     }
 
     this.hookById.delete(hookId);
-    this.emit('hook-unregistered', { hookId, hook: this._sanitizeHook(hook) });
+    this.emit("hook-unregistered", { hookId, hook: this._sanitizeHook(hook) });
 
     return true;
   }
@@ -266,30 +270,34 @@ class HookRegistry extends EventEmitter {
    * @private
    */
   _compileMatcher(matcher) {
-    if (!matcher) return null;
+    if (!matcher) {
+      return null;
+    }
 
-    if (typeof matcher === 'function') {
+    if (typeof matcher === "function") {
       return matcher;
     }
 
     if (matcher instanceof RegExp) {
       return (context) => {
-        const target = context.toolName || context.channel || context.filePath || '';
+        const target =
+          context.toolName || context.channel || context.filePath || "";
         return matcher.test(target);
       };
     }
 
-    if (typeof matcher === 'string') {
+    if (typeof matcher === "string") {
       // 支持通配符和管道符
       // 例如: "file_*", "Edit|Write", "*.js"
-      const patterns = matcher.split('|').map((p) => p.trim());
+      const patterns = matcher.split("|").map((p) => p.trim());
       const regexes = patterns.map((p) => {
-        const pattern = p.replace(/\*/g, '.*').replace(/\?/g, '.');
+        const pattern = p.replace(/\*/g, ".*").replace(/\?/g, ".");
         return new RegExp(`^${pattern}$`);
       });
 
       return (context) => {
-        const target = context.toolName || context.channel || context.filePath || '';
+        const target =
+          context.toolName || context.channel || context.filePath || "";
         return regexes.some((regex) => regex.test(target));
       };
     }
@@ -302,11 +310,16 @@ class HookRegistry extends EventEmitter {
    * @private
    */
   _matchHook(hook, context) {
-    if (!hook.matcher) return true;
+    if (!hook.matcher) {
+      return true;
+    }
     try {
       return hook.matcher(context);
     } catch (error) {
-      console.warn(`[HookRegistry] Matcher error for hook ${hook.name}:`, error.message);
+      console.warn(
+        `[HookRegistry] Matcher error for hook ${hook.name}:`,
+        error.message,
+      );
       return false;
     }
   }
@@ -321,7 +334,7 @@ class HookRegistry extends EventEmitter {
     const hook = this.hookById.get(hookId);
     if (hook) {
       hook.enabled = enabled;
-      this.emit('hook-status-changed', { hookId, enabled });
+      this.emit("hook-status-changed", { hookId, enabled });
       return true;
     }
     return false;
@@ -369,7 +382,9 @@ class HookRegistry extends EventEmitter {
    */
   updateStats(hookId, { executionTime, success }) {
     const hook = this.hookById.get(hookId);
-    if (!hook) return;
+    if (!hook) {
+      return;
+    }
 
     hook.executionCount++;
     hook.lastExecutedAt = Date.now();
@@ -398,7 +413,8 @@ class HookRegistry extends EventEmitter {
     return {
       ...this.stats,
       hookCount: this.hookById.size,
-      enabledCount: Array.from(this.hookById.values()).filter((h) => h.enabled).length,
+      enabledCount: Array.from(this.hookById.values()).filter((h) => h.enabled)
+        .length,
       eventTypes: HookEvents,
     };
   }
@@ -410,7 +426,7 @@ class HookRegistry extends EventEmitter {
    */
   async loadFromConfig(configPath) {
     try {
-      const content = await fs.readFile(configPath, 'utf-8');
+      const content = await fs.readFile(configPath, "utf-8");
       const config = JSON.parse(content);
 
       let loadedCount = 0;
@@ -424,23 +440,26 @@ class HookRegistry extends EventEmitter {
                 ...hookConfig,
                 metadata: {
                   ...hookConfig.metadata,
-                  source: 'config',
+                  source: "config",
                   configPath,
                 },
               });
               loadedCount++;
             } catch (error) {
-              console.warn(`[HookRegistry] Failed to register hook from config:`, error.message);
+              console.warn(
+                `[HookRegistry] Failed to register hook from config:`,
+                error.message,
+              );
             }
           }
         }
       }
 
-      this.emit('config-loaded', { configPath, hookCount: loadedCount });
+      this.emit("config-loaded", { configPath, hookCount: loadedCount });
       return true;
     } catch (error) {
-      if (error.code !== 'ENOENT') {
-        this.emit('config-error', { configPath, error: error.message });
+      if (error.code !== "ENOENT") {
+        this.emit("config-error", { configPath, error: error.message });
       }
       return false;
     }
@@ -453,7 +472,7 @@ class HookRegistry extends EventEmitter {
     this.hooks.forEach((_, key) => this.hooks.set(key, []));
     this.hookById.clear();
     this.stats.totalRegistered = 0;
-    this.emit('hooks-cleared');
+    this.emit("hooks-cleared");
   }
 
   /**

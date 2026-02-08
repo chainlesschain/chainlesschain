@@ -8,30 +8,30 @@
  * @version 1.0.0
  */
 
-const { logger } = require('../utils/logger.js');
-const { EventEmitter } = require('events');
-const path = require('path');
-const fs = require('fs').promises;
+const { logger } = require("../utils/logger.js");
+const { EventEmitter } = require("events");
+const path = require("path");
+const fs = require("fs").promises;
 
 /**
  * 视觉提供商类型
  */
 const VisionProviders = {
-  LOCAL: 'local',      // 本地 LLaVA
-  VOLCENGINE: 'volcengine', // 火山引擎
-  OPENAI: 'openai',    // OpenAI GPT-4V
+  LOCAL: "local", // 本地 LLaVA
+  VOLCENGINE: "volcengine", // 火山引擎
+  OPENAI: "openai", // OpenAI GPT-4V
 };
 
 /**
  * 分析类型
  */
 const AnalysisTypes = {
-  DESCRIBE: 'describe',     // 图片描述
-  OCR: 'ocr',               // 文字识别
-  VQA: 'vqa',               // 视觉问答
-  ANALYZE: 'analyze',       // 通用分析
-  COMPARE: 'compare',       // 图片对比
-  EXTRACT: 'extract',       // 信息提取
+  DESCRIBE: "describe", // 图片描述
+  OCR: "ocr", // 文字识别
+  VQA: "vqa", // 视觉问答
+  ANALYZE: "analyze", // 通用分析
+  COMPARE: "compare", // 图片对比
+  EXTRACT: "extract", // 信息提取
 };
 
 /**
@@ -43,7 +43,7 @@ class VisionManager extends EventEmitter {
 
     this.config = {
       enableLocalVision: config.enableLocalVision !== false,
-      localModel: config.localModel || 'llava:7b',
+      localModel: config.localModel || "llava:7b",
       fallbackToCloud: config.fallbackToCloud !== false,
       cloudProvider: config.cloudProvider || VisionProviders.VOLCENGINE,
       maxImageSize: config.maxImageSize || 5 * 1024 * 1024,
@@ -77,14 +77,14 @@ class VisionManager extends EventEmitter {
    * @param {Object} dependencies - 依赖注入
    */
   async initialize(dependencies = {}) {
-    logger.info('[VisionManager] 开始初始化...');
+    logger.info("[VisionManager] 开始初始化...");
 
     try {
       // 初始化本地 LLaVA 客户端
       if (this.config.enableLocalVision) {
-        const { LLaVAClient } = require('../llm/llava-client');
+        const { LLaVAClient } = require("../llm/llava-client");
         this.llavaClient = new LLaVAClient({
-          baseURL: this.config.ollamaURL || 'http://localhost:11434',
+          baseURL: this.config.ollamaURL || "http://localhost:11434",
           model: this.config.localModel,
           timeout: this.config.timeout,
           maxImageSize: this.config.maxImageSize,
@@ -93,28 +93,34 @@ class VisionManager extends EventEmitter {
         // 检查本地服务状态
         const status = await this.llavaClient.checkStatus();
         if (status.available && status.hasVisionModel) {
-          logger.info(`[VisionManager] 本地视觉模型可用: ${status.visionModels.join(', ')}`);
+          logger.info(
+            `[VisionManager] 本地视觉模型可用: ${status.visionModels.join(", ")}`,
+          );
         } else if (status.available) {
-          logger.warn('[VisionManager] Ollama 可用，但无视觉模型。建议运行: ollama pull llava:7b');
+          logger.warn(
+            "[VisionManager] Ollama 可用，但无视觉模型。建议运行: ollama pull llava:7b",
+          );
         } else {
-          logger.warn('[VisionManager] 本地 Ollama 服务不可用');
+          logger.warn("[VisionManager] 本地 Ollama 服务不可用");
         }
       }
 
       // 初始化云端客户端（如果提供）
       if (dependencies.llmManager && this.config.fallbackToCloud) {
         this.cloudClient = dependencies.llmManager;
-        logger.info(`[VisionManager] 云端视觉服务已配置: ${this.config.cloudProvider}`);
+        logger.info(
+          `[VisionManager] 云端视觉服务已配置: ${this.config.cloudProvider}`,
+        );
       }
 
       this.isInitialized = true;
-      this.emit('initialized', { config: this.config });
-      logger.info('[VisionManager] 初始化完成');
+      this.emit("initialized", { config: this.config });
+      logger.info("[VisionManager] 初始化完成");
 
       return true;
     } catch (error) {
-      logger.error('[VisionManager] 初始化失败:', error);
-      this.emit('initialization-error', { error });
+      logger.error("[VisionManager] 初始化失败:", error);
+      this.emit("initialization-error", { error });
       throw error;
     }
   }
@@ -134,7 +140,7 @@ class VisionManager extends EventEmitter {
     const startTime = Date.now();
     const analysisType = params.type || AnalysisTypes.ANALYZE;
 
-    this.emit('analysis-start', { params, analysisType });
+    this.emit("analysis-start", { params, analysisType });
 
     try {
       // 检查缓存
@@ -143,7 +149,7 @@ class VisionManager extends EventEmitter {
         const cached = this._getFromCache(cacheKey);
         if (cached) {
           this.stats.cacheHits++;
-          logger.info('[VisionManager] 缓存命中');
+          logger.info("[VisionManager] 缓存命中");
           return { ...cached, fromCache: true };
         }
       }
@@ -156,11 +162,18 @@ class VisionManager extends EventEmitter {
           result = await this._analyzeWithLocal(params, analysisType, options);
           this.stats.localAnalyses++;
         } catch (localError) {
-          logger.warn('[VisionManager] 本地分析失败，尝试云端回退:', localError.message);
+          logger.warn(
+            "[VisionManager] 本地分析失败，尝试云端回退:",
+            localError.message,
+          );
 
           // 回退到云端
           if (this.config.fallbackToCloud && this.cloudClient) {
-            result = await this._analyzeWithCloud(params, analysisType, options);
+            result = await this._analyzeWithCloud(
+              params,
+              analysisType,
+              options,
+            );
             this.stats.cloudAnalyses++;
           } else {
             throw localError;
@@ -171,7 +184,7 @@ class VisionManager extends EventEmitter {
         result = await this._analyzeWithCloud(params, analysisType, options);
         this.stats.cloudAnalyses++;
       } else {
-        throw new Error('无可用的视觉服务（本地和云端均未配置）');
+        throw new Error("无可用的视觉服务（本地和云端均未配置）");
       }
 
       // 更新统计
@@ -191,12 +204,12 @@ class VisionManager extends EventEmitter {
         timestamp: Date.now(),
       };
 
-      this.emit('analysis-complete', finalResult);
+      this.emit("analysis-complete", finalResult);
       return finalResult;
     } catch (error) {
       this.stats.errors++;
-      logger.error('[VisionManager] 图片分析失败:', error);
-      this.emit('analysis-error', { error, params, analysisType });
+      logger.error("[VisionManager] 图片分析失败:", error);
+      this.emit("analysis-error", { error, params, analysisType });
       throw error;
     }
   }
@@ -208,36 +221,48 @@ class VisionManager extends EventEmitter {
   async _analyzeWithLocal(params, analysisType, options) {
     switch (analysisType) {
       case AnalysisTypes.DESCRIBE:
-        return this.llavaClient.describeImage({
-          imagePath: params.imagePath,
-          imageBase64: params.imageBase64,
-          style: params.style || 'detailed',
-        }, options);
+        return this.llavaClient.describeImage(
+          {
+            imagePath: params.imagePath,
+            imageBase64: params.imageBase64,
+            style: params.style || "detailed",
+          },
+          options,
+        );
 
       case AnalysisTypes.OCR:
-        return this.llavaClient.performOCR({
-          imagePath: params.imagePath,
-          imageBase64: params.imageBase64,
-          language: params.language,
-        }, options);
+        return this.llavaClient.performOCR(
+          {
+            imagePath: params.imagePath,
+            imageBase64: params.imageBase64,
+            language: params.language,
+          },
+          options,
+        );
 
       case AnalysisTypes.VQA:
         if (!params.question) {
-          throw new Error('VQA 分析需要提供问题');
+          throw new Error("VQA 分析需要提供问题");
         }
-        return this.llavaClient.visualQA({
-          imagePath: params.imagePath,
-          imageBase64: params.imageBase64,
-          question: params.question,
-        }, options);
+        return this.llavaClient.visualQA(
+          {
+            imagePath: params.imagePath,
+            imageBase64: params.imageBase64,
+            question: params.question,
+          },
+          options,
+        );
 
       case AnalysisTypes.ANALYZE:
       default:
-        return this.llavaClient.analyzeImage({
-          imagePath: params.imagePath,
-          imageBase64: params.imageBase64,
-          prompt: params.prompt || '请详细分析这张图片',
-        }, options);
+        return this.llavaClient.analyzeImage(
+          {
+            imagePath: params.imagePath,
+            imageBase64: params.imageBase64,
+            prompt: params.prompt || "请详细分析这张图片",
+          },
+          options,
+        );
     }
   }
 
@@ -250,20 +275,21 @@ class VisionManager extends EventEmitter {
     let imageBase64 = params.imageBase64;
     if (!imageBase64 && params.imagePath) {
       const imageBuffer = await fs.readFile(params.imagePath);
-      imageBase64 = imageBuffer.toString('base64');
+      imageBase64 = imageBuffer.toString("base64");
     }
 
     // 根据分析类型构建提示词
     let prompt;
     switch (analysisType) {
       case AnalysisTypes.DESCRIBE:
-        prompt = params.style === 'brief'
-          ? '请用一到两句话简要描述这张图片的主要内容。'
-          : '请详细描述这张图片的内容，包括主体、细节、背景和氛围。';
+        prompt =
+          params.style === "brief"
+            ? "请用一到两句话简要描述这张图片的主要内容。"
+            : "请详细描述这张图片的内容，包括主体、细节、背景和氛围。";
         break;
 
       case AnalysisTypes.OCR:
-        prompt = `请识别并提取图片中的所有文字内容，保持原文格式。主要识别${params.language || '中文和英文'}文字。`;
+        prompt = `请识别并提取图片中的所有文字内容，保持原文格式。主要识别${params.language || "中文和英文"}文字。`;
         break;
 
       case AnalysisTypes.VQA:
@@ -272,50 +298,62 @@ class VisionManager extends EventEmitter {
 
       case AnalysisTypes.ANALYZE:
       default:
-        prompt = params.prompt || '请详细分析这张图片';
+        prompt = params.prompt || "请详细分析这张图片";
     }
 
     // 调用云端 API
-    if (this.config.cloudProvider === VisionProviders.VOLCENGINE && this.cloudClient.chatWithImageProcess) {
+    if (
+      this.config.cloudProvider === VisionProviders.VOLCENGINE &&
+      this.cloudClient.chatWithImageProcess
+    ) {
       // 火山引擎图像处理
       const messages = [
         {
-          role: 'user',
+          role: "user",
           content: [
-            { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+            },
           ],
         },
       ];
 
-      const response = await this.cloudClient.chatWithImageProcess(messages, options);
+      const response = await this.cloudClient.chatWithImageProcess(
+        messages,
+        options,
+      );
       return {
         text: response.choices?.[0]?.message?.content || response.text,
         model: response.model,
-        provider: 'cloud',
+        provider: "cloud",
         tokens: response.usage?.total_tokens || 0,
       };
     } else {
       // 通用 OpenAI 兼容 API
       const messages = [
         {
-          role: 'user',
+          role: "user",
           content: [
-            { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+            },
           ],
         },
       ];
 
       const response = await this.cloudClient.chatWithMessages(messages, {
         ...options,
-        model: options.model || 'gpt-4-vision-preview',
+        model: options.model || "gpt-4-vision-preview",
       });
 
       return {
         text: response.text || response.message?.content,
         model: response.model,
-        provider: 'cloud',
+        provider: "cloud",
         tokens: response.tokens || 0,
       };
     }
@@ -325,7 +363,10 @@ class VisionManager extends EventEmitter {
    * 图片描述（便捷方法）
    */
   async describeImage(params, options = {}) {
-    return this.analyzeImage({ ...params, type: AnalysisTypes.DESCRIBE }, options);
+    return this.analyzeImage(
+      { ...params, type: AnalysisTypes.DESCRIBE },
+      options,
+    );
   }
 
   /**
@@ -351,26 +392,26 @@ class VisionManager extends EventEmitter {
    */
   async analyzeImageStream(params, onChunk, options = {}) {
     if (!this.llavaClient) {
-      throw new Error('流式分析需要本地 LLaVA 模型');
+      throw new Error("流式分析需要本地 LLaVA 模型");
     }
 
-    this.emit('stream-start', { params });
+    this.emit("stream-start", { params });
 
     try {
       const result = await this.llavaClient.analyzeImageStream(
         {
           imagePath: params.imagePath,
           imageBase64: params.imageBase64,
-          prompt: params.prompt || '请详细分析这张图片',
+          prompt: params.prompt || "请详细分析这张图片",
         },
         onChunk,
-        options
+        options,
       );
 
-      this.emit('stream-complete', result);
+      this.emit("stream-complete", result);
       return result;
     } catch (error) {
-      this.emit('stream-error', { error, params });
+      this.emit("stream-error", { error, params });
       throw error;
     }
   }
@@ -389,10 +430,12 @@ class VisionManager extends EventEmitter {
     for (let i = 0; i < imageList.length; i += concurrency) {
       const batch = imageList.slice(i, i + concurrency);
       const batchResults = await Promise.all(
-        batch.map(params => this.analyzeImage(params, options).catch(error => ({
-          error: error.message,
-          imagePath: params.imagePath,
-        })))
+        batch.map((params) =>
+          this.analyzeImage(params, options).catch((error) => ({
+            error: error.message,
+            imagePath: params.imagePath,
+          })),
+        ),
       );
       results.push(...batchResults);
     }
@@ -414,7 +457,8 @@ class VisionManager extends EventEmitter {
 
     if (this.llavaClient) {
       const localStatus = await this.llavaClient.checkStatus();
-      status.localAvailable = localStatus.available && localStatus.hasVisionModel;
+      status.localAvailable =
+        localStatus.available && localStatus.hasVisionModel;
       status.visionModels = localStatus.visionModels || [];
     }
 
@@ -447,7 +491,7 @@ class VisionManager extends EventEmitter {
    */
   clearCache() {
     this.cache.clear();
-    logger.info('[VisionManager] 缓存已清除');
+    logger.info("[VisionManager] 缓存已清除");
   }
 
   /**
@@ -461,20 +505,23 @@ class VisionManager extends EventEmitter {
       this.llavaClient.updateConfig({ model: newConfig.localModel });
     }
 
-    logger.info('[VisionManager] 配置已更新');
+    logger.info("[VisionManager] 配置已更新");
   }
 
   // ====== 私有方法 ======
 
   _generateCacheKey(params) {
     const { imagePath, imageBase64, type, prompt, question } = params;
-    const imageKey = imagePath || (imageBase64 ? imageBase64.substring(0, 100) : '');
-    return `${imageKey}:${type || 'analyze'}:${prompt || question || ''}`;
+    const imageKey =
+      imagePath || (imageBase64 ? imageBase64.substring(0, 100) : "");
+    return `${imageKey}:${type || "analyze"}:${prompt || question || ""}`;
   }
 
   _getFromCache(key) {
     const cached = this.cache.get(key);
-    if (!cached) return null;
+    if (!cached) {
+      return null;
+    }
 
     // 检查是否过期
     if (Date.now() - cached.timestamp > this.config.cacheMaxAge) {

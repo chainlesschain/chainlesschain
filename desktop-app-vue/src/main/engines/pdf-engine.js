@@ -2,7 +2,7 @@
  * PDF生成引擎
  * 使用Electron的printToPDF功能将HTML转换为PDF
  */
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const path = require("path");
 
 let browserWindowWarningLogged = false;

@@ -1,10 +1,7 @@
 <template>
   <div class="archive-preview">
     <!-- 压缩包信息 -->
-    <div
-      v-if="archiveInfo"
-      class="archive-info"
-    >
+    <div v-if="archiveInfo" class="archive-info">
       <div class="info-header">
         <FileZipOutlined class="archive-icon" />
         <div class="info-content">
@@ -23,10 +20,7 @@
 
     <!-- 文件树 -->
     <div class="file-tree-container">
-      <a-spin
-        :spinning="loading"
-        tip="加载中..."
-      >
+      <a-spin :spinning="loading" tip="加载中...">
         <a-tree
           v-if="treeData.length > 0"
           :tree-data="treeData"
@@ -35,10 +29,7 @@
           @select="handleSelect"
         >
           <template #icon="{ dataRef }">
-            <FolderOutlined
-              v-if="dataRef.isDirectory"
-              style="color: #faad14"
-            />
+            <FolderOutlined v-if="dataRef.isDirectory" style="color: #faad14" />
             <FileOutlined
               v-else
               :style="{ color: getFileIconColor(dataRef.type) }"
@@ -47,36 +38,23 @@
           <template #title="{ dataRef }">
             <div class="tree-node-title">
               <span class="node-name">{{ dataRef.title }}</span>
-              <span
-                v-if="!dataRef.isDirectory"
-                class="node-size"
-              >
+              <span v-if="!dataRef.isDirectory" class="node-size">
                 {{ formatSize(dataRef.size) }}
               </span>
             </div>
           </template>
         </a-tree>
-        <a-empty
-          v-else
-          description="压缩包为空"
-        />
+        <a-empty v-else description="压缩包为空" />
       </a-spin>
     </div>
 
     <!-- 操作按钮 -->
     <div class="action-bar">
-      <a-button
-        type="primary"
-        :disabled="!selectedFile"
-        @click="handlePreview"
-      >
+      <a-button type="primary" :disabled="!selectedFile" @click="handlePreview">
         <EyeOutlined />
         预览选中文件
       </a-button>
-      <a-button
-        :disabled="!selectedFile"
-        @click="handleExtract"
-      >
+      <a-button :disabled="!selectedFile" @click="handleExtract">
         <ExportOutlined />
         提取到...
       </a-button>
@@ -96,17 +74,17 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   FileZipOutlined,
   FolderOutlined,
   FileOutlined,
   EyeOutlined,
   ExportOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   file: {
@@ -115,7 +93,7 @@ const props = defineProps({
   },
   projectId: {
     type: String,
-    default: '',
+    default: "",
   },
 });
 
@@ -136,7 +114,11 @@ const loadArchiveContents = async () => {
   try {
     // 构建完整路径
     let fullPath = props.file.file_path;
-    if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    if (
+      !fullPath.startsWith("/data/projects/") &&
+      props.projectId &&
+      !fullPath.includes(props.projectId)
+    ) {
       fullPath = `/data/projects/${props.projectId}/${fullPath}`;
     }
 
@@ -153,11 +135,11 @@ const loadArchiveContents = async () => {
     if (listResult.success) {
       treeData.value = listResult.data;
     } else {
-      throw new Error(listResult.error || '加载压缩包内容失败');
+      throw new Error(listResult.error || "加载压缩包内容失败");
     }
   } catch (err) {
-    logger.error('[Archive Preview] 加载失败:', err);
-    error.value = err.message || '加载压缩包内容失败';
+    logger.error("[Archive Preview] 加载失败:", err);
+    error.value = err.message || "加载压缩包内容失败";
     message.error(error.value);
   } finally {
     loading.value = false;
@@ -179,31 +161,40 @@ const handleSelect = (selectedKeys, { node }) => {
  * 预览文件
  */
 const handlePreview = async () => {
-  if (!selectedFile.value) {return;}
+  if (!selectedFile.value) {
+    return;
+  }
 
   loading.value = true;
 
   try {
     let fullPath = props.file.file_path;
-    if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    if (
+      !fullPath.startsWith("/data/projects/") &&
+      props.projectId &&
+      !fullPath.includes(props.projectId)
+    ) {
       fullPath = `/data/projects/${props.projectId}/${fullPath}`;
     }
 
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
 
     // 提取文件到临时目录
-    const result = await window.electronAPI.archive.extract(resolvedPath, selectedFile.value.path);
+    const result = await window.electronAPI.archive.extract(
+      resolvedPath,
+      selectedFile.value.path,
+    );
 
     if (result.success) {
       // 在系统中打开提取的文件
       await window.electronAPI.shell.openPath(result.data.path);
-      message.success('文件已提取并打开');
+      message.success("文件已提取并打开");
     } else {
-      throw new Error(result.error || '提取文件失败');
+      throw new Error(result.error || "提取文件失败");
     }
   } catch (err) {
-    logger.error('[Archive Preview] 预览失败:', err);
-    message.error(err.message || '预览文件失败');
+    logger.error("[Archive Preview] 预览失败:", err);
+    message.error(err.message || "预览文件失败");
   } finally {
     loading.value = false;
   }
@@ -213,12 +204,14 @@ const handlePreview = async () => {
  * 提取文件
  */
 const handleExtract = async () => {
-  if (!selectedFile.value) {return;}
+  if (!selectedFile.value) {
+    return;
+  }
 
   try {
     // 显示保存对话框
     const dialogResult = await window.electronAPI.dialog.showSaveDialog({
-      title: '提取到',
+      title: "提取到",
       defaultPath: selectedFile.value.title,
     });
 
@@ -229,7 +222,11 @@ const handleExtract = async () => {
     loading.value = true;
 
     let fullPath = props.file.file_path;
-    if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    if (
+      !fullPath.startsWith("/data/projects/") &&
+      props.projectId &&
+      !fullPath.includes(props.projectId)
+    ) {
       fullPath = `/data/projects/${props.projectId}/${fullPath}`;
     }
 
@@ -239,17 +236,17 @@ const handleExtract = async () => {
     const result = await window.electronAPI.archive.extractTo(
       resolvedPath,
       selectedFile.value.path,
-      dialogResult.filePath
+      dialogResult.filePath,
     );
 
     if (result.success) {
-      message.success('文件已成功提取');
+      message.success("文件已成功提取");
     } else {
-      throw new Error(result.error || '提取文件失败');
+      throw new Error(result.error || "提取文件失败");
     }
   } catch (err) {
-    logger.error('[Archive Preview] 提取失败:', err);
-    message.error(err.message || '提取文件失败');
+    logger.error("[Archive Preview] 提取失败:", err);
+    message.error(err.message || "提取文件失败");
   } finally {
     loading.value = false;
   }
@@ -259,9 +256,11 @@ const handleExtract = async () => {
  * 格式化文件大小
  */
 const formatSize = (bytes) => {
-  if (!bytes || bytes === 0) {return '0 B';}
+  if (!bytes || bytes === 0) {
+    return "0 B";
+  }
 
-  const units = ['B', 'KB', 'MB', 'GB'];
+  const units = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
 };
@@ -271,15 +270,15 @@ const formatSize = (bytes) => {
  */
 const getFileIconColor = (type) => {
   const colorMap = {
-    document: '#1890ff',
-    spreadsheet: '#52c41a',
-    image: '#faad14',
-    video: '#eb2f96',
-    audio: '#722ed1',
-    code: '#13c2c2',
-    file: '#8c8c8c',
+    document: "#1890ff",
+    spreadsheet: "#52c41a",
+    image: "#faad14",
+    video: "#eb2f96",
+    audio: "#722ed1",
+    code: "#13c2c2",
+    file: "#8c8c8c",
   };
-  return colorMap[type] || '#8c8c8c';
+  return colorMap[type] || "#8c8c8c";
 };
 
 onMounted(() => {

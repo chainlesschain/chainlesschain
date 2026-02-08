@@ -3,7 +3,7 @@
  * 负责管理Electron桌面通知和应用内通知
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { Notification, app } = require("electron");
 const path = require("path");
 const EventEmitter = require("events");

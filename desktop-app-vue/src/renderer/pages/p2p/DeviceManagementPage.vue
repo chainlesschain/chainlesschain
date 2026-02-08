@@ -6,10 +6,7 @@
       @back="handleBack"
     >
       <template #extra>
-        <a-button
-          type="primary"
-          @click="handleRefresh"
-        >
+        <a-button type="primary" @click="handleRefresh">
           <ReloadOutlined />
           刷新
         </a-button>
@@ -18,14 +15,8 @@
 
     <div class="management-content">
       <!-- Current Device Info -->
-      <a-card
-        title="当前设备"
-        class="current-device-card"
-      >
-        <a-descriptions
-          :column="2"
-          bordered
-        >
+      <a-card title="当前设备" class="current-device-card">
+        <a-descriptions :column="2" bordered>
           <a-descriptions-item label="设备ID">
             <span class="monospace">{{ currentDevice.deviceId }}</span>
           </a-descriptions-item>
@@ -45,10 +36,7 @@
       </a-card>
 
       <!-- Paired Devices -->
-      <a-card
-        title="已配对设备"
-        class="paired-devices-card"
-      >
+      <a-card title="已配对设备" class="paired-devices-card">
         <template #extra>
           <a-space>
             <a-input-search
@@ -71,7 +59,9 @@
               <template v-if="column.key === 'deviceName'">
                 <div class="device-name-cell">
                   <a-avatar
-                    :style="{ backgroundColor: getDeviceColor(record.deviceId) }"
+                    :style="{
+                      backgroundColor: getDeviceColor(record.deviceId),
+                    }"
                   >
                     {{ record.deviceName.charAt(0).toUpperCase() }}
                   </a-avatar>
@@ -81,7 +71,7 @@
 
               <template v-else-if="column.key === 'status'">
                 <a-tag :color="record.isOnline ? 'success' : 'default'">
-                  {{ record.isOnline ? '在线' : '离线' }}
+                  {{ record.isOnline ? "在线" : "离线" }}
                 </a-tag>
               </template>
 
@@ -89,7 +79,7 @@
                 <a-tag :color="record.isVerified ? 'green' : 'orange'">
                   <SafetyOutlined v-if="record.isVerified" />
                   <ExclamationCircleOutlined v-else />
-                  {{ record.isVerified ? '已验证' : '未验证' }}
+                  {{ record.isVerified ? "已验证" : "未验证" }}
                 </a-tag>
               </template>
 
@@ -99,17 +89,11 @@
 
               <template v-else-if="column.key === 'actions'">
                 <a-space>
-                  <a-button
-                    size="small"
-                    @click="handleChat(record)"
-                  >
+                  <a-button size="small" @click="handleChat(record)">
                     <MessageOutlined />
                     聊天
                   </a-button>
-                  <a-button
-                    size="small"
-                    @click="handleVerify(record)"
-                  >
+                  <a-button size="small" @click="handleVerify(record)">
                     <SafetyOutlined />
                     验证
                   </a-button>
@@ -125,10 +109,7 @@
                           重命名
                         </a-menu-item>
                         <a-menu-divider />
-                        <a-menu-item
-                          danger
-                          @click="handleRemove(record)"
-                        >
+                        <a-menu-item danger @click="handleRemove(record)">
                           <DeleteOutlined />
                           移除设备
                         </a-menu-item>
@@ -165,9 +146,9 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message, Modal } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message, Modal } from "ant-design-vue";
 import {
   ReloadOutlined,
   CheckCircleOutlined,
@@ -178,10 +159,10 @@ import {
   EditOutlined,
   DeleteOutlined,
   MoreOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 export default {
-  name: 'DeviceManagementPage',
+  name: "DeviceManagementPage",
   components: {
     ReloadOutlined,
     CheckCircleOutlined,
@@ -197,48 +178,48 @@ export default {
     const router = useRouter();
 
     const loading = ref(false);
-    const searchText = ref('');
+    const searchText = ref("");
     const devices = ref([]);
     const renameModalVisible = ref(false);
     const selectedDevice = ref(null);
-    const newDeviceName = ref('');
+    const newDeviceName = ref("");
 
     const currentDevice = ref({
-      deviceId: 'device-' + Math.random().toString(36).substr(2, 9),
-      deviceName: '我的设备',
-      did: 'did:key:' + Math.random().toString(36).substr(2, 16),
+      deviceId: "device-" + Math.random().toString(36).substr(2, 9),
+      deviceName: "我的设备",
+      did: "did:key:" + Math.random().toString(36).substr(2, 16),
     });
 
     const columns = [
       {
-        title: '设备名称',
-        key: 'deviceName',
-        dataIndex: 'deviceName',
+        title: "设备名称",
+        key: "deviceName",
+        dataIndex: "deviceName",
       },
       {
-        title: '设备ID',
-        key: 'deviceId',
-        dataIndex: 'deviceId',
+        title: "设备ID",
+        key: "deviceId",
+        dataIndex: "deviceId",
         ellipsis: true,
       },
       {
-        title: '状态',
-        key: 'status',
+        title: "状态",
+        key: "status",
         width: 100,
       },
       {
-        title: '验证状态',
-        key: 'verified',
+        title: "验证状态",
+        key: "verified",
         width: 120,
       },
       {
-        title: '最后在线',
-        key: 'lastSeen',
+        title: "最后在线",
+        key: "lastSeen",
         width: 150,
       },
       {
-        title: '操作',
-        key: 'actions',
+        title: "操作",
+        key: "actions",
         width: 220,
       },
     ];
@@ -250,13 +231,15 @@ export default {
     };
 
     const filteredDevices = computed(() => {
-      if (!searchText.value) return devices.value;
+      if (!searchText.value) {
+        return devices.value;
+      }
 
       const text = searchText.value.toLowerCase();
       return devices.value.filter(
         (device) =>
           device.deviceName.toLowerCase().includes(text) ||
-          device.deviceId.toLowerCase().includes(text)
+          device.deviceId.toLowerCase().includes(text),
       );
     });
 
@@ -268,10 +251,10 @@ export default {
       loading.value = true;
       try {
         await loadDevices();
-        message.success('刷新成功');
+        message.success("刷新成功");
       } catch (error) {
-        console.error('Refresh error:', error);
-        message.error('刷新失败');
+        console.error("Refresh error:", error);
+        message.error("刷新失败");
       } finally {
         loading.value = false;
       }
@@ -282,13 +265,18 @@ export default {
     };
 
     const getDeviceColor = (deviceId) => {
-      const colors = ['#1890ff', '#52c41a', '#fa8c16', '#eb2f96', '#722ed1'];
-      const index = Math.abs(deviceId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
+      const colors = ["#1890ff", "#52c41a", "#fa8c16", "#eb2f96", "#722ed1"];
+      const index =
+        Math.abs(
+          deviceId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0),
+        ) % colors.length;
       return colors[index];
     };
 
     const formatRelativeTime = (timestamp) => {
-      if (!timestamp) return '从未';
+      if (!timestamp) {
+        return "从未";
+      }
 
       const now = Date.now();
       const diff = now - timestamp;
@@ -297,38 +285,44 @@ export default {
       const hours = Math.floor(minutes / 60);
       const days = Math.floor(hours / 24);
 
-      if (seconds < 60) return '刚刚';
-      if (minutes < 60) return `${minutes}分钟前`;
-      if (hours < 24) return `${hours}小时前`;
+      if (seconds < 60) {
+        return "刚刚";
+      }
+      if (minutes < 60) {
+        return `${minutes}分钟前`;
+      }
+      if (hours < 24) {
+        return `${hours}小时前`;
+      }
       return `${days}天前`;
     };
 
     const handleChat = (device) => {
       router.push({
-        name: 'P2PMessaging',
+        name: "P2PMessaging",
         query: { deviceId: device.deviceId },
       });
     };
 
     const handleVerify = (device) => {
       router.push({
-        name: 'SafetyNumbers',
+        name: "SafetyNumbers",
         query: { peerId: device.deviceId },
       });
     };
 
     const handleViewDetails = (device) => {
       Modal.info({
-        title: '设备详情',
+        title: "设备详情",
         width: 600,
         content: `
           <div>
             <p><strong>设备ID:</strong> ${device.deviceId}</p>
             <p><strong>设备名称:</strong> ${device.deviceName}</p>
-            <p><strong>验证状态:</strong> ${device.isVerified ? '已验证' : '未验证'}</p>
-            <p><strong>在线状态:</strong> ${device.isOnline ? '在线' : '离线'}</p>
-            <p><strong>配对时间:</strong> ${new Date(device.pairedAt).toLocaleString('zh-CN')}</p>
-            <p><strong>最后在线:</strong> ${new Date(device.lastSeen).toLocaleString('zh-CN')}</p>
+            <p><strong>验证状态:</strong> ${device.isVerified ? "已验证" : "未验证"}</p>
+            <p><strong>在线状态:</strong> ${device.isOnline ? "在线" : "离线"}</p>
+            <p><strong>配对时间:</strong> ${new Date(device.pairedAt).toLocaleString("zh-CN")}</p>
+            <p><strong>最后在线:</strong> ${new Date(device.lastSeen).toLocaleString("zh-CN")}</p>
           </div>
         `,
       });
@@ -342,43 +336,45 @@ export default {
 
     const handleRenameConfirm = async () => {
       if (!newDeviceName.value.trim()) {
-        message.error('请输入设备名称');
+        message.error("请输入设备名称");
         return;
       }
 
       try {
-        await window.electron.invoke('p2p:rename-device', {
+        await window.electron.invoke("p2p:rename-device", {
           deviceId: selectedDevice.value.deviceId,
           newName: newDeviceName.value,
         });
 
         selectedDevice.value.deviceName = newDeviceName.value;
         renameModalVisible.value = false;
-        message.success('重命名成功');
+        message.success("重命名成功");
       } catch (error) {
-        console.error('Rename error:', error);
-        message.error('重命名失败');
+        console.error("Rename error:", error);
+        message.error("重命名失败");
       }
     };
 
     const handleRemove = (device) => {
       Modal.confirm({
-        title: '确认移除设备',
+        title: "确认移除设备",
         content: `确定要移除设备 "${device.deviceName}" 吗?这将删除所有相关的消息记录。`,
-        okText: '确认',
-        cancelText: '取消',
-        okType: 'danger',
+        okText: "确认",
+        cancelText: "取消",
+        okType: "danger",
         onOk: async () => {
           try {
-            await window.electron.invoke('p2p:remove-device', {
+            await window.electron.invoke("p2p:remove-device", {
               deviceId: device.deviceId,
             });
 
-            devices.value = devices.value.filter((d) => d.deviceId !== device.deviceId);
-            message.success('设备已移除');
+            devices.value = devices.value.filter(
+              (d) => d.deviceId !== device.deviceId,
+            );
+            message.success("设备已移除");
           } catch (error) {
-            console.error('Remove error:', error);
-            message.error('移除失败');
+            console.error("Remove error:", error);
+            message.error("移除失败");
           }
         },
       });
@@ -386,21 +382,27 @@ export default {
 
     const loadDevices = async () => {
       try {
-        const result = await window.electron.invoke('p2p:list-devices');
+        const result = await window.electron.invoke("p2p:list-devices");
         devices.value = result.devices || generateDummyDevices();
       } catch (error) {
-        console.error('Load devices error:', error);
+        console.error("Load devices error:", error);
         devices.value = generateDummyDevices();
       }
     };
 
     const generateDummyDevices = () => {
       const dummyDevices = [];
-      const names = ['Alice的设备', 'Bob的设备', 'Charlie的手机', 'David的电脑', 'Eve的平板'];
+      const names = [
+        "Alice的设备",
+        "Bob的设备",
+        "Charlie的手机",
+        "David的电脑",
+        "Eve的平板",
+      ];
 
       for (let i = 0; i < 5; i++) {
         dummyDevices.push({
-          deviceId: 'device-' + Math.random().toString(36).substr(2, 9),
+          deviceId: "device-" + Math.random().toString(36).substr(2, 9),
           deviceName: names[i],
           isOnline: Math.random() > 0.5,
           isVerified: Math.random() > 0.3,

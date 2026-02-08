@@ -1,0 +1,179 @@
+# Apache 配置 - ChainlessChain 官网性能优化
+# 适用于 Apache 2.4+
+
+# ==========================================
+# 1. Gzip/Brotli 压缩
+# ==========================================
+
+<IfModule mod_deflate.c>
+    # 启用压缩
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript
+    AddOutputFilterByType DEFLATE application/javascript application/json application/xml
+    AddOutputFilterByType DEFLATE application/rss+xml application/atom+xml
+    AddOutputFilterByType DEFLATE image/svg+xml
+
+    # 排除已压缩的格式
+    SetEnvIfNoCase Request_URI \.(?:gif|jpe?g|png|webp|zip|gz|bz2)$ no-gzip dont-vary
+
+    # 浏览器兼容
+    BrowserMatch ^Mozilla/4 gzip-only-text/html
+    BrowserMatch ^Mozilla/4\.0[678] no-gzip
+    BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+
+    Header append Vary User-Agent
+</IfModule>
+
+# Brotli 压缩（如果模块可用）
+<IfModule mod_brotli.c>
+    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css text/javascript
+    AddOutputFilterByType BROTLI_COMPRESS application/javascript application/json application/xml
+    AddOutputFilterByType BROTLI_COMPRESS image/svg+xml
+</IfModule>
+
+# ==========================================
+# 2. 浏览器缓存
+# ==========================================
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+
+    # HTML - 短缓存
+    ExpiresByType text/html "access plus 0 seconds"
+
+    # CSS, JS - 1年（使用版本号）
+    ExpiresByType text/css "access plus 1 year"
+    ExpiresByType text/javascript "access plus 1 year"
+    ExpiresByType application/javascript "access plus 1 year"
+
+    # 图片 - 1年
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+
+    # 字体 - 1年
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+
+    # 其他资源
+    ExpiresByType application/pdf "access plus 1 month"
+    ExpiresByType application/json "access plus 0 seconds"
+</IfModule>
+
+# ==========================================
+# 3. Cache-Control 头
+# ==========================================
+
+<IfModule mod_headers.c>
+    # HTML - 不缓存
+    <FilesMatch "\.(html|htm)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires 0
+    </FilesMatch>
+
+    # CSS/JS - 强缓存（使用版本号）
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # 图片 - 强缓存
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+
+    # 字体 - 强缓存
+    <FilesMatch "\.(ttf|woff|woff2|eot)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+        Header set Access-Control-Allow-Origin "*"
+    </FilesMatch>
+
+    # 移除 ETag（使用 Cache-Control）
+    Header unset ETag
+    FileETag None
+</IfModule>
+
+# ==========================================
+# 4. 安全头
+# ==========================================
+
+<IfModule mod_headers.c>
+    # X-Content-Type-Options
+    Header set X-Content-Type-Options "nosniff"
+
+    # X-Frame-Options
+    Header set X-Frame-Options "SAMEORIGIN"
+
+    # X-XSS-Protection
+    Header set X-XSS-Protection "1; mode=block"
+
+    # Referrer-Policy
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Permissions-Policy
+    Header set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+</IfModule>
+
+# ==========================================
+# 5. MIME 类型
+# ==========================================
+
+<IfModule mod_mime.c>
+    # JavaScript
+    AddType application/javascript js
+    AddType application/json json
+
+    # 字体
+    AddType font/ttf ttf
+    AddType font/woff woff
+    AddType font/woff2 woff2
+
+    # 图片
+    AddType image/webp webp
+    AddType image/svg+xml svg svgz
+
+    # 其他
+    AddType text/css css
+    AddType text/html html htm
+</IfModule>
+
+# ==========================================
+# 6. 性能优化
+# ==========================================
+
+# 禁用目录浏览
+Options -Indexes
+
+# 跟随符号链接
+Options +FollowSymLinks
+
+# 禁用服务器签名
+ServerSignature Off
+
+# ==========================================
+# 7. URL 重写（如需要）
+# ==========================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 强制 HTTPS（如已配置 SSL）
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # 移除 .html 后缀（可选）
+    # RewriteCond %{REQUEST_FILENAME} !-f
+    # RewriteCond %{REQUEST_FILENAME} !-d
+    # RewriteRule ^([^\.]+)$ $1.html [NC,L]
+</IfModule>
+
+# ==========================================
+# 8. 错误页面（可选）
+# ==========================================
+
+# ErrorDocument 404 /404.html
+# ErrorDocument 500 /500.html

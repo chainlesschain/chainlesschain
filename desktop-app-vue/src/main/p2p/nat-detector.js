@@ -3,7 +3,7 @@
  * 使用STUN协议检测NAT类型和公网IP
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const dgram = require("dgram");
 const { promisify } = require("util");
 

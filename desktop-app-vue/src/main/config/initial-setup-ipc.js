@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");

@@ -11,7 +11,7 @@
  * @version 2.0.0
  */
 
-const { logger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * History Memory Optimization Class
@@ -58,7 +58,7 @@ class HistoryMemoryOptimization {
    */
   setMemGPTCore(memgptCore) {
     this.memgptCore = memgptCore;
-    logger.info('[HistoryMemory] MemGPT Core reference set');
+    logger.info("[HistoryMemory] MemGPT Core reference set");
   }
 
   /**
@@ -86,9 +86,9 @@ class HistoryMemoryOptimization {
         const results = await this.memgptCore.retrieveRelevantMemories(
           `task:${taskType} ${JSON.stringify(context)}`,
           {
-            types: ['task', 'pattern'],
+            types: ["task", "pattern"],
             limit: 5,
-          }
+          },
         );
 
         if (results && results.length > 0) {
@@ -97,21 +97,24 @@ class HistoryMemoryOptimization {
           return memory;
         }
       } catch (error) {
-        logger.warn('[HistoryMemory] MemGPT search failed:', error.message);
+        logger.warn("[HistoryMemory] MemGPT search failed:", error.message);
       }
     }
 
     // Fallback to database if available
     if (this.db) {
       try {
-        const rows = await this.db.all(`
+        const rows = await this.db.all(
+          `
           SELECT content, importance, metadata
           FROM long_term_memories
           WHERE type = 'task'
           AND content LIKE ?
           ORDER BY importance DESC, accessed_at DESC
           LIMIT 5
-        `, [`%${taskType}%`]);
+        `,
+          [`%${taskType}%`],
+        );
 
         if (rows && rows.length > 0) {
           const memory = this._aggregateDbRows(rows);
@@ -119,7 +122,7 @@ class HistoryMemoryOptimization {
           return memory;
         }
       } catch (error) {
-        logger.warn('[HistoryMemory] DB search failed:', error.message);
+        logger.warn("[HistoryMemory] DB search failed:", error.message);
       }
     }
 
@@ -136,7 +139,11 @@ class HistoryMemoryOptimization {
     this.stats.totalPredictions++;
 
     if (!this.config.enablePrediction) {
-      return { probability: 0.5, confidence: 0.1, reason: 'Prediction disabled' };
+      return {
+        probability: 0.5,
+        confidence: 0.1,
+        reason: "Prediction disabled",
+      };
     }
 
     // Get historical memory
@@ -146,7 +153,7 @@ class HistoryMemoryOptimization {
       return {
         probability: 0.5,
         confidence: 0.1,
-        reason: 'No historical data',
+        reason: "No historical data",
       };
     }
 
@@ -163,7 +170,7 @@ class HistoryMemoryOptimization {
     return {
       probability: memory.successRate,
       confidence: Math.min(0.9, memory.sampleCount / 100),
-      reason: 'Based on historical data',
+      reason: "Based on historical data",
       memory,
     };
   }
@@ -195,13 +202,16 @@ class HistoryMemoryOptimization {
     // Store in MemGPT if available
     if (this.memgptCore) {
       try {
-        await this.memgptCore.executeTool('archival_memory_insert', {
+        await this.memgptCore.executeTool("archival_memory_insert", {
           content: JSON.stringify(executionRecord),
-          type: 'task',
+          type: "task",
           importance: result.success ? 0.5 : 0.7, // Failed tasks are more important to remember
         });
       } catch (error) {
-        logger.warn('[HistoryMemory] Failed to record in MemGPT:', error.message);
+        logger.warn(
+          "[HistoryMemory] Failed to record in MemGPT:",
+          error.message,
+        );
       }
     }
 
@@ -226,9 +236,13 @@ class HistoryMemoryOptimization {
    * @returns {Object} Statistics
    */
   getStats() {
-    const accuracy = this.stats.totalPredictions > 0
-      ? ((this.stats.accuratePredictions / this.stats.totalPredictions) * 100).toFixed(1) + '%'
-      : 'N/A';
+    const accuracy =
+      this.stats.totalPredictions > 0
+        ? (
+            (this.stats.accuratePredictions / this.stats.totalPredictions) *
+            100
+          ).toFixed(1) + "%"
+        : "N/A";
 
     return {
       ...this.stats,
@@ -264,7 +278,9 @@ class HistoryMemoryOptimization {
    */
   _getFromCache(key) {
     const entry = this.memoryCache.get(key);
-    if (!entry) return null;
+    if (!entry) {
+      return null;
+    }
 
     if (Date.now() - entry.timestamp > this.cacheTTL) {
       this.memoryCache.delete(key);
@@ -297,7 +313,7 @@ class HistoryMemoryOptimization {
    */
   _invalidateCache(taskType) {
     for (const key of this.memoryCache.keys()) {
-      if (key.startsWith(taskType + ':')) {
+      if (key.startsWith(taskType + ":")) {
         this.memoryCache.delete(key);
       }
     }
@@ -314,9 +330,10 @@ class HistoryMemoryOptimization {
 
     for (const result of results) {
       try {
-        const content = typeof result.content === 'string'
-          ? JSON.parse(result.content)
-          : result.content;
+        const content =
+          typeof result.content === "string"
+            ? JSON.parse(result.content)
+            : result.content;
 
         if (content.success !== undefined) {
           totalSuccess += content.success ? 1 : 0;

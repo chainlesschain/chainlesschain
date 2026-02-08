@@ -15,7 +15,7 @@
  * @module HttpSseTransport
  */
 
-const { logger, createLogger } = require('../../utils/logger.js');
+const { logger } = require("../../utils/logger.js");
 const EventEmitter = require("events");
 const https = require("https");
 const http = require("http");

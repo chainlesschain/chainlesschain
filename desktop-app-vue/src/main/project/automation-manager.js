@@ -3,19 +3,19 @@
  * 提供定时任务、文件监听、事件触发等自动化功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const cron = require('node-cron');
-const chokidar = require('chokidar');
-const { EventEmitter } = require('events');
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const cron = require("node-cron");
+const chokidar = require("chokidar");
+const { EventEmitter } = require("events");
+const path = require("path");
 
 class AutomationManager extends EventEmitter {
   constructor() {
     super();
     this.database = null;
-    this.rules = new Map();          // 规则存储
+    this.rules = new Map(); // 规则存储
     this.scheduledTasks = new Map(); // 定时任务
-    this.fileWatchers = new Map();   // 文件监听器
+    this.fileWatchers = new Map(); // 文件监听器
     this.initialized = false;
   }
 
@@ -23,19 +23,21 @@ class AutomationManager extends EventEmitter {
    * 初始化自动化管理器
    */
   async initialize() {
-    if (this.initialized) {return;}
+    if (this.initialized) {
+      return;
+    }
 
     try {
-      const { getDatabase } = require('../database');
+      const { getDatabase } = require("../database");
       this.database = getDatabase();
 
       // 创建数据库表
       await this.createTables();
 
       this.initialized = true;
-      logger.info('[AutomationManager] 初始化完成');
+      logger.info("[AutomationManager] 初始化完成");
     } catch (error) {
-      logger.error('[AutomationManager] 初始化失败:', error);
+      logger.error("[AutomationManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -74,9 +76,9 @@ class AutomationManager extends EventEmitter {
         ON project_automation_rules(is_enabled)
       `);
 
-      logger.info('[AutomationManager] 数据库表创建成功');
+      logger.info("[AutomationManager] 数据库表创建成功");
     } catch (error) {
-      logger.error('[AutomationManager] 创建数据库表失败:', error);
+      logger.error("[AutomationManager] 创建数据库表失败:", error);
       throw error;
     }
   }
@@ -88,12 +90,18 @@ class AutomationManager extends EventEmitter {
    */
   async loadProjectRules(projectId) {
     try {
-      const rules = this.database.prepare(`
+      const rules = this.database
+        .prepare(
+          `
         SELECT * FROM project_automation_rules
         WHERE project_id = ? AND is_enabled = 1
-      `).all(projectId);
+      `,
+        )
+        .all(projectId);
 
-      logger.info(`[AutomationManager] 加载项目 ${projectId} 的 ${rules.length} 条规则`);
+      logger.info(
+        `[AutomationManager] 加载项目 ${projectId} 的 ${rules.length} 条规则`,
+      );
 
       // 注册所有规则
       for (const rule of rules) {
@@ -102,7 +110,7 @@ class AutomationManager extends EventEmitter {
 
       return rules;
     } catch (error) {
-      logger.error('[AutomationManager] 加载规则失败:', error);
+      logger.error("[AutomationManager] 加载规则失败:", error);
       throw error;
     }
   }
@@ -116,43 +124,56 @@ class AutomationManager extends EventEmitter {
     const {
       projectId,
       name,
-      description = '',
+      description = "",
       triggerType,
       triggerConfig,
       actionType,
-      actionConfig
+      actionConfig,
     } = ruleData;
 
     const now = Date.now();
     const id = `rule_${now}_${Math.random().toString(36).substr(2, 9)}`;
 
     try {
-      this.database.prepare(`
+      this.database
+        .prepare(
+          `
         INSERT INTO project_automation_rules (
           id, project_id, name, description,
           trigger_type, trigger_config,
           action_type, action_config,
           is_enabled, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
-      `).run(
-        id, projectId, name, description,
-        triggerType, JSON.stringify(triggerConfig),
-        actionType, JSON.stringify(actionConfig),
-        now, now
-      );
+      `,
+        )
+        .run(
+          id,
+          projectId,
+          name,
+          description,
+          triggerType,
+          JSON.stringify(triggerConfig),
+          actionType,
+          JSON.stringify(actionConfig),
+          now,
+          now,
+        );
 
-      const rule = this.database.prepare(`
+      const rule = this.database
+        .prepare(
+          `
         SELECT * FROM project_automation_rules WHERE id = ?
-      `).get(id);
+      `,
+        )
+        .get(id);
 
       // 注册规则
       await this.registerRule(rule);
 
-      logger.info('[AutomationManager] 规则创建成功:', id);
+      logger.info("[AutomationManager] 规则创建成功:", id);
       return rule;
-
     } catch (error) {
-      logger.error('[AutomationManager] 创建规则失败:', error);
+      logger.error("[AutomationManager] 创建规则失败:", error);
       throw error;
     }
   }
@@ -162,24 +183,35 @@ class AutomationManager extends EventEmitter {
    * @param {Object} rule - 规则对象
    */
   async registerRule(rule) {
-    const { id, trigger_type, trigger_config, action_type, action_config } = rule;
+    const { id, trigger_type, trigger_config, action_type, action_config } =
+      rule;
 
     try {
       const triggerConf = JSON.parse(trigger_config);
       const actionConf = JSON.parse(action_config);
 
       switch (trigger_type) {
-        case 'schedule':
-          await this.registerScheduledTask(id, triggerConf, action_type, actionConf);
+        case "schedule":
+          await this.registerScheduledTask(
+            id,
+            triggerConf,
+            action_type,
+            actionConf,
+          );
           break;
 
-        case 'file_change':
-          await this.registerFileWatcher(id, triggerConf, action_type, actionConf);
+        case "file_change":
+          await this.registerFileWatcher(
+            id,
+            triggerConf,
+            action_type,
+            actionConf,
+          );
           break;
 
-        case 'task_complete':
+        case "task_complete":
           // 通过事件监听实现
-          this.on('task:complete', async (taskData) => {
+          this.on("task:complete", async (taskData) => {
             if (this.matchesCondition(taskData, triggerConf)) {
               await this.executeAction(action_type, actionConf);
               await this.updateLastRun(id);
@@ -187,7 +219,7 @@ class AutomationManager extends EventEmitter {
           });
           break;
 
-        case 'manual':
+        case "manual":
           // 手动触发，不需要注册
           break;
 
@@ -197,9 +229,8 @@ class AutomationManager extends EventEmitter {
 
       this.rules.set(id, rule);
       logger.info(`[AutomationManager] 规则已注册: ${id}`);
-
     } catch (error) {
-      logger.error('[AutomationManager] 注册规则失败:', error);
+      logger.error("[AutomationManager] 注册规则失败:", error);
       throw error;
     }
   }
@@ -226,10 +257,10 @@ class AutomationManager extends EventEmitter {
         await this.updateLastRun(ruleId);
 
         // 发送事件
-        this.emit('rule:executed', { ruleId, actionType, success: true });
+        this.emit("rule:executed", { ruleId, actionType, success: true });
       } catch (error) {
         logger.error(`[AutomationManager] 定时任务执行失败: ${ruleId}`, error);
-        this.emit('rule:error', { ruleId, error: error.message });
+        this.emit("rule:error", { ruleId, error: error.message });
       }
     });
 
@@ -245,15 +276,19 @@ class AutomationManager extends EventEmitter {
    * @param {Object} actionConfig - 动作配置
    */
   async registerFileWatcher(ruleId, triggerConfig, actionType, actionConfig) {
-    const { path: watchPath, pattern = '**/*', events = ['change'] } = triggerConfig;
+    const {
+      path: watchPath,
+      pattern = "**/*",
+      events = ["change"],
+    } = triggerConfig;
 
     const watcher = chokidar.watch(path.join(watchPath, pattern), {
       persistent: true,
       ignoreInitial: true,
       awaitWriteFinish: {
         stabilityThreshold: 2000,
-        pollInterval: 100
-      }
+        pollInterval: 100,
+      },
     });
 
     // 监听指定事件
@@ -264,14 +299,19 @@ class AutomationManager extends EventEmitter {
         try {
           await this.executeAction(actionType, {
             ...actionConfig,
-            triggeredBy: { event, filePath }
+            triggeredBy: { event, filePath },
           });
           await this.updateLastRun(ruleId);
 
-          this.emit('rule:executed', { ruleId, actionType, filePath, success: true });
+          this.emit("rule:executed", {
+            ruleId,
+            actionType,
+            filePath,
+            success: true,
+          });
         } catch (error) {
           logger.error(`[AutomationManager] 文件监听任务执行失败:`, error);
-          this.emit('rule:error', { ruleId, error: error.message });
+          this.emit("rule:error", { ruleId, error: error.message });
         }
       });
     }
@@ -289,27 +329,27 @@ class AutomationManager extends EventEmitter {
     logger.info(`[AutomationManager] 执行动作: ${actionType}`);
 
     switch (actionType) {
-      case 'run_task':
+      case "run_task":
         await this.runTask(actionConfig);
         break;
 
-      case 'generate_report':
+      case "generate_report":
         await this.generateReport(actionConfig);
         break;
 
-      case 'send_notification':
+      case "send_notification":
         await this.sendNotification(actionConfig);
         break;
 
-      case 'git_commit':
+      case "git_commit":
         await this.gitCommit(actionConfig);
         break;
 
-      case 'export_file':
+      case "export_file":
         await this.exportFile(actionConfig);
         break;
 
-      case 'run_script':
+      case "run_script":
         await this.runScript(actionConfig);
         break;
 
@@ -327,7 +367,9 @@ class AutomationManager extends EventEmitter {
     logger.info(`[AutomationManager] 执行任务: ${taskDescription}`);
 
     // 调用AI引擎处理任务 (使用单例 - 优化版)
-    const { getAIEngineManagerOptimized } = require('../ai-engine/ai-engine-manager-optimized');
+    const {
+      getAIEngineManagerOptimized,
+    } = require("../ai-engine/ai-engine-manager-optimized");
     const aiEngine = getAIEngineManagerOptimized();
 
     // 初始化优化版AI引擎（启用所有优化功能）
@@ -337,11 +379,13 @@ class AutomationManager extends EventEmitter {
       enablePerformanceMonitor: true,
       sandboxConfig: {
         timeout: 30000,
-        retries: 2
-      }
+        retries: 2,
+      },
     });
 
-    const result = await aiEngine.processUserInput(taskDescription, { projectId });
+    const result = await aiEngine.processUserInput(taskDescription, {
+      projectId,
+    });
 
     return result;
   }
@@ -350,95 +394,143 @@ class AutomationManager extends EventEmitter {
    * 生成报告
    */
   async generateReport(config) {
-    const { reportType, projectId, outputPath, format = 'md' } = config;
+    const { reportType, projectId, outputPath, format = "md" } = config;
     logger.info(`[AutomationManager] 生成报告: ${reportType}`);
 
     try {
       let reportData = {};
-      let reportContent = '';
+      let reportContent = "";
       const now = new Date();
 
       switch (reportType) {
-        case 'daily':
+        case "daily":
           reportData = await this.collectDailyReportData(projectId, now);
           reportContent = this.formatDailyReport(reportData);
           break;
-        case 'weekly':
+        case "weekly":
           reportData = await this.collectWeeklyReportData(projectId, now);
           reportContent = this.formatWeeklyReport(reportData);
           break;
-        case 'analytics':
-          reportData = await this.collectAnalyticsData(projectId, config.dateRange);
+        case "analytics":
+          reportData = await this.collectAnalyticsData(
+            projectId,
+            config.dateRange,
+          );
           reportContent = this.formatAnalyticsReport(reportData);
           break;
       }
 
       if (outputPath) {
-        const fs = require('fs').promises;
-        const path = require('path');
+        const fs = require("fs").promises;
+        const path = require("path");
         await fs.mkdir(path.dirname(outputPath), { recursive: true });
-        await fs.writeFile(outputPath, reportContent, 'utf-8');
+        await fs.writeFile(outputPath, reportContent, "utf-8");
         logger.info(`[AutomationManager] ✓ 报告已保存: ${outputPath}`);
       }
 
-      return { success: true, reportType, content: reportContent, data: reportData };
+      return {
+        success: true,
+        reportType,
+        content: reportContent,
+        data: reportData,
+      };
     } catch (error) {
-      logger.error('[AutomationManager] 生成报告失败:', error);
+      logger.error("[AutomationManager] 生成报告失败:", error);
       return { success: false, error: error.message };
     }
   }
 
   async collectDailyReportData(projectId, date) {
-    const startOfDay = new Date(date); startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date); endOfDay.setHours(23, 59, 59, 999);
-    const project = this.database.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
-    const completedTasks = this.database.prepare(`
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    const project = this.database
+      .prepare("SELECT * FROM projects WHERE id = ?")
+      .get(projectId);
+    const completedTasks = this.database
+      .prepare(
+        `
       SELECT title FROM tasks WHERE project_id = ? AND status = 'completed'
       AND completed_at BETWEEN ? AND ?
-    `).all(projectId, startOfDay.getTime(), endOfDay.getTime());
-    return { project, date: date.toISOString().split('T')[0], completedTasks };
+    `,
+      )
+      .all(projectId, startOfDay.getTime(), endOfDay.getTime());
+    return { project, date: date.toISOString().split("T")[0], completedTasks };
   }
 
   async collectWeeklyReportData(projectId, date) {
     const endOfWeek = new Date(date);
-    const startOfWeek = new Date(date); startOfWeek.setDate(startOfWeek.getDate() - 7);
-    const project = this.database.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
-    const taskStats = this.database.prepare(`SELECT status, COUNT(*) as count FROM tasks WHERE project_id = ? GROUP BY status`).all(projectId);
-    const completedTasks = this.database.prepare(`
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(startOfWeek.getDate() - 7);
+    const project = this.database
+      .prepare("SELECT * FROM projects WHERE id = ?")
+      .get(projectId);
+    const taskStats = this.database
+      .prepare(
+        `SELECT status, COUNT(*) as count FROM tasks WHERE project_id = ? GROUP BY status`,
+      )
+      .all(projectId);
+    const completedTasks = this.database
+      .prepare(
+        `
       SELECT title FROM tasks WHERE project_id = ? AND status = 'completed' AND completed_at BETWEEN ? AND ?
-    `).all(projectId, startOfWeek.getTime(), endOfWeek.getTime());
-    return { project, startDate: startOfWeek.toISOString().split('T')[0], endDate: endOfWeek.toISOString().split('T')[0], taskStats, completedTasks };
+    `,
+      )
+      .all(projectId, startOfWeek.getTime(), endOfWeek.getTime());
+    return {
+      project,
+      startDate: startOfWeek.toISOString().split("T")[0],
+      endDate: endOfWeek.toISOString().split("T")[0],
+      taskStats,
+      completedTasks,
+    };
   }
 
   async collectAnalyticsData(projectId, dateRange) {
-    const { start, end } = dateRange || { start: Date.now() - 30 * 24 * 60 * 60 * 1000, end: Date.now() };
-    const taskTrend = this.database.prepare(`
+    const { start, end } = dateRange || {
+      start: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      end: Date.now(),
+    };
+    const taskTrend = this.database
+      .prepare(
+        `
       SELECT DATE(completed_at / 1000, 'unixepoch') as date, COUNT(*) as count
       FROM tasks WHERE project_id = ? AND status = 'completed' AND completed_at BETWEEN ? AND ?
       GROUP BY DATE(completed_at / 1000, 'unixepoch')
-    `).all(projectId, start, end);
+    `,
+      )
+      .all(projectId, start, end);
     return { projectId, taskTrend };
   }
 
   formatDailyReport(data) {
-    let report = `# ${data.project?.name || '项目'} - 每日报告\n\n**日期:** ${data.date}\n\n`;
+    let report = `# ${data.project?.name || "项目"} - 每日报告\n\n**日期:** ${data.date}\n\n`;
     report += `## 今日完成 (${data.completedTasks.length})\n\n`;
-    data.completedTasks.forEach(t => { report += `- [x] ${t.title}\n`; });
+    data.completedTasks.forEach((t) => {
+      report += `- [x] ${t.title}\n`;
+    });
     return report;
   }
 
   formatWeeklyReport(data) {
-    let report = `# ${data.project?.name || '项目'} - 周报\n\n**周期:** ${data.startDate} ~ ${data.endDate}\n\n`;
+    let report = `# ${data.project?.name || "项目"} - 周报\n\n**周期:** ${data.startDate} ~ ${data.endDate}\n\n`;
     report += `## 任务概览\n\n`;
-    data.taskStats.forEach(s => { report += `- ${s.status}: ${s.count}\n`; });
+    data.taskStats.forEach((s) => {
+      report += `- ${s.status}: ${s.count}\n`;
+    });
     report += `\n## 本周完成 (${data.completedTasks.length})\n\n`;
-    data.completedTasks.slice(0, 20).forEach(t => { report += `- [x] ${t.title}\n`; });
+    data.completedTasks.slice(0, 20).forEach((t) => {
+      report += `- [x] ${t.title}\n`;
+    });
     return report;
   }
 
   formatAnalyticsReport(data) {
     let report = `# 项目分析报告\n\n## 任务完成趋势\n\n`;
-    data.taskTrend.forEach(t => { report += `- ${t.date}: ${t.count} 个任务\n`; });
+    data.taskTrend.forEach((t) => {
+      report += `- ${t.date}: ${t.count} 个任务\n`;
+    });
     return report;
   }
 
@@ -446,26 +538,26 @@ class AutomationManager extends EventEmitter {
    * 发送通知
    */
   async sendNotification(config) {
-    const { title, message, channels = ['desktop'] } = config;
+    const { title, message, channels = ["desktop"] } = config;
     logger.info(`[AutomationManager] 发送通知: ${title}`);
     const results = {};
 
     for (const channel of channels) {
       try {
         switch (channel) {
-          case 'desktop': {
-            const { Notification } = require('electron');
+          case "desktop": {
+            const { Notification } = require("electron");
             const notification = new Notification({ title, body: message });
             notification.show();
             results.desktop = { success: true };
             break;
           }
 
-          case 'email':
+          case "email":
             results.email = await this.sendEmailNotification(config);
             break;
 
-          case 'webhook':
+          case "webhook":
             results.webhook = await this.sendWebhookNotification(config);
             break;
         }
@@ -479,66 +571,97 @@ class AutomationManager extends EventEmitter {
   async sendEmailNotification(config) {
     const { title, message, emailConfig = {} } = config;
     const { to, smtpHost, smtpPort = 587, smtpUser, smtpPass } = emailConfig;
-    if (!to) return { success: false, error: '缺少收件人' };
+    if (!to) {
+      return { success: false, error: "缺少收件人" };
+    }
 
     try {
-      const nodemailer = require('nodemailer');
+      const nodemailer = require("nodemailer");
       const transporter = nodemailer.createTransport({
         host: smtpHost || process.env.SMTP_HOST,
         port: smtpPort,
-        auth: { user: smtpUser || process.env.SMTP_USER, pass: smtpPass || process.env.SMTP_PASS }
+        auth: {
+          user: smtpUser || process.env.SMTP_USER,
+          pass: smtpPass || process.env.SMTP_PASS,
+        },
       });
       const info = await transporter.sendMail({
-        from: process.env.SMTP_FROM || 'ChainlessChain <noreply@local>',
-        to: Array.isArray(to) ? to.join(', ') : to,
+        from: process.env.SMTP_FROM || "ChainlessChain <noreply@local>",
+        to: Array.isArray(to) ? to.join(", ") : to,
         subject: title,
         text: message,
-        html: `<h2>${title}</h2><p>${message.replace(/\n/g, '<br>')}</p>`
+        html: `<h2>${title}</h2><p>${message.replace(/\n/g, "<br>")}</p>`,
       });
       logger.info(`[AutomationManager] ✓ 邮件已发送: ${info.messageId}`);
       return { success: true, messageId: info.messageId };
     } catch (error) {
-      if (error.code === 'MODULE_NOT_FOUND') return { success: false, error: 'nodemailer 未安装' };
+      if (error.code === "MODULE_NOT_FOUND") {
+        return { success: false, error: "nodemailer 未安装" };
+      }
       throw error;
     }
   }
 
   async sendWebhookNotification(config) {
     const { title, message, webhookConfig = {} } = config;
-    const { url, method = 'POST', headers = {}, secret } = webhookConfig;
-    if (!url) return { success: false, error: '缺少 Webhook URL' };
+    const { url, method = "POST", headers = {}, secret } = webhookConfig;
+    if (!url) {
+      return { success: false, error: "缺少 Webhook URL" };
+    }
 
-    const https = require('https');
-    const http = require('http');
-    const crypto = require('crypto');
-    const { URL } = require('url');
+    const https = require("https");
+    const http = require("http");
+    const crypto = require("crypto");
+    const { URL } = require("url");
 
-    const payload = JSON.stringify({ title, message, timestamp: new Date().toISOString() });
-    const reqHeaders = { 'Content-Type': 'application/json', ...headers };
-    if (secret) reqHeaders['X-Signature'] = `sha256=${crypto.createHmac('sha256', secret).update(payload).digest('hex')}`;
+    const payload = JSON.stringify({
+      title,
+      message,
+      timestamp: new Date().toISOString(),
+    });
+    const reqHeaders = { "Content-Type": "application/json", ...headers };
+    if (secret) {
+      reqHeaders["X-Signature"] =
+        `sha256=${crypto.createHmac("sha256", secret).update(payload).digest("hex")}`;
+    }
 
     const parsedUrl = new URL(url);
-    const httpModule = parsedUrl.protocol === 'https:' ? https : http;
+    const httpModule = parsedUrl.protocol === "https:" ? https : http;
 
     return new Promise((resolve, reject) => {
-      const req = httpModule.request({
-        hostname: parsedUrl.hostname, port: parsedUrl.port,
-        path: parsedUrl.pathname + parsedUrl.search,
-        method: method.toUpperCase(), headers: reqHeaders, timeout: 30000
-      }, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          if (res.statusCode >= 200 && res.statusCode < 300) {
-            logger.info(`[AutomationManager] ✓ Webhook 成功: ${res.statusCode}`);
-            resolve({ success: true, statusCode: res.statusCode });
-          } else {
-            resolve({ success: false, statusCode: res.statusCode, error: data });
-          }
-        });
+      const req = httpModule.request(
+        {
+          hostname: parsedUrl.hostname,
+          port: parsedUrl.port,
+          path: parsedUrl.pathname + parsedUrl.search,
+          method: method.toUpperCase(),
+          headers: reqHeaders,
+          timeout: 30000,
+        },
+        (res) => {
+          let data = "";
+          res.on("data", (chunk) => (data += chunk));
+          res.on("end", () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+              logger.info(
+                `[AutomationManager] ✓ Webhook 成功: ${res.statusCode}`,
+              );
+              resolve({ success: true, statusCode: res.statusCode });
+            } else {
+              resolve({
+                success: false,
+                statusCode: res.statusCode,
+                error: data,
+              });
+            }
+          });
+        },
+      );
+      req.on("error", reject);
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error("超时"));
       });
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('超时')); });
       req.write(payload);
       req.end();
     });
@@ -552,12 +675,12 @@ class AutomationManager extends EventEmitter {
 
     logger.info(`[AutomationManager] Git提交: ${commitMessage}`);
 
-    const GitManager = require('../git/git-manager');
+    const GitManager = require("../git/git-manager");
     const gitManager = new GitManager();
 
     // 执行Git操作
     await gitManager.init(projectPath);
-    await gitManager.add(projectPath, '.');
+    await gitManager.add(projectPath, ".");
     await gitManager.commit(projectPath, commitMessage);
 
     // 可选: 推送到远程
@@ -574,7 +697,7 @@ class AutomationManager extends EventEmitter {
 
     logger.info(`[AutomationManager] 导出文件: ${format}`);
 
-    const DocumentEngine = require('../engines/document-engine');
+    const DocumentEngine = require("../engines/document-engine");
     const docEngine = new DocumentEngine();
 
     await docEngine.export(sourcePath, outputPath, format);
@@ -588,23 +711,23 @@ class AutomationManager extends EventEmitter {
 
     logger.info(`[AutomationManager] 运行脚本: ${scriptPath}`);
 
-    const { spawn } = require('child_process');
+    const { spawn } = require("child_process");
 
     return new Promise((resolve, reject) => {
       const process = spawn(scriptPath, args);
 
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
 
-      process.stdout.on('data', (data) => {
+      process.stdout.on("data", (data) => {
         stdout += data.toString();
       });
 
-      process.stderr.on('data', (data) => {
+      process.stderr.on("data", (data) => {
         stderr += data.toString();
       });
 
-      process.on('close', (code) => {
+      process.on("close", (code) => {
         if (code === 0) {
           resolve({ stdout, stderr });
         } else {
@@ -620,11 +743,15 @@ class AutomationManager extends EventEmitter {
   async updateLastRun(ruleId) {
     const now = Date.now();
 
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       UPDATE project_automation_rules
       SET last_run_at = ?, updated_at = ?
       WHERE id = ?
-    `).run(now, now, ruleId);
+    `,
+      )
+      .run(now, now, ruleId);
   }
 
   /**
@@ -652,13 +779,18 @@ class AutomationManager extends EventEmitter {
       regex: (a, b) => new RegExp(b).test(String(a)),
       in: (a, b) => Array.isArray(b) && b.includes(a),
       notIn: (a, b) => Array.isArray(b) && !b.includes(a),
-      exists: (a, b) => b ? a !== undefined && a !== null : a === undefined || a === null,
+      exists: (a, b) =>
+        b ? a !== undefined && a !== null : a === undefined || a === null,
     };
 
     // 递归匹配逻辑
     const matchSingle = (dataValue, conditionValue) => {
       // 如果条件是对象且包含操作符
-      if (typeof conditionValue === 'object' && conditionValue !== null && !Array.isArray(conditionValue)) {
+      if (
+        typeof conditionValue === "object" &&
+        conditionValue !== null &&
+        !Array.isArray(conditionValue)
+      ) {
         for (const [op, expected] of Object.entries(conditionValue)) {
           if (operators[op]) {
             if (!operators[op](dataValue, expected)) {
@@ -666,7 +798,7 @@ class AutomationManager extends EventEmitter {
             }
           } else {
             // 嵌套对象匹配
-            if (typeof dataValue !== 'object' || dataValue === null) {
+            if (typeof dataValue !== "object" || dataValue === null) {
               return false;
             }
             if (!matchSingle(dataValue[op], expected)) {
@@ -683,11 +815,15 @@ class AutomationManager extends EventEmitter {
 
     // 处理逻辑运算符
     if (condition.$and) {
-      return condition.$and.every(subCond => this.matchesCondition(data, subCond));
+      return condition.$and.every((subCond) =>
+        this.matchesCondition(data, subCond),
+      );
     }
 
     if (condition.$or) {
-      return condition.$or.some(subCond => this.matchesCondition(data, subCond));
+      return condition.$or.some((subCond) =>
+        this.matchesCondition(data, subCond),
+      );
     }
 
     if (condition.$not) {
@@ -696,10 +832,12 @@ class AutomationManager extends EventEmitter {
 
     // 遍历所有条件字段
     for (const [field, conditionValue] of Object.entries(condition)) {
-      if (field.startsWith('$')) continue; // 跳过逻辑运算符
+      if (field.startsWith("$")) {
+        continue;
+      } // 跳过逻辑运算符
 
       // 获取嵌套字段值 (支持 "a.b.c" 格式)
-      const fieldParts = field.split('.');
+      const fieldParts = field.split(".");
       let dataValue = data;
       for (const part of fieldParts) {
         if (dataValue === undefined || dataValue === null) {
@@ -724,13 +862,16 @@ class AutomationManager extends EventEmitter {
    */
   calculateNextRun(ruleId) {
     const rule = this.rules.get(ruleId);
-    if (!rule) {return null;}
+    if (!rule) {
+      return null;
+    }
 
-    const triggerConfig = typeof rule.trigger_config === 'string'
-      ? JSON.parse(rule.trigger_config)
-      : rule.trigger_config;
+    const triggerConfig =
+      typeof rule.trigger_config === "string"
+        ? JSON.parse(rule.trigger_config)
+        : rule.trigger_config;
 
-    if (rule.trigger_type === 'schedule') {
+    if (rule.trigger_type === "schedule") {
       const cronExpression = triggerConfig.cron || triggerConfig.schedule;
       if (!cronExpression) {
         return null;
@@ -740,7 +881,7 @@ class AutomationManager extends EventEmitter {
       return this.getNextCronTime(cronExpression);
     }
 
-    if (rule.trigger_type === 'interval') {
+    if (rule.trigger_type === "interval") {
       // 间隔触发
       const interval = triggerConfig.interval || 60000; // 默认1分钟
       const lastRun = rule.last_run_at || Date.now();
@@ -767,23 +908,24 @@ class AutomationManager extends EventEmitter {
 
     // 解析单个字段
     const parseField = (field, min, max) => {
-      if (field === '*') {
+      if (field === "*") {
         return Array.from({ length: max - min + 1 }, (_, i) => min + i);
       }
 
       const values = new Set();
 
       // 处理逗号分隔的多个值
-      for (const segment of field.split(',')) {
+      for (const segment of field.split(",")) {
         // 处理步长 (*/5 或 1-10/2)
-        if (segment.includes('/')) {
-          const [range, step] = segment.split('/');
+        if (segment.includes("/")) {
+          const [range, step] = segment.split("/");
           const stepNum = parseInt(step, 10);
-          let start = min, end = max;
+          let start = min,
+            end = max;
 
-          if (range !== '*') {
-            if (range.includes('-')) {
-              [start, end] = range.split('-').map(n => parseInt(n, 10));
+          if (range !== "*") {
+            if (range.includes("-")) {
+              [start, end] = range.split("-").map((n) => parseInt(n, 10));
             } else {
               start = parseInt(range, 10);
             }
@@ -794,8 +936,8 @@ class AutomationManager extends EventEmitter {
           }
         }
         // 处理范围 (1-5)
-        else if (segment.includes('-')) {
-          const [start, end] = segment.split('-').map(n => parseInt(n, 10));
+        else if (segment.includes("-")) {
+          const [start, end] = segment.split("-").map((n) => parseInt(n, 10));
           for (let i = start; i <= end; i++) {
             values.add(i);
           }
@@ -806,7 +948,9 @@ class AutomationManager extends EventEmitter {
         }
       }
 
-      return Array.from(values).filter(v => v >= min && v <= max).sort((a, b) => a - b);
+      return Array.from(values)
+        .filter((v) => v >= min && v <= max)
+        .sort((a, b) => a - b);
     };
 
     const minutes = parseField(minutePart, 0, 59);
@@ -889,7 +1033,7 @@ class AutomationManager extends EventEmitter {
     const values = [];
 
     for (const [key, value] of Object.entries(updates)) {
-      if (key === 'trigger_config' || key === 'action_config') {
+      if (key === "trigger_config" || key === "action_config") {
         fields.push(`${key} = ?`);
         values.push(JSON.stringify(value));
       } else {
@@ -898,26 +1042,34 @@ class AutomationManager extends EventEmitter {
       }
     }
 
-    fields.push('updated_at = ?');
+    fields.push("updated_at = ?");
     values.push(now);
     values.push(ruleId);
 
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       UPDATE project_automation_rules
-      SET ${fields.join(', ')}
+      SET ${fields.join(", ")}
       WHERE id = ?
-    `).run(...values);
+    `,
+      )
+      .run(...values);
 
     // 重新加载并注册规则
-    const rule = this.database.prepare(`
+    const rule = this.database
+      .prepare(
+        `
       SELECT * FROM project_automation_rules WHERE id = ?
-    `).get(ruleId);
+    `,
+      )
+      .get(ruleId);
 
     if (rule && rule.is_enabled) {
       await this.registerRule(rule);
     }
 
-    logger.info('[AutomationManager] 规则更新成功:', ruleId);
+    logger.info("[AutomationManager] 规则更新成功:", ruleId);
     return rule;
   }
 
@@ -930,11 +1082,15 @@ class AutomationManager extends EventEmitter {
     this.stopRule(ruleId);
 
     // 从数据库删除
-    this.database.prepare(`
+    this.database
+      .prepare(
+        `
       DELETE FROM project_automation_rules WHERE id = ?
-    `).run(ruleId);
+    `,
+      )
+      .run(ruleId);
 
-    logger.info('[AutomationManager] 规则删除成功:', ruleId);
+    logger.info("[AutomationManager] 规则删除成功:", ruleId);
   }
 
   /**
@@ -943,11 +1099,15 @@ class AutomationManager extends EventEmitter {
    * @returns {Array} 规则列表
    */
   getRules(projectId) {
-    return this.database.prepare(`
+    return this.database
+      .prepare(
+        `
       SELECT * FROM project_automation_rules
       WHERE project_id = ?
       ORDER BY created_at DESC
-    `).all(projectId);
+    `,
+      )
+      .all(projectId);
   }
 
   /**
@@ -956,9 +1116,13 @@ class AutomationManager extends EventEmitter {
    * @returns {Object} 规则详情
    */
   getRule(ruleId) {
-    return this.database.prepare(`
+    return this.database
+      .prepare(
+        `
       SELECT * FROM project_automation_rules WHERE id = ?
-    `).get(ruleId);
+    `,
+      )
+      .get(ruleId);
   }
 
   /**
@@ -979,12 +1143,12 @@ class AutomationManager extends EventEmitter {
       await this.executeAction(rule.action_type, actionConfig);
       await this.updateLastRun(ruleId);
 
-      this.emit('rule:executed', { ruleId, manual: true, success: true });
+      this.emit("rule:executed", { ruleId, manual: true, success: true });
 
       return { success: true };
     } catch (error) {
-      logger.error('[AutomationManager] 手动触发失败:', error);
-      this.emit('rule:error', { ruleId, error: error.message });
+      logger.error("[AutomationManager] 手动触发失败:", error);
+      this.emit("rule:error", { ruleId, error: error.message });
       throw error;
     }
   }
@@ -993,20 +1157,24 @@ class AutomationManager extends EventEmitter {
    * 获取统计信息
    */
   getStatistics() {
-    const stats = this.database.prepare(`
+    const stats = this.database
+      .prepare(
+        `
       SELECT
         COUNT(*) as total,
         SUM(CASE WHEN is_enabled = 1 THEN 1 ELSE 0 END) as enabled,
         SUM(CASE WHEN is_enabled = 0 THEN 1 ELSE 0 END) as disabled
       FROM project_automation_rules
-    `).get();
+    `,
+      )
+      .get();
 
     return {
       total: stats.total,
       enabled: stats.enabled,
       disabled: stats.disabled,
       activeScheduledTasks: this.scheduledTasks.size,
-      activeFileWatchers: this.fileWatchers.size
+      activeFileWatchers: this.fileWatchers.size,
     };
   }
 }
@@ -1027,5 +1195,5 @@ function getAutomationManager() {
 
 module.exports = {
   AutomationManager,
-  getAutomationManager
+  getAutomationManager,
 };

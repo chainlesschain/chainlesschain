@@ -14,7 +14,7 @@
  * @since 2026-01-17
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -741,10 +741,7 @@ class LearnedPatternManager extends EventEmitter {
 
       return newStatus === 1;
     } catch (error) {
-      logger.error(
-        "[LearnedPatternManager] Failed to toggle favorite:",
-        error,
-      );
+      logger.error("[LearnedPatternManager] Failed to toggle favorite:", error);
       throw error;
     }
   }
@@ -817,10 +814,7 @@ class LearnedPatternManager extends EventEmitter {
 
       return recorded;
     } catch (error) {
-      logger.error(
-        "[LearnedPatternManager] Failed to record workflow:",
-        error,
-      );
+      logger.error("[LearnedPatternManager] Failed to record workflow:", error);
       throw error;
     }
   }

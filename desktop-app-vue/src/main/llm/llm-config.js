@@ -3,7 +3,7 @@
  * 支持敏感信息（API Keys）加密存储
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
@@ -16,7 +16,9 @@ const {
 } = require("./secure-config-storage");
 
 const normalizeProvider = (provider) => {
-  if (!provider) {return provider;}
+  if (!provider) {
+    return provider;
+  }
   return provider === "claude" ? "anthropic" : provider;
 };
 

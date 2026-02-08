@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * ContentRecommender - 基于内容的推荐算法
@@ -17,21 +17,21 @@ const { logger, createLogger } = require('../utils/logger.js');
 class ContentRecommender {
   constructor(config = {}) {
     this.config = {
-      minSimilarity: 0.2,      // 最小相似度阈值
-      topKSimilar: 5,          // 考虑Top-K相似工具
-      enableToolChain: true,   // 启用工具链推荐
-      ...config
+      minSimilarity: 0.2, // 最小相似度阈值
+      topKSimilar: 5, // 考虑Top-K相似工具
+      enableToolChain: true, // 启用工具链推荐
+      ...config,
     };
 
     this.db = null;
-    this.toolFeatures = new Map();     // 工具特征映射
-    this.toolSimilarity = new Map();   // 工具相似度矩阵
-    this.toolChains = new Map();       // 工具链统计
+    this.toolFeatures = new Map(); // 工具特征映射
+    this.toolSimilarity = new Map(); // 工具相似度矩阵
+    this.toolChains = new Map(); // 工具链统计
 
     this.stats = {
       totalRecommendations: 0,
       toolChainRecommendations: 0,
-      avgSimilarity: 0
+      avgSimilarity: 0,
     };
   }
 
@@ -46,70 +46,70 @@ class ContentRecommender {
    * 构建工具特征
    */
   async buildToolFeatures() {
-    logger.info('[ContentRecommender] 构建工具特征...');
+    logger.info("[ContentRecommender] 构建工具特征...");
 
     // 默认工具特征库
     const defaultTools = [
       {
-        name: 'codeGeneration',
-        category: 'development',
-        tags: ['code', 'generate', 'function', 'class'],
-        description: '代码生成工具，自动生成函数、类等代码结构'
+        name: "codeGeneration",
+        category: "development",
+        tags: ["code", "generate", "function", "class"],
+        description: "代码生成工具，自动生成函数、类等代码结构",
       },
       {
-        name: 'fileWrite',
-        category: 'development',
-        tags: ['file', 'write', 'save', 'create'],
-        description: '文件写入工具，创建和保存文件内容'
+        name: "fileWrite",
+        category: "development",
+        tags: ["file", "write", "save", "create"],
+        description: "文件写入工具，创建和保存文件内容",
       },
       {
-        name: 'fileRead',
-        category: 'development',
-        tags: ['file', 'read', 'load', 'open'],
-        description: '文件读取工具，加载和读取文件内容'
+        name: "fileRead",
+        category: "development",
+        tags: ["file", "read", "load", "open"],
+        description: "文件读取工具，加载和读取文件内容",
       },
       {
-        name: 'formatCode',
-        category: 'development',
-        tags: ['format', 'code', 'style', 'beautify'],
-        description: '代码格式化工具，美化代码风格'
+        name: "formatCode",
+        category: "development",
+        tags: ["format", "code", "style", "beautify"],
+        description: "代码格式化工具，美化代码风格",
       },
       {
-        name: 'debugging',
-        category: 'development',
-        tags: ['debug', 'fix', 'error', 'troubleshoot'],
-        description: '调试工具，帮助排查和修复代码错误'
+        name: "debugging",
+        category: "development",
+        tags: ["debug", "fix", "error", "troubleshoot"],
+        description: "调试工具，帮助排查和修复代码错误",
       },
       {
-        name: 'testing',
-        category: 'development',
-        tags: ['test', 'unittest', 'qa', 'verify'],
-        description: '测试工具，编写和运行单元测试'
+        name: "testing",
+        category: "development",
+        tags: ["test", "unittest", "qa", "verify"],
+        description: "测试工具，编写和运行单元测试",
       },
       {
-        name: 'dataAnalysis',
-        category: 'data',
-        tags: ['data', 'analysis', 'statistics', 'explore'],
-        description: '数据分析工具，统计分析和探索数据'
+        name: "dataAnalysis",
+        category: "data",
+        tags: ["data", "analysis", "statistics", "explore"],
+        description: "数据分析工具，统计分析和探索数据",
       },
       {
-        name: 'chartGeneration',
-        category: 'data',
-        tags: ['chart', 'visualization', 'graph', 'plot'],
-        description: '图表生成工具，可视化数据生成图表'
+        name: "chartGeneration",
+        category: "data",
+        tags: ["chart", "visualization", "graph", "plot"],
+        description: "图表生成工具，可视化数据生成图表",
       },
       {
-        name: 'documentation',
-        category: 'writing',
-        tags: ['doc', 'document', 'write', 'readme'],
-        description: '文档编写工具，生成项目文档和说明'
+        name: "documentation",
+        category: "writing",
+        tags: ["doc", "document", "write", "readme"],
+        description: "文档编写工具，生成项目文档和说明",
       },
       {
-        name: 'markdown',
-        category: 'writing',
-        tags: ['markdown', 'format', 'text', 'note'],
-        description: 'Markdown编辑工具，格式化文本内容'
-      }
+        name: "markdown",
+        category: "writing",
+        tags: ["markdown", "format", "text", "note"],
+        description: "Markdown编辑工具，格式化文本内容",
+      },
     ];
 
     this.toolFeatures.clear();
@@ -118,11 +118,13 @@ class ContentRecommender {
         category: tool.category,
         tags: new Set(tool.tags),
         description: tool.description,
-        vector: this.createFeatureVector(tool)
+        vector: this.createFeatureVector(tool),
       });
     }
 
-    logger.info(`[ContentRecommender] 工具特征构建完成: ${this.toolFeatures.size}个工具`);
+    logger.info(
+      `[ContentRecommender] 工具特征构建完成: ${this.toolFeatures.size}个工具`,
+    );
     return this.toolFeatures;
   }
 
@@ -133,14 +135,30 @@ class ContentRecommender {
     const vector = [];
 
     // 1. 类别编码
-    const categories = ['development', 'data', 'design', 'writing', 'testing', 'deployment'];
+    const categories = [
+      "development",
+      "data",
+      "design",
+      "writing",
+      "testing",
+      "deployment",
+    ];
     const categoryIndex = categories.indexOf(tool.category);
     for (let i = 0; i < categories.length; i++) {
       vector.push(i === categoryIndex ? 1 : 0);
     }
 
     // 2. 标签特征 (TF-IDF简化版本)
-    const allTags = ['code', 'file', 'data', 'test', 'doc', 'format', 'debug', 'chart'];
+    const allTags = [
+      "code",
+      "file",
+      "data",
+      "test",
+      "doc",
+      "format",
+      "debug",
+      "chart",
+    ];
     for (const tag of allTags) {
       vector.push(tool.tags.includes(tag) ? 1 : 0);
     }
@@ -168,12 +186,13 @@ class ContentRecommender {
     }
 
     // 1. 类别相似度
-    const categorySimilarity = features1.category === features2.category ? 1 : 0;
+    const categorySimilarity =
+      features1.category === features2.category ? 1 : 0;
 
     // 2. 标签相似度 (Jaccard)
     const tags1 = features1.tags;
     const tags2 = features2.tags;
-    const intersection = new Set([...tags1].filter(t => tags2.has(t)));
+    const intersection = new Set([...tags1].filter((t) => tags2.has(t)));
     const union = new Set([...tags1, ...tags2]);
     const tagSimilarity = union.size > 0 ? intersection.size / union.size : 0;
 
@@ -191,12 +210,14 @@ class ContentRecommender {
       norm2 += vector2[i] * vector2[i];
     }
 
-    const vectorSimilarity = (norm1 === 0 || norm2 === 0)
-      ? 0
-      : dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
+    const vectorSimilarity =
+      norm1 === 0 || norm2 === 0
+        ? 0
+        : dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
 
     // 加权平均
-    const similarity = categorySimilarity * 0.4 + tagSimilarity * 0.3 + vectorSimilarity * 0.3;
+    const similarity =
+      categorySimilarity * 0.4 + tagSimilarity * 0.3 + vectorSimilarity * 0.3;
 
     // 缓存结果
     this.toolSimilarity.set(cacheKey, similarity);
@@ -218,7 +239,9 @@ class ContentRecommender {
     const similarTools = [];
 
     for (const [otherTool, _] of this.toolFeatures.entries()) {
-      if (otherTool === toolName) {continue;}
+      if (otherTool === toolName) {
+        continue;
+      }
 
       const similarity = this.calculateToolSimilarity(toolName, otherTool);
 
@@ -235,13 +258,17 @@ class ContentRecommender {
    * 构建工具链统计
    */
   async buildToolChains() {
-    if (!this.db) {return;}
+    if (!this.db) {
+      return;
+    }
 
-    logger.info('[ContentRecommender] 构建工具链统计...');
+    logger.info("[ContentRecommender] 构建工具链统计...");
 
     try {
       // 查询工具序列 (previous_tool → tool_name → next_tool)
-      const chains = this.db.prepare(`
+      const chains = this.db
+        .prepare(
+          `
         SELECT
           previous_tool,
           tool_name,
@@ -250,7 +277,9 @@ class ContentRecommender {
         WHERE previous_tool IS NOT NULL
         GROUP BY previous_tool, tool_name
         ORDER BY count DESC
-      `).all();
+      `,
+        )
+        .all();
 
       this.toolChains.clear();
 
@@ -262,7 +291,7 @@ class ContentRecommender {
         this.toolChains.get(chain.previous_tool).push({
           nextTool: chain.tool_name,
           count: chain.count,
-          probability: 0 // 后续计算
+          probability: 0, // 后续计算
         });
       }
 
@@ -274,9 +303,11 @@ class ContentRecommender {
         }
       }
 
-      logger.info(`[ContentRecommender] 工具链构建完成: ${this.toolChains.size}个起始工具`);
+      logger.info(
+        `[ContentRecommender] 工具链构建完成: ${this.toolChains.size}个起始工具`,
+      );
     } catch (error) {
-      logger.error('[ContentRecommender] 构建工具链失败:', error);
+      logger.error("[ContentRecommender] 构建工具链失败:", error);
     }
   }
 
@@ -297,7 +328,9 @@ class ContentRecommender {
 
     try {
       // 1. 获取用户最近使用的工具
-      const recentTools = this.db.prepare(`
+      const recentTools = this.db
+        .prepare(
+          `
         SELECT DISTINCT tool_name, MAX(timestamp) as last_used
         FROM tool_usage_events
         WHERE user_id = ?
@@ -305,10 +338,12 @@ class ContentRecommender {
         GROUP BY tool_name
         ORDER BY last_used DESC
         LIMIT 5
-      `).all(userId);
+      `,
+        )
+        .all(userId);
 
       if (recentTools.length === 0) {
-        logger.info('[ContentRecommender] 用户无最近使用记录');
+        logger.info("[ContentRecommender] 用户无最近使用记录");
         return [];
       }
 
@@ -323,7 +358,7 @@ class ContentRecommender {
             toolScores.set(tool, {
               totalScore: 0,
               count: 0,
-              basedOnTools: []
+              basedOnTools: [],
             });
           }
 
@@ -344,7 +379,7 @@ class ContentRecommender {
           score: avgScore,
           confidence: Math.min(data.count / recentTools.length, 1.0),
           reason: this.generateReason(data.basedOnTools),
-          algorithm: 'content_based'
+          algorithm: "content_based",
         });
       }
 
@@ -354,12 +389,13 @@ class ContentRecommender {
       if (recommendations.length > 0) {
         this.stats.avgSimilarity =
           (this.stats.avgSimilarity * (this.stats.totalRecommendations - 1) +
-            recommendations[0].score) / this.stats.totalRecommendations;
+            recommendations[0].score) /
+          this.stats.totalRecommendations;
       }
 
       return recommendations.slice(0, topK);
     } catch (error) {
-      logger.error('[ContentRecommender] 推荐失败:', error);
+      logger.error("[ContentRecommender] 推荐失败:", error);
       return [];
     }
   }
@@ -381,12 +417,12 @@ class ContentRecommender {
       return [];
     }
 
-    const recommendations = nextTools.slice(0, topK).map(t => ({
+    const recommendations = nextTools.slice(0, topK).map((t) => ({
       tool: t.nextTool,
       score: t.probability,
       confidence: t.probability,
       reason: `${(t.probability * 100).toFixed(0)}%用户在${currentTool}后使用`,
-      algorithm: 'tool_chain'
+      algorithm: "tool_chain",
     }));
 
     this.stats.toolChainRecommendations++;
@@ -399,7 +435,7 @@ class ContentRecommender {
    */
   generateReason(basedOnTools) {
     if (basedOnTools.length === 0) {
-      return '基于内容推荐';
+      return "基于内容推荐";
     }
 
     const topTool = basedOnTools[0];
@@ -416,7 +452,7 @@ class ContentRecommender {
       ...this.stats,
       toolCount: this.toolFeatures.size,
       toolChainCount: this.toolChains.size,
-      avgSimilarity: (this.stats.avgSimilarity * 100).toFixed(1) + '%'
+      avgSimilarity: (this.stats.avgSimilarity * 100).toFixed(1) + "%",
     };
   }
 }

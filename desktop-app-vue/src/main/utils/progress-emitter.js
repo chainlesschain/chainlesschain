@@ -11,7 +11,7 @@
  * v0.18.0: 新建文件，统一多媒体处理的进度通知
  */
 
-const { logger, createLogger } = require("./logger.js");
+const { logger } = require("./logger.js");
 const { EventEmitter } = require("events");
 
 /**

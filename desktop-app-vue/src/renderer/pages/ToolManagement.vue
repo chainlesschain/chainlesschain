@@ -4,19 +4,11 @@
     <div class="page-header">
       <div class="header-left">
         <h1>工具管理</h1>
-        <p class="subtitle">
-          管理和测试 AI 助手的工具库
-        </p>
+        <p class="subtitle">管理和测试 AI 助手的工具库</p>
       </div>
       <div class="header-right">
-        <a-space
-          :size="24"
-          align="center"
-        >
-          <a-statistic
-            :value="toolStore.totalCount"
-            title="总工具数"
-          />
+        <a-space :size="24" align="center">
+          <a-statistic :value="toolStore.totalCount" title="总工具数" />
           <a-statistic
             :value="toolStore.enabledCount"
             title="已启用"
@@ -57,27 +49,13 @@
           style="width: 150px"
           @change="handleCategoryChange"
         >
-          <a-select-option value="all">
-            全部分类
-          </a-select-option>
-          <a-select-option value="file">
-            文件操作
-          </a-select-option>
-          <a-select-option value="code">
-            代码生成
-          </a-select-option>
-          <a-select-option value="project">
-            项目管理
-          </a-select-option>
-          <a-select-option value="system">
-            系统操作
-          </a-select-option>
-          <a-select-option value="output">
-            输出格式化
-          </a-select-option>
-          <a-select-option value="general">
-            通用
-          </a-select-option>
+          <a-select-option value="all"> 全部分类 </a-select-option>
+          <a-select-option value="file"> 文件操作 </a-select-option>
+          <a-select-option value="code"> 代码生成 </a-select-option>
+          <a-select-option value="project"> 项目管理 </a-select-option>
+          <a-select-option value="system"> 系统操作 </a-select-option>
+          <a-select-option value="output"> 输出格式化 </a-select-option>
+          <a-select-option value="general"> 通用 </a-select-option>
         </a-select>
 
         <a-select
@@ -86,21 +64,12 @@
           style="width: 120px"
           @change="handleStatusChange"
         >
-          <a-select-option value="all">
-            全部状态
-          </a-select-option>
-          <a-select-option value="enabled">
-            已启用
-          </a-select-option>
-          <a-select-option value="disabled">
-            已禁用
-          </a-select-option>
+          <a-select-option value="all"> 全部状态 </a-select-option>
+          <a-select-option value="enabled"> 已启用 </a-select-option>
+          <a-select-option value="disabled"> 已禁用 </a-select-option>
         </a-select>
 
-        <a-button
-          :loading="toolStore.loading"
-          @click="handleRefresh"
-        >
+        <a-button :loading="toolStore.loading" @click="handleRefresh">
           <template #icon>
             <ReloadOutlined />
           </template>
@@ -109,28 +78,19 @@
       </a-space>
 
       <a-space>
-        <a-button
-          type="primary"
-          @click="handleCreateTool"
-        >
+        <a-button type="primary" @click="handleCreateTool">
           <template #icon>
             <PlusOutlined />
           </template>
           创建工具
         </a-button>
-        <a-button
-          type="link"
-          @click="showAnalytics"
-        >
+        <a-button type="link" @click="showAnalytics">
           <template #icon>
             <BarChartOutlined />
           </template>
           使用统计
         </a-button>
-        <a-button
-          type="link"
-          @click="showDependencyGraph"
-        >
+        <a-button type="link" @click="showDependencyGraph">
           <template #icon>
             <ApartmentOutlined />
           </template>
@@ -140,13 +100,8 @@
     </div>
 
     <!-- 批量操作栏 -->
-    <div
-      v-if="selectedTools.length > 0"
-      class="batch-action-bar"
-    >
-      <div class="selection-info">
-        已选择 {{ selectedTools.length }} 项
-      </div>
+    <div v-if="selectedTools.length > 0" class="batch-action-bar">
+      <div class="selection-info">已选择 {{ selectedTools.length }} 项</div>
       <a-space>
         <a-button @click="handleBatchEnable">
           <template #icon>
@@ -160,30 +115,19 @@
           </template>
           批量禁用
         </a-button>
-        <a-button
-          danger
-          @click="handleBatchDelete"
-        >
+        <a-button danger @click="handleBatchDelete">
           <template #icon>
             <DeleteOutlined />
           </template>
           批量删除
         </a-button>
-        <a-button @click="handleClearSelection">
-          清空选择
-        </a-button>
+        <a-button @click="handleClearSelection"> 清空选择 </a-button>
       </a-space>
     </div>
 
     <!-- 工具列表 -->
-    <div
-      v-if="toolStore.loading"
-      class="loading-container"
-    >
-      <a-spin
-        size="large"
-        tip="加载中..."
-      />
+    <div v-if="toolStore.loading" class="loading-container">
+      <a-spin size="large" tip="加载中..." />
     </div>
 
     <div
@@ -193,14 +137,11 @@
       <a-empty description="暂无工具数据" />
     </div>
 
-    <div
-      v-else
-      class="tool-list"
-    >
+    <div v-else class="tool-list">
       <a-table
         :columns="columns"
         :data-source="toolStore.filteredTools"
-        :row-key="record => record.id"
+        :row-key="(record) => record.id"
         :row-selection="rowSelection"
         :pagination="pagination"
         @change="handleTableChange"
@@ -210,7 +151,7 @@
             <div class="tool-name-cell">
               <strong>{{ record.display_name || record.name }}</strong>
               <div class="tool-description">
-                {{ record.description || '-' }}
+                {{ record.description || "-" }}
               </div>
             </div>
           </template>
@@ -241,10 +182,7 @@
           </template>
 
           <template v-if="column.key === 'usage'">
-            <a-space
-              direction="vertical"
-              size="small"
-            >
+            <a-space direction="vertical" size="small">
               <div>
                 <span style="color: #8c8c8c; font-size: 12px">调用: </span>
                 <strong>{{ record.usage_count || 0 }}</strong>
@@ -259,21 +197,9 @@
           </template>
 
           <template v-if="column.key === 'source'">
-            <a-tag
-              v-if="record.is_builtin"
-              color="blue"
-            >
-              内置
-            </a-tag>
-            <a-tag
-              v-else-if="record.plugin_id"
-              color="purple"
-            >
-              插件
-            </a-tag>
-            <a-tag v-else>
-              自定义
-            </a-tag>
+            <a-tag v-if="record.is_builtin" color="blue"> 内置 </a-tag>
+            <a-tag v-else-if="record.plugin_id" color="purple"> 插件 </a-tag>
+            <a-tag v-else> 自定义 </a-tag>
           </template>
 
           <template v-if="column.key === 'actions'">
@@ -285,11 +211,7 @@
               >
                 详情
               </a-button>
-              <a-button
-                type="link"
-                size="small"
-                @click="handleViewDoc(record)"
-              >
+              <a-button type="link" size="small" @click="handleViewDoc(record)">
                 文档
               </a-button>
               <a-button
@@ -329,10 +251,7 @@
       :width="800"
       placement="right"
     >
-      <MarkdownViewer
-        v-if="currentDoc"
-        :content="currentDoc"
-      />
+      <MarkdownViewer v-if="currentDoc" :content="currentDoc" />
       <a-spin v-else-if="loadingDoc" />
     </a-drawer>
 
@@ -386,10 +305,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   SearchOutlined,
   ReloadOutlined,
@@ -399,24 +318,24 @@ import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { useToolStore } from '../stores/tool';
-import { useSkillStore } from '../stores/skill';
-import ToolDetails from '../components/tool/ToolDetails.vue';
-import ToolEditor from '../components/tool/ToolEditor.vue';
-import ToolStats from '../components/tool/ToolStats.vue';
-import ToolTester from '../components/tool/ToolTester.vue';
-import SkillDependencyGraph from '../components/skill/SkillDependencyGraph.vue';
-import MarkdownViewer from '../components/common/MarkdownViewer.vue';
-import ErrorBoundary from '../components/common/ErrorBoundary.vue';
+} from "@ant-design/icons-vue";
+import { useToolStore } from "../stores/tool";
+import { useSkillStore } from "../stores/skill";
+import ToolDetails from "../components/tool/ToolDetails.vue";
+import ToolEditor from "../components/tool/ToolEditor.vue";
+import ToolStats from "../components/tool/ToolStats.vue";
+import ToolTester from "../components/tool/ToolTester.vue";
+import SkillDependencyGraph from "../components/skill/SkillDependencyGraph.vue";
+import MarkdownViewer from "../components/common/MarkdownViewer.vue";
+import ErrorBoundary from "../components/common/ErrorBoundary.vue";
 
 const toolStore = useToolStore();
 const skillStore = useSkillStore();
 
 // 搜索和筛选
-const searchKeyword = ref('');
-const categoryFilter = ref('all');
-const statusFilter = ref('all');
+const searchKeyword = ref("");
+const categoryFilter = ref("all");
+const statusFilter = ref("all");
 
 // 切换状态的工具ID集合
 const switchingIds = ref(new Set());
@@ -460,7 +379,9 @@ const pagination = reactive({
 // 批量操作
 const selectedToolKeys = ref([]);
 const selectedTools = computed(() => {
-  return toolStore.filteredTools.filter(tool => selectedToolKeys.value.includes(tool.id));
+  return toolStore.filteredTools.filter((tool) =>
+    selectedToolKeys.value.includes(tool.id),
+  );
 });
 
 const rowSelection = computed(() => ({
@@ -473,45 +394,45 @@ const rowSelection = computed(() => ({
 // 表格列定义
 const columns = [
   {
-    title: '工具名称',
-    key: 'name',
+    title: "工具名称",
+    key: "name",
     width: 250,
   },
   {
-    title: '分类',
-    key: 'category',
+    title: "分类",
+    key: "category",
     width: 120,
   },
   {
-    title: '类型',
-    key: 'type',
+    title: "类型",
+    key: "type",
     width: 100,
   },
   {
-    title: '风险等级',
-    key: 'risk_level',
+    title: "风险等级",
+    key: "risk_level",
     width: 100,
   },
   {
-    title: '使用情况',
-    key: 'usage',
+    title: "使用情况",
+    key: "usage",
     width: 120,
   },
   {
-    title: '来源',
-    key: 'source',
+    title: "来源",
+    key: "source",
     width: 100,
   },
   {
-    title: '状态',
-    key: 'enabled',
+    title: "状态",
+    key: "enabled",
     width: 80,
   },
   {
-    title: '操作',
-    key: 'actions',
+    title: "操作",
+    key: "actions",
     width: 200,
-    fixed: 'right',
+    fixed: "right",
   },
 ];
 
@@ -542,7 +463,7 @@ const handleStatusChange = () => {
 const handleRefresh = async () => {
   await toolStore.fetchAll();
   pagination.total = toolStore.totalCount;
-  message.success('刷新成功');
+  message.success("刷新成功");
 };
 
 // 表格变化
@@ -563,7 +484,7 @@ const handleViewDetails = async (tool) => {
 
 // 切换启用/禁用
 const handleToggleEnabled = async (tool) => {
-  const action = tool.enabled ? '禁用' : '启用';
+  const action = tool.enabled ? "禁用" : "启用";
   switchingIds.value.add(tool.id);
 
   try {
@@ -595,7 +516,7 @@ const handleViewDoc = async (tool) => {
     currentDoc.value = doc;
   } catch (error) {
     logger.error(error);
-    message.error('加载文档失败');
+    message.error("加载文档失败");
   } finally {
     loadingDoc.value = false;
   }
@@ -615,10 +536,10 @@ const runTest = async () => {
   try {
     const result = await toolStore.test(currentTool.value.id, testParams.value);
     testResult.value = result;
-    message.success('测试完成');
+    message.success("测试完成");
   } catch (error) {
     logger.error(error);
-    message.error('测试失败');
+    message.error("测试失败");
   } finally {
     testing.value = false;
   }
@@ -628,11 +549,11 @@ const runTest = async () => {
 const handleUpdateTool = async (toolId, updates) => {
   const success = await toolStore.update(toolId, updates);
   if (success) {
-    message.success('更新成功');
+    message.success("更新成功");
     await toolStore.fetchById(toolId);
     currentTool.value = toolStore.currentTool;
   } else {
-    message.error('更新失败');
+    message.error("更新失败");
   }
 };
 
@@ -655,15 +576,15 @@ const handleSaveTool = async (toolData) => {
     }
 
     if (success) {
-      message.success(editingTool.value ? '更新成功' : '创建成功');
+      message.success(editingTool.value ? "更新成功" : "创建成功");
       editorVisible.value = false;
       await toolStore.fetchAll();
     } else {
-      message.error(editingTool.value ? '更新失败' : '创建失败');
+      message.error(editingTool.value ? "更新失败" : "创建失败");
     }
   } catch (error) {
     logger.error(error);
-    message.error('操作失败');
+    message.error("操作失败");
   }
 };
 
@@ -677,11 +598,11 @@ const showDependencyGraph = async () => {
       graphVisible.value = true;
     } else {
       logger.error(result.error);
-      message.error('加载依赖关系失败');
+      message.error("加载依赖关系失败");
     }
   } catch (error) {
     logger.error(error);
-    message.error('加载依赖关系失败');
+    message.error("加载依赖关系失败");
   }
 };
 
@@ -698,17 +619,19 @@ const handleClearSelection = () => {
 const handleBatchEnable = () => {
   const count = selectedTools.value.length;
   Modal.confirm({
-    title: '确认批量启用？',
+    title: "确认批量启用？",
     content: `将启用 ${count} 个工具，是否继续？`,
-    okText: '确认',
-    cancelText: '取消',
+    okText: "确认",
+    cancelText: "取消",
     async onOk() {
       try {
         let successCount = 0;
         for (const tool of selectedTools.value) {
           if (!tool.enabled) {
             const success = await toolStore.enable(tool.id);
-            if (success) {successCount++;}
+            if (success) {
+              successCount++;
+            }
           } else {
             successCount++;
           }
@@ -718,7 +641,7 @@ const handleBatchEnable = () => {
         await toolStore.fetchAll();
       } catch (error) {
         logger.error(error);
-        message.error('批量启用失败');
+        message.error("批量启用失败");
       }
     },
   });
@@ -727,18 +650,20 @@ const handleBatchEnable = () => {
 const handleBatchDisable = () => {
   const count = selectedTools.value.length;
   Modal.confirm({
-    title: '确认批量禁用？',
+    title: "确认批量禁用？",
     content: `将禁用 ${count} 个工具，是否继续？`,
-    okText: '确认',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "确认",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         let successCount = 0;
         for (const tool of selectedTools.value) {
           if (tool.enabled) {
             const success = await toolStore.disable(tool.id);
-            if (success) {successCount++;}
+            if (success) {
+              successCount++;
+            }
           } else {
             successCount++;
           }
@@ -748,7 +673,7 @@ const handleBatchDisable = () => {
         await toolStore.fetchAll();
       } catch (error) {
         logger.error(error);
-        message.error('批量禁用失败');
+        message.error("批量禁用失败");
       }
     },
   });
@@ -756,23 +681,27 @@ const handleBatchDisable = () => {
 
 const handleBatchDelete = () => {
   const count = selectedTools.value.length;
-  const toolNames = selectedTools.value.map(t => t.display_name || t.name).join('、');
+  const toolNames = selectedTools.value
+    .map((t) => t.display_name || t.name)
+    .join("、");
 
   Modal.confirm({
-    title: '确认批量删除？',
+    title: "确认批量删除？",
     content: `将删除以下 ${count} 个工具：\n\n${toolNames}\n\n此操作不可恢复，是否继续？`,
-    okText: '确认删除',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "确认删除",
+    okType: "danger",
+    cancelText: "取消",
     width: 600,
     async onOk() {
       try {
         let successCount = 0;
-        const toolIds = selectedTools.value.map(t => t.id);
+        const toolIds = selectedTools.value.map((t) => t.id);
 
         for (const toolId of toolIds) {
           const success = await toolStore.delete(toolId);
-          if (success) {successCount++;}
+          if (success) {
+            successCount++;
+          }
         }
 
         message.success(`成功删除 ${successCount} 个工具`);
@@ -780,7 +709,7 @@ const handleBatchDelete = () => {
         await toolStore.fetchAll();
       } catch (error) {
         logger.error(error);
-        message.error('批量删除失败');
+        message.error("批量删除失败");
       }
     },
   });
@@ -789,60 +718,66 @@ const handleBatchDelete = () => {
 // 辅助函数
 const getCategoryColor = (category) => {
   const colorMap = {
-    file: 'blue',
-    code: 'cyan',
-    project: 'green',
-    system: 'volcano',
-    output: 'orange',
-    general: 'default',
+    file: "blue",
+    code: "cyan",
+    project: "green",
+    system: "volcano",
+    output: "orange",
+    general: "default",
   };
-  return colorMap[category] || 'default';
+  return colorMap[category] || "default";
 };
 
 const getCategoryName = (category) => {
   const nameMap = {
-    file: '文件操作',
-    code: '代码生成',
-    project: '项目管理',
-    system: '系统操作',
-    output: '输出格式化',
-    general: '通用',
+    file: "文件操作",
+    code: "代码生成",
+    project: "项目管理",
+    system: "系统操作",
+    output: "输出格式化",
+    general: "通用",
   };
   return nameMap[category] || category;
 };
 
 const getRiskColor = (level) => {
   const colorMap = {
-    1: 'success',
-    2: 'warning',
-    3: 'orange',
-    4: 'error',
-    5: 'red',
+    1: "success",
+    2: "warning",
+    3: "orange",
+    4: "error",
+    5: "red",
   };
-  return colorMap[level] || 'default';
+  return colorMap[level] || "default";
 };
 
 const getRiskLabel = (level) => {
   const labelMap = {
-    1: '低',
-    2: '中',
-    3: '较高',
-    4: '高',
-    5: '极高',
+    1: "低",
+    2: "中",
+    3: "较高",
+    4: "高",
+    5: "极高",
   };
-  return labelMap[level] || '未知';
+  return labelMap[level] || "未知";
 };
 
 const getSuccessRate = (tool) => {
-  if (!tool.usage_count || tool.usage_count === 0) {return 0;}
+  if (!tool.usage_count || tool.usage_count === 0) {
+    return 0;
+  }
   return ((tool.success_count / tool.usage_count) * 100).toFixed(1);
 };
 
 const getSuccessRateColor = (tool) => {
   const rate = getSuccessRate(tool);
-  if (rate >= 90) {return '#52c41a';}
-  if (rate >= 70) {return '#faad14';}
-  return '#ff4d4f';
+  if (rate >= 90) {
+    return "#52c41a";
+  }
+  if (rate >= 70) {
+    return "#faad14";
+  }
+  return "#ff4d4f";
 };
 </script>
 

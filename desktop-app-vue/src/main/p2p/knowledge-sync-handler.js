@@ -9,8 +9,8 @@
  * - 处理离线缓存
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 class KnowledgeSyncHandler extends EventEmitter {
   constructor(databaseManager, p2pManager, mobileBridge) {
@@ -24,7 +24,7 @@ class KnowledgeSyncHandler extends EventEmitter {
     this.stats = {
       notesSynced: 0,
       bytesTransferred: 0,
-      searchQueries: 0
+      searchQueries: 0,
     };
   }
 
@@ -36,23 +36,23 @@ class KnowledgeSyncHandler extends EventEmitter {
     const { type } = message;
 
     switch (type) {
-      case 'knowledge:list-notes':
+      case "knowledge:list-notes":
         await this.handleListNotes(mobilePeerId, message);
         break;
 
-      case 'knowledge:get-note':
+      case "knowledge:get-note":
         await this.handleGetNote(mobilePeerId, message);
         break;
 
-      case 'knowledge:search':
+      case "knowledge:search":
         await this.handleSearch(mobilePeerId, message);
         break;
 
-      case 'knowledge:get-folders':
+      case "knowledge:get-folders":
         await this.handleGetFolders(mobilePeerId, message);
         break;
 
-      case 'knowledge:get-tags':
+      case "knowledge:get-tags":
         await this.handleGetTags(mobilePeerId, message);
         break;
 
@@ -60,9 +60,9 @@ class KnowledgeSyncHandler extends EventEmitter {
         logger.warn(`[KnowledgeSync] 未知消息类型: ${type}`);
         return {
           error: {
-            code: 'UNKNOWN_TYPE',
-            message: `Unknown knowledge sync message type: ${type}`
-          }
+            code: "UNKNOWN_TYPE",
+            message: `Unknown knowledge sync message type: ${type}`,
+          },
         };
     }
 
@@ -74,10 +74,16 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理获取笔记列表请求
    */
   async handleListNotes(mobilePeerId, message) {
-    logger.info('[KnowledgeSync] 处理笔记列表请求:', message);
+    logger.info("[KnowledgeSync] 处理笔记列表请求:", message);
 
     try {
-      const { folderId, limit = 50, offset = 0, sortBy = 'updated_at', sortOrder = 'DESC' } = message.params || {};
+      const {
+        folderId,
+        limit = 50,
+        offset = 0,
+        sortBy = "updated_at",
+        sortOrder = "DESC",
+      } = message.params || {};
 
       // 从数据库获取笔记列表
       let query = `
@@ -92,7 +98,7 @@ class KnowledgeSyncHandler extends EventEmitter {
       const params = [];
 
       if (folderId) {
-        query += ' AND folder_id = ?';
+        query += " AND folder_id = ?";
         params.push(folderId);
       }
 
@@ -102,10 +108,10 @@ class KnowledgeSyncHandler extends EventEmitter {
       const notes = await this.db.all(query, params);
 
       // 获取总数
-      let countQuery = 'SELECT COUNT(*) as total FROM notes WHERE 1=1';
+      let countQuery = "SELECT COUNT(*) as total FROM notes WHERE 1=1";
       const countParams = [];
       if (folderId) {
-        countQuery += ' AND folder_id = ?';
+        countQuery += " AND folder_id = ?";
         countParams.push(folderId);
       }
 
@@ -113,41 +119,40 @@ class KnowledgeSyncHandler extends EventEmitter {
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'knowledge:list-notes:response',
+        type: "knowledge:list-notes:response",
         requestId: message.requestId,
         data: {
-          notes: notes.map(note => ({
+          notes: notes.map((note) => ({
             ...note,
             tags: note.tags ? JSON.parse(note.tags) : [],
-            preview: note.preview || '',
-            contentLength: note.content_length || 0
+            preview: note.preview || "",
+            contentLength: note.content_length || 0,
           })),
           total,
           limit,
-          offset
-        }
+          offset,
+        },
       });
 
       this.stats.notesSynced += notes.length;
 
-      logger.info('[KnowledgeSync] ✅ 笔记列表已发送:', notes.length);
-
+      logger.info("[KnowledgeSync] ✅ 笔记列表已发送:", notes.length);
     } catch (error) {
-      logger.error('[KnowledgeSync] 处理笔记列表请求失败:', error);
+      logger.error("[KnowledgeSync] 处理笔记列表请求失败:", error);
 
       // 如果是表不存在错误，返回空数组
-      if (error.message && error.message.includes('no such table')) {
+      if (error.message && error.message.includes("no such table")) {
         await this.sendToMobile(mobilePeerId, {
-          type: 'knowledge:list-notes:response',
+          type: "knowledge:list-notes:response",
           requestId: message.requestId,
           data: {
             notes: [],
             total: 0,
             limit: message.params?.limit || 50,
-            offset: message.params?.offset || 0
-          }
+            offset: message.params?.offset || 0,
+          },
         });
-        logger.info('[KnowledgeSync] ⚠️  数据库表不存在，返回空列表');
+        logger.info("[KnowledgeSync] ⚠️  数据库表不存在，返回空列表");
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -158,23 +163,22 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理获取笔记详情请求
    */
   async handleGetNote(mobilePeerId, message) {
-    logger.info('[KnowledgeSync] 处理笔记详情请求:', message);
+    logger.info("[KnowledgeSync] 处理笔记详情请求:", message);
 
     try {
       const { noteId } = message.params || {};
 
       if (!noteId) {
-        throw new Error('缺少笔记ID');
+        throw new Error("缺少笔记ID");
       }
 
       // 从数据库获取笔记
-      const note = await this.db.get(
-        `SELECT * FROM notes WHERE id = ?`,
-        [noteId]
-      );
+      const note = await this.db.get(`SELECT * FROM notes WHERE id = ?`, [
+        noteId,
+      ]);
 
       if (!note) {
-        throw new Error('笔记不存在');
+        throw new Error("笔记不存在");
       }
 
       // 解析tags
@@ -182,17 +186,16 @@ class KnowledgeSyncHandler extends EventEmitter {
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'knowledge:get-note:response',
+        type: "knowledge:get-note:response",
         requestId: message.requestId,
-        data: { note }
+        data: { note },
       });
 
-      this.stats.bytesTransferred += (note.content || '').length;
+      this.stats.bytesTransferred += (note.content || "").length;
 
-      logger.info('[KnowledgeSync] ✅ 笔记详情已发送:', noteId);
-
+      logger.info("[KnowledgeSync] ✅ 笔记详情已发送:", noteId);
     } catch (error) {
-      logger.error('[KnowledgeSync] 处理笔记详情请求失败:', error);
+      logger.error("[KnowledgeSync] 处理笔记详情请求失败:", error);
 
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
@@ -202,13 +205,13 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理搜索请求
    */
   async handleSearch(mobilePeerId, message) {
-    logger.info('[KnowledgeSync] 处理搜索请求:', message);
+    logger.info("[KnowledgeSync] 处理搜索请求:", message);
 
     try {
       const { query, limit = 20, offset = 0 } = message.params || {};
 
       if (!query || query.trim().length === 0) {
-        throw new Error('搜索关键词不能为空');
+        throw new Error("搜索关键词不能为空");
       }
 
       // 全文搜索 - JOIN notes表获取folder_id等字段
@@ -229,48 +232,47 @@ class KnowledgeSyncHandler extends EventEmitter {
       // 获取匹配总数
       const { total } = await this.db.get(
         `SELECT COUNT(*) as total FROM notes_fts WHERE notes_fts MATCH ?`,
-        [query]
+        [query],
       );
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'knowledge:search:response',
+        type: "knowledge:search:response",
         requestId: message.requestId,
         data: {
-          notes: notes.map(note => ({
+          notes: notes.map((note) => ({
             ...note,
             tags: note.tags ? JSON.parse(note.tags) : [],
-            snippet: note.snippet || '',
-            contentLength: note.content_length || 0
+            snippet: note.snippet || "",
+            contentLength: note.content_length || 0,
           })),
           total,
           limit,
           offset,
-          query
-        }
+          query,
+        },
       });
 
       this.stats.searchQueries++;
 
-      logger.info('[KnowledgeSync] ✅ 搜索结果已发送:', notes.length);
-
+      logger.info("[KnowledgeSync] ✅ 搜索结果已发送:", notes.length);
     } catch (error) {
-      logger.error('[KnowledgeSync] 处理搜索请求失败:', error);
+      logger.error("[KnowledgeSync] 处理搜索请求失败:", error);
 
       // 如果是表不存在错误，返回空数组
-      if (error.message && error.message.includes('no such table')) {
+      if (error.message && error.message.includes("no such table")) {
         await this.sendToMobile(mobilePeerId, {
-          type: 'knowledge:search:response',
+          type: "knowledge:search:response",
           requestId: message.requestId,
           data: {
             notes: [],
             total: 0,
             limit: message.params?.limit || 20,
             offset: message.params?.offset || 0,
-            query: message.params?.query || ''
-          }
+            query: message.params?.query || "",
+          },
         });
-        logger.info('[KnowledgeSync] ⚠️  数据库表不存在，返回空搜索结果');
+        logger.info("[KnowledgeSync] ⚠️  数据库表不存在，返回空搜索结果");
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -281,7 +283,7 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理获取文件夹列表请求
    */
   async handleGetFolders(mobilePeerId, message) {
-    logger.info('[KnowledgeSync] 处理文件夹列表请求');
+    logger.info("[KnowledgeSync] 处理文件夹列表请求");
 
     try {
       // 获取所有文件夹
@@ -300,24 +302,23 @@ class KnowledgeSyncHandler extends EventEmitter {
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'knowledge:get-folders:response',
+        type: "knowledge:get-folders:response",
         requestId: message.requestId,
-        data: { folders: folderTree }
+        data: { folders: folderTree },
       });
 
-      logger.info('[KnowledgeSync] ✅ 文件夹列表已发送:', folders.length);
-
+      logger.info("[KnowledgeSync] ✅ 文件夹列表已发送:", folders.length);
     } catch (error) {
-      logger.error('[KnowledgeSync] 处理文件夹列表请求失败:', error);
+      logger.error("[KnowledgeSync] 处理文件夹列表请求失败:", error);
 
       // 如果是表不存在错误，返回空数组
-      if (error.message && error.message.includes('no such table')) {
+      if (error.message && error.message.includes("no such table")) {
         await this.sendToMobile(mobilePeerId, {
-          type: 'knowledge:get-folders:response',
+          type: "knowledge:get-folders:response",
           requestId: message.requestId,
-          data: { folders: [] }
+          data: { folders: [] },
         });
-        logger.info('[KnowledgeSync] ⚠️  数据库表不存在，返回空文件夹列表');
+        logger.info("[KnowledgeSync] ⚠️  数据库表不存在，返回空文件夹列表");
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -328,7 +329,7 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理获取标签列表请求
    */
   async handleGetTags(mobilePeerId, message) {
-    logger.info('[KnowledgeSync] 处理标签列表请求');
+    logger.info("[KnowledgeSync] 处理标签列表请求");
 
     try {
       // 从所有笔记的tags字段中提取标签并统计
@@ -338,10 +339,10 @@ class KnowledgeSyncHandler extends EventEmitter {
 
       const tagCount = {};
 
-      notes.forEach(note => {
+      notes.forEach((note) => {
         try {
           const tags = JSON.parse(note.tags);
-          tags.forEach(tag => {
+          tags.forEach((tag) => {
             tagCount[tag] = (tagCount[tag] || 0) + 1;
           });
         } catch (e) {
@@ -356,24 +357,23 @@ class KnowledgeSyncHandler extends EventEmitter {
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'knowledge:get-tags:response',
+        type: "knowledge:get-tags:response",
         requestId: message.requestId,
-        data: { tags }
+        data: { tags },
       });
 
-      logger.info('[KnowledgeSync] ✅ 标签列表已发送:', tags.length);
-
+      logger.info("[KnowledgeSync] ✅ 标签列表已发送:", tags.length);
     } catch (error) {
-      logger.error('[KnowledgeSync] 处理标签列表请求失败:', error);
+      logger.error("[KnowledgeSync] 处理标签列表请求失败:", error);
 
       // 如果是表不存在错误，返回空数组
-      if (error.message && error.message.includes('no such table')) {
+      if (error.message && error.message.includes("no such table")) {
         await this.sendToMobile(mobilePeerId, {
-          type: 'knowledge:get-tags:response',
+          type: "knowledge:get-tags:response",
           requestId: message.requestId,
-          data: { tags: [] }
+          data: { tags: [] },
         });
-        logger.info('[KnowledgeSync] ⚠️  数据库表不存在，返回空标签列表');
+        logger.info("[KnowledgeSync] ⚠️  数据库表不存在，返回空标签列表");
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -388,12 +388,12 @@ class KnowledgeSyncHandler extends EventEmitter {
     const rootFolders = [];
 
     // 创建映射
-    folders.forEach(folder => {
+    folders.forEach((folder) => {
       folderMap.set(folder.id, { ...folder, children: [] });
     });
 
     // 构建树
-    folders.forEach(folder => {
+    folders.forEach((folder) => {
       const node = folderMap.get(folder.id);
 
       if (folder.parent_id && folderMap.has(folder.parent_id)) {
@@ -413,12 +413,12 @@ class KnowledgeSyncHandler extends EventEmitter {
   async sendToMobile(mobilePeerId, message) {
     if (this.mobileBridge) {
       await this.mobileBridge.send({
-        type: 'message',
+        type: "message",
         to: mobilePeerId,
-        payload: message
+        payload: message,
       });
     } else {
-      logger.error('[KnowledgeSync] MobileBridge未初始化');
+      logger.error("[KnowledgeSync] MobileBridge未初始化");
     }
   }
 
@@ -427,9 +427,9 @@ class KnowledgeSyncHandler extends EventEmitter {
    */
   async sendError(mobilePeerId, requestId, errorMessage) {
     await this.sendToMobile(mobilePeerId, {
-      type: 'error',
+      type: "error",
       requestId,
-      error: errorMessage
+      error: errorMessage,
     });
   }
 

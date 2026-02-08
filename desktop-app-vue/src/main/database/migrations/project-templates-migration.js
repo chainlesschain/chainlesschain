@@ -6,7 +6,7 @@
  * node database-migration.js
  */
 
-const { logger, createLogger } = require('../../utils/logger.js');
+const { logger } = require("../../utils/logger.js");
 const DatabaseManager = require("../../database");
 const path = require("path");
 

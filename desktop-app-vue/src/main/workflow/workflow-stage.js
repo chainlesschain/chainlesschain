@@ -12,18 +12,18 @@
  * v0.27.0: 新建文件
  */
 
-const { EventEmitter } = require('events');
-const { logger } = require('../utils/logger.js');
+const { EventEmitter } = require("events");
+const { logger } = require("../utils/logger.js");
 
 /**
  * 阶段状态枚举
  */
 const StageStatus = {
-  PENDING: 'pending',     // 等待执行
-  RUNNING: 'running',     // 执行中
-  COMPLETED: 'completed', // 已完成
-  FAILED: 'failed',       // 失败
-  SKIPPED: 'skipped',     // 跳过
+  PENDING: "pending", // 等待执行
+  RUNNING: "running", // 执行中
+  COMPLETED: "completed", // 已完成
+  FAILED: "failed", // 失败
+  SKIPPED: "skipped", // 跳过
 };
 
 /**
@@ -31,81 +31,153 @@ const StageStatus = {
  */
 const DEFAULT_STAGES = [
   {
-    id: 'stage_1',
-    name: '需求分析',
-    icon: '1',
-    description: '理解用户意图，收集上下文信息',
+    id: "stage_1",
+    name: "需求分析",
+    icon: "1",
+    description: "理解用户意图，收集上下文信息",
     steps: [
-      { id: 'intent_recognition', name: '意图识别', description: '分析用户请求，识别核心意图' },
-      { id: 'context_collection', name: '上下文收集', description: '收集项目相关上下文信息' },
-      { id: 'rag_retrieval', name: 'RAG知识检索', description: '检索相关知识库内容' },
+      {
+        id: "intent_recognition",
+        name: "意图识别",
+        description: "分析用户请求，识别核心意图",
+      },
+      {
+        id: "context_collection",
+        name: "上下文收集",
+        description: "收集项目相关上下文信息",
+      },
+      {
+        id: "rag_retrieval",
+        name: "RAG知识检索",
+        description: "检索相关知识库内容",
+      },
     ],
-    qualityGateId: 'gate_1_analysis',
+    qualityGateId: "gate_1_analysis",
     estimatedWeight: 10, // 权重用于计算整体进度
   },
   {
-    id: 'stage_2',
-    name: '方案设计',
-    icon: '2',
-    description: '规划架构，分解任务，评估资源',
+    id: "stage_2",
+    name: "方案设计",
+    icon: "2",
+    description: "规划架构，分解任务，评估资源",
     steps: [
-      { id: 'architecture_planning', name: '架构规划', description: '设计整体实现架构' },
-      { id: 'task_decomposition', name: '任务分解', description: '将需求拆解为可执行任务' },
-      { id: 'resource_evaluation', name: '资源评估', description: '评估所需资源和依赖' },
+      {
+        id: "architecture_planning",
+        name: "架构规划",
+        description: "设计整体实现架构",
+      },
+      {
+        id: "task_decomposition",
+        name: "任务分解",
+        description: "将需求拆解为可执行任务",
+      },
+      {
+        id: "resource_evaluation",
+        name: "资源评估",
+        description: "评估所需资源和依赖",
+      },
     ],
-    qualityGateId: 'gate_2_design',
+    qualityGateId: "gate_2_design",
     estimatedWeight: 15,
   },
   {
-    id: 'stage_3',
-    name: '内容生成',
-    icon: '3',
-    description: 'AI生成内容，质量初检，迭代优化',
+    id: "stage_3",
+    name: "内容生成",
+    icon: "3",
+    description: "AI生成内容，质量初检，迭代优化",
     steps: [
-      { id: 'ai_generation', name: 'AI生成内容', description: '使用AI模型生成内容' },
-      { id: 'initial_quality_check', name: '质量初检', description: '初步检查生成内容质量' },
-      { id: 'iterative_optimization', name: '迭代优化', description: '根据检查结果优化内容' },
+      {
+        id: "ai_generation",
+        name: "AI生成内容",
+        description: "使用AI模型生成内容",
+      },
+      {
+        id: "initial_quality_check",
+        name: "质量初检",
+        description: "初步检查生成内容质量",
+      },
+      {
+        id: "iterative_optimization",
+        name: "迭代优化",
+        description: "根据检查结果优化内容",
+      },
     ],
-    qualityGateId: 'gate_3_generation',
+    qualityGateId: "gate_3_generation",
     estimatedWeight: 35,
   },
   {
-    id: 'stage_4',
-    name: '质量验证',
-    icon: '4',
-    description: '完整性检查，一致性验证，LLM评估',
+    id: "stage_4",
+    name: "质量验证",
+    icon: "4",
+    description: "完整性检查，一致性验证，LLM评估",
     steps: [
-      { id: 'completeness_check', name: '完整性检查', description: '验证内容完整性' },
-      { id: 'consistency_validation', name: '一致性验证', description: '检查内容一致性' },
-      { id: 'llm_evaluation', name: 'LLM质量评估', description: '使用LLM进行质量评估' },
+      {
+        id: "completeness_check",
+        name: "完整性检查",
+        description: "验证内容完整性",
+      },
+      {
+        id: "consistency_validation",
+        name: "一致性验证",
+        description: "检查内容一致性",
+      },
+      {
+        id: "llm_evaluation",
+        name: "LLM质量评估",
+        description: "使用LLM进行质量评估",
+      },
     ],
-    qualityGateId: 'gate_4_validation',
+    qualityGateId: "gate_4_validation",
     estimatedWeight: 15,
   },
   {
-    id: 'stage_5',
-    name: '集成优化',
-    icon: '5',
-    description: '格式转换，性能优化，资源打包',
+    id: "stage_5",
+    name: "集成优化",
+    icon: "5",
+    description: "格式转换，性能优化，资源打包",
     steps: [
-      { id: 'format_conversion', name: '格式转换', description: '转换为目标格式' },
-      { id: 'performance_optimization', name: '性能优化', description: '优化输出性能' },
-      { id: 'resource_packaging', name: '资源打包', description: '打包相关资源' },
+      {
+        id: "format_conversion",
+        name: "格式转换",
+        description: "转换为目标格式",
+      },
+      {
+        id: "performance_optimization",
+        name: "性能优化",
+        description: "优化输出性能",
+      },
+      {
+        id: "resource_packaging",
+        name: "资源打包",
+        description: "打包相关资源",
+      },
     ],
-    qualityGateId: 'gate_5_integration',
+    qualityGateId: "gate_5_integration",
     estimatedWeight: 15,
   },
   {
-    id: 'stage_6',
-    name: '交付确认',
-    icon: '6',
-    description: '最终预览，用户确认，导出发布',
+    id: "stage_6",
+    name: "交付确认",
+    icon: "6",
+    description: "最终预览，用户确认，导出发布",
     steps: [
-      { id: 'final_preview', name: '最终预览', description: '生成预览供用户查看' },
-      { id: 'user_confirmation', name: '用户确认', description: '等待用户确认' },
-      { id: 'export_publish', name: '导出/发布', description: '导出或发布最终结果' },
+      {
+        id: "final_preview",
+        name: "最终预览",
+        description: "生成预览供用户查看",
+      },
+      {
+        id: "user_confirmation",
+        name: "用户确认",
+        description: "等待用户确认",
+      },
+      {
+        id: "export_publish",
+        name: "导出/发布",
+        description: "导出或发布最终结果",
+      },
     ],
-    qualityGateId: 'gate_6_delivery',
+    qualityGateId: "gate_6_delivery",
     estimatedWeight: 10,
   },
 ];
@@ -118,8 +190,8 @@ class WorkflowStage extends EventEmitter {
     super();
     this.id = config.id;
     this.name = config.name;
-    this.icon = config.icon || '';
-    this.description = config.description || '';
+    this.icon = config.icon || "";
+    this.description = config.description || "";
     this.steps = config.steps || [];
     this.qualityGateId = config.qualityGateId;
     this.estimatedWeight = config.estimatedWeight || 10;
@@ -137,11 +209,11 @@ class WorkflowStage extends EventEmitter {
     this.duration = 0;
 
     // 初始化步骤状态
-    this.steps.forEach(step => {
+    this.steps.forEach((step) => {
       this.stepStatuses[step.id] = {
         status: StageStatus.PENDING,
         progress: 0,
-        message: '',
+        message: "",
         startTime: null,
         endTime: null,
         duration: 0,
@@ -160,7 +232,7 @@ class WorkflowStage extends EventEmitter {
     this.startTime = Date.now();
     this.progress = 0;
 
-    this.emit('stage-start', this._getStageInfo());
+    this.emit("stage-start", this._getStageInfo());
 
     try {
       // 如果有自定义执行器，使用自定义执行器
@@ -176,20 +248,19 @@ class WorkflowStage extends EventEmitter {
       this.endTime = Date.now();
       this.duration = this.endTime - this.startTime;
 
-      this.emit('stage-complete', {
+      this.emit("stage-complete", {
         ...this._getStageInfo(),
         result: this.result,
       });
 
       return this.result;
-
     } catch (error) {
       this.status = StageStatus.FAILED;
       this.error = error.message;
       this.endTime = Date.now();
       this.duration = this.endTime - this.startTime;
 
-      this.emit('stage-error', {
+      this.emit("stage-error", {
         ...this._getStageInfo(),
         error: error.message,
       });
@@ -203,7 +274,7 @@ class WorkflowStage extends EventEmitter {
    * @private
    */
   async _executeDefaultSteps(input, context) {
-    let result = input;
+    const result = input;
 
     for (let i = 0; i < this.steps.length; i++) {
       const step = this.steps[i];
@@ -213,7 +284,7 @@ class WorkflowStage extends EventEmitter {
 
       // 更新总进度
       this.progress = Math.round(((i + 1) / this.steps.length) * 100);
-      this.emit('stage-progress', this._getStageInfo());
+      this.emit("stage-progress", this._getStageInfo());
     }
 
     return result;
@@ -228,7 +299,7 @@ class WorkflowStage extends EventEmitter {
     stepStatus.status = StageStatus.RUNNING;
     stepStatus.startTime = Date.now();
 
-    this.emit('step-start', {
+    this.emit("step-start", {
       stageId: this.id,
       stageName: this.name,
       step: { ...step },
@@ -245,21 +316,20 @@ class WorkflowStage extends EventEmitter {
       stepStatus.endTime = Date.now();
       stepStatus.duration = stepStatus.endTime - stepStatus.startTime;
 
-      this.emit('step-complete', {
+      this.emit("step-complete", {
         stageId: this.id,
         stageName: this.name,
         step: { ...step },
         stepIndex: this.currentStepIndex,
         duration: stepStatus.duration,
       });
-
     } catch (error) {
       stepStatus.status = StageStatus.FAILED;
       stepStatus.message = error.message;
       stepStatus.endTime = Date.now();
       stepStatus.duration = stepStatus.endTime - stepStatus.startTime;
 
-      this.emit('step-error', {
+      this.emit("step-error", {
         stageId: this.id,
         stageName: this.name,
         step: { ...step },
@@ -285,7 +355,7 @@ class WorkflowStage extends EventEmitter {
       stepStatus.progress = progress;
       stepStatus.message = `${step.name}: ${progress}%`;
 
-      this.emit('step-progress', {
+      this.emit("step-progress", {
         stageId: this.id,
         stageName: this.name,
         stepId: step.id,
@@ -295,7 +365,7 @@ class WorkflowStage extends EventEmitter {
       });
 
       // 模拟异步操作
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
@@ -305,19 +375,23 @@ class WorkflowStage extends EventEmitter {
    * @param {number} progress - 进度 (0-100)
    * @param {string} message - 消息
    */
-  updateStepProgress(stepId, progress, message = '') {
+  updateStepProgress(stepId, progress, message = "") {
     const stepStatus = this.stepStatuses[stepId];
-    if (!stepStatus) {return;}
+    if (!stepStatus) {
+      return;
+    }
 
     stepStatus.progress = progress;
     stepStatus.message = message;
 
     // 计算阶段总进度
-    const totalProgress = Object.values(this.stepStatuses)
-      .reduce((sum, s) => sum + s.progress, 0);
+    const totalProgress = Object.values(this.stepStatuses).reduce(
+      (sum, s) => sum + s.progress,
+      0,
+    );
     this.progress = Math.round(totalProgress / this.steps.length);
 
-    this.emit('step-progress', {
+    this.emit("step-progress", {
       stageId: this.id,
       stageName: this.name,
       stepId,
@@ -334,15 +408,18 @@ class WorkflowStage extends EventEmitter {
    */
   completeStep(stepId, result = {}) {
     const stepStatus = this.stepStatuses[stepId];
-    if (!stepStatus) {return;}
+    if (!stepStatus) {
+      return;
+    }
 
     stepStatus.status = StageStatus.COMPLETED;
     stepStatus.progress = 100;
     stepStatus.endTime = Date.now();
-    stepStatus.duration = stepStatus.endTime - (stepStatus.startTime || Date.now());
+    stepStatus.duration =
+      stepStatus.endTime - (stepStatus.startTime || Date.now());
     stepStatus.result = result;
 
-    this.emit('step-complete', {
+    this.emit("step-complete", {
       stageId: this.id,
       stageName: this.name,
       stepId,
@@ -358,14 +435,17 @@ class WorkflowStage extends EventEmitter {
    */
   failStep(stepId, error) {
     const stepStatus = this.stepStatuses[stepId];
-    if (!stepStatus) {return;}
+    if (!stepStatus) {
+      return;
+    }
 
     stepStatus.status = StageStatus.FAILED;
     stepStatus.message = error;
     stepStatus.endTime = Date.now();
-    stepStatus.duration = stepStatus.endTime - (stepStatus.startTime || Date.now());
+    stepStatus.duration =
+      stepStatus.endTime - (stepStatus.startTime || Date.now());
 
-    this.emit('step-error', {
+    this.emit("step-error", {
       stageId: this.id,
       stageName: this.name,
       stepId,
@@ -387,7 +467,7 @@ class WorkflowStage extends EventEmitter {
       progress: this.progress,
       currentStepIndex: this.currentStepIndex,
       totalSteps: this.steps.length,
-      steps: this.steps.map(step => ({
+      steps: this.steps.map((step) => ({
         ...step,
         ...this.stepStatuses[step.id],
       })),
@@ -419,11 +499,11 @@ class WorkflowStage extends EventEmitter {
     this.endTime = null;
     this.duration = 0;
 
-    this.steps.forEach(step => {
+    this.steps.forEach((step) => {
       this.stepStatuses[step.id] = {
         status: StageStatus.PENDING,
         progress: 0,
-        message: '',
+        message: "",
         startTime: null,
         endTime: null,
         duration: 0,
@@ -435,12 +515,12 @@ class WorkflowStage extends EventEmitter {
    * 跳过阶段
    * @param {string} reason - 跳过原因
    */
-  skip(reason = '') {
+  skip(reason = "") {
     this.status = StageStatus.SKIPPED;
     this.progress = 100;
     this.error = reason;
 
-    this.emit('stage-skipped', {
+    this.emit("stage-skipped", {
       ...this._getStageInfo(),
       reason,
     });
@@ -457,7 +537,7 @@ class WorkflowStageFactory {
    * @returns {Array<WorkflowStage>} 阶段实例数组
    */
   static createDefaultStages(executors = {}) {
-    return DEFAULT_STAGES.map(config => {
+    return DEFAULT_STAGES.map((config) => {
       const executor = executors[config.id];
       return new WorkflowStage({
         ...config,

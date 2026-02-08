@@ -6,7 +6,7 @@
  * @description 语音处理模块，提供音频转录、实时录音、音频增强、字幕生成、命令识别等功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain, dialog } = require("electron");
 
 /**
@@ -441,7 +441,9 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         audioDataCounter++;
         // 每10次打印一次调试日志
         if (audioDataCounter % 10 === 1) {
-          logger.info(`[Speech IPC] 收到音频数据 #${audioDataCounter}, 类型: ${audioData?.constructor?.name}, 大小: ${audioData?.length || audioData?.byteLength || 'unknown'}`);
+          logger.info(
+            `[Speech IPC] 收到音频数据 #${audioDataCounter}, 类型: ${audioData?.constructor?.name}, 大小: ${audioData?.length || audioData?.byteLength || "unknown"}`,
+          );
         }
 
         const manager = await initializeSpeechManager();

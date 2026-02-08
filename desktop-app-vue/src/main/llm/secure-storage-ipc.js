@@ -6,7 +6,7 @@
  * @module secure-storage-ipc
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain, dialog, BrowserWindow } = require("electron");
 const path = require("path");
 const {

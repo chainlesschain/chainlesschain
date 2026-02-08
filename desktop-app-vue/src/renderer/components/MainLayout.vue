@@ -16,11 +16,9 @@
             src="@/assets/logo.png"
             alt="ChainlessChain Logo"
             class="logo-image"
-          >
+          />
         </div>
-        <h2 v-if="!sidebarCollapsed">
-          ChainlessChain
-        </h2>
+        <h2 v-if="!sidebarCollapsed">ChainlessChain</h2>
       </div>
 
       <!-- 快捷访问区域 -->
@@ -101,21 +99,27 @@
               <template #icon>
                 <FolderOpenOutlined />
               </template>
-              <span @contextmenu="showContextMenu($event, 'projects')">我的项目</span>
+              <span @contextmenu="showContextMenu($event, 'projects')"
+                >我的项目</span
+              >
               <span class="menu-shortcut">Alt+1</span>
             </a-menu-item>
             <a-menu-item key="knowledge-list">
               <template #icon>
                 <FileTextOutlined />
               </template>
-              <span @contextmenu="showContextMenu($event, 'knowledge-list')">我的知识</span>
+              <span @contextmenu="showContextMenu($event, 'knowledge-list')"
+                >我的知识</span
+              >
               <span class="menu-shortcut">Alt+2</span>
             </a-menu-item>
             <a-menu-item key="ai-chat">
               <template #icon>
                 <RobotOutlined />
               </template>
-              <span @contextmenu="showContextMenu($event, 'ai-chat')">AI对话</span>
+              <span @contextmenu="showContextMenu($event, 'ai-chat')"
+                >AI对话</span
+              >
               <span class="menu-shortcut">Alt+3</span>
             </a-menu-item>
             <a-menu-item key="workspace-management">
@@ -124,7 +128,8 @@
               </template>
               <span
                 @contextmenu="showContextMenu($event, 'workspace-management')"
-              >工作区管理</span>
+                >工作区管理</span
+              >
             </a-menu-item>
           </a-sub-menu>
 
@@ -133,9 +138,7 @@
             <template #icon>
               <FileTextOutlined />
             </template>
-            <template #title>
-              知识管理
-            </template>
+            <template #title> 知识管理 </template>
             <a-menu-item key="knowledge-graph">
               <template #icon>
                 <NodeIndexOutlined />
@@ -210,14 +213,14 @@
             <template #icon>
               <FolderOutlined />
             </template>
-            <template #title>
-              项目管理
-            </template>
+            <template #title> 项目管理 </template>
             <a-menu-item key="project-categories">
               <template #icon>
                 <AppstoreOutlined />
               </template>
-              <span @contextmenu="showContextMenu($event, 'project-categories')">项目分类</span>
+              <span @contextmenu="showContextMenu($event, 'project-categories')"
+                >项目分类</span
+              >
             </a-menu-item>
             <a-menu-item key="project-list-management">
               <template #icon>
@@ -227,7 +230,8 @@
                 @contextmenu="
                   showContextMenu($event, 'project-list-management')
                 "
-              >项目列表管理</span>
+                >项目列表管理</span
+              >
             </a-menu-item>
             <a-menu-item key="template-management">
               <template #icon>
@@ -235,13 +239,16 @@
               </template>
               <span
                 @contextmenu="showContextMenu($event, 'template-management')"
-              >模板管理</span>
+                >模板管理</span
+              >
             </a-menu-item>
             <a-menu-item key="project-market">
               <template #icon>
                 <ShopOutlined />
               </template>
-              <span @contextmenu="showContextMenu($event, 'project-market')">项目市场</span>
+              <span @contextmenu="showContextMenu($event, 'project-market')"
+                >项目市场</span
+              >
             </a-menu-item>
             <a-menu-item key="project-collaboration">
               <template #icon>
@@ -249,13 +256,16 @@
               </template>
               <span
                 @contextmenu="showContextMenu($event, 'project-collaboration')"
-              >协作项目</span>
+                >协作项目</span
+              >
             </a-menu-item>
             <a-menu-item key="project-archived">
               <template #icon>
                 <InboxOutlined />
               </template>
-              <span @contextmenu="showContextMenu($event, 'project-archived')">已归档项目</span>
+              <span @contextmenu="showContextMenu($event, 'project-archived')"
+                >已归档项目</span
+              >
             </a-menu-item>
           </a-sub-menu>
 
@@ -264,9 +274,7 @@
             <template #icon>
               <TeamOutlined />
             </template>
-            <template #title>
-              社交网络
-            </template>
+            <template #title> 社交网络 </template>
             <a-menu-item key="did">
               <template #icon>
                 <IdcardOutlined />
@@ -365,14 +373,14 @@
             <template #icon>
               <ShopOutlined />
             </template>
-            <template #title>
-              交易市场
-            </template>
+            <template #title> 交易市场 </template>
             <a-menu-item key="trading">
               <template #icon>
                 <DashboardOutlined />
               </template>
-              <span @contextmenu="showContextMenu($event, 'trading')">交易中心</span>
+              <span @contextmenu="showContextMenu($event, 'trading')"
+                >交易中心</span
+              >
               <span class="menu-shortcut">Alt+5</span>
             </a-menu-item>
             <a-menu-item key="marketplace">
@@ -428,7 +436,9 @@
               <template #icon>
                 <CodeOutlined />
               </template>
-              <span @contextmenu="showContextMenu($event, 'webide')">Web IDE</span>
+              <span @contextmenu="showContextMenu($event, 'webide')"
+                >Web IDE</span
+              >
               <span class="menu-shortcut">Alt+6</span>
             </a-menu-item>
             <a-menu-item key="design-editor">
@@ -487,7 +497,9 @@
               <template #icon>
                 <ApartmentOutlined />
               </template>
-              <span @contextmenu="showContextMenu($event, 'organizations')">组织管理</span>
+              <span @contextmenu="showContextMenu($event, 'organizations')"
+                >组织管理</span
+              >
               <span class="menu-shortcut">Alt+7</span>
             </a-menu-item>
             <a-menu-item key="enterprise-dashboard">
@@ -509,9 +521,7 @@
             <template #icon>
               <SettingOutlined />
             </template>
-            <template #title>
-              系统设置
-            </template>
+            <template #title> 系统设置 </template>
 
             <!-- 基础配置 -->
             <a-menu-item-group title="基础配置">
@@ -519,7 +529,9 @@
                 <template #icon>
                   <SettingOutlined />
                 </template>
-                <span @contextmenu="showContextMenu($event, 'system-settings')">系统配置</span>
+                <span @contextmenu="showContextMenu($event, 'system-settings')"
+                  >系统配置</span
+                >
                 <span class="menu-shortcut">Alt+8</span>
               </a-menu-item>
               <a-menu-item key="settings">
@@ -569,10 +581,7 @@
               v-if="pluginMenuItems.length > 0"
               title="已安装插件"
             >
-              <a-menu-item
-                v-for="plugin in pluginMenuItems"
-                :key="plugin.key"
-              >
+              <a-menu-item v-for="plugin in pluginMenuItems" :key="plugin.key">
                 <template #icon>
                   <component :is="getIconComponent(plugin.icon)" />
                 </template>
@@ -805,15 +814,8 @@
             <MenuUnfoldOutlined v-else />
           </a-button>
           <!-- 没有侧边栏时显示返回按钮 -->
-          <div
-            v-else
-            class="page-title"
-          >
-            <a-button
-              type="text"
-              class="back-btn"
-              @click="handleBackToHome"
-            >
+          <div v-else class="page-title">
+            <a-button type="text" class="back-btn" @click="handleBackToHome">
               <ArrowLeftOutlined />
               返回首页
             </a-button>
@@ -841,10 +843,7 @@
                 />
                 {{ item.title }}
               </a>
-              <span
-                v-else
-                class="breadcrumb-current"
-              >
+              <span v-else class="breadcrumb-current">
                 <component
                   :is="getIconComponent(item.icon)"
                   v-if="item.icon"
@@ -885,10 +884,7 @@
                     v-else-if="syncStatus === 'error'"
                     :style="{ color: '#ff4d4f' }"
                   />
-                  <CloudSyncOutlined
-                    v-else
-                    :style="{ color: '#1890ff' }"
-                  />
+                  <CloudSyncOutlined v-else :style="{ color: '#1890ff' }" />
                 </template>
               </a-button>
             </a-tooltip>
@@ -898,10 +894,7 @@
 
             <!-- AI对话 -->
             <a-tooltip title="AI对话">
-              <a-button
-                type="text"
-                @click="toggleChat"
-              >
+              <a-button type="text" @click="toggleChat">
                 <MessageOutlined />
               </a-button>
             </a-tooltip>
@@ -913,15 +906,9 @@
             <DIDInvitationNotifier />
 
             <!-- 通知中心 -->
-            <a-badge
-              :count="socialStore.totalUnreadCount"
-              :overflow-count="99"
-            >
+            <a-badge :count="socialStore.totalUnreadCount" :overflow-count="99">
               <a-tooltip title="通知中心">
-                <a-button
-                  type="text"
-                  @click="toggleNotificationPanel"
-                >
+                <a-button type="text" @click="toggleNotificationPanel">
                   <BellOutlined />
                 </a-button>
               </a-tooltip>
@@ -939,10 +926,7 @@
                     个人资料
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item
-                    key="logout"
-                    @click="handleLogout"
-                  >
+                  <a-menu-item key="logout" @click="handleLogout">
                     <LogoutOutlined />
                     退出登录
                   </a-menu-item>
@@ -971,20 +955,13 @@
 
           <template #rightExtra>
             <a-dropdown :trigger="['click']">
-              <a-button
-                type="text"
-                size="small"
-              >
+              <a-button type="text" size="small">
                 <DownOutlined />
               </a-button>
               <template #overlay>
                 <a-menu @click="handleTabDropdown">
-                  <a-menu-item key="close-others">
-                    关闭其他
-                  </a-menu-item>
-                  <a-menu-item key="close-all">
-                    关闭所有
-                  </a-menu-item>
+                  <a-menu-item key="close-others"> 关闭其他 </a-menu-item>
+                  <a-menu-item key="close-all"> 关闭所有 </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -1001,10 +978,7 @@
         >
           <router-view v-slot="{ Component }">
             <keep-alive>
-              <component
-                :is="Component"
-                :key="$route.fullPath"
-              />
+              <component :is="Component" :key="$route.fullPath" />
             </keep-alive>
           </router-view>
         </a-layout-content>
@@ -1014,10 +988,7 @@
           class="chat-panel-container"
           :style="{ width: chatPanelVisible ? '400px' : '0' }"
         >
-          <ChatPanel
-            :open="chatPanelVisible"
-            @toggle="toggleChat"
-          />
+          <ChatPanel :open="chatPanelVisible" @toggle="toggleChat" />
         </div>
       </a-layout>
     </a-layout>
@@ -1060,10 +1031,7 @@
     >
       <div class="favorite-manager">
         <a-tabs v-model:active-key="favoriteTab">
-          <a-tab-pane
-            key="favorites"
-            tab="收藏"
-          >
+          <a-tab-pane key="favorites" tab="收藏">
             <a-list
               :data-source="store.favoriteMenus"
               :locale="{ emptyText: '暂无收藏' }"
@@ -1098,10 +1066,7 @@
             </a-list>
           </a-tab-pane>
 
-          <a-tab-pane
-            key="recents"
-            tab="最近访问"
-          >
+          <a-tab-pane key="recents" tab="最近访问">
             <div class="recents-header">
               <span>最近访问的 {{ store.recentMenus.length }} 个菜单</span>
               <a-button
@@ -1119,10 +1084,7 @@
               <template #renderItem="{ item }">
                 <a-list-item>
                   <template #actions>
-                    <a-button
-                      type="text"
-                      @click="handleQuickAccessClick(item)"
-                    >
+                    <a-button type="text" @click="handleQuickAccessClick(item)">
                       <ArrowRightOutlined />
                     </a-button>
                   </template>
@@ -1193,7 +1155,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
@@ -1371,7 +1333,7 @@ const menuConfig = {
   "design-editor": { path: "/design/new", title: "设计编辑器" },
   "android-features-test": {
     path: "/test/android-features-standalone",
-    title: "Android功能测试"
+    title: "Android功能测试",
   },
 
   // 内容聚合模块
@@ -1421,7 +1383,10 @@ const menuConfig = {
   },
 
   // 监控与诊断模块
-  "workflow-optimizations": { path: "/workflow/optimizations", title: "工作流优化" },
+  "workflow-optimizations": {
+    path: "/workflow/optimizations",
+    title: "工作流优化",
+  },
   "session-manager": { path: "/sessions", title: "会话管理" },
   "error-monitor": { path: "/error/monitor", title: "错误监控" },
   "memory-dashboard": { path: "/memory", title: "内存仪表板" },
@@ -1543,7 +1508,9 @@ const handleMenuClick = ({ key }) => {
   }
 
   const config = menuConfig[key];
-  if (!config) {return;}
+  if (!config) {
+    return;
+  }
 
   // 添加到最近访问
   store.addRecentMenu({
@@ -1986,7 +1953,9 @@ const voiceCommands = [
 
 // 解析语音命令
 const parseVoiceCommand = (text) => {
-  if (!text) {return null;}
+  if (!text) {
+    return null;
+  }
   const lowerText = text.toLowerCase();
 
   for (const cmd of voiceCommands) {
@@ -2106,9 +2075,15 @@ const simulateKeyboardShortcut = (command) => {
 
   // 显示提示
   const modifiers = [];
-  if (command.ctrl) {modifiers.push("Ctrl");}
-  if (command.shift) {modifiers.push("Shift");}
-  if (command.alt) {modifiers.push("Alt");}
+  if (command.ctrl) {
+    modifiers.push("Ctrl");
+  }
+  if (command.shift) {
+    modifiers.push("Shift");
+  }
+  if (command.alt) {
+    modifiers.push("Alt");
+  }
   modifiers.push(command.key.toUpperCase());
 
   message.success(`已执行快捷键: ${modifiers.join("+")}`);
@@ -2182,10 +2157,15 @@ const syncStatus = ref("synced"); // synced, error, pending
 const syncError = ref(null);
 
 const syncTooltip = computed(() => {
-  if (isSyncing.value) {return "正在同步...";}
-  if (syncStatus.value === "error")
-    {return "同步失败：" + (syncError.value || "未知错误");}
-  if (syncStatus.value === "synced") {return "已同步";}
+  if (isSyncing.value) {
+    return "正在同步...";
+  }
+  if (syncStatus.value === "error") {
+    return "同步失败：" + (syncError.value || "未知错误");
+  }
+  if (syncStatus.value === "synced") {
+    return "已同步";
+  }
   return "等待同步";
 });
 
@@ -2352,10 +2332,18 @@ const formatTime = (timestamp) => {
   const now = Date.now();
   const diff = now - timestamp;
 
-  if (diff < 60000) {return "刚刚";}
-  if (diff < 3600000) {return `${Math.floor(diff / 60000)} 分钟前`;}
-  if (diff < 86400000) {return `${Math.floor(diff / 3600000)} 小时前`;}
-  if (diff < 604800000) {return `${Math.floor(diff / 86400000)} 天前`;}
+  if (diff < 60000) {
+    return "刚刚";
+  }
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)} 分钟前`;
+  }
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)} 小时前`;
+  }
+  if (diff < 604800000) {
+    return `${Math.floor(diff / 86400000)} 天前`;
+  }
 
   const date = new Date(timestamp);
   return `${date.getMonth() + 1}/${date.getDate()}`;
@@ -2369,7 +2357,9 @@ const showContextMenu = (event, key) => {
   event.stopPropagation();
 
   const config = menuConfig[key];
-  if (!config) {return;}
+  if (!config) {
+    return;
+  }
 
   currentMenuItem.value = {
     key,
@@ -2391,7 +2381,9 @@ const showContextMenu = (event, key) => {
  * 切换收藏状态
  */
 const toggleFavorite = () => {
-  if (!currentMenuItem.value) {return;}
+  if (!currentMenuItem.value) {
+    return;
+  }
 
   store.toggleFavoriteMenu(currentMenuItem.value);
   contextMenuVisible.value = false;
@@ -2407,7 +2399,9 @@ const toggleFavorite = () => {
  * 置顶菜单
  */
 const pinToTop = () => {
-  if (!currentMenuItem.value) {return;}
+  if (!currentMenuItem.value) {
+    return;
+  }
 
   if (store.isPinnedMenu(currentMenuItem.value.key)) {
     store.unpinMenu(currentMenuItem.value.key);
@@ -2624,7 +2618,9 @@ onUnmounted(() => {
 
 // 手动触发同步
 const handleSyncClick = async () => {
-  if (isSyncing.value) {return;}
+  if (isSyncing.value) {
+    return;
+  }
 
   try {
     isSyncing.value = true;

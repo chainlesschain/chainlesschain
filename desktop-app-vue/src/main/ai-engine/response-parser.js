@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * AI响应解析器
@@ -16,7 +16,7 @@ function parseAIResponse(responseText, operations = []) {
   const result = {
     textResponse: responseText,
     operations: operations || [],
-    hasFileOperations: false
+    hasFileOperations: false,
   };
 
   // 如果后端已经解析了操作，直接使用
@@ -74,11 +74,11 @@ function extractJSONOperations(text) {
           operations.push(...parsed.operations);
         }
       } catch (e) {
-        logger.error('Failed to parse JSON block:', e);
+        logger.error("Failed to parse JSON block:", e);
       }
     }
   } catch (e) {
-    logger.error('Failed to extract JSON operations:', e);
+    logger.error("Failed to extract JSON operations:", e);
   }
 
   return operations;
@@ -117,15 +117,15 @@ function extractFileBlocks(text) {
 
       if (path && content) {
         operations.push({
-          type: 'CREATE',  // 默认为创建操作
+          type: "CREATE", // 默认为创建操作
           path: path,
           content: content,
-          language: language
+          language: language,
         });
       }
     }
   } catch (e) {
-    logger.error('Failed to extract file blocks:', e);
+    logger.error("Failed to extract file blocks:", e);
   }
 
   return operations;
@@ -138,32 +138,32 @@ function extractFileBlocks(text) {
  * @returns {string} 语言类型
  */
 function detectLanguage(filePath) {
-  const ext = filePath.split('.').pop().toLowerCase();
+  const ext = filePath.split(".").pop().toLowerCase();
   const languageMap = {
-    'js': 'javascript',
-    'jsx': 'javascript',
-    'ts': 'typescript',
-    'tsx': 'typescript',
-    'vue': 'vue',
-    'html': 'html',
-    'htm': 'html',
-    'css': 'css',
-    'scss': 'scss',
-    'sass': 'sass',
-    'less': 'less',
-    'json': 'json',
-    'md': 'markdown',
-    'py': 'python',
-    'java': 'java',
-    'c': 'c',
-    'cpp': 'cpp',
-    'go': 'go',
-    'rs': 'rust',
-    'sh': 'bash',
-    'yaml': 'yaml',
-    'yml': 'yaml',
-    'xml': 'xml',
-    'sql': 'sql'
+    js: "javascript",
+    jsx: "javascript",
+    ts: "typescript",
+    tsx: "typescript",
+    vue: "vue",
+    html: "html",
+    htm: "html",
+    css: "css",
+    scss: "scss",
+    sass: "sass",
+    less: "less",
+    json: "json",
+    md: "markdown",
+    py: "python",
+    java: "java",
+    c: "c",
+    cpp: "cpp",
+    go: "go",
+    rs: "rust",
+    sh: "bash",
+    yaml: "yaml",
+    yml: "yaml",
+    xml: "xml",
+    sql: "sql",
   };
 
   return languageMap[ext] || ext;
@@ -176,31 +176,35 @@ function detectLanguage(filePath) {
  * @returns {Array} 标准化后的操作列表
  */
 function normalizeOperations(operations) {
-  return operations.map(op => {
+  return operations.map((op) => {
     // 确保必需字段存在
     const normalized = {
-      type: (op.type || 'CREATE').toUpperCase(),
-      path: op.path || '',
-      content: op.content || '',
-      language: op.language || detectLanguage(op.path || ''),
-      reason: op.reason || ''
+      type: (op.type || "CREATE").toUpperCase(),
+      path: op.path || "",
+      content: op.content || "",
+      language: op.language || detectLanguage(op.path || ""),
+      reason: op.reason || "",
     };
 
     // 验证操作类型
-    const validTypes = ['CREATE', 'UPDATE', 'DELETE', 'READ'];
+    const validTypes = ["CREATE", "UPDATE", "DELETE", "READ"];
     if (!validTypes.includes(normalized.type)) {
-      logger.warn(`Invalid operation type: ${normalized.type}, defaulting to CREATE`);
-      normalized.type = 'CREATE';
+      logger.warn(
+        `Invalid operation type: ${normalized.type}, defaulting to CREATE`,
+      );
+      normalized.type = "CREATE";
     }
 
     // 验证路径
     if (!normalized.path) {
-      logger.error('Operation missing path:', op);
+      logger.error("Operation missing path:", op);
     }
 
     // 对于CREATE和UPDATE操作，验证内容
-    if (['CREATE', 'UPDATE'].includes(normalized.type) && !normalized.content) {
-      logger.warn(`${normalized.type} operation missing content for path: ${normalized.path}`);
+    if (["CREATE", "UPDATE"].includes(normalized.type) && !normalized.content) {
+      logger.warn(
+        `${normalized.type} operation missing content for path: ${normalized.path}`,
+      );
     }
 
     return normalized;
@@ -215,11 +219,11 @@ function normalizeOperations(operations) {
  * @returns {Object} 验证结果 { valid: boolean, error: string }
  */
 function validateOperation(operation, projectPath) {
-  const path = require('path');
+  const path = require("path");
 
   // 1. 检查必需字段
   if (!operation.path) {
-    return { valid: false, error: '操作缺少文件路径' };
+    return { valid: false, error: "操作缺少文件路径" };
   }
 
   // 2. 检查路径安全性
@@ -228,21 +232,25 @@ function validateOperation(operation, projectPath) {
 
   // 确保文件在项目目录内
   if (!absolutePath.startsWith(normalizedProjectPath)) {
-    return { valid: false, error: '文件路径超出项目目录范围' };
+    return { valid: false, error: "文件路径超出项目目录范围" };
   }
 
   // 3. 禁止访问敏感目录
   const forbiddenPaths = [
-    'node_modules',
-    '.git',
-    '.env',
-    '.env.local',
-    'package-lock.json'
+    "node_modules",
+    ".git",
+    ".env",
+    ".env.local",
+    "package-lock.json",
   ];
 
   const relativePath = path.relative(projectPath, absolutePath);
   for (const forbidden of forbiddenPaths) {
-    if (relativePath.startsWith(forbidden) || relativePath.includes(`/${forbidden}`) || relativePath.includes(`\\${forbidden}`)) {
+    if (
+      relativePath.startsWith(forbidden) ||
+      relativePath.includes(`/${forbidden}`) ||
+      relativePath.includes(`\\${forbidden}`)
+    ) {
       return { valid: false, error: `禁止操作敏感文件/目录: ${forbidden}` };
     }
   }
@@ -250,13 +258,15 @@ function validateOperation(operation, projectPath) {
   // 4. 检查文件名合法性
   const fileName = path.basename(operation.path);
   const invalidChars = /[<>:"|?*]/;
-  const hasControlChars = [...fileName].some((char) => char.charCodeAt(0) <= 31);
+  const hasControlChars = [...fileName].some(
+    (char) => char.charCodeAt(0) <= 31,
+  );
   if (invalidChars.test(fileName) || hasControlChars) {
-    return { valid: false, error: '文件名包含非法字符' };
+    return { valid: false, error: "文件名包含非法字符" };
   }
 
   // 5. 对于CREATE和UPDATE操作，检查内容
-  if (['CREATE', 'UPDATE'].includes(operation.type) && !operation.content) {
+  if (["CREATE", "UPDATE"].includes(operation.type) && !operation.content) {
     return { valid: false, error: `${operation.type}操作缺少文件内容` };
   }
 
@@ -282,7 +292,7 @@ function validateOperations(operations, projectPath) {
 
   return {
     valid: errors.length === 0,
-    errors: errors
+    errors: errors,
   };
 }
 
@@ -293,5 +303,5 @@ module.exports = {
   detectLanguage,
   normalizeOperations,
   validateOperation,
-  validateOperations
+  validateOperations,
 };

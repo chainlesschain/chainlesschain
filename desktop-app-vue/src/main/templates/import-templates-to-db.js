@@ -6,23 +6,48 @@
  * node import-templates-to-db.js
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const DatabaseManager = require('../database');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+const DatabaseManager = require("../database");
 
 // 数据库路径（使用绝对路径）
-const dbPath = path.join(__dirname, '../../../../data/chainlesschain.db');
+const dbPath = path.join(__dirname, "../../../../data/chainlesschain.db");
 
 // 分类目录列表
 const CATEGORIES = [
-  'writing', 'ppt', 'excel', 'web', 'code-project', 'data-science',
-  'marketing', 'marketing-pro', 'design', 'video', 'music', 'photography',
-  'social-media', 'podcast', 'education', 'learning', 'career', 'resume',
-  'finance', 'legal', 'research', 'productivity', 'time-management',
-  'travel', 'lifestyle', 'health', 'cooking', 'creative-writing',
-  'gaming', 'tech-docs', 'ecommerce'
+  "writing",
+  "ppt",
+  "excel",
+  "web",
+  "code-project",
+  "data-science",
+  "marketing",
+  "marketing-pro",
+  "design",
+  "video",
+  "music",
+  "photography",
+  "social-media",
+  "podcast",
+  "education",
+  "learning",
+  "career",
+  "resume",
+  "finance",
+  "legal",
+  "research",
+  "productivity",
+  "time-management",
+  "travel",
+  "lifestyle",
+  "health",
+  "cooking",
+  "creative-writing",
+  "gaming",
+  "tech-docs",
+  "ecommerce",
 ];
 
 class TemplateImporter {
@@ -32,19 +57,19 @@ class TemplateImporter {
       total: 0,
       imported: 0,
       skipped: 0,
-      failed: 0
+      failed: 0,
     };
   }
 
   async initialize() {
-    logger.info('='.repeat(70));
-    logger.info('模板导入工具');
-    logger.info('='.repeat(70));
-    logger.info('\n数据库路径:', dbPath);
+    logger.info("=".repeat(70));
+    logger.info("模板导入工具");
+    logger.info("=".repeat(70));
+    logger.info("\n数据库路径:", dbPath);
 
     this.db = new DatabaseManager(dbPath, { encryptionEnabled: false });
     await this.db.initialize();
-    logger.info('✓ 数据库连接成功\n');
+    logger.info("✓ 数据库连接成功\n");
   }
 
   /**
@@ -53,13 +78,15 @@ class TemplateImporter {
   async importTemplate(templatePath, category) {
     try {
       // 读取模板文件
-      const content = await fs.readFile(templatePath, 'utf-8');
+      const content = await fs.readFile(templatePath, "utf-8");
       const template = JSON.parse(content);
 
       // 检查是否已存在（通过name判断）
-      const existing = this.db.prepare(
-        'SELECT id FROM project_templates WHERE name = ? AND deleted = 0'
-      ).get(template.name);
+      const existing = this.db
+        .prepare(
+          "SELECT id FROM project_templates WHERE name = ? AND deleted = 0",
+        )
+        .get(template.name);
 
       if (existing) {
         logger.info(`⏭️  跳过（已存在）: ${template.name}`);
@@ -72,32 +99,40 @@ class TemplateImporter {
       const now = Date.now(); // Unix timestamp in milliseconds
 
       // 确保JSON字段为字符串
-      const variablesSchema = typeof template.variables_schema === 'string'
-        ? template.variables_schema
-        : JSON.stringify(template.variables_schema || {});
+      const variablesSchema =
+        typeof template.variables_schema === "string"
+          ? template.variables_schema
+          : JSON.stringify(template.variables_schema || {});
 
-      const fileStructure = typeof template.file_structure === 'string'
-        ? template.file_structure
-        : JSON.stringify(template.file_structure || {});
+      const fileStructure =
+        typeof template.file_structure === "string"
+          ? template.file_structure
+          : JSON.stringify(template.file_structure || {});
 
-      const defaultFiles = typeof template.default_files === 'string'
-        ? template.default_files
-        : JSON.stringify(template.default_files || []);
+      const defaultFiles =
+        typeof template.default_files === "string"
+          ? template.default_files
+          : JSON.stringify(template.default_files || []);
 
-      const tags = typeof template.tags === 'string'
-        ? template.tags
-        : JSON.stringify(template.tags || []);
+      const tags =
+        typeof template.tags === "string"
+          ? template.tags
+          : JSON.stringify(template.tags || []);
 
-      const requiredSkills = typeof template.required_skills === 'string'
-        ? template.required_skills
-        : JSON.stringify(template.required_skills || []);
+      const requiredSkills =
+        typeof template.required_skills === "string"
+          ? template.required_skills
+          : JSON.stringify(template.required_skills || []);
 
-      const requiredTools = typeof template.required_tools === 'string'
-        ? template.required_tools
-        : JSON.stringify(template.required_tools || []);
+      const requiredTools =
+        typeof template.required_tools === "string"
+          ? template.required_tools
+          : JSON.stringify(template.required_tools || []);
 
       // 插入数据库
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         INSERT INTO project_templates (
           id, name, display_name, description, icon, cover_image,
           category, subcategory, tags, project_type,
@@ -113,39 +148,48 @@ class TemplateImporter {
           ?, ?, ?, ?,
           ?, ?, ?
         )
-      `).run(
-        id,
-        template.name,
-        template.display_name || template.name,
-        template.description || '',
-        template.icon || 'file-text',
-        template.cover_image || null,
-        template.category || category,
-        template.subcategory || null,
-        tags,
-        template.project_type || 'general',
-        template.prompt_template || '',
-        variablesSchema,
-        fileStructure,
-        defaultFiles,
-        template.is_builtin !== undefined ? (template.is_builtin ? 1 : 0) : 1,
-        template.author || 'System',
-        template.version || '1.0.0',
-        template.usage_count || 0,
-        template.rating || 0.0,
-        template.rating_count || 0,
-        template.created_at ? (typeof template.created_at === 'number' ? template.created_at : Date.parse(template.created_at)) : now,
-        template.updated_at ? (typeof template.updated_at === 'number' ? template.updated_at : Date.parse(template.updated_at)) : now,
-        template.sync_status || 'synced',
-        0, // deleted = 0
-        requiredSkills,
-        requiredTools,
-        template.execution_engine || 'default'
-      );
+      `,
+        )
+        .run(
+          id,
+          template.name,
+          template.display_name || template.name,
+          template.description || "",
+          template.icon || "file-text",
+          template.cover_image || null,
+          template.category || category,
+          template.subcategory || null,
+          tags,
+          template.project_type || "general",
+          template.prompt_template || "",
+          variablesSchema,
+          fileStructure,
+          defaultFiles,
+          template.is_builtin !== undefined ? (template.is_builtin ? 1 : 0) : 1,
+          template.author || "System",
+          template.version || "1.0.0",
+          template.usage_count || 0,
+          template.rating || 0.0,
+          template.rating_count || 0,
+          template.created_at
+            ? typeof template.created_at === "number"
+              ? template.created_at
+              : Date.parse(template.created_at)
+            : now,
+          template.updated_at
+            ? typeof template.updated_at === "number"
+              ? template.updated_at
+              : Date.parse(template.updated_at)
+            : now,
+          template.sync_status || "synced",
+          0, // deleted = 0
+          requiredSkills,
+          requiredTools,
+          template.execution_engine || "default",
+        );
 
       logger.info(`✅ 已导入: ${template.display_name || template.name}`);
       this.stats.imported++;
-
     } catch (error) {
       logger.error(`❌ 导入失败: ${path.basename(templatePath)}`);
       logger.error(`   错误: ${error.message}`);
@@ -164,9 +208,11 @@ class TemplateImporter {
 
       try {
         const files = await fs.readdir(categoryDir);
-        const jsonFiles = files.filter(f => f.endsWith('.json'));
+        const jsonFiles = files.filter((f) => f.endsWith(".json"));
 
-        if (jsonFiles.length === 0) {continue;}
+        if (jsonFiles.length === 0) {
+          continue;
+        }
 
         logger.info(`\n📂 分类: ${category} (${jsonFiles.length} 个模板)`);
 
@@ -175,9 +221,8 @@ class TemplateImporter {
           this.stats.total++;
           await this.importTemplate(templatePath, category);
         }
-
       } catch (error) {
-        if (error.code !== 'ENOENT') {
+        if (error.code !== "ENOENT") {
           logger.error(`⚠️  读取分类 ${category} 失败:`, error.message);
         }
       }
@@ -188,20 +233,20 @@ class TemplateImporter {
    * 显示统计信息
    */
   showStats() {
-    logger.info('\n' + '='.repeat(70));
-    logger.info('📊 导入统计:');
-    logger.info('='.repeat(70));
+    logger.info("\n" + "=".repeat(70));
+    logger.info("📊 导入统计:");
+    logger.info("=".repeat(70));
     logger.info(`   - 总计: ${this.stats.total} 个`);
     logger.info(`   - 已导入: ${this.stats.imported} 个`);
     logger.info(`   - 已跳过: ${this.stats.skipped} 个`);
     logger.info(`   - 失败: ${this.stats.failed} 个`);
-    logger.info('='.repeat(70));
+    logger.info("=".repeat(70));
 
     if (this.stats.imported > 0) {
-      logger.info('\n✅ 导入完成！');
-      logger.info('\n下一步:');
-      logger.info('   1. 重启应用查看模板');
-      logger.info('   2. 运行测试验证: node test-template-execution.js');
+      logger.info("\n✅ 导入完成！");
+      logger.info("\n下一步:");
+      logger.info("   1. 重启应用查看模板");
+      logger.info("   2. 运行测试验证: node test-template-execution.js");
     }
   }
 
@@ -211,7 +256,7 @@ class TemplateImporter {
   cleanup() {
     if (this.db && this.db.close) {
       this.db.close();
-      logger.info('\n数据库连接已关闭');
+      logger.info("\n数据库连接已关闭");
     }
   }
 
@@ -224,7 +269,7 @@ class TemplateImporter {
       await this.importAll();
       this.showStats();
     } catch (error) {
-      logger.error('\n❌ 导入过程出错:', error.message);
+      logger.error("\n❌ 导入过程出错:", error.message);
       logger.error(error.stack);
       process.exit(1);
     } finally {
@@ -236,8 +281,8 @@ class TemplateImporter {
 // 运行
 if (require.main === module) {
   const importer = new TemplateImporter();
-  importer.run().catch(error => {
-    logger.error('执行失败:', error);
+  importer.run().catch((error) => {
+    logger.error("执行失败:", error);
     process.exit(1);
   });
 }

@@ -3,11 +3,11 @@
  * 负责项目文件的向量化索引、检索增强和知识库集成
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const path = require('path');
-const fs = require('fs').promises;
-const chokidar = require('chokidar');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const path = require("path");
+const fs = require("fs").promises;
+const chokidar = require("chokidar");
+const EventEmitter = require("events");
 
 class ProjectRAGManager extends EventEmitter {
   constructor() {
@@ -22,21 +22,23 @@ class ProjectRAGManager extends EventEmitter {
    * 初始化项目RAG系统
    */
   async initialize() {
-    if (this.initialized) {return;}
+    if (this.initialized) {
+      return;
+    }
 
     try {
       // 获取RAG管理器
-      const { getRAGManager } = require('../rag/rag-manager');
+      const { getRAGManager } = require("../rag/rag-manager");
       this.ragManager = getRAGManager();
 
       // 获取数据库
-      const { getDatabase } = require('../database');
+      const { getDatabase } = require("../database");
       this.database = getDatabase();
 
       this.initialized = true;
-      logger.info('[ProjectRAG] 初始化完成');
+      logger.info("[ProjectRAG] 初始化完成");
     } catch (error) {
-      logger.error('[ProjectRAG] 初始化失败:', error);
+      logger.error("[ProjectRAG] 初始化失败:", error);
       throw error;
     }
   }
@@ -46,7 +48,7 @@ class ProjectRAGManager extends EventEmitter {
    */
   ensureInitialized() {
     if (!this.initialized) {
-      throw new Error('ProjectRAGManager 未初始化，请先调用 initialize()');
+      throw new Error("ProjectRAGManager 未初始化，请先调用 initialize()");
     }
   }
 
@@ -61,18 +63,22 @@ class ProjectRAGManager extends EventEmitter {
     this.ensureInitialized();
 
     const {
-      forceReindex = false,  // 是否强制重新索引
-      fileTypes = null,       // 限定文件类型，null表示所有
-      enableWatcher = true    // 是否启用文件监听
+      forceReindex = false, // 是否强制重新索引
+      fileTypes = null, // 限定文件类型，null表示所有
+      enableWatcher = true, // 是否启用文件监听
     } = options;
 
     logger.info(`[ProjectRAG] 开始索引项目文件: ${projectId}`);
 
     try {
       // 1. 获取项目信息
-      const project = this.database.prepare(`
+      const project = this.database
+        .prepare(
+          `
         SELECT * FROM projects WHERE id = ?
-      `).get(projectId);
+      `,
+        )
+        .get(projectId);
 
       if (!project) {
         throw new Error(`项目不存在: ${projectId}`);
@@ -86,7 +92,7 @@ class ProjectRAGManager extends EventEmitter {
       const params = [projectId];
 
       if (fileTypes && fileTypes.length > 0) {
-        const placeholders = fileTypes.map(() => '?').join(',');
+        const placeholders = fileTypes.map(() => "?").join(",");
         query += ` AND file_type IN (${placeholders})`;
         params.push(...fileTypes);
       }
@@ -108,16 +114,18 @@ class ProjectRAGManager extends EventEmitter {
           if (onProgress) {
             onProgress(i + 1, files.length, file.file_name);
           }
-          this.emit('indexing-progress', {
+          this.emit("indexing-progress", {
             current: i + 1,
             total: files.length,
             fileName: file.file_name,
-            projectId
+            projectId,
           });
 
           // 检查是否已索引
           if (!forceReindex) {
-            const existing = await this.ragManager.getDocument(`project_file_${file.id}`);
+            const existing = await this.ragManager.getDocument(
+              `project_file_${file.id}`,
+            );
             if (existing) {
               skippedCount++;
               continue;
@@ -137,7 +145,7 @@ class ProjectRAGManager extends EventEmitter {
             id: `project_file_${file.id}`,
             content: content,
             metadata: {
-              type: 'project_file',
+              type: "project_file",
               projectId: projectId,
               projectName: project.name,
               fileId: file.id,
@@ -145,19 +153,18 @@ class ProjectRAGManager extends EventEmitter {
               filePath: file.file_path,
               fileType: file.file_type,
               createdAt: file.created_at,
-              updatedAt: file.updated_at
-            }
+              updatedAt: file.updated_at,
+            },
           });
 
           indexedCount++;
           logger.info(`[ProjectRAG] 已索引: ${file.file_name}`);
-
         } catch (error) {
           logger.error(`[ProjectRAG] 索引文件失败: ${file.file_name}`, error);
           errors.push({
             fileId: file.id,
             fileName: file.file_name,
-            error: error.message
+            error: error.message,
           });
         }
       }
@@ -168,22 +175,21 @@ class ProjectRAGManager extends EventEmitter {
         totalFiles: files.length,
         indexedCount: indexedCount,
         skippedCount: skippedCount,
-        errors: errors
+        errors: errors,
       };
 
-      logger.info('[ProjectRAG] 索引完成:', result);
+      logger.info("[ProjectRAG] 索引完成:", result);
 
       // 4. 启动文件监听
       if (enableWatcher && project.path) {
         await this.startFileWatcher(projectId, project.path);
       }
 
-      this.emit('indexing-complete', result);
+      this.emit("indexing-complete", result);
 
       return result;
-
     } catch (error) {
-      logger.error('[ProjectRAG] 索引项目文件失败:', error);
+      logger.error("[ProjectRAG] 索引项目文件失败:", error);
       throw error;
     }
   }
@@ -197,14 +203,27 @@ class ProjectRAGManager extends EventEmitter {
     const { file_path, file_type } = file;
 
     // 只索引文本类文件
-    const textFileTypes = ['md', 'txt', 'html', 'css', 'js', 'json', 'xml', 'py', 'java', 'cpp', 'c', 'h'];
+    const textFileTypes = [
+      "md",
+      "txt",
+      "html",
+      "css",
+      "js",
+      "json",
+      "xml",
+      "py",
+      "java",
+      "cpp",
+      "c",
+      "h",
+    ];
 
     if (!textFileTypes.includes(file_type.toLowerCase())) {
       return null;
     }
 
     try {
-      const content = await fs.readFile(file_path, 'utf-8');
+      const content = await fs.readFile(file_path, "utf-8");
       return content;
     } catch (error) {
       logger.error(`[ProjectRAG] 读取文件失败: ${file_path}`, error);
@@ -223,10 +242,10 @@ class ProjectRAGManager extends EventEmitter {
     this.ensureInitialized();
 
     const {
-      projectLimit = 5,      // 项目文件检索数量
-      knowledgeLimit = 3,    // 知识库检索数量
+      projectLimit = 5, // 项目文件检索数量
+      knowledgeLimit = 3, // 知识库检索数量
       conversationLimit = 3, // 对话历史检索数量
-      useReranker = true     // 是否使用重排序
+      useReranker = true, // 是否使用重排序
     } = options;
 
     logger.info(`[ProjectRAG] 增强查询: ${query}`);
@@ -239,30 +258,32 @@ class ProjectRAGManager extends EventEmitter {
         // 1. 检索项目相关文档
         this.ragManager.search(query, {
           filter: {
-            type: 'project_file',
-            projectId: projectId
+            type: "project_file",
+            projectId: projectId,
           },
-          limit: projectLimit
+          limit: projectLimit,
         }),
 
         // 2. 检索知识库相关内容
         this.ragManager.search(query, {
-          filter: { type: 'knowledge' },
-          limit: knowledgeLimit
+          filter: { type: "knowledge" },
+          limit: knowledgeLimit,
         }),
 
         // 3. 检索项目对话历史
-        this.searchConversationHistory(projectId, query, conversationLimit)
+        this.searchConversationHistory(projectId, query, conversationLimit),
       ]);
 
       const queryTime = Date.now() - startTime;
-      logger.info(`[ProjectRAG] 并行检索完成 (${queryTime}ms): 项目${projectDocs.length}条, 知识库${knowledgeDocs.length}条, 对话${conversationDocs.length}条`);
+      logger.info(
+        `[ProjectRAG] 并行检索完成 (${queryTime}ms): 项目${projectDocs.length}条, 知识库${knowledgeDocs.length}条, 对话${conversationDocs.length}条`,
+      );
 
       // 4. 合并所有文档
       const allDocs = [
-        ...projectDocs.map(doc => ({ ...doc, source: 'project' })),
-        ...knowledgeDocs.map(doc => ({ ...doc, source: 'knowledge' })),
-        ...conversationDocs.map(doc => ({ ...doc, source: 'conversation' }))
+        ...projectDocs.map((doc) => ({ ...doc, source: "project" })),
+        ...knowledgeDocs.map((doc) => ({ ...doc, source: "knowledge" })),
+        ...conversationDocs.map((doc) => ({ ...doc, source: "conversation" })),
       ];
 
       // 5. 重排序
@@ -272,7 +293,7 @@ class ProjectRAGManager extends EventEmitter {
           rerankedDocs = await this.ragManager.rerank(query, allDocs);
           logger.info(`[ProjectRAG] 重排序完成`);
         } catch (error) {
-          logger.warn('[ProjectRAG] 重排序失败，使用原始结果', error);
+          logger.warn("[ProjectRAG] 重排序失败，使用原始结果", error);
         }
       }
 
@@ -285,15 +306,14 @@ class ProjectRAGManager extends EventEmitter {
         sources: {
           project: projectDocs.length,
           knowledge: knowledgeDocs.length,
-          conversation: conversationDocs.length
+          conversation: conversationDocs.length,
         },
-        summary: this.generateContextSummary(rerankedDocs)
+        summary: this.generateContextSummary(rerankedDocs),
       };
 
       return result;
-
     } catch (error) {
-      logger.error('[ProjectRAG] 增强查询失败:', error);
+      logger.error("[ProjectRAG] 增强查询失败:", error);
       throw error;
     }
   }
@@ -311,22 +331,26 @@ class ProjectRAGManager extends EventEmitter {
       try {
         const vectorResults = await this.ragManager.search(query, {
           filter: {
-            type: 'conversation',
-            projectId: projectId
+            type: "conversation",
+            projectId: projectId,
           },
-          limit: limit
+          limit: limit,
         });
 
         if (vectorResults && vectorResults.length > 0) {
-          logger.info(`[ProjectRAG] 使用向量搜索对话历史: ${vectorResults.length} 条`);
+          logger.info(
+            `[ProjectRAG] 使用向量搜索对话历史: ${vectorResults.length} 条`,
+          );
           return vectorResults;
         }
       } catch (vectorError) {
-        logger.warn('[ProjectRAG] 向量搜索对话失败，使用SQL查询', vectorError);
+        logger.warn("[ProjectRAG] 向量搜索对话失败，使用SQL查询", vectorError);
       }
 
       // 降级方案: 使用SQL全文搜索对话历史
-      const conversations = this.database.prepare(`
+      const conversations = this.database
+        .prepare(
+          `
         SELECT
           id,
           role,
@@ -337,21 +361,22 @@ class ProjectRAGManager extends EventEmitter {
         AND content LIKE ?
         ORDER BY created_at DESC
         LIMIT ?
-      `).all(projectId, `%${query}%`, limit);
+      `,
+        )
+        .all(projectId, `%${query}%`, limit);
 
-      return conversations.map(conv => ({
+      return conversations.map((conv) => ({
         id: `conversation_${conv.id}`,
         content: conv.content,
         metadata: {
-          type: 'conversation',
+          type: "conversation",
           role: conv.role,
-          createdAt: conv.created_at
+          createdAt: conv.created_at,
         },
-        score: 0.5 // 默认相关性分数
+        score: 0.5, // 默认相关性分数
       }));
-
     } catch (error) {
-      logger.error('[ProjectRAG] 搜索对话历史失败:', error);
+      logger.error("[ProjectRAG] 搜索对话历史失败:", error);
       return [];
     }
   }
@@ -363,16 +388,19 @@ class ProjectRAGManager extends EventEmitter {
    */
   generateContextSummary(docs) {
     if (docs.length === 0) {
-      return '未找到相关上下文';
+      return "未找到相关上下文";
     }
 
-    const summary = docs.slice(0, 3).map((doc, index) => {
-      const source = doc.source || 'unknown';
-      const fileName = doc.metadata?.fileName || 'unknown';
-      const excerpt = doc.content.substring(0, 100) + '...';
+    const summary = docs
+      .slice(0, 3)
+      .map((doc, index) => {
+        const source = doc.source || "unknown";
+        const fileName = doc.metadata?.fileName || "unknown";
+        const excerpt = doc.content.substring(0, 100) + "...";
 
-      return `[${index + 1}] 来源: ${source} | 文件: ${fileName}\n${excerpt}`;
-    }).join('\n\n');
+        return `[${index + 1}] 来源: ${source} | 文件: ${fileName}\n${excerpt}`;
+      })
+      .join("\n\n");
 
     return summary;
   }
@@ -389,9 +417,13 @@ class ProjectRAGManager extends EventEmitter {
 
     try {
       // 获取项目所有文件
-      const files = this.database.prepare(`
+      const files = this.database
+        .prepare(
+          `
         SELECT id FROM project_files WHERE project_id = ?
-      `).all(projectId);
+      `,
+        )
+        .all(projectId);
 
       // 删除所有文件的向量索引
       let deletedCount = 0;
@@ -409,11 +441,10 @@ class ProjectRAGManager extends EventEmitter {
       return {
         success: true,
         projectId: projectId,
-        deletedCount: deletedCount
+        deletedCount: deletedCount,
       };
-
     } catch (error) {
-      logger.error('[ProjectRAG] 删除项目索引失败:', error);
+      logger.error("[ProjectRAG] 删除项目索引失败:", error);
       throw error;
     }
   }
@@ -428,12 +459,16 @@ class ProjectRAGManager extends EventEmitter {
 
     try {
       // 获取文件信息
-      const file = this.database.prepare(`
+      const file = this.database
+        .prepare(
+          `
         SELECT pf.*, p.name as project_name, p.id as project_id
         FROM project_files pf
         JOIN projects p ON pf.project_id = p.id
         WHERE pf.id = ?
-      `).get(fileId);
+      `,
+        )
+        .get(fileId);
 
       if (!file) {
         throw new Error(`文件不存在: ${fileId}`);
@@ -455,7 +490,7 @@ class ProjectRAGManager extends EventEmitter {
         id: `project_file_${fileId}`,
         content: content,
         metadata: {
-          type: 'project_file',
+          type: "project_file",
           projectId: file.project_id,
           projectName: file.project_name,
           fileId: file.id,
@@ -463,8 +498,8 @@ class ProjectRAGManager extends EventEmitter {
           filePath: file.file_path,
           fileType: file.file_type,
           createdAt: file.created_at,
-          updatedAt: file.updated_at
-        }
+          updatedAt: file.updated_at,
+        },
       });
 
       logger.info(`[ProjectRAG] 文件索引已更新: ${file.file_name}`);
@@ -472,11 +507,10 @@ class ProjectRAGManager extends EventEmitter {
       return {
         success: true,
         fileId: fileId,
-        fileName: file.file_name
+        fileName: file.file_name,
       };
-
     } catch (error) {
-      logger.error('[ProjectRAG] 更新文件索引失败:', error);
+      logger.error("[ProjectRAG] 更新文件索引失败:", error);
       throw error;
     }
   }
@@ -491,20 +525,32 @@ class ProjectRAGManager extends EventEmitter {
 
     try {
       // 获取项目文件总数
-      const totalFiles = this.database.prepare(`
+      const totalFiles = this.database
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM project_files WHERE project_id = ?
-      `).get(projectId).count;
+      `,
+        )
+        .get(projectId).count;
 
       // 获取已索引文件数（通过检查向量数据库）
-      const files = this.database.prepare(`
+      const files = this.database
+        .prepare(
+          `
         SELECT id FROM project_files WHERE project_id = ?
-      `).all(projectId);
+      `,
+        )
+        .all(projectId);
 
       let indexedCount = 0;
       for (const file of files) {
         try {
-          const doc = await this.ragManager.getDocument(`project_file_${file.id}`);
-          if (doc) {indexedCount++;}
+          const doc = await this.ragManager.getDocument(
+            `project_file_${file.id}`,
+          );
+          if (doc) {
+            indexedCount++;
+          }
         } catch (error) {
           // 文档不存在，跳过
         }
@@ -514,11 +560,11 @@ class ProjectRAGManager extends EventEmitter {
         projectId: projectId,
         totalFiles: totalFiles,
         indexedFiles: indexedCount,
-        indexedPercentage: totalFiles > 0 ? (indexedCount / totalFiles * 100).toFixed(2) : 0
+        indexedPercentage:
+          totalFiles > 0 ? ((indexedCount / totalFiles) * 100).toFixed(2) : 0,
       };
-
     } catch (error) {
-      logger.error('[ProjectRAG] 获取索引统计失败:', error);
+      logger.error("[ProjectRAG] 获取索引统计失败:", error);
       throw error;
     }
   }
@@ -542,26 +588,26 @@ class ProjectRAGManager extends EventEmitter {
       ignoreInitial: true,
       awaitWriteFinish: {
         stabilityThreshold: 1000,
-        pollInterval: 100
-      }
+        pollInterval: 100,
+      },
     });
 
     // 监听文件变化
     watcher
-      .on('add', async (filePath) => {
+      .on("add", async (filePath) => {
         logger.info(`[ProjectRAG] 文件新增: ${filePath}`);
-        await this.handleFileChange(projectId, filePath, 'add');
+        await this.handleFileChange(projectId, filePath, "add");
       })
-      .on('change', async (filePath) => {
+      .on("change", async (filePath) => {
         logger.info(`[ProjectRAG] 文件修改: ${filePath}`);
-        await this.handleFileChange(projectId, filePath, 'change');
+        await this.handleFileChange(projectId, filePath, "change");
       })
-      .on('unlink', async (filePath) => {
+      .on("unlink", async (filePath) => {
         logger.info(`[ProjectRAG] 文件删除: ${filePath}`);
-        await this.handleFileChange(projectId, filePath, 'delete');
+        await this.handleFileChange(projectId, filePath, "delete");
       })
-      .on('error', (error) => {
-        logger.error('[ProjectRAG] 文件监听错误:', error);
+      .on("error", (error) => {
+        logger.error("[ProjectRAG] 文件监听错误:", error);
       });
 
     this.fileWatchers.set(projectId, watcher);
@@ -589,28 +635,32 @@ class ProjectRAGManager extends EventEmitter {
   async handleFileChange(projectId, filePath, changeType) {
     try {
       // 查找文件记录
-      const file = this.database.prepare(`
+      const file = this.database
+        .prepare(
+          `
         SELECT id FROM project_files
         WHERE project_id = ? AND file_path = ?
-      `).get(projectId, filePath);
+      `,
+        )
+        .get(projectId, filePath);
 
-      if (changeType === 'delete') {
+      if (changeType === "delete") {
         if (file) {
           // 删除向量索引
           await this.ragManager.deleteDocument(`project_file_${file.id}`);
           logger.info(`[ProjectRAG] 已删除文件索引: ${filePath}`);
         }
-      } else if (changeType === 'add' || changeType === 'change') {
+      } else if (changeType === "add" || changeType === "change") {
         if (file) {
           // 更新索引
           await this.updateFileIndex(file.id);
           logger.info(`[ProjectRAG] 已更新文件索引: ${filePath}`);
 
-          this.emit('file-indexed', {
+          this.emit("file-indexed", {
             projectId,
             fileId: file.id,
             filePath,
-            changeType
+            changeType,
           });
         }
       }
@@ -634,13 +684,17 @@ class ProjectRAGManager extends EventEmitter {
 
     try {
       // 获取项目对话历史
-      const conversations = this.database.prepare(`
+      const conversations = this.database
+        .prepare(
+          `
         SELECT id, role, content, created_at
         FROM project_conversations
         WHERE project_id = ?
         ORDER BY created_at DESC
         LIMIT ?
-      `).all(projectId, limit);
+      `,
+        )
+        .all(projectId, limit);
 
       logger.info(`[ProjectRAG] 找到 ${conversations.length} 条对话记录`);
 
@@ -659,12 +713,12 @@ class ProjectRAGManager extends EventEmitter {
             id: `conversation_${conv.id}`,
             content: conv.content,
             metadata: {
-              type: 'conversation',
+              type: "conversation",
               projectId: projectId,
               conversationId: conv.id,
               role: conv.role,
-              createdAt: conv.created_at
-            }
+              createdAt: conv.created_at,
+            },
           });
 
           indexedCount++;
@@ -672,7 +726,7 @@ class ProjectRAGManager extends EventEmitter {
           logger.error(`[ProjectRAG] 索引对话失败: ${conv.id}`, error);
           errors.push({
             conversationId: conv.id,
-            error: error.message
+            error: error.message,
           });
         }
       }
@@ -682,14 +736,13 @@ class ProjectRAGManager extends EventEmitter {
         projectId: projectId,
         totalConversations: conversations.length,
         indexedCount: indexedCount,
-        errors: errors
+        errors: errors,
       };
 
-      logger.info('[ProjectRAG] 对话历史索引完成:', result);
+      logger.info("[ProjectRAG] 对话历史索引完成:", result);
       return result;
-
     } catch (error) {
-      logger.error('[ProjectRAG] 索引对话历史失败:', error);
+      logger.error("[ProjectRAG] 索引对话历史失败:", error);
       throw error;
     }
   }
@@ -711,5 +764,5 @@ function getProjectRAGManager() {
 
 module.exports = {
   ProjectRAGManager,
-  getProjectRAGManager
+  getProjectRAGManager,
 };

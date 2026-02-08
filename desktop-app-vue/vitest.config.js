@@ -1,18 +1,33 @@
-import { defineConfig } from 'vitest/config';
-import { fileURLToPath } from 'url';
-import vue from '@vitejs/plugin-vue';
+import { defineConfig } from "vitest/config";
+import { fileURLToPath } from "url";
+import vue from "@vitejs/plugin-vue";
+import Components from "unplugin-vue-components/vite";
+import { AntDesignVueResolver } from "unplugin-vue-components/resolvers";
 
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    // Ant Design Vue auto-import for test environment
+    Components({
+      resolvers: [
+        AntDesignVueResolver({
+          importStyle: false,
+        }),
+      ],
+    }),
+  ],
   test: {
-    environment: 'jsdom',
+    environment: "jsdom",
     globals: true,
-    setupFiles: [],
+    setupFiles: ["./tests/setup.js"],
+    mockReset: true,
+    restoreMocks: true,
   },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src/renderer', import.meta.url)),
-      '@shared': fileURLToPath(new URL('./src/shared', import.meta.url)),
+      "@": fileURLToPath(new URL("./src/renderer", import.meta.url)),
+      "@shared": fileURLToPath(new URL("./src/shared", import.meta.url)),
     },
+    extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".vue"],
   },
 });

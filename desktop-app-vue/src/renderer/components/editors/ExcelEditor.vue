@@ -31,40 +31,25 @@
             </a-button>
             <template #overlay>
               <a-menu @click="handleInsert">
-                <a-menu-item key="row-before">
-                  在上方插入行
-                </a-menu-item>
-                <a-menu-item key="row-after">
-                  在下方插入行
-                </a-menu-item>
+                <a-menu-item key="row-before"> 在上方插入行 </a-menu-item>
+                <a-menu-item key="row-after"> 在下方插入行 </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="col-before">
-                  在左侧插入列
-                </a-menu-item>
-                <a-menu-item key="col-after">
-                  在右侧插入列
-                </a-menu-item>
+                <a-menu-item key="col-before"> 在左侧插入列 </a-menu-item>
+                <a-menu-item key="col-after"> 在右侧插入列 </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
 
           <!-- 删除行/列 -->
           <a-dropdown>
-            <a-button
-              size="small"
-              danger
-            >
+            <a-button size="small" danger>
               <DeleteOutlined />
               删除
             </a-button>
             <template #overlay>
               <a-menu @click="handleDelete">
-                <a-menu-item key="row">
-                  删除选中行
-                </a-menu-item>
-                <a-menu-item key="col">
-                  删除选中列
-                </a-menu-item>
+                <a-menu-item key="row"> 删除选中行 </a-menu-item>
+                <a-menu-item key="col"> 删除选中列 </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -86,15 +71,9 @@
                   斜体
                 </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="align-left">
-                  左对齐
-                </a-menu-item>
-                <a-menu-item key="align-center">
-                  居中
-                </a-menu-item>
-                <a-menu-item key="align-right">
-                  右对齐
-                </a-menu-item>
+                <a-menu-item key="align-left"> 左对齐 </a-menu-item>
+                <a-menu-item key="align-center"> 居中 </a-menu-item>
+                <a-menu-item key="align-right"> 右对齐 </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -107,46 +86,27 @@
             </a-button>
             <template #overlay>
               <a-menu @click="handleDataOperation">
-                <a-menu-item key="sort-asc">
-                  升序排序
-                </a-menu-item>
-                <a-menu-item key="sort-desc">
-                  降序排序
-                </a-menu-item>
+                <a-menu-item key="sort-asc"> 升序排序 </a-menu-item>
+                <a-menu-item key="sort-desc"> 降序排序 </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="filter">
-                  筛选
-                </a-menu-item>
-                <a-menu-item key="sum">
-                  求和
-                </a-menu-item>
-                <a-menu-item key="average">
-                  平均值
-                </a-menu-item>
+                <a-menu-item key="filter"> 筛选 </a-menu-item>
+                <a-menu-item key="sum"> 求和 </a-menu-item>
+                <a-menu-item key="average"> 平均值 </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
 
           <!-- 导出 -->
           <a-dropdown>
-            <a-button
-              size="small"
-              type="primary"
-            >
+            <a-button size="small" type="primary">
               <ExportOutlined />
               导出
             </a-button>
             <template #overlay>
               <a-menu @click="handleExport">
-                <a-menu-item key="excel">
-                  导出为Excel
-                </a-menu-item>
-                <a-menu-item key="csv">
-                  导出为CSV
-                </a-menu-item>
-                <a-menu-item key="json">
-                  导出为JSON
-                </a-menu-item>
+                <a-menu-item key="excel"> 导出为Excel </a-menu-item>
+                <a-menu-item key="csv"> 导出为CSV </a-menu-item>
+                <a-menu-item key="json"> 导出为JSON </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -155,27 +115,19 @@
     </div>
 
     <!-- 表格编辑区 -->
-    <div
-      ref="spreadsheetRef"
-      class="excel-spreadsheet"
-    />
+    <div ref="spreadsheetRef" class="excel-spreadsheet" />
 
     <!-- 底部状态栏 -->
     <div class="excel-statusbar">
       <div class="status-left">
-        <span v-if="selectedCell">
-          选中单元格: {{ selectedCell }}
-        </span>
+        <span v-if="selectedCell"> 选中单元格: {{ selectedCell }} </span>
       </div>
       <div class="status-right">
         <span>行: {{ currentSheet?.rows?.length || 0 }}</span>
         <a-divider type="vertical" />
         <span>列: {{ currentSheet?.columns?.length || 0 }}</span>
         <a-divider type="vertical" />
-        <span
-          v-if="hasUnsavedChanges"
-          class="unsaved-indicator"
-        >
+        <span v-if="hasUnsavedChanges" class="unsaved-indicator">
           <EditOutlined />
           未保存
         </span>
@@ -185,11 +137,18 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
-import jspreadsheet from 'jspreadsheet-ce';
+import {
+  ref,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+  watch,
+  nextTick,
+} from "vue";
+import { message } from "ant-design-vue";
+import jspreadsheet from "jspreadsheet-ce";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -199,8 +158,8 @@ import {
   FunctionOutlined,
   ExportOutlined,
   EditOutlined,
-} from '@ant-design/icons-vue';
-import 'jspreadsheet-ce/dist/jspreadsheet.css';
+} from "@ant-design/icons-vue";
+import "jspreadsheet-ce/dist/jspreadsheet.css";
 
 const props = defineProps({
   file: {
@@ -221,14 +180,14 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['change', 'save']);
+const emit = defineEmits(["change", "save"]);
 
 // 响应式状态
 const spreadsheetRef = ref(null);
 const spreadsheet = ref(null);
 const sheets = ref([]);
 const activeSheetIndex = ref(0);
-const selectedCell = ref('');
+const selectedCell = ref("");
 const hasUnsavedChanges = ref(false);
 const autoSaveTimer = ref(null);
 
@@ -242,7 +201,9 @@ const initSpreadsheet = async () => {
     let data = props.initialData;
     if (!data && props.file?.file_path) {
       // 从后端读取Excel文件
-      const result = await window.electronAPI.file.readExcel(props.file.file_path);
+      const result = await window.electronAPI.file.readExcel(
+        props.file.file_path,
+      );
       data = result;
     }
 
@@ -250,25 +211,33 @@ const initSpreadsheet = async () => {
       sheets.value = data.sheets;
     } else {
       // 创建默认工作表
-      sheets.value = [{
-        name: 'Sheet1',
-        id: 1,
-        rows: Array(20).fill(null).map(() => ({
-          values: Array(10).fill(null).map(() => ({ value: '' })),
-        })),
-        columns: Array(10).fill(null).map((_, i) => ({
-          index: i,
-          header: String.fromCharCode(65 + i),
-          width: 100,
-        })),
-      }];
+      sheets.value = [
+        {
+          name: "Sheet1",
+          id: 1,
+          rows: Array(20)
+            .fill(null)
+            .map(() => ({
+              values: Array(10)
+                .fill(null)
+                .map(() => ({ value: "" })),
+            })),
+          columns: Array(10)
+            .fill(null)
+            .map((_, i) => ({
+              index: i,
+              header: String.fromCharCode(65 + i),
+              width: 100,
+            })),
+        },
+      ];
     }
 
     // 渲染当前工作表
     await renderSheet(activeSheetIndex.value);
   } catch (error) {
-    logger.error('[ExcelEditor] Init error:', error);
-    message.error('初始化Excel编辑器失败: ' + error.message);
+    logger.error("[ExcelEditor] Init error:", error);
+    message.error("初始化Excel编辑器失败: " + error.message);
   }
 };
 
@@ -277,24 +246,28 @@ const renderSheet = async (sheetIndex) => {
   await nextTick();
 
   if (!spreadsheetRef.value) {
-    logger.error('[ExcelEditor] Spreadsheet ref not available');
+    logger.error("[ExcelEditor] Spreadsheet ref not available");
     return;
   }
 
   const sheet = sheets.value[sheetIndex];
   if (!sheet) {
-    logger.error('[ExcelEditor] Sheet not found:', sheetIndex);
+    logger.error("[ExcelEditor] Sheet not found:", sheetIndex);
     return;
   }
 
   // 验证sheet结构
   if (!sheet.rows || !Array.isArray(sheet.rows)) {
-    logger.error('[ExcelEditor] Invalid sheet structure: rows missing or not an array');
+    logger.error(
+      "[ExcelEditor] Invalid sheet structure: rows missing or not an array",
+    );
     return;
   }
 
   if (!sheet.columns || !Array.isArray(sheet.columns)) {
-    logger.error('[ExcelEditor] Invalid sheet structure: columns missing or not an array');
+    logger.error(
+      "[ExcelEditor] Invalid sheet structure: columns missing or not an array",
+    );
     return;
   }
 
@@ -303,27 +276,30 @@ const renderSheet = async (sheetIndex) => {
     try {
       jspreadsheet.destroy(spreadsheetRef.value);
     } catch (destroyError) {
-      logger.warn('[ExcelEditor] Failed to destroy previous instance:', destroyError);
+      logger.warn(
+        "[ExcelEditor] Failed to destroy previous instance:",
+        destroyError,
+      );
     }
     spreadsheet.value = null;
   }
 
   // 转换数据格式为jspreadsheet需要的格式
-  const data = sheet.rows.map(row => {
+  const data = sheet.rows.map((row) => {
     if (!row || !row.values || !Array.isArray(row.values)) {
-      return Array(sheet.columns.length).fill('');
+      return Array(sheet.columns.length).fill("");
     }
-    return row.values.map(cell => cell?.value ?? '');
+    return row.values.map((cell) => cell?.value ?? "");
   });
 
-  const columns = sheet.columns.map(col => ({
-    title: col?.header || col?.key || '',
+  const columns = sheet.columns.map((col) => ({
+    title: col?.header || col?.key || "",
     width: col?.width || 100,
   }));
 
   const worksheetConfig = {
     name: sheet.name || `Sheet${sheetIndex + 1}`,
-    data: data.length > 0 ? data : [Array(columns.length).fill('')],
+    data: data.length > 0 ? data : [Array(columns.length).fill("")],
     columns,
     minDimensions: [10, 20],
     allowInsertRow: !props.readOnly,
@@ -333,8 +309,8 @@ const renderSheet = async (sheetIndex) => {
     allowRenameColumn: !props.readOnly,
     editable: !props.readOnly,
     tableOverflow: true,
-    tableHeight: 'calc(100vh - 300px)',
-    tableWidth: '100%',
+    tableHeight: "calc(100vh - 300px)",
+    tableWidth: "100%",
     onchange: handleCellChange,
     onselection: handleCellSelection,
     oninsertrow: handleRowInsert,
@@ -345,35 +321,37 @@ const renderSheet = async (sheetIndex) => {
 
   // 创建jspreadsheet实例 - v5 API 使用worksheets
   try {
-    logger.info('[ExcelEditor] Creating jspreadsheet with data:', {
+    logger.info("[ExcelEditor] Creating jspreadsheet with data:", {
       rows: data.length,
       cols: columns.length,
-      readOnly: props.readOnly
+      readOnly: props.readOnly,
     });
 
     spreadsheet.value = jspreadsheet(spreadsheetRef.value, {
       worksheets: [worksheetConfig],
     });
 
-    logger.info('[ExcelEditor] jspreadsheet created successfully');
+    logger.info("[ExcelEditor] jspreadsheet created successfully");
   } catch (error) {
-    logger.error('[ExcelEditor] jspreadsheet init error:', error);
-    logger.error('[ExcelEditor] Error stack:', error.stack);
-    message.error('创建表格失败: ' + error.message);
+    logger.error("[ExcelEditor] jspreadsheet init error:", error);
+    logger.error("[ExcelEditor] Error stack:", error.stack);
+    message.error("创建表格失败: " + error.message);
 
     // 尝试使用最简单的配置作为fallback
     try {
-      logger.info('[ExcelEditor] Attempting fallback initialization...');
+      logger.info("[ExcelEditor] Attempting fallback initialization...");
       spreadsheet.value = jspreadsheet(spreadsheetRef.value, {
-        worksheets: [{
-          name: 'Sheet1',
-          data: [['']],
-          minDimensions: [10, 20],
-        }],
+        worksheets: [
+          {
+            name: "Sheet1",
+            data: [[""]],
+            minDimensions: [10, 20],
+          },
+        ],
       });
-      logger.info('[ExcelEditor] Fallback initialization successful');
+      logger.info("[ExcelEditor] Fallback initialization successful");
     } catch (fallbackError) {
-      logger.error('[ExcelEditor] Fallback init also failed:', fallbackError);
+      logger.error("[ExcelEditor] Fallback init also failed:", fallbackError);
     }
   }
 };
@@ -395,7 +373,7 @@ const handleCellChange = (instance, cell, x, y, value) => {
     sheets.value[activeSheetIndex.value].rows[y].values[x].value = value;
   }
 
-  emit('change', {
+  emit("change", {
     sheet: activeSheetIndex.value,
     cell: { x, y },
     value,
@@ -444,9 +422,9 @@ const handleColumnDelete = (instance, x, numOfColumns) => {
 
 // 工作表标签操作
 const handleSheetEdit = (targetKey, action) => {
-  if (action === 'add') {
+  if (action === "add") {
     addSheet();
-  } else if (action === 'remove') {
+  } else if (action === "remove") {
     removeSheet(Number(targetKey));
   }
 };
@@ -462,27 +440,33 @@ const addSheet = () => {
   const newSheet = {
     name: `Sheet${sheets.value.length + 1}`,
     id: sheets.value.length + 1,
-    rows: Array(20).fill(null).map(() => ({
-      values: Array(10).fill(null).map(() => ({ value: '' })),
-    })),
-    columns: Array(10).fill(null).map((_, i) => ({
-      index: i,
-      header: String.fromCharCode(65 + i),
-      width: 100,
-    })),
+    rows: Array(20)
+      .fill(null)
+      .map(() => ({
+        values: Array(10)
+          .fill(null)
+          .map(() => ({ value: "" })),
+      })),
+    columns: Array(10)
+      .fill(null)
+      .map((_, i) => ({
+        index: i,
+        header: String.fromCharCode(65 + i),
+        width: 100,
+      })),
   };
 
   sheets.value.push(newSheet);
   activeSheetIndex.value = sheets.value.length - 1;
   renderSheet(activeSheetIndex.value);
   hasUnsavedChanges.value = true;
-  message.success('已添加新工作表');
+  message.success("已添加新工作表");
 };
 
 // 删除工作表
 const removeSheet = (index) => {
   if (sheets.value.length === 1) {
-    message.warning('至少需要保留一个工作表');
+    message.warning("至少需要保留一个工作表");
     return;
   }
 
@@ -492,25 +476,27 @@ const removeSheet = (index) => {
   }
   renderSheet(activeSheetIndex.value);
   hasUnsavedChanges.value = true;
-  message.success('已删除工作表');
+  message.success("已删除工作表");
 };
 
 // 插入操作
 const handleInsert = ({ key }) => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) {return;}
+  if (!worksheet) {
+    return;
+  }
 
   switch (key) {
-    case 'row-before':
+    case "row-before":
       worksheet.insertRow(1, 0, true);
       break;
-    case 'row-after':
+    case "row-after":
       worksheet.insertRow(1, undefined, false);
       break;
-    case 'col-before':
+    case "col-before":
       worksheet.insertColumn(1, 0, true);
       break;
-    case 'col-after':
+    case "col-after":
       worksheet.insertColumn(1, undefined, false);
       break;
   }
@@ -519,24 +505,26 @@ const handleInsert = ({ key }) => {
 // 删除操作
 const handleDelete = ({ key }) => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) {return;}
+  if (!worksheet) {
+    return;
+  }
 
   switch (key) {
-    case 'row': {
+    case "row": {
       const selectedRows = worksheet.getSelectedRows();
       if (selectedRows.length > 0) {
         worksheet.deleteRow(selectedRows.length);
       } else {
-        message.warning('请先选择要删除的行');
+        message.warning("请先选择要删除的行");
       }
       break;
     }
-    case 'col': {
+    case "col": {
       const selectedCols = worksheet.getSelectedColumns();
       if (selectedCols.length > 0) {
         worksheet.deleteColumn(selectedCols.length);
       } else {
-        message.warning('请先选择要删除的列');
+        message.warning("请先选择要删除的列");
       }
       break;
     }
@@ -546,29 +534,31 @@ const handleDelete = ({ key }) => {
 // 格式化操作
 const handleFormat = ({ key }) => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) {return;}
+  if (!worksheet) {
+    return;
+  }
 
   const selection = worksheet.getSelected();
   if (!selection) {
-    message.warning('请先选择单元格');
+    message.warning("请先选择单元格");
     return;
   }
 
   switch (key) {
-    case 'bold':
-      worksheet.setStyle(selection, 'font-weight', 'bold');
+    case "bold":
+      worksheet.setStyle(selection, "font-weight", "bold");
       break;
-    case 'italic':
-      worksheet.setStyle(selection, 'font-style', 'italic');
+    case "italic":
+      worksheet.setStyle(selection, "font-style", "italic");
       break;
-    case 'align-left':
-      worksheet.setStyle(selection, 'text-align', 'left');
+    case "align-left":
+      worksheet.setStyle(selection, "text-align", "left");
       break;
-    case 'align-center':
-      worksheet.setStyle(selection, 'text-align', 'center');
+    case "align-center":
+      worksheet.setStyle(selection, "text-align", "center");
       break;
-    case 'align-right':
-      worksheet.setStyle(selection, 'text-align', 'right');
+    case "align-right":
+      worksheet.setStyle(selection, "text-align", "right");
       break;
   }
 
@@ -578,19 +568,21 @@ const handleFormat = ({ key }) => {
 // 数据操作
 const handleDataOperation = ({ key }) => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) {return;}
+  if (!worksheet) {
+    return;
+  }
 
   switch (key) {
-    case 'sort-asc':
+    case "sort-asc":
       worksheet.orderBy(0, 0);
       break;
-    case 'sort-desc':
+    case "sort-desc":
       worksheet.orderBy(0, 1);
       break;
-    case 'sum':
+    case "sum":
       calculateSum();
       break;
-    case 'average':
+    case "average":
       calculateAverage();
       break;
   }
@@ -599,11 +591,13 @@ const handleDataOperation = ({ key }) => {
 // 计算求和
 const calculateSum = () => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) {return;}
+  if (!worksheet) {
+    return;
+  }
 
   const selection = worksheet.getSelected();
   if (!selection) {
-    message.warning('请先选择单元格范围');
+    message.warning("请先选择单元格范围");
     return;
   }
 
@@ -627,11 +621,13 @@ const calculateSum = () => {
 // 计算平均值
 const calculateAverage = () => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) {return;}
+  if (!worksheet) {
+    return;
+  }
 
   const selection = worksheet.getSelected();
   if (!selection) {
-    message.warning('请先选择单元格范围');
+    message.warning("请先选择单元格范围");
     return;
   }
 
@@ -659,26 +655,28 @@ const handleExport = async ({ key }) => {
     const data = getCurrentData();
 
     switch (key) {
-      case 'excel':
+      case "excel":
         await exportToExcel(data);
         break;
-      case 'csv':
+      case "csv":
         await exportToCSV(data);
         break;
-      case 'json':
+      case "json":
         await exportToJSON(data);
         break;
     }
   } catch (error) {
-    logger.error('[ExcelEditor] Export error:', error);
-    message.error('导出失败: ' + error.message);
+    logger.error("[ExcelEditor] Export error:", error);
+    message.error("导出失败: " + error.message);
   }
 };
 
 // 获取当前数据
 const getCurrentData = () => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) {return null;}
+  if (!worksheet) {
+    return null;
+  }
 
   const data = worksheet.getData();
   const currentSheetData = { ...currentSheet.value };
@@ -689,7 +687,7 @@ const getCurrentData = () => {
     values: row.map((value, colIndex) => ({
       col: colIndex + 1,
       value: value,
-      type: typeof value === 'number' ? 'number' : 'string',
+      type: typeof value === "number" ? "number" : "string",
     })),
     height: 20,
   }));
@@ -698,7 +696,7 @@ const getCurrentData = () => {
   sheets.value[activeSheetIndex.value] = currentSheetData;
 
   return {
-    type: 'excel',
+    type: "excel",
     sheets: sheets.value,
   };
 };
@@ -706,41 +704,49 @@ const getCurrentData = () => {
 // 导出为Excel
 const exportToExcel = async (data) => {
   const result = await window.electronAPI.dialog.showSaveDialog({
-    defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.xlsx') || 'export.xlsx',
-    filters: [{ name: 'Excel文件', extensions: ['xlsx'] }],
+    defaultPath:
+      props.file?.file_name?.replace(/\.[^.]+$/, ".xlsx") || "export.xlsx",
+    filters: [{ name: "Excel文件", extensions: ["xlsx"] }],
   });
 
   if (!result.canceled && result.filePath) {
     await window.electronAPI.file.writeExcel(result.filePath, data);
-    message.success('导出成功: ' + result.filePath);
+    message.success("导出成功: " + result.filePath);
   }
 };
 
 // 导出为CSV
 const exportToCSV = async (data) => {
   const result = await window.electronAPI.dialog.showSaveDialog({
-    defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.csv') || 'export.csv',
-    filters: [{ name: 'CSV文件', extensions: ['csv'] }],
+    defaultPath:
+      props.file?.file_name?.replace(/\.[^.]+$/, ".csv") || "export.csv",
+    filters: [{ name: "CSV文件", extensions: ["csv"] }],
   });
 
   if (!result.canceled && result.filePath) {
     await window.electronAPI.file.writeExcel(result.filePath, data);
-    message.success('导出成功: ' + result.filePath);
+    message.success("导出成功: " + result.filePath);
   }
 };
 
 // 导出为JSON
 const exportToJSON = async (data) => {
-  const jsonData = await window.electronAPI.file.excelToJSON(props.file.file_path);
+  const jsonData = await window.electronAPI.file.excelToJSON(
+    props.file.file_path,
+  );
 
   const result = await window.electronAPI.dialog.showSaveDialog({
-    defaultPath: props.file?.file_name?.replace(/\.[^.]+$/, '.json') || 'export.json',
-    filters: [{ name: 'JSON文件', extensions: ['json'] }],
+    defaultPath:
+      props.file?.file_name?.replace(/\.[^.]+$/, ".json") || "export.json",
+    filters: [{ name: "JSON文件", extensions: ["json"] }],
   });
 
   if (!result.canceled && result.filePath) {
-    await window.electronAPI.file.writeFile(result.filePath, JSON.stringify(jsonData, null, 2));
-    message.success('导出成功: ' + result.filePath);
+    await window.electronAPI.file.writeFile(
+      result.filePath,
+      JSON.stringify(jsonData, null, 2),
+    );
+    message.success("导出成功: " + result.filePath);
   }
 };
 
@@ -762,11 +768,11 @@ const saveChanges = async () => {
     await window.electronAPI.file.writeExcel(props.file.file_path, data);
 
     hasUnsavedChanges.value = false;
-    emit('save', data);
-    message.success('已保存');
+    emit("save", data);
+    message.success("已保存");
   } catch (error) {
-    logger.error('[ExcelEditor] Save error:', error);
-    message.error('保存失败: ' + error.message);
+    logger.error("[ExcelEditor] Save error:", error);
+    message.error("保存失败: " + error.message);
   }
 };
 
@@ -787,9 +793,13 @@ onBeforeUnmount(() => {
 });
 
 // 监听文件变化
-watch(() => props.file, () => {
-  initSpreadsheet();
-}, { deep: true });
+watch(
+  () => props.file,
+  () => {
+    initSpreadsheet();
+  },
+  { deep: true },
+);
 
 // 暴露方法
 defineExpose({

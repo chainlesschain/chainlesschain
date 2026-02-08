@@ -1,13 +1,7 @@
 <template>
   <div class="speech-settings">
-    <a-card
-      title="语音识别设置"
-      :bordered="false"
-    >
-      <a-form
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-      >
+    <a-card title="语音识别设置" :bordered="false">
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <!-- 识别引擎选择 -->
         <a-form-item label="识别引擎">
           <a-radio-group
@@ -52,24 +46,15 @@
             </a-input>
             <template #extra>
               <a-space>
-                <a-tag
-                  v-if="connectionStatus === 'success'"
-                  color="success"
-                >
+                <a-tag v-if="connectionStatus === 'success'" color="success">
                   <CheckCircleOutlined />
                   连接正常
                 </a-tag>
-                <a-tag
-                  v-else-if="connectionStatus === 'error'"
-                  color="error"
-                >
+                <a-tag v-else-if="connectionStatus === 'error'" color="error">
                   <CloseCircleOutlined />
                   连接失败
                 </a-tag>
-                <a-tag
-                  v-else
-                  color="default"
-                >
+                <a-tag v-else color="default">
                   <QuestionCircleOutlined />
                   未测试
                 </a-tag>
@@ -80,7 +65,7 @@
           <a-form-item label="模型大小">
             <a-select
               v-model:value="config.whisperLocal.modelSize"
-              style="width: 200px;"
+              style="width: 200px"
             >
               <a-select-option value="tiny">
                 Tiny (75MB) - 最快
@@ -102,17 +87,15 @@
               <a-space
                 direction="vertical"
                 size="small"
-                style="margin-top: 8px;"
+                style="margin-top: 8px"
               >
                 <div v-if="modelInfo">
-                  <a-tag color="blue">
-                    速度: {{ modelInfo.speed }}
-                  </a-tag>
+                  <a-tag color="blue"> 速度: {{ modelInfo.speed }} </a-tag>
                   <a-tag color="green">
                     准确度: {{ modelInfo.accuracy }}
                   </a-tag>
                 </div>
-                <span style="color: #999;">
+                <span style="color: #999">
                   {{ modelDescription }}
                 </span>
               </a-space>
@@ -122,23 +105,13 @@
           <a-form-item label="默认语言">
             <a-select
               v-model:value="config.whisperLocal.defaultLanguage"
-              style="width: 200px;"
+              style="width: 200px"
             >
-              <a-select-option value="zh">
-                中文
-              </a-select-option>
-              <a-select-option value="en">
-                English
-              </a-select-option>
-              <a-select-option value="ja">
-                日本語
-              </a-select-option>
-              <a-select-option value="ko">
-                한국어
-              </a-select-option>
-              <a-select-option value="auto">
-                自动检测
-              </a-select-option>
+              <a-select-option value="zh"> 中文 </a-select-option>
+              <a-select-option value="en"> English </a-select-option>
+              <a-select-option value="ja"> 日本語 </a-select-option>
+              <a-select-option value="ko"> 한국어 </a-select-option>
+              <a-select-option value="auto"> 自动检测 </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -148,9 +121,9 @@
               :min="30000"
               :max="300000"
               :step="10000"
-              style="width: 200px;"
+              style="width: 200px"
             />
-            <span style="margin-left: 8px;">毫秒</span>
+            <span style="margin-left: 8px">毫秒</span>
           </a-form-item>
 
           <a-alert
@@ -158,7 +131,7 @@
             description="Whisper Local 使用本地服务器进行语音识别，完全离线运行，保护隐私。需要先启动 Whisper 服务。"
             type="info"
             show-icon
-            style="margin-bottom: 16px;"
+            style="margin-bottom: 16px"
           />
         </template>
 
@@ -203,37 +176,25 @@
           <a-form-item label="语言">
             <a-select
               v-model:value="config.webSpeech.lang"
-              style="width: 200px;"
+              style="width: 200px"
             >
-              <a-select-option value="zh-CN">
-                中文（简体）
-              </a-select-option>
-              <a-select-option value="zh-TW">
-                中文（繁体）
-              </a-select-option>
-              <a-select-option value="en-US">
-                English (US)
-              </a-select-option>
-              <a-select-option value="en-GB">
-                English (UK)
-              </a-select-option>
-              <a-select-option value="ja-JP">
-                日本語
-              </a-select-option>
-              <a-select-option value="ko-KR">
-                한국어
-              </a-select-option>
+              <a-select-option value="zh-CN"> 中文（简体） </a-select-option>
+              <a-select-option value="zh-TW"> 中文（繁体） </a-select-option>
+              <a-select-option value="en-US"> English (US) </a-select-option>
+              <a-select-option value="en-GB"> English (UK) </a-select-option>
+              <a-select-option value="ja-JP"> 日本語 </a-select-option>
+              <a-select-option value="ko-KR"> 한국어 </a-select-option>
             </a-select>
           </a-form-item>
 
           <a-form-item label="连续识别">
             <a-switch v-model:checked="config.webSpeech.continuous" />
-            <span style="margin-left: 8px;">持续监听语音输入</span>
+            <span style="margin-left: 8px">持续监听语音输入</span>
           </a-form-item>
 
           <a-form-item label="临时结果">
             <a-switch v-model:checked="config.webSpeech.interimResults" />
-            <span style="margin-left: 8px;">显示识别过程中的临时结果</span>
+            <span style="margin-left: 8px">显示识别过程中的临时结果</span>
           </a-form-item>
 
           <a-alert
@@ -248,13 +209,17 @@
         <a-divider>通用设置</a-divider>
 
         <a-form-item label="自动保存">
-          <a-switch v-model:checked="config.knowledgeIntegration.autoSaveToKnowledge" />
-          <span style="margin-left: 8px;">自动保存转录结果到知识库</span>
+          <a-switch
+            v-model:checked="config.knowledgeIntegration.autoSaveToKnowledge"
+          />
+          <span style="margin-left: 8px">自动保存转录结果到知识库</span>
         </a-form-item>
 
         <a-form-item label="自动索引">
-          <a-switch v-model:checked="config.knowledgeIntegration.autoAddToIndex" />
-          <span style="margin-left: 8px;">自动添加到 RAG 索引</span>
+          <a-switch
+            v-model:checked="config.knowledgeIntegration.autoAddToIndex"
+          />
+          <span style="margin-left: 8px">自动添加到 RAG 索引</span>
         </a-form-item>
 
         <a-form-item label="快捷键">
@@ -264,18 +229,14 @@
             disabled
           />
           <template #extra>
-            <span style="color: #999;">按下快捷键开始语音输入</span>
+            <span style="color: #999">按下快捷键开始语音输入</span>
           </template>
         </a-form-item>
 
         <!-- 操作按钮 -->
         <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
           <a-space>
-            <a-button
-              type="primary"
-              :loading="saving"
-              @click="handleSave"
-            >
+            <a-button type="primary" :loading="saving" @click="handleSave">
               <SaveOutlined />
               保存设置
             </a-button>
@@ -297,13 +258,9 @@
       v-if="config.defaultEngine === 'whisper-local'"
       title="服务状态"
       :bordered="false"
-      style="margin-top: 16px;"
+      style="margin-top: 16px"
     >
-      <a-descriptions
-        :column="2"
-        bordered
-        size="small"
-      >
+      <a-descriptions :column="2" bordered size="small">
         <a-descriptions-item label="服务地址">
           {{ config.whisperLocal.serverUrl }}
         </a-descriptions-item>
@@ -317,12 +274,9 @@
           {{ config.whisperLocal.modelSize }}
         </a-descriptions-item>
         <a-descriptions-item label="设备">
-          {{ serviceInfo.device || 'CPU' }}
+          {{ serviceInfo.device || "CPU" }}
         </a-descriptions-item>
-        <a-descriptions-item
-          label="已加载模型"
-          :span="2"
-        >
+        <a-descriptions-item label="已加载模型" :span="2">
           <a-space>
             <a-tag
               v-for="model in serviceInfo.models_loaded"
@@ -331,7 +285,12 @@
             >
               {{ model }}
             </a-tag>
-            <span v-if="!serviceInfo.models_loaded || serviceInfo.models_loaded.length === 0">
+            <span
+              v-if="
+                !serviceInfo.models_loaded ||
+                serviceInfo.models_loaded.length === 0
+              "
+            >
               无
             </span>
           </a-space>
@@ -341,10 +300,7 @@
       <a-divider />
 
       <a-space>
-        <a-button
-          :loading="testing"
-          @click="testConnection"
-        >
+        <a-button :loading="testing" @click="testConnection">
           <ReloadOutlined />
           刷新状态
         </a-button>
@@ -362,11 +318,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted } from 'vue';
-import { message, Modal } from 'ant-design-vue';
-import { h } from 'vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { message, Modal } from "ant-design-vue";
+import { h } from "vue";
 import {
   CloudServerOutlined,
   ApiOutlined,
@@ -377,24 +333,24 @@ import {
   SaveOutlined,
   ReloadOutlined,
   FileTextOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // 配置数据
 const config = reactive({
-  defaultEngine: 'whisper-local',
+  defaultEngine: "whisper-local",
   whisperLocal: {
-    serverUrl: 'http://localhost:8002',
-    modelSize: 'base',
-    defaultLanguage: 'zh',
+    serverUrl: "http://localhost:8002",
+    modelSize: "base",
+    defaultLanguage: "zh",
     timeout: 120000,
   },
   whisperAPI: {
-    apiKey: '',
-    baseURL: 'https://api.openai.com/v1',
-    model: 'whisper-1',
+    apiKey: "",
+    baseURL: "https://api.openai.com/v1",
+    model: "whisper-1",
   },
   webSpeech: {
-    lang: 'zh-CN',
+    lang: "zh-CN",
     continuous: true,
     interimResults: true,
   },
@@ -402,37 +358,37 @@ const config = reactive({
     autoSaveToKnowledge: true,
     autoAddToIndex: true,
   },
-  hotkey: 'Ctrl+Shift+V',
+  hotkey: "Ctrl+Shift+V",
 });
 
 // 状态
 const testing = ref(false);
 const saving = ref(false);
-const connectionStatus = ref('unknown');
+const connectionStatus = ref("unknown");
 const serviceInfo = reactive({
-  device: '',
+  device: "",
   models_loaded: [],
 });
 
 // 模型信息
 const modelInfo = computed(() => {
   const models = {
-    tiny: { speed: '很快', accuracy: '基础' },
-    base: { speed: '快', accuracy: '良好' },
-    small: { speed: '中等', accuracy: '较好' },
-    medium: { speed: '慢', accuracy: '高' },
-    large: { speed: '很慢', accuracy: '最高' },
+    tiny: { speed: "很快", accuracy: "基础" },
+    base: { speed: "快", accuracy: "良好" },
+    small: { speed: "中等", accuracy: "较好" },
+    medium: { speed: "慢", accuracy: "高" },
+    large: { speed: "很慢", accuracy: "最高" },
   };
   return models[config.whisperLocal.modelSize];
 });
 
 const modelDescription = computed(() => {
   const descriptions = {
-    tiny: '最快的模型，适合快速测试和实时转录',
-    base: '推荐用于日常使用，速度和准确度平衡',
-    small: '更高的准确度，适合重要内容转录',
-    medium: '专业级准确度，适合会议记录等场景',
-    large: '最高质量，适合对准确度要求极高的场景',
+    tiny: "最快的模型，适合快速测试和实时转录",
+    base: "推荐用于日常使用，速度和准确度平衡",
+    small: "更高的准确度，适合重要内容转录",
+    medium: "专业级准确度，适合会议记录等场景",
+    large: "最高质量，适合对准确度要求极高的场景",
   };
   return descriptions[config.whisperLocal.modelSize];
 });
@@ -440,22 +396,22 @@ const modelDescription = computed(() => {
 // 测试连接
 const testConnection = async () => {
   testing.value = true;
-  connectionStatus.value = 'unknown';
+  connectionStatus.value = "unknown";
 
   try {
     const response = await fetch(`${config.whisperLocal.serverUrl}/health`);
     if (response.ok) {
       const data = await response.json();
-      connectionStatus.value = 'success';
+      connectionStatus.value = "success";
       serviceInfo.device = data.device;
       serviceInfo.models_loaded = data.models_loaded || [];
-      message.success('连接成功！');
+      message.success("连接成功！");
     } else {
-      connectionStatus.value = 'error';
-      message.error('连接失败：服务器响应错误');
+      connectionStatus.value = "error";
+      message.error("连接失败：服务器响应错误");
     }
   } catch (error) {
-    connectionStatus.value = 'error';
+    connectionStatus.value = "error";
     message.error(`连接失败：${error.message}`);
   } finally {
     testing.value = false;
@@ -467,8 +423,8 @@ const handleSave = async () => {
   saving.value = true;
   try {
     // 调用 IPC 保存配置
-    await window.electron.ipcRenderer.invoke('speech:updateConfig', config);
-    message.success('设置已保存');
+    await window.electron.ipcRenderer.invoke("speech:updateConfig", config);
+    message.success("设置已保存");
   } catch (error) {
     message.error(`保存失败：${error.message}`);
   } finally {
@@ -478,43 +434,54 @@ const handleSave = async () => {
 
 // 重置设置
 const handleReset = () => {
-  config.defaultEngine = 'whisper-local';
-  config.whisperLocal.serverUrl = 'http://localhost:8002';
-  config.whisperLocal.modelSize = 'base';
-  config.whisperLocal.defaultLanguage = 'zh';
+  config.defaultEngine = "whisper-local";
+  config.whisperLocal.serverUrl = "http://localhost:8002";
+  config.whisperLocal.modelSize = "base";
+  config.whisperLocal.defaultLanguage = "zh";
   config.whisperLocal.timeout = 120000;
-  message.info('已重置为默认设置');
+  message.info("已重置为默认设置");
 };
 
 // 测试语音识别
-const testResult = ref('');
+const testResult = ref("");
 const isRecording = ref(false);
 let mediaRecorder = null;
 let audioChunks = [];
 
 const handleTest = () => {
-  testResult.value = '';
+  testResult.value = "";
 
   Modal.confirm({
-    title: '语音识别测试',
+    title: "语音识别测试",
     width: 600,
     icon: h(SoundOutlined),
-    content: h('div', { style: 'padding: 16px 0' }, [
-      h('p', { style: 'margin-bottom: 16px' }, '点击"开始录音"按钮，说话后点击"停止录音"进行识别测试。'),
-      h('div', { style: 'text-align: center; margin: 24px 0' }, [
-        h('div', {
-          style: 'width: 80px; height: 80px; border-radius: 50%; background: #f0f0f0; display: inline-flex; align-items: center; justify-content: center; font-size: 32px'
-        }, '🎤')
+    content: h("div", { style: "padding: 16px 0" }, [
+      h(
+        "p",
+        { style: "margin-bottom: 16px" },
+        '点击"开始录音"按钮，说话后点击"停止录音"进行识别测试。',
+      ),
+      h("div", { style: "text-align: center; margin: 24px 0" }, [
+        h(
+          "div",
+          {
+            style:
+              "width: 80px; height: 80px; border-radius: 50%; background: #f0f0f0; display: inline-flex; align-items: center; justify-content: center; font-size: 32px",
+          },
+          "🎤",
+        ),
       ]),
-      h('p', { style: 'color: #666; font-size: 12px; text-align: center' },
-        `当前引擎: ${config.defaultEngine === 'whisper-local' ? '本地 Whisper' : config.defaultEngine === 'whisper-api' ? 'OpenAI Whisper API' : 'Web Speech'}`
-      )
+      h(
+        "p",
+        { style: "color: #666; font-size: 12px; text-align: center" },
+        `当前引擎: ${config.defaultEngine === "whisper-local" ? "本地 Whisper" : config.defaultEngine === "whisper-api" ? "OpenAI Whisper API" : "Web Speech"}`,
+      ),
     ]),
-    okText: '开始录音',
-    cancelText: '关闭',
+    okText: "开始录音",
+    cancelText: "关闭",
     onOk: async () => {
       await startTestRecording();
-    }
+    },
   });
 };
 
@@ -530,59 +497,72 @@ const startTestRecording = async () => {
 
     mediaRecorder.onstop = async () => {
       // 停止所有音轨
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
 
-      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
 
-      message.loading('正在识别...', 0);
+      message.loading("正在识别...", 0);
 
       try {
         // 将 Blob 转换为 ArrayBuffer
         const arrayBuffer = await audioBlob.arrayBuffer();
 
         // 调用语音识别
-        const result = await window.electron.ipcRenderer.invoke('speech:transcribe', {
-          audioData: Array.from(new Uint8Array(arrayBuffer)),
-          engine: config.defaultEngine,
-          options: {
-            language: config.whisperLocal.defaultLanguage,
-          }
-        });
+        const result = await window.electron.ipcRenderer.invoke(
+          "speech:transcribe",
+          {
+            audioData: Array.from(new Uint8Array(arrayBuffer)),
+            engine: config.defaultEngine,
+            options: {
+              language: config.whisperLocal.defaultLanguage,
+            },
+          },
+        );
 
         message.destroy();
 
         if (result.success) {
           Modal.success({
-            title: '识别结果',
-            content: h('div', [
-              h('p', { style: 'font-size: 16px; padding: 16px; background: #f6ffed; border-radius: 4px' }, result.text || '(无识别内容)'),
-              h('p', { style: 'color: #666; margin-top: 8px' }, `耗时: ${result.duration || 0}ms`)
-            ])
+            title: "识别结果",
+            content: h("div", [
+              h(
+                "p",
+                {
+                  style:
+                    "font-size: 16px; padding: 16px; background: #f6ffed; border-radius: 4px",
+                },
+                result.text || "(无识别内容)",
+              ),
+              h(
+                "p",
+                { style: "color: #666; margin-top: 8px" },
+                `耗时: ${result.duration || 0}ms`,
+              ),
+            ]),
           });
         } else {
-          message.error('识别失败: ' + (result.error || '未知错误'));
+          message.error("识别失败: " + (result.error || "未知错误"));
         }
       } catch (error) {
         message.destroy();
-        logger.error('语音识别失败:', error);
-        message.error('识别失败: ' + error.message);
+        logger.error("语音识别失败:", error);
+        message.error("识别失败: " + error.message);
       }
     };
 
     mediaRecorder.start();
-    message.success('开始录音，请说话...');
+    message.success("开始录音，请说话...");
 
     // 5秒后自动停止
     setTimeout(() => {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
         mediaRecorder.stop();
-        message.info('录音结束');
+        message.info("录音结束");
       }
     }, 5000);
-
   } catch (error) {
-    logger.error('无法访问麦克风:', error);
-    message.error('无法访问麦克风: ' + error.message);
+    logger.error("无法访问麦克风:", error);
+    message.error("无法访问麦克风: " + error.message);
   }
 };
 
@@ -593,7 +573,9 @@ const handleEngineChange = () => {
 
 // 打开文档
 const openServiceDocs = () => {
-  window.open('file:///Users/mac/Documents/code2/chainlesschain/backend/whisper-service/README.md');
+  window.open(
+    "file:///Users/mac/Documents/code2/chainlesschain/backend/whisper-service/README.md",
+  );
 };
 
 const openAPIDoc = () => {
@@ -603,16 +585,17 @@ const openAPIDoc = () => {
 // 加载配置
 onMounted(async () => {
   try {
-    const savedConfig = await window.electron.ipcRenderer.invoke('speech:getConfig');
+    const savedConfig =
+      await window.electron.ipcRenderer.invoke("speech:getConfig");
     if (savedConfig) {
       Object.assign(config, savedConfig);
     }
     // 自动测试连接
-    if (config.defaultEngine === 'whisper-local') {
+    if (config.defaultEngine === "whisper-local") {
       await testConnection();
     }
   } catch (error) {
-    logger.error('加载配置失败:', error);
+    logger.error("加载配置失败:", error);
   }
 });
 </script>

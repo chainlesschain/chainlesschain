@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * PermissionChecker - 权限检查器
@@ -15,40 +15,40 @@ class PermissionChecker {
 
     // 定义权限组
     this.permissionGroups = {
-      database: ['database:read', 'database:write', 'database:delete'],
-      llm: ['llm:query', 'llm:stream'],
-      ui: ['ui:component', 'ui:page', 'ui:menu', 'ui:dialog'],
-      file: ['file:read', 'file:write', 'file:delete', 'file:list'],
-      network: ['network:http', 'network:websocket'],
-      system: ['system:exec', 'system:clipboard', 'system:notification'],
-      rag: ['rag:search', 'rag:embed'],
-      storage: ['storage:read', 'storage:write', 'storage:delete'],
+      database: ["database:read", "database:write", "database:delete"],
+      llm: ["llm:query", "llm:stream"],
+      ui: ["ui:component", "ui:page", "ui:menu", "ui:dialog"],
+      file: ["file:read", "file:write", "file:delete", "file:list"],
+      network: ["network:http", "network:websocket"],
+      system: ["system:exec", "system:clipboard", "system:notification"],
+      rag: ["rag:search", "rag:embed"],
+      storage: ["storage:read", "storage:write", "storage:delete"],
     };
 
     // 权限层级（数字越大权限越高）
     this.permissionLevels = {
-      'database:read': 1,
-      'database:write': 2,
-      'database:delete': 3,
-      'file:read': 1,
-      'file:write': 2,
-      'file:delete': 3,
-      'llm:query': 1,
-      'llm:stream': 1,
-      'ui:component': 1,
-      'ui:page': 2,
-      'ui:menu': 1,
-      'ui:dialog': 1,
-      'network:http': 2,
-      'network:websocket': 3,
-      'system:exec': 5, // 最高权限
-      'system:clipboard': 1,
-      'system:notification': 1,
-      'rag:search': 1,
-      'rag:embed': 1,
-      'storage:read': 1,
-      'storage:write': 2,
-      'storage:delete': 3,
+      "database:read": 1,
+      "database:write": 2,
+      "database:delete": 3,
+      "file:read": 1,
+      "file:write": 2,
+      "file:delete": 3,
+      "llm:query": 1,
+      "llm:stream": 1,
+      "ui:component": 1,
+      "ui:page": 2,
+      "ui:menu": 1,
+      "ui:dialog": 1,
+      "network:http": 2,
+      "network:websocket": 3,
+      "system:exec": 5, // 最高权限
+      "system:clipboard": 1,
+      "system:notification": 1,
+      "rag:search": 1,
+      "rag:embed": 1,
+      "storage:read": 1,
+      "storage:write": 2,
+      "storage:delete": 3,
     };
   }
 
@@ -63,15 +63,21 @@ class PermissionChecker {
       const permissions = this.registry.getPluginPermissions(pluginId);
 
       // 检查是否已授予该权限
-      const permissionEntry = permissions.find(p => p.permission === permission);
+      const permissionEntry = permissions.find(
+        (p) => p.permission === permission,
+      );
 
       if (!permissionEntry) {
-        logger.warn(`[PermissionChecker] 插件 ${pluginId} 未请求权限: ${permission}`);
+        logger.warn(
+          `[PermissionChecker] 插件 ${pluginId} 未请求权限: ${permission}`,
+        );
         return false;
       }
 
       if (!permissionEntry.granted) {
-        logger.warn(`[PermissionChecker] 插件 ${pluginId} 权限被拒绝: ${permission}`);
+        logger.warn(
+          `[PermissionChecker] 插件 ${pluginId} 权限被拒绝: ${permission}`,
+        );
         return false;
       }
 
@@ -89,7 +95,7 @@ class PermissionChecker {
    * @returns {boolean} 是否全部有权限
    */
   hasPermissions(pluginId, permissions) {
-    return permissions.every(p => this.hasPermission(pluginId, p));
+    return permissions.every((p) => this.hasPermission(pluginId, p));
   }
 
   /**
@@ -99,7 +105,7 @@ class PermissionChecker {
    * @returns {boolean} 是否至少有一个权限
    */
   hasAnyPermission(pluginId, permissions) {
-    return permissions.some(p => this.hasPermission(pluginId, p));
+    return permissions.some((p) => this.hasPermission(pluginId, p));
   }
 
   /**
@@ -110,7 +116,9 @@ class PermissionChecker {
    */
   requirePermission(pluginId, permission) {
     if (!this.hasPermission(pluginId, permission)) {
-      throw new Error(`权限被拒绝: ${permission}。插件 ${pluginId} 没有该权限。`);
+      throw new Error(
+        `权限被拒绝: ${permission}。插件 ${pluginId} 没有该权限。`,
+      );
     }
   }
 
@@ -121,10 +129,12 @@ class PermissionChecker {
    * @throws {Error} 如果缺少任何权限
    */
   requirePermissions(pluginId, permissions) {
-    const missing = permissions.filter(p => !this.hasPermission(pluginId, p));
+    const missing = permissions.filter((p) => !this.hasPermission(pluginId, p));
 
     if (missing.length > 0) {
-      throw new Error(`缺少权限: ${missing.join(', ')}。插件 ${pluginId} 没有这些权限。`);
+      throw new Error(
+        `缺少权限: ${missing.join(", ")}。插件 ${pluginId} 没有这些权限。`,
+      );
     }
   }
 
@@ -151,7 +161,7 @@ class PermissionChecker {
    */
   getGrantedPermissions(pluginId) {
     const permissions = this.registry.getPluginPermissions(pluginId);
-    return permissions.filter(p => p.granted).map(p => p.permission);
+    return permissions.filter((p) => p.granted).map((p) => p.permission);
   }
 
   /**
@@ -161,7 +171,7 @@ class PermissionChecker {
    * @returns {string[]} 缺少的权限
    */
   getMissingPermissions(pluginId, requiredPermissions) {
-    return requiredPermissions.filter(p => !this.hasPermission(pluginId, p));
+    return requiredPermissions.filter((p) => !this.hasPermission(pluginId, p));
   }
 
   /**
@@ -181,7 +191,7 @@ class PermissionChecker {
    * @returns {string|null} 分类名称
    */
   getPermissionCategory(permission) {
-    const parts = permission.split(':');
+    const parts = permission.split(":");
     return parts.length === 2 ? parts[0] : null;
   }
 
@@ -191,7 +201,7 @@ class PermissionChecker {
    * @returns {string|null} 操作名称
    */
   getPermissionAction(permission) {
-    const parts = permission.split(':');
+    const parts = permission.split(":");
     return parts.length === 2 ? parts[1] : null;
   }
 
@@ -218,21 +228,21 @@ class PermissionChecker {
    * @param {boolean} granted - 是否授予
    * @param {string} reason - 原因
    */
-  async logPermissionCheck(pluginId, permission, granted, reason = '') {
+  async logPermissionCheck(pluginId, permission, granted, reason = "") {
     try {
       await this.registry.logEvent(
         pluginId,
-        'permission_check',
+        "permission_check",
         {
           permission,
           granted,
           reason,
           timestamp: Date.now(),
         },
-        granted ? 'info' : 'warn'
+        granted ? "info" : "warn",
       );
     } catch (error) {
-      logger.error('[PermissionChecker] 记录权限检查日志失败:', error);
+      logger.error("[PermissionChecker] 记录权限检查日志失败:", error);
     }
   }
 
@@ -244,7 +254,7 @@ class PermissionChecker {
     const permissions = {};
 
     for (const [category, perms] of Object.entries(this.permissionGroups)) {
-      permissions[category] = perms.map(p => ({
+      permissions[category] = perms.map((p) => ({
         name: p,
         level: this.permissionLevels[p] || 0,
         description: this.getPermissionDescription(p),
@@ -261,32 +271,32 @@ class PermissionChecker {
    */
   getPermissionDescription(permission) {
     const descriptions = {
-      'database:read': '读取数据库中的笔记和数据',
-      'database:write': '写入或更新数据库中的数据',
-      'database:delete': '删除数据库中的数据',
-      'llm:query': '调用AI大模型进行查询',
-      'llm:stream': '使用流式响应调用AI大模型',
-      'ui:component': '注册自定义UI组件',
-      'ui:page': '注册新的页面',
-      'ui:menu': '注册菜单项',
-      'ui:dialog': '显示对话框',
-      'file:read': '读取文件内容',
-      'file:write': '写入文件',
-      'file:delete': '删除文件',
-      'file:list': '列出目录内容',
-      'network:http': '发起HTTP请求',
-      'network:websocket': '建立WebSocket连接',
-      'system:exec': '执行系统命令（高风险）',
-      'system:clipboard': '访问剪贴板',
-      'system:notification': '发送系统通知',
-      'rag:search': '执行RAG检索搜索',
-      'rag:embed': '生成文本嵌入向量',
-      'storage:read': '读取插件存储',
-      'storage:write': '写入插件存储',
-      'storage:delete': '删除插件存储数据',
+      "database:read": "读取数据库中的笔记和数据",
+      "database:write": "写入或更新数据库中的数据",
+      "database:delete": "删除数据库中的数据",
+      "llm:query": "调用AI大模型进行查询",
+      "llm:stream": "使用流式响应调用AI大模型",
+      "ui:component": "注册自定义UI组件",
+      "ui:page": "注册新的页面",
+      "ui:menu": "注册菜单项",
+      "ui:dialog": "显示对话框",
+      "file:read": "读取文件内容",
+      "file:write": "写入文件",
+      "file:delete": "删除文件",
+      "file:list": "列出目录内容",
+      "network:http": "发起HTTP请求",
+      "network:websocket": "建立WebSocket连接",
+      "system:exec": "执行系统命令（高风险）",
+      "system:clipboard": "访问剪贴板",
+      "system:notification": "发送系统通知",
+      "rag:search": "执行RAG检索搜索",
+      "rag:embed": "生成文本嵌入向量",
+      "storage:read": "读取插件存储",
+      "storage:write": "写入插件存储",
+      "storage:delete": "删除插件存储数据",
     };
 
-    return descriptions[permission] || '未知权限';
+    return descriptions[permission] || "未知权限";
   }
 }
 

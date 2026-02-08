@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 传输层诊断工具
@@ -25,43 +25,50 @@ class TransportDiagnostics {
       available: false,
       latency: null,
       error: null,
-      timestamp: startTime
+      timestamp: startTime,
     };
 
     try {
       if (!this.p2pManager.node) {
-        throw new Error('P2P节点未初始化');
+        throw new Error("P2P节点未初始化");
       }
 
       // 获取当前节点的multiaddrs
       const multiaddrs = this.p2pManager.node.getMultiaddrs();
 
       // 过滤出指定传输层的地址
-      const transportAddrs = multiaddrs.filter(addr => {
+      const transportAddrs = multiaddrs.filter((addr) => {
         const addrStr = addr.toString();
-        if (transport === 'tcp') {
-          return addrStr.includes('/tcp/') && !addrStr.includes('/ws') && !addrStr.includes('/wss');
-        } else if (transport === 'websocket') {
-          return addrStr.includes('/ws') || addrStr.includes('/wss');
-        } else if (transport === 'webrtc') {
-          return addrStr.includes('/webrtc');
+        if (transport === "tcp") {
+          return (
+            addrStr.includes("/tcp/") &&
+            !addrStr.includes("/ws") &&
+            !addrStr.includes("/wss")
+          );
+        } else if (transport === "websocket") {
+          return addrStr.includes("/ws") || addrStr.includes("/wss");
+        } else if (transport === "webrtc") {
+          return addrStr.includes("/webrtc");
         }
         return false;
       });
 
       if (transportAddrs.length === 0) {
         // Special handling for WebRTC - it may be enabled but not create traditional listen addresses
-        if (transport === 'webrtc') {
+        if (transport === "webrtc") {
           // Check if WebRTC transport is actually configured even without listen addresses
-          const allTransports = this.p2pManager.node._components?.transportManager?.getTransports?.() || [];
-          const hasWebRTC = Array.from(allTransports).some(t =>
-            t.constructor.name.toLowerCase().includes('webrtc')
+          const allTransports =
+            this.p2pManager.node._components?.transportManager?.getTransports?.() ||
+            [];
+          const hasWebRTC = Array.from(allTransports).some((t) =>
+            t.constructor.name.toLowerCase().includes("webrtc"),
           );
 
           if (hasWebRTC) {
             result.available = true;
             result.listenAddresses = [];
-            result.note = 'WebRTC传输已配置，但在Node.js环境中不创建传统监听地址';
+            result.note =
+              "WebRTC传输已配置，但在Node.js环境中不创建传统监听地址";
             // Don't log this as success since it's a special case
             return result;
           }
@@ -71,7 +78,7 @@ class TransportDiagnostics {
       }
 
       result.available = true;
-      result.listenAddresses = transportAddrs.map(addr => addr.toString());
+      result.listenAddresses = transportAddrs.map((addr) => addr.toString());
 
       // 如果提供了目标peer，尝试拨号测试
       if (targetPeer) {
@@ -94,19 +101,24 @@ class TransportDiagnostics {
       if (prevHealth.lastCheck === null || prevHealth.successCount === 0) {
         logger.info(`[Transport Diagnostics] ${transport} 测试完成: 可用`);
       }
-
     } catch (error) {
       result.error = error.message;
 
       // 只在状态变化或首次检测时记录错误
       const prevHealth = this.getTransportHealth(transport);
-      const shouldLog = prevHealth.lastCheck === null ||
-                       (prevHealth.successCount > 0 && prevHealth.failureCount === 0);
+      const shouldLog =
+        prevHealth.lastCheck === null ||
+        (prevHealth.successCount > 0 && prevHealth.failureCount === 0);
 
       if (shouldLog) {
         // Special handling for WebRTC - log as info instead of error
-        if (transport === 'webrtc' && error.message.includes('未启用或未监听')) {
-          logger.info(`[Transport Diagnostics] ${transport} 在Node.js环境中不可用（这是正常的）`);
+        if (
+          transport === "webrtc" &&
+          error.message.includes("未启用或未监听")
+        ) {
+          logger.info(
+            `[Transport Diagnostics] ${transport} 在Node.js环境中不可用（这是正常的）`,
+          );
         } else {
           logger.error(`[Transport Diagnostics] ${transport} 测试失败:`, error);
         }
@@ -122,7 +134,7 @@ class TransportDiagnostics {
    * @returns {Promise<Object>} 完整诊断结果
    */
   async runFullDiagnostics() {
-    logger.info('[Transport Diagnostics] 开始完整诊断...');
+    logger.info("[Transport Diagnostics] 开始完整诊断...");
 
     const results = {
       timestamp: Date.now(),
@@ -132,8 +144,8 @@ class TransportDiagnostics {
       summary: {
         totalTransports: 0,
         availableTransports: 0,
-        activeConnections: 0
-      }
+        activeConnections: 0,
+      },
     };
 
     try {
@@ -144,12 +156,12 @@ class TransportDiagnostics {
 
         results.nodeInfo = {
           peerId,
-          multiaddrs: multiaddrs.map(addr => addr.toString()),
-          multiaddrsCount: multiaddrs.length
+          multiaddrs: multiaddrs.map((addr) => addr.toString()),
+          multiaddrsCount: multiaddrs.length,
         };
 
         // 2. 测试各传输层
-        const transportsToTest = ['tcp', 'websocket', 'webrtc'];
+        const transportsToTest = ["tcp", "websocket", "webrtc"];
 
         for (const transport of transportsToTest) {
           const testResult = await this.testTransport(transport);
@@ -165,15 +177,15 @@ class TransportDiagnostics {
         const connections = this.p2pManager.node.getConnections();
         results.summary.activeConnections = connections.length;
 
-        results.connections = connections.map(conn => ({
+        results.connections = connections.map((conn) => ({
           peerId: conn.remotePeer.toString(),
           remoteAddr: conn.remoteAddr.toString(),
           status: conn.status,
           direction: conn.direction,
           timeline: {
             open: conn.timeline.open,
-            upgraded: conn.timeline.upgraded
-          }
+            upgraded: conn.timeline.upgraded,
+          },
         }));
 
         // 4. NAT信息
@@ -182,19 +194,19 @@ class TransportDiagnostics {
             type: this.p2pManager.natInfo.type,
             publicIP: this.p2pManager.natInfo.publicIP,
             localIP: this.p2pManager.natInfo.localIP,
-            description: this.p2pManager.natInfo.description
+            description: this.p2pManager.natInfo.description,
           };
         }
 
-        logger.info(`[Transport Diagnostics] 诊断完成: ${results.summary.availableTransports}/${results.summary.totalTransports} 传输层可用, ${results.summary.activeConnections} 活跃连接`);
-
+        logger.info(
+          `[Transport Diagnostics] 诊断完成: ${results.summary.availableTransports}/${results.summary.totalTransports} 传输层可用, ${results.summary.activeConnections} 活跃连接`,
+        );
       } else {
-        throw new Error('P2P节点未初始化');
+        throw new Error("P2P节点未初始化");
       }
-
     } catch (error) {
       results.error = error.message;
-      logger.error('[Transport Diagnostics] 诊断失败:', error);
+      logger.error("[Transport Diagnostics] 诊断失败:", error);
     }
 
     return results;
@@ -206,15 +218,17 @@ class TransportDiagnostics {
    * @returns {Object} 健康指标
    */
   getTransportHealth(transport) {
-    return this.healthData.get(transport) || {
-      transport,
-      successCount: 0,
-      failureCount: 0,
-      totalLatency: 0,
-      avgLatency: 0,
-      successRate: 0,
-      lastCheck: null
-    };
+    return (
+      this.healthData.get(transport) || {
+        transport,
+        successCount: 0,
+        failureCount: 0,
+        totalLatency: 0,
+        avgLatency: 0,
+        successRate: 0,
+        lastCheck: null,
+      }
+    );
   }
 
   /**
@@ -234,7 +248,7 @@ class TransportDiagnostics {
         totalLatency: 0,
         avgLatency: 0,
         successRate: 0,
-        lastCheck: null
+        lastCheck: null,
       };
       this.healthData.set(transport, health);
     }
@@ -255,7 +269,9 @@ class TransportDiagnostics {
     // 只在首次检测或成功率变化超过10%时记录
     const rateChanged = Math.abs(health.successRate - oldSuccessRate) > 10;
     if (total === 1 || rateChanged) {
-      logger.info(`[Transport Diagnostics] ${transport} 健康更新: 成功率 ${health.successRate.toFixed(1)}%, 平均延迟 ${health.avgLatency.toFixed(0)}ms`);
+      logger.info(
+        `[Transport Diagnostics] ${transport} 健康更新: 成功率 ${health.successRate.toFixed(1)}%, 平均延迟 ${health.avgLatency.toFixed(0)}ms`,
+      );
     }
   }
 
@@ -265,7 +281,7 @@ class TransportDiagnostics {
    */
   startHealthMonitoring(interval = 60000) {
     if (this.monitoringInterval) {
-      logger.warn('[Transport Diagnostics] 健康监控已在运行');
+      logger.warn("[Transport Diagnostics] 健康监控已在运行");
       return;
     }
 
@@ -273,14 +289,18 @@ class TransportDiagnostics {
 
     this.monitoringInterval = setInterval(async () => {
       try {
-        const transports = ['tcp', 'websocket', 'webrtc'];
+        const transports = ["tcp", "websocket", "webrtc"];
 
         for (const transport of transports) {
           const result = await this.testTransport(transport);
-          this.updateTransportHealth(transport, result.available, result.latency);
+          this.updateTransportHealth(
+            transport,
+            result.available,
+            result.latency,
+          );
         }
       } catch (error) {
-        logger.error('[Transport Diagnostics] 健康监控错误:', error);
+        logger.error("[Transport Diagnostics] 健康监控错误:", error);
       }
     }, interval);
   }
@@ -292,7 +312,7 @@ class TransportDiagnostics {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      logger.info('[Transport Diagnostics] 健康监控已停止');
+      logger.info("[Transport Diagnostics] 健康监控已停止");
     }
   }
 
@@ -303,7 +323,7 @@ class TransportDiagnostics {
   getHealthReport() {
     const report = {
       timestamp: Date.now(),
-      transports: {}
+      transports: {},
     };
 
     for (const [transport, health] of this.healthData.entries()) {
@@ -318,7 +338,7 @@ class TransportDiagnostics {
    */
   clearHealthData() {
     this.healthData.clear();
-    logger.info('[Transport Diagnostics] 健康数据已清除');
+    logger.info("[Transport Diagnostics] 健康数据已清除");
   }
 }
 

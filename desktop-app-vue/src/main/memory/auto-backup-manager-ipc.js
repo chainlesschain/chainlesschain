@@ -7,7 +7,7 @@
  * @since 2026-01-18
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -53,10 +53,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.createFullBackup(scope);
     } catch (error) {
-      logger.error(
-        "[AutoBackupManager IPC] Create full backup failed:",
-        error,
-      );
+      logger.error("[AutoBackupManager IPC] Create full backup failed:", error);
       throw error;
     }
   });
@@ -160,10 +157,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.configureSchedule(config);
     } catch (error) {
-      logger.error(
-        "[AutoBackupManager IPC] Configure schedule failed:",
-        error,
-      );
+      logger.error("[AutoBackupManager IPC] Configure schedule failed:", error);
       throw error;
     }
   });

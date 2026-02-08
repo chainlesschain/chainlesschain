@@ -6,8 +6,8 @@
  * @description 提供身份上下文的创建、切换、删除、历史记录等 IPC 接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain } = require('electron');
+const { logger } = require("../utils/logger.js");
+const { ipcMain } = require("electron");
 
 /**
  * 注册所有 Identity Context IPC 处理器
@@ -15,7 +15,9 @@ const { ipcMain } = require('electron');
  * @param {Object} dependencies.identityContextManager - 身份上下文管理器
  */
 function registerIdentityContextIPC({ identityContextManager }) {
-  logger.info('[Identity Context IPC] Registering Identity Context IPC handlers...');
+  logger.info(
+    "[Identity Context IPC] Registering Identity Context IPC handlers...",
+  );
 
   // ============================================================
   // 身份上下文管理 (Identity Context Management)
@@ -25,16 +27,20 @@ function registerIdentityContextIPC({ identityContextManager }) {
    * 获取所有身份上下文
    * Channel: 'identity:get-all-contexts'
    */
-  ipcMain.handle('identity:get-all-contexts', async (_event, { userDID }) => {
+  ipcMain.handle("identity:get-all-contexts", async (_event, { userDID }) => {
     try {
       if (!identityContextManager) {
-        return { success: false, error: '身份上下文管理器未初始化', contexts: [] };
+        return {
+          success: false,
+          error: "身份上下文管理器未初始化",
+          contexts: [],
+        };
       }
 
       const contexts = identityContextManager.getAllContexts(userDID);
       return { success: true, contexts };
     } catch (error) {
-      logger.error('[Identity Context IPC] 获取身份上下文列表失败:', error);
+      logger.error("[Identity Context IPC] 获取身份上下文列表失败:", error);
       return { success: false, error: error.message, contexts: [] };
     }
   });
@@ -43,16 +49,16 @@ function registerIdentityContextIPC({ identityContextManager }) {
    * 获取当前激活的上下文
    * Channel: 'identity:get-active-context'
    */
-  ipcMain.handle('identity:get-active-context', async (_event, { userDID }) => {
+  ipcMain.handle("identity:get-active-context", async (_event, { userDID }) => {
     try {
       if (!identityContextManager) {
-        return { success: false, error: '身份上下文管理器未初始化' };
+        return { success: false, error: "身份上下文管理器未初始化" };
       }
 
       const context = identityContextManager.getActiveContext(userDID);
       return { success: true, context };
     } catch (error) {
-      logger.error('[Identity Context IPC] 获取当前上下文失败:', error);
+      logger.error("[Identity Context IPC] 获取当前上下文失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -61,91 +67,127 @@ function registerIdentityContextIPC({ identityContextManager }) {
    * 创建个人上下文
    * Channel: 'identity:create-personal-context'
    */
-  ipcMain.handle('identity:create-personal-context', async (_event, { userDID, displayName }) => {
-    try {
-      if (!identityContextManager) {
-        return { success: false, error: '身份上下文管理器未初始化' };
-      }
+  ipcMain.handle(
+    "identity:create-personal-context",
+    async (_event, { userDID, displayName }) => {
+      try {
+        if (!identityContextManager) {
+          return { success: false, error: "身份上下文管理器未初始化" };
+        }
 
-      return await identityContextManager.createPersonalContext(userDID, displayName);
-    } catch (error) {
-      logger.error('[Identity Context IPC] 创建个人上下文失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        return await identityContextManager.createPersonalContext(
+          userDID,
+          displayName,
+        );
+      } catch (error) {
+        logger.error("[Identity Context IPC] 创建个人上下文失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 创建组织上下文
    * Channel: 'identity:create-organization-context'
    */
-  ipcMain.handle('identity:create-organization-context', async (_event, { userDID, orgId, orgDID, displayName, avatar }) => {
-    try {
-      if (!identityContextManager) {
-        return { success: false, error: '身份上下文管理器未初始化' };
-      }
+  ipcMain.handle(
+    "identity:create-organization-context",
+    async (_event, { userDID, orgId, orgDID, displayName, avatar }) => {
+      try {
+        if (!identityContextManager) {
+          return { success: false, error: "身份上下文管理器未初始化" };
+        }
 
-      return await identityContextManager.createOrganizationContext(userDID, orgId, orgDID, displayName, avatar);
-    } catch (error) {
-      logger.error('[Identity Context IPC] 创建组织上下文失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        return await identityContextManager.createOrganizationContext(
+          userDID,
+          orgId,
+          orgDID,
+          displayName,
+          avatar,
+        );
+      } catch (error) {
+        logger.error("[Identity Context IPC] 创建组织上下文失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 切换身份上下文
    * Channel: 'identity:switch-context'
    */
-  ipcMain.handle('identity:switch-context', async (_event, { userDID, targetContextId }) => {
-    try {
-      if (!identityContextManager) {
-        return { success: false, error: '身份上下文管理器未初始化' };
-      }
+  ipcMain.handle(
+    "identity:switch-context",
+    async (_event, { userDID, targetContextId }) => {
+      try {
+        if (!identityContextManager) {
+          return { success: false, error: "身份上下文管理器未初始化" };
+        }
 
-      return await identityContextManager.switchContext(userDID, targetContextId);
-    } catch (error) {
-      logger.error('[Identity Context IPC] 切换身份上下文失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        return await identityContextManager.switchContext(
+          userDID,
+          targetContextId,
+        );
+      } catch (error) {
+        logger.error("[Identity Context IPC] 切换身份上下文失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 删除组织上下文
    * Channel: 'identity:delete-organization-context'
    */
-  ipcMain.handle('identity:delete-organization-context', async (_event, { userDID, orgId }) => {
-    try {
-      if (!identityContextManager) {
-        return { success: false, error: '身份上下文管理器未初始化' };
-      }
+  ipcMain.handle(
+    "identity:delete-organization-context",
+    async (_event, { userDID, orgId }) => {
+      try {
+        if (!identityContextManager) {
+          return { success: false, error: "身份上下文管理器未初始化" };
+        }
 
-      return await identityContextManager.deleteOrganizationContext(userDID, orgId);
-    } catch (error) {
-      logger.error('[Identity Context IPC] 删除组织上下文失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        return await identityContextManager.deleteOrganizationContext(
+          userDID,
+          orgId,
+        );
+      } catch (error) {
+        logger.error("[Identity Context IPC] 删除组织上下文失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 获取切换历史
    * Channel: 'identity:get-switch-history'
    */
-  ipcMain.handle('identity:get-switch-history', async (_event, { userDID, limit }) => {
-    try {
-      if (!identityContextManager) {
-        return { success: false, error: '身份上下文管理器未初始化', history: [] };
+  ipcMain.handle(
+    "identity:get-switch-history",
+    async (_event, { userDID, limit }) => {
+      try {
+        if (!identityContextManager) {
+          return {
+            success: false,
+            error: "身份上下文管理器未初始化",
+            history: [],
+          };
+        }
+
+        const history = identityContextManager.getSwitchHistory(userDID, limit);
+        return { success: true, history };
+      } catch (error) {
+        logger.error("[Identity Context IPC] 获取切换历史失败:", error);
+        return { success: false, error: error.message, history: [] };
       }
+    },
+  );
 
-      const history = identityContextManager.getSwitchHistory(userDID, limit);
-      return { success: true, history };
-    } catch (error) {
-      logger.error('[Identity Context IPC] 获取切换历史失败:', error);
-      return { success: false, error: error.message, history: [] };
-    }
-  });
-
-  logger.info('[Identity Context IPC] ✓ All Identity Context IPC handlers registered successfully (7 handlers)');
+  logger.info(
+    "[Identity Context IPC] ✓ All Identity Context IPC handlers registered successfully (7 handlers)",
+  );
 }
 
 module.exports = {
-  registerIdentityContextIPC
+  registerIdentityContextIPC,
 };

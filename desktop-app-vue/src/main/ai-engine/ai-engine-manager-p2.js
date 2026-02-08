@@ -23,41 +23,43 @@
  * 更新: 2026-01-01
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const IntentClassifier = require('./intent-classifier');
-const SlotFiller = require('./slot-filler');
-const { TaskPlanner } = require('./task-planner');
-const TaskPlannerEnhanced = require('./task-planner-enhanced');
-const FunctionCaller = require('./function-caller');
-const ToolSandbox = require('./tool-sandbox');
-const PerformanceMonitor = require('../monitoring/performance-monitor');
-const { getAIEngineConfig, mergeConfig } = require('./ai-engine-config');
+const { logger } = require("../utils/logger.js");
+const IntentClassifier = require("./intent-classifier");
+const SlotFiller = require("./slot-filler");
+const { TaskPlanner } = require("./task-planner");
+const TaskPlannerEnhanced = require("./task-planner-enhanced");
+const FunctionCaller = require("./function-caller");
+const ToolSandbox = require("./tool-sandbox");
+const PerformanceMonitor = require("../monitoring/performance-monitor");
+const { getAIEngineConfig, mergeConfig } = require("./ai-engine-config");
 
 // P1优化模块
-const MultiIntentRecognizer = require('./multi-intent-recognizer');
-const DynamicFewShotLearner = require('./dynamic-few-shot-learner');
-const HierarchicalTaskPlanner = require('./hierarchical-task-planner');
-const CheckpointValidator = require('./checkpoint-validator');
-const SelfCorrectionLoop = require('./self-correction-loop');
+const MultiIntentRecognizer = require("./multi-intent-recognizer");
+const DynamicFewShotLearner = require("./dynamic-few-shot-learner");
+const HierarchicalTaskPlanner = require("./hierarchical-task-planner");
+const CheckpointValidator = require("./checkpoint-validator");
+const SelfCorrectionLoop = require("./self-correction-loop");
 
 // P2核心模块
-const IntentFusion = require('./intent-fusion');
-const { KnowledgeDistillation } = require('./knowledge-distillation');
-const { StreamingResponse } = require('./streaming-response');
+const IntentFusion = require("./intent-fusion");
+const { KnowledgeDistillation } = require("./knowledge-distillation");
+const { StreamingResponse } = require("./streaming-response");
 
 // P2扩展模块
-const { TaskDecompositionEnhancement } = require('./task-decomposition-enhancement');
-const { ToolCompositionSystem } = require('./tool-composition-system');
-const { HistoryMemoryOptimization } = require('./history-memory-optimization');
+const {
+  TaskDecompositionEnhancement,
+} = require("./task-decomposition-enhancement");
+const { ToolCompositionSystem } = require("./tool-composition-system");
+const { HistoryMemoryOptimization } = require("./history-memory-optimization");
 
 // 智能层模块 (Phase 1-4)
-const DataCollector = require('./data-collector');
-const { UserProfileManager } = require('./user-profile-manager');
-const FeatureExtractor = require('./feature-extractor');
-const MLToolMatcher = require('./ml-tool-matcher');
-const CollaborativeFilter = require('./collaborative-filter');
-const ContentRecommender = require('./content-recommender');
-const HybridRecommender = require('./hybrid-recommender');
+const DataCollector = require("./data-collector");
+const { UserProfileManager } = require("./user-profile-manager");
+const FeatureExtractor = require("./feature-extractor");
+const MLToolMatcher = require("./ml-tool-matcher");
+const CollaborativeFilter = require("./collaborative-filter");
+const ContentRecommender = require("./content-recommender");
+const HybridRecommender = require("./hybrid-recommender");
 
 class AIEngineManagerP2 {
   constructor() {
@@ -110,7 +112,7 @@ class AIEngineManagerP2 {
     this.sessionId = null;
 
     // 用户ID（可配置）
-    this.userId = 'default_user';
+    this.userId = "default_user";
 
     // 配置选项（从配置文件加载默认值）
     this.config = getAIEngineConfig();
@@ -122,7 +124,7 @@ class AIEngineManagerP2 {
    */
   async initialize(options = {}) {
     try {
-      logger.info('[AIEngineP2] 初始化AI引擎...');
+      logger.info("[AIEngineP2] 初始化AI引擎...");
 
       // 合并配置
       if (options.config) {
@@ -135,7 +137,9 @@ class AIEngineManagerP2 {
       this.projectConfig = options.projectConfig;
 
       // 生成会话ID
-      this.sessionId = options.sessionId || `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      this.sessionId =
+        options.sessionId ||
+        `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
       // 设置用户ID
       if (options.userId) {
@@ -154,17 +158,27 @@ class AIEngineManagerP2 {
       // 初始化智能层模块
       await this._initializeIntelligenceLayer();
 
-      logger.info('[AIEngineP2] AI引擎初始化成功');
+      logger.info("[AIEngineP2] AI引擎初始化成功");
       logger.info(`[AIEngineP2] 会话ID: ${this.sessionId}`);
-      logger.info(`[AIEngineP2] P0优化: ${this._countEnabledModules(['slotFiller', 'toolSandbox', 'performanceMonitor'])}/3`);
-      logger.info(`[AIEngineP2] P1优化: ${this._countEnabledModules(['multiIntentRecognizer', 'fewShotLearner', 'hierarchicalPlanner', 'checkpointValidator', 'selfCorrectionLoop'])}/5`);
-      logger.info(`[AIEngineP2] P2核心: ${this._countEnabledModules(['intentFusion', 'knowledgeDistillation', 'streamingResponse'])}/3`);
-      logger.info(`[AIEngineP2] P2扩展: ${this._countEnabledModules(['taskDecomposition', 'toolComposition', 'historyMemory'])}/3`);
-      logger.info(`[AIEngineP2] 智能层: ${this._countEnabledModules(['dataCollector', 'userProfileManager', 'hybridRecommender'])}/3`);
+      logger.info(
+        `[AIEngineP2] P0优化: ${this._countEnabledModules(["slotFiller", "toolSandbox", "performanceMonitor"])}/3`,
+      );
+      logger.info(
+        `[AIEngineP2] P1优化: ${this._countEnabledModules(["multiIntentRecognizer", "fewShotLearner", "hierarchicalPlanner", "checkpointValidator", "selfCorrectionLoop"])}/5`,
+      );
+      logger.info(
+        `[AIEngineP2] P2核心: ${this._countEnabledModules(["intentFusion", "knowledgeDistillation", "streamingResponse"])}/3`,
+      );
+      logger.info(
+        `[AIEngineP2] P2扩展: ${this._countEnabledModules(["taskDecomposition", "toolComposition", "historyMemory"])}/3`,
+      );
+      logger.info(
+        `[AIEngineP2] 智能层: ${this._countEnabledModules(["dataCollector", "userProfileManager", "hybridRecommender"])}/3`,
+      );
 
       return true;
     } catch (error) {
-      logger.error('[AIEngineP2] 初始化失败:', error);
+      logger.error("[AIEngineP2] 初始化失败:", error);
       throw error;
     }
   }
@@ -177,27 +191,27 @@ class AIEngineManagerP2 {
     if (this.config.enableSlotFilling && this.llmManager) {
       this.slotFiller = new SlotFiller();
       this.slotFiller.setLLM(this.llmManager);
-      logger.info('[AIEngineP2] ✓ 槽位填充已启用');
+      logger.info("[AIEngineP2] ✓ 槽位填充已启用");
     }
 
     // 工具沙箱
     if (this.config.enableToolSandbox) {
       this.toolSandbox = new ToolSandbox(this.config.toolSandboxConfig);
-      logger.info('[AIEngineP2] ✓ 工具沙箱已启用');
+      logger.info("[AIEngineP2] ✓ 工具沙箱已启用");
     }
 
     // 性能监控
     if (this.config.enablePerformanceMonitor && this.database) {
       this.performanceMonitor = new PerformanceMonitor(this.database);
       await this.performanceMonitor.initialize();
-      logger.info('[AIEngineP2] ✓ 性能监控已启用');
+      logger.info("[AIEngineP2] ✓ 性能监控已启用");
     }
 
     // 增强任务规划器
     if (this.llmManager) {
       this.taskPlannerEnhanced = new TaskPlannerEnhanced();
       this.taskPlannerEnhanced.setLLM(this.llmManager);
-      logger.info('[AIEngineP2] ✓ 增强任务规划器已启用');
+      logger.info("[AIEngineP2] ✓ 增强任务规划器已启用");
     }
   }
 
@@ -209,41 +223,41 @@ class AIEngineManagerP2 {
     if (this.config.enableMultiIntent && this.llmManager && this.database) {
       this.multiIntentRecognizer = new MultiIntentRecognizer({
         llm: this.llmManager,
-        db: this.database
+        db: this.database,
       });
-      logger.info('[AIEngineP2] ✓ 多意图识别已启用');
+      logger.info("[AIEngineP2] ✓ 多意图识别已启用");
     }
 
     // 动态Few-shot学习
     if (this.config.enableDynamicFewShot && this.database) {
       this.fewShotLearner = new DynamicFewShotLearner({
-        db: this.database
+        db: this.database,
       });
-      logger.info('[AIEngineP2] ✓ 动态Few-shot学习已启用');
+      logger.info("[AIEngineP2] ✓ 动态Few-shot学习已启用");
     }
 
     // 分层任务规划
     if (this.config.enableHierarchicalPlanning && this.llmManager) {
       this.hierarchicalPlanner = new HierarchicalTaskPlanner({
-        llm: this.llmManager
+        llm: this.llmManager,
       });
-      logger.info('[AIEngineP2] ✓ 分层任务规划已启用');
+      logger.info("[AIEngineP2] ✓ 分层任务规划已启用");
     }
 
     // 检查点校验
     if (this.config.enableCheckpointValidation && this.llmManager) {
       this.checkpointValidator = new CheckpointValidator({
-        llm: this.llmManager
+        llm: this.llmManager,
       });
-      logger.info('[AIEngineP2] ✓ 检查点校验已启用');
+      logger.info("[AIEngineP2] ✓ 检查点校验已启用");
     }
 
     // 自我修正循环
     if (this.config.enableSelfCorrection && this.llmManager) {
       this.selfCorrectionLoop = new SelfCorrectionLoop({
-        llm: this.llmManager
+        llm: this.llmManager,
       });
-      logger.info('[AIEngineP2] ✓ 自我修正循环已启用');
+      logger.info("[AIEngineP2] ✓ 自我修正循环已启用");
     }
   }
 
@@ -263,15 +277,23 @@ class AIEngineManagerP2 {
         this.intentFusion.setLLM(this.llmManager);
       }
 
-      logger.info('[AIEngineP2] ✓ 意图融合已启用');
-      logger.info(`[AIEngineP2]   - 规则融合: ${this.config.intentFusionConfig?.enableRuleFusion ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - LLM融合: ${this.config.intentFusionConfig?.enableLLMFusion ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - 缓存: ${this.config.intentFusionConfig?.enableCache ? '启用' : '禁用'}`);
+      logger.info("[AIEngineP2] ✓ 意图融合已启用");
+      logger.info(
+        `[AIEngineP2]   - 规则融合: ${this.config.intentFusionConfig?.enableRuleFusion ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - LLM融合: ${this.config.intentFusionConfig?.enableLLMFusion ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 缓存: ${this.config.intentFusionConfig?.enableCache ? "启用" : "禁用"}`,
+      );
     }
 
     // 知识蒸馏
     if (this.config.enableKnowledgeDistillation) {
-      this.knowledgeDistillation = new KnowledgeDistillation(this.config.knowledgeDistillationConfig);
+      this.knowledgeDistillation = new KnowledgeDistillation(
+        this.config.knowledgeDistillationConfig,
+      );
 
       if (this.database) {
         this.knowledgeDistillation.setDatabase(this.database);
@@ -281,31 +303,47 @@ class AIEngineManagerP2 {
         this.knowledgeDistillation.setLLM(this.llmManager);
       }
 
-      logger.info('[AIEngineP2] ✓ 知识蒸馏已启用');
-      logger.info(`[AIEngineP2]   - 小模型: ${this.config.knowledgeDistillationConfig?.smallModel || 'qwen2:1.5b'}`);
-      logger.info(`[AIEngineP2]   - 大模型: ${this.config.knowledgeDistillationConfig?.largeModel || 'qwen2:7b'}`);
-      logger.info(`[AIEngineP2]   - 回退: ${this.config.knowledgeDistillationConfig?.enableFallback ? '启用' : '禁用'}`);
+      logger.info("[AIEngineP2] ✓ 知识蒸馏已启用");
+      logger.info(
+        `[AIEngineP2]   - 小模型: ${this.config.knowledgeDistillationConfig?.smallModel || "qwen2:1.5b"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 大模型: ${this.config.knowledgeDistillationConfig?.largeModel || "qwen2:7b"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 回退: ${this.config.knowledgeDistillationConfig?.enableFallback ? "启用" : "禁用"}`,
+      );
     }
 
     // 流式响应
     if (this.config.enableStreamingResponse) {
-      this.streamingResponse = new StreamingResponse(this.config.streamingResponseConfig);
+      this.streamingResponse = new StreamingResponse(
+        this.config.streamingResponseConfig,
+      );
 
       if (this.database) {
         this.streamingResponse.setDatabase(this.database);
       }
 
-      logger.info('[AIEngineP2] ✓ 流式响应已启用');
-      logger.info(`[AIEngineP2]   - 进度追踪: ${this.config.streamingResponseConfig?.enableProgressTracking ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - 部分结果: ${this.config.streamingResponseConfig?.enablePartialResults ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - 最大并发: ${this.config.streamingResponseConfig?.maxConcurrentTasks || 10}`);
+      logger.info("[AIEngineP2] ✓ 流式响应已启用");
+      logger.info(
+        `[AIEngineP2]   - 进度追踪: ${this.config.streamingResponseConfig?.enableProgressTracking ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 部分结果: ${this.config.streamingResponseConfig?.enablePartialResults ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 最大并发: ${this.config.streamingResponseConfig?.maxConcurrentTasks || 10}`,
+      );
     }
 
     // ===== P2扩展模块 =====
 
     // 任务分解增强
     if (this.config.enableTaskDecomposition) {
-      this.taskDecomposition = new TaskDecompositionEnhancement(this.config.taskDecompositionConfig);
+      this.taskDecomposition = new TaskDecompositionEnhancement(
+        this.config.taskDecompositionConfig,
+      );
 
       if (this.database) {
         this.taskDecomposition.setDatabase(this.database);
@@ -315,38 +353,60 @@ class AIEngineManagerP2 {
         this.taskDecomposition.setLLM(this.llmManager);
       }
 
-      logger.info('[AIEngineP2] ✓ 任务分解增强已启用');
-      logger.info(`[AIEngineP2]   - 动态粒度: ${this.config.taskDecompositionConfig?.enableDynamicGranularity ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - 依赖分析: ${this.config.taskDecompositionConfig?.enableDependencyAnalysis ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - 模式学习: ${this.config.taskDecompositionConfig?.enableLearning ? '启用' : '禁用'}`);
+      logger.info("[AIEngineP2] ✓ 任务分解增强已启用");
+      logger.info(
+        `[AIEngineP2]   - 动态粒度: ${this.config.taskDecompositionConfig?.enableDynamicGranularity ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 依赖分析: ${this.config.taskDecompositionConfig?.enableDependencyAnalysis ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 模式学习: ${this.config.taskDecompositionConfig?.enableLearning ? "启用" : "禁用"}`,
+      );
     }
 
     // 工具组合系统
     if (this.config.enableToolComposition) {
-      this.toolComposition = new ToolCompositionSystem(this.config.toolCompositionConfig);
+      this.toolComposition = new ToolCompositionSystem(
+        this.config.toolCompositionConfig,
+      );
 
       if (this.database) {
         this.toolComposition.setDatabase(this.database);
       }
 
-      logger.info('[AIEngineP2] ✓ 工具组合系统已启用');
-      logger.info(`[AIEngineP2]   - 自动组合: ${this.config.toolCompositionConfig?.enableAutoComposition ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - 效果预测: ${this.config.toolCompositionConfig?.enableEffectPrediction ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - 组合优化: ${this.config.toolCompositionConfig?.enableOptimization ? '启用' : '禁用'}`);
+      logger.info("[AIEngineP2] ✓ 工具组合系统已启用");
+      logger.info(
+        `[AIEngineP2]   - 自动组合: ${this.config.toolCompositionConfig?.enableAutoComposition ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 效果预测: ${this.config.toolCompositionConfig?.enableEffectPrediction ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 组合优化: ${this.config.toolCompositionConfig?.enableOptimization ? "启用" : "禁用"}`,
+      );
     }
 
     // 历史记忆优化
     if (this.config.enableHistoryMemory) {
-      this.historyMemory = new HistoryMemoryOptimization(this.config.historyMemoryConfig);
+      this.historyMemory = new HistoryMemoryOptimization(
+        this.config.historyMemoryConfig,
+      );
 
       if (this.database) {
         this.historyMemory.setDatabase(this.database);
       }
 
-      logger.info('[AIEngineP2] ✓ 历史记忆优化已启用');
-      logger.info(`[AIEngineP2]   - 历史学习: ${this.config.historyMemoryConfig?.enableLearning ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - 成功预测: ${this.config.historyMemoryConfig?.enablePrediction ? '启用' : '禁用'}`);
-      logger.info(`[AIEngineP2]   - 记忆窗口: ${this.config.historyMemoryConfig?.historyWindowSize || 1000}`);
+      logger.info("[AIEngineP2] ✓ 历史记忆优化已启用");
+      logger.info(
+        `[AIEngineP2]   - 历史学习: ${this.config.historyMemoryConfig?.enableLearning ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 成功预测: ${this.config.historyMemoryConfig?.enablePrediction ? "启用" : "禁用"}`,
+      );
+      logger.info(
+        `[AIEngineP2]   - 记忆窗口: ${this.config.historyMemoryConfig?.historyWindowSize || 1000}`,
+      );
     }
   }
 
@@ -358,7 +418,7 @@ class AIEngineManagerP2 {
       return;
     }
 
-    logger.info('[AIEngineP2] ===== 初始化智能层 =====');
+    logger.info("[AIEngineP2] ===== 初始化智能层 =====");
 
     // Phase 1: 数据收集器
     if (this.database) {
@@ -366,10 +426,10 @@ class AIEngineManagerP2 {
         enableCollection: true,
         batchSize: 50,
         flushInterval: 5000,
-        enableValidation: true
+        enableValidation: true,
       });
       this.dataCollector.setDatabase(this.database);
-      logger.info('[AIEngineP2] ✓ 数据收集器已启用');
+      logger.info("[AIEngineP2] ✓ 数据收集器已启用");
     }
 
     // Phase 2: 用户画像管理器
@@ -377,10 +437,10 @@ class AIEngineManagerP2 {
       this.userProfileManager = new UserProfileManager({
         minDataPoints: 10,
         enableTemporalAnalysis: true,
-        cacheSize: 1000
+        cacheSize: 1000,
       });
       this.userProfileManager.setDatabase(this.database);
-      logger.info('[AIEngineP2] ✓ 用户画像管理器已启用');
+      logger.info("[AIEngineP2] ✓ 用户画像管理器已启用");
     }
 
     // Phase 3: 特征提取器和ML工具匹配器
@@ -393,14 +453,14 @@ class AIEngineManagerP2 {
         minConfidence: 0.1,
         scoreWeights: {
           textMatch: 0.25,
-          userPreference: 0.30,
-          historicalSuccess: 0.30,
-          recency: 0.15
-        }
+          userPreference: 0.3,
+          historicalSuccess: 0.3,
+          recency: 0.15,
+        },
       });
       this.mlToolMatcher.setDatabase(this.database);
-      logger.info('[AIEngineP2] ✓ 特征提取器已启用');
-      logger.info('[AIEngineP2] ✓ ML工具匹配器已启用');
+      logger.info("[AIEngineP2] ✓ 特征提取器已启用");
+      logger.info("[AIEngineP2] ✓ ML工具匹配器已启用");
     }
 
     // Phase 4: 推荐系统
@@ -408,14 +468,14 @@ class AIEngineManagerP2 {
       this.collaborativeFilter = new CollaborativeFilter({
         minSimilarity: 0.1,
         topKUsers: 10,
-        enableCache: true
+        enableCache: true,
       });
       this.collaborativeFilter.setDatabase(this.database);
 
       this.contentRecommender = new ContentRecommender({
         minSimilarity: 0.2,
         topKSimilar: 5,
-        enableToolChain: true
+        enableToolChain: true,
       });
       this.contentRecommender.setDatabase(this.database);
 
@@ -425,31 +485,31 @@ class AIEngineManagerP2 {
         weights: {
           ml: 0.4,
           collaborative: 0.35,
-          content: 0.25
+          content: 0.25,
         },
-        enableDiversity: true
+        enableDiversity: true,
       });
       this.hybridRecommender.setDatabase(this.database);
 
       // 初始化推荐系统
       try {
         await this.hybridRecommender.initialize();
-        logger.info('[AIEngineP2] ✓ 协同过滤已启用');
-        logger.info('[AIEngineP2] ✓ 内容推荐已启用');
-        logger.info('[AIEngineP2] ✓ 混合推荐系统已启用');
+        logger.info("[AIEngineP2] ✓ 协同过滤已启用");
+        logger.info("[AIEngineP2] ✓ 内容推荐已启用");
+        logger.info("[AIEngineP2] ✓ 混合推荐系统已启用");
       } catch (error) {
-        logger.warn('[AIEngineP2] ⚠ 推荐系统初始化失败:', error.message);
+        logger.warn("[AIEngineP2] ⚠ 推荐系统初始化失败:", error.message);
       }
     }
 
-    logger.info('[AIEngineP2] 智能层初始化完成');
+    logger.info("[AIEngineP2] 智能层初始化完成");
   }
 
   /**
    * 统计已启用的模块数量
    */
   _countEnabledModules(moduleNames) {
-    return moduleNames.filter(name => this[name] !== null).length;
+    return moduleNames.filter((name) => this[name] !== null).length;
   }
 
   /**
@@ -469,15 +529,18 @@ class AIEngineManagerP2 {
         userId: this.userId,
         userInput,
         startTime,
-        ...context
+        ...context,
       };
 
       // 性能监控: 开始记录
       if (this.performanceMonitor) {
-        await this.performanceMonitor.startPipelineMetrics(executionContext.sessionId, {
-          userInput,
-          userId: this.userId
-        });
+        await this.performanceMonitor.startPipelineMetrics(
+          executionContext.sessionId,
+          {
+            userInput,
+            userId: this.userId,
+          },
+        );
       }
 
       // ===== 阶段1: 意图识别 (P1: 多意图识别) =====
@@ -486,7 +549,10 @@ class AIEngineManagerP2 {
 
       if (this.multiIntentRecognizer) {
         // 使用P1多意图识别
-        intents = await this.multiIntentRecognizer.recognizeIntents(userInput, executionContext);
+        intents = await this.multiIntentRecognizer.recognizeIntents(
+          userInput,
+          executionContext,
+        );
         logger.info(`[AIEngineP2] P1多意图识别: ${intents.length}个意图`);
       } else {
         // 回退到基础意图识别
@@ -497,7 +563,10 @@ class AIEngineManagerP2 {
 
       // 性能监控: 意图识别
       if (this.performanceMonitor) {
-        await this.performanceMonitor.recordMetric('intent_recognition', Date.now() - intentStartTime);
+        await this.performanceMonitor.recordMetric(
+          "intent_recognition",
+          Date.now() - intentStartTime,
+        );
       }
 
       // ===== 阶段2: 意图融合 (P2: Intent Fusion) =====
@@ -506,13 +575,21 @@ class AIEngineManagerP2 {
 
       if (this.intentFusion && intents.length > 1) {
         try {
-          fusedIntents = await this.intentFusion.fuseIntents(intents, executionContext);
+          fusedIntents = await this.intentFusion.fuseIntents(
+            intents,
+            executionContext,
+          );
           const saved = intents.length - fusedIntents.length;
-          logger.info(`[AIEngineP2] P2意图融合: ${intents.length} -> ${fusedIntents.length} (节省${saved}个)`);
+          logger.info(
+            `[AIEngineP2] P2意图融合: ${intents.length} -> ${fusedIntents.length} (节省${saved}个)`,
+          );
 
           // 性能监控: 意图融合
           if (this.performanceMonitor) {
-            await this.performanceMonitor.recordMetric('intent_fusion', Date.now() - fusionStartTime);
+            await this.performanceMonitor.recordMetric(
+              "intent_fusion",
+              Date.now() - fusionStartTime,
+            );
           }
         } catch (error) {
           logger.error(`[AIEngineP2] 意图融合失败，使用原始意图:`, error);
@@ -527,7 +604,10 @@ class AIEngineManagerP2 {
       if (this.hierarchicalPlanner && fusedIntents.length > 0) {
         // 使用P1分层任务规划
         for (const intent of fusedIntents) {
-          const intentTasks = await this.hierarchicalPlanner.planTasks(intent, executionContext);
+          const intentTasks = await this.hierarchicalPlanner.planTasks(
+            intent,
+            executionContext,
+          );
           tasks.push(...intentTasks);
         }
         logger.info(`[AIEngineP2] P1分层规划: ${tasks.length}个任务`);
@@ -549,7 +629,10 @@ class AIEngineManagerP2 {
 
       // 性能监控: 任务规划
       if (this.performanceMonitor) {
-        await this.performanceMonitor.recordMetric('task_planning', Date.now() - planningStartTime);
+        await this.performanceMonitor.recordMetric(
+          "task_planning",
+          Date.now() - planningStartTime,
+        );
       }
 
       // ===== 阶段4: 槽位填充 (P0优化) =====
@@ -557,14 +640,20 @@ class AIEngineManagerP2 {
         const slotStartTime = Date.now();
         for (const task of tasks) {
           if (task.params) {
-            task.params = await this.slotFiller.fill(task.params, executionContext);
+            task.params = await this.slotFiller.fill(
+              task.params,
+              executionContext,
+            );
           }
         }
         logger.info(`[AIEngineP2] P0槽位填充完成`);
 
         // 性能监控
         if (this.performanceMonitor) {
-          await this.performanceMonitor.recordMetric('slot_filling', Date.now() - slotStartTime);
+          await this.performanceMonitor.recordMetric(
+            "slot_filling",
+            Date.now() - slotStartTime,
+          );
         }
       }
 
@@ -576,7 +665,9 @@ class AIEngineManagerP2 {
         const task = tasks[i];
 
         try {
-          logger.info(`[AIEngineP2] 执行任务 ${i + 1}/${tasks.length}: ${task.type}`);
+          logger.info(
+            `[AIEngineP2] 执行任务 ${i + 1}/${tasks.length}: ${task.type}`,
+          );
 
           let result;
 
@@ -589,26 +680,39 @@ class AIEngineManagerP2 {
 
           // P1检查点校验
           if (this.checkpointValidator) {
-            const validation = await this.checkpointValidator.validate(result, task, executionContext);
+            const validation = await this.checkpointValidator.validate(
+              result,
+              task,
+              executionContext,
+            );
             if (!validation.isValid) {
               logger.warn(`[AIEngineP2] 检查点校验失败: ${validation.reason}`);
 
               // P1自我修正
               if (this.selfCorrectionLoop) {
-                result = await this.selfCorrectionLoop.correct(task, result, validation, executionContext);
+                result = await this.selfCorrectionLoop.correct(
+                  task,
+                  result,
+                  validation,
+                  executionContext,
+                );
               }
             }
           }
 
           results.push(result);
-
         } catch (error) {
           logger.error(`[AIEngineP2] 任务执行失败:`, error);
 
           // P1自我修正循环
           if (this.selfCorrectionLoop) {
             try {
-              const correctedResult = await this.selfCorrectionLoop.correctError(task, error, executionContext);
+              const correctedResult =
+                await this.selfCorrectionLoop.correctError(
+                  task,
+                  error,
+                  executionContext,
+                );
               results.push(correctedResult);
             } catch (correctionError) {
               results.push({ error: error.message, success: false });
@@ -621,7 +725,10 @@ class AIEngineManagerP2 {
 
       // 性能监控: 工具执行
       if (this.performanceMonitor) {
-        await this.performanceMonitor.recordMetric('tool_execution', Date.now() - executionStartTime);
+        await this.performanceMonitor.recordMetric(
+          "tool_execution",
+          Date.now() - executionStartTime,
+        );
       }
 
       // ===== 总结 =====
@@ -629,16 +736,21 @@ class AIEngineManagerP2 {
 
       // 性能监控: 完成记录
       if (this.performanceMonitor) {
-        await this.performanceMonitor.endPipelineMetrics(executionContext.sessionId, {
-          success: true,
-          totalTime,
-          intentCount: intents.length,
-          fusedIntentCount: fusedIntents.length,
-          taskCount: tasks.length
-        });
+        await this.performanceMonitor.endPipelineMetrics(
+          executionContext.sessionId,
+          {
+            success: true,
+            totalTime,
+            intentCount: intents.length,
+            fusedIntentCount: fusedIntents.length,
+            taskCount: tasks.length,
+          },
+        );
       }
 
-      logger.info(`[AIEngineP2] ========== 处理完成 (${totalTime}ms) ==========\n`);
+      logger.info(
+        `[AIEngineP2] ========== 处理完成 (${totalTime}ms) ==========\n`,
+      );
 
       // 返回结果
       return {
@@ -654,18 +766,17 @@ class AIEngineManagerP2 {
           intentRecognitionTime: Date.now() - intentStartTime,
           taskPlanningTime: Date.now() - planningStartTime,
           executionTime: Date.now() - executionStartTime,
-          totalTime
-        }
+          totalTime,
+        },
       };
-
     } catch (error) {
-      logger.error('[AIEngineP2] 处理失败:', error);
+      logger.error("[AIEngineP2] 处理失败:", error);
 
       // 性能监控: 记录失败
       if (this.performanceMonitor) {
         await this.performanceMonitor.endPipelineMetrics(this.sessionId, {
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
 
@@ -687,14 +798,17 @@ class AIEngineManagerP2 {
 
     // 知识蒸馏统计
     if (this.knowledgeDistillation) {
-      stats.knowledgeDistillation = await this.knowledgeDistillation.getDistillationStats();
-      stats.knowledgeDistillationPerformance = this.knowledgeDistillation.getPerformanceStats();
+      stats.knowledgeDistillation =
+        await this.knowledgeDistillation.getDistillationStats();
+      stats.knowledgeDistillationPerformance =
+        this.knowledgeDistillation.getPerformanceStats();
     }
 
     // 流式响应统计
     if (this.streamingResponse) {
       stats.streamingResponse = this.streamingResponse.getStats();
-      stats.streamingResponseActiveTasks = this.streamingResponse.getActiveTasks();
+      stats.streamingResponseActiveTasks =
+        this.streamingResponse.getActiveTasks();
     }
 
     return stats;
@@ -704,7 +818,7 @@ class AIEngineManagerP2 {
    * 清理资源
    */
   async cleanup() {
-    logger.info('[AIEngineP2] 清理资源...');
+    logger.info("[AIEngineP2] 清理资源...");
 
     // P2核心模块
     if (this.intentFusion) {
@@ -732,7 +846,7 @@ class AIEngineManagerP2 {
       this.historyMemory.cleanup();
     }
 
-    logger.info('[AIEngineP2] 资源清理完成');
+    logger.info("[AIEngineP2] 资源清理完成");
   }
 
   // ==================== P2扩展集成方法 ====================
@@ -745,7 +859,7 @@ class AIEngineManagerP2 {
    */
   async decomposeTaskWithHistory(task, context = {}) {
     if (!this.taskDecomposition) {
-      logger.warn('[AIEngineP2] 任务分解模块未启用，返回原任务');
+      logger.warn("[AIEngineP2] 任务分解模块未启用，返回原任务");
       return [task];
     }
 
@@ -753,13 +867,13 @@ class AIEngineManagerP2 {
       const subtasks = await this.taskDecomposition.decomposeTask(task, {
         ...context,
         sessionId: this.sessionId,
-        userId: this.userId
+        userId: this.userId,
       });
 
       logger.info(`[AIEngineP2] 任务分解完成: 1 -> ${subtasks.length}`);
       return subtasks;
     } catch (error) {
-      logger.error('[AIEngineP2] 任务分解失败:', error);
+      logger.error("[AIEngineP2] 任务分解失败:", error);
       return [task]; // 失败时返回原任务
     }
   }
@@ -772,7 +886,7 @@ class AIEngineManagerP2 {
    */
   async composeToolsOptimized(goal, context = {}) {
     if (!this.toolComposition) {
-      logger.warn('[AIEngineP2] 工具组合模块未启用');
+      logger.warn("[AIEngineP2] 工具组合模块未启用");
       return [];
     }
 
@@ -780,13 +894,13 @@ class AIEngineManagerP2 {
       const composition = await this.toolComposition.composeTools(goal, {
         ...context,
         sessionId: this.sessionId,
-        userId: this.userId
+        userId: this.userId,
       });
 
       logger.info(`[AIEngineP2] 工具组合完成: ${composition.length}个步骤`);
       return composition;
     } catch (error) {
-      logger.error('[AIEngineP2] 工具组合失败:', error);
+      logger.error("[AIEngineP2] 工具组合失败:", error);
       return [];
     }
   }
@@ -806,13 +920,15 @@ class AIEngineManagerP2 {
       const prediction = await this.historyMemory.predictSuccess(task, {
         ...context,
         sessionId: this.sessionId,
-        userId: this.userId
+        userId: this.userId,
       });
 
-      logger.info(`[AIEngineP2] 任务成功率预测: ${(prediction.probability * 100).toFixed(1)}% (置信度: ${(prediction.confidence * 100).toFixed(1)}%)`);
+      logger.info(
+        `[AIEngineP2] 任务成功率预测: ${(prediction.probability * 100).toFixed(1)}% (置信度: ${(prediction.confidence * 100).toFixed(1)}%)`,
+      );
       return prediction;
     } catch (error) {
-      logger.error('[AIEngineP2] 成功率预测失败:', error);
+      logger.error("[AIEngineP2] 成功率预测失败:", error);
       return { probability: 0.5, confidence: 0, memory: null };
     }
   }
@@ -833,12 +949,12 @@ class AIEngineManagerP2 {
       await this.historyMemory.recordExecution(task, result, duration, {
         ...context,
         sessionId: this.sessionId,
-        userId: this.userId
+        userId: this.userId,
       });
 
       logger.info(`[AIEngineP2] 任务执行已记录: ${task.type}`);
     } catch (error) {
-      logger.error('[AIEngineP2] 记录任务执行失败:', error);
+      logger.error("[AIEngineP2] 记录任务执行失败:", error);
     }
   }
 
@@ -849,7 +965,7 @@ class AIEngineManagerP2 {
    */
   registerTool(name, tool) {
     if (!this.toolComposition) {
-      logger.warn('[AIEngineP2] 工具组合模块未启用');
+      logger.warn("[AIEngineP2] 工具组合模块未启用");
       return;
     }
 
@@ -863,9 +979,13 @@ class AIEngineManagerP2 {
    */
   getP2ExtendedStats() {
     return {
-      taskDecomposition: this.taskDecomposition ? this.taskDecomposition.getStats() : null,
-      toolComposition: this.toolComposition ? this.toolComposition.getStats() : null,
-      historyMemory: this.historyMemory ? this.historyMemory.getStats() : null
+      taskDecomposition: this.taskDecomposition
+        ? this.taskDecomposition.getStats()
+        : null,
+      toolComposition: this.toolComposition
+        ? this.toolComposition.getStats()
+        : null,
+      historyMemory: this.historyMemory ? this.historyMemory.getStats() : null,
     };
   }
 }

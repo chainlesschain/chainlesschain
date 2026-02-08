@@ -4,42 +4,42 @@
  * 负责图片压缩、缩略图生成、格式转换等
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const sharp = require('sharp');
-const path = require('path');
-const fs = require('fs').promises;
-const fsSync = require('fs');
-const { v4: uuidv4 } = require('uuid');
-const { EventEmitter } = require('events');
-const { getResourceMonitor } = require('../utils/resource-monitor');
+const { logger } = require("../utils/logger.js");
+const sharp = require("sharp");
+const path = require("path");
+const fs = require("fs").promises;
+const fsSync = require("fs");
+const { v4: uuidv4 } = require("uuid");
+const { EventEmitter } = require("events");
+const { getResourceMonitor } = require("../utils/resource-monitor");
 
 /**
  * 图片处理配置
  */
 const DEFAULT_CONFIG = {
   // 压缩配置
-  maxWidth: 1920,           // 最大宽度
-  maxHeight: 1080,          // 最大高度
-  quality: 85,              // JPEG 质量 (0-100)
+  maxWidth: 1920, // 最大宽度
+  maxHeight: 1080, // 最大高度
+  quality: 85, // JPEG 质量 (0-100)
 
   // 缩略图配置
-  thumbnailWidth: 200,      // 缩略图宽度
-  thumbnailHeight: 200,     // 缩略图高度
+  thumbnailWidth: 200, // 缩略图宽度
+  thumbnailHeight: 200, // 缩略图高度
 
   // 支持的格式
-  supportedFormats: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'],
+  supportedFormats: ["jpg", "jpeg", "png", "gif", "bmp", "webp"],
 
   // 输出格式
-  outputFormat: 'jpeg',     // 默认输出格式
+  outputFormat: "jpeg", // 默认输出格式
 
   // 大文件阈值 (10MB)
   largeFileThreshold: 10 * 1024 * 1024,
 
   // 大文件优化配置
   largeFileOptions: {
-    limitInputPixels: 268402689,  // 限制输入像素数（防止OOM）
-    sequentialRead: true,          // 顺序读取（降低内存）
-    density: 150,                  // 降低DPI
+    limitInputPixels: 268402689, // 限制输入像素数（防止OOM）
+    sequentialRead: true, // 顺序读取（降低内存）
+    density: 150, // 降低DPI
   },
 };
 
@@ -53,8 +53,8 @@ class ImageProcessor extends EventEmitter {
     this.resourceMonitor = getResourceMonitor();
 
     // 监听资源水平变化
-    this.resourceMonitor.on('level-change', ({ newLevel }) => {
-      this.emit('resource-level-change', { level: newLevel });
+    this.resourceMonitor.on("level-change", ({ newLevel }) => {
+      this.emit("resource-level-change", { level: newLevel });
       logger.info(`[ImageProcessor] 资源水平变化: ${newLevel}`);
     });
   }
@@ -92,7 +92,7 @@ class ImageProcessor extends EventEmitter {
         orientation: metadata.orientation,
       };
     } catch (error) {
-      logger.error('[ImageProcessor] 获取元信息失败:', error);
+      logger.error("[ImageProcessor] 获取元信息失败:", error);
       throw error;
     }
   }
@@ -108,7 +108,8 @@ class ImageProcessor extends EventEmitter {
    */
   async compress(input, outputPath, options = {}) {
     // 获取当前资源降级策略
-    const strategy = this.resourceMonitor.getDegradationStrategy('imageProcessing');
+    const strategy =
+      this.resourceMonitor.getDegradationStrategy("imageProcessing");
     const resourceLevel = this.resourceMonitor.currentLevel;
 
     const {
@@ -121,33 +122,33 @@ class ImageProcessor extends EventEmitter {
     // 检测是否为大文件（仅对文件路径有效，Buffer跳过检测）
     let isLargeFile = false;
     let fileSize = 0;
-    if (typeof input === 'string') {
+    if (typeof input === "string") {
       try {
         const stats = await fs.stat(input);
         fileSize = stats.size;
         isLargeFile = fileSize > this.config.largeFileThreshold;
       } catch (error) {
         // 文件不存在或无法访问，继续处理
-        logger.warn('[ImageProcessor] 无法获取文件大小:', error.message);
+        logger.warn("[ImageProcessor] 无法获取文件大小:", error.message);
       }
     }
 
     // 如果资源紧张，发出警告
-    if (resourceLevel !== 'normal') {
-      this.emit('resource-warning', {
+    if (resourceLevel !== "normal") {
+      this.emit("resource-warning", {
         level: resourceLevel,
         strategy,
-        message: `内存${resourceLevel === 'critical' ? '严重' : ''}不足，降级处理参数`
+        message: `内存${resourceLevel === "critical" ? "严重" : ""}不足，降级处理参数`,
       });
     }
 
     try {
-      this.emit('compress-start', { input, outputPath, isLargeFile, fileSize });
+      this.emit("compress-start", { input, outputPath, isLargeFile, fileSize });
 
       if (isLargeFile) {
         logger.info(
           `[ImageProcessor] 大文件检测: ${(fileSize / 1024 / 1024).toFixed(2)}MB, ` +
-          `启用优化模式`
+            `启用优化模式`,
         );
       }
 
@@ -162,19 +163,22 @@ class ImageProcessor extends EventEmitter {
       });
 
       // 调整大小（保持宽高比）
-      if (originalMetadata.width > maxWidth || originalMetadata.height > maxHeight) {
+      if (
+        originalMetadata.width > maxWidth ||
+        originalMetadata.height > maxHeight
+      ) {
         pipeline = pipeline.resize(maxWidth, maxHeight, {
-          fit: 'inside',
+          fit: "inside",
           withoutEnlargement: true,
         });
       }
 
       // 转换格式和压缩
-      if (format === 'jpeg' || format === 'jpg') {
+      if (format === "jpeg" || format === "jpg") {
         pipeline = pipeline.jpeg({ quality, progressive: true });
-      } else if (format === 'png') {
+      } else if (format === "png") {
         pipeline = pipeline.png({ quality, compressionLevel: 9 });
-      } else if (format === 'webp') {
+      } else if (format === "webp") {
         pipeline = pipeline.webp({ quality });
       }
 
@@ -183,10 +187,7 @@ class ImageProcessor extends EventEmitter {
         // 流式输出（减少内存占用）
         const writeStream = fsSync.createWriteStream(outputPath);
         await new Promise((resolve, reject) => {
-          pipeline
-            .pipe(writeStream)
-            .on('finish', resolve)
-            .on('error', reject);
+          pipeline.pipe(writeStream).on("finish", resolve).on("error", reject);
         });
       } else {
         // 小文件直接输出（性能更好）
@@ -208,35 +209,40 @@ class ImageProcessor extends EventEmitter {
         originalHeight: originalMetadata.height,
         compressedWidth: compressedMetadata.width,
         compressedHeight: compressedMetadata.height,
-        compressionRatio: (originalMetadata.size || fileSize) ?
-          ((1 - compressedSize / (originalMetadata.size || fileSize)) * 100).toFixed(2) : 0,
+        compressionRatio:
+          originalMetadata.size || fileSize
+            ? (
+                (1 - compressedSize / (originalMetadata.size || fileSize)) *
+                100
+              ).toFixed(2)
+            : 0,
         outputPath: outputPath,
         resourceLevel: resourceLevel,
-        degraded: resourceLevel !== 'normal',
-        processingMode: isLargeFile ? 'streaming' : 'direct',
+        degraded: resourceLevel !== "normal",
+        processingMode: isLargeFile ? "streaming" : "direct",
       };
 
-      this.emit('compress-complete', result);
+      this.emit("compress-complete", result);
 
       // 如果内存紧张，尝试垃圾回收
-      if (resourceLevel === 'critical' || isLargeFile) {
+      if (resourceLevel === "critical" || isLargeFile) {
         this.resourceMonitor.forceGarbageCollection();
       }
 
       return result;
     } catch (error) {
-      logger.error('[ImageProcessor] 压缩失败:', error);
+      logger.error("[ImageProcessor] 压缩失败:", error);
 
       // 如果是内存错误，尝试恢复
-      if (error.message && error.message.includes('memory')) {
-        this.emit('memory-error', {
+      if (error.message && error.message.includes("memory")) {
+        this.emit("memory-error", {
           input,
           error,
-          memoryStatus: this.resourceMonitor.getMemoryStatus()
+          memoryStatus: this.resourceMonitor.getMemoryStatus(),
         });
       }
 
-      this.emit('compress-error', { input, error });
+      this.emit("compress-error", { input, error });
       throw error;
     }
   }
@@ -254,12 +260,12 @@ class ImageProcessor extends EventEmitter {
     const {
       width = this.config.thumbnailWidth,
       height = this.config.thumbnailHeight,
-      fit = 'cover',
+      fit = "cover",
     } = options;
 
     // 检测大文件
     let isLargeFile = false;
-    if (typeof input === 'string') {
+    if (typeof input === "string") {
       try {
         const stats = await fs.stat(input);
         isLargeFile = stats.size > this.config.largeFileThreshold;
@@ -269,14 +275,14 @@ class ImageProcessor extends EventEmitter {
     }
 
     try {
-      this.emit('thumbnail-start', { input, outputPath, isLargeFile });
+      this.emit("thumbnail-start", { input, outputPath, isLargeFile });
 
       await sharp(input, {
         ...(isLargeFile && this.config.largeFileOptions),
       })
         .resize(width, height, {
           fit: fit,
-          position: 'center',
+          position: "center",
         })
         .jpeg({ quality: 80 })
         .toFile(outputPath);
@@ -289,14 +295,14 @@ class ImageProcessor extends EventEmitter {
         height: height,
         size: stats.size,
         outputPath: outputPath,
-        processingMode: isLargeFile ? 'streaming' : 'direct',
+        processingMode: isLargeFile ? "streaming" : "direct",
       };
 
-      this.emit('thumbnail-complete', result);
+      this.emit("thumbnail-complete", result);
       return result;
     } catch (error) {
-      logger.error('[ImageProcessor] 生成缩略图失败:', error);
-      this.emit('thumbnail-error', { input, error });
+      logger.error("[ImageProcessor] 生成缩略图失败:", error);
+      this.emit("thumbnail-error", { input, error });
       throw error;
     }
   }
@@ -313,7 +319,7 @@ class ImageProcessor extends EventEmitter {
   async convertFormat(input, outputPath, format) {
     // 检测大文件
     let isLargeFile = false;
-    if (typeof input === 'string') {
+    if (typeof input === "string") {
       try {
         const stats = await fs.stat(input);
         isLargeFile = stats.size > this.config.largeFileThreshold;
@@ -327,11 +333,11 @@ class ImageProcessor extends EventEmitter {
         ...(isLargeFile && this.config.largeFileOptions),
       });
 
-      if (format === 'jpeg' || format === 'jpg') {
+      if (format === "jpeg" || format === "jpg") {
         pipeline = pipeline.jpeg({ quality: this.config.quality });
-      } else if (format === 'png') {
+      } else if (format === "png") {
         pipeline = pipeline.png({ compressionLevel: 9 });
-      } else if (format === 'webp') {
+      } else if (format === "webp") {
         pipeline = pipeline.webp({ quality: this.config.quality });
       } else {
         throw new Error(`不支持的格式: ${format}`);
@@ -346,10 +352,10 @@ class ImageProcessor extends EventEmitter {
         format: format,
         size: stats.size,
         outputPath: outputPath,
-        processingMode: isLargeFile ? 'streaming' : 'direct',
+        processingMode: isLargeFile ? "streaming" : "direct",
       };
     } catch (error) {
-      logger.error('[ImageProcessor] 格式转换失败:', error);
+      logger.error("[ImageProcessor] 格式转换失败:", error);
       throw error;
     }
   }
@@ -360,15 +366,22 @@ class ImageProcessor extends EventEmitter {
    * @param {string} operation - 操作类型 (compress/thumbnail)
    * @returns {Promise<Array>} 处理结果列表
    */
-  async batchProcess(images, operation = 'compress') {
+  async batchProcess(images, operation = "compress") {
     const results = [];
-    const strategy = this.resourceMonitor.getDegradationStrategy('imageProcessing');
+    const strategy =
+      this.resourceMonitor.getDegradationStrategy("imageProcessing");
     const concurrent = strategy.concurrent;
 
-    logger.info(`[ImageProcessor] 批量处理 ${images.length} 张图片，并发数: ${concurrent}`);
+    logger.info(
+      `[ImageProcessor] 批量处理 ${images.length} 张图片，并发数: ${concurrent}`,
+    );
 
     // 分批处理以控制并发
-    for (let batchStart = 0; batchStart < images.length; batchStart += concurrent) {
+    for (
+      let batchStart = 0;
+      batchStart < images.length;
+      batchStart += concurrent
+    ) {
       const batch = images.slice(batchStart, batchStart + concurrent);
 
       // 并发处理当前批次
@@ -378,18 +391,18 @@ class ImageProcessor extends EventEmitter {
 
           try {
             // 更新进度
-            this.emit('batch-progress', {
+            this.emit("batch-progress", {
               current: i + 1,
               total: images.length,
               percentage: Math.round(((i + 1) / images.length) * 100),
-              resourceLevel: this.resourceMonitor.currentLevel
+              resourceLevel: this.resourceMonitor.currentLevel,
             });
 
             // 执行操作
             let result;
-            if (operation === 'compress') {
+            if (operation === "compress") {
               result = await this.compress(input, outputPath, options);
-            } else if (operation === 'thumbnail') {
+            } else if (operation === "thumbnail") {
               result = await this.generateThumbnail(input, outputPath, options);
             } else {
               throw new Error(`未知操作: ${operation}`);
@@ -401,24 +414,27 @@ class ImageProcessor extends EventEmitter {
               ...result,
             };
           } catch (error) {
-            logger.error(`[ImageProcessor] 处理失败 [${i + 1}/${images.length}]:`, error);
+            logger.error(
+              `[ImageProcessor] 处理失败 [${i + 1}/${images.length}]:`,
+              error,
+            );
             return {
               success: false,
               input: input,
               error: error.message,
             };
           }
-        })
+        }),
       );
 
       // 收集批次结果
-      batchResults.forEach(promiseResult => {
-        if (promiseResult.status === 'fulfilled') {
+      batchResults.forEach((promiseResult) => {
+        if (promiseResult.status === "fulfilled") {
           results.push(promiseResult.value);
         } else {
           results.push({
             success: false,
-            error: promiseResult.reason?.message || '未知错误'
+            error: promiseResult.reason?.message || "未知错误",
           });
         }
       });
@@ -426,19 +442,19 @@ class ImageProcessor extends EventEmitter {
       // 批次之间检查资源并可能触发垃圾回收
       if (batchStart + concurrent < images.length) {
         const currentLevel = this.resourceMonitor.updateResourceLevel();
-        if (currentLevel === 'critical') {
-          logger.info('[ImageProcessor] 内存临界，暂停并执行垃圾回收');
+        if (currentLevel === "critical") {
+          logger.info("[ImageProcessor] 内存临界，暂停并执行垃圾回收");
           this.resourceMonitor.forceGarbageCollection();
           // 暂停 1 秒让系统恢复
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       }
     }
 
-    this.emit('batch-complete', {
+    this.emit("batch-complete", {
       total: images.length,
-      succeeded: results.filter(r => r.success).length,
-      failed: results.filter(r => !r.success).length,
+      succeeded: results.filter((r) => r.success).length,
+      failed: results.filter((r) => !r.success).length,
     });
 
     return results;
@@ -453,9 +469,7 @@ class ImageProcessor extends EventEmitter {
    */
   async rotate(input, outputPath, angle) {
     try {
-      await sharp(input)
-        .rotate(angle)
-        .toFile(outputPath);
+      await sharp(input).rotate(angle).toFile(outputPath);
 
       return {
         success: true,
@@ -463,7 +477,7 @@ class ImageProcessor extends EventEmitter {
         outputPath: outputPath,
       };
     } catch (error) {
-      logger.error('[ImageProcessor] 旋转失败:', error);
+      logger.error("[ImageProcessor] 旋转失败:", error);
       throw error;
     }
   }
@@ -489,7 +503,7 @@ class ImageProcessor extends EventEmitter {
         outputPath: outputPath,
       };
     } catch (error) {
-      logger.error('[ImageProcessor] 裁剪失败:', error);
+      logger.error("[ImageProcessor] 裁剪失败:", error);
       throw error;
     }
   }
@@ -508,7 +522,7 @@ class ImageProcessor extends EventEmitter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    logger.info('[ImageProcessor] 配置已更新:', this.config);
+    logger.info("[ImageProcessor] 配置已更新:", this.config);
   }
 }
 

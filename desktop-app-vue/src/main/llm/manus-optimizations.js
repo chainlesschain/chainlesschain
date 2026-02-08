@@ -25,7 +25,7 @@ const {
 } = require("../ai-engine/tool-masking");
 
 // 🔥 任务追踪文件系统 (todo.md 机制)
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { getTaskTrackerFile } = require("../ai-engine/task-tracker-file");
 
 /**
@@ -36,7 +36,8 @@ const { getTaskTrackerFile } = require("../ai-engine/task-tracker-file");
 class ManusOptimizations {
   constructor(options = {}) {
     // 初始化 Context Engineering
-    this.contextEngineering = options.contextEngineering ||
+    this.contextEngineering =
+      options.contextEngineering ||
       getContextEngineering({
         enableKVCacheOptimization: options.enableKVCacheOptimization !== false,
         enableTodoMechanism: options.enableTodoMechanism !== false,
@@ -45,7 +46,8 @@ class ManusOptimizations {
       });
 
     // 初始化 Tool Masking
-    this.toolMasking = options.toolMasking ||
+    this.toolMasking =
+      options.toolMasking ||
       getToolMaskingSystem({
         enableStateMachine: options.enableStateMachine || false,
         logMaskChanges: options.logMaskChanges !== false,
@@ -64,7 +66,10 @@ class ManusOptimizations {
           preserveHistory: options.preserveTaskHistory !== false,
         });
       } catch (error) {
-        logger.warn("[ManusOptimizations] TaskTrackerFile 初始化失败:", error.message);
+        logger.warn(
+          "[ManusOptimizations] TaskTrackerFile 初始化失败:",
+          error.message,
+        );
       }
     }
 
@@ -74,9 +79,11 @@ class ManusOptimizations {
       enableKVCacheOptimization: options.enableKVCacheOptimization !== false,
       enableToolMasking: options.enableToolMasking !== false,
       enableTaskTracking: options.enableTaskTracking !== false,
-      enableRecoverableCompression: options.enableRecoverableCompression !== false,
+      enableRecoverableCompression:
+        options.enableRecoverableCompression !== false,
       // 🔥 使用文件系统持久化任务
-      enableFileBasedTaskTracking: options.enableFileBasedTaskTracking !== false,
+      enableFileBasedTaskTracking:
+        options.enableFileBasedTaskTracking !== false,
     };
 
     // 当前任务上下文
@@ -86,7 +93,8 @@ class ManusOptimizations {
       kvCache: this.config.enableKVCacheOptimization,
       toolMasking: this.config.enableToolMasking,
       taskTracking: this.config.enableTaskTracking,
-      fileBasedTask: this.config.enableFileBasedTaskTracking && !!this.taskTracker,
+      fileBasedTask:
+        this.config.enableFileBasedTaskTracking && !!this.taskTracker,
     });
   }
 
@@ -113,7 +121,8 @@ class ManusOptimizations {
     }
 
     // 获取工具定义
-    const tools = options.tools ||
+    const tools =
+      options.tools ||
       (this.config.enableToolMasking
         ? this.toolMasking.getAllToolDefinitions()
         : []);
@@ -155,7 +164,9 @@ class ManusOptimizations {
    * @param {boolean} available - 是否可用
    */
   setToolAvailable(toolName, available) {
-    if (!this.config.enableToolMasking) {return;}
+    if (!this.config.enableToolMasking) {
+      return;
+    }
     this.toolMasking.setToolAvailability(toolName, available);
   }
 
@@ -165,7 +176,9 @@ class ManusOptimizations {
    * @param {boolean} available - 是否可用
    */
   setToolsByPrefix(prefix, available) {
-    if (!this.config.enableToolMasking) {return;}
+    if (!this.config.enableToolMasking) {
+      return;
+    }
     this.toolMasking.setToolsByPrefix(prefix, available);
   }
 
@@ -203,7 +216,9 @@ class ManusOptimizations {
    * @param {Array} task.steps - 任务步骤
    */
   async startTask(task) {
-    if (!this.config.enableTaskTracking) {return null;}
+    if (!this.config.enableTaskTracking) {
+      return null;
+    }
 
     // 🔥 使用文件系统持久化
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {
@@ -216,7 +231,10 @@ class ManusOptimizations {
         await this.taskTracker.startTask();
         this.currentTask = createdTask;
       } catch (error) {
-        logger.warn("[ManusOptimizations] TaskTrackerFile 创建失败，使用内存模式:", error.message);
+        logger.warn(
+          "[ManusOptimizations] TaskTrackerFile 创建失败，使用内存模式:",
+          error.message,
+        );
         this._createMemoryTask(task);
       }
     } else {
@@ -259,14 +277,19 @@ class ManusOptimizations {
    * @param {string} status - 状态
    */
   async updateTaskProgress(stepIndex, status = "in_progress") {
-    if (!this.config.enableTaskTracking || !this.currentTask) {return;}
+    if (!this.config.enableTaskTracking || !this.currentTask) {
+      return;
+    }
 
     // 🔥 使用文件系统更新
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {
       try {
         await this.taskTracker.updateProgress(stepIndex, status);
       } catch (error) {
-        logger.warn("[ManusOptimizations] TaskTrackerFile 更新失败:", error.message);
+        logger.warn(
+          "[ManusOptimizations] TaskTrackerFile 更新失败:",
+          error.message,
+        );
       }
     }
 
@@ -284,7 +307,9 @@ class ManusOptimizations {
       }
     }
 
-    logger.info(`[ManusOptimizations] 任务进度: 步骤 ${stepIndex + 1}, 状态: ${status}`);
+    logger.info(
+      `[ManusOptimizations] 任务进度: 步骤 ${stepIndex + 1}, 状态: ${status}`,
+    );
   }
 
   /**
@@ -292,7 +317,9 @@ class ManusOptimizations {
    * @param {Object} result - 步骤结果
    */
   async completeCurrentStep(result = null) {
-    if (!this.currentTask) {return;}
+    if (!this.currentTask) {
+      return;
+    }
 
     // 🔥 使用文件系统完成步骤
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {
@@ -301,7 +328,10 @@ class ManusOptimizations {
         this.currentTask = this.taskTracker.getCurrentTask();
         return;
       } catch (error) {
-        logger.warn("[ManusOptimizations] TaskTrackerFile 完成步骤失败:", error.message);
+        logger.warn(
+          "[ManusOptimizations] TaskTrackerFile 完成步骤失败:",
+          error.message,
+        );
       }
     }
 
@@ -318,23 +348,26 @@ class ManusOptimizations {
    * @param {Object} result - 任务结果
    */
   async completeTask(result = null) {
-    if (!this.currentTask) {return;}
+    if (!this.currentTask) {
+      return;
+    }
 
     // 🔥 使用文件系统完成任务
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {
       try {
         await this.taskTracker.completeTask(result);
       } catch (error) {
-        logger.warn("[ManusOptimizations] TaskTrackerFile 完成任务失败:", error.message);
+        logger.warn(
+          "[ManusOptimizations] TaskTrackerFile 完成任务失败:",
+          error.message,
+        );
       }
     }
 
     this.currentTask.status = "completed";
     this.currentTask.completedAt = Date.now();
 
-    logger.info(
-      `[ManusOptimizations] 任务完成: ${this.currentTask.objective}`,
-    );
+    logger.info(`[ManusOptimizations] 任务完成: ${this.currentTask.objective}`);
 
     // 切换到提交阶段
     if (this.config.enableToolMasking && this.toolMasking.stateMachine) {
@@ -350,23 +383,26 @@ class ManusOptimizations {
    * @param {string} reason - 取消原因
    */
   async cancelTask(reason = "用户取消") {
-    if (!this.currentTask) {return;}
+    if (!this.currentTask) {
+      return;
+    }
 
     // 🔥 使用文件系统取消任务
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {
       try {
         await this.taskTracker.cancelTask(reason);
       } catch (error) {
-        logger.warn("[ManusOptimizations] TaskTrackerFile 取消任务失败:", error.message);
+        logger.warn(
+          "[ManusOptimizations] TaskTrackerFile 取消任务失败:",
+          error.message,
+        );
       }
     }
 
     this.currentTask.status = "cancelled";
     this.currentTask.cancelledAt = Date.now();
 
-    logger.info(
-      `[ManusOptimizations] 任务取消: ${this.currentTask.objective}`,
-    );
+    logger.info(`[ManusOptimizations] 任务取消: ${this.currentTask.objective}`);
 
     this.contextEngineering.clearTask();
     this.currentTask = null;

@@ -7,7 +7,7 @@
  * @module MCPPerformanceMonitor
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
 class MCPPerformanceMonitor extends EventEmitter {
@@ -105,7 +105,9 @@ class MCPPerformanceMonitor extends EventEmitter {
     const toolMetrics = this.metrics.toolCalls.byTool.get(toolName);
     toolMetrics.count++;
     toolMetrics.latencies.push(duration);
-    if (!success) {toolMetrics.errors++;}
+    if (!success) {
+      toolMetrics.errors++;
+    }
 
     // Record by server
     if (!this.metrics.toolCalls.byServer.has(serverName)) {
@@ -119,7 +121,9 @@ class MCPPerformanceMonitor extends EventEmitter {
     const serverMetrics = this.metrics.toolCalls.byServer.get(serverName);
     serverMetrics.count++;
     serverMetrics.latencies.push(duration);
-    if (!success) {serverMetrics.errors++;}
+    if (!success) {
+      serverMetrics.errors++;
+    }
 
     this.emit("tool-call-recorded", {
       serverName,
@@ -389,19 +393,25 @@ class MCPPerformanceMonitor extends EventEmitter {
   }
 
   _average(arr) {
-    if (!arr || arr.length === 0) {return 0;}
+    if (!arr || arr.length === 0) {
+      return 0;
+    }
     return arr.reduce((a, b) => a + b, 0) / arr.length;
   }
 
   _percentile(arr, p) {
-    if (!arr || arr.length === 0) {return 0;}
+    if (!arr || arr.length === 0) {
+      return 0;
+    }
     const sorted = arr.slice().sort((a, b) => a - b);
     const index = Math.ceil((p / 100) * sorted.length) - 1;
     return sorted[index];
   }
 
   _calculateRate(success, total) {
-    if (total === 0) {return "0%";}
+    if (total === 0) {
+      return "0%";
+    }
     return ((success / total) * 100).toFixed(1) + "%";
   }
 
@@ -431,7 +441,9 @@ class MCPPerformanceMonitor extends EventEmitter {
    */
   _getOverallToolCallMinLatency() {
     const latencies = this._getAllToolCallLatencies();
-    if (latencies.length === 0) {return 0;}
+    if (latencies.length === 0) {
+      return 0;
+    }
     return Math.min(...latencies);
   }
 
@@ -441,7 +453,9 @@ class MCPPerformanceMonitor extends EventEmitter {
    */
   _getOverallToolCallMaxLatency() {
     const latencies = this._getAllToolCallLatencies();
-    if (latencies.length === 0) {return 0;}
+    if (latencies.length === 0) {
+      return 0;
+    }
     return Math.max(...latencies);
   }
 

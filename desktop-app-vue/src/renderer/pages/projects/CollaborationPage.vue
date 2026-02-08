@@ -390,7 +390,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
@@ -658,12 +658,15 @@ const handleConfirmInvite = async () => {
   inviting.value = true;
   try {
     // 调用后端API发送邀请
-    const result = await window.electron.ipcRenderer.invoke("collab:send-invitation", {
-      projectId: inviteForm.value.projectId,
-      collaboratorDid: inviteForm.value.collaboratorDid,
-      role: inviteForm.value.role,
-      message: inviteForm.value.message,
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "collab:send-invitation",
+      {
+        projectId: inviteForm.value.projectId,
+        collaboratorDid: inviteForm.value.collaboratorDid,
+        role: inviteForm.value.role,
+        message: inviteForm.value.message,
+      },
+    );
 
     if (result.success) {
       message.success("邀请已发送");
@@ -689,7 +692,10 @@ const handleConfirmInvite = async () => {
 const handleAcceptInvitation = async (invitationId) => {
   try {
     // 调用后端API接受邀请
-    const result = await window.electron.ipcRenderer.invoke("collab:accept-invitation", invitationId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "collab:accept-invitation",
+      invitationId,
+    );
 
     if (result.success) {
       pendingInvitations.value = pendingInvitations.value.filter(
@@ -710,7 +716,10 @@ const handleAcceptInvitation = async (invitationId) => {
 const handleRejectInvitation = async (invitationId) => {
   try {
     // 调用后端API拒绝邀请
-    const result = await window.electron.ipcRenderer.invoke("collab:reject-invitation", invitationId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "collab:reject-invitation",
+      invitationId,
+    );
 
     if (result.success) {
       pendingInvitations.value = pendingInvitations.value.filter(
@@ -741,7 +750,10 @@ const handleAction = (key, projectId) => {
       onOk: async () => {
         try {
           // 调用后端API退出协作
-          const result = await window.electron.ipcRenderer.invoke("collab:leave-project", projectId);
+          const result = await window.electron.ipcRenderer.invoke(
+            "collab:leave-project",
+            projectId,
+          );
 
           if (result.success) {
             collaborationProjects.value = collaborationProjects.value.filter(

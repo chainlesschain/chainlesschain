@@ -5,18 +5,22 @@
  * 支持插件发现、下载、评分、评论等功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
 
 class PluginMarketplaceAPI {
   constructor(config = {}) {
     // 市场API配置
-    this.baseURL = config.baseURL || process.env.PLUGIN_MARKETPLACE_URL || 'https://plugins.chainlesschain.com/api';
+    this.baseURL =
+      config.baseURL ||
+      process.env.PLUGIN_MARKETPLACE_URL ||
+      "https://plugins.chainlesschain.com/api";
     this.timeout = config.timeout || 30000;
-    this.cacheDir = config.cacheDir || path.join(process.cwd(), '.plugin-cache');
+    this.cacheDir =
+      config.cacheDir || path.join(process.cwd(), ".plugin-cache");
     this.cacheTTL = config.cacheTTL || 3600000; // 1小时
 
     // 创建axios实例
@@ -24,9 +28,9 @@ class PluginMarketplaceAPI {
       baseURL: this.baseURL,
       timeout: this.timeout,
       headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'ChainlessChain-Desktop/1.0'
-      }
+        "Content-Type": "application/json",
+        "User-Agent": "ChainlessChain-Desktop/1.0",
+      },
     });
 
     // 确保缓存目录存在
@@ -50,7 +54,7 @@ class PluginMarketplaceAPI {
    */
   getCacheKey(endpoint, params = {}) {
     const key = `${endpoint}:${JSON.stringify(params)}`;
-    return crypto.createHash('md5').update(key).digest('hex');
+    return crypto.createHash("md5").update(key).digest("hex");
   }
 
   /**
@@ -70,14 +74,14 @@ class PluginMarketplaceAPI {
     const cacheFile = path.join(this.cacheDir, `${key}.json`);
     if (fs.existsSync(cacheFile)) {
       try {
-        const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+        const cached = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
         if (Date.now() - cached.timestamp < this.cacheTTL) {
           this.cache.set(key, cached);
           return cached.data;
         }
         fs.unlinkSync(cacheFile);
       } catch (error) {
-        logger.error('[PluginMarketplaceAPI] Cache read error:', error);
+        logger.error("[PluginMarketplaceAPI] Cache read error:", error);
       }
     }
 
@@ -90,7 +94,7 @@ class PluginMarketplaceAPI {
   setCache(key, data) {
     const cached = {
       timestamp: Date.now(),
-      data
+      data,
     };
 
     // 内存缓存
@@ -99,9 +103,9 @@ class PluginMarketplaceAPI {
     // 文件缓存
     const cacheFile = path.join(this.cacheDir, `${key}.json`);
     try {
-      fs.writeFileSync(cacheFile, JSON.stringify(cached), 'utf8');
+      fs.writeFileSync(cacheFile, JSON.stringify(cached), "utf8");
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Cache write error:', error);
+      logger.error("[PluginMarketplaceAPI] Cache write error:", error);
     }
   }
 
@@ -112,11 +116,11 @@ class PluginMarketplaceAPI {
     this.cache.clear();
     try {
       const files = fs.readdirSync(this.cacheDir);
-      files.forEach(file => {
+      files.forEach((file) => {
         fs.unlinkSync(path.join(this.cacheDir, file));
       });
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Cache clear error:', error);
+      logger.error("[PluginMarketplaceAPI] Cache clear error:", error);
     }
   }
 
@@ -127,11 +131,11 @@ class PluginMarketplaceAPI {
     const {
       category = null,
       search = null,
-      sort = 'popular',
+      sort = "popular",
       page = 1,
       pageSize = 20,
       verified = null,
-      useCache = true
+      useCache = true,
     } = options;
 
     const params = {
@@ -140,41 +144,43 @@ class PluginMarketplaceAPI {
       sort,
       page,
       pageSize,
-      verified
+      verified,
     };
 
     // 检查缓存
     if (useCache) {
-      const cacheKey = this.getCacheKey('/plugins', params);
+      const cacheKey = this.getCacheKey("/plugins", params);
       const cached = this.getFromCache(cacheKey);
       if (cached) {
-        logger.info('[PluginMarketplaceAPI] Using cached plugin list');
+        logger.info("[PluginMarketplaceAPI] Using cached plugin list");
         return cached;
       }
     }
 
     try {
-      const response = await this.client.get('/plugins', { params });
+      const response = await this.client.get("/plugins", { params });
       const data = response.data;
 
       // 缓存结果
       if (useCache) {
-        const cacheKey = this.getCacheKey('/plugins', params);
+        const cacheKey = this.getCacheKey("/plugins", params);
         this.setCache(cacheKey, data);
       }
 
       return data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] List plugins error:', error);
+      logger.error("[PluginMarketplaceAPI] List plugins error:", error);
 
       // 如果网络失败，尝试返回缓存（即使过期）
       if (useCache) {
-        const cacheKey = this.getCacheKey('/plugins', params);
+        const cacheKey = this.getCacheKey("/plugins", params);
         const cacheFile = path.join(this.cacheDir, `${cacheKey}.json`);
         if (fs.existsSync(cacheFile)) {
           try {
-            const cached = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-            logger.info('[PluginMarketplaceAPI] Using stale cache due to network error');
+            const cached = JSON.parse(fs.readFileSync(cacheFile, "utf8"));
+            logger.info(
+              "[PluginMarketplaceAPI] Using stale cache due to network error",
+            );
             return cached.data;
           } catch (e) {
             // 忽略缓存读取错误
@@ -195,7 +201,7 @@ class PluginMarketplaceAPI {
       const cacheKey = this.getCacheKey(`/plugins/${pluginId}`);
       const cached = this.getFromCache(cacheKey);
       if (cached) {
-        logger.info('[PluginMarketplaceAPI] Using cached plugin detail');
+        logger.info("[PluginMarketplaceAPI] Using cached plugin detail");
         return cached;
       }
     }
@@ -212,7 +218,7 @@ class PluginMarketplaceAPI {
 
       return data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Get plugin error:', error);
+      logger.error("[PluginMarketplaceAPI] Get plugin error:", error);
       throw error;
     }
   }
@@ -220,16 +226,16 @@ class PluginMarketplaceAPI {
   /**
    * 下载插件
    */
-  async downloadPlugin(pluginId, version = 'latest') {
+  async downloadPlugin(pluginId, version = "latest") {
     try {
       const response = await this.client.get(`/plugins/${pluginId}/download`, {
         params: { version },
-        responseType: 'arraybuffer'
+        responseType: "arraybuffer",
       });
 
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Download plugin error:', error);
+      logger.error("[PluginMarketplaceAPI] Download plugin error:", error);
       throw error;
     }
   }
@@ -242,7 +248,7 @@ class PluginMarketplaceAPI {
       const response = await this.client.get(`/plugins/${pluginId}/versions`);
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Get plugin versions error:', error);
+      logger.error("[PluginMarketplaceAPI] Get plugin versions error:", error);
       throw error;
     }
   }
@@ -252,16 +258,16 @@ class PluginMarketplaceAPI {
    */
   async checkUpdates(installedPlugins) {
     try {
-      const response = await this.client.post('/plugins/check-updates', {
-        plugins: installedPlugins.map(p => ({
+      const response = await this.client.post("/plugins/check-updates", {
+        plugins: installedPlugins.map((p) => ({
           id: p.id,
-          version: p.version
-        }))
+          version: p.version,
+        })),
       });
 
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Check updates error:', error);
+      logger.error("[PluginMarketplaceAPI] Check updates error:", error);
       throw error;
     }
   }
@@ -273,12 +279,12 @@ class PluginMarketplaceAPI {
     try {
       const response = await this.client.post(`/plugins/${pluginId}/ratings`, {
         rating,
-        comment
+        comment,
       });
 
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Rate plugin error:', error);
+      logger.error("[PluginMarketplaceAPI] Rate plugin error:", error);
       throw error;
     }
   }
@@ -289,12 +295,12 @@ class PluginMarketplaceAPI {
   async getPluginReviews(pluginId, page = 1, pageSize = 10) {
     try {
       const response = await this.client.get(`/plugins/${pluginId}/reviews`, {
-        params: { page, pageSize }
+        params: { page, pageSize },
       });
 
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Get plugin reviews error:', error);
+      logger.error("[PluginMarketplaceAPI] Get plugin reviews error:", error);
       throw error;
     }
   }
@@ -305,18 +311,18 @@ class PluginMarketplaceAPI {
   async publishPlugin(pluginData, pluginFile) {
     try {
       const formData = new FormData();
-      formData.append('manifest', JSON.stringify(pluginData));
-      formData.append('file', pluginFile);
+      formData.append("manifest", JSON.stringify(pluginData));
+      formData.append("file", pluginFile);
 
-      const response = await this.client.post('/plugins/publish', formData, {
+      const response = await this.client.post("/plugins/publish", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Publish plugin error:', error);
+      logger.error("[PluginMarketplaceAPI] Publish plugin error:", error);
       throw error;
     }
   }
@@ -327,19 +333,23 @@ class PluginMarketplaceAPI {
   async updatePlugin(pluginId, version, pluginFile, changelog) {
     try {
       const formData = new FormData();
-      formData.append('version', version);
-      formData.append('changelog', changelog);
-      formData.append('file', pluginFile);
+      formData.append("version", version);
+      formData.append("changelog", changelog);
+      formData.append("file", pluginFile);
 
-      const response = await this.client.post(`/plugins/${pluginId}/update`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await this.client.post(
+        `/plugins/${pluginId}/update`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
 
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Update plugin error:', error);
+      logger.error("[PluginMarketplaceAPI] Update plugin error:", error);
       throw error;
     }
   }
@@ -348,20 +358,20 @@ class PluginMarketplaceAPI {
    * 获取分类列表
    */
   async getCategories() {
-    const cacheKey = this.getCacheKey('/categories');
+    const cacheKey = this.getCacheKey("/categories");
     const cached = this.getFromCache(cacheKey);
     if (cached) {
       return cached;
     }
 
     try {
-      const response = await this.client.get('/categories');
+      const response = await this.client.get("/categories");
       const data = response.data;
 
       this.setCache(cacheKey, data);
       return data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Get categories error:', error);
+      logger.error("[PluginMarketplaceAPI] Get categories error:", error);
       throw error;
     }
   }
@@ -372,25 +382,25 @@ class PluginMarketplaceAPI {
   async searchPlugins(query, options = {}) {
     const {
       category = null,
-      sort = 'relevance',
+      sort = "relevance",
       page = 1,
-      pageSize = 20
+      pageSize = 20,
     } = options;
 
     try {
-      const response = await this.client.get('/plugins/search', {
+      const response = await this.client.get("/plugins/search", {
         params: {
           q: query,
           category,
           sort,
           page,
-          pageSize
-        }
+          pageSize,
+        },
       });
 
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Search plugins error:', error);
+      logger.error("[PluginMarketplaceAPI] Search plugins error:", error);
       throw error;
     }
   }
@@ -399,22 +409,22 @@ class PluginMarketplaceAPI {
    * 获取推荐插件
    */
   async getFeaturedPlugins(limit = 10) {
-    const cacheKey = this.getCacheKey('/plugins/featured', { limit });
+    const cacheKey = this.getCacheKey("/plugins/featured", { limit });
     const cached = this.getFromCache(cacheKey);
     if (cached) {
       return cached;
     }
 
     try {
-      const response = await this.client.get('/plugins/featured', {
-        params: { limit }
+      const response = await this.client.get("/plugins/featured", {
+        params: { limit },
       });
 
       const data = response.data;
       this.setCache(cacheKey, data);
       return data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Get featured plugins error:', error);
+      logger.error("[PluginMarketplaceAPI] Get featured plugins error:", error);
       throw error;
     }
   }
@@ -426,12 +436,12 @@ class PluginMarketplaceAPI {
     try {
       const response = await this.client.post(`/plugins/${pluginId}/report`, {
         reason,
-        description
+        description,
       });
 
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Report plugin error:', error);
+      logger.error("[PluginMarketplaceAPI] Report plugin error:", error);
       throw error;
     }
   }
@@ -444,7 +454,7 @@ class PluginMarketplaceAPI {
       const response = await this.client.get(`/plugins/${pluginId}/stats`);
       return response.data;
     } catch (error) {
-      logger.error('[PluginMarketplaceAPI] Get plugin stats error:', error);
+      logger.error("[PluginMarketplaceAPI] Get plugin stats error:", error);
       throw error;
     }
   }
@@ -462,5 +472,5 @@ function getPluginMarketplaceAPI(config) {
 
 module.exports = {
   PluginMarketplaceAPI,
-  getPluginMarketplaceAPI
+  getPluginMarketplaceAPI,
 };

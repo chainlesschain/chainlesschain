@@ -1,6 +1,6 @@
-const { logger, createLogger } = require('../utils/logger.js');
-const { performance } = require('perf_hooks');
-const { getPerformanceMonitor } = require('./performance-monitor');
+const { logger } = require("../utils/logger.js");
+const { performance } = require("perf_hooks");
+const { getPerformanceMonitor } = require("./performance-monitor");
 
 /**
  * IPC性能拦截器
@@ -29,7 +29,7 @@ class IPCPerformanceInterceptor {
         this.activeRequests.set(requestId, {
           channel,
           startTime,
-          args: args.length
+          args: args.length,
         });
 
         try {
@@ -39,7 +39,7 @@ class IPCPerformanceInterceptor {
           // 记录IPC调用性能
           this.performanceMonitor.recordIPCCall(channel, duration, {
             argsCount: args.length,
-            success: true
+            success: true,
           });
 
           this.activeRequests.delete(requestId);
@@ -50,7 +50,7 @@ class IPCPerformanceInterceptor {
           this.performanceMonitor.recordIPCCall(channel, duration, {
             argsCount: args.length,
             success: false,
-            error: error.message
+            error: error.message,
           });
 
           this.activeRequests.delete(requestId);
@@ -61,7 +61,7 @@ class IPCPerformanceInterceptor {
       return originalHandle(channel, wrappedListener);
     };
 
-    logger.info('[IPCPerformanceInterceptor] IPC性能监控已注册');
+    logger.info("[IPCPerformanceInterceptor] IPC性能监控已注册");
   }
 
   /**
@@ -76,7 +76,7 @@ class IPCPerformanceInterceptor {
         id,
         channel: request.channel,
         duration: now - request.startTime,
-        args: request.args
+        args: request.args,
       });
     }
 
@@ -87,7 +87,7 @@ class IPCPerformanceInterceptor {
    * 获取慢请求
    */
   getSlowRequests(threshold = 1000) {
-    return this.getActiveRequests().filter(req => req.duration > threshold);
+    return this.getActiveRequests().filter((req) => req.duration > threshold);
   }
 }
 
@@ -106,5 +106,5 @@ function getIPCPerformanceInterceptor() {
 
 module.exports = {
   IPCPerformanceInterceptor,
-  getIPCPerformanceInterceptor
+  getIPCPerformanceInterceptor,
 };

@@ -6,35 +6,35 @@
  * v0.17.0: 集成文件安全验证
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { EventEmitter } = require('events');
-const path = require('path');
-const fs = require('fs').promises;
-const os = require('os');
-const { v4: uuidv4 } = require('uuid');
-const ImageProcessor = require('./image-processor');
-const OCRService = require('./ocr-service');
-const OCRWorkerPool = require('./ocr-worker-pool');
-const ImageStorage = require('./image-storage');
-const FileValidator = require('../security/file-validator');
-const ResumableProcessor = require('../utils/resumable-processor');
-const ProgressEmitter = require('../utils/progress-emitter');
+const { logger } = require("../utils/logger.js");
+const { EventEmitter } = require("events");
+const path = require("path");
+const fs = require("fs").promises;
+const os = require("os");
+const { v4: uuidv4 } = require("uuid");
+const ImageProcessor = require("./image-processor");
+const OCRService = require("./ocr-service");
+const OCRWorkerPool = require("./ocr-worker-pool");
+const ImageStorage = require("./image-storage");
+const FileValidator = require("../security/file-validator");
+const ResumableProcessor = require("../utils/resumable-processor");
+const ProgressEmitter = require("../utils/progress-emitter");
 
 /**
  * 上传配置
  */
 const DEFAULT_CONFIG = {
   // 自动处理选项
-  autoCompress: true,           // 自动压缩
-  autoGenerateThumbnail: true,  // 自动生成缩略图
-  autoOCR: true,                // 自动 OCR 识别
+  autoCompress: true, // 自动压缩
+  autoGenerateThumbnail: true, // 自动生成缩略图
+  autoOCR: true, // 自动 OCR 识别
 
   // OCR 选项
-  ocrLanguages: ['chi_sim', 'eng'],  // OCR 语言
+  ocrLanguages: ["chi_sim", "eng"], // OCR 语言
 
   // 知识库集成
-  autoAddToKnowledge: true,     // 自动添加到知识库
-  autoIndex: true,              // 自动添加到 RAG 索引
+  autoAddToKnowledge: true, // 自动添加到知识库
+  autoIndex: true, // 自动添加到 RAG 索引
 };
 
 /**
@@ -57,7 +57,7 @@ class ImageUploader extends EventEmitter {
     // v0.18.0: OCR Worker池（用于批量并发OCR）
     this.ocrWorkerPool = new OCRWorkerPool({
       maxWorkers: Math.min(os.cpus().length, 3), // 最多3个Workers
-      language: this.config.ocrLanguages.join('+'),
+      language: this.config.ocrLanguages.join("+"),
     });
 
     // v0.18.0: 集成错误恢复和进度通知系统
@@ -80,16 +80,30 @@ class ImageUploader extends EventEmitter {
    */
   setupEventForwarding() {
     // ImageProcessor 事件
-    this.processor.on('compress-start', (data) => this.emit('process:compress-start', data));
-    this.processor.on('compress-complete', (data) => this.emit('process:compress-complete', data));
-    this.processor.on('thumbnail-complete', (data) => this.emit('process:thumbnail-complete', data));
+    this.processor.on("compress-start", (data) =>
+      this.emit("process:compress-start", data),
+    );
+    this.processor.on("compress-complete", (data) =>
+      this.emit("process:compress-complete", data),
+    );
+    this.processor.on("thumbnail-complete", (data) =>
+      this.emit("process:thumbnail-complete", data),
+    );
 
     // OCRService 事件
-    this.ocrService.on('initialize-start', () => this.emit('ocr:initialize-start'));
-    this.ocrService.on('initialize-complete', () => this.emit('ocr:initialize-complete'));
-    this.ocrService.on('recognize-start', (data) => this.emit('ocr:recognize-start', data));
-    this.ocrService.on('recognize-complete', (data) => this.emit('ocr:recognize-complete', data));
-    this.ocrService.on('progress', (data) => this.emit('ocr:progress', data));
+    this.ocrService.on("initialize-start", () =>
+      this.emit("ocr:initialize-start"),
+    );
+    this.ocrService.on("initialize-complete", () =>
+      this.emit("ocr:initialize-complete"),
+    );
+    this.ocrService.on("recognize-start", (data) =>
+      this.emit("ocr:recognize-start", data),
+    );
+    this.ocrService.on("recognize-complete", (data) =>
+      this.emit("ocr:recognize-complete", data),
+    );
+    this.ocrService.on("progress", (data) => this.emit("ocr:progress", data));
   }
 
   /**
@@ -100,7 +114,7 @@ class ImageUploader extends EventEmitter {
    */
   async initialize() {
     try {
-      logger.info('[ImageUploader] 初始化图片上传器...');
+      logger.info("[ImageUploader] 初始化图片上传器...");
 
       // 初始化存储
       await this.storage.initialize();
@@ -114,10 +128,10 @@ class ImageUploader extends EventEmitter {
       // v0.18.0: 初始化ResumableProcessor
       await this.resumableProcessor.initialize();
 
-      logger.info('[ImageUploader] 图片上传器初始化成功');
+      logger.info("[ImageUploader] 图片上传器初始化成功");
       return true;
     } catch (error) {
-      logger.error('[ImageUploader] 初始化失败:', error);
+      logger.error("[ImageUploader] 初始化失败:", error);
       return false;
     }
   }
@@ -135,32 +149,32 @@ class ImageUploader extends EventEmitter {
       performOCR = this.config.autoOCR,
       addToKnowledge = this.config.autoAddToKnowledge,
       addToIndex = this.config.autoIndex,
-      knowledgeType = 'note',
+      knowledgeType = "note",
       tags = [],
       title = null,
       skipValidation = false, // 是否跳过安全验证
     } = options;
 
     try {
-      logger.info('[ImageUploader] 开始上传图片:', path.basename(imagePath));
-      this.emit('upload-start', { imagePath });
+      logger.info("[ImageUploader] 开始上传图片:", path.basename(imagePath));
+      this.emit("upload-start", { imagePath });
 
       // 🔒 安全验证: 验证图片文件安全性
       if (!skipValidation) {
         logger.info(`[ImageUploader] 验证图片文件安全性: ${imagePath}`);
-        const validation = await FileValidator.validateFile(imagePath, 'image');
+        const validation = await FileValidator.validateFile(imagePath, "image");
 
         if (!validation.valid) {
-          const errorMsg = `图片验证失败: ${validation.errors.join(', ')}`;
+          const errorMsg = `图片验证失败: ${validation.errors.join(", ")}`;
           logger.error(`[ImageUploader] ${errorMsg}`);
-          this.emit('upload-error', { imagePath, error: errorMsg });
+          this.emit("upload-error", { imagePath, error: errorMsg });
           throw new Error(errorMsg);
         }
 
         // 记录警告信息（如SVG脚本注入）
         if (validation.warnings && validation.warnings.length > 0) {
           logger.warn(`[ImageUploader] 图片安全警告:`, validation.warnings);
-          this.emit('upload-warning', {
+          this.emit("upload-warning", {
             imagePath,
             warnings: validation.warnings,
           });
@@ -180,7 +194,7 @@ class ImageUploader extends EventEmitter {
 
       // 1. 获取原始图片元信息
       const originalMetadata = await this.processor.getMetadata(imagePath);
-      logger.info('[ImageUploader] 原始图片信息:', originalMetadata);
+      logger.info("[ImageUploader] 原始图片信息:", originalMetadata);
 
       let processedImagePath = imagePath;
       let thumbnailPath = null;
@@ -189,16 +203,25 @@ class ImageUploader extends EventEmitter {
       // 2. 压缩图片 (可选)
       if (compress) {
         const compressedPath = path.join(tempDir, `compressed_${imageId}.jpg`);
-        compressionResult = await this.processor.compress(imagePath, compressedPath);
+        compressionResult = await this.processor.compress(
+          imagePath,
+          compressedPath,
+        );
         processedImagePath = compressedPath;
-        logger.info('[ImageUploader] 图片已压缩:', compressionResult.compressionRatio + '%');
+        logger.info(
+          "[ImageUploader] 图片已压缩:",
+          compressionResult.compressionRatio + "%",
+        );
       }
 
       // 3. 生成缩略图 (可选)
       if (generateThumbnail) {
         thumbnailPath = path.join(tempDir, `thumb_${imageId}.jpg`);
-        await this.processor.generateThumbnail(processedImagePath, thumbnailPath);
-        logger.info('[ImageUploader] 缩略图已生成');
+        await this.processor.generateThumbnail(
+          processedImagePath,
+          thumbnailPath,
+        );
+        logger.info("[ImageUploader] 缩略图已生成");
       }
 
       // 4. OCR 识别 (可选)
@@ -206,10 +229,17 @@ class ImageUploader extends EventEmitter {
       if (performOCR) {
         try {
           ocrResult = await this.ocrService.recognize(processedImagePath);
-          logger.info('[ImageUploader] OCR 识别完成:', ocrResult.text.length, '字符');
-          logger.info('[ImageUploader] OCR 置信度:', ocrResult.confidence.toFixed(2) + '%');
+          logger.info(
+            "[ImageUploader] OCR 识别完成:",
+            ocrResult.text.length,
+            "字符",
+          );
+          logger.info(
+            "[ImageUploader] OCR 置信度:",
+            ocrResult.confidence.toFixed(2) + "%",
+          );
         } catch (error) {
-          logger.error('[ImageUploader] OCR 识别失败:', error);
+          logger.error("[ImageUploader] OCR 识别失败:", error);
           ocrResult = null;
         }
       }
@@ -217,15 +247,22 @@ class ImageUploader extends EventEmitter {
       // 5. 保存图片到存储
       const metadata = {
         id: imageId,
-        width: compressionResult ? compressionResult.compressedWidth : originalMetadata.width,
-        height: compressionResult ? compressionResult.compressedHeight : originalMetadata.height,
+        width: compressionResult
+          ? compressionResult.compressedWidth
+          : originalMetadata.width,
+        height: compressionResult
+          ? compressionResult.compressedHeight
+          : originalMetadata.height,
         format: originalMetadata.format,
         ocrText: ocrResult ? ocrResult.text : null,
         ocrConfidence: ocrResult ? ocrResult.confidence : null,
       };
 
-      const saveResult = await this.storage.saveImage(processedImagePath, metadata);
-      logger.info('[ImageUploader] 图片已保存:', saveResult.filename);
+      const saveResult = await this.storage.saveImage(
+        processedImagePath,
+        metadata,
+      );
+      logger.info("[ImageUploader] 图片已保存:", saveResult.filename);
 
       // 6. 保存缩略图
       if (thumbnailPath) {
@@ -246,7 +283,7 @@ class ImageUploader extends EventEmitter {
 
         const addedItem = await this.db.addKnowledgeItem(knowledgeItem);
         knowledgeId = addedItem.id;
-        logger.info('[ImageUploader] 已添加到知识库:', knowledgeId);
+        logger.info("[ImageUploader] 已添加到知识库:", knowledgeId);
 
         // 更新图片记录关联
         await this.storage.updateImageRecord(imageId, {
@@ -257,9 +294,9 @@ class ImageUploader extends EventEmitter {
         if (addToIndex && this.ragManager) {
           try {
             await this.ragManager.addToIndex(addedItem);
-            logger.info('[ImageUploader] 已添加到 RAG 索引');
+            logger.info("[ImageUploader] 已添加到 RAG 索引");
           } catch (error) {
-            logger.error('[ImageUploader] 添加到 RAG 索引失败:', error);
+            logger.error("[ImageUploader] 添加到 RAG 索引失败:", error);
           }
         }
       }
@@ -269,7 +306,7 @@ class ImageUploader extends EventEmitter {
         try {
           await fs.unlink(processedImagePath);
         } catch (error) {
-          logger.warn('[ImageUploader] 清理临时文件失败:', error);
+          logger.warn("[ImageUploader] 清理临时文件失败:", error);
         }
       }
 
@@ -282,19 +319,23 @@ class ImageUploader extends EventEmitter {
         path: saveResult.path,
         size: saveResult.size,
         originalSize: originalMetadata.size,
-        compressionRatio: compressionResult ? compressionResult.compressionRatio : 0,
+        compressionRatio: compressionResult
+          ? compressionResult.compressionRatio
+          : 0,
         ocrText: ocrResult ? ocrResult.text : null,
         ocrConfidence: ocrResult ? ocrResult.confidence : null,
-        ocrQuality: ocrResult ? this.ocrService.evaluateQuality(ocrResult) : null,
+        ocrQuality: ocrResult
+          ? this.ocrService.evaluateQuality(ocrResult)
+          : null,
       };
 
-      this.emit('upload-complete', result);
-      logger.info('[ImageUploader] 上传完成');
+      this.emit("upload-complete", result);
+      logger.info("[ImageUploader] 上传完成");
 
       return result;
     } catch (error) {
-      logger.error('[ImageUploader] 上传失败:', error);
-      this.emit('upload-error', { imagePath, error });
+      logger.error("[ImageUploader] 上传失败:", error);
+      this.emit("upload-error", { imagePath, error });
       throw error;
     }
   }
@@ -313,14 +354,14 @@ class ImageUploader extends EventEmitter {
     // 创建批量任务追踪器
     const taskId = `batch_upload_${Date.now()}`;
     const tracker = this.progressEmitter.createTracker(taskId, {
-      title: '批量上传图片',
+      title: "批量上传图片",
       description: `上传 ${imagePaths.length} 张图片`,
       totalSteps: imagePaths.length,
       metadata: { count: imagePaths.length },
     });
 
-    tracker.setStage(ProgressEmitter.Stage.PROCESSING, '开始上传...');
-    this.emit('batch-start', { total: imagePaths.length });
+    tracker.setStage(ProgressEmitter.Stage.PROCESSING, "开始上传...");
+    this.emit("batch-start", { total: imagePaths.length });
 
     const results = [];
 
@@ -329,10 +370,10 @@ class ImageUploader extends EventEmitter {
         const percent = Math.round(((i + 1) / imagePaths.length) * 100);
         tracker.setPercent(
           percent,
-          `上传中: ${path.basename(imagePaths[i])} (${i + 1}/${imagePaths.length})`
+          `上传中: ${path.basename(imagePaths[i])} (${i + 1}/${imagePaths.length})`,
         );
 
-        this.emit('batch-progress', {
+        this.emit("batch-progress", {
           current: i + 1,
           total: imagePaths.length,
           percentage: percent,
@@ -355,12 +396,12 @@ class ImageUploader extends EventEmitter {
 
     const summary = {
       total: imagePaths.length,
-      succeeded: results.filter(r => r.success).length,
-      failed: results.filter(r => !r.success).length,
+      succeeded: results.filter((r) => r.success).length,
+      failed: results.filter((r) => !r.success).length,
     };
 
-    this.emit('batch-complete', summary);
-    logger.info('[ImageUploader] 批量上传完成:', summary);
+    this.emit("batch-complete", summary);
+    logger.info("[ImageUploader] 批量上传完成:", summary);
 
     // 完成追踪
     tracker.complete({
@@ -378,7 +419,7 @@ class ImageUploader extends EventEmitter {
    */
   async performOCR(imagePath) {
     try {
-      logger.info('[ImageUploader] 执行 OCR:', path.basename(imagePath));
+      logger.info("[ImageUploader] 执行 OCR:", path.basename(imagePath));
 
       const result = await this.ocrService.recognize(imagePath);
       const quality = this.ocrService.evaluateQuality(result);
@@ -392,7 +433,7 @@ class ImageUploader extends EventEmitter {
         lines: result.lines,
       };
     } catch (error) {
-      logger.error('[ImageUploader] OCR 失败:', error);
+      logger.error("[ImageUploader] OCR 失败:", error);
       throw error;
     }
   }
@@ -410,7 +451,10 @@ class ImageUploader extends EventEmitter {
       logger.info(`[ImageUploader] 批量 OCR 开始: ${imagePaths.length}张图片`);
 
       // 使用Worker池并发处理
-      const results = await this.ocrWorkerPool.recognizeBatch(imagePaths, options);
+      const results = await this.ocrWorkerPool.recognizeBatch(
+        imagePaths,
+        options,
+      );
 
       // 转换结果格式（兼容现有API）
       const formattedResults = results.map((result, index) => {
@@ -434,12 +478,12 @@ class ImageUploader extends EventEmitter {
 
       const successCount = formattedResults.filter((r) => r.success).length;
       logger.info(
-        `[ImageUploader] 批量 OCR 完成: ${successCount}/${imagePaths.length}成功`
+        `[ImageUploader] 批量 OCR 完成: ${successCount}/${imagePaths.length}成功`,
       );
 
       return formattedResults;
     } catch (error) {
-      logger.error('[ImageUploader] 批量 OCR 失败:', error);
+      logger.error("[ImageUploader] 批量 OCR 失败:", error);
       throw error;
     }
   }
@@ -518,7 +562,7 @@ class ImageUploader extends EventEmitter {
       });
     }
 
-    logger.info('[ImageUploader] 配置已更新:', this.config);
+    logger.info("[ImageUploader] 配置已更新:", this.config);
   }
 
   /**
@@ -527,7 +571,7 @@ class ImageUploader extends EventEmitter {
    * v0.18.0: 添加Worker池终止
    */
   async terminate() {
-    logger.info('[ImageUploader] 终止服务...');
+    logger.info("[ImageUploader] 终止服务...");
 
     // 终止OCR服务
     await this.ocrService.terminate();
@@ -535,7 +579,7 @@ class ImageUploader extends EventEmitter {
     // v0.18.0: 终止OCR Worker池
     await this.ocrWorkerPool.terminate();
 
-    logger.info('[ImageUploader] 所有服务已终止');
+    logger.info("[ImageUploader] 所有服务已终止");
   }
 }
 

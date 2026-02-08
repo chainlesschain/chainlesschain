@@ -3,10 +3,10 @@
  * 实现LRU缓存策略，优化文件重复读取性能
  */
 
-const { logger, createLogger } = require('./logger.js');
-const fs = require('fs').promises;
-const crypto = require('crypto');
-const path = require('path');
+const { logger } = require("./logger.js");
+const fs = require("fs").promises;
+const crypto = require("crypto");
+const path = require("path");
 
 // 缓存配置
 const CACHE_CONFIG = {
@@ -126,7 +126,9 @@ class LRUCache {
       bytes: this.currentBytes,
       maxEntries: this.maxSize,
       maxBytes: this.maxBytes,
-      utilizationPercent: ((this.currentBytes / this.maxBytes) * 100).toFixed(2),
+      utilizationPercent: ((this.currentBytes / this.maxBytes) * 100).toFixed(
+        2,
+      ),
     };
   }
 
@@ -196,14 +198,14 @@ class FileCacheManager {
       };
 
       const hash = crypto
-        .createHash('md5')
+        .createHash("md5")
         .update(JSON.stringify(keyData))
-        .digest('hex');
+        .digest("hex");
 
       return `file:${hash}`;
     } catch (error) {
       // 如果文件不存在，使用路径生成key
-      return `file:${crypto.createHash('md5').update(filePath).digest('hex')}`;
+      return `file:${crypto.createHash("md5").update(filePath).digest("hex")}`;
     }
   }
 
@@ -216,7 +218,9 @@ class FileCacheManager {
 
     this.contentCache.set(key, content, size);
 
-    logger.info(`[FileCache] 缓存文件内容: ${path.basename(filePath)}, 大小: ${(size / 1024).toFixed(2)}KB`);
+    logger.info(
+      `[FileCache] 缓存文件内容: ${path.basename(filePath)}, 大小: ${(size / 1024).toFixed(2)}KB`,
+    );
   }
 
   /**
@@ -240,7 +244,7 @@ class FileCacheManager {
    * 缓存文件元数据
    */
   async cacheFileMetadata(filePath, metadata) {
-    const key = await this.generateFileKey(filePath, { type: 'metadata' });
+    const key = await this.generateFileKey(filePath, { type: "metadata" });
     const size = JSON.stringify(metadata).length;
 
     this.metadataCache.set(key, metadata, size);
@@ -250,7 +254,7 @@ class FileCacheManager {
    * 获取缓存的文件元数据
    */
   async getCachedFileMetadata(filePath) {
-    const key = await this.generateFileKey(filePath, { type: 'metadata' });
+    const key = await this.generateFileKey(filePath, { type: "metadata" });
     const metadata = this.metadataCache.get(key);
 
     if (metadata) {
@@ -266,13 +270,16 @@ class FileCacheManager {
    * 缓存解析结果
    */
   async cacheParseResult(filePath, parseType, result) {
-    const key = await this.generateFileKey(filePath, { type: 'parse', parseType });
+    const key = await this.generateFileKey(filePath, {
+      type: "parse",
+      parseType,
+    });
     const size = JSON.stringify(result).length;
 
     this.parseCache.set(key, result, size);
 
     logger.info(
-      `[FileCache] 缓存解析结果: ${path.basename(filePath)} (${parseType}), 大小: ${(size / 1024).toFixed(2)}KB`
+      `[FileCache] 缓存解析结果: ${path.basename(filePath)} (${parseType}), 大小: ${(size / 1024).toFixed(2)}KB`,
     );
   }
 
@@ -280,12 +287,17 @@ class FileCacheManager {
    * 获取缓存的解析结果
    */
   async getCachedParseResult(filePath, parseType) {
-    const key = await this.generateFileKey(filePath, { type: 'parse', parseType });
+    const key = await this.generateFileKey(filePath, {
+      type: "parse",
+      parseType,
+    });
     const result = this.parseCache.get(key);
 
     if (result) {
       this.stats.parseHits++;
-      logger.info(`[FileCache] 命中解析缓存: ${path.basename(filePath)} (${parseType})`);
+      logger.info(
+        `[FileCache] 命中解析缓存: ${path.basename(filePath)} (${parseType})`,
+      );
       return result;
     }
 
@@ -299,24 +311,34 @@ class FileCacheManager {
   async invalidateFile(filePath) {
     const keys = [
       await this.generateFileKey(filePath),
-      await this.generateFileKey(filePath, { type: 'metadata' }),
+      await this.generateFileKey(filePath, { type: "metadata" }),
     ];
 
     // 删除所有可能的解析类型缓存
-    const parseTypes = ['csv', 'excel', 'word', 'pdf', 'markdown'];
+    const parseTypes = ["csv", "excel", "word", "pdf", "markdown"];
     for (const parseType of parseTypes) {
-      keys.push(await this.generateFileKey(filePath, { type: 'parse', parseType }));
+      keys.push(
+        await this.generateFileKey(filePath, { type: "parse", parseType }),
+      );
     }
 
     let invalidatedCount = 0;
     for (const key of keys) {
-      if (this.contentCache.delete(key)) {invalidatedCount++;}
-      if (this.metadataCache.delete(key)) {invalidatedCount++;}
-      if (this.parseCache.delete(key)) {invalidatedCount++;}
+      if (this.contentCache.delete(key)) {
+        invalidatedCount++;
+      }
+      if (this.metadataCache.delete(key)) {
+        invalidatedCount++;
+      }
+      if (this.parseCache.delete(key)) {
+        invalidatedCount++;
+      }
     }
 
     if (invalidatedCount > 0) {
-      logger.info(`[FileCache] 使缓存失效: ${path.basename(filePath)}, 删除 ${invalidatedCount} 个条目`);
+      logger.info(
+        `[FileCache] 使缓存失效: ${path.basename(filePath)}, 删除 ${invalidatedCount} 个条目`,
+      );
     }
 
     return invalidatedCount;
@@ -343,7 +365,7 @@ class FileCacheManager {
     this.metadataCache.clear();
     this.parseCache.clear();
 
-    logger.info('[FileCache] 已清空所有缓存');
+    logger.info("[FileCache] 已清空所有缓存");
   }
 
   /**
@@ -352,7 +374,7 @@ class FileCacheManager {
   getStats() {
     const hitRate = (hits, misses) => {
       const total = hits + misses;
-      return total > 0 ? ((hits / total) * 100).toFixed(2) : '0.00';
+      return total > 0 ? ((hits / total) * 100).toFixed(2) : "0.00";
     };
 
     return {
@@ -383,20 +405,26 @@ class FileCacheManager {
   printStats() {
     const stats = this.getStats();
 
-    logger.info('\n=== 文件缓存统计 ===');
-    logger.info('\n内容缓存:');
+    logger.info("\n=== 文件缓存统计 ===");
+    logger.info("\n内容缓存:");
     logger.info(`  条目: ${stats.content.entries}/${stats.content.maxEntries}`);
-    logger.info(`  大小: ${(stats.content.bytes / 1024 / 1024).toFixed(2)}MB/${(stats.content.maxBytes / 1024 / 1024).toFixed(2)}MB`);
+    logger.info(
+      `  大小: ${(stats.content.bytes / 1024 / 1024).toFixed(2)}MB/${(stats.content.maxBytes / 1024 / 1024).toFixed(2)}MB`,
+    );
     logger.info(`  命中率: ${stats.content.hitRate}`);
 
-    logger.info('\n元数据缓存:');
-    logger.info(`  条目: ${stats.metadata.entries}/${stats.metadata.maxEntries}`);
+    logger.info("\n元数据缓存:");
+    logger.info(
+      `  条目: ${stats.metadata.entries}/${stats.metadata.maxEntries}`,
+    );
     logger.info(`  大小: ${(stats.metadata.bytes / 1024).toFixed(2)}KB`);
     logger.info(`  命中率: ${stats.metadata.hitRate}`);
 
-    logger.info('\n解析缓存:');
+    logger.info("\n解析缓存:");
     logger.info(`  条目: ${stats.parse.entries}/${stats.parse.maxEntries}`);
-    logger.info(`  大小: ${(stats.parse.bytes / 1024 / 1024).toFixed(2)}MB/${(stats.parse.maxBytes / 1024 / 1024).toFixed(2)}MB`);
+    logger.info(
+      `  大小: ${(stats.parse.bytes / 1024 / 1024).toFixed(2)}MB/${(stats.parse.maxBytes / 1024 / 1024).toFixed(2)}MB`,
+    );
     logger.info(`  命中率: ${stats.parse.hitRate}\n`);
   }
 
@@ -405,7 +433,7 @@ class FileCacheManager {
    */
   watchFile(filePath, callback) {
     const watcher = fs.watch(filePath, async (eventType) => {
-      if (eventType === 'change') {
+      if (eventType === "change") {
         await this.invalidateFile(filePath);
 
         if (callback) {

@@ -8,10 +8,7 @@
     @cancel="handleReject"
   >
     <a-spin :spinning="validating">
-      <div
-        v-if="invitationInfo"
-        class="invitation-accept"
-      >
+      <div v-if="invitationInfo" class="invitation-accept">
         <!-- 组织信息 -->
         <a-card class="org-card">
           <div class="org-header">
@@ -32,11 +29,7 @@
         </a-card>
 
         <!-- 邀请信息 -->
-        <a-descriptions
-          bordered
-          :column="1"
-          style="margin-top: 16px"
-        >
+        <a-descriptions bordered :column="1" style="margin-top: 16px">
           <a-descriptions-item label="邀请人">
             {{ invitationInfo.inviterName }}
           </a-descriptions-item>
@@ -48,10 +41,7 @@
               {{ getRoleDescription(invitationInfo.role) }}
             </div>
           </a-descriptions-item>
-          <a-descriptions-item
-            v-if="invitationInfo.message"
-            label="邀请消息"
-          >
+          <a-descriptions-item v-if="invitationInfo.message" label="邀请消息">
             {{ invitationInfo.message }}
           </a-descriptions-item>
           <a-descriptions-item label="链接状态">
@@ -94,21 +84,14 @@
         sub-title="此邀请链接可能已过期、已撤销或不存在"
       >
         <template #extra>
-          <a-button
-            type="primary"
-            @click="visible = false"
-          >
-            关闭
-          </a-button>
+          <a-button type="primary" @click="visible = false"> 关闭 </a-button>
         </template>
       </a-result>
     </a-spin>
 
     <template #footer>
       <a-space>
-        <a-button @click="handleReject">
-          拒绝
-        </a-button>
+        <a-button @click="handleReject"> 拒绝 </a-button>
         <a-button
           type="primary"
           :loading="loading"
@@ -123,16 +106,16 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const props = defineProps({
   open: {
@@ -150,7 +133,7 @@ const emit = defineEmits(["update:open", "accepted", "rejected"]);
 const validating = ref(false);
 const loading = ref(false);
 const invitationInfo = ref(null);
-const error = ref('');
+const error = ref("");
 
 const visible = computed({
   get: () => props.open,
@@ -158,26 +141,28 @@ const visible = computed({
 });
 
 const validateToken = async () => {
-  if (!props.token) {return;}
+  if (!props.token) {
+    return;
+  }
 
   validating.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'org:validate-invitation-token',
-      props.token
+      "org:validate-invitation-token",
+      props.token,
     );
 
     if (result.success) {
       invitationInfo.value = result.linkInfo;
     } else {
-      error.value = result.error || '验证邀请链接失败';
+      error.value = result.error || "验证邀请链接失败";
       invitationInfo.value = null;
     }
   } catch (err) {
-    logger.error('验证邀请链接失败:', err);
-    error.value = '验证邀请链接失败';
+    logger.error("验证邀请链接失败:", err);
+    error.value = "验证邀请链接失败";
     invitationInfo.value = null;
   } finally {
     validating.value = false;
@@ -186,97 +171,105 @@ const validateToken = async () => {
 
 const handleAccept = async () => {
   loading.value = true;
-  error.value = '';
+  error.value = "";
 
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'org:accept-invitation-link',
+      "org:accept-invitation-link",
       props.token,
-      {}
+      {},
     );
 
     if (result.success) {
       message.success(`成功加入组织: ${result.org.name}`);
-      emit('accepted', result.org);
+      emit("accepted", result.org);
       visible.value = false;
     } else {
-      error.value = result.error || '加入组织失败';
+      error.value = result.error || "加入组织失败";
     }
   } catch (err) {
-    logger.error('加入组织失败:', err);
-    error.value = err.message || '加入组织失败';
+    logger.error("加入组织失败:", err);
+    error.value = err.message || "加入组织失败";
   } finally {
     loading.value = false;
   }
 };
 
 const handleReject = () => {
-  emit('rejected');
+  emit("rejected");
   visible.value = false;
 };
 
 const getRoleColor = (role) => {
   const colors = {
-    owner: 'red',
-    admin: 'orange',
-    member: 'blue',
-    viewer: 'green'
+    owner: "red",
+    admin: "orange",
+    member: "blue",
+    viewer: "green",
   };
-  return colors[role] || 'default';
+  return colors[role] || "default";
 };
 
 const getRoleLabel = (role) => {
   const labels = {
-    owner: '所有者',
-    admin: '管理员',
-    member: '成员',
-    viewer: '访客'
+    owner: "所有者",
+    admin: "管理员",
+    member: "成员",
+    viewer: "访客",
   };
   return labels[role] || role;
 };
 
 const getRoleDescription = (role) => {
   const descriptions = {
-    owner: '拥有组织的完全控制权，可以管理所有设置和成员',
-    admin: '可以管理成员、内容和组织设置',
-    member: '可以创建和编辑内容，参与协作',
-    viewer: '只能查看内容，不能编辑'
+    owner: "拥有组织的完全控制权，可以管理所有设置和成员",
+    admin: "可以管理成员、内容和组织设置",
+    member: "可以创建和编辑内容，参与协作",
+    viewer: "只能查看内容，不能编辑",
   };
-  return descriptions[role] || '';
+  return descriptions[role] || "";
 };
 
 const getPermissionDescription = (role) => {
   const permissions = {
-    owner: '• 管理组织设置\n• 邀请和移除成员\n• 创建和管理角色\n• 完全的内容访问权限',
-    admin: '• 邀请和管理成员\n• 创建和编辑内容\n• 管理项目和知识库\n• 查看活动日志',
-    member: '• 创建和编辑内容\n• 参与项目协作\n• 访问知识库\n• 发送消息',
-    viewer: '• 查看内容\n• 阅读知识库\n• 查看项目信息'
+    owner:
+      "• 管理组织设置\n• 邀请和移除成员\n• 创建和管理角色\n• 完全的内容访问权限",
+    admin:
+      "• 邀请和管理成员\n• 创建和编辑内容\n• 管理项目和知识库\n• 查看活动日志",
+    member: "• 创建和编辑内容\n• 参与项目协作\n• 访问知识库\n• 发送消息",
+    viewer: "• 查看内容\n• 阅读知识库\n• 查看项目信息",
   };
-  return permissions[role] || '';
+  return permissions[role] || "";
 };
 
 const getTimeRemaining = (expiresAt) => {
   const now = Date.now();
   if (expiresAt < now) {
-    return '已过期';
+    return "已过期";
   }
   return `${dayjs(expiresAt).fromNow()}过期`;
 };
 
-watch(() => props.open, (val) => {
-  if (val) {
-    validateToken();
-  } else {
-    invitationInfo.value = null;
-    error.value = '';
-  }
-});
+watch(
+  () => props.open,
+  (val) => {
+    if (val) {
+      validateToken();
+    } else {
+      invitationInfo.value = null;
+      error.value = "";
+    }
+  },
+);
 
-watch(() => props.token, () => {
-  if (props.open) {
-    validateToken();
-  }
-});
+watch(
+  () => props.token,
+  () => {
+    if (props.open) {
+      validateToken();
+    }
+  },
+);
 </script>
 
 <style scoped lang="scss">

@@ -23,16 +23,16 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import MessageInput from './MessageInput.vue';
-import InputActions from './InputActions.vue';
-import ContextInfoBar from './ContextInfoBar.vue';
-import { getInputPlaceholder, getContextInfo } from '../../utils/chatHelpers';
+import { computed } from "vue";
+import MessageInput from "./MessageInput.vue";
+import InputActions from "./InputActions.vue";
+import ContextInfoBar from "./ContextInfoBar.vue";
+import { getInputPlaceholder, getContextInfo } from "../../utils/chatHelpers";
 
 const props = defineProps({
   userInput: {
     type: String,
-    default: '',
+    default: "",
   },
   isLoading: {
     type: Boolean,
@@ -44,7 +44,7 @@ const props = defineProps({
   },
   contextMode: {
     type: String,
-    default: 'global',
+    default: "global",
   },
   currentFile: {
     type: Object,
@@ -52,14 +52,14 @@ const props = defineProps({
   },
 });
 
-defineEmits(['update:userInput', 'send', 'clear-conversation']);
+defineEmits(["update:userInput", "send", "clear-conversation"]);
 
 const placeholder = computed(() =>
-  getInputPlaceholder(props.contextMode, props.currentFile)
+  getInputPlaceholder(props.contextMode, props.currentFile),
 );
 
 const contextInfo = computed(() =>
-  getContextInfo(props.contextMode, props.currentFile)
+  getContextInfo(props.contextMode, props.currentFile),
 );
 </script>
 

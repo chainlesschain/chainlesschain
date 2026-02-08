@@ -11,25 +11,25 @@
  * - Retry mechanism
  */
 
-const { logger, createLogger } = require('../../utils/logger.js');
-const { ethers } = require('ethers');
-const EventEmitter = require('events');
+const { logger } = require("../../utils/logger.js");
+const { ethers } = require("ethers");
+const EventEmitter = require("events");
 
 /**
  * LayerZero Chain IDs
  * https://layerzero.gitbook.io/docs/technical-reference/mainnet/supported-chain-ids
  */
 const LZ_CHAIN_IDS = {
-  1: 101,      // Ethereum
-  56: 102,     // BSC
-  137: 109,    // Polygon
-  42161: 110,  // Arbitrum
-  10: 111,     // Optimism
-  43114: 106,  // Avalanche
-  250: 112,    // Fantom
+  1: 101, // Ethereum
+  56: 102, // BSC
+  137: 109, // Polygon
+  42161: 110, // Arbitrum
+  10: 111, // Optimism
+  43114: 106, // Avalanche
+  250: 112, // Fantom
   // Testnets
-  5: 10121,    // Goerli
-  80001: 10109 // Mumbai
+  5: 10121, // Goerli
+  80001: 10109, // Mumbai
 };
 
 /**
@@ -56,21 +56,21 @@ class LayerZeroBridge extends EventEmitter {
    * Initialize bridge
    */
   async initialize() {
-    logger.info('[LayerZeroBridge] Initializing...');
+    logger.info("[LayerZeroBridge] Initializing...");
 
     try {
       // Verify endpoint configuration
       if (!this.endpoint) {
-        throw new Error('LayerZero endpoint not configured');
+        throw new Error("LayerZero endpoint not configured");
       }
 
       // Load bridge contract ABIs
       await this.loadContractABIs();
 
-      logger.info('[LayerZeroBridge] Initialized successfully');
+      logger.info("[LayerZeroBridge] Initialized successfully");
       return true;
     } catch (error) {
-      logger.error('[LayerZeroBridge] Initialization failed:', error);
+      logger.error("[LayerZeroBridge] Initialization failed:", error);
       throw error;
     }
   }
@@ -81,18 +81,18 @@ class LayerZeroBridge extends EventEmitter {
   async loadContractABIs() {
     // LayerZero Endpoint ABI (simplified)
     this.endpointABI = [
-      'function send(uint16 _dstChainId, bytes calldata _destination, bytes calldata _payload, address payable _refundAddress, address _zroPaymentAddress, bytes calldata _adapterParams) external payable',
-      'function estimateFees(uint16 _dstChainId, address _userApplication, bytes calldata _payload, bool _payInZRO, bytes calldata _adapterParams) external view returns (uint nativeFee, uint zroFee)',
-      'event Packet(bytes payload)',
-      'event PayloadStored(uint16 srcChainId, bytes srcAddress, address dstAddress, uint64 nonce, bytes payload, bytes reason)'
+      "function send(uint16 _dstChainId, bytes calldata _destination, bytes calldata _payload, address payable _refundAddress, address _zroPaymentAddress, bytes calldata _adapterParams) external payable",
+      "function estimateFees(uint16 _dstChainId, address _userApplication, bytes calldata _payload, bool _payInZRO, bytes calldata _adapterParams) external view returns (uint nativeFee, uint zroFee)",
+      "event Packet(bytes payload)",
+      "event PayloadStored(uint16 srcChainId, bytes srcAddress, address dstAddress, uint64 nonce, bytes payload, bytes reason)",
     ];
 
     // Bridge Contract ABI
     this.bridgeABI = [
-      'function bridgeAsset(address token, uint256 amount, uint16 dstChainId, address recipient) external payable returns (bytes32)',
-      'function estimateBridgeFee(address token, uint256 amount, uint16 dstChainId) external view returns (uint256)',
-      'event AssetBridged(bytes32 indexed requestId, address indexed sender, address indexed recipient, address token, uint256 amount, uint16 dstChainId)',
-      'event AssetReceived(bytes32 indexed requestId, address indexed recipient, address token, uint256 amount, uint16 srcChainId)'
+      "function bridgeAsset(address token, uint256 amount, uint16 dstChainId, address recipient) external payable returns (bytes32)",
+      "function estimateBridgeFee(address token, uint256 amount, uint16 dstChainId) external view returns (uint256)",
+      "event AssetBridged(bytes32 indexed requestId, address indexed sender, address indexed recipient, address token, uint256 amount, uint16 dstChainId)",
+      "event AssetReceived(bytes32 indexed requestId, address indexed recipient, address token, uint256 amount, uint16 srcChainId)",
     ];
   }
 
@@ -107,15 +107,15 @@ class LayerZeroBridge extends EventEmitter {
       amount,
       recipient,
       signer,
-      options = {}
+      options = {},
     } = params;
 
-    logger.info('[LayerZeroBridge] Bridging asset:', {
+    logger.info("[LayerZeroBridge] Bridging asset:", {
       fromChain,
       toChain,
       asset,
       amount,
-      recipient
+      recipient,
     });
 
     try {
@@ -139,7 +139,7 @@ class LayerZeroBridge extends EventEmitter {
       const bridgeContract = new ethers.Contract(
         bridgeAddress,
         this.bridgeABI,
-        signer
+        signer,
       );
 
       // Estimate fees
@@ -147,10 +147,14 @@ class LayerZeroBridge extends EventEmitter {
         fromChain,
         toChain,
         asset,
-        amount
+        amount,
       });
 
-      logger.info('[LayerZeroBridge] Estimated fee:', ethers.formatEther(fee), 'ETH');
+      logger.info(
+        "[LayerZeroBridge] Estimated fee:",
+        ethers.formatEther(fee),
+        "ETH",
+      );
 
       // Execute bridge transaction
       const tx = await bridgeContract.bridgeAsset(
@@ -160,11 +164,11 @@ class LayerZeroBridge extends EventEmitter {
         recipient,
         {
           value: fee,
-          gasLimit: options.gasLimit || 500000
-        }
+          gasLimit: options.gasLimit || 500000,
+        },
       );
 
-      logger.info('[LayerZeroBridge] Transaction submitted:', tx.hash);
+      logger.info("[LayerZeroBridge] Transaction submitted:", tx.hash);
 
       // Track transaction
       this.trackTransaction(tx.hash, {
@@ -173,22 +177,22 @@ class LayerZeroBridge extends EventEmitter {
         asset,
         amount,
         recipient,
-        status: 'pending'
+        status: "pending",
       });
 
       // Wait for confirmation
       const receipt = await tx.wait(options.confirmations || 2);
 
       if (receipt.status === 1) {
-        logger.info('[LayerZeroBridge] Transaction confirmed');
+        logger.info("[LayerZeroBridge] Transaction confirmed");
 
         // Extract request ID from events
         const requestId = this.extractRequestId(receipt);
 
         this.updateTransaction(tx.hash, {
-          status: 'confirmed',
+          status: "confirmed",
           requestId,
-          blockNumber: receipt.blockNumber
+          blockNumber: receipt.blockNumber,
         });
 
         // Start monitoring destination chain
@@ -198,19 +202,19 @@ class LayerZeroBridge extends EventEmitter {
           success: true,
           txHash: tx.hash,
           requestId,
-          fee: ethers.formatEther(fee)
+          fee: ethers.formatEther(fee),
         };
       } else {
-        throw new Error('Transaction failed');
+        throw new Error("Transaction failed");
       }
     } catch (error) {
-      logger.error('[LayerZeroBridge] Bridge failed:', error);
+      logger.error("[LayerZeroBridge] Bridge failed:", error);
 
       // Update transaction status
       if (params.txHash) {
         this.updateTransaction(params.txHash, {
-          status: 'failed',
-          error: error.message
+          status: "failed",
+          error: error.message,
         });
       }
 
@@ -231,12 +235,14 @@ class LayerZeroBridge extends EventEmitter {
       }
 
       // Get provider for source chain
-      const provider = new ethers.JsonRpcProvider(this.config.rpcUrls[fromChain]);
+      const provider = new ethers.JsonRpcProvider(
+        this.config.rpcUrls[fromChain],
+      );
 
       const bridgeContract = new ethers.Contract(
         bridgeAddress,
         this.bridgeABI,
-        provider
+        provider,
       );
 
       const dstLzChainId = LZ_CHAIN_IDS[toChain];
@@ -245,15 +251,15 @@ class LayerZeroBridge extends EventEmitter {
       const fee = await bridgeContract.estimateBridgeFee(
         asset,
         ethers.parseUnits(amount, 18),
-        dstLzChainId
+        dstLzChainId,
       );
 
       return fee;
     } catch (error) {
-      logger.error('[LayerZeroBridge] Fee estimation failed:', error);
+      logger.error("[LayerZeroBridge] Fee estimation failed:", error);
 
       // Return default fee estimate
-      return ethers.parseEther('0.01'); // 0.01 ETH default
+      return ethers.parseEther("0.01"); // 0.01 ETH default
     }
   }
 
@@ -266,7 +272,7 @@ class LayerZeroBridge extends EventEmitter {
     if (!tx) {
       return {
         found: false,
-        message: 'Transaction not found'
+        message: "Transaction not found",
       };
     }
 
@@ -280,7 +286,7 @@ class LayerZeroBridge extends EventEmitter {
       recipient: tx.recipient,
       requestId: tx.requestId,
       destinationTxHash: tx.destinationTxHash,
-      error: tx.error
+      error: tx.error,
     };
   }
 
@@ -288,7 +294,7 @@ class LayerZeroBridge extends EventEmitter {
    * Monitor destination chain for asset receipt
    */
   async monitorDestinationChain(requestId, chainId, recipient) {
-    logger.info('[LayerZeroBridge] Monitoring destination chain:', chainId);
+    logger.info("[LayerZeroBridge] Monitoring destination chain:", chainId);
 
     const maxAttempts = 60; // 5 minutes
     let attempts = 0;
@@ -303,42 +309,47 @@ class LayerZeroBridge extends EventEmitter {
           return;
         }
 
-        const provider = new ethers.JsonRpcProvider(this.config.rpcUrls[chainId]);
+        const provider = new ethers.JsonRpcProvider(
+          this.config.rpcUrls[chainId],
+        );
         const bridgeContract = new ethers.Contract(
           bridgeAddress,
           this.bridgeABI,
-          provider
+          provider,
         );
 
         // Query AssetReceived events
-        const filter = bridgeContract.filters.AssetReceived(requestId, recipient);
+        const filter = bridgeContract.filters.AssetReceived(
+          requestId,
+          recipient,
+        );
         const events = await bridgeContract.queryFilter(filter, -1000); // Last 1000 blocks
 
         if (events.length > 0) {
           const event = events[0];
-          logger.info('[LayerZeroBridge] Asset received on destination chain');
+          logger.info("[LayerZeroBridge] Asset received on destination chain");
 
           // Update transaction status
           this.updateTransactionByRequestId(requestId, {
-            status: 'completed',
+            status: "completed",
             destinationTxHash: event.transactionHash,
-            completedAt: Date.now()
+            completedAt: Date.now(),
           });
 
-          this.emit('bridge-completed', {
+          this.emit("bridge-completed", {
             requestId,
-            destinationTxHash: event.transactionHash
+            destinationTxHash: event.transactionHash,
           });
 
           clearInterval(checkInterval);
         }
 
         if (attempts >= maxAttempts) {
-          logger.warn('[LayerZeroBridge] Monitoring timeout');
+          logger.warn("[LayerZeroBridge] Monitoring timeout");
           clearInterval(checkInterval);
         }
       } catch (error) {
-        logger.error('[LayerZeroBridge] Monitoring error:', error);
+        logger.error("[LayerZeroBridge] Monitoring error:", error);
       }
     }, 5000); // Check every 5 seconds
   }
@@ -347,7 +358,14 @@ class LayerZeroBridge extends EventEmitter {
    * Validate bridge parameters
    */
   validateBridgeParams(params) {
-    const required = ['fromChain', 'toChain', 'asset', 'amount', 'recipient', 'signer'];
+    const required = [
+      "fromChain",
+      "toChain",
+      "asset",
+      "amount",
+      "recipient",
+      "signer",
+    ];
 
     for (const field of required) {
       if (!params[field]) {
@@ -358,17 +376,17 @@ class LayerZeroBridge extends EventEmitter {
     // Validate amount
     const amountBN = ethers.parseUnits(params.amount, 18);
     if (amountBN <= 0) {
-      throw new Error('Amount must be greater than 0');
+      throw new Error("Amount must be greater than 0");
     }
 
     // Validate recipient address
     if (!ethers.isAddress(params.recipient)) {
-      throw new Error('Invalid recipient address');
+      throw new Error("Invalid recipient address");
     }
 
     // Check if same chain
     if (params.fromChain === params.toChain) {
-      throw new Error('Cannot bridge to same chain');
+      throw new Error("Cannot bridge to same chain");
     }
   }
 
@@ -383,7 +401,7 @@ class LayerZeroBridge extends EventEmitter {
       for (const log of receipt.logs) {
         try {
           const parsed = bridgeInterface.parseLog(log);
-          if (parsed && parsed.name === 'AssetBridged') {
+          if (parsed && parsed.name === "AssetBridged") {
             return parsed.args.requestId;
           }
         } catch (e) {
@@ -394,12 +412,12 @@ class LayerZeroBridge extends EventEmitter {
       // Generate fallback request ID
       return ethers.keccak256(
         ethers.AbiCoder.defaultAbiCoder().encode(
-          ['bytes32', 'uint256'],
-          [receipt.hash, receipt.blockNumber]
-        )
+          ["bytes32", "uint256"],
+          [receipt.hash, receipt.blockNumber],
+        ),
       );
     } catch (error) {
-      logger.error('[LayerZeroBridge] Failed to extract request ID:', error);
+      logger.error("[LayerZeroBridge] Failed to extract request ID:", error);
       return ethers.ZeroHash;
     }
   }
@@ -410,7 +428,7 @@ class LayerZeroBridge extends EventEmitter {
   trackTransaction(txHash, data) {
     this.pendingTransactions.set(txHash, {
       ...data,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     });
   }
 
@@ -423,7 +441,7 @@ class LayerZeroBridge extends EventEmitter {
       this.pendingTransactions.set(txHash, {
         ...tx,
         ...updates,
-        updatedAt: Date.now()
+        updatedAt: Date.now(),
       });
     }
   }
@@ -444,10 +462,10 @@ class LayerZeroBridge extends EventEmitter {
    * Get supported chains
    */
   getSupportedChains() {
-    return Object.keys(LZ_CHAIN_IDS).map(chainId => ({
+    return Object.keys(LZ_CHAIN_IDS).map((chainId) => ({
       chainId: parseInt(chainId),
       lzChainId: LZ_CHAIN_IDS[chainId],
-      hasBridge: !!this.bridgeContracts[chainId]
+      hasBridge: !!this.bridgeContracts[chainId],
     }));
   }
 
@@ -455,7 +473,7 @@ class LayerZeroBridge extends EventEmitter {
    * Close bridge
    */
   async close() {
-    logger.info('[LayerZeroBridge] Closing...');
+    logger.info("[LayerZeroBridge] Closing...");
     this.pendingTransactions.clear();
     this.removeAllListeners();
   }

@@ -4,7 +4,7 @@
  * 管理语音识别系统的所有配置选项
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const path = require("path");
 const fs = require("fs").promises;
 const os = require("os");
@@ -263,9 +263,7 @@ class SpeechConfig {
       case "whisper-local":
         return this.config.whisperLocal;
       default:
-        logger.warn(
-          `[SpeechConfig] 未知引擎类型: ${engineType}，使用默认配置`,
-        );
+        logger.warn(`[SpeechConfig] 未知引擎类型: ${engineType}，使用默认配置`);
         return {};
     }
   }

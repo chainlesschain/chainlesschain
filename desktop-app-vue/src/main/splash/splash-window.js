@@ -5,7 +5,7 @@
  * 在应用启动时显示一个轻量级的启动画面，展示启动进度和状态
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { BrowserWindow } = require("electron");
 const path = require("path");
 

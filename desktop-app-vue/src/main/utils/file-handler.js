@@ -3,13 +3,13 @@
  * 提供流式处理、分块读写、内存管理等功能
  */
 
-const { logger, createLogger } = require('./logger.js');
-const fs = require('fs');
-const fsPromises = require('fs').promises;
-const path = require('path');
-const { Transform } = require('stream');
-const { pipeline } = require('stream/promises');
-const os = require('os');
+const { logger } = require("./logger.js");
+const fs = require("fs");
+const fsPromises = require("fs").promises;
+const path = require("path");
+const { Transform } = require("stream");
+const { pipeline } = require("stream/promises");
+const os = require("os");
 
 // 配置常量
 const CONFIG = {
@@ -40,7 +40,7 @@ class FileHandler {
       const stats = await fsPromises.stat(filePath);
       return stats.size > CONFIG.LARGE_FILE_THRESHOLD;
     } catch (error) {
-      logger.error('[FileHandler] 检查文件大小失败:', error);
+      logger.error("[FileHandler] 检查文件大小失败:", error);
       return false;
     }
   }
@@ -50,13 +50,15 @@ class FileHandler {
    */
   async getFileSize(filePath) {
     // Validate file path
-    if (!filePath || typeof filePath !== 'string') {
-      throw new Error('Invalid file path: path must be a non-empty string');
+    if (!filePath || typeof filePath !== "string") {
+      throw new Error("Invalid file path: path must be a non-empty string");
     }
 
     // Check if path is absolute and not just '/'
-    if (!path.isAbsolute(filePath) || filePath === '/' || filePath === '\\') {
-      throw new Error(`Invalid file path: ${filePath}. Path must be absolute and point to a file.`);
+    if (!path.isAbsolute(filePath) || filePath === "/" || filePath === "\\") {
+      throw new Error(
+        `Invalid file path: ${filePath}. Path must be absolute and point to a file.`,
+      );
     }
 
     const stats = await fsPromises.stat(filePath);
@@ -106,7 +108,7 @@ class FileHandler {
 
       const chunks = [];
 
-      readStream.on('data', async (chunk) => {
+      readStream.on("data", async (chunk) => {
         chunkCount++;
         processedSize += chunk.length;
 
@@ -130,7 +132,7 @@ class FileHandler {
           // 检查内存使用情况
           const memStatus = this.checkAvailableMemory();
           if (!memStatus.isAvailable) {
-            logger.warn('[FileHandler] 内存使用率过高，暂停处理');
+            logger.warn("[FileHandler] 内存使用率过高，暂停处理");
             await this.waitForMemory();
           }
 
@@ -142,13 +144,13 @@ class FileHandler {
         }
       });
 
-      readStream.on('end', () => {
+      readStream.on("end", () => {
         const duration = Date.now() - startTime;
         logger.info(
           `[FileHandler] 流式读取完成: ${filePath}, ` +
             `大小: ${(fileSize / 1024 / 1024).toFixed(2)}MB, ` +
             `耗时: ${duration}ms, ` +
-            `分片数: ${chunkCount}`
+            `分片数: ${chunkCount}`,
         );
 
         resolve({
@@ -161,8 +163,8 @@ class FileHandler {
         });
       });
 
-      readStream.on('error', (error) => {
-        logger.error('[FileHandler] 流式读取失败:', error);
+      readStream.on("error", (error) => {
+        logger.error("[FileHandler] 流式读取失败:", error);
         reject(error);
       });
     });
@@ -182,20 +184,24 @@ class FileHandler {
 
     return new Promise((resolve, reject) => {
       const writeStream = fs.createWriteStream(filePath, {
-        flags: options.append ? 'a' : 'w',
-        encoding: options.encoding || 'utf8',
+        flags: options.append ? "a" : "w",
+        encoding: options.encoding || "utf8",
       });
 
       const processData = async () => {
         try {
           // 判断数据源类型
-          const isIterable = Symbol.asyncIterator in Object(dataSource) || Symbol.iterator in Object(dataSource);
+          const isIterable =
+            Symbol.asyncIterator in Object(dataSource) ||
+            Symbol.iterator in Object(dataSource);
 
           if (isIterable) {
             for await (const chunk of dataSource) {
               if (!writeStream.write(chunk)) {
                 // 等待drain事件
-                await new Promise((resolveDrain) => writeStream.once('drain', resolveDrain));
+                await new Promise((resolveDrain) =>
+                  writeStream.once("drain", resolveDrain),
+                );
               }
               writtenSize += Buffer.byteLength(chunk);
               chunkCount++;
@@ -210,7 +216,9 @@ class FileHandler {
             // 假设是数组
             for (const chunk of dataSource) {
               if (!writeStream.write(chunk)) {
-                await new Promise((resolveDrain) => writeStream.once('drain', resolveDrain));
+                await new Promise((resolveDrain) =>
+                  writeStream.once("drain", resolveDrain),
+                );
               }
               writtenSize += Buffer.byteLength(chunk);
               chunkCount++;
@@ -224,13 +232,13 @@ class FileHandler {
         }
       };
 
-      writeStream.on('finish', () => {
+      writeStream.on("finish", () => {
         const duration = Date.now() - startTime;
         logger.info(
           `[FileHandler] 流式写入完成: ${filePath}, ` +
             `大小: ${(writtenSize / 1024 / 1024).toFixed(2)}MB, ` +
             `耗时: ${duration}ms, ` +
-            `分片数: ${chunkCount}`
+            `分片数: ${chunkCount}`,
         );
 
         resolve({
@@ -242,8 +250,8 @@ class FileHandler {
         });
       });
 
-      writeStream.on('error', (error) => {
-        logger.error('[FileHandler] 流式写入失败:', error);
+      writeStream.on("error", (error) => {
+        logger.error("[FileHandler] 流式写入失败:", error);
         reject(error);
       });
 
@@ -264,7 +272,7 @@ class FileHandler {
 
       // 添加进度监控
       let copiedSize = 0;
-      readStream.on('data', (chunk) => {
+      readStream.on("data", (chunk) => {
         copiedSize += chunk.length;
         if (options.onProgress) {
           options.onProgress({
@@ -281,7 +289,7 @@ class FileHandler {
       logger.info(
         `[FileHandler] 文件复制完成: ${sourcePath} -> ${destPath}, ` +
           `大小: ${(fileSize / 1024 / 1024).toFixed(2)}MB, ` +
-          `耗时: ${duration}ms`
+          `耗时: ${duration}ms`,
       );
 
       return {
@@ -292,7 +300,7 @@ class FileHandler {
         duration,
       };
     } catch (error) {
-      logger.error('[FileHandler] 文件复制失败:', error);
+      logger.error("[FileHandler] 文件复制失败:", error);
       throw error;
     }
   }
@@ -309,12 +317,15 @@ class FileHandler {
 
     if (!isLarge && !options.forceChunking) {
       // 小文件直接读取
-      const content = await fsPromises.readFile(filePath, options.encoding || 'utf8');
+      const content = await fsPromises.readFile(
+        filePath,
+        options.encoding || "utf8",
+      );
       const result = await processor(content, { isFullFile: true });
       return {
         success: true,
         results: [result],
-        strategy: 'full-read',
+        strategy: "full-read",
       };
     }
 
@@ -325,13 +336,13 @@ class FileHandler {
         const result = await processor(chunk, meta);
         results.push(result);
       },
-      options
+      options,
     );
 
     return {
       success: true,
       results,
-      strategy: 'chunked',
+      strategy: "chunked",
     };
   }
 
@@ -359,7 +370,7 @@ class FileHandler {
           (error) => {
             errors.push({ file, error });
             return null;
-          }
+          },
         );
 
         processing.push(task);
@@ -398,8 +409,14 @@ class FileHandler {
           throw error;
         }
 
-        logger.warn(`[FileHandler] 处理失败，重试 ${attempt}/${maxRetries}:`, file, error.message);
-        await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
+        logger.warn(
+          `[FileHandler] 处理失败，重试 ${attempt}/${maxRetries}:`,
+          file,
+          error.message,
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryDelay * attempt),
+        );
       }
     }
   }
@@ -425,7 +442,7 @@ class FileHandler {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    logger.warn('[FileHandler] 等待内存释放超时');
+    logger.warn("[FileHandler] 等待内存释放超时");
     return false;
   }
 

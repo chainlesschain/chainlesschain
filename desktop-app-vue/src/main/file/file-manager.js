@@ -3,11 +3,11 @@
  * 负责文件上传、下载、共享、锁定等核心功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 
 class FileManager {
   /**
@@ -34,7 +34,7 @@ class FileManager {
       file_path,
       file_type,
       file_size,
-      content
+      content,
     } = fileData;
 
     // 权限检查
@@ -42,11 +42,11 @@ class FileManager {
       const hasPermission = await this.organizationManager.checkPermission(
         org_id,
         uploaderDID,
-        'file.upload'
+        "file.upload",
       );
 
       if (!hasPermission) {
-        throw new Error('无权限上传文件到此组织');
+        throw new Error("无权限上传文件到此组织");
       }
     }
 
@@ -54,13 +54,17 @@ class FileManager {
     const checksum = this._calculateChecksum(content);
 
     // 检查是否已存在相同文件（基于checksum）
-    const existingFile = this.db.prepare(`
+    const existingFile = this.db
+      .prepare(
+        `
       SELECT id FROM project_files
       WHERE checksum = ? AND project_id = ?
-    `).get(checksum, project_id);
+    `,
+      )
+      .get(checksum, project_id);
 
     if (existingFile) {
-      logger.info('[FileManager] 文件已存在（基于checksum），返回现有文件');
+      logger.info("[FileManager] 文件已存在（基于checksum），返回现有文件");
       return this.getFile(existingFile.id);
     }
 
@@ -68,46 +72,50 @@ class FileManager {
     const savedPath = await this._saveFileToDisk(file_path, content);
 
     // 插入文件记录
-    const fileId = `file_${uuidv4().replace(/-/g, '')}`;
+    const fileId = `file_${uuidv4().replace(/-/g, "")}`;
     const now = Date.now();
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO project_files (
         id, project_id, org_id, workspace_id,
         file_name, file_path, file_type, file_size,
         checksum, version_number, lock_status,
         created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      fileId,
-      project_id,
-      org_id || null,
-      workspace_id || null,
-      file_name,
-      savedPath,
-      file_type,
-      file_size,
-      checksum,
-      1, // 初始版本号
-      'unlocked',
-      now,
-      now
-    );
+    `,
+      )
+      .run(
+        fileId,
+        project_id,
+        org_id || null,
+        workspace_id || null,
+        file_name,
+        savedPath,
+        file_type,
+        file_size,
+        checksum,
+        1, // 初始版本号
+        "unlocked",
+        now,
+        now,
+      );
 
     // 记录访问日志
-    await this._logFileAccess(fileId, uploaderDID, 'upload');
+    await this._logFileAccess(fileId, uploaderDID, "upload");
 
     // 记录活动日志
     if (org_id) {
       await this.organizationManager.logActivity(
         org_id,
         uploaderDID,
-        'file.uploaded',
-        { fileId, fileName: file_name }
+        "file.uploaded",
+        { fileId, fileName: file_name },
       );
     }
 
-    logger.info('[FileManager] 文件上传成功:', file_name);
+    logger.info("[FileManager] 文件上传成功:", file_name);
 
     return this.getFile(fileId);
   }
@@ -118,12 +126,16 @@ class FileManager {
    * @returns {Object} 文件信息
    */
   getFile(fileId) {
-    const file = this.db.prepare(`
+    const file = this.db
+      .prepare(
+        `
       SELECT * FROM project_files WHERE id = ?
-    `).get(fileId);
+    `,
+      )
+      .get(fileId);
 
     if (!file) {
-      throw new Error('文件不存在');
+      throw new Error("文件不存在");
     }
 
     // 解析JSON字段
@@ -147,45 +159,47 @@ class FileManager {
       file_type,
       locked,
       limit = 100,
-      offset = 0
+      offset = 0,
     } = filters;
 
-    let query = 'SELECT * FROM project_files WHERE 1=1';
+    let query = "SELECT * FROM project_files WHERE 1=1";
     const params = [];
 
     if (project_id) {
-      query += ' AND project_id = ?';
+      query += " AND project_id = ?";
       params.push(project_id);
     }
 
     if (org_id) {
-      query += ' AND org_id = ?';
+      query += " AND org_id = ?";
       params.push(org_id);
     }
 
     if (workspace_id) {
-      query += ' AND workspace_id = ?';
+      query += " AND workspace_id = ?";
       params.push(workspace_id);
     }
 
     if (file_type) {
-      query += ' AND file_type = ?';
+      query += " AND file_type = ?";
       params.push(file_type);
     }
 
     if (locked !== undefined) {
-      query += locked ? " AND lock_status != 'unlocked'" : " AND lock_status = 'unlocked'";
+      query += locked
+        ? " AND lock_status != 'unlocked'"
+        : " AND lock_status = 'unlocked'";
     }
 
-    query += ' ORDER BY updated_at DESC LIMIT ? OFFSET ?';
+    query += " ORDER BY updated_at DESC LIMIT ? OFFSET ?";
     params.push(limit, offset);
 
     const files = this.db.prepare(query).all(...params);
 
     // 解析JSON字段
-    return files.map(file => ({
+    return files.map((file) => ({
       ...file,
-      shared_with: file.shared_with ? JSON.parse(file.shared_with) : null
+      shared_with: file.shared_with ? JSON.parse(file.shared_with) : null,
     }));
   }
 
@@ -204,21 +218,21 @@ class FileManager {
       const hasPermission = await this.organizationManager.checkPermission(
         file.org_id,
         updaterDID,
-        'file.edit'
+        "file.edit",
       );
 
       if (!hasPermission) {
-        return { success: false, error: '无权限编辑文件' };
+        return { success: false, error: "无权限编辑文件" };
       }
     }
 
     // 检查文件锁定状态
-    if (file.lock_status !== 'unlocked' && file.locked_by !== updaterDID) {
-      return { success: false, error: '文件已被其他用户锁定' };
+    if (file.lock_status !== "unlocked" && file.locked_by !== updaterDID) {
+      return { success: false, error: "文件已被其他用户锁定" };
     }
 
     // 构建更新SQL
-    const allowedFields = ['file_name', 'file_type', 'workspace_id'];
+    const allowedFields = ["file_name", "file_type", "workspace_id"];
     const updateFields = [];
     const params = [];
 
@@ -230,23 +244,27 @@ class FileManager {
     }
 
     if (updateFields.length === 0) {
-      return { success: false, error: '没有可更新的字段' };
+      return { success: false, error: "没有可更新的字段" };
     }
 
-    updateFields.push('updated_at = ?');
+    updateFields.push("updated_at = ?");
     params.push(Date.now());
     params.push(fileId);
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE project_files
-      SET ${updateFields.join(', ')}
+      SET ${updateFields.join(", ")}
       WHERE id = ?
-    `).run(...params);
+    `,
+      )
+      .run(...params);
 
     // 记录访问日志
-    await this._logFileAccess(fileId, updaterDID, 'edit');
+    await this._logFileAccess(fileId, updaterDID, "edit");
 
-    logger.info('[FileManager] 文件元数据更新成功');
+    logger.info("[FileManager] 文件元数据更新成功");
 
     return { success: true };
   }
@@ -265,17 +283,17 @@ class FileManager {
       const hasPermission = await this.organizationManager.checkPermission(
         file.org_id,
         deleterDID,
-        'file.delete'
+        "file.delete",
       );
 
       if (!hasPermission) {
-        return { success: false, error: '无权限删除文件' };
+        return { success: false, error: "无权限删除文件" };
       }
     }
 
     // 检查文件锁定状态
-    if (file.lock_status !== 'unlocked') {
-      return { success: false, error: '文件已锁定，无法删除' };
+    if (file.lock_status !== "unlocked") {
+      return { success: false, error: "文件已锁定，无法删除" };
     }
 
     // 从磁盘删除文件（可选，可以改为标记删除）
@@ -284,26 +302,26 @@ class FileManager {
         fs.unlinkSync(file.file_path);
       }
     } catch (error) {
-      logger.error('[FileManager] 删除磁盘文件失败:', error);
+      logger.error("[FileManager] 删除磁盘文件失败:", error);
     }
 
     // 删除数据库记录（级联删除版本、权限等）
-    this.db.prepare('DELETE FROM project_files WHERE id = ?').run(fileId);
+    this.db.prepare("DELETE FROM project_files WHERE id = ?").run(fileId);
 
     // 记录访问日志
-    await this._logFileAccess(fileId, deleterDID, 'delete');
+    await this._logFileAccess(fileId, deleterDID, "delete");
 
     // 记录活动日志
     if (file.org_id) {
       await this.organizationManager.logActivity(
         file.org_id,
         deleterDID,
-        'file.deleted',
-        { fileId, fileName: file.file_name }
+        "file.deleted",
+        { fileId, fileName: file.file_name },
       );
     }
 
-    logger.info('[FileManager] 文件删除成功');
+    logger.info("[FileManager] 文件删除成功");
 
     return { success: true };
   }
@@ -319,10 +337,12 @@ class FileManager {
     const file = this.getFile(fileId);
 
     // 检查是否已锁定
-    if (file.lock_status !== 'unlocked' && file.locked_by !== lockerDID) {
-      const lock = this.db.prepare('SELECT * FROM file_locks WHERE file_id = ?').get(fileId);
+    if (file.lock_status !== "unlocked" && file.locked_by !== lockerDID) {
+      const lock = this.db
+        .prepare("SELECT * FROM file_locks WHERE file_id = ?")
+        .get(fileId);
       if (lock && lock.expires_at > Date.now()) {
-        return { success: false, error: '文件已被其他用户锁定' };
+        return { success: false, error: "文件已被其他用户锁定" };
       }
     }
 
@@ -330,33 +350,41 @@ class FileManager {
     const expiresAt = now + expiresIn;
 
     // 插入或更新锁定记录
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO file_locks (id, file_id, locked_by, locked_at, expires_at, lock_type)
       VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(file_id) DO UPDATE SET
         locked_by = excluded.locked_by,
         locked_at = excluded.locked_at,
         expires_at = excluded.expires_at
-    `).run(
-      `lock_${uuidv4().replace(/-/g, '')}`,
-      fileId,
-      lockerDID,
-      now,
-      expiresAt,
-      'exclusive'
-    );
+    `,
+      )
+      .run(
+        `lock_${uuidv4().replace(/-/g, "")}`,
+        fileId,
+        lockerDID,
+        now,
+        expiresAt,
+        "exclusive",
+      );
 
     // 更新文件锁定状态
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE project_files
       SET lock_status = 'locked', locked_by = ?, locked_at = ?
       WHERE id = ?
-    `).run(lockerDID, now, fileId);
+    `,
+      )
+      .run(lockerDID, now, fileId);
 
     // 记录访问日志
-    await this._logFileAccess(fileId, lockerDID, 'lock');
+    await this._logFileAccess(fileId, lockerDID, "lock");
 
-    logger.info('[FileManager] 文件锁定成功');
+    logger.info("[FileManager] 文件锁定成功");
 
     return { success: true, expiresAt };
   }
@@ -377,31 +405,35 @@ class FileManager {
         const hasPermission = await this.organizationManager.checkPermission(
           file.org_id,
           unlockerDID,
-          'file.manage'
+          "file.manage",
         );
 
         if (!hasPermission) {
-          return { success: false, error: '无权限解锁此文件' };
+          return { success: false, error: "无权限解锁此文件" };
         }
       } else {
-        return { success: false, error: '只有锁定者可以解锁文件' };
+        return { success: false, error: "只有锁定者可以解锁文件" };
       }
     }
 
     // 删除锁定记录
-    this.db.prepare('DELETE FROM file_locks WHERE file_id = ?').run(fileId);
+    this.db.prepare("DELETE FROM file_locks WHERE file_id = ?").run(fileId);
 
     // 更新文件锁定状态
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE project_files
       SET lock_status = 'unlocked', locked_by = NULL, locked_at = NULL
       WHERE id = ?
-    `).run(fileId);
+    `,
+      )
+      .run(fileId);
 
     // 记录访问日志
-    await this._logFileAccess(fileId, unlockerDID, 'unlock');
+    await this._logFileAccess(fileId, unlockerDID, "unlock");
 
-    logger.info('[FileManager] 文件解锁成功');
+    logger.info("[FileManager] 文件解锁成功");
 
     return { success: true };
   }
@@ -413,14 +445,18 @@ class FileManager {
    * @param {string} adderDID - 添加者DID
    */
   addTag(fileId, tag, adderDID) {
-    const tagId = `tag_${uuidv4().replace(/-/g, '')}`;
+    const tagId = `tag_${uuidv4().replace(/-/g, "")}`;
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT OR IGNORE INTO file_tags (id, file_id, tag, created_by, created_at)
       VALUES (?, ?, ?, ?, ?)
-    `).run(tagId, fileId, tag, adderDID, Date.now());
+    `,
+      )
+      .run(tagId, fileId, tag, adderDID, Date.now());
 
-    logger.info('[FileManager] 标签添加成功:', tag);
+    logger.info("[FileManager] 标签添加成功:", tag);
   }
 
   /**
@@ -429,8 +465,10 @@ class FileManager {
    * @param {string} tag - 标签
    */
   removeTag(fileId, tag) {
-    this.db.prepare('DELETE FROM file_tags WHERE file_id = ? AND tag = ?').run(fileId, tag);
-    logger.info('[FileManager] 标签移除成功:', tag);
+    this.db
+      .prepare("DELETE FROM file_tags WHERE file_id = ? AND tag = ?")
+      .run(fileId, tag);
+    logger.info("[FileManager] 标签移除成功:", tag);
   }
 
   /**
@@ -439,8 +477,10 @@ class FileManager {
    * @returns {Array} 标签列表
    */
   getTags(fileId) {
-    const tags = this.db.prepare('SELECT tag FROM file_tags WHERE file_id = ?').all(fileId);
-    return tags.map(t => t.tag);
+    const tags = this.db
+      .prepare("SELECT tag FROM file_tags WHERE file_id = ?")
+      .all(fileId);
+    return tags.map((t) => t.tag);
   }
 
   /**
@@ -450,12 +490,16 @@ class FileManager {
    * @returns {Array} 访问日志
    */
   getAccessLogs(fileId, limit = 50) {
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT * FROM file_access_logs
       WHERE file_id = ?
       ORDER BY accessed_at DESC
       LIMIT ?
-    `).all(fileId, limit);
+    `,
+      )
+      .all(fileId, limit);
   }
 
   /**
@@ -463,7 +507,7 @@ class FileManager {
    * @private
    */
   _calculateChecksum(content) {
-    return crypto.createHash('sha256').update(content).digest('hex');
+    return crypto.createHash("sha256").update(content).digest("hex");
   }
 
   /**
@@ -481,20 +525,24 @@ class FileManager {
    * @private
    */
   async _logFileAccess(fileId, userDID, action, metadata = {}) {
-    const logId = `log_${uuidv4().replace(/-/g, '')}`;
+    const logId = `log_${uuidv4().replace(/-/g, "")}`;
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO file_access_logs (id, file_id, user_did, action, accessed_at, ip_address, user_agent)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      logId,
-      fileId,
-      userDID,
-      action,
-      Date.now(),
-      metadata.ip || null,
-      metadata.userAgent || null
-    );
+    `,
+      )
+      .run(
+        logId,
+        fileId,
+        userDID,
+        action,
+        Date.now(),
+        metadata.ip || null,
+        metadata.userAgent || null,
+      );
   }
 }
 

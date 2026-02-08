@@ -3,7 +3,7 @@
  * 提供数据库和配置文件的备份与恢复功能
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const { app, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");

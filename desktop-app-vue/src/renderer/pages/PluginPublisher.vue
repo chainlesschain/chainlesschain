@@ -14,10 +14,7 @@
     </a-page-header>
 
     <div class="publisher-content">
-      <a-steps
-        :current="currentStep"
-        style="margin-bottom: 32px"
-      >
+      <a-steps :current="currentStep" style="margin-bottom: 32px">
         <a-step title="基本信息" />
         <a-step title="上传插件" />
         <a-step title="权限配置" />
@@ -25,46 +22,32 @@
       </a-steps>
 
       <!-- 步骤1: 基本信息 -->
-      <div
-        v-show="currentStep === 0"
-        class="step-content"
-      >
+      <div v-show="currentStep === 0" class="step-content">
         <a-form
           :model="pluginInfo"
           :label-col="{ span: 4 }"
           :wrapper-col="{ span: 16 }"
         >
-          <a-form-item
-            label="插件名称"
-            required
-          >
+          <a-form-item label="插件名称" required>
             <a-input
               v-model:value="pluginInfo.name"
               placeholder="输入插件名称"
             />
           </a-form-item>
 
-          <a-form-item
-            label="插件ID"
-            required
-          >
+          <a-form-item label="插件ID" required>
             <a-input
               v-model:value="pluginInfo.id"
               placeholder="例如: my-awesome-plugin"
             >
-              <template #addonBefore>
-                chainlesschain-
-              </template>
+              <template #addonBefore> chainlesschain- </template>
             </a-input>
             <div class="form-hint">
               插件ID必须唯一，只能包含小写字母、数字和连字符
             </div>
           </a-form-item>
 
-          <a-form-item
-            label="版本号"
-            required
-          >
+          <a-form-item label="版本号" required>
             <a-input
               v-model:value="pluginInfo.version"
               placeholder="例如: 1.0.0"
@@ -74,10 +57,7 @@
             </div>
           </a-form-item>
 
-          <a-form-item
-            label="简短描述"
-            required
-          >
+          <a-form-item label="简短描述" required>
             <a-textarea
               v-model:value="pluginInfo.description"
               placeholder="用一句话描述您的插件功能"
@@ -95,29 +75,18 @@
             />
           </a-form-item>
 
-          <a-form-item
-            label="分类"
-            required
-          >
+          <a-form-item label="分类" required>
             <a-select
               v-model:value="pluginInfo.category"
               placeholder="选择插件分类"
             >
-              <a-select-option value="ai">
-                AI增强
-              </a-select-option>
-              <a-select-option value="productivity">
-                效率工具
-              </a-select-option>
-              <a-select-option value="data">
-                数据处理
-              </a-select-option>
+              <a-select-option value="ai"> AI增强 </a-select-option>
+              <a-select-option value="productivity"> 效率工具 </a-select-option>
+              <a-select-option value="data"> 数据处理 </a-select-option>
               <a-select-option value="integration">
                 第三方集成
               </a-select-option>
-              <a-select-option value="ui">
-                界面扩展
-              </a-select-option>
+              <a-select-option value="ui"> 界面扩展 </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -128,9 +97,7 @@
               placeholder="添加标签，按回车确认"
               :max-tag-count="5"
             />
-            <div class="form-hint">
-              最多5个标签，帮助用户发现您的插件
-            </div>
+            <div class="form-hint">最多5个标签，帮助用户发现您的插件</div>
           </a-form-item>
 
           <a-form-item label="作者">
@@ -159,31 +126,20 @@
               v-model:value="pluginInfo.license"
               placeholder="选择开源许可证"
             >
-              <a-select-option value="MIT">
-                MIT
-              </a-select-option>
-              <a-select-option value="Apache-2.0">
-                Apache 2.0
-              </a-select-option>
-              <a-select-option value="GPL-3.0">
-                GPL 3.0
-              </a-select-option>
+              <a-select-option value="MIT"> MIT </a-select-option>
+              <a-select-option value="Apache-2.0"> Apache 2.0 </a-select-option>
+              <a-select-option value="GPL-3.0"> GPL 3.0 </a-select-option>
               <a-select-option value="BSD-3-Clause">
                 BSD 3-Clause
               </a-select-option>
-              <a-select-option value="ISC">
-                ISC
-              </a-select-option>
+              <a-select-option value="ISC"> ISC </a-select-option>
             </a-select>
           </a-form-item>
         </a-form>
       </div>
 
       <!-- 步骤2: 上传插件 -->
-      <div
-        v-show="currentStep === 1"
-        class="step-content"
-      >
+      <div v-show="currentStep === 1" class="step-content">
         <a-alert
           message="上传要求"
           description="请上传包含manifest.json的ZIP文件，文件大小不超过50MB"
@@ -203,23 +159,12 @@
           <p class="ant-upload-drag-icon">
             <InboxOutlined />
           </p>
-          <p class="ant-upload-text">
-            点击或拖拽文件到此区域上传
-          </p>
-          <p class="ant-upload-hint">
-            支持ZIP格式的插件包，最大50MB
-          </p>
+          <p class="ant-upload-text">点击或拖拽文件到此区域上传</p>
+          <p class="ant-upload-hint">支持ZIP格式的插件包，最大50MB</p>
         </a-upload-dragger>
 
-        <div
-          v-if="pluginFile"
-          class="file-info"
-        >
-          <a-descriptions
-            title="文件信息"
-            bordered
-            :column="2"
-          >
+        <div v-if="pluginFile" class="file-info">
+          <a-descriptions title="文件信息" bordered :column="2">
             <a-descriptions-item label="文件名">
               {{ pluginFile.name }}
             </a-descriptions-item>
@@ -229,15 +174,9 @@
           </a-descriptions>
         </div>
 
-        <div
-          v-if="manifestData"
-          class="manifest-preview"
-        >
+        <div v-if="manifestData" class="manifest-preview">
           <h3>Manifest 预览</h3>
-          <a-descriptions
-            bordered
-            :column="1"
-          >
+          <a-descriptions bordered :column="1">
             <a-descriptions-item label="插件ID">
               {{ manifestData.id }}
             </a-descriptions-item>
@@ -255,10 +194,7 @@
       </div>
 
       <!-- 步骤3: 权限配置 -->
-      <div
-        v-show="currentStep === 2"
-        class="step-content"
-      >
+      <div v-show="currentStep === 2" class="step-content">
         <a-alert
           message="权限说明"
           description="请仔细选择插件需要的权限，用户会看到这些权限要求"
@@ -277,10 +213,7 @@
               :key="perm.value"
               :span="12"
             >
-              <a-card
-                size="small"
-                hoverable
-              >
+              <a-card size="small" hoverable>
                 <a-checkbox :value="perm.value">
                   <strong>{{ perm.label }}</strong>
                 </a-checkbox>
@@ -294,20 +227,14 @@
       </div>
 
       <!-- 步骤4: 发布确认 -->
-      <div
-        v-show="currentStep === 3"
-        class="step-content"
-      >
+      <div v-show="currentStep === 3" class="step-content">
         <a-result
           status="info"
           title="准备发布"
           sub-title="请确认以下信息无误后发布插件"
         >
           <template #extra>
-            <a-descriptions
-              bordered
-              :column="2"
-            >
+            <a-descriptions bordered :column="2">
               <a-descriptions-item label="插件名称">
                 {{ pluginInfo.name }}
               </a-descriptions-item>
@@ -320,21 +247,12 @@
               <a-descriptions-item label="分类">
                 {{ getCategoryLabel(pluginInfo.category) }}
               </a-descriptions-item>
-              <a-descriptions-item
-                label="标签"
-                :span="2"
-              >
-                <a-tag
-                  v-for="tag in pluginInfo.tags"
-                  :key="tag"
-                >
+              <a-descriptions-item label="标签" :span="2">
+                <a-tag v-for="tag in pluginInfo.tags" :key="tag">
                   {{ tag }}
                 </a-tag>
               </a-descriptions-item>
-              <a-descriptions-item
-                label="权限"
-                :span="2"
-              >
+              <a-descriptions-item label="权限" :span="2">
                 <a-tag
                   v-for="perm in pluginInfo.permissions"
                   :key="perm"
@@ -359,12 +277,7 @@
       <!-- 操作按钮 -->
       <div class="step-actions">
         <a-space>
-          <a-button
-            v-if="currentStep > 0"
-            @click="prevStep"
-          >
-            上一步
-          </a-button>
+          <a-button v-if="currentStep > 0" @click="prevStep"> 上一步 </a-button>
           <a-button
             v-if="currentStep < 3"
             type="primary"
@@ -390,15 +303,15 @@
 </template>
 
 <script setup>
-import { ref, computed, h } from 'vue';
-import { message, Modal } from 'ant-design-vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, h } from "vue";
+import { message, Modal } from "ant-design-vue";
+import { useRouter } from "vue-router";
 import {
   QuestionCircleOutlined,
   InboxOutlined,
   CloudUploadOutlined,
-} from '@ant-design/icons-vue';
-import { logger } from '@/utils/logger';
+} from "@ant-design/icons-vue";
+import { logger } from "@/utils/logger";
 
 const router = useRouter();
 
@@ -408,18 +321,18 @@ const publishing = ref(false);
 const agreedToTerms = ref(false);
 
 const pluginInfo = ref({
-  name: '',
-  id: '',
-  version: '1.0.0',
-  description: '',
-  longDescription: '',
+  name: "",
+  id: "",
+  version: "1.0.0",
+  description: "",
+  longDescription: "",
   category: null,
   tags: [],
-  author: '',
-  homepage: '',
-  repository: '',
-  license: 'MIT',
-  permissions: []
+  author: "",
+  homepage: "",
+  repository: "",
+  license: "MIT",
+  permissions: [],
 });
 
 const fileList = ref([]);
@@ -428,21 +341,51 @@ const manifestData = ref(null);
 
 // 可用权限列表
 const availablePermissions = [
-  { value: 'database:read', label: '读取数据库', description: '允许插件读取笔记和数据' },
-  { value: 'database:write', label: '写入数据库', description: '允许插件创建和修改数据' },
-  { value: 'llm:query', label: '调用AI模型', description: '允许插件使用LLM服务' },
-  { value: 'rag:search', label: '搜索知识库', description: '允许插件搜索和检索知识' },
-  { value: 'file:read', label: '读取文件', description: '允许插件读取文件系统' },
-  { value: 'file:write', label: '写入文件', description: '允许插件写入文件' },
-  { value: 'network:request', label: '网络请求', description: '允许插件访问互联网' },
-  { value: 'ui:register', label: '注册UI组件', description: '允许插件添加界面元素' },
+  {
+    value: "database:read",
+    label: "读取数据库",
+    description: "允许插件读取笔记和数据",
+  },
+  {
+    value: "database:write",
+    label: "写入数据库",
+    description: "允许插件创建和修改数据",
+  },
+  {
+    value: "llm:query",
+    label: "调用AI模型",
+    description: "允许插件使用LLM服务",
+  },
+  {
+    value: "rag:search",
+    label: "搜索知识库",
+    description: "允许插件搜索和检索知识",
+  },
+  {
+    value: "file:read",
+    label: "读取文件",
+    description: "允许插件读取文件系统",
+  },
+  { value: "file:write", label: "写入文件", description: "允许插件写入文件" },
+  {
+    value: "network:request",
+    label: "网络请求",
+    description: "允许插件访问互联网",
+  },
+  {
+    value: "ui:register",
+    label: "注册UI组件",
+    description: "允许插件添加界面元素",
+  },
 ];
 
 // 计算属性
 const canProceed = computed(() => {
   switch (currentStep.value) {
     case 0:
-      return pluginInfo.value.name && pluginInfo.value.id && pluginInfo.value.version;
+      return (
+        pluginInfo.value.name && pluginInfo.value.id && pluginInfo.value.version
+      );
     case 1:
       return pluginFile.value !== null;
     case 2:
@@ -466,15 +409,15 @@ const prevStep = () => {
 };
 
 const beforeUpload = (file) => {
-  const isZip = file.type === 'application/zip' || file.name.endsWith('.zip');
+  const isZip = file.type === "application/zip" || file.name.endsWith(".zip");
   if (!isZip) {
-    message.error('只能上传ZIP文件！');
+    message.error("只能上传ZIP文件！");
     return false;
   }
 
   const isLt50M = file.size / 1024 / 1024 < 50;
   if (!isLt50M) {
-    message.error('文件大小不能超过50MB！');
+    message.error("文件大小不能超过50MB！");
     return false;
   }
 
@@ -488,28 +431,45 @@ const handleFileChange = async (info) => {
     // 解析ZIP文件，读取manifest.json
     try {
       const arrayBuffer = await pluginFile.value.arrayBuffer();
-      const result = await window.electron.ipcRenderer.invoke('plugin:parse-zip', {
-        buffer: Array.from(new Uint8Array(arrayBuffer)),
-        fileName: pluginFile.value.name
-      });
+      const result = await window.electron.ipcRenderer.invoke(
+        "plugin:parse-zip",
+        {
+          buffer: Array.from(new Uint8Array(arrayBuffer)),
+          fileName: pluginFile.value.name,
+        },
+      );
 
       if (result.success && result.manifest) {
         manifestData.value = result.manifest;
         // 自动填充插件信息
-        if (result.manifest.name) pluginInfo.value.name = result.manifest.name;
-        if (result.manifest.id) pluginInfo.value.id = result.manifest.id;
-        if (result.manifest.version) pluginInfo.value.version = result.manifest.version;
-        if (result.manifest.description) pluginInfo.value.description = result.manifest.description;
-        if (result.manifest.author) pluginInfo.value.author = result.manifest.author;
-        if (result.manifest.category) pluginInfo.value.category = result.manifest.category;
-        if (result.manifest.permissions) pluginInfo.value.permissions = result.manifest.permissions;
-        message.success('成功解析插件配置');
+        if (result.manifest.name) {
+          pluginInfo.value.name = result.manifest.name;
+        }
+        if (result.manifest.id) {
+          pluginInfo.value.id = result.manifest.id;
+        }
+        if (result.manifest.version) {
+          pluginInfo.value.version = result.manifest.version;
+        }
+        if (result.manifest.description) {
+          pluginInfo.value.description = result.manifest.description;
+        }
+        if (result.manifest.author) {
+          pluginInfo.value.author = result.manifest.author;
+        }
+        if (result.manifest.category) {
+          pluginInfo.value.category = result.manifest.category;
+        }
+        if (result.manifest.permissions) {
+          pluginInfo.value.permissions = result.manifest.permissions;
+        }
+        message.success("成功解析插件配置");
       } else {
-        message.warning('无法解析manifest.json，请手动填写信息');
+        message.warning("无法解析manifest.json，请手动填写信息");
       }
     } catch (error) {
-      logger.error('解析ZIP文件失败:', error);
-      message.warning('解析失败，请手动填写插件信息');
+      logger.error("解析ZIP文件失败:", error);
+      message.warning("解析失败，请手动填写插件信息");
     }
   } else {
     pluginFile.value = null;
@@ -519,7 +479,7 @@ const handleFileChange = async (info) => {
 
 const publishPlugin = async () => {
   if (!pluginFile.value) {
-    message.error('请先上传插件文件');
+    message.error("请先上传插件文件");
     return;
   }
 
@@ -530,88 +490,98 @@ const publishPlugin = async () => {
     const arrayBuffer = await pluginFile.value.arrayBuffer();
 
     // 调用发布API
-    const result = await window.electron.ipcRenderer.invoke('plugin:publish', {
+    const result = await window.electron.ipcRenderer.invoke("plugin:publish", {
       pluginInfo: pluginInfo.value,
       fileBuffer: Array.from(new Uint8Array(arrayBuffer)),
-      fileName: pluginFile.value.name
+      fileName: pluginFile.value.name,
     });
 
     if (result.success) {
-      message.success('插件发布成功！');
-      router.push('/plugins/marketplace');
+      message.success("插件发布成功！");
+      router.push("/plugins/marketplace");
     } else {
-      message.error('发布失败: ' + (result.error || '未知错误'));
+      message.error("发布失败: " + (result.error || "未知错误"));
     }
   } catch (error) {
-    logger.error('发布插件失败:', error);
-    message.error('发布失败: ' + error.message);
+    logger.error("发布插件失败:", error);
+    message.error("发布失败: " + error.message);
   } finally {
     publishing.value = false;
   }
 };
 
 const formatFileSize = (bytes) => {
-  if (bytes < 1024) {return bytes + ' B';}
-  if (bytes < 1024 * 1024) {return (bytes / 1024).toFixed(2) + ' KB';}
-  return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+  if (bytes < 1024) {
+    return bytes + " B";
+  }
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(2) + " KB";
+  }
+  return (bytes / (1024 * 1024)).toFixed(2) + " MB";
 };
 
 const getCategoryLabel = (category) => {
   const labels = {
-    ai: 'AI增强',
-    productivity: '效率工具',
-    data: '数据处理',
-    integration: '第三方集成',
-    ui: '界面扩展'
+    ai: "AI增强",
+    productivity: "效率工具",
+    data: "数据处理",
+    integration: "第三方集成",
+    ui: "界面扩展",
   };
   return labels[category] || category;
 };
 
 const getPermissionLabel = (perm) => {
-  const permission = availablePermissions.find(p => p.value === perm);
+  const permission = availablePermissions.find((p) => p.value === perm);
   return permission ? permission.label : perm;
 };
 
 const showDeveloperGuide = () => {
   Modal.info({
-    title: '插件开发者指南',
+    title: "插件开发者指南",
     width: 700,
-    content: h('div', { style: 'max-height: 400px; overflow-y: auto' }, [
-      h('h4', '1. 插件结构'),
-      h('p', '每个插件需要包含 manifest.json 配置文件，定义插件的元数据、权限和入口点。'),
-      h('h4', { style: 'margin-top: 16px' }, '2. 必要文件'),
-      h('ul', [
-        h('li', 'manifest.json - 插件配置文件'),
-        h('li', 'index.js - 插件主入口'),
-        h('li', 'README.md - 插件说明文档')
+    content: h("div", { style: "max-height: 400px; overflow-y: auto" }, [
+      h("h4", "1. 插件结构"),
+      h(
+        "p",
+        "每个插件需要包含 manifest.json 配置文件，定义插件的元数据、权限和入口点。",
+      ),
+      h("h4", { style: "margin-top: 16px" }, "2. 必要文件"),
+      h("ul", [
+        h("li", "manifest.json - 插件配置文件"),
+        h("li", "index.js - 插件主入口"),
+        h("li", "README.md - 插件说明文档"),
       ]),
-      h('h4', { style: 'margin-top: 16px' }, '3. 权限声明'),
-      h('p', '在 manifest.json 中声明所需权限，如 database:read、llm:query 等。'),
-      h('h4', { style: 'margin-top: 16px' }, '4. API 文档'),
-      h('p', '完整的 API 文档请访问官方开发者文档网站。')
+      h("h4", { style: "margin-top: 16px" }, "3. 权限声明"),
+      h(
+        "p",
+        "在 manifest.json 中声明所需权限，如 database:read、llm:query 等。",
+      ),
+      h("h4", { style: "margin-top: 16px" }, "4. API 文档"),
+      h("p", "完整的 API 文档请访问官方开发者文档网站。"),
     ]),
-    okText: '关闭'
+    okText: "关闭",
   });
 };
 
 const showTerms = () => {
   Modal.info({
-    title: '插件发布协议',
+    title: "插件发布协议",
     width: 700,
-    content: h('div', { style: 'max-height: 400px; overflow-y: auto' }, [
-      h('h4', '插件发布须知'),
-      h('p', '发布插件即表示您同意以下条款：'),
-      h('ol', [
-        h('li', '您确认拥有该插件的完整版权或已获得合法授权。'),
-        h('li', '插件不包含任何恶意代码、后门或其他有害内容。'),
-        h('li', '插件遵守当地法律法规，不含违法违规内容。'),
-        h('li', '您同意用户对插件的评价和反馈。'),
-        h('li', '平台有权下架违规插件。'),
-        h('li', '您同意为插件提供必要的维护和支持。')
+    content: h("div", { style: "max-height: 400px; overflow-y: auto" }, [
+      h("h4", "插件发布须知"),
+      h("p", "发布插件即表示您同意以下条款："),
+      h("ol", [
+        h("li", "您确认拥有该插件的完整版权或已获得合法授权。"),
+        h("li", "插件不包含任何恶意代码、后门或其他有害内容。"),
+        h("li", "插件遵守当地法律法规，不含违法违规内容。"),
+        h("li", "您同意用户对插件的评价和反馈。"),
+        h("li", "平台有权下架违规插件。"),
+        h("li", "您同意为插件提供必要的维护和支持。"),
       ]),
-      h('p', { style: 'margin-top: 16px; color: #666' }, '最后更新: 2025年1月')
+      h("p", { style: "margin-top: 16px; color: #666" }, "最后更新: 2025年1月"),
     ]),
-    okText: '我已阅读并同意'
+    okText: "我已阅读并同意",
   });
 };
 </script>

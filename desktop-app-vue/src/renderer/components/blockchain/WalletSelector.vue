@@ -33,20 +33,15 @@
             <div class="wallet-info">
               <div class="wallet-name">
                 {{ formatAddress(wallet.address) }}
-                <a-tag
-                  v-if="wallet.is_default"
-                  color="blue"
-                  size="small"
-                >
+                <a-tag v-if="wallet.is_default" color="blue" size="small">
                   默认
                 </a-tag>
               </div>
-              <div
-                v-if="showBalance"
-                class="wallet-balance"
-              >
+              <div v-if="showBalance" class="wallet-balance">
                 <span class="balance-label">余额:</span>
-                <span class="balance-value">{{ getWalletBalance(wallet) }}</span>
+                <span class="balance-value">{{
+                  getWalletBalance(wallet)
+                }}</span>
               </div>
             </div>
           </div>
@@ -54,27 +49,16 @@
       </a-select-opt-group>
 
       <!-- 外部钱包选项 -->
-      <a-select-opt-group
-        v-if="showExternalOptions"
-        label="外部钱包"
-      >
-        <a-select-option
-          v-if="!externalWalletConnected"
-          value="__metamask__"
-        >
+      <a-select-opt-group v-if="showExternalOptions" label="外部钱包">
+        <a-select-option v-if="!externalWalletConnected" value="__metamask__">
           <div class="wallet-option">
             <div class="wallet-avatar">
-              <a-avatar
-                :size="avatarSize"
-                style="background-color: #f6851b"
-              >
+              <a-avatar :size="avatarSize" style="background-color: #f6851b">
                 🦊
               </a-avatar>
             </div>
             <div class="wallet-info">
-              <div class="wallet-name">
-                连接 MetaMask
-              </div>
+              <div class="wallet-name">连接 MetaMask</div>
             </div>
           </div>
         </a-select-option>
@@ -85,17 +69,12 @@
         >
           <div class="wallet-option">
             <div class="wallet-avatar">
-              <a-avatar
-                :size="avatarSize"
-                style="background-color: #3b99fc"
-              >
+              <a-avatar :size="avatarSize" style="background-color: #3b99fc">
                 🔗
               </a-avatar>
             </div>
             <div class="wallet-info">
-              <div class="wallet-name">
-                连接 WalletConnect
-              </div>
+              <div class="wallet-name">连接 WalletConnect</div>
             </div>
           </div>
         </a-select-option>
@@ -107,22 +86,18 @@
         >
           <div class="wallet-option">
             <div class="wallet-avatar">
-              <a-avatar
-                :size="avatarSize"
-                style="background-color: #52c41a"
-              >
+              <a-avatar :size="avatarSize" style="background-color: #52c41a">
                 ✓
               </a-avatar>
             </div>
             <div class="wallet-info">
               <div class="wallet-name">
-                {{ externalWalletProvider === 'metamask' ? 'MetaMask' : 'WalletConnect' }}
-                <a-tag
-                  color="green"
-                  size="small"
-                >
-                  已连接
-                </a-tag>
+                {{
+                  externalWalletProvider === "metamask"
+                    ? "MetaMask"
+                    : "WalletConnect"
+                }}
+                <a-tag color="green" size="small"> 已连接 </a-tag>
               </div>
               <div class="wallet-balance">
                 {{ formatAddress(externalWalletAddress) }}
@@ -134,15 +109,8 @@
 
       <!-- 空状态 -->
       <template #notFoundContent>
-        <a-empty
-          :image="Empty.PRESENTED_IMAGE_SIMPLE"
-          description="暂无钱包"
-        >
-          <a-button
-            type="link"
-            size="small"
-            @click="handleCreateWallet"
-          >
+        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无钱包">
+          <a-button type="link" size="small" @click="handleCreateWallet">
             <plus-outlined /> 创建钱包
           </a-button>
         </a-empty>
@@ -150,22 +118,11 @@
     </a-select>
 
     <!-- 快捷操作 -->
-    <div
-      v-if="showQuickActions"
-      class="quick-actions"
-    >
-      <a-button
-        type="link"
-        size="small"
-        @click="handleCreateWallet"
-      >
+    <div v-if="showQuickActions" class="quick-actions">
+      <a-button type="link" size="small" @click="handleCreateWallet">
         <plus-outlined /> 新建
       </a-button>
-      <a-button
-        type="link"
-        size="small"
-        @click="handleManageWallets"
-      >
+      <a-button type="link" size="small" @click="handleManageWallets">
         <setting-outlined /> 管理
       </a-button>
       <a-button
@@ -181,29 +138,29 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted } from 'vue';
-import { message, Empty } from 'ant-design-vue';
+import { ref, computed, watch, onMounted } from "vue";
+import { message, Empty } from "ant-design-vue";
 import {
   WalletOutlined,
   CopyOutlined,
   PlusOutlined,
   SettingOutlined,
-} from '@ant-design/icons-vue';
-import { useRouter } from 'vue-router';
-import { useBlockchainStore } from '@/stores/blockchain';
+} from "@ant-design/icons-vue";
+import { useRouter } from "vue-router";
+import { useBlockchainStore } from "@/stores/blockchain";
 
 const props = defineProps({
   // v-model绑定值 (钱包ID或特殊值)
   modelValue: {
     type: String,
-    default: '',
+    default: "",
   },
   // 占位符
   placeholder: {
     type: String,
-    default: '选择钱包',
+    default: "选择钱包",
   },
   // 是否允许清空
   allowClear: {
@@ -218,12 +175,12 @@ const props = defineProps({
   // 尺寸
   size: {
     type: String,
-    default: 'middle', // 'small' | 'middle' | 'large'
+    default: "middle", // 'small' | 'middle' | 'large'
   },
   // 宽度
   width: {
     type: String,
-    default: '100%',
+    default: "100%",
   },
   // 头像大小
   avatarSize: {
@@ -253,11 +210,11 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'update:modelValue',
-  'change',
-  'create-wallet',
-  'manage-wallets',
-  'external-connect',
+  "update:modelValue",
+  "change",
+  "create-wallet",
+  "manage-wallets",
+  "external-connect",
 ]);
 
 const router = useRouter();
@@ -268,9 +225,15 @@ const loading = ref(false);
 
 // 从 store 获取数据
 const internalWallets = computed(() => blockchainStore.internalWallets);
-const externalWalletConnected = computed(() => blockchainStore.externalWalletConnected);
-const externalWalletAddress = computed(() => blockchainStore.externalWalletAddress);
-const externalWalletProvider = computed(() => blockchainStore.externalWalletProvider);
+const externalWalletConnected = computed(
+  () => blockchainStore.externalWalletConnected,
+);
+const externalWalletAddress = computed(
+  () => blockchainStore.externalWalletAddress,
+);
+const externalWalletProvider = computed(
+  () => blockchainStore.externalWalletProvider,
+);
 const currentWallet = computed(() => blockchainStore.currentWallet);
 const currentAddress = computed(() => blockchainStore.currentAddress);
 
@@ -278,12 +241,12 @@ const currentAddress = computed(() => blockchainStore.currentAddress);
 const selectedValue = computed({
   get: () => {
     if (externalWalletConnected.value) {
-      return '__external_connected__';
+      return "__external_connected__";
     }
     return props.modelValue;
   },
   set: (value) => {
-    emit('update:modelValue', value);
+    emit("update:modelValue", value);
   },
 });
 
@@ -291,8 +254,12 @@ const selectedValue = computed({
  * 格式化地址显示
  */
 const formatAddress = (address) => {
-  if (!address) {return '';}
-  if (address.length <= 20) {return address;}
+  if (!address) {
+    return "";
+  }
+  if (address.length <= 20) {
+    return address;
+  }
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
@@ -300,7 +267,9 @@ const formatAddress = (address) => {
  * 获取头像颜色
  */
 const getAvatarColor = (address) => {
-  if (!address) {return '#1890ff';}
+  if (!address) {
+    return "#1890ff";
+  }
 
   // 根据地址生成颜色
   let hash = 0;
@@ -309,14 +278,14 @@ const getAvatarColor = (address) => {
   }
 
   const colors = [
-    '#f56a00',
-    '#7265e6',
-    '#ffbf00',
-    '#00a2ae',
-    '#1890ff',
-    '#52c41a',
-    '#fa8c16',
-    '#eb2f96',
+    "#f56a00",
+    "#7265e6",
+    "#ffbf00",
+    "#00a2ae",
+    "#1890ff",
+    "#52c41a",
+    "#fa8c16",
+    "#eb2f96",
   ];
 
   return colors[Math.abs(hash) % colors.length];
@@ -327,19 +296,19 @@ const getAvatarColor = (address) => {
  */
 const getWalletBalance = (wallet) => {
   if (!props.showBalance || !wallet.address) {
-    return '';
+    return "";
   }
 
   const chainId = props.chainId || blockchainStore.currentChainId;
   const balance = blockchainStore.getBalance(wallet.address, chainId);
 
-  if (!balance || balance === '0') {
-    return '0.00 ETH';
+  if (!balance || balance === "0") {
+    return "0.00 ETH";
   }
 
   // 简化余额显示（实际应根据网络符号）
   const network = blockchainStore.currentNetwork;
-  const symbol = network?.symbol || 'ETH';
+  const symbol = network?.symbol || "ETH";
 
   // 将 wei 转换为 ether（简化版本）
   const etherBalance = (parseFloat(balance) / 1e18).toFixed(4);
@@ -354,8 +323,8 @@ const loadWallets = async () => {
   try {
     await blockchainStore.loadWallets();
   } catch (error) {
-    logger.error('[WalletSelector] 加载钱包失败:', error);
-    message.error('加载钱包失败: ' + error.message);
+    logger.error("[WalletSelector] 加载钱包失败:", error);
+    message.error("加载钱包失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -365,19 +334,19 @@ const loadWallets = async () => {
  * 选择变化处理
  */
 const handleChange = async (value) => {
-  logger.info('[WalletSelector] 选择钱包:', value);
+  logger.info("[WalletSelector] 选择钱包:", value);
 
   // 处理特殊值
-  if (value === '__metamask__') {
+  if (value === "__metamask__") {
     await handleConnectMetaMask();
     return;
-  } else if (value === '__walletconnect__') {
+  } else if (value === "__walletconnect__") {
     await handleConnectWalletConnect();
     return;
-  } else if (value === '__external_connected__') {
+  } else if (value === "__external_connected__") {
     // 已连接的外部钱包，不需要操作
-    emit('change', {
-      type: 'external',
+    emit("change", {
+      type: "external",
       address: externalWalletAddress.value,
       provider: externalWalletProvider.value,
     });
@@ -385,11 +354,11 @@ const handleChange = async (value) => {
   }
 
   // 内置钱包
-  const selectedWallet = internalWallets.value.find(w => w.id === value);
+  const selectedWallet = internalWallets.value.find((w) => w.id === value);
   if (selectedWallet) {
     blockchainStore.selectWallet(selectedWallet);
-    emit('change', {
-      type: 'internal',
+    emit("change", {
+      type: "internal",
       wallet: selectedWallet,
     });
   }
@@ -402,15 +371,15 @@ const handleConnectMetaMask = async () => {
   try {
     loading.value = true;
     const result = await blockchainStore.connectMetaMask();
-    message.success('MetaMask 连接成功');
-    emit('external-connect', {
-      provider: 'metamask',
+    message.success("MetaMask 连接成功");
+    emit("external-connect", {
+      provider: "metamask",
       address: result.address,
       chainId: result.chainId,
     });
   } catch (error) {
-    logger.error('[WalletSelector] 连接 MetaMask 失败:', error);
-    message.error('连接 MetaMask 失败: ' + error.message);
+    logger.error("[WalletSelector] 连接 MetaMask 失败:", error);
+    message.error("连接 MetaMask 失败: " + error.message);
     // 重置选择
     selectedValue.value = props.modelValue;
   } finally {
@@ -425,15 +394,15 @@ const handleConnectWalletConnect = async () => {
   try {
     loading.value = true;
     const result = await blockchainStore.connectWalletConnect();
-    message.success('WalletConnect 连接成功');
-    emit('external-connect', {
-      provider: 'walletconnect',
+    message.success("WalletConnect 连接成功");
+    emit("external-connect", {
+      provider: "walletconnect",
       address: result.address,
       chainId: result.chainId,
     });
   } catch (error) {
-    logger.error('[WalletSelector] 连接 WalletConnect 失败:', error);
-    message.error('连接 WalletConnect 失败: ' + error.message);
+    logger.error("[WalletSelector] 连接 WalletConnect 失败:", error);
+    message.error("连接 WalletConnect 失败: " + error.message);
     // 重置选择
     selectedValue.value = props.modelValue;
   } finally {
@@ -446,16 +415,16 @@ const handleConnectWalletConnect = async () => {
  */
 const handleCopyAddress = async () => {
   if (!currentAddress.value) {
-    message.warning('未选择钱包');
+    message.warning("未选择钱包");
     return;
   }
 
   try {
     await navigator.clipboard.writeText(currentAddress.value);
-    message.success('地址已复制到剪贴板');
+    message.success("地址已复制到剪贴板");
   } catch (error) {
-    logger.error('[WalletSelector] 复制失败:', error);
-    message.error('复制失败');
+    logger.error("[WalletSelector] 复制失败:", error);
+    message.error("复制失败");
   }
 };
 
@@ -463,17 +432,17 @@ const handleCopyAddress = async () => {
  * 创建钱包
  */
 const handleCreateWallet = () => {
-  emit('create-wallet');
+  emit("create-wallet");
   // 默认跳转到钱包管理页
-  router.push('/app/wallet');
+  router.push("/app/wallet");
 };
 
 /**
  * 管理钱包
  */
 const handleManageWallets = () => {
-  emit('manage-wallets');
-  router.push('/app/wallet');
+  emit("manage-wallets");
+  router.push("/app/wallet");
 };
 
 // 生命周期
@@ -493,7 +462,7 @@ watch(
     if (props.showBalance && currentAddress.value) {
       blockchainStore.refreshCurrentBalance();
     }
-  }
+  },
 );
 </script>
 
@@ -533,7 +502,7 @@ watch(
 .wallet-balance {
   font-size: 12px;
   color: #8c8c8c;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   display: flex;
   align-items: center;
   gap: 4px;

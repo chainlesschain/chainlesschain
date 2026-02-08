@@ -273,7 +273,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";

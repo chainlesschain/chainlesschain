@@ -10,11 +10,17 @@
  * - 提供统一的API接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 class BlockchainIntegration extends EventEmitter {
-  constructor(database, blockchainAdapter, assetManager, marketplaceManager, escrowManager) {
+  constructor(
+    database,
+    blockchainAdapter,
+    assetManager,
+    marketplaceManager,
+    escrowManager,
+  ) {
     super();
 
     this.database = database;
@@ -31,7 +37,7 @@ class BlockchainIntegration extends EventEmitter {
    * 初始化集成模块
    */
   async initialize() {
-    logger.info('[BlockchainIntegration] 初始化区块链集成模块...');
+    logger.info("[BlockchainIntegration] 初始化区块链集成模块...");
 
     try {
       // 初始化数据库表
@@ -41,9 +47,9 @@ class BlockchainIntegration extends EventEmitter {
       this.startAutoSync(5 * 60 * 1000);
 
       this.initialized = true;
-      logger.info('[BlockchainIntegration] 区块链集成模块初始化成功');
+      logger.info("[BlockchainIntegration] 区块链集成模块初始化成功");
     } catch (error) {
-      logger.error('[BlockchainIntegration] 初始化失败:', error);
+      logger.error("[BlockchainIntegration] 初始化失败:", error);
       throw error;
     }
   }
@@ -116,7 +122,7 @@ class BlockchainIntegration extends EventEmitter {
       )
     `);
 
-    logger.info('[BlockchainIntegration] 数据库表初始化完成');
+    logger.info("[BlockchainIntegration] 数据库表初始化完成");
   }
 
   // ==================== 资产同步 ====================
@@ -134,7 +140,7 @@ class BlockchainIntegration extends EventEmitter {
       // 获取本地资产信息
       const asset = await this.assetManager.getAsset(localAssetId);
       if (!asset) {
-        throw new Error('本地资产不存在');
+        throw new Error("本地资产不存在");
       }
 
       // 部署ERC-20合约
@@ -146,7 +152,7 @@ class BlockchainIntegration extends EventEmitter {
           decimals: asset.decimals || 18,
           initialSupply: asset.total_supply || 1000000,
           password: options.password,
-        }
+        },
       );
 
       // 保存映射关系
@@ -156,7 +162,14 @@ class BlockchainIntegration extends EventEmitter {
         `INSERT INTO blockchain_asset_mapping
          (local_asset_id, chain_id, contract_address, asset_type, last_synced_at, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [localAssetId, this.blockchainAdapter.currentChainId, address, 'token', now, now]
+        [
+          localAssetId,
+          this.blockchainAdapter.currentChainId,
+          address,
+          "token",
+          now,
+          now,
+        ],
       );
 
       // 记录交易
@@ -164,12 +177,19 @@ class BlockchainIntegration extends EventEmitter {
         `INSERT INTO blockchain_transaction_mapping
          (local_tx_id, chain_id, tx_hash, tx_type, status, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [`deploy_${localAssetId}`, this.blockchainAdapter.currentChainId, txHash, 'deploy', 'confirmed', now]
+        [
+          `deploy_${localAssetId}`,
+          this.blockchainAdapter.currentChainId,
+          txHash,
+          "deploy",
+          "confirmed",
+          now,
+        ],
       );
 
       logger.info(`[BlockchainIntegration] Token部署成功: ${address}`);
 
-      this.emit('asset:deployed', {
+      this.emit("asset:deployed", {
         localAssetId,
         chainId: this.blockchainAdapter.currentChainId,
         contractAddress: address,
@@ -178,7 +198,7 @@ class BlockchainIntegration extends EventEmitter {
 
       return { address, txHash };
     } catch (error) {
-      logger.error('[BlockchainIntegration] Token部署失败:', error);
+      logger.error("[BlockchainIntegration] Token部署失败:", error);
       throw error;
     }
   }
@@ -195,7 +215,7 @@ class BlockchainIntegration extends EventEmitter {
     try {
       const asset = await this.assetManager.getAsset(localAssetId);
       if (!asset) {
-        throw new Error('本地资产不存在');
+        throw new Error("本地资产不存在");
       }
 
       // 部署ERC-721合约
@@ -205,7 +225,7 @@ class BlockchainIntegration extends EventEmitter {
           name: asset.name,
           symbol: asset.symbol || asset.name.substring(0, 4).toUpperCase(),
           password: options.password,
-        }
+        },
       );
 
       // 保存映射关系
@@ -215,12 +235,19 @@ class BlockchainIntegration extends EventEmitter {
         `INSERT INTO blockchain_asset_mapping
          (local_asset_id, chain_id, contract_address, asset_type, last_synced_at, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [localAssetId, this.blockchainAdapter.currentChainId, address, 'nft', now, now]
+        [
+          localAssetId,
+          this.blockchainAdapter.currentChainId,
+          address,
+          "nft",
+          now,
+          now,
+        ],
       );
 
       logger.info(`[BlockchainIntegration] NFT部署成功: ${address}`);
 
-      this.emit('asset:deployed', {
+      this.emit("asset:deployed", {
         localAssetId,
         chainId: this.blockchainAdapter.currentChainId,
         contractAddress: address,
@@ -229,7 +256,7 @@ class BlockchainIntegration extends EventEmitter {
 
       return { address, txHash };
     } catch (error) {
-      logger.error('[BlockchainIntegration] NFT部署失败:', error);
+      logger.error("[BlockchainIntegration] NFT部署失败:", error);
       throw error;
     }
   }
@@ -247,7 +274,7 @@ class BlockchainIntegration extends EventEmitter {
       // 获取链上合约地址
       const mapping = this.getAssetMapping(localAssetId);
       if (!mapping) {
-        throw new Error('资产未部署到链上');
+        throw new Error("资产未部署到链上");
       }
 
       // 执行链上转账
@@ -256,7 +283,7 @@ class BlockchainIntegration extends EventEmitter {
         mapping.contract_address,
         options.to,
         options.amount,
-        options.password
+        options.password,
       );
 
       // 同时执行本地转账
@@ -264,7 +291,7 @@ class BlockchainIntegration extends EventEmitter {
         localAssetId,
         options.fromDid,
         options.toDid,
-        options.amount
+        options.amount,
       );
 
       // 记录交易映射
@@ -274,12 +301,19 @@ class BlockchainIntegration extends EventEmitter {
         `INSERT INTO blockchain_transaction_mapping
          (local_tx_id, chain_id, tx_hash, tx_type, status, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [`transfer_${Date.now()}`, this.blockchainAdapter.currentChainId, txHash, 'transfer', 'pending', now]
+        [
+          `transfer_${Date.now()}`,
+          this.blockchainAdapter.currentChainId,
+          txHash,
+          "transfer",
+          "pending",
+          now,
+        ],
       );
 
       logger.info(`[BlockchainIntegration] 资产转账成功: ${txHash}`);
 
-      this.emit('asset:transferred', {
+      this.emit("asset:transferred", {
         localAssetId,
         txHash,
         from: options.fromDid,
@@ -289,7 +323,7 @@ class BlockchainIntegration extends EventEmitter {
 
       return txHash;
     } catch (error) {
-      logger.error('[BlockchainIntegration] 资产转账失败:', error);
+      logger.error("[BlockchainIntegration] 资产转账失败:", error);
       throw error;
     }
   }
@@ -306,13 +340,13 @@ class BlockchainIntegration extends EventEmitter {
     try {
       const mapping = this.getAssetMapping(localAssetId);
       if (!mapping) {
-        throw new Error('资产未部署到链上');
+        throw new Error("资产未部署到链上");
       }
 
       // 查询链上余额
       const balance = await this.blockchainAdapter.getTokenBalance(
         mapping.contract_address,
-        ownerAddress
+        ownerAddress,
       );
 
       // 更新本地余额（如果需要）
@@ -322,14 +356,14 @@ class BlockchainIntegration extends EventEmitter {
       const db = this.database.db;
       db.run(
         `UPDATE blockchain_asset_mapping SET last_synced_at = ? WHERE local_asset_id = ?`,
-        [Date.now(), localAssetId]
+        [Date.now(), localAssetId],
       );
 
       logger.info(`[BlockchainIntegration] 余额同步成功: ${balance}`);
 
       return balance;
     } catch (error) {
-      logger.error('[BlockchainIntegration] 余额同步失败:', error);
+      logger.error("[BlockchainIntegration] 余额同步失败:", error);
       throw error;
     }
   }
@@ -349,7 +383,7 @@ class BlockchainIntegration extends EventEmitter {
       // 获取本地托管信息
       const escrow = await this.escrowManager.getEscrow(localEscrowId);
       if (!escrow) {
-        throw new Error('本地托管不存在');
+        throw new Error("本地托管不存在");
       }
 
       // 部署托管合约（如果还没有部署）
@@ -358,44 +392,48 @@ class BlockchainIntegration extends EventEmitter {
       if (!contractAddress) {
         const deployment = await this.blockchainAdapter.deployEscrowContract(
           options.walletId,
-          options.password
+          options.password,
         );
         contractAddress = deployment.address;
         contractAbi = deployment.abi;
       } else {
         // 使用现有合约，获取 ABI
-        const { getEscrowContractArtifact } = require('./contract-artifacts');
+        const { getEscrowContractArtifact } = require("./contract-artifacts");
         contractAbi = getEscrowContractArtifact().abi;
       }
 
       // 调用托管合约的创建方法
-      const { ethers } = require('ethers');
+      const { ethers } = require("ethers");
       const wallet = await this.blockchainAdapter.walletManager.unlockWallet(
         options.walletId,
-        options.password
+        options.password,
       );
       const provider = this.blockchainAdapter.getProvider();
       const signer = wallet.provider ? wallet : wallet.connect(provider);
 
-      const escrowContract = new ethers.Contract(contractAddress, contractAbi, signer);
+      const escrowContract = new ethers.Contract(
+        contractAddress,
+        contractAbi,
+        signer,
+      );
 
       // 生成托管 ID (bytes32)
       const escrowIdBytes32 = ethers.id(localEscrowId);
 
       // 根据支付类型创建托管
       let txHash;
-      if (escrow.payment_type === 'erc20' && escrow.token_address) {
+      if (escrow.payment_type === "erc20" && escrow.token_address) {
         // ERC20 代币托管
         const amount = ethers.parseUnits(
           escrow.amount.toString(),
-          escrow.token_decimals || 18
+          escrow.token_decimals || 18,
         );
 
         // 先批准代币转移
         const tokenContract = new ethers.Contract(
           escrow.token_address,
-          ['function approve(address spender, uint256 amount) returns (bool)'],
-          signer
+          ["function approve(address spender, uint256 amount) returns (bool)"],
+          signer,
         );
         const approveTx = await tokenContract.approve(contractAddress, amount);
         await approveTx.wait();
@@ -406,7 +444,7 @@ class BlockchainIntegration extends EventEmitter {
           escrow.seller_address,
           escrow.arbitrator_address || ethers.ZeroAddress,
           escrow.token_address,
-          amount
+          amount,
         );
         const receipt = await tx.wait();
         txHash = receipt.hash;
@@ -417,13 +455,15 @@ class BlockchainIntegration extends EventEmitter {
           escrowIdBytes32,
           escrow.seller_address,
           escrow.arbitrator_address || ethers.ZeroAddress,
-          { value: amount }
+          { value: amount },
         );
         const receipt = await tx.wait();
         txHash = receipt.hash;
       }
 
-      logger.info(`[BlockchainIntegration] 链上托管创建成功, txHash: ${txHash}`);
+      logger.info(
+        `[BlockchainIntegration] 链上托管创建成功, txHash: ${txHash}`,
+      );
 
       // 保存映射关系
       const db = this.database.db;
@@ -432,12 +472,19 @@ class BlockchainIntegration extends EventEmitter {
         `INSERT INTO blockchain_escrow_mapping
          (local_escrow_id, chain_id, contract_address, escrow_id, last_synced_at, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
-        [localEscrowId, this.blockchainAdapter.currentChainId, contractAddress, localEscrowId, now, now]
+        [
+          localEscrowId,
+          this.blockchainAdapter.currentChainId,
+          contractAddress,
+          localEscrowId,
+          now,
+          now,
+        ],
       );
 
       logger.info(`[BlockchainIntegration] 链上托管创建成功`);
 
-      this.emit('escrow:created', {
+      this.emit("escrow:created", {
         localEscrowId,
         chainId: this.blockchainAdapter.currentChainId,
         contractAddress,
@@ -445,7 +492,7 @@ class BlockchainIntegration extends EventEmitter {
 
       return { contractAddress };
     } catch (error) {
-      logger.error('[BlockchainIntegration] 链上托管创建失败:', error);
+      logger.error("[BlockchainIntegration] 链上托管创建失败:", error);
       throw error;
     }
   }
@@ -461,16 +508,20 @@ class BlockchainIntegration extends EventEmitter {
     try {
       const mapping = this.getEscrowMapping(localEscrowId);
       if (!mapping) {
-        throw new Error('托管未部署到链上');
+        throw new Error("托管未部署到链上");
       }
 
       // 查询链上托管状态
-      const { ethers } = require('ethers');
-      const { getEscrowContractArtifact } = require('./contract-artifacts');
+      const { ethers } = require("ethers");
+      const { getEscrowContractArtifact } = require("./contract-artifacts");
 
       const provider = this.blockchainAdapter.getProvider();
       const contractAbi = getEscrowContractArtifact().abi;
-      const escrowContract = new ethers.Contract(mapping.contract_address, contractAbi, provider);
+      const escrowContract = new ethers.Contract(
+        mapping.contract_address,
+        contractAbi,
+        provider,
+      );
 
       // 生成托管 ID (bytes32)
       const escrowIdBytes32 = ethers.id(localEscrowId);
@@ -479,8 +530,15 @@ class BlockchainIntegration extends EventEmitter {
       const onChainEscrow = await escrowContract.getEscrow(escrowIdBytes32);
 
       // 状态枚举映射
-      const stateMap = ['created', 'funded', 'delivered', 'completed', 'refunded', 'disputed'];
-      const paymentTypeMap = ['native', 'erc20'];
+      const stateMap = [
+        "created",
+        "funded",
+        "delivered",
+        "completed",
+        "refunded",
+        "disputed",
+      ];
+      const paymentTypeMap = ["native", "erc20"];
 
       // 解析链上数据
       const chainStatus = {
@@ -489,34 +547,43 @@ class BlockchainIntegration extends EventEmitter {
         seller: onChainEscrow.seller,
         arbitrator: onChainEscrow.arbitrator,
         amount: onChainEscrow.amount.toString(),
-        paymentType: paymentTypeMap[Number(onChainEscrow.paymentType)] || 'unknown',
+        paymentType:
+          paymentTypeMap[Number(onChainEscrow.paymentType)] || "unknown",
         tokenAddress: onChainEscrow.tokenAddress,
-        state: stateMap[Number(onChainEscrow.state)] || 'unknown',
+        state: stateMap[Number(onChainEscrow.state)] || "unknown",
         createdAt: Number(onChainEscrow.createdAt) * 1000, // 转换为毫秒
         completedAt: Number(onChainEscrow.completedAt) * 1000,
       };
 
       // 同步状态到本地托管管理器
-      if (this.escrowManager && typeof this.escrowManager.updateEscrowStatus === 'function') {
-        await this.escrowManager.updateEscrowStatus(localEscrowId, chainStatus.state);
+      if (
+        this.escrowManager &&
+        typeof this.escrowManager.updateEscrowStatus === "function"
+      ) {
+        await this.escrowManager.updateEscrowStatus(
+          localEscrowId,
+          chainStatus.state,
+        );
       }
 
       // 更新同步时间
       const db = this.database.db;
       db.run(
         `UPDATE blockchain_escrow_mapping SET last_synced_at = ? WHERE local_escrow_id = ?`,
-        [Date.now(), localEscrowId]
+        [Date.now(), localEscrowId],
       );
 
-      logger.info(`[BlockchainIntegration] 托管状态同步成功: ${chainStatus.state}`);
+      logger.info(
+        `[BlockchainIntegration] 托管状态同步成功: ${chainStatus.state}`,
+      );
 
       return {
-        status: 'synced',
+        status: "synced",
         chainStatus,
         syncedAt: Date.now(),
       };
     } catch (error) {
-      logger.error('[BlockchainIntegration] 托管状态同步失败:', error);
+      logger.error("[BlockchainIntegration] 托管状态同步失败:", error);
       throw error;
     }
   }
@@ -537,8 +604,8 @@ class BlockchainIntegration extends EventEmitter {
         txHash,
         confirmations,
         (update) => {
-          this.emit('transaction:update', { txHash, ...update });
-        }
+          this.emit("transaction:update", { txHash, ...update });
+        },
       );
 
       // 更新本地交易状态
@@ -548,19 +615,19 @@ class BlockchainIntegration extends EventEmitter {
          SET status = ?, block_number = ?, gas_used = ?, confirmed_at = ?
          WHERE tx_hash = ?`,
         [
-          receipt.status === 1 ? 'confirmed' : 'failed',
+          receipt.status === 1 ? "confirmed" : "failed",
           receipt.blockNumber,
           receipt.gasUsed.toString(),
           Date.now(),
           txHash,
-        ]
+        ],
       );
 
       logger.info(`[BlockchainIntegration] 交易监控完成: ${txHash}`);
 
       return receipt;
     } catch (error) {
-      logger.error('[BlockchainIntegration] 交易监控失败:', error);
+      logger.error("[BlockchainIntegration] 交易监控失败:", error);
       throw error;
     }
   }
@@ -575,7 +642,7 @@ class BlockchainIntegration extends EventEmitter {
   getAssetMapping(localAssetId) {
     const db = this.database.db;
     const stmt = db.prepare(
-      `SELECT * FROM blockchain_asset_mapping WHERE local_asset_id = ? AND chain_id = ?`
+      `SELECT * FROM blockchain_asset_mapping WHERE local_asset_id = ? AND chain_id = ?`,
     );
     return stmt.get(localAssetId, this.blockchainAdapter.currentChainId);
   }
@@ -588,7 +655,7 @@ class BlockchainIntegration extends EventEmitter {
   getEscrowMapping(localEscrowId) {
     const db = this.database.db;
     const stmt = db.prepare(
-      `SELECT * FROM blockchain_escrow_mapping WHERE local_escrow_id = ? AND chain_id = ?`
+      `SELECT * FROM blockchain_escrow_mapping WHERE local_escrow_id = ? AND chain_id = ?`,
     );
     return stmt.get(localEscrowId, this.blockchainAdapter.currentChainId);
   }
@@ -601,7 +668,7 @@ class BlockchainIntegration extends EventEmitter {
   getTransactionMapping(localTxId) {
     const db = this.database.db;
     const stmt = db.prepare(
-      `SELECT * FROM blockchain_transaction_mapping WHERE local_tx_id = ? AND chain_id = ?`
+      `SELECT * FROM blockchain_transaction_mapping WHERE local_tx_id = ? AND chain_id = ?`,
     );
     return stmt.get(localTxId, this.blockchainAdapter.currentChainId);
   }
@@ -613,7 +680,7 @@ class BlockchainIntegration extends EventEmitter {
   getAllOnChainAssets() {
     const db = this.database.db;
     const stmt = db.prepare(
-      `SELECT * FROM blockchain_asset_mapping WHERE chain_id = ? ORDER BY created_at DESC`
+      `SELECT * FROM blockchain_asset_mapping WHERE chain_id = ? ORDER BY created_at DESC`,
     );
     return stmt.all(this.blockchainAdapter.currentChainId);
   }
@@ -627,7 +694,7 @@ class BlockchainIntegration extends EventEmitter {
     const stmt = db.prepare(
       `SELECT * FROM blockchain_transaction_mapping
        WHERE chain_id = ? AND status = 'pending'
-       ORDER BY created_at DESC`
+       ORDER BY created_at DESC`,
     );
     return stmt.all(this.blockchainAdapter.currentChainId);
   }
@@ -649,7 +716,7 @@ class BlockchainIntegration extends EventEmitter {
       try {
         await this.syncAll();
       } catch (error) {
-        logger.error('[BlockchainIntegration] 自动同步失败:', error);
+        logger.error("[BlockchainIntegration] 自动同步失败:", error);
       }
     }, interval);
   }
@@ -658,7 +725,7 @@ class BlockchainIntegration extends EventEmitter {
    * 停止自动同步
    */
   stopAutoSync() {
-    logger.info('[BlockchainIntegration] 停止自动同步');
+    logger.info("[BlockchainIntegration] 停止自动同步");
 
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
@@ -670,14 +737,14 @@ class BlockchainIntegration extends EventEmitter {
    * 同步所有数据
    */
   async syncAll() {
-    logger.info('[BlockchainIntegration] 开始全量同步...');
+    logger.info("[BlockchainIntegration] 开始全量同步...");
 
     const db = this.database.db;
     const now = Date.now();
     const logId = db.run(
       `INSERT INTO blockchain_sync_log (sync_type, chain_id, status, started_at)
        VALUES (?, ?, ?, ?)`,
-      ['full', this.blockchainAdapter.currentChainId, 'running', now]
+      ["full", this.blockchainAdapter.currentChainId, "running", now],
     ).lastInsertRowid;
 
     try {
@@ -690,7 +757,10 @@ class BlockchainIntegration extends EventEmitter {
           await this.monitorTransaction(tx.tx_hash, 1);
           itemsSynced++;
         } catch (error) {
-          logger.warn(`[BlockchainIntegration] 交易同步失败: ${tx.tx_hash}`, error);
+          logger.warn(
+            `[BlockchainIntegration] 交易同步失败: ${tx.tx_hash}`,
+            error,
+          );
         }
       }
 
@@ -699,20 +769,22 @@ class BlockchainIntegration extends EventEmitter {
         `UPDATE blockchain_sync_log
          SET status = ?, items_synced = ?, completed_at = ?
          WHERE id = ?`,
-        ['completed', itemsSynced, Date.now(), logId]
+        ["completed", itemsSynced, Date.now(), logId],
       );
 
-      logger.info(`[BlockchainIntegration] 全量同步完成，同步 ${itemsSynced} 项`);
+      logger.info(
+        `[BlockchainIntegration] 全量同步完成，同步 ${itemsSynced} 项`,
+      );
 
-      this.emit('sync:completed', { itemsSynced });
+      this.emit("sync:completed", { itemsSynced });
     } catch (error) {
-      logger.error('[BlockchainIntegration] 全量同步失败:', error);
+      logger.error("[BlockchainIntegration] 全量同步失败:", error);
 
       db.run(
         `UPDATE blockchain_sync_log
          SET status = ?, error_message = ?, completed_at = ?
          WHERE id = ?`,
-        ['failed', error.message, Date.now(), logId]
+        ["failed", error.message, Date.now(), logId],
       );
 
       throw error;
@@ -723,12 +795,12 @@ class BlockchainIntegration extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    logger.info('[BlockchainIntegration] 清理资源...');
+    logger.info("[BlockchainIntegration] 清理资源...");
 
     this.stopAutoSync();
     this.removeAllListeners();
 
-    logger.info('[BlockchainIntegration] 资源清理完成');
+    logger.info("[BlockchainIntegration] 资源清理完成");
   }
 }
 

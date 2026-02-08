@@ -16,11 +16,7 @@
         </a-button>
       </div>
 
-      <a-list
-        :data-source="groups"
-        :loading="loading"
-        class="group-list"
-      >
+      <a-list :data-source="groups" :loading="loading" class="group-list">
         <template #renderItem="{ item }">
           <a-list-item
             :class="['group-item', { active: currentGroup?.id === item.id }]"
@@ -60,17 +56,11 @@
 
     <!-- 右侧：群聊区域 -->
     <div class="group-main">
-      <div
-        v-if="!currentGroup"
-        class="group-empty"
-      >
+      <div v-if="!currentGroup" class="group-empty">
         <a-empty description="选择一个群聊开始对话" />
       </div>
 
-      <div
-        v-else
-        class="group-container"
-      >
+      <div v-else class="group-container">
         <!-- 群聊头部 -->
         <div class="group-header">
           <div class="group-header-info">
@@ -95,18 +85,12 @@
 
           <div class="group-header-actions">
             <a-tooltip title="群成员">
-              <a-button
-                type="text"
-                @click="showMembersDrawer = true"
-              >
+              <a-button type="text" @click="showMembersDrawer = true">
                 <TeamOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="群设置">
-              <a-button
-                type="text"
-                @click="showSettingsDrawer = true"
-              >
+              <a-button type="text" @click="showSettingsDrawer = true">
                 <SettingOutlined />
               </a-button>
             </a-tooltip>
@@ -116,17 +100,10 @@
               </a-button>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item
-                    key="invite"
-                    @click="showInviteModal = true"
-                  >
+                  <a-menu-item key="invite" @click="showInviteModal = true">
                     <UserAddOutlined /> 邀请成员
                   </a-menu-item>
-                  <a-menu-item
-                    key="leave"
-                    danger
-                    @click="handleLeaveGroup"
-                  >
+                  <a-menu-item key="leave" danger @click="handleLeaveGroup">
                     <LogoutOutlined /> 退出群聊
                   </a-menu-item>
                   <a-menu-item
@@ -150,10 +127,7 @@
           @scroll="handleScroll"
         >
           <!-- 加载更多 -->
-          <div
-            v-if="hasMore"
-            class="load-more"
-          >
+          <div v-if="hasMore" class="load-more">
             <a-button
               type="link"
               :loading="loadingMore"
@@ -167,7 +141,10 @@
           <div
             v-for="message in messages"
             :key="message.id"
-            :class="['message-item', { 'message-self': message.sender_did === currentUserDid }]"
+            :class="[
+              'message-item',
+              { 'message-self': message.sender_did === currentUserDid },
+            ]"
           >
             <div
               v-if="message.message_type === 'system'"
@@ -175,21 +152,17 @@
             >
               {{ message.content }}
             </div>
-            <div
-              v-else
-              class="message-bubble"
-            >
-              <a-avatar
-                :size="32"
-                class="message-avatar"
-              >
+            <div v-else class="message-bubble">
+              <a-avatar :size="32" class="message-avatar">
                 <template #icon>
                   <UserOutlined />
                 </template>
               </a-avatar>
               <div class="message-content-wrapper">
                 <div class="message-sender">
-                  {{ message.sender_nickname || shortenDid(message.sender_did) }}
+                  {{
+                    message.sender_nickname || shortenDid(message.sender_did)
+                  }}
                 </div>
                 <div class="message-content">
                   <div
@@ -202,15 +175,9 @@
                     v-else-if="message.message_type === 'image'"
                     class="message-image"
                   >
-                    <img
-                      :src="message.file_path"
-                      alt="图片"
-                    >
+                    <img :src="message.file_path" alt="图片" />
                   </div>
-                  <div
-                    v-else
-                    class="message-file"
-                  >
+                  <div v-else class="message-file">
                     <FileOutlined /> {{ message.file_path }}
                   </div>
                 </div>
@@ -227,28 +194,17 @@
           <div class="group-input-toolbar">
             <a-space>
               <a-tooltip title="表情">
-                <a-button
-                  type="text"
-                  size="small"
-                >
+                <a-button type="text" size="small">
                   <SmileOutlined />
                 </a-button>
               </a-tooltip>
               <a-tooltip title="图片">
-                <a-button
-                  type="text"
-                  size="small"
-                  @click="handleSelectImage"
-                >
+                <a-button type="text" size="small" @click="handleSelectImage">
                   <PictureOutlined />
                 </a-button>
               </a-tooltip>
               <a-tooltip title="文件">
-                <a-button
-                  type="text"
-                  size="small"
-                  @click="handleSelectFile"
-                >
+                <a-button type="text" size="small" @click="handleSelectFile">
                   <FileOutlined />
                 </a-button>
               </a-tooltip>
@@ -284,14 +240,8 @@
       @ok="handleCreateGroup"
       @cancel="showCreateGroupModal = false"
     >
-      <a-form
-        :model="createGroupForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="群聊名称"
-          required
-        >
+      <a-form :model="createGroupForm" layout="vertical">
+        <a-form-item label="群聊名称" required>
           <a-input
             v-model:value="createGroupForm.name"
             placeholder="请输入群聊名称"
@@ -327,10 +277,7 @@
       placement="right"
       :width="400"
     >
-      <a-list
-        :data-source="groupMembers"
-        :loading="loadingMembers"
-      >
+      <a-list :data-source="groupMembers" :loading="loadingMembers">
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta>
@@ -345,29 +292,16 @@
                 {{ item.nickname || shortenDid(item.member_did) }}
               </template>
               <template #description>
-                <a-tag
-                  v-if="item.role === 'owner'"
-                  color="red"
-                >
-                  群主
-                </a-tag>
-                <a-tag
-                  v-else-if="item.role === 'admin'"
-                  color="orange"
-                >
+                <a-tag v-if="item.role === 'owner'" color="red"> 群主 </a-tag>
+                <a-tag v-else-if="item.role === 'admin'" color="orange">
                   管理员
                 </a-tag>
-                <a-tag v-else>
-                  成员
-                </a-tag>
+                <a-tag v-else> 成员 </a-tag>
               </template>
             </a-list-item-meta>
             <template #actions>
               <a-dropdown v-if="canManageMembers && item.role !== 'owner'">
-                <a-button
-                  type="text"
-                  size="small"
-                >
+                <a-button type="text" size="small">
                   <MoreOutlined />
                 </a-button>
                 <template #overlay>
@@ -417,10 +351,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, nextTick } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, computed, onMounted, nextTick } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   PlusOutlined,
   TeamOutlined,
@@ -433,21 +367,21 @@ import {
   UserOutlined,
   SmileOutlined,
   PictureOutlined,
-  FileOutlined
-} from '@ant-design/icons-vue';
+  FileOutlined,
+} from "@ant-design/icons-vue";
 
-const { ipcRenderer } = window.require('electron');
+const { ipcRenderer } = window.require("electron");
 
 // 状态
 const loading = ref(false);
 const groups = ref([]);
 const currentGroup = ref(null);
 const messages = ref([]);
-const inputMessage = ref('');
+const inputMessage = ref("");
 const sending = ref(false);
 const hasMore = ref(false);
 const loadingMore = ref(false);
-const currentUserDid = ref('');
+const currentUserDid = ref("");
 
 // 对话框状态
 const showCreateGroupModal = ref(false);
@@ -457,14 +391,14 @@ const showInviteModal = ref(false);
 
 // 表单数据
 const createGroupForm = ref({
-  name: '',
-  description: '',
+  name: "",
+  description: "",
   memberDids: [],
-  encrypted: true
+  encrypted: true,
 });
 
 const inviteMemberDids = ref([]);
-const inviteMessage = ref('');
+const inviteMessage = ref("");
 
 // 群成员
 const groupMembers = ref([]);
@@ -475,25 +409,33 @@ const friendOptions = ref([]);
 
 // 计算属性
 const isOwner = computed(() => {
-  if (!currentGroup.value) {return false;}
-  const member = groupMembers.value.find(m => m.member_did === currentUserDid.value);
-  return member?.role === 'owner';
+  if (!currentGroup.value) {
+    return false;
+  }
+  const member = groupMembers.value.find(
+    (m) => m.member_did === currentUserDid.value,
+  );
+  return member?.role === "owner";
 });
 
 const canManageMembers = computed(() => {
-  if (!currentGroup.value) {return false;}
-  const member = groupMembers.value.find(m => m.member_did === currentUserDid.value);
-  return member?.role === 'owner' || member?.role === 'admin';
+  if (!currentGroup.value) {
+    return false;
+  }
+  const member = groupMembers.value.find(
+    (m) => m.member_did === currentUserDid.value,
+  );
+  return member?.role === "owner" || member?.role === "admin";
 });
 
 // 方法
 const loadGroups = async () => {
   loading.value = true;
   try {
-    groups.value = await ipcRenderer.invoke('group:get-list');
+    groups.value = await ipcRenderer.invoke("group:get-list");
   } catch (error) {
-    logger.error('加载群聊列表失败:', error);
-    antMessage.error('加载群聊列表失败');
+    logger.error("加载群聊列表失败:", error);
+    antMessage.error("加载群聊列表失败");
   } finally {
     loading.value = false;
   }
@@ -507,7 +449,12 @@ const selectGroup = async (group) => {
 
 const loadGroupMessages = async (groupId, offset = 0) => {
   try {
-    const msgs = await ipcRenderer.invoke('group:get-messages', groupId, 50, offset);
+    const msgs = await ipcRenderer.invoke(
+      "group:get-messages",
+      groupId,
+      50,
+      offset,
+    );
     if (offset === 0) {
       messages.value = msgs.reverse();
     } else {
@@ -517,25 +464,27 @@ const loadGroupMessages = async (groupId, offset = 0) => {
     await nextTick();
     scrollToBottom();
   } catch (error) {
-    logger.error('加载群消息失败:', error);
-    antMessage.error('加载群消息失败');
+    logger.error("加载群消息失败:", error);
+    antMessage.error("加载群消息失败");
   }
 };
 
 const loadGroupMembers = async (groupId) => {
   loadingMembers.value = true;
   try {
-    const details = await ipcRenderer.invoke('group:get-details', groupId);
+    const details = await ipcRenderer.invoke("group:get-details", groupId);
     groupMembers.value = details.members || [];
   } catch (error) {
-    logger.error('加载群成员失败:', error);
+    logger.error("加载群成员失败:", error);
   } finally {
     loadingMembers.value = false;
   }
 };
 
 const loadMoreMessages = async () => {
-  if (!currentGroup.value || loadingMore.value) {return;}
+  if (!currentGroup.value || loadingMore.value) {
+    return;
+  }
   loadingMore.value = true;
   try {
     await loadGroupMessages(currentGroup.value.id, messages.value.length);
@@ -545,21 +494,30 @@ const loadMoreMessages = async () => {
 };
 
 const handleSendMessage = async (e) => {
-  if (e.shiftKey) {return;}
+  if (e.shiftKey) {
+    return;
+  }
   e.preventDefault();
 
-  if (!inputMessage.value.trim() || !currentGroup.value) {return;}
+  if (!inputMessage.value.trim() || !currentGroup.value) {
+    return;
+  }
 
   sending.value = true;
   try {
-    await ipcRenderer.invoke('group:send-message', currentGroup.value.id, inputMessage.value, {
-      messageType: 'text'
-    });
-    inputMessage.value = '';
+    await ipcRenderer.invoke(
+      "group:send-message",
+      currentGroup.value.id,
+      inputMessage.value,
+      {
+        messageType: "text",
+      },
+    );
+    inputMessage.value = "";
     await loadGroupMessages(currentGroup.value.id);
   } catch (error) {
-    logger.error('发送消息失败:', error);
-    antMessage.error('发送消息失败');
+    logger.error("发送消息失败:", error);
+    antMessage.error("发送消息失败");
   } finally {
     sending.value = false;
   }
@@ -567,99 +525,120 @@ const handleSendMessage = async (e) => {
 
 const handleCreateGroup = async () => {
   if (!createGroupForm.value.name.trim()) {
-    antMessage.warning('请输入群聊名称');
+    antMessage.warning("请输入群聊名称");
     return;
   }
 
   try {
-    const result = await ipcRenderer.invoke('group:create', createGroupForm.value);
+    const result = await ipcRenderer.invoke(
+      "group:create",
+      createGroupForm.value,
+    );
     if (result.success) {
-      antMessage.success('群聊创建成功');
+      antMessage.success("群聊创建成功");
       showCreateGroupModal.value = false;
       createGroupForm.value = {
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         memberDids: [],
-        encrypted: true
+        encrypted: true,
       };
       await loadGroups();
     }
   } catch (error) {
-    logger.error('创建群聊失败:', error);
-    antMessage.error('创建群聊失败');
+    logger.error("创建群聊失败:", error);
+    antMessage.error("创建群聊失败");
   }
 };
 
 const handleLeaveGroup = async () => {
-  if (!currentGroup.value) {return;}
+  if (!currentGroup.value) {
+    return;
+  }
 
   try {
-    await ipcRenderer.invoke('group:leave', currentGroup.value.id);
-    antMessage.success('已退出群聊');
+    await ipcRenderer.invoke("group:leave", currentGroup.value.id);
+    antMessage.success("已退出群聊");
     currentGroup.value = null;
     await loadGroups();
   } catch (error) {
-    logger.error('退出群聊失败:', error);
-    antMessage.error(error.message || '退出群聊失败');
+    logger.error("退出群聊失败:", error);
+    antMessage.error(error.message || "退出群聊失败");
   }
 };
 
 const handleDismissGroup = async () => {
-  if (!currentGroup.value) {return;}
+  if (!currentGroup.value) {
+    return;
+  }
 
   try {
-    await ipcRenderer.invoke('group:dismiss', currentGroup.value.id);
-    antMessage.success('群聊已解散');
+    await ipcRenderer.invoke("group:dismiss", currentGroup.value.id);
+    antMessage.success("群聊已解散");
     currentGroup.value = null;
     await loadGroups();
   } catch (error) {
-    logger.error('解散群聊失败:', error);
-    antMessage.error(error.message || '解散群聊失败');
+    logger.error("解散群聊失败:", error);
+    antMessage.error(error.message || "解散群聊失败");
   }
 };
 
 const handleInviteMembers = async () => {
   if (!currentGroup.value || inviteMemberDids.value.length === 0) {
-    antMessage.warning('请选择要邀请的好友');
+    antMessage.warning("请选择要邀请的好友");
     return;
   }
 
   try {
     for (const did of inviteMemberDids.value) {
-      await ipcRenderer.invoke('group:invite-member', currentGroup.value.id, did, inviteMessage.value);
+      await ipcRenderer.invoke(
+        "group:invite-member",
+        currentGroup.value.id,
+        did,
+        inviteMessage.value,
+      );
     }
-    antMessage.success('邀请已发送');
+    antMessage.success("邀请已发送");
     showInviteModal.value = false;
     inviteMemberDids.value = [];
-    inviteMessage.value = '';
+    inviteMessage.value = "";
   } catch (error) {
-    logger.error('邀请成员失败:', error);
-    antMessage.error('邀请成员失败');
+    logger.error("邀请成员失败:", error);
+    antMessage.error("邀请成员失败");
   }
 };
 
 const handleRemoveMember = async (memberDid) => {
-  if (!currentGroup.value) {return;}
+  if (!currentGroup.value) {
+    return;
+  }
 
   try {
-    await ipcRenderer.invoke('group:remove-member', currentGroup.value.id, memberDid);
-    antMessage.success('成员已移除');
+    await ipcRenderer.invoke(
+      "group:remove-member",
+      currentGroup.value.id,
+      memberDid,
+    );
+    antMessage.success("成员已移除");
     await loadGroupMembers(currentGroup.value.id);
   } catch (error) {
-    logger.error('移除成员失败:', error);
-    antMessage.error(error.message || '移除成员失败');
+    logger.error("移除成员失败:", error);
+    antMessage.error(error.message || "移除成员失败");
   }
 };
 
 const handleSelectImage = async () => {
   try {
     // 打开图片选择对话框
-    const result = await ipcRenderer.invoke('dialog:open-file', {
-      title: '选择图片',
+    const result = await ipcRenderer.invoke("dialog:open-file", {
+      title: "选择图片",
       filters: [
-        { name: '图片', extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'] }
+        {
+          name: "图片",
+          extensions: ["jpg", "jpeg", "png", "gif", "webp", "bmp"],
+        },
       ],
-      properties: ['openFile']
+      properties: ["openFile"],
     });
 
     if (result.canceled || !result.filePaths?.length) {
@@ -670,26 +649,31 @@ const handleSelectImage = async () => {
     const fileName = filePath.split(/[\\/]/).pop();
 
     // 发送图片消息
-    await ipcRenderer.invoke('group:send-message', currentGroup.value.id, fileName, {
-      type: 'image',
-      filePath: filePath
-    });
+    await ipcRenderer.invoke(
+      "group:send-message",
+      currentGroup.value.id,
+      fileName,
+      {
+        type: "image",
+        filePath: filePath,
+      },
+    );
 
-    antMessage.success('图片发送成功');
+    antMessage.success("图片发送成功");
     await loadGroupMessages(currentGroup.value.id);
     scrollToBottom();
   } catch (error) {
-    logger.error('发送图片失败:', error);
-    antMessage.error('发送图片失败');
+    logger.error("发送图片失败:", error);
+    antMessage.error("发送图片失败");
   }
 };
 
 const handleSelectFile = async () => {
   try {
     // 打开文件选择对话框
-    const result = await ipcRenderer.invoke('dialog:open-file', {
-      title: '选择文件',
-      properties: ['openFile']
+    const result = await ipcRenderer.invoke("dialog:open-file", {
+      title: "选择文件",
+      properties: ["openFile"],
     });
 
     if (result.canceled || !result.filePaths?.length) {
@@ -700,33 +684,40 @@ const handleSelectFile = async () => {
     const fileName = filePath.split(/[\\/]/).pop();
 
     // 发送文件消息
-    await ipcRenderer.invoke('group:send-message', currentGroup.value.id, fileName, {
-      type: 'file',
-      filePath: filePath
-    });
+    await ipcRenderer.invoke(
+      "group:send-message",
+      currentGroup.value.id,
+      fileName,
+      {
+        type: "file",
+        filePath: filePath,
+      },
+    );
 
-    antMessage.success('文件发送成功');
+    antMessage.success("文件发送成功");
     await loadGroupMessages(currentGroup.value.id);
     scrollToBottom();
   } catch (error) {
-    logger.error('发送文件失败:', error);
-    antMessage.error('发送文件失败');
+    logger.error("发送文件失败:", error);
+    antMessage.error("发送文件失败");
   }
 };
 
 const handleScroll = async () => {
   const container = messagesContainer.value;
-  if (!container || !currentGroup.value) return;
+  if (!container || !currentGroup.value) {
+    return;
+  }
 
   // 当滚动到顶部时加载更多消息
   if (container.scrollTop === 0 && messages.value.length > 0) {
     try {
       const offset = messages.value.length;
       const olderMessages = await ipcRenderer.invoke(
-        'group:get-messages',
+        "group:get-messages",
         currentGroup.value.id,
         50,
-        offset
+        offset,
       );
 
       if (olderMessages && olderMessages.length > 0) {
@@ -742,7 +733,7 @@ const handleScroll = async () => {
         });
       }
     } catch (error) {
-      logger.error('加载更多消息失败:', error);
+      logger.error("加载更多消息失败:", error);
     }
   }
 };
@@ -755,8 +746,12 @@ const scrollToBottom = () => {
 };
 
 const shortenDid = (did) => {
-  if (!did) {return '';}
-  if (did.length <= 16) {return did;}
+  if (!did) {
+    return "";
+  }
+  if (did.length <= 16) {
+    return did;
+  }
   return `${did.substring(0, 8)}...${did.substring(did.length - 8)}`;
 };
 
@@ -765,15 +760,21 @@ const formatTime = (timestamp) => {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) {return '刚刚';}
-  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
-  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
+  if (diff < 60000) {
+    return "刚刚";
+  }
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
 
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -783,12 +784,12 @@ const messagesContainer = ref(null);
 onMounted(async () => {
   // 获取当前用户DID
   try {
-    const identity = await ipcRenderer.invoke('did:get-current-identity');
+    const identity = await ipcRenderer.invoke("did:get-current-identity");
     if (identity) {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    logger.error('获取当前用户DID失败:', error);
+    logger.error("获取当前用户DID失败:", error);
   }
 
   // 加载群聊列表
@@ -796,17 +797,17 @@ onMounted(async () => {
 
   // 加载好友列表（用于创建群聊和邀请）
   try {
-    const friends = await ipcRenderer.invoke('friend:get-friends');
-    friendOptions.value = friends.map(f => ({
+    const friends = await ipcRenderer.invoke("friend:get-friends");
+    friendOptions.value = friends.map((f) => ({
       label: f.nickname || shortenDid(f.friend_did),
-      value: f.friend_did
+      value: f.friend_did,
     }));
   } catch (error) {
-    logger.error('加载好友列表失败:', error);
+    logger.error("加载好友列表失败:", error);
   }
 
   // 监听群消息
-  ipcRenderer.on('group:message-received', async (event, data) => {
+  ipcRenderer.on("group:message-received", async (event, data) => {
     if (currentGroup.value && data.groupId === currentGroup.value.id) {
       await loadGroupMessages(currentGroup.value.id);
     }

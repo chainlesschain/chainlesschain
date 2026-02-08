@@ -12,25 +12,25 @@
  * Date: 2026-01-02
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const MLToolMatcher = require('./ml-tool-matcher');
-const CollaborativeFilter = require('./collaborative-filter');
-const ContentRecommender = require('./content-recommender');
+const { logger } = require("../utils/logger.js");
+const MLToolMatcher = require("./ml-tool-matcher");
+const CollaborativeFilter = require("./collaborative-filter");
+const ContentRecommender = require("./content-recommender");
 
 class HybridRecommender {
   constructor(config = {}) {
     this.config = {
-      topK: 5,                   // 推荐数量
-      minConfidence: 0.15,       // 最小置信度
+      topK: 5, // 推荐数量
+      minConfidence: 0.15, // 最小置信度
       weights: {
-        ml: 0.4,                 // ML推荐权重
-        collaborative: 0.35,     // 协同过滤权重
-        content: 0.25            // 内容推荐权重
+        ml: 0.4, // ML推荐权重
+        collaborative: 0.35, // 协同过滤权重
+        content: 0.25, // 内容推荐权重
       },
-      enableDiversity: true,     // 启用多样性优化
-      diversityPenalty: 0.1,     // 多样性惩罚系数
+      enableDiversity: true, // 启用多样性优化
+      diversityPenalty: 0.1, // 多样性惩罚系数
       enableAdaptiveWeights: false, // 启用自适应权重
-      ...config
+      ...config,
     };
 
     this.mlMatcher = new MLToolMatcher();
@@ -45,7 +45,7 @@ class HybridRecommender {
       collaborativeContributions: 0,
       contentContributions: 0,
       avgConfidence: 0,
-      diversityScore: 0
+      diversityScore: 0,
     };
   }
 
@@ -67,16 +67,18 @@ class HybridRecommender {
    */
   async recommend(task, userId) {
     try {
-      logger.info('[HybridRecommender] 开始混合推荐...');
+      logger.info("[HybridRecommender] 开始混合推荐...");
 
       // 1. 获取三种算法的推荐结果
       const [mlRecs, cfRecs, cbRecs] = await Promise.all([
         this.mlMatcher.recommendTools(task, userId).catch(() => []),
         this.collaborativeFilter.recommendTools(userId, 10).catch(() => []),
-        this.contentRecommender.recommendTools(userId, 10).catch(() => [])
+        this.contentRecommender.recommendTools(userId, 10).catch(() => []),
       ]);
 
-      logger.info(`[HybridRecommender] ML: ${mlRecs.length}, CF: ${cfRecs.length}, CB: ${cbRecs.length}`);
+      logger.info(
+        `[HybridRecommender] ML: ${mlRecs.length}, CF: ${cfRecs.length}, CB: ${cbRecs.length}`,
+      );
 
       // 2. 计算权重 (可选自适应)
       const weights = this.config.enableAdaptiveWeights
@@ -88,7 +90,7 @@ class HybridRecommender {
         mlRecs,
         cfRecs,
         cbRecs,
-        weights
+        weights,
       );
 
       // 4. 多样性优化
@@ -100,7 +102,7 @@ class HybridRecommender {
 
       // 5. 过滤和排序
       recommendations = recommendations
-        .filter(r => r.confidence >= this.config.minConfidence)
+        .filter((r) => r.confidence >= this.config.minConfidence)
         .sort((a, b) => b.finalScore - a.finalScore)
         .slice(0, this.config.topK);
 
@@ -112,11 +114,13 @@ class HybridRecommender {
       // 7. 统计
       this.updateStats(recommendations);
 
-      logger.info(`[HybridRecommender] 最终推荐${recommendations.length}个工具`);
+      logger.info(
+        `[HybridRecommender] 最终推荐${recommendations.length}个工具`,
+      );
 
       return recommendations;
     } catch (error) {
-      logger.error('[HybridRecommender] 推荐失败:', error);
+      logger.error("[HybridRecommender] 推荐失败:", error);
       return [];
     }
   }
@@ -129,11 +133,15 @@ class HybridRecommender {
 
     // 归一化函数
     const normalize = (recs) => {
-      if (recs.length === 0) {return [];}
-      const maxScore = Math.max(...recs.map(r => r.score || r.confidence || 1));
-      return recs.map(r => ({
+      if (recs.length === 0) {
+        return [];
+      }
+      const maxScore = Math.max(
+        ...recs.map((r) => r.score || r.confidence || 1),
+      );
+      return recs.map((r) => ({
         ...r,
-        normalizedScore: (r.score || r.confidence || 0) / maxScore
+        normalizedScore: (r.score || r.confidence || 0) / maxScore,
       }));
     };
 
@@ -152,7 +160,7 @@ class HybridRecommender {
       const entry = fusedScores.get(tool);
       entry.mlScore = rec.normalizedScore;
       entry.mlConfidence = rec.confidence || rec.normalizedScore;
-      entry.mlReason = rec.reason || '';
+      entry.mlReason = rec.reason || "";
       entry.mlBreakdown = rec.breakdown;
       this.stats.mlContributions++;
     }
@@ -167,7 +175,7 @@ class HybridRecommender {
       const entry = fusedScores.get(tool);
       entry.cfScore = rec.normalizedScore;
       entry.cfConfidence = rec.confidence || rec.normalizedScore;
-      entry.cfReason = rec.reason || '';
+      entry.cfReason = rec.reason || "";
       entry.cfSupportingUsers = rec.supportingUsers;
       this.stats.collaborativeContributions++;
     }
@@ -182,7 +190,7 @@ class HybridRecommender {
       const entry = fusedScores.get(tool);
       entry.cbScore = rec.normalizedScore;
       entry.cbConfidence = rec.confidence || rec.normalizedScore;
-      entry.cbReason = rec.reason || '';
+      entry.cbReason = rec.reason || "";
       this.stats.contentContributions++;
     }
 
@@ -202,7 +210,7 @@ class HybridRecommender {
       entry.algorithmCount = [
         entry.mlScore > 0,
         entry.cfScore > 0,
-        entry.cbScore > 0
+        entry.cbScore > 0,
       ].filter(Boolean).length;
 
       entry.weights = { ...weights };
@@ -223,14 +231,14 @@ class HybridRecommender {
       mlConfidence: 0,
       cfConfidence: 0,
       cbConfidence: 0,
-      mlReason: '',
-      cfReason: '',
-      cbReason: '',
+      mlReason: "",
+      cfReason: "",
+      cbReason: "",
       finalScore: 0,
       confidence: 0,
       algorithmCount: 0,
       category: null,
-      weights: {}
+      weights: {},
     };
   }
 
@@ -239,15 +247,21 @@ class HybridRecommender {
    */
   calculateAdaptiveWeights(mlRecs, cfRecs, cbRecs) {
     // 根据推荐数量和质量动态调整权重
-    const mlQuality = mlRecs.length > 0
-      ? mlRecs.reduce((sum, r) => sum + (r.confidence || 0), 0) / mlRecs.length
-      : 0;
-    const cfQuality = cfRecs.length > 0
-      ? cfRecs.reduce((sum, r) => sum + (r.confidence || 0), 0) / cfRecs.length
-      : 0;
-    const cbQuality = cbRecs.length > 0
-      ? cbRecs.reduce((sum, r) => sum + (r.confidence || 0), 0) / cbRecs.length
-      : 0;
+    const mlQuality =
+      mlRecs.length > 0
+        ? mlRecs.reduce((sum, r) => sum + (r.confidence || 0), 0) /
+          mlRecs.length
+        : 0;
+    const cfQuality =
+      cfRecs.length > 0
+        ? cfRecs.reduce((sum, r) => sum + (r.confidence || 0), 0) /
+          cfRecs.length
+        : 0;
+    const cbQuality =
+      cbRecs.length > 0
+        ? cbRecs.reduce((sum, r) => sum + (r.confidence || 0), 0) /
+          cbRecs.length
+        : 0;
 
     const totalQuality = mlQuality + cfQuality + cbQuality;
 
@@ -258,7 +272,7 @@ class HybridRecommender {
     return {
       ml: mlQuality / totalQuality,
       collaborative: cfQuality / totalQuality,
-      content: cbQuality / totalQuality
+      content: cbQuality / totalQuality,
     };
   }
 
@@ -278,10 +292,7 @@ class HybridRecommender {
       const category = this.getToolCategory(rec.tool);
       rec.category = category;
 
-      categoryCount.set(
-        category,
-        (categoryCount.get(category) || 0) + 1
-      );
+      categoryCount.set(category, (categoryCount.get(category) || 0) + 1);
     }
 
     // 对重复类别的工具施加惩罚
@@ -304,19 +315,19 @@ class HybridRecommender {
    */
   getToolCategory(toolName) {
     const categoryMap = {
-      codeGeneration: 'development',
-      fileWrite: 'development',
-      fileRead: 'development',
-      formatCode: 'development',
-      debugging: 'development',
-      testing: 'development',
-      dataAnalysis: 'data',
-      chartGeneration: 'data',
-      documentation: 'writing',
-      markdown: 'writing'
+      codeGeneration: "development",
+      fileWrite: "development",
+      fileRead: "development",
+      formatCode: "development",
+      debugging: "development",
+      testing: "development",
+      dataAnalysis: "data",
+      chartGeneration: "data",
+      documentation: "writing",
+      markdown: "writing",
     };
 
-    return categoryMap[toolName] || 'general';
+    return categoryMap[toolName] || "general";
   }
 
   /**
@@ -345,7 +356,7 @@ class HybridRecommender {
       reasons.push(`${rec.algorithmCount}个算法一致推荐`);
     }
 
-    return reasons.length > 0 ? reasons.join(' | ') : '系统推荐';
+    return reasons.length > 0 ? reasons.join(" | ") : "系统推荐";
   }
 
   /**
@@ -357,13 +368,14 @@ class HybridRecommender {
     if (recommendations.length > 0) {
       const totalConfidence = recommendations.reduce(
         (sum, r) => sum + r.confidence,
-        0
+        0,
       );
       const avgConfidence = totalConfidence / recommendations.length;
 
       this.stats.avgConfidence =
         (this.stats.avgConfidence * (this.stats.totalRecommendations - 1) +
-          avgConfidence) / this.stats.totalRecommendations;
+          avgConfidence) /
+        this.stats.totalRecommendations;
     }
   }
 
@@ -371,22 +383,31 @@ class HybridRecommender {
    * 获取统计信息
    */
   getStats() {
-    const total = this.stats.mlContributions +
+    const total =
+      this.stats.mlContributions +
       this.stats.collaborativeContributions +
       this.stats.contentContributions;
 
     return {
       ...this.stats,
-      avgConfidence: (this.stats.avgConfidence * 100).toFixed(1) + '%',
-      diversityScore: (this.stats.diversityScore * 100).toFixed(1) + '%',
-      algorithmDistribution: total > 0 ? {
-        ml: ((this.stats.mlContributions / total) * 100).toFixed(1) + '%',
-        collaborative: ((this.stats.collaborativeContributions / total) * 100).toFixed(1) + '%',
-        content: ((this.stats.contentContributions / total) * 100).toFixed(1) + '%'
-      } : null,
+      avgConfidence: (this.stats.avgConfidence * 100).toFixed(1) + "%",
+      diversityScore: (this.stats.diversityScore * 100).toFixed(1) + "%",
+      algorithmDistribution:
+        total > 0
+          ? {
+              ml: ((this.stats.mlContributions / total) * 100).toFixed(1) + "%",
+              collaborative:
+                ((this.stats.collaborativeContributions / total) * 100).toFixed(
+                  1,
+                ) + "%",
+              content:
+                ((this.stats.contentContributions / total) * 100).toFixed(1) +
+                "%",
+            }
+          : null,
       mlStats: this.mlMatcher.getStats(),
       cfStats: this.collaborativeFilter.getStats(),
-      cbStats: this.contentRecommender.getStats()
+      cbStats: this.contentRecommender.getStats(),
     };
   }
 
@@ -401,19 +422,25 @@ class HybridRecommender {
    * 初始化推荐器
    */
   async initialize() {
-    logger.info('[HybridRecommender] 初始化推荐器...');
+    logger.info("[HybridRecommender] 初始化推荐器...");
     await Promise.all([
-      this.collaborativeFilter.buildUserToolMatrix().catch(e =>
-        logger.info('[HybridRecommender] CF矩阵构建失败:', e.message)
-      ),
-      this.contentRecommender.buildToolFeatures().catch(e =>
-        logger.info('[HybridRecommender] CB特征构建失败:', e.message)
-      ),
-      this.contentRecommender.buildToolChains().catch(e =>
-        logger.info('[HybridRecommender] 工具链构建失败:', e.message)
-      )
+      this.collaborativeFilter
+        .buildUserToolMatrix()
+        .catch((e) =>
+          logger.info("[HybridRecommender] CF矩阵构建失败:", e.message),
+        ),
+      this.contentRecommender
+        .buildToolFeatures()
+        .catch((e) =>
+          logger.info("[HybridRecommender] CB特征构建失败:", e.message),
+        ),
+      this.contentRecommender
+        .buildToolChains()
+        .catch((e) =>
+          logger.info("[HybridRecommender] 工具链构建失败:", e.message),
+        ),
     ]);
-    logger.info('[HybridRecommender] 初始化完成');
+    logger.info("[HybridRecommender] 初始化完成");
   }
 }
 

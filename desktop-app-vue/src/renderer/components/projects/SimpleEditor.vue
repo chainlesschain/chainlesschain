@@ -4,24 +4,15 @@
     <div class="editor-header">
       <div class="header-left">
         <EditOutlined />
-        <span class="file-name">{{ file?.file_name || '编辑器' }}</span>
-        <a-tag
-          v-if="languageLabel"
-          color="blue"
-        >
+        <span class="file-name">{{ file?.file_name || "编辑器" }}</span>
+        <a-tag v-if="languageLabel" color="blue">
           {{ languageLabel }}
         </a-tag>
-        <a-tag
-          v-if="hasUnsavedChanges"
-          color="orange"
-        >
+        <a-tag v-if="hasUnsavedChanges" color="orange">
           <ClockCircleOutlined />
           未保存
         </a-tag>
-        <a-tag
-          v-else-if="file"
-          color="green"
-        >
+        <a-tag v-else-if="file" color="green">
           <CheckOutlined />
           已保存
         </a-tag>
@@ -43,10 +34,7 @@
     </div>
 
     <!-- CodeMirror 编辑器容器 -->
-    <div
-      ref="editorRef"
-      class="editor-container"
-    />
+    <div ref="editorRef" class="editor-container" />
 
     <!-- 底部状态栏 -->
     <div class="editor-footer">
@@ -57,10 +45,7 @@
         <span class="status-text">{{ charCount }} 字符</span>
       </div>
       <div class="footer-right">
-        <span
-          v-if="autoSaveEnabled"
-          class="status-text"
-        >
+        <span v-if="autoSaveEnabled" class="status-text">
           <CheckCircleOutlined />
           自动保存
         </span>
@@ -70,25 +55,31 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { message } from "ant-design-vue";
 import {
   EditOutlined,
   SaveOutlined,
   CheckOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
-} from '@ant-design/icons-vue';
-import { EditorState, Compartment } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter } from '@codemirror/view';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { javascript } from '@codemirror/lang-javascript';
-import { html } from '@codemirror/lang-html';
-import { css } from '@codemirror/lang-css';
-import { json } from '@codemirror/lang-json';
-import { markdown } from '@codemirror/lang-markdown';
+} from "@ant-design/icons-vue";
+import { EditorState, Compartment } from "@codemirror/state";
+import {
+  EditorView,
+  keymap,
+  lineNumbers,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+} from "@codemirror/view";
+import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { javascript } from "@codemirror/lang-javascript";
+import { html } from "@codemirror/lang-html";
+import { css } from "@codemirror/lang-css";
+import { json } from "@codemirror/lang-json";
+import { markdown } from "@codemirror/lang-markdown";
 
 const props = defineProps({
   file: {
@@ -97,7 +88,7 @@ const props = defineProps({
   },
   content: {
     type: String,
-    default: '',
+    default: "",
   },
   autoSave: {
     type: Boolean,
@@ -109,7 +100,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['change', 'save']);
+const emit = defineEmits(["change", "save"]);
 
 // 状态
 const editorRef = ref(null);
@@ -131,27 +122,29 @@ const languageCompartment = new Compartment();
  * 获取语言标签
  */
 const languageLabel = computed(() => {
-  if (!props.file?.file_name) {return null;}
+  if (!props.file?.file_name) {
+    return null;
+  }
 
-  const ext = props.file.file_name.split('.').pop().toLowerCase();
+  const ext = props.file.file_name.split(".").pop().toLowerCase();
 
   const labelMap = {
-    js: 'JavaScript',
-    jsx: 'JSX',
-    ts: 'TypeScript',
-    tsx: 'TSX',
-    vue: 'Vue',
-    html: 'HTML',
-    htm: 'HTML',
-    css: 'CSS',
-    scss: 'SCSS',
-    less: 'Less',
-    json: 'JSON',
-    md: 'Markdown',
-    txt: 'Text',
-    xml: 'XML',
-    yml: 'YAML',
-    yaml: 'YAML',
+    js: "JavaScript",
+    jsx: "JSX",
+    ts: "TypeScript",
+    tsx: "TSX",
+    vue: "Vue",
+    html: "HTML",
+    htm: "HTML",
+    css: "CSS",
+    scss: "SCSS",
+    less: "Less",
+    json: "JSON",
+    md: "Markdown",
+    txt: "Text",
+    xml: "XML",
+    yml: "YAML",
+    yaml: "YAML",
   };
 
   return labelMap[ext] || ext.toUpperCase();
@@ -166,30 +159,32 @@ const autoSaveEnabled = computed(() => props.autoSave);
  * 根据文件扩展名获取语言支持
  */
 const getLanguageSupport = (fileName) => {
-  if (!fileName) {return [];}
+  if (!fileName) {
+    return [];
+  }
 
-  const ext = fileName.split('.').pop().toLowerCase();
+  const ext = fileName.split(".").pop().toLowerCase();
 
   switch (ext) {
-    case 'js':
-    case 'jsx':
+    case "js":
+    case "jsx":
       return [javascript({ jsx: true })];
-    case 'ts':
-    case 'tsx':
+    case "ts":
+    case "tsx":
       return [javascript({ jsx: true, typescript: true })];
-    case 'vue':
+    case "vue":
       // Vue 文件使用 HTML 语法（简化处理）
       return [html()];
-    case 'html':
-    case 'htm':
+    case "html":
+    case "htm":
       return [html()];
-    case 'css':
-    case 'scss':
-    case 'less':
+    case "css":
+    case "scss":
+    case "less":
       return [css()];
-    case 'json':
+    case "json":
       return [json()];
-    case 'md':
+    case "md":
       return [markdown()];
     default:
       return [];
@@ -200,7 +195,9 @@ const getLanguageSupport = (fileName) => {
  * 初始化编辑器
  */
 const initEditor = () => {
-  if (!editorRef.value) {return;}
+  if (!editorRef.value) {
+    return;
+  }
 
   // 销毁旧编辑器
   if (editorView.value) {
@@ -212,7 +209,10 @@ const initEditor = () => {
 
   // 创建编辑器状态
   // 确保 doc 是字符串类型
-  const docContent = typeof props.content === 'string' ? props.content : String(props.content || '');
+  const docContent =
+    typeof props.content === "string"
+      ? props.content
+      : String(props.content || "");
   const state = EditorState.create({
     doc: docContent,
     extensions: [
@@ -224,8 +224,8 @@ const initEditor = () => {
         ...defaultKeymap,
         ...historyKeymap,
         {
-          key: 'Ctrl-s',
-          mac: 'Cmd-s',
+          key: "Ctrl-s",
+          mac: "Cmd-s",
           run: () => {
             handleSave();
             return true;
@@ -281,7 +281,7 @@ const updateStats = (state) => {
  */
 const handleContentChange = (newContent) => {
   hasUnsavedChanges.value = true;
-  emit('change', newContent);
+  emit("change", newContent);
 
   // 自动保存
   if (autoSaveEnabled.value) {
@@ -296,22 +296,24 @@ const handleContentChange = (newContent) => {
  * 保存文件
  */
 const handleSave = async () => {
-  if (!editorView.value || saving.value || !hasUnsavedChanges.value) {return;}
+  if (!editorView.value || saving.value || !hasUnsavedChanges.value) {
+    return;
+  }
 
   saving.value = true;
 
   try {
     const content = editorView.value.state.doc.toString();
-    emit('save', content);
+    emit("save", content);
 
     // 假设父组件处理保存逻辑
     await new Promise((resolve) => setTimeout(resolve, 200)); // 模拟保存延迟
 
     hasUnsavedChanges.value = false;
-    message.success('保存成功');
+    message.success("保存成功");
   } catch (error) {
-    logger.error('保存失败:', error);
-    message.error('保存失败: ' + error.message);
+    logger.error("保存失败:", error);
+    message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -323,13 +325,13 @@ const handleSave = async () => {
 const setContent = (newContent) => {
   // 如果编辑器未就绪，直接返回
   if (!editorView.value) {
-    logger.warn('[SimpleEditor] 编辑器未就绪，跳过 setContent');
+    logger.warn("[SimpleEditor] 编辑器未就绪，跳过 setContent");
     return;
   }
 
   // 如果正在设置内容，跳过本次调用（防止并发）
   if (isSettingContent.value) {
-    logger.info('[SimpleEditor] 正在设置内容，跳过重复调用');
+    logger.info("[SimpleEditor] 正在设置内容，跳过重复调用");
     return;
   }
 
@@ -344,11 +346,12 @@ const setContent = (newContent) => {
 
     try {
       // 确保内容是字符串类型
-      const contentStr = typeof newContent === 'string' ? newContent : String(newContent || '');
+      const contentStr =
+        typeof newContent === "string" ? newContent : String(newContent || "");
 
       // 再次检查编辑器是否存在（异步后可能已销毁）
       if (!editorView.value) {
-        logger.warn('[SimpleEditor] 编辑器已销毁，取消 setContent');
+        logger.warn("[SimpleEditor] 编辑器已销毁，取消 setContent");
         return;
       }
 
@@ -357,7 +360,7 @@ const setContent = (newContent) => {
 
       // 如果内容相同，直接返回（避免不必要的更新）
       if (currentContent === contentStr) {
-        logger.info('[SimpleEditor] 内容未变化，跳过更新');
+        logger.info("[SimpleEditor] 内容未变化，跳过更新");
         return;
       }
 
@@ -372,10 +375,13 @@ const setContent = (newContent) => {
       });
 
       hasUnsavedChanges.value = false;
-      logger.info('[SimpleEditor] setContent 成功，内容长度:', contentStr.length);
+      logger.info(
+        "[SimpleEditor] setContent 成功，内容长度:",
+        contentStr.length,
+      );
     } catch (error) {
-      logger.error('[SimpleEditor] setContent 失败:', error);
-      logger.error('[SimpleEditor] 错误详情:', {
+      logger.error("[SimpleEditor] setContent 失败:", error);
+      logger.error("[SimpleEditor] 错误详情:", {
         message: error.message,
         stack: error.stack,
         editorExists: !!editorView.value,
@@ -393,7 +399,9 @@ const setContent = (newContent) => {
  * 更新语言支持
  */
 const updateLanguage = (fileName) => {
-  if (!editorView.value) {return;}
+  if (!editorView.value) {
+    return;
+  }
 
   const languageSupport = getLanguageSupport(fileName);
   editorView.value.dispatch({
@@ -407,7 +415,10 @@ watch(
   (newFile, oldFile) => {
     // 文件切换时重新初始化编辑器
     if (newFile && newFile.id !== oldFile?.id) {
-      logger.info('[SimpleEditor] 文件切换，重新初始化编辑器:', newFile.file_name);
+      logger.info(
+        "[SimpleEditor] 文件切换，重新初始化编辑器:",
+        newFile.file_name,
+      );
 
       // 清理之前的定时器和状态
       if (setContentTimer.value) {
@@ -422,7 +433,7 @@ watch(
         initEditor();
       });
     }
-  }
+  },
 );
 
 // 监听内容变化（外部更新）
@@ -440,12 +451,12 @@ watch(
       newContent !== oldContent &&
       !isSettingContent.value
     ) {
-      logger.info('[SimpleEditor] 外部内容变化，更新编辑器');
+      logger.info("[SimpleEditor] 外部内容变化，更新编辑器");
       nextTick(() => {
         setContent(newContent);
       });
     }
-  }
+  },
 );
 
 onMounted(() => {
@@ -470,7 +481,7 @@ onUnmounted(() => {
 // 暴露方法给父组件
 defineExpose({
   save: handleSave,
-  getContent: () => editorView.value?.state.doc.toString() || '',
+  getContent: () => editorView.value?.state.doc.toString() || "",
   setContent,
 });
 </script>
@@ -520,7 +531,7 @@ defineExpose({
 .editor-container {
   flex: 1;
   overflow: auto;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -528,12 +539,12 @@ defineExpose({
 /* CodeMirror 样式覆盖 */
 .editor-container :deep(.cm-editor) {
   height: 100%;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 14px;
 }
 
 .editor-container :deep(.cm-scroller) {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
 }
 
 .editor-container :deep(.cm-gutters) {

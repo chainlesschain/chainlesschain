@@ -9,19 +9,19 @@
  * 5. MCP (Model Context Protocol)
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fetch = require('node-fetch');
-const { getModelSelector } = require('./volcengine-models');
+const { logger } = require("../utils/logger.js");
+const fetch = require("node-fetch");
+const { getModelSelector } = require("./volcengine-models");
 
 /**
  * 工具类型枚举
  */
 const ToolTypes = {
-  WEB_SEARCH: 'web_search',
-  IMAGE_PROCESS: 'image_process',
-  KNOWLEDGE_SEARCH: 'knowledge_search',
-  FUNCTION_CALLING: 'function',
-  MCP: 'remote_mcp',
+  WEB_SEARCH: "web_search",
+  IMAGE_PROCESS: "image_process",
+  KNOWLEDGE_SEARCH: "knowledge_search",
+  FUNCTION_CALLING: "function",
+  MCP: "remote_mcp",
 };
 
 /**
@@ -30,8 +30,8 @@ const ToolTypes = {
 class VolcengineToolsClient {
   constructor(config = {}) {
     this.apiKey = config.apiKey;
-    this.baseURL = config.baseURL || 'https://ark.cn-beijing.volces.com/api/v3';
-    this.model = config.model || 'doubao-seed-1.6';
+    this.baseURL = config.baseURL || "https://ark.cn-beijing.volces.com/api/v3";
+    this.model = config.model || "doubao-seed-1.6";
     this.timeout = config.timeout || 120000; // 2分钟超时
     this.modelSelector = getModelSelector();
   }
@@ -45,10 +45,10 @@ class VolcengineToolsClient {
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
           ...options.headers,
         },
         body: JSON.stringify(body),
@@ -62,7 +62,7 @@ class VolcengineToolsClient {
 
       return await response.json();
     } catch (error) {
-      logger.error('[VolcengineTools] API调用错误:', error);
+      logger.error("[VolcengineTools] API调用错误:", error);
       throw error;
     }
   }
@@ -76,10 +76,10 @@ class VolcengineToolsClient {
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
           ...options.headers,
         },
         body: JSON.stringify({ ...body, stream: true }),
@@ -91,23 +91,30 @@ class VolcengineToolsClient {
         throw new Error(`API调用失败: ${response.status} - ${errorText}`);
       }
 
-      let fullText = '';
+      let fullText = "";
       const reader = response.body;
 
       for await (const chunk of reader) {
-        const lines = chunk.toString().split('\n').filter(line => line.trim());
+        const lines = chunk
+          .toString()
+          .split("\n")
+          .filter((line) => line.trim());
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          if (line.startsWith("data: ")) {
             const data = line.slice(6);
-            if (data === '[DONE]') {continue;}
+            if (data === "[DONE]") {
+              continue;
+            }
 
             try {
               const json = JSON.parse(data);
-              const delta = json.choices?.[0]?.delta?.content || '';
+              const delta = json.choices?.[0]?.delta?.content || "";
               if (delta) {
                 fullText += delta;
-                if (onChunk) {onChunk(delta);}
+                if (onChunk) {
+                  onChunk(delta);
+                }
               }
             } catch (e) {
               // 忽略解析错误
@@ -118,7 +125,7 @@ class VolcengineToolsClient {
 
       return { text: fullText };
     } catch (error) {
-      logger.error('[VolcengineTools] 流式API调用错误:', error);
+      logger.error("[VolcengineTools] 流式API调用错误:", error);
       throw error;
     }
   }
@@ -136,14 +143,14 @@ class VolcengineToolsClient {
    */
   async chatWithWebSearch(messages, options = {}) {
     const {
-      searchMode = 'auto',
+      searchMode = "auto",
       stream = false,
       onChunk = null,
       model = this.model,
     } = options;
 
-    logger.info('[VolcengineTools] 启用联网搜索对话');
-    logger.info('[VolcengineTools] 搜索模式:', searchMode);
+    logger.info("[VolcengineTools] 启用联网搜索对话");
+    logger.info("[VolcengineTools] 搜索模式:", searchMode);
 
     const body = {
       model: model,
@@ -153,15 +160,15 @@ class VolcengineToolsClient {
           type: ToolTypes.WEB_SEARCH,
           web_search: {
             search_mode: searchMode,
-          }
-        }
+          },
+        },
       ],
     };
 
     if (stream && onChunk) {
-      return await this._callStreamAPI('/chat/completions', body, onChunk);
+      return await this._callStreamAPI("/chat/completions", body, onChunk);
     } else {
-      return await this._callAPI('/chat/completions', body);
+      return await this._callAPI("/chat/completions", body);
     }
   }
 
@@ -174,18 +181,22 @@ class VolcengineToolsClient {
    * @returns {Promise<Object>} API响应
    */
   async chatWithImageProcess(messages, options = {}) {
-    const { model = 'doubao-seed-1.6-vision', stream = false, onChunk = null } = options;
+    const {
+      model = "doubao-seed-1.6-vision",
+      stream = false,
+      onChunk = null,
+    } = options;
 
-    logger.info('[VolcengineTools] 启用图像处理对话');
+    logger.info("[VolcengineTools] 启用图像处理对话");
 
     // 自动选择最优视觉模型
     const selectedModel = this.modelSelector.selectByScenario({
       hasImage: true,
-      userBudget: options.userBudget || 'medium',
+      userBudget: options.userBudget || "medium",
       needsThinking: options.needsThinking || false,
     });
 
-    logger.info('[VolcengineTools] 选择视觉模型:', selectedModel.name);
+    logger.info("[VolcengineTools] 选择视觉模型:", selectedModel.name);
 
     const body = {
       model: selectedModel.id,
@@ -193,14 +204,14 @@ class VolcengineToolsClient {
       tools: [
         {
           type: ToolTypes.IMAGE_PROCESS,
-        }
+        },
       ],
     };
 
     if (stream && onChunk) {
-      return await this._callStreamAPI('/chat/completions', body, onChunk);
+      return await this._callStreamAPI("/chat/completions", body, onChunk);
     } else {
-      return await this._callAPI('/chat/completions', body);
+      return await this._callAPI("/chat/completions", body);
     }
   }
 
@@ -216,21 +227,21 @@ class VolcengineToolsClient {
 
     const messages = [
       {
-        role: 'user',
+        role: "user",
         content: [
-          { type: 'text', text: prompt },
-          ...imageUrls.map(url => ({
-            type: 'image_url',
-            image_url: { url: url }
-          }))
-        ]
-      }
+          { type: "text", text: prompt },
+          ...imageUrls.map((url) => ({
+            type: "image_url",
+            image_url: { url: url },
+          })),
+        ],
+      },
     ];
 
     const result = await this.chatWithImageProcess(messages, options);
 
     return {
-      text: result.choices?.[0]?.message?.content || '',
+      text: result.choices?.[0]?.message?.content || "",
       model: result.model,
       usage: result.usage,
       toolCalls: result.choices?.[0]?.message?.tool_calls,
@@ -246,7 +257,7 @@ class VolcengineToolsClient {
    * @returns {Promise<Object>} 上传结果
    */
   async setupKnowledgeBase(knowledgeBaseId, documents) {
-    logger.info('[VolcengineTools] 上传文档到知识库:', knowledgeBaseId);
+    logger.info("[VolcengineTools] 上传文档到知识库:", knowledgeBaseId);
 
     return await this._callAPI(`/knowledge_base/${knowledgeBaseId}/documents`, {
       documents: documents,
@@ -270,8 +281,8 @@ class VolcengineToolsClient {
       onChunk = null,
     } = options;
 
-    logger.info('[VolcengineTools] 启用知识库搜索对话');
-    logger.info('[VolcengineTools] 知识库ID:', knowledgeBaseId);
+    logger.info("[VolcengineTools] 启用知识库搜索对话");
+    logger.info("[VolcengineTools] 知识库ID:", knowledgeBaseId);
 
     const body = {
       model: model,
@@ -284,15 +295,15 @@ class VolcengineToolsClient {
             top_k: topK,
             score_threshold: scoreThreshold,
             enable_rerank: enableRerank,
-          }
-        }
+          },
+        },
       ],
     };
 
     if (stream && onChunk) {
-      return await this._callStreamAPI('/chat/completions', body, onChunk);
+      return await this._callStreamAPI("/chat/completions", body, onChunk);
     } else {
-      return await this._callAPI('/chat/completions', body);
+      return await this._callAPI("/chat/completions", body);
     }
   }
 
@@ -307,17 +318,17 @@ class VolcengineToolsClient {
    */
   async chatWithFunctionCalling(messages, functions, options = {}) {
     const {
-      toolChoice = 'auto',
+      toolChoice = "auto",
       model = this.model,
       stream = false,
       onChunk = null,
     } = options;
 
-    logger.info('[VolcengineTools] 启用函数调用对话');
-    logger.info('[VolcengineTools] 可用函数数量:', functions.length);
+    logger.info("[VolcengineTools] 启用函数调用对话");
+    logger.info("[VolcengineTools] 可用函数数量:", functions.length);
 
-    const tools = functions.map(func => ({
-      type: 'function',
+    const tools = functions.map((func) => ({
+      type: "function",
       function: func,
     }));
 
@@ -329,9 +340,9 @@ class VolcengineToolsClient {
     };
 
     if (stream && onChunk) {
-      return await this._callStreamAPI('/chat/completions', body, onChunk);
+      return await this._callStreamAPI("/chat/completions", body, onChunk);
     } else {
-      return await this._callAPI('/chat/completions', body);
+      return await this._callAPI("/chat/completions", body);
     }
   }
 
@@ -343,16 +354,25 @@ class VolcengineToolsClient {
    * @param {Object} options - 选项
    * @returns {Promise<Object>} 最终响应
    */
-  async executeFunctionCalling(messages, functions, functionExecutor, options = {}) {
-    logger.info('[VolcengineTools] 执行完整函数调用流程');
+  async executeFunctionCalling(
+    messages,
+    functions,
+    functionExecutor,
+    options = {},
+  ) {
+    logger.info("[VolcengineTools] 执行完整函数调用流程");
 
     // 第一次调用：模型决定是否调用函数
-    let result = await this.chatWithFunctionCalling(messages, functions, options);
+    let result = await this.chatWithFunctionCalling(
+      messages,
+      functions,
+      options,
+    );
 
     // 如果模型决定调用函数
     while (result.choices?.[0]?.message?.tool_calls) {
       const toolCalls = result.choices[0].message.tool_calls;
-      logger.info('[VolcengineTools] 模型请求调用', toolCalls.length, '个函数');
+      logger.info("[VolcengineTools] 模型请求调用", toolCalls.length, "个函数");
 
       // 执行所有函数调用
       const functionResults = [];
@@ -360,22 +380,25 @@ class VolcengineToolsClient {
         const functionName = toolCall.function.name;
         const functionArgs = JSON.parse(toolCall.function.arguments);
 
-        logger.info('[VolcengineTools] 执行函数:', functionName);
-        logger.info('[VolcengineTools] 参数:', functionArgs);
+        logger.info("[VolcengineTools] 执行函数:", functionName);
+        logger.info("[VolcengineTools] 参数:", functionArgs);
 
         try {
-          const execResult = await functionExecutor.execute(functionName, functionArgs);
+          const execResult = await functionExecutor.execute(
+            functionName,
+            functionArgs,
+          );
           functionResults.push({
             tool_call_id: toolCall.id,
-            role: 'tool',
+            role: "tool",
             name: functionName,
             content: JSON.stringify(execResult),
           });
         } catch (error) {
-          logger.error('[VolcengineTools] 函数执行失败:', error);
+          logger.error("[VolcengineTools] 函数执行失败:", error);
           functionResults.push({
             tool_call_id: toolCall.id,
-            role: 'tool',
+            role: "tool",
             name: functionName,
             content: JSON.stringify({ error: error.message }),
           });
@@ -390,12 +413,16 @@ class VolcengineToolsClient {
       ];
 
       // 再次调用模型，获取最终回答
-      result = await this.chatWithFunctionCalling(updatedMessages, functions, options);
+      result = await this.chatWithFunctionCalling(
+        updatedMessages,
+        functions,
+        options,
+      );
       messages = updatedMessages;
     }
 
     return {
-      text: result.choices?.[0]?.message?.content || '',
+      text: result.choices?.[0]?.message?.content || "",
       model: result.model,
       usage: result.usage,
       messages: messages, // 返回完整对话历史
@@ -412,14 +439,10 @@ class VolcengineToolsClient {
    * @returns {Promise<Object>} API响应
    */
   async chatWithMCP(messages, mcpConfig, options = {}) {
-    const {
-      model = this.model,
-      stream = false,
-      onChunk = null,
-    } = options;
+    const { model = this.model, stream = false, onChunk = null } = options;
 
-    logger.info('[VolcengineTools] 启用MCP对话');
-    logger.info('[VolcengineTools] MCP服务器:', mcpConfig.serverURL);
+    logger.info("[VolcengineTools] 启用MCP对话");
+    logger.info("[VolcengineTools] MCP服务器:", mcpConfig.serverURL);
 
     const body = {
       model: model,
@@ -430,15 +453,15 @@ class VolcengineToolsClient {
           remote_mcp: {
             server_url: mcpConfig.serverURL,
             tools: mcpConfig.tools || [],
-          }
-        }
+          },
+        },
       ],
     };
 
     if (stream && onChunk) {
-      return await this._callStreamAPI('/chat/completions', body, onChunk);
+      return await this._callStreamAPI("/chat/completions", body, onChunk);
     } else {
-      return await this._callAPI('/chat/completions', body);
+      return await this._callAPI("/chat/completions", body);
     }
   }
 
@@ -463,7 +486,7 @@ class VolcengineToolsClient {
       onChunk = null,
     } = options;
 
-    logger.info('[VolcengineTools] 启用多工具对话');
+    logger.info("[VolcengineTools] 启用多工具对话");
 
     const tools = [];
 
@@ -472,8 +495,8 @@ class VolcengineToolsClient {
       tools.push({
         type: ToolTypes.WEB_SEARCH,
         web_search: {
-          search_mode: toolConfig.searchMode || 'auto',
-        }
+          search_mode: toolConfig.searchMode || "auto",
+        },
       });
     }
 
@@ -493,14 +516,14 @@ class VolcengineToolsClient {
           top_k: toolConfig.topK || 5,
           score_threshold: toolConfig.scoreThreshold || 0.7,
           enable_rerank: toolConfig.enableRerank !== false,
-        }
+        },
       });
     }
 
     // 函数调用
     if (enableFunctionCalling && toolConfig.functions) {
-      const functionTools = toolConfig.functions.map(func => ({
-        type: 'function',
+      const functionTools = toolConfig.functions.map((func) => ({
+        type: "function",
         function: func,
       }));
       tools.push(...functionTools);
@@ -513,11 +536,11 @@ class VolcengineToolsClient {
         remote_mcp: {
           server_url: toolConfig.mcpConfig.serverURL,
           tools: toolConfig.mcpConfig.tools || [],
-        }
+        },
       });
     }
 
-    logger.info('[VolcengineTools] 启用工具数量:', tools.length);
+    logger.info("[VolcengineTools] 启用工具数量:", tools.length);
 
     const body = {
       model: model,
@@ -526,9 +549,9 @@ class VolcengineToolsClient {
     };
 
     if (stream && onChunk) {
-      return await this._callStreamAPI('/chat/completions', body, onChunk);
+      return await this._callStreamAPI("/chat/completions", body, onChunk);
     } else {
-      return await this._callAPI('/chat/completions', body);
+      return await this._callAPI("/chat/completions", body);
     }
   }
 
@@ -560,12 +583,20 @@ class VolcengineToolsClient {
    * @param {Object} config - 新配置
    */
   updateConfig(config = {}) {
-    if (config.apiKey) {this.apiKey = config.apiKey;}
-    if (config.baseURL) {this.baseURL = config.baseURL;}
-    if (config.model) {this.model = config.model;}
-    if (config.timeout) {this.timeout = config.timeout;}
+    if (config.apiKey) {
+      this.apiKey = config.apiKey;
+    }
+    if (config.baseURL) {
+      this.baseURL = config.baseURL;
+    }
+    if (config.model) {
+      this.model = config.model;
+    }
+    if (config.timeout) {
+      this.timeout = config.timeout;
+    }
 
-    logger.info('[VolcengineTools] 配置已更新');
+    logger.info("[VolcengineTools] 配置已更新");
   }
 }
 

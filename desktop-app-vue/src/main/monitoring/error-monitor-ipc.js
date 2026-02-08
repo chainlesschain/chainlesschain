@@ -7,7 +7,7 @@
  * @since 2026-01-16
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -351,10 +351,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
           await monitorRef.current.analyzeError(errorInfo);
         } catch (analyzeError) {
           // 分析失败不影响日志记录
-          logger.warn(
-            "[ErrorMonitor IPC] 错误分析失败:",
-            analyzeError.message,
-          );
+          logger.warn("[ErrorMonitor IPC] 错误分析失败:", analyzeError.message);
         }
       }
 

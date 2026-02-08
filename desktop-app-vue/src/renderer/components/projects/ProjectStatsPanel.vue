@@ -1,16 +1,8 @@
 <template>
   <div class="project-stats-panel">
-    <a-card
-      title="项目统计"
-      :bordered="false"
-      :loading="loading"
-    >
+    <a-card title="项目统计" :bordered="false" :loading="loading">
       <template #extra>
-        <a-button
-          type="link"
-          size="small"
-          @click="refreshStats"
-        >
+        <a-button type="link" size="small" @click="refreshStats">
           <template #icon>
             <ReloadOutlined />
           </template>
@@ -19,10 +11,7 @@
       </template>
 
       <!-- 基础统计 -->
-      <a-row
-        :gutter="16"
-        class="stats-row"
-      >
+      <a-row :gutter="16" class="stats-row">
         <a-col :span="6">
           <a-statistic
             title="文件数量"
@@ -36,11 +25,7 @@
         </a-col>
 
         <a-col :span="6">
-          <a-statistic
-            title="总大小"
-            :value="totalSizeMB"
-            suffix="MB"
-          >
+          <a-statistic title="总大小" :value="totalSizeMB" suffix="MB">
             <template #prefix>
               <DatabaseOutlined style="color: #52c41a" />
             </template>
@@ -75,20 +60,11 @@
       <a-divider />
 
       <!-- ECharts图表 -->
-      <div
-        ref="chartRef"
-        style="height: 300px"
-      />
+      <div ref="chartRef" style="height: 300px" />
 
       <!-- 最后更新时间 -->
-      <div
-        v-if="stats.last_updated_at"
-        class="last-update"
-      >
-        <a-text
-          type="secondary"
-          style="font-size: 12px"
-        >
+      <div v-if="stats.last_updated_at" class="last-update">
+        <a-text type="secondary" style="font-size: 12px">
           最后更新: {{ formatTime(stats.last_updated_at) }}
         </a-text>
       </div>
@@ -97,23 +73,23 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import {
   FileOutlined,
   DatabaseOutlined,
   CodeOutlined,
   CommentOutlined,
-  ReloadOutlined
-} from '@ant-design/icons-vue';
-import { init } from '../../utils/echartsConfig';
+  ReloadOutlined,
+} from "@ant-design/icons-vue";
+import { init } from "../../utils/echartsConfig";
 
 const props = defineProps({
   projectId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
 const stats = ref({
@@ -122,7 +98,7 @@ const stats = ref({
   code_lines: 0,
   comment_lines: 0,
   blank_lines: 0,
-  last_updated_at: null
+  last_updated_at: null,
 });
 
 const loading = ref(false);
@@ -137,14 +113,17 @@ const totalSizeMB = computed(() => {
 const loadStats = async () => {
   try {
     loading.value = true;
-    const result = await window.electron.ipcRenderer.invoke('project:stats:get', props.projectId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "project:stats:get",
+      props.projectId,
+    );
 
     if (result) {
       stats.value = result;
       updateChart();
     }
   } catch (error) {
-    logger.error('加载统计数据失败:', error);
+    logger.error("加载统计数据失败:", error);
   } finally {
     loading.value = false;
   }
@@ -153,10 +132,13 @@ const loadStats = async () => {
 const refreshStats = async () => {
   try {
     loading.value = true;
-    await window.electron.ipcRenderer.invoke('project:stats:update', props.projectId);
+    await window.electron.ipcRenderer.invoke(
+      "project:stats:update",
+      props.projectId,
+    );
     await loadStats();
   } catch (error) {
-    logger.error('刷新统计数据失败:', error);
+    logger.error("刷新统计数据失败:", error);
   } finally {
     loading.value = false;
   }
@@ -167,23 +149,26 @@ const updateChart = () => {
     chartInstance = init(chartRef.value);
   }
 
-  if (!chartInstance) {return;}
+  if (!chartInstance) {
+    return;
+  }
 
-  const total = (stats.value.code_lines || 0) +
-                (stats.value.comment_lines || 0) +
-                (stats.value.blank_lines || 0);
+  const total =
+    (stats.value.code_lines || 0) +
+    (stats.value.comment_lines || 0) +
+    (stats.value.blank_lines || 0);
 
   if (total === 0) {
     const option = {
       title: {
-        text: '暂无代码统计数据',
-        left: 'center',
-        top: 'center',
+        text: "暂无代码统计数据",
+        left: "center",
+        top: "center",
         textStyle: {
-          color: '#999',
-          fontSize: 14
-        }
-      }
+          color: "#999",
+          fontSize: 14,
+        },
+      },
     };
     chartInstance.setOption(option);
     return;
@@ -191,67 +176,69 @@ const updateChart = () => {
 
   const option = {
     tooltip: {
-      trigger: 'item',
-      formatter: '{a} <br/>{b}: {c} ({d}%)'
+      trigger: "item",
+      formatter: "{a} <br/>{b}: {c} ({d}%)",
     },
     legend: {
-      orient: 'vertical',
-      left: 'left',
-      data: ['代码行', '注释行', '空行']
+      orient: "vertical",
+      left: "left",
+      data: ["代码行", "注释行", "空行"],
     },
     series: [
       {
-        name: '代码组成',
-        type: 'pie',
-        radius: ['40%', '70%'],
+        name: "代码组成",
+        type: "pie",
+        radius: ["40%", "70%"],
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 10,
-          borderColor: '#fff',
-          borderWidth: 2
+          borderColor: "#fff",
+          borderWidth: 2,
         },
         label: {
           show: false,
-          position: 'center'
+          position: "center",
         },
         emphasis: {
           label: {
             show: true,
             fontSize: 20,
-            fontWeight: 'bold'
-          }
+            fontWeight: "bold",
+          },
         },
         labelLine: {
-          show: false
+          show: false,
         },
         data: [
           {
             value: stats.value.code_lines || 0,
-            name: '代码行',
-            itemStyle: { color: '#1890ff' }
+            name: "代码行",
+            itemStyle: { color: "#1890ff" },
           },
           {
             value: stats.value.comment_lines || 0,
-            name: '注释行',
-            itemStyle: { color: '#52c41a' }
+            name: "注释行",
+            itemStyle: { color: "#52c41a" },
           },
           {
             value: stats.value.blank_lines || 0,
-            name: '空行',
-            itemStyle: { color: '#d9d9d9' }
-          }
-        ]
-      }
-    ]
+            name: "空行",
+            itemStyle: { color: "#d9d9d9" },
+          },
+        ],
+      },
+    ],
   };
 
   chartInstance.setOption(option);
 };
 
 const formatTime = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 
 onMounted(() => {
@@ -261,7 +248,7 @@ onMounted(() => {
   refreshTimer = setInterval(loadStats, 30000);
 
   // 监听窗口大小变化
-  window.addEventListener('resize', () => {
+  window.addEventListener("resize", () => {
     if (chartInstance) {
       chartInstance.resize();
     }
@@ -279,9 +266,12 @@ onUnmounted(() => {
   }
 });
 
-watch(() => props.projectId, () => {
-  loadStats();
-});
+watch(
+  () => props.projectId,
+  () => {
+    loadStats();
+  },
+);
 </script>
 
 <style scoped>

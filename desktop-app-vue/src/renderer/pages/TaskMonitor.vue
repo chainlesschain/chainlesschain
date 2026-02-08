@@ -7,13 +7,11 @@
           <UnorderedListOutlined />
           任务监控
         </h1>
-        <p class="page-description">
-          实时监控任务执行状态、进度和性能
-        </p>
+        <p class="page-description">实时监控任务执行状态、进度和性能</p>
       </div>
       <div class="header-right">
         <a-space>
-          <a-button @click="handleRefresh" :loading="isLoading">
+          <a-button :loading="isLoading" @click="handleRefresh">
             <ReloadOutlined />
             刷新
           </a-button>
@@ -67,7 +65,7 @@
               :precision="1"
               :prefix="h(RiseOutlined)"
               :value-style="{
-                color: successRate >= 80 ? '#52c41a' : '#faad14'
+                color: successRate >= 80 ? '#52c41a' : '#faad14',
               }"
             />
           </a-card>
@@ -84,8 +82,8 @@
             v-model:value="searchQuery"
             placeholder="搜索任务名称..."
             style="width: 300px"
-            @search="handleSearch"
             allow-clear
+            @search="handleSearch"
           />
           <a-select
             v-model:value="statusFilter"
@@ -94,12 +92,12 @@
             allow-clear
             @change="handleFilterChange"
           >
-            <a-select-option value="pending">待处理</a-select-option>
-            <a-select-option value="running">运行中</a-select-option>
-            <a-select-option value="paused">已暂停</a-select-option>
-            <a-select-option value="completed">已完成</a-select-option>
-            <a-select-option value="failed">失败</a-select-option>
-            <a-select-option value="cancelled">已取消</a-select-option>
+            <a-select-option value="pending"> 待处理 </a-select-option>
+            <a-select-option value="running"> 运行中 </a-select-option>
+            <a-select-option value="paused"> 已暂停 </a-select-option>
+            <a-select-option value="completed"> 已完成 </a-select-option>
+            <a-select-option value="failed"> 失败 </a-select-option>
+            <a-select-option value="cancelled"> 已取消 </a-select-option>
           </a-select>
           <a-select
             v-model:value="teamFilter"
@@ -142,28 +140,30 @@
           </template>
 
           <template v-else-if="column.key === 'progress'">
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px">
               <a-progress
                 :percent="record.progress || 0"
                 :status="getProgressStatus(record)"
                 size="small"
-                style="flex: 1; max-width: 200px;"
+                style="flex: 1; max-width: 200px"
               />
-              <span style="white-space: nowrap;">
+              <span style="white-space: nowrap">
                 {{ (record.progress || 0).toFixed(0) }}%
               </span>
             </div>
           </template>
 
           <template v-else-if="column.key === 'teamId'">
-            <a-tag color="blue">{{ getTeamName(record.teamId) }}</a-tag>
+            <a-tag color="blue">
+              {{ getTeamName(record.teamId) }}
+            </a-tag>
           </template>
 
           <template v-else-if="column.key === 'assignedTo'">
             <a-tag v-if="record.assignedTo" color="geekblue">
               {{ record.assignedTo }}
             </a-tag>
-            <span v-else style="color: #8c8c8c;">未分配</span>
+            <span v-else style="color: #8c8c8c">未分配</span>
           </template>
 
           <template v-else-if="column.key === 'duration'">
@@ -221,7 +221,7 @@
       <a-empty
         v-if="!loading.tasks && filteredTasks.length === 0"
         description="暂无任务"
-        style="margin: 40px 0;"
+        style="margin: 40px 0"
       />
     </a-card>
 
@@ -231,14 +231,14 @@
       title="性能统计"
       :bordered="false"
       class="charts-section"
-      style="margin-top: 24px;"
+      style="margin-top: 24px"
     >
       <a-row :gutter="16">
         <a-col :xs="24" :md="12">
-          <div ref="successRateChartRef" style="width: 100%; height: 300px;"></div>
+          <div ref="successRateChartRef" style="width: 100%; height: 300px" />
         </a-col>
         <a-col :xs="24" :md="12">
-          <div ref="durationChartRef" style="width: 100%; height: 300px;"></div>
+          <div ref="durationChartRef" style="width: 100%; height: 300px" />
         </a-col>
       </a-row>
     </a-card>
@@ -285,9 +285,9 @@ import { useCoworkStore } from "../stores/cowork";
 import TaskDetailPanel from "../components/cowork/TaskDetailPanel.vue";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-const taskLogger = createLogger('task-monitor');
+const taskLogger = createLogger("task-monitor");
 const router = useRouter();
 
 // Store
@@ -377,8 +377,11 @@ const isLoading = computed(() => store.isLoading);
 
 // 计算成功率
 const successRate = computed(() => {
-  const total = globalStats.value.completedTasks + globalStats.value.failedTasks;
-  if (total === 0) return 100;
+  const total =
+    globalStats.value.completedTasks + globalStats.value.failedTasks;
+  if (total === 0) {
+    return 100;
+  }
   return (globalStats.value.completedTasks / total) * 100;
 });
 
@@ -453,7 +456,9 @@ async function handleViewTaskDetail(task) {
 }
 
 async function handleRefreshTaskDetail() {
-  if (!currentTask.value) return;
+  if (!currentTask.value) {
+    return;
+  }
 
   try {
     await store.loadTaskDetail(currentTask.value.id);
@@ -572,7 +577,7 @@ function handleTableChange(pagination, filters, sorter) {
   if (sorter && sorter.field) {
     store.setTaskFilters({
       sortField: sorter.field,
-      sortOrder: sorter.order || null // 'ascend' | 'descend' | null
+      sortOrder: sorter.order || null, // 'ascend' | 'descend' | null
     });
   }
 
@@ -608,9 +613,15 @@ function getTaskStatusText(status) {
 }
 
 function getProgressStatus(task) {
-  if (task.status === "failed") return "exception";
-  if (task.status === "completed") return "success";
-  if (task.status === "running") return "active";
+  if (task.status === "failed") {
+    return "exception";
+  }
+  if (task.status === "completed") {
+    return "success";
+  }
+  if (task.status === "running") {
+    return "active";
+  }
   return "normal";
 }
 
@@ -620,7 +631,9 @@ function getTeamName(teamId) {
 }
 
 function formatDuration(ms) {
-  if (!ms || ms === 0) return "-";
+  if (!ms || ms === 0) {
+    return "-";
+  }
 
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
@@ -636,7 +649,9 @@ function formatDuration(ms) {
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return "-";
+  if (!timestamp) {
+    return "-";
+  }
 
   try {
     return formatDistanceToNow(new Date(timestamp), {

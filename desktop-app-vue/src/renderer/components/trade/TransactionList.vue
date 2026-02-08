@@ -20,10 +20,7 @@
       </template>
 
       <!-- 筛选器 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
@@ -43,24 +40,12 @@
               button-style="solid"
               size="small"
             >
-              <a-radio-button value="">
-                全部
-              </a-radio-button>
-              <a-radio-button value="pending">
-                待处理
-              </a-radio-button>
-              <a-radio-button value="escrowed">
-                托管中
-              </a-radio-button>
-              <a-radio-button value="completed">
-                已完成
-              </a-radio-button>
-              <a-radio-button value="cancelled">
-                已取消
-              </a-radio-button>
-              <a-radio-button value="disputed">
-                有争议
-              </a-radio-button>
+              <a-radio-button value=""> 全部 </a-radio-button>
+              <a-radio-button value="pending"> 待处理 </a-radio-button>
+              <a-radio-button value="escrowed"> 托管中 </a-radio-button>
+              <a-radio-button value="completed"> 已完成 </a-radio-button>
+              <a-radio-button value="cancelled"> 已取消 </a-radio-button>
+              <a-radio-button value="disputed"> 有争议 </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-col>
@@ -72,16 +57,13 @@
           :columns="columns"
           :data-source="filteredTransactions"
           :pagination="pagination"
-          :row-key="record => record.id"
+          :row-key="(record) => record.id"
           @change="handleTableChange"
         >
           <!-- 交易ID列 -->
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'id'">
-              <a-typography-text
-                copyable
-                :ellipsis="{ tooltip: record.id }"
-              >
+              <a-typography-text copyable :ellipsis="{ tooltip: record.id }">
                 {{ formatId(record.id) }}
               </a-typography-text>
             </template>
@@ -90,7 +72,7 @@
             <template v-else-if="column.key === 'order'">
               <div class="order-info-cell">
                 <div class="order-title">
-                  {{ record.order_title || '-' }}
+                  {{ record.order_title || "-" }}
                 </div>
                 <div class="order-id">
                   订单: {{ formatId(record.order_id) }}
@@ -100,10 +82,7 @@
 
             <!-- 买家列 -->
             <template v-else-if="column.key === 'buyer'">
-              <a-space
-                direction="vertical"
-                size="small"
-              >
+              <a-space direction="vertical" size="small">
                 <a-typography-text copyable>
                   {{ formatDid(record.buyer_did) }}
                 </a-typography-text>
@@ -119,10 +98,7 @@
 
             <!-- 卖家列 -->
             <template v-else-if="column.key === 'seller'">
-              <a-space
-                direction="vertical"
-                size="small"
-              >
+              <a-space direction="vertical" size="small">
                 <a-typography-text copyable>
                   {{ formatDid(record.seller_did) }}
                 </a-typography-text>
@@ -142,9 +118,7 @@
                 <div class="amount">
                   {{ formatAmount(record.payment_amount) }}
                 </div>
-                <div class="quantity">
-                  x {{ record.quantity }}
-                </div>
+                <div class="quantity">x {{ record.quantity }}</div>
               </div>
             </template>
 
@@ -200,7 +174,11 @@
         <!-- 空状态 -->
         <a-empty
           v-if="!loading && filteredTransactions.length === 0"
-          :description="searchKeyword || filterStatus ? '没有找到匹配的交易记录' : '暂无交易记录'"
+          :description="
+            searchKeyword || filterStatus
+              ? '没有找到匹配的交易记录'
+              : '暂无交易记录'
+          "
         />
       </a-spin>
     </a-card>
@@ -208,24 +186,24 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch, h } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, computed, onMounted, watch, h } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   HistoryOutlined,
   ReloadOutlined,
   SearchOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import StatusBadge from './common/StatusBadge.vue';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import StatusBadge from "./common/StatusBadge.vue";
 
 // Store
 const tradeStore = useTradeStore();
 
 // 状态
-const searchKeyword = ref('');
-const filterStatus = ref('');
+const searchKeyword = ref("");
+const filterStatus = ref("");
 const pagination = ref({
   current: 1,
   pageSize: 10,
@@ -233,7 +211,7 @@ const pagination = ref({
   showSizeChanger: true,
   showTotal: (total) => `共 ${total} 条记录`,
 });
-const currentUserDid = ref('');
+const currentUserDid = ref("");
 
 // 从 store 获取数据
 const loading = computed(() => tradeStore.marketplace.loading);
@@ -245,72 +223,77 @@ const filteredTransactions = computed(() => {
 
   // 状态筛选
   if (filterStatus.value) {
-    result = result.filter(t => t.status === filterStatus.value);
+    result = result.filter((t) => t.status === filterStatus.value);
   }
 
   // 搜索筛选
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(t =>
-      t.id.toLowerCase().includes(keyword) ||
-      t.order_id?.toLowerCase().includes(keyword) ||
-      t.order_title?.toLowerCase().includes(keyword) ||
-      t.buyer_did.toLowerCase().includes(keyword) ||
-      t.seller_did.toLowerCase().includes(keyword)
+    result = result.filter(
+      (t) =>
+        t.id.toLowerCase().includes(keyword) ||
+        t.order_id?.toLowerCase().includes(keyword) ||
+        t.order_title?.toLowerCase().includes(keyword) ||
+        t.buyer_did.toLowerCase().includes(keyword) ||
+        t.seller_did.toLowerCase().includes(keyword),
     );
   }
 
   return result;
 });
 
-watch(filteredTransactions, (items) => {
-  pagination.value.total = items.length;
-}, { immediate: true });
+watch(
+  filteredTransactions,
+  (items) => {
+    pagination.value.total = items.length;
+  },
+  { immediate: true },
+);
 
 // 表格列配置
 const columns = [
   {
-    title: '交易ID',
-    dataIndex: 'id',
-    key: 'id',
+    title: "交易ID",
+    dataIndex: "id",
+    key: "id",
     width: 150,
   },
   {
-    title: '订单信息',
-    key: 'order',
+    title: "订单信息",
+    key: "order",
     width: 200,
   },
   {
-    title: '买家',
-    key: 'buyer',
+    title: "买家",
+    key: "buyer",
     width: 150,
   },
   {
-    title: '卖家',
-    key: 'seller',
+    title: "卖家",
+    key: "seller",
     width: 150,
   },
   {
-    title: '金额 x 数量',
-    key: 'amount',
+    title: "金额 x 数量",
+    key: "amount",
     width: 120,
   },
   {
-    title: '状态',
-    key: 'status',
+    title: "状态",
+    key: "status",
     width: 120,
   },
   {
-    title: '创建时间',
-    dataIndex: 'created_at',
-    key: 'created_at',
+    title: "创建时间",
+    dataIndex: "created_at",
+    key: "created_at",
     width: 150,
   },
   {
-    title: '操作',
-    key: 'action',
+    title: "操作",
+    key: "action",
     width: 200,
-    fixed: 'right',
+    fixed: "right",
   },
 ];
 
@@ -318,27 +301,37 @@ const columns = [
 
 // 格式化 ID
 const formatId = (id) => {
-  if (!id) {return '-';}
+  if (!id) {
+    return "-";
+  }
   return id.length > 16 ? `${id.slice(0, 8)}...${id.slice(-8)}` : id;
 };
 
 // 格式化 DID
 const formatDid = (did) => {
-  if (!did) {return '-';}
+  if (!did) {
+    return "-";
+  }
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) {return '0';}
+  if (!amount && amount !== 0) {
+    return "0";
+  }
   const num = parseFloat(amount);
-  if (isNaN(num)) {return '0';}
-  return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
+  if (isNaN(num)) {
+    return "0";
+  }
+  return num.toLocaleString("en-US", { maximumFractionDigits: 8 });
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
@@ -353,29 +346,31 @@ const formatTime = (timestamp) => {
     } else if (minutes > 0) {
       return `${minutes}分钟前`;
     } else {
-      return '刚刚';
+      return "刚刚";
     }
   }
 
   // 超过24小时显示日期
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  return date.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 };
 
 // 格式化完整时间
 const formatFullTime = (timestamp) => {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };
 
@@ -386,22 +381,26 @@ const isCurrentUser = (did) => {
 
 // 是否可以确认收货
 const canConfirmDelivery = (transaction) => {
-  return transaction.status === 'escrowed' && isCurrentUser(transaction.buyer_did);
+  return (
+    transaction.status === "escrowed" && isCurrentUser(transaction.buyer_did)
+  );
 };
 
 // 是否可以申请退款
 const canRequestRefund = (transaction) => {
-  return transaction.status === 'escrowed' && isCurrentUser(transaction.buyer_did);
+  return (
+    transaction.status === "escrowed" && isCurrentUser(transaction.buyer_did)
+  );
 };
 
 // 加载交易记录
 const loadTransactions = async () => {
   try {
     await tradeStore.loadTransactions();
-    logger.info('[TransactionList] 交易记录已加载:', transactions.value.length);
+    logger.info("[TransactionList] 交易记录已加载:", transactions.value.length);
   } catch (error) {
-    logger.error('[TransactionList] 加载交易记录失败:', error);
-    message.error('加载交易记录失败: ' + error.message);
+    logger.error("[TransactionList] 加载交易记录失败:", error);
+    message.error("加载交易记录失败: " + error.message);
   }
 };
 
@@ -415,63 +414,65 @@ const handleTableChange = (pag, filters, sorter) => {
 const handleViewDetail = (transaction) => {
   // 打开交易详情模态框
   Modal.info({
-    title: '交易详情',
+    title: "交易详情",
     width: 600,
-    content: h('div', { style: 'max-height: 400px; overflow-y: auto;' }, [
-      h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '交易ID: '),
-        h('span', transaction.id)
+    content: h("div", { style: "max-height: 400px; overflow-y: auto;" }, [
+      h("div", { style: "margin-bottom: 12px;" }, [
+        h("strong", "交易ID: "),
+        h("span", transaction.id),
       ]),
-      h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '订单ID: '),
-        h('span', transaction.order_id || '-')
+      h("div", { style: "margin-bottom: 12px;" }, [
+        h("strong", "订单ID: "),
+        h("span", transaction.order_id || "-"),
       ]),
-      h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '订单标题: '),
-        h('span', transaction.order_title || '-')
+      h("div", { style: "margin-bottom: 12px;" }, [
+        h("strong", "订单标题: "),
+        h("span", transaction.order_title || "-"),
       ]),
-      h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '金额: '),
-        h('span', `${transaction.amount} ${transaction.currency || 'CNY'}`)
+      h("div", { style: "margin-bottom: 12px;" }, [
+        h("strong", "金额: "),
+        h("span", `${transaction.amount} ${transaction.currency || "CNY"}`),
       ]),
-      h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '状态: '),
-        h('span', getStatusText(transaction.status))
+      h("div", { style: "margin-bottom: 12px;" }, [
+        h("strong", "状态: "),
+        h("span", getStatusText(transaction.status)),
       ]),
-      h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '买家DID: '),
-        h('span', { style: 'word-break: break-all;' }, transaction.buyer_did)
+      h("div", { style: "margin-bottom: 12px;" }, [
+        h("strong", "买家DID: "),
+        h("span", { style: "word-break: break-all;" }, transaction.buyer_did),
       ]),
-      h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '卖家DID: '),
-        h('span', { style: 'word-break: break-all;' }, transaction.seller_did)
+      h("div", { style: "margin-bottom: 12px;" }, [
+        h("strong", "卖家DID: "),
+        h("span", { style: "word-break: break-all;" }, transaction.seller_did),
       ]),
-      h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '创建时间: '),
-        h('span', new Date(transaction.created_at).toLocaleString())
+      h("div", { style: "margin-bottom: 12px;" }, [
+        h("strong", "创建时间: "),
+        h("span", new Date(transaction.created_at).toLocaleString()),
       ]),
-      transaction.completed_at && h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '完成时间: '),
-        h('span', new Date(transaction.completed_at).toLocaleString())
-      ]),
-      transaction.description && h('div', { style: 'margin-bottom: 12px;' }, [
-        h('strong', '描述: '),
-        h('span', transaction.description)
-      ])
+      transaction.completed_at &&
+        h("div", { style: "margin-bottom: 12px;" }, [
+          h("strong", "完成时间: "),
+          h("span", new Date(transaction.completed_at).toLocaleString()),
+        ]),
+      transaction.description &&
+        h("div", { style: "margin-bottom: 12px;" }, [
+          h("strong", "描述: "),
+          h("span", transaction.description),
+        ]),
     ]),
-    okText: '关闭'
+    okText: "关闭",
   });
 };
 
 // 获取状态文本
 const getStatusText = (status) => {
   const statusMap = {
-    pending: '待处理',
-    escrowed: '托管中',
-    completed: '已完成',
-    refunded: '已退款',
-    cancelled: '已取消',
-    disputed: '争议中'
+    pending: "待处理",
+    escrowed: "托管中",
+    completed: "已完成",
+    refunded: "已退款",
+    cancelled: "已取消",
+    disputed: "争议中",
   };
   return statusMap[status] || status;
 };
@@ -480,23 +481,23 @@ const getStatusText = (status) => {
 const handleConfirmDelivery = async (transaction) => {
   try {
     await tradeStore.confirmDelivery(transaction.id);
-    message.success('已确认收货');
+    message.success("已确认收货");
     await loadTransactions();
   } catch (error) {
-    logger.error('[TransactionList] 确认收货失败:', error);
-    message.error(error.message || '确认收货失败');
+    logger.error("[TransactionList] 确认收货失败:", error);
+    message.error(error.message || "确认收货失败");
   }
 };
 
 // 申请退款
 const handleRequestRefund = async (transaction) => {
   try {
-    await tradeStore.requestRefund(transaction.id, '买家申请退款');
-    message.success('已申请退款');
+    await tradeStore.requestRefund(transaction.id, "买家申请退款");
+    message.success("已申请退款");
     await loadTransactions();
   } catch (error) {
-    logger.error('[TransactionList] 申请退款失败:', error);
-    message.error(error.message || '申请退款失败');
+    logger.error("[TransactionList] 申请退款失败:", error);
+    message.error(error.message || "申请退款失败");
   }
 };
 
@@ -508,7 +509,7 @@ const loadCurrentUserDid = async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    logger.error('[TransactionList] 获取当前用户 DID 失败:', error);
+    logger.error("[TransactionList] 获取当前用户 DID 失败:", error);
   }
 };
 

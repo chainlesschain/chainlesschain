@@ -23,10 +23,7 @@
       <escrow-statistics style="margin-bottom: 24px" />
 
       <!-- 筛选器 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
@@ -46,21 +43,11 @@
               button-style="solid"
               size="small"
             >
-              <a-radio-button value="">
-                全部
-              </a-radio-button>
-              <a-radio-button value="locked">
-                锁定中
-              </a-radio-button>
-              <a-radio-button value="released">
-                已释放
-              </a-radio-button>
-              <a-radio-button value="refunded">
-                已退款
-              </a-radio-button>
-              <a-radio-button value="disputed">
-                有争议
-              </a-radio-button>
+              <a-radio-button value=""> 全部 </a-radio-button>
+              <a-radio-button value="locked"> 锁定中 </a-radio-button>
+              <a-radio-button value="released"> 已释放 </a-radio-button>
+              <a-radio-button value="refunded"> 已退款 </a-radio-button>
+              <a-radio-button value="disputed"> 有争议 </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-col>
@@ -78,10 +65,7 @@
           <!-- 托管ID列 -->
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'id'">
-              <a-typography-text
-                copyable
-                :ellipsis="{ tooltip: record.id }"
-              >
+              <a-typography-text copyable :ellipsis="{ tooltip: record.id }">
                 {{ formatId(record.id) }}
               </a-typography-text>
             </template>
@@ -92,10 +76,7 @@
                 <div class="transaction-id">
                   交易: {{ formatId(record.transaction_id) }}
                 </div>
-                <div
-                  v-if="record.order_id"
-                  class="order-id"
-                >
+                <div v-if="record.order_id" class="order-id">
                   订单: {{ formatId(record.order_id) }}
                 </div>
               </div>
@@ -108,17 +89,14 @@
                   {{ formatAmount(record.amount) }}
                 </div>
                 <div class="asset-symbol">
-                  {{ record.asset_symbol || 'CC' }}
+                  {{ record.asset_symbol || "CC" }}
                 </div>
               </div>
             </template>
 
             <!-- 买家列 -->
             <template v-else-if="column.key === 'buyer'">
-              <a-space
-                direction="vertical"
-                size="small"
-              >
+              <a-space direction="vertical" size="small">
                 <a-typography-text
                   copyable
                   :ellipsis="{ tooltip: record.buyer_did }"
@@ -137,10 +115,7 @@
 
             <!-- 卖家列 -->
             <template v-else-if="column.key === 'seller'">
-              <a-space
-                direction="vertical"
-                size="small"
-              >
+              <a-space direction="vertical" size="small">
                 <a-typography-text
                   copyable
                   :ellipsis="{ tooltip: record.seller_did }"
@@ -159,11 +134,7 @@
 
             <!-- 状态列 -->
             <template v-else-if="column.key === 'status'">
-              <status-badge
-                :status="record.status"
-                type="escrow"
-                show-icon
-              />
+              <status-badge :status="record.status" type="escrow" show-icon />
             </template>
 
             <!-- 时间列 -->
@@ -200,7 +171,11 @@
         <!-- 空状态 -->
         <a-empty
           v-if="!loading && filteredEscrows.length === 0"
-          :description="searchKeyword || filterStatus ? '没有找到匹配的托管记录' : '暂无托管记录'"
+          :description="
+            searchKeyword || filterStatus
+              ? '没有找到匹配的托管记录'
+              : '暂无托管记录'
+          "
         />
       </a-spin>
     </a-card>
@@ -223,27 +198,27 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   LockOutlined,
   ReloadOutlined,
   SearchOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import StatusBadge from './common/StatusBadge.vue';
-import EscrowStatistics from './EscrowStatistics.vue';
-import EscrowDetail from './EscrowDetail.vue';
-import EscrowDispute from './EscrowDispute.vue';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import StatusBadge from "./common/StatusBadge.vue";
+import EscrowStatistics from "./EscrowStatistics.vue";
+import EscrowDetail from "./EscrowDetail.vue";
+import EscrowDispute from "./EscrowDispute.vue";
 
 // Store
 const tradeStore = useTradeStore();
 
 // 状态
-const searchKeyword = ref('');
-const filterStatus = ref('');
+const searchKeyword = ref("");
+const filterStatus = ref("");
 const pagination = ref({
   current: 1,
   pageSize: 10,
@@ -251,7 +226,7 @@ const pagination = ref({
   showSizeChanger: true,
   showTotal: (total) => `共 ${total} 条记录`,
 });
-const currentUserDid = ref('');
+const currentUserDid = ref("");
 const showDetailDrawer = ref(false);
 const showDisputeModal = ref(false);
 const selectedEscrow = ref(null);
@@ -278,61 +253,65 @@ const filteredEscrows = computed(() => {
         e.transaction_id?.toLowerCase().includes(keyword) ||
         e.order_id?.toLowerCase().includes(keyword) ||
         e.buyer_did.toLowerCase().includes(keyword) ||
-        e.seller_did.toLowerCase().includes(keyword)
+        e.seller_did.toLowerCase().includes(keyword),
     );
   }
 
   return result;
 });
 
-watch(filteredEscrows, (items) => {
-  pagination.value.total = items.length;
-}, { immediate: true });
+watch(
+  filteredEscrows,
+  (items) => {
+    pagination.value.total = items.length;
+  },
+  { immediate: true },
+);
 
 // 表格列配置
 const columns = [
   {
-    title: '托管ID',
-    dataIndex: 'id',
-    key: 'id',
+    title: "托管ID",
+    dataIndex: "id",
+    key: "id",
     width: 150,
   },
   {
-    title: '交易信息',
-    key: 'transaction',
+    title: "交易信息",
+    key: "transaction",
     width: 180,
   },
   {
-    title: '金额',
-    key: 'amount',
+    title: "金额",
+    key: "amount",
     width: 120,
   },
   {
-    title: '买家',
-    key: 'buyer',
+    title: "买家",
+    key: "buyer",
     width: 150,
   },
   {
-    title: '卖家',
-    key: 'seller',
+    title: "卖家",
+    key: "seller",
     width: 150,
   },
   {
-    title: '状态',
-    key: 'status',
+    title: "状态",
+    key: "status",
     width: 120,
   },
   {
-    title: '创建时间',
-    dataIndex: 'created_at',
-    key: 'created_at',
+    title: "创建时间",
+    dataIndex: "created_at",
+    key: "created_at",
     width: 150,
   },
   {
-    title: '操作',
-    key: 'action',
+    title: "操作",
+    key: "action",
     width: 180,
-    fixed: 'right',
+    fixed: "right",
   },
 ];
 
@@ -340,27 +319,37 @@ const columns = [
 
 // 格式化 ID
 const formatId = (id) => {
-  if (!id) {return '-';}
+  if (!id) {
+    return "-";
+  }
   return id.length > 16 ? `${id.slice(0, 8)}...${id.slice(-8)}` : id;
 };
 
 // 格式化 DID
 const formatDid = (did) => {
-  if (!did) {return '-';}
+  if (!did) {
+    return "-";
+  }
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) {return '0';}
+  if (!amount && amount !== 0) {
+    return "0";
+  }
   const num = parseFloat(amount);
-  if (isNaN(num)) {return '0';}
-  return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
+  if (isNaN(num)) {
+    return "0";
+  }
+  return num.toLocaleString("en-US", { maximumFractionDigits: 8 });
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
@@ -375,29 +364,31 @@ const formatTime = (timestamp) => {
     } else if (minutes > 0) {
       return `${minutes}分钟前`;
     } else {
-      return '刚刚';
+      return "刚刚";
     }
   }
 
   // 超过24小时显示日期
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  return date.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
 };
 
 // 格式化完整时间
 const formatFullTime = (timestamp) => {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };
 
@@ -409,7 +400,7 @@ const isCurrentUser = (did) => {
 // 是否可以发起争议
 const canDispute = (escrow) => {
   return (
-    escrow.status === 'locked' &&
+    escrow.status === "locked" &&
     (isCurrentUser(escrow.buyer_did) || isCurrentUser(escrow.seller_did))
   );
 };
@@ -418,10 +409,10 @@ const canDispute = (escrow) => {
 const loadEscrows = async () => {
   try {
     await tradeStore.loadEscrows();
-    logger.info('[EscrowList] 托管记录已加载:', escrows.value.length);
+    logger.info("[EscrowList] 托管记录已加载:", escrows.value.length);
   } catch (error) {
-    logger.error('[EscrowList] 加载托管记录失败:', error);
-    message.error('加载托管记录失败: ' + error.message);
+    logger.error("[EscrowList] 加载托管记录失败:", error);
+    message.error("加载托管记录失败: " + error.message);
   }
 };
 
@@ -453,7 +444,7 @@ const handleDisputeFromDetail = (escrow) => {
 // 争议发起成功
 const handleDisputed = async () => {
   await loadEscrows();
-  message.success('争议已发起');
+  message.success("争议已发起");
 };
 
 // 获取当前用户 DID
@@ -464,7 +455,7 @@ const loadCurrentUserDid = async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    logger.error('[EscrowList] 获取当前用户 DID 失败:', error);
+    logger.error("[EscrowList] 获取当前用户 DID 失败:", error);
   }
 };
 

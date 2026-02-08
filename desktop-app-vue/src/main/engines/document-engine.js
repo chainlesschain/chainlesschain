@@ -4,9 +4,9 @@
  * 支持3种模板: 商务报告、学术论文、用户手册
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
 
 class DocumentEngine {
   constructor(options = {}) {
@@ -17,11 +17,14 @@ class DocumentEngine {
     // 如果启用Python工具，加载桥接器
     if (this.usePythonTools) {
       try {
-        const { getPythonBridge } = require('../project/python-bridge');
+        const { getPythonBridge } = require("../project/python-bridge");
         this.pythonBridge = getPythonBridge();
-        logger.info('[Document Engine] Python工具已启用');
+        logger.info("[Document Engine] Python工具已启用");
       } catch (error) {
-        logger.warn('[Document Engine] Python工具加载失败，将使用npm包实现:', error.message);
+        logger.warn(
+          "[Document Engine] Python工具加载失败，将使用npm包实现:",
+          error.message,
+        );
         this.usePythonTools = false;
       }
     }
@@ -29,19 +32,28 @@ class DocumentEngine {
     // 文档模板定义
     this.templates = {
       business_report: {
-        name: '商务报告',
-        description: '商务报告模板，适合企业汇报、项目总结',
-        sections: ['摘要', '背景', '分析', '结论', '建议'],
+        name: "商务报告",
+        description: "商务报告模板，适合企业汇报、项目总结",
+        sections: ["摘要", "背景", "分析", "结论", "建议"],
       },
       academic_paper: {
-        name: '学术论文',
-        description: '学术论文模板，符合学术规范',
-        sections: ['摘要', '引言', '文献综述', '方法', '结果', '讨论', '结论', '参考文献'],
+        name: "学术论文",
+        description: "学术论文模板，符合学术规范",
+        sections: [
+          "摘要",
+          "引言",
+          "文献综述",
+          "方法",
+          "结果",
+          "讨论",
+          "结论",
+          "参考文献",
+        ],
       },
       user_manual: {
-        name: '用户手册',
-        description: '用户手册模板，产品说明文档',
-        sections: ['简介', '快速开始', '功能说明', '常见问题', '故障排除'],
+        name: "用户手册",
+        description: "用户手册模板，产品说明文档",
+        sections: ["简介", "快速开始", "功能说明", "常见问题", "故障排除"],
       },
     };
   }
@@ -53,20 +65,22 @@ class DocumentEngine {
    */
   async generateDocument(options = {}) {
     const {
-      template = 'business_report',
-      title = '文档标题',
-      author = '作者',
-      date = new Date().toLocaleDateString('zh-CN'),
-      format = 'markdown', // markdown | html | pdf
+      template = "business_report",
+      title = "文档标题",
+      author = "作者",
+      date = new Date().toLocaleDateString("zh-CN"),
+      format = "markdown", // markdown | html | pdf
       projectPath,
       content = {},
     } = options;
 
     if (!projectPath) {
-      throw new Error('未指定项目路径');
+      throw new Error("未指定项目路径");
     }
 
-    logger.info(`[Document Engine] 生成${this.templates[template]?.name || template}...`);
+    logger.info(
+      `[Document Engine] 生成${this.templates[template]?.name || template}...`,
+    );
 
     try {
       // 创建项目目录
@@ -76,22 +90,22 @@ class DocumentEngine {
       let documentContent;
       let fileName;
 
-      if (format === 'markdown') {
+      if (format === "markdown") {
         documentContent = this.generateMarkdown(template, {
           title,
           author,
           date,
           content,
         });
-        fileName = 'document.md';
-      } else if (format === 'html') {
+        fileName = "document.md";
+      } else if (format === "html") {
         documentContent = this.generateHTML(template, {
           title,
           author,
           date,
           content,
         });
-        fileName = 'document.html';
+        fileName = "document.html";
       } else {
         // PDF需要额外的库支持，这里先生成Markdown
         documentContent = this.generateMarkdown(template, {
@@ -100,20 +114,16 @@ class DocumentEngine {
           date,
           content,
         });
-        fileName = 'document.md';
+        fileName = "document.md";
       }
 
       // 写入文档文件
       const filePath = path.join(projectPath, fileName);
-      await fs.writeFile(filePath, documentContent, 'utf-8');
+      await fs.writeFile(filePath, documentContent, "utf-8");
 
       // 生成README
       const readme = this.generateReadme(title, template);
-      await fs.writeFile(
-        path.join(projectPath, 'README.md'),
-        readme,
-        'utf-8'
-      );
+      await fs.writeFile(path.join(projectPath, "README.md"), readme, "utf-8");
 
       logger.info(`[Document Engine] 文档生成成功: ${filePath}`);
 
@@ -126,7 +136,7 @@ class DocumentEngine {
         filePath,
       };
     } catch (error) {
-      logger.error('[Document Engine] 生成文档失败:', error);
+      logger.error("[Document Engine] 生成文档失败:", error);
       throw new Error(`生成文档失败: ${error.message}`);
     }
   }
@@ -145,17 +155,17 @@ class DocumentEngine {
     markdown += `---\n\n`;
 
     // 根据模板添加章节
-    if (template === 'business_report') {
+    if (template === "business_report") {
       markdown += this.generateBusinessReportMarkdown(content);
-    } else if (template === 'academic_paper') {
+    } else if (template === "academic_paper") {
       markdown += this.generateAcademicPaperMarkdown(content);
-    } else if (template === 'user_manual') {
+    } else if (template === "user_manual") {
       markdown += this.generateUserManualMarkdown(content);
     } else {
       // 默认格式
       for (const section of templateConfig.sections) {
         markdown += `## ${section}\n\n`;
-        markdown += `${content[section] || '待填写内容...'}\n\n`;
+        markdown += `${content[section] || "待填写内容..."}\n\n`;
       }
     }
 
@@ -169,11 +179,11 @@ class DocumentEngine {
   generateBusinessReportMarkdown(content) {
     return `## 执行摘要
 
-${content.summary || '本报告总结了...'}
+${content.summary || "本报告总结了..."}
 
 ## 项目背景
 
-${content.background || '项目背景介绍...'}
+${content.background || "项目背景介绍..."}
 
 ### 目标
 
@@ -183,7 +193,7 @@ ${content.background || '项目背景介绍...'}
 
 ## 数据分析
 
-${content.analysis || '基于收集的数据，我们进行了以下分析...'}
+${content.analysis || "基于收集的数据，我们进行了以下分析..."}
 
 ### 关键发现
 
@@ -193,11 +203,11 @@ ${content.analysis || '基于收集的数据，我们进行了以下分析...'}
 
 ## 结论
 
-${content.conclusion || '基于以上分析，我们得出以下结论...'}
+${content.conclusion || "基于以上分析，我们得出以下结论..."}
 
 ## 建议
 
-${content.recommendations || '我们建议采取以下措施...'}
+${content.recommendations || "我们建议采取以下措施..."}
 
 1. 建议1
 2. 建议2
@@ -216,66 +226,69 @@ ${content.recommendations || '我们建议采取以下措施...'}
   generateAcademicPaperMarkdown(content) {
     return `## 摘要
 
-${content.abstract || '本文研究了...'}
+${content.abstract || "本文研究了..."}
 
-**关键词**: ${content.keywords || '关键词1, 关键词2, 关键词3'}
+**关键词**: ${content.keywords || "关键词1, 关键词2, 关键词3"}
 
 ## 1. 引言
 
-${content.introduction || '本研究的背景和目的...'}
+${content.introduction || "本研究的背景和目的..."}
 
 ### 1.1 研究背景
 
-${content.background || '相关研究背景...'}
+${content.background || "相关研究背景..."}
 
 ### 1.2 研究目的
 
-${content.purpose || '本研究旨在...'}
+${content.purpose || "本研究旨在..."}
 
 ## 2. 文献综述
 
-${content.literature_review || '现有研究表明...'}
+${content.literature_review || "现有研究表明..."}
 
 ## 3. 研究方法
 
-${content.methodology || '本研究采用...方法'}
+${content.methodology || "本研究采用...方法"}
 
 ### 3.1 数据收集
 
-${content.data_collection || '数据收集方式...'}
+${content.data_collection || "数据收集方式..."}
 
 ### 3.2 分析方法
 
-${content.analysis_method || '分析方法说明...'}
+${content.analysis_method || "分析方法说明..."}
 
 ## 4. 研究结果
 
-${content.results || '研究结果如下...'}
+${content.results || "研究结果如下..."}
 
 ## 5. 讨论
 
-${content.discussion || '研究结果的讨论和解释...'}
+${content.discussion || "研究结果的讨论和解释..."}
 
 ## 6. 结论
 
-${content.conclusion || '本研究的主要结论...'}
+${content.conclusion || "本研究的主要结论..."}
 
 ### 6.1 研究贡献
 
-${content.contributions || '本研究的贡献包括...'}
+${content.contributions || "本研究的贡献包括..."}
 
 ### 6.2 研究局限
 
-${content.limitations || '本研究的局限性...'}
+${content.limitations || "本研究的局限性..."}
 
 ### 6.3 未来研究方向
 
-${content.future_work || '未来可以进一步研究...'}
+${content.future_work || "未来可以进一步研究..."}
 
 ## 参考文献
 
-${content.references || `1. 作者. (年份). 文献标题. 期刊名称.
-2. 作者. (年份). 文献标题. 期刊名称.`}
+${
+  content.references ||
+  `1. 作者. (年份). 文献标题. 期刊名称.
+2. 作者. (年份). 文献标题. 期刊名称.`
+}
 `;
   }
 
@@ -286,11 +299,11 @@ ${content.references || `1. 作者. (年份). 文献标题. 期刊名称.
   generateUserManualMarkdown(content) {
     return `## 简介
 
-${content.introduction || '欢迎使用本产品。本手册将帮助您快速上手。'}
+${content.introduction || "欢迎使用本产品。本手册将帮助您快速上手。"}
 
 ### 产品概述
 
-${content.overview || '产品功能概述...'}
+${content.overview || "产品功能概述..."}
 
 ### 系统要求
 
@@ -300,7 +313,7 @@ ${content.overview || '产品功能概述...'}
 
 ## 快速开始
 
-${content.quick_start || '按照以下步骤快速开始使用：'}
+${content.quick_start || "按照以下步骤快速开始使用："}
 
 ### 安装步骤
 
@@ -311,11 +324,11 @@ ${content.quick_start || '按照以下步骤快速开始使用：'}
 
 ### 首次配置
 
-${content.first_time_setup || '首次使用需要进行以下配置...'}
+${content.first_time_setup || "首次使用需要进行以下配置..."}
 
 ## 功能说明
 
-${content.features || '本产品提供以下主要功能：'}
+${content.features || "本产品提供以下主要功能："}
 
 ### 功能1
 
@@ -331,7 +344,7 @@ ${content.features || '本产品提供以下主要功能：'}
 
 ## 常见问题
 
-${content.faq || '以下是用户常见问题及解答：'}
+${content.faq || "以下是用户常见问题及解答："}
 
 **Q: 如何...?**
 A: 您可以...
@@ -341,7 +354,7 @@ A: 这是因为...
 
 ## 故障排除
 
-${content.troubleshooting || '如果遇到问题，请尝试以下解决方案：'}
+${content.troubleshooting || "如果遇到问题，请尝试以下解决方案："}
 
 ### 问题1: 无法启动
 
@@ -437,7 +450,7 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
    * @private
    */
   markdownToHTML(markdown) {
-    const lines = markdown.split('\n');
+    const lines = markdown.split("\n");
     const htmlLines = [];
     let inUnorderedList = false;
     let inOrderedList = false;
@@ -448,14 +461,18 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
       const line = lines[i];
 
       // 代码块处理
-      if (line.startsWith('```')) {
+      if (line.startsWith("```")) {
         if (!inCodeBlock) {
           inCodeBlock = true;
           codeBlockContent = [];
           continue;
         } else {
           inCodeBlock = false;
-          htmlLines.push('<pre><code>' + this.escapeHtml(codeBlockContent.join('\n')) + '</code></pre>');
+          htmlLines.push(
+            "<pre><code>" +
+              this.escapeHtml(codeBlockContent.join("\n")) +
+              "</code></pre>",
+          );
           continue;
         }
       }
@@ -470,30 +487,36 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
         this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
         inUnorderedList = false;
         inOrderedList = false;
-        htmlLines.push('<h3>' + this.parseInlineMarkdown(line.substring(4)) + '</h3>');
+        htmlLines.push(
+          "<h3>" + this.parseInlineMarkdown(line.substring(4)) + "</h3>",
+        );
         continue;
       }
       if (line.match(/^## /)) {
         this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
         inUnorderedList = false;
         inOrderedList = false;
-        htmlLines.push('<h2>' + this.parseInlineMarkdown(line.substring(3)) + '</h2>');
+        htmlLines.push(
+          "<h2>" + this.parseInlineMarkdown(line.substring(3)) + "</h2>",
+        );
         continue;
       }
       if (line.match(/^# /)) {
         this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
         inUnorderedList = false;
         inOrderedList = false;
-        htmlLines.push('<h1>' + this.parseInlineMarkdown(line.substring(2)) + '</h1>');
+        htmlLines.push(
+          "<h1>" + this.parseInlineMarkdown(line.substring(2)) + "</h1>",
+        );
         continue;
       }
 
       // 分隔线
-      if (line.trim() === '---') {
+      if (line.trim() === "---") {
         this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
         inUnorderedList = false;
         inOrderedList = false;
-        htmlLines.push('<hr>');
+        htmlLines.push("<hr>");
         continue;
       }
 
@@ -502,10 +525,12 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
         if (!inUnorderedList) {
           this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
           inOrderedList = false;
-          htmlLines.push('<ul>');
+          htmlLines.push("<ul>");
           inUnorderedList = true;
         }
-        htmlLines.push('<li>' + this.parseInlineMarkdown(line.substring(2)) + '</li>');
+        htmlLines.push(
+          "<li>" + this.parseInlineMarkdown(line.substring(2)) + "</li>",
+        );
         continue;
       }
 
@@ -514,19 +539,23 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
         if (!inOrderedList) {
           this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
           inUnorderedList = false;
-          htmlLines.push('<ol>');
+          htmlLines.push("<ol>");
           inOrderedList = true;
         }
-        htmlLines.push('<li>' + this.parseInlineMarkdown(line.replace(/^\d+\.\s+/, '')) + '</li>');
+        htmlLines.push(
+          "<li>" +
+            this.parseInlineMarkdown(line.replace(/^\d+\.\s+/, "")) +
+            "</li>",
+        );
         continue;
       }
 
       // 空行关闭列表
-      if (line.trim() === '') {
+      if (line.trim() === "") {
         this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
         inUnorderedList = false;
         inOrderedList = false;
-        htmlLines.push('');
+        htmlLines.push("");
         continue;
       }
 
@@ -534,13 +563,13 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
       this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
       inUnorderedList = false;
       inOrderedList = false;
-      htmlLines.push('<p>' + this.parseInlineMarkdown(line) + '</p>');
+      htmlLines.push("<p>" + this.parseInlineMarkdown(line) + "</p>");
     }
 
     // 关闭未闭合的列表
     this.closeListIfOpen(htmlLines, inUnorderedList, inOrderedList);
 
-    return htmlLines.join('\n');
+    return htmlLines.join("\n");
   }
 
   /**
@@ -549,10 +578,10 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
    */
   closeListIfOpen(htmlLines, inUnorderedList, inOrderedList) {
     if (inUnorderedList) {
-      htmlLines.push('</ul>');
+      htmlLines.push("</ul>");
     }
     if (inOrderedList) {
-      htmlLines.push('</ol>');
+      htmlLines.push("</ol>");
     }
   }
 
@@ -562,11 +591,11 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
    */
   parseInlineMarkdown(text) {
     // 粗体
-    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
     // 斜体
-    text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+    text = text.replace(/\*(.+?)\*/g, "<em>$1</em>");
     // 行内代码
-    text = text.replace(/`(.+?)`/g, '<code>$1</code>');
+    text = text.replace(/`(.+?)`/g, "<code>$1</code>");
     // 链接
     text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
     return text;
@@ -578,13 +607,13 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
    */
   escapeHtml(text) {
     const map = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;",
     };
-    return text.replace(/[&<>"']/g, m => map[m]);
+    return text.replace(/[&<>"']/g, (m) => map[m]);
   }
 
   /**
@@ -597,7 +626,7 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
 ## 文档信息
 
 - **模板类型**: ${this.templates[template]?.name || template}
-- **创建时间**: ${new Date().toLocaleString('zh-CN')}
+- **创建时间**: ${new Date().toLocaleString("zh-CN")}
 - **生成工具**: ChainlessChain Document Engine
 
 ## 说明
@@ -645,11 +674,11 @@ pandoc document.md -o document.docx
    * @param {string} outputPath - 输出PDF路径
    */
   async exportToPDF(markdownPath, outputPath) {
-    logger.info('[Document Engine] 导出PDF:', markdownPath);
+    logger.info("[Document Engine] 导出PDF:", markdownPath);
 
     try {
       // 读取Markdown内容
-      const markdownContent = await fs.readFile(markdownPath, 'utf-8');
+      const markdownContent = await fs.readFile(markdownPath, "utf-8");
 
       // 转换为HTML
       const htmlContent = this.markdownToHTML(markdownContent);
@@ -689,35 +718,39 @@ pandoc document.md -o document.docx
 </html>`;
 
       // 保存临时HTML文件
-      const tempHTMLPath = markdownPath.replace(/\.md$/, '_temp.html');
-      await fs.writeFile(tempHTMLPath, fullHTML, 'utf-8');
+      const tempHTMLPath = markdownPath.replace(/\.md$/, "_temp.html");
+      await fs.writeFile(tempHTMLPath, fullHTML, "utf-8");
 
       // 注意：真正的PDF生成需要puppeteer或类似工具
       // 这里提供两种方案：
       // 方案1: 使用puppeteer（需要安装）
       // 方案2: 提示用户使用浏览器打印或pandoc工具
 
-      logger.info('[Document Engine] 提示：完整的PDF导出需要安装puppeteer');
-      logger.info('[Document Engine] 临时方案：已生成HTML文件，可通过浏览器打印为PDF');
+      logger.info("[Document Engine] 提示：完整的PDF导出需要安装puppeteer");
+      logger.info(
+        "[Document Engine] 临时方案：已生成HTML文件，可通过浏览器打印为PDF",
+      );
 
       // 尝试使用puppeteer（如果已安装）
       try {
-        const puppeteer = require('puppeteer');
-        logger.info('[Document Engine] 使用puppeteer生成PDF...');
+        const puppeteer = require("puppeteer");
+        logger.info("[Document Engine] 使用puppeteer生成PDF...");
 
-        const browser = await puppeteer.launch({ headless: 'new' });
+        const browser = await puppeteer.launch({ headless: "new" });
         const page = await browser.newPage();
-        await page.goto(`file://${tempHTMLPath}`, { waitUntil: 'networkidle0' });
+        await page.goto(`file://${tempHTMLPath}`, {
+          waitUntil: "networkidle0",
+        });
         await page.pdf({
           path: outputPath,
-          format: 'A4',
+          format: "A4",
           margin: {
-            top: '2cm',
-            right: '2cm',
-            bottom: '2cm',
-            left: '2cm'
+            top: "2cm",
+            right: "2cm",
+            bottom: "2cm",
+            left: "2cm",
           },
-          printBackground: true
+          printBackground: true,
         });
         await browser.close();
 
@@ -725,29 +758,35 @@ pandoc document.md -o document.docx
         try {
           await fs.unlink(tempHTMLPath);
         } catch (unlinkError) {
-          logger.warn('[Document Engine] 清理临时文件失败:', unlinkError.message);
+          logger.warn(
+            "[Document Engine] 清理临时文件失败:",
+            unlinkError.message,
+          );
         }
 
-        logger.info('[Document Engine] PDF生成成功:', outputPath);
+        logger.info("[Document Engine] PDF生成成功:", outputPath);
         return { success: true, path: outputPath };
       } catch (puppeteerError) {
-        logger.warn('[Document Engine] puppeteer不可用，已生成HTML文件作为替代');
+        logger.warn(
+          "[Document Engine] puppeteer不可用，已生成HTML文件作为替代",
+        );
 
         // 返回HTML路径作为替代（保留临时文件供用户使用）
         return {
           success: true,
           path: tempHTMLPath,
-          message: 'PDF导出需要puppeteer库。已生成HTML文件，可通过浏览器打印为PDF。',
-          alternative: true
+          message:
+            "PDF导出需要puppeteer库。已生成HTML文件，可通过浏览器打印为PDF。",
+          alternative: true,
         };
       }
     } catch (error) {
-      logger.error('[Document Engine] 导出PDF失败:', error);
+      logger.error("[Document Engine] 导出PDF失败:", error);
       // 尝试清理可能存在的临时文件
-      const tempHTMLPath = markdownPath.replace(/\.md$/, '_temp.html');
+      const tempHTMLPath = markdownPath.replace(/\.md$/, "_temp.html");
       try {
         await fs.unlink(tempHTMLPath);
-        logger.info('[Document Engine] 已清理临时文件');
+        logger.info("[Document Engine] 已清理临时文件");
       } catch (unlinkError) {
         // 临时文件可能不存在，忽略错误
       }
@@ -762,33 +801,33 @@ pandoc document.md -o document.docx
    */
   async generateWordWithPython(params) {
     if (!this.pythonBridge) {
-      throw new Error('Python工具未启用');
+      throw new Error("Python工具未启用");
     }
 
-    logger.info('[Document Engine] 使用Python生成Word文档');
+    logger.info("[Document Engine] 使用Python生成Word文档");
 
     const {
-      title = '文档标题',
-      content = '文档内容',
+      title = "文档标题",
+      content = "文档内容",
       output_path,
-      template = 'business',
-      metadata = {}
+      template = "business",
+      metadata = {},
     } = params;
 
     try {
-      const result = await this.pythonBridge.callTool('word_generator', {
-        operation: 'create',
+      const result = await this.pythonBridge.callTool("word_generator", {
+        operation: "create",
         title,
         content,
         output_path,
         template,
-        metadata
+        metadata,
       });
 
-      logger.info('[Document Engine] Python Word文档生成成功:', result);
+      logger.info("[Document Engine] Python Word文档生成成功:", result);
       return result;
     } catch (error) {
-      logger.error('[Document Engine] Python Word生成失败:', error);
+      logger.error("[Document Engine] Python Word生成失败:", error);
       throw error;
     }
   }
@@ -799,35 +838,38 @@ pandoc document.md -o document.docx
    * @param {string} outputPath - 输出Docx路径
    */
   async exportToDocx(markdownPath, outputPath) {
-    logger.info('[Document Engine] 导出Word文档:', markdownPath);
+    logger.info("[Document Engine] 导出Word文档:", markdownPath);
 
     // 如果启用了Python工具，优先使用Python
     if (this.usePythonTools && this.pythonBridge) {
       try {
-        logger.info('[Document Engine] 尝试使用Python工具生成Word...');
+        logger.info("[Document Engine] 尝试使用Python工具生成Word...");
 
         // 读取Markdown内容
-        const markdownContent = await fs.readFile(markdownPath, 'utf-8');
+        const markdownContent = await fs.readFile(markdownPath, "utf-8");
 
         // 提取标题（第一行的#标题）
         const titleMatch = markdownContent.match(/^#\s+(.+)$/m);
-        const title = titleMatch ? titleMatch[1] : 'Document';
+        const title = titleMatch ? titleMatch[1] : "Document";
 
         const result = await this.generateWordWithPython({
           title,
           content: markdownContent,
           output_path: outputPath,
-          template: 'business'
+          template: "business",
         });
 
         return {
           success: true,
           path: outputPath,
-          method: 'python-docx',
-          ...result
+          method: "python-docx",
+          ...result,
         };
       } catch (pythonError) {
-        logger.warn('[Document Engine] Python工具失败，降级到npm包实现:', pythonError.message);
+        logger.warn(
+          "[Document Engine] Python工具失败，降级到npm包实现:",
+          pythonError.message,
+        );
         // 继续使用下面的npm包实现
       }
     }
@@ -837,22 +879,22 @@ pandoc document.md -o document.docx
       // 这里提供基本实现
 
       // 检查是否有pandoc（最佳方案）
-      const { exec } = require('child_process');
-      const { promisify } = require('util');
+      const { exec } = require("child_process");
+      const { promisify } = require("util");
       const execPromise = promisify(exec);
 
       try {
         // 尝试使用pandoc
         await execPromise(`pandoc "${markdownPath}" -o "${outputPath}"`);
-        logger.info('[Document Engine] Word文档生成成功（使用pandoc）');
-        return { success: true, path: outputPath, method: 'pandoc' };
+        logger.info("[Document Engine] Word文档生成成功（使用pandoc）");
+        return { success: true, path: outputPath, method: "pandoc" };
       } catch (pandocError) {
-        logger.warn('[Document Engine] pandoc不可用，尝试使用docx库...');
+        logger.warn("[Document Engine] pandoc不可用，尝试使用docx库...");
 
         // 尝试使用docx库（如果已安装）
         try {
-          const docx = require('docx');
-          const markdownContent = await fs.readFile(markdownPath, 'utf-8');
+          const docx = require("docx");
+          const markdownContent = await fs.readFile(markdownPath, "utf-8");
 
           // 简单的Markdown解析和文档创建
           const doc = this.createDocxFromMarkdown(markdownContent, docx);
@@ -860,34 +902,35 @@ pandoc document.md -o document.docx
           const buffer = await docx.Packer.toBuffer(doc);
           await fs.writeFile(outputPath, buffer);
 
-          logger.info('[Document Engine] Word文档生成成功（使用docx库）');
-          return { success: true, path: outputPath, method: 'docx' };
+          logger.info("[Document Engine] Word文档生成成功（使用docx库）");
+          return { success: true, path: outputPath, method: "docx" };
         } catch (docxError) {
-          logger.warn('[Document Engine] docx库不可用');
+          logger.warn("[Document Engine] docx库不可用");
 
           // 降级方案：生成HTML并提示用户
-          const htmlPath = outputPath.replace(/\.docx?$/, '.html');
-          const markdownContent = await fs.readFile(markdownPath, 'utf-8');
+          const htmlPath = outputPath.replace(/\.docx?$/, ".html");
+          const markdownContent = await fs.readFile(markdownPath, "utf-8");
           const htmlContent = this.markdownToHTML(markdownContent);
-          const fullHTML = this.generateHTML('business_report', {
-            title: 'Document',
-            author: '',
-            date: '',
-            content: {}
+          const fullHTML = this.generateHTML("business_report", {
+            title: "Document",
+            author: "",
+            date: "",
+            content: {},
           }).replace(/<body>[\s\S]*<\/body>/, `<body>${htmlContent}</body>`);
 
-          await fs.writeFile(htmlPath, fullHTML, 'utf-8');
+          await fs.writeFile(htmlPath, fullHTML, "utf-8");
 
           return {
             success: true,
             path: htmlPath,
-            message: 'Word导出需要pandoc或docx库。已生成HTML文件，可通过Word打开并另存为。',
-            alternative: true
+            message:
+              "Word导出需要pandoc或docx库。已生成HTML文件，可通过Word打开并另存为。",
+            alternative: true,
           };
         }
       }
     } catch (error) {
-      logger.error('[Document Engine] 导出Word文档失败:', error);
+      logger.error("[Document Engine] 导出Word文档失败:", error);
       throw error;
     }
   }
@@ -899,7 +942,7 @@ pandoc document.md -o document.docx
   createDocxFromMarkdown(markdownContent, docx) {
     const { Document, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
 
-    const lines = markdownContent.split('\n');
+    const lines = markdownContent.split("\n");
     const paragraphs = [];
     let inCodeBlock = false;
     let codeLines = [];
@@ -908,7 +951,7 @@ pandoc document.md -o document.docx
       const line = lines[i];
 
       // 代码块处理
-      if (line.startsWith('```')) {
+      if (line.startsWith("```")) {
         if (!inCodeBlock) {
           inCodeBlock = true;
           codeLines = [];
@@ -920,15 +963,15 @@ pandoc document.md -o document.docx
             new Paragraph({
               children: [
                 new TextRun({
-                  text: codeLines.join('\n'),
-                  font: 'Courier New',
+                  text: codeLines.join("\n"),
+                  font: "Courier New",
                   size: 20,
                   shading: {
-                    fill: 'F4F4F4'
-                  }
-                })
-              ]
-            })
+                    fill: "F4F4F4",
+                  },
+                }),
+              ],
+            }),
           );
           continue;
         }
@@ -940,41 +983,41 @@ pandoc document.md -o document.docx
       }
 
       // 标题处理
-      if (line.startsWith('### ')) {
+      if (line.startsWith("### ")) {
         paragraphs.push(
           new Paragraph({
             text: line.substring(4),
-            heading: HeadingLevel.HEADING_3
-          })
+            heading: HeadingLevel.HEADING_3,
+          }),
         );
         continue;
       }
-      if (line.startsWith('## ')) {
+      if (line.startsWith("## ")) {
         paragraphs.push(
           new Paragraph({
             text: line.substring(3),
-            heading: HeadingLevel.HEADING_2
-          })
+            heading: HeadingLevel.HEADING_2,
+          }),
         );
         continue;
       }
-      if (line.startsWith('# ')) {
+      if (line.startsWith("# ")) {
         paragraphs.push(
           new Paragraph({
             text: line.substring(2),
-            heading: HeadingLevel.HEADING_1
-          })
+            heading: HeadingLevel.HEADING_1,
+          }),
         );
         continue;
       }
 
       // 分隔线
-      if (line.trim() === '---') {
+      if (line.trim() === "---") {
         paragraphs.push(
           new Paragraph({
-            text: '─'.repeat(50),
-            alignment: AlignmentType.CENTER
-          })
+            text: "─".repeat(50),
+            alignment: AlignmentType.CENTER,
+          }),
         );
         continue;
       }
@@ -985,9 +1028,9 @@ pandoc document.md -o document.docx
           new Paragraph({
             children: this.parseInlineMarkdownForDocx(line.substring(2), docx),
             bullet: {
-              level: 0
-            }
-          })
+              level: 0,
+            },
+          }),
         );
         continue;
       }
@@ -996,27 +1039,30 @@ pandoc document.md -o document.docx
       if (line.match(/^\d+\.\s+/)) {
         paragraphs.push(
           new Paragraph({
-            children: this.parseInlineMarkdownForDocx(line.replace(/^\d+\.\s+/, ''), docx),
+            children: this.parseInlineMarkdownForDocx(
+              line.replace(/^\d+\.\s+/, ""),
+              docx,
+            ),
             numbering: {
-              reference: 'default-numbering',
-              level: 0
-            }
-          })
+              reference: "default-numbering",
+              level: 0,
+            },
+          }),
         );
         continue;
       }
 
       // 空行
-      if (line.trim() === '') {
-        paragraphs.push(new Paragraph({ text: '' }));
+      if (line.trim() === "") {
+        paragraphs.push(new Paragraph({ text: "" }));
         continue;
       }
 
       // 普通段落（带行内格式）
       paragraphs.push(
         new Paragraph({
-          children: this.parseInlineMarkdownForDocx(line, docx)
-        })
+          children: this.parseInlineMarkdownForDocx(line, docx),
+        }),
       );
     }
 
@@ -1025,18 +1071,18 @@ pandoc document.md -o document.docx
       numbering: {
         config: [
           {
-            reference: 'default-numbering',
+            reference: "default-numbering",
             levels: [
               {
                 level: 0,
-                format: 'decimal',
-                text: '%1.',
-                alignment: AlignmentType.LEFT
-              }
-            ]
-          }
-        ]
-      }
+                format: "decimal",
+                text: "%1.",
+                alignment: AlignmentType.LEFT,
+              },
+            ],
+          },
+        ],
+      },
     });
   }
 
@@ -1061,7 +1107,10 @@ pandoc document.md -o document.docx
     while ((match = boldRegex.exec(text)) !== null) {
       // 添加粗体前的文本
       if (match.index > lastIndex) {
-        parts.push({ text: text.substring(lastIndex, match.index), bold: false });
+        parts.push({
+          text: text.substring(lastIndex, match.index),
+          bold: false,
+        });
       }
       // 添加粗体文本
       parts.push({ text: match[1], bold: true });
@@ -1081,10 +1130,12 @@ pandoc document.md -o document.docx
     // 转换为TextRun数组
     for (const part of parts) {
       if (part.text) {
-        runs.push(new TextRun({
-          text: part.text,
-          bold: part.bold
-        }));
+        runs.push(
+          new TextRun({
+            text: part.text,
+            bold: part.bold,
+          }),
+        );
       }
     }
 
@@ -1106,35 +1157,35 @@ pandoc document.md -o document.docx
     }
 
     switch (format.toLowerCase()) {
-      case 'pdf':
+      case "pdf":
         return await this.exportToPDF(sourcePath, outputPath);
 
-      case 'docx':
-      case 'doc':
+      case "docx":
+      case "doc":
         return await this.exportToDocx(sourcePath, outputPath);
 
-      case 'html': {
-        const markdownContent = await fs.readFile(sourcePath, 'utf-8');
+      case "html": {
+        const markdownContent = await fs.readFile(sourcePath, "utf-8");
         const htmlContent = this.markdownToHTML(markdownContent);
-        const fullHTML = this.generateHTML('business_report', {
-          title: 'Document',
-          author: '',
-          date: '',
-          content: {}
+        const fullHTML = this.generateHTML("business_report", {
+          title: "Document",
+          author: "",
+          date: "",
+          content: {},
         }).replace(/<body>[\s\S]*<\/body>/, `<body>${htmlContent}</body>`);
-        await fs.writeFile(outputPath, fullHTML, 'utf-8');
+        await fs.writeFile(outputPath, fullHTML, "utf-8");
         return { success: true, path: outputPath };
       }
 
-      case 'txt': {
-        const txtContent = await fs.readFile(sourcePath, 'utf-8');
+      case "txt": {
+        const txtContent = await fs.readFile(sourcePath, "utf-8");
         // 移除Markdown标记
         const plainText = txtContent
-          .replace(/^#{1,6}\s+/gm, '')
-          .replace(/\*\*(.+?)\*\*/g, '$1')
-          .replace(/\*(.+?)\*/g, '$1')
-          .replace(/\[(.+?)\]\(.+?\)/g, '$1');
-        await fs.writeFile(outputPath, plainText, 'utf-8');
+          .replace(/^#{1,6}\s+/gm, "")
+          .replace(/\*\*(.+?)\*\*/g, "$1")
+          .replace(/\*(.+?)\*/g, "$1")
+          .replace(/\[(.+?)\]\(.+?\)/g, "$1");
+        await fs.writeFile(outputPath, plainText, "utf-8");
         return { success: true, path: outputPath };
       }
 
@@ -1156,10 +1207,13 @@ pandoc document.md -o document.docx
 
     // 如果没有提供项目路径，创建临时目录
     if (!projectPath) {
-      const { app } = require('electron');
-      const userDataPath = app.getPath('userData');
-      projectPath = path.join(userDataPath, 'temp', `doc_${Date.now()}`);
-      logger.info('[Document Engine] 未提供项目路径，使用临时目录:', projectPath);
+      const { app } = require("electron");
+      const userDataPath = app.getPath("userData");
+      projectPath = path.join(userDataPath, "temp", `doc_${Date.now()}`);
+      logger.info(
+        "[Document Engine] 未提供项目路径，使用临时目录:",
+        projectPath,
+      );
 
       // 确保目录存在
       await fs.mkdir(projectPath, { recursive: true });
@@ -1169,66 +1223,90 @@ pandoc document.md -o document.docx
     try {
       await fs.access(projectPath);
     } catch (error) {
-      logger.info('[Document Engine] 项目目录不存在，创建目录:', projectPath);
+      logger.info("[Document Engine] 项目目录不存在，创建目录:", projectPath);
       await fs.mkdir(projectPath, { recursive: true });
     }
 
     try {
       let result;
       switch (action) {
-        case 'create_document':
-          result = await this.createDocumentFromDescription(description, projectPath, llmManager);
+        case "create_document":
+          result = await this.createDocumentFromDescription(
+            description,
+            projectPath,
+            llmManager,
+          );
           break;
 
-        case 'create_markdown':
-          result = await this.createMarkdownFromDescription(description, projectPath, llmManager);
+        case "create_markdown":
+          result = await this.createMarkdownFromDescription(
+            description,
+            projectPath,
+            llmManager,
+          );
           break;
 
-        case 'export_pdf': {
+        case "export_pdf": {
           // 如果没有Markdown文件，先创建一个
           const mdFilesForPDF = await this.findMarkdownFiles(projectPath);
           if (mdFilesForPDF.length === 0 && description) {
-            logger.info('[Document Engine] 未找到Markdown文件，先创建文档...');
-            await this.createDocumentFromDescription(description, projectPath, llmManager);
+            logger.info("[Document Engine] 未找到Markdown文件，先创建文档...");
+            await this.createDocumentFromDescription(
+              description,
+              projectPath,
+              llmManager,
+            );
           }
           result = await this.exportDocumentToPDF(projectPath, outputFiles);
           break;
         }
 
-        case 'export_docx': {
+        case "export_docx": {
           // 如果没有Markdown文件，先创建一个
           const mdFilesForDocx = await this.findMarkdownFiles(projectPath);
           if (mdFilesForDocx.length === 0 && description) {
-            logger.info('[Document Engine] 未找到Markdown文件，先创建文档...');
-            await this.createDocumentFromDescription(description, projectPath, llmManager);
+            logger.info("[Document Engine] 未找到Markdown文件，先创建文档...");
+            await this.createDocumentFromDescription(
+              description,
+              projectPath,
+              llmManager,
+            );
           }
           result = await this.exportDocumentToDocx(projectPath, outputFiles);
           break;
         }
 
-        case 'export_html': {
+        case "export_html": {
           // 如果没有Markdown文件，先创建一个
           const mdFilesForHTML = await this.findMarkdownFiles(projectPath);
           if (mdFilesForHTML.length === 0 && description) {
-            logger.info('[Document Engine] 未找到Markdown文件，先创建文档...');
-            await this.createDocumentFromDescription(description, projectPath, llmManager);
+            logger.info("[Document Engine] 未找到Markdown文件，先创建文档...");
+            await this.createDocumentFromDescription(
+              description,
+              projectPath,
+              llmManager,
+            );
           }
           result = await this.exportDocumentToHTML(projectPath, outputFiles);
           break;
         }
 
         default:
-          result = await this.createDocumentFromDescription(description, projectPath, llmManager);
+          result = await this.createDocumentFromDescription(
+            description,
+            projectPath,
+            llmManager,
+          );
       }
 
       // 添加实际使用的项目路径到结果中
-      if (result && typeof result === 'object') {
+      if (result && typeof result === "object") {
         result.projectPath = projectPath;
       }
 
       return result;
     } catch (error) {
-      logger.error('[Document Engine] 任务执行失败:', error);
+      logger.error("[Document Engine] 任务执行失败:", error);
       throw error;
     }
   }
@@ -1237,7 +1315,7 @@ pandoc document.md -o document.docx
    * 根据描述创建文档（使用LLM）
    */
   async createDocumentFromDescription(description, projectPath, llmManager) {
-    logger.info('[Document Engine] 使用LLM生成文档');
+    logger.info("[Document Engine] 使用LLM生成文档");
 
     const prompt = `请根据以下描述生成一份完整的文档内容（Markdown格式）：
 
@@ -1253,27 +1331,30 @@ ${description}
     try {
       response = await llmManager.query(prompt, {
         temperature: 0.7,
-        maxTokens: 3000
+        maxTokens: 3000,
       });
     } catch (llmError) {
-      logger.warn('[Document Engine] 本地LLM失败，尝试使用后端AI服务:', llmError.message);
+      logger.warn(
+        "[Document Engine] 本地LLM失败，尝试使用后端AI服务:",
+        llmError.message,
+      );
       // 降级到后端AI服务
       response = await this.queryBackendAI(prompt, {
-        temperature: 0.7
+        temperature: 0.7,
       });
     }
 
     // 保存为Markdown文件
     const fileName = `document_${Date.now()}.md`;
     const filePath = path.join(projectPath, fileName);
-    await fs.writeFile(filePath, response.text, 'utf-8');
+    await fs.writeFile(filePath, response.text, "utf-8");
 
-    logger.info('[Document Engine] 文档生成成功:', filePath);
+    logger.info("[Document Engine] 文档生成成功:", filePath);
 
     return {
-      type: 'document',
+      type: "document",
       path: filePath,
-      content: response.text
+      content: response.text,
     };
   }
 
@@ -1281,67 +1362,67 @@ ${description}
    * 查询后端AI服务（降级方案）
    */
   async queryBackendAI(prompt, options = {}) {
-    const https = require('https');
-    const http = require('http');
-    const { URL } = require('url');
+    const https = require("https");
+    const http = require("http");
+    const { URL } = require("url");
 
-    const backendURL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
-    logger.info('[Document Engine] 调用后端AI服务:', backendURL);
+    const backendURL = process.env.AI_SERVICE_URL || "http://localhost:8001";
+    logger.info("[Document Engine] 调用后端AI服务:", backendURL);
 
     return new Promise((resolve, reject) => {
-      const url = new URL('/api/chat/stream', backendURL);
-      const isHttps = url.protocol === 'https:';
+      const url = new URL("/api/chat/stream", backendURL);
+      const isHttps = url.protocol === "https:";
       const httpModule = isHttps ? https : http;
 
       const messages = [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: prompt }
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user", content: prompt },
       ];
 
       const postData = JSON.stringify({
         messages,
-        temperature: options.temperature || 0.7
+        temperature: options.temperature || 0.7,
       });
 
       const requestOptions = {
         hostname: url.hostname,
         port: url.port || (isHttps ? 443 : 80),
         path: url.pathname,
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData)
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(postData),
         },
-        timeout: 600000 // 10 分钟
+        timeout: 600000, // 10 分钟
       };
 
       const req = httpModule.request(requestOptions, (res) => {
-        let fullText = '';
-        let buffer = '';
+        let fullText = "";
+        let buffer = "";
 
-        res.on('data', (chunk) => {
+        res.on("data", (chunk) => {
           buffer += chunk.toString();
 
           // 按行处理SSE
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.startsWith("data: ")) {
               try {
                 const jsonStr = line.slice(6).trim();
                 if (jsonStr) {
                   const data = JSON.parse(jsonStr);
 
-                  if (data.type === 'content' && data.content) {
+                  if (data.type === "content" && data.content) {
                     fullText += data.content;
-                  } else if (data.type === 'error') {
+                  } else if (data.type === "error") {
                     reject(new Error(data.error));
                     return;
-                  } else if (data.type === 'done') {
+                  } else if (data.type === "done") {
                     resolve({
                       text: fullText,
-                      tokens: Math.ceil(fullText.length / 4)
+                      tokens: Math.ceil(fullText.length / 4),
                     });
                     return;
                   }
@@ -1353,29 +1434,29 @@ ${description}
           }
         });
 
-        res.on('end', () => {
+        res.on("end", () => {
           if (fullText) {
             resolve({
               text: fullText,
-              tokens: Math.ceil(fullText.length / 4)
+              tokens: Math.ceil(fullText.length / 4),
             });
           } else {
-            reject(new Error('后端AI服务未返回任何内容'));
+            reject(new Error("后端AI服务未返回任何内容"));
           }
         });
 
-        res.on('error', (err) => {
+        res.on("error", (err) => {
           reject(err);
         });
       });
 
-      req.on('error', (err) => {
+      req.on("error", (err) => {
         reject(err);
       });
 
-      req.on('timeout', () => {
+      req.on("timeout", () => {
         req.destroy();
-        reject(new Error('后端AI服务请求超时'));
+        reject(new Error("后端AI服务请求超时"));
       });
 
       req.write(postData);
@@ -1387,45 +1468,57 @@ ${description}
    * 创建Markdown文档
    */
   async createMarkdownFromDescription(description, projectPath, llmManager) {
-    return await this.createDocumentFromDescription(description, projectPath, llmManager);
+    return await this.createDocumentFromDescription(
+      description,
+      projectPath,
+      llmManager,
+    );
   }
 
   /**
    * 导出项目文档为PDF
    */
   async exportDocumentToPDF(projectPath, outputFiles) {
-    logger.info('[Document Engine] 查找Markdown文件:', projectPath);
+    logger.info("[Document Engine] 查找Markdown文件:", projectPath);
 
     const mdFiles = await this.findMarkdownFiles(projectPath);
 
     if (mdFiles.length === 0) {
-      logger.warn('[Document Engine] 未找到Markdown文件，检查是否有其他文档...');
+      logger.warn(
+        "[Document Engine] 未找到Markdown文件，检查是否有其他文档...",
+      );
 
       // 尝试查找所有文件
       const allFiles = await fs.readdir(projectPath);
-      logger.info('[Document Engine] 项目目录文件列表:', allFiles);
+      logger.info("[Document Engine] 项目目录文件列表:", allFiles);
 
       // 检查是否有 document_*.md 或 *.md 文件
-      const docFiles = allFiles.filter(f => f.includes('document') || f.endsWith('.md'));
+      const docFiles = allFiles.filter(
+        (f) => f.includes("document") || f.endsWith(".md"),
+      );
 
       if (docFiles.length > 0) {
-        logger.info('[Document Engine] 找到可能的文档文件:', docFiles);
+        logger.info("[Document Engine] 找到可能的文档文件:", docFiles);
         const sourcePath = path.join(projectPath, docFiles[0]);
-        const outputPath = outputFiles && outputFiles[0]
-          ? path.join(projectPath, outputFiles[0])
-          : sourcePath.replace(/\.md$/, '.pdf');
+        const outputPath =
+          outputFiles && outputFiles[0]
+            ? path.join(projectPath, outputFiles[0])
+            : sourcePath.replace(/\.md$/, ".pdf");
         return await this.exportToPDF(sourcePath, outputPath);
       }
 
-      throw new Error(`未找到Markdown文件。项目路径: ${projectPath}, 文件列表: ${allFiles.join(', ')}`);
+      throw new Error(
+        `未找到Markdown文件。项目路径: ${projectPath}, 文件列表: ${allFiles.join(", ")}`,
+      );
     }
 
     const sourcePath = mdFiles[0];
-    logger.info('[Document Engine] 使用Markdown文件:', sourcePath);
+    logger.info("[Document Engine] 使用Markdown文件:", sourcePath);
 
-    const outputPath = outputFiles && outputFiles[0]
-      ? path.join(projectPath, outputFiles[0])
-      : sourcePath.replace(/\.md$/, '.pdf');
+    const outputPath =
+      outputFiles && outputFiles[0]
+        ? path.join(projectPath, outputFiles[0])
+        : sourcePath.replace(/\.md$/, ".pdf");
 
     return await this.exportToPDF(sourcePath, outputPath);
   }
@@ -1434,38 +1527,46 @@ ${description}
    * 导出项目文档为Word
    */
   async exportDocumentToDocx(projectPath, outputFiles) {
-    logger.info('[Document Engine] 查找Markdown文件:', projectPath);
+    logger.info("[Document Engine] 查找Markdown文件:", projectPath);
 
     const mdFiles = await this.findMarkdownFiles(projectPath);
 
     if (mdFiles.length === 0) {
-      logger.warn('[Document Engine] 未找到Markdown文件，检查是否有其他文档...');
+      logger.warn(
+        "[Document Engine] 未找到Markdown文件，检查是否有其他文档...",
+      );
 
       // 尝试查找所有文件
       const allFiles = await fs.readdir(projectPath);
-      logger.info('[Document Engine] 项目目录文件列表:', allFiles);
+      logger.info("[Document Engine] 项目目录文件列表:", allFiles);
 
       // 检查是否有 document_*.md 或 *.md 文件
-      const docFiles = allFiles.filter(f => f.includes('document') || f.endsWith('.md'));
+      const docFiles = allFiles.filter(
+        (f) => f.includes("document") || f.endsWith(".md"),
+      );
 
       if (docFiles.length > 0) {
-        logger.info('[Document Engine] 找到可能的文档文件:', docFiles);
+        logger.info("[Document Engine] 找到可能的文档文件:", docFiles);
         const sourcePath = path.join(projectPath, docFiles[0]);
-        const outputPath = outputFiles && outputFiles[0]
-          ? path.join(projectPath, outputFiles[0])
-          : sourcePath.replace(/\.md$/, '.docx');
+        const outputPath =
+          outputFiles && outputFiles[0]
+            ? path.join(projectPath, outputFiles[0])
+            : sourcePath.replace(/\.md$/, ".docx");
         return await this.exportToDocx(sourcePath, outputPath);
       }
 
-      throw new Error(`未找到Markdown文件。项目路径: ${projectPath}, 文件列表: ${allFiles.join(', ')}`);
+      throw new Error(
+        `未找到Markdown文件。项目路径: ${projectPath}, 文件列表: ${allFiles.join(", ")}`,
+      );
     }
 
     const sourcePath = mdFiles[0];
-    logger.info('[Document Engine] 使用Markdown文件:', sourcePath);
+    logger.info("[Document Engine] 使用Markdown文件:", sourcePath);
 
-    const outputPath = outputFiles && outputFiles[0]
-      ? path.join(projectPath, outputFiles[0])
-      : sourcePath.replace(/\.md$/, '.docx');
+    const outputPath =
+      outputFiles && outputFiles[0]
+        ? path.join(projectPath, outputFiles[0])
+        : sourcePath.replace(/\.md$/, ".docx");
 
     return await this.exportToDocx(sourcePath, outputPath);
   }
@@ -1477,15 +1578,16 @@ ${description}
     const mdFiles = await this.findMarkdownFiles(projectPath);
 
     if (mdFiles.length === 0) {
-      throw new Error('未找到Markdown文件');
+      throw new Error("未找到Markdown文件");
     }
 
     const sourcePath = mdFiles[0];
-    const outputPath = outputFiles && outputFiles[0]
-      ? path.join(projectPath, outputFiles[0])
-      : sourcePath.replace(/\.md$/, '.html');
+    const outputPath =
+      outputFiles && outputFiles[0]
+        ? path.join(projectPath, outputFiles[0])
+        : sourcePath.replace(/\.md$/, ".html");
 
-    return await this.exportTo(sourcePath, 'html', outputPath);
+    return await this.exportTo(sourcePath, "html", outputPath);
   }
 
   /**
@@ -1494,8 +1596,8 @@ ${description}
   async findMarkdownFiles(projectPath) {
     const files = await fs.readdir(projectPath);
     return files
-      .filter(f => f.endsWith('.md'))
-      .map(f => path.join(projectPath, f));
+      .filter((f) => f.endsWith(".md"))
+      .map((f) => path.join(projectPath, f));
   }
 }
 

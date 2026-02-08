@@ -4,9 +4,12 @@
  * 展示如何在主进程的 IPC handlers 中使用权限管理器
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain } = require('electron');
-const { getIPCPermissionManager, PermissionLevel } = require('./ipc-permission-manager');
+const { logger } = require("../utils/logger.js");
+const { ipcMain } = require("electron");
+const {
+  getIPCPermissionManager,
+  PermissionLevel,
+} = require("./ipc-permission-manager");
 
 /**
  * 初始化 IPC 权限管理
@@ -15,27 +18,27 @@ async function initializeIPCPermissions(app) {
   const permissionManager = getIPCPermissionManager();
   await permissionManager.initialize();
 
-  logger.info('[Security] IPC 权限管理系统已初始化');
+  logger.info("[Security] IPC 权限管理系统已初始化");
 
   // 监听用户认证事件
-  ipcMain.handle('auth:login', async (event, username, password) => {
+  ipcMain.handle("auth:login", async (event, username, password) => {
     // 验证用户身份（这里是示例）
     const isValid = await validateUser(username, password);
 
     if (isValid) {
       // 用户认证成功，设置权限级别
       permissionManager.authenticate();
-      logger.info('[Security] 用户已认证，权限级别：AUTHENTICATED');
+      logger.info("[Security] 用户已认证，权限级别：AUTHENTICATED");
       return { success: true };
     }
 
-    return { success: false, error: '用户名或密码错误' };
+    return { success: false, error: "用户名或密码错误" };
   });
 
   // 监听用户登出事件
-  ipcMain.handle('auth:logout', async (event) => {
+  ipcMain.handle("auth:logout", async (event) => {
     permissionManager.logout();
-    logger.info('[Security] 用户已登出，权限级别：PUBLIC');
+    logger.info("[Security] 用户已登出，权限级别：PUBLIC");
     return { success: true };
   });
 
@@ -86,43 +89,43 @@ async function example() {
   // 2. 注册安全的 IPC handlers
   registerSecureHandlers({
     // 知识库操作 (需要认证)
-    'knowledge:create': async (event, item) => {
-      logger.info('[知识库] 创建条目:', item.title);
+    "knowledge:create": async (event, item) => {
+      logger.info("[知识库] 创建条目:", item.title);
       // 实际的业务逻辑
-      return { success: true, id: 'xxx' };
+      return { success: true, id: "xxx" };
     },
 
-    'knowledge:update': async (event, id, updates) => {
-      logger.info('[知识库] 更新条目:', id);
+    "knowledge:update": async (event, id, updates) => {
+      logger.info("[知识库] 更新条目:", id);
       // 实际的业务逻辑
       return { success: true };
     },
 
-    'knowledge:delete': async (event, id) => {
-      logger.info('[知识库] 删除条目:', id);
+    "knowledge:delete": async (event, id) => {
+      logger.info("[知识库] 删除条目:", id);
       // 实际的业务逻辑
       return { success: true };
     },
 
     // 文件导入 (需要认证)
-    'import:import-file': async (event, filePath, options) => {
-      logger.info('[文件导入] 导入文件:', filePath);
+    "import:import-file": async (event, filePath, options) => {
+      logger.info("[文件导入] 导入文件:", filePath);
       // FileValidator 已在 file-importer 中集成
       // 这里只需要调用 FileImporter
       return { success: true };
     },
 
     // 图片上传 (需要认证)
-    'image:upload': async (event, imagePath, options) => {
-      logger.info('[图片上传] 上传图片:', imagePath);
+    "image:upload": async (event, imagePath, options) => {
+      logger.info("[图片上传] 上传图片:", imagePath);
       // FileValidator 已在 image-uploader 中集成
       // 这里只需要调用 ImageUploader
       return { success: true };
     },
 
     // 数据库配置 (需要管理员权限)
-    'database:migrate': async (event, newPath) => {
-      logger.info('[数据库] 迁移数据库:', newPath);
+    "database:migrate": async (event, newPath) => {
+      logger.info("[数据库] 迁移数据库:", newPath);
       // 只有管理员才能执行
       return { success: true };
     },
@@ -131,7 +134,7 @@ async function example() {
   // 3. 查看统计信息
   setInterval(() => {
     const stats = permissionManager.getStatistics();
-    logger.info('[Security] 权限统计:', stats);
+    logger.info("[Security] 权限统计:", stats);
   }, 60000); // 每分钟输出一次
 }
 
@@ -141,7 +144,7 @@ async function example() {
 async function validateUser(username, password) {
   // 这里应该连接数据库验证
   // 示例：简单的硬编码验证
-  return username === 'admin' && password === 'password';
+  return username === "admin" && password === "password";
 }
 
 module.exports = {

@@ -1,9 +1,5 @@
 <template>
-  <div
-    class="workflow-canvas"
-    @dragover.prevent
-    @drop="handleDrop"
-  >
+  <div class="workflow-canvas" @dragover.prevent @drop="handleDrop">
     <!-- Start Node -->
     <div class="start-node">
       <div class="node-icon start">
@@ -13,7 +9,7 @@
     </div>
 
     <!-- Connection Line -->
-    <div class="connection-line" v-if="steps.length > 0"></div>
+    <div v-if="steps.length > 0" class="connection-line" />
 
     <!-- Steps -->
     <draggable
@@ -34,14 +30,14 @@
             @click="$emit('select-step', element)"
             @delete="$emit('delete-step', element.id)"
           />
-          <div class="connection-line" v-if="index < steps.length - 1"></div>
+          <div v-if="index < steps.length - 1" class="connection-line" />
         </div>
       </template>
     </draggable>
 
     <!-- End Node -->
-    <div class="end-node" v-if="steps.length > 0">
-      <div class="connection-line"></div>
+    <div v-if="steps.length > 0" class="end-node">
+      <div class="connection-line" />
       <div class="node-icon end">
         <CheckCircleOutlined />
       </div>
@@ -67,44 +63,50 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import draggable from 'vuedraggable';
+import { ref, computed, watch } from "vue";
+import draggable from "vuedraggable";
 import {
   PlayCircleOutlined,
   CheckCircleOutlined,
   InboxOutlined,
-} from '@ant-design/icons-vue';
-import StepNode from './StepNode.vue';
+} from "@ant-design/icons-vue";
+import StepNode from "./StepNode.vue";
 
 const props = defineProps({
   steps: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   selectedStep: {
     type: Object,
-    default: null
+    default: null,
   },
   executionStatus: {
     type: Object,
-    default: null
-  }
+    default: null,
+  },
 });
 
-const emit = defineEmits(['select-step', 'reorder-steps', 'delete-step']);
+const emit = defineEmits(["select-step", "reorder-steps", "delete-step"]);
 
 const localSteps = ref([...props.steps]);
 
-watch(() => props.steps, (newSteps) => {
-  localSteps.value = [...newSteps];
-}, { deep: true });
+watch(
+  () => props.steps,
+  (newSteps) => {
+    localSteps.value = [...newSteps];
+  },
+  { deep: true },
+);
 
 const isExecuting = computed(() => {
-  return props.executionStatus?.status === 'running';
+  return props.executionStatus?.status === "running";
 });
 
 const executionProgress = computed(() => {
-  if (!props.executionStatus) return 0;
+  if (!props.executionStatus) {
+    return 0;
+  }
   const current = props.executionStatus.currentStep || 0;
   const total = props.steps.length || 1;
   return Math.round((current / total) * 100);
@@ -112,45 +114,53 @@ const executionProgress = computed(() => {
 
 const executionProgressStatus = computed(() => {
   const status = props.executionStatus?.status;
-  if (status === 'completed') return 'success';
-  if (status === 'failed') return 'exception';
-  return 'active';
+  if (status === "completed") {
+    return "success";
+  }
+  if (status === "failed") {
+    return "exception";
+  }
+  return "active";
 });
 
 const executionMessage = computed(() => {
-  if (!props.executionStatus) return '';
+  if (!props.executionStatus) {
+    return "";
+  }
   const current = props.executionStatus.currentStep || 0;
   const total = props.steps.length;
   return `Executing step ${current + 1} of ${total}`;
 });
 
 const getStepStatus = (index) => {
-  if (!props.executionStatus) return 'pending';
+  if (!props.executionStatus) {
+    return "pending";
+  }
   const results = props.executionStatus.results || [];
   const currentStep = props.executionStatus.currentStep;
 
   if (results[index]) {
-    return results[index].success ? 'success' : 'failed';
+    return results[index].success ? "success" : "failed";
   }
-  if (index === currentStep && props.executionStatus.status === 'running') {
-    return 'running';
+  if (index === currentStep && props.executionStatus.status === "running") {
+    return "running";
   }
-  return 'pending';
+  return "pending";
 };
 
 const handleReorder = () => {
-  emit('reorder-steps', [...localSteps.value]);
+  emit("reorder-steps", [...localSteps.value]);
 };
 
 const handleDrop = (event) => {
-  const stepData = event.dataTransfer.getData('step-template');
+  const stepData = event.dataTransfer.getData("step-template");
   if (stepData) {
     try {
       const template = JSON.parse(stepData);
       // Will be handled by parent via addStep
-      console.log('Dropped template:', template);
+      console.log("Dropped template:", template);
     } catch (e) {
-      console.error('Invalid drop data');
+      console.error("Invalid drop data");
     }
   }
 };
@@ -163,15 +173,9 @@ const handleDrop = (event) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.03) 1px,
-    transparent 1px
-  ),
-  linear-gradient(
-    rgba(0, 0, 0, 0.03) 1px,
-    transparent 1px
-  );
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
@@ -210,7 +214,7 @@ const handleDrop = (event) => {
 }
 
 .connection-line::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: 0;
   left: 50%;

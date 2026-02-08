@@ -3,7 +3,7 @@
  * 检查应用更新并提供下载功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { app, dialog, shell } = require("electron");
 const https = require("https");
 const fs = require("fs");
@@ -153,8 +153,12 @@ class UpdateChecker {
       const part1 = parts1[i] || 0;
       const part2 = parts2[i] || 0;
 
-      if (part1 > part2) {return 1;}
-      if (part1 < part2) {return -1;}
+      if (part1 > part2) {
+        return 1;
+      }
+      if (part1 < part2) {
+        return -1;
+      }
     }
 
     return 0;
@@ -253,7 +257,9 @@ class UpdateChecker {
 
     for (const pattern of patterns) {
       const asset = assets.find((a) => pattern.test(a.name));
-      if (asset) {return asset;}
+      if (asset) {
+        return asset;
+      }
     }
 
     return null;

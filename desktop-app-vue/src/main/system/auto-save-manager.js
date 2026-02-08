@@ -3,7 +3,7 @@
  * 管理文档和数据的自动保存
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
 class AutoSaveManager extends EventEmitter {
@@ -68,7 +68,9 @@ class AutoSaveManager extends EventEmitter {
    */
   markDirty(documentId) {
     const document = this.documents.get(documentId);
-    if (!document) {return;}
+    if (!document) {
+      return;
+    }
 
     document.isDirty = true;
     document.lastModified = Date.now();
@@ -84,7 +86,9 @@ class AutoSaveManager extends EventEmitter {
    */
   debounceSave(documentId) {
     const document = this.documents.get(documentId);
-    if (!document) {return;}
+    if (!document) {
+      return;
+    }
 
     // 清除现有的防抖定时器
     if (this.timers.has(`debounce-${documentId}`)) {
@@ -104,7 +108,9 @@ class AutoSaveManager extends EventEmitter {
    */
   startAutoSave(documentId) {
     const document = this.documents.get(documentId);
-    if (!document) {return;}
+    if (!document) {
+      return;
+    }
 
     // 清除现有定时器
     this.stopAutoSave(documentId);
@@ -214,7 +220,9 @@ class AutoSaveManager extends EventEmitter {
    * 处理保存队列
    */
   async processQueue() {
-    if (this.saveQueue.length === 0) {return;}
+    if (this.saveQueue.length === 0) {
+      return;
+    }
 
     const documentId = this.saveQueue.shift();
     await this.save(documentId);
@@ -267,7 +275,9 @@ class AutoSaveManager extends EventEmitter {
    */
   getStatus(documentId) {
     const document = this.documents.get(documentId);
-    if (!document) {return null;}
+    if (!document) {
+      return null;
+    }
 
     return {
       id: document.id,
@@ -300,8 +310,12 @@ class AutoSaveManager extends EventEmitter {
     let savingCount = 0;
 
     for (const document of this.documents.values()) {
-      if (document.isDirty) {dirtyCount++;}
-      if (document.isSaving) {savingCount++;}
+      if (document.isDirty) {
+        dirtyCount++;
+      }
+      if (document.isSaving) {
+        savingCount++;
+      }
     }
 
     return {

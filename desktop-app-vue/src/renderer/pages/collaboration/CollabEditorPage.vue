@@ -1,24 +1,28 @@
 <template>
   <div class="collab-editor-page">
-    <a-page-header
-      title="协作编辑器"
-      :sub-title="documentName"
-      @back="goBack"
-    >
+    <a-page-header title="协作编辑器" :sub-title="documentName" @back="goBack">
       <template #extra>
         <a-space>
           <a-badge :count="unresolvedCommentCount" :offset="[-5, 5]">
             <a-button @click="showComments = true">
-              <template #icon><CommentOutlined /></template>
+              <template #icon>
+                <CommentOutlined />
+              </template>
               评论
             </a-button>
           </a-badge>
           <a-button @click="showHistory = true">
-            <template #icon><HistoryOutlined /></template>
+            <template #icon>
+              <HistoryOutlined />
+            </template>
             历史
           </a-button>
           <a-avatar-group :max-count="5">
-            <a-tooltip v-for="user in collaborators" :key="user.did" :title="user.name">
+            <a-tooltip
+              v-for="user in collaborators"
+              :key="user.did"
+              :title="user.name"
+            >
               <a-avatar :style="{ backgroundColor: user.color }">
                 {{ user.name?.charAt(0) }}
               </a-avatar>
@@ -52,10 +56,7 @@
       placement="right"
       :width="400"
     >
-      <a-list
-        :data-source="comments"
-        :loading="loadingComments"
-      >
+      <a-list :data-source="comments" :loading="loadingComments">
         <template #renderItem="{ item }">
           <a-list-item>
             <a-comment
@@ -64,10 +65,15 @@
               :datetime="formatTime(item.createdAt)"
             >
               <template #actions>
-                <a-button v-if="!item.resolved" type="link" size="small" @click="resolveComment(item.id)">
+                <a-button
+                  v-if="!item.resolved"
+                  type="link"
+                  size="small"
+                  @click="resolveComment(item.id)"
+                >
                   标记已解决
                 </a-button>
-                <a-tag v-else color="green">已解决</a-tag>
+                <a-tag v-else color="green"> 已解决 </a-tag>
               </template>
             </a-comment>
           </a-list-item>
@@ -84,9 +90,15 @@
     >
       <a-timeline>
         <a-timeline-item v-for="version in versionHistory" :key="version.id">
-          <p><strong>{{ version.editorName }}</strong></p>
+          <p>
+            <strong>{{ version.editorName }}</strong>
+          </p>
           <p>{{ formatTime(version.createdAt) }}</p>
-          <a-button type="link" size="small" @click="restoreVersion(version.id)">
+          <a-button
+            type="link"
+            size="small"
+            @click="restoreVersion(version.id)"
+          >
             恢复此版本
           </a-button>
         </a-timeline-item>
@@ -96,13 +108,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
-import { CommentOutlined, HistoryOutlined } from '@ant-design/icons-vue';
-import { useCollabStore } from '@/stores/collab';
-import { useAuthStore } from '@/stores/auth';
-import dayjs from 'dayjs';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
+import { CommentOutlined, HistoryOutlined } from "@ant-design/icons-vue";
+import { useCollabStore } from "@/stores/collab";
+import { useAuthStore } from "@/stores/auth";
+import dayjs from "dayjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -114,17 +126,19 @@ const loading = ref(false);
 const loadingComments = ref(false);
 const showComments = ref(false);
 const showHistory = ref(false);
-const documentContent = ref('');
-const documentName = ref('');
+const documentContent = ref("");
+const documentName = ref("");
 
 const currentDocument = computed(() => collabStore.currentDocument);
 const collaborators = computed(() => collabStore.collaborators);
 const comments = computed(() => collabStore.comments);
-const unresolvedCommentCount = computed(() => collabStore.unresolvedCommentCount);
+const unresolvedCommentCount = computed(
+  () => collabStore.unresolvedCommentCount,
+);
 const versionHistory = computed(() => collabStore.versionHistory);
 
 const formatTime = (timestamp) => {
-  return dayjs(timestamp).format('YYYY-MM-DD HH:mm');
+  return dayjs(timestamp).format("YYYY-MM-DD HH:mm");
 };
 
 const goBack = () => {
@@ -138,18 +152,22 @@ const handleContentChange = () => {
 const resolveComment = async (commentId) => {
   try {
     await collabStore.resolveComment(commentId, authStore.currentUser?.did);
-    message.success('评论已解决');
+    message.success("评论已解决");
   } catch (error) {
-    message.error('操作失败');
+    message.error("操作失败");
   }
 };
 
 const restoreVersion = async (versionId) => {
   try {
-    await collabStore.restoreVersion(documentId.value, versionId, authStore.currentUser?.did);
-    message.success('版本已恢复');
+    await collabStore.restoreVersion(
+      documentId.value,
+      versionId,
+      authStore.currentUser?.did,
+    );
+    message.success("版本已恢复");
   } catch (error) {
-    message.error('恢复失败');
+    message.error("恢复失败");
   }
 };
 
@@ -159,11 +177,11 @@ onMounted(async () => {
     await collabStore.openDocument(
       documentId.value,
       authStore.currentUser?.did,
-      authStore.currentUser?.name
+      authStore.currentUser?.name,
     );
-    documentName.value = currentDocument.value?.name || '未命名文档';
+    documentName.value = currentDocument.value?.name || "未命名文档";
   } catch (error) {
-    message.error('加载文档失败');
+    message.error("加载文档失败");
   } finally {
     loading.value = false;
   }
@@ -171,7 +189,10 @@ onMounted(async () => {
 
 onUnmounted(async () => {
   if (documentId.value && authStore.currentUser?.did) {
-    await collabStore.closeDocument(documentId.value, authStore.currentUser.did);
+    await collabStore.closeDocument(
+      documentId.value,
+      authStore.currentUser.did,
+    );
   }
 });
 </script>

@@ -9,9 +9,9 @@
  * - 双向同步支持
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const crypto = require("crypto");
 
 class KnowledgeSyncManager extends EventEmitter {
   constructor(database, messageManager, options = {}) {
@@ -22,23 +22,23 @@ class KnowledgeSyncManager extends EventEmitter {
 
     this.options = {
       // 同步配置
-      syncInterval: options.syncInterval || 60000,      // 自动同步间隔（1分钟）
-      batchSize: options.batchSize || 50,               // 批量同步大小
+      syncInterval: options.syncInterval || 60000, // 自动同步间隔（1分钟）
+      batchSize: options.batchSize || 50, // 批量同步大小
       enableAutoSync: options.enableAutoSync !== false,
 
       // 冲突解决策略
-      conflictStrategy: options.conflictStrategy || 'latest-wins', // 'latest-wins' | 'manual' | 'merge'
+      conflictStrategy: options.conflictStrategy || "latest-wins", // 'latest-wins' | 'manual' | 'merge'
 
       // 变更检测
-      changeDetectionMethod: options.changeDetectionMethod || 'timestamp', // 'timestamp' | 'version' | 'hash'
+      changeDetectionMethod: options.changeDetectionMethod || "timestamp", // 'timestamp' | 'version' | 'hash'
 
-      ...options
+      ...options,
     };
 
     // 同步状态
     this.isSyncing = false;
     this.lastSyncTime = new Map(); // peerId -> timestamp
-    this.syncProgress = new Map();  // peerId -> { total, synced }
+    this.syncProgress = new Map(); // peerId -> { total, synced }
 
     // 冲突队列
     this.conflicts = [];
@@ -52,7 +52,7 @@ class KnowledgeSyncManager extends EventEmitter {
       notesUploaded: 0,
       notesDownloaded: 0,
       conflictsDetected: 0,
-      conflictsResolved: 0
+      conflictsResolved: 0,
     };
 
     // 启动自动同步
@@ -71,13 +71,13 @@ class KnowledgeSyncManager extends EventEmitter {
    */
   async startSync(peerId, options = {}) {
     if (this.isSyncing) {
-      throw new Error('同步正在进行中');
+      throw new Error("同步正在进行中");
     }
 
-    logger.info('[KnowledgeSync] 开始同步:', peerId);
+    logger.info("[KnowledgeSync] 开始同步:", peerId);
 
     this.isSyncing = true;
-    this.emit('sync:started', { peerId });
+    this.emit("sync:started", { peerId });
 
     try {
       // 1. 获取上次同步时间
@@ -110,27 +110,25 @@ class KnowledgeSyncManager extends EventEmitter {
       // 8. 更新同步时间
       this.lastSyncTime.set(peerId, Date.now());
 
-      logger.info('[KnowledgeSync] ✅ 同步完成');
+      logger.info("[KnowledgeSync] ✅ 同步完成");
 
-      this.emit('sync:completed', {
+      this.emit("sync:completed", {
         peerId,
         localChanges: localChanges.length,
         remoteChanges: remoteChanges.length,
-        conflicts: conflicts.length
+        conflicts: conflicts.length,
       });
 
       this.stats.totalSyncs++;
-
     } catch (error) {
-      logger.error('[KnowledgeSync] ❌ 同步失败:', error);
+      logger.error("[KnowledgeSync] ❌ 同步失败:", error);
 
-      this.emit('sync:failed', {
+      this.emit("sync:failed", {
         peerId,
-        error
+        error,
       });
 
       throw error;
-
     } finally {
       this.isSyncing = false;
     }
@@ -140,30 +138,35 @@ class KnowledgeSyncManager extends EventEmitter {
    * 检测本地变更
    */
   async detectLocalChanges(since) {
-    logger.info('[KnowledgeSync] 检测本地变更，since:', new Date(since));
+    logger.info("[KnowledgeSync] 检测本地变更，since:", new Date(since));
 
     const changes = [];
 
     // 查询变更的笔记
-    const modifiedNotes = await this.database.query(`
+    const modifiedNotes = await this.database.query(
+      `
       SELECT id, title, content, updated_at, version, deleted
       FROM notes
       WHERE updated_at > ?
       ORDER BY updated_at ASC
-    `, [since]);
+    `,
+      [since],
+    );
 
     for (const note of modifiedNotes) {
       changes.push({
-        type: note.deleted ? 'delete' : 'update',
+        type: note.deleted ? "delete" : "update",
         noteId: note.id,
         timestamp: note.updated_at,
         version: note.version,
-        data: note.deleted ? null : {
-          title: note.title,
-          content: note.content,
-          updated_at: note.updated_at
-        },
-        hash: this.calculateHash(note)
+        data: note.deleted
+          ? null
+          : {
+              title: note.title,
+              content: note.content,
+              updated_at: note.updated_at,
+            },
+        hash: this.calculateHash(note),
       });
     }
 
@@ -174,32 +177,39 @@ class KnowledgeSyncManager extends EventEmitter {
    * 请求远程变更
    */
   async requestRemoteChanges(peerId, since) {
-    logger.info('[KnowledgeSync] 请求远程变更');
+    logger.info("[KnowledgeSync] 请求远程变更");
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        reject(new Error('请求远程变更超时'));
+        reject(new Error("请求远程变更超时"));
       }, 30000);
 
       // 发送请求
-      this.messageManager.sendMessage(peerId, {
-        type: 'knowledge:sync-request',
-        since: since
-      }, {
-        priority: 'high',
-        requireAck: true
-      });
+      this.messageManager.sendMessage(
+        peerId,
+        {
+          type: "knowledge:sync-request",
+          since: since,
+        },
+        {
+          priority: "high",
+          requireAck: true,
+        },
+      );
 
       // 监听响应
       const handler = ({ peerId: responsePeerId, payload }) => {
-        if (responsePeerId === peerId && payload.type === 'knowledge:sync-response') {
+        if (
+          responsePeerId === peerId &&
+          payload.type === "knowledge:sync-response"
+        ) {
           clearTimeout(timeout);
-          this.messageManager.off('message', handler);
+          this.messageManager.off("message", handler);
           resolve(payload.changes || []);
         }
       };
 
-      this.messageManager.on('message', handler);
+      this.messageManager.on("message", handler);
     });
   }
 
@@ -207,10 +217,10 @@ class KnowledgeSyncManager extends EventEmitter {
    * 检测冲突
    */
   detectConflicts(localChanges, remoteChanges) {
-    logger.info('[KnowledgeSync] 检测冲突...');
+    logger.info("[KnowledgeSync] 检测冲突...");
 
     const conflicts = [];
-    const localMap = new Map(localChanges.map(c => [c.noteId, c]));
+    const localMap = new Map(localChanges.map((c) => [c.noteId, c]));
 
     for (const remoteChange of remoteChanges) {
       const localChange = localMap.get(remoteChange.noteId);
@@ -224,7 +234,7 @@ class KnowledgeSyncManager extends EventEmitter {
             noteId: remoteChange.noteId,
             local: localChange,
             remote: remoteChange,
-            conflictType: conflict.type
+            conflictType: conflict.type,
           });
         }
       }
@@ -244,7 +254,7 @@ class KnowledgeSyncManager extends EventEmitter {
     if (timeDiff < 1000) {
       return {
         hasConflict: true,
-        type: 'concurrent'
+        type: "concurrent",
       };
     }
 
@@ -252,7 +262,7 @@ class KnowledgeSyncManager extends EventEmitter {
     if (localChange.hash !== remoteChange.hash) {
       return {
         hasConflict: true,
-        type: 'content'
+        type: "content",
       };
     }
 
@@ -261,13 +271,13 @@ class KnowledgeSyncManager extends EventEmitter {
       if (localChange.version !== remoteChange.version) {
         return {
           hasConflict: true,
-          type: 'version'
+          type: "version",
         };
       }
     }
 
     return {
-      hasConflict: false
+      hasConflict: false,
     };
   }
 
@@ -283,20 +293,21 @@ class KnowledgeSyncManager extends EventEmitter {
       let resolution;
 
       switch (this.options.conflictStrategy) {
-        case 'latest-wins':
+        case "latest-wins":
           // 最新的获胜
-          resolution = conflict.local.timestamp > conflict.remote.timestamp
-            ? conflict.local
-            : conflict.remote;
+          resolution =
+            conflict.local.timestamp > conflict.remote.timestamp
+              ? conflict.local
+              : conflict.remote;
           break;
 
-        case 'manual':
+        case "manual":
           // 手动解决（添加到冲突队列）
           this.conflicts.push(conflict);
-          this.emit('conflict:detected', conflict);
+          this.emit("conflict:detected", conflict);
           continue;
 
-        case 'merge':
+        case "merge":
           // 尝试合并
           resolution = await this.mergeChanges(conflict.local, conflict.remote);
           break;
@@ -307,7 +318,7 @@ class KnowledgeSyncManager extends EventEmitter {
 
       resolved.push({
         noteId: conflict.noteId,
-        resolution
+        resolution,
       });
 
       this.stats.conflictsResolved++;
@@ -320,7 +331,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 合并变更
    */
   async mergeChanges(local, remote) {
-    logger.info('[KnowledgeSync] 合并变更:', local.noteId);
+    logger.info("[KnowledgeSync] 合并变更:", local.noteId);
 
     // 简单的合并策略：
     // 1. 标题使用最新的
@@ -330,11 +341,15 @@ class KnowledgeSyncManager extends EventEmitter {
     const merged = {
       ...remote,
       timestamp: Math.max(local.timestamp, remote.timestamp),
-      version: Math.max(local.version || 0, remote.version || 0) + 1
+      version: Math.max(local.version || 0, remote.version || 0) + 1,
     };
 
     // 如果内容不同，尝试合并
-    if (local.data && remote.data && local.data.content !== remote.data.content) {
+    if (
+      local.data &&
+      remote.data &&
+      local.data.content !== remote.data.content
+    ) {
       // 这里简化处理，实际应该使用diff算法
       merged.data.content = `${local.data.content}\n\n---\n\n${remote.data.content}`;
       merged.data.title = `${local.data.title} (合并)`;
@@ -349,7 +364,7 @@ class KnowledgeSyncManager extends EventEmitter {
   async applyRemoteChanges(remoteChanges, resolved) {
     logger.info(`[KnowledgeSync] 应用 ${remoteChanges.length} 个远程变更`);
 
-    const resolvedMap = new Map(resolved.map(r => [r.noteId, r.resolution]));
+    const resolvedMap = new Map(resolved.map((r) => [r.noteId, r.resolution]));
 
     for (const change of remoteChanges) {
       try {
@@ -357,28 +372,30 @@ class KnowledgeSyncManager extends EventEmitter {
         const resolution = resolvedMap.get(change.noteId);
         const changeToApply = resolution || change;
 
-        if (changeToApply.type === 'delete') {
+        if (changeToApply.type === "delete") {
           await this.database.execute(
-            'UPDATE notes SET deleted = 1, updated_at = ? WHERE id = ?',
-            [changeToApply.timestamp, changeToApply.noteId]
+            "UPDATE notes SET deleted = 1, updated_at = ? WHERE id = ?",
+            [changeToApply.timestamp, changeToApply.noteId],
           );
         } else {
-          await this.database.execute(`
+          await this.database.execute(
+            `
             INSERT OR REPLACE INTO notes (id, title, content, updated_at, version)
             VALUES (?, ?, ?, ?, ?)
-          `, [
-            changeToApply.noteId,
-            changeToApply.data.title,
-            changeToApply.data.content,
-            changeToApply.timestamp,
-            changeToApply.version || 1
-          ]);
+          `,
+            [
+              changeToApply.noteId,
+              changeToApply.data.title,
+              changeToApply.data.content,
+              changeToApply.timestamp,
+              changeToApply.version || 1,
+            ],
+          );
         }
 
         this.stats.notesDownloaded++;
-
       } catch (error) {
-        logger.error('[KnowledgeSync] 应用变更失败:', error);
+        logger.error("[KnowledgeSync] 应用变更失败:", error);
       }
     }
   }
@@ -395,27 +412,31 @@ class KnowledgeSyncManager extends EventEmitter {
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
 
-      await this.messageManager.sendMessage(peerId, {
-        type: 'knowledge:sync-push',
-        changes: batch,
-        batchIndex: i,
-        totalBatches: batches.length
-      }, {
-        priority: 'normal',
-        requireAck: true
-      });
+      await this.messageManager.sendMessage(
+        peerId,
+        {
+          type: "knowledge:sync-push",
+          changes: batch,
+          batchIndex: i,
+          totalBatches: batches.length,
+        },
+        {
+          priority: "normal",
+          requireAck: true,
+        },
+      );
 
       this.stats.notesUploaded += batch.length;
 
       // 更新进度
       this.syncProgress.set(peerId, {
         total: localChanges.length,
-        synced: (i + 1) * this.options.batchSize
+        synced: (i + 1) * this.options.batchSize,
       });
 
-      this.emit('sync:progress', {
+      this.emit("sync:progress", {
         peerId,
-        progress: this.syncProgress.get(peerId)
+        progress: this.syncProgress.get(peerId),
       });
     }
   }
@@ -424,20 +445,23 @@ class KnowledgeSyncManager extends EventEmitter {
    * 处理同步请求（作为服务端）
    */
   async handleSyncRequest(peerId, since) {
-    logger.info('[KnowledgeSync] 处理同步请求:', peerId, since);
+    logger.info("[KnowledgeSync] 处理同步请求:", peerId, since);
 
     try {
       const changes = await this.detectLocalChanges(since);
 
-      await this.messageManager.sendMessage(peerId, {
-        type: 'knowledge:sync-response',
-        changes: changes
-      }, {
-        priority: 'high'
-      });
-
+      await this.messageManager.sendMessage(
+        peerId,
+        {
+          type: "knowledge:sync-response",
+          changes: changes,
+        },
+        {
+          priority: "high",
+        },
+      );
     } catch (error) {
-      logger.error('[KnowledgeSync] 处理同步请求失败:', error);
+      logger.error("[KnowledgeSync] 处理同步请求失败:", error);
     }
   }
 
@@ -452,12 +476,11 @@ class KnowledgeSyncManager extends EventEmitter {
 
       // 发送确认
       await this.messageManager.sendMessage(peerId, {
-        type: 'knowledge:sync-ack',
-        count: changes.length
+        type: "knowledge:sync-ack",
+        count: changes.length,
       });
-
     } catch (error) {
-      logger.error('[KnowledgeSync] 处理同步推送失败:', error);
+      logger.error("[KnowledgeSync] 处理同步推送失败:", error);
     }
   }
 
@@ -467,10 +490,10 @@ class KnowledgeSyncManager extends EventEmitter {
   calculateHash(note) {
     const content = JSON.stringify({
       title: note.title,
-      content: note.content
+      content: note.content,
     });
 
-    return crypto.createHash('md5').update(content).digest('hex');
+    return crypto.createHash("md5").update(content).digest("hex");
   }
 
   /**
@@ -513,9 +536,9 @@ class KnowledgeSyncManager extends EventEmitter {
    * 手动解决冲突
    */
   async resolveConflictManually(conflictId, resolution) {
-    const index = this.conflicts.findIndex(c => c.noteId === conflictId);
+    const index = this.conflicts.findIndex((c) => c.noteId === conflictId);
     if (index === -1) {
-      throw new Error('冲突不存在');
+      throw new Error("冲突不存在");
     }
 
     const conflict = this.conflicts[index];
@@ -528,9 +551,9 @@ class KnowledgeSyncManager extends EventEmitter {
 
     this.stats.conflictsResolved++;
 
-    this.emit('conflict:resolved', {
+    this.emit("conflict:resolved", {
       noteId: conflictId,
-      resolution
+      resolution,
     });
   }
 
@@ -541,7 +564,7 @@ class KnowledgeSyncManager extends EventEmitter {
     return {
       ...this.stats,
       isSyncing: this.isSyncing,
-      pendingConflicts: this.conflicts.length
+      pendingConflicts: this.conflicts.length,
     };
   }
 

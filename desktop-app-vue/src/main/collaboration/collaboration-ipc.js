@@ -1,5 +1,5 @@
-const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain } = require('electron');
+const { logger } = require("../utils/logger.js");
+const { ipcMain } = require("electron");
 
 /**
  * 注册协作实时编辑相关的IPC处理器
@@ -12,86 +12,100 @@ const { ipcMain } = require('electron');
  * - 服务器状态查询
  */
 function registerCollaborationIPC() {
-  logger.info('[IPC] 注册协作实时编辑IPC处理器');
+  logger.info("[IPC] 注册协作实时编辑IPC处理器");
 
   // 启动协作服务器
-  ipcMain.handle('collaboration:startServer', async (_event, options = {}) => {
+  ipcMain.handle("collaboration:startServer", async (_event, options = {}) => {
     try {
-      logger.info('[Main] 启动协作服务器');
+      logger.info("[Main] 启动协作服务器");
 
-      const { getCollaborationManager } = require('./collaboration-manager');
+      const { getCollaborationManager } = require("./collaboration-manager");
       const collaborationManager = getCollaborationManager();
 
       await collaborationManager.initialize(options);
       const result = await collaborationManager.startServer();
 
-      logger.info('[Main] 协作服务器启动成功');
+      logger.info("[Main] 协作服务器启动成功");
       return result;
     } catch (error) {
-      logger.error('[Main] 启动协作服务器失败:', error);
+      logger.error("[Main] 启动协作服务器失败:", error);
       throw error;
     }
   });
 
   // 停止协作服务器
-  ipcMain.handle('collaboration:stopServer', async () => {
+  ipcMain.handle("collaboration:stopServer", async () => {
     try {
-      logger.info('[Main] 停止协作服务器');
+      logger.info("[Main] 停止协作服务器");
 
-      const { getCollaborationManager } = require('./collaboration-manager');
+      const { getCollaborationManager } = require("./collaboration-manager");
       const collaborationManager = getCollaborationManager();
 
       const result = await collaborationManager.stopServer();
 
-      logger.info('[Main] 协作服务器已停止');
+      logger.info("[Main] 协作服务器已停止");
       return result;
     } catch (error) {
-      logger.error('[Main] 停止协作服务器失败:', error);
+      logger.error("[Main] 停止协作服务器失败:", error);
       throw error;
     }
   });
 
   // 加入文档协作
-  ipcMain.handle('collaboration:joinDocument', async (_event, userId, userName, documentId) => {
-    try {
-      logger.info('[Main] 加入文档协作:', documentId);
+  ipcMain.handle(
+    "collaboration:joinDocument",
+    async (_event, userId, userName, documentId) => {
+      try {
+        logger.info("[Main] 加入文档协作:", documentId);
 
-      const { getCollaborationManager } = require('./collaboration-manager');
-      const collaborationManager = getCollaborationManager();
+        const { getCollaborationManager } = require("./collaboration-manager");
+        const collaborationManager = getCollaborationManager();
 
-      await collaborationManager.initialize();
+        await collaborationManager.initialize();
 
-      const result = await collaborationManager.joinDocument(userId, userName, documentId);
+        const result = await collaborationManager.joinDocument(
+          userId,
+          userName,
+          documentId,
+        );
 
-      logger.info('[Main] 已加入文档协作');
-      return result;
-    } catch (error) {
-      logger.error('[Main] 加入文档协作失败:', error);
-      throw error;
-    }
-  });
+        logger.info("[Main] 已加入文档协作");
+        return result;
+      } catch (error) {
+        logger.error("[Main] 加入文档协作失败:", error);
+        throw error;
+      }
+    },
+  );
 
   // 提交协作操作
-  ipcMain.handle('collaboration:submitOperation', async (_event, documentId, userId, operation) => {
-    try {
-      const { getCollaborationManager } = require('./collaboration-manager');
-      const collaborationManager = getCollaborationManager();
+  ipcMain.handle(
+    "collaboration:submitOperation",
+    async (_event, documentId, userId, operation) => {
+      try {
+        const { getCollaborationManager } = require("./collaboration-manager");
+        const collaborationManager = getCollaborationManager();
 
-      await collaborationManager.initialize();
+        await collaborationManager.initialize();
 
-      const result = await collaborationManager.submitOperation(documentId, userId, operation);
+        const result = await collaborationManager.submitOperation(
+          documentId,
+          userId,
+          operation,
+        );
 
-      return result;
-    } catch (error) {
-      logger.error('[Main] 提交协作操作失败:', error);
-      throw error;
-    }
-  });
+        return result;
+      } catch (error) {
+        logger.error("[Main] 提交协作操作失败:", error);
+        throw error;
+      }
+    },
+  );
 
   // 获取在线用户
-  ipcMain.handle('collaboration:getOnlineUsers', async (_event, documentId) => {
+  ipcMain.handle("collaboration:getOnlineUsers", async (_event, documentId) => {
     try {
-      const { getCollaborationManager } = require('./collaboration-manager');
+      const { getCollaborationManager } = require("./collaboration-manager");
       const collaborationManager = getCollaborationManager();
 
       await collaborationManager.initialize();
@@ -100,49 +114,61 @@ function registerCollaborationIPC() {
 
       return users;
     } catch (error) {
-      logger.error('[Main] 获取在线用户失败:', error);
+      logger.error("[Main] 获取在线用户失败:", error);
       throw error;
     }
   });
 
   // 获取操作历史
-  ipcMain.handle('collaboration:getOperationHistory', async (_event, documentId, limit) => {
-    try {
-      const { getCollaborationManager } = require('./collaboration-manager');
-      const collaborationManager = getCollaborationManager();
+  ipcMain.handle(
+    "collaboration:getOperationHistory",
+    async (_event, documentId, limit) => {
+      try {
+        const { getCollaborationManager } = require("./collaboration-manager");
+        const collaborationManager = getCollaborationManager();
 
-      await collaborationManager.initialize();
+        await collaborationManager.initialize();
 
-      const history = collaborationManager.getOperationHistory(documentId, limit);
+        const history = collaborationManager.getOperationHistory(
+          documentId,
+          limit,
+        );
 
-      return history;
-    } catch (error) {
-      logger.error('[Main] 获取操作历史失败:', error);
-      throw error;
-    }
-  });
+        return history;
+      } catch (error) {
+        logger.error("[Main] 获取操作历史失败:", error);
+        throw error;
+      }
+    },
+  );
 
   // 获取会话历史
-  ipcMain.handle('collaboration:getSessionHistory', async (_event, documentId, limit) => {
-    try {
-      const { getCollaborationManager } = require('./collaboration-manager');
-      const collaborationManager = getCollaborationManager();
+  ipcMain.handle(
+    "collaboration:getSessionHistory",
+    async (_event, documentId, limit) => {
+      try {
+        const { getCollaborationManager } = require("./collaboration-manager");
+        const collaborationManager = getCollaborationManager();
 
-      await collaborationManager.initialize();
+        await collaborationManager.initialize();
 
-      const history = collaborationManager.getSessionHistory(documentId, limit);
+        const history = collaborationManager.getSessionHistory(
+          documentId,
+          limit,
+        );
 
-      return history;
-    } catch (error) {
-      logger.error('[Main] 获取会话历史失败:', error);
-      throw error;
-    }
-  });
+        return history;
+      } catch (error) {
+        logger.error("[Main] 获取会话历史失败:", error);
+        throw error;
+      }
+    },
+  );
 
   // 获取服务器状态
-  ipcMain.handle('collaboration:getStatus', async () => {
+  ipcMain.handle("collaboration:getStatus", async () => {
     try {
-      const { getCollaborationManager } = require('./collaboration-manager');
+      const { getCollaborationManager } = require("./collaboration-manager");
       const collaborationManager = getCollaborationManager();
 
       await collaborationManager.initialize();
@@ -151,14 +177,14 @@ function registerCollaborationIPC() {
 
       return status;
     } catch (error) {
-      logger.error('[Main] 获取服务器状态失败:', error);
+      logger.error("[Main] 获取服务器状态失败:", error);
       throw error;
     }
   });
 
-  logger.info('[IPC] 协作实时编辑IPC处理器注册完成（8个handlers）');
+  logger.info("[IPC] 协作实时编辑IPC处理器注册完成（8个handlers）");
 }
 
 module.exports = {
-  registerCollaborationIPC
+  registerCollaborationIPC,
 };

@@ -35,19 +35,11 @@
           </div>
           <div class="did-info">
             <div class="did-name">
-              {{ did.profile?.name || 'Unnamed' }}
-              <a-tag
-                v-if="did.did === currentDid"
-                color="blue"
-                size="small"
-              >
+              {{ did.profile?.name || "Unnamed" }}
+              <a-tag v-if="did.did === currentDid" color="blue" size="small">
                 当前
               </a-tag>
-              <a-tag
-                v-if="isCreator(did)"
-                color="green"
-                size="small"
-              >
+              <a-tag v-if="isCreator(did)" color="green" size="small">
                 创建者
               </a-tag>
             </div>
@@ -66,15 +58,8 @@
 
       <!-- 空状态 -->
       <template #notFoundContent>
-        <a-empty
-          :image="Empty.PRESENTED_IMAGE_SIMPLE"
-          description="暂无DID"
-        >
-          <a-button
-            type="link"
-            size="small"
-            @click="handleCreateDid"
-          >
+        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无DID">
+          <a-button type="link" size="small" @click="handleCreateDid">
             <plus-outlined /> 创建DID
           </a-button>
         </a-empty>
@@ -82,22 +67,11 @@
     </a-select>
 
     <!-- 快捷操作 -->
-    <div
-      v-if="showQuickActions"
-      class="quick-actions"
-    >
-      <a-button
-        type="link"
-        size="small"
-        @click="handleCreateDid"
-      >
+    <div v-if="showQuickActions" class="quick-actions">
+      <a-button type="link" size="small" @click="handleCreateDid">
         <plus-outlined /> 新建
       </a-button>
-      <a-button
-        type="link"
-        size="small"
-        @click="handleManageDids"
-      >
+      <a-button type="link" size="small" @click="handleManageDids">
         <setting-outlined /> 管理
       </a-button>
     </div>
@@ -105,28 +79,28 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted } from 'vue';
-import { message, Empty } from 'ant-design-vue';
+import { ref, computed, watch, onMounted } from "vue";
+import { message, Empty } from "ant-design-vue";
 import {
   UserOutlined,
   CopyOutlined,
   PlusOutlined,
   SettingOutlined,
-} from '@ant-design/icons-vue';
-import { useRouter } from 'vue-router';
+} from "@ant-design/icons-vue";
+import { useRouter } from "vue-router";
 
 const props = defineProps({
   // v-model绑定值
   modelValue: {
     type: String,
-    default: '',
+    default: "",
   },
   // 占位符
   placeholder: {
     type: String,
-    default: '选择DID身份',
+    default: "选择DID身份",
   },
   // 是否允许清空
   allowClear: {
@@ -146,12 +120,12 @@ const props = defineProps({
   // 尺寸
   size: {
     type: String,
-    default: 'middle', // 'small' | 'middle' | 'large'
+    default: "middle", // 'small' | 'middle' | 'large'
   },
   // 宽度
   width: {
     type: String,
-    default: '100%',
+    default: "100%",
   },
   // 头像大小
   avatarSize: {
@@ -161,12 +135,12 @@ const props = defineProps({
   // 当前用户DID（用于高亮）
   currentDid: {
     type: String,
-    default: '',
+    default: "",
   },
   // 创建者DID（用于高亮）
   creatorDid: {
     type: String,
-    default: '',
+    default: "",
   },
   // 排除的DID列表
   excludeDids: {
@@ -180,19 +154,24 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:modelValue', 'change', 'create-did', 'manage-dids']);
+const emit = defineEmits([
+  "update:modelValue",
+  "change",
+  "create-did",
+  "manage-dids",
+]);
 
 const router = useRouter();
 
 // 状态
 const loading = ref(false);
 const dids = ref([]);
-const searchKeyword = ref('');
+const searchKeyword = ref("");
 
 // 双向绑定
 const selectedValue = computed({
   get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value),
+  set: (value) => emit("update:modelValue", value),
 });
 
 // 过滤后的DID列表
@@ -201,15 +180,16 @@ const filteredDids = computed(() => {
 
   // 排除指定DID
   if (props.excludeDids.length > 0) {
-    result = result.filter(did => !props.excludeDids.includes(did.did));
+    result = result.filter((did) => !props.excludeDids.includes(did.did));
   }
 
   // 搜索过滤
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(did =>
-      did.did.toLowerCase().includes(keyword) ||
-      did.profile?.name?.toLowerCase().includes(keyword)
+    result = result.filter(
+      (did) =>
+        did.did.toLowerCase().includes(keyword) ||
+        did.profile?.name?.toLowerCase().includes(keyword),
     );
   }
 
@@ -225,8 +205,8 @@ const loadDids = async () => {
     const result = await window.electronAPI.did.getAllIdentities();
     dids.value = result || [];
   } catch (error) {
-    logger.error('加载DID列表失败:', error);
-    message.error('加载DID列表失败: ' + error.message);
+    logger.error("加载DID列表失败:", error);
+    message.error("加载DID列表失败: " + error.message);
     dids.value = [];
   } finally {
     loading.value = false;
@@ -268,14 +248,14 @@ const getAvatarColor = (didString) => {
   }
 
   const colors = [
-    '#f56a00',
-    '#7265e6',
-    '#ffbf00',
-    '#00a2ae',
-    '#1890ff',
-    '#52c41a',
-    '#fa8c16',
-    '#eb2f96',
+    "#f56a00",
+    "#7265e6",
+    "#ffbf00",
+    "#00a2ae",
+    "#1890ff",
+    "#52c41a",
+    "#fa8c16",
+    "#eb2f96",
   ];
 
   return colors[Math.abs(hash) % colors.length];
@@ -285,7 +265,9 @@ const getAvatarColor = (didString) => {
  * 格式化DID显示
  */
 const formatDid = (did) => {
-  if (did.length <= 20) {return did;}
+  if (did.length <= 20) {
+    return did;
+  }
   return `${did.slice(0, 10)}...${did.slice(-8)}`;
 };
 
@@ -295,10 +277,10 @@ const formatDid = (did) => {
 const handleCopy = async (did) => {
   try {
     await navigator.clipboard.writeText(did);
-    message.success('已复制到剪贴板');
+    message.success("已复制到剪贴板");
   } catch (error) {
-    logger.error('复制失败:', error);
-    message.error('复制失败');
+    logger.error("复制失败:", error);
+    message.error("复制失败");
   }
 };
 
@@ -320,10 +302,10 @@ const handleSearch = (value) => {
  * 选择变化处理
  */
 const handleChange = (value) => {
-  emit('change', value);
-  const selectedDid = dids.value.find(did => did.did === value);
+  emit("change", value);
+  const selectedDid = dids.value.find((did) => did.did === value);
   if (selectedDid) {
-    logger.info('[DIDSelector] 选择了DID:', selectedDid);
+    logger.info("[DIDSelector] 选择了DID:", selectedDid);
   }
 };
 
@@ -331,17 +313,17 @@ const handleChange = (value) => {
  * 创建DID
  */
 const handleCreateDid = () => {
-  emit('create-did');
+  emit("create-did");
   // 默认跳转到DID管理页
-  router.push('/did');
+  router.push("/did");
 };
 
 /**
  * 管理DID
  */
 const handleManageDids = () => {
-  emit('manage-dids');
-  router.push('/did');
+  emit("manage-dids");
+  router.push("/did");
 };
 
 // 生命周期
@@ -353,10 +335,10 @@ onMounted(() => {
 watch(
   () => props.modelValue,
   (newValue) => {
-    if (newValue && !filteredDids.value.find(did => did.did === newValue)) {
-      logger.warn('[DIDSelector] 选中的DID不在列表中:', newValue);
+    if (newValue && !filteredDids.value.find((did) => did.did === newValue)) {
+      logger.warn("[DIDSelector] 选中的DID不在列表中:", newValue);
     }
-  }
+  },
 );
 </script>
 
@@ -396,7 +378,7 @@ watch(
 .did-address {
   font-size: 12px;
   color: #8c8c8c;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   display: flex;
   align-items: center;
   gap: 6px;

@@ -6,19 +6,20 @@
         <a-space>
           <a-button
             type="primary"
-            @click="handleTakeSnapshot"
             :loading="loading.snapshot"
             :disabled="!targetId"
+            @click="handleTakeSnapshot"
           >
-            <template #icon><ScanOutlined /></template>
+            <template #icon>
+              <ScanOutlined />
+            </template>
             获取快照
           </a-button>
 
-          <a-button
-            @click="handleClearSnapshot"
-            :disabled="!snapshot"
-          >
-            <template #icon><ClearOutlined /></template>
+          <a-button :disabled="!snapshot" @click="handleClearSnapshot">
+            <template #icon>
+              <ClearOutlined />
+            </template>
             清除
           </a-button>
 
@@ -39,11 +40,18 @@
       <a-divider v-if="snapshot" />
 
       <!-- 元素列表 -->
-      <div v-if="snapshot && snapshot.elements.length > 0" class="elements-list">
+      <div
+        v-if="snapshot && snapshot.elements.length > 0"
+        class="elements-list"
+      >
         <a-table
-          :dataSource="snapshot.elements"
+          :data-source="snapshot.elements"
           :columns="columns"
-          :pagination="{ pageSize: 10, showSizeChanger: true, showQuickJumper: true }"
+          :pagination="{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+          }"
           size="small"
           :scroll="{ y: 400 }"
         >
@@ -80,8 +88,8 @@
                   <a-button
                     type="text"
                     size="small"
-                    @click="handleClick(record.ref)"
                     :loading="loading.action === record.ref"
+                    @click="handleClick(record.ref)"
                   >
                     <AimOutlined />
                   </a-button>
@@ -91,8 +99,8 @@
                   <a-button
                     type="text"
                     size="small"
-                    @click="handleShowTypeDialog(record)"
                     :disabled="!isTypable(record)"
+                    @click="handleShowTypeDialog(record)"
                   >
                     <EditOutlined />
                   </a-button>
@@ -114,22 +122,21 @@
       </div>
 
       <!-- 空状态 -->
-      <a-empty
-        v-else-if="!snapshot"
-        description="暂无快照，点击上方按钮获取"
-      />
+      <a-empty v-else-if="!snapshot" description="暂无快照，点击上方按钮获取" />
     </a-card>
 
     <!-- 输入文本对话框 -->
     <a-modal
       v-model:open="typeDialog.visible"
       title="输入文本"
+      :confirm-loading="loading.action !== null"
       @ok="handleTypeSubmit"
-      :confirmLoading="loading.action !== null"
     >
       <a-form layout="vertical">
         <a-form-item label="元素">
-          <a-tag color="blue">{{ typeDialog.ref }}</a-tag>
+          <a-tag color="blue">
+            {{ typeDialog.ref }}
+          </a-tag>
           <span class="ml-2">{{ typeDialog.label }}</span>
         </a-form-item>
 
@@ -169,13 +176,15 @@
           {{ detailsModal.element.label }}
         </a-descriptions-item>
         <a-descriptions-item label="选择器">
-          <code style="font-size: 11px">{{ detailsModal.element.selector }}</code>
+          <code style="font-size: 11px">{{
+            detailsModal.element.selector
+          }}</code>
         </a-descriptions-item>
         <a-descriptions-item label="位置">
-          x: {{ Math.round(detailsModal.element.position.x) }},
-          y: {{ Math.round(detailsModal.element.position.y) }},
-          w: {{ Math.round(detailsModal.element.position.width) }},
-          h: {{ Math.round(detailsModal.element.position.height) }}
+          x: {{ Math.round(detailsModal.element.position.x) }}, y:
+          {{ Math.round(detailsModal.element.position.y) }}, w:
+          {{ Math.round(detailsModal.element.position.width) }}, h:
+          {{ Math.round(detailsModal.element.position.height) }}
         </a-descriptions-item>
         <a-descriptions-item label="属性">
           <a-tag v-for="[key, value] in detailAttributes" :key="key">
@@ -188,41 +197,41 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed } from "vue";
+import { message } from "ant-design-vue";
 import {
   ScanOutlined,
   ClearOutlined,
   AimOutlined,
   EditOutlined,
-  InfoCircleOutlined
-} from '@ant-design/icons-vue';
+  InfoCircleOutlined,
+} from "@ant-design/icons-vue";
 
 // Props
 const props = defineProps({
   targetId: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 });
 
 // 状态
 const snapshot = ref(null);
 const loading = reactive({
   snapshot: false,
-  action: null
+  action: null,
 });
 
 const typeDialog = reactive({
   visible: false,
-  ref: '',
-  label: '',
-  text: ''
+  ref: "",
+  label: "",
+  text: "",
 });
 
 const detailsModal = reactive({
   visible: false,
-  element: null
+  element: null,
 });
 
 const detailAttributes = computed(() => {
@@ -232,33 +241,37 @@ const detailAttributes = computed(() => {
 
 // 表格列定义
 const columns = [
-  { title: '引用', dataIndex: 'ref', key: 'ref', width: 80, fixed: 'left' },
-  { title: '角色', dataIndex: 'role', key: 'role', width: 120 },
-  { title: '标签', dataIndex: 'tag', key: 'tag', width: 80 },
-  { title: '文本', dataIndex: 'label', key: 'label', ellipsis: true },
-  { title: '操作', key: 'actions', width: 120, fixed: 'right' }
+  { title: "引用", dataIndex: "ref", key: "ref", width: 80, fixed: "left" },
+  { title: "角色", dataIndex: "role", key: "role", width: 120 },
+  { title: "标签", dataIndex: "tag", key: "tag", width: 80 },
+  { title: "文本", dataIndex: "label", key: "label", ellipsis: true },
+  { title: "操作", key: "actions", width: 120, fixed: "right" },
 ];
 
 // 方法
 const handleTakeSnapshot = async () => {
   if (!props.targetId) {
-    message.warning('请先选择一个标签页');
+    message.warning("请先选择一个标签页");
     return;
   }
 
   loading.snapshot = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:snapshot', props.targetId, {
-      interactive: true,
-      visible: true,
-      roleRefs: true
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "browser:snapshot",
+      props.targetId,
+      {
+        interactive: true,
+        visible: true,
+        roleRefs: true,
+      },
+    );
 
     snapshot.value = result;
     message.success(`快照成功，捕获 ${result.elementsCount} 个元素`);
   } catch (error) {
-    message.error('快照失败: ' + error.message);
-    console.error('Snapshot error:', error);
+    message.error("快照失败: " + error.message);
+    console.error("Snapshot error:", error);
   } finally {
     loading.snapshot = false;
   }
@@ -266,15 +279,21 @@ const handleTakeSnapshot = async () => {
 
 const handleClearSnapshot = () => {
   snapshot.value = null;
-  message.success('快照已清除');
+  message.success("快照已清除");
 };
 
 const handleClick = async (ref) => {
   loading.action = ref;
   try {
-    await window.electron.ipcRenderer.invoke('browser:act', props.targetId, 'click', ref, {
-      waitFor: 'networkidle'
-    });
+    await window.electron.ipcRenderer.invoke(
+      "browser:act",
+      props.targetId,
+      "click",
+      ref,
+      {
+        waitFor: "networkidle",
+      },
+    );
 
     message.success(`已点击元素 ${ref}`);
 
@@ -283,8 +302,8 @@ const handleClick = async (ref) => {
       handleTakeSnapshot();
     }, 1000);
   } catch (error) {
-    message.error('点击失败: ' + error.message);
-    console.error('Click error:', error);
+    message.error("点击失败: " + error.message);
+    console.error("Click error:", error);
   } finally {
     loading.action = null;
   }
@@ -293,27 +312,33 @@ const handleClick = async (ref) => {
 const handleShowTypeDialog = (element) => {
   typeDialog.ref = element.ref;
   typeDialog.label = element.label;
-  typeDialog.text = '';
+  typeDialog.text = "";
   typeDialog.visible = true;
 };
 
 const handleTypeSubmit = async () => {
   if (!typeDialog.text.trim()) {
-    message.warning('请输入文本');
+    message.warning("请输入文本");
     return;
   }
 
   loading.action = typeDialog.ref;
   try {
-    await window.electron.ipcRenderer.invoke('browser:act', props.targetId, 'type', typeDialog.ref, {
-      text: typeDialog.text
-    });
+    await window.electron.ipcRenderer.invoke(
+      "browser:act",
+      props.targetId,
+      "type",
+      typeDialog.ref,
+      {
+        text: typeDialog.text,
+      },
+    );
 
     message.success(`已输入文本到 ${typeDialog.ref}`);
     typeDialog.visible = false;
   } catch (error) {
-    message.error('输入失败: ' + error.message);
-    console.error('Type error:', error);
+    message.error("输入失败: " + error.message);
+    console.error("Type error:", error);
   } finally {
     loading.action = null;
   }
@@ -331,26 +356,26 @@ const handleCopyRef = (ref) => {
 
 const getRoleColor = (role) => {
   const colorMap = {
-    button: 'blue',
-    link: 'green',
-    textbox: 'orange',
-    checkbox: 'purple',
-    combobox: 'cyan',
-    heading: 'red',
-    img: 'magenta',
-    list: 'geekblue'
+    button: "blue",
+    link: "green",
+    textbox: "orange",
+    checkbox: "purple",
+    combobox: "cyan",
+    heading: "red",
+    img: "magenta",
+    list: "geekblue",
   };
-  return colorMap[role] || 'default';
+  return colorMap[role] || "default";
 };
 
 const isTypable = (element) => {
-  return ['textbox', 'searchbox', 'combobox'].includes(element.role);
+  return ["textbox", "searchbox", "combobox"].includes(element.role);
 };
 
 // 暴露方法给父组件
 defineExpose({
   takeSnapshot: handleTakeSnapshot,
-  clearSnapshot: handleClearSnapshot
+  clearSnapshot: handleClearSnapshot,
 });
 </script>
 

@@ -3,7 +3,7 @@
  * 管理剪贴板历史记录
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { clipboard } = require("electron");
 const fs = require("fs");
 const path = require("path");
@@ -29,7 +29,9 @@ class ClipboardManager {
    * 开始监控剪贴板
    */
   startMonitoring() {
-    if (this.isMonitoring) {return;}
+    if (this.isMonitoring) {
+      return;
+    }
 
     this.isMonitoring = true;
     this.lastText = clipboard.readText();
@@ -45,7 +47,9 @@ class ClipboardManager {
    * 停止监控剪贴板
    */
   stopMonitoring() {
-    if (!this.isMonitoring) {return;}
+    if (!this.isMonitoring) {
+      return;
+    }
 
     this.isMonitoring = false;
 
@@ -124,7 +128,9 @@ class ClipboardManager {
    * 搜索历史记录
    */
   searchHistory(query) {
-    if (!query) {return this.history;}
+    if (!query) {
+      return this.history;
+    }
 
     const lowerQuery = query.toLowerCase();
     return this.history.filter((item) =>

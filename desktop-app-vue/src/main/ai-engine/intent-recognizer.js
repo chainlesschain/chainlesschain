@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 智能意图识别器（增强版）
@@ -14,7 +14,7 @@ const { logger, createLogger } = require('../utils/logger.js');
  */
 async function recognizeProjectIntent(userInput, llmManager) {
   if (!llmManager) {
-    throw new Error('LLM管理器未初始化');
+    throw new Error("LLM管理器未初始化");
   }
 
   const systemPrompt = `你是一个专业的项目需求分析助手。分析用户的需求描述，识别他们想要创建的项目类型和具体文件格式。
@@ -120,34 +120,38 @@ async function recognizeProjectIntent(userInput, llmManager) {
   try {
     const messages = [
       {
-        role: 'system',
-        content: systemPrompt
+        role: "system",
+        content: systemPrompt,
       },
       {
-        role: 'user',
-        content: `用户需求：${userInput}\n\n请分析这个需求，返回JSON格式的意图识别结果。`
-      }
+        role: "user",
+        content: `用户需求：${userInput}\n\n请分析这个需求，返回JSON格式的意图识别结果。`,
+      },
     ];
 
-    logger.info('[IntentRecognizer] 开始LLM意图识别...');
+    logger.info("[IntentRecognizer] 开始LLM意图识别...");
     const startTime = Date.now();
 
     const result = await llmManager.chatWithMessages(messages, {
       temperature: 0.1, // 降低温度以获得更确定的结果
-      max_tokens: 500
+      max_tokens: 500,
     });
 
     const duration = Date.now() - startTime;
     logger.info(`[IntentRecognizer] LLM响应完成，耗时: ${duration}ms`);
 
     // 提取JSON响应
-    let responseText = result.content || result.text || '';
-    logger.info('[IntentRecognizer] LLM原始响应:', responseText.substring(0, 300));
+    let responseText = result.content || result.text || "";
+    logger.info(
+      "[IntentRecognizer] LLM原始响应:",
+      responseText.substring(0, 300),
+    );
 
     // 尝试提取JSON（可能被包裹在```json...```中）
-    const jsonMatch = responseText.match(/```json\s*([\s\S]*?)```/) ||
-                      responseText.match(/```\s*([\s\S]*?)```/) ||
-                      responseText.match(/\{[\s\S]*\}/);
+    const jsonMatch =
+      responseText.match(/```json\s*([\s\S]*?)```/) ||
+      responseText.match(/```\s*([\s\S]*?)```/) ||
+      responseText.match(/\{[\s\S]*\}/);
 
     if (jsonMatch) {
       responseText = jsonMatch[1] || jsonMatch[0];
@@ -158,39 +162,42 @@ async function recognizeProjectIntent(userInput, llmManager) {
 
     // 验证必需字段
     if (!intentData.projectType) {
-      throw new Error('LLM响应缺少projectType字段');
+      throw new Error("LLM响应缺少projectType字段");
     }
 
     // 规范化projectType
-    const validTypes = ['document', 'web', 'app', 'data', 'code', 'media'];
+    const validTypes = ["document", "web", "app", "data", "code", "media"];
     if (!validTypes.includes(intentData.projectType)) {
-      logger.warn(`[IntentRecognizer] 无效的projectType: ${intentData.projectType}，使用默认值`);
-      intentData.projectType = 'document';
+      logger.warn(
+        `[IntentRecognizer] 无效的projectType: ${intentData.projectType}，使用默认值`,
+      );
+      intentData.projectType = "document";
     }
 
     // 设置默认值
     intentData.confidence = intentData.confidence || 0.8;
     intentData.subType = intentData.subType || intentData.projectType;
-    intentData.reasoning = intentData.reasoning || '基于LLM分析';
-    intentData.suggestedName = intentData.suggestedName || '新项目';
+    intentData.reasoning = intentData.reasoning || "基于LLM分析";
+    intentData.suggestedName = intentData.suggestedName || "新项目";
     intentData.detectedKeywords = intentData.detectedKeywords || [];
-    intentData.outputFormat = intentData.outputFormat || inferOutputFormat(intentData.subType);
-    intentData.toolEngine = intentData.toolEngine || inferToolEngine(intentData.subType);
+    intentData.outputFormat =
+      intentData.outputFormat || inferOutputFormat(intentData.subType);
+    intentData.toolEngine =
+      intentData.toolEngine || inferToolEngine(intentData.subType);
 
-    logger.info('[IntentRecognizer] 意图识别成功:', intentData);
+    logger.info("[IntentRecognizer] 意图识别成功:", intentData);
 
     return {
       success: true,
       ...intentData,
-      method: 'llm',
-      duration
+      method: "llm",
+      duration,
     };
-
   } catch (error) {
-    logger.error('[IntentRecognizer] LLM意图识别失败:', error);
+    logger.error("[IntentRecognizer] LLM意图识别失败:", error);
 
     // 降级到简单规则识别
-    logger.info('[IntentRecognizer] 降级使用规则匹配...');
+    logger.info("[IntentRecognizer] 降级使用规则匹配...");
     return fallbackRuleBasedRecognition(userInput);
   }
 }
@@ -206,26 +213,98 @@ function fallbackRuleBasedRecognition(userInput) {
   // 定义关键词映射表
   const keywordMappings = {
     // 文档类型
-    ppt: { keywords: ['ppt', 'powerpoint', '演示', '幻灯片', 'presentation'], projectType: 'document', subType: 'ppt', outputFormat: 'pptx', toolEngine: 'ppt-engine' },
-    word: { keywords: ['word', 'doc', '文档', '报告', '文章', '致辞', '演讲稿'], projectType: 'document', subType: 'word', outputFormat: 'docx', toolEngine: 'word-engine' },
-    pdf: { keywords: ['pdf', '导出pdf', '打印'], projectType: 'document', subType: 'pdf', outputFormat: 'pdf', toolEngine: 'pdf-engine' },
-    markdown: { keywords: ['markdown', 'md', '笔记'], projectType: 'document', subType: 'markdown', outputFormat: 'md', toolEngine: 'document-engine' },
+    ppt: {
+      keywords: ["ppt", "powerpoint", "演示", "幻灯片", "presentation"],
+      projectType: "document",
+      subType: "ppt",
+      outputFormat: "pptx",
+      toolEngine: "ppt-engine",
+    },
+    word: {
+      keywords: ["word", "doc", "文档", "报告", "文章", "致辞", "演讲稿"],
+      projectType: "document",
+      subType: "word",
+      outputFormat: "docx",
+      toolEngine: "word-engine",
+    },
+    pdf: {
+      keywords: ["pdf", "导出pdf", "打印"],
+      projectType: "document",
+      subType: "pdf",
+      outputFormat: "pdf",
+      toolEngine: "pdf-engine",
+    },
+    markdown: {
+      keywords: ["markdown", "md", "笔记"],
+      projectType: "document",
+      subType: "markdown",
+      outputFormat: "md",
+      toolEngine: "document-engine",
+    },
 
     // 数据类型
-    excel: { keywords: ['excel', '表格', '数据表', 'xlsx', '电子表格'], projectType: 'data', subType: 'excel', outputFormat: 'xlsx', toolEngine: 'excel-engine' },
-    csv: { keywords: ['csv', '导出数据'], projectType: 'data', subType: 'csv', outputFormat: 'csv', toolEngine: 'excel-engine' },
-    analysis: { keywords: ['分析', '统计', '可视化', '图表'], projectType: 'data', subType: 'analysis', outputFormat: 'xlsx', toolEngine: 'data-engine' },
+    excel: {
+      keywords: ["excel", "表格", "数据表", "xlsx", "电子表格"],
+      projectType: "data",
+      subType: "excel",
+      outputFormat: "xlsx",
+      toolEngine: "excel-engine",
+    },
+    csv: {
+      keywords: ["csv", "导出数据"],
+      projectType: "data",
+      subType: "csv",
+      outputFormat: "csv",
+      toolEngine: "excel-engine",
+    },
+    analysis: {
+      keywords: ["分析", "统计", "可视化", "图表"],
+      projectType: "data",
+      subType: "analysis",
+      outputFormat: "xlsx",
+      toolEngine: "data-engine",
+    },
 
     // 多媒体类型
-    image: { keywords: ['图片', '图像', '海报', '配图', 'banner', '封面'], projectType: 'media', subType: 'image', outputFormat: 'png', toolEngine: 'image-engine' },
-    video: { keywords: ['视频', '短视频', '宣传片', 'video'], projectType: 'media', subType: 'video', outputFormat: 'mp4', toolEngine: 'video-engine' },
+    image: {
+      keywords: ["图片", "图像", "海报", "配图", "banner", "封面"],
+      projectType: "media",
+      subType: "image",
+      outputFormat: "png",
+      toolEngine: "image-engine",
+    },
+    video: {
+      keywords: ["视频", "短视频", "宣传片", "video"],
+      projectType: "media",
+      subType: "video",
+      outputFormat: "mp4",
+      toolEngine: "video-engine",
+    },
 
     // Web类型
-    website: { keywords: ['网站', '官网'], projectType: 'web', subType: 'website', outputFormat: 'html', toolEngine: 'web-engine' },
-    webpage: { keywords: ['网页', '页面', 'h5'], projectType: 'web', subType: 'webpage', outputFormat: 'html', toolEngine: 'web-engine' },
+    website: {
+      keywords: ["网站", "官网"],
+      projectType: "web",
+      subType: "website",
+      outputFormat: "html",
+      toolEngine: "web-engine",
+    },
+    webpage: {
+      keywords: ["网页", "页面", "h5"],
+      projectType: "web",
+      subType: "webpage",
+      outputFormat: "html",
+      toolEngine: "web-engine",
+    },
 
     // App类型
-    app: { keywords: ['app', '应用', '小程序'], projectType: 'app', subType: 'mobile-app', outputFormat: 'apk', toolEngine: 'code-engine' }
+    app: {
+      keywords: ["app", "应用", "小程序"],
+      projectType: "app",
+      subType: "mobile-app",
+      outputFormat: "apk",
+      toolEngine: "code-engine",
+    },
   };
 
   let bestMatch = null;
@@ -255,29 +334,29 @@ function fallbackRuleBasedRecognition(userInput) {
     return {
       success: true,
       projectType: bestMatch.projectType,
-      confidence: Math.min(0.6 + (maxMatches * 0.1), 0.9), // 根据匹配数量调整置信度
+      confidence: Math.min(0.6 + maxMatches * 0.1, 0.9), // 根据匹配数量调整置信度
       subType: bestMatch.subType,
       reasoning: `基于规则匹配（降级方案），匹配到${maxMatches}个关键词`,
       suggestedName: userInput.substring(0, 30),
       detectedKeywords,
       outputFormat: bestMatch.outputFormat,
       toolEngine: bestMatch.toolEngine,
-      method: 'fallback'
+      method: "fallback",
     };
   }
 
   // 如果没有任何匹配，返回默认值（文档类型）
   return {
     success: true,
-    projectType: 'document',
+    projectType: "document",
     confidence: 0.5,
-    subType: 'text',
-    reasoning: '未检测到明确关键词，默认为文本文档（降级方案）',
+    subType: "text",
+    reasoning: "未检测到明确关键词，默认为文本文档（降级方案）",
     suggestedName: userInput.substring(0, 30),
     detectedKeywords: [],
-    outputFormat: 'md',
-    toolEngine: 'document-engine',
-    method: 'fallback'
+    outputFormat: "md",
+    toolEngine: "document-engine",
+    method: "fallback",
   };
 }
 
@@ -288,19 +367,19 @@ function fallbackRuleBasedRecognition(userInput) {
  */
 function inferOutputFormat(subType) {
   const formatMap = {
-    ppt: 'pptx',
-    word: 'docx',
-    pdf: 'pdf',
-    markdown: 'md',
-    text: 'md',
-    excel: 'xlsx',
-    csv: 'csv',
-    image: 'png',
-    video: 'mp4',
-    website: 'html',
-    webpage: 'html'
+    ppt: "pptx",
+    word: "docx",
+    pdf: "pdf",
+    markdown: "md",
+    text: "md",
+    excel: "xlsx",
+    csv: "csv",
+    image: "png",
+    video: "mp4",
+    website: "html",
+    webpage: "html",
   };
-  return formatMap[subType] || 'md';
+  return formatMap[subType] || "md";
 }
 
 /**
@@ -310,23 +389,23 @@ function inferOutputFormat(subType) {
  */
 function inferToolEngine(subType) {
   const engineMap = {
-    ppt: 'ppt-engine',
-    word: 'word-engine',
-    pdf: 'pdf-engine',
-    markdown: 'document-engine',
-    text: 'document-engine',
-    excel: 'excel-engine',
-    csv: 'excel-engine',
-    analysis: 'data-engine',
-    image: 'image-engine',
-    video: 'video-engine',
-    website: 'web-engine',
-    webpage: 'web-engine',
-    webapp: 'web-engine'
+    ppt: "ppt-engine",
+    word: "word-engine",
+    pdf: "pdf-engine",
+    markdown: "document-engine",
+    text: "document-engine",
+    excel: "excel-engine",
+    csv: "excel-engine",
+    analysis: "data-engine",
+    image: "image-engine",
+    video: "video-engine",
+    website: "web-engine",
+    webpage: "web-engine",
+    webapp: "web-engine",
   };
-  return engineMap[subType] || 'document-engine';
+  return engineMap[subType] || "document-engine";
 }
 
 module.exports = {
-  recognizeProjectIntent
+  recognizeProjectIntent,
 };

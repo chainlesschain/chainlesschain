@@ -1,9 +1,6 @@
 <template>
   <div class="safety-numbers-page">
-    <a-page-header
-      title="安全号码验证"
-      @back="handleBack"
-    >
+    <a-page-header title="安全号码验证" @back="handleBack">
       <template #subTitle>
         {{ peerName || peerId }}
       </template>
@@ -38,10 +35,7 @@
             <div class="qr-code-placeholder">
               <QrcodeOutlined style="font-size: 120px; color: #d9d9d9" />
             </div>
-            <a-button
-              type="link"
-              @click="showQRCode"
-            >
+            <a-button type="link" @click="showQRCode">
               <QrcodeOutlined />
               显示二维码
             </a-button>
@@ -62,13 +56,10 @@
               <a-tag :color="isVerified ? 'success' : 'warning'">
                 <SafetyOutlined v-if="isVerified" />
                 <ExclamationCircleOutlined v-else />
-                {{ isVerified ? '已验证' : '未验证' }}
+                {{ isVerified ? "已验证" : "未验证" }}
               </a-tag>
             </div>
-            <div
-              v-if="verifiedAt"
-              class="info-item"
-            >
+            <div v-if="verifiedAt" class="info-item">
               <label>验证时间:</label>
               <span>{{ formatDate(verifiedAt) }}</span>
             </div>
@@ -97,10 +88,7 @@
             重置验证状态
           </a-button>
 
-          <a-button
-            size="large"
-            @click="handleScanQRCode"
-          >
+          <a-button size="large" @click="handleScanQRCode">
             <ScanOutlined />
             扫描对方二维码
           </a-button>
@@ -111,19 +99,19 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { message, Modal } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { message, Modal } from "ant-design-vue";
 import {
   QrcodeOutlined,
   SafetyOutlined,
   ExclamationCircleOutlined,
   CloseCircleOutlined,
   ScanOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 export default {
-  name: 'SafetyNumbersPage',
+  name: "SafetyNumbersPage",
   components: {
     QrcodeOutlined,
     SafetyOutlined,
@@ -135,16 +123,18 @@ export default {
     const router = useRouter();
     const route = useRoute();
 
-    const peerId = ref(route.query.peerId || '');
-    const peerName = ref('');
-    const safetyNumbers = ref('');
+    const peerId = ref(route.query.peerId || "");
+    const peerName = ref("");
+    const safetyNumbers = ref("");
     const isVerified = ref(false);
     const verifiedAt = ref(null);
 
     const safetyNumbersGroups = computed(() => {
-      if (!safetyNumbers.value) return [];
+      if (!safetyNumbers.value) {
+        return [];
+      }
       // Split into groups of 5 digits
-      const digits = safetyNumbers.value.replace(/\s/g, '');
+      const digits = safetyNumbers.value.replace(/\s/g, "");
       const groups = [];
       for (let i = 0; i < digits.length; i += 5) {
         groups.push(digits.slice(i, i + 5));
@@ -157,21 +147,21 @@ export default {
     };
 
     const formatDate = (timestamp) => {
-      return new Date(timestamp).toLocaleString('zh-CN');
+      return new Date(timestamp).toLocaleString("zh-CN");
     };
 
     const loadVerificationInfo = async () => {
       try {
-        const info = await window.electron.invoke('p2p:get-verification-info', {
+        const info = await window.electron.invoke("p2p:get-verification-info", {
           peerId: peerId.value,
         });
 
-        peerName.value = info.peerName || '';
+        peerName.value = info.peerName || "";
         safetyNumbers.value = info.safetyNumbers || generateSafetyNumbers();
         isVerified.value = info.isVerified || false;
         verifiedAt.value = info.verifiedAt || null;
       } catch (error) {
-        console.error('Load verification info error:', error);
+        console.error("Load verification info error:", error);
         // Generate fallback safety numbers
         safetyNumbers.value = generateSafetyNumbers();
       }
@@ -179,7 +169,7 @@ export default {
 
     const generateSafetyNumbers = () => {
       // Generate 60-digit safety numbers
-      let numbers = '';
+      let numbers = "";
       for (let i = 0; i < 60; i++) {
         numbers += Math.floor(Math.random() * 10);
       }
@@ -188,21 +178,22 @@ export default {
 
     const handleVerify = () => {
       Modal.confirm({
-        title: '确认验证',
-        content: '请确认您已与对方通过其他可信渠道（如当面、电话等）核对了安全号码，且完全一致。',
-        okText: '确认',
-        cancelText: '取消',
+        title: "确认验证",
+        content:
+          "请确认您已与对方通过其他可信渠道（如当面、电话等）核对了安全号码，且完全一致。",
+        okText: "确认",
+        cancelText: "取消",
         onOk: async () => {
           try {
-            await window.electron.invoke('p2p:verify-peer', {
+            await window.electron.invoke("p2p:verify-peer", {
               peerId: peerId.value,
             });
             isVerified.value = true;
             verifiedAt.value = Date.now();
-            message.success('已标记为已验证');
+            message.success("已标记为已验证");
           } catch (error) {
-            console.error('Verify error:', error);
-            message.error('验证失败: ' + error.message);
+            console.error("Verify error:", error);
+            message.error("验证失败: " + error.message);
           }
         },
       });
@@ -210,21 +201,21 @@ export default {
 
     const handleResetVerification = () => {
       Modal.confirm({
-        title: '重置验证状态',
-        content: '这将重置与此设备的验证状态。您需要重新验证才能确保通信安全。',
-        okText: '确认',
-        cancelText: '取消',
+        title: "重置验证状态",
+        content: "这将重置与此设备的验证状态。您需要重新验证才能确保通信安全。",
+        okText: "确认",
+        cancelText: "取消",
         onOk: async () => {
           try {
-            await window.electron.invoke('p2p:reset-verification', {
+            await window.electron.invoke("p2p:reset-verification", {
               peerId: peerId.value,
             });
             isVerified.value = false;
             verifiedAt.value = null;
-            message.success('验证状态已重置');
+            message.success("验证状态已重置");
           } catch (error) {
-            console.error('Reset verification error:', error);
-            message.error('重置失败: ' + error.message);
+            console.error("Reset verification error:", error);
+            message.error("重置失败: " + error.message);
           }
         },
       });
@@ -232,23 +223,23 @@ export default {
 
     const showQRCode = () => {
       Modal.info({
-        title: '安全号码二维码',
-        content: '二维码功能开发中...',
-        okText: '关闭',
+        title: "安全号码二维码",
+        content: "二维码功能开发中...",
+        okText: "关闭",
       });
     };
 
     const handleScanQRCode = () => {
       Modal.info({
-        title: '扫描二维码',
-        content: '扫描功能开发中...',
-        okText: '关闭',
+        title: "扫描二维码",
+        content: "扫描功能开发中...",
+        okText: "关闭",
       });
     };
 
     onMounted(() => {
       if (!peerId.value) {
-        message.error('缺少对等方ID');
+        message.error("缺少对等方ID");
         router.back();
         return;
       }
@@ -312,7 +303,7 @@ export default {
           .number-group {
             font-size: 20px;
             font-weight: 500;
-            font-family: 'Courier New', monospace;
+            font-family: "Courier New", monospace;
             background-color: #f5f5f5;
             padding: 12px;
             border-radius: 4px;

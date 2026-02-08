@@ -63,7 +63,11 @@
           <a-button type="primary" size="small" @click="handleRestartApp">
             <reload-outlined /> 立即重启应用
           </a-button>
-          <a-button size="small" style="margin-left: 8px" @click="needsRestart = false">
+          <a-button
+            size="small"
+            style="margin-left: 8px"
+            @click="needsRestart = false"
+          >
             稍后重启
           </a-button>
         </template>
@@ -926,7 +930,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import {
   ref,

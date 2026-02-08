@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
 const SyncHTTPClient = require("./sync-http-client");
 const FieldMapper = require("./field-mapper");
@@ -41,11 +41,11 @@ class DBSyncManager extends EventEmitter {
     this.isAuthenticated = !!token;
 
     if (token) {
-      logger.info('[DBSyncManager] 认证Token已设置');
-      this.emit('auth:set', { hasToken: true });
+      logger.info("[DBSyncManager] 认证Token已设置");
+      this.emit("auth:set", { hasToken: true });
     } else {
-      logger.info('[DBSyncManager] 认证Token已清除');
-      this.emit('auth:cleared');
+      logger.info("[DBSyncManager] 认证Token已清除");
+      this.emit("auth:cleared");
     }
   }
 
@@ -64,12 +64,13 @@ class DBSyncManager extends EventEmitter {
    */
   checkAuth(throwOnError = false) {
     if (!this.hasAuth()) {
-      const message = '[DBSyncManager] 警告: 未设置认证Token，同步请求可能会失败';
+      const message =
+        "[DBSyncManager] 警告: 未设置认证Token，同步请求可能会失败";
       logger.warn(message);
-      this.emit('auth:missing');
+      this.emit("auth:missing");
 
       if (throwOnError) {
-        throw new Error('未授权: 请先登录或设置认证Token');
+        throw new Error("未授权: 请先登录或设置认证Token");
       }
       return false;
     }
@@ -722,7 +723,7 @@ class DBSyncManager extends EventEmitter {
     logger.info("[DBSyncManager] 解决冲突:", conflictId, resolution);
 
     // 解析冲突ID
-    const [tableName, recordId] = conflictId.split(':');
+    const [tableName, recordId] = conflictId.split(":");
     if (!tableName || !recordId) {
       throw new Error(`无效的冲突ID: ${conflictId}`);
     }
@@ -731,7 +732,7 @@ class DBSyncManager extends EventEmitter {
       const now = Date.now();
 
       switch (resolution) {
-        case 'local': {
+        case "local": {
           // 保留本地数据，推送到远程
           const localRecord = this.database.db
             .prepare(`SELECT * FROM ${tableName} WHERE id = ?`)
@@ -746,23 +747,33 @@ class DBSyncManager extends EventEmitter {
             `UPDATE ${tableName}
              SET sync_status = 'pending', updated_at = ?
              WHERE id = ?`,
-            [now, recordId]
+            [now, recordId],
           );
 
           // 通知远程服务器解决冲突（使用本地版本覆盖远程）
-          const backendRecord = this.fieldMapper.toBackend(localRecord, tableName);
-          await this.httpClient.resolveConflict(conflictId, resolution, backendRecord);
+          const backendRecord = this.fieldMapper.toBackend(
+            localRecord,
+            tableName,
+          );
+          await this.httpClient.resolveConflict(
+            conflictId,
+            resolution,
+            backendRecord,
+          );
           break;
         }
 
-        case 'remote': {
+        case "remote": {
           // 接受远程数据，覆盖本地
           // 从后端获取最新数据
-          const remoteData = await this.httpClient.getRecord(tableName, recordId);
+          const remoteData = await this.httpClient.getRecord(
+            tableName,
+            recordId,
+          );
 
           if (remoteData) {
             const converted = this.fieldMapper.toLocal(remoteData, tableName);
-            converted.sync_status = 'synced';
+            converted.sync_status = "synced";
             converted.synced_at = now;
 
             this.insertOrUpdateLocal(tableName, converted);
@@ -773,22 +784,29 @@ class DBSyncManager extends EventEmitter {
           break;
         }
 
-        case 'merge': {
+        case "merge": {
           // 使用合并后的数据
           if (!mergedData) {
-            throw new Error('合并解决策略需要提供 mergedData');
+            throw new Error("合并解决策略需要提供 mergedData");
           }
 
           // 更新本地数据
-          mergedData.sync_status = 'pending';
+          mergedData.sync_status = "pending";
           mergedData.updated_at = now;
           mergedData.id = recordId;
 
           this.insertOrUpdateLocal(tableName, mergedData);
 
           // 推送合并后的数据到远程
-          const backendMerged = this.fieldMapper.toBackend(mergedData, tableName);
-          await this.httpClient.resolveConflict(conflictId, resolution, backendMerged);
+          const backendMerged = this.fieldMapper.toBackend(
+            mergedData,
+            tableName,
+          );
+          await this.httpClient.resolveConflict(
+            conflictId,
+            resolution,
+            backendMerged,
+          );
           break;
         }
 
@@ -802,15 +820,19 @@ class DBSyncManager extends EventEmitter {
           `UPDATE sync_conflicts
            SET status = 'resolved', resolution = ?, resolved_at = ?
            WHERE record_id = ? AND table_name = ? AND status = 'pending'`,
-          [resolution, now, recordId, tableName]
+          [resolution, now, recordId, tableName],
         );
       } catch (e) {
         // 冲突表可能不存在，忽略
       }
 
       logger.info(`[DBSyncManager] 冲突已解决: ${conflictId} -> ${resolution}`);
-      this.emit("conflict-resolved", { conflictId, resolution, tableName, recordId });
-
+      this.emit("conflict-resolved", {
+        conflictId,
+        resolution,
+        tableName,
+        recordId,
+      });
     } catch (error) {
       logger.error("[DBSyncManager] 解决冲突失败:", error);
       throw error;

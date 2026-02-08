@@ -13,11 +13,11 @@
  * @module remote/handlers/file-transfer-handler
  */
 
-const { logger } = require('../../utils/logger');
-const fs = require('fs').promises;
-const path = require('path');
-const crypto = require('crypto');
-const { app } = require('electron');
+const { logger } = require("../../utils/logger");
+const fs = require("fs").promises;
+const path = require("path");
+const crypto = require("crypto");
+const { app } = require("electron");
 
 // 默认配置
 const DEFAULT_CONFIG = {
@@ -40,9 +40,13 @@ class FileTransferHandler {
     this.options = { ...DEFAULT_CONFIG, ...options };
 
     // 初始化目录
-    this.uploadDir = this.options.uploadDir || path.join(app.getPath('userData'), 'uploads');
-    this.downloadDir = this.options.downloadDir || path.join(app.getPath('userData'), 'downloads');
-    this.tempDir = this.options.tempDir || path.join(app.getPath('userData'), 'temp');
+    this.uploadDir =
+      this.options.uploadDir || path.join(app.getPath("userData"), "uploads");
+    this.downloadDir =
+      this.options.downloadDir ||
+      path.join(app.getPath("userData"), "downloads");
+    this.tempDir =
+      this.options.tempDir || path.join(app.getPath("userData"), "temp");
 
     // 传输任务映射 { transferId: TransferTask }
     this.transfers = new Map();
@@ -50,7 +54,7 @@ class FileTransferHandler {
     // 活动传输计数
     this.activeTransfers = 0;
 
-    logger.info('[FileTransferHandler] 文件传输处理器已初始化', {
+    logger.info("[FileTransferHandler] 文件传输处理器已初始化", {
       uploadDir: this.uploadDir,
       downloadDir: this.downloadDir,
       tempDir: this.tempDir,
@@ -59,7 +63,7 @@ class FileTransferHandler {
 
     // 确保目录存在
     this._ensureDirectories().catch((err) => {
-      logger.error('[FileTransferHandler] 创建目录失败:', err);
+      logger.error("[FileTransferHandler] 创建目录失败:", err);
     });
   }
 
@@ -79,50 +83,50 @@ class FileTransferHandler {
     logger.debug(`[FileTransferHandler] 处理命令: ${action}`);
 
     switch (action) {
-      case 'requestUpload':
+      case "requestUpload":
         return await this.requestUpload(params, context);
 
-      case 'uploadChunk':
+      case "uploadChunk":
         return await this.uploadChunk(params, context);
 
-      case 'completeUpload':
+      case "completeUpload":
         return await this.completeUpload(params, context);
 
-      case 'requestDownload':
+      case "requestDownload":
         return await this.requestDownload(params, context);
 
-      case 'downloadChunk':
+      case "downloadChunk":
         return await this.downloadChunk(params, context);
 
-      case 'cancelTransfer':
+      case "cancelTransfer":
         return await this.cancelTransfer(params, context);
 
-      case 'listTransfers':
+      case "listTransfers":
         return await this.listTransfers(params, context);
 
       // 基本文件操作
-      case 'read':
+      case "read":
         return await this.readFile(params, context);
 
-      case 'write':
+      case "write":
         return await this.writeFile(params, context);
 
-      case 'list':
+      case "list":
         return await this.listDirectory(params, context);
 
-      case 'delete':
+      case "delete":
         return await this.deleteFile(params, context);
 
-      case 'move':
+      case "move":
         return await this.moveFile(params, context);
 
-      case 'copy':
+      case "copy":
         return await this.copyFile(params, context);
 
-      case 'stat':
+      case "stat":
         return await this.getFileStats(params, context);
 
-      case 'exists':
+      case "exists":
         return await this.fileExists(params, context);
 
       default:
@@ -137,29 +141,33 @@ class FileTransferHandler {
     const { fileName, fileSize, checksum, metadata = {} } = params;
 
     // 验证参数
-    if (!fileName || typeof fileName !== 'string') {
+    if (!fileName || typeof fileName !== "string") {
       throw new Error('Parameter "fileName" is required and must be a string');
     }
 
-    if (!fileSize || typeof fileSize !== 'number' || fileSize <= 0) {
-      throw new Error('Parameter "fileSize" is required and must be a positive number');
+    if (!fileSize || typeof fileSize !== "number" || fileSize <= 0) {
+      throw new Error(
+        'Parameter "fileSize" is required and must be a positive number',
+      );
     }
 
     // 检查文件大小限制
     if (fileSize > this.options.maxFileSize) {
       throw new Error(
-        `File size ${fileSize} exceeds maximum allowed size ${this.options.maxFileSize}`
+        `File size ${fileSize} exceeds maximum allowed size ${this.options.maxFileSize}`,
       );
     }
 
     // 检查并发传输限制
     if (this.activeTransfers >= this.options.maxConcurrent) {
       throw new Error(
-        `Maximum concurrent transfers (${this.options.maxConcurrent}) reached. Please try again later.`
+        `Maximum concurrent transfers (${this.options.maxConcurrent}) reached. Please try again later.`,
       );
     }
 
-    logger.info(`[FileTransferHandler] 请求上传文件: ${fileName} (${fileSize} bytes) from ${context.did}`);
+    logger.info(
+      `[FileTransferHandler] 请求上传文件: ${fileName} (${fileSize} bytes) from ${context.did}`,
+    );
 
     // 生成传输 ID
     const transferId = `upload-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -176,7 +184,7 @@ class FileTransferHandler {
     // 创建传输任务
     const transfer = {
       transferId,
-      direction: 'upload',
+      direction: "upload",
       deviceDid: context.did,
       fileName,
       fileSize,
@@ -186,7 +194,7 @@ class FileTransferHandler {
       receivedChunks: new Set(),
       tempFilePath,
       finalFilePath,
-      status: 'in_progress',
+      status: "in_progress",
       progress: 0,
       startedAt: Date.now(),
       updatedAt: Date.now(),
@@ -204,33 +212,33 @@ class FileTransferHandler {
           INSERT INTO file_transfers
           (id, device_did, direction, file_name, file_size, total_chunks, status, progress, created_at, updated_at, metadata)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `
+        `,
         )
         .run(
           transferId,
           context.did,
-          'upload',
+          "upload",
           fileName,
           fileSize,
           totalChunks,
-          'in_progress',
+          "in_progress",
           0,
           Date.now(),
           Date.now(),
-          JSON.stringify(metadata)
+          JSON.stringify(metadata),
         );
     } catch (error) {
-      logger.error('[FileTransferHandler] 保存传输任务到数据库失败:', error);
+      logger.error("[FileTransferHandler] 保存传输任务到数据库失败:", error);
       // 继续执行，数据库错误不应阻止传输
     }
 
     // 创建临时文件（预分配空间）
     try {
-      const fd = await fs.open(tempFilePath, 'w');
+      const fd = await fs.open(tempFilePath, "w");
       await fd.truncate(fileSize);
       await fd.close();
     } catch (error) {
-      logger.error('[FileTransferHandler] 创建临时文件失败:', error);
+      logger.error("[FileTransferHandler] 创建临时文件失败:", error);
       this.transfers.delete(transferId);
       this.activeTransfers--;
       throw new Error(`Failed to create temporary file: ${error.message}`);
@@ -251,16 +259,22 @@ class FileTransferHandler {
     const { transferId, chunkIndex, chunkData } = params;
 
     // 验证参数
-    if (!transferId || typeof transferId !== 'string') {
-      throw new Error('Parameter "transferId" is required and must be a string');
+    if (!transferId || typeof transferId !== "string") {
+      throw new Error(
+        'Parameter "transferId" is required and must be a string',
+      );
     }
 
-    if (typeof chunkIndex !== 'number' || chunkIndex < 0) {
-      throw new Error('Parameter "chunkIndex" is required and must be a non-negative number');
+    if (typeof chunkIndex !== "number" || chunkIndex < 0) {
+      throw new Error(
+        'Parameter "chunkIndex" is required and must be a non-negative number',
+      );
     }
 
-    if (!chunkData || typeof chunkData !== 'string') {
-      throw new Error('Parameter "chunkData" is required and must be a base64 string');
+    if (!chunkData || typeof chunkData !== "string") {
+      throw new Error(
+        'Parameter "chunkData" is required and must be a base64 string',
+      );
     }
 
     // 获取传输任务
@@ -271,12 +285,14 @@ class FileTransferHandler {
 
     // 验证设备
     if (transfer.deviceDid !== context.did) {
-      throw new Error('Permission denied: device DID mismatch');
+      throw new Error("Permission denied: device DID mismatch");
     }
 
     // 验证分块索引
     if (chunkIndex >= transfer.totalChunks) {
-      throw new Error(`Invalid chunk index: ${chunkIndex} (total: ${transfer.totalChunks})`);
+      throw new Error(
+        `Invalid chunk index: ${chunkIndex} (total: ${transfer.totalChunks})`,
+      );
     }
 
     // 检查是否已接收
@@ -290,17 +306,19 @@ class FileTransferHandler {
       };
     }
 
-    logger.debug(`[FileTransferHandler] 接收分块 ${chunkIndex}/${transfer.totalChunks - 1} for ${transferId}`);
+    logger.debug(
+      `[FileTransferHandler] 接收分块 ${chunkIndex}/${transfer.totalChunks - 1} for ${transferId}`,
+    );
 
     try {
       // 解码 base64 数据
-      const buffer = Buffer.from(chunkData, 'base64');
+      const buffer = Buffer.from(chunkData, "base64");
 
       // 计算分块偏移量
       const offset = chunkIndex * transfer.chunkSize;
 
       // 写入临时文件
-      const fd = await fs.open(transfer.tempFilePath, 'r+');
+      const fd = await fs.open(transfer.tempFilePath, "r+");
       await fd.write(buffer, 0, buffer.length, offset);
       await fd.close();
 
@@ -309,7 +327,8 @@ class FileTransferHandler {
       transfer.updatedAt = Date.now();
 
       // 更新进度
-      transfer.progress = (transfer.receivedChunks.size / transfer.totalChunks) * 100;
+      transfer.progress =
+        (transfer.receivedChunks.size / transfer.totalChunks) * 100;
 
       // 更新数据库
       try {
@@ -319,11 +338,11 @@ class FileTransferHandler {
             UPDATE file_transfers
             SET progress = ?, updated_at = ?
             WHERE id = ?
-          `
+          `,
           )
           .run(transfer.progress, transfer.updatedAt, transferId);
       } catch (error) {
-        logger.error('[FileTransferHandler] 更新数据库失败:', error);
+        logger.error("[FileTransferHandler] 更新数据库失败:", error);
       }
 
       return {
@@ -346,8 +365,10 @@ class FileTransferHandler {
     const { transferId } = params;
 
     // 验证参数
-    if (!transferId || typeof transferId !== 'string') {
-      throw new Error('Parameter "transferId" is required and must be a string');
+    if (!transferId || typeof transferId !== "string") {
+      throw new Error(
+        'Parameter "transferId" is required and must be a string',
+      );
     }
 
     // 获取传输任务
@@ -358,37 +379,41 @@ class FileTransferHandler {
 
     // 验证设备
     if (transfer.deviceDid !== context.did) {
-      throw new Error('Permission denied: device DID mismatch');
+      throw new Error("Permission denied: device DID mismatch");
     }
 
-    logger.info(`[FileTransferHandler] 完成上传: ${transferId} (${transfer.fileName})`);
+    logger.info(
+      `[FileTransferHandler] 完成上传: ${transferId} (${transfer.fileName})`,
+    );
 
     // 检查是否所有分块都已接收
     if (transfer.receivedChunks.size !== transfer.totalChunks) {
       throw new Error(
-        `Incomplete transfer: received ${transfer.receivedChunks.size}/${transfer.totalChunks} chunks`
+        `Incomplete transfer: received ${transfer.receivedChunks.size}/${transfer.totalChunks} chunks`,
       );
     }
 
     try {
       // 验证校验和（如果提供）
       if (this.options.verifyChecksum && transfer.checksum) {
-        const actualChecksum = await this._calculateChecksum(transfer.tempFilePath);
+        const actualChecksum = await this._calculateChecksum(
+          transfer.tempFilePath,
+        );
 
         if (actualChecksum !== transfer.checksum) {
           throw new Error(
-            `Checksum mismatch: expected ${transfer.checksum}, got ${actualChecksum}`
+            `Checksum mismatch: expected ${transfer.checksum}, got ${actualChecksum}`,
           );
         }
 
-        logger.info('[FileTransferHandler] 校验和验证通过');
+        logger.info("[FileTransferHandler] 校验和验证通过");
       }
 
       // 移动临时文件到最终位置
       await fs.rename(transfer.tempFilePath, transfer.finalFilePath);
 
       // 更新传输状态
-      transfer.status = 'completed';
+      transfer.status = "completed";
       transfer.progress = 100;
       transfer.completedAt = Date.now();
       transfer.updatedAt = Date.now();
@@ -401,32 +426,40 @@ class FileTransferHandler {
             UPDATE file_transfers
             SET status = ?, progress = ?, updated_at = ?, completed_at = ?
             WHERE id = ?
-          `
+          `,
           )
-          .run(transfer.status, transfer.progress, transfer.updatedAt, transfer.completedAt, transferId);
+          .run(
+            transfer.status,
+            transfer.progress,
+            transfer.updatedAt,
+            transfer.completedAt,
+            transferId,
+          );
       } catch (error) {
-        logger.error('[FileTransferHandler] 更新数据库失败:', error);
+        logger.error("[FileTransferHandler] 更新数据库失败:", error);
       }
 
       // 清理任务
       this.transfers.delete(transferId);
       this.activeTransfers--;
 
-      logger.info(`[FileTransferHandler] 上传完成: ${transfer.fileName} saved to ${transfer.finalFilePath}`);
+      logger.info(
+        `[FileTransferHandler] 上传完成: ${transfer.fileName} saved to ${transfer.finalFilePath}`,
+      );
 
       return {
         transferId,
-        status: 'completed',
+        status: "completed",
         fileName: transfer.fileName,
         filePath: transfer.finalFilePath,
         fileSize: transfer.fileSize,
         duration: transfer.completedAt - transfer.startedAt,
       };
     } catch (error) {
-      logger.error('[FileTransferHandler] 完成上传失败:', error);
+      logger.error("[FileTransferHandler] 完成上传失败:", error);
 
       // 更新为失败状态
-      transfer.status = 'failed';
+      transfer.status = "failed";
       transfer.error = error.message;
       transfer.updatedAt = Date.now();
 
@@ -437,11 +470,11 @@ class FileTransferHandler {
             UPDATE file_transfers
             SET status = ?, error = ?, updated_at = ?
             WHERE id = ?
-          `
+          `,
           )
           .run(transfer.status, transfer.error, transfer.updatedAt, transferId);
       } catch (dbError) {
-        logger.error('[FileTransferHandler] 更新数据库失败:', dbError);
+        logger.error("[FileTransferHandler] 更新数据库失败:", dbError);
       }
 
       // 清理任务
@@ -459,17 +492,21 @@ class FileTransferHandler {
     const { filePath, fileName } = params;
 
     // 验证参数
-    if (!filePath || typeof filePath !== 'string') {
+    if (!filePath || typeof filePath !== "string") {
       throw new Error('Parameter "filePath" is required and must be a string');
     }
 
     // 安全检查：确保文件在允许的目录内
     const resolvedPath = path.resolve(filePath);
     const allowedDirs = [this.uploadDir, this.downloadDir];
-    const isAllowed = allowedDirs.some((dir) => resolvedPath.startsWith(path.resolve(dir)));
+    const isAllowed = allowedDirs.some((dir) =>
+      resolvedPath.startsWith(path.resolve(dir)),
+    );
 
     if (!isAllowed) {
-      throw new Error('Access denied: file path is outside allowed directories');
+      throw new Error(
+        "Access denied: file path is outside allowed directories",
+      );
     }
 
     // 检查文件是否存在
@@ -477,7 +514,7 @@ class FileTransferHandler {
       const stats = await fs.stat(resolvedPath);
 
       if (!stats.isFile()) {
-        throw new Error('Path is not a file');
+        throw new Error("Path is not a file");
       }
 
       const fileSize = stats.size;
@@ -485,18 +522,20 @@ class FileTransferHandler {
       // 检查文件大小限制
       if (fileSize > this.options.maxFileSize) {
         throw new Error(
-          `File size ${fileSize} exceeds maximum allowed size ${this.options.maxFileSize}`
+          `File size ${fileSize} exceeds maximum allowed size ${this.options.maxFileSize}`,
         );
       }
 
       // 检查并发传输限制
       if (this.activeTransfers >= this.options.maxConcurrent) {
         throw new Error(
-          `Maximum concurrent transfers (${this.options.maxConcurrent}) reached. Please try again later.`
+          `Maximum concurrent transfers (${this.options.maxConcurrent}) reached. Please try again later.`,
         );
       }
 
-      logger.info(`[FileTransferHandler] 请求下载文件: ${filePath} (${fileSize} bytes) to ${context.did}`);
+      logger.info(
+        `[FileTransferHandler] 请求下载文件: ${filePath} (${fileSize} bytes) to ${context.did}`,
+      );
 
       // 生成传输 ID
       const transferId = `download-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -513,7 +552,7 @@ class FileTransferHandler {
       // 创建传输任务
       const transfer = {
         transferId,
-        direction: 'download',
+        direction: "download",
         deviceDid: context.did,
         fileName: fileName || path.basename(resolvedPath),
         filePath: resolvedPath,
@@ -522,7 +561,7 @@ class FileTransferHandler {
         chunkSize: this.options.chunkSize,
         totalChunks,
         sentChunks: new Set(),
-        status: 'in_progress',
+        status: "in_progress",
         progress: 0,
         startedAt: Date.now(),
         updatedAt: Date.now(),
@@ -539,22 +578,22 @@ class FileTransferHandler {
             INSERT INTO file_transfers
             (id, device_did, direction, file_name, file_size, total_chunks, status, progress, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `
+          `,
           )
           .run(
             transferId,
             context.did,
-            'download',
+            "download",
             transfer.fileName,
             fileSize,
             totalChunks,
-            'in_progress',
+            "in_progress",
             0,
             Date.now(),
-            Date.now()
+            Date.now(),
           );
       } catch (error) {
-        logger.error('[FileTransferHandler] 保存传输任务到数据库失败:', error);
+        logger.error("[FileTransferHandler] 保存传输任务到数据库失败:", error);
       }
 
       return {
@@ -566,7 +605,7 @@ class FileTransferHandler {
         checksum,
       };
     } catch (error) {
-      logger.error('[FileTransferHandler] 请求下载失败:', error);
+      logger.error("[FileTransferHandler] 请求下载失败:", error);
       throw new Error(`Failed to request download: ${error.message}`);
     }
   }
@@ -578,12 +617,16 @@ class FileTransferHandler {
     const { transferId, chunkIndex } = params;
 
     // 验证参数
-    if (!transferId || typeof transferId !== 'string') {
-      throw new Error('Parameter "transferId" is required and must be a string');
+    if (!transferId || typeof transferId !== "string") {
+      throw new Error(
+        'Parameter "transferId" is required and must be a string',
+      );
     }
 
-    if (typeof chunkIndex !== 'number' || chunkIndex < 0) {
-      throw new Error('Parameter "chunkIndex" is required and must be a non-negative number');
+    if (typeof chunkIndex !== "number" || chunkIndex < 0) {
+      throw new Error(
+        'Parameter "chunkIndex" is required and must be a non-negative number',
+      );
     }
 
     // 获取传输任务
@@ -594,15 +637,19 @@ class FileTransferHandler {
 
     // 验证设备
     if (transfer.deviceDid !== context.did) {
-      throw new Error('Permission denied: device DID mismatch');
+      throw new Error("Permission denied: device DID mismatch");
     }
 
     // 验证分块索引
     if (chunkIndex >= transfer.totalChunks) {
-      throw new Error(`Invalid chunk index: ${chunkIndex} (total: ${transfer.totalChunks})`);
+      throw new Error(
+        `Invalid chunk index: ${chunkIndex} (total: ${transfer.totalChunks})`,
+      );
     }
 
-    logger.debug(`[FileTransferHandler] 发送分块 ${chunkIndex}/${transfer.totalChunks - 1} for ${transferId}`);
+    logger.debug(
+      `[FileTransferHandler] 发送分块 ${chunkIndex}/${transfer.totalChunks - 1} for ${transferId}`,
+    );
 
     try {
       // 计算分块偏移量和大小
@@ -613,20 +660,21 @@ class FileTransferHandler {
         : transfer.chunkSize;
 
       // 读取文件分块
-      const fd = await fs.open(transfer.filePath, 'r');
+      const fd = await fs.open(transfer.filePath, "r");
       const buffer = Buffer.allocUnsafe(chunkSize);
       await fd.read(buffer, 0, chunkSize, offset);
       await fd.close();
 
       // 编码为 base64
-      const chunkData = buffer.toString('base64');
+      const chunkData = buffer.toString("base64");
 
       // 标记分块已发送
       transfer.sentChunks.add(chunkIndex);
       transfer.updatedAt = Date.now();
 
       // 更新进度
-      transfer.progress = (transfer.sentChunks.size / transfer.totalChunks) * 100;
+      transfer.progress =
+        (transfer.sentChunks.size / transfer.totalChunks) * 100;
 
       // 更新数据库
       try {
@@ -636,11 +684,11 @@ class FileTransferHandler {
             UPDATE file_transfers
             SET progress = ?, updated_at = ?
             WHERE id = ?
-          `
+          `,
           )
           .run(transfer.progress, transfer.updatedAt, transferId);
       } catch (error) {
-        logger.error('[FileTransferHandler] 更新数据库失败:', error);
+        logger.error("[FileTransferHandler] 更新数据库失败:", error);
       }
 
       return {
@@ -664,8 +712,10 @@ class FileTransferHandler {
     const { transferId } = params;
 
     // 验证参数
-    if (!transferId || typeof transferId !== 'string') {
-      throw new Error('Parameter "transferId" is required and must be a string');
+    if (!transferId || typeof transferId !== "string") {
+      throw new Error(
+        'Parameter "transferId" is required and must be a string',
+      );
     }
 
     // 获取传输任务
@@ -676,13 +726,13 @@ class FileTransferHandler {
 
     // 验证设备
     if (transfer.deviceDid !== context.did) {
-      throw new Error('Permission denied: device DID mismatch');
+      throw new Error("Permission denied: device DID mismatch");
     }
 
     logger.info(`[FileTransferHandler] 取消传输: ${transferId}`);
 
     // 更新传输状态
-    transfer.status = 'cancelled';
+    transfer.status = "cancelled";
     transfer.updatedAt = Date.now();
 
     // 更新数据库
@@ -693,19 +743,19 @@ class FileTransferHandler {
           UPDATE file_transfers
           SET status = ?, updated_at = ?
           WHERE id = ?
-        `
+        `,
         )
         .run(transfer.status, transfer.updatedAt, transferId);
     } catch (error) {
-      logger.error('[FileTransferHandler] 更新数据库失败:', error);
+      logger.error("[FileTransferHandler] 更新数据库失败:", error);
     }
 
     // 清理临时文件（仅上传）
-    if (transfer.direction === 'upload' && transfer.tempFilePath) {
+    if (transfer.direction === "upload" && transfer.tempFilePath) {
       try {
         await fs.unlink(transfer.tempFilePath);
       } catch (error) {
-        logger.warn('[FileTransferHandler] 删除临时文件失败:', error);
+        logger.warn("[FileTransferHandler] 删除临时文件失败:", error);
       }
     }
 
@@ -715,7 +765,7 @@ class FileTransferHandler {
 
     return {
       transferId,
-      status: 'cancelled',
+      status: "cancelled",
     };
   }
 
@@ -753,7 +803,7 @@ class FileTransferHandler {
           try {
             transfer.metadata = JSON.parse(transfer.metadata);
           } catch (error) {
-            logger.warn('[FileTransferHandler] 解析 metadata 失败:', error);
+            logger.warn("[FileTransferHandler] 解析 metadata 失败:", error);
             transfer.metadata = {};
           }
         }
@@ -766,7 +816,7 @@ class FileTransferHandler {
         offset,
       };
     } catch (error) {
-      logger.error('[FileTransferHandler] 列出传输任务失败:', error);
+      logger.error("[FileTransferHandler] 列出传输任务失败:", error);
       throw new Error(`Failed to list transfers: ${error.message}`);
     }
   }
@@ -776,12 +826,12 @@ class FileTransferHandler {
    */
   async _calculateChecksum(filePath) {
     return new Promise((resolve, reject) => {
-      const hash = crypto.createHash('md5');
-      const stream = require('fs').createReadStream(filePath);
+      const hash = crypto.createHash("md5");
+      const stream = require("fs").createReadStream(filePath);
 
-      stream.on('data', (data) => hash.update(data));
-      stream.on('end', () => resolve(hash.digest('hex')));
-      stream.on('error', reject);
+      stream.on("data", (data) => hash.update(data));
+      stream.on("end", () => resolve(hash.digest("hex")));
+      stream.on("error", reject);
     });
   }
 
@@ -797,11 +847,11 @@ class FileTransferHandler {
         logger.info(`[FileTransferHandler] 清理过期传输: ${transferId}`);
 
         // 清理临时文件
-        if (transfer.direction === 'upload' && transfer.tempFilePath) {
+        if (transfer.direction === "upload" && transfer.tempFilePath) {
           try {
             await fs.unlink(transfer.tempFilePath);
           } catch (error) {
-            logger.warn('[FileTransferHandler] 删除临时文件失败:', error);
+            logger.warn("[FileTransferHandler] 删除临时文件失败:", error);
           }
         }
 
@@ -813,11 +863,11 @@ class FileTransferHandler {
               UPDATE file_transfers
               SET status = 'expired', updated_at = ?
               WHERE id = ?
-            `
+            `,
             )
             .run(now, transferId);
         } catch (error) {
-          logger.error('[FileTransferHandler] 更新数据库失败:', error);
+          logger.error("[FileTransferHandler] 更新数据库失败:", error);
         }
 
         this.transfers.delete(transferId);
@@ -837,8 +887,10 @@ class FileTransferHandler {
    * 读取文件内容
    */
   async readFile(params, context) {
-    const { filePath, encoding = 'utf8' } = params;
-    if (!filePath) throw new Error('File path is required');
+    const { filePath, encoding = "utf8" } = params;
+    if (!filePath) {
+      throw new Error("File path is required");
+    }
 
     logger.info(`[FileTransferHandler] 读取文件: ${filePath}`);
 
@@ -846,7 +898,7 @@ class FileTransferHandler {
     const stats = await fs.stat(fullPath);
 
     if (!stats.isFile()) {
-      throw new Error('Path is not a file');
+      throw new Error("Path is not a file");
     }
 
     const content = await fs.readFile(fullPath, encoding);
@@ -855,7 +907,7 @@ class FileTransferHandler {
       filePath,
       content,
       size: stats.size,
-      encoding
+      encoding,
     };
   }
 
@@ -863,9 +915,13 @@ class FileTransferHandler {
    * 写入文件内容
    */
   async writeFile(params, context) {
-    const { filePath, content, encoding = 'utf8', createDir = false } = params;
-    if (!filePath) throw new Error('File path is required');
-    if (content === undefined) throw new Error('Content is required');
+    const { filePath, content, encoding = "utf8", createDir = false } = params;
+    if (!filePath) {
+      throw new Error("File path is required");
+    }
+    if (content === undefined) {
+      throw new Error("Content is required");
+    }
 
     logger.info(`[FileTransferHandler] 写入文件: ${filePath}`);
 
@@ -882,7 +938,7 @@ class FileTransferHandler {
     return {
       filePath,
       size: stats.size,
-      message: 'File written successfully'
+      message: "File written successfully",
     };
   }
 
@@ -890,7 +946,7 @@ class FileTransferHandler {
    * 列出目录内容
    */
   async listDirectory(params, context) {
-    const { dirPath = '.', recursive = false, filter = null } = params;
+    const { dirPath = ".", recursive = false, filter = null } = params;
 
     logger.info(`[FileTransferHandler] 列出目录: ${dirPath}`);
 
@@ -898,7 +954,7 @@ class FileTransferHandler {
     const stats = await fs.stat(fullPath);
 
     if (!stats.isDirectory()) {
-      throw new Error('Path is not a directory');
+      throw new Error("Path is not a directory");
     }
 
     const items = await fs.readdir(fullPath, { withFileTypes: true });
@@ -915,7 +971,7 @@ class FileTransferHandler {
         isFile: item.isFile(),
         size: itemStats.size,
         createdAt: itemStats.birthtime.getTime(),
-        modifiedAt: itemStats.mtime.getTime()
+        modifiedAt: itemStats.mtime.getTime(),
       };
 
       // 应用过滤器
@@ -929,7 +985,7 @@ class FileTransferHandler {
       if (recursive && item.isDirectory()) {
         const subItems = await this.listDirectory(
           { dirPath: path.join(dirPath, item.name), recursive: true, filter },
-          context
+          context,
         );
         results.push(...subItems.items);
       }
@@ -938,7 +994,7 @@ class FileTransferHandler {
     return {
       dirPath,
       items: results,
-      total: results.length
+      total: results.length,
     };
   }
 
@@ -947,7 +1003,9 @@ class FileTransferHandler {
    */
   async deleteFile(params, context) {
     const { filePath, recursive = false } = params;
-    if (!filePath) throw new Error('File path is required');
+    if (!filePath) {
+      throw new Error("File path is required");
+    }
 
     logger.info(`[FileTransferHandler] 删除文件: ${filePath}`);
 
@@ -956,7 +1014,7 @@ class FileTransferHandler {
 
     if (stats.isDirectory()) {
       if (!recursive) {
-        throw new Error('Cannot delete directory without recursive flag');
+        throw new Error("Cannot delete directory without recursive flag");
       }
       await fs.rm(fullPath, { recursive: true, force: true });
     } else {
@@ -965,7 +1023,7 @@ class FileTransferHandler {
 
     return {
       filePath,
-      message: 'File deleted successfully'
+      message: "File deleted successfully",
     };
   }
 
@@ -975,10 +1033,12 @@ class FileTransferHandler {
   async moveFile(params, context) {
     const { sourcePath, targetPath, overwrite = false } = params;
     if (!sourcePath || !targetPath) {
-      throw new Error('Source and target paths are required');
+      throw new Error("Source and target paths are required");
     }
 
-    logger.info(`[FileTransferHandler] 移动文件: ${sourcePath} -> ${targetPath}`);
+    logger.info(
+      `[FileTransferHandler] 移动文件: ${sourcePath} -> ${targetPath}`,
+    );
 
     const fullSourcePath = this._resolvePath(sourcePath);
     const fullTargetPath = this._resolvePath(targetPath);
@@ -986,9 +1046,11 @@ class FileTransferHandler {
     if (!overwrite) {
       try {
         await fs.access(fullTargetPath);
-        throw new Error('Target file already exists');
+        throw new Error("Target file already exists");
       } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
+        if (error.code !== "ENOENT") {
+          throw error;
+        }
       }
     }
 
@@ -997,7 +1059,7 @@ class FileTransferHandler {
     return {
       sourcePath,
       targetPath,
-      message: 'File moved successfully'
+      message: "File moved successfully",
     };
   }
 
@@ -1007,10 +1069,12 @@ class FileTransferHandler {
   async copyFile(params, context) {
     const { sourcePath, targetPath, overwrite = false } = params;
     if (!sourcePath || !targetPath) {
-      throw new Error('Source and target paths are required');
+      throw new Error("Source and target paths are required");
     }
 
-    logger.info(`[FileTransferHandler] 复制文件: ${sourcePath} -> ${targetPath}`);
+    logger.info(
+      `[FileTransferHandler] 复制文件: ${sourcePath} -> ${targetPath}`,
+    );
 
     const fullSourcePath = this._resolvePath(sourcePath);
     const fullTargetPath = this._resolvePath(targetPath);
@@ -1018,9 +1082,11 @@ class FileTransferHandler {
     if (!overwrite) {
       try {
         await fs.access(fullTargetPath);
-        throw new Error('Target file already exists');
+        throw new Error("Target file already exists");
       } catch (error) {
-        if (error.code !== 'ENOENT') throw error;
+        if (error.code !== "ENOENT") {
+          throw error;
+        }
       }
     }
 
@@ -1032,7 +1098,7 @@ class FileTransferHandler {
       sourcePath,
       targetPath,
       size: stats.size,
-      message: 'File copied successfully'
+      message: "File copied successfully",
     };
   }
 
@@ -1041,7 +1107,9 @@ class FileTransferHandler {
    */
   async getFileStats(params, context) {
     const { filePath } = params;
-    if (!filePath) throw new Error('File path is required');
+    if (!filePath) {
+      throw new Error("File path is required");
+    }
 
     const fullPath = this._resolvePath(filePath);
     const stats = await fs.stat(fullPath);
@@ -1053,7 +1121,7 @@ class FileTransferHandler {
       size: stats.size,
       createdAt: stats.birthtime.getTime(),
       modifiedAt: stats.mtime.getTime(),
-      accessedAt: stats.atime.getTime()
+      accessedAt: stats.atime.getTime(),
     };
   }
 
@@ -1062,7 +1130,9 @@ class FileTransferHandler {
    */
   async fileExists(params, context) {
     const { filePath } = params;
-    if (!filePath) throw new Error('File path is required');
+    if (!filePath) {
+      throw new Error("File path is required");
+    }
 
     const fullPath = this._resolvePath(filePath);
 
@@ -1083,7 +1153,7 @@ class FileTransferHandler {
 
     // 确保路径在允许的基础路径内（防止路径遍历攻击）
     if (!resolvedPath.startsWith(basePath)) {
-      throw new Error('Access denied: Path outside allowed directory');
+      throw new Error("Access denied: Path outside allowed directory");
     }
 
     return resolvedPath;
@@ -1093,7 +1163,7 @@ class FileTransferHandler {
    * 获取基础路径
    */
   _getBasePath() {
-    return app.getPath('userData');
+    return app.getPath("userData");
   }
 }
 

@@ -15,18 +15,12 @@
           </a-tag>
         </a-tooltip>
         <a-tooltip title="旋转设备">
-          <a-button
-            size="small"
-            @click="handleRotate"
-          >
+          <a-button size="small" @click="handleRotate">
             <ReloadOutlined />
           </a-button>
         </a-tooltip>
         <a-tooltip title="重置缩放">
-          <a-button
-            size="small"
-            @click="handleResetZoom"
-          >
+          <a-button size="small" @click="handleResetZoom">
             <ZoomOutOutlined />
           </a-button>
         </a-tooltip>
@@ -34,14 +28,8 @@
     </div>
 
     <!-- 预览容器 -->
-    <div
-      ref="previewContainerRef"
-      class="preview-container"
-    >
-      <div
-        class="preview-wrapper"
-        :style="previewWrapperStyle"
-      >
+    <div ref="previewContainerRef" class="preview-container">
+      <div class="preview-wrapper" :style="previewWrapperStyle">
         <!-- srcdoc 模式 -->
         <iframe
           v-if="mode === 'srcdoc'"
@@ -64,10 +52,7 @@
         />
 
         <!-- 加载中 -->
-        <div
-          v-else
-          class="loading-placeholder"
-        >
+        <div v-else class="loading-placeholder">
           <a-spin size="large" />
           <p>等待服务器启动...</p>
         </div>
@@ -77,9 +62,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import {
   EyeOutlined,
   ReloadOutlined,
@@ -87,59 +72,59 @@ import {
   MobileOutlined,
   TabletOutlined,
   DesktopOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   html: {
     type: String,
-    default: '',
+    default: "",
   },
   css: {
     type: String,
-    default: '',
+    default: "",
   },
   js: {
     type: String,
-    default: '',
+    default: "",
   },
   mode: {
     type: String,
-    default: 'srcdoc', // 'srcdoc' | 'server'
+    default: "srcdoc", // 'srcdoc' | 'server'
   },
   device: {
     type: String,
-    default: 'desktop', // 'mobile' | 'tablet' | 'desktop'
+    default: "desktop", // 'mobile' | 'tablet' | 'desktop'
   },
   serverUrl: {
     type: String,
-    default: '',
+    default: "",
   },
 });
 
-const emit = defineEmits(['console-log', 'error']);
+const emit = defineEmits(["console-log", "error"]);
 
 // 设备预设
 const devicePresets = {
   mobile: {
-    name: '手机',
+    name: "手机",
     icon: MobileOutlined,
     width: 375,
     height: 667,
-    color: 'blue',
+    color: "blue",
   },
   tablet: {
-    name: '平板',
+    name: "平板",
     icon: TabletOutlined,
     width: 768,
     height: 1024,
-    color: 'green',
+    color: "green",
   },
   desktop: {
-    name: '桌面',
+    name: "桌面",
     icon: DesktopOutlined,
     width: 1440,
     height: 900,
-    color: 'purple',
+    color: "purple",
   },
 };
 
@@ -151,33 +136,41 @@ const rotation = ref(0);
 const scale = ref(1);
 
 // 当前设备信息
-const deviceInfo = computed(() => devicePresets[props.device] || devicePresets.desktop);
+const deviceInfo = computed(
+  () => devicePresets[props.device] || devicePresets.desktop,
+);
 
 // 预览容器样式
 const previewWrapperStyle = computed(() => ({
-  width: '100%',
-  height: '100%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  overflow: 'auto',
-  padding: '20px',
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  overflow: "auto",
+  padding: "20px",
 }));
 
 // iframe 样式
 const iframeStyle = computed(() => {
-  const width = rotation.value % 180 === 0 ? deviceInfo.value.width : deviceInfo.value.height;
-  const height = rotation.value % 180 === 0 ? deviceInfo.value.height : deviceInfo.value.width;
+  const width =
+    rotation.value % 180 === 0
+      ? deviceInfo.value.width
+      : deviceInfo.value.height;
+  const height =
+    rotation.value % 180 === 0
+      ? deviceInfo.value.height
+      : deviceInfo.value.width;
 
   return {
     width: `${width}px`,
     height: `${height}px`,
-    border: '1px solid #3e3e42',
-    borderRadius: '4px',
-    background: 'white',
+    border: "1px solid #3e3e42",
+    borderRadius: "4px",
+    background: "white",
     transform: `rotate(${rotation.value}deg) scale(${scale.value})`,
-    transformOrigin: 'center center',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    transformOrigin: "center center",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
   };
 });
 
@@ -241,14 +234,14 @@ const generatePreviewHTML = () => {
     })();
 
     ${props.js}
-  ${'</scr' + 'ipt>'}
+  ${"</scr" + "ipt>"}
 </body>
 </html>`;
 };
 
 // 更新预览
 const updatePreview = () => {
-  if (props.mode === 'srcdoc' && previewIframeRef.value) {
+  if (props.mode === "srcdoc" && previewIframeRef.value) {
     const previewHTML = generatePreviewHTML();
     previewIframeRef.value.srcdoc = previewHTML;
   }
@@ -256,7 +249,7 @@ const updatePreview = () => {
 
 // iframe 加载完成
 const handleIframeLoad = () => {
-  logger.info('Preview iframe loaded');
+  logger.info("Preview iframe loaded");
 };
 
 // 旋转设备
@@ -277,8 +270,8 @@ const refresh = () => {
 
 // 监听 postMessage
 const handleMessage = (event) => {
-  if (event.data.type === 'console') {
-    emit('console-log', {
+  if (event.data.type === "console") {
+    emit("console-log", {
       id: Date.now() + Math.random(),
       method: event.data.method,
       args: event.data.args,
@@ -291,11 +284,11 @@ const handleMessage = (event) => {
 watch(
   () => [props.html, props.css, props.js],
   () => {
-    if (props.mode === 'srcdoc') {
+    if (props.mode === "srcdoc") {
       updatePreview();
     }
   },
-  { deep: true }
+  { deep: true },
 );
 
 // 监听模式变化
@@ -305,19 +298,19 @@ watch(
     nextTick(() => {
       updatePreview();
     });
-  }
+  },
 );
 
 // 生命周期
 onMounted(() => {
-  window.addEventListener('message', handleMessage);
+  window.addEventListener("message", handleMessage);
   nextTick(() => {
     updatePreview();
   });
 });
 
 onUnmounted(() => {
-  window.removeEventListener('message', handleMessage);
+  window.removeEventListener("message", handleMessage);
 });
 
 // 暴露方法

@@ -1,8 +1,5 @@
 <template>
-  <a-card
-    title="数据库性能监控"
-    class="performance-monitor"
-  >
+  <a-card title="数据库性能监控" class="performance-monitor">
     <template #extra>
       <a-space>
         <a-button
@@ -14,11 +11,7 @@
           <ReloadOutlined />
           刷新
         </a-button>
-        <a-button
-          type="text"
-          size="small"
-          @click="clearStats"
-        >
+        <a-button type="text" size="small" @click="clearStats">
           <DeleteOutlined />
           清除
         </a-button>
@@ -81,10 +74,7 @@
       <a-divider />
 
       <!-- 性能对比 -->
-      <div
-        v-if="stats.isEncrypted"
-        class="performance-comparison"
-      >
+      <div v-if="stats.isEncrypted" class="performance-comparison">
         <h4>加密性能对比</h4>
         <a-alert
           type="info"
@@ -94,10 +84,7 @@
         />
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-card
-              size="small"
-              title="加密模式 (SQLCipher)"
-            >
+            <a-card size="small" title="加密模式 (SQLCipher)">
               <a-statistic
                 title="1000条记录插入"
                 :value="stats.encryptedTime"
@@ -111,10 +98,7 @@
             </a-card>
           </a-col>
           <a-col :span="12">
-            <a-card
-              size="small"
-              title="非加密模式 (sql.js)"
-            >
+            <a-card size="small" title="非加密模式 (sql.js)">
               <a-statistic
                 title="1000条记录插入"
                 :value="stats.unencryptedTime"
@@ -135,20 +119,13 @@
       <!-- 操作类型分布 -->
       <div class="operation-distribution">
         <h4>操作类型分布</h4>
-        <a-list
-          size="small"
-          :data-source="operationTypes"
-          :split="false"
-        >
+        <a-list size="small" :data-source="operationTypes" :split="false">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta>
                 <template #title>
                   <span>{{ item.type }}</span>
-                  <a-tag
-                    color="blue"
-                    style="margin-left: 8px"
-                  >
+                  <a-tag color="blue" style="margin-left: 8px">
                     {{ item.count }} 次
                   </a-tag>
                 </template>
@@ -186,7 +163,11 @@
               </a-tag>
             </template>
             <template v-else-if="column.key === 'duration'">
-              <span :style="{ color: record.duration > 100 ? '#ff4d4f' : '#52c41a' }">
+              <span
+                :style="{
+                  color: record.duration > 100 ? '#ff4d4f' : '#52c41a',
+                }"
+              >
                 {{ record.duration }}ms
               </span>
             </template>
@@ -201,10 +182,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   DatabaseOutlined,
   ClockCircleOutlined,
@@ -215,7 +196,7 @@ import {
   DeleteOutlined,
   CheckCircleOutlined,
   InfoCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // 性能统计数据
 const stats = reactive({
@@ -230,48 +211,50 @@ const stats = reactive({
 
 // 操作类型数据
 const operationTypes = ref([
-  { type: 'SELECT', count: 0, percentage: 0, avgTime: 0 },
-  { type: 'INSERT', count: 0, percentage: 0, avgTime: 0 },
-  { type: 'UPDATE', count: 0, percentage: 0, avgTime: 0 },
-  { type: 'DELETE', count: 0, percentage: 0, avgTime: 0 },
+  { type: "SELECT", count: 0, percentage: 0, avgTime: 0 },
+  { type: "INSERT", count: 0, percentage: 0, avgTime: 0 },
+  { type: "UPDATE", count: 0, percentage: 0, avgTime: 0 },
+  { type: "DELETE", count: 0, percentage: 0, avgTime: 0 },
 ]);
 
 // 最近操作日志
 const recentLogs = ref([]);
 
 const logColumns = [
-  { title: '操作类型', dataIndex: 'type', key: 'type', width: 100 },
-  { title: 'SQL语句', dataIndex: 'sql', key: 'sql', ellipsis: true },
-  { title: '耗时', dataIndex: 'duration', key: 'duration', width: 80 },
-  { title: '时间', dataIndex: 'timestamp', key: 'timestamp', width: 180 },
+  { title: "操作类型", dataIndex: "type", key: "type", width: 100 },
+  { title: "SQL语句", dataIndex: "sql", key: "sql", ellipsis: true },
+  { title: "耗时", dataIndex: "duration", key: "duration", width: 80 },
+  { title: "时间", dataIndex: "timestamp", key: "timestamp", width: 180 },
 ];
 
 const loading = ref(false);
 
 // 格式化字节大小
 const formatBytes = (bytes) => {
-  if (bytes === 0) {return '0 B';}
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+  return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
 };
 
 // 格式化时间戳
 const formatTimestamp = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 
 // 获取操作类型颜色
 const getOperationColor = (type) => {
   const colors = {
-    SELECT: 'blue',
-    INSERT: 'green',
-    UPDATE: 'orange',
-    DELETE: 'red',
+    SELECT: "blue",
+    INSERT: "green",
+    UPDATE: "orange",
+    DELETE: "red",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 // 刷新统计数据
@@ -280,12 +263,16 @@ const refreshStats = async () => {
   try {
     if (window.electron?.ipcRenderer) {
       // 获取加密状态
-      const encryptionStatus = await window.electron.ipcRenderer.invoke('database:get-encryption-status');
+      const encryptionStatus = await window.electron.ipcRenderer.invoke(
+        "database:get-encryption-status",
+      );
       stats.isEncrypted = encryptionStatus.isEncrypted;
 
       // 获取性能统计（如果后端有提供）
       try {
-        const performanceData = await window.electron.ipcRenderer.invoke('database:get-performance-stats');
+        const performanceData = await window.electron.ipcRenderer.invoke(
+          "database:get-performance-stats",
+        );
         if (performanceData) {
           Object.assign(stats, performanceData.stats);
           operationTypes.value = performanceData.operationTypes;
@@ -293,7 +280,7 @@ const refreshStats = async () => {
         }
       } catch (error) {
         // 如果后端还没有实现性能统计API，使用模拟数据
-        logger.info('使用模拟性能数据');
+        logger.info("使用模拟性能数据");
         generateMockData();
       }
     } else {
@@ -301,8 +288,8 @@ const refreshStats = async () => {
       generateMockData();
     }
   } catch (error) {
-    logger.error('刷新性能统计失败:', error);
-    message.error('刷新失败：' + error.message);
+    logger.error("刷新性能统计失败:", error);
+    message.error("刷新失败：" + error.message);
   } finally {
     loading.value = false;
   }
@@ -317,33 +304,33 @@ const generateMockData = () => {
   const total = stats.totalQueries;
   operationTypes.value = [
     {
-      type: 'SELECT',
+      type: "SELECT",
       count: Math.floor(total * 0.6),
       percentage: 60,
-      avgTime: Math.random() * 5 + 1
+      avgTime: Math.random() * 5 + 1,
     },
     {
-      type: 'INSERT',
+      type: "INSERT",
       count: Math.floor(total * 0.2),
       percentage: 20,
-      avgTime: Math.random() * 3 + 2
+      avgTime: Math.random() * 3 + 2,
     },
     {
-      type: 'UPDATE',
+      type: "UPDATE",
       count: Math.floor(total * 0.15),
       percentage: 15,
-      avgTime: Math.random() * 4 + 2
+      avgTime: Math.random() * 4 + 2,
     },
     {
-      type: 'DELETE',
+      type: "DELETE",
       count: Math.floor(total * 0.05),
       percentage: 5,
-      avgTime: Math.random() * 3 + 1
+      avgTime: Math.random() * 3 + 1,
     },
   ];
 
   // 生成模拟日志
-  const operations = ['SELECT', 'INSERT', 'UPDATE', 'DELETE'];
+  const operations = ["SELECT", "INSERT", "UPDATE", "DELETE"];
   recentLogs.value = Array.from({ length: 20 }, (_, i) => ({
     key: i,
     type: operations[Math.floor(Math.random() * operations.length)],
@@ -357,13 +344,15 @@ const generateMockData = () => {
 const clearStats = async () => {
   try {
     if (window.electron?.ipcRenderer) {
-      await window.electron.ipcRenderer.invoke('database:clear-performance-stats');
+      await window.electron.ipcRenderer.invoke(
+        "database:clear-performance-stats",
+      );
     }
     await refreshStats();
-    message.success('统计数据已清除');
+    message.success("统计数据已清除");
   } catch (error) {
-    logger.error('清除统计失败:', error);
-    message.error('清除失败：' + error.message);
+    logger.error("清除统计失败:", error);
+    message.error("清除失败：" + error.message);
   }
 };
 

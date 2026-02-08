@@ -10,18 +10,18 @@
  * @module remote/logging/statistics-collector
  */
 
-const { logger } = require('../../utils/logger');
-const EventEmitter = require('events');
+const { logger } = require("../../utils/logger");
+const EventEmitter = require("events");
 
 /**
  * 时间段类型
  */
 const TimePeriod = {
-  HOUR: 'hour',
-  DAY: 'day',
-  WEEK: 'week',
-  MONTH: 'month',
-  YEAR: 'year'
+  HOUR: "hour",
+  DAY: "day",
+  WEEK: "week",
+  MONTH: "month",
+  YEAR: "year",
 };
 
 /**
@@ -39,7 +39,7 @@ class StatisticsCollector extends EventEmitter {
       enablePersistentStats: true,
       statsAggregationInterval: 60 * 1000, // 每分钟聚合一次
       maxStatsAge: 90 * 24 * 60 * 60 * 1000, // 90 天
-      ...options
+      ...options,
     };
 
     // 实时统计数据（内存中）
@@ -52,7 +52,7 @@ class StatisticsCollector extends EventEmitter {
       byDevice: new Map(),
       byNamespace: new Map(),
       byAction: new Map(),
-      recentCommands: []
+      recentCommands: [],
     };
 
     // 聚合定时器
@@ -66,7 +66,7 @@ class StatisticsCollector extends EventEmitter {
       this.startAggregation();
     }
 
-    logger.info('[StatisticsCollector] 统计数据收集器已初始化');
+    logger.info("[StatisticsCollector] 统计数据收集器已初始化");
   }
 
   /**
@@ -104,9 +104,9 @@ class StatisticsCollector extends EventEmitter {
         CREATE INDEX IF NOT EXISTS idx_stats_namespace ON remote_command_stats(command_namespace);
       `);
 
-      logger.info('[StatisticsCollector] 统计表已初始化');
+      logger.info("[StatisticsCollector] 统计表已初始化");
     } catch (error) {
-      logger.error('[StatisticsCollector] 初始化数据库表失败:', error);
+      logger.error("[StatisticsCollector] 初始化数据库表失败:", error);
       throw error;
     }
   }
@@ -119,9 +119,9 @@ class StatisticsCollector extends EventEmitter {
       deviceDid,
       namespace,
       action,
-      status = 'success',
+      status = "success",
       duration = 0,
-      timestamp = Date.now()
+      timestamp = Date.now(),
     } = commandData;
 
     try {
@@ -133,11 +133,11 @@ class StatisticsCollector extends EventEmitter {
       this.realTimeStats.totalCommands++;
 
       // 按状态统计
-      if (status === 'success') {
+      if (status === "success") {
         this.realTimeStats.successCount++;
-      } else if (status === 'failure') {
+      } else if (status === "failure") {
         this.realTimeStats.failureCount++;
-      } else if (status === 'warning') {
+      } else if (status === "warning") {
         this.realTimeStats.warningCount++;
       }
 
@@ -152,11 +152,15 @@ class StatisticsCollector extends EventEmitter {
           totalCount: 0,
           successCount: 0,
           failureCount: 0,
-          lastActivity: 0
+          lastActivity: 0,
         };
         deviceStats.totalCount++;
-        if (status === 'success') deviceStats.successCount++;
-        if (status === 'failure') deviceStats.failureCount++;
+        if (status === "success") {
+          deviceStats.successCount++;
+        }
+        if (status === "failure") {
+          deviceStats.failureCount++;
+        }
         deviceStats.lastActivity = timestamp;
         this.realTimeStats.byDevice.set(deviceDid, deviceStats);
       }
@@ -166,11 +170,15 @@ class StatisticsCollector extends EventEmitter {
         const nsStats = this.realTimeStats.byNamespace.get(namespace) || {
           totalCount: 0,
           successCount: 0,
-          failureCount: 0
+          failureCount: 0,
         };
         nsStats.totalCount++;
-        if (status === 'success') nsStats.successCount++;
-        if (status === 'failure') nsStats.failureCount++;
+        if (status === "success") {
+          nsStats.successCount++;
+        }
+        if (status === "failure") {
+          nsStats.failureCount++;
+        }
         this.realTimeStats.byNamespace.set(namespace, nsStats);
       }
 
@@ -178,11 +186,13 @@ class StatisticsCollector extends EventEmitter {
       const fullAction = `${namespace}.${action}`;
       const actionStats = this.realTimeStats.byAction.get(fullAction) || {
         totalCount: 0,
-        avgDuration: 0
+        avgDuration: 0,
       };
       actionStats.totalCount++;
       if (duration > 0) {
-        actionStats.avgDuration = (actionStats.avgDuration * (actionStats.totalCount - 1) + duration) / actionStats.totalCount;
+        actionStats.avgDuration =
+          (actionStats.avgDuration * (actionStats.totalCount - 1) + duration) /
+          actionStats.totalCount;
       }
       this.realTimeStats.byAction.set(fullAction, actionStats);
 
@@ -193,18 +203,19 @@ class StatisticsCollector extends EventEmitter {
         action,
         status,
         duration,
-        timestamp
+        timestamp,
       });
 
       // 只保留最近 100 条
       if (this.realTimeStats.recentCommands.length > 100) {
-        this.realTimeStats.recentCommands = this.realTimeStats.recentCommands.slice(0, 100);
+        this.realTimeStats.recentCommands =
+          this.realTimeStats.recentCommands.slice(0, 100);
       }
 
       // 发出统计更新事件
-      this.emit('stats-updated', this.getRealTimeStats());
+      this.emit("stats-updated", this.getRealTimeStats());
     } catch (error) {
-      logger.error('[StatisticsCollector] 记录统计失败:', error);
+      logger.error("[StatisticsCollector] 记录统计失败:", error);
     }
   }
 
@@ -212,13 +223,19 @@ class StatisticsCollector extends EventEmitter {
    * 获取实时统计
    */
   getRealTimeStats() {
-    const avgDuration = this.realTimeStats.totalCommands > 0
-      ? this.realTimeStats.totalDuration / this.realTimeStats.totalCommands
-      : 0;
+    const avgDuration =
+      this.realTimeStats.totalCommands > 0
+        ? this.realTimeStats.totalDuration / this.realTimeStats.totalCommands
+        : 0;
 
-    const successRate = this.realTimeStats.totalCommands > 0
-      ? (this.realTimeStats.successCount / this.realTimeStats.totalCommands * 100).toFixed(2)
-      : 0;
+    const successRate =
+      this.realTimeStats.totalCommands > 0
+        ? (
+            (this.realTimeStats.successCount /
+              this.realTimeStats.totalCommands) *
+            100
+          ).toFixed(2)
+        : 0;
 
     return {
       totalCommands: this.realTimeStats.totalCommands,
@@ -230,7 +247,7 @@ class StatisticsCollector extends EventEmitter {
       byDevice: Object.fromEntries(this.realTimeStats.byDevice),
       byNamespace: Object.fromEntries(this.realTimeStats.byNamespace),
       byAction: Object.fromEntries(this.realTimeStats.byAction),
-      recentCommands: this.realTimeStats.recentCommands.slice(0, 10) // 返回最近 10 条
+      recentCommands: this.realTimeStats.recentCommands.slice(0, 10), // 返回最近 10 条
     };
   }
 
@@ -243,7 +260,7 @@ class StatisticsCollector extends EventEmitter {
     }
 
     try {
-      logger.debug('[StatisticsCollector] 开始聚合统计数据...');
+      logger.debug("[StatisticsCollector] 开始聚合统计数据...");
 
       const now = Date.now();
 
@@ -253,9 +270,9 @@ class StatisticsCollector extends EventEmitter {
       // 聚合天级别统计
       await this.aggregateByPeriod(TimePeriod.DAY, now);
 
-      logger.debug('[StatisticsCollector] 统计数据聚合完成');
+      logger.debug("[StatisticsCollector] 统计数据聚合完成");
     } catch (error) {
-      logger.error('[StatisticsCollector] 聚合统计失败:', error);
+      logger.error("[StatisticsCollector] 聚合统计失败:", error);
     }
   }
 
@@ -263,11 +280,16 @@ class StatisticsCollector extends EventEmitter {
    * 按时间段聚合
    */
   async aggregateByPeriod(periodType, timestamp) {
-    const { periodStart, periodEnd } = this.getPeriodRange(periodType, timestamp);
+    const { periodStart, periodEnd } = this.getPeriodRange(
+      periodType,
+      timestamp,
+    );
 
     try {
       // 查询该时间段内的所有日志
-      const logs = this.database.prepare(`
+      const logs = this.database
+        .prepare(
+          `
         SELECT
           device_did,
           command_namespace,
@@ -276,7 +298,9 @@ class StatisticsCollector extends EventEmitter {
           duration
         FROM remote_command_logs
         WHERE timestamp >= ? AND timestamp < ?
-      `).all(periodStart, periodEnd);
+      `,
+        )
+        .all(periodStart, periodEnd);
 
       if (logs.length === 0) {
         return;
@@ -286,7 +310,7 @@ class StatisticsCollector extends EventEmitter {
       const statsMap = new Map();
 
       for (const log of logs) {
-        const key = `${log.device_did || 'all'}:${log.command_namespace}:${log.command_action}`;
+        const key = `${log.device_did || "all"}:${log.command_namespace}:${log.command_action}`;
 
         if (!statsMap.has(key)) {
           statsMap.set(key, {
@@ -298,16 +322,20 @@ class StatisticsCollector extends EventEmitter {
             failure_count: 0,
             warning_count: 0,
             total_duration: 0,
-            durations: []
+            durations: [],
           });
         }
 
         const stats = statsMap.get(key);
         stats.total_count++;
 
-        if (log.status === 'success') stats.success_count++;
-        else if (log.status === 'failure') stats.failure_count++;
-        else if (log.status === 'warning') stats.warning_count++;
+        if (log.status === "success") {
+          stats.success_count++;
+        } else if (log.status === "failure") {
+          stats.failure_count++;
+        } else if (log.status === "warning") {
+          stats.warning_count++;
+        }
 
         if (log.duration) {
           stats.total_duration += log.duration;
@@ -336,11 +364,14 @@ class StatisticsCollector extends EventEmitter {
       `);
 
       for (const [key, stats] of statsMap) {
-        const avgDuration = stats.durations.length > 0
-          ? stats.total_duration / stats.durations.length
-          : 0;
-        const minDuration = stats.durations.length > 0 ? Math.min(...stats.durations) : null;
-        const maxDuration = stats.durations.length > 0 ? Math.max(...stats.durations) : null;
+        const avgDuration =
+          stats.durations.length > 0
+            ? stats.total_duration / stats.durations.length
+            : 0;
+        const minDuration =
+          stats.durations.length > 0 ? Math.min(...stats.durations) : null;
+        const maxDuration =
+          stats.durations.length > 0 ? Math.max(...stats.durations) : null;
 
         upsertStmt.run(
           periodType,
@@ -358,11 +389,13 @@ class StatisticsCollector extends EventEmitter {
           minDuration,
           maxDuration,
           Date.now(),
-          Date.now()
+          Date.now(),
         );
       }
 
-      logger.debug(`[StatisticsCollector] 聚合完成: ${periodType}, ${statsMap.size} 条记录`);
+      logger.debug(
+        `[StatisticsCollector] 聚合完成: ${periodType}, ${statsMap.size} 条记录`,
+      );
     } catch (error) {
       logger.error(`[StatisticsCollector] 聚合失败 (${periodType}):`, error);
     }
@@ -379,14 +412,14 @@ class StatisticsCollector extends EventEmitter {
         date.setMinutes(0, 0, 0);
         return {
           periodStart: date.getTime(),
-          periodEnd: date.getTime() + 60 * 60 * 1000
+          periodEnd: date.getTime() + 60 * 60 * 1000,
         };
 
       case TimePeriod.DAY:
         date.setHours(0, 0, 0, 0);
         return {
           periodStart: date.getTime(),
-          periodEnd: date.getTime() + 24 * 60 * 60 * 1000
+          periodEnd: date.getTime() + 24 * 60 * 60 * 1000,
         };
 
       case TimePeriod.WEEK: {
@@ -395,7 +428,7 @@ class StatisticsCollector extends EventEmitter {
         date.setHours(0, 0, 0, 0);
         return {
           periodStart: date.getTime(),
-          periodEnd: date.getTime() + 7 * 24 * 60 * 60 * 1000
+          periodEnd: date.getTime() + 7 * 24 * 60 * 60 * 1000,
         };
       }
 
@@ -406,7 +439,7 @@ class StatisticsCollector extends EventEmitter {
         nextMonth.setMonth(nextMonth.getMonth() + 1);
         return {
           periodStart: date.getTime(),
-          periodEnd: nextMonth.getTime()
+          periodEnd: nextMonth.getTime(),
         };
       }
 
@@ -417,7 +450,7 @@ class StatisticsCollector extends EventEmitter {
         nextYear.setFullYear(nextYear.getFullYear() + 1);
         return {
           periodStart: date.getTime(),
-          periodEnd: nextYear.getTime()
+          periodEnd: nextYear.getTime(),
         };
       }
 
@@ -436,41 +469,41 @@ class StatisticsCollector extends EventEmitter {
       endTime = null,
       deviceDid = null,
       namespace = null,
-      limit = 100
+      limit = 100,
     } = options;
 
     try {
-      let query = 'SELECT * FROM remote_command_stats WHERE period_type = ?';
+      let query = "SELECT * FROM remote_command_stats WHERE period_type = ?";
       const params = [periodType];
 
       if (startTime) {
-        query += ' AND period_start >= ?';
+        query += " AND period_start >= ?";
         params.push(startTime);
       }
 
       if (endTime) {
-        query += ' AND period_end <= ?';
+        query += " AND period_end <= ?";
         params.push(endTime);
       }
 
       if (deviceDid) {
-        query += ' AND device_did = ?';
+        query += " AND device_did = ?";
         params.push(deviceDid);
       }
 
       if (namespace) {
-        query += ' AND command_namespace = ?';
+        query += " AND command_namespace = ?";
         params.push(namespace);
       }
 
-      query += ' ORDER BY period_start DESC LIMIT ?';
+      query += " ORDER BY period_start DESC LIMIT ?";
       params.push(limit);
 
       const stats = this.database.prepare(query).all(...params);
 
       return stats;
     } catch (error) {
-      logger.error('[StatisticsCollector] 查询统计失败:', error);
+      logger.error("[StatisticsCollector] 查询统计失败:", error);
       throw error;
     }
   }
@@ -482,7 +515,9 @@ class StatisticsCollector extends EventEmitter {
     try {
       const startTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
-      const activity = this.database.prepare(`
+      const activity = this.database
+        .prepare(
+          `
         SELECT
           device_did,
           COUNT(*) as total_commands,
@@ -492,11 +527,13 @@ class StatisticsCollector extends EventEmitter {
         WHERE timestamp >= ?
         GROUP BY device_did
         ORDER BY total_commands DESC
-      `).all(startTime);
+      `,
+        )
+        .all(startTime);
 
       return activity;
     } catch (error) {
-      logger.error('[StatisticsCollector] 获取设备活跃度失败:', error);
+      logger.error("[StatisticsCollector] 获取设备活跃度失败:", error);
       throw error;
     }
   }
@@ -506,7 +543,9 @@ class StatisticsCollector extends EventEmitter {
    */
   getCommandRanking(limit = 10) {
     try {
-      const ranking = this.database.prepare(`
+      const ranking = this.database
+        .prepare(
+          `
         SELECT
           command_namespace || '.' || command_action as command,
           COUNT(*) as total_count,
@@ -515,11 +554,13 @@ class StatisticsCollector extends EventEmitter {
         GROUP BY command_namespace, command_action
         ORDER BY total_count DESC
         LIMIT ?
-      `).all(limit);
+      `,
+        )
+        .all(limit);
 
       return ranking;
     } catch (error) {
-      logger.error('[StatisticsCollector] 获取命令排行失败:', error);
+      logger.error("[StatisticsCollector] 获取命令排行失败:", error);
       throw error;
     }
   }
@@ -531,7 +572,9 @@ class StatisticsCollector extends EventEmitter {
     try {
       const startTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
-      const trend = this.database.prepare(`
+      const trend = this.database
+        .prepare(
+          `
         SELECT
           period_start,
           SUM(total_count) as total_count,
@@ -542,11 +585,13 @@ class StatisticsCollector extends EventEmitter {
         WHERE period_type = ? AND period_start >= ?
         GROUP BY period_start
         ORDER BY period_start ASC
-      `).all(periodType, startTime);
+      `,
+        )
+        .all(periodType, startTime);
 
       return trend;
     } catch (error) {
-      logger.error('[StatisticsCollector] 获取趋势数据失败:', error);
+      logger.error("[StatisticsCollector] 获取趋势数据失败:", error);
       throw error;
     }
   }
@@ -563,7 +608,7 @@ class StatisticsCollector extends EventEmitter {
       this.aggregate();
     }, this.config.statsAggregationInterval);
 
-    logger.info('[StatisticsCollector] 统计聚合已启动');
+    logger.info("[StatisticsCollector] 统计聚合已启动");
   }
 
   /**
@@ -573,7 +618,7 @@ class StatisticsCollector extends EventEmitter {
     if (this.aggregationTimer) {
       clearInterval(this.aggregationTimer);
       this.aggregationTimer = null;
-      logger.info('[StatisticsCollector] 统计聚合已停止');
+      logger.info("[StatisticsCollector] 统计聚合已停止");
     }
   }
 
@@ -584,14 +629,18 @@ class StatisticsCollector extends EventEmitter {
     try {
       const cutoffTime = Date.now() - this.config.maxStatsAge;
 
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         DELETE FROM remote_command_stats WHERE period_start < ?
-      `).run(cutoffTime);
+      `,
+        )
+        .run(cutoffTime);
 
       logger.info(`[StatisticsCollector] 清理旧统计数据: ${result.changes} 条`);
       return result.changes;
     } catch (error) {
-      logger.error('[StatisticsCollector] 清理统计数据失败:', error);
+      logger.error("[StatisticsCollector] 清理统计数据失败:", error);
       throw error;
     }
   }
@@ -609,10 +658,10 @@ class StatisticsCollector extends EventEmitter {
       byDevice: new Map(),
       byNamespace: new Map(),
       byAction: new Map(),
-      recentCommands: []
+      recentCommands: [],
     };
 
-    logger.info('[StatisticsCollector] 实时统计已重置');
+    logger.info("[StatisticsCollector] 实时统计已重置");
   }
 
   /**
@@ -621,12 +670,12 @@ class StatisticsCollector extends EventEmitter {
   destroy() {
     this.stopAggregation();
     this.removeAllListeners();
-    logger.info('[StatisticsCollector] 统计数据收集器已销毁');
+    logger.info("[StatisticsCollector] 统计数据收集器已销毁");
   }
 }
 
 // 导出
 module.exports = {
   StatisticsCollector,
-  TimePeriod
+  TimePeriod,
 };

@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted, onUnmounted, onErrorCaptured } from "vue";
 import { useI18n } from "vue-i18n";

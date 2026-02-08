@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 知识管理 IPC
@@ -20,12 +20,12 @@ function registerKnowledgeIPC({
   dbManager,
   versionManager,
   knowledgePaymentManager,
-  ipcMain: injectedIpcMain
+  ipcMain: injectedIpcMain,
 }) {
   // 支持依赖注入，用于测试
-  const ipcMain = injectedIpcMain || require('electron').ipcMain;
+  const ipcMain = injectedIpcMain || require("electron").ipcMain;
 
-  logger.info('[Knowledge IPC] Registering Knowledge IPC handlers...');
+  logger.info("[Knowledge IPC] Registering Knowledge IPC handlers...");
 
   // ============================================================
   // 标签管理操作 (1 handler)
@@ -34,13 +34,13 @@ function registerKnowledgeIPC({
   /**
    * 获取标签列表
    */
-  ipcMain.handle('knowledge:get-tags', async (_event) => {
+  ipcMain.handle("knowledge:get-tags", async (_event) => {
     try {
       const db = dbManager.db;
-      const tags = db.prepare('SELECT * FROM tags ORDER BY name').all();
+      const tags = db.prepare("SELECT * FROM tags ORDER BY name").all();
       return { success: true, tags };
     } catch (error) {
-      logger.error('[Knowledge] 获取标签列表失败:', error);
+      logger.error("[Knowledge] 获取标签列表失败:", error);
       return { success: false, error: error.message, tags: [] };
     }
   });
@@ -52,12 +52,12 @@ function registerKnowledgeIPC({
   /**
    * 获取版本历史
    */
-  ipcMain.handle('knowledge:get-version-history', async (_event, params) => {
+  ipcMain.handle("knowledge:get-version-history", async (_event, params) => {
     try {
       const { knowledgeId, limit = 50 } = params;
 
       if (!versionManager) {
-        return { success: false, error: '版本管理器未初始化', versions: [] };
+        return { success: false, error: "版本管理器未初始化", versions: [] };
       }
 
       // 使用版本管理器获取完整版本历史
@@ -68,7 +68,7 @@ function registerKnowledgeIPC({
 
       return { success: true, versions, stats };
     } catch (error) {
-      logger.error('[Knowledge] 获取版本历史失败:', error);
+      logger.error("[Knowledge] 获取版本历史失败:", error);
       return { success: false, error: error.message, versions: [] };
     }
   });
@@ -76,24 +76,24 @@ function registerKnowledgeIPC({
   /**
    * 恢复版本
    */
-  ipcMain.handle('knowledge:restore-version', async (_event, params) => {
+  ipcMain.handle("knowledge:restore-version", async (_event, params) => {
     try {
       const { knowledgeId, versionId, restoredBy } = params;
 
       if (!versionManager) {
-        return { success: false, error: '版本管理器未初始化' };
+        return { success: false, error: "版本管理器未初始化" };
       }
 
       // 使用版本管理器恢复版本
       const result = await versionManager.restoreVersion(
         knowledgeId,
         versionId,
-        restoredBy
+        restoredBy,
       );
 
       return result;
     } catch (error) {
-      logger.error('[Knowledge] 恢复版本失败:', error);
+      logger.error("[Knowledge] 恢复版本失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -101,12 +101,12 @@ function registerKnowledgeIPC({
   /**
    * 对比版本
    */
-  ipcMain.handle('knowledge:compare-versions', async (_event, params) => {
+  ipcMain.handle("knowledge:compare-versions", async (_event, params) => {
     try {
       const { versionId1, versionId2 } = params;
 
       if (!versionManager) {
-        return { success: false, error: '版本管理器未初始化' };
+        return { success: false, error: "版本管理器未初始化" };
       }
 
       // 使用版本管理器对比版本
@@ -114,7 +114,7 @@ function registerKnowledgeIPC({
 
       return result;
     } catch (error) {
-      logger.error('[Knowledge] 对比版本失败:', error);
+      logger.error("[Knowledge] 对比版本失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -126,14 +126,14 @@ function registerKnowledgeIPC({
   /**
    * 创建付费内容
    */
-  ipcMain.handle('knowledge:create-content', async (_event, options) => {
+  ipcMain.handle("knowledge:create-content", async (_event, options) => {
     try {
       if (!knowledgePaymentManager) {
-        throw new Error('知识付费管理器未初始化');
+        throw new Error("知识付费管理器未初始化");
       }
       return await knowledgePaymentManager.createPaidContent(options);
     } catch (error) {
-      logger.error('[Knowledge] 创建付费内容失败:', error);
+      logger.error("[Knowledge] 创建付费内容失败:", error);
       throw error;
     }
   });
@@ -141,29 +141,32 @@ function registerKnowledgeIPC({
   /**
    * 更新内容
    */
-  ipcMain.handle('knowledge:update-content', async (_event, contentId, updates) => {
-    try {
-      if (!knowledgePaymentManager) {
-        throw new Error('知识付费管理器未初始化');
+  ipcMain.handle(
+    "knowledge:update-content",
+    async (_event, contentId, updates) => {
+      try {
+        if (!knowledgePaymentManager) {
+          throw new Error("知识付费管理器未初始化");
+        }
+        return await knowledgePaymentManager.updateContent(contentId, updates);
+      } catch (error) {
+        logger.error("[Knowledge] 更新内容失败:", error);
+        throw error;
       }
-      return await knowledgePaymentManager.updateContent(contentId, updates);
-    } catch (error) {
-      logger.error('[Knowledge] 更新内容失败:', error);
-      throw error;
-    }
-  });
+    },
+  );
 
   /**
    * 删除内容
    */
-  ipcMain.handle('knowledge:delete-content', async (_event, contentId) => {
+  ipcMain.handle("knowledge:delete-content", async (_event, contentId) => {
     try {
       if (!knowledgePaymentManager) {
-        throw new Error('知识付费管理器未初始化');
+        throw new Error("知识付费管理器未初始化");
       }
       return await knowledgePaymentManager.deleteContent(contentId);
     } catch (error) {
-      logger.error('[Knowledge] 删除内容失败:', error);
+      logger.error("[Knowledge] 删除内容失败:", error);
       throw error;
     }
   });
@@ -171,14 +174,14 @@ function registerKnowledgeIPC({
   /**
    * 获取内容
    */
-  ipcMain.handle('knowledge:get-content', async (_event, contentId) => {
+  ipcMain.handle("knowledge:get-content", async (_event, contentId) => {
     try {
       if (!knowledgePaymentManager) {
         return null;
       }
       return await knowledgePaymentManager.getContent(contentId);
     } catch (error) {
-      logger.error('[Knowledge] 获取内容失败:', error);
+      logger.error("[Knowledge] 获取内容失败:", error);
       return null;
     }
   });
@@ -186,7 +189,7 @@ function registerKnowledgeIPC({
   /**
    * 列出内容
    */
-  ipcMain.handle('knowledge:list-contents', async (_event, filters) => {
+  ipcMain.handle("knowledge:list-contents", async (_event, filters) => {
     try {
       if (!knowledgePaymentManager) {
         return {
@@ -200,7 +203,7 @@ function registerKnowledgeIPC({
         contents: contents || [],
       };
     } catch (error) {
-      logger.error('[Knowledge] 列出内容失败:', error);
+      logger.error("[Knowledge] 列出内容失败:", error);
       return {
         success: false,
         contents: [],
@@ -212,44 +215,53 @@ function registerKnowledgeIPC({
   /**
    * 购买内容
    */
-  ipcMain.handle('knowledge:purchase-content', async (_event, contentId, paymentAssetId) => {
-    try {
-      if (!knowledgePaymentManager) {
-        throw new Error('知识付费管理器未初始化');
+  ipcMain.handle(
+    "knowledge:purchase-content",
+    async (_event, contentId, paymentAssetId) => {
+      try {
+        if (!knowledgePaymentManager) {
+          throw new Error("知识付费管理器未初始化");
+        }
+        return await knowledgePaymentManager.purchaseContent(
+          contentId,
+          paymentAssetId,
+        );
+      } catch (error) {
+        logger.error("[Knowledge] 购买内容失败:", error);
+        throw error;
       }
-      return await knowledgePaymentManager.purchaseContent(contentId, paymentAssetId);
-    } catch (error) {
-      logger.error('[Knowledge] 购买内容失败:', error);
-      throw error;
-    }
-  });
+    },
+  );
 
   /**
    * 订阅
    */
-  ipcMain.handle('knowledge:subscribe', async (_event, planId, paymentAssetId) => {
-    try {
-      if (!knowledgePaymentManager) {
-        throw new Error('知识付费管理器未初始化');
+  ipcMain.handle(
+    "knowledge:subscribe",
+    async (_event, planId, paymentAssetId) => {
+      try {
+        if (!knowledgePaymentManager) {
+          throw new Error("知识付费管理器未初始化");
+        }
+        return await knowledgePaymentManager.subscribe(planId, paymentAssetId);
+      } catch (error) {
+        logger.error("[Knowledge] 订阅失败:", error);
+        throw error;
       }
-      return await knowledgePaymentManager.subscribe(planId, paymentAssetId);
-    } catch (error) {
-      logger.error('[Knowledge] 订阅失败:', error);
-      throw error;
-    }
-  });
+    },
+  );
 
   /**
    * 取消订阅
    */
-  ipcMain.handle('knowledge:unsubscribe', async (_event, planId) => {
+  ipcMain.handle("knowledge:unsubscribe", async (_event, planId) => {
     try {
       if (!knowledgePaymentManager) {
-        throw new Error('知识付费管理器未初始化');
+        throw new Error("知识付费管理器未初始化");
       }
       return await knowledgePaymentManager.unsubscribe(planId);
     } catch (error) {
-      logger.error('[Knowledge] 取消订阅失败:', error);
+      logger.error("[Knowledge] 取消订阅失败:", error);
       throw error;
     }
   });
@@ -257,14 +269,14 @@ function registerKnowledgeIPC({
   /**
    * 获取我的购买记录
    */
-  ipcMain.handle('knowledge:get-my-purchases', async (_event, userDid) => {
+  ipcMain.handle("knowledge:get-my-purchases", async (_event, userDid) => {
     try {
       if (!knowledgePaymentManager) {
         return [];
       }
       return await knowledgePaymentManager.getMyPurchases(userDid);
     } catch (error) {
-      logger.error('[Knowledge] 获取购买记录失败:', error);
+      logger.error("[Knowledge] 获取购买记录失败:", error);
       return [];
     }
   });
@@ -272,14 +284,14 @@ function registerKnowledgeIPC({
   /**
    * 获取我的订阅记录
    */
-  ipcMain.handle('knowledge:get-my-subscriptions', async (_event, userDid) => {
+  ipcMain.handle("knowledge:get-my-subscriptions", async (_event, userDid) => {
     try {
       if (!knowledgePaymentManager) {
         return [];
       }
       return await knowledgePaymentManager.getMySubscriptions(userDid);
     } catch (error) {
-      logger.error('[Knowledge] 获取订阅记录失败:', error);
+      logger.error("[Knowledge] 获取订阅记录失败:", error);
       return [];
     }
   });
@@ -287,14 +299,14 @@ function registerKnowledgeIPC({
   /**
    * 访问内容
    */
-  ipcMain.handle('knowledge:access-content', async (_event, contentId) => {
+  ipcMain.handle("knowledge:access-content", async (_event, contentId) => {
     try {
       if (!knowledgePaymentManager) {
-        throw new Error('知识付费管理器未初始化');
+        throw new Error("知识付费管理器未初始化");
       }
       return await knowledgePaymentManager.accessContent(contentId);
     } catch (error) {
-      logger.error('[Knowledge] 访问内容失败:', error);
+      logger.error("[Knowledge] 访问内容失败:", error);
       throw error;
     }
   });
@@ -302,39 +314,42 @@ function registerKnowledgeIPC({
   /**
    * 检查访问权限
    */
-  ipcMain.handle('knowledge:check-access', async (_event, contentId, userDid) => {
-    try {
-      if (!knowledgePaymentManager) {
+  ipcMain.handle(
+    "knowledge:check-access",
+    async (_event, contentId, userDid) => {
+      try {
+        if (!knowledgePaymentManager) {
+          return false;
+        }
+        return await knowledgePaymentManager.checkAccess(contentId, userDid);
+      } catch (error) {
+        logger.error("[Knowledge] 检查访问权限失败:", error);
         return false;
       }
-      return await knowledgePaymentManager.checkAccess(contentId, userDid);
-    } catch (error) {
-      logger.error('[Knowledge] 检查访问权限失败:', error);
-      return false;
-    }
-  });
+    },
+  );
 
   /**
    * 获取统计信息
    */
-  ipcMain.handle('knowledge:get-statistics', async (_event, creatorDid) => {
+  ipcMain.handle("knowledge:get-statistics", async (_event, creatorDid) => {
     try {
       if (!knowledgePaymentManager) {
         return null;
       }
       return await knowledgePaymentManager.getStatistics(creatorDid);
     } catch (error) {
-      logger.error('[Knowledge] 获取统计信息失败:', error);
+      logger.error("[Knowledge] 获取统计信息失败:", error);
       return null;
     }
   });
 
-  logger.info('[Knowledge IPC] ✓ 17 handlers registered');
-  logger.info('[Knowledge IPC] - 1 tag management handler');
-  logger.info('[Knowledge IPC] - 3 version management handlers');
-  logger.info('[Knowledge IPC] - 13 paid content handlers');
+  logger.info("[Knowledge IPC] ✓ 17 handlers registered");
+  logger.info("[Knowledge IPC] - 1 tag management handler");
+  logger.info("[Knowledge IPC] - 3 version management handlers");
+  logger.info("[Knowledge IPC] - 13 paid content handlers");
 }
 
 module.exports = {
-  registerKnowledgeIPC
+  registerKnowledgeIPC,
 };

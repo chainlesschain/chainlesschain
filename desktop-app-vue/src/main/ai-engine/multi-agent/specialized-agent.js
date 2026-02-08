@@ -6,7 +6,7 @@
  * @see https://github.com/FoundationAgents/OpenManus
  */
 
-const { logger, createLogger } = require('../../utils/logger.js');
+const { logger } = require("../../utils/logger.js");
 const EventEmitter = require("events");
 
 /**
@@ -77,7 +77,9 @@ class SpecializedAgent extends EventEmitter {
    * @returns {number} 0-1 的得分，0 表示无法处理
    */
   canHandle(task) {
-    if (!task || !task.type) {return 0;}
+    if (!task || !task.type) {
+      return 0;
+    }
 
     // 检查任务类型是否在能力范围内
     if (this.capabilities.includes(task.type)) {
@@ -131,7 +133,10 @@ class SpecializedAgent extends EventEmitter {
         return result;
       } catch (error) {
         lastError = error;
-        logger.warn(`[${this.agentId}] 执行失败 (attempt ${attempt + 1}):`, error.message);
+        logger.warn(
+          `[${this.agentId}] 执行失败 (attempt ${attempt + 1}):`,
+          error.message,
+        );
 
         if (attempt < this.config.maxRetries - 1) {
           await this._delay(this.config.retryDelay * (attempt + 1));
@@ -220,7 +225,10 @@ class SpecializedAgent extends EventEmitter {
           : 0,
       successRate:
         this.stats.totalExecutions > 0
-          ? (this.stats.successfulExecutions / this.stats.totalExecutions * 100).toFixed(2) + "%"
+          ? (
+              (this.stats.successfulExecutions / this.stats.totalExecutions) *
+              100
+            ).toFixed(2) + "%"
           : "N/A",
     };
   }

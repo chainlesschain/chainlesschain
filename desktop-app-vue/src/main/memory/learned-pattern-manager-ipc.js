@@ -7,7 +7,7 @@
  * @since 2026-01-17
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -255,10 +255,7 @@ function registerLearnedPatternManagerIPC({
       await managerRef.current.deleteCodeSnippet(id);
       return { success: true };
     } catch (error) {
-      logger.error(
-        "[LearnedPatternManager IPC] Delete snippet failed:",
-        error,
-      );
+      logger.error("[LearnedPatternManager IPC] Delete snippet failed:", error);
       throw error;
     }
   });

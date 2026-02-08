@@ -12,62 +12,38 @@
       <p class="upload-icon">
         <InboxOutlined :style="{ fontSize: '48px', color: '#1890ff' }" />
       </p>
-      <p class="upload-text">
-        点击或拖拽音频文件到此区域
-      </p>
-      <p class="upload-hint">
-        支持 MP3, WAV, M4A, AAC, OGG, FLAC 等格式
-      </p>
-      <p class="upload-hint">
-        单个文件最大 25MB
-      </p>
+      <p class="upload-text">点击或拖拽音频文件到此区域</p>
+      <p class="upload-hint">支持 MP3, WAV, M4A, AAC, OGG, FLAC 等格式</p>
+      <p class="upload-hint">单个文件最大 25MB</p>
     </a-upload-dragger>
 
     <!-- 上传文件列表 -->
-    <div
-      v-if="fileList.length > 0"
-      class="file-list"
-    >
+    <div v-if="fileList.length > 0" class="file-list">
       <h4>待转录文件 ({{ fileList.length }})</h4>
-      <a-list
-        :data-source="fileList"
-        size="small"
-      >
+      <a-list :data-source="fileList" size="small">
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta>
               <template #title>
                 <span>{{ item.name }}</span>
-                <a-tag
-                  v-if="item.status === 'uploading'"
-                  color="blue"
-                >
+                <a-tag v-if="item.status === 'uploading'" color="blue">
                   处理中
                 </a-tag>
-                <a-tag
-                  v-else-if="item.status === 'done'"
-                  color="green"
-                >
+                <a-tag v-else-if="item.status === 'done'" color="green">
                   已完成
                 </a-tag>
-                <a-tag
-                  v-else-if="item.status === 'error'"
-                  color="red"
-                >
+                <a-tag v-else-if="item.status === 'error'" color="red">
                   失败
                 </a-tag>
               </template>
               <template #description>
                 <div v-if="item.status === 'uploading' && item.progress">
-                  <a-progress
-                    :percent="item.progress"
-                    size="small"
-                  />
+                  <a-progress :percent="item.progress" size="small" />
                   <span class="progress-text">{{ item.statusText }}</span>
                 </div>
                 <div v-else-if="item.result">
-                  时长: {{ formatDuration(item.result.duration) }} |
-                  字数: {{ item.result.wordCount }}
+                  时长: {{ formatDuration(item.result.duration) }} | 字数:
+                  {{ item.result.wordCount }}
                 </div>
               </template>
             </a-list-item-meta>
@@ -96,15 +72,9 @@
     </div>
 
     <!-- 转录结果列表 -->
-    <div
-      v-if="results.length > 0"
-      class="results-section"
-    >
+    <div v-if="results.length > 0" class="results-section">
       <h4>转录结果</h4>
-      <a-list
-        :data-source="results"
-        :pagination="{ pageSize: 5 }"
-      >
+      <a-list :data-source="results" :pagination="{ pageSize: 5 }">
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta>
@@ -140,10 +110,7 @@
       width="800px"
       :footer="null"
     >
-      <div
-        v-if="selectedResult"
-        class="full-text-modal"
-      >
+      <div v-if="selectedResult" class="full-text-modal">
         <div class="text-header">
           <h4>{{ selectedResult.fileName }}</h4>
           <div class="text-meta">
@@ -176,11 +143,16 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
-import { InboxOutlined, SoundOutlined, CopyOutlined, EditOutlined } from '@ant-design/icons-vue';
+import { ref, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
+import {
+  InboxOutlined,
+  SoundOutlined,
+  CopyOutlined,
+  EditOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   autoTranscribe: {
@@ -189,11 +161,11 @@ const props = defineProps({
   },
   engine: {
     type: String,
-    default: 'whisper-api',
+    default: "whisper-api",
   },
 });
 
-const emit = defineEmits(['result', 'insert']);
+const emit = defineEmits(["result", "insert"]);
 
 // 状态
 const fileList = ref([]);
@@ -211,8 +183,8 @@ const handleBeforeUpload = (file) => {
   }
 
   // 检查文件格式
-  const validFormats = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'webm'];
-  const ext = file.name.split('.').pop().toLowerCase();
+  const validFormats = ["mp3", "wav", "m4a", "aac", "ogg", "flac", "webm"];
+  const ext = file.name.split(".").pop().toLowerCase();
   if (!validFormats.includes(ext)) {
     message.error(`${file.name} 不是有效的音频文件格式`);
     return false;
@@ -228,9 +200,9 @@ const handleUpload = async ({ file }) => {
     uid: file.uid,
     name: file.name,
     path: file.path,
-    status: 'uploading',
+    status: "uploading",
     progress: 0,
-    statusText: '准备转录...',
+    statusText: "准备转录...",
     result: null,
   };
 
@@ -244,18 +216,21 @@ const handleUpload = async ({ file }) => {
 // 转录文件
 const transcribeFile = async (fileItem) => {
   try {
-    fileItem.status = 'uploading';
-    fileItem.statusText = '正在转录...';
+    fileItem.status = "uploading";
+    fileItem.statusText = "正在转录...";
 
     // 调用后端转录
-    const result = await window.electronAPI.speech.transcribeFile(fileItem.path, {
-      engine: props.engine,
-      saveToDatabase: true,
-      saveToKnowledge: true,
-    });
+    const result = await window.electronAPI.speech.transcribeFile(
+      fileItem.path,
+      {
+        engine: props.engine,
+        saveToDatabase: true,
+        saveToKnowledge: true,
+      },
+    );
 
     // 更新状态
-    fileItem.status = 'done';
+    fileItem.status = "done";
     fileItem.progress = 100;
     fileItem.result = result;
 
@@ -271,38 +246,38 @@ const transcribeFile = async (fileItem) => {
     });
 
     message.success(`${fileItem.name} 转录完成`);
-    emit('result', result);
+    emit("result", result);
   } catch (error) {
-    logger.error('转录失败:', error);
-    fileItem.status = 'error';
-    fileItem.statusText = error.message || '转录失败';
+    logger.error("转录失败:", error);
+    fileItem.status = "error";
+    fileItem.statusText = error.message || "转录失败";
     message.error(`${fileItem.name} 转录失败: ${error.message}`);
   }
 };
 
 // 监听进度事件
 onMounted(() => {
-  window.electronAPI.speech.on('speech:progress', handleProgress);
+  window.electronAPI.speech.on("speech:progress", handleProgress);
 });
 
 onUnmounted(() => {
-  window.electronAPI.speech.off('speech:progress', handleProgress);
+  window.electronAPI.speech.off("speech:progress", handleProgress);
 });
 
 const handleProgress = (progress) => {
-  logger.info('转录进度:', progress);
+  logger.info("转录进度:", progress);
 
   // 查找对应的文件项并更新进度
-  const fileItem = fileList.value.find(f => f.status === 'uploading');
+  const fileItem = fileList.value.find((f) => f.status === "uploading");
   if (fileItem && progress.percent !== undefined) {
     fileItem.progress = Math.round(progress.percent);
-    fileItem.statusText = progress.step || '转录中...';
+    fileItem.statusText = progress.step || "转录中...";
   }
 };
 
 // 移除文件
 const removeFile = (file) => {
-  const index = fileList.value.findIndex(f => f.uid === file.uid);
+  const index = fileList.value.findIndex((f) => f.uid === file.uid);
   if (index > -1) {
     fileList.value.splice(index, 1);
   }
@@ -330,39 +305,46 @@ const viewFullText = (result) => {
 
 // 复制文本
 const copyText = (text) => {
-  navigator.clipboard.writeText(text).then(() => {
-    message.success('已复制到剪贴板');
-  }).catch(() => {
-    message.error('复制失败');
-  });
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      message.success("已复制到剪贴板");
+    })
+    .catch(() => {
+      message.error("复制失败");
+    });
 };
 
 // 插入到编辑器
 const insertToEditor = (text) => {
-  emit('insert', text);
-  message.success('已插入到编辑器');
+  emit("insert", text);
+  message.success("已插入到编辑器");
 };
 
 // 格式化时长
 const formatDuration = (seconds) => {
-  if (!seconds) {return '0:00';}
+  if (!seconds) {
+    return "0:00";
+  }
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
 // 截断文本
 const truncateText = (text, maxLength) => {
-  if (!text) {return '';}
-  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  if (!text) {
+    return "";
+  }
+  return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
 };
 
 // 获取引擎名称
 const getEngineName = (engine) => {
   const names = {
-    'whisper-api': 'Whisper API',
-    'whisper-local': 'Whisper Local',
-    'webspeech': 'Web Speech',
+    "whisper-api": "Whisper API",
+    "whisper-local": "Whisper Local",
+    webspeech: "Web Speech",
   };
   return names[engine] || engine;
 };

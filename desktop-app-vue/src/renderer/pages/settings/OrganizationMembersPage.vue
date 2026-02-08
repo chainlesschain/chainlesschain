@@ -15,27 +15,13 @@
           style="width: 150px"
           allow-clear
         >
-          <a-select-option value="">
-            全部角色
-          </a-select-option>
-          <a-select-option value="owner">
-            所有者
-          </a-select-option>
-          <a-select-option value="admin">
-            管理员
-          </a-select-option>
-          <a-select-option value="member">
-            成员
-          </a-select-option>
-          <a-select-option value="viewer">
-            访客
-          </a-select-option>
+          <a-select-option value=""> 全部角色 </a-select-option>
+          <a-select-option value="owner"> 所有者 </a-select-option>
+          <a-select-option value="admin"> 管理员 </a-select-option>
+          <a-select-option value="member"> 成员 </a-select-option>
+          <a-select-option value="viewer"> 访客 </a-select-option>
         </a-select>
-        <a-button
-          type="primary"
-          :disabled="!canInvite"
-          @click="emit('invite')"
-        >
+        <a-button type="primary" :disabled="!canInvite" @click="emit('invite')">
           <template #icon>
             <UserAddOutlined />
           </template>
@@ -56,10 +42,7 @@
         <!-- 成员信息 -->
         <template v-if="column.key === 'member'">
           <div class="member-info">
-            <a-avatar
-              :src="record.avatar"
-              :size="40"
-            >
+            <a-avatar :src="record.avatar" :size="40">
               <template #icon>
                 <UserOutlined />
               </template>
@@ -119,21 +102,12 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="({ key }) => handleChangeRole(record, key)">
-                  <a-menu-item
-                    key="owner"
-                    :disabled="!canAssignOwner"
-                  >
+                  <a-menu-item key="owner" :disabled="!canAssignOwner">
                     所有者
                   </a-menu-item>
-                  <a-menu-item key="admin">
-                    管理员
-                  </a-menu-item>
-                  <a-menu-item key="member">
-                    成员
-                  </a-menu-item>
-                  <a-menu-item key="viewer">
-                    访客
-                  </a-menu-item>
+                  <a-menu-item key="admin"> 管理员 </a-menu-item>
+                  <a-menu-item key="member"> 成员 </a-menu-item>
+                  <a-menu-item key="viewer"> 访客 </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -146,52 +120,29 @@
               cancel-text="取消"
               @confirm="handleRemoveMember(record)"
             >
-              <a-button
-                size="small"
-                danger
-              >
-                移除
-              </a-button>
+              <a-button size="small" danger> 移除 </a-button>
             </a-popconfirm>
 
             <!-- 当前用户 -->
-            <a-tag
-              v-if="isCurrentUser(record)"
-              color="blue"
-            >
-              当前用户
-            </a-tag>
+            <a-tag v-if="isCurrentUser(record)" color="blue"> 当前用户 </a-tag>
           </a-space>
         </template>
       </template>
     </a-table>
 
     <!-- 成员详情抽屉 -->
-    <a-drawer
-      v-model:open="showMemberDetail"
-      title="成员详情"
-      width="500"
-    >
-      <div
-        v-if="selectedMember"
-        class="member-detail"
-      >
-        <a-descriptions
-          :column="1"
-          bordered
-        >
+    <a-drawer v-model:open="showMemberDetail" title="成员详情" width="500">
+      <div v-if="selectedMember" class="member-detail">
+        <a-descriptions :column="1" bordered>
           <a-descriptions-item label="头像">
-            <a-avatar
-              :src="selectedMember.avatar"
-              :size="64"
-            >
+            <a-avatar :src="selectedMember.avatar" :size="64">
               <template #icon>
                 <UserOutlined />
               </template>
             </a-avatar>
           </a-descriptions-item>
           <a-descriptions-item label="名称">
-            {{ selectedMember.display_name || '-' }}
+            {{ selectedMember.display_name || "-" }}
           </a-descriptions-item>
           <a-descriptions-item label="DID">
             <div style="word-break: break-all">
@@ -238,27 +189,27 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch } from 'vue';
-import { message } from 'ant-design-vue';
-import { useIdentityStore } from '@/stores/identityStore';
+import { ref, computed, onMounted, watch } from "vue";
+import { message } from "ant-design-vue";
+import { useIdentityStore } from "@/stores/identityStore";
 import {
   UserOutlined,
   UserAddOutlined,
   DownOutlined,
-  CopyOutlined
-} from '@ant-design/icons-vue';
+  CopyOutlined,
+} from "@ant-design/icons-vue";
 
 // ==================== Props & Emits ====================
 const props = defineProps({
   orgId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const emit = defineEmits(['invite']);
+const emit = defineEmits(["invite"]);
 
 // ==================== Store ====================
 const identityStore = useIdentityStore();
@@ -266,8 +217,8 @@ const identityStore = useIdentityStore();
 // ==================== State ====================
 const loading = ref(false);
 const members = ref([]);
-const searchText = ref('');
-const filterRole = ref('');
+const searchText = ref("");
+const filterRole = ref("");
 
 const showMemberDetail = ref(false);
 const selectedMember = ref(null);
@@ -278,23 +229,23 @@ const pagination = ref({
   pageSize: 10,
   total: 0,
   showSizeChanger: true,
-  showTotal: total => `共 ${total} 名成员`
+  showTotal: (total) => `共 ${total} 名成员`,
 });
 
 // ==================== Computed ====================
 const currentUserRole = computed(() => {
   const member = members.value.find(
-    m => m.member_did === identityStore.currentUserDID
+    (m) => m.member_did === identityStore.currentUserDID,
   );
-  return member?.role || 'viewer';
+  return member?.role || "viewer";
 });
 
 const canInvite = computed(() => {
-  return ['owner', 'admin'].includes(currentUserRole.value);
+  return ["owner", "admin"].includes(currentUserRole.value);
 });
 
 const canAssignOwner = computed(() => {
-  return currentUserRole.value === 'owner';
+  return currentUserRole.value === "owner";
 });
 
 const filteredMembers = computed(() => {
@@ -303,27 +254,28 @@ const filteredMembers = computed(() => {
   // 搜索过滤
   if (searchText.value) {
     const query = searchText.value.toLowerCase();
-    result = result.filter(m =>
-      m.display_name?.toLowerCase().includes(query) ||
-      m.member_did.toLowerCase().includes(query)
+    result = result.filter(
+      (m) =>
+        m.display_name?.toLowerCase().includes(query) ||
+        m.member_did.toLowerCase().includes(query),
     );
   }
 
   // 角色过滤
   if (filterRole.value) {
-    result = result.filter(m => m.role === filterRole.value);
+    result = result.filter((m) => m.role === filterRole.value);
   }
 
   return result;
 });
 
 const columns = [
-  { title: '成员', key: 'member', width: 300 },
-  { title: '角色', key: 'role', width: 120 },
-  { title: '加入时间', key: 'joined_at', width: 180 },
-  { title: '最后活跃', key: 'last_active_at', width: 150 },
-  { title: '状态', key: 'status', width: 100 },
-  { title: '操作', key: 'actions', width: 200, fixed: 'right' }
+  { title: "成员", key: "member", width: 300 },
+  { title: "角色", key: "role", width: 120 },
+  { title: "加入时间", key: "joined_at", width: 180 },
+  { title: "最后活跃", key: "last_active_at", width: 150 },
+  { title: "状态", key: "status", width: 100 },
+  { title: "操作", key: "actions", width: 200, fixed: "right" },
 ];
 
 // ==================== Methods ====================
@@ -335,17 +287,20 @@ async function loadMembers() {
   try {
     loading.value = true;
 
-    const result = await window.electron.ipcRenderer.invoke('org:get-members', props.orgId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:get-members",
+      props.orgId,
+    );
 
     if (result.success) {
       members.value = result.members;
       pagination.value.total = result.members.length;
     } else {
-      message.error(result.error || '加载成员列表失败');
+      message.error(result.error || "加载成员列表失败");
     }
   } catch (error) {
-    logger.error('加载成员列表失败:', error);
-    message.error('加载成员列表失败');
+    logger.error("加载成员列表失败:", error);
+    message.error("加载成员列表失败");
   } finally {
     loading.value = false;
   }
@@ -374,21 +329,24 @@ async function handleChangeRole(member, newRole) {
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:update-member-role', {
-      orgId: props.orgId,
-      memberDID: member.member_did,
-      newRole
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:update-member-role",
+      {
+        orgId: props.orgId,
+        memberDID: member.member_did,
+        newRole,
+      },
+    );
 
     if (result.success) {
-      message.success('角色更新成功');
+      message.success("角色更新成功");
       await loadMembers();
     } else {
-      message.error(result.error || '角色更新失败');
+      message.error(result.error || "角色更新失败");
     }
   } catch (error) {
-    logger.error('更改角色失败:', error);
-    message.error('更改角色失败');
+    logger.error("更改角色失败:", error);
+    message.error("更改角色失败");
   }
 }
 
@@ -397,20 +355,23 @@ async function handleChangeRole(member, newRole) {
  */
 async function handleRemoveMember(member) {
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:remove-member', {
-      orgId: props.orgId,
-      memberDID: member.member_did
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:remove-member",
+      {
+        orgId: props.orgId,
+        memberDID: member.member_did,
+      },
+    );
 
     if (result.success) {
-      message.success('成员已移除');
+      message.success("成员已移除");
       await loadMembers();
     } else {
-      message.error(result.error || '移除成员失败');
+      message.error(result.error || "移除成员失败");
     }
   } catch (error) {
-    logger.error('移除成员失败:', error);
-    message.error('移除成员失败');
+    logger.error("移除成员失败:", error);
+    message.error("移除成员失败");
   }
 }
 
@@ -419,14 +380,16 @@ async function handleRemoveMember(member) {
  */
 function canChangeRole(member) {
   // 所有者可以更改所有人的角色
-  if (currentUserRole.value === 'owner') {
+  if (currentUserRole.value === "owner") {
     return member.member_did !== identityStore.currentUserDID;
   }
 
   // 管理员可以更改成员和访客的角色
-  if (currentUserRole.value === 'admin') {
-    return ['member', 'viewer'].includes(member.role) &&
-           member.member_did !== identityStore.currentUserDID;
+  if (currentUserRole.value === "admin") {
+    return (
+      ["member", "viewer"].includes(member.role) &&
+      member.member_did !== identityStore.currentUserDID
+    );
   }
 
   return false;
@@ -442,12 +405,12 @@ function canRemoveMember(member) {
   }
 
   // 不能移除所有者
-  if (member.role === 'owner') {
+  if (member.role === "owner") {
     return false;
   }
 
   // 所有者和管理员可以移除成员
-  return ['owner', 'admin'].includes(currentUserRole.value);
+  return ["owner", "admin"].includes(currentUserRole.value);
 }
 
 /**
@@ -466,17 +429,20 @@ async function handleViewMemberDetail(member) {
 
   // 加载成员活动历史
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:get-member-activities', {
-      orgId: props.orgId,
-      memberDID: member.member_did,
-      limit: 10
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:get-member-activities",
+      {
+        orgId: props.orgId,
+        memberDID: member.member_did,
+        limit: 10,
+      },
+    );
 
     if (result.success) {
       memberActivities.value = result.activities;
     }
   } catch (error) {
-    logger.error('加载活动历史失败:', error);
+    logger.error("加载活动历史失败:", error);
   }
 }
 
@@ -485,10 +451,10 @@ async function handleViewMemberDetail(member) {
  */
 function getRoleLabel(role) {
   const labels = {
-    owner: '所有者',
-    admin: '管理员',
-    member: '成员',
-    viewer: '访客'
+    owner: "所有者",
+    admin: "管理员",
+    member: "成员",
+    viewer: "访客",
   };
   return labels[role] || role;
 }
@@ -498,20 +464,24 @@ function getRoleLabel(role) {
  */
 function getRoleColor(role) {
   const colors = {
-    owner: 'red',
-    admin: 'orange',
-    member: 'blue',
-    viewer: 'default'
+    owner: "red",
+    admin: "orange",
+    member: "blue",
+    viewer: "default",
   };
-  return colors[role] || 'default';
+  return colors[role] || "default";
 }
 
 /**
  * 缩短DID显示
  */
 function shortenDID(did) {
-  if (!did) {return '';}
-  if (did.length <= 20) {return did;}
+  if (!did) {
+    return "";
+  }
+  if (did.length <= 20) {
+    return did;
+  }
   return `${did.slice(0, 10)}...${did.slice(-8)}`;
 }
 
@@ -520,23 +490,27 @@ function shortenDID(did) {
  */
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text);
-  message.success('已复制到剪贴板');
+  message.success("已复制到剪贴板");
 }
 
 /**
  * 格式化日期
  */
 function formatDate(timestamp) {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 }
 
 /**
  * 格式化相对时间
  */
 function formatRelativeTime(timestamp) {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
 
   const now = Date.now();
   const diff = now - timestamp;
@@ -546,7 +520,7 @@ function formatRelativeTime(timestamp) {
   const day = 24 * hour;
 
   if (diff < minute) {
-    return '刚刚';
+    return "刚刚";
   } else if (diff < hour) {
     return `${Math.floor(diff / minute)} 分钟前`;
   } else if (diff < day) {
@@ -564,11 +538,14 @@ onMounted(async () => {
 });
 
 // 监听组织ID变化
-watch(() => props.orgId, async (newOrgId) => {
-  if (newOrgId) {
-    await loadMembers();
-  }
-});
+watch(
+  () => props.orgId,
+  async (newOrgId) => {
+    if (newOrgId) {
+      await loadMembers();
+    }
+  },
+);
 </script>
 
 <style scoped lang="less">

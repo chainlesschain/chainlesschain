@@ -3,24 +3,24 @@
  * 提供结构化的日志记录和错误追踪功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
 
 class ToolLogger {
   constructor(options = {}) {
-    this.logLevel = options.logLevel || process.env.LOG_LEVEL || 'info';
-    this.logDir = options.logDir || path.join(process.cwd(), 'logs');
+    this.logLevel = options.logLevel || process.env.LOG_LEVEL || "info";
+    this.logDir = options.logDir || path.join(process.cwd(), "logs");
     this.enableConsole = options.enableConsole !== false;
     this.enableFile = options.enableFile !== false;
-    this.context = options.context || 'ToolSystem';
+    this.context = options.context || "ToolSystem";
 
     this.levels = {
       error: 0,
       warn: 1,
       info: 2,
       debug: 3,
-      trace: 4
+      trace: 4,
     };
 
     this.currentLevel = this.levels[this.logLevel] || this.levels.info;
@@ -38,7 +38,7 @@ class ToolLogger {
     try {
       await fs.mkdir(this.logDir, { recursive: true });
     } catch (error) {
-      logger.error('[ToolLogger] 创建日志目录失败:', error);
+      logger.error("[ToolLogger] 创建日志目录失败:", error);
     }
   }
 
@@ -58,9 +58,9 @@ class ToolLogger {
           name: error.name,
           message: error.message,
           stack: error.stack,
-          code: error.code
-        }
-      })
+          code: error.code,
+        },
+      }),
     };
 
     return logEntry;
@@ -109,15 +109,18 @@ class ToolLogger {
     if (error) {
       output += `\n  Error: ${error.message}`;
       if (error.stack) {
-        output += `\n${error.stack.split('\n').map(line => '    ' + line).join('\n')}`;
+        output += `\n${error.stack
+          .split("\n")
+          .map((line) => "    " + line)
+          .join("\n")}`;
       }
     }
 
     switch (level) {
-      case 'error':
+      case "error":
         logger.error(output);
         break;
-      case 'warn':
+      case "warn":
         logger.warn(output);
         break;
       default:
@@ -130,13 +133,13 @@ class ToolLogger {
    */
   async _fileOutput(logEntry) {
     try {
-      const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
       const logFile = path.join(this.logDir, `tool-system-${date}.log`);
 
-      const logLine = JSON.stringify(logEntry) + '\n';
-      await fs.appendFile(logFile, logLine, 'utf-8');
+      const logLine = JSON.stringify(logEntry) + "\n";
+      await fs.appendFile(logFile, logLine, "utf-8");
     } catch (error) {
-      logger.error('[ToolLogger] 写入日志文件失败:', error);
+      logger.error("[ToolLogger] 写入日志文件失败:", error);
     }
   }
 
@@ -144,35 +147,35 @@ class ToolLogger {
    * 记录错误
    */
   async error(message, error = null, data = null) {
-    return await this._writeLog('error', message, data, error);
+    return await this._writeLog("error", message, data, error);
   }
 
   /**
    * 记录警告
    */
   async warn(message, data = null) {
-    return await this._writeLog('warn', message, data);
+    return await this._writeLog("warn", message, data);
   }
 
   /**
    * 记录信息
    */
   async info(message, data = null) {
-    return await this._writeLog('info', message, data);
+    return await this._writeLog("info", message, data);
   }
 
   /**
    * 记录调试信息
    */
   async debug(message, data = null) {
-    return await this._writeLog('debug', message, data);
+    return await this._writeLog("debug", message, data);
   }
 
   /**
    * 记录追踪信息
    */
   async trace(message, data = null) {
-    return await this._writeLog('trace', message, data);
+    return await this._writeLog("trace", message, data);
   }
 
   /**
@@ -182,7 +185,7 @@ class ToolLogger {
     return await this.info(`工具调用: ${toolName}`, {
       tool: toolName,
       params: this._sanitizeParams(params),
-      startTime
+      startTime,
     });
   }
 
@@ -193,7 +196,7 @@ class ToolLogger {
     return await this.info(`工具执行成功: ${toolName}`, {
       tool: toolName,
       duration: `${duration}ms`,
-      resultSize: JSON.stringify(result).length
+      resultSize: JSON.stringify(result).length,
     });
   }
 
@@ -204,7 +207,7 @@ class ToolLogger {
     return await this.error(`工具执行失败: ${toolName}`, error, {
       tool: toolName,
       duration: `${duration}ms`,
-      params: this._sanitizeParams(params)
+      params: this._sanitizeParams(params),
     });
   }
 
@@ -212,16 +215,25 @@ class ToolLogger {
    * 清理敏感参数（用于日志记录）
    */
   _sanitizeParams(params) {
-    if (!params || typeof params !== 'object') {
+    if (!params || typeof params !== "object") {
       return params;
     }
 
-    const sensitiveKeys = ['password', 'apiKey', 'apiSecret', 'token', 'accessToken', 'credentials'];
+    const sensitiveKeys = [
+      "password",
+      "apiKey",
+      "apiSecret",
+      "token",
+      "accessToken",
+      "credentials",
+    ];
     const sanitized = { ...params };
 
     for (const key of Object.keys(sanitized)) {
-      if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk.toLowerCase()))) {
-        sanitized[key] = '***REDACTED***';
+      if (
+        sensitiveKeys.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))
+      ) {
+        sanitized[key] = "***REDACTED***";
       }
     }
 
@@ -237,7 +249,7 @@ class ToolLogger {
       logDir: this.logDir,
       enableConsole: this.enableConsole,
       enableFile: this.enableFile,
-      context: `${this.context}:${context}`
+      context: `${this.context}:${context}`,
     });
   }
 }

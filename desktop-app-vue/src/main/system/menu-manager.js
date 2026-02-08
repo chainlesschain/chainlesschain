@@ -3,7 +3,7 @@
  * 创建和管理Electron应用菜单
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { Menu, shell, app } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");

@@ -5,7 +5,7 @@
       <div class="header-left">
         <h3 class="board-title">
           <project-outlined />
-          {{ currentBoard?.name || '任务看板' }}
+          {{ currentBoard?.name || "任务看板" }}
         </h3>
         <a-space>
           <a-select
@@ -105,10 +105,7 @@
           />
 
           <!-- 创建任务 -->
-          <a-button
-            type="primary"
-            @click="showCreateTask = true"
-          >
+          <a-button type="primary" @click="showCreateTask = true">
             <plus-outlined /> 新建任务
           </a-button>
         </a-space>
@@ -116,22 +113,12 @@
     </div>
 
     <!-- 看板列 -->
-    <div
-      v-loading="taskStore.loading"
-      class="board-columns"
-    >
-      <div
-        v-for="column in boardColumns"
-        :key="column.id"
-        class="board-column"
-      >
+    <div v-loading="taskStore.loading" class="board-columns">
+      <div v-for="column in boardColumns" :key="column.id" class="board-column">
         <!-- 列头 -->
         <div class="column-header">
           <div class="header-title">
-            <component
-              :is="column.icon"
-              :style="{ color: column.color }"
-            />
+            <component :is="column.icon" :style="{ color: column.color }" />
             <span>{{ column.name }}</span>
             <a-badge
               :count="getColumnTaskCount(column.status)"
@@ -191,10 +178,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="看板名称"
-          required
-        >
+        <a-form-item label="看板名称" required>
           <a-input
             v-model:value="boardFormData.name"
             placeholder="请输入看板名称"
@@ -223,10 +207,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="任务标题"
-          required
-        >
+        <a-form-item label="任务标题" required>
           <a-input
             v-model:value="taskFormData.title"
             placeholder="请输入任务标题"
@@ -243,35 +224,19 @@
 
         <a-form-item label="状态">
           <a-select v-model:value="taskFormData.status">
-            <a-select-option value="pending">
-              待处理
-            </a-select-option>
-            <a-select-option value="in_progress">
-              进行中
-            </a-select-option>
-            <a-select-option value="completed">
-              已完成
-            </a-select-option>
-            <a-select-option value="cancelled">
-              已取消
-            </a-select-option>
+            <a-select-option value="pending"> 待处理 </a-select-option>
+            <a-select-option value="in_progress"> 进行中 </a-select-option>
+            <a-select-option value="completed"> 已完成 </a-select-option>
+            <a-select-option value="cancelled"> 已取消 </a-select-option>
           </a-select>
         </a-form-item>
 
         <a-form-item label="优先级">
           <a-select v-model:value="taskFormData.priority">
-            <a-select-option value="low">
-              低
-            </a-select-option>
-            <a-select-option value="medium">
-              中
-            </a-select-option>
-            <a-select-option value="high">
-              高
-            </a-select-option>
-            <a-select-option value="urgent">
-              紧急
-            </a-select-option>
+            <a-select-option value="low"> 低 </a-select-option>
+            <a-select-option value="medium"> 中 </a-select-option>
+            <a-select-option value="high"> 高 </a-select-option>
+            <a-select-option value="urgent"> 紧急 </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -301,11 +266,7 @@
             placeholder="添加标签"
             style="width: 100%"
           >
-            <a-select-option
-              v-for="tag in commonTags"
-              :key="tag"
-              :value="tag"
-            >
+            <a-select-option v-for="tag in commonTags" :key="tag" :value="tag">
               {{ tag }}
             </a-select-option>
           </a-select>
@@ -316,11 +277,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch } from 'vue';
-import { Empty } from 'ant-design-vue';
-import draggable from 'vuedraggable';
+import { ref, computed, onMounted, watch } from "vue";
+import { Empty } from "ant-design-vue";
+import draggable from "vuedraggable";
 import {
   ProjectOutlined,
   PlusOutlined,
@@ -329,13 +290,13 @@ import {
   ClockCircleOutlined,
   SyncOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined
-} from '@ant-design/icons-vue';
-import TaskCard from './TaskCard.vue';
-import { useTaskStore } from '../../stores/task';
-import { useWorkspaceStore } from '../../stores/workspace';
-import { useProjectStore } from '../../stores/project';
-import { useRoute } from 'vue-router';
+  CloseCircleOutlined,
+} from "@ant-design/icons-vue";
+import TaskCard from "./TaskCard.vue";
+import { useTaskStore } from "../../stores/task";
+import { useWorkspaceStore } from "../../stores/workspace";
+import { useProjectStore } from "../../stores/project";
+import { useRoute } from "vue-router";
 
 // Stores
 const taskStore = useTaskStore();
@@ -345,63 +306,66 @@ const route = useRoute();
 
 // State
 const selectedBoardId = ref(null);
-const searchKeyword = ref('');
+const searchKeyword = ref("");
 const showCreateBoard = ref(false);
 const showCreateTask = ref(false);
 const editingTask = ref(null);
 
 const boardFormData = ref({
-  name: '',
-  description: ''
+  name: "",
+  description: "",
 });
 
 const taskFormData = ref({
-  title: '',
-  description: '',
-  status: 'pending',
-  priority: 'medium',
+  title: "",
+  description: "",
+  status: "pending",
+  priority: "medium",
   due_date: null,
   estimate_hours: null,
-  labels: []
+  labels: [],
 });
 
-const commonTags = ['功能开发', 'Bug修复', '性能优化', '文档', '测试', '重构'];
+const commonTags = ["功能开发", "Bug修复", "性能优化", "文档", "测试", "重构"];
 
 // 看板列配置
 const boardColumns = [
   {
-    id: 'pending',
-    name: '待处理',
-    status: 'pending',
+    id: "pending",
+    name: "待处理",
+    status: "pending",
     icon: ClockCircleOutlined,
-    color: '#8c8c8c'
+    color: "#8c8c8c",
   },
   {
-    id: 'in_progress',
-    name: '进行中',
-    status: 'in_progress',
+    id: "in_progress",
+    name: "进行中",
+    status: "in_progress",
     icon: SyncOutlined,
-    color: '#1890ff'
+    color: "#1890ff",
   },
   {
-    id: 'completed',
-    name: '已完成',
-    status: 'completed',
+    id: "completed",
+    name: "已完成",
+    status: "completed",
     icon: CheckCircleOutlined,
-    color: '#52c41a'
+    color: "#52c41a",
   },
   {
-    id: 'cancelled',
-    name: '已取消',
-    status: 'cancelled',
+    id: "cancelled",
+    name: "已取消",
+    status: "cancelled",
     icon: CloseCircleOutlined,
-    color: '#ff4d4f'
-  }
+    color: "#ff4d4f",
+  },
 ];
 
 // Computed
 const currentBoard = computed(() => {
-  return taskStore.boards.find(b => b.id === selectedBoardId.value) || taskStore.currentBoard;
+  return (
+    taskStore.boards.find((b) => b.id === selectedBoardId.value) ||
+    taskStore.currentBoard
+  );
 });
 
 const columnTasks = computed(() => {
@@ -409,18 +373,22 @@ const columnTasks = computed(() => {
     pending: [],
     in_progress: [],
     completed: [],
-    cancelled: []
+    cancelled: [],
   };
 
   // 获取搜索关键词进行本地过滤
   const keyword = searchKeyword.value.toLowerCase().trim();
 
-  taskStore.tasks.forEach(task => {
+  taskStore.tasks.forEach((task) => {
     // 如果有搜索关键词，过滤不匹配的任务
     if (keyword) {
       const matchTitle = task.title?.toLowerCase().includes(keyword);
-      const matchDescription = task.description?.toLowerCase().includes(keyword);
-      const matchLabels = task.labels?.some(label => label.toLowerCase().includes(keyword));
+      const matchDescription = task.description
+        ?.toLowerCase()
+        .includes(keyword);
+      const matchLabels = task.labels?.some((label) =>
+        label.toLowerCase().includes(keyword),
+      );
       if (!matchTitle && !matchDescription && !matchLabels) {
         return;
       }
@@ -453,26 +421,31 @@ function handleSearch() {
     taskStore.filters = restFilters;
     taskStore.loadTasks();
   }
-  logger.info('Search:', searchKeyword.value);
+  logger.info("Search:", searchKeyword.value);
 }
 
 function handleBoardChange(boardId) {
   selectedBoardId.value = boardId;
-  taskStore.currentBoard = taskStore.boards.find(b => b.id === boardId);
+  taskStore.currentBoard = taskStore.boards.find((b) => b.id === boardId);
 }
 
 async function handleCreateBoard() {
-  if (!boardFormData.value.name) {return;}
+  if (!boardFormData.value.name) {
+    return;
+  }
 
-  const created = await taskStore.createBoard(workspaceStore.currentWorkspace?.org_id, {
-    name: boardFormData.value.name,
-    description: boardFormData.value.description,
-    workspace_id: workspaceStore.currentWorkspaceId
-  });
+  const created = await taskStore.createBoard(
+    workspaceStore.currentWorkspace?.org_id,
+    {
+      name: boardFormData.value.name,
+      description: boardFormData.value.description,
+      workspace_id: workspaceStore.currentWorkspaceId,
+    },
+  );
 
   if (created) {
     showCreateBoard.value = false;
-    boardFormData.value = { name: '', description: '' };
+    boardFormData.value = { name: "", description: "" };
   }
 }
 
@@ -494,25 +467,30 @@ function handleTaskEdit(task) {
     priority: task.priority,
     due_date: task.due_date ? new Date(task.due_date) : null,
     estimate_hours: task.estimate_hours,
-    labels: task.labels || []
+    labels: task.labels || [],
   };
   showCreateTask.value = true;
 }
 
 function handleTaskDelete() {
   // Task deletion is handled in TaskCard
-  logger.info('Task deleted');
+  logger.info("Task deleted");
 }
 
 async function handleSaveTask() {
-  if (!taskFormData.value.title) {return;}
+  if (!taskFormData.value.title) {
+    return;
+  }
 
   const taskData = {
     ...taskFormData.value,
-    project_id: route.params.projectId || projectStore.currentProject?.id || null,
+    project_id:
+      route.params.projectId || projectStore.currentProject?.id || null,
     workspace_id: workspaceStore.currentWorkspaceId,
     org_id: workspaceStore.currentWorkspace?.org_id,
-    due_date: taskFormData.value.due_date ? taskFormData.value.due_date.getTime() : null
+    due_date: taskFormData.value.due_date
+      ? taskFormData.value.due_date.getTime()
+      : null,
   };
 
   if (editingTask.value) {
@@ -528,13 +506,13 @@ function handleCancelTask() {
   showCreateTask.value = false;
   editingTask.value = null;
   taskFormData.value = {
-    title: '',
-    description: '',
-    status: 'pending',
-    priority: 'medium',
+    title: "",
+    description: "",
+    status: "pending",
+    priority: "medium",
     due_date: null,
     estimate_hours: null,
-    labels: []
+    labels: [],
   };
 }
 
@@ -550,14 +528,14 @@ onMounted(async () => {
   // Load tasks
   await taskStore.loadTasks({
     workspace_id: workspaceStore.currentWorkspaceId,
-    org_id: workspaceStore.currentWorkspace?.org_id
+    org_id: workspaceStore.currentWorkspace?.org_id,
   });
 
   // Load boards
   if (workspaceStore.currentWorkspace?.org_id) {
     await taskStore.loadBoards(
       workspaceStore.currentWorkspace.org_id,
-      workspaceStore.currentWorkspaceId
+      workspaceStore.currentWorkspaceId,
     );
   }
 
@@ -573,10 +551,10 @@ watch(
     if (newWorkspaceId) {
       await taskStore.loadTasks({
         workspace_id: newWorkspaceId,
-        org_id: workspaceStore.currentWorkspace?.org_id
+        org_id: workspaceStore.currentWorkspace?.org_id,
       });
     }
-  }
+  },
 );
 </script>
 

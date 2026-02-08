@@ -3,7 +3,7 @@
  * 提供前端调用的插件管理接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const path = require("path");
 const {
   getPermissionDialogManager,

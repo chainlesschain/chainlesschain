@@ -9,10 +9,7 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             <template #icon>
               <plus-outlined />
             </template>
@@ -28,37 +25,20 @@
       </template>
 
       <!-- 筛选器 -->
-      <a-space
-        style="margin-bottom: 16px"
-        wrap
-      >
+      <a-space style="margin-bottom: 16px" wrap>
         <span>合约状态:</span>
         <a-radio-group
           v-model:value="filterStatus"
           button-style="solid"
           @change="handleFilterChange"
         >
-          <a-radio-button value="">
-            全部
-          </a-radio-button>
-          <a-radio-button value="draft">
-            草稿
-          </a-radio-button>
-          <a-radio-button value="active">
-            激活
-          </a-radio-button>
-          <a-radio-button value="executing">
-            执行中
-          </a-radio-button>
-          <a-radio-button value="completed">
-            已完成
-          </a-radio-button>
-          <a-radio-button value="cancelled">
-            已取消
-          </a-radio-button>
-          <a-radio-button value="disputed">
-            有争议
-          </a-radio-button>
+          <a-radio-button value=""> 全部 </a-radio-button>
+          <a-radio-button value="draft"> 草稿 </a-radio-button>
+          <a-radio-button value="active"> 激活 </a-radio-button>
+          <a-radio-button value="executing"> 执行中 </a-radio-button>
+          <a-radio-button value="completed"> 已完成 </a-radio-button>
+          <a-radio-button value="cancelled"> 已取消 </a-radio-button>
+          <a-radio-button value="disputed"> 有争议 </a-radio-button>
         </a-radio-group>
 
         <span style="margin-left: 16px">合约类型:</span>
@@ -67,24 +47,12 @@
           style="width: 180px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部类型
-          </a-select-option>
-          <a-select-option value="simple_trade">
-            简单买卖
-          </a-select-option>
-          <a-select-option value="subscription">
-            订阅付费
-          </a-select-option>
-          <a-select-option value="bounty">
-            任务悬赏
-          </a-select-option>
-          <a-select-option value="skill_exchange">
-            技能交换
-          </a-select-option>
-          <a-select-option value="custom">
-            自定义
-          </a-select-option>
+          <a-select-option value=""> 全部类型 </a-select-option>
+          <a-select-option value="simple_trade"> 简单买卖 </a-select-option>
+          <a-select-option value="subscription"> 订阅付费 </a-select-option>
+          <a-select-option value="bounty"> 任务悬赏 </a-select-option>
+          <a-select-option value="skill_exchange"> 技能交换 </a-select-option>
+          <a-select-option value="custom"> 自定义 </a-select-option>
         </a-select>
       </a-space>
 
@@ -116,10 +84,7 @@
           v-if="!loading && filteredContracts.length === 0"
           description="暂无合约"
         >
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             创建第一个合约
           </a-button>
         </a-empty>
@@ -158,10 +123,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { message as antMessage, Modal } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { message as antMessage, Modal } from "ant-design-vue";
 import {
   FileProtectOutlined,
   PlusOutlined,
@@ -176,21 +141,21 @@ import {
   WarningOutlined,
   UserOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import ContractCard from './common/ContractCard.vue';
-import ContractCreate from './ContractCreate.vue';
-import ContractDetail from './ContractDetail.vue';
-import ContractSign from './ContractSign.vue';
-import ContractExecute from './ContractExecute.vue';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import ContractCard from "./common/ContractCard.vue";
+import ContractCreate from "./ContractCreate.vue";
+import ContractDetail from "./ContractDetail.vue";
+import ContractSign from "./ContractSign.vue";
+import ContractExecute from "./ContractExecute.vue";
 
 // Store
 const tradeStore = useTradeStore();
 
 // 状态
-const filterStatus = ref('');
-const filterType = ref('');
-const currentDid = ref('');
+const filterStatus = ref("");
+const filterType = ref("");
+const currentDid = ref("");
 const showCreateModal = ref(false);
 const showDetailModal = ref(false);
 const showSignModal = ref(false);
@@ -207,12 +172,12 @@ const filteredContracts = computed(() => {
 
   // 状态筛选
   if (filterStatus.value) {
-    result = result.filter(c => c.status === filterStatus.value);
+    result = result.filter((c) => c.status === filterStatus.value);
   }
 
   // 类型筛选
   if (filterType.value) {
-    result = result.filter(c => c.contract_type === filterType.value);
+    result = result.filter((c) => c.contract_type === filterType.value);
   }
 
   return result;
@@ -221,75 +186,75 @@ const filteredContracts = computed(() => {
 // 工具函数
 const getStatusColor = (status) => {
   const colors = {
-    draft: 'default',
-    active: 'green',
-    executing: 'blue',
-    completed: 'cyan',
-    cancelled: 'red',
-    disputed: 'volcano',
-    arbitrated: 'purple',
+    draft: "default",
+    active: "green",
+    executing: "blue",
+    completed: "cyan",
+    cancelled: "red",
+    disputed: "volcano",
+    arbitrated: "purple",
   };
-  return colors[status] || 'default';
+  return colors[status] || "default";
 };
 
 const getStatusName = (status) => {
   const names = {
-    draft: '草稿',
-    active: '激活',
-    executing: '执行中',
-    completed: '已完成',
-    cancelled: '已取消',
-    disputed: '有争议',
-    arbitrated: '已仲裁',
+    draft: "草稿",
+    active: "激活",
+    executing: "执行中",
+    completed: "已完成",
+    cancelled: "已取消",
+    disputed: "有争议",
+    arbitrated: "已仲裁",
   };
   return names[status] || status;
 };
 
 const getTypeColor = (type) => {
   const colors = {
-    simple_trade: 'blue',
-    subscription: 'purple',
-    bounty: 'orange',
-    skill_exchange: 'green',
-    custom: 'default',
+    simple_trade: "blue",
+    subscription: "purple",
+    bounty: "orange",
+    skill_exchange: "green",
+    custom: "default",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getTypeName = (type) => {
   const names = {
-    simple_trade: '简单买卖',
-    subscription: '订阅付费',
-    bounty: '任务悬赏',
-    skill_exchange: '技能交换',
-    custom: '自定义',
+    simple_trade: "简单买卖",
+    subscription: "订阅付费",
+    bounty: "任务悬赏",
+    skill_exchange: "技能交换",
+    custom: "自定义",
   };
   return names[type] || type;
 };
 
 const getEscrowTypeColor = (type) => {
   const colors = {
-    simple: 'cyan',
-    multisig: 'geekblue',
-    timelock: 'gold',
-    conditional: 'lime',
+    simple: "cyan",
+    multisig: "geekblue",
+    timelock: "gold",
+    conditional: "lime",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getEscrowTypeName = (type) => {
   const names = {
-    simple: '简单托管',
-    multisig: '多重签名',
-    timelock: '时间锁',
-    conditional: '条件托管',
+    simple: "简单托管",
+    multisig: "多重签名",
+    timelock: "时间锁",
+    conditional: "条件托管",
   };
   return names[type] || type;
 };
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 
 const isParty = (contract) => {
@@ -313,10 +278,10 @@ const loadContracts = async () => {
 
     // 使用 store 加载合约
     await tradeStore.loadContracts({});
-    logger.info('[ContractList] 合约列表已加载:', contracts.value.length);
+    logger.info("[ContractList] 合约列表已加载:", contracts.value.length);
   } catch (error) {
-    logger.error('[ContractList] 加载合约列表失败:', error);
-    antMessage.error('加载合约列表失败: ' + error.message);
+    logger.error("[ContractList] 加载合约列表失败:", error);
+    antMessage.error("加载合约列表失败: " + error.message);
   }
 };
 
@@ -344,18 +309,18 @@ const handleViewContract = (contract) => {
 // 激活合约
 const handleActivate = (contract) => {
   Modal.confirm({
-    title: '激活合约',
-    content: '确定要激活这个合约吗？激活后合约将开始生效。',
-    okText: '确定',
-    cancelText: '取消',
+    title: "激活合约",
+    content: "确定要激活这个合约吗？激活后合约将开始生效。",
+    okText: "确定",
+    cancelText: "取消",
     async onOk() {
       try {
         await window.electronAPI.contract.activate(contract.id);
-        antMessage.success('合约已激活');
+        antMessage.success("合约已激活");
         loadContracts();
       } catch (error) {
-        logger.error('激活合约失败:', error);
-        antMessage.error('激活合约失败: ' + error.message);
+        logger.error("激活合约失败:", error);
+        antMessage.error("激活合约失败: " + error.message);
       }
     },
   });
@@ -370,22 +335,24 @@ const handleSign = (contract) => {
 // 检查条件
 const handleCheckConditions = async (contract) => {
   try {
-    const result = await window.electronAPI.contract.checkConditions(contract.id);
+    const result = await window.electronAPI.contract.checkConditions(
+      contract.id,
+    );
 
-    const content = result.conditions.map(c => ({
+    const content = result.conditions.map((c) => ({
       type: c.type,
       met: c.met,
       required: c.required,
     }));
 
     Modal.info({
-      title: '合约条件检查',
-      content: `所有条件${result.allMet ? '已' : '未'}满足\n\n${content.map(c => `- ${c.type}: ${c.met ? '✅' : '❌'} ${c.required ? '(必需)' : ''}`).join('\n')}`,
-      okText: '确定',
+      title: "合约条件检查",
+      content: `所有条件${result.allMet ? "已" : "未"}满足\n\n${content.map((c) => `- ${c.type}: ${c.met ? "✅" : "❌"} ${c.required ? "(必需)" : ""}`).join("\n")}`,
+      okText: "确定",
     });
   } catch (error) {
-    logger.error('检查条件失败:', error);
-    antMessage.error('检查条件失败: ' + error.message);
+    logger.error("检查条件失败:", error);
+    antMessage.error("检查条件失败: " + error.message);
   }
 };
 
@@ -398,22 +365,22 @@ const handleExecute = (contract) => {
 // 取消合约
 const handleCancel = (contract) => {
   Modal.confirm({
-    title: '取消合约',
-    content: '确定要取消这个合约吗？取消后无法恢复。',
-    okText: '确定取消',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "取消合约",
+    content: "确定要取消这个合约吗？取消后无法恢复。",
+    okText: "确定取消",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         // 使用 store 取消合约
-        await tradeStore.cancelContract(contract.id, '用户取消');
+        await tradeStore.cancelContract(contract.id, "用户取消");
 
-        logger.info('[ContractList] 合约已取消:', contract.id);
-        antMessage.success('合约已取消');
+        logger.info("[ContractList] 合约已取消:", contract.id);
+        antMessage.success("合约已取消");
         await loadContracts();
       } catch (error) {
-        logger.error('[ContractList] 取消合约失败:', error);
-        antMessage.error(error.message || '取消合约失败');
+        logger.error("[ContractList] 取消合约失败:", error);
+        antMessage.error(error.message || "取消合约失败");
       }
     },
   });
@@ -422,22 +389,22 @@ const handleCancel = (contract) => {
 // 发起仲裁
 const handleInitiateArbitration = (contract) => {
   Modal.confirm({
-    title: '发起仲裁',
-    content: '确定要对这个合约发起仲裁吗？',
-    okText: '确定',
-    cancelText: '取消',
+    title: "发起仲裁",
+    content: "确定要对这个合约发起仲裁吗？",
+    okText: "确定",
+    cancelText: "取消",
     async onOk() {
       try {
         await window.electronAPI.contract.initiateArbitration(
           contract.id,
-          '合约执行出现争议',
-          null
+          "合约执行出现争议",
+          null,
         );
-        antMessage.success('仲裁已发起');
+        antMessage.success("仲裁已发起");
         loadContracts();
       } catch (error) {
-        logger.error('发起仲裁失败:', error);
-        antMessage.error('发起仲裁失败: ' + error.message);
+        logger.error("发起仲裁失败:", error);
+        antMessage.error("发起仲裁失败: " + error.message);
       }
     },
   });

@@ -7,7 +7,7 @@
  * @since 2026-01-18
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 const ipcGuard = require("../ipc/ipc-guard");
@@ -308,10 +308,7 @@ function registerMemoryDashboardIPC(dependencies) {
 
         return result;
       } catch (error) {
-        logger.error(
-          "[MemoryDashboard IPC] Generate summaries failed:",
-          error,
-        );
+        logger.error("[MemoryDashboard IPC] Generate summaries failed:", error);
         throw error;
       }
     },

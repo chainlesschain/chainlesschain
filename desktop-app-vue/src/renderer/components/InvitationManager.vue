@@ -23,10 +23,7 @@
     <!-- 统计卡片 -->
     <div class="stats-cards">
       <a-card class="stat-card">
-        <a-statistic
-          title="总邀请数"
-          :value="invitations.length"
-        >
+        <a-statistic title="总邀请数" :value="invitations.length">
           <template #suffix>
             <MailOutlined />
           </template>
@@ -44,10 +41,7 @@
         </a-statistic>
       </a-card>
       <a-card class="stat-card">
-        <a-statistic
-          title="已使用"
-          :value="usedInvitations"
-        >
+        <a-statistic title="已使用" :value="usedInvitations">
           <template #suffix>
             <UserAddOutlined />
           </template>
@@ -63,18 +57,10 @@
         style="width: 150px"
         @change="handleFilter"
       >
-        <a-select-option value="">
-          全部状态
-        </a-select-option>
-        <a-select-option value="active">
-          有效
-        </a-select-option>
-        <a-select-option value="expired">
-          已过期
-        </a-select-option>
-        <a-select-option value="used">
-          已用完
-        </a-select-option>
+        <a-select-option value=""> 全部状态 </a-select-option>
+        <a-select-option value="active"> 有效 </a-select-option>
+        <a-select-option value="expired"> 已过期 </a-select-option>
+        <a-select-option value="used"> 已用完 </a-select-option>
       </a-select>
     </div>
 
@@ -91,11 +77,7 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'invite_code'">
           <div class="code-cell">
-            <a-typography-text
-              code
-              strong
-              style="font-size: 16px"
-            >
+            <a-typography-text code strong style="font-size: 16px">
               {{ record.invite_code }}
             </a-typography-text>
             <a-button
@@ -127,7 +109,9 @@
         <template v-else-if="column.key === 'usage'">
           <a-progress
             :percent="getUsagePercent(record)"
-            :status="record.used_count >= record.max_uses ? 'exception' : 'active'"
+            :status="
+              record.used_count >= record.max_uses ? 'exception' : 'active'
+            "
             :format="() => `${record.used_count}/${record.max_uses}`"
           />
         </template>
@@ -136,11 +120,7 @@
         <template v-else-if="column.key === 'expire_at'">
           <span v-if="record.expire_at">
             {{ formatDate(record.expire_at) }}
-            <a-tag
-              v-if="isExpired(record)"
-              color="red"
-              size="small"
-            >
+            <a-tag v-if="isExpired(record)" color="red" size="small">
               已过期
             </a-tag>
           </span>
@@ -163,10 +143,7 @@
         <template v-else-if="column.key === 'actions'">
           <a-space>
             <!-- 查看详情 -->
-            <a-button
-              size="small"
-              @click="showInvitationDetail(record)"
-            >
+            <a-button size="small" @click="showInvitationDetail(record)">
               <EyeOutlined />
               详情
             </a-button>
@@ -187,7 +164,7 @@
               size="small"
               @click="toggleInvitationStatus(record)"
             >
-              {{ record.is_active ? '禁用' : '启用' }}
+              {{ record.is_active ? "禁用" : "启用" }}
             </a-button>
 
             <!-- 删除 -->
@@ -196,10 +173,7 @@
               title="确定要删除这个邀请吗？"
               @confirm="handleDeleteInvitation(record)"
             >
-              <a-button
-                size="small"
-                danger
-              >
+              <a-button size="small" danger>
                 <DeleteOutlined />
               </a-button>
             </a-popconfirm>
@@ -216,18 +190,11 @@
       width="600px"
       @ok="handleCreateInvitation"
     >
-      <a-form
-        :model="createForm"
-        layout="vertical"
-      >
+      <a-form :model="createForm" layout="vertical">
         <a-form-item label="邀请方式">
           <a-radio-group v-model:value="createForm.method">
-            <a-radio value="code">
-              邀请码
-            </a-radio>
-            <a-radio value="link">
-              邀请链接
-            </a-radio>
+            <a-radio value="code"> 邀请码 </a-radio>
+            <a-radio value="link"> 邀请链接 </a-radio>
             <a-radio value="did">
               <a-tooltip title="通过DID直接邀请用户，对方将收到P2P通知">
                 DID邀请
@@ -252,18 +219,12 @@
               <IdcardOutlined />
             </template>
           </a-input>
-          <div
-            v-if="didValidationError"
-            class="error-message"
-          >
+          <div v-if="didValidationError" class="error-message">
             {{ didValidationError }}
           </div>
         </a-form-item>
 
-        <a-form-item
-          label="默认角色"
-          required
-        >
+        <a-form-item label="默认角色" required>
           <a-select v-model:value="createForm.role">
             <a-select-option value="viewer">
               <SafetyOutlined /> 访客 - 只能查看
@@ -271,10 +232,7 @@
             <a-select-option value="member">
               <UserOutlined /> 成员 - 可以创建和编辑
             </a-select-option>
-            <a-select-option
-              v-if="currentUserRole === 'owner'"
-              value="admin"
-            >
+            <a-select-option v-if="currentUserRole === 'owner'" value="admin">
               <CrownOutlined /> 管理员 - 可以管理成员
             </a-select-option>
           </a-select>
@@ -294,24 +252,12 @@
           <a-col :span="12">
             <a-form-item label="过期时间">
               <a-select v-model:value="createForm.expireOption">
-                <a-select-option value="never">
-                  永不过期
-                </a-select-option>
-                <a-select-option value="1h">
-                  1小时
-                </a-select-option>
-                <a-select-option value="1day">
-                  1天
-                </a-select-option>
-                <a-select-option value="7days">
-                  7天
-                </a-select-option>
-                <a-select-option value="30days">
-                  30天
-                </a-select-option>
-                <a-select-option value="custom">
-                  自定义
-                </a-select-option>
+                <a-select-option value="never"> 永不过期 </a-select-option>
+                <a-select-option value="1h"> 1小时 </a-select-option>
+                <a-select-option value="1day"> 1天 </a-select-option>
+                <a-select-option value="7days"> 7天 </a-select-option>
+                <a-select-option value="30days"> 30天 </a-select-option>
+                <a-select-option value="custom"> 自定义 </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -347,11 +293,7 @@
             <div class="generated-invitation">
               <div class="invitation-item">
                 <span class="label">邀请码：</span>
-                <a-typography-text
-                  code
-                  strong
-                  style="font-size: 16px"
-                >
+                <a-typography-text code strong style="font-size: 16px">
                   {{ generatedInvitation.invite_code }}
                 </a-typography-text>
                 <a-button
@@ -363,10 +305,7 @@
                   复制
                 </a-button>
               </div>
-              <div
-                v-if="createForm.method === 'link'"
-                class="invitation-item"
-              >
+              <div v-if="createForm.method === 'link'" class="invitation-item">
                 <span class="label">邀请链接：</span>
                 <a-typography-text
                   :copyable="{ text: getInviteLink(generatedInvitation) }"
@@ -377,9 +316,7 @@
               </div>
             </div>
           </template>
-          <template #description>
-            请复制邀请码或链接分享给新成员
-          </template>
+          <template #description> 请复制邀请码或链接分享给新成员 </template>
         </a-alert>
       </a-form>
     </a-modal>
@@ -391,10 +328,7 @@
       :footer="null"
       width="600px"
     >
-      <div
-        v-if="selectedInvitation"
-        class="invitation-detail"
-      >
+      <div v-if="selectedInvitation" class="invitation-detail">
         <div class="detail-header">
           <MailOutlined class="detail-icon" />
           <div class="detail-title">
@@ -405,11 +339,7 @@
           </div>
         </div>
 
-        <a-descriptions
-          :column="1"
-          bordered
-          style="margin-top: 24px"
-        >
+        <a-descriptions :column="1" bordered style="margin-top: 24px">
           <a-descriptions-item label="邀请ID">
             {{ selectedInvitation.invite_id }}
           </a-descriptions-item>
@@ -425,7 +355,10 @@
           <a-descriptions-item label="使用情况">
             <a-progress
               :percent="getUsagePercent(selectedInvitation)"
-              :format="() => `${selectedInvitation.used_count}/${selectedInvitation.max_uses}`"
+              :format="
+                () =>
+                  `${selectedInvitation.used_count}/${selectedInvitation.max_uses}`
+              "
             />
           </a-descriptions-item>
           <a-descriptions-item label="创建者">
@@ -483,10 +416,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   MailOutlined,
   PlusOutlined,
@@ -501,9 +434,9 @@ import {
   SafetyOutlined,
   QuestionCircleOutlined,
   IdcardOutlined,
-} from '@ant-design/icons-vue';
-import { useIdentityStore } from '@/stores/identity';
-import dayjs from 'dayjs';
+} from "@ant-design/icons-vue";
+import { useIdentityStore } from "@/stores/identity";
+import dayjs from "dayjs";
 
 const identityStore = useIdentityStore();
 
@@ -511,7 +444,7 @@ const identityStore = useIdentityStore();
 const loading = ref(false);
 const creating = ref(false);
 const invitations = ref([]);
-const statusFilter = ref('');
+const statusFilter = ref("");
 const showCreateModal = ref(false);
 const showDetailModal = ref(false);
 const selectedInvitation = ref(null);
@@ -519,38 +452,40 @@ const generatedInvitation = ref(null);
 
 // 创建表单
 const createForm = ref({
-  method: 'code',
-  role: 'member',
+  method: "code",
+  role: "member",
   maxUses: 10,
-  expireOption: '30days',
+  expireOption: "30days",
   customExpireDate: null,
-  note: '',
-  invitedDID: '', // DID邀请专用
+  note: "",
+  invitedDID: "", // DID邀请专用
 });
 
 // DID验证状态
-const didValidationError = ref('');
+const didValidationError = ref("");
 
 // 当前用户角色
 const currentUserRole = computed(() => {
-  if (!identityStore.isOrganizationContext) {return null;}
+  if (!identityStore.isOrganizationContext) {
+    return null;
+  }
   const orgId = identityStore.currentOrgId;
-  const org = identityStore.organizations.find(o => o.org_id === orgId);
+  const org = identityStore.organizations.find((o) => o.org_id === orgId);
   return org?.role || null;
 });
 
 // 权限检查
 const canCreateInvitation = computed(() => {
-  return ['owner', 'admin'].includes(currentUserRole.value);
+  return ["owner", "admin"].includes(currentUserRole.value);
 });
 
 const canManageInvitations = computed(() => {
-  return ['owner', 'admin'].includes(currentUserRole.value);
+  return ["owner", "admin"].includes(currentUserRole.value);
 });
 
 // 统计
 const activeInvitations = computed(() => {
-  return invitations.value.filter(inv => isInvitationActive(inv)).length;
+  return invitations.value.filter((inv) => isInvitationActive(inv)).length;
 });
 
 const usedInvitations = computed(() => {
@@ -559,12 +494,20 @@ const usedInvitations = computed(() => {
 
 // 过滤后的邀请列表
 const filteredInvitations = computed(() => {
-  if (!statusFilter.value) {return invitations.value;}
+  if (!statusFilter.value) {
+    return invitations.value;
+  }
 
-  return invitations.value.filter(inv => {
-    if (statusFilter.value === 'active') {return isInvitationActive(inv);}
-    if (statusFilter.value === 'expired') {return isExpired(inv);}
-    if (statusFilter.value === 'used') {return inv.used_count >= inv.max_uses;}
+  return invitations.value.filter((inv) => {
+    if (statusFilter.value === "active") {
+      return isInvitationActive(inv);
+    }
+    if (statusFilter.value === "expired") {
+      return isExpired(inv);
+    }
+    if (statusFilter.value === "used") {
+      return inv.used_count >= inv.max_uses;
+    }
     return true;
   });
 });
@@ -572,45 +515,45 @@ const filteredInvitations = computed(() => {
 // 表格列定义
 const columns = [
   {
-    title: '邀请码',
-    key: 'invite_code',
+    title: "邀请码",
+    key: "invite_code",
     width: 180,
   },
   {
-    title: '角色',
-    key: 'role',
+    title: "角色",
+    key: "role",
     width: 100,
   },
   {
-    title: '状态',
-    key: 'status',
+    title: "状态",
+    key: "status",
     width: 100,
   },
   {
-    title: '使用情况',
-    key: 'usage',
+    title: "使用情况",
+    key: "usage",
     width: 150,
   },
   {
-    title: '过期时间',
-    key: 'expire_at',
+    title: "过期时间",
+    key: "expire_at",
     width: 180,
   },
   {
-    title: '创建者',
-    key: 'invited_by',
+    title: "创建者",
+    key: "invited_by",
     width: 150,
   },
   {
-    title: '创建时间',
-    key: 'created_at',
+    title: "创建时间",
+    key: "created_at",
     width: 180,
   },
   {
-    title: '操作',
-    key: 'actions',
+    title: "操作",
+    key: "actions",
     width: 250,
-    fixed: 'right',
+    fixed: "right",
   },
 ];
 
@@ -626,25 +569,25 @@ const pagination = ref({
 // 加载邀请列表
 const loadInvitations = async () => {
   if (!identityStore.isOrganizationContext) {
-    message.warning('请先切换到组织身份');
+    message.warning("请先切换到组织身份");
     return;
   }
 
   loading.value = true;
   try {
     const orgId = identityStore.currentOrgId;
-    const result = await window.ipc.invoke('org:get-invitations', orgId);
+    const result = await window.ipc.invoke("org:get-invitations", orgId);
 
     if (result.success) {
       invitations.value = result.invitations || [];
       pagination.value.total = invitations.value.length;
     } else {
-      message.error(result.error || '加载邀请列表失败');
+      message.error(result.error || "加载邀请列表失败");
       invitations.value = [];
     }
   } catch (error) {
-    logger.error('加载邀请列表失败:', error);
-    message.error('加载邀请列表失败');
+    logger.error("加载邀请列表失败:", error);
+    message.error("加载邀请列表失败");
     invitations.value = [];
   } finally {
     loading.value = false;
@@ -653,23 +596,23 @@ const loadInvitations = async () => {
 
 // DID验证
 const validateDID = () => {
-  didValidationError.value = '';
+  didValidationError.value = "";
   const did = createForm.value.invitedDID.trim();
 
   if (!did) {
-    didValidationError.value = '请输入DID';
+    didValidationError.value = "请输入DID";
     return false;
   }
 
-  if (!did.startsWith('did:')) {
+  if (!did.startsWith("did:")) {
     didValidationError.value = 'DID格式错误，应以 "did:" 开头';
     return false;
   }
 
   // 简单的格式验证
-  const parts = did.split(':');
+  const parts = did.split(":");
   if (parts.length < 3) {
-    didValidationError.value = 'DID格式错误，应为 did:method:identifier';
+    didValidationError.value = "DID格式错误，应为 did:method:identifier";
     return false;
   }
 
@@ -683,14 +626,14 @@ const handleCreateInvitation = async () => {
     const orgId = identityStore.currentOrgId;
 
     // 如果是DID邀请，验证DID
-    if (createForm.value.method === 'did') {
+    if (createForm.value.method === "did") {
       if (!validateDID()) {
         creating.value = false;
         return;
       }
 
       // 创建DID邀请
-      const invitation = await window.ipc.invoke('org:invite-by-did', orgId, {
+      const invitation = await window.ipc.invoke("org:invite-by-did", orgId, {
         invitedDID: createForm.value.invitedDID.trim(),
         role: createForm.value.role,
         message: createForm.value.note || undefined,
@@ -702,24 +645,28 @@ const handleCreateInvitation = async () => {
         invite_code: `DID: ${formatDID(invitation.invited_did)}`,
       };
 
-      message.success('DID邀请已发送，对方将收到P2P通知');
+      message.success("DID邀请已发送，对方将收到P2P通知");
     } else {
       // 创建邀请码/链接
-      const invitation = await window.ipc.invoke('org:create-invitation', orgId, {
-        invitedBy: identityStore.primaryDID,
-        role: createForm.value.role,
-        maxUses: createForm.value.maxUses,
-        expireAt: calculateExpireAt(),
-      });
+      const invitation = await window.ipc.invoke(
+        "org:create-invitation",
+        orgId,
+        {
+          invitedBy: identityStore.primaryDID,
+          role: createForm.value.role,
+          maxUses: createForm.value.maxUses,
+          expireAt: calculateExpireAt(),
+        },
+      );
 
       generatedInvitation.value = invitation;
-      message.success('邀请码创建成功');
+      message.success("邀请码创建成功");
     }
 
     // 刷新列表
     await loadInvitations();
   } catch (error) {
-    logger.error('创建邀请失败:', error);
+    logger.error("创建邀请失败:", error);
     message.error(`创建邀请失败: ${error.message}`);
   } finally {
     creating.value = false;
@@ -729,17 +676,17 @@ const handleCreateInvitation = async () => {
 // 计算过期时间（提取为单独函数）
 const calculateExpireAt = () => {
   let expireAt = null;
-  if (createForm.value.expireOption !== 'never') {
-    if (createForm.value.expireOption === 'custom') {
+  if (createForm.value.expireOption !== "never") {
+    if (createForm.value.expireOption === "custom") {
       expireAt = createForm.value.customExpireDate
         ? createForm.value.customExpireDate.valueOf()
         : null;
     } else {
       const timeMap = {
-        '1h': 1 * 60 * 60 * 1000,
-        '1day': 1 * 24 * 60 * 60 * 1000,
-        '7days': 7 * 24 * 60 * 60 * 1000,
-        '30days': 30 * 24 * 60 * 60 * 1000,
+        "1h": 1 * 60 * 60 * 1000,
+        "1day": 1 * 24 * 60 * 60 * 1000,
+        "7days": 7 * 24 * 60 * 60 * 1000,
+        "30days": 30 * 24 * 60 * 60 * 1000,
       };
       expireAt = Date.now() + timeMap[createForm.value.expireOption];
     }
@@ -750,22 +697,23 @@ const calculateExpireAt = () => {
 // 复制邀请码
 const copyInviteCode = (code) => {
   navigator.clipboard.writeText(code);
-  message.success('邀请码已复制');
+  message.success("邀请码已复制");
 };
 
 // 复制邀请链接
 const copyInviteLink = (invitation) => {
   const link = getInviteLink(invitation);
   navigator.clipboard.writeText(link);
-  message.success('邀请链接已复制');
+  message.success("邀请链接已复制");
 };
 
 // 获取邀请链接
 const getInviteLink = (invitation) => {
   // 使用自定义协议URL，支持桌面端和Web端
-  const baseUrl = window.location.protocol === 'file:'
-    ? 'chainlesschain://invite/' // 桌面端使用自定义协议
-    : `${window.location.origin}/invite/`; // Web端使用当前域名
+  const baseUrl =
+    window.location.protocol === "file:"
+      ? "chainlesschain://invite/" // 桌面端使用自定义协议
+      : `${window.location.origin}/invite/`; // Web端使用当前域名
   return `${baseUrl}${invitation.invite_code}`;
 };
 
@@ -776,24 +724,24 @@ const toggleInvitationStatus = async (invitation) => {
 
     // Use revoke to disable, or would need a separate enable API
     if (invitation.is_active) {
-      const result = await window.ipc.invoke('org:revoke-invitation', {
+      const result = await window.ipc.invoke("org:revoke-invitation", {
         orgId,
-        invitationId: invitation.id
+        invitationId: invitation.id,
       });
 
       if (result.success) {
-        message.success('邀请已禁用');
+        message.success("邀请已禁用");
         await loadInvitations();
       } else {
-        message.error(result.error || '禁用邀请失败');
+        message.error(result.error || "禁用邀请失败");
       }
     } else {
       // Note: There's no enable API, so we show a message
-      message.info('已禁用的邀请无法重新启用，请创建新邀请');
+      message.info("已禁用的邀请无法重新启用，请创建新邀请");
     }
   } catch (error) {
-    logger.error('切换状态失败:', error);
-    message.error('切换状态失败');
+    logger.error("切换状态失败:", error);
+    message.error("切换状态失败");
   }
 };
 
@@ -802,20 +750,20 @@ const handleDeleteInvitation = async (invitation) => {
   try {
     const orgId = identityStore.currentOrgId;
 
-    const result = await window.ipc.invoke('org:delete-invitation', {
+    const result = await window.ipc.invoke("org:delete-invitation", {
       orgId,
-      invitationId: invitation.id
+      invitationId: invitation.id,
     });
 
     if (result.success) {
-      message.success('邀请已删除');
+      message.success("邀请已删除");
       await loadInvitations();
     } else {
-      message.error(result.error || '删除邀请失败');
+      message.error(result.error || "删除邀请失败");
     }
   } catch (error) {
-    logger.error('删除邀请失败:', error);
-    message.error('删除邀请失败');
+    logger.error("删除邀请失败:", error);
+    message.error("删除邀请失败");
   }
 };
 
@@ -827,28 +775,36 @@ const showInvitationDetail = (invitation) => {
 
 // 工具函数
 const isExpired = (invitation) => {
-  if (!invitation.expire_at) {return false;}
+  if (!invitation.expire_at) {
+    return false;
+  }
   return Date.now() > invitation.expire_at;
 };
 
 const isInvitationActive = (invitation) => {
-  if (!invitation.is_active) {return false;}
-  if (invitation.used_count >= invitation.max_uses) {return false;}
-  if (isExpired(invitation)) {return false;}
+  if (!invitation.is_active) {
+    return false;
+  }
+  if (invitation.used_count >= invitation.max_uses) {
+    return false;
+  }
+  if (isExpired(invitation)) {
+    return false;
+  }
   return true;
 };
 
 const getStatusBadge = (invitation) => {
   if (!invitation.is_active) {
-    return { status: 'default', text: '已禁用' };
+    return { status: "default", text: "已禁用" };
   }
   if (invitation.used_count >= invitation.max_uses) {
-    return { status: 'error', text: '已用完' };
+    return { status: "error", text: "已用完" };
   }
   if (isExpired(invitation)) {
-    return { status: 'error', text: '已过期' };
+    return { status: "error", text: "已过期" };
   }
-  return { status: 'success', text: '有效' };
+  return { status: "success", text: "有效" };
 };
 
 const getUsagePercent = (invitation) => {
@@ -856,36 +812,40 @@ const getUsagePercent = (invitation) => {
 };
 
 const formatDID = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   if (did.length > 30) {
-    return did.substring(0, 15) + '...' + did.substring(did.length - 10);
+    return did.substring(0, 15) + "..." + did.substring(did.length - 10);
   }
   return did;
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '';}
-  return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss');
+  if (!timestamp) {
+    return "";
+  }
+  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
 };
 
 const getRoleLabel = (role) => {
   const labels = {
-    owner: '所有者',
-    admin: '管理员',
-    member: '成员',
-    viewer: '访客',
+    owner: "所有者",
+    admin: "管理员",
+    member: "成员",
+    viewer: "访客",
   };
   return labels[role] || role;
 };
 
 const getRoleColor = (role) => {
   const colors = {
-    owner: 'red',
-    admin: 'orange',
-    member: 'blue',
-    viewer: 'default',
+    owner: "red",
+    admin: "orange",
+    member: "blue",
+    viewer: "default",
   };
-  return colors[role] || 'default';
+  return colors[role] || "default";
 };
 
 const handleFilter = () => {

@@ -3,10 +3,7 @@
     <a-card :bordered="false">
       <a-tabs v-model:active-key="activeTab">
         <!-- 代码生成 -->
-        <a-tab-pane
-          key="generate"
-          tab="代码生成"
-        >
+        <a-tab-pane key="generate" tab="代码生成">
           <a-form layout="vertical">
             <a-form-item label="功能描述">
               <a-textarea
@@ -26,33 +23,19 @@
                     <a-select-option value="typescript">
                       TypeScript
                     </a-select-option>
-                    <a-select-option value="python">
-                      Python
-                    </a-select-option>
-                    <a-select-option value="java">
-                      Java
-                    </a-select-option>
-                    <a-select-option value="cpp">
-                      C++
-                    </a-select-option>
-                    <a-select-option value="go">
-                      Go
-                    </a-select-option>
-                    <a-select-option value="rust">
-                      Rust
-                    </a-select-option>
-                    <a-select-option value="csharp">
-                      C#
-                    </a-select-option>
+                    <a-select-option value="python"> Python </a-select-option>
+                    <a-select-option value="java"> Java </a-select-option>
+                    <a-select-option value="cpp"> C++ </a-select-option>
+                    <a-select-option value="go"> Go </a-select-option>
+                    <a-select-option value="rust"> Rust </a-select-option>
+                    <a-select-option value="csharp"> C# </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
               <a-col :span="8">
                 <a-form-item label="代码风格">
                   <a-select v-model:value="generateForm.style">
-                    <a-select-option value="modern">
-                      现代风格
-                    </a-select-option>
+                    <a-select-option value="modern"> 现代风格 </a-select-option>
                     <a-select-option value="classic">
                       经典风格
                     </a-select-option>
@@ -65,12 +48,8 @@
               <a-col :span="8">
                 <a-form-item label="选项">
                   <a-checkbox-group v-model:value="generateForm.options">
-                    <a-checkbox value="tests">
-                      包含单元测试
-                    </a-checkbox>
-                    <a-checkbox value="comments">
-                      包含注释
-                    </a-checkbox>
+                    <a-checkbox value="tests"> 包含单元测试 </a-checkbox>
+                    <a-checkbox value="comments"> 包含注释 </a-checkbox>
                   </a-checkbox-group>
                 </a-form-item>
               </a-col>
@@ -86,24 +65,16 @@
                 >
                   生成代码
                 </a-button>
-                <a-button @click="resetGenerateForm">
-                  重置
-                </a-button>
+                <a-button @click="resetGenerateForm"> 重置 </a-button>
               </a-space>
             </a-form-item>
 
             <!-- 生成结果 -->
-            <div
-              v-if="generateResult"
-              class="result-section"
-            >
+            <div v-if="generateResult" class="result-section">
               <a-divider>生成结果</a-divider>
 
               <a-tabs>
-                <a-tab-pane
-                  key="code"
-                  tab="代码"
-                >
+                <a-tab-pane key="code" tab="代码">
                   <div class="code-header">
                     <a-space>
                       <a-button
@@ -120,7 +91,9 @@
                       </a-button>
                     </a-space>
                   </div>
-                  <pre class="code-block"><code>{{ generateResult.code }}</code></pre>
+                  <pre
+                    class="code-block"
+                  ><code>{{ generateResult.code }}</code></pre>
                 </a-tab-pane>
 
                 <a-tab-pane
@@ -136,7 +109,9 @@
                       <CopyOutlined /> 复制测试
                     </a-button>
                   </div>
-                  <pre class="code-block"><code>{{ generateResult.tests }}</code></pre>
+                  <pre
+                    class="code-block"
+                  ><code>{{ generateResult.tests }}</code></pre>
                 </a-tab-pane>
               </a-tabs>
             </div>
@@ -144,10 +119,7 @@
         </a-tab-pane>
 
         <!-- 代码审查 -->
-        <a-tab-pane
-          key="review"
-          tab="代码审查"
-        >
+        <a-tab-pane key="review" tab="代码审查">
           <a-form layout="vertical">
             <a-form-item label="待审查代码">
               <a-textarea
@@ -168,12 +140,8 @@
                 <a-select-option value="typescript">
                   TypeScript
                 </a-select-option>
-                <a-select-option value="python">
-                  Python
-                </a-select-option>
-                <a-select-option value="java">
-                  Java
-                </a-select-option>
+                <a-select-option value="python"> Python </a-select-option>
+                <a-select-option value="java"> Java </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -189,28 +157,25 @@
             </a-form-item>
 
             <!-- 审查结果 -->
-            <div
-              v-if="reviewResult"
-              class="result-section"
-            >
+            <div v-if="reviewResult" class="result-section">
               <a-divider>审查结果</a-divider>
 
               <a-alert
                 :message="`代码评分: ${reviewResult.score}/10`"
-                :type="reviewResult.score >= 8 ? 'success' : reviewResult.score >= 6 ? 'warning' : 'error'"
+                :type="
+                  reviewResult.score >= 8
+                    ? 'success'
+                    : reviewResult.score >= 6
+                      ? 'warning'
+                      : 'error'
+                "
                 show-icon
                 style="margin-bottom: 16px"
               />
 
               <a-tabs>
-                <a-tab-pane
-                  key="suggestions"
-                  tab="改进建议"
-                >
-                  <a-list
-                    :data-source="reviewResult.suggestions"
-                    bordered
-                  >
+                <a-tab-pane key="suggestions" tab="改进建议">
+                  <a-list :data-source="reviewResult.suggestions" bordered>
                     <template #renderItem="{ item }">
                       <a-list-item>
                         <a-list-item-meta>
@@ -242,7 +207,9 @@
                       <CopyOutlined /> 复制改进代码
                     </a-button>
                   </div>
-                  <pre class="code-block"><code>{{ reviewResult.improvedCode }}</code></pre>
+                  <pre
+                    class="code-block"
+                  ><code>{{ reviewResult.improvedCode }}</code></pre>
                 </a-tab-pane>
               </a-tabs>
             </div>
@@ -250,10 +217,7 @@
         </a-tab-pane>
 
         <!-- 代码重构 -->
-        <a-tab-pane
-          key="refactor"
-          tab="代码重构"
-        >
+        <a-tab-pane key="refactor" tab="代码重构">
           <a-form layout="vertical">
             <a-form-item label="待重构代码">
               <a-textarea
@@ -273,12 +237,8 @@
                     <a-select-option value="typescript">
                       TypeScript
                     </a-select-option>
-                    <a-select-option value="python">
-                      Python
-                    </a-select-option>
-                    <a-select-option value="java">
-                      Java
-                    </a-select-option>
+                    <a-select-option value="python"> Python </a-select-option>
+                    <a-select-option value="java"> Java </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
@@ -320,10 +280,7 @@
             </a-form-item>
 
             <!-- 重构结果 -->
-            <div
-              v-if="refactorResult"
-              class="result-section"
-            >
+            <div v-if="refactorResult" class="result-section">
               <a-divider>重构结果</a-divider>
 
               <a-alert
@@ -335,17 +292,13 @@
               />
 
               <a-tabs>
-                <a-tab-pane
-                  key="original"
-                  tab="原始代码"
-                >
-                  <pre class="code-block"><code>{{ refactorResult.originalCode }}</code></pre>
+                <a-tab-pane key="original" tab="原始代码">
+                  <pre
+                    class="code-block"
+                  ><code>{{ refactorResult.originalCode }}</code></pre>
                 </a-tab-pane>
 
-                <a-tab-pane
-                  key="refactored"
-                  tab="重构后代码"
-                >
+                <a-tab-pane key="refactored" tab="重构后代码">
                   <div class="code-header">
                     <a-button
                       size="small"
@@ -354,14 +307,20 @@
                       <CopyOutlined /> 复制重构代码
                     </a-button>
                   </div>
-                  <pre class="code-block"><code>{{ refactorResult.refactoredCode }}</code></pre>
+                  <pre
+                    class="code-block"
+                  ><code>{{ refactorResult.refactoredCode }}</code></pre>
                 </a-tab-pane>
 
-                <a-tab-pane
-                  key="explanation"
-                  tab="重构说明"
-                >
-                  <div style="white-space: pre-wrap; padding: 16px; background: #f5f5f5; border-radius: 4px;">
+                <a-tab-pane key="explanation" tab="重构说明">
+                  <div
+                    style="
+                      white-space: pre-wrap;
+                      padding: 16px;
+                      background: #f5f5f5;
+                      border-radius: 4px;
+                    "
+                  >
                     {{ refactorResult.explanation }}
                   </div>
                 </a-tab-pane>
@@ -375,29 +334,29 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, h } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, h } from "vue";
+import { message } from "ant-design-vue";
 import {
   CodeOutlined,
   CheckCircleOutlined,
   ReloadOutlined,
   CopyOutlined,
-  FileAddOutlined
-} from '@ant-design/icons-vue';
+  FileAddOutlined,
+} from "@ant-design/icons-vue";
 
-const emit = defineEmits(['insert-code']);
+const emit = defineEmits(["insert-code"]);
 
 // 当前Tab
-const activeTab = ref('generate');
+const activeTab = ref("generate");
 
 // 代码生成表单
 const generateForm = ref({
-  description: '',
-  language: 'javascript',
-  style: 'modern',
-  options: ['comments']
+  description: "",
+  language: "javascript",
+  style: "modern",
+  options: ["comments"],
 });
 
 const generating = ref(false);
@@ -405,8 +364,8 @@ const generateResult = ref(null);
 
 // 代码审查表单
 const reviewForm = ref({
-  code: '',
-  language: 'javascript'
+  code: "",
+  language: "javascript",
 });
 
 const reviewing = ref(false);
@@ -414,9 +373,9 @@ const reviewResult = ref(null);
 
 // 代码重构表单
 const refactorForm = ref({
-  code: '',
-  language: 'javascript',
-  type: 'simplify'
+  code: "",
+  language: "javascript",
+  type: "simplify",
 });
 
 const refactoring = ref(false);
@@ -427,7 +386,7 @@ const refactorResult = ref(null);
  */
 async function handleGenerate() {
   if (!generateForm.value.description.trim()) {
-    message.warning('请输入功能描述');
+    message.warning("请输入功能描述");
     return;
   }
 
@@ -440,17 +399,16 @@ async function handleGenerate() {
       {
         language: generateForm.value.language,
         style: generateForm.value.style,
-        includeTests: generateForm.value.options.includes('tests'),
-        includeComments: generateForm.value.options.includes('comments')
-      }
+        includeTests: generateForm.value.options.includes("tests"),
+        includeComments: generateForm.value.options.includes("comments"),
+      },
     );
 
     generateResult.value = result;
-    message.success('代码生成成功！');
-
+    message.success("代码生成成功！");
   } catch (error) {
-    logger.error('代码生成失败:', error);
-    message.error('代码生成失败: ' + error.message);
+    logger.error("代码生成失败:", error);
+    message.error("代码生成失败: " + error.message);
   } finally {
     generating.value = false;
   }
@@ -461,7 +419,7 @@ async function handleGenerate() {
  */
 async function handleReview() {
   if (!reviewForm.value.code.trim()) {
-    message.warning('请输入待审查的代码');
+    message.warning("请输入待审查的代码");
     return;
   }
 
@@ -471,15 +429,14 @@ async function handleReview() {
   try {
     const result = await window.electronAPI.code.review(
       reviewForm.value.code,
-      reviewForm.value.language
+      reviewForm.value.language,
     );
 
     reviewResult.value = result;
     message.success(`代码审查完成！评分: ${result.score}/10`);
-
   } catch (error) {
-    logger.error('代码审查失败:', error);
-    message.error('代码审查失败: ' + error.message);
+    logger.error("代码审查失败:", error);
+    message.error("代码审查失败: " + error.message);
   } finally {
     reviewing.value = false;
   }
@@ -490,7 +447,7 @@ async function handleReview() {
  */
 async function handleRefactor() {
   if (!refactorForm.value.code.trim()) {
-    message.warning('请输入待重构的代码');
+    message.warning("请输入待重构的代码");
     return;
   }
 
@@ -501,15 +458,14 @@ async function handleRefactor() {
     const result = await window.electronAPI.code.refactor(
       refactorForm.value.code,
       refactorForm.value.language,
-      refactorForm.value.type
+      refactorForm.value.type,
     );
 
     refactorResult.value = result;
-    message.success('代码重构完成！');
-
+    message.success("代码重构完成！");
   } catch (error) {
-    logger.error('代码重构失败:', error);
-    message.error('代码重构失败: ' + error.message);
+    logger.error("代码重构失败:", error);
+    message.error("代码重构失败: " + error.message);
   } finally {
     refactoring.value = false;
   }
@@ -521,9 +477,9 @@ async function handleRefactor() {
 async function copyCode(code) {
   try {
     await navigator.clipboard.writeText(code);
-    message.success('代码已复制到剪贴板');
+    message.success("代码已复制到剪贴板");
   } catch (error) {
-    message.error('复制失败');
+    message.error("复制失败");
   }
 }
 
@@ -531,8 +487,8 @@ async function copyCode(code) {
  * 插入代码到编辑器
  */
 function insertCode(code) {
-  emit('insert-code', code);
-  message.success('代码已插入编辑器');
+  emit("insert-code", code);
+  message.success("代码已插入编辑器");
 }
 
 /**
@@ -540,11 +496,11 @@ function insertCode(code) {
  */
 function getPriorityColor(priority) {
   const colors = {
-    high: 'red',
-    medium: 'orange',
-    low: 'blue'
+    high: "red",
+    medium: "orange",
+    low: "blue",
   };
-  return colors[priority] || 'default';
+  return colors[priority] || "default";
 }
 
 /**
@@ -552,10 +508,10 @@ function getPriorityColor(priority) {
  */
 function resetGenerateForm() {
   generateForm.value = {
-    description: '',
-    language: 'javascript',
-    style: 'modern',
-    options: ['comments']
+    description: "",
+    language: "javascript",
+    style: "modern",
+    options: ["comments"],
   };
   generateResult.value = null;
 }
@@ -585,7 +541,7 @@ function resetGenerateForm() {
 }
 
 .code-block code {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
   font-size: 13px;
   line-height: 1.6;
 }

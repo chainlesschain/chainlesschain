@@ -6,8 +6,8 @@
  * @description 提供全局的StreamController管理，支持暂停、恢复、取消等操作
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { createStreamController } = require('../llm/stream-controller');
+const { logger } = require("../utils/logger.js");
+const { createStreamController } = require("../llm/stream-controller");
 
 /**
  * StreamController 管理器类
@@ -21,7 +21,7 @@ class StreamControllerManager {
     /** @type {Map<string, Object>} 存储会话元数据 */
     this.metadata = new Map();
 
-    logger.info('[StreamControllerManager] 初始化完成');
+    logger.info("[StreamControllerManager] 初始化完成");
   }
 
   /**
@@ -32,7 +32,9 @@ class StreamControllerManager {
    */
   create(conversationId, options = {}) {
     if (this.controllers.has(conversationId)) {
-      logger.warn(`[StreamControllerManager] 对话 ${conversationId} 已存在controller，将销毁旧的`);
+      logger.warn(
+        `[StreamControllerManager] 对话 ${conversationId} 已存在controller，将销毁旧的`,
+      );
       this.delete(conversationId);
     }
 
@@ -51,17 +53,20 @@ class StreamControllerManager {
     logger.info(`[StreamControllerManager] 创建controller: ${conversationId}`);
 
     // 监听controller事件
-    controller.on('complete', () => {
+    controller.on("complete", () => {
       logger.info(`[StreamControllerManager] 对话 ${conversationId} 完成`);
       // 完成后可以选择自动清理或保留统计信息
       // this.delete(conversationId);
     });
 
-    controller.on('error', (data) => {
-      logger.error(`[StreamControllerManager] 对话 ${conversationId} 出错:`, data.error);
+    controller.on("error", (data) => {
+      logger.error(
+        `[StreamControllerManager] 对话 ${conversationId} 出错:`,
+        data.error,
+      );
     });
 
-    controller.on('cancel', () => {
+    controller.on("cancel", () => {
       logger.info(`[StreamControllerManager] 对话 ${conversationId} 已取消`);
       // 取消后延迟清理，给前端足够时间获取状态
       setTimeout(() => {
@@ -101,7 +106,9 @@ class StreamControllerManager {
       controller.destroy();
       this.controllers.delete(conversationId);
       this.metadata.delete(conversationId);
-      logger.info(`[StreamControllerManager] 删除controller: ${conversationId}`);
+      logger.info(
+        `[StreamControllerManager] 删除controller: ${conversationId}`,
+      );
       return true;
     }
     return false;
@@ -117,7 +124,7 @@ class StreamControllerManager {
     if (!controller) {
       return {
         success: false,
-        error: '对话不存在或未在流式输出',
+        error: "对话不存在或未在流式输出",
       };
     }
 
@@ -147,7 +154,7 @@ class StreamControllerManager {
     if (!controller) {
       return {
         success: false,
-        error: '对话不存在或未在流式输出',
+        error: "对话不存在或未在流式输出",
       };
     }
 
@@ -173,18 +180,20 @@ class StreamControllerManager {
    * @param {string} reason - 取消原因
    * @returns {Object} 操作结果
    */
-  cancel(conversationId, reason = '用户取消') {
+  cancel(conversationId, reason = "用户取消") {
     const controller = this.get(conversationId);
     if (!controller) {
       return {
         success: false,
-        error: '对话不存在或未在流式输出',
+        error: "对话不存在或未在流式输出",
       };
     }
 
     try {
       controller.cancel(reason);
-      logger.info(`[StreamControllerManager] 取消对话: ${conversationId}, 原因: ${reason}`);
+      logger.info(
+        `[StreamControllerManager] 取消对话: ${conversationId}, 原因: ${reason}`,
+      );
       return {
         success: true,
         status: controller.status,
@@ -209,7 +218,7 @@ class StreamControllerManager {
     if (!controller) {
       return {
         success: false,
-        error: '对话不存在或未在流式输出',
+        error: "对话不存在或未在流式输出",
       };
     }
 
@@ -259,13 +268,19 @@ class StreamControllerManager {
   cleanup() {
     let cleanedCount = 0;
     for (const [conversationId, controller] of this.controllers.entries()) {
-      if (controller.status === 'completed' || controller.status === 'cancelled' || controller.status === 'error') {
+      if (
+        controller.status === "completed" ||
+        controller.status === "cancelled" ||
+        controller.status === "error"
+      ) {
         this.delete(conversationId);
         cleanedCount++;
       }
     }
     if (cleanedCount > 0) {
-      logger.info(`[StreamControllerManager] 清理了 ${cleanedCount} 个已结束的会话`);
+      logger.info(
+        `[StreamControllerManager] 清理了 ${cleanedCount} 个已结束的会话`,
+      );
     }
     return cleanedCount;
   }
@@ -274,7 +289,9 @@ class StreamControllerManager {
    * 销毁所有controller
    */
   destroyAll() {
-    logger.info(`[StreamControllerManager] 销毁所有controller (共 ${this.controllers.size} 个)`);
+    logger.info(
+      `[StreamControllerManager] 销毁所有controller (共 ${this.controllers.size} 个)`,
+    );
     for (const [conversationId] of this.controllers.entries()) {
       this.delete(conversationId);
     }
@@ -296,19 +313,19 @@ class StreamControllerManager {
 
     for (const controller of this.controllers.values()) {
       switch (controller.status) {
-        case 'running':
+        case "running":
           stats.activeSessions++;
           break;
-        case 'paused':
+        case "paused":
           stats.pausedSessions++;
           break;
-        case 'completed':
+        case "completed":
           stats.completedSessions++;
           break;
-        case 'cancelled':
+        case "cancelled":
           stats.cancelledSessions++;
           break;
-        case 'error':
+        case "error":
           stats.errorSessions++;
           break;
       }

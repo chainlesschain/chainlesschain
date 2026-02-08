@@ -8,25 +8,16 @@
   >
     <div class="git-history-dialog">
       <!-- 加载状态 -->
-      <div
-        v-if="loading"
-        class="loading-container"
-      >
+      <div v-if="loading" class="loading-container">
         <a-spin tip="加载提交历史..." />
       </div>
 
       <!-- 提交历史列表 -->
-      <div
-        v-else-if="commits && commits.length > 0"
-        class="history-content"
-      >
+      <div v-else-if="commits && commits.length > 0" class="history-content">
         <!-- 工具栏 -->
         <div class="toolbar">
           <a-space>
-            <a-button
-              size="small"
-              @click="handleRefresh"
-            >
+            <a-button size="small" @click="handleRefresh">
               <ReloadOutlined />
               刷新
             </a-button>
@@ -37,12 +28,8 @@
               size="small"
               @change="handleBranchChange"
             >
-              <a-select-option value="all">
-                全部分支
-              </a-select-option>
-              <a-select-option value="current">
-                当前分支
-              </a-select-option>
+              <a-select-option value="all"> 全部分支 </a-select-option>
+              <a-select-option value="current"> 当前分支 </a-select-option>
             </a-select>
             <a-input-search
               v-model:value="searchKeyword"
@@ -71,26 +58,28 @@
                 <div class="commit-header">
                   <div class="commit-title">
                     <h4>{{ commit.message || commit.commit.message }}</h4>
-                    <a-tag
-                      v-if="commit.isHead"
-                      color="blue"
-                      size="small"
-                    >
+                    <a-tag v-if="commit.isHead" color="blue" size="small">
                       HEAD
                     </a-tag>
-                    <a-tag
-                      v-if="commit.isMerge"
-                      color="purple"
-                      size="small"
-                    >
+                    <a-tag v-if="commit.isMerge" color="purple" size="small">
                       MERGE
                     </a-tag>
                   </div>
                   <div class="commit-meta">
-                    <a-tooltip :title="formatFullDate(commit.timestamp || commit.commit.author.timestamp)">
+                    <a-tooltip
+                      :title="
+                        formatFullDate(
+                          commit.timestamp || commit.commit.author.timestamp,
+                        )
+                      "
+                    >
                       <span class="meta-item">
                         <ClockCircleOutlined />
-                        {{ formatRelativeTime(commit.timestamp || commit.commit.author.timestamp) }}
+                        {{
+                          formatRelativeTime(
+                            commit.timestamp || commit.commit.author.timestamp,
+                          )
+                        }}
                       </span>
                     </a-tooltip>
                     <span class="meta-item">
@@ -109,11 +98,7 @@
                   v-if="expandedCommit === (commit.oid || commit.sha)"
                   class="commit-details"
                 >
-                  <a-descriptions
-                    bordered
-                    size="small"
-                    :column="1"
-                  >
+                  <a-descriptions bordered size="small" :column="1">
                     <a-descriptions-item label="提交哈希">
                       {{ commit.oid || commit.sha }}
                     </a-descriptions-item>
@@ -122,12 +107,13 @@
                       &lt;{{ commit.email || commit.commit.author.email }}&gt;
                     </a-descriptions-item>
                     <a-descriptions-item label="提交时间">
-                      {{ formatFullDate(commit.timestamp || commit.commit.author.timestamp) }}
+                      {{
+                        formatFullDate(
+                          commit.timestamp || commit.commit.author.timestamp,
+                        )
+                      }}
                     </a-descriptions-item>
-                    <a-descriptions-item
-                      v-if="commit.parent"
-                      label="父提交"
-                    >
+                    <a-descriptions-item v-if="commit.parent" label="父提交">
                       {{ formatSha(commit.parent) }}
                     </a-descriptions-item>
                   </a-descriptions>
@@ -137,7 +123,11 @@
                     v-if="commitFiles[commit.oid || commit.sha]"
                     class="changed-files"
                   >
-                    <h5>变更文件 ({{ commitFiles[commit.oid || commit.sha].length }})</h5>
+                    <h5>
+                      变更文件 ({{
+                        commitFiles[commit.oid || commit.sha].length
+                      }})
+                    </h5>
                     <div class="files-list">
                       <div
                         v-for="file in commitFiles[commit.oid || commit.sha]"
@@ -164,8 +154,14 @@
                     size="small"
                     @click="toggleCommitDetails(commit.oid || commit.sha)"
                   >
-                    {{ expandedCommit === (commit.oid || commit.sha) ? '收起' : '展开' }}
-                    <DownOutlined v-if="expandedCommit !== (commit.oid || commit.sha)" />
+                    {{
+                      expandedCommit === (commit.oid || commit.sha)
+                        ? "收起"
+                        : "展开"
+                    }}
+                    <DownOutlined
+                      v-if="expandedCommit !== (commit.oid || commit.sha)"
+                    />
                     <UpOutlined v-else />
                   </a-button>
                   <a-button
@@ -201,25 +197,15 @@
         </div>
 
         <!-- 加载更多 -->
-        <div
-          v-if="hasMore"
-          class="load-more"
-        >
-          <a-button
-            block
-            :loading="loadingMore"
-            @click="handleLoadMore"
-          >
+        <div v-if="hasMore" class="load-more">
+          <a-button block :loading="loadingMore" @click="handleLoadMore">
             加载更多
           </a-button>
         </div>
       </div>
 
       <!-- 空状态 -->
-      <div
-        v-else
-        class="empty-state"
-      >
+      <div v-else class="empty-state">
         <a-empty description="暂无提交历史">
           <template #image>
             <HistoryOutlined style="font-size: 64px; color: #d1d5db" />
@@ -231,10 +217,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   ReloadOutlined,
   ClockCircleOutlined,
@@ -251,9 +237,9 @@ import {
   FileAddOutlined,
   EditOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { formatDistanceToNow, format } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+} from "@ant-design/icons-vue";
+import { formatDistanceToNow, format } from "date-fns";
+import { zhCN } from "date-fns/locale";
 
 const props = defineProps({
   open: {
@@ -262,19 +248,19 @@ const props = defineProps({
   },
   projectId: {
     type: String,
-    default: '',
+    default: "",
   },
   repoPath: {
     type: String,
-    default: '',
+    default: "",
   },
   title: {
     type: String,
-    default: 'Git提交历史',
+    default: "Git提交历史",
   },
 });
 
-const emit = defineEmits(['close', 'refresh']);
+const emit = defineEmits(["close", "refresh"]);
 
 // 响应式状态
 const loading = ref(false);
@@ -282,8 +268,8 @@ const loadingMore = ref(false);
 const commits = ref([]);
 const commitFiles = ref({});
 const expandedCommit = ref(null);
-const branchFilter = ref('current');
-const searchKeyword = ref('');
+const branchFilter = ref("current");
+const searchKeyword = ref("");
 const currentPage = ref(1);
 const pageSize = ref(20);
 const hasMore = ref(false);
@@ -295,9 +281,9 @@ const filteredCommits = computed(() => {
   // 关键词搜索
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(commit => {
-      const message = commit.message || commit.commit?.message || '';
-      const author = commit.author || commit.commit?.author?.name || '';
+    result = result.filter((commit) => {
+      const message = commit.message || commit.commit?.message || "";
+      const author = commit.author || commit.commit?.author?.name || "";
       return (
         message.toLowerCase().includes(keyword) ||
         author.toLowerCase().includes(keyword)
@@ -310,15 +296,23 @@ const filteredCommits = computed(() => {
 
 // 获取提交颜色
 const getCommitColor = (commit) => {
-  if (commit.isHead) {return 'blue';}
-  if (commit.isMerge) {return 'purple';}
-  return 'green';
+  if (commit.isHead) {
+    return "blue";
+  }
+  if (commit.isMerge) {
+    return "purple";
+  }
+  return "green";
 };
 
 // 获取提交图标
 const getCommitIcon = (commit) => {
-  if (commit.isHead) {return CheckCircleOutlined;}
-  if (commit.isMerge) {return BranchesOutlined;}
+  if (commit.isHead) {
+    return CheckCircleOutlined;
+  }
+  if (commit.isMerge) {
+    return BranchesOutlined;
+  }
   return CodeOutlined;
 };
 
@@ -335,38 +329,44 @@ const getFileStatusIcon = (status) => {
 // 获取文件状态颜色
 const getFileStatusColor = (status) => {
   const colorMap = {
-    added: 'green',
-    modified: 'orange',
-    deleted: 'red',
+    added: "green",
+    modified: "orange",
+    deleted: "red",
   };
-  return colorMap[status] || 'default';
+  return colorMap[status] || "default";
 };
 
 // 格式化SHA
 const formatSha = (sha) => {
-  return sha ? sha.substring(0, 7) : '';
+  return sha ? sha.substring(0, 7) : "";
 };
 
 // 格式化相对时间
 const formatRelativeTime = (timestamp) => {
   try {
-    const date = typeof timestamp === 'number' ? new Date(timestamp * 1000) : new Date(timestamp);
+    const date =
+      typeof timestamp === "number"
+        ? new Date(timestamp * 1000)
+        : new Date(timestamp);
     return formatDistanceToNow(date, {
       addSuffix: true,
       locale: zhCN,
     });
   } catch {
-    return '未知时间';
+    return "未知时间";
   }
 };
 
 // 格式化完整日期
 const formatFullDate = (timestamp) => {
   try {
-    const date = typeof timestamp === 'number' ? new Date(timestamp * 1000) : new Date(timestamp);
-    return format(date, 'yyyy-MM-dd HH:mm:ss', { locale: zhCN });
+    const date =
+      typeof timestamp === "number"
+        ? new Date(timestamp * 1000)
+        : new Date(timestamp);
+    return format(date, "yyyy-MM-dd HH:mm:ss", { locale: zhCN });
   } catch {
-    return '未知时间';
+    return "未知时间";
   }
 };
 
@@ -379,22 +379,27 @@ const loadCommits = async (append = false) => {
   }
 
   try {
-    logger.info('[GitHistory] 加载提交历史，repoPath:', props.repoPath, 'page:', currentPage.value);
+    logger.info(
+      "[GitHistory] 加载提交历史，repoPath:",
+      props.repoPath,
+      "page:",
+      currentPage.value,
+    );
     const result = await window.electronAPI.project.gitLog(
       props.repoPath,
       currentPage.value,
-      pageSize.value
+      pageSize.value,
     );
 
-    logger.info('[GitHistory] Git log 结果:', result);
+    logger.info("[GitHistory] Git log 结果:", result);
 
     // 检查结果是否成功
     if (result && result.success === false) {
-      throw new Error(result.error || '获取提交历史失败');
+      throw new Error(result.error || "获取提交历史失败");
     }
 
     const newCommits = result.commits || [];
-    logger.info('[GitHistory] 获取到的提交数:', newCommits.length);
+    logger.info("[GitHistory] 获取到的提交数:", newCommits.length);
 
     if (append) {
       commits.value = [...commits.value, ...newCommits];
@@ -405,11 +410,11 @@ const loadCommits = async (append = false) => {
     hasMore.value = result.hasMore || false;
 
     if (newCommits.length === 0) {
-      logger.warn('[GitHistory] 没有找到提交历史');
+      logger.warn("[GitHistory] 没有找到提交历史");
     }
   } catch (error) {
-    logger.error('[GitHistory] 加载提交历史失败:', error);
-    message.error('加载提交历史失败：' + error.message);
+    logger.error("[GitHistory] 加载提交历史失败:", error);
+    message.error("加载提交历史失败：" + error.message);
   } finally {
     loading.value = false;
     loadingMore.value = false;
@@ -426,10 +431,13 @@ const toggleCommitDetails = async (sha) => {
     // 加载变更文件（如果还未加载）
     if (!commitFiles.value[sha]) {
       try {
-        const files = await window.electronAPI.project.gitShowCommit(props.repoPath, sha);
+        const files = await window.electronAPI.project.gitShowCommit(
+          props.repoPath,
+          sha,
+        );
         commitFiles.value[sha] = files;
       } catch (error) {
-        logger.error('Load commit files failed:', error);
+        logger.error("Load commit files failed:", error);
       }
     }
   }
@@ -444,9 +452,9 @@ const handleViewCommit = (commit) => {
 const handleCopyHash = async (sha) => {
   try {
     await navigator.clipboard.writeText(sha);
-    message.success('已复制提交哈希');
+    message.success("已复制提交哈希");
   } catch (error) {
-    message.error('复制失败');
+    message.error("复制失败");
   }
 };
 
@@ -460,20 +468,20 @@ const handleCheckout = (commit) => {
   const sha = commit.oid || commit.sha;
 
   Modal.confirm({
-    title: '确认回退',
+    title: "确认回退",
     content: `确定要回退到提交 ${formatSha(sha)} 吗？这将重置工作区到该版本。`,
-    okText: '确认回退',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "确认回退",
+    okType: "danger",
+    cancelText: "取消",
     onOk: async () => {
       try {
         await window.electronAPI.project.gitCheckout(props.repoPath, sha);
-        message.success('已回退到指定版本');
+        message.success("已回退到指定版本");
         await loadCommits();
-        emit('refresh');
+        emit("refresh");
       } catch (error) {
-        logger.error('Checkout failed:', error);
-        message.error('回退失败：' + error.message);
+        logger.error("Checkout failed:", error);
+        message.error("回退失败：" + error.message);
       }
     },
   });
@@ -494,7 +502,7 @@ const handleSearch = () => {
 const handleRefresh = () => {
   currentPage.value = 1;
   loadCommits();
-  emit('refresh');
+  emit("refresh");
 };
 
 // 加载更多
@@ -505,18 +513,22 @@ const handleLoadMore = () => {
 
 // 关闭
 const handleClose = () => {
-  emit('close');
+  emit("close");
 };
 
 // 监听visible变化
-watch(() => props.open, (newVal) => {
-  if (newVal) {
-    currentPage.value = 1;
-    expandedCommit.value = null;
-    commitFiles.value = {};
-    loadCommits();
-  }
-}, { immediate: true });
+watch(
+  () => props.open,
+  (newVal) => {
+    if (newVal) {
+      currentPage.value = 1;
+      expandedCommit.value = null;
+      commitFiles.value = {};
+      loadCommits();
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>
@@ -606,7 +618,7 @@ watch(() => props.open, (newVal) => {
 }
 
 .meta-item.sha {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   color: #667eea;
 }
 
@@ -650,7 +662,7 @@ watch(() => props.open, (newVal) => {
 
 .file-path {
   flex: 1;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   color: #374151;
   overflow: hidden;
   text-overflow: ellipsis;

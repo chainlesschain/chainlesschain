@@ -5,7 +5,7 @@
  * 支持自动更新和手动更新
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
 const fs = require("fs");
 const path = require("path");
@@ -46,10 +46,7 @@ class PluginUpdateManager extends EventEmitter {
 
     // 立即检查一次
     this.checkForUpdates().catch((error) => {
-      logger.error(
-        "[PluginUpdateManager] Initial update check failed:",
-        error,
-      );
+      logger.error("[PluginUpdateManager] Initial update check failed:", error);
     });
 
     // 定期检查
@@ -299,8 +296,12 @@ class PluginUpdateManager extends EventEmitter {
       const part1 = parts1[i] || 0;
       const part2 = parts2[i] || 0;
 
-      if (part1 > part2) {return 1;}
-      if (part1 < part2) {return -1;}
+      if (part1 > part2) {
+        return 1;
+      }
+      if (part1 < part2) {
+        return -1;
+      }
     }
 
     return 0;

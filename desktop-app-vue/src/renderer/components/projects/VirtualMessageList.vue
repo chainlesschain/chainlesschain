@@ -10,7 +10,7 @@
       :style="{
         height: `${virtualizer.getTotalSize()}px`,
         width: '100%',
-        position: 'relative'
+        position: 'relative',
       }"
     >
       <div
@@ -21,53 +21,41 @@
           top: 0,
           left: 0,
           width: '100%',
-          transform: `translateY(${virtualRow.start}px)`
+          transform: `translateY(${virtualRow.start}px)`,
         }"
       >
-        <slot
-          :message="messages[virtualRow.index]"
-          :index="virtualRow.index"
-        />
+        <slot :message="messages[virtualRow.index]" :index="virtualRow.index" />
       </div>
     </div>
 
     <!-- 🔥 降级渲染：virtualizer未初始化或没有虚拟项时显示所有消息 -->
-    <div
-      v-else
-      class="fallback-list"
-    >
-      <div
-        v-for="(message, index) in messages"
-        :key="message.id || index"
-      >
-        <slot
-          :message="message"
-          :index="index"
-        />
+    <div v-else class="fallback-list">
+      <div v-for="(message, index) in messages" :key="message.id || index">
+        <slot :message="message" :index="index" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import { Virtualizer } from '@tanstack/virtual-core';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { Virtualizer } from "@tanstack/virtual-core";
 
 const props = defineProps({
   messages: {
     type: Array,
     required: true,
-    default: () => []
+    default: () => [],
   },
   estimateSize: {
     type: Number,
-    default: 120 // 默认估计每条消息高度120px
-  }
+    default: 120, // 默认估计每条消息高度120px
+  },
 });
 
-const emit = defineEmits(['scroll-to-bottom', 'load-more']);
+const emit = defineEmits(["scroll-to-bottom", "load-more"]);
 
 const scrollContainer = ref(null);
 const virtualizer = ref(null);
@@ -86,7 +74,7 @@ const virtualItems = computed(() => {
 // 初始化虚拟滚动器
 const initVirtualizer = () => {
   if (!scrollContainer.value) {
-    logger.warn('[VirtualMessageList] scrollContainer not ready');
+    logger.warn("[VirtualMessageList] scrollContainer not ready");
     return;
   }
 
@@ -101,7 +89,7 @@ const initVirtualizer = () => {
       onChange: (instance) => {
         // 强制更新以触发computed重新计算
         updateKey.value++;
-      }
+      },
     });
     // 🔥 关键修复：初始化后立即测量并强制更新
     nextTick(() => {
@@ -120,13 +108,18 @@ const initVirtualizer = () => {
       }
     });
   } catch (error) {
-    logger.error('[VirtualMessageList] Failed to initialize virtualizer:', error);
+    logger.error(
+      "[VirtualMessageList] Failed to initialize virtualizer:",
+      error,
+    );
   }
 };
 
 // 处理滚动事件
 const handleScroll = () => {
-  if (!scrollContainer.value) {return;}
+  if (!scrollContainer.value) {
+    return;
+  }
 
   // 🔥 关键修复：通知virtualizer滚动位置已改变
   if (virtualizer.value) {
@@ -137,18 +130,20 @@ const handleScroll = () => {
 
   // 检测是否滚动到顶部（加载更多历史消息）
   if (scrollTop < 100) {
-    emit('load-more');
+    emit("load-more");
   }
 
   // 检测是否滚动到底部
   if (scrollTop + clientHeight >= scrollHeight - 50) {
-    emit('scroll-to-bottom');
+    emit("scroll-to-bottom");
   }
 };
 
 // 滚动到底部
 const scrollToBottom = () => {
-  if (!scrollContainer.value) {return;}
+  if (!scrollContainer.value) {
+    return;
+  }
 
   requestAnimationFrame(() => {
     if (scrollContainer.value) {
@@ -159,75 +154,82 @@ const scrollToBottom = () => {
 
 // 滚动到特定消息
 const scrollToMessage = (messageId) => {
-  const index = props.messages.findIndex(m => m.id === messageId);
+  const index = props.messages.findIndex((m) => m.id === messageId);
   if (index !== -1 && virtualizer.value) {
-    virtualizer.value.scrollToIndex(index, { align: 'center' });
+    virtualizer.value.scrollToIndex(index, { align: "center" });
   }
 };
 
 // 监听消息变化
-watch(() => props.messages.length, (newLength, oldLength) => {
-  if (virtualizer.value) {
-    virtualizer.value.setOptions({
-      count: newLength,
-      estimateSize: (index) => props.estimateSize
-    });
+watch(
+  () => props.messages.length,
+  (newLength, oldLength) => {
+    if (virtualizer.value) {
+      virtualizer.value.setOptions({
+        count: newLength,
+        estimateSize: (index) => props.estimateSize,
+      });
 
-    // 🔥 强制更新虚拟列表以响应长度变化
-    updateKey.value++;
+      // 🔥 强制更新虚拟列表以响应长度变化
+      updateKey.value++;
 
-    // 如果是新增消息，自动滚动到底部
-    if (newLength > oldLength) {
+      // 如果是新增消息，自动滚动到底部
+      if (newLength > oldLength) {
+        nextTick(() => {
+          scrollToBottom();
+        });
+      }
+    } else {
+      // 如果virtualizer未初始化，尝试初始化
       nextTick(() => {
-        scrollToBottom();
+        initVirtualizer();
+        // 初始化后也要强制更新
+        if (virtualizer.value) {
+          updateKey.value++;
+        }
       });
     }
-  } else {
-    // 如果virtualizer未初始化，尝试初始化
-    nextTick(() => {
-      initVirtualizer();
-      // 初始化后也要强制更新
-      if (virtualizer.value) {
-        updateKey.value++;
-      }
-    });
-  }
-});
+  },
+);
 
 // 监听messages数组本身的变化（深度监听以捕获内容更新）
-watch(() => props.messages, (newMessages, oldMessages) => {
-  if (!virtualizer.value && newMessages.length > 0) {
-    nextTick(() => {
-      initVirtualizer();
-    });
-  } else if (virtualizer.value) {
-    // 🔥 关键修复：先重置 virtualizer 的选项以强制刷新
-    virtualizer.value.setOptions({
-      count: newMessages.length,
-      estimateSize: (index) => props.estimateSize,
-      getScrollElement: () => scrollContainer.value,
-      overscan: 5,
-      scrollMargin: 0,
-      onChange: (instance) => {
-        updateKey.value++;
-      }
-    });
+watch(
+  () => props.messages,
+  (newMessages, oldMessages) => {
+    if (!virtualizer.value && newMessages.length > 0) {
+      nextTick(() => {
+        initVirtualizer();
+      });
+    } else if (virtualizer.value) {
+      // 🔥 关键修复：先重置 virtualizer 的选项以强制刷新
+      virtualizer.value.setOptions({
+        count: newMessages.length,
+        estimateSize: (index) => props.estimateSize,
+        getScrollElement: () => scrollContainer.value,
+        overscan: 5,
+        scrollMargin: 0,
+        onChange: (instance) => {
+          updateKey.value++;
+        },
+      });
 
-    updateKey.value++;
+      updateKey.value++;
 
-    // 🔥 额外修复：强制测量以重新计算项目高度
-    nextTick(() => {
-      if (virtualizer.value) {
-        virtualizer.value.measure();
-      }
-    });
-  }
-}, { deep: true });
+      // 🔥 额外修复：强制测量以重新计算项目高度
+      nextTick(() => {
+        if (virtualizer.value) {
+          virtualizer.value.measure();
+        }
+      });
+    }
+  },
+  { deep: true },
+);
 
 // 暴露方法给父组件
 defineExpose({
   scrollToBottom,
-  scrollToMessage
+  scrollToMessage,
 });
 
 onMounted(() => {

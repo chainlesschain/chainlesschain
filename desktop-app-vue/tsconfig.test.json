@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vitest/globals", "node", "jsdom"],
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts",
+    "src/**/*.vue",
+    "tests/**/*.ts",
+    "tests/**/*.js"
+  ],
+  "exclude": ["node_modules", "dist", "out"]
+}

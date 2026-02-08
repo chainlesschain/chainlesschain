@@ -25,9 +25,7 @@
           <a-tag color="blue">
             {{ conflict.table }}
           </a-tag>
-          <a-tag color="geekblue">
-            ID: {{ conflict.id }}
-          </a-tag>
+          <a-tag color="geekblue"> ID: {{ conflict.id }} </a-tag>
         </div>
 
         <a-row :gutter="16">
@@ -85,10 +83,7 @@
         <a-divider v-if="index < conflicts.length - 1" />
       </div>
 
-      <div
-        v-if="conflicts.length === 0"
-        class="empty-state"
-      >
+      <div v-if="conflicts.length === 0" class="empty-state">
         <a-empty description="所有冲突已解决" />
       </div>
     </div>
@@ -96,11 +91,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
-import { ClockCircleOutlined } from '@ant-design/icons-vue';
+import { ref, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
+import { ClockCircleOutlined } from "@ant-design/icons-vue";
 
 const visible = ref(false);
 const conflicts = ref([]);
@@ -112,7 +107,7 @@ const removeListener = null;
 onMounted(() => {
   if (window.electronAPI && window.electronAPI.sync) {
     window.electronAPI.sync.onShowConflicts((data) => {
-      logger.info('[SyncConflictDialog] 收到冲突数据:', data);
+      logger.info("[SyncConflictDialog] 收到冲突数据:", data);
       conflicts.value = data;
       visible.value = true;
     });
@@ -127,27 +122,42 @@ onUnmounted(() => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) {return '未知时间';}
-  return new Date(timestamp).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  if (!timestamp) {
+    return "未知时间";
+  }
+  return new Date(timestamp).toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };
 
 // 格式化记录（美化显示）
 const formatRecord = (record) => {
-  if (!record) {return '无数据';}
+  if (!record) {
+    return "无数据";
+  }
 
   // 过滤掉不需要显示的字段
   const filtered = {};
-  const excludeKeys = ['id', 'created_at', 'updated_at', 'synced_at', 'sync_status', 'deleted'];
+  const excludeKeys = [
+    "id",
+    "created_at",
+    "updated_at",
+    "synced_at",
+    "sync_status",
+    "deleted",
+  ];
 
   for (const key in record) {
-    if (!excludeKeys.includes(key) && record[key] !== null && record[key] !== undefined) {
+    if (
+      !excludeKeys.includes(key) &&
+      record[key] !== null &&
+      record[key] !== undefined
+    ) {
       filtered[key] = record[key];
     }
   }
@@ -160,27 +170,30 @@ const resolveConflict = async (conflictId, resolution) => {
   try {
     resolving.value = conflictId;
 
-    logger.info('[SyncConflictDialog] 解决冲突:', conflictId, resolution);
+    logger.info("[SyncConflictDialog] 解决冲突:", conflictId, resolution);
 
-    const result = await window.electronAPI.sync.resolveConflict(conflictId, resolution);
+    const result = await window.electronAPI.sync.resolveConflict(
+      conflictId,
+      resolution,
+    );
 
     if (result.success) {
-      message.success('冲突已解决');
+      message.success("冲突已解决");
 
       // 从列表中移除已解决的冲突
-      conflicts.value = conflicts.value.filter(c => c.id !== conflictId);
+      conflicts.value = conflicts.value.filter((c) => c.id !== conflictId);
 
       // 如果所有冲突都已解决，关闭对话框
       if (conflicts.value.length === 0) {
         visible.value = false;
-        message.success('所有冲突已解决，数据同步完成');
+        message.success("所有冲突已解决，数据同步完成");
       }
     } else {
-      message.error('解决冲突失败: ' + result.error);
+      message.error("解决冲突失败: " + result.error);
     }
   } catch (error) {
-    logger.error('[SyncConflictDialog] 解决冲突失败:', error);
-    message.error('解决冲突失败: ' + error.message);
+    logger.error("[SyncConflictDialog] 解决冲突失败:", error);
+    message.error("解决冲突失败: " + error.message);
   } finally {
     resolving.value = null;
   }

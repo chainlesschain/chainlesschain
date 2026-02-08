@@ -11,7 +11,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const OllamaClient = require("./ollama-client");
 const { OpenAIClient, DeepSeekClient } = require("./openai-client");
@@ -36,7 +36,9 @@ const LLMProviders = {
 };
 
 const normalizeProvider = (provider) => {
-  if (!provider) {return provider;}
+  if (!provider) {
+    return provider;
+  }
   if (provider === LLMProviders.CLAUDE) {
     return LLMProviders.ANTHROPIC;
   }
@@ -96,10 +98,13 @@ class LLMManager extends EventEmitter {
           enableKVCacheOptimization: config.enableKVCacheOptimization !== false,
           enableToolMasking: config.enableToolMasking !== false,
           enableTaskTracking: config.enableTaskTracking !== false,
-          enableRecoverableCompression: config.enableRecoverableCompression !== false,
+          enableRecoverableCompression:
+            config.enableRecoverableCompression !== false,
           logMaskChanges: config.logMaskChanges !== false,
         });
-        logger.info("[LLMManager] Manus 优化已启用 (Context Engineering + Tool Masking)");
+        logger.info(
+          "[LLMManager] Manus 优化已启用 (Context Engineering + Tool Masking)",
+        );
       } catch (manusError) {
         logger.warn("[LLMManager] Manus 优化初始化失败:", manusError.message);
       }
@@ -1544,7 +1549,9 @@ LLMManager.prototype.generateTagsFallback = function ({ title, content, url }) {
     for (const keyword of keywords) {
       if (title.toLowerCase().includes(keyword.toLowerCase())) {
         tags.push(keyword);
-        if (tags.length >= 3) {break;}
+        if (tags.length >= 3) {
+          break;
+        }
       }
     }
   }
@@ -1641,7 +1648,10 @@ LLMManager.prototype.buildOptimizedPrompt = function (options) {
  * @param {Array} options.tools - 工具定义
  * @returns {Promise<Object>} 对话结果
  */
-LLMManager.prototype.chatWithOptimizedPrompt = async function (messages, options = {}) {
+LLMManager.prototype.chatWithOptimizedPrompt = async function (
+  messages,
+  options = {},
+) {
   // 构建优化 Prompt
   const optimized = this.buildOptimizedPrompt({
     systemPrompt: options.systemPrompt,
@@ -1684,7 +1694,9 @@ LLMManager.prototype.startTask = function (task) {
  * @param {string} status - 状态
  */
 LLMManager.prototype.updateTaskProgress = function (stepIndex, status) {
-  if (!this.manusOptimizations) {return;}
+  if (!this.manusOptimizations) {
+    return;
+  }
   this.manusOptimizations.updateTaskProgress(stepIndex, status);
 };
 
@@ -1692,7 +1704,9 @@ LLMManager.prototype.updateTaskProgress = function (stepIndex, status) {
  * 完成当前步骤
  */
 LLMManager.prototype.completeCurrentStep = function () {
-  if (!this.manusOptimizations) {return;}
+  if (!this.manusOptimizations) {
+    return;
+  }
   this.manusOptimizations.completeCurrentStep();
 };
 
@@ -1700,7 +1714,9 @@ LLMManager.prototype.completeCurrentStep = function () {
  * 完成任务
  */
 LLMManager.prototype.completeTask = function () {
-  if (!this.manusOptimizations) {return;}
+  if (!this.manusOptimizations) {
+    return;
+  }
   this.manusOptimizations.completeTask();
 };
 
@@ -1708,7 +1724,9 @@ LLMManager.prototype.completeTask = function () {
  * 取消任务
  */
 LLMManager.prototype.cancelTask = function () {
-  if (!this.manusOptimizations) {return;}
+  if (!this.manusOptimizations) {
+    return;
+  }
   this.manusOptimizations.cancelTask();
 };
 
@@ -1717,7 +1735,9 @@ LLMManager.prototype.cancelTask = function () {
  * @returns {Object|null} 当前任务
  */
 LLMManager.prototype.getCurrentTask = function () {
-  if (!this.manusOptimizations) {return null;}
+  if (!this.manusOptimizations) {
+    return null;
+  }
   return this.manusOptimizations.getCurrentTask();
 };
 
@@ -1726,7 +1746,9 @@ LLMManager.prototype.getCurrentTask = function () {
  * @param {Object} error - 错误信息
  */
 LLMManager.prototype.recordError = function (error) {
-  if (!this.manusOptimizations) {return;}
+  if (!this.manusOptimizations) {
+    return;
+  }
   this.manusOptimizations.recordError(error);
 };
 
@@ -1736,7 +1758,9 @@ LLMManager.prototype.recordError = function (error) {
  * @param {boolean} available - 是否可用
  */
 LLMManager.prototype.setToolAvailable = function (toolName, available) {
-  if (!this.manusOptimizations) {return;}
+  if (!this.manusOptimizations) {
+    return;
+  }
   this.manusOptimizations.setToolAvailable(toolName, available);
 };
 
@@ -1746,7 +1770,9 @@ LLMManager.prototype.setToolAvailable = function (toolName, available) {
  * @param {boolean} available - 是否可用
  */
 LLMManager.prototype.setToolsByPrefix = function (prefix, available) {
-  if (!this.manusOptimizations) {return;}
+  if (!this.manusOptimizations) {
+    return;
+  }
   this.manusOptimizations.setToolsByPrefix(prefix, available);
 };
 
@@ -1767,7 +1793,9 @@ LLMManager.prototype.validateToolCall = function (toolName) {
  * @param {Object} config - 状态机配置（可选）
  */
 LLMManager.prototype.configureTaskPhases = function (config) {
-  if (!this.manusOptimizations) {return;}
+  if (!this.manusOptimizations) {
+    return;
+  }
   this.manusOptimizations.configureTaskPhases(config);
 };
 
@@ -1777,7 +1805,9 @@ LLMManager.prototype.configureTaskPhases = function (config) {
  * @returns {boolean} 是否成功
  */
 LLMManager.prototype.transitionToPhase = function (phase) {
-  if (!this.manusOptimizations) {return false;}
+  if (!this.manusOptimizations) {
+    return false;
+  }
   return this.manusOptimizations.transitionToPhase(phase);
 };
 
@@ -1802,7 +1832,9 @@ LLMManager.prototype.getManusStats = function () {
  * @returns {Object} 压缩后的引用
  */
 LLMManager.prototype.compressContent = function (content, type) {
-  if (!this.manusOptimizations) {return content;}
+  if (!this.manusOptimizations) {
+    return content;
+  }
   return this.manusOptimizations.compress(content, type);
 };
 

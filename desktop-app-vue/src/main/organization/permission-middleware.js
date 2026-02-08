@@ -12,7 +12,7 @@
  * - Rate limiting for sensitive operations
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
 class PermissionMiddleware extends EventEmitter {

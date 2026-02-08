@@ -20,7 +20,7 @@
           style="width: 200px"
           @change="handleTeamChange"
         >
-          <a-select-option value="all">全部团队</a-select-option>
+          <a-select-option value="all"> 全部团队 </a-select-option>
           <a-select-option
             v-for="team in teams"
             :key="team.id"
@@ -103,14 +103,14 @@
       <!-- Task Completion Trend -->
       <a-col :xs="24" :lg="12">
         <a-card title="任务完成趋势" :loading="loading.charts">
-          <div ref="taskTrendChart" class="chart-container"></div>
+          <div ref="taskTrendChart" class="chart-container" />
         </a-card>
       </a-col>
 
       <!-- Task Status Distribution -->
       <a-col :xs="24" :lg="12">
         <a-card title="任务状态分布" :loading="loading.charts">
-          <div ref="statusPieChart" class="chart-container"></div>
+          <div ref="statusPieChart" class="chart-container" />
         </a-card>
       </a-col>
     </a-row>
@@ -120,14 +120,14 @@
       <!-- Agent Utilization -->
       <a-col :xs="24" :lg="16">
         <a-card title="代理利用率热力图" :loading="loading.charts">
-          <div ref="utilizationHeatmap" class="chart-container-large"></div>
+          <div ref="utilizationHeatmap" class="chart-container-large" />
         </a-card>
       </a-col>
 
       <!-- Skill Usage -->
       <a-col :xs="24" :lg="8">
         <a-card title="技能使用统计" :loading="loading.charts">
-          <div ref="skillBarChart" class="chart-container"></div>
+          <div ref="skillBarChart" class="chart-container" />
         </a-card>
       </a-col>
     </a-row>
@@ -137,7 +137,7 @@
       <!-- Task Execution Timeline -->
       <a-col :xs="24">
         <a-card title="任务执行时间线（甘特图）" :loading="loading.charts">
-          <div ref="ganttChart" class="chart-container-xlarge"></div>
+          <div ref="ganttChart" class="chart-container-xlarge" />
         </a-card>
       </a-col>
     </a-row>
@@ -147,14 +147,14 @@
       <!-- Priority vs Duration Scatter -->
       <a-col :xs="24" :lg="12">
         <a-card title="优先级 vs 执行时长" :loading="loading.charts">
-          <div ref="scatterChart" class="chart-container"></div>
+          <div ref="scatterChart" class="chart-container" />
         </a-card>
       </a-col>
 
       <!-- Team Performance Ranking -->
       <a-col :xs="24" :lg="12">
         <a-card title="团队绩效排名" :loading="loading.charts">
-          <div ref="performanceChart" class="chart-container"></div>
+          <div ref="performanceChart" class="chart-container" />
         </a-card>
       </a-col>
     </a-row>
@@ -167,19 +167,19 @@
             <a-col :xs="24" :md="8">
               <div class="gauge-wrapper">
                 <h4>系统负载</h4>
-                <div ref="loadGauge" class="gauge-chart"></div>
+                <div ref="loadGauge" class="gauge-chart" />
               </div>
             </a-col>
             <a-col :xs="24" :md="8">
               <div class="gauge-wrapper">
                 <h4>任务队列</h4>
-                <div ref="queueGauge" class="gauge-chart"></div>
+                <div ref="queueGauge" class="gauge-chart" />
               </div>
             </a-col>
             <a-col :xs="24" :md="8">
               <div class="gauge-wrapper">
                 <h4>成功率</h4>
-                <div ref="successGauge" class="gauge-chart"></div>
+                <div ref="successGauge" class="gauge-chart" />
               </div>
             </a-col>
           </a-row>
@@ -190,8 +190,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, h } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, onMounted, onUnmounted, computed, h } from "vue";
+import { message } from "ant-design-vue";
 import {
   BarChartOutlined,
   FileTextOutlined,
@@ -201,20 +201,20 @@ import {
   ReloadOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
-} from '@ant-design/icons-vue';
-import * as echarts from 'echarts';
-import dayjs from 'dayjs';
-import { useCoworkStore } from '@/stores/cowork';
-import { logger, createLogger } from '@/utils/logger';
+} from "@ant-design/icons-vue";
+import * as echarts from "echarts";
+import dayjs from "dayjs";
+import { useCoworkStore } from "@/stores/cowork";
+import { logger, createLogger } from "@/utils/logger";
 
-const analyticsLogger = createLogger('cowork-analytics');
+const analyticsLogger = createLogger("cowork-analytics");
 
 // Store
 const coworkStore = useCoworkStore();
 
 // Refs
-const dateRange = ref([dayjs().subtract(7, 'day'), dayjs()]);
-const selectedTeam = ref('all');
+const dateRange = ref([dayjs().subtract(7, "day"), dayjs()]);
+const selectedTeam = ref("all");
 const teams = computed(() => coworkStore.teams);
 
 // Chart refs
@@ -251,11 +251,17 @@ const kpis = ref({
 
 // Date presets
 const datePresets = computed(() => [
-  { label: '最近7天', value: [dayjs().subtract(7, 'day'), dayjs()] },
-  { label: '最近30天', value: [dayjs().subtract(30, 'day'), dayjs()] },
-  { label: '最近90天', value: [dayjs().subtract(90, 'day'), dayjs()] },
-  { label: '本月', value: [dayjs().startOf('month'), dayjs()] },
-  { label: '上月', value: [dayjs().subtract(1, 'month').startOf('month'), dayjs().subtract(1, 'month').endOf('month')] },
+  { label: "最近7天", value: [dayjs().subtract(7, "day"), dayjs()] },
+  { label: "最近30天", value: [dayjs().subtract(30, "day"), dayjs()] },
+  { label: "最近90天", value: [dayjs().subtract(90, "day"), dayjs()] },
+  { label: "本月", value: [dayjs().startOf("month"), dayjs()] },
+  {
+    label: "上月",
+    value: [
+      dayjs().subtract(1, "month").startOf("month"),
+      dayjs().subtract(1, "month").endOf("month"),
+    ],
+  },
 ]);
 
 // ==========================================
@@ -290,8 +296,8 @@ async function initializeAnalytics() {
     loading.value.stats = false;
     loading.value.charts = false;
   } catch (error) {
-    analyticsLogger.error('Failed to initialize analytics:', error);
-    message.error('分析数据加载失败');
+    analyticsLogger.error("Failed to initialize analytics:", error);
+    message.error("分析数据加载失败");
   }
 }
 
@@ -302,17 +308,17 @@ async function loadAnalyticsData() {
     const endDate = dateRange.value[1].valueOf();
 
     // Query analytics data
-    const result = await window.electronAPI.invoke('cowork:get-analytics', {
+    const result = await window.electronAPI.invoke("cowork:get-analytics", {
       startDate,
       endDate,
-      teamId: selectedTeam.value === 'all' ? null : selectedTeam.value,
+      teamId: selectedTeam.value === "all" ? null : selectedTeam.value,
     });
 
     if (result.success) {
       updateKPIs(result.data);
     }
   } catch (error) {
-    analyticsLogger.error('Failed to load analytics data:', error);
+    analyticsLogger.error("Failed to load analytics data:", error);
     throw error;
   }
 }
@@ -345,86 +351,90 @@ async function initializeCharts() {
   initGaugeCharts();
 
   // Handle window resize
-  window.addEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
 }
 
 function initTaskTrendChart() {
-  if (!taskTrendChart.value) return;
+  if (!taskTrendChart.value) {
+    return;
+  }
 
   const chart = echarts.init(taskTrendChart.value);
   charts.value.taskTrend = chart;
 
   // Sample data - replace with real data from API
   const dates = Array.from({ length: 30 }, (_, i) =>
-    dayjs().subtract(29 - i, 'day').format('MM-DD')
+    dayjs()
+      .subtract(29 - i, "day")
+      .format("MM-DD"),
   );
 
   const completedData = Array.from({ length: 30 }, () =>
-    Math.floor(Math.random() * 20 + 10)
+    Math.floor(Math.random() * 20 + 10),
   );
 
   const failedData = Array.from({ length: 30 }, () =>
-    Math.floor(Math.random() * 5)
+    Math.floor(Math.random() * 5),
   );
 
   const option = {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       axisPointer: {
-        type: 'cross',
+        type: "cross",
       },
     },
     legend: {
-      data: ['已完成', '失败', '成功率'],
+      data: ["已完成", "失败", "成功率"],
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
       containLabel: true,
     },
     xAxis: {
-      type: 'category',
+      type: "category",
       data: dates,
     },
     yAxis: [
       {
-        type: 'value',
-        name: '任务数',
+        type: "value",
+        name: "任务数",
       },
       {
-        type: 'value',
-        name: '成功率 (%)',
+        type: "value",
+        name: "成功率 (%)",
         min: 0,
         max: 100,
       },
     ],
     series: [
       {
-        name: '已完成',
-        type: 'bar',
+        name: "已完成",
+        type: "bar",
         data: completedData,
         itemStyle: {
-          color: '#52c41a',
+          color: "#52c41a",
         },
       },
       {
-        name: '失败',
-        type: 'bar',
+        name: "失败",
+        type: "bar",
         data: failedData,
         itemStyle: {
-          color: '#ff4d4f',
+          color: "#ff4d4f",
         },
       },
       {
-        name: '成功率',
-        type: 'line',
+        name: "成功率",
+        type: "line",
         yAxisIndex: 1,
         data: completedData.map((c, i) =>
-          Math.round((c / (c + failedData[i])) * 100)
+          Math.round((c / (c + failedData[i])) * 100),
         ),
         itemStyle: {
-          color: '#1890ff',
+          color: "#1890ff",
         },
       },
     ],
@@ -434,50 +444,52 @@ function initTaskTrendChart() {
 }
 
 function initStatusPieChart() {
-  if (!statusPieChart.value) return;
+  if (!statusPieChart.value) {
+    return;
+  }
 
   const chart = echarts.init(statusPieChart.value);
   charts.value.statusPie = chart;
 
   const option = {
     tooltip: {
-      trigger: 'item',
-      formatter: '{a} <br/>{b}: {c} ({d}%)',
+      trigger: "item",
+      formatter: "{a} <br/>{b}: {c} ({d}%)",
     },
     legend: {
-      orient: 'vertical',
-      left: 'left',
+      orient: "vertical",
+      left: "left",
     },
     series: [
       {
-        name: '任务状态',
-        type: 'pie',
-        radius: ['40%', '70%'],
+        name: "任务状态",
+        type: "pie",
+        radius: ["40%", "70%"],
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 10,
-          borderColor: '#fff',
+          borderColor: "#fff",
           borderWidth: 2,
         },
         label: {
           show: false,
-          position: 'center',
+          position: "center",
         },
         emphasis: {
           label: {
             show: true,
             fontSize: 20,
-            fontWeight: 'bold',
+            fontWeight: "bold",
           },
         },
         labelLine: {
           show: false,
         },
         data: [
-          { value: 48, name: '已完成', itemStyle: { color: '#52c41a' } },
-          { value: 12, name: '运行中', itemStyle: { color: '#1890ff' } },
-          { value: 5, name: '失败', itemStyle: { color: '#ff4d4f' } },
-          { value: 8, name: '等待中', itemStyle: { color: '#faad14' } },
+          { value: 48, name: "已完成", itemStyle: { color: "#52c41a" } },
+          { value: 12, name: "运行中", itemStyle: { color: "#1890ff" } },
+          { value: 5, name: "失败", itemStyle: { color: "#ff4d4f" } },
+          { value: 8, name: "等待中", itemStyle: { color: "#faad14" } },
         ],
       },
     ],
@@ -487,13 +499,15 @@ function initStatusPieChart() {
 }
 
 function initUtilizationHeatmap() {
-  if (!utilizationHeatmap.value) return;
+  if (!utilizationHeatmap.value) {
+    return;
+  }
 
   const chart = echarts.init(utilizationHeatmap.value);
   charts.value.heatmap = chart;
 
   const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-  const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  const days = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 
   const data = [];
   for (let i = 0; i < 7; i++) {
@@ -504,24 +518,24 @@ function initUtilizationHeatmap() {
 
   const option = {
     tooltip: {
-      position: 'top',
+      position: "top",
       formatter: (params) => {
         return `${days[params.data[1]]} ${hours[params.data[0]]}<br/>利用率: ${params.data[2]}%`;
       },
     },
     grid: {
-      height: '70%',
-      top: '10%',
+      height: "70%",
+      top: "10%",
     },
     xAxis: {
-      type: 'category',
+      type: "category",
       data: hours,
       splitArea: {
         show: true,
       },
     },
     yAxis: {
-      type: 'category',
+      type: "category",
       data: days,
       splitArea: {
         show: true,
@@ -531,17 +545,17 @@ function initUtilizationHeatmap() {
       min: 0,
       max: 100,
       calculable: true,
-      orient: 'horizontal',
-      left: 'center',
-      bottom: '0%',
+      orient: "horizontal",
+      left: "center",
+      bottom: "0%",
       inRange: {
-        color: ['#e8f5e9', '#66bb6a', '#2e7d32'],
+        color: ["#e8f5e9", "#66bb6a", "#2e7d32"],
       },
     },
     series: [
       {
-        name: '利用率',
-        type: 'heatmap',
+        name: "利用率",
+        type: "heatmap",
         data: data,
         label: {
           show: false,
@@ -549,7 +563,7 @@ function initUtilizationHeatmap() {
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
-            shadowColor: 'rgba(0, 0, 0, 0.5)',
+            shadowColor: "rgba(0, 0, 0, 0.5)",
           },
         },
       },
@@ -560,45 +574,47 @@ function initUtilizationHeatmap() {
 }
 
 function initSkillBarChart() {
-  if (!skillBarChart.value) return;
+  if (!skillBarChart.value) {
+    return;
+  }
 
   const chart = echarts.init(skillBarChart.value);
   charts.value.skillBar = chart;
 
   const option = {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       axisPointer: {
-        type: 'shadow',
+        type: "shadow",
       },
     },
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
       containLabel: true,
     },
     xAxis: {
-      type: 'value',
+      type: "value",
     },
     yAxis: {
-      type: 'category',
-      data: ['Excel', 'Word', 'PPT', '数据分析', 'PDF', '图像处理'],
+      type: "category",
+      data: ["Excel", "Word", "PPT", "数据分析", "PDF", "图像处理"],
     },
     series: [
       {
-        name: '使用次数',
-        type: 'bar',
+        name: "使用次数",
+        type: "bar",
         data: [85, 62, 48, 95, 38, 52],
         itemStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#1890ff' },
-            { offset: 1, color: '#52c41a' },
+            { offset: 0, color: "#1890ff" },
+            { offset: 1, color: "#52c41a" },
           ]),
         },
         label: {
           show: true,
-          position: 'right',
+          position: "right",
         },
       },
     ],
@@ -608,17 +624,19 @@ function initSkillBarChart() {
 }
 
 function initGanttChart() {
-  if (!ganttChart.value) return;
+  if (!ganttChart.value) {
+    return;
+  }
 
   const chart = echarts.init(ganttChart.value);
   charts.value.gantt = chart;
 
   const tasks = [
-    { name: '任务A', start: 0, duration: 5, agent: 'Agent-1' },
-    { name: '任务B', start: 2, duration: 4, agent: 'Agent-2' },
-    { name: '任务C', start: 5, duration: 3, agent: 'Agent-1' },
-    { name: '任务D', start: 6, duration: 6, agent: 'Agent-3' },
-    { name: '任务E', start: 8, duration: 4, agent: 'Agent-2' },
+    { name: "任务A", start: 0, duration: 5, agent: "Agent-1" },
+    { name: "任务B", start: 2, duration: 4, agent: "Agent-2" },
+    { name: "任务C", start: 5, duration: 3, agent: "Agent-1" },
+    { name: "任务D", start: 6, duration: 6, agent: "Agent-3" },
+    { name: "任务E", start: 8, duration: 4, agent: "Agent-2" },
   ];
 
   const option = {
@@ -629,23 +647,23 @@ function initGanttChart() {
       },
     },
     grid: {
-      left: '10%',
-      right: '5%',
-      bottom: '5%',
+      left: "10%",
+      right: "5%",
+      bottom: "5%",
       containLabel: true,
     },
     xAxis: {
-      type: 'value',
-      name: '时间 (小时)',
+      type: "value",
+      name: "时间 (小时)",
       max: 12,
     },
     yAxis: {
-      type: 'category',
+      type: "category",
       data: tasks.map((t) => t.name),
     },
     series: [
       {
-        type: 'custom',
+        type: "custom",
         renderItem: (params, api) => {
           const categoryIndex = api.value(0);
           const start = api.coord([api.value(1), categoryIndex]);
@@ -653,7 +671,7 @@ function initGanttChart() {
           const height = api.size([0, 1])[1] * 0.6;
 
           return {
-            type: 'rect',
+            type: "rect",
             shape: {
               x: start[0],
               y: start[1] - height / 2,
@@ -661,7 +679,7 @@ function initGanttChart() {
               height: height,
             },
             style: api.style({
-              fill: api.visual('color'),
+              fill: api.visual("color"),
             }),
           };
         },
@@ -682,7 +700,9 @@ function initGanttChart() {
 }
 
 function initScatterChart() {
-  if (!scatterChart.value) return;
+  if (!scatterChart.value) {
+    return;
+  }
 
   const chart = echarts.init(scatterChart.value);
   charts.value.scatter = chart;
@@ -696,40 +716,40 @@ function initScatterChart() {
   const option = {
     tooltip: {
       formatter: (params) => {
-        const priorityNames = ['', '低', '中', '高', '紧急'];
+        const priorityNames = ["", "低", "中", "高", "紧急"];
         return `优先级: ${priorityNames[params.data[0]]}<br/>执行时长: ${params.data[1]}分钟`;
       },
     },
     grid: {
-      left: '3%',
-      right: '7%',
-      bottom: '7%',
+      left: "3%",
+      right: "7%",
+      bottom: "7%",
       containLabel: true,
     },
     xAxis: {
-      type: 'value',
-      name: '优先级',
+      type: "value",
+      name: "优先级",
       min: 0,
       max: 5,
       axisLabel: {
         formatter: (value) => {
-          const names = ['', '低', '中', '高', '紧急'];
-          return names[value] || '';
+          const names = ["", "低", "中", "高", "紧急"];
+          return names[value] || "";
         },
       },
     },
     yAxis: {
-      type: 'value',
-      name: '执行时长 (分钟)',
+      type: "value",
+      name: "执行时长 (分钟)",
     },
     series: [
       {
-        type: 'scatter',
+        type: "scatter",
         symbolSize: 10,
         data: data,
         itemStyle: {
           color: (params) => {
-            const colors = ['', '#52c41a', '#1890ff', '#faad14', '#ff4d4f'];
+            const colors = ["", "#52c41a", "#1890ff", "#faad14", "#ff4d4f"];
             return colors[params.data[0]];
           },
         },
@@ -741,46 +761,48 @@ function initScatterChart() {
 }
 
 function initPerformanceChart() {
-  if (!performanceChart.value) return;
+  if (!performanceChart.value) {
+    return;
+  }
 
   const chart = echarts.init(performanceChart.value);
   charts.value.performance = chart;
 
   const option = {
     tooltip: {
-      trigger: 'axis',
+      trigger: "axis",
       axisPointer: {
-        type: 'shadow',
+        type: "shadow",
       },
     },
     legend: {},
     grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
+      left: "3%",
+      right: "4%",
+      bottom: "3%",
       containLabel: true,
     },
     xAxis: {
-      type: 'value',
+      type: "value",
     },
     yAxis: {
-      type: 'category',
-      data: ['销售团队', '研发团队', '设计团队', '运营团队', '财务团队'],
+      type: "category",
+      data: ["销售团队", "研发团队", "设计团队", "运营团队", "财务团队"],
     },
     series: [
       {
-        name: '完成任务',
-        type: 'bar',
-        stack: 'total',
+        name: "完成任务",
+        type: "bar",
+        stack: "total",
         data: [48, 52, 35, 42, 28],
-        itemStyle: { color: '#52c41a' },
+        itemStyle: { color: "#52c41a" },
       },
       {
-        name: '失败任务',
-        type: 'bar',
-        stack: 'total',
+        name: "失败任务",
+        type: "bar",
+        stack: "total",
         data: [2, 3, 5, 2, 2],
-        itemStyle: { color: '#ff4d4f' },
+        itemStyle: { color: "#ff4d4f" },
       },
     ],
   };
@@ -790,36 +812,50 @@ function initPerformanceChart() {
 
 function initGaugeCharts() {
   initGaugeChart(loadGauge, {
-    title: '系统负载',
+    title: "系统负载",
     value: 65,
     max: 100,
-    color: [[0.6, '#52c41a'], [0.8, '#faad14'], [1, '#ff4d4f']],
+    color: [
+      [0.6, "#52c41a"],
+      [0.8, "#faad14"],
+      [1, "#ff4d4f"],
+    ],
   });
 
   initGaugeChart(queueGauge, {
-    title: '任务队列',
+    title: "任务队列",
     value: 12,
     max: 50,
-    color: [[0.6, '#52c41a'], [0.8, '#faad14'], [1, '#ff4d4f']],
+    color: [
+      [0.6, "#52c41a"],
+      [0.8, "#faad14"],
+      [1, "#ff4d4f"],
+    ],
   });
 
   initGaugeChart(successGauge, {
-    title: '成功率',
+    title: "成功率",
     value: 92,
     max: 100,
-    color: [[0.8, '#ff4d4f'], [0.9, '#faad14'], [1, '#52c41a']],
+    color: [
+      [0.8, "#ff4d4f"],
+      [0.9, "#faad14"],
+      [1, "#52c41a"],
+    ],
   });
 }
 
 function initGaugeChart(ref, config) {
-  if (!ref.value) return;
+  if (!ref.value) {
+    return;
+  }
 
   const chart = echarts.init(ref.value);
 
   const option = {
     series: [
       {
-        type: 'gauge',
+        type: "gauge",
         startAngle: 180,
         endAngle: 0,
         min: 0,
@@ -833,14 +869,14 @@ function initGaugeChart(ref, config) {
         },
         pointer: {
           itemStyle: {
-            color: 'auto',
+            color: "auto",
           },
         },
         axisTick: {
           distance: -30,
           length: 8,
           lineStyle: {
-            color: '#fff',
+            color: "#fff",
             width: 2,
           },
         },
@@ -848,19 +884,19 @@ function initGaugeChart(ref, config) {
           distance: -30,
           length: 30,
           lineStyle: {
-            color: '#fff',
+            color: "#fff",
             width: 4,
           },
         },
         axisLabel: {
-          color: 'auto',
+          color: "auto",
           distance: 40,
           fontSize: 12,
         },
         detail: {
           valueAnimation: true,
-          formatter: '{value}',
-          color: 'auto',
+          formatter: "{value}",
+          color: "auto",
           fontSize: 20,
         },
         data: [
@@ -902,20 +938,20 @@ function updateRealtimeData() {
   const queueValue = Math.floor(Math.random() * 20 + 5);
   const successValue = Math.floor(Math.random() * 10 + 88);
 
-  if (charts.value['系统负载']) {
-    charts.value['系统负载'].setOption({
+  if (charts.value["系统负载"]) {
+    charts.value["系统负载"].setOption({
       series: [{ data: [{ value: loadValue }] }],
     });
   }
 
-  if (charts.value['任务队列']) {
-    charts.value['任务队列'].setOption({
+  if (charts.value["任务队列"]) {
+    charts.value["任务队列"].setOption({
       series: [{ data: [{ value: queueValue }] }],
     });
   }
 
-  if (charts.value['成功率']) {
-    charts.value['成功率'].setOption({
+  if (charts.value["成功率"]) {
+    charts.value["成功率"].setOption({
       series: [{ data: [{ value: successValue }] }],
     });
   }

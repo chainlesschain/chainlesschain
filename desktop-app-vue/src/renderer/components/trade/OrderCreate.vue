@@ -10,14 +10,8 @@
     >
       <a-form layout="vertical">
         <!-- 订单类型 -->
-        <a-form-item
-          label="订单类型"
-          required
-        >
-          <a-radio-group
-            v-model:value="form.type"
-            button-style="solid"
-          >
+        <a-form-item label="订单类型" required>
+          <a-radio-group v-model:value="form.type" button-style="solid">
             <a-radio-button value="sell">
               <dollar-outlined /> 出售
             </a-radio-button>
@@ -34,10 +28,7 @@
         </a-form-item>
 
         <!-- 订单标题 -->
-        <a-form-item
-          label="订单标题"
-          required
-        >
+        <a-form-item label="订单标题" required>
           <a-input
             v-model:value="form.title"
             placeholder="简明扼要地描述您的订单"
@@ -47,11 +38,7 @@
         </a-form-item>
 
         <!-- 资产选择（出售订单需要） -->
-        <a-form-item
-          v-if="form.type === 'sell'"
-          label="出售资产"
-          required
-        >
+        <a-form-item v-if="form.type === 'sell'" label="出售资产" required>
           <a-select
             v-model:value="form.assetId"
             placeholder="选择要出售的资产"
@@ -67,10 +54,7 @@
             >
               <a-space>
                 <span>{{ asset.name }}</span>
-                <a-tag
-                  v-if="asset.symbol"
-                  color="blue"
-                >
+                <a-tag v-if="asset.symbol" color="blue">
                   {{ asset.symbol }}
                 </a-tag>
                 <span style="color: #999; font-size: 12px">
@@ -82,10 +66,7 @@
         </a-form-item>
 
         <!-- 数量 -->
-        <a-form-item
-          label="数量"
-          required
-        >
+        <a-form-item label="数量" required>
           <a-input-number
             v-model:value="form.quantity"
             :min="1"
@@ -93,10 +74,7 @@
             style="width: 100%"
             placeholder="订单数量"
           />
-          <template
-            v-if="form.type === 'sell' && selectedAsset"
-            #extra
-          >
+          <template v-if="form.type === 'sell' && selectedAsset" #extra>
             可用余额: {{ formatAmount(selectedAsset.total_supply || 0) }}
           </template>
         </a-form-item>
@@ -115,10 +93,7 @@
             >
               <a-space>
                 <span>{{ asset.name }}</span>
-                <a-tag
-                  v-if="asset.symbol"
-                  color="blue"
-                >
+                <a-tag v-if="asset.symbol" color="blue">
                   {{ asset.symbol }}
                 </a-tag>
               </a-space>
@@ -127,10 +102,7 @@
         </a-form-item>
 
         <!-- 单价 -->
-        <a-form-item
-          label="单价"
-          required
-        >
+        <a-form-item label="单价" required>
           <a-input-number
             v-model:value="form.priceAmount"
             :min="0"
@@ -140,7 +112,7 @@
             placeholder="每个单位的价格"
           >
             <template #addonAfter>
-              {{ selectedPriceAsset?.symbol || '单位' }}
+              {{ selectedPriceAsset?.symbol || "单位" }}
             </template>
           </a-input-number>
         </a-form-item>
@@ -152,7 +124,10 @@
           style="margin-bottom: 16px"
         >
           <template #message>
-            <strong>总价: {{ (form.quantity * form.priceAmount).toFixed(2) }} {{ selectedPriceAsset?.symbol || '单位' }}</strong>
+            <strong
+              >总价: {{ (form.quantity * form.priceAmount).toFixed(2) }}
+              {{ selectedPriceAsset?.symbol || "单位" }}</strong
+            >
           </template>
         </a-alert>
 
@@ -169,10 +144,7 @@
 
         <!-- 高级选项 -->
         <a-collapse ghost>
-          <a-collapse-panel
-            key="metadata"
-            header="高级设置（可选）"
-          >
+          <a-collapse-panel key="metadata" header="高级设置（可选）">
             <a-form-item label="交易地点">
               <a-input
                 v-model:value="form.metadata.location"
@@ -206,10 +178,7 @@
           title="订单预览"
           style="margin-top: 16px"
         >
-          <a-descriptions
-            :column="1"
-            size="small"
-          >
+          <a-descriptions :column="1" size="small">
             <a-descriptions-item label="类型">
               <a-tag :color="getOrderTypeColor(form.type)">
                 {{ getOrderTypeName(form.type) }}
@@ -222,17 +191,19 @@
               v-if="form.type === 'sell' && selectedAsset"
               label="资产"
             >
-              {{ selectedAsset.name }} {{ selectedAsset.symbol ? `(${selectedAsset.symbol})` : '' }}
+              {{ selectedAsset.name }}
+              {{ selectedAsset.symbol ? `(${selectedAsset.symbol})` : "" }}
             </a-descriptions-item>
             <a-descriptions-item label="数量">
               {{ form.quantity }}
             </a-descriptions-item>
             <a-descriptions-item label="单价">
-              {{ form.priceAmount }} {{ selectedPriceAsset?.symbol || '单位' }}
+              {{ form.priceAmount }} {{ selectedPriceAsset?.symbol || "单位" }}
             </a-descriptions-item>
             <a-descriptions-item label="总价">
               <strong style="color: #1890ff; font-size: 16px">
-                {{ (form.quantity * form.priceAmount).toFixed(2) }} {{ selectedPriceAsset?.symbol || '单位' }}
+                {{ (form.quantity * form.priceAmount).toFixed(2) }}
+                {{ selectedPriceAsset?.symbol || "单位" }}
               </strong>
             </a-descriptions-item>
           </a-descriptions>
@@ -243,18 +214,18 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, watch, onMounted } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, reactive, computed, watch, onMounted } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   ShoppingOutlined,
   DollarOutlined,
   ToolOutlined,
   SwapOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import PriceInput from './common/PriceInput.vue';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import PriceInput from "./common/PriceInput.vue";
 
 // Store
 const tradeStore = useTradeStore();
@@ -268,22 +239,22 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['created', 'cancel', 'update:open']);
+const emit = defineEmits(["created", "cancel", "update:open"]);
 
 // 状态
-const currentDid = ref('');
+const currentDid = ref("");
 
 const form = reactive({
-  type: 'sell',
-  title: '',
+  type: "sell",
+  title: "",
   assetId: null,
   quantity: 1,
   priceAssetId: null,
   priceAmount: 0,
-  description: '',
+  description: "",
   metadata: {
-    location: '',
-    contact: '',
+    location: "",
+    contact: "",
     validDays: 30,
   },
 });
@@ -292,17 +263,19 @@ const form = reactive({
 const creating = computed(() => tradeStore.marketplace.creating);
 const myAssets = computed(() => tradeStore.asset.myAssets);
 const paymentAssets = computed(() =>
-  tradeStore.asset.myAssets.filter(a => a.asset_type === 'token')
+  tradeStore.asset.myAssets.filter((a) => a.asset_type === "token"),
 );
 
 // 计算属性
 const selectedAsset = computed(() => {
-  return myAssets.value.find(a => a.id === form.assetId);
+  return myAssets.value.find((a) => a.id === form.assetId);
 });
 
 const selectedPriceAsset = computed(() => {
-  if (!form.priceAssetId) {return null;}
-  return paymentAssets.value.find(a => a.id === form.priceAssetId);
+  if (!form.priceAssetId) {
+    return null;
+  }
+  return paymentAssets.value.find((a) => a.id === form.priceAssetId);
 });
 
 const isFormValid = computed(() => {
@@ -311,14 +284,18 @@ const isFormValid = computed(() => {
 
 // 工具函数
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) {return '0';}
+  if (!amount && amount !== 0) {
+    return "0";
+  }
   const num = parseFloat(amount);
-  if (isNaN(num)) {return '0';}
-  return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
+  if (isNaN(num)) {
+    return "0";
+  }
+  return num.toLocaleString("en-US", { maximumFractionDigits: 8 });
 };
 
 const getMaxQuantity = () => {
-  if (form.type === 'sell' && selectedAsset.value) {
+  if (form.type === "sell" && selectedAsset.value) {
     return parseFloat(selectedAsset.value.total_supply || 0);
   }
   return 1000000; // 求购订单没有数量限制
@@ -326,20 +303,20 @@ const getMaxQuantity = () => {
 
 const getOrderTypeColor = (type) => {
   const colors = {
-    sell: 'green',
-    buy: 'blue',
-    auction: 'purple',
-    exchange: 'orange',
+    sell: "green",
+    buy: "blue",
+    auction: "purple",
+    exchange: "orange",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getOrderTypeName = (type) => {
   const names = {
-    sell: '出售',
-    buy: '求购',
-    auction: '拍卖',
-    exchange: '交换',
+    sell: "出售",
+    buy: "求购",
+    auction: "拍卖",
+    exchange: "交换",
   };
   return names[type] || type;
 };
@@ -359,23 +336,23 @@ const loadMyAssets = async () => {
     }
 
     if (!currentDid.value) {
-      antMessage.warning('请先创建或选择身份');
+      antMessage.warning("请先创建或选择身份");
       return;
     }
 
     // 使用 store 加载资产
     await tradeStore.loadMyAssets(currentDid.value);
 
-    logger.info('[OrderCreate] 资产列表已加载:', myAssets.value.length);
+    logger.info("[OrderCreate] 资产列表已加载:", myAssets.value.length);
   } catch (error) {
-    logger.error('[OrderCreate] 加载资产列表失败:', error);
-    antMessage.error('加载资产列表失败: ' + error.message);
+    logger.error("[OrderCreate] 加载资产列表失败:", error);
+    antMessage.error("加载资产列表失败: " + error.message);
   }
 };
 
 // 处理资产选择变化
 const handleAssetChange = (assetId) => {
-  const asset = myAssets.value.find(a => a.id === assetId);
+  const asset = myAssets.value.find((a) => a.id === assetId);
   if (asset) {
     // 自动设置数量上限
     const maxQty = getMaxQuantity();
@@ -397,12 +374,12 @@ const handleCreate = async () => {
       orderType: form.type,
       assetId: form.assetId,
       assetName: selectedAsset.value?.name || form.title,
-      assetSymbol: selectedAsset.value?.symbol || '',
-      assetType: selectedAsset.value?.asset_type || 'token',
+      assetSymbol: selectedAsset.value?.symbol || "",
+      assetType: selectedAsset.value?.asset_type || "token",
       quantity: form.quantity,
       priceAmount: form.priceAmount,
       priceAssetId: form.priceAssetId || null,
-      priceAssetSymbol: selectedPriceAsset.value?.symbol || 'CC',
+      priceAssetSymbol: selectedPriceAsset.value?.symbol || "CC",
       description: form.description.trim(),
       metadata: {
         ...form.metadata,
@@ -414,55 +391,55 @@ const handleCreate = async () => {
     // 使用 store 创建订单
     const order = await tradeStore.createOrder(options);
 
-    logger.info('[OrderCreate] 订单创建成功:', order.id);
-    antMessage.success('订单创建成功！');
+    logger.info("[OrderCreate] 订单创建成功:", order.id);
+    antMessage.success("订单创建成功！");
 
     // 通知父组件
-    emit('created', order);
+    emit("created", order);
 
     // 关闭对话框
-    emit('update:open', false);
+    emit("update:open", false);
 
     // 重置表单
     resetForm();
   } catch (error) {
-    logger.error('[OrderCreate] 创建订单失败:', error);
-    antMessage.error(error.message || '创建订单失败');
+    logger.error("[OrderCreate] 创建订单失败:", error);
+    antMessage.error(error.message || "创建订单失败");
   }
 };
 
 // 验证表单
 const validateForm = () => {
   if (!form.title || form.title.trim().length === 0) {
-    antMessage.warning('请输入订单标题');
+    antMessage.warning("请输入订单标题");
     return false;
   }
 
   if (form.title.trim().length < 5) {
-    antMessage.warning('订单标题至少需要 5 个字符');
+    antMessage.warning("订单标题至少需要 5 个字符");
     return false;
   }
 
-  if (form.type === 'sell' && !form.assetId) {
-    antMessage.warning('请选择要出售的资产');
+  if (form.type === "sell" && !form.assetId) {
+    antMessage.warning("请选择要出售的资产");
     return false;
   }
 
   if (form.quantity <= 0) {
-    antMessage.warning('订单数量必须大于 0');
+    antMessage.warning("订单数量必须大于 0");
     return false;
   }
 
   if (form.priceAmount <= 0) {
-    antMessage.warning('单价必须大于 0');
+    antMessage.warning("单价必须大于 0");
     return false;
   }
 
   // 检查余额
-  if (form.type === 'sell' && selectedAsset.value) {
+  if (form.type === "sell" && selectedAsset.value) {
     const maxQty = getMaxQuantity();
     if (form.quantity > maxQty) {
-      antMessage.warning('订单数量超过可用余额');
+      antMessage.warning("订单数量超过可用余额");
       return false;
     }
   }
@@ -471,7 +448,7 @@ const validateForm = () => {
   const totalPrice = form.quantity * form.priceAmount;
   if (totalPrice > 1000000000) {
     // 10亿上限
-    antMessage.warning('订单总价过高，请调整数量或单价');
+    antMessage.warning("订单总价过高，请调整数量或单价");
     return false;
   }
 
@@ -480,34 +457,37 @@ const validateForm = () => {
 
 // 取消
 const handleCancel = () => {
-  emit('cancel');
-  emit('update:open', false);
+  emit("cancel");
+  emit("update:open", false);
   resetForm();
 };
 
 // 重置表单
 const resetForm = () => {
-  form.type = 'sell';
-  form.title = '';
+  form.type = "sell";
+  form.title = "";
   form.assetId = null;
   form.quantity = 1;
   form.priceAssetId = null;
   form.priceAmount = 0;
-  form.description = '';
+  form.description = "";
   form.metadata = {
-    location: '',
-    contact: '',
+    location: "",
+    contact: "",
     validDays: 30,
   };
 };
 
 // 监听对话框打开
-watch(() => props.open, (newVal) => {
-  if (newVal) {
-    loadMyAssets();
-    resetForm();
-  }
-});
+watch(
+  () => props.open,
+  (newVal) => {
+    if (newVal) {
+      loadMyAssets();
+      resetForm();
+    }
+  },
+);
 
 // 生命周期
 onMounted(async () => {

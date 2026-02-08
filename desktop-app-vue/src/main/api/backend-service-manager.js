@@ -4,7 +4,7 @@
  * 仅在生产环境（打包后）自动启动和管理这些服务
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { spawn, exec, execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");

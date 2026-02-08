@@ -11,10 +11,10 @@
  * - 向后兼容旧的Logger接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs');
-const path = require('path');
-const util = require('util');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs");
+const path = require("path");
+const util = require("util");
 
 // 日志级别
 const logLevels = {
@@ -22,17 +22,17 @@ const logLevels = {
   INFO: 1,
   WARN: 2,
   ERROR: 3,
-  FATAL: 4
+  FATAL: 4,
 };
 
 // 日志颜色（终端输出）
 const LogColors = {
-  DEBUG: '\x1b[36m', // Cyan
-  INFO: '\x1b[32m',  // Green
-  WARN: '\x1b[33m',  // Yellow
-  ERROR: '\x1b[31m', // Red
-  FATAL: '\x1b[35m', // Magenta
-  RESET: '\x1b[0m'
+  DEBUG: "\x1b[36m", // Cyan
+  INFO: "\x1b[32m", // Green
+  WARN: "\x1b[33m", // Yellow
+  ERROR: "\x1b[31m", // Red
+  FATAL: "\x1b[35m", // Magenta
+  RESET: "\x1b[0m",
 };
 
 // 全局配置
@@ -42,7 +42,7 @@ let globalConfig = {
   maxFiles: 30,
   enableFile: true,
   enableConsole: true,
-  level: 'INFO'
+  level: "INFO",
 };
 
 /**
@@ -51,7 +51,7 @@ let globalConfig = {
 function initLogger(options = {}) {
   globalConfig = {
     ...globalConfig,
-    ...options
+    ...options,
   };
 
   // 创建日志目录
@@ -72,19 +72,20 @@ function cleanOldLogs() {
       return;
     }
 
-    const files = fs.readdirSync(globalConfig.logDir)
-      .filter(f => f.endsWith('.log'))
-      .map(f => ({
+    const files = fs
+      .readdirSync(globalConfig.logDir)
+      .filter((f) => f.endsWith(".log"))
+      .map((f) => ({
         name: f,
         path: path.join(globalConfig.logDir, f),
-        time: fs.statSync(path.join(globalConfig.logDir, f)).mtime.getTime()
+        time: fs.statSync(path.join(globalConfig.logDir, f)).mtime.getTime(),
       }))
       .sort((a, b) => b.time - a.time);
 
     // 删除超过数量限制的文件
     if (files.length > globalConfig.maxFiles) {
       const filesToDelete = files.slice(globalConfig.maxFiles);
-      filesToDelete.forEach(file => {
+      filesToDelete.forEach((file) => {
         try {
           fs.unlinkSync(file.path);
         } catch (error) {
@@ -93,7 +94,7 @@ function cleanOldLogs() {
       });
     }
   } catch (error) {
-    logger.error('Failed to clean old logs:', error);
+    logger.error("Failed to clean old logs:", error);
   }
 }
 
@@ -105,7 +106,7 @@ function getCurrentLogFile() {
     return null;
   }
 
-  const date = new Date().toISOString().split('T')[0];
+  const date = new Date().toISOString().split("T")[0];
   const filename = `chainlesschain-${date}.log`;
   const filepath = path.join(globalConfig.logDir, filename);
 
@@ -115,7 +116,7 @@ function getCurrentLogFile() {
     const fileSizeMB = stats.size / (1024 * 1024);
 
     if (fileSizeMB >= globalConfig.maxFileSize) {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
       const newFilename = `chainlesschain-${timestamp}.log`;
       return path.join(globalConfig.logDir, newFilename);
     }
@@ -135,10 +136,10 @@ function writeToFile(message) {
   try {
     const logFile = getCurrentLogFile();
     if (logFile) {
-      fs.appendFileSync(logFile, message + '\n', 'utf8');
+      fs.appendFileSync(logFile, message + "\n", "utf8");
     }
   } catch (error) {
-    logger.error('Failed to write log file:', error);
+    logger.error("Failed to write log file:", error);
   }
 }
 
@@ -148,14 +149,15 @@ function writeToFile(message) {
 class Logger {
   constructor(moduleName, options = {}) {
     this.moduleName = moduleName;
-    this.level = options.level || globalConfig.level || process.env.LOG_LEVEL || 'INFO';
+    this.level =
+      options.level || globalConfig.level || process.env.LOG_LEVEL || "INFO";
     this.stats = {
       debug: 0,
       info: 0,
       warn: 0,
       error: 0,
       fatal: 0,
-      total: 0
+      total: 0,
     };
   }
 
@@ -166,22 +168,22 @@ class Logger {
     const timestamp = new Date().toISOString();
 
     // 提取消息和元数据
-    let message = '';
+    let message = "";
     let meta = {};
 
-    args.forEach(arg => {
-      if (typeof arg === 'string') {
-        message += (message ? ' ' : '') + arg;
+    args.forEach((arg) => {
+      if (typeof arg === "string") {
+        message += (message ? " " : "") + arg;
       } else if (arg instanceof Error) {
         meta.error = {
           message: arg.message,
           stack: arg.stack,
-          name: arg.name
+          name: arg.name,
         };
-      } else if (typeof arg === 'object') {
+      } else if (typeof arg === "object") {
         meta = { ...meta, ...arg };
       } else {
-        message += (message ? ' ' : '') + String(arg);
+        message += (message ? " " : "") + String(arg);
       }
     });
 
@@ -190,7 +192,7 @@ class Logger {
       level,
       module: this.moduleName,
       message,
-      ...meta
+      ...meta,
     };
   }
 
@@ -199,20 +201,20 @@ class Logger {
    */
   formatConsoleMessage(level, args) {
     const timestamp = new Date().toISOString();
-    const color = LogColors[level] || '';
+    const color = LogColors[level] || "";
     const reset = LogColors.RESET;
 
     let output = `${color}[${timestamp}] [${level}] [${this.moduleName}]${reset}`;
 
-    args.forEach(arg => {
-      if (typeof arg === 'string') {
-        output += ' ' + arg;
+    args.forEach((arg) => {
+      if (typeof arg === "string") {
+        output += " " + arg;
       } else if (arg instanceof Error) {
-        output += '\n' + util.inspect(arg, { colors: true, depth: 3 });
-      } else if (typeof arg === 'object') {
-        output += '\n' + util.inspect(arg, { colors: true, depth: 3 });
+        output += "\n" + util.inspect(arg, { colors: true, depth: 3 });
+      } else if (typeof arg === "object") {
+        output += "\n" + util.inspect(arg, { colors: true, depth: 3 });
       } else {
-        output += ' ' + String(arg);
+        output += " " + String(arg);
       }
     });
 
@@ -240,17 +242,17 @@ class Logger {
       const consoleMsg = this.formatConsoleMessage(level, args);
 
       switch (level) {
-        case 'DEBUG':
+        case "DEBUG":
           logger.debug(consoleMsg);
           break;
-        case 'INFO':
+        case "INFO":
           logger.info(consoleMsg);
           break;
-        case 'WARN':
+        case "WARN":
           logger.warn(consoleMsg);
           break;
-        case 'ERROR':
-        case 'FATAL':
+        case "ERROR":
+        case "FATAL":
           logger.error(consoleMsg);
           break;
         default:
@@ -267,23 +269,23 @@ class Logger {
   }
 
   debug(...args) {
-    this._log('DEBUG', ...args);
+    this._log("DEBUG", ...args);
   }
 
   info(...args) {
-    this._log('INFO', ...args);
+    this._log("INFO", ...args);
   }
 
   warn(...args) {
-    this._log('WARN', ...args);
+    this._log("WARN", ...args);
   }
 
   error(...args) {
-    this._log('ERROR', ...args);
+    this._log("ERROR", ...args);
   }
 
   fatal(...args) {
-    this._log('FATAL', ...args);
+    this._log("FATAL", ...args);
   }
 
   /**
@@ -291,7 +293,7 @@ class Logger {
    */
   child(subModuleName) {
     return new Logger(`${this.moduleName}:${subModuleName}`, {
-      level: this.level
+      level: this.level,
     });
   }
 
@@ -312,7 +314,7 @@ class Logger {
       warn: 0,
       error: 0,
       fatal: 0,
-      total: 0
+      total: 0,
     };
   }
 
@@ -342,9 +344,10 @@ function getLogFiles() {
       return [];
     }
 
-    return fs.readdirSync(globalConfig.logDir)
-      .filter(f => f.endsWith('.log'))
-      .map(f => {
+    return fs
+      .readdirSync(globalConfig.logDir)
+      .filter((f) => f.endsWith(".log"))
+      .map((f) => {
         const filePath = path.join(globalConfig.logDir, f);
         const stats = fs.statSync(filePath);
         return {
@@ -352,12 +355,12 @@ function getLogFiles() {
           path: filePath,
           size: stats.size,
           created: stats.birthtime,
-          modified: stats.mtime
+          modified: stats.mtime,
         };
       })
       .sort((a, b) => b.modified.getTime() - a.modified.getTime());
   } catch (error) {
-    logger.error('Failed to get log files:', error);
+    logger.error("Failed to get log files:", error);
     return [];
   }
 }
@@ -373,11 +376,11 @@ function readLogFile(filename, options = {}) {
       throw new Error(`Log file not found: ${filename}`);
     }
 
-    const content = fs.readFileSync(filePath, 'utf8');
-    const lines = content.split('\n').filter(line => line.trim());
+    const content = fs.readFileSync(filePath, "utf8");
+    const lines = content.split("\n").filter((line) => line.trim());
 
     // 解析JSON日志
-    const logs = lines.map(line => {
+    const logs = lines.map((line) => {
       try {
         return JSON.parse(line);
       } catch (error) {
@@ -389,17 +392,19 @@ function readLogFile(filename, options = {}) {
     let filtered = logs;
 
     if (options.level) {
-      filtered = filtered.filter(log => log.level === options.level);
+      filtered = filtered.filter((log) => log.level === options.level);
     }
 
     if (options.module) {
-      filtered = filtered.filter(log => log.module && log.module.includes(options.module));
+      filtered = filtered.filter(
+        (log) => log.module && log.module.includes(options.module),
+      );
     }
 
     if (options.search) {
       const searchLower = options.search.toLowerCase();
-      filtered = filtered.filter(log =>
-        JSON.stringify(log).toLowerCase().includes(searchLower)
+      filtered = filtered.filter((log) =>
+        JSON.stringify(log).toLowerCase().includes(searchLower),
       );
     }
 
@@ -409,10 +414,10 @@ function readLogFile(filename, options = {}) {
 
     return {
       total: filtered.length,
-      logs: filtered.slice(offset, offset + limit)
+      logs: filtered.slice(offset, offset + limit),
     };
   } catch (error) {
-    logger.error('Failed to read log file:', error);
+    logger.error("Failed to read log file:", error);
     throw error;
   }
 }
@@ -427,10 +432,10 @@ function exportLogs(outputPath, options = {}) {
 
     // 读取所有日志文件
     for (const file of logFiles) {
-      const content = fs.readFileSync(file.path, 'utf8');
-      const lines = content.split('\n').filter(line => line.trim());
+      const content = fs.readFileSync(file.path, "utf8");
+      const lines = content.split("\n").filter((line) => line.trim());
 
-      lines.forEach(line => {
+      lines.forEach((line) => {
         try {
           allLogs.push(JSON.parse(line));
         } catch (error) {
@@ -443,40 +448,43 @@ function exportLogs(outputPath, options = {}) {
     let filtered = allLogs;
 
     if (options.startDate) {
-      filtered = filtered.filter(log =>
-        new Date(log.timestamp) >= new Date(options.startDate)
+      filtered = filtered.filter(
+        (log) => new Date(log.timestamp) >= new Date(options.startDate),
       );
     }
 
     if (options.endDate) {
-      filtered = filtered.filter(log =>
-        new Date(log.timestamp) <= new Date(options.endDate)
+      filtered = filtered.filter(
+        (log) => new Date(log.timestamp) <= new Date(options.endDate),
       );
     }
 
     if (options.level) {
-      filtered = filtered.filter(log => log.level === options.level);
+      filtered = filtered.filter((log) => log.level === options.level);
     }
 
     // 导出
-    const format = options.format || 'json';
+    const format = options.format || "json";
 
-    if (format === 'json') {
-      fs.writeFileSync(outputPath, JSON.stringify(filtered, null, 2), 'utf8');
-    } else if (format === 'txt') {
-      const txt = filtered.map(log =>
-        `[${log.timestamp}] [${log.level}] [${log.module}] ${log.message}`
-      ).join('\n');
-      fs.writeFileSync(outputPath, txt, 'utf8');
+    if (format === "json") {
+      fs.writeFileSync(outputPath, JSON.stringify(filtered, null, 2), "utf8");
+    } else if (format === "txt") {
+      const txt = filtered
+        .map(
+          (log) =>
+            `[${log.timestamp}] [${log.level}] [${log.module}] ${log.message}`,
+        )
+        .join("\n");
+      fs.writeFileSync(outputPath, txt, "utf8");
     }
 
     return {
       success: true,
       count: filtered.length,
-      path: outputPath
+      path: outputPath,
     };
   } catch (error) {
-    logger.error('Failed to export logs:', error);
+    logger.error("Failed to export logs:", error);
     throw error;
   }
 }
@@ -488,5 +496,5 @@ module.exports = {
   getLogFiles,
   readLogFile,
   exportLogs,
-  logLevels
+  logLevels,
 };

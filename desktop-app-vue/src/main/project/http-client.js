@@ -1,5 +1,5 @@
-const { logger, createLogger } = require('../utils/logger.js');
-const axios = require('axios');
+const { logger } = require("../utils/logger.js");
+const axios = require("axios");
 
 /**
  * 项目服务HTTP客户端
@@ -8,26 +8,29 @@ const axios = require('axios');
 class ProjectHTTPClient {
   constructor(baseURL = null) {
     // 默认使用环境变量，否则使用本地地址
-    const defaultBaseURL = process.env.PROJECT_SERVICE_URL || 'http://localhost:9090';
+    const defaultBaseURL =
+      process.env.PROJECT_SERVICE_URL || "http://localhost:9090";
 
     this.client = axios.create({
       baseURL: baseURL || defaultBaseURL,
       timeout: 300000, // 300秒超时（5分钟，AI生成复杂项目可能需要较长时间）
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
     // 请求拦截器
     this.client.interceptors.request.use(
-      config => {
-        logger.info(`[ProjectHTTP] ${config.method.toUpperCase()} ${config.url}`);
+      (config) => {
+        logger.info(
+          `[ProjectHTTP] ${config.method.toUpperCase()} ${config.url}`,
+        );
         return config;
       },
-      error => {
-        logger.error('[ProjectHTTP] Request error:', error);
+      (error) => {
+        logger.error("[ProjectHTTP] Request error:", error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // 响应拦截器
@@ -37,9 +40,9 @@ class ProjectHTTPClient {
     // - isHttpError: true 表示HTTP状态码错误
     // - status: HTTP状态码（如 404, 500）
     this.client.interceptors.response.use(
-      response => {
+      (response) => {
         // 如果是流式响应，直接返回原始响应，不进行JSON解析
-        if (response.config.responseType === 'stream') {
+        if (response.config.responseType === "stream") {
           return response;
         }
 
@@ -47,7 +50,7 @@ class ProjectHTTPClient {
         const { code, message, data } = response.data;
 
         if (code !== 200) {
-          const error = new Error(message || '请求失败');
+          const error = new Error(message || "请求失败");
           error.code = code;
           error.response = response;
           throw error;
@@ -55,7 +58,7 @@ class ProjectHTTPClient {
 
         return data; // 只返回data部分
       },
-      error => {
+      (error) => {
         // 处理不同类型的错误
         if (error.response) {
           // 服务器返回错误状态码
@@ -72,20 +75,20 @@ class ProjectHTTPClient {
               enhancedError.message = `请求参数错误: ${errorMessage}`;
               break;
             case 401:
-              enhancedError.message = '未授权，请登录';
+              enhancedError.message = "未授权，请登录";
               break;
             case 403:
-              enhancedError.message = '没有权限访问';
+              enhancedError.message = "没有权限访问";
               break;
             case 404:
-              enhancedError.message = '资源不存在';
+              enhancedError.message = "资源不存在";
               enhancedError.isExpectedError = true; // 标记为预期错误（后端服务可能未启动）
               break;
             case 500:
               enhancedError.message = `服务器错误: ${errorMessage}`;
               break;
             case 503:
-              enhancedError.message = '服务暂时不可用，请稍后重试';
+              enhancedError.message = "服务暂时不可用，请稍后重试";
               enhancedError.isExpectedError = true;
               break;
             default:
@@ -96,18 +99,23 @@ class ProjectHTTPClient {
           throw enhancedError;
         } else if (error.request) {
           // 请求已发送但没有收到响应（连接失败）
-          const connectionError = new Error('无法连接到项目服务');
+          const connectionError = new Error("无法连接到项目服务");
           connectionError.isConnectionError = true;
           connectionError.isExpectedError = true; // 后端服务可能未启动，这是预期的
-          logger.warn('[ProjectHTTP] 无法连接到后端服务（这是正常的，将使用本地数据）');
+          logger.warn(
+            "[ProjectHTTP] 无法连接到后端服务（这是正常的，将使用本地数据）",
+          );
           throw connectionError;
         } else {
           // 请求配置出错
           const configError = new Error(`请求配置错误: ${error.message}`);
-          logger.error('[ProjectHTTP] Request config error:', configError.message);
+          logger.error(
+            "[ProjectHTTP] Request config error:",
+            configError.message,
+          );
           throw configError;
         }
-      }
+      },
     );
   }
 
@@ -126,25 +134,31 @@ class ProjectHTTPClient {
   async createProject(createData) {
     // 项目类型映射：前端类型 -> 后端支持的类型
     const typeMapping = {
-      'write': 'document',
-      'doc': 'document',
-      'docs': 'document',
+      write: "document",
+      doc: "document",
+      docs: "document",
     };
 
     // 应用类型映射
-    if (createData.projectType && typeMapping[createData.projectType.toLowerCase()]) {
+    if (
+      createData.projectType &&
+      typeMapping[createData.projectType.toLowerCase()]
+    ) {
       createData = {
         ...createData,
-        projectType: typeMapping[createData.projectType.toLowerCase()]
+        projectType: typeMapping[createData.projectType.toLowerCase()],
       };
-    } else if (createData.project_type && typeMapping[createData.project_type.toLowerCase()]) {
+    } else if (
+      createData.project_type &&
+      typeMapping[createData.project_type.toLowerCase()]
+    ) {
       createData = {
         ...createData,
-        project_type: typeMapping[createData.project_type.toLowerCase()]
+        project_type: typeMapping[createData.project_type.toLowerCase()],
       };
     }
 
-    return this.client.post('/api/projects/create', createData);
+    return this.client.post("/api/projects/create", createData);
   }
 
   /**
@@ -157,8 +171,12 @@ class ProjectHTTPClient {
    * @param {Function} callbacks.onError - 错误回调 (error) => void
    * @returns {Promise<Object>} 返回控制对象 { cancel: Function }
    */
-  async createProjectStream(createData, { onProgress, onContent, onComplete, onError }) {
-    const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+  async createProjectStream(
+    createData,
+    { onProgress, onContent, onComplete, onError },
+  ) {
+    const AI_SERVICE_URL =
+      process.env.AI_SERVICE_URL || "http://localhost:8001";
 
     try {
       // 转换字段名：camelCase → snake_case（后端API要求）
@@ -167,9 +185,9 @@ class ProjectHTTPClient {
       // 项目类型映射：前端使用的类型 -> 后端支持的类型
       // 后端仅支持: web, document, data
       const typeMapping = {
-        'write': 'document',  // 文档写作类型映射到document
-        'doc': 'document',
-        'docs': 'document',
+        write: "document", // 文档写作类型映射到document
+        doc: "document",
+        docs: "document",
       };
 
       // 应用类型映射
@@ -192,62 +210,62 @@ class ProjectHTTPClient {
         backendData.metadata = createData.metadata;
       }
 
-      logger.info('[ProjectHTTP] Stream request data:', backendData);
+      logger.info("[ProjectHTTP] Stream request data:", backendData);
 
       const response = await this.client.post(
         `${AI_SERVICE_URL}/api/projects/create/stream`,
         backendData,
         {
-          responseType: 'stream',
-          adapter: 'http',  // 使用Node.js http adapter
-          timeout: 600000,  // 10分钟超时
-        }
+          responseType: "stream",
+          adapter: "http", // 使用Node.js http adapter
+          timeout: 600000, // 10分钟超时
+        },
       );
 
-      let buffer = '';
+      let buffer = "";
       const cleanup = () => {
         response.data.removeAllListeners();
       };
 
-      response.data.on('data', (chunk) => {
+      response.data.on("data", (chunk) => {
         buffer += chunk.toString();
-        const lines = buffer.split('\n');
+        const lines = buffer.split("\n");
         buffer = lines.pop(); // 保留不完整的行
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
+          if (line.startsWith("data: ")) {
             try {
               const data = JSON.parse(line.slice(6));
 
               switch (data.type) {
-                case 'progress':
+                case "progress":
                   onProgress?.(data);
                   break;
-                case 'content':
+                case "content":
                   onContent?.(data);
                   break;
-                case 'complete':
+                case "complete":
                   onComplete?.(data);
                   cleanup();
                   break;
-                case 'error':
+                case "error":
                   onError?.(new Error(data.error));
                   cleanup();
                   break;
               }
             } catch (err) {
-              logger.error('[StreamParse] Failed to parse SSE:', err);
+              logger.error("[StreamParse] Failed to parse SSE:", err);
             }
           }
         }
       });
 
-      response.data.on('error', (err) => {
+      response.data.on("error", (err) => {
         onError?.(err);
         cleanup();
       });
 
-      response.data.on('end', () => {
+      response.data.on("end", () => {
         cleanup();
       });
 
@@ -255,10 +273,10 @@ class ProjectHTTPClient {
         cancel: () => {
           response.data.destroy();
           cleanup();
-        }
+        },
       };
     } catch (error) {
-      logger.error('[ProjectHTTP] Stream create failed:', error);
+      logger.error("[ProjectHTTP] Stream create failed:", error);
       onError?.(error);
       throw error;
     }
@@ -272,8 +290,8 @@ class ProjectHTTPClient {
    * @returns {Promise<Object>} 分页数据 { records: [], total: 0, ... }
    */
   async listProjects(userId, pageNum = 1, pageSize = 100) {
-    return this.client.get('/api/projects/list', {
-      params: { userId, pageNum, pageSize }
+    return this.client.get("/api/projects/list", {
+      params: { userId, pageNum, pageSize },
     });
   }
 
@@ -316,7 +334,7 @@ class ProjectHTTPClient {
    * @returns {Promise<Object>} 任务执行结果
    */
   async executeTask(taskData) {
-    return this.client.post('/api/projects/tasks/execute', taskData);
+    return this.client.post("/api/projects/tasks/execute", taskData);
   }
 
   // ==================== 健康检查 ====================
@@ -326,7 +344,7 @@ class ProjectHTTPClient {
    * @returns {Promise<Object>} 服务状态
    */
   async healthCheck() {
-    return this.client.get('/api/projects/health');
+    return this.client.get("/api/projects/health");
   }
 
   // ==================== 同步相关 ====================
@@ -337,7 +355,7 @@ class ProjectHTTPClient {
    * @returns {Promise<Object>} 同步结果
    */
   async syncProject(project) {
-    return this.client.post('/api/projects/sync', project);
+    return this.client.post("/api/projects/sync", project);
   }
 
   /**
@@ -346,7 +364,7 @@ class ProjectHTTPClient {
    * @returns {Promise<Object>} 同步结果
    */
   async syncProjects(projects) {
-    return this.client.post('/api/projects/sync/batch', { projects });
+    return this.client.post("/api/projects/sync/batch", { projects });
   }
 
   // ==================== 工具方法 ====================
@@ -357,9 +375,9 @@ class ProjectHTTPClient {
    */
   setAuthToken(token) {
     if (token) {
-      this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      this.client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     } else {
-      delete this.client.defaults.headers.common['Authorization'];
+      delete this.client.defaults.headers.common["Authorization"];
     }
   }
 

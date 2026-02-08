@@ -1,9 +1,6 @@
 <template>
   <div class="trading-hub">
-    <a-card
-      :bordered="false"
-      class="trading-hub-card"
-    >
+    <a-card :bordered="false" class="trading-hub-card">
       <template #title>
         <a-space>
           <shop-outlined style="font-size: 20px" />
@@ -18,12 +15,19 @@
             <a-badge
               :count="creditScore"
               show-zero
-              :number-style="{ backgroundColor: creditLevelColor, fontWeight: 'bold' }"
+              :number-style="{
+                backgroundColor: creditLevelColor,
+                fontWeight: 'bold',
+              }"
               :overflow-count="1000"
             >
               <trophy-outlined
                 class="credit-icon"
-                :style="{ fontSize: '20px', cursor: 'pointer', color: creditLevelColor }"
+                :style="{
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: creditLevelColor,
+                }"
                 @click="handleViewCredit"
               />
             </a-badge>
@@ -44,18 +48,16 @@
             >
               <a-space>
                 <user-outlined />
-                <span>{{ did.profile?.name || did.did.slice(0, 12) + '...' }}</span>
+                <span>{{
+                  did.profile?.name || did.did.slice(0, 12) + "..."
+                }}</span>
               </a-space>
             </a-select-option>
           </a-select>
 
           <!-- 刷新按钮 -->
           <a-tooltip title="刷新当前Tab数据">
-            <a-button
-              type="text"
-              :loading="isLoading"
-              @click="handleRefresh"
-            >
+            <a-button type="text" :loading="isLoading" @click="handleRefresh">
               <template #icon>
                 <reload-outlined />
               </template>
@@ -79,14 +81,8 @@
               我的资产
             </span>
           </template>
-          <AssetList
-            v-if="selectedDid"
-            :owner-did="selectedDid"
-          />
-          <a-empty
-            v-else
-            description="请先选择DID身份"
-          />
+          <AssetList v-if="selectedDid" :owner-did="selectedDid" />
+          <a-empty v-else description="请先选择DID身份" />
         </a-tab-pane>
 
         <!-- 2. 交易市场 -->
@@ -109,10 +105,7 @@
             </span>
           </template>
           <EscrowList v-if="selectedDid" />
-          <a-empty
-            v-else
-            description="请先选择DID身份"
-          />
+          <a-empty v-else description="请先选择DID身份" />
         </a-tab-pane>
 
         <!-- 4. 智能合约 -->
@@ -124,10 +117,7 @@
             </span>
           </template>
           <ContractList v-if="selectedDid" />
-          <a-empty
-            v-else
-            description="请先选择DID身份"
-          />
+          <a-empty v-else description="请先选择DID身份" />
         </a-tab-pane>
 
         <!-- 5. 信用评分 -->
@@ -138,14 +128,8 @@
               信用评分
             </span>
           </template>
-          <CreditScore
-            v-if="selectedDid"
-            :user-did="selectedDid"
-          />
-          <a-empty
-            v-else
-            description="请先选择DID身份"
-          />
+          <CreditScore v-if="selectedDid" :user-did="selectedDid" />
+          <a-empty v-else description="请先选择DID身份" />
         </a-tab-pane>
 
         <!-- 6. 评价管理 -->
@@ -157,10 +141,7 @@
             </span>
           </template>
           <ReviewList v-if="selectedDid" />
-          <a-empty
-            v-else
-            description="请先选择DID身份"
-          />
+          <a-empty v-else description="请先选择DID身份" />
         </a-tab-pane>
 
         <!-- 7. 知识付费 -->
@@ -183,10 +164,7 @@
             </span>
           </template>
           <TransactionList v-if="selectedDid" />
-          <a-empty
-            v-else
-            description="请先选择DID身份"
-          />
+          <a-empty v-else description="请先选择DID身份" />
         </a-tab-pane>
 
         <!-- 9. 统计面板 -->
@@ -212,11 +190,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch } from 'vue';
-import { message } from 'ant-design-vue';
-import { useTradeStore } from '../stores/trade';
+import { ref, computed, onMounted, watch } from "vue";
+import { message } from "ant-design-vue";
+import { useTradeStore } from "../stores/trade";
 import {
   ShopOutlined,
   WalletOutlined,
@@ -229,88 +207,97 @@ import {
   ReloadOutlined,
   UserOutlined,
   BarChartOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // 导入子组件（部分组件尚未创建，使用动态导入处理）
-import { defineAsyncComponent } from 'vue';
+import { defineAsyncComponent } from "vue";
 
 const AssetList = defineAsyncComponent({
-  loader: () => import('../components/trade/AssetList.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/trade/AssetList.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
     template: '<a-result status="error" title="组件加载失败" />',
   },
 });
 
 const Marketplace = defineAsyncComponent({
-  loader: () => import('../components/trade/Marketplace.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/trade/Marketplace.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
-    template: '<a-result status="warning" title="市场组件加载失败" sub-title="请刷新页面重试" />',
+    template:
+      '<a-result status="warning" title="市场组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 
 const EscrowList = defineAsyncComponent({
-  loader: () => import('../components/trade/EscrowList.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/trade/EscrowList.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
-    template: '<a-result status="warning" title="托管组件加载失败" sub-title="请刷新页面重试" />',
+    template:
+      '<a-result status="warning" title="托管组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 
 const ContractList = defineAsyncComponent({
-  loader: () => import('../components/trade/ContractList.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/trade/ContractList.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
-    template: '<a-result status="warning" title="合约组件加载失败" sub-title="请刷新页面重试" />',
+    template:
+      '<a-result status="warning" title="合约组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 
 const CreditScore = defineAsyncComponent({
-  loader: () => import('../components/trade/CreditScore.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/trade/CreditScore.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
-    template: '<a-result status="warning" title="信用组件加载失败" sub-title="请刷新页面重试" />',
+    template:
+      '<a-result status="warning" title="信用组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 
 const ReviewList = defineAsyncComponent({
-  loader: () => import('../components/trade/ReviewList.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/trade/ReviewList.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
-    template: '<a-result status="warning" title="评价组件加载失败" sub-title="请刷新页面重试" />',
+    template:
+      '<a-result status="warning" title="评价组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 
 const ContentStore = defineAsyncComponent({
-  loader: () => import('../components/knowledge/ContentStore.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/knowledge/ContentStore.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
-    template: '<a-result status="warning" title="知识付费组件加载失败" sub-title="请刷新页面重试" />',
+    template:
+      '<a-result status="warning" title="知识付费组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 
 const TransactionList = defineAsyncComponent({
-  loader: () => import('../components/trade/TransactionList.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/trade/TransactionList.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
-    template: '<a-result status="warning" title="交易记录组件加载失败" sub-title="请刷新页面重试" />',
+    template:
+      '<a-result status="warning" title="交易记录组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 
 const TransactionStatistics = defineAsyncComponent({
-  loader: () => import('../components/trade/TransactionStatistics.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/trade/TransactionStatistics.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
-    template: '<a-result status="warning" title="交易统计组件加载失败" sub-title="请刷新页面重试" />',
+    template:
+      '<a-result status="warning" title="交易统计组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 
 const AssetStatistics = defineAsyncComponent({
-  loader: () => import('../components/trade/AssetStatistics.vue'),
-  loadingComponent: { template: '<a-spin />' },
+  loader: () => import("../components/trade/AssetStatistics.vue"),
+  loadingComponent: { template: "<a-spin />" },
   errorComponent: {
-    template: '<a-result status="warning" title="资产统计组件加载失败" sub-title="请刷新页面重试" />',
+    template:
+      '<a-result status="warning" title="资产统计组件加载失败" sub-title="请刷新页面重试" />',
   },
 });
 
@@ -339,19 +326,19 @@ const creditLevelColor = computed(() => tradeStore.creditLevelColor);
 const isLoading = computed(() => {
   const tab = activeTab.value;
   switch (tab) {
-    case 'assets':
+    case "assets":
       return tradeStore.asset.loading;
-    case 'marketplace':
+    case "marketplace":
       return tradeStore.marketplace.loading;
-    case 'escrow':
+    case "escrow":
       return tradeStore.escrow.loading;
-    case 'contracts':
+    case "contracts":
       return tradeStore.contract.loading;
-    case 'credit':
+    case "credit":
       return tradeStore.credit.loading;
-    case 'reviews':
+    case "reviews":
       return tradeStore.review.loading;
-    case 'knowledge':
+    case "knowledge":
       return tradeStore.knowledge.loading;
     default:
       return false;
@@ -374,8 +361,8 @@ const loadAvailableDids = async () => {
       selectedDid.value = availableDids.value[0].did;
     }
   } catch (error) {
-    logger.error('加载DID列表失败:', error);
-    message.error('加载DID列表失败: ' + error.message);
+    logger.error("加载DID列表失败:", error);
+    message.error("加载DID列表失败: " + error.message);
   } finally {
     loadingDids.value = false;
   }
@@ -385,11 +372,11 @@ const loadAvailableDids = async () => {
  * Tab切换处理
  */
 const handleTabChange = (key) => {
-  logger.info('Tab changed to:', key);
+  logger.info("Tab changed to:", key);
 
   // 根据Tab加载对应数据
-  if (!selectedDid.value && key !== 'marketplace' && key !== 'knowledge') {
-    message.warning('请先选择DID身份');
+  if (!selectedDid.value && key !== "marketplace" && key !== "knowledge") {
+    message.warning("请先选择DID身份");
     return;
   }
 
@@ -402,49 +389,49 @@ const handleTabChange = (key) => {
 const loadTabData = async (tab) => {
   try {
     switch (tab) {
-      case 'assets':
+      case "assets":
         if (selectedDid.value) {
           await tradeStore.loadMyAssets(selectedDid.value);
         }
         break;
 
-      case 'marketplace':
+      case "marketplace":
         await tradeStore.loadOrders();
         break;
 
-      case 'escrow':
+      case "escrow":
         await tradeStore.loadEscrows();
         await tradeStore.loadEscrowStatistics();
         break;
 
-      case 'contracts':
+      case "contracts":
         await tradeStore.loadContracts();
         await tradeStore.loadContractTemplates();
         break;
 
-      case 'credit':
+      case "credit":
         if (selectedDid.value) {
           await tradeStore.loadUserCredit(selectedDid.value);
           await tradeStore.loadScoreHistory(selectedDid.value, 20);
         }
         break;
 
-      case 'reviews':
+      case "reviews":
         if (selectedDid.value) {
           await tradeStore.loadMyReviews(selectedDid.value);
         }
         break;
 
-      case 'knowledge':
+      case "knowledge":
         await tradeStore.loadKnowledgeContents();
         break;
 
-      case 'transactions':
+      case "transactions":
         await tradeStore.loadTransactions();
         break;
 
       default:
-        logger.warn('未知的Tab:', tab);
+        logger.warn("未知的Tab:", tab);
     }
   } catch (error) {
     logger.error(`加载Tab数据失败 [${tab}]:`, error);
@@ -457,41 +444,41 @@ const loadTabData = async (tab) => {
  */
 const handleRefresh = () => {
   loadTabData(activeTab.value);
-  message.success('刷新成功');
+  message.success("刷新成功");
 };
 
 /**
  * 查看信用评分
  */
 const handleViewCredit = () => {
-  activeTab.value = 'credit';
+  activeTab.value = "credit";
 };
 
 /**
  * DID切换处理
  */
 const handleDidChange = async (newDid) => {
-  logger.info('DID changed to:', newDid);
+  logger.info("DID changed to:", newDid);
 
   // 刷新当前Tab数据
   await loadTabData(activeTab.value);
 
   // 如果在信用评分Tab，加载新DID的信用信息
-  if (activeTab.value === 'credit') {
+  if (activeTab.value === "credit") {
     try {
       await tradeStore.loadUserCredit(newDid);
       await tradeStore.loadScoreHistory(newDid, 20);
     } catch (error) {
-      logger.error('加载新DID信用信息失败:', error);
+      logger.error("加载新DID信用信息失败:", error);
     }
   }
 };
 
 // 监听selectedDid变化
 watch(selectedDid, (newDid) => {
-  if (newDid && activeTab.value === 'credit') {
+  if (newDid && activeTab.value === "credit") {
     tradeStore.loadUserCredit(newDid).catch((error) => {
-      logger.error('加载信用信息失败:', error);
+      logger.error("加载信用信息失败:", error);
     });
   }
 });
@@ -499,7 +486,7 @@ watch(selectedDid, (newDid) => {
 // 生命周期
 
 onMounted(async () => {
-  logger.info('[TradingHub] 组件挂载');
+  logger.info("[TradingHub] 组件挂载");
 
   // 初始化UI状态（从localStorage恢复）
   tradeStore.initUI();
@@ -511,7 +498,7 @@ onMounted(async () => {
   if (availableDids.value.length > 0) {
     await loadTabData(activeTab.value);
   } else {
-    message.warning('请先创建DID身份', 3);
+    message.warning("请先创建DID身份", 3);
   }
 });
 </script>

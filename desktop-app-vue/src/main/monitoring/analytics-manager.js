@@ -3,7 +3,7 @@
  * 收集和分析应用使用数据
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { app } = require("electron");
 const fs = require("fs");
 const path = require("path");

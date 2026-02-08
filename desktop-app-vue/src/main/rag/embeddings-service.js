@@ -5,7 +5,7 @@
  * 支持双层缓存：内存 LRU 缓存 + SQLite 持久化缓存
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const { EmbeddingCache } = require("./embedding-cache.js");
 

@@ -7,20 +7,24 @@
           <a-button
             v-if="!browserStatus.isRunning"
             type="primary"
-            @click="handleStartBrowser"
             :loading="loading.start"
+            @click="handleStartBrowser"
           >
-            <template #icon><PlayCircleOutlined /></template>
+            <template #icon>
+              <PlayCircleOutlined />
+            </template>
             启动浏览器
           </a-button>
 
           <a-button
             v-else
             danger
-            @click="handleStopBrowser"
             :loading="loading.stop"
+            @click="handleStopBrowser"
           >
-            <template #icon><StopOutlined /></template>
+            <template #icon>
+              <StopOutlined />
+            </template>
             停止浏览器
           </a-button>
 
@@ -48,7 +52,9 @@
 
           <router-link to="/workflow">
             <a-button>
-              <template #icon><BranchesOutlined /></template>
+              <template #icon>
+                <BranchesOutlined />
+              </template>
               工作流管理
             </a-button>
           </router-link>
@@ -58,14 +64,14 @@
       <a-divider />
 
       <!-- URL 输入栏 -->
-      <div class="url-bar" v-if="browserStatus.isRunning">
+      <div v-if="browserStatus.isRunning" class="url-bar">
         <a-input-search
           v-model:value="urlInput"
           placeholder="输入网址，例如: https://www.google.com"
           enter-button="打开标签页"
           size="large"
-          @search="handleOpenTab"
           :loading="loading.openTab"
+          @search="handleOpenTab"
         >
           <template #prefix>
             <GlobalOutlined />
@@ -76,7 +82,10 @@
       <a-divider v-if="browserStatus.isRunning" />
 
       <!-- 标签页列表 -->
-      <div class="tabs-section" v-if="browserStatus.isRunning && tabs.length > 0">
+      <div
+        v-if="browserStatus.isRunning && tabs.length > 0"
+        class="tabs-section"
+      >
         <h3>标签页列表 ({{ tabs.length }})</h3>
 
         <a-list
@@ -93,7 +102,9 @@
                   <div class="tab-title">
                     <GlobalOutlined style="margin-right: 8px" />
                     <a-tooltip :title="item.title">
-                      <span class="tab-title-text">{{ item.title || '未命名' }}</span>
+                      <span class="tab-title-text">{{
+                        item.title || "未命名"
+                      }}</span>
                     </a-tooltip>
                   </div>
                 </template>
@@ -114,8 +125,8 @@
                       <a-button
                         type="text"
                         size="small"
-                        @click="handleScreenshot(item.targetId)"
                         :loading="loading.screenshot === item.targetId"
+                        @click="handleScreenshot(item.targetId)"
                       >
                         <CameraOutlined />
                       </a-button>
@@ -143,7 +154,9 @@
                     {{ item.url }}
                   </a-typography-text>
                   <div style="margin-top: 8px">
-                    <a-tag color="blue">{{ item.profileName }}</a-tag>
+                    <a-tag color="blue">
+                      {{ item.profileName }}
+                    </a-tag>
                     <a-tag>{{ item.targetId }}</a-tag>
                   </div>
                 </div>
@@ -158,36 +171,36 @@
         v-else-if="browserStatus.isRunning && tabs.length === 0"
         description="暂无标签页，请输入网址打开新标签页"
       >
-        <a-button type="primary" @click="() => urlInput = 'https://www.google.com'">
+        <a-button
+          type="primary"
+          @click="() => (urlInput = 'https://www.google.com')"
+        >
           打开 Google
         </a-button>
       </a-empty>
 
-      <a-empty
-        v-else
-        description="浏览器未启动，请点击上方按钮启动"
-      />
+      <a-empty v-else description="浏览器未启动，请点击上方按钮启动" />
     </a-card>
 
     <!-- Phase 2: 快照面板 -->
     <snapshot-panel
       v-if="browserStatus.isRunning && activeTargetId"
-      :targetId="activeTargetId"
-      class="mt-4"
       ref="snapshotPanelRef"
+      :target-id="activeTargetId"
+      class="mt-4"
     />
 
     <!-- Phase 3: AI 控制面板 -->
     <ai-control-panel
       v-if="browserStatus.isRunning && activeTargetId"
-      :targetId="activeTargetId"
+      :target-id="activeTargetId"
       class="mt-4"
     />
 
     <!-- Phase 4: 录制与回放面板 -->
     <recording-panel
       v-if="browserStatus.isRunning && activeTargetId"
-      :targetId="activeTargetId"
+      :target-id="activeTargetId"
       class="mt-4"
       @recording-saved="handleRecordingSaved"
       @workflow-created="handleWorkflowCreated"
@@ -196,7 +209,7 @@
     <!-- Phase 5: 诊断工具面板 -->
     <diagnostics-panel
       v-if="browserStatus.isRunning && activeTargetId"
-      :targetId="activeTargetId"
+      :target-id="activeTargetId"
       class="mt-4"
     />
 
@@ -218,20 +231,20 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   PlayCircleOutlined,
   StopOutlined,
   GlobalOutlined,
   CameraOutlined,
   CloseOutlined,
-  EyeOutlined
-} from '@ant-design/icons-vue';
-import SnapshotPanel from '../components/browser/SnapshotPanel.vue';
-import AIControlPanel from '../components/browser/AIControlPanel.vue';
-import DiagnosticsPanel from '../components/browser/DiagnosticsPanel.vue';
-import RecordingPanel from '../components/browser/RecordingPanel.vue';
+  EyeOutlined,
+} from "@ant-design/icons-vue";
+import SnapshotPanel from "../components/browser/SnapshotPanel.vue";
+import AIControlPanel from "../components/browser/AIControlPanel.vue";
+import DiagnosticsPanel from "../components/browser/DiagnosticsPanel.vue";
+import RecordingPanel from "../components/browser/RecordingPanel.vue";
 
 // 状态管理
 const browserStatus = reactive({
@@ -240,23 +253,23 @@ const browserStatus = reactive({
   cdpPort: 0,
   contextsCount: 0,
   tabsCount: 0,
-  pid: null
+  pid: null,
 });
 
 const tabs = ref([]);
-const urlInput = ref('https://www.google.com');
+const urlInput = ref("https://www.google.com");
 const activeTargetId = ref(null);
 
 const loading = reactive({
   start: false,
   stop: false,
   openTab: false,
-  screenshot: null
+  screenshot: null,
 });
 
 const screenshotModal = reactive({
   visible: false,
-  data: null
+  data: null,
 });
 
 // Phase 2: 快照面板引用
@@ -284,16 +297,20 @@ let uptimeInterval = null;
 const handleStartBrowser = async () => {
   loading.start = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:start', {
+    const result = await window.electron.ipcRenderer.invoke("browser:start", {
       headless: false,
-      channel: 'chrome' // 或 'msedge'
+      channel: "chrome", // 或 'msedge'
     });
 
     if (result.success) {
-      message.success('浏览器启动成功');
+      message.success("浏览器启动成功");
 
       // 创建默认 Profile
-      await window.electron.ipcRenderer.invoke('browser:createContext', 'default', {});
+      await window.electron.ipcRenderer.invoke(
+        "browser:createContext",
+        "default",
+        {},
+      );
 
       // 更新状态
       await refreshStatus();
@@ -304,8 +321,8 @@ const handleStartBrowser = async () => {
       }, 1000);
     }
   } catch (error) {
-    message.error('启动失败: ' + error.message);
-    console.error('Start browser error:', error);
+    message.error("启动失败: " + error.message);
+    console.error("Start browser error:", error);
   } finally {
     loading.start = false;
   }
@@ -314,10 +331,10 @@ const handleStartBrowser = async () => {
 const handleStopBrowser = async () => {
   loading.stop = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:stop');
+    const result = await window.electron.ipcRenderer.invoke("browser:stop");
 
     if (result.success) {
-      message.success('浏览器已停止');
+      message.success("浏览器已停止");
       tabs.value = [];
       activeTargetId.value = null;
 
@@ -330,8 +347,8 @@ const handleStopBrowser = async () => {
       await refreshStatus();
     }
   } catch (error) {
-    message.error('停止失败: ' + error.message);
-    console.error('Stop browser error:', error);
+    message.error("停止失败: " + error.message);
+    console.error("Stop browser error:", error);
   } finally {
     loading.stop = false;
   }
@@ -339,33 +356,33 @@ const handleStopBrowser = async () => {
 
 const handleOpenTab = async () => {
   if (!urlInput.value.trim()) {
-    message.warning('请输入网址');
+    message.warning("请输入网址");
     return;
   }
 
   // 自动补全协议
   let url = urlInput.value.trim();
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'https://' + url;
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = "https://" + url;
   }
 
   loading.openTab = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:openTab',
-      'default',
+      "browser:openTab",
+      "default",
       url,
-      { waitUntil: 'domcontentloaded' }
+      { waitUntil: "domcontentloaded" },
     );
 
     if (result.success) {
-      message.success('标签页已打开');
+      message.success("标签页已打开");
       activeTargetId.value = result.targetId;
       await refreshTabs();
     }
   } catch (error) {
-    message.error('打开失败: ' + error.message);
-    console.error('Open tab error:', error);
+    message.error("打开失败: " + error.message);
+    console.error("Open tab error:", error);
   } finally {
     loading.openTab = false;
   }
@@ -373,50 +390,60 @@ const handleOpenTab = async () => {
 
 const handleCloseTab = async (targetId) => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:closeTab', targetId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "browser:closeTab",
+      targetId,
+    );
 
     if (result.success) {
-      message.success('标签页已关闭');
+      message.success("标签页已关闭");
       if (activeTargetId.value === targetId) {
         activeTargetId.value = null;
       }
       await refreshTabs();
     }
   } catch (error) {
-    message.error('关闭失败: ' + error.message);
-    console.error('Close tab error:', error);
+    message.error("关闭失败: " + error.message);
+    console.error("Close tab error:", error);
   }
 };
 
 const handleFocusTab = async (targetId) => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:focusTab', targetId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "browser:focusTab",
+      targetId,
+    );
 
     if (result.success) {
-      message.success('已聚焦到标签页');
+      message.success("已聚焦到标签页");
       activeTargetId.value = targetId;
     }
   } catch (error) {
-    message.error('聚焦失败: ' + error.message);
-    console.error('Focus tab error:', error);
+    message.error("聚焦失败: " + error.message);
+    console.error("Focus tab error:", error);
   }
 };
 
 const handleScreenshot = async (targetId) => {
   loading.screenshot = targetId;
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:screenshot', targetId, {
-      type: 'png',
-      fullPage: false
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "browser:screenshot",
+      targetId,
+      {
+        type: "png",
+        fullPage: false,
+      },
+    );
 
     screenshotModal.data = result.screenshot;
     screenshotModal.visible = true;
 
-    message.success('截图成功');
+    message.success("截图成功");
   } catch (error) {
-    message.error('截图失败: ' + error.message);
-    console.error('Screenshot error:', error);
+    message.error("截图失败: " + error.message);
+    console.error("Screenshot error:", error);
   } finally {
     loading.screenshot = null;
   }
@@ -424,19 +451,23 @@ const handleScreenshot = async (targetId) => {
 
 const refreshStatus = async () => {
   try {
-    const status = await window.electron.ipcRenderer.invoke('browser:getStatus');
+    const status =
+      await window.electron.ipcRenderer.invoke("browser:getStatus");
     Object.assign(browserStatus, status);
   } catch (error) {
-    console.error('Refresh status error:', error);
+    console.error("Refresh status error:", error);
   }
 };
 
 const refreshTabs = async () => {
   try {
-    const tabsList = await window.electron.ipcRenderer.invoke('browser:listTabs', 'default');
+    const tabsList = await window.electron.ipcRenderer.invoke(
+      "browser:listTabs",
+      "default",
+    );
     tabs.value = tabsList;
   } catch (error) {
-    console.error('Refresh tabs error:', error);
+    console.error("Refresh tabs error:", error);
   }
 };
 

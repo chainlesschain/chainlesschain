@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * DataCollector - 数据收集模块
@@ -19,11 +19,11 @@ class DataCollector {
   constructor(config = {}) {
     this.config = {
       enableCollection: true,
-      batchSize: 50,              // 批量写入大小
-      flushInterval: 5000,        // 5秒刷新一次
+      batchSize: 50, // 批量写入大小
+      flushInterval: 5000, // 5秒刷新一次
       enableValidation: true,
-      enableAnonymization: false,  // 数据匿名化
-      ...config
+      enableAnonymization: false, // 数据匿名化
+      ...config,
     };
 
     this.db = null;
@@ -33,7 +33,7 @@ class DataCollector {
       totalEvents: 0,
       successfulWrites: 0,
       failedWrites: 0,
-      validationErrors: 0
+      validationErrors: 0,
     };
   }
 
@@ -63,7 +63,7 @@ class DataCollector {
       if (this.config.enableValidation) {
         const validation = this.validateToolUsageEvent(event);
         if (!validation.valid) {
-          logger.warn('[DataCollector] 事件验证失败:', validation.errors);
+          logger.warn("[DataCollector] 事件验证失败:", validation.errors);
           this.stats.validationErrors++;
           return;
         }
@@ -74,9 +74,9 @@ class DataCollector {
 
       // 添加到缓冲区
       this.eventBuffer.push({
-        type: 'tool_usage',
+        type: "tool_usage",
         data: cleanedEvent,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       this.stats.totalEvents++;
@@ -86,7 +86,7 @@ class DataCollector {
         await this.flush();
       }
     } catch (error) {
-      logger.error('[DataCollector] 收集工具使用事件失败:', error);
+      logger.error("[DataCollector] 收集工具使用事件失败:", error);
       this.stats.failedWrites++;
     }
   }
@@ -103,7 +103,7 @@ class DataCollector {
     try {
       const validation = this.validateRecommendation(recommendation);
       if (!validation.valid) {
-        logger.warn('[DataCollector] 推荐验证失败:', validation.errors);
+        logger.warn("[DataCollector] 推荐验证失败:", validation.errors);
         this.stats.validationErrors++;
         return;
       }
@@ -111,9 +111,9 @@ class DataCollector {
       const cleanedRec = this.cleanRecommendation(recommendation);
 
       this.eventBuffer.push({
-        type: 'recommendation',
+        type: "recommendation",
         data: cleanedRec,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       this.stats.totalEvents++;
@@ -122,7 +122,7 @@ class DataCollector {
         await this.flush();
       }
     } catch (error) {
-      logger.error('[DataCollector] 收集推荐事件失败:', error);
+      logger.error("[DataCollector] 收集推荐事件失败:", error);
       this.stats.failedWrites++;
     }
   }
@@ -133,13 +133,19 @@ class DataCollector {
    * @param {Object} updates - 更新数据
    */
   async updateUserProfile(userId, updates) {
-    if (!this.db) {return;}
+    if (!this.db) {
+      return;
+    }
 
     try {
       // 检查用户画像是否存在
-      const existing = this.db.prepare(`
+      const existing = this.db
+        .prepare(
+          `
         SELECT * FROM user_profiles WHERE user_id = ?
-      `).get(userId);
+      `,
+        )
+        .get(userId);
 
       if (existing) {
         // 增量更新
@@ -158,8 +164,10 @@ class DataCollector {
           updates.taskIncrement || 0,
           updates.successRate || existing.success_rate,
           updates.avgTaskDuration || existing.avg_task_duration,
-          updates.mostUsedTools ? JSON.stringify(updates.mostUsedTools) : existing.most_used_tools,
-          userId
+          updates.mostUsedTools
+            ? JSON.stringify(updates.mostUsedTools)
+            : existing.most_used_tools,
+          userId,
         );
       } else {
         // 创建新画像
@@ -168,7 +176,7 @@ class DataCollector {
 
       this.stats.successfulWrites++;
     } catch (error) {
-      logger.error('[DataCollector] 更新用户画像失败:', error);
+      logger.error("[DataCollector] 更新用户画像失败:", error);
       this.stats.failedWrites++;
     }
   }
@@ -177,7 +185,9 @@ class DataCollector {
    * 创建新用户画像
    */
   async createUserProfile(userId, initialData = {}) {
-    if (!this.db) {return;}
+    if (!this.db) {
+      return;
+    }
 
     try {
       const insertStmt = this.db.prepare(`
@@ -193,17 +203,17 @@ class DataCollector {
 
       insertStmt.run(
         userId,
-        initialData.skillLevel || 'intermediate',
-        initialData.preferredWorkflow || 'sequential',
-        initialData.responseExpectation || 'balanced',
+        initialData.skillLevel || "intermediate",
+        initialData.preferredWorkflow || "sequential",
+        initialData.responseExpectation || "balanced",
         initialData.totalTasks || 0,
-        initialData.successRate || 0
+        initialData.successRate || 0,
       );
 
       logger.info(`[DataCollector] 创建用户画像: ${userId}`);
       this.stats.successfulWrites++;
     } catch (error) {
-      logger.error('[DataCollector] 创建用户画像失败:', error);
+      logger.error("[DataCollector] 创建用户画像失败:", error);
       this.stats.failedWrites++;
     }
   }
@@ -223,9 +233,9 @@ class DataCollector {
       // 使用事务批量写入
       const transaction = this.db.transaction((events) => {
         for (const event of events) {
-          if (event.type === 'tool_usage') {
+          if (event.type === "tool_usage") {
             this.writeToolUsageEvent(event.data);
-          } else if (event.type === 'recommendation') {
+          } else if (event.type === "recommendation") {
             this.writeRecommendation(event.data);
           }
         }
@@ -234,9 +244,11 @@ class DataCollector {
       transaction(eventsToWrite);
       this.stats.successfulWrites += eventsToWrite.length;
 
-      logger.info(`[DataCollector] 刷新 ${eventsToWrite.length} 个事件到数据库`);
+      logger.info(
+        `[DataCollector] 刷新 ${eventsToWrite.length} 个事件到数据库`,
+      );
     } catch (error) {
-      logger.error('[DataCollector] 刷新缓冲区失败:', error);
+      logger.error("[DataCollector] 刷新缓冲区失败:", error);
       this.stats.failedWrites += eventsToWrite.length;
 
       // 失败的事件放回缓冲区
@@ -283,7 +295,7 @@ class DataCollector {
       event.previousTool || null,
       event.nextTool || null,
       event.isRecommended ? 1 : 0,
-      event.timestamp || new Date().toISOString()
+      event.timestamp || new Date().toISOString(),
     );
   }
 
@@ -315,14 +327,18 @@ class DataCollector {
       rec.taskDescription,
       rec.taskContext ? JSON.stringify(rec.taskContext) : null,
       JSON.stringify(rec.recommendedTools),
-      rec.recommendationScores ? JSON.stringify(rec.recommendationScores) : null,
+      rec.recommendationScores
+        ? JSON.stringify(rec.recommendationScores)
+        : null,
       rec.algorithmUsed || null,
-      rec.recommendationReasons ? JSON.stringify(rec.recommendationReasons) : null,
+      rec.recommendationReasons
+        ? JSON.stringify(rec.recommendationReasons)
+        : null,
       rec.userAction || null,
       rec.actualToolsUsed ? JSON.stringify(rec.actualToolsUsed) : null,
       rec.timeToAction || null,
       rec.recommendationQuality || null,
-      rec.wasHelpful !== undefined ? (rec.wasHelpful ? 1 : 0) : null
+      rec.wasHelpful !== undefined ? (rec.wasHelpful ? 1 : 0) : null,
     );
   }
 
@@ -332,14 +348,22 @@ class DataCollector {
   validateToolUsageEvent(event) {
     const errors = [];
 
-    if (!event.userId) {errors.push('缺少userId');}
-    if (!event.sessionId) {errors.push('缺少sessionId');}
-    if (!event.toolName) {errors.push('缺少toolName');}
-    if (event.success === undefined) {errors.push('缺少success状态');}
+    if (!event.userId) {
+      errors.push("缺少userId");
+    }
+    if (!event.sessionId) {
+      errors.push("缺少sessionId");
+    }
+    if (!event.toolName) {
+      errors.push("缺少toolName");
+    }
+    if (event.success === undefined) {
+      errors.push("缺少success状态");
+    }
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -349,16 +373,22 @@ class DataCollector {
   validateRecommendation(rec) {
     const errors = [];
 
-    if (!rec.userId) {errors.push('缺少userId');}
-    if (!rec.sessionId) {errors.push('缺少sessionId');}
-    if (!rec.taskDescription) {errors.push('缺少taskDescription');}
+    if (!rec.userId) {
+      errors.push("缺少userId");
+    }
+    if (!rec.sessionId) {
+      errors.push("缺少sessionId");
+    }
+    if (!rec.taskDescription) {
+      errors.push("缺少taskDescription");
+    }
     if (!rec.recommendedTools || rec.recommendedTools.length === 0) {
-      errors.push('缺少recommendedTools');
+      errors.push("缺少recommendedTools");
     }
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -375,13 +405,17 @@ class DataCollector {
       taskContext: this.sanitizeContext(event.taskContext),
       executionTime: Math.max(0, event.executionTime || 0),
       success: Boolean(event.success),
-      errorMessage: event.errorMessage ? event.errorMessage.substring(0, 500) : null,
+      errorMessage: event.errorMessage
+        ? event.errorMessage.substring(0, 500)
+        : null,
       userFeedback: event.userFeedback,
-      explicitRating: event.explicitRating ? Math.min(5, Math.max(1, event.explicitRating)) : null,
+      explicitRating: event.explicitRating
+        ? Math.min(5, Math.max(1, event.explicitRating))
+        : null,
       previousTool: event.previousTool,
       nextTool: event.nextTool,
       isRecommended: Boolean(event.isRecommended),
-      timestamp: event.timestamp || new Date().toISOString()
+      timestamp: event.timestamp || new Date().toISOString(),
     };
   }
 
@@ -402,7 +436,7 @@ class DataCollector {
       actualToolsUsed: rec.actualToolsUsed,
       timeToAction: rec.timeToAction ? Math.max(0, rec.timeToAction) : null,
       recommendationQuality: rec.recommendationQuality,
-      wasHelpful: rec.wasHelpful
+      wasHelpful: rec.wasHelpful,
     };
   }
 
@@ -415,14 +449,16 @@ class DataCollector {
     }
 
     // 简单哈希
-    return 'anon_' + Buffer.from(userId).toString('base64').substring(0, 16);
+    return "anon_" + Buffer.from(userId).toString("base64").substring(0, 16);
   }
 
   /**
    * 清理上下文数据
    */
   sanitizeContext(context) {
-    if (!context) {return null;}
+    if (!context) {
+      return null;
+    }
 
     // 移除敏感信息
     const cleaned = { ...context };
@@ -442,8 +478,8 @@ class DataCollector {
     }
 
     this.flushTimer = setInterval(() => {
-      this.flush().catch(error => {
-        logger.error('[DataCollector] 定时刷新失败:', error);
+      this.flush().catch((error) => {
+        logger.error("[DataCollector] 定时刷新失败:", error);
       });
     }, this.config.flushInterval);
   }
@@ -455,12 +491,19 @@ class DataCollector {
     return {
       ...this.stats,
       bufferSize: this.eventBuffer.length,
-      collectionRate: this.stats.totalEvents > 0
-        ? ((this.stats.successfulWrites / this.stats.totalEvents) * 100).toFixed(2) + '%'
-        : '0%',
-      errorRate: this.stats.totalEvents > 0
-        ? ((this.stats.failedWrites / this.stats.totalEvents) * 100).toFixed(2) + '%'
-        : '0%'
+      collectionRate:
+        this.stats.totalEvents > 0
+          ? (
+              (this.stats.successfulWrites / this.stats.totalEvents) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
+      errorRate:
+        this.stats.totalEvents > 0
+          ? ((this.stats.failedWrites / this.stats.totalEvents) * 100).toFixed(
+              2,
+            ) + "%"
+          : "0%",
     };
   }
 
@@ -468,7 +511,7 @@ class DataCollector {
    * 清理资源
    */
   async cleanup() {
-    logger.info('[DataCollector] 清理资源...');
+    logger.info("[DataCollector] 清理资源...");
 
     // 停止定时器
     if (this.flushTimer) {
@@ -480,7 +523,7 @@ class DataCollector {
     await this.flush();
 
     this.db = null;
-    logger.info('[DataCollector] 资源清理完成');
+    logger.info("[DataCollector] 资源清理完成");
   }
 }
 

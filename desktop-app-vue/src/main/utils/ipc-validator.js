@@ -9,9 +9,9 @@
  * - 预定义常用 schema（项目、文件、用户等）
  */
 
-const { z } = require('zod');
-const { ValidationError } = require('./ipc-error-handler');
-const { logger } = require('./logger');
+const { z } = require("zod");
+const { ValidationError } = require("./ipc-error-handler");
+const { logger } = require("./logger");
 
 // ============================================
 // 基础 Schema 定义
@@ -20,28 +20,32 @@ const { logger } = require('./logger');
 /**
  * UUID 格式验证
  */
-const uuidSchema = z.string().uuid('无效的 UUID 格式');
+const uuidSchema = z.string().uuid("无效的 UUID 格式");
 
 /**
  * 非空字符串
  */
-const nonEmptyString = z.string().min(1, '字符串不能为空');
+const nonEmptyString = z.string().min(1, "字符串不能为空");
 
 /**
  * 文件路径验证（防止路径遍历）
  */
 const safePathSchema = z
   .string()
-  .min(1, '路径不能为空')
+  .min(1, "路径不能为空")
   .refine(
     (path) => {
       // 禁止路径遍历
-      if (path.includes('..')) return false;
+      if (path.includes("..")) {
+        return false;
+      }
       // 禁止绝对路径（应使用项目相对路径）
-      if (path.startsWith('/') || /^[A-Z]:\\/.test(path)) return false;
+      if (path.startsWith("/") || /^[A-Z]:\\/.test(path)) {
+        return false;
+      }
       return true;
     },
-    { message: '路径包含非法字符或格式' }
+    { message: "路径包含非法字符或格式" },
   );
 
 /**
@@ -51,7 +55,7 @@ const paginationSchema = z.object({
   offset: z.number().int().min(0).default(0),
   limit: z.number().int().min(1).max(1000).default(50),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).default('desc')
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
 /**
@@ -74,14 +78,14 @@ const projectIdSchema = uuidSchema;
 const projectCreateSchema = z.object({
   name: z
     .string()
-    .min(1, '项目名称不能为空')
-    .max(100, '项目名称不能超过 100 个字符'),
-  description: z.string().max(1000, '描述不能超过 1000 个字符').optional(),
+    .min(1, "项目名称不能为空")
+    .max(100, "项目名称不能超过 100 个字符"),
+  description: z.string().max(1000, "描述不能超过 1000 个字符").optional(),
   projectType: z
-    .enum(['web', 'mobile', 'backend', 'ai', 'data', 'other'])
-    .default('web'),
+    .enum(["web", "mobile", "backend", "ai", "data", "other"])
+    .default("web"),
   userId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional()
+  metadata: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -90,11 +94,11 @@ const projectCreateSchema = z.object({
 const projectUpdateSchema = z.object({
   name: z
     .string()
-    .min(1, '项目名称不能为空')
-    .max(100, '项目名称不能超过 100 个字符')
+    .min(1, "项目名称不能为空")
+    .max(100, "项目名称不能超过 100 个字符")
     .optional(),
-  description: z.string().max(1000, '描述不能超过 1000 个字符').optional(),
-  metadata: z.record(z.unknown()).optional()
+  description: z.string().max(1000, "描述不能超过 1000 个字符").optional(),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -103,7 +107,7 @@ const projectUpdateSchema = z.object({
 const projectListSchema = paginationSchema.extend({
   userId: z.string().optional(),
   projectType: z.string().optional(),
-  search: z.string().optional()
+  search: z.string().optional(),
 });
 
 // ============================================
@@ -121,7 +125,7 @@ const fileIdSchema = uuidSchema;
 const fileUpdateSchema = z.object({
   content: z.string(),
   version: z.number().int().min(0).optional(),
-  encoding: z.enum(['utf-8', 'base64']).default('utf-8')
+  encoding: z.enum(["utf-8", "base64"]).default("utf-8"),
 });
 
 /**
@@ -130,14 +134,14 @@ const fileUpdateSchema = z.object({
 const fileCreateSchema = z.object({
   path: safePathSchema,
   content: z.string(),
-  encoding: z.enum(['utf-8', 'base64']).default('utf-8')
+  encoding: z.enum(["utf-8", "base64"]).default("utf-8"),
 });
 
 /**
  * 批量文件操作参数
  */
 const batchFileSchema = z.object({
-  files: z.array(fileCreateSchema).min(1).max(100)
+  files: z.array(fileCreateSchema).min(1).max(100),
 });
 
 // ============================================
@@ -153,9 +157,9 @@ const sessionIdSchema = uuidSchema;
  * 消息发送参数
  */
 const messageSchema = z.object({
-  content: z.string().min(1, '消息内容不能为空').max(100000),
-  role: z.enum(['user', 'assistant', 'system']).default('user'),
-  metadata: z.record(z.unknown()).optional()
+  content: z.string().min(1, "消息内容不能为空").max(100000),
+  role: z.enum(["user", "assistant", "system"]).default("user"),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -165,7 +169,7 @@ const sessionCreateSchema = z.object({
   title: z.string().max(200).optional(),
   model: z.string().optional(),
   systemPrompt: z.string().max(10000).optional(),
-  metadata: z.record(z.unknown()).optional()
+  metadata: z.record(z.unknown()).optional(),
 });
 
 // ============================================
@@ -181,14 +185,14 @@ const gitRepoPathSchema = safePathSchema;
  * Git 提交参数
  */
 const gitCommitSchema = z.object({
-  message: z.string().min(1, '提交信息不能为空').max(500),
+  message: z.string().min(1, "提交信息不能为空").max(500),
   files: z.array(safePathSchema).optional(),
   author: z
     .object({
       name: z.string(),
-      email: z.string().email()
+      email: z.string().email(),
     })
-    .optional()
+    .optional(),
 });
 
 /**
@@ -201,14 +205,24 @@ const gitBranchSchema = z
   .refine(
     (name) => {
       // Git 分支名规则
-      if (name.startsWith('-')) return false;
-      if (name.endsWith('.lock')) return false;
-      if (/[\s~^:?*]/.test(name)) return false;
-      if (name.includes('[') || name.includes(']') || name.includes('\\')) return false;
-      if (/\.\./.test(name)) return false;
+      if (name.startsWith("-")) {
+        return false;
+      }
+      if (name.endsWith(".lock")) {
+        return false;
+      }
+      if (/[\s~^:?*]/.test(name)) {
+        return false;
+      }
+      if (name.includes("[") || name.includes("]") || name.includes("\\")) {
+        return false;
+      }
+      if (/\.\./.test(name)) {
+        return false;
+      }
       return true;
     },
-    { message: '无效的 Git 分支名称' }
+    { message: "无效的 Git 分支名称" },
   );
 
 // ============================================
@@ -228,7 +242,7 @@ const noteSchema = z.object({
   content: z.string().max(500000),
   tags: z.array(z.string().max(50)).max(20).optional(),
   categoryId: uuidSchema.optional(),
-  metadata: z.record(z.unknown()).optional()
+  metadata: z.record(z.unknown()).optional(),
 });
 
 /**
@@ -245,11 +259,11 @@ const noteSearchSchema = z.object({
       dateRange: z
         .object({
           start: timestampSchema.optional(),
-          end: timestampSchema.optional()
+          end: timestampSchema.optional(),
         })
-        .optional()
+        .optional(),
     })
-    .optional()
+    .optional(),
 });
 
 // ============================================
@@ -284,18 +298,18 @@ function withValidation(schema, options = {}) {
           const details = formatZodError(error);
 
           if (enableLogging) {
-            logger.warn('[IPC-Validator] 验证失败:', {
+            logger.warn("[IPC-Validator] 验证失败:", {
               argIndex,
-              errors: details.errors
+              errors: details.errors,
             });
           }
 
           throw new ValidationError(details.message, {
             errors: details.errors,
             receivedValue:
-              typeof argToValidate === 'object'
+              typeof argToValidate === "object"
                 ? JSON.stringify(argToValidate).substring(0, 200)
-                : String(argToValidate).substring(0, 200)
+                : String(argToValidate).substring(0, 200),
           });
         }
 
@@ -330,7 +344,7 @@ function withMultiValidation(schemas, options = {}) {
             const details = formatZodError(error);
             allErrors.push({
               argIndex: index,
-              errors: details.errors
+              errors: details.errors,
             });
           } else {
             throw error;
@@ -340,12 +354,12 @@ function withMultiValidation(schemas, options = {}) {
 
       if (allErrors.length > 0) {
         if (enableLogging) {
-          logger.warn('[IPC-Validator] 多参数验证失败:', allErrors);
+          logger.warn("[IPC-Validator] 多参数验证失败:", allErrors);
         }
 
         const message = allErrors
           .flatMap((e) => e.errors.map((err) => `参数${e.argIndex}: ${err}`))
-          .join('; ');
+          .join("; ");
 
         throw new ValidationError(message, { validationErrors: allErrors });
       }
@@ -362,14 +376,14 @@ function withMultiValidation(schemas, options = {}) {
  */
 function formatZodError(error) {
   const errors = error.errors.map((e) => {
-    const path = e.path.join('.');
+    const path = e.path.join(".");
     const message = e.message;
     return path ? `${path}: ${message}` : message;
   });
 
   return {
-    message: errors.join('; '),
-    errors
+    message: errors.join("; "),
+    errors,
   };
 }
 
@@ -392,7 +406,7 @@ const validateProjectCreate = withValidation(projectCreateSchema);
  */
 const validateProjectUpdate = withMultiValidation({
   0: projectIdSchema,
-  1: projectUpdateSchema
+  1: projectUpdateSchema,
 });
 
 /**
@@ -406,7 +420,7 @@ const validateProjectList = withValidation(projectListSchema);
 const validateFileUpdate = withMultiValidation({
   0: projectIdSchema,
   1: safePathSchema,
-  2: fileUpdateSchema
+  2: fileUpdateSchema,
 });
 
 /**
@@ -479,5 +493,5 @@ module.exports = {
   validateFileUpdate,
   validateSessionCreate,
   validateMessage,
-  validateNoteSearch
+  validateNoteSearch,
 };

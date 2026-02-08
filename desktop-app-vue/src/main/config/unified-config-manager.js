@@ -27,7 +27,7 @@
  * @updated 2026-01-18 - 使用 Electron userData 目录替代 process.cwd()
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");

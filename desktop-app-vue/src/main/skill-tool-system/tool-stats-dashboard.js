@@ -3,9 +3,9 @@
  * 提供工具使用情况的实时统计和分析
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const path = require('path');
-const DatabaseManager = require('../database');
+const { logger } = require("../utils/logger.js");
+const path = require("path");
+const DatabaseManager = require("../database");
 
 class ToolStatsDashboard {
   constructor(database) {
@@ -29,9 +29,10 @@ class ToolStatsDashboard {
         WHERE handler_path LIKE '%additional-tools-v3-handler%'
       `);
 
-      const successRate = stats.totalInvocations > 0
-        ? (stats.totalSuccesses / stats.totalInvocations * 100).toFixed(2)
-        : 0;
+      const successRate =
+        stats.totalInvocations > 0
+          ? ((stats.totalSuccesses / stats.totalInvocations) * 100).toFixed(2)
+          : 0;
 
       return {
         totalTools: stats.totalTools || 0,
@@ -41,10 +42,10 @@ class ToolStatsDashboard {
         totalSuccesses: stats.totalSuccesses || 0,
         successRate: `${successRate}%`,
         avgExecutionTime: parseFloat((stats.avgExecutionTime || 0).toFixed(2)),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error('[Dashboard] 获取概览失败:', error);
+      logger.error("[Dashboard] 获取概览失败:", error);
       throw error;
     }
   }
@@ -55,7 +56,8 @@ class ToolStatsDashboard {
   async getToolRankings(limit = 10) {
     try {
       // 按使用次数排行
-      const byUsage = await this.db.all(`
+      const byUsage = await this.db.all(
+        `
         SELECT
           name,
           display_name,
@@ -69,10 +71,13 @@ class ToolStatsDashboard {
           AND usage_count > 0
         ORDER BY usage_count DESC
         LIMIT ?
-      `, [limit]);
+      `,
+        [limit],
+      );
 
       // 按成功率排行
-      const bySuccessRate = await this.db.all(`
+      const bySuccessRate = await this.db.all(
+        `
         SELECT
           name,
           display_name,
@@ -85,10 +90,13 @@ class ToolStatsDashboard {
           AND usage_count >= 5
         ORDER BY success_rate DESC
         LIMIT ?
-      `, [limit]);
+      `,
+        [limit],
+      );
 
       // 按执行速度排行（最快的）
-      const bySpeed = await this.db.all(`
+      const bySpeed = await this.db.all(
+        `
         SELECT
           name,
           display_name,
@@ -100,19 +108,21 @@ class ToolStatsDashboard {
           AND usage_count > 0
         ORDER BY avg_execution_time ASC
         LIMIT ?
-      `, [limit]);
+      `,
+        [limit],
+      );
 
       return {
         mostUsed: byUsage,
-        highestSuccessRate: bySuccessRate.map(tool => ({
+        highestSuccessRate: bySuccessRate.map((tool) => ({
           ...tool,
-          success_rate: parseFloat(tool.success_rate.toFixed(2))
+          success_rate: parseFloat(tool.success_rate.toFixed(2)),
         })),
         fastest: bySpeed,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error('[Dashboard] 获取排行榜失败:', error);
+      logger.error("[Dashboard] 获取排行榜失败:", error);
       throw error;
     }
   }
@@ -135,18 +145,21 @@ class ToolStatsDashboard {
         ORDER BY totalUsage DESC
       `);
 
-      return stats.map(stat => ({
+      return stats.map((stat) => ({
         category: stat.category,
         toolCount: stat.toolCount,
         totalUsage: stat.totalUsage || 0,
         totalSuccess: stat.totalSuccess || 0,
-        successRate: stat.totalUsage > 0
-          ? parseFloat((stat.totalSuccess / stat.totalUsage * 100).toFixed(2))
-          : 0,
-        avgTime: parseFloat((stat.avgTime || 0).toFixed(2))
+        successRate:
+          stat.totalUsage > 0
+            ? parseFloat(
+                ((stat.totalSuccess / stat.totalUsage) * 100).toFixed(2),
+              )
+            : 0,
+        avgTime: parseFloat((stat.avgTime || 0).toFixed(2)),
       }));
     } catch (error) {
-      logger.error('[Dashboard] 获取分类统计失败:', error);
+      logger.error("[Dashboard] 获取分类统计失败:", error);
       throw error;
     }
   }
@@ -156,7 +169,8 @@ class ToolStatsDashboard {
    */
   async getRecentlyUsedTools(limit = 20) {
     try {
-      const tools = await this.db.all(`
+      const tools = await this.db.all(
+        `
         SELECT
           name,
           display_name,
@@ -170,15 +184,17 @@ class ToolStatsDashboard {
           AND last_used_at IS NOT NULL
         ORDER BY last_used_at DESC
         LIMIT ?
-      `, [limit]);
+      `,
+        [limit],
+      );
 
-      return tools.map(tool => ({
+      return tools.map((tool) => ({
         ...tool,
         last_used_at: new Date(tool.last_used_at).toISOString(),
-        timeSinceLastUse: this._formatTimeSince(tool.last_used_at)
+        timeSinceLastUse: this._formatTimeSince(tool.last_used_at),
       }));
     } catch (error) {
-      logger.error('[Dashboard] 获取最近使用失败:', error);
+      logger.error("[Dashboard] 获取最近使用失败:", error);
       throw error;
     }
   }
@@ -190,9 +206,10 @@ class ToolStatsDashboard {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
-      const startDateStr = startDate.toISOString().split('T')[0];
+      const startDateStr = startDate.toISOString().split("T")[0];
 
-      const stats = await this.db.all(`
+      const stats = await this.db.all(
+        `
         SELECT
           stat_date,
           SUM(invoke_count) as totalInvokes,
@@ -203,20 +220,25 @@ class ToolStatsDashboard {
         WHERE stat_date >= ?
         GROUP BY stat_date
         ORDER BY stat_date DESC
-      `, [startDateStr]);
+      `,
+        [startDateStr],
+      );
 
-      return stats.map(stat => ({
+      return stats.map((stat) => ({
         date: stat.stat_date,
         invokes: stat.totalInvokes || 0,
         success: stat.totalSuccess || 0,
         failure: stat.totalFailure || 0,
-        successRate: stat.totalInvokes > 0
-          ? parseFloat((stat.totalSuccess / stat.totalInvokes * 100).toFixed(2))
-          : 0,
-        avgDuration: parseFloat((stat.avgDuration || 0).toFixed(2))
+        successRate:
+          stat.totalInvokes > 0
+            ? parseFloat(
+                ((stat.totalSuccess / stat.totalInvokes) * 100).toFixed(2),
+              )
+            : 0,
+        avgDuration: parseFloat((stat.avgDuration || 0).toFixed(2)),
       }));
     } catch (error) {
-      logger.error('[Dashboard] 获取每日统计失败:', error);
+      logger.error("[Dashboard] 获取每日统计失败:", error);
       throw error;
     }
   }
@@ -248,10 +270,10 @@ class ToolStatsDashboard {
         excellent: 0,
         good: 0,
         fair: 0,
-        slow: 0
+        slow: 0,
       };
 
-      metrics.forEach(metric => {
+      metrics.forEach((metric) => {
         distribution[metric.performance_rating]++;
       });
 
@@ -259,10 +281,10 @@ class ToolStatsDashboard {
         tools: metrics,
         distribution,
         totalTools: metrics.length,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error('[Dashboard] 获取性能指标失败:', error);
+      logger.error("[Dashboard] 获取性能指标失败:", error);
       throw error;
     }
   }
@@ -279,42 +301,66 @@ class ToolStatsDashboard {
       const { dateRange, categories, searchKeyword } = filters;
 
       // 构建WHERE条件
-      const whereConditions = ["handler_path LIKE '%additional-tools-v3-handler%'"];
+      const whereConditions = [
+        "handler_path LIKE '%additional-tools-v3-handler%'",
+      ];
       const params = [];
 
       // 分类筛选
       if (categories && categories.length > 0) {
-        const categoryPlaceholders = categories.map(() => '?').join(',');
+        const categoryPlaceholders = categories.map(() => "?").join(",");
         whereConditions.push(`category IN (${categoryPlaceholders})`);
         params.push(...categories);
       }
 
       // 搜索关键词
       if (searchKeyword && searchKeyword.trim()) {
-        whereConditions.push(`(name LIKE ? OR display_name LIKE ? OR description LIKE ?)`);
+        whereConditions.push(
+          `(name LIKE ? OR display_name LIKE ? OR description LIKE ?)`,
+        );
         const keyword = `%${searchKeyword.trim()}%`;
         params.push(keyword, keyword, keyword);
       }
 
-      const whereClause = whereConditions.join(' AND ');
+      const whereClause = whereConditions.join(" AND ");
 
       // 获取筛选后的概览数据
-      const overview = await this._getFilteredOverview(whereClause, params, dateRange);
+      const overview = await this._getFilteredOverview(
+        whereClause,
+        params,
+        dateRange,
+      );
 
       // 获取筛选后的排行榜
       const rankings = await this._getFilteredRankings(whereClause, params, 10);
 
       // 获取分类统计（如果没有分类筛选）
-      const categoryStats = await this._getFilteredCategoryStats(whereClause, params);
+      const categoryStats = await this._getFilteredCategoryStats(
+        whereClause,
+        params,
+      );
 
       // 获取最近使用
-      const recentTools = await this._getFilteredRecentTools(whereClause, params, 15, dateRange);
+      const recentTools = await this._getFilteredRecentTools(
+        whereClause,
+        params,
+        15,
+        dateRange,
+      );
 
       // 获取每日统计
-      const dailyStats = await this._getFilteredDailyStats(7, dateRange, categories, searchKeyword);
+      const dailyStats = await this._getFilteredDailyStats(
+        7,
+        dateRange,
+        categories,
+        searchKeyword,
+      );
 
       // 获取性能指标
-      const performanceMetrics = await this._getFilteredPerformanceMetrics(whereClause, params);
+      const performanceMetrics = await this._getFilteredPerformanceMetrics(
+        whereClause,
+        params,
+      );
 
       return {
         overview,
@@ -326,12 +372,12 @@ class ToolStatsDashboard {
         filters: {
           dateRange,
           categories,
-          searchKeyword
+          searchKeyword,
         },
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
       };
     } catch (error) {
-      logger.error('[Dashboard] 获取筛选仪表板数据失败:', error);
+      logger.error("[Dashboard] 获取筛选仪表板数据失败:", error);
       throw error;
     }
   }
@@ -362,9 +408,10 @@ class ToolStatsDashboard {
 
       const stats = await this.db.get(sql, params);
 
-      const successRate = stats.totalInvocations > 0
-        ? (stats.totalSuccesses / stats.totalInvocations * 100).toFixed(2)
-        : 0;
+      const successRate =
+        stats.totalInvocations > 0
+          ? ((stats.totalSuccesses / stats.totalInvocations) * 100).toFixed(2)
+          : 0;
 
       return {
         totalTools: stats.totalTools || 0,
@@ -374,10 +421,10 @@ class ToolStatsDashboard {
         totalSuccesses: stats.totalSuccesses || 0,
         successRate: `${successRate}%`,
         avgExecutionTime: parseFloat((stats.avgExecutionTime || 0).toFixed(2)),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error('[Dashboard] 获取筛选概览失败:', error);
+      logger.error("[Dashboard] 获取筛选概览失败:", error);
       throw error;
     }
   }
@@ -388,7 +435,8 @@ class ToolStatsDashboard {
   async _getFilteredRankings(whereClause, params, limit) {
     try {
       // 按使用次数排行
-      const byUsage = await this.db.all(`
+      const byUsage = await this.db.all(
+        `
         SELECT
           name,
           display_name,
@@ -402,10 +450,13 @@ class ToolStatsDashboard {
           AND usage_count > 0
         ORDER BY usage_count DESC
         LIMIT ?
-      `, [...params, limit]);
+      `,
+        [...params, limit],
+      );
 
       // 按成功率排行
-      const bySuccessRate = await this.db.all(`
+      const bySuccessRate = await this.db.all(
+        `
         SELECT
           name,
           display_name,
@@ -418,10 +469,13 @@ class ToolStatsDashboard {
           AND usage_count >= 5
         ORDER BY success_rate DESC
         LIMIT ?
-      `, [...params, limit]);
+      `,
+        [...params, limit],
+      );
 
       // 按执行速度排行
-      const bySpeed = await this.db.all(`
+      const bySpeed = await this.db.all(
+        `
         SELECT
           name,
           display_name,
@@ -433,18 +487,20 @@ class ToolStatsDashboard {
           AND usage_count > 0
         ORDER BY avg_execution_time ASC
         LIMIT ?
-      `, [...params, limit]);
+      `,
+        [...params, limit],
+      );
 
       return {
         mostUsed: byUsage,
-        highestSuccessRate: bySuccessRate.map(t => ({
+        highestSuccessRate: bySuccessRate.map((t) => ({
           ...t,
-          success_rate: parseFloat(t.success_rate.toFixed(2))
+          success_rate: parseFloat(t.success_rate.toFixed(2)),
         })),
-        fastest: bySpeed
+        fastest: bySpeed,
       };
     } catch (error) {
-      logger.error('[Dashboard] 获取筛选排行榜失败:', error);
+      logger.error("[Dashboard] 获取筛选排行榜失败:", error);
       throw error;
     }
   }
@@ -454,7 +510,8 @@ class ToolStatsDashboard {
    */
   async _getFilteredCategoryStats(whereClause, params) {
     try {
-      const stats = await this.db.all(`
+      const stats = await this.db.all(
+        `
         SELECT
           COALESCE(category, 'unknown') as category,
           COUNT(*) as toolCount,
@@ -465,20 +522,25 @@ class ToolStatsDashboard {
         WHERE ${whereClause}
         GROUP BY category
         ORDER BY totalUsage DESC
-      `, params);
+      `,
+        params,
+      );
 
-      return stats.map(stat => ({
+      return stats.map((stat) => ({
         category: stat.category,
         toolCount: stat.toolCount,
         totalUsage: stat.totalUsage || 0,
         totalSuccess: stat.totalSuccess || 0,
-        successRate: stat.totalUsage > 0
-          ? parseFloat((stat.totalSuccess / stat.totalUsage * 100).toFixed(2))
-          : 0,
-        avgTime: parseFloat((stat.avgTime || 0).toFixed(2))
+        successRate:
+          stat.totalUsage > 0
+            ? parseFloat(
+                ((stat.totalSuccess / stat.totalUsage) * 100).toFixed(2),
+              )
+            : 0,
+        avgTime: parseFloat((stat.avgTime || 0).toFixed(2)),
       }));
     } catch (error) {
-      logger.error('[Dashboard] 获取筛选分类统计失败:', error);
+      logger.error("[Dashboard] 获取筛选分类统计失败:", error);
       throw error;
     }
   }
@@ -505,7 +567,10 @@ class ToolStatsDashboard {
       // 时间范围筛选
       if (dateRange && dateRange.length === 2) {
         sql += ` AND last_used_at >= ? AND last_used_at <= ?`;
-        params.push(new Date(dateRange[0]).getTime(), new Date(dateRange[1]).getTime());
+        params.push(
+          new Date(dateRange[0]).getTime(),
+          new Date(dateRange[1]).getTime(),
+        );
       }
 
       sql += ` ORDER BY last_used_at DESC LIMIT ?`;
@@ -513,13 +578,13 @@ class ToolStatsDashboard {
 
       const tools = await this.db.all(sql, params);
 
-      return tools.map(tool => ({
+      return tools.map((tool) => ({
         ...tool,
         last_used_at: new Date(tool.last_used_at).toISOString(),
-        timeSinceLastUse: this._formatTimeSince(tool.last_used_at)
+        timeSinceLastUse: this._formatTimeSince(tool.last_used_at),
       }));
     } catch (error) {
-      logger.error('[Dashboard] 获取筛选最近使用失败:', error);
+      logger.error("[Dashboard] 获取筛选最近使用失败:", error);
       throw error;
     }
   }
@@ -540,8 +605,8 @@ class ToolStatsDashboard {
         startDate.setDate(startDate.getDate() - days);
       }
 
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const startDateStr = startDate.toISOString().split("T")[0];
+      const endDateStr = endDate.toISOString().split("T")[0];
 
       let sql = `
         SELECT
@@ -557,7 +622,7 @@ class ToolStatsDashboard {
 
       // 分类筛选
       if (categories && categories.length > 0) {
-        const categoryPlaceholders = categories.map(() => '?').join(',');
+        const categoryPlaceholders = categories.map(() => "?").join(",");
         sql += ` AND tool_name IN (
           SELECT name FROM tools
           WHERE category IN (${categoryPlaceholders})
@@ -581,18 +646,21 @@ class ToolStatsDashboard {
 
       const stats = await this.db.all(sql, params);
 
-      return stats.map(stat => ({
+      return stats.map((stat) => ({
         date: stat.stat_date,
         invokes: stat.totalInvokes || 0,
         success: stat.totalSuccess || 0,
         failure: stat.totalFailure || 0,
-        successRate: stat.totalInvokes > 0
-          ? parseFloat((stat.totalSuccess / stat.totalInvokes * 100).toFixed(2))
-          : 0,
-        avgDuration: parseFloat((stat.avgDuration || 0).toFixed(2))
+        successRate:
+          stat.totalInvokes > 0
+            ? parseFloat(
+                ((stat.totalSuccess / stat.totalInvokes) * 100).toFixed(2),
+              )
+            : 0,
+        avgDuration: parseFloat((stat.avgDuration || 0).toFixed(2)),
       }));
     } catch (error) {
-      logger.error('[Dashboard] 获取筛选每日统计失败:', error);
+      logger.error("[Dashboard] 获取筛选每日统计失败:", error);
       throw error;
     }
   }
@@ -602,7 +670,8 @@ class ToolStatsDashboard {
    */
   async _getFilteredPerformanceMetrics(whereClause, params) {
     try {
-      const metrics = await this.db.all(`
+      const metrics = await this.db.all(
+        `
         SELECT
           name,
           display_name,
@@ -618,16 +687,18 @@ class ToolStatsDashboard {
         WHERE ${whereClause}
           AND usage_count > 0
         ORDER BY avg_execution_time ASC
-      `, params);
+      `,
+        params,
+      );
 
       const distribution = {
         excellent: 0,
         good: 0,
         fair: 0,
-        slow: 0
+        slow: 0,
       };
 
-      metrics.forEach(metric => {
+      metrics.forEach((metric) => {
         distribution[metric.performance_rating]++;
       });
 
@@ -635,10 +706,10 @@ class ToolStatsDashboard {
         tools: metrics,
         distribution,
         totalTools: metrics.length,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     } catch (error) {
-      logger.error('[Dashboard] 获取筛选性能指标失败:', error);
+      logger.error("[Dashboard] 获取筛选性能指标失败:", error);
       throw error;
     }
   }
@@ -649,14 +720,17 @@ class ToolStatsDashboard {
   async generateTextDashboard() {
     const data = await this.getDashboardData();
 
-    let output = '';
+    let output = "";
 
-    output += '╔════════════════════════════════════════════════════════════╗\n';
-    output += '║          工具使用统计仪表板 - Additional Tools V3          ║\n';
-    output += '╚════════════════════════════════════════════════════════════╝\n\n';
+    output +=
+      "╔════════════════════════════════════════════════════════════╗\n";
+    output +=
+      "║          工具使用统计仪表板 - Additional Tools V3          ║\n";
+    output +=
+      "╚════════════════════════════════════════════════════════════╝\n\n";
 
     // 概览
-    output += '【概览】\n';
+    output += "【概览】\n";
     output += `  总工具数: ${data.overview.totalTools}\n`;
     output += `  已启用: ${data.overview.enabledTools}\n`;
     output += `  已使用: ${data.overview.usedTools}\n`;
@@ -664,39 +738,39 @@ class ToolStatsDashboard {
     output += `  成功次数: ${data.overview.totalSuccesses.toLocaleString()}\n`;
     output += `  成功率: ${data.overview.successRate}\n`;
     output += `  平均响应时间: ${data.overview.avgExecutionTime}ms\n`;
-    output += '\n';
+    output += "\n";
 
     // 最常用工具
-    output += '【最常用工具 Top 5】\n';
+    output += "【最常用工具 Top 5】\n";
     data.rankings.mostUsed.slice(0, 5).forEach((tool, index) => {
       output += `  ${index + 1}. ${tool.display_name || tool.name}\n`;
-      output += `     使用次数: ${tool.usage_count} | 成功率: ${(tool.success_count / tool.usage_count * 100).toFixed(1)}% | 平均时间: ${tool.avg_execution_time.toFixed(2)}ms\n`;
+      output += `     使用次数: ${tool.usage_count} | 成功率: ${((tool.success_count / tool.usage_count) * 100).toFixed(1)}% | 平均时间: ${tool.avg_execution_time.toFixed(2)}ms\n`;
     });
-    output += '\n';
+    output += "\n";
 
     // 分类统计
-    output += '【分类统计】\n';
-    data.categoryStats.forEach(cat => {
+    output += "【分类统计】\n";
+    data.categoryStats.forEach((cat) => {
       output += `  ${cat.category.toUpperCase()}: ${cat.toolCount}个工具, ${cat.totalUsage}次使用, ${cat.successRate}%成功率\n`;
     });
-    output += '\n';
+    output += "\n";
 
     // 性能分布
-    output += '【性能分布】\n';
+    output += "【性能分布】\n";
     const perf = data.performanceMetrics.distribution;
     const total = data.performanceMetrics.totalTools;
-    output += `  优秀 (<10ms): ${perf.excellent} (${(perf.excellent / total * 100).toFixed(1)}%)\n`;
-    output += `  良好 (10-50ms): ${perf.good} (${(perf.good / total * 100).toFixed(1)}%)\n`;
-    output += `  一般 (50-100ms): ${perf.fair} (${(perf.fair / total * 100).toFixed(1)}%)\n`;
-    output += `  较慢 (>100ms): ${perf.slow} (${(perf.slow / total * 100).toFixed(1)}%)\n`;
-    output += '\n';
+    output += `  优秀 (<10ms): ${perf.excellent} (${((perf.excellent / total) * 100).toFixed(1)}%)\n`;
+    output += `  良好 (10-50ms): ${perf.good} (${((perf.good / total) * 100).toFixed(1)}%)\n`;
+    output += `  一般 (50-100ms): ${perf.fair} (${((perf.fair / total) * 100).toFixed(1)}%)\n`;
+    output += `  较慢 (>100ms): ${perf.slow} (${((perf.slow / total) * 100).toFixed(1)}%)\n`;
+    output += "\n";
 
     // 最近使用
-    output += '【最近使用】\n';
-    data.recentTools.slice(0, 5).forEach(tool => {
+    output += "【最近使用】\n";
+    data.recentTools.slice(0, 5).forEach((tool) => {
       output += `  ${tool.display_name || tool.name} - ${tool.timeSinceLastUse}\n`;
     });
-    output += '\n';
+    output += "\n";
 
     output += `生成时间: ${data.generatedAt}\n`;
 
@@ -714,9 +788,15 @@ class ToolStatsDashboard {
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
 
-    if (days > 0) {return `${days}天前`;}
-    if (hours > 0) {return `${hours}小时前`;}
-    if (minutes > 0) {return `${minutes}分钟前`;}
+    if (days > 0) {
+      return `${days}天前`;
+    }
+    if (hours > 0) {
+      return `${hours}小时前`;
+    }
+    if (minutes > 0) {
+      return `${minutes}分钟前`;
+    }
     return `${seconds}秒前`;
   }
 }
@@ -726,10 +806,12 @@ class ToolStatsDashboard {
  */
 async function showDashboard() {
   try {
-    logger.info('正在加载统计数据...\n');
+    logger.info("正在加载统计数据...\n");
 
     // 初始化数据库
-    const dbPath = process.env.DB_PATH || path.join(__dirname, '../../../../data/chainlesschain.db');
+    const dbPath =
+      process.env.DB_PATH ||
+      path.join(__dirname, "../../../../data/chainlesschain.db");
     const db = new DatabaseManager(dbPath, { encryptionEnabled: false });
     await db.initialize();
 
@@ -742,13 +824,12 @@ async function showDashboard() {
 
     // 可选：保存JSON格式
     const jsonData = await dashboard.getDashboardData();
-    logger.info('\n完整JSON数据已准备就绪，可通过API访问。');
+    logger.info("\n完整JSON数据已准备就绪，可通过API访问。");
 
     // 关闭数据库
     await db.db.close();
-
   } catch (error) {
-    logger.error('显示仪表板失败:', error);
+    logger.error("显示仪表板失败:", error);
     process.exit(1);
   }
 }

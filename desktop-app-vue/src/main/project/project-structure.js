@@ -3,7 +3,7 @@
  * 定义和创建不同类型项目的标准目录结构
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 

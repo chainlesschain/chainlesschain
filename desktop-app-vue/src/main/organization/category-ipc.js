@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 const CategoryManager = require("./category-manager");
 

@@ -11,7 +11,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs-extra");
 const path = require("path");
 const EventEmitter = require("events");
@@ -297,10 +297,14 @@ class TaskTrackerFile extends EventEmitter {
    * @param {Error} error - 错误对象
    */
   async recordStepError(stepIndex, error) {
-    if (!this.currentTask) {return;}
+    if (!this.currentTask) {
+      return;
+    }
 
     const step = this.currentTask.steps[stepIndex];
-    if (!step) {return;}
+    if (!step) {
+      return;
+    }
 
     step.error = {
       message: error.message,
@@ -327,7 +331,9 @@ class TaskTrackerFile extends EventEmitter {
    * @param {string} status - 当前状态
    */
   async updateTodoFile(status = "in_progress") {
-    if (!this.currentTask) {return;}
+    if (!this.currentTask) {
+      return;
+    }
 
     const content = this._generateTodoContent(status);
 
@@ -399,7 +405,11 @@ class TaskTrackerFile extends EventEmitter {
       }
 
       // 如果有结果摘要，显示
-      if (step.result && typeof step.result === "object" && step.result.summary) {
+      if (
+        step.result &&
+        typeof step.result === "object" &&
+        step.result.summary
+      ) {
         lines.push(`    - Result: ${step.result.summary}`);
       }
     });
@@ -412,13 +422,17 @@ class TaskTrackerFile extends EventEmitter {
 
     if (task.currentStep < task.steps.length) {
       const currentStepObj = task.steps[task.currentStep];
-      lines.push(`> **Working on Step ${task.currentStep + 1}**: ${currentStepObj.description}`);
+      lines.push(
+        `> **Working on Step ${task.currentStep + 1}**: ${currentStepObj.description}`,
+      );
       lines.push("");
       lines.push("### What to do:");
       lines.push(`1. Complete: ${currentStepObj.description}`);
 
       if (task.currentStep < task.steps.length - 1) {
-        lines.push(`2. Then proceed to: ${task.steps[task.currentStep + 1].description}`);
+        lines.push(
+          `2. Then proceed to: ${task.steps[task.currentStep + 1].description}`,
+        );
       } else {
         lines.push("2. This is the final step. Complete the task after this.");
       }
@@ -439,13 +453,17 @@ class TaskTrackerFile extends EventEmitter {
     }
 
     // 任务统计
-    const completedSteps = task.steps.filter((s) => s.status === "completed").length;
+    const completedSteps = task.steps.filter(
+      (s) => s.status === "completed",
+    ).length;
     const failedSteps = task.steps.filter((s) => s.status === "failed").length;
     const progress = Math.round((completedSteps / task.steps.length) * 100);
 
     lines.push("## 📈 Progress");
     lines.push("");
-    lines.push(`- Completed: ${completedSteps}/${task.steps.length} (${progress}%)`);
+    lines.push(
+      `- Completed: ${completedSteps}/${task.steps.length} (${progress}%)`,
+    );
     if (failedSteps > 0) {
       lines.push(`- Failed: ${failedSteps}`);
     }
@@ -503,7 +521,9 @@ class TaskTrackerFile extends EventEmitter {
    * @returns {Object|null}
    */
   getTaskContextForPrompt() {
-    if (!this.currentTask) {return null;}
+    if (!this.currentTask) {
+      return null;
+    }
 
     const task = this.currentTask;
     const currentStep = task.steps[task.currentStep];
@@ -533,20 +553,26 @@ class TaskTrackerFile extends EventEmitter {
    * @param {Object} result - 结果数据
    */
   async saveIntermediateResult(stepIndex, result) {
-    if (!this.currentTask) {return;}
+    if (!this.currentTask) {
+      return;
+    }
 
     const resultPath = path.join(
       this.workspaceDir,
-      `step_${stepIndex}_result.json`
+      `step_${stepIndex}_result.json`,
     );
 
     try {
-      await fs.writeJson(resultPath, {
-        taskId: this.currentTask.id,
-        stepIndex,
-        result,
-        savedAt: Date.now(),
-      }, { spaces: 2 });
+      await fs.writeJson(
+        resultPath,
+        {
+          taskId: this.currentTask.id,
+          stepIndex,
+          result,
+          savedAt: Date.now(),
+        },
+        { spaces: 2 },
+      );
 
       logger.info(`[TaskTrackerFile] 中间结果已保存: step_${stepIndex}`);
     } catch (error) {
@@ -562,7 +588,7 @@ class TaskTrackerFile extends EventEmitter {
   async loadIntermediateResult(stepIndex) {
     const resultPath = path.join(
       this.workspaceDir,
-      `step_${stepIndex}_result.json`
+      `step_${stepIndex}_result.json`,
     );
 
     try {
@@ -585,7 +611,9 @@ class TaskTrackerFile extends EventEmitter {
    * @private
    */
   async _saveTaskData() {
-    if (!this.currentTask) {return;}
+    if (!this.currentTask) {
+      return;
+    }
 
     const dataPath = path.join(this.workspaceDir, "current_task.json");
 
@@ -626,11 +654,13 @@ class TaskTrackerFile extends EventEmitter {
    * @private
    */
   async _archiveTask() {
-    if (!this.currentTask) {return;}
+    if (!this.currentTask) {
+      return;
+    }
 
     const archivePath = path.join(
       this.historyDir,
-      `${this.currentTask.id}.json`
+      `${this.currentTask.id}.json`,
     );
 
     try {
@@ -657,7 +687,10 @@ class TaskTrackerFile extends EventEmitter {
       if (jsonFiles.length > this.config.maxHistory) {
         // 按时间排序
         const sorted = jsonFiles.sort();
-        const toDelete = sorted.slice(0, jsonFiles.length - this.config.maxHistory);
+        const toDelete = sorted.slice(
+          0,
+          jsonFiles.length - this.config.maxHistory,
+        );
 
         for (const file of toDelete) {
           await fs.remove(path.join(this.historyDir, file));
@@ -706,7 +739,9 @@ class TaskTrackerFile extends EventEmitter {
    * @private
    */
   _startAutoSave() {
-    if (!this.config.autoSave) {return;}
+    if (!this.config.autoSave) {
+      return;
+    }
 
     this._stopAutoSave();
 

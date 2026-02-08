@@ -3,7 +3,7 @@
  * 为技能和工具生成 Markdown 文档
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 

@@ -1,10 +1,20 @@
 <template>
-  <a-card size="small" class="optimization-item" :class="{ 'disabled': !optimization.enabled }">
+  <a-card
+    size="small"
+    class="optimization-item"
+    :class="{ disabled: !optimization.enabled }"
+  >
     <div class="item-header">
       <div class="item-info">
         <div class="item-title">
-          <CheckCircleOutlined v-if="optimization.enabled" style="color: #52c41a; margin-right: 8px;" />
-          <CloseCircleOutlined v-else style="color: #d9d9d9; margin-right: 8px;" />
+          <CheckCircleOutlined
+            v-if="optimization.enabled"
+            style="color: #52c41a; margin-right: 8px"
+          />
+          <CloseCircleOutlined
+            v-else
+            style="color: #d9d9d9; margin-right: 8px"
+          />
           <strong>{{ optimization.name }}</strong>
         </div>
         <div class="item-description">
@@ -14,7 +24,9 @@
 
       <div class="item-actions">
         <a-space>
-          <a-tag :color="impactColor">{{ optimization.impact }}</a-tag>
+          <a-tag :color="impactColor">
+            {{ optimization.impact }}
+          </a-tag>
 
           <a-button
             v-if="optimization.hasStats"
@@ -22,14 +34,16 @@
             type="link"
             @click="$emit('view-stats', optimization.key)"
           >
-            <template #icon><LineChartOutlined /></template>
+            <template #icon>
+              <LineChartOutlined />
+            </template>
             统计
           </a-button>
 
           <a-switch
             :checked="optimization.enabled"
-            @change="handleToggle"
             size="small"
+            @change="handleToggle"
           />
         </a-space>
       </div>
@@ -38,12 +52,12 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from "vue";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   LineChartOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   optimization: {
@@ -52,21 +66,21 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['toggle', 'view-stats']);
+const emit = defineEmits(["toggle", "view-stats"]);
 
 const impactColor = computed(() => {
   const impact = props.optimization.impact;
-  if (impact.includes('+') || impact.includes('fast')) {
-    return 'green';
+  if (impact.includes("+") || impact.includes("fast")) {
+    return "green";
   }
-  if (impact.includes('-') || impact.includes('减少')) {
-    return 'blue';
+  if (impact.includes("-") || impact.includes("减少")) {
+    return "blue";
   }
-  return 'default';
+  return "default";
 });
 
 function handleToggle(checked) {
-  emit('toggle', props.optimization.key, checked);
+  emit("toggle", props.optimization.key, checked);
 }
 </script>
 

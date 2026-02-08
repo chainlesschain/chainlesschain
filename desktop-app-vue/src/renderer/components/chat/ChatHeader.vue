@@ -34,16 +34,16 @@ import {
   FolderOutlined,
   FileTextOutlined,
   GlobalOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 defineProps({
   contextMode: {
     type: String,
-    default: 'project',
+    default: "project",
   },
 });
 
-defineEmits(['update:contextMode']);
+defineEmits(["update:contextMode"]);
 </script>
 
 <style scoped>

@@ -3,7 +3,7 @@
  * 捕获和报告应用崩溃信息
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { app, crashReporter, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");

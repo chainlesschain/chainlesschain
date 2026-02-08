@@ -14,20 +14,20 @@
  * @version 1.0.0
  */
 
-const EventEmitter = require('events');
-const path = require('path');
-const fs = require('fs').promises;
-const { logger } = require('../utils/logger.js');
-const { SDClient } = require('./sd-client.js');
-const { DALLEClient, DALLEModel } = require('./dalle-client.js');
+const EventEmitter = require("events");
+const path = require("path");
+const fs = require("fs").promises;
+const { logger } = require("../utils/logger.js");
+const { SDClient } = require("./sd-client.js");
+const { DALLEClient, DALLEModel } = require("./dalle-client.js");
 
 /**
  * Image generation providers
  */
 const ImageProvider = {
-  SD_LOCAL: 'sd_local',
-  DALLE: 'dalle',
-  AUTO: 'auto', // Auto-select based on availability
+  SD_LOCAL: "sd_local",
+  DALLE: "dalle",
+  AUTO: "auto", // Auto-select based on availability
 };
 
 /**
@@ -81,7 +81,7 @@ class ImageGenManager extends EventEmitter {
     // Setup event forwarding
     this._setupEventForwarding();
 
-    logger.info('[ImageGenManager] Initialized');
+    logger.info("[ImageGenManager] Initialized");
   }
 
   /**
@@ -103,7 +103,7 @@ class ImageGenManager extends EventEmitter {
     // Check provider availability
     await this.checkProviders();
 
-    logger.info('[ImageGenManager] Initialization complete');
+    logger.info("[ImageGenManager] Initialization complete");
   }
 
   /**
@@ -123,7 +123,7 @@ class ImageGenManager extends EventEmitter {
     const dalleStatus = this.dalleClient.checkStatus();
     this.providerStatus[ImageProvider.DALLE] = dalleStatus.available;
 
-    logger.info('[ImageGenManager] Provider status:', this.providerStatus);
+    logger.info("[ImageGenManager] Provider status:", this.providerStatus);
 
     return {
       ...this.providerStatus,
@@ -139,9 +139,8 @@ class ImageGenManager extends EventEmitter {
    */
   async generate(prompt, options = {}) {
     const provider = options.provider || this.config.defaultProvider;
-    const selectedProvider = provider === ImageProvider.AUTO
-      ? this._getPreferredProvider()
-      : provider;
+    const selectedProvider =
+      provider === ImageProvider.AUTO ? this._getPreferredProvider() : provider;
 
     // Check cache
     if (this.config.cacheEnabled && !options.noCache) {
@@ -153,7 +152,8 @@ class ImageGenManager extends EventEmitter {
     }
 
     this.stats.totalGenerations++;
-    this.stats.byProvider[selectedProvider] = (this.stats.byProvider[selectedProvider] || 0) + 1;
+    this.stats.byProvider[selectedProvider] =
+      (this.stats.byProvider[selectedProvider] || 0) + 1;
 
     try {
       let result;
@@ -212,11 +212,11 @@ class ImageGenManager extends EventEmitter {
     const provider = options.provider || ImageProvider.SD_LOCAL;
 
     if (provider !== ImageProvider.SD_LOCAL) {
-      throw new Error('img2img is only supported by Stable Diffusion');
+      throw new Error("img2img is only supported by Stable Diffusion");
     }
 
     if (!this.providerStatus[ImageProvider.SD_LOCAL]) {
-      throw new Error('Stable Diffusion is not available');
+      throw new Error("Stable Diffusion is not available");
     }
 
     return await this.sdClient.img2img(prompt, initImage, options);
@@ -230,7 +230,7 @@ class ImageGenManager extends EventEmitter {
    */
   async upscale(image, options = {}) {
     if (!this.providerStatus[ImageProvider.SD_LOCAL]) {
-      throw new Error('Upscaling requires Stable Diffusion');
+      throw new Error("Upscaling requires Stable Diffusion");
     }
 
     return await this.sdClient.upscale(image, options);
@@ -244,7 +244,7 @@ class ImageGenManager extends EventEmitter {
    */
   async createVariations(image, options = {}) {
     if (!this.providerStatus[ImageProvider.DALLE]) {
-      throw new Error('DALL-E is not available');
+      throw new Error("DALL-E is not available");
     }
 
     return await this.dalleClient.createVariation(image, {
@@ -294,7 +294,7 @@ class ImageGenManager extends EventEmitter {
    */
   async switchModel(modelName) {
     if (!this.providerStatus[ImageProvider.SD_LOCAL]) {
-      throw new Error('Stable Diffusion is not available');
+      throw new Error("Stable Diffusion is not available");
     }
     return await this.sdClient.switchModel(modelName);
   }
@@ -317,10 +317,12 @@ class ImageGenManager extends EventEmitter {
       ...this.stats,
       providers: this.providerStatus,
       cacheSize: this.cache.size,
-      sdStats: this.sdClient.available ? {
-        currentModel: this.sdClient.currentModel,
-        models: this.sdClient.models.length,
-      } : null,
+      sdStats: this.sdClient.available
+        ? {
+            currentModel: this.sdClient.currentModel,
+            models: this.sdClient.models.length,
+          }
+        : null,
       dalleStats: this.dalleClient.getStats(),
     };
   }
@@ -341,7 +343,7 @@ class ImageGenManager extends EventEmitter {
    */
   async _generateWithSD(prompt, options) {
     if (!this.providerStatus[ImageProvider.SD_LOCAL]) {
-      throw new Error('Stable Diffusion is not available');
+      throw new Error("Stable Diffusion is not available");
     }
 
     const result = await this.sdClient.txt2img(prompt, options);
@@ -358,7 +360,7 @@ class ImageGenManager extends EventEmitter {
    */
   async _generateWithDALLE(prompt, options) {
     if (!this.providerStatus[ImageProvider.DALLE]) {
-      throw new Error('DALL-E is not available');
+      throw new Error("DALL-E is not available");
     }
 
     const result = await this.dalleClient.generate(prompt, options);
@@ -453,10 +455,12 @@ class ImageGenManager extends EventEmitter {
    * @private
    */
   async _saveImages(result, prompt) {
-    if (!this.config.outputDir || !result.images) return;
+    if (!this.config.outputDir || !result.images) {
+      return;
+    }
 
     const timestamp = Date.now();
-    const safeName = prompt.slice(0, 50).replace(/[^a-zA-Z0-9]/g, '_');
+    const safeName = prompt.slice(0, 50).replace(/[^a-zA-Z0-9]/g, "_");
 
     for (let i = 0; i < result.images.length; i++) {
       const image = result.images[i];
@@ -465,11 +469,13 @@ class ImageGenManager extends EventEmitter {
         const filepath = path.join(this.config.outputDir, filename);
 
         try {
-          await fs.writeFile(filepath, Buffer.from(image.data, 'base64'));
+          await fs.writeFile(filepath, Buffer.from(image.data, "base64"));
           image.savedPath = filepath;
           logger.info(`[ImageGenManager] Saved image: ${filename}`);
         } catch (error) {
-          logger.warn(`[ImageGenManager] Failed to save image: ${error.message}`);
+          logger.warn(
+            `[ImageGenManager] Failed to save image: ${error.message}`,
+          );
         }
       }
     }
@@ -480,28 +486,40 @@ class ImageGenManager extends EventEmitter {
    * @private
    */
   _setupEventForwarding() {
-    this.sdClient.on('generation-start', (data) => {
-      this.emit('generation-start', { ...data, provider: ImageProvider.SD_LOCAL });
+    this.sdClient.on("generation-start", (data) => {
+      this.emit("generation-start", {
+        ...data,
+        provider: ImageProvider.SD_LOCAL,
+      });
     });
 
-    this.sdClient.on('generation-complete', (data) => {
-      this.emit('generation-complete', { ...data, provider: ImageProvider.SD_LOCAL });
+    this.sdClient.on("generation-complete", (data) => {
+      this.emit("generation-complete", {
+        ...data,
+        provider: ImageProvider.SD_LOCAL,
+      });
     });
 
-    this.sdClient.on('generation-error', (data) => {
-      this.emit('generation-error', { ...data, provider: ImageProvider.SD_LOCAL });
+    this.sdClient.on("generation-error", (data) => {
+      this.emit("generation-error", {
+        ...data,
+        provider: ImageProvider.SD_LOCAL,
+      });
     });
 
-    this.dalleClient.on('generation-start', (data) => {
-      this.emit('generation-start', { ...data, provider: ImageProvider.DALLE });
+    this.dalleClient.on("generation-start", (data) => {
+      this.emit("generation-start", { ...data, provider: ImageProvider.DALLE });
     });
 
-    this.dalleClient.on('generation-complete', (data) => {
-      this.emit('generation-complete', { ...data, provider: ImageProvider.DALLE });
+    this.dalleClient.on("generation-complete", (data) => {
+      this.emit("generation-complete", {
+        ...data,
+        provider: ImageProvider.DALLE,
+      });
     });
 
-    this.dalleClient.on('generation-error', (data) => {
-      this.emit('generation-error', { ...data, provider: ImageProvider.DALLE });
+    this.dalleClient.on("generation-error", (data) => {
+      this.emit("generation-error", { ...data, provider: ImageProvider.DALLE });
     });
   }
 }

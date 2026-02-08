@@ -3,17 +3,17 @@
  * 提供安全的Python代码执行功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { spawn } = require('child_process');
-const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
+const { logger } = require("../utils/logger.js");
+const { spawn } = require("child_process");
+const fs = require("fs").promises;
+const path = require("path");
+const os = require("os");
 
 class CodeExecutor {
   constructor() {
     this.initialized = false;
     this.pythonPath = null;
-    this.tempDir = path.join(os.tmpdir(), 'chainlesschain-code-exec');
+    this.tempDir = path.join(os.tmpdir(), "chainlesschain-code-exec");
 
     // 执行超时时间(毫秒)
     this.timeout = 30000; // 30秒
@@ -21,20 +21,20 @@ class CodeExecutor {
     // 支持的语言
     this.supportedLanguages = {
       python: {
-        extensions: ['.py'],
-        command: 'python',
-        args: []
+        extensions: [".py"],
+        command: "python",
+        args: [],
       },
       javascript: {
-        extensions: ['.js'],
-        command: 'node',
-        args: []
+        extensions: [".js"],
+        command: "node",
+        args: [],
       },
       bash: {
-        extensions: ['.sh'],
-        command: process.platform === 'win32' ? 'bash' : '/bin/bash',
-        args: []
-      }
+        extensions: [".sh"],
+        command: process.platform === "win32" ? "bash" : "/bin/bash",
+        args: [],
+      },
     };
   }
 
@@ -42,7 +42,9 @@ class CodeExecutor {
    * 初始化代码执行器
    */
   async initialize() {
-    if (this.initialized) {return;}
+    if (this.initialized) {
+      return;
+    }
 
     try {
       // 确保临时目录存在
@@ -52,9 +54,9 @@ class CodeExecutor {
       this.pythonPath = await this.detectPython();
 
       this.initialized = true;
-      logger.info('[CodeExecutor] 初始化完成, Python路径:', this.pythonPath);
+      logger.info("[CodeExecutor] 初始化完成, Python路径:", this.pythonPath);
     } catch (error) {
-      logger.error('[CodeExecutor] 初始化失败:', error);
+      logger.error("[CodeExecutor] 初始化失败:", error);
       // 即使没有Python也可以初始化,其他语言可能可用
       this.initialized = true;
     }
@@ -64,7 +66,7 @@ class CodeExecutor {
    * 检测系统中的Python
    */
   async detectPython() {
-    const pythonCommands = ['python3', 'python', 'py'];
+    const pythonCommands = ["python3", "python", "py"];
 
     for (const cmd of pythonCommands) {
       try {
@@ -78,7 +80,7 @@ class CodeExecutor {
       }
     }
 
-    throw new Error('未找到Python环境');
+    throw new Error("未找到Python环境");
   }
 
   /**
@@ -86,29 +88,29 @@ class CodeExecutor {
    */
   getPythonVersion(command) {
     return new Promise((resolve, reject) => {
-      const proc = spawn(command, ['--version']);
-      let output = '';
+      const proc = spawn(command, ["--version"]);
+      let output = "";
 
-      proc.stdout.on('data', (data) => {
+      proc.stdout.on("data", (data) => {
         output += data.toString();
       });
 
-      proc.stderr.on('data', (data) => {
+      proc.stderr.on("data", (data) => {
         output += data.toString();
       });
 
-      proc.on('close', (code) => {
+      proc.on("close", (code) => {
         if (code === 0 && output) {
           resolve(output.trim());
         } else {
-          reject(new Error('无法获取版本'));
+          reject(new Error("无法获取版本"));
         }
       });
 
       // 超时保护
       setTimeout(() => {
         proc.kill();
-        reject(new Error('超时'));
+        reject(new Error("超时"));
       }, 3000);
     });
   }
@@ -121,17 +123,17 @@ class CodeExecutor {
    */
   async executePython(code, options = {}) {
     if (!this.pythonPath) {
-      throw new Error('Python环境未配置');
+      throw new Error("Python环境未配置");
     }
 
     const {
       timeout = this.timeout,
       workingDir = this.tempDir,
       input = null,
-      env = {}
+      env = {},
     } = options;
 
-    logger.info('[CodeExecutor] 执行Python代码...');
+    logger.info("[CodeExecutor] 执行Python代码...");
 
     try {
       // 创建临时文件
@@ -139,21 +141,21 @@ class CodeExecutor {
       const filepath = path.join(workingDir, filename);
 
       // 写入代码到临时文件
-      await fs.writeFile(filepath, code, 'utf8');
+      await fs.writeFile(filepath, code, "utf8");
 
       // 执行代码
       const result = await this.runCommand(this.pythonPath, [filepath], {
         timeout,
         workingDir,
         input,
-        env
+        env,
       });
 
       // 清理临时文件
       try {
         await fs.unlink(filepath);
       } catch (error) {
-        logger.warn('[CodeExecutor] 清理临时文件失败:', error.message);
+        logger.warn("[CodeExecutor] 清理临时文件失败:", error.message);
       }
 
       return {
@@ -161,11 +163,10 @@ class CodeExecutor {
         stdout: result.stdout,
         stderr: result.stderr,
         exitCode: result.exitCode,
-        executionTime: result.executionTime
+        executionTime: result.executionTime,
       };
-
     } catch (error) {
-      logger.error('[CodeExecutor] Python执行失败:', error);
+      logger.error("[CodeExecutor] Python执行失败:", error);
       throw error;
     }
   }
@@ -177,7 +178,7 @@ class CodeExecutor {
    * @returns {Promise<Object>} 执行结果
    */
   async executeFile(filepath, options = {}) {
-    logger.info('[CodeExecutor] 执行文件:', filepath);
+    logger.info("[CodeExecutor] 执行文件:", filepath);
 
     // 检测文件类型
     const ext = path.extname(filepath);
@@ -190,11 +191,7 @@ class CodeExecutor {
     const langConfig = this.supportedLanguages[language];
     const workingDir = path.dirname(filepath);
 
-    const {
-      timeout = this.timeout,
-      input = null,
-      env = {}
-    } = options;
+    const { timeout = this.timeout, input = null, env = {} } = options;
 
     try {
       // 根据语言选择执行命令
@@ -202,7 +199,7 @@ class CodeExecutor {
       const args = [...langConfig.args, filepath];
 
       // 特殊处理
-      if (language === 'python' && this.pythonPath) {
+      if (language === "python" && this.pythonPath) {
         command = this.pythonPath;
       }
 
@@ -210,7 +207,7 @@ class CodeExecutor {
         timeout,
         workingDir,
         input,
-        env
+        env,
       });
 
       return {
@@ -219,11 +216,10 @@ class CodeExecutor {
         stderr: result.stderr,
         exitCode: result.exitCode,
         executionTime: result.executionTime,
-        language: language
+        language: language,
       };
-
     } catch (error) {
-      logger.error('[CodeExecutor] 文件执行失败:', error);
+      logger.error("[CodeExecutor] 文件执行失败:", error);
       throw error;
     }
   }
@@ -241,26 +237,26 @@ class CodeExecutor {
         timeout = this.timeout,
         workingDir = process.cwd(),
         input = null,
-        env = {}
+        env = {},
       } = options;
 
-      logger.info(`[CodeExecutor] 运行命令: ${command} ${args.join(' ')}`);
+      logger.info(`[CodeExecutor] 运行命令: ${command} ${args.join(" ")}`);
 
       const startTime = Date.now();
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
       let killed = false;
 
       // 合并环境变量
       const processEnv = {
         ...process.env,
-        ...env
+        ...env,
       };
 
       const proc = spawn(command, args, {
         cwd: workingDir,
         env: processEnv,
-        shell: process.platform === 'win32'
+        shell: process.platform === "win32",
       });
 
       // 如果有输入,发送到stdin
@@ -269,21 +265,21 @@ class CodeExecutor {
         proc.stdin.end();
       }
 
-      proc.stdout.on('data', (data) => {
+      proc.stdout.on("data", (data) => {
         stdout += data.toString();
       });
 
-      proc.stderr.on('data', (data) => {
+      proc.stderr.on("data", (data) => {
         stderr += data.toString();
       });
 
-      proc.on('error', (error) => {
+      proc.on("error", (error) => {
         if (!killed) {
           reject(new Error(`执行失败: ${error.message}`));
         }
       });
 
-      proc.on('close', (code) => {
+      proc.on("close", (code) => {
         if (killed) {
           return; // 超时已处理
         }
@@ -294,7 +290,7 @@ class CodeExecutor {
           stdout: stdout,
           stderr: stderr,
           exitCode: code,
-          executionTime: executionTime
+          executionTime: executionTime,
         });
       });
 
@@ -306,7 +302,7 @@ class CodeExecutor {
       }, timeout);
 
       // 确保清理定时器
-      proc.on('close', () => {
+      proc.on("close", () => {
         clearTimeout(timer);
       });
     });
@@ -342,7 +338,7 @@ class CodeExecutor {
       /open\([^)]*['"]w['"][^)]*\)/i, // 写文件操作
       /rmtree/i,
       /unlink/i,
-      /remove/i
+      /remove/i,
     ];
 
     const warnings = [];
@@ -355,7 +351,7 @@ class CodeExecutor {
 
     return {
       safe: warnings.length === 0,
-      warnings: warnings
+      warnings: warnings,
     };
   }
 
@@ -374,11 +370,11 @@ class CodeExecutor {
 
         if (now - stats.mtimeMs > maxAge) {
           await fs.unlink(filepath);
-          logger.info('[CodeExecutor] 清理过期文件:', file);
+          logger.info("[CodeExecutor] 清理过期文件:", file);
         }
       }
     } catch (error) {
-      logger.error('[CodeExecutor] 清理失败:', error);
+      logger.error("[CodeExecutor] 清理失败:", error);
     }
   }
 }
@@ -395,5 +391,5 @@ function getCodeExecutor() {
 
 module.exports = {
   CodeExecutor,
-  getCodeExecutor
+  getCodeExecutor,
 };

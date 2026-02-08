@@ -1,9 +1,6 @@
 <template>
   <div class="vc-management">
-    <a-card
-      title="可验证凭证管理"
-      :loading="loading"
-    >
+    <a-card title="可验证凭证管理" :loading="loading">
       <template #extra>
         <a-space>
           <a-button
@@ -30,10 +27,7 @@
             </template>
             模板管理
           </a-button>
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             <template #icon>
               <plus-outlined />
             </template>
@@ -43,27 +37,15 @@
       </template>
 
       <!-- 统计信息 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 24px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 24px">
         <a-col :span="8">
-          <a-statistic
-            title="总凭证数"
-            :value="stats.total"
-          />
+          <a-statistic title="总凭证数" :value="stats.total" />
         </a-col>
         <a-col :span="8">
-          <a-statistic
-            title="已颁发"
-            :value="stats.issued"
-          />
+          <a-statistic title="已颁发" :value="stats.issued" />
         </a-col>
         <a-col :span="8">
-          <a-statistic
-            title="已接收"
-            :value="stats.received"
-          />
+          <a-statistic title="已接收" :value="stats.received" />
         </a-col>
       </a-row>
 
@@ -76,36 +58,26 @@
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
-              <a-button
-                type="link"
-                @click="handleViewCredential(item)"
-              >
+              <a-button type="link" @click="handleViewCredential(item)">
                 查看
               </a-button>
-              <a-button
-                type="link"
-                @click="handleVerifyCredential(item.id)"
-              >
+              <a-button type="link" @click="handleVerifyCredential(item.id)">
                 验证
               </a-button>
               <a-button
-                v-if="item.issuer_did === currentDID && item.status === 'active'"
+                v-if="
+                  item.issuer_did === currentDID && item.status === 'active'
+                "
                 type="link"
                 danger
                 @click="handleRevokeCredential(item.id)"
               >
                 撤销
               </a-button>
-              <a-button
-                type="link"
-                @click="handleExportCredential(item.id)"
-              >
+              <a-button type="link" @click="handleExportCredential(item.id)">
                 导出
               </a-button>
-              <a-button
-                type="link"
-                @click="handleShareCredential(item.id)"
-              >
+              <a-button type="link" @click="handleShareCredential(item.id)">
                 分享
               </a-button>
             </template>
@@ -153,21 +125,14 @@
             v-model:value="createMode"
             @change="handleCreateModeChange"
           >
-            <a-radio-button value="template">
-              使用模板
-            </a-radio-button>
-            <a-radio-button value="manual">
-              手动输入
-            </a-radio-button>
+            <a-radio-button value="template"> 使用模板 </a-radio-button>
+            <a-radio-button value="manual"> 手动输入 </a-radio-button>
           </a-radio-group>
         </a-form-item>
 
         <!-- 模板选择模式 -->
         <template v-if="createMode === 'template'">
-          <a-form-item
-            label="选择模板"
-            required
-          >
+          <a-form-item label="选择模板" required>
             <a-select
               v-model:value="selectedTemplateId"
               placeholder="选择凭证模板"
@@ -268,10 +233,7 @@
 
         <!-- 手动输入模式 -->
         <template v-else>
-          <a-form-item
-            label="凭证类型"
-            required
-          >
+          <a-form-item label="凭证类型" required>
             <a-select v-model:value="createForm.type">
               <a-select-option value="SelfDeclaration">
                 自我声明
@@ -291,33 +253,23 @@
             </a-select>
           </a-form-item>
 
-          <a-form-item
-            label="声明内容"
-            required
-          >
+          <a-form-item label="声明内容" required>
             <a-textarea
               v-model:value="createForm.claimsText"
-              placeholder="输入 JSON 格式的声明，例如: {&quot;skill&quot;: &quot;JavaScript&quot;, &quot;level&quot;: &quot;Expert&quot;}"
+              placeholder='输入 JSON 格式的声明，例如: {"skill": "JavaScript", "level": "Expert"}'
               :rows="6"
             />
-            <div class="form-hint">
-              必须是有效的 JSON 格式
-            </div>
+            <div class="form-hint">必须是有效的 JSON 格式</div>
           </a-form-item>
         </template>
 
         <!-- 公共字段 -->
-        <a-form-item
-          label="主体 DID"
-          required
-        >
+        <a-form-item label="主体 DID" required>
           <a-input
             v-model:value="createForm.subjectDID"
             placeholder="did:chainlesschain:..."
           />
-          <div class="form-hint">
-            接收此凭证的人的 DID
-          </div>
+          <div class="form-hint">接收此凭证的人的 DID</div>
         </a-form-item>
 
         <a-form-item label="有效期（天）">
@@ -335,15 +287,16 @@
     <!-- 凭证详情模态框 -->
     <a-modal
       v-model:open="showDetailModal"
-      :title="currentCredential ? getTypeName(currentCredential.type) + ' - 详情' : '凭证详情'"
+      :title="
+        currentCredential
+          ? getTypeName(currentCredential.type) + ' - 详情'
+          : '凭证详情'
+      "
       :width="800"
       :footer="null"
     >
       <div v-if="currentCredential">
-        <a-descriptions
-          bordered
-          :column="1"
-        >
+        <a-descriptions bordered :column="1">
           <a-descriptions-item label="凭证 ID">
             <a-typography-paragraph
               :copyable="{ text: currentCredential.id }"
@@ -386,26 +339,30 @@
           </a-descriptions-item>
 
           <a-descriptions-item label="过期时间">
-            {{ currentCredential.expires_at ? formatDate(currentCredential.expires_at) : '永久有效' }}
+            {{
+              currentCredential.expires_at
+                ? formatDate(currentCredential.expires_at)
+                : "永久有效"
+            }}
           </a-descriptions-item>
 
           <a-descriptions-item label="声明内容">
-            <pre class="claims-content">{{ formatJSON(currentCredential.claims) }}</pre>
+            <pre class="claims-content">{{
+              formatJSON(currentCredential.claims)
+            }}</pre>
           </a-descriptions-item>
         </a-descriptions>
       </div>
     </a-modal>
 
     <!-- 验证结果模态框 -->
-    <a-modal
-      v-model:open="showVerifyModal"
-      title="凭证验证结果"
-      :footer="null"
-    >
+    <a-modal v-model:open="showVerifyModal" title="凭证验证结果" :footer="null">
       <a-result
         :status="verifyResult ? 'success' : 'error'"
         :title="verifyResult ? '凭证验证成功' : '凭证验证失败'"
-        :sub-title="verifyResult ? '此凭证签名有效且未过期' : '此凭证签名无效或已过期'"
+        :sub-title="
+          verifyResult ? '此凭证签名有效且未过期' : '此凭证签名无效或已过期'
+        "
       />
     </a-modal>
 
@@ -418,10 +375,7 @@
     >
       <a-tabs v-model:active-key="templateManagerTab">
         <!-- 模板列表 -->
-        <a-tab-pane
-          key="list"
-          tab="模板列表"
-        >
+        <a-tab-pane key="list" tab="模板列表">
           <a-space style="margin-bottom: 16px">
             <a-button @click="handleImportTemplate">
               <template #icon>
@@ -445,7 +399,7 @@
             :columns="templateColumns"
             :row-selection="{
               selectedRowKeys: selectedTemplateIds,
-              onChange: onTemplateSelectionChange
+              onChange: onTemplateSelectionChange,
             }"
             :pagination="{ pageSize: 10 }"
             row-key="id"
@@ -484,21 +438,14 @@
         </a-tab-pane>
 
         <!-- 导入结果 -->
-        <a-tab-pane
-          v-if="lastImportResult"
-          key="import-result"
-          tab="导入结果"
-        >
+        <a-tab-pane v-if="lastImportResult" key="import-result" tab="导入结果">
           <a-result
             :status="lastImportResult.failed === 0 ? 'success' : 'warning'"
             :title="lastImportResult.failed === 0 ? '导入成功' : '部分导入成功'"
             :sub-title="`成功: ${lastImportResult.success} 个，失败: ${lastImportResult.failed} 个`"
           >
             <template #extra>
-              <a-space
-                direction="vertical"
-                style="width: 100%"
-              >
+              <a-space direction="vertical" style="width: 100%">
                 <div v-if="lastImportResult.imported.length > 0">
                   <h4>成功导入的模板:</h4>
                   <a-tag
@@ -535,7 +482,7 @@
         accept=".json"
         style="display: none"
         @change="handleFileSelected"
-      >
+      />
     </a-modal>
 
     <!-- 凭证分享模态框 -->
@@ -545,10 +492,7 @@
       :width="500"
       :footer="null"
     >
-      <div
-        v-if="shareData"
-        class="share-content"
-      >
+      <div v-if="shareData" class="share-content">
         <a-alert
           message="扫描二维码或复制链接分享凭证"
           type="info"
@@ -558,48 +502,27 @@
 
         <!-- 二维码 -->
         <div class="qrcode-container">
-          <canvas
-            ref="qrcodeCanvas"
-            style="display: none"
-          />
-          <img
-            :src="qrcodeImage"
-            alt="QR Code"
-            style="max-width: 100%"
-          >
+          <canvas ref="qrcodeCanvas" style="display: none" />
+          <img :src="qrcodeImage" alt="QR Code" style="max-width: 100%" />
         </div>
 
         <!-- 分享链接 -->
-        <a-input-group
-          compact
-          style="margin-top: 16px"
-        >
+        <a-input-group compact style="margin-top: 16px">
           <a-input
             :value="shareData.shareUrl"
             readonly
             style="width: calc(100% - 80px)"
           />
-          <a-button
-            type="primary"
-            @click="copyShareUrl"
-          >
-            复制链接
-          </a-button>
+          <a-button type="primary" @click="copyShareUrl"> 复制链接 </a-button>
         </a-input-group>
 
         <!-- JSON 数据 -->
         <a-collapse style="margin-top: 16px">
-          <a-collapse-panel
-            key="1"
-            header="查看 JSON 数据"
-          >
-            <pre class="json-data">{{ JSON.stringify(shareData.fullData, null, 2) }}</pre>
-            <a-button
-              block
-              @click="copyShareJson"
-            >
-              复制 JSON
-            </a-button>
+          <a-collapse-panel key="1" header="查看 JSON 数据">
+            <pre class="json-data">{{
+              JSON.stringify(shareData.fullData, null, 2)
+            }}</pre>
+            <a-button block @click="copyShareJson"> 复制 JSON </a-button>
           </a-collapse-panel>
         </a-collapse>
       </div>
@@ -614,10 +537,7 @@
       @ok="handleImportShare"
     >
       <a-tabs v-model:active-key="importMethod">
-        <a-tab-pane
-          key="qrcode"
-          tab="扫描二维码"
-        >
+        <a-tab-pane key="qrcode" tab="扫描二维码">
           <div class="import-qrcode">
             <a-alert
               message="请将二维码对准摄像头"
@@ -625,17 +545,11 @@
               show-icon
               style="margin-bottom: 16px"
             />
-            <div
-              ref="qrScannerContainer"
-              class="qr-scanner"
-            />
+            <div ref="qrScannerContainer" class="qr-scanner" />
           </div>
         </a-tab-pane>
 
-        <a-tab-pane
-          key="json"
-          tab="粘贴 JSON"
-        >
+        <a-tab-pane key="json" tab="粘贴 JSON">
           <a-textarea
             v-model:value="importJsonText"
             placeholder="粘贴凭证 JSON 数据"
@@ -648,24 +562,24 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, nextTick } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted, nextTick } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   PlusOutlined,
   FolderOpenOutlined,
   ImportOutlined,
   ExportOutlined,
   ScanOutlined,
-} from '@ant-design/icons-vue';
-import QRCode from 'qrcode';
+} from "@ant-design/icons-vue";
+import QRCode from "qrcode";
 
 const loading = ref(false);
 const creating = ref(false);
 const credentials = ref([]);
-const activeTab = ref('issued');
-const currentDID = ref('');
+const activeTab = ref("issued");
+const currentDID = ref("");
 
 // 统计信息
 const stats = reactive({
@@ -687,14 +601,14 @@ const currentCredential = ref(null);
 
 // 创建表单
 const createForm = reactive({
-  type: 'SelfDeclaration',
-  subjectDID: '',
-  claimsText: '',
+  type: "SelfDeclaration",
+  subjectDID: "",
+  claimsText: "",
   expiresInDays: 0,
 });
 
 // 模板相关
-const createMode = ref('template');
+const createMode = ref("template");
 const loadingTemplates = ref(false);
 const templates = ref([]);
 const selectedTemplateId = ref(null);
@@ -703,61 +617,65 @@ const templateValues = reactive({});
 
 // 内置模板和自定义模板
 const builtInTemplates = computed(() => {
-  return templates.value.filter((t) => t.isBuiltIn || t.id.startsWith('built-in:'));
+  return templates.value.filter(
+    (t) => t.isBuiltIn || t.id.startsWith("built-in:"),
+  );
 });
 
 const customTemplates = computed(() => {
-  return templates.value.filter((t) => !t.isBuiltIn && !t.id.startsWith('built-in:'));
+  return templates.value.filter(
+    (t) => !t.isBuiltIn && !t.id.startsWith("built-in:"),
+  );
 });
 
 // 模板管理相关
-const templateManagerTab = ref('list');
+const templateManagerTab = ref("list");
 const selectedTemplateIds = ref([]);
 const fileInput = ref(null);
 const lastImportResult = ref(null);
 
 const templateColumns = [
   {
-    title: '模板名称',
-    key: 'name',
-    dataIndex: 'name',
+    title: "模板名称",
+    key: "name",
+    dataIndex: "name",
   },
   {
-    title: '凭证类型',
-    key: 'type',
-    dataIndex: 'type',
+    title: "凭证类型",
+    key: "type",
+    dataIndex: "type",
   },
   {
-    title: '字段数量',
-    key: 'fieldCount',
+    title: "字段数量",
+    key: "fieldCount",
   },
   {
-    title: '使用次数',
-    key: 'usage_count',
-    dataIndex: 'usage_count',
+    title: "使用次数",
+    key: "usage_count",
+    dataIndex: "usage_count",
   },
   {
-    title: '操作',
-    key: 'actions',
+    title: "操作",
+    key: "actions",
   },
 ];
 
 // 凭证分享相关
 const showShareModal = ref(false);
 const shareData = ref(null);
-const qrcodeImage = ref('');
+const qrcodeImage = ref("");
 const qrcodeCanvas = ref(null);
 
 // 凭证导入相关
 const showImportShareModal = ref(false);
 const importing = ref(false);
-const importMethod = ref('json');
-const importJsonText = ref('');
+const importMethod = ref("json");
+const importJsonText = ref("");
 const qrScannerContainer = ref(null);
 
 // 显示的凭证列表
 const displayCredentials = computed(() => {
-  if (activeTab.value === 'issued') {
+  if (activeTab.value === "issued") {
     return credentials.value.filter((c) => c.issuer_did === currentDID.value);
   } else {
     return credentials.value.filter((c) => c.subject_did === currentDID.value);
@@ -772,10 +690,12 @@ async function loadCredentials() {
     credentials.value = result;
 
     // 加载统计信息
-    const statsResult = await window.electronAPI.vc.getStatistics(currentDID.value);
+    const statsResult = await window.electronAPI.vc.getStatistics(
+      currentDID.value,
+    );
     Object.assign(stats, statsResult);
   } catch (error) {
-    message.error('加载凭证失败: ' + error.message);
+    message.error("加载凭证失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -788,7 +708,7 @@ async function loadTemplates() {
     const result = await window.electronAPI.vcTemplate.getAll();
     templates.value = result;
   } catch (error) {
-    message.error('加载模板失败: ' + error.message);
+    message.error("加载模板失败: " + error.message);
   } finally {
     loadingTemplates.value = false;
   }
@@ -799,8 +719,8 @@ function handleCreateModeChange() {
   // 清空表单
   selectedTemplateId.value = null;
   selectedTemplate.value = null;
-  Object.keys(templateValues).forEach(key => delete templateValues[key]);
-  createForm.claimsText = '';
+  Object.keys(templateValues).forEach((key) => delete templateValues[key]);
+  createForm.claimsText = "";
 }
 
 // 处理模板选择
@@ -810,11 +730,11 @@ async function handleTemplateChange(templateId) {
     selectedTemplate.value = template;
 
     // 清空旧值
-    Object.keys(templateValues).forEach(key => delete templateValues[key]);
+    Object.keys(templateValues).forEach((key) => delete templateValues[key]);
 
     // 设置默认值
     if (template && template.fields) {
-      template.fields.forEach(field => {
+      template.fields.forEach((field) => {
         if (field.defaultValue !== undefined) {
           templateValues[field.key] = field.defaultValue;
         }
@@ -826,23 +746,23 @@ async function handleTemplateChange(templateId) {
       createForm.type = template.type;
     }
   } catch (error) {
-    message.error('加载模板详情失败: ' + error.message);
+    message.error("加载模板详情失败: " + error.message);
   }
 }
 
 // 创建凭证
 async function handleCreateCredential() {
   if (!createForm.subjectDID) {
-    message.warning('请填写主体 DID');
+    message.warning("请填写主体 DID");
     return;
   }
 
   let claims;
 
   // 模板模式
-  if (createMode.value === 'template') {
+  if (createMode.value === "template") {
     if (!selectedTemplateId.value) {
-      message.warning('请选择模板');
+      message.warning("请选择模板");
       return;
     }
 
@@ -850,19 +770,21 @@ async function handleCreateCredential() {
       // 使用模板填充值
       claims = await window.electronAPI.vcTemplate.fillValues(
         selectedTemplateId.value,
-        templateValues
+        templateValues,
       );
 
       // 增加模板使用次数
-      await window.electronAPI.vcTemplate.incrementUsage(selectedTemplateId.value);
+      await window.electronAPI.vcTemplate.incrementUsage(
+        selectedTemplateId.value,
+      );
     } catch (error) {
-      message.error('填充模板值失败: ' + error.message);
+      message.error("填充模板值失败: " + error.message);
       return;
     }
   } else {
     // 手动输入模式
     if (!createForm.claimsText) {
-      message.warning('请填写声明内容');
+      message.warning("请填写声明内容");
       return;
     }
 
@@ -870,7 +792,7 @@ async function handleCreateCredential() {
     try {
       claims = JSON.parse(createForm.claimsText);
     } catch (error) {
-      message.error('声明内容必须是有效的 JSON 格式');
+      message.error("声明内容必须是有效的 JSON 格式");
       return;
     }
   }
@@ -882,25 +804,28 @@ async function handleCreateCredential() {
       issuerDID: currentDID.value,
       subjectDID: createForm.subjectDID,
       claims,
-      expiresIn: createForm.expiresInDays > 0 ? createForm.expiresInDays * 24 * 60 * 60 * 1000 : null,
+      expiresIn:
+        createForm.expiresInDays > 0
+          ? createForm.expiresInDays * 24 * 60 * 60 * 1000
+          : null,
     };
 
     await window.electronAPI.vc.create(params);
-    message.success('凭证已颁发');
+    message.success("凭证已颁发");
 
     // 重置表单
-    createForm.type = 'SelfDeclaration';
-    createForm.subjectDID = '';
-    createForm.claimsText = '';
+    createForm.type = "SelfDeclaration";
+    createForm.subjectDID = "";
+    createForm.claimsText = "";
     createForm.expiresInDays = 0;
     selectedTemplateId.value = null;
     selectedTemplate.value = null;
-    Object.keys(templateValues).forEach(key => delete templateValues[key]);
+    Object.keys(templateValues).forEach((key) => delete templateValues[key]);
 
     showCreateModal.value = false;
     await loadCredentials();
   } catch (error) {
-    message.error('颁发凭证失败: ' + error.message);
+    message.error("颁发凭证失败: " + error.message);
   } finally {
     creating.value = false;
   }
@@ -920,25 +845,25 @@ async function handleVerifyCredential(id) {
     verifyResult.value = result;
     showVerifyModal.value = true;
   } catch (error) {
-    message.error('验证失败: ' + error.message);
+    message.error("验证失败: " + error.message);
   }
 }
 
 // 撤销凭证
 function handleRevokeCredential(id) {
   Modal.confirm({
-    title: '确认撤销',
-    content: '撤销后，此凭证将失效且无法恢复，确定要继续吗？',
-    okText: '确定',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认撤销",
+    content: "撤销后，此凭证将失效且无法恢复，确定要继续吗？",
+    okText: "确定",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         await window.electronAPI.vc.revoke(id, currentDID.value);
-        message.success('凭证已撤销');
+        message.success("凭证已撤销");
         await loadCredentials();
       } catch (error) {
-        message.error('撤销失败: ' + error.message);
+        message.error("撤销失败: " + error.message);
       }
     },
   });
@@ -949,28 +874,28 @@ async function handleExportCredential(id) {
   try {
     const vcDocument = await window.electronAPI.vc.export(id);
     const blob = new Blob([JSON.stringify(vcDocument, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `vc-${id.split(':').pop()}.json`;
+    a.download = `vc-${id.split(":").pop()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    message.success('凭证已导出');
+    message.success("凭证已导出");
   } catch (error) {
-    message.error('导出失败: ' + error.message);
+    message.error("导出失败: " + error.message);
   }
 }
 
 // 获取类型名称
 function getTypeName(type) {
   const names = {
-    SelfDeclaration: '自我声明',
-    SkillCertificate: '技能证书',
-    TrustEndorsement: '信任背书',
-    EducationCredential: '教育凭证',
-    WorkExperience: '工作经历',
+    SelfDeclaration: "自我声明",
+    SkillCertificate: "技能证书",
+    TrustEndorsement: "信任背书",
+    EducationCredential: "教育凭证",
+    WorkExperience: "工作经历",
   };
   return names[type] || type;
 }
@@ -978,9 +903,9 @@ function getTypeName(type) {
 // 获取状态标签
 function getStatusLabel(status) {
   const labels = {
-    active: '有效',
-    revoked: '已撤销',
-    expired: '已过期',
+    active: "有效",
+    revoked: "已撤销",
+    expired: "已过期",
   };
   return labels[status] || status;
 }
@@ -988,21 +913,23 @@ function getStatusLabel(status) {
 // 获取状态颜色
 function getStatusColor(status) {
   const colors = {
-    active: 'success',
-    revoked: 'error',
-    expired: 'default',
+    active: "success",
+    revoked: "error",
+    expired: "default",
   };
-  return colors[status] || 'default';
+  return colors[status] || "default";
 }
 
 // 缩短 DID
 function shortenDID(did) {
-  if (!did) {return '';}
-  const parts = did.split(':');
+  if (!did) {
+    return "";
+  }
+  const parts = did.split(":");
   if (parts.length === 3) {
     const identifier = parts[2];
     return `did:${parts[1]}:${identifier.substring(0, 8)}...${identifier.substring(
-      identifier.length - 6
+      identifier.length - 6,
     )}`;
   }
   return did;
@@ -1010,9 +937,11 @@ function shortenDID(did) {
 
 // 格式化日期
 function formatDate(timestamp) {
-  if (!timestamp) {return '未知';}
+  if (!timestamp) {
+    return "未知";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 }
 
 // 格式化 JSON
@@ -1037,10 +966,10 @@ async function handleExportSingleTemplate(id) {
 
     // 下载为 JSON 文件
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `template-${template.name}.json`;
     document.body.appendChild(a);
@@ -1048,30 +977,30 @@ async function handleExportSingleTemplate(id) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    message.success('模板已导出');
+    message.success("模板已导出");
   } catch (error) {
-    message.error('导出失败: ' + error.message);
+    message.error("导出失败: " + error.message);
   }
 }
 
 // 导出选中的模板
 async function handleExportSelectedTemplates() {
   if (selectedTemplateIds.value.length === 0) {
-    message.warning('请选择要导出的模板');
+    message.warning("请选择要导出的模板");
     return;
   }
 
   try {
     const exportData = await window.electronAPI.vcTemplate.exportMultiple(
-      selectedTemplateIds.value
+      selectedTemplateIds.value,
     );
 
     // 下载为 JSON 文件
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json',
+      type: "application/json",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `templates-${exportData.count}.json`;
     document.body.appendChild(a);
@@ -1082,7 +1011,7 @@ async function handleExportSelectedTemplates() {
     message.success(`已导出 ${exportData.count} 个模板`);
     selectedTemplateIds.value = [];
   } catch (error) {
-    message.error('导出失败: ' + error.message);
+    message.error("导出失败: " + error.message);
   }
 }
 
@@ -1094,7 +1023,9 @@ function handleImportTemplate() {
 // 文件选择处理
 async function handleFileSelected(event) {
   const file = event.target.files[0];
-  if (!file) {return;}
+  if (!file) {
+    return;
+  }
 
   try {
     const text = await file.text();
@@ -1102,22 +1033,22 @@ async function handleFileSelected(event) {
 
     // 显示确认对话框
     Modal.confirm({
-      title: '确认导入',
+      title: "确认导入",
       content: importData.template
         ? `将导入模板: ${importData.template.name}`
         : `将导入 ${importData.templates?.length || 0} 个模板`,
-      okText: '导入',
-      cancelText: '取消',
+      okText: "导入",
+      cancelText: "取消",
       onOk: async () => {
         await performImport(importData);
       },
     });
   } catch (error) {
-    message.error('读取文件失败: ' + error.message);
+    message.error("读取文件失败: " + error.message);
   }
 
   // 清空文件输入
-  event.target.value = '';
+  event.target.value = "";
 }
 
 // 执行导入
@@ -1126,11 +1057,11 @@ async function performImport(importData) {
     const result = await window.electronAPI.vcTemplate.import(
       importData,
       currentDID.value,
-      { overwrite: false }
+      { overwrite: false },
     );
 
     lastImportResult.value = result;
-    templateManagerTab.value = 'import-result';
+    templateManagerTab.value = "import-result";
 
     // 重新加载模板列表
     await loadTemplates();
@@ -1139,29 +1070,29 @@ async function performImport(importData) {
       message.success(`成功导入 ${result.success} 个模板`);
     } else {
       message.warning(
-        `部分导入成功: ${result.success} 个成功，${result.failed} 个失败`
+        `部分导入成功: ${result.success} 个成功，${result.failed} 个失败`,
       );
     }
   } catch (error) {
-    message.error('导入失败: ' + error.message);
+    message.error("导入失败: " + error.message);
   }
 }
 
 // 删除模板
 function handleDeleteTemplate(id) {
   Modal.confirm({
-    title: '确认删除',
-    content: '删除后将无法恢复，确定要继续吗？',
-    okText: '确定',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认删除",
+    content: "删除后将无法恢复，确定要继续吗？",
+    okText: "确定",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         await window.electronAPI.vcTemplate.delete(id);
-        message.success('模板已删除');
+        message.success("模板已删除");
         await loadTemplates();
       } catch (error) {
-        message.error('删除失败: ' + error.message);
+        message.error("删除失败: " + error.message);
       }
     },
   });
@@ -1170,7 +1101,7 @@ function handleDeleteTemplate(id) {
 // 分享凭证
 async function handleShareCredential(id) {
   try {
-    logger.info('[VCManagement] 生成分享数据:', id);
+    logger.info("[VCManagement] 生成分享数据:", id);
 
     // 生成分享数据
     const data = await window.electronAPI.vc.generateShareData(id);
@@ -1185,16 +1116,16 @@ async function handleShareCredential(id) {
           width: 300,
           margin: 2,
           color: {
-            dark: '#000000',
-            light: '#FFFFFF',
+            dark: "#000000",
+            light: "#FFFFFF",
           },
         });
 
         // 转换为图片URL
         qrcodeImage.value = qrcodeCanvas.value.toDataURL();
       } catch (error) {
-        logger.error('[VCManagement] 生成二维码失败:', error);
-        message.error('生成二维码失败');
+        logger.error("[VCManagement] 生成二维码失败:", error);
+        message.error("生成二维码失败");
         return;
       }
     }
@@ -1202,78 +1133,84 @@ async function handleShareCredential(id) {
     // 显示分享模态框
     showShareModal.value = true;
 
-    logger.info('[VCManagement] 分享数据已生成');
+    logger.info("[VCManagement] 分享数据已生成");
   } catch (error) {
-    logger.error('[VCManagement] 生成分享数据失败:', error);
-    message.error('生成分享数据失败: ' + error.message);
+    logger.error("[VCManagement] 生成分享数据失败:", error);
+    message.error("生成分享数据失败: " + error.message);
   }
 }
 
 // 复制分享链接
 function copyShareUrl() {
-  if (!shareData.value) {return;}
+  if (!shareData.value) {
+    return;
+  }
 
-  navigator.clipboard.writeText(shareData.value.shareUrl)
+  navigator.clipboard
+    .writeText(shareData.value.shareUrl)
     .then(() => {
-      message.success('链接已复制到剪贴板');
+      message.success("链接已复制到剪贴板");
     })
     .catch((error) => {
-      logger.error('[VCManagement] 复制链接失败:', error);
-      message.error('复制链接失败');
+      logger.error("[VCManagement] 复制链接失败:", error);
+      message.error("复制链接失败");
     });
 }
 
 // 复制分享JSON
 function copyShareJson() {
-  if (!shareData.value) {return;}
+  if (!shareData.value) {
+    return;
+  }
 
   const jsonText = JSON.stringify(shareData.value.fullData, null, 2);
-  navigator.clipboard.writeText(jsonText)
+  navigator.clipboard
+    .writeText(jsonText)
     .then(() => {
-      message.success('JSON数据已复制到剪贴板');
+      message.success("JSON数据已复制到剪贴板");
     })
     .catch((error) => {
-      logger.error('[VCManagement] 复制JSON失败:', error);
-      message.error('复制JSON失败');
+      logger.error("[VCManagement] 复制JSON失败:", error);
+      message.error("复制JSON失败");
     });
 }
 
 // 导入分享凭证
 async function handleImportShare() {
   if (!importJsonText.value.trim()) {
-    message.warning('请粘贴凭证JSON数据');
+    message.warning("请粘贴凭证JSON数据");
     return;
   }
 
   importing.value = true;
   try {
-    logger.info('[VCManagement] 导入分享凭证...');
+    logger.info("[VCManagement] 导入分享凭证...");
 
     // 解析JSON
     let shareData;
     try {
       shareData = JSON.parse(importJsonText.value);
     } catch (error) {
-      message.error('JSON格式错误，请检查数据');
+      message.error("JSON格式错误，请检查数据");
       return;
     }
 
     // 导入凭证
     const result = await window.electronAPI.vc.importFromShare(shareData);
 
-    message.success('凭证已成功导入');
-    logger.info('[VCManagement] 凭证已导入:', result.id);
+    message.success("凭证已成功导入");
+    logger.info("[VCManagement] 凭证已导入:", result.id);
 
     // 关闭模态框并刷新列表
     showImportShareModal.value = false;
-    importJsonText.value = '';
-    importMethod.value = 'json';
+    importJsonText.value = "";
+    importMethod.value = "json";
 
     // 重新加载凭证列表
     await loadCredentials();
   } catch (error) {
-    logger.error('[VCManagement] 导入凭证失败:', error);
-    message.error('导入失败: ' + error.message);
+    logger.error("[VCManagement] 导入凭证失败:", error);
+    message.error("导入失败: " + error.message);
   } finally {
     importing.value = false;
   }

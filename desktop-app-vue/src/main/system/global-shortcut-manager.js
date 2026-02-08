@@ -3,7 +3,7 @@
  * 管理Electron全局快捷键
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { globalShortcut, app } = require("electron");
 const fs = require("fs");
 const path = require("path");

@@ -3,10 +3,7 @@
     <a-card title="我的资产">
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             <template #icon>
               <plus-outlined />
             </template>
@@ -22,15 +19,9 @@
       </template>
 
       <!-- 资产统计 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <a-col :span="6">
-          <a-statistic
-            title="资产总数"
-            :value="statistics.total"
-          >
+          <a-statistic title="资产总数" :value="statistics.total">
             <template #prefix>
               <wallet-outlined />
             </template>
@@ -59,10 +50,7 @@
           </a-statistic>
         </a-col>
         <a-col :span="6">
-          <a-statistic
-            title="其他"
-            :value="statistics.other"
-          >
+          <a-statistic title="其他" :value="statistics.other">
             <template #prefix>
               <appstore-outlined />
             </template>
@@ -71,10 +59,7 @@
       </a-row>
 
       <!-- 搜索和筛选器 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
@@ -94,21 +79,11 @@
               button-style="solid"
               @change="handleFilterChange"
             >
-              <a-radio-button value="">
-                全部
-              </a-radio-button>
-              <a-radio-button value="token">
-                Token
-              </a-radio-button>
-              <a-radio-button value="nft">
-                NFT
-              </a-radio-button>
-              <a-radio-button value="knowledge">
-                知识产品
-              </a-radio-button>
-              <a-radio-button value="service">
-                服务凭证
-              </a-radio-button>
+              <a-radio-button value=""> 全部 </a-radio-button>
+              <a-radio-button value="token"> Token </a-radio-button>
+              <a-radio-button value="nft"> NFT </a-radio-button>
+              <a-radio-button value="knowledge"> 知识产品 </a-radio-button>
+              <a-radio-button value="service"> 服务凭证 </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-col>
@@ -143,7 +118,9 @@
         <!-- 空状态 -->
         <a-empty
           v-if="!loading && filteredAssets.length === 0"
-          :description="searchKeyword || filterType ? '没有找到匹配的资产' : '暂无资产'"
+          :description="
+            searchKeyword || filterType ? '没有找到匹配的资产' : '暂无资产'
+          "
         >
           <a-button
             v-if="!searchKeyword && !filterType"
@@ -173,7 +150,11 @@
     <asset-detail
       :open="showDetailDrawer"
       :asset="selectedAsset"
-      :balance="selectedAsset ? (balances[selectedAsset.id] || selectedAsset.total_supply || 0) : 0"
+      :balance="
+        selectedAsset
+          ? balances[selectedAsset.id] || selectedAsset.total_supply || 0
+          : 0
+      "
       :current-user-did="props.ownerDid || tradeStore.ui.selectedDid"
       @close="showDetailDrawer = false"
       @transfer="handleTransfer"
@@ -192,18 +173,15 @@
     />
 
     <!-- 资产二维码对话框 -->
-    <asset-qr-modal
-      v-model:open="showQRModal"
-      :asset="selectedAsset"
-    />
+    <asset-qr-modal v-model:open="showQRModal" :asset="selectedAsset" />
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted } from 'vue';
-import { message as antMessage, Modal } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { message as antMessage, Modal } from "ant-design-vue";
 import {
   PlusOutlined,
   ReloadOutlined,
@@ -212,20 +190,20 @@ import {
   PictureOutlined,
   AppstoreOutlined,
   SearchOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import AssetCard from './common/AssetCard.vue';
-import AssetCreate from './AssetCreate.vue';
-import AssetTransfer from './AssetTransfer.vue';
-import AssetDetail from './AssetDetail.vue';
-import AssetHistory from './AssetHistory.vue';
-import AssetQRModal from './AssetQRModal.vue';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import AssetCard from "./common/AssetCard.vue";
+import AssetCreate from "./AssetCreate.vue";
+import AssetTransfer from "./AssetTransfer.vue";
+import AssetDetail from "./AssetDetail.vue";
+import AssetHistory from "./AssetHistory.vue";
+import AssetQRModal from "./AssetQRModal.vue";
 
 // Props
 const props = defineProps({
   ownerDid: {
     type: String,
-    default: '',
+    default: "",
   },
 });
 
@@ -233,8 +211,8 @@ const props = defineProps({
 const tradeStore = useTradeStore();
 
 // 本地状态
-const searchKeyword = ref('');
-const filterType = ref('');
+const searchKeyword = ref("");
+const filterType = ref("");
 const showCreateModal = ref(false);
 const showTransferModal = ref(false);
 const showDetailDrawer = ref(false);
@@ -252,9 +230,10 @@ const statistics = computed(() => {
   const assetList = assets.value;
   return {
     total: assetList.length,
-    token: assetList.filter(a => a.asset_type === 'token').length,
-    nft: assetList.filter(a => a.asset_type === 'nft').length,
-    other: assetList.filter(a => !['token', 'nft'].includes(a.asset_type)).length,
+    token: assetList.filter((a) => a.asset_type === "token").length,
+    nft: assetList.filter((a) => a.asset_type === "nft").length,
+    other: assetList.filter((a) => !["token", "nft"].includes(a.asset_type))
+      .length,
   };
 });
 
@@ -264,22 +243,22 @@ const filteredAssets = computed(() => {
 
   // 类型筛选
   if (filterType.value) {
-    result = result.filter(a => a.asset_type === filterType.value);
+    result = result.filter((a) => a.asset_type === filterType.value);
   }
 
   // 搜索筛选
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(a =>
-      a.name?.toLowerCase().includes(keyword) ||
-      a.symbol?.toLowerCase().includes(keyword) ||
-      a.description?.toLowerCase().includes(keyword)
+    result = result.filter(
+      (a) =>
+        a.name?.toLowerCase().includes(keyword) ||
+        a.symbol?.toLowerCase().includes(keyword) ||
+        a.description?.toLowerCase().includes(keyword),
     );
   }
 
   return result;
 });
-
 
 // 加载资产列表
 const loadAssets = async () => {
@@ -290,7 +269,7 @@ const loadAssets = async () => {
       // 尝试获取当前身份
       const identity = await window.electronAPI.did.getCurrentIdentity();
       if (!identity) {
-        antMessage.warning('请先创建或选择身份');
+        antMessage.warning("请先创建或选择身份");
         return;
       }
       await tradeStore.loadMyAssets(identity.did);
@@ -298,10 +277,10 @@ const loadAssets = async () => {
       await tradeStore.loadMyAssets(ownerDid);
     }
 
-    logger.info('[AssetList] 资产列表已加载:', assets.value.length);
+    logger.info("[AssetList] 资产列表已加载:", assets.value.length);
   } catch (error) {
-    logger.error('[AssetList] 加载资产列表失败:', error);
-    antMessage.error('加载资产列表失败: ' + error.message);
+    logger.error("[AssetList] 加载资产列表失败:", error);
+    antMessage.error("加载资产列表失败: " + error.message);
   }
 };
 
@@ -313,7 +292,7 @@ const handleFilterChange = () => {
 // 资产创建成功
 const handleAssetCreated = async (asset) => {
   await loadAssets();
-  antMessage.success('资产创建成功');
+  antMessage.success("资产创建成功");
 };
 
 // AssetCard 事件处理
@@ -329,25 +308,25 @@ const handleTransfer = (asset) => {
 
 const handleMint = (asset) => {
   Modal.confirm({
-    title: '铸造资产',
-    content: '确定要铸造更多资产吗？这将增加总供应量。',
-    okText: '确定',
-    cancelText: '取消',
+    title: "铸造资产",
+    content: "确定要铸造更多资产吗？这将增加总供应量。",
+    okText: "确定",
+    cancelText: "取消",
     onOk() {
-      antMessage.info('铸造功能即将开放');
+      antMessage.info("铸造功能即将开放");
     },
   });
 };
 
 const handleBurn = (asset) => {
   Modal.confirm({
-    title: '销毁资产',
+    title: "销毁资产",
     content: `确定要销毁 ${asset.name} 吗？销毁后无法恢复！`,
-    okText: '确定销毁',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "确定销毁",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
-      antMessage.info('销毁功能即将开放');
+      antMessage.info("销毁功能即将开放");
     },
   });
 };
@@ -365,7 +344,7 @@ const handleShowQR = (asset) => {
 // 转账成功
 const handleTransferred = async () => {
   await loadAssets();
-  antMessage.success('转账成功');
+  antMessage.success("转账成功");
 };
 
 // 生命周期

@@ -4,9 +4,7 @@
     <div class="page-header">
       <div class="header-left">
         <h2>模板管理</h2>
-        <a-tag color="blue">
-          {{ templateStats.total || 0 }} 个模板
-        </a-tag>
+        <a-tag color="blue"> {{ templateStats.total || 0 }} 个模板 </a-tag>
       </div>
       <div class="header-right">
         <a-space>
@@ -16,10 +14,7 @@
             style="width: 300px"
             @search="handleSearch"
           />
-          <a-button
-            type="primary"
-            @click="showCreateModal"
-          >
+          <a-button type="primary" @click="showCreateModal">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -45,87 +40,33 @@
           style="width: 150px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部分类
-          </a-select-option>
-          <a-select-option value="writing">
-            写作
-          </a-select-option>
-          <a-select-option value="ppt">
-            PPT演示
-          </a-select-option>
-          <a-select-option value="excel">
-            Excel数据
-          </a-select-option>
-          <a-select-option value="web">
-            网页开发
-          </a-select-option>
-          <a-select-option value="design">
-            设计
-          </a-select-option>
-          <a-select-option value="podcast">
-            播客
-          </a-select-option>
-          <a-select-option value="resume">
-            简历
-          </a-select-option>
-          <a-select-option value="research">
-            研究
-          </a-select-option>
-          <a-select-option value="marketing">
-            营销
-          </a-select-option>
-          <a-select-option value="education">
-            教育
-          </a-select-option>
-          <a-select-option value="lifestyle">
-            生活
-          </a-select-option>
-          <a-select-option value="travel">
-            旅游
-          </a-select-option>
-          <a-select-option value="video">
-            视频
-          </a-select-option>
-          <a-select-option value="social-media">
-            社交媒体
-          </a-select-option>
-          <a-select-option value="code-project">
-            代码项目
-          </a-select-option>
-          <a-select-option value="creative-writing">
-            创意写作
-          </a-select-option>
-          <a-select-option value="data-science">
-            数据科学
-          </a-select-option>
-          <a-select-option value="ecommerce">
-            电商
-          </a-select-option>
-          <a-select-option value="health">
-            健康
-          </a-select-option>
-          <a-select-option value="learning">
-            学习
-          </a-select-option>
-          <a-select-option value="legal">
-            法律
-          </a-select-option>
-          <a-select-option value="time-management">
-            时间管理
-          </a-select-option>
-          <a-select-option value="tech-docs">
-            技术文档
-          </a-select-option>
-          <a-select-option value="productivity">
-            效率
-          </a-select-option>
-          <a-select-option value="career">
-            职业
-          </a-select-option>
-          <a-select-option value="marketing-pro">
-            营销推广
-          </a-select-option>
+          <a-select-option value=""> 全部分类 </a-select-option>
+          <a-select-option value="writing"> 写作 </a-select-option>
+          <a-select-option value="ppt"> PPT演示 </a-select-option>
+          <a-select-option value="excel"> Excel数据 </a-select-option>
+          <a-select-option value="web"> 网页开发 </a-select-option>
+          <a-select-option value="design"> 设计 </a-select-option>
+          <a-select-option value="podcast"> 播客 </a-select-option>
+          <a-select-option value="resume"> 简历 </a-select-option>
+          <a-select-option value="research"> 研究 </a-select-option>
+          <a-select-option value="marketing"> 营销 </a-select-option>
+          <a-select-option value="education"> 教育 </a-select-option>
+          <a-select-option value="lifestyle"> 生活 </a-select-option>
+          <a-select-option value="travel"> 旅游 </a-select-option>
+          <a-select-option value="video"> 视频 </a-select-option>
+          <a-select-option value="social-media"> 社交媒体 </a-select-option>
+          <a-select-option value="code-project"> 代码项目 </a-select-option>
+          <a-select-option value="creative-writing"> 创意写作 </a-select-option>
+          <a-select-option value="data-science"> 数据科学 </a-select-option>
+          <a-select-option value="ecommerce"> 电商 </a-select-option>
+          <a-select-option value="health"> 健康 </a-select-option>
+          <a-select-option value="learning"> 学习 </a-select-option>
+          <a-select-option value="legal"> 法律 </a-select-option>
+          <a-select-option value="time-management"> 时间管理 </a-select-option>
+          <a-select-option value="tech-docs"> 技术文档 </a-select-option>
+          <a-select-option value="productivity"> 效率 </a-select-option>
+          <a-select-option value="career"> 职业 </a-select-option>
+          <a-select-option value="marketing-pro"> 营销推广 </a-select-option>
         </a-select>
 
         <span>项目类型：</span>
@@ -135,27 +76,13 @@
           style="width: 150px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部类型
-          </a-select-option>
-          <a-select-option value="document">
-            文档
-          </a-select-option>
-          <a-select-option value="presentation">
-            演示文稿
-          </a-select-option>
-          <a-select-option value="spreadsheet">
-            电子表格
-          </a-select-option>
-          <a-select-option value="web">
-            Web应用
-          </a-select-option>
-          <a-select-option value="app">
-            应用程序
-          </a-select-option>
-          <a-select-option value="data">
-            数据分析
-          </a-select-option>
+          <a-select-option value=""> 全部类型 </a-select-option>
+          <a-select-option value="document"> 文档 </a-select-option>
+          <a-select-option value="presentation"> 演示文稿 </a-select-option>
+          <a-select-option value="spreadsheet"> 电子表格 </a-select-option>
+          <a-select-option value="web"> Web应用 </a-select-option>
+          <a-select-option value="app"> 应用程序 </a-select-option>
+          <a-select-option value="data"> 数据分析 </a-select-option>
         </a-select>
 
         <span>来源：</span>
@@ -163,15 +90,9 @@
           v-model:value="filterBuiltin"
           @change="handleFilterChange"
         >
-          <a-radio-button value="">
-            全部
-          </a-radio-button>
-          <a-radio-button :value="1">
-            内置
-          </a-radio-button>
-          <a-radio-button :value="0">
-            自定义
-          </a-radio-button>
+          <a-radio-button value=""> 全部 </a-radio-button>
+          <a-radio-button :value="1"> 内置 </a-radio-button>
+          <a-radio-button :value="0"> 自定义 </a-radio-button>
         </a-radio-group>
       </a-space>
     </div>
@@ -180,28 +101,16 @@
     <div class="stats-bar">
       <a-row :gutter="16">
         <a-col :span="6">
-          <a-statistic
-            title="总模板数"
-            :value="templateStats.total || 0"
-          />
+          <a-statistic title="总模板数" :value="templateStats.total || 0" />
         </a-col>
         <a-col :span="6">
-          <a-statistic
-            title="内置模板"
-            :value="templateStats.builtin || 0"
-          />
+          <a-statistic title="内置模板" :value="templateStats.builtin || 0" />
         </a-col>
         <a-col :span="6">
-          <a-statistic
-            title="自定义模板"
-            :value="templateStats.custom || 0"
-          />
+          <a-statistic title="自定义模板" :value="templateStats.custom || 0" />
         </a-col>
         <a-col :span="6">
-          <a-button
-            type="link"
-            @click="showStatsModal = true"
-          >
+          <a-button type="link" @click="showStatsModal = true">
             查看详细统计
           </a-button>
         </a-col>
@@ -215,7 +124,7 @@
           :columns="columns"
           :data-source="displayTemplates"
           :pagination="pagination"
-          :row-key="record => record.id"
+          :row-key="(record) => record.id"
           @change="handleTableChange"
         >
           <!-- 模板名称 -->
@@ -235,10 +144,7 @@
             <a-tag color="blue">
               {{ getCategoryLabel(record.category) }}
             </a-tag>
-            <a-tag
-              v-if="record.subcategory"
-              color="cyan"
-            >
+            <a-tag v-if="record.subcategory" color="cyan">
               {{ record.subcategory }}
             </a-tag>
           </template>
@@ -253,7 +159,7 @@
           <!-- 来源 -->
           <template #is_builtin="{ record }">
             <a-tag :color="record.is_builtin ? 'green' : 'orange'">
-              {{ record.is_builtin ? '内置' : '自定义' }}
+              {{ record.is_builtin ? "内置" : "自定义" }}
             </a-tag>
           </template>
 
@@ -264,22 +170,16 @@
 
           <!-- 评分 -->
           <template #rating="{ record }">
-            <a-rate
-              :value="record.rating || 0"
-              disabled
-              allow-half
-            />
-            <span style="margin-left: 8px">({{ record.rating_count || 0 }})</span>
+            <a-rate :value="record.rating || 0" disabled allow-half />
+            <span style="margin-left: 8px"
+              >({{ record.rating_count || 0 }})</span
+            >
           </template>
 
           <!-- 操作 -->
           <template #action="{ record }">
             <a-space>
-              <a-button
-                type="link"
-                size="small"
-                @click="viewTemplate(record)"
-              >
+              <a-button type="link" size="small" @click="viewTemplate(record)">
                 <template #icon>
                   <EyeOutlined />
                 </template>
@@ -345,14 +245,8 @@
       />
       <div style="margin-top: 24px; text-align: right">
         <a-space>
-          <a-button @click="closeEditorModal">
-            取消
-          </a-button>
-          <a-button
-            type="primary"
-            :loading="saving"
-            @click="saveTemplate"
-          >
+          <a-button @click="closeEditorModal"> 取消 </a-button>
+          <a-button type="primary" :loading="saving" @click="saveTemplate">
             保存
           </a-button>
         </a-space>
@@ -366,82 +260,62 @@
       width="800px"
       :footer="null"
     >
-      <div
-        v-if="currentTemplate"
-        class="template-detail"
-      >
-        <a-descriptions
-          bordered
-          :column="2"
-        >
+      <div v-if="currentTemplate" class="template-detail">
+        <a-descriptions bordered :column="2">
           <a-descriptions-item label="模板名称">
             {{ currentTemplate.name }}
           </a-descriptions-item>
           <a-descriptions-item label="显示名称">
             {{ currentTemplate.display_name }}
           </a-descriptions-item>
-          <a-descriptions-item
-            label="分类"
-            :span="2"
-          >
+          <a-descriptions-item label="分类" :span="2">
             {{ getCategoryLabel(currentTemplate.category) }}
-            <span v-if="currentTemplate.subcategory"> / {{ currentTemplate.subcategory }}</span>
+            <span v-if="currentTemplate.subcategory">
+              / {{ currentTemplate.subcategory }}</span
+            >
           </a-descriptions-item>
           <a-descriptions-item label="项目类型">
             {{ getProjectTypeLabel(currentTemplate.project_type) }}
           </a-descriptions-item>
           <a-descriptions-item label="来源">
-            {{ currentTemplate.is_builtin ? '内置' : '自定义' }}
+            {{ currentTemplate.is_builtin ? "内置" : "自定义" }}
           </a-descriptions-item>
-          <a-descriptions-item
-            label="作者"
-            :span="2"
-          >
-            {{ currentTemplate.author || '-' }}
+          <a-descriptions-item label="作者" :span="2">
+            {{ currentTemplate.author || "-" }}
           </a-descriptions-item>
           <a-descriptions-item label="版本">
-            {{ currentTemplate.version || '-' }}
+            {{ currentTemplate.version || "-" }}
           </a-descriptions-item>
           <a-descriptions-item label="使用次数">
             {{ currentTemplate.usage_count || 0 }}
           </a-descriptions-item>
-          <a-descriptions-item
-            label="描述"
-            :span="2"
-          >
-            {{ currentTemplate.description || '-' }}
+          <a-descriptions-item label="描述" :span="2">
+            {{ currentTemplate.description || "-" }}
           </a-descriptions-item>
-          <a-descriptions-item
-            label="标签"
-            :span="2"
-          >
-            <a-tag
-              v-for="tag in currentTemplate.tags"
-              :key="tag"
-              color="blue"
-            >
+          <a-descriptions-item label="标签" :span="2">
+            <a-tag v-for="tag in currentTemplate.tags" :key="tag" color="blue">
               {{ tag }}
             </a-tag>
           </a-descriptions-item>
         </a-descriptions>
 
         <a-divider>提示词模板</a-divider>
-        <pre class="template-content">{{ currentTemplate.prompt_template || '无' }}</pre>
+        <pre class="template-content">{{
+          currentTemplate.prompt_template || "无"
+        }}</pre>
 
         <a-divider>变量定义</a-divider>
         <a-table
-          v-if="currentTemplate.variables_schema && currentTemplate.variables_schema.length"
+          v-if="
+            currentTemplate.variables_schema &&
+            currentTemplate.variables_schema.length
+          "
           :columns="variableColumns"
           :data-source="currentTemplate.variables_schema"
           :pagination="false"
           size="small"
         />
-        <div
-          v-else
-          class="empty-text"
-        >
-          未定义变量
-        </div>
+        <div v-else class="empty-text">未定义变量</div>
       </div>
     </a-modal>
 
@@ -454,17 +328,12 @@
     >
       <div class="stats-detail">
         <h4>按分类统计</h4>
-        <a-list
-          :data-source="templateStats.byCategory || []"
-          size="small"
-        >
+        <a-list :data-source="templateStats.byCategory || []" size="small">
           <template #renderItem="{ item }">
             <a-list-item>
               <span>{{ getCategoryLabel(item.category) }}</span>
               <template #extra>
-                <a-tag color="blue">
-                  {{ item.count }} 个
-                </a-tag>
+                <a-tag color="blue"> {{ item.count }} 个 </a-tag>
               </template>
             </a-list-item>
           </template>
@@ -475,315 +344,332 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, watch } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   PlusOutlined,
   ReloadOutlined,
   EyeOutlined,
   EditOutlined,
   CopyOutlined,
-  DeleteOutlined
-} from '@ant-design/icons-vue'
-import { useTemplateStore } from '@/stores/template'
-import TemplateEditor from '@/components/templates/TemplateEditor.vue'
+  DeleteOutlined,
+} from "@ant-design/icons-vue";
+import { useTemplateStore } from "@/stores/template";
+import TemplateEditor from "@/components/templates/TemplateEditor.vue";
 
-const templateStore = useTemplateStore()
+const templateStore = useTemplateStore();
 
 // 状态
-const loading = ref(false)
-const saving = ref(false)
-const searchKeyword = ref('')
-const filterCategory = ref('')
-const filterProjectType = ref('')
-const filterBuiltin = ref('')
+const loading = ref(false);
+const saving = ref(false);
+const searchKeyword = ref("");
+const filterCategory = ref("");
+const filterProjectType = ref("");
+const filterBuiltin = ref("");
 
-const showEditorModal = ref(false)
-const showDetailModal = ref(false)
-const showStatsModal = ref(false)
+const showEditorModal = ref(false);
+const showDetailModal = ref(false);
+const showStatsModal = ref(false);
 
-const editorMode = ref('create') // 'create' or 'edit'
-const currentTemplate = ref(null)
-const editorRef = ref(null)
+const editorMode = ref("create"); // 'create' or 'edit'
+const currentTemplate = ref(null);
+const editorRef = ref(null);
 
 const templateStats = ref({
   total: 0,
   builtin: 0,
   custom: 0,
-  byCategory: []
-})
+  byCategory: [],
+});
 
 // 表格配置
 const columns = [
   {
-    title: '模板名称',
-    dataIndex: 'display_name',
-    key: 'name',
-    width: 200
+    title: "模板名称",
+    dataIndex: "display_name",
+    key: "name",
+    width: 200,
   },
   {
-    title: '分类',
-    dataIndex: 'category',
-    key: 'category',
-    width: 180
-  },
-  {
-    title: '项目类型',
-    dataIndex: 'project_type',
-    key: 'project_type',
-    width: 120
-  },
-  {
-    title: '来源',
-    dataIndex: 'is_builtin',
-    key: 'is_builtin',
-    width: 80
-  },
-  {
-    title: '使用次数',
-    dataIndex: 'usage_count',
-    key: 'usage_count',
-    width: 100,
-    sorter: (a, b) => (a.usage_count || 0) - (b.usage_count || 0)
-  },
-  {
-    title: '评分',
-    dataIndex: 'rating',
-    key: 'rating',
+    title: "分类",
+    dataIndex: "category",
+    key: "category",
     width: 180,
-    sorter: (a, b) => (a.rating || 0) - (b.rating || 0)
   },
   {
-    title: '操作',
-    key: 'action',
+    title: "项目类型",
+    dataIndex: "project_type",
+    key: "project_type",
+    width: 120,
+  },
+  {
+    title: "来源",
+    dataIndex: "is_builtin",
+    key: "is_builtin",
+    width: 80,
+  },
+  {
+    title: "使用次数",
+    dataIndex: "usage_count",
+    key: "usage_count",
+    width: 100,
+    sorter: (a, b) => (a.usage_count || 0) - (b.usage_count || 0),
+  },
+  {
+    title: "评分",
+    dataIndex: "rating",
+    key: "rating",
+    width: 180,
+    sorter: (a, b) => (a.rating || 0) - (b.rating || 0),
+  },
+  {
+    title: "操作",
+    key: "action",
     width: 260,
-    fixed: 'right'
-  }
-]
+    fixed: "right",
+  },
+];
 
 const variableColumns = [
-  { title: '变量名', dataIndex: 'name', key: 'name' },
-  { title: '标签', dataIndex: 'label', key: 'label' },
-  { title: '类型', dataIndex: 'type', key: 'type' },
-  { title: '必填', dataIndex: 'required', key: 'required', customRender: ({ text }) => text ? '是' : '否' },
-  { title: '默认值', dataIndex: 'default', key: 'default' }
-]
+  { title: "变量名", dataIndex: "name", key: "name" },
+  { title: "标签", dataIndex: "label", key: "label" },
+  { title: "类型", dataIndex: "type", key: "type" },
+  {
+    title: "必填",
+    dataIndex: "required",
+    key: "required",
+    customRender: ({ text }) => (text ? "是" : "否"),
+  },
+  { title: "默认值", dataIndex: "default", key: "default" },
+];
 
 const pagination = reactive({
   current: 1,
   pageSize: 10,
   total: 0,
   showSizeChanger: true,
-  showTotal: (total) => `共 ${total} 条`
-})
+  showTotal: (total) => `共 ${total} 条`,
+});
 
 // 计算属性
 const displayTemplates = computed(() => {
-  let templates = templateStore.templates
+  let templates = templateStore.templates;
 
   // 应用筛选
   if (filterCategory.value) {
-    templates = templates.filter(t => t.category === filterCategory.value)
+    templates = templates.filter((t) => t.category === filterCategory.value);
   }
   if (filterProjectType.value) {
-    templates = templates.filter(t => t.project_type === filterProjectType.value)
+    templates = templates.filter(
+      (t) => t.project_type === filterProjectType.value,
+    );
   }
-  if (filterBuiltin.value !== '') {
-    templates = templates.filter(t => t.is_builtin === filterBuiltin.value)
+  if (filterBuiltin.value !== "") {
+    templates = templates.filter((t) => t.is_builtin === filterBuiltin.value);
   }
 
   // 应用搜索
   if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    templates = templates.filter(t =>
-      t.display_name?.toLowerCase().includes(keyword) ||
-      t.name?.toLowerCase().includes(keyword) ||
-      t.description?.toLowerCase().includes(keyword)
-    )
+    const keyword = searchKeyword.value.toLowerCase();
+    templates = templates.filter(
+      (t) =>
+        t.display_name?.toLowerCase().includes(keyword) ||
+        t.name?.toLowerCase().includes(keyword) ||
+        t.description?.toLowerCase().includes(keyword),
+    );
   }
 
-  return templates
-})
+  return templates;
+});
 
-watch(displayTemplates, (templates) => {
-  pagination.total = templates.length
-}, { immediate: true })
+watch(
+  displayTemplates,
+  (templates) => {
+    pagination.total = templates.length;
+  },
+  { immediate: true },
+);
 
 // 方法
 function getCategoryLabel(category) {
   const categoryMap = {
-    writing: '写作',
-    ppt: 'PPT演示',
-    excel: 'Excel数据',
-    web: '网页开发',
-    design: '设计',
-    podcast: '播客',
-    resume: '简历',
-    research: '研究',
-    marketing: '营销',
-    education: '教育',
-    lifestyle: '生活',
-    travel: '旅游',
-    video: '视频',
-    'social-media': '社交媒体',
-    'code-project': '代码项目',
-    'creative-writing': '创意写作',
-    'data-science': '数据科学',
-    ecommerce: '电商',
-    'marketing-pro': '营销推广',
-    health: '健康',
-    learning: '学习',
-    legal: '法律',
-    'time-management': '时间管理',
-    'tech-docs': '技术文档',
-    productivity: '效率',
-    career: '职业'
-  }
-  return categoryMap[category] || category
+    writing: "写作",
+    ppt: "PPT演示",
+    excel: "Excel数据",
+    web: "网页开发",
+    design: "设计",
+    podcast: "播客",
+    resume: "简历",
+    research: "研究",
+    marketing: "营销",
+    education: "教育",
+    lifestyle: "生活",
+    travel: "旅游",
+    video: "视频",
+    "social-media": "社交媒体",
+    "code-project": "代码项目",
+    "creative-writing": "创意写作",
+    "data-science": "数据科学",
+    ecommerce: "电商",
+    "marketing-pro": "营销推广",
+    health: "健康",
+    learning: "学习",
+    legal: "法律",
+    "time-management": "时间管理",
+    "tech-docs": "技术文档",
+    productivity: "效率",
+    career: "职业",
+  };
+  return categoryMap[category] || category;
 }
 
 function getProjectTypeLabel(type) {
   const typeMap = {
-    document: '文档',
-    presentation: '演示文稿',
-    spreadsheet: '电子表格',
-    web: 'Web应用',
-    app: '应用程序',
-    data: '数据分析'
-  }
-  return typeMap[type] || type
+    document: "文档",
+    presentation: "演示文稿",
+    spreadsheet: "电子表格",
+    web: "Web应用",
+    app: "应用程序",
+    data: "数据分析",
+  };
+  return typeMap[type] || type;
 }
 
 async function refreshTemplates() {
-  loading.value = true
+  loading.value = true;
   try {
-    await templateStore.fetchTemplates()
-    await loadStats()
-    message.success('刷新成功')
+    await templateStore.fetchTemplates();
+    await loadStats();
+    message.success("刷新成功");
   } catch (error) {
-    message.error('刷新失败: ' + error.message)
+    message.error("刷新失败: " + error.message);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function loadStats() {
   try {
-    const stats = await templateStore.getTemplateStats()
-    templateStats.value = stats
+    const stats = await templateStore.getTemplateStats();
+    templateStats.value = stats;
   } catch (error) {
-    logger.error('加载统计信息失败:', error)
+    logger.error("加载统计信息失败:", error);
   }
 }
 
 function handleSearch() {
-  pagination.current = 1
+  pagination.current = 1;
 }
 
 function handleFilterChange() {
-  pagination.current = 1
+  pagination.current = 1;
 }
 
 function handleTableChange(pag) {
-  pagination.current = pag.current
-  pagination.pageSize = pag.pageSize
+  pagination.current = pag.current;
+  pagination.pageSize = pag.pageSize;
 }
 
 function showCreateModal() {
-  editorMode.value = 'create'
-  currentTemplate.value = null
-  showEditorModal.value = true
+  editorMode.value = "create";
+  currentTemplate.value = null;
+  showEditorModal.value = true;
 }
 
 function viewTemplate(template) {
-  currentTemplate.value = template
-  showDetailModal.value = true
+  currentTemplate.value = template;
+  showDetailModal.value = true;
 }
 
 function editTemplate(template) {
   if (template.is_builtin) {
-    message.warning('内置模板不可编辑，可以复制后修改')
-    return
+    message.warning("内置模板不可编辑，可以复制后修改");
+    return;
   }
-  editorMode.value = 'edit'
-  currentTemplate.value = template
-  showEditorModal.value = true
+  editorMode.value = "edit";
+  currentTemplate.value = template;
+  showEditorModal.value = true;
 }
 
 async function duplicateTemplate(template) {
   try {
-    const newName = prompt('请输入新模板的名称:', `${template.display_name} (副本)`)
-    if (!newName) {return}
+    const newName = prompt(
+      "请输入新模板的名称:",
+      `${template.display_name} (副本)`,
+    );
+    if (!newName) {
+      return;
+    }
 
-    loading.value = true
-    await templateStore.duplicateTemplate(template.id, newName)
-    message.success('复制成功')
-    await refreshTemplates()
+    loading.value = true;
+    await templateStore.duplicateTemplate(template.id, newName);
+    message.success("复制成功");
+    await refreshTemplates();
   } catch (error) {
-    message.error('复制失败: ' + error.message)
+    message.error("复制失败: " + error.message);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function deleteTemplate(template) {
   if (template.is_builtin) {
-    message.warning('内置模板不可删除')
-    return
+    message.warning("内置模板不可删除");
+    return;
   }
 
   try {
-    loading.value = true
-    await templateStore.deleteTemplate(template.id)
-    message.success('删除成功')
-    await refreshTemplates()
+    loading.value = true;
+    await templateStore.deleteTemplate(template.id);
+    message.success("删除成功");
+    await refreshTemplates();
   } catch (error) {
-    message.error('删除失败: ' + error.message)
+    message.error("删除失败: " + error.message);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
 }
 
 async function saveTemplate() {
   try {
-    saving.value = true
+    saving.value = true;
 
     // 调用编辑器的保存方法
-    await editorRef.value.save()
+    await editorRef.value.save();
 
     // 这里会触发编辑器的 @save 事件
     // 我们直接从编辑器获取数据
-    const formData = editorRef.value.formData
+    const formData = editorRef.value.formData;
 
-    if (editorMode.value === 'create') {
-      await templateStore.createTemplate(formData)
-      message.success('创建成功')
+    if (editorMode.value === "create") {
+      await templateStore.createTemplate(formData);
+      message.success("创建成功");
     } else {
-      await templateStore.updateTemplate(currentTemplate.value.id, formData)
-      message.success('更新成功')
+      await templateStore.updateTemplate(currentTemplate.value.id, formData);
+      message.success("更新成功");
     }
 
-    closeEditorModal()
-    await refreshTemplates()
+    closeEditorModal();
+    await refreshTemplates();
   } catch (error) {
-    message.error(`保存失败: ${error.message}`)
+    message.error(`保存失败: ${error.message}`);
   } finally {
-    saving.value = false
+    saving.value = false;
   }
 }
 
 function closeEditorModal() {
-  showEditorModal.value = false
-  currentTemplate.value = null
-  editorRef.value?.reset()
+  showEditorModal.value = false;
+  currentTemplate.value = null;
+  editorRef.value?.reset();
 }
 
 // 初始化
 onMounted(async () => {
-  await refreshTemplates()
-})
+  await refreshTemplates();
+});
 </script>
 
 <style scoped>
@@ -838,7 +724,7 @@ onMounted(async () => {
   padding: 12px;
   border-radius: 4px;
   font-size: 13px;
-  font-family: 'Courier New', Consolas, monospace;
+  font-family: "Courier New", Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-all;
   max-height: 400px;

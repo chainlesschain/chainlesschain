@@ -3,17 +3,17 @@
  * 提供Excel文件的读取、写入、编辑和转换功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const fsSync = require('fs');
-const path = require('path');
-const Papa = require('papaparse');
-const { getFileHandler } = require('../utils/file-handler');
-const { getFileCache } = require('../utils/file-cache');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const fsSync = require("fs");
+const path = require("path");
+const Papa = require("papaparse");
+const { getFileHandler } = require("../utils/file-handler");
+const { getFileCache } = require("../utils/file-cache");
 
 class ExcelEngine {
   constructor() {
-    this.supportedFormats = ['.xlsx', '.xls', '.csv'];
+    this.supportedFormats = [".xlsx", ".xls", ".csv"];
     this.fileHandler = getFileHandler();
     this.fileCache = getFileCache();
   }
@@ -27,12 +27,12 @@ class ExcelEngine {
     try {
       const ext = path.extname(filePath).toLowerCase();
 
-      if (ext === '.csv') {
+      if (ext === ".csv") {
         return await this.readCSV(filePath);
-      } else if (ext === '.xlsx' || ext === '.xls') {
+      } else if (ext === ".xlsx" || ext === ".xls") {
         // 使用exceljs读取Excel文件
         try {
-          const ExcelJS = require('exceljs');
+          const ExcelJS = require("exceljs");
           const workbook = new ExcelJS.Workbook();
           await workbook.xlsx.readFile(filePath);
 
@@ -91,7 +91,7 @@ class ExcelEngine {
           });
 
           return {
-            type: 'excel',
+            type: "excel",
             sheets,
             metadata: {
               creator: workbook.creator,
@@ -101,24 +101,29 @@ class ExcelEngine {
             },
           };
         } catch (excelError) {
-          logger.error('[ExcelEngine] ExcelJS not available, fallback to CSV:', excelError);
+          logger.error(
+            "[ExcelEngine] ExcelJS not available, fallback to CSV:",
+            excelError,
+          );
           // 降级到CSV模式
           return {
-            type: 'excel',
-            sheets: [{
-              name: 'Sheet1',
-              id: 1,
-              rows: [],
-              columns: [],
-              error: 'ExcelJS库未安装，请运行: npm install exceljs',
-            }],
+            type: "excel",
+            sheets: [
+              {
+                name: "Sheet1",
+                id: 1,
+                rows: [],
+                columns: [],
+                error: "ExcelJS库未安装，请运行: npm install exceljs",
+              },
+            ],
           };
         }
       } else {
         throw new Error(`不支持的文件格式: ${ext}`);
       }
     } catch (error) {
-      logger.error('[ExcelEngine] Read error:', error);
+      logger.error("[ExcelEngine] Read error:", error);
       throw error;
     }
   }
@@ -128,7 +133,10 @@ class ExcelEngine {
    */
   async readCSV(filePath) {
     // 先检查缓存
-    const cachedResult = await this.fileCache.getCachedParseResult(filePath, 'csv');
+    const cachedResult = await this.fileCache.getCachedParseResult(
+      filePath,
+      "csv",
+    );
     if (cachedResult) {
       return cachedResult;
     }
@@ -139,11 +147,11 @@ class ExcelEngine {
     let result;
 
     if (isLarge) {
-      logger.info('[ExcelEngine] 检测到大文件，使用流式处理');
+      logger.info("[ExcelEngine] 检测到大文件，使用流式处理");
       result = await this.readLargeCSV(filePath);
     } else {
       // 小文件使用原有逻辑
-      const content = await fs.readFile(filePath, 'utf-8');
+      const content = await fs.readFile(filePath, "utf-8");
       const parsed = Papa.parse(content, {
         header: false,
         skipEmptyLines: false,
@@ -155,33 +163,36 @@ class ExcelEngine {
         values: rowValues.map((value, colNumber) => ({
           col: colNumber + 1,
           value: value,
-          type: 'string',
+          type: "string",
         })),
         height: 20,
       }));
 
       // 提取列信息(使用第一行作为表头)
-      const columns = parsed.data[0]?.map((header, index) => ({
-        index,
-        header: header || `Column ${index + 1}`,
-        width: 100,
-      })) || [];
+      const columns =
+        parsed.data[0]?.map((header, index) => ({
+          index,
+          header: header || `Column ${index + 1}`,
+          width: 100,
+        })) || [];
 
       result = {
-        type: 'csv',
-        sheets: [{
-          name: 'Sheet1',
-          id: 1,
-          rows,
-          columns,
-          merges: [],
-        }],
+        type: "csv",
+        sheets: [
+          {
+            name: "Sheet1",
+            id: 1,
+            rows,
+            columns,
+            merges: [],
+          },
+        ],
       };
     }
 
     // 缓存结果（对于小文件）
     if (!isLarge) {
-      await this.fileCache.cacheParseResult(filePath, 'csv', result);
+      await this.fileCache.cacheParseResult(filePath, "csv", result);
     }
 
     return result;
@@ -196,7 +207,9 @@ class ExcelEngine {
       let columns = [];
       let rowNumber = 0;
 
-      const readStream = fsSync.createReadStream(filePath, { encoding: 'utf-8' });
+      const readStream = fsSync.createReadStream(filePath, {
+        encoding: "utf-8",
+      });
 
       Papa.parse(readStream, {
         header: false,
@@ -219,7 +232,7 @@ class ExcelEngine {
             values: result.data.map((value, colNumber) => ({
               col: colNumber + 1,
               value: value,
-              type: 'string',
+              type: "string",
             })),
             height: 20,
           };
@@ -230,10 +243,12 @@ class ExcelEngine {
           if (rowNumber % 1000 === 0) {
             const memStatus = this.fileHandler.checkAvailableMemory();
             if (!memStatus.isAvailable) {
-              logger.warn('[ExcelEngine] 内存使用率过高，暂停解析');
+              logger.warn("[ExcelEngine] 内存使用率过高，暂停解析");
               readStream.pause();
               setTimeout(() => {
-                if (global.gc) {global.gc();}
+                if (global.gc) {
+                  global.gc();
+                }
                 readStream.resume();
               }, 100);
             }
@@ -242,18 +257,20 @@ class ExcelEngine {
         complete: () => {
           logger.info(`[ExcelEngine] CSV解析完成，共 ${rowNumber} 行`);
           resolve({
-            type: 'csv',
-            sheets: [{
-              name: 'Sheet1',
-              id: 1,
-              rows,
-              columns,
-              merges: [],
-            }],
+            type: "csv",
+            sheets: [
+              {
+                name: "Sheet1",
+                id: 1,
+                rows,
+                columns,
+                merges: [],
+              },
+            ],
           });
         },
         error: (error) => {
-          logger.error('[ExcelEngine] CSV解析失败:', error);
+          logger.error("[ExcelEngine] CSV解析失败:", error);
           reject(error);
         },
       });
@@ -269,16 +286,17 @@ class ExcelEngine {
     try {
       const ext = path.extname(filePath).toLowerCase();
 
-      if (ext === '.csv') {
+      if (ext === ".csv") {
         return await this.writeCSV(filePath, data);
-      } else if (ext === '.xlsx' || ext === '.xls') {
-        const ExcelJS = require('exceljs');
+      } else if (ext === ".xlsx" || ext === ".xls") {
+        const ExcelJS = require("exceljs");
         const workbook = new ExcelJS.Workbook();
 
         // 设置元数据
         if (data.metadata) {
-          workbook.creator = data.metadata.creator || 'ChainlessChain';
-          workbook.lastModifiedBy = data.metadata.lastModifiedBy || 'ChainlessChain';
+          workbook.creator = data.metadata.creator || "ChainlessChain";
+          workbook.lastModifiedBy =
+            data.metadata.lastModifiedBy || "ChainlessChain";
           workbook.created = data.metadata.created || new Date();
           workbook.modified = data.metadata.modified || new Date();
         }
@@ -289,7 +307,7 @@ class ExcelEngine {
 
           // 设置列
           if (sheetData.columns && sheetData.columns.length > 0) {
-            worksheet.columns = sheetData.columns.map(col => ({
+            worksheet.columns = sheetData.columns.map((col) => ({
               header: col.header,
               key: col.key || `col_${col.index}`,
               width: col.width / 10 || 10, // 转换为Excel宽度单位
@@ -328,7 +346,7 @@ class ExcelEngine {
 
           // 应用合并单元格
           if (sheetData.merges) {
-            sheetData.merges.forEach(merge => {
+            sheetData.merges.forEach((merge) => {
               worksheet.mergeCells(merge);
             });
           }
@@ -338,7 +356,7 @@ class ExcelEngine {
         return { success: true, filePath };
       }
     } catch (error) {
-      logger.error('[ExcelEngine] Write error:', error);
+      logger.error("[ExcelEngine] Write error:", error);
       throw error;
     }
   }
@@ -350,20 +368,20 @@ class ExcelEngine {
     try {
       const sheet = data.sheets[0]; // CSV只支持单个工作表
       if (!sheet || !sheet.rows) {
-        throw new Error('没有有效的数据行');
+        throw new Error("没有有效的数据行");
       }
 
       // 转换为二维数组
-      const csvData = sheet.rows.map(row =>
-        row.values.map(cell => cell.value ?? '')
+      const csvData = sheet.rows.map((row) =>
+        row.values.map((cell) => cell.value ?? ""),
       );
 
       const csv = Papa.unparse(csvData);
-      await fs.writeFile(filePath, csv, 'utf-8');
+      await fs.writeFile(filePath, csv, "utf-8");
 
       return { success: true, filePath };
     } catch (error) {
-      logger.error('[ExcelEngine] Write CSV error:', error);
+      logger.error("[ExcelEngine] Write CSV error:", error);
       throw error;
     }
   }
@@ -374,7 +392,10 @@ class ExcelEngine {
   async excelToJSON(filePath, options = {}) {
     // 检查缓存
     const cacheKey = `json:${options.sheetIndex || 0}`;
-    const cachedResult = await this.fileCache.getCachedParseResult(filePath, cacheKey);
+    const cachedResult = await this.fileCache.getCachedParseResult(
+      filePath,
+      cacheKey,
+    );
     if (cachedResult) {
       return cachedResult;
     }
@@ -383,11 +404,11 @@ class ExcelEngine {
     const sheet = data.sheets[options.sheetIndex || 0];
 
     if (!sheet) {
-      throw new Error('工作表不存在');
+      throw new Error("工作表不存在");
     }
 
     // 使用第一行作为键
-    const headers = sheet.rows[0]?.values.map(cell => cell.value) || [];
+    const headers = sheet.rows[0]?.values.map((cell) => cell.value) || [];
     const jsonData = [];
 
     for (let i = 1; i < sheet.rows.length; i++) {
@@ -415,7 +436,7 @@ class ExcelEngine {
    */
   async jsonToExcel(jsonData, filePath, options = {}) {
     if (!Array.isArray(jsonData) || jsonData.length === 0) {
-      throw new Error('JSON数据必须是非空数组');
+      throw new Error("JSON数据必须是非空数组");
     }
 
     // 提取键作为表头
@@ -429,10 +450,14 @@ class ExcelEngine {
         values: headers.map((header, index) => ({
           col: index + 1,
           value: header,
-          type: 'string',
+          type: "string",
           style: {
             font: { bold: true },
-            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E0E0' } },
+            fill: {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFE0E0E0" },
+            },
           },
         })),
         height: 25,
@@ -443,7 +468,7 @@ class ExcelEngine {
         values: headers.map((header, colIndex) => ({
           col: colIndex + 1,
           value: obj[header],
-          type: typeof obj[header] === 'number' ? 'number' : 'string',
+          type: typeof obj[header] === "number" ? "number" : "string",
         })),
         height: 20,
       })),
@@ -456,14 +481,16 @@ class ExcelEngine {
     }));
 
     const data = {
-      sheets: [{
-        name: options.sheetName || 'Sheet1',
-        id: 1,
-        rows,
-        columns,
-      }],
+      sheets: [
+        {
+          name: options.sheetName || "Sheet1",
+          id: 1,
+          rows,
+          columns,
+        },
+      ],
       metadata: {
-        creator: 'ChainlessChain',
+        creator: "ChainlessChain",
         created: new Date(),
       },
     };
@@ -536,21 +563,25 @@ class ExcelEngine {
    * 数据验证
    */
   validateExcelData(data) {
-    if (!data || typeof data !== 'object') {
-      return { valid: false, error: '数据格式无效' };
+    if (!data || typeof data !== "object") {
+      return { valid: false, error: "数据格式无效" };
     }
 
-    if (!data.sheets || !Array.isArray(data.sheets) || data.sheets.length === 0) {
-      return { valid: false, error: '必须包含至少一个工作表' };
+    if (
+      !data.sheets ||
+      !Array.isArray(data.sheets) ||
+      data.sheets.length === 0
+    ) {
+      return { valid: false, error: "必须包含至少一个工作表" };
     }
 
     for (const sheet of data.sheets) {
       if (!sheet.name) {
-        return { valid: false, error: '工作表必须有名称' };
+        return { valid: false, error: "工作表必须有名称" };
       }
 
       if (!sheet.rows || !Array.isArray(sheet.rows)) {
-        return { valid: false, error: '工作表必须包含rows数组' };
+        return { valid: false, error: "工作表必须包含rows数组" };
       }
     }
 
@@ -566,8 +597,8 @@ class ExcelEngine {
       rowCount: sheet.rows.length,
       columnCount: sheet.columns.length,
       mergeCount: sheet.merges?.length || 0,
-      hasFormulas: sheet.rows.some(row =>
-        row.values.some(cell => cell.formula)
+      hasFormulas: sheet.rows.some((row) =>
+        row.values.some((cell) => cell.formula),
       ),
     };
   }
@@ -578,31 +609,39 @@ class ExcelEngine {
    * @returns {Promise<Object>} 执行结果
    */
   async handleProjectTask(params) {
-    const { description, projectPath, llmManager, action = 'create_table' } = params;
+    const {
+      description,
+      projectPath,
+      llmManager,
+      action = "create_table",
+    } = params;
 
-    logger.info('[ExcelEngine] 处理Excel表格生成任务');
-    logger.info('[ExcelEngine] 描述:', description);
-    logger.info('[ExcelEngine] 操作:', action);
+    logger.info("[ExcelEngine] 处理Excel表格生成任务");
+    logger.info("[ExcelEngine] 描述:", description);
+    logger.info("[ExcelEngine] 操作:", action);
 
     try {
       // 使用LLM生成表格结构
-      const tableStructure = await this.generateTableStructureFromDescription(description, llmManager);
+      const tableStructure = await this.generateTableStructureFromDescription(
+        description,
+        llmManager,
+      );
 
       // 生成Excel文件
-      const fileName = `${tableStructure.name || 'table'}.xlsx`;
+      const fileName = `${tableStructure.name || "table"}.xlsx`;
       const filePath = path.join(projectPath, fileName);
 
       const result = await this.writeExcel(filePath, tableStructure);
 
       return {
-        type: 'excel-table',
+        type: "excel-table",
         success: true,
         ...result,
         sheetCount: tableStructure.sheets?.length || 0,
-        rowCount: tableStructure.sheets[0]?.rows?.length || 0
+        rowCount: tableStructure.sheets[0]?.rows?.length || 0,
       };
     } catch (error) {
-      logger.error('[ExcelEngine] 任务执行失败:', error);
+      logger.error("[ExcelEngine] 任务执行失败:", error);
       throw error;
     }
   }
@@ -665,15 +704,15 @@ ${description}
 
       // 尝试使用本地LLM
       if (llmManager && llmManager.isInitialized) {
-        logger.info('[ExcelEngine] 使用本地LLM生成表格结构');
+        logger.info("[ExcelEngine] 使用本地LLM生成表格结构");
         const response = await llmManager.query(prompt, {
           temperature: 0.7,
-          maxTokens: 3000
+          maxTokens: 3000,
         });
         responseText = response.text;
       } else {
         // 降级到后端AI服务
-        logger.info('[ExcelEngine] 本地LLM不可用，使用后端AI服务');
+        logger.info("[ExcelEngine] 本地LLM不可用，使用后端AI服务");
         responseText = await this.queryBackendAI(prompt);
       }
 
@@ -687,7 +726,7 @@ ${description}
       // 解析失败，返回默认结构
       return this.getDefaultTableStructure(description);
     } catch (error) {
-      logger.error('[ExcelEngine] 生成表格结构失败:', error);
+      logger.error("[ExcelEngine] 生成表格结构失败:", error);
       return this.getDefaultTableStructure(description);
     }
   }
@@ -705,26 +744,26 @@ ${description}
           index: col.index !== undefined ? col.index : index,
           header: col.header || `Column${index + 1}`,
           width: col.width || 150,
-          key: col.key || `col_${index}`
+          key: col.key || `col_${index}`,
         })),
         rows: (sheet.rows || []).map((row, rowIndex) => ({
           rowNumber: row.rowNumber || rowIndex + 1,
           values: (row.values || []).map((cell, colIndex) => ({
             col: cell.col || colIndex + 1,
-            value: cell.value !== undefined ? cell.value : '',
-            type: cell.type || 'string',
+            value: cell.value !== undefined ? cell.value : "",
+            type: cell.type || "string",
             style: cell.style,
-            formula: cell.formula
+            formula: cell.formula,
           })),
-          height: row.height || 20
+          height: row.height || 20,
         })),
-        merges: sheet.merges || []
+        merges: sheet.merges || [],
       })),
       metadata: {
-        creator: 'ChainlessChain',
+        creator: "ChainlessChain",
         created: new Date(),
-        modified: new Date()
-      }
+        modified: new Date(),
+      },
     };
   }
 
@@ -734,46 +773,63 @@ ${description}
   getDefaultTableStructure(description) {
     return {
       name: description.substring(0, 30),
-      sheets: [{
-        name: 'Sheet1',
-        id: 1,
-        columns: [
-          { index: 0, header: '项目', width: 200 },
-          { index: 1, header: '内容', width: 300 },
-          { index: 2, header: '备注', width: 150 }
-        ],
-        rows: [
-          {
-            rowNumber: 1,
-            values: [
-              { col: 1, value: '项目', type: 'string', style: { font: { bold: true } } },
-              { col: 2, value: '内容', type: 'string', style: { font: { bold: true } } },
-              { col: 3, value: '备注', type: 'string', style: { font: { bold: true } } }
-            ]
-          },
-          {
-            rowNumber: 2,
-            values: [
-              { col: 1, value: '用户需求', type: 'string' },
-              { col: 2, value: description, type: 'string' },
-              { col: 3, value: '请补充', type: 'string' }
-            ]
-          },
-          {
-            rowNumber: 3,
-            values: [
-              { col: 1, value: '示例数据', type: 'string' },
-              { col: 2, value: '请根据实际需求填写数据', type: 'string' },
-              { col: 3, value: '', type: 'string' }
-            ]
-          }
-        ],
-        merges: []
-      }],
+      sheets: [
+        {
+          name: "Sheet1",
+          id: 1,
+          columns: [
+            { index: 0, header: "项目", width: 200 },
+            { index: 1, header: "内容", width: 300 },
+            { index: 2, header: "备注", width: 150 },
+          ],
+          rows: [
+            {
+              rowNumber: 1,
+              values: [
+                {
+                  col: 1,
+                  value: "项目",
+                  type: "string",
+                  style: { font: { bold: true } },
+                },
+                {
+                  col: 2,
+                  value: "内容",
+                  type: "string",
+                  style: { font: { bold: true } },
+                },
+                {
+                  col: 3,
+                  value: "备注",
+                  type: "string",
+                  style: { font: { bold: true } },
+                },
+              ],
+            },
+            {
+              rowNumber: 2,
+              values: [
+                { col: 1, value: "用户需求", type: "string" },
+                { col: 2, value: description, type: "string" },
+                { col: 3, value: "请补充", type: "string" },
+              ],
+            },
+            {
+              rowNumber: 3,
+              values: [
+                { col: 1, value: "示例数据", type: "string" },
+                { col: 2, value: "请根据实际需求填写数据", type: "string" },
+                { col: 3, value: "", type: "string" },
+              ],
+            },
+          ],
+          merges: [],
+        },
+      ],
       metadata: {
-        creator: 'ChainlessChain',
-        created: new Date()
-      }
+        creator: "ChainlessChain",
+        created: new Date(),
+      },
     };
   }
 
@@ -781,50 +837,53 @@ ${description}
    * 查询后端AI服务（降级方案）
    */
   async queryBackendAI(prompt) {
-    const http = require('http');
+    const http = require("http");
 
     return new Promise((resolve, reject) => {
       const postData = JSON.stringify({
         messages: [
-          { role: 'system', content: 'You are a helpful assistant. Return valid JSON only.' },
-          { role: 'user', content: prompt }
+          {
+            role: "system",
+            content: "You are a helpful assistant. Return valid JSON only.",
+          },
+          { role: "user", content: prompt },
         ],
-        temperature: 0.7
+        temperature: 0.7,
       });
 
       const options = {
-        hostname: 'localhost',
+        hostname: "localhost",
         port: 8001,
-        path: '/api/chat/stream',
-        method: 'POST',
+        path: "/api/chat/stream",
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData)
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(postData),
         },
-        timeout: 60000
+        timeout: 60000,
       };
 
       const req = http.request(options, (res) => {
-        let fullText = '';
-        let buffer = '';
+        let fullText = "";
+        let buffer = "";
 
-        res.on('data', (chunk) => {
+        res.on("data", (chunk) => {
           buffer += chunk.toString();
 
           // 处理SSE流
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
-                if (data.type === 'content' && data.content) {
+                if (data.type === "content" && data.content) {
                   fullText += data.content;
-                } else if (data.type === 'done') {
+                } else if (data.type === "done") {
                   resolve(fullText);
                   return;
-                } else if (data.type === 'error') {
+                } else if (data.type === "error") {
                   reject(new Error(data.error));
                   return;
                 }
@@ -835,21 +894,21 @@ ${description}
           }
         });
 
-        res.on('end', () => {
+        res.on("end", () => {
           if (fullText) {
             resolve(fullText);
           } else {
-            reject(new Error('后端AI服务未返回内容'));
+            reject(new Error("后端AI服务未返回内容"));
           }
         });
 
-        res.on('error', reject);
+        res.on("error", reject);
       });
 
-      req.on('error', reject);
-      req.on('timeout', () => {
+      req.on("error", reject);
+      req.on("timeout", () => {
         req.destroy();
-        reject(new Error('后端AI服务请求超时'));
+        reject(new Error("后端AI服务请求超时"));
       });
 
       req.write(postData);

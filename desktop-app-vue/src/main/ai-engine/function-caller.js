@@ -9,44 +9,47 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const ExtendedTools = require('./extended-tools');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const ExtendedTools = require("./extended-tools");
 
 // 🔥 工具掩码系统
-const { getToolMaskingSystem, TASK_PHASE_STATE_MACHINE } = require('./tool-masking');
-const ExtendedTools2 = require('./extended-tools-2');
-const ExtendedTools3 = require('./extended-tools-3');
-const ExtendedTools4 = require('./extended-tools-4');
-const ExtendedTools5 = require('./extended-tools-5');
-const ExtendedTools6 = require('./extended-tools-6');
-const ExtendedTools7 = require('./extended-tools-7');
-const ExtendedTools8 = require('./extended-tools-8');
-const ExtendedTools9 = require('./extended-tools-9');
-const ExtendedTools10 = require('./extended-tools-10');
-const ExtendedTools11 = require('./extended-tools-11');
-const ExtendedTools12 = require('./extended-tools-12');
+const {
+  getToolMaskingSystem,
+  TASK_PHASE_STATE_MACHINE,
+} = require("./tool-masking");
+const ExtendedTools2 = require("./extended-tools-2");
+const ExtendedTools3 = require("./extended-tools-3");
+const ExtendedTools4 = require("./extended-tools-4");
+const ExtendedTools5 = require("./extended-tools-5");
+const ExtendedTools6 = require("./extended-tools-6");
+const ExtendedTools7 = require("./extended-tools-7");
+const ExtendedTools8 = require("./extended-tools-8");
+const ExtendedTools9 = require("./extended-tools-9");
+const ExtendedTools10 = require("./extended-tools-10");
+const ExtendedTools11 = require("./extended-tools-11");
+const ExtendedTools12 = require("./extended-tools-12");
 
 // 新增：Office、数据科学、项目初始化工具
-const OfficeToolsHandler = require('./extended-tools-office');
-const DataScienceToolsHandler = require('./extended-tools-datascience');
-const ProjectToolsHandler = require('./extended-tools-project');
+const OfficeToolsHandler = require("./extended-tools-office");
+const DataScienceToolsHandler = require("./extended-tools-datascience");
+const ProjectToolsHandler = require("./extended-tools-project");
 
 // 新增：视觉工具 (v0.27.0)
-const { getVisionTools } = require('./extended-tools-vision');
+const { getVisionTools } = require("./extended-tools-vision");
 
 // 新增：沙箱工具 (v0.27.0)
-const { getSandboxTools } = require('./extended-tools-sandbox');
+const { getSandboxTools } = require("./extended-tools-sandbox");
 
 // 新增：MemGPT 记忆工具 (v0.27.0)
-const { getMemGPTTools } = require('./extended-tools-memgpt');
+const { getMemGPTTools } = require("./extended-tools-memgpt");
 
 // 新增：图像生成工具 (v0.27.0)
-const { getImageGenTools } = require('./extended-tools-imagegen');
+const { getImageGenTools } = require("./extended-tools-imagegen");
 
 // 新增：语音合成工具 (v0.27.0)
-const { getTTSTools } = require('./extended-tools-tts');
+const { getTTSTools } = require("./extended-tools-tts");
 
 class FunctionCaller {
   constructor(options = {}) {
@@ -66,9 +69,9 @@ class FunctionCaller {
           logMaskChanges: options.logMaskChanges !== false,
           defaultAvailable: true,
         });
-        logger.info('[FunctionCaller] 工具掩码系统已启用');
+        logger.info("[FunctionCaller] 工具掩码系统已启用");
       } catch (error) {
-        logger.warn('[FunctionCaller] 工具掩码系统初始化失败:', error.message);
+        logger.warn("[FunctionCaller] 工具掩码系统初始化失败:", error.message);
         this.enableToolMasking = false;
       }
     }
@@ -81,24 +84,26 @@ class FunctionCaller {
     this.cacheStats = {
       hits: 0,
       misses: 0,
-      evictions: 0
+      evictions: 0,
     };
 
     // 可缓存工具白名单（纯函数，无副作用）
     this.CACHEABLE_TOOLS = new Set([
-      'file_reader',
-      'project_analyzer',
-      'data_analyzer',
-      'image_analyzer',
-      'tool_excel_formula_builder',
-      'tool_markdown_generator',
-      'html_reader',
-      'css_reader',
-      'js_reader',
-      'json_reader'
+      "file_reader",
+      "project_analyzer",
+      "data_analyzer",
+      "image_analyzer",
+      "tool_excel_formula_builder",
+      "tool_markdown_generator",
+      "html_reader",
+      "css_reader",
+      "js_reader",
+      "json_reader",
     ]);
 
-    logger.info('[FunctionCaller] 工具调用缓存已启用 (TTL: 10分钟, 容量: 1000)');
+    logger.info(
+      "[FunctionCaller] 工具调用缓存已启用 (TTL: 10分钟, 容量: 1000)",
+    );
 
     // 注册内置工具
     this.registerBuiltInTools();
@@ -114,12 +119,14 @@ class FunctionCaller {
    * @private
    */
   _syncToolsToMaskingSystem() {
-    if (!this.toolMasking) {return;}
+    if (!this.toolMasking) {
+      return;
+    }
 
     for (const [name, tool] of this.tools) {
       this.toolMasking.registerTool({
         name,
-        description: tool.schema?.description || '',
+        description: tool.schema?.description || "",
         parameters: tool.schema?.parameters || {},
         handler: tool.handler,
       });
@@ -134,7 +141,7 @@ class FunctionCaller {
    */
   setToolManager(toolManager) {
     this.toolManager = toolManager;
-    logger.info('[Function Caller] ToolManager已设置');
+    logger.info("[Function Caller] ToolManager已设置");
   }
 
   /**
@@ -145,9 +152,9 @@ class FunctionCaller {
     try {
       const visionTools = getVisionTools();
       visionTools.setVisionManager(visionManager);
-      logger.info('[Function Caller] VisionManager已设置');
+      logger.info("[Function Caller] VisionManager已设置");
     } catch (error) {
-      logger.error('[Function Caller] 设置VisionManager失败:', error.message);
+      logger.error("[Function Caller] 设置VisionManager失败:", error.message);
     }
   }
 
@@ -159,9 +166,9 @@ class FunctionCaller {
     try {
       const sandboxTools = getSandboxTools();
       sandboxTools.setPythonSandbox(pythonSandbox);
-      logger.info('[Function Caller] PythonSandbox已设置');
+      logger.info("[Function Caller] PythonSandbox已设置");
     } catch (error) {
-      logger.error('[Function Caller] 设置PythonSandbox失败:', error.message);
+      logger.error("[Function Caller] 设置PythonSandbox失败:", error.message);
     }
   }
 
@@ -173,9 +180,9 @@ class FunctionCaller {
     try {
       const memgptTools = getMemGPTTools();
       memgptTools.setMemGPTCore(memgptCore);
-      logger.info('[Function Caller] MemGPTCore已设置');
+      logger.info("[Function Caller] MemGPTCore已设置");
     } catch (error) {
-      logger.error('[Function Caller] 设置MemGPTCore失败:', error.message);
+      logger.error("[Function Caller] 设置MemGPTCore失败:", error.message);
     }
   }
 
@@ -187,9 +194,9 @@ class FunctionCaller {
     try {
       const imageGenTools = getImageGenTools();
       imageGenTools.setImageGenManager(imageGenManager);
-      logger.info('[Function Caller] ImageGenManager已设置');
+      logger.info("[Function Caller] ImageGenManager已设置");
     } catch (error) {
-      logger.error('[Function Caller] 设置ImageGenManager失败:', error.message);
+      logger.error("[Function Caller] 设置ImageGenManager失败:", error.message);
     }
   }
 
@@ -201,9 +208,9 @@ class FunctionCaller {
     try {
       const ttsTools = getTTSTools();
       ttsTools.setTTSManager(ttsManager);
-      logger.info('[Function Caller] TTSManager已设置');
+      logger.info("[Function Caller] TTSManager已设置");
     } catch (error) {
-      logger.error('[Function Caller] 设置TTSManager失败:', error.message);
+      logger.error("[Function Caller] 设置TTSManager失败:", error.message);
     }
   }
 
@@ -213,7 +220,7 @@ class FunctionCaller {
    */
   setHookSystem(hookSystem) {
     if (!hookSystem) {
-      logger.warn('[Function Caller] HookSystem 为空，跳过设置');
+      logger.warn("[Function Caller] HookSystem 为空，跳过设置");
       return;
     }
 
@@ -224,7 +231,7 @@ class FunctionCaller {
       this._wrapToolsWithHooks();
     }
 
-    logger.info('[Function Caller] HookSystem已设置');
+    logger.info("[Function Caller] HookSystem已设置");
   }
 
   /**
@@ -250,7 +257,9 @@ class FunctionCaller {
       }
     }
 
-    logger.info(`[Function Caller] 已使用 Hooks 包装 ${originalTools.size} 个工具`);
+    logger.info(
+      `[Function Caller] 已使用 Hooks 包装 ${originalTools.size} 个工具`,
+    );
   }
 
   /**
@@ -260,23 +269,25 @@ class FunctionCaller {
   registerBuiltInTools() {
     // 文件读取工具
     this.registerTool(
-      'file_reader',
+      "file_reader",
       async (params, context) => {
         const filePath = params.filePath || context.currentFile?.file_path;
 
         if (!filePath) {
-          throw new Error('未指定文件路径');
+          throw new Error("未指定文件路径");
         }
 
         // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
         let resolvedPath = filePath;
         if (context.projectPath && !path.isAbsolute(filePath)) {
           resolvedPath = path.join(context.projectPath, filePath);
-          logger.info(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+          logger.info(
+            `[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`,
+          );
         }
 
         try {
-          const content = await fs.readFile(resolvedPath, 'utf-8');
+          const content = await fs.readFile(resolvedPath, "utf-8");
           return {
             success: true,
             filePath: resolvedPath,
@@ -287,34 +298,36 @@ class FunctionCaller {
         }
       },
       {
-        name: 'file_reader',
-        description: '读取文件内容',
+        name: "file_reader",
+        description: "读取文件内容",
         parameters: {
-          filePath: { type: 'string', description: '文件路径' },
+          filePath: { type: "string", description: "文件路径" },
         },
-      }
+      },
     );
 
     // 文件写入工具
     this.registerTool(
-      'file_writer',
+      "file_writer",
       async (params, context) => {
         const filePath = params.filePath || context.currentFile?.file_path;
         const content = params.content;
 
         if (!filePath) {
-          throw new Error('未指定文件路径');
+          throw new Error("未指定文件路径");
         }
 
         if (content === undefined) {
-          throw new Error('未指定文件内容');
+          throw new Error("未指定文件内容");
         }
 
         // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
         let resolvedPath = filePath;
         if (context.projectPath && !path.isAbsolute(filePath)) {
           resolvedPath = path.join(context.projectPath, filePath);
-          logger.info(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+          logger.info(
+            `[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`,
+          );
         }
 
         try {
@@ -326,9 +339,11 @@ class FunctionCaller {
           const contentStr = String(content);
 
           // 写入文件
-          await fs.writeFile(resolvedPath, contentStr, 'utf-8');
+          await fs.writeFile(resolvedPath, contentStr, "utf-8");
 
-          logger.info(`[FunctionCaller] 文件已写入: ${resolvedPath}, 大小: ${contentStr.length} 字节`);
+          logger.info(
+            `[FunctionCaller] 文件已写入: ${resolvedPath}, 大小: ${contentStr.length} 字节`,
+          );
 
           return {
             success: true,
@@ -340,22 +355,22 @@ class FunctionCaller {
         }
       },
       {
-        name: 'file_writer',
-        description: '写入文件内容',
+        name: "file_writer",
+        description: "写入文件内容",
         parameters: {
-          filePath: { type: 'string', description: '文件路径' },
-          content: { type: 'string', description: '文件内容' },
+          filePath: { type: "string", description: "文件路径" },
+          content: { type: "string", description: "文件内容" },
         },
-      }
+      },
     );
 
     // HTML生成工具
     this.registerTool(
-      'html_generator',
+      "html_generator",
       async (params, context) => {
-        const title = params.title || '我的网页';
-        const content = params.content || '';
-        const primaryColor = params.primaryColor || '#667eea';
+        const title = params.title || "我的网页";
+        const content = params.content || "";
+        const primaryColor = params.primaryColor || "#667eea";
 
         const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -387,25 +402,25 @@ class FunctionCaller {
         return {
           success: true,
           html,
-          fileName: 'index.html',
+          fileName: "index.html",
         };
       },
       {
-        name: 'html_generator',
-        description: '生成HTML文件',
+        name: "html_generator",
+        description: "生成HTML文件",
         parameters: {
-          title: { type: 'string', description: '页面标题' },
-          content: { type: 'string', description: '页面内容' },
-          primaryColor: { type: 'string', description: '主题颜色' },
+          title: { type: "string", description: "页面标题" },
+          content: { type: "string", description: "页面内容" },
+          primaryColor: { type: "string", description: "主题颜色" },
         },
-      }
+      },
     );
 
     // CSS生成工具
     this.registerTool(
-      'css_generator',
+      "css_generator",
       async (params, context) => {
-        const colors = params.colors || ['#667eea', '#764ba2'];
+        const colors = params.colors || ["#667eea", "#764ba2"];
 
         const css = `/* 重置样式 */
 * {
@@ -458,21 +473,21 @@ footer {
         return {
           success: true,
           css,
-          fileName: 'css/style.css',
+          fileName: "css/style.css",
         };
       },
       {
-        name: 'css_generator',
-        description: '生成CSS样式',
+        name: "css_generator",
+        description: "生成CSS样式",
         parameters: {
-          colors: { type: 'array', description: '主题颜色数组' },
+          colors: { type: "array", description: "主题颜色数组" },
         },
-      }
+      },
     );
 
     // JavaScript生成工具
     this.registerTool(
-      'js_generator',
+      "js_generator",
       async (params, context) => {
         const features = params.features || [];
 
@@ -491,53 +506,59 @@ function initializeInteractions() {
         return {
           success: true,
           js,
-          fileName: 'js/script.js',
+          fileName: "js/script.js",
         };
       },
       {
-        name: 'js_generator',
-        description: '生成JavaScript代码',
+        name: "js_generator",
+        description: "生成JavaScript代码",
         parameters: {
-          features: { type: 'array', description: '功能列表' },
+          features: { type: "array", description: "功能列表" },
         },
-      }
+      },
     );
 
     // 文件编辑工具
     this.registerTool(
-      'file_editor',
+      "file_editor",
       async (params, context) => {
         const filePath = params.filePath;
         const modifications = params.modifications || [];
 
         if (!filePath) {
-          throw new Error('未指定文件路径');
+          throw new Error("未指定文件路径");
         }
 
         // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
         let resolvedPath = filePath;
         if (context.projectPath && !path.isAbsolute(filePath)) {
           resolvedPath = path.join(context.projectPath, filePath);
-          logger.info(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+          logger.info(
+            `[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`,
+          );
         }
 
         try {
           // 读取文件内容
-          let content = await fs.readFile(resolvedPath, 'utf-8');
+          let content = await fs.readFile(resolvedPath, "utf-8");
 
           // 应用修改（简单的字符串替换）
           for (const mod of modifications) {
-            if (mod.type === 'general') {
+            if (mod.type === "general") {
               // 通用修改，这里需要更智能的实现
               logger.info(`[File Editor] 应用修改: ${mod.description}`);
             } else if (mod.target && mod.action) {
               // 结构化修改
-              if (mod.action === '改' || mod.action === '修改' || mod.action === '改成') {
+              if (
+                mod.action === "改" ||
+                mod.action === "修改" ||
+                mod.action === "改成"
+              ) {
                 // 例如：把标题改成蓝色
-                if (mod.target === '标题' && mod.value) {
+                if (mod.target === "标题" && mod.value) {
                   content = content.replace(
                     /<h1>(.*?)<\/h1>/g,
-                    `<h1 style="color: ${mod.value}">$1</h1>`
+                    `<h1 style="color: ${mod.value}">$1</h1>`,
                   );
                 }
               }
@@ -545,7 +566,7 @@ function initializeInteractions() {
           }
 
           // 写回文件
-          await fs.writeFile(resolvedPath, content, 'utf-8');
+          await fs.writeFile(resolvedPath, content, "utf-8");
 
           return {
             success: true,
@@ -557,25 +578,25 @@ function initializeInteractions() {
         }
       },
       {
-        name: 'file_editor',
-        description: '编辑文件内容',
+        name: "file_editor",
+        description: "编辑文件内容",
         parameters: {
-          filePath: { type: 'string', description: '文件路径' },
-          modifications: { type: 'array', description: '修改列表' },
+          filePath: { type: "string", description: "文件路径" },
+          modifications: { type: "array", description: "修改列表" },
         },
-      }
+      },
     );
 
     // 创建项目结构工具
     this.registerTool(
-      'create_project_structure',
+      "create_project_structure",
       async (params, context) => {
-        const projectType = params.type || 'web';
+        const projectType = params.type || "web";
         const projectPath = params.projectPath;
-        const projectName = params.projectName || 'my-project';
+        const projectName = params.projectName || "my-project";
 
         if (!projectPath) {
-          throw new Error('未指定项目路径');
+          throw new Error("未指定项目路径");
         }
 
         try {
@@ -590,9 +611,9 @@ function initializeInteractions() {
           // 创建README.md
           const readmeContent = `# ${projectName}\n\n项目描述：自动生成的项目\n`;
           await fs.writeFile(
-            path.join(projectPath, 'README.md'),
+            path.join(projectPath, "README.md"),
             readmeContent,
-            'utf-8'
+            "utf-8",
           );
 
           return {
@@ -606,83 +627,84 @@ function initializeInteractions() {
         }
       },
       {
-        name: 'create_project_structure',
-        description: '创建项目目录结构',
+        name: "create_project_structure",
+        description: "创建项目目录结构",
         parameters: {
-          type: { type: 'string', description: '项目类型' },
-          projectPath: { type: 'string', description: '项目路径' },
-          projectName: { type: 'string', description: '项目名称' },
+          type: { type: "string", description: "项目类型" },
+          projectPath: { type: "string", description: "项目路径" },
+          projectName: { type: "string", description: "项目名称" },
         },
-      }
+      },
     );
 
     // Git初始化工具
     this.registerTool(
-      'git_init',
+      "git_init",
       async (params, context) => {
         // 这里应该调用实际的Git模块
         // 目前只是模拟返回
         return {
           success: true,
-          message: 'Git仓库初始化成功',
+          message: "Git仓库初始化成功",
         };
       },
       {
-        name: 'git_init',
-        description: '初始化Git仓库',
+        name: "git_init",
+        description: "初始化Git仓库",
         parameters: {},
-      }
+      },
     );
 
     // Git提交工具
     this.registerTool(
-      'git_commit',
+      "git_commit",
       async (params, context) => {
         // 这里应该调用实际的Git模块
         // 目前只是模拟返回
         return {
           success: true,
-          message: params.message !== undefined ? params.message : 'Auto commit',
+          message:
+            params.message !== undefined ? params.message : "Auto commit",
         };
       },
       {
-        name: 'git_commit',
-        description: '提交Git更改',
+        name: "git_commit",
+        description: "提交Git更改",
         parameters: {
-          message: { type: 'string', description: '提交信息' },
-          repoPath: { type: 'string', description: '仓库路径' },
+          message: { type: "string", description: "提交信息" },
+          repoPath: { type: "string", description: "仓库路径" },
         },
-      }
+      },
     );
 
     // 信息搜索工具
     this.registerTool(
-      'info_searcher',
+      "info_searcher",
       async (params, context) => {
         // 简单的信息搜索实现
         return {
           success: true,
           results: [
             {
-              type: 'info',
-              content: '这是搜索到的信息',
+              type: "info",
+              content: "这是搜索到的信息",
             },
           ],
         };
       },
       {
-        name: 'info_searcher',
-        description: '搜索项目信息',
+        name: "info_searcher",
+        description: "搜索项目信息",
         parameters: {
-          query: { type: 'string', description: '搜索查询' },
-          projectId: { type: 'string', description: '项目ID' },
+          query: { type: "string", description: "搜索查询" },
+          projectId: { type: "string", description: "项目ID" },
         },
-      }
+      },
     );
 
     // 格式化输出工具
     this.registerTool(
-      'format_output',
+      "format_output",
       async (params, context) => {
         try {
           return {
@@ -699,34 +721,34 @@ function initializeInteractions() {
         }
       },
       {
-        name: 'format_output',
-        description: '格式化输出结果',
+        name: "format_output",
+        description: "格式化输出结果",
         parameters: {
-          data: { type: 'any', description: '要格式化的数据' },
+          data: { type: "any", description: "要格式化的数据" },
         },
-      }
+      },
     );
 
     // 通用处理器
     this.registerTool(
-      'generic_handler',
+      "generic_handler",
       async (params, context) => {
-        logger.info('[Generic Handler] 处理请求:', params);
+        logger.info("[Generic Handler] 处理请求:", params);
 
         return {
           success: true,
-          message: '已收到请求，但暂未实现具体功能',
+          message: "已收到请求，但暂未实现具体功能",
           params,
         };
       },
       {
-        name: 'generic_handler',
-        description: '通用处理器',
+        name: "generic_handler",
+        description: "通用处理器",
         parameters: {
-          intent: { type: 'string', description: '意图' },
-          input: { type: 'string', description: '用户输入' },
+          intent: { type: "string", description: "意图" },
+          input: { type: "string", description: "用户输入" },
         },
-      }
+      },
     );
 
     // 注册扩展工具
@@ -769,75 +791,75 @@ function initializeInteractions() {
     try {
       const officeTools = new OfficeToolsHandler();
       officeTools.register(this);
-      logger.info('[FunctionCaller] ✓ Office工具已注册（6个工具）');
+      logger.info("[FunctionCaller] ✓ Office工具已注册（6个工具）");
     } catch (error) {
-      logger.error('[FunctionCaller] Office工具注册失败:', error.message);
+      logger.error("[FunctionCaller] Office工具注册失败:", error.message);
     }
 
     // 注册数据科学工具
     try {
       const dataScienceTools = new DataScienceToolsHandler();
       dataScienceTools.register(this);
-      logger.info('[FunctionCaller] ✓ 数据科学工具已注册（4个工具）');
+      logger.info("[FunctionCaller] ✓ 数据科学工具已注册（4个工具）");
     } catch (error) {
-      logger.error('[FunctionCaller] 数据科学工具注册失败:', error.message);
+      logger.error("[FunctionCaller] 数据科学工具注册失败:", error.message);
     }
 
     // 注册项目初始化工具
     try {
       const projectTools = new ProjectToolsHandler();
       projectTools.register(this);
-      logger.info('[FunctionCaller] ✓ 项目初始化工具已注册（6个工具）');
+      logger.info("[FunctionCaller] ✓ 项目初始化工具已注册（6个工具）");
     } catch (error) {
-      logger.error('[FunctionCaller] 项目初始化工具注册失败:', error.message);
+      logger.error("[FunctionCaller] 项目初始化工具注册失败:", error.message);
     }
 
     // 注册视觉工具（v0.27.0）
     try {
       const visionTools = getVisionTools();
       visionTools.register(this);
-      logger.info('[FunctionCaller] ✓ 视觉工具已注册（6个工具）');
+      logger.info("[FunctionCaller] ✓ 视觉工具已注册（6个工具）");
     } catch (error) {
-      logger.error('[FunctionCaller] 视觉工具注册失败:', error.message);
+      logger.error("[FunctionCaller] 视觉工具注册失败:", error.message);
     }
 
     // 注册沙箱工具（v0.27.0）
     try {
       const sandboxTools = getSandboxTools();
       sandboxTools.register(this);
-      logger.info('[FunctionCaller] ✓ 沙箱工具已注册（4个工具）');
+      logger.info("[FunctionCaller] ✓ 沙箱工具已注册（4个工具）");
     } catch (error) {
-      logger.error('[FunctionCaller] 沙箱工具注册失败:', error.message);
+      logger.error("[FunctionCaller] 沙箱工具注册失败:", error.message);
     }
 
     // 注册 MemGPT 记忆工具（v0.27.0）
     try {
       const memgptTools = getMemGPTTools();
       memgptTools.register(this);
-      logger.info('[FunctionCaller] ✓ MemGPT记忆工具已注册（8个工具）');
+      logger.info("[FunctionCaller] ✓ MemGPT记忆工具已注册（8个工具）");
     } catch (error) {
-      logger.error('[FunctionCaller] MemGPT记忆工具注册失败:', error.message);
+      logger.error("[FunctionCaller] MemGPT记忆工具注册失败:", error.message);
     }
 
     // 注册图像生成工具（v0.27.0）
     try {
       const imageGenTools = getImageGenTools();
       imageGenTools.register(this);
-      logger.info('[FunctionCaller] ✓ 图像生成工具已注册（4个工具）');
+      logger.info("[FunctionCaller] ✓ 图像生成工具已注册（4个工具）");
     } catch (error) {
-      logger.error('[FunctionCaller] 图像生成工具注册失败:', error.message);
+      logger.error("[FunctionCaller] 图像生成工具注册失败:", error.message);
     }
 
     // 注册语音合成工具（v0.27.0）
     try {
       const ttsTools = getTTSTools();
       ttsTools.register(this);
-      logger.info('[FunctionCaller] ✓ 语音合成工具已注册（3个工具）');
+      logger.info("[FunctionCaller] ✓ 语音合成工具已注册（3个工具）");
     } catch (error) {
-      logger.error('[FunctionCaller] 语音合成工具注册失败:', error.message);
+      logger.error("[FunctionCaller] 语音合成工具注册失败:", error.message);
     }
 
-    logger.info('[FunctionCaller] 所有工具注册完成（包括26个新增工具）');
+    logger.info("[FunctionCaller] 所有工具注册完成（包括26个新增工具）");
   }
 
   /**
@@ -847,16 +869,16 @@ function initializeInteractions() {
   getProjectStructure(type) {
     const structures = {
       web: {
-        directories: ['src', 'src/css', 'src/js', 'assets', 'assets/images'],
-        files: ['index.html', 'css/style.css', 'js/script.js', 'README.md'],
+        directories: ["src", "src/css", "src/js", "assets", "assets/images"],
+        files: ["index.html", "css/style.css", "js/script.js", "README.md"],
       },
       document: {
-        directories: ['docs', 'assets'],
-        files: ['README.md'],
+        directories: ["docs", "assets"],
+        files: ["README.md"],
       },
       data: {
-        directories: ['data', 'scripts', 'output'],
-        files: ['README.md'],
+        directories: ["data", "scripts", "output"],
+        files: ["README.md"],
       },
     };
 
@@ -894,13 +916,15 @@ function initializeInteractions() {
     if (this.toolMasking) {
       this.toolMasking.registerTool({
         name,
-        description: schema?.description || '',
+        description: schema?.description || "",
         parameters: schema?.parameters || {},
         handler: wrappedHandler,
       });
     }
 
-    logger.info(`[Function Caller] 注册工具: ${name}${hooksWrapped ? ' (hooks enabled)' : ''}`);
+    logger.info(
+      `[Function Caller] 注册工具: ${name}${hooksWrapped ? " (hooks enabled)" : ""}`,
+    );
   }
 
   /**
@@ -935,8 +959,14 @@ function initializeInteractions() {
 
       if (cachedResult !== null) {
         this.cacheStats.hits++;
-        const hitRate = ((this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses)) * 100).toFixed(2);
-        logger.info(`[Function Caller] 🎯 缓存命中: ${toolName} (命中率: ${hitRate}%)`);
+        const hitRate = (
+          (this.cacheStats.hits /
+            (this.cacheStats.hits + this.cacheStats.misses)) *
+          100
+        ).toFixed(2);
+        logger.info(
+          `[Function Caller] 🎯 缓存命中: ${toolName} (命中率: ${hitRate}%)`,
+        );
         return cachedResult;
       }
 
@@ -947,7 +977,9 @@ function initializeInteractions() {
     if (this.toolMasking && this.enableToolMasking) {
       const validation = this.toolMasking.validateCall(toolName);
       if (!validation.allowed) {
-        logger.warn(`[Function Caller] 工具调用被阻止: ${toolName} - ${validation.message}`);
+        logger.warn(
+          `[Function Caller] 工具调用被阻止: ${toolName} - ${validation.message}`,
+        );
         throw new Error(validation.message);
       }
     }
@@ -972,9 +1004,11 @@ function initializeInteractions() {
       // 记录成功统计
       if (this.toolManager) {
         const duration = Date.now() - startTime;
-        this.toolManager.recordToolUsage(toolName, true, duration).catch(err => {
-          logger.error('[Function Caller] 记录统计失败:', err);
-        });
+        this.toolManager
+          .recordToolUsage(toolName, true, duration)
+          .catch((err) => {
+            logger.error("[Function Caller] 记录统计失败:", err);
+          });
       }
 
       return result;
@@ -984,10 +1018,12 @@ function initializeInteractions() {
       // 记录失败统计
       if (this.toolManager) {
         const duration = Date.now() - startTime;
-        const errorType = error.name || 'Error';
-        this.toolManager.recordToolUsage(toolName, false, duration, errorType).catch(err => {
-          logger.error('[Function Caller] 记录统计失败:', err);
-        });
+        const errorType = error.name || "Error";
+        this.toolManager
+          .recordToolUsage(toolName, false, duration, errorType)
+          .catch((err) => {
+            logger.error("[Function Caller] 记录统计失败:", err);
+          });
       }
 
       throw error;
@@ -1001,7 +1037,7 @@ function initializeInteractions() {
   getAvailableTools() {
     return Array.from(this.tools.values()).map((tool) => ({
       name: tool.name,
-      description: tool.schema?.description || tool.description || '',
+      description: tool.schema?.description || tool.description || "",
       parameters: tool.schema?.parameters || tool.parameters || {},
     }));
   }
@@ -1025,7 +1061,9 @@ function initializeInteractions() {
    * @param {boolean} available - 是否可用
    */
   setToolAvailable(toolName, available) {
-    if (!this.toolMasking) {return;}
+    if (!this.toolMasking) {
+      return;
+    }
     this.toolMasking.setToolAvailability(toolName, available);
   }
 
@@ -1035,7 +1073,9 @@ function initializeInteractions() {
    * @param {boolean} available - 是否可用
    */
   setToolsByPrefix(prefix, available) {
-    if (!this.toolMasking) {return;}
+    if (!this.toolMasking) {
+      return;
+    }
     this.toolMasking.setToolsByPrefix(prefix, available);
   }
 
@@ -1043,7 +1083,9 @@ function initializeInteractions() {
    * 启用所有工具
    */
   enableAllTools() {
-    if (!this.toolMasking) {return;}
+    if (!this.toolMasking) {
+      return;
+    }
     this.toolMasking.enableAll();
   }
 
@@ -1051,7 +1093,9 @@ function initializeInteractions() {
    * 禁用所有工具
    */
   disableAllTools() {
-    if (!this.toolMasking) {return;}
+    if (!this.toolMasking) {
+      return;
+    }
     this.toolMasking.disableAll();
   }
 
@@ -1060,7 +1104,9 @@ function initializeInteractions() {
    * @param {Array<string>} toolNames - 要启用的工具名称
    */
   setOnlyAvailable(toolNames) {
-    if (!this.toolMasking) {return;}
+    if (!this.toolMasking) {
+      return;
+    }
     this.toolMasking.setOnlyAvailable(toolNames);
   }
 
@@ -1070,7 +1116,9 @@ function initializeInteractions() {
    * @returns {boolean}
    */
   isToolAvailable(toolName) {
-    if (!this.toolMasking) {return this.tools.has(toolName);}
+    if (!this.toolMasking) {
+      return this.tools.has(toolName);
+    }
     return this.toolMasking.isToolAvailable(toolName);
   }
 
@@ -1079,7 +1127,9 @@ function initializeInteractions() {
    * @returns {Array} 工具定义
    */
   getAllToolDefinitions() {
-    if (!this.toolMasking) {return this.getAvailableTools();}
+    if (!this.toolMasking) {
+      return this.getAvailableTools();
+    }
     return this.toolMasking.getAllToolDefinitions();
   }
 
@@ -1088,7 +1138,9 @@ function initializeInteractions() {
    * @returns {Array} 可用工具定义
    */
   getAvailableToolDefinitions() {
-    if (!this.toolMasking) {return this.getAvailableTools();}
+    if (!this.toolMasking) {
+      return this.getAvailableTools();
+    }
     return this.toolMasking.getAvailableToolDefinitions();
   }
 
@@ -1097,7 +1149,9 @@ function initializeInteractions() {
    * @param {Object} config - 状态机配置（可选，默认使用预定义配置）
    */
   configureTaskPhases(config = null) {
-    if (!this.toolMasking) {return;}
+    if (!this.toolMasking) {
+      return;
+    }
     this.toolMasking.configureStateMachine(config || TASK_PHASE_STATE_MACHINE);
   }
 
@@ -1107,7 +1161,9 @@ function initializeInteractions() {
    * @returns {boolean} 是否成功
    */
   transitionToPhase(phase) {
-    if (!this.toolMasking) {return false;}
+    if (!this.toolMasking) {
+      return false;
+    }
     return this.toolMasking.transitionTo(phase);
   }
 
@@ -1116,7 +1172,9 @@ function initializeInteractions() {
    * @returns {string|null}
    */
   getCurrentPhase() {
-    if (!this.toolMasking) {return null;}
+    if (!this.toolMasking) {
+      return null;
+    }
     return this.toolMasking.getCurrentState();
   }
 
@@ -1125,7 +1183,9 @@ function initializeInteractions() {
    * @returns {Object} 分组信息
    */
   getToolGroups() {
-    if (!this.toolMasking) {return {};}
+    if (!this.toolMasking) {
+      return {};
+    }
     return this.toolMasking.getToolGroups();
   }
 
@@ -1134,7 +1194,9 @@ function initializeInteractions() {
    * @returns {Object} 统计数据
    */
   getMaskingStats() {
-    if (!this.toolMasking) {return { enabled: false };}
+    if (!this.toolMasking) {
+      return { enabled: false };
+    }
     return {
       enabled: true,
       ...this.toolMasking.getStats(),
@@ -1145,7 +1207,9 @@ function initializeInteractions() {
    * 重置工具掩码
    */
   resetMasking() {
-    if (!this.toolMasking) {return;}
+    if (!this.toolMasking) {
+      return;
+    }
     this.toolMasking.reset();
   }
 
@@ -1160,7 +1224,10 @@ function initializeInteractions() {
     const { timestamp, requestId, ...cacheableParams } = params;
 
     // 生成稳定的哈希键
-    const paramsStr = JSON.stringify(cacheableParams, Object.keys(cacheableParams).sort());
+    const paramsStr = JSON.stringify(
+      cacheableParams,
+      Object.keys(cacheableParams).sort(),
+    );
     return `${toolName}:${this._hashString(paramsStr)}`;
   }
 
@@ -1172,7 +1239,7 @@ function initializeInteractions() {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32bit integer
     }
     return Math.abs(hash).toString(36);
@@ -1212,7 +1279,7 @@ function initializeInteractions() {
 
     this.cache.set(key, {
       result,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -1221,7 +1288,8 @@ function initializeInteractions() {
    */
   getCacheStats() {
     const total = this.cacheStats.hits + this.cacheStats.misses;
-    const hitRate = total > 0 ? ((this.cacheStats.hits / total) * 100).toFixed(2) : 0;
+    const hitRate =
+      total > 0 ? ((this.cacheStats.hits / total) * 100).toFixed(2) : 0;
 
     return {
       enabled: this.cacheEnabled,
@@ -1230,7 +1298,7 @@ function initializeInteractions() {
       hitRate: `${hitRate}%`,
       size: this.cache.size,
       maxSize: this.maxCacheSize,
-      evictions: this.cacheStats.evictions
+      evictions: this.cacheStats.evictions,
     };
   }
 
@@ -1239,7 +1307,7 @@ function initializeInteractions() {
    */
   clearCache() {
     this.cache.clear();
-    logger.info('[FunctionCaller] 缓存已清空');
+    logger.info("[FunctionCaller] 缓存已清空");
   }
 
   /**

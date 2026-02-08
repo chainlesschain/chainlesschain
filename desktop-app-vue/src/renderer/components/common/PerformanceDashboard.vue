@@ -1,9 +1,6 @@
 <template>
   <div class="performance-dashboard">
-    <a-card
-      title="性能监控"
-      :bordered="false"
-    >
+    <a-card title="性能监控" :bordered="false">
       <template #extra>
         <a-space>
           <a-switch
@@ -12,17 +9,11 @@
             un-checked-children="已停止"
             @change="handleToggleMonitoring"
           />
-          <a-button
-            size="small"
-            @click="handleExport"
-          >
+          <a-button size="small" @click="handleExport">
             <ExportOutlined />
             导出数据
           </a-button>
-          <a-button
-            size="small"
-            @click="handleClear"
-          >
+          <a-button size="small" @click="handleClear">
             <ClearOutlined />
             清空数据
           </a-button>
@@ -30,16 +21,10 @@
       </template>
 
       <!-- 实时指标卡片 -->
-      <a-row
-        :gutter="[16, 16]"
-        class="metrics-cards"
-      >
+      <a-row :gutter="[16, 16]" class="metrics-cards">
         <!-- 内存使用 -->
         <a-col :span="6">
-          <a-card
-            size="small"
-            class="metric-card"
-          >
+          <a-card size="small" class="metric-card">
             <a-statistic
               title="内存使用"
               :value="currentMetrics.memory.percentage"
@@ -60,10 +45,7 @@
 
         <!-- FPS -->
         <a-col :span="6">
-          <a-card
-            size="small"
-            class="metric-card"
-          >
+          <a-card size="small" class="metric-card">
             <a-statistic
               title="帧率 (FPS)"
               :value="currentMetrics.fps.current"
@@ -83,16 +65,15 @@
 
         <!-- 存储使用 -->
         <a-col :span="6">
-          <a-card
-            size="small"
-            class="metric-card"
-          >
+          <a-card size="small" class="metric-card">
             <a-statistic
               title="存储使用"
               :value="currentMetrics.storage.percentage"
               :precision="1"
               suffix="%"
-              :value-style="getValueStyle(currentMetrics.storage.percentage, 80)"
+              :value-style="
+                getValueStyle(currentMetrics.storage.percentage, 80)
+              "
             >
               <template #prefix>
                 <HddOutlined />
@@ -107,10 +88,7 @@
 
         <!-- 网络状态 -->
         <a-col :span="6">
-          <a-card
-            size="small"
-            class="metric-card"
-          >
+          <a-card size="small" class="metric-card">
             <a-statistic
               title="网络速度"
               :value="currentMetrics.network.downlink || 0"
@@ -122,7 +100,7 @@
               </template>
             </a-statistic>
             <div class="metric-detail">
-              {{ currentMetrics.network.effectiveType || 'N/A' }}
+              {{ currentMetrics.network.effectiveType || "N/A" }}
             </div>
           </a-card>
         </a-col>
@@ -133,10 +111,7 @@
       <!-- 性能图表 -->
       <a-tabs v-model:active-key="activeTab">
         <!-- 内存趋势 -->
-        <a-tab-pane
-          key="memory"
-          tab="内存趋势"
-        >
+        <a-tab-pane key="memory" tab="内存趋势">
           <div class="chart-container">
             <div class="chart-placeholder">
               <LineChartOutlined class="chart-icon" />
@@ -155,10 +130,7 @@
         </a-tab-pane>
 
         <!-- FPS 趋势 -->
-        <a-tab-pane
-          key="fps"
-          tab="FPS 趋势"
-        >
+        <a-tab-pane key="fps" tab="FPS 趋势">
           <div class="chart-container">
             <div class="chart-placeholder">
               <AreaChartOutlined class="chart-icon" />
@@ -177,49 +149,39 @@
         </a-tab-pane>
 
         <!-- 性能报告 -->
-        <a-tab-pane
-          key="report"
-          tab="性能报告"
-        >
+        <a-tab-pane key="report" tab="性能报告">
           <div class="performance-report">
-            <a-descriptions
-              :column="2"
-              bordered
-              size="small"
-            >
+            <a-descriptions :column="2" bordered size="small">
               <a-descriptions-item label="监控状态">
                 <a-tag :color="isMonitoring ? 'green' : 'red'">
-                  {{ isMonitoring ? '运行中' : '已停止' }}
+                  {{ isMonitoring ? "运行中" : "已停止" }}
                 </a-tag>
               </a-descriptions-item>
               <a-descriptions-item label="数据点数">
                 {{ getTotalDataPoints() }}
               </a-descriptions-item>
               <a-descriptions-item label="内存峰值">
-                {{ formatBytes(getMetricMax('memory')) }}
+                {{ formatBytes(getMetricMax("memory")) }}
               </a-descriptions-item>
               <a-descriptions-item label="内存平均">
-                {{ formatBytes(getMetricAvg('memory')) }}
+                {{ formatBytes(getMetricAvg("memory")) }}
               </a-descriptions-item>
               <a-descriptions-item label="FPS 最低">
-                {{ getMetricMin('fps') }} fps
+                {{ getMetricMin("fps") }} fps
               </a-descriptions-item>
               <a-descriptions-item label="FPS 平均">
-                {{ getMetricAvg('fps').toFixed(0) }} fps
+                {{ getMetricAvg("fps").toFixed(0) }} fps
               </a-descriptions-item>
               <a-descriptions-item label="存储峰值">
-                {{ formatBytes(getMetricMax('storage')) }}
+                {{ formatBytes(getMetricMax("storage")) }}
               </a-descriptions-item>
               <a-descriptions-item label="存储平均">
-                {{ formatBytes(getMetricAvg('storage')) }}
+                {{ formatBytes(getMetricAvg("storage")) }}
               </a-descriptions-item>
             </a-descriptions>
 
             <div class="report-actions">
-              <a-button
-                type="primary"
-                @click="handleGenerateReport"
-              >
+              <a-button type="primary" @click="handleGenerateReport">
                 <FileTextOutlined />
                 生成详细报告
               </a-button>
@@ -236,16 +198,11 @@
         class="performance-warnings"
       >
         <template #message>
-          <div class="warnings-title">
-            性能警告
-          </div>
+          <div class="warnings-title">性能警告</div>
         </template>
         <template #description>
           <ul class="warnings-list">
-            <li
-              v-for="(warning, index) in performanceWarnings"
-              :key="index"
-            >
+            <li v-for="(warning, index) in performanceWarnings" :key="index">
               {{ warning }}
             </li>
           </ul>
@@ -256,10 +213,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   DatabaseOutlined,
   DashboardOutlined,
@@ -270,8 +227,8 @@ import {
   LineChartOutlined,
   AreaChartOutlined,
   FileTextOutlined,
-} from '@ant-design/icons-vue';
-import { usePerformanceMonitor } from '@/utils/performanceMonitor';
+} from "@ant-design/icons-vue";
+import { usePerformanceMonitor } from "@/utils/performanceMonitor";
 
 const {
   isMonitoring,
@@ -285,11 +242,11 @@ const {
   exportData,
 } = usePerformanceMonitor();
 
-const activeTab = ref('memory');
+const activeTab = ref("memory");
 
 // 内存数据
 const memoryData = computed(() => {
-  return getMetrics('memory', 60).map(m => ({
+  return getMetrics("memory", 60).map((m) => ({
     value: m.value,
     timestamp: m.timestamp,
   }));
@@ -297,7 +254,7 @@ const memoryData = computed(() => {
 
 // FPS 数据
 const fpsData = computed(() => {
-  return getMetrics('fps', 60).map(m => ({
+  return getMetrics("fps", 60).map((m) => ({
     value: m.value,
     timestamp: m.timestamp,
   }));
@@ -308,15 +265,15 @@ const performanceWarnings = computed(() => {
   const warnings = [];
 
   if (currentMetrics.value.memory.percentage > 80) {
-    warnings.push('内存使用率过高，建议关闭不必要的标签页或重启应用');
+    warnings.push("内存使用率过高，建议关闭不必要的标签页或重启应用");
   }
 
   if (currentMetrics.value.fps.current < 30) {
-    warnings.push('帧率过低，可能影响用户体验，建议检查后台任务');
+    warnings.push("帧率过低，可能影响用户体验，建议检查后台任务");
   }
 
   if (currentMetrics.value.storage.percentage > 90) {
-    warnings.push('存储空间不足，建议清理缓存或删除不必要的数据');
+    warnings.push("存储空间不足，建议清理缓存或删除不必要的数据");
   }
 
   return warnings;
@@ -325,20 +282,22 @@ const performanceWarnings = computed(() => {
 // 获取值样式（根据阈值改变颜色）
 const getValueStyle = (value, threshold) => {
   if (value > threshold) {
-    return { color: '#ff4d4f' };
+    return { color: "#ff4d4f" };
   } else if (value > threshold * 0.7) {
-    return { color: '#faad14' };
+    return { color: "#faad14" };
   }
-  return { color: '#52c41a' };
+  return { color: "#52c41a" };
 };
 
 // 格式化字节
 const formatBytes = (bytes) => {
-  if (!bytes || bytes === 0) {return '0 B';}
+  if (!bytes || bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };
 
 // 获取总数据点数
@@ -349,22 +308,28 @@ const getTotalDataPoints = () => {
 // 获取指标最大值
 const getMetricMax = (type) => {
   const data = metrics.value[type] || [];
-  if (data.length === 0) {return 0;}
-  return Math.max(...data.map(m => m.metadata?.used || m.value || 0));
+  if (data.length === 0) {
+    return 0;
+  }
+  return Math.max(...data.map((m) => m.metadata?.used || m.value || 0));
 };
 
 // 获取指标最小值
 const getMetricMin = (type) => {
   const data = metrics.value[type] || [];
-  if (data.length === 0) {return 0;}
-  return Math.min(...data.map(m => m.value || 0));
+  if (data.length === 0) {
+    return 0;
+  }
+  return Math.min(...data.map((m) => m.value || 0));
 };
 
 // 获取指标平均值
 const getMetricAvg = (type) => {
   const data = metrics.value[type] || [];
-  if (data.length === 0) {return 0;}
-  const values = data.map(m => m.metadata?.used || m.value || 0);
+  if (data.length === 0) {
+    return 0;
+  }
+  const values = data.map((m) => m.metadata?.used || m.value || 0);
   return values.reduce((a, b) => a + b, 0) / values.length;
 };
 
@@ -372,10 +337,10 @@ const getMetricAvg = (type) => {
 const handleToggleMonitoring = (checked) => {
   if (checked) {
     start();
-    message.success('性能监控已启动');
+    message.success("性能监控已启动");
   } else {
     stop();
-    message.info('性能监控已停止');
+    message.info("性能监控已停止");
   }
 };
 
@@ -383,27 +348,27 @@ const handleToggleMonitoring = (checked) => {
 const handleExport = () => {
   const data = exportData();
   const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
+  const blob = new Blob([json], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = `performance-${Date.now()}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  message.success('性能数据已导出');
+  message.success("性能数据已导出");
 };
 
 // 清空数据
 const handleClear = () => {
   clear();
-  message.success('性能数据已清空');
+  message.success("性能数据已清空");
 };
 
 // 生成详细报告
 const handleGenerateReport = () => {
   const report = getPerformanceReport();
-  logger.info('Performance Report:', report);
-  message.success('详细报告已生成，请查看控制台');
+  logger.info("Performance Report:", report);
+  message.success("详细报告已生成，请查看控制台");
 };
 
 onMounted(() => {

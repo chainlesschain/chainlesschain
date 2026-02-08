@@ -6,7 +6,7 @@
  * @description 提供应用配置的读取和设置 IPC 接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 
 // 防止重复注册的标志

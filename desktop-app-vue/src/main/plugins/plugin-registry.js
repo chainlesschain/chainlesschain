@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * PluginRegistry - 插件注册表
@@ -20,36 +20,42 @@ class PluginRegistry {
    * 创建必要的数据库表
    */
   async initialize() {
-    logger.info('[PluginRegistry] 初始化插件注册表...');
+    logger.info("[PluginRegistry] 初始化插件注册表...");
 
     try {
       // 读取并执行迁移脚本
-      const fs = require('fs');
-      const path = require('path');
+      const fs = require("fs");
+      const path = require("path");
 
-      const migrationPath = path.join(__dirname, '../database/migrations/001_plugin_system.sql');
+      const migrationPath = path.join(
+        __dirname,
+        "../database/migrations/001_plugin_system.sql",
+      );
 
       if (fs.existsSync(migrationPath)) {
-        const sql = fs.readFileSync(migrationPath, 'utf-8');
+        const sql = fs.readFileSync(migrationPath, "utf-8");
 
         // 移除注释行
         const cleanedSQL = sql
-          .split('\n')
-          .filter(line => !line.trim().startsWith('--'))
-          .join('\n');
+          .split("\n")
+          .filter((line) => !line.trim().startsWith("--"))
+          .join("\n");
 
         // 使用 exec 执行整个 SQL 脚本（更可靠）
         try {
           this.database.db.exec(cleanedSQL);
-          logger.info('[PluginRegistry] 数据库表创建成功');
+          logger.info("[PluginRegistry] 数据库表创建成功");
         } catch (error) {
           // 如果整体执行失败，尝试逐个执行（跳过失败的语句）
-          logger.warn('[PluginRegistry] 整体执行失败，尝试逐个执行...', error.message);
+          logger.warn(
+            "[PluginRegistry] 整体执行失败，尝试逐个执行...",
+            error.message,
+          );
 
           const statements = cleanedSQL
-            .split(';')
-            .map(s => s.trim())
-            .filter(s => s.length > 0);
+            .split(";")
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
 
           let successCount = 0;
           let failCount = 0;
@@ -60,8 +66,12 @@ class PluginRegistry {
               successCount++;
             } catch (err) {
               // 忽略 "already exists" 类型的错误
-              if (!err.message.includes('already exists')) {
-                logger.warn('[PluginRegistry] SQL语句执行失败:', statement.substring(0, 80) + '...', err.message);
+              if (!err.message.includes("already exists")) {
+                logger.warn(
+                  "[PluginRegistry] SQL语句执行失败:",
+                  statement.substring(0, 80) + "...",
+                  err.message,
+                );
                 failCount++;
               } else {
                 successCount++;
@@ -69,15 +79,17 @@ class PluginRegistry {
             }
           }
 
-          logger.info(`[PluginRegistry] SQL执行完成: ${successCount} 成功, ${failCount} 失败`);
+          logger.info(
+            `[PluginRegistry] SQL执行完成: ${successCount} 成功, ${failCount} 失败`,
+          );
         }
       } else {
-        logger.warn('[PluginRegistry] 迁移文件不存在:', migrationPath);
+        logger.warn("[PluginRegistry] 迁移文件不存在:", migrationPath);
       }
 
       this.isInitialized = true;
     } catch (error) {
-      logger.error('[PluginRegistry] 初始化失败:', error);
+      logger.error("[PluginRegistry] 初始化失败:", error);
       throw error;
     }
   }
@@ -103,17 +115,17 @@ class PluginRegistry {
       manifest.id,
       manifest.name,
       manifest.version,
-      manifest.author || '',
-      manifest.description || '',
-      manifest.homepage || '',
-      manifest.license || 'MIT',
+      manifest.author || "",
+      manifest.description || "",
+      manifest.homepage || "",
+      manifest.license || "MIT",
       installedPath,
       JSON.stringify(manifest),
       1, // enabled
-      'installed', // state
-      manifest.category || 'custom',
+      "installed", // state
+      manifest.category || "custom",
       now,
-      now
+      now,
     );
 
     stmt.free();
@@ -129,7 +141,7 @@ class PluginRegistry {
     }
 
     // 记录事件日志
-    await this.logEvent(manifest.id, 'installed', {
+    await this.logEvent(manifest.id, "installed", {
       version: manifest.version,
       path: installedPath,
     });
@@ -165,7 +177,7 @@ class PluginRegistry {
     `);
 
     for (const [depId, versionConstraint] of Object.entries(dependencies)) {
-      const depType = depId.startsWith('com.') ? 'plugin' : 'npm';
+      const depType = depId.startsWith("com.") ? "plugin" : "npm";
       stmt.run(pluginId, depId, depType, versionConstraint);
     }
 
@@ -178,7 +190,7 @@ class PluginRegistry {
    * @returns {Object|null} 插件信息
    */
   getPlugin(pluginId) {
-    const stmt = this.database.db.prepare('SELECT * FROM plugins WHERE id = ?');
+    const stmt = this.database.db.prepare("SELECT * FROM plugins WHERE id = ?");
     const row = stmt.get(pluginId);
     stmt.free();
 
@@ -199,31 +211,31 @@ class PluginRegistry {
    * @returns {Array} 插件列表
    */
   getInstalledPlugins(filters = {}) {
-    let sql = 'SELECT * FROM plugins WHERE 1=1';
+    let sql = "SELECT * FROM plugins WHERE 1=1";
     const params = [];
 
     if (filters.enabled !== undefined) {
-      sql += ' AND enabled = ?';
+      sql += " AND enabled = ?";
       params.push(filters.enabled ? 1 : 0);
     }
 
     if (filters.category) {
-      sql += ' AND category = ?';
+      sql += " AND category = ?";
       params.push(filters.category);
     }
 
     if (filters.state) {
-      sql += ' AND state = ?';
+      sql += " AND state = ?";
       params.push(filters.state);
     }
 
-    sql += ' ORDER BY installed_at DESC';
+    sql += " ORDER BY installed_at DESC";
 
     const stmt = this.database.db.prepare(sql);
     const rows = stmt.all(...params);
     stmt.free();
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       ...row,
       manifest: JSON.parse(row.manifest),
       enabled: row.enabled === 1,
@@ -244,7 +256,7 @@ class PluginRegistry {
       WHERE id = ?
     `);
 
-    const lastEnabledAt = state === 'enabled' ? now : null;
+    const lastEnabledAt = state === "enabled" ? now : null;
 
     stmt.run(state, now, lastEnabledAt, pluginId);
     stmt.free();
@@ -269,7 +281,7 @@ class PluginRegistry {
     stmt.run(enabled ? 1 : 0, now, pluginId);
     stmt.free();
 
-    await this.logEvent(pluginId, enabled ? 'enabled' : 'disabled');
+    await this.logEvent(pluginId, enabled ? "enabled" : "disabled");
   }
 
   /**
@@ -278,11 +290,11 @@ class PluginRegistry {
    */
   async unregister(pluginId) {
     // 外键级联删除会自动删除相关权限、依赖等
-    const stmt = this.database.db.prepare('DELETE FROM plugins WHERE id = ?');
+    const stmt = this.database.db.prepare("DELETE FROM plugins WHERE id = ?");
     stmt.run(pluginId);
     stmt.free();
 
-    await this.logEvent(pluginId, 'uninstalled');
+    await this.logEvent(pluginId, "uninstalled");
 
     logger.info(`[PluginRegistry] 插件已注销: ${pluginId}`);
   }
@@ -302,10 +314,15 @@ class PluginRegistry {
     stmt.run(error.message, Date.now(), pluginId);
     stmt.free();
 
-    await this.logEvent(pluginId, 'error', {
-      message: error.message,
-      stack: error.stack,
-    }, 'error');
+    await this.logEvent(
+      pluginId,
+      "error",
+      {
+        message: error.message,
+        stack: error.stack,
+      },
+      "error",
+    );
   }
 
   /**
@@ -315,19 +332,13 @@ class PluginRegistry {
    * @param {Object} eventData - 事件数据
    * @param {string} level - 日志级别
    */
-  async logEvent(pluginId, eventType, eventData = {}, level = 'info') {
+  async logEvent(pluginId, eventType, eventData = {}, level = "info") {
     const stmt = this.database.db.prepare(`
       INSERT INTO plugin_event_logs (plugin_id, event_type, event_data, level, created_at)
       VALUES (?, ?, ?, ?, ?)
     `);
 
-    stmt.run(
-      pluginId,
-      eventType,
-      JSON.stringify(eventData),
-      level,
-      Date.now()
-    );
+    stmt.run(pluginId, eventType, JSON.stringify(eventData), level, Date.now());
 
     stmt.free();
   }
@@ -347,7 +358,7 @@ class PluginRegistry {
     const rows = stmt.all(pluginId);
     stmt.free();
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       permission: row.permission,
       granted: row.granted === 1,
       grantedAt: row.granted_at,
@@ -367,7 +378,12 @@ class PluginRegistry {
       WHERE plugin_id = ? AND permission = ?
     `);
 
-    stmt.run(granted ? 1 : 0, granted ? Date.now() : null, pluginId, permission);
+    stmt.run(
+      granted ? 1 : 0,
+      granted ? Date.now() : null,
+      pluginId,
+      permission,
+    );
     stmt.free();
   }
 
@@ -385,7 +401,7 @@ class PluginRegistry {
     const rows = stmt.all(pluginId);
     stmt.free();
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       ...row,
       config: row.config ? JSON.parse(row.config) : null,
       enabled: row.enabled === 1,
@@ -413,7 +429,7 @@ class PluginRegistry {
       extensionPoint,
       JSON.stringify(config),
       priority,
-      Date.now()
+      Date.now(),
     );
 
     stmt.free();
@@ -452,7 +468,7 @@ class PluginRegistry {
     const rows = stmt.all(extensionPoint);
     stmt.free();
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       ...row,
       config: row.config ? JSON.parse(row.config) : null,
     }));

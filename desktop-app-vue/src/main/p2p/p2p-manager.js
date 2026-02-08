@@ -5,7 +5,7 @@
  * 功能：节点发现、DHT、消息传输、NAT穿透、端到端加密
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const fs = require("fs");
 const path = require("path");
@@ -2041,7 +2041,8 @@ class P2PManager extends EventEmitter {
         port: this.p2pConfig?.signaling?.port || 9001,
         host: this.p2pConfig?.signaling?.host || "0.0.0.0",
         maxConnections: this.p2pConfig?.signaling?.maxConnections || 100,
-        heartbeatInterval: this.p2pConfig?.signaling?.heartbeatInterval || 30000,
+        heartbeatInterval:
+          this.p2pConfig?.signaling?.heartbeatInterval || 30000,
         messageQueueSize: this.p2pConfig?.signaling?.messageQueueSize || 100,
         messageTTL: this.p2pConfig?.signaling?.messageTTL || 86400000,
       };
@@ -2060,7 +2061,9 @@ class P2PManager extends EventEmitter {
       });
 
       this.signalingServer.on("connection", ({ connectionId, clientIP }) => {
-        logger.info(`[P2PManager] 信令服务器新连接: ${connectionId} from ${clientIP}`);
+        logger.info(
+          `[P2PManager] 信令服务器新连接: ${connectionId} from ${clientIP}`,
+        );
         this.emit("signaling:connection", { connectionId, clientIP });
       });
 

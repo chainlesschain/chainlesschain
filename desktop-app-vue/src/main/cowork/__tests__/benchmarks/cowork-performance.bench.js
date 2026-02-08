@@ -22,8 +22,14 @@ const OfficeSkill = require("../../skills/office-skill");
 const CoworkOrchestrator = require("../../cowork-orchestrator");
 
 // Test configuration
-const TEST_DB_PATH = path.join(__dirname, "../../../../../../../data/benchmark-cowork.db");
-const TEST_SANDBOX_ROOT = path.join(__dirname, "../../../../../../../data/benchmark-sandbox");
+const TEST_DB_PATH = path.join(
+  __dirname,
+  "../../../../../../../data/benchmark-cowork.db",
+);
+const TEST_SANDBOX_ROOT = path.join(
+  __dirname,
+  "../../../../../../../data/benchmark-sandbox",
+);
 const TEST_KEY = "test-encryption-key-32-chars!!!";
 
 // Performance baselines (in ms)
@@ -177,9 +183,13 @@ async function benchmarkTeamOperations() {
       const baseline = BASELINES[benchmark.name.replace(/ /g, "")];
       const status = baseline && meanTime > baseline ? "⚠️" : "✓";
 
-      console.log(`  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`);
+      console.log(
+        `  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`,
+      );
       if (baseline) {
-        console.log(`    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`);
+        console.log(
+          `    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`,
+        );
       }
     })
     .on("complete", function () {
@@ -203,13 +213,16 @@ async function benchmarkFileSandbox() {
       defer: true,
       setup: async () => {
         team = await teammateTool.spawnTeam("Permission Benchmark Team");
-        await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+        await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+          "READ",
+          "WRITE",
+        ]);
       },
       fn: async (deferred) => {
         await fileSandbox.hasPermission(
           team.id,
           path.join(TEST_SANDBOX_ROOT, "test.txt"),
-          "READ"
+          "READ",
         );
         deferred.resolve();
       },
@@ -223,7 +236,7 @@ async function benchmarkFileSandbox() {
         await fileSandbox.grantPermission(
           team.id,
           path.join(TEST_SANDBOX_ROOT, `dir-${permissionCounter++}`),
-          ["READ"]
+          ["READ"],
         );
         deferred.resolve();
       },
@@ -275,13 +288,16 @@ async function benchmarkFileSandbox() {
         if (!team) {
           team = await teammateTool.spawnTeam("Validate Access Team");
         }
-        await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+        await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+          "READ",
+          "WRITE",
+        ]);
       },
       fn: async (deferred) => {
         await fileSandbox.validateAccess(
           team.id,
           path.join(TEST_SANDBOX_ROOT, "test.txt"),
-          "WRITE"
+          "WRITE",
         );
         deferred.resolve();
       },
@@ -301,9 +317,13 @@ async function benchmarkFileSandbox() {
       const baseline = BASELINES[benchmark.name.replace(/ /g, "")];
       const status = baseline && meanTime > baseline ? "⚠️" : "✓";
 
-      console.log(`  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`);
+      console.log(
+        `  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`,
+      );
       if (baseline) {
-        console.log(`    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`);
+        console.log(
+          `    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`,
+        );
       }
     })
     .on("complete", function () {
@@ -349,9 +369,13 @@ async function benchmarkSkillRegistry() {
       const baseline = BASELINES[benchmark.name.replace(/ /g, "")];
       const status = baseline && meanTime > baseline ? "⚠️" : "✓";
 
-      console.log(`  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`);
+      console.log(
+        `  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`,
+      );
       if (baseline) {
-        console.log(`    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`);
+        console.log(
+          `    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`,
+        );
       }
     })
     .on("complete", function () {
@@ -374,7 +398,10 @@ async function benchmarkTaskExecution() {
       defer: true,
       setup: async () => {
         team = await teammateTool.spawnTeam("Excel Benchmark Team");
-        await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+        await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+          "READ",
+          "WRITE",
+        ]);
       },
       fn: async (deferred) => {
         const result = await skillRegistry.autoExecute({
@@ -394,9 +421,13 @@ async function benchmarkTaskExecution() {
       const baseline = BASELINES[benchmark.name.replace(/ /g, "")];
       const status = baseline && meanTime > baseline ? "⚠️" : "✓";
 
-      console.log(`  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`);
+      console.log(
+        `  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`,
+      );
       if (baseline) {
-        console.log(`    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`);
+        console.log(
+          `    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`,
+        );
       }
     })
     .on("complete", function () {
@@ -443,9 +474,13 @@ async function benchmarkOrchestrator() {
       const baseline = BASELINES[benchmark.name.replace(/ /g, "")];
       const status = baseline && meanTime > baseline ? "⚠️" : "✓";
 
-      console.log(`  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`);
+      console.log(
+        `  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`,
+      );
       if (baseline) {
-        console.log(`    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`);
+        console.log(
+          `    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`,
+        );
       }
     })
     .on("complete", function () {
@@ -472,8 +507,8 @@ async function benchmarkCollaboration() {
         // Add 10 agents
         agents = await Promise.all(
           Array.from({ length: 10 }, (_, i) =>
-            teammateTool.addAgent(team.id, { name: `Agent ${i}` })
-          )
+            teammateTool.addAgent(team.id, { name: `Agent ${i}` }),
+          ),
         );
       },
       fn: async (deferred) => {
@@ -526,9 +561,13 @@ async function benchmarkCollaboration() {
       const baseline = BASELINES[benchmark.name.replace(/ /g, "")];
       const status = baseline && meanTime > baseline ? "⚠️" : "✓";
 
-      console.log(`  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`);
+      console.log(
+        `  ${status} ${benchmark.name}: ${meanTime}ms (${opsPerSec} ops/sec)`,
+      );
       if (baseline) {
-        console.log(`    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`);
+        console.log(
+          `    Baseline: ${baseline}ms | Deviation: ${(meanTime - baseline).toFixed(2)}ms`,
+        );
       }
     })
     .on("complete", function () {
@@ -548,11 +587,13 @@ async function benchmarkScalability() {
   console.log("Test 1: Creating 100 teams...");
   const startTeams = Date.now();
   const teamPromises = Array.from({ length: 100 }, (_, i) =>
-    teammateTool.spawnTeam(`Scale Team ${i}`)
+    teammateTool.spawnTeam(`Scale Team ${i}`),
   );
   const teams = await Promise.all(teamPromises);
   const teamsTime = Date.now() - startTeams;
-  console.log(`  ✓ Created 100 teams in ${teamsTime}ms (${(teamsTime / 100).toFixed(2)}ms per team)\n`);
+  console.log(
+    `  ✓ Created 100 teams in ${teamsTime}ms (${(teamsTime / 100).toFixed(2)}ms per team)\n`,
+  );
 
   // Test 2: Many Agents per Team
   console.log("Test 2: Adding 50 agents to a team...");
@@ -562,11 +603,13 @@ async function benchmarkScalability() {
     teammateTool.addAgent(testTeam.id, {
       name: `Agent ${i}`,
       capabilities: [`skill-${i % 10}`],
-    })
+    }),
   );
   await Promise.all(agentPromises);
   const agentsTime = Date.now() - startAgents;
-  console.log(`  ✓ Added 50 agents in ${agentsTime}ms (${(agentsTime / 50).toFixed(2)}ms per agent)\n`);
+  console.log(
+    `  ✓ Added 50 agents in ${agentsTime}ms (${(agentsTime / 50).toFixed(2)}ms per agent)\n`,
+  );
 
   // Test 3: Many Tasks
   console.log("Test 3: Assigning 100 tasks...");
@@ -575,11 +618,13 @@ async function benchmarkScalability() {
     teammateTool.assignTask(testTeam.id, {
       description: `Task ${i}`,
       type: "benchmark",
-    })
+    }),
   );
   await Promise.all(taskPromises);
   const tasksTime = Date.now() - startTasks;
-  console.log(`  ✓ Assigned 100 tasks in ${tasksTime}ms (${(tasksTime / 100).toFixed(2)}ms per task)\n`);
+  console.log(
+    `  ✓ Assigned 100 tasks in ${tasksTime}ms (${(tasksTime / 100).toFixed(2)}ms per task)\n`,
+  );
 
   // Test 4: Many Permission Checks
   console.log("Test 4: Performing 1000 permission checks...");
@@ -588,12 +633,14 @@ async function benchmarkScalability() {
     fileSandbox.hasPermission(
       testTeam.id,
       path.join(TEST_SANDBOX_ROOT, `file-${i}.txt`),
-      "READ"
-    )
+      "READ",
+    ),
   );
   await Promise.all(permChecks);
   const permsTime = Date.now() - startPerms;
-  console.log(`  ✓ Performed 1000 permission checks in ${permsTime}ms (${(permsTime / 1000).toFixed(2)}ms per check)\n`);
+  console.log(
+    `  ✓ Performed 1000 permission checks in ${permsTime}ms (${(permsTime / 1000).toFixed(2)}ms per check)\n`,
+  );
 
   // Test 5: Many Audit Logs
   console.log("Test 5: Writing 1000 audit logs...");
@@ -604,11 +651,13 @@ async function benchmarkScalability() {
       operation: i % 2 === 0 ? "READ" : "WRITE",
       path: path.join(TEST_SANDBOX_ROOT, `file-${i}.txt`),
       success: true,
-    })
+    }),
   );
   await Promise.all(auditPromises);
   const auditTime = Date.now() - startAudit;
-  console.log(`  ✓ Wrote 1000 audit logs in ${auditTime}ms (${(auditTime / 1000).toFixed(2)}ms per log)\n`);
+  console.log(
+    `  ✓ Wrote 1000 audit logs in ${auditTime}ms (${(auditTime / 1000).toFixed(2)}ms per log)\n`,
+  );
 
   // Cleanup
   console.log("Cleaning up...");
@@ -625,7 +674,9 @@ async function analyzeMemoryUsage() {
   console.log("=== Memory Usage Analysis ===\n");
 
   const formatBytes = (bytes) => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) {
+      return "0 Bytes";
+    }
     const k = 1024;
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -660,8 +711,12 @@ async function analyzeMemoryUsage() {
   const afterTeamsMemory = process.memoryUsage();
   console.log("\nAfter creating teams:");
   console.log(`  Heap Used: ${formatBytes(afterTeamsMemory.heapUsed)}`);
-  console.log(`  Heap Increase: ${formatBytes(afterTeamsMemory.heapUsed - baselineMemory.heapUsed)}`);
-  console.log(`  Per Team: ${formatBytes((afterTeamsMemory.heapUsed - baselineMemory.heapUsed) / 100)}\n`);
+  console.log(
+    `  Heap Increase: ${formatBytes(afterTeamsMemory.heapUsed - baselineMemory.heapUsed)}`,
+  );
+  console.log(
+    `  Per Team: ${formatBytes((afterTeamsMemory.heapUsed - baselineMemory.heapUsed) / 100)}\n`,
+  );
 
   // Cleanup teams
   console.log("Cleaning up teams...");
@@ -676,7 +731,9 @@ async function analyzeMemoryUsage() {
   const afterCleanupMemory = process.memoryUsage();
   console.log("\nAfter cleanup:");
   console.log(`  Heap Used: ${formatBytes(afterCleanupMemory.heapUsed)}`);
-  console.log(`  Memory Freed: ${formatBytes(afterTeamsMemory.heapUsed - afterCleanupMemory.heapUsed)}\n`);
+  console.log(
+    `  Memory Freed: ${formatBytes(afterTeamsMemory.heapUsed - afterCleanupMemory.heapUsed)}\n`,
+  );
 }
 
 // ==========================================

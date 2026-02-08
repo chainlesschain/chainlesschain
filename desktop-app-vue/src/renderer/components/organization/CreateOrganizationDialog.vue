@@ -14,10 +14,7 @@
       :label-col="{ span: 6 }"
       :wrapper-col="{ span: 18 }"
     >
-      <a-form-item
-        label="Organization Name"
-        name="name"
-      >
+      <a-form-item label="Organization Name" name="name">
         <a-input
           v-model:value="formState.name"
           placeholder="Enter organization name"
@@ -26,10 +23,7 @@
         />
       </a-form-item>
 
-      <a-form-item
-        label="Organization Type"
-        name="type"
-      >
+      <a-form-item label="Organization Type" name="type">
         <a-select
           v-model:value="formState.type"
           placeholder="Select organization type"
@@ -52,10 +46,7 @@
         </a-select>
       </a-form-item>
 
-      <a-form-item
-        label="Description"
-        name="description"
-      >
+      <a-form-item label="Description" name="description">
         <a-textarea
           v-model:value="formState.description"
           placeholder="Enter organization description"
@@ -65,10 +56,7 @@
         />
       </a-form-item>
 
-      <a-form-item
-        label="Privacy"
-        name="isPublic"
-      >
+      <a-form-item label="Privacy" name="isPublic">
         <a-radio-group v-model:value="formState.isPublic">
           <a-radio :value="true">
             <GlobalOutlined /> Public
@@ -78,17 +66,12 @@
           </a-radio>
           <a-radio :value="false">
             <LockOutlined /> Private
-            <div class="radio-description">
-              Only invited members can join
-            </div>
+            <div class="radio-description">Only invited members can join</div>
           </a-radio>
         </a-radio-group>
       </a-form-item>
 
-      <a-form-item
-        label="Features"
-        name="features"
-      >
+      <a-form-item label="Features" name="features">
         <a-checkbox-group v-model:value="formState.features">
           <a-checkbox value="knowledge">
             <FileTextOutlined /> Knowledge Base
@@ -99,16 +82,11 @@
           <a-checkbox value="collaboration">
             <TeamOutlined /> Real-time Collaboration
           </a-checkbox>
-          <a-checkbox value="p2p">
-            <ApiOutlined /> P2P Network
-          </a-checkbox>
+          <a-checkbox value="p2p"> <ApiOutlined /> P2P Network </a-checkbox>
         </a-checkbox-group>
       </a-form-item>
 
-      <a-form-item
-        label="Storage Limit"
-        name="storageLimit"
-      >
+      <a-form-item label="Storage Limit" name="storageLimit">
         <a-select
           v-model:value="formState.storageLimit"
           placeholder="Select storage limit"
@@ -131,10 +109,7 @@
         </a-select>
       </a-form-item>
 
-      <a-form-item
-        label="Member Limit"
-        name="memberLimit"
-      >
+      <a-form-item label="Member Limit" name="memberLimit">
         <a-input-number
           v-model:value="formState.memberLimit"
           :min="1"
@@ -156,10 +131,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   ShopOutlined,
   BankOutlined,
@@ -169,17 +144,17 @@ import {
   FileTextOutlined,
   ProjectOutlined,
   TeamOutlined,
-  ApiOutlined
-} from '@ant-design/icons-vue';
+  ApiOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   open: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
-const emit = defineEmits(['update:open', 'created']);
+const emit = defineEmits(["update:open", "created"]);
 
 // State
 const visible = ref(props.open);
@@ -187,43 +162,73 @@ const loading = ref(false);
 const formRef = ref(null);
 
 const formState = reactive({
-  name: '',
-  type: 'startup',
-  description: '',
+  name: "",
+  type: "startup",
+  description: "",
   isPublic: false,
-  features: ['knowledge', 'projects', 'collaboration', 'p2p'],
+  features: ["knowledge", "projects", "collaboration", "p2p"],
   storageLimit: 10 * 1024 * 1024 * 1024, // 10GB
-  memberLimit: 50
+  memberLimit: 50,
 });
 
 // Validation rules
 const rules = {
   name: [
-    { required: true, message: 'Please enter organization name', trigger: 'blur' },
-    { min: 2, max: 50, message: 'Name must be between 2 and 50 characters', trigger: 'blur' }
+    {
+      required: true,
+      message: "Please enter organization name",
+      trigger: "blur",
+    },
+    {
+      min: 2,
+      max: 50,
+      message: "Name must be between 2 and 50 characters",
+      trigger: "blur",
+    },
   ],
   type: [
-    { required: true, message: 'Please select organization type', trigger: 'change' }
+    {
+      required: true,
+      message: "Please select organization type",
+      trigger: "change",
+    },
   ],
   description: [
-    { max: 500, message: 'Description cannot exceed 500 characters', trigger: 'blur' }
+    {
+      max: 500,
+      message: "Description cannot exceed 500 characters",
+      trigger: "blur",
+    },
   ],
   storageLimit: [
-    { required: true, message: 'Please select storage limit', trigger: 'change' }
+    {
+      required: true,
+      message: "Please select storage limit",
+      trigger: "change",
+    },
   ],
   memberLimit: [
-    { required: true, message: 'Please enter member limit', trigger: 'blur' },
-    { type: 'number', min: 1, max: 1000, message: 'Member limit must be between 1 and 1000', trigger: 'blur' }
-  ]
+    { required: true, message: "Please enter member limit", trigger: "blur" },
+    {
+      type: "number",
+      min: 1,
+      max: 1000,
+      message: "Member limit must be between 1 and 1000",
+      trigger: "blur",
+    },
+  ],
 };
 
 // Watch props
-watch(() => props.open, (newVal) => {
-  visible.value = newVal;
-});
+watch(
+  () => props.open,
+  (newVal) => {
+    visible.value = newVal;
+  },
+);
 
 watch(visible, (newVal) => {
-  emit('update:open', newVal);
+  emit("update:open", newVal);
   if (!newVal) {
     resetForm();
   }
@@ -235,30 +240,33 @@ async function handleCreate() {
     await formRef.value.validate();
     loading.value = true;
 
-    const result = await window.electron.ipcRenderer.invoke('organization:create', {
-      name: formState.name,
-      type: formState.type,
-      description: formState.description,
-      isPublic: formState.isPublic,
-      features: formState.features,
-      storageLimit: formState.storageLimit,
-      memberLimit: formState.memberLimit
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "organization:create",
+      {
+        name: formState.name,
+        type: formState.type,
+        description: formState.description,
+        isPublic: formState.isPublic,
+        features: formState.features,
+        storageLimit: formState.storageLimit,
+        memberLimit: formState.memberLimit,
+      },
+    );
 
     if (result.success) {
-      message.success('Organization created successfully');
-      emit('created', result.organization);
+      message.success("Organization created successfully");
+      emit("created", result.organization);
       visible.value = false;
     } else {
-      message.error(result.error || 'Failed to create organization');
+      message.error(result.error || "Failed to create organization");
     }
   } catch (error) {
-    logger.error('Error creating organization:', error);
+    logger.error("Error creating organization:", error);
     if (error.errorFields) {
       // Validation error
       return;
     }
-    message.error('Failed to create organization');
+    message.error("Failed to create organization");
   } finally {
     loading.value = false;
   }
@@ -271,13 +279,13 @@ function handleCancel() {
 function resetForm() {
   formRef.value?.resetFields();
   Object.assign(formState, {
-    name: '',
-    type: 'startup',
-    description: '',
+    name: "",
+    type: "startup",
+    description: "",
     isPublic: false,
-    features: ['knowledge', 'projects', 'collaboration', 'p2p'],
+    features: ["knowledge", "projects", "collaboration", "p2p"],
     storageLimit: 10 * 1024 * 1024 * 1024,
-    memberLimit: 50
+    memberLimit: 50,
   });
 }
 </script>

@@ -4,8 +4,8 @@
  * 管理 DID 联系人、好友关系、信任评分
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * 联系人管理器类
@@ -23,18 +23,18 @@ class ContactManager extends EventEmitter {
    * 初始化联系人管理器
    */
   async initialize() {
-    logger.info('[ContactManager] 初始化联系人管理器...');
+    logger.info("[ContactManager] 初始化联系人管理器...");
 
     try {
       // 确保数据库表存在
       await this.ensureTables();
 
-      logger.info('[ContactManager] 联系人管理器初始化成功');
-      this.emit('initialized');
+      logger.info("[ContactManager] 联系人管理器初始化成功");
+      this.emit("initialized");
 
       return true;
     } catch (error) {
-      logger.error('[ContactManager] 初始化失败:', error);
+      logger.error("[ContactManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -45,9 +45,11 @@ class ContactManager extends EventEmitter {
   async ensureTables() {
     try {
       // 检查 contacts 表
-      const result = this.db.prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='contacts'"
-      ).all();
+      const result = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='contacts'",
+        )
+        .all();
 
       if (!result || result.length === 0) {
         // 创建 contacts 表
@@ -67,13 +69,15 @@ class ContactManager extends EventEmitter {
           )
         `);
 
-        logger.info('[ContactManager] contacts 表已创建');
+        logger.info("[ContactManager] contacts 表已创建");
       }
 
       // 创建好友请求表
-      const requestResult = this.db.prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='friend_requests'"
-      ).all();
+      const requestResult = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='friend_requests'",
+        )
+        .all();
 
       if (!requestResult || requestResult.length === 0) {
         this.db.exec(`
@@ -88,10 +92,10 @@ class ContactManager extends EventEmitter {
           )
         `);
 
-        logger.info('[ContactManager] friend_requests 表已创建');
+        logger.info("[ContactManager] friend_requests 表已创建");
       }
     } catch (error) {
-      logger.error('[ContactManager] 检查数据库表失败:', error);
+      logger.error("[ContactManager] 检查数据库表失败:", error);
       throw error;
     }
   }
@@ -102,20 +106,26 @@ class ContactManager extends EventEmitter {
    */
   async addContact(contact) {
     try {
-      logger.info('[ContactManager] 添加联系人:', contact.did);
+      logger.info("[ContactManager] 添加联系人:", contact.did);
 
       // 验证必填字段
-      if (!contact.did || !contact.public_key_sign || !contact.public_key_encrypt) {
-        throw new Error('缺少必填字段: did, public_key_sign, public_key_encrypt');
+      if (
+        !contact.did ||
+        !contact.public_key_sign ||
+        !contact.public_key_encrypt
+      ) {
+        throw new Error(
+          "缺少必填字段: did, public_key_sign, public_key_encrypt",
+        );
       }
 
       const contactData = {
         did: contact.did,
-        nickname: contact.nickname || 'Unknown',
+        nickname: contact.nickname || "Unknown",
         avatar_url: contact.avatar_url || null,
         public_key_sign: contact.public_key_sign,
         public_key_encrypt: contact.public_key_encrypt,
-        relationship: contact.relationship || 'contact',
+        relationship: contact.relationship || "contact",
         trust_score: contact.trust_score || 0.0,
         node_address: contact.node_address || null,
         added_at: Date.now(),
@@ -123,35 +133,37 @@ class ContactManager extends EventEmitter {
         notes: contact.notes || null,
       };
 
-      this.db.prepare(
-        `
+      this.db
+        .prepare(
+          `
         INSERT OR REPLACE INTO contacts (
           did, nickname, avatar_url, public_key_sign, public_key_encrypt,
           relationship, trust_score, node_address, added_at, last_seen, notes
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `
-      ).run(
-        contactData.did,
-        contactData.nickname,
-        contactData.avatar_url,
-        contactData.public_key_sign,
-        contactData.public_key_encrypt,
-        contactData.relationship,
-        contactData.trust_score,
-        contactData.node_address,
-        contactData.added_at,
-        contactData.last_seen,
-        contactData.notes
-      );
+      `,
+        )
+        .run(
+          contactData.did,
+          contactData.nickname,
+          contactData.avatar_url,
+          contactData.public_key_sign,
+          contactData.public_key_encrypt,
+          contactData.relationship,
+          contactData.trust_score,
+          contactData.node_address,
+          contactData.added_at,
+          contactData.last_seen,
+          contactData.notes,
+        );
 
       this.db.saveToFile();
 
-      logger.info('[ContactManager] 联系人已添加:', contact.did);
-      this.emit('contact:added', contactData);
+      logger.info("[ContactManager] 联系人已添加:", contact.did);
+      this.emit("contact:added", contactData);
 
       return contactData;
     } catch (error) {
-      logger.error('[ContactManager] 添加联系人失败:', error);
+      logger.error("[ContactManager] 添加联系人失败:", error);
       throw error;
     }
   }
@@ -164,24 +176,24 @@ class ContactManager extends EventEmitter {
     try {
       const data = JSON.parse(qrData);
 
-      logger.info('[ContactManager] 从二维码添加联系人:', data.did);
+      logger.info("[ContactManager] 从二维码添加联系人:", data.did);
 
       // 验证 DID 格式
-      if (!data.did || !data.did.startsWith('did:chainlesschain:')) {
-        throw new Error('无效的 DID 格式');
+      if (!data.did || !data.did.startsWith("did:chainlesschain:")) {
+        throw new Error("无效的 DID 格式");
       }
 
       const contact = {
         did: data.did,
-        nickname: data.nickname || 'Unknown',
+        nickname: data.nickname || "Unknown",
         public_key_sign: data.publicKeySign,
         public_key_encrypt: data.publicKeyEncrypt,
-        relationship: 'contact',
+        relationship: "contact",
       };
 
       return await this.addContact(contact);
     } catch (error) {
-      logger.error('[ContactManager] 从二维码添加联系人失败:', error);
+      logger.error("[ContactManager] 从二维码添加联系人失败:", error);
       throw error;
     }
   }
@@ -191,7 +203,9 @@ class ContactManager extends EventEmitter {
    */
   getAllContacts() {
     try {
-      const result = this.db.prepare('SELECT * FROM contacts ORDER BY added_at DESC').all();
+      const result = this.db
+        .prepare("SELECT * FROM contacts ORDER BY added_at DESC")
+        .all();
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -208,7 +222,7 @@ class ContactManager extends EventEmitter {
         return contact;
       });
     } catch (error) {
-      logger.error('[ContactManager] 获取联系人列表失败:', error);
+      logger.error("[ContactManager] 获取联系人列表失败:", error);
       return [];
     }
   }
@@ -219,9 +233,16 @@ class ContactManager extends EventEmitter {
    */
   getContactByDID(did) {
     try {
-      const result = this.db.prepare('SELECT * FROM contacts WHERE did = ?').all([did]);
+      const result = this.db
+        .prepare("SELECT * FROM contacts WHERE did = ?")
+        .all([did]);
 
-      if (!result || result.length === 0 || !result[0].values || result[0].values.length === 0) {
+      if (
+        !result ||
+        result.length === 0 ||
+        !result[0].values ||
+        result[0].values.length === 0
+      ) {
         return null;
       }
 
@@ -235,7 +256,7 @@ class ContactManager extends EventEmitter {
 
       return contact;
     } catch (error) {
-      logger.error('[ContactManager] 获取联系人失败:', error);
+      logger.error("[ContactManager] 获取联系人失败:", error);
       return null;
     }
   }
@@ -250,13 +271,20 @@ class ContactManager extends EventEmitter {
       const contact = this.getContactByDID(did);
 
       if (!contact) {
-        throw new Error('联系人不存在');
+        throw new Error("联系人不存在");
       }
 
       const fields = [];
       const values = [];
 
-      const allowedFields = ['nickname', 'avatar_url', 'relationship', 'trust_score', 'node_address', 'notes'];
+      const allowedFields = [
+        "nickname",
+        "avatar_url",
+        "relationship",
+        "trust_score",
+        "node_address",
+        "notes",
+      ];
 
       allowedFields.forEach((field) => {
         if (updates[field] !== undefined) {
@@ -271,16 +299,18 @@ class ContactManager extends EventEmitter {
 
       values.push(did);
 
-      this.db.prepare(`UPDATE contacts SET ${fields.join(', ')} WHERE did = ?`).run(values);
+      this.db
+        .prepare(`UPDATE contacts SET ${fields.join(", ")} WHERE did = ?`)
+        .run(values);
 
       this.db.saveToFile();
 
-      logger.info('[ContactManager] 联系人已更新:', did);
-      this.emit('contact:updated', { did, updates });
+      logger.info("[ContactManager] 联系人已更新:", did);
+      this.emit("contact:updated", { did, updates });
 
       return this.getContactByDID(did);
     } catch (error) {
-      logger.error('[ContactManager] 更新联系人失败:', error);
+      logger.error("[ContactManager] 更新联系人失败:", error);
       throw error;
     }
   }
@@ -294,18 +324,18 @@ class ContactManager extends EventEmitter {
       const contact = this.getContactByDID(did);
 
       if (!contact) {
-        throw new Error('联系人不存在');
+        throw new Error("联系人不存在");
       }
 
-      this.db.prepare('DELETE FROM contacts WHERE did = ?').run([did]);
+      this.db.prepare("DELETE FROM contacts WHERE did = ?").run([did]);
       this.db.saveToFile();
 
-      logger.info('[ContactManager] 联系人已删除:', did);
-      this.emit('contact:deleted', { did });
+      logger.info("[ContactManager] 联系人已删除:", did);
+      this.emit("contact:deleted", { did });
 
       return true;
     } catch (error) {
-      logger.error('[ContactManager] 删除联系人失败:', error);
+      logger.error("[ContactManager] 删除联系人失败:", error);
       throw error;
     }
   }
@@ -316,11 +346,13 @@ class ContactManager extends EventEmitter {
    */
   searchContacts(query) {
     try {
-      const result = this.db.prepare(
-        `SELECT * FROM contacts
+      const result = this.db
+        .prepare(
+          `SELECT * FROM contacts
          WHERE nickname LIKE ? OR did LIKE ? OR notes LIKE ?
-         ORDER BY trust_score DESC, added_at DESC`
-      ).all(`%${query}%`, `%${query}%`, `%${query}%`);
+         ORDER BY trust_score DESC, added_at DESC`,
+        )
+        .all(`%${query}%`, `%${query}%`, `%${query}%`);
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -337,7 +369,7 @@ class ContactManager extends EventEmitter {
         return contact;
       });
     } catch (error) {
-      logger.error('[ContactManager] 搜索联系人失败:', error);
+      logger.error("[ContactManager] 搜索联系人失败:", error);
       return [];
     }
   }
@@ -347,9 +379,11 @@ class ContactManager extends EventEmitter {
    */
   getFriends() {
     try {
-      const result = this.db.prepare(
-        "SELECT * FROM contacts WHERE relationship = 'friend' ORDER BY trust_score DESC"
-      ).all();
+      const result = this.db
+        .prepare(
+          "SELECT * FROM contacts WHERE relationship = 'friend' ORDER BY trust_score DESC",
+        )
+        .all();
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -366,7 +400,7 @@ class ContactManager extends EventEmitter {
         return contact;
       });
     } catch (error) {
-      logger.error('[ContactManager] 获取好友列表失败:', error);
+      logger.error("[ContactManager] 获取好友列表失败:", error);
       return [];
     }
   }
@@ -377,13 +411,15 @@ class ContactManager extends EventEmitter {
    */
   async updateLastSeen(did) {
     try {
-      this.db.prepare('UPDATE contacts SET last_seen = ? WHERE did = ?').run([Date.now(), did]);
+      this.db
+        .prepare("UPDATE contacts SET last_seen = ? WHERE did = ?")
+        .run([Date.now(), did]);
 
       this.db.saveToFile();
 
-      this.emit('contact:last-seen-updated', { did });
+      this.emit("contact:last-seen-updated", { did });
     } catch (error) {
-      logger.error('[ContactManager] 更新最后在线时间失败:', error);
+      logger.error("[ContactManager] 更新最后在线时间失败:", error);
     }
   }
 
@@ -397,7 +433,7 @@ class ContactManager extends EventEmitter {
       const contact = this.getContactByDID(did);
 
       if (!contact) {
-        throw new Error('联系人不存在');
+        throw new Error("联系人不存在");
       }
 
       let newScore = (contact.trust_score || 0) + delta;
@@ -405,16 +441,18 @@ class ContactManager extends EventEmitter {
       // 限制在 0-100 范围内
       newScore = Math.max(0, Math.min(100, newScore));
 
-      this.db.prepare('UPDATE contacts SET trust_score = ? WHERE did = ?').run([newScore, did]);
+      this.db
+        .prepare("UPDATE contacts SET trust_score = ? WHERE did = ?")
+        .run([newScore, did]);
 
       this.db.saveToFile();
 
-      logger.info('[ContactManager] 信任评分已更新:', did, newScore);
-      this.emit('contact:trust-score-updated', { did, score: newScore });
+      logger.info("[ContactManager] 信任评分已更新:", did, newScore);
+      this.emit("contact:trust-score-updated", { did, score: newScore });
 
       return newScore;
     } catch (error) {
-      logger.error('[ContactManager] 更新信任评分失败:', error);
+      logger.error("[ContactManager] 更新信任评分失败:", error);
       throw error;
     }
   }
@@ -425,17 +463,25 @@ class ContactManager extends EventEmitter {
   getStatistics() {
     try {
       // 总联系人数
-      const totalResult = this.db.prepare('SELECT COUNT(*) as count FROM contacts').all();
+      const totalResult = this.db
+        .prepare("SELECT COUNT(*) as count FROM contacts")
+        .all();
       const total = totalResult[0]?.values[0]?.[0] || 0;
 
       // 好友数
-      const friendsResult = this.db.prepare(
-        "SELECT COUNT(*) as count FROM contacts WHERE relationship = 'friend'"
-      ).all();
+      const friendsResult = this.db
+        .prepare(
+          "SELECT COUNT(*) as count FROM contacts WHERE relationship = 'friend'",
+        )
+        .all();
       const friends = friendsResult[0]?.values[0]?.[0] || 0;
 
       // 按关系类型统计
-      const byRelationshipResult = this.db.prepare('SELECT relationship, COUNT(*) as count FROM contacts GROUP BY relationship').all();
+      const byRelationshipResult = this.db
+        .prepare(
+          "SELECT relationship, COUNT(*) as count FROM contacts GROUP BY relationship",
+        )
+        .all();
 
       const byRelationship = {};
       if (byRelationshipResult && byRelationshipResult[0]?.values) {
@@ -450,7 +496,7 @@ class ContactManager extends EventEmitter {
         byRelationship,
       };
     } catch (error) {
-      logger.error('[ContactManager] 获取统计信息失败:', error);
+      logger.error("[ContactManager] 获取统计信息失败:", error);
       return { total: 0, friends: 0, byRelationship: {} };
     }
   }
@@ -459,8 +505,8 @@ class ContactManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
-    logger.info('[ContactManager] 关闭联系人管理器');
-    this.emit('closed');
+    logger.info("[ContactManager] 关闭联系人管理器");
+    this.emit("closed");
   }
 }
 

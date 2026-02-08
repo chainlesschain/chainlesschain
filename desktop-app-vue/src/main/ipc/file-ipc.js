@@ -3,7 +3,7 @@
  * 处理前端与文件系统之间的通信
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const { ipcMain, dialog } = require("electron");
 const fs = require("fs").promises;
 const path = require("path");
@@ -526,7 +526,9 @@ class FileIPC {
     // 注意：file:readContent 已在 file/file-ipc.js 中注册（第86行），
     // 此处跳过注册以避免 IPC 通道冲突。
     // 读取文件内容的功能现在由 file/file-ipc.js 提供。
-    logger.info("[File IPC] Skipping file:readContent (already registered in file/file-ipc.js)");
+    logger.info(
+      "[File IPC] Skipping file:readContent (already registered in file/file-ipc.js)",
+    );
 
     // 写入文件内容
     ipcMain.handle("file:writeContent", async (event, filePath, content) => {
@@ -949,7 +951,9 @@ class FileIPC {
       logger.warn(
         "[File IPC] ⚠ file:readContent handler not found in eventNames()",
       );
-      logger.warn("[File IPC] This may be normal if file/file-ipc.js hasn't registered it yet.");
+      logger.warn(
+        "[File IPC] This may be normal if file/file-ipc.js hasn't registered it yet.",
+      );
     }
   }
 

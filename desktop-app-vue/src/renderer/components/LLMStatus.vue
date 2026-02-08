@@ -1,20 +1,13 @@
 <template>
   <div class="llm-status">
-    <a-card
-      title="LLM 服务状态"
-      size="small"
-    >
+    <a-card title="LLM 服务状态" size="small">
       <!-- 状态概览 -->
       <div class="status-overview">
-        <a-descriptions
-          :column="2"
-          size="small"
-          bordered
-        >
+        <a-descriptions :column="2" size="small" bordered>
           <a-descriptions-item label="服务状态">
             <a-space>
               <a-badge :status="status.available ? 'success' : 'error'" />
-              <span>{{ status.available ? '运行中' : '不可用' }}</span>
+              <span>{{ status.available ? "运行中" : "不可用" }}</span>
             </a-space>
           </a-descriptions-item>
 
@@ -40,18 +33,11 @@
             {{ status.models.length }} 个
           </a-descriptions-item>
 
-          <a-descriptions-item
-            label="最后检查时间"
-            :span="2"
-          >
+          <a-descriptions-item label="最后检查时间" :span="2">
             {{ formatDate(lastCheckTime) }}
           </a-descriptions-item>
 
-          <a-descriptions-item
-            v-if="status.error"
-            label="错误信息"
-            :span="2"
-          >
+          <a-descriptions-item v-if="status.error" label="错误信息" :span="2">
             <a-typography-text type="danger">
               {{ status.error }}
             </a-typography-text>
@@ -60,13 +46,12 @@
       </div>
 
       <!-- 可用模型列表 -->
-      <div
-        v-if="showModelCount"
-        class="models-section"
-      >
+      <div v-if="showModelCount" class="models-section">
         <a-divider>可用模型</a-divider>
         <a-list
-          :data-source="status.models.slice(0, showAllModels ? status.models.length : 5)"
+          :data-source="
+            status.models.slice(0, showAllModels ? status.models.length : 5)
+          "
           size="small"
           :bordered="false"
         >
@@ -86,15 +71,9 @@
                     </a-tag>
                   </a-space>
                 </template>
-                <template
-                  v-if="item.size"
-                  #description
-                >
+                <template v-if="item.size" #description>
                   大小: {{ formatSize(item.size) }}
-                  <span
-                    v-if="item.modified_at"
-                    style="margin-left: 16px"
-                  >
+                  <span v-if="item.modified_at" style="margin-left: 16px">
                     修改时间: {{ formatModelDate(item.modified_at) }}
                   </span>
                 </template>
@@ -107,11 +86,7 @@
           v-if="status.models.length > 5 && !showAllModels"
           class="show-more"
         >
-          <a-button
-            type="link"
-            size="small"
-            @click="showAllModels = true"
-          >
+          <a-button type="link" size="small" @click="showAllModels = true">
             显示全部 {{ status.models.length }} 个模型
           </a-button>
         </div>
@@ -132,10 +107,7 @@
             刷新状态
           </a-button>
 
-          <a-button
-            size="small"
-            @click="$emit('open-settings')"
-          >
+          <a-button size="small" @click="$emit('open-settings')">
             <template #icon>
               <setting-outlined />
             </template>
@@ -157,10 +129,7 @@
       </div>
 
       <!-- 测试结果 -->
-      <div
-        v-if="testResult"
-        class="test-result"
-      >
+      <div v-if="testResult" class="test-result">
         <a-divider>测试结果</a-divider>
         <a-alert
           :type="testResult.success ? 'success' : 'error'"
@@ -169,18 +138,13 @@
           closable
           @close="testResult = null"
         >
-          <template
-            v-if="testResult.response"
-            #description
-          >
+          <template v-if="testResult.response" #description>
             <div class="test-response">
               {{ testResult.response }}
             </div>
-            <div
-              v-if="testResult.tokens"
-              class="test-meta"
-            >
-              Token数: {{ testResult.tokens }} | 耗时: {{ testResult.duration }}ms
+            <div v-if="testResult.tokens" class="test-meta">
+              Token数: {{ testResult.tokens }} | 耗时:
+              {{ testResult.duration }}ms
             </div>
           </template>
         </a-alert>
@@ -190,29 +154,29 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   ApiOutlined,
   ReloadOutlined,
   SettingOutlined,
   ExperimentOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // 事件
-const emit = defineEmits(['open-settings']);
+const emit = defineEmits(["open-settings"]);
 
 // 状态
 const status = ref({
   available: false,
-  provider: '',
+  provider: "",
   models: [],
   error: null,
 });
 
-const currentModel = ref('');
+const currentModel = ref("");
 const lastCheckTime = ref(null);
 const refreshing = ref(false);
 const testing = ref(false);
@@ -221,10 +185,10 @@ const testResult = ref(null);
 
 const showCurrentModel = computed(() => Boolean(currentModel.value));
 const showModelCount = computed(
-  () => Array.isArray(status.value.models) && status.value.models.length > 0
+  () => Array.isArray(status.value.models) && status.value.models.length > 0,
 );
 const modelStatSpan = computed(() =>
-  showCurrentModel.value && showModelCount.value ? 1 : 2
+  showCurrentModel.value && showModelCount.value ? 1 : 2,
 );
 
 // 定时器
@@ -241,25 +205,25 @@ const checkStatus = async () => {
     const config = await window.electronAPI.llm.getConfig();
     if (config) {
       switch (config.provider) {
-        case 'ollama':
-          currentModel.value = config.ollama?.model || '';
+        case "ollama":
+          currentModel.value = config.ollama?.model || "";
           break;
-        case 'openai':
-          currentModel.value = config.openai?.model || '';
+        case "openai":
+          currentModel.value = config.openai?.model || "";
           break;
-        case 'anthropic':
-          currentModel.value = config.anthropic?.model || '';
+        case "anthropic":
+          currentModel.value = config.anthropic?.model || "";
           break;
-        case 'deepseek':
-          currentModel.value = config.deepseek?.model || '';
+        case "deepseek":
+          currentModel.value = config.deepseek?.model || "";
           break;
-        case 'custom':
-          currentModel.value = config.custom?.model || '';
+        case "custom":
+          currentModel.value = config.custom?.model || "";
           break;
       }
     }
   } catch (error) {
-    logger.error('检查状态失败:', error);
+    logger.error("检查状态失败:", error);
   }
 };
 
@@ -268,9 +232,9 @@ const handleRefresh = async () => {
   refreshing.value = true;
   try {
     await checkStatus();
-    message.success('状态已刷新');
+    message.success("状态已刷新");
   } catch (error) {
-    message.error('刷新失败: ' + error.message);
+    message.error("刷新失败: " + error.message);
   } finally {
     refreshing.value = false;
   }
@@ -285,27 +249,27 @@ const handleTest = async () => {
 
   try {
     const response = await window.electronAPI.llm.query(
-      'Hello! Please respond with a brief greeting.',
-      { max_tokens: 50 }
+      "Hello! Please respond with a brief greeting.",
+      { max_tokens: 50 },
     );
 
     const duration = Date.now() - startTime;
 
     testResult.value = {
       success: true,
-      message: '服务测试成功',
+      message: "服务测试成功",
       response: response.text,
       tokens: response.tokens,
       duration: duration,
     };
 
-    message.success('服务测试成功');
+    message.success("服务测试成功");
   } catch (error) {
     testResult.value = {
       success: false,
-      message: '服务测试失败: ' + error.message,
+      message: "服务测试失败: " + error.message,
     };
-    message.error('测试失败: ' + error.message);
+    message.error("测试失败: " + error.message);
   } finally {
     testing.value = false;
   }
@@ -314,30 +278,32 @@ const handleTest = async () => {
 // 获取提供商名称
 const getProviderName = (provider) => {
   const names = {
-    ollama: 'Ollama',
-      openai: 'OpenAI',
-      anthropic: 'Claude (Anthropic)',
-      deepseek: 'DeepSeek',
-    custom: '自定义',
+    ollama: "Ollama",
+    openai: "OpenAI",
+    anthropic: "Claude (Anthropic)",
+    deepseek: "DeepSeek",
+    custom: "自定义",
   };
-  return names[provider] || provider || '未知';
+  return names[provider] || provider || "未知";
 };
 
 // 获取提供商颜色
 const getProviderColor = (provider) => {
   const colors = {
-    ollama: 'blue',
-    openai: 'green',
-    anthropic: 'geekblue',
-    deepseek: 'purple',
-    custom: 'orange',
+    ollama: "blue",
+    openai: "green",
+    anthropic: "geekblue",
+    deepseek: "purple",
+    custom: "orange",
   };
-  return colors[provider] || 'default';
+  return colors[provider] || "default";
 };
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '从未';}
+  if (!timestamp) {
+    return "从未";
+  }
 
   const date = new Date(timestamp);
   const now = new Date();
@@ -345,7 +311,7 @@ const formatDate = (timestamp) => {
 
   // 小于1分钟
   if (diff < 60000) {
-    return '刚刚';
+    return "刚刚";
   }
 
   // 小于1小时
@@ -361,25 +327,27 @@ const formatDate = (timestamp) => {
   }
 
   // 超过1天
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 // 格式化模型日期
 const formatModelDate = (dateStr) => {
-  if (!dateStr) {return '';}
+  if (!dateStr) {
+    return "";
+  }
 
   try {
     const date = new Date(dateStr);
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+    return date.toLocaleString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   } catch (error) {
     return dateStr;
@@ -388,7 +356,9 @@ const formatModelDate = (dateStr) => {
 
 // 格式化大小
 const formatSize = (bytes) => {
-  if (!bytes) {return '';}
+  if (!bytes) {
+    return "";
+  }
   const gb = bytes / (1024 * 1024 * 1024);
   return `${gb.toFixed(1)} GB`;
 };

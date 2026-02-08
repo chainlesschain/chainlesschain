@@ -5,7 +5,7 @@
  * DID 格式: did:chainlesschain:<identifier>
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const nacl = require("tweetnacl");
 const naclUtil = require("tweetnacl-util");
 const crypto = require("crypto");
@@ -658,7 +658,10 @@ class DIDManager extends EventEmitter {
             const secretKey = naclUtil.decodeBase64(privateKeyBase64);
 
             // 使用 signDIDDocument 重新签名
-            const resignedDocument = this.signDIDDocument(didDocument, secretKey);
+            const resignedDocument = this.signDIDDocument(
+              didDocument,
+              secretKey,
+            );
 
             // 更新数据库中的 DID 文档
             this.db
@@ -668,7 +671,10 @@ class DIDManager extends EventEmitter {
 
             logger.info("[DIDManager] DID 文档已重新签名:", did);
           } catch (signError) {
-            logger.warn("[DIDManager] 重新签名失败，保留旧签名:", signError.message);
+            logger.warn(
+              "[DIDManager] 重新签名失败，保留旧签名:",
+              signError.message,
+            );
           }
         } else {
           logger.warn("[DIDManager] 无法重新签名：私钥不可用");

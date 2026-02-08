@@ -42,9 +42,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { message } from 'ant-design-vue';
+import { message } from "ant-design-vue";
 import {
   DownloadOutlined,
   DownOutlined,
@@ -54,21 +54,21 @@ import {
   FilePptOutlined,
   GlobalOutlined,
   AudioOutlined,
-  PictureOutlined
-} from '@ant-design/icons-vue';
+  PictureOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   file: {
     type: Object,
-    required: true
+    required: true,
   },
   projectId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
-const emit = defineEmits(['export-start', 'export-complete', 'export-error']);
+const emit = defineEmits(["export-start", "export-complete", "export-error"]);
 
 /**
  * 处理导出点击
@@ -78,49 +78,61 @@ const handleExportClick = async ({ key }) => {
   const fileName = props.file.file_name || props.file.name;
 
   try {
-    message.loading({ content: `正在导出为 ${getExportTypeName(exportType)}...`, key: 'export', duration: 0 });
+    message.loading({
+      content: `正在导出为 ${getExportTypeName(exportType)}...`,
+      key: "export",
+      duration: 0,
+    });
 
-    emit('export-start', { exportType, fileName });
+    emit("export-start", { exportType, fileName });
 
     let result;
 
     switch (exportType) {
-      case 'pdf':
+      case "pdf":
         result = await exportToPDF(fileName);
         break;
-      case 'markdown':
+      case "markdown":
         result = await exportToMarkdown(fileName);
         break;
-      case 'docx':
+      case "docx":
         result = await exportToDocx(fileName);
         break;
-      case 'html':
+      case "html":
         result = await exportToHTML(fileName);
         break;
-      case 'podcast':
+      case "podcast":
         result = await generatePodcastScript(fileName);
         break;
-      case 'ppt':
+      case "ppt":
         result = await generatePPT(fileName);
         break;
-      case 'image':
+      case "image":
         result = await generateArticleImages(fileName);
         break;
       default:
         throw new Error(`不支持的导出类型: ${exportType}`);
     }
 
-    message.success({ content: `导出成功: ${result.fileName}`, key: 'export', duration: 2 });
-    emit('export-complete', result);
+    message.success({
+      content: `导出成功: ${result.fileName}`,
+      key: "export",
+      duration: 2,
+    });
+    emit("export-complete", result);
 
     // 打开文件所在目录
     if (result.path) {
       await window.electronAPI.shell.openPath(result.path);
     }
   } catch (error) {
-    logger.error('导出失败:', error);
-    message.error({ content: `导出失败: ${error.message}`, key: 'export', duration: 3 });
-    emit('export-error', { exportType, error });
+    logger.error("导出失败:", error);
+    message.error({
+      content: `导出失败: ${error.message}`,
+      key: "export",
+      duration: 3,
+    });
+    emit("export-error", { exportType, error });
   }
 };
 
@@ -129,65 +141,68 @@ const handleExportClick = async ({ key }) => {
  */
 const exportToPDF = async (fileName) => {
   const filePath = props.file.file_path || props.file.path;
-  const baseName = fileName.replace(/\.[^.]+$/, '');
-  const outputPath = filePath.replace(/\.[^.]+$/, '.pdf');
+  const baseName = fileName.replace(/\.[^.]+$/, "");
+  const outputPath = filePath.replace(/\.[^.]+$/, ".pdf");
 
   try {
     // 读取文件内容
-    const content = await window.electron.ipcRenderer.invoke('file:read', filePath);
+    const content = await window.electron.ipcRenderer.invoke(
+      "file:read",
+      filePath,
+    );
 
     // 根据文件类型选择转换方式
-    const fileExt = filePath.split('.').pop().toLowerCase();
+    const fileExt = filePath.split(".").pop().toLowerCase();
 
     let result;
 
-    if (fileExt === 'md' || fileExt === 'markdown') {
+    if (fileExt === "md" || fileExt === "markdown") {
       // Markdown转PDF
-      result = await window.electron.ipcRenderer.invoke('pdf:markdownToPDF', {
+      result = await window.electron.ipcRenderer.invoke("pdf:markdownToPDF", {
         markdown: content,
         outputPath,
         options: {
           title: baseName,
-          pageSize: 'A4'
-        }
+          pageSize: "A4",
+        },
       });
-    } else if (fileExt === 'html' || fileExt === 'htm') {
+    } else if (fileExt === "html" || fileExt === "htm") {
       // HTML文件转PDF
-      result = await window.electron.ipcRenderer.invoke('pdf:htmlFileToPDF', {
+      result = await window.electron.ipcRenderer.invoke("pdf:htmlFileToPDF", {
         htmlPath: filePath,
         outputPath,
         options: {
-          pageSize: 'A4'
-        }
+          pageSize: "A4",
+        },
       });
-    } else if (fileExt === 'txt') {
+    } else if (fileExt === "txt") {
       // 文本文件转PDF
-      result = await window.electron.ipcRenderer.invoke('pdf:textFileToPDF', {
+      result = await window.electron.ipcRenderer.invoke("pdf:textFileToPDF", {
         textPath: filePath,
         outputPath,
         options: {
           title: baseName,
-          pageSize: 'A4'
-        }
+          pageSize: "A4",
+        },
       });
     } else {
       // 其他文件类型，尝试作为Markdown处理
-      result = await window.electron.ipcRenderer.invoke('pdf:markdownToPDF', {
+      result = await window.electron.ipcRenderer.invoke("pdf:markdownToPDF", {
         markdown: content,
         outputPath,
         options: {
           title: baseName,
-          pageSize: 'A4'
-        }
+          pageSize: "A4",
+        },
       });
     }
 
     return {
       fileName: `${baseName}.pdf`,
-      path: result.outputPath
+      path: result.outputPath,
     };
   } catch (error) {
-    logger.error('[FileExportMenu] PDF导出失败:', error);
+    logger.error("[FileExportMenu] PDF导出失败:", error);
     throw new Error(`PDF导出失败: ${error.message}`);
   }
 };
@@ -199,30 +214,30 @@ const exportToMarkdown = async (fileName) => {
   const filePath = props.file.file_path || props.file.path;
 
   // 如果已经是Markdown文件，直接复制
-  if (filePath.endsWith('.md')) {
+  if (filePath.endsWith(".md")) {
     const result = await window.electronAPI.project.copyFile({
       sourcePath: filePath,
-      targetPath: filePath.replace(/\.md$/, '_copy.md')
+      targetPath: filePath.replace(/\.md$/, "_copy.md"),
     });
 
     return {
       fileName: result.fileName,
-      path: result.path
+      path: result.path,
     };
   }
 
   // 其他格式转换为Markdown
-  const outputPath = filePath.replace(/\.[^.]+$/, '.md');
+  const outputPath = filePath.replace(/\.[^.]+$/, ".md");
   const result = await window.electronAPI.project.exportDocument({
     projectId: props.projectId,
     sourcePath: filePath,
-    format: 'markdown',
-    outputPath
+    format: "markdown",
+    outputPath,
   });
 
   return {
     fileName: result.fileName || `${fileName}.md`,
-    path: result.path
+    path: result.path,
   };
 };
 
@@ -231,18 +246,18 @@ const exportToMarkdown = async (fileName) => {
  */
 const exportToDocx = async (fileName) => {
   const filePath = props.file.file_path || props.file.path;
-  const outputPath = filePath.replace(/\.[^.]+$/, '.docx');
+  const outputPath = filePath.replace(/\.[^.]+$/, ".docx");
 
   const result = await window.electronAPI.project.exportDocument({
     projectId: props.projectId,
     sourcePath: filePath,
-    format: 'docx',
-    outputPath
+    format: "docx",
+    outputPath,
   });
 
   return {
     fileName: result.fileName || `${fileName}.docx`,
-    path: result.path
+    path: result.path,
   };
 };
 
@@ -251,18 +266,18 @@ const exportToDocx = async (fileName) => {
  */
 const exportToHTML = async (fileName) => {
   const filePath = props.file.file_path || props.file.path;
-  const outputPath = filePath.replace(/\.[^.]+$/, '.html');
+  const outputPath = filePath.replace(/\.[^.]+$/, ".html");
 
   const result = await window.electronAPI.project.exportDocument({
     projectId: props.projectId,
     sourcePath: filePath,
-    format: 'html',
-    outputPath
+    format: "html",
+    outputPath,
   });
 
   return {
     fileName: result.fileName || `${fileName}.html`,
-    path: result.path
+    path: result.path,
   };
 };
 
@@ -274,12 +289,12 @@ const generatePodcastScript = async (fileName) => {
 
   const result = await window.electronAPI.project.generatePodcastScript({
     projectId: props.projectId,
-    sourcePath: filePath
+    sourcePath: filePath,
   });
 
   return {
     fileName: result.fileName || `${fileName}_podcast.txt`,
-    path: result.path
+    path: result.path,
   };
 };
 
@@ -291,12 +306,12 @@ const generatePPT = async (fileName) => {
 
   const result = await window.electronAPI.project.generatePPT({
     projectId: props.projectId,
-    sourcePath: filePath
+    sourcePath: filePath,
   });
 
   return {
     fileName: result.fileName || `${fileName}.pptx`,
-    path: result.path
+    path: result.path,
   };
 };
 
@@ -308,13 +323,13 @@ const generateArticleImages = async (fileName) => {
 
   const result = await window.electronAPI.project.generateArticleImages({
     projectId: props.projectId,
-    sourcePath: filePath
+    sourcePath: filePath,
   });
 
   return {
     fileName: `${fileName}_images`,
     path: result.path,
-    images: result.images
+    images: result.images,
   };
 };
 
@@ -323,13 +338,13 @@ const generateArticleImages = async (fileName) => {
  */
 const getExportTypeName = (exportType) => {
   const typeNames = {
-    pdf: 'PDF',
-    markdown: 'Markdown',
-    docx: 'Word文档',
-    html: '网页',
-    podcast: '播客脚本',
-    ppt: 'PPT演示文稿',
-    image: '文章配图'
+    pdf: "PDF",
+    markdown: "Markdown",
+    docx: "Word文档",
+    html: "网页",
+    podcast: "播客脚本",
+    ppt: "PPT演示文稿",
+    image: "文章配图",
   };
   return typeNames[exportType] || exportType;
 };

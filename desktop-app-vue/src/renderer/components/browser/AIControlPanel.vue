@@ -22,50 +22,47 @@
             <a-button
               type="primary"
               size="large"
-              @click="handleExecute"
               :loading="executing"
               :disabled="!prompt.trim() || !targetId"
+              @click="handleExecute"
             >
-              <template #icon><ThunderboltOutlined /></template>
-              {{executing ? '执行中...' : '执行 AI 指令'}}
+              <template #icon>
+                <ThunderboltOutlined />
+              </template>
+              {{ executing ? "执行中..." : "执行 AI 指令" }}
             </a-button>
 
             <a-button
-              @click="handleParseOnly"
               :loading="parsing"
               :disabled="!prompt.trim() || !targetId"
+              @click="handleParseOnly"
             >
-              <template #icon><EyeOutlined /></template>
+              <template #icon>
+                <EyeOutlined />
+              </template>
               预览步骤
             </a-button>
 
-            <a-button
-              @click="handleClear"
-              :disabled="executing"
-            >
-              <template #icon><ClearOutlined /></template>
+            <a-button :disabled="executing" @click="handleClear">
+              <template #icon>
+                <ClearOutlined />
+              </template>
               清除
             </a-button>
 
             <a-dropdown v-if="!executing">
               <a-button>
-                <template #icon><BulbOutlined /></template>
+                <template #icon>
+                  <BulbOutlined />
+                </template>
                 示例
               </a-button>
               <template #overlay>
                 <a-menu @click="handleSelectExample">
-                  <a-menu-item key="google-search">
-                    Google 搜索
-                  </a-menu-item>
-                  <a-menu-item key="form-fill">
-                    填写表单
-                  </a-menu-item>
-                  <a-menu-item key="click-first">
-                    点击第一个链接
-                  </a-menu-item>
-                  <a-menu-item key="screenshot">
-                    截图保存
-                  </a-menu-item>
+                  <a-menu-item key="google-search"> Google 搜索 </a-menu-item>
+                  <a-menu-item key="form-fill"> 填写表单 </a-menu-item>
+                  <a-menu-item key="click-first"> 点击第一个链接 </a-menu-item>
+                  <a-menu-item key="screenshot"> 截图保存 </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -124,7 +121,9 @@
                 <div v-if="getStepResult(index)" class="step-result">
                   <a-alert
                     :type="getStepResult(index).success ? 'success' : 'error'"
-                    :message="getStepResult(index).success ? '执行成功' : '执行失败'"
+                    :message="
+                      getStepResult(index).success ? '执行成功' : '执行失败'
+                    "
                     :description="getStepResult(index).error"
                     size="small"
                     show-icon
@@ -158,11 +157,10 @@
       </div>
 
       <!-- 空状态 -->
-      <a-empty
-        v-else
-        description="输入 AI 指令开始自动化操作"
-      >
-        <BulbOutlined style="font-size: 48px; color: #faad14; margin-bottom: 16px" />
+      <a-empty v-else description="输入 AI 指令开始自动化操作">
+        <BulbOutlined
+          style="font-size: 48px; color: #faad14; margin-bottom: 16px"
+        />
       </a-empty>
 
       <!-- 执行历史 -->
@@ -177,7 +175,7 @@
           </a-button>
         </h4>
 
-        <a-list :dataSource="history" size="small">
+        <a-list :data-source="history" size="small">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta>
@@ -187,15 +185,19 @@
                 <template #description>
                   <a-space>
                     <span>{{ new Date(item.timestamp).toLocaleString() }}</span>
-                    <a-tag v-if="item.success" color="success">成功</a-tag>
-                    <a-tag v-else color="error">失败</a-tag>
+                    <a-tag v-if="item.success" color="success"> 成功 </a-tag>
+                    <a-tag v-else color="error"> 失败 </a-tag>
                     <span v-if="item.steps">{{ item.steps.length }} 步</span>
                   </a-space>
                 </template>
               </a-list-item-meta>
 
               <template #actions>
-                <a-button type="text" size="small" @click="handleReusePrompt(item.prompt)">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleReusePrompt(item.prompt)"
+                >
                   重用
                 </a-button>
               </template>
@@ -208,8 +210,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, watch, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   ThunderboltOutlined,
   EyeOutlined,
@@ -220,19 +222,19 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   GlobalOutlined,
-  EditOutlined
-} from '@ant-design/icons-vue';
+  EditOutlined,
+} from "@ant-design/icons-vue";
 
 // Props
 const props = defineProps({
   targetId: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 });
 
 // 状态
-const prompt = ref('');
+const prompt = ref("");
 const executing = ref(false);
 const parsing = ref(false);
 const parsedSteps = ref(null);
@@ -242,10 +244,10 @@ const history = ref([]);
 
 // 示例指令
 const examples = {
-  'google-search': '打开 Google 并搜索 "Electron 教程"',
-  'form-fill': '在搜索框输入 "ChainlessChain" 并点击搜索按钮',
-  'click-first': '点击页面中第一个链接',
-  'screenshot': '滚动到页面底部并截图'
+  "google-search": '打开 Google 并搜索 "Electron 教程"',
+  "form-fill": '在搜索框输入 "ChainlessChain" 并点击搜索按钮',
+  "click-first": "点击页面中第一个链接",
+  screenshot: "滚动到页面底部并截图",
 };
 
 // 计算属性
@@ -257,24 +259,28 @@ const displaySteps = computed(() => {
 });
 
 const successCount = computed(() => {
-  if (!executionResult.value) return 0;
-  return executionResult.value.results.filter(r => r.success).length;
+  if (!executionResult.value) {
+    return 0;
+  }
+  return executionResult.value.results.filter((r) => r.success).length;
 });
 
 const failedCount = computed(() => {
-  if (!executionResult.value) return 0;
-  return executionResult.value.results.filter(r => !r.success).length;
+  if (!executionResult.value) {
+    return 0;
+  }
+  return executionResult.value.results.filter((r) => !r.success).length;
 });
 
 // 方法
 const handleExecute = async () => {
   if (!props.targetId) {
-    message.warning('请先选择一个标签页');
+    message.warning("请先选择一个标签页");
     return;
   }
 
   if (!prompt.value.trim()) {
-    message.warning('请输入指令');
+    message.warning("请输入指令");
     return;
   }
 
@@ -285,13 +291,13 @@ const handleExecute = async () => {
 
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:aiExecute',
+      "browser:aiExecute",
       props.targetId,
       prompt.value,
       {
         autoSnapshot: true,
-        maxRetries: 2
-      }
+        maxRetries: 2,
+      },
     );
 
     executionResult.value = result;
@@ -300,8 +306,8 @@ const handleExecute = async () => {
     // 加载历史
     await loadHistory();
   } catch (error) {
-    message.error('AI 执行失败: ' + error.message);
-    console.error('AI execute error:', error);
+    message.error("AI 执行失败: " + error.message);
+    console.error("AI execute error:", error);
   } finally {
     executing.value = false;
   }
@@ -309,31 +315,31 @@ const handleExecute = async () => {
 
 const handleParseOnly = async () => {
   if (!props.targetId) {
-    message.warning('请先选择一个标签页');
+    message.warning("请先选择一个标签页");
     return;
   }
 
   parsing.value = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:aiParse',
+      "browser:aiParse",
       props.targetId,
-      prompt.value
+      prompt.value,
     );
 
     parsedSteps.value = result.steps;
     executionResult.value = null;
     message.success(`已解析 ${result.steps.length} 个操作步骤`);
   } catch (error) {
-    message.error('解析失败: ' + error.message);
-    console.error('AI parse error:', error);
+    message.error("解析失败: " + error.message);
+    console.error("AI parse error:", error);
   } finally {
     parsing.value = false;
   }
 };
 
 const handleClear = () => {
-  prompt.value = '';
+  prompt.value = "";
   parsedSteps.value = null;
   executionResult.value = null;
   currentStepIndex.value = -1;
@@ -349,45 +355,48 @@ const handleReusePrompt = (text) => {
 
 const handleClearHistory = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('browser:aiClearHistory');
+    await window.electron.ipcRenderer.invoke("browser:aiClearHistory");
     history.value = [];
-    message.success('历史已清除');
+    message.success("历史已清除");
   } catch (error) {
-    message.error('清除失败: ' + error.message);
+    message.error("清除失败: " + error.message);
   }
 };
 
 const loadHistory = async () => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:aiGetHistory', 10);
+    const result = await window.electron.ipcRenderer.invoke(
+      "browser:aiGetHistory",
+      10,
+    );
     history.value = result;
   } catch (error) {
-    console.error('Load history error:', error);
+    console.error("Load history error:", error);
   }
 };
 
 const getStepColor = (step, index) => {
   if (isStepCompleted(index)) {
     const result = getStepResult(index);
-    return result.success ? 'green' : 'red';
+    return result.success ? "green" : "red";
   }
   if (isStepExecuting(index)) {
-    return 'blue';
+    return "blue";
   }
-  return 'gray';
+  return "gray";
 };
 
 const getActionColor = (action) => {
   const colorMap = {
-    navigate: 'blue',
-    snapshot: 'cyan',
-    click: 'green',
-    type: 'orange',
-    select: 'purple',
-    wait: 'geekblue',
-    screenshot: 'magenta'
+    navigate: "blue",
+    snapshot: "cyan",
+    click: "green",
+    type: "orange",
+    select: "purple",
+    wait: "geekblue",
+    screenshot: "magenta",
   };
-  return colorMap[action] || 'default';
+  return colorMap[action] || "default";
 };
 
 const isStepExecuting = (index) => {
@@ -411,10 +420,13 @@ onMounted(() => {
 });
 
 // 监听 targetId 变化
-watch(() => props.targetId, () => {
-  // 切换标签页时清除状态
-  handleClear();
-});
+watch(
+  () => props.targetId,
+  () => {
+    // 切换标签页时清除状态
+    handleClear();
+  },
+);
 </script>
 
 <style scoped lang="less">

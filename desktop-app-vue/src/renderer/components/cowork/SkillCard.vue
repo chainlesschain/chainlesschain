@@ -1,9 +1,5 @@
 <template>
-  <a-card
-    class="skill-card"
-    hoverable
-    @click="emit('viewDetail', skill)"
-  >
+  <a-card class="skill-card" hoverable @click="emit('viewDetail', skill)">
     <!-- 卡片头部 -->
     <template #title>
       <div class="skill-card-title">
@@ -14,11 +10,7 @@
 
     <!-- 操作按钮 -->
     <template #extra>
-      <a-button
-        type="text"
-        size="small"
-        @click.stop="emit('test', skill)"
-      >
+      <a-button type="text" size="small" @click.stop="emit('test', skill)">
         <ExperimentOutlined />
       </a-button>
     </template>
@@ -38,7 +30,10 @@
       </div>
 
       <!-- 支持的操作 -->
-      <div v-if="skill.supportedOperations && skill.supportedOperations.length > 0" class="skill-operations">
+      <div
+        v-if="skill.supportedOperations && skill.supportedOperations.length > 0"
+        class="skill-operations"
+      >
         <div class="operations-label">支持的操作:</div>
         <div class="operations-tags">
           <a-tag
@@ -55,7 +50,10 @@
       </div>
 
       <!-- 支持的文件类型 -->
-      <div v-if="skill.supportedFileTypes && skill.supportedFileTypes.length > 0" class="skill-file-types">
+      <div
+        v-if="skill.supportedFileTypes && skill.supportedFileTypes.length > 0"
+        class="skill-file-types"
+      >
         <div class="file-types-label">文件类型:</div>
         <div class="file-types-tags">
           <a-tag

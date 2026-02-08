@@ -3,7 +3,7 @@
  * 提供内存、磁盘空间监控和优雅降级策略
  */
 
-const { logger, createLogger } = require('./logger.js');
+const { logger } = require("./logger.js");
 const os = require("os");
 const fs = require("fs").promises;
 const path = require("path");

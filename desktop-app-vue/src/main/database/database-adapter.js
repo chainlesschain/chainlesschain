@@ -5,19 +5,22 @@
  * 支持平滑迁移和fallback
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs');
-const path = require('path');
-const { KeyManager } = require('./key-manager');
-const { createEncryptedDatabase, createUnencryptedDatabase } = require('./sqlcipher-wrapper');
-const { migrateDatabase } = require('./database-migration');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs");
+const path = require("path");
+const { KeyManager } = require("./key-manager");
+const {
+  createEncryptedDatabase,
+  createUnencryptedDatabase,
+} = require("./sqlcipher-wrapper");
+const { migrateDatabase } = require("./database-migration");
 
 /**
  * 数据库引擎类型
  */
 const DatabaseEngine = {
-  SQL_JS: 'sql.js',
-  SQLCIPHER: 'sqlcipher'
+  SQL_JS: "sql.js",
+  SQLCIPHER: "sqlcipher",
 };
 
 /**
@@ -26,12 +29,12 @@ const DatabaseEngine = {
 class DatabaseAdapter {
   constructor(options = {}) {
     this.dbPath = options.dbPath;
-    this.engine = null;                    // 当前使用的引擎
-    this.keyManager = null;               // 密钥管理器
+    this.engine = null; // 当前使用的引擎
+    this.keyManager = null; // 密钥管理器
     this.encryptionEnabled = options.encryptionEnabled !== false; // 默认启用加密
-    this.autoMigrate = options.autoMigrate !== false;            // 默认自动迁移
-    this.pin = options.pin;               // U-Key PIN码
-    this.password = options.password;     // 密码
+    this.autoMigrate = options.autoMigrate !== false; // 默认自动迁移
+    this.pin = options.pin; // U-Key PIN码
+    this.password = options.password; // 密码
     this.configPath = options.configPath; // 配置文件路径
     this.developmentMode = this.isDevelopmentMode(); // 开发模式标志
   }
@@ -40,14 +43,14 @@ class DatabaseAdapter {
    * 检查是否为开发模式
    */
   isDevelopmentMode() {
-    return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    return process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
   }
 
   /**
    * 获取开发模式默认密码
    */
   getDevDefaultPassword() {
-    return process.env.DEV_DB_PASSWORD || 'dev_password_2024';
+    return process.env.DEV_DB_PASSWORD || "dev_password_2024";
   }
 
   /**
@@ -64,22 +67,24 @@ class DatabaseAdapter {
     const encryptedDbPath = this.getEncryptedDbPath();
 
     if (fs.existsSync(encryptedDbPath)) {
-      logger.info('[DatabaseAdapter] 检测到加密数据库，使用 SQLCipher');
+      logger.info("[DatabaseAdapter] 检测到加密数据库，使用 SQLCipher");
       return DatabaseEngine.SQLCIPHER;
     }
 
     // 开发模式：如果没有密码，直接使用 sql.js
     if (this.developmentMode && !this.password) {
-      logger.info('[DatabaseAdapter] 开发模式且未设置密码，使用 sql.js（跳过加密）');
+      logger.info(
+        "[DatabaseAdapter] 开发模式且未设置密码，使用 sql.js（跳过加密）",
+      );
       return DatabaseEngine.SQL_JS;
     }
 
     if (this.encryptionEnabled) {
-      logger.info('[DatabaseAdapter] 加密已启用，使用 SQLCipher');
+      logger.info("[DatabaseAdapter] 加密已启用，使用 SQLCipher");
       return DatabaseEngine.SQLCIPHER;
     }
 
-    logger.info('[DatabaseAdapter] 使用 sql.js');
+    logger.info("[DatabaseAdapter] 使用 sql.js");
     return DatabaseEngine.SQL_JS;
   }
 
@@ -97,7 +102,7 @@ class DatabaseAdapter {
    * 初始化适配器
    */
   async initialize() {
-    logger.info('[DatabaseAdapter] 初始化数据库适配器...');
+    logger.info("[DatabaseAdapter] 初始化数据库适配器...");
 
     // 1. 检测引擎
     this.engine = this.detectEngine();
@@ -112,21 +117,21 @@ class DatabaseAdapter {
       }
     }
 
-    logger.info('[DatabaseAdapter] 数据库适配器初始化完成，引擎:', this.engine);
+    logger.info("[DatabaseAdapter] 数据库适配器初始化完成，引擎:", this.engine);
   }
 
   /**
    * 初始化加密功能
    */
   async initializeEncryption() {
-    logger.info('[DatabaseAdapter] 初始化加密功能...');
+    logger.info("[DatabaseAdapter] 初始化加密功能...");
 
     // 创建密钥管理器
     // 注意：如果提供了密码，禁用U-Key以使用密码模式
     this.keyManager = new KeyManager({
       encryptionEnabled: this.encryptionEnabled,
       configPath: this.configPath,
-      ukeyEnabled: this.password ? false : true // 有密码时禁用U-Key
+      ukeyEnabled: this.password ? false : true, // 有密码时禁用U-Key
     });
 
     await this.keyManager.initialize();
@@ -147,7 +152,7 @@ class DatabaseAdapter {
    * 执行数据库迁移
    */
   async performMigration() {
-    logger.info('[DatabaseAdapter] 开始自动迁移...');
+    logger.info("[DatabaseAdapter] 开始自动迁移...");
 
     try {
       // 获取加密密钥
@@ -157,20 +162,20 @@ class DatabaseAdapter {
       await this.keyManager.saveKeyMetadata({
         method: keyResult.method,
         salt: keyResult.salt,
-        encryptionEnabled: true
+        encryptionEnabled: true,
       });
 
       // 执行迁移
       const migrationResult = await migrateDatabase({
         sourcePath: this.dbPath,
         targetPath: this.getEncryptedDbPath(),
-        encryptionKey: keyResult.key
+        encryptionKey: keyResult.key,
       });
 
-      logger.info('[DatabaseAdapter] 迁移完成:', migrationResult);
+      logger.info("[DatabaseAdapter] 迁移完成:", migrationResult);
       return migrationResult;
     } catch (error) {
-      logger.error('[DatabaseAdapter] 迁移失败:', error);
+      logger.error("[DatabaseAdapter] 迁移失败:", error);
       throw error;
     }
   }
@@ -181,14 +186,14 @@ class DatabaseAdapter {
    */
   async getEncryptionKey() {
     if (!this.keyManager) {
-      throw new Error('密钥管理器未初始化');
+      throw new Error("密钥管理器未初始化");
     }
 
     // 开发模式：如果没有提供密码，使用默认密码
     let effectivePassword = this.password;
     if (this.developmentMode && !effectivePassword) {
       effectivePassword = this.getDevDefaultPassword();
-      logger.info('[DatabaseAdapter] 开发模式：使用默认密码');
+      logger.info("[DatabaseAdapter] 开发模式：使用默认密码");
     }
 
     // 加载已保存的元数据
@@ -198,7 +203,7 @@ class DatabaseAdapter {
       password: effectivePassword,
       pin: this.pin,
       salt: metadata ? metadata.salt : undefined,
-      forcePassword: effectivePassword ? true : false // 有密码时强制使用密码模式
+      forcePassword: effectivePassword ? true : false, // 有密码时强制使用密码模式
     });
   }
 
@@ -227,7 +232,7 @@ class DatabaseAdapter {
     const db = createEncryptedDatabase(encryptedDbPath, keyResult.key);
     db.open();
 
-    logger.info('[DatabaseAdapter] SQLCipher 数据库已创建');
+    logger.info("[DatabaseAdapter] SQLCipher 数据库已创建");
     return db;
   }
 
@@ -237,30 +242,61 @@ class DatabaseAdapter {
   async createSqlJsDatabase() {
     let initSqlJs;
     try {
-      initSqlJs = require('sql.js');
+      initSqlJs = require("sql.js");
     } catch (err) {
-      throw new Error('sql.js is not available. Please use better-sqlite3 instead.');
+      throw new Error(
+        "sql.js is not available. Please use better-sqlite3 instead.",
+      );
     }
 
     // 初始化 sql.js
     const SQL = await initSqlJs({
-      locateFile: file => {
+      locateFile: (file) => {
         const possiblePaths = [
-          path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', file),
-          path.join(process.cwd(), 'desktop-app-vue', 'node_modules', 'sql.js', 'dist', file),
-          path.join(__dirname, '..', '..', '..', 'node_modules', 'sql.js', 'dist', file),
-          path.join(__dirname, '..', '..', '..', '..', 'node_modules', 'sql.js', 'dist', file)
+          path.join(process.cwd(), "node_modules", "sql.js", "dist", file),
+          path.join(
+            process.cwd(),
+            "desktop-app-vue",
+            "node_modules",
+            "sql.js",
+            "dist",
+            file,
+          ),
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "..",
+            "node_modules",
+            "sql.js",
+            "dist",
+            file,
+          ),
+          path.join(
+            __dirname,
+            "..",
+            "..",
+            "..",
+            "..",
+            "node_modules",
+            "sql.js",
+            "dist",
+            file,
+          ),
         ];
 
         for (const filePath of possiblePaths) {
           if (fs.existsSync(filePath)) {
-            logger.info('[DatabaseAdapter] Found sql.js WASM at:', filePath);
+            logger.info("[DatabaseAdapter] Found sql.js WASM at:", filePath);
             return filePath;
           }
         }
-        logger.error('[DatabaseAdapter] Could not find sql.js WASM file. Tried:', possiblePaths);
+        logger.error(
+          "[DatabaseAdapter] Could not find sql.js WASM file. Tried:",
+          possiblePaths,
+        );
         return file;
-      }
+      },
     });
 
     // 加载或创建数据库
@@ -272,7 +308,7 @@ class DatabaseAdapter {
       db = new SQL.Database();
     }
 
-    logger.info('[DatabaseAdapter] sql.js 数据库已创建');
+    logger.info("[DatabaseAdapter] sql.js 数据库已创建");
     return db;
   }
 
@@ -294,7 +330,7 @@ class DatabaseAdapter {
 
         fs.writeFileSync(this.dbPath, buffer);
       } catch (error) {
-        logger.error('[DatabaseAdapter] 保存数据库失败:', error);
+        logger.error("[DatabaseAdapter] 保存数据库失败:", error);
       }
     }
     // SQLCipher 会自动保存，不需要手动操作
@@ -304,13 +340,13 @@ class DatabaseAdapter {
    * 关闭数据库适配器
    */
   async close() {
-    logger.info('[DatabaseAdapter] 关闭数据库适配器...');
+    logger.info("[DatabaseAdapter] 关闭数据库适配器...");
 
     if (this.keyManager) {
       await this.keyManager.close();
     }
 
-    logger.info('[DatabaseAdapter] 数据库适配器已关闭');
+    logger.info("[DatabaseAdapter] 数据库适配器已关闭");
   }
 
   /**
@@ -336,57 +372,61 @@ class DatabaseAdapter {
    */
   async changePassword(oldPassword, newPassword, db) {
     if (!this.isEncrypted()) {
-      throw new Error('数据库未使用加密，无法修改密码');
+      throw new Error("数据库未使用加密，无法修改密码");
     }
 
     if (!this.keyManager) {
-      throw new Error('密钥管理器未初始化');
+      throw new Error("密钥管理器未初始化");
     }
 
     try {
       // 1. 验证旧密码
       const oldKeyResult = await this.keyManager.getOrCreateKey({
         password: oldPassword,
-        forcePassword: true
+        forcePassword: true,
       });
 
       // 验证旧密钥是否正确（通过尝试读取数据库）
-      const testDb = createEncryptedDatabase(this.getEncryptedDbPath(), oldKeyResult.key);
+      const testDb = createEncryptedDatabase(
+        this.getEncryptedDbPath(),
+        oldKeyResult.key,
+      );
       try {
         testDb.open();
-        testDb.prepare('SELECT count(*) FROM sqlite_master').get();
+        testDb.prepare("SELECT count(*) FROM sqlite_master").get();
         testDb.close();
       } catch (error) {
-        throw new Error('旧密码验证失败');
+        throw new Error("旧密码验证失败");
       }
 
       // 2. 生成新密钥
-      const newKeyResult = await this.keyManager.deriveKeyFromPassword(newPassword);
+      const newKeyResult =
+        await this.keyManager.deriveKeyFromPassword(newPassword);
 
       // 3. 使用 rekey 修改数据库密钥
       if (db && db.rekey) {
         db.rekey(newKeyResult.key);
       } else {
-        throw new Error('数据库实例不支持密钥修改');
+        throw new Error("数据库实例不支持密钥修改");
       }
 
       // 4. 更新密钥元数据
       await this.keyManager.saveKeyMetadata({
-        method: 'password',
+        method: "password",
         salt: newKeyResult.salt,
-        encryptionEnabled: true
+        encryptionEnabled: true,
       });
 
       // 5. 更新当前密码
       this.password = newPassword;
 
-      logger.info('[DatabaseAdapter] 数据库密码修改成功');
+      logger.info("[DatabaseAdapter] 数据库密码修改成功");
       return {
         success: true,
-        message: '密码修改成功'
+        message: "密码修改成功",
       };
     } catch (error) {
-      logger.error('[DatabaseAdapter] 密码修改失败:', error);
+      logger.error("[DatabaseAdapter] 密码修改失败:", error);
       throw error;
     }
   }
@@ -406,5 +446,5 @@ async function createDatabaseAdapter(options) {
 module.exports = {
   DatabaseAdapter,
   DatabaseEngine,
-  createDatabaseAdapter
+  createDatabaseAdapter,
 };

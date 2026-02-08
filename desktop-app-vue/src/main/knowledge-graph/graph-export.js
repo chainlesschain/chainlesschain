@@ -3,14 +3,14 @@
  * 支持多种格式导出：PNG, SVG, JSON, GraphML, GEXF, DOT
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs');
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs");
+const path = require("path");
 
 // Mock dialog for testing
 let dialog, app;
 try {
-  const electron = require('electron');
+  const electron = require("electron");
   dialog = electron.dialog;
   app = electron.app;
 } catch (e) {
@@ -18,11 +18,14 @@ try {
   dialog = {
     showSaveDialog: async (options) => ({
       canceled: false,
-      filePath: path.join(require('os').tmpdir(), options.defaultPath || 'export.json')
-    })
+      filePath: path.join(
+        require("os").tmpdir(),
+        options.defaultPath || "export.json",
+      ),
+    }),
   };
   app = {
-    getPath: (name) => require('os').tmpdir()
+    getPath: (name) => require("os").tmpdir(),
   };
 }
 
@@ -30,21 +33,25 @@ try {
  * 导出为 JSON 格式
  */
 function exportToJSON(nodes, edges) {
-  return JSON.stringify({
-    nodes: nodes.map(node => ({
-      id: node.id,
-      title: node.title,
-      type: node.type,
-      created_at: node.created_at,
-      updated_at: node.updated_at,
-    })),
-    edges: edges.map(edge => ({
-      source: edge.source_id,
-      target: edge.target_id,
-      type: edge.relation_type,
-      weight: edge.weight,
-    })),
-  }, null, 2);
+  return JSON.stringify(
+    {
+      nodes: nodes.map((node) => ({
+        id: node.id,
+        title: node.title,
+        type: node.type,
+        created_at: node.created_at,
+        updated_at: node.updated_at,
+      })),
+      edges: edges.map((edge) => ({
+        source: edge.source_id,
+        target: edge.target_id,
+        type: edge.relation_type,
+        weight: edge.weight,
+      })),
+    },
+    null,
+    2,
+  );
 }
 
 /**
@@ -66,23 +73,23 @@ function exportToGraphML(nodes, edges) {
   xml += '  <graph id="G" edgedefault="directed">\n';
 
   // 添加节点
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     xml += `    <node id="${escapeXml(node.id)}">\n`;
-    xml += `      <data key="d0">${escapeXml(node.title || '')}</data>\n`;
-    xml += `      <data key="d1">${escapeXml(node.type || '')}</data>\n`;
+    xml += `      <data key="d0">${escapeXml(node.title || "")}</data>\n`;
+    xml += `      <data key="d1">${escapeXml(node.type || "")}</data>\n`;
     xml += `    </node>\n`;
   });
 
   // 添加边
   edges.forEach((edge, index) => {
     xml += `    <edge id="e${index}" source="${escapeXml(edge.source_id)}" target="${escapeXml(edge.target_id)}">\n`;
-    xml += `      <data key="d2">${escapeXml(edge.relation_type || '')}</data>\n`;
+    xml += `      <data key="d2">${escapeXml(edge.relation_type || "")}</data>\n`;
     xml += `      <data key="d3">${edge.weight || 1.0}</data>\n`;
     xml += `    </edge>\n`;
   });
 
-  xml += '  </graph>\n';
-  xml += '</graphml>\n';
+  xml += "  </graph>\n";
+  xml += "</graphml>\n";
 
   return xml;
 }
@@ -93,10 +100,13 @@ function exportToGraphML(nodes, edges) {
 function exportToGEXF(nodes, edges) {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<gexf xmlns="http://www.gexf.net/1.2draft" version="1.2">\n';
-  xml += '  <meta lastmodifieddate="' + new Date().toISOString().split('T')[0] + '">\n';
-  xml += '    <creator>ChainlessChain Knowledge Graph</creator>\n';
-  xml += '    <description>Knowledge Graph Export</description>\n';
-  xml += '  </meta>\n';
+  xml +=
+    '  <meta lastmodifieddate="' +
+    new Date().toISOString().split("T")[0] +
+    '">\n';
+  xml += "    <creator>ChainlessChain Knowledge Graph</creator>\n";
+  xml += "    <description>Knowledge Graph Export</description>\n";
+  xml += "  </meta>\n";
 
   xml += '  <graph mode="static" defaultedgetype="directed">\n';
 
@@ -104,39 +114,39 @@ function exportToGEXF(nodes, edges) {
   xml += '    <attributes class="node">\n';
   xml += '      <attribute id="0" title="title" type="string"/>\n';
   xml += '      <attribute id="1" title="type" type="string"/>\n';
-  xml += '    </attributes>\n';
+  xml += "    </attributes>\n";
 
   xml += '    <attributes class="edge">\n';
   xml += '      <attribute id="0" title="type" type="string"/>\n';
   xml += '      <attribute id="1" title="weight" type="double"/>\n';
-  xml += '    </attributes>\n';
+  xml += "    </attributes>\n";
 
   // 添加节点
-  xml += '    <nodes>\n';
-  nodes.forEach(node => {
-    xml += `      <node id="${escapeXml(node.id)}" label="${escapeXml(node.title || '')}">\n`;
-    xml += '        <attvalues>\n';
-    xml += `          <attvalue for="0" value="${escapeXml(node.title || '')}"/>\n`;
-    xml += `          <attvalue for="1" value="${escapeXml(node.type || '')}"/>\n`;
-    xml += '        </attvalues>\n';
-    xml += '      </node>\n';
+  xml += "    <nodes>\n";
+  nodes.forEach((node) => {
+    xml += `      <node id="${escapeXml(node.id)}" label="${escapeXml(node.title || "")}">\n`;
+    xml += "        <attvalues>\n";
+    xml += `          <attvalue for="0" value="${escapeXml(node.title || "")}"/>\n`;
+    xml += `          <attvalue for="1" value="${escapeXml(node.type || "")}"/>\n`;
+    xml += "        </attvalues>\n";
+    xml += "      </node>\n";
   });
-  xml += '    </nodes>\n';
+  xml += "    </nodes>\n";
 
   // 添加边
-  xml += '    <edges>\n';
+  xml += "    <edges>\n";
   edges.forEach((edge, index) => {
     xml += `      <edge id="${index}" source="${escapeXml(edge.source_id)}" target="${escapeXml(edge.target_id)}">\n`;
-    xml += '        <attvalues>\n';
-    xml += `          <attvalue for="0" value="${escapeXml(edge.relation_type || '')}"/>\n`;
+    xml += "        <attvalues>\n";
+    xml += `          <attvalue for="0" value="${escapeXml(edge.relation_type || "")}"/>\n`;
     xml += `          <attvalue for="1" value="${edge.weight || 1.0}"/>\n`;
-    xml += '        </attvalues>\n';
-    xml += '      </edge>\n';
+    xml += "        </attvalues>\n";
+    xml += "      </edge>\n";
   });
-  xml += '    </edges>\n';
+  xml += "    </edges>\n";
 
-  xml += '  </graph>\n';
-  xml += '</gexf>\n';
+  xml += "  </graph>\n";
+  xml += "</gexf>\n";
 
   return xml;
 }
@@ -145,27 +155,27 @@ function exportToGEXF(nodes, edges) {
  * 导出为 DOT 格式（Graphviz）
  */
 function exportToDOT(nodes, edges) {
-  let dot = 'digraph KnowledgeGraph {\n';
-  dot += '  node [shape=box, style=rounded];\n';
-  dot += '  edge [dir=forward];\n\n';
+  let dot = "digraph KnowledgeGraph {\n";
+  dot += "  node [shape=box, style=rounded];\n";
+  dot += "  edge [dir=forward];\n\n";
 
   // 添加节点
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     const label = escapeDot(node.title || node.id);
-    const type = node.type || 'note';
+    const type = node.type || "note";
     dot += `  "${escapeDot(node.id)}" [label="${label}", type="${type}"];\n`;
   });
 
-  dot += '\n';
+  dot += "\n";
 
   // 添加边
-  edges.forEach(edge => {
-    const type = edge.relation_type || 'link';
+  edges.forEach((edge) => {
+    const type = edge.relation_type || "link";
     const weight = edge.weight || 1.0;
     dot += `  "${escapeDot(edge.source_id)}" -> "${escapeDot(edge.target_id)}" [label="${type}", weight=${weight}];\n`;
   });
 
-  dot += '}\n';
+  dot += "}\n";
 
   return dot;
 }
@@ -175,15 +185,15 @@ function exportToDOT(nodes, edges) {
  */
 function exportToCSV(nodes, edges) {
   // 节点 CSV
-  let nodesCsv = 'id,title,type,created_at,updated_at\n';
-  nodes.forEach(node => {
-    nodesCsv += `"${escapeCsv(node.id)}","${escapeCsv(node.title || '')}","${escapeCsv(node.type || '')}","${node.created_at || ''}","${node.updated_at || ''}"\n`;
+  let nodesCsv = "id,title,type,created_at,updated_at\n";
+  nodes.forEach((node) => {
+    nodesCsv += `"${escapeCsv(node.id)}","${escapeCsv(node.title || "")}","${escapeCsv(node.type || "")}","${node.created_at || ""}","${node.updated_at || ""}"\n`;
   });
 
   // 边 CSV
-  let edgesCsv = 'source,target,type,weight\n';
-  edges.forEach(edge => {
-    edgesCsv += `"${escapeCsv(edge.source_id)}","${escapeCsv(edge.target_id)}","${escapeCsv(edge.relation_type || '')}",${edge.weight || 1.0}\n`;
+  let edgesCsv = "source,target,type,weight\n";
+  edges.forEach((edge) => {
+    edgesCsv += `"${escapeCsv(edge.source_id)}","${escapeCsv(edge.target_id)}","${escapeCsv(edge.relation_type || "")}",${edge.weight || 1.0}\n`;
   });
 
   return {
@@ -244,26 +254,40 @@ function exportToHTML(nodes, edges) {
   <div id="container"></div>
 
   <script>
-    const nodes = ${JSON.stringify(nodes.map(n => ({
-      id: n.id,
-      name: n.title,
-      title: n.title,
-      type: n.type,
-      symbolSize: 30,
-      itemStyle: {
-        color: n.type === 'note' ? '#5470c6' : n.type === 'document' ? '#91cc75' : '#fac858'
-      }
-    })))};
+    const nodes = ${JSON.stringify(
+      nodes.map((n) => ({
+        id: n.id,
+        name: n.title,
+        title: n.title,
+        type: n.type,
+        symbolSize: 30,
+        itemStyle: {
+          color:
+            n.type === "note"
+              ? "#5470c6"
+              : n.type === "document"
+                ? "#91cc75"
+                : "#fac858",
+        },
+      })),
+    )};
 
-    const edges = ${JSON.stringify(edges.map(e => ({
-      source: e.source_id,
-      target: e.target_id,
-      type: e.relation_type,
-      lineStyle: {
-        width: Math.max(1, (e.weight || 1) * 2),
-        color: e.relation_type === 'link' ? '#5470c6' : e.relation_type === 'tag' ? '#91cc75' : '#fac858'
-      }
-    })))};
+    const edges = ${JSON.stringify(
+      edges.map((e) => ({
+        source: e.source_id,
+        target: e.target_id,
+        type: e.relation_type,
+        lineStyle: {
+          width: Math.max(1, (e.weight || 1) * 2),
+          color:
+            e.relation_type === "link"
+              ? "#5470c6"
+              : e.relation_type === "tag"
+                ? "#91cc75"
+                : "#fac858",
+        },
+      })),
+    )};
 
     const chart = echarts.init(document.getElementById('container'));
 
@@ -325,30 +349,37 @@ function exportToHTML(nodes, edges) {
 /**
  * 保存导出文件
  */
-async function saveExportFile(content, format, defaultName = 'knowledge-graph') {
+async function saveExportFile(
+  content,
+  format,
+  defaultName = "knowledge-graph",
+) {
   const extensions = {
-    json: 'json',
-    graphml: 'graphml',
-    gexf: 'gexf',
-    dot: 'dot',
-    csv: 'csv',
-    html: 'html',
+    json: "json",
+    graphml: "graphml",
+    gexf: "gexf",
+    dot: "dot",
+    csv: "csv",
+    html: "html",
   };
 
   const filters = {
-    json: [{ name: 'JSON Files', extensions: ['json'] }],
-    graphml: [{ name: 'GraphML Files', extensions: ['graphml'] }],
-    gexf: [{ name: 'GEXF Files', extensions: ['gexf'] }],
-    dot: [{ name: 'DOT Files', extensions: ['dot'] }],
-    csv: [{ name: 'CSV Files', extensions: ['csv'] }],
-    html: [{ name: 'HTML Files', extensions: ['html'] }],
+    json: [{ name: "JSON Files", extensions: ["json"] }],
+    graphml: [{ name: "GraphML Files", extensions: ["graphml"] }],
+    gexf: [{ name: "GEXF Files", extensions: ["gexf"] }],
+    dot: [{ name: "DOT Files", extensions: ["dot"] }],
+    csv: [{ name: "CSV Files", extensions: ["csv"] }],
+    html: [{ name: "HTML Files", extensions: ["html"] }],
   };
 
   try {
     const result = await dialog.showSaveDialog({
-      title: '导出知识图谱',
-      defaultPath: path.join(app.getPath('documents'), `${defaultName}.${extensions[format]}`),
-      filters: filters[format] || [{ name: 'All Files', extensions: ['*'] }],
+      title: "导出知识图谱",
+      defaultPath: path.join(
+        app.getPath("documents"),
+        `${defaultName}.${extensions[format]}`,
+      ),
+      filters: filters[format] || [{ name: "All Files", extensions: ["*"] }],
     });
 
     if (result.canceled || !result.filePath) {
@@ -356,23 +387,23 @@ async function saveExportFile(content, format, defaultName = 'knowledge-graph') 
     }
 
     // CSV 格式需要保存两个文件
-    if (format === 'csv' && typeof content === 'object') {
-      const basePath = result.filePath.replace(/\.csv$/, '');
-      fs.writeFileSync(`${basePath}_nodes.csv`, content.nodes, 'utf8');
-      fs.writeFileSync(`${basePath}_edges.csv`, content.edges, 'utf8');
+    if (format === "csv" && typeof content === "object") {
+      const basePath = result.filePath.replace(/\.csv$/, "");
+      fs.writeFileSync(`${basePath}_nodes.csv`, content.nodes, "utf8");
+      fs.writeFileSync(`${basePath}_edges.csv`, content.edges, "utf8");
       return {
         path: basePath,
         files: [`${basePath}_nodes.csv`, `${basePath}_edges.csv`],
       };
     }
 
-    fs.writeFileSync(result.filePath, content, 'utf8');
+    fs.writeFileSync(result.filePath, content, "utf8");
 
     return {
       path: result.filePath,
     };
   } catch (error) {
-    logger.error('[Export] 保存文件失败:', error);
+    logger.error("[Export] 保存文件失败:", error);
     throw error;
   }
 }
@@ -381,31 +412,37 @@ async function saveExportFile(content, format, defaultName = 'knowledge-graph') 
  * 转义 XML 特殊字符
  */
 function escapeXml(str) {
-  if (!str) {return '';}
+  if (!str) {
+    return "";
+  }
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
 /**
  * 转义 DOT 特殊字符
  */
 function escapeDot(str) {
-  if (!str) {return '';}
+  if (!str) {
+    return "";
+  }
   return String(str)
-    .replace(/\\/g, '\\\\')
+    .replace(/\\/g, "\\\\")
     .replace(/"/g, '\\"')
-    .replace(/\n/g, '\\n');
+    .replace(/\n/g, "\\n");
 }
 
 /**
  * 转义 CSV 特殊字符
  */
 function escapeCsv(str) {
-  if (!str) {return '';}
+  if (!str) {
+    return "";
+  }
   return String(str).replace(/"/g, '""');
 }
 
@@ -416,22 +453,22 @@ async function exportGraph(nodes, edges, format) {
   let content;
 
   switch (format) {
-    case 'json':
+    case "json":
       content = exportToJSON(nodes, edges);
       break;
-    case 'graphml':
+    case "graphml":
       content = exportToGraphML(nodes, edges);
       break;
-    case 'gexf':
+    case "gexf":
       content = exportToGEXF(nodes, edges);
       break;
-    case 'dot':
+    case "dot":
       content = exportToDOT(nodes, edges);
       break;
-    case 'csv':
+    case "csv":
       content = exportToCSV(nodes, edges);
       break;
-    case 'html':
+    case "html":
       content = exportToHTML(nodes, edges);
       break;
     default:

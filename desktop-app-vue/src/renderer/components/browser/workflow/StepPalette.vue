@@ -7,7 +7,7 @@
     />
 
     <div class="step-categories">
-      <a-collapse v-model:activeKey="activeCategories" :bordered="false">
+      <a-collapse v-model:active-key="activeCategories" :bordered="false">
         <a-collapse-panel
           v-for="category in filteredCategories"
           :key="category.key"
@@ -29,8 +29,12 @@
                 <component :is="step.icon" />
               </div>
               <div class="step-info">
-                <div class="step-name">{{ step.name }}</div>
-                <div class="step-desc">{{ step.description }}</div>
+                <div class="step-name">
+                  {{ step.name }}
+                </div>
+                <div class="step-desc">
+                  {{ step.description }}
+                </div>
               </div>
             </div>
           </div>
@@ -41,7 +45,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed } from "vue";
 import {
   GlobalOutlined,
   FormOutlined,
@@ -61,243 +65,250 @@ import {
   ApiOutlined,
   DownloadOutlined,
   ThunderboltOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
-const emit = defineEmits(['add-step']);
+const emit = defineEmits(["add-step"]);
 
-const searchQuery = ref('');
-const activeCategories = ref(['actions', 'navigation']);
+const searchQuery = ref("");
+const activeCategories = ref(["actions", "navigation"]);
 
 const stepCategories = [
   {
-    key: 'navigation',
-    name: 'Navigation',
+    key: "navigation",
+    name: "Navigation",
     icon: GlobalOutlined,
     steps: [
       {
-        type: 'action',
-        action: 'navigate',
-        name: 'Navigate',
-        description: 'Go to a URL',
+        type: "action",
+        action: "navigate",
+        name: "Navigate",
+        description: "Go to a URL",
         icon: GlobalOutlined,
-        color: '#1890ff',
-        defaultConfig: { url: '', waitUntil: 'load' }
+        color: "#1890ff",
+        defaultConfig: { url: "", waitUntil: "load" },
       },
       {
-        type: 'action',
-        action: 'goBack',
-        name: 'Go Back',
-        description: 'Navigate back',
+        type: "action",
+        action: "goBack",
+        name: "Go Back",
+        description: "Navigate back",
         icon: ArrowDownOutlined,
-        color: '#1890ff',
-        defaultConfig: {}
+        color: "#1890ff",
+        defaultConfig: {},
       },
       {
-        type: 'action',
-        action: 'goForward',
-        name: 'Go Forward',
-        description: 'Navigate forward',
+        type: "action",
+        action: "goForward",
+        name: "Go Forward",
+        description: "Navigate forward",
         icon: ArrowDownOutlined,
-        color: '#1890ff',
-        defaultConfig: {}
+        color: "#1890ff",
+        defaultConfig: {},
       },
       {
-        type: 'action',
-        action: 'reload',
-        name: 'Reload',
-        description: 'Refresh page',
+        type: "action",
+        action: "reload",
+        name: "Reload",
+        description: "Refresh page",
         icon: RetweetOutlined,
-        color: '#1890ff',
-        defaultConfig: {}
-      }
-    ]
+        color: "#1890ff",
+        defaultConfig: {},
+      },
+    ],
   },
   {
-    key: 'actions',
-    name: 'Actions',
+    key: "actions",
+    name: "Actions",
     icon: ThunderboltOutlined,
     steps: [
       {
-        type: 'action',
-        action: 'click',
-        name: 'Click',
-        description: 'Click an element',
+        type: "action",
+        action: "click",
+        name: "Click",
+        description: "Click an element",
         icon: SelectOutlined,
-        color: '#52c41a',
-        defaultConfig: { selector: '', clickCount: 1 }
+        color: "#52c41a",
+        defaultConfig: { selector: "", clickCount: 1 },
       },
       {
-        type: 'action',
-        action: 'type',
-        name: 'Type',
-        description: 'Enter text',
+        type: "action",
+        action: "type",
+        name: "Type",
+        description: "Enter text",
         icon: FormOutlined,
-        color: '#52c41a',
-        defaultConfig: { selector: '', text: '', clearFirst: false }
+        color: "#52c41a",
+        defaultConfig: { selector: "", text: "", clearFirst: false },
       },
       {
-        type: 'action',
-        action: 'select',
-        name: 'Select',
-        description: 'Select from dropdown',
+        type: "action",
+        action: "select",
+        name: "Select",
+        description: "Select from dropdown",
         icon: SelectOutlined,
-        color: '#52c41a',
-        defaultConfig: { selector: '', value: '' }
+        color: "#52c41a",
+        defaultConfig: { selector: "", value: "" },
       },
       {
-        type: 'action',
-        action: 'hover',
-        name: 'Hover',
-        description: 'Mouse over element',
+        type: "action",
+        action: "hover",
+        name: "Hover",
+        description: "Mouse over element",
         icon: EyeOutlined,
-        color: '#52c41a',
-        defaultConfig: { selector: '' }
+        color: "#52c41a",
+        defaultConfig: { selector: "" },
       },
       {
-        type: 'action',
-        action: 'scroll',
-        name: 'Scroll',
-        description: 'Scroll page or element',
+        type: "action",
+        action: "scroll",
+        name: "Scroll",
+        description: "Scroll page or element",
         icon: ArrowDownOutlined,
-        color: '#52c41a',
-        defaultConfig: { direction: 'down', distance: 500 }
+        color: "#52c41a",
+        defaultConfig: { direction: "down", distance: 500 },
       },
       {
-        type: 'action',
-        action: 'keyboard',
-        name: 'Keyboard',
-        description: 'Press keys',
+        type: "action",
+        action: "keyboard",
+        name: "Keyboard",
+        description: "Press keys",
         icon: KeyOutlined,
-        color: '#52c41a',
-        defaultConfig: { keys: [], modifiers: [] }
+        color: "#52c41a",
+        defaultConfig: { keys: [], modifiers: [] },
       },
       {
-        type: 'action',
-        action: 'upload',
-        name: 'Upload',
-        description: 'Upload files',
+        type: "action",
+        action: "upload",
+        name: "Upload",
+        description: "Upload files",
         icon: UploadOutlined,
-        color: '#52c41a',
-        defaultConfig: { selector: '', files: [] }
-      }
-    ]
+        color: "#52c41a",
+        defaultConfig: { selector: "", files: [] },
+      },
+    ],
   },
   {
-    key: 'extraction',
-    name: 'Extraction',
+    key: "extraction",
+    name: "Extraction",
     icon: DownloadOutlined,
     steps: [
       {
-        type: 'action',
-        action: 'extract',
-        name: 'Extract Data',
-        description: 'Extract text/attributes',
+        type: "action",
+        action: "extract",
+        name: "Extract Data",
+        description: "Extract text/attributes",
         icon: CopyOutlined,
-        color: '#722ed1',
-        defaultConfig: { selector: '', extractType: 'text', variable: '' }
+        color: "#722ed1",
+        defaultConfig: { selector: "", extractType: "text", variable: "" },
       },
       {
-        type: 'action',
-        action: 'screenshot',
-        name: 'Screenshot',
-        description: 'Capture screenshot',
+        type: "action",
+        action: "screenshot",
+        name: "Screenshot",
+        description: "Capture screenshot",
         icon: CameraOutlined,
-        color: '#722ed1',
-        defaultConfig: { fullPage: false, element: '' }
+        color: "#722ed1",
+        defaultConfig: { fullPage: false, element: "" },
       },
       {
-        type: 'action',
-        action: 'evaluate',
-        name: 'Run Script',
-        description: 'Execute JavaScript',
+        type: "action",
+        action: "evaluate",
+        name: "Run Script",
+        description: "Execute JavaScript",
         icon: CodeOutlined,
-        color: '#722ed1',
-        defaultConfig: { script: '', variable: '' }
-      }
-    ]
+        color: "#722ed1",
+        defaultConfig: { script: "", variable: "" },
+      },
+    ],
   },
   {
-    key: 'control',
-    name: 'Control Flow',
+    key: "control",
+    name: "Control Flow",
     icon: BranchesOutlined,
     steps: [
       {
-        type: 'condition',
-        name: 'If Condition',
-        description: 'Conditional branch',
+        type: "condition",
+        name: "If Condition",
+        description: "Conditional branch",
         icon: BranchesOutlined,
-        color: '#fa8c16',
-        defaultConfig: { condition: { left: '', operator: '==', right: '' }, thenSteps: [], elseSteps: [] }
+        color: "#fa8c16",
+        defaultConfig: {
+          condition: { left: "", operator: "==", right: "" },
+          thenSteps: [],
+          elseSteps: [],
+        },
       },
       {
-        type: 'loop',
-        name: 'Loop',
-        description: 'Repeat steps',
+        type: "loop",
+        name: "Loop",
+        description: "Repeat steps",
         icon: RetweetOutlined,
-        color: '#fa8c16',
-        defaultConfig: { loopType: 'for', count: 5, steps: [] }
+        color: "#fa8c16",
+        defaultConfig: { loopType: "for", count: 5, steps: [] },
       },
       {
-        type: 'wait',
-        name: 'Wait',
-        description: 'Wait for condition',
+        type: "wait",
+        name: "Wait",
+        description: "Wait for condition",
         icon: ClockCircleOutlined,
-        color: '#fa8c16',
-        defaultConfig: { waitType: 'time', duration: 1000, selector: '' }
+        color: "#fa8c16",
+        defaultConfig: { waitType: "time", duration: 1000, selector: "" },
       },
       {
-        type: 'variable',
-        name: 'Set Variable',
-        description: 'Set a variable',
+        type: "variable",
+        name: "Set Variable",
+        description: "Set a variable",
         icon: SettingOutlined,
-        color: '#fa8c16',
-        defaultConfig: { name: '', value: '' }
-      }
-    ]
+        color: "#fa8c16",
+        defaultConfig: { name: "", value: "" },
+      },
+    ],
   },
   {
-    key: 'advanced',
-    name: 'Advanced',
+    key: "advanced",
+    name: "Advanced",
     icon: ApiOutlined,
     steps: [
       {
-        type: 'subprocess',
-        name: 'Sub-Workflow',
-        description: 'Run another workflow',
+        type: "subprocess",
+        name: "Sub-Workflow",
+        description: "Run another workflow",
         icon: ApiOutlined,
-        color: '#eb2f96',
-        defaultConfig: { workflowId: '', passVariables: true }
+        color: "#eb2f96",
+        defaultConfig: { workflowId: "", passVariables: true },
       },
       {
-        type: 'try_catch',
-        name: 'Try/Catch',
-        description: 'Handle errors',
+        type: "try_catch",
+        name: "Try/Catch",
+        description: "Handle errors",
         icon: BranchesOutlined,
-        color: '#eb2f96',
-        defaultConfig: { trySteps: [], catchSteps: [] }
-      }
-    ]
-  }
+        color: "#eb2f96",
+        defaultConfig: { trySteps: [], catchSteps: [] },
+      },
+    ],
+  },
 ];
 
 const filteredCategories = computed(() => {
-  if (!searchQuery.value) return stepCategories;
+  if (!searchQuery.value) {
+    return stepCategories;
+  }
 
   const query = searchQuery.value.toLowerCase();
   return stepCategories
-    .map(category => ({
+    .map((category) => ({
       ...category,
-      steps: category.steps.filter(step =>
-        step.name.toLowerCase().includes(query) ||
-        step.description.toLowerCase().includes(query)
-      )
+      steps: category.steps.filter(
+        (step) =>
+          step.name.toLowerCase().includes(query) ||
+          step.description.toLowerCase().includes(query),
+      ),
     }))
-    .filter(category => category.steps.length > 0);
+    .filter((category) => category.steps.length > 0);
 });
 
 const handleDragStart = (event, step) => {
-  event.dataTransfer.setData('step-template', JSON.stringify(step));
-  event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData("step-template", JSON.stringify(step));
+  event.dataTransfer.effectAllowed = "copy";
 };
 </script>
 

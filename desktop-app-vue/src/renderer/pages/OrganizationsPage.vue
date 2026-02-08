@@ -5,15 +5,10 @@
       <div class="header-left">
         <TeamOutlined class="page-icon" />
         <h1>我的组织</h1>
-        <a-tag color="blue">
-          企业版
-        </a-tag>
+        <a-tag color="blue"> 企业版 </a-tag>
       </div>
       <div class="header-right">
-        <a-button
-          type="primary"
-          @click="showCreateModal = true"
-        >
+        <a-button type="primary" @click="showCreateModal = true">
           <template #icon>
             <PlusOutlined />
           </template>
@@ -29,18 +24,12 @@
           v-if="!loading && organizations.length === 0"
           description="您还没有加入任何组织"
         >
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             创建第一个组织
           </a-button>
         </a-empty>
 
-        <a-row
-          v-else
-          :gutter="[16, 16]"
-        >
+        <a-row v-else :gutter="[16, 16]">
           <a-col
             v-for="org in organizations"
             :key="org.org_id"
@@ -56,14 +45,8 @@
             >
               <!-- 组织头像 -->
               <div class="org-avatar">
-                <a-avatar
-                  :src="org.avatar"
-                  :size="64"
-                >
-                  <template
-                    v-if="!org.avatar"
-                    #icon
-                  >
+                <a-avatar :src="org.avatar" :size="64">
+                  <template v-if="!org.avatar" #icon>
                     <TeamOutlined />
                   </template>
                 </a-avatar>
@@ -75,7 +58,7 @@
                   {{ org.name }}
                 </h3>
                 <p class="org-description">
-                  {{ org.description || '暂无描述' }}
+                  {{ org.description || "暂无描述" }}
                 </p>
 
                 <div class="org-meta">
@@ -105,10 +88,14 @@
                   <TeamOutlined @click.stop="navigateToMembers(org.org_id)" />
                 </a-tooltip>
                 <a-tooltip title="活动日志">
-                  <HistoryOutlined @click.stop="navigateToActivities(org.org_id)" />
+                  <HistoryOutlined
+                    @click.stop="navigateToActivities(org.org_id)"
+                  />
                 </a-tooltip>
                 <a-tooltip title="组织设置">
-                  <SettingOutlined @click.stop="navigateToSettings(org.org_id)" />
+                  <SettingOutlined
+                    @click.stop="navigateToSettings(org.org_id)"
+                  />
                 </a-tooltip>
               </template>
             </a-card>
@@ -124,14 +111,8 @@
       :confirm-loading="creating"
       @ok="handleCreate"
     >
-      <a-form
-        :model="createForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="组织名称"
-          required
-        >
+      <a-form :model="createForm" layout="vertical">
+        <a-form-item label="组织名称" required>
           <a-input
             v-model:value="createForm.name"
             placeholder="输入组织名称"
@@ -139,26 +120,13 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="组织类型"
-          required
-        >
+        <a-form-item label="组织类型" required>
           <a-select v-model:value="createForm.type">
-            <a-select-option value="startup">
-              初创公司
-            </a-select-option>
-            <a-select-option value="company">
-              企业
-            </a-select-option>
-            <a-select-option value="community">
-              社区
-            </a-select-option>
-            <a-select-option value="opensource">
-              开源项目
-            </a-select-option>
-            <a-select-option value="education">
-              教育机构
-            </a-select-option>
+            <a-select-option value="startup"> 初创公司 </a-select-option>
+            <a-select-option value="company"> 企业 </a-select-option>
+            <a-select-option value="community"> 社区 </a-select-option>
+            <a-select-option value="opensource"> 开源项目 </a-select-option>
+            <a-select-option value="education"> 教育机构 </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -176,25 +144,25 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   TeamOutlined,
   PlusOutlined,
   UserOutlined,
   ClockCircleOutlined,
   HistoryOutlined,
-  SettingOutlined
-} from '@ant-design/icons-vue';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
+  SettingOutlined,
+} from "@ant-design/icons-vue";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const router = useRouter();
 
@@ -206,25 +174,27 @@ const creating = ref(false);
 
 // 创建表单
 const createForm = ref({
-  name: '',
-  type: 'startup',
-  description: ''
+  name: "",
+  type: "startup",
+  description: "",
 });
 
 // 加载组织列表
 async function loadOrganizations() {
   loading.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:get-user-organizations');
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:get-user-organizations",
+    );
 
     if (result.success) {
       organizations.value = result.organizations;
     } else {
-      message.error(result.error || '加载组织列表失败');
+      message.error(result.error || "加载组织列表失败");
     }
   } catch (error) {
-    logger.error('加载组织列表失败:', error);
-    message.error('加载组织列表失败');
+    logger.error("加载组织列表失败:", error);
+    message.error("加载组织列表失败");
   } finally {
     loading.value = false;
   }
@@ -233,23 +203,26 @@ async function loadOrganizations() {
 // 创建组织
 async function handleCreate() {
   if (!createForm.value.name) {
-    message.warning('请输入组织名称');
+    message.warning("请输入组织名称");
     return;
   }
 
   creating.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:create-organization', createForm.value);
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:create-organization",
+      createForm.value,
+    );
 
     if (result.success) {
-      message.success('组织创建成功');
+      message.success("组织创建成功");
       showCreateModal.value = false;
 
       // 重置表单
       createForm.value = {
-        name: '',
-        type: 'startup',
-        description: ''
+        name: "",
+        type: "startup",
+        description: "",
       };
 
       // 刷新列表
@@ -258,11 +231,11 @@ async function handleCreate() {
       // 跳转到组织成员管理页面
       router.push(`/org/${result.organization.org_id}/members`);
     } else {
-      message.error(result.error || '创建组织失败');
+      message.error(result.error || "创建组织失败");
     }
   } catch (error) {
-    logger.error('创建组织失败:', error);
-    message.error('创建组织失败');
+    logger.error("创建组织失败:", error);
+    message.error("创建组织失败");
   } finally {
     creating.value = false;
   }
@@ -288,11 +261,11 @@ function navigateToSettings(orgId) {
 // 获取组织类型标签
 function getOrgTypeLabel(type) {
   const labels = {
-    startup: '初创公司',
-    company: '企业',
-    community: '社区',
-    opensource: '开源',
-    education: '教育'
+    startup: "初创公司",
+    company: "企业",
+    community: "社区",
+    opensource: "开源",
+    education: "教育",
   };
   return labels[type] || type;
 }
@@ -300,22 +273,22 @@ function getOrgTypeLabel(type) {
 // 获取组织类型颜色
 function getOrgTypeColor(type) {
   const colors = {
-    startup: 'green',
-    company: 'blue',
-    community: 'purple',
-    opensource: 'orange',
-    education: 'cyan'
+    startup: "green",
+    company: "blue",
+    community: "purple",
+    opensource: "orange",
+    education: "cyan",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 }
 
 // 获取角色标签
 function getRoleLabel(role) {
   const labels = {
-    owner: '所有者',
-    admin: '管理员',
-    member: '成员',
-    viewer: '访客'
+    owner: "所有者",
+    admin: "管理员",
+    member: "成员",
+    viewer: "访客",
   };
   return labels[role] || role;
 }
@@ -323,12 +296,12 @@ function getRoleLabel(role) {
 // 获取角色颜色
 function getRoleColor(role) {
   const colors = {
-    owner: 'gold',
-    admin: 'red',
-    member: 'blue',
-    viewer: 'default'
+    owner: "gold",
+    admin: "red",
+    member: "blue",
+    viewer: "default",
   };
-  return colors[role] || 'default';
+  return colors[role] || "default";
 }
 
 // 格式化日期

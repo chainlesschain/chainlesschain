@@ -2,10 +2,10 @@
  * Git配置管理
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs');
-const path = require('path');
-const { app } = require('electron');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs");
+const path = require("path");
+const { app } = require("electron");
 
 /**
  * 默认配置
@@ -21,8 +21,8 @@ const DEFAULT_CONFIG = {
   remoteUrl: null,
 
   // 作者信息
-  authorName: 'ChainlessChain User',
-  authorEmail: 'user@chainlesschain.com',
+  authorName: "ChainlessChain User",
+  authorEmail: "user@chainlesschain.com",
 
   // 认证信息
   auth: null,
@@ -32,10 +32,10 @@ const DEFAULT_CONFIG = {
   autoSyncInterval: 300000, // 5分钟
 
   // 同步策略
-  syncStrategy: 'auto', // 'auto' | 'manual'
+  syncStrategy: "auto", // 'auto' | 'manual'
 
   // 导出路径（相对于仓库路径）
-  exportPath: 'knowledge',
+  exportPath: "knowledge",
 
   // 是否启用Git日志输出
   enableLogging: false,
@@ -55,8 +55,8 @@ class GitConfig {
    * 获取配置文件路径
    */
   getConfigPath() {
-    const userDataPath = app.getPath('userData');
-    return path.join(userDataPath, 'git-config.json');
+    const userDataPath = app.getPath("userData");
+    return path.join(userDataPath, "git-config.json");
   }
 
   /**
@@ -65,7 +65,7 @@ class GitConfig {
   load() {
     try {
       if (fs.existsSync(this.configPath)) {
-        const content = fs.readFileSync(this.configPath, 'utf8');
+        const content = fs.readFileSync(this.configPath, "utf8");
         const savedConfig = JSON.parse(content);
 
         this.config = {
@@ -76,16 +76,16 @@ class GitConfig {
         this.loaded = true;
         // 加载配置时使用直接console.log，因为gitLog还未初始化
         if (this.config.enableLogging) {
-          logger.info('[GitConfig] 配置加载成功');
+          logger.info("[GitConfig] 配置加载成功");
         }
       } else {
         if (DEFAULT_CONFIG.enableLogging) {
-          logger.info('[GitConfig] 配置文件不存在，使用默认配置');
+          logger.info("[GitConfig] 配置文件不存在，使用默认配置");
         }
         this.loaded = false;
       }
     } catch (error) {
-      logger.error('[GitConfig] 配置加载失败:', error);
+      logger.error("[GitConfig] 配置加载失败:", error);
       this.config = { ...DEFAULT_CONFIG };
       this.loaded = false;
     }
@@ -103,14 +103,18 @@ class GitConfig {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2), 'utf8');
+      fs.writeFileSync(
+        this.configPath,
+        JSON.stringify(this.config, null, 2),
+        "utf8",
+      );
 
       if (this.config.enableLogging) {
-        logger.info('[GitConfig] 配置保存成功');
+        logger.info("[GitConfig] 配置保存成功");
       }
       return true;
     } catch (error) {
-      logger.error('[GitConfig] 配置保存失败:', error);
+      logger.error("[GitConfig] 配置保存失败:", error);
       return false;
     }
   }
@@ -119,11 +123,11 @@ class GitConfig {
    * 获取配置项
    */
   get(key, defaultValue = null) {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let value = this.config;
 
     for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
+      if (value && typeof value === "object" && k in value) {
         value = value[k];
       } else {
         return defaultValue;
@@ -137,12 +141,12 @@ class GitConfig {
    * 设置配置项
    */
   set(key, value) {
-    const keys = key.split('.');
+    const keys = key.split(".");
     let target = this.config;
 
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
-      if (!(k in target) || typeof target[k] !== 'object') {
+      if (!(k in target) || typeof target[k] !== "object") {
         target[k] = {};
       }
       target = target[k];

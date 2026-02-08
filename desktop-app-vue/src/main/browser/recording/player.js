@@ -6,20 +6,20 @@
  * @since v0.30.0
  */
 
-const { EventEmitter } = require('events');
-const { v4: uuidv4 } = require('uuid');
-const { logger } = require('../../utils/logger');
-const { EventType } = require('./recorder');
+const { EventEmitter } = require("events");
+const { v4: uuidv4 } = require("uuid");
+const { logger } = require("../../utils/logger");
+const { EventType } = require("./recorder");
 
 /**
  * Playback state
  */
 const PlaybackState = {
-  IDLE: 'idle',
-  PLAYING: 'playing',
-  PAUSED: 'paused',
-  COMPLETED: 'completed',
-  FAILED: 'failed'
+  IDLE: "idle",
+  PLAYING: "playing",
+  PAUSED: "paused",
+  COMPLETED: "completed",
+  FAILED: "failed",
 };
 
 /**
@@ -29,7 +29,7 @@ const PlaybackSpeed = {
   SLOW: 0.5,
   NORMAL: 1,
   FAST: 2,
-  FASTEST: 4
+  FASTEST: 4,
 };
 
 /**
@@ -56,11 +56,11 @@ class RecordingPlayer extends EventEmitter {
 
     const {
       speed = PlaybackSpeed.NORMAL,
-      stepMode = false,           // Pause after each step
-      visualFeedback = true,      // Highlight elements
-      skipNavigations = false,    // Skip navigation events
-      timeout = 30000,            // Step timeout
-      startFromEvent = 0          // Start from specific event index
+      stepMode = false, // Pause after each step
+      visualFeedback = true, // Highlight elements
+      skipNavigations = false, // Skip navigation events
+      timeout = 30000, // Step timeout
+      startFromEvent = 0, // Start from specific event index
     } = options;
 
     const session = {
@@ -76,7 +76,7 @@ class RecordingPlayer extends EventEmitter {
       results: [],
       pauseRequested: false,
       cancelRequested: false,
-      resumeResolve: null
+      resumeResolve: null,
     };
 
     this.playbacks.set(playbackId, session);
@@ -88,11 +88,18 @@ class RecordingPlayer extends EventEmitter {
       }
 
       // Navigate to start URL if needed
-      if (!skipNavigations && recording.startUrl && page.url() !== recording.startUrl) {
-        await page.goto(recording.startUrl, { waitUntil: 'domcontentloaded', timeout });
+      if (
+        !skipNavigations &&
+        recording.startUrl &&
+        page.url() !== recording.startUrl
+      ) {
+        await page.goto(recording.startUrl, {
+          waitUntil: "domcontentloaded",
+          timeout,
+        });
       }
 
-      this.emit('playback:started', { playbackId, recordingId: recording.id });
+      this.emit("playback:started", { playbackId, recordingId: recording.id });
 
       // Play events
       for (let i = startFromEvent; i < recording.events.length; i++) {
@@ -115,38 +122,37 @@ class RecordingPlayer extends EventEmitter {
         try {
           const result = await this._playEvent(page, targetId, event, {
             visualFeedback,
-            timeout
+            timeout,
           });
 
           session.results.push({
             eventIndex: i,
             event: event.type,
             success: true,
-            result
+            result,
           });
 
-          this.emit('playback:event', {
+          this.emit("playback:event", {
             playbackId,
             eventIndex: i,
             total: recording.events.length,
             event: event.type,
-            success: true
+            success: true,
           });
-
         } catch (error) {
           session.results.push({
             eventIndex: i,
             event: event.type,
             success: false,
-            error: error.message
+            error: error.message,
           });
 
-          this.emit('playback:event', {
+          this.emit("playback:event", {
             playbackId,
             eventIndex: i,
             event: event.type,
             success: false,
-            error: error.message
+            error: error.message,
           });
 
           // Continue or stop based on event criticality
@@ -169,37 +175,39 @@ class RecordingPlayer extends EventEmitter {
         playbackId,
         state: PlaybackState.COMPLETED,
         eventsPlayed: session.results.length,
-        successCount: session.results.filter(r => r.success).length,
-        failCount: session.results.filter(r => !r.success).length,
+        successCount: session.results.filter((r) => r.success).length,
+        failCount: session.results.filter((r) => !r.success).length,
         duration: session.endTime - session.startTime,
-        results: session.results
+        results: session.results,
       };
 
-      this.emit('playback:completed', result);
+      this.emit("playback:completed", result);
 
       return result;
-
     } catch (error) {
       session.state = PlaybackState.FAILED;
       session.error = error.message;
 
-      this.emit('playback:failed', {
+      this.emit("playback:failed", {
         playbackId,
         error: error.message,
-        eventIndex: session.currentEventIndex
+        eventIndex: session.currentEventIndex,
       });
 
       throw error;
-
     } finally {
       this.playbacks.delete(playbackId);
 
       // Clean up visual feedback
       if (visualFeedback) {
-        await page.evaluate(() => {
-          const overlay = document.getElementById('__playbackOverlay');
-          if (overlay) overlay.remove();
-        }).catch(() => {});
+        await page
+          .evaluate(() => {
+            const overlay = document.getElementById("__playbackOverlay");
+            if (overlay) {
+              overlay.remove();
+            }
+          })
+          .catch(() => {});
       }
     }
   }
@@ -239,7 +247,9 @@ class RecordingPlayer extends EventEmitter {
         return this._playHover(page, targetId, event, timeout);
 
       default:
-        logger.warn('[RecordingPlayer] Unknown event type', { type: event.type });
+        logger.warn("[RecordingPlayer] Unknown event type", {
+          type: event.type,
+        });
         return { skipped: true, type: event.type };
     }
   }
@@ -250,14 +260,14 @@ class RecordingPlayer extends EventEmitter {
   async _playClick(page, targetId, event, timeout) {
     const selector = event.element?.selector;
     if (!selector) {
-      throw new Error('Click event missing element selector');
+      throw new Error("Click event missing element selector");
     }
 
     // Try to locate element
     const locator = page.locator(selector);
-    await locator.waitFor({ state: 'visible', timeout });
+    await locator.waitFor({ state: "visible", timeout });
     await locator.click({
-      button: event.button === 2 ? 'right' : 'left'
+      button: event.button === 2 ? "right" : "left",
     });
 
     return { clicked: selector };
@@ -269,14 +279,14 @@ class RecordingPlayer extends EventEmitter {
   async _playType(page, targetId, event, timeout) {
     const selector = event.element?.selector;
     if (!selector) {
-      throw new Error('Type event missing element selector');
+      throw new Error("Type event missing element selector");
     }
 
     const locator = page.locator(selector);
-    await locator.waitFor({ state: 'visible', timeout });
+    await locator.waitFor({ state: "visible", timeout });
 
     // Clear and type
-    await locator.fill(event.value || '');
+    await locator.fill(event.value || "");
 
     return { typed: event.value };
   }
@@ -287,11 +297,11 @@ class RecordingPlayer extends EventEmitter {
   async _playSelect(page, targetId, event, timeout) {
     const selector = event.element?.selector;
     if (!selector) {
-      throw new Error('Select event missing element selector');
+      throw new Error("Select event missing element selector");
     }
 
     const locator = page.locator(selector);
-    await locator.waitFor({ state: 'visible', timeout });
+    await locator.waitFor({ state: "visible", timeout });
     await locator.selectOption(event.value);
 
     return { selected: event.value };
@@ -302,12 +312,20 @@ class RecordingPlayer extends EventEmitter {
    */
   async _playKey(page, event) {
     const modifiers = [];
-    if (event.ctrlKey) modifiers.push('Control');
-    if (event.altKey) modifiers.push('Alt');
-    if (event.shiftKey) modifiers.push('Shift');
-    if (event.metaKey) modifiers.push('Meta');
+    if (event.ctrlKey) {
+      modifiers.push("Control");
+    }
+    if (event.altKey) {
+      modifiers.push("Alt");
+    }
+    if (event.shiftKey) {
+      modifiers.push("Shift");
+    }
+    if (event.metaKey) {
+      modifiers.push("Meta");
+    }
 
-    const keyCombo = [...modifiers, event.key].join('+');
+    const keyCombo = [...modifiers, event.key].join("+");
     await page.keyboard.press(keyCombo);
 
     return { pressed: keyCombo };
@@ -318,8 +336,8 @@ class RecordingPlayer extends EventEmitter {
    */
   async _playNavigate(page, event, timeout) {
     await page.goto(event.url, {
-      waitUntil: 'domcontentloaded',
-      timeout
+      waitUntil: "domcontentloaded",
+      timeout,
     });
 
     return { navigated: event.url };
@@ -329,9 +347,12 @@ class RecordingPlayer extends EventEmitter {
    * Play scroll event
    */
   async _playScroll(page, event) {
-    await page.evaluate(({ x, y }) => {
-      window.scrollTo({ left: x, top: y, behavior: 'smooth' });
-    }, { x: event.scrollX, y: event.scrollY });
+    await page.evaluate(
+      ({ x, y }) => {
+        window.scrollTo({ left: x, top: y, behavior: "smooth" });
+      },
+      { x: event.scrollX, y: event.scrollY },
+    );
 
     return { scrolled: { x: event.scrollX, y: event.scrollY } };
   }
@@ -347,7 +368,7 @@ class RecordingPlayer extends EventEmitter {
 
     const locator = page.locator(selector);
     try {
-      await locator.waitFor({ state: 'visible', timeout: 5000 });
+      await locator.waitFor({ state: "visible", timeout: 5000 });
       await locator.hover();
       return { hovered: selector };
     } catch {
@@ -399,7 +420,9 @@ class RecordingPlayer extends EventEmitter {
    */
   stop(playbackId) {
     const session = this.playbacks.get(playbackId);
-    if (!session) return false;
+    if (!session) {
+      return false;
+    }
 
     session.cancelRequested = true;
 
@@ -418,15 +441,19 @@ class RecordingPlayer extends EventEmitter {
    */
   getStatus(playbackId) {
     const session = this.playbacks.get(playbackId);
-    if (!session) return null;
+    if (!session) {
+      return null;
+    }
 
     return {
       playbackId: session.id,
       state: session.state,
       currentEvent: session.currentEventIndex,
       totalEvents: session.totalEvents,
-      progress: Math.round((session.currentEventIndex / session.totalEvents) * 100),
-      duration: Date.now() - session.startTime
+      progress: Math.round(
+        (session.currentEventIndex / session.totalEvents) * 100,
+      ),
+      duration: Date.now() - session.startTime,
     };
   }
 
@@ -437,19 +464,19 @@ class RecordingPlayer extends EventEmitter {
   async _checkPauseCancel(session) {
     if (session.cancelRequested) {
       session.state = PlaybackState.COMPLETED;
-      throw new Error('Playback cancelled');
+      throw new Error("Playback cancelled");
     }
 
     if (session.pauseRequested) {
       session.state = PlaybackState.PAUSED;
-      this.emit('playback:paused', { playbackId: session.id });
+      this.emit("playback:paused", { playbackId: session.id });
 
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         session.resumeResolve = resolve;
       });
 
       if (session.cancelRequested) {
-        throw new Error('Playback cancelled');
+        throw new Error("Playback cancelled");
       }
     }
   }
@@ -460,8 +487,8 @@ class RecordingPlayer extends EventEmitter {
    */
   async _injectVisualFeedback(page) {
     await page.evaluate(() => {
-      const style = document.createElement('style');
-      style.id = '__playbackStyles';
+      const style = document.createElement("style");
+      style.id = "__playbackStyles";
       style.textContent = `
         .__playback-highlight {
           outline: 3px solid #4CAF50 !important;
@@ -483,9 +510,9 @@ class RecordingPlayer extends EventEmitter {
       `;
       document.head.appendChild(style);
 
-      const overlay = document.createElement('div');
-      overlay.id = '__playbackOverlay';
-      overlay.textContent = 'Playback in progress...';
+      const overlay = document.createElement("div");
+      overlay.id = "__playbackOverlay";
+      overlay.textContent = "Playback in progress...";
       document.body.appendChild(overlay);
     });
   }
@@ -497,15 +524,15 @@ class RecordingPlayer extends EventEmitter {
   async _highlightElement(page, selector) {
     await page.evaluate((sel) => {
       // Remove previous highlight
-      document.querySelectorAll('.__playback-highlight').forEach(el => {
-        el.classList.remove('__playback-highlight');
+      document.querySelectorAll(".__playback-highlight").forEach((el) => {
+        el.classList.remove("__playback-highlight");
       });
 
       // Add highlight to current element
       const el = document.querySelector(sel);
       if (el) {
-        el.classList.add('__playback-highlight');
-        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.classList.add("__playback-highlight");
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
       }
     }, selector);
 
@@ -518,12 +545,12 @@ class RecordingPlayer extends EventEmitter {
    * @private
    */
   _delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
 module.exports = {
   RecordingPlayer,
   PlaybackState,
-  PlaybackSpeed
+  PlaybackSpeed,
 };

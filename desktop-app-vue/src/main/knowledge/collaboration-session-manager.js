@@ -12,9 +12,9 @@
  * - Session statistics
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const { v4: uuidv4 } = require("uuid");
 
 class CollaborationSessionManager extends EventEmitter {
   constructor(database, p2pManager) {
@@ -41,13 +41,7 @@ class CollaborationSessionManager extends EventEmitter {
    * @returns {Object} Session info
    */
   async createSession(params) {
-    const {
-      knowledgeId,
-      orgId,
-      userDid,
-      userName,
-      userColor
-    } = params;
+    const { knowledgeId, orgId, userDid, userName, userColor } = params;
 
     const sessionId = uuidv4();
     const now = Date.now();
@@ -62,28 +56,41 @@ class CollaborationSessionManager extends EventEmitter {
       userDid,
       userName,
       userColor: color,
-      peerId: this.p2pManager?.node?.peerId?.toString() || 'local',
+      peerId: this.p2pManager?.node?.peerId?.toString() || "local",
       cursorPosition: null,
       selectionStart: null,
       selectionEnd: null,
       lastActivity: now,
-      status: 'active',
-      createdAt: now
+      status: "active",
+      createdAt: now,
     };
 
     // Save to database
     try {
-      this.database.run(`
+      this.database.run(
+        `
         INSERT INTO collaboration_sessions (
           id, knowledge_id, org_id, user_did, user_name, user_color,
           peer_id, cursor_position, selection_start, selection_end,
           last_activity, status, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        sessionId, knowledgeId, orgId, userDid, userName, color,
-        sessionInfo.peerId, null, null, null,
-        now, 'active', now
-      ]);
+      `,
+        [
+          sessionId,
+          knowledgeId,
+          orgId,
+          userDid,
+          userName,
+          color,
+          sessionInfo.peerId,
+          null,
+          null,
+          null,
+          now,
+          "active",
+          now,
+        ],
+      );
 
       // Add to active sessions
       if (!this.activeSessions.has(knowledgeId)) {
@@ -93,17 +100,18 @@ class CollaborationSessionManager extends EventEmitter {
 
       // Broadcast session join
       await this._broadcastSessionEvent(knowledgeId, {
-        type: 'session:join',
-        session: sessionInfo
+        type: "session:join",
+        session: sessionInfo,
       });
 
-      this.emit('session:created', sessionInfo);
+      this.emit("session:created", sessionInfo);
 
-      logger.info(`[CollabSession] Created session ${sessionId} for knowledge ${knowledgeId}`);
+      logger.info(
+        `[CollabSession] Created session ${sessionId} for knowledge ${knowledgeId}`,
+      );
       return sessionInfo;
-
     } catch (error) {
-      logger.error('[CollabSession] Error creating session:', error);
+      logger.error("[CollabSession] Error creating session:", error);
       throw error;
     }
   }
@@ -115,29 +123,22 @@ class CollaborationSessionManager extends EventEmitter {
    */
   async updateSession(sessionId, updates) {
     try {
-      const {
-        cursorPosition,
-        selectionStart,
-        selectionEnd
-      } = updates;
+      const { cursorPosition, selectionStart, selectionEnd } = updates;
 
       const now = Date.now();
 
       // Update database
-      this.database.run(`
+      this.database.run(
+        `
         UPDATE collaboration_sessions
         SET cursor_position = ?,
             selection_start = ?,
             selection_end = ?,
             last_activity = ?
         WHERE id = ?
-      `, [
-        cursorPosition,
-        selectionStart,
-        selectionEnd,
-        now,
-        sessionId
-      ]);
+      `,
+        [cursorPosition, selectionStart, selectionEnd, now, sessionId],
+      );
 
       // Update in-memory session
       for (const [knowledgeId, sessions] of this.activeSessions.entries()) {
@@ -150,23 +151,22 @@ class CollaborationSessionManager extends EventEmitter {
 
             // Broadcast cursor update
             await this._broadcastSessionEvent(knowledgeId, {
-              type: 'session:update',
+              type: "session:update",
               sessionId,
               updates: {
                 cursorPosition,
                 selectionStart,
-                selectionEnd
-              }
+                selectionEnd,
+              },
             });
 
-            this.emit('session:updated', session);
+            this.emit("session:updated", session);
             break;
           }
         }
       }
-
     } catch (error) {
-      logger.error('[CollabSession] Error updating session:', error);
+      logger.error("[CollabSession] Error updating session:", error);
       throw error;
     }
   }
@@ -190,7 +190,9 @@ class CollaborationSessionManager extends EventEmitter {
             break;
           }
         }
-        if (knowledgeId) {break;}
+        if (knowledgeId) {
+          break;
+        }
       }
 
       if (!sessionInfo) {
@@ -199,25 +201,27 @@ class CollaborationSessionManager extends EventEmitter {
       }
 
       // Update database
-      this.database.run(`
+      this.database.run(
+        `
         UPDATE collaboration_sessions
         SET status = 'disconnected',
             last_activity = ?
         WHERE id = ?
-      `, [Date.now(), sessionId]);
+      `,
+        [Date.now(), sessionId],
+      );
 
       // Broadcast session leave
       await this._broadcastSessionEvent(knowledgeId, {
-        type: 'session:leave',
-        sessionId
+        type: "session:leave",
+        sessionId,
       });
 
-      this.emit('session:ended', sessionInfo);
+      this.emit("session:ended", sessionInfo);
 
       logger.info(`[CollabSession] Ended session ${sessionId}`);
-
     } catch (error) {
-      logger.error('[CollabSession] Error ending session:', error);
+      logger.error("[CollabSession] Error ending session:", error);
       throw error;
     }
   }
@@ -255,12 +259,12 @@ class CollaborationSessionManager extends EventEmitter {
       return {
         knowledgeId,
         activeUsers: sessions.length,
-        sessions: sessions.map(s => ({
+        sessions: sessions.map((s) => ({
           userName: s.userName,
           userColor: s.userColor,
           lastActivity: s.lastActivity,
-          status: s.status
-        }))
+          status: s.status,
+        })),
       };
     }
 
@@ -272,14 +276,14 @@ class CollaborationSessionManager extends EventEmitter {
       totalSessions += sessions.size;
       knowledgeItems.push({
         knowledgeId: kid,
-        activeUsers: sessions.size
+        activeUsers: sessions.size,
       });
     }
 
     return {
       totalSessions,
       activeKnowledgeItems: knowledgeItems.length,
-      knowledgeItems
+      knowledgeItems,
     };
   }
 
@@ -297,7 +301,7 @@ class CollaborationSessionManager extends EventEmitter {
       const message = JSON.stringify(event);
       await this.p2pManager.pubsub.publish(topic, Buffer.from(message));
     } catch (error) {
-      logger.error('[CollabSession] Error broadcasting event:', error);
+      logger.error("[CollabSession] Error broadcasting event:", error);
     }
   }
 
@@ -327,14 +331,14 @@ class CollaborationSessionManager extends EventEmitter {
    */
   _generateUserColor() {
     const colors = [
-      '#1890ff', // blue
-      '#52c41a', // green
-      '#faad14', // orange
-      '#f5222d', // red
-      '#722ed1', // purple
-      '#13c2c2', // cyan
-      '#eb2f96', // magenta
-      '#fa8c16'  // gold
+      "#1890ff", // blue
+      "#52c41a", // green
+      "#faad14", // orange
+      "#f5222d", // red
+      "#722ed1", // purple
+      "#13c2c2", // cyan
+      "#eb2f96", // magenta
+      "#fa8c16", // gold
     ];
     return colors[Math.floor(Math.random() * colors.length)];
   }
@@ -343,7 +347,7 @@ class CollaborationSessionManager extends EventEmitter {
    * Clean up all sessions
    */
   async cleanup() {
-    logger.info('[CollabSession] Cleaning up all sessions');
+    logger.info("[CollabSession] Cleaning up all sessions");
 
     for (const [knowledgeId, sessions] of this.activeSessions.entries()) {
       for (const session of sessions) {

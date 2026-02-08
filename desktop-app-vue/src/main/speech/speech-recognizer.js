@@ -7,11 +7,11 @@
  * - Web Speech API (浏览器)
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const axios = require('axios');
-const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const axios = require("axios");
+const FormData = require("form-data");
+const fs = require("fs");
+const path = require("path");
 
 /**
  * 基础识别器接口
@@ -28,14 +28,14 @@ class BaseSpeechRecognizer {
    * @returns {Promise<Object>} 识别结果
    */
   async recognize(audio, options = {}) {
-    throw new Error('recognize() 方法需要被子类实现');
+    throw new Error("recognize() 方法需要被子类实现");
   }
 
   /**
    * 获取引擎名称
    */
   getEngineName() {
-    return 'base';
+    return "base";
   }
 
   /**
@@ -53,8 +53,11 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
   constructor(config = {}) {
     super(config);
     this.apiKey = config.apiKey || process.env.OPENAI_API_KEY;
-    this.baseURL = config.baseURL || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
-    this.model = config.model || 'whisper-1';
+    this.baseURL =
+      config.baseURL ||
+      process.env.OPENAI_BASE_URL ||
+      "https://api.openai.com/v1";
+    this.model = config.model || "whisper-1";
     this.timeout = config.timeout || 60000;
   }
 
@@ -66,22 +69,25 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
    */
   async recognize(audioPath, options = {}) {
     const {
-      language = 'zh',           // 中文
-      prompt = null,              // 可选的提示文本
-      temperature = 0,            // 0 = 更准确
-      responseFormat = 'json',    // json | text | srt | vtt
+      language = "zh", // 中文
+      prompt = null, // 可选的提示文本
+      temperature = 0, // 0 = 更准确
+      responseFormat = "json", // json | text | srt | vtt
     } = options;
 
     try {
-      logger.info('[WhisperAPI] 开始识别:', path.basename(audioPath));
+      logger.info("[WhisperAPI] 开始识别:", path.basename(audioPath));
 
       // 检查 API 密钥
       if (!this.apiKey) {
-        throw new Error('缺少 OpenAI API 密钥。请在 .env 文件中设置 OPENAI_API_KEY');
+        throw new Error(
+          "缺少 OpenAI API 密钥。请在 .env 文件中设置 OPENAI_API_KEY",
+        );
       }
 
       // 检查文件是否存在
-      const fileExists = await fs.promises.access(audioPath)
+      const fileExists = await fs.promises
+        .access(audioPath)
         .then(() => true)
         .catch(() => false);
 
@@ -97,22 +103,22 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
 
       // 检查文件大小限制 (25MB)
       if (stats.size > 25 * 1024 * 1024) {
-        throw new Error('文件大小超过 25MB 限制。请使用音频分段功能。');
+        throw new Error("文件大小超过 25MB 限制。请使用音频分段功能。");
       }
 
       // 创建表单数据
       const formData = new FormData();
-      formData.append('file', fs.createReadStream(audioPath));
-      formData.append('model', this.model);
-      formData.append('language', language);
-      formData.append('response_format', responseFormat);
+      formData.append("file", fs.createReadStream(audioPath));
+      formData.append("model", this.model);
+      formData.append("language", language);
+      formData.append("response_format", responseFormat);
 
       if (temperature !== undefined) {
-        formData.append('temperature', temperature.toString());
+        formData.append("temperature", temperature.toString());
       }
 
       if (prompt) {
-        formData.append('prompt', prompt);
+        formData.append("prompt", prompt);
       }
 
       // 发送请求
@@ -123,13 +129,13 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
         formData,
         {
           headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
+            Authorization: `Bearer ${this.apiKey}`,
             ...formData.getHeaders(),
           },
           timeout: this.timeout,
           maxBodyLength: Infinity,
           maxContentLength: Infinity,
-        }
+        },
       );
 
       const duration = Date.now() - startTime;
@@ -137,28 +143,28 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
       logger.info(`[WhisperAPI] 识别完成，耗时: ${duration}ms`);
 
       // 解析响应
-      let text = '';
+      let text = "";
       let language_detected = language;
 
-      if (responseFormat === 'json') {
-        text = response.data.text || '';
+      if (responseFormat === "json") {
+        text = response.data.text || "";
         language_detected = response.data.language || language;
       } else {
-        text = response.data || '';
+        text = response.data || "";
       }
 
       return {
         success: true,
         text: text,
         language: language_detected,
-        engine: 'whisper-api',
+        engine: "whisper-api",
         model: this.model,
         duration: duration,
-        confidence: 0.95,  // Whisper API 不返回置信度，使用默认值
+        confidence: 0.95, // Whisper API 不返回置信度，使用默认值
         responseFormat: responseFormat,
       };
     } catch (error) {
-      logger.error('[WhisperAPI] 识别失败:', error);
+      logger.error("[WhisperAPI] 识别失败:", error);
 
       // 处理特定错误
       let errorMessage = error.message;
@@ -168,11 +174,11 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
         const data = error.response.data;
 
         if (status === 401) {
-          errorMessage = 'API 密钥无效或已过期';
+          errorMessage = "API 密钥无效或已过期";
         } else if (status === 429) {
-          errorMessage = '请求过于频繁，请稍后再试';
+          errorMessage = "请求过于频繁，请稍后再试";
         } else if (status === 413) {
-          errorMessage = '文件过大，请使用较小的文件或分段处理';
+          errorMessage = "文件过大，请使用较小的文件或分段处理";
         } else if (data && data.error) {
           errorMessage = data.error.message || data.error;
         }
@@ -183,7 +189,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
   }
 
   getEngineName() {
-    return 'whisper-api';
+    return "whisper-api";
   }
 
   async isAvailable() {
@@ -198,7 +204,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
    */
   async recognizeBatch(audioPaths, options = {}) {
     const results = [];
-    const delay = options.delay || 1000;  // 默认1秒延迟
+    const delay = options.delay || 1000; // 默认1秒延迟
 
     for (let i = 0; i < audioPaths.length; i++) {
       try {
@@ -211,7 +217,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
 
         // 延迟，避免触发速率限制
         if (i < audioPaths.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       } catch (error) {
         results.push({
@@ -232,12 +238,12 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
    */
   async detectLanguage(audioPath) {
     try {
-      logger.info('[WhisperAPI] 开始检测语言:', path.basename(audioPath));
+      logger.info("[WhisperAPI] 开始检测语言:", path.basename(audioPath));
 
       // 不指定语言参数，让 Whisper 自动检测
       const result = await this.recognize(audioPath, {
-        language: undefined,  // 不指定语言
-        responseFormat: 'json',
+        language: undefined, // 不指定语言
+        responseFormat: "json",
       });
 
       return {
@@ -248,7 +254,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
         text: result.text,
       };
     } catch (error) {
-      logger.error('[WhisperAPI] 语言检测失败:', error);
+      logger.error("[WhisperAPI] 语言检测失败:", error);
       throw error;
     }
   }
@@ -260,48 +266,48 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
    */
   getLanguageName(code) {
     const languages = {
-      'zh': '中文',
-      'en': 'English',
-      'ja': '日本語',
-      'ko': '한국어',
-      'fr': 'Français',
-      'de': 'Deutsch',
-      'es': 'Español',
-      'ru': 'Русский',
-      'ar': 'العربية',
-      'pt': 'Português',
-      'it': 'Italiano',
-      'nl': 'Nederlands',
-      'pl': 'Polski',
-      'tr': 'Türkçe',
-      'vi': 'Tiếng Việt',
-      'th': 'ไทย',
-      'id': 'Bahasa Indonesia',
-      'ms': 'Bahasa Melayu',
-      'hi': 'हिन्दी',
-      'bn': 'বাংলা',
-      'ta': 'தமிழ்',
-      'te': 'తెలుగు',
-      'ur': 'اردو',
-      'fa': 'فارسی',
-      'he': 'עברית',
-      'uk': 'Українська',
-      'cs': 'Čeština',
-      'sv': 'Svenska',
-      'no': 'Norsk',
-      'da': 'Dansk',
-      'fi': 'Suomi',
-      'el': 'Ελληνικά',
-      'hu': 'Magyar',
-      'ro': 'Română',
-      'bg': 'Български',
-      'hr': 'Hrvatski',
-      'sr': 'Српски',
-      'sk': 'Slovenčina',
-      'sl': 'Slovenščina',
-      'lt': 'Lietuvių',
-      'lv': 'Latviešu',
-      'et': 'Eesti',
+      zh: "中文",
+      en: "English",
+      ja: "日本語",
+      ko: "한국어",
+      fr: "Français",
+      de: "Deutsch",
+      es: "Español",
+      ru: "Русский",
+      ar: "العربية",
+      pt: "Português",
+      it: "Italiano",
+      nl: "Nederlands",
+      pl: "Polski",
+      tr: "Türkçe",
+      vi: "Tiếng Việt",
+      th: "ไทย",
+      id: "Bahasa Indonesia",
+      ms: "Bahasa Melayu",
+      hi: "हिन्दी",
+      bn: "বাংলা",
+      ta: "தமிழ்",
+      te: "తెలుగు",
+      ur: "اردو",
+      fa: "فارسی",
+      he: "עברית",
+      uk: "Українська",
+      cs: "Čeština",
+      sv: "Svenska",
+      no: "Norsk",
+      da: "Dansk",
+      fi: "Suomi",
+      el: "Ελληνικά",
+      hu: "Magyar",
+      ro: "Română",
+      bg: "Български",
+      hr: "Hrvatski",
+      sr: "Српски",
+      sk: "Slovenčina",
+      sl: "Slovenščina",
+      lt: "Lietuvių",
+      lv: "Latviešu",
+      et: "Eesti",
     };
 
     return languages[code] || code;
@@ -326,7 +332,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
         });
 
         if (i < audioPaths.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       } catch (error) {
         results.push({
@@ -348,10 +354,13 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
 class WhisperLocalRecognizer extends BaseSpeechRecognizer {
   constructor(config = {}) {
     super(config);
-    this.serverUrl = config.serverUrl || process.env.WHISPER_LOCAL_URL || 'http://localhost:8002';
-    this.modelSize = config.modelSize || 'base';  // tiny/base/small/medium/large
-    this.device = config.device || 'auto';
-    this.timeout = config.timeout || 120000;  // 2分钟超时
+    this.serverUrl =
+      config.serverUrl ||
+      process.env.WHISPER_LOCAL_URL ||
+      "http://localhost:8002";
+    this.modelSize = config.modelSize || "base"; // tiny/base/small/medium/large
+    this.device = config.device || "auto";
+    this.timeout = config.timeout || 120000; // 2分钟超时
   }
 
   /**
@@ -362,19 +371,20 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
    */
   async recognize(audioPath, options = {}) {
     const {
-      language = 'zh',
-      task = 'transcribe',  // transcribe | translate
+      language = "zh",
+      task = "transcribe", // transcribe | translate
       temperature = 0,
       initialPrompt = null,
     } = options;
 
     try {
-      logger.info('[WhisperLocal] 开始识别:', path.basename(audioPath));
-      logger.info('[WhisperLocal] 服务器URL:', this.serverUrl);
-      logger.info('[WhisperLocal] 超时设置:', this.timeout, 'ms');
+      logger.info("[WhisperLocal] 开始识别:", path.basename(audioPath));
+      logger.info("[WhisperLocal] 服务器URL:", this.serverUrl);
+      logger.info("[WhisperLocal] 超时设置:", this.timeout, "ms");
 
       // 检查文件是否存在
-      const fileExists = await fs.promises.access(audioPath)
+      const fileExists = await fs.promises
+        .access(audioPath)
         .then(() => true)
         .catch(() => false);
 
@@ -389,14 +399,14 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
 
       // 准备表单数据
       const formData = new FormData();
-      formData.append('file', fs.createReadStream(audioPath));
-      formData.append('model', this.modelSize);
-      formData.append('language', language);
-      formData.append('task', task);
-      formData.append('temperature', temperature.toString());
+      formData.append("file", fs.createReadStream(audioPath));
+      formData.append("model", this.modelSize);
+      formData.append("language", language);
+      formData.append("task", task);
+      formData.append("temperature", temperature.toString());
 
       if (initialPrompt) {
-        formData.append('initial_prompt', initialPrompt);
+        formData.append("initial_prompt", initialPrompt);
       }
 
       // 发送请求到本地 Whisper 服务器
@@ -411,44 +421,46 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
           timeout: this.timeout,
           maxContentLength: Infinity,
           maxBodyLength: Infinity,
-        }
+        },
       );
 
       const duration = Date.now() - startTime;
-      logger.info(`[WhisperLocal] 识别完成，耗时: ${(duration / 1000).toFixed(2)}s`);
+      logger.info(
+        `[WhisperLocal] 识别完成，耗时: ${(duration / 1000).toFixed(2)}s`,
+      );
 
       // 解析响应
       const data = response.data;
-      const text = data.text || '';
+      const text = data.text || "";
       const language_detected = data.language || language;
 
       return {
         success: true,
         text: text,
         language: language_detected,
-        engine: 'whisper-local',
+        engine: "whisper-local",
         model: this.modelSize,
         duration: duration,
         confidence: data.confidence || 0.9,
         segments: data.segments || [],
       };
     } catch (error) {
-      logger.error('[WhisperLocal] 识别失败:', error);
+      logger.error("[WhisperLocal] 识别失败:", error);
 
       let errorMessage = error.message;
 
-      if (error.code === 'ECONNREFUSED') {
+      if (error.code === "ECONNREFUSED") {
         errorMessage = `无法连接到本地 Whisper 服务器 (${this.serverUrl})。请确保服务器正在运行。`;
-      } else if (error.code === 'ETIMEDOUT') {
-        errorMessage = '识别超时。请尝试使用较小的音频文件或增加超时时间。';
+      } else if (error.code === "ETIMEDOUT") {
+        errorMessage = "识别超时。请尝试使用较小的音频文件或增加超时时间。";
       } else if (error.response) {
         const status = error.response.status;
         const data = error.response.data;
 
         if (status === 400) {
-          errorMessage = '音频文件格式不支持或参数错误';
+          errorMessage = "音频文件格式不支持或参数错误";
         } else if (status === 500) {
-          errorMessage = '服务器内部错误，请检查 Whisper 服务日志';
+          errorMessage = "服务器内部错误，请检查 Whisper 服务日志";
         } else if (data && data.error) {
           errorMessage = data.error.message || data.error;
         }
@@ -459,7 +471,7 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
   }
 
   getEngineName() {
-    return 'whisper-local';
+    return "whisper-local";
   }
 
   /**
@@ -474,7 +486,7 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
 
       return response.status === 200;
     } catch (error) {
-      logger.warn('[WhisperLocal] 服务不可用:', error.message);
+      logger.warn("[WhisperLocal] 服务不可用:", error.message);
       return false;
     }
   }
@@ -490,7 +502,7 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
 
       return response.data.models || [];
     } catch (error) {
-      logger.error('[WhisperLocal] 获取模型列表失败:', error);
+      logger.error("[WhisperLocal] 获取模型列表失败:", error);
       return [];
     }
   }
@@ -500,23 +512,23 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
    */
   async recognizeBatch(audioPaths, options = {}) {
     const results = [];
-    const concurrency = options.concurrency || 2;  // 并发数
+    const concurrency = options.concurrency || 2; // 并发数
 
     // 分批处理
     for (let i = 0; i < audioPaths.length; i += concurrency) {
       const batch = audioPaths.slice(i, i + concurrency);
-      const batchPromises = batch.map(audioPath =>
+      const batchPromises = batch.map((audioPath) =>
         this.recognize(audioPath, options)
-          .then(result => ({
+          .then((result) => ({
             success: true,
             path: audioPath,
             ...result,
           }))
-          .catch(error => ({
+          .catch((error) => ({
             success: false,
             path: audioPath,
             error: error.message,
-          }))
+          })),
       );
 
       const batchResults = await Promise.all(batchPromises);
@@ -534,21 +546,21 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
 class WebSpeechRecognizer extends BaseSpeechRecognizer {
   constructor(config = {}) {
     super(config);
-    this.lang = config.lang || 'zh-CN';
+    this.lang = config.lang || "zh-CN";
   }
 
   async recognize(audioPath, options = {}) {
     // Web Speech API 在浏览器端实现
     // 主进程中无法使用
-    throw new Error('Web Speech API 仅在浏览器端可用，请在前端组件中使用');
+    throw new Error("Web Speech API 仅在浏览器端可用，请在前端组件中使用");
   }
 
   getEngineName() {
-    return 'webspeech';
+    return "webspeech";
   }
 
   async isAvailable() {
-    return false;  // 主进程中不可用
+    return false; // 主进程中不可用
   }
 }
 
@@ -556,7 +568,7 @@ class WebSpeechRecognizer extends BaseSpeechRecognizer {
  * 语音识别器工厂类
  */
 class SpeechRecognizer {
-  constructor(engineType = 'whisper-api', config = {}) {
+  constructor(engineType = "whisper-api", config = {}) {
     this.engineType = engineType;
     this.config = config;
     this.engine = this.createEngine(engineType, config);
@@ -570,14 +582,16 @@ class SpeechRecognizer {
    */
   createEngine(engineType, config) {
     switch (engineType) {
-      case 'whisper-api':
+      case "whisper-api":
         return new WhisperAPIRecognizer(config);
-      case 'whisper-local':
+      case "whisper-local":
         return new WhisperLocalRecognizer(config);
-      case 'webspeech':
+      case "webspeech":
         return new WebSpeechRecognizer(config);
       default:
-        logger.warn(`[SpeechRecognizer] 未知引擎类型: ${engineType}，使用默认 Whisper API`);
+        logger.warn(
+          `[SpeechRecognizer] 未知引擎类型: ${engineType}，使用默认 Whisper API`,
+        );
         return new WhisperAPIRecognizer(config);
     }
   }
@@ -621,17 +635,17 @@ class SpeechRecognizer {
     const whisperAPI = new WhisperAPIRecognizer(this.config);
     if (await whisperAPI.isAvailable()) {
       engines.push({
-        type: 'whisper-api',
-        name: 'Whisper API (OpenAI)',
+        type: "whisper-api",
+        name: "Whisper API (OpenAI)",
         available: true,
-        description: '高精度云端识别，支持多语言',
+        description: "高精度云端识别，支持多语言",
       });
     } else {
       engines.push({
-        type: 'whisper-api',
-        name: 'Whisper API (OpenAI)',
+        type: "whisper-api",
+        name: "Whisper API (OpenAI)",
         available: false,
-        description: '需要 OpenAI API 密钥',
+        description: "需要 OpenAI API 密钥",
       });
     }
 
@@ -639,27 +653,27 @@ class SpeechRecognizer {
     const whisperLocal = new WhisperLocalRecognizer(this.config);
     if (await whisperLocal.isAvailable()) {
       engines.push({
-        type: 'whisper-local',
-        name: 'Whisper Local',
+        type: "whisper-local",
+        name: "Whisper Local",
         available: true,
-        description: '本地离线识别',
+        description: "本地离线识别",
       });
     } else {
       engines.push({
-        type: 'whisper-local',
-        name: 'Whisper Local',
+        type: "whisper-local",
+        name: "Whisper Local",
         available: false,
-        description: '需要下载模型文件（Phase 2）',
+        description: "需要下载模型文件（Phase 2）",
       });
     }
 
     // Web Speech API
     engines.push({
-      type: 'webspeech',
-      name: 'Web Speech API',
+      type: "webspeech",
+      name: "Web Speech API",
       available: true,
-      description: '浏览器端实时识别',
-      note: '仅在前端组件中可用',
+      description: "浏览器端实时识别",
+      note: "仅在前端组件中可用",
     });
 
     return engines;

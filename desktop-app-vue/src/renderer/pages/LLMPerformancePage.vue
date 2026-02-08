@@ -5,9 +5,7 @@
         <BarChartOutlined />
         LLM 性能仪表板
       </h1>
-      <p class="page-description">
-        实时监控 Token 使用、成本分析和性能优化
-      </p>
+      <p class="page-description">实时监控 Token 使用、成本分析和性能优化</p>
     </div>
 
     <!-- Budget Alert Banner -->
@@ -52,16 +50,8 @@
       />
 
       <!-- Cache & Budget Details Row -->
-      <a-row
-        :gutter="[16, 16]"
-        class="cache-budget-row"
-      >
-        <a-col
-          :xs="24"
-          :sm="24"
-          :md="12"
-          :lg="12"
-        >
+      <a-row :gutter="[16, 16]" class="cache-budget-row">
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <LLMCachePanel
             :stats="cacheStats"
             :loading="loading"
@@ -69,16 +59,8 @@
             @clear-cache="clearExpiredCache"
           />
         </a-col>
-        <a-col
-          :xs="24"
-          :sm="24"
-          :md="12"
-          :lg="12"
-        >
-          <LLMBudgetPanel
-            :budget="budget"
-            :loading="loading"
-          />
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
+          <LLMBudgetPanel :budget="budget" :loading="loading" />
         </a-col>
       </a-row>
 
@@ -157,7 +139,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "ant-design-vue";
@@ -290,7 +272,9 @@ const alertHistory = ref([]);
 // ============== Computed ==============
 
 const dailyBudgetPercent = computed(() => {
-  if (budget.value.dailyLimit <= 0) {return 0;}
+  if (budget.value.dailyLimit <= 0) {
+    return 0;
+  }
   return Math.min(
     100,
     (budget.value.dailySpend / budget.value.dailyLimit) * 100,
@@ -298,7 +282,9 @@ const dailyBudgetPercent = computed(() => {
 });
 
 const weeklyBudgetPercent = computed(() => {
-  if (budget.value.weeklyLimit <= 0) {return 0;}
+  if (budget.value.weeklyLimit <= 0) {
+    return 0;
+  }
   return Math.min(
     100,
     (budget.value.weeklySpend / budget.value.weeklyLimit) * 100,
@@ -306,7 +292,9 @@ const weeklyBudgetPercent = computed(() => {
 });
 
 const monthlyBudgetPercent = computed(() => {
-  if (budget.value.monthlyLimit <= 0) {return 0;}
+  if (budget.value.monthlyLimit <= 0) {
+    return 0;
+  }
   return Math.min(
     100,
     (budget.value.monthlySpend / budget.value.monthlyLimit) * 100,
@@ -322,7 +310,9 @@ const maxBudgetPercent = computed(() => {
 });
 
 const showBudgetAlert = computed(() => {
-  if (alertDismissed.value) {return false;}
+  if (alertDismissed.value) {
+    return false;
+  }
   return maxBudgetPercent.value >= budget.value.warningThreshold;
 });
 
@@ -431,12 +421,24 @@ const refreshData = async () => {
       window.electronAPI.invoke("llm:get-alert-history").catch(() => []),
     ]);
 
-    if (statsResult) {stats.value = statsResult;}
-    if (timeSeriesResult) {timeSeriesData.value = timeSeriesResult;}
-    if (breakdownResult) {costBreakdown.value = breakdownResult;}
-    if (cacheResult) {cacheStats.value = cacheResult;}
-    if (budgetResult) {budget.value = budgetResult;}
-    if (alertHistoryResult) {alertHistory.value = alertHistoryResult;}
+    if (statsResult) {
+      stats.value = statsResult;
+    }
+    if (timeSeriesResult) {
+      timeSeriesData.value = timeSeriesResult;
+    }
+    if (breakdownResult) {
+      costBreakdown.value = breakdownResult;
+    }
+    if (cacheResult) {
+      cacheStats.value = cacheResult;
+    }
+    if (budgetResult) {
+      budget.value = budgetResult;
+    }
+    if (alertHistoryResult) {
+      alertHistory.value = alertHistoryResult;
+    }
 
     // Calculate derived data
     generateCostRecommendations();
@@ -545,7 +547,9 @@ const calculateTrendPrediction = () => {
     const remainingBudget =
       budget.value.monthlyLimit - budget.value.monthlySpend;
     daysUntilBudget = Math.floor(remainingBudget / dailyAvg);
-    if (daysUntilBudget < 0) {daysUntilBudget = 0;}
+    if (daysUntilBudget < 0) {
+      daysUntilBudget = 0;
+    }
   }
 
   trendPrediction.value = {
@@ -663,7 +667,9 @@ const clearExpiredCache = async () => {
       const cacheResult = await window.electronAPI.invoke(
         "llm:get-cache-stats",
       );
-      if (cacheResult) {cacheStats.value = cacheResult;}
+      if (cacheResult) {
+        cacheStats.value = cacheResult;
+      }
     } else {
       message.warning("没有需要清理的过期缓存");
     }
@@ -767,7 +773,9 @@ const clearAlertHistory = async () => {
 };
 
 const startAutoRefresh = () => {
-  if (refreshIntervalId) {clearInterval(refreshIntervalId);}
+  if (refreshIntervalId) {
+    clearInterval(refreshIntervalId);
+  }
   if (autoRefreshEnabled.value) {
     refreshIntervalId = setInterval(() => {
       refreshData();

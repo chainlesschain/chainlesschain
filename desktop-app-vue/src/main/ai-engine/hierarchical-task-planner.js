@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 分层任务规划器
@@ -26,40 +26,40 @@ class HierarchicalTaskPlanner {
 
     // 粒度配置
     this.granularityConfig = {
-      'coarse': {
+      coarse: {
         maxBusinessSteps: 3,
         maxTechnicalSteps: 5,
-        description: '粗粒度（快速，3-5步）'
+        description: "粗粒度（快速，3-5步）",
       },
-      'medium': {
+      medium: {
         maxBusinessSteps: 5,
         maxTechnicalSteps: 10,
-        description: '中粒度（平衡，5-10步）'
+        description: "中粒度（平衡，5-10步）",
       },
-      'fine': {
+      fine: {
         maxBusinessSteps: 8,
         maxTechnicalSteps: 20,
-        description: '细粒度（详细，10-20步）'
+        description: "细粒度（详细，10-20步）",
       },
-      'auto': {
-        description: '自动根据任务复杂度选择'
-      }
+      auto: {
+        description: "自动根据任务复杂度选择",
+      },
     };
 
     // 工具执行时间估算（秒）
     this.toolDurationEstimates = {
-      'html_generator': 3,
-      'css_generator': 2,
-      'js_generator': 3,
-      'word_generator': 5,
-      'pdf_generator': 8,
-      'file_writer': 1,
-      'file_reader': 1,
-      'data_analyzer': 10,
-      'image_generator': 15,
-      'git_commit': 2,
-      'deploy_to_cloud': 20,
-      'default': 5
+      html_generator: 3,
+      css_generator: 2,
+      js_generator: 3,
+      word_generator: 5,
+      pdf_generator: 8,
+      file_writer: 1,
+      file_reader: 1,
+      data_analyzer: 10,
+      image_generator: 15,
+      git_commit: 2,
+      deploy_to_cloud: 20,
+      default: 5,
     };
   }
 
@@ -72,24 +72,32 @@ class HierarchicalTaskPlanner {
    */
   async plan(intent, context, options = {}) {
     const {
-      granularity = 'auto',
+      granularity = "auto",
       includeBusinessLayer = true,
       includeTechnicalLayer = true,
-      includeExecutionLayer = true
+      includeExecutionLayer = true,
     } = options;
 
     // 1. 确定实际粒度
-    const actualGranularity = this.determineGranularity(granularity, intent, context);
+    const actualGranularity = this.determineGranularity(
+      granularity,
+      intent,
+      context,
+    );
 
     const plan = {
       intent,
       granularity: actualGranularity,
-      layers: {}
+      layers: {},
     };
 
     // 2. 高层分解（业务逻辑）
     if (includeBusinessLayer) {
-      plan.layers.business = await this.decomposeBusinessLogic(intent, context, actualGranularity);
+      plan.layers.business = await this.decomposeBusinessLogic(
+        intent,
+        context,
+        actualGranularity,
+      );
     }
 
     // 3. 中层分解（技术任务）
@@ -97,7 +105,7 @@ class HierarchicalTaskPlanner {
       plan.layers.technical = await this.decomposeTechnical(
         plan.layers.business || [intent.description],
         context,
-        actualGranularity
+        actualGranularity,
       );
     }
 
@@ -106,7 +114,7 @@ class HierarchicalTaskPlanner {
       plan.layers.execution = await this.decomposeToTools(
         plan.layers.technical || [],
         context,
-        actualGranularity
+        actualGranularity,
       );
     }
 
@@ -124,7 +132,7 @@ class HierarchicalTaskPlanner {
    * @returns {string} 实际粒度
    */
   determineGranularity(requestedGranularity, intent, context) {
-    if (requestedGranularity !== 'auto') {
+    if (requestedGranularity !== "auto") {
       return requestedGranularity;
     }
 
@@ -132,11 +140,11 @@ class HierarchicalTaskPlanner {
     const complexity = this.assessComplexity(intent, context);
 
     if (complexity < 3) {
-      return 'coarse';  // 简单任务，粗粒度
+      return "coarse"; // 简单任务，粗粒度
     } else if (complexity < 7) {
-      return 'medium';  // 中等任务，中粒度
+      return "medium"; // 中等任务，中粒度
     } else {
-      return 'fine';    // 复杂任务，细粒度
+      return "fine"; // 复杂任务，细粒度
     }
   }
 
@@ -159,7 +167,7 @@ class HierarchicalTaskPlanner {
     }
 
     // 因素3: 是否涉及复杂操作
-    const complexIntents = ['ANALYZE_DATA', 'DEPLOY_PROJECT', 'REFACTOR_CODE'];
+    const complexIntents = ["ANALYZE_DATA", "DEPLOY_PROJECT", "REFACTOR_CODE"];
     if (complexIntents.includes(intent.intent)) {
       score += 3;
     }
@@ -181,7 +189,8 @@ class HierarchicalTaskPlanner {
    * @returns {Array} 业务步骤数组
    */
   async decomposeBusinessLogic(intent, context, granularity) {
-    const config = this.granularityConfig[granularity] || this.granularityConfig['medium'];
+    const config =
+      this.granularityConfig[granularity] || this.granularityConfig["medium"];
     const maxSteps = config.maxBusinessSteps || 5;
 
     const prompt = `
@@ -206,8 +215,8 @@ class HierarchicalTaskPlanner {
 
     try {
       const result = await this.llmService.complete({
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
       });
 
       const parsed = this.parseJSON(result.content || result);
@@ -218,9 +227,8 @@ class HierarchicalTaskPlanner {
 
       // 降级策略
       return this.ruleBasedBusinessDecompose(intent, maxSteps);
-
     } catch (error) {
-      logger.error('业务逻辑分解失败:', error);
+      logger.error("业务逻辑分解失败:", error);
       return this.ruleBasedBusinessDecompose(intent, maxSteps);
     }
   }
@@ -236,24 +244,24 @@ class HierarchicalTaskPlanner {
 
     // 根据意图类型提供默认分解
     switch (intent.intent) {
-      case 'CREATE_FILE':
-        steps.push('设计内容结构');
-        steps.push('生成文件内容');
-        steps.push('保存文件到磁盘');
+      case "CREATE_FILE":
+        steps.push("设计内容结构");
+        steps.push("生成文件内容");
+        steps.push("保存文件到磁盘");
         break;
 
-      case 'DEPLOY_PROJECT':
-        steps.push('准备部署文件');
-        steps.push('配置部署参数');
-        steps.push('上传到云端');
-        steps.push('验证部署结果');
+      case "DEPLOY_PROJECT":
+        steps.push("准备部署文件");
+        steps.push("配置部署参数");
+        steps.push("上传到云端");
+        steps.push("验证部署结果");
         break;
 
-      case 'ANALYZE_DATA':
-        steps.push('读取数据文件');
-        steps.push('数据清洗和预处理');
-        steps.push('执行统计分析');
-        steps.push('生成分析报告');
+      case "ANALYZE_DATA":
+        steps.push("读取数据文件");
+        steps.push("数据清洗和预处理");
+        steps.push("执行统计分析");
+        steps.push("生成分析报告");
         break;
 
       default:
@@ -271,7 +279,8 @@ class HierarchicalTaskPlanner {
    * @returns {Array} 技术任务数组
    */
   async decomposeTechnical(businessSteps, context, granularity) {
-    const config = this.granularityConfig[granularity] || this.granularityConfig['medium'];
+    const config =
+      this.granularityConfig[granularity] || this.granularityConfig["medium"];
     const maxSteps = config.maxTechnicalSteps || 10;
 
     const technicalTasks = [];
@@ -280,7 +289,7 @@ class HierarchicalTaskPlanner {
       const tasks = await this.decomposeSingleBusinessStep(
         businessStep,
         context,
-        Math.ceil(maxSteps / businessSteps.length)
+        Math.ceil(maxSteps / businessSteps.length),
       );
 
       technicalTasks.push(...tasks);
@@ -318,8 +327,8 @@ class HierarchicalTaskPlanner {
 
     try {
       const result = await this.llmService.complete({
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
       });
 
       const parsed = this.parseJSON(result.content || result);
@@ -329,9 +338,8 @@ class HierarchicalTaskPlanner {
       }
 
       return this.ruleBasedTechnicalDecompose(businessStep, maxSubTasks);
-
     } catch (error) {
-      logger.error('技术任务分解失败:', error);
+      logger.error("技术任务分解失败:", error);
       return this.ruleBasedTechnicalDecompose(businessStep, maxSubTasks);
     }
   }
@@ -346,21 +354,21 @@ class HierarchicalTaskPlanner {
     const tasks = [];
 
     // 简单的关键词匹配
-    if (businessStep.includes('生成') || businessStep.includes('创建')) {
-      tasks.push('调用生成器工具');
-      tasks.push('写入文件系统');
+    if (businessStep.includes("生成") || businessStep.includes("创建")) {
+      tasks.push("调用生成器工具");
+      tasks.push("写入文件系统");
     }
 
-    if (businessStep.includes('部署') || businessStep.includes('上传')) {
-      tasks.push('构建项目');
-      tasks.push('上传文件');
-      tasks.push('配置服务器');
+    if (businessStep.includes("部署") || businessStep.includes("上传")) {
+      tasks.push("构建项目");
+      tasks.push("上传文件");
+      tasks.push("配置服务器");
     }
 
-    if (businessStep.includes('分析') || businessStep.includes('统计')) {
-      tasks.push('读取数据源');
-      tasks.push('执行计算');
-      tasks.push('生成图表');
+    if (businessStep.includes("分析") || businessStep.includes("统计")) {
+      tasks.push("读取数据源");
+      tasks.push("执行计算");
+      tasks.push("生成图表");
     }
 
     // 如果没有匹配，返回通用任务
@@ -401,13 +409,12 @@ class HierarchicalTaskPlanner {
       try {
         const plan = await this.taskPlanner.quickDecompose({
           description: task,
-          entities: context
+          entities: context,
         });
 
         return plan.subtasks || [];
-
       } catch (error) {
-        logger.error('任务转工具失败:', error);
+        logger.error("任务转工具失败:", error);
       }
     }
 
@@ -425,64 +432,64 @@ class HierarchicalTaskPlanner {
     const tools = [];
 
     // HTML生成
-    if (task.includes('HTML') || task.includes('网页')) {
+    if (task.includes("HTML") || task.includes("网页")) {
       tools.push({
-        tool: 'html_generator',
+        tool: "html_generator",
         params: context,
-        title: '生成HTML'
+        title: "生成HTML",
       });
     }
 
     // CSS生成
-    if (task.includes('CSS') || task.includes('样式')) {
+    if (task.includes("CSS") || task.includes("样式")) {
       tools.push({
-        tool: 'css_generator',
+        tool: "css_generator",
         params: context,
-        title: '生成CSS'
+        title: "生成CSS",
       });
     }
 
     // Word生成
-    if (task.includes('Word') || task.includes('文档')) {
+    if (task.includes("Word") || task.includes("文档")) {
       tools.push({
-        tool: 'word_generator',
+        tool: "word_generator",
         params: context,
-        title: '生成Word文档'
+        title: "生成Word文档",
       });
     }
 
     // 文件读写
-    if (task.includes('读取') || task.includes('读')) {
+    if (task.includes("读取") || task.includes("读")) {
       tools.push({
-        tool: 'file_reader',
+        tool: "file_reader",
         params: { filePath: context.filePath },
-        title: '读取文件'
+        title: "读取文件",
       });
     }
 
-    if (task.includes('写入') || task.includes('保存')) {
+    if (task.includes("写入") || task.includes("保存")) {
       tools.push({
-        tool: 'file_writer',
+        tool: "file_writer",
         params: context,
-        title: '写入文件'
+        title: "写入文件",
       });
     }
 
     // 数据分析
-    if (task.includes('分析') || task.includes('统计')) {
+    if (task.includes("分析") || task.includes("统计")) {
       tools.push({
-        tool: 'data_analyzer',
+        tool: "data_analyzer",
         params: context,
-        title: '数据分析'
+        title: "数据分析",
       });
     }
 
     // Git操作
-    if (task.includes('提交') || task.includes('commit')) {
+    if (task.includes("提交") || task.includes("commit")) {
       tools.push({
-        tool: 'git_commit',
+        tool: "git_commit",
         params: { message: task },
-        title: 'Git提交'
+        title: "Git提交",
       });
     }
 
@@ -497,11 +504,12 @@ class HierarchicalTaskPlanner {
   generatePlanSummary(plan) {
     const summary = {
       granularity: plan.granularity,
-      granularityDescription: this.granularityConfig[plan.granularity]?.description || '未知',
+      granularityDescription:
+        this.granularityConfig[plan.granularity]?.description || "未知",
       layerCounts: {},
       totalSteps: 0,
       estimatedDuration: 0,
-      complexity: 'unknown'
+      complexity: "unknown",
     };
 
     // 统计各层级步骤数
@@ -525,11 +533,11 @@ class HierarchicalTaskPlanner {
 
     // 评估复杂度
     if (summary.totalSteps <= 5) {
-      summary.complexity = 'simple';
+      summary.complexity = "simple";
     } else if (summary.totalSteps <= 15) {
-      summary.complexity = 'medium';
+      summary.complexity = "medium";
     } else {
-      summary.complexity = 'complex';
+      summary.complexity = "complex";
     }
 
     return summary;
@@ -545,8 +553,9 @@ class HierarchicalTaskPlanner {
 
     for (const step of executionPlan) {
       const toolName = step.tool;
-      const duration = this.toolDurationEstimates[toolName]
-        || this.toolDurationEstimates['default'];
+      const duration =
+        this.toolDurationEstimates[toolName] ||
+        this.toolDurationEstimates["default"];
 
       totalDuration += duration;
     }
@@ -568,7 +577,7 @@ class HierarchicalTaskPlanner {
         try {
           return JSON.parse(jsonMatch[0]);
         } catch (e) {
-          logger.error('JSON解析失败:', e);
+          logger.error("JSON解析失败:", e);
           return null;
         }
       }
@@ -598,7 +607,7 @@ class HierarchicalTaskPlanner {
       plan.layers.business.forEach((step, i) => {
         lines.push(`  ${i + 1}. ${step}`);
       });
-      lines.push('');
+      lines.push("");
     }
 
     if (plan.layers.technical) {
@@ -606,18 +615,18 @@ class HierarchicalTaskPlanner {
       plan.layers.technical.forEach((step, i) => {
         lines.push(`  ${i + 1}. ${step}`);
       });
-      lines.push('');
+      lines.push("");
     }
 
     if (plan.layers.execution) {
       lines.push(`━━━ 工具调用层 (${plan.layers.execution.length}步) ━━━`);
       plan.layers.execution.forEach((step, i) => {
-        lines.push(`  ${i + 1}. ${step.tool} - ${step.title || '未命名'}`);
+        lines.push(`  ${i + 1}. ${step.tool} - ${step.title || "未命名"}`);
       });
-      lines.push('');
+      lines.push("");
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 }
 

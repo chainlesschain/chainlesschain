@@ -6,31 +6,31 @@
  * 此基类实现了SKF API的核心功能，供飞天诚信、握奇等厂商驱动继承使用
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const BaseUKeyDriver = require('./base-driver');
-const koffi = require('koffi');
-const path = require('path');
-const os = require('os');
-const fs = require('fs');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const BaseUKeyDriver = require("./base-driver");
+const koffi = require("koffi");
+const path = require("path");
+const os = require("os");
+const fs = require("fs");
+const crypto = require("crypto");
 
 /**
  * SKF错误码
  */
 const SKF_ERROR_CODES = {
-  SAR_OK: 0x00000000,                    // 成功
-  SAR_FAIL: 0x0A000001,                  // 失败
-  SAR_UNKNOWNER: 0x0A000002,             // 异常错误
-  SAR_NOSUPPORTYETERR: 0x0A000003,       // 不支持的服务
-  SAR_INVALIDHANDLEERR: 0x0A000005,      // 无效的句柄
-  SAR_INVALIDPARAMERR: 0x0A000006,       // 无效的参数
-  SAR_NOTINITIALIZEERR: 0x0A00000C,      // 未初始化
-  SAR_PIN_INCORRECT: 0x0A000024,         // PIN不正确
-  SAR_PIN_LOCKED: 0x0A000025,            // PIN被锁定
-  SAR_PIN_INVALID: 0x0A000026,           // PIN无效
-  SAR_USER_NOT_LOGGED_IN: 0x0A00002D,    // 用户未登录
-  SAR_APPLICATION_NOT_EXISTS: 0x0A00002E,// 应用不存在
-  SAR_FILE_NOT_EXIST: 0x0A000031,        // 文件不存在
+  SAR_OK: 0x00000000, // 成功
+  SAR_FAIL: 0x0a000001, // 失败
+  SAR_UNKNOWNER: 0x0a000002, // 异常错误
+  SAR_NOSUPPORTYETERR: 0x0a000003, // 不支持的服务
+  SAR_INVALIDHANDLEERR: 0x0a000005, // 无效的句柄
+  SAR_INVALIDPARAMERR: 0x0a000006, // 无效的参数
+  SAR_NOTINITIALIZEERR: 0x0a00000c, // 未初始化
+  SAR_PIN_INCORRECT: 0x0a000024, // PIN不正确
+  SAR_PIN_LOCKED: 0x0a000025, // PIN被锁定
+  SAR_PIN_INVALID: 0x0a000026, // PIN无效
+  SAR_USER_NOT_LOGGED_IN: 0x0a00002d, // 用户未登录
+  SAR_APPLICATION_NOT_EXISTS: 0x0a00002e, // 应用不存在
+  SAR_FILE_NOT_EXIST: 0x0a000031, // 文件不存在
 };
 
 /**
@@ -53,12 +53,12 @@ class SKFDriver extends BaseUKeyDriver {
 
     // 设备信息
     this.deviceName = null;
-    this.applicationName = config.applicationName || 'ChainlessChain';
-    this.containerName = config.containerName || 'DefaultContainer';
+    this.applicationName = config.applicationName || "ChainlessChain";
+    this.containerName = config.containerName || "DefaultContainer";
 
     // PIN码信息
-    this.adminPin = config.adminPin || '12345678';
-    this.userPin = config.userPin || '12345678';
+    this.adminPin = config.adminPin || "12345678";
+    this.userPin = config.userPin || "12345678";
     this.maxRetryCount = 6;
 
     // 模拟模式
@@ -70,7 +70,7 @@ class SKFDriver extends BaseUKeyDriver {
    * 子类应该重写此方法以指定具体的DLL文件名
    */
   findDllPath() {
-    throw new Error('findDllPath() must be implemented by subclass');
+    throw new Error("findDllPath() must be implemented by subclass");
   }
 
   /**
@@ -83,7 +83,9 @@ class SKFDriver extends BaseUKeyDriver {
 
     try {
       if (!this.dllPath || !fs.existsSync(this.dllPath)) {
-        logger.warn(`[SKF] DLL not found: ${this.dllPath}, using simulation mode`);
+        logger.warn(
+          `[SKF] DLL not found: ${this.dllPath}, using simulation mode`,
+        );
         this.simulationMode = true;
         return false;
       }
@@ -97,7 +99,7 @@ class SKFDriver extends BaseUKeyDriver {
       logger.info(`[SKF] Library loaded successfully: ${this.dllPath}`);
       return true;
     } catch (error) {
-      logger.error('[SKF] Failed to load library:', error.message);
+      logger.error("[SKF] Failed to load library:", error.message);
       this.simulationMode = true;
       return false;
     }
@@ -109,38 +111,120 @@ class SKFDriver extends BaseUKeyDriver {
   bindSKFFunctions() {
     try {
       // 设备管理
-      this.SKF_EnumDev = this.lib.func('SKF_EnumDev', 'uint32', ['bool', koffi.out(koffi.pointer('char', 1024)), koffi.out(koffi.pointer('uint32'))]);
-      this.SKF_ConnectDev = this.lib.func('SKF_ConnectDev', 'uint32', ['string', koffi.out(koffi.pointer('void*'))]);
-      this.SKF_DisConnectDev = this.lib.func('SKF_DisConnectDev', 'uint32', ['void*']);
-      this.SKF_GetDevState = this.lib.func('SKF_GetDevState', 'uint32', ['string', koffi.out(koffi.pointer('uint32'))]);
+      this.SKF_EnumDev = this.lib.func("SKF_EnumDev", "uint32", [
+        "bool",
+        koffi.out(koffi.pointer("char", 1024)),
+        koffi.out(koffi.pointer("uint32")),
+      ]);
+      this.SKF_ConnectDev = this.lib.func("SKF_ConnectDev", "uint32", [
+        "string",
+        koffi.out(koffi.pointer("void*")),
+      ]);
+      this.SKF_DisConnectDev = this.lib.func("SKF_DisConnectDev", "uint32", [
+        "void*",
+      ]);
+      this.SKF_GetDevState = this.lib.func("SKF_GetDevState", "uint32", [
+        "string",
+        koffi.out(koffi.pointer("uint32")),
+      ]);
 
       // 应用管理
-      this.SKF_CreateApplication = this.lib.func('SKF_CreateApplication', 'uint32', [
-        'void*', 'string', 'string', 'uint32', 'string', 'uint32', 'uint32', koffi.out(koffi.pointer('void*'))
-      ]);
-      this.SKF_EnumApplication = this.lib.func('SKF_EnumApplication', 'uint32', ['void*', koffi.out(koffi.pointer('char', 1024)), koffi.out(koffi.pointer('uint32'))]);
-      this.SKF_OpenApplication = this.lib.func('SKF_OpenApplication', 'uint32', ['void*', 'string', koffi.out(koffi.pointer('void*'))]);
-      this.SKF_CloseApplication = this.lib.func('SKF_CloseApplication', 'uint32', ['void*']);
-      this.SKF_DeleteApplication = this.lib.func('SKF_DeleteApplication', 'uint32', ['void*', 'string']);
+      this.SKF_CreateApplication = this.lib.func(
+        "SKF_CreateApplication",
+        "uint32",
+        [
+          "void*",
+          "string",
+          "string",
+          "uint32",
+          "string",
+          "uint32",
+          "uint32",
+          koffi.out(koffi.pointer("void*")),
+        ],
+      );
+      this.SKF_EnumApplication = this.lib.func(
+        "SKF_EnumApplication",
+        "uint32",
+        [
+          "void*",
+          koffi.out(koffi.pointer("char", 1024)),
+          koffi.out(koffi.pointer("uint32")),
+        ],
+      );
+      this.SKF_OpenApplication = this.lib.func(
+        "SKF_OpenApplication",
+        "uint32",
+        ["void*", "string", koffi.out(koffi.pointer("void*"))],
+      );
+      this.SKF_CloseApplication = this.lib.func(
+        "SKF_CloseApplication",
+        "uint32",
+        ["void*"],
+      );
+      this.SKF_DeleteApplication = this.lib.func(
+        "SKF_DeleteApplication",
+        "uint32",
+        ["void*", "string"],
+      );
 
       // PIN管理
-      this.SKF_VerifyPIN = this.lib.func('SKF_VerifyPIN', 'uint32', ['void*', 'uint32', 'string', koffi.out(koffi.pointer('uint32'))]);
-      this.SKF_ChangePIN = this.lib.func('SKF_ChangePIN', 'uint32', ['void*', 'uint32', 'string', 'string', koffi.out(koffi.pointer('uint32'))]);
-      this.SKF_GetPINInfo = this.lib.func('SKF_GetPINInfo', 'uint32', ['void*', 'uint32', koffi.out(koffi.pointer('uint32')), koffi.out(koffi.pointer('uint32')), koffi.out(koffi.pointer('bool'))]);
+      this.SKF_VerifyPIN = this.lib.func("SKF_VerifyPIN", "uint32", [
+        "void*",
+        "uint32",
+        "string",
+        koffi.out(koffi.pointer("uint32")),
+      ]);
+      this.SKF_ChangePIN = this.lib.func("SKF_ChangePIN", "uint32", [
+        "void*",
+        "uint32",
+        "string",
+        "string",
+        koffi.out(koffi.pointer("uint32")),
+      ]);
+      this.SKF_GetPINInfo = this.lib.func("SKF_GetPINInfo", "uint32", [
+        "void*",
+        "uint32",
+        koffi.out(koffi.pointer("uint32")),
+        koffi.out(koffi.pointer("uint32")),
+        koffi.out(koffi.pointer("bool")),
+      ]);
 
       // 容器管理
-      this.SKF_CreateContainer = this.lib.func('SKF_CreateContainer', 'uint32', ['void*', 'string', koffi.out(koffi.pointer('void*'))]);
-      this.SKF_OpenContainer = this.lib.func('SKF_OpenContainer', 'uint32', ['void*', 'string', koffi.out(koffi.pointer('void*'))]);
-      this.SKF_CloseContainer = this.lib.func('SKF_CloseContainer', 'uint32', ['void*']);
-      this.SKF_DeleteContainer = this.lib.func('SKF_DeleteContainer', 'uint32', ['void*', 'string']);
-      this.SKF_EnumContainer = this.lib.func('SKF_EnumContainer', 'uint32', ['void*', koffi.out(koffi.pointer('char', 1024)), koffi.out(koffi.pointer('uint32'))]);
+      this.SKF_CreateContainer = this.lib.func(
+        "SKF_CreateContainer",
+        "uint32",
+        ["void*", "string", koffi.out(koffi.pointer("void*"))],
+      );
+      this.SKF_OpenContainer = this.lib.func("SKF_OpenContainer", "uint32", [
+        "void*",
+        "string",
+        koffi.out(koffi.pointer("void*")),
+      ]);
+      this.SKF_CloseContainer = this.lib.func("SKF_CloseContainer", "uint32", [
+        "void*",
+      ]);
+      this.SKF_DeleteContainer = this.lib.func(
+        "SKF_DeleteContainer",
+        "uint32",
+        ["void*", "string"],
+      );
+      this.SKF_EnumContainer = this.lib.func("SKF_EnumContainer", "uint32", [
+        "void*",
+        koffi.out(koffi.pointer("char", 1024)),
+        koffi.out(koffi.pointer("uint32")),
+      ]);
 
       // 随机数生成
-      this.SKF_GenRandom = this.lib.func('SKF_GenRandom', 'uint32', ['void*', koffi.out(koffi.pointer('uint8')), 'uint32']);
+      this.SKF_GenRandom = this.lib.func("SKF_GenRandom", "uint32", [
+        "void*",
+        koffi.out(koffi.pointer("uint8")),
+        "uint32",
+      ]);
 
-      logger.info('[SKF] SKF functions bound successfully');
+      logger.info("[SKF] SKF functions bound successfully");
     } catch (error) {
-      logger.error('[SKF] Failed to bind SKF functions:', error);
+      logger.error("[SKF] Failed to bind SKF functions:", error);
       throw error;
     }
   }
@@ -149,22 +233,22 @@ class SKFDriver extends BaseUKeyDriver {
    * 初始化驱动
    */
   async initialize() {
-    logger.info('[SKF] Initializing SKF driver...');
+    logger.info("[SKF] Initializing SKF driver...");
 
     try {
       // 加载DLL库
       const loaded = this.loadLibrary();
 
       if (!loaded) {
-        logger.warn('[SKF] Running in simulation mode');
+        logger.warn("[SKF] Running in simulation mode");
         this.simulationMode = true;
       }
 
       this.isInitialized = true;
-      logger.info('[SKF] Driver initialized successfully');
+      logger.info("[SKF] Driver initialized successfully");
       return true;
     } catch (error) {
-      logger.error('[SKF] Initialization failed:', error);
+      logger.error("[SKF] Initialization failed:", error);
       this.simulationMode = true;
       this.isInitialized = true; // 使用模拟模式继续
       return true;
@@ -175,7 +259,7 @@ class SKFDriver extends BaseUKeyDriver {
    * 检测设备
    */
   async detect() {
-    logger.info('[SKF] Detecting device...');
+    logger.info("[SKF] Detecting device...");
 
     try {
       if (this.simulationMode) {
@@ -213,7 +297,7 @@ class SKFDriver extends BaseUKeyDriver {
         model: this.getModelName(),
       };
     } catch (error) {
-      logger.error('[SKF] Detection failed:', error);
+      logger.error("[SKF] Detection failed:", error);
       return {
         detected: false,
         unlocked: false,
@@ -237,16 +321,19 @@ class SKFDriver extends BaseUKeyDriver {
       const result = this.SKF_EnumDev(true, nameBuffer, sizePtr);
 
       if (result !== SKF_ERROR_CODES.SAR_OK) {
-        logger.error('[SKF] Failed to enumerate devices:', result);
+        logger.error("[SKF] Failed to enumerate devices:", result);
         return [];
       }
 
-      const deviceNames = nameBuffer.toString('utf8').split('\0').filter(name => name.length > 0);
-      logger.info('[SKF] Found devices:', deviceNames);
+      const deviceNames = nameBuffer
+        .toString("utf8")
+        .split("\0")
+        .filter((name) => name.length > 0);
+      logger.info("[SKF] Found devices:", deviceNames);
 
       return deviceNames;
     } catch (error) {
-      logger.error('[SKF] Failed to enumerate devices:', error);
+      logger.error("[SKF] Failed to enumerate devices:", error);
       return [];
     }
   }
@@ -256,7 +343,7 @@ class SKFDriver extends BaseUKeyDriver {
    */
   async connectDevice(deviceName) {
     if (this.simulationMode) {
-      this.deviceHandle = 'simulated-device-handle';
+      this.deviceHandle = "simulated-device-handle";
       return true;
     }
 
@@ -265,15 +352,15 @@ class SKFDriver extends BaseUKeyDriver {
       const result = this.SKF_ConnectDev(deviceName, handlePtr);
 
       if (result !== SKF_ERROR_CODES.SAR_OK) {
-        logger.error('[SKF] Failed to connect device:', result);
+        logger.error("[SKF] Failed to connect device:", result);
         return false;
       }
 
       this.deviceHandle = handlePtr.readBigUInt64LE(0);
-      logger.info('[SKF] Device connected successfully');
+      logger.info("[SKF] Device connected successfully");
       return true;
     } catch (error) {
-      logger.error('[SKF] Failed to connect device:', error);
+      logger.error("[SKF] Failed to connect device:", error);
       return false;
     }
   }
@@ -282,7 +369,7 @@ class SKFDriver extends BaseUKeyDriver {
    * 验证PIN码
    */
   async verifyPIN(pin) {
-    logger.info('[SKF] Verifying PIN...');
+    logger.info("[SKF] Verifying PIN...");
 
     try {
       if (!this.deviceHandle) {
@@ -290,7 +377,7 @@ class SKFDriver extends BaseUKeyDriver {
         if (!status.detected) {
           return {
             success: false,
-            error: '设备未检测到',
+            error: "设备未检测到",
           };
         }
       }
@@ -304,11 +391,16 @@ class SKFDriver extends BaseUKeyDriver {
 
       // 验证用户PIN
       const retryCountPtr = Buffer.alloc(4);
-      const result = this.SKF_VerifyPIN(this.applicationHandle, 1, pin, retryCountPtr);
+      const result = this.SKF_VerifyPIN(
+        this.applicationHandle,
+        1,
+        pin,
+        retryCountPtr,
+      );
 
       if (result === SKF_ERROR_CODES.SAR_OK) {
         this.isUnlocked = true;
-        logger.info('[SKF] PIN verification successful');
+        logger.info("[SKF] PIN verification successful");
 
         // 打开或创建容器
         await this.openOrCreateContainer();
@@ -319,17 +411,20 @@ class SKFDriver extends BaseUKeyDriver {
         };
       } else if (result === SKF_ERROR_CODES.SAR_PIN_INCORRECT) {
         const remainingAttempts = retryCountPtr.readUInt32LE(0);
-        logger.info('[SKF] PIN verification failed, remaining attempts:', remainingAttempts);
+        logger.info(
+          "[SKF] PIN verification failed, remaining attempts:",
+          remainingAttempts,
+        );
 
         return {
           success: false,
-          error: 'PIN码错误',
+          error: "PIN码错误",
           remainingAttempts: remainingAttempts,
         };
       } else if (result === SKF_ERROR_CODES.SAR_PIN_LOCKED) {
         return {
           success: false,
-          error: 'PIN已被锁定',
+          error: "PIN已被锁定",
           remainingAttempts: 0,
         };
       } else {
@@ -339,7 +434,7 @@ class SKFDriver extends BaseUKeyDriver {
         };
       }
     } catch (error) {
-      logger.error('[SKF] PIN verification error:', error);
+      logger.error("[SKF] PIN verification error:", error);
       return {
         success: false,
         error: error.message,
@@ -352,18 +447,22 @@ class SKFDriver extends BaseUKeyDriver {
    */
   async openOrCreateApplication() {
     if (this.simulationMode) {
-      this.applicationHandle = 'simulated-app-handle';
+      this.applicationHandle = "simulated-app-handle";
       return true;
     }
 
     try {
       // 尝试打开应用
       const handlePtr = Buffer.alloc(8);
-      let result = this.SKF_OpenApplication(this.deviceHandle, this.applicationName, handlePtr);
+      let result = this.SKF_OpenApplication(
+        this.deviceHandle,
+        this.applicationName,
+        handlePtr,
+      );
 
       if (result === SKF_ERROR_CODES.SAR_APPLICATION_NOT_EXISTS) {
         // 应用不存在，创建新应用
-        logger.info('[SKF] Application does not exist, creating...');
+        logger.info("[SKF] Application does not exist, creating...");
         result = this.SKF_CreateApplication(
           this.deviceHandle,
           this.applicationName,
@@ -372,7 +471,7 @@ class SKFDriver extends BaseUKeyDriver {
           this.userPin,
           this.maxRetryCount,
           0x00000001, // 创建文件权限
-          handlePtr
+          handlePtr,
         );
 
         if (result !== SKF_ERROR_CODES.SAR_OK) {
@@ -383,10 +482,10 @@ class SKFDriver extends BaseUKeyDriver {
       }
 
       this.applicationHandle = handlePtr.readBigUInt64LE(0);
-      logger.info('[SKF] Application opened successfully');
+      logger.info("[SKF] Application opened successfully");
       return true;
     } catch (error) {
-      logger.error('[SKF] Failed to open/create application:', error);
+      logger.error("[SKF] Failed to open/create application:", error);
       throw error;
     }
   }
@@ -396,19 +495,27 @@ class SKFDriver extends BaseUKeyDriver {
    */
   async openOrCreateContainer() {
     if (this.simulationMode) {
-      this.containerHandle = 'simulated-container-handle';
+      this.containerHandle = "simulated-container-handle";
       return true;
     }
 
     try {
       // 尝试打开容器
       const handlePtr = Buffer.alloc(8);
-      let result = this.SKF_OpenContainer(this.applicationHandle, this.containerName, handlePtr);
+      let result = this.SKF_OpenContainer(
+        this.applicationHandle,
+        this.containerName,
+        handlePtr,
+      );
 
       if (result !== SKF_ERROR_CODES.SAR_OK) {
         // 容器不存在，创建新容器
-        logger.info('[SKF] Container does not exist, creating...');
-        result = this.SKF_CreateContainer(this.applicationHandle, this.containerName, handlePtr);
+        logger.info("[SKF] Container does not exist, creating...");
+        result = this.SKF_CreateContainer(
+          this.applicationHandle,
+          this.containerName,
+          handlePtr,
+        );
 
         if (result !== SKF_ERROR_CODES.SAR_OK) {
           throw new Error(`Failed to create container: ${result}`);
@@ -416,10 +523,10 @@ class SKFDriver extends BaseUKeyDriver {
       }
 
       this.containerHandle = handlePtr.readBigUInt64LE(0);
-      logger.info('[SKF] Container opened successfully');
+      logger.info("[SKF] Container opened successfully");
       return true;
     } catch (error) {
-      logger.error('[SKF] Failed to open/create container:', error);
+      logger.error("[SKF] Failed to open/create container:", error);
       throw error;
     }
   }
@@ -429,10 +536,10 @@ class SKFDriver extends BaseUKeyDriver {
    */
   async sign(data) {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[SKF] Signing data...');
+    logger.info("[SKF] Signing data...");
 
     if (this.simulationMode) {
       return this.simulateSign(data);
@@ -440,15 +547,15 @@ class SKFDriver extends BaseUKeyDriver {
 
     // 使用容器中的私钥进行签名
     // 这里简化实现，实际应该调用SKF_RSASignData或SKF_ECCSignData
-    const hash = crypto.createHash('sha256').update(data).digest();
-    return hash.toString('base64');
+    const hash = crypto.createHash("sha256").update(data).digest();
+    return hash.toString("base64");
   }
 
   /**
    * 验证签名
    */
   async verifySignature(data, signature) {
-    logger.info('[SKF] Verifying signature...');
+    logger.info("[SKF] Verifying signature...");
 
     if (this.simulationMode) {
       return this.simulateVerifySignature(data, signature);
@@ -463,10 +570,10 @@ class SKFDriver extends BaseUKeyDriver {
    */
   async encrypt(data) {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[SKF] Encrypting data...');
+    logger.info("[SKF] Encrypting data...");
 
     if (this.simulationMode) {
       return this.simulateEncrypt(data);
@@ -475,12 +582,12 @@ class SKFDriver extends BaseUKeyDriver {
     // 简化实现：使用AES加密
     const key = await this.generateSessionKey();
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
 
-    let encrypted = cipher.update(data, 'utf8', 'base64');
-    encrypted += cipher.final('base64');
+    let encrypted = cipher.update(data, "utf8", "base64");
+    encrypted += cipher.final("base64");
 
-    return iv.toString('base64') + '|' + encrypted;
+    return iv.toString("base64") + "|" + encrypted;
   }
 
   /**
@@ -488,22 +595,22 @@ class SKFDriver extends BaseUKeyDriver {
    */
   async decrypt(encryptedData) {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[SKF] Decrypting data...');
+    logger.info("[SKF] Decrypting data...");
 
     if (this.simulationMode) {
       return this.simulateDecrypt(encryptedData);
     }
 
-    const [ivBase64, dataBase64] = encryptedData.split('|');
-    const iv = Buffer.from(ivBase64, 'base64');
+    const [ivBase64, dataBase64] = encryptedData.split("|");
+    const iv = Buffer.from(ivBase64, "base64");
     const key = await this.generateSessionKey();
 
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    let decrypted = decipher.update(dataBase64, 'base64', 'utf8');
-    decrypted += decipher.final('utf8');
+    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+    let decrypted = decipher.update(dataBase64, "base64", "utf8");
+    decrypted += decipher.final("utf8");
 
     return decrypted;
   }
@@ -536,13 +643,13 @@ class SKFDriver extends BaseUKeyDriver {
    */
   async getPublicKey() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[SKF] Getting public key...');
+    logger.info("[SKF] Getting public key...");
 
     // 简化实现：返回基于设备名的公钥标识
-    return `skf-pubkey-${this.deviceName || 'unknown'}`;
+    return `skf-pubkey-${this.deviceName || "unknown"}`;
   }
 
   /**
@@ -552,8 +659,8 @@ class SKFDriver extends BaseUKeyDriver {
     const detected = await this.detect();
 
     return {
-      id: this.deviceName || 'unknown',
-      serialNumber: this.deviceName || 'unknown',
+      id: this.deviceName || "unknown",
+      serialNumber: this.deviceName || "unknown",
       manufacturer: this.getManufacturerName(),
       model: this.getModelName(),
       firmware: this.getDriverVersion(),
@@ -565,7 +672,7 @@ class SKFDriver extends BaseUKeyDriver {
    * 关闭驱动
    */
   async close() {
-    logger.info('[SKF] Closing driver...');
+    logger.info("[SKF] Closing driver...");
 
     if (!this.simulationMode) {
       try {
@@ -587,26 +694,26 @@ class SKFDriver extends BaseUKeyDriver {
           this.deviceHandle = null;
         }
       } catch (error) {
-        logger.error('[SKF] Error closing driver:', error);
+        logger.error("[SKF] Error closing driver:", error);
       }
     }
 
     await super.close();
-    logger.info('[SKF] Driver closed');
+    logger.info("[SKF] Driver closed");
   }
 
   /**
    * 获取制造商名称（子类重写）
    */
   getManufacturerName() {
-    return 'Generic SKF Manufacturer';
+    return "Generic SKF Manufacturer";
   }
 
   /**
    * 获取型号名称（子类重写）
    */
   getModelName() {
-    return 'Generic SKF Device';
+    return "Generic SKF Device";
   }
 
   // ============ 模拟模式方法 ============
@@ -621,7 +728,8 @@ class SKFDriver extends BaseUKeyDriver {
 
   simulateVerifyPIN(pin) {
     // 模拟PIN验证：接受默认PIN
-    const isValid = pin === this.userPin || pin === '12345678' || pin === '123456';
+    const isValid =
+      pin === this.userPin || pin === "12345678" || pin === "123456";
 
     if (isValid) {
       this.isUnlocked = true;
@@ -632,14 +740,14 @@ class SKFDriver extends BaseUKeyDriver {
     } else {
       return {
         success: false,
-        error: 'PIN码错误',
+        error: "PIN码错误",
         remainingAttempts: 5,
       };
     }
   }
 
   simulateSign(data) {
-    const hash = crypto.createHash('sha256').update(data).digest('base64');
+    const hash = crypto.createHash("sha256").update(data).digest("base64");
     return hash;
   }
 
@@ -651,22 +759,24 @@ class SKFDriver extends BaseUKeyDriver {
   simulateEncrypt(data) {
     const key = crypto.randomBytes(32);
     const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
 
-    let encrypted = cipher.update(data, 'utf8', 'base64');
-    encrypted += cipher.final('base64');
+    let encrypted = cipher.update(data, "utf8", "base64");
+    encrypted += cipher.final("base64");
 
-    return iv.toString('base64') + '|' + key.toString('base64') + '|' + encrypted;
+    return (
+      iv.toString("base64") + "|" + key.toString("base64") + "|" + encrypted
+    );
   }
 
   simulateDecrypt(encryptedData) {
-    const [ivBase64, keyBase64, dataBase64] = encryptedData.split('|');
-    const iv = Buffer.from(ivBase64, 'base64');
-    const key = Buffer.from(keyBase64, 'base64');
+    const [ivBase64, keyBase64, dataBase64] = encryptedData.split("|");
+    const iv = Buffer.from(ivBase64, "base64");
+    const key = Buffer.from(keyBase64, "base64");
 
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    let decrypted = decipher.update(dataBase64, 'base64', 'utf8');
-    decrypted += decipher.final('utf8');
+    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+    let decrypted = decipher.update(dataBase64, "base64", "utf8");
+    decrypted += decipher.final("utf8");
 
     return decrypted;
   }

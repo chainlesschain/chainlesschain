@@ -5,13 +5,8 @@
       <div class="info-left">
         <FileTextOutlined class="file-icon" />
         <span class="file-size">{{ formatSize(fileInfo.size) }}</span>
-        <a-tag color="orange">
-          大文件
-        </a-tag>
-        <span
-          v-if="fileInfo.estimatedLines"
-          class="line-count"
-        >
+        <a-tag color="orange"> 大文件 </a-tag>
+        <span v-if="fileInfo.estimatedLines" class="line-count">
           约 {{ fileInfo.estimatedLines.toLocaleString() }} 行
         </span>
       </div>
@@ -31,18 +26,10 @@
     </div>
 
     <!-- 搜索结果 -->
-    <div
-      v-if="searchResults.length > 0"
-      class="search-results"
-    >
+    <div v-if="searchResults.length > 0" class="search-results">
       <div class="results-header">
         <span>找到 {{ searchResults.length }} 个匹配项</span>
-        <a-button
-          size="small"
-          @click="clearSearch"
-        >
-          清除
-        </a-button>
+        <a-button size="small" @click="clearSearch"> 清除 </a-button>
       </div>
       <div class="results-list">
         <div
@@ -58,11 +45,7 @@
     </div>
 
     <!-- 虚拟滚动容器 -->
-    <div
-      ref="scrollContainer"
-      class="scroll-container"
-      @scroll="handleScroll"
-    >
+    <div ref="scrollContainer" class="scroll-container" @scroll="handleScroll">
       <div :style="{ height: `${totalHeight}px`, position: 'relative' }">
         <div
           v-for="virtualRow in virtualRows"
@@ -82,10 +65,7 @@
       </div>
 
       <!-- 加载指示器 -->
-      <div
-        v-if="loading"
-        class="loading-indicator"
-      >
+      <div v-if="loading" class="loading-indicator">
         <a-spin size="small" />
         <span>加载中...</span>
       </div>
@@ -95,17 +75,11 @@
     <div class="status-bar">
       <span>当前显示: {{ loadedLines.length }} 行</span>
       <span>滚动位置: 第 {{ currentTopLine }} 行</span>
-      <a-button
-        size="small"
-        @click="jumpToTop"
-      >
+      <a-button size="small" @click="jumpToTop">
         <VerticalAlignTopOutlined />
         顶部
       </a-button>
-      <a-button
-        size="small"
-        @click="jumpToBottom"
-      >
+      <a-button size="small" @click="jumpToBottom">
         <VerticalAlignBottomOutlined />
         底部
       </a-button>
@@ -114,16 +88,16 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   FileTextOutlined,
   SearchOutlined,
   VerticalAlignTopOutlined,
   VerticalAlignBottomOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   file: {
@@ -132,7 +106,7 @@ const props = defineProps({
   },
   projectId: {
     type: String,
-    default: '',
+    default: "",
   },
 });
 
@@ -145,7 +119,7 @@ const fileInfo = ref({
 });
 const loadedLines = ref([]);
 const scrollContainer = ref(null);
-const searchQuery = ref('');
+const searchQuery = ref("");
 const searchResults = ref([]);
 
 // 虚拟滚动配置
@@ -161,16 +135,22 @@ const containerHeight = ref(600);
  * 计算虚拟滚动的可见行
  */
 const virtualRows = computed(() => {
-  if (loadedLines.value.length === 0) {return [];}
+  if (loadedLines.value.length === 0) {
+    return [];
+  }
 
   const startIndex = Math.floor(scrollTop.value / LINE_HEIGHT);
   const endIndex = Math.min(
     loadedLines.value.length - 1,
-    Math.ceil((scrollTop.value + containerHeight.value) / LINE_HEIGHT)
+    Math.ceil((scrollTop.value + containerHeight.value) / LINE_HEIGHT),
   );
 
   const visibleRows = [];
-  for (let i = Math.max(0, startIndex - BUFFER_SIZE); i <= endIndex + BUFFER_SIZE; i++) {
+  for (
+    let i = Math.max(0, startIndex - BUFFER_SIZE);
+    i <= endIndex + BUFFER_SIZE;
+    i++
+  ) {
     if (i < loadedLines.value.length) {
       visibleRows.push({
         index: i,
@@ -203,7 +183,11 @@ const currentTopLine = computed(() => {
 const loadFileInfo = async () => {
   try {
     let fullPath = props.file.file_path;
-    if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    if (
+      !fullPath.startsWith("/data/projects/") &&
+      props.projectId &&
+      !fullPath.includes(props.projectId)
+    ) {
       fullPath = `/data/projects/${props.projectId}/${fullPath}`;
     }
 
@@ -214,8 +198,8 @@ const loadFileInfo = async () => {
       fileInfo.value = result.data;
     }
   } catch (err) {
-    logger.error('[Large File Preview] 加载文件信息失败:', err);
-    message.error('加载文件信息失败');
+    logger.error("[Large File Preview] 加载文件信息失败:", err);
+    message.error("加载文件信息失败");
   }
 };
 
@@ -227,21 +211,29 @@ const loadInitialContent = async () => {
 
   try {
     let fullPath = props.file.file_path;
-    if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    if (
+      !fullPath.startsWith("/data/projects/") &&
+      props.projectId &&
+      !fullPath.includes(props.projectId)
+    ) {
       fullPath = `/data/projects/${props.projectId}/${fullPath}`;
     }
 
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-    const result = await window.electronAPI.largeFile.readLines(resolvedPath, 0, LOAD_CHUNK_SIZE);
+    const result = await window.electronAPI.largeFile.readLines(
+      resolvedPath,
+      0,
+      LOAD_CHUNK_SIZE,
+    );
 
     if (result.success) {
       loadedLines.value = result.data.lines;
     } else {
-      throw new Error(result.error || '加载文件内容失败');
+      throw new Error(result.error || "加载文件内容失败");
     }
   } catch (err) {
-    logger.error('[Large File Preview] 加载内容失败:', err);
-    message.error(err.message || '加载文件内容失败');
+    logger.error("[Large File Preview] 加载内容失败:", err);
+    message.error(err.message || "加载文件内容失败");
   } finally {
     loading.value = false;
   }
@@ -251,25 +243,35 @@ const loadInitialContent = async () => {
  * 加载更多内容（向下滚动）
  */
 const loadMoreContent = async () => {
-  if (loading.value) {return;}
+  if (loading.value) {
+    return;
+  }
 
   loading.value = true;
 
   try {
     let fullPath = props.file.file_path;
-    if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    if (
+      !fullPath.startsWith("/data/projects/") &&
+      props.projectId &&
+      !fullPath.includes(props.projectId)
+    ) {
       fullPath = `/data/projects/${props.projectId}/${fullPath}`;
     }
 
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
     const startLine = loadedLines.value.length;
-    const result = await window.electronAPI.largeFile.readLines(resolvedPath, startLine, LOAD_CHUNK_SIZE);
+    const result = await window.electronAPI.largeFile.readLines(
+      resolvedPath,
+      startLine,
+      LOAD_CHUNK_SIZE,
+    );
 
     if (result.success && result.data.lines.length > 0) {
       loadedLines.value = [...loadedLines.value, ...result.data.lines];
     }
   } catch (err) {
-    logger.error('[Large File Preview] 加载更多内容失败:', err);
+    logger.error("[Large File Preview] 加载更多内容失败:", err);
   } finally {
     loading.value = false;
   }
@@ -297,7 +299,7 @@ const handleScroll = (event) => {
  */
 const handleSearch = async () => {
   if (!searchQuery.value.trim()) {
-    message.warning('请输入搜索关键词');
+    message.warning("请输入搜索关键词");
     return;
   }
 
@@ -306,27 +308,35 @@ const handleSearch = async () => {
 
   try {
     let fullPath = props.file.file_path;
-    if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    if (
+      !fullPath.startsWith("/data/projects/") &&
+      props.projectId &&
+      !fullPath.includes(props.projectId)
+    ) {
       fullPath = `/data/projects/${props.projectId}/${fullPath}`;
     }
 
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-    const result = await window.electronAPI.largeFile.search(resolvedPath, searchQuery.value, {
-      maxResults: 100,
-      caseSensitive: false,
-    });
+    const result = await window.electronAPI.largeFile.search(
+      resolvedPath,
+      searchQuery.value,
+      {
+        maxResults: 100,
+        caseSensitive: false,
+      },
+    );
 
     if (result.success) {
       searchResults.value = result.data.results;
       if (searchResults.value.length === 0) {
-        message.info('未找到匹配项');
+        message.info("未找到匹配项");
       } else {
         message.success(`找到 ${searchResults.value.length} 个匹配项`);
       }
     }
   } catch (err) {
-    logger.error('[Large File Preview] 搜索失败:', err);
-    message.error('搜索失败');
+    logger.error("[Large File Preview] 搜索失败:", err);
+    message.error("搜索失败");
   } finally {
     searching.value = false;
   }
@@ -336,7 +346,7 @@ const handleSearch = async () => {
  * 清除搜索
  */
 const clearSearch = () => {
-  searchQuery.value = '';
+  searchQuery.value = "";
   searchResults.value = [];
 };
 
@@ -349,22 +359,27 @@ const jumpToLine = async (lineNumber) => {
     loading.value = true;
     try {
       let fullPath = props.file.file_path;
-      if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+      if (
+        !fullPath.startsWith("/data/projects/") &&
+        props.projectId &&
+        !fullPath.includes(props.projectId)
+      ) {
         fullPath = `/data/projects/${props.projectId}/${fullPath}`;
       }
 
-      const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
+      const resolvedPath =
+        await window.electronAPI.project.resolvePath(fullPath);
       const result = await window.electronAPI.largeFile.readLines(
         resolvedPath,
         0,
-        lineNumber + BUFFER_SIZE
+        lineNumber + BUFFER_SIZE,
       );
 
       if (result.success) {
         loadedLines.value = result.data.lines;
       }
     } catch (err) {
-      logger.error('[Large File Preview] 跳转失败:', err);
+      logger.error("[Large File Preview] 跳转失败:", err);
     } finally {
       loading.value = false;
     }
@@ -393,12 +408,19 @@ const jumpToBottom = async () => {
   loading.value = true;
   try {
     let fullPath = props.file.file_path;
-    if (!fullPath.startsWith('/data/projects/') && props.projectId && !fullPath.includes(props.projectId)) {
+    if (
+      !fullPath.startsWith("/data/projects/") &&
+      props.projectId &&
+      !fullPath.includes(props.projectId)
+    ) {
       fullPath = `/data/projects/${props.projectId}/${fullPath}`;
     }
 
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-    const result = await window.electronAPI.largeFile.getTail(resolvedPath, LOAD_CHUNK_SIZE * 2);
+    const result = await window.electronAPI.largeFile.getTail(
+      resolvedPath,
+      LOAD_CHUNK_SIZE * 2,
+    );
 
     if (result.success) {
       loadedLines.value = result.data;
@@ -407,7 +429,7 @@ const jumpToBottom = async () => {
       }
     }
   } catch (err) {
-    logger.error('[Large File Preview] 跳转到底部失败:', err);
+    logger.error("[Large File Preview] 跳转到底部失败:", err);
   } finally {
     loading.value = false;
   }
@@ -417,8 +439,10 @@ const jumpToBottom = async () => {
  * 格式化文件大小
  */
 const formatSize = (bytes) => {
-  if (!bytes || bytes === 0) {return '0 B';}
-  const units = ['B', 'KB', 'MB', 'GB'];
+  if (!bytes || bytes === 0) {
+    return "0 B";
+  }
+  const units = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
 };
@@ -427,8 +451,10 @@ const formatSize = (bytes) => {
  * 截断文本
  */
 const truncate = (text, maxLength) => {
-  if (text.length <= maxLength) {return text;}
-  return text.substring(0, maxLength) + '...';
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength) + "...";
 };
 
 /**
@@ -445,11 +471,11 @@ onMounted(async () => {
   await loadInitialContent();
   updateContainerHeight();
 
-  window.addEventListener('resize', updateContainerHeight);
+  window.addEventListener("resize", updateContainerHeight);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateContainerHeight);
+  window.removeEventListener("resize", updateContainerHeight);
 });
 </script>
 
@@ -552,7 +578,7 @@ onUnmounted(() => {
   display: flex;
   height: 24px;
   line-height: 24px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 13px;
   border-bottom: 1px solid #f0f0f0;
   background: #fff;

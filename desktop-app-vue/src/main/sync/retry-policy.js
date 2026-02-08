@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 指数退避重试策略
@@ -15,7 +15,7 @@ class RetryPolicy {
     maxRetries = 6,
     baseDelay = 100,
     maxDelay = 30000,
-    jitterFactor = 0.3
+    jitterFactor = 0.3,
   ) {
     this.maxRetries = maxRetries;
     this.baseDelay = baseDelay;
@@ -27,7 +27,7 @@ class RetryPolicy {
       totalAttempts: 0,
       successOnFirstTry: 0,
       successAfterRetry: 0,
-      finalFailures: 0
+      finalFailures: 0,
     };
   }
 
@@ -38,12 +38,12 @@ class RetryPolicy {
    * @param {Object} options - 可选配置
    * @returns {Promise<any>} 操作结果
    */
-  async executeWithRetry(fn, context = '操作', options = {}) {
+  async executeWithRetry(fn, context = "操作", options = {}) {
     const {
       shouldRetry = this._defaultShouldRetry.bind(this),
       onRetry = null,
       onSuccess = null,
-      onFinalFailure = null
+      onFinalFailure = null,
     } = options;
 
     let lastError;
@@ -66,19 +66,24 @@ class RetryPolicy {
         }
 
         return result;
-
       } catch (error) {
         lastError = error;
 
         // 判断是否应该重试
         if (!shouldRetry(error, attempt)) {
-          logger.error(`[RetryPolicy] ${context} 失败（不可重试）:`, error.message);
+          logger.error(
+            `[RetryPolicy] ${context} 失败（不可重试）:`,
+            error.message,
+          );
           break;
         }
 
         // 已达最大重试次数
         if (attempt === this.maxRetries) {
-          logger.error(`[RetryPolicy] ${context} 达到最大重试次数 (${this.maxRetries})`, error.message);
+          logger.error(
+            `[RetryPolicy] ${context} 达到最大重试次数 (${this.maxRetries})`,
+            error.message,
+          );
           break;
         }
 
@@ -87,8 +92,8 @@ class RetryPolicy {
 
         logger.warn(
           `[RetryPolicy] ${context} 第${attempt + 1}次失败，${delay}ms后重试 ` +
-          `(剩余重试: ${this.maxRetries - attempt})`,
-          error.message
+            `(剩余重试: ${this.maxRetries - attempt})`,
+          error.message,
         );
 
         // 回调
@@ -109,7 +114,7 @@ class RetryPolicy {
     }
 
     throw new Error(
-      `${context} 失败，已重试${this.maxRetries}次: ${lastError.message}`
+      `${context} 失败，已重试${this.maxRetries}次: ${lastError.message}`,
     );
   }
 
@@ -145,14 +150,14 @@ class RetryPolicy {
   _defaultShouldRetry(error, attempt) {
     // 不可重试的错误类型
     const nonRetryableErrors = [
-      '权限不足',
-      '未授权',
-      '请求参数错误',
-      '资源不存在',
-      '数据冲突'  // 冲突应该由用户解决，不应重试
+      "权限不足",
+      "未授权",
+      "请求参数错误",
+      "资源不存在",
+      "数据冲突", // 冲突应该由用户解决，不应重试
     ];
 
-    const errorMessage = error.message || '';
+    const errorMessage = error.message || "";
 
     // 检查是否包含不可重试的错误消息
     for (const nonRetryable of nonRetryableErrors) {
@@ -171,7 +176,7 @@ class RetryPolicy {
    * @returns {Promise<void>}
    */
   _sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -181,9 +186,14 @@ class RetryPolicy {
   getStats() {
     return {
       ...this.stats,
-      successRate: this.stats.totalAttempts > 0
-        ? ((this.stats.successOnFirstTry + this.stats.successAfterRetry) / this.stats.totalAttempts * 100).toFixed(2) + '%'
-        : '0%'
+      successRate:
+        this.stats.totalAttempts > 0
+          ? (
+              ((this.stats.successOnFirstTry + this.stats.successAfterRetry) /
+                this.stats.totalAttempts) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
     };
   }
 
@@ -195,7 +205,7 @@ class RetryPolicy {
       totalAttempts: 0,
       successOnFirstTry: 0,
       successAfterRetry: 0,
-      finalFailures: 0
+      finalFailures: 0,
     };
   }
 

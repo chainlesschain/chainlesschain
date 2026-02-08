@@ -12,7 +12,7 @@
  * @see https://github.com/FoundationAgents/OpenManus
  */
 
-const { logger, createLogger } = require('../../utils/logger.js');
+const { logger } = require("../../utils/logger.js");
 const EventEmitter = require("events");
 
 /**
@@ -84,7 +84,9 @@ class AgentOrchestrator extends EventEmitter {
       };
     }
 
-    this._log(`Agent 已注册: ${agent.agentId} (capabilities: ${agent.capabilities?.join(", ")})`);
+    this._log(
+      `Agent 已注册: ${agent.agentId} (capabilities: ${agent.capabilities?.join(", ")})`,
+    );
 
     this.emit("agent-registered", { agentId: agent.agentId, agent });
   }
@@ -169,7 +171,7 @@ class AgentOrchestrator extends EventEmitter {
       const result = await this._executeWithTimeout(
         agent.execute(task),
         this.config.agentTimeout,
-        `Agent ${agentId} 执行超时`
+        `Agent ${agentId} 执行超时`,
       );
 
       // 更新统计
@@ -182,7 +184,13 @@ class AgentOrchestrator extends EventEmitter {
       this.activeExecutions.delete(executionId);
       this.stats.completedTasks++;
 
-      this.emit("task-completed", { executionId, task, agentId, result, duration });
+      this.emit("task-completed", {
+        executionId,
+        task,
+        agentId,
+        result,
+        duration,
+      });
 
       return result;
     } catch (error) {
@@ -201,7 +209,7 @@ class AgentOrchestrator extends EventEmitter {
         execution?.agentId,
         null,
         error,
-        duration
+        duration,
       );
 
       this.activeExecutions.delete(executionId);
@@ -278,7 +286,8 @@ class AgentOrchestrator extends EventEmitter {
    * @returns {Promise<Array>} 结果数组
    */
   async executeParallel(tasks, options = {}) {
-    const maxConcurrency = options.maxConcurrency || this.config.maxParallelAgents;
+    const maxConcurrency =
+      options.maxConcurrency || this.config.maxParallelAgents;
     const stopOnError = options.stopOnError || false;
 
     const results = [];
@@ -408,7 +417,9 @@ class AgentOrchestrator extends EventEmitter {
     for (const [agentId, agent] of this.agents) {
       if (agentId !== fromAgent && typeof agent.receiveMessage === "function") {
         try {
-          const result = await agent.receiveMessage(message, { from: fromAgent });
+          const result = await agent.receiveMessage(message, {
+            from: fromAgent,
+          });
           results.push({ agentId, result });
         } catch (error) {
           results.push({ agentId, error: error.message });
@@ -429,9 +440,7 @@ class AgentOrchestrator extends EventEmitter {
     let messages = this.messageQueue;
 
     if (agentId) {
-      messages = messages.filter(
-        (m) => m.from === agentId || m.to === agentId
-      );
+      messages = messages.filter((m) => m.from === agentId || m.to === agentId);
     }
 
     return messages.slice(-limit);
@@ -449,7 +458,7 @@ class AgentOrchestrator extends EventEmitter {
     return Promise.race([
       promise,
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(timeoutMessage)), timeout)
+        setTimeout(() => reject(new Error(timeoutMessage)), timeout),
       ),
     ]);
   }
@@ -496,7 +505,9 @@ class AgentOrchestrator extends EventEmitter {
 
     // 限制历史长度
     if (this.executionHistory.length > this.config.maxHistory) {
-      this.executionHistory = this.executionHistory.slice(-this.config.maxHistory);
+      this.executionHistory = this.executionHistory.slice(
+        -this.config.maxHistory,
+      );
     }
   }
 
@@ -526,7 +537,9 @@ class AgentOrchestrator extends EventEmitter {
       messageQueueSize: this.messageQueue.length,
       successRate:
         this.stats.totalTasks > 0
-          ? (this.stats.completedTasks / this.stats.totalTasks * 100).toFixed(2) + "%"
+          ? ((this.stats.completedTasks / this.stats.totalTasks) * 100).toFixed(
+              2,
+            ) + "%"
           : "N/A",
     };
   }

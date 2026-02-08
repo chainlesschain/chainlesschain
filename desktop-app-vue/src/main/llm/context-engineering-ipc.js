@@ -14,9 +14,13 @@
  * @module context-engineering-ipc
  */
 
-const { logger } = require('../utils/logger.js');
-const defaultIpcGuard = require('../ipc/ipc-guard');
-const { ContextEngineering, RecoverableCompressor, getContextEngineering } = require('./context-engineering');
+const { logger } = require("../utils/logger.js");
+const defaultIpcGuard = require("../ipc/ipc-guard");
+const {
+  ContextEngineering,
+  RecoverableCompressor,
+  getContextEngineering,
+} = require("./context-engineering");
 
 // 模块级别的实例
 let contextEngineeringInstance = null;
@@ -53,9 +57,9 @@ class TokenEstimator {
   constructor() {
     // 不同语言的字符/token 比率
     this.ratios = {
-      english: 4.0,    // 平均 4 个字符 = 1 个 token
-      chinese: 1.5,    // 平均 1.5 个中文字符 = 1 个 token
-      mixed: 2.5,      // 混合内容
+      english: 4.0, // 平均 4 个字符 = 1 个 token
+      chinese: 1.5, // 平均 1.5 个中文字符 = 1 个 token
+      mixed: 2.5, // 混合内容
     };
   }
 
@@ -65,10 +69,13 @@ class TokenEstimator {
    * @param {string} [lang='mixed'] - 语言类型
    * @returns {number} 估算的 token 数
    */
-  estimate(content, lang = 'mixed') {
-    if (!content) return 0;
+  estimate(content, lang = "mixed") {
+    if (!content) {
+      return 0;
+    }
 
-    let text = typeof content === 'string' ? content : JSON.stringify(content);
+    const text =
+      typeof content === "string" ? content : JSON.stringify(content);
 
     // 检测语言
     const chineseChars = (text.match(/[\u4e00-\u9fff]/g) || []).length;
@@ -105,7 +112,7 @@ class TokenEstimator {
     };
 
     for (const msg of messages) {
-      const content = msg.content || '';
+      const content = msg.content || "";
       const tokens = this.estimate(content);
 
       stats.total += tokens;
@@ -113,7 +120,8 @@ class TokenEstimator {
       stats.byMessage.push({
         role: msg.role,
         tokens,
-        preview: typeof content === 'string' ? content.slice(0, 50) : '[object]',
+        preview:
+          typeof content === "string" ? content.slice(0, 50) : "[object]",
       });
     }
 
@@ -148,20 +156,23 @@ function registerContextEngineeringIPC({
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
 
   // 防止重复注册
-  if (ipcGuard.isModuleRegistered('context-engineering-ipc')) {
-    logger.info('[Context Engineering IPC] Handlers already registered, skipping...');
+  if (ipcGuard.isModuleRegistered("context-engineering-ipc")) {
+    logger.info(
+      "[Context Engineering IPC] Handlers already registered, skipping...",
+    );
     return;
   }
 
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
   // 使用注入的实例或创建新实例
-  const contextEngineering = injectedContextEngineering || getOrCreateContextEngineering();
+  const contextEngineering =
+    injectedContextEngineering || getOrCreateContextEngineering();
   const compressor = injectedCompressor || getOrCreateCompressor();
   const tokenEstimator = getTokenEstimator();
 
-  logger.info('[Context Engineering IPC] Registering handlers...');
+  logger.info("[Context Engineering IPC] Registering handlers...");
 
   // ============================================================
   // 统计和配置 (Stats & Config) - 4 handlers
@@ -173,7 +184,7 @@ function registerContextEngineeringIPC({
    *
    * @returns {Object} 统计数据，包括缓存命中率、总调用数等
    */
-  ipcMain.handle('context:get-stats', async () => {
+  ipcMain.handle("context:get-stats", async () => {
     try {
       const stats = contextEngineering.getStats();
       return {
@@ -181,7 +192,7 @@ function registerContextEngineeringIPC({
         stats,
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 获取统计失败:', error);
+      logger.error("[Context Engineering IPC] 获取统计失败:", error);
       return {
         success: false,
         error: error.message,
@@ -195,15 +206,15 @@ function registerContextEngineeringIPC({
    *
    * @returns {Object} 操作结果
    */
-  ipcMain.handle('context:reset-stats', async () => {
+  ipcMain.handle("context:reset-stats", async () => {
     try {
       contextEngineering.resetStats();
       return {
         success: true,
-        message: 'Stats reset successfully',
+        message: "Stats reset successfully",
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 重置统计失败:', error);
+      logger.error("[Context Engineering IPC] 重置统计失败:", error);
       return {
         success: false,
         error: error.message,
@@ -217,14 +228,14 @@ function registerContextEngineeringIPC({
    *
    * @returns {Object} 当前配置
    */
-  ipcMain.handle('context:get-config', async () => {
+  ipcMain.handle("context:get-config", async () => {
     try {
       return {
         success: true,
         config: contextEngineering.config,
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 获取配置失败:', error);
+      logger.error("[Context Engineering IPC] 获取配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -239,23 +250,23 @@ function registerContextEngineeringIPC({
    * @param {Object} newConfig - 新配置（部分更新）
    * @returns {Object} 更新后的配置
    */
-  ipcMain.handle('context:set-config', async (_event, newConfig) => {
+  ipcMain.handle("context:set-config", async (_event, newConfig) => {
     try {
-      if (!newConfig || typeof newConfig !== 'object') {
-        throw new Error('Invalid config: must be an object');
+      if (!newConfig || typeof newConfig !== "object") {
+        throw new Error("Invalid config: must be an object");
       }
 
       // 合并配置
       Object.assign(contextEngineering.config, newConfig);
 
-      logger.info('[Context Engineering IPC] 配置已更新:', newConfig);
+      logger.info("[Context Engineering IPC] 配置已更新:", newConfig);
 
       return {
         success: true,
         config: contextEngineering.config,
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 设置配置失败:', error);
+      logger.error("[Context Engineering IPC] 设置配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -278,7 +289,7 @@ function registerContextEngineeringIPC({
    * @param {Object} options.taskContext - 任务上下文
    * @returns {Object} 优化后的消息和元数据
    */
-  ipcMain.handle('context:optimize-messages', async (_event, options = {}) => {
+  ipcMain.handle("context:optimize-messages", async (_event, options = {}) => {
     try {
       const result = contextEngineering.buildOptimizedPrompt(options);
 
@@ -292,7 +303,7 @@ function registerContextEngineeringIPC({
         ...result,
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 优化消息失败:', error);
+      logger.error("[Context Engineering IPC] 优化消息失败:", error);
       return {
         success: false,
         error: error.message,
@@ -309,9 +320,9 @@ function registerContextEngineeringIPC({
    * @param {string} [options.lang='mixed'] - 语言类型
    * @returns {Object} Token 估算结果
    */
-  ipcMain.handle('context:estimate-tokens', async (_event, options = {}) => {
+  ipcMain.handle("context:estimate-tokens", async (_event, options = {}) => {
     try {
-      const { content, lang = 'mixed' } = options;
+      const { content, lang = "mixed" } = options;
 
       if (Array.isArray(content)) {
         // 消息数组
@@ -327,11 +338,14 @@ function registerContextEngineeringIPC({
         return {
           success: true,
           tokens,
-          charCount: typeof content === 'string' ? content.length : JSON.stringify(content).length,
+          charCount:
+            typeof content === "string"
+              ? content.length
+              : JSON.stringify(content).length,
         };
       }
     } catch (error) {
-      logger.error('[Context Engineering IPC] 估算 Token 失败:', error);
+      logger.error("[Context Engineering IPC] 估算 Token 失败:", error);
       return {
         success: false,
         error: error.message,
@@ -353,28 +367,31 @@ function registerContextEngineeringIPC({
    * @param {number} task.currentStep - 当前步骤索引
    * @returns {Object} 操作结果
    */
-  ipcMain.handle('context:set-task', async (_event, task) => {
+  ipcMain.handle("context:set-task", async (_event, task) => {
     try {
-      if (!task || typeof task !== 'object') {
-        throw new Error('Invalid task: must be an object');
+      if (!task || typeof task !== "object") {
+        throw new Error("Invalid task: must be an object");
       }
 
       contextEngineering.setCurrentTask({
-        objective: task.objective || 'Complete the task',
+        objective: task.objective || "Complete the task",
         steps: task.steps || [],
         currentStep: task.currentStep || 0,
-        status: task.status || 'in_progress',
+        status: task.status || "in_progress",
         createdAt: Date.now(),
       });
 
-      logger.info('[Context Engineering IPC] 任务上下文已设置:', task.objective);
+      logger.info(
+        "[Context Engineering IPC] 任务上下文已设置:",
+        task.objective,
+      );
 
       return {
         success: true,
         task: contextEngineering.getCurrentTask(),
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 设置任务失败:', error);
+      logger.error("[Context Engineering IPC] 设置任务失败:", error);
       return {
         success: false,
         error: error.message,
@@ -391,35 +408,38 @@ function registerContextEngineeringIPC({
    * @param {string} options.status - 状态
    * @returns {Object} 更新后的任务
    */
-  ipcMain.handle('context:update-task-progress', async (_event, options = {}) => {
-    try {
-      const { currentStep, status } = options;
+  ipcMain.handle(
+    "context:update-task-progress",
+    async (_event, options = {}) => {
+      try {
+        const { currentStep, status } = options;
 
-      if (currentStep !== undefined) {
-        contextEngineering.updateTaskProgress(currentStep, status);
-      }
+        if (currentStep !== undefined) {
+          contextEngineering.updateTaskProgress(currentStep, status);
+        }
 
-      const task = contextEngineering.getCurrentTask();
+        const task = contextEngineering.getCurrentTask();
 
-      if (!task) {
+        if (!task) {
+          return {
+            success: false,
+            error: "No active task",
+          };
+        }
+
+        return {
+          success: true,
+          task,
+        };
+      } catch (error) {
+        logger.error("[Context Engineering IPC] 更新任务进度失败:", error);
         return {
           success: false,
-          error: 'No active task',
+          error: error.message,
         };
       }
-
-      return {
-        success: true,
-        task,
-      };
-    } catch (error) {
-      logger.error('[Context Engineering IPC] 更新任务进度失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+    },
+  );
 
   /**
    * 获取当前任务上下文
@@ -427,7 +447,7 @@ function registerContextEngineeringIPC({
    *
    * @returns {Object} 当前任务或 null
    */
-  ipcMain.handle('context:get-task', async () => {
+  ipcMain.handle("context:get-task", async () => {
     try {
       const task = contextEngineering.getCurrentTask();
       return {
@@ -436,7 +456,7 @@ function registerContextEngineeringIPC({
         hasActiveTask: !!task,
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 获取任务失败:', error);
+      logger.error("[Context Engineering IPC] 获取任务失败:", error);
       return {
         success: false,
         error: error.message,
@@ -450,16 +470,16 @@ function registerContextEngineeringIPC({
    *
    * @returns {Object} 操作结果
    */
-  ipcMain.handle('context:clear-task', async () => {
+  ipcMain.handle("context:clear-task", async () => {
     try {
       contextEngineering.clearTask();
-      logger.info('[Context Engineering IPC] 任务上下文已清除');
+      logger.info("[Context Engineering IPC] 任务上下文已清除");
       return {
         success: true,
-        message: 'Task context cleared',
+        message: "Task context cleared",
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 清除任务失败:', error);
+      logger.error("[Context Engineering IPC] 清除任务失败:", error);
       return {
         success: false,
         error: error.message,
@@ -481,26 +501,29 @@ function registerContextEngineeringIPC({
    * @param {string} [error.resolution] - 解决方案
    * @returns {Object} 操作结果
    */
-  ipcMain.handle('context:record-error', async (_event, error) => {
+  ipcMain.handle("context:record-error", async (_event, error) => {
     try {
-      if (!error || typeof error !== 'object') {
-        throw new Error('Invalid error: must be an object');
+      if (!error || typeof error !== "object") {
+        throw new Error("Invalid error: must be an object");
       }
 
       contextEngineering.recordError({
-        step: error.step || 'unknown',
+        step: error.step || "unknown",
         message: error.message || String(error),
         resolution: error.resolution,
       });
 
-      logger.info('[Context Engineering IPC] 错误已记录:', error.message?.slice(0, 100));
+      logger.info(
+        "[Context Engineering IPC] 错误已记录:",
+        error.message?.slice(0, 100),
+      );
 
       return {
         success: true,
         errorCount: contextEngineering.errorHistory.length,
       };
     } catch (err) {
-      logger.error('[Context Engineering IPC] 记录错误失败:', err);
+      logger.error("[Context Engineering IPC] 记录错误失败:", err);
       return {
         success: false,
         error: err.message,
@@ -517,22 +540,22 @@ function registerContextEngineeringIPC({
    * @param {string} options.resolution - 解决方案
    * @returns {Object} 操作结果
    */
-  ipcMain.handle('context:resolve-error', async (_event, options = {}) => {
+  ipcMain.handle("context:resolve-error", async (_event, options = {}) => {
     try {
       const { errorIndex, resolution } = options;
 
       if (errorIndex === undefined || !resolution) {
-        throw new Error('errorIndex and resolution are required');
+        throw new Error("errorIndex and resolution are required");
       }
 
       contextEngineering.resolveError(errorIndex, resolution);
 
       return {
         success: true,
-        message: 'Error marked as resolved',
+        message: "Error marked as resolved",
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 标记错误解决失败:', error);
+      logger.error("[Context Engineering IPC] 标记错误解决失败:", error);
       return {
         success: false,
         error: error.message,
@@ -548,7 +571,7 @@ function registerContextEngineeringIPC({
    * @param {number} [options.limit] - 限制数量
    * @returns {Object} 错误历史
    */
-  ipcMain.handle('context:get-errors', async (_event, options = {}) => {
+  ipcMain.handle("context:get-errors", async (_event, options = {}) => {
     try {
       let errors = [...contextEngineering.errorHistory];
 
@@ -562,7 +585,7 @@ function registerContextEngineeringIPC({
         totalCount: contextEngineering.errorHistory.length,
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 获取错误历史失败:', error);
+      logger.error("[Context Engineering IPC] 获取错误历史失败:", error);
       return {
         success: false,
         error: error.message,
@@ -576,17 +599,17 @@ function registerContextEngineeringIPC({
    *
    * @returns {Object} 操作结果
    */
-  ipcMain.handle('context:clear-errors', async () => {
+  ipcMain.handle("context:clear-errors", async () => {
     try {
       const count = contextEngineering.errorHistory.length;
       contextEngineering.clearErrors();
-      logger.info('[Context Engineering IPC] 错误历史已清除，共', count, '条');
+      logger.info("[Context Engineering IPC] 错误历史已清除，共", count, "条");
       return {
         success: true,
         clearedCount: count,
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 清除错误历史失败:', error);
+      logger.error("[Context Engineering IPC] 清除错误历史失败:", error);
       return {
         success: false,
         error: error.message,
@@ -607,12 +630,12 @@ function registerContextEngineeringIPC({
    * @param {string} options.type - 内容类型 (webpage/file/dbResult/default)
    * @returns {Object} 压缩结果
    */
-  ipcMain.handle('context:compress', async (_event, options = {}) => {
+  ipcMain.handle("context:compress", async (_event, options = {}) => {
     try {
-      const { content, type = 'default' } = options;
+      const { content, type = "default" } = options;
 
       if (content === undefined || content === null) {
-        throw new Error('content is required');
+        throw new Error("content is required");
       }
 
       const compressed = compressor.compress(content, type);
@@ -622,13 +645,18 @@ function registerContextEngineeringIPC({
         success: true,
         compressed,
         wasCompressed: isCompressed,
-        originalSize: typeof content === 'string' ? content.length : JSON.stringify(content).length,
+        originalSize:
+          typeof content === "string"
+            ? content.length
+            : JSON.stringify(content).length,
         compressedSize: isCompressed
           ? JSON.stringify(compressed).length
-          : (typeof compressed === 'string' ? compressed.length : JSON.stringify(compressed).length),
+          : typeof compressed === "string"
+            ? compressed.length
+            : JSON.stringify(compressed).length,
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 压缩内容失败:', error);
+      logger.error("[Context Engineering IPC] 压缩内容失败:", error);
       return {
         success: false,
         error: error.message,
@@ -643,7 +671,7 @@ function registerContextEngineeringIPC({
    * @param {any} data - 数据
    * @returns {Object} 检查结果
    */
-  ipcMain.handle('context:is-compressed', async (_event, data) => {
+  ipcMain.handle("context:is-compressed", async (_event, data) => {
     try {
       const isCompressed = compressor.isCompressedRef(data);
       return {
@@ -653,7 +681,7 @@ function registerContextEngineeringIPC({
         recoverable: isCompressed ? data.recoverable : false,
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 检查压缩状态失败:', error);
+      logger.error("[Context Engineering IPC] 检查压缩状态失败:", error);
       return {
         success: false,
         error: error.message,
@@ -670,7 +698,7 @@ function registerContextEngineeringIPC({
    * @param {Object} ref - 压缩引用
    * @returns {Object} 恢复结果或错误
    */
-  ipcMain.handle('context:decompress', async (_event, ref) => {
+  ipcMain.handle("context:decompress", async (_event, ref) => {
     try {
       if (!compressor.isCompressedRef(ref)) {
         return {
@@ -683,7 +711,7 @@ function registerContextEngineeringIPC({
       if (!ref.recoverable) {
         return {
           success: false,
-          error: 'Content is not recoverable',
+          error: "Content is not recoverable",
           preview: ref.preview,
         };
       }
@@ -691,7 +719,8 @@ function registerContextEngineeringIPC({
       // 目前只返回恢复信息，实际恢复需要外部函数支持
       return {
         success: false,
-        error: 'Recovery requires external functions (fetchWebpage, readFile, runQuery)',
+        error:
+          "Recovery requires external functions (fetchWebpage, readFile, runQuery)",
         refType: ref.refType,
         recoveryInfo: {
           url: ref.url,
@@ -700,7 +729,7 @@ function registerContextEngineeringIPC({
         },
       };
     } catch (error) {
-      logger.error('[Context Engineering IPC] 解压缩失败:', error);
+      logger.error("[Context Engineering IPC] 解压缩失败:", error);
       return {
         success: false,
         error: error.message,
@@ -709,52 +738,57 @@ function registerContextEngineeringIPC({
   });
 
   // 标记模块为已注册
-  ipcGuard.markModuleRegistered('context-engineering-ipc');
+  ipcGuard.markModuleRegistered("context-engineering-ipc");
 
-  logger.info('[Context Engineering IPC] ✓ All handlers registered (17 handlers: 4 stats/config + 2 optimization + 4 task + 4 error + 3 compression)');
+  logger.info(
+    "[Context Engineering IPC] ✓ All handlers registered (17 handlers: 4 stats/config + 2 optimization + 4 task + 4 error + 3 compression)",
+  );
 }
 
 /**
  * 注销 Context Engineering IPC 处理器
  * @param {Object} [dependencies] - 依赖
  */
-function unregisterContextEngineeringIPC({ ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard } = {}) {
+function unregisterContextEngineeringIPC({
+  ipcMain: injectedIpcMain,
+  ipcGuard: injectedIpcGuard,
+} = {}) {
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
 
-  if (!ipcGuard.isModuleRegistered('context-engineering-ipc')) {
+  if (!ipcGuard.isModuleRegistered("context-engineering-ipc")) {
     return;
   }
 
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
   // 所有 channel 名称
   const channels = [
-    'context:get-stats',
-    'context:reset-stats',
-    'context:get-config',
-    'context:set-config',
-    'context:optimize-messages',
-    'context:estimate-tokens',
-    'context:set-task',
-    'context:update-task-progress',
-    'context:get-task',
-    'context:clear-task',
-    'context:record-error',
-    'context:resolve-error',
-    'context:get-errors',
-    'context:clear-errors',
-    'context:compress',
-    'context:is-compressed',
-    'context:decompress',
+    "context:get-stats",
+    "context:reset-stats",
+    "context:get-config",
+    "context:set-config",
+    "context:optimize-messages",
+    "context:estimate-tokens",
+    "context:set-task",
+    "context:update-task-progress",
+    "context:get-task",
+    "context:clear-task",
+    "context:record-error",
+    "context:resolve-error",
+    "context:get-errors",
+    "context:clear-errors",
+    "context:compress",
+    "context:is-compressed",
+    "context:decompress",
   ];
 
   for (const channel of channels) {
     ipcMain.removeHandler(channel);
   }
 
-  ipcGuard.unmarkModuleRegistered('context-engineering-ipc');
-  logger.info('[Context Engineering IPC] Handlers unregistered');
+  ipcGuard.unmarkModuleRegistered("context-engineering-ipc");
+  logger.info("[Context Engineering IPC] Handlers unregistered");
 }
 
 module.exports = {

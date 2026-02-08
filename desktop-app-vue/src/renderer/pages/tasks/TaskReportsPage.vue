@@ -3,7 +3,9 @@
     <a-page-header title="团队报告" sub-title="日报、周报与 AI 摘要">
       <template #extra>
         <a-button type="primary" @click="showCreateReport = true">
-          <template #icon><PlusOutlined /></template>
+          <template #icon>
+            <PlusOutlined />
+          </template>
           写报告
         </a-button>
       </template>
@@ -14,10 +16,14 @@
       <a-col :span="16">
         <a-card title="报告列表">
           <template #extra>
-            <a-radio-group v-model:value="reportType" button-style="solid" size="small">
-              <a-radio-button value="all">全部</a-radio-button>
-              <a-radio-button value="daily_standup">日报</a-radio-button>
-              <a-radio-button value="weekly">周报</a-radio-button>
+            <a-radio-group
+              v-model:value="reportType"
+              button-style="solid"
+              size="small"
+            >
+              <a-radio-button value="all"> 全部 </a-radio-button>
+              <a-radio-button value="daily_standup"> 日报 </a-radio-button>
+              <a-radio-button value="weekly"> 周报 </a-radio-button>
             </a-radio-group>
           </template>
 
@@ -50,17 +56,19 @@
                       <p>{{ truncate(item.blockers, 50) }}</p>
                     </div>
                     <div v-if="item.aiSummary" class="ai-summary">
-                      <a-tag color="blue">AI 摘要</a-tag>
+                      <a-tag color="blue"> AI 摘要 </a-tag>
                       <span>{{ item.aiSummary }}</span>
                     </div>
                   </div>
                   <template #actions>
-                    <a-button type="link" @click="viewReport(item)">查看详情</a-button>
+                    <a-button type="link" @click="viewReport(item)">
+                      查看详情
+                    </a-button>
                     <a-button
                       v-if="!item.aiSummary"
                       type="link"
-                      @click="generateSummary(item.id)"
                       :loading="generatingSummary === item.id"
+                      @click="generateSummary(item.id)"
                     >
                       生成摘要
                     </a-button>
@@ -78,8 +86,8 @@
           <a-form :model="quickReport" layout="vertical">
             <a-form-item label="报告类型">
               <a-select v-model:value="quickReport.reportType">
-                <a-select-option value="daily_standup">日报</a-select-option>
-                <a-select-option value="weekly">周报</a-select-option>
+                <a-select-option value="daily_standup"> 日报 </a-select-option>
+                <a-select-option value="weekly"> 周报 </a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label="完成工作">
@@ -104,7 +112,12 @@
               />
             </a-form-item>
             <a-form-item>
-              <a-button type="primary" block @click="submitQuickReport" :loading="submitting">
+              <a-button
+                type="primary"
+                block
+                :loading="submitting"
+                @click="submitQuickReport"
+              >
                 提交报告
               </a-button>
             </a-form-item>
@@ -136,7 +149,9 @@
             {{ formatDate(selectedReport.reportDate) }}
           </a-descriptions-item>
           <a-descriptions-item label="报告类型">
-            <a-tag>{{ selectedReport.reportType === 'daily_standup' ? '日报' : '周报' }}</a-tag>
+            <a-tag>{{
+              selectedReport.reportType === "daily_standup" ? "日报" : "周报"
+            }}</a-tag>
           </a-descriptions-item>
         </a-descriptions>
 
@@ -144,17 +159,19 @@
 
         <div class="report-detail-section">
           <h4>完成工作</h4>
-          <p>{{ selectedReport.yesterdayWork || '无' }}</p>
+          <p>{{ selectedReport.yesterdayWork || "无" }}</p>
         </div>
 
         <div class="report-detail-section">
           <h4>计划工作</h4>
-          <p>{{ selectedReport.todayPlan || '无' }}</p>
+          <p>{{ selectedReport.todayPlan || "无" }}</p>
         </div>
 
         <div v-if="selectedReport.blockers" class="report-detail-section">
           <h4>阻塞项</h4>
-          <p style="color: #ff4d4f">{{ selectedReport.blockers }}</p>
+          <p style="color: #ff4d4f">
+            {{ selectedReport.blockers }}
+          </p>
         </div>
 
         <div v-if="selectedReport.aiSummary" class="report-detail-section">
@@ -167,12 +184,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
-import { PlusOutlined, RobotOutlined } from '@ant-design/icons-vue';
-import { useTaskBoardStore } from '@/stores/taskBoard';
-import { useAuthStore } from '@/stores/auth';
-import dayjs from 'dayjs';
+import { ref, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import { PlusOutlined, RobotOutlined } from "@ant-design/icons-vue";
+import { useTaskBoardStore } from "@/stores/taskBoard";
+import { useAuthStore } from "@/stores/auth";
+import dayjs from "dayjs";
 
 const taskBoardStore = useTaskBoardStore();
 const authStore = useAuthStore();
@@ -182,35 +199,39 @@ const submitting = ref(false);
 const generatingSummary = ref(null);
 const showCreateReport = ref(false);
 const showReportDetail = ref(false);
-const reportType = ref('all');
+const reportType = ref("all");
 const selectedReport = ref(null);
 
 const quickReport = ref({
-  reportType: 'daily_standup',
-  yesterdayWork: '',
-  todayPlan: '',
-  blockers: '',
+  reportType: "daily_standup",
+  yesterdayWork: "",
+  todayPlan: "",
+  blockers: "",
 });
 
 const reports = computed(() => taskBoardStore.reports);
 const filteredReports = computed(() => {
-  if (reportType.value === 'all') return reports.value;
+  if (reportType.value === "all") {
+    return reports.value;
+  }
   return reports.value.filter((r) => r.reportType === reportType.value);
 });
 
 const weeklyStats = computed(() => ({
   reportCount: reports.value.filter((r) => {
     const reportDate = dayjs(r.reportDate);
-    return reportDate.isAfter(dayjs().startOf('week'));
+    return reportDate.isAfter(dayjs().startOf("week"));
   }).length,
   completionRate: 75, // 示例数据
 }));
 
-const formatDate = (timestamp) => dayjs(timestamp).format('YYYY-MM-DD HH:mm');
+const formatDate = (timestamp) => dayjs(timestamp).format("YYYY-MM-DD HH:mm");
 
 const truncate = (text, length) => {
-  if (!text) return '';
-  return text.length > length ? text.substring(0, length) + '...' : text;
+  if (!text) {
+    return "";
+  }
+  return text.length > length ? text.substring(0, length) + "..." : text;
 };
 
 const viewReport = (report) => {
@@ -223,11 +244,11 @@ const generateSummary = async (reportId) => {
   try {
     const result = await taskBoardStore.generateAISummary(reportId);
     if (result.success) {
-      message.success('AI 摘要生成成功');
+      message.success("AI 摘要生成成功");
       await loadReports();
     }
   } catch (error) {
-    message.error('生成摘要失败');
+    message.error("生成摘要失败");
   } finally {
     generatingSummary.value = null;
   }
@@ -235,7 +256,7 @@ const generateSummary = async (reportId) => {
 
 const submitQuickReport = async () => {
   if (!quickReport.value.yesterdayWork && !quickReport.value.todayPlan) {
-    message.warning('请至少填写完成工作或计划工作');
+    message.warning("请至少填写完成工作或计划工作");
     return;
   }
 
@@ -250,12 +271,17 @@ const submitQuickReport = async () => {
     });
 
     if (result.success) {
-      message.success('报告提交成功');
-      quickReport.value = { reportType: 'daily_standup', yesterdayWork: '', todayPlan: '', blockers: '' };
+      message.success("报告提交成功");
+      quickReport.value = {
+        reportType: "daily_standup",
+        yesterdayWork: "",
+        todayPlan: "",
+        blockers: "",
+      };
       await loadReports();
     }
   } catch (error) {
-    message.error('提交失败');
+    message.error("提交失败");
   } finally {
     submitting.value = false;
   }
@@ -266,7 +292,7 @@ const loadReports = async () => {
   try {
     await taskBoardStore.loadReports(authStore.currentOrg?.id, { limit: 50 });
   } catch (error) {
-    message.error('加载报告失败');
+    message.error("加载报告失败");
   } finally {
     loading.value = false;
   }

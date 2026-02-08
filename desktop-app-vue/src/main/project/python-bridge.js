@@ -3,7 +3,7 @@
  * 负责Node.js与Python脚本之间的通信
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");

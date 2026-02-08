@@ -3,9 +3,9 @@
  * 实际执行工具的底层实现
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
 
 class ToolRunner {
   constructor(toolManager) {
@@ -36,7 +36,7 @@ class ToolRunner {
       // 通用工具类
       info_searcher: this.createInfoSearcher(),
       format_output: this.createFormatOutput(),
-      generic_handler: this.createGenericHandler()
+      generic_handler: this.createGenericHandler(),
     };
   }
 
@@ -65,7 +65,7 @@ class ToolRunner {
       // 2. 验证参数
       const validationResult = this.validateParams(tool, params);
       if (!validationResult.valid) {
-        throw new Error(`参数验证失败: ${validationResult.errors.join(', ')}`);
+        throw new Error(`参数验证失败: ${validationResult.errors.join(", ")}`);
       }
 
       // 3. 获取工具实现
@@ -81,15 +81,16 @@ class ToolRunner {
       const executionTime = Date.now() - startTime;
       await this.toolManager.recordExecution(toolName, true, executionTime);
 
-      logger.info(`[ToolRunner] 工具执行成功: ${toolName}, 耗时: ${executionTime}ms`);
+      logger.info(
+        `[ToolRunner] 工具执行成功: ${toolName}, 耗时: ${executionTime}ms`,
+      );
 
       return {
         success: true,
         result,
         executionTime,
-        toolName
+        toolName,
       };
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
       await this.toolManager.recordExecution(toolName, false, executionTime);
@@ -100,7 +101,7 @@ class ToolRunner {
         success: false,
         error: error.message,
         executionTime,
-        toolName
+        toolName,
       };
     }
   }
@@ -109,15 +110,16 @@ class ToolRunner {
    * 验证参数
    */
   validateParams(tool, params) {
-    const schema = typeof tool.parameters_schema === 'string'
-      ? JSON.parse(tool.parameters_schema)
-      : tool.parameters_schema;
+    const schema =
+      typeof tool.parameters_schema === "string"
+        ? JSON.parse(tool.parameters_schema)
+        : tool.parameters_schema;
 
     const errors = [];
 
     // 检查必需参数
     if (schema.required) {
-      schema.required.forEach(requiredParam => {
+      schema.required.forEach((requiredParam) => {
         if (params[requiredParam] === undefined) {
           errors.push(`缺少必需参数: ${requiredParam}`);
         }
@@ -129,9 +131,11 @@ class ToolRunner {
       Object.entries(params).forEach(([key, value]) => {
         const propSchema = schema.properties[key];
         if (propSchema && propSchema.type) {
-          const actualType = Array.isArray(value) ? 'array' : typeof value;
+          const actualType = Array.isArray(value) ? "array" : typeof value;
           if (actualType !== propSchema.type) {
-            errors.push(`参数 ${key} 类型错误: 期望 ${propSchema.type}, 实际 ${actualType}`);
+            errors.push(
+              `参数 ${key} 类型错误: 期望 ${propSchema.type}, 实际 ${actualType}`,
+            );
           }
         }
       });
@@ -139,7 +143,7 @@ class ToolRunner {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -156,22 +160,24 @@ class ToolRunner {
       let resolvedPath = filePath;
       if (options.projectPath && !path.isAbsolute(filePath)) {
         resolvedPath = path.join(options.projectPath, filePath);
-        logger.info(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+        logger.info(
+          `[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`,
+        );
       }
 
       // 安全检查：防止路径遍历
       const safePath = path.normalize(resolvedPath);
-      if (safePath.includes('..')) {
-        throw new Error('非法路径');
+      if (safePath.includes("..")) {
+        throw new Error("非法路径");
       }
 
-      const content = await fs.readFile(safePath, 'utf8');
+      const content = await fs.readFile(safePath, "utf8");
 
       return {
         success: true,
         filePath: safePath,
         content,
-        size: content.length
+        size: content.length,
       };
     };
   }
@@ -181,19 +187,21 @@ class ToolRunner {
    */
   createFileWriter() {
     return async (params, options = {}) => {
-      const { filePath, content, mode = 'overwrite' } = params;
+      const { filePath, content, mode = "overwrite" } = params;
 
       // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
       let resolvedPath = filePath;
       if (options.projectPath && !path.isAbsolute(filePath)) {
         resolvedPath = path.join(options.projectPath, filePath);
-        logger.info(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+        logger.info(
+          `[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`,
+        );
       }
 
       // 安全检查
       const safePath = path.normalize(resolvedPath);
-      if (safePath.includes('..')) {
-        throw new Error('非法路径');
+      if (safePath.includes("..")) {
+        throw new Error("非法路径");
       }
 
       // 确保目录存在
@@ -201,19 +209,21 @@ class ToolRunner {
       await fs.mkdir(dir, { recursive: true });
 
       // 根据模式写入
-      if (mode === 'append') {
-        await fs.appendFile(safePath, content, 'utf8');
+      if (mode === "append") {
+        await fs.appendFile(safePath, content, "utf8");
       } else {
-        await fs.writeFile(safePath, content, 'utf8');
+        await fs.writeFile(safePath, content, "utf8");
       }
 
-      logger.info(`[ToolRunner] 文件已写入: ${safePath}, 大小: ${content.length} 字节`);
+      logger.info(
+        `[ToolRunner] 文件已写入: ${safePath}, 大小: ${content.length} 字节`,
+      );
 
       return {
         success: true,
         filePath: safePath,
         bytesWritten: content.length,
-        mode
+        mode,
       };
     };
   }
@@ -223,33 +233,35 @@ class ToolRunner {
    */
   createFileEditor() {
     return async (params, options = {}) => {
-      const { filePath, search, replace, mode = 'first' } = params;
+      const { filePath, search, replace, mode = "first" } = params;
 
       // 解析文件路径：如果是相对路径且提供了projectPath，则使用项目路径
       let resolvedPath = filePath;
       if (options.projectPath && !path.isAbsolute(filePath)) {
         resolvedPath = path.join(options.projectPath, filePath);
-        logger.info(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+        logger.info(
+          `[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`,
+        );
       }
 
       const safePath = path.normalize(resolvedPath);
-      const content = await fs.readFile(safePath, 'utf8');
+      const content = await fs.readFile(safePath, "utf8");
 
       let newContent;
-      if (mode === 'all') {
+      if (mode === "all") {
         newContent = content.replaceAll(search, replace);
-      } else if (mode === 'regex') {
-        newContent = content.replace(new RegExp(search, 'g'), replace);
+      } else if (mode === "regex") {
+        newContent = content.replace(new RegExp(search, "g"), replace);
       } else {
         newContent = content.replace(search, replace);
       }
 
-      await fs.writeFile(safePath, newContent, 'utf8');
+      await fs.writeFile(safePath, newContent, "utf8");
 
       return {
         success: true,
         filePath: safePath,
-        replacements: (content.match(new RegExp(search, 'g')) || []).length
+        replacements: (content.match(new RegExp(search, "g")) || []).length,
       };
     };
   }
@@ -260,19 +272,21 @@ class ToolRunner {
   createHtmlGenerator() {
     return async (params) => {
       const {
-        title = '我的网页',
-        content = '',
-        primaryColor = '#667eea',
+        title = "我的网页",
+        content = "",
+        primaryColor = "#667eea",
         includeNav = false,
-        navItems = []
+        navItems = [],
       } = params;
 
-      const nav = includeNav ? `
+      const nav = includeNav
+        ? `
     <nav style="background: ${primaryColor}; padding: 1rem; color: white;">
       <ul style="list-style: none; display: flex; gap: 2rem; margin: 0; padding: 0;">
-        ${navItems.map(item => `<li><a href="#" style="color: white; text-decoration: none;">${item}</a></li>`).join('\n        ')}
+        ${navItems.map((item) => `<li><a href="#" style="color: white; text-decoration: none;">${item}</a></li>`).join("\n        ")}
       </ul>
-    </nav>` : '';
+    </nav>`
+        : "";
 
       const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -320,7 +334,7 @@ class ToolRunner {
       return {
         success: true,
         html,
-        fileName: `${title.replace(/[^a-zA-Z0-9]/g, '_')}.html`
+        fileName: `${title.replace(/[^a-zA-Z0-9]/g, "_")}.html`,
       };
     };
   }
@@ -331,10 +345,10 @@ class ToolRunner {
   createCssGenerator() {
     return async (params) => {
       const {
-        primaryColor = '#667eea',
-        secondaryColor = '#764ba2',
-        fontFamily = 'system-ui, sans-serif',
-        responsive = true
+        primaryColor = "#667eea",
+        secondaryColor = "#764ba2",
+        fontFamily = "system-ui, sans-serif",
+        responsive = true,
       } = params;
 
       const css = `/* 生成的CSS样式 */
@@ -376,19 +390,23 @@ body {
   opacity: 0.9;
 }
 
-${responsive ? `
+${
+  responsive
+    ? `
 /* 响应式设计 */
 @media (max-width: 768px) {
   .container {
     padding: 1rem;
   }
 }
-` : ''}`;
+`
+    : ""
+}`;
 
       return {
         success: true,
         css,
-        fileName: 'styles.css'
+        fileName: "styles.css",
       };
     };
   }
@@ -398,13 +416,10 @@ ${responsive ? `
    */
   createJsGenerator() {
     return async (params) => {
-      const {
-        moduleName = 'myApp',
-        features = [],
-        useES6 = true
-      } = params;
+      const { moduleName = "myApp", features = [], useES6 = true } = params;
 
-      const js = useES6 ? `// ES6 模块
+      const js = useES6
+        ? `// ES6 模块
 export class ${moduleName} {
   constructor(options = {}) {
     this.options = options;
@@ -415,14 +430,19 @@ export class ${moduleName} {
     logger.info('${moduleName} 初始化完成');
   }
 
-  ${features.map(feature => `
+  ${features
+    .map(
+      (feature) => `
   ${feature}() {
     // ${feature} 功能实现
-  }`).join('\n')}
+  }`,
+    )
+    .join("\n")}
 }
 
 export default ${moduleName};
-` : `// 传统JS
+`
+        : `// 传统JS
 var ${moduleName} = (function() {
   function ${moduleName}(options) {
     this.options = options || {};
@@ -441,7 +461,7 @@ var ${moduleName} = (function() {
         success: true,
         js,
         fileName: `${moduleName}.js`,
-        moduleType: useES6 ? 'ES6' : 'CommonJS'
+        moduleType: useES6 ? "ES6" : "CommonJS",
       };
     };
   }
@@ -451,22 +471,18 @@ var ${moduleName} = (function() {
    */
   createProjectStructureCreator() {
     return async (params) => {
-      const {
-        projectPath,
-        projectType = 'web',
-        features = []
-      } = params;
+      const { projectPath, projectType = "web", features = [] } = params;
 
       const safePath = path.normalize(projectPath);
 
       // 创建基础目录结构
       const dirs = [
-        'src',
-        'src/assets',
-        'src/components',
-        'src/utils',
-        'public',
-        'docs'
+        "src",
+        "src/assets",
+        "src/components",
+        "src/utils",
+        "public",
+        "docs",
       ];
 
       for (const dir of dirs) {
@@ -475,22 +491,22 @@ var ${moduleName} = (function() {
 
       // 创建基础文件
       await fs.writeFile(
-        path.join(safePath, 'README.md'),
+        path.join(safePath, "README.md"),
         `# ${path.basename(safePath)}\n\n项目描述\n`,
-        'utf8'
+        "utf8",
       );
 
       await fs.writeFile(
-        path.join(safePath, '.gitignore'),
+        path.join(safePath, ".gitignore"),
         `node_modules/\ndist/\n.env\n`,
-        'utf8'
+        "utf8",
       );
 
       return {
         success: true,
         projectPath: safePath,
         dirsCreated: dirs.length,
-        filesCreated: 2
+        filesCreated: 2,
       };
     };
   }
@@ -504,14 +520,14 @@ var ${moduleName} = (function() {
 
       // 注意：这里简化实现，实际应使用 isomorphic-git
       const safePath = path.normalize(repoPath);
-      const gitDir = path.join(safePath, '.git');
+      const gitDir = path.join(safePath, ".git");
 
       // 检查是否已是Git仓库
       try {
         await fs.access(gitDir);
         return {
           success: false,
-          error: '已经是Git仓库'
+          error: "已经是Git仓库",
         };
       } catch {
         // 不存在，可以初始化
@@ -523,7 +539,7 @@ var ${moduleName} = (function() {
       return {
         success: true,
         repoPath: safePath,
-        message: 'Git仓库初始化成功'
+        message: "Git仓库初始化成功",
       };
     };
   }
@@ -543,7 +559,7 @@ var ${moduleName} = (function() {
         repoPath: safePath,
         message,
         filesCommitted: files.length,
-        commitId: `commit_${Date.now()}`
+        commitId: `commit_${Date.now()}`,
       };
     };
   }
@@ -553,17 +569,17 @@ var ${moduleName} = (function() {
    */
   createInfoSearcher() {
     return async (params) => {
-      const { query, source = 'local' } = params;
+      const { query, source = "local" } = params;
 
       // 简化实现
       return {
         success: true,
         query,
         results: [
-          { title: '结果1', content: '内容1' },
-          { title: '结果2', content: '内容2' }
+          { title: "结果1", content: "内容1" },
+          { title: "结果2", content: "内容2" },
         ],
-        source
+        source,
       };
     };
   }
@@ -573,20 +589,20 @@ var ${moduleName} = (function() {
    */
   createFormatOutput() {
     return async (params) => {
-      const { data, format = 'json' } = params;
+      const { data, format = "json" } = params;
 
       let formatted;
       switch (format) {
-        case 'json':
+        case "json":
           formatted = JSON.stringify(data, null, 2);
           break;
-        case 'yaml':
+        case "yaml":
           // 简化的YAML格式
           formatted = Object.entries(data)
             .map(([key, value]) => `${key}: ${value}`)
-            .join('\n');
+            .join("\n");
           break;
-        case 'table':
+        case "table":
           formatted = this.formatAsTable(data);
           break;
         default:
@@ -596,7 +612,7 @@ var ${moduleName} = (function() {
       return {
         success: true,
         formatted,
-        format
+        format,
       };
     };
   }
@@ -612,7 +628,7 @@ var ${moduleName} = (function() {
         success: true,
         action,
         result: `处理完成: ${action}`,
-        data
+        data,
       };
     };
   }
@@ -626,13 +642,13 @@ var ${moduleName} = (function() {
     }
 
     const keys = Object.keys(data[0]);
-    const header = '| ' + keys.join(' | ') + ' |';
-    const separator = '| ' + keys.map(() => '---').join(' | ') + ' |';
-    const rows = data.map(row =>
-      '| ' + keys.map(key => row[key]).join(' | ') + ' |'
+    const header = "| " + keys.join(" | ") + " |";
+    const separator = "| " + keys.map(() => "---").join(" | ") + " |";
+    const rows = data.map(
+      (row) => "| " + keys.map((key) => row[key]).join(" | ") + " |",
     );
 
-    return [header, separator, ...rows].join('\n');
+    return [header, separator, ...rows].join("\n");
   }
 }
 

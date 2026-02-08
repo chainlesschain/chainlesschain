@@ -1,9 +1,6 @@
 <template>
   <div class="file-import">
-    <a-card
-      title="文件导入"
-      :loading="loading"
-    >
+    <a-card title="文件导入" :loading="loading">
       <template #extra>
         <a-space>
           <a-button
@@ -20,10 +17,7 @@
       </template>
 
       <!-- 导入进度 -->
-      <div
-        v-if="importing"
-        class="import-progress"
-      >
+      <div v-if="importing" class="import-progress">
         <a-progress
           :percent="progressPercent"
           :status="progressStatus"
@@ -50,50 +44,38 @@
             <li><strong>纯文本</strong>: .txt</li>
           </ul>
           <a-divider />
-          <p style="margin-top: 12px; color: #666;">
-            提示: PDF 和 Word 导入需要额外的依赖库。如果导入失败，请在项目根目录运行:
+          <p style="margin-top: 12px; color: #666">
+            提示: PDF 和 Word
+            导入需要额外的依赖库。如果导入失败，请在项目根目录运行:
           </p>
-          <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; margin-top: 8px;">
-npm install pdf-parse mammoth</pre>
+          <pre
+            style="
+              background: #f5f5f5;
+              padding: 8px;
+              border-radius: 4px;
+              margin-top: 8px;
+            "
+          >
+npm install pdf-parse mammoth</pre
+          >
         </template>
       </a-alert>
 
       <!-- 导入选项 -->
-      <a-collapse
-        v-if="!importing"
-        style="margin-bottom: 20px"
-      >
-        <a-collapse-panel
-          key="1"
-          header="导入选项"
-        >
-          <a-form
-            :label-col="{ span: 6 }"
-            :wrapper-col="{ span: 18 }"
-          >
+      <a-collapse v-if="!importing" style="margin-bottom: 20px">
+        <a-collapse-panel key="1" header="导入选项">
+          <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
             <a-form-item label="知识类型">
               <a-select
                 v-model:value="importOptions.type"
                 placeholder="选择知识类型"
               >
-                <a-select-option value="note">
-                  笔记
-                </a-select-option>
-                <a-select-option value="article">
-                  文章
-                </a-select-option>
-                <a-select-option value="document">
-                  文档
-                </a-select-option>
-                <a-select-option value="reference">
-                  参考资料
-                </a-select-option>
-                <a-select-option value="code">
-                  代码片段
-                </a-select-option>
-                <a-select-option value="idea">
-                  灵感
-                </a-select-option>
+                <a-select-option value="note"> 笔记 </a-select-option>
+                <a-select-option value="article"> 文章 </a-select-option>
+                <a-select-option value="document"> 文档 </a-select-option>
+                <a-select-option value="reference"> 参考资料 </a-select-option>
+                <a-select-option value="code"> 代码片段 </a-select-option>
+                <a-select-option value="idea"> 灵感 </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -116,7 +98,7 @@ npm install pdf-parse mammoth</pre>
 
             <a-form-item label="自动索引">
               <a-switch v-model:checked="importOptions.autoIndex" />
-              <span style="margin-left: 8px; color: #999; font-size: 12px;">
+              <span style="margin-left: 8px; color: #999; font-size: 12px">
                 导入后自动添加到 RAG 向量索引
               </span>
             </a-form-item>
@@ -125,10 +107,7 @@ npm install pdf-parse mammoth</pre>
       </a-collapse>
 
       <!-- 导入结果 -->
-      <div
-        v-if="importResults.length > 0"
-        class="import-results"
-      >
+      <div v-if="importResults.length > 0" class="import-results">
         <a-divider>导入结果</a-divider>
 
         <a-row :gutter="16">
@@ -138,9 +117,7 @@ npm install pdf-parse mammoth</pre>
               :value="successCount"
               :value-style="{ color: '#3f8600' }"
             >
-              <template #suffix>
-                / {{ totalCount }}
-              </template>
+              <template #suffix> / {{ totalCount }} </template>
             </a-statistic>
           </a-col>
           <a-col :span="8">
@@ -149,16 +126,11 @@ npm install pdf-parse mammoth</pre>
               :value="failedCount"
               :value-style="{ color: '#cf1322' }"
             >
-              <template #suffix>
-                / {{ totalCount }}
-              </template>
+              <template #suffix> / {{ totalCount }} </template>
             </a-statistic>
           </a-col>
           <a-col :span="8">
-            <a-statistic
-              title="总计"
-              :value="totalCount"
-            />
+            <a-statistic title="总计" :value="totalCount" />
           </a-col>
         </a-row>
 
@@ -176,7 +148,7 @@ npm install pdf-parse mammoth</pre>
                     :color="item.status === 'success' ? 'success' : 'error'"
                     style="margin-left: 8px"
                   >
-                    {{ item.status === 'success' ? '成功' : '失败' }}
+                    {{ item.status === "success" ? "成功" : "失败" }}
                   </a-tag>
                 </template>
                 <template #description>
@@ -187,10 +159,7 @@ npm install pdf-parse mammoth</pre>
                     <a-divider type="vertical" />
                     <span>类型: {{ item.result.type }}</span>
                   </div>
-                  <div
-                    v-else
-                    style="color: #cf1322"
-                  >
+                  <div v-else style="color: #cf1322">
                     {{ item.error }}
                   </div>
                 </template>
@@ -200,9 +169,7 @@ npm install pdf-parse mammoth</pre>
         </a-list>
 
         <div style="margin-top: 20px; text-align: center">
-          <a-button @click="handleReset">
-            重新导入
-          </a-button>
+          <a-button @click="handleReset"> 重新导入 </a-button>
         </div>
       </div>
 
@@ -218,26 +185,19 @@ npm install pdf-parse mammoth</pre>
         <p class="drop-zone-icon">
           <cloud-upload-outlined />
         </p>
-        <p class="drop-zone-text">
-          拖拽文件到此处
-        </p>
-        <p class="drop-zone-hint">
-          或点击上方"选择文件"按钮
-        </p>
+        <p class="drop-zone-text">拖拽文件到此处</p>
+        <p class="drop-zone-hint">或点击上方"选择文件"按钮</p>
       </div>
     </a-card>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
-import {
-  UploadOutlined,
-  CloudUploadOutlined,
-} from '@ant-design/icons-vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
+import { UploadOutlined, CloudUploadOutlined } from "@ant-design/icons-vue";
 
 const loading = ref(false);
 const importing = ref(false);
@@ -247,7 +207,7 @@ const importResults = ref([]);
 
 // 导入选项
 const importOptions = reactive({
-  type: 'note',
+  type: "note",
   tags: [],
   autoIndex: true,
 });
@@ -256,23 +216,29 @@ const importOptions = reactive({
 const importProgress = reactive({
   current: 0,
   total: 0,
-  currentFile: '',
+  currentFile: "",
 });
 
 // 计算属性
 const progressPercent = computed(() => {
-  if (importProgress.total === 0) {return 0;}
+  if (importProgress.total === 0) {
+    return 0;
+  }
   return Math.round((importProgress.current / importProgress.total) * 100);
 });
 
 const progressStatus = computed(() => {
-  if (importProgress.current < importProgress.total) {return 'active';}
-  return 'success';
+  if (importProgress.current < importProgress.total) {
+    return "active";
+  }
+  return "success";
 });
 
 const progressColor = computed(() => {
-  if (failedCount.value > 0) {return '#ff4d4f';}
-  return '#52c41a';
+  if (failedCount.value > 0) {
+    return "#ff4d4f";
+  }
+  return "#52c41a";
 });
 
 const progressText = computed(() => {
@@ -280,11 +246,11 @@ const progressText = computed(() => {
 });
 
 const successCount = computed(() => {
-  return importResults.value.filter(r => r.status === 'success').length;
+  return importResults.value.filter((r) => r.status === "success").length;
 });
 
 const failedCount = computed(() => {
-  return importResults.value.filter(r => r.status === 'failed').length;
+  return importResults.value.filter((r) => r.status === "failed").length;
 });
 
 const totalCount = computed(() => {
@@ -297,7 +263,7 @@ async function loadTags() {
     const tags = await window.electronAPI.db.getAllTags();
     availableTags.value = tags;
   } catch (error) {
-    logger.error('加载标签失败:', error);
+    logger.error("加载标签失败:", error);
   }
 }
 
@@ -312,7 +278,7 @@ async function handleSelectFiles() {
 
     await importFiles(result.filePaths);
   } catch (error) {
-    message.error('选择文件失败: ' + error.message);
+    message.error("选择文件失败: " + error.message);
   }
 }
 
@@ -326,7 +292,7 @@ async function importFiles(filePaths) {
   importResults.value = [];
   importProgress.current = 0;
   importProgress.total = filePaths.length;
-  importProgress.currentFile = '';
+  importProgress.currentFile = "";
 
   try {
     const options = {
@@ -340,17 +306,20 @@ async function importFiles(filePaths) {
       importProgress.currentFile = getFileName(filePath);
 
       try {
-        const result = await window.electronAPI.import.importFile(filePath, options);
+        const result = await window.electronAPI.import.importFile(
+          filePath,
+          options,
+        );
         importResults.value.push({
           filePath,
-          status: 'success',
+          status: "success",
           result,
         });
         message.success(`文件导入成功: ${result.title}`);
       } catch (error) {
         importResults.value.push({
           filePath,
-          status: 'failed',
+          status: "failed",
           error: error.message,
         });
         message.error(`文件导入失败: ${error.message}`);
@@ -359,33 +328,38 @@ async function importFiles(filePaths) {
       importProgress.current = 1;
     } else {
       // 批量导入
-      const results = await window.electronAPI.import.importFiles(filePaths, options);
+      const results = await window.electronAPI.import.importFiles(
+        filePaths,
+        options,
+      );
 
       // 转换结果格式
-      results.success.forEach(item => {
+      results.success.forEach((item) => {
         importResults.value.push({
           filePath: item.filePath,
-          status: 'success',
+          status: "success",
           result: item.result,
         });
       });
 
-      results.failed.forEach(item => {
+      results.failed.forEach((item) => {
         importResults.value.push({
           filePath: item.filePath,
-          status: 'failed',
+          status: "failed",
           error: item.error,
         });
       });
 
       if (results.failed.length > 0) {
-        message.warning(`导入完成: ${results.success.length} 成功, ${results.failed.length} 失败`);
+        message.warning(
+          `导入完成: ${results.success.length} 成功, ${results.failed.length} 失败`,
+        );
       } else {
         message.success(`成功导入 ${results.success.length} 个文件`);
       }
     }
   } catch (error) {
-    message.error('导入失败: ' + error.message);
+    message.error("导入失败: " + error.message);
   } finally {
     importing.value = false;
   }
@@ -397,7 +371,7 @@ function handleDrop(e) {
   isDragging.value = false;
 
   const files = Array.from(e.dataTransfer.files);
-  const filePaths = files.map(f => f.path);
+  const filePaths = files.map((f) => f.path);
 
   importFiles(filePaths);
 }
@@ -417,7 +391,7 @@ function handleReset() {
   importResults.value = [];
   importProgress.current = 0;
   importProgress.total = 0;
-  importProgress.currentFile = '';
+  importProgress.currentFile = "";
 }
 
 // 获取文件名
@@ -427,7 +401,7 @@ function getFileName(filePath) {
 
 // 事件监听
 function setupEventListeners() {
-  window.electronAPI.import.on('import:progress', (data) => {
+  window.electronAPI.import.on("import:progress", (data) => {
     importProgress.current = data.current;
     importProgress.total = data.total;
     importProgress.currentFile = getFileName(data.filePath);
@@ -435,7 +409,7 @@ function setupEventListeners() {
 }
 
 function cleanupEventListeners() {
-  window.electronAPI.import.off('import:progress');
+  window.electronAPI.import.off("import:progress");
 }
 
 onMounted(() => {

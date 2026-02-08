@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * WebRTC Compatibility Layer
@@ -72,7 +72,9 @@ class MediaStreamCompat {
   stop() {
     this._active = false;
     this._tracks.forEach((track) => {
-      if (track.stop) {track.stop();}
+      if (track.stop) {
+        track.stop();
+      }
     });
   }
 }

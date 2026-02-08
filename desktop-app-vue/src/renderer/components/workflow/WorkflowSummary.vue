@@ -66,7 +66,9 @@
           :class="getStageClass(stage)"
         >
           <div class="stage-info">
-            <span class="stage-icon">{{ getStageStatusIcon(stage.status) }}</span>
+            <span class="stage-icon">{{
+              getStageStatusIcon(stage.status)
+            }}</span>
             <span class="stage-name">{{ stage.name }}</span>
           </div>
           <div class="stage-duration">
@@ -78,11 +80,7 @@
 
     <!-- 失败信息（如果有） -->
     <div v-if="workflow.error" class="error-info">
-      <a-alert
-        type="error"
-        :message="workflow.error"
-        show-icon
-      >
+      <a-alert type="error" :message="workflow.error" show-icon>
         <template #description>
           <div v-if="failedStage" class="failed-stage-info">
             失败阶段: {{ failedStage.name }}
@@ -90,8 +88,8 @@
           <a-button
             type="primary"
             size="small"
-            @click="$emit('retry')"
             style="margin-top: 8px"
+            @click="$emit('retry')"
           >
             <ReloadOutlined />
             重试
@@ -114,15 +112,13 @@
         <DownloadOutlined />
         导出报告
       </a-button>
-      <a-button @click="$emit('close')">
-        关闭
-      </a-button>
+      <a-button @click="$emit('close')"> 关闭 </a-button>
     </div>
   </a-card>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from "vue";
 import {
   ClockCircleOutlined,
   CheckCircleOutlined,
@@ -131,7 +127,7 @@ import {
   ReloadOutlined,
   EyeOutlined,
   DownloadOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   workflow: {
@@ -148,84 +144,108 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['retry', 'view-result', 'export', 'close']);
+const emit = defineEmits(["retry", "view-result", "export", "close"]);
 
 // 计算属性
 const summaryClass = computed(() => ({
-  'status-success': props.workflow.success === true,
-  'status-failed': props.workflow.success === false,
+  "status-success": props.workflow.success === true,
+  "status-failed": props.workflow.success === false,
 }));
 
 const summaryIcon = computed(() => {
-  if (props.workflow.success === true) return '🎉';
-  if (props.workflow.success === false) return '😞';
-  return '📋';
+  if (props.workflow.success === true) {
+    return "🎉";
+  }
+  if (props.workflow.success === false) {
+    return "😞";
+  }
+  return "📋";
 });
 
 const summaryTitle = computed(() => {
-  if (props.workflow.success === true) return '工作流执行成功';
-  if (props.workflow.success === false) return '工作流执行失败';
-  return '工作流执行摘要';
+  if (props.workflow.success === true) {
+    return "工作流执行成功";
+  }
+  if (props.workflow.success === false) {
+    return "工作流执行失败";
+  }
+  return "工作流执行摘要";
 });
 
 const totalStages = computed(() => props.stages.length);
 
 const completedStages = computed(() => {
-  return props.stages.filter(s => s.status === 'completed').length;
+  return props.stages.filter((s) => s.status === "completed").length;
 });
 
 const gatePassRate = computed(() => {
   const gates = Object.values(props.qualityGates);
-  if (gates.length === 0) return 100;
-  const passed = gates.filter(g => g.passed === true || g.status === 'passed').length;
+  if (gates.length === 0) {
+    return 100;
+  }
+  const passed = gates.filter(
+    (g) => g.passed === true || g.status === "passed",
+  ).length;
   return Math.round((passed / gates.length) * 100);
 });
 
 const qualityScore = computed(() => {
   const gates = Object.values(props.qualityGates);
-  if (gates.length === 0) return 100;
+  if (gates.length === 0) {
+    return 100;
+  }
   const totalScore = gates.reduce((sum, g) => sum + (g.score || 0), 0);
   return Math.round((totalScore / gates.length) * 100);
 });
 
 const failedStage = computed(() => {
-  return props.stages.find(s => s.status === 'failed');
+  return props.stages.find((s) => s.status === "failed");
 });
 
 // 方法
 const formatDuration = (ms) => {
-  if (!ms || ms === 0) return '0秒';
+  if (!ms || ms === 0) {
+    return "0秒";
+  }
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}秒`;
+  if (seconds < 60) {
+    return `${seconds}秒`;
+  }
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  if (minutes < 60) return `${minutes}分${remainingSeconds}秒`;
+  if (minutes < 60) {
+    return `${minutes}分${remainingSeconds}秒`;
+  }
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return `${hours}时${remainingMinutes}分`;
 };
 
 const getScoreColor = (score) => {
-  if (score >= 80) return '#52c41a';
-  if (score >= 60) return '#faad14';
-  return '#ff4d4f';
+  if (score >= 80) {
+    return "#52c41a";
+  }
+  if (score >= 60) {
+    return "#faad14";
+  }
+  return "#ff4d4f";
 };
 
 const getStageClass = (stage) => ({
-  completed: stage.status === 'completed',
-  failed: stage.status === 'failed',
-  pending: stage.status === 'pending',
+  completed: stage.status === "completed",
+  failed: stage.status === "failed",
+  pending: stage.status === "pending",
 });
 
 const getStageStatusIcon = (status) => {
   const iconMap = {
-    completed: '✅',
-    failed: '❌',
-    running: '🔄',
-    pending: '⏳',
-    skipped: '⏭️',
+    completed: "✅",
+    failed: "❌",
+    running: "🔄",
+    pending: "⏳",
+    skipped: "⏭️",
   };
-  return iconMap[status] || '📋';
+  return iconMap[status] || "📋";
 };
 </script>
 

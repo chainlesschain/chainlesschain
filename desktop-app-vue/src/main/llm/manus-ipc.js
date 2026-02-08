@@ -4,7 +4,7 @@
  * 提供前端访问 Context Engineering 和 Tool Masking 功能的接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 const { getManusOptimizations } = require("./manus-optimizations");
 const { getLLMManager } = require("./llm-manager");
@@ -41,16 +41,19 @@ function registerManusIPC() {
    * @param {number} stepIndex - 当前步骤索引
    * @param {string} status - 状态
    */
-  ipcMain.handle("manus:update-progress", async (event, { stepIndex, status }) => {
-    try {
-      const manus = getManusOptimizations();
-      manus.updateTaskProgress(stepIndex, status);
-      return { success: true };
-    } catch (error) {
-      logger.error("[ManusIPC] 更新进度失败:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "manus:update-progress",
+    async (event, { stepIndex, status }) => {
+      try {
+        const manus = getManusOptimizations();
+        manus.updateTaskProgress(stepIndex, status);
+        return { success: true };
+      } catch (error) {
+        logger.error("[ManusIPC] 更新进度失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 完成当前步骤
@@ -117,32 +120,38 @@ function registerManusIPC() {
    * @param {string} toolName - 工具名称
    * @param {boolean} available - 是否可用
    */
-  ipcMain.handle("manus:set-tool-available", async (event, { toolName, available }) => {
-    try {
-      const manus = getManusOptimizations();
-      manus.setToolAvailable(toolName, available);
-      return { success: true };
-    } catch (error) {
-      logger.error("[ManusIPC] 设置工具可用性失败:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "manus:set-tool-available",
+    async (event, { toolName, available }) => {
+      try {
+        const manus = getManusOptimizations();
+        manus.setToolAvailable(toolName, available);
+        return { success: true };
+      } catch (error) {
+        logger.error("[ManusIPC] 设置工具可用性失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 按前缀设置工具可用性
    * @param {string} prefix - 工具前缀
    * @param {boolean} available - 是否可用
    */
-  ipcMain.handle("manus:set-tools-by-prefix", async (event, { prefix, available }) => {
-    try {
-      const manus = getManusOptimizations();
-      manus.setToolsByPrefix(prefix, available);
-      return { success: true };
-    } catch (error) {
-      logger.error("[ManusIPC] 设置前缀工具可用性失败:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "manus:set-tools-by-prefix",
+    async (event, { prefix, available }) => {
+      try {
+        const manus = getManusOptimizations();
+        manus.setToolsByPrefix(prefix, available);
+        return { success: true };
+      } catch (error) {
+        logger.error("[ManusIPC] 设置前缀工具可用性失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 验证工具调用

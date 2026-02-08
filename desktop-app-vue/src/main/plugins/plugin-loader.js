@@ -7,18 +7,18 @@
  * - 插件代码加载和安装
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const path = require('path');
-const fs = require('fs');
-const { app } = require('electron');
-const { spawn } = require('child_process');
+const { logger } = require("../utils/logger.js");
+const path = require("path");
+const fs = require("fs");
+const { app } = require("electron");
+const { spawn } = require("child_process");
 
 class PluginLoader {
   constructor() {
     // 插件安装目录
-    this.pluginsDir = path.join(app.getPath('userData'), 'plugins');
+    this.pluginsDir = path.join(app.getPath("userData"), "plugins");
     // 临时目录
-    this.tempDir = path.join(app.getPath('temp'), 'chainlesschain-plugins');
+    this.tempDir = path.join(app.getPath("temp"), "chainlesschain-plugins");
 
     // 确保目录存在
     this.ensureDirectories();
@@ -30,9 +30,9 @@ class PluginLoader {
   ensureDirectories() {
     const dirs = [
       this.pluginsDir,
-      path.join(this.pluginsDir, 'official'),
-      path.join(this.pluginsDir, 'community'),
-      path.join(this.pluginsDir, 'custom'),
+      path.join(this.pluginsDir, "official"),
+      path.join(this.pluginsDir, "community"),
+      path.join(this.pluginsDir, "custom"),
       this.tempDir,
     ];
 
@@ -61,7 +61,7 @@ class PluginLoader {
         return source; // 开发模式：直接使用本地目录
       }
 
-      if (stat.isFile() && source.endsWith('.zip')) {
+      if (stat.isFile() && source.endsWith(".zip")) {
         logger.info(`[PluginLoader] 识别为ZIP文件: ${source}`);
         // 解压ZIP到临时目录
         const extractPath = path.join(this.tempDir, `extract_${Date.now()}`);
@@ -86,7 +86,9 @@ class PluginLoader {
    */
   isNpmPackage(source) {
     // NPM包名格式: package-name 或 @scope/package-name
-    return /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(source);
+    return /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(
+      source,
+    );
   }
 
   /**
@@ -95,19 +97,19 @@ class PluginLoader {
    * @returns {Promise<Object>} manifest对象
    */
   async loadManifest(pluginPath) {
-    const manifestPath = path.join(pluginPath, 'plugin.json');
+    const manifestPath = path.join(pluginPath, "plugin.json");
 
     if (!fs.existsSync(manifestPath)) {
       // 回退到 package.json
-      const packagePath = path.join(pluginPath, 'package.json');
+      const packagePath = path.join(pluginPath, "package.json");
       if (fs.existsSync(packagePath)) {
         return this.parsePackageJson(packagePath);
       }
 
-      throw new Error('找不到 plugin.json 或 package.json');
+      throw new Error("找不到 plugin.json 或 package.json");
     }
 
-    const content = fs.readFileSync(manifestPath, 'utf-8');
+    const content = fs.readFileSync(manifestPath, "utf-8");
     const manifest = JSON.parse(content);
 
     // 验证必需字段
@@ -122,12 +124,12 @@ class PluginLoader {
    * @returns {Object} manifest对象
    */
   parsePackageJson(packagePath) {
-    const content = fs.readFileSync(packagePath, 'utf-8');
+    const content = fs.readFileSync(packagePath, "utf-8");
     const pkg = JSON.parse(content);
 
     // 检查是否有chainlesschain配置节
     if (!pkg.chainlesschain) {
-      throw new Error('package.json中缺少chainlesschain配置节');
+      throw new Error("package.json中缺少chainlesschain配置节");
     }
 
     // 合并package.json和chainlesschain配置
@@ -139,7 +141,7 @@ class PluginLoader {
       description: pkg.description,
       homepage: pkg.homepage,
       license: pkg.license,
-      main: pkg.main || 'index.js',
+      main: pkg.main || "index.js",
       dependencies: pkg.dependencies || {},
       ...pkg.chainlesschain,
     };
@@ -153,7 +155,7 @@ class PluginLoader {
    * @throws {Error} 验证失败时抛出错误
    */
   validateManifest(manifest) {
-    const required = ['id', 'name', 'version'];
+    const required = ["id", "name", "version"];
 
     for (const field of required) {
       if (!manifest[field]) {
@@ -168,7 +170,9 @@ class PluginLoader {
 
     // 验证插件ID格式
     if (!/^[a-z0-9.-]+$/.test(manifest.id)) {
-      throw new Error(`无效的插件ID格式: ${manifest.id}，只能包含小写字母、数字、点和短横线`);
+      throw new Error(
+        `无效的插件ID格式: ${manifest.id}，只能包含小写字母、数字、点和短横线`,
+      );
     }
 
     logger.info(`[PluginLoader] Manifest验证通过: ${manifest.id}`);
@@ -181,7 +185,7 @@ class PluginLoader {
    * @returns {Promise<string>} 安装后的路径
    */
   async install(sourcePath, manifest) {
-    const category = manifest.category || 'custom';
+    const category = manifest.category || "custom";
     const targetPath = path.join(this.pluginsDir, category, manifest.id);
 
     logger.info(`[PluginLoader] 安装插件: ${manifest.id} -> ${targetPath}`);
@@ -199,7 +203,10 @@ class PluginLoader {
     await this.copyDirectory(sourcePath, targetPath);
 
     // 安装NPM依赖（如果有）
-    if (manifest.dependencies && Object.keys(manifest.dependencies).length > 0) {
+    if (
+      manifest.dependencies &&
+      Object.keys(manifest.dependencies).length > 0
+    ) {
       logger.info(`[PluginLoader] 安装NPM依赖...`);
       await this.installNpmDependencies(targetPath);
     }
@@ -217,7 +224,7 @@ class PluginLoader {
    */
   async installFromNpm(packageName, options = {}) {
     const { version } = options;
-    const versionSuffix = version ? `@${version}` : '';
+    const versionSuffix = version ? `@${version}` : "";
     const fullPackage = `${packageName}${versionSuffix}`;
 
     const installPath = path.join(this.tempDir, `npm_${Date.now()}`);
@@ -226,10 +233,15 @@ class PluginLoader {
     logger.info(`[PluginLoader] 从NPM安装: ${fullPackage}`);
 
     // 执行 npm install
-    await this.execCommand('npm', ['install', fullPackage, '--prefix', installPath]);
+    await this.execCommand("npm", [
+      "install",
+      fullPackage,
+      "--prefix",
+      installPath,
+    ]);
 
     // 返回安装后的路径
-    const packagePath = path.join(installPath, 'node_modules', packageName);
+    const packagePath = path.join(installPath, "node_modules", packageName);
 
     if (!fs.existsSync(packagePath)) {
       throw new Error(`NPM安装失败，包不存在: ${packagePath}`);
@@ -245,7 +257,7 @@ class PluginLoader {
    */
   async loadCode(pluginPath) {
     const manifest = await this.loadManifest(pluginPath);
-    const entryFile = manifest.main || 'index.js';
+    const entryFile = manifest.main || "index.js";
     const entryPath = path.join(pluginPath, entryFile);
 
     if (!fs.existsSync(entryPath)) {
@@ -253,7 +265,7 @@ class PluginLoader {
     }
 
     // 读取代码
-    const code = fs.readFileSync(entryPath, 'utf-8');
+    const code = fs.readFileSync(entryPath, "utf-8");
 
     return {
       code,
@@ -282,7 +294,7 @@ class PluginLoader {
   async extractZip(zipPath, extractPath) {
     // 使用 adm-zip 库（需要安装）
     try {
-      const AdmZip = require('adm-zip');
+      const AdmZip = require("adm-zip");
       const zip = new AdmZip(zipPath);
 
       fs.mkdirSync(extractPath, { recursive: true });
@@ -291,13 +303,13 @@ class PluginLoader {
       logger.info(`[PluginLoader] ZIP解压成功: ${extractPath}`);
     } catch (error) {
       // 如果没有 adm-zip，使用系统命令
-      if (process.platform === 'win32') {
-        await this.execCommand('powershell', [
-          '-Command',
-          `Expand-Archive -Path "${zipPath}" -DestinationPath "${extractPath}" -Force`
+      if (process.platform === "win32") {
+        await this.execCommand("powershell", [
+          "-Command",
+          `Expand-Archive -Path "${zipPath}" -DestinationPath "${extractPath}" -Force`,
         ]);
       } else {
-        await this.execCommand('unzip', ['-q', zipPath, '-d', extractPath]);
+        await this.execCommand("unzip", ["-q", zipPath, "-d", extractPath]);
       }
     }
   }
@@ -315,7 +327,7 @@ class PluginLoader {
       const destPath = path.join(dest, entry.name);
 
       // 跳过 node_modules（会重新安装）
-      if (entry.name === 'node_modules') {
+      if (entry.name === "node_modules") {
         continue;
       }
 
@@ -334,29 +346,29 @@ class PluginLoader {
    */
   async installNpmDependencies(pluginPath) {
     return new Promise((resolve, reject) => {
-      const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+      const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 
-      const child = spawn(npm, ['install', '--production'], {
+      const child = spawn(npm, ["install", "--production"], {
         cwd: pluginPath,
-        stdio: 'pipe',
+        stdio: "pipe",
       });
 
-      let output = '';
+      let output = "";
 
-      child.stdout.on('data', (data) => {
+      child.stdout.on("data", (data) => {
         output += data.toString();
       });
 
-      child.stderr.on('data', (data) => {
+      child.stderr.on("data", (data) => {
         output += data.toString();
       });
 
-      child.on('close', (code) => {
+      child.on("close", (code) => {
         if (code === 0) {
-          logger.info('[PluginLoader] NPM依赖安装成功');
+          logger.info("[PluginLoader] NPM依赖安装成功");
           resolve();
         } else {
-          logger.error('[PluginLoader] NPM依赖安装失败:', output);
+          logger.error("[PluginLoader] NPM依赖安装失败:", output);
           reject(new Error(`NPM依赖安装失败，退出代码: ${code}`));
         }
       });
@@ -372,22 +384,22 @@ class PluginLoader {
   async execCommand(command, args = []) {
     return new Promise((resolve, reject) => {
       const child = spawn(command, args, {
-        stdio: 'pipe',
+        stdio: "pipe",
         shell: true,
       });
 
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
 
-      child.stdout.on('data', (data) => {
+      child.stdout.on("data", (data) => {
         stdout += data.toString();
       });
 
-      child.stderr.on('data', (data) => {
+      child.stderr.on("data", (data) => {
         stderr += data.toString();
       });
 
-      child.on('close', (code) => {
+      child.on("close", (code) => {
         if (code === 0) {
           resolve(stdout);
         } else {
@@ -395,7 +407,7 @@ class PluginLoader {
         }
       });
 
-      child.on('error', (error) => {
+      child.on("error", (error) => {
         reject(error);
       });
     });

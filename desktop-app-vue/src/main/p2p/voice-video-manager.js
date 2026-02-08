@@ -9,7 +9,7 @@
  * - 多人会议支持
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
 // Use wrtc-compat which provides WebRTC via werift (pure JavaScript, no native binaries)
@@ -72,9 +72,7 @@ function createMockWrtc() {
   class MockMediaStream {
     constructor(tracks = []) {
       this.id = `mock-stream-${Math.random().toString(36).slice(2)}`;
-      this._tracks = tracks.length
-        ? tracks.map((track) => ({ ...track }))
-        : [];
+      this._tracks = tracks.length ? tracks.map((track) => ({ ...track })) : [];
     }
 
     _ensureTrack(kind) {
@@ -233,7 +231,9 @@ class CallSession {
    * 获取通话时长（秒）
    */
   getDuration() {
-    if (!this.startTime) {return 0;}
+    if (!this.startTime) {
+      return 0;
+    }
     const endTime = this.endTime || Date.now();
     return Math.floor((endTime - this.startTime) / 1000);
   }
@@ -399,9 +399,13 @@ class VoiceVideoManager extends EventEmitter {
 
       // 更新统计
       this.stats.totalCalls++;
-      if (type === CallType.AUDIO) {this.stats.audioCallsCount++;}
-      else if (type === CallType.VIDEO) {this.stats.videoCallsCount++;}
-      else if (type === CallType.SCREEN) {this.stats.screenShareCount++;}
+      if (type === CallType.AUDIO) {
+        this.stats.audioCallsCount++;
+      } else if (type === CallType.VIDEO) {
+        this.stats.videoCallsCount++;
+      } else if (type === CallType.SCREEN) {
+        this.stats.screenShareCount++;
+      }
 
       return callId;
     } catch (error) {

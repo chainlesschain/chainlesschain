@@ -14,18 +14,11 @@
           :sub-title="errorSubtitle"
         >
           <template #icon>
-            <component
-              :is="errorIcon"
-              class="error-icon"
-            />
+            <component :is="errorIcon" class="error-icon" />
           </template>
 
           <template #extra>
-            <a-space
-              direction="vertical"
-              :size="12"
-              style="width: 100%"
-            >
+            <a-space direction="vertical" :size="12" style="width: 100%">
               <!-- 操作按钮 -->
               <a-space>
                 <a-button
@@ -37,26 +30,17 @@
                   {{ resetButtonText }}
                 </a-button>
 
-                <a-button
-                  v-if="showDetails"
-                  @click="toggleDetails"
-                >
+                <a-button v-if="showDetails" @click="toggleDetails">
                   <FileTextOutlined />
-                  {{ detailsVisible ? '隐藏详情' : '查看详情' }}
+                  {{ detailsVisible ? "隐藏详情" : "查看详情" }}
                 </a-button>
 
-                <a-button
-                  :loading="reporting"
-                  @click="handleReport"
-                >
+                <a-button :loading="reporting" @click="handleReport">
                   <BugOutlined />
                   报告问题
                 </a-button>
 
-                <a-button
-                  v-if="showHome"
-                  @click="handleGoHome"
-                >
+                <a-button v-if="showHome" @click="handleGoHome">
                   <HomeOutlined />
                   返回首页
                 </a-button>
@@ -74,7 +58,9 @@
                   stroke-color="#1890ff"
                 />
                 <div class="retry-text">
-                  {{ retryCount + 1 }}/{{ maxRetries }} 次重试，{{ retryCountdown }}秒后自动重试...
+                  {{ retryCount + 1 }}/{{ maxRetries }} 次重试，{{
+                    retryCountdown
+                  }}秒后自动重试...
                 </div>
               </div>
 
@@ -84,29 +70,27 @@
                   v-if="detailsVisible && errorDetails"
                   class="error-details"
                 >
-                  <a-tabs
-                    v-model:active-key="activeTab"
-                    size="small"
-                  >
+                  <a-tabs v-model:active-key="activeTab" size="small">
                     <!-- 错误信息 -->
-                    <a-tab-pane
-                      key="error"
-                      tab="错误信息"
-                    >
+                    <a-tab-pane key="error" tab="错误信息">
                       <div class="error-info">
                         <div class="info-item">
                           <span class="info-label">错误类型:</span>
                           <a-tag color="red">
-                            {{ errorInfo?.error?.name || 'Unknown' }}
+                            {{ errorInfo?.error?.name || "Unknown" }}
                           </a-tag>
                         </div>
                         <div class="info-item">
                           <span class="info-label">错误消息:</span>
-                          <span class="info-value">{{ errorInfo?.error?.message || '未知错误' }}</span>
+                          <span class="info-value">{{
+                            errorInfo?.error?.message || "未知错误"
+                          }}</span>
                         </div>
                         <div class="info-item">
                           <span class="info-label">发生时间:</span>
-                          <span class="info-value">{{ formatTime(errorInfo?.timestamp) }}</span>
+                          <span class="info-value">{{
+                            formatTime(errorInfo?.timestamp)
+                          }}</span>
                         </div>
                         <div class="info-item">
                           <span class="info-label">重试次数:</span>
@@ -116,37 +100,30 @@
                     </a-tab-pane>
 
                     <!-- 堆栈跟踪 -->
-                    <a-tab-pane
-                      key="stack"
-                      tab="堆栈跟踪"
-                    >
+                    <a-tab-pane key="stack" tab="堆栈跟踪">
                       <div class="stack-trace">
-                        <pre>{{ errorInfo?.error?.stack || '无堆栈信息' }}</pre>
+                        <pre>{{ errorInfo?.error?.stack || "无堆栈信息" }}</pre>
                       </div>
                     </a-tab-pane>
 
                     <!-- 组件信息 -->
-                    <a-tab-pane
-                      key="component"
-                      tab="组件信息"
-                    >
+                    <a-tab-pane key="component" tab="组件信息">
                       <div class="component-info">
                         <div class="info-item">
                           <span class="info-label">生命周期钩子:</span>
-                          <a-tag>{{ errorInfo?.info || 'unknown' }}</a-tag>
+                          <a-tag>{{ errorInfo?.info || "unknown" }}</a-tag>
                         </div>
                         <div class="info-item">
                           <span class="info-label">组件名称:</span>
-                          <span class="info-value">{{ getComponentName() }}</span>
+                          <span class="info-value">{{
+                            getComponentName()
+                          }}</span>
                         </div>
                       </div>
                     </a-tab-pane>
 
                     <!-- 环境信息 -->
-                    <a-tab-pane
-                      key="environment"
-                      tab="环境信息"
-                    >
+                    <a-tab-pane key="environment" tab="环境信息">
                       <div class="environment-info">
                         <div class="info-item">
                           <span class="info-label">浏览器:</span>
@@ -154,11 +131,15 @@
                         </div>
                         <div class="info-item">
                           <span class="info-label">URL:</span>
-                          <span class="info-value">{{ window.location.href }}</span>
+                          <span class="info-value">{{
+                            window.location.href
+                          }}</span>
                         </div>
                         <div class="info-item">
                           <span class="info-label">User Agent:</span>
-                          <span class="info-value small">{{ navigator.userAgent }}</span>
+                          <span class="info-value small">{{
+                            navigator.userAgent
+                          }}</span>
                         </div>
                       </div>
                     </a-tab-pane>
@@ -166,10 +147,7 @@
 
                   <!-- 复制按钮 -->
                   <div class="details-actions">
-                    <a-button
-                      size="small"
-                      @click="copyErrorDetails"
-                    >
+                    <a-button size="small" @click="copyErrorDetails">
                       <CopyOutlined />
                       复制错误信息
                     </a-button>
@@ -185,10 +163,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onErrorCaptured, provide, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onErrorCaptured, provide, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   ReloadOutlined,
   FileTextOutlined,
@@ -198,30 +176,30 @@ import {
   CloseCircleOutlined,
   WarningOutlined,
   ExclamationCircleOutlined,
-} from '@ant-design/icons-vue';
-import { handleError } from '@/utils/errorHandler';
+} from "@ant-design/icons-vue";
+import { handleError } from "@/utils/errorHandler";
 
 const props = defineProps({
   // 错误标题
   errorTitle: {
     type: String,
-    default: '组件渲染失败',
+    default: "组件渲染失败",
   },
   // 错误副标题
   errorSubtitle: {
     type: String,
-    default: '抱歉，该组件遇到错误无法正常显示',
+    default: "抱歉，该组件遇到错误无法正常显示",
   },
   // 错误状态: error, warning, info
   errorStatus: {
     type: String,
-    default: 'error',
-    validator: (value) => ['error', 'warning', 'info'].includes(value),
+    default: "error",
+    validator: (value) => ["error", "warning", "info"].includes(value),
   },
   // 是否显示详细错误信息
   showDetails: {
     type: Boolean,
-    default: process.env.NODE_ENV === 'development',
+    default: process.env.NODE_ENV === "development",
   },
   // 是否显示返回首页按钮
   showHome: {
@@ -236,7 +214,7 @@ const props = defineProps({
   // 重置按钮文本
   resetButtonText: {
     type: String,
-    default: '重新加载',
+    default: "重新加载",
   },
   // 自定义错误处理函数
   onError: {
@@ -275,16 +253,16 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['error', 'reset', 'report', 'go-home']);
+const emit = defineEmits(["error", "reset", "report", "go-home"]);
 
 const hasError = ref(false);
-const errorDetails = ref('');
+const errorDetails = ref("");
 const detailsVisible = ref(false);
 const errorInfo = ref(null);
 const retryCount = ref(0);
 const resetting = ref(false);
 const reporting = ref(false);
-const activeTab = ref('error');
+const activeTab = ref("error");
 const retryCountdown = ref(0);
 const retryProgress = ref(0);
 let retryTimer = null;
@@ -301,9 +279,9 @@ const errorIcon = computed(() => {
 
 // 捕获子组件错误
 onErrorCaptured((err, instance, info) => {
-  logger.error('[EnhancedErrorBoundary] Captured error:', err);
-  logger.error('[EnhancedErrorBoundary] Error info:', info);
-  logger.error('[EnhancedErrorBoundary] Component instance:', instance);
+  logger.error("[EnhancedErrorBoundary] Captured error:", err);
+  logger.error("[EnhancedErrorBoundary] Error info:", info);
+  logger.error("[EnhancedErrorBoundary] Component instance:", instance);
 
   hasError.value = true;
   errorInfo.value = {
@@ -317,7 +295,7 @@ onErrorCaptured((err, instance, info) => {
   errorDetails.value = `错误类型: ${err.name}
 错误消息: ${err.message}
 错误堆栈:
-${err.stack || '无堆栈信息'}
+${err.stack || "无堆栈信息"}
 
 生命周期钩子: ${info}
 时间: ${new Date().toLocaleString()}
@@ -329,7 +307,7 @@ ${err.stack || '无堆栈信息'}
       showMessage: false,
       logToFile: true,
       context: {
-        component: 'EnhancedErrorBoundary',
+        component: "EnhancedErrorBoundary",
         componentInfo: info,
         retryCount: retryCount.value,
       },
@@ -342,7 +320,7 @@ ${err.stack || '无堆栈信息'}
   }
 
   // 触发error事件
-  emit('error', { error: err, instance, info });
+  emit("error", { error: err, instance, info });
 
   // 自动重试逻辑
   if (props.autoRetry && retryCount.value < props.maxRetries) {
@@ -397,12 +375,12 @@ const handleReset = async () => {
     }
 
     // 触发reset事件
-    emit('reset');
+    emit("reset");
 
     // 延迟重置状态，给用户视觉反馈
     setTimeout(() => {
       hasError.value = false;
-      errorDetails.value = '';
+      errorDetails.value = "";
       detailsVisible.value = false;
       errorInfo.value = null;
       resetting.value = false;
@@ -410,8 +388,8 @@ const handleReset = async () => {
       retryProgress.value = 0;
     }, 300);
   } catch (error) {
-    logger.error('[EnhancedErrorBoundary] Reset failed:', error);
-    message.error('重置失败，请刷新页面');
+    logger.error("[EnhancedErrorBoundary] Reset failed:", error);
+    message.error("重置失败，请刷新页面");
     resetting.value = false;
   }
 };
@@ -440,20 +418,20 @@ const handleReport = async () => {
     }
 
     // 触发report事件
-    emit('report', report);
+    emit("report", report);
 
     // 复制错误信息到剪贴板
     const reportText = JSON.stringify(report, null, 2);
     await navigator.clipboard.writeText(reportText);
-    message.success('错误信息已复制到剪贴板');
+    message.success("错误信息已复制到剪贴板");
 
     // 上报到日志服务
     if (window.electronAPI && window.electronAPI.logError) {
       await window.electronAPI.logError(report);
     }
   } catch (error) {
-    logger.error('[EnhancedErrorBoundary] Report failed:', error);
-    message.error('报告失败，请手动复制错误信息');
+    logger.error("[EnhancedErrorBoundary] Report failed:", error);
+    message.error("报告失败，请手动复制错误信息");
   } finally {
     reporting.value = false;
   }
@@ -461,9 +439,9 @@ const handleReport = async () => {
 
 // 返回首页
 const handleGoHome = () => {
-  emit('go-home');
+  emit("go-home");
   if (window.$router) {
-    window.$router.push('/');
+    window.$router.push("/");
   }
 };
 
@@ -471,53 +449,68 @@ const handleGoHome = () => {
 const copyErrorDetails = async () => {
   try {
     await navigator.clipboard.writeText(errorDetails.value);
-    message.success('错误详情已复制到剪贴板');
+    message.success("错误详情已复制到剪贴板");
   } catch (error) {
-    logger.error('[EnhancedErrorBoundary] Copy failed:', error);
-    message.error('复制失败');
+    logger.error("[EnhancedErrorBoundary] Copy failed:", error);
+    message.error("复制失败");
   }
 };
 
 // 获取组件名称
 const getComponentName = () => {
   const instance = errorInfo.value?.instance;
-  if (!instance) {return 'Unknown';}
-  return instance.$options?.name || instance.$options?.__name || 'Anonymous';
+  if (!instance) {
+    return "Unknown";
+  }
+  return instance.$options?.name || instance.$options?.__name || "Anonymous";
 };
 
 // 获取浏览器信息
 const getBrowserInfo = () => {
   const ua = navigator.userAgent;
-  if (ua.includes('Chrome')) {return 'Chrome';}
-  if (ua.includes('Firefox')) {return 'Firefox';}
-  if (ua.includes('Safari')) {return 'Safari';}
-  if (ua.includes('Edge')) {return 'Edge';}
-  return 'Unknown';
+  if (ua.includes("Chrome")) {
+    return "Chrome";
+  }
+  if (ua.includes("Firefox")) {
+    return "Firefox";
+  }
+  if (ua.includes("Safari")) {
+    return "Safari";
+  }
+  if (ua.includes("Edge")) {
+    return "Edge";
+  }
+  return "Unknown";
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) {return 'Unknown';}
-  return new Date(timestamp).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  if (!timestamp) {
+    return "Unknown";
+  }
+  return new Date(timestamp).toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };
 
 // 提供重置方法给子组件
-provide('errorBoundaryReset', handleReset);
+provide("errorBoundaryReset", handleReset);
 
 // 清理定时器
-watch(() => hasError.value, (newVal) => {
-  if (!newVal && retryTimer) {
-    clearInterval(retryTimer);
-    retryTimer = null;
-  }
-});
+watch(
+  () => hasError.value,
+  (newVal) => {
+    if (!newVal && retryTimer) {
+      clearInterval(retryTimer);
+      retryTimer = null;
+    }
+  },
+);
 </script>
 
 <style scoped lang="scss">
@@ -619,7 +612,7 @@ watch(() => hasError.value, (newVal) => {
 
     pre {
       margin: 0;
-      font-family: 'Courier New', Courier, monospace;
+      font-family: "Courier New", Courier, monospace;
       font-size: 12px;
       line-height: 1.6;
       color: #262626;

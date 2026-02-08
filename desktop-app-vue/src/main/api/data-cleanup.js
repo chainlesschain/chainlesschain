@@ -5,8 +5,8 @@
  * v0.20.1: 新增数据清理功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { EventEmitter } = require('events');
+const { logger } = require("../utils/logger.js");
+const { EventEmitter } = require("events");
 
 class DataCleanupManager extends EventEmitter {
   constructor(database) {
@@ -22,21 +22,21 @@ class DataCleanupManager extends EventEmitter {
    */
   startAutoCleanup(intervalMs = 24 * 60 * 60 * 1000) {
     if (this.cleanupInterval) {
-      logger.info('[DataCleanup] 自动清理任务已在运行');
+      logger.info("[DataCleanup] 自动清理任务已在运行");
       return;
     }
 
     logger.info(`[DataCleanup] 启动自动清理任务，间隔: ${intervalMs}ms`);
 
     // 立即执行一次清理
-    this.runCleanup().catch(error => {
-      logger.error('[DataCleanup] 初始清理失败:', error);
+    this.runCleanup().catch((error) => {
+      logger.error("[DataCleanup] 初始清理失败:", error);
     });
 
     // 设置定时清理
     this.cleanupInterval = setInterval(() => {
-      this.runCleanup().catch(error => {
-        logger.error('[DataCleanup] 定时清理失败:', error);
+      this.runCleanup().catch((error) => {
+        logger.error("[DataCleanup] 定时清理失败:", error);
       });
     }, intervalMs);
   }
@@ -48,7 +48,7 @@ class DataCleanupManager extends EventEmitter {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
-      logger.info('[DataCleanup] 自动清理任务已停止');
+      logger.info("[DataCleanup] 自动清理任务已停止");
     }
   }
 
@@ -56,8 +56,8 @@ class DataCleanupManager extends EventEmitter {
    * 执行清理任务
    */
   async runCleanup() {
-    logger.info('[DataCleanup] 开始执行数据清理...');
-    this.emit('cleanup-start');
+    logger.info("[DataCleanup] 开始执行数据清理...");
+    this.emit("cleanup-start");
 
     const results = {
       rssItems: 0,
@@ -76,14 +76,14 @@ class DataCleanupManager extends EventEmitter {
       // 清理孤立的附件
       results.attachments = await this.cleanupOrphanedAttachments();
 
-      logger.info('[DataCleanup] 清理完成:', results);
-      this.emit('cleanup-complete', results);
+      logger.info("[DataCleanup] 清理完成:", results);
+      this.emit("cleanup-complete", results);
 
       return results;
     } catch (error) {
-      logger.error('[DataCleanup] 清理失败:', error);
+      logger.error("[DataCleanup] 清理失败:", error);
       results.errors.push(error.message);
-      this.emit('cleanup-error', error);
+      this.emit("cleanup-error", error);
       throw error;
     }
   }
@@ -93,23 +93,27 @@ class DataCleanupManager extends EventEmitter {
    * @param {number} retentionDays - 保留天数，默认30天
    */
   async cleanupOldRSSItems(retentionDays = this.defaultRetentionDays) {
-    const cutoffTime = Date.now() - (retentionDays * 24 * 60 * 60 * 1000);
+    const cutoffTime = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
     try {
       // 删除未标星、未归档的旧文章
-      const result = this.database.db.prepare(`
+      const result = this.database.db
+        .prepare(
+          `
         DELETE FROM rss_items
         WHERE is_archived = 0
           AND is_starred = 0
           AND created_at < ?
-      `).run(cutoffTime);
+      `,
+        )
+        .run(cutoffTime);
 
       const deletedCount = result.changes || 0;
       logger.info(`[DataCleanup] 清理了 ${deletedCount} 条旧的 RSS 文章`);
 
       return deletedCount;
     } catch (error) {
-      logger.error('[DataCleanup] 清理 RSS 文章失败:', error);
+      logger.error("[DataCleanup] 清理 RSS 文章失败:", error);
       throw error;
     }
   }
@@ -119,22 +123,26 @@ class DataCleanupManager extends EventEmitter {
    * @param {number} retentionDays - 保留天数，默认30天
    */
   async cleanupOldEmails(retentionDays = this.defaultRetentionDays) {
-    const cutoffTime = Date.now() - (retentionDays * 24 * 60 * 60 * 1000);
+    const cutoffTime = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
     try {
       // 删除已归档的旧邮件
-      const result = this.database.db.prepare(`
+      const result = this.database.db
+        .prepare(
+          `
         DELETE FROM emails
         WHERE is_archived = 1
           AND created_at < ?
-      `).run(cutoffTime);
+      `,
+        )
+        .run(cutoffTime);
 
       const deletedCount = result.changes || 0;
       logger.info(`[DataCleanup] 清理了 ${deletedCount} 封旧邮件`);
 
       return deletedCount;
     } catch (error) {
-      logger.error('[DataCleanup] 清理邮件失败:', error);
+      logger.error("[DataCleanup] 清理邮件失败:", error);
       throw error;
     }
   }
@@ -145,17 +153,21 @@ class DataCleanupManager extends EventEmitter {
   async cleanupOrphanedAttachments() {
     try {
       // 删除没有对应邮件的附件
-      const result = this.database.db.prepare(`
+      const result = this.database.db
+        .prepare(
+          `
         DELETE FROM email_attachments
         WHERE email_id NOT IN (SELECT id FROM emails)
-      `).run();
+      `,
+        )
+        .run();
 
       const deletedCount = result.changes || 0;
       logger.info(`[DataCleanup] 清理了 ${deletedCount} 个孤立附件`);
 
       return deletedCount;
     } catch (error) {
-      logger.error('[DataCleanup] 清理孤立附件失败:', error);
+      logger.error("[DataCleanup] 清理孤立附件失败:", error);
       throw error;
     }
   }
@@ -182,47 +194,74 @@ class DataCleanupManager extends EventEmitter {
       };
 
       // RSS 统计
-      const rssTotal = this.database.db.prepare('SELECT COUNT(*) as count FROM rss_items').get();
+      const rssTotal = this.database.db
+        .prepare("SELECT COUNT(*) as count FROM rss_items")
+        .get();
       stats.rss.totalItems = rssTotal.count;
 
-      const rssStarred = this.database.db.prepare('SELECT COUNT(*) as count FROM rss_items WHERE is_starred = 1').get();
+      const rssStarred = this.database.db
+        .prepare("SELECT COUNT(*) as count FROM rss_items WHERE is_starred = 1")
+        .get();
       stats.rss.starredItems = rssStarred.count;
 
-      const rssArchived = this.database.db.prepare('SELECT COUNT(*) as count FROM rss_items WHERE is_archived = 1').get();
+      const rssArchived = this.database.db
+        .prepare(
+          "SELECT COUNT(*) as count FROM rss_items WHERE is_archived = 1",
+        )
+        .get();
       stats.rss.archivedItems = rssArchived.count;
 
-      const cutoffTime = Date.now() - (this.defaultRetentionDays * 24 * 60 * 60 * 1000);
-      const rssOld = this.database.db.prepare(`
+      const cutoffTime =
+        Date.now() - this.defaultRetentionDays * 24 * 60 * 60 * 1000;
+      const rssOld = this.database.db
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM rss_items
         WHERE is_archived = 0 AND is_starred = 0 AND created_at < ?
-      `).get(cutoffTime);
+      `,
+        )
+        .get(cutoffTime);
       stats.rss.oldItems = rssOld.count;
 
       // 邮件统计
-      const emailTotal = this.database.db.prepare('SELECT COUNT(*) as count FROM emails').get();
+      const emailTotal = this.database.db
+        .prepare("SELECT COUNT(*) as count FROM emails")
+        .get();
       stats.email.totalEmails = emailTotal.count;
 
-      const emailArchived = this.database.db.prepare('SELECT COUNT(*) as count FROM emails WHERE is_archived = 1').get();
+      const emailArchived = this.database.db
+        .prepare("SELECT COUNT(*) as count FROM emails WHERE is_archived = 1")
+        .get();
       stats.email.archivedEmails = emailArchived.count;
 
-      const emailOld = this.database.db.prepare(`
+      const emailOld = this.database.db
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM emails
         WHERE is_archived = 1 AND created_at < ?
-      `).get(cutoffTime);
+      `,
+        )
+        .get(cutoffTime);
       stats.email.oldEmails = emailOld.count;
 
-      const attachmentTotal = this.database.db.prepare('SELECT COUNT(*) as count FROM email_attachments').get();
+      const attachmentTotal = this.database.db
+        .prepare("SELECT COUNT(*) as count FROM email_attachments")
+        .get();
       stats.email.totalAttachments = attachmentTotal.count;
 
-      const orphanedAttachments = this.database.db.prepare(`
+      const orphanedAttachments = this.database.db
+        .prepare(
+          `
         SELECT COUNT(*) as count FROM email_attachments
         WHERE email_id NOT IN (SELECT id FROM emails)
-      `).get();
+      `,
+        )
+        .get();
       stats.email.orphanedAttachments = orphanedAttachments.count;
 
       return stats;
     } catch (error) {
-      logger.error('[DataCleanup] 获取数据统计失败:', error);
+      logger.error("[DataCleanup] 获取数据统计失败:", error);
       throw error;
     }
   }

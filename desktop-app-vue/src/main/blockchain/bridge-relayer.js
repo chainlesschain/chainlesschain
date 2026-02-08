@@ -9,9 +9,9 @@
  * - Provides relayer incentives tracking
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const { ethers } = require('ethers');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const { ethers } = require("ethers");
 
 /**
  * Relayer configuration
@@ -29,11 +29,11 @@ const RELAYER_CONFIG = {
 
   // Gas optimization
   GAS_PRICE_MULTIPLIER: 1.1, // 10% above current gas price
-  MAX_GAS_PRICE: ethers.parseUnits('500', 'gwei'),
+  MAX_GAS_PRICE: ethers.parseUnits("500", "gwei"),
 
   // Relayer rewards
   BASE_FEE_PERCENTAGE: 0.1, // 0.1% of transfer amount
-  MIN_FEE: ethers.parseEther('0.001'),
+  MIN_FEE: ethers.parseEther("0.001"),
 };
 
 /**
@@ -61,7 +61,7 @@ class BridgeRelayer extends EventEmitter {
       successfulRelays: 0,
       failedRelays: 0,
       totalFeesEarned: BigInt(0),
-      averageRelayTime: 0
+      averageRelayTime: 0,
     };
   }
 
@@ -70,7 +70,7 @@ class BridgeRelayer extends EventEmitter {
    */
   async initialize() {
     if (this.initialized) {
-      logger.info('[BridgeRelayer] Already initialized');
+      logger.info("[BridgeRelayer] Already initialized");
       return;
     }
 
@@ -80,9 +80,9 @@ class BridgeRelayer extends EventEmitter {
       await this.loadPendingRelays();
 
       this.initialized = true;
-      logger.info('[BridgeRelayer] Initialized successfully');
+      logger.info("[BridgeRelayer] Initialized successfully");
     } catch (error) {
-      logger.error('[BridgeRelayer] Initialization failed:', error);
+      logger.error("[BridgeRelayer] Initialization failed:", error);
       throw error;
     }
   }
@@ -133,7 +133,7 @@ class BridgeRelayer extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_relayer_stats_date ON bridge_relayer_stats(date);
     `);
 
-    logger.info('[BridgeRelayer] Database tables initialized');
+    logger.info("[BridgeRelayer] Database tables initialized");
   }
 
   /**
@@ -145,14 +145,20 @@ class BridgeRelayer extends EventEmitter {
       const chains = this.adapter.getSupportedChains();
 
       for (const chain of chains) {
-        if (!chain.isConnected) {continue;}
+        if (!chain.isConnected) {
+          continue;
+        }
 
         // Get latest processed block from database
-        const result = db.prepare(`
+        const result = db
+          .prepare(
+            `
           SELECT MAX(block_number) as last_block
           FROM bridge_relay_tasks
           WHERE source_chain_id = ?
-        `).get(chain.chainId);
+        `,
+          )
+          .get(chain.chainId);
 
         if (result && result.last_block) {
           this.lastProcessedBlocks.set(chain.chainId, result.last_block);
@@ -165,9 +171,12 @@ class BridgeRelayer extends EventEmitter {
         }
       }
 
-      logger.info('[BridgeRelayer] Last processed blocks loaded');
+      logger.info("[BridgeRelayer] Last processed blocks loaded");
     } catch (error) {
-      logger.error('[BridgeRelayer] Failed to load last processed blocks:', error);
+      logger.error(
+        "[BridgeRelayer] Failed to load last processed blocks:",
+        error,
+      );
     }
   }
 
@@ -177,23 +186,27 @@ class BridgeRelayer extends EventEmitter {
   async loadPendingRelays() {
     try {
       const db = this.database.db;
-      const pending = db.prepare(`
+      const pending = db
+        .prepare(
+          `
         SELECT * FROM bridge_relay_tasks
         WHERE status IN ('pending', 'processing')
         ORDER BY created_at ASC
-      `).all();
+      `,
+        )
+        .all();
 
       for (const task of pending) {
         this.pendingRelays.set(task.request_id, {
           ...task,
           amount: BigInt(task.amount),
-          relayerFee: task.relayer_fee ? BigInt(task.relayer_fee) : BigInt(0)
+          relayerFee: task.relayer_fee ? BigInt(task.relayer_fee) : BigInt(0),
         });
       }
 
       logger.info(`[BridgeRelayer] Loaded ${pending.length} pending relays`);
     } catch (error) {
-      logger.error('[BridgeRelayer] Failed to load pending relays:', error);
+      logger.error("[BridgeRelayer] Failed to load pending relays:", error);
     }
   }
 
@@ -202,7 +215,7 @@ class BridgeRelayer extends EventEmitter {
    */
   async start() {
     if (this.isRunning) {
-      logger.info('[BridgeRelayer] Already running');
+      logger.info("[BridgeRelayer] Already running");
       return;
     }
 
@@ -211,7 +224,7 @@ class BridgeRelayer extends EventEmitter {
     }
 
     this.isRunning = true;
-    logger.info('[BridgeRelayer] Starting relayer...');
+    logger.info("[BridgeRelayer] Starting relayer...");
 
     // Start monitoring loop
     this.monitoringLoop();
@@ -219,7 +232,7 @@ class BridgeRelayer extends EventEmitter {
     // Start processing loop
     this.processingLoop();
 
-    this.emit('relayer-started');
+    this.emit("relayer-started");
   }
 
   /**
@@ -227,9 +240,9 @@ class BridgeRelayer extends EventEmitter {
    */
   async stop() {
     this.isRunning = false;
-    logger.info('[BridgeRelayer] Stopping relayer...');
+    logger.info("[BridgeRelayer] Stopping relayer...");
 
-    this.emit('relayer-stopped');
+    this.emit("relayer-stopped");
   }
 
   /**
@@ -240,11 +253,13 @@ class BridgeRelayer extends EventEmitter {
       try {
         await this.scanForLockEvents();
       } catch (error) {
-        logger.error('[BridgeRelayer] Monitoring error:', error);
+        logger.error("[BridgeRelayer] Monitoring error:", error);
       }
 
       // Wait before next scan
-      await new Promise(resolve => setTimeout(resolve, RELAYER_CONFIG.POLL_INTERVAL));
+      await new Promise((resolve) =>
+        setTimeout(resolve, RELAYER_CONFIG.POLL_INTERVAL),
+      );
     }
   }
 
@@ -259,11 +274,11 @@ class BridgeRelayer extends EventEmitter {
           await this.processRelay(requestId);
         }
       } catch (error) {
-        logger.error('[BridgeRelayer] Processing error:', error);
+        logger.error("[BridgeRelayer] Processing error:", error);
       }
 
       // Wait before next process
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 
@@ -274,12 +289,17 @@ class BridgeRelayer extends EventEmitter {
     const chains = this.adapter.getSupportedChains();
 
     for (const chain of chains) {
-      if (!chain.isConnected) {continue;}
+      if (!chain.isConnected) {
+        continue;
+      }
 
       try {
         await this.scanChainForLockEvents(chain.chainId);
       } catch (error) {
-        logger.error(`[BridgeRelayer] Error scanning chain ${chain.chainId}:`, error);
+        logger.error(
+          `[BridgeRelayer] Error scanning chain ${chain.chainId}:`,
+          error,
+        );
       }
     }
   }
@@ -299,33 +319,38 @@ class BridgeRelayer extends EventEmitter {
 
     // Get current block
     const currentBlock = await provider.getBlockNumber();
-    const lastProcessed = this.lastProcessedBlocks.get(chainId) || currentBlock - 100;
+    const lastProcessed =
+      this.lastProcessedBlocks.get(chainId) || currentBlock - 100;
 
     // Calculate scan range
     const fromBlock = lastProcessed + 1;
     const toBlock = Math.min(
       fromBlock + RELAYER_CONFIG.MAX_BLOCKS_TO_SCAN,
-      currentBlock - RELAYER_CONFIG.CONFIRMATION_BLOCKS
+      currentBlock - RELAYER_CONFIG.CONFIRMATION_BLOCKS,
     );
 
     if (fromBlock > toBlock) {
       return; // Nothing to scan
     }
 
-    logger.info(`[BridgeRelayer] Scanning chain ${chainId} blocks ${fromBlock} to ${toBlock}`);
+    logger.info(
+      `[BridgeRelayer] Scanning chain ${chainId} blocks ${fromBlock} to ${toBlock}`,
+    );
 
     // Get bridge contract instance
     const contract = new ethers.Contract(
       bridgeContract,
       this.bridgeManager.bridgeABI,
-      provider
+      provider,
     );
 
     // Query AssetLocked events
     const filter = contract.filters.AssetLocked();
     const events = await contract.queryFilter(filter, fromBlock, toBlock);
 
-    logger.info(`[BridgeRelayer] Found ${events.length} lock events on chain ${chainId}`);
+    logger.info(
+      `[BridgeRelayer] Found ${events.length} lock events on chain ${chainId}`,
+    );
 
     // Process each event
     for (const event of events) {
@@ -343,17 +368,20 @@ class BridgeRelayer extends EventEmitter {
     try {
       const { requestId, sender, asset, amount, targetChainId } = event.args;
 
-      logger.info('[BridgeRelayer] Processing lock event:', {
+      logger.info("[BridgeRelayer] Processing lock event:", {
         requestId,
         sender,
         asset,
         amount: amount.toString(),
-        targetChainId: targetChainId.toString()
+        targetChainId: targetChainId.toString(),
       });
 
       // Check if already processed
       if (this.pendingRelays.has(requestId)) {
-        logger.info('[BridgeRelayer] Request already being processed:', requestId);
+        logger.info(
+          "[BridgeRelayer] Request already being processed:",
+          requestId,
+        );
         return;
       }
 
@@ -369,10 +397,10 @@ class BridgeRelayer extends EventEmitter {
         asset_address: asset,
         recipient: sender,
         amount: amount.toString(),
-        status: 'pending',
+        status: "pending",
         retry_count: 0,
         relayer_fee: relayerFee.toString(),
-        created_at: Date.now()
+        created_at: Date.now(),
       };
 
       // Save to database
@@ -382,15 +410,15 @@ class BridgeRelayer extends EventEmitter {
       this.pendingRelays.set(requestId, {
         ...relayTask,
         amount: BigInt(relayTask.amount),
-        relayerFee: BigInt(relayTask.relayer_fee)
+        relayerFee: BigInt(relayTask.relayer_fee),
       });
 
       // Add to processing queue
       this.processingQueue.push(requestId);
 
-      this.emit('lock-detected', relayTask);
+      this.emit("lock-detected", relayTask);
     } catch (error) {
-      logger.error('[BridgeRelayer] Error handling lock event:', error);
+      logger.error("[BridgeRelayer] Error handling lock event:", error);
     }
   }
 
@@ -400,22 +428,22 @@ class BridgeRelayer extends EventEmitter {
   async processRelay(requestId) {
     const relayTask = this.pendingRelays.get(requestId);
     if (!relayTask) {
-      logger.warn('[BridgeRelayer] Relay task not found:', requestId);
+      logger.warn("[BridgeRelayer] Relay task not found:", requestId);
       return;
     }
 
-    logger.info('[BridgeRelayer] Processing relay:', requestId);
+    logger.info("[BridgeRelayer] Processing relay:", requestId);
 
     const startTime = Date.now();
 
     try {
       // Update status to processing
-      await this.updateRelayTask(requestId, { status: 'processing' });
+      await this.updateRelayTask(requestId, { status: "processing" });
 
       // Verify source transaction
       const verified = await this.verifySourceTransaction(relayTask);
       if (!verified) {
-        throw new Error('Source transaction verification failed');
+        throw new Error("Source transaction verification failed");
       }
 
       // Submit mint transaction on destination chain
@@ -429,9 +457,9 @@ class BridgeRelayer extends EventEmitter {
       const relayTime = completedAt - startTime;
 
       await this.updateRelayTask(requestId, {
-        status: 'completed',
+        status: "completed",
         dest_tx_hash: destTxHash,
-        completed_at: completedAt
+        completed_at: completedAt,
       });
 
       // Update statistics
@@ -439,22 +467,25 @@ class BridgeRelayer extends EventEmitter {
       this.stats.successfulRelays++;
       this.stats.totalFeesEarned += relayTask.relayerFee;
       this.stats.averageRelayTime =
-        (this.stats.averageRelayTime * (this.stats.successfulRelays - 1) + relayTime) /
+        (this.stats.averageRelayTime * (this.stats.successfulRelays - 1) +
+          relayTime) /
         this.stats.successfulRelays;
 
       // Remove from pending
       this.pendingRelays.delete(requestId);
 
-      this.emit('relay-completed', {
+      this.emit("relay-completed", {
         requestId,
         destTxHash,
         relayTime,
-        fee: relayTask.relayerFee.toString()
+        fee: relayTask.relayerFee.toString(),
       });
 
-      logger.info(`[BridgeRelayer] Relay completed: ${requestId} in ${relayTime}ms`);
+      logger.info(
+        `[BridgeRelayer] Relay completed: ${requestId} in ${relayTime}ms`,
+      );
     } catch (error) {
-      logger.error('[BridgeRelayer] Relay failed:', error);
+      logger.error("[BridgeRelayer] Relay failed:", error);
 
       // Handle retry
       const retryCount = relayTask.retry_count + 1;
@@ -462,9 +493,9 @@ class BridgeRelayer extends EventEmitter {
       if (retryCount < RELAYER_CONFIG.MAX_RETRIES) {
         // Retry
         await this.updateRelayTask(requestId, {
-          status: 'pending',
+          status: "pending",
           retry_count: retryCount,
-          error_message: error.message
+          error_message: error.message,
         });
 
         // Add back to queue with delay
@@ -476,12 +507,14 @@ class BridgeRelayer extends EventEmitter {
           this.processingQueue.push(requestId);
         }, delay);
 
-        logger.info(`[BridgeRelayer] Retry scheduled (${retryCount}/${RELAYER_CONFIG.MAX_RETRIES})`);
+        logger.info(
+          `[BridgeRelayer] Retry scheduled (${retryCount}/${RELAYER_CONFIG.MAX_RETRIES})`,
+        );
       } else {
         // Max retries reached, mark as failed
         await this.updateRelayTask(requestId, {
-          status: 'failed',
-          error_message: error.message
+          status: "failed",
+          error_message: error.message,
         });
 
         this.stats.totalRelayed++;
@@ -489,9 +522,9 @@ class BridgeRelayer extends EventEmitter {
 
         this.pendingRelays.delete(requestId);
 
-        this.emit('relay-failed', {
+        this.emit("relay-failed", {
           requestId,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -506,16 +539,18 @@ class BridgeRelayer extends EventEmitter {
       const provider = this.adapter.getProvider();
 
       // Get transaction receipt
-      const receipt = await provider.getTransactionReceipt(relayTask.source_tx_hash);
+      const receipt = await provider.getTransactionReceipt(
+        relayTask.source_tx_hash,
+      );
 
       if (!receipt) {
-        logger.error('[BridgeRelayer] Transaction receipt not found');
+        logger.error("[BridgeRelayer] Transaction receipt not found");
         return false;
       }
 
       // Check if transaction succeeded
       if (receipt.status !== 1) {
-        logger.error('[BridgeRelayer] Source transaction failed');
+        logger.error("[BridgeRelayer] Source transaction failed");
         return false;
       }
 
@@ -524,14 +559,16 @@ class BridgeRelayer extends EventEmitter {
       const confirmations = currentBlock - receipt.blockNumber;
 
       if (confirmations < RELAYER_CONFIG.CONFIRMATION_BLOCKS) {
-        logger.info(`[BridgeRelayer] Waiting for confirmations: ${confirmations}/${RELAYER_CONFIG.CONFIRMATION_BLOCKS}`);
+        logger.info(
+          `[BridgeRelayer] Waiting for confirmations: ${confirmations}/${RELAYER_CONFIG.CONFIRMATION_BLOCKS}`,
+        );
         return false;
       }
 
-      logger.info('[BridgeRelayer] Source transaction verified');
+      logger.info("[BridgeRelayer] Source transaction verified");
       return true;
     } catch (error) {
-      logger.error('[BridgeRelayer] Verification error:', error);
+      logger.error("[BridgeRelayer] Verification error:", error);
       return false;
     }
   }
@@ -540,28 +577,32 @@ class BridgeRelayer extends EventEmitter {
    * Submit mint transaction on destination chain
    */
   async submitMintTransaction(relayTask) {
-    logger.info('[BridgeRelayer] Submitting mint transaction...');
+    logger.info("[BridgeRelayer] Submitting mint transaction...");
 
     // Switch to destination chain
     await this.adapter.switchChain(relayTask.dest_chain_id);
 
     // Get bridge contract
-    const bridgeContract = this.bridgeManager.bridgeContracts.get(relayTask.dest_chain_id);
+    const bridgeContract = this.bridgeManager.bridgeContracts.get(
+      relayTask.dest_chain_id,
+    );
     if (!bridgeContract) {
-      throw new Error(`Bridge contract not found on chain ${relayTask.dest_chain_id}`);
+      throw new Error(
+        `Bridge contract not found on chain ${relayTask.dest_chain_id}`,
+      );
     }
 
     // Get relayer wallet (should be configured)
     // For now, use the first available wallet
     const wallets = await this.adapter.walletManager.listWallets();
     if (wallets.length === 0) {
-      throw new Error('No wallet available for relaying');
+      throw new Error("No wallet available for relaying");
     }
 
     const relayerWallet = wallets[0];
     const wallet = await this.adapter.walletManager.unlockWallet(
       relayerWallet.id,
-      process.env.RELAYER_PASSWORD || ''
+      process.env.RELAYER_PASSWORD || "",
     );
 
     const provider = this.adapter.getProvider();
@@ -571,7 +612,7 @@ class BridgeRelayer extends EventEmitter {
     const contract = new ethers.Contract(
       bridgeContract,
       this.bridgeManager.bridgeABI,
-      signer
+      signer,
     );
 
     // Get optimized gas price
@@ -586,11 +627,11 @@ class BridgeRelayer extends EventEmitter {
       relayTask.source_chain_id,
       {
         gasPrice,
-        gasLimit: 300000
-      }
+        gasLimit: 300000,
+      },
     );
 
-    logger.info('[BridgeRelayer] Mint transaction submitted:', tx.hash);
+    logger.info("[BridgeRelayer] Mint transaction submitted:", tx.hash);
 
     return tx.hash;
   }
@@ -604,22 +645,27 @@ class BridgeRelayer extends EventEmitter {
 
     const receipt = await provider.waitForTransaction(
       txHash,
-      RELAYER_CONFIG.CONFIRMATION_BLOCKS
+      RELAYER_CONFIG.CONFIRMATION_BLOCKS,
     );
 
     if (receipt.status !== 1) {
-      throw new Error('Mint transaction failed');
+      throw new Error("Mint transaction failed");
     }
 
-    logger.info('[BridgeRelayer] Transaction confirmed');
+    logger.info("[BridgeRelayer] Transaction confirmed");
   }
 
   /**
    * Calculate relayer fee
    */
   calculateRelayerFee(amount) {
-    const feeAmount = (BigInt(amount) * BigInt(Math.floor(RELAYER_CONFIG.BASE_FEE_PERCENTAGE * 1000))) / BigInt(1000);
-    return feeAmount > RELAYER_CONFIG.MIN_FEE ? feeAmount : RELAYER_CONFIG.MIN_FEE;
+    const feeAmount =
+      (BigInt(amount) *
+        BigInt(Math.floor(RELAYER_CONFIG.BASE_FEE_PERCENTAGE * 1000))) /
+      BigInt(1000);
+    return feeAmount > RELAYER_CONFIG.MIN_FEE
+      ? feeAmount
+      : RELAYER_CONFIG.MIN_FEE;
   }
 
   /**
@@ -632,7 +678,10 @@ class BridgeRelayer extends EventEmitter {
     let gasPrice = feeData.gasPrice;
 
     // Apply multiplier
-    gasPrice = (gasPrice * BigInt(Math.floor(RELAYER_CONFIG.GAS_PRICE_MULTIPLIER * 100))) / BigInt(100);
+    gasPrice =
+      (gasPrice *
+        BigInt(Math.floor(RELAYER_CONFIG.GAS_PRICE_MULTIPLIER * 100))) /
+      BigInt(100);
 
     // Cap at max gas price
     if (gasPrice > RELAYER_CONFIG.MAX_GAS_PRICE) {
@@ -648,13 +697,15 @@ class BridgeRelayer extends EventEmitter {
   async saveRelayTask(task) {
     const db = this.database.db;
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO bridge_relay_tasks (
         request_id, source_chain_id, dest_chain_id, source_tx_hash,
         asset_address, recipient, amount, status, retry_count,
         relayer_fee, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       task.request_id,
       task.source_chain_id,
       task.dest_chain_id,
@@ -665,7 +716,7 @@ class BridgeRelayer extends EventEmitter {
       task.status,
       task.retry_count,
       task.relayer_fee,
-      task.created_at
+      task.created_at,
     );
   }
 
@@ -675,14 +726,18 @@ class BridgeRelayer extends EventEmitter {
   async updateRelayTask(requestId, updates) {
     const db = this.database.db;
 
-    const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+    const fields = Object.keys(updates)
+      .map((key) => `${key} = ?`)
+      .join(", ");
     const values = Object.values(updates);
 
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE bridge_relay_tasks
       SET ${fields}
       WHERE request_id = ?
-    `).run(...values, requestId);
+    `,
+    ).run(...values, requestId);
 
     // Update in-memory task
     const task = this.pendingRelays.get(requestId);
@@ -699,7 +754,7 @@ class BridgeRelayer extends EventEmitter {
       ...this.stats,
       totalFeesEarned: this.stats.totalFeesEarned.toString(),
       pendingRelays: this.pendingRelays.size,
-      queueLength: this.processingQueue.length
+      queueLength: this.processingQueue.length,
     };
   }
 
@@ -709,25 +764,25 @@ class BridgeRelayer extends EventEmitter {
   async getRelayHistory(filters = {}) {
     const db = this.database.db;
 
-    let query = 'SELECT * FROM bridge_relay_tasks WHERE 1=1';
+    let query = "SELECT * FROM bridge_relay_tasks WHERE 1=1";
     const params = [];
 
     if (filters.status) {
-      query += ' AND status = ?';
+      query += " AND status = ?";
       params.push(filters.status);
     }
 
     if (filters.sourceChainId) {
-      query += ' AND source_chain_id = ?';
+      query += " AND source_chain_id = ?";
       params.push(filters.sourceChainId);
     }
 
     if (filters.destChainId) {
-      query += ' AND dest_chain_id = ?';
+      query += " AND dest_chain_id = ?";
       params.push(filters.destChainId);
     }
 
-    query += ' ORDER BY created_at DESC LIMIT ?';
+    query += " ORDER BY created_at DESC LIMIT ?";
     params.push(filters.limit || 100);
 
     return db.prepare(query).all(...params);
@@ -741,7 +796,7 @@ class BridgeRelayer extends EventEmitter {
     this.removeAllListeners();
     this.initialized = false;
 
-    logger.info('[BridgeRelayer] Closed');
+    logger.info("[BridgeRelayer] Closed");
   }
 }
 

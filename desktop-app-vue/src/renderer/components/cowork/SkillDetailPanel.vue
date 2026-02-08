@@ -1,12 +1,7 @@
 <template>
   <div class="skill-detail-panel">
     <!-- 基本信息 -->
-    <a-descriptions
-      title="基本信息"
-      :column="1"
-      bordered
-      class="info-section"
-    >
+    <a-descriptions title="基本信息" :column="1" bordered class="info-section">
       <a-descriptions-item label="技能名称">
         {{ skill.name }}
       </a-descriptions-item>
@@ -21,25 +16,27 @@
     </a-descriptions>
 
     <!-- 支持的操作 -->
-    <div v-if="skill.supportedOperations && skill.supportedOperations.length > 0" class="info-section">
+    <div
+      v-if="skill.supportedOperations && skill.supportedOperations.length > 0"
+      class="info-section"
+    >
       <h3 class="section-title">
         <ThunderboltOutlined />
         支持的操作
       </h3>
 
       <div class="operations-grid">
-        <a-tag
-          v-for="op in skill.supportedOperations"
-          :key="op"
-          color="blue"
-        >
+        <a-tag v-for="op in skill.supportedOperations" :key="op" color="blue">
           {{ op }}
         </a-tag>
       </div>
     </div>
 
     <!-- 支持的文件类型 -->
-    <div v-if="skill.supportedFileTypes && skill.supportedFileTypes.length > 0" class="info-section">
+    <div
+      v-if="skill.supportedFileTypes && skill.supportedFileTypes.length > 0"
+      class="info-section"
+    >
       <h3 class="section-title">
         <FileTextOutlined />
         支持的文件类型
@@ -57,18 +54,17 @@
     </div>
 
     <!-- 匹配关键词 -->
-    <div v-if="skill.keywords && skill.keywords.length > 0" class="info-section">
+    <div
+      v-if="skill.keywords && skill.keywords.length > 0"
+      class="info-section"
+    >
       <h3 class="section-title">
         <TagOutlined />
         匹配关键词
       </h3>
 
       <div class="keywords-grid">
-        <a-tag
-          v-for="keyword in skill.keywords"
-          :key="keyword"
-          color="green"
-        >
+        <a-tag v-for="keyword in skill.keywords" :key="keyword" color="green">
           {{ keyword }}
         </a-tag>
       </div>
@@ -81,17 +77,15 @@
         匹配算法
       </h3>
 
-      <a-card size="small" style="background: #fafafa;">
-        <p style="margin: 0; line-height: 1.8;">
-          技能匹配采用 0-100 评分系统：
-        </p>
-        <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.8;">
+      <a-card size="small" style="background: #fafafa">
+        <p style="margin: 0; line-height: 1.8">技能匹配采用 0-100 评分系统：</p>
+        <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.8">
           <li><strong>任务类型匹配</strong>: +40 分</li>
           <li><strong>操作匹配</strong>: +30 分</li>
           <li><strong>文件类型匹配</strong>: +20 分</li>
           <li><strong>关键词匹配</strong>: +10 分</li>
         </ul>
-        <p style="margin-top: 12px; margin-bottom: 0; color: #8c8c8c;">
+        <p style="margin-top: 12px; margin-bottom: 0; color: #8c8c8c">
           评分 ≥ 80 表示高度匹配，推荐使用该技能执行任务。
         </p>
       </a-card>
@@ -104,7 +98,7 @@
         使用示例
       </h3>
 
-      <pre class="code-example">{{getUsageExample(skill)}}</pre>
+      <pre class="code-example">{{ getUsageExample(skill) }}</pre>
     </div>
   </div>
 </template>
@@ -182,7 +176,7 @@ console.log('生成的文件:', result.result.filePath);`;
 const result = await ipcRenderer.invoke('cowork:skill-auto-execute', {
   task: {
     type: '${skill.type}',
-    operation: '${skill.supportedOperations?.[0] || 'execute'}',
+    operation: '${skill.supportedOperations?.[0] || "execute"}',
     input: {
       // 输入参数...
     }

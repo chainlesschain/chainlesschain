@@ -1,9 +1,6 @@
 <template>
   <div class="virtual-file-tree">
-    <a-spin
-      :spinning="loading"
-      tip="加载中..."
-    >
+    <a-spin :spinning="loading" tip="加载中...">
       <div class="tree-header">
         <div class="tree-search">
           <a-input
@@ -70,19 +67,10 @@
                 class="tree-node-switcher"
                 @click.stop="toggleExpand(item)"
               >
-                <RightOutlined
-                  v-if="!item.expanded"
-                  class="tree-icon"
-                />
-                <DownOutlined
-                  v-else
-                  class="tree-icon"
-                />
+                <RightOutlined v-if="!item.expanded" class="tree-icon" />
+                <DownOutlined v-else class="tree-icon" />
               </span>
-              <span
-                v-else
-                class="tree-node-switcher-placeholder"
-              />
+              <span v-else class="tree-node-switcher-placeholder" />
 
               <!-- 文件/文件夹图标 -->
               <component
@@ -91,10 +79,7 @@
               />
 
               <!-- 文件名 -->
-              <span
-                class="tree-node-title"
-                :title="item.title"
-              >
+              <span class="tree-node-title" :title="item.title">
                 {{ item.title }}
               </span>
 
@@ -113,17 +98,11 @@
       </div>
 
       <!-- 右键菜单 -->
-      <a-dropdown
-        v-model:open="contextMenuVisible"
-        :trigger="['contextmenu']"
-      >
+      <a-dropdown v-model:open="contextMenuVisible" :trigger="['contextmenu']">
         <div />
         <template #overlay>
           <a-menu @click="handleMenuClick">
-            <a-menu-item
-              v-if="contextNode?.isLeaf"
-              key="open"
-            >
+            <a-menu-item v-if="contextNode?.isLeaf" key="open">
               <FileOutlined />
               打开
             </a-menu-item>
@@ -140,10 +119,7 @@
               <EditOutlined />
               重命名
             </a-menu-item>
-            <a-menu-item
-              key="delete"
-              danger
-            >
+            <a-menu-item key="delete" danger>
               <DeleteOutlined />
               删除
             </a-menu-item>
@@ -155,10 +131,19 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, onUnmounted, onUpdated, nextTick, h } from 'vue';
-import { message } from 'ant-design-vue';
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  onUpdated,
+  nextTick,
+  h,
+} from "vue";
+import { message } from "ant-design-vue";
 import {
   SearchOutlined,
   RightOutlined,
@@ -176,7 +161,7 @@ import {
   ImportOutlined,
   ExportOutlined,
   DownloadOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   files: {
@@ -185,7 +170,7 @@ const props = defineProps({
   },
   currentFileId: {
     type: String,
-    default: '',
+    default: "",
   },
   loading: {
     type: Boolean,
@@ -197,11 +182,11 @@ const props = defineProps({
   },
   projectId: {
     type: String,
-    default: '',
+    default: "",
   },
 });
 
-const emit = defineEmits(['select', 'refresh']);
+const emit = defineEmits(["select", "refresh"]);
 
 // 虚拟滚动参数
 const itemHeight = 32; // 每个节点的高度（px）
@@ -211,7 +196,7 @@ const scrollTop = ref(0);
 const containerHeight = ref(600);
 
 // 状态
-const searchText = ref('');
+const searchText = ref("");
 const filteredFiles = ref([]); // 搜索过滤后的文件列表
 const expandedKeys = ref(new Set()); // 展开的节点key
 const contextMenuVisible = ref(false);
@@ -225,9 +210,13 @@ const flattenedNodes = ref([]);
 // 构建树形结构并扁平化
 const buildTree = () => {
   // 使用过滤后的文件列表或原始文件列表
-  const filesToUse = filteredFiles.value.length > 0 ? filteredFiles.value : props.files;
+  const filesToUse =
+    filteredFiles.value.length > 0 ? filteredFiles.value : props.files;
 
-  logger.info('[VirtualFileTree] 开始构建文件树，文件数量:', filesToUse?.length || 0);
+  logger.info(
+    "[VirtualFileTree] 开始构建文件树，文件数量:",
+    filesToUse?.length || 0,
+  );
 
   if (!filesToUse || filesToUse.length === 0) {
     flattenedNodes.value = [];
@@ -238,11 +227,11 @@ const buildTree = () => {
   const root = {};
 
   filesToUse.forEach((file) => {
-    const filePath = file.file_path || file.path || file.file_name || '';
-    const parts = filePath.split('/').filter(p => p);
+    const filePath = file.file_path || file.path || file.file_name || "";
+    const parts = filePath.split("/").filter((p) => p);
 
     let current = root;
-    let currentPath = '';
+    let currentPath = "";
 
     // 处理路径中的每一层
     for (let i = 0; i < parts.length; i++) {
@@ -259,7 +248,9 @@ const buildTree = () => {
           filePath: currentPath,
           children: isLeaf ? null : {},
           fileData: isLeaf ? file : null,
-          expanded: expandedKeys.value.has(isLeaf ? file.id : `folder_${currentPath}`),
+          expanded: expandedKeys.value.has(
+            isLeaf ? file.id : `folder_${currentPath}`,
+          ),
         };
       }
 
@@ -301,25 +292,31 @@ const buildTree = () => {
 
   // 强制创建新引用，确保响应式
   flattenedNodes.value = [...flattened];
-  logger.info('[VirtualFileTree] 扁平化完成，节点数量:', flattenedNodes.value.length);
+  logger.info(
+    "[VirtualFileTree] 扁平化完成，节点数量:",
+    flattenedNodes.value.length,
+  );
 };
 
 // 监听文件列表变化 - 增强版
 watch(
   () => props.files,
   async (newFiles, oldFiles) => {
-    logger.info('[VirtualFileTree] 文件列表变化');
-    logger.info('  旧长度:', oldFiles?.length || 0);
-    logger.info('  新长度:', newFiles?.length || 0);
-    logger.info('  引用改变:', newFiles !== oldFiles);
+    logger.info("[VirtualFileTree] 文件列表变化");
+    logger.info("  旧长度:", oldFiles?.length || 0);
+    logger.info("  新长度:", newFiles?.length || 0);
+    logger.info("  引用改变:", newFiles !== oldFiles);
 
     buildTree();
 
     // 等待 DOM 更新
     await nextTick();
-    logger.info('[VirtualFileTree] 树构建完成，节点数:', flattenedNodes.value.length);
+    logger.info(
+      "[VirtualFileTree] 树构建完成，节点数:",
+      flattenedNodes.value.length,
+    );
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // 添加文件数量变化监听（备用）
@@ -327,10 +324,10 @@ watch(
   () => props.files?.length,
   (newLen, oldLen) => {
     if (newLen !== oldLen) {
-      logger.info('[VirtualFileTree] 文件数量变化:', oldLen, '->', newLen);
+      logger.info("[VirtualFileTree] 文件数量变化:", oldLen, "->", newLen);
       nextTick(() => buildTree());
     }
-  }
+  },
 );
 
 // 监听展开状态变化
@@ -338,7 +335,7 @@ watch(
   () => expandedKeys.value.size,
   () => {
     buildTree();
-  }
+  },
 );
 
 // 总高度
@@ -348,12 +345,18 @@ const totalHeight = computed(() => {
 
 // 可见区域的节点
 const visibleItems = computed(() => {
-  if (flattenedNodes.value.length === 0) {return [];}
+  if (flattenedNodes.value.length === 0) {
+    return [];
+  }
 
-  const startIndex = Math.max(0, Math.floor(scrollTop.value / itemHeight) - bufferSize);
+  const startIndex = Math.max(
+    0,
+    Math.floor(scrollTop.value / itemHeight) - bufferSize,
+  );
   const endIndex = Math.min(
     flattenedNodes.value.length,
-    Math.ceil((scrollTop.value + containerHeight.value) / itemHeight) + bufferSize
+    Math.ceil((scrollTop.value + containerHeight.value) / itemHeight) +
+      bufferSize,
   );
 
   return flattenedNodes.value.slice(startIndex, endIndex);
@@ -366,7 +369,9 @@ const handleScroll = (e) => {
 
 // 切换展开/收起
 const toggleExpand = (item) => {
-  if (item.isLeaf) {return;}
+  if (item.isLeaf) {
+    return;
+  }
 
   if (expandedKeys.value.has(item.key)) {
     expandedKeys.value.delete(item.key);
@@ -381,7 +386,7 @@ const toggleExpand = (item) => {
 // 节点点击
 const handleNodeClick = (item) => {
   if (item.isLeaf && item.fileData) {
-    emit('select', item.fileData);
+    emit("select", item.fileData);
   } else {
     toggleExpand(item);
   }
@@ -395,25 +400,25 @@ const handleContextMenu = (e, item) => {
 };
 
 const handleMenuClick = ({ key }) => {
-  logger.info('Menu clicked:', key, contextNode.value);
+  logger.info("Menu clicked:", key, contextNode.value);
   contextMenuVisible.value = false;
 
   switch (key) {
-    case 'open':
+    case "open":
       if (contextNode.value?.fileData) {
-        emit('select', contextNode.value.fileData);
+        emit("select", contextNode.value.fileData);
       }
       break;
-    case 'download':
+    case "download":
       handleDownloadFile(contextNode.value);
       break;
-    case 'export':
+    case "export":
       handleExportFile(contextNode.value);
       break;
-    case 'rename':
+    case "rename":
       handleRenameFile(contextNode.value);
       break;
-    case 'delete':
+    case "delete":
       handleDeleteFile(contextNode.value);
       break;
   }
@@ -426,7 +431,7 @@ const handleImportFiles = async () => {
 
     // 选择要导入的文件
     const result = await window.electron.project.selectImportFiles({
-      allowDirectory: true
+      allowDirectory: true,
     });
 
     if (result.canceled || !result.filePaths || result.filePaths.length === 0) {
@@ -434,27 +439,29 @@ const handleImportFiles = async () => {
       return;
     }
 
-    logger.info('[VirtualFileTree] 选择的文件:', result.filePaths);
+    logger.info("[VirtualFileTree] 选择的文件:", result.filePaths);
 
     // 批量导入文件
     const importResult = await window.electron.project.importFiles({
       projectId: props.projectId,
       externalPaths: result.filePaths,
-      targetDirectory: `/data/projects/${props.projectId}/` // 默认导入到项目根目录
+      targetDirectory: `/data/projects/${props.projectId}/`, // 默认导入到项目根目录
     });
 
-    logger.info('[VirtualFileTree] 导入结果:', importResult);
+    logger.info("[VirtualFileTree] 导入结果:", importResult);
 
     if (importResult.success) {
-      message.success(`成功导入 ${importResult.successCount}/${importResult.totalCount} 个文件`);
+      message.success(
+        `成功导入 ${importResult.successCount}/${importResult.totalCount} 个文件`,
+      );
 
       // 刷新文件列表
-      emit('refresh');
+      emit("refresh");
     } else {
-      message.error('文件导入失败');
+      message.error("文件导入失败");
     }
   } catch (error) {
-    logger.error('[VirtualFileTree] 导入文件失败:', error);
+    logger.error("[VirtualFileTree] 导入文件失败:", error);
     message.error(`导入失败: ${error.message}`);
   } finally {
     importing.value = false;
@@ -474,32 +481,32 @@ const handleExportFile = async (node) => {
       return;
     }
 
-    logger.info('[VirtualFileTree] 导出节点:', node);
-    logger.info('[VirtualFileTree] 导出到:', result.path);
+    logger.info("[VirtualFileTree] 导出节点:", node);
+    logger.info("[VirtualFileTree] 导出到:", result.path);
 
     // 构建完整的项目路径
     const projectPath = `/data/projects/${props.projectId}/${node.filePath}`;
     const targetPath = `${result.path}\\${node.title}`;
 
-    logger.info('[VirtualFileTree] 项目路径:', projectPath);
-    logger.info('[VirtualFileTree] 目标路径:', targetPath);
+    logger.info("[VirtualFileTree] 项目路径:", projectPath);
+    logger.info("[VirtualFileTree] 目标路径:", targetPath);
 
     // 导出文件
     const exportResult = await window.electron.project.exportFile({
       projectPath: projectPath,
       targetPath: targetPath,
-      isDirectory: !node.isLeaf
+      isDirectory: !node.isLeaf,
     });
 
-    logger.info('[VirtualFileTree] 导出结果:', exportResult);
+    logger.info("[VirtualFileTree] 导出结果:", exportResult);
 
     if (exportResult.success) {
       message.success(`成功导出: ${node.title}`);
     } else {
-      message.error(`文件导出失败: ${exportResult.error || '未知错误'}`);
+      message.error(`文件导出失败: ${exportResult.error || "未知错误"}`);
     }
   } catch (error) {
-    logger.error('[VirtualFileTree] 导出文件失败:', error);
+    logger.error("[VirtualFileTree] 导出文件失败:", error);
     message.error(`导出失败: ${error.message}`);
   } finally {
     exporting.value = false;
@@ -509,37 +516,37 @@ const handleExportFile = async (node) => {
 // 重命名文件
 const handleRenameFile = async (node) => {
   if (!node) {
-    message.warning('请选择要重命名的文件或文件夹');
+    message.warning("请选择要重命名的文件或文件夹");
     return;
   }
 
   try {
     // 使用 Modal 输入新名称
-    const { Modal } = await import('ant-design-vue');
+    const { Modal } = await import("ant-design-vue");
 
     Modal.confirm({
-      title: '重命名',
-      content: h('div', [
-        h('p', { style: { marginBottom: '8px' } }, `当前名称: ${node.title}`),
-        h('input', {
-          id: 'rename-input',
-          type: 'text',
+      title: "重命名",
+      content: h("div", [
+        h("p", { style: { marginBottom: "8px" } }, `当前名称: ${node.title}`),
+        h("input", {
+          id: "rename-input",
+          type: "text",
           value: node.title,
-          placeholder: '请输入新名称',
+          placeholder: "请输入新名称",
           style: {
-            width: '100%',
-            padding: '8px',
-            border: '1px solid #d9d9d9',
-            borderRadius: '4px',
-            fontSize: '14px'
+            width: "100%",
+            padding: "8px",
+            border: "1px solid #d9d9d9",
+            borderRadius: "4px",
+            fontSize: "14px",
           },
           onMounted: () => {
             // 自动聚焦并选中文件名（不包括扩展名）
             nextTick(() => {
-              const input = document.getElementById('rename-input');
+              const input = document.getElementById("rename-input");
               if (input) {
                 input.focus();
-                const lastDotIndex = node.title.lastIndexOf('.');
+                const lastDotIndex = node.title.lastIndexOf(".");
                 if (lastDotIndex > 0) {
                   input.setSelectionRange(0, lastDotIndex);
                 } else {
@@ -547,22 +554,22 @@ const handleRenameFile = async (node) => {
                 }
               }
             });
-          }
-        })
+          },
+        }),
       ]),
-      okText: '确定',
-      cancelText: '取消',
+      okText: "确定",
+      cancelText: "取消",
       onOk: async () => {
-        const input = document.getElementById('rename-input');
+        const input = document.getElementById("rename-input");
         const newName = input?.value?.trim();
 
         if (!newName) {
-          message.warning('文件名不能为空');
+          message.warning("文件名不能为空");
           return Promise.reject();
         }
 
         if (newName === node.title) {
-          message.info('文件名未改变');
+          message.info("文件名未改变");
           return;
         }
 
@@ -580,32 +587,32 @@ const handleRenameFile = async (node) => {
               fileId: node.fileData.id,
               projectId: props.projectId,
               title: newName,
-              path: node.filePath.replace(node.title, newName)
+              path: node.filePath.replace(node.title, newName),
             });
 
             if (result.success) {
-              message.success('重命名成功');
+              message.success("重命名成功");
               // 刷新文件列表
-              emit('refresh');
+              emit("refresh");
             } else {
-              message.error(`重命名失败: ${result.error || '未知错误'}`);
+              message.error(`重命名失败: ${result.error || "未知错误"}`);
               return Promise.reject();
             }
           } else {
-            message.error('无法获取文件信息');
+            message.error("无法获取文件信息");
             return Promise.reject();
           }
         } catch (error) {
-          logger.error('[VirtualFileTree] 重命名失败:', error);
+          logger.error("[VirtualFileTree] 重命名失败:", error);
 
-          let errorMessage = '重命名失败';
+          let errorMessage = "重命名失败";
           if (error.message) {
-            if (error.message.includes('exist')) {
-              errorMessage = '文件名已存在';
-            } else if (error.message.includes('permission')) {
-              errorMessage = '没有权限重命名此文件';
-            } else if (error.message.includes('not found')) {
-              errorMessage = '文件不存在';
+            if (error.message.includes("exist")) {
+              errorMessage = "文件名已存在";
+            } else if (error.message.includes("permission")) {
+              errorMessage = "没有权限重命名此文件";
+            } else if (error.message.includes("not found")) {
+              errorMessage = "文件不存在";
             } else {
               errorMessage = `重命名失败: ${error.message}`;
             }
@@ -614,66 +621,76 @@ const handleRenameFile = async (node) => {
           message.error(errorMessage);
           return Promise.reject();
         }
-      }
+      },
     });
   } catch (error) {
-    logger.error('[VirtualFileTree] 打开重命名对话框失败:', error);
-    message.error('打开重命名对话框失败');
+    logger.error("[VirtualFileTree] 打开重命名对话框失败:", error);
+    message.error("打开重命名对话框失败");
   }
 };
 
 // 删除文件
 const handleDeleteFile = async (node) => {
   if (!node) {
-    message.warning('请选择要删除的文件或文件夹');
+    message.warning("请选择要删除的文件或文件夹");
     return;
   }
 
   try {
-    const { Modal } = await import('ant-design-vue');
+    const { Modal } = await import("ant-design-vue");
 
     Modal.confirm({
-      title: '确认删除',
-      content: h('div', [
-        h('p', { style: { color: '#ff4d4f', marginBottom: '8px' } }, '⚠️ 此操作不可恢复！'),
-        h('p', `确定要删除 "${node.title}" 吗？`),
-        node.isLeaf ? null : h('p', { style: { color: '#faad14', marginTop: '8px' } }, '注意：这将删除文件夹及其所有内容')
+      title: "确认删除",
+      content: h("div", [
+        h(
+          "p",
+          { style: { color: "#ff4d4f", marginBottom: "8px" } },
+          "⚠️ 此操作不可恢复！",
+        ),
+        h("p", `确定要删除 "${node.title}" 吗？`),
+        node.isLeaf
+          ? null
+          : h(
+              "p",
+              { style: { color: "#faad14", marginTop: "8px" } },
+              "注意：这将删除文件夹及其所有内容",
+            ),
       ]),
-      okText: '确定删除',
-      okType: 'danger',
-      cancelText: '取消',
+      okText: "确定删除",
+      okType: "danger",
+      cancelText: "取消",
       onOk: async () => {
         try {
           if (!node.fileData?.id) {
-            message.error('无法获取文件信息');
+            message.error("无法获取文件信息");
             return Promise.reject();
           }
 
           // 调用后端 API 删除文件
           const result = await window.electron.project.deleteFile(
             props.projectId,
-            node.fileData.id
+            node.fileData.id,
           );
 
           if (result.success) {
             message.success(`已删除: ${node.title}`);
             // 刷新文件列表
-            emit('refresh');
+            emit("refresh");
           } else {
-            message.error(`删除失败: ${result.error || '未知错误'}`);
+            message.error(`删除失败: ${result.error || "未知错误"}`);
             return Promise.reject();
           }
         } catch (error) {
-          logger.error('[VirtualFileTree] 删除失败:', error);
+          logger.error("[VirtualFileTree] 删除失败:", error);
 
-          let errorMessage = '删除失败';
+          let errorMessage = "删除失败";
           if (error.message) {
-            if (error.message.includes('permission')) {
-              errorMessage = '没有权限删除此文件';
-            } else if (error.message.includes('not found')) {
-              errorMessage = '文件不存在';
-            } else if (error.message.includes('in use')) {
-              errorMessage = '文件正在使用中，无法删除';
+            if (error.message.includes("permission")) {
+              errorMessage = "没有权限删除此文件";
+            } else if (error.message.includes("not found")) {
+              errorMessage = "文件不存在";
+            } else if (error.message.includes("in use")) {
+              errorMessage = "文件正在使用中，无法删除";
             } else {
               errorMessage = `删除失败: ${error.message}`;
             }
@@ -682,18 +699,18 @@ const handleDeleteFile = async (node) => {
           message.error(errorMessage);
           return Promise.reject();
         }
-      }
+      },
     });
   } catch (error) {
-    logger.error('[VirtualFileTree] 打开删除确认对话框失败:', error);
-    message.error('打开删除确认对话框失败');
+    logger.error("[VirtualFileTree] 打开删除确认对话框失败:", error);
+    message.error("打开删除确认对话框失败");
   }
 };
 
 // 下载文件
 const handleDownloadFile = async (node) => {
   if (!node) {
-    message.warning('请选择要下载的文件或文件夹');
+    message.warning("请选择要下载的文件或文件夹");
     return;
   }
 
@@ -702,10 +719,10 @@ const handleDownloadFile = async (node) => {
     if (node.fileData?.content) {
       // 如果文件内容在内存中，直接下载
       const blob = new Blob([node.fileData.content], {
-        type: node.fileData.mimeType || 'application/octet-stream'
+        type: node.fileData.mimeType || "application/octet-stream",
       });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = node.title;
       document.body.appendChild(a);
@@ -716,7 +733,7 @@ const handleDownloadFile = async (node) => {
       message.success(`已下载: ${node.title}`);
     } else {
       // 否则，使用导出功能
-      message.info('正在准备下载...');
+      message.info("正在准备下载...");
 
       // 获取用户的下载目录
       const result = await window.electron.project.selectExportDirectory();
@@ -733,26 +750,26 @@ const handleDownloadFile = async (node) => {
       const exportResult = await window.electron.project.exportFile({
         projectPath: projectPath,
         targetPath: targetPath,
-        isDirectory: !node.isLeaf
+        isDirectory: !node.isLeaf,
       });
 
       if (exportResult.success) {
         message.success(`已下载到: ${result.path}`);
       } else {
-        message.error(`下载失败: ${exportResult.error || '未知错误'}`);
+        message.error(`下载失败: ${exportResult.error || "未知错误"}`);
       }
     }
   } catch (error) {
-    logger.error('[VirtualFileTree] 下载失败:', error);
+    logger.error("[VirtualFileTree] 下载失败:", error);
 
-    let errorMessage = '下载失败';
+    let errorMessage = "下载失败";
     if (error.message) {
-      if (error.message.includes('permission')) {
-        errorMessage = '没有权限访问此文件';
-      } else if (error.message.includes('not found')) {
-        errorMessage = '文件不存在';
-      } else if (error.message.includes('too large')) {
-        errorMessage = '文件过大，无法下载';
+      if (error.message.includes("permission")) {
+        errorMessage = "没有权限访问此文件";
+      } else if (error.message.includes("not found")) {
+        errorMessage = "文件不存在";
+      } else if (error.message.includes("too large")) {
+        errorMessage = "文件过大，无法下载";
       } else {
         errorMessage = `下载失败: ${error.message}`;
       }
@@ -766,7 +783,7 @@ const handleDownloadFile = async (node) => {
 const handleSearch = () => {
   try {
     const query = searchText.value.trim().toLowerCase();
-    logger.info('[VirtualFileTree] 搜索:', query);
+    logger.info("[VirtualFileTree] 搜索:", query);
 
     if (!query) {
       // 清空搜索，显示所有文件
@@ -776,21 +793,23 @@ const handleSearch = () => {
     }
 
     // 搜索匹配的文件
-    const matches = props.files.filter(file => {
-      const fileName = (file.file_name || file.title || '').toLowerCase();
-      const filePath = (file.file_path || file.path || '').toLowerCase();
-      const content = (file.content || '').toLowerCase();
+    const matches = props.files.filter((file) => {
+      const fileName = (file.file_name || file.title || "").toLowerCase();
+      const filePath = (file.file_path || file.path || "").toLowerCase();
+      const content = (file.content || "").toLowerCase();
 
       // 匹配文件名、路径或内容
-      return fileName.includes(query) ||
-             filePath.includes(query) ||
-             content.includes(query);
+      return (
+        fileName.includes(query) ||
+        filePath.includes(query) ||
+        content.includes(query)
+      );
     });
 
-    logger.info('[VirtualFileTree] 搜索结果:', matches.length, '个文件');
+    logger.info("[VirtualFileTree] 搜索结果:", matches.length, "个文件");
 
     if (matches.length === 0) {
-      message.info('未找到匹配的文件');
+      message.info("未找到匹配的文件");
     } else {
       message.success(`找到 ${matches.length} 个匹配的文件`);
     }
@@ -800,12 +819,12 @@ const handleSearch = () => {
     // 自动展开所有包含搜索结果的文件夹
     if (matches.length > 0) {
       const pathsToExpand = new Set();
-      matches.forEach(file => {
-        const filePath = file.file_path || file.path || file.file_name || '';
-        const parts = filePath.split('/').filter(p => p);
+      matches.forEach((file) => {
+        const filePath = file.file_path || file.path || file.file_name || "";
+        const parts = filePath.split("/").filter((p) => p);
 
         // 添加所有父路径到展开列表
-        let currentPath = '';
+        let currentPath = "";
         for (let i = 0; i < parts.length - 1; i++) {
           currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
           pathsToExpand.add(`folder_${currentPath}`);
@@ -818,8 +837,8 @@ const handleSearch = () => {
     // 重新构建树
     buildTree();
   } catch (error) {
-    logger.error('[VirtualFileTree] 搜索失败:', error);
-    message.error('搜索失败: ' + (error.message || '未知错误'));
+    logger.error("[VirtualFileTree] 搜索失败:", error);
+    message.error("搜索失败: " + (error.message || "未知错误"));
   }
 };
 
@@ -829,7 +848,7 @@ const getFileIcon = (item) => {
     return item.expanded ? FolderOpenOutlined : FolderOutlined;
   }
 
-  const ext = item.title.split('.').pop()?.toLowerCase();
+  const ext = item.title.split(".").pop()?.toLowerCase();
   const iconMap = {
     md: FileTextOutlined,
     txt: FileTextOutlined,
@@ -857,30 +876,32 @@ const getFileIcon = (item) => {
 };
 
 const getIconColor = (item) => {
-  if (!item.isLeaf) {return 'folder-icon';}
+  if (!item.isLeaf) {
+    return "folder-icon";
+  }
 
-  const ext = item.title.split('.').pop()?.toLowerCase();
+  const ext = item.title.split(".").pop()?.toLowerCase();
   const colorMap = {
-    md: 'text-blue-500',
-    js: 'text-yellow-500',
-    ts: 'text-blue-600',
-    vue: 'text-green-500',
-    html: 'text-orange-500',
-    css: 'text-blue-400',
-    json: 'text-gray-500',
+    md: "text-blue-500",
+    js: "text-yellow-500",
+    ts: "text-blue-600",
+    vue: "text-green-500",
+    html: "text-orange-500",
+    css: "text-blue-400",
+    json: "text-gray-500",
   };
 
-  return colorMap[ext] || 'file-icon';
+  return colorMap[ext] || "file-icon";
 };
 
 const getGitStatusColor = (status) => {
   const colorMap = {
-    modified: 'orange',
-    added: 'green',
-    deleted: 'red',
-    untracked: 'blue',
+    modified: "orange",
+    added: "green",
+    deleted: "red",
+    untracked: "blue",
   };
-  return colorMap[status] || 'default';
+  return colorMap[status] || "default";
 };
 
 // 获取容器高度
@@ -891,18 +912,18 @@ const updateContainerHeight = () => {
 };
 
 onMounted(() => {
-  logger.info('[VirtualFileTree] onMounted, files:', props.files?.length || 0);
+  logger.info("[VirtualFileTree] onMounted, files:", props.files?.length || 0);
   updateContainerHeight();
-  window.addEventListener('resize', updateContainerHeight);
+  window.addEventListener("resize", updateContainerHeight);
 });
 
 onUpdated(() => {
-  logger.info('[VirtualFileTree] onUpdated, files:', props.files?.length || 0);
+  logger.info("[VirtualFileTree] onUpdated, files:", props.files?.length || 0);
 });
 
 onUnmounted(() => {
-  logger.info('[VirtualFileTree] onUnmounted');
-  window.removeEventListener('resize', updateContainerHeight);
+  logger.info("[VirtualFileTree] onUnmounted");
+  window.removeEventListener("resize", updateContainerHeight);
 });
 </script>
 

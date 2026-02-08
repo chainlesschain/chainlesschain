@@ -3,7 +3,7 @@
  * 提供应用锁定和解锁功能，保护隐私
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { app, BrowserWindow } = require("electron");
 const crypto = require("crypto");
 const fs = require("fs");

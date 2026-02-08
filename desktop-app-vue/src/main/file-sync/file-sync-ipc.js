@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 文件同步 IPC 处理器
@@ -15,11 +15,15 @@ const { logger, createLogger } = require('../utils/logger.js');
  * @param {Object} dependencies.database - 数据库实例
  * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
  */
-function registerFileSyncIPC({ fileSyncManager, database, ipcMain: injectedIpcMain }) {
+function registerFileSyncIPC({
+  fileSyncManager,
+  database,
+  ipcMain: injectedIpcMain,
+}) {
   // 支持依赖注入，用于测试
-  const ipcMain = injectedIpcMain || require('electron').ipcMain;
+  const ipcMain = injectedIpcMain || require("electron").ipcMain;
 
-  logger.info('[File Sync IPC] Registering File Sync IPC handlers...');
+  logger.info("[File Sync IPC] Registering File Sync IPC handlers...");
 
   // ============================================================
   // 文件监听控制 (File Watching)
@@ -32,36 +36,38 @@ function registerFileSyncIPC({ fileSyncManager, database, ipcMain: injectedIpcMa
    * @param {string} projectId - 项目ID
    * @returns {Promise<Object>} { success: boolean, error?: string }
    */
-  ipcMain.handle('file-sync:watch-project', async (_event, projectId) => {
+  ipcMain.handle("file-sync:watch-project", async (_event, projectId) => {
     try {
       if (!fileSyncManager) {
-        return { success: false, error: '文件同步管理器未初始化' };
+        return { success: false, error: "文件同步管理器未初始化" };
       }
 
       if (!projectId) {
-        return { success: false, error: '项目ID不能为空' };
+        return { success: false, error: "项目ID不能为空" };
       }
 
-      logger.info('[File Sync IPC] 启动项目文件监听:', projectId);
+      logger.info("[File Sync IPC] 启动项目文件监听:", projectId);
 
       // 获取项目信息
-      const project = database.db.prepare('SELECT id, root_path FROM projects WHERE id = ?').get(projectId);
+      const project = database.db
+        .prepare("SELECT id, root_path FROM projects WHERE id = ?")
+        .get(projectId);
 
       if (!project) {
-        return { success: false, error: '项目不存在' };
+        return { success: false, error: "项目不存在" };
       }
 
       if (!project.root_path) {
-        return { success: false, error: '项目未设置根目录' };
+        return { success: false, error: "项目未设置根目录" };
       }
 
       // 启动文件监听
       await fileSyncManager.watchProject(projectId, project.root_path);
 
-      logger.info('[File Sync IPC] 文件监听已启动:', projectId);
+      logger.info("[File Sync IPC] 文件监听已启动:", projectId);
       return { success: true };
     } catch (error) {
-      logger.error('[File Sync IPC] 启动文件监听失败:', error);
+      logger.error("[File Sync IPC] 启动文件监听失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -73,27 +79,27 @@ function registerFileSyncIPC({ fileSyncManager, database, ipcMain: injectedIpcMa
    * @param {string} projectId - 项目ID
    * @returns {Promise<Object>} { success: boolean, error?: string }
    */
-  ipcMain.handle('file-sync:stop-watch', async (_event, projectId) => {
+  ipcMain.handle("file-sync:stop-watch", async (_event, projectId) => {
     try {
       if (!fileSyncManager) {
-        return { success: false, error: '文件同步管理器未初始化' };
+        return { success: false, error: "文件同步管理器未初始化" };
       }
 
       if (!projectId) {
-        return { success: false, error: '项目ID不能为空' };
+        return { success: false, error: "项目ID不能为空" };
       }
 
-      logger.info('[File Sync IPC] 停止项目文件监听:', projectId);
+      logger.info("[File Sync IPC] 停止项目文件监听:", projectId);
 
       // 停止文件监听
       if (fileSyncManager.stopWatching) {
         fileSyncManager.stopWatching(projectId);
       }
 
-      logger.info('[File Sync IPC] 文件监听已停止:', projectId);
+      logger.info("[File Sync IPC] 文件监听已停止:", projectId);
       return { success: true };
     } catch (error) {
-      logger.error('[File Sync IPC] 停止文件监听失败:', error);
+      logger.error("[File Sync IPC] 停止文件监听失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -105,31 +111,35 @@ function registerFileSyncIPC({ fileSyncManager, database, ipcMain: injectedIpcMa
    * @param {string} fileId - 文件ID
    * @returns {Promise<Object>} { success: boolean, data?: Object, error?: string }
    */
-  ipcMain.handle('file-sync:get-status', async (_event, fileId) => {
+  ipcMain.handle("file-sync:get-status", async (_event, fileId) => {
     try {
       if (!database) {
-        return { success: false, error: '数据库未初始化' };
+        return { success: false, error: "数据库未初始化" };
       }
 
       if (!fileId) {
-        return { success: false, error: '文件ID不能为空' };
+        return { success: false, error: "文件ID不能为空" };
       }
 
-      const status = database.db.prepare(`
+      const status = database.db
+        .prepare(
+          `
         SELECT * FROM file_sync_state WHERE file_id = ?
-      `).get(fileId);
+      `,
+        )
+        .get(fileId);
 
       return { success: true, data: status || null };
     } catch (error) {
-      logger.error('[File Sync IPC] 获取同步状态失败:', error);
+      logger.error("[File Sync IPC] 获取同步状态失败:", error);
       return { success: false, error: error.message };
     }
   });
 
-  logger.info('[File Sync IPC] Registered 3 file-sync: handlers');
-  logger.info('[File Sync IPC] - file-sync:watch-project');
-  logger.info('[File Sync IPC] - file-sync:stop-watch');
-  logger.info('[File Sync IPC] - file-sync:get-status');
+  logger.info("[File Sync IPC] Registered 3 file-sync: handlers");
+  logger.info("[File Sync IPC] - file-sync:watch-project");
+  logger.info("[File Sync IPC] - file-sync:stop-watch");
+  logger.info("[File Sync IPC] - file-sync:get-status");
 }
 
 module.exports = { registerFileSyncIPC };

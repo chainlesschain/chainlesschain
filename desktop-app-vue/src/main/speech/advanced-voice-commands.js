@@ -4,8 +4,8 @@
  * 支持复杂的语音命令、上下文感知、参数提取和智能执行
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { EventEmitter } = require('events');
+const { logger } = require("../utils/logger.js");
+const { EventEmitter } = require("events");
 
 /**
  * 高级语音命令类
@@ -19,7 +19,7 @@ class AdvancedVoiceCommands extends EventEmitter {
       enableChaining: config.enableChaining !== false,
       enableMacros: config.enableMacros !== false,
       minConfidence: config.minConfidence || 0.7,
-      ...config
+      ...config,
     };
 
     // 命令注册表
@@ -38,31 +38,23 @@ class AdvancedVoiceCommands extends EventEmitter {
   registerAdvancedCommands() {
     // ===== 文档编辑命令 =====
     this.registerCommand({
-      name: 'format_text',
-      patterns: [
-        '加粗',
-        '斜体',
-        '下划线',
-        '删除线',
-        '标题',
-        '引用',
-        '代码块'
-      ],
-      category: 'editing',
+      name: "format_text",
+      patterns: ["加粗", "斜体", "下划线", "删除线", "标题", "引用", "代码块"],
+      category: "editing",
       action: (params) => ({
-        type: 'format',
+        type: "format",
         style: params.style,
-        selection: params.selection
+        selection: params.selection,
       }),
       extractParams: (text) => {
         const styleMap = {
-          '加粗': 'bold',
-          '斜体': 'italic',
-          '下划线': 'underline',
-          '删除线': 'strikethrough',
-          '标题': 'heading',
-          '引用': 'quote',
-          '代码块': 'code'
+          加粗: "bold",
+          斜体: "italic",
+          下划线: "underline",
+          删除线: "strikethrough",
+          标题: "heading",
+          引用: "quote",
+          代码块: "code",
         };
 
         for (const [key, value] of Object.entries(styleMap)) {
@@ -73,33 +65,33 @@ class AdvancedVoiceCommands extends EventEmitter {
 
         return {};
       },
-      description: '格式化选中文本'
+      description: "格式化选中文本",
     });
 
     this.registerCommand({
-      name: 'insert_element',
+      name: "insert_element",
       patterns: [
-        '插入图片',
-        '插入表格',
-        '插入链接',
-        '插入列表',
-        '插入分隔线',
-        '插入代码'
+        "插入图片",
+        "插入表格",
+        "插入链接",
+        "插入列表",
+        "插入分隔线",
+        "插入代码",
       ],
-      category: 'editing',
+      category: "editing",
       action: (params) => ({
-        type: 'insert',
+        type: "insert",
         element: params.element,
-        properties: params.properties
+        properties: params.properties,
       }),
       extractParams: (text) => {
         const elementMap = {
-          '图片': 'image',
-          '表格': 'table',
-          '链接': 'link',
-          '列表': 'list',
-          '分隔线': 'divider',
-          '代码': 'code'
+          图片: "image",
+          表格: "table",
+          链接: "link",
+          列表: "list",
+          分隔线: "divider",
+          代码: "code",
         };
 
         for (const [key, value] of Object.entries(elementMap)) {
@@ -108,34 +100,28 @@ class AdvancedVoiceCommands extends EventEmitter {
           }
         }
 
-        return ;
+        return;
       },
-      description: '插入文档元素'
+      description: "插入文档元素",
     });
 
     // ===== 智能搜索命令 =====
     this.registerCommand({
-      name: 'smart_search',
-      patterns: [
-        '搜索关于',
-        '查找包含',
-        '找到所有',
-        '显示相关',
-        '检索'
-      ],
-      category: 'search',
+      name: "smart_search",
+      patterns: ["搜索关于", "查找包含", "找到所有", "显示相关", "检索"],
+      category: "search",
       action: (params) => ({
-        type: 'search',
+        type: "search",
         query: params.query,
         filters: params.filters,
-        scope: params.scope
+        scope: params.scope,
       }),
       extractParams: (text) => {
         // 提取搜索查询
         const patterns = [
           /(?:搜索|查找|检索)(?:关于|包含)?\s*(.+)/,
           /找到所有\s*(.+)/,
-          /显示相关\s*(.+)/
+          /显示相关\s*(.+)/,
         ];
 
         for (const pattern of patterns) {
@@ -143,40 +129,34 @@ class AdvancedVoiceCommands extends EventEmitter {
           if (match) {
             return {
               query: match[1].trim(),
-              scope: 'all'
+              scope: "all",
             };
           }
         }
 
         return {};
       },
-      description: '智能搜索内容'
+      description: "智能搜索内容",
     });
 
     // ===== 批量操作命令 =====
     this.registerCommand({
-      name: 'batch_operation',
-      patterns: [
-        '全选',
-        '全部删除',
-        '批量导出',
-        '批量标记',
-        '批量移动'
-      ],
-      category: 'batch',
+      name: "batch_operation",
+      patterns: ["全选", "全部删除", "批量导出", "批量标记", "批量移动"],
+      category: "batch",
       action: (params) => ({
-        type: 'batch',
+        type: "batch",
         operation: params.operation,
         target: params.target,
-        options: params.options
+        options: params.options,
       }),
       extractParams: (text) => {
         const operationMap = {
-          '全选': 'select_all',
-          '全部删除': 'delete_all',
-          '批量导出': 'export_batch',
-          '批量标记': 'tag_batch',
-          '批量移动': 'move_batch'
+          全选: "select_all",
+          全部删除: "delete_all",
+          批量导出: "export_batch",
+          批量标记: "tag_batch",
+          批量移动: "move_batch",
         };
 
         for (const [key, value] of Object.entries(operationMap)) {
@@ -187,35 +167,28 @@ class AdvancedVoiceCommands extends EventEmitter {
 
         return {};
       },
-      description: '批量操作'
+      description: "批量操作",
     });
 
     // ===== AI 增强命令 =====
     this.registerCommand({
-      name: 'ai_enhance',
-      patterns: [
-        '优化这段',
-        '改进文本',
-        '润色',
-        '扩写',
-        '缩写',
-        '重写'
-      ],
-      category: 'ai',
+      name: "ai_enhance",
+      patterns: ["优化这段", "改进文本", "润色", "扩写", "缩写", "重写"],
+      category: "ai",
       action: (params) => ({
-        type: 'ai',
+        type: "ai",
         task: params.task,
         content: params.content,
-        options: params.options
+        options: params.options,
       }),
       extractParams: (text) => {
         const taskMap = {
-          '优化': 'optimize',
-          '改进': 'improve',
-          '润色': 'polish',
-          '扩写': 'expand',
-          '缩写': 'summarize',
-          '重写': 'rewrite'
+          优化: "optimize",
+          改进: "improve",
+          润色: "polish",
+          扩写: "expand",
+          缩写: "summarize",
+          重写: "rewrite",
         };
 
         for (const [key, value] of Object.entries(taskMap)) {
@@ -226,60 +199,57 @@ class AdvancedVoiceCommands extends EventEmitter {
 
         return {};
       },
-      description: 'AI 文本增强'
+      description: "AI 文本增强",
     });
 
     // ===== 工作流命令 =====
     this.registerCommand({
-      name: 'workflow',
-      patterns: [
-        '开始工作流',
-        '执行流程',
-        '运行自动化',
-        '触发任务'
-      ],
-      category: 'workflow',
+      name: "workflow",
+      patterns: ["开始工作流", "执行流程", "运行自动化", "触发任务"],
+      category: "workflow",
       action: (params) => ({
-        type: 'workflow',
+        type: "workflow",
         name: params.workflowName,
-        params: params.workflowParams
+        params: params.workflowParams,
       }),
       extractParams: (text) => {
         // 提取工作流名称
-        const match = text.match(/(?:开始|执行|运行|触发)\s*(.+?)(?:工作流|流程|自动化|任务)?$/);
+        const match = text.match(
+          /(?:开始|执行|运行|触发)\s*(.+?)(?:工作流|流程|自动化|任务)?$/,
+        );
         return match ? { workflowName: match[1].trim() } : {};
       },
-      description: '执行工作流'
+      description: "执行工作流",
     });
 
     // ===== 快捷操作命令 =====
     this.registerCommand({
-      name: 'quick_action',
+      name: "quick_action",
       patterns: [
-        '复制',
-        '粘贴',
-        '剪切',
-        '撤销',
-        '重做',
-        '保存',
-        '关闭',
-        '刷新'
+        "复制",
+        "粘贴",
+        "剪切",
+        "撤销",
+        "重做",
+        "保存",
+        "关闭",
+        "刷新",
       ],
-      category: 'quick',
+      category: "quick",
       action: (params) => ({
-        type: 'quick_action',
-        action: params.action
+        type: "quick_action",
+        action: params.action,
       }),
       extractParams: (text) => {
         const actionMap = {
-          '复制': 'copy',
-          '粘贴': 'paste',
-          '剪切': 'cut',
-          '撤销': 'undo',
-          '重做': 'redo',
-          '保存': 'save',
-          '关闭': 'close',
-          '刷新': 'refresh'
+          复制: "copy",
+          粘贴: "paste",
+          剪切: "cut",
+          撤销: "undo",
+          重做: "redo",
+          保存: "save",
+          关闭: "close",
+          刷新: "refresh",
         };
 
         for (const [key, value] of Object.entries(actionMap)) {
@@ -290,35 +260,30 @@ class AdvancedVoiceCommands extends EventEmitter {
 
         return {};
       },
-      description: '快捷操作'
+      description: "快捷操作",
     });
 
     // ===== 导航命令（增强版）=====
     this.registerCommand({
-      name: 'navigate_to',
-      patterns: [
-        '跳转到',
-        '打开页面',
-        '前往',
-        '切换到'
-      ],
-      category: 'navigation',
+      name: "navigate_to",
+      patterns: ["跳转到", "打开页面", "前往", "切换到"],
+      category: "navigation",
       action: (params) => ({
-        type: 'navigate',
+        type: "navigate",
         target: params.target,
-        params: params.navParams
+        params: params.navParams,
       }),
       extractParams: (text) => {
         // 提取目标页面
         const pageMap = {
-          '首页': 'home',
-          '笔记': 'notes',
-          '项目': 'projects',
-          '聊天': 'chat',
-          '设置': 'settings',
-          '知识图谱': 'knowledge-graph',
-          '社交': 'social',
-          '交易': 'trade'
+          首页: "home",
+          笔记: "notes",
+          项目: "projects",
+          聊天: "chat",
+          设置: "settings",
+          知识图谱: "knowledge-graph",
+          社交: "social",
+          交易: "trade",
         };
 
         for (const [key, value] of Object.entries(pageMap)) {
@@ -329,35 +294,35 @@ class AdvancedVoiceCommands extends EventEmitter {
 
         return {};
       },
-      description: '页面导航'
+      description: "页面导航",
     });
 
     // ===== 时间相关命令 =====
     this.registerCommand({
-      name: 'time_based',
+      name: "time_based",
       patterns: [
-        '设置提醒',
-        '创建日程',
-        '添加待办',
-        '查看日历',
-        '今天的任务',
-        '本周计划'
+        "设置提醒",
+        "创建日程",
+        "添加待办",
+        "查看日历",
+        "今天的任务",
+        "本周计划",
       ],
-      category: 'time',
+      category: "time",
       action: (params) => ({
-        type: 'time_based',
+        type: "time_based",
         action: params.action,
         time: params.time,
-        content: params.content
+        content: params.content,
       }),
       extractParams: (text) => {
         const actionMap = {
-          '提醒': 'reminder',
-          '日程': 'schedule',
-          '待办': 'todo',
-          '日历': 'calendar',
-          '任务': 'tasks',
-          '计划': 'plan'
+          提醒: "reminder",
+          日程: "schedule",
+          待办: "todo",
+          日历: "calendar",
+          任务: "tasks",
+          计划: "plan",
         };
 
         for (const [key, value] of Object.entries(actionMap)) {
@@ -368,32 +333,26 @@ class AdvancedVoiceCommands extends EventEmitter {
 
         return {};
       },
-      description: '时间管理'
+      description: "时间管理",
     });
 
     // ===== 多媒体命令 =====
     this.registerCommand({
-      name: 'multimedia',
-      patterns: [
-        '截图',
-        '录屏',
-        '录音',
-        '拍照',
-        '扫描二维码'
-      ],
-      category: 'multimedia',
+      name: "multimedia",
+      patterns: ["截图", "录屏", "录音", "拍照", "扫描二维码"],
+      category: "multimedia",
       action: (params) => ({
-        type: 'multimedia',
+        type: "multimedia",
         action: params.action,
-        options: params.options
+        options: params.options,
       }),
       extractParams: (text) => {
         const actionMap = {
-          '截图': 'screenshot',
-          '录屏': 'screen_record',
-          '录音': 'audio_record',
-          '拍照': 'photo',
-          '扫描': 'scan_qr'
+          截图: "screenshot",
+          录屏: "screen_record",
+          录音: "audio_record",
+          拍照: "photo",
+          扫描: "scan_qr",
         };
 
         for (const [key, value] of Object.entries(actionMap)) {
@@ -404,7 +363,7 @@ class AdvancedVoiceCommands extends EventEmitter {
 
         return {};
       },
-      description: '多媒体操作'
+      description: "多媒体操作",
     });
   }
 
@@ -413,29 +372,33 @@ class AdvancedVoiceCommands extends EventEmitter {
    */
   registerCommand(command) {
     if (!command.name || !command.patterns || !command.action) {
-      throw new Error('命令必须包含 name, patterns 和 action');
+      throw new Error("命令必须包含 name, patterns 和 action");
     }
 
     this.commands.set(command.name, {
       name: command.name,
-      patterns: Array.isArray(command.patterns) ? command.patterns : [command.patterns],
+      patterns: Array.isArray(command.patterns)
+        ? command.patterns
+        : [command.patterns],
       action: command.action,
-      category: command.category || 'general',
-      description: command.description || '',
+      category: command.category || "general",
+      description: command.description || "",
       extractParams: command.extractParams || null,
       context: command.context || null,
       priority: command.priority || 0,
-      enabled: command.enabled !== false
+      enabled: command.enabled !== false,
     });
 
-    logger.info(`[AdvancedVoiceCommands] 注册命令: ${command.name} (${command.category})`);
+    logger.info(
+      `[AdvancedVoiceCommands] 注册命令: ${command.name} (${command.category})`,
+    );
   }
 
   /**
    * 识别命令
    */
   recognize(text, context = {}) {
-    if (!text || typeof text !== 'string') {
+    if (!text || typeof text !== "string") {
       return null;
     }
 
@@ -478,15 +441,15 @@ class AdvancedVoiceCommands extends EventEmitter {
    */
   isCommandChain(text) {
     // 检查是否包含连接词
-    const chainKeywords = ['然后', '接着', '再', '之后', '并且', '同时'];
-    return chainKeywords.some(keyword => text.includes(keyword));
+    const chainKeywords = ["然后", "接着", "再", "之后", "并且", "同时"];
+    return chainKeywords.some((keyword) => text.includes(keyword));
   }
 
   /**
    * 解析命令链
    */
   parseCommandChain(text, context) {
-    const chainKeywords = ['然后', '接着', '再', '之后', '并且', '同时'];
+    const chainKeywords = ["然后", "接着", "再", "之后", "并且", "同时"];
     let commands = [text];
 
     // 按连接词分割
@@ -499,17 +462,17 @@ class AdvancedVoiceCommands extends EventEmitter {
 
     // 识别每个子命令
     const recognizedCommands = commands
-      .map(cmd => this.recognize(cmd.trim(), context))
-      .filter(cmd => cmd !== null);
+      .map((cmd) => this.recognize(cmd.trim(), context))
+      .filter((cmd) => cmd !== null);
 
     if (recognizedCommands.length === 0) {
       return null;
     }
 
     return {
-      type: 'chain',
+      type: "chain",
       commands: recognizedCommands,
-      originalText: text
+      originalText: text,
     };
   }
 
@@ -518,8 +481,12 @@ class AdvancedVoiceCommands extends EventEmitter {
    */
   findExactMatch(text, context) {
     for (const [name, command] of this.commands) {
-      if (!command.enabled) {continue;}
-      if (!this.isContextMatch(command, context)) {continue;}
+      if (!command.enabled) {
+        continue;
+      }
+      if (!this.isContextMatch(command, context)) {
+        continue;
+      }
 
       for (const pattern of command.patterns) {
         if (pattern.toLowerCase() === text) {
@@ -539,11 +506,18 @@ class AdvancedVoiceCommands extends EventEmitter {
     let bestConfidence = 0;
 
     for (const [name, command] of this.commands) {
-      if (!command.enabled) {continue;}
-      if (!this.isContextMatch(command, context)) {continue;}
+      if (!command.enabled) {
+        continue;
+      }
+      if (!this.isContextMatch(command, context)) {
+        continue;
+      }
 
       for (const pattern of command.patterns) {
-        const confidence = this.calculateSimilarity(text, pattern.toLowerCase());
+        const confidence = this.calculateSimilarity(
+          text,
+          pattern.toLowerCase(),
+        );
 
         if (confidence > bestConfidence) {
           bestConfidence = confidence;
@@ -566,18 +540,20 @@ class AdvancedVoiceCommands extends EventEmitter {
 
     // 意图识别
     const intent = this.detectIntent(text);
-    if (!intent) {return null;}
+    if (!intent) {
+      return null;
+    }
 
     // 实体提取
     const entities = this.extractEntities(text);
 
     // 构建命令
     return {
-      type: 'smart',
+      type: "smart",
       intent: intent,
       entities: entities,
       confidence: 0.8,
-      originalText: text
+      originalText: text,
     };
   }
 
@@ -594,7 +570,7 @@ class AdvancedVoiceCommands extends EventEmitter {
       format: /格式化|加粗|斜体|标题/,
       ai: /总结|翻译|解释|生成|优化/,
       batch: /批量|全部|所有/,
-      multimedia: /截图|录屏|录音|拍照/
+      multimedia: /截图|录屏|录音|拍照/,
     };
 
     for (const [intent, pattern] of Object.entries(intentPatterns)) {
@@ -615,16 +591,16 @@ class AdvancedVoiceCommands extends EventEmitter {
     // 提取数字
     const numbers = text.match(/\d+/g);
     if (numbers) {
-      entities.numbers = numbers.map(n => parseInt(n));
+      entities.numbers = numbers.map((n) => parseInt(n));
     }
 
     // 提取时间
     const timePatterns = {
-      '今天': 'today',
-      '明天': 'tomorrow',
-      '昨天': 'yesterday',
-      '本周': 'this_week',
-      '下周': 'next_week'
+      今天: "today",
+      明天: "tomorrow",
+      昨天: "yesterday",
+      本周: "this_week",
+      下周: "next_week",
     };
 
     for (const [key, value] of Object.entries(timePatterns)) {
@@ -656,10 +632,16 @@ class AdvancedVoiceCommands extends EventEmitter {
   levenshteinDistance(str1, str2) {
     const len1 = str1.length;
     const len2 = str2.length;
-    const dp = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
+    const dp = Array(len1 + 1)
+      .fill(null)
+      .map(() => Array(len2 + 1).fill(0));
 
-    for (let i = 0; i <= len1; i++) {dp[i][0] = i;}
-    for (let j = 0; j <= len2; j++) {dp[0][j] = j;}
+    for (let i = 0; i <= len1; i++) {
+      dp[i][0] = i;
+    }
+    for (let j = 0; j <= len2; j++) {
+      dp[0][j] = j;
+    }
 
     for (let i = 1; i <= len1; i++) {
       for (let j = 1; j <= len2; j++) {
@@ -669,7 +651,7 @@ class AdvancedVoiceCommands extends EventEmitter {
           dp[i][j] = Math.min(
             dp[i - 1][j] + 1,
             dp[i][j - 1] + 1,
-            dp[i - 1][j - 1] + 1
+            dp[i - 1][j - 1] + 1,
           );
         }
       }
@@ -686,11 +668,11 @@ class AdvancedVoiceCommands extends EventEmitter {
       return true;
     }
 
-    if (typeof command.context === 'function') {
+    if (typeof command.context === "function") {
       return command.context(context);
     }
 
-    if (typeof command.context === 'object') {
+    if (typeof command.context === "object") {
       for (const [key, value] of Object.entries(command.context)) {
         if (context[key] !== value) {
           return false;
@@ -711,9 +693,10 @@ class AdvancedVoiceCommands extends EventEmitter {
       params = command.extractParams(originalText);
     }
 
-    const actionResult = typeof command.action === 'function'
-      ? command.action(params)
-      : command.action;
+    const actionResult =
+      typeof command.action === "function"
+        ? command.action(params)
+        : command.action;
 
     const result = {
       command: command.name,
@@ -722,7 +705,7 @@ class AdvancedVoiceCommands extends EventEmitter {
       params: params,
       action: actionResult,
       originalText: originalText,
-      description: command.description
+      description: command.description,
     };
 
     // 记录到历史
@@ -744,13 +727,15 @@ class AdvancedVoiceCommands extends EventEmitter {
    */
   executeMacro(name, context) {
     const commands = this.macros.get(name);
-    if (!commands) {return null;}
+    if (!commands) {
+      return null;
+    }
 
     return {
-      type: 'macro',
+      type: "macro",
       name: name,
       commands: commands,
-      originalText: name
+      originalText: name,
     };
   }
 
@@ -760,7 +745,7 @@ class AdvancedVoiceCommands extends EventEmitter {
   addToHistory(result) {
     this.commandHistory.push({
       ...result,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // 限制历史大小
@@ -781,12 +766,12 @@ class AdvancedVoiceCommands extends EventEmitter {
    */
   getAllCommands() {
     return Array.from(this.commands.values())
-      .filter(cmd => cmd.enabled)
-      .map(cmd => ({
+      .filter((cmd) => cmd.enabled)
+      .map((cmd) => ({
         name: cmd.name,
         category: cmd.category,
         patterns: cmd.patterns,
-        description: cmd.description
+        description: cmd.description,
       }));
   }
 
@@ -794,7 +779,7 @@ class AdvancedVoiceCommands extends EventEmitter {
    * 按类别获取命令
    */
   getCommandsByCategory(category) {
-    return this.getAllCommands().filter(cmd => cmd.category === category);
+    return this.getAllCommands().filter((cmd) => cmd.category === category);
   }
 
   /**
@@ -804,7 +789,9 @@ class AdvancedVoiceCommands extends EventEmitter {
     const command = this.commands.get(name);
     if (command) {
       command.enabled = enabled;
-      logger.info(`[AdvancedVoiceCommands] ${enabled ? '启用' : '禁用'}命令: ${name}`);
+      logger.info(
+        `[AdvancedVoiceCommands] ${enabled ? "启用" : "禁用"}命令: ${name}`,
+      );
     }
   }
 }

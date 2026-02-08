@@ -15,7 +15,9 @@
         class="info-section"
       >
         <a-descriptions-item label="任务 ID">
-          <a-typography-text copyable>{{ task.id }}</a-typography-text>
+          <a-typography-text copyable>
+            {{ task.id }}
+          </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="任务名称">
           {{ task.name }}
@@ -29,13 +31,15 @@
           {{ task.description || "-" }}
         </a-descriptions-item>
         <a-descriptions-item label="所属团队">
-          <a-tag color="blue">{{ task.teamId }}</a-tag>
+          <a-tag color="blue">
+            {{ task.teamId }}
+          </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="执行者">
           <a-tag v-if="task.assignedTo" color="geekblue">
             {{ task.assignedTo }}
           </a-tag>
-          <span v-else style="color: #8c8c8c;">未分配</span>
+          <span v-else style="color: #8c8c8c">未分配</span>
         </a-descriptions-item>
         <a-descriptions-item label="创建时间">
           {{ formatDateTime(task.createdAt) }}
@@ -87,7 +91,10 @@
       </div>
 
       <!-- 检查点列表 -->
-      <div v-if="task.checkpoints && task.checkpoints.length > 0" class="info-section">
+      <div
+        v-if="task.checkpoints && task.checkpoints.length > 0"
+        class="info-section"
+      >
         <h3 class="section-title">
           <SaveOutlined />
           检查点
@@ -109,7 +116,10 @@
               <div v-if="checkpoint.reason" class="checkpoint-reason">
                 原因: {{ checkpoint.reason }}
               </div>
-              <div v-if="checkpoint.progress !== undefined" class="checkpoint-progress">
+              <div
+                v-if="checkpoint.progress !== undefined"
+                class="checkpoint-progress"
+              >
                 进度: {{ checkpoint.progress }}%
               </div>
             </div>
@@ -120,7 +130,7 @@
       <!-- 错误信息 -->
       <div v-if="task.error" class="info-section">
         <h3 class="section-title">
-          <ExclamationCircleOutlined style="color: #f5222d;" />
+          <ExclamationCircleOutlined style="color: #f5222d" />
           错误信息
         </h3>
 
@@ -131,17 +141,18 @@
           show-icon
         />
 
-        <div v-if="task.retryCount !== undefined" style="margin-top: 12px;">
-          <a-tag color="orange">
-            已重试: {{ task.retryCount }} 次
-          </a-tag>
+        <div v-if="task.retryCount !== undefined" style="margin-top: 12px">
+          <a-tag color="orange"> 已重试: {{ task.retryCount }} 次 </a-tag>
         </div>
       </div>
 
       <!-- 结果信息 -->
-      <div v-if="task.result && task.status === 'completed'" class="info-section">
+      <div
+        v-if="task.result && task.status === 'completed'"
+        class="info-section"
+      >
         <h3 class="section-title">
-          <CheckCircleOutlined style="color: #52c41a;" />
+          <CheckCircleOutlined style="color: #52c41a" />
           执行结果
         </h3>
 
@@ -206,9 +217,9 @@ import {
   StopOutlined,
 } from "@ant-design/icons-vue";
 import { format } from "date-fns";
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-const taskDetailLogger = createLogger('task-detail');
+const taskDetailLogger = createLogger("task-detail");
 
 // Props
 const props = defineProps({
@@ -226,7 +237,9 @@ const loading = ref(false);
 
 // 计算当前步骤索引
 const currentStepIndex = computed(() => {
-  if (!props.task.steps || props.task.steps.length === 0) return 0;
+  if (!props.task.steps || props.task.steps.length === 0) {
+    return 0;
+  }
 
   const progress = props.task.progress || 0;
   const stepSize = 100 / props.task.steps.length;
@@ -247,15 +260,18 @@ async function handleCreateCheckpoint() {
   loading.value = true;
   try {
     // 调用 IPC 创建检查点
-    const result = await window.electron.ipcRenderer.invoke("cowork:create-checkpoint", {
-      taskId: props.task.id,
-      description: `检查点 - ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}`,
-      state: {
-        progress: props.task.progress,
-        currentStep: currentStepIndex.value,
-        status: props.task.status,
+    const result = await window.electron.ipcRenderer.invoke(
+      "cowork:create-checkpoint",
+      {
+        taskId: props.task.id,
+        description: `检查点 - ${format(new Date(), "yyyy-MM-dd HH:mm:ss")}`,
+        state: {
+          progress: props.task.progress,
+          currentStep: currentStepIndex.value,
+          status: props.task.status,
+        },
       },
-    });
+    );
 
     if (result.success) {
       message.success("检查点创建成功");
@@ -300,20 +316,32 @@ function getTaskStatusText(status) {
 }
 
 function getProgressStatus(task) {
-  if (task.status === "failed") return "exception";
-  if (task.status === "completed") return "success";
-  if (task.status === "running") return "active";
+  if (task.status === "failed") {
+    return "exception";
+  }
+  if (task.status === "completed") {
+    return "success";
+  }
+  if (task.status === "running") {
+    return "active";
+  }
   return "normal";
 }
 
 function getStepsStatus(task) {
-  if (task.status === "failed") return "error";
-  if (task.status === "completed") return "finish";
+  if (task.status === "failed") {
+    return "error";
+  }
+  if (task.status === "completed") {
+    return "finish";
+  }
   return "process";
 }
 
 function formatDateTime(timestamp) {
-  if (!timestamp) return "-";
+  if (!timestamp) {
+    return "-";
+  }
 
   try {
     return format(new Date(timestamp), "yyyy-MM-dd HH:mm:ss");
@@ -323,7 +351,9 @@ function formatDateTime(timestamp) {
 }
 
 function formatDuration(ms) {
-  if (!ms || ms === 0) return "-";
+  if (!ms || ms === 0) {
+    return "-";
+  }
 
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);

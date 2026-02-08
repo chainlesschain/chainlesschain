@@ -8,19 +8,19 @@
  * - 审计日志
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { app } = require('electron');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const { app } = require("electron");
+const fs = require("fs").promises;
+const path = require("path");
 
 /**
  * 权限级别
  */
 const PermissionLevel = {
-  PUBLIC: 'public',           // 公开访问
-  AUTHENTICATED: 'authenticated', // 需要认证
-  ADMIN: 'admin',              // 管理员权限
-  SYSTEM: 'system',            // 系统级权限
+  PUBLIC: "public", // 公开访问
+  AUTHENTICATED: "authenticated", // 需要认证
+  ADMIN: "admin", // 管理员权限
+  SYSTEM: "system", // 系统级权限
 };
 
 /**
@@ -29,40 +29,40 @@ const PermissionLevel = {
  */
 const IPC_PERMISSIONS = {
   // 公开接口 - 无需认证
-  'system:get-version': PermissionLevel.PUBLIC,
-  'system:get-platform': PermissionLevel.PUBLIC,
-  'llm:check-status': PermissionLevel.PUBLIC,
-  'initial-setup:get-status': PermissionLevel.PUBLIC,
+  "system:get-version": PermissionLevel.PUBLIC,
+  "system:get-platform": PermissionLevel.PUBLIC,
+  "llm:check-status": PermissionLevel.PUBLIC,
+  "initial-setup:get-status": PermissionLevel.PUBLIC,
 
   // 需要认证的接口
-  'knowledge:*': PermissionLevel.AUTHENTICATED,
-  'db:*': PermissionLevel.AUTHENTICATED,
-  'file:*': PermissionLevel.AUTHENTICATED,
-  'llm:*': PermissionLevel.AUTHENTICATED,
-  'rag:*': PermissionLevel.AUTHENTICATED,
-  'git:*': PermissionLevel.AUTHENTICATED,
-  'did:*': PermissionLevel.AUTHENTICATED,
-  'contact:*': PermissionLevel.AUTHENTICATED,
-  'friend:*': PermissionLevel.AUTHENTICATED,
-  'post:*': PermissionLevel.AUTHENTICATED,
-  'p2p:*': PermissionLevel.AUTHENTICATED,
-  'project:*': PermissionLevel.AUTHENTICATED,
-  'image:*': PermissionLevel.AUTHENTICATED,
-  'import:*': PermissionLevel.AUTHENTICATED,
-  'skill:*': PermissionLevel.AUTHENTICATED,
-  'tool:*': PermissionLevel.AUTHENTICATED,
+  "knowledge:*": PermissionLevel.AUTHENTICATED,
+  "db:*": PermissionLevel.AUTHENTICATED,
+  "file:*": PermissionLevel.AUTHENTICATED,
+  "llm:*": PermissionLevel.AUTHENTICATED,
+  "rag:*": PermissionLevel.AUTHENTICATED,
+  "git:*": PermissionLevel.AUTHENTICATED,
+  "did:*": PermissionLevel.AUTHENTICATED,
+  "contact:*": PermissionLevel.AUTHENTICATED,
+  "friend:*": PermissionLevel.AUTHENTICATED,
+  "post:*": PermissionLevel.AUTHENTICATED,
+  "p2p:*": PermissionLevel.AUTHENTICATED,
+  "project:*": PermissionLevel.AUTHENTICATED,
+  "image:*": PermissionLevel.AUTHENTICATED,
+  "import:*": PermissionLevel.AUTHENTICATED,
+  "skill:*": PermissionLevel.AUTHENTICATED,
+  "tool:*": PermissionLevel.AUTHENTICATED,
 
   // 管理员权限
-  'database:migrate': PermissionLevel.ADMIN,
-  'database:setup-encryption': PermissionLevel.ADMIN,
-  'database:change-encryption-password': PermissionLevel.ADMIN,
-  'config:reset': PermissionLevel.ADMIN,
-  'plugin:*': PermissionLevel.ADMIN,
+  "database:migrate": PermissionLevel.ADMIN,
+  "database:setup-encryption": PermissionLevel.ADMIN,
+  "database:change-encryption-password": PermissionLevel.ADMIN,
+  "config:reset": PermissionLevel.ADMIN,
+  "plugin:*": PermissionLevel.ADMIN,
 
   // 系统级权限 (仅主进程可调用)
-  'app:restart': PermissionLevel.SYSTEM,
-  'system:quit': PermissionLevel.SYSTEM,
-  'ukey:*': PermissionLevel.SYSTEM,
+  "app:restart": PermissionLevel.SYSTEM,
+  "system:quit": PermissionLevel.SYSTEM,
+  "ukey:*": PermissionLevel.SYSTEM,
 };
 
 /**
@@ -79,11 +79,11 @@ const RATE_LIMIT_CONFIG = {
     windowMs: 60 * 1000,
     maxRequests: 10,
     channels: [
-      'database:setup-encryption',
-      'database:change-encryption-password',
-      'auth:verify-password',
-      'ukey:verify-pin',
-      'app:restart',
+      "database:setup-encryption",
+      "database:change-encryption-password",
+      "auth:verify-password",
+      "ukey:verify-pin",
+      "app:restart",
     ],
   },
   // 文件操作限制: 每分钟最多30次
@@ -91,10 +91,10 @@ const RATE_LIMIT_CONFIG = {
     windowMs: 60 * 1000,
     maxRequests: 30,
     channels: [
-      'file:write',
-      'file:delete',
-      'import:import-file',
-      'image:upload',
+      "file:write",
+      "file:delete",
+      "import:import-file",
+      "image:upload",
     ],
   },
 };
@@ -116,7 +116,7 @@ class IPCPermissionManager {
       return;
     }
 
-    logger.info('[IPCPermissionManager] 初始化权限管理系统...');
+    logger.info("[IPCPermissionManager] 初始化权限管理系统...");
 
     // 加载审计日志
     await this.loadAuditLog();
@@ -125,7 +125,7 @@ class IPCPermissionManager {
     this.startCleanupTask();
 
     this.isInitialized = true;
-    logger.info('[IPCPermissionManager] 权限管理系统初始化完成');
+    logger.info("[IPCPermissionManager] 权限管理系统初始化完成");
   }
 
   /**
@@ -136,7 +136,7 @@ class IPCPermissionManager {
     this.userPermissionLevel = level;
 
     this.addAuditLog({
-      type: 'permission_change',
+      type: "permission_change",
       level: level,
       timestamp: new Date().toISOString(),
     });
@@ -165,12 +165,17 @@ class IPCPermissionManager {
     const requiredLevel = this.getRequiredPermissionLevel(channel);
 
     // 检查用户权限是否足够
-    const hasPermission = this.hasPermission(this.userPermissionLevel, requiredLevel);
+    const hasPermission = this.hasPermission(
+      this.userPermissionLevel,
+      requiredLevel,
+    );
 
     if (!hasPermission) {
-      logger.warn(`[IPCPermissionManager] 权限不足: ${channel}, 需要: ${requiredLevel}, 当前: ${this.userPermissionLevel}`);
+      logger.warn(
+        `[IPCPermissionManager] 权限不足: ${channel}, 需要: ${requiredLevel}, 当前: ${this.userPermissionLevel}`,
+      );
       this.addAuditLog({
-        type: 'permission_denied',
+        type: "permission_denied",
         channel: channel,
         required: requiredLevel,
         current: this.userPermissionLevel,
@@ -192,7 +197,7 @@ class IPCPermissionManager {
 
     // 通配符匹配 (例如: knowledge:* 匹配所有 knowledge:xxx 通道)
     for (const [pattern, level] of Object.entries(IPC_PERMISSIONS)) {
-      if (pattern.endsWith(':*')) {
+      if (pattern.endsWith(":*")) {
         const prefix = pattern.slice(0, -1); // 移除 '*'
         if (channel.startsWith(prefix)) {
           return level;
@@ -233,16 +238,23 @@ class IPCPermissionManager {
 
     const key = `${channel}`;
     const now = Date.now();
-    const cache = this.rateLimitCache.get(key) || { requests: [], lastReset: now };
+    const cache = this.rateLimitCache.get(key) || {
+      requests: [],
+      lastReset: now,
+    };
 
     // 清理过期的请求记录
-    cache.requests = cache.requests.filter(time => now - time < config.windowMs);
+    cache.requests = cache.requests.filter(
+      (time) => now - time < config.windowMs,
+    );
 
     // 检查是否超过限制
     if (cache.requests.length >= config.maxRequests) {
-      logger.warn(`[IPCPermissionManager] 速率限制: ${channel}, 在${config.windowMs}ms内已达到${config.maxRequests}次请求上限`);
+      logger.warn(
+        `[IPCPermissionManager] 速率限制: ${channel}, 在${config.windowMs}ms内已达到${config.maxRequests}次请求上限`,
+      );
       this.addAuditLog({
-        type: 'rate_limit_exceeded',
+        type: "rate_limit_exceeded",
         channel: channel,
         requests: cache.requests.length,
         limit: config.maxRequests,
@@ -263,18 +275,18 @@ class IPCPermissionManager {
    * 参数验证和清理
    */
   sanitizeArgs(channel, args) {
-    return args.map(arg => {
-      if (typeof arg === 'string') {
+    return args.map((arg) => {
+      if (typeof arg === "string") {
         // 防止命令注入
         const sanitized = arg
-          .replace(/[;&|`$()<>]/g, '')  // 移除危险字符
-          .replace(/\.\./g, '')         // 移除路径遍历
+          .replace(/[;&|`$()<>]/g, "") // 移除危险字符
+          .replace(/\.\./g, "") // 移除路径遍历
           .trim();
 
         return sanitized;
       }
 
-      if (typeof arg === 'object' && arg !== null) {
+      if (typeof arg === "object" && arg !== null) {
         // 递归清理对象
         return this.sanitizeObject(arg);
       }
@@ -288,18 +300,18 @@ class IPCPermissionManager {
    */
   sanitizeObject(obj) {
     if (Array.isArray(obj)) {
-      return obj.map(item => this.sanitizeObject(item));
+      return obj.map((item) => this.sanitizeObject(item));
     }
 
-    if (typeof obj === 'object' && obj !== null) {
+    if (typeof obj === "object" && obj !== null) {
       const cleaned = {};
       for (const [key, value] of Object.entries(obj)) {
-        if (typeof value === 'string') {
+        if (typeof value === "string") {
           cleaned[key] = value
-            .replace(/[;&|`$()<>]/g, '')
-            .replace(/\.\./g, '')
+            .replace(/[;&|`$()<>]/g, "")
+            .replace(/\.\./g, "")
             .trim();
-        } else if (typeof value === 'object') {
+        } else if (typeof value === "object") {
           cleaned[key] = this.sanitizeObject(value);
         } else {
           cleaned[key] = value;
@@ -330,7 +342,7 @@ class IPCPermissionManager {
 
     // 4. 记录审计日志
     this.addAuditLog({
-      type: 'ipc_call',
+      type: "ipc_call",
       channel: channel,
       argsLength: args.length,
       timestamp: new Date().toISOString(),
@@ -363,18 +375,18 @@ class IPCPermissionManager {
    */
   async saveAuditLog() {
     try {
-      const userDataPath = app.getPath('userData');
-      const logPath = path.join(userDataPath, 'audit.log');
+      const userDataPath = app.getPath("userData");
+      const logPath = path.join(userDataPath, "audit.log");
 
       await fs.writeFile(
         logPath,
-        this.auditLog.map(entry => JSON.stringify(entry)).join('\n'),
-        'utf8'
+        this.auditLog.map((entry) => JSON.stringify(entry)).join("\n"),
+        "utf8",
       );
 
       logger.info(`[IPCPermissionManager] 审计日志已保存到: ${logPath}`);
     } catch (error) {
-      logger.error('[IPCPermissionManager] 保存审计日志失败:', error);
+      logger.error("[IPCPermissionManager] 保存审计日志失败:", error);
     }
   }
 
@@ -383,28 +395,35 @@ class IPCPermissionManager {
    */
   async loadAuditLog() {
     try {
-      const userDataPath = app.getPath('userData');
-      const logPath = path.join(userDataPath, 'audit.log');
+      const userDataPath = app.getPath("userData");
+      const logPath = path.join(userDataPath, "audit.log");
 
-      const exists = await fs.access(logPath).then(() => true).catch(() => false);
+      const exists = await fs
+        .access(logPath)
+        .then(() => true)
+        .catch(() => false);
       if (!exists) {
         return;
       }
 
-      const content = await fs.readFile(logPath, 'utf8');
-      const lines = content.split('\n').filter(line => line.trim());
+      const content = await fs.readFile(logPath, "utf8");
+      const lines = content.split("\n").filter((line) => line.trim());
 
-      this.auditLog = lines.map(line => {
-        try {
-          return JSON.parse(line);
-        } catch {
-          return null;
-        }
-      }).filter(entry => entry !== null);
+      this.auditLog = lines
+        .map((line) => {
+          try {
+            return JSON.parse(line);
+          } catch {
+            return null;
+          }
+        })
+        .filter((entry) => entry !== null);
 
-      logger.info(`[IPCPermissionManager] 已加载 ${this.auditLog.length} 条审计日志`);
+      logger.info(
+        `[IPCPermissionManager] 已加载 ${this.auditLog.length} 条审计日志`,
+      );
     } catch (error) {
-      logger.error('[IPCPermissionManager] 加载审计日志失败:', error);
+      logger.error("[IPCPermissionManager] 加载审计日志失败:", error);
     }
   }
 
@@ -413,20 +432,26 @@ class IPCPermissionManager {
    */
   startCleanupTask() {
     // 每5分钟清理一次速率限制缓存
-    setInterval(() => {
-      const now = Date.now();
-      for (const [key, cache] of this.rateLimitCache.entries()) {
-        cache.requests = cache.requests.filter(time => now - time < 60000);
-        if (cache.requests.length === 0) {
-          this.rateLimitCache.delete(key);
+    setInterval(
+      () => {
+        const now = Date.now();
+        for (const [key, cache] of this.rateLimitCache.entries()) {
+          cache.requests = cache.requests.filter((time) => now - time < 60000);
+          if (cache.requests.length === 0) {
+            this.rateLimitCache.delete(key);
+          }
         }
-      }
-    }, 5 * 60 * 1000);
+      },
+      5 * 60 * 1000,
+    );
 
     // 每小时保存一次审计日志
-    setInterval(() => {
-      this.saveAuditLog();
-    }, 60 * 60 * 1000);
+    setInterval(
+      () => {
+        this.saveAuditLog();
+      },
+      60 * 60 * 1000,
+    );
   }
 
   /**
@@ -438,10 +463,10 @@ class IPCPermissionManager {
       rateLimitCacheSize: this.rateLimitCache.size,
       auditLogSize: this.auditLog.length,
       recentDenials: this.auditLog
-        .filter(entry => entry.type === 'permission_denied')
+        .filter((entry) => entry.type === "permission_denied")
         .slice(-10),
       recentRateLimits: this.auditLog
-        .filter(entry => entry.type === 'rate_limit_exceeded')
+        .filter((entry) => entry.type === "rate_limit_exceeded")
         .slice(-10),
     };
   }

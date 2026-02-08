@@ -1,7 +1,7 @@
-const { logger, createLogger } = require('../utils/logger.js');
-const os = require('os');
-const { performance } = require('perf_hooks');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const os = require("os");
+const { performance } = require("perf_hooks");
+const EventEmitter = require("events");
 
 /**
  * 性能监控管理器
@@ -14,20 +14,20 @@ class PerformanceMonitor extends EventEmitter {
       system: {
         cpu: [],
         memory: [],
-        disk: []
+        disk: [],
       },
       database: {
         queries: [],
-        slowQueries: []
+        slowQueries: [],
       },
       ipc: {
         calls: [],
-        slowCalls: []
+        slowCalls: [],
       },
       app: {
         startupTime: null,
-        uptime: 0
-      }
+        uptime: 0,
+      },
     };
 
     this.config = {
@@ -38,8 +38,8 @@ class PerformanceMonitor extends EventEmitter {
       alertThresholds: {
         cpuUsage: 80, // CPU使用率告警阈值（%）
         memoryUsage: 85, // 内存使用率告警阈值（%）
-        diskUsage: 90 // 磁盘使用率告警阈值（%）
-      }
+        diskUsage: 90, // 磁盘使用率告警阈值（%）
+      },
     };
 
     this.monitoring = false;
@@ -53,11 +53,11 @@ class PerformanceMonitor extends EventEmitter {
    */
   start() {
     if (this.monitoring) {
-      logger.info('[PerformanceMonitor] 监控已在运行');
+      logger.info("[PerformanceMonitor] 监控已在运行");
       return;
     }
 
-    logger.info('[PerformanceMonitor] 启动性能监控');
+    logger.info("[PerformanceMonitor] 启动性能监控");
     this.monitoring = true;
     this.metrics.app.startupTime = Date.now() - this.startTime;
 
@@ -81,7 +81,7 @@ class PerformanceMonitor extends EventEmitter {
       return;
     }
 
-    logger.info('[PerformanceMonitor] 停止性能监控');
+    logger.info("[PerformanceMonitor] 停止性能监控");
     this.monitoring = false;
 
     if (this.monitoringInterval) {
@@ -98,21 +98,21 @@ class PerformanceMonitor extends EventEmitter {
 
     // CPU使用率
     const cpuMetrics = this.getCPUMetrics();
-    this.addMetric('system.cpu', {
+    this.addMetric("system.cpu", {
       timestamp,
       usage: cpuMetrics.usage,
-      loadAverage: cpuMetrics.loadAverage
+      loadAverage: cpuMetrics.loadAverage,
     });
 
     // 内存使用率
     const memoryMetrics = this.getMemoryMetrics();
-    this.addMetric('system.memory', {
+    this.addMetric("system.memory", {
       timestamp,
       total: memoryMetrics.total,
       used: memoryMetrics.used,
       free: memoryMetrics.free,
       usage: memoryMetrics.usage,
-      processMemory: memoryMetrics.processMemory
+      processMemory: memoryMetrics.processMemory,
     });
 
     // 检查告警
@@ -142,20 +142,20 @@ class PerformanceMonitor extends EventEmitter {
     // 计算系统CPU使用率
     let totalIdle = 0;
     let totalTick = 0;
-    cpus.forEach(cpu => {
+    cpus.forEach((cpu) => {
       for (const type in cpu.times) {
         totalTick += cpu.times[type];
       }
       totalIdle += cpu.times.idle;
     });
 
-    const systemUsage = 100 - (100 * totalIdle / totalTick);
+    const systemUsage = 100 - (100 * totalIdle) / totalTick;
 
     return {
       usage: Math.min(100, Math.max(0, processUsage)),
       systemUsage: Math.min(100, Math.max(0, systemUsage)),
       loadAverage: loadAverage[0],
-      cores: cpus.length
+      cores: cpus.length,
     };
   }
 
@@ -179,8 +179,8 @@ class PerformanceMonitor extends EventEmitter {
         rss: processMemory.rss,
         heapTotal: processMemory.heapTotal,
         heapUsed: processMemory.heapUsed,
-        external: processMemory.external
-      }
+        external: processMemory.external,
+      },
     };
   }
 
@@ -192,16 +192,18 @@ class PerformanceMonitor extends EventEmitter {
       timestamp: Date.now(),
       query: query.substring(0, 200), // 限制长度
       duration,
-      params: JSON.stringify(params).substring(0, 100)
+      params: JSON.stringify(params).substring(0, 100),
     };
 
-    this.addMetric('database.queries', record);
+    this.addMetric("database.queries", record);
 
     // 记录慢查询
     if (duration > this.config.slowQueryThreshold) {
-      this.addMetric('database.slowQueries', record);
-      this.emit('slowQuery', record);
-      logger.warn(`[PerformanceMonitor] 慢查询检测: ${duration}ms - ${query.substring(0, 100)}`);
+      this.addMetric("database.slowQueries", record);
+      this.emit("slowQuery", record);
+      logger.warn(
+        `[PerformanceMonitor] 慢查询检测: ${duration}ms - ${query.substring(0, 100)}`,
+      );
     }
   }
 
@@ -213,16 +215,18 @@ class PerformanceMonitor extends EventEmitter {
       timestamp: Date.now(),
       channel,
       duration,
-      params: JSON.stringify(params).substring(0, 100)
+      params: JSON.stringify(params).substring(0, 100),
     };
 
-    this.addMetric('ipc.calls', record);
+    this.addMetric("ipc.calls", record);
 
     // 记录慢IPC调用
     if (duration > this.config.slowIPCThreshold) {
-      this.addMetric('ipc.slowCalls', record);
-      this.emit('slowIPC', record);
-      logger.warn(`[PerformanceMonitor] 慢IPC调用检测: ${duration}ms - ${channel}`);
+      this.addMetric("ipc.slowCalls", record);
+      this.emit("slowIPC", record);
+      logger.warn(
+        `[PerformanceMonitor] 慢IPC调用检测: ${duration}ms - ${channel}`,
+      );
     }
   }
 
@@ -230,7 +234,7 @@ class PerformanceMonitor extends EventEmitter {
    * 添加指标数据
    */
   addMetric(path, data) {
-    const parts = path.split('.');
+    const parts = path.split(".");
     let target = this.metrics;
 
     for (let i = 0; i < parts.length - 1; i++) {
@@ -255,29 +259,29 @@ class PerformanceMonitor extends EventEmitter {
     // CPU告警
     if (cpuMetrics.usage > this.config.alertThresholds.cpuUsage) {
       const alert = {
-        type: 'cpu',
-        level: 'warning',
+        type: "cpu",
+        level: "warning",
         message: `CPU使用率过高: ${cpuMetrics.usage.toFixed(2)}%`,
         value: cpuMetrics.usage,
         threshold: this.config.alertThresholds.cpuUsage,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       alerts.push(alert);
-      this.emit('alert', alert);
+      this.emit("alert", alert);
     }
 
     // 内存告警
     if (memoryMetrics.usage > this.config.alertThresholds.memoryUsage) {
       const alert = {
-        type: 'memory',
-        level: 'warning',
+        type: "memory",
+        level: "warning",
         message: `内存使用率过高: ${memoryMetrics.usage.toFixed(2)}%`,
         value: memoryMetrics.usage,
         threshold: this.config.alertThresholds.memoryUsage,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       alerts.push(alert);
-      this.emit('alert', alert);
+      this.emit("alert", alert);
     }
 
     return alerts;
@@ -291,28 +295,43 @@ class PerformanceMonitor extends EventEmitter {
     const recentWindow = 60000; // 最近1分钟
 
     // CPU摘要
-    const recentCPU = this.metrics.system.cpu.filter(m => now - m.timestamp < recentWindow);
-    const avgCPU = recentCPU.length > 0
-      ? recentCPU.reduce((sum, m) => sum + m.usage, 0) / recentCPU.length
-      : 0;
+    const recentCPU = this.metrics.system.cpu.filter(
+      (m) => now - m.timestamp < recentWindow,
+    );
+    const avgCPU =
+      recentCPU.length > 0
+        ? recentCPU.reduce((sum, m) => sum + m.usage, 0) / recentCPU.length
+        : 0;
 
     // 内存摘要
-    const recentMemory = this.metrics.system.memory.filter(m => now - m.timestamp < recentWindow);
-    const avgMemory = recentMemory.length > 0
-      ? recentMemory.reduce((sum, m) => sum + m.usage, 0) / recentMemory.length
-      : 0;
+    const recentMemory = this.metrics.system.memory.filter(
+      (m) => now - m.timestamp < recentWindow,
+    );
+    const avgMemory =
+      recentMemory.length > 0
+        ? recentMemory.reduce((sum, m) => sum + m.usage, 0) /
+          recentMemory.length
+        : 0;
 
     // 数据库查询摘要
-    const recentQueries = this.metrics.database.queries.filter(q => now - q.timestamp < recentWindow);
-    const avgQueryTime = recentQueries.length > 0
-      ? recentQueries.reduce((sum, q) => sum + q.duration, 0) / recentQueries.length
-      : 0;
+    const recentQueries = this.metrics.database.queries.filter(
+      (q) => now - q.timestamp < recentWindow,
+    );
+    const avgQueryTime =
+      recentQueries.length > 0
+        ? recentQueries.reduce((sum, q) => sum + q.duration, 0) /
+          recentQueries.length
+        : 0;
 
     // IPC调用摘要
-    const recentIPCCalls = this.metrics.ipc.calls.filter(c => now - c.timestamp < recentWindow);
-    const avgIPCTime = recentIPCCalls.length > 0
-      ? recentIPCCalls.reduce((sum, c) => sum + c.duration, 0) / recentIPCCalls.length
-      : 0;
+    const recentIPCCalls = this.metrics.ipc.calls.filter(
+      (c) => now - c.timestamp < recentWindow,
+    );
+    const avgIPCTime =
+      recentIPCCalls.length > 0
+        ? recentIPCCalls.reduce((sum, c) => sum + c.duration, 0) /
+          recentIPCCalls.length
+        : 0;
 
     return {
       timestamp: now,
@@ -320,26 +339,30 @@ class PerformanceMonitor extends EventEmitter {
       startupTime: this.metrics.app.startupTime,
       cpu: {
         average: avgCPU,
-        current: recentCPU.length > 0 ? recentCPU[recentCPU.length - 1].usage : 0,
-        samples: recentCPU.length
+        current:
+          recentCPU.length > 0 ? recentCPU[recentCPU.length - 1].usage : 0,
+        samples: recentCPU.length,
       },
       memory: {
         average: avgMemory,
-        current: recentMemory.length > 0 ? recentMemory[recentMemory.length - 1].usage : 0,
-        samples: recentMemory.length
+        current:
+          recentMemory.length > 0
+            ? recentMemory[recentMemory.length - 1].usage
+            : 0,
+        samples: recentMemory.length,
       },
       database: {
         totalQueries: this.metrics.database.queries.length,
         recentQueries: recentQueries.length,
         slowQueries: this.metrics.database.slowQueries.length,
-        averageQueryTime: avgQueryTime
+        averageQueryTime: avgQueryTime,
       },
       ipc: {
         totalCalls: this.metrics.ipc.calls.length,
         recentCalls: recentIPCCalls.length,
         slowCalls: this.metrics.ipc.slowCalls.length,
-        averageCallTime: avgIPCTime
-      }
+        averageCallTime: avgIPCTime,
+      },
     };
   }
 
@@ -349,7 +372,7 @@ class PerformanceMonitor extends EventEmitter {
   getMetrics() {
     return {
       ...this.metrics,
-      summary: this.getSummary()
+      summary: this.getSummary(),
     };
   }
 
@@ -363,7 +386,7 @@ class PerformanceMonitor extends EventEmitter {
     this.metrics.database.slowQueries = [];
     this.metrics.ipc.calls = [];
     this.metrics.ipc.slowCalls = [];
-    logger.info('[PerformanceMonitor] 历史数据已清除');
+    logger.info("[PerformanceMonitor] 历史数据已清除");
   }
 
   /**
@@ -372,9 +395,9 @@ class PerformanceMonitor extends EventEmitter {
   updateConfig(newConfig) {
     this.config = {
       ...this.config,
-      ...newConfig
+      ...newConfig,
     };
-    logger.info('[PerformanceMonitor] 配置已更新:', this.config);
+    logger.info("[PerformanceMonitor] 配置已更新:", this.config);
   }
 
   /**
@@ -386,7 +409,7 @@ class PerformanceMonitor extends EventEmitter {
       generatedAt: new Date().toISOString(),
       summary,
       metrics: this.metrics,
-      config: this.config
+      config: this.config,
     };
 
     return report;
@@ -408,5 +431,5 @@ function getPerformanceMonitor() {
 
 module.exports = {
   PerformanceMonitor,
-  getPerformanceMonitor
+  getPerformanceMonitor,
 };

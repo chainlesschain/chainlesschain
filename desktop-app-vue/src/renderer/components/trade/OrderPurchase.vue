@@ -10,10 +10,7 @@
     >
       <div v-if="order">
         <!-- 订单信息 -->
-        <a-card
-          size="small"
-          style="margin-bottom: 16px"
-        >
+        <a-card size="small" style="margin-bottom: 16px">
           <template #title>
             <a-space>
               <shopping-cart-outlined />
@@ -21,11 +18,7 @@
             </a-space>
           </template>
 
-          <a-descriptions
-            :column="1"
-            bordered
-            size="small"
-          >
+          <a-descriptions :column="1" bordered size="small">
             <a-descriptions-item label="订单标题">
               <strong>{{ order.asset_name || order.title }}</strong>
             </a-descriptions-item>
@@ -37,11 +30,7 @@
             </a-descriptions-item>
 
             <a-descriptions-item label="订单状态">
-              <status-badge
-                :status="order.status"
-                type="order"
-                show-icon
-              />
+              <status-badge :status="order.status" type="order" show-icon />
             </a-descriptions-item>
 
             <a-descriptions-item label="卖家">
@@ -66,7 +55,7 @@
               <span style="font-size: 16px; font-weight: 600; color: #52c41a">
                 {{ formatAmount(order.price_amount) }}
                 <span style="font-size: 12px; color: #8c8c8c; margin-left: 4px">
-                  {{ order.price_asset_symbol || 'CC' }}
+                  {{ order.price_asset_symbol || "CC" }}
                 </span>
               </span>
             </a-descriptions-item>
@@ -74,10 +63,7 @@
         </a-card>
 
         <!-- 购买表单 -->
-        <a-card
-          size="small"
-          style="margin-bottom: 16px"
-        >
+        <a-card size="small" style="margin-bottom: 16px">
           <template #title>
             <a-space>
               <calculator-outlined />
@@ -87,10 +73,7 @@
 
           <a-form layout="vertical">
             <!-- 购买数量 -->
-            <a-form-item
-              label="购买数量"
-              required
-            >
+            <a-form-item label="购买数量" required>
               <a-input-number
                 v-model:value="form.quantity"
                 :min="1"
@@ -111,7 +94,9 @@
                 </template>
               </a-input-number>
               <template #extra>
-                <span style="color: #8c8c8c">可购数量: {{ order.quantity }}</span>
+                <span style="color: #8c8c8c"
+                  >可购数量: {{ order.quantity }}</span
+                >
               </template>
             </a-form-item>
 
@@ -122,7 +107,8 @@
                   <div class="breakdown-item">
                     <span class="label">单价:</span>
                     <span class="value">
-                      {{ formatAmount(order.price_amount) }} {{ order.price_asset_symbol || 'CC' }}
+                      {{ formatAmount(order.price_amount) }}
+                      {{ order.price_asset_symbol || "CC" }}
                     </span>
                   </div>
                   <div class="breakdown-item">
@@ -134,7 +120,9 @@
                     <span class="label">总计:</span>
                     <span class="value">
                       {{ formatAmount(totalAmount) }}
-                      <span class="symbol">{{ order.price_asset_symbol || 'CC' }}</span>
+                      <span class="symbol">{{
+                        order.price_asset_symbol || "CC"
+                      }}</span>
                     </span>
                   </div>
                 </div>
@@ -155,10 +143,7 @@
         </a-card>
 
         <!-- 托管说明 -->
-        <a-alert
-          type="info"
-          style="margin-bottom: 16px"
-        >
+        <a-alert type="info" style="margin-bottom: 16px">
           <template #icon>
             <safety-certificate-outlined />
           </template>
@@ -176,11 +161,7 @@
         </a-alert>
 
         <!-- 订单描述 -->
-        <a-card
-          v-if="order.description"
-          size="small"
-          title="订单描述"
-        >
+        <a-card v-if="order.description" size="small" title="订单描述">
           <p style="margin: 0; color: #595959; line-height: 1.6">
             {{ order.description }}
           </p>
@@ -191,18 +172,18 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, watch } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, reactive, computed, watch } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   ShoppingCartOutlined,
   UserOutlined,
   CalculatorOutlined,
   SafetyCertificateOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import StatusBadge from './common/StatusBadge.vue';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import StatusBadge from "./common/StatusBadge.vue";
 
 // Store
 const tradeStore = useTradeStore();
@@ -220,12 +201,12 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['purchased', 'cancel', 'update:open']);
+const emit = defineEmits(["purchased", "cancel", "update:open"]);
 
 // 表单状态
 const form = reactive({
   quantity: 1,
-  memo: '',
+  memo: "",
 });
 
 // 从 store 获取状态
@@ -233,40 +214,48 @@ const purchasing = computed(() => tradeStore.marketplace.purchasing);
 
 // 计算属性
 const totalAmount = computed(() => {
-  if (!props.order) {return 0;}
+  if (!props.order) {
+    return 0;
+  }
   return props.order.price_amount * form.quantity;
 });
 
 // 工具函数
 const getOrderTypeColor = (type) => {
   const colors = {
-    sell: 'green',
-    buy: 'blue',
-    auction: 'purple',
-    exchange: 'orange',
+    sell: "green",
+    buy: "blue",
+    auction: "purple",
+    exchange: "orange",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getOrderTypeName = (type) => {
   const names = {
-    sell: '出售',
-    buy: '求购',
-    auction: '拍卖',
-    exchange: '交换',
+    sell: "出售",
+    buy: "求购",
+    auction: "拍卖",
+    exchange: "交换",
   };
   return names[type] || type;
 };
 
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) {return '0';}
+  if (!amount && amount !== 0) {
+    return "0";
+  }
   const num = parseFloat(amount);
-  if (isNaN(num)) {return '0';}
-  return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
+  if (isNaN(num)) {
+    return "0";
+  }
+  return num.toLocaleString("en-US", { maximumFractionDigits: 8 });
 };
 
 const formatDid = (did) => {
-  if (!did) {return '-';}
+  if (!did) {
+    return "-";
+  }
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
@@ -292,46 +281,46 @@ const handlePurchase = async () => {
     // 使用 store 购买订单
     await tradeStore.purchaseOrder(props.order.id, form.quantity);
 
-    logger.info('[OrderPurchase] 订单购买成功:', props.order.id);
-    antMessage.success('购买成功！订单已进入托管');
+    logger.info("[OrderPurchase] 订单购买成功:", props.order.id);
+    antMessage.success("购买成功！订单已进入托管");
 
     // 通知父组件
-    emit('purchased', {
+    emit("purchased", {
       orderId: props.order.id,
       quantity: form.quantity,
       totalAmount: totalAmount.value,
     });
 
     // 关闭对话框
-    emit('update:open', false);
+    emit("update:open", false);
 
     // 重置表单
     resetForm();
   } catch (error) {
-    logger.error('[OrderPurchase] 购买失败:', error);
-    antMessage.error(error.message || '购买失败');
+    logger.error("[OrderPurchase] 购买失败:", error);
+    antMessage.error(error.message || "购买失败");
   }
 };
 
 // 验证表单
 const validateForm = () => {
   if (!props.order) {
-    antMessage.warning('订单信息无效');
+    antMessage.warning("订单信息无效");
     return false;
   }
 
-  if (props.order.status !== 'open') {
-    antMessage.warning('订单状态不可购买');
+  if (props.order.status !== "open") {
+    antMessage.warning("订单状态不可购买");
     return false;
   }
 
   if (form.quantity <= 0) {
-    antMessage.warning('购买数量必须大于 0');
+    antMessage.warning("购买数量必须大于 0");
     return false;
   }
 
   if (form.quantity > props.order.quantity) {
-    antMessage.warning('购买数量超过可购数量');
+    antMessage.warning("购买数量超过可购数量");
     return false;
   }
 
@@ -340,27 +329,30 @@ const validateForm = () => {
 
 // 取消
 const handleCancel = () => {
-  emit('cancel');
-  emit('update:open', false);
+  emit("cancel");
+  emit("update:open", false);
   resetForm();
 };
 
 // 重置表单
 const resetForm = () => {
   form.quantity = 1;
-  form.memo = '';
+  form.memo = "";
 };
 
 // 监听对话框打开
-watch(() => props.open, (newVal) => {
-  if (newVal && props.order) {
-    // 重置表单
-    resetForm();
+watch(
+  () => props.open,
+  (newVal) => {
+    if (newVal && props.order) {
+      // 重置表单
+      resetForm();
 
-    // 设置默认数量为最小值（1）或可购数量
-    form.quantity = Math.min(1, props.order.quantity);
-  }
-});
+      // 设置默认数量为最小值（1）或可购数量
+      form.quantity = Math.min(1, props.order.quantity);
+    }
+  },
+);
 </script>
 
 <style scoped>

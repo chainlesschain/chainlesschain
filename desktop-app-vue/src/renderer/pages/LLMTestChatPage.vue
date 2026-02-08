@@ -1,9 +1,6 @@
 <template>
   <div class="llm-test-chat-page">
-    <a-page-header
-      title="LLM 测试聊天"
-      @back="handleBack"
-    >
+    <a-page-header title="LLM 测试聊天" @back="handleBack">
       <template #extra>
         <a-select
           v-model:value="selectedProvider"
@@ -18,10 +15,7 @@
             {{ provider.label }}
           </a-select-option>
         </a-select>
-        <a-button
-          type="default"
-          @click="clearChat"
-        >
+        <a-button type="default" @click="clearChat">
           <DeleteOutlined />
           清空对话
         </a-button>
@@ -30,11 +24,10 @@
 
     <div class="chat-container">
       <div class="messages-container">
-        <div
-          v-if="messages.length === 0"
-          class="empty-state"
-        >
-          <CommentOutlined style="font-size: 48px; color: #d9d9d9; margin-bottom: 16px" />
+        <div v-if="messages.length === 0" class="empty-state">
+          <CommentOutlined
+            style="font-size: 48px; color: #d9d9d9; margin-bottom: 16px"
+          />
           <p style="color: #8c8c8c">
             发送消息以测试 {{ getCurrentProviderLabel() }} 服务
           </p>
@@ -54,10 +47,7 @@
                 <UserOutlined />
               </template>
             </a-avatar>
-            <a-avatar
-              v-else
-              style="background-color: #52c41a"
-            >
+            <a-avatar v-else style="background-color: #52c41a">
               <template #icon>
                 <RobotOutlined />
               </template>
@@ -65,26 +55,16 @@
           </div>
           <div class="message-content">
             <div class="message-bubble">
-              <div
-                v-if="message.content"
-                class="message-text"
-              >
+              <div v-if="message.content" class="message-text">
                 {{ message.content }}
               </div>
-              <a-spin
-                v-if="message.loading"
-                size="small"
-              />
+              <a-spin v-if="message.loading" size="small" />
             </div>
-            <div
-              v-if="message.timestamp"
-              class="message-meta"
-            >
-              <span class="message-time">{{ formatTime(message.timestamp) }}</span>
-              <span
-                v-if="message.tokens"
-                class="message-tokens"
-              >
+            <div v-if="message.timestamp" class="message-meta">
+              <span class="message-time">{{
+                formatTime(message.timestamp)
+              }}</span>
+              <span v-if="message.tokens" class="message-tokens">
                 Tokens: {{ message.tokens }}
               </span>
             </div>
@@ -98,13 +78,9 @@
           :auto-size="{ minRows: 2, maxRows: 6 }"
           placeholder="输入测试消息..."
           :disabled="sending"
-          @pressEnter="handleSend"
+          @press-enter="handleSend"
         />
-        <a-button
-          type="primary"
-          :loading="sending"
-          @click="handleSend"
-        >
+        <a-button type="primary" :loading="sending" @click="handleSend">
           <SendOutlined />
           发送
         </a-button>
@@ -114,19 +90,19 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   DeleteOutlined,
   SendOutlined,
   UserOutlined,
   RobotOutlined,
   CommentOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 export default {
-  name: 'LLMTestChatPage',
+  name: "LLMTestChatPage",
   components: {
     DeleteOutlined,
     SendOutlined,
@@ -136,18 +112,18 @@ export default {
   },
   setup() {
     const router = useRouter();
-    const inputMessage = ref('');
+    const inputMessage = ref("");
     const messages = ref([]);
     const sending = ref(false);
-    const selectedProvider = ref('doubao');
+    const selectedProvider = ref("doubao");
 
     const availableProviders = ref([
-      { value: 'doubao', label: '火山引擎 Doubao' },
-      { value: 'qwen', label: '阿里云通义千问' },
-      { value: 'deepseek', label: 'DeepSeek' },
-      { value: 'openai', label: 'OpenAI' },
-      { value: 'claude', label: 'Claude' },
-      { value: 'ollama', label: 'Ollama (本地)' },
+      { value: "doubao", label: "火山引擎 Doubao" },
+      { value: "qwen", label: "阿里云通义千问" },
+      { value: "deepseek", label: "DeepSeek" },
+      { value: "openai", label: "OpenAI" },
+      { value: "claude", label: "Claude" },
+      { value: "ollama", label: "Ollama (本地)" },
     ]);
 
     const handleBack = () => {
@@ -156,9 +132,9 @@ export default {
 
     const getCurrentProviderLabel = () => {
       const provider = availableProviders.value.find(
-        (p) => p.value === selectedProvider.value
+        (p) => p.value === selectedProvider.value,
       );
-      return provider ? provider.label : '';
+      return provider ? provider.label : "";
     };
 
     const handleProviderChange = () => {
@@ -167,14 +143,14 @@ export default {
 
     const clearChat = () => {
       messages.value = [];
-      message.success('对话已清空');
+      message.success("对话已清空");
     };
 
     const formatTime = (timestamp) => {
       const date = new Date(timestamp);
-      return date.toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit',
+      return date.toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
       });
     };
 
@@ -194,17 +170,17 @@ export default {
 
       // Add user message
       const userMessage = {
-        role: 'user',
+        role: "user",
         content,
         timestamp: Date.now(),
       };
       messages.value.push(userMessage);
-      inputMessage.value = '';
+      inputMessage.value = "";
 
       // Add assistant placeholder
       const assistantMessage = {
-        role: 'assistant',
-        content: '',
+        role: "assistant",
+        content: "",
         loading: true,
         timestamp: Date.now(),
       };
@@ -214,9 +190,9 @@ export default {
 
       try {
         // Call LLM API
-        const response = await window.electron.invoke('llm:chat', {
+        const response = await window.electron.invoke("llm:chat", {
           provider: selectedProvider.value,
-          messages: [{ role: 'user', content }],
+          messages: [{ role: "user", content }],
         });
 
         // Update assistant message
@@ -225,18 +201,18 @@ export default {
         lastMessage.loading = false;
         lastMessage.tokens = response.usage?.total_tokens || null;
       } catch (error) {
-        console.error('LLM chat error:', error);
+        console.error("LLM chat error:", error);
         const lastMessage = messages.value[messages.value.length - 1];
         lastMessage.content = `错误: ${error.message}`;
         lastMessage.loading = false;
-        message.error('发送失败: ' + error.message);
+        message.error("发送失败: " + error.message);
       } finally {
         sending.value = false;
       }
 
       // Scroll to bottom
       setTimeout(() => {
-        const container = document.querySelector('.messages-container');
+        const container = document.querySelector(".messages-container");
         if (container) {
           container.scrollTop = container.scrollHeight;
         }
@@ -245,7 +221,7 @@ export default {
 
     onMounted(() => {
       // Load saved provider preference
-      const savedProvider = localStorage.getItem('llm-test-provider');
+      const savedProvider = localStorage.getItem("llm-test-provider");
       if (savedProvider) {
         selectedProvider.value = savedProvider;
       }

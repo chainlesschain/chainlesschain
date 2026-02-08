@@ -5,9 +5,9 @@
  * 支持 AES-256 加密
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const Database = require('better-sqlite3-multiple-ciphers');
-const fs = require('fs');
+const { logger } = require("../utils/logger.js");
+const Database = require("better-sqlite3-multiple-ciphers");
+const fs = require("fs");
 
 /**
  * SQLCipher 配置
@@ -22,7 +22,7 @@ const SQLCIPHER_CONFIG = {
   // HMAC算法
   hmacAlgorithm: 1, // HMAC_SHA1
   // KDF算法
-  kdfAlgorithm: 2   // PBKDF2_HMAC_SHA512
+  kdfAlgorithm: 2, // PBKDF2_HMAC_SHA512
 };
 
 /**
@@ -52,13 +52,13 @@ class StatementWrapper {
    */
   bind(params) {
     if (!this.stmt) {
-      throw new Error('Statement not prepared');
+      throw new Error("Statement not prepared");
     }
 
     try {
       if (Array.isArray(params)) {
         this.stmt.bind(params);
-      } else if (params && typeof params === 'object') {
+      } else if (params && typeof params === "object") {
         this.stmt.bind(params);
       }
       return true;
@@ -119,7 +119,7 @@ class StatementWrapper {
       const info = this.stmt.run(...params);
       return {
         changes: info.changes,
-        lastInsertRowid: info.lastInsertRowid
+        lastInsertRowid: info.lastInsertRowid,
       };
     } catch (error) {
       throw new Error(`Run error: ${error.message}`);
@@ -143,7 +143,7 @@ class StatementWrapper {
     if (!this.stmt) {
       this._prepare();
     }
-    return this.stmt.columns().map(col => col.name);
+    return this.stmt.columns().map((col) => col.name);
   }
 
   /**
@@ -227,18 +227,18 @@ class SQLCipherWrapper {
       }
 
       // 启用外键约束
-      this.db.pragma('foreign_keys = ON');
+      this.db.pragma("foreign_keys = ON");
 
       // 启用 WAL 模式以提高并发性能
       try {
-        this.db.pragma('journal_mode = WAL');
-        this.db.pragma('synchronous = NORMAL');
-        logger.info('[SQLCipher] WAL 模式已启用');
+        this.db.pragma("journal_mode = WAL");
+        this.db.pragma("synchronous = NORMAL");
+        logger.info("[SQLCipher] WAL 模式已启用");
       } catch (error) {
-        logger.warn('[SQLCipher] 无法启用 WAL 模式:', error.message);
+        logger.warn("[SQLCipher] 无法启用 WAL 模式:", error.message);
       }
 
-      logger.info('[SQLCipher] 数据库已打开:', this.dbPath);
+      logger.info("[SQLCipher] 数据库已打开:", this.dbPath);
     } catch (error) {
       throw new Error(`Failed to open database: ${error.message}`);
     }
@@ -250,7 +250,7 @@ class SQLCipherWrapper {
    */
   _setupEncryption(key) {
     if (!this.db) {
-      throw new Error('Database not opened');
+      throw new Error("Database not opened");
     }
 
     try {
@@ -260,17 +260,19 @@ class SQLCipherWrapper {
       // 配置 SQLCipher 参数
       this.db.pragma(`cipher_page_size = ${SQLCIPHER_CONFIG.pageSize}`);
       this.db.pragma(`kdf_iter = ${SQLCIPHER_CONFIG.kdfIterations}`);
-      this.db.pragma(`cipher_hmac_algorithm = ${SQLCIPHER_CONFIG.hmacAlgorithm}`);
+      this.db.pragma(
+        `cipher_hmac_algorithm = ${SQLCIPHER_CONFIG.hmacAlgorithm}`,
+      );
       this.db.pragma(`cipher_kdf_algorithm = ${SQLCIPHER_CONFIG.kdfAlgorithm}`);
 
       // 测试密钥是否正确（尝试读取schema）
       try {
-        this.db.prepare('SELECT count(*) FROM sqlite_master').get();
+        this.db.prepare("SELECT count(*) FROM sqlite_master").get();
       } catch (error) {
-        throw new Error('Invalid encryption key or corrupted database');
+        throw new Error("Invalid encryption key or corrupted database");
       }
 
-      logger.info('[SQLCipher] 加密已启用');
+      logger.info("[SQLCipher] 加密已启用");
     } catch (error) {
       throw new Error(`Encryption setup failed: ${error.message}`);
     }
@@ -313,11 +315,13 @@ class SQLCipherWrapper {
   run(sql, params = []) {
     const stmt = this.prepare(sql);
     try {
-      if (sql.trim().toUpperCase().startsWith('SELECT')) {
+      if (sql.trim().toUpperCase().startsWith("SELECT")) {
         return [{ columns: stmt.getColumnNames(), values: stmt.all(params) }];
       } else {
         const result = stmt.run(params);
-        return [{ columns: [], values: [[result.changes, result.lastInsertRowid]] }];
+        return [
+          { columns: [], values: [[result.changes, result.lastInsertRowid]] },
+        ];
       }
     } finally {
       stmt.free();
@@ -330,7 +334,7 @@ class SQLCipherWrapper {
    */
   export() {
     if (!this.db) {
-      throw new Error('Database not opened');
+      throw new Error("Database not opened");
     }
 
     try {
@@ -368,9 +372,9 @@ class SQLCipherWrapper {
       try {
         this.db.close();
         this.db = null;
-        logger.info('[SQLCipher] 数据库已关闭');
+        logger.info("[SQLCipher] 数据库已关闭");
       } catch (error) {
-        logger.error('[SQLCipher] 关闭数据库失败:', error);
+        logger.error("[SQLCipher] 关闭数据库失败:", error);
       }
     }
   }
@@ -381,13 +385,13 @@ class SQLCipherWrapper {
    */
   rekey(newKey) {
     if (!this.db) {
-      throw new Error('Database not opened');
+      throw new Error("Database not opened");
     }
 
     try {
       this.db.pragma(`rekey = "x'${newKey}'"`);
       this.key = newKey;
-      logger.info('[SQLCipher] 数据库密钥已更新');
+      logger.info("[SQLCipher] 数据库密钥已更新");
     } catch (error) {
       throw new Error(`Rekey failed: ${error.message}`);
     }
@@ -398,13 +402,13 @@ class SQLCipherWrapper {
    */
   removeEncryption() {
     if (!this.db) {
-      throw new Error('Database not opened');
+      throw new Error("Database not opened");
     }
 
     try {
       this.db.pragma("rekey = ''");
       this.key = null;
-      logger.info('[SQLCipher] 数据库加密已移除');
+      logger.info("[SQLCipher] 数据库加密已移除");
     } catch (error) {
       throw new Error(`Remove encryption failed: ${error.message}`);
     }
@@ -416,14 +420,14 @@ class SQLCipherWrapper {
    */
   backup(backupPath) {
     if (!this.db) {
-      throw new Error('Database not opened');
+      throw new Error("Database not opened");
     }
 
     try {
       const backup = this.db.backup(backupPath);
       backup.step(-1); // 一次性完成备份
       backup.finish();
-      logger.info('[SQLCipher] 数据库备份完成:', backupPath);
+      logger.info("[SQLCipher] 数据库备份完成:", backupPath);
     } catch (error) {
       throw new Error(`Backup failed: ${error.message}`);
     }
@@ -456,5 +460,5 @@ module.exports = {
   StatementWrapper,
   createEncryptedDatabase,
   createUnencryptedDatabase,
-  SQLCIPHER_CONFIG
+  SQLCIPHER_CONFIG,
 };

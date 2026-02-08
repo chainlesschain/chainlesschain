@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * Call History IPC Handler
@@ -8,7 +8,7 @@ const { logger, createLogger } = require('../utils/logger.js');
 
 let electron;
 try {
-  electron = require('electron');
+  electron = require("electron");
 } catch (error) {
   electron = {};
 }
@@ -33,117 +33,120 @@ class CallHistoryIPC {
    */
   register() {
     if (this.registered) {
-      logger.info('[CallHistoryIPC] IPC处理器已注册');
+      logger.info("[CallHistoryIPC] IPC处理器已注册");
       return;
     }
 
-    logger.info('[CallHistoryIPC] 注册IPC处理器...');
+    logger.info("[CallHistoryIPC] 注册IPC处理器...");
 
     // 获取所有通话记录
-    ipcMain.handle('call-history:get-all', async (event, options = {}) => {
+    ipcMain.handle("call-history:get-all", async (event, options = {}) => {
       try {
         const history = await this.callHistoryManager.getCallHistory(options);
         return {
           success: true,
-          history
+          history,
         };
       } catch (error) {
-        logger.error('[CallHistoryIPC] 获取通话记录失败:', error);
+        logger.error("[CallHistoryIPC] 获取通话记录失败:", error);
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
     });
 
     // 获取特定对等方的通话记录
-    ipcMain.handle('call-history:get-by-peer', async (event, peerId, options = {}) => {
-      try {
-        const history = await this.callHistoryManager.getCallHistory({
-          ...options,
-          peerId
-        });
-        return {
-          success: true,
-          history
-        };
-      } catch (error) {
-        logger.error('[CallHistoryIPC] 获取通话记录失败:', error);
-        return {
-          success: false,
-          error: error.message
-        };
-      }
-    });
+    ipcMain.handle(
+      "call-history:get-by-peer",
+      async (event, peerId, options = {}) => {
+        try {
+          const history = await this.callHistoryManager.getCallHistory({
+            ...options,
+            peerId,
+          });
+          return {
+            success: true,
+            history,
+          };
+        } catch (error) {
+          logger.error("[CallHistoryIPC] 获取通话记录失败:", error);
+          return {
+            success: false,
+            error: error.message,
+          };
+        }
+      },
+    );
 
     // 获取单条通话记录
-    ipcMain.handle('call-history:get-by-id', async (event, callId) => {
+    ipcMain.handle("call-history:get-by-id", async (event, callId) => {
       try {
         const record = await this.callHistoryManager.getCallById(callId);
         return {
           success: true,
-          record
+          record,
         };
       } catch (error) {
-        logger.error('[CallHistoryIPC] 获取通话记录失败:', error);
+        logger.error("[CallHistoryIPC] 获取通话记录失败:", error);
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
     });
 
     // 删除通话记录
-    ipcMain.handle('call-history:delete', async (event, callId) => {
+    ipcMain.handle("call-history:delete", async (event, callId) => {
       try {
         await this.callHistoryManager.deleteCall(callId);
         return {
-          success: true
+          success: true,
         };
       } catch (error) {
-        logger.error('[CallHistoryIPC] 删除通话记录失败:', error);
+        logger.error("[CallHistoryIPC] 删除通话记录失败:", error);
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
     });
 
     // 清空所有通话记录
-    ipcMain.handle('call-history:clear-all', async (event) => {
+    ipcMain.handle("call-history:clear-all", async (event) => {
       try {
         await this.callHistoryManager.clearAllCalls();
         return {
-          success: true
+          success: true,
         };
       } catch (error) {
-        logger.error('[CallHistoryIPC] 清空通话记录失败:', error);
+        logger.error("[CallHistoryIPC] 清空通话记录失败:", error);
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
     });
 
     // 获取通话统计
-    ipcMain.handle('call-history:get-stats', async (event, options = {}) => {
+    ipcMain.handle("call-history:get-stats", async (event, options = {}) => {
       try {
         const stats = await this.callHistoryManager.getCallStats(options);
         return {
           success: true,
-          stats
+          stats,
         };
       } catch (error) {
-        logger.error('[CallHistoryIPC] 获取通话统计失败:', error);
+        logger.error("[CallHistoryIPC] 获取通话统计失败:", error);
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
     });
 
     this.registered = true;
-    logger.info('[CallHistoryIPC] IPC处理器注册完成');
+    logger.info("[CallHistoryIPC] IPC处理器注册完成");
   }
 
   /**
@@ -154,17 +157,17 @@ class CallHistoryIPC {
       return;
     }
 
-    logger.info('[CallHistoryIPC] 注销IPC处理器...');
+    logger.info("[CallHistoryIPC] 注销IPC处理器...");
 
-    ipcMain.removeHandler('call-history:get-all');
-    ipcMain.removeHandler('call-history:get-by-peer');
-    ipcMain.removeHandler('call-history:get-by-id');
-    ipcMain.removeHandler('call-history:delete');
-    ipcMain.removeHandler('call-history:clear-all');
-    ipcMain.removeHandler('call-history:get-stats');
+    ipcMain.removeHandler("call-history:get-all");
+    ipcMain.removeHandler("call-history:get-by-peer");
+    ipcMain.removeHandler("call-history:get-by-id");
+    ipcMain.removeHandler("call-history:delete");
+    ipcMain.removeHandler("call-history:clear-all");
+    ipcMain.removeHandler("call-history:get-stats");
 
     this.registered = false;
-    logger.info('[CallHistoryIPC] IPC处理器注销完成');
+    logger.info("[CallHistoryIPC] IPC处理器注销完成");
   }
 }
 

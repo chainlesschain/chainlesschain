@@ -3,14 +3,14 @@
  * 提供数据预处理、机器学习、可视化等功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const { spawn } = require('child_process');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const { spawn } = require("child_process");
 
 class DataScienceToolsHandler {
   constructor() {
-    this.name = 'DataScienceToolsHandler';
+    this.name = "DataScienceToolsHandler";
   }
 
   /**
@@ -19,26 +19,29 @@ class DataScienceToolsHandler {
   async executePythonScript(scriptContent, args = []) {
     return new Promise((resolve, reject) => {
       // 创建临时脚本文件
-      const tmpScript = path.join(require('os').tmpdir(), `script_${Date.now()}.py`);
+      const tmpScript = path.join(
+        require("os").tmpdir(),
+        `script_${Date.now()}.py`,
+      );
 
       // 写入脚本
-      fs.writeFile(tmpScript, scriptContent, 'utf-8')
+      fs.writeFile(tmpScript, scriptContent, "utf-8")
         .then(() => {
           // 执行Python脚本
-          const python = spawn('python', [tmpScript, ...args]);
+          const python = spawn("python", [tmpScript, ...args]);
 
-          let stdout = '';
-          let stderr = '';
+          let stdout = "";
+          let stderr = "";
 
-          python.stdout.on('data', (data) => {
+          python.stdout.on("data", (data) => {
             stdout += data.toString();
           });
 
-          python.stderr.on('data', (data) => {
+          python.stderr.on("data", (data) => {
             stderr += data.toString();
           });
 
-          python.on('close', (code) => {
+          python.on("close", (code) => {
             // 删除临时文件
             fs.unlink(tmpScript).catch(console.error);
 
@@ -142,7 +145,7 @@ for op in operations:
             df[col] = le.fit_transform(df[col].astype(str))
 
 # 保存处理后的数据
-output_path = '${outputPath || dataPath.replace('.csv', '_processed.csv')}'
+output_path = '${outputPath || dataPath.replace(".csv", "_processed.csv")}'
 df.to_csv(output_path, index=False)
 
 # 输出结果
@@ -162,14 +165,14 @@ print(json.dumps(result))
 
       return result;
     } catch (error) {
-      logger.error('[Data Preprocessor] 处理失败:', error);
+      logger.error("[Data Preprocessor] 处理失败:", error);
 
       // 如果Python不可用，返回说明
-      if (error.message.includes('spawn python ENOENT')) {
+      if (error.message.includes("spawn python ENOENT")) {
         return {
           success: false,
-          error: 'Python环境未安装或未配置',
-          message: '请安装Python 3.x并确保pandas、scikit-learn库可用'
+          error: "Python环境未安装或未配置",
+          message: "请安装Python 3.x并确保pandas、scikit-learn库可用",
         };
       }
 
@@ -187,13 +190,13 @@ print(json.dumps(result))
       // 如果提供了数据源文件，先读取数据
       let chartData = data;
       if (dataSource && !data) {
-        const fileContent = await fs.readFile(dataSource, 'utf-8');
+        const fileContent = await fs.readFile(dataSource, "utf-8");
         // 简单的CSV解析
-        const lines = fileContent.split('\n').filter(l => l.trim());
-        const headers = lines[0].split(',');
+        const lines = fileContent.split("\n").filter((l) => l.trim());
+        const headers = lines[0].split(",");
         chartData = {
           labels: headers,
-          values: lines.slice(1).map(line => line.split(','))
+          values: lines.slice(1).map((line) => line.split(",")),
         };
       }
 
@@ -268,13 +271,13 @@ print(json.dumps({
 
       return result;
     } catch (error) {
-      logger.error('[Chart Generator] 生成失败:', error);
+      logger.error("[Chart Generator] 生成失败:", error);
 
-      if (error.message.includes('spawn python ENOENT')) {
+      if (error.message.includes("spawn python ENOENT")) {
         return {
           success: false,
-          error: 'Python环境未安装',
-          message: '请安装Python 3.x并确保matplotlib、seaborn库可用'
+          error: "Python环境未安装",
+          message: "请安装Python 3.x并确保matplotlib、seaborn库可用",
         };
       }
 
@@ -286,11 +289,21 @@ print(json.dumps({
    * 机器学习模型训练器（简化版本）
    */
   async tool_ml_model_trainer(params) {
-    const { dataPath, targetColumn, modelType, taskType, hyperparameters = {}, modelOutputPath } = params;
+    const {
+      dataPath,
+      targetColumn,
+      modelType,
+      taskType,
+      hyperparameters = {},
+      modelOutputPath,
+    } = params;
 
     try {
       // 生成Python训练脚本
-      const scriptPath = path.join(path.dirname(modelOutputPath), 'train_model.py');
+      const scriptPath = path.join(
+        path.dirname(modelOutputPath),
+        "train_model.py",
+      );
 
       const pythonScript = `
 import pandas as pd
@@ -385,20 +398,20 @@ result = {
 print(json.dumps(result))
 `;
 
-      await fs.writeFile(scriptPath, pythonScript, 'utf-8');
+      await fs.writeFile(scriptPath, pythonScript, "utf-8");
 
       const { stdout } = await this.executePythonScript(pythonScript);
       const result = JSON.parse(stdout.trim());
 
       return result;
     } catch (error) {
-      logger.error('[ML Model Trainer] 训练失败:', error);
+      logger.error("[ML Model Trainer] 训练失败:", error);
 
-      if (error.message.includes('spawn python ENOENT')) {
+      if (error.message.includes("spawn python ENOENT")) {
         return {
           success: false,
-          error: 'Python环境未安装',
-          message: '请安装Python 3.x并确保scikit-learn库可用'
+          error: "Python环境未安装",
+          message: "请安装Python 3.x并确保scikit-learn库可用",
         };
       }
 
@@ -422,7 +435,7 @@ import json
 # 读取数据
 df = pd.read_csv('${dataPath}')
 
-${columns ? `df = df[${JSON.stringify(columns)}]` : ''}
+${columns ? `df = df[${JSON.stringify(columns)}]` : ""}
 
 results = {}
 analyses = ${JSON.stringify(analyses)}
@@ -465,7 +478,7 @@ print(json.dumps({
 
       return result;
     } catch (error) {
-      logger.error('[Statistical Analyzer] 分析失败:', error);
+      logger.error("[Statistical Analyzer] 分析失败:", error);
       throw new Error(`统计分析失败: ${error.message}`);
     }
   }
@@ -474,12 +487,24 @@ print(json.dumps({
    * 注册所有工具到FunctionCaller
    */
   register(functionCaller) {
-    functionCaller.registerTool('tool_data_preprocessor', this.tool_data_preprocessor.bind(this));
-    functionCaller.registerTool('tool_chart_generator', this.tool_chart_generator.bind(this));
-    functionCaller.registerTool('tool_ml_model_trainer', this.tool_ml_model_trainer.bind(this));
-    functionCaller.registerTool('tool_statistical_analyzer', this.tool_statistical_analyzer.bind(this));
+    functionCaller.registerTool(
+      "tool_data_preprocessor",
+      this.tool_data_preprocessor.bind(this),
+    );
+    functionCaller.registerTool(
+      "tool_chart_generator",
+      this.tool_chart_generator.bind(this),
+    );
+    functionCaller.registerTool(
+      "tool_ml_model_trainer",
+      this.tool_ml_model_trainer.bind(this),
+    );
+    functionCaller.registerTool(
+      "tool_statistical_analyzer",
+      this.tool_statistical_analyzer.bind(this),
+    );
 
-    logger.info('[DataScienceToolsHandler] 数据科学工具已注册（4个）');
+    logger.info("[DataScienceToolsHandler] 数据科学工具已注册（4个）");
   }
 }
 

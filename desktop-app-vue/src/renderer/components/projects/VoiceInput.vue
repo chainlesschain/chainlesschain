@@ -24,18 +24,9 @@
     >
       <div class="recording-modal-content">
         <div class="recording-animation">
-          <div
-            class="wave-circle"
-            :class="{ active: isRecording }"
-          />
-          <div
-            class="wave-circle"
-            :class="{ active: isRecording }"
-          />
-          <div
-            class="wave-circle"
-            :class="{ active: isRecording }"
-          />
+          <div class="wave-circle" :class="{ active: isRecording }" />
+          <div class="wave-circle" :class="{ active: isRecording }" />
+          <div class="wave-circle" :class="{ active: isRecording }" />
           <AudioOutlined class="microphone-icon" />
         </div>
 
@@ -49,18 +40,8 @@
         </div>
 
         <div class="recording-actions">
-          <a-button
-            danger
-            @click="cancelRecording"
-          >
-            取消
-          </a-button>
-          <a-button
-            type="primary"
-            @click="stopRecording"
-          >
-            完成
-          </a-button>
+          <a-button danger @click="cancelRecording"> 取消 </a-button>
+          <a-button type="primary" @click="stopRecording"> 完成 </a-button>
         </div>
       </div>
     </a-modal>
@@ -68,20 +49,20 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted, h } from 'vue';
-import { message } from 'ant-design-vue';
-import { AudioOutlined, AudioMutedOutlined } from '@ant-design/icons-vue';
+import { ref, computed, onMounted, onUnmounted, h } from "vue";
+import { message } from "ant-design-vue";
+import { AudioOutlined, AudioMutedOutlined } from "@ant-design/icons-vue";
 
-const emit = defineEmits(['result', 'error']);
+const emit = defineEmits(["result", "error"]);
 
 // 状态
 const isRecording = ref(false);
 const isProcessing = ref(false);
 const showRecordingModal = ref(false);
-const recordingTime = ref('00:00');
-const statusText = ref('准备中...');
+const recordingTime = ref("00:00");
+const statusText = ref("准备中...");
 
 // Web Speech API
 let recognition = null;
@@ -90,14 +71,20 @@ let recordingTimer = null;
 
 // 计算属性
 const buttonText = computed(() => {
-  if (isProcessing.value) {return '处理中...';}
-  if (isRecording.value) {return '录音中';}
-  return '';
+  if (isProcessing.value) {
+    return "处理中...";
+  }
+  if (isRecording.value) {
+    return "录音中";
+  }
+  return "";
 });
 
 const tooltipText = computed(() => {
-  if (isRecording.value) {return '点击停止录音';}
-  return '点击开始语音输入';
+  if (isRecording.value) {
+    return "点击停止录音";
+  }
+  return "点击开始语音输入";
 });
 
 // 初始化Web Speech API
@@ -116,13 +103,13 @@ const initSpeechRecognition = () => {
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    message.error('您的浏览器不支持语音识别功能');
+    message.error("您的浏览器不支持语音识别功能");
     return false;
   }
 
   try {
     recognition = new SpeechRecognition();
-    recognition.lang = 'zh-CN'; // 设置语言为中文
+    recognition.lang = "zh-CN"; // 设置语言为中文
     recognition.continuous = true; // 连续识别
     recognition.interimResults = true; // 返回中间结果
     recognition.maxAlternatives = 1;
@@ -138,22 +125,22 @@ const initSpeechRecognition = () => {
 
     // 识别开始
     recognition.onstart = () => {
-      statusText.value = '正在录音...';
+      statusText.value = "正在录音...";
       startRecordingTimer();
     };
 
     return true;
   } catch (error) {
-    logger.error('初始化语音识别失败:', error);
-    message.error('初始化语音识别失败');
+    logger.error("初始化语音识别失败:", error);
+    message.error("初始化语音识别失败");
     return false;
   }
 };
 
 // 处理识别结果
 const handleRecognitionResult = (event) => {
-  let interimTranscript = '';
-  let finalTranscript = '';
+  let interimTranscript = "";
+  let finalTranscript = "";
 
   for (let i = event.resultIndex; i < event.results.length; i++) {
     const transcript = event.results[i][0].transcript;
@@ -171,34 +158,34 @@ const handleRecognitionResult = (event) => {
 
   // 发送最终结果
   if (finalTranscript) {
-    emit('result', finalTranscript);
+    emit("result", finalTranscript);
   }
 };
 
 // 处理识别错误
 const handleRecognitionError = (event) => {
-  logger.error('语音识别错误:', event.error);
+  logger.error("语音识别错误:", event.error);
 
-  let errorMessage = '语音识别失败';
+  let errorMessage = "语音识别失败";
   switch (event.error) {
-    case 'no-speech':
-      errorMessage = '未检测到语音';
+    case "no-speech":
+      errorMessage = "未检测到语音";
       break;
-    case 'audio-capture':
-      errorMessage = '无法访问麦克风';
+    case "audio-capture":
+      errorMessage = "无法访问麦克风";
       break;
-    case 'not-allowed':
-      errorMessage = '请允许麦克风权限';
+    case "not-allowed":
+      errorMessage = "请允许麦克风权限";
       break;
-    case 'network':
-      errorMessage = '网络错误';
+    case "network":
+      errorMessage = "网络错误";
       break;
     default:
       errorMessage = `语音识别失败: ${event.error}`;
   }
 
   message.error(errorMessage);
-  emit('error', event.error);
+  emit("error", event.error);
 
   stopRecording();
 };
@@ -210,7 +197,7 @@ const handleRecognitionEnd = () => {
     try {
       recognition.start();
     } catch (error) {
-      logger.error('重启识别失败:', error);
+      logger.error("重启识别失败:", error);
     }
   }
 };
@@ -235,14 +222,14 @@ const startRecording = () => {
   try {
     isRecording.value = true;
     showRecordingModal.value = true;
-    statusText.value = '准备录音...';
-    recordingTime.value = '00:00';
+    statusText.value = "准备录音...";
+    recordingTime.value = "00:00";
 
     recognition.start();
     recordingStartTime = Date.now();
   } catch (error) {
-    logger.error('启动录音失败:', error);
-    message.error('启动录音失败');
+    logger.error("启动录音失败:", error);
+    message.error("启动录音失败");
     isRecording.value = false;
     showRecordingModal.value = false;
   }
@@ -257,18 +244,18 @@ const stopRecording = () => {
 
     isRecording.value = false;
     showRecordingModal.value = false;
-    statusText.value = '准备中...';
-    recordingTime.value = '00:00';
+    statusText.value = "准备中...";
+    recordingTime.value = "00:00";
     stopRecordingTimer();
   } catch (error) {
-    logger.error('停止录音失败:', error);
+    logger.error("停止录音失败:", error);
   }
 };
 
 // 取消录音
 const cancelRecording = () => {
   stopRecording();
-  message.info('已取消录音');
+  message.info("已取消录音");
 };
 
 // 启动录音计时器
@@ -277,7 +264,7 @@ const startRecordingTimer = () => {
     const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
-    recordingTime.value = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    recordingTime.value = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }, 1000);
 };
 
@@ -398,7 +385,7 @@ const cleanup = () => {
     font-size: 24px;
     font-weight: 600;
     color: #1677ff;
-    font-family: 'Monaco', 'Courier New', monospace;
+    font-family: "Monaco", "Courier New", monospace;
   }
 }
 

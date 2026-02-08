@@ -31,8 +31,8 @@
           type="primary"
           :loading="syncing"
           :disabled="!selectedDeviceId"
-          @click="syncDeviceIndex"
           style="margin-left: 12px"
+          @click="syncDeviceIndex"
         >
           <sync-outlined />
           同步索引
@@ -40,8 +40,8 @@
 
         <a-button
           :disabled="!selectedDeviceId"
-          @click="showCacheStats"
           style="margin-left: 12px"
+          @click="showCacheStats"
         >
           <database-outlined />
           缓存统计
@@ -69,7 +69,7 @@
         button-style="solid"
         @change="handleCategoryChange"
       >
-        <a-radio-button value="">全部</a-radio-button>
+        <a-radio-button value=""> 全部 </a-radio-button>
         <a-radio-button value="DOCUMENT">
           <file-text-outlined />
           文档
@@ -92,9 +92,7 @@
         </a-radio-button>
       </a-radio-group>
 
-      <div class="file-count">
-        共 {{ pagination.total }} 个文件
-      </div>
+      <div class="file-count">共 {{ pagination.total }} 个文件</div>
     </div>
 
     <!-- 文件列表表格（小于100个文件时使用普通表格） -->
@@ -105,8 +103,8 @@
       :loading="loading"
       :pagination="pagination"
       :row-key="(record) => record.id"
-      @change="handleTableChange"
       class="files-table"
+      @change="handleTableChange"
     >
       <!-- 文件名列 -->
       <template #bodyCell="{ column, record }">
@@ -114,10 +112,7 @@
           <div class="file-name">
             <component :is="getFileIcon(record.category)" />
             <span class="name">{{ record.display_name }}</span>
-            <star-filled
-              v-if="record.is_favorite"
-              class="favorite-icon"
-            />
+            <star-filled v-if="record.is_favorite" class="favorite-icon" />
           </div>
         </template>
 
@@ -141,7 +136,7 @@
         <!-- 缓存状态列 -->
         <template v-else-if="column.key === 'isCached'">
           <a-tag :color="record.is_cached ? 'success' : 'default'">
-            {{ record.is_cached ? '已缓存' : '未缓存' }}
+            {{ record.is_cached ? "已缓存" : "未缓存" }}
           </a-tag>
         </template>
 
@@ -186,7 +181,7 @@
                 <a-menu @click="({ key }) => handleMoreAction(key, record)">
                   <a-menu-item key="favorite">
                     <star-outlined />
-                    {{ record.is_favorite ? '取消收藏' : '收藏' }}
+                    {{ record.is_favorite ? "取消收藏" : "收藏" }}
                   </a-menu-item>
                   <a-menu-item key="info">
                     <info-circle-outlined />
@@ -219,10 +214,7 @@
           <div class="file-name">
             <component :is="getFileIcon(record.category)" />
             <span class="name">{{ record.display_name }}</span>
-            <star-filled
-              v-if="record.is_favorite"
-              class="favorite-icon"
-            />
+            <star-filled v-if="record.is_favorite" class="favorite-icon" />
           </div>
         </template>
 
@@ -246,7 +238,7 @@
         <!-- 缓存状态列 -->
         <template #cell-isCached="{ record }">
           <a-tag :color="record.is_cached ? 'success' : 'default'">
-            {{ record.is_cached ? '已缓存' : '未缓存' }}
+            {{ record.is_cached ? "已缓存" : "未缓存" }}
           </a-tag>
         </template>
 
@@ -291,7 +283,7 @@
                 <a-menu @click="({ key }) => handleMoreAction(key, record)">
                   <a-menu-item key="favorite">
                     <star-outlined />
-                    {{ record.is_favorite ? '取消收藏' : '收藏' }}
+                    {{ record.is_favorite ? "取消收藏" : "收藏" }}
                   </a-menu-item>
                   <a-menu-item key="info">
                     <info-circle-outlined />
@@ -317,8 +309,8 @@
           :show-size-changer="true"
           :show-quick-jumper="true"
           :page-size-options="['10', '20', '50', '100', '200']"
-          @change="handleTableChange"
           show-total="(total) => `共 ${total} 个文件`"
+          @change="handleTableChange"
         />
       </div>
     </div>
@@ -389,14 +381,14 @@
         </a-descriptions-item>
         <a-descriptions-item label="缓存状态">
           <a-tag :color="selectedFile.is_cached ? 'success' : 'default'">
-            {{ selectedFile.is_cached ? '已缓存' : '未缓存' }}
+            {{ selectedFile.is_cached ? "已缓存" : "未缓存" }}
           </a-tag>
         </a-descriptions-item>
         <a-descriptions-item v-if="selectedFile.cache_path" label="缓存路径">
           {{ selectedFile.cache_path }}
         </a-descriptions-item>
         <a-descriptions-item label="校验和">
-          {{ selectedFile.checksum || '未计算' }}
+          {{ selectedFile.checksum || "未计算" }}
         </a-descriptions-item>
       </a-descriptions>
     </a-modal>
@@ -425,7 +417,9 @@
           <a-descriptions-item label="使用率">
             <a-progress
               :percent="Math.round(cacheStats.cacheUsagePercent)"
-              :status="cacheStats.cacheUsagePercent > 90 ? 'exception' : 'normal'"
+              :status="
+                cacheStats.cacheUsagePercent > 90 ? 'exception' : 'normal'
+              "
             />
           </a-descriptions-item>
         </a-descriptions>
@@ -446,12 +440,15 @@
     <a-modal
       v-model:open="projectSelectorVisible"
       title="选择导入的项目"
+      width="600px"
       @ok="confirmImportToProject"
       @cancel="projectSelectorVisible = false"
-      width="600px"
     >
       <a-spin :spinning="projectsLoading">
-        <div v-if="projects.length === 0" style="text-align: center; padding: 40px;">
+        <div
+          v-if="projects.length === 0"
+          style="text-align: center; padding: 40px"
+        >
           <a-empty description="暂无项目">
             <a-button type="primary" @click="createNewProject">
               创建新项目
@@ -478,12 +475,12 @@
                     :color="item.status === 'active' ? 'green' : 'default'"
                     style="margin-left: 8px"
                   >
-                    {{ item.status === 'active' ? '进行中' : '已完成' }}
+                    {{ item.status === "active" ? "进行中" : "已完成" }}
                   </a-tag>
                 </template>
                 <template #description>
-                  <div>{{ item.description || '暂无描述' }}</div>
-                  <div style="font-size: 12px; color: #999; margin-top: 4px;">
+                  <div>{{ item.description || "暂无描述" }}</div>
+                  <div style="font-size: 12px; color: #999; margin-top: 4px">
                     创建时间：{{ formatDate(item.created_at) }}
                   </div>
                 </template>
@@ -494,7 +491,7 @@
       </a-spin>
 
       <template #footer>
-        <a-button @click="projectSelectorVisible = false">取消</a-button>
+        <a-button @click="projectSelectorVisible = false"> 取消 </a-button>
         <a-button
           type="primary"
           :disabled="!selectedProjectId"
@@ -509,8 +506,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   MobileOutlined,
   SyncOutlined,
@@ -529,18 +526,18 @@ import {
   StarFilled,
   InfoCircleOutlined,
   CopyOutlined,
-} from '@ant-design/icons-vue';
-import VirtualTable from '../components/VirtualTable.vue';
+} from "@ant-design/icons-vue";
+import VirtualTable from "../components/VirtualTable.vue";
 
 // 状态
-const selectedDeviceId = ref('');
+const selectedDeviceId = ref("");
 const devices = ref([]);
 const devicesLoading = ref(false);
 const syncing = ref(false);
 const loading = ref(false);
 const files = ref([]);
-const selectedCategory = ref('');
-const searchQuery = ref('');
+const selectedCategory = ref("");
+const searchQuery = ref("");
 const activeTransfers = ref([]);
 const selectedFile = ref(null);
 const fileDetailVisible = ref(false);
@@ -552,7 +549,7 @@ const cacheStatsLoading = ref(false);
 const projectSelectorVisible = ref(false);
 const projects = ref([]);
 const projectsLoading = ref(false);
-const selectedProjectId = ref('');
+const selectedProjectId = ref("");
 const fileToImport = ref(null);
 const importing = ref(false);
 
@@ -563,46 +560,46 @@ const pagination = reactive({
   total: 0,
   showSizeChanger: true,
   showQuickJumper: true,
-  pageSizeOptions: ['10', '20', '50', '100'],
+  pageSizeOptions: ["10", "20", "50", "100"],
 });
 
 // 表格列配置
 const columns = [
   {
-    title: '文件名',
-    key: 'displayName',
-    dataIndex: 'display_name',
-    width: '30%',
+    title: "文件名",
+    key: "displayName",
+    dataIndex: "display_name",
+    width: "30%",
     ellipsis: true,
   },
   {
-    title: '大小',
-    key: 'fileSize',
-    dataIndex: 'file_size',
-    width: '12%',
+    title: "大小",
+    key: "fileSize",
+    dataIndex: "file_size",
+    width: "12%",
   },
   {
-    title: '类型',
-    key: 'category',
-    dataIndex: 'category',
-    width: '10%',
+    title: "类型",
+    key: "category",
+    dataIndex: "category",
+    width: "10%",
   },
   {
-    title: '修改时间',
-    key: 'lastModified',
-    dataIndex: 'last_modified',
-    width: '15%',
+    title: "修改时间",
+    key: "lastModified",
+    dataIndex: "last_modified",
+    width: "15%",
   },
   {
-    title: '缓存状态',
-    key: 'isCached',
-    dataIndex: 'is_cached',
-    width: '10%',
+    title: "缓存状态",
+    key: "isCached",
+    dataIndex: "is_cached",
+    width: "10%",
   },
   {
-    title: '操作',
-    key: 'actions',
-    width: '15%',
+    title: "操作",
+    key: "actions",
+    width: "15%",
   },
 ];
 
@@ -634,7 +631,7 @@ onUnmounted(() => {
 async function loadDevices() {
   devicesLoading.value = true;
   try {
-    const result = await window.ipcRenderer.invoke('external-file:get-devices');
+    const result = await window.ipcRenderer.invoke("external-file:get-devices");
     if (result.success) {
       devices.value = result.devices || [];
       // 如果只有一个设备，自动选择
@@ -643,11 +640,11 @@ async function loadDevices() {
         await loadFileList();
       }
     } else {
-      message.error('获取设备列表失败：' + result.error);
+      message.error("获取设备列表失败：" + result.error);
     }
   } catch (error) {
-    console.error('加载设备列表失败:', error);
-    message.error('加载设备列表失败');
+    console.error("加载设备列表失败:", error);
+    message.error("加载设备列表失败");
   } finally {
     devicesLoading.value = false;
   }
@@ -662,27 +659,27 @@ async function handleDeviceChange() {
 // 同步设备索引
 async function syncDeviceIndex() {
   if (!selectedDeviceId.value) {
-    message.warning('请先选择设备');
+    message.warning("请先选择设备");
     return;
   }
 
   syncing.value = true;
   try {
     const result = await window.ipcRenderer.invoke(
-      'external-file:request-sync',
+      "external-file:request-sync",
       selectedDeviceId.value,
-      { incremental: true }
+      { incremental: true },
     );
 
     if (result.success) {
       message.success(`同步完成！共同步 ${result.totalSynced} 个文件`);
       await loadFileList();
     } else {
-      message.error('同步失败：' + result.error);
+      message.error("同步失败：" + result.error);
     }
   } catch (error) {
-    console.error('同步索引失败:', error);
-    message.error('同步索引失败');
+    console.error("同步索引失败:", error);
+    message.error("同步索引失败");
   } finally {
     syncing.value = false;
   }
@@ -712,20 +709,20 @@ async function loadFileList() {
     }
 
     const result = await window.ipcRenderer.invoke(
-      'external-file:get-file-list',
+      "external-file:get-file-list",
       selectedDeviceId.value,
-      filters
+      filters,
     );
 
     if (result.success) {
       files.value = result.files || [];
       pagination.total = result.total || 0;
     } else {
-      message.error('获取文件列表失败：' + result.error);
+      message.error("获取文件列表失败：" + result.error);
     }
   } catch (error) {
-    console.error('加载文件列表失败:', error);
-    message.error('加载文件列表失败');
+    console.error("加载文件列表失败:", error);
+    message.error("加载文件列表失败");
   } finally {
     loading.value = false;
   }
@@ -753,66 +750,70 @@ function handleTableChange(pag) {
 // 拉取文件
 async function pullFile(file) {
   try {
-    message.loading({ content: '正在拉取文件...', key: 'pull', duration: 0 });
+    message.loading({ content: "正在拉取文件...", key: "pull", duration: 0 });
 
     const result = await window.ipcRenderer.invoke(
-      'external-file:pull-file',
-      file.id
+      "external-file:pull-file",
+      file.id,
     );
 
-    message.destroy('pull');
+    message.destroy("pull");
 
     if (result.success) {
       if (result.cached) {
-        message.info('文件已在缓存中');
+        message.info("文件已在缓存中");
       } else {
-        message.success('文件拉取完成');
+        message.success("文件拉取完成");
       }
       await loadFileList();
     } else {
-      message.error('文件拉取失败：' + result.error);
+      message.error("文件拉取失败：" + result.error);
     }
   } catch (error) {
-    message.destroy('pull');
-    console.error('拉取文件失败:', error);
-    message.error('拉取文件失败');
+    message.destroy("pull");
+    console.error("拉取文件失败:", error);
+    message.error("拉取文件失败");
   }
 }
 
 // 导入到RAG
 async function importToRAG(file) {
   try {
-    message.loading({ content: '正在导入到RAG...', key: 'import', duration: 0 });
+    message.loading({
+      content: "正在导入到RAG...",
+      key: "import",
+      duration: 0,
+    });
 
     const result = await window.ipcRenderer.invoke(
-      'external-file:import-to-rag',
-      file.id
+      "external-file:import-to-rag",
+      file.id,
     );
 
-    message.destroy('import');
+    message.destroy("import");
 
     if (result.success) {
-      message.success('导入成功！文件已加入知识库');
+      message.success("导入成功！文件已加入知识库");
     } else {
-      message.error('导入失败：' + result.error);
+      message.error("导入失败：" + result.error);
     }
   } catch (error) {
-    message.destroy('import');
-    console.error('导入RAG失败:', error);
-    message.error('导入RAG失败');
+    message.destroy("import");
+    console.error("导入RAG失败:", error);
+    message.error("导入RAG失败");
   }
 }
 
 // 更多操作
 async function handleMoreAction(key, file) {
   switch (key) {
-    case 'favorite':
+    case "favorite":
       await toggleFavorite(file);
       break;
-    case 'info':
+    case "info":
       showFileDetail(file);
       break;
-    case 'copyPath':
+    case "copyPath":
       copyFilePath(file);
       break;
   }
@@ -822,19 +823,19 @@ async function handleMoreAction(key, file) {
 async function toggleFavorite(file) {
   try {
     const result = await window.ipcRenderer.invoke(
-      'external-file:toggle-favorite',
-      file.id
+      "external-file:toggle-favorite",
+      file.id,
     );
 
     if (result.success) {
-      message.success(result.isFavorite ? '已收藏' : '已取消收藏');
+      message.success(result.isFavorite ? "已收藏" : "已取消收藏");
       await loadFileList();
     } else {
-      message.error('操作失败：' + result.error);
+      message.error("操作失败：" + result.error);
     }
   } catch (error) {
-    console.error('切换收藏失败:', error);
-    message.error('操作失败');
+    console.error("切换收藏失败:", error);
+    message.error("操作失败");
   }
 }
 
@@ -846,8 +847,8 @@ function showFileDetail(file) {
 
 // 复制文件路径
 function copyFilePath(file) {
-  navigator.clipboard.writeText(file.file_path || '');
-  message.success('路径已复制');
+  navigator.clipboard.writeText(file.file_path || "");
+  message.success("路径已复制");
 }
 
 // 显示缓存统计
@@ -857,17 +858,17 @@ async function showCacheStats() {
 
   try {
     const result = await window.ipcRenderer.invoke(
-      'external-file:get-cache-stats'
+      "external-file:get-cache-stats",
     );
 
     if (result.success) {
       cacheStats.value = result.stats;
     } else {
-      message.error('获取缓存统计失败：' + result.error);
+      message.error("获取缓存统计失败：" + result.error);
     }
   } catch (error) {
-    console.error('获取缓存统计失败:', error);
-    message.error('获取缓存统计失败');
+    console.error("获取缓存统计失败:", error);
+    message.error("获取缓存统计失败");
   } finally {
     cacheStatsLoading.value = false;
   }
@@ -876,12 +877,12 @@ async function showCacheStats() {
 // 清理缓存
 async function cleanupCache() {
   Modal.confirm({
-    title: '确认清理',
-    content: '确定要清理过期缓存吗？',
+    title: "确认清理",
+    content: "确定要清理过期缓存吗？",
     async onOk() {
       try {
         const result = await window.ipcRenderer.invoke(
-          'external-file:cleanup-cache'
+          "external-file:cleanup-cache",
         );
 
         if (result.success) {
@@ -889,11 +890,11 @@ async function cleanupCache() {
           await showCacheStats();
           await loadFileList();
         } else {
-          message.error('清理失败：' + result.error);
+          message.error("清理失败：" + result.error);
         }
       } catch (error) {
-        console.error('清理缓存失败:', error);
-        message.error('清理缓存失败');
+        console.error("清理缓存失败:", error);
+        message.error("清理缓存失败");
       }
     },
   });
@@ -910,7 +911,9 @@ async function showProjectSelector(file) {
 async function loadProjects() {
   projectsLoading.value = true;
   try {
-    const result = await window.ipcRenderer.invoke('external-file:get-projects');
+    const result = await window.ipcRenderer.invoke(
+      "external-file:get-projects",
+    );
 
     if (result.success) {
       projects.value = result.projects || [];
@@ -919,11 +922,11 @@ async function loadProjects() {
         selectedProjectId.value = projects.value[0].id;
       }
     } else {
-      message.error('获取项目列表失败：' + result.error);
+      message.error("获取项目列表失败：" + result.error);
     }
   } catch (error) {
-    console.error('加载项目列表失败:', error);
-    message.error('加载项目列表失败');
+    console.error("加载项目列表失败:", error);
+    message.error("加载项目列表失败");
   } finally {
     projectsLoading.value = false;
   }
@@ -932,37 +935,39 @@ async function loadProjects() {
 // 确认导入到项目
 async function confirmImportToProject() {
   if (!selectedProjectId.value || !fileToImport.value) {
-    message.warning('请选择项目');
+    message.warning("请选择项目");
     return;
   }
 
   importing.value = true;
   try {
     const result = await window.ipcRenderer.invoke(
-      'external-file:import-to-project',
+      "external-file:import-to-project",
       fileToImport.value.id,
-      selectedProjectId.value
+      selectedProjectId.value,
     );
 
     if (result.success) {
-      message.success('文件已成功导入项目！');
+      message.success("文件已成功导入项目！");
       projectSelectorVisible.value = false;
 
       // 找到导入的项目名称
-      const project = projects.value.find(p => p.id === selectedProjectId.value);
+      const project = projects.value.find(
+        (p) => p.id === selectedProjectId.value,
+      );
       if (project) {
         message.info(`文件已导入到项目：${project.name}`);
       }
 
       // 重置状态
-      selectedProjectId.value = '';
+      selectedProjectId.value = "";
       fileToImport.value = null;
     } else {
-      message.error('导入失败：' + result.error);
+      message.error("导入失败：" + result.error);
     }
   } catch (error) {
-    console.error('导入项目失败:', error);
-    message.error('导入项目失败');
+    console.error("导入项目失败:", error);
+    message.error("导入项目失败");
   } finally {
     importing.value = false;
   }
@@ -972,7 +977,7 @@ async function confirmImportToProject() {
 function createNewProject() {
   projectSelectorVisible.value = false;
   // 导航到项目创建页面
-  window.location.hash = '#/projects/new';
+  window.location.hash = "#/projects/new";
 }
 
 // 启动传输轮询
@@ -980,14 +985,14 @@ function startTransferPolling() {
   transferPollingTimer = setInterval(async () => {
     try {
       const result = await window.ipcRenderer.invoke(
-        'external-file:get-active-transfers'
+        "external-file:get-active-transfers",
       );
 
       if (result.success) {
         activeTransfers.value = result.tasks || [];
       }
     } catch (error) {
-      console.error('获取传输任务失败:', error);
+      console.error("获取传输任务失败:", error);
     }
   }, 1000);
 }
@@ -1004,18 +1009,18 @@ function stopTransferPolling() {
 async function cancelTransfer(transferId) {
   try {
     const result = await window.ipcRenderer.invoke(
-      'external-file:cancel-transfer',
-      transferId
+      "external-file:cancel-transfer",
+      transferId,
     );
 
     if (result.success) {
-      message.success('传输已取消');
+      message.success("传输已取消");
     } else {
-      message.error('取消失败：' + result.error);
+      message.error("取消失败：" + result.error);
     }
   } catch (error) {
-    console.error('取消传输失败:', error);
-    message.error('取消传输失败');
+    console.error("取消传输失败:", error);
+    message.error("取消传输失败");
   }
 }
 
@@ -1034,40 +1039,44 @@ function getFileIcon(category) {
 
 function getCategoryColor(category) {
   const colorMap = {
-    DOCUMENT: 'blue',
-    IMAGE: 'green',
-    VIDEO: 'purple',
-    AUDIO: 'orange',
-    CODE: 'cyan',
-    OTHER: 'default',
+    DOCUMENT: "blue",
+    IMAGE: "green",
+    VIDEO: "purple",
+    AUDIO: "orange",
+    CODE: "cyan",
+    OTHER: "default",
   };
-  return colorMap[category] || 'default';
+  return colorMap[category] || "default";
 }
 
 function getCategoryLabel(category) {
   const labelMap = {
-    DOCUMENT: '文档',
-    IMAGE: '图片',
-    VIDEO: '视频',
-    AUDIO: '音频',
-    CODE: '代码',
-    OTHER: '其他',
+    DOCUMENT: "文档",
+    IMAGE: "图片",
+    VIDEO: "视频",
+    AUDIO: "音频",
+    CODE: "代码",
+    OTHER: "其他",
   };
   return labelMap[category] || category;
 }
 
 function formatFileSize(bytes) {
-  if (!bytes || bytes === 0) return '0 B';
+  if (!bytes || bytes === 0) {
+    return "0 B";
+  }
 
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const units = ["B", "KB", "MB", "GB", "TB"];
   const k = 1024;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + units[i];
+  return (bytes / Math.pow(k, i)).toFixed(2) + " " + units[i];
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) {
+    return "-";
+  }
 
   const date = new Date(timestamp);
   const now = new Date();
@@ -1092,12 +1101,12 @@ function formatDate(timestamp) {
   }
 
   // 格式化为日期
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+  return date.toLocaleDateString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 </script>

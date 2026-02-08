@@ -9,7 +9,7 @@
  */
 
 // Default imports - can be overridden via dependency injection for testing
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const defaultMcpClient = require("@modelcontextprotocol/sdk/client/index.js");
 const defaultMcpStdio = require("@modelcontextprotocol/sdk/client/stdio.js");
 const defaultMcpTypes = require("@modelcontextprotocol/sdk/types.js");

@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 工具索引系统
@@ -15,7 +15,7 @@ const { logger, createLogger } = require('../utils/logger.js');
 class ToolIndex {
   constructor(toolsArray) {
     if (!Array.isArray(toolsArray)) {
-      throw new Error('ToolIndex requires an array of tools');
+      throw new Error("ToolIndex requires an array of tools");
     }
 
     this.tools = toolsArray;
@@ -33,9 +33,9 @@ class ToolIndex {
    * @private
    */
   _buildIndexes() {
-    this.tools.forEach(tool => {
+    this.tools.forEach((tool) => {
       if (!tool.id || !tool.name) {
-        logger.warn('Tool missing id or name:', tool);
+        logger.warn("Tool missing id or name:", tool);
         return;
       }
 
@@ -55,7 +55,7 @@ class ToolIndex {
 
       // Permission索引（倒排索引）
       if (Array.isArray(tool.required_permissions)) {
-        tool.required_permissions.forEach(perm => {
+        tool.required_permissions.forEach((perm) => {
           if (!this.byPermission.has(perm)) {
             this.byPermission.set(perm, new Set());
           }
@@ -106,8 +106,12 @@ class ToolIndex {
    */
   getByPermission(permission) {
     const ids = this.byPermission.get(permission);
-    if (!ids) {return [];}
-    return Array.from(ids).map(id => this.byId.get(id)).filter(Boolean);
+    if (!ids) {
+      return [];
+    }
+    return Array.from(ids)
+      .map((id) => this.byId.get(id))
+      .filter(Boolean);
   }
 
   /**
@@ -157,27 +161,31 @@ class ToolIndex {
 
     // 按类别过滤
     if (filters.category) {
-      results = results.filter(t => t.category === filters.category);
+      results = results.filter((t) => t.category === filters.category);
     }
 
     // 按风险级别过滤
     if (filters.riskLevel !== undefined) {
-      results = results.filter(t => (t.risk_level || 1) === filters.riskLevel);
+      results = results.filter(
+        (t) => (t.risk_level || 1) === filters.riskLevel,
+      );
     }
 
     // 按权限过滤（工具必须包含所有指定权限）
     if (Array.isArray(filters.permissions) && filters.permissions.length > 0) {
-      results = results.filter(t => {
-        if (!Array.isArray(t.required_permissions)) {return false;}
-        return filters.permissions.every(perm =>
-          t.required_permissions.includes(perm)
+      results = results.filter((t) => {
+        if (!Array.isArray(t.required_permissions)) {
+          return false;
+        }
+        return filters.permissions.every((perm) =>
+          t.required_permissions.includes(perm),
         );
       });
     }
 
     // 按启用状态过滤
     if (filters.enabled !== undefined) {
-      results = results.filter(t => t.enabled === filters.enabled);
+      results = results.filter((t) => t.enabled === filters.enabled);
     }
 
     return results;
@@ -189,14 +197,18 @@ class ToolIndex {
    * @param {Array<string>} fields - 搜索字段 ['name', 'display_name', 'description']
    * @returns {Array} 匹配的工具数组
    */
-  search(keyword, fields = ['name', 'display_name', 'description']) {
-    if (!keyword) {return [];}
+  search(keyword, fields = ["name", "display_name", "description"]) {
+    if (!keyword) {
+      return [];
+    }
 
     const lowerKeyword = keyword.toLowerCase();
-    return this.tools.filter(tool => {
-      return fields.some(field => {
+    return this.tools.filter((tool) => {
+      return fields.some((field) => {
         const value = tool[field];
-        if (!value) {return false;}
+        if (!value) {
+          return false;
+        }
         return value.toLowerCase().includes(lowerKeyword);
       });
     });
@@ -214,7 +226,7 @@ class ToolIndex {
       riskLevelsCount: this.byRiskLevel.size,
       byCategory: {},
       byRiskLevel: {},
-      topPermissions: []
+      topPermissions: [],
     };
 
     // 按类别统计
@@ -247,26 +259,28 @@ class ToolIndex {
     const issues = [];
 
     // 检查是否有工具缺少ID
-    const toolsWithoutId = this.tools.filter(t => !t.id);
+    const toolsWithoutId = this.tools.filter((t) => !t.id);
     if (toolsWithoutId.length > 0) {
       issues.push(`${toolsWithoutId.length} tools missing id`);
     }
 
     // 检查是否有工具缺少name
-    const toolsWithoutName = this.tools.filter(t => !t.name);
+    const toolsWithoutName = this.tools.filter((t) => !t.name);
     if (toolsWithoutName.length > 0) {
       issues.push(`${toolsWithoutName.length} tools missing name`);
     }
 
     // 检查是否有工具缺少category
-    const toolsWithoutCategory = this.tools.filter(t => !t.category);
+    const toolsWithoutCategory = this.tools.filter((t) => !t.category);
     if (toolsWithoutCategory.length > 0) {
       issues.push(`${toolsWithoutCategory.length} tools missing category`);
     }
 
     // 检查索引大小是否一致
     if (this.byId.size !== this.tools.length) {
-      issues.push(`ID index size mismatch: ${this.byId.size} vs ${this.tools.length}`);
+      issues.push(
+        `ID index size mismatch: ${this.byId.size} vs ${this.tools.length}`,
+      );
     }
 
     return {
@@ -277,8 +291,8 @@ class ToolIndex {
         byName: this.byName.size,
         byCategory: this.byCategory.size,
         byPermission: this.byPermission.size,
-        byRiskLevel: this.byRiskLevel.size
-      }
+        byRiskLevel: this.byRiskLevel.size,
+      },
     };
   }
 }
@@ -292,7 +306,7 @@ let indexInstance = null;
  */
 function getToolIndex() {
   if (!indexInstance) {
-    const tools = require('./builtin-tools');
+    const tools = require("./builtin-tools");
     indexInstance = new ToolIndex(tools);
   }
   return indexInstance;
@@ -308,5 +322,5 @@ function resetToolIndex() {
 module.exports = {
   ToolIndex,
   getToolIndex,
-  resetToolIndex
+  resetToolIndex,
 };

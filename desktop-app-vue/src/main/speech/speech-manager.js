@@ -5,20 +5,20 @@
  * 协调各子模块：配置、音频处理、识别引擎、存储
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { EventEmitter } = require('events');
-const path = require('path');
-const os = require('os'); // 新增：用于动态并发数
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const { EventEmitter } = require("events");
+const path = require("path");
+const os = require("os"); // 新增：用于动态并发数
+const { v4: uuidv4 } = require("uuid");
 
-const SpeechConfig = require('./speech-config');
-const AudioProcessor = require('./audio-processor');
-const AudioStorage = require('./audio-storage');
-const { SpeechRecognizer } = require('./speech-recognizer');
-const { SubtitleGenerator } = require('./subtitle-generator');
-const RealtimeVoiceInput = require('./realtime-voice-input');
-const VoiceCommandRecognizer = require('./voice-command-recognizer');
-const AudioCache = require('./audio-cache');
+const SpeechConfig = require("./speech-config");
+const AudioProcessor = require("./audio-processor");
+const AudioStorage = require("./audio-storage");
+const { SpeechRecognizer } = require("./speech-recognizer");
+const { SubtitleGenerator } = require("./subtitle-generator");
+const RealtimeVoiceInput = require("./realtime-voice-input");
+const VoiceCommandRecognizer = require("./voice-command-recognizer");
+const AudioCache = require("./audio-cache");
 
 /**
  * 语音识别管理器类
@@ -68,7 +68,7 @@ class SpeechManager extends EventEmitter {
    */
   async initialize() {
     try {
-      logger.info('[SpeechManager] 初始化语音识别管理器...');
+      logger.info("[SpeechManager] 初始化语音识别管理器...");
 
       // 加载配置（使用注入的或默认的类）
       this.config = new this.dependencies.ConfigClass();
@@ -83,35 +83,47 @@ class SpeechManager extends EventEmitter {
       // 检查 FFmpeg
       const ffmpegAvailable = await this.processor.checkFFmpeg();
       if (!ffmpegAvailable) {
-        logger.warn('[SpeechManager] FFmpeg 不可用，某些音频处理功能可能无法使用');
+        logger.warn(
+          "[SpeechManager] FFmpeg 不可用，某些音频处理功能可能无法使用",
+        );
       }
 
       // 初始化存储（使用注入的或默认的类）
-      this.storage = new this.dependencies.StorageClass(this.db, settings.storage.savePath);
+      this.storage = new this.dependencies.StorageClass(
+        this.db,
+        settings.storage.savePath,
+      );
       await this.storage.initialize();
 
       // 初始化识别器（使用注入的或默认的类）
       const engineConfig = this.config.getEngineConfig(settings.defaultEngine);
-      this.recognizer = new this.dependencies.RecognizerClass(settings.defaultEngine, engineConfig);
+      this.recognizer = new this.dependencies.RecognizerClass(
+        settings.defaultEngine,
+        engineConfig,
+      );
 
       // 初始化字幕生成器（使用注入的或默认的类）
       this.subtitleGenerator = new this.dependencies.SubtitleClass();
 
       // 初始化音频缓存
-      const cacheDir = path.join(settings.storage.savePath, '.cache', 'audio-transcripts');
+      const cacheDir = path.join(
+        settings.storage.savePath,
+        ".cache",
+        "audio-transcripts",
+      );
       this.audioCache = new AudioCache(cacheDir, {
         maxCacheSize: 100 * 1024 * 1024, // 100MB
         maxCacheAge: 30 * 24 * 60 * 60 * 1000, // 30天
-        maxMemoryEntries: 50
+        maxMemoryEntries: 50,
       });
       await this.audioCache.initialize();
 
       // 初始化语音命令识别器
       this.commandRecognizer = new VoiceCommandRecognizer({
-        language: settings.defaultLanguage || 'zh',
+        language: settings.defaultLanguage || "zh",
         minConfidence: 0.7,
         fuzzyMatch: true,
-        contextAware: true
+        contextAware: true,
       });
 
       // 初始化实时语音输入
@@ -121,7 +133,7 @@ class SpeechManager extends EventEmitter {
         chunkDuration: 3000,
         silenceThreshold: 0.01,
         silenceDuration: 1000,
-        maxRecordingTime: 300000
+        maxRecordingTime: 300000,
       });
 
       // 设置实时输入事件转发
@@ -133,14 +145,16 @@ class SpeechManager extends EventEmitter {
       }
       // else: 保持构造函数中设置的动态并发数
 
-      logger.info(`[SpeechManager] 并发任务数: ${this.maxConcurrentTasks} (CPU核心数: ${os.cpus().length})`);
+      logger.info(
+        `[SpeechManager] 并发任务数: ${this.maxConcurrentTasks} (CPU核心数: ${os.cpus().length})`,
+      );
 
       this.initialized = true;
-      logger.info('[SpeechManager] 初始化完成（含实时语音输入）');
+      logger.info("[SpeechManager] 初始化完成（含实时语音输入）");
 
       return true;
     } catch (error) {
-      logger.error('[SpeechManager] 初始化失败:', error);
+      logger.error("[SpeechManager] 初始化失败:", error);
       return false;
     }
   }
@@ -150,48 +164,82 @@ class SpeechManager extends EventEmitter {
    */
   setupProcessorEvents() {
     // 转换事件
-    this.processor.on('convert-start', (data) => this.emit('process:convert-start', data));
-    this.processor.on('convert-progress', (data) => this.emit('process:convert-progress', data));
-    this.processor.on('convert-complete', (data) => this.emit('process:convert-complete', data));
-    this.processor.on('convert-error', (data) => this.emit('process:convert-error', data));
+    this.processor.on("convert-start", (data) =>
+      this.emit("process:convert-start", data),
+    );
+    this.processor.on("convert-progress", (data) =>
+      this.emit("process:convert-progress", data),
+    );
+    this.processor.on("convert-complete", (data) =>
+      this.emit("process:convert-complete", data),
+    );
+    this.processor.on("convert-error", (data) =>
+      this.emit("process:convert-error", data),
+    );
 
     // 批处理事件
-    this.processor.on('batch-progress', (data) => this.emit('process:batch-progress', data));
-    this.processor.on('batch-complete', (data) => this.emit('process:batch-complete', data));
+    this.processor.on("batch-progress", (data) =>
+      this.emit("process:batch-progress", data),
+    );
+    this.processor.on("batch-complete", (data) =>
+      this.emit("process:batch-complete", data),
+    );
   }
 
   /**
    * 设置实时语音输入事件转发
    */
   setupRealtimeEvents() {
-    if (!this.realtimeInput) {return;}
+    if (!this.realtimeInput) {
+      return;
+    }
 
     // 录音事件
-    this.realtimeInput.on('recording:started', (data) => this.emit('realtime:started', data));
-    this.realtimeInput.on('recording:stopped', (data) => this.emit('realtime:stopped', data));
-    this.realtimeInput.on('recording:paused', (data) => this.emit('realtime:paused', data));
-    this.realtimeInput.on('recording:resumed', (data) => this.emit('realtime:resumed', data));
-    this.realtimeInput.on('recording:cancelled', (data) => this.emit('realtime:cancelled', data));
+    this.realtimeInput.on("recording:started", (data) =>
+      this.emit("realtime:started", data),
+    );
+    this.realtimeInput.on("recording:stopped", (data) =>
+      this.emit("realtime:stopped", data),
+    );
+    this.realtimeInput.on("recording:paused", (data) =>
+      this.emit("realtime:paused", data),
+    );
+    this.realtimeInput.on("recording:resumed", (data) =>
+      this.emit("realtime:resumed", data),
+    );
+    this.realtimeInput.on("recording:cancelled", (data) =>
+      this.emit("realtime:cancelled", data),
+    );
 
     // 音频事件
-    this.realtimeInput.on('audio:volume', (data) => this.emit('realtime:volume', data));
-    this.realtimeInput.on('silence:detected', () => this.emit('realtime:silence'));
+    this.realtimeInput.on("audio:volume", (data) =>
+      this.emit("realtime:volume", data),
+    );
+    this.realtimeInput.on("silence:detected", () =>
+      this.emit("realtime:silence"),
+    );
 
     // Chunk处理事件
-    this.realtimeInput.on('chunk:processing', (data) => this.emit('realtime:chunk-processing', data));
-    this.realtimeInput.on('chunk:processed', (data) => this.emit('realtime:chunk-processed', data));
-    this.realtimeInput.on('chunk:error', (data) => this.emit('realtime:chunk-error', data));
+    this.realtimeInput.on("chunk:processing", (data) =>
+      this.emit("realtime:chunk-processing", data),
+    );
+    this.realtimeInput.on("chunk:processed", (data) =>
+      this.emit("realtime:chunk-processed", data),
+    );
+    this.realtimeInput.on("chunk:error", (data) =>
+      this.emit("realtime:chunk-error", data),
+    );
 
     // 转录事件
-    this.realtimeInput.on('transcript:partial', (data) => {
+    this.realtimeInput.on("transcript:partial", (data) => {
       // 识别命令
       if (this.commandRecognizer && data.text) {
         const command = this.commandRecognizer.recognize(data.text);
         if (command) {
-          this.emit('realtime:command', command);
+          this.emit("realtime:command", command);
         }
       }
-      this.emit('realtime:partial', data);
+      this.emit("realtime:partial", data);
     });
   }
 
@@ -205,45 +253,51 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     const {
-      engine = this.config.get('defaultEngine'),
-      language = 'zh',
+      engine = this.config.get("defaultEngine"),
+      language = "zh",
       saveToDatabase = true,
-      saveToKnowledge = this.config.get('knowledgeIntegration.autoSaveToKnowledge'),
-      addToIndex = this.config.get('knowledgeIntegration.autoAddToIndex'),
-      keepProcessedFile = this.config.get('storage.keepProcessed'),
+      saveToKnowledge = this.config.get(
+        "knowledgeIntegration.autoSaveToKnowledge",
+      ),
+      addToIndex = this.config.get("knowledgeIntegration.autoAddToIndex"),
+      keepProcessedFile = this.config.get("storage.keepProcessed"),
     } = options;
 
     try {
-      this.emit('transcribe-start', { filePath });
-      logger.info('[SpeechManager] 开始转录:', path.basename(filePath));
+      this.emit("transcribe-start", { filePath });
+      logger.info("[SpeechManager] 开始转录:", path.basename(filePath));
 
       const audioId = uuidv4();
       const startTime = Date.now();
 
       // 1. 获取音频元数据
       const metadata = await this.processor.getMetadata(filePath);
-      logger.info('[SpeechManager] 音频时长:', metadata.duration.toFixed(2), '秒');
+      logger.info(
+        "[SpeechManager] 音频时长:",
+        metadata.duration.toFixed(2),
+        "秒",
+      );
 
-      this.emit('transcribe-progress', {
+      this.emit("transcribe-progress", {
         filePath,
-        step: 'metadata',
+        step: "metadata",
         percent: 10,
       });
 
       // 2. 检查是否需要分段处理
-      const segmentDuration = this.config.get('audio.segmentDuration');
+      const segmentDuration = this.config.get("audio.segmentDuration");
       let segments = [filePath];
       let needsSegmentation = false;
 
       if (metadata.duration > segmentDuration) {
-        logger.info('[SpeechManager] 音频较长，进行分段处理');
+        logger.info("[SpeechManager] 音频较长，进行分段处理");
         needsSegmentation = true;
         segments = await this.processor.segmentAudio(filePath, segmentDuration);
       }
 
-      this.emit('transcribe-progress', {
+      this.emit("transcribe-progress", {
         filePath,
-        step: 'segmentation',
+        step: "segmentation",
         percent: 20,
         segments: segments.length,
       });
@@ -252,7 +306,8 @@ class SpeechManager extends EventEmitter {
       const processedSegments = [];
 
       // 检查格式，如果不是 WAV 16kHz 单声道，则转换
-      const shouldConvert = metadata.format !== 'wav' ||
+      const shouldConvert =
+        metadata.format !== "wav" ||
         metadata.sampleRate !== 16000 ||
         metadata.channels !== 1;
 
@@ -261,24 +316,28 @@ class SpeechManager extends EventEmitter {
 
         // 并发转换所有分段（关键优化：从顺序改为并发）
         const convertPromises = segments.map((segment, i) =>
-          this.processor.convertToWhisperFormat(segment).then(convertResult => {
-            // 发送每个分段的进度
-            this.emit('transcribe-progress', {
-              filePath,
-              step: 'convert',
-              percent: 20 + (i + 1) / segments.length * 30,
-              currentSegment: i + 1,
-              totalSegments: segments.length,
-            });
-            return convertResult.outputPath;
-          })
+          this.processor
+            .convertToWhisperFormat(segment)
+            .then((convertResult) => {
+              // 发送每个分段的进度
+              this.emit("transcribe-progress", {
+                filePath,
+                step: "convert",
+                percent: 20 + ((i + 1) / segments.length) * 30,
+                currentSegment: i + 1,
+                totalSegments: segments.length,
+              });
+              return convertResult.outputPath;
+            }),
         );
 
         // 等待所有转换完成
         const convertedPaths = await Promise.all(convertPromises);
         processedSegments.push(...convertedPaths);
 
-        logger.info(`[SpeechManager] 并发转换完成，共 ${convertedPaths.length} 个文件`);
+        logger.info(
+          `[SpeechManager] 并发转换完成，共 ${convertedPaths.length} 个文件`,
+        );
       } else {
         // 无需转换，直接使用原始分段
         processedSegments.push(...segments);
@@ -286,7 +345,7 @@ class SpeechManager extends EventEmitter {
       }
 
       // 4. 语音识别
-      logger.info('[SpeechManager] 开始语音识别，引擎:', engine);
+      logger.info("[SpeechManager] 开始语音识别，引擎:", engine);
 
       const transcriptions = [];
 
@@ -300,21 +359,21 @@ class SpeechManager extends EventEmitter {
 
         transcriptions.push(result.text);
 
-        this.emit('transcribe-progress', {
+        this.emit("transcribe-progress", {
           filePath,
-          step: 'recognize',
-          percent: 50 + (i + 1) / processedSegments.length * 40,
+          step: "recognize",
+          percent: 50 + ((i + 1) / processedSegments.length) * 40,
           currentSegment: i + 1,
           totalSegments: processedSegments.length,
         });
       }
 
       // 合并分段结果
-      const fullText = transcriptions.join('\n\n');
+      const fullText = transcriptions.join("\n\n");
 
       const processingTime = Date.now() - startTime;
 
-      logger.info('[SpeechManager] 识别完成，文本长度:', fullText.length);
+      logger.info("[SpeechManager] 识别完成，文本长度:", fullText.length);
 
       // 5. 保存到数据库
       let savedAudioId = null;
@@ -342,15 +401,15 @@ class SpeechManager extends EventEmitter {
           text: fullText,
           confidence: 0.95,
           duration: processingTime,
-          status: 'completed',
+          status: "completed",
         });
 
-        logger.info('[SpeechManager] 已保存到数据库');
+        logger.info("[SpeechManager] 已保存到数据库");
       }
 
-      this.emit('transcribe-progress', {
+      this.emit("transcribe-progress", {
         filePath,
-        step: 'save',
+        step: "save",
         percent: 90,
       });
 
@@ -362,8 +421,8 @@ class SpeechManager extends EventEmitter {
           const knowledgeItem = {
             title: `音频转录: ${path.basename(filePath)}`,
             content: fullText,
-            type: this.config.get('knowledgeIntegration.defaultType') || 'note',
-            tags: ['音频转录', engine],
+            type: this.config.get("knowledgeIntegration.defaultType") || "note",
+            tags: ["音频转录", engine],
             source: filePath,
             audio_id: savedAudioId,
           };
@@ -381,20 +440,20 @@ class SpeechManager extends EventEmitter {
               });
             }
 
-            logger.info('[SpeechManager] 已添加到知识库:', knowledgeId);
+            logger.info("[SpeechManager] 已添加到知识库:", knowledgeId);
 
             // 添加到 RAG 索引
             if (addToIndex && this.ragManager) {
               try {
                 await this.ragManager.addToIndex(addedItem);
-                logger.info('[SpeechManager] 已添加到 RAG 索引');
+                logger.info("[SpeechManager] 已添加到 RAG 索引");
               } catch (error) {
-                logger.error('[SpeechManager] 添加到 RAG 索引失败:', error);
+                logger.error("[SpeechManager] 添加到 RAG 索引失败:", error);
               }
             }
           }
         } catch (error) {
-          logger.error('[SpeechManager] 添加到知识库失败:', error);
+          logger.error("[SpeechManager] 添加到知识库失败:", error);
         }
       }
 
@@ -403,10 +462,14 @@ class SpeechManager extends EventEmitter {
         const filesToClean = [];
 
         if (needsSegmentation) {
-          filesToClean.push(...segments.filter(s => s !== filePath));
+          filesToClean.push(...segments.filter((s) => s !== filePath));
         }
 
-        filesToClean.push(...processedSegments.filter(p => p !== filePath && !segments.includes(p)));
+        filesToClean.push(
+          ...processedSegments.filter(
+            (p) => p !== filePath && !segments.includes(p),
+          ),
+        );
 
         if (filesToClean.length > 0) {
           await this.processor.cleanupTempFiles(filesToClean);
@@ -428,12 +491,12 @@ class SpeechManager extends EventEmitter {
         wordCount: fullText.length,
       };
 
-      this.emit('transcribe-complete', result);
+      this.emit("transcribe-complete", result);
 
       return result;
     } catch (error) {
-      logger.error('[SpeechManager] 转录失败:', error);
-      this.emit('transcribe-error', { filePath, error });
+      logger.error("[SpeechManager] 转录失败:", error);
+      this.emit("transcribe-error", { filePath, error });
 
       // 记录失败到数据库
       if (options.saveToDatabase) {
@@ -441,12 +504,12 @@ class SpeechManager extends EventEmitter {
           await this.storage.addTranscriptionHistory({
             audio_file_id: null,
             engine: engine,
-            text: '',
-            status: 'failed',
+            text: "",
+            status: "failed",
             error: error.message,
           });
         } catch (dbError) {
-          logger.error('[SpeechManager] 记录失败状态到数据库失败:', dbError);
+          logger.error("[SpeechManager] 记录失败状态到数据库失败:", dbError);
         }
       }
 
@@ -464,13 +527,13 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     logger.info(`[SpeechManager] 开始批量转录 ${filePaths.length} 个文件`);
-    this.emit('batch-start', { total: filePaths.length });
+    this.emit("batch-start", { total: filePaths.length });
 
     const results = [];
 
     for (let i = 0; i < filePaths.length; i++) {
       try {
-        this.emit('batch-progress', {
+        this.emit("batch-progress", {
           current: i + 1,
           total: filePaths.length,
           percentage: Math.round(((i + 1) / filePaths.length) * 100),
@@ -494,13 +557,13 @@ class SpeechManager extends EventEmitter {
 
     const summary = {
       total: filePaths.length,
-      succeeded: results.filter(r => r.success).length,
-      failed: results.filter(r => !r.success).length,
+      succeeded: results.filter((r) => r.success).length,
+      failed: results.filter((r) => !r.success).length,
       results: results,
     };
 
-    this.emit('batch-complete', summary);
-    logger.info('[SpeechManager] 批量转录完成:', summary);
+    this.emit("batch-complete", summary);
+    logger.info("[SpeechManager] 批量转录完成:", summary);
 
     return summary;
   }
@@ -531,10 +594,10 @@ class SpeechManager extends EventEmitter {
     this.recognizer.switchEngine(engineType, engineConfig);
 
     // 更新配置
-    await this.config.set('defaultEngine', engineType);
+    await this.config.set("defaultEngine", engineType);
     await this.config.save();
 
-    logger.info('[SpeechManager] 识别引擎已切换到:', engineType);
+    logger.info("[SpeechManager] 识别引擎已切换到:", engineType);
 
     return { success: true, engine: engineType };
   }
@@ -606,7 +669,7 @@ class SpeechManager extends EventEmitter {
   /**
    * 获取统计信息
    */
-  async getStats(userId = 'local-user') {
+  async getStats(userId = "local-user") {
     this.ensureInitialized();
     return await this.storage.getStats(userId);
   }
@@ -622,15 +685,19 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      logger.info('[SpeechManager] 开始音频降噪:', path.basename(inputPath));
+      logger.info("[SpeechManager] 开始音频降噪:", path.basename(inputPath));
 
-      const result = await this.processor.denoiseAudio(inputPath, outputPath, options);
+      const result = await this.processor.denoiseAudio(
+        inputPath,
+        outputPath,
+        options,
+      );
 
-      logger.info('[SpeechManager] 降噪完成');
+      logger.info("[SpeechManager] 降噪完成");
 
       return result;
     } catch (error) {
-      logger.error('[SpeechManager] 降噪失败:', error);
+      logger.error("[SpeechManager] 降噪失败:", error);
       throw error;
     }
   }
@@ -646,15 +713,23 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      logger.info('[SpeechManager] 开始音频增强:', path.basename(inputPath));
+      logger.info("[SpeechManager] 开始音频增强:", path.basename(inputPath));
 
-      const result = await this.processor.enhanceAudio(inputPath, outputPath, options);
+      const result = await this.processor.enhanceAudio(
+        inputPath,
+        outputPath,
+        options,
+      );
 
-      logger.info('[SpeechManager] 增强完成，应用了', result.appliedFilters, '个滤镜');
+      logger.info(
+        "[SpeechManager] 增强完成，应用了",
+        result.appliedFilters,
+        "个滤镜",
+      );
 
       return result;
     } catch (error) {
-      logger.error('[SpeechManager] 增强失败:', error);
+      logger.error("[SpeechManager] 增强失败:", error);
       throw error;
     }
   }
@@ -669,15 +744,18 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      logger.info('[SpeechManager] 开始语音增强:', path.basename(inputPath));
+      logger.info("[SpeechManager] 开始语音增强:", path.basename(inputPath));
 
-      const result = await this.processor.enhanceForSpeechRecognition(inputPath, outputPath);
+      const result = await this.processor.enhanceForSpeechRecognition(
+        inputPath,
+        outputPath,
+      );
 
-      logger.info('[SpeechManager] 语音增强完成');
+      logger.info("[SpeechManager] 语音增强完成");
 
       return result;
     } catch (error) {
-      logger.error('[SpeechManager] 语音增强失败:', error);
+      logger.error("[SpeechManager] 语音增强失败:", error);
       throw error;
     }
   }
@@ -691,16 +769,20 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      logger.info('[SpeechManager] 开始检测语言:', path.basename(audioPath));
+      logger.info("[SpeechManager] 开始检测语言:", path.basename(audioPath));
 
       // 使用识别器的语言检测功能
       const result = await this.recognizer.engine.detectLanguage(audioPath);
 
-      logger.info('[SpeechManager] 检测到语言:', result.languageName, `(${result.language})`);
+      logger.info(
+        "[SpeechManager] 检测到语言:",
+        result.languageName,
+        `(${result.language})`,
+      );
 
       return result;
     } catch (error) {
-      logger.error('[SpeechManager] 语言检测失败:', error);
+      logger.error("[SpeechManager] 语言检测失败:", error);
       throw error;
     }
   }
@@ -714,22 +796,25 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      logger.info('[SpeechManager] 开始批量语言检测，文件数:', audioPaths.length);
+      logger.info(
+        "[SpeechManager] 开始批量语言检测，文件数:",
+        audioPaths.length,
+      );
 
       const results = await this.recognizer.engine.detectLanguages(audioPaths);
 
       const summary = {
         total: audioPaths.length,
-        succeeded: results.filter(r => r.success).length,
-        failed: results.filter(r => !r.success).length,
+        succeeded: results.filter((r) => r.success).length,
+        failed: results.filter((r) => !r.success).length,
         results: results,
       };
 
-      logger.info('[SpeechManager] 批量语言检测完成:', summary);
+      logger.info("[SpeechManager] 批量语言检测完成:", summary);
 
       return summary;
     } catch (error) {
-      logger.error('[SpeechManager] 批量语言检测失败:', error);
+      logger.error("[SpeechManager] 批量语言检测失败:", error);
       throw error;
     }
   }
@@ -741,11 +826,11 @@ class SpeechManager extends EventEmitter {
    * @param {string} format - 格式 (srt|vtt)
    * @returns {Promise<Object>}
    */
-  async generateSubtitle(audioId, outputPath, format = 'srt') {
+  async generateSubtitle(audioId, outputPath, format = "srt") {
     this.ensureInitialized();
 
     try {
-      logger.info('[SpeechManager] 开始生成字幕:', audioId);
+      logger.info("[SpeechManager] 开始生成字幕:", audioId);
 
       // 获取音频记录
       const audioRecord = await this.storage.getAudioRecord(audioId);
@@ -755,27 +840,27 @@ class SpeechManager extends EventEmitter {
       }
 
       if (!audioRecord.transcription_text) {
-        throw new Error('该音频尚未转录，无法生成字幕');
+        throw new Error("该音频尚未转录，无法生成字幕");
       }
 
       // 生成字幕条目
       const subtitles = this.subtitleGenerator.generateFromText(
         audioRecord.transcription_text,
-        audioRecord.duration
+        audioRecord.duration,
       );
 
       // 保存字幕文件
       const result = await this.subtitleGenerator.saveSubtitleFile(
         subtitles,
         outputPath,
-        format
+        format,
       );
 
-      logger.info('[SpeechManager] 字幕生成完成:', result.outputPath);
+      logger.info("[SpeechManager] 字幕生成完成:", result.outputPath);
 
       return result;
     } catch (error) {
-      logger.error('[SpeechManager] 字幕生成失败:', error);
+      logger.error("[SpeechManager] 字幕生成失败:", error);
       throw error;
     }
   }
@@ -790,14 +875,13 @@ class SpeechManager extends EventEmitter {
   async transcribeAndGenerateSubtitle(audioPath, subtitlePath, options = {}) {
     this.ensureInitialized();
 
-    const {
-      format = 'srt',
-      language = 'zh',
-      enhanceAudio = false,
-    } = options;
+    const { format = "srt", language = "zh", enhanceAudio = false } = options;
 
     try {
-      logger.info('[SpeechManager] 开始转录并生成字幕:', path.basename(audioPath));
+      logger.info(
+        "[SpeechManager] 开始转录并生成字幕:",
+        path.basename(audioPath),
+      );
 
       let processedPath = audioPath;
 
@@ -805,18 +889,18 @@ class SpeechManager extends EventEmitter {
       if (enhanceAudio) {
         const enhancedPath = path.join(
           path.dirname(audioPath),
-          `enhanced_${path.basename(audioPath)}`
+          `enhanced_${path.basename(audioPath)}`,
         );
         await this.enhanceForSpeechRecognition(audioPath, enhancedPath);
         processedPath = enhancedPath;
       }
 
       // 2. 使用 Whisper API 直接生成字幕（如果引擎支持）
-      const engineType = this.config.get('defaultEngine');
+      const engineType = this.config.get("defaultEngine");
 
-      if (engineType === 'whisper-api') {
+      if (engineType === "whisper-api") {
         // Whisper API 支持直接返回 SRT/VTT 格式
-        const whisperFormat = format === 'srt' ? 'srt' : 'vtt';
+        const whisperFormat = format === "srt" ? "srt" : "vtt";
 
         const result = await this.recognizer.recognize(processedPath, {
           language: language,
@@ -827,17 +911,17 @@ class SpeechManager extends EventEmitter {
         await this.subtitleGenerator.saveWhisperSubtitle(
           result.text,
           subtitlePath,
-          format
+          format,
         );
 
-        logger.info('[SpeechManager] 使用 Whisper API 直接生成字幕完成');
+        logger.info("[SpeechManager] 使用 Whisper API 直接生成字幕完成");
 
         return {
           success: true,
           subtitlePath: subtitlePath,
           format: format,
           text: result.text,
-          method: 'whisper-api-direct',
+          method: "whisper-api-direct",
         };
       } else {
         // 3. 其他引擎：先转录，再生成字幕
@@ -848,12 +932,16 @@ class SpeechManager extends EventEmitter {
 
         const subtitles = this.subtitleGenerator.generateFromText(
           transcribeResult.text,
-          transcribeResult.duration
+          transcribeResult.duration,
         );
 
-        await this.subtitleGenerator.saveSubtitleFile(subtitles, subtitlePath, format);
+        await this.subtitleGenerator.saveSubtitleFile(
+          subtitles,
+          subtitlePath,
+          format,
+        );
 
-        logger.info('[SpeechManager] 转录并生成字幕完成');
+        logger.info("[SpeechManager] 转录并生成字幕完成");
 
         return {
           success: true,
@@ -861,11 +949,11 @@ class SpeechManager extends EventEmitter {
           format: format,
           text: transcribeResult.text,
           audioId: transcribeResult.id,
-          method: 'transcribe-then-generate',
+          method: "transcribe-then-generate",
         };
       }
     } catch (error) {
-      logger.error('[SpeechManager] 转录并生成字幕失败:', error);
+      logger.error("[SpeechManager] 转录并生成字幕失败:", error);
       throw error;
     }
   }
@@ -877,21 +965,28 @@ class SpeechManager extends EventEmitter {
    * @param {string} format - 格式
    * @returns {Promise<Array>}
    */
-  async batchGenerateSubtitles(audioIds, outputDir, format = 'srt') {
+  async batchGenerateSubtitles(audioIds, outputDir, format = "srt") {
     this.ensureInitialized();
 
     try {
-      logger.info('[SpeechManager] 开始批量生成字幕，数量:', audioIds.length);
+      logger.info("[SpeechManager] 开始批量生成字幕，数量:", audioIds.length);
 
       const results = [];
 
       for (const audioId of audioIds) {
         try {
           const audioRecord = await this.storage.getAudioRecord(audioId);
-          const baseName = path.basename(audioRecord.file_name, path.extname(audioRecord.file_name));
+          const baseName = path.basename(
+            audioRecord.file_name,
+            path.extname(audioRecord.file_name),
+          );
           const outputPath = path.join(outputDir, `${baseName}.${format}`);
 
-          const result = await this.generateSubtitle(audioId, outputPath, format);
+          const result = await this.generateSubtitle(
+            audioId,
+            outputPath,
+            format,
+          );
 
           results.push({
             success: true,
@@ -909,16 +1004,16 @@ class SpeechManager extends EventEmitter {
 
       const summary = {
         total: audioIds.length,
-        succeeded: results.filter(r => r.success).length,
-        failed: results.filter(r => !r.success).length,
+        succeeded: results.filter((r) => r.success).length,
+        failed: results.filter((r) => !r.success).length,
         results: results,
       };
 
-      logger.info('[SpeechManager] 批量字幕生成完成:', summary);
+      logger.info("[SpeechManager] 批量字幕生成完成:", summary);
 
       return summary;
     } catch (error) {
-      logger.error('[SpeechManager] 批量字幕生成失败:', error);
+      logger.error("[SpeechManager] 批量字幕生成失败:", error);
       throw error;
     }
   }
@@ -930,7 +1025,7 @@ class SpeechManager extends EventEmitter {
    */
   async startRealtimeRecording(options = {}) {
     this.ensureInitialized();
-    logger.info('[SpeechManager] 开始实时录音');
+    logger.info("[SpeechManager] 开始实时录音");
     return await this.realtimeInput.startRecording(options);
   }
 
@@ -965,7 +1060,7 @@ class SpeechManager extends EventEmitter {
    */
   async stopRealtimeRecording() {
     this.ensureInitialized();
-    logger.info('[SpeechManager] 停止实时录音');
+    logger.info("[SpeechManager] 停止实时录音");
     return await this.realtimeInput.stopRecording();
   }
 
@@ -1038,7 +1133,7 @@ class SpeechManager extends EventEmitter {
    */
   ensureInitialized() {
     if (!this.initialized) {
-      throw new Error('SpeechManager 尚未初始化。请先调用 initialize() 方法。');
+      throw new Error("SpeechManager 尚未初始化。请先调用 initialize() 方法。");
     }
   }
 
@@ -1046,7 +1141,7 @@ class SpeechManager extends EventEmitter {
    * 终止服务
    */
   async terminate() {
-    logger.info('[SpeechManager] 终止服务...');
+    logger.info("[SpeechManager] 终止服务...");
 
     // 停止实时录音
     if (this.realtimeInput && this.realtimeInput.isRecording) {

@@ -7,7 +7,7 @@
  * @module MCPConfigLoader
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
 const EventEmitter = require("events");

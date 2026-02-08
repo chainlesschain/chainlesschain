@@ -14,8 +14,8 @@
  * @module token-tracker-ipc
  */
 
-const { logger } = require('../utils/logger.js');
-const defaultIpcGuard = require('../ipc/ipc-guard');
+const { logger } = require("../utils/logger.js");
+const defaultIpcGuard = require("../ipc/ipc-guard");
 
 // 模块级别的实例引用
 let tokenTrackerInstance = null;
@@ -53,12 +53,12 @@ function registerTokenTrackerIPC({
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
 
   // 防止重复注册
-  if (ipcGuard.isModuleRegistered('token-tracker-ipc')) {
-    logger.info('[Token Tracker IPC] Handlers already registered, skipping...');
+  if (ipcGuard.isModuleRegistered("token-tracker-ipc")) {
+    logger.info("[Token Tracker IPC] Handlers already registered, skipping...");
     return;
   }
 
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
   // 设置实例
@@ -66,7 +66,7 @@ function registerTokenTrackerIPC({
     setTokenTrackerInstance(tokenTracker);
   }
 
-  logger.info('[Token Tracker IPC] Registering handlers...');
+  logger.info("[Token Tracker IPC] Registering handlers...");
 
   // ============================================================
   // 辅助函数
@@ -80,7 +80,7 @@ function registerTokenTrackerIPC({
     if (!tracker) {
       return {
         success: false,
-        error: 'Token tracker not initialized',
+        error: "Token tracker not initialized",
       };
     }
     return { success: true, tracker };
@@ -100,10 +100,12 @@ function registerTokenTrackerIPC({
    * @param {string} [options.provider] - 提供商过滤
    * @returns {Object} 使用统计数据
    */
-  ipcMain.handle('tracker:get-usage-stats', async (_event, options = {}) => {
+  ipcMain.handle("tracker:get-usage-stats", async (_event, options = {}) => {
     try {
       const result = getTrackerOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const stats = await result.tracker.getUsageStats(options);
 
@@ -112,7 +114,7 @@ function registerTokenTrackerIPC({
         stats,
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 获取使用统计失败:', error);
+      logger.error("[Token Tracker IPC] 获取使用统计失败:", error);
       return {
         success: false,
         error: error.message,
@@ -130,20 +132,22 @@ function registerTokenTrackerIPC({
    * @param {string} [options.interval] - 时间间隔 (hour/day/week)
    * @returns {Object} 时间序列数据
    */
-  ipcMain.handle('tracker:get-time-series', async (_event, options = {}) => {
+  ipcMain.handle("tracker:get-time-series", async (_event, options = {}) => {
     try {
       const result = getTrackerOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const data = await result.tracker.getTimeSeriesData(options);
 
       return {
         success: true,
         data,
-        interval: options.interval || 'day',
+        interval: options.interval || "day",
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 获取时间序列失败:', error);
+      logger.error("[Token Tracker IPC] 获取时间序列失败:", error);
       return {
         success: false,
         error: error.message,
@@ -160,10 +164,12 @@ function registerTokenTrackerIPC({
    * @param {number} [options.endDate] - 结束时间戳
    * @returns {Object} 成本分解数据
    */
-  ipcMain.handle('tracker:get-cost-breakdown', async (_event, options = {}) => {
+  ipcMain.handle("tracker:get-cost-breakdown", async (_event, options = {}) => {
     try {
       const result = getTrackerOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const breakdown = await result.tracker.getCostBreakdown(options);
 
@@ -172,7 +178,7 @@ function registerTokenTrackerIPC({
         breakdown,
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 获取成本分解失败:', error);
+      logger.error("[Token Tracker IPC] 获取成本分解失败:", error);
       return {
         success: false,
         error: error.message,
@@ -186,16 +192,16 @@ function registerTokenTrackerIPC({
    *
    * @returns {Object} 所有提供商的定价数据
    */
-  ipcMain.handle('tracker:get-pricing', async () => {
+  ipcMain.handle("tracker:get-pricing", async () => {
     try {
-      const { PRICING_DATA } = require('./token-tracker.js');
+      const { PRICING_DATA } = require("./token-tracker.js");
 
       return {
         success: true,
         pricing: PRICING_DATA,
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 获取定价数据失败:', error);
+      logger.error("[Token Tracker IPC] 获取定价数据失败:", error);
       return {
         success: false,
         error: error.message,
@@ -215,17 +221,25 @@ function registerTokenTrackerIPC({
    * @param {number} [params.cachedTokens] - 缓存 tokens
    * @returns {Object} 成本计算结果
    */
-  ipcMain.handle('tracker:calculate-cost', async (_event, params = {}) => {
+  ipcMain.handle("tracker:calculate-cost", async (_event, params = {}) => {
     try {
       const result = getTrackerOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
-      const { provider, model, inputTokens = 0, outputTokens = 0, cachedTokens = 0 } = params;
+      const {
+        provider,
+        model,
+        inputTokens = 0,
+        outputTokens = 0,
+        cachedTokens = 0,
+      } = params;
 
       if (!provider || !model) {
         return {
           success: false,
-          error: 'provider and model are required',
+          error: "provider and model are required",
         };
       }
 
@@ -234,7 +248,7 @@ function registerTokenTrackerIPC({
         model,
         inputTokens,
         outputTokens,
-        cachedTokens
+        cachedTokens,
       );
 
       return {
@@ -249,7 +263,7 @@ function registerTokenTrackerIPC({
         },
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 计算成本失败:', error);
+      logger.error("[Token Tracker IPC] 计算成本失败:", error);
       return {
         success: false,
         error: error.message,
@@ -268,10 +282,12 @@ function registerTokenTrackerIPC({
    * @param {string} [userId] - 用户 ID（默认: 'default'）
    * @returns {Object} 预算配置
    */
-  ipcMain.handle('tracker:get-budget', async (_event, userId = 'default') => {
+  ipcMain.handle("tracker:get-budget", async (_event, userId = "default") => {
     try {
       const result = getTrackerOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const config = await result.tracker.getBudgetConfig(userId);
 
@@ -279,20 +295,24 @@ function registerTokenTrackerIPC({
         return {
           success: true,
           config: null,
-          message: 'No budget configuration found',
+          message: "No budget configuration found",
         };
       }
 
       // 计算使用百分比
-      const dailyUsage = config.daily_limit_usd > 0
-        ? ((config.current_daily_spend || 0) / config.daily_limit_usd) * 100
-        : 0;
-      const weeklyUsage = config.weekly_limit_usd > 0
-        ? ((config.current_weekly_spend || 0) / config.weekly_limit_usd) * 100
-        : 0;
-      const monthlyUsage = config.monthly_limit_usd > 0
-        ? ((config.current_monthly_spend || 0) / config.monthly_limit_usd) * 100
-        : 0;
+      const dailyUsage =
+        config.daily_limit_usd > 0
+          ? ((config.current_daily_spend || 0) / config.daily_limit_usd) * 100
+          : 0;
+      const weeklyUsage =
+        config.weekly_limit_usd > 0
+          ? ((config.current_weekly_spend || 0) / config.weekly_limit_usd) * 100
+          : 0;
+      const monthlyUsage =
+        config.monthly_limit_usd > 0
+          ? ((config.current_monthly_spend || 0) / config.monthly_limit_usd) *
+            100
+          : 0;
 
       return {
         success: true,
@@ -318,7 +338,7 @@ function registerTokenTrackerIPC({
         },
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 获取预算配置失败:', error);
+      logger.error("[Token Tracker IPC] 获取预算配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -342,12 +362,14 @@ function registerTokenTrackerIPC({
    * @param {boolean} [params.autoSwitchToCheaperModel] - 自动切换到更便宜的模型
    * @returns {Object} 保存结果
    */
-  ipcMain.handle('tracker:set-budget', async (_event, params = {}) => {
+  ipcMain.handle("tracker:set-budget", async (_event, params = {}) => {
     try {
       const result = getTrackerOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
-      const userId = params.userId || 'default';
+      const userId = params.userId || "default";
 
       await result.tracker.saveBudgetConfig(userId, {
         dailyLimit: params.dailyLimit,
@@ -360,14 +382,14 @@ function registerTokenTrackerIPC({
         autoSwitchToCheaperModel: params.autoSwitchToCheaperModel,
       });
 
-      logger.info('[Token Tracker IPC] 预算配置已保存:', userId);
+      logger.info("[Token Tracker IPC] 预算配置已保存:", userId);
 
       return {
         success: true,
-        message: 'Budget configuration saved',
+        message: "Budget configuration saved",
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 设置预算配置失败:', error);
+      logger.error("[Token Tracker IPC] 设置预算配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -384,71 +406,80 @@ function registerTokenTrackerIPC({
    * @param {string} [params.period] - 重置周期 (daily/weekly/monthly/all)
    * @returns {Object} 重置结果
    */
-  ipcMain.handle('tracker:reset-budget-counters', async (_event, params = {}) => {
-    try {
-      const result = getTrackerOrError();
-      if (!result.success) return result;
+  ipcMain.handle(
+    "tracker:reset-budget-counters",
+    async (_event, params = {}) => {
+      try {
+        const result = getTrackerOrError();
+        if (!result.success) {
+          return result;
+        }
 
-      const userId = params.userId || 'default';
-      const period = params.period || 'all';
+        const userId = params.userId || "default";
+        const period = params.period || "all";
 
-      const config = await result.tracker.getBudgetConfig(userId);
-      if (!config) {
-        return {
-          success: false,
-          error: 'No budget configuration found',
-        };
-      }
+        const config = await result.tracker.getBudgetConfig(userId);
+        if (!config) {
+          return {
+            success: false,
+            error: "No budget configuration found",
+          };
+        }
 
-      // 根据 period 重置对应的计数器
-      const updates = {};
-      const now = Date.now();
+        // 根据 period 重置对应的计数器
+        const updates = {};
+        const now = Date.now();
 
-      if (period === 'daily' || period === 'all') {
-        updates.current_daily_spend = 0;
-        updates.daily_reset_at = now + 24 * 60 * 60 * 1000;
-      }
+        if (period === "daily" || period === "all") {
+          updates.current_daily_spend = 0;
+          updates.daily_reset_at = now + 24 * 60 * 60 * 1000;
+        }
 
-      if (period === 'weekly' || period === 'all') {
-        updates.current_weekly_spend = 0;
-        updates.weekly_reset_at = now + 7 * 24 * 60 * 60 * 1000;
-      }
+        if (period === "weekly" || period === "all") {
+          updates.current_weekly_spend = 0;
+          updates.weekly_reset_at = now + 7 * 24 * 60 * 60 * 1000;
+        }
 
-      if (period === 'monthly' || period === 'all') {
-        updates.current_monthly_spend = 0;
-        updates.monthly_reset_at = now + 30 * 24 * 60 * 60 * 1000;
-      }
+        if (period === "monthly" || period === "all") {
+          updates.current_monthly_spend = 0;
+          updates.monthly_reset_at = now + 30 * 24 * 60 * 60 * 1000;
+        }
 
-      // 构建更新 SQL
-      const db = result.tracker.db;
-      const setClauses = Object.keys(updates)
-        .map(key => `${key} = ?`)
-        .join(', ');
-      const values = Object.values(updates);
+        // 构建更新 SQL
+        const db = result.tracker.db;
+        const setClauses = Object.keys(updates)
+          .map((key) => `${key} = ?`)
+          .join(", ");
+        const values = Object.values(updates);
 
-      const stmt = db.prepare(`
+        const stmt = db.prepare(`
         UPDATE llm_budget_config
         SET ${setClauses}, updated_at = ?
         WHERE user_id = ?
       `);
 
-      stmt.run(...values, now, userId);
+        stmt.run(...values, now, userId);
 
-      logger.info('[Token Tracker IPC] 预算计数器已重置:', { userId, period });
+        logger.info("[Token Tracker IPC] 预算计数器已重置:", {
+          userId,
+          period,
+        });
 
-      return {
-        success: true,
-        message: `Budget counters reset for ${period}`,
-        resetPeriods: period === 'all' ? ['daily', 'weekly', 'monthly'] : [period],
-      };
-    } catch (error) {
-      logger.error('[Token Tracker IPC] 重置预算计数器失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+        return {
+          success: true,
+          message: `Budget counters reset for ${period}`,
+          resetPeriods:
+            period === "all" ? ["daily", "weekly", "monthly"] : [period],
+        };
+      } catch (error) {
+        logger.error("[Token Tracker IPC] 重置预算计数器失败:", error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    },
+  );
 
   // ============================================================
   // 操作 (Operations) - 3 handlers
@@ -463,17 +494,19 @@ function registerTokenTrackerIPC({
    * @param {Object} params - 使用参数
    * @returns {Object} 记录结果
    */
-  ipcMain.handle('tracker:record-usage', async (_event, params = {}) => {
+  ipcMain.handle("tracker:record-usage", async (_event, params = {}) => {
     try {
       const result = getTrackerOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const { provider, model } = params;
 
       if (!provider || !model) {
         return {
           success: false,
-          error: 'provider and model are required',
+          error: "provider and model are required",
         };
       }
 
@@ -484,7 +517,7 @@ function registerTokenTrackerIPC({
         record: recordResult,
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 记录使用失败:', error);
+      logger.error("[Token Tracker IPC] 记录使用失败:", error);
       return {
         success: false,
         error: error.message,
@@ -502,22 +535,24 @@ function registerTokenTrackerIPC({
    * @param {string} [options.format] - 导出格式 (csv)
    * @returns {Object} 导出结果（包含文件路径）
    */
-  ipcMain.handle('tracker:export-report', async (_event, options = {}) => {
+  ipcMain.handle("tracker:export-report", async (_event, options = {}) => {
     try {
       const result = getTrackerOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const exportResult = await result.tracker.exportCostReport(options);
 
-      logger.info('[Token Tracker IPC] 报告已导出:', exportResult.filePath);
+      logger.info("[Token Tracker IPC] 报告已导出:", exportResult.filePath);
 
       return {
         success: true,
         filePath: exportResult.filePath,
-        message: 'Report exported successfully',
+        message: "Report exported successfully",
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 导出报告失败:', error);
+      logger.error("[Token Tracker IPC] 导出报告失败:", error);
       return {
         success: false,
         error: error.message,
@@ -532,22 +567,26 @@ function registerTokenTrackerIPC({
    * @param {string} conversationId - 对话 ID
    * @returns {Object} 对话统计
    */
-  ipcMain.handle('tracker:get-conversation-stats', async (_event, conversationId) => {
-    try {
-      const result = getTrackerOrError();
-      if (!result.success) return result;
+  ipcMain.handle(
+    "tracker:get-conversation-stats",
+    async (_event, conversationId) => {
+      try {
+        const result = getTrackerOrError();
+        if (!result.success) {
+          return result;
+        }
 
-      if (!conversationId) {
-        return {
-          success: false,
-          error: 'conversationId is required',
-        };
-      }
+        if (!conversationId) {
+          return {
+            success: false,
+            error: "conversationId is required",
+          };
+        }
 
-      const db = result.tracker.db;
+        const db = result.tracker.db;
 
-      // 查询对话级别统计
-      const convStmt = db.prepare(`
+        // 查询对话级别统计
+        const convStmt = db.prepare(`
         SELECT
           total_input_tokens,
           total_output_tokens,
@@ -557,10 +596,10 @@ function registerTokenTrackerIPC({
         WHERE id = ?
       `);
 
-      const convStats = convStmt.get(conversationId);
+        const convStats = convStmt.get(conversationId);
 
-      // 查询该对话的详细使用记录
-      const usageStmt = db.prepare(`
+        // 查询该对话的详细使用记录
+        const usageStmt = db.prepare(`
         SELECT
           COUNT(*) as call_count,
           provider,
@@ -575,35 +614,38 @@ function registerTokenTrackerIPC({
         ORDER BY cost_usd DESC
       `);
 
-      const usageByModel = usageStmt.all(conversationId);
+        const usageByModel = usageStmt.all(conversationId);
 
-      return {
-        success: true,
-        conversationId,
-        summary: convStats ? {
-          totalInputTokens: convStats.total_input_tokens || 0,
-          totalOutputTokens: convStats.total_output_tokens || 0,
-          totalCostUsd: convStats.total_cost_usd || 0,
-          totalCostCny: convStats.total_cost_cny || 0,
-        } : null,
-        byModel: usageByModel.map(row => ({
-          provider: row.provider,
-          model: row.model,
-          callCount: row.call_count,
-          inputTokens: row.input_tokens,
-          outputTokens: row.output_tokens,
-          costUsd: row.cost_usd,
-          avgResponseTime: Math.round(row.avg_response_time || 0),
-        })),
-      };
-    } catch (error) {
-      logger.error('[Token Tracker IPC] 获取对话统计失败:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+        return {
+          success: true,
+          conversationId,
+          summary: convStats
+            ? {
+                totalInputTokens: convStats.total_input_tokens || 0,
+                totalOutputTokens: convStats.total_output_tokens || 0,
+                totalCostUsd: convStats.total_cost_usd || 0,
+                totalCostCny: convStats.total_cost_cny || 0,
+              }
+            : null,
+          byModel: usageByModel.map((row) => ({
+            provider: row.provider,
+            model: row.model,
+            callCount: row.call_count,
+            inputTokens: row.input_tokens,
+            outputTokens: row.output_tokens,
+            costUsd: row.cost_usd,
+            avgResponseTime: Math.round(row.avg_response_time || 0),
+          })),
+        };
+      } catch (error) {
+        logger.error("[Token Tracker IPC] 获取对话统计失败:", error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    },
+  );
 
   // ============================================================
   // 控制 (Control) - 1 handler
@@ -616,31 +658,36 @@ function registerTokenTrackerIPC({
    * @param {number} rate - USD 到 CNY 的汇率
    * @returns {Object} 设置结果
    */
-  ipcMain.handle('tracker:set-exchange-rate', async (_event, rate) => {
+  ipcMain.handle("tracker:set-exchange-rate", async (_event, rate) => {
     try {
       const result = getTrackerOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
-      if (typeof rate !== 'number' || rate <= 0) {
+      if (typeof rate !== "number" || rate <= 0) {
         return {
           success: false,
-          error: 'Invalid exchange rate: must be a positive number',
+          error: "Invalid exchange rate: must be a positive number",
         };
       }
 
       const oldRate = result.tracker.options.exchangeRate;
       result.tracker.options.exchangeRate = rate;
 
-      logger.info('[Token Tracker IPC] 汇率已更新:', { oldRate, newRate: rate });
+      logger.info("[Token Tracker IPC] 汇率已更新:", {
+        oldRate,
+        newRate: rate,
+      });
 
       return {
         success: true,
-        message: 'Exchange rate updated',
+        message: "Exchange rate updated",
         oldRate,
         newRate: rate,
       };
     } catch (error) {
-      logger.error('[Token Tracker IPC] 设置汇率失败:', error);
+      logger.error("[Token Tracker IPC] 设置汇率失败:", error);
       return {
         success: false,
         error: error.message,
@@ -649,51 +696,56 @@ function registerTokenTrackerIPC({
   });
 
   // 标记模块为已注册
-  ipcGuard.markModuleRegistered('token-tracker-ipc');
+  ipcGuard.markModuleRegistered("token-tracker-ipc");
 
-  logger.info('[Token Tracker IPC] ✓ All handlers registered (12 handlers: 5 stats + 3 budget + 3 operations + 1 control)');
+  logger.info(
+    "[Token Tracker IPC] ✓ All handlers registered (12 handlers: 5 stats + 3 budget + 3 operations + 1 control)",
+  );
 }
 
 /**
  * 注销 Token Tracker IPC 处理器
  * @param {Object} [dependencies] - 依赖
  */
-function unregisterTokenTrackerIPC({ ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard } = {}) {
+function unregisterTokenTrackerIPC({
+  ipcMain: injectedIpcMain,
+  ipcGuard: injectedIpcGuard,
+} = {}) {
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
 
-  if (!ipcGuard.isModuleRegistered('token-tracker-ipc')) {
+  if (!ipcGuard.isModuleRegistered("token-tracker-ipc")) {
     return;
   }
 
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
   // 所有 channel 名称
   const channels = [
     // Statistics
-    'tracker:get-usage-stats',
-    'tracker:get-time-series',
-    'tracker:get-cost-breakdown',
-    'tracker:get-pricing',
-    'tracker:calculate-cost',
+    "tracker:get-usage-stats",
+    "tracker:get-time-series",
+    "tracker:get-cost-breakdown",
+    "tracker:get-pricing",
+    "tracker:calculate-cost",
     // Budget Management
-    'tracker:get-budget',
-    'tracker:set-budget',
-    'tracker:reset-budget-counters',
+    "tracker:get-budget",
+    "tracker:set-budget",
+    "tracker:reset-budget-counters",
     // Operations
-    'tracker:record-usage',
-    'tracker:export-report',
-    'tracker:get-conversation-stats',
+    "tracker:record-usage",
+    "tracker:export-report",
+    "tracker:get-conversation-stats",
     // Control
-    'tracker:set-exchange-rate',
+    "tracker:set-exchange-rate",
   ];
 
   for (const channel of channels) {
     ipcMain.removeHandler(channel);
   }
 
-  ipcGuard.unmarkModuleRegistered('token-tracker-ipc');
-  logger.info('[Token Tracker IPC] Handlers unregistered');
+  ipcGuard.unmarkModuleRegistered("token-tracker-ipc");
+  logger.info("[Token Tracker IPC] Handlers unregistered");
 }
 
 module.exports = {

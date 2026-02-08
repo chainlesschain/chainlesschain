@@ -7,16 +7,24 @@
     >
       <template #extra>
         <a-space>
-          <a-radio-group v-model:value="viewMode" button-style="solid" size="small">
-            <a-radio-button value="kanban">看板</a-radio-button>
-            <a-radio-button value="list">列表</a-radio-button>
+          <a-radio-group
+            v-model:value="viewMode"
+            button-style="solid"
+            size="small"
+          >
+            <a-radio-button value="kanban"> 看板 </a-radio-button>
+            <a-radio-button value="list"> 列表 </a-radio-button>
           </a-radio-group>
           <a-button @click="showFilters = !showFilters">
-            <template #icon><FilterOutlined /></template>
+            <template #icon>
+              <FilterOutlined />
+            </template>
             筛选
           </a-button>
           <a-button type="primary" @click="showCreateTask = true">
-            <template #icon><PlusOutlined /></template>
+            <template #icon>
+              <PlusOutlined />
+            </template>
             新建任务
           </a-button>
         </a-space>
@@ -32,7 +40,9 @@
             placeholder="搜索任务..."
             allow-clear
           >
-            <template #prefix><SearchOutlined /></template>
+            <template #prefix>
+              <SearchOutlined />
+            </template>
           </a-input>
         </a-col>
         <a-col :span="4">
@@ -42,9 +52,9 @@
             allow-clear
             style="width: 100%"
           >
-            <a-select-option value="high">高</a-select-option>
-            <a-select-option value="medium">中</a-select-option>
-            <a-select-option value="low">低</a-select-option>
+            <a-select-option value="high"> 高 </a-select-option>
+            <a-select-option value="medium"> 中 </a-select-option>
+            <a-select-option value="low"> 低 </a-select-option>
           </a-select>
         </a-col>
         <a-col :span="4">
@@ -58,7 +68,7 @@
           </a-select>
         </a-col>
         <a-col :span="2">
-          <a-button @click="clearFilters">清空</a-button>
+          <a-button @click="clearFilters"> 清空 </a-button>
         </a-col>
       </a-row>
     </a-card>
@@ -67,14 +77,13 @@
     <div v-if="viewMode === 'kanban'" class="kanban-container">
       <a-spin :spinning="loading">
         <div class="kanban-board">
-          <div
-            v-for="column in columns"
-            :key="column.id"
-            class="kanban-column"
-          >
+          <div v-for="column in columns" :key="column.id" class="kanban-column">
             <div class="column-header">
               <span class="column-title">{{ column.name }}</span>
-              <a-badge :count="getColumnTasks(column.id).length" :overflow-count="99" />
+              <a-badge
+                :count="getColumnTasks(column.id).length"
+                :overflow-count="99"
+              />
             </div>
             <div class="column-content">
               <div
@@ -83,17 +92,25 @@
                 class="task-card"
                 @click="openTaskDetail(task.id)"
               >
-                <div class="task-title">{{ task.title }}</div>
+                <div class="task-title">
+                  {{ task.title }}
+                </div>
                 <div class="task-meta">
-                  <a-tag v-if="task.priority === 'high'" color="red">高</a-tag>
-                  <a-tag v-else-if="task.priority === 'medium'" color="orange">中</a-tag>
-                  <a-tag v-else color="blue">低</a-tag>
+                  <a-tag v-if="task.priority === 'high'" color="red">
+                    高
+                  </a-tag>
+                  <a-tag v-else-if="task.priority === 'medium'" color="orange">
+                    中
+                  </a-tag>
+                  <a-tag v-else color="blue"> 低 </a-tag>
                   <span v-if="task.dueDate" class="due-date">
                     {{ formatDate(task.dueDate) }}
                   </span>
                 </div>
                 <div v-if="task.assigneeName" class="task-assignee">
-                  <a-avatar size="small">{{ task.assigneeName?.charAt(0) }}</a-avatar>
+                  <a-avatar size="small">
+                    {{ task.assigneeName?.charAt(0) }}
+                  </a-avatar>
                   <span>{{ task.assigneeName }}</span>
                 </div>
               </div>
@@ -139,36 +156,47 @@
     <a-modal
       v-model:open="showCreateTask"
       title="新建任务"
-      @ok="handleCreateTask"
       :confirm-loading="creating"
       width="600px"
+      @ok="handleCreateTask"
     >
       <a-form :model="newTask" layout="vertical">
         <a-form-item label="标题" required>
           <a-input v-model:value="newTask.title" placeholder="任务标题" />
         </a-form-item>
         <a-form-item label="描述">
-          <a-textarea v-model:value="newTask.description" :rows="4" placeholder="任务描述" />
+          <a-textarea
+            v-model:value="newTask.description"
+            :rows="4"
+            placeholder="任务描述"
+          />
         </a-form-item>
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="优先级">
               <a-select v-model:value="newTask.priority" style="width: 100%">
-                <a-select-option value="high">高</a-select-option>
-                <a-select-option value="medium">中</a-select-option>
-                <a-select-option value="low">低</a-select-option>
+                <a-select-option value="high"> 高 </a-select-option>
+                <a-select-option value="medium"> 中 </a-select-option>
+                <a-select-option value="low"> 低 </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item label="截止日期">
-              <a-date-picker v-model:value="newTask.dueDate" style="width: 100%" />
+              <a-date-picker
+                v-model:value="newTask.dueDate"
+                style="width: 100%"
+              />
             </a-form-item>
           </a-col>
         </a-row>
         <a-form-item label="所属列">
           <a-select v-model:value="newTask.columnId" style="width: 100%">
-            <a-select-option v-for="col in columns" :key="col.id" :value="col.id">
+            <a-select-option
+              v-for="col in columns"
+              :key="col.id"
+              :value="col.id"
+            >
               {{ col.name }}
             </a-select-option>
           </a-select>
@@ -196,28 +224,32 @@
             </a-tag>
           </a-descriptions-item>
           <a-descriptions-item label="负责人">
-            {{ currentTask.assigneeName || '未分配' }}
+            {{ currentTask.assigneeName || "未分配" }}
           </a-descriptions-item>
           <a-descriptions-item label="截止日期">
-            {{ currentTask.dueDate ? formatDate(currentTask.dueDate) : '无' }}
+            {{ currentTask.dueDate ? formatDate(currentTask.dueDate) : "无" }}
           </a-descriptions-item>
         </a-descriptions>
         <a-divider />
         <h4>描述</h4>
-        <p>{{ currentTask.description || '无描述' }}</p>
+        <p>{{ currentTask.description || "无描述" }}</p>
       </template>
     </a-drawer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
-import { PlusOutlined, FilterOutlined, SearchOutlined } from '@ant-design/icons-vue';
-import { useTaskBoardStore } from '@/stores/taskBoard';
-import { useAuthStore } from '@/stores/auth';
-import dayjs from 'dayjs';
+import { ref, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
+import {
+  PlusOutlined,
+  FilterOutlined,
+  SearchOutlined,
+} from "@ant-design/icons-vue";
+import { useTaskBoardStore } from "@/stores/taskBoard";
+import { useAuthStore } from "@/stores/auth";
+import dayjs from "dayjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -229,7 +261,7 @@ const loading = ref(false);
 const creating = ref(false);
 const showFilters = ref(false);
 const showCreateTask = ref(false);
-const viewMode = ref('kanban');
+const viewMode = ref("kanban");
 
 const currentBoard = computed(() => taskBoardStore.currentBoard);
 const columns = computed(() => taskBoardStore.columns);
@@ -240,48 +272,52 @@ const taskDetailVisible = computed(() => taskBoardStore.taskDetailVisible);
 const filters = computed(() => taskBoardStore.filters);
 
 const newTask = ref({
-  title: '',
-  description: '',
-  priority: 'medium',
+  title: "",
+  description: "",
+  priority: "medium",
   dueDate: null,
   columnId: null,
 });
 
 const tableColumns = [
-  { title: '标题', dataIndex: 'title', key: 'title' },
-  { title: '状态', dataIndex: 'status', key: 'status' },
-  { title: '优先级', dataIndex: 'priority', key: 'priority' },
-  { title: '负责人', dataIndex: 'assigneeName', key: 'assigneeName' },
-  { title: '截止日期', dataIndex: 'dueDate', key: 'dueDate' },
+  { title: "标题", dataIndex: "title", key: "title" },
+  { title: "状态", dataIndex: "status", key: "status" },
+  { title: "优先级", dataIndex: "priority", key: "priority" },
+  { title: "负责人", dataIndex: "assigneeName", key: "assigneeName" },
+  { title: "截止日期", dataIndex: "dueDate", key: "dueDate" },
 ];
 
 const getColumnTasks = (columnId) => {
   return filteredTasks.value.filter((t) => t.columnId === columnId);
 };
 
-const formatDate = (timestamp) => dayjs(timestamp).format('MM-DD');
+const formatDate = (timestamp) => dayjs(timestamp).format("MM-DD");
 
 const getPriorityColor = (priority) => {
-  const colors = { high: 'red', medium: 'orange', low: 'blue' };
-  return colors[priority] || 'default';
+  const colors = { high: "red", medium: "orange", low: "blue" };
+  return colors[priority] || "default";
 };
 
 const getPriorityLabel = (priority) => {
-  const labels = { high: '高', medium: '中', low: '低' };
+  const labels = { high: "高", medium: "中", low: "低" };
   return labels[priority] || priority;
 };
 
 const getStatusColor = (status) => {
-  const colors = { todo: 'default', in_progress: 'processing', done: 'success' };
-  return colors[status] || 'default';
+  const colors = {
+    todo: "default",
+    in_progress: "processing",
+    done: "success",
+  };
+  return colors[status] || "default";
 };
 
 const getStatusLabel = (status) => {
-  const labels = { todo: '待办', in_progress: '进行中', done: '已完成' };
+  const labels = { todo: "待办", in_progress: "进行中", done: "已完成" };
   return labels[status] || status;
 };
 
-const goBack = () => router.push('/tasks/dashboard');
+const goBack = () => router.push("/tasks/dashboard");
 
 const clearFilters = () => taskBoardStore.clearFilters();
 
@@ -296,7 +332,7 @@ const createTaskInColumn = (columnId) => {
 
 const handleCreateTask = async () => {
   if (!newTask.value.title) {
-    message.warning('请输入任务标题');
+    message.warning("请输入任务标题");
     return;
   }
 
@@ -309,12 +345,18 @@ const handleCreateTask = async () => {
     });
 
     if (result.success) {
-      message.success('任务创建成功');
+      message.success("任务创建成功");
       showCreateTask.value = false;
-      newTask.value = { title: '', description: '', priority: 'medium', dueDate: null, columnId: null };
+      newTask.value = {
+        title: "",
+        description: "",
+        priority: "medium",
+        dueDate: null,
+        columnId: null,
+      };
     }
   } catch (error) {
-    message.error('创建失败');
+    message.error("创建失败");
   } finally {
     creating.value = false;
   }
@@ -328,7 +370,7 @@ onMounted(async () => {
       newTask.value.columnId = columns.value[0].id;
     }
   } catch (error) {
-    message.error('加载看板失败');
+    message.error("加载看板失败");
   } finally {
     loading.value = false;
   }

@@ -8,43 +8,28 @@
   >
     <div class="git-status-dialog">
       <!-- 加载状态 -->
-      <div
-        v-if="loading"
-        class="loading-container"
-      >
+      <div v-if="loading" class="loading-container">
         <a-spin tip="加载Git状态..." />
       </div>
 
       <!-- Git状态内容 -->
-      <div
-        v-else-if="status"
-        class="status-content"
-      >
+      <div v-else-if="status" class="status-content">
         <!-- 分支信息 -->
         <div class="branch-info">
           <div class="info-item">
             <BranchesOutlined />
             <span class="label">当前分支:</span>
             <a-tag color="blue">
-              {{ status.branch || 'main' }}
+              {{ status.branch || "main" }}
             </a-tag>
           </div>
-          <div
-            v-if="status.ahead || status.behind"
-            class="info-item"
-          >
+          <div v-if="status.ahead || status.behind" class="info-item">
             <CloudOutlined />
             <span class="label">与远程:</span>
-            <a-tag
-              v-if="status.ahead"
-              color="green"
-            >
+            <a-tag v-if="status.ahead" color="green">
               领先 {{ status.ahead }} 个提交
             </a-tag>
-            <a-tag
-              v-if="status.behind"
-              color="orange"
-            >
+            <a-tag v-if="status.behind" color="orange">
               落后 {{ status.behind }} 个提交
             </a-tag>
           </div>
@@ -60,10 +45,7 @@
               <CheckCircleOutlined style="color: #10b981" />
               已暂存的更改 ({{ status.staged.length }})
             </h4>
-            <a-button
-              size="small"
-              @click="handleUnstageAll"
-            >
+            <a-button size="small" @click="handleUnstageAll">
               取消暂存全部
             </a-button>
           </div>
@@ -79,10 +61,7 @@
                   :style="{ color: getFileColor(file.status) }"
                 />
                 <span class="file-path">{{ file.path }}</span>
-                <a-tag
-                  :color="getStatusColor(file.status)"
-                  size="small"
-                >
+                <a-tag :color="getStatusColor(file.status)" size="small">
                   {{ getStatusText(file.status) }}
                 </a-tag>
               </div>
@@ -118,11 +97,7 @@
               <EditOutlined style="color: #f59e0b" />
               未暂存的更改 ({{ status.modified.length }})
             </h4>
-            <a-button
-              size="small"
-              type="primary"
-              @click="handleStageAll"
-            >
+            <a-button size="small" type="primary" @click="handleStageAll">
               暂存全部
             </a-button>
           </div>
@@ -135,12 +110,7 @@
               <div class="file-info">
                 <EditOutlined style="color: #f59e0b" />
                 <span class="file-path">{{ file.path || file }}</span>
-                <a-tag
-                  color="orange"
-                  size="small"
-                >
-                  已修改
-                </a-tag>
+                <a-tag color="orange" size="small"> 已修改 </a-tag>
               </div>
               <div class="file-actions">
                 <a-button
@@ -174,12 +144,7 @@
               <FileAddOutlined style="color: #3b82f6" />
               未跟踪的文件 ({{ status.untracked.length }})
             </h4>
-            <a-button
-              size="small"
-              @click="handleAddAll"
-            >
-              添加全部
-            </a-button>
+            <a-button size="small" @click="handleAddAll"> 添加全部 </a-button>
           </div>
           <div class="file-list">
             <div
@@ -190,19 +155,10 @@
               <div class="file-info">
                 <FileAddOutlined style="color: #3b82f6" />
                 <span class="file-path">{{ file.path || file }}</span>
-                <a-tag
-                  color="blue"
-                  size="small"
-                >
-                  新文件
-                </a-tag>
+                <a-tag color="blue" size="small"> 新文件 </a-tag>
               </div>
               <div class="file-actions">
-                <a-button
-                  type="text"
-                  size="small"
-                  @click="handleAddFile(file)"
-                >
+                <a-button type="text" size="small" @click="handleAddFile(file)">
                   <PlusCircleOutlined />
                   添加
                 </a-button>
@@ -231,12 +187,7 @@
               <div class="file-info">
                 <DeleteOutlined style="color: #ef4444" />
                 <span class="file-path">{{ file.path || file }}</span>
-                <a-tag
-                  color="red"
-                  size="small"
-                >
-                  已删除
-                </a-tag>
+                <a-tag color="red" size="small"> 已删除 </a-tag>
               </div>
               <div class="file-actions">
                 <a-button
@@ -253,10 +204,7 @@
         </div>
 
         <!-- 工作区干净 -->
-        <div
-          v-if="isClean"
-          class="clean-state"
-        >
+        <div v-if="isClean" class="clean-state">
           <a-empty description="工作区干净，没有变更">
             <template #image>
               <CheckCircleOutlined style="font-size: 64px; color: #10b981" />
@@ -265,10 +213,7 @@
         </div>
 
         <!-- 底部操作栏 -->
-        <div
-          v-if="!isClean"
-          class="action-bar"
-        >
+        <div v-if="!isClean" class="action-bar">
           <a-space>
             <a-button
               type="primary"
@@ -282,28 +227,20 @@
               <ReloadOutlined />
               刷新
             </a-button>
-            <a-button @click="handleClose">
-              关闭
-            </a-button>
+            <a-button @click="handleClose"> 关闭 </a-button>
           </a-space>
         </div>
       </div>
 
       <!-- 错误状态 -->
-      <div
-        v-else
-        class="error-state"
-      >
+      <div v-else class="error-state">
         <a-empty description="无法获取Git状态">
           <template #image>
-            <ExclamationCircleOutlined style="font-size: 64px; color: #ef4444" />
+            <ExclamationCircleOutlined
+              style="font-size: 64px; color: #ef4444"
+            />
           </template>
-          <a-button
-            type="primary"
-            @click="handleRefresh"
-          >
-            重试
-          </a-button>
+          <a-button type="primary" @click="handleRefresh"> 重试 </a-button>
         </a-empty>
       </div>
     </div>
@@ -331,10 +268,7 @@
     >
       <div class="commit-modal-content">
         <a-form layout="vertical">
-          <a-form-item
-            label="提交信息"
-            required
-          >
+          <a-form-item label="提交信息" required>
             <a-textarea
               v-model:value="commitMessage"
               placeholder="请输入提交信息..."
@@ -357,17 +291,11 @@
                 </template>
                 AI生成提交信息
               </a-button>
-              <a-tooltip
-                v-if="!hasStaged"
-                title="请先暂存文件"
-              >
+              <a-tooltip v-if="!hasStaged" title="请先暂存文件">
                 <QuestionCircleOutlined style="color: #faad14" />
               </a-tooltip>
             </a-space>
-            <div
-              v-if="aiGeneratedMessage"
-              class="ai-generated-hint"
-            >
+            <div v-if="aiGeneratedMessage" class="ai-generated-hint">
               <CheckCircleOutlined style="color: #52c41a" />
               <span>AI已生成提交信息，您可以编辑后提交</span>
             </div>
@@ -379,10 +307,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   BranchesOutlined,
   CloudOutlined,
@@ -398,7 +326,7 @@ import {
   ExclamationCircleOutlined,
   BulbOutlined,
   QuestionCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   open: {
@@ -407,36 +335,38 @@ const props = defineProps({
   },
   projectId: {
     type: String,
-    default: '',
+    default: "",
   },
   repoPath: {
     type: String,
-    default: '',
+    default: "",
   },
   title: {
     type: String,
-    default: 'Git状态',
+    default: "Git状态",
   },
 });
 
-const emit = defineEmits(['close', 'commit', 'refresh']);
+const emit = defineEmits(["close", "commit", "refresh"]);
 
 // 响应式状态
 const loading = ref(false);
 const status = ref(null);
 const showDiffModal = ref(false);
-const currentDiff = ref('');
+const currentDiff = ref("");
 
 // 提交相关状态
 const showCommitModal = ref(false);
-const commitMessage = ref('');
+const commitMessage = ref("");
 const committing = ref(false);
 const generatingAI = ref(false);
 const aiGeneratedMessage = ref(false);
 
 // 计算属性
 const isClean = computed(() => {
-  if (!status.value) {return true;}
+  if (!status.value) {
+    return true;
+  }
 
   const { staged, modified, untracked, deleted } = status.value;
   return (
@@ -464,31 +394,31 @@ const getFileIcon = (statusType) => {
 // 获取文件状态颜色
 const getFileColor = (statusType) => {
   const colorMap = {
-    added: '#10b981',
-    modified: '#f59e0b',
-    deleted: '#ef4444',
+    added: "#10b981",
+    modified: "#f59e0b",
+    deleted: "#ef4444",
   };
-  return colorMap[statusType] || '#6b7280';
+  return colorMap[statusType] || "#6b7280";
 };
 
 // 获取状态标签颜色
 const getStatusColor = (statusType) => {
   const colorMap = {
-    added: 'green',
-    modified: 'orange',
-    deleted: 'red',
+    added: "green",
+    modified: "orange",
+    deleted: "red",
   };
-  return colorMap[statusType] || 'default';
+  return colorMap[statusType] || "default";
 };
 
 // 获取状态文本
 const getStatusText = (statusType) => {
   const textMap = {
-    added: '新增',
-    modified: '修改',
-    deleted: '删除',
+    added: "新增",
+    modified: "修改",
+    deleted: "删除",
   };
-  return textMap[statusType] || '更改';
+  return textMap[statusType] || "更改";
 };
 
 // 加载Git状态
@@ -498,8 +428,8 @@ const loadStatus = async () => {
     const result = await window.electronAPI.project.gitStatus(props.repoPath);
     status.value = result;
   } catch (error) {
-    logger.error('Load git status failed:', error);
-    message.error('获取Git状态失败：' + error.message);
+    logger.error("Load git status failed:", error);
+    message.error("获取Git状态失败：" + error.message);
   } finally {
     loading.value = false;
   }
@@ -513,20 +443,20 @@ const handleStageFile = async (file) => {
     message.success(`已暂存: ${filePath}`);
     await loadStatus();
   } catch (error) {
-    logger.error('Stage file failed:', error);
-    message.error('暂存失败：' + error.message);
+    logger.error("Stage file failed:", error);
+    message.error("暂存失败：" + error.message);
   }
 };
 
 // 暂存全部
 const handleStageAll = async () => {
   try {
-    await window.electronAPI.project.gitAdd(props.repoPath, '.');
-    message.success('已暂存全部更改');
+    await window.electronAPI.project.gitAdd(props.repoPath, ".");
+    message.success("已暂存全部更改");
     await loadStatus();
   } catch (error) {
-    logger.error('Stage all failed:', error);
-    message.error('暂存失败：' + error.message);
+    logger.error("Stage all failed:", error);
+    message.error("暂存失败：" + error.message);
   }
 };
 
@@ -538,20 +468,20 @@ const handleUnstageFile = async (file) => {
     message.success(`已取消暂存: ${filePath}`);
     await loadStatus();
   } catch (error) {
-    logger.error('Unstage file failed:', error);
-    message.error('取消暂存失败：' + error.message);
+    logger.error("Unstage file failed:", error);
+    message.error("取消暂存失败：" + error.message);
   }
 };
 
 // 取消暂存全部
 const handleUnstageAll = async () => {
   try {
-    await window.electronAPI.project.gitUnstage(props.repoPath, '.');
-    message.success('已取消暂存全部');
+    await window.electronAPI.project.gitUnstage(props.repoPath, ".");
+    message.success("已取消暂存全部");
     await loadStatus();
   } catch (error) {
-    logger.error('Unstage all failed:', error);
-    message.error('取消暂存失败：' + error.message);
+    logger.error("Unstage all failed:", error);
+    message.error("取消暂存失败：" + error.message);
   }
 };
 
@@ -569,18 +499,21 @@ const handleAddAll = async () => {
 const handleViewDiff = async (file) => {
   try {
     const filePath = file.path || file;
-    const diff = await window.electronAPI.project.gitDiff(props.repoPath, filePath);
-    currentDiff.value = diff || '没有差异';
+    const diff = await window.electronAPI.project.gitDiff(
+      props.repoPath,
+      filePath,
+    );
+    currentDiff.value = diff || "没有差异";
     showDiffModal.value = true;
   } catch (error) {
-    logger.error('View diff failed:', error);
-    message.error('查看差异失败：' + error.message);
+    logger.error("View diff failed:", error);
+    message.error("查看差异失败：" + error.message);
   }
 };
 
 // 提交更改 - 打开提交modal
 const handleCommit = () => {
-  commitMessage.value = '';
+  commitMessage.value = "";
   aiGeneratedMessage.value = false;
   showCommitModal.value = true;
 };
@@ -588,24 +521,27 @@ const handleCommit = () => {
 // AI生成提交信息
 const handleGenerateAICommit = async () => {
   if (!props.repoPath) {
-    message.error('仓库路径不存在');
+    message.error("仓库路径不存在");
     return;
   }
 
   generatingAI.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('git:generateCommitMessage', props.repoPath);
+    const result = await window.electron.ipcRenderer.invoke(
+      "git:generateCommitMessage",
+      props.repoPath,
+    );
 
     if (result.success && result.message) {
       commitMessage.value = result.message;
       aiGeneratedMessage.value = true;
-      message.success('AI已生成提交信息');
+      message.success("AI已生成提交信息");
     } else {
-      message.error(result.error || 'AI生成失败');
+      message.error(result.error || "AI生成失败");
     }
   } catch (error) {
-    logger.error('Generate AI commit message failed:', error);
-    message.error('AI生成失败：' + error.message);
+    logger.error("Generate AI commit message failed:", error);
+    message.error("AI生成失败：" + error.message);
   } finally {
     generatingAI.value = false;
   }
@@ -614,17 +550,17 @@ const handleGenerateAICommit = async () => {
 // 确认提交
 const handleConfirmCommit = async () => {
   if (!commitMessage.value.trim()) {
-    message.error('请输入提交信息');
+    message.error("请输入提交信息");
     return;
   }
 
   if (!props.projectId) {
-    message.error('项目ID不存在');
+    message.error("项目ID不存在");
     return;
   }
 
   if (!props.repoPath) {
-    message.error('仓库路径不存在');
+    message.error("仓库路径不存在");
     return;
   }
 
@@ -634,20 +570,20 @@ const handleConfirmCommit = async () => {
     await window.electronAPI.project.gitCommit(
       props.projectId,
       props.repoPath,
-      commitMessage.value.trim()
+      commitMessage.value.trim(),
     );
 
-    message.success('提交成功');
+    message.success("提交成功");
     showCommitModal.value = false;
-    commitMessage.value = '';
+    commitMessage.value = "";
     aiGeneratedMessage.value = false;
 
     // 刷新状态
     await loadStatus();
-    emit('commit');
+    emit("commit");
   } catch (error) {
-    logger.error('Commit failed:', error);
-    message.error('提交失败：' + error.message);
+    logger.error("Commit failed:", error);
+    message.error("提交失败：" + error.message);
   } finally {
     committing.value = false;
   }
@@ -655,7 +591,7 @@ const handleConfirmCommit = async () => {
 
 // 取消提交
 const handleCancelCommit = () => {
-  commitMessage.value = '';
+  commitMessage.value = "";
   aiGeneratedMessage.value = false;
   showCommitModal.value = false;
 };
@@ -663,20 +599,24 @@ const handleCancelCommit = () => {
 // 刷新
 const handleRefresh = async () => {
   await loadStatus();
-  emit('refresh');
+  emit("refresh");
 };
 
 // 关闭
 const handleClose = () => {
-  emit('close');
+  emit("close");
 };
 
 // 监听visible变化
-watch(() => props.open, (newVal) => {
-  if (newVal) {
-    loadStatus();
-  }
-}, { immediate: true });
+watch(
+  () => props.open,
+  (newVal) => {
+    if (newVal) {
+      loadStatus();
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <style scoped>
@@ -803,7 +743,7 @@ watch(() => props.open, (newVal) => {
 .file-path {
   flex: 1;
   font-size: 13px;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   color: #374151;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -848,7 +788,7 @@ watch(() => props.open, (newVal) => {
 
 .diff-content pre {
   margin: 0;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 13px;
   line-height: 1.6;
   color: #d4d4d4;

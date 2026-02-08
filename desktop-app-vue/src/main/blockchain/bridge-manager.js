@@ -1,12 +1,12 @@
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const { v4: uuidv4 } = require('uuid');
-const { ethers } = require('ethers');
-const path = require('path');
-const fs = require('fs');
-const BridgeSecurityManager = require('./bridge-security');
-const BridgeRelayer = require('./bridge-relayer');
-const LayerZeroBridge = require('./bridges/layerzero-bridge');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const { v4: uuidv4 } = require("uuid");
+const { ethers } = require("ethers");
+const path = require("path");
+const fs = require("fs");
+const BridgeSecurityManager = require("./bridge-security");
+const BridgeRelayer = require("./bridge-relayer");
+const LayerZeroBridge = require("./bridges/layerzero-bridge");
 
 /**
  * 跨链桥管理器 - 生产级实现
@@ -67,31 +67,42 @@ class BridgeManager extends EventEmitter {
       // In dev mode, __dirname is src/main/blockchain
       // In production/dist mode, __dirname is dist/main/blockchain
       // Contracts are always at project root, so we need to go up to project root
-      let bridgeArtifactPath = path.join(__dirname, '../../contracts/artifacts/contracts/bridge/AssetBridge.sol/AssetBridge.json');
+      let bridgeArtifactPath = path.join(
+        __dirname,
+        "../../contracts/artifacts/contracts/bridge/AssetBridge.sol/AssetBridge.json",
+      );
 
       // If not found, try from dist folder (go up 3 levels: dist/main/blockchain -> project root)
       if (!fs.existsSync(bridgeArtifactPath)) {
-        bridgeArtifactPath = path.join(__dirname, '../../../contracts/artifacts/contracts/bridge/AssetBridge.sol/AssetBridge.json');
+        bridgeArtifactPath = path.join(
+          __dirname,
+          "../../../contracts/artifacts/contracts/bridge/AssetBridge.sol/AssetBridge.json",
+        );
       }
 
       if (fs.existsSync(bridgeArtifactPath)) {
-        const bridgeArtifact = JSON.parse(fs.readFileSync(bridgeArtifactPath, 'utf8'));
+        const bridgeArtifact = JSON.parse(
+          fs.readFileSync(bridgeArtifactPath, "utf8"),
+        );
         this.bridgeABI = bridgeArtifact.abi;
-        logger.info('[BridgeManager] AssetBridge ABI 加载成功');
+        logger.info("[BridgeManager] AssetBridge ABI 加载成功");
       } else {
-        logger.warn('[BridgeManager] AssetBridge ABI 文件不存在:', bridgeArtifactPath);
+        logger.warn(
+          "[BridgeManager] AssetBridge ABI 文件不存在:",
+          bridgeArtifactPath,
+        );
       }
 
       // 加载 ERC20 ABI（用于 approve）
       this.erc20ABI = [
-        'function approve(address spender, uint256 amount) external returns (bool)',
-        'function allowance(address owner, address spender) external view returns (uint256)',
-        'function balanceOf(address account) external view returns (uint256)',
-        'function transfer(address to, uint256 amount) external returns (bool)',
+        "function approve(address spender, uint256 amount) external returns (bool)",
+        "function allowance(address owner, address spender) external view returns (uint256)",
+        "function balanceOf(address account) external view returns (uint256)",
+        "function transfer(address to, uint256 amount) external returns (bool)",
       ];
-      logger.info('[BridgeManager] ERC20 ABI 加载成功');
+      logger.info("[BridgeManager] ERC20 ABI 加载成功");
     } catch (error) {
-      logger.error('[BridgeManager] 加载 ABI 失败:', error);
+      logger.error("[BridgeManager] 加载 ABI 失败:", error);
     }
   }
 
@@ -100,7 +111,7 @@ class BridgeManager extends EventEmitter {
    */
   async initialize() {
     if (this.initialized) {
-      logger.info('[BridgeManager] 已经初始化');
+      logger.info("[BridgeManager] 已经初始化");
       return;
     }
 
@@ -123,19 +134,19 @@ class BridgeManager extends EventEmitter {
           endpoint: process.env.LAYERZERO_ENDPOINT,
           bridgeContracts: Object.fromEntries(this.bridgeContracts),
           rpcUrls: this.adapter.providers,
-          isProduction: process.env.NODE_ENV === 'production'
+          isProduction: process.env.NODE_ENV === "production",
         });
         await this.layerZeroBridge.initialize();
-        logger.info('[BridgeManager] LayerZero bridge initialized');
+        logger.info("[BridgeManager] LayerZero bridge initialized");
       }
 
       // 设置事件监听
       this.setupEventListeners();
 
       this.initialized = true;
-      logger.info('[BridgeManager] 初始化成功（生产级）');
+      logger.info("[BridgeManager] 初始化成功（生产级）");
     } catch (error) {
-      logger.error('[BridgeManager] 初始化失败:', error);
+      logger.error("[BridgeManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -145,35 +156,35 @@ class BridgeManager extends EventEmitter {
    */
   setupEventListeners() {
     // 安全事件
-    this.securityManager.on('security-event', (event) => {
-      logger.info('[BridgeManager] Security event:', event);
-      this.emit('security-event', event);
+    this.securityManager.on("security-event", (event) => {
+      logger.info("[BridgeManager] Security event:", event);
+      this.emit("security-event", event);
     });
 
-    this.securityManager.on('suspicious-activity', (data) => {
-      logger.warn('[BridgeManager] Suspicious activity detected:', data);
-      this.emit('suspicious-activity', data);
+    this.securityManager.on("suspicious-activity", (data) => {
+      logger.warn("[BridgeManager] Suspicious activity detected:", data);
+      this.emit("suspicious-activity", data);
     });
 
-    this.securityManager.on('bridge-paused', (data) => {
-      logger.warn('[BridgeManager] Bridge paused:', data);
-      this.emit('bridge-paused', data);
+    this.securityManager.on("bridge-paused", (data) => {
+      logger.warn("[BridgeManager] Bridge paused:", data);
+      this.emit("bridge-paused", data);
     });
 
     // 中继器事件
-    this.relayer.on('lock-detected', (task) => {
-      logger.info('[BridgeManager] Lock detected:', task);
-      this.emit('lock-detected', task);
+    this.relayer.on("lock-detected", (task) => {
+      logger.info("[BridgeManager] Lock detected:", task);
+      this.emit("lock-detected", task);
     });
 
-    this.relayer.on('relay-completed', (data) => {
-      logger.info('[BridgeManager] Relay completed:', data);
-      this.emit('relay-completed', data);
+    this.relayer.on("relay-completed", (data) => {
+      logger.info("[BridgeManager] Relay completed:", data);
+      this.emit("relay-completed", data);
     });
 
-    this.relayer.on('relay-failed', (data) => {
-      logger.error('[BridgeManager] Relay failed:', data);
-      this.emit('relay-failed', data);
+    this.relayer.on("relay-failed", (data) => {
+      logger.error("[BridgeManager] Relay failed:", data);
+      this.emit("relay-failed", data);
     });
   }
 
@@ -202,9 +213,9 @@ class BridgeManager extends EventEmitter {
           error_message TEXT
         )
       `);
-      logger.info('[BridgeManager] bridge_transfers 表初始化完成');
+      logger.info("[BridgeManager] bridge_transfers 表初始化完成");
     } catch (error) {
-      logger.error('[BridgeManager] 表初始化失败:', error);
+      logger.error("[BridgeManager] 表初始化失败:", error);
       throw error;
     }
   }
@@ -226,40 +237,54 @@ class BridgeManager extends EventEmitter {
 
       const bridgeContracts = this.database.all(query) || [];
 
-      logger.info(`[BridgeManager] 从数据库加载到 ${bridgeContracts.length} 个桥接合约`);
+      logger.info(
+        `[BridgeManager] 从数据库加载到 ${bridgeContracts.length} 个桥接合约`,
+      );
 
       // 注册每个桥接合约到对应的链
       for (const contract of bridgeContracts) {
         // 跳过数据不完整的合约
         if (!contract.contract_address || !contract.chain_id) {
-          logger.warn(`[BridgeManager] 跳过数据不完整的合约: ${contract.contract_name || 'Unknown'}`);
+          logger.warn(
+            `[BridgeManager] 跳过数据不完整的合约: ${contract.contract_name || "Unknown"}`,
+          );
           continue;
         }
 
         // 只注册每个chain_id的第一个合约（因为已按deployed_at降序排序，第一个是最新的）
         if (this.bridgeContracts.has(contract.chain_id)) {
-          logger.info(`[BridgeManager] Chain ${contract.chain_id} 已有桥接合约，跳过: ${contract.contract_address}`);
+          logger.info(
+            `[BridgeManager] Chain ${contract.chain_id} 已有桥接合约，跳过: ${contract.contract_address}`,
+          );
           continue;
         }
 
-        this.registerBridgeContract(contract.chain_id, contract.contract_address);
+        this.registerBridgeContract(
+          contract.chain_id,
+          contract.contract_address,
+        );
 
         // 如果有 ABI 信息，更新本地 ABI（优先使用数据库中的 ABI）
         if (contract.abi_json && !this.bridgeABI) {
           try {
             this.bridgeABI = JSON.parse(contract.abi_json);
-            logger.info(`[BridgeManager] 从数据库加载桥接合约 ABI: ${contract.contract_name}`);
+            logger.info(
+              `[BridgeManager] 从数据库加载桥接合约 ABI: ${contract.contract_name}`,
+            );
           } catch (error) {
-            logger.warn(`[BridgeManager] 解析 ABI 失败: ${contract.contract_name}`, error);
+            logger.warn(
+              `[BridgeManager] 解析 ABI 失败: ${contract.contract_name}`,
+              error,
+            );
           }
         }
       }
 
-      logger.info('[BridgeManager] 桥接合约地址加载完成');
+      logger.info("[BridgeManager] 桥接合约地址加载完成");
     } catch (error) {
-      logger.error('[BridgeManager] 加载桥接合约失败:', error);
+      logger.error("[BridgeManager] 加载桥接合约失败:", error);
       // 不抛出错误，允许系统在没有预部署合约的情况下运行
-      logger.info('[BridgeManager] 将在运行时手动注册桥接合约');
+      logger.info("[BridgeManager] 将在运行时手动注册桥接合约");
     }
   }
 
@@ -270,7 +295,9 @@ class BridgeManager extends EventEmitter {
    */
   registerBridgeContract(chainId, contractAddress) {
     this.bridgeContracts.set(chainId, contractAddress);
-    logger.info(`[BridgeManager] 注册桥接合约: Chain ${chainId} -> ${contractAddress}`);
+    logger.info(
+      `[BridgeManager] 注册桥接合约: Chain ${chainId} -> ${contractAddress}`,
+    );
   }
 
   /**
@@ -298,7 +325,7 @@ class BridgeManager extends EventEmitter {
       useLayerZero = false,
     } = options;
 
-    logger.info('[BridgeManager] 开始桥接资产（生产级）:', {
+    logger.info("[BridgeManager] 开始桥接资产（生产级）:", {
       assetId,
       fromChainId,
       toChainId,
@@ -307,12 +334,19 @@ class BridgeManager extends EventEmitter {
     });
 
     // 验证参数
-    if (!assetId || !fromChainId || !toChainId || !amount || !walletId || !password) {
-      throw new Error('缺少必要参数');
+    if (
+      !assetId ||
+      !fromChainId ||
+      !toChainId ||
+      !amount ||
+      !walletId ||
+      !password
+    ) {
+      throw new Error("缺少必要参数");
     }
 
     if (fromChainId === toChainId) {
-      throw new Error('源链和目标链不能相同');
+      throw new Error("源链和目标链不能相同");
     }
 
     // 验证桥接合约是否存在
@@ -326,7 +360,10 @@ class BridgeManager extends EventEmitter {
 
     try {
       // 获取钱包地址
-      const wallet = await this.adapter.walletManager.unlockWallet(walletId, password);
+      const wallet = await this.adapter.walletManager.unlockWallet(
+        walletId,
+        password,
+      );
       const senderAddress = wallet.address;
       const receiverAddress = recipientAddress || senderAddress;
 
@@ -335,7 +372,7 @@ class BridgeManager extends EventEmitter {
         fromAddress: senderAddress,
         toAddress: receiverAddress,
         amount: ethers.parseEther(amount.toString()),
-        chainId: fromChainId
+        chainId: fromChainId,
       });
 
       if (!validation.valid) {
@@ -344,23 +381,26 @@ class BridgeManager extends EventEmitter {
 
       // 如果需要多重签名
       if (validation.requiresMultiSig) {
-        logger.info('[BridgeManager] Multi-signature required for this transfer');
-        const multiSigResult = await this.securityManager.createMultiSigTransaction({
-          from: senderAddress,
-          to: receiverAddress,
-          amount: ethers.parseEther(amount.toString()),
-          fromChainId,
-          toChainId,
-          assetId
-        });
+        logger.info(
+          "[BridgeManager] Multi-signature required for this transfer",
+        );
+        const multiSigResult =
+          await this.securityManager.createMultiSigTransaction({
+            from: senderAddress,
+            to: receiverAddress,
+            amount: ethers.parseEther(amount.toString()),
+            fromChainId,
+            toChainId,
+            assetId,
+          });
 
-        this.emit('multisig-required', multiSigResult);
+        this.emit("multisig-required", multiSigResult);
 
         return {
           requiresMultiSig: true,
           txId: multiSigResult.txId,
           requiredSignatures: multiSigResult.requiredSignatures,
-          message: 'Multi-signature approval required'
+          message: "Multi-signature approval required",
         };
       }
 
@@ -372,7 +412,7 @@ class BridgeManager extends EventEmitter {
       // 获取资产的链上信息
       const assetInfo = await this._getAssetInfo(assetId);
       if (!assetInfo) {
-        throw new Error('资产未部署到区块链');
+        throw new Error("资产未部署到区块链");
       }
 
       // 创建桥接记录
@@ -386,14 +426,14 @@ class BridgeManager extends EventEmitter {
         amount,
         sender_address: senderAddress,
         recipient_address: receiverAddress,
-        status: 'pending',
+        status: "pending",
         created_at: Date.now(),
       };
 
       await this._saveBridgeRecord(bridgeRecord);
 
       // 步骤 1: 在源链锁定资产
-      logger.info('[BridgeManager] 步骤 1: 锁定资产在源链...');
+      logger.info("[BridgeManager] 步骤 1: 锁定资产在源链...");
       const lockTxHash = await this._lockOnSourceChain({
         chainId: fromChainId,
         assetAddress: assetInfo.contract_address,
@@ -408,17 +448,17 @@ class BridgeManager extends EventEmitter {
       await this._updateBridgeRecord(bridgeId, {
         from_tx_hash: lockTxHash,
         lock_timestamp: Date.now(),
-        status: 'locked',
+        status: "locked",
       });
 
-      this.emit('asset:locked', { bridgeId, txHash: lockTxHash });
+      this.emit("asset:locked", { bridgeId, txHash: lockTxHash });
 
       // 步骤 2: 等待锁定确认
-      logger.info('[BridgeManager] 步骤 2: 等待锁定确认...');
+      logger.info("[BridgeManager] 步骤 2: 等待锁定确认...");
       await this._waitForLockConfirmation(fromChainId, lockTxHash);
 
       // 步骤 3: 在目标链铸造资产
-      logger.info('[BridgeManager] 步骤 3: 在目标链铸造资产...');
+      logger.info("[BridgeManager] 步骤 3: 在目标链铸造资产...");
       const mintTxHash = await this._mintOnTargetChain({
         chainId: toChainId,
         assetAddress: assetInfo.contract_address,
@@ -435,13 +475,17 @@ class BridgeManager extends EventEmitter {
       await this._updateBridgeRecord(bridgeId, {
         to_tx_hash: mintTxHash,
         mint_timestamp: Date.now(),
-        status: 'completed',
+        status: "completed",
         completed_at: Date.now(),
       });
 
-      this.emit('asset:bridged', { bridgeId, fromTxHash: lockTxHash, toTxHash: mintTxHash });
+      this.emit("asset:bridged", {
+        bridgeId,
+        fromTxHash: lockTxHash,
+        toTxHash: mintTxHash,
+      });
 
-      logger.info('[BridgeManager] 桥接成功完成!', {
+      logger.info("[BridgeManager] 桥接成功完成!", {
         bridgeId,
         lockTxHash,
         mintTxHash,
@@ -449,17 +493,17 @@ class BridgeManager extends EventEmitter {
 
       return await this.getBridgeRecord(bridgeId);
     } catch (error) {
-      logger.error('[BridgeManager] 桥接失败:', error);
+      logger.error("[BridgeManager] 桥接失败:", error);
 
       // 更新记录为失败状态
       if (options.bridgeId) {
         await this._updateBridgeRecord(options.bridgeId, {
-          status: 'failed',
+          status: "failed",
           error_message: error.message,
         });
       }
 
-      this.emit('asset:bridge-failed', { error: error.message });
+      this.emit("asset:bridge-failed", { error: error.message });
       throw error;
     }
   }
@@ -469,23 +513,33 @@ class BridgeManager extends EventEmitter {
    * @private
    */
   async _lockOnSourceChain(options) {
-    const { chainId, assetAddress, amount, walletId, password, bridgeContractAddress } = options;
+    const {
+      chainId,
+      assetAddress,
+      amount,
+      walletId,
+      password,
+      bridgeContractAddress,
+    } = options;
 
     if (!this.bridgeABI || !this.erc20ABI) {
-      throw new Error('合约 ABI 未加载');
+      throw new Error("合约 ABI 未加载");
     }
 
     // 切换到源链
     await this.adapter.switchChain(chainId);
 
     // 解锁钱包
-    const wallet = await this.adapter.walletManager.unlockWallet(walletId, password);
+    const wallet = await this.adapter.walletManager.unlockWallet(
+      walletId,
+      password,
+    );
 
     // 获取 provider
     const provider = this.adapter.getProvider(chainId);
     const signer = wallet.connect(provider);
 
-    logger.info('[BridgeManager] 调用桥接合约锁定资产:', {
+    logger.info("[BridgeManager] 调用桥接合约锁定资产:", {
       bridgeContractAddress,
       assetAddress,
       amount,
@@ -494,49 +548,64 @@ class BridgeManager extends EventEmitter {
 
     try {
       // 步骤 1: Approve 代币给桥接合约
-      logger.info('[BridgeManager] 步骤 1: 授权代币...');
-      const tokenContract = new ethers.Contract(assetAddress, this.erc20ABI, signer);
+      logger.info("[BridgeManager] 步骤 1: 授权代币...");
+      const tokenContract = new ethers.Contract(
+        assetAddress,
+        this.erc20ABI,
+        signer,
+      );
 
       // 检查当前授权额度
-      const currentAllowance = await tokenContract.allowance(wallet.address, bridgeContractAddress);
+      const currentAllowance = await tokenContract.allowance(
+        wallet.address,
+        bridgeContractAddress,
+      );
       const amountBN = ethers.parseUnits(amount, 18); // 假设 18 位小数
 
       if (currentAllowance < amountBN) {
-        logger.info('[BridgeManager] 需要授权，当前额度不足');
-        const approveTx = await tokenContract.approve(bridgeContractAddress, amountBN);
-        logger.info('[BridgeManager] 授权交易已提交:', approveTx.hash);
+        logger.info("[BridgeManager] 需要授权，当前额度不足");
+        const approveTx = await tokenContract.approve(
+          bridgeContractAddress,
+          amountBN,
+        );
+        logger.info("[BridgeManager] 授权交易已提交:", approveTx.hash);
         await approveTx.wait(1); // 等待 1 个确认
-        logger.info('[BridgeManager] 授权成功');
+        logger.info("[BridgeManager] 授权成功");
       } else {
-        logger.info('[BridgeManager] 授权额度充足，跳过授权');
+        logger.info("[BridgeManager] 授权额度充足，跳过授权");
       }
 
       // 步骤 2: 调用桥接合约的 lockAsset
-      logger.info('[BridgeManager] 步骤 2: 锁定资产...');
-      const bridgeContract = new ethers.Contract(bridgeContractAddress, this.bridgeABI, signer);
+      logger.info("[BridgeManager] 步骤 2: 锁定资产...");
+      const bridgeContract = new ethers.Contract(
+        bridgeContractAddress,
+        this.bridgeABI,
+        signer,
+      );
 
-      const targetChainId = options.targetChainId || (chainId === 31337 ? 137 : 31337); // 默认目标链
+      const targetChainId =
+        options.targetChainId || (chainId === 31337 ? 137 : 31337); // 默认目标链
       const lockTx = await bridgeContract.lockAsset(
         assetAddress,
         amountBN,
-        targetChainId
+        targetChainId,
       );
 
-      logger.info('[BridgeManager] 锁定交易已提交:', lockTx.hash);
+      logger.info("[BridgeManager] 锁定交易已提交:", lockTx.hash);
 
       // 等待交易被打包
       await lockTx.wait(1);
-      logger.info('[BridgeManager] 锁定交易已确认');
+      logger.info("[BridgeManager] 锁定交易已确认");
 
       return lockTx.hash;
     } catch (error) {
-      logger.error('[BridgeManager] 锁定资产失败:', error);
+      logger.error("[BridgeManager] 锁定资产失败:", error);
 
       // 如果 ABI 未加载或合约不存在，回退到模拟模式
-      if (error.message.includes('ABI') || error.message.includes('provider')) {
-        logger.warn('[BridgeManager] 回退到模拟模式');
-        const mockTxHash = `0x${Buffer.from(`lock_${Date.now()}_${Math.random()}`).toString('hex').slice(0, 64)}`;
-        logger.info('[BridgeManager] 锁定交易已提交（模拟）:', mockTxHash);
+      if (error.message.includes("ABI") || error.message.includes("provider")) {
+        logger.warn("[BridgeManager] 回退到模拟模式");
+        const mockTxHash = `0x${Buffer.from(`lock_${Date.now()}_${Math.random()}`).toString("hex").slice(0, 64)}`;
+        logger.info("[BridgeManager] 锁定交易已提交（模拟）:", mockTxHash);
         return mockTxHash;
       }
 
@@ -549,7 +618,7 @@ class BridgeManager extends EventEmitter {
    * @private
    */
   async _waitForLockConfirmation(chainId, txHash) {
-    logger.info('[BridgeManager] 等待交易确认:', txHash);
+    logger.info("[BridgeManager] 等待交易确认:", txHash);
 
     try {
       const provider = this.adapter.getProvider(chainId);
@@ -558,19 +627,19 @@ class BridgeManager extends EventEmitter {
       const receipt = await provider.waitForTransaction(txHash, 2);
 
       if (receipt && receipt.status === 1) {
-        logger.info('[BridgeManager] 锁定已确认，区块号:', receipt.blockNumber);
+        logger.info("[BridgeManager] 锁定已确认，区块号:", receipt.blockNumber);
         return true;
       } else {
-        logger.error('[BridgeManager] 交易失败');
-        throw new Error('锁定交易失败');
+        logger.error("[BridgeManager] 交易失败");
+        throw new Error("锁定交易失败");
       }
     } catch (error) {
-      logger.error('[BridgeManager] 等待确认失败:', error);
+      logger.error("[BridgeManager] 等待确认失败:", error);
 
       // 回退到模拟模式
-      logger.warn('[BridgeManager] 回退到模拟等待');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      logger.info('[BridgeManager] 锁定已确认（模拟）');
+      logger.warn("[BridgeManager] 回退到模拟等待");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      logger.info("[BridgeManager] 锁定已确认（模拟）");
       return true;
     }
   }
@@ -580,23 +649,36 @@ class BridgeManager extends EventEmitter {
    * @private
    */
   async _mintOnTargetChain(options) {
-    const { chainId, assetAddress, amount, recipientAddress, walletId, password, bridgeContractAddress, sourceChainId, requestId } = options;
+    const {
+      chainId,
+      assetAddress,
+      amount,
+      recipientAddress,
+      walletId,
+      password,
+      bridgeContractAddress,
+      sourceChainId,
+      requestId,
+    } = options;
 
     if (!this.bridgeABI) {
-      throw new Error('桥接合约 ABI 未加载');
+      throw new Error("桥接合约 ABI 未加载");
     }
 
     // 切换到目标链
     await this.adapter.switchChain(chainId);
 
     // 解锁钱包（需要是中继者钱包）
-    const wallet = await this.adapter.walletManager.unlockWallet(walletId, password);
+    const wallet = await this.adapter.walletManager.unlockWallet(
+      walletId,
+      password,
+    );
 
     // 获取 provider
     const provider = this.adapter.getProvider(chainId);
     const signer = wallet.connect(provider);
 
-    logger.info('[BridgeManager] 调用桥接合约铸造资产:', {
+    logger.info("[BridgeManager] 调用桥接合约铸造资产:", {
       bridgeContractAddress,
       assetAddress,
       amount,
@@ -605,16 +687,28 @@ class BridgeManager extends EventEmitter {
     });
 
     try {
-      const bridgeContract = new ethers.Contract(bridgeContractAddress, this.bridgeABI, signer);
+      const bridgeContract = new ethers.Contract(
+        bridgeContractAddress,
+        this.bridgeABI,
+        signer,
+      );
       const amountBN = ethers.parseUnits(amount, 18); // 假设 18 位小数
 
       // 生成请求 ID（如果没有提供）
-      const mintRequestId = requestId || ethers.keccak256(
-        ethers.AbiCoder.defaultAbiCoder().encode(
-          ['address', 'address', 'uint256', 'uint256', 'uint256'],
-          [recipientAddress, assetAddress, amountBN, sourceChainId || chainId, Date.now()]
-        )
-      );
+      const mintRequestId =
+        requestId ||
+        ethers.keccak256(
+          ethers.AbiCoder.defaultAbiCoder().encode(
+            ["address", "address", "uint256", "uint256", "uint256"],
+            [
+              recipientAddress,
+              assetAddress,
+              amountBN,
+              sourceChainId || chainId,
+              Date.now(),
+            ],
+          ),
+        );
 
       // 调用 mintAsset 方法（仅中继者可以调用）
       const mintTx = await bridgeContract.mintAsset(
@@ -622,24 +716,28 @@ class BridgeManager extends EventEmitter {
         recipientAddress,
         assetAddress,
         amountBN,
-        sourceChainId || chainId
+        sourceChainId || chainId,
       );
 
-      logger.info('[BridgeManager] 铸造交易已提交:', mintTx.hash);
+      logger.info("[BridgeManager] 铸造交易已提交:", mintTx.hash);
 
       // 等待交易被打包
       await mintTx.wait(1);
-      logger.info('[BridgeManager] 铸造交易已确认');
+      logger.info("[BridgeManager] 铸造交易已确认");
 
       return mintTx.hash;
     } catch (error) {
-      logger.error('[BridgeManager] 铸造资产失败:', error);
+      logger.error("[BridgeManager] 铸造资产失败:", error);
 
       // 如果 ABI 未加载或合约不存在，回退到模拟模式
-      if (error.message.includes('ABI') || error.message.includes('provider') || error.message.includes('Not a relayer')) {
-        logger.warn('[BridgeManager] 回退到模拟模式（可能需要中继者权限）');
-        const mockTxHash = `0x${Buffer.from(`mint_${Date.now()}_${Math.random()}`).toString('hex').slice(0, 64)}`;
-        logger.info('[BridgeManager] 铸造交易已提交（模拟）:', mockTxHash);
+      if (
+        error.message.includes("ABI") ||
+        error.message.includes("provider") ||
+        error.message.includes("Not a relayer")
+      ) {
+        logger.warn("[BridgeManager] 回退到模拟模式（可能需要中继者权限）");
+        const mockTxHash = `0x${Buffer.from(`mint_${Date.now()}_${Math.random()}`).toString("hex").slice(0, 64)}`;
+        logger.info("[BridgeManager] 铸造交易已提交（模拟）:", mockTxHash);
         return mockTxHash;
       }
 
@@ -654,11 +752,11 @@ class BridgeManager extends EventEmitter {
   async _getAssetInfo(assetId) {
     try {
       return this.database.get(
-        'SELECT * FROM blockchain_assets WHERE local_asset_id = ?',
-        [assetId]
+        "SELECT * FROM blockchain_assets WHERE local_asset_id = ?",
+        [assetId],
       );
     } catch (error) {
-      logger.error('[BridgeManager] 获取资产信息失败:', error);
+      logger.error("[BridgeManager] 获取资产信息失败:", error);
       throw error;
     }
   }
@@ -671,11 +769,15 @@ class BridgeManager extends EventEmitter {
    * @returns {Promise<string>} 余额（字符串格式）
    */
   async getAssetBalance(address, tokenAddress, chainId) {
-    logger.info('[BridgeManager] 查询链上余额:', { address, tokenAddress, chainId });
+    logger.info("[BridgeManager] 查询链上余额:", {
+      address,
+      tokenAddress,
+      chainId,
+    });
 
     if (!this.erc20ABI) {
-      logger.warn('[BridgeManager] ERC20 ABI 未加载');
-      return '0';
+      logger.warn("[BridgeManager] ERC20 ABI 未加载");
+      return "0";
     }
 
     try {
@@ -683,7 +785,11 @@ class BridgeManager extends EventEmitter {
       const provider = this.adapter.getProvider(chainId);
 
       // 创建 ERC20 合约实例
-      const tokenContract = new ethers.Contract(tokenAddress, this.erc20ABI, provider);
+      const tokenContract = new ethers.Contract(
+        tokenAddress,
+        this.erc20ABI,
+        provider,
+      );
 
       // 查询余额
       const balance = await tokenContract.balanceOf(address);
@@ -691,14 +797,14 @@ class BridgeManager extends EventEmitter {
       // 转换为可读格式（假设 18 位小数）
       const balanceFormatted = ethers.formatUnits(balance, 18);
 
-      logger.info('[BridgeManager] 余额查询成功:', balanceFormatted);
+      logger.info("[BridgeManager] 余额查询成功:", balanceFormatted);
       return balanceFormatted;
     } catch (error) {
-      logger.error('[BridgeManager] 查询余额失败:', error);
+      logger.error("[BridgeManager] 查询余额失败:", error);
 
       // 回退到模拟值
-      logger.warn('[BridgeManager] 回退到模拟余额');
-      return '1000.0'; // 模拟余额
+      logger.warn("[BridgeManager] 回退到模拟余额");
+      return "1000.0"; // 模拟余额
     }
   }
 
@@ -709,7 +815,10 @@ class BridgeManager extends EventEmitter {
    * @returns {Promise<Object>} 余额映射 {tokenAddress_chainId: balance}
    */
   async getBatchBalances(address, assets) {
-    logger.info('[BridgeManager] 批量查询余额:', { address, count: assets.length });
+    logger.info("[BridgeManager] 批量查询余额:", {
+      address,
+      count: assets.length,
+    });
 
     const balances = {};
 
@@ -717,17 +826,21 @@ class BridgeManager extends EventEmitter {
     const promises = assets.map(async ({ tokenAddress, chainId }) => {
       const key = `${tokenAddress}_${chainId}`;
       try {
-        const balance = await this.getAssetBalance(address, tokenAddress, chainId);
+        const balance = await this.getAssetBalance(
+          address,
+          tokenAddress,
+          chainId,
+        );
         balances[key] = balance;
       } catch (error) {
         logger.error(`[BridgeManager] 查询余额失败 ${key}:`, error);
-        balances[key] = '0';
+        balances[key] = "0";
       }
     });
 
     await Promise.all(promises);
 
-    logger.info('[BridgeManager] 批量查询完成:', balances);
+    logger.info("[BridgeManager] 批量查询完成:", balances);
     return balances;
   }
 
@@ -738,22 +851,26 @@ class BridgeManager extends EventEmitter {
    * @returns {Promise<string>} 锁定余额
    */
   async getLockedBalance(tokenAddress, chainId) {
-    logger.info('[BridgeManager] 查询锁定余额:', { tokenAddress, chainId });
+    logger.info("[BridgeManager] 查询锁定余额:", { tokenAddress, chainId });
 
     if (!this.bridgeABI) {
-      logger.warn('[BridgeManager] 桥接合约 ABI 未加载');
-      return '0';
+      logger.warn("[BridgeManager] 桥接合约 ABI 未加载");
+      return "0";
     }
 
     const bridgeContractAddress = this.bridgeContracts.get(chainId);
     if (!bridgeContractAddress) {
-      logger.warn('[BridgeManager] 链上未部署桥接合约:', chainId);
-      return '0';
+      logger.warn("[BridgeManager] 链上未部署桥接合约:", chainId);
+      return "0";
     }
 
     try {
       const provider = this.adapter.getProvider(chainId);
-      const bridgeContract = new ethers.Contract(bridgeContractAddress, this.bridgeABI, provider);
+      const bridgeContract = new ethers.Contract(
+        bridgeContractAddress,
+        this.bridgeABI,
+        provider,
+      );
 
       // 调用 getLockedBalance 方法
       const lockedBalance = await bridgeContract.getLockedBalance(tokenAddress);
@@ -761,11 +878,11 @@ class BridgeManager extends EventEmitter {
       // 转换为可读格式
       const lockedFormatted = ethers.formatUnits(lockedBalance, 18);
 
-      logger.info('[BridgeManager] 锁定余额:', lockedFormatted);
+      logger.info("[BridgeManager] 锁定余额:", lockedFormatted);
       return lockedFormatted;
     } catch (error) {
-      logger.error('[BridgeManager] 查询锁定余额失败:', error);
-      return '0';
+      logger.error("[BridgeManager] 查询锁定余额失败:", error);
+      return "0";
     }
   }
 
@@ -802,7 +919,7 @@ class BridgeManager extends EventEmitter {
         record.error_message || null,
       ]);
     } catch (error) {
-      logger.error('[BridgeManager] 保存桥接记录失败:', error);
+      logger.error("[BridgeManager] 保存桥接记录失败:", error);
       throw error;
     }
   }
@@ -813,15 +930,17 @@ class BridgeManager extends EventEmitter {
    */
   async _updateBridgeRecord(bridgeId, updates) {
     try {
-      const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
+      const fields = Object.keys(updates)
+        .map((key) => `${key} = ?`)
+        .join(", ");
       const values = Object.values(updates);
 
-      this.database.run(
-        `UPDATE bridge_transfers SET ${fields} WHERE id = ?`,
-        [...values, bridgeId]
-      );
+      this.database.run(`UPDATE bridge_transfers SET ${fields} WHERE id = ?`, [
+        ...values,
+        bridgeId,
+      ]);
     } catch (error) {
-      logger.error('[BridgeManager] 更新桥接记录失败:', error);
+      logger.error("[BridgeManager] 更新桥接记录失败:", error);
       throw error;
     }
   }
@@ -833,12 +952,11 @@ class BridgeManager extends EventEmitter {
    */
   async getBridgeRecord(bridgeId) {
     try {
-      return this.database.get(
-        'SELECT * FROM bridge_transfers WHERE id = ?',
-        [bridgeId]
-      );
+      return this.database.get("SELECT * FROM bridge_transfers WHERE id = ?", [
+        bridgeId,
+      ]);
     } catch (error) {
-      logger.error('[BridgeManager] 获取桥接记录失败:', error);
+      logger.error("[BridgeManager] 获取桥接记录失败:", error);
       throw error;
     }
   }
@@ -850,34 +968,34 @@ class BridgeManager extends EventEmitter {
    */
   async getBridgeHistory(filters = {}) {
     try {
-      let sql = 'SELECT * FROM bridge_transfers WHERE 1=1';
+      let sql = "SELECT * FROM bridge_transfers WHERE 1=1";
       const params = [];
 
       if (filters.status) {
-        sql += ' AND status = ?';
+        sql += " AND status = ?";
         params.push(filters.status);
       }
 
       if (filters.from_chain_id) {
-        sql += ' AND from_chain_id = ?';
+        sql += " AND from_chain_id = ?";
         params.push(filters.from_chain_id);
       }
 
       if (filters.to_chain_id) {
-        sql += ' AND to_chain_id = ?';
+        sql += " AND to_chain_id = ?";
         params.push(filters.to_chain_id);
       }
 
       if (filters.sender_address) {
-        sql += ' AND sender_address = ?';
+        sql += " AND sender_address = ?";
         params.push(filters.sender_address);
       }
 
-      sql += ' ORDER BY created_at DESC LIMIT 100';
+      sql += " ORDER BY created_at DESC LIMIT 100";
 
       return this.database.all(sql, params) || [];
     } catch (error) {
-      logger.error('[BridgeManager] 获取桥接历史失败:', error);
+      logger.error("[BridgeManager] 获取桥接历史失败:", error);
       throw error;
     }
   }
@@ -886,13 +1004,14 @@ class BridgeManager extends EventEmitter {
    * 使用LayerZero桥接资产
    */
   async bridgeViaLayerZero(options, wallet) {
-    const { assetId, fromChainId, toChainId, amount, recipientAddress } = options;
+    const { assetId, fromChainId, toChainId, amount, recipientAddress } =
+      options;
 
-    logger.info('[BridgeManager] Bridging via LayerZero...');
+    logger.info("[BridgeManager] Bridging via LayerZero...");
 
     const assetInfo = await this._getAssetInfo(assetId);
     if (!assetInfo) {
-      throw new Error('Asset not deployed to blockchain');
+      throw new Error("Asset not deployed to blockchain");
     }
 
     const result = await this.layerZeroBridge.bridgeAsset({
@@ -901,7 +1020,7 @@ class BridgeManager extends EventEmitter {
       asset: assetInfo.contract_address,
       amount,
       recipient: recipientAddress || wallet.address,
-      signer: wallet
+      signer: wallet,
     });
 
     // Save bridge record
@@ -916,9 +1035,9 @@ class BridgeManager extends EventEmitter {
       amount,
       sender_address: wallet.address,
       recipient_address: recipientAddress || wallet.address,
-      status: 'completed',
+      status: "completed",
       created_at: Date.now(),
-      completed_at: Date.now()
+      completed_at: Date.now(),
     });
 
     return {
@@ -927,7 +1046,7 @@ class BridgeManager extends EventEmitter {
       txHash: result.txHash,
       requestId: result.requestId,
       fee: result.fee,
-      protocol: 'LayerZero'
+      protocol: "LayerZero",
     };
   }
 
@@ -936,11 +1055,11 @@ class BridgeManager extends EventEmitter {
    */
   async startRelayer() {
     if (!this.initialized) {
-      throw new Error('Bridge manager not initialized');
+      throw new Error("Bridge manager not initialized");
     }
 
     await this.relayer.start();
-    logger.info('[BridgeManager] Relayer started');
+    logger.info("[BridgeManager] Relayer started");
   }
 
   /**
@@ -948,7 +1067,7 @@ class BridgeManager extends EventEmitter {
    */
   async stopRelayer() {
     await this.relayer.stop();
-    logger.info('[BridgeManager] Relayer stopped');
+    logger.info("[BridgeManager] Relayer stopped");
   }
 
   /**
@@ -1010,12 +1129,12 @@ class BridgeManager extends EventEmitter {
       return await this.layerZeroBridge.estimateFee({
         fromChain: fromChainId,
         toChain: toChainId,
-        amount
+        amount,
       });
     }
 
     // 默认费用估算
-    const baseFee = ethers.parseEther('0.001'); // 0.001 ETH
+    const baseFee = ethers.parseEther("0.001"); // 0.001 ETH
     const amountFee = (BigInt(amount) * BigInt(10)) / BigInt(10000); // 0.1%
 
     return baseFee + amountFee;
@@ -1035,7 +1154,7 @@ class BridgeManager extends EventEmitter {
     this.removeAllListeners();
     this.bridgeContracts.clear();
     this.initialized = false;
-    logger.info('[BridgeManager] 资源已清理');
+    logger.info("[BridgeManager] 资源已清理");
   }
 }
 

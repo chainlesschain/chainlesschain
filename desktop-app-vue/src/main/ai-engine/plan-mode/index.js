@@ -14,28 +14,28 @@
  * @version 1.0.0
  */
 
-const { EventEmitter } = require('events');
-const { logger } = require('../../utils/logger');
+const { EventEmitter } = require("events");
+const { logger } = require("../../utils/logger");
 
 // 计划模式状态
 const PlanModeState = {
-  INACTIVE: 'inactive',       // 非计划模式
-  ANALYZING: 'analyzing',     // 分析中
-  PLAN_READY: 'plan_ready',   // 计划就绪，等待审批
-  APPROVED: 'approved',       // 已审批，准备执行
-  EXECUTING: 'executing',     // 执行中
-  COMPLETED: 'completed',     // 完成
-  REJECTED: 'rejected',       // 被拒绝
+  INACTIVE: "inactive", // 非计划模式
+  ANALYZING: "analyzing", // 分析中
+  PLAN_READY: "plan_ready", // 计划就绪，等待审批
+  APPROVED: "approved", // 已审批，准备执行
+  EXECUTING: "executing", // 执行中
+  COMPLETED: "completed", // 完成
+  REJECTED: "rejected", // 被拒绝
 };
 
 // 工具分类
 const ToolCategory = {
-  READ: 'read',       // 只读操作
-  WRITE: 'write',     // 写入操作
-  EXECUTE: 'execute', // 执行操作
-  DELETE: 'delete',   // 删除操作
-  SEARCH: 'search',   // 搜索操作
-  ANALYZE: 'analyze', // 分析操作
+  READ: "read", // 只读操作
+  WRITE: "write", // 写入操作
+  EXECUTE: "execute", // 执行操作
+  DELETE: "delete", // 删除操作
+  SEARCH: "search", // 搜索操作
+  ANALYZE: "analyze", // 分析操作
 };
 
 // 工具权限映射
@@ -86,15 +86,17 @@ const ALLOWED_IN_PLAN_MODE = new Set([
  */
 class PlanItem {
   constructor(options) {
-    this.id = options.id || `step_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.id =
+      options.id ||
+      `step_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     this.order = options.order || 0;
-    this.title = options.title || '';
-    this.description = options.description || '';
+    this.title = options.title || "";
+    this.description = options.description || "";
     this.tool = options.tool || null;
     this.params = options.params || {};
     this.dependencies = options.dependencies || [];
-    this.estimatedImpact = options.estimatedImpact || 'low'; // low, medium, high
-    this.status = 'pending'; // pending, approved, rejected, executing, completed, failed
+    this.estimatedImpact = options.estimatedImpact || "low"; // low, medium, high
+    this.status = "pending"; // pending, approved, rejected, executing, completed, failed
     this.result = null;
     this.error = null;
     this.createdAt = Date.now();
@@ -125,10 +127,12 @@ class PlanItem {
  */
 class ExecutionPlan {
   constructor(options = {}) {
-    this.id = options.id || `plan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    this.title = options.title || 'Untitled Plan';
-    this.description = options.description || '';
-    this.goal = options.goal || '';
+    this.id =
+      options.id ||
+      `plan_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.title = options.title || "Untitled Plan";
+    this.description = options.description || "";
+    this.goal = options.goal || "";
     this.items = [];
     this.status = PlanModeState.ANALYZING;
     this.createdAt = Date.now();
@@ -178,18 +182,18 @@ class ExecutionPlan {
     return this.items.find((item) => item.id === itemId);
   }
 
-  approve(approvedBy = 'user') {
+  approve(approvedBy = "user") {
     this.status = PlanModeState.APPROVED;
     this.approvedAt = Date.now();
     this.approvedBy = approvedBy;
     this.updatedAt = Date.now();
     this.items.forEach((item) => {
-      item.status = 'approved';
+      item.status = "approved";
       item.updatedAt = Date.now();
     });
   }
 
-  reject(reason = '') {
+  reject(reason = "") {
     this.status = PlanModeState.REJECTED;
     this.updatedAt = Date.now();
     this.metadata.rejectionReason = reason;
@@ -246,7 +250,7 @@ class PlanModeManager extends EventEmitter {
       toolsAllowed: 0,
     };
 
-    logger.info('[PlanMode] Manager initialized');
+    logger.info("[PlanMode] Manager initialized");
   }
 
   /**
@@ -267,15 +271,17 @@ class PlanModeManager extends EventEmitter {
    * @private
    */
   _registerPlanModeHook() {
-    if (!this.hookSystem) return;
+    if (!this.hookSystem) {
+      return;
+    }
 
-    const { HookPriority, HookResult } = require('../../hooks');
+    const { HookPriority, HookResult } = require("../../hooks");
 
     this.hookId = this.hookSystem.register({
-      event: 'PreToolUse',
-      name: 'plan-mode:tool-guard',
+      event: "PreToolUse",
+      name: "plan-mode:tool-guard",
       priority: HookPriority.SYSTEM,
-      description: 'Guard tool execution in plan mode',
+      description: "Guard tool execution in plan mode",
       handler: async ({ data, context }) => {
         // 如果不在计划模式，允许所有操作
         if (!this.isActive()) {
@@ -300,7 +306,7 @@ class PlanModeManager extends EventEmitter {
             });
           }
 
-          this.emit('tool-blocked', {
+          this.emit("tool-blocked", {
             toolName,
             category,
             params: data.params,
@@ -318,7 +324,7 @@ class PlanModeManager extends EventEmitter {
       },
     });
 
-    logger.info('[PlanMode] Tool guard hook registered');
+    logger.info("[PlanMode] Tool guard hook registered");
   }
 
   /**
@@ -328,21 +334,21 @@ class PlanModeManager extends EventEmitter {
    */
   enterPlanMode(options = {}) {
     if (this.isActive()) {
-      logger.warn('[PlanMode] Already in plan mode');
+      logger.warn("[PlanMode] Already in plan mode");
       return this.currentPlan;
     }
 
     this.state = PlanModeState.ANALYZING;
     this.currentPlan = new ExecutionPlan({
-      title: options.title || 'New Plan',
-      description: options.description || '',
-      goal: options.goal || '',
+      title: options.title || "New Plan",
+      description: options.description || "",
+      goal: options.goal || "",
       metadata: options.metadata || {},
     });
 
     this.stats.plansCreated++;
 
-    this.emit('enter', {
+    this.emit("enter", {
       plan: this.currentPlan.toJSON(),
       state: this.state,
     });
@@ -357,11 +363,11 @@ class PlanModeManager extends EventEmitter {
    * @returns {Object} 退出结果
    */
   exitPlanMode(options = {}) {
-    const { savePlan = true, reason = '' } = options;
+    const { savePlan = true, reason = "" } = options;
 
     if (!this.isActive()) {
-      logger.warn('[PlanMode] Not in plan mode');
-      return { success: false, reason: 'Not in plan mode' };
+      logger.warn("[PlanMode] Not in plan mode");
+      return { success: false, reason: "Not in plan mode" };
     }
 
     const plan = this.currentPlan;
@@ -370,19 +376,22 @@ class PlanModeManager extends EventEmitter {
     if (savePlan && plan) {
       this.plansHistory.unshift(plan.toJSON());
       if (this.plansHistory.length > this.options.maxPlansHistory) {
-        this.plansHistory = this.plansHistory.slice(0, this.options.maxPlansHistory);
+        this.plansHistory = this.plansHistory.slice(
+          0,
+          this.options.maxPlansHistory,
+        );
       }
     }
 
     this.state = PlanModeState.INACTIVE;
     this.currentPlan = null;
 
-    this.emit('exit', {
+    this.emit("exit", {
       plan: plan ? plan.toJSON() : null,
       reason,
     });
 
-    logger.info(`[PlanMode] Exited plan mode: ${plan ? plan.id : 'no plan'}`);
+    logger.info(`[PlanMode] Exited plan mode: ${plan ? plan.id : "no plan"}`);
 
     return {
       success: true,
@@ -421,13 +430,13 @@ class PlanModeManager extends EventEmitter {
    */
   addPlanItem(item) {
     if (!this.currentPlan) {
-      logger.warn('[PlanMode] No active plan');
+      logger.warn("[PlanMode] No active plan");
       return null;
     }
 
     const planItem = this.currentPlan.addItem(item);
 
-    this.emit('item-added', {
+    this.emit("item-added", {
       planId: this.currentPlan.id,
       item: planItem.toJSON(),
     });
@@ -448,7 +457,7 @@ class PlanModeManager extends EventEmitter {
     const removed = this.currentPlan.removeItem(itemId);
 
     if (removed) {
-      this.emit('item-removed', {
+      this.emit("item-removed", {
         planId: this.currentPlan.id,
         itemId,
       });
@@ -464,18 +473,18 @@ class PlanModeManager extends EventEmitter {
    */
   markPlanReady(options = {}) {
     if (!this.currentPlan) {
-      return { success: false, reason: 'No active plan' };
+      return { success: false, reason: "No active plan" };
     }
 
     if (this.currentPlan.items.length === 0) {
-      return { success: false, reason: 'Plan has no items' };
+      return { success: false, reason: "Plan has no items" };
     }
 
     this.state = PlanModeState.PLAN_READY;
     this.currentPlan.status = PlanModeState.PLAN_READY;
     this.currentPlan.updatedAt = Date.now();
 
-    this.emit('plan-ready', {
+    this.emit("plan-ready", {
       plan: this.currentPlan.toJSON(),
     });
 
@@ -493,23 +502,23 @@ class PlanModeManager extends EventEmitter {
    * @returns {Object} 结果
    */
   approvePlan(options = {}) {
-    const { approvedBy = 'user', itemIds = null } = options;
+    const { approvedBy = "user", itemIds = null } = options;
 
     if (!this.currentPlan) {
-      return { success: false, reason: 'No active plan' };
+      return { success: false, reason: "No active plan" };
     }
 
     if (this.state !== PlanModeState.PLAN_READY) {
-      return { success: false, reason: 'Plan is not ready for approval' };
+      return { success: false, reason: "Plan is not ready for approval" };
     }
 
     // 部分审批
     if (itemIds && Array.isArray(itemIds)) {
       this.currentPlan.items.forEach((item) => {
         if (itemIds.includes(item.id)) {
-          item.status = 'approved';
+          item.status = "approved";
         } else {
-          item.status = 'rejected';
+          item.status = "rejected";
         }
         item.updatedAt = Date.now();
       });
@@ -521,7 +530,7 @@ class PlanModeManager extends EventEmitter {
     this.state = PlanModeState.APPROVED;
     this.stats.plansApproved++;
 
-    this.emit('plan-approved', {
+    this.emit("plan-approved", {
       plan: this.currentPlan.toJSON(),
       approvedBy,
       partialApproval: !!itemIds,
@@ -541,17 +550,17 @@ class PlanModeManager extends EventEmitter {
    * @returns {Object} 结果
    */
   rejectPlan(options = {}) {
-    const { reason = '' } = options;
+    const { reason = "" } = options;
 
     if (!this.currentPlan) {
-      return { success: false, reason: 'No active plan' };
+      return { success: false, reason: "No active plan" };
     }
 
     this.currentPlan.reject(reason);
     this.state = PlanModeState.REJECTED;
     this.stats.plansRejected++;
 
-    this.emit('plan-rejected', {
+    this.emit("plan-rejected", {
       plan: this.currentPlan.toJSON(),
       reason,
     });
@@ -570,20 +579,22 @@ class PlanModeManager extends EventEmitter {
    */
   async executePlan(executor, options = {}) {
     if (!this.currentPlan) {
-      return { success: false, reason: 'No active plan' };
+      return { success: false, reason: "No active plan" };
     }
 
     if (this.state !== PlanModeState.APPROVED) {
-      return { success: false, reason: 'Plan is not approved' };
+      return { success: false, reason: "Plan is not approved" };
     }
 
     this.state = PlanModeState.EXECUTING;
     this.currentPlan.status = PlanModeState.EXECUTING;
 
     const results = [];
-    const approvedItems = this.currentPlan.items.filter((item) => item.status === 'approved');
+    const approvedItems = this.currentPlan.items.filter(
+      (item) => item.status === "approved",
+    );
 
-    this.emit('execution-start', {
+    this.emit("execution-start", {
       plan: this.currentPlan.toJSON(),
       totalItems: approvedItems.length,
     });
@@ -594,10 +605,10 @@ class PlanModeManager extends EventEmitter {
 
     try {
       for (const item of approvedItems) {
-        item.status = 'executing';
+        item.status = "executing";
         item.updatedAt = Date.now();
 
-        this.emit('item-executing', {
+        this.emit("item-executing", {
           planId: this.currentPlan.id,
           item: item.toJSON(),
         });
@@ -607,13 +618,13 @@ class PlanModeManager extends EventEmitter {
           if (executor && item.tool) {
             const result = await executor.callTool(item.tool, item.params);
             item.result = result;
-            item.status = 'completed';
+            item.status = "completed";
           } else {
-            item.status = 'completed';
-            item.result = { message: 'No executor or tool specified' };
+            item.status = "completed";
+            item.result = { message: "No executor or tool specified" };
           }
         } catch (error) {
-          item.status = 'failed';
+          item.status = "failed";
           item.error = error.message;
           logger.error(`[PlanMode] Item execution failed: ${item.id}`, error);
 
@@ -625,7 +636,7 @@ class PlanModeManager extends EventEmitter {
         item.updatedAt = Date.now();
         results.push(item.toJSON());
 
-        this.emit('item-completed', {
+        this.emit("item-completed", {
           planId: this.currentPlan.id,
           item: item.toJSON(),
         });
@@ -636,15 +647,17 @@ class PlanModeManager extends EventEmitter {
       this.currentPlan.completedAt = Date.now();
       this.stats.plansCompleted++;
 
-      this.emit('execution-complete', {
+      this.emit("execution-complete", {
         plan: this.currentPlan.toJSON(),
         results,
       });
 
-      logger.info(`[PlanMode] Plan execution completed: ${this.currentPlan.id}`);
+      logger.info(
+        `[PlanMode] Plan execution completed: ${this.currentPlan.id}`,
+      );
 
       // 退出计划模式
-      this.exitPlanMode({ reason: 'Plan execution completed' });
+      this.exitPlanMode({ reason: "Plan execution completed" });
 
       return {
         success: true,
@@ -652,7 +665,7 @@ class PlanModeManager extends EventEmitter {
         results,
       };
     } catch (error) {
-      logger.error('[PlanMode] Plan execution error:', error);
+      logger.error("[PlanMode] Plan execution error:", error);
       this.state = wasActive ? PlanModeState.APPROVED : PlanModeState.INACTIVE;
       return {
         success: false,
@@ -688,12 +701,12 @@ class PlanModeManager extends EventEmitter {
   _estimateImpact(category) {
     switch (category) {
       case ToolCategory.DELETE:
-        return 'high';
+        return "high";
       case ToolCategory.WRITE:
       case ToolCategory.EXECUTE:
-        return 'medium';
+        return "medium";
       default:
-        return 'low';
+        return "low";
     }
   }
 
@@ -738,7 +751,7 @@ class PlanModeManager extends EventEmitter {
    */
   generatePlanSummary() {
     if (!this.currentPlan) {
-      return 'No active plan.';
+      return "No active plan.";
     }
 
     const plan = this.currentPlan;
@@ -746,9 +759,9 @@ class PlanModeManager extends EventEmitter {
       `# Plan: ${plan.title}`,
       `ID: ${plan.id}`,
       `Status: ${plan.status}`,
-      `Goal: ${plan.goal || 'Not specified'}`,
-      '',
-      '## Steps:',
+      `Goal: ${plan.goal || "Not specified"}`,
+      "",
+      "## Steps:",
     ];
 
     plan.items.forEach((item, index) => {
@@ -760,10 +773,10 @@ class PlanModeManager extends EventEmitter {
         lines.push(`   Tool: ${item.tool}`);
       }
       lines.push(`   Impact: ${item.estimatedImpact}`);
-      lines.push('');
+      lines.push("");
     });
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -776,7 +789,7 @@ class PlanModeManager extends EventEmitter {
     this.removeAllListeners();
     this.currentPlan = null;
     this.plansHistory = [];
-    logger.info('[PlanMode] Manager destroyed');
+    logger.info("[PlanMode] Manager destroyed");
   }
 }
 

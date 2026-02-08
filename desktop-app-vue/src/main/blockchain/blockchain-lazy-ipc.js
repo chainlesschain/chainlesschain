@@ -3,7 +3,7 @@
  * 在首次访问时才初始化区块链模块，节省启动时间 5-10 秒
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 
 /**
@@ -17,7 +17,9 @@ async function ensureBlockchainInitialized(app) {
     const startTime = Date.now();
     await app.initializeBlockchainModules();
     const elapsed = Date.now() - startTime;
-    logger.info(`[Blockchain Lazy IPC] ✓ 区块链模块初始化完成 (耗时: ${elapsed}ms)`);
+    logger.info(
+      `[Blockchain Lazy IPC] ✓ 区块链模块初始化完成 (耗时: ${elapsed}ms)`,
+    );
   }
 }
 
@@ -48,31 +50,45 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
     }
   });
 
-  ipcMain.handle("wallet:import-mnemonic", async (_event, { mnemonic, password, chainId = 1 }) => {
-    try {
-      await ensureBlockchainInitialized(app);
-      if (!app.walletManager) {
-        throw new Error("钱包管理器未初始化");
+  ipcMain.handle(
+    "wallet:import-mnemonic",
+    async (_event, { mnemonic, password, chainId = 1 }) => {
+      try {
+        await ensureBlockchainInitialized(app);
+        if (!app.walletManager) {
+          throw new Error("钱包管理器未初始化");
+        }
+        return await app.walletManager.importFromMnemonic(
+          mnemonic,
+          password,
+          chainId,
+        );
+      } catch (error) {
+        logger.error("[Blockchain Lazy IPC] 导入钱包失败:", error);
+        throw error;
       }
-      return await app.walletManager.importFromMnemonic(mnemonic, password, chainId);
-    } catch (error) {
-      logger.error("[Blockchain Lazy IPC] 导入钱包失败:", error);
-      throw error;
-    }
-  });
+    },
+  );
 
-  ipcMain.handle("wallet:import-private-key", async (_event, { privateKey, password, chainId = 1 }) => {
-    try {
-      await ensureBlockchainInitialized(app);
-      if (!app.walletManager) {
-        throw new Error("钱包管理器未初始化");
+  ipcMain.handle(
+    "wallet:import-private-key",
+    async (_event, { privateKey, password, chainId = 1 }) => {
+      try {
+        await ensureBlockchainInitialized(app);
+        if (!app.walletManager) {
+          throw new Error("钱包管理器未初始化");
+        }
+        return await app.walletManager.importFromPrivateKey(
+          privateKey,
+          password,
+          chainId,
+        );
+      } catch (error) {
+        logger.error("[Blockchain Lazy IPC] 从私钥导入钱包失败:", error);
+        throw error;
       }
-      return await app.walletManager.importFromPrivateKey(privateKey, password, chainId);
-    } catch (error) {
-      logger.error("[Blockchain Lazy IPC] 从私钥导入钱包失败:", error);
-      throw error;
-    }
-  });
+    },
+  );
 
   ipcMain.handle("wallet:list", async () => {
     try {
@@ -281,7 +297,9 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
   });
 
   logger.info("[Blockchain Lazy IPC] ✓ 懒加载区块链 IPC 处理器注册完成");
-  logger.info("[Blockchain Lazy IPC] ✓ 已注册核心处理器，完整功能将在首次访问时加载");
+  logger.info(
+    "[Blockchain Lazy IPC] ✓ 已注册核心处理器，完整功能将在首次访问时加载",
+  );
 }
 
 module.exports = {

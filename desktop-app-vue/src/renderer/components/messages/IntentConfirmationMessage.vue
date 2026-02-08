@@ -3,18 +3,12 @@
     <!-- 头部：AI理解提示 -->
     <div class="confirmation-header">
       <div class="header-icon">
-        <CheckCircleOutlined
-          v-if="isConfirmed"
-          style="color: #52c41a;"
-        />
+        <CheckCircleOutlined v-if="isConfirmed" style="color: #52c41a" />
         <ExclamationCircleOutlined
           v-else-if="isCorrected"
-          style="color: #faad14;"
+          style="color: #faad14"
         />
-        <BulbOutlined
-          v-else
-          style="color: #1890ff;"
-        />
+        <BulbOutlined v-else style="color: #1890ff" />
       </div>
       <div class="header-text">
         <span v-if="isConfirmed">✅ 已确认</span>
@@ -26,26 +20,16 @@
     <!-- 理解内容展示 -->
     <div class="understanding-content">
       <!-- 原始输入（如果有纠错） -->
-      <div
-        v-if="hasCorrectedInput"
-        class="original-input"
-      >
-        <div class="label">
-          您的原始输入：
-        </div>
+      <div v-if="hasCorrectedInput" class="original-input">
+        <div class="label">您的原始输入：</div>
         <div class="value original-text">
           {{ originalInput }}
         </div>
       </div>
 
       <!-- 纠错后的输入 -->
-      <div
-        v-if="hasCorrectedInput"
-        class="corrected-input"
-      >
-        <div class="label">
-          我理解为：
-        </div>
+      <div v-if="hasCorrectedInput" class="corrected-input">
+        <div class="label">我理解为：</div>
         <div class="value corrected-text">
           {{ correctedInput }}
         </div>
@@ -53,40 +37,25 @@
 
       <!-- 理解的意图 -->
       <div class="intent-section">
-        <div class="label">
-          🎯 意图：
-        </div>
+        <div class="label">🎯 意图：</div>
         <div class="value">
           {{ intent }}
         </div>
       </div>
 
       <!-- 关键要点 -->
-      <div
-        v-if="keyPoints && keyPoints.length > 0"
-        class="key-points-section"
-      >
-        <div class="label">
-          📝 关键要点：
-        </div>
+      <div v-if="keyPoints && keyPoints.length > 0" class="key-points-section">
+        <div class="label">📝 关键要点：</div>
         <ul class="key-points-list">
-          <li
-            v-for="(point, index) in keyPoints"
-            :key="index"
-          >
+          <li v-for="(point, index) in keyPoints" :key="index">
             {{ point }}
           </li>
         </ul>
       </div>
 
       <!-- 用户的纠正输入（如果有） -->
-      <div
-        v-if="correction"
-        class="correction-section"
-      >
-        <div class="label">
-          📝 您的修正：
-        </div>
+      <div v-if="correction" class="correction-section">
+        <div class="label">📝 您的修正：</div>
         <div class="value correction-text">
           {{ correction }}
         </div>
@@ -94,14 +63,8 @@
     </div>
 
     <!-- 操作按钮 -->
-    <div
-      v-if="!isConfirmed && !isCorrected"
-      class="action-buttons"
-    >
-      <a-button
-        type="primary"
-        @click="handleConfirm"
-      >
+    <div v-if="!isConfirmed && !isCorrected" class="action-buttons">
+      <a-button type="primary" @click="handleConfirm">
         <CheckOutlined />
         确认
       </a-button>
@@ -112,28 +75,18 @@
     </div>
 
     <!-- 纠正输入框 -->
-    <div
-      v-if="showCorrectionInput"
-      class="correction-input-section"
-    >
+    <div v-if="showCorrectionInput" class="correction-input-section">
       <a-textarea
         v-model:value="correctionInput"
         placeholder="请输入您想要纠正的内容..."
         :auto-size="{ minRows: 2, maxRows: 6 }"
       />
       <div class="correction-actions">
-        <a-button
-          type="primary"
-          size="small"
-          @click="handleSubmitCorrection"
-        >
+        <a-button type="primary" size="small" @click="handleSubmitCorrection">
           <CheckOutlined />
           提交修正
         </a-button>
-        <a-button
-          size="small"
-          @click="handleCancelCorrection"
-        >
+        <a-button size="small" @click="handleCancelCorrection">
           <CloseOutlined />
           取消
         </a-button>
@@ -143,9 +96,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed } from 'vue';
+import { ref, computed } from "vue";
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -153,7 +106,7 @@ import {
   CheckOutlined,
   EditOutlined,
   CloseOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   message: {
@@ -162,30 +115,39 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['confirm', 'correct']);
+const emit = defineEmits(["confirm", "correct"]);
 
 const showCorrectionInput = ref(false);
-const correctionInput = ref('');
+const correctionInput = ref("");
 
 // 计算属性
-const originalInput = computed(() => props.message.metadata?.originalInput || '');
-const understanding = computed(() => props.message.metadata?.understanding || {});
-const correctedInput = computed(() => understanding.value.correctedInput || originalInput.value);
-const intent = computed(() => understanding.value.intent || '未识别');
+const originalInput = computed(
+  () => props.message.metadata?.originalInput || "",
+);
+const understanding = computed(
+  () => props.message.metadata?.understanding || {},
+);
+const correctedInput = computed(
+  () => understanding.value.correctedInput || originalInput.value,
+);
+const intent = computed(() => understanding.value.intent || "未识别");
 const keyPoints = computed(() => understanding.value.keyPoints || []);
 const hasCorrectedInput = computed(() => {
-  return correctedInput.value !== originalInput.value && originalInput.value.trim() !== '';
+  return (
+    correctedInput.value !== originalInput.value &&
+    originalInput.value.trim() !== ""
+  );
 });
 
-const status = computed(() => props.message.metadata?.status || 'pending');
-const isConfirmed = computed(() => status.value === 'confirmed');
-const isCorrected = computed(() => status.value === 'corrected');
+const status = computed(() => props.message.metadata?.status || "pending");
+const isConfirmed = computed(() => status.value === "confirmed");
+const isCorrected = computed(() => status.value === "corrected");
 const correction = computed(() => props.message.metadata?.correction || null);
 
 // 处理确认
 const handleConfirm = () => {
-  logger.info('[IntentConfirmation] 用户确认理解正确');
-  emit('confirm', {
+  logger.info("[IntentConfirmation] 用户确认理解正确");
+  emit("confirm", {
     messageId: props.message.id,
     originalInput: originalInput.value,
     understanding: understanding.value,
@@ -194,7 +156,7 @@ const handleConfirm = () => {
 
 // 显示纠正输入框
 const handleCorrect = () => {
-  logger.info('[IntentConfirmation] 用户请求纠正');
+  logger.info("[IntentConfirmation] 用户请求纠正");
   showCorrectionInput.value = true;
   correctionInput.value = correctedInput.value; // 预填充当前理解的内容
 };
@@ -205,8 +167,8 @@ const handleSubmitCorrection = () => {
     return;
   }
 
-  logger.info('[IntentConfirmation] 用户提交纠正:', correctionInput.value);
-  emit('correct', {
+  logger.info("[IntentConfirmation] 用户提交纠正:", correctionInput.value);
+  emit("correct", {
     messageId: props.message.id,
     originalInput: originalInput.value,
     correction: correctionInput.value,
@@ -218,7 +180,7 @@ const handleSubmitCorrection = () => {
 // 取消纠正
 const handleCancelCorrection = () => {
   showCorrectionInput.value = false;
-  correctionInput.value = '';
+  correctionInput.value = "";
 };
 </script>
 

@@ -16,10 +16,7 @@
         </template>
       </a-button>
 
-      <div
-        v-else
-        class="recording-controls"
-      >
+      <div v-else class="recording-controls">
         <!-- 录音中指示器 -->
         <div class="recording-indicator">
           <span class="pulse" />
@@ -45,40 +42,28 @@
 
         <!-- 控制按钮 -->
         <a-space>
-          <a-button
-            v-if="!isPaused"
-            @click="pauseRecording"
-          >
+          <a-button v-if="!isPaused" @click="pauseRecording">
             <template #icon>
               <PauseOutlined />
             </template>
             暂停
           </a-button>
 
-          <a-button
-            v-else
-            @click="resumeRecording"
-          >
+          <a-button v-else @click="resumeRecording">
             <template #icon>
               <PlayCircleOutlined />
             </template>
             继续
           </a-button>
 
-          <a-button
-            type="primary"
-            @click="stopRecording"
-          >
+          <a-button type="primary" @click="stopRecording">
             <template #icon>
               <CheckOutlined />
             </template>
             完成
           </a-button>
 
-          <a-button
-            danger
-            @click="cancelRecording"
-          >
+          <a-button danger @click="cancelRecording">
             <template #icon>
               <CloseOutlined />
             </template>
@@ -89,23 +74,11 @@
     </div>
 
     <!-- 转录结果 -->
-    <div
-      v-if="transcript"
-      class="transcript-container"
-    >
-      <a-card
-        title="转录结果"
-        :bordered="false"
-      >
+    <div v-if="transcript" class="transcript-container">
+      <a-card title="转录结果" :bordered="false">
         <!-- 部分结果（实时显示） -->
-        <div
-          v-if="partialTranscript"
-          class="partial-transcript"
-        >
-          <a-typography-text
-            type="secondary"
-            class="typing-effect"
-          >
+        <div v-if="partialTranscript" class="partial-transcript">
+          <a-typography-text type="secondary" class="typing-effect">
             {{ partialTranscript }}
           </a-typography-text>
         </div>
@@ -144,10 +117,7 @@
               复制文本
             </a-button>
 
-            <a-button
-              danger
-              @click="clearTranscript"
-            >
+            <a-button danger @click="clearTranscript">
               <template #icon>
                 <DeleteOutlined />
               </template>
@@ -173,10 +143,7 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'patterns'">
-            <a-tag
-              v-for="pattern in record.patterns"
-              :key="pattern"
-            >
+            <a-tag v-for="pattern in record.patterns" :key="pattern">
               {{ pattern }}
             </a-tag>
           </template>
@@ -196,10 +163,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   AudioOutlined,
   PauseOutlined,
@@ -209,41 +176,47 @@ import {
   FileTextOutlined,
   SaveOutlined,
   CopyOutlined,
-  DeleteOutlined
-} from '@ant-design/icons-vue';
+  DeleteOutlined,
+} from "@ant-design/icons-vue";
 
 // Props
 const props = defineProps({
   autoInsert: {
     type: Boolean,
-    default: false
+    default: false,
   },
   enableCommands: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
 
 // Emits
-const emit = defineEmits(['transcriptCompleted', 'commandRecognized', 'insert']);
+const emit = defineEmits([
+  "transcriptCompleted",
+  "commandRecognized",
+  "insert",
+]);
 
 // State
 const isRecording = ref(false);
 const isPaused = ref(false);
 const isInitializing = ref(false);
 const volume = ref(0);
-const partialTranscript = ref('');
-const finalTranscript = ref('');
+const partialTranscript = ref("");
+const finalTranscript = ref("");
 const showCommandHelp = ref(false);
 
 // Computed
-const transcript = computed(() => partialTranscript.value || finalTranscript.value);
+const transcript = computed(
+  () => partialTranscript.value || finalTranscript.value,
+);
 
 // 命令表格列
 const commandColumns = [
-  { title: '命令', dataIndex: 'name', key: 'name' },
-  { title: '触发词', dataIndex: 'patterns', key: 'patterns' },
-  { title: '说明', dataIndex: 'description', key: 'description' }
+  { title: "命令", dataIndex: "name", key: "name" },
+  { title: "触发词", dataIndex: "patterns", key: "patterns" },
+  { title: "说明", dataIndex: "description", key: "description" },
 ];
 
 // 可用命令
@@ -263,15 +236,15 @@ const startRecording = async () => {
         channelCount: 1,
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
-      }
+        autoGainControl: true,
+      },
     });
 
     // 通知主进程开始录音
     const result = await window.electronAPI.speech.startRealtimeRecording({
       sampleRate: 16000,
       channels: 1,
-      language: 'zh'
+      language: "zh",
     });
 
     if (result.success) {
@@ -281,13 +254,12 @@ const startRecording = async () => {
       // 开始处理音频流
       processAudioStream(stream);
 
-      message.success('开始录音');
+      message.success("开始录音");
     } else {
-      throw new Error(result.error || '启动录音失败');
+      throw new Error(result.error || "启动录音失败");
     }
-
   } catch (error) {
-    logger.error('开始录音失败:', error);
+    logger.error("开始录音失败:", error);
     message.error(`开始录音失败: ${error.message}`);
     isInitializing.value = false;
   }
@@ -340,7 +312,7 @@ const floatTo16BitPCM = (float32Array) => {
 
   for (let i = 0; i < float32Array.length; i++) {
     const s = Math.max(-1, Math.min(1, float32Array[i]));
-    view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
   }
 
   return Buffer.from(buffer);
@@ -354,11 +326,11 @@ const pauseRecording = async () => {
     const result = await window.electronAPI.speech.pauseRealtimeRecording();
     if (result.success) {
       isPaused.value = true;
-      message.info('录音已暂停');
+      message.info("录音已暂停");
     }
   } catch (error) {
-    logger.error('暂停录音失败:', error);
-    message.error('暂停录音失败');
+    logger.error("暂停录音失败:", error);
+    message.error("暂停录音失败");
   }
 };
 
@@ -370,11 +342,11 @@ const resumeRecording = async () => {
     const result = await window.electronAPI.speech.resumeRealtimeRecording();
     if (result.success) {
       isPaused.value = false;
-      message.info('录音已恢复');
+      message.info("录音已恢复");
     }
   } catch (error) {
-    logger.error('恢复录音失败:', error);
-    message.error('恢复录音失败');
+    logger.error("恢复录音失败:", error);
+    message.error("恢复录音失败");
   }
 };
 
@@ -387,11 +359,11 @@ const stopRecording = async () => {
 
     if (result.success && result.data) {
       finalTranscript.value = result.data.transcript;
-      partialTranscript.value = '';
+      partialTranscript.value = "";
 
-      emit('transcriptCompleted', result.data);
+      emit("transcriptCompleted", result.data);
 
-      message.success('录音已完成');
+      message.success("录音已完成");
 
       // 自动插入
       if (props.autoInsert && finalTranscript.value) {
@@ -405,10 +377,9 @@ const stopRecording = async () => {
     isRecording.value = false;
     isPaused.value = false;
     volume.value = 0;
-
   } catch (error) {
-    logger.error('停止录音失败:', error);
-    message.error('停止录音失败');
+    logger.error("停止录音失败:", error);
+    message.error("停止录音失败");
   }
 };
 
@@ -419,8 +390,8 @@ const cancelRecording = async () => {
   try {
     await window.electronAPI.speech.cancelRealtimeRecording();
 
-    partialTranscript.value = '';
-    finalTranscript.value = '';
+    partialTranscript.value = "";
+    finalTranscript.value = "";
 
     cleanupAudioResources();
 
@@ -428,10 +399,9 @@ const cancelRecording = async () => {
     isPaused.value = false;
     volume.value = 0;
 
-    message.info('录音已取消');
-
+    message.info("录音已取消");
   } catch (error) {
-    logger.error('取消录音失败:', error);
+    logger.error("取消录音失败:", error);
   }
 };
 
@@ -450,7 +420,7 @@ const cleanupAudioResources = () => {
   }
 
   if (window._mediaStream) {
-    window._mediaStream.getTracks().forEach(track => track.stop());
+    window._mediaStream.getTracks().forEach((track) => track.stop());
     delete window._mediaStream;
   }
 };
@@ -470,8 +440,8 @@ const insertToEditor = () => {
     return;
   }
 
-  emit('insert', finalTranscript.value);
-  message.success('已插入到编辑器');
+  emit("insert", finalTranscript.value);
+  message.success("已插入到编辑器");
 };
 
 /**
@@ -484,17 +454,17 @@ const saveAsNote = async () => {
 
   try {
     const result = await window.electronAPI.notes.create({
-      title: '语音录入 - ' + new Date().toLocaleString(),
+      title: "语音录入 - " + new Date().toLocaleString(),
       content: finalTranscript.value,
-      tags: ['语音录入']
+      tags: ["语音录入"],
     });
 
     if (result.success) {
-      message.success('已保存为笔记');
+      message.success("已保存为笔记");
     }
   } catch (error) {
-    logger.error('保存笔记失败:', error);
-    message.error('保存笔记失败');
+    logger.error("保存笔记失败:", error);
+    message.error("保存笔记失败");
   }
 };
 
@@ -507,16 +477,16 @@ const copyTranscript = () => {
   }
 
   navigator.clipboard.writeText(finalTranscript.value);
-  message.success('已复制到剪贴板');
+  message.success("已复制到剪贴板");
 };
 
 /**
  * 清空转录文本
  */
 const clearTranscript = () => {
-  partialTranscript.value = '';
-  finalTranscript.value = '';
-  message.info('已清空');
+  partialTranscript.value = "";
+  finalTranscript.value = "";
+  message.info("已清空");
 };
 
 /**
@@ -536,7 +506,7 @@ const setupEventListeners = () => {
   // 命令识别
   if (props.enableCommands) {
     window.electronAPI.speech.onCommandRecognized((data) => {
-      emit('commandRecognized', data);
+      emit("commandRecognized", data);
       message.info(`识别到命令: ${data.command}`);
     });
   }
@@ -552,7 +522,7 @@ const loadAvailableCommands = async () => {
       availableCommands.value = result.data;
     }
   } catch (error) {
-    logger.error('加载命令失败:', error);
+    logger.error("加载命令失败:", error);
   }
 };
 
@@ -562,7 +532,7 @@ const loadAvailableCommands = async () => {
 const registerHotkeys = () => {
   const handleHotkey = (e) => {
     // Ctrl+Shift+V
-    if (e.ctrlKey && e.shiftKey && e.key === 'V') {
+    if (e.ctrlKey && e.shiftKey && e.key === "V") {
       e.preventDefault();
 
       if (isRecording.value) {
@@ -573,13 +543,13 @@ const registerHotkeys = () => {
     }
 
     // Esc - 取消
-    if (e.key === 'Escape' && isRecording.value) {
+    if (e.key === "Escape" && isRecording.value) {
       e.preventDefault();
       cancelRecording();
     }
   };
 
-  document.addEventListener('keydown', handleHotkey);
+  document.addEventListener("keydown", handleHotkey);
 
   // 保存引用以便清理
   window._hotkeyHandler = handleHotkey;
@@ -590,7 +560,7 @@ const registerHotkeys = () => {
  */
 const unregisterHotkeys = () => {
   if (window._hotkeyHandler) {
-    document.removeEventListener('keydown', window._hotkeyHandler);
+    document.removeEventListener("keydown", window._hotkeyHandler);
     delete window._hotkeyHandler;
   }
 };
@@ -652,7 +622,8 @@ onUnmounted(() => {
         }
 
         @keyframes pulse {
-          0%, 100% {
+          0%,
+          100% {
             opacity: 1;
             transform: scale(1);
           }

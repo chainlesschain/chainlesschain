@@ -1,6 +1,6 @@
 <template>
   <a-card title="📹 录制与回放" :bordered="false" class="recording-panel">
-    <a-tabs v-model:activeKey="activeTab" type="card">
+    <a-tabs v-model:active-key="activeTab" type="card">
       <!-- 录制控制 -->
       <a-tab-pane key="record" tab="录制操作">
         <a-space direction="vertical" style="width: 100%" size="large">
@@ -11,9 +11,12 @@
             show-icon
           >
             <template #icon>
-              <span v-if="isRecording && !isPaused" class="recording-dot-pulse"></span>
+              <span
+                v-if="isRecording && !isPaused"
+                class="recording-dot-pulse"
+              />
             </template>
-            <template #description v-if="isRecording">
+            <template v-if="isRecording" #description>
               <a-space>
                 <a-statistic
                   title="录制时长"
@@ -49,12 +52,14 @@
                 />
               </a-form-item>
               <a-form-item label="捕获选项">
-                <a-checkbox-group v-model:value="recordingConfig.captureOptions">
-                  <a-checkbox value="clicks">点击事件</a-checkbox>
-                  <a-checkbox value="typing">键盘输入</a-checkbox>
-                  <a-checkbox value="scrolls">滚动事件</a-checkbox>
-                  <a-checkbox value="navigation">页面导航</a-checkbox>
-                  <a-checkbox value="screenshots">自动截图</a-checkbox>
+                <a-checkbox-group
+                  v-model:value="recordingConfig.captureOptions"
+                >
+                  <a-checkbox value="clicks"> 点击事件 </a-checkbox>
+                  <a-checkbox value="typing"> 键盘输入 </a-checkbox>
+                  <a-checkbox value="scrolls"> 滚动事件 </a-checkbox>
+                  <a-checkbox value="navigation"> 页面导航 </a-checkbox>
+                  <a-checkbox value="screenshots"> 自动截图 </a-checkbox>
                 </a-checkbox-group>
               </a-form-item>
               <a-form-item label="事件合并延迟">
@@ -76,10 +81,12 @@
               type="primary"
               size="large"
               danger
-              @click="handleStartRecording"
               :loading="loading.start"
+              @click="handleStartRecording"
             >
-              <template #icon><PlayCircleOutlined /></template>
+              <template #icon>
+                <PlayCircleOutlined />
+              </template>
               开始录制
             </a-button>
 
@@ -89,7 +96,9 @@
                 size="large"
                 @click="handlePauseRecording"
               >
-                <template #icon><PauseOutlined /></template>
+                <template #icon>
+                  <PauseOutlined />
+                </template>
                 暂停
               </a-button>
               <a-button
@@ -98,24 +107,32 @@
                 size="large"
                 @click="handleResumeRecording"
               >
-                <template #icon><CaretRightOutlined /></template>
+                <template #icon>
+                  <CaretRightOutlined />
+                </template>
                 继续
               </a-button>
 
               <a-button
                 danger
                 size="large"
-                @click="handleStopRecording"
                 :loading="loading.stop"
+                @click="handleStopRecording"
               >
-                <template #icon><StopOutlined /></template>
+                <template #icon>
+                  <StopOutlined />
+                </template>
                 停止并保存
               </a-button>
             </template>
           </a-space>
 
           <!-- 实时事件列表 -->
-          <a-card v-if="isRecording && recentEvents.length > 0" title="最近事件" size="small">
+          <a-card
+            v-if="isRecording && recentEvents.length > 0"
+            title="最近事件"
+            size="small"
+          >
             <div class="recent-events-list">
               <div
                 v-for="(event, index) in recentEvents.slice(0, 10)"
@@ -125,8 +142,12 @@
                 <a-tag :color="getEventColor(event.type)">
                   {{ getEventTypeLabel(event.type) }}
                 </a-tag>
-                <span class="event-description">{{ getEventDescription(event) }}</span>
-                <span class="event-time">{{ formatEventTime(event.timestamp) }}</span>
+                <span class="event-description">{{
+                  getEventDescription(event)
+                }}</span>
+                <span class="event-time">{{
+                  formatEventTime(event.timestamp)
+                }}</span>
               </div>
             </div>
           </a-card>
@@ -138,7 +159,9 @@
         <a-space direction="vertical" style="width: 100%" size="middle">
           <a-space>
             <a-button type="primary" @click="handleRefreshRecordings">
-              <template #icon><ReloadOutlined /></template>
+              <template #icon>
+                <ReloadOutlined />
+              </template>
               刷新列表
             </a-button>
             <a-input-search
@@ -178,7 +201,9 @@
                     size="small"
                     @click="handlePlayRecording(record)"
                   >
-                    <template #icon><PlayCircleOutlined /></template>
+                    <template #icon>
+                      <PlayCircleOutlined />
+                    </template>
                     回放
                   </a-button>
                   <a-button
@@ -186,7 +211,9 @@
                     size="small"
                     @click="handleConvertToWorkflow(record)"
                   >
-                    <template #icon><BranchesOutlined /></template>
+                    <template #icon>
+                      <BranchesOutlined />
+                    </template>
                     转工作流
                   </a-button>
                   <a-button
@@ -200,9 +227,7 @@
                     title="确定删除这个录制吗？"
                     @confirm="handleDeleteRecording(record.id)"
                   >
-                    <a-button type="link" size="small" danger>
-                      删除
-                    </a-button>
+                    <a-button type="link" size="small" danger> 删除 </a-button>
                   </a-popconfirm>
                 </a-space>
               </template>
@@ -236,7 +261,8 @@
                   />
                 </a-descriptions-item>
                 <a-descriptions-item label="进度">
-                  {{ playbackState.currentStep + 1 }} / {{ playbackState.totalSteps }}
+                  {{ playbackState.currentStep + 1 }} /
+                  {{ playbackState.totalSteps }}
                 </a-descriptions-item>
                 <a-descriptions-item label="播放速度">
                   {{ playbackState.speed }}x
@@ -256,31 +282,36 @@
                 v-if="!playbackState.isPaused"
                 @click="handlePausePlayback"
               >
-                <template #icon><PauseOutlined /></template>
+                <template #icon>
+                  <PauseOutlined />
+                </template>
                 暂停
               </a-button>
-              <a-button
-                v-else
-                type="primary"
-                @click="handleResumePlayback"
-              >
-                <template #icon><CaretRightOutlined /></template>
+              <a-button v-else type="primary" @click="handleResumePlayback">
+                <template #icon>
+                  <CaretRightOutlined />
+                </template>
                 继续
               </a-button>
 
               <a-button danger @click="handleStopPlayback">
-                <template #icon><StopOutlined /></template>
+                <template #icon>
+                  <StopOutlined />
+                </template>
                 停止
               </a-button>
 
               <a-divider type="vertical" />
 
               <span>播放速度：</span>
-              <a-radio-group v-model:value="playbackState.speed" @change="handleSpeedChange">
-                <a-radio-button :value="0.5">0.5x</a-radio-button>
-                <a-radio-button :value="1">1x</a-radio-button>
-                <a-radio-button :value="1.5">1.5x</a-radio-button>
-                <a-radio-button :value="2">2x</a-radio-button>
+              <a-radio-group
+                v-model:value="playbackState.speed"
+                @change="handleSpeedChange"
+              >
+                <a-radio-button :value="0.5"> 0.5x </a-radio-button>
+                <a-radio-button :value="1"> 1x </a-radio-button>
+                <a-radio-button :value="1.5"> 1.5x </a-radio-button>
+                <a-radio-button :value="2"> 2x </a-radio-button>
               </a-radio-group>
             </a-space>
 
@@ -290,7 +321,13 @@
                 <a-timeline-item
                   v-for="(step, index) in playbackState.steps"
                   :key="index"
-                  :color="index === playbackState.currentStep ? 'blue' : index < playbackState.currentStep ? 'green' : 'gray'"
+                  :color="
+                    index === playbackState.currentStep
+                      ? 'blue'
+                      : index < playbackState.currentStep
+                        ? 'green'
+                        : 'gray'
+                  "
                 >
                   <template #dot>
                     <span v-if="index === playbackState.currentStep">▶</span>
@@ -312,34 +349,34 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   PlayCircleOutlined,
   PauseOutlined,
   StopOutlined,
   CaretRightOutlined,
   ReloadOutlined,
-  BranchesOutlined
-} from '@ant-design/icons-vue';
+  BranchesOutlined,
+} from "@ant-design/icons-vue";
 
 // Props
 const props = defineProps({
   targetId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
 // Emit
-const emit = defineEmits(['recording-saved', 'workflow-created']);
+const emit = defineEmits(["recording-saved", "workflow-created"]);
 
 // State
-const activeTab = ref('record');
+const activeTab = ref("record");
 const loading = reactive({
   start: false,
   stop: false,
-  list: false
+  list: false,
 });
 
 // Recording state
@@ -350,61 +387,68 @@ const stats = reactive({
   eventCount: 0,
   clickCount: 0,
   inputCount: 0,
-  navigationCount: 0
+  navigationCount: 0,
 });
 const recentEvents = ref([]);
 
 const recordingConfig = reactive({
-  name: '',
-  captureOptions: ['clicks', 'typing', 'scrolls', 'navigation'],
-  coalesceDelay: 300
+  name: "",
+  captureOptions: ["clicks", "typing", "scrolls", "navigation"],
+  coalesceDelay: 300,
 });
 
 // Recordings list
 const recordings = ref([]);
-const searchKeyword = ref('');
+const searchKeyword = ref("");
 
 const recordingsColumns = [
-  { title: '名称', dataIndex: 'name', key: 'name' },
-  { title: '时长', dataIndex: 'duration', key: 'duration', width: 100 },
-  { title: '事件数', dataIndex: 'eventCount', key: 'eventCount', width: 100 },
-  { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 180 },
-  { title: '操作', key: 'action', width: 300 }
+  { title: "名称", dataIndex: "name", key: "name" },
+  { title: "时长", dataIndex: "duration", key: "duration", width: 100 },
+  { title: "事件数", dataIndex: "eventCount", key: "eventCount", width: 100 },
+  { title: "创建时间", dataIndex: "createdAt", key: "createdAt", width: 180 },
+  { title: "操作", key: "action", width: 300 },
 ];
 
 const filteredRecordings = computed(() => {
-  if (!searchKeyword.value) return recordings.value;
+  if (!searchKeyword.value) {
+    return recordings.value;
+  }
   const keyword = searchKeyword.value.toLowerCase();
-  return recordings.value.filter(r =>
-    r.name.toLowerCase().includes(keyword) ||
-    (r.description && r.description.toLowerCase().includes(keyword))
+  return recordings.value.filter(
+    (r) =>
+      r.name.toLowerCase().includes(keyword) ||
+      (r.description && r.description.toLowerCase().includes(keyword)),
   );
 });
 
 // Playback state
 const playbackState = reactive({
   playbackId: null,
-  recordingName: '',
+  recordingName: "",
   currentStep: 0,
   totalSteps: 0,
   isPaused: false,
   speed: 1,
-  steps: []
+  steps: [],
 });
 
 const playbackProgress = computed(() => {
-  if (playbackState.totalSteps === 0) return 0;
-  return Math.round((playbackState.currentStep / playbackState.totalSteps) * 100);
+  if (playbackState.totalSteps === 0) {
+    return 0;
+  }
+  return Math.round(
+    (playbackState.currentStep / playbackState.totalSteps) * 100,
+  );
 });
 
 const recordingStatus = computed(() => {
   if (!isRecording.value) {
-    return { type: 'info', message: '准备录制' };
+    return { type: "info", message: "准备录制" };
   }
   if (isPaused.value) {
-    return { type: 'warning', message: '录制已暂停' };
+    return { type: "warning", message: "录制已暂停" };
   }
-  return { type: 'success', message: '正在录制...' };
+  return { type: "success", message: "正在录制..." };
 });
 
 // Timers
@@ -419,15 +463,21 @@ let statusPollInterval = null;
 const handleStartRecording = async () => {
   loading.start = true;
   try {
-    await window.electron.ipcRenderer.invoke('browser:recording:start', props.targetId, {
-      name: recordingConfig.name || `Recording ${Date.now()}`,
-      captureClicks: recordingConfig.captureOptions.includes('clicks'),
-      captureTyping: recordingConfig.captureOptions.includes('typing'),
-      captureScrolls: recordingConfig.captureOptions.includes('scrolls'),
-      captureNavigation: recordingConfig.captureOptions.includes('navigation'),
-      captureScreenshots: recordingConfig.captureOptions.includes('screenshots'),
-      coalesceDelay: recordingConfig.coalesceDelay
-    });
+    await window.electron.ipcRenderer.invoke(
+      "browser:recording:start",
+      props.targetId,
+      {
+        name: recordingConfig.name || `Recording ${Date.now()}`,
+        captureClicks: recordingConfig.captureOptions.includes("clicks"),
+        captureTyping: recordingConfig.captureOptions.includes("typing"),
+        captureScrolls: recordingConfig.captureOptions.includes("scrolls"),
+        captureNavigation:
+          recordingConfig.captureOptions.includes("navigation"),
+        captureScreenshots:
+          recordingConfig.captureOptions.includes("screenshots"),
+        coalesceDelay: recordingConfig.coalesceDelay,
+      },
+    );
 
     isRecording.value = true;
     isPaused.value = false;
@@ -445,10 +495,10 @@ const handleStartRecording = async () => {
     // Poll for status
     statusPollInterval = setInterval(pollRecordingStatus, 1000);
 
-    message.success('录制已开始');
+    message.success("录制已开始");
   } catch (error) {
-    message.error('开始录制失败: ' + error.message);
-    console.error('Start recording error:', error);
+    message.error("开始录制失败: " + error.message);
+    console.error("Start recording error:", error);
   } finally {
     loading.start = false;
   }
@@ -460,7 +510,10 @@ const handleStartRecording = async () => {
 const handleStopRecording = async () => {
   loading.stop = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:recording:stop', props.targetId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "browser:recording:stop",
+      props.targetId,
+    );
 
     isRecording.value = false;
     isPaused.value = false;
@@ -469,19 +522,22 @@ const handleStopRecording = async () => {
     clearInterval(statusPollInterval);
 
     // Save the recording
-    const saved = await window.electron.ipcRenderer.invoke('browser:recording:save', result.recording);
+    const saved = await window.electron.ipcRenderer.invoke(
+      "browser:recording:save",
+      result.recording,
+    );
 
-    message.success('录制已保存');
-    emit('recording-saved', saved);
+    message.success("录制已保存");
+    emit("recording-saved", saved);
 
     // Refresh list
     await handleRefreshRecordings();
 
     // Switch to history tab
-    activeTab.value = 'history';
+    activeTab.value = "history";
   } catch (error) {
-    message.error('停止录制失败: ' + error.message);
-    console.error('Stop recording error:', error);
+    message.error("停止录制失败: " + error.message);
+    console.error("Stop recording error:", error);
   } finally {
     loading.stop = false;
   }
@@ -492,11 +548,14 @@ const handleStopRecording = async () => {
  */
 const handlePauseRecording = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('browser:recording:pause', props.targetId);
+    await window.electron.ipcRenderer.invoke(
+      "browser:recording:pause",
+      props.targetId,
+    );
     isPaused.value = true;
-    message.info('录制已暂停');
+    message.info("录制已暂停");
   } catch (error) {
-    message.error('暂停失败: ' + error.message);
+    message.error("暂停失败: " + error.message);
   }
 };
 
@@ -505,11 +564,14 @@ const handlePauseRecording = async () => {
  */
 const handleResumeRecording = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('browser:recording:resume', props.targetId);
+    await window.electron.ipcRenderer.invoke(
+      "browser:recording:resume",
+      props.targetId,
+    );
     isPaused.value = false;
-    message.success('录制已继续');
+    message.success("录制已继续");
   } catch (error) {
-    message.error('继续失败: ' + error.message);
+    message.error("继续失败: " + error.message);
   }
 };
 
@@ -518,12 +580,19 @@ const handleResumeRecording = async () => {
  */
 const pollRecordingStatus = async () => {
   try {
-    const status = await window.electron.ipcRenderer.invoke('browser:recording:getStatus', props.targetId);
+    const status = await window.electron.ipcRenderer.invoke(
+      "browser:recording:getStatus",
+      props.targetId,
+    );
     if (status && status.recording) {
       stats.eventCount = status.recording.events?.length || 0;
-      stats.clickCount = status.recording.events?.filter(e => e.type === 'click').length || 0;
-      stats.inputCount = status.recording.events?.filter(e => e.type === 'type').length || 0;
-      stats.navigationCount = status.recording.events?.filter(e => e.type === 'navigate').length || 0;
+      stats.clickCount =
+        status.recording.events?.filter((e) => e.type === "click").length || 0;
+      stats.inputCount =
+        status.recording.events?.filter((e) => e.type === "type").length || 0;
+      stats.navigationCount =
+        status.recording.events?.filter((e) => e.type === "navigate").length ||
+        0;
 
       // Update recent events
       if (status.recording.events && status.recording.events.length > 0) {
@@ -531,7 +600,7 @@ const pollRecordingStatus = async () => {
       }
     }
   } catch (error) {
-    console.error('Poll recording status error:', error);
+    console.error("Poll recording status error:", error);
   }
 };
 
@@ -541,14 +610,17 @@ const pollRecordingStatus = async () => {
 const handleRefreshRecordings = async () => {
   loading.list = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('browser:recording:list', {
-      sortBy: 'createdAt',
-      sortOrder: 'desc'
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "browser:recording:list",
+      {
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      },
+    );
     recordings.value = result.recordings || [];
   } catch (error) {
-    message.error('加载录制列表失败: ' + error.message);
-    console.error('Load recordings error:', error);
+    message.error("加载录制列表失败: " + error.message);
+    console.error("Load recordings error:", error);
   } finally {
     loading.list = false;
   }
@@ -560,10 +632,10 @@ const handleRefreshRecordings = async () => {
 const handlePlayRecording = async (recording) => {
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:recording:play',
+      "browser:recording:play",
       recording,
       props.targetId,
-      { speed: 1 }
+      { speed: 1 },
     );
 
     playbackState.playbackId = result.playbackId;
@@ -574,34 +646,33 @@ const handlePlayRecording = async (recording) => {
     playbackState.speed = 1;
     playbackState.steps = recording.events || [];
 
-    activeTab.value = 'playback';
-    message.success('开始回放');
+    activeTab.value = "playback";
+    message.success("开始回放");
 
     // Poll playback status
     const pollPlayback = setInterval(async () => {
       try {
         const status = await window.electron.ipcRenderer.invoke(
-          'browser:recording:getPlaybackStatus',
-          playbackState.playbackId
+          "browser:recording:getPlaybackStatus",
+          playbackState.playbackId,
         );
         if (status) {
           playbackState.currentStep = status.currentIndex || 0;
           playbackState.isPaused = status.isPaused || false;
 
-          if (status.state === 'completed' || status.state === 'stopped') {
+          if (status.state === "completed" || status.state === "stopped") {
             clearInterval(pollPlayback);
             playbackState.playbackId = null;
-            message.success('回放完成');
+            message.success("回放完成");
           }
         }
       } catch (error) {
         clearInterval(pollPlayback);
       }
     }, 500);
-
   } catch (error) {
-    message.error('回放失败: ' + error.message);
-    console.error('Play recording error:', error);
+    message.error("回放失败: " + error.message);
+    console.error("Play recording error:", error);
   }
 };
 
@@ -610,11 +681,14 @@ const handlePlayRecording = async (recording) => {
  */
 const handlePausePlayback = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('browser:recording:playPause', playbackState.playbackId);
+    await window.electron.ipcRenderer.invoke(
+      "browser:recording:playPause",
+      playbackState.playbackId,
+    );
     playbackState.isPaused = true;
-    message.info('回放已暂停');
+    message.info("回放已暂停");
   } catch (error) {
-    message.error('暂停失败: ' + error.message);
+    message.error("暂停失败: " + error.message);
   }
 };
 
@@ -623,11 +697,14 @@ const handlePausePlayback = async () => {
  */
 const handleResumePlayback = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('browser:recording:playResume', playbackState.playbackId);
+    await window.electron.ipcRenderer.invoke(
+      "browser:recording:playResume",
+      playbackState.playbackId,
+    );
     playbackState.isPaused = false;
-    message.success('回放已继续');
+    message.success("回放已继续");
   } catch (error) {
-    message.error('继续失败: ' + error.message);
+    message.error("继续失败: " + error.message);
   }
 };
 
@@ -636,11 +713,14 @@ const handleResumePlayback = async () => {
  */
 const handleStopPlayback = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('browser:recording:playStop', playbackState.playbackId);
+    await window.electron.ipcRenderer.invoke(
+      "browser:recording:playStop",
+      playbackState.playbackId,
+    );
     playbackState.playbackId = null;
-    message.success('回放已停止');
+    message.success("回放已停止");
   } catch (error) {
-    message.error('停止失败: ' + error.message);
+    message.error("停止失败: " + error.message);
   }
 };
 
@@ -658,14 +738,14 @@ const handleSpeedChange = () => {
 const handleConvertToWorkflow = async (recording) => {
   try {
     const workflow = await window.electron.ipcRenderer.invoke(
-      'browser:recording:toWorkflow',
-      recording
+      "browser:recording:toWorkflow",
+      recording,
     );
-    message.success('已转换为工作流');
-    emit('workflow-created', workflow);
+    message.success("已转换为工作流");
+    emit("workflow-created", workflow);
   } catch (error) {
-    message.error('转换失败: ' + error.message);
-    console.error('Convert to workflow error:', error);
+    message.error("转换失败: " + error.message);
+    console.error("Convert to workflow error:", error);
   }
 };
 
@@ -673,7 +753,7 @@ const handleConvertToWorkflow = async (recording) => {
  * 编辑录制
  */
 const handleEditRecording = (recording) => {
-  message.info('编辑功能开发中');
+  message.info("编辑功能开发中");
 };
 
 /**
@@ -681,11 +761,11 @@ const handleEditRecording = (recording) => {
  */
 const handleDeleteRecording = async (id) => {
   try {
-    await window.electron.ipcRenderer.invoke('browser:recording:delete', id);
-    message.success('录制已删除');
+    await window.electron.ipcRenderer.invoke("browser:recording:delete", id);
+    message.success("录制已删除");
     await handleRefreshRecordings();
   } catch (error) {
-    message.error('删除失败: ' + error.message);
+    message.error("删除失败: " + error.message);
   }
 };
 
@@ -710,61 +790,61 @@ const formatDuration = (ms) => {
   const hours = Math.floor(minutes / 60);
 
   if (hours > 0) {
-    return `${hours}:${String(minutes % 60).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+    return `${hours}:${String(minutes % 60).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
   } else if (minutes > 0) {
-    return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+    return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
   }
   return `${seconds}s`;
 };
 
 const formatTimestamp = (timestamp) => {
-  return new Date(timestamp).toLocaleString('zh-CN');
+  return new Date(timestamp).toLocaleString("zh-CN");
 };
 
 const formatEventTime = (timestamp) => {
-  return new Date(timestamp).toLocaleTimeString('zh-CN');
+  return new Date(timestamp).toLocaleTimeString("zh-CN");
 };
 
 const getEventTypeLabel = (type) => {
   const labels = {
-    click: '点击',
-    type: '输入',
-    navigate: '导航',
-    scroll: '滚动',
-    key: '按键',
-    select: '选择',
-    hover: '悬停',
-    focus: '聚焦',
-    blur: '失焦'
+    click: "点击",
+    type: "输入",
+    navigate: "导航",
+    scroll: "滚动",
+    key: "按键",
+    select: "选择",
+    hover: "悬停",
+    focus: "聚焦",
+    blur: "失焦",
   };
   return labels[type] || type;
 };
 
 const getEventColor = (type) => {
   const colors = {
-    click: 'blue',
-    type: 'green',
-    navigate: 'purple',
-    scroll: 'orange',
-    key: 'cyan'
+    click: "blue",
+    type: "green",
+    navigate: "purple",
+    scroll: "orange",
+    key: "cyan",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getEventDescription = (event) => {
   switch (event.type) {
-    case 'click':
-      return `点击 ${event.selector || '元素'}`;
-    case 'type':
-      return `输入 "${event.text || ''}"`;
-    case 'navigate':
-      return `导航到 ${event.url || ''}`;
-    case 'scroll':
+    case "click":
+      return `点击 ${event.selector || "元素"}`;
+    case "type":
+      return `输入 "${event.text || ""}"`;
+    case "navigate":
+      return `导航到 ${event.url || ""}`;
+    case "scroll":
       return `滚动到 (${event.x}, ${event.y})`;
-    case 'key':
-      return `按键 ${event.key || ''}`;
+    case "key":
+      return `按键 ${event.key || ""}`;
     default:
-      return event.description || '';
+      return event.description || "";
   }
 };
 
@@ -799,7 +879,8 @@ onUnmounted(() => {
   }
 
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
       transform: scale(1);
     }

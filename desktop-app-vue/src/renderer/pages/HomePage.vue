@@ -17,27 +17,21 @@
               <div class="stat-value">
                 {{ store.knowledgeItems.length }}
               </div>
-              <div class="stat-label">
-                知识条目
-              </div>
+              <div class="stat-label">知识条目</div>
             </div>
             <div class="stat-divider" />
             <div class="stat-item">
               <div class="stat-value">
                 {{ todayCount }}
               </div>
-              <div class="stat-label">
-                今日新增
-              </div>
+              <div class="stat-label">今日新增</div>
             </div>
             <div class="stat-divider" />
             <div class="stat-item">
               <div class="stat-value">
                 <a-badge status="success" />
               </div>
-              <div class="stat-label">
-                同步状态
-              </div>
+              <div class="stat-label">同步状态</div>
             </div>
           </div>
         </div>
@@ -94,16 +88,10 @@
       <!-- 系统状态 -->
       <div class="system-status">
         <a-row :gutter="[16, 16]">
-          <a-col
-            :xs="24"
-            :md="12"
-          >
+          <a-col :xs="24" :md="12">
             <LLMStatus @open-settings="openSettings('llm')" />
           </a-col>
-          <a-col
-            :xs="24"
-            :md="12"
-          >
+          <a-col :xs="24" :md="12">
             <GitStatus @open-settings="openSettings('git')" />
           </a-col>
         </a-row>
@@ -113,19 +101,19 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAppStore } from '../stores/app';
-import { useAuthStore } from '../stores/auth';
-import { usePlanningStore } from '../stores/planning';
-import LLMStatus from '../components/LLMStatus.vue';
-import GitStatus from '../components/GitStatus.vue';
-import ProjectSidebar from '../components/ProjectSidebar.vue';
-import TemplateGallery from '../components/templates/TemplateGallery.vue';
-import TemplateVariableModal from '../components/templates/TemplateVariableModal.vue';
-import InteractivePlanningDialog from '../components/planning/InteractivePlanningDialog.vue';
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useAppStore } from "../stores/app";
+import { useAuthStore } from "../stores/auth";
+import { usePlanningStore } from "../stores/planning";
+import LLMStatus from "../components/LLMStatus.vue";
+import GitStatus from "../components/GitStatus.vue";
+import ProjectSidebar from "../components/ProjectSidebar.vue";
+import TemplateGallery from "../components/templates/TemplateGallery.vue";
+import TemplateVariableModal from "../components/templates/TemplateVariableModal.vue";
+import InteractivePlanningDialog from "../components/planning/InteractivePlanningDialog.vue";
 
 const router = useRouter();
 const store = useAppStore();
@@ -133,103 +121,103 @@ const authStore = useAuthStore();
 const planningStore = usePlanningStore();
 
 // 状态
-const selectedType = ref('');
-const activeCategory = ref('all');
+const selectedType = ref("");
+const activeCategory = ref("all");
 const showTemplateModal = ref(false);
 const selectedTemplate = ref(null);
 
 // 项目类型按钮（第一行）
 const projectTypes = ref([
-  { key: 'writing', label: '写作', prompt: '帮我写一篇关于...的文章' },
-  { key: 'marketing', label: '营销', prompt: '制定一份...的营销方案' },
-  { key: 'excel', label: 'Excel', prompt: '分析...的数据并生成报表' },
-  { key: 'resume', label: '简历', prompt: '制作一份专业简历' },
-  { key: 'ppt', label: 'PPT', prompt: '制作一份关于...的演示文稿' },
-  { key: 'research', label: '研究', prompt: '进行...的研究分析' },
-  { key: 'education', label: '教育', prompt: '设计一门...的课程' },
-  { key: 'lifestyle', label: '生活', prompt: '规划...的生活计划' },
-  { key: 'podcast', label: '播客', prompt: '为...生成播客脚本' },
-  { key: 'design', label: '设计', prompt: '设计一个...的海报/Logo' },
-  { key: 'web', label: '网页', prompt: '创建一个...的网站' },
+  { key: "writing", label: "写作", prompt: "帮我写一篇关于...的文章" },
+  { key: "marketing", label: "营销", prompt: "制定一份...的营销方案" },
+  { key: "excel", label: "Excel", prompt: "分析...的数据并生成报表" },
+  { key: "resume", label: "简历", prompt: "制作一份专业简历" },
+  { key: "ppt", label: "PPT", prompt: "制作一份关于...的演示文稿" },
+  { key: "research", label: "研究", prompt: "进行...的研究分析" },
+  { key: "education", label: "教育", prompt: "设计一门...的课程" },
+  { key: "lifestyle", label: "生活", prompt: "规划...的生活计划" },
+  { key: "podcast", label: "播客", prompt: "为...生成播客脚本" },
+  { key: "design", label: "设计", prompt: "设计一个...的海报/Logo" },
+  { key: "web", label: "网页", prompt: "创建一个...的网站" },
 ]);
 
 // 子分类配置（第二行，根据项目类型动态变化）
 const categoryConfig = ref({
   // 默认分类（未选择项目类型时）
   all: [
-    { key: 'all', label: '全部模板' },
-    { key: 'office', label: '办公文档' },
-    { key: 'business', label: '商业' },
-    { key: 'tech', label: '技术' },
-    { key: 'event', label: '活动' },
-    { key: 'finance', label: '财务' },
-    { key: 'analysis', label: '分析' },
-    { key: '职位', label: '求职' },
+    { key: "all", label: "全部模板" },
+    { key: "office", label: "办公文档" },
+    { key: "business", label: "商业" },
+    { key: "tech", label: "技术" },
+    { key: "event", label: "活动" },
+    { key: "finance", label: "财务" },
+    { key: "analysis", label: "分析" },
+    { key: "职位", label: "求职" },
   ],
   // 写作子分类
   writing: [
-    { key: 'all', label: '全部' },
-    { key: 'office', label: '办公写作' },
-    { key: 'business', label: '商业计划' },
-    { key: 'tech', label: '技术文档' },
+    { key: "all", label: "全部" },
+    { key: "office", label: "办公写作" },
+    { key: "business", label: "商业计划" },
+    { key: "tech", label: "技术文档" },
   ],
   // 营销子分类
   marketing: [
-    { key: 'all', label: '全部' },
-    { key: 'event', label: '活动策划' },
-    { key: 'content', label: '内容营销' },
+    { key: "all", label: "全部" },
+    { key: "event", label: "活动策划" },
+    { key: "content", label: "内容营销" },
   ],
   // PPT子分类
   ppt: [
-    { key: 'all', label: '全部' },
-    { key: 'business', label: '商业路演' },
-    { key: 'training', label: '培训课件' },
+    { key: "all", label: "全部" },
+    { key: "business", label: "商业路演" },
+    { key: "training", label: "培训课件" },
   ],
   // 设计子分类
   design: [
-    { key: 'all', label: '全部' },
-    { key: 'poster', label: '海报设计' },
+    { key: "all", label: "全部" },
+    { key: "poster", label: "海报设计" },
   ],
   // Excel子分类
   excel: [
-    { key: 'all', label: '全部' },
-    { key: 'finance', label: '财务预算' },
-    { key: 'analysis', label: '数据分析' },
+    { key: "all", label: "全部" },
+    { key: "finance", label: "财务预算" },
+    { key: "analysis", label: "数据分析" },
   ],
   // 简历子分类
   resume: [
-    { key: 'all', label: '全部' },
-    { key: '职位', label: '产品经理' },
-    { key: '职位', label: '设计师' },
-    { key: '职位', label: '技术岗位' },
+    { key: "all", label: "全部" },
+    { key: "职位", label: "产品经理" },
+    { key: "职位", label: "设计师" },
+    { key: "职位", label: "技术岗位" },
   ],
   // 研究子分类
   research: [
-    { key: 'all', label: '全部' },
-    { key: 'user', label: '用户研究' },
-    { key: 'market', label: '竞品分析' },
+    { key: "all", label: "全部" },
+    { key: "user", label: "用户研究" },
+    { key: "market", label: "竞品分析" },
   ],
   // 教育子分类
   education: [
-    { key: 'all', label: '全部' },
-    { key: 'course', label: '在线课程' },
+    { key: "all", label: "全部" },
+    { key: "course", label: "在线课程" },
   ],
   // 生活子分类
   lifestyle: [
-    { key: 'all', label: '全部' },
-    { key: 'travel', label: '旅游攻略' },
-    { key: 'wellness', label: '健康计划' },
+    { key: "all", label: "全部" },
+    { key: "travel", label: "旅游攻略" },
+    { key: "wellness", label: "健康计划" },
   ],
   // 播客子分类
   podcast: [
-    { key: 'all', label: '全部' },
-    { key: 'interview', label: '访谈节目' },
-    { key: 'storytelling', label: '故事讲述' },
+    { key: "all", label: "全部" },
+    { key: "interview", label: "访谈节目" },
+    { key: "storytelling", label: "故事讲述" },
   ],
   // 网页子分类
   web: [
-    { key: 'all', label: '全部' },
-    { key: 'landing', label: '落地页' },
+    { key: "all", label: "全部" },
+    { key: "landing", label: "落地页" },
   ],
 });
 
@@ -248,7 +236,7 @@ const todayCount = computed(() => {
   const todayTimestamp = today.getTime();
 
   return store.knowledgeItems.filter(
-    (item) => item.created_at >= todayTimestamp
+    (item) => item.created_at >= todayTimestamp,
   ).length;
 });
 
@@ -257,8 +245,8 @@ const handleTypeQuickSelect = (typeKey) => {
   // 切换选择状态
   if (selectedType.value === typeKey) {
     // 如果点击已选中的类型，则取消选择，回到默认状态
-    selectedType.value = '';
-    activeCategory.value = 'all';
+    selectedType.value = "";
+    activeCategory.value = "all";
   } else {
     // 选择新类型
     selectedType.value = typeKey;
@@ -277,15 +265,16 @@ const handleCategoryChange = (category) => {
 
 // 处理模板使用
 const handleTemplateUse = (template) => {
-  logger.info('[HomePage] 使用模板:', template);
+  logger.info("[HomePage] 使用模板:", template);
 
   // 使用交互式规划模式
-  const userRequest = template.description || `使用${template.name}模板创建项目`;
+  const userRequest =
+    template.description || `使用${template.name}模板创建项目`;
   const projectContext = {
     templateId: template.id,
     templateName: template.name,
     category: template.category,
-    type: selectedType.value || 'document'
+    type: selectedType.value || "document",
   };
 
   // 打开交互式规划对话框
@@ -294,7 +283,7 @@ const handleTemplateUse = (template) => {
 
 // 处理模板创建成功
 const handleTemplateSuccess = (result) => {
-  logger.info('[HomePage] 项目创建成功:', result);
+  logger.info("[HomePage] 项目创建成功:", result);
   // 跳转到项目详情页
   if (result.projectId) {
     router.push(`/projects/${result.projectId}`);
@@ -303,7 +292,7 @@ const handleTemplateSuccess = (result) => {
 
 // 处理创建自定义项目
 const handleCreateCustom = () => {
-  router.push('/projects/new');
+  router.push("/projects/new");
 };
 
 const openTab = (key, path, title) => {
@@ -313,8 +302,8 @@ const openTab = (key, path, title) => {
 
 const openSettings = (tab) => {
   const key = `${tab}-settings`;
-  store.addTab({ key, path: '/settings', title: `${tab.toUpperCase()}配置` });
-  router.push({ path: '/settings', query: { tab } });
+  store.addTab({ key, path: "/settings", title: `${tab.toUpperCase()}配置` });
+  router.push({ path: "/settings", query: { tab } });
 };
 </script>
 
@@ -424,13 +413,13 @@ const openSettings = (tab) => {
     padding: 10px 28px;
     height: auto;
     font-size: 15px;
-    border-color: #E5E7EB;
+    border-color: #e5e7eb;
     color: #666666;
     display: flex;
     align-items: center;
     gap: 8px;
     transition: all 0.3s;
-    background: #FFFFFF;
+    background: #ffffff;
 
     .button-label {
       font-weight: 500;
@@ -471,15 +460,15 @@ const openSettings = (tab) => {
     padding: 8px 20px;
     height: auto;
     font-size: 14px;
-    border-color: #E5E7EB;
+    border-color: #e5e7eb;
     color: #666666;
     transition: all 0.3s;
-    background: #F5F5F5;
+    background: #f5f5f5;
 
     &:hover {
       border-color: #667eea;
       color: #667eea;
-      background: #F0F5FF;
+      background: #f0f5ff;
     }
 
     &.ant-btn-primary {
@@ -509,8 +498,8 @@ const openSettings = (tab) => {
 }
 
 .template-card {
-  background: #FFFFFF;
-  border: 1px solid #E5E7EB;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
@@ -529,7 +518,7 @@ const openSettings = (tab) => {
   .template-preview {
     width: 100%;
     height: 180px;
-    background: #F5F5F5;
+    background: #f5f5f5;
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -544,7 +533,7 @@ const openSettings = (tab) => {
 
     .template-placeholder {
       font-size: 64px;
-      color: #D1D5DB;
+      color: #d1d5db;
     }
   }
 
@@ -580,7 +569,7 @@ const openSettings = (tab) => {
   align-items: center;
   justify-content: center;
   min-height: 300px;
-  color: #9CA3AF;
+  color: #9ca3af;
 
   .empty-icon {
     font-size: 64px;
@@ -591,13 +580,13 @@ const openSettings = (tab) => {
   h3 {
     font-size: 18px;
     font-weight: 500;
-    color: #6B7280;
+    color: #6b7280;
     margin: 0 0 8px 0;
   }
 
   p {
     font-size: 14px;
-    color: #9CA3AF;
+    color: #9ca3af;
     margin: 0;
   }
 }

@@ -587,8 +587,8 @@ const managePlugin = (plugin) => {
   // 跳转到插件管理页面
   detailDrawerVisible.value = false;
   router.push({
-    path: '/settings/plugins',
-    query: { pluginId: plugin.id }
+    path: "/settings/plugins",
+    query: { pluginId: plugin.id },
   });
 };
 

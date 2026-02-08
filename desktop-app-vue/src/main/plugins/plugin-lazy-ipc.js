@@ -3,7 +3,7 @@
  * 在首次访问时才初始化插件系统，节省启动时间 2-3 秒
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 
 /**

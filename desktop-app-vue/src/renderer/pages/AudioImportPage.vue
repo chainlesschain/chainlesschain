@@ -2,17 +2,12 @@
   <div class="audio-import-page">
     <div class="page-header">
       <h2>音频文件导入与转录</h2>
-      <p class="page-desc">
-        支持将音频文件转录为文本并保存到知识库
-      </p>
+      <p class="page-desc">支持将音频文件转录为文本并保存到知识库</p>
     </div>
 
     <a-tabs v-model:active-key="activeTab">
       <!-- 上传转录 -->
-      <a-tab-pane
-        key="upload"
-        tab="上传转录"
-      >
+      <a-tab-pane key="upload" tab="上传转录">
         <div class="tab-content">
           <AudioFileUpload
             :auto-transcribe="true"
@@ -23,10 +18,7 @@
       </a-tab-pane>
 
       <!-- 转录历史 -->
-      <a-tab-pane
-        key="history"
-        tab="转录历史"
-      >
+      <a-tab-pane key="history" tab="转录历史">
         <div class="tab-content">
           <div class="history-header">
             <a-input-search
@@ -35,9 +27,7 @@
               style="width: 300px"
               @search="searchHistory"
             />
-            <a-button @click="loadHistory">
-              <ReloadOutlined /> 刷新
-            </a-button>
+            <a-button @click="loadHistory"> <ReloadOutlined /> 刷新 </a-button>
           </div>
 
           <a-list
@@ -87,10 +77,7 @@
       </a-tab-pane>
 
       <!-- 音频文件库 -->
-      <a-tab-pane
-        key="library"
-        tab="音频文件库"
-      >
+      <a-tab-pane key="library" tab="音频文件库">
         <div class="tab-content">
           <div class="library-header">
             <a-space>
@@ -105,10 +92,7 @@
               </a-button>
             </a-space>
             <div class="library-stats">
-              <a-statistic
-                title="总文件数"
-                :value="stats.totalFiles"
-              />
+              <a-statistic title="总文件数" :value="stats.totalFiles" />
               <a-statistic
                 title="总时长"
                 :value="formatDuration(stats.totalDuration)"
@@ -141,18 +125,10 @@
                 {{ formatFileSize(record.file_size) }}
               </template>
               <template v-else-if="column.key === 'transcription'">
-                <a-tag
-                  v-if="record.transcription_text"
-                  color="green"
-                >
+                <a-tag v-if="record.transcription_text" color="green">
                   已转录
                 </a-tag>
-                <a-tag
-                  v-else
-                  color="default"
-                >
-                  未转录
-                </a-tag>
+                <a-tag v-else color="default"> 未转录 </a-tag>
               </template>
               <template v-else-if="column.key === 'created_at'">
                 {{ formatDate(record.created_at) }}
@@ -162,11 +138,9 @@
                   <a
                     v-if="record.transcription_text"
                     @click="viewFileDetail(record)"
-                  >查看</a>
-                  <a
-                    v-else
-                    @click="retranscribe(record)"
-                  >转录</a>
+                    >查看</a
+                  >
+                  <a v-else @click="retranscribe(record)">转录</a>
                   <a-popconfirm
                     title="确定删除此文件？"
                     ok-text="确定"
@@ -183,20 +157,11 @@
       </a-tab-pane>
 
       <!-- 设置 -->
-      <a-tab-pane
-        key="settings"
-        tab="设置"
-      >
+      <a-tab-pane key="settings" tab="设置">
         <div class="tab-content settings-panel">
-          <a-form
-            :label-col="{ span: 6 }"
-            :wrapper-col="{ span: 18 }"
-          >
+          <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
             <a-form-item label="识别引擎">
-              <a-select
-                v-model:value="selectedEngine"
-                style="width: 300px"
-              >
+              <a-select v-model:value="selectedEngine" style="width: 300px">
                 <a-select-option
                   v-for="engine in availableEngines"
                   :key="engine.type"
@@ -204,22 +169,17 @@
                   :disabled="!engine.available"
                 >
                   {{ engine.name }}
-                  <span
-                    v-if="!engine.available"
-                    class="engine-hint"
-                  >(不可用)</span>
+                  <span v-if="!engine.available" class="engine-hint"
+                    >(不可用)</span
+                  >
                 </a-select-option>
               </a-select>
-              <div class="form-hint">
-                选择语音识别引擎
-              </div>
+              <div class="form-hint">选择语音识别引擎</div>
             </a-form-item>
 
             <a-form-item label="自动保存到知识库">
               <a-switch v-model:checked="autoSaveToKnowledge" />
-              <div class="form-hint">
-                转录完成后自动保存为笔记
-              </div>
+              <div class="form-hint">转录完成后自动保存为笔记</div>
             </a-form-item>
 
             <a-form-item label="Whisper API 密钥">
@@ -232,7 +192,8 @@
                 用于 Whisper API 识别。<a
                   href="https://platform.openai.com/api-keys"
                   target="_blank"
-                >获取API密钥</a>
+                  >获取API密钥</a
+                >
               </div>
             </a-form-item>
 
@@ -240,47 +201,29 @@
 
             <a-form-item label="音频增强">
               <a-switch v-model:checked="enableAudioEnhancement" />
-              <div class="form-hint">
-                转录前自动进行降噪、音量归一化等处理
-              </div>
+              <div class="form-hint">转录前自动进行降噪、音量归一化等处理</div>
             </a-form-item>
 
             <a-form-item label="自动检测语言">
               <a-switch v-model:checked="autoDetectLanguage" />
-              <div class="form-hint">
-                自动识别音频语言（支持40+种语言）
-              </div>
+              <div class="form-hint">自动识别音频语言（支持40+种语言）</div>
             </a-form-item>
 
             <a-form-item label="自动生成字幕">
               <a-switch v-model:checked="autoGenerateSubtitles" />
-              <div class="form-hint">
-                转录完成后自动生成字幕文件
-              </div>
+              <div class="form-hint">转录完成后自动生成字幕文件</div>
             </a-form-item>
 
-            <a-form-item
-              v-if="autoGenerateSubtitles"
-              label="字幕格式"
-            >
+            <a-form-item v-if="autoGenerateSubtitles" label="字幕格式">
               <a-radio-group v-model:value="subtitleFormat">
-                <a-radio value="srt">
-                  SRT (SubRip)
-                </a-radio>
-                <a-radio value="vtt">
-                  VTT (WebVTT)
-                </a-radio>
+                <a-radio value="srt"> SRT (SubRip) </a-radio>
+                <a-radio value="vtt"> VTT (WebVTT) </a-radio>
               </a-radio-group>
-              <div class="form-hint">
-                选择字幕文件格式
-              </div>
+              <div class="form-hint">选择字幕文件格式</div>
             </a-form-item>
 
             <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
-              <a-button
-                type="primary"
-                @click="saveSettings"
-              >
+              <a-button type="primary" @click="saveSettings">
                 保存设置
               </a-button>
             </a-form-item>
@@ -296,15 +239,9 @@
       width="800px"
       :footer="null"
     >
-      <div
-        v-if="selectedDetail"
-        class="detail-modal"
-      >
+      <div v-if="selectedDetail" class="detail-modal">
         <div class="detail-meta">
-          <a-descriptions
-            bordered
-            :column="2"
-          >
+          <a-descriptions bordered :column="2">
             <a-descriptions-item label="引擎">
               {{ getEngineName(selectedDetail.engine) }}
             </a-descriptions-item>
@@ -347,7 +284,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
@@ -646,11 +583,14 @@ const handleInsertText = (text) => {
     cancelText: "保存到知识库",
     onOk: () => {
       // 保存到 localStorage 供 AI 对话页面使用
-      localStorage.setItem("pendingInsertText", JSON.stringify({
-        text,
-        source: "audio-transcription",
-        timestamp: Date.now(),
-      }));
+      localStorage.setItem(
+        "pendingInsertText",
+        JSON.stringify({
+          text,
+          source: "audio-transcription",
+          timestamp: Date.now(),
+        }),
+      );
       router.push("/ai/chat");
       message.success("已跳转到 AI 对话页面");
     },
@@ -664,12 +604,15 @@ const handleInsertText = (text) => {
 // 保存到知识库
 const saveToKnowledge = async (text) => {
   try {
-    const result = await window.electron.ipcRenderer.invoke("knowledge:create", {
-      title: `转录文本 ${new Date().toLocaleString()}`,
-      content: text,
-      type: "note",
-      tags: ["音频转录"],
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "knowledge:create",
+      {
+        title: `转录文本 ${new Date().toLocaleString()}`,
+        content: text,
+        type: "note",
+        tags: ["音频转录"],
+      },
+    );
     if (result.success) {
       message.success("已保存到知识库");
     } else {
@@ -713,27 +656,37 @@ const handleLibraryPageChange = (page) => {
 
 // 工具函数
 const formatDuration = (seconds) => {
-  if (!seconds) {return "0:00";}
+  if (!seconds) {
+    return "0:00";
+  }
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, "0")}`;
 };
 
 const formatFileSize = (bytes) => {
-  if (!bytes) {return "0 B";}
+  if (!bytes) {
+    return "0 B";
+  }
   const kb = bytes / 1024;
-  if (kb < 1024) {return `${kb.toFixed(1)} KB`;}
+  if (kb < 1024) {
+    return `${kb.toFixed(1)} KB`;
+  }
   return `${(kb / 1024).toFixed(1)} MB`;
 };
 
 const formatDate = (dateStr) => {
-  if (!dateStr) {return "";}
+  if (!dateStr) {
+    return "";
+  }
   const date = new Date(dateStr);
   return date.toLocaleString("zh-CN");
 };
 
 const truncateText = (text, maxLength) => {
-  if (!text) {return "";}
+  if (!text) {
+    return "";
+  }
   return text.length > maxLength ? text.substring(0, maxLength) + "..." : text;
 };
 

@@ -6,8 +6,8 @@
  * @description 提供全局的IPC handler注册状态管理，防止重复注册导致的问题
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain } = require('electron');
+const { logger } = require("../utils/logger.js");
+const { ipcMain } = require("electron");
 
 /**
  * 全局注册状态跟踪
@@ -49,7 +49,7 @@ function isModuleRegistered(moduleName) {
 function markChannelRegistered(channel, moduleName) {
   registeredChannels.set(channel, {
     module: moduleName,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 }
 
@@ -68,10 +68,12 @@ function markModuleRegistered(moduleName) {
  * @param {string} moduleName - 模块名称（用于日志）
  * @returns {boolean} 是否成功注册（false表示已存在，跳过注册）
  */
-function safeRegisterHandler(channel, handler, moduleName = 'unknown') {
+function safeRegisterHandler(channel, handler, moduleName = "unknown") {
   if (isChannelRegistered(channel)) {
     const existing = registeredChannels.get(channel);
-    logger.info(`[IPC Guard] Channel "${channel}" already registered by ${existing.module}, skipping...`);
+    logger.info(
+      `[IPC Guard] Channel "${channel}" already registered by ${existing.module}, skipping...`,
+    );
     return false;
   }
 
@@ -91,7 +93,7 @@ function safeRegisterHandler(channel, handler, moduleName = 'unknown') {
  * @param {string} moduleName - 模块名称
  * @returns {Object} { registered: number, skipped: number }
  */
-function safeRegisterHandlers(handlers, moduleName = 'unknown') {
+function safeRegisterHandlers(handlers, moduleName = "unknown") {
   let registered = 0;
   let skipped = 0;
 
@@ -114,7 +116,9 @@ function safeRegisterHandlers(handlers, moduleName = 'unknown') {
  */
 function safeRegisterModule(moduleName, registerFunc) {
   if (isModuleRegistered(moduleName)) {
-    logger.info(`[IPC Guard] Module "${moduleName}" already registered, skipping...`);
+    logger.info(
+      `[IPC Guard] Module "${moduleName}" already registered, skipping...`,
+    );
     return false;
   }
 
@@ -124,7 +128,10 @@ function safeRegisterModule(moduleName, registerFunc) {
     logger.info(`[IPC Guard] Module "${moduleName}" registered successfully`);
     return true;
   } catch (error) {
-    logger.error(`[IPC Guard] Failed to register module "${moduleName}":`, error);
+    logger.error(
+      `[IPC Guard] Failed to register module "${moduleName}":`,
+      error,
+    );
     return false;
   }
 }
@@ -140,7 +147,10 @@ function unregisterChannel(channel) {
       registeredChannels.delete(channel);
       logger.info(`[IPC Guard] Channel "${channel}" unregistered`);
     } catch (error) {
-      logger.error(`[IPC Guard] Failed to unregister channel "${channel}":`, error);
+      logger.error(
+        `[IPC Guard] Failed to unregister channel "${channel}":`,
+        error,
+      );
     }
   }
 }
@@ -158,19 +168,21 @@ function unregisterModule(moduleName) {
     }
   }
 
-  channelsToRemove.forEach(channel => unregisterChannel(channel));
+  channelsToRemove.forEach((channel) => unregisterChannel(channel));
   registeredModules.delete(moduleName);
-  logger.info(`[IPC Guard] Module "${moduleName}" unregistered (${channelsToRemove.length} channels)`);
+  logger.info(
+    `[IPC Guard] Module "${moduleName}" unregistered (${channelsToRemove.length} channels)`,
+  );
 }
 
 /**
  * 重置所有注册状态（用于测试和热重载）
  */
 function resetAll() {
-  logger.info('[IPC Guard] Resetting all registrations...');
-  logger.info('[IPC Guard] Current state before reset:', {
+  logger.info("[IPC Guard] Resetting all registrations...");
+  logger.info("[IPC Guard] Current state before reset:", {
     channels: registeredChannels.size,
-    modules: Array.from(registeredModules)
+    modules: Array.from(registeredModules),
   });
 
   // 移除我们注册的handlers（不是所有监听器）
@@ -183,14 +195,16 @@ function resetAll() {
       }
     }
   } catch (error) {
-    logger.error('[IPC Guard] Failed to remove handlers:', error);
+    logger.error("[IPC Guard] Failed to remove handlers:", error);
   }
 
   // 清空注册状态
   registeredChannels.clear();
   registeredModules.clear();
 
-  logger.info('[IPC Guard] All registrations reset - channels and modules cleared');
+  logger.info(
+    "[IPC Guard] All registrations reset - channels and modules cleared",
+  );
 }
 
 /**
@@ -201,12 +215,14 @@ function getStats() {
   return {
     totalChannels: registeredChannels.size,
     totalModules: registeredModules.size,
-    channels: Array.from(registeredChannels.entries()).map(([channel, info]) => ({
-      channel,
-      module: info.module,
-      registeredAt: new Date(info.timestamp).toISOString()
-    })),
-    modules: Array.from(registeredModules)
+    channels: Array.from(registeredChannels.entries()).map(
+      ([channel, info]) => ({
+        channel,
+        module: info.module,
+        registeredAt: new Date(info.timestamp).toISOString(),
+      }),
+    ),
+    modules: Array.from(registeredModules),
   };
 }
 
@@ -215,7 +231,7 @@ function getStats() {
  */
 function printStats() {
   const stats = getStats();
-  logger.info('[IPC Guard] Registration Statistics:');
+  logger.info("[IPC Guard] Registration Statistics:");
   logger.info(`  Total Modules: ${stats.totalModules}`);
   logger.info(`  Total Channels: ${stats.totalChannels}`);
   logger.info(`  Registered Modules:`, stats.modules);
@@ -242,5 +258,5 @@ module.exports = {
 
   // 统计函数
   getStats,
-  printStats
+  printStats,
 };

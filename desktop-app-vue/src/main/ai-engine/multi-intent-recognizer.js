@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 多意图识别器
@@ -29,24 +29,24 @@ class MultiIntentRecognizer {
     this.compositePatterns = [
       {
         pattern: /(.+)并(.+)/,
-        splitter: '并'
+        splitter: "并",
       },
       {
         pattern: /(.+)然后(.+)/,
-        splitter: '然后'
+        splitter: "然后",
       },
       {
         pattern: /(.+)再(.+)/,
-        splitter: '再'
+        splitter: "再",
       },
       {
         pattern: /(.+)最后(.+)/,
-        splitter: '最后'
-      }
+        splitter: "最后",
+      },
     ];
 
     // 任务依赖关系关键词
-    this.dependencyKeywords = ['然后', '再', '之后', '接着', '最后', '完成后'];
+    this.dependencyKeywords = ["然后", "再", "之后", "接着", "最后", "完成后"];
   }
 
   /**
@@ -70,10 +70,10 @@ class MultiIntentRecognizer {
             description: text,
             entities: singleIntent.entities,
             confidence: singleIntent.confidence,
-            dependencies: []
-          }
+            dependencies: [],
+          },
         ],
-        isMultiIntent: false
+        isMultiIntent: false,
       };
     }
 
@@ -89,7 +89,7 @@ class MultiIntentRecognizer {
     return {
       intents: validatedIntents,
       isMultiIntent: true,
-      totalTasks: validatedIntents.length
+      totalTasks: validatedIntents.length,
     };
   }
 
@@ -100,7 +100,17 @@ class MultiIntentRecognizer {
    */
   detectMultipleIntents(text) {
     // 检查是否包含复合意图关键词
-    const keywords = ['并', '然后', '再', '之后', '接着', '最后', '以及', '和', '还有'];
+    const keywords = [
+      "并",
+      "然后",
+      "再",
+      "之后",
+      "接着",
+      "最后",
+      "以及",
+      "和",
+      "还有",
+    ];
 
     for (const keyword of keywords) {
       if (text.includes(keyword)) {
@@ -169,21 +179,20 @@ ${JSON.stringify(context, null, 2)}
 
     try {
       const result = await this.llmService.complete({
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1  // 降低随机性
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1, // 降低随机性
       });
 
       // 解析LLM返回的JSON
       const parsed = this.parseJSON(result.content || result);
 
       if (!parsed || !parsed.intents || !Array.isArray(parsed.intents)) {
-        throw new Error('LLM返回格式不正确');
+        throw new Error("LLM返回格式不正确");
       }
 
       return parsed.intents;
-
     } catch (error) {
-      logger.error('LLM多意图拆分失败:', error);
+      logger.error("LLM多意图拆分失败:", error);
 
       // 降级策略：使用规则引擎拆分
       return this.ruleBasedSplit(text, context);
@@ -215,7 +224,7 @@ ${JSON.stringify(context, null, 2)}
               priority: priority,
               description: subText,
               entities: this.extractEntities(subText),
-              dependencies: priority > 1 ? [priority - 1] : []
+              dependencies: priority > 1 ? [priority - 1] : [],
             });
 
             priority++;
@@ -234,7 +243,7 @@ ${JSON.stringify(context, null, 2)}
         priority: 1,
         description: text,
         entities: this.extractEntities(text),
-        dependencies: []
+        dependencies: [],
       });
     }
 
@@ -248,12 +257,12 @@ ${JSON.stringify(context, null, 2)}
    */
   guessIntent(text) {
     const intentKeywords = {
-      'CREATE_FILE': ['创建', '生成', '制作', '新建'],
-      'EDIT_FILE': ['修改', '编辑', '更新', '改'],
-      'DEPLOY_PROJECT': ['部署', '发布', '上线', '上传'],
-      'ANALYZE_DATA': ['分析', '统计', '查看', '检查'],
-      'EXPORT_FILE': ['导出', '下载', '保存为'],
-      'QUERY_INFO': ['查询', '搜索', '查找', '寻找']
+      CREATE_FILE: ["创建", "生成", "制作", "新建"],
+      EDIT_FILE: ["修改", "编辑", "更新", "改"],
+      DEPLOY_PROJECT: ["部署", "发布", "上线", "上传"],
+      ANALYZE_DATA: ["分析", "统计", "查看", "检查"],
+      EXPORT_FILE: ["导出", "下载", "保存为"],
+      QUERY_INFO: ["查询", "搜索", "查找", "寻找"],
     };
 
     for (const [intent, keywords] of Object.entries(intentKeywords)) {
@@ -264,7 +273,7 @@ ${JSON.stringify(context, null, 2)}
       }
     }
 
-    return 'UNKNOWN';
+    return "UNKNOWN";
   }
 
   /**
@@ -276,7 +285,7 @@ ${JSON.stringify(context, null, 2)}
     const entities = {};
 
     // 文件类型
-    const fileTypes = ['HTML', 'CSS', 'JavaScript', 'Word', 'PDF', 'Markdown'];
+    const fileTypes = ["HTML", "CSS", "JavaScript", "Word", "PDF", "Markdown"];
     for (const type of fileTypes) {
       if (text.toLowerCase().includes(type.toLowerCase())) {
         entities.fileType = type;
@@ -285,7 +294,7 @@ ${JSON.stringify(context, null, 2)}
     }
 
     // 部署平台
-    const platforms = ['Vercel', 'Netlify', 'GitHub Pages', 'Cloudflare'];
+    const platforms = ["Vercel", "Netlify", "GitHub Pages", "Cloudflare"];
     for (const platform of platforms) {
       if (text.toLowerCase().includes(platform.toLowerCase())) {
         entities.platform = platform;
@@ -310,7 +319,7 @@ ${JSON.stringify(context, null, 2)}
         // 使用原有分类器进行详细识别
         const detailed = await this.intentClassifier.classify(
           intent.description,
-          context
+          context,
         );
 
         enriched.push({
@@ -318,18 +327,17 @@ ${JSON.stringify(context, null, 2)}
           intent: detailed.intent || intent.intent,
           entities: {
             ...intent.entities,
-            ...detailed.entities
+            ...detailed.entities,
           },
-          confidence: detailed.confidence || 0.7
+          confidence: detailed.confidence || 0.7,
         });
-
       } catch (error) {
         logger.error(`意图丰富失败: ${intent.description}`, error);
 
         // 失败时保留原始意图
         enriched.push({
           ...intent,
-          confidence: 0.5
+          confidence: 0.5,
         });
       }
     }
@@ -343,7 +351,7 @@ ${JSON.stringify(context, null, 2)}
    * @returns {Array} 验证后的意图列表
    */
   validateDependencies(intents) {
-    const prioritySet = new Set(intents.map(i => i.priority));
+    const prioritySet = new Set(intents.map((i) => i.priority));
 
     for (const intent of intents) {
       if (!intent.dependencies) {
@@ -352,7 +360,7 @@ ${JSON.stringify(context, null, 2)}
       }
 
       // 过滤无效的依赖关系
-      intent.dependencies = intent.dependencies.filter(dep => {
+      intent.dependencies = intent.dependencies.filter((dep) => {
         // 依赖的任务必须存在
         if (!prioritySet.has(dep)) {
           logger.warn(`任务${intent.priority}依赖不存在的任务${dep}`);
@@ -372,8 +380,8 @@ ${JSON.stringify(context, null, 2)}
     // 检测循环依赖
     const hasCycle = this.detectCyclicDependency(intents);
     if (hasCycle) {
-      logger.error('检测到循环依赖，清除所有依赖关系');
-      intents.forEach(intent => intent.dependencies = []);
+      logger.error("检测到循环依赖，清除所有依赖关系");
+      intents.forEach((intent) => (intent.dependencies = []));
     }
 
     return intents;
@@ -440,7 +448,7 @@ ${JSON.stringify(context, null, 2)}
         try {
           return JSON.parse(jsonMatch[0]);
         } catch (e) {
-          logger.error('JSON解析失败:', e);
+          logger.error("JSON解析失败:", e);
           return null;
         }
       }
@@ -469,14 +477,15 @@ ${JSON.stringify(context, null, 2)}
     summary.push(`检测到 ${intents.length} 个独立任务：\n`);
 
     for (const intent of this.getExecutionOrder(intents)) {
-      const deps = intent.dependencies && intent.dependencies.length > 0
-        ? ` (依赖: 任务${intent.dependencies.join(', ')})`
-        : '';
+      const deps =
+        intent.dependencies && intent.dependencies.length > 0
+          ? ` (依赖: 任务${intent.dependencies.join(", ")})`
+          : "";
 
       summary.push(`${intent.priority}. ${intent.description}${deps}`);
     }
 
-    return summary.join('\n');
+    return summary.join("\n");
   }
 }
 

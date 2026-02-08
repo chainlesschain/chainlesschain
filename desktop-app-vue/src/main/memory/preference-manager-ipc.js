@@ -7,7 +7,7 @@
  * @since 2026-01-17
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**

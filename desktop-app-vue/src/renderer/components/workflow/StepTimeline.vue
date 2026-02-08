@@ -18,10 +18,13 @@
         <div class="timeline-content" :class="getContentClass(step)">
           <div class="timeline-header">
             <span class="timeline-type-badge" :class="step.type">
-              {{ step.type === 'stage' ? '阶段' : '步骤' }}
+              {{ step.type === "stage" ? "阶段" : "步骤" }}
             </span>
             <span class="timeline-name">{{ step.name }}</span>
-            <span v-if="step.progress > 0 && step.status === 'running'" class="timeline-progress">
+            <span
+              v-if="step.progress > 0 && step.status === 'running'"
+              class="timeline-progress"
+            >
               {{ step.progress }}%
             </span>
           </div>
@@ -58,7 +61,7 @@ import {
   LoadingOutlined,
   ClockCircleOutlined,
   InboxOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   steps: {
@@ -70,45 +73,53 @@ const props = defineProps({
 // 方法
 const getTimelineColor = (step) => {
   const colorMap = {
-    completed: 'green',
-    running: 'blue',
-    failed: 'red',
-    pending: 'gray',
+    completed: "green",
+    running: "blue",
+    failed: "red",
+    pending: "gray",
   };
-  return colorMap[step.status] || 'gray';
+  return colorMap[step.status] || "gray";
 };
 
 const getDotClass = (step) => ({
-  completed: step.status === 'completed',
-  running: step.status === 'running',
-  failed: step.status === 'failed',
-  pending: step.status === 'pending',
-  'is-stage': step.type === 'stage',
+  completed: step.status === "completed",
+  running: step.status === "running",
+  failed: step.status === "failed",
+  pending: step.status === "pending",
+  "is-stage": step.type === "stage",
 });
 
 const getContentClass = (step) => ({
-  'is-stage': step.type === 'stage',
-  'is-running': step.status === 'running',
-  'is-failed': step.status === 'failed',
+  "is-stage": step.type === "stage",
+  "is-running": step.status === "running",
+  "is-failed": step.status === "failed",
 });
 
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {
+    return "";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  return date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };
 
 const formatDuration = (ms) => {
-  if (!ms || ms === 0) return '0秒';
+  if (!ms || ms === 0) {
+    return "0秒";
+  }
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}秒`;
+  if (seconds < 60) {
+    return `${seconds}秒`;
+  }
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  if (minutes < 60) return `${minutes}分${remainingSeconds}秒`;
+  if (minutes < 60) {
+    return `${minutes}分${remainingSeconds}秒`;
+  }
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return `${hours}时${remainingMinutes}分`;
@@ -256,7 +267,8 @@ const formatDuration = (ms) => {
 }
 
 @keyframes pulse-timeline {
-  0%, 100% {
+  0%,
+  100% {
     background: #e6f7ff;
   }
   50% {

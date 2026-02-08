@@ -3,17 +3,12 @@
     <!-- 顶部工具栏 -->
     <div class="editor-header">
       <div class="header-left">
-        <a-button
-          type="text"
-          @click="goBack"
-        >
-          <template #icon>
-            ← 返回
-          </template>
+        <a-button type="text" @click="goBack">
+          <template #icon> ← 返回 </template>
         </a-button>
         <a-divider type="vertical" />
         <h2 class="project-name">
-          {{ currentProject?.name || '设计项目' }}
+          {{ currentProject?.name || "设计项目" }}
         </h2>
       </div>
 
@@ -37,18 +32,8 @@
 
       <div class="header-right">
         <a-space>
-          <a-button
-            :loading="saving"
-            @click="saveProject"
-          >
-            保存
-          </a-button>
-          <a-button
-            type="primary"
-            @click="exportDesign"
-          >
-            导出
-          </a-button>
+          <a-button :loading="saving" @click="saveProject"> 保存 </a-button>
+          <a-button type="primary" @click="exportDesign"> 导出 </a-button>
         </a-space>
       </div>
     </div>
@@ -69,15 +54,9 @@
           @objects-modified="handleObjectsModified"
           @selection-changed="handleSelectionChanged"
         />
-        <div
-          v-else
-          class="empty-state"
-        >
+        <div v-else class="empty-state">
           <a-empty description="请先创建画板" />
-          <a-button
-            type="primary"
-            @click="createNewArtboard"
-          >
+          <a-button type="primary" @click="createNewArtboard">
             创建画板
           </a-button>
         </div>
@@ -166,34 +145,31 @@
         <span>{{ selectedObjects.length }} 个对象已选中</span>
       </div>
       <div class="footer-right">
-        <span>{{ currentArtboard?.width }} × {{ currentArtboard?.height }}px</span>
+        <span
+          >{{ currentArtboard?.width }} × {{ currentArtboard?.height }}px</span
+        >
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
-import { useDesignStore } from '../../stores/design';
-import { storeToRefs } from 'pinia';
-import DesignCanvas from '../../components/design/canvas/DesignCanvas.vue';
-import ToolPanel from '../../components/design/panels/ToolPanel.vue';
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { message } from "ant-design-vue";
+import { useDesignStore } from "../../stores/design";
+import { storeToRefs } from "pinia";
+import DesignCanvas from "../../components/design/canvas/DesignCanvas.vue";
+import ToolPanel from "../../components/design/panels/ToolPanel.vue";
 
 const route = useRoute();
 const router = useRouter();
 const designStore = useDesignStore();
 
-const {
-  currentProject,
-  currentArtboard,
-  artboards,
-  selectedObjects,
-  saving
-} = storeToRefs(designStore);
+const { currentProject, currentArtboard, artboards, selectedObjects, saving } =
+  storeToRefs(designStore);
 
 const canvasRef = ref(null);
 
@@ -204,16 +180,16 @@ async function initializeEditor() {
   const projectId = route.params.projectId;
 
   if (!projectId) {
-    message.error('项目 ID 不存在');
-    router.push('/projects');
+    message.error("项目 ID 不存在");
+    router.push("/projects");
     return;
   }
 
   try {
     await designStore.loadProject(projectId);
   } catch (error) {
-    logger.error('[DesignEditorPage] Failed to load project:', error);
-    message.error('加载项目失败: ' + error.message);
+    logger.error("[DesignEditorPage] Failed to load project:", error);
+    message.error("加载项目失败: " + error.message);
   }
 }
 
@@ -221,7 +197,7 @@ async function initializeEditor() {
  * 返回项目列表
  */
 function goBack() {
-  router.push('/projects');
+  router.push("/projects");
 }
 
 /**
@@ -231,8 +207,8 @@ async function switchArtboard(artboardId) {
   try {
     await designStore.switchArtboard(artboardId);
   } catch (error) {
-    logger.error('[DesignEditorPage] Failed to switch artboard:', error);
-    message.error('切换画板失败');
+    logger.error("[DesignEditorPage] Failed to switch artboard:", error);
+    message.error("切换画板失败");
   }
 }
 
@@ -242,10 +218,10 @@ async function switchArtboard(artboardId) {
 async function createNewArtboard() {
   try {
     await designStore.createArtboard(`Artboard ${artboards.value.length + 1}`);
-    message.success('画板创建成功');
+    message.success("画板创建成功");
   } catch (error) {
-    logger.error('[DesignEditorPage] Failed to create artboard:', error);
-    message.error('创建画板失败');
+    logger.error("[DesignEditorPage] Failed to create artboard:", error);
+    message.error("创建画板失败");
   }
 }
 
@@ -254,22 +230,22 @@ async function createNewArtboard() {
  */
 async function saveProject() {
   if (!canvasRef.value || !currentArtboard.value) {
-    message.warning('没有可保存的内容');
+    message.warning("没有可保存的内容");
     return;
   }
 
   try {
     const canvasJSON = canvasRef.value.getCanvasJSON();
-    const objects = canvasJSON.objects.map(obj => ({
+    const objects = canvasJSON.objects.map((obj) => ({
       id: obj.id,
-      fabric_json: obj
+      fabric_json: obj,
     }));
 
     await designStore.saveArtboard(objects);
-    message.success('保存成功');
+    message.success("保存成功");
   } catch (error) {
-    logger.error('[DesignEditorPage] Failed to save:', error);
-    message.error('保存失败: ' + error.message);
+    logger.error("[DesignEditorPage] Failed to save:", error);
+    message.error("保存失败: " + error.message);
   }
 }
 
@@ -278,34 +254,34 @@ async function saveProject() {
  */
 function exportDesign() {
   if (!canvasRef.value) {
-    message.warning('没有可导出的内容');
+    message.warning("没有可导出的内容");
     return;
   }
 
   // 导出为图片
-  const dataURL = canvasRef.value.exportAsImage('png');
+  const dataURL = canvasRef.value.exportAsImage("png");
 
   // 创建下载链接
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.download = `${currentProject.value.name}-${currentArtboard.value.name}.png`;
   link.href = dataURL;
   link.click();
 
-  message.success('导出成功');
+  message.success("导出成功");
 }
 
 /**
  * 处理对象修改
  */
 function handleObjectsModified() {
-  logger.info('[DesignEditorPage] Objects modified');
+  logger.info("[DesignEditorPage] Objects modified");
 }
 
 /**
  * 处理选区变化
  */
 function handleSelectionChanged(objects) {
-  logger.info('[DesignEditorPage] Selection changed:', objects);
+  logger.info("[DesignEditorPage] Selection changed:", objects);
 }
 
 /**
@@ -331,15 +307,15 @@ async function updateObjectName(event) {
     if (canvasRef.value?.fabricCanvas?.value) {
       const canvas = canvasRef.value.fabricCanvas.value;
       const objects = canvas.getObjects();
-      const targetObj = objects.find(obj => obj.id === objectId);
+      const targetObj = objects.find((obj) => obj.id === objectId);
       if (targetObj) {
-        targetObj.set('name', newName);
+        targetObj.set("name", newName);
       }
     }
 
-    logger.info('[DesignEditorPage] Object name updated:', newName);
+    logger.info("[DesignEditorPage] Object name updated:", newName);
   } catch (error) {
-    logger.error('[DesignEditorPage] Failed to update object name:', error);
+    logger.error("[DesignEditorPage] Failed to update object name:", error);
   }
 }
 
@@ -358,14 +334,14 @@ async function updateObjectPosition(property, value) {
     if (canvasRef.value?.fabricCanvas?.value) {
       const canvas = canvasRef.value.fabricCanvas.value;
       const objects = canvas.getObjects();
-      const targetObj = objects.find(obj => obj.id === objectId);
+      const targetObj = objects.find((obj) => obj.id === objectId);
       if (targetObj) {
         targetObj.set(property, value);
         targetObj.setCoords();
         canvas.renderAll();
 
         // 获取更新后的 fabric JSON 并保存
-        const fabricJson = targetObj.toJSON(['id', 'name']);
+        const fabricJson = targetObj.toJSON(["id", "name"]);
         await designStore.updateObjectProperties(objectId, { fabricJson });
 
         // 更新本地状态
@@ -375,7 +351,7 @@ async function updateObjectPosition(property, value) {
 
     logger.info(`[DesignEditorPage] Object ${property} updated:`, value);
   } catch (error) {
-    logger.error('[DesignEditorPage] Failed to update object position:', error);
+    logger.error("[DesignEditorPage] Failed to update object position:", error);
   }
 }
 
@@ -394,24 +370,26 @@ async function updateObjectDimension(property, value) {
     if (canvasRef.value?.fabricCanvas?.value) {
       const canvas = canvasRef.value.fabricCanvas.value;
       const objects = canvas.getObjects();
-      const targetObj = objects.find(obj => obj.id === objectId);
+      const targetObj = objects.find((obj) => obj.id === objectId);
       if (targetObj) {
         // 计算新的 scale 值
-        const currentValue = property === 'width' ? targetObj.width : targetObj.height;
-        const currentScale = property === 'width' ? targetObj.scaleX : targetObj.scaleY;
+        const currentValue =
+          property === "width" ? targetObj.width : targetObj.height;
+        const currentScale =
+          property === "width" ? targetObj.scaleX : targetObj.scaleY;
         const newScale = (value / currentValue) * (currentScale || 1);
 
-        if (property === 'width') {
-          targetObj.set('scaleX', newScale);
+        if (property === "width") {
+          targetObj.set("scaleX", newScale);
         } else {
-          targetObj.set('scaleY', newScale);
+          targetObj.set("scaleY", newScale);
         }
 
         targetObj.setCoords();
         canvas.renderAll();
 
         // 获取更新后的 fabric JSON 并保存
-        const fabricJson = targetObj.toJSON(['id', 'name']);
+        const fabricJson = targetObj.toJSON(["id", "name"]);
         await designStore.updateObjectProperties(objectId, { fabricJson });
 
         // 更新本地状态
@@ -421,7 +399,10 @@ async function updateObjectDimension(property, value) {
 
     logger.info(`[DesignEditorPage] Object ${property} updated:`, value);
   } catch (error) {
-    logger.error('[DesignEditorPage] Failed to update object dimension:', error);
+    logger.error(
+      "[DesignEditorPage] Failed to update object dimension:",
+      error,
+    );
   }
 }
 
@@ -430,34 +411,34 @@ async function updateObjectDimension(property, value) {
  */
 function handleKeyDown(event) {
   // Ctrl/Cmd + S: 保存
-  if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+  if ((event.ctrlKey || event.metaKey) && event.key === "s") {
     event.preventDefault();
     saveProject();
   }
 
   // Delete: 删除选中对象
-  if (event.key === 'Delete' && canvasRef.value) {
+  if (event.key === "Delete" && canvasRef.value) {
     canvasRef.value.deleteSelected();
   }
 
   // V: 选择工具
-  if (event.key === 'v' && !event.ctrlKey && !event.metaKey) {
-    designStore.setActiveTool('select');
+  if (event.key === "v" && !event.ctrlKey && !event.metaKey) {
+    designStore.setActiveTool("select");
   }
 
   // R: 矩形工具
-  if (event.key === 'r' && !event.ctrlKey && !event.metaKey) {
-    designStore.setActiveTool('rect');
+  if (event.key === "r" && !event.ctrlKey && !event.metaKey) {
+    designStore.setActiveTool("rect");
   }
 
   // C: 圆形工具
-  if (event.key === 'c' && !event.ctrlKey && !event.metaKey) {
-    designStore.setActiveTool('circle');
+  if (event.key === "c" && !event.ctrlKey && !event.metaKey) {
+    designStore.setActiveTool("circle");
   }
 
   // T: 文本工具
-  if (event.key === 't' && !event.ctrlKey && !event.metaKey) {
-    designStore.setActiveTool('text');
+  if (event.key === "t" && !event.ctrlKey && !event.metaKey) {
+    designStore.setActiveTool("text");
   }
 }
 
@@ -466,12 +447,12 @@ onMounted(async () => {
   await initializeEditor();
 
   // 绑定快捷键
-  window.addEventListener('keydown', handleKeyDown);
+  window.addEventListener("keydown", handleKeyDown);
 });
 
 onBeforeUnmount(() => {
   // 清理快捷键
-  window.removeEventListener('keydown', handleKeyDown);
+  window.removeEventListener("keydown", handleKeyDown);
 
   // 重置 store
   designStore.reset();

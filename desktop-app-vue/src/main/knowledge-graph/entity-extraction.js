@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 增强的实体提取模块
@@ -14,29 +14,29 @@ const { logger, createLogger } = require('../utils/logger.js');
  * 常见实体类型
  */
 const ENTITY_TYPES = {
-  PERSON: 'person',           // 人名
-  ORGANIZATION: 'organization', // 组织机构
-  LOCATION: 'location',       // 地点
-  DATE: 'date',               // 日期
-  TIME: 'time',               // 时间
-  CONCEPT: 'concept',         // 概念
-  TECHNOLOGY: 'technology',   // 技术
-  PRODUCT: 'product',         // 产品
-  EVENT: 'event',             // 事件
+  PERSON: "person", // 人名
+  ORGANIZATION: "organization", // 组织机构
+  LOCATION: "location", // 地点
+  DATE: "date", // 日期
+  TIME: "time", // 时间
+  CONCEPT: "concept", // 概念
+  TECHNOLOGY: "technology", // 技术
+  PRODUCT: "product", // 产品
+  EVENT: "event", // 事件
 };
 
 /**
  * 关系类型
  */
 const RELATION_TYPES = {
-  MENTIONS: 'mentions',       // 提及
-  RELATED_TO: 'related_to',   // 相关
-  PART_OF: 'part_of',         // 部分
-  CAUSED_BY: 'caused_by',     // 因果
-  LOCATED_IN: 'located_in',   // 位于
-  WORKS_FOR: 'works_for',     // 工作于
-  CREATED_BY: 'created_by',   // 创建者
-  USES: 'uses',               // 使用
+  MENTIONS: "mentions", // 提及
+  RELATED_TO: "related_to", // 相关
+  PART_OF: "part_of", // 部分
+  CAUSED_BY: "caused_by", // 因果
+  LOCATED_IN: "located_in", // 位于
+  WORKS_FOR: "works_for", // 工作于
+  CREATED_BY: "created_by", // 创建者
+  USES: "uses", // 使用
 };
 
 /**
@@ -52,7 +52,7 @@ function extractEntities(text) {
     /(\d{4})\/(\d{1,2})\/(\d{1,2})/g,
   ];
 
-  datePatterns.forEach(pattern => {
+  datePatterns.forEach((pattern) => {
     let match;
     while ((match = pattern.exec(text)) !== null) {
       entities.push({
@@ -80,7 +80,7 @@ function extractEntities(text) {
   const urlPattern = /https?:\/\/[^\s]+/g;
   while ((match = urlPattern.exec(text)) !== null) {
     entities.push({
-      type: 'url',
+      type: "url",
       value: match[0],
       start: match.index,
       end: match.index + match[0].length,
@@ -102,7 +102,7 @@ function extractEntities(text) {
   const hashtagPattern = /#([^\s#]+)/g;
   while ((match = hashtagPattern.exec(text)) !== null) {
     entities.push({
-      type: 'tag',
+      type: "tag",
       value: match[1],
       start: match.index,
       end: match.index + match[0].length,
@@ -122,16 +122,45 @@ function extractEntities(text) {
 
   // 7. 提取常见技术术语
   const techKeywords = [
-    'JavaScript', 'Python', 'Java', 'C\\+\\+', 'TypeScript', 'React', 'Vue', 'Angular',
-    'Node\\.js', 'Express', 'Django', 'Flask', 'Spring', 'Docker', 'Kubernetes',
-    'MySQL', 'PostgreSQL', 'MongoDB', 'Redis', 'Elasticsearch',
-    'AWS', 'Azure', 'GCP', 'Git', 'GitHub', 'GitLab',
-    'AI', 'ML', 'Deep Learning', 'NLP', 'Computer Vision',
-    'Blockchain', 'Ethereum', 'Bitcoin', 'Smart Contract',
+    "JavaScript",
+    "Python",
+    "Java",
+    "C\\+\\+",
+    "TypeScript",
+    "React",
+    "Vue",
+    "Angular",
+    "Node\\.js",
+    "Express",
+    "Django",
+    "Flask",
+    "Spring",
+    "Docker",
+    "Kubernetes",
+    "MySQL",
+    "PostgreSQL",
+    "MongoDB",
+    "Redis",
+    "Elasticsearch",
+    "AWS",
+    "Azure",
+    "GCP",
+    "Git",
+    "GitHub",
+    "GitLab",
+    "AI",
+    "ML",
+    "Deep Learning",
+    "NLP",
+    "Computer Vision",
+    "Blockchain",
+    "Ethereum",
+    "Bitcoin",
+    "Smart Contract",
   ];
 
-  techKeywords.forEach(keyword => {
-    const pattern = new RegExp(`\\b${keyword}\\b`, 'gi');
+  techKeywords.forEach((keyword) => {
+    const pattern = new RegExp(`\\b${keyword}\\b`, "gi");
     while ((match = pattern.exec(text)) !== null) {
       entities.push({
         type: ENTITY_TYPES.TECHNOLOGY,
@@ -146,7 +175,7 @@ function extractEntities(text) {
   const uniqueEntities = [];
   const positions = new Set();
 
-  entities.forEach(entity => {
+  entities.forEach((entity) => {
     const key = `${entity.start}-${entity.end}`;
     if (!positions.has(key)) {
       positions.add(key);
@@ -162,7 +191,7 @@ function extractEntities(text) {
  */
 async function extractEntitiesWithLLM(text, llmManager) {
   if (!llmManager) {
-    logger.warn('[Entity Extraction] LLM Manager 未初始化，使用基础提取');
+    logger.warn("[Entity Extraction] LLM Manager 未初始化，使用基础提取");
     return extractEntities(text);
   }
 
@@ -193,15 +222,16 @@ ${text}
   ]
 }`;
 
-    const response = await llmManager.chat([
-      { role: 'user', content: prompt }
-    ], {
-      temperature: 0.3,
-      max_tokens: 2000,
-    });
+    const response = await llmManager.chat(
+      [{ role: "user", content: prompt }],
+      {
+        temperature: 0.3,
+        max_tokens: 2000,
+      },
+    );
 
     // 解析 LLM 响应
-    const content = response.content || response.message?.content || '';
+    const content = response.content || response.message?.content || "";
 
     // 尝试提取 JSON
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -211,11 +241,10 @@ ${text}
     }
 
     // 如果 LLM 返回格式不正确，回退到基础提取
-    logger.warn('[Entity Extraction] LLM 返回格式不正确，使用基础提取');
+    logger.warn("[Entity Extraction] LLM 返回格式不正确，使用基础提取");
     return { entities: extractEntities(text), relations: [] };
-
   } catch (error) {
-    logger.error('[Entity Extraction] LLM 提取失败:', error);
+    logger.error("[Entity Extraction] LLM 提取失败:", error);
     return { entities: extractEntities(text), relations: [] };
   }
 }
@@ -225,14 +254,14 @@ ${text}
  */
 function extractKeywords(text, topN = 10) {
   // 移除标点符号和特殊字符
-  const cleanText = text.replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s]/g, ' ');
+  const cleanText = text.replace(/[^\u4e00-\u9fa5a-zA-Z0-9\s]/g, " ");
 
   // 简单分词（按空格和中文字符）
-  const words = cleanText.split(/\s+/).filter(w => w.length > 1);
+  const words = cleanText.split(/\s+/).filter((w) => w.length > 1);
 
   // 统计词频
   const wordFreq = new Map();
-  words.forEach(word => {
+  words.forEach((word) => {
     wordFreq.set(word, (wordFreq.get(word) || 0) + 1);
   });
 
@@ -275,22 +304,22 @@ function extractWikiLinks(text) {
 function extractSummary(text, maxLength = 200) {
   // 移除 Markdown 格式
   const cleanText = text
-    .replace(/```[\s\S]*?```/g, '') // 移除代码块
-    .replace(/`[^`]+`/g, '')        // 移除行内代码
-    .replace(/!\[.*?\]\(.*?\)/g, '') // 移除图片
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // 保留链接文本
-    .replace(/#{1,6}\s+/g, '')      // 移除标题标记
-    .replace(/[*_~]/g, '')          // 移除强调标记
+    .replace(/```[\s\S]*?```/g, "") // 移除代码块
+    .replace(/`[^`]+`/g, "") // 移除行内代码
+    .replace(/!\[.*?\]\(.*?\)/g, "") // 移除图片
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // 保留链接文本
+    .replace(/#{1,6}\s+/g, "") // 移除标题标记
+    .replace(/[*_~]/g, "") // 移除强调标记
     .trim();
 
   // 提取第一段或前 N 个字符
-  const firstParagraph = cleanText.split('\n\n')[0];
+  const firstParagraph = cleanText.split("\n\n")[0];
 
   if (firstParagraph.length <= maxLength) {
     return firstParagraph;
   }
 
-  return firstParagraph.substring(0, maxLength) + '...';
+  return firstParagraph.substring(0, maxLength) + "...";
 }
 
 /**
@@ -300,7 +329,7 @@ function calculateTextSimilarity(text1, text2) {
   const words1 = new Set(text1.toLowerCase().split(/\s+/));
   const words2 = new Set(text2.toLowerCase().split(/\s+/));
 
-  const intersection = new Set([...words1].filter(w => words2.has(w)));
+  const intersection = new Set([...words1].filter((w) => words2.has(w)));
   const union = new Set([...words1, ...words2]);
 
   // Jaccard 相似度
@@ -341,7 +370,7 @@ async function processNotesForEntities(notes, llmManager = null) {
         relations: [],
         keywords: [],
         wikiLinks: [],
-        summary: '',
+        summary: "",
         error: error.message,
       });
     }
@@ -357,19 +386,19 @@ function buildEntityGraph(processedNotes) {
   const entityNodes = new Map();
   const entityEdges = [];
 
-  processedNotes.forEach(note => {
+  processedNotes.forEach((note) => {
     // 添加笔记节点
     if (!entityNodes.has(note.noteId)) {
       entityNodes.set(note.noteId, {
         id: note.noteId,
         title: note.title,
-        type: 'note',
+        type: "note",
         summary: note.summary,
       });
     }
 
     // 添加实体节点
-    note.entities.forEach(entity => {
+    note.entities.forEach((entity) => {
       const entityId = `entity_${entity.type}_${entity.value}`;
 
       if (!entityNodes.has(entityId)) {
@@ -384,13 +413,13 @@ function buildEntityGraph(processedNotes) {
       entityEdges.push({
         source_id: note.noteId,
         target_id: entityId,
-        relation_type: 'contains',
+        relation_type: "contains",
         weight: 1.0,
       });
     });
 
     // 添加实体间关系
-    note.relations.forEach(relation => {
+    note.relations.forEach((relation) => {
       const sourceId = `entity_${relation.source}`;
       const targetId = `entity_${relation.target}`;
 
@@ -403,12 +432,12 @@ function buildEntityGraph(processedNotes) {
     });
 
     // 添加 Wiki 链接关系
-    note.wikiLinks.forEach(link => {
+    note.wikiLinks.forEach((link) => {
       // 假设链接指向另一个笔记
       entityEdges.push({
         source_id: note.noteId,
         target_id: link.title, // 需要解析为实际的笔记 ID
-        relation_type: 'references',
+        relation_type: "references",
         weight: 1.0,
       });
     });

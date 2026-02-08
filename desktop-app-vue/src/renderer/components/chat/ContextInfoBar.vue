@@ -6,7 +6,7 @@
 </template>
 
 <script setup>
-import { InfoCircleOutlined } from '@ant-design/icons-vue';
+import { InfoCircleOutlined } from "@ant-design/icons-vue";
 
 defineProps({
   contextInfo: {

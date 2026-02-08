@@ -5,9 +5,9 @@
  * 这些工具需要在 FunctionCaller 中注册才能使用
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const crypto = require('crypto');
-const { URL } = require('url');
+const { logger } = require("../utils/logger.js");
+const crypto = require("crypto");
+const { URL } = require("url");
 
 class ExtendedTools {
   /**
@@ -17,18 +17,18 @@ class ExtendedTools {
   static registerAll(functionCaller) {
     // 1. JSON解析器
     functionCaller.registerTool(
-      'json_parser',
+      "json_parser",
       async (params) => {
         try {
           const { json, action, indent = 2 } = params;
 
           switch (action) {
-            case 'parse': {
+            case "parse": {
               const parsed = JSON.parse(json);
               return { success: true, result: parsed };
             }
 
-            case 'validate':
+            case "validate":
               try {
                 JSON.parse(json);
                 return { success: true, result: true, error: null };
@@ -36,13 +36,13 @@ class ExtendedTools {
                 return { success: false, result: false, error: e.message };
               }
 
-            case 'format': {
+            case "format": {
               const obj = JSON.parse(json);
               const formatted = JSON.stringify(obj, null, indent);
               return { success: true, result: formatted };
             }
 
-            case 'minify': {
+            case "minify": {
               const minObj = JSON.parse(json);
               const minified = JSON.stringify(minObj);
               return { success: true, result: minified };
@@ -56,45 +56,45 @@ class ExtendedTools {
         }
       },
       {
-        name: 'json_parser',
-        description: 'JSON解析和格式化',
+        name: "json_parser",
+        description: "JSON解析和格式化",
         parameters: {
-          json: { type: 'string', description: 'JSON字符串' },
-          action: { type: 'string', description: '操作类型' },
-          indent: { type: 'number', description: '缩进空格数' }
-        }
-      }
+          json: { type: "string", description: "JSON字符串" },
+          action: { type: "string", description: "操作类型" },
+          indent: { type: "number", description: "缩进空格数" },
+        },
+      },
     );
 
     // 2. YAML解析器（简化实现，实际需要yaml库）
     functionCaller.registerTool(
-      'yaml_parser',
+      "yaml_parser",
       async (params) => {
         try {
           const { content, action } = params;
 
           // 注意: 这是简化实现，生产环境应使用 js-yaml 库
-          if (action === 'parse') {
+          if (action === "parse") {
             // 简单的YAML到JSON转换（仅支持基础格式）
-            const lines = content.split('\n');
+            const lines = content.split("\n");
             const result = {};
 
             for (const line of lines) {
-              if (line.trim() && !line.startsWith('#')) {
-                const [key, ...valueParts] = line.split(':');
+              if (line.trim() && !line.startsWith("#")) {
+                const [key, ...valueParts] = line.split(":");
                 if (key && valueParts.length > 0) {
-                  const value = valueParts.join(':').trim();
+                  const value = valueParts.join(":").trim();
                   result[key.trim()] = isNaN(value) ? value : Number(value);
                 }
               }
             }
 
             return { success: true, result };
-          } else if (action === 'stringify') {
+          } else if (action === "stringify") {
             const obj = JSON.parse(content);
             const yaml = Object.entries(obj)
               .map(([key, value]) => `${key}: ${value}`)
-              .join('\n');
+              .join("\n");
             return { success: true, result: yaml };
           }
 
@@ -104,25 +104,25 @@ class ExtendedTools {
         }
       },
       {
-        name: 'yaml_parser',
-        description: 'YAML解析和生成',
+        name: "yaml_parser",
+        description: "YAML解析和生成",
         parameters: {
-          content: { type: 'string', description: 'YAML或JSON内容' },
-          action: { type: 'string', description: '操作类型' }
-        }
-      }
+          content: { type: "string", description: "YAML或JSON内容" },
+          action: { type: "string", description: "操作类型" },
+        },
+      },
     );
 
     // 3. 文本分析器
     functionCaller.registerTool(
-      'text_analyzer',
+      "text_analyzer",
       async (params) => {
         try {
           const { text, options = {} } = params;
 
           // 统计基本信息
           const charCount = text.length;
-          const lineCount = text.split('\n').length;
+          const lineCount = text.split("\n").length;
 
           // 中英文分词
           const chineseChars = text.match(/[\u4e00-\u9fa5]/g) || [];
@@ -136,7 +136,7 @@ class ExtendedTools {
             charCount,
             wordCount,
             sentenceCount,
-            lineCount
+            lineCount,
           };
 
           const result = { success: true, stats };
@@ -145,7 +145,7 @@ class ExtendedTools {
           if (options.wordFrequency) {
             const allWords = [...chineseChars, ...englishWords];
             const frequency = {};
-            allWords.forEach(word => {
+            allWords.forEach((word) => {
               frequency[word] = (frequency[word] || 0) + 1;
             });
             result.wordFrequency = frequency;
@@ -166,67 +166,67 @@ class ExtendedTools {
         }
       },
       {
-        name: 'text_analyzer',
-        description: '文本统计和分析',
+        name: "text_analyzer",
+        description: "文本统计和分析",
         parameters: {
-          text: { type: 'string', description: '要分析的文本' },
-          options: { type: 'object', description: '分析选项' }
-        }
-      }
+          text: { type: "string", description: "要分析的文本" },
+          options: { type: "object", description: "分析选项" },
+        },
+      },
     );
 
     // 4. 日期时间处理器
     functionCaller.registerTool(
-      'datetime_handler',
+      "datetime_handler",
       async (params) => {
         try {
           const { action, date, format, amount, unit } = params;
           const now = date ? new Date(date) : new Date();
 
           switch (action) {
-            case 'format': {
+            case "format": {
               const formatted = this._formatDate(now, format);
               return {
                 success: true,
                 result: formatted,
-                timestamp: now.getTime()
+                timestamp: now.getTime(),
               };
             }
 
-            case 'parse': {
+            case "parse": {
               const parsed = new Date(date);
               return {
                 success: true,
                 result: parsed.toISOString(),
-                timestamp: parsed.getTime()
+                timestamp: parsed.getTime(),
               };
             }
 
-            case 'add': {
+            case "add": {
               const added = this._addTime(now, amount, unit);
               return {
                 success: true,
                 result: added.toISOString(),
-                timestamp: added.getTime()
+                timestamp: added.getTime(),
               };
             }
 
-            case 'subtract': {
+            case "subtract": {
               const subtracted = this._addTime(now, -amount, unit);
               return {
                 success: true,
                 result: subtracted.toISOString(),
-                timestamp: subtracted.getTime()
+                timestamp: subtracted.getTime(),
               };
             }
 
-            case 'diff': {
+            case "diff": {
               const target = new Date(date);
               const diff = target.getTime() - now.getTime();
               return {
                 success: true,
-                result: Math.floor(diff / 1000 / 60 / 60 / 24) + ' 天',
-                timestamp: diff
+                result: Math.floor(diff / 1000 / 60 / 60 / 24) + " 天",
+                timestamp: diff,
               };
             }
 
@@ -238,27 +238,27 @@ class ExtendedTools {
         }
       },
       {
-        name: 'datetime_handler',
-        description: '日期时间处理',
+        name: "datetime_handler",
+        description: "日期时间处理",
         parameters: {
-          action: { type: 'string', description: '操作类型' },
-          date: { type: 'string', description: '日期' },
-          format: { type: 'string', description: '格式' },
-          amount: { type: 'number', description: '数量' },
-          unit: { type: 'string', description: '单位' }
-        }
-      }
+          action: { type: "string", description: "操作类型" },
+          date: { type: "string", description: "日期" },
+          format: { type: "string", description: "格式" },
+          amount: { type: "number", description: "数量" },
+          unit: { type: "string", description: "单位" },
+        },
+      },
     );
 
     // 5. URL处理器
     functionCaller.registerTool(
-      'url_parser',
+      "url_parser",
       async (params) => {
         try {
           const { url, action, params: queryParams } = params;
 
           switch (action) {
-            case 'parse': {
+            case "parse": {
               const parsed = new URL(url);
               return {
                 success: true,
@@ -269,13 +269,13 @@ class ExtendedTools {
                   pathname: parsed.pathname,
                   search: parsed.search,
                   hash: parsed.hash,
-                  params: Object.fromEntries(parsed.searchParams)
-                }
+                  params: Object.fromEntries(parsed.searchParams),
+                },
               };
             }
 
-            case 'build': {
-              const base = url || 'https://example.com';
+            case "build": {
+              const base = url || "https://example.com";
               const newUrl = new URL(base);
               if (queryParams) {
                 Object.entries(queryParams).forEach(([key, value]) => {
@@ -285,7 +285,7 @@ class ExtendedTools {
               return { success: true, result: newUrl.toString() };
             }
 
-            case 'validate':
+            case "validate":
               try {
                 new URL(url);
                 return { success: true, valid: true };
@@ -293,16 +293,16 @@ class ExtendedTools {
                 return { success: true, valid: false };
               }
 
-            case 'encode':
+            case "encode":
               return {
                 success: true,
-                result: encodeURIComponent(url)
+                result: encodeURIComponent(url),
               };
 
-            case 'decode':
+            case "decode":
               return {
                 success: true,
-                result: decodeURIComponent(url)
+                result: decodeURIComponent(url),
               };
 
             default:
@@ -313,59 +313,59 @@ class ExtendedTools {
         }
       },
       {
-        name: 'url_parser',
-        description: 'URL解析和处理',
+        name: "url_parser",
+        description: "URL解析和处理",
         parameters: {
-          url: { type: 'string', description: 'URL字符串' },
-          action: { type: 'string', description: '操作类型' },
-          params: { type: 'object', description: '查询参数' }
-        }
-      }
+          url: { type: "string", description: "URL字符串" },
+          action: { type: "string", description: "操作类型" },
+          params: { type: "object", description: "查询参数" },
+        },
+      },
     );
 
     // 6. 加密解密工具
     functionCaller.registerTool(
-      'crypto_handler',
+      "crypto_handler",
       async (params) => {
         try {
           const { action, algorithm, data, key, iv } = params;
 
           switch (action) {
-            case 'hash': {
+            case "hash": {
               const hash = crypto.createHash(algorithm);
               hash.update(data);
               return {
                 success: true,
-                result: hash.digest('hex'),
-                algorithm
+                result: hash.digest("hex"),
+                algorithm,
               };
             }
 
-            case 'encrypt':
-              if (algorithm.startsWith('aes')) {
+            case "encrypt":
+              if (algorithm.startsWith("aes")) {
                 const cipher = crypto.createCipheriv(
                   algorithm,
-                  Buffer.from(key, 'hex'),
-                  iv ? Buffer.from(iv, 'hex') : null
+                  Buffer.from(key, "hex"),
+                  iv ? Buffer.from(iv, "hex") : null,
                 );
-                let encrypted = cipher.update(data, 'utf8', 'hex');
-                encrypted += cipher.final('hex');
+                let encrypted = cipher.update(data, "utf8", "hex");
+                encrypted += cipher.final("hex");
                 return { success: true, result: encrypted, algorithm };
               }
-              throw new Error('仅支持AES加密算法');
+              throw new Error("仅支持AES加密算法");
 
-            case 'decrypt':
-              if (algorithm.startsWith('aes')) {
+            case "decrypt":
+              if (algorithm.startsWith("aes")) {
                 const decipher = crypto.createDecipheriv(
                   algorithm,
-                  Buffer.from(key, 'hex'),
-                  iv ? Buffer.from(iv, 'hex') : null
+                  Buffer.from(key, "hex"),
+                  iv ? Buffer.from(iv, "hex") : null,
                 );
-                let decrypted = decipher.update(data, 'hex', 'utf8');
-                decrypted += decipher.final('utf8');
+                let decrypted = decipher.update(data, "hex", "utf8");
+                decrypted += decipher.final("utf8");
                 return { success: true, result: decrypted, algorithm };
               }
-              throw new Error('仅支持AES解密算法');
+              throw new Error("仅支持AES解密算法");
 
             default:
               throw new Error(`未知的操作: ${action}`);
@@ -375,36 +375,36 @@ class ExtendedTools {
         }
       },
       {
-        name: 'crypto_handler',
-        description: '加密解密和哈希',
+        name: "crypto_handler",
+        description: "加密解密和哈希",
         parameters: {
-          action: { type: 'string', description: '操作类型' },
-          algorithm: { type: 'string', description: '算法' },
-          data: { type: 'string', description: '数据' },
-          key: { type: 'string', description: '密钥' },
-          iv: { type: 'string', description: '初始化向量' }
-        }
-      }
+          action: { type: "string", description: "操作类型" },
+          algorithm: { type: "string", description: "算法" },
+          data: { type: "string", description: "数据" },
+          key: { type: "string", description: "密钥" },
+          iv: { type: "string", description: "初始化向量" },
+        },
+      },
     );
 
     // 7. Base64编解码
     functionCaller.registerTool(
-      'base64_handler',
+      "base64_handler",
       async (params) => {
         try {
-          const { action, data, encoding = 'utf8' } = params;
+          const { action, data, encoding = "utf8" } = params;
 
-          if (action === 'encode') {
+          if (action === "encode") {
             const buffer = Buffer.from(data, encoding);
             return {
               success: true,
-              result: buffer.toString('base64')
+              result: buffer.toString("base64"),
             };
-          } else if (action === 'decode') {
-            const buffer = Buffer.from(data, 'base64');
+          } else if (action === "decode") {
+            const buffer = Buffer.from(data, "base64");
             return {
               success: true,
-              result: buffer.toString(encoding)
+              result: buffer.toString(encoding),
             };
           }
 
@@ -414,25 +414,33 @@ class ExtendedTools {
         }
       },
       {
-        name: 'base64_handler',
-        description: 'Base64编解码',
+        name: "base64_handler",
+        description: "Base64编解码",
         parameters: {
-          action: { type: 'string', description: '操作类型' },
-          data: { type: 'string', description: '数据' },
-          encoding: { type: 'string', description: '字符编码' }
-        }
-      }
+          action: { type: "string", description: "操作类型" },
+          data: { type: "string", description: "数据" },
+          encoding: { type: "string", description: "字符编码" },
+        },
+      },
     );
 
     // 8. HTTP客户端（简化实现，实际应使用axios等库）
     functionCaller.registerTool(
-      'http_client',
+      "http_client",
       async (params) => {
         try {
-          const { url, method = 'GET', headers = {}, body, timeout = 10000 } = params;
+          const {
+            url,
+            method = "GET",
+            headers = {},
+            body,
+            timeout = 10000,
+          } = params;
 
           // 注意: 这是简化实现，生产环境应使用 axios 或 node-fetch
-          const http = url.startsWith('https') ? require('https') : require('http');
+          const http = url.startsWith("https")
+            ? require("https")
+            : require("http");
           const urlObj = new URL(url);
 
           return new Promise((resolve, reject) => {
@@ -442,43 +450,43 @@ class ExtendedTools {
               path: urlObj.pathname + urlObj.search,
               method,
               headers,
-              timeout
+              timeout,
             };
 
             const req = http.request(options, (res) => {
-              let data = '';
-              res.on('data', chunk => data += chunk);
-              res.on('end', () => {
+              let data = "";
+              res.on("data", (chunk) => (data += chunk));
+              res.on("end", () => {
                 try {
                   const parsed = JSON.parse(data);
                   resolve({
                     success: true,
                     status: res.statusCode,
                     headers: res.headers,
-                    data: parsed
+                    data: parsed,
                   });
                 } catch {
                   resolve({
                     success: true,
                     status: res.statusCode,
                     headers: res.headers,
-                    data: data
+                    data: data,
                   });
                 }
               });
             });
 
-            req.on('error', (error) => {
+            req.on("error", (error) => {
               resolve({ success: false, error: error.message });
             });
 
-            req.on('timeout', () => {
+            req.on("timeout", () => {
               req.destroy();
-              resolve({ success: false, error: '请求超时' });
+              resolve({ success: false, error: "请求超时" });
             });
 
             if (body) {
-              req.write(typeof body === 'string' ? body : JSON.stringify(body));
+              req.write(typeof body === "string" ? body : JSON.stringify(body));
             }
 
             req.end();
@@ -488,52 +496,52 @@ class ExtendedTools {
         }
       },
       {
-        name: 'http_client',
-        description: 'HTTP请求客户端',
+        name: "http_client",
+        description: "HTTP请求客户端",
         parameters: {
-          url: { type: 'string', description: 'URL' },
-          method: { type: 'string', description: 'HTTP方法' },
-          headers: { type: 'object', description: '请求头' },
-          body: { type: 'any', description: '请求体' },
-          timeout: { type: 'number', description: '超时时间' }
-        }
-      }
+          url: { type: "string", description: "URL" },
+          method: { type: "string", description: "HTTP方法" },
+          headers: { type: "object", description: "请求头" },
+          body: { type: "any", description: "请求体" },
+          timeout: { type: "number", description: "超时时间" },
+        },
+      },
     );
 
     // 9. 正则表达式测试器
     functionCaller.registerTool(
-      'regex_tester',
+      "regex_tester",
       async (params) => {
         try {
-          const { pattern, text, action, replacement, flags = 'g' } = params;
+          const { pattern, text, action, replacement, flags = "g" } = params;
           const regex = new RegExp(pattern, flags);
 
           switch (action) {
-            case 'test':
+            case "test":
               return {
                 success: true,
-                result: regex.test(text)
+                result: regex.test(text),
               };
 
-            case 'match': {
+            case "match": {
               const matches = text.match(regex);
               return {
                 success: true,
                 result: matches ? matches[0] : null,
-                matches: matches || []
+                matches: matches || [],
               };
             }
 
-            case 'replace':
+            case "replace":
               return {
                 success: true,
-                result: text.replace(regex, replacement)
+                result: text.replace(regex, replacement),
               };
 
-            case 'split':
+            case "split":
               return {
                 success: true,
-                result: text.split(regex)
+                result: text.split(regex),
               };
 
             default:
@@ -544,49 +552,49 @@ class ExtendedTools {
         }
       },
       {
-        name: 'regex_tester',
-        description: '正则表达式测试',
+        name: "regex_tester",
+        description: "正则表达式测试",
         parameters: {
-          pattern: { type: 'string', description: '正则模式' },
-          text: { type: 'string', description: '测试文本' },
-          action: { type: 'string', description: '操作类型' },
-          replacement: { type: 'string', description: '替换文本' },
-          flags: { type: 'string', description: '正则标志' }
-        }
-      }
+          pattern: { type: "string", description: "正则模式" },
+          text: { type: "string", description: "测试文本" },
+          action: { type: "string", description: "操作类型" },
+          replacement: { type: "string", description: "替换文本" },
+          flags: { type: "string", description: "正则标志" },
+        },
+      },
     );
 
     // 10. Markdown转换器（简化实现）
     functionCaller.registerTool(
-      'markdown_converter',
+      "markdown_converter",
       async (params) => {
         try {
-          const { markdown, targetFormat = 'html', options = {} } = params;
+          const { markdown, targetFormat = "html", options = {} } = params;
 
-          if (targetFormat === 'html') {
+          if (targetFormat === "html") {
             // 简单的Markdown到HTML转换
             const html = markdown
-              .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-              .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-              .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-              .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
-              .replace(/\*(.*)\*/gim, '<em>$1</em>')
-              .replace(/\n/gim, '<br>');
+              .replace(/^### (.*$)/gim, "<h3>$1</h3>")
+              .replace(/^## (.*$)/gim, "<h2>$1</h2>")
+              .replace(/^# (.*$)/gim, "<h1>$1</h1>")
+              .replace(/\*\*(.*)\*\*/gim, "<strong>$1</strong>")
+              .replace(/\*(.*)\*/gim, "<em>$1</em>")
+              .replace(/\n/gim, "<br>");
 
             return {
               success: true,
               result: html,
-              format: 'html'
+              format: "html",
             };
-          } else if (targetFormat === 'plain') {
+          } else if (targetFormat === "plain") {
             const plain = markdown
-              .replace(/[#*_~`]/g, '')
-              .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+              .replace(/[#*_~`]/g, "")
+              .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
 
             return {
               success: true,
               result: plain,
-              format: 'plain'
+              format: "plain",
             };
           }
 
@@ -596,31 +604,31 @@ class ExtendedTools {
         }
       },
       {
-        name: 'markdown_converter',
-        description: 'Markdown格式转换',
+        name: "markdown_converter",
+        description: "Markdown格式转换",
         parameters: {
-          markdown: { type: 'string', description: 'Markdown内容' },
-          targetFormat: { type: 'string', description: '目标格式' },
-          options: { type: 'object', description: '转换选项' }
-        }
-      }
+          markdown: { type: "string", description: "Markdown内容" },
+          targetFormat: { type: "string", description: "目标格式" },
+          options: { type: "object", description: "转换选项" },
+        },
+      },
     );
 
     // 11. CSV处理器
     functionCaller.registerTool(
-      'csv_handler',
+      "csv_handler",
       async (params) => {
         try {
           const { action, data, options = {} } = params;
-          const delimiter = options.delimiter || ',';
+          const delimiter = options.delimiter || ",";
           const hasHeader = options.header !== false;
 
-          if (action === 'parse') {
-            const lines = data.trim().split('\n');
+          if (action === "parse") {
+            const lines = data.trim().split("\n");
             const headers = hasHeader ? lines[0].split(delimiter) : null;
             const dataLines = hasHeader ? lines.slice(1) : lines;
 
-            const result = dataLines.map(line => {
+            const result = dataLines.map((line) => {
               const values = line.split(delimiter);
               if (headers) {
                 const obj = {};
@@ -629,30 +637,30 @@ class ExtendedTools {
                 });
                 return obj;
               }
-              return values.map(v => v.trim());
+              return values.map((v) => v.trim());
             });
 
             return {
               success: true,
               result,
-              rowCount: result.length
+              rowCount: result.length,
             };
-          } else if (action === 'stringify') {
+          } else if (action === "stringify") {
             const arr = JSON.parse(data);
             if (arr.length === 0) {
-              return { success: true, result: '', rowCount: 0 };
+              return { success: true, result: "", rowCount: 0 };
             }
 
             const keys = Object.keys(arr[0]);
             const header = keys.join(delimiter);
-            const rows = arr.map(obj =>
-              keys.map(key => obj[key]).join(delimiter)
+            const rows = arr.map((obj) =>
+              keys.map((key) => obj[key]).join(delimiter),
             );
 
             return {
               success: true,
-              result: [header, ...rows].join('\n'),
-              rowCount: arr.length
+              result: [header, ...rows].join("\n"),
+              rowCount: arr.length,
             };
           }
 
@@ -662,19 +670,19 @@ class ExtendedTools {
         }
       },
       {
-        name: 'csv_handler',
-        description: 'CSV数据处理',
+        name: "csv_handler",
+        description: "CSV数据处理",
         parameters: {
-          action: { type: 'string', description: '操作类型' },
-          data: { type: 'string', description: 'CSV数据' },
-          options: { type: 'object', description: 'CSV选项' }
-        }
-      }
+          action: { type: "string", description: "操作类型" },
+          data: { type: "string", description: "CSV数据" },
+          options: { type: "object", description: "CSV选项" },
+        },
+      },
     );
 
     // 12. 随机数据生成器
     functionCaller.registerTool(
-      'random_generator',
+      "random_generator",
       async (params) => {
         try {
           const { type, count = 1, options = {} } = params;
@@ -682,42 +690,53 @@ class ExtendedTools {
 
           for (let i = 0; i < count; i++) {
             switch (type) {
-              case 'number': {
+              case "number": {
                 const min = options.min || 0;
                 const max = options.max || 100;
                 results.push(Math.floor(Math.random() * (max - min + 1)) + min);
                 break;
               }
 
-              case 'string': {
+              case "string": {
                 const length = options.length || 10;
-                const charset = options.charset || 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-                let str = '';
+                const charset =
+                  options.charset ||
+                  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                let str = "";
                 for (let j = 0; j < length; j++) {
-                  str += charset.charAt(Math.floor(Math.random() * charset.length));
+                  str += charset.charAt(
+                    Math.floor(Math.random() * charset.length),
+                  );
                 }
                 results.push(str);
                 break;
               }
 
-              case 'uuid':
+              case "uuid":
                 results.push(crypto.randomUUID());
                 break;
 
-              case 'boolean':
+              case "boolean":
                 results.push(Math.random() < 0.5);
                 break;
 
-              case 'date': {
+              case "date": {
                 const start = new Date(2020, 0, 1);
                 const end = new Date();
-                const randomDate = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+                const randomDate = new Date(
+                  start.getTime() +
+                    Math.random() * (end.getTime() - start.getTime()),
+                );
                 results.push(randomDate.toISOString());
                 break;
               }
 
-              case 'color': {
-                const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+              case "color": {
+                const color =
+                  "#" +
+                  Math.floor(Math.random() * 16777215)
+                    .toString(16)
+                    .padStart(6, "0");
                 results.push(color);
                 break;
               }
@@ -730,66 +749,72 @@ class ExtendedTools {
           return {
             success: true,
             result: count === 1 ? results[0] : results,
-            count: results.length
+            count: results.length,
           };
         } catch (error) {
           return { success: false, error: error.message };
         }
       },
       {
-        name: 'random_generator',
-        description: '随机数据生成',
+        name: "random_generator",
+        description: "随机数据生成",
         parameters: {
-          type: { type: 'string', description: '数据类型' },
-          count: { type: 'number', description: '生成数量' },
-          options: { type: 'object', description: '生成选项' }
-        }
-      }
+          type: { type: "string", description: "数据类型" },
+          count: { type: "number", description: "生成数量" },
+          options: { type: "object", description: "生成选项" },
+        },
+      },
     );
 
     // 13. 颜色转换器
     functionCaller.registerTool(
-      'color_converter',
+      "color_converter",
       async (params) => {
         try {
           const { color, from, to } = params;
 
           // 辅助函数：HEX转RGB
           const hexToRgb = (hex) => {
-            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-            return result ? {
-              r: parseInt(result[1], 16),
-              g: parseInt(result[2], 16),
-              b: parseInt(result[3], 16)
-            } : null;
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
+              hex,
+            );
+            return result
+              ? {
+                  r: parseInt(result[1], 16),
+                  g: parseInt(result[2], 16),
+                  b: parseInt(result[3], 16),
+                }
+              : null;
           };
 
           // 辅助函数：RGB转HEX
           const rgbToHex = (r, g, b) => {
-            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+            return (
+              "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)
+            );
           };
 
           const result = {};
 
-          if (from === 'hex') {
+          if (from === "hex") {
             const rgb = hexToRgb(color);
-            if (to === 'rgb' || to === 'all') {
+            if (to === "rgb" || to === "all") {
               result.rgb = rgb;
             }
-            if (to === 'hex' || to === 'all') {
+            if (to === "hex" || to === "all") {
               result.hex = color;
             }
-          } else if (from === 'rgb') {
+          } else if (from === "rgb") {
             const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
             if (match) {
               const r = parseInt(match[1]);
               const g = parseInt(match[2]);
               const b = parseInt(match[3]);
 
-              if (to === 'hex' || to === 'all') {
+              if (to === "hex" || to === "all") {
                 result.hex = rgbToHex(r, g, b);
               }
-              if (to === 'rgb' || to === 'all') {
+              if (to === "rgb" || to === "all") {
                 result.rgb = { r, g, b };
               }
             }
@@ -797,26 +822,26 @@ class ExtendedTools {
 
           return {
             success: true,
-            result: to === 'all' ? result : result[to]
+            result: to === "all" ? result : result[to],
           };
         } catch (error) {
           return { success: false, error: error.message };
         }
       },
       {
-        name: 'color_converter',
-        description: '颜色格式转换',
+        name: "color_converter",
+        description: "颜色格式转换",
         parameters: {
-          color: { type: 'string', description: '颜色值' },
-          from: { type: 'string', description: '源格式' },
-          to: { type: 'string', description: '目标格式' }
-        }
-      }
+          color: { type: "string", description: "颜色值" },
+          from: { type: "string", description: "源格式" },
+          to: { type: "string", description: "目标格式" },
+        },
+      },
     );
 
     // 注意: template_renderer 已移至 ExtendedTools3，避免重复注册
 
-    logger.info('[Extended Tools] 已注册所有扩展工具');
+    logger.info("[Extended Tools] 已注册所有扩展工具");
   }
 
   // === 辅助方法 ===
@@ -825,14 +850,14 @@ class ExtendedTools {
    * 格式化日期
    * @private
    */
-  static _formatDate(date, format = 'YYYY-MM-DD HH:mm:ss') {
+  static _formatDate(date, format = "YYYY-MM-DD HH:mm:ss") {
     const map = {
-      'YYYY': date.getFullYear(),
-      'MM': String(date.getMonth() + 1).padStart(2, '0'),
-      'DD': String(date.getDate()).padStart(2, '0'),
-      'HH': String(date.getHours()).padStart(2, '0'),
-      'mm': String(date.getMinutes()).padStart(2, '0'),
-      'ss': String(date.getSeconds()).padStart(2, '0')
+      YYYY: date.getFullYear(),
+      MM: String(date.getMonth() + 1).padStart(2, "0"),
+      DD: String(date.getDate()).padStart(2, "0"),
+      HH: String(date.getHours()).padStart(2, "0"),
+      mm: String(date.getMinutes()).padStart(2, "0"),
+      ss: String(date.getSeconds()).padStart(2, "0"),
     };
 
     let result = format;
@@ -851,22 +876,22 @@ class ExtendedTools {
     const result = new Date(date);
 
     switch (unit) {
-      case 'year':
+      case "year":
         result.setFullYear(result.getFullYear() + amount);
         break;
-      case 'month':
+      case "month":
         result.setMonth(result.getMonth() + amount);
         break;
-      case 'day':
+      case "day":
         result.setDate(result.getDate() + amount);
         break;
-      case 'hour':
+      case "hour":
         result.setHours(result.getHours() + amount);
         break;
-      case 'minute':
+      case "minute":
         result.setMinutes(result.getMinutes() + amount);
         break;
-      case 'second':
+      case "second":
         result.setSeconds(result.getSeconds() + amount);
         break;
       default:

@@ -13,10 +13,10 @@
  * - Version history integration
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const Y = require('yjs');
-const { encoding, decoding } = require('lib0');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const Y = require("yjs");
+const { encoding, decoding } = require("lib0");
+const EventEmitter = require("events");
 
 class YjsCollabManager extends EventEmitter {
   constructor(p2pManager, database) {
@@ -34,8 +34,8 @@ class YjsCollabManager extends EventEmitter {
     this.documentPeers = new Map();
 
     // Protocol for Yjs sync
-    this.PROTOCOL_YIJS_SYNC = '/chainlesschain/yjs-sync/1.0.0';
-    this.PROTOCOL_YIJS_AWARENESS = '/chainlesschain/yjs-awareness/1.0.0';
+    this.PROTOCOL_YIJS_SYNC = "/chainlesschain/yjs-sync/1.0.0";
+    this.PROTOCOL_YIJS_AWARENESS = "/chainlesschain/yjs-awareness/1.0.0";
 
     // Initialize protocol handlers
     this._initializeProtocolHandlers();
@@ -46,78 +46,86 @@ class YjsCollabManager extends EventEmitter {
    */
   _initializeProtocolHandlers() {
     if (!this.p2pManager || !this.p2pManager.node) {
-      logger.warn('[YjsCollab] P2P manager not ready, will initialize handlers later');
+      logger.warn(
+        "[YjsCollab] P2P manager not ready, will initialize handlers later",
+      );
       return;
     }
 
     // Handle Yjs sync messages
-    this.p2pManager.node.handle(this.PROTOCOL_YIJS_SYNC, async ({ stream, connection }) => {
-      try {
-        const peerId = connection.remotePeer.toString();
-        logger.info(`[YjsCollab] Received sync connection from ${peerId}`);
+    this.p2pManager.node.handle(
+      this.PROTOCOL_YIJS_SYNC,
+      async ({ stream, connection }) => {
+        try {
+          const peerId = connection.remotePeer.toString();
+          logger.info(`[YjsCollab] Received sync connection from ${peerId}`);
 
-        // Read document ID
-        const docIdBuffer = await this._readFromStream(stream);
-        const docId = new TextDecoder().decode(docIdBuffer);
+          // Read document ID
+          const docIdBuffer = await this._readFromStream(stream);
+          const docId = new TextDecoder().decode(docIdBuffer);
 
-        // Get or create Yjs document
-        const ydoc = this.getDocument(docId);
+          // Get or create Yjs document
+          const ydoc = this.getDocument(docId);
 
-        // Send initial sync state
-        const stateVector = Y.encodeStateVector(ydoc);
-        await this._writeToStream(stream, stateVector);
+          // Send initial sync state
+          const stateVector = Y.encodeStateVector(ydoc);
+          await this._writeToStream(stream, stateVector);
 
-        // Receive and apply updates
-        stream.on('data', (data) => {
-          try {
-            Y.applyUpdate(ydoc, data);
-            this.emit('document-updated', { docId, peerId });
-          } catch (error) {
-            logger.error('[YjsCollab] Error applying update:', error);
+          // Receive and apply updates
+          stream.on("data", (data) => {
+            try {
+              Y.applyUpdate(ydoc, data);
+              this.emit("document-updated", { docId, peerId });
+            } catch (error) {
+              logger.error("[YjsCollab] Error applying update:", error);
+            }
+          });
+
+          // Track peer for this document
+          if (!this.documentPeers.has(docId)) {
+            this.documentPeers.set(docId, new Set());
           }
-        });
+          this.documentPeers.get(docId).add(peerId);
 
-        // Track peer for this document
-        if (!this.documentPeers.has(docId)) {
-          this.documentPeers.set(docId, new Set());
+          // Clean up on disconnect
+          stream.on("close", () => {
+            const peers = this.documentPeers.get(docId);
+            if (peers) {
+              peers.delete(peerId);
+            }
+            logger.info(
+              `[YjsCollab] Peer ${peerId} disconnected from document ${docId}`,
+            );
+          });
+        } catch (error) {
+          logger.error("[YjsCollab] Error handling sync:", error);
         }
-        this.documentPeers.get(docId).add(peerId);
-
-        // Clean up on disconnect
-        stream.on('close', () => {
-          const peers = this.documentPeers.get(docId);
-          if (peers) {
-            peers.delete(peerId);
-          }
-          logger.info(`[YjsCollab] Peer ${peerId} disconnected from document ${docId}`);
-        });
-
-      } catch (error) {
-        logger.error('[YjsCollab] Error handling sync:', error);
-      }
-    });
+      },
+    );
 
     // Handle awareness (presence) messages
-    this.p2pManager.node.handle(this.PROTOCOL_YIJS_AWARENESS, async ({ stream, connection }) => {
-      try {
-        const peerId = connection.remotePeer.toString();
+    this.p2pManager.node.handle(
+      this.PROTOCOL_YIJS_AWARENESS,
+      async ({ stream, connection }) => {
+        try {
+          const peerId = connection.remotePeer.toString();
 
-        // Read awareness update
-        const awarenessBuffer = await this._readFromStream(stream);
-        const decoder = decoding.createDecoder(awarenessBuffer);
-        const docId = decoding.readVarString(decoder);
-        const awarenessUpdate = decoding.readVarUint8Array(decoder);
+          // Read awareness update
+          const awarenessBuffer = await this._readFromStream(stream);
+          const decoder = decoding.createDecoder(awarenessBuffer);
+          const docId = decoding.readVarString(decoder);
+          const awarenessUpdate = decoding.readVarUint8Array(decoder);
 
-        // Apply awareness update
-        const awareness = this.getAwareness(docId);
-        this._applyAwarenessUpdate(awareness, awarenessUpdate, peerId);
+          // Apply awareness update
+          const awareness = this.getAwareness(docId);
+          this._applyAwarenessUpdate(awareness, awarenessUpdate, peerId);
 
-        this.emit('awareness-updated', { docId, peerId });
-
-      } catch (error) {
-        logger.error('[YjsCollab] Error handling awareness:', error);
-      }
-    });
+          this.emit("awareness-updated", { docId, peerId });
+        } catch (error) {
+          logger.error("[YjsCollab] Error handling awareness:", error);
+        }
+      },
+    );
   }
 
   /**
@@ -128,9 +136,9 @@ class YjsCollabManager extends EventEmitter {
       const ydoc = new Y.Doc();
 
       // Listen for updates
-      ydoc.on('update', (update, origin) => {
+      ydoc.on("update", (update, origin) => {
         // Don't broadcast updates that came from network
-        if (origin !== 'network') {
+        if (origin !== "network") {
           this._broadcastUpdate(docId, update);
           this._saveUpdate(docId, update);
         }
@@ -154,7 +162,7 @@ class YjsCollabManager extends EventEmitter {
       const awareness = {
         doc: ydoc,
         states: new Map(),
-        meta: new Map()
+        meta: new Map(),
       };
 
       this.awareness.set(docId, awareness);
@@ -176,13 +184,13 @@ class YjsCollabManager extends EventEmitter {
         user: {
           name: await this._getUserName(),
           did: await this._getUserDID(),
-          color: this._generateUserColor()
+          color: this._generateUserColor(),
         },
         cursor: null,
-        selection: null
+        selection: null,
       };
 
-      awareness.states.set('local', localState);
+      awareness.states.set("local", localState);
 
       // Broadcast awareness to peers
       await this._broadcastAwareness(docId, organizationId);
@@ -193,12 +201,11 @@ class YjsCollabManager extends EventEmitter {
       return {
         doc: ydoc,
         awareness,
-        text: ydoc.getText('content'),
-        metadata: ydoc.getMap('metadata')
+        text: ydoc.getText("content"),
+        metadata: ydoc.getMap("metadata"),
       };
-
     } catch (error) {
-      logger.error('[YjsCollab] Error opening document:', error);
+      logger.error("[YjsCollab] Error opening document:", error);
       throw error;
     }
   }
@@ -211,7 +218,7 @@ class YjsCollabManager extends EventEmitter {
       // Remove awareness state
       const awareness = this.awareness.get(docId);
       if (awareness) {
-        awareness.states.delete('local');
+        awareness.states.delete("local");
         await this._broadcastAwareness(docId);
       }
 
@@ -225,9 +232,8 @@ class YjsCollabManager extends EventEmitter {
       // Will be garbage collected eventually
 
       logger.info(`[YjsCollab] Closed document ${docId}`);
-
     } catch (error) {
-      logger.error('[YjsCollab] Error closing document:', error);
+      logger.error("[YjsCollab] Error closing document:", error);
     }
   }
 
@@ -237,7 +243,7 @@ class YjsCollabManager extends EventEmitter {
   async updateCursor(docId, cursor, selection = null) {
     try {
       const awareness = this.getAwareness(docId);
-      const localState = awareness.states.get('local');
+      const localState = awareness.states.get("local");
 
       if (localState) {
         localState.cursor = cursor;
@@ -246,9 +252,8 @@ class YjsCollabManager extends EventEmitter {
 
         await this._broadcastAwareness(docId);
       }
-
     } catch (error) {
-      logger.error('[YjsCollab] Error updating cursor:', error);
+      logger.error("[YjsCollab] Error updating cursor:", error);
     }
   }
 
@@ -257,7 +262,9 @@ class YjsCollabManager extends EventEmitter {
    */
   getActiveUsers(docId) {
     const awareness = this.awareness.get(docId);
-    if (!awareness) {return [];}
+    if (!awareness) {
+      return [];
+    }
 
     const users = [];
     for (const [clientId, state] of awareness.states.entries()) {
@@ -267,7 +274,7 @@ class YjsCollabManager extends EventEmitter {
           ...state.user,
           cursor: state.cursor,
           selection: state.selection,
-          lastUpdate: state.lastUpdate
+          lastUpdate: state.lastUpdate,
         });
       }
     }
@@ -298,13 +305,12 @@ class YjsCollabManager extends EventEmitter {
         Buffer.from(Y.encodeSnapshot(snapshot)),
         Buffer.from(stateVector),
         JSON.stringify(metadata),
-        Date.now()
+        Date.now(),
       );
 
       return result.lastInsertRowid;
-
     } catch (error) {
-      logger.error('[YjsCollab] Error creating snapshot:', error);
+      logger.error("[YjsCollab] Error creating snapshot:", error);
       throw error;
     }
   }
@@ -315,14 +321,18 @@ class YjsCollabManager extends EventEmitter {
   async restoreSnapshot(docId, snapshotId) {
     try {
       const db = this.database.getDatabase();
-      const snapshot = db.prepare(`
+      const snapshot = db
+        .prepare(
+          `
         SELECT snapshot_data, state_vector
         FROM knowledge_snapshots
         WHERE id = ?
-      `).get(snapshotId);
+      `,
+        )
+        .get(snapshotId);
 
       if (!snapshot) {
-        throw new Error('Snapshot not found');
+        throw new Error("Snapshot not found");
       }
 
       const ydoc = this.getDocument(docId);
@@ -339,9 +349,8 @@ class YjsCollabManager extends EventEmitter {
       await this._broadcastUpdate(docId, update);
 
       return restoredDoc;
-
     } catch (error) {
-      logger.error('[YjsCollab] Error restoring snapshot:', error);
+      logger.error("[YjsCollab] Error restoring snapshot:", error);
       throw error;
     }
   }
@@ -352,22 +361,25 @@ class YjsCollabManager extends EventEmitter {
   async getVersionHistory(docId, limit = 50) {
     try {
       const db = this.database.getDatabase();
-      const snapshots = db.prepare(`
+      const snapshots = db
+        .prepare(
+          `
         SELECT id, metadata, created_at
         FROM knowledge_snapshots
         WHERE knowledge_id = ?
         ORDER BY created_at DESC
         LIMIT ?
-      `).all(docId, limit);
+      `,
+        )
+        .all(docId, limit);
 
-      return snapshots.map(s => ({
+      return snapshots.map((s) => ({
         id: s.id,
         metadata: JSON.parse(s.metadata),
-        createdAt: s.created_at
+        createdAt: s.created_at,
       }));
-
     } catch (error) {
-      logger.error('[YjsCollab] Error getting version history:', error);
+      logger.error("[YjsCollab] Error getting version history:", error);
       return [];
     }
   }
@@ -378,13 +390,15 @@ class YjsCollabManager extends EventEmitter {
   async _broadcastUpdate(docId, update) {
     try {
       const peers = this.documentPeers.get(docId);
-      if (!peers || peers.size === 0) {return;}
+      if (!peers || peers.size === 0) {
+        return;
+      }
 
       for (const peerId of peers) {
         try {
           const stream = await this.p2pManager.node.dialProtocol(
             peerId,
-            this.PROTOCOL_YIJS_SYNC
+            this.PROTOCOL_YIJS_SYNC,
           );
 
           // Send document ID
@@ -394,14 +408,12 @@ class YjsCollabManager extends EventEmitter {
           await this._writeToStream(stream, update);
 
           stream.close();
-
         } catch (error) {
           logger.error(`[YjsCollab] Error broadcasting to ${peerId}:`, error);
         }
       }
-
     } catch (error) {
-      logger.error('[YjsCollab] Error broadcasting update:', error);
+      logger.error("[YjsCollab] Error broadcasting update:", error);
     }
   }
 
@@ -411,7 +423,9 @@ class YjsCollabManager extends EventEmitter {
   async _broadcastAwareness(docId, organizationId = null) {
     try {
       const awareness = this.awareness.get(docId);
-      if (!awareness) {return;}
+      if (!awareness) {
+        return;
+      }
 
       // Encode awareness state
       const encoder = encoding.createEncoder();
@@ -427,9 +441,9 @@ class YjsCollabManager extends EventEmitter {
         const orgNetwork = this.p2pManager.orgNetworks.get(organizationId);
         if (orgNetwork) {
           await orgNetwork.broadcast({
-            type: 'yjs-awareness',
+            type: "yjs-awareness",
             docId,
-            data: Array.from(message)
+            data: Array.from(message),
           });
         }
       } else {
@@ -440,21 +454,22 @@ class YjsCollabManager extends EventEmitter {
             try {
               const stream = await this.p2pManager.node.dialProtocol(
                 peerId,
-                this.PROTOCOL_YIJS_AWARENESS
+                this.PROTOCOL_YIJS_AWARENESS,
               );
 
               await this._writeToStream(stream, message);
               stream.close();
-
             } catch (error) {
-              logger.error(`[YjsCollab] Error broadcasting awareness to ${peerId}:`, error);
+              logger.error(
+                `[YjsCollab] Error broadcasting awareness to ${peerId}:`,
+                error,
+              );
             }
           }
         }
       }
-
     } catch (error) {
-      logger.error('[YjsCollab] Error broadcasting awareness:', error);
+      logger.error("[YjsCollab] Error broadcasting awareness:", error);
     }
   }
 
@@ -469,16 +484,15 @@ class YjsCollabManager extends EventEmitter {
         if (orgNetwork) {
           // Announce document editing
           await orgNetwork.broadcast({
-            type: 'document-open',
-            docId
+            type: "document-open",
+            docId,
           });
         }
       }
 
       // Will receive connections from other peers via protocol handlers
-
     } catch (error) {
-      logger.error('[YjsCollab] Error connecting to peers:', error);
+      logger.error("[YjsCollab] Error connecting to peers:", error);
     }
   }
 
@@ -495,9 +509,8 @@ class YjsCollabManager extends EventEmitter {
       `);
 
       stmt.run(docId, Buffer.from(update), Date.now());
-
     } catch (error) {
-      logger.error('[YjsCollab] Error saving update:', error);
+      logger.error("[YjsCollab] Error saving update:", error);
     }
   }
 
@@ -507,22 +520,27 @@ class YjsCollabManager extends EventEmitter {
   async _loadDocument(docId, ydoc) {
     try {
       const db = this.database.getDatabase();
-      const updates = db.prepare(`
+      const updates = db
+        .prepare(
+          `
         SELECT update_data
         FROM knowledge_yjs_updates
         WHERE knowledge_id = ?
         ORDER BY created_at ASC
-      `).all(docId);
+      `,
+        )
+        .all(docId);
 
       // Apply all updates
       for (const { update_data } of updates) {
-        Y.applyUpdate(ydoc, update_data, 'network');
+        Y.applyUpdate(ydoc, update_data, "network");
       }
 
-      logger.info(`[YjsCollab] Loaded ${updates.length} updates for document ${docId}`);
-
+      logger.info(
+        `[YjsCollab] Loaded ${updates.length} updates for document ${docId}`,
+      );
     } catch (error) {
-      logger.error('[YjsCollab] Error loading document:', error);
+      logger.error("[YjsCollab] Error loading document:", error);
     }
   }
 
@@ -532,9 +550,9 @@ class YjsCollabManager extends EventEmitter {
   async _readFromStream(stream) {
     return new Promise((resolve, reject) => {
       const chunks = [];
-      stream.on('data', (chunk) => chunks.push(chunk));
-      stream.on('end', () => resolve(Buffer.concat(chunks)));
-      stream.on('error', reject);
+      stream.on("data", (chunk) => chunks.push(chunk));
+      stream.on("end", () => resolve(Buffer.concat(chunks)));
+      stream.on("error", reject);
     });
   }
 
@@ -544,8 +562,11 @@ class YjsCollabManager extends EventEmitter {
   async _writeToStream(stream, data) {
     return new Promise((resolve, reject) => {
       stream.write(data, (err) => {
-        if (err) {reject(err);}
-        else {resolve();}
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
       });
     });
   }
@@ -582,12 +603,11 @@ class YjsCollabManager extends EventEmitter {
         awareness.states.set(clientId, state);
         awareness.meta.set(clientId, {
           peerId,
-          lastUpdate: Date.now()
+          lastUpdate: Date.now(),
         });
       }
-
     } catch (error) {
-      logger.error('[YjsCollab] Error applying awareness update:', error);
+      logger.error("[YjsCollab] Error applying awareness update:", error);
     }
   }
 
@@ -597,10 +617,10 @@ class YjsCollabManager extends EventEmitter {
   async _getUserName() {
     try {
       const db = this.database.getDatabase();
-      const user = db.prepare('SELECT name FROM user_profile LIMIT 1').get();
-      return user?.name || 'Anonymous';
+      const user = db.prepare("SELECT name FROM user_profile LIMIT 1").get();
+      return user?.name || "Anonymous";
     } catch (error) {
-      return 'Anonymous';
+      return "Anonymous";
     }
   }
 
@@ -610,7 +630,9 @@ class YjsCollabManager extends EventEmitter {
   async _getUserDID() {
     try {
       const db = this.database.getDatabase();
-      const identity = db.prepare('SELECT did FROM did_identities WHERE is_default = 1 LIMIT 1').get();
+      const identity = db
+        .prepare("SELECT did FROM did_identities WHERE is_default = 1 LIMIT 1")
+        .get();
       return identity?.did || null;
     } catch (error) {
       return null;
@@ -622,8 +644,14 @@ class YjsCollabManager extends EventEmitter {
    */
   _generateUserColor() {
     const colors = [
-      '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A',
-      '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'
+      "#FF6B6B",
+      "#4ECDC4",
+      "#45B7D1",
+      "#FFA07A",
+      "#98D8C8",
+      "#F7DC6F",
+      "#BB8FCE",
+      "#85C1E2",
     ];
     return colors[Math.floor(Math.random() * colors.length)];
   }

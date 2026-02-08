@@ -21,10 +21,7 @@
               :key="index"
               class="image-preview"
             >
-              <img
-                :src="image"
-                alt="预览图"
-              >
+              <img :src="image" alt="预览图" />
               <a-button
                 type="text"
                 danger
@@ -49,19 +46,10 @@
         </a-form-item>
 
         <!-- 链接分享 -->
-        <a-collapse
-          v-model:active-key="linkCollapse"
-          ghost
-        >
-          <a-collapse-panel
-            key="link"
-            header="添加链接"
-          >
+        <a-collapse v-model:active-key="linkCollapse" ghost>
+          <a-collapse-panel key="link" header="添加链接">
             <a-form-item label="链接 URL">
-              <a-input
-                v-model:value="linkUrl"
-                placeholder="https://..."
-              />
+              <a-input v-model:value="linkUrl" placeholder="https://..." />
             </a-form-item>
             <a-form-item label="链接标题">
               <a-input
@@ -81,10 +69,7 @@
 
         <!-- 可见性设置 -->
         <a-form-item label="可见性">
-          <a-radio-group
-            v-model:value="visibility"
-            button-style="solid"
-          >
+          <a-radio-group v-model:value="visibility" button-style="solid">
             <a-radio-button value="public">
               <global-outlined /> 公开
             </a-radio-button>
@@ -108,18 +93,10 @@
               <template #icon>
                 <send-outlined />
               </template>
-              {{ editing ? '保存' : '发布' }}
+              {{ editing ? "保存" : "发布" }}
             </a-button>
-            <a-button @click="handleCancel">
-              取消
-            </a-button>
-            <a-button
-              type="text"
-              danger
-              @click="handleClear"
-            >
-              清空
-            </a-button>
+            <a-button @click="handleCancel"> 取消 </a-button>
+            <a-button type="text" danger @click="handleClear"> 清空 </a-button>
           </a-space>
         </a-form-item>
       </a-form>
@@ -128,10 +105,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, reactive, computed } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   PlusOutlined,
   CloseOutlined,
@@ -139,13 +116,13 @@ import {
   GlobalOutlined,
   TeamOutlined,
   LockOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // Props
 const props = defineProps({
   initialContent: {
     type: String,
-    default: '',
+    default: "",
   },
   initialImages: {
     type: Array,
@@ -153,7 +130,7 @@ const props = defineProps({
   },
   initialVisibility: {
     type: String,
-    default: 'public',
+    default: "public",
   },
   editing: {
     type: Boolean,
@@ -162,14 +139,14 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['published', 'cancel']);
+const emit = defineEmits(["published", "cancel"]);
 
 // 状态
 const content = ref(props.initialContent);
 const images = ref([...props.initialImages]);
-const linkUrl = ref('');
-const linkTitle = ref('');
-const linkDescription = ref('');
+const linkUrl = ref("");
+const linkTitle = ref("");
+const linkDescription = ref("");
 const visibility = ref(props.initialVisibility);
 const publishing = ref(false);
 const linkCollapse = ref([]);
@@ -180,7 +157,7 @@ const selectImages = async () => {
     const remainingSlots = 9 - images.value.length;
 
     if (remainingSlots <= 0) {
-      antMessage.warning('最多只能添加 9 张图片');
+      antMessage.warning("最多只能添加 9 张图片");
       return;
     }
 
@@ -205,7 +182,7 @@ const selectImages = async () => {
 
           images.value.push(base64);
         } catch (error) {
-          logger.error('读取图片失败:', filePath, error);
+          logger.error("读取图片失败:", filePath, error);
         }
       }
 
@@ -214,8 +191,8 @@ const selectImages = async () => {
       }
     }
   } catch (error) {
-    logger.error('选择图片失败:', error);
-    antMessage.error('选择图片失败: ' + error.message);
+    logger.error("选择图片失败:", error);
+    antMessage.error("选择图片失败: " + error.message);
   }
 };
 
@@ -228,7 +205,7 @@ const removeImage = (index) => {
 const handlePublish = async () => {
   try {
     if (!content.value || content.value.trim().length === 0) {
-      antMessage.warning('请输入动态内容');
+      antMessage.warning("请输入动态内容");
       return;
     }
 
@@ -249,18 +226,18 @@ const handlePublish = async () => {
 
     const post = await window.electronAPI.post.create(options);
 
-    antMessage.success(props.editing ? '动态已更新' : '动态已发布');
+    antMessage.success(props.editing ? "动态已更新" : "动态已发布");
 
     // 通知父组件
-    emit('published', post);
+    emit("published", post);
 
     // 清空表单
     if (!props.editing) {
       handleClear();
     }
   } catch (error) {
-    logger.error('发布动态失败:', error);
-    antMessage.error('发布动态失败: ' + error.message);
+    logger.error("发布动态失败:", error);
+    antMessage.error("发布动态失败: " + error.message);
   } finally {
     publishing.value = false;
   }
@@ -268,17 +245,17 @@ const handlePublish = async () => {
 
 // 取消
 const handleCancel = () => {
-  emit('cancel');
+  emit("cancel");
 };
 
 // 清空表单
 const handleClear = () => {
-  content.value = '';
+  content.value = "";
   images.value = [];
-  linkUrl.value = '';
-  linkTitle.value = '';
-  linkDescription.value = '';
-  visibility.value = 'public';
+  linkUrl.value = "";
+  linkTitle.value = "";
+  linkDescription.value = "";
+  visibility.value = "public";
   linkCollapse.value = [];
 };
 </script>

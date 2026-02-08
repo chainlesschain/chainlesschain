@@ -6,7 +6,7 @@
  * @module multi-agent
  */
 
-const { logger, createLogger } = require('../../utils/logger.js');
+const { logger } = require("../../utils/logger.js");
 const { AgentOrchestrator } = require("./agent-orchestrator");
 const { CoworkOrchestrator } = require("./cowork-orchestrator");
 const { SpecializedAgent } = require("./specialized-agent");

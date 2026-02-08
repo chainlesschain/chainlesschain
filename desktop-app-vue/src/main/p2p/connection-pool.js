@@ -3,18 +3,18 @@
  * 优化P2P连接的生命周期管理、健康检查和资源复用
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * 连接状态枚举
  */
 const ConnectionState = {
-  IDLE: 'idle',
-  ACTIVE: 'active',
-  CLOSING: 'closing',
-  CLOSED: 'closed',
-  ERROR: 'error',
+  IDLE: "idle",
+  ACTIVE: "active",
+  CLOSING: "closing",
+  CLOSED: "closed",
+  ERROR: "error",
 };
 
 /**
@@ -67,9 +67,11 @@ class Connection {
    * 检查连接是否健康
    */
   isHealthy() {
-    return this.state !== ConnectionState.ERROR &&
-           this.state !== ConnectionState.CLOSED &&
-           this.errorCount < 3;
+    return (
+      this.state !== ConnectionState.ERROR &&
+      this.state !== ConnectionState.CLOSED &&
+      this.errorCount < 3
+    );
   }
 
   /**
@@ -130,7 +132,7 @@ class ConnectionPool extends EventEmitter {
    * 初始化连接池
    */
   async initialize() {
-    logger.info('[ConnectionPool] 初始化连接池...');
+    logger.info("[ConnectionPool] 初始化连接池...");
 
     // 启动健康检查
     this.startHealthCheck();
@@ -138,7 +140,7 @@ class ConnectionPool extends EventEmitter {
     // 启动清理任务
     this.startCleanup();
 
-    this.emit('initialized');
+    this.emit("initialized");
   }
 
   /**
@@ -172,14 +174,17 @@ class ConnectionPool extends EventEmitter {
       await this.evictIdleConnections(1);
 
       if (this.connections.size >= this.maxConnections) {
-        throw new Error('连接池已满，无法创建新连接');
+        throw new Error("连接池已满，无法创建新连接");
       }
     }
 
     // 3. 创建新连接
     try {
       logger.info(`[ConnectionPool] 创建新连接: ${peerId}`);
-      const connection = await this.createConnection(peerId, createConnectionFn);
+      const connection = await this.createConnection(
+        peerId,
+        createConnectionFn,
+      );
       this.stats.totalMisses++;
       return connection;
     } catch (error) {
@@ -194,12 +199,12 @@ class ConnectionPool extends EventEmitter {
    */
   async createConnection(peerId, createConnectionFn) {
     if (!createConnectionFn) {
-      throw new Error('未提供连接创建函数');
+      throw new Error("未提供连接创建函数");
     }
 
     // 设置超时
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('连接超时')), this.connectionTimeout);
+      setTimeout(() => reject(new Error("连接超时")), this.connectionTimeout);
     });
 
     try {
@@ -219,7 +224,7 @@ class ConnectionPool extends EventEmitter {
       this.stats.totalCreated++;
       this.updateStats();
 
-      this.emit('connection:created', { peerId });
+      this.emit("connection:created", { peerId });
 
       return connection;
     } catch (error) {
@@ -241,7 +246,7 @@ class ConnectionPool extends EventEmitter {
       this.updateStats();
 
       logger.info(`[ConnectionPool] 释放连接: ${peerId}`);
-      this.emit('connection:released', { peerId });
+      this.emit("connection:released", { peerId });
     }
   }
 
@@ -251,13 +256,15 @@ class ConnectionPool extends EventEmitter {
   async closeConnection(peerId) {
     const conn = this.connections.get(peerId);
 
-    if (!conn) {return;}
+    if (!conn) {
+      return;
+    }
 
     try {
       conn.state = ConnectionState.CLOSING;
 
       // 关闭底层连接
-      if (conn.connection && typeof conn.connection.close === 'function') {
+      if (conn.connection && typeof conn.connection.close === "function") {
         await conn.connection.close();
       }
 
@@ -273,7 +280,7 @@ class ConnectionPool extends EventEmitter {
       this.stats.totalClosed++;
       this.updateStats();
 
-      this.emit('connection:closed', { peerId });
+      this.emit("connection:closed", { peerId });
     }
   }
 
@@ -327,7 +334,9 @@ class ConnectionPool extends EventEmitter {
       await this.closeConnection(peerId);
     }
 
-    logger.info(`[ConnectionPool] 健康检查完成，关闭 ${unhealthyConnections.length} 个连接`);
+    logger.info(
+      `[ConnectionPool] 健康检查完成，关闭 ${unhealthyConnections.length} 个连接`,
+    );
   }
 
   /**
@@ -342,7 +351,7 @@ class ConnectionPool extends EventEmitter {
       this.performHealthCheck();
     }, this.healthCheckInterval);
 
-    logger.info('[ConnectionPool] 健康检查已启动');
+    logger.info("[ConnectionPool] 健康检查已启动");
   }
 
   /**
@@ -362,7 +371,7 @@ class ConnectionPool extends EventEmitter {
       }
     }, 60000);
 
-    logger.info('[ConnectionPool] 清理任务已启动');
+    logger.info("[ConnectionPool] 清理任务已启动");
   }
 
   /**
@@ -381,9 +390,14 @@ class ConnectionPool extends EventEmitter {
     return {
       ...this.stats,
       total: this.connections.size,
-      hitRate: this.stats.totalHits > 0
-        ? (this.stats.totalHits / (this.stats.totalHits + this.stats.totalMisses) * 100).toFixed(2) + '%'
-        : '0%',
+      hitRate:
+        this.stats.totalHits > 0
+          ? (
+              (this.stats.totalHits /
+                (this.stats.totalHits + this.stats.totalMisses)) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
     };
   }
 
@@ -412,7 +426,7 @@ class ConnectionPool extends EventEmitter {
    * 关闭所有连接
    */
   async closeAll() {
-    logger.info('[ConnectionPool] 关闭所有连接...');
+    logger.info("[ConnectionPool] 关闭所有连接...");
 
     const peerIds = Array.from(this.connections.keys());
 
@@ -427,7 +441,7 @@ class ConnectionPool extends EventEmitter {
    * 销毁连接池
    */
   async destroy() {
-    logger.info('[ConnectionPool] 销毁连接池...');
+    logger.info("[ConnectionPool] 销毁连接池...");
 
     // 停止定时器
     if (this.healthCheckTimer) {
@@ -443,7 +457,7 @@ class ConnectionPool extends EventEmitter {
     // 关闭所有连接
     await this.closeAll();
 
-    this.emit('destroyed');
+    this.emit("destroyed");
   }
 }
 

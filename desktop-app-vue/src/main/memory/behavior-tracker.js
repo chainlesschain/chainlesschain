@@ -13,7 +13,7 @@
  * @since 2026-01-18
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -709,10 +709,7 @@ class BehaviorTracker extends EventEmitter {
 
       return { updated };
     } catch (error) {
-      logger.error(
-        "[BehaviorTracker] Time preference analysis failed:",
-        error,
-      );
+      logger.error("[BehaviorTracker] Time preference analysis failed:", error);
       return { updated: 0 };
     }
   }
@@ -1062,10 +1059,7 @@ class BehaviorTracker extends EventEmitter {
 
       this.emit("recommendation-accepted", { id });
     } catch (error) {
-      logger.error(
-        "[BehaviorTracker] Failed to accept recommendation:",
-        error,
-      );
+      logger.error("[BehaviorTracker] Failed to accept recommendation:", error);
     }
   }
 

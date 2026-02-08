@@ -3,20 +3,20 @@
  * 用于跟踪和分析RAG系统的性能指标
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * 性能指标类型
  */
 const MetricTypes = {
-  RETRIEVAL: 'retrieval',         // 检索延迟
-  RERANK: 'rerank',               // 重排序延迟
-  EMBEDDING: 'embedding',         // 嵌入生成延迟
-  QUERY_REWRITE: 'query_rewrite', // 查询重写延迟
-  TOTAL: 'total',                 // 总延迟
-  CACHE_HIT: 'cache_hit',         // 缓存命中
-  CACHE_MISS: 'cache_miss',       // 缓存未命中
+  RETRIEVAL: "retrieval", // 检索延迟
+  RERANK: "rerank", // 重排序延迟
+  EMBEDDING: "embedding", // 嵌入生成延迟
+  QUERY_REWRITE: "query_rewrite", // 查询重写延迟
+  TOTAL: "total", // 总延迟
+  CACHE_HIT: "cache_hit", // 缓存命中
+  CACHE_MISS: "cache_miss", // 缓存未命中
 };
 
 /**
@@ -83,7 +83,7 @@ class RAGMetrics extends EventEmitter {
     this._updateStats(type, value);
 
     // 触发事件
-    this.emit('metric-recorded', record);
+    this.emit("metric-recorded", record);
 
     // 检查性能告警
     this._checkAlerts(type, value);
@@ -109,7 +109,7 @@ class RAGMetrics extends EventEmitter {
    */
   recordCacheHit() {
     this.stats.cacheHits++;
-    this.emit('cache-hit');
+    this.emit("cache-hit");
   }
 
   /**
@@ -117,7 +117,7 @@ class RAGMetrics extends EventEmitter {
    */
   recordCacheMiss() {
     this.stats.cacheMisses++;
-    this.emit('cache-miss');
+    this.emit("cache-miss");
   }
 
   /**
@@ -128,7 +128,7 @@ class RAGMetrics extends EventEmitter {
   recordError(type, error) {
     this.stats.errors++;
 
-    this.emit('error', {
+    this.emit("error", {
       type,
       error: error.message,
       timestamp: Date.now(),
@@ -184,7 +184,7 @@ class RAGMetrics extends EventEmitter {
       };
     }
 
-    const values = records.map(r => r.value).sort((a, b) => a - b);
+    const values = records.map((r) => r.value).sort((a, b) => a - b);
     const sum = values.reduce((a, b) => a + b, 0);
 
     return {
@@ -246,11 +246,11 @@ class RAGMetrics extends EventEmitter {
    */
   _getMetricKey(type) {
     const keyMap = {
-      [MetricTypes.RETRIEVAL]: 'retrieval',
-      [MetricTypes.RERANK]: 'rerank',
-      [MetricTypes.EMBEDDING]: 'embedding',
-      [MetricTypes.QUERY_REWRITE]: 'queryRewrite',
-      [MetricTypes.TOTAL]: 'total',
+      [MetricTypes.RETRIEVAL]: "retrieval",
+      [MetricTypes.RERANK]: "rerank",
+      [MetricTypes.EMBEDDING]: "embedding",
+      [MetricTypes.QUERY_REWRITE]: "queryRewrite",
+      [MetricTypes.TOTAL]: "total",
     };
 
     return keyMap[type];
@@ -263,16 +263,16 @@ class RAGMetrics extends EventEmitter {
   _checkAlerts(type, value) {
     // 延迟阈值（毫秒）
     const thresholds = {
-      [MetricTypes.RETRIEVAL]: 500,      // 检索>500ms告警
-      [MetricTypes.RERANK]: 3000,        // 重排序>3s告警
-      [MetricTypes.EMBEDDING]: 200,      // 嵌入>200ms告警
+      [MetricTypes.RETRIEVAL]: 500, // 检索>500ms告警
+      [MetricTypes.RERANK]: 3000, // 重排序>3s告警
+      [MetricTypes.EMBEDDING]: 200, // 嵌入>200ms告警
       [MetricTypes.QUERY_REWRITE]: 2000, // 查询重写>2s告警
-      [MetricTypes.TOTAL]: 5000,         // 总延迟>5s告警
+      [MetricTypes.TOTAL]: 5000, // 总延迟>5s告警
     };
 
     const threshold = thresholds[type];
     if (threshold && value > threshold) {
-      this.emit('alert', {
+      this.emit("alert", {
         type,
         value,
         threshold,
@@ -290,8 +290,10 @@ class RAGMetrics extends EventEmitter {
     const recentWindow = 60000; // 最近1分钟
 
     const getRecentAvg = (records) => {
-      const recent = records.filter(r => now - r.timestamp < recentWindow);
-      if (recent.length === 0) {return 0;}
+      const recent = records.filter((r) => now - r.timestamp < recentWindow);
+      if (recent.length === 0) {
+        return 0;
+      }
       const sum = recent.reduce((acc, r) => acc + r.value, 0);
       return sum / recent.length;
     };
@@ -333,7 +335,7 @@ class RAGMetrics extends EventEmitter {
     const cutoff = now - timeRange;
 
     const filterRecent = (records) => {
-      return records.filter(r => r.timestamp >= cutoff);
+      return records.filter((r) => r.timestamp >= cutoff);
     };
 
     const report = {
@@ -402,8 +404,8 @@ class RAGMetrics extends EventEmitter {
 
     this.startTime = Date.now();
 
-    this.emit('reset');
-    logger.info('[RAGMetrics] 指标已重置');
+    this.emit("reset");
+    logger.info("[RAGMetrics] 指标已重置");
   }
 
   /**
@@ -414,10 +416,10 @@ class RAGMetrics extends EventEmitter {
     const cutoff = Date.now() - maxAge;
 
     for (const [key, records] of Object.entries(this.metrics)) {
-      this.metrics[key] = records.filter(r => r.timestamp >= cutoff);
+      this.metrics[key] = records.filter((r) => r.timestamp >= cutoff);
     }
 
-    this.emit('cleaned', { cutoff, remaining: this._countTotalRecords() });
+    this.emit("cleaned", { cutoff, remaining: this._countTotalRecords() });
   }
 
   /**

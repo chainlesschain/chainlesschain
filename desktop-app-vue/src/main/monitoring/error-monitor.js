@@ -11,7 +11,7 @@
  * @since 2026-01-16
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { app } = require("electron");
@@ -47,7 +47,9 @@ class ErrorMonitor extends EventEmitter {
    * @private
    */
   _getDbConnection() {
-    if (!this.database) {return null;}
+    if (!this.database) {
+      return null;
+    }
     // 支持 DatabaseManager (有 .db 属性) 或直接的数据库实例
     return this.database.db || this.database;
   }
@@ -538,10 +540,18 @@ class ErrorMonitor extends EventEmitter {
    */
   identifyService(error) {
     const message = error.message || "";
-    if (message.includes("11434")) {return "ollama";}
-    if (message.includes("6333")) {return "qdrant";}
-    if (message.includes("5432")) {return "postgres";}
-    if (message.includes("6379")) {return "redis";}
+    if (message.includes("11434")) {
+      return "ollama";
+    }
+    if (message.includes("6333")) {
+      return "qdrant";
+    }
+    if (message.includes("5432")) {
+      return "postgres";
+    }
+    if (message.includes("6379")) {
+      return "redis";
+    }
     return "unknown";
   }
 
@@ -1450,9 +1460,7 @@ class ErrorMonitor extends EventEmitter {
    */
   async _resolveDiagnosisLLMOptions() {
     const provider =
-      this.llmManager.provider ||
-      this.llmManager.config?.provider ||
-      "ollama";
+      this.llmManager.provider || this.llmManager.config?.provider || "ollama";
 
     let model =
       this.llmManager.config?.model ||
@@ -1496,10 +1504,7 @@ class ErrorMonitor extends EventEmitter {
 
       return fallback || normalizedPreferred;
     } catch (error) {
-      logger.warn(
-        "[ErrorMonitor] 检查诊断模型可用性失败:",
-        error.message,
-      );
+      logger.warn("[ErrorMonitor] 检查诊断模型可用性失败:", error.message);
       return preferred;
     }
   }
@@ -1656,7 +1661,9 @@ ${error?.stack || "无堆栈信息"}
       // 实际实现可能需要根据数据库架构调整
       const relatedErrors = this.errors.filter((e) => {
         const timestamp = new Date(e.timestamp).getTime();
-        if (timestamp < thirtyDaysAgo) {return false;}
+        if (timestamp < thirtyDaysAgo) {
+          return false;
+        }
 
         // 检查是否包含相同关键词
         const hasKeyword = keywords.some((kw) =>
@@ -1888,10 +1895,18 @@ ${error?.stack || "无堆栈信息"}
     // ============================================================
     // JavaScript 运行时错误
     // ============================================================
-    if (name === "TypeError") {return "TYPE_ERROR";}
-    if (name === "ReferenceError") {return "REFERENCE_ERROR";}
-    if (name === "SyntaxError") {return "SYNTAX_ERROR";}
-    if (name === "RangeError") {return "RANGE_ERROR";}
+    if (name === "TypeError") {
+      return "TYPE_ERROR";
+    }
+    if (name === "ReferenceError") {
+      return "REFERENCE_ERROR";
+    }
+    if (name === "SyntaxError") {
+      return "SYNTAX_ERROR";
+    }
+    if (name === "RangeError") {
+      return "RANGE_ERROR";
+    }
 
     return "UNKNOWN";
   }
@@ -1910,55 +1925,129 @@ ${error?.stack || "无堆栈信息"}
     // ============================================================
     // Critical: 导致应用崩溃或核心功能不可用
     // ============================================================
-    if (classification === "DATABASE_CORRUPT") {return "critical";}
-    if (classification === "MEMORY_LEAK") {return "critical";}
-    if (classification === "STACK_OVERFLOW") {return "critical";}
-    if (classification === "DISK_FULL") {return "critical";}
-    if (code === "ENOSPC") {return "critical";}
-    if (message.includes("heap out of memory")) {return "critical";}
-    if (message.includes("uncaught exception")) {return "critical";}
+    if (classification === "DATABASE_CORRUPT") {
+      return "critical";
+    }
+    if (classification === "MEMORY_LEAK") {
+      return "critical";
+    }
+    if (classification === "STACK_OVERFLOW") {
+      return "critical";
+    }
+    if (classification === "DISK_FULL") {
+      return "critical";
+    }
+    if (code === "ENOSPC") {
+      return "critical";
+    }
+    if (message.includes("heap out of memory")) {
+      return "critical";
+    }
+    if (message.includes("uncaught exception")) {
+      return "critical";
+    }
 
     // ============================================================
     // High: 严重影响用户体验或数据完整性
     // ============================================================
-    if (classification === "DATABASE_LOCKED") {return "high";}
-    if (classification === "DATABASE_READONLY") {return "high";}
-    if (classification === "CONNECTION_REFUSED") {return "high";}
-    if (classification === "AUTH_ERROR") {return "high";}
-    if (classification === "SSL_ERROR") {return "high";}
-    if (classification === "LLM_MODEL_ERROR") {return "high";}
-    if (code === "SQLITE_BUSY") {return "high";}
-    if (code === "ECONNREFUSED") {return "high";}
+    if (classification === "DATABASE_LOCKED") {
+      return "high";
+    }
+    if (classification === "DATABASE_READONLY") {
+      return "high";
+    }
+    if (classification === "CONNECTION_REFUSED") {
+      return "high";
+    }
+    if (classification === "AUTH_ERROR") {
+      return "high";
+    }
+    if (classification === "SSL_ERROR") {
+      return "high";
+    }
+    if (classification === "LLM_MODEL_ERROR") {
+      return "high";
+    }
+    if (code === "SQLITE_BUSY") {
+      return "high";
+    }
+    if (code === "ECONNREFUSED") {
+      return "high";
+    }
 
     // ============================================================
     // Medium: 影响部分功能但有降级方案
     // ============================================================
-    if (classification === "FILE_NOT_FOUND") {return "medium";}
-    if (classification === "PERMISSION_DENIED") {return "medium";}
-    if (classification === "TIMEOUT") {return "medium";}
-    if (classification === "CONNECTION_RESET") {return "medium";}
-    if (classification === "DNS_ERROR") {return "medium";}
-    if (classification === "RATE_LIMIT") {return "medium";}
-    if (classification === "SERVER_ERROR") {return "medium";}
-    if (classification === "LLM_CONTEXT_LENGTH") {return "medium";}
-    if (classification === "LLM_API_ERROR") {return "medium";}
-    if (classification === "VALIDATION") {return "medium";}
-    if (classification === "TYPE_ERROR") {return "medium";}
-    if (code === "ENOENT") {return "medium";}
-    if (code === "ETIMEDOUT") {return "medium";}
+    if (classification === "FILE_NOT_FOUND") {
+      return "medium";
+    }
+    if (classification === "PERMISSION_DENIED") {
+      return "medium";
+    }
+    if (classification === "TIMEOUT") {
+      return "medium";
+    }
+    if (classification === "CONNECTION_RESET") {
+      return "medium";
+    }
+    if (classification === "DNS_ERROR") {
+      return "medium";
+    }
+    if (classification === "RATE_LIMIT") {
+      return "medium";
+    }
+    if (classification === "SERVER_ERROR") {
+      return "medium";
+    }
+    if (classification === "LLM_CONTEXT_LENGTH") {
+      return "medium";
+    }
+    if (classification === "LLM_API_ERROR") {
+      return "medium";
+    }
+    if (classification === "VALIDATION") {
+      return "medium";
+    }
+    if (classification === "TYPE_ERROR") {
+      return "medium";
+    }
+    if (code === "ENOENT") {
+      return "medium";
+    }
+    if (code === "ETIMEDOUT") {
+      return "medium";
+    }
 
     // ============================================================
     // Low: 轻微问题，不影响主要功能
     // ============================================================
-    if (classification === "FILE_LOCKED") {return "low";}
-    if (classification === "PATH_TOO_LONG") {return "low";}
-    if (classification === "NETWORK_ERROR") {return "low";}
-    if (classification === "GPU_ERROR") {return "low";}
-    if (classification === "IPC_ERROR") {return "low";}
-    if (classification === "WINDOW_ERROR") {return "low";}
-    if (classification === "REFERENCE_ERROR") {return "low";}
-    if (classification === "SYNTAX_ERROR") {return "low";}
-    if (classification === "RANGE_ERROR") {return "low";}
+    if (classification === "FILE_LOCKED") {
+      return "low";
+    }
+    if (classification === "PATH_TOO_LONG") {
+      return "low";
+    }
+    if (classification === "NETWORK_ERROR") {
+      return "low";
+    }
+    if (classification === "GPU_ERROR") {
+      return "low";
+    }
+    if (classification === "IPC_ERROR") {
+      return "low";
+    }
+    if (classification === "WINDOW_ERROR") {
+      return "low";
+    }
+    if (classification === "REFERENCE_ERROR") {
+      return "low";
+    }
+    if (classification === "SYNTAX_ERROR") {
+      return "low";
+    }
+    if (classification === "RANGE_ERROR") {
+      return "low";
+    }
 
     return "low";
   }
@@ -2053,7 +2142,9 @@ ${error?.stack || "无堆栈信息"}
    * @returns {Promise<string|null>} 保存的记录 ID 或 null
    */
   async saveErrorAnalysis(analysis) {
-    if (!this._getDbConnection()) {return null;}
+    if (!this._getDbConnection()) {
+      return null;
+    }
 
     try {
       const { v4: uuidv4 } = require("uuid");
@@ -2359,7 +2450,9 @@ ${error?.stack || "无堆栈信息"}
    */
   _parseAnalysisRecord(record) {
     const safeJsonParse = (str, defaultVal = null) => {
-      if (!str) {return defaultVal;}
+      if (!str) {
+        return defaultVal;
+      }
       try {
         return JSON.parse(str);
       } catch {

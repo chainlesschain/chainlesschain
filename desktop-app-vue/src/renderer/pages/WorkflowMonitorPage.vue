@@ -39,8 +39,10 @@
         >
           <template #title>
             <div class="card-title">
-              <span class="workflow-icon">{{ getWorkflowIcon(workflow.overall?.status) }}</span>
-              <span>{{ workflow.title || '未命名工作流' }}</span>
+              <span class="workflow-icon">{{
+                getWorkflowIcon(workflow.overall?.status)
+              }}</span>
+              <span>{{ workflow.title || "未命名工作流" }}</span>
             </div>
           </template>
           <template #extra>
@@ -58,7 +60,9 @@
             <div class="card-meta">
               <span>
                 <NodeIndexOutlined />
-                阶段 {{ workflow.overall?.stage || 0 }}/{{ workflow.overall?.totalStages || 6 }}
+                阶段 {{ workflow.overall?.stage || 0 }}/{{
+                  workflow.overall?.totalStages || 6
+                }}
               </span>
               <span>
                 <ClockCircleOutlined />
@@ -71,11 +75,21 @@
             <a-tooltip title="查看详情">
               <EyeOutlined @click.stop="selectWorkflow(workflow.workflowId)" />
             </a-tooltip>
-            <a-tooltip v-if="workflow.overall?.status === 'running'" title="暂停">
-              <PauseCircleOutlined @click.stop="pauseWorkflow(workflow.workflowId)" />
+            <a-tooltip
+              v-if="workflow.overall?.status === 'running'"
+              title="暂停"
+            >
+              <PauseCircleOutlined
+                @click.stop="pauseWorkflow(workflow.workflowId)"
+              />
             </a-tooltip>
-            <a-tooltip v-if="workflow.overall?.status === 'paused'" title="继续">
-              <PlayCircleOutlined @click.stop="resumeWorkflow(workflow.workflowId)" />
+            <a-tooltip
+              v-if="workflow.overall?.status === 'paused'"
+              title="继续"
+            >
+              <PlayCircleOutlined
+                @click.stop="resumeWorkflow(workflow.workflowId)"
+              />
             </a-tooltip>
             <a-popconfirm
               title="确定删除此工作流？"
@@ -112,11 +126,11 @@
         :workflow="completedWorkflow"
         :stages="completedStages"
         :quality-gates="completedGates"
+        class="workflow-summary-panel"
         @retry="handleRetry"
         @view-result="handleViewResult"
         @export="handleExport"
         @close="showSummary = false"
-        class="workflow-summary-panel"
       />
     </div>
 
@@ -154,9 +168,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   ArrowLeftOutlined,
   ReloadOutlined,
@@ -167,8 +181,8 @@ import {
   PauseCircleOutlined,
   PlayCircleOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { WorkflowProgress, WorkflowSummary } from '@/components/workflow';
+} from "@ant-design/icons-vue";
+import { WorkflowProgress, WorkflowSummary } from "@/components/workflow";
 
 const router = useRouter();
 
@@ -178,9 +192,9 @@ const selectedWorkflowId = ref(null);
 const loading = ref(false);
 const createModalVisible = ref(false);
 const createForm = ref({
-  title: '',
-  description: '',
-  userRequest: '',
+  title: "",
+  description: "",
+  userRequest: "",
 });
 const showSummary = ref(false);
 const completedWorkflow = ref({});
@@ -200,12 +214,12 @@ const goBack = () => {
 const refreshWorkflows = async () => {
   loading.value = true;
   try {
-    const result = await window.ipc.invoke('workflow:get-all');
+    const result = await window.ipc.invoke("workflow:get-all");
     if (result.success) {
       workflows.value = result.data;
     }
   } catch (error) {
-    message.error('刷新失败: ' + error.message);
+    message.error("刷新失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -213,21 +227,21 @@ const refreshWorkflows = async () => {
 
 const showCreateModal = () => {
   createForm.value = {
-    title: '',
-    description: '',
-    userRequest: '',
+    title: "",
+    description: "",
+    userRequest: "",
   };
   createModalVisible.value = true;
 };
 
 const handleCreateWorkflow = async () => {
   if (!createForm.value.title || !createForm.value.userRequest) {
-    message.warning('请填写必填项');
+    message.warning("请填写必填项");
     return;
   }
 
   try {
-    const result = await window.ipc.invoke('workflow:create-and-start', {
+    const result = await window.ipc.invoke("workflow:create-and-start", {
       title: createForm.value.title,
       description: createForm.value.description,
       input: {
@@ -237,15 +251,15 @@ const handleCreateWorkflow = async () => {
     });
 
     if (result.success) {
-      message.success('工作流已创建并启动');
+      message.success("工作流已创建并启动");
       createModalVisible.value = false;
       selectedWorkflowId.value = result.data.workflowId;
       refreshWorkflows();
     } else {
-      message.error(result.error || '创建失败');
+      message.error(result.error || "创建失败");
     }
   } catch (error) {
-    message.error('创建失败: ' + error.message);
+    message.error("创建失败: " + error.message);
   }
 };
 
@@ -255,70 +269,70 @@ const selectWorkflow = (workflowId) => {
 
 const pauseWorkflow = async (workflowId) => {
   try {
-    const result = await window.ipc.invoke('workflow:pause', { workflowId });
+    const result = await window.ipc.invoke("workflow:pause", { workflowId });
     if (result.success) {
-      message.success('工作流已暂停');
+      message.success("工作流已暂停");
       refreshWorkflows();
     } else {
-      message.error(result.error || '暂停失败');
+      message.error(result.error || "暂停失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const resumeWorkflow = async (workflowId) => {
   try {
-    const result = await window.ipc.invoke('workflow:resume', { workflowId });
+    const result = await window.ipc.invoke("workflow:resume", { workflowId });
     if (result.success) {
-      message.success('工作流已恢复');
+      message.success("工作流已恢复");
       refreshWorkflows();
     } else {
-      message.error(result.error || '恢复失败');
+      message.error(result.error || "恢复失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const deleteWorkflow = async (workflowId) => {
   try {
-    const result = await window.ipc.invoke('workflow:delete', { workflowId });
+    const result = await window.ipc.invoke("workflow:delete", { workflowId });
     if (result.success) {
-      message.success('工作流已删除');
+      message.success("工作流已删除");
       if (selectedWorkflowId.value === workflowId) {
         selectedWorkflowId.value = null;
       }
       refreshWorkflows();
     } else {
-      message.error(result.error || '删除失败');
+      message.error(result.error || "删除失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const handleWorkflowComplete = async (data) => {
-  message.success('工作流执行完成');
+  message.success("工作流执行完成");
   completedWorkflow.value = data;
 
   // 获取详细信息
   try {
-    const stagesResult = await window.ipc.invoke('workflow:get-stages', {
+    const stagesResult = await window.ipc.invoke("workflow:get-stages", {
       workflowId: selectedWorkflowId.value,
     });
     if (stagesResult.success) {
       completedStages.value = stagesResult.data;
     }
 
-    const gatesResult = await window.ipc.invoke('workflow:get-gates', {
+    const gatesResult = await window.ipc.invoke("workflow:get-gates", {
       workflowId: selectedWorkflowId.value,
     });
     if (gatesResult.success) {
       completedGates.value = gatesResult.data;
     }
   } catch (error) {
-    console.error('获取工作流详情失败:', error);
+    console.error("获取工作流详情失败:", error);
   }
 
   showSummary.value = true;
@@ -326,7 +340,7 @@ const handleWorkflowComplete = async (data) => {
 };
 
 const handleWorkflowError = (data) => {
-  message.error('工作流执行失败: ' + data.error);
+  message.error("工作流执行失败: " + data.error);
   completedWorkflow.value = { ...data, success: false };
   showSummary.value = true;
   refreshWorkflows();
@@ -334,87 +348,97 @@ const handleWorkflowError = (data) => {
 
 const handleRetry = async () => {
   try {
-    const result = await window.ipc.invoke('workflow:retry', {
+    const result = await window.ipc.invoke("workflow:retry", {
       workflowId: selectedWorkflowId.value,
     });
     if (result.success) {
-      message.success('工作流重试中');
+      message.success("工作流重试中");
       showSummary.value = false;
     } else {
-      message.error(result.error || '重试失败');
+      message.error(result.error || "重试失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const handleViewResult = () => {
   // 可以实现查看结果的逻辑
-  message.info('查看结果功能待实现');
+  message.info("查看结果功能待实现");
 };
 
 const handleExport = () => {
   // 可以实现导出报告的逻辑
-  message.info('导出报告功能待实现');
+  message.info("导出报告功能待实现");
 };
 
 // 辅助方法
 const getWorkflowIcon = (status) => {
   const iconMap = {
-    idle: '📋',
-    running: '🔄',
-    paused: '⏸️',
-    completed: '✅',
-    failed: '❌',
-    cancelled: '🚫',
+    idle: "📋",
+    running: "🔄",
+    paused: "⏸️",
+    completed: "✅",
+    failed: "❌",
+    cancelled: "🚫",
   };
-  return iconMap[status] || '📋';
+  return iconMap[status] || "📋";
 };
 
 const getStatusColor = (status) => {
   const colorMap = {
-    idle: 'default',
-    running: 'processing',
-    paused: 'warning',
-    completed: 'success',
-    failed: 'error',
-    cancelled: 'default',
+    idle: "default",
+    running: "processing",
+    paused: "warning",
+    completed: "success",
+    failed: "error",
+    cancelled: "default",
   };
-  return colorMap[status] || 'default';
+  return colorMap[status] || "default";
 };
 
 const getStatusText = (status) => {
   const textMap = {
-    idle: '等待中',
-    running: '执行中',
-    paused: '已暂停',
-    completed: '已完成',
-    failed: '失败',
-    cancelled: '已取消',
+    idle: "等待中",
+    running: "执行中",
+    paused: "已暂停",
+    completed: "已完成",
+    failed: "失败",
+    cancelled: "已取消",
   };
-  return textMap[status] || '未知';
+  return textMap[status] || "未知";
 };
 
 const getProgressStatus = (status) => {
-  if (status === 'failed') return 'exception';
-  if (status === 'completed') return 'success';
-  return 'active';
+  if (status === "failed") {
+    return "exception";
+  }
+  if (status === "completed") {
+    return "success";
+  }
+  return "active";
 };
 
 const getWorkflowCardClass = (workflow) => ({
-  running: workflow.overall?.status === 'running',
-  paused: workflow.overall?.status === 'paused',
-  completed: workflow.overall?.status === 'completed',
-  failed: workflow.overall?.status === 'failed',
+  running: workflow.overall?.status === "running",
+  paused: workflow.overall?.status === "paused",
+  completed: workflow.overall?.status === "completed",
+  failed: workflow.overall?.status === "failed",
 });
 
 const formatDuration = (ms) => {
-  if (!ms || ms === 0) return '0秒';
+  if (!ms || ms === 0) {
+    return "0秒";
+  }
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}秒`;
+  if (seconds < 60) {
+    return `${seconds}秒`;
+  }
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  if (minutes < 60) return `${minutes}分${remainingSeconds}秒`;
+  if (minutes < 60) {
+    return `${minutes}分${remainingSeconds}秒`;
+  }
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return `${hours}时${remainingMinutes}分`;
@@ -423,7 +447,9 @@ const formatDuration = (ms) => {
 // 事件监听
 const handleWorkflowUpdate = (data) => {
   // 更新列表中的工作流
-  const index = workflows.value.findIndex(w => w.workflowId === data.workflowId);
+  const index = workflows.value.findIndex(
+    (w) => w.workflowId === data.workflowId,
+  );
   if (index >= 0) {
     workflows.value[index] = {
       ...workflows.value[index],
@@ -438,13 +464,13 @@ onMounted(() => {
 
   // 监听工作流更新事件
   if (window.ipc) {
-    window.ipc.on('workflow:progress', handleWorkflowUpdate);
+    window.ipc.on("workflow:progress", handleWorkflowUpdate);
   }
 });
 
 onUnmounted(() => {
   if (window.ipc) {
-    window.ipc.off('workflow:progress', handleWorkflowUpdate);
+    window.ipc.off("workflow:progress", handleWorkflowUpdate);
   }
 });
 </script>

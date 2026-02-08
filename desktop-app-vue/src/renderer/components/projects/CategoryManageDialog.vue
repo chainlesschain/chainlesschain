@@ -9,10 +9,7 @@
     <div class="category-manage">
       <!-- 操作按钮 -->
       <div class="actions">
-        <a-button
-          type="primary"
-          @click="showAddDialog()"
-        >
+        <a-button type="primary" @click="showAddDialog()">
           <template #icon>
             <PlusOutlined />
           </template>
@@ -22,10 +19,7 @@
 
       <!-- 分类列表 -->
       <div class="category-list">
-        <a-collapse
-          v-model:active-key="activeKeys"
-          accordion
-        >
+        <a-collapse v-model:active-key="activeKeys" accordion>
           <a-collapse-panel
             v-for="category in categories"
             :key="category.id"
@@ -59,11 +53,7 @@
                   @confirm="handleDelete(category.id)"
                   @click.stop
                 >
-                  <a-button
-                    type="link"
-                    danger
-                    size="small"
-                  >
+                  <a-button type="link" danger size="small">
                     <template #icon>
                       <DeleteOutlined />
                     </template>
@@ -74,10 +64,7 @@
 
             <!-- 子分类列表 -->
             <div v-if="category.children && category.children.length > 0">
-              <a-list
-                :data-source="category.children"
-                size="small"
-              >
+              <a-list :data-source="category.children" size="small">
                 <template #renderItem="{ item }">
                   <a-list-item>
                     <template #actions>
@@ -96,11 +83,7 @@
                         cancel-text="取消"
                         @confirm="handleDelete(item.id)"
                       >
-                        <a-button
-                          type="link"
-                          danger
-                          size="small"
-                        >
+                        <a-button type="link" danger size="small">
                           <template #icon>
                             <DeleteOutlined />
                           </template>
@@ -115,7 +98,7 @@
                         {{ item.name }}
                       </template>
                       <template #description>
-                        {{ item.description || '暂无描述' }}
+                        {{ item.description || "暂无描述" }}
                       </template>
                     </a-list-item-meta>
                   </a-list-item>
@@ -145,30 +128,18 @@
         :rules="formRules"
         layout="vertical"
       >
-        <a-form-item
-          label="分类名称"
-          name="name"
-        >
-          <a-input
-            v-model:value="formData.name"
-            placeholder="请输入分类名称"
-          />
+        <a-form-item label="分类名称" name="name">
+          <a-input v-model:value="formData.name" placeholder="请输入分类名称" />
         </a-form-item>
 
-        <a-form-item
-          label="图标"
-          name="icon"
-        >
+        <a-form-item label="图标" name="icon">
           <a-input
             v-model:value="formData.icon"
             placeholder="请输入图标（Emoji）"
           />
         </a-form-item>
 
-        <a-form-item
-          label="颜色"
-          name="color"
-        >
+        <a-form-item label="颜色" name="color">
           <a-input
             v-model:value="formData.color"
             type="color"
@@ -176,10 +147,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="排序"
-          name="sort_order"
-        >
+        <a-form-item label="排序" name="sort_order">
           <a-input-number
             v-model:value="formData.sort_order"
             :min="0"
@@ -188,10 +156,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="描述"
-          name="description"
-        >
+        <a-form-item label="描述" name="description">
           <a-textarea
             v-model:value="formData.description"
             :rows="3"
@@ -204,16 +169,16 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message, Empty } from 'ant-design-vue';
-import { useCategoryStore } from '@/stores/category';
+import { ref, computed, watch } from "vue";
+import { message, Empty } from "ant-design-vue";
+import { useCategoryStore } from "@/stores/category";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   open: {
@@ -222,7 +187,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:open', 'refresh']);
+const emit = defineEmits(["update:open", "refresh"]);
 
 const categoryStore = useCategoryStore();
 
@@ -235,20 +200,20 @@ const editingCategory = ref(null);
 const parentId = ref(null);
 
 const formData = ref({
-  name: '',
-  icon: '',
-  color: '#1890ff',
+  name: "",
+  icon: "",
+  color: "#1890ff",
   sort_order: 0,
-  description: '',
+  description: "",
 });
 
 const formRules = {
   name: [
-    { required: true, message: '请输入分类名称', trigger: 'blur' },
-    { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' },
+    { required: true, message: "请输入分类名称", trigger: "blur" },
+    { min: 1, max: 20, message: "长度在 1 到 20 个字符", trigger: "blur" },
   ],
-  icon: [{ required: true, message: '请输入图标', trigger: 'blur' }],
-  color: [{ required: true, message: '请选择颜色', trigger: 'change' }],
+  icon: [{ required: true, message: "请输入图标", trigger: "blur" }],
+  color: [{ required: true, message: "请选择颜色", trigger: "change" }],
 };
 
 // 分类列表
@@ -264,11 +229,11 @@ const showAddDialog = (parentCategoryId = null) => {
   editingCategory.value = null;
   parentId.value = parentCategoryId;
   formData.value = {
-    name: '',
-    icon: '',
-    color: '#1890ff',
+    name: "",
+    icon: "",
+    color: "#1890ff",
     sort_order: 0,
-    description: '',
+    description: "",
   };
   editDialogVisible.value = true;
 };
@@ -280,9 +245,9 @@ const showEditDialog = (category) => {
   formData.value = {
     name: category.name,
     icon: category.icon,
-    color: category.color || '#1890ff',
+    color: category.color || "#1890ff",
     sort_order: category.sort_order || 0,
-    description: category.description || '',
+    description: category.description || "",
   };
   editDialogVisible.value = true;
 };
@@ -295,28 +260,28 @@ const handleSave = async () => {
     const data = {
       ...formData.value,
       parent_id: parentId.value,
-      user_id: 'local-user',
+      user_id: "local-user",
     };
 
     if (editingCategory.value) {
       // 更新
       await categoryStore.updateCategory(editingCategory.value.id, data);
-      message.success('分类更新成功');
+      message.success("分类更新成功");
     } else {
       // 创建
       await categoryStore.createCategory(data);
-      message.success('分类创建成功');
+      message.success("分类创建成功");
     }
 
     editDialogVisible.value = false;
-    emit('refresh');
+    emit("refresh");
   } catch (error) {
-    logger.error('保存分类失败:', error);
+    logger.error("保存分类失败:", error);
     if (error.errorFields) {
       // 表单验证失败
       return;
     }
-    message.error(error.message || '保存分类失败');
+    message.error(error.message || "保存分类失败");
   }
 };
 
@@ -324,11 +289,11 @@ const handleSave = async () => {
 const handleDelete = async (categoryId) => {
   try {
     await categoryStore.deleteCategory(categoryId);
-    message.success('分类删除成功');
-    emit('refresh');
+    message.success("分类删除成功");
+    emit("refresh");
   } catch (error) {
-    logger.error('删除分类失败:', error);
-    message.error(error.message || '删除分类失败');
+    logger.error("删除分类失败:", error);
+    message.error(error.message || "删除分类失败");
   }
 };
 
@@ -340,7 +305,7 @@ const handleEditCancel = () => {
 
 // 关闭主对话框
 const handleCancel = () => {
-  emit('update:open', false);
+  emit("update:open", false);
 };
 
 // 监听 open 变化
@@ -353,11 +318,11 @@ watch(
       categoryStore.fetchCategories();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(dialogVisible, (newValue) => {
-  emit('update:open', newValue);
+  emit("update:open", newValue);
 });
 </script>
 

@@ -4,9 +4,9 @@
  * 支持: OpenAI, DeepSeek, 以及其他兼容OpenAI API的服务
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const axios = require('axios');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const axios = require("axios");
+const EventEmitter = require("events");
 
 /**
  * OpenAI兼容客户端类
@@ -17,9 +17,9 @@ class OpenAIClient extends EventEmitter {
 
     // API配置
     this.apiKey = config.apiKey;
-    this.baseURL = config.baseURL || 'https://api.openai.com/v1';
-    this.model = config.model || 'gpt-3.5-turbo';
-    this.embeddingModel = config.embeddingModel || 'text-embedding-ada-002';
+    this.baseURL = config.baseURL || "https://api.openai.com/v1";
+    this.model = config.model || "gpt-3.5-turbo";
+    this.embeddingModel = config.embeddingModel || "text-embedding-ada-002";
     this.timeout = config.timeout || 120000;
     this.organization = config.organization;
 
@@ -28,9 +28,9 @@ class OpenAIClient extends EventEmitter {
       baseURL: this.baseURL,
       timeout: this.timeout,
       headers: {
-        'Content-Type': 'application/json',
-        ...(this.apiKey && { 'Authorization': `Bearer ${this.apiKey}` }),
-        ...(this.organization && { 'OpenAI-Organization': this.organization }),
+        "Content-Type": "application/json",
+        ...(this.apiKey && { Authorization: `Bearer ${this.apiKey}` }),
+        ...(this.organization && { "OpenAI-Organization": this.organization }),
       },
     });
   }
@@ -41,30 +41,36 @@ class OpenAIClient extends EventEmitter {
   async checkStatus() {
     try {
       // 火山引擎特殊处理：使用简单的聊天测试代替模型列表
-      if (this.baseURL && this.baseURL.includes('volces.com')) {
-        logger.info('[OpenAIClient] 检测到火山引擎，使用聊天测试代替模型列表');
+      if (this.baseURL && this.baseURL.includes("volces.com")) {
+        logger.info("[OpenAIClient] 检测到火山引擎，使用聊天测试代替模型列表");
 
-        const testResponse = await this.client.post('/chat/completions', {
-          model: this.model,
-          messages: [{ role: 'user', content: 'hi' }],
-          max_tokens: 5,
-        }, {
-          timeout: 10000, // 10秒快速超时
-        });
+        const testResponse = await this.client.post(
+          "/chat/completions",
+          {
+            model: this.model,
+            messages: [{ role: "user", content: "hi" }],
+            max_tokens: 5,
+          },
+          {
+            timeout: 10000, // 10秒快速超时
+          },
+        );
 
         return {
           available: true,
-          models: [{
-            name: this.model,
-            created: Date.now(),
-            owned_by: 'volcengine'
-          }],
+          models: [
+            {
+              name: this.model,
+              created: Date.now(),
+              owned_by: "volcengine",
+            },
+          ],
           testResponse: testResponse.data,
         };
       }
 
       // 标准OpenAI API：尝试列出模型
-      const response = await this.client.get('/models');
+      const response = await this.client.get("/models");
 
       const models = response.data.data || [];
 
@@ -105,10 +111,14 @@ class OpenAIClient extends EventEmitter {
       };
 
       // 🔥 修复：只有在 tools 有效且非空时才添加（避免阿里云等API报错）
-      if (options.tools && Array.isArray(options.tools) && options.tools.length > 0) {
+      if (
+        options.tools &&
+        Array.isArray(options.tools) &&
+        options.tools.length > 0
+      ) {
         // 验证每个tool都有必要的字段
-        const validTools = options.tools.filter(tool => {
-          if (tool.type === 'function') {
+        const validTools = options.tools.filter((tool) => {
+          if (tool.type === "function") {
             return tool.function && tool.function.name;
           }
           return true; // 其他类型的工具暂时允许
@@ -119,7 +129,7 @@ class OpenAIClient extends EventEmitter {
         }
       }
 
-      const response = await this.client.post('/chat/completions', requestBody);
+      const response = await this.client.post("/chat/completions", requestBody);
 
       const choice = response.data.choices[0];
 
@@ -131,7 +141,7 @@ class OpenAIClient extends EventEmitter {
         tokens: response.data.usage.total_tokens,
       };
     } catch (error) {
-      logger.error('[OpenAIClient] 聊天失败:', error.response?.data || error);
+      logger.error("[OpenAIClient] 聊天失败:", error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -157,10 +167,14 @@ class OpenAIClient extends EventEmitter {
       };
 
       // 🔥 修复：只有在 tools 有效且非空时才添加（避免阿里云等API报错）
-      if (options.tools && Array.isArray(options.tools) && options.tools.length > 0) {
+      if (
+        options.tools &&
+        Array.isArray(options.tools) &&
+        options.tools.length > 0
+      ) {
         // 验证每个tool都有必要的字段
-        const validTools = options.tools.filter(tool => {
-          if (tool.type === 'function') {
+        const validTools = options.tools.filter((tool) => {
+          if (tool.type === "function") {
             return tool.function && tool.function.name;
           }
           return true; // 其他类型的工具暂时允许
@@ -172,33 +186,33 @@ class OpenAIClient extends EventEmitter {
       }
 
       const response = await this.client.post(
-        '/chat/completions',
+        "/chat/completions",
         requestBody,
         {
-          responseType: 'stream',
-        }
+          responseType: "stream",
+        },
       );
 
       const fullMessage = {
-        role: 'assistant',
-        content: '',
+        role: "assistant",
+        content: "",
       };
 
       return new Promise((resolve, reject) => {
-        response.data.on('data', (chunk) => {
+        response.data.on("data", (chunk) => {
           const lines = chunk
             .toString()
-            .split('\n')
-            .filter((line) => line.trim().startsWith('data: '));
+            .split("\n")
+            .filter((line) => line.trim().startsWith("data: "));
 
           for (const line of lines) {
-            const data = line.replace(/^data: /, '');
+            const data = line.replace(/^data: /, "");
 
-            if (data === '[DONE]') {
+            if (data === "[DONE]") {
               resolve({
                 message: fullMessage,
                 model: options.model || this.model,
-                finish_reason: 'stop',
+                finish_reason: "stop",
               });
               return;
             }
@@ -213,7 +227,7 @@ class OpenAIClient extends EventEmitter {
                 onChunk({
                   content: delta.content,
                   delta: delta,
-                  fullContent: fullMessage.content
+                  fullContent: fullMessage.content,
                 });
               }
 
@@ -230,21 +244,24 @@ class OpenAIClient extends EventEmitter {
           }
         });
 
-        response.data.on('error', (error) => {
+        response.data.on("error", (error) => {
           reject(error);
         });
 
-        response.data.on('end', () => {
+        response.data.on("end", () => {
           // 如果没有收到[DONE]，也要resolve
           resolve({
             message: fullMessage,
             model: options.model || this.model,
-            finish_reason: 'stop',
+            finish_reason: "stop",
           });
         });
       });
     } catch (error) {
-      logger.error('[OpenAIClient] 流式聊天失败:', error.response?.data || error);
+      logger.error(
+        "[OpenAIClient] 流式聊天失败:",
+        error.response?.data || error,
+      );
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -256,8 +273,8 @@ class OpenAIClient extends EventEmitter {
    */
   async complete(prompt, options = {}) {
     try {
-      const response = await this.client.post('/completions', {
-        model: options.model || 'gpt-3.5-turbo-instruct',
+      const response = await this.client.post("/completions", {
+        model: options.model || "gpt-3.5-turbo-instruct",
         prompt,
         temperature: options.temperature || 0.7,
         max_tokens: options.max_tokens || 1000,
@@ -275,7 +292,7 @@ class OpenAIClient extends EventEmitter {
         tokens: response.data.usage.total_tokens,
       };
     } catch (error) {
-      logger.error('[OpenAIClient] 补全失败:', error.response?.data || error);
+      logger.error("[OpenAIClient] 补全失败:", error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -289,7 +306,7 @@ class OpenAIClient extends EventEmitter {
     try {
       const embeddingModel = model || this.embeddingModel;
 
-      const response = await this.client.post('/embeddings', {
+      const response = await this.client.post("/embeddings", {
         model: embeddingModel,
         input,
       });
@@ -300,7 +317,10 @@ class OpenAIClient extends EventEmitter {
         return response.data.data[0].embedding;
       }
     } catch (error) {
-      logger.error('[OpenAIClient] 生成嵌入失败:', error.response?.data || error);
+      logger.error(
+        "[OpenAIClient] 生成嵌入失败:",
+        error.response?.data || error,
+      );
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -310,10 +330,13 @@ class OpenAIClient extends EventEmitter {
    */
   async listModels() {
     try {
-      const response = await this.client.get('/models');
+      const response = await this.client.get("/models");
       return response.data.data;
     } catch (error) {
-      logger.error('[OpenAIClient] 列出模型失败:', error.response?.data || error);
+      logger.error(
+        "[OpenAIClient] 列出模型失败:",
+        error.response?.data || error,
+      );
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -327,7 +350,10 @@ class OpenAIClient extends EventEmitter {
       const response = await this.client.get(`/models/${modelId}`);
       return response.data;
     } catch (error) {
-      logger.error('[OpenAIClient] 获取模型信息失败:', error.response?.data || error);
+      logger.error(
+        "[OpenAIClient] 获取模型信息失败:",
+        error.response?.data || error,
+      );
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -340,8 +366,8 @@ class DeepSeekClient extends OpenAIClient {
   constructor(config = {}) {
     super({
       ...config,
-      baseURL: config.baseURL || 'https://api.deepseek.com/v1',
-      model: config.model || 'deepseek-chat',
+      baseURL: config.baseURL || "https://api.deepseek.com/v1",
+      model: config.model || "deepseek-chat",
     });
   }
 }

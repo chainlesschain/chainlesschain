@@ -6,18 +6,18 @@
  * @module hooks/hook-executor
  */
 
-const { spawn } = require('child_process');
-const path = require('path');
-const { EventEmitter } = require('events');
+const { spawn } = require("child_process");
+const path = require("path");
+const { EventEmitter } = require("events");
 
 /**
  * 钩子执行结果
  */
 const HookResult = {
-  CONTINUE: 'continue', // 继续执行
-  PREVENT: 'prevent', // 阻止后续操作
-  MODIFY: 'modify', // 修改数据后继续
-  ERROR: 'error', // 执行出错
+  CONTINUE: "continue", // 继续执行
+  PREVENT: "prevent", // 阻止后续操作
+  MODIFY: "modify", // 修改数据后继续
+  ERROR: "error", // 执行出错
 };
 
 /**
@@ -92,7 +92,7 @@ class HookExecutor extends EventEmitter {
       modifications: {},
     };
 
-    this.emit('execution-start', {
+    this.emit("execution-start", {
       eventName,
       eventId: event.eventId,
       hookCount: hooks.length,
@@ -116,7 +116,8 @@ class HookExecutor extends EventEmitter {
         // 处理结果
         if (hookResult.result === HookResult.PREVENT) {
           event.prevented = true;
-          event.preventReason = hookResult.reason || `Prevented by hook: ${hook.name}`;
+          event.preventReason =
+            hookResult.reason || `Prevented by hook: ${hook.name}`;
         }
 
         if (hookResult.result === HookResult.MODIFY && hookResult.data) {
@@ -141,7 +142,7 @@ class HookExecutor extends EventEmitter {
           success: false,
         });
 
-        this.emit('hook-error', {
+        this.emit("hook-error", {
           hookId: hook.id,
           hookName: hook.name,
           eventName,
@@ -173,7 +174,7 @@ class HookExecutor extends EventEmitter {
       totalTime: Date.now() - event.timestamp,
     };
 
-    this.emit('execution-complete', {
+    this.emit("execution-complete", {
       eventName,
       eventId: event.eventId,
       ...finalResult,
@@ -197,17 +198,32 @@ class HookExecutor extends EventEmitter {
       let result;
 
       switch (hook.type) {
-        case 'sync':
-        case 'async':
-          result = await this._executeFunctionHook(hook, event, data, controller.signal);
+        case "sync":
+        case "async":
+          result = await this._executeFunctionHook(
+            hook,
+            event,
+            data,
+            controller.signal,
+          );
           break;
 
-        case 'command':
-          result = await this._executeCommandHook(hook, event, data, controller.signal);
+        case "command":
+          result = await this._executeCommandHook(
+            hook,
+            event,
+            data,
+            controller.signal,
+          );
           break;
 
-        case 'script':
-          result = await this._executeScriptHook(hook, event, data, controller.signal);
+        case "script":
+          result = await this._executeScriptHook(
+            hook,
+            event,
+            data,
+            controller.signal,
+          );
           break;
 
         default:
@@ -227,7 +243,7 @@ class HookExecutor extends EventEmitter {
    */
   async _executeFunctionHook(hook, event, data, signal) {
     if (signal.aborted) {
-      throw new Error('Hook execution aborted (timeout)');
+      throw new Error("Hook execution aborted (timeout)");
     }
 
     const result = await hook.handler({
@@ -251,7 +267,7 @@ class HookExecutor extends EventEmitter {
   async _executeCommandHook(hook, event, data, signal) {
     return new Promise((resolve, reject) => {
       if (signal.aborted) {
-        return reject(new Error('Hook execution aborted (timeout)'));
+        return reject(new Error("Hook execution aborted (timeout)"));
       }
 
       // 设置环境变量
@@ -264,15 +280,23 @@ class HookExecutor extends EventEmitter {
       };
 
       // 为特定事件设置额外环境变量
-      if (data.toolName) env.TOOL_NAME = data.toolName;
-      if (data.filePath) env.FILE_PATH = data.filePath;
-      if (data.channel) env.IPC_CHANNEL = data.channel;
-      if (data.sessionId) env.SESSION_ID = data.sessionId;
+      if (data.toolName) {
+        env.TOOL_NAME = data.toolName;
+      }
+      if (data.filePath) {
+        env.FILE_PATH = data.filePath;
+      }
+      if (data.channel) {
+        env.IPC_CHANNEL = data.channel;
+      }
+      if (data.sessionId) {
+        env.SESSION_ID = data.sessionId;
+      }
 
       // 解析命令
-      const isWindows = process.platform === 'win32';
-      const shellCmd = isWindows ? 'cmd.exe' : '/bin/sh';
-      const shellArgs = isWindows ? ['/c', hook.command] : ['-c', hook.command];
+      const isWindows = process.platform === "win32";
+      const shellCmd = isWindows ? "cmd.exe" : "/bin/sh";
+      const shellArgs = isWindows ? ["/c", hook.command] : ["-c", hook.command];
 
       const child = spawn(shellCmd, shellArgs, {
         env,
@@ -280,25 +304,25 @@ class HookExecutor extends EventEmitter {
         windowsHide: true,
       });
 
-      let stdout = '';
-      let stderr = '';
+      let stdout = "";
+      let stderr = "";
 
-      child.stdout.on('data', (chunk) => {
+      child.stdout.on("data", (chunk) => {
         stdout += chunk.toString();
       });
 
-      child.stderr.on('data', (chunk) => {
+      child.stderr.on("data", (chunk) => {
         stderr += chunk.toString();
       });
 
       const abortHandler = () => {
-        child.kill('SIGTERM');
-        reject(new Error('Hook execution aborted (timeout)'));
+        child.kill("SIGTERM");
+        reject(new Error("Hook execution aborted (timeout)"));
       };
-      signal.addEventListener('abort', abortHandler, { once: true });
+      signal.addEventListener("abort", abortHandler, { once: true });
 
-      child.on('close', (code) => {
-        signal.removeEventListener('abort', abortHandler);
+      child.on("close", (code) => {
+        signal.removeEventListener("abort", abortHandler);
 
         if (code === 0) {
           // 尝试解析 JSON 输出
@@ -308,15 +332,20 @@ class HookExecutor extends EventEmitter {
           // 退出码 2 表示阻止操作
           resolve({
             result: HookResult.PREVENT,
-            reason: stderr.trim() || stdout.trim() || 'Prevented by hook command',
+            reason:
+              stderr.trim() || stdout.trim() || "Prevented by hook command",
           });
         } else {
-          reject(new Error(`Hook command exited with code ${code}: ${stderr.trim()}`));
+          reject(
+            new Error(
+              `Hook command exited with code ${code}: ${stderr.trim()}`,
+            ),
+          );
         }
       });
 
-      child.on('error', (error) => {
-        signal.removeEventListener('abort', abortHandler);
+      child.on("error", (error) => {
+        signal.removeEventListener("abort", abortHandler);
         reject(error);
       });
     });
@@ -331,23 +360,23 @@ class HookExecutor extends EventEmitter {
     const ext = path.extname(scriptPath).toLowerCase();
 
     let command;
-    const isWindows = process.platform === 'win32';
+    const isWindows = process.platform === "win32";
 
     switch (ext) {
-      case '.js':
+      case ".js":
         command = `node "${scriptPath}"`;
         break;
-      case '.py':
+      case ".py":
         command = `python "${scriptPath}"`;
         break;
-      case '.sh':
+      case ".sh":
         command = isWindows ? `bash "${scriptPath}"` : `sh "${scriptPath}"`;
         break;
-      case '.ps1':
+      case ".ps1":
         command = `powershell -ExecutionPolicy Bypass -File "${scriptPath}"`;
         break;
-      case '.bat':
-      case '.cmd':
+      case ".bat":
+      case ".cmd":
         command = `"${scriptPath}"`;
         break;
       default:
@@ -389,13 +418,13 @@ class HookExecutor extends EventEmitter {
       return { result: HookResult.CONTINUE };
     }
 
-    if (typeof result === 'boolean') {
+    if (typeof result === "boolean") {
       return {
         result: result ? HookResult.CONTINUE : HookResult.PREVENT,
       };
     }
 
-    if (typeof result === 'object') {
+    if (typeof result === "object") {
       // 支持多种返回格式
       if (result.prevent === true || result.blocked === true) {
         return {

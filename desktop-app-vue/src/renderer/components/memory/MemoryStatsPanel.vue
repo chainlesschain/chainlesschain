@@ -41,16 +41,23 @@
     </a-row>
 
     <!-- Embedding 缓存统计 -->
-    <a-card title="Embedding 缓存" class="section-card" v-if="indexStats.embeddingCache">
+    <a-card
+      v-if="indexStats.embeddingCache"
+      title="Embedding 缓存"
+      class="section-card"
+    >
       <a-descriptions :column="3" size="small" bordered>
         <a-descriptions-item label="缓存条目">
-          {{ indexStats.embeddingCache.count }} / {{ indexStats.embeddingCache.maxSize }}
+          {{ indexStats.embeddingCache.count }} /
+          {{ indexStats.embeddingCache.maxSize }}
         </a-descriptions-item>
         <a-descriptions-item label="缓存大小">
           {{ indexStats.embeddingCache.totalSizeMB }} MB
         </a-descriptions-item>
         <a-descriptions-item label="命中率">
-          <a-tag :color="getHitRateColor(indexStats.embeddingCache.hitRateNumeric)">
+          <a-tag
+            :color="getHitRateColor(indexStats.embeddingCache.hitRateNumeric)"
+          >
             {{ indexStats.embeddingCache.hitRate }}
           </a-tag>
         </a-descriptions-item>
@@ -70,8 +77,14 @@
           {{ indexStats.embeddingCache.cacheExpiration }}
         </a-descriptions-item>
         <a-descriptions-item label="自动清理">
-          <a-tag :color="indexStats.embeddingCache.autoCleanupRunning ? 'green' : 'gray'">
-            {{ indexStats.embeddingCache.autoCleanupRunning ? '运行中' : '未运行' }}
+          <a-tag
+            :color="
+              indexStats.embeddingCache.autoCleanupRunning ? 'green' : 'gray'
+            "
+          >
+            {{
+              indexStats.embeddingCache.autoCleanupRunning ? "运行中" : "未运行"
+            }}
           </a-tag>
         </a-descriptions-item>
       </a-descriptions>
@@ -89,11 +102,15 @@
     </a-card>
 
     <!-- 文件监听统计 -->
-    <a-card title="文件监听器" class="section-card" v-if="indexStats.fileWatcher">
+    <a-card
+      v-if="indexStats.fileWatcher"
+      title="文件监听器"
+      class="section-card"
+    >
       <a-descriptions :column="3" size="small" bordered>
         <a-descriptions-item label="状态">
           <a-tag :color="indexStats.fileWatcher.isWatching ? 'green' : 'gray'">
-            {{ indexStats.fileWatcher.isWatching ? '监听中' : '已停止' }}
+            {{ indexStats.fileWatcher.isWatching ? "监听中" : "已停止" }}
           </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="监听目录">
@@ -120,7 +137,7 @@
           {{ indexStats.fileWatcher.pendingChanges }}
         </a-descriptions-item>
         <a-descriptions-item label="运行时间">
-          {{ indexStats.fileWatcher.runningTime || '-' }}
+          {{ indexStats.fileWatcher.runningTime || "-" }}
         </a-descriptions-item>
       </a-descriptions>
     </a-card>
@@ -128,12 +145,16 @@
     <!-- 操作按钮 -->
     <div class="actions">
       <a-space>
-        <a-button @click="refreshStats" :loading="loading">
-          <template #icon><ReloadOutlined /></template>
+        <a-button :loading="loading" @click="refreshStats">
+          <template #icon>
+            <ReloadOutlined />
+          </template>
           刷新统计
         </a-button>
-        <a-button @click="handleRebuildIndex" :loading="rebuildLoading">
-          <template #icon><DatabaseOutlined /></template>
+        <a-button :loading="rebuildLoading" @click="handleRebuildIndex">
+          <template #icon>
+            <DatabaseOutlined />
+          </template>
           重建索引
         </a-button>
         <a-popconfirm
@@ -141,7 +162,9 @@
           @confirm="handleClearCache"
         >
           <a-button danger>
-            <template #icon><DeleteOutlined /></template>
+            <template #icon>
+              <DeleteOutlined />
+            </template>
             清空缓存
           </a-button>
         </a-popconfirm>
@@ -151,8 +174,8 @@
 </template>
 
 <script setup>
-import { ref, h } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, h } from "vue";
+import { message } from "ant-design-vue";
 import {
   FileTextOutlined,
   BookOutlined,
@@ -160,8 +183,8 @@ import {
   FolderOpenOutlined,
   ReloadOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { useMemoryStore } from '@/stores/memory';
+} from "@ant-design/icons-vue";
+import { useMemoryStore } from "@/stores/memory";
 
 const props = defineProps({
   stats: {
@@ -190,29 +213,30 @@ const rebuildLoading = ref(false);
 
 // 模型统计表格列
 const modelColumns = [
-  { title: '模型', dataIndex: 'model', key: 'model' },
-  { title: '条目数', dataIndex: 'count', key: 'count' },
-  { title: '大小 (MB)', dataIndex: 'sizeMB', key: 'sizeMB' },
+  { title: "模型", dataIndex: "model", key: "model" },
+  { title: "条目数", dataIndex: "count", key: "count" },
+  { title: "大小 (MB)", dataIndex: "sizeMB", key: "sizeMB" },
 ];
 
 // 获取命中率颜色
 const getHitRateColor = (rate) => {
-  if (rate >= 0.8) return 'green';
-  if (rate >= 0.5) return 'orange';
-  return 'red';
+  if (rate >= 0.8) {
+    return "green";
+  }
+  if (rate >= 0.5) {
+    return "orange";
+  }
+  return "red";
 };
 
 // 刷新统计
 const refreshStats = async () => {
   loading.value = true;
   try {
-    await Promise.all([
-      memoryStore.loadStats(),
-      memoryStore.loadIndexStats(),
-    ]);
-    message.success('统计已刷新');
+    await Promise.all([memoryStore.loadStats(), memoryStore.loadIndexStats()]);
+    message.success("统计已刷新");
   } catch (err) {
-    message.error('刷新失败');
+    message.error("刷新失败");
   } finally {
     loading.value = false;
   }
@@ -224,9 +248,11 @@ const handleRebuildIndex = async () => {
   try {
     const result = await memoryStore.rebuildIndex();
     if (result) {
-      message.success(`索引重建完成: ${result.indexed}/${result.total} 个文件已索引`);
+      message.success(
+        `索引重建完成: ${result.indexed}/${result.total} 个文件已索引`,
+      );
     } else {
-      message.error('索引重建失败');
+      message.error("索引重建失败");
     }
   } catch (err) {
     message.error(err.message);
@@ -238,12 +264,14 @@ const handleRebuildIndex = async () => {
 // 清空缓存
 const handleClearCache = async () => {
   try {
-    const result = await window.electronAPI.invoke('memory:clear-embedding-cache');
+    const result = await window.electronAPI.invoke(
+      "memory:clear-embedding-cache",
+    );
     if (result?.success) {
       message.success(`已清空 ${result.deleted} 条缓存`);
       await refreshStats();
     } else {
-      message.error(result?.error || '清空缓存失败');
+      message.error(result?.error || "清空缓存失败");
     }
   } catch (err) {
     message.error(err.message);

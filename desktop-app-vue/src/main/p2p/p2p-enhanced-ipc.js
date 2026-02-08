@@ -4,8 +4,8 @@
  * 提供前端与P2P增强功能的通信接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain } = require('electron');
+const { logger } = require("../utils/logger.js");
+const { ipcMain } = require("electron");
 
 class P2PEnhancedIPC {
   constructor(enhancedManager) {
@@ -17,42 +17,102 @@ class P2PEnhancedIPC {
    * 注册所有IPC处理器
    */
   register() {
-    logger.info('[P2PEnhancedIPC] 注册IPC处理器...');
+    logger.info("[P2PEnhancedIPC] 注册IPC处理器...");
 
     // 消息相关
-    this.registerHandler('p2p-enhanced:send-message', this.handleSendMessage.bind(this));
-    this.registerHandler('p2p-enhanced:get-message-stats', this.handleGetMessageStats.bind(this));
+    this.registerHandler(
+      "p2p-enhanced:send-message",
+      this.handleSendMessage.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:get-message-stats",
+      this.handleGetMessageStats.bind(this),
+    );
 
     // 知识库同步相关
-    this.registerHandler('p2p-enhanced:sync-knowledge', this.handleSyncKnowledge.bind(this));
-    this.registerHandler('p2p-enhanced:get-sync-stats', this.handleGetSyncStats.bind(this));
-    this.registerHandler('p2p-enhanced:get-conflicts', this.handleGetConflicts.bind(this));
-    this.registerHandler('p2p-enhanced:resolve-conflict', this.handleResolveConflict.bind(this));
+    this.registerHandler(
+      "p2p-enhanced:sync-knowledge",
+      this.handleSyncKnowledge.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:get-sync-stats",
+      this.handleGetSyncStats.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:get-conflicts",
+      this.handleGetConflicts.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:resolve-conflict",
+      this.handleResolveConflict.bind(this),
+    );
 
     // 文件传输相关
-    this.registerHandler('p2p-enhanced:upload-file', this.handleUploadFile.bind(this));
-    this.registerHandler('p2p-enhanced:download-file', this.handleDownloadFile.bind(this));
-    this.registerHandler('p2p-enhanced:get-transfer-progress', this.handleGetTransferProgress.bind(this));
-    this.registerHandler('p2p-enhanced:cancel-transfer', this.handleCancelTransfer.bind(this));
-    this.registerHandler('p2p-enhanced:get-transfer-stats', this.handleGetTransferStats.bind(this));
+    this.registerHandler(
+      "p2p-enhanced:upload-file",
+      this.handleUploadFile.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:download-file",
+      this.handleDownloadFile.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:get-transfer-progress",
+      this.handleGetTransferProgress.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:cancel-transfer",
+      this.handleCancelTransfer.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:get-transfer-stats",
+      this.handleGetTransferStats.bind(this),
+    );
 
     // 语音/视频通话相关
-    this.registerHandler('p2p-enhanced:start-call', this.handleStartCall.bind(this));
-    this.registerHandler('p2p-enhanced:accept-call', this.handleAcceptCall.bind(this));
-    this.registerHandler('p2p-enhanced:reject-call', this.handleRejectCall.bind(this));
-    this.registerHandler('p2p-enhanced:end-call', this.handleEndCall.bind(this));
-    this.registerHandler('p2p-enhanced:toggle-mute', this.handleToggleMute.bind(this));
-    this.registerHandler('p2p-enhanced:toggle-video', this.handleToggleVideo.bind(this));
-    this.registerHandler('p2p-enhanced:get-call-info', this.handleGetCallInfo.bind(this));
-    this.registerHandler('p2p-enhanced:get-active-calls', this.handleGetActiveCalls.bind(this));
+    this.registerHandler(
+      "p2p-enhanced:start-call",
+      this.handleStartCall.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:accept-call",
+      this.handleAcceptCall.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:reject-call",
+      this.handleRejectCall.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:end-call",
+      this.handleEndCall.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:toggle-mute",
+      this.handleToggleMute.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:toggle-video",
+      this.handleToggleVideo.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:get-call-info",
+      this.handleGetCallInfo.bind(this),
+    );
+    this.registerHandler(
+      "p2p-enhanced:get-active-calls",
+      this.handleGetActiveCalls.bind(this),
+    );
 
     // 统计信息
-    this.registerHandler('p2p-enhanced:get-stats', this.handleGetStats.bind(this));
+    this.registerHandler(
+      "p2p-enhanced:get-stats",
+      this.handleGetStats.bind(this),
+    );
 
     // 设置事件转发
     this.setupEventForwarding();
 
-    logger.info('[P2PEnhancedIPC] ✅ IPC处理器注册完成');
+    logger.info("[P2PEnhancedIPC] ✅ IPC处理器注册完成");
   }
 
   /**
@@ -67,132 +127,132 @@ class P2PEnhancedIPC {
    * 设置事件转发到渲染进程
    */
   setupEventForwarding() {
-    const { BrowserWindow } = require('electron');
+    const { BrowserWindow } = require("electron");
 
     // 消息事件
-    this.enhancedManager.on('message', (data) => {
-      this.sendToRenderer('p2p-enhanced:message', data);
+    this.enhancedManager.on("message", (data) => {
+      this.sendToRenderer("p2p-enhanced:message", data);
     });
 
-    this.enhancedManager.on('message:send-failed', (data) => {
-      this.sendToRenderer('p2p-enhanced:message-send-failed', data);
+    this.enhancedManager.on("message:send-failed", (data) => {
+      this.sendToRenderer("p2p-enhanced:message-send-failed", data);
     });
 
     // 知识库同步事件
-    this.enhancedManager.on('knowledge:sync-started', (data) => {
-      this.sendToRenderer('p2p-enhanced:sync-started', data);
+    this.enhancedManager.on("knowledge:sync-started", (data) => {
+      this.sendToRenderer("p2p-enhanced:sync-started", data);
     });
 
-    this.enhancedManager.on('knowledge:sync-completed', (data) => {
-      this.sendToRenderer('p2p-enhanced:sync-completed', data);
+    this.enhancedManager.on("knowledge:sync-completed", (data) => {
+      this.sendToRenderer("p2p-enhanced:sync-completed", data);
     });
 
-    this.enhancedManager.on('knowledge:sync-failed', (data) => {
-      this.sendToRenderer('p2p-enhanced:sync-failed', data);
+    this.enhancedManager.on("knowledge:sync-failed", (data) => {
+      this.sendToRenderer("p2p-enhanced:sync-failed", data);
     });
 
-    this.enhancedManager.on('knowledge:sync-progress', (data) => {
-      this.sendToRenderer('p2p-enhanced:sync-progress', data);
+    this.enhancedManager.on("knowledge:sync-progress", (data) => {
+      this.sendToRenderer("p2p-enhanced:sync-progress", data);
     });
 
-    this.enhancedManager.on('knowledge:conflict', (data) => {
-      this.sendToRenderer('p2p-enhanced:conflict-detected', data);
+    this.enhancedManager.on("knowledge:conflict", (data) => {
+      this.sendToRenderer("p2p-enhanced:conflict-detected", data);
     });
 
-    this.enhancedManager.on('knowledge:conflict-resolved', (data) => {
-      this.sendToRenderer('p2p-enhanced:conflict-resolved', data);
+    this.enhancedManager.on("knowledge:conflict-resolved", (data) => {
+      this.sendToRenderer("p2p-enhanced:conflict-resolved", data);
     });
 
     // 文件传输事件
-    this.enhancedManager.on('file:upload-completed', (data) => {
-      this.sendToRenderer('p2p-enhanced:upload-completed', data);
+    this.enhancedManager.on("file:upload-completed", (data) => {
+      this.sendToRenderer("p2p-enhanced:upload-completed", data);
     });
 
-    this.enhancedManager.on('file:upload-failed', (data) => {
-      this.sendToRenderer('p2p-enhanced:upload-failed', data);
+    this.enhancedManager.on("file:upload-failed", (data) => {
+      this.sendToRenderer("p2p-enhanced:upload-failed", data);
     });
 
-    this.enhancedManager.on('file:upload-progress', (data) => {
-      this.sendToRenderer('p2p-enhanced:upload-progress', data);
+    this.enhancedManager.on("file:upload-progress", (data) => {
+      this.sendToRenderer("p2p-enhanced:upload-progress", data);
     });
 
-    this.enhancedManager.on('file:download-completed', (data) => {
-      this.sendToRenderer('p2p-enhanced:download-completed', data);
+    this.enhancedManager.on("file:download-completed", (data) => {
+      this.sendToRenderer("p2p-enhanced:download-completed", data);
     });
 
-    this.enhancedManager.on('file:download-failed', (data) => {
-      this.sendToRenderer('p2p-enhanced:download-failed', data);
+    this.enhancedManager.on("file:download-failed", (data) => {
+      this.sendToRenderer("p2p-enhanced:download-failed", data);
     });
 
-    this.enhancedManager.on('file:download-progress', (data) => {
-      this.sendToRenderer('p2p-enhanced:download-progress', data);
+    this.enhancedManager.on("file:download-progress", (data) => {
+      this.sendToRenderer("p2p-enhanced:download-progress", data);
     });
 
-    this.enhancedManager.on('file:transfer-request', (data) => {
-      this.sendToRenderer('p2p-enhanced:transfer-request', data);
+    this.enhancedManager.on("file:transfer-request", (data) => {
+      this.sendToRenderer("p2p-enhanced:transfer-request", data);
     });
 
     // 语音/视频通话事件
-    this.enhancedManager.on('call:started', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-started', data);
+    this.enhancedManager.on("call:started", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-started", data);
     });
 
-    this.enhancedManager.on('call:incoming', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-incoming', data);
+    this.enhancedManager.on("call:incoming", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-incoming", data);
     });
 
-    this.enhancedManager.on('call:accepted', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-accepted', data);
+    this.enhancedManager.on("call:accepted", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-accepted", data);
     });
 
-    this.enhancedManager.on('call:rejected', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-rejected', data);
+    this.enhancedManager.on("call:rejected", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-rejected", data);
     });
 
-    this.enhancedManager.on('call:connected', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-connected', data);
+    this.enhancedManager.on("call:connected", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-connected", data);
     });
 
-    this.enhancedManager.on('call:ended', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-ended', data);
+    this.enhancedManager.on("call:ended", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-ended", data);
     });
 
-    this.enhancedManager.on('call:remote-stream', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-remote-stream', data);
+    this.enhancedManager.on("call:remote-stream", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-remote-stream", data);
     });
 
-    this.enhancedManager.on('call:quality-update', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-quality-update', data);
+    this.enhancedManager.on("call:quality-update", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-quality-update", data);
     });
 
-    this.enhancedManager.on('call:mute-changed', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-mute-changed', data);
+    this.enhancedManager.on("call:mute-changed", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-mute-changed", data);
     });
 
-    this.enhancedManager.on('call:video-changed', (data) => {
-      this.sendToRenderer('p2p-enhanced:call-video-changed', data);
+    this.enhancedManager.on("call:video-changed", (data) => {
+      this.sendToRenderer("p2p-enhanced:call-video-changed", data);
     });
 
     // MediaStream桥接事件
-    this.enhancedManager.on('media:request-stream', (data) => {
-      this.sendToRenderer('media-stream:request', data);
+    this.enhancedManager.on("media:request-stream", (data) => {
+      this.sendToRenderer("media-stream:request", data);
     });
 
-    this.enhancedManager.on('media:stop-stream', (data) => {
-      this.sendToRenderer('media-stream:stop', data);
+    this.enhancedManager.on("media:stop-stream", (data) => {
+      this.sendToRenderer("media-stream:stop", data);
     });
 
-    this.enhancedManager.on('media:toggle-track', (data) => {
-      this.sendToRenderer('media-stream:toggle-track', data);
+    this.enhancedManager.on("media:toggle-track", (data) => {
+      this.sendToRenderer("media-stream:toggle-track", data);
     });
 
     // 节点连接事件
-    this.enhancedManager.on('peer:connected', (data) => {
-      this.sendToRenderer('p2p-enhanced:peer-connected', data);
+    this.enhancedManager.on("peer:connected", (data) => {
+      this.sendToRenderer("p2p-enhanced:peer-connected", data);
     });
 
-    this.enhancedManager.on('peer:disconnected', (data) => {
-      this.sendToRenderer('p2p-enhanced:peer-disconnected', data);
+    this.enhancedManager.on("peer:disconnected", (data) => {
+      this.sendToRenderer("p2p-enhanced:peer-disconnected", data);
     });
   }
 
@@ -200,10 +260,10 @@ class P2PEnhancedIPC {
    * 发送事件到渲染进程
    */
   sendToRenderer(channel, data) {
-    const { BrowserWindow } = require('electron');
+    const { BrowserWindow } = require("electron");
     const windows = BrowserWindow.getAllWindows();
 
-    windows.forEach(window => {
+    windows.forEach((window) => {
       if (!window.isDestroyed()) {
         window.webContents.send(channel, data);
       }
@@ -215,17 +275,21 @@ class P2PEnhancedIPC {
    */
   async handleSendMessage(event, { peerId, payload, options = {} }) {
     try {
-      const messageId = await this.enhancedManager.sendMessage(peerId, payload, options);
+      const messageId = await this.enhancedManager.sendMessage(
+        peerId,
+        payload,
+        options,
+      );
 
       return {
         success: true,
-        messageId
+        messageId,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 发送消息失败:', error);
+      logger.error("[P2PEnhancedIPC] 发送消息失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -239,13 +303,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        stats
+        stats,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 获取消息统计失败:', error);
+      logger.error("[P2PEnhancedIPC] 获取消息统计失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -258,13 +322,13 @@ class P2PEnhancedIPC {
       await this.enhancedManager.syncKnowledge(peerId, options);
 
       return {
-        success: true
+        success: true,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 知识库同步失败:', error);
+      logger.error("[P2PEnhancedIPC] 知识库同步失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -278,13 +342,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        stats
+        stats,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 获取同步统计失败:', error);
+      logger.error("[P2PEnhancedIPC] 获取同步统计失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -298,13 +362,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        conflicts
+        conflicts,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 获取冲突列表失败:', error);
+      logger.error("[P2PEnhancedIPC] 获取冲突列表失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -314,16 +378,19 @@ class P2PEnhancedIPC {
    */
   async handleResolveConflict(event, { conflictId, resolution }) {
     try {
-      await this.enhancedManager.resolveKnowledgeConflict(conflictId, resolution);
+      await this.enhancedManager.resolveKnowledgeConflict(
+        conflictId,
+        resolution,
+      );
 
       return {
-        success: true
+        success: true,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 解决冲突失败:', error);
+      logger.error("[P2PEnhancedIPC] 解决冲突失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -333,17 +400,21 @@ class P2PEnhancedIPC {
    */
   async handleUploadFile(event, { peerId, filePath, options = {} }) {
     try {
-      const transferId = await this.enhancedManager.uploadFile(peerId, filePath, options);
+      const transferId = await this.enhancedManager.uploadFile(
+        peerId,
+        filePath,
+        options,
+      );
 
       return {
         success: true,
-        transferId
+        transferId,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 文件上传失败:', error);
+      logger.error("[P2PEnhancedIPC] 文件上传失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -353,17 +424,21 @@ class P2PEnhancedIPC {
    */
   async handleDownloadFile(event, { peerId, transferId, savePath }) {
     try {
-      const filePath = await this.enhancedManager.downloadFile(peerId, transferId, savePath);
+      const filePath = await this.enhancedManager.downloadFile(
+        peerId,
+        transferId,
+        savePath,
+      );
 
       return {
         success: true,
-        filePath
+        filePath,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 文件下载失败:', error);
+      logger.error("[P2PEnhancedIPC] 文件下载失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -377,13 +452,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        progress
+        progress,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 获取传输进度失败:', error);
+      logger.error("[P2PEnhancedIPC] 获取传输进度失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -396,13 +471,13 @@ class P2PEnhancedIPC {
       await this.enhancedManager.cancelFileTransfer(transferId);
 
       return {
-        success: true
+        success: true,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 取消传输失败:', error);
+      logger.error("[P2PEnhancedIPC] 取消传输失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -416,13 +491,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        stats
+        stats,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 获取传输统计失败:', error);
+      logger.error("[P2PEnhancedIPC] 获取传输统计失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -436,13 +511,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        stats
+        stats,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 获取统计信息失败:', error);
+      logger.error("[P2PEnhancedIPC] 获取统计信息失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -452,17 +527,21 @@ class P2PEnhancedIPC {
    */
   async handleStartCall(event, { peerId, type, options }) {
     try {
-      const callId = await this.enhancedManager.startCall(peerId, type, options);
+      const callId = await this.enhancedManager.startCall(
+        peerId,
+        type,
+        options,
+      );
 
       return {
         success: true,
-        callId
+        callId,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 发起通话失败:', error);
+      logger.error("[P2PEnhancedIPC] 发起通话失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -475,13 +554,13 @@ class P2PEnhancedIPC {
       await this.enhancedManager.acceptCall(callId);
 
       return {
-        success: true
+        success: true,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 接受通话失败:', error);
+      logger.error("[P2PEnhancedIPC] 接受通话失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -494,13 +573,13 @@ class P2PEnhancedIPC {
       await this.enhancedManager.rejectCall(callId, reason);
 
       return {
-        success: true
+        success: true,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 拒绝通话失败:', error);
+      logger.error("[P2PEnhancedIPC] 拒绝通话失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -513,13 +592,13 @@ class P2PEnhancedIPC {
       await this.enhancedManager.endCall(callId);
 
       return {
-        success: true
+        success: true,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 结束通话失败:', error);
+      logger.error("[P2PEnhancedIPC] 结束通话失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -533,13 +612,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        isMuted
+        isMuted,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 切换静音失败:', error);
+      logger.error("[P2PEnhancedIPC] 切换静音失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -553,13 +632,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        isVideoEnabled
+        isVideoEnabled,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 切换视频失败:', error);
+      logger.error("[P2PEnhancedIPC] 切换视频失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -573,13 +652,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        info
+        info,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 获取通话信息失败:', error);
+      logger.error("[P2PEnhancedIPC] 获取通话信息失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -593,13 +672,13 @@ class P2PEnhancedIPC {
 
       return {
         success: true,
-        calls
+        calls,
       };
     } catch (error) {
-      logger.error('[P2PEnhancedIPC] 获取活动通话失败:', error);
+      logger.error("[P2PEnhancedIPC] 获取活动通话失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -608,15 +687,15 @@ class P2PEnhancedIPC {
    * 注销所有处理器
    */
   unregister() {
-    logger.info('[P2PEnhancedIPC] 注销IPC处理器...');
+    logger.info("[P2PEnhancedIPC] 注销IPC处理器...");
 
-    this.registeredHandlers.forEach(channel => {
+    this.registeredHandlers.forEach((channel) => {
       ipcMain.removeHandler(channel);
     });
 
     this.registeredHandlers = [];
 
-    logger.info('[P2PEnhancedIPC] ✅ IPC处理器已注销');
+    logger.info("[P2PEnhancedIPC] ✅ IPC处理器已注销");
   }
 }
 

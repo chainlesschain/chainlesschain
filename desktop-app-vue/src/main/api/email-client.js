@@ -5,11 +5,11 @@
  * v0.20.0: 新增邮件集成功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const Imap = require('imap');
-const { simpleParser } = require('mailparser');
-const nodemailer = require('nodemailer');
-const { EventEmitter } = require('events');
+const { logger } = require("../utils/logger.js");
+const Imap = require("imap");
+const { simpleParser } = require("mailparser");
+const nodemailer = require("nodemailer");
+const { EventEmitter } = require("events");
 
 class EmailClient extends EventEmitter {
   constructor() {
@@ -54,7 +54,7 @@ class EmailClient extends EventEmitter {
    * 从连接池获取连接
    * @param {string} accountId - 账户ID（用于区分不同账户的连接）
    */
-  async getConnection(accountId = 'default') {
+  async getConnection(accountId = "default") {
     // 检查连接池中是否有可用连接
     if (this.connectionPool.has(accountId)) {
       const poolEntry = this.connectionPool.get(accountId);
@@ -106,7 +106,7 @@ class EmailClient extends EventEmitter {
 
     // 检查连接状态
     try {
-      return poolEntry.connection.state === 'authenticated';
+      return poolEntry.connection.state === "authenticated";
     } catch (error) {
       return false;
     }
@@ -132,7 +132,7 @@ class EmailClient extends EventEmitter {
         try {
           entry.connection.end();
         } catch (error) {
-          logger.error('[EmailClient] 关闭连接失败:', error);
+          logger.error("[EmailClient] 关闭连接失败:", error);
         }
       }
       this.connectionPool.delete(oldestKey);
@@ -159,7 +159,7 @@ class EmailClient extends EventEmitter {
         try {
           entry.connection.end();
         } catch (error) {
-          logger.error('[EmailClient] 关闭连接失败:', error);
+          logger.error("[EmailClient] 关闭连接失败:", error);
         }
       }
       this.connectionPool.delete(key);
@@ -177,12 +177,14 @@ class EmailClient extends EventEmitter {
     return {
       size: this.connectionPool.size,
       maxConnections: this.maxConnections,
-      connections: Array.from(this.connectionPool.entries()).map(([key, entry]) => ({
-        accountId: key,
-        age: Date.now() - entry.createdAt,
-        lastUsed: Date.now() - entry.lastUsed,
-        valid: this.isConnectionValid(entry),
-      })),
+      connections: Array.from(this.connectionPool.entries()).map(
+        ([key, entry]) => ({
+          accountId: key,
+          age: Date.now() - entry.createdAt,
+          lastUsed: Date.now() - entry.lastUsed,
+          valid: this.isConnectionValid(entry),
+        }),
+      ),
     };
   }
 
@@ -192,27 +194,27 @@ class EmailClient extends EventEmitter {
   async connect() {
     return new Promise((resolve, reject) => {
       if (!this.config) {
-        reject(new Error('邮件账户未配置'));
+        reject(new Error("邮件账户未配置"));
         return;
       }
 
       this.imapConnection = new Imap(this.config.imap);
 
-      this.imapConnection.once('ready', () => {
-        logger.info('[EmailClient] IMAP 连接成功');
-        this.emit('connected');
+      this.imapConnection.once("ready", () => {
+        logger.info("[EmailClient] IMAP 连接成功");
+        this.emit("connected");
         resolve(this.imapConnection);
       });
 
-      this.imapConnection.once('error', (err) => {
-        logger.error('[EmailClient] IMAP 连接错误:', err);
-        this.emit('error', err);
+      this.imapConnection.once("error", (err) => {
+        logger.error("[EmailClient] IMAP 连接错误:", err);
+        this.emit("error", err);
         reject(err);
       });
 
-      this.imapConnection.once('end', () => {
-        logger.info('[EmailClient] IMAP 连接关闭');
-        this.emit('disconnected');
+      this.imapConnection.once("end", () => {
+        logger.info("[EmailClient] IMAP 连接关闭");
+        this.emit("disconnected");
       });
 
       this.imapConnection.connect();
@@ -231,7 +233,7 @@ class EmailClient extends EventEmitter {
         try {
           entry.connection.end();
         } catch (error) {
-          logger.error('[EmailClient] 断开连接失败:', error);
+          logger.error("[EmailClient] 断开连接失败:", error);
         }
         this.connectionPool.delete(accountId);
         logger.info(`[EmailClient] 已断开连接: ${accountId}`);
@@ -243,12 +245,12 @@ class EmailClient extends EventEmitter {
           try {
             entry.connection.end();
           } catch (error) {
-            logger.error('[EmailClient] 断开连接失败:', error);
+            logger.error("[EmailClient] 断开连接失败:", error);
           }
         }
       }
       this.connectionPool.clear();
-      logger.info('[EmailClient] 已断开所有连接');
+      logger.info("[EmailClient] 已断开所有连接");
     }
 
     // 清理主连接
@@ -256,7 +258,7 @@ class EmailClient extends EventEmitter {
       try {
         this.imapConnection.end();
       } catch (error) {
-        logger.error('[EmailClient] 断开主连接失败:', error);
+        logger.error("[EmailClient] 断开主连接失败:", error);
       }
       this.imapConnection = null;
     }
@@ -268,7 +270,7 @@ class EmailClient extends EventEmitter {
   async getMailboxes() {
     return new Promise((resolve, reject) => {
       if (!this.imapConnection) {
-        reject(new Error('未连接到 IMAP 服务器'));
+        reject(new Error("未连接到 IMAP 服务器"));
         return;
       }
 
@@ -288,10 +290,10 @@ class EmailClient extends EventEmitter {
    * 打开邮箱
    * @param {string} mailbox - 邮箱名称（如 'INBOX'）
    */
-  async openMailbox(mailbox = 'INBOX') {
+  async openMailbox(mailbox = "INBOX") {
     return new Promise((resolve, reject) => {
       if (!this.imapConnection) {
-        reject(new Error('未连接到 IMAP 服务器'));
+        reject(new Error("未连接到 IMAP 服务器"));
         return;
       }
 
@@ -312,7 +314,7 @@ class EmailClient extends EventEmitter {
    */
   async fetchEmails(options = {}) {
     const {
-      mailbox = 'INBOX',
+      mailbox = "INBOX",
       limit = 50,
       unseen = false,
       since = null,
@@ -324,13 +326,13 @@ class EmailClient extends EventEmitter {
       // 构建搜索条件
       const searchCriteria = [];
       if (unseen) {
-        searchCriteria.push('UNSEEN');
+        searchCriteria.push("UNSEEN");
       }
       if (since) {
-        searchCriteria.push(['SINCE', since]);
+        searchCriteria.push(["SINCE", since]);
       }
       if (searchCriteria.length === 0) {
-        searchCriteria.push('ALL');
+        searchCriteria.push("ALL");
       }
 
       return new Promise((resolve, reject) => {
@@ -349,42 +351,42 @@ class EmailClient extends EventEmitter {
           const uids = results.slice(-limit);
 
           const fetch = this.imapConnection.fetch(uids, {
-            bodies: '',
+            bodies: "",
             struct: true,
           });
 
           const emails = [];
 
-          fetch.on('message', (msg, seqno) => {
-            let buffer = '';
+          fetch.on("message", (msg, seqno) => {
+            let buffer = "";
 
-            msg.on('body', (stream, info) => {
-              stream.on('data', (chunk) => {
-                buffer += chunk.toString('utf8');
+            msg.on("body", (stream, info) => {
+              stream.on("data", (chunk) => {
+                buffer += chunk.toString("utf8");
               });
             });
 
-            msg.once('end', async () => {
+            msg.once("end", async () => {
               try {
                 const parsed = await simpleParser(buffer);
                 emails.push(this.normalizeEmail(parsed, seqno));
               } catch (error) {
-                logger.error('[EmailClient] 解析邮件失败:', error);
+                logger.error("[EmailClient] 解析邮件失败:", error);
               }
             });
           });
 
-          fetch.once('error', (err) => {
+          fetch.once("error", (err) => {
             reject(err);
           });
 
-          fetch.once('end', () => {
+          fetch.once("end", () => {
             resolve(emails);
           });
         });
       });
     } catch (error) {
-      logger.error('[EmailClient] 获取邮件失败:', error);
+      logger.error("[EmailClient] 获取邮件失败:", error);
       throw error;
     }
   }
@@ -393,26 +395,26 @@ class EmailClient extends EventEmitter {
    * 获取单封邮件
    * @param {number} uid - 邮件 UID
    */
-  async fetchEmail(uid, mailbox = 'INBOX') {
+  async fetchEmail(uid, mailbox = "INBOX") {
     try {
       await this.openMailbox(mailbox);
 
       return new Promise((resolve, reject) => {
         const fetch = this.imapConnection.fetch([uid], {
-          bodies: '',
+          bodies: "",
           struct: true,
         });
 
-        let buffer = '';
+        let buffer = "";
 
-        fetch.on('message', (msg, seqno) => {
-          msg.on('body', (stream, info) => {
-            stream.on('data', (chunk) => {
-              buffer += chunk.toString('utf8');
+        fetch.on("message", (msg, seqno) => {
+          msg.on("body", (stream, info) => {
+            stream.on("data", (chunk) => {
+              buffer += chunk.toString("utf8");
             });
           });
 
-          msg.once('end', async () => {
+          msg.once("end", async () => {
             try {
               const parsed = await simpleParser(buffer);
               resolve(this.normalizeEmail(parsed, seqno));
@@ -422,10 +424,10 @@ class EmailClient extends EventEmitter {
           });
         });
 
-        fetch.once('error', reject);
+        fetch.once("error", reject);
       });
     } catch (error) {
-      logger.error('[EmailClient] 获取邮件失败:', error);
+      logger.error("[EmailClient] 获取邮件失败:", error);
       throw error;
     }
   }
@@ -434,12 +436,12 @@ class EmailClient extends EventEmitter {
    * 标记邮件为已读
    * @param {number} uid - 邮件 UID
    */
-  async markAsRead(uid, mailbox = 'INBOX') {
+  async markAsRead(uid, mailbox = "INBOX") {
     try {
       await this.openMailbox(mailbox);
 
       return new Promise((resolve, reject) => {
-        this.imapConnection.addFlags(uid, ['\\Seen'], (err) => {
+        this.imapConnection.addFlags(uid, ["\\Seen"], (err) => {
           if (err) {
             reject(err);
             return;
@@ -448,7 +450,7 @@ class EmailClient extends EventEmitter {
         });
       });
     } catch (error) {
-      logger.error('[EmailClient] 标记已读失败:', error);
+      logger.error("[EmailClient] 标记已读失败:", error);
       throw error;
     }
   }
@@ -457,12 +459,12 @@ class EmailClient extends EventEmitter {
    * 删除邮件
    * @param {number} uid - 邮件 UID
    */
-  async deleteEmail(uid, mailbox = 'INBOX') {
+  async deleteEmail(uid, mailbox = "INBOX") {
     try {
       await this.openMailbox(mailbox);
 
       return new Promise((resolve, reject) => {
-        this.imapConnection.addFlags(uid, ['\\Deleted'], (err) => {
+        this.imapConnection.addFlags(uid, ["\\Deleted"], (err) => {
           if (err) {
             reject(err);
             return;
@@ -478,7 +480,7 @@ class EmailClient extends EventEmitter {
         });
       });
     } catch (error) {
-      logger.error('[EmailClient] 删除邮件失败:', error);
+      logger.error("[EmailClient] 删除邮件失败:", error);
       throw error;
     }
   }
@@ -502,16 +504,16 @@ class EmailClient extends EventEmitter {
         attachments: mailOptions.attachments,
       });
 
-      logger.info('[EmailClient] 邮件发送成功:', info.messageId);
-      this.emit('email-sent', info);
+      logger.info("[EmailClient] 邮件发送成功:", info.messageId);
+      this.emit("email-sent", info);
 
       return {
         success: true,
         messageId: info.messageId,
       };
     } catch (error) {
-      logger.error('[EmailClient] 发送邮件失败:', error);
-      this.emit('email-send-error', error);
+      logger.error("[EmailClient] 发送邮件失败:", error);
+      this.emit("email-send-error", error);
       throw error;
     }
   }
@@ -523,14 +525,14 @@ class EmailClient extends EventEmitter {
     return {
       uid: seqno,
       messageId: parsed.messageId,
-      subject: parsed.subject || '(无主题)',
-      from: parsed.from ? parsed.from.text : '',
-      to: parsed.to ? parsed.to.text : '',
-      cc: parsed.cc ? parsed.cc.text : '',
+      subject: parsed.subject || "(无主题)",
+      from: parsed.from ? parsed.from.text : "",
+      to: parsed.to ? parsed.to.text : "",
+      cc: parsed.cc ? parsed.cc.text : "",
       date: parsed.date || new Date(),
-      text: parsed.text || '',
-      html: parsed.html || '',
-      attachments: (parsed.attachments || []).map(att => ({
+      text: parsed.text || "",
+      html: parsed.html || "",
+      attachments: (parsed.attachments || []).map((att) => ({
         filename: att.filename,
         contentType: att.contentType,
         size: att.size,
@@ -542,7 +544,7 @@ class EmailClient extends EventEmitter {
   /**
    * 解析邮箱列表
    */
-  parseMailboxes(boxes, prefix = '') {
+  parseMailboxes(boxes, prefix = "") {
     const result = [];
 
     for (const [name, box] of Object.entries(boxes)) {
@@ -553,7 +555,9 @@ class EmailClient extends EventEmitter {
         displayName: name,
         delimiter: box.delimiter,
         flags: box.attribs || [],
-        children: box.children ? this.parseMailboxes(box.children, fullName) : [],
+        children: box.children
+          ? this.parseMailboxes(box.children, fullName)
+          : [],
       });
     }
 
@@ -564,15 +568,15 @@ class EmailClient extends EventEmitter {
    * 获取默认 IMAP 主机
    */
   getDefaultImapHost(email) {
-    const domain = email.split('@')[1];
+    const domain = email.split("@")[1];
     const commonHosts = {
-      'gmail.com': 'imap.gmail.com',
-      'outlook.com': 'outlook.office365.com',
-      'hotmail.com': 'outlook.office365.com',
-      'yahoo.com': 'imap.mail.yahoo.com',
-      '163.com': 'imap.163.com',
-      '126.com': 'imap.126.com',
-      'qq.com': 'imap.qq.com',
+      "gmail.com": "imap.gmail.com",
+      "outlook.com": "outlook.office365.com",
+      "hotmail.com": "outlook.office365.com",
+      "yahoo.com": "imap.mail.yahoo.com",
+      "163.com": "imap.163.com",
+      "126.com": "imap.126.com",
+      "qq.com": "imap.qq.com",
     };
 
     return commonHosts[domain] || `imap.${domain}`;
@@ -582,15 +586,15 @@ class EmailClient extends EventEmitter {
    * 获取默认 SMTP 主机
    */
   getDefaultSmtpHost(email) {
-    const domain = email.split('@')[1];
+    const domain = email.split("@")[1];
     const commonHosts = {
-      'gmail.com': 'smtp.gmail.com',
-      'outlook.com': 'smtp.office365.com',
-      'hotmail.com': 'smtp.office365.com',
-      'yahoo.com': 'smtp.mail.yahoo.com',
-      '163.com': 'smtp.163.com',
-      '126.com': 'smtp.126.com',
-      'qq.com': 'smtp.qq.com',
+      "gmail.com": "smtp.gmail.com",
+      "outlook.com": "smtp.office365.com",
+      "hotmail.com": "smtp.office365.com",
+      "yahoo.com": "smtp.mail.yahoo.com",
+      "163.com": "smtp.163.com",
+      "126.com": "smtp.126.com",
+      "qq.com": "smtp.qq.com",
     };
 
     return commonHosts[domain] || `smtp.${domain}`;

@@ -21,10 +21,7 @@
         </a-button>
         <template #overlay>
           <a-menu>
-            <a-menu-item
-              key="view"
-              @click.stop="emit('viewDetail', team)"
-            >
+            <a-menu-item key="view" @click.stop="emit('viewDetail', team)">
               <EyeOutlined />
               查看详情
             </a-menu-item>
@@ -78,7 +75,8 @@
           <UserOutlined class="stat-icon" />
           <span class="stat-label">成员:</span>
           <span class="stat-value">
-            {{ team.memberCount || 0 }} / {{ team.maxAgents || team.config?.maxAgents || 5 }}
+            {{ team.memberCount || 0 }} /
+            {{ team.maxAgents || team.config?.maxAgents || 5 }}
           </span>
         </div>
 
@@ -96,7 +94,10 @@
       </div>
 
       <!-- 进度条（如果团队有任务在进行中） -->
-      <div v-if="team.status === 'active' && team.progress !== undefined" class="team-progress">
+      <div
+        v-if="team.status === 'active' && team.progress !== undefined"
+        class="team-progress"
+      >
         <a-progress
           :percent="team.progress"
           :status="team.progress === 100 ? 'success' : 'active'"
@@ -160,7 +161,9 @@ function getStatusText(status) {
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return "-";
+  if (!timestamp) {
+    return "-";
+  }
 
   try {
     return formatDistanceToNow(new Date(timestamp), {

@@ -1,14 +1,14 @@
 pluginManagement {
     repositories {
-        // 阿里云镜像（优先使用，加速国内下载）
-        maven { url = uri("https://maven.aliyun.com/repository/google") }
-        maven { url = uri("https://maven.aliyun.com/repository/public") }
-        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
-
-        // 官方仓库（备用）
+        // 官方仓库（优先，确保插件完整性）
         google()
         mavenCentral()
         gradlePluginPortal()
+
+        // 阿里云镜像（备用，加速国内下载）
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
     }
 }
 

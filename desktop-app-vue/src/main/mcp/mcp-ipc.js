@@ -7,7 +7,7 @@
  * @module MCP_IPC
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 
 // 跟踪基础配置IPC是否已注册

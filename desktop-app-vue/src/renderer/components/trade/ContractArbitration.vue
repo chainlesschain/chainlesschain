@@ -17,31 +17,18 @@
       </template>
 
       <!-- 筛选 -->
-      <a-row
-        :gutter="[16, 16]"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="[16, 16]" style="margin-bottom: 16px">
         <a-col :span="8">
           <a-select
             v-model:value="filterStatus"
             style="width: 100%"
             @change="loadArbitrations"
           >
-            <a-select-option value="">
-              全部状态
-            </a-select-option>
-            <a-select-option value="pending">
-              待处理
-            </a-select-option>
-            <a-select-option value="investigating">
-              调查中
-            </a-select-option>
-            <a-select-option value="resolved">
-              已解决
-            </a-select-option>
-            <a-select-option value="rejected">
-              已拒绝
-            </a-select-option>
+            <a-select-option value=""> 全部状态 </a-select-option>
+            <a-select-option value="pending"> 待处理 </a-select-option>
+            <a-select-option value="investigating"> 调查中 </a-select-option>
+            <a-select-option value="resolved"> 已解决 </a-select-option>
+            <a-select-option value="rejected"> 已拒绝 </a-select-option>
           </a-select>
         </a-col>
       </a-row>
@@ -61,27 +48,20 @@
                     <a-tag :color="getStatusColor(item.status)">
                       {{ getStatusName(item.status) }}
                     </a-tag>
-                    <span style="font-weight: bold">合约仲裁 #{{ item.id.substring(0, 8) }}</span>
+                    <span style="font-weight: bold"
+                      >合约仲裁 #{{ item.id.substring(0, 8) }}</span
+                    >
                   </a-space>
                 </template>
                 <template #description>
-                  <a-descriptions
-                    :column="2"
-                    size="small"
-                  >
+                  <a-descriptions :column="2" size="small">
                     <a-descriptions-item label="合约ID">
-                      <a-typography-text
-                        copyable
-                        style="font-size: 12px"
-                      >
+                      <a-typography-text copyable style="font-size: 12px">
                         {{ item.contractId }}
                       </a-typography-text>
                     </a-descriptions-item>
                     <a-descriptions-item label="发起者">
-                      <a-typography-text
-                        copyable
-                        style="font-size: 12px"
-                      >
+                      <a-typography-text copyable style="font-size: 12px">
                         {{ shortenDid(item.initiatorDid) }}
                       </a-typography-text>
                     </a-descriptions-item>
@@ -105,10 +85,7 @@
               </div>
 
               <!-- 证据 -->
-              <div
-                v-if="item.evidence"
-                class="arbitration-evidence"
-              >
+              <div v-if="item.evidence" class="arbitration-evidence">
                 <h4>提交的证据</h4>
                 <a-space wrap>
                   <a-tag
@@ -122,10 +99,7 @@
               </div>
 
               <!-- 仲裁结果 -->
-              <div
-                v-if="item.resolution"
-                class="arbitration-resolution"
-              >
+              <div v-if="item.resolution" class="arbitration-resolution">
                 <a-alert
                   :type="item.status === 'resolved' ? 'success' : 'warning'"
                   show-icon
@@ -157,10 +131,7 @@
                 >
                   <solution-outlined /> 提交裁决
                 </a-button>
-                <a-button
-                  size="small"
-                  @click="viewContract(item.contractId)"
-                >
+                <a-button size="small" @click="viewContract(item.contractId)">
                   <file-text-outlined /> 查看合约
                 </a-button>
               </template>
@@ -197,31 +168,17 @@
 
         <a-form layout="vertical">
           <!-- 裁决结果 -->
-          <a-form-item
-            label="裁决结果"
-            required
-          >
+          <a-form-item label="裁决结果" required>
             <a-radio-group v-model:value="resolutionForm.decision">
-              <a-radio value="favor_initiator">
-                支持发起方
-              </a-radio>
-              <a-radio value="favor_respondent">
-                支持被诉方
-              </a-radio>
-              <a-radio value="compromise">
-                折中方案
-              </a-radio>
-              <a-radio value="reject">
-                驳回仲裁
-              </a-radio>
+              <a-radio value="favor_initiator"> 支持发起方 </a-radio>
+              <a-radio value="favor_respondent"> 支持被诉方 </a-radio>
+              <a-radio value="compromise"> 折中方案 </a-radio>
+              <a-radio value="reject"> 驳回仲裁 </a-radio>
             </a-radio-group>
           </a-form-item>
 
           <!-- 裁决说明 -->
-          <a-form-item
-            label="裁决说明"
-            required
-          >
+          <a-form-item label="裁决说明" required>
             <a-textarea
               v-model:value="resolutionForm.resolution"
               :rows="6"
@@ -239,9 +196,7 @@
               style="width: 100%"
               placeholder="输入补偿金额（可选）"
             >
-              <template #prefix>
-                ¥
-              </template>
+              <template #prefix> ¥ </template>
             </a-input-number>
           </a-form-item>
         </a-form>
@@ -251,30 +206,30 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   GavelOutlined,
   ReloadOutlined,
   CheckOutlined,
   SolutionOutlined,
   FileTextOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // 状态
 const loading = ref(false);
 const submitting = ref(false);
 const arbitrations = ref([]);
-const filterStatus = ref('');
+const filterStatus = ref("");
 const showResolutionModal = ref(false);
 const selectedArbitration = ref(null);
 const isArbitrator = ref(false); // 实际应该从用户角色判断
 
 const resolutionForm = reactive({
-  decision: 'favor_initiator',
-  resolution: '',
+  decision: "favor_initiator",
+  resolution: "",
   compensationAmount: 0,
 });
 
@@ -288,7 +243,7 @@ const loadArbitrations = async () => {
     const userDid = currentIdentity?.did;
 
     if (!userDid) {
-      message.warning('请先创建DID身份');
+      message.warning("请先创建DID身份");
       return;
     }
 
@@ -298,12 +253,16 @@ const loadArbitrations = async () => {
 
     // 调用IPC获取仲裁列表（这里应该有一个API）
     // 暂时使用空数组
-    arbitrations.value = await window.electronAPI.contract.getArbitrations?.(filters) || [];
+    arbitrations.value =
+      (await window.electronAPI.contract.getArbitrations?.(filters)) || [];
 
-    logger.info('[ContractArbitration] 仲裁列表已加载:', arbitrations.value.length);
+    logger.info(
+      "[ContractArbitration] 仲裁列表已加载:",
+      arbitrations.value.length,
+    );
   } catch (error) {
-    logger.error('[ContractArbitration] 加载仲裁列表失败:', error);
-    message.error(error.message || '加载仲裁列表失败');
+    logger.error("[ContractArbitration] 加载仲裁列表失败:", error);
+    message.error(error.message || "加载仲裁列表失败");
   } finally {
     loading.value = false;
   }
@@ -314,21 +273,21 @@ const acceptArbitration = async (arbitration) => {
   try {
     await window.electronAPI.contract.acceptArbitration?.(arbitration.id);
 
-    logger.info('[ContractArbitration] 已接受仲裁:', arbitration.id);
-    message.success('已接受仲裁，开始调查');
+    logger.info("[ContractArbitration] 已接受仲裁:", arbitration.id);
+    message.success("已接受仲裁，开始调查");
 
     await loadArbitrations();
   } catch (error) {
-    logger.error('[ContractArbitration] 接受仲裁失败:', error);
-    message.error(error.message || '接受仲裁失败');
+    logger.error("[ContractArbitration] 接受仲裁失败:", error);
+    message.error(error.message || "接受仲裁失败");
   }
 };
 
 // 提交裁决
 const resolveArbitration = (arbitration) => {
   selectedArbitration.value = arbitration;
-  resolutionForm.decision = 'favor_initiator';
-  resolutionForm.resolution = '';
+  resolutionForm.decision = "favor_initiator";
+  resolutionForm.resolution = "";
   resolutionForm.compensationAmount = 0;
   showResolutionModal.value = true;
 };
@@ -336,8 +295,8 @@ const resolveArbitration = (arbitration) => {
 // 提交裁决表单
 const handleSubmitResolution = async () => {
   try {
-    if (!resolutionForm.resolution || resolutionForm.resolution.trim() === '') {
-      message.warning('请填写裁决说明');
+    if (!resolutionForm.resolution || resolutionForm.resolution.trim() === "") {
+      message.warning("请填写裁决说明");
       return;
     }
 
@@ -351,19 +310,22 @@ const handleSubmitResolution = async () => {
 
     await window.electronAPI.contract.resolveArbitration?.(
       selectedArbitration.value.id,
-      resolutionData
+      resolutionData,
     );
 
-    logger.info('[ContractArbitration] 裁决已提交:', selectedArbitration.value.id);
-    message.success('裁决已提交');
+    logger.info(
+      "[ContractArbitration] 裁决已提交:",
+      selectedArbitration.value.id,
+    );
+    message.success("裁决已提交");
 
     showResolutionModal.value = false;
     selectedArbitration.value = null;
 
     await loadArbitrations();
   } catch (error) {
-    logger.error('[ContractArbitration] 提交裁决失败:', error);
-    message.error(error.message || '提交裁决失败');
+    logger.error("[ContractArbitration] 提交裁决失败:", error);
+    message.error(error.message || "提交裁决失败");
   } finally {
     submitting.value = false;
   }
@@ -372,51 +334,58 @@ const handleSubmitResolution = async () => {
 // 查看合约
 const viewContract = (contractId) => {
   // 这里应该打开合约详情对话框或跳转
-  logger.info('[ContractArbitration] 查看合约:', contractId);
-  message.info('跳转到合约详情');
+  logger.info("[ContractArbitration] 查看合约:", contractId);
+  message.info("跳转到合约详情");
 };
 
 // 工具函数
 const getStatusColor = (status) => {
   const colors = {
-    pending: 'orange',
-    investigating: 'blue',
-    resolved: 'green',
-    rejected: 'red',
+    pending: "orange",
+    investigating: "blue",
+    resolved: "green",
+    rejected: "red",
   };
-  return colors[status] || 'default';
+  return colors[status] || "default";
 };
 
 const getStatusName = (status) => {
   const names = {
-    pending: '待处理',
-    investigating: '调查中',
-    resolved: '已解决',
-    rejected: '已拒绝',
+    pending: "待处理",
+    investigating: "调查中",
+    resolved: "已解决",
+    rejected: "已拒绝",
   };
   return names[status] || status;
 };
 
 const parseEvidence = (evidence) => {
-  if (!evidence) {return [];}
-  if (typeof evidence === 'string') {
+  if (!evidence) {
+    return [];
+  }
+  if (typeof evidence === "string") {
     try {
       return JSON.parse(evidence);
     } catch {
-      return evidence.split(',').map(e => e.trim()).filter(e => e);
+      return evidence
+        .split(",")
+        .map((e) => e.trim())
+        .filter((e) => e);
     }
   }
   return evidence;
 };
 
 const shortenDid = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 
 // 生命周期

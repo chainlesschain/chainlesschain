@@ -9,9 +9,9 @@
  * - Emergency pause mechanism
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const { ethers } = require('ethers');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const { ethers } = require("ethers");
 
 /**
  * Security configuration
@@ -19,15 +19,15 @@ const { ethers } = require('ethers');
 const SECURITY_CONFIG = {
   // Rate limiting
   MAX_TRANSFERS_PER_HOUR: 10,
-  MAX_AMOUNT_PER_TRANSFER: ethers.parseEther('1000'), // 1000 tokens
-  MAX_DAILY_VOLUME: ethers.parseEther('10000'), // 10000 tokens per day
+  MAX_AMOUNT_PER_TRANSFER: ethers.parseEther("1000"), // 1000 tokens
+  MAX_DAILY_VOLUME: ethers.parseEther("10000"), // 10000 tokens per day
 
   // Multi-sig requirements
   MIN_SIGNATURES_REQUIRED: 2,
   SIGNATURE_TIMEOUT: 300000, // 5 minutes
 
   // Monitoring
-  SUSPICIOUS_AMOUNT_THRESHOLD: ethers.parseEther('100'),
+  SUSPICIOUS_AMOUNT_THRESHOLD: ethers.parseEther("100"),
   RAPID_TRANSFER_WINDOW: 60000, // 1 minute
   MAX_RAPID_TRANSFERS: 3,
 
@@ -65,7 +65,7 @@ class BridgeSecurityManager extends EventEmitter {
    */
   async initialize() {
     if (this.initialized) {
-      logger.info('[BridgeSecurity] Already initialized');
+      logger.info("[BridgeSecurity] Already initialized");
       return;
     }
 
@@ -77,9 +77,9 @@ class BridgeSecurityManager extends EventEmitter {
       this.startCleanupInterval();
 
       this.initialized = true;
-      logger.info('[BridgeSecurity] Initialized successfully');
+      logger.info("[BridgeSecurity] Initialized successfully");
     } catch (error) {
-      logger.error('[BridgeSecurity] Initialization failed:', error);
+      logger.error("[BridgeSecurity] Initialization failed:", error);
       throw error;
     }
   }
@@ -127,7 +127,7 @@ class BridgeSecurityManager extends EventEmitter {
       )
     `);
 
-    logger.info('[BridgeSecurity] Database tables initialized');
+    logger.info("[BridgeSecurity] Database tables initialized");
   }
 
   /**
@@ -136,16 +136,20 @@ class BridgeSecurityManager extends EventEmitter {
   async loadBlacklist() {
     try {
       const db = this.database.db;
-      const blacklisted = db.prepare('SELECT address FROM bridge_blacklist').all();
+      const blacklisted = db
+        .prepare("SELECT address FROM bridge_blacklist")
+        .all();
 
       this.blacklistedAddresses.clear();
-      blacklisted.forEach(row => {
+      blacklisted.forEach((row) => {
         this.blacklistedAddresses.add(row.address.toLowerCase());
       });
 
-      logger.info(`[BridgeSecurity] Loaded ${this.blacklistedAddresses.size} blacklisted addresses`);
+      logger.info(
+        `[BridgeSecurity] Loaded ${this.blacklistedAddresses.size} blacklisted addresses`,
+      );
     } catch (error) {
-      logger.error('[BridgeSecurity] Failed to load blacklist:', error);
+      logger.error("[BridgeSecurity] Failed to load blacklist:", error);
     }
   }
 
@@ -157,11 +161,11 @@ class BridgeSecurityManager extends EventEmitter {
   async validateTransfer(transfer) {
     const { fromAddress, toAddress, amount, chainId } = transfer;
 
-    logger.info('[BridgeSecurity] Validating transfer:', {
+    logger.info("[BridgeSecurity] Validating transfer:", {
       from: fromAddress,
       to: toAddress,
       amount: amount.toString(),
-      chainId
+      chainId,
     });
 
     // Check if paused
@@ -169,28 +173,28 @@ class BridgeSecurityManager extends EventEmitter {
       const remaining = this.pausedUntil - Date.now();
       return {
         valid: false,
-        reason: 'BRIDGE_PAUSED',
+        reason: "BRIDGE_PAUSED",
         message: `Bridge is paused for ${Math.ceil(remaining / 60000)} more minutes`,
-        severity: 'critical'
+        severity: "critical",
       };
     }
 
     // Check blacklist
     if (this.isBlacklisted(fromAddress) || this.isBlacklisted(toAddress)) {
       await this.logSecurityEvent({
-        type: 'BLACKLIST_ATTEMPT',
-        severity: 'critical',
+        type: "BLACKLIST_ATTEMPT",
+        severity: "critical",
         address: fromAddress,
         amount: amount.toString(),
         chainId,
-        details: 'Attempted transfer from/to blacklisted address'
+        details: "Attempted transfer from/to blacklisted address",
       });
 
       return {
         valid: false,
-        reason: 'BLACKLISTED',
-        message: 'Address is blacklisted',
-        severity: 'critical'
+        reason: "BLACKLISTED",
+        message: "Address is blacklisted",
+        severity: "critical",
       };
     }
 
@@ -198,12 +202,12 @@ class BridgeSecurityManager extends EventEmitter {
     const rateLimitCheck = this.checkRateLimit(fromAddress, amount);
     if (!rateLimitCheck.valid) {
       await this.logSecurityEvent({
-        type: 'RATE_LIMIT_EXCEEDED',
-        severity: 'high',
+        type: "RATE_LIMIT_EXCEEDED",
+        severity: "high",
         address: fromAddress,
         amount: amount.toString(),
         chainId,
-        details: rateLimitCheck.message
+        details: rateLimitCheck.message,
       });
 
       return rateLimitCheck;
@@ -213,12 +217,12 @@ class BridgeSecurityManager extends EventEmitter {
     const volumeCheck = this.checkDailyVolume(fromAddress, amount);
     if (!volumeCheck.valid) {
       await this.logSecurityEvent({
-        type: 'VOLUME_LIMIT_EXCEEDED',
-        severity: 'high',
+        type: "VOLUME_LIMIT_EXCEEDED",
+        severity: "high",
         address: fromAddress,
         amount: amount.toString(),
         chainId,
-        details: volumeCheck.message
+        details: volumeCheck.message,
       });
 
       return volumeCheck;
@@ -228,19 +232,19 @@ class BridgeSecurityManager extends EventEmitter {
     const suspiciousCheck = this.checkSuspiciousActivity(fromAddress, amount);
     if (suspiciousCheck.suspicious) {
       await this.logSecurityEvent({
-        type: 'SUSPICIOUS_ACTIVITY',
-        severity: 'medium',
+        type: "SUSPICIOUS_ACTIVITY",
+        severity: "medium",
         address: fromAddress,
         amount: amount.toString(),
         chainId,
-        details: suspiciousCheck.reason
+        details: suspiciousCheck.reason,
       });
 
       // Don't block, but flag for review
-      this.emit('suspicious-activity', {
+      this.emit("suspicious-activity", {
         address: fromAddress,
         amount: amount.toString(),
-        reason: suspiciousCheck.reason
+        reason: suspiciousCheck.reason,
       });
     }
 
@@ -250,7 +254,7 @@ class BridgeSecurityManager extends EventEmitter {
     return {
       valid: true,
       requiresMultiSig: amount >= SECURITY_CONFIG.SUSPICIOUS_AMOUNT_THRESHOLD,
-      message: 'Transfer validated successfully'
+      message: "Transfer validated successfully",
     };
   }
 
@@ -262,14 +266,14 @@ class BridgeSecurityManager extends EventEmitter {
     const history = this.transferHistory.get(address.toLowerCase()) || [];
 
     // Remove old transfers (older than 1 hour)
-    const recentTransfers = history.filter(t => now - t.timestamp < 3600000);
+    const recentTransfers = history.filter((t) => now - t.timestamp < 3600000);
 
     if (recentTransfers.length >= SECURITY_CONFIG.MAX_TRANSFERS_PER_HOUR) {
       return {
         valid: false,
-        reason: 'RATE_LIMIT',
+        reason: "RATE_LIMIT",
         message: `Maximum ${SECURITY_CONFIG.MAX_TRANSFERS_PER_HOUR} transfers per hour exceeded`,
-        severity: 'high'
+        severity: "high",
       };
     }
 
@@ -277,9 +281,9 @@ class BridgeSecurityManager extends EventEmitter {
     if (amount > SECURITY_CONFIG.MAX_AMOUNT_PER_TRANSFER) {
       return {
         valid: false,
-        reason: 'AMOUNT_LIMIT',
+        reason: "AMOUNT_LIMIT",
         message: `Transfer amount exceeds maximum of ${ethers.formatEther(SECURITY_CONFIG.MAX_AMOUNT_PER_TRANSFER)} tokens`,
-        severity: 'high'
+        severity: "high",
       };
     }
 
@@ -303,9 +307,9 @@ class BridgeSecurityManager extends EventEmitter {
     if (newVolume > SECURITY_CONFIG.MAX_DAILY_VOLUME) {
       return {
         valid: false,
-        reason: 'DAILY_VOLUME_LIMIT',
+        reason: "DAILY_VOLUME_LIMIT",
         message: `Daily volume limit of ${ethers.formatEther(SECURITY_CONFIG.MAX_DAILY_VOLUME)} tokens exceeded`,
-        severity: 'high'
+        severity: "high",
       };
     }
 
@@ -321,13 +325,13 @@ class BridgeSecurityManager extends EventEmitter {
 
     // Check for rapid transfers
     const rapidTransfers = history.filter(
-      t => now - t.timestamp < SECURITY_CONFIG.RAPID_TRANSFER_WINDOW
+      (t) => now - t.timestamp < SECURITY_CONFIG.RAPID_TRANSFER_WINDOW,
     );
 
     if (rapidTransfers.length >= SECURITY_CONFIG.MAX_RAPID_TRANSFERS) {
       return {
         suspicious: true,
-        reason: 'Rapid successive transfers detected'
+        reason: "Rapid successive transfers detected",
       };
     }
 
@@ -335,7 +339,7 @@ class BridgeSecurityManager extends EventEmitter {
     if (amount >= SECURITY_CONFIG.SUSPICIOUS_AMOUNT_THRESHOLD) {
       return {
         suspicious: true,
-        reason: 'Large transfer amount'
+        reason: "Large transfer amount",
       };
     }
 
@@ -358,11 +362,13 @@ class BridgeSecurityManager extends EventEmitter {
     // Update daily volume
     const volumeData = this.dailyVolume.get(addr);
     if (volumeData && volumeData.date === today) {
-      volumeData.volume = (BigInt(volumeData.volume) + BigInt(amount.toString())).toString();
+      volumeData.volume = (
+        BigInt(volumeData.volume) + BigInt(amount.toString())
+      ).toString();
     } else {
       this.dailyVolume.set(addr, {
         date: today,
-        volume: amount.toString()
+        volume: amount.toString(),
       });
     }
   }
@@ -373,9 +379,9 @@ class BridgeSecurityManager extends EventEmitter {
   async createMultiSigTransaction(txData) {
     const txId = ethers.keccak256(
       ethers.AbiCoder.defaultAbiCoder().encode(
-        ['address', 'address', 'uint256', 'uint256'],
-        [txData.from, txData.to, txData.amount, Date.now()]
-      )
+        ["address", "address", "uint256", "uint256"],
+        [txData.from, txData.to, txData.amount, Date.now()],
+      ),
     );
 
     const multiSigTx = {
@@ -383,29 +389,31 @@ class BridgeSecurityManager extends EventEmitter {
       txData: JSON.stringify(txData),
       requiredSignatures: SECURITY_CONFIG.MIN_SIGNATURES_REQUIRED,
       signatures: [],
-      status: 'pending',
-      createdAt: Date.now()
+      status: "pending",
+      createdAt: Date.now(),
     };
 
     // Save to database
     const db = this.database.db;
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO bridge_multisig_txs
       (tx_id, tx_data, required_signatures, signatures, status, created_at)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       multiSigTx.txId,
       multiSigTx.txData,
       multiSigTx.requiredSignatures,
       JSON.stringify(multiSigTx.signatures),
       multiSigTx.status,
-      multiSigTx.createdAt
+      multiSigTx.createdAt,
     );
 
     // Store in memory
     this.pendingMultiSig.set(txId, multiSigTx);
 
-    logger.info('[BridgeSecurity] Multi-sig transaction created:', txId);
+    logger.info("[BridgeSecurity] Multi-sig transaction created:", txId);
 
     return { txId, requiredSignatures: multiSigTx.requiredSignatures };
   }
@@ -417,33 +425,33 @@ class BridgeSecurityManager extends EventEmitter {
     const multiSigTx = this.pendingMultiSig.get(txId);
 
     if (!multiSigTx) {
-      throw new Error('Multi-sig transaction not found');
+      throw new Error("Multi-sig transaction not found");
     }
 
-    if (multiSigTx.status !== 'pending') {
-      throw new Error('Transaction is not pending');
+    if (multiSigTx.status !== "pending") {
+      throw new Error("Transaction is not pending");
     }
 
     // Check timeout
     if (Date.now() - multiSigTx.createdAt > SECURITY_CONFIG.SIGNATURE_TIMEOUT) {
-      multiSigTx.status = 'expired';
-      throw new Error('Signature timeout expired');
+      multiSigTx.status = "expired";
+      throw new Error("Signature timeout expired");
     }
 
     // Verify signature
     const txData = JSON.parse(multiSigTx.txData);
     const message = ethers.solidityPackedKeccak256(
-      ['address', 'address', 'uint256'],
-      [txData.from, txData.to, txData.amount]
+      ["address", "address", "uint256"],
+      [txData.from, txData.to, txData.amount],
     );
 
     const recoveredAddress = ethers.verifyMessage(
       ethers.getBytes(message),
-      signature
+      signature,
     );
 
     if (recoveredAddress.toLowerCase() !== signer.toLowerCase()) {
-      throw new Error('Invalid signature');
+      throw new Error("Invalid signature");
     }
 
     // Add signature
@@ -451,22 +459,28 @@ class BridgeSecurityManager extends EventEmitter {
 
     // Update database
     const db = this.database.db;
-    db.prepare(`
+    db.prepare(
+      `
       UPDATE bridge_multisig_txs
       SET signatures = ?, status = ?
       WHERE tx_id = ?
-    `).run(
+    `,
+    ).run(
       JSON.stringify(multiSigTx.signatures),
-      multiSigTx.signatures.length >= multiSigTx.requiredSignatures ? 'approved' : 'pending',
-      txId
+      multiSigTx.signatures.length >= multiSigTx.requiredSignatures
+        ? "approved"
+        : "pending",
+      txId,
     );
 
-    logger.info(`[BridgeSecurity] Signature added (${multiSigTx.signatures.length}/${multiSigTx.requiredSignatures})`);
+    logger.info(
+      `[BridgeSecurity] Signature added (${multiSigTx.signatures.length}/${multiSigTx.requiredSignatures})`,
+    );
 
     // Check if approved
     if (multiSigTx.signatures.length >= multiSigTx.requiredSignatures) {
-      multiSigTx.status = 'approved';
-      this.emit('multisig-approved', { txId, txData });
+      multiSigTx.status = "approved";
+      this.emit("multisig-approved", { txId, txData });
       return { approved: true, txData };
     }
 
@@ -476,19 +490,21 @@ class BridgeSecurityManager extends EventEmitter {
   /**
    * Emergency pause bridge
    */
-  async pauseBridge(duration = SECURITY_CONFIG.PAUSE_DURATION, reason = '') {
+  async pauseBridge(duration = SECURITY_CONFIG.PAUSE_DURATION, reason = "") {
     this.isPaused = true;
     this.pausedUntil = Date.now() + duration;
 
     await this.logSecurityEvent({
-      type: 'BRIDGE_PAUSED',
-      severity: 'critical',
-      details: `Bridge paused for ${duration / 60000} minutes. Reason: ${reason}`
+      type: "BRIDGE_PAUSED",
+      severity: "critical",
+      details: `Bridge paused for ${duration / 60000} minutes. Reason: ${reason}`,
     });
 
-    this.emit('bridge-paused', { duration, reason, until: this.pausedUntil });
+    this.emit("bridge-paused", { duration, reason, until: this.pausedUntil });
 
-    logger.info(`[BridgeSecurity] Bridge paused until ${new Date(this.pausedUntil).toISOString()}`);
+    logger.info(
+      `[BridgeSecurity] Bridge paused until ${new Date(this.pausedUntil).toISOString()}`,
+    );
 
     // Auto-resume after duration
     setTimeout(() => {
@@ -504,24 +520,24 @@ class BridgeSecurityManager extends EventEmitter {
     this.pausedUntil = null;
 
     await this.logSecurityEvent({
-      type: 'BRIDGE_RESUMED',
-      severity: 'info',
-      details: 'Bridge operations resumed'
+      type: "BRIDGE_RESUMED",
+      severity: "info",
+      details: "Bridge operations resumed",
     });
 
-    this.emit('bridge-resumed');
+    this.emit("bridge-resumed");
 
-    logger.info('[BridgeSecurity] Bridge resumed');
+    logger.info("[BridgeSecurity] Bridge resumed");
   }
 
   /**
    * Add address to blacklist
    */
-  async addToBlacklist(address, reason, addedBy = 'system') {
+  async addToBlacklist(address, reason, addedBy = "system") {
     const addr = address.toLowerCase();
 
     if (this.blacklistedAddresses.has(addr)) {
-      logger.info('[BridgeSecurity] Address already blacklisted:', addr);
+      logger.info("[BridgeSecurity] Address already blacklisted:", addr);
       return;
     }
 
@@ -529,19 +545,21 @@ class BridgeSecurityManager extends EventEmitter {
 
     // Save to database
     const db = this.database.db;
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO bridge_blacklist (address, reason, added_at, added_by)
       VALUES (?, ?, ?, ?)
-    `).run(addr, reason, Date.now(), addedBy);
+    `,
+    ).run(addr, reason, Date.now(), addedBy);
 
     await this.logSecurityEvent({
-      type: 'ADDRESS_BLACKLISTED',
-      severity: 'high',
+      type: "ADDRESS_BLACKLISTED",
+      severity: "high",
       address: addr,
-      details: `Reason: ${reason}`
+      details: `Reason: ${reason}`,
     });
 
-    logger.info('[BridgeSecurity] Address blacklisted:', addr);
+    logger.info("[BridgeSecurity] Address blacklisted:", addr);
   }
 
   /**
@@ -554,16 +572,16 @@ class BridgeSecurityManager extends EventEmitter {
 
     // Remove from database
     const db = this.database.db;
-    db.prepare('DELETE FROM bridge_blacklist WHERE address = ?').run(addr);
+    db.prepare("DELETE FROM bridge_blacklist WHERE address = ?").run(addr);
 
     await this.logSecurityEvent({
-      type: 'ADDRESS_UNBLACKLISTED',
-      severity: 'info',
+      type: "ADDRESS_UNBLACKLISTED",
+      severity: "info",
       address: addr,
-      details: 'Address removed from blacklist'
+      details: "Address removed from blacklist",
     });
 
-    logger.info('[BridgeSecurity] Address removed from blacklist:', addr);
+    logger.info("[BridgeSecurity] Address removed from blacklist:", addr);
   }
 
   /**
@@ -580,11 +598,13 @@ class BridgeSecurityManager extends EventEmitter {
     const eventId = ethers.hexlify(ethers.randomBytes(16));
 
     const db = this.database.db;
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO bridge_security_events
       (id, event_type, severity, address, amount, chain_id, details, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
+    ).run(
       eventId,
       event.type,
       event.severity,
@@ -592,12 +612,14 @@ class BridgeSecurityManager extends EventEmitter {
       event.amount || null,
       event.chainId || null,
       event.details || null,
-      Date.now()
+      Date.now(),
     );
 
-    this.emit('security-event', event);
+    this.emit("security-event", event);
 
-    logger.info(`[BridgeSecurity] Security event logged: ${event.type} (${event.severity})`);
+    logger.info(
+      `[BridgeSecurity] Security event logged: ${event.type} (${event.severity})`,
+    );
   }
 
   /**
@@ -606,25 +628,25 @@ class BridgeSecurityManager extends EventEmitter {
   async getSecurityEvents(filters = {}) {
     const db = this.database.db;
 
-    let query = 'SELECT * FROM bridge_security_events WHERE 1=1';
+    let query = "SELECT * FROM bridge_security_events WHERE 1=1";
     const params = [];
 
     if (filters.severity) {
-      query += ' AND severity = ?';
+      query += " AND severity = ?";
       params.push(filters.severity);
     }
 
     if (filters.type) {
-      query += ' AND event_type = ?';
+      query += " AND event_type = ?";
       params.push(filters.type);
     }
 
     if (filters.address) {
-      query += ' AND address = ?';
+      query += " AND address = ?";
       params.push(filters.address.toLowerCase());
     }
 
-    query += ' ORDER BY created_at DESC LIMIT ?';
+    query += " ORDER BY created_at DESC LIMIT ?";
     params.push(filters.limit || 100);
 
     return db.prepare(query).all(...params);
@@ -649,7 +671,7 @@ class BridgeSecurityManager extends EventEmitter {
 
     // Clean transfer history
     for (const [address, history] of this.transferHistory.entries()) {
-      const recent = history.filter(t => now - t.timestamp < 3600000);
+      const recent = history.filter((t) => now - t.timestamp < 3600000);
       if (recent.length === 0) {
         this.transferHistory.delete(address);
       } else {
@@ -672,7 +694,7 @@ class BridgeSecurityManager extends EventEmitter {
       }
     }
 
-    logger.info('[BridgeSecurity] Cleanup completed');
+    logger.info("[BridgeSecurity] Cleanup completed");
   }
 
   /**
@@ -686,7 +708,7 @@ class BridgeSecurityManager extends EventEmitter {
     this.removeAllListeners();
     this.initialized = false;
 
-    logger.info('[BridgeSecurity] Closed');
+    logger.info("[BridgeSecurity] Closed");
   }
 }
 

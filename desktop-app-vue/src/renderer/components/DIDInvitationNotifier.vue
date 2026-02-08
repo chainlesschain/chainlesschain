@@ -251,7 +251,7 @@ const acceptingIds = ref([]);
 const rejectingIds = ref([]);
 let refreshInterval = null;
 let retryCount = 0;
-const MAX_RETRIES = 5;
+const MAX_RETRIES = 3;
 const isFeatureAvailable = ref(true);
 
 // 计算属性
@@ -271,25 +271,21 @@ const loadPendingInvitations = async () => {
     pendingInvitations.value = invitations || [];
     retryCount = 0;
   } catch (error) {
-    logger.error(
-      "加载待处理邀请失败 - 错误类型:",
-      error?.name,
-      "错误消息:",
-      error?.message,
-      "完整错误:",
-      error,
-    );
-
     retryCount++;
     if (retryCount >= MAX_RETRIES) {
       logger.warn(
-        `组织邀请加载已失败 ${MAX_RETRIES} 次，停止自动刷新。可能原因：组织管理器未初始化。`,
+        `组织邀请加载已失败 ${MAX_RETRIES} 次，停止自动刷新。可能原因：IPC handler未注册或组织管理器未初始化。`,
       );
       isFeatureAvailable.value = false;
       if (refreshInterval) {
         clearInterval(refreshInterval);
         refreshInterval = null;
       }
+    } else {
+      logger.warn(
+        `加载待处理邀请失败 (${retryCount}/${MAX_RETRIES}):`,
+        error?.message || error,
+      );
     }
   } finally {
     loading.value = false;
@@ -320,7 +316,6 @@ const loadHistoryInvitations = async () => {
       error,
     );
   } finally {
-
     loadingHistory.value = false;
   }
 };

@@ -5,9 +5,9 @@
  * v0.27.0: 新增 BGE Reranker 支持
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { EventEmitter } = require('events');
-const { getBGERerankerClient } = require('./bge-reranker-client');
+const { logger } = require("../utils/logger.js");
+const { EventEmitter } = require("events");
+const { getBGERerankerClient } = require("./bge-reranker-client");
 
 class Reranker extends EventEmitter {
   constructor(llmManager) {
@@ -16,14 +16,14 @@ class Reranker extends EventEmitter {
     this.bgeClient = null; // BGE Reranker 客户端（延迟初始化）
     this.config = {
       enabled: true,
-      method: 'llm', // 'llm' | 'crossencoder' | 'hybrid' | 'bge' | 'bge-hybrid'
+      method: "llm", // 'llm' | 'crossencoder' | 'hybrid' | 'bge' | 'bge-hybrid'
       topK: 5, // 重排序后保留的文档数量
       scoreThreshold: 0.3, // 最低分数阈值
       // BGE 配置
       bgeConfig: {
         enabled: false,
-        serverUrl: 'http://localhost:8002/rerank',
-        modelName: 'BAAI/bge-reranker-base',
+        serverUrl: "http://localhost:8002/rerank",
+        modelName: "BAAI/bge-reranker-base",
         hybridWeights: { bge: 0.6, vector: 0.4 },
       },
     };
@@ -45,43 +45,55 @@ class Reranker extends EventEmitter {
     const topK = options.topK || this.config.topK;
 
     try {
-      this.emit('rerank-start', { query, documentCount: documents.length, method });
+      this.emit("rerank-start", {
+        query,
+        documentCount: documents.length,
+        method,
+      });
 
       let rerankedDocs;
       switch (method) {
-        case 'llm':
+        case "llm":
           rerankedDocs = await this.rerankWithLLM(query, documents, topK);
           break;
-        case 'crossencoder':
-          rerankedDocs = await this.rerankWithCrossEncoder(query, documents, topK);
+        case "crossencoder":
+          rerankedDocs = await this.rerankWithCrossEncoder(
+            query,
+            documents,
+            topK,
+          );
           break;
-        case 'hybrid':
+        case "hybrid":
           rerankedDocs = await this.rerankHybrid(query, documents, topK);
           break;
-        case 'bge':
+        case "bge":
           rerankedDocs = await this.rerankWithBGE(query, documents, topK);
           break;
-        case 'bge-hybrid':
+        case "bge-hybrid":
           rerankedDocs = await this.rerankWithBGEHybrid(query, documents, topK);
           break;
         default:
-          logger.warn(`[Reranker] 未知的重排序方法: ${method}，使用默认 LLM 方法`);
+          logger.warn(
+            `[Reranker] 未知的重排序方法: ${method}，使用默认 LLM 方法`,
+          );
           rerankedDocs = await this.rerankWithLLM(query, documents, topK);
       }
 
       // 应用分数阈值过滤
-      const filtered = rerankedDocs.filter(doc => doc.score >= this.config.scoreThreshold);
+      const filtered = rerankedDocs.filter(
+        (doc) => doc.score >= this.config.scoreThreshold,
+      );
 
-      this.emit('rerank-complete', {
+      this.emit("rerank-complete", {
         query,
         originalCount: documents.length,
-        rerankedCount: filtered.length
+        rerankedCount: filtered.length,
       });
 
       return filtered;
     } catch (error) {
-      logger.error('[Reranker] 重排序失败:', error);
-      this.emit('rerank-error', { query, error });
+      logger.error("[Reranker] 重排序失败:", error);
+      this.emit("rerank-error", { query, error });
       // 失败时返回原始结果
       return documents.slice(0, topK);
     }
@@ -93,7 +105,7 @@ class Reranker extends EventEmitter {
    */
   async rerankWithLLM(query, documents, topK) {
     if (!this.llmManager) {
-      logger.warn('[Reranker] LLM 管理器未初始化，跳过重排序');
+      logger.warn("[Reranker] LLM 管理器未初始化，跳过重排序");
       return documents.slice(0, topK);
     }
 
@@ -121,7 +133,7 @@ class Reranker extends EventEmitter {
 
       return scoredDocs.slice(0, topK);
     } catch (error) {
-      logger.error('[Reranker] LLM 重排序失败:', error);
+      logger.error("[Reranker] LLM 重排序失败:", error);
       return documents.slice(0, topK);
     }
   }
@@ -130,9 +142,12 @@ class Reranker extends EventEmitter {
    * 构建重排序提示词
    */
   buildRerankPrompt(query, documents) {
-    const docList = documents.map((doc, index) =>
-      `文档${index + 1}:\n标题: ${doc.title || '无标题'}\n内容: ${doc.content.substring(0, 200)}...\n`
-    ).join('\n');
+    const docList = documents
+      .map(
+        (doc, index) =>
+          `文档${index + 1}:\n标题: ${doc.title || "无标题"}\n内容: ${doc.content.substring(0, 200)}...\n`,
+      )
+      .join("\n");
 
     return `作为一个信息检索专家，请评估以下文档与用户查询的相关性。
 
@@ -162,14 +177,14 @@ ${docList}
       // 尝试从响应中提取分数
       const scoreMatch = response.match(/[\d.]+(?:\s*,\s*[\d.]+)*/);
       if (!scoreMatch) {
-        logger.warn('[Reranker] 无法解析 LLM 评分，使用默认值');
+        logger.warn("[Reranker] 无法解析 LLM 评分，使用默认值");
         return Array(expectedCount).fill(0.5);
       }
 
       const scores = scoreMatch[0]
-        .split(',')
-        .map(s => parseFloat(s.trim()))
-        .filter(s => !isNaN(s));
+        .split(",")
+        .map((s) => parseFloat(s.trim()))
+        .filter((s) => !isNaN(s));
 
       // 如果分数数量不匹配，补齐或截断
       if (scores.length < expectedCount) {
@@ -181,7 +196,7 @@ ${docList}
 
       return scores;
     } catch (error) {
-      logger.error('[Reranker] 解析评分失败:', error);
+      logger.error("[Reranker] 解析评分失败:", error);
       return Array(expectedCount).fill(0.5);
     }
   }
@@ -193,12 +208,13 @@ ${docList}
   async rerankWithCrossEncoder(query, documents, topK) {
     // 尝试调用远程CrossEncoder API
     try {
-      const crossEncoderUrl = process.env.CROSSENCODER_API_URL || 'http://localhost:8001/api/rerank';
+      const crossEncoderUrl =
+        process.env.CROSSENCODER_API_URL || "http://localhost:8001/api/rerank";
 
       // 准备请求数据
       const requestData = {
         query: query,
-        documents: documents.map(doc => ({
+        documents: documents.map((doc) => ({
           id: doc.id,
           text: doc.content || doc.text || doc.title,
         })),
@@ -207,8 +223,8 @@ ${docList}
 
       // 调用远程API
       const response = await fetch(crossEncoderUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestData),
         timeout: 10000, // 10秒超时
       });
@@ -217,8 +233,8 @@ ${docList}
         const result = await response.json();
 
         // 将远程结果映射回原始文档
-        const rerankedDocs = result.results.map(item => {
-          const originalDoc = documents.find(d => d.id === item.id);
+        const rerankedDocs = result.results.map((item) => {
+          const originalDoc = documents.find((d) => d.id === item.id);
           return {
             ...originalDoc,
             rerankScore: item.score,
@@ -227,15 +243,18 @@ ${docList}
           };
         });
 
-        logger.info('[Reranker] CrossEncoder重排序成功');
+        logger.info("[Reranker] CrossEncoder重排序成功");
         return rerankedDocs.slice(0, topK);
       }
     } catch (error) {
-      logger.warn('[Reranker] CrossEncoder API调用失败，使用关键词回退:', error.message);
+      logger.warn(
+        "[Reranker] CrossEncoder API调用失败，使用关键词回退:",
+        error.message,
+      );
     }
 
     // API不可用时，回退到关键词匹配
-    logger.info('[Reranker] 使用关键词匹配作为CrossEncoder回退方案');
+    logger.info("[Reranker] 使用关键词匹配作为CrossEncoder回退方案");
     return this.rerankWithKeywordMatch(query, documents, topK);
   }
 
@@ -248,7 +267,7 @@ ${docList}
       const llmReranked = await this.rerankWithLLM(query, documents, topK * 2);
 
       // 2. 结合原始检索分数（如果有）
-      const hybridScored = llmReranked.map(doc => {
+      const hybridScored = llmReranked.map((doc) => {
         const originalScore = doc.originalScore || 0;
         const rerankScore = doc.rerankScore || 0;
         // 混合权重: 70% 重排序分数 + 30% 原始分数
@@ -264,7 +283,7 @@ ${docList}
 
       return hybridScored.slice(0, topK);
     } catch (error) {
-      logger.error('[Reranker] 混合重排序失败:', error);
+      logger.error("[Reranker] 混合重排序失败:", error);
       return documents.slice(0, topK);
     }
   }
@@ -276,15 +295,15 @@ ${docList}
   rerankWithKeywordMatch(query, documents, topK) {
     const queryTokens = this.tokenize(query.toLowerCase());
 
-    const scored = documents.map(doc => {
-      const titleTokens = this.tokenize((doc.title || '').toLowerCase());
-      const contentTokens = this.tokenize((doc.content || '').toLowerCase());
+    const scored = documents.map((doc) => {
+      const titleTokens = this.tokenize((doc.title || "").toLowerCase());
+      const contentTokens = this.tokenize((doc.content || "").toLowerCase());
 
       // 计算关键词匹配度
       let matchScore = 0;
 
       // 标题匹配权重更高
-      queryTokens.forEach(token => {
+      queryTokens.forEach((token) => {
         if (titleTokens.includes(token)) {
           matchScore += 2.0;
         }
@@ -294,7 +313,10 @@ ${docList}
       });
 
       // 归一化分数
-      const normalizedScore = Math.min(matchScore / (queryTokens.length * 3), 1.0);
+      const normalizedScore = Math.min(
+        matchScore / (queryTokens.length * 3),
+        1.0,
+      );
 
       return {
         ...doc,
@@ -313,7 +335,7 @@ ${docList}
   tokenize(text) {
     return text
       .split(/[\s,，。.!?！？;；:：、]+/)
-      .filter(token => token.length > 0);
+      .filter((token) => token.length > 0);
   }
 
   /**
@@ -324,7 +346,7 @@ ${docList}
       ...this.config,
       ...newConfig,
     };
-    logger.info('[Reranker] 配置已更新:', this.config);
+    logger.info("[Reranker] 配置已更新:", this.config);
   }
 
   /**
@@ -339,7 +361,7 @@ ${docList}
    */
   setEnabled(enabled) {
     this.config.enabled = enabled;
-    logger.info(`[Reranker] 重排序${enabled ? '已启用' : '已禁用'}`);
+    logger.info(`[Reranker] 重排序${enabled ? "已启用" : "已禁用"}`);
   }
 
   // ========================================
@@ -353,10 +375,11 @@ ${docList}
   _initBGEClient() {
     if (!this.bgeClient) {
       this.bgeClient = getBGERerankerClient({
-        serverUrl: this.config.bgeConfig?.serverUrl || 'http://localhost:8002/rerank',
-        modelName: this.config.bgeConfig?.modelName || 'BAAI/bge-reranker-base',
+        serverUrl:
+          this.config.bgeConfig?.serverUrl || "http://localhost:8002/rerank",
+        modelName: this.config.bgeConfig?.modelName || "BAAI/bge-reranker-base",
       });
-      logger.info('[Reranker] BGE Reranker 客户端已初始化');
+      logger.info("[Reranker] BGE Reranker 客户端已初始化");
     }
     return this.bgeClient;
   }
@@ -375,17 +398,19 @@ ${docList}
       // 检查服务是否可用
       const status = await client.checkStatus();
       if (!status.available) {
-        logger.warn('[Reranker] BGE 服务不可用，回退到关键词匹配');
+        logger.warn("[Reranker] BGE 服务不可用，回退到关键词匹配");
         return this.rerankWithKeywordMatch(query, documents, topK);
       }
 
       // 调用 BGE Reranker
       const rerankedDocs = await client.rerank(query, documents, { topK });
 
-      logger.info(`[Reranker] BGE 重排序完成: ${documents.length} -> ${rerankedDocs.length} 文档`);
+      logger.info(
+        `[Reranker] BGE 重排序完成: ${documents.length} -> ${rerankedDocs.length} 文档`,
+      );
       return rerankedDocs;
     } catch (error) {
-      logger.error('[Reranker] BGE 重排序失败:', error);
+      logger.error("[Reranker] BGE 重排序失败:", error);
       // 回退到关键词匹配
       return this.rerankWithKeywordMatch(query, documents, topK);
     }
@@ -405,7 +430,7 @@ ${docList}
       // 检查服务是否可用
       const status = await client.checkStatus();
       if (!status.available) {
-        logger.warn('[Reranker] BGE 服务不可用，回退到混合重排序');
+        logger.warn("[Reranker] BGE 服务不可用，回退到混合重排序");
         return this.rerankHybrid(query, documents, topK);
       }
 
@@ -415,13 +440,18 @@ ${docList}
       });
 
       // 计算混合分数
-      const weights = this.config.bgeConfig?.hybridWeights || { bge: 0.6, vector: 0.4 };
+      const weights = this.config.bgeConfig?.hybridWeights || {
+        bge: 0.6,
+        vector: 0.4,
+      };
       const hybridDocs = client.calculateHybridScore(bgeReranked, weights);
 
-      logger.info(`[Reranker] BGE-Hybrid 重排序完成: 权重 BGE=${weights.bge}, Vector=${weights.vector}`);
+      logger.info(
+        `[Reranker] BGE-Hybrid 重排序完成: 权重 BGE=${weights.bge}, Vector=${weights.vector}`,
+      );
       return hybridDocs.slice(0, topK);
     } catch (error) {
-      logger.error('[Reranker] BGE-Hybrid 重排序失败:', error);
+      logger.error("[Reranker] BGE-Hybrid 重排序失败:", error);
       // 回退到普通混合重排序
       return this.rerankHybrid(query, documents, topK);
     }
@@ -445,7 +475,7 @@ ${docList}
       });
     }
 
-    logger.info('[Reranker] BGE 配置已更新:', this.config.bgeConfig);
+    logger.info("[Reranker] BGE 配置已更新:", this.config.bgeConfig);
   }
 
   /**
