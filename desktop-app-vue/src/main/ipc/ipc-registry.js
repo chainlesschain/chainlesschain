@@ -6,7 +6,7 @@
  * @description 负责注册所有模块化的 IPC 处理器，实现主进程入口文件的解耦
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const ipcGuard = require("./ipc-guard");
 
 /**
@@ -678,27 +678,28 @@ function registerAllIPC(dependencies) {
     }
 
     // 组织管理 (函数模式 - 大模块，32 handlers)
-    if (organizationManager || dbManager) {
-      logger.info("[IPC Registry] Registering Organization IPC...");
-      logger.info("[IPC Registry] Organization 依赖状态:", {
-        organizationManager: !!organizationManager,
-        dbManager: !!dbManager,
-        versionManager: !!versionManager,
-      });
-      const {
-        registerOrganizationIPC,
-      } = require("../organization/organization-ipc");
-      registerOrganizationIPC({
-        organizationManager,
-        dbManager,
-        versionManager,
-      });
-      logger.info("[IPC Registry] ✓ Organization IPC registered (32 handlers)");
-    } else {
-      logger.error(
-        "[IPC Registry] ❌ organizationManager 和 dbManager 都未初始化，跳过 Organization IPC 注册",
+    // 🔥 始终注册，handlers 内部会处理 organizationManager 为 null 的情况
+    logger.info("[IPC Registry] Registering Organization IPC...");
+    logger.info("[IPC Registry] Organization 依赖状态:", {
+      organizationManager: !!organizationManager,
+      dbManager: !!dbManager,
+      versionManager: !!versionManager,
+    });
+    const {
+      registerOrganizationIPC,
+    } = require("../organization/organization-ipc");
+    registerOrganizationIPC({
+      organizationManager,
+      dbManager,
+      versionManager,
+    });
+    if (!organizationManager && !dbManager) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Organization IPC registered with null dependencies",
       );
-      logger.error("[IPC Registry] 企业版功能将不可用");
+      logger.warn("[IPC Registry] 企业版功能将返回空数据直到依赖初始化");
+    } else {
+      logger.info("[IPC Registry] ✓ Organization IPC registered (32 handlers)");
     }
 
     // 企业版仪表板 (函数模式 - 中模块，10 handlers)
