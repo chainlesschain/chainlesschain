@@ -12,8 +12,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.outlined.Assignment
-import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.outlined.Assignment
+import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -52,7 +52,8 @@ fun NewHomeScreen(
     onNavigateToProjectTab: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
-    onNavigateToP2P: () -> Unit = {}
+    onNavigateToP2P: () -> Unit = {},
+    socialUnreadCount: Int = 0
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
@@ -95,7 +96,8 @@ fun NewHomeScreen(
                 onNavigateToProjectTab = onNavigateToProjectTab,
                 onNavigateToFileBrowser = onNavigateToFileBrowser,
                 onNavigateToRemoteControl = onNavigateToRemoteControl,
-                onNavigateToP2P = onNavigateToP2P
+                onNavigateToP2P = onNavigateToP2P,
+                socialUnreadCount = socialUnreadCount
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -222,9 +224,10 @@ fun FunctionEntryGrid(
     onNavigateToProjectTab: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
-    onNavigateToP2P: () -> Unit = {}
+    onNavigateToP2P: () -> Unit = {},
+    socialUnreadCount: Int = 0
 ) {
-    // 10 个核心功能入口，采用“8宫格 + 更多”布局
+    // 10 个核心功能入口，采用"8宫格 + 更多"布局
     val functionItems = remember(
         onNavigateToUsageStatistics,
         onNavigateToKnowledgeList,
@@ -236,21 +239,22 @@ fun FunctionEntryGrid(
         onNavigateToProjectTab,
         onNavigateToFileBrowser,
         onNavigateToP2P,
-        onNavigateToRemoteControl
+        onNavigateToRemoteControl,
+        socialUnreadCount
     ) {
         listOf(
             // 第一行：知识库管理（个人第二大脑）
             FunctionEntryItem("知识库", Icons.Outlined.Book, Color(0xFFFF6B9D), FeatureGroup.CORE_WORK, onClick = onNavigateToKnowledgeList),
-            FunctionEntryItem("AI对话", Icons.AutoMirrored.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
+            FunctionEntryItem("AI对话", Icons.Outlined.Chat, Color(0xFF4CAF50), FeatureGroup.CORE_WORK, onClick = onNavigateToAIChat),
             FunctionEntryItem("LLM设置", Icons.Outlined.Settings, Color(0xFF2196F3), FeatureGroup.CORE_WORK, onClick = onNavigateToLLMSettings),
 
             // 第二行：去中心化社交（DID + P2P）
-            FunctionEntryItem("社交广场", Icons.Outlined.Forum, Color(0xFF9C27B0), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToSocialFeed),
+            FunctionEntryItem("社交广场", Icons.Outlined.Forum, Color(0xFF9C27B0), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToSocialFeed, badgeCount = socialUnreadCount),
             FunctionEntryItem("我的二维码", Icons.Outlined.QrCode2, Color(0xFFE91E63), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToMyQRCode),
             FunctionEntryItem("扫码添加", Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), FeatureGroup.CORE_SOCIAL, onClick = onNavigateToQRScanner),
 
             // 第三行：项目管理 & 数字资产 & 设备管理
-            FunctionEntryItem("项目管理", Icons.AutoMirrored.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
+            FunctionEntryItem("项目管理", Icons.Outlined.Assignment, Color(0xFF00BCD4), FeatureGroup.CORE_WORK, onClick = onNavigateToProjectTab),
             FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF8BC34A), FeatureGroup.CORE_WORK, onClick = onNavigateToFileBrowser),
             // P2P设备管理
             FunctionEntryItem("P2P设备", Icons.Outlined.Devices, Color(0xFFFF5722), FeatureGroup.DEVICE_CONNECTION, onClick = onNavigateToP2P),
@@ -285,7 +289,8 @@ fun FunctionEntryGrid(
                 icon = item.icon,
                 title = item.title,
                 backgroundColor = item.color,
-                onClick = item.onClick ?: {}
+                onClick = item.onClick ?: {},
+                badgeCount = item.badgeCount
             )
         }
     }
@@ -444,12 +449,14 @@ fun FunctionEntryGrid(
 /**
  * 功能入口卡片
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FunctionEntryCard(
     icon: ImageVector,
     title: String,
     backgroundColor: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    badgeCount: Int = 0
 ) {
     Card(
         modifier = Modifier
@@ -468,12 +475,29 @@ fun FunctionEntryCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = backgroundColor,
-                modifier = Modifier.size(32.dp)
-            )
+            if (badgeCount > 0) {
+                BadgedBox(
+                    badge = {
+                        Badge {
+                            Text(if (badgeCount > 99) "99+" else badgeCount.toString())
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = title,
+                        tint = backgroundColor,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = backgroundColor,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = title,
@@ -563,7 +587,8 @@ data class FunctionEntryItem(
     val icon: ImageVector,
     val color: Color,
     val group: FeatureGroup,
-    val onClick: (() -> Unit)? = null
+    val onClick: (() -> Unit)? = null,
+    val badgeCount: Int = 0
 )
 
 enum class FeatureGroup {

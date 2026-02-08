@@ -826,6 +826,42 @@ class ProjectViewModel @Inject constructor(
     }
 
     /**
+     * 重命名文件
+     */
+    fun renameFile(fileId: String, newName: String) {
+        viewModelScope.launch {
+            val result = projectRepository.renameFile(fileId, newName)
+
+            result.fold(
+                onSuccess = {
+                    _uiEvents.emit(ProjectUiEvent.ShowMessage("已重命名为: $newName"))
+                },
+                onFailure = { error ->
+                    _uiEvents.emit(ProjectUiEvent.ShowError(error.message ?: "重命名失败"))
+                }
+            )
+        }
+    }
+
+    /**
+     * 移动文件到目标文件夹
+     */
+    fun moveFile(fileId: String, targetFolderId: String?) {
+        viewModelScope.launch {
+            val result = projectRepository.moveFile(fileId, targetFolderId)
+
+            result.fold(
+                onSuccess = {
+                    _uiEvents.emit(ProjectUiEvent.ShowMessage("文件已移动"))
+                },
+                onFailure = { error ->
+                    _uiEvents.emit(ProjectUiEvent.ShowError(error.message ?: "移动失败"))
+                }
+            )
+        }
+    }
+
+    /**
      * 导航到文件夹
      */
     fun navigateToFolder(folderId: String?) {

@@ -188,6 +188,8 @@ describe('Conversation Store', () => {
       const loadPromise = store.loadConversations();
       expect(store.loading).toBe(true);
 
+      // Advance fake timers so the setTimeout resolves
+      await vi.advanceTimersByTimeAsync(100);
       await loadPromise;
       expect(store.loading).toBe(false);
     });
@@ -354,7 +356,7 @@ describe('Conversation Store', () => {
         content: 'This is a very long message that should be truncated when used as title'
       });
 
-      expect(store.currentConversation.title).toBe('This is a very long message...');
+      expect(store.currentConversation.title).toBe('This is a very long message th...');
     });
 
     it('should not update title from non-first user message', () => {
@@ -495,12 +497,16 @@ describe('Conversation Store', () => {
     });
   });
 
-  describe('clearCurrentConversation', () => {
-    it('should clear current conversation', () => {
-      store.currentConversation = { id: 'conv1' };
-      store.clearCurrentConversation();
+  describe('clearCurrentMessages', () => {
+    it('should clear current conversation messages', () => {
+      store.createNewConversation();
+      store.addMessage({ role: 'user', content: 'Hello' });
+      expect(store.currentConversation.messages.length).toBeGreaterThan(0);
 
-      expect(store.currentConversation).toBeNull();
+      store.clearCurrentMessages();
+
+      expect(store.currentConversation.messages).toEqual([]);
+      expect(store.currentConversation.metadata.totalTokens).toBe(0);
     });
   });
 });

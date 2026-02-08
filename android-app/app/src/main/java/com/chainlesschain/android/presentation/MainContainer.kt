@@ -7,6 +7,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
+import com.chainlesschain.android.feature.p2p.viewmodel.social.NotificationViewModel
 import com.chainlesschain.android.presentation.components.BottomNavigationBar
 import com.chainlesschain.android.presentation.screens.*
 
@@ -45,11 +46,13 @@ fun MainContainer(
     onNavigateToHelpFeedback: () -> Unit = {},
     onNavigateToBookmark: () -> Unit = {},
     onNavigateToP2PChatSessionList: () -> Unit = {},
-    viewModel: AuthViewModel = hiltViewModel()
+    viewModel: AuthViewModel = hiltViewModel(),
+    notificationViewModel: NotificationViewModel = hiltViewModel()
 ) {
     // 使用 rememberSaveable 保存状态（进程重建后恢复）
     var selectedTab by rememberSaveable { mutableStateOf(0) }
     var showProfileDialog by rememberSaveable { mutableStateOf(false) }
+    val notificationState by notificationViewModel.uiState.collectAsState()
 
     // 提取回调函数，避免重复创建 lambda（减少重组）
     val onProfileClick = remember {
@@ -71,7 +74,8 @@ fun MainContainer(
         bottomBar = {
             BottomNavigationBar(
                 selectedTab = selectedTab,
-                onTabSelected = { selectedTab = it }
+                onTabSelected = { selectedTab = it },
+                socialUnreadCount = notificationState.unreadCount
             )
         }
     ) { paddingValues ->
@@ -96,7 +100,8 @@ fun MainContainer(
                         onNavigateToProjectTab = { selectedTab = 1 },  // 切换到项目tab
                         onNavigateToFileBrowser = onNavigateToFileBrowser,
                         onNavigateToRemoteControl = onNavigateToRemoteControl,
-                        onNavigateToP2P = onNavigateToP2P  // P2P设备管理
+                        onNavigateToP2P = onNavigateToP2P,  // P2P设备管理
+                        socialUnreadCount = notificationState.unreadCount
                     )
                 }
                 1 -> key("project") {
