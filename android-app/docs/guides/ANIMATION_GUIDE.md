@@ -56,6 +56,7 @@ Button(
 ```
 
 **自定义缩放比例：**
+
 ```kotlin
 Modifier.pressAnimation(
     pressedScale = 0.90f,  // 按下时缩放到 90%
@@ -96,6 +97,7 @@ fun LoginForm() {
 ```
 
 **使用场景：**
+
 - ✅ 表单验证失败
 - ✅ 输入错误
 - ✅ 操作被拒绝
@@ -126,6 +128,7 @@ fun SuccessButton() {
 ```
 
 **使用场景：**
+
 - ✅ 操作成功
 - ✅ 完成任务
 - ✅ 收到奖励
@@ -154,6 +157,7 @@ fun NotificationBadge(count: Int) {
 ```
 
 **使用场景：**
+
 - ✅ 未读通知
 - ✅ 新功能提示
 - ✅ 引导用户操作
@@ -178,6 +182,7 @@ fun RefreshButton(isLoading: Boolean, onClick: () -> Unit) {
 ```
 
 **使用场景：**
+
 - ✅ 加载中
 - ✅ 刷新数据
 - ✅ 同步状态
@@ -214,6 +219,7 @@ NavHost(
 ```
 
 **效果：**
+
 - 前进：新页面从右侧滑入，旧页面向左轻微滑出并淡出
 - 返回：新页面从左侧滑入，旧页面向右滑出
 
@@ -239,6 +245,7 @@ fun MyScreen() {
 ```
 
 **效果：**
+
 - 进入：从底部滑入并淡入
 - 退出：向底部滑出并淡出
 
@@ -493,6 +500,7 @@ fun AdaptiveAnimation() {
 ### 1. 避免过度动画
 
 **❌ 不好：** 同时运行多个复杂动画
+
 ```kotlin
 Column {
     repeat(100) { index ->
@@ -506,6 +514,7 @@ Column {
 ```
 
 **✅ 好：** 只在必要时使用动画
+
 ```kotlin
 LazyColumn {
     items(items) { item ->
@@ -521,6 +530,7 @@ LazyColumn {
 ### 2. 使用 remember 缓存动画状态
 
 **❌ 不好：** 每次重组都创建新的动画状态
+
 ```kotlin
 @Composable
 fun MyAnimation() {
@@ -529,6 +539,7 @@ fun MyAnimation() {
 ```
 
 **✅ 好：** 使用 remember 缓存
+
 ```kotlin
 @Composable
 fun MyAnimation(isAnimating: Boolean) {

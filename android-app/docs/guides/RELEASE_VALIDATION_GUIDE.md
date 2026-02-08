@@ -3,6 +3,7 @@
 ## 📋 Pre-Release Checklist
 
 ### ✅ Completed (Automated)
+
 - [x] Version number updated to 0.32.0
 - [x] CHANGELOG.md updated with release notes
 - [x] Release preparation scripts created
@@ -12,6 +13,7 @@
 ### 🔄 Pending (Manual Validation Required)
 
 #### 1. Code Quality Checks
+
 ```bash
 # Run all checks
 cd android-app
@@ -21,12 +23,14 @@ scripts\release-checklist.bat   # Windows (if available)
 ```
 
 **Expected Results:**
+
 - ✅ Git status clean (main branch, no uncommitted changes)
 - ✅ All documentation files present
 - ✅ ProGuard and resource compression enabled
 - ✅ Signing configuration present
 
 #### 2. Unit Tests
+
 ```bash
 # Run unit tests
 cd android-app
@@ -37,12 +41,14 @@ open app/build/reports/tests/testDebugUnitTest/index.html
 ```
 
 **Expected Results:**
+
 - ✅ All 21 unit tests pass
 - ✅ ContentModeratorTest (4 tests) ✓
 - ✅ PostEditPolicyTest (6 tests) ✓
 - ✅ Other tests (11 tests) ✓
 
 #### 3. E2E Tests (Requires Device/Emulator)
+
 ```bash
 # Ensure device is connected
 adb devices
@@ -55,6 +61,7 @@ gradlew connectedAndroidTest
 ```
 
 **Expected Results:**
+
 - ✅ ModerationE2ETest (5 tests) ✓
   - Normal content auto-approved
   - Violating content blocked
@@ -68,6 +75,7 @@ gradlew connectedAndroidTest
   - Image loading <500ms avg
 
 #### 4. Build Release APK
+
 ```bash
 # Clean build
 gradlew clean
@@ -81,6 +89,7 @@ scripts\build-release.bat  # Windows
 ```
 
 **Expected Results:**
+
 - ✅ Build succeeds without errors
 - ✅ APK files generated in `app/build/outputs/apk/release/`
 - ✅ Universal APK <40MB
@@ -88,6 +97,7 @@ scripts\build-release.bat  # Windows
 - ✅ armeabi-v7a APK ~26MB
 
 #### 5. APK Size Analysis
+
 ```bash
 # Analyze APK contents
 .\scripts\build-and-analyze.sh
@@ -107,6 +117,7 @@ ls -lh *.apk
 #### 6. Performance Validation (Real Device)
 
 **Test 1: Cold Start Performance**
+
 1. Install APK: `adb install app-release.apk`
 2. Force stop: `adb shell am force-stop com.chainlesschain.android`
 3. Clear cache: `adb shell pm clear com.chainlesschain.android`
@@ -114,12 +125,14 @@ ls -lh *.apk
 5. **Target:** TotalTime <1200ms
 
 **Test 2: Memory Usage**
+
 1. Navigate to social timeline
 2. Scroll through 50+ posts with images
 3. Check memory: `adb shell dumpsys meminfo com.chainlesschain.android`
 4. **Target:** Java Heap <180MB
 
 **Test 3: Scroll Performance**
+
 1. Open social timeline with 100+ posts
 2. Scroll rapidly up and down
 3. Observe visual smoothness
@@ -127,6 +140,7 @@ ls -lh *.apk
 5. **Target:** Estimated FPS ≥58
 
 **Test 4: Image Loading**
+
 1. Navigate to timeline
 2. Observe image loading smoothness
 3. Check preloading: `adb logcat -s ImagePreloader:D`
@@ -135,6 +149,7 @@ ls -lh *.apk
 #### 7. Feature Smoke Tests
 
 **AI Content Moderation:**
+
 - [ ] Post normal content → Auto-approved
 - [ ] Post violating content → Blocked with reason
 - [ ] Post borderline content → Queued for review
@@ -142,6 +157,7 @@ ls -lh *.apk
 - [ ] Appeal handling works
 
 **Social Features:**
+
 - [ ] Create/edit/delete posts
 - [ ] Post history viewing
 - [ ] QR code scanning
@@ -149,12 +165,14 @@ ls -lh *.apk
 - [ ] Timeline scrolling smooth
 
 **General App:**
+
 - [ ] App launches without crashes
 - [ ] Navigation between screens works
 - [ ] No visible memory leaks
 - [ ] No ANR (Application Not Responding)
 
 #### 8. Documentation Review
+
 - [ ] README.md up to date
 - [ ] CHANGELOG.md complete for v0.32.0
 - [ ] Release notes created: `docs/RELEASE_NOTES_v0.32.0.md`
@@ -162,6 +180,7 @@ ls -lh *.apk
 - [ ] Performance report: `docs/PERFORMANCE_OPTIMIZATION_REPORT.md`
 
 #### 9. Create Git Tag
+
 ```bash
 # Create annotated tag
 git tag -a v0.32.0 -m "Release v0.32.0 - AI Moderation & Performance Optimization
@@ -183,6 +202,7 @@ git push origin v0.32.0
 ```
 
 #### 10. Final Release Steps
+
 ```bash
 # Push all changes
 git push origin main
@@ -199,6 +219,7 @@ gradlew bundleRelease
 ## 🎯 Success Criteria
 
 ### Must Pass (Blocking)
+
 - [x] Version updated to 0.32.0
 - [ ] All unit tests pass
 - [ ] E2E tests pass (or skipped with documented reason)
@@ -207,12 +228,14 @@ gradlew bundleRelease
 - [ ] No P0/P1 bugs found in smoke tests
 
 ### Should Pass (Non-Blocking)
+
 - [ ] Cold start <1200ms on test device
 - [ ] Memory usage <180MB during normal use
 - [ ] Scroll FPS ≥58 on mid-range device
 - [ ] No lint errors or warnings
 
 ### Nice to Have
+
 - [ ] AAB bundle generated
 - [ ] Baseline Profiles generated
 - [ ] LeakCanary shows no leaks
@@ -223,26 +246,29 @@ gradlew bundleRelease
 ## 📊 Performance Benchmarks
 
 ### Before v0.32.0 (Baseline)
-| Metric | Value |
-|--------|-------|
-| Cold Start | 1.8s |
-| Memory Peak | 250MB |
-| Scroll FPS | ~50fps |
-| APK Size | 65MB |
+
+| Metric      | Value  |
+| ----------- | ------ |
+| Cold Start  | 1.8s   |
+| Memory Peak | 250MB  |
+| Scroll FPS  | ~50fps |
+| APK Size    | 65MB   |
 
 ### After v0.32.0 (Target)
-| Metric | Value | Improvement |
-|--------|-------|-------------|
-| Cold Start | 1.09s | **39%** ↓ |
-| Memory Peak | 168MB | **33%** ↓ |
-| Scroll FPS | 60.7fps | **21%** ↑ |
-| APK Size | 38MB | **42%** ↓ |
+
+| Metric      | Value   | Improvement |
+| ----------- | ------- | ----------- |
+| Cold Start  | 1.09s   | **39%** ↓   |
+| Memory Peak | 168MB   | **33%** ↓   |
+| Scroll FPS  | 60.7fps | **21%** ↑   |
+| APK Size    | 38MB    | **42%** ↓   |
 
 ---
 
 ## ⚠️ Known Issues
 
 ### Non-Critical Issues
+
 1. **WebRTC Integration Incomplete** (Phase 5)
    - Video/audio calling not functional
    - Will be addressed in v0.33.0
@@ -252,6 +278,7 @@ gradlew bundleRelease
    - Performance tests sensitive to device specs
 
 ### Workarounds
+
 - For E2E tests: Use emulator with Android 14, 4GB RAM, arm64-v8a
 - For performance tests: Use Pixel 6 or equivalent mid-range device
 
@@ -283,6 +310,7 @@ gradlew bundleRelease
 ## 📞 Support
 
 For release issues:
+
 - GitHub Issues: https://github.com/yourusername/chainlesschain/issues
 - Documentation: See `docs/` directory
 - Scripts: See `scripts/` directory

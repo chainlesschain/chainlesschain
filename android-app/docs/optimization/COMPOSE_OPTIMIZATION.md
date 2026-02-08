@@ -13,6 +13,7 @@
 **解决方案：**
 
 #### a) 使用 `remember` 缓存对象
+
 ```kotlin
 @Composable
 fun MyScreen() {
@@ -25,6 +26,7 @@ fun MyScreen() {
 ```
 
 #### b) 使用 `derivedStateOf` 派生状态
+
 ```kotlin
 @Composable
 fun MyScreen(list: List<Item>) {
@@ -39,6 +41,7 @@ fun MyScreen(list: List<Item>) {
 ```
 
 #### c) 提取稳定的回调函数
+
 ```kotlin
 @Composable
 fun MyScreen() {
@@ -76,12 +79,14 @@ class UserRepository {
 ```
 
 **规则：**
+
 - `@Immutable`：所有属性都是 `val` 且不可变
 - `@Stable`：属性可以是 `var`，但变化会触发通知
 
 ### 3. 优化列表性能
 
 #### a) 使用 `key` 参数
+
 ```kotlin
 @Composable
 fun UserList(users: List<User>) {
@@ -97,6 +102,7 @@ fun UserList(users: List<User>) {
 ```
 
 #### b) 避免在列表项中使用不稳定的参数
+
 ```kotlin
 @Composable
 fun UserItem(
@@ -117,6 +123,7 @@ fun UserItem(
 ### 4. 优化 ViewModel 和状态管理
 
 #### a) 使用 `StateFlow` 而非 `LiveData`
+
 ```kotlin
 // ❌ LiveData（需要额外的 observeAsState）
 class MyViewModel : ViewModel() {
@@ -132,6 +139,7 @@ class MyViewModel : ViewModel() {
 ```
 
 #### b) 去重状态更新
+
 ```kotlin
 class MyViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
@@ -148,6 +156,7 @@ class MyViewModel : ViewModel() {
 ### 5. 使用 `LaunchedEffect` 和 `DisposableEffect`
 
 #### a) 正确使用 `LaunchedEffect`
+
 ```kotlin
 @Composable
 fun MyScreen(userId: String, viewModel: MyViewModel) {
@@ -164,6 +173,7 @@ fun MyScreen(userId: String, viewModel: MyViewModel) {
 ```
 
 #### b) 清理资源
+
 ```kotlin
 @Composable
 fun MyScreen() {
@@ -181,6 +191,7 @@ fun MyScreen() {
 ### 6. 优化重组范围
 
 #### a) 将变化的状态下推到子 Composable
+
 ```kotlin
 // ❌ 整个 Screen 都会重组
 @Composable
@@ -215,6 +226,7 @@ fun Counter() {
 ### 7. 使用性能工具
 
 #### a) 监控重组次数
+
 ```kotlin
 @Composable
 fun MyScreen() {
@@ -224,6 +236,7 @@ fun MyScreen() {
 ```
 
 #### b) 测量组合时间
+
 ```kotlin
 @Composable
 fun MyScreen() {
@@ -234,6 +247,7 @@ fun MyScreen() {
 ```
 
 #### c) 使用 Layout Inspector
+
 - Android Studio > Tools > Layout Inspector
 - 查看重组边界和频率
 
@@ -242,6 +256,7 @@ fun MyScreen() {
 ### 案例 1: 优化 MainContainer
 
 **优化前：**
+
 ```kotlin
 @Composable
 fun MainContainer(onLogout: () -> Unit) {
@@ -264,10 +279,12 @@ fun MainContainer(onLogout: () -> Unit) {
 ```
 
 **问题：**
+
 - 每次重组都创建新的 lambda
 - 状态不会在进程重建后恢复
 
 **优化后：**
+
 ```kotlin
 @Composable
 fun MainContainer(onLogout: () -> Unit) {
@@ -292,12 +309,14 @@ fun MainContainer(onLogout: () -> Unit) {
 ```
 
 **效果：**
+
 - ✅ 减少 30% 的重组次数
 - ✅ 状态在进程重建后恢复
 
 ### 案例 2: 优化列表项
 
 **优化前：**
+
 ```kotlin
 @Composable
 fun KnowledgeList(items: List<KnowledgeItem>) {
@@ -313,6 +332,7 @@ fun KnowledgeList(items: List<KnowledgeItem>) {
 ```
 
 **优化后：**
+
 ```kotlin
 @Composable
 fun KnowledgeList(
@@ -348,6 +368,7 @@ fun KnowledgeListScreen(viewModel: KnowledgeViewModel) {
 ```
 
 **效果：**
+
 - ✅ 列表滚动更流畅
 - ✅ 减少 50% 的列表项重组
 
@@ -367,6 +388,7 @@ fun KnowledgeListScreen(viewModel: KnowledgeViewModel) {
 ## 性能测试
 
 ### 1. 重组次数测试
+
 ```kotlin
 @Test
 fun testRecompositionCount() {
@@ -381,6 +403,7 @@ fun testRecompositionCount() {
 ```
 
 ### 2. 性能基准测试
+
 使用 Macrobenchmark 测试实际性能：
 
 ```kotlin
@@ -399,16 +422,21 @@ fun scrollJankBenchmark() {
 ## 常见问题
 
 ### Q1: 为什么我的列表滚动卡顿？
+
 **A:** 检查以下几点：
+
 1. 是否使用了 `key` 参数
 2. 列表项是否有不稳定的参数
 3. 列表项是否执行了耗时操作（如图片解码）
 
 ### Q2: 为什么添加了 `remember` 还是重组？
+
 **A:** `remember` 只缓存对象，不阻止重组。如果状态变化，Composable 仍会重组。使用 Layout Inspector 查看重组原因。
 
 ### Q3: 什么时候使用 `@Stable` vs `@Immutable`？
+
 **A:**
+
 - `@Immutable`：所有属性都是 `val` 且不可变（推荐）
 - `@Stable`：属性可以是 `var`，但变化需要通知 Compose
 
@@ -422,6 +450,7 @@ fun scrollJankBenchmark() {
 ## 更新日志
 
 ### v0.27.0 (2026-01-23)
+
 - ✅ 优化 MainContainer 重组性能
 - ✅ 优化 BottomNavigationBar 组件
 - ✅ 添加 ComposePerformanceUtils 工具类
