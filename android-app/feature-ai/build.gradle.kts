@@ -58,6 +58,9 @@ dependencies {
     // DocumentFile
     implementation("androidx.documentfile:documentfile:1.0.1")
 
+    // ONNX Runtime for ML model inference
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.17.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.9")

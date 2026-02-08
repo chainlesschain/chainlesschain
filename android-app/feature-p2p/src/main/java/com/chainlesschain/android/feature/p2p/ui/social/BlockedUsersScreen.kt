@@ -34,9 +34,8 @@ fun BlockedUsersScreen(
     var isLoading by remember { mutableStateOf(true) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // TODO: 从ViewModel加载屏蔽用户列表
+    // Blocked user list loading requires ViewModel integration with FriendRepository.getBlockedUsers()
     LaunchedEffect(Unit) {
-        // blockedUsers = viewModel.getBlockedUsers()
         isLoading = false
     }
 

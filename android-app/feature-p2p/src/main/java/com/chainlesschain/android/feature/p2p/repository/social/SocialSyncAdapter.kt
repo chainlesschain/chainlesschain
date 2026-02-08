@@ -218,7 +218,7 @@ class SocialSyncAdapter @Inject constructor(
      * 同步举报提交
      */
     fun syncReportSubmitted(report: com.chainlesschain.android.core.database.entity.social.PostReportEntity) {
-        // TODO: 发送到后端审核系统
+        // Backend moderation system integration pending
         Log.d(TAG, "Report submitted for post: ${report.postId}, reason: ${report.reason}")
     }
 

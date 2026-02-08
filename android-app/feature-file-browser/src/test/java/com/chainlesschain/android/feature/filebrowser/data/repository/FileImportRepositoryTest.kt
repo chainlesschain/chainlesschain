@@ -119,15 +119,13 @@ class FileImportRepositoryTest {
         every { contentResolver.openInputStream(Uri.parse(externalFile.uri)) } returns inputStream1 andThen inputStream2
 
         // Mock File constructor for filesystem operations
-        val mockProjectDir = mockk<File>(relaxed = true)
-        val mockTargetFile = mockk<File>(relaxed = true)
-        val byteArrayOutputStream = java.io.ByteArrayOutputStream()
+        val mockOutputStream = mockk<FileOutputStream>(relaxed = true)
 
         every { filesDir.absolutePath } returns "/data/app/files"
         mockkConstructor(File::class)
         every { anyConstructed<File>().mkdirs() } returns true
         every { anyConstructed<File>().absolutePath } returns "/data/app/files/projects/project-1/mock-file-id"
-        every { anyConstructed<File>().outputStream() } returns byteArrayOutputStream
+        every { anyConstructed<File>().outputStream() } returns mockOutputStream
 
         val project = createProject("project-1", fileCount = 0, totalSize = 0L)
         coEvery { projectDao.getProjectById("project-1") } returns project

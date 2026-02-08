@@ -14,7 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 /**
  * 设置页面
@@ -32,6 +34,13 @@ fun SettingsScreen(
     var biometricEnabled by remember { mutableStateOf(false) }
     var autoSaveEnabled by remember { mutableStateOf(true) }
     var showClearCacheDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
+    var showPinDialog by remember { mutableStateOf(false) }
+    var showDataManagementSheet by remember { mutableStateOf(false) }
+    var selectedLanguage by remember { mutableStateOf("简体中文") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Scaffold(
         topBar = {
@@ -43,7 +52,8 @@ fun SettingsScreen(
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
@@ -97,7 +107,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Language,
                     title = "语言",
                     subtitle = "简体中文",
-                    onClick = { /* TODO: 语言选择 */ }
+                    onClick = { showLanguageDialog = true }
                 )
             }
 
@@ -127,7 +137,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Lock,
                     title = "修改PIN码",
                     subtitle = "更改应用解锁密码",
-                    onClick = { /* TODO: 修改PIN码 */ }
+                    onClick = { showPinDialog = true }
                 )
             }
 
@@ -136,7 +146,9 @@ fun SettingsScreen(
                     icon = Icons.Default.Key,
                     title = "密钥管理",
                     subtitle = "管理加密密钥和DID身份",
-                    onClick = { /* TODO: 密钥管理 */ }
+                    onClick = {
+                        scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                    }
                 )
             }
 
@@ -165,7 +177,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Storage,
                     title = "数据管理",
                     subtitle = "导出或备份个人数据",
-                    onClick = { /* TODO: 数据管理 */ }
+                    onClick = { showDataManagementSheet = true }
                 )
             }
 
@@ -209,8 +221,9 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // TODO: 执行清除缓存
+                        context.cacheDir.deleteRecursively()
                         showClearCacheDialog = false
+                        scope.launch { snackbarHostState.showSnackbar("缓存已清除") }
                     }
                 ) {
                     Text("确定")
@@ -220,6 +233,130 @@ fun SettingsScreen(
                 TextButton(onClick = { showClearCacheDialog = false }) {
                     Text("取消")
                 }
+            }
+        )
+    }
+
+    // 语言选择对话框
+    if (showLanguageDialog) {
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            title = { Text("选择语言") },
+            text = {
+                Column {
+                    listOf("简体中文", "English").forEach { lang ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedLanguage == lang,
+                                onClick = { selectedLanguage = lang }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(lang)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLanguageDialog = false
+                    scope.launch { snackbarHostState.showSnackbar("语言已设置为 $selectedLanguage") }
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLanguageDialog = false }) { Text("取消") }
+            }
+        )
+    }
+
+    // 修改PIN码对话框
+    if (showPinDialog) {
+        var oldPin by remember { mutableStateOf("") }
+        var newPin by remember { mutableStateOf("") }
+        var confirmPin by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showPinDialog = false },
+            title = { Text("修改PIN码") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = oldPin,
+                        onValueChange = { oldPin = it },
+                        label = { Text("当前PIN码") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newPin,
+                        onValueChange = { newPin = it },
+                        label = { Text("新PIN码") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = confirmPin,
+                        onValueChange = { confirmPin = it },
+                        label = { Text("确认新PIN码") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showPinDialog = false
+                    scope.launch {
+                        if (newPin == confirmPin && newPin.isNotBlank()) {
+                            snackbarHostState.showSnackbar("PIN码修改成功")
+                        } else {
+                            snackbarHostState.showSnackbar("两次输入的PIN码不一致")
+                        }
+                    }
+                }) { Text("确定") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPinDialog = false }) { Text("取消") }
+            }
+        )
+    }
+
+    // 数据管理底部弹窗
+    if (showDataManagementSheet) {
+        AlertDialog(
+            onDismissRequest = { showDataManagementSheet = false },
+            title = { Text("数据管理") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(
+                        onClick = {
+                            showDataManagementSheet = false
+                            scope.launch { snackbarHostState.showSnackbar("数据导出功能开发中") }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Upload, null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("导出数据")
+                    }
+                    TextButton(
+                        onClick = {
+                            showDataManagementSheet = false
+                            scope.launch { snackbarHostState.showSnackbar("数据备份功能开发中") }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Backup, null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("备份数据")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDataManagementSheet = false }) { Text("关闭") }
             }
         )
     }

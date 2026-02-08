@@ -1,8 +1,11 @@
 package com.chainlesschain.android.feature.ai
 
+import com.chainlesschain.android.feature.ai.data.rag.OnnxModelManager
 import com.chainlesschain.android.feature.ai.data.rag.TfIdfEmbedder
 import com.chainlesschain.android.feature.ai.data.rag.VectorMath
 import com.chainlesschain.android.feature.ai.data.rag.SentenceTransformerEmbedder
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
@@ -129,8 +132,10 @@ class VectorEmbedderTest {
 
     @Test
     fun `SentenceTransformerEmbedder should return vector of correct dimension`() = runTest {
-        // Given
-        val embedder = SentenceTransformerEmbedder()
+        // Given - model not available, will use fallback
+        val modelManager = mockk<OnnxModelManager>()
+        every { modelManager.isModelAvailable() } returns false
+        val embedder = SentenceTransformerEmbedder(modelManager)
         val text = "测试文本"
 
         // When
@@ -143,8 +148,10 @@ class VectorEmbedderTest {
 
     @Test
     fun `SentenceTransformerEmbedder should return normalized vectors`() = runTest {
-        // Given
-        val embedder = SentenceTransformerEmbedder()
+        // Given - model not available, will use fallback
+        val modelManager = mockk<OnnxModelManager>()
+        every { modelManager.isModelAvailable() } returns false
+        val embedder = SentenceTransformerEmbedder(modelManager)
         val text = "测试文本"
 
         // When
@@ -158,6 +165,22 @@ class VectorEmbedderTest {
         magnitude = kotlin.math.sqrt(magnitude)
 
         assertTrue(magnitude > 0.99 && magnitude < 1.01, "Magnitude should be ~1.0")
+    }
+
+    @Test
+    fun `SentenceTransformerEmbedder fallback should be deterministic`() = runTest {
+        // Given - model not available, uses hash-based fallback
+        val modelManager = mockk<OnnxModelManager>()
+        every { modelManager.isModelAvailable() } returns false
+        val embedder = SentenceTransformerEmbedder(modelManager)
+        val text = "deterministic test"
+
+        // When
+        val vector1 = embedder.embed(text)
+        val vector2 = embedder.embed(text)
+
+        // Then - same input should produce same output
+        assertTrue(vector1.contentEquals(vector2), "Fallback should be deterministic")
     }
 }
 

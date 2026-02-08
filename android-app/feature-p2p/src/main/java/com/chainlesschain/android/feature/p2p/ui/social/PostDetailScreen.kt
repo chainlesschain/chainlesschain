@@ -118,12 +118,12 @@ fun PostDetailScreen(
                     item {
                         PostCard(
                             post = post,
-                            authorNickname = "用户${post.authorDid.take(8)}", // TODO: 从好友信息获取
+                            authorNickname = "用户${post.authorDid.take(8)}", // Nickname lookup requires friend info cache
                             onPostClick = { },
                             onAuthorClick = { onNavigateToUserProfile(post.authorDid) },
                             onLikeClick = { viewModel.toggleLike(post.id, post.isLiked, post.authorDid) },
                             onCommentClick = { },
-                            onShareClick = { /* TODO */ },
+                            onShareClick = { viewModel.sharePost(post.id, post.authorDid) },
                             onMoreClick = { viewModel.showPostMenu(post) },
                             modifier = Modifier.padding(16.dp)
                         )

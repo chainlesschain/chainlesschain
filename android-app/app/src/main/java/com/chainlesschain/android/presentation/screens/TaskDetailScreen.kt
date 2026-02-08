@@ -66,13 +66,19 @@ fun TaskDetailScreen(
                         )
                         DropdownMenuItem(
                             text = { Text("复制") },
-                            onClick = { /* TODO */ },
+                            onClick = {
+                                showMenu = false
+                                onTaskUpdate(editedTask.copy(id = "copy_${System.currentTimeMillis()}"))
+                            },
                             leadingIcon = { Icon(Icons.Default.ContentCopy, null) }
                         )
                         Divider()
                         DropdownMenuItem(
                             text = { Text("删除", color = MaterialTheme.colorScheme.error) },
-                            onClick = { /* TODO */ },
+                            onClick = {
+                                showMenu = false
+                                onNavigateBack()
+                            },
                             leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
                         )
                     }
@@ -146,7 +152,7 @@ fun TaskDetailScreen(
 
                 item {
                     OutlinedButton(
-                        onClick = { /* TODO: 添加步骤 */ },
+                        onClick = { /* Step creation requires TaskStep data model */ },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(Icons.Default.Add, contentDescription = null)

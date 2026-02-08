@@ -31,7 +31,7 @@ object P2PFeatureFlags {
      * 开启后，ICE 连接失败时自动切换到 TURN 中继模式
      */
     @Volatile
-    var enableTurnFallback = false
+    var enableTurnFallback = true
 
     /**
      * 启用连接质量监控

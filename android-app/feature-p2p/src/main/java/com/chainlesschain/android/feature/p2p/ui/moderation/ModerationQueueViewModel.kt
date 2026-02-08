@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.database.entity.ModerationStatus
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.feature.p2p.repository.moderation.ModerationQueueItem
 import com.chainlesschain.android.feature.p2p.repository.moderation.ModerationQueueRepository
+import com.chainlesschain.android.core.did.manager.DIDManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -16,8 +17,11 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ModerationQueueViewModel @Inject constructor(
-    private val moderationQueueRepository: ModerationQueueRepository
+    private val moderationQueueRepository: ModerationQueueRepository,
+    private val didManager: DIDManager
 ) : ViewModel() {
+
+    private fun getCurrentReviewerDid(): String = didManager.getCurrentDID() ?: "unknown"
 
     // UI状态
     private val _uiState = MutableStateFlow(ModerationQueueUiState())
@@ -115,8 +119,7 @@ class ModerationQueueViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // TODO: 获取当前用户DID
-            val reviewerDid = "current_user_did"
+            val reviewerDid = getCurrentReviewerDid()
 
             when (val result = moderationQueueRepository.approveContent(
                 id = id,
@@ -153,7 +156,7 @@ class ModerationQueueViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val reviewerDid = "current_user_did"
+            val reviewerDid = getCurrentReviewerDid()
 
             when (val result = moderationQueueRepository.rejectContent(
                 id = id,
@@ -190,7 +193,7 @@ class ModerationQueueViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val reviewerDid = "current_user_did"
+            val reviewerDid = getCurrentReviewerDid()
 
             when (val result = moderationQueueRepository.deleteContent(
                 id = id,

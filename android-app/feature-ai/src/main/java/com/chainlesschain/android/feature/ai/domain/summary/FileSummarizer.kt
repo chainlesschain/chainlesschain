@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.feature.ai.domain.model.Message
-import com.chainlesschain.android.feature.ai.domain.model.Role
+import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -149,16 +149,21 @@ class FileSummarizer @Inject constructor(
             }
 
             // 调用 LLM 生成摘要
+            val now = System.currentTimeMillis()
             val messages = listOf(
                 Message(
                     id = "system",
-                    role = Role.SYSTEM,
-                    content = "你是一个专业的文件分析助手，擅长生成简洁准确的文件摘要。"
+                    conversationId = "",
+                    role = MessageRole.SYSTEM,
+                    content = "你是一个专业的文件分析助手，擅长生成简洁准确的文件摘要。",
+                    createdAt = now
                 ),
                 Message(
                     id = "user",
-                    role = Role.USER,
-                    content = prompt
+                    conversationId = "",
+                    role = MessageRole.USER,
+                    content = prompt,
+                    createdAt = now
                 )
             )
 

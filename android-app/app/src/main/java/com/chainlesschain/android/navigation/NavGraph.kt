@@ -58,6 +58,8 @@ import com.chainlesschain.android.remote.ui.file.FileTransferScreen
 import com.chainlesschain.android.remote.ui.history.CommandHistoryScreen
 import com.chainlesschain.android.remote.ui.system.RemoteScreenshotScreen
 import com.chainlesschain.android.remote.ui.system.SystemMonitorScreen
+import com.chainlesschain.android.feature.p2p.ui.ChatSessionListScreen
+import com.chainlesschain.android.feature.p2p.ui.P2PChatScreen
 
 @Composable
 fun NavGraph(
@@ -117,7 +119,8 @@ fun NavGraph(
                 onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onNavigateToAbout = { navController.navigate(Screen.About.route) },
                 onNavigateToHelpFeedback = { navController.navigate(Screen.HelpFeedback.route) },
-                onNavigateToBookmark = { navController.navigate(Screen.Bookmark.route) }
+                onNavigateToBookmark = { navController.navigate(Screen.Bookmark.route) },
+                onNavigateToP2PChatSessionList = { navController.navigate(Screen.P2PChatSessionList.route) }
             )
         }
 
@@ -347,6 +350,34 @@ fun NavGraph(
                 onNavigateBack = { navController.popBackStack() }
             )
         }
+
+        // P2P Chat Session List
+        composable(Screen.P2PChatSessionList.route) {
+            ChatSessionListScreen(
+                onNavigateToChat = { peerId, peerName ->
+                    navController.navigate(Screen.P2PChat.createRoute(peerId, peerName))
+                },
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        // P2P Chat
+        composable(
+            route = "${Screen.P2PChat.route}/{peerId}/{peerName}",
+            arguments = listOf(
+                navArgument("peerId") { type = NavType.StringType },
+                navArgument("peerName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val peerId = android.net.Uri.decode(backStackEntry.arguments?.getString("peerId") ?: return@composable)
+            val peerName = android.net.Uri.decode(backStackEntry.arguments?.getString("peerName") ?: "")
+            P2PChatScreen(
+                deviceId = peerId,
+                deviceName = peerName,
+                onNavigateBack = { navController.popBackStack() },
+                onVerifyDevice = { navController.navigate("safety_numbers/$peerId") }
+            )
+        }
     }
 }
 
@@ -427,6 +458,11 @@ sealed class Screen(val route: String) {
     data object RemoteDesktop : Screen("remote_desktop")
     data object RemoteFileTransfer : Screen("remote_file_transfer") {
         fun createRoute(did: String) = "remote_file_transfer/$did"
+    }
+    data object P2PChatSessionList : Screen("p2p_chat_session_list")
+    data object P2PChat : Screen("p2p_chat") {
+        fun createRoute(peerId: String, peerName: String) =
+            "p2p_chat/${android.net.Uri.encode(peerId)}/${android.net.Uri.encode(peerName)}"
     }
 }
 

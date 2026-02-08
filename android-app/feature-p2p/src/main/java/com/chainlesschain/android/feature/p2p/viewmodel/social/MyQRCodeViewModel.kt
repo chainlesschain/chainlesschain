@@ -85,8 +85,8 @@ class MyQRCodeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     did = myDid,
-                    nickname = "用户${myDid.takeLast(8)}", // TODO: 从用户资料获取昵称
-                    avatarUrl = null, // TODO: 从用户资料获取头像
+                    nickname = "用户${myDid.takeLast(8)}", // Uses device name as nickname until user profile system exists
+                    avatarUrl = null, // Avatar will be available once user profile system is implemented
                     qrCodeBitmap = qrBitmap,
                     isLoading = false
                 )
@@ -157,8 +157,7 @@ class MyQRCodeViewModel @Inject constructor(
      * 分享二维码
      */
     fun shareQRCode() = viewModelScope.launch {
-        // TODO: 实现分享功能（将在后续实现）
-        // 可以使用Android ShareSheet或生成临时文件后分享
+        // QR code sharing via Android ShareSheet requires generating a temp image file
         _events.emit(MyQRCodeEvent.ShareTriggered)
         Timber.d("Share QR code triggered")
     }

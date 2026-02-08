@@ -359,7 +359,7 @@ class OfflineMessageQueue @Inject constructor(
 
                 queue.forEach { msg ->
                     when (msg.priority) {
-                        MessagePriority.HIGH -> highPriorityCount++
+                        MessagePriority.HIGH, MessagePriority.URGENT -> highPriorityCount++
                         MessagePriority.NORMAL -> normalPriorityCount++
                         MessagePriority.LOW -> lowPriorityCount++
                     }
@@ -453,14 +453,7 @@ class OfflineMessageQueue @Inject constructor(
     }
 }
 
-/**
- * 消息优先级
- */
-enum class MessagePriority {
-    HIGH,    // 高优先级：立即发送
-    NORMAL,  // 普通优先级：按顺序发送
-    LOW      // 低优先级：延迟发送
-}
+// MessagePriority is defined in MessageTransport.kt
 
 /**
  * 离线消息

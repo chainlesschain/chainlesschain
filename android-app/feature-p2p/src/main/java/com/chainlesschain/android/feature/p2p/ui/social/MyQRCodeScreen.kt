@@ -145,7 +145,7 @@ fun MyQRCodeScreen(
                             .size(80.dp)
                             .clip(CircleShape),
                         contentScale = ContentScale.Crop,
-                        error = null, // TODO: 添加默认头像
+                        error = null, // Default avatar placeholder requires drawable resource
                         placeholder = null
                     )
 

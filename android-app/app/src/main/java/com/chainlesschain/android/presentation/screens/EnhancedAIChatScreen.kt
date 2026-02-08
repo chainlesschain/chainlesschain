@@ -43,7 +43,9 @@ fun EnhancedAIChatScreen(
     var inputText by remember { mutableStateOf("") }
     var isTyping by remember { mutableStateOf(false) }
     var showFilePicker by remember { mutableStateOf(false) }
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
     var pendingAttachments by remember { mutableStateOf<List<AttachedFileData>>(emptyList()) }
+    val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -99,10 +101,12 @@ fun EnhancedAIChatScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: 清空对话 */ }) {
+                    IconButton(onClick = { showClearConfirmDialog = true }) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = "清空")
                     }
-                    IconButton(onClick = { /* TODO: 设置 */ }) {
+                    IconButton(onClick = {
+                        coroutineScope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                    }) {
                         Icon(Icons.Default.Settings, contentDescription = "设置")
                     }
                 }
@@ -218,6 +222,24 @@ fun EnhancedAIChatScreen(
             }
         )
     }
+
+    // 清空对话确认对话框
+    if (showClearConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmDialog = false },
+            title = { Text("清空对话") },
+            text = { Text("确定要清空所有对话内容吗？此操作不可恢复。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    messages.clear()
+                    showClearConfirmDialog = false
+                }) { Text("清空") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmDialog = false }) { Text("取消") }
+            }
+        )
+    }
 }
 
 /**
@@ -317,19 +339,7 @@ fun ChatMessageBubble(message: ChatMessage) {
                         CodeBlock(code)
                     }
 
-                    // TODO: 附件 - AttachmentBubble needs to be implemented
-                    // if (message.attachedFiles.isNotEmpty()) {
-                    //     Column(
-                    //         verticalArrangement = Arrangement.spacedBy(4.dp)
-                    //     ) {
-                    //         message.attachedFiles.forEach { file ->
-                    //             AttachmentBubble(
-                    //                 file = file,
-                    //                 isUserMessage = message.isUser
-                    //             )
-                    //         }
-                    //     }
-                    // }
+                    // Attachment display will be added when AttachmentBubble component is implemented
                 }
             }
 
@@ -369,6 +379,7 @@ fun ChatMessageBubble(message: ChatMessage) {
  */
 @Composable
 fun CodeBlock(code: String) {
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color(0xFF1E1E1E),
@@ -390,7 +401,9 @@ fun CodeBlock(code: String) {
                 )
 
                 IconButton(
-                    onClick = { /* TODO: 复制代码 */ },
+                    onClick = {
+                        clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(code))
+                    },
                     modifier = Modifier.size(20.dp)
                 ) {
                     Icon(
@@ -564,17 +577,17 @@ fun QuickActionFAB(modifier: Modifier = Modifier) {
                 QuickActionButton(
                     icon = Icons.Default.Image,
                     text = "图片",
-                    onClick = { /* TODO */ }
+                    onClick = { expanded = false }
                 )
                 QuickActionButton(
                     icon = Icons.Default.Code,
                     text = "代码",
-                    onClick = { /* TODO */ }
+                    onClick = { expanded = false }
                 )
                 QuickActionButton(
                     icon = Icons.Default.Description,
                     text = "文档",
-                    onClick = { /* TODO */ }
+                    onClick = { expanded = false }
                 )
             }
         }

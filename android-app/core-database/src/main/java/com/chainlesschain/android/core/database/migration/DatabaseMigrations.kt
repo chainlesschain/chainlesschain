@@ -40,7 +40,8 @@ object DatabaseMigrations {
             MIGRATION_16_17,
             MIGRATION_17_18,
             MIGRATION_18_19,
-            MIGRATION_19_20
+            MIGRATION_19_20,
+            MIGRATION_20_21
         )
     }
 
@@ -1020,6 +1021,24 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_tasks_createdAt` ON `tasks` (`createdAt`)")
 
             Log.i(TAG, "Migration 19 to 20 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 20 -> 21
+     *
+     * 为 transfer_queue 表添加 fileUri 列（用于出站传输存储原始文件URI）
+     */
+    val MIGRATION_20_21 = object : Migration(20, 21) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 20 to 21")
+
+            db.execSQL("""
+                ALTER TABLE `transfer_queue`
+                ADD COLUMN `fileUri` TEXT
+            """.trimIndent())
+
+            Log.i(TAG, "Migration 20 to 21 completed successfully")
         }
     }
 

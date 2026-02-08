@@ -9,4 +9,8 @@
     <string name="social_friends_placeholder">Friends screen is temporarily simplified for build stability.</string>
     <string name="social_timeline_placeholder">Timeline screen is temporarily simplified for build stability.</string>
     <string name="social_notifications_placeholder">Notifications screen is temporarily simplified for build stability.</string>
+
+    <!-- P2P Chat -->
+    <string name="p2p_chat_title">Messages</string>
+    <string name="p2p_chat_empty">No conversations yet</string>
 </resources>

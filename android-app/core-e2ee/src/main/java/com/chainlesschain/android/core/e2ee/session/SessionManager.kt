@@ -2,6 +2,7 @@ package com.chainlesschain.android.core.e2ee.session
 
 import android.content.Context
 import android.util.Log
+import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.PreKeyBundle
 import com.chainlesschain.android.core.e2ee.protocol.RatchetMessage
@@ -28,6 +29,7 @@ class SessionManager @Inject constructor(
 
     // 当前设备的密钥对
     private lateinit var identityKeyPair: X25519KeyPair
+    private lateinit var signingKeyPair: Ed25519KeyPair
     private lateinit var signedPreKeyPair: X25519KeyPair
     private val oneTimePreKeys = mutableMapOf<String, X25519KeyPair>()
 
@@ -44,6 +46,9 @@ class SessionManager @Inject constructor(
 
         // 生成身份密钥对（长期）
         identityKeyPair = X25519KeyPair.generate()
+
+        // 生成签名密钥对（Ed25519，用于签名预密钥）
+        signingKeyPair = Ed25519KeyPair.generate()
 
         // 生成签名预密钥对（中期）
         signedPreKeyPair = X25519KeyPair.generate()
@@ -79,6 +84,7 @@ class SessionManager @Inject constructor(
 
         return com.chainlesschain.android.core.e2ee.protocol.X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair,
+            signingKeyPair,
             signedPreKeyPair,
             oneTimePreKeyPair
         )

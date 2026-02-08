@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 fun HelpFeedbackScreen(
     onNavigateBack: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var feedbackText by remember { mutableStateOf("") }
     var showFeedbackDialog by remember { mutableStateOf(false) }
     var showSubmittedDialog by remember { mutableStateOf(false) }
@@ -96,7 +97,13 @@ fun HelpFeedbackScreen(
                         icon = Icons.Default.Email,
                         title = "联系我们",
                         modifier = Modifier.weight(1f),
-                        onClick = { /* TODO: 打开邮件 */ }
+                        onClick = {
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SENDTO).apply {
+                                data = android.net.Uri.parse("mailto:support@chainlesschain.com")
+                                putExtra(android.content.Intent.EXTRA_SUBJECT, "ChainlessChain 反馈")
+                            }
+                            try { context.startActivity(intent) } catch (_: Exception) {}
+                        }
                     )
                 }
             }
@@ -337,9 +344,13 @@ fun TutorialCard(
     title: String,
     description: String
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),
-        onClick = { /* TODO: 打开教程 */ },
+        onClick = {
+            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://docs.chainlesschain.com"))
+            try { context.startActivity(intent) } catch (_: Exception) {}
+        },
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),

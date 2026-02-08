@@ -1202,6 +1202,40 @@ class ProjectViewModel @Inject constructor(
     }
 
     /**
+     * Generate AI suggestion for project creation
+     */
+    suspend fun generateAISuggestion(prompt: String): String {
+        val provider = _currentProvider.value
+        val apiKey = conversationRepository.getApiKey(provider)
+        val adapter = llmAdapterFactory.createAdapter(provider, apiKey)
+
+        val messages = listOf(
+            Message(
+                id = "system",
+                conversationId = "create-project",
+                role = MessageRole.SYSTEM,
+                content = "你是一个项目规划助手。根据用户的描述，建议项目名称、类型、标签和简要说明。用简洁的 Markdown 格式回复。",
+                createdAt = System.currentTimeMillis(),
+                tokenCount = 0
+            ),
+            Message(
+                id = "user",
+                conversationId = "create-project",
+                role = MessageRole.USER,
+                content = prompt,
+                createdAt = System.currentTimeMillis(),
+                tokenCount = 0
+            )
+        )
+
+        return adapter.chat(
+            messages = messages,
+            model = _currentModel.value,
+            maxTokens = 512
+        )
+    }
+
+    /**
      * Retry last message
      */
     fun retryChatMessage() {
@@ -1515,8 +1549,23 @@ class ProjectViewModel @Inject constructor(
      */
     fun retryTaskStep(step: com.chainlesschain.android.feature.project.model.TaskStep) {
         viewModelScope.launch {
+            val plan = _currentTaskPlan.value ?: return@launch
+            val stepIndex = plan.steps.indexOfFirst { it.id == step.id }
+            if (stepIndex < 0) return@launch
+
             _uiEvents.emit(ProjectUiEvent.ShowMessage("重试步骤: ${step.description}"))
-            // TODO: Implement actual step retry logic
+
+            // Reset step status and re-execute
+            updateStepStatus(stepIndex, com.chainlesschain.android.feature.project.model.StepStatus.PENDING)
+            try {
+                updateStepStatus(stepIndex, com.chainlesschain.android.feature.project.model.StepStatus.IN_PROGRESS)
+                val projectId = _currentProjectId.value ?: return@launch
+                sendToAi(projectId, "请执行以下步骤: ${step.description}")
+                updateStepStatus(stepIndex, com.chainlesschain.android.feature.project.model.StepStatus.COMPLETED)
+            } catch (e: Exception) {
+                updateStepStatus(stepIndex, com.chainlesschain.android.feature.project.model.StepStatus.FAILED)
+                _uiEvents.emit(ProjectUiEvent.ShowError("步骤重试失败: ${e.message}"))
+            }
         }
     }
 
@@ -1529,15 +1578,21 @@ class ProjectViewModel @Inject constructor(
         )
 
         try {
+            val projectId = _currentProjectId.value ?: throw IllegalStateException("No project selected")
+
             plan.steps.forEachIndexed { index, step ->
                 // Update step to in_progress
                 updateStepStatus(index, com.chainlesschain.android.feature.project.model.StepStatus.IN_PROGRESS)
 
-                // Simulate step execution (TODO: implement actual execution)
-                kotlinx.coroutines.delay(1000)
-
-                // Mark step as completed
-                updateStepStatus(index, com.chainlesschain.android.feature.project.model.StepStatus.COMPLETED)
+                try {
+                    // Execute step via AI chat
+                    sendToAi(projectId, "请执行计划步骤 ${index + 1}: ${step.description}")
+                    updateStepStatus(index, com.chainlesschain.android.feature.project.model.StepStatus.COMPLETED)
+                } catch (e: Exception) {
+                    updateStepStatus(index, com.chainlesschain.android.feature.project.model.StepStatus.FAILED,
+                        error = e.message)
+                    throw e
+                }
             }
 
             _currentTaskPlan.value = _currentTaskPlan.value?.copy(
@@ -1557,7 +1612,11 @@ class ProjectViewModel @Inject constructor(
     /**
      * Update a step's status in the current task plan
      */
-    private fun updateStepStatus(stepIndex: Int, status: com.chainlesschain.android.feature.project.model.StepStatus) {
+    private fun updateStepStatus(
+        stepIndex: Int,
+        status: com.chainlesschain.android.feature.project.model.StepStatus,
+        error: String? = null
+    ) {
         val currentPlan = _currentTaskPlan.value ?: return
         val updatedSteps = currentPlan.steps.mapIndexed { index, step ->
             if (index == stepIndex) {
@@ -1566,7 +1625,8 @@ class ProjectViewModel @Inject constructor(
                     startedAt = if (status == com.chainlesschain.android.feature.project.model.StepStatus.IN_PROGRESS)
                         System.currentTimeMillis() else step.startedAt,
                     completedAt = if (status == com.chainlesschain.android.feature.project.model.StepStatus.COMPLETED)
-                        System.currentTimeMillis() else step.completedAt
+                        System.currentTimeMillis() else step.completedAt,
+                    error = error ?: step.error
                 )
             } else {
                 step

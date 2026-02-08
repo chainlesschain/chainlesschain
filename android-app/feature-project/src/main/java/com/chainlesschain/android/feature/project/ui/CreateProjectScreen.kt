@@ -63,6 +63,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,6 +77,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ProjectType
 import com.chainlesschain.android.feature.project.viewmodel.ProjectUiEvent
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -92,6 +94,8 @@ fun CreateProjectScreen(
     var selectedType by remember { mutableStateOf(ProjectType.OTHER) }
     var tagInput by remember { mutableStateOf("") }
     val tags = remember { mutableStateListOf<String>() }
+
+    val scope = rememberCoroutineScope()
 
     // AI Assistant state
     var showAiAssistant by remember { mutableStateOf(false) }
@@ -146,15 +150,21 @@ fun CreateProjectScreen(
                 isThinking = isAiThinking,
                 suggestion = aiSuggestion,
                 onSubmitPrompt = {
-                    // TODO: Integrate with AI service
                     isAiThinking = true
-                    // Simulate AI response for now
-                    aiSuggestion = "Based on your description, I suggest:\n\n" +
-                        "- Project Name: ${if (aiPrompt.length > 20) aiPrompt.take(20) + "..." else aiPrompt}\n" +
-                        "- Type: Document\n" +
-                        "- Tags: AI, Project\n\n" +
-                        "Would you like me to apply these suggestions?"
-                    isAiThinking = false
+                    scope.launch {
+                        try {
+                            val response = viewModel.generateAISuggestion(aiPrompt)
+                            aiSuggestion = response
+                        } catch (e: Exception) {
+                            aiSuggestion = "AI 服务暂时不可用，请稍后重试。\n\n" +
+                                "建议：\n" +
+                                "- 项目名称: ${if (aiPrompt.length > 20) aiPrompt.take(20) + "..." else aiPrompt}\n" +
+                                "- 类型: 文档\n" +
+                                "- 标签: AI, Project"
+                        } finally {
+                            isAiThinking = false
+                        }
+                    }
                 },
                 onApplySuggestion = {
                     // Apply AI suggestions to form

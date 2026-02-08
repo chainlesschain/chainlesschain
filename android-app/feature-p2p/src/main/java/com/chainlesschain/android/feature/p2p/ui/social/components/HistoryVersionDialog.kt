@@ -137,7 +137,7 @@ fun HistoryVersionDialog(
                             ImageGrid(
                                 images = history.previousImages,
                                 modifier = Modifier.fillMaxWidth(),
-                                onImageClick = { _, _ -> /* TODO: 图片预览 */ }
+                                onImageClick = { _, _ -> /* Image preview requires fullscreen overlay component */ }
                             )
                         }
                     }

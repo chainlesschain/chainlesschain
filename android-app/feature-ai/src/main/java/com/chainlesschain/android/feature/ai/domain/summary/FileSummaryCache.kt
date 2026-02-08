@@ -153,7 +153,7 @@ class FileSummaryCache @Inject constructor(
         cacheDir.listFiles()?.forEach { file ->
             try {
                 val cached = json.decodeFromString<CachedSummary>(file.readText())
-                if (isExpired(cached.summary)) {
+                if (isExpired(cached.toFileSummary())) {
                     file.delete()
                     cleanedCount++
                 }
@@ -184,7 +184,7 @@ class FileSummaryCache @Inject constructor(
 
         return try {
             val cached = json.decodeFromString<CachedSummary>(file.readText())
-            cached.summary
+            cached.toFileSummary()
         } catch (e: Exception) {
             Log.w(TAG, "Failed to read cache: $contentHash", e)
             file.delete()
@@ -237,9 +237,9 @@ class FileSummaryCache @Inject constructor(
                 ?.forEach { file ->
                     try {
                         val cached = json.decodeFromString<CachedSummary>(file.readText())
-                        if (!isExpired(cached.summary)) {
+                        if (!isExpired(cached.toFileSummary())) {
                             val contentHash = file.nameWithoutExtension
-                            memoryCache[contentHash] = cached.summary
+                            memoryCache[contentHash] = cached.toFileSummary()
                         }
                     } catch (e: Exception) {
                         // 忽略解析错误
@@ -276,8 +276,7 @@ private data class CachedSummary(
         isCodeFile = summary.isCodeFile
     )
 
-    val summary: FileSummary
-        get() = FileSummary(
+    fun toFileSummary(): FileSummary = FileSummary(
             fileName = fileName,
             fileType = fileType,
             contentHash = contentHash,
