@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.presentation.components.EnhancedSearchBar
+import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -33,6 +34,12 @@ fun BookmarkScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedTag by remember { mutableStateOf<String?>(null) }
+    var showSearchBar by remember { mutableStateOf(false) }
+    var isManageMode by remember { mutableStateOf(false) }
+    var showNewTagDialog by remember { mutableStateOf(false) }
+    var newTagName by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // 模拟标签数据
     val tags = remember {
@@ -100,9 +107,13 @@ fun BookmarkScreen(
         }
     }
 
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { scaffoldPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(scaffoldPadding)
             .background(MaterialTheme.colorScheme.surface)
     ) {
         // 顶部栏
@@ -116,10 +127,12 @@ fun BookmarkScreen(
                 }
             },
             actions = {
-                IconButton(onClick = { /* TODO: 搜索 */ }) {
+                IconButton(onClick = { showSearchBar = !showSearchBar }) {
                     Icon(Icons.Default.Search, contentDescription = "搜索")
                 }
-                IconButton(onClick = { /* TODO: 添加收藏 */ }) {
+                IconButton(onClick = {
+                    scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                }) {
                     Icon(Icons.Default.Add, contentDescription = "添加")
                 }
             }
@@ -147,7 +160,8 @@ fun BookmarkScreen(
                     selectedTag = selectedTag ?: "全部",
                     onTagSelected = { tag ->
                         selectedTag = if (tag == "全部") null else tag
-                    }
+                    },
+                    onNewTagClick = { showNewTagDialog = true }
                 )
             }
 
@@ -175,8 +189,8 @@ fun BookmarkScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    TextButton(onClick = { /* TODO: 管理 */ }) {
-                        Text("管理")
+                    TextButton(onClick = { isManageMode = !isManageMode }) {
+                        Text(if (isManageMode) "完成" else "管理")
                     }
                 }
             }
@@ -190,12 +204,59 @@ fun BookmarkScreen(
                 items(filteredBookmarks, key = { it.id }) { bookmark ->
                     BookmarkCard(
                         bookmark = bookmark,
-                        onRemove = { /* TODO: 移除收藏 */ },
-                        onClick = { /* TODO: 查看详情 */ }
+                        onRemove = {
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "已移除收藏",
+                                    actionLabel = "撤销",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                        },
+                        onClick = {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("查看详情功能开发中")
+                            }
+                        }
                     )
                 }
             }
         }
+    }
+    } // end Scaffold
+
+    // 新建标签对话框
+    if (showNewTagDialog) {
+        AlertDialog(
+            onDismissRequest = { showNewTagDialog = false },
+            title = { Text("新建标签") },
+            text = {
+                OutlinedTextField(
+                    value = newTagName,
+                    onValueChange = { newTagName = it },
+                    label = { Text("标签名称") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newTagName.isNotBlank()) {
+                            scope.launch { snackbarHostState.showSnackbar("标签「${newTagName}」已创建") }
+                            newTagName = ""
+                        }
+                        showNewTagDialog = false
+                    }
+                ) { Text("创建") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showNewTagDialog = false
+                    newTagName = ""
+                }) { Text("取消") }
+            }
+        )
     }
 }
 
@@ -206,7 +267,8 @@ fun BookmarkScreen(
 fun BookmarkTagFilter(
     tags: List<String>,
     selectedTag: String,
-    onTagSelected: (String) -> Unit
+    onTagSelected: (String) -> Unit,
+    onNewTagClick: () -> Unit = {}
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
@@ -227,7 +289,7 @@ fun BookmarkTagFilter(
         // 新建标签按钮
         item {
             AssistChip(
-                onClick = { /* TODO: 新建标签 */ },
+                onClick = onNewTagClick,
                 label = { Text("+ 新建标签") },
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant

@@ -2,6 +2,7 @@
 
 import android.content.Context
 import android.util.Log
+import com.chainlesschain.android.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,19 +16,19 @@ class SignalingConfig @Inject constructor(
         private const val TAG = "SignalingConfig"
 
         /**
-         * 默认信令服务器 URL (仅用于开发/测试)
+         * 默认信令服务器 URL (生产环境)
          *
-         * ⚠️ 警告: 这是开发环境配置，不应在生产环境使用！
+         * 配置优先级: SharedPreferences > 环境变量 > DEBUG_SIGNALING_URL (debug builds only) > DEFAULT_SIGNALING_URL
          *
-         * 生产环境配置方法：
+         * 配置方法：
          * 1. 环境变量: 设置 SIGNALING_SERVER_URL=wss://your-server.com
          * 2. 运行时配置: 调用 setCustomSignalingUrl("wss://your-server.com")
          * 3. 应用设置: 在设置界面配置自定义服务器地址
-         *
-         * 配置优先级: 环境变量 > SharedPreferences > 默认值
          */
-        const val DEFAULT_SIGNALING_URL = "ws://192.168.3.59:9001"
-        const val PRODUCTION_SIGNALING_URL = "wss://your-signaling-server.com"
+        const val DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com:9001"
+
+        /** Debug-only fallback for Android emulator (10.0.2.2 maps to host loopback) */
+        const val DEBUG_SIGNALING_URL = "ws://10.0.2.2:9001"
 
         const val CONNECT_TIMEOUT_MS = 10000L
         const val RECONNECT_DELAY_MS = 3000L
@@ -44,25 +45,28 @@ class SignalingConfig @Inject constructor(
     }
 
     fun getSignalingUrl(): String {
-        val envValue = System.getenv(ENV_SIGNALING_URL)?.trim().orEmpty()
-        if (envValue.isNotBlank()) {
-            Log.i(TAG, "Using signaling server from environment: $envValue")
-            return envValue
-        }
-
+        // Priority 1: User-configured URL (SharedPreferences / settings UI)
         val storedValue = prefs.getString(KEY_CUSTOM_URL, null)?.trim().orEmpty()
         if (storedValue.isNotBlank()) {
             Log.i(TAG, "Using signaling server from preferences: $storedValue")
             return storedValue
         }
 
-        // 警告: 使用默认开发环境配置
-        if (DEFAULT_SIGNALING_URL.contains("192.168") || DEFAULT_SIGNALING_URL.startsWith("ws://")) {
-            Log.w(TAG, "⚠️ 使用默认开发环境信令服务器: $DEFAULT_SIGNALING_URL")
-            Log.w(TAG, "⚠️ 生产环境请通过环境变量或设置界面配置 wss:// 地址")
-            Log.w(TAG, "⚠️ 配置方法请参考: docs/SIGNALING_CONFIG.md")
+        // Priority 2: Environment variable
+        val envValue = System.getenv(ENV_SIGNALING_URL)?.trim().orEmpty()
+        if (envValue.isNotBlank()) {
+            Log.i(TAG, "Using signaling server from environment: $envValue")
+            return envValue
         }
 
+        // Priority 3: Debug builds fall back to emulator-friendly local URL
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Debug build: using local signaling server: $DEBUG_SIGNALING_URL")
+            return DEBUG_SIGNALING_URL
+        }
+
+        // Priority 4: Production default
+        Log.i(TAG, "Using production signaling server: $DEFAULT_SIGNALING_URL")
         return DEFAULT_SIGNALING_URL
     }
 

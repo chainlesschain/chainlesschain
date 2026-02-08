@@ -1200,6 +1200,60 @@ class OrganizationManager {
   }
 
   /**
+   * 获取当前用户的DID邀请历史（已接受、已拒绝、已过期）
+   * @param {Object} options - 选项
+   * @param {string} options.status - 状态筛选（accepted|rejected）
+   * @param {number} options.limit - 限制数量
+   * @returns {Promise<Object>} { accepted, rejected, expired }
+   */
+  async getDIDInvitationHistory(options = {}) {
+    try {
+      const currentIdentity = await this.didManager.getCurrentIdentity();
+      if (!currentIdentity) {
+        return { accepted: [], rejected: [], expired: [] };
+      }
+
+      const did = currentIdentity.did;
+      const now = Date.now();
+      const limit = options.limit || 50;
+
+      const accepted = this.db
+        .prepare(
+          `SELECT * FROM organization_did_invitations
+           WHERE invited_did = ? AND status = 'accepted'
+           ORDER BY updated_at DESC LIMIT ?`,
+        )
+        .all(did, limit);
+
+      const rejected = this.db
+        .prepare(
+          `SELECT * FROM organization_did_invitations
+           WHERE invited_did = ? AND status = 'rejected'
+           ORDER BY updated_at DESC LIMIT ?`,
+        )
+        .all(did, limit);
+
+      const expired = this.db
+        .prepare(
+          `SELECT * FROM organization_did_invitations
+           WHERE invited_did = ? AND status = 'pending'
+           AND expire_at IS NOT NULL AND expire_at <= ?
+           ORDER BY expire_at DESC LIMIT ?`,
+        )
+        .all(did, now, limit);
+
+      return {
+        accepted: accepted || [],
+        rejected: rejected || [],
+        expired: expired || [],
+      };
+    } catch (error) {
+      logger.error("[OrganizationManager] 获取邀请历史失败:", error);
+      return { accepted: [], rejected: [], expired: [] };
+    }
+  }
+
+  /**
    * 获取组织的DID邀请列表（用于管理）
    * @param {string} orgId - 组织ID
    * @param {Object} options - 选项

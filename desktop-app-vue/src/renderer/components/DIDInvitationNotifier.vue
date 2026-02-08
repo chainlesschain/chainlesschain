@@ -296,16 +296,15 @@ const loadPendingInvitations = async () => {
 const loadHistoryInvitations = async () => {
   loadingHistory.value = true;
   try {
-    // 获取所有状态的邀请
-    const allInvitations = await window.ipc.invoke(
-      "org:get-pending-did-invitations",
+    // 获取所有状态的邀请历史（已接受、已拒绝、已过期）
+    const history = await window.ipc.invoke(
+      "org:get-did-invitation-history",
+      { limit: 50 },
     );
 
-    // TODO: 实现获取所有邀请（包括已接受、已拒绝）的API
-    // 暂时使用模拟数据
-    acceptedInvitations.value = [];
-    rejectedInvitations.value = [];
-    expiredInvitations.value = [];
+    acceptedInvitations.value = history.accepted || [];
+    rejectedInvitations.value = history.rejected || [];
+    expiredInvitations.value = history.expired || [];
   } catch (error) {
     logger.error(
       "加载历史邀请失败 - 错误类型:",

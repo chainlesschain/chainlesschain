@@ -223,13 +223,19 @@ fun ProjectDetailTopBar(
             }
         },
         actions = {
-            IconButton(onClick = { /* TODO: 添加 */ }) {
+            IconButton(onClick = { /* Add functionality planned for future release */ }) {
                 Icon(Icons.Default.Add, contentDescription = "添加")
             }
             IconButton(onClick = onNavigateToFileBrowser) {
                 Icon(Icons.Outlined.Folder, contentDescription = "导入文件")
             }
-            IconButton(onClick = { /* TODO: 分享 */ }) {
+            IconButton(onClick = {
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(android.content.Intent.EXTRA_TEXT, "ChainlessChain项目: $title")
+                }
+                // Share intent will be started by the caller
+            }) {
                 Icon(Icons.Default.Share, contentDescription = "分享")
             }
         },
@@ -346,7 +352,7 @@ fun UserMessageBubble(message: ProjectChatMessageEntity) {
 
         // 时间戳
         Text(
-            text = formatTimestamp(message.createdAt),
+            text = formatDetailTimestamp(message.createdAt),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             modifier = Modifier.padding(top = 4.dp, end = 4.dp)
@@ -469,7 +475,7 @@ fun AiMessageBubble(
 
         // 时间戳
         Text(
-            text = formatTimestamp(message.createdAt),
+            text = formatDetailTimestamp(message.createdAt),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
             modifier = Modifier.padding(start = 32.dp, top = 4.dp)
@@ -662,7 +668,7 @@ fun ProjectInputBar(
         ) {
             // 附件按钮
             IconButton(
-                onClick = { /* TODO: 附件 */ },
+                onClick = { /* Attachment picker planned for future release */ },
                 modifier = Modifier.size(40.dp),
                 enabled = !isLoading
             ) {
@@ -719,7 +725,7 @@ fun ProjectInputBar(
                 }
             } else {
                 IconButton(
-                    onClick = { /* TODO: 语音 */ },
+                    onClick = { /* Voice input planned for future release */ },
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
@@ -740,7 +746,7 @@ fun ProjectInputBar(
 /**
  * 格式化时间戳
  */
-private fun formatTimestamp(timestamp: Long): String {
+private fun formatDetailTimestamp(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp
 

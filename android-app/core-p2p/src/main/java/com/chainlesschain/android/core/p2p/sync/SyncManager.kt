@@ -25,7 +25,8 @@ import javax.inject.Singleton
 @Singleton
 class SyncManager @Inject constructor(
     private val messageQueue: MessageQueue,
-    private val conflictResolver: ConflictResolver
+    private val conflictResolver: ConflictResolver,
+    private val syncDataApplier: SyncDataApplier
 ) {
 
     companion object {
@@ -241,28 +242,64 @@ class SyncManager @Inject constructor(
 
     /**
      * 应用同步项
+     *
+     * 根据资源类型和操作类型将远程变更持久化到本地状态。
+     * 更新本地状态缓存并从待同步队列中移除已应用的变更，
+     * 防止已接收的远程变更被回传。
      */
     private suspend fun applySyncItem(item: SyncItem) {
-        // TODO: 根据resourceType和operation应用变更
-        // 这里需要调用相应的Repository来更新数据库
-
         when (item.operation) {
             SyncOperation.CREATE -> {
-                // 创建新记录
-                Log.d(TAG, "Creating: ${item.resourceId}")
+                Log.d(TAG, "Applying CREATE for ${item.resourceType}: ${item.resourceId}")
+                // 持久化到数据库
+                syncDataApplier.create(item.resourceType, item.resourceId, item.data)
+                // 更新本地状态缓存
                 localState[item.resourceId] = item
+                // 如果本地也有对同一资源的待同步变更且时间戳更旧，则丢弃本地变更
+                pendingChanges[item.resourceId]?.let { pending ->
+                    if (pending.timestamp <= item.timestamp) {
+                        pendingChanges.remove(item.resourceId)
+                        Log.d(TAG, "Discarded stale pending change for: ${item.resourceId}")
+                    }
+                }
             }
             SyncOperation.UPDATE -> {
-                // 更新记录
-                Log.d(TAG, "Updating: ${item.resourceId}")
-                localState[item.resourceId] = item
+                Log.d(TAG, "Applying UPDATE for ${item.resourceType}: ${item.resourceId}")
+                val existing = localState[item.resourceId]
+                if (existing != null) {
+                    // 仅在远程版本较新或版本号更高时才更新
+                    if (item.version > existing.version || item.timestamp > existing.timestamp) {
+                        // 持久化到数据库
+                        syncDataApplier.update(item.resourceType, item.resourceId, item.data)
+                        localState[item.resourceId] = item
+                    } else {
+                        Log.d(TAG, "Skipping UPDATE - local version is newer: ${item.resourceId}")
+                        return
+                    }
+                } else {
+                    // 本地不存在该资源，作为新建处理
+                    syncDataApplier.create(item.resourceType, item.resourceId, item.data)
+                    localState[item.resourceId] = item
+                }
+                // 清理过时的待同步变更
+                pendingChanges[item.resourceId]?.let { pending ->
+                    if (pending.timestamp <= item.timestamp) {
+                        pendingChanges.remove(item.resourceId)
+                        Log.d(TAG, "Discarded stale pending change for: ${item.resourceId}")
+                    }
+                }
             }
             SyncOperation.DELETE -> {
-                // 删除记录
-                Log.d(TAG, "Deleting: ${item.resourceId}")
+                Log.d(TAG, "Applying DELETE for ${item.resourceType}: ${item.resourceId}")
+                // 从数据库删除
+                syncDataApplier.delete(item.resourceType, item.resourceId)
                 localState.remove(item.resourceId)
+                // 如果本地也有对该资源的待同步变更，删除优先
+                pendingChanges.remove(item.resourceId)
             }
         }
+
+        Log.i(TAG, "Sync item applied: ${item.operation} ${item.resourceType} ${item.resourceId} (v${item.version})")
     }
 
     /**

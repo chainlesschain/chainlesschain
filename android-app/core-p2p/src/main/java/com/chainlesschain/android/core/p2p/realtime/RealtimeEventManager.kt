@@ -66,18 +66,18 @@ class RealtimeEventManager @Inject constructor(
         isListening = true
         Log.i(TAG, "Starting realtime event listening")
 
-        // TODO: 监听消息队列中的实时消息 (需要实现MessageQueue.incomingMessages)
-        // scope.launch {
-        //     messageQueue.incomingMessages
-        //         .filter { isRealtimeMessage(it.type) }
-        //         .collect { message ->
-        //             try {
-        //                 handleRealtimeMessage(message)
-        //             } catch (e: Exception) {
-        //                 Log.e(TAG, "Failed to handle realtime message: ${message.id}", e)
-        //             }
-        //         }
-        // }
+        // 监听消息队列中的实时消息
+        scope.launch {
+            messageQueue.incomingMessages
+                .filter { isRealtimeMessage(it.type) }
+                .collect { message ->
+                    try {
+                        handleRealtimeMessage(message)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to handle realtime message: ${message.id}", e)
+                    }
+                }
+        }
 
         // 启动在线状态管理
         presenceManager.startBroadcasting()

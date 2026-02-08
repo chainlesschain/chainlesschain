@@ -22,7 +22,7 @@ class SyncManagerTest {
     fun setup() {
         messageQueue = MessageQueue()
         conflictResolver = ConflictResolver()
-        syncManager = SyncManager(messageQueue, conflictResolver)
+        syncManager = SyncManager(messageQueue, conflictResolver, NoOpSyncDataApplier())
     }
 
     @Test
@@ -210,6 +210,13 @@ class SyncManagerTest {
 
         // Then - should stop without errors
         assertTrue(true)
+    }
+
+    /** 测试用 no-op 实现 */
+    private class NoOpSyncDataApplier : SyncDataApplier {
+        override suspend fun create(resourceType: ResourceType, resourceId: String, data: String) {}
+        override suspend fun update(resourceType: ResourceType, resourceId: String, data: String) {}
+        override suspend fun delete(resourceType: ResourceType, resourceId: String) {}
     }
 
     // Helper functions

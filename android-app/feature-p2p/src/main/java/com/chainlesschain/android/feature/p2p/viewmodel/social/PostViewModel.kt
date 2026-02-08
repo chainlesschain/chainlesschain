@@ -542,7 +542,8 @@ data class PostUiState(
     val showCommentInput: Boolean = false,
     val commentPostId: String? = null,
     val commentParentId: String? = null,
-    val showPostMenu: Boolean = false
+    val showPostMenu: Boolean = false,
+    val authorNicknames: Map<String, String> = emptyMap()
 ) : UiState
 
 /**

@@ -1,6 +1,11 @@
 package com.chainlesschain.android.remote.crypto
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.util.Base64
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import dagger.hilt.android.qualifiers.ApplicationContext
 import org.bouncycastle.crypto.params.Ed25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
 import org.bouncycastle.crypto.signers.Ed25519Signer
@@ -152,23 +157,93 @@ interface DIDKeyStore {
      * 存储密钥对
      */
     suspend fun storeKeyPair(did: String, privateKey: ByteArray, publicKey: ByteArray)
+
+    /**
+     * 检查是否存在指定 DID 的密钥对
+     */
+    suspend fun hasKeyPair(did: String): Boolean
+
+    /**
+     * 删除指定 DID 的密钥对
+     */
+    suspend fun removeKeyPair(did: String): Boolean
+
+    /**
+     * 获取所有已存储的 DID 标识符
+     */
+    suspend fun getAllKeyIds(): List<String>
 }
 
 /**
- * DID 密钥存储实现（使用 Android KeyStore）
+ * DID 密钥存储实现（使用 Android KeyStore + EncryptedSharedPreferences）
+ *
+ * 安全架构：
+ * - AES-256-GCM 主密钥由 Android Keystore 硬件安全模块保护
+ * - Ed25519 私钥/公钥序列化为 Base64 后存储在 EncryptedSharedPreferences 中
+ * - EncryptedSharedPreferences 使用 AES256-SIV 加密键名，AES256-GCM 加密值
+ * - 内存缓存用于减少解密开销，应用重启后自动从加密存储恢复
  */
 @Singleton
-class AndroidDIDKeyStore @Inject constructor() : DIDKeyStore {
-    // 简化实现：使用内存存储
-    // 生产环境应使用 Android KeyStore System
-    private val keyCache = mutableMapOf<String, KeyPair>()
+class AndroidDIDKeyStore @Inject constructor(
+    @ApplicationContext private val context: Context
+) : DIDKeyStore {
+
+    companion object {
+        private const val PREFS_NAME = "did_keystore_encrypted_prefs"
+        private const val KEY_PREFIX_PRIVATE = "did_private_"
+        private const val KEY_PREFIX_PUBLIC = "did_public_"
+        private const val KEY_ALL_DIDS = "did_all_ids"
+        private const val DID_SEPARATOR = "\u001F" // Unit separator, not valid in DIDs
+    }
+
+    /** AES-256-GCM master key stored in Android Keystore hardware */
+    private val masterKey: MasterKey by lazy {
+        MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+    }
+
+    /** EncryptedSharedPreferences backed by Android Keystore master key */
+    private val encryptedPrefs: SharedPreferences by lazy {
+        EncryptedSharedPreferences.create(
+            context,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
+    /** In-memory cache to avoid repeated decryption; loaded on-demand from encrypted storage */
+    private val keyCache = mutableMapOf<String, KeyPairData>()
 
     override suspend fun getPrivateKey(did: String): ByteArray? {
-        return keyCache[did]?.privateKey
+        // Check memory cache first
+        keyCache[did]?.let { return it.privateKey }
+
+        // Fall back to encrypted storage
+        val encoded = encryptedPrefs.getString(KEY_PREFIX_PRIVATE + did, null)
+            ?: return null
+        val privateKey = Base64.decode(encoded, Base64.NO_WRAP)
+
+        // Also load public key into cache while we're at it
+        val publicEncoded = encryptedPrefs.getString(KEY_PREFIX_PUBLIC + did, null)
+        if (publicEncoded != null) {
+            val publicKey = Base64.decode(publicEncoded, Base64.NO_WRAP)
+            keyCache[did] = KeyPairData(privateKey, publicKey)
+        }
+
+        return privateKey
     }
 
     override suspend fun getPublicKey(did: String): ByteArray? {
-        return keyCache[did]?.publicKey
+        // Check memory cache first
+        keyCache[did]?.let { return it.publicKey }
+
+        // Fall back to encrypted storage
+        val encoded = encryptedPrefs.getString(KEY_PREFIX_PUBLIC + did, null)
+            ?: return null
+        return Base64.decode(encoded, Base64.NO_WRAP)
     }
 
     override suspend fun storeKeyPair(
@@ -176,12 +251,79 @@ class AndroidDIDKeyStore @Inject constructor() : DIDKeyStore {
         privateKey: ByteArray,
         publicKey: ByteArray
     ) {
-        keyCache[did] = KeyPair(privateKey, publicKey)
-        Timber.d("密钥对已存储: $did")
+        val privateEncoded = Base64.encodeToString(privateKey, Base64.NO_WRAP)
+        val publicEncoded = Base64.encodeToString(publicKey, Base64.NO_WRAP)
+
+        // Persist to encrypted storage atomically
+        val currentDids = loadAllDids().toMutableSet()
+        currentDids.add(did)
+
+        encryptedPrefs.edit()
+            .putString(KEY_PREFIX_PRIVATE + did, privateEncoded)
+            .putString(KEY_PREFIX_PUBLIC + did, publicEncoded)
+            .putString(KEY_ALL_DIDS, currentDids.joinToString(DID_SEPARATOR))
+            .apply()
+
+        // Update memory cache
+        keyCache[did] = KeyPairData(privateKey, publicKey)
+
+        Timber.d("密钥对已安全存储 (EncryptedSharedPreferences): $did")
     }
 
-    data class KeyPair(
+    override suspend fun hasKeyPair(did: String): Boolean {
+        if (keyCache.containsKey(did)) return true
+        return encryptedPrefs.contains(KEY_PREFIX_PRIVATE + did)
+    }
+
+    override suspend fun removeKeyPair(did: String): Boolean {
+        val existed = hasKeyPair(did)
+        if (!existed) return false
+
+        // Remove from encrypted storage
+        val currentDids = loadAllDids().toMutableSet()
+        currentDids.remove(did)
+
+        encryptedPrefs.edit()
+            .remove(KEY_PREFIX_PRIVATE + did)
+            .remove(KEY_PREFIX_PUBLIC + did)
+            .putString(KEY_ALL_DIDS, currentDids.joinToString(DID_SEPARATOR))
+            .apply()
+
+        // Remove from memory cache
+        keyCache.remove(did)
+
+        Timber.d("密钥对已删除: $did")
+        return true
+    }
+
+    override suspend fun getAllKeyIds(): List<String> {
+        return loadAllDids()
+    }
+
+    /**
+     * Load the set of all stored DID identifiers from encrypted storage.
+     */
+    private fun loadAllDids(): List<String> {
+        val raw = encryptedPrefs.getString(KEY_ALL_DIDS, null)
+            ?: return emptyList()
+        return raw.split(DID_SEPARATOR).filter { it.isNotEmpty() }
+    }
+
+    data class KeyPairData(
         val privateKey: ByteArray,
         val publicKey: ByteArray
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is KeyPairData) return false
+            return privateKey.contentEquals(other.privateKey) &&
+                publicKey.contentEquals(other.publicKey)
+        }
+
+        override fun hashCode(): Int {
+            var result = privateKey.contentHashCode()
+            result = 31 * result + publicKey.contentHashCode()
+            return result
+        }
+    }
 }

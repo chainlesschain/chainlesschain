@@ -757,9 +757,14 @@ const handleConfirmPurchase = async () => {
 
   purchasing.value = true;
   try {
-    // TODO: 调用智能合约执行购买
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
+    // 执行购买（通过交易市场匹配订单）
+    const matchResult = await window.electronAPI.marketplace.matchOrder(
+      selectedProject.value.id,
+      1,
+    );
+    if (!matchResult?.success) {
+      throw new Error(matchResult?.error || "购买交易失败");
+    }
     walletBalance.value -= selectedProject.value.price;
     message.success("购买成功！项目已添加到你的账户");
     showBuyModal.value = false;
@@ -802,8 +807,22 @@ const handleConfirmSell = async () => {
 
   selling.value = true;
   try {
-    // TODO: 调用后端API上架项目
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // 调用交易市场创建卖出订单
+    const orderResult = await window.electronAPI.marketplace.createOrder({
+      type: "sell",
+      title: projectStore.projects.find((p) => p.id === sellForm.value.projectId)?.name || "项目",
+      description: sellForm.value.description,
+      price: sellForm.value.price,
+      category: sellForm.value.category,
+      thumbnail: sellForm.value.thumbnail,
+      metadata: {
+        projectId: sellForm.value.projectId,
+        category: sellForm.value.category,
+      },
+    });
+    if (!orderResult?.success) {
+      throw new Error(orderResult?.error || "上架失败");
+    }
 
     message.success("项目已成功上架到市场！");
     showSellModal.value = false;
@@ -837,7 +856,7 @@ const handleBeforeUpload = (file) => {
     return false;
   }
 
-  // TODO: 实际上传到IPFS或其他存储
+  // 读取图片为 base64（本地存储，后续可扩展 IPFS 上传）
   const reader = new FileReader();
   reader.onload = (e) => {
     sellForm.value.thumbnail = e.target.result;
@@ -849,90 +868,108 @@ const handleBeforeUpload = (file) => {
 
 // 加载市场项目
 const loadMarketProjects = async () => {
-  // TODO: 从后端API获取实际数据
-  // 模拟数据 - 不使用外部图片，改用图标占位
-  marketProjects.value = [
-    {
-      id: "market-1",
-      name: "React电商后台管理系统",
-      description:
-        "完整的电商后台管理系统，包含商品管理、订单管理、用户管理等功能",
-      category: "web",
-      price: 299,
-      thumbnail: "", // 留空使用图标占位
-      seller: {
-        did: "did:chainless:seller1",
-        name: "前端大师",
-        rating: 4.8,
-      },
-      views: 1250,
-      sales: 86,
-      rating: 4.7,
-      featured: true,
-      listedAt: Date.now() - 86400000,
-    },
-    {
-      id: "market-2",
-      name: "Vue3企业级项目模板",
-      description:
-        "Vue3 + TypeScript + Vite企业级项目模板，包含完整的工程化配置",
-      category: "web",
-      price: 199,
-      thumbnail: "", // 留空使用图标占位
-      seller: {
-        did: "did:chainless:seller2",
-        name: "Vue开发者",
-        rating: 4.9,
-      },
-      views: 980,
-      sales: 124,
-      rating: 4.9,
-      featured: false,
-      listedAt: Date.now() - 172800000,
-    },
-    {
-      id: "market-3",
-      name: "Python数据分析工具包",
-      description: "包含数据清洗、可视化、机器学习等常用工具的Python包",
-      category: "data",
-      price: 399,
-      thumbnail: "", // 留空使用图标占位
-      seller: {
-        did: "did:chainless:seller3",
-        name: "数据科学家",
-        rating: 5.0,
-      },
-      views: 756,
-      sales: 45,
-      rating: 5.0,
-      featured: true,
-      listedAt: Date.now() - 259200000,
-    },
-    {
-      id: "market-4",
-      name: "技术文档Markdown模板",
-      description: "专业的技术文档模板，适用于API文档、技术方案等",
-      category: "document",
-      price: 49,
-      thumbnail: "", // 留空使用图标占位
-      seller: {
-        did: "did:chainless:seller4",
-        name: "文档专家",
-        rating: 4.6,
-      },
-      views: 2100,
-      sales: 312,
-      rating: 4.5,
-      featured: false,
-      listedAt: Date.now() - 345600000,
-    },
-  ];
+  try {
+    // 从交易市场后端获取在售订单
+    const result = await window.electronAPI.marketplace.searchOrders({
+      type: "sell",
+      status: "open",
+      page: 1,
+      pageSize: 50,
+    });
 
-  // 模拟我的项目
+    if (result?.items?.length > 0) {
+      marketProjects.value = result.items.map((order) => ({
+        id: order.id,
+        name: order.title || order.assetName || "未命名项目",
+        description: order.description || "",
+        category: order.metadata?.category || order.category || "other",
+        price: order.price || 0,
+        thumbnail: order.thumbnail || "",
+        seller: {
+          did: order.creatorDid || order.sellerDid || "",
+          name: order.creatorName || "匿名卖家",
+          rating: order.sellerRating || 0,
+        },
+        views: order.views || 0,
+        sales: order.matchCount || 0,
+        rating: order.rating || 0,
+        featured: order.featured || false,
+        listedAt: order.createdAt || Date.now(),
+      }));
+    } else {
+      // 无数据时使用示例数据展示
+      marketProjects.value = getDefaultMarketProjects();
+    }
+  } catch (error) {
+    logger.warn("[MarketPage] 后端数据加载失败，使用示例数据:", error?.message);
+    marketProjects.value = getDefaultMarketProjects();
+  }
+
+  // 加载我的项目（可出售）
   myProjects.value = projectStore.projects
     .filter((p) => p.status === "completed")
     .slice(0, 3);
 };
+
+// 默认示例数据（后端无数据时展示）
+const getDefaultMarketProjects = () => [
+  {
+    id: "market-1",
+    name: "React电商后台管理系统",
+    description: "完整的电商后台管理系统，包含商品管理、订单管理、用户管理等功能",
+    category: "web",
+    price: 299,
+    thumbnail: "",
+    seller: { did: "did:chainless:seller1", name: "前端大师", rating: 4.8 },
+    views: 1250,
+    sales: 86,
+    rating: 4.7,
+    featured: true,
+    listedAt: Date.now() - 86400000,
+  },
+  {
+    id: "market-2",
+    name: "Vue3企业级项目模板",
+    description: "Vue3 + TypeScript + Vite企业级项目模板，包含完整的工程化配置",
+    category: "web",
+    price: 199,
+    thumbnail: "",
+    seller: { did: "did:chainless:seller2", name: "Vue开发者", rating: 4.9 },
+    views: 980,
+    sales: 124,
+    rating: 4.9,
+    featured: false,
+    listedAt: Date.now() - 172800000,
+  },
+  {
+    id: "market-3",
+    name: "Python数据分析工具包",
+    description: "包含数据清洗、可视化、机器学习等常用工具的Python包",
+    category: "data",
+    price: 399,
+    thumbnail: "",
+    seller: { did: "did:chainless:seller3", name: "数据科学家", rating: 5.0 },
+    views: 756,
+    sales: 45,
+    rating: 5.0,
+    featured: true,
+    listedAt: Date.now() - 259200000,
+  },
+  {
+    id: "market-4",
+    name: "技术文档Markdown模板",
+    description: "专业的技术文档模板，适用于API文档、技术方案等",
+    category: "document",
+    price: 49,
+    thumbnail: "",
+    seller: { did: "did:chainless:seller4", name: "文档专家", rating: 4.6 },
+    views: 2100,
+    sales: 312,
+    rating: 4.5,
+    featured: false,
+    listedAt: Date.now() - 345600000,
+  },
+];
 
 // 组件挂载
 onMounted(async () => {

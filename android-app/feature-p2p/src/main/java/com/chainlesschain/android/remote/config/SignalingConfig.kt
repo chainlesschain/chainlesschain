@@ -1,5 +1,7 @@
 package com.chainlesschain.android.remote.config
 
+import android.util.Log
+import com.chainlesschain.android.feature.p2p.BuildConfig
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -12,24 +14,20 @@ import javax.inject.Singleton
 class SignalingConfig @Inject constructor() {
 
     companion object {
+        private const val TAG = "SignalingConfig"
+
         /**
          * 信令服务器 URL
          *
          * 优先级：
          * 1. 环境变量 SIGNALING_SERVER_URL
-         * 2. BuildConfig.SIGNALING_URL（如果配置）
-         * 3. 默认值（本地开发环境）
+         * 2. DEBUG_SIGNALING_URL (debug builds only)
+         * 3. DEFAULT_SIGNALING_URL (production)
          */
-        const val DEFAULT_SIGNALING_URL = "ws://192.168.3.59:9001" // 真实设备访问PC局域网IP
+        const val DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com:9001"
 
-        /**
-         * 生产环境信令服务器（配合 desktop-app-vue 的信令服务器）
-         *
-         * 使用 Cloudflare Tunnel 或 ngrok 可以暴露本地信令服务器：
-         * - Cloudflare: cloudflared tunnel --url http://localhost:9001
-         * - ngrok: ngrok http 9001
-         */
-        const val PRODUCTION_SIGNALING_URL = "wss://your-signaling-server.com"
+        /** Debug-only fallback for Android emulator (10.0.2.2 maps to host loopback) */
+        const val DEBUG_SIGNALING_URL = "ws://10.0.2.2:9001"
 
         /**
          * 连接超时（毫秒）
@@ -50,14 +48,30 @@ class SignalingConfig @Inject constructor() {
          * WebSocket 心跳间隔（秒）
          */
         const val PING_INTERVAL_SECONDS = 20L
+
+        private const val ENV_SIGNALING_URL = "SIGNALING_SERVER_URL"
     }
 
     /**
      * 获取当前环境的信令服务器 URL
      */
     fun getSignalingUrl(): String {
-        // TODO: 从 SharedPreferences 或配置文件读取用户自定义 URL
-        return System.getenv("SIGNALING_SERVER_URL") ?: DEFAULT_SIGNALING_URL
+        // Priority 1: Environment variable
+        val envValue = System.getenv(ENV_SIGNALING_URL)
+        if (!envValue.isNullOrBlank()) {
+            Log.i(TAG, "Using signaling server from environment: $envValue")
+            return envValue.trim()
+        }
+
+        // Priority 2: Debug builds fall back to emulator-friendly local URL
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Debug build: using local signaling server: $DEBUG_SIGNALING_URL")
+            return DEBUG_SIGNALING_URL
+        }
+
+        // Priority 3: Production default
+        Log.i(TAG, "Using production signaling server: $DEFAULT_SIGNALING_URL")
+        return DEFAULT_SIGNALING_URL
     }
 
     /**
