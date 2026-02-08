@@ -106,6 +106,7 @@ fun valid()
 ### 2.4 变量名
 
 **普通变量：**
+
 - 使用 camelCase
 - 描述性名称
 
@@ -122,6 +123,7 @@ private val uiState = MutableStateFlow(UiState())  // 应该有下划线
 ```
 
 **常量：**
+
 - 使用 UPPER_SNAKE_CASE
 - 定义在 companion object 或顶层
 
@@ -192,6 +194,7 @@ fun longFunctionName(parameter1: String, parameter2: Int, parameter3: Boolean): 
 ### 3.3 空格
 
 **操作符周围：**
+
 ```kotlin
 // ✅ 好
 val sum = a + b
@@ -203,6 +206,7 @@ val result=value*2
 ```
 
 **关键字之后：**
+
 ```kotlin
 // ✅ 好
 if (condition) {
@@ -241,6 +245,7 @@ class MyClass {
 ### 4.1 可空性
 
 **优先使用非空类型：**
+
 ```kotlin
 // ✅ 好
 val name: String = "John"
@@ -252,6 +257,7 @@ val count: Int? = 0
 ```
 
 **安全调用：**
+
 ```kotlin
 // ✅ 好
 val length = name?.length ?: 0
@@ -316,6 +322,7 @@ fun isEmail(email: String): Boolean {
 ### 4.5 作用域函数
 
 **let - 非空检查和转换：**
+
 ```kotlin
 name?.let { nonNullName ->
     println(nonNullName)
@@ -323,6 +330,7 @@ name?.let { nonNullName ->
 ```
 
 **apply - 对象配置：**
+
 ```kotlin
 val person = Person().apply {
     name = "John"
@@ -331,6 +339,7 @@ val person = Person().apply {
 ```
 
 **also - 副作用操作：**
+
 ```kotlin
 val numbers = mutableListOf(1, 2, 3)
     .also { println("Before: $it") }
@@ -339,6 +348,7 @@ val numbers = mutableListOf(1, 2, 3)
 ```
 
 **run - 执行代码块：**
+
 ```kotlin
 val result = run {
     val x = 10
@@ -348,6 +358,7 @@ val result = run {
 ```
 
 **with - 上下文操作：**
+
 ```kotlin
 with(person) {
     println(name)
@@ -462,11 +473,13 @@ class UserRepository(
 ### 6.2 文档注释规则
 
 **需要文档注释：**
+
 - ✅ 公共 API
 - ✅ 复杂逻辑
 - ✅ 公共类和接口
 
 **不需要文档注释：**
+
 - ❌ 私有函数（除非复杂）
 - ❌ 简单的 getter/setter
 - ❌ 一目了然的代码
@@ -488,6 +501,7 @@ class UserRepository(
 ### 7.2 常见问题
 
 **问题 1：行过长**
+
 ```kotlin
 // ❌ 不好
 fun veryLongFunctionNameWithManyParameters(parameter1: String, parameter2: Int, parameter3: Boolean, parameter4: Double): String {
@@ -502,6 +516,7 @@ fun veryLongFunctionNameWithManyParameters(
 ```
 
 **问题 2：过多的函数参数**
+
 ```kotlin
 // ❌ 不好（超过 6 个参数）
 fun createUser(name: String, age: Int, email: String, phone: String, address: String, city: String, country: String)
@@ -521,6 +536,7 @@ fun createUser(userInfo: UserInfo)
 ```
 
 **问题 3：复杂方法**
+
 ```kotlin
 // ❌ 不好（复杂度过高）
 fun processData(data: List<String>): List<Int> {

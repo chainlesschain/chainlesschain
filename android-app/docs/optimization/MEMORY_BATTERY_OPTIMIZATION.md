@@ -37,6 +37,7 @@ ImageLoader.Builder(context)
 #### 最佳实践
 
 **✅ 指定图片尺寸**
+
 ```kotlin
 AsyncImage(
     model = ImageRequest.Builder(LocalContext.current)
@@ -48,6 +49,7 @@ AsyncImage(
 ```
 
 **✅ 使用合适的缩放模式**
+
 ```kotlin
 AsyncImage(
     model = url,
@@ -57,6 +59,7 @@ AsyncImage(
 ```
 
 **✅ 列表中的图片优化**
+
 ```kotlin
 LazyColumn {
     items(items, key = { it.id }) { item ->
@@ -74,6 +77,7 @@ LazyColumn {
 ```
 
 **优化效果：**
+
 - 内存占用减少 30-40%
 - 图片加载速度提升 25%
 - 避免 OOM（内存溢出）
@@ -117,11 +121,11 @@ fun MyScreen() {
 
 #### 内存级别
 
-| 级别 | 使用率 | 行为 |
-|------|--------|------|
-| NORMAL | < 60% | 正常运行 |
-| WARNING | 60-80% | 减少缓存 |
-| CRITICAL | > 80% | 清理缓存，延迟加载 |
+| 级别     | 使用率 | 行为               |
+| -------- | ------ | ------------------ |
+| NORMAL   | < 60%  | 正常运行           |
+| WARNING  | 60-80% | 减少缓存           |
+| CRITICAL | > 80%  | 清理缓存，延迟加载 |
 
 ---
 
@@ -145,6 +149,7 @@ LeakCanary 在 Debug 环境自动运行，检测内存泄漏：
 #### 常见内存泄漏
 
 **❌ 单例持有 Activity 引用**
+
 ```kotlin
 object MyManager {
     var activity: Activity? = null  // ❌ 导致泄漏
@@ -152,6 +157,7 @@ object MyManager {
 ```
 
 **✅ 使用 Application Context**
+
 ```kotlin
 object MyManager {
     lateinit var context: Context  // ✅ 使用 Application Context
@@ -163,6 +169,7 @@ object MyManager {
 ```
 
 **❌ 静态 View 引用**
+
 ```kotlin
 companion object {
     var textView: TextView? = null  // ❌ 导致泄漏
@@ -170,6 +177,7 @@ companion object {
 ```
 
 **✅ 使用 WeakReference**
+
 ```kotlin
 companion object {
     var textViewRef: WeakReference<TextView>? = null  // ✅ 弱引用
@@ -177,6 +185,7 @@ companion object {
 ```
 
 **❌ 匿名内部类持有外部类引用**
+
 ```kotlin
 class MyActivity : Activity() {
     val handler = object : Handler() {  // ❌ 内部类持有 Activity
@@ -186,6 +195,7 @@ class MyActivity : Activity() {
 ```
 
 **✅ 使用静态内部类**
+
 ```kotlin
 class MyActivity : Activity() {
     val handler = MyHandler(this)
@@ -277,11 +287,11 @@ when {
 
 #### 节能配置
 
-| 电量 | 策略 |
-|------|------|
-| < 10% | 激进节能（禁用所有非必要功能） |
+| 电量   | 策略                           |
+| ------ | ------------------------------ |
+| < 10%  | 激进节能（禁用所有非必要功能） |
 | 10-20% | 中度节能（减少动画和后台任务） |
-| > 20% | 正常模式 |
+| > 20%  | 正常模式                       |
 
 ---
 
@@ -535,13 +545,13 @@ fun App() {
 
 ### 预期指标
 
-| 指标 | 优化前 | 优化后 | 提升 |
-|------|--------|--------|------|
-| 内存占用 | ~200MB | ~140MB | ⬇️ 30% |
-| 图片加载内存 | ~80MB | ~50MB | ⬇️ 38% |
-| 内存泄漏 | 3个 | 0个 | ✅ 100% |
-| 电池续航 | 6小时 | 7.5小时 | ⬆️ 25% |
-| 后台耗电 | 8%/小时 | 3%/小时 | ⬇️ 63% |
+| 指标         | 优化前  | 优化后  | 提升    |
+| ------------ | ------- | ------- | ------- |
+| 内存占用     | ~200MB  | ~140MB  | ⬇️ 30%  |
+| 图片加载内存 | ~80MB   | ~50MB   | ⬇️ 38%  |
+| 内存泄漏     | 3个     | 0个     | ✅ 100% |
+| 电池续航     | 6小时   | 7.5小时 | ⬆️ 25%  |
+| 后台耗电     | 8%/小时 | 3%/小时 | ⬇️ 63%  |
 
 ---
 

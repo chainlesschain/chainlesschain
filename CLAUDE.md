@@ -180,7 +180,7 @@ Dual-path search combining semantic and keyword matching:
 
 ### IPC Error Handler Middleware
 
-**Status**: ✅ Implemented v0.26.2 | **Docs**: [`IPC_ERROR_HANDLER_GUIDE.md`](IPC_ERROR_HANDLER_GUIDE.md)
+**Status**: ✅ Implemented v0.26.2 | **Docs**: [`docs/guides/IPC_ERROR_HANDLER_GUIDE.md`](docs/guides/IPC_ERROR_HANDLER_GUIDE.md)
 
 Enterprise-grade error handling for IPC channels:
 
@@ -502,6 +502,6 @@ Example: `feat(rag): add reranker support`
 - **Quick Start**: `QUICK_START.md`, `HOW_TO_RUN.md`
 - **README**: `README.md` (Chinese), `README_EN.md` (English)
 - **Memory System**: `docs/features/PERMANENT_MEMORY_INTEGRATION.md`
-- **Error Handler**: `IPC_ERROR_HANDLER_GUIDE.md`
-- **Phase 2 Summary**: `PHASE2_FINAL_SUMMARY.md`
+- **Error Handler**: `docs/guides/IPC_ERROR_HANDLER_GUIDE.md`
+- **Phase 2 Summary**: `docs/reports/phase2/PHASE2_FINAL_SUMMARY.md`
 - **Active Context**: `CLAUDE-activeContext.md`
