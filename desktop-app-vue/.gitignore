@@ -28,22 +28,39 @@ Thumbs.db
 
 # Playwright
 playwright-report/
+test-results/
 
 # Temporary files
 *.txt
-test.txt
 *.pptx
+*.json.bak
 
 # OCR training data (large files)
 *.traineddata
 
-# Temporary test directories
+# Temporary directories
+.temp/
 .temp-cache-test/
 */.temp-cache-test/
+.plugin-cache/
+test-auto-mkdir/
+test-data/
+test-data-output/
 
-# Temporary reports
+# Temporary fix/debug scripts (root level one-off scripts)
+fix-*.js
+diagnose-*.js
+verify-*.js
+check-*.bat
+test-*.js
+!tests/
+
+# Temporary summary/report docs
+*_FIX.md
+*_SUMMARY.md
+*_VERIFICATION.md
 *_REPORT.txt
 *_COMPLETION_REPORT.txt
 
-# Test generated directories
-test-auto-mkdir/
+# Ad-hoc test scripts directory
+test-scripts/

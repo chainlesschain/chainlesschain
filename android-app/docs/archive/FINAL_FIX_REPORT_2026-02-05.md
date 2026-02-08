@@ -10,19 +10,20 @@
 ### 修复成果
 
 ✅ **所有目标编译错误已修复**:
+
 1. ✅ DeviceIdManagerTest.kt - Robolectric依赖已添加
 2. ✅ KnowledgeViewModelTest.kt - deviceIdManager参数已添加
 3. ✅ ChainlessChainDatabase.kt - PostBookmarkEntity已注册
 
 ### 编译状态
 
-| 模块 | 修复前 | 修复后 | 状态 |
-|------|--------|--------|------|
-| core-common | ❌ 编译失败 | ✅ 编译成功 | 已修复 |
-| core-database | ❌ KSP错误 | ✅ 编译成功 | 已修复 |
-| feature-knowledge | ❌ 编译失败 | ✅ 编译成功 | 已修复 |
-| feature-p2p | ❌ 编译失败 | ❌ 主代码问题 | 非测试问题 |
-| feature-project | ❌ 编译失败 | ❌ 主代码问题 | 非测试问题 |
+| 模块              | 修复前      | 修复后        | 状态       |
+| ----------------- | ----------- | ------------- | ---------- |
+| core-common       | ❌ 编译失败 | ✅ 编译成功   | 已修复     |
+| core-database     | ❌ KSP错误  | ✅ 编译成功   | 已修复     |
+| feature-knowledge | ❌ 编译失败 | ✅ 编译成功   | 已修复     |
+| feature-p2p       | ❌ 编译失败 | ❌ 主代码问题 | 非测试问题 |
+| feature-project   | ❌ 编译失败 | ❌ 主代码问题 | 非测试问题 |
 
 ---
 
@@ -44,16 +45,16 @@
 
 ### 详细测试数据
 
-| 模块 | 总测试 | 失败 | 跳过 | 通过 | 成功率 | 趋势 |
-|------|--------|------|------|------|--------|------|
-| core-e2ee | 134 | 11 | 0 | 123 | 91.8% | ➡️ 持平 |
-| core-p2p | 115 | 4 | 1 | 110 | 95.7% | ➡️ 持平 |
-| core-database (D) | 102 | 3 | 0 | 99 | 97.1% | ➡️ 持平 |
-| core-database (R) | 209 | 3 | 0 | 206 | 98.6% | ➡️ 持平 |
-| feature-file-browser | 67 | 32 | 0 | 35 | 52.2% | ➡️ 持平 |
-| feature-knowledge (D) | 10 | 10 | 0 | 0 | 0% | ⬇️ 新失败 |
-| feature-ai (D) | 15 | 3 | 0 | 12 | 80.0% | ⬆️ 新增 |
-| **总计** | **652** | **66** | **1** | **585** | **89.7%** | ⬇️ -1.8% |
+| 模块                  | 总测试  | 失败   | 跳过  | 通过    | 成功率    | 趋势      |
+| --------------------- | ------- | ------ | ----- | ------- | --------- | --------- |
+| core-e2ee             | 134     | 11     | 0     | 123     | 91.8%     | ➡️ 持平   |
+| core-p2p              | 115     | 4      | 1     | 110     | 95.7%     | ➡️ 持平   |
+| core-database (D)     | 102     | 3      | 0     | 99      | 97.1%     | ➡️ 持平   |
+| core-database (R)     | 209     | 3      | 0     | 206     | 98.6%     | ➡️ 持平   |
+| feature-file-browser  | 67      | 32     | 0     | 35      | 52.2%     | ➡️ 持平   |
+| feature-knowledge (D) | 10      | 10     | 0     | 0       | 0%        | ⬇️ 新失败 |
+| feature-ai (D)        | 15      | 3      | 0     | 12      | 80.0%     | ⬆️ 新增   |
+| **总计**              | **652** | **66** | **1** | **585** | **89.7%** | ⬇️ -1.8%  |
 
 ---
 
@@ -64,6 +65,7 @@
 **问题**: Robolectric依赖缺失
 
 **修复内容**:
+
 ```kotlin
 // core-common/build.gradle.kts
 dependencies {
@@ -81,6 +83,7 @@ dependencies {
 **问题**: ViewModel构造函数缺少deviceIdManager参数
 
 **修复内容**:
+
 ```kotlin
 // 1. 添加import
 import com.chainlesschain.android.core.common.util.DeviceIdManager
@@ -103,6 +106,7 @@ fun setup() {
 **验证结果**: ✅ feature-knowledge 编译成功
 
 ⚠️ **但是**: 测试全部失败 (10/10 failed)
+
 - 原因：可能是mock配置不正确或测试逻辑需要更新
 - 需要：Phase 2 详细分析
 
@@ -113,12 +117,14 @@ fun setup() {
 **问题**: PostBookmarkEntity未注册到@Database
 
 **错误信息**:
+
 ```
 [SQLITE_ERROR] SQL error or missing database (no such table: post_bookmarks)
 Maybe you forgot to add PostBookmarkEntity to the entities section of @Database?
 ```
 
 **修复内容**:
+
 ```kotlin
 // 1. 添加import
 import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
@@ -140,6 +146,7 @@ import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
 **验证结果**: ✅ core-database 编译成功
 
 ⚠️ **注意**: 数据库版本未递增
+
 - 当前: version = 18
 - 建议: 递增到 version = 19 并提供Migration
 - 影响: 现有安装的应用升级时可能需要迁移
@@ -157,6 +164,7 @@ import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
 **原因**: 需要单独分析主代码问题
 
 **影响**:
+
 - feature-p2p 的测试无法运行
 - 不影响其他模块
 
@@ -171,6 +179,7 @@ import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
 **原因**: 需要单独分析主代码问题
 
 **影响**:
+
 - feature-project 的测试无法运行
 - 不影响其他模块
 
@@ -183,6 +192,7 @@ import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
 **统计**: 10 tests, 10 failed (0% pass rate)
 
 **可能原因**:
+
 1. deviceIdManager mock配置不正确
 2. 测试断言需要更新以适应新的构造函数
 3. ViewModel内部逻辑变更导致测试失败
@@ -226,20 +236,21 @@ import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
 
 ### 按模块评分
 
-| 模块 | 通过率 | 等级 | 评价 |
-|------|--------|------|------|
-| core-database | 98.6% | A+ | 优秀 |
-| core-p2p | 95.7% | A | 优秀 |
-| core-e2ee | 91.8% | A- | 良好 |
-| feature-ai | 80.0% | B | 可接受 |
-| feature-file-browser | 52.2% | D | 需改进 |
-| feature-knowledge | 0% | F | 严重失败 |
+| 模块                 | 通过率 | 等级 | 评价     |
+| -------------------- | ------ | ---- | -------- |
+| core-database        | 98.6%  | A+   | 优秀     |
+| core-p2p             | 95.7%  | A    | 优秀     |
+| core-e2ee            | 91.8%  | A-   | 良好     |
+| feature-ai           | 80.0%  | B    | 可接受   |
+| feature-file-browser | 52.2%  | D    | 需改进   |
+| feature-knowledge    | 0%     | F    | 严重失败 |
 
 ### 整体评估
 
 **当前状态**: B- (需要改进)
 
 **距离目标**:
+
 - 当前: 89.7%
 - 目标: 95%
 - 差距: 5.3% (约35个测试)
@@ -253,12 +264,14 @@ import com.chainlesschain.android.core.database.entity.social.PostBookmarkEntity
 **优先级**: P0 - 紧急
 
 **任务**:
+
 1. 查看feature-knowledge测试报告
 2. 分析10个失败测试的原因
 3. 修复mock配置或测试断言
 4. 目标：通过率 > 80%
 
 **命令**:
+
 ```bash
 # 查看测试报告
 open feature-knowledge/build/reports/tests/testDebugUnitTest/index.html
@@ -277,6 +290,7 @@ open feature-knowledge/build/reports/tests/testDebugUnitTest/index.html
 **目标**: 90%+ (60/67 passed)
 
 **策略**:
+
 1. 添加Robolectric到feature-file-browser
 2. 重构Android框架依赖测试
 3. 修复MediaStoreScannerTest (18失败)
@@ -289,6 +303,7 @@ open feature-knowledge/build/reports/tests/testDebugUnitTest/index.html
 **优先级**: P2 - 中
 
 **任务列表**:
+
 1. core-e2ee (11失败) - 配置BouncyCastle
 2. core-p2p (4失败) - 使用Turbine测试Flow
 3. core-database (6失败) - 更新断言
@@ -305,6 +320,7 @@ open feature-knowledge/build/reports/tests/testDebugUnitTest/index.html
 **影响**: feature-p2p, feature-project
 
 **策略**:
+
 - 这是主代码问题，不是测试问题
 - 不影响其他模块的测试
 - 可以延后处理
@@ -369,6 +385,7 @@ open feature-knowledge/build/reports/tests/testDebugUnitTest/index.html
 ### 测试报告 (HTML)
 
 可打开查看详细失败信息：
+
 - `feature-knowledge/build/reports/tests/testDebugUnitTest/index.html`
 - `feature-file-browser/build/reports/tests/testDebugUnitTest/index.html`
 - `core-e2ee/build/reports/tests/testDebugUnitTest/index.html`
@@ -382,16 +399,19 @@ open feature-knowledge/build/reports/tests/testDebugUnitTest/index.html
 ### 今天完成的工作
 
 ✅ **全面测试分析**
+
 - 运行完整测试套件
 - 生成5份详细报告
 - 识别所有编译错误
 
 ✅ **修复编译错误**
+
 - core-common: 添加Robolectric ✅
 - feature-knowledge: 添加deviceIdManager ✅
 - core-database: 注册PostBookmarkEntity ✅
 
 ✅ **Clean Rebuild**
+
 - 解决KSP缓存问题
 - 测试通过率从90.3%提升到91.5%
 - 发现109个新测试
@@ -399,10 +419,12 @@ open feature-knowledge/build/reports/tests/testDebugUnitTest/index.html
 ### 当前状态
 
 **编译状态**:
+
 - ✅ 测试代码编译成功（我们负责的3个模块）
 - ⚠️ 主代码编译失败（feature-p2p, feature-project）
 
 **测试状态**:
+
 - 总测试: 652 tests
 - 通过: 585 tests (89.7%)
 - 失败: 66 tests (10.3%)
@@ -412,10 +434,12 @@ open feature-knowledge/build/reports/tests/testDebugUnitTest/index.html
 ### 下一步
 
 **立即执行** (1-2小时):
+
 1. 修复feature-knowledge的10个测试失败
 2. 查看详细测试报告分析原因
 
 **本周执行** (2-3天):
+
 1. 提升feature-file-browser到90%+
 2. 修复core-e2ee, core-p2p, core-database剩余失败
 

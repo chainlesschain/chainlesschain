@@ -99,6 +99,7 @@ SELECT * FROM users;
 #### 关键代码检查清单：
 
 **1. AuthViewModel初始化（第162-170行）**
+
 ```kotlin
 // 应该调用autoLogin或要求PIN验证
 val user = authRepository.getCurrentUser()
@@ -111,6 +112,7 @@ _uiState.update {
 ```
 
 **2. ProjectScreen初始化（ProjectScreen.kt:53-57）**
+
 ```kotlin
 LaunchedEffect(authState.currentUser) {
     authState.currentUser?.let { user ->
@@ -120,6 +122,7 @@ LaunchedEffect(authState.currentUser) {
 ```
 
 **3. CreateProject检查（ProjectViewModel.kt:372-378）**
+
 ```kotlin
 if (userId == null) {
     Log.e(TAG, "Cannot create project: userId is null")  // ← 如果看到这个，说明userId没传递成功
@@ -139,6 +142,7 @@ if (userId == null) {
 **原因**: 数据库已存在但损坏
 
 **解决方案**:
+
 ```bash
 adb shell
 pm clear com.chainlesschain.android
@@ -151,11 +155,13 @@ pm clear com.chainlesschain.android
 **原因**: authState没有正确更新
 
 **检查日志**:
+
 ```bash
 adb logcat | grep "currentUser"
 ```
 
 **应该看到**:
+
 ```log
 D/AuthViewModel: currentUser updated: User(id=xxx, ...)
 ```
@@ -165,11 +171,13 @@ D/AuthViewModel: currentUser updated: User(id=xxx, ...)
 ### 问题3: authState.currentUser为null
 
 **可能原因**:
+
 1. PIN验证失败
 2. 数据库查询失败
 3. AuthRepository.getCurrentUser()返回null
 
 **调试方法**:
+
 ```bash
 # 完整的认证流程日志
 adb logcat -s AuthViewModel:D AuthRepository:D SQLiteDatabase:D
@@ -250,6 +258,7 @@ adb logcat -s ChainlessChain:* ProjectViewModel:* AuthViewModel:* > debug.log
 ### 修复内容确认（已应用）：
 
 **1. ProjectViewModel.kt (第372-378行)**
+
 ```kotlin
 ✅ 添加了userId null检查
 ✅ 添加了日志输出
@@ -257,6 +266,7 @@ adb logcat -s ChainlessChain:* ProjectViewModel:* AuthViewModel:* > debug.log
 ```
 
 **2. ProjectDetailScreenV2.kt (第50-54行)**
+
 ```kotlin
 ✅ 添加了AuthViewModel注入
 ✅ 添加了setCurrentUser调用
@@ -290,6 +300,7 @@ D/ProjectViewModel: 项目创建成功
 请提供以下信息：
 
 1. **完整的logcat日志**（从启动到创建项目失败）
+
    ```bash
    adb logcat -s ChainlessChain:* ProjectViewModel:* AuthViewModel:* > issue.log
    ```
@@ -313,6 +324,7 @@ D/ProjectViewModel: 项目创建成功
 ## 联系开发者
 
 如果按照以上步骤仍无法解决，请提供：
+
 - `issue.log`（完整日志）
 - 操作录屏或截图
 - 设备信息

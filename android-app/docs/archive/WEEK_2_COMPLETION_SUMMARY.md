@@ -8,12 +8,12 @@
 
 ## 📊 任务完成概览
 
-| Phase | 任务描述 | 预计工时 | 实际工时 | 状态 |
-|-------|---------|----------|----------|------|
-| **Phase 2.1** | 编辑权限检查 | 8h | ~2h | ✅ 完成 |
-| **Phase 2.2** | 编辑UI | 16h | ~4h | ✅ 完成 |
-| **Phase 2.3** | 编辑历史记录 | 8h | ~3h | ✅ 完成 |
-| **总计** | Week 2 全部任务 | 32h | ~9h | ✅ 100% |
+| Phase         | 任务描述        | 预计工时 | 实际工时 | 状态    |
+| ------------- | --------------- | -------- | -------- | ------- |
+| **Phase 2.1** | 编辑权限检查    | 8h       | ~2h      | ✅ 完成 |
+| **Phase 2.2** | 编辑UI          | 16h      | ~4h      | ✅ 完成 |
+| **Phase 2.3** | 编辑历史记录    | 8h       | ~3h      | ✅ 完成 |
+| **总计**      | Week 2 全部任务 | 32h      | ~9h      | ✅ 100% |
 
 **效率提升**: 实际用时仅为预计的 28%，提前 23 小时完成！
 
@@ -24,9 +24,11 @@
 ### 已完成任务
 
 #### Task 2.1.1: 创建 PostEditPolicy.kt (174行) ✅
+
 **文件位置**: `feature-p2p/src/main/java/.../util/PostEditPolicy.kt`
 
 **核心功能**:
+
 - `canEdit()` - 检查编辑权限
   - ✅ 仅作者可编辑
   - ✅ 24小时时间限制
@@ -42,6 +44,7 @@
 - `canEditMore()` - 编辑次数限制（可扩展）
 
 **Sealed Classes**:
+
 ```kotlin
 sealed class EditPermission {
     data class Allowed(remainingTime, remainingHours, remainingMinutes)
@@ -54,9 +57,11 @@ sealed class EditWarning {
 ```
 
 #### Task 2.1.2: 单元测试 PostEditPolicyTest.kt (338行) ✅
+
 **文件位置**: `feature-p2p/src/test/java/.../util/PostEditPolicyTest.kt`
 
 **测试覆盖** (25个测试用例):
+
 1. **canEdit() 测试** (7个):
    - ✅ 作者在24小时内可编辑
    - ✅ 非作者禁止编辑
@@ -96,9 +101,11 @@ sealed class EditWarning {
 ### 已完成任务
 
 #### Task 2.2.1: 创建 EditPostScreen.kt (375行) ✅
+
 **文件位置**: `feature-p2p/src/main/java/.../ui/social/EditPostScreen.kt`
 
 **UI组件**:
+
 1. **TopAppBar**:
    - ✅ 标题 "编辑动态"
    - ✅ 关闭按钮（取消编辑）
@@ -135,19 +142,23 @@ sealed class EditWarning {
    - ✅ 编辑历史保存说明
 
 **状态处理**:
+
 - ✅ 加载状态（CircularProgressIndicator居中）
 - ✅ 错误状态（⚠️图标 + 错误消息 + 重试按钮）
 - ✅ 编辑状态（正常编辑界面）
 
 **交互响应**:
+
 - ✅ 保存成功 → Snackbar提示 + 返回上一页
 - ✅ 保存失败 → Snackbar显示错误
 - ✅ 加载失败 → Snackbar提示 + 错误页面
 
 #### Task 2.2.2: 创建 EditPostViewModel.kt (217行) ✅
+
 **文件位置**: `feature-p2p/src/main/java/.../viewmodel/social/EditPostViewModel.kt`
 
 **核心功能**:
+
 1. **loadPost(postId)**:
    - ✅ 从 PostRepository 获取动态
    - ✅ 检查编辑权限（PostEditPolicy.canEdit）
@@ -178,6 +189,7 @@ sealed class EditWarning {
    - ✅ 失败 → 发送SaveError事件
 
 **UI状态 (EditPostUiState)**:
+
 ```kotlin
 data class EditPostUiState(
     val originalPost: PostEntity? = null,
@@ -194,6 +206,7 @@ data class EditPostUiState(
 ```
 
 **事件 (EditPostEvent)**:
+
 ```kotlin
 sealed class EditPostEvent {
     object SaveSuccess : EditPostEvent()
@@ -203,9 +216,11 @@ sealed class EditPostEvent {
 ```
 
 #### Task 2.2.3: 更新 NavGraph 添加 EditPost 路由 ✅
+
 **修改文件**: `app/src/main/java/.../navigation/NavGraph.kt`
 
 **添加内容**:
+
 ```kotlin
 composable(
     route = "${Screen.EditPost.route}/{postId}",
@@ -223,16 +238,20 @@ composable(
 ```
 
 **导航链**:
+
 ```
 MainContainer → SocialScreen → TimelineScreen → EditPostScreen
 ```
 
 #### Task 2.2.4: 修改 PostCard 添加"编辑"菜单项 ✅
+
 **修改文件**:
+
 1. `TimelineScreen.kt` - 动态操作菜单
 2. `PostCard.kt` - 添加"已编辑"标签
 
 **TimelineScreen 更改**:
+
 - ✅ 添加 `onNavigateToEditPost: (String) -> Unit` 参数
 - ✅ 编辑菜单项：
   - 仅当 `PostEditPolicy.canEdit()` 返回 Allowed 时显示
@@ -240,6 +259,7 @@ MainContainer → SocialScreen → TimelineScreen → EditPostScreen
   - 点击导航到 EditPostScreen
 
 **PostCard 更改**:
+
 - ✅ 添加"已编辑"标签：
   - 显示在时间戳旁边（用 · 分隔）
   - 条件: `PostEditPolicy.isEdited(post)`
@@ -252,9 +272,11 @@ MainContainer → SocialScreen → TimelineScreen → EditPostScreen
 ### 已完成任务
 
 #### Task 2.3.1: 创建 PostEditHistoryEntity ✅
+
 **文件位置**: `core-database/src/main/java/.../entity/social/PostEditHistoryEntity.kt`
 
 **实体结构**:
+
 ```kotlin
 @Entity(tableName = "post_edit_history")
 data class PostEditHistoryEntity(
@@ -272,14 +294,17 @@ data class PostEditHistoryEntity(
 ```
 
 **索引**:
+
 - `postId` - 查询某动态的所有编辑历史
 - `editedAt` - 按时间排序
 - `(postId, editedAt)` - 复合索引优化查询
 
 #### Task 2.3.2: 创建 PostEditHistoryDao ✅
+
 **文件位置**: `core-database/src/main/java/.../dao/social/PostEditHistoryDao.kt`
 
 **DAO方法**:
+
 1. **insert()** - 插入单条历史
 2. **insertAll()** - 批量插入
 3. **delete()** - 删除单条
@@ -292,11 +317,14 @@ data class PostEditHistoryEntity(
 10. **deleteAll()** - 清空所有历史
 
 #### Task 2.3.3: 数据库迁移 v15→v16 ✅
+
 **修改文件**:
+
 1. `ChainlessChainDatabase.kt` - 版本更新到 16
 2. `DatabaseMigrations.kt` - 添加迁移逻辑
 
 **MIGRATION_15_16**:
+
 ```kotlin
 val MIGRATION_15_16 = object : Migration(15, 16) {
     override fun migrate(db: SupportSQLiteDatabase) {
@@ -323,13 +351,17 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
 ```
 
 **附加迁移**:
+
 - ✅ MIGRATION_14_15 - 添加 PostReport 和 BlockedUser 表
 
 #### Task 2.3.4: 修改 PostRepository 添加编辑历史保存 ✅
+
 **修改文件**: `feature-p2p/src/main/java/.../repository/social/PostRepository.kt`
 
 **新增方法**:
+
 1. **updatePostWithHistory(updatedPost, editHistory)**:
+
    ```kotlin
    suspend fun updatePostWithHistory(
        updatedPost: PostEntity,
@@ -349,6 +381,7 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
    ```
 
 2. **getPostEditHistory(postId)**:
+
    ```kotlin
    fun getPostEditHistory(postId: String): Flow<Result<List<PostEditHistoryEntity>>> {
        return postEditHistoryDao.getHistoriesByPostId(postId).asResult()
@@ -363,16 +396,19 @@ val MIGRATION_15_16 = object : Migration(15, 16) {
    ```
 
 **PostViewModel集成**:
+
 ```kotlin
 fun getPostEditHistory(postId: String) = postRepository.getPostEditHistory(postId)
 ```
 
 #### Task 2.3.5: 在 PostCard 显示"已编辑"标签 ✅
+
 **已在 Phase 2.2.4 完成**
 
 **实现位置**: `PostCard.kt` 第118-140行
 
 **显示逻辑**:
+
 ```kotlin
 Row {
     Text(formatPostTime(post.createdAt))
@@ -385,12 +421,15 @@ Row {
 ```
 
 #### Task 2.3.6: 创建 EditHistoryDialog 显示编辑历史 ✅
+
 **新建文件**:
+
 1. `EditHistoryDialog.kt` (290行)
 2. `HistoryVersionDialog.kt` (240行)
 3. `EditHistoryDialogTest.kt` (160行)
 
 **EditHistoryDialog 功能**:
+
 - ✅ 显示编辑历史列表（按时间倒序）
 - ✅ 空状态提示（"暂无编辑历史"）
 - ✅ 每条历史显示：
@@ -404,6 +443,7 @@ Row {
 - ✅ Material 3 设计规范
 
 **HistoryVersionDialog 功能**:
+
 - ✅ 显示历史版本的完整内容
 - ✅ 编辑原因卡片（primaryContainer）
 - ✅ 文本内容完整展示
@@ -414,6 +454,7 @@ Row {
 - ✅ 垂直滚动支持
 
 **TimelineScreen 集成**:
+
 - ✅ 添加"查看编辑历史"菜单项
 - ✅ 仅当动态已编辑时显示
 - ✅ 点击加载编辑历史（Flow收集）
@@ -421,6 +462,7 @@ Row {
 - ✅ 点击版本显示 HistoryVersionDialog
 
 **EditHistoryDialogTest**:
+
 - ✅ 测试空状态显示
 - ✅ 测试历史列表显示
 - ✅ 测试点击查看版本回调
@@ -432,6 +474,7 @@ Row {
 ## 📈 技术亮点
 
 ### 1. 原子操作保证数据一致性
+
 ```kotlin
 // 一个事务内完成历史保存和动态更新
 postEditHistoryDao.insert(editHistory)
@@ -439,21 +482,25 @@ postDao.update(updatedPost)
 ```
 
 ### 2. 智能权限检查
+
 - 实时计算剩余编辑时间
 - 友好的时间格式化（"23小时45分钟"）
 - 互动警告（点赞/评论数）
 
 ### 3. 响应式UI更新
+
 - Flow-based数据流
 - LaunchedEffect监听事件
 - Snackbar友好提示
 
 ### 4. 完整的历史追溯
+
 - 保存所有历史版本
 - 支持查看完整内容
 - 包含图片、标签、链接等元数据
 
 ### 5. Material 3 设计规范
+
 - ModalBottomSheet菜单
 - Surface层级设计
 - primaryContainer/errorContainer配色
@@ -462,16 +509,16 @@ postDao.update(updatedPost)
 
 ## 📊 代码统计
 
-| 类型 | 数量 | 总行数 |
-|------|------|--------|
-| **实体类** | 1 | 56 |
-| **DAO接口** | 1 | 99 |
-| **工具类** | 1 | 174 |
-| **ViewModel** | 1 | 217 |
-| **UI组件** | 3 | 905 (375+290+240) |
-| **单元测试** | 2 | 498 (338+160) |
-| **数据库迁移** | 2 | 120 |
-| **总计** | **11个文件** | **~2069行** |
+| 类型           | 数量         | 总行数            |
+| -------------- | ------------ | ----------------- |
+| **实体类**     | 1            | 56                |
+| **DAO接口**    | 1            | 99                |
+| **工具类**     | 1            | 174               |
+| **ViewModel**  | 1            | 217               |
+| **UI组件**     | 3            | 905 (375+290+240) |
+| **单元测试**   | 2            | 498 (338+160)     |
+| **数据库迁移** | 2            | 120               |
+| **总计**       | **11个文件** | **~2069行**       |
 
 ---
 
@@ -479,16 +526,17 @@ postDao.update(updatedPost)
 
 ### 测试覆盖
 
-| 模块 | 单元测试 | UI测试 | 集成测试 |
-|------|----------|--------|----------|
-| **PostEditPolicy** | ✅ 25用例 | N/A | N/A |
+| 模块                  | 单元测试  | UI测试    | 集成测试  |
+| --------------------- | --------- | --------- | --------- |
+| **PostEditPolicy**    | ✅ 25用例 | N/A       | N/A       |
 | **EditPostViewModel** | ⏸️ 待补充 | ⏸️ 待补充 | ⏸️ 待补充 |
-| **EditHistoryDialog** | N/A | ✅ 5用例 | ⏸️ 待补充 |
-| **数据库迁移** | ⏸️ 待补充 | N/A | ⏸️ 待补充 |
+| **EditHistoryDialog** | N/A       | ✅ 5用例  | ⏸️ 待补充 |
+| **数据库迁移**        | ⏸️ 待补充 | N/A       | ⏸️ 待补充 |
 
 **总计**: 30个测试用例已编写 ✅
 
 ### 代码质量
+
 - ✅ 遵循Kotlin编码规范
 - ✅ 使用sealed class类型安全
 - ✅ 全面的KDoc文档注释
@@ -502,22 +550,26 @@ postDao.update(updatedPost)
 ## 🚀 后续优化建议
 
 ### 1. 性能优化
+
 - [ ] EditHistoryDialog分页加载（当历史记录>20条时）
 - [ ] 图片懒加载优化
 - [ ] 历史记录缓存策略
 
 ### 2. 功能增强
+
 - [ ] 对比视图（Diff）显示修改前后差异
 - [ ] 恢复到历史版本功能
 - [ ] 编辑原因自定义输入
 - [ ] 编辑次数限制（如最多编辑5次）
 
 ### 3. 测试补充
+
 - [ ] EditPostViewModel单元测试
 - [ ] 数据库迁移测试
 - [ ] E2E测试完整编辑流程
 
 ### 4. UI优化
+
 - [ ] 倒计时实时更新（Ticker）
 - [ ] 编辑动画效果
 - [ ] 骨架屏加载状态
@@ -544,6 +596,7 @@ Week 2的所有任务已**100%完成**，共计：
 - ✅ **完整的编辑功能** (权限检查+UI+历史记录)
 
 **核心成果**:
+
 1. 用户可在24小时内编辑动态
 2. 所有编辑历史完整记录
 3. UI显示"已编辑"标签

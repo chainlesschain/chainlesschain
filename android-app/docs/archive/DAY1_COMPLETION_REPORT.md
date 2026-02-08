@@ -47,6 +47,7 @@ implementation("io.noties.markwon:image-coil:4.6.2")
 **代码行数**: 159行
 
 **核心功能**:
+
 - ✅ `generateQRCode()` - 基础二维码生成（支持自定义颜色、尺寸、Logo）
 - ✅ `generateDIDQRCode()` - DID二维码URL生成（含签名验证）
 - ✅ `generatePostShareQRCode()` - 动态分享二维码
@@ -54,6 +55,7 @@ implementation("io.noties.markwon:image-coil:4.6.2")
 - ✅ `isValidChainlessChainQRCode()` - URL格式验证
 
 **技术亮点**:
+
 - 使用ZXing库，支持高纠错级别（ErrorCorrectionLevel.H，30%容错）
 - 支持添加中心Logo（自动缩放为二维码的1/5）
 - URL编码处理特殊字符
@@ -70,6 +72,7 @@ implementation("io.noties.markwon:image-coil:4.6.2")
 **代码行数**: 245行
 
 **测试覆盖**:
+
 - ✅ 基本二维码生成（尺寸验证）
 - ✅ 自定义颜色验证
 - ✅ Logo添加验证
@@ -96,6 +99,7 @@ implementation("io.noties.markwon:image-coil:4.6.2")
 **代码行数**: 220行
 
 **UI组件**:
+
 - ✅ TopAppBar（返回按钮 + 保存 + 分享）
 - ✅ 个人信息区（头像 + 昵称 + DID）
 - ✅ 二维码卡片（Material 3 Card）
@@ -105,6 +109,7 @@ implementation("io.noties.markwon:image-coil:4.6.2")
 - ✅ Toast事件处理（保存成功/失败/分享）
 
 **技术亮点**:
+
 - Jetpack Compose + Material 3
 - StateFlow响应式UI
 - SharedFlow事件处理
@@ -120,19 +125,23 @@ implementation("io.noties.markwon:image-coil:4.6.2")
 **代码行数**: 163行
 
 **核心功能**:
+
 - ✅ `generateQRCode()` - 生成二维码（签名 + 时间戳）
 - ✅ `saveToGallery()` - 保存到相册（Android 10+ MediaStore API）
 - ✅ `shareQRCode()` - 分享二维码（占位，待实现）
 
 **依赖注入**:
+
 - Context (ApplicationContext)
 - DIDManager（DID身份管理）
 
 **状态管理**:
+
 - MyQRCodeUiState（did, nickname, avatarUrl, qrCodeBitmap, isLoading, errorMessage）
 - MyQRCodeEvent（GenerateError, SaveSuccess, SaveError, ShareTriggered）
 
 **技术亮点**:
+
 - 使用DIDManager.sign()进行时间戳签名
 - MediaStore API保存图片（适配Android 10+）
 - IS_PENDING标记确保原子性写入
@@ -147,16 +156,19 @@ implementation("io.noties.markwon:image-coil:4.6.2")
 **修改内容**:
 
 1. **添加Screen对象**:
+
 ```kotlin
 data object MyQRCode : Screen("my_qrcode")
 ```
 
 2. **添加import**:
+
 ```kotlin
 import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
 ```
 
 3. **添加路由定义**:
+
 ```kotlin
 composable(route = Screen.MyQRCode.route) {
     MyQRCodeScreen(
@@ -170,13 +182,13 @@ composable(route = Screen.MyQRCode.route) {
 
 ## 📊 统计数据
 
-| 指标 | 数值 |
-|------|------|
-| **新增文件** | 4 |
-| **新增代码** | 787行 |
-| **测试代码** | 245行 |
-| **新增依赖** | 12个 |
-| **测试用例** | 18个 |
+| 指标         | 数值           |
+| ------------ | -------------- |
+| **新增文件** | 4              |
+| **新增代码** | 787行          |
+| **测试代码** | 245行          |
+| **新增依赖** | 12个           |
+| **测试用例** | 18个           |
 | **编译状态** | ✅ core-ui成功 |
 
 ---
@@ -211,6 +223,7 @@ composable(route = Screen.MyQRCode.route) {
 ### Day 2 任务预告
 
 **上午**: 二维码扫描功能
+
 - 添加相机权限到AndroidManifest.xml
 - 创建QRCodeScannerScreen.kt
 - 创建QRCodeAnalyzer（实时扫描）
@@ -218,6 +231,7 @@ composable(route = Screen.MyQRCode.route) {
 - 签名验证逻辑
 
 **下午**: 集成到AddFriendScreen
+
 - 添加扫描按钮
 - 实现扫描成功后的好友请求流程
 
@@ -230,6 +244,7 @@ composable(route = Screen.MyQRCode.route) {
 **位置**: `feature-p2p/src/main/java/com/chainlesschain/android/feature/p2p/viewmodel/social/PostViewModel.kt`
 
 **错误**:
+
 - Line 235: Unresolved reference: LIKE
 - Line 270: Type mismatch (NotificationType)
 - Line 334: Unresolved reference: COMMENT
@@ -251,13 +266,16 @@ error = null, // TODO: 添加默认头像
 ### 3. TODO项
 
 **MyQRCodeViewModel.kt**:
+
 - Line 61: 从用户资料获取昵称
 - Line 62: 从用户资料获取头像URL
 
 **MyQRCodeScreen.kt**:
+
 - Line 31: 实现Toast显示机制
 
 **MyQRCodeViewModel.kt**:
+
 - Line 114: 实现完整的分享功能
 
 ---
