@@ -284,10 +284,9 @@ ${
 ## 示例
 
 \`\`\`javascript
-const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
+const ${module.name.toLowerCase()} = new ${module.name}(${methods.find((m) => m.name === "constructor")?.params.join(", ") || ""});
 
-// 示例代码
-// TODO: 添加实际使用示例
+${this.generateUsageExamples(module.name, publicMethods)}
 \`\`\`
 
 ---
@@ -462,6 +461,48 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
     doc += "---\n\n";
 
     return doc;
+  }
+
+  /**
+   * 生成使用示例代码
+   */
+  generateUsageExamples(className, publicMethods) {
+    const instanceName = className.toLowerCase();
+    const lines = [];
+
+    // 取前3个有意义的公开方法生成示例
+    const exampleMethods = publicMethods
+      .filter((m) => m.description && m.name !== "constructor")
+      .slice(0, 3);
+
+    if (exampleMethods.length === 0) {
+      lines.push(`// 使用 ${instanceName} 实例调用方法`);
+      return lines.join("\n");
+    }
+
+    for (const method of exampleMethods) {
+      lines.push(`// ${method.description}`);
+      const awaitPrefix = method.isAsync ? "await " : "";
+      const args = method.params
+        .map((p) => {
+          const doc = method.paramDocs.find((d) => d.name === p);
+          if (doc) {
+            if (doc.type === "string") return `'example-${p}'`;
+            if (doc.type === "number") return "1";
+            if (doc.type === "boolean") return "true";
+            if (doc.type === "object" || doc.type.startsWith("{")) return "{}";
+            if (doc.type === "Array" || doc.type.includes("[]")) return "[]";
+          }
+          return `/* ${p} */`;
+        })
+        .join(", ");
+      lines.push(
+        `const result = ${awaitPrefix}${instanceName}.${method.name}(${args});`,
+      );
+      lines.push("");
+    }
+
+    return lines.join("\n");
   }
 
   /**
