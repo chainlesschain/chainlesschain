@@ -233,12 +233,24 @@
       class="charts-section"
       style="margin-top: 24px"
     >
-      <a-row :gutter="16">
+      <a-row :gutter="[16, 16]">
         <a-col :xs="24" :md="12">
           <div ref="successRateChartRef" style="width: 100%; height: 300px" />
         </a-col>
         <a-col :xs="24" :md="12">
           <div ref="durationChartRef" style="width: 100%; height: 300px" />
+        </a-col>
+        <a-col :xs="24" :md="12">
+          <div
+            ref="completionTrendChartRef"
+            style="width: 100%; height: 300px"
+          />
+        </a-col>
+        <a-col :xs="24" :md="12">
+          <div
+            ref="teamPerformanceChartRef"
+            style="width: 100%; height: 300px"
+          />
         </a-col>
       </a-row>
     </a-card>
@@ -281,7 +293,7 @@ import {
   EyeOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
-import * as echarts from "echarts";
+import { init, graphic } from "../utils/echartsConfig";
 import { useCoworkStore } from "../stores/cowork";
 import TaskDetailPanel from "../components/cowork/TaskDetailPanel.vue";
 import { formatDistanceToNow } from "date-fns";
@@ -302,8 +314,12 @@ const teamFilter = ref(null);
 const showCharts = ref(true);
 const successRateChartRef = ref(null);
 const durationChartRef = ref(null);
+const completionTrendChartRef = ref(null);
+const teamPerformanceChartRef = ref(null);
 let successRateChart = null;
 let durationChart = null;
+let completionTrendChart = null;
+let teamPerformanceChart = null;
 
 // 表格分页
 const tablePagination = ref({
@@ -392,9 +408,17 @@ const successRate = computed(() => {
 // 生命周期钩子
 // ==========================================
 
+let resizeTimer = null;
 const handleResize = () => {
-  successRateChart?.resize();
-  durationChart?.resize();
+  if (resizeTimer) {
+    clearTimeout(resizeTimer);
+  }
+  resizeTimer = setTimeout(() => {
+    successRateChart?.resize();
+    durationChart?.resize();
+    completionTrendChart?.resize();
+    teamPerformanceChart?.resize();
+  }, 200);
 };
 
 onMounted(async () => {
@@ -417,6 +441,9 @@ onUnmounted(() => {
   taskLogger.info("TaskMonitor 卸载");
 
   window.removeEventListener("resize", handleResize);
+  if (resizeTimer) {
+    clearTimeout(resizeTimer);
+  }
 
   // 清理事件监听
   store.cleanupEventListeners();
@@ -680,84 +707,255 @@ function formatDate(timestamp) {
 // ==========================================
 
 function initCharts() {
-  if (!successRateChartRef.value || !durationChartRef.value) return;
+  if (!successRateChartRef.value || !durationChartRef.value) {
+    return;
+  }
 
   initSuccessRateChart();
   initDurationChart();
+  if (completionTrendChartRef.value) {
+    initCompletionTrendChart();
+  }
+  if (teamPerformanceChartRef.value) {
+    initTeamPerformanceChart();
+  }
 }
 
 function initSuccessRateChart() {
-  successRateChart = echarts.init(successRateChartRef.value);
+  successRateChart = init(successRateChartRef.value);
 
   const statusCounts = {
     completed: completedTasks.value.length,
     failed: globalStats.value.failedTasks || 0,
     running: runningTasks.value.length,
-    pending: (globalStats.value.totalTasks || 0) - completedTasks.value.length - (globalStats.value.failedTasks || 0) - runningTasks.value.length,
+    pending:
+      (globalStats.value.totalTasks || 0) -
+      completedTasks.value.length -
+      (globalStats.value.failedTasks || 0) -
+      runningTasks.value.length,
   };
 
   successRateChart.setOption({
     title: { text: "任务状态分布", left: "center" },
     tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
     legend: { bottom: 0 },
-    series: [{
-      type: "pie",
-      radius: ["40%", "70%"],
-      avoidLabelOverlap: false,
-      itemStyle: { borderRadius: 6, borderColor: "#fff", borderWidth: 2 },
-      label: { show: false },
-      emphasis: { label: { show: true, fontSize: 14, fontWeight: "bold" } },
-      data: [
-        { value: statusCounts.completed, name: "已完成", itemStyle: { color: "#52c41a" } },
-        { value: statusCounts.failed, name: "失败", itemStyle: { color: "#ff4d4f" } },
-        { value: statusCounts.running, name: "运行中", itemStyle: { color: "#1890ff" } },
-        { value: statusCounts.pending, name: "待处理", itemStyle: { color: "#d9d9d9" } },
-      ].filter((d) => d.value > 0),
-    }],
+    series: [
+      {
+        type: "pie",
+        radius: ["40%", "70%"],
+        avoidLabelOverlap: false,
+        itemStyle: { borderRadius: 6, borderColor: "#fff", borderWidth: 2 },
+        label: { show: false },
+        emphasis: { label: { show: true, fontSize: 14, fontWeight: "bold" } },
+        data: [
+          {
+            value: statusCounts.completed,
+            name: "已完成",
+            itemStyle: { color: "#52c41a" },
+          },
+          {
+            value: statusCounts.failed,
+            name: "失败",
+            itemStyle: { color: "#ff4d4f" },
+          },
+          {
+            value: statusCounts.running,
+            name: "运行中",
+            itemStyle: { color: "#1890ff" },
+          },
+          {
+            value: statusCounts.pending,
+            name: "待处理",
+            itemStyle: { color: "#d9d9d9" },
+          },
+        ].filter((d) => d.value > 0),
+      },
+    ],
   });
 }
 
 function initDurationChart() {
-  durationChart = echarts.init(durationChartRef.value);
+  durationChart = init(durationChartRef.value);
 
   // 按耗时分段统计
-  const buckets = { "<10s": 0, "10-30s": 0, "30s-1m": 0, "1-5m": 0, "5-30m": 0, ">30m": 0 };
+  const buckets = {
+    "<10s": 0,
+    "10-30s": 0,
+    "30s-1m": 0,
+    "1-5m": 0,
+    "5-30m": 0,
+    ">30m": 0,
+  };
   for (const task of tasks.value) {
     const ms = task.duration || 0;
-    if (ms <= 0) continue;
+    if (ms <= 0) {
+      continue;
+    }
     const sec = ms / 1000;
-    if (sec < 10) buckets["<10s"]++;
-    else if (sec < 30) buckets["10-30s"]++;
-    else if (sec < 60) buckets["30s-1m"]++;
-    else if (sec < 300) buckets["1-5m"]++;
-    else if (sec < 1800) buckets["5-30m"]++;
-    else buckets[">30m"]++;
+    if (sec < 10) {
+      buckets["<10s"]++;
+    } else if (sec < 30) {
+      buckets["10-30s"]++;
+    } else if (sec < 60) {
+      buckets["30s-1m"]++;
+    } else if (sec < 300) {
+      buckets["1-5m"]++;
+    } else if (sec < 1800) {
+      buckets["5-30m"]++;
+    } else {
+      buckets[">30m"]++;
+    }
   }
 
   durationChart.setOption({
     title: { text: "任务耗时分布", left: "center" },
     tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-    xAxis: { type: "category", data: Object.keys(buckets), axisLabel: { fontSize: 12 } },
+    xAxis: {
+      type: "category",
+      data: Object.keys(buckets),
+      axisLabel: { fontSize: 12 },
+    },
     yAxis: { type: "value", name: "任务数", minInterval: 1 },
-    series: [{
-      type: "bar",
-      data: Object.values(buckets),
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: "#1890ff" },
-          { offset: 1, color: "#69c0ff" },
-        ]),
-        borderRadius: [4, 4, 0, 0],
+    series: [
+      {
+        type: "bar",
+        data: Object.values(buckets),
+        itemStyle: {
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: "#1890ff" },
+            { offset: 1, color: "#69c0ff" },
+          ]),
+          borderRadius: [4, 4, 0, 0],
+        },
+        barWidth: "50%",
       },
-      barWidth: "50%",
-    }],
+    ],
     grid: { left: 60, right: 20, bottom: 40, top: 50 },
   });
 }
 
+function initCompletionTrendChart() {
+  completionTrendChart = init(completionTrendChartRef.value);
+
+  // Group completed tasks by date (last 14 days)
+  const now = new Date();
+  const days = 14;
+  const dateMap = {};
+  const dateLabels = [];
+
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    dateMap[key] = 0;
+    dateLabels.push(key);
+  }
+
+  for (const task of tasks.value) {
+    if (task.status === "completed" && task.completedAt) {
+      const d = new Date(task.completedAt);
+      const key = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (key in dateMap) {
+        dateMap[key]++;
+      }
+    }
+  }
+
+  completionTrendChart.setOption({
+    title: { text: "完成趋势（近14天）", left: "center" },
+    tooltip: { trigger: "axis" },
+    xAxis: { type: "category", data: dateLabels, boundaryGap: false },
+    yAxis: { type: "value", name: "完成数", minInterval: 1 },
+    series: [
+      {
+        type: "line",
+        data: dateLabels.map((k) => dateMap[k]),
+        smooth: true,
+        symbol: "circle",
+        symbolSize: 6,
+        lineStyle: { color: "#52c41a", width: 2 },
+        itemStyle: { color: "#52c41a" },
+        areaStyle: {
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: "rgba(82, 196, 26, 0.3)" },
+            { offset: 1, color: "rgba(82, 196, 26, 0.05)" },
+          ]),
+        },
+      },
+    ],
+    grid: { left: 60, right: 20, bottom: 40, top: 50 },
+  });
+}
+
+function initTeamPerformanceChart() {
+  teamPerformanceChart = init(teamPerformanceChartRef.value);
+
+  // Cross-reference teams and tasks
+  const teamNames = [];
+  const completedCounts = [];
+  const failedCounts = [];
+  const runningCounts = [];
+
+  for (const team of teams.value) {
+    teamNames.push(team.name);
+    const teamTasks = tasks.value.filter((t) => t.teamId === team.id);
+    completedCounts.push(
+      teamTasks.filter((t) => t.status === "completed").length,
+    );
+    failedCounts.push(teamTasks.filter((t) => t.status === "failed").length);
+    runningCounts.push(teamTasks.filter((t) => t.status === "running").length);
+  }
+
+  teamPerformanceChart.setOption({
+    title: { text: "团队任务统计", left: "center" },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    legend: { bottom: 0, data: ["已完成", "失败", "运行中"] },
+    xAxis: {
+      type: "category",
+      data: teamNames,
+      axisLabel: { rotate: teamNames.length > 5 ? 30 : 0, fontSize: 12 },
+    },
+    yAxis: { type: "value", name: "任务数", minInterval: 1 },
+    series: [
+      {
+        name: "已完成",
+        type: "bar",
+        stack: "total",
+        data: completedCounts,
+        itemStyle: { color: "#52c41a" },
+      },
+      {
+        name: "失败",
+        type: "bar",
+        stack: "total",
+        data: failedCounts,
+        itemStyle: { color: "#ff4d4f" },
+      },
+      {
+        name: "运行中",
+        type: "bar",
+        stack: "total",
+        data: runningCounts,
+        itemStyle: { color: "#faad14" },
+      },
+    ],
+    grid: { left: 60, right: 20, bottom: 60, top: 50 },
+  });
+}
+
 function updateCharts() {
-  if (successRateChart) initSuccessRateChart();
-  if (durationChart) initDurationChart();
+  if (successRateChart) {
+    initSuccessRateChart();
+  }
+  if (durationChart) {
+    initDurationChart();
+  }
+  if (completionTrendChart) {
+    initCompletionTrendChart();
+  }
+  if (teamPerformanceChart) {
+    initTeamPerformanceChart();
+  }
 }
 
 function destroyCharts() {
@@ -769,10 +967,18 @@ function destroyCharts() {
     durationChart.dispose();
     durationChart = null;
   }
+  if (completionTrendChart) {
+    completionTrendChart.dispose();
+    completionTrendChart = null;
+  }
+  if (teamPerformanceChart) {
+    teamPerformanceChart.dispose();
+    teamPerformanceChart = null;
+  }
 }
 
 // 数据变化时更新图表
-watch([tasks, globalStats], () => {
+watch([tasks, globalStats, teams], () => {
   if (showCharts.value) {
     nextTick(() => updateCharts());
   }
