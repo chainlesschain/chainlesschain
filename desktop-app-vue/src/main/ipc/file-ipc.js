@@ -1124,21 +1124,24 @@ class FileIPC {
         throw new Error(`文件不存在: ${filePath}`);
       }
 
-      const xlsx = require("xlsx");
-      const workbook = xlsx.readFile(filePath);
+      const ExcelJS = require("exceljs");
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.readFile(filePath);
       logger.info(
         "[FileIPC] Excel文件已读取，工作表数量:",
-        workbook.SheetNames.length,
+        workbook.worksheets.length,
       );
 
       const sheets = [];
+      const sheetNames = [];
 
-      for (const sheetName of workbook.SheetNames) {
-        const worksheet = workbook.Sheets[sheetName];
-        const data = xlsx.utils.sheet_to_json(worksheet, {
-          header: 1,
-          defval: "",
-          blankrows: true,
+      for (const worksheet of workbook.worksheets) {
+        const sheetName = worksheet.name;
+        sheetNames.push(sheetName);
+        const data = [];
+        worksheet.eachRow({ includeEmpty: true }, (row) => {
+          const rowValues = row.values.slice(1); // row.values[0] is undefined (1-indexed)
+          data.push(rowValues.map((v) => (v !== undefined && v !== null ? v : "")));
         });
 
         sheets.push({
@@ -1156,7 +1159,7 @@ class FileIPC {
 
       return {
         sheets,
-        sheetNames: workbook.SheetNames,
+        sheetNames,
       };
     } catch (error) {
       logger.error("[FileIPC] Excel预览失败:", error);
