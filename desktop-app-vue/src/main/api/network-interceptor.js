@@ -3,7 +3,7 @@
  * 拦截和管理应用的网络请求
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { session } = require("electron");
 
 class NetworkInterceptor {

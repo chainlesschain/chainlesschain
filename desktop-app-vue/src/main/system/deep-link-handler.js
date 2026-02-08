@@ -8,7 +8,7 @@
  * - 处理其他深链接场景
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { URL } = require("url");
 
 class DeepLinkHandler {

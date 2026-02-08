@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * MCP Function Executor
@@ -53,7 +53,7 @@ class MCPFunctionExecutor {
       } catch (error) {
         logger.warn(
           `[MCPFunctionExecutor] 转换工具失败 ${toolInfo.toolId}:`,
-          error.message
+          error.message,
         );
       }
     }
@@ -85,7 +85,7 @@ class MCPFunctionExecutor {
     }
 
     logger.info(
-      `[MCPFunctionExecutor] 执行工具: ${info.serverName}/${info.toolName}`
+      `[MCPFunctionExecutor] 执行工具: ${info.serverName}/${info.toolName}`,
     );
     logger.info(`[MCPFunctionExecutor] 参数:`, JSON.stringify(args, null, 2));
 
@@ -93,7 +93,7 @@ class MCPFunctionExecutor {
       const result = await this.mcpClientManager.callTool(
         info.serverName,
         info.toolName,
-        args
+        args,
       );
 
       logger.info(`[MCPFunctionExecutor] 工具执行成功`);
@@ -138,7 +138,9 @@ class MCPFunctionExecutor {
     // 格式: mcp_${serverName}_${toolName}
     // 注意: toolName 可能包含下划线，所以只分割前两个下划线
     const match = name.match(/^mcp_([^_]+)_(.+)$/);
-    if (!match) {return null;}
+    if (!match) {
+      return null;
+    }
     return {
       serverName: match[1],
       toolName: match[2],
@@ -155,20 +157,19 @@ class MCPFunctionExecutor {
     try {
       // 从 ToolManager 获取完整工具定义
       const tool = await this.mcpToolAdapter.toolManager.getTool(
-        mcpToolInfo.toolId
+        mcpToolInfo.toolId,
       );
 
       if (!tool) {
-        logger.warn(
-          `[MCPFunctionExecutor] 工具未找到: ${mcpToolInfo.toolId}`
-        );
+        logger.warn(`[MCPFunctionExecutor] 工具未找到: ${mcpToolInfo.toolId}`);
         return null;
       }
 
       // 构建 OpenAI function 格式
       const openAIFunction = {
         name: tool.name,
-        description: tool.description || `MCP tool from ${mcpToolInfo.serverName}`,
+        description:
+          tool.description || `MCP tool from ${mcpToolInfo.serverName}`,
         parameters: tool.parameters_schema || {
           type: "object",
           properties: {},
@@ -180,7 +181,7 @@ class MCPFunctionExecutor {
     } catch (error) {
       logger.warn(
         `[MCPFunctionExecutor] 转换工具失败 ${mcpToolInfo.toolId}:`,
-        error.message
+        error.message,
       );
       return null;
     }
@@ -237,9 +238,7 @@ class MCPFunctionExecutor {
     }
 
     // 多个元素时，尝试合并文本
-    const texts = content
-      .filter((c) => c.type === "text")
-      .map((c) => c.text);
+    const texts = content.filter((c) => c.type === "text").map((c) => c.text);
 
     if (texts.length > 0) {
       return texts.join("\n");

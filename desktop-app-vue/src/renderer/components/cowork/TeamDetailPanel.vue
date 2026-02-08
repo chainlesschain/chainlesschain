@@ -15,7 +15,9 @@
         class="info-section"
       >
         <a-descriptions-item label="团队 ID">
-          <a-typography-text copyable>{{ team.id }}</a-typography-text>
+          <a-typography-text copyable>
+            {{ team.id }}
+          </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="团队名称">
           {{ team.name }}
@@ -37,12 +39,7 @@
       </a-descriptions>
 
       <!-- 配置信息 -->
-      <a-descriptions
-        title="配置"
-        :column="2"
-        bordered
-        class="info-section"
-      >
+      <a-descriptions title="配置" :column="2" bordered class="info-section">
         <a-descriptions-item label="最大成员数">
           {{ team.config?.maxAgents || team.maxAgents || 5 }}
         </a-descriptions-item>
@@ -69,8 +66,8 @@
           <a-button
             type="link"
             size="small"
-            @click="loadMembers"
             :loading="loadingMembers"
+            @click="loadMembers"
           >
             <ReloadOutlined />
             刷新
@@ -87,7 +84,9 @@
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'agentId'">
-              <a-typography-text copyable>{{ record.agentId }}</a-typography-text>
+              <a-typography-text copyable>
+                {{ record.agentId }}
+              </a-typography-text>
             </template>
 
             <template v-else-if="column.key === 'role'">
@@ -98,12 +97,16 @@
 
             <template v-else-if="column.key === 'status'">
               <a-tag :color="record.status === 'active' ? 'green' : 'default'">
-                {{ record.status === 'active' ? '在线' : '离线' }}
+                {{ record.status === "active" ? "在线" : "离线" }}
               </a-tag>
             </template>
 
             <template v-else-if="column.key === 'skills'">
-              <a-tag v-for="skill in record.skills" :key="skill" color="geekblue">
+              <a-tag
+                v-for="skill in record.skills"
+                :key="skill"
+                color="geekblue"
+              >
                 {{ skill }}
               </a-tag>
             </template>
@@ -135,7 +138,11 @@
           </template>
         </a-table>
 
-        <a-empty v-if="!loadingMembers && members.length === 0" description="暂无成员" style="margin: 20px 0;" />
+        <a-empty
+          v-if="!loadingMembers && members.length === 0"
+          description="暂无成员"
+          style="margin: 20px 0"
+        />
 
         <a-button
           type="dashed"
@@ -155,10 +162,7 @@
           团队任务
         </h3>
 
-        <a-list
-          :data-source="team.tasks || []"
-          :loading="loading"
-        >
+        <a-list :data-source="team.tasks || []" :loading="loading">
           <template #renderItem="{ item }">
             <a-list-item>
               <a-list-item-meta>
@@ -184,7 +188,7 @@
         <a-empty
           v-if="!loading && (!team.tasks || team.tasks.length === 0)"
           description="暂无任务"
-          style="margin: 20px 0;"
+          style="margin: 20px 0"
         />
       </div>
 
@@ -228,11 +232,11 @@
             placeholder="选择或输入技能"
             style="width: 100%"
           >
-            <a-select-option value="coding">编程</a-select-option>
-            <a-select-option value="testing">测试</a-select-option>
-            <a-select-option value="design">设计</a-select-option>
-            <a-select-option value="documentation">文档</a-select-option>
-            <a-select-option value="data-analysis">数据分析</a-select-option>
+            <a-select-option value="coding"> 编程 </a-select-option>
+            <a-select-option value="testing"> 测试 </a-select-option>
+            <a-select-option value="design"> 设计 </a-select-option>
+            <a-select-option value="documentation"> 文档 </a-select-option>
+            <a-select-option value="data-analysis"> 数据分析 </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="最大任务数">
@@ -263,9 +267,9 @@ import {
 import { format } from "date-fns";
 import { useCoworkStore } from "../../stores/cowork";
 import { h } from "vue";
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-const teamLogger = createLogger('team-detail');
+const teamLogger = createLogger("team-detail");
 const store = useCoworkStore();
 
 // Props
@@ -536,7 +540,9 @@ function getTaskStatusText(status) {
 }
 
 function formatDateTime(timestamp) {
-  if (!timestamp) return "-";
+  if (!timestamp) {
+    return "-";
+  }
 
   try {
     return format(new Date(timestamp), "yyyy-MM-dd HH:mm:ss");

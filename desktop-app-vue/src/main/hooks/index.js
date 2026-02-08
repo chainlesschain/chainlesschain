@@ -26,18 +26,23 @@
  * const result = await hookSystem.trigger('PreToolUse', { toolName: 'file_reader' });
  */
 
-const { EventEmitter } = require('events');
-const path = require('path');
-const fs = require('fs').promises;
-const { HookRegistry, HookPriority, HookType, HookEvents } = require('./hook-registry');
-const { HookExecutor, HookResult } = require('./hook-executor');
+const { EventEmitter } = require("events");
+const path = require("path");
+const fs = require("fs").promises;
+const {
+  HookRegistry,
+  HookPriority,
+  HookType,
+  HookEvents,
+} = require("./hook-registry");
+const { HookExecutor, HookResult } = require("./hook-executor");
 const {
   createIPCHookMiddleware,
   createToolHookMiddleware,
   createSessionHookMiddleware,
   createFileHookMiddleware,
   createAgentHookMiddleware,
-} = require('./hook-middleware');
+} = require("./hook-middleware");
 
 /**
  * Hooks 系统主类
@@ -96,7 +101,7 @@ class HookSystem extends EventEmitter {
     this._registerBuiltinHooks();
 
     this.initialized = true;
-    this.emit('initialized');
+    this.emit("initialized");
 
     return this;
   }
@@ -107,15 +112,21 @@ class HookSystem extends EventEmitter {
   async loadDefaultConfigs() {
     const configPaths = [
       // 项目级配置
-      path.join(process.cwd(), '.chainlesschain', 'hooks.json'),
+      path.join(process.cwd(), ".chainlesschain", "hooks.json"),
       // 用户级配置 (跨平台)
-      path.join(process.env.HOME || process.env.USERPROFILE || '', '.chainlesschain', 'hooks.json'),
+      path.join(
+        process.env.HOME || process.env.USERPROFILE || "",
+        ".chainlesschain",
+        "hooks.json",
+      ),
       // 自定义配置路径
       ...this.options.configPaths,
     ];
 
     for (const configPath of configPaths) {
-      if (!configPath) continue;
+      if (!configPath) {
+        continue;
+      }
       try {
         await fs.access(configPath);
         await this.registry.loadFromConfig(configPath);
@@ -127,12 +138,18 @@ class HookSystem extends EventEmitter {
 
     // 加载脚本钩子目录
     const scriptDirs = [
-      path.join(process.cwd(), '.chainlesschain', 'hooks'),
-      path.join(process.env.HOME || process.env.USERPROFILE || '', '.chainlesschain', 'hooks'),
+      path.join(process.cwd(), ".chainlesschain", "hooks"),
+      path.join(
+        process.env.HOME || process.env.USERPROFILE || "",
+        ".chainlesschain",
+        "hooks",
+      ),
     ];
 
     for (const scriptDir of scriptDirs) {
-      if (!scriptDir) continue;
+      if (!scriptDir) {
+        continue;
+      }
       await this._loadScriptHooks(scriptDir);
     }
   }
@@ -146,7 +163,9 @@ class HookSystem extends EventEmitter {
       const files = await fs.readdir(dirPath);
 
       for (const file of files) {
-        if (!file.endsWith('.js')) continue;
+        if (!file.endsWith(".js")) {
+          continue;
+        }
 
         const scriptPath = path.join(dirPath, file);
         try {
@@ -156,10 +175,15 @@ class HookSystem extends EventEmitter {
 
           if (hookModule.hooks && Array.isArray(hookModule.hooks)) {
             this.registry.registerMultiple(hookModule.hooks);
-            console.log(`[HookSystem] Loaded ${hookModule.hooks.length} hooks from: ${scriptPath}`);
+            console.log(
+              `[HookSystem] Loaded ${hookModule.hooks.length} hooks from: ${scriptPath}`,
+            );
           }
         } catch (error) {
-          console.error(`[HookSystem] Failed to load script: ${scriptPath}`, error.message);
+          console.error(
+            `[HookSystem] Failed to load script: ${scriptPath}`,
+            error.message,
+          );
         }
       }
     } catch {
@@ -174,14 +198,16 @@ class HookSystem extends EventEmitter {
   _registerBuiltinHooks() {
     // 性能监控钩子 - 记录慢速 IPC 调用
     this.registry.register({
-      event: 'PostIPCCall',
-      name: 'builtin:slow-ipc-logger',
+      event: "PostIPCCall",
+      name: "builtin:slow-ipc-logger",
       type: HookType.ASYNC,
       priority: HookPriority.MONITOR,
-      description: 'Log slow IPC calls (>1000ms)',
+      description: "Log slow IPC calls (>1000ms)",
       handler: async ({ data }) => {
         if (data.executionTime > 1000) {
-          console.warn(`[HookSystem] Slow IPC: ${data.channel} took ${data.executionTime}ms`);
+          console.warn(
+            `[HookSystem] Slow IPC: ${data.channel} took ${data.executionTime}ms`,
+          );
         }
         return { result: HookResult.CONTINUE };
       },
@@ -189,14 +215,16 @@ class HookSystem extends EventEmitter {
 
     // 工具使用监控钩子
     this.registry.register({
-      event: 'PostToolUse',
-      name: 'builtin:tool-usage-logger',
+      event: "PostToolUse",
+      name: "builtin:tool-usage-logger",
       type: HookType.ASYNC,
       priority: HookPriority.MONITOR,
-      description: 'Log tool usage statistics',
+      description: "Log tool usage statistics",
       handler: async ({ data }) => {
         if (data.executionTime > 5000) {
-          console.warn(`[HookSystem] Slow tool: ${data.toolName} took ${data.executionTime}ms`);
+          console.warn(
+            `[HookSystem] Slow tool: ${data.toolName} took ${data.executionTime}ms`,
+          );
         }
         return { result: HookResult.CONTINUE };
       },
@@ -209,16 +237,28 @@ class HookSystem extends EventEmitter {
    */
   _setupEventForwarding() {
     // Registry 事件
-    this.registry.on('hook-registered', (data) => this.emit('hook-registered', data));
-    this.registry.on('hook-unregistered', (data) => this.emit('hook-unregistered', data));
-    this.registry.on('hook-status-changed', (data) => this.emit('hook-status-changed', data));
-    this.registry.on('config-loaded', (data) => this.emit('config-loaded', data));
-    this.registry.on('config-error', (data) => this.emit('config-error', data));
+    this.registry.on("hook-registered", (data) =>
+      this.emit("hook-registered", data),
+    );
+    this.registry.on("hook-unregistered", (data) =>
+      this.emit("hook-unregistered", data),
+    );
+    this.registry.on("hook-status-changed", (data) =>
+      this.emit("hook-status-changed", data),
+    );
+    this.registry.on("config-loaded", (data) =>
+      this.emit("config-loaded", data),
+    );
+    this.registry.on("config-error", (data) => this.emit("config-error", data));
 
     // Executor 事件
-    this.executor.on('execution-start', (data) => this.emit('execution-start', data));
-    this.executor.on('execution-complete', (data) => this.emit('execution-complete', data));
-    this.executor.on('hook-error', (data) => this.emit('hook-error', data));
+    this.executor.on("execution-start", (data) =>
+      this.emit("execution-start", data),
+    );
+    this.executor.on("execution-complete", (data) =>
+      this.emit("execution-complete", data),
+    );
+    this.executor.on("hook-error", (data) => this.emit("hook-error", data));
   }
 
   // ==================== 公共 API ====================
@@ -293,7 +333,7 @@ class HookSystem extends EventEmitter {
    */
   setEnabled(enabled) {
     this.registry.enabled = enabled;
-    this.emit('global-status-changed', { enabled });
+    this.emit("global-status-changed", { enabled });
   }
 
   /**
@@ -344,7 +384,7 @@ class HookSystem extends EventEmitter {
     this.registry.clear();
     await this.loadDefaultConfigs();
     this._registerBuiltinHooks();
-    this.emit('reloaded');
+    this.emit("reloaded");
   }
 
   /**
@@ -423,33 +463,33 @@ module.exports = {
 
   // 集成工具 (懒加载以避免循环依赖)
   get integrateWithIPC() {
-    return require('./hooks-integration').integrateWithIPC;
+    return require("./hooks-integration").integrateWithIPC;
   },
   get createHookedToolRegister() {
-    return require('./hooks-integration').createHookedToolRegister;
+    return require("./hooks-integration").createHookedToolRegister;
   },
   get triggerHook() {
-    return require('./hooks-integration').triggerHook;
+    return require("./hooks-integration").triggerHook;
   },
   get registerHook() {
-    return require('./hooks-integration').registerHook;
+    return require("./hooks-integration").registerHook;
   },
   get registerHooks() {
-    return require('./hooks-integration').registerHooks;
+    return require("./hooks-integration").registerHooks;
   },
   get isHooksAvailable() {
-    return require('./hooks-integration').isHooksAvailable;
+    return require("./hooks-integration").isHooksAvailable;
   },
   get getHooksStats() {
-    return require('./hooks-integration').getHooksStats;
+    return require("./hooks-integration").getHooksStats;
   },
   get createConditionalHook() {
-    return require('./hooks-integration').createConditionalHook;
+    return require("./hooks-integration").createConditionalHook;
   },
   get createLoggingHook() {
-    return require('./hooks-integration').createLoggingHook;
+    return require("./hooks-integration").createLoggingHook;
   },
   get createValidationHook() {
-    return require('./hooks-integration').createValidationHook;
+    return require("./hooks-integration").createValidationHook;
   },
 };

@@ -12,7 +12,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
 /**
@@ -93,7 +93,9 @@ class ToolMaskingSystem extends EventEmitter {
     this._updateAvailableCount();
 
     if (this.config.logMaskChanges) {
-      logger.info(`[ToolMasking] 注册工具: ${name} (前缀: ${prefix || "none"})`);
+      logger.info(
+        `[ToolMasking] 注册工具: ${name} (前缀: ${prefix || "none"})`,
+      );
     }
   }
 
@@ -114,10 +116,14 @@ class ToolMaskingSystem extends EventEmitter {
   _extractPrefix(name) {
     // 支持 snake_case 和 camelCase
     const snakeMatch = name.match(/^([a-z]+)_/);
-    if (snakeMatch) {return snakeMatch[1];}
+    if (snakeMatch) {
+      return snakeMatch[1];
+    }
 
     const camelMatch = name.match(/^([a-z]+)[A-Z]/);
-    if (camelMatch) {return camelMatch[1];}
+    if (camelMatch) {
+      return camelMatch[1];
+    }
 
     return null;
   }
@@ -424,9 +430,7 @@ class ToolMaskingSystem extends EventEmitter {
       const allowedTransitions =
         this.stateMachine.transitions?.[this.currentState] || [];
       if (!allowedTransitions.includes(state)) {
-        logger.warn(
-          `[ToolMasking] 非法转换: ${this.currentState} → ${state}`,
-        );
+        logger.warn(`[ToolMasking] 非法转换: ${this.currentState} → ${state}`);
         return false;
       }
     }

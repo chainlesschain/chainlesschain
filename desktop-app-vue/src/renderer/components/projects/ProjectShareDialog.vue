@@ -7,29 +7,18 @@
     @cancel="handleCancel"
   >
     <div class="share-dialog-content">
-      <a-radio-group
-        v-model:value="shareMode"
-        class="share-mode-group"
-      >
-        <a-radio
-          value="private"
-          class="share-mode-item"
-        >
+      <a-radio-group v-model:value="shareMode" class="share-mode-group">
+        <a-radio value="private" class="share-mode-item">
           <div class="mode-content">
             <div class="mode-header">
               <lock-outlined class="mode-icon" />
               <span class="mode-title">仅限自己</span>
             </div>
-            <div class="mode-description">
-              仅限已选用户访问
-            </div>
+            <div class="mode-description">仅限已选用户访问</div>
           </div>
         </a-radio>
 
-        <a-radio
-          value="public"
-          class="share-mode-item"
-        >
+        <a-radio value="public" class="share-mode-item">
           <div class="mode-content">
             <div class="mode-header">
               <global-outlined class="mode-icon" />
@@ -42,40 +31,23 @@
         </a-radio>
       </a-radio-group>
 
-      <div
-        v-if="shareLink"
-        class="share-link-section"
-      >
-        <div class="share-link-label">
-          分享链接
-        </div>
+      <div v-if="shareLink" class="share-link-section">
+        <div class="share-link-label">分享链接</div>
         <div class="share-link-input">
-          <a-input
-            v-model:value="shareLink"
-            readonly
-          >
+          <a-input v-model:value="shareLink" readonly>
             <template #suffix>
-              <copy-outlined
-                class="copy-icon"
-                @click="copyShareLink"
-              />
+              <copy-outlined class="copy-icon" @click="copyShareLink" />
             </template>
           </a-input>
         </div>
       </div>
 
       <div class="share-actions">
-        <a-button
-          :disabled="!shareLink"
-          @click="shareToWechat"
-        >
+        <a-button :disabled="!shareLink" @click="shareToWechat">
           <wechat-outlined />
           微信分享
         </a-button>
-        <a-button
-          :disabled="!shareLink"
-          @click="copyShareLink"
-        >
+        <a-button :disabled="!shareLink" @click="copyShareLink">
           <link-outlined />
           复制链接
         </a-button>
@@ -85,47 +57,50 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   LockOutlined,
   GlobalOutlined,
   WechatOutlined,
   LinkOutlined,
-  CopyOutlined
-} from '@ant-design/icons-vue';
+  CopyOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   open: {
     type: Boolean,
-    default: false
+    default: false,
   },
   project: {
     type: Object,
-    default: () => null
-  }
+    default: () => null,
+  },
 });
 
-const emit = defineEmits(['update:open', 'share-success']);
+const emit = defineEmits(["update:open", "share-success"]);
 
 const visible = ref(props.open);
-const shareMode = ref(props.project?.share_mode || 'private');
-const shareLink = ref(props.project?.share_link || '');
-const shareToken = ref(props.project?.share_token || '');
+const shareMode = ref(props.project?.share_mode || "private");
+const shareLink = ref(props.project?.share_link || "");
+const shareToken = ref(props.project?.share_token || "");
 
-watch(() => props.open, (newVal) => {
-  visible.value = newVal;
-  if (newVal && props.project) {
-    shareMode.value = props.project.share_mode || 'private';
-    shareLink.value = props.project.share_link || '';
-    shareToken.value = props.project.share_token || '';
-  }
-});
+watch(
+  () => props.open,
+  (newVal) => {
+    visible.value = newVal;
+    if (newVal && props.project) {
+      shareMode.value = props.project.share_mode || "private";
+      shareLink.value = props.project.share_link || "";
+      shareToken.value = props.project.share_token || "";
+    }
+  },
+);
 
 watch(visible, (newVal) => {
-  emit('update:open', newVal);
+  emit("update:open", newVal);
 });
 
 /**
@@ -133,32 +108,37 @@ watch(visible, (newVal) => {
  */
 const handleShareConfirm = async () => {
   try {
-    message.loading({ content: '正在设置分享...', key: 'share', duration: 0 });
+    message.loading({ content: "正在设置分享...", key: "share", duration: 0 });
 
     const result = await window.electronAPI.project.shareProject({
       projectId: props.project.id,
-      shareMode: shareMode.value
+      shareMode: shareMode.value,
     });
 
     shareLink.value = result.shareLink;
     shareToken.value = result.shareToken;
 
     message.success({
-      content: shareMode.value === 'public' ? '项目已公开分享' : '分享设置已更新',
-      key: 'share',
-      duration: 2
+      content:
+        shareMode.value === "public" ? "项目已公开分享" : "分享设置已更新",
+      key: "share",
+      duration: 2,
     });
 
-    emit('share-success', {
+    emit("share-success", {
       shareMode: shareMode.value,
       shareLink: shareLink.value,
-      shareToken: shareToken.value
+      shareToken: shareToken.value,
     });
 
     visible.value = false;
   } catch (error) {
-    logger.error('分享失败:', error);
-    message.error({ content: `分享失败: ${error.message}`, key: 'share', duration: 3 });
+    logger.error("分享失败:", error);
+    message.error({
+      content: `分享失败: ${error.message}`,
+      key: "share",
+      duration: 3,
+    });
   }
 };
 
@@ -174,29 +154,29 @@ const handleCancel = () => {
  */
 const copyShareLink = async () => {
   if (!shareLink.value) {
-    message.warning('请先设置分享模式');
+    message.warning("请先设置分享模式");
     return;
   }
 
   try {
     await navigator.clipboard.writeText(shareLink.value);
-    message.success('链接已复制到剪贴板');
+    message.success("链接已复制到剪贴板");
   } catch (error) {
-    logger.error('复制失败:', error);
+    logger.error("复制失败:", error);
 
     // 降级方案：使用传统方法
     try {
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = shareLink.value;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
+      textArea.style.position = "fixed";
+      textArea.style.left = "-999999px";
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand('copy');
+      document.execCommand("copy");
       document.body.removeChild(textArea);
-      message.success('链接已复制到剪贴板');
+      message.success("链接已复制到剪贴板");
     } catch (fallbackError) {
-      message.error('复制失败，请手动复制');
+      message.error("复制失败，请手动复制");
     }
   }
 };
@@ -206,7 +186,7 @@ const copyShareLink = async () => {
  */
 const shareToWechat = async () => {
   if (!shareLink.value) {
-    message.warning('请先设置分享模式');
+    message.warning("请先设置分享模式");
     return;
   }
 
@@ -214,13 +194,13 @@ const shareToWechat = async () => {
     // 生成二维码并打开分享窗口
     await window.electronAPI.project.shareToWechat({
       projectId: props.project.id,
-      shareLink: shareLink.value
+      shareLink: shareLink.value,
     });
 
-    message.info('请使用微信扫描二维码分享');
+    message.info("请使用微信扫描二维码分享");
   } catch (error) {
-    logger.error('微信分享失败:', error);
-    message.error('微信分享功能暂未实现，请使用复制链接');
+    logger.error("微信分享失败:", error);
+    message.error("微信分享功能暂未实现，请使用复制链接");
   }
 };
 </script>

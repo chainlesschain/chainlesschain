@@ -6,21 +6,21 @@
  * @since v0.30.0
  */
 
-const { logger } = require('../../utils/logger');
-const { createLoopContext, VariableScope } = require('./workflow-variables');
+const { logger } = require("../../utils/logger");
+const { createLoopContext, VariableScope } = require("./workflow-variables");
 
 /**
  * Step types enum
  */
 const StepType = {
-  ACTION: 'action',         // Browser action
-  CONDITION: 'condition',   // if/else
-  LOOP: 'loop',             // for/while/forEach
-  VARIABLE: 'variable',     // Variable set/modify
-  WAIT: 'wait',             // Wait for condition
-  SUBPROCESS: 'subprocess', // Sub-workflow call
-  GROUP: 'group',           // Group of steps
-  TRY_CATCH: 'tryCatch'     // Error handling
+  ACTION: "action", // Browser action
+  CONDITION: "condition", // if/else
+  LOOP: "loop", // for/while/forEach
+  VARIABLE: "variable", // Variable set/modify
+  WAIT: "wait", // Wait for condition
+  SUBPROCESS: "subprocess", // Sub-workflow call
+  GROUP: "group", // Group of steps
+  TRY_CATCH: "tryCatch", // Error handling
 };
 
 /**
@@ -28,39 +28,39 @@ const StepType = {
  */
 const ConditionOperator = {
   // Comparison
-  EQUALS: '==',
-  NOT_EQUALS: '!=',
-  GREATER: '>',
-  LESS: '<',
-  GREATER_EQUALS: '>=',
-  LESS_EQUALS: '<=',
+  EQUALS: "==",
+  NOT_EQUALS: "!=",
+  GREATER: ">",
+  LESS: "<",
+  GREATER_EQUALS: ">=",
+  LESS_EQUALS: "<=",
 
   // String
-  CONTAINS: 'contains',
-  STARTS_WITH: 'startsWith',
-  ENDS_WITH: 'endsWith',
-  MATCHES: 'matches',
+  CONTAINS: "contains",
+  STARTS_WITH: "startsWith",
+  ENDS_WITH: "endsWith",
+  MATCHES: "matches",
 
   // Type
-  IS_NULL: 'isNull',
-  IS_NOT_NULL: 'isNotNull',
-  IS_EMPTY: 'isEmpty',
-  IS_NOT_EMPTY: 'isNotEmpty',
+  IS_NULL: "isNull",
+  IS_NOT_NULL: "isNotNull",
+  IS_EMPTY: "isEmpty",
+  IS_NOT_EMPTY: "isNotEmpty",
 
   // Logical
-  AND: 'and',
-  OR: 'or',
-  NOT: 'not'
+  AND: "and",
+  OR: "or",
+  NOT: "not",
 };
 
 /**
  * Loop types
  */
 const LoopType = {
-  FOR: 'for',           // for (i = 0; i < n; i++)
-  WHILE: 'while',       // while (condition)
-  FOR_EACH: 'forEach',  // for item in array
-  DO_WHILE: 'doWhile'   // do { } while (condition)
+  FOR: "for", // for (i = 0; i < n; i++)
+  WHILE: "while", // while (condition)
+  FOR_EACH: "forEach", // for item in array
+  DO_WHILE: "doWhile", // do { } while (condition)
 };
 
 /**
@@ -79,17 +79,17 @@ class ControlFlowManager {
    */
   evaluateCondition(condition) {
     // Simple boolean or variable reference
-    if (typeof condition === 'boolean') {
+    if (typeof condition === "boolean") {
       return condition;
     }
 
-    if (typeof condition === 'string') {
+    if (typeof condition === "string") {
       const value = this.variables.get(condition);
       return Boolean(value);
     }
 
     // Complex condition object
-    if (typeof condition === 'object') {
+    if (typeof condition === "object") {
       return this._evaluateConditionObject(condition);
     }
 
@@ -106,11 +106,11 @@ class ControlFlowManager {
 
     // Logical operators (and/or/not)
     if (operator === ConditionOperator.AND) {
-      return conditions.every(c => this.evaluateCondition(c));
+      return conditions.every((c) => this.evaluateCondition(c));
     }
 
     if (operator === ConditionOperator.OR) {
-      return conditions.some(c => this.evaluateCondition(c));
+      return conditions.some((c) => this.evaluateCondition(c));
     }
 
     if (operator === ConditionOperator.NOT) {
@@ -119,16 +119,17 @@ class ControlFlowManager {
 
     // Get actual values for comparison
     const leftValue = this._resolveValue(left);
-    const rightValue = right !== undefined ? this._resolveValue(right) : undefined;
+    const rightValue =
+      right !== undefined ? this._resolveValue(right) : undefined;
 
     switch (operator) {
       // Comparison
       case ConditionOperator.EQUALS:
-      case '===':
+      case "===":
         return leftValue === rightValue;
 
       case ConditionOperator.NOT_EQUALS:
-      case '!==':
+      case "!==":
         return leftValue !== rightValue;
 
       case ConditionOperator.GREATER:
@@ -175,7 +176,7 @@ class ControlFlowManager {
         return !this._isEmpty(leftValue);
 
       default:
-        logger.warn('[ControlFlow] Unknown operator', { operator });
+        logger.warn("[ControlFlow] Unknown operator", { operator });
         return false;
     }
   }
@@ -186,13 +187,13 @@ class ControlFlowManager {
    * @returns {any}
    */
   _resolveValue(value) {
-    if (typeof value === 'string') {
+    if (typeof value === "string") {
       // Check if it's a variable reference (starts with $ or no quotes)
-      if (value.startsWith('$') || this.variables.has(value)) {
+      if (value.startsWith("$") || this.variables.has(value)) {
         return this.variables.get(value);
       }
       // Interpolate if contains placeholders
-      if (value.includes('${')) {
+      if (value.includes("${")) {
         return this.variables.interpolate(value);
       }
     }
@@ -205,10 +206,18 @@ class ControlFlowManager {
    * @returns {boolean}
    */
   _isEmpty(value) {
-    if (value === null || value === undefined) return true;
-    if (typeof value === 'string') return value.length === 0;
-    if (Array.isArray(value)) return value.length === 0;
-    if (typeof value === 'object') return Object.keys(value).length === 0;
+    if (value === null || value === undefined) {
+      return true;
+    }
+    if (typeof value === "string") {
+      return value.length === 0;
+    }
+    if (Array.isArray(value)) {
+      return value.length === 0;
+    }
+    if (typeof value === "object") {
+      return Object.keys(value).length === 0;
+    }
     return false;
   }
 
@@ -218,7 +227,16 @@ class ControlFlowManager {
    * @returns {AsyncGenerator}
    */
   async *createLoopIterator(loopConfig) {
-    const { type, variable, start, end, step, items, condition, maxIterations } = loopConfig;
+    const {
+      type,
+      variable,
+      start,
+      end,
+      step,
+      items,
+      condition,
+      maxIterations,
+    } = loopConfig;
     const max = maxIterations || this.maxLoopIterations;
     let iterations = 0;
 
@@ -229,8 +247,12 @@ class ControlFlowManager {
         const stepVal = this._resolveValue(step) || 1;
 
         for (let i = startVal; i < endVal && iterations < max; i += stepVal) {
-          this.variables.set(variable || 'i', i, VariableScope.LOOP);
-          const ctx = createLoopContext(iterations, i, Math.ceil((endVal - startVal) / stepVal));
+          this.variables.set(variable || "i", i, VariableScope.LOOP);
+          const ctx = createLoopContext(
+            iterations,
+            i,
+            Math.ceil((endVal - startVal) / stepVal),
+          );
           this._setLoopContext(ctx);
           yield { index: iterations, value: i, context: ctx };
           iterations++;
@@ -241,12 +263,16 @@ class ControlFlowManager {
       case LoopType.FOR_EACH: {
         const itemsValue = this._resolveValue(items);
         if (!itemsValue || !Array.isArray(itemsValue)) {
-          logger.warn('[ControlFlow] forEach items is not an array', { items });
+          logger.warn("[ControlFlow] forEach items is not an array", { items });
           return;
         }
 
         for (let i = 0; i < itemsValue.length && iterations < max; i++) {
-          this.variables.set(variable || 'item', itemsValue[i], VariableScope.LOOP);
+          this.variables.set(
+            variable || "item",
+            itemsValue[i],
+            VariableScope.LOOP,
+          );
           const ctx = createLoopContext(i, itemsValue[i], itemsValue.length);
           this._setLoopContext(ctx);
           yield { index: i, value: itemsValue[i], context: ctx };
@@ -304,21 +330,21 @@ class ControlFlowManager {
     const { condition, then: thenSteps, else: elseSteps } = step;
 
     const result = this.evaluateCondition(condition);
-    logger.debug('[ControlFlow] Condition evaluated', { condition, result });
+    logger.debug("[ControlFlow] Condition evaluated", { condition, result });
 
     if (result && thenSteps) {
       return {
-        branch: 'then',
-        result: await executeSteps(thenSteps)
+        branch: "then",
+        result: await executeSteps(thenSteps),
       };
     } else if (!result && elseSteps) {
       return {
-        branch: 'else',
-        result: await executeSteps(elseSteps)
+        branch: "else",
+        result: await executeSteps(elseSteps),
       };
     }
 
-    return { branch: 'none', result: null };
+    return { branch: "none", result: null };
   }
 
   /**
@@ -336,14 +362,18 @@ class ControlFlowManager {
     for await (const iteration of this.createLoopIterator(loopConfig)) {
       // Check for break condition
       if (breakOn && this.evaluateCondition(breakOn)) {
-        logger.debug('[ControlFlow] Break condition met', { iteration: iteration.index });
+        logger.debug("[ControlFlow] Break condition met", {
+          iteration: iteration.index,
+        });
         breakRequested = true;
         break;
       }
 
       // Check for continue condition
       if (continueOn && this.evaluateCondition(continueOn)) {
-        logger.debug('[ControlFlow] Continue condition met', { iteration: iteration.index });
+        logger.debug("[ControlFlow] Continue condition met", {
+          iteration: iteration.index,
+        });
         continue;
       }
 
@@ -352,7 +382,7 @@ class ControlFlowManager {
         results.push({
           index: iteration.index,
           value: iteration.value,
-          result
+          result,
         });
       } catch (error) {
         if (options.stopOnError) {
@@ -361,7 +391,7 @@ class ControlFlowManager {
         results.push({
           index: iteration.index,
           value: iteration.value,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -369,7 +399,7 @@ class ControlFlowManager {
     return {
       iterations: results.length,
       results,
-      breakRequested
+      breakRequested,
     };
   }
 
@@ -391,11 +421,15 @@ class ControlFlowManager {
 
       if (catchSteps) {
         // Set error info in variables
-        this.variables.set('$error', {
-          message: err.message,
-          name: err.name,
-          stack: err.stack
-        }, VariableScope.STEP);
+        this.variables.set(
+          "$error",
+          {
+            message: err.message,
+            name: err.name,
+            stack: err.stack,
+          },
+          VariableScope.STEP,
+        );
 
         result = await executeSteps(catchSteps);
       }
@@ -408,7 +442,7 @@ class ControlFlowManager {
     return {
       success: !error,
       result,
-      error: error?.message
+      error: error?.message,
     };
   }
 
@@ -418,46 +452,46 @@ class ControlFlowManager {
    * @returns {Object} Result
    */
   executeVariable(step) {
-    const { name, value, operation, scope = 'global' } = step;
+    const { name, value, operation, scope = "global" } = step;
 
     let finalValue;
     const currentValue = this.variables.get(name);
     const newValue = this._resolveValue(value);
 
     switch (operation) {
-      case 'set':
+      case "set":
         finalValue = newValue;
         break;
 
-      case 'increment':
+      case "increment":
         finalValue = (currentValue || 0) + (newValue || 1);
         break;
 
-      case 'decrement':
+      case "decrement":
         finalValue = (currentValue || 0) - (newValue || 1);
         break;
 
-      case 'append':
+      case "append":
         if (Array.isArray(currentValue)) {
           finalValue = [...currentValue, newValue];
-        } else if (typeof currentValue === 'string') {
+        } else if (typeof currentValue === "string") {
           finalValue = currentValue + newValue;
         } else {
           finalValue = newValue;
         }
         break;
 
-      case 'prepend':
+      case "prepend":
         if (Array.isArray(currentValue)) {
           finalValue = [newValue, ...currentValue];
-        } else if (typeof currentValue === 'string') {
+        } else if (typeof currentValue === "string") {
           finalValue = newValue + currentValue;
         } else {
           finalValue = newValue;
         }
         break;
 
-      case 'delete':
+      case "delete":
         this.variables.delete(name, scope);
         return { deleted: true, name };
 
@@ -470,7 +504,7 @@ class ControlFlowManager {
     return {
       name,
       value: finalValue,
-      operation: operation || 'set'
+      operation: operation || "set",
     };
   }
 }
@@ -486,7 +520,7 @@ function parseConditionString(conditionStr) {
   if (andParts.length > 1) {
     return {
       operator: ConditionOperator.AND,
-      conditions: andParts.map(parseConditionString)
+      conditions: andParts.map(parseConditionString),
     };
   }
 
@@ -494,32 +528,32 @@ function parseConditionString(conditionStr) {
   if (orParts.length > 1) {
     return {
       operator: ConditionOperator.OR,
-      conditions: orParts.map(parseConditionString)
+      conditions: orParts.map(parseConditionString),
     };
   }
 
   // Handle NOT
-  if (conditionStr.trim().startsWith('not ')) {
+  if (conditionStr.trim().startsWith("not ")) {
     return {
       operator: ConditionOperator.NOT,
-      conditions: [parseConditionString(conditionStr.slice(4).trim())]
+      conditions: [parseConditionString(conditionStr.slice(4).trim())],
     };
   }
 
   // Parse comparison operators
   const operators = [
-    { regex: /\s*===\s*/, op: '===' },
-    { regex: /\s*!==\s*/, op: '!==' },
-    { regex: /\s*==\s*/, op: '==' },
-    { regex: /\s*!=\s*/, op: '!=' },
-    { regex: /\s*>=\s*/, op: '>=' },
-    { regex: /\s*<=\s*/, op: '<=' },
-    { regex: /\s*>\s*/, op: '>' },
-    { regex: /\s*<\s*/, op: '<' },
-    { regex: /\s+contains\s+/i, op: 'contains' },
-    { regex: /\s+startsWith\s+/i, op: 'startsWith' },
-    { regex: /\s+endsWith\s+/i, op: 'endsWith' },
-    { regex: /\s+matches\s+/i, op: 'matches' }
+    { regex: /\s*===\s*/, op: "===" },
+    { regex: /\s*!==\s*/, op: "!==" },
+    { regex: /\s*==\s*/, op: "==" },
+    { regex: /\s*!=\s*/, op: "!=" },
+    { regex: /\s*>=\s*/, op: ">=" },
+    { regex: /\s*<=\s*/, op: "<=" },
+    { regex: /\s*>\s*/, op: ">" },
+    { regex: /\s*<\s*/, op: "<" },
+    { regex: /\s+contains\s+/i, op: "contains" },
+    { regex: /\s+startsWith\s+/i, op: "startsWith" },
+    { regex: /\s+endsWith\s+/i, op: "endsWith" },
+    { regex: /\s+matches\s+/i, op: "matches" },
   ];
 
   for (const { regex, op } of operators) {
@@ -528,23 +562,23 @@ function parseConditionString(conditionStr) {
       return {
         operator: op,
         left: parseValue(parts[0].trim()),
-        right: parseValue(parts[1].trim())
+        right: parseValue(parts[1].trim()),
       };
     }
   }
 
   // Unary operators
-  if (conditionStr.includes(' is null') || conditionStr.includes(' isNull')) {
+  if (conditionStr.includes(" is null") || conditionStr.includes(" isNull")) {
     return {
       operator: ConditionOperator.IS_NULL,
-      left: parseValue(conditionStr.replace(/\s+(is\s+)?null$/i, '').trim())
+      left: parseValue(conditionStr.replace(/\s+(is\s+)?null$/i, "").trim()),
     };
   }
 
-  if (conditionStr.includes(' is empty') || conditionStr.includes(' isEmpty')) {
+  if (conditionStr.includes(" is empty") || conditionStr.includes(" isEmpty")) {
     return {
       operator: ConditionOperator.IS_EMPTY,
-      left: parseValue(conditionStr.replace(/\s+(is\s+)?empty$/i, '').trim())
+      left: parseValue(conditionStr.replace(/\s+(is\s+)?empty$/i, "").trim()),
     };
   }
 
@@ -559,8 +593,10 @@ function parseConditionString(conditionStr) {
  */
 function parseValue(valueStr) {
   // String literal
-  if ((valueStr.startsWith('"') && valueStr.endsWith('"')) ||
-      (valueStr.startsWith("'") && valueStr.endsWith("'"))) {
+  if (
+    (valueStr.startsWith('"') && valueStr.endsWith('"')) ||
+    (valueStr.startsWith("'") && valueStr.endsWith("'"))
+  ) {
     return valueStr.slice(1, -1);
   }
 
@@ -571,9 +607,15 @@ function parseValue(valueStr) {
   }
 
   // Boolean
-  if (valueStr === 'true') return true;
-  if (valueStr === 'false') return false;
-  if (valueStr === 'null') return null;
+  if (valueStr === "true") {
+    return true;
+  }
+  if (valueStr === "false") {
+    return false;
+  }
+  if (valueStr === "null") {
+    return null;
+  }
 
   // Variable reference
   return valueStr;
@@ -585,5 +627,5 @@ module.exports = {
   ConditionOperator,
   LoopType,
   parseConditionString,
-  parseValue
+  parseValue,
 };

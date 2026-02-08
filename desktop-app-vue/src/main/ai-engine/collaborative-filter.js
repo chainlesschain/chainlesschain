@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * CollaborativeFilter - 协同过滤推荐算法
@@ -17,22 +17,22 @@ const { logger, createLogger } = require('../utils/logger.js');
 class CollaborativeFilter {
   constructor(config = {}) {
     this.config = {
-      minSimilarity: 0.1,      // 最小相似度阈值
-      topKUsers: 10,           // 考虑Top-K相似用户
-      minCommonTools: 2,       // 最小共同工具数
-      enableCache: true,       // 启用相似度缓存
-      ...config
+      minSimilarity: 0.1, // 最小相似度阈值
+      topKUsers: 10, // 考虑Top-K相似用户
+      minCommonTools: 2, // 最小共同工具数
+      enableCache: true, // 启用相似度缓存
+      ...config,
     };
 
     this.db = null;
-    this.userToolMatrix = new Map();  // 用户-工具矩阵
+    this.userToolMatrix = new Map(); // 用户-工具矩阵
     this.similarityCache = new Map(); // 相似度缓存
 
     this.stats = {
       totalRecommendations: 0,
       cacheHits: 0,
       cacheMisses: 0,
-      avgSimilarity: 0
+      avgSimilarity: 0,
     };
   }
 
@@ -49,14 +49,16 @@ class CollaborativeFilter {
    */
   async buildUserToolMatrix() {
     if (!this.db) {
-      throw new Error('数据库未设置');
+      throw new Error("数据库未设置");
     }
 
-    logger.info('[CollaborativeFilter] 构建用户-工具矩阵...');
+    logger.info("[CollaborativeFilter] 构建用户-工具矩阵...");
 
     try {
       // 查询所有用户的工具使用记录
-      const usageData = this.db.prepare(`
+      const usageData = this.db
+        .prepare(
+          `
         SELECT
           user_id,
           tool_name,
@@ -66,7 +68,9 @@ class CollaborativeFilter {
         FROM tool_usage_events
         WHERE timestamp >= datetime('now', '-30 days')
         GROUP BY user_id, tool_name
-      `).all();
+      `,
+        )
+        .all();
 
       this.userToolMatrix.clear();
 
@@ -85,14 +89,16 @@ class CollaborativeFilter {
           rating,
           usageCount: row.usage_count,
           successRate: row.success_rate,
-          avgTime: row.avg_time
+          avgTime: row.avg_time,
         });
       }
 
-      logger.info(`[CollaborativeFilter] 矩阵构建完成: ${this.userToolMatrix.size}个用户`);
+      logger.info(
+        `[CollaborativeFilter] 矩阵构建完成: ${this.userToolMatrix.size}个用户`,
+      );
       return this.userToolMatrix;
     } catch (error) {
-      logger.error('[CollaborativeFilter] 构建矩阵失败:', error);
+      logger.error("[CollaborativeFilter] 构建矩阵失败:", error);
       throw error;
     }
   }
@@ -127,7 +133,7 @@ class CollaborativeFilter {
         commonTools.push({
           tool,
           rating1: data1.rating,
-          rating2: tools2.get(tool).rating
+          rating2: tools2.get(tool).rating,
         });
       }
     }
@@ -176,7 +182,9 @@ class CollaborativeFilter {
     const similarUsers = [];
 
     for (const [otherUserId, _] of this.userToolMatrix.entries()) {
-      if (otherUserId === userId) {continue;}
+      if (otherUserId === userId) {
+        continue;
+      }
 
       const similarity = this.calculateUserSimilarity(userId, otherUserId);
 
@@ -202,7 +210,7 @@ class CollaborativeFilter {
       const similarUsers = await this.findSimilarUsers(userId);
 
       if (similarUsers.length === 0) {
-        logger.info('[CollaborativeFilter] 未找到相似用户');
+        logger.info("[CollaborativeFilter] 未找到相似用户");
         return [];
       }
 
@@ -218,7 +226,9 @@ class CollaborativeFilter {
 
         for (const [tool, data] of simUserTools.entries()) {
           // 跳过已使用的工具
-          if (usedTools.has(tool)) {continue;}
+          if (usedTools.has(tool)) {
+            continue;
+          }
 
           // 加权评分 (评分 * 相似度)
           const weightedScore = data.rating * similarity;
@@ -227,7 +237,7 @@ class CollaborativeFilter {
             toolScores.set(tool, {
               totalScore: 0,
               count: 0,
-              similarUsers: []
+              similarUsers: [],
             });
           }
 
@@ -237,7 +247,7 @@ class CollaborativeFilter {
           toolData.similarUsers.push({
             userId: simUserId,
             similarity,
-            rating: data.rating
+            rating: data.rating,
           });
         }
       }
@@ -254,7 +264,7 @@ class CollaborativeFilter {
           confidence,
           supportingUsers: data.count,
           reason: this.generateReason(data.similarUsers),
-          algorithm: 'collaborative_filtering'
+          algorithm: "collaborative_filtering",
         });
       }
 
@@ -264,12 +274,13 @@ class CollaborativeFilter {
       if (recommendations.length > 0) {
         this.stats.avgSimilarity =
           (this.stats.avgSimilarity * (this.stats.totalRecommendations - 1) +
-            similarUsers[0].similarity) / this.stats.totalRecommendations;
+            similarUsers[0].similarity) /
+          this.stats.totalRecommendations;
       }
 
       return recommendations.slice(0, topK);
     } catch (error) {
-      logger.error('[CollaborativeFilter] 推荐失败:', error);
+      logger.error("[CollaborativeFilter] 推荐失败:", error);
       return [];
     }
   }
@@ -312,7 +323,7 @@ class CollaborativeFilter {
    */
   generateReason(similarUsers) {
     if (similarUsers.length === 0) {
-      return '基于协同过滤推荐';
+      return "基于协同过滤推荐";
     }
 
     const topUser = similarUsers[0];
@@ -347,7 +358,7 @@ class CollaborativeFilter {
       avgToolsPerUser: avgTools.toFixed(1),
       maxToolsPerUser: maxTools,
       minToolsPerUser: minTools === Infinity ? 0 : minTools,
-      matrixDensity: density.toFixed(1) + '%'
+      matrixDensity: density.toFixed(1) + "%",
     };
   }
 
@@ -357,11 +368,16 @@ class CollaborativeFilter {
   getStats() {
     return {
       ...this.stats,
-      cacheHitRate: this.stats.cacheMisses > 0
-        ? ((this.stats.cacheHits / (this.stats.cacheHits + this.stats.cacheMisses)) * 100).toFixed(2) + '%'
-        : '0%',
-      avgSimilarity: (this.stats.avgSimilarity * 100).toFixed(1) + '%',
-      matrixStats: this.getMatrixStats()
+      cacheHitRate:
+        this.stats.cacheMisses > 0
+          ? (
+              (this.stats.cacheHits /
+                (this.stats.cacheHits + this.stats.cacheMisses)) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
+      avgSimilarity: (this.stats.avgSimilarity * 100).toFixed(1) + "%",
+      matrixStats: this.getMatrixStats(),
     };
   }
 
@@ -372,7 +388,7 @@ class CollaborativeFilter {
     this.similarityCache.clear();
     this.stats.cacheHits = 0;
     this.stats.cacheMisses = 0;
-    logger.info('[CollaborativeFilter] 缓存已清除');
+    logger.info("[CollaborativeFilter] 缓存已清除");
   }
 
   /**

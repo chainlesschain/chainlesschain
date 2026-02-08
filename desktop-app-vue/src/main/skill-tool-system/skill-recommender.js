@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 技能推荐引擎
@@ -12,30 +12,59 @@ class SkillRecommender {
 
     // 意图关键词映射
     this.intentKeywords = {
-      'code': ['代码', '编程', '开发', 'code', 'develop', 'program', '写代码', '修改代码', '生成代码'],
-      'web': ['网页', 'html', 'css', 'js', 'javascript', 'web', '网站', '前端', 'frontend'],
-      'data': ['数据', 'data', '分析', 'analyze', 'csv', 'excel', '表格', '统计'],
-      'document': ['文档', 'document', 'word', 'pdf', 'ppt', 'markdown', 'md', '文章'],
-      'image': ['图片', 'image', '照片', 'photo', '图像', '截图', 'png', 'jpg'],
-      'video': ['视频', 'video', '录像', '影片', 'mp4'],
-      'file': ['文件', 'file', '读取', 'read', '写入', 'write', '复制', 'copy'],
-      'git': ['git', 'github', '版本', 'commit', 'push', 'pull', '仓库'],
-      'search': ['搜索', 'search', '查找', 'find', '检索', '查询'],
-      'automation': ['自动化', 'automation', '定时', 'schedule', '批量', 'batch']
+      code: [
+        "代码",
+        "编程",
+        "开发",
+        "code",
+        "develop",
+        "program",
+        "写代码",
+        "修改代码",
+        "生成代码",
+      ],
+      web: [
+        "网页",
+        "html",
+        "css",
+        "js",
+        "javascript",
+        "web",
+        "网站",
+        "前端",
+        "frontend",
+      ],
+      data: ["数据", "data", "分析", "analyze", "csv", "excel", "表格", "统计"],
+      document: [
+        "文档",
+        "document",
+        "word",
+        "pdf",
+        "ppt",
+        "markdown",
+        "md",
+        "文章",
+      ],
+      image: ["图片", "image", "照片", "photo", "图像", "截图", "png", "jpg"],
+      video: ["视频", "video", "录像", "影片", "mp4"],
+      file: ["文件", "file", "读取", "read", "写入", "write", "复制", "copy"],
+      git: ["git", "github", "版本", "commit", "push", "pull", "仓库"],
+      search: ["搜索", "search", "查找", "find", "检索", "查询"],
+      automation: ["自动化", "automation", "定时", "schedule", "批量", "batch"],
     };
 
     // 技能分类到意图的映射
     this.categoryToIntent = {
-      'code': ['code', 'git'],
-      'web': ['web', 'code'],
-      'data': ['data'],
-      'content': ['document'],
-      'document': ['document'],
-      'media': ['image', 'video'],
-      'file': ['file'],
-      'system': ['file', 'automation'],
-      'automation': ['automation'],
-      'ai': ['search']
+      code: ["code", "git"],
+      web: ["web", "code"],
+      data: ["data"],
+      content: ["document"],
+      document: ["document"],
+      media: ["image", "video"],
+      file: ["file"],
+      system: ["file", "automation"],
+      automation: ["automation"],
+      ai: ["search"],
     };
 
     // 推荐缓存
@@ -51,10 +80,10 @@ class SkillRecommender {
    */
   async recommendSkills(userInput, options = {}) {
     const {
-      limit = 5,              // 返回的推荐数量
-      threshold = 0.3,        // 相关度阈值
+      limit = 5, // 返回的推荐数量
+      threshold = 0.3, // 相关度阈值
       includeUsageStats = true, // 是否考虑使用统计
-      enabledOnly = true      // 只推荐已启用的技能
+      enabledOnly = true, // 只推荐已启用的技能
     } = options;
 
     // 检查缓存
@@ -72,15 +101,20 @@ class SkillRecommender {
 
       // 2. 获取所有技能
       const allSkills = await this.skillManager.getAllSkills({
-        enabled: enabledOnly ? 1 : undefined
+        enabled: enabledOnly ? 1 : undefined,
       });
 
       // 3. 计算每个技能的相关度分数
       const scoredSkills = await Promise.all(
-        allSkills.map(async skill => {
-          const score = await this.calculateSkillScore(skill, intents, userInput, includeUsageStats);
+        allSkills.map(async (skill) => {
+          const score = await this.calculateSkillScore(
+            skill,
+            intents,
+            userInput,
+            includeUsageStats,
+          );
           return { skill, score };
-        })
+        }),
       );
 
       // 4. 过滤并排序
@@ -91,18 +125,18 @@ class SkillRecommender {
         .map(({ skill, score }) => ({
           ...skill,
           recommendationScore: score,
-          reason: this.generateReason(skill, intents, score)
+          reason: this.generateReason(skill, intents, score),
         }));
 
       // 缓存结果
       this.cache.set(cacheKey, {
         data: recommendations,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
       return recommendations;
     } catch (error) {
-      logger.error('[SkillRecommender] 推荐失败:', error);
+      logger.error("[SkillRecommender] 推荐失败:", error);
       return [];
     }
   }
@@ -132,7 +166,7 @@ class SkillRecommender {
         intents.push({
           intent,
           confidence,
-          matchedKeywords
+          matchedKeywords,
         });
       }
     }
@@ -173,7 +207,9 @@ class SkillRecommender {
    * 计算意图匹配分数
    */
   calculateIntentScore(skill, intents) {
-    if (intents.length === 0) {return 0;}
+    if (intents.length === 0) {
+      return 0;
+    }
 
     // 获取技能分类对应的意图
     const skillIntents = this.categoryToIntent[skill.category] || [];
@@ -194,7 +230,7 @@ class SkillRecommender {
   calculateTextSimilarity(skill, userInput) {
     const input = userInput.toLowerCase();
     const skillName = skill.name.toLowerCase();
-    const skillDesc = (skill.description || '').toLowerCase();
+    const skillDesc = (skill.description || "").toLowerCase();
 
     let score = 0;
 
@@ -205,8 +241,10 @@ class SkillRecommender {
 
     // 描述匹配
     const inputWords = input.split(/\s+/);
-    const matchingWords = inputWords.filter(word =>
-      word.length > 1 && (skillName.includes(word) || skillDesc.includes(word))
+    const matchingWords = inputWords.filter(
+      (word) =>
+        word.length > 1 &&
+        (skillName.includes(word) || skillDesc.includes(word)),
     );
 
     if (matchingWords.length > 0) {
@@ -222,7 +260,9 @@ class SkillRecommender {
   calculateUsageScore(skill) {
     const { usage_count = 0, success_count = 0 } = skill;
 
-    if (usage_count === 0) {return 0;}
+    if (usage_count === 0) {
+      return 0;
+    }
 
     // 成功率
     const successRate = success_count / usage_count;
@@ -231,7 +271,7 @@ class SkillRecommender {
     const normalizedUsage = Math.min(Math.log10(usage_count + 1) / 3, 1);
 
     // 综合分数
-    return (successRate * 0.7) + (normalizedUsage * 0.3);
+    return successRate * 0.7 + normalizedUsage * 0.3;
   }
 
   /**
@@ -243,7 +283,7 @@ class SkillRecommender {
     // 意图匹配
     if (intents.length > 0) {
       const matchedIntent = intents.find(({ intent }) =>
-        (this.categoryToIntent[skill.category] || []).includes(intent)
+        (this.categoryToIntent[skill.category] || []).includes(intent),
       );
       if (matchedIntent) {
         reasons.push(`与您的意图"${matchedIntent.intent}"相关`);
@@ -257,7 +297,10 @@ class SkillRecommender {
 
     // 成功率
     if (skill.usage_count > 0) {
-      const successRate = (skill.success_count / skill.usage_count * 100).toFixed(0);
+      const successRate = (
+        (skill.success_count / skill.usage_count) *
+        100
+      ).toFixed(0);
       if (successRate >= 80) {
         reasons.push(`成功率高(${successRate}%)`);
       }
@@ -265,10 +308,10 @@ class SkillRecommender {
 
     // 相关度高
     if (score >= 0.8) {
-      reasons.push('高度相关');
+      reasons.push("高度相关");
     }
 
-    return reasons.length > 0 ? reasons.join('; ') : '可能相关';
+    return reasons.length > 0 ? reasons.join("; ") : "可能相关";
   }
 
   /**
@@ -280,17 +323,19 @@ class SkillRecommender {
     const allSkills = await this.skillManager.getAllSkills({ enabled: 1 });
 
     return allSkills
-      .filter(skill => skill.usage_count > 0)
+      .filter((skill) => skill.usage_count > 0)
       .sort((a, b) => {
         // 综合排序:使用次数 + 成功率
-        const scoreA = a.usage_count * (a.success_count / Math.max(a.usage_count, 1));
-        const scoreB = b.usage_count * (b.success_count / Math.max(b.usage_count, 1));
+        const scoreA =
+          a.usage_count * (a.success_count / Math.max(a.usage_count, 1));
+        const scoreB =
+          b.usage_count * (b.success_count / Math.max(b.usage_count, 1));
         return scoreB - scoreA;
       })
       .slice(0, limit)
-      .map(skill => ({
+      .map((skill) => ({
         ...skill,
-        popularity: this.calculatePopularityScore(skill)
+        popularity: this.calculatePopularityScore(skill),
       }));
   }
 
@@ -302,21 +347,23 @@ class SkillRecommender {
    */
   async getRelatedSkills(skillId, limit = 5) {
     const skill = await this.skillManager.getSkillById(skillId);
-    if (!skill) {return [];}
+    if (!skill) {
+      return [];
+    }
 
     const allSkills = await this.skillManager.getAllSkills({
-      enabled: 1
+      enabled: 1,
     });
 
     // 获取技能的工具
     const skillTools = await this.skillManager.getSkillTools(skillId);
-    const toolIds = new Set(skillTools.map(st => st.tool_id));
+    const toolIds = new Set(skillTools.map((st) => st.tool_id));
 
     // 计算相关度
     const relatedSkills = await Promise.all(
       allSkills
-        .filter(s => s.id !== skillId)
-        .map(async otherSkill => {
+        .filter((s) => s.id !== skillId)
+        .map(async (otherSkill) => {
           let score = 0;
 
           // 1. 相同分类 (+0.5)
@@ -325,12 +372,16 @@ class SkillRecommender {
           }
 
           // 2. 共享工具 (+0.3 per tool)
-          const otherTools = await this.skillManager.getSkillTools(otherSkill.id);
-          const sharedTools = otherTools.filter(st => toolIds.has(st.tool_id));
+          const otherTools = await this.skillManager.getSkillTools(
+            otherSkill.id,
+          );
+          const sharedTools = otherTools.filter((st) =>
+            toolIds.has(st.tool_id),
+          );
           score += Math.min(sharedTools.length * 0.3, 0.5);
 
           return { skill: otherSkill, score };
-        })
+        }),
     );
 
     return relatedSkills
@@ -339,7 +390,7 @@ class SkillRecommender {
       .slice(0, limit)
       .map(({ skill, score }) => ({
         ...skill,
-        relationScore: score
+        relationScore: score,
       }));
   }
 
@@ -348,7 +399,9 @@ class SkillRecommender {
    */
   calculatePopularityScore(skill) {
     const { usage_count = 0, success_count = 0 } = skill;
-    if (usage_count === 0) {return 0;}
+    if (usage_count === 0) {
+      return 0;
+    }
 
     const successRate = success_count / usage_count;
     const normalizedUsage = Math.min(usage_count / 100, 1);
@@ -367,15 +420,15 @@ class SkillRecommender {
 
     const allSkills = await this.skillManager.getAllSkills({
       enabled: enabledOnly ? 1 : undefined,
-      category
+      category,
     });
 
-    if (!query || query.trim() === '') {
+    if (!query || query.trim() === "") {
       return allSkills.slice(0, limit);
     }
 
     const queryLower = query.toLowerCase();
-    const searchResults = allSkills.map(skill => {
+    const searchResults = allSkills.map((skill) => {
       let score = 0;
 
       // 名称匹配
@@ -389,7 +442,7 @@ class SkillRecommender {
       }
 
       // 描述匹配
-      const descLower = (skill.description || '').toLowerCase();
+      const descLower = (skill.description || "").toLowerCase();
       if (descLower.includes(queryLower)) {
         score += 0.3;
       }
@@ -408,7 +461,7 @@ class SkillRecommender {
       .slice(0, limit)
       .map(({ skill, score }) => ({
         ...skill,
-        searchScore: score
+        searchScore: score,
       }));
   }
 
@@ -417,7 +470,7 @@ class SkillRecommender {
    */
   clearCache() {
     this.cache.clear();
-    logger.info('[SkillRecommender] 缓存已清除');
+    logger.info("[SkillRecommender] 缓存已清除");
   }
 
   /**
@@ -427,7 +480,10 @@ class SkillRecommender {
     return {
       cacheSize: this.cache.size,
       intentCategories: Object.keys(this.intentKeywords).length,
-      totalKeywords: Object.values(this.intentKeywords).reduce((sum, arr) => sum + arr.length, 0)
+      totalKeywords: Object.values(this.intentKeywords).reduce(
+        (sum, arr) => sum + arr.length,
+        0,
+      ),
     };
   }
 }

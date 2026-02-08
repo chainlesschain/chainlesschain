@@ -11,31 +11,31 @@
  * @module streaming-response
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * 任务状态
  */
 const TaskStatus = {
-  PENDING: 'pending',       // 等待中
-  RUNNING: 'running',       // 执行中
-  COMPLETED: 'completed',   // 已完成
-  FAILED: 'failed',         // 失败
-  CANCELLED: 'cancelled'    // 已取消
+  PENDING: "pending", // 等待中
+  RUNNING: "running", // 执行中
+  COMPLETED: "completed", // 已完成
+  FAILED: "failed", // 失败
+  CANCELLED: "cancelled", // 已取消
 };
 
 /**
  * 进度事件类型
  */
 const ProgressEventType = {
-  STARTED: 'started',           // 任务开始
-  PROGRESS: 'progress',         // 进度更新
-  MILESTONE: 'milestone',       // 里程碑达成
-  RESULT: 'result',             // 部分结果
-  COMPLETED: 'completed',       // 任务完成
-  FAILED: 'failed',             // 任务失败
-  CANCELLED: 'cancelled'        // 任务取消
+  STARTED: "started", // 任务开始
+  PROGRESS: "progress", // 进度更新
+  MILESTONE: "milestone", // 里程碑达成
+  RESULT: "result", // 部分结果
+  COMPLETED: "completed", // 任务完成
+  FAILED: "failed", // 任务失败
+  CANCELLED: "cancelled", // 任务取消
 };
 
 /**
@@ -52,8 +52,10 @@ class CancellationToken {
   /**
    * 请求取消
    */
-  cancel(reason = 'User cancelled') {
-    if (this.cancelled) {return;}
+  cancel(reason = "User cancelled") {
+    if (this.cancelled) {
+      return;
+    }
 
     this.cancelled = true;
     this.cancelReason = reason;
@@ -63,7 +65,7 @@ class CancellationToken {
       try {
         callback(reason);
       } catch (error) {
-        logger.error('[CancellationToken] 回调执行失败:', error);
+        logger.error("[CancellationToken] 回调执行失败:", error);
       }
     }
   }
@@ -80,8 +82,8 @@ class CancellationToken {
    */
   throwIfCancelled() {
     if (this.cancelled) {
-      const error = new Error(this.cancelReason || 'Operation cancelled');
-      error.code = 'CANCELLED';
+      const error = new Error(this.cancelReason || "Operation cancelled");
+      error.code = "CANCELLED";
       throw error;
     }
   }
@@ -90,8 +92,8 @@ class CancellationToken {
    * 注册取消回调
    */
   onCancelled(callback) {
-    if (typeof callback !== 'function') {
-      throw new Error('Callback must be a function');
+    if (typeof callback !== "function") {
+      throw new Error("Callback must be a function");
     }
 
     if (this.cancelled) {
@@ -133,7 +135,7 @@ class StreamingTask extends EventEmitter {
       enablePartialResults: true,
       progressUpdateInterval: 100, // ms
       maxResultBuffer: 100,
-      ...config
+      ...config,
     };
 
     // 取消令牌
@@ -160,14 +162,14 @@ class StreamingTask extends EventEmitter {
     this._emitEvent(ProgressEventType.STARTED, {
       taskId: this.taskId,
       totalSteps: this.totalSteps,
-      timestamp: this.startTime
+      timestamp: this.startTime,
     });
   }
 
   /**
    * 更新进度
    */
-  updateProgress(step, message = '', metadata = {}) {
+  updateProgress(step, message = "", metadata = {}) {
     this.cancellationToken.throwIfCancelled();
 
     if (this.status !== TaskStatus.RUNNING) {
@@ -183,9 +185,10 @@ class StreamingTask extends EventEmitter {
 
     // 节流：避免过于频繁的更新
     const now = Date.now();
-    if (this.config.enableProgressTracking &&
-        now - this.lastProgressUpdate >= this.config.progressUpdateInterval) {
-
+    if (
+      this.config.enableProgressTracking &&
+      now - this.lastProgressUpdate >= this.config.progressUpdateInterval
+    ) {
       this.lastProgressUpdate = now;
 
       this._emitEvent(ProgressEventType.PROGRESS, {
@@ -195,7 +198,7 @@ class StreamingTask extends EventEmitter {
         progress: this.progress,
         message,
         metadata,
-        timestamp: now
+        timestamp: now,
       });
     }
   }
@@ -211,7 +214,7 @@ class StreamingTask extends EventEmitter {
       name,
       data,
       progress: this.progress,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -237,7 +240,7 @@ class StreamingTask extends EventEmitter {
       taskId: this.taskId,
       result,
       totalResults: this.results.length,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -261,7 +264,7 @@ class StreamingTask extends EventEmitter {
       taskId: this.taskId,
       results: this.results,
       duration: this.endTime - this.startTime,
-      timestamp: this.endTime
+      timestamp: this.endTime,
     });
   }
 
@@ -282,15 +285,18 @@ class StreamingTask extends EventEmitter {
       error: error.message || String(error),
       stack: error.stack,
       duration: this.endTime - this.startTime,
-      timestamp: this.endTime
+      timestamp: this.endTime,
     });
   }
 
   /**
    * 取消任务
    */
-  cancel(reason = 'User cancelled') {
-    if (this.status !== TaskStatus.RUNNING && this.status !== TaskStatus.PENDING) {
+  cancel(reason = "User cancelled") {
+    if (
+      this.status !== TaskStatus.RUNNING &&
+      this.status !== TaskStatus.PENDING
+    ) {
       return;
     }
 
@@ -303,7 +309,7 @@ class StreamingTask extends EventEmitter {
       reason,
       progress: this.progress,
       duration: this.startTime ? this.endTime - this.startTime : 0,
-      timestamp: this.endTime
+      timestamp: this.endTime,
     });
   }
 
@@ -326,9 +332,13 @@ class StreamingTask extends EventEmitter {
       totalSteps: this.totalSteps,
       startTime: this.startTime,
       endTime: this.endTime,
-      duration: this.endTime ? this.endTime - this.startTime : (this.startTime ? Date.now() - this.startTime : 0),
+      duration: this.endTime
+        ? this.endTime - this.startTime
+        : this.startTime
+          ? Date.now() - this.startTime
+          : 0,
       results: this.results,
-      error: this.error
+      error: this.error,
     };
   }
 
@@ -336,11 +346,11 @@ class StreamingTask extends EventEmitter {
    * 发送事件
    */
   _emitEvent(type, data) {
-    this.emit('event', {
+    this.emit("event", {
       type,
       data,
       taskId: this.taskId,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 }
@@ -356,7 +366,7 @@ class StreamingResponse {
       enablePartialResults: true,
       maxConcurrentTasks: 10,
       taskTimeout: 300000, // 5分钟
-      ...config
+      ...config,
     };
 
     // 活跃任务
@@ -374,7 +384,7 @@ class StreamingResponse {
       completedTasks: 0,
       failedTasks: 0,
       cancelledTasks: 0,
-      totalDuration: 0
+      totalDuration: 0,
     };
   }
 
@@ -402,17 +412,19 @@ class StreamingResponse {
     }
 
     if (this.activeTasks.size >= this.config.maxConcurrentTasks) {
-      throw new Error(`Maximum concurrent tasks (${this.config.maxConcurrentTasks}) reached`);
+      throw new Error(
+        `Maximum concurrent tasks (${this.config.maxConcurrentTasks}) reached`,
+      );
     }
 
     const task = new StreamingTask(taskId, {
       enableProgressTracking: this.config.enableProgressTracking,
       enablePartialResults: this.config.enablePartialResults,
-      ...config
+      ...config,
     });
 
     // 监听任务事件并转发
-    task.on('event', (event) => {
+    task.on("event", (event) => {
       this._handleTaskEvent(event);
     });
 
@@ -420,13 +432,21 @@ class StreamingResponse {
     if (this.config.taskTimeout > 0) {
       const timeout = setTimeout(() => {
         if (task.status === TaskStatus.RUNNING) {
-          task.fail(new Error(`Task timeout after ${this.config.taskTimeout}ms`));
+          task.fail(
+            new Error(`Task timeout after ${this.config.taskTimeout}ms`),
+          );
         }
       }, this.config.taskTimeout);
 
       // 任务完成/失败/取消时清除超时
-      task.on('event', (event) => {
-        if ([ProgressEventType.COMPLETED, ProgressEventType.FAILED, ProgressEventType.CANCELLED].includes(event.type)) {
+      task.on("event", (event) => {
+        if (
+          [
+            ProgressEventType.COMPLETED,
+            ProgressEventType.FAILED,
+            ProgressEventType.CANCELLED,
+          ].includes(event.type)
+        ) {
           clearTimeout(timeout);
         }
       });
@@ -448,7 +468,7 @@ class StreamingResponse {
   /**
    * 取消任务
    */
-  cancelTask(taskId, reason = 'User cancelled') {
+  cancelTask(taskId, reason = "User cancelled") {
     const task = this.activeTasks.get(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -467,7 +487,11 @@ class StreamingResponse {
     }
 
     // 只清理已完成/失败/取消的任务
-    if ([TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED].includes(task.status)) {
+    if (
+      [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.CANCELLED].includes(
+        task.status,
+      )
+    ) {
       this.activeTasks.delete(taskId);
     }
   }
@@ -517,10 +541,10 @@ class StreamingResponse {
         event.taskId,
         event.type,
         JSON.stringify(event.data),
-        new Date(event.timestamp).toISOString()
+        new Date(event.timestamp).toISOString(),
       );
     } catch (error) {
-      logger.error('[StreamingResponse] 记录事件失败:', error);
+      logger.error("[StreamingResponse] 记录事件失败:", error);
     }
   }
 
@@ -535,10 +559,10 @@ class StreamingResponse {
     try {
       // 在Electron环境中，使用webContents.send发送事件
       if (this.ipcChannel.send) {
-        this.ipcChannel.send('streaming-response-event', event);
+        this.ipcChannel.send("streaming-response-event", event);
       }
     } catch (error) {
-      logger.error('[StreamingResponse] 发送IPC事件失败:', error);
+      logger.error("[StreamingResponse] 发送IPC事件失败:", error);
     }
   }
 
@@ -560,15 +584,22 @@ class StreamingResponse {
     return {
       ...this.stats,
       activeTasks: this.activeTasks.size,
-      avgDuration: this.stats.completedTasks > 0
-        ? this.stats.totalDuration / this.stats.completedTasks
-        : 0,
-      successRate: this.stats.totalTasks > 0
-        ? (this.stats.completedTasks / this.stats.totalTasks * 100).toFixed(2) + '%'
-        : '0%',
-      cancellationRate: this.stats.totalTasks > 0
-        ? (this.stats.cancelledTasks / this.stats.totalTasks * 100).toFixed(2) + '%'
-        : '0%'
+      avgDuration:
+        this.stats.completedTasks > 0
+          ? this.stats.totalDuration / this.stats.completedTasks
+          : 0,
+      successRate:
+        this.stats.totalTasks > 0
+          ? ((this.stats.completedTasks / this.stats.totalTasks) * 100).toFixed(
+              2,
+            ) + "%"
+          : "0%",
+      cancellationRate:
+        this.stats.totalTasks > 0
+          ? ((this.stats.cancelledTasks / this.stats.totalTasks) * 100).toFixed(
+              2,
+            ) + "%"
+          : "0%",
     };
   }
 
@@ -587,18 +618,17 @@ class StreamingResponse {
       const params = [];
 
       if (taskId) {
-        whereClauses.push('task_id = ?');
+        whereClauses.push("task_id = ?");
         params.push(taskId);
       }
 
       if (eventType) {
-        whereClauses.push('event_type = ?');
+        whereClauses.push("event_type = ?");
         params.push(eventType);
       }
 
-      const whereClause = whereClauses.length > 0
-        ? `WHERE ${whereClauses.join(' AND ')}`
-        : '';
+      const whereClause =
+        whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
       const query = `
         SELECT *
@@ -613,13 +643,12 @@ class StreamingResponse {
       const events = this.db.prepare(query).all(...params);
 
       // 解析JSON数据
-      return events.map(event => ({
+      return events.map((event) => ({
         ...event,
-        event_data: JSON.parse(event.event_data)
+        event_data: JSON.parse(event.event_data),
       }));
-
     } catch (error) {
-      logger.error('[StreamingResponse] 获取任务历史失败:', error);
+      logger.error("[StreamingResponse] 获取任务历史失败:", error);
       return [];
     }
   }
@@ -631,7 +660,7 @@ class StreamingResponse {
     // 取消所有活跃任务
     for (const [taskId, task] of this.activeTasks.entries()) {
       if (task.status === TaskStatus.RUNNING) {
-        task.cancel('Cleanup');
+        task.cancel("Cleanup");
       }
     }
 
@@ -644,7 +673,12 @@ class StreamingResponse {
 /**
  * 辅助函数：包装异步函数以支持流式进度
  */
-async function withStreaming(taskId, streamingResponse, asyncFn, totalSteps = 0) {
+async function withStreaming(
+  taskId,
+  streamingResponse,
+  asyncFn,
+  totalSteps = 0,
+) {
   const task = streamingResponse.createTask(taskId);
   const cancellationToken = task.getCancellationToken();
 
@@ -657,15 +691,13 @@ async function withStreaming(taskId, streamingResponse, asyncFn, totalSteps = 0)
     task.complete(result);
 
     return result;
-
   } catch (error) {
-    if (error.code === 'CANCELLED') {
+    if (error.code === "CANCELLED") {
       // 取消已经由task.cancel()处理
     } else {
       task.fail(error);
     }
     throw error;
-
   } finally {
     // 清理任务（延迟清理，给UI时间显示完成状态）
     setTimeout(() => {
@@ -680,5 +712,5 @@ module.exports = {
   CancellationToken,
   TaskStatus,
   ProgressEventType,
-  withStreaming
+  withStreaming,
 };

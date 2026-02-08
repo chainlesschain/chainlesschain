@@ -2,10 +2,10 @@
  * 模板变量替换引擎
  * 使用Handlebars模板引擎，支持变量定义、验证和文件批量生成
  */
-const { logger, createLogger } = require('../utils/logger.js');
-const Handlebars = require('handlebars');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const Handlebars = require("handlebars");
+const fs = require("fs").promises;
+const path = require("path");
 
 class TemplateEngine {
   constructor() {
@@ -18,35 +18,39 @@ class TemplateEngine {
    */
   registerHelpers() {
     // 日期格式化
-    this.handlebars.registerHelper('formatDate', (date, format) => {
-      if (!date) {return '';}
-      const d = new Date(date);
-      if (format === 'yyyy-MM-dd') {
-        return d.toISOString().split('T')[0];
-      } else if (format === 'yyyy年MM月dd日') {
-        return `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, '0')}月${String(d.getDate()).padStart(2, '0')}日`;
+    this.handlebars.registerHelper("formatDate", (date, format) => {
+      if (!date) {
+        return "";
       }
-      return d.toLocaleDateString('zh-CN');
+      const d = new Date(date);
+      if (format === "yyyy-MM-dd") {
+        return d.toISOString().split("T")[0];
+      } else if (format === "yyyy年MM月dd日") {
+        return `${d.getFullYear()}年${String(d.getMonth() + 1).padStart(2, "0")}月${String(d.getDate()).padStart(2, "0")}日`;
+      }
+      return d.toLocaleDateString("zh-CN");
     });
 
     // 大写转换
-    this.handlebars.registerHelper('uppercase', (str) => {
-      return str ? str.toUpperCase() : '';
+    this.handlebars.registerHelper("uppercase", (str) => {
+      return str ? str.toUpperCase() : "";
     });
 
     // 小写转换
-    this.handlebars.registerHelper('lowercase', (str) => {
-      return str ? str.toLowerCase() : '';
+    this.handlebars.registerHelper("lowercase", (str) => {
+      return str ? str.toLowerCase() : "";
     });
 
     // 首字母大写
-    this.handlebars.registerHelper('capitalize', (str) => {
-      if (!str) {return '';}
+    this.handlebars.registerHelper("capitalize", (str) => {
+      if (!str) {
+        return "";
+      }
       return str.charAt(0).toUpperCase() + str.slice(1);
     });
 
     // 条件判断 - 支持块级和内联使用
-    this.handlebars.registerHelper('eq', function(a, b, options) {
+    this.handlebars.registerHelper("eq", function (a, b, options) {
       // 块级helper使用（{{#eq a b}}...{{/eq}}）
       if (options && options.fn) {
         return a === b ? options.fn(this) : options.inverse(this);
@@ -56,7 +60,7 @@ class TemplateEngine {
     });
 
     // 小于或等于 - 支持块级和内联使用
-    this.handlebars.registerHelper('lte', function(a, b, options) {
+    this.handlebars.registerHelper("lte", function (a, b, options) {
       if (options && options.fn) {
         return a <= b ? options.fn(this) : options.inverse(this);
       }
@@ -64,7 +68,7 @@ class TemplateEngine {
     });
 
     // 大于或等于 - 支持块级和内联使用
-    this.handlebars.registerHelper('gte', function(a, b, options) {
+    this.handlebars.registerHelper("gte", function (a, b, options) {
       if (options && options.fn) {
         return a >= b ? options.fn(this) : options.inverse(this);
       }
@@ -72,7 +76,7 @@ class TemplateEngine {
     });
 
     // 小于 - 支持块级和内联使用
-    this.handlebars.registerHelper('lt', function(a, b, options) {
+    this.handlebars.registerHelper("lt", function (a, b, options) {
       if (options && options.fn) {
         return a < b ? options.fn(this) : options.inverse(this);
       }
@@ -80,7 +84,7 @@ class TemplateEngine {
     });
 
     // 大于 - 支持块级和内联使用
-    this.handlebars.registerHelper('gt', function(a, b, options) {
+    this.handlebars.registerHelper("gt", function (a, b, options) {
       if (options && options.fn) {
         return a > b ? options.fn(this) : options.inverse(this);
       }
@@ -88,18 +92,20 @@ class TemplateEngine {
     });
 
     // 默认值
-    this.handlebars.registerHelper('default', (value, defaultValue) => {
+    this.handlebars.registerHelper("default", (value, defaultValue) => {
       return value || defaultValue;
     });
 
     // 数组/对象查找 - 支持 lookup 语法访问数组元素
-    this.handlebars.registerHelper('lookup', (obj, key) => {
-      if (!obj) {return undefined;}
+    this.handlebars.registerHelper("lookup", (obj, key) => {
+      if (!obj) {
+        return undefined;
+      }
       return obj[key];
     });
 
     // 生成数字范围数组
-    this.handlebars.registerHelper('range', (start, end) => {
+    this.handlebars.registerHelper("range", (start, end) => {
       const result = [];
       for (let i = start; i <= end; i++) {
         result.push(i);
@@ -108,12 +114,12 @@ class TemplateEngine {
     });
 
     // 加法
-    this.handlebars.registerHelper('add', (a, b) => {
+    this.handlebars.registerHelper("add", (a, b) => {
       return Number(a) + Number(b);
     });
 
     // 减法
-    this.handlebars.registerHelper('subtract', (a, b) => {
+    this.handlebars.registerHelper("subtract", (a, b) => {
       return Number(a) - Number(b);
     });
   }
@@ -130,17 +136,38 @@ class TemplateEngine {
       const context = {
         ...variables,
         // 星期名称数组（中文）
-        dayNames: ['一', '二', '三', '四', '五', '六', '日'],
+        dayNames: ["一", "二", "三", "四", "五", "六", "日"],
         // 星期名称数组（英文）
-        dayNamesEn: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        dayNamesEn: [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ],
         // 月份名称（中文）
-        monthNames: ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月']
+        monthNames: [
+          "一月",
+          "二月",
+          "三月",
+          "四月",
+          "五月",
+          "六月",
+          "七月",
+          "八月",
+          "九月",
+          "十月",
+          "十一月",
+          "十二月",
+        ],
       };
 
       const compiledTemplate = this.handlebars.compile(templateString);
       return compiledTemplate(context);
     } catch (error) {
-      logger.error('[TemplateEngine] 渲染失败:', error);
+      logger.error("[TemplateEngine] 渲染失败:", error);
       throw new Error(`模板渲染失败: ${error.message}`);
     }
   }
@@ -163,62 +190,62 @@ class TemplateEngine {
       const value = userVariables[name];
 
       // 检查必填项
-      if (required && (value === undefined || value === null || value === '')) {
+      if (required && (value === undefined || value === null || value === "")) {
         errors.push({
           field: name,
-          message: `${label || name} 为必填项`
+          message: `${label || name} 为必填项`,
         });
         continue;
       }
 
       // 如果值为空且非必填，跳过其他验证
-      if (value === undefined || value === null || value === '') {
+      if (value === undefined || value === null || value === "") {
         continue;
       }
 
       // 类型验证
       switch (type) {
-        case 'number':
-          if (typeof value !== 'number' && isNaN(Number(value))) {
+        case "number":
+          if (typeof value !== "number" && isNaN(Number(value))) {
             errors.push({
               field: name,
-              message: `${label || name} 必须是数字`
+              message: `${label || name} 必须是数字`,
             });
           } else {
             const numValue = Number(value);
             if (min !== undefined && numValue < min) {
               errors.push({
                 field: name,
-                message: `${label || name} 不能小于 ${min}`
+                message: `${label || name} 不能小于 ${min}`,
               });
             }
             if (max !== undefined && numValue > max) {
               errors.push({
                 field: name,
-                message: `${label || name} 不能大于 ${max}`
+                message: `${label || name} 不能大于 ${max}`,
               });
             }
           }
           break;
 
-        case 'text':
-        case 'textarea':
-          if (typeof value !== 'string') {
+        case "text":
+        case "textarea":
+          if (typeof value !== "string") {
             errors.push({
               field: name,
-              message: `${label || name} 必须是字符串`
+              message: `${label || name} 必须是字符串`,
             });
           } else {
             if (min !== undefined && value.length < min) {
               errors.push({
                 field: name,
-                message: `${label || name} 长度不能少于 ${min} 个字符`
+                message: `${label || name} 长度不能少于 ${min} 个字符`,
               });
             }
             if (max !== undefined && value.length > max) {
               errors.push({
                 field: name,
-                message: `${label || name} 长度不能超过 ${max} 个字符`
+                message: `${label || name} 长度不能超过 ${max} 个字符`,
               });
             }
             if (pattern) {
@@ -226,59 +253,62 @@ class TemplateEngine {
               if (!regex.test(value)) {
                 errors.push({
                   field: name,
-                  message: `${label || name} 格式不正确`
+                  message: `${label || name} 格式不正确`,
                 });
               }
             }
           }
           break;
 
-        case 'email': {
+        case "email": {
           const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
           if (!emailRegex.test(value)) {
             errors.push({
               field: name,
-              message: `${label || name} 邮箱格式不正确`
+              message: `${label || name} 邮箱格式不正确`,
             });
           }
           break;
         }
 
-        case 'url':
+        case "url":
           try {
             new URL(value);
           } catch {
             errors.push({
               field: name,
-              message: `${label || name} URL格式不正确`
+              message: `${label || name} URL格式不正确`,
             });
           }
           break;
 
-        case 'date':
+        case "date":
           if (isNaN(Date.parse(value))) {
             errors.push({
               field: name,
-              message: `${label || name} 日期格式不正确`
+              message: `${label || name} 日期格式不正确`,
             });
           }
           break;
 
-        case 'select':
-        case 'radio':
-          if (varDef.options && !varDef.options.some(opt => opt.value === value)) {
+        case "select":
+        case "radio":
+          if (
+            varDef.options &&
+            !varDef.options.some((opt) => opt.value === value)
+          ) {
             errors.push({
               field: name,
-              message: `${label || name} 值不在可选范围内`
+              message: `${label || name} 值不在可选范围内`,
             });
           }
           break;
 
-        case 'checkbox':
+        case "checkbox":
           if (!Array.isArray(value)) {
             errors.push({
               field: name,
-              message: `${label || name} 必须是数组`
+              message: `${label || name} 必须是数组`,
             });
           }
           break;
@@ -287,7 +317,7 @@ class TemplateEngine {
 
     return {
       valid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -300,16 +330,19 @@ class TemplateEngine {
    */
   async createProjectFromTemplate(template, variables, targetPath) {
     try {
-      logger.info('[TemplateEngine] 开始从模板创建项目:', template.name);
+      logger.info("[TemplateEngine] 开始从模板创建项目:", template.name);
 
       // 1. 验证变量
       if (template.variables) {
-        const validation = this.validateVariables(template.variables, variables);
+        const validation = this.validateVariables(
+          template.variables,
+          variables,
+        );
         if (!validation.valid) {
           return {
             success: false,
             filesCreated: 0,
-            errors: validation.errors
+            errors: validation.errors,
           };
         }
       }
@@ -318,11 +351,11 @@ class TemplateEngine {
       const context = {
         ...variables,
         _system: {
-          date: new Date().toISOString().split('T')[0],
+          date: new Date().toISOString().split("T")[0],
           datetime: new Date().toISOString(),
           year: new Date().getFullYear(),
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       };
 
       // 3. 确保目标路径存在
@@ -335,7 +368,11 @@ class TemplateEngine {
       if (template.files && Array.isArray(template.files)) {
         for (const fileTemplate of template.files) {
           try {
-            const { path: filePath, template: fileContent, type } = fileTemplate;
+            const {
+              path: filePath,
+              template: fileContent,
+              type,
+            } = fileTemplate;
 
             // 渲染文件路径（支持路径中的变量）
             const renderedPath = this.render(filePath, context);
@@ -346,7 +383,7 @@ class TemplateEngine {
 
             // 渲染文件内容
             let renderedContent;
-            if (type === 'binary' || type === 'image') {
+            if (type === "binary" || type === "image") {
               // 二进制文件不渲染，直接复制
               renderedContent = fileContent;
             } else {
@@ -354,15 +391,15 @@ class TemplateEngine {
             }
 
             // 写入文件
-            await fs.writeFile(fullPath, renderedContent, 'utf-8');
+            await fs.writeFile(fullPath, renderedContent, "utf-8");
             filesCreated.push(fullPath);
 
-            logger.info('[TemplateEngine] 文件已创建:', renderedPath);
+            logger.info("[TemplateEngine] 文件已创建:", renderedPath);
           } catch (error) {
-            logger.error('[TemplateEngine] 文件创建失败:', error);
+            logger.error("[TemplateEngine] 文件创建失败:", error);
             errors.push({
               file: fileTemplate.path,
-              message: error.message
+              message: error.message,
             });
           }
         }
@@ -372,14 +409,14 @@ class TemplateEngine {
         success: errors.length === 0,
         filesCreated: filesCreated.length,
         files: filesCreated,
-        errors
+        errors,
       };
     } catch (error) {
-      logger.error('[TemplateEngine] 创建项目失败:', error);
+      logger.error("[TemplateEngine] 创建项目失败:", error);
       return {
         success: false,
         filesCreated: 0,
-        errors: [{ message: error.message }]
+        errors: [{ message: error.message }],
       };
     }
   }
@@ -395,12 +432,12 @@ class TemplateEngine {
       const renderedContent = this.render(templateString, variables);
       return {
         success: true,
-        preview: renderedContent
+        preview: renderedContent,
       };
     } catch (error) {
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -412,10 +449,10 @@ class TemplateEngine {
    */
   async loadTemplateFromFile(templatePath) {
     try {
-      const content = await fs.readFile(templatePath, 'utf-8');
+      const content = await fs.readFile(templatePath, "utf-8");
       return JSON.parse(content);
     } catch (error) {
-      logger.error('[TemplateEngine] 加载模板失败:', error);
+      logger.error("[TemplateEngine] 加载模板失败:", error);
       throw new Error(`加载模板失败: ${error.message}`);
     }
   }
@@ -429,10 +466,10 @@ class TemplateEngine {
   async saveTemplateToFile(template, outputPath) {
     try {
       const content = JSON.stringify(template, null, 2);
-      await fs.writeFile(outputPath, content, 'utf-8');
-      logger.info('[TemplateEngine] 模板已保存:', outputPath);
+      await fs.writeFile(outputPath, content, "utf-8");
+      logger.info("[TemplateEngine] 模板已保存:", outputPath);
     } catch (error) {
-      logger.error('[TemplateEngine] 保存模板失败:', error);
+      logger.error("[TemplateEngine] 保存模板失败:", error);
       throw new Error(`保存模板失败: ${error.message}`);
     }
   }
@@ -450,7 +487,7 @@ class TemplateEngine {
     while ((match = regex.exec(templateString)) !== null) {
       const varName = match[1].trim();
       // 移除helpers和系统变量
-      if (!varName.startsWith('_system') && !varName.includes(' ')) {
+      if (!varName.startsWith("_system") && !varName.includes(" ")) {
         variables.add(varName);
       }
     }
@@ -473,12 +510,15 @@ class TemplateEngine {
     for (const varDef of variableDefinitions) {
       if (varDef.default !== undefined) {
         // 如果default是字符串且包含{{}}，尝试渲染
-        if (typeof varDef.default === 'string' && varDef.default.includes('{{')) {
+        if (
+          typeof varDef.default === "string" &&
+          varDef.default.includes("{{")
+        ) {
           try {
             defaults[varDef.name] = this.render(varDef.default, {
               user: {
-                name: process.env.USERNAME || process.env.USER || '用户'
-              }
+                name: process.env.USERNAME || process.env.USER || "用户",
+              },
             });
           } catch {
             defaults[varDef.name] = varDef.default;
@@ -489,17 +529,17 @@ class TemplateEngine {
       } else {
         // 根据类型设置默认值
         switch (varDef.type) {
-          case 'number':
+          case "number":
             defaults[varDef.name] = 0;
             break;
-          case 'checkbox':
+          case "checkbox":
             defaults[varDef.name] = [];
             break;
-          case 'switch':
+          case "switch":
             defaults[varDef.name] = false;
             break;
           default:
-            defaults[varDef.name] = '';
+            defaults[varDef.name] = "";
         }
       }
     }
@@ -524,5 +564,5 @@ function getTemplateEngine() {
 
 module.exports = {
   TemplateEngine,
-  getTemplateEngine
+  getTemplateEngine,
 };

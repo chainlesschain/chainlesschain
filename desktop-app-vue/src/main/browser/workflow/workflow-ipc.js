@@ -6,12 +6,18 @@
  * @since v0.30.0
  */
 
-const { ipcMain } = require('electron');
-const { logger } = require('../../utils/logger');
-const { createIPCErrorHandler } = require('../../utils/ipc-error-handler');
-const { WorkflowEngine } = require('./workflow-engine');
-const { WorkflowStorage } = require('./workflow-storage');
-const { createWorkflow, condition, and, or, not } = require('./workflow-builder');
+const { ipcMain } = require("electron");
+const { logger } = require("../../utils/logger");
+const { createIPCErrorHandler } = require("../../utils/ipc-error-handler");
+const { WorkflowEngine } = require("./workflow-engine");
+const { WorkflowStorage } = require("./workflow-storage");
+const {
+  createWorkflow,
+  condition,
+  and,
+  or,
+  not,
+} = require("./workflow-builder");
 
 // Singleton instances
 let workflowEngine = null;
@@ -25,36 +31,36 @@ let workflowStorage = null;
 function initializeWorkflowSystem(browserEngine, db) {
   if (!workflowStorage && db) {
     workflowStorage = new WorkflowStorage(db);
-    logger.info('[WorkflowIPC] WorkflowStorage initialized');
+    logger.info("[WorkflowIPC] WorkflowStorage initialized");
   }
 
   if (!workflowEngine && browserEngine) {
     workflowEngine = new WorkflowEngine(browserEngine, {
-      storage: workflowStorage
+      storage: workflowStorage,
     });
 
     // Register engine events
-    workflowEngine.on('workflow:started', (data) => {
-      logger.info('[WorkflowIPC] Workflow started', data);
+    workflowEngine.on("workflow:started", (data) => {
+      logger.info("[WorkflowIPC] Workflow started", data);
     });
 
-    workflowEngine.on('workflow:completed', (data) => {
-      logger.info('[WorkflowIPC] Workflow completed', data);
+    workflowEngine.on("workflow:completed", (data) => {
+      logger.info("[WorkflowIPC] Workflow completed", data);
     });
 
-    workflowEngine.on('workflow:failed', (data) => {
-      logger.error('[WorkflowIPC] Workflow failed', data);
+    workflowEngine.on("workflow:failed", (data) => {
+      logger.error("[WorkflowIPC] Workflow failed", data);
     });
 
-    workflowEngine.on('workflow:paused', (data) => {
-      logger.info('[WorkflowIPC] Workflow paused', data);
+    workflowEngine.on("workflow:paused", (data) => {
+      logger.info("[WorkflowIPC] Workflow paused", data);
     });
 
-    workflowEngine.on('workflow:step:completed', (data) => {
-      logger.debug('[WorkflowIPC] Step completed', data);
+    workflowEngine.on("workflow:step:completed", (data) => {
+      logger.debug("[WorkflowIPC] Step completed", data);
     });
 
-    logger.info('[WorkflowIPC] WorkflowEngine initialized');
+    logger.info("[WorkflowIPC] WorkflowEngine initialized");
   }
 }
 
@@ -64,7 +70,9 @@ function initializeWorkflowSystem(browserEngine, db) {
  */
 function getWorkflowEngine() {
   if (!workflowEngine) {
-    throw new Error('Workflow engine not initialized. Call initializeWorkflowSystem first.');
+    throw new Error(
+      "Workflow engine not initialized. Call initializeWorkflowSystem first.",
+    );
   }
   return workflowEngine;
 }
@@ -75,7 +83,9 @@ function getWorkflowEngine() {
  */
 function getWorkflowStorage() {
   if (!workflowStorage) {
-    throw new Error('Workflow storage not initialized. Call initializeWorkflowSystem first.');
+    throw new Error(
+      "Workflow storage not initialized. Call initializeWorkflowSystem first.",
+    );
   }
   return workflowStorage;
 }
@@ -84,7 +94,7 @@ function getWorkflowStorage() {
  * Register all Workflow IPC handlers
  */
 function registerWorkflowIPC() {
-  const withErrorHandler = createIPCErrorHandler('workflow');
+  const withErrorHandler = createIPCErrorHandler("workflow");
 
   // ==================== Workflow CRUD ====================
 
@@ -93,50 +103,59 @@ function registerWorkflowIPC() {
    * @param {Object} workflow - Workflow data
    * @returns {Promise<Object>} Created workflow
    */
-  ipcMain.handle('browser:workflow:create', withErrorHandler(async (event, workflow) => {
-    const storage = getWorkflowStorage();
-    const result = await storage.createWorkflow(workflow);
+  ipcMain.handle(
+    "browser:workflow:create",
+    withErrorHandler(async (event, workflow) => {
+      const storage = getWorkflowStorage();
+      const result = await storage.createWorkflow(workflow);
 
-    logger.info('[WorkflowIPC] Workflow created', {
-      id: result.id,
-      name: result.name
-    });
+      logger.info("[WorkflowIPC] Workflow created", {
+        id: result.id,
+        name: result.name,
+      });
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   /**
    * Get workflow by ID
    * @param {string} id - Workflow ID
    * @returns {Promise<Object|null>} Workflow
    */
-  ipcMain.handle('browser:workflow:get', withErrorHandler(async (event, id) => {
-    const storage = getWorkflowStorage();
-    const workflow = await storage.getWorkflow(id);
+  ipcMain.handle(
+    "browser:workflow:get",
+    withErrorHandler(async (event, id) => {
+      const storage = getWorkflowStorage();
+      const workflow = await storage.getWorkflow(id);
 
-    if (!workflow) {
-      throw new Error(`Workflow ${id} not found`);
-    }
+      if (!workflow) {
+        throw new Error(`Workflow ${id} not found`);
+      }
 
-    return workflow;
-  }));
+      return workflow;
+    }),
+  );
 
   /**
    * List workflows
    * @param {Object} options - Filter options
    * @returns {Promise<Array>} Workflow list
    */
-  ipcMain.handle('browser:workflow:list', withErrorHandler(async (event, options = {}) => {
-    const storage = getWorkflowStorage();
-    const workflows = await storage.listWorkflows(options);
+  ipcMain.handle(
+    "browser:workflow:list",
+    withErrorHandler(async (event, options = {}) => {
+      const storage = getWorkflowStorage();
+      const workflows = await storage.listWorkflows(options);
 
-    logger.debug('[WorkflowIPC] Listed workflows', {
-      count: workflows.length,
-      options
-    });
+      logger.debug("[WorkflowIPC] Listed workflows", {
+        count: workflows.length,
+        options,
+      });
 
-    return workflows;
-  }));
+      return workflows;
+    }),
+  );
 
   /**
    * Update workflow
@@ -144,28 +163,34 @@ function registerWorkflowIPC() {
    * @param {Object} updates - Fields to update
    * @returns {Promise<Object>} Updated workflow
    */
-  ipcMain.handle('browser:workflow:update', withErrorHandler(async (event, id, updates) => {
-    const storage = getWorkflowStorage();
-    const result = await storage.updateWorkflow(id, updates);
+  ipcMain.handle(
+    "browser:workflow:update",
+    withErrorHandler(async (event, id, updates) => {
+      const storage = getWorkflowStorage();
+      const result = await storage.updateWorkflow(id, updates);
 
-    logger.info('[WorkflowIPC] Workflow updated', { id });
+      logger.info("[WorkflowIPC] Workflow updated", { id });
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   /**
    * Delete workflow
    * @param {string} id - Workflow ID
    * @returns {Promise<boolean>} Success
    */
-  ipcMain.handle('browser:workflow:delete', withErrorHandler(async (event, id) => {
-    const storage = getWorkflowStorage();
-    const result = await storage.deleteWorkflow(id);
+  ipcMain.handle(
+    "browser:workflow:delete",
+    withErrorHandler(async (event, id) => {
+      const storage = getWorkflowStorage();
+      const result = await storage.deleteWorkflow(id);
 
-    logger.info('[WorkflowIPC] Workflow deleted', { id });
+      logger.info("[WorkflowIPC] Workflow deleted", { id });
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   /**
    * Duplicate workflow
@@ -173,17 +198,20 @@ function registerWorkflowIPC() {
    * @param {string} newName - Name for the duplicate
    * @returns {Promise<Object>} New workflow
    */
-  ipcMain.handle('browser:workflow:duplicate', withErrorHandler(async (event, id, newName) => {
-    const storage = getWorkflowStorage();
-    const result = await storage.duplicateWorkflow(id, newName);
+  ipcMain.handle(
+    "browser:workflow:duplicate",
+    withErrorHandler(async (event, id, newName) => {
+      const storage = getWorkflowStorage();
+      const result = await storage.duplicateWorkflow(id, newName);
 
-    logger.info('[WorkflowIPC] Workflow duplicated', {
-      sourceId: id,
-      newId: result.id
-    });
+      logger.info("[WorkflowIPC] Workflow duplicated", {
+        sourceId: id,
+        newId: result.id,
+      });
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   // ==================== Workflow Execution ====================
 
@@ -193,28 +221,31 @@ function registerWorkflowIPC() {
    * @param {Object} options - Execution options
    * @returns {Promise<Object>} Execution result
    */
-  ipcMain.handle('browser:workflow:execute', withErrorHandler(async (event, workflowId, options = {}) => {
-    const storage = getWorkflowStorage();
-    const engine = getWorkflowEngine();
+  ipcMain.handle(
+    "browser:workflow:execute",
+    withErrorHandler(async (event, workflowId, options = {}) => {
+      const storage = getWorkflowStorage();
+      const engine = getWorkflowEngine();
 
-    const workflow = await storage.getWorkflow(workflowId);
-    if (!workflow) {
-      throw new Error(`Workflow ${workflowId} not found`);
-    }
+      const workflow = await storage.getWorkflow(workflowId);
+      if (!workflow) {
+        throw new Error(`Workflow ${workflowId} not found`);
+      }
 
-    if (!workflow.isEnabled) {
-      throw new Error(`Workflow ${workflowId} is disabled`);
-    }
+      if (!workflow.isEnabled) {
+        throw new Error(`Workflow ${workflowId} is disabled`);
+      }
 
-    logger.info('[WorkflowIPC] Executing workflow', {
-      workflowId,
-      targetId: options.targetId
-    });
+      logger.info("[WorkflowIPC] Executing workflow", {
+        workflowId,
+        targetId: options.targetId,
+      });
 
-    const result = await engine.executeWorkflow(workflow, options);
+      const result = await engine.executeWorkflow(workflow, options);
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   /**
    * Execute workflow inline (without saving)
@@ -222,79 +253,106 @@ function registerWorkflowIPC() {
    * @param {Object} options - Execution options
    * @returns {Promise<Object>} Execution result
    */
-  ipcMain.handle('browser:workflow:executeInline', withErrorHandler(async (event, workflow, options = {}) => {
-    const engine = getWorkflowEngine();
+  ipcMain.handle(
+    "browser:workflow:executeInline",
+    withErrorHandler(async (event, workflow, options = {}) => {
+      const engine = getWorkflowEngine();
 
-    logger.info('[WorkflowIPC] Executing inline workflow', {
-      name: workflow.name,
-      targetId: options.targetId
-    });
+      logger.info("[WorkflowIPC] Executing inline workflow", {
+        name: workflow.name,
+        targetId: options.targetId,
+      });
 
-    const result = await engine.executeWorkflow(workflow, options);
+      const result = await engine.executeWorkflow(workflow, options);
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   /**
    * Pause workflow execution
    * @param {string} executionId - Execution ID
    * @returns {Promise<boolean>} Success
    */
-  ipcMain.handle('browser:workflow:pause', withErrorHandler(async (event, executionId) => {
-    const engine = getWorkflowEngine();
-    const result = engine.pause(executionId);
+  ipcMain.handle(
+    "browser:workflow:pause",
+    withErrorHandler(async (event, executionId) => {
+      const engine = getWorkflowEngine();
+      const result = engine.pause(executionId);
 
-    logger.info('[WorkflowIPC] Workflow paused', { executionId, success: result });
+      logger.info("[WorkflowIPC] Workflow paused", {
+        executionId,
+        success: result,
+      });
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   /**
    * Resume workflow execution
    * @param {string} executionId - Execution ID
    * @returns {Promise<boolean>} Success
    */
-  ipcMain.handle('browser:workflow:resume', withErrorHandler(async (event, executionId) => {
-    const engine = getWorkflowEngine();
-    const result = engine.resume(executionId);
+  ipcMain.handle(
+    "browser:workflow:resume",
+    withErrorHandler(async (event, executionId) => {
+      const engine = getWorkflowEngine();
+      const result = engine.resume(executionId);
 
-    logger.info('[WorkflowIPC] Workflow resumed', { executionId, success: result });
+      logger.info("[WorkflowIPC] Workflow resumed", {
+        executionId,
+        success: result,
+      });
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   /**
    * Cancel workflow execution
    * @param {string} executionId - Execution ID
    * @returns {Promise<boolean>} Success
    */
-  ipcMain.handle('browser:workflow:cancel', withErrorHandler(async (event, executionId) => {
-    const engine = getWorkflowEngine();
-    const result = engine.cancel(executionId);
+  ipcMain.handle(
+    "browser:workflow:cancel",
+    withErrorHandler(async (event, executionId) => {
+      const engine = getWorkflowEngine();
+      const result = engine.cancel(executionId);
 
-    logger.info('[WorkflowIPC] Workflow cancelled', { executionId, success: result });
+      logger.info("[WorkflowIPC] Workflow cancelled", {
+        executionId,
+        success: result,
+      });
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   /**
    * Get workflow execution status
    * @param {string} executionId - Execution ID
    * @returns {Promise<Object|null>} Status
    */
-  ipcMain.handle('browser:workflow:getStatus', withErrorHandler(async (event, executionId) => {
-    const engine = getWorkflowEngine();
-    return engine.getStatus(executionId);
-  }));
+  ipcMain.handle(
+    "browser:workflow:getStatus",
+    withErrorHandler(async (event, executionId) => {
+      const engine = getWorkflowEngine();
+      return engine.getStatus(executionId);
+    }),
+  );
 
   /**
    * List active executions
    * @returns {Promise<Array>} Active executions
    */
-  ipcMain.handle('browser:workflow:listActive', withErrorHandler(async (event) => {
-    const engine = getWorkflowEngine();
-    return engine.listActiveExecutions();
-  }));
+  ipcMain.handle(
+    "browser:workflow:listActive",
+    withErrorHandler(async (event) => {
+      const engine = getWorkflowEngine();
+      return engine.listActiveExecutions();
+    }),
+  );
 
   // ==================== Execution History ====================
 
@@ -303,36 +361,45 @@ function registerWorkflowIPC() {
    * @param {string} executionId - Execution ID
    * @returns {Promise<Object>} Execution record
    */
-  ipcMain.handle('browser:workflow:getExecution', withErrorHandler(async (event, executionId) => {
-    const storage = getWorkflowStorage();
-    const execution = await storage.getExecution(executionId);
+  ipcMain.handle(
+    "browser:workflow:getExecution",
+    withErrorHandler(async (event, executionId) => {
+      const storage = getWorkflowStorage();
+      const execution = await storage.getExecution(executionId);
 
-    if (!execution) {
-      throw new Error(`Execution ${executionId} not found`);
-    }
+      if (!execution) {
+        throw new Error(`Execution ${executionId} not found`);
+      }
 
-    return execution;
-  }));
+      return execution;
+    }),
+  );
 
   /**
    * List workflow executions
    * @param {Object} options - Filter options
    * @returns {Promise<Array>} Execution list
    */
-  ipcMain.handle('browser:workflow:listExecutions', withErrorHandler(async (event, options = {}) => {
-    const storage = getWorkflowStorage();
-    return storage.listExecutions(options);
-  }));
+  ipcMain.handle(
+    "browser:workflow:listExecutions",
+    withErrorHandler(async (event, options = {}) => {
+      const storage = getWorkflowStorage();
+      return storage.listExecutions(options);
+    }),
+  );
 
   /**
    * Get workflow statistics
    * @param {string} workflowId - Workflow ID
    * @returns {Promise<Object>} Statistics
    */
-  ipcMain.handle('browser:workflow:getStats', withErrorHandler(async (event, workflowId) => {
-    const storage = getWorkflowStorage();
-    return storage.getWorkflowStats(workflowId);
-  }));
+  ipcMain.handle(
+    "browser:workflow:getStats",
+    withErrorHandler(async (event, workflowId) => {
+      const storage = getWorkflowStorage();
+      return storage.getWorkflowStats(workflowId);
+    }),
+  );
 
   // ==================== Variables ====================
 
@@ -343,36 +410,42 @@ function registerWorkflowIPC() {
    * @param {any} value - Variable value
    * @returns {Promise<boolean>} Success
    */
-  ipcMain.handle('browser:workflow:setVariable', withErrorHandler(async (event, executionId, name, value) => {
-    const engine = getWorkflowEngine();
-    const context = engine.executions.get(executionId);
+  ipcMain.handle(
+    "browser:workflow:setVariable",
+    withErrorHandler(async (event, executionId, name, value) => {
+      const engine = getWorkflowEngine();
+      const context = engine.executions.get(executionId);
 
-    if (!context) {
-      throw new Error(`Execution ${executionId} not found or not active`);
-    }
+      if (!context) {
+        throw new Error(`Execution ${executionId} not found or not active`);
+      }
 
-    context.variables.set(name, value);
+      context.variables.set(name, value);
 
-    logger.debug('[WorkflowIPC] Variable set', { executionId, name });
+      logger.debug("[WorkflowIPC] Variable set", { executionId, name });
 
-    return true;
-  }));
+      return true;
+    }),
+  );
 
   /**
    * Get workflow variables
    * @param {string} executionId - Execution ID
    * @returns {Promise<Object>} Variables
    */
-  ipcMain.handle('browser:workflow:getVariables', withErrorHandler(async (event, executionId) => {
-    const engine = getWorkflowEngine();
-    const context = engine.executions.get(executionId);
+  ipcMain.handle(
+    "browser:workflow:getVariables",
+    withErrorHandler(async (event, executionId) => {
+      const engine = getWorkflowEngine();
+      const context = engine.executions.get(executionId);
 
-    if (!context) {
-      throw new Error(`Execution ${executionId} not found or not active`);
-    }
+      if (!context) {
+        throw new Error(`Execution ${executionId} not found or not active`);
+      }
 
-    return context.variables.getAll();
-  }));
+      return context.variables.getAll();
+    }),
+  );
 
   // ==================== Import/Export ====================
 
@@ -381,14 +454,17 @@ function registerWorkflowIPC() {
    * @param {string} id - Workflow ID
    * @returns {Promise<Object>} Exportable data
    */
-  ipcMain.handle('browser:workflow:export', withErrorHandler(async (event, id) => {
-    const storage = getWorkflowStorage();
-    const data = await storage.exportWorkflow(id);
+  ipcMain.handle(
+    "browser:workflow:export",
+    withErrorHandler(async (event, id) => {
+      const storage = getWorkflowStorage();
+      const data = await storage.exportWorkflow(id);
 
-    logger.info('[WorkflowIPC] Workflow exported', { id });
+      logger.info("[WorkflowIPC] Workflow exported", { id });
 
-    return data;
-  }));
+      return data;
+    }),
+  );
 
   /**
    * Import workflow from JSON
@@ -396,14 +472,17 @@ function registerWorkflowIPC() {
    * @param {Object} options - Import options
    * @returns {Promise<Object>} Imported workflow
    */
-  ipcMain.handle('browser:workflow:import', withErrorHandler(async (event, data, options = {}) => {
-    const storage = getWorkflowStorage();
-    const result = await storage.importWorkflow(data, options);
+  ipcMain.handle(
+    "browser:workflow:import",
+    withErrorHandler(async (event, data, options = {}) => {
+      const storage = getWorkflowStorage();
+      const result = await storage.importWorkflow(data, options);
 
-    logger.info('[WorkflowIPC] Workflow imported', { id: result.id });
+      logger.info("[WorkflowIPC] Workflow imported", { id: result.id });
 
-    return result;
-  }));
+      return result;
+    }),
+  );
 
   // ==================== Workflow Builder Helpers ====================
 
@@ -414,23 +493,36 @@ function registerWorkflowIPC() {
    * @param {Object} options - Build options
    * @returns {Promise<Object>} Built workflow
    */
-  ipcMain.handle('browser:workflow:build', withErrorHandler(async (event, name, steps, options = {}) => {
-    const builder = createWorkflow(name);
+  ipcMain.handle(
+    "browser:workflow:build",
+    withErrorHandler(async (event, name, steps, options = {}) => {
+      const builder = createWorkflow(name);
 
-    if (options.description) builder.description(options.description);
-    if (options.tags) builder.tags(...options.tags);
-    if (options.variables) builder.variables(options.variables);
-    if (options.isTemplate) builder.template();
+      if (options.description) {
+        builder.description(options.description);
+      }
+      if (options.tags) {
+        builder.tags(...options.tags);
+      }
+      if (options.variables) {
+        builder.variables(options.variables);
+      }
+      if (options.isTemplate) {
+        builder.template();
+      }
 
-    // Add steps
-    for (const step of steps) {
-      builder.step(step);
-    }
+      // Add steps
+      for (const step of steps) {
+        builder.step(step);
+      }
 
-    return builder.build();
-  }));
+      return builder.build();
+    }),
+  );
 
-  logger.info('[WorkflowIPC] All Workflow IPC handlers registered (20 handlers)');
+  logger.info(
+    "[WorkflowIPC] All Workflow IPC handlers registered (20 handlers)",
+  );
 }
 
 /**
@@ -445,7 +537,7 @@ function cleanupWorkflowSystem() {
     workflowEngine = null;
   }
   workflowStorage = null;
-  logger.info('[WorkflowIPC] Workflow system cleaned up');
+  logger.info("[WorkflowIPC] Workflow system cleaned up");
 }
 
 module.exports = {
@@ -453,5 +545,5 @@ module.exports = {
   initializeWorkflowSystem,
   getWorkflowEngine,
   getWorkflowStorage,
-  cleanupWorkflowSystem
+  cleanupWorkflowSystem,
 };

@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
 
@@ -83,7 +83,9 @@ class InitialSetupConfig {
     const keys = key.split(".");
     let obj = this.config;
     for (let i = 0; i < keys.length - 1; i++) {
-      if (!obj[keys[i]]) {obj[keys[i]] = {};}
+      if (!obj[keys[i]]) {
+        obj[keys[i]] = {};
+      }
       obj = obj[keys[i]];
     }
     obj[keys[keys.length - 1]] = value;
@@ -130,7 +132,11 @@ class InitialSetupConfig {
     }
 
     // 5. 应用企业版配置 (需要数据库)
-    if (database && this.config.edition === "enterprise" && this.config.enterprise) {
+    if (
+      database &&
+      this.config.edition === "enterprise" &&
+      this.config.enterprise
+    ) {
       await database.setSetting(
         "enterprise.serverUrl",
         this.config.enterprise.serverUrl,

@@ -4,27 +4,16 @@
     <div class="page-header">
       <div class="header-left">
         <h2>角色与权限管理</h2>
-        <p class="subtitle">
-          管理组织中的角色和权限配置
-        </p>
+        <p class="subtitle">管理组织中的角色和权限配置</p>
       </div>
       <div class="header-right">
-        <PermissionGuard
-          permission="role.create"
-          mode="custom"
-        >
-          <a-button
-            type="primary"
-            @click="showCreateRoleModal"
-          >
+        <PermissionGuard permission="role.create" mode="custom">
+          <a-button type="primary" @click="showCreateRoleModal">
             <PlusOutlined /> 创建自定义角色
           </a-button>
           <template #denied>
             <a-tooltip title="您没有权限创建角色">
-              <a-button
-                type="primary"
-                disabled
-              >
+              <a-button type="primary" disabled>
                 <PlusOutlined /> 创建自定义角色
               </a-button>
             </a-tooltip>
@@ -39,9 +28,7 @@
         <!-- 内置角色 -->
         <div class="role-section">
           <h3>内置角色</h3>
-          <p class="section-desc">
-            系统预置角色，不可修改或删除
-          </p>
+          <p class="section-desc">系统预置角色，不可修改或删除</p>
           <a-row :gutter="[16, 16]">
             <a-col
               v-for="role in builtinRoles"
@@ -62,13 +49,8 @@
         <!-- 自定义角色 -->
         <div class="role-section">
           <h3>自定义角色</h3>
-          <p class="section-desc">
-            由组织创建的自定义角色
-          </p>
-          <a-row
-            v-if="customRoles.length > 0"
-            :gutter="[16, 16]"
-          >
+          <p class="section-desc">由组织创建的自定义角色</p>
+          <a-row v-if="customRoles.length > 0" :gutter="[16, 16]">
             <a-col
               v-for="role in customRoles"
               :key="role.id"
@@ -85,10 +67,7 @@
               />
             </a-col>
           </a-row>
-          <a-empty
-            v-else
-            description="暂无自定义角色"
-          />
+          <a-empty v-else description="暂无自定义角色" />
         </div>
       </div>
     </a-spin>
@@ -107,10 +86,7 @@
         :rules="roleFormRules"
         layout="vertical"
       >
-        <a-form-item
-          label="角色名称"
-          name="name"
-        >
+        <a-form-item label="角色名称" name="name">
           <a-input
             v-model:value="roleForm.name"
             placeholder="例如：项目经理、技术专家等"
@@ -119,10 +95,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="角色描述"
-          name="description"
-        >
+        <a-form-item label="角色描述" name="description">
           <a-textarea
             v-model:value="roleForm.description"
             placeholder="描述此角色的职责和权限范围"
@@ -132,10 +105,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="权限配置"
-          name="permissions"
-        >
+        <a-form-item label="权限配置" name="permissions">
           <div class="permissions-selector">
             <a-collapse v-model:active-key="activePermissionCategories">
               <a-collapse-panel
@@ -165,10 +135,7 @@
 
             <div class="selected-permissions-summary">
               <span>已选择 {{ roleForm.permissions.length }} 个权限</span>
-              <a-button
-                size="small"
-                @click="roleForm.permissions = []"
-              >
+              <a-button size="small" @click="roleForm.permissions = []">
                 清空
               </a-button>
             </div>
@@ -184,25 +151,14 @@
       width="700px"
       :footer="null"
     >
-      <div
-        v-if="viewingRole"
-        class="role-detail"
-      >
-        <a-descriptions
-          bordered
-          :column="1"
-        >
+      <div v-if="viewingRole" class="role-detail">
+        <a-descriptions bordered :column="1">
           <a-descriptions-item label="角色名称">
             {{ viewingRole.name }}
-            <a-tag
-              v-if="viewingRole.is_builtin"
-              color="blue"
-            >
-              内置角色
-            </a-tag>
+            <a-tag v-if="viewingRole.is_builtin" color="blue"> 内置角色 </a-tag>
           </a-descriptions-item>
           <a-descriptions-item label="角色描述">
-            {{ viewingRole.description || '无描述' }}
+            {{ viewingRole.description || "无描述" }}
           </a-descriptions-item>
           <a-descriptions-item label="权限列表">
             <div class="permission-tags">
@@ -225,14 +181,14 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { message, Modal } from 'ant-design-vue';
-import { PlusOutlined } from '@ant-design/icons-vue';
-import { useIdentityStore } from '../stores/identity';
-import PermissionGuard from '../components/PermissionGuard.vue';
-import RoleCard from '../components/RoleCard.vue';
+import { ref, computed, onMounted } from "vue";
+import { message, Modal } from "ant-design-vue";
+import { PlusOutlined } from "@ant-design/icons-vue";
+import { useIdentityStore } from "../stores/identity";
+import PermissionGuard from "../components/PermissionGuard.vue";
+import RoleCard from "../components/RoleCard.vue";
 
 const { ipcRenderer } = window.electron || {};
 
@@ -251,24 +207,29 @@ const activePermissionCategories = ref([]);
 // 表单
 const roleFormRef = ref(null);
 const roleForm = ref({
-  name: '',
-  description: '',
-  permissions: []
+  name: "",
+  description: "",
+  permissions: [],
 });
 
 const roleFormRules = {
   name: [
-    { required: true, message: '请输入角色名称', trigger: 'blur' },
-    { min: 2, max: 20, message: '角色名称长度在2-20个字符', trigger: 'blur' }
+    { required: true, message: "请输入角色名称", trigger: "blur" },
+    { min: 2, max: 20, message: "角色名称长度在2-20个字符", trigger: "blur" },
   ],
   permissions: [
-    { type: 'array', required: true, message: '请至少选择一个权限', trigger: 'change' }
-  ]
+    {
+      type: "array",
+      required: true,
+      message: "请至少选择一个权限",
+      trigger: "change",
+    },
+  ],
 };
 
 // 计算属性
-const builtinRoles = computed(() => roles.value.filter(r => r.is_builtin));
-const customRoles = computed(() => roles.value.filter(r => !r.is_builtin));
+const builtinRoles = computed(() => roles.value.filter((r) => r.is_builtin));
+const customRoles = computed(() => roles.value.filter((r) => !r.is_builtin));
 
 /**
  * 加载角色列表
@@ -279,14 +240,14 @@ async function loadRoles() {
   try {
     const orgId = identityStore.currentOrgId;
     if (!orgId) {
-      throw new Error('未选择组织');
+      throw new Error("未选择组织");
     }
 
-    const result = await ipcRenderer.invoke('org:get-roles', orgId);
+    const result = await ipcRenderer.invoke("org:get-roles", orgId);
     roles.value = result || [];
   } catch (error) {
-    logger.error('加载角色列表失败:', error);
-    message.error(error.message || '加载角色列表失败');
+    logger.error("加载角色列表失败:", error);
+    message.error(error.message || "加载角色列表失败");
   } finally {
     loading.value = false;
   }
@@ -297,7 +258,7 @@ async function loadRoles() {
  */
 async function loadAllPermissions() {
   try {
-    const result = await ipcRenderer.invoke('org:get-all-permissions');
+    const result = await ipcRenderer.invoke("org:get-all-permissions");
     allPermissions.value = result || [];
 
     // 默认展开第一个分类
@@ -305,8 +266,8 @@ async function loadAllPermissions() {
       activePermissionCategories.value = [allPermissions.value[0].category];
     }
   } catch (error) {
-    logger.error('加载权限列表失败:', error);
-    message.error('加载权限列表失败');
+    logger.error("加载权限列表失败:", error);
+    message.error("加载权限列表失败");
   }
 }
 
@@ -316,9 +277,9 @@ async function loadAllPermissions() {
 function showCreateRoleModal() {
   isEditMode.value = false;
   roleForm.value = {
-    name: '',
-    description: '',
-    permissions: []
+    name: "",
+    description: "",
+    permissions: [],
   };
   roleModalVisible.value = true;
 }
@@ -332,7 +293,7 @@ function handleEditRole(role) {
     id: role.id,
     name: role.name,
     description: role.description,
-    permissions: [...role.permissions]
+    permissions: [...role.permissions],
   };
   roleModalVisible.value = true;
 }
@@ -342,23 +303,23 @@ function handleEditRole(role) {
  */
 function handleDeleteRole(role) {
   Modal.confirm({
-    title: '确认删除',
+    title: "确认删除",
     content: `确定要删除角色"${role.name}"吗？此操作不可撤销。`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         const userDID = identityStore.primaryDID;
-        await ipcRenderer.invoke('org:delete-role', role.id, userDID);
+        await ipcRenderer.invoke("org:delete-role", role.id, userDID);
 
-        message.success('角色删除成功');
+        message.success("角色删除成功");
         await loadRoles();
       } catch (error) {
-        logger.error('删除角色失败:', error);
-        message.error(error.message || '删除角色失败');
+        logger.error("删除角色失败:", error);
+        message.error(error.message || "删除角色失败");
       }
-    }
+    },
   });
 }
 
@@ -382,22 +343,32 @@ async function handleRoleModalOk() {
 
     if (isEditMode.value) {
       // 更新角色
-      await ipcRenderer.invoke('org:update-role', roleForm.value.id, {
-        name: roleForm.value.name,
-        description: roleForm.value.description,
-        permissions: roleForm.value.permissions
-      }, userDID);
+      await ipcRenderer.invoke(
+        "org:update-role",
+        roleForm.value.id,
+        {
+          name: roleForm.value.name,
+          description: roleForm.value.description,
+          permissions: roleForm.value.permissions,
+        },
+        userDID,
+      );
 
-      message.success('角色更新成功');
+      message.success("角色更新成功");
     } else {
       // 创建角色
-      await ipcRenderer.invoke('org:create-custom-role', orgId, {
-        name: roleForm.value.name,
-        description: roleForm.value.description,
-        permissions: roleForm.value.permissions
-      }, userDID);
+      await ipcRenderer.invoke(
+        "org:create-custom-role",
+        orgId,
+        {
+          name: roleForm.value.name,
+          description: roleForm.value.description,
+          permissions: roleForm.value.permissions,
+        },
+        userDID,
+      );
 
-      message.success('角色创建成功');
+      message.success("角色创建成功");
     }
 
     roleModalVisible.value = false;
@@ -406,8 +377,8 @@ async function handleRoleModalOk() {
     if (error.errorFields) {
       return; // 表单验证失败
     }
-    logger.error('保存角色失败:', error);
-    message.error(error.message || '保存角色失败');
+    logger.error("保存角色失败:", error);
+    message.error(error.message || "保存角色失败");
   }
 }
 
@@ -424,7 +395,7 @@ function handleRoleModalCancel() {
  */
 function getPermissionLabel(permValue) {
   for (const category of allPermissions.value) {
-    const perm = category.permissions.find(p => p.value === permValue);
+    const perm = category.permissions.find((p) => p.value === permValue);
     if (perm) {
       return perm.label;
     }
@@ -436,16 +407,15 @@ function getPermissionLabel(permValue) {
  * 格式化时间戳
  */
 function formatTimestamp(timestamp) {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 }
 
 onMounted(async () => {
-  await Promise.all([
-    loadRoles(),
-    loadAllPermissions()
-  ]);
+  await Promise.all([loadRoles(), loadAllPermissions()]);
 });
 </script>
 

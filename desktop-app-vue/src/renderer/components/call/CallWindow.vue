@@ -1,21 +1,10 @@
 <template>
-  <div
-    v-if="activeCall"
-    class="call-window"
-  >
+  <div v-if="activeCall" class="call-window">
     <div class="call-container">
       <!-- 视频区域 -->
-      <div
-        v-if="activeCall.type === 'video'"
-        class="video-container"
-      >
+      <div v-if="activeCall.type === 'video'" class="video-container">
         <!-- 远程视频 -->
-        <video
-          ref="remoteVideo"
-          class="remote-video"
-          autoplay
-          playsinline
-        />
+        <video ref="remoteVideo" class="remote-video" autoplay playsinline />
 
         <!-- 本地视频（画中画） -->
         <video
@@ -28,15 +17,9 @@
       </div>
 
       <!-- 音频通话界面 -->
-      <div
-        v-else
-        class="audio-call-container"
-      >
+      <div v-else class="audio-call-container">
         <div class="audio-call-content">
-          <a-avatar
-            :size="120"
-            :src="getCallerAvatar()"
-          >
+          <a-avatar :size="120" :src="getCallerAvatar()">
             <template #icon>
               <UserOutlined />
             </template>
@@ -54,10 +37,7 @@
       </div>
 
       <!-- 通话质量指示器 -->
-      <div
-        v-if="callQuality"
-        class="quality-indicator"
-      >
+      <div v-if="callQuality" class="quality-indicator">
         <SignalFilled :class="['signal-icon', qualityClass]" />
         <span class="quality-text">{{ qualityText }}</span>
       </div>
@@ -117,11 +97,7 @@
 
         <!-- 设置按钮 -->
         <a-tooltip title="设置">
-          <a-button
-            shape="circle"
-            size="large"
-            @click="showSettings = true"
-          >
+          <a-button shape="circle" size="large" @click="showSettings = true">
             <template #icon>
               <SettingOutlined />
             </template>
@@ -167,9 +143,7 @@
           </a-select-option>
         </a-select>
 
-        <h4 v-if="activeCall.type === 'video'">
-          视频设备
-        </h4>
+        <h4 v-if="activeCall.type === 'video'">视频设备</h4>
         <a-select
           v-if="activeCall.type === 'video'"
           v-model:value="selectedVideoInput"
@@ -188,17 +162,18 @@
         <a-divider />
 
         <h4>通话统计</h4>
-        <div
-          v-if="callStats"
-          class="call-stats"
-        >
+        <div v-if="callStats" class="call-stats">
           <div class="stat-item">
             <span class="stat-label">接收:</span>
-            <span class="stat-value">{{ formatBytes(callStats.bytesReceived) }}</span>
+            <span class="stat-value">{{
+              formatBytes(callStats.bytesReceived)
+            }}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">发送:</span>
-            <span class="stat-value">{{ formatBytes(callStats.bytesSent) }}</span>
+            <span class="stat-value">{{
+              formatBytes(callStats.bytesSent)
+            }}</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">丢包:</span>
@@ -206,7 +181,9 @@
           </div>
           <div class="stat-item">
             <span class="stat-label">延迟:</span>
-            <span class="stat-value">{{ Math.round(callStats.roundTripTime * 1000) }}ms</span>
+            <span class="stat-value"
+              >{{ Math.round(callStats.roundTripTime * 1000) }}ms</span
+            >
           </div>
         </div>
       </div>
@@ -215,10 +192,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { getIpcBridge } from '@/utils/ipc-shim';
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { getIpcBridge } from "@/utils/ipc-shim";
 import {
   PhoneOutlined,
   AudioOutlined,
@@ -227,9 +204,9 @@ import {
   VideoCameraAddOutlined,
   UserOutlined,
   SettingOutlined,
-  SignalFilled
-} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+  SignalFilled,
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 
 const ipcRenderer = getIpcBridge();
 
@@ -237,31 +214,31 @@ const ipcRenderer = getIpcBridge();
 const props = defineProps({
   callId: {
     type: String,
-    required: true
+    required: true,
   },
   callType: {
     type: String,
-    required: true
+    required: true,
   },
   peerId: {
     type: String,
-    required: true
+    required: true,
   },
   contactsMap: {
     type: Map,
-    default: () => new Map()
-  }
+    default: () => new Map(),
+  },
 });
 
 // Emits
-const emit = defineEmits(['call-ended']);
+const emit = defineEmits(["call-ended"]);
 
 // State
 const activeCall = ref({
   callId: props.callId,
   type: props.callType,
   peerId: props.peerId,
-  state: 'connecting'
+  state: "connecting",
 });
 
 const isMuted = ref(false);
@@ -293,39 +270,45 @@ let durationTimer = null;
 // 计算属性
 const callStatusText = computed(() => {
   switch (activeCall.value.state) {
-    case 'connecting':
-      return '连接中...';
-    case 'connected':
-      return '通话中';
-    case 'ended':
-      return '通话已结束';
+    case "connecting":
+      return "连接中...";
+    case "connected":
+      return "通话中";
+    case "ended":
+      return "通话已结束";
     default:
-      return '';
+      return "";
   }
 });
 
 const formattedDuration = computed(() => {
   const minutes = Math.floor(callDuration.value / 60);
   const seconds = callDuration.value % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 });
 
 const qualityClass = computed(() => {
-  if (!callQuality.value) {return 'good';}
+  if (!callQuality.value) {
+    return "good";
+  }
   const { packetsLost, roundTripTime } = callQuality.value;
 
-  if (packetsLost > 50 || roundTripTime > 0.3) {return 'poor';}
-  if (packetsLost > 20 || roundTripTime > 0.15) {return 'fair';}
-  return 'good';
+  if (packetsLost > 50 || roundTripTime > 0.3) {
+    return "poor";
+  }
+  if (packetsLost > 20 || roundTripTime > 0.15) {
+    return "fair";
+  }
+  return "good";
 });
 
 const qualityText = computed(() => {
   const classMap = {
-    good: '良好',
-    fair: '一般',
-    poor: '较差'
+    good: "良好",
+    fair: "一般",
+    poor: "较差",
   };
-  return classMap[qualityClass.value] || '未知';
+  return classMap[qualityClass.value] || "未知";
 });
 
 // 方法
@@ -341,23 +324,23 @@ const getCallerAvatar = () => {
 
 const toggleMute = async () => {
   try {
-    const result = await ipcRenderer.invoke('p2p-enhanced:toggle-mute', {
-      callId: props.callId
+    const result = await ipcRenderer.invoke("p2p-enhanced:toggle-mute", {
+      callId: props.callId,
     });
 
     if (result.success) {
       isMuted.value = result.isMuted;
     }
   } catch (error) {
-    logger.error('切换静音失败:', error);
-    message.error('切换静音失败');
+    logger.error("切换静音失败:", error);
+    message.error("切换静音失败");
   }
 };
 
 const toggleVideo = async () => {
   try {
-    const result = await ipcRenderer.invoke('p2p-enhanced:toggle-video', {
-      callId: props.callId
+    const result = await ipcRenderer.invoke("p2p-enhanced:toggle-video", {
+      callId: props.callId,
     });
 
     if (result.success) {
@@ -365,39 +348,41 @@ const toggleVideo = async () => {
 
       // 更新本地视频显示
       if (localStream) {
-        localStream.getVideoTracks().forEach(track => {
+        localStream.getVideoTracks().forEach((track) => {
           track.enabled = result.isVideoEnabled;
         });
       }
     }
   } catch (error) {
-    logger.error('切换视频失败:', error);
-    message.error('切换视频失败');
+    logger.error("切换视频失败:", error);
+    message.error("切换视频失败");
   }
 };
 
 const endCall = async () => {
   try {
-    const result = await ipcRenderer.invoke('p2p-enhanced:end-call', {
-      callId: props.callId
+    const result = await ipcRenderer.invoke("p2p-enhanced:end-call", {
+      callId: props.callId,
     });
 
     if (result.success) {
       cleanup();
-      emit('call-ended');
+      emit("call-ended");
     }
   } catch (error) {
-    logger.error('结束通话失败:', error);
-    message.error('结束通话失败');
+    logger.error("结束通话失败:", error);
+    message.error("结束通话失败");
   }
 };
 
 const formatBytes = (bytes) => {
-  if (bytes === 0) {return '0 B';}
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };
 
 // 获取媒体设备列表
@@ -405,9 +390,9 @@ const enumerateDevices = async () => {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
 
-    audioInputDevices.value = devices.filter(d => d.kind === 'audioinput');
-    audioOutputDevices.value = devices.filter(d => d.kind === 'audiooutput');
-    videoInputDevices.value = devices.filter(d => d.kind === 'videoinput');
+    audioInputDevices.value = devices.filter((d) => d.kind === "audioinput");
+    audioOutputDevices.value = devices.filter((d) => d.kind === "audiooutput");
+    videoInputDevices.value = devices.filter((d) => d.kind === "videoinput");
 
     // 设置默认设备
     if (audioInputDevices.value.length > 0 && !selectedAudioInput.value) {
@@ -420,7 +405,7 @@ const enumerateDevices = async () => {
       selectedVideoInput.value = videoInputDevices.value[0].deviceId;
     }
   } catch (error) {
-    logger.error('获取媒体设备失败:', error);
+    logger.error("获取媒体设备失败:", error);
   }
 };
 
@@ -429,30 +414,37 @@ const getUserMedia = async () => {
   try {
     const constraints = {
       audio: {
-        deviceId: selectedAudioInput.value ? { exact: selectedAudioInput.value } : undefined,
+        deviceId: selectedAudioInput.value
+          ? { exact: selectedAudioInput.value }
+          : undefined,
         echoCancellation: true,
         noiseSuppression: true,
-        autoGainControl: true
+        autoGainControl: true,
       },
-      video: props.callType === 'video' ? {
-        deviceId: selectedVideoInput.value ? { exact: selectedVideoInput.value } : undefined,
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 30 }
-      } : false
+      video:
+        props.callType === "video"
+          ? {
+              deviceId: selectedVideoInput.value
+                ? { exact: selectedVideoInput.value }
+                : undefined,
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 },
+            }
+          : false,
     };
 
     localStream = await navigator.mediaDevices.getUserMedia(constraints);
 
     // 显示本地视频
-    if (localVideo.value && props.callType === 'video') {
+    if (localVideo.value && props.callType === "video") {
       localVideo.value.srcObject = localStream;
     }
 
     return localStream;
   } catch (error) {
-    logger.error('获取媒体流失败', error);
-    message.error('无法访问摄像头或麦克风');
+    logger.error("获取媒体流失败", error);
+    message.error("无法访问摄像头或麦克风");
     throw error;
   }
 };
@@ -460,7 +452,7 @@ const getUserMedia = async () => {
 // 事件处理
 const handleCallConnected = (event, data) => {
   if (data.callId === props.callId) {
-    activeCall.value.state = 'connected';
+    activeCall.value.state = "connected";
 
     // 开始计时
     durationTimer = setInterval(() => {
@@ -472,7 +464,7 @@ const handleCallConnected = (event, data) => {
 const handleCallEnded = (event, data) => {
   if (data.callId === props.callId) {
     cleanup();
-    emit('call-ended');
+    emit("call-ended");
   }
 };
 
@@ -516,7 +508,7 @@ const cleanup = () => {
 
   // 停止本地媒体流
   if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
+    localStream.getTracks().forEach((track) => track.stop());
     localStream = null;
   }
 
@@ -538,38 +530,57 @@ onMounted(async () => {
   await getUserMedia();
 
   // 注册事件监听
-  if (!ipcRenderer?.on) {return;}
-  ipcRenderer.on('p2p-enhanced:call-connected', handleCallConnected);
-  ipcRenderer.on('p2p-enhanced:call-ended', handleCallEnded);
-  ipcRenderer.on('p2p-enhanced:call-remote-stream', handleRemoteStream);
-  ipcRenderer.on('p2p-enhanced:call-quality-update', handleQualityUpdate);
-  ipcRenderer.on('p2p-enhanced:call-mute-changed', handleMuteChanged);
-  ipcRenderer.on('p2p-enhanced:call-video-changed', handleVideoChanged);
+  if (!ipcRenderer?.on) {
+    return;
+  }
+  ipcRenderer.on("p2p-enhanced:call-connected", handleCallConnected);
+  ipcRenderer.on("p2p-enhanced:call-ended", handleCallEnded);
+  ipcRenderer.on("p2p-enhanced:call-remote-stream", handleRemoteStream);
+  ipcRenderer.on("p2p-enhanced:call-quality-update", handleQualityUpdate);
+  ipcRenderer.on("p2p-enhanced:call-mute-changed", handleMuteChanged);
+  ipcRenderer.on("p2p-enhanced:call-video-changed", handleVideoChanged);
 
   // 监听设备变化
-  navigator.mediaDevices.addEventListener('devicechange', enumerateDevices);
+  navigator.mediaDevices.addEventListener("devicechange", enumerateDevices);
 });
 
 onUnmounted(() => {
   cleanup();
-  if (!ipcRenderer?.removeListener) {return;}
+  if (!ipcRenderer?.removeListener) {
+    return;
+  }
 
   // 移除事件监听
-  ipcRenderer.removeListener('p2p-enhanced:call-connected', handleCallConnected);
-  ipcRenderer.removeListener('p2p-enhanced:call-ended', handleCallEnded);
-  ipcRenderer.removeListener('p2p-enhanced:call-remote-stream', handleRemoteStream);
-  ipcRenderer.removeListener('p2p-enhanced:call-quality-update', handleQualityUpdate);
-  ipcRenderer.removeListener('p2p-enhanced:call-mute-changed', handleMuteChanged);
-  ipcRenderer.removeListener('p2p-enhanced:call-video-changed', handleVideoChanged);
+  ipcRenderer.removeListener(
+    "p2p-enhanced:call-connected",
+    handleCallConnected,
+  );
+  ipcRenderer.removeListener("p2p-enhanced:call-ended", handleCallEnded);
+  ipcRenderer.removeListener(
+    "p2p-enhanced:call-remote-stream",
+    handleRemoteStream,
+  );
+  ipcRenderer.removeListener(
+    "p2p-enhanced:call-quality-update",
+    handleQualityUpdate,
+  );
+  ipcRenderer.removeListener(
+    "p2p-enhanced:call-mute-changed",
+    handleMuteChanged,
+  );
+  ipcRenderer.removeListener(
+    "p2p-enhanced:call-video-changed",
+    handleVideoChanged,
+  );
 
-  navigator.mediaDevices.removeEventListener('devicechange', enumerateDevices);
+  navigator.mediaDevices.removeEventListener("devicechange", enumerateDevices);
 });
 
 // 监听设备选择变化
 watch([selectedAudioInput, selectedVideoInput], async () => {
   if (localStream) {
     // 重新获取媒体流
-    localStream.getTracks().forEach(track => track.stop());
+    localStream.getTracks().forEach((track) => track.stop());
     await getUserMedia();
   }
 });
@@ -646,7 +657,7 @@ watch([selectedAudioInput, selectedVideoInput], async () => {
   .call-duration {
     font-size: 24px;
     font-weight: 500;
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
   }
 }
 

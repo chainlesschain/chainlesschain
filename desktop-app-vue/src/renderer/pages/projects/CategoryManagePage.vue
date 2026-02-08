@@ -289,7 +289,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted } from "vue";
 import { message, Empty } from "ant-design-vue";
@@ -371,7 +371,9 @@ const secondaryCount = computed(() => {
   );
 });
 const totalCount = computed(() => primaryCount.value + secondaryCount.value);
-const projectCount = computed(() => projectStore.pagination?.total || projectStore.projects?.length || 0);
+const projectCount = computed(
+  () => projectStore.pagination?.total || projectStore.projects?.length || 0,
+);
 
 // 获取分类标题
 const getCategoryHeader = (category) => {

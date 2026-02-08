@@ -12,8 +12,8 @@
  * @module prompt-compressor
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const crypto = require("crypto");
 
 /**
  * 计算文本的 MD5 哈希
@@ -21,7 +21,7 @@ const crypto = require('crypto');
  * @returns {string} MD5 哈希值
  */
 function md5Hash(text) {
-  return crypto.createHash('md5').update(text).digest('hex');
+  return crypto.createHash("md5").update(text).digest("hex");
 }
 
 /**
@@ -31,7 +31,9 @@ function md5Hash(text) {
  * @returns {number} 估算的 Token 数
  */
 function estimateTokens(text) {
-  if (!text) {return 0;}
+  if (!text) {
+    return 0;
+  }
 
   // 分别计算中文和英文字符
   const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
@@ -48,15 +50,19 @@ function estimateTokens(text) {
  * @returns {number} 相似度 (0-1)
  */
 function calculateSimilarity(str1, str2) {
-  if (!str1 || !str2) {return 0;}
-  if (str1 === str2) {return 1;}
+  if (!str1 || !str2) {
+    return 0;
+  }
+  if (str1 === str2) {
+    return 1;
+  }
 
   // 分词（简单按字符分割）
-  const tokens1 = new Set(str1.split(''));
-  const tokens2 = new Set(str2.split(''));
+  const tokens1 = new Set(str1.split(""));
+  const tokens2 = new Set(str2.split(""));
 
   // 计算交集和并集
-  const intersection = new Set([...tokens1].filter(x => tokens2.has(x)));
+  const intersection = new Set([...tokens1].filter((x) => tokens2.has(x)));
   const union = new Set([...tokens1, ...tokens2]);
 
   return intersection.size / union.size;
@@ -83,7 +89,7 @@ class PromptCompressor {
     this.similarityThreshold = options.similarityThreshold || 0.9;
     this.llmManager = options.llmManager || null;
 
-    logger.info('[PromptCompressor] 初始化完成，配置:', {
+    logger.info("[PromptCompressor] 初始化完成，配置:", {
       去重: this.enableDeduplication,
       总结: this.enableSummarization,
       截断: this.enableTruncation,
@@ -109,7 +115,7 @@ class PromptCompressor {
         originalTokens: 0,
         compressedTokens: 0,
         compressionRatio: 1.0,
-        strategy: 'none',
+        strategy: "none",
         processingTime: 0,
       };
     }
@@ -119,10 +125,19 @@ class PromptCompressor {
 
     // 计算原始 Token 数
     const originalTokens = messages.reduce((sum, msg) => {
-      return sum + estimateTokens(typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content));
+      return (
+        sum +
+        estimateTokens(
+          typeof msg.content === "string"
+            ? msg.content
+            : JSON.stringify(msg.content),
+        )
+      );
     }, 0);
 
-    logger.info(`[PromptCompressor] 开始压缩，原始消息数: ${messages.length}, 估算 Tokens: ${originalTokens}`);
+    logger.info(
+      `[PromptCompressor] 开始压缩，原始消息数: ${messages.length}, 估算 Tokens: ${originalTokens}`,
+    );
 
     let compressedMessages = [...messages];
     const appliedStrategies = [];
@@ -133,55 +148,87 @@ class PromptCompressor {
         preserveSystemMessage,
         preserveLastUserMessage,
       });
-      appliedStrategies.push('deduplication');
+      appliedStrategies.push("deduplication");
     }
 
     // 策略 2: 历史截断（保留最近的消息）
-    if (this.enableTruncation && compressedMessages.length > this.maxHistoryMessages) {
+    if (
+      this.enableTruncation &&
+      compressedMessages.length > this.maxHistoryMessages
+    ) {
       compressedMessages = this._truncateHistory(compressedMessages, {
         preserveSystemMessage,
         preserveLastUserMessage,
       });
-      appliedStrategies.push('truncation');
+      appliedStrategies.push("truncation");
     }
 
     // 策略 3: 智能总结（如果启用且有 LLM Manager）
-    if (this.enableSummarization && this.llmManager && compressedMessages.length > 5) {
+    if (
+      this.enableSummarization &&
+      this.llmManager &&
+      compressedMessages.length > 5
+    ) {
       const currentTokens = compressedMessages.reduce((sum, msg) => {
-        return sum + estimateTokens(typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content));
+        return (
+          sum +
+          estimateTokens(
+            typeof msg.content === "string"
+              ? msg.content
+              : JSON.stringify(msg.content),
+          )
+        );
       }, 0);
 
       // 如果 Token 数仍然超过阈值，进行总结
       if (currentTokens > this.maxTotalTokens) {
         try {
-          compressedMessages = await this._summarizeHistory(compressedMessages, {
-            preserveSystemMessage,
-            preserveLastUserMessage,
-          });
-          appliedStrategies.push('summarization');
+          compressedMessages = await this._summarizeHistory(
+            compressedMessages,
+            {
+              preserveSystemMessage,
+              preserveLastUserMessage,
+            },
+          );
+          appliedStrategies.push("summarization");
         } catch (summaryError) {
-          logger.error('[PromptCompressor] 总结失败，跳过总结策略:', summaryError.message);
+          logger.error(
+            "[PromptCompressor] 总结失败，跳过总结策略:",
+            summaryError.message,
+          );
         }
       }
     }
 
     // 计算压缩后的 Token 数
     const compressedTokens = compressedMessages.reduce((sum, msg) => {
-      return sum + estimateTokens(typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content));
+      return (
+        sum +
+        estimateTokens(
+          typeof msg.content === "string"
+            ? msg.content
+            : JSON.stringify(msg.content),
+        )
+      );
     }, 0);
 
-    const compressionRatio = originalTokens > 0 ? compressedTokens / originalTokens : 1.0;
+    const compressionRatio =
+      originalTokens > 0 ? compressedTokens / originalTokens : 1.0;
     const processingTime = Date.now() - startTime;
 
-    logger.info(`[PromptCompressor] 压缩完成，压缩后消息数: ${compressedMessages.length}, 估算 Tokens: ${compressedTokens}, 压缩率: ${compressionRatio.toFixed(2)}, 耗时: ${processingTime}ms`);
-    logger.info(`[PromptCompressor] 应用策略: ${appliedStrategies.join(', ') || 'none'}`);
+    logger.info(
+      `[PromptCompressor] 压缩完成，压缩后消息数: ${compressedMessages.length}, 估算 Tokens: ${compressedTokens}, 压缩率: ${compressionRatio.toFixed(2)}, 耗时: ${processingTime}ms`,
+    );
+    logger.info(
+      `[PromptCompressor] 应用策略: ${appliedStrategies.join(", ") || "none"}`,
+    );
 
     return {
       messages: compressedMessages,
       originalTokens,
       compressedTokens,
       compressionRatio,
-      strategy: appliedStrategies.join('+') || 'none',
+      strategy: appliedStrategies.join("+") || "none",
       processingTime,
       tokensSaved: originalTokens - compressedTokens,
     };
@@ -196,17 +243,25 @@ class PromptCompressor {
 
     // 分离出需要保留的消息
     const systemMessages = preserveSystemMessage
-      ? messages.filter(msg => msg.role === 'system')
+      ? messages.filter((msg) => msg.role === "system")
       : [];
 
     const lastUserMessage = preserveLastUserMessage
-      ? [...messages].reverse().find(msg => msg.role === 'user')
+      ? [...messages].reverse().find((msg) => msg.role === "user")
       : null;
 
     // 待去重的消息（排除需要保留的）
-    const messagesToProcess = messages.filter(msg => {
-      if (preserveSystemMessage && msg.role === 'system') {return false;}
-      if (preserveLastUserMessage && lastUserMessage && msg === lastUserMessage) {return false;}
+    const messagesToProcess = messages.filter((msg) => {
+      if (preserveSystemMessage && msg.role === "system") {
+        return false;
+      }
+      if (
+        preserveLastUserMessage &&
+        lastUserMessage &&
+        msg === lastUserMessage
+      ) {
+        return false;
+      }
       return true;
     });
 
@@ -215,25 +270,33 @@ class PromptCompressor {
     const deduplicated = [];
 
     for (const msg of messagesToProcess) {
-      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      const content =
+        typeof msg.content === "string"
+          ? msg.content
+          : JSON.stringify(msg.content);
       const hash = md5Hash(content);
 
       // 检查是否已存在相同消息
       if (seen.has(hash)) {
-        logger.info(`[PromptCompressor] 发现重复消息 (exact match): ${content.substring(0, 50)}...`);
+        logger.info(
+          `[PromptCompressor] 发现重复消息 (exact match): ${content.substring(0, 50)}...`,
+        );
         continue;
       }
 
       // 检查是否存在高度相似的消息
       let isDuplicate = false;
       for (const [existingHash, existingMsg] of seen.entries()) {
-        const existingContent = typeof existingMsg.content === 'string'
-          ? existingMsg.content
-          : JSON.stringify(existingMsg.content);
+        const existingContent =
+          typeof existingMsg.content === "string"
+            ? existingMsg.content
+            : JSON.stringify(existingMsg.content);
 
         const similarity = calculateSimilarity(content, existingContent);
         if (similarity >= this.similarityThreshold) {
-          logger.info(`[PromptCompressor] 发现相似消息 (similarity: ${similarity.toFixed(2)}): ${content.substring(0, 50)}...`);
+          logger.info(
+            `[PromptCompressor] 发现相似消息 (similarity: ${similarity.toFixed(2)}): ${content.substring(0, 50)}...`,
+          );
           isDuplicate = true;
           break;
         }
@@ -246,16 +309,19 @@ class PromptCompressor {
     }
 
     // 重新组合消息（保留的消息放回原位）
-    const result = [
-      ...systemMessages,
-      ...deduplicated,
-    ];
+    const result = [...systemMessages, ...deduplicated];
 
-    if (preserveLastUserMessage && lastUserMessage && !result.includes(lastUserMessage)) {
+    if (
+      preserveLastUserMessage &&
+      lastUserMessage &&
+      !result.includes(lastUserMessage)
+    ) {
       result.push(lastUserMessage);
     }
 
-    logger.info(`[PromptCompressor] 去重: ${messages.length} -> ${result.length} 条消息`);
+    logger.info(
+      `[PromptCompressor] 去重: ${messages.length} -> ${result.length} 条消息`,
+    );
     return result;
   }
 
@@ -268,35 +334,38 @@ class PromptCompressor {
 
     // 分离 system 消息
     const systemMessages = preserveSystemMessage
-      ? messages.filter(msg => msg.role === 'system')
+      ? messages.filter((msg) => msg.role === "system")
       : [];
 
-    const nonSystemMessages = messages.filter(msg => msg.role !== 'system');
+    const nonSystemMessages = messages.filter((msg) => msg.role !== "system");
 
     // 保留最后一条用户消息
     const lastUserMessage = preserveLastUserMessage
-      ? [...nonSystemMessages].reverse().find(msg => msg.role === 'user')
+      ? [...nonSystemMessages].reverse().find((msg) => msg.role === "user")
       : null;
 
     // 计算可以保留的消息数（扣除 system 和最后一条用户消息）
     let availableSlots = this.maxHistoryMessages - systemMessages.length;
-    if (lastUserMessage) {availableSlots -= 1;}
+    if (lastUserMessage) {
+      availableSlots -= 1;
+    }
 
     // 从最新的消息开始保留
-    const otherMessages = nonSystemMessages.filter(msg => msg !== lastUserMessage);
+    const otherMessages = nonSystemMessages.filter(
+      (msg) => msg !== lastUserMessage,
+    );
     const recentMessages = otherMessages.slice(-availableSlots);
 
     // 重新组合
-    const result = [
-      ...systemMessages,
-      ...recentMessages,
-    ];
+    const result = [...systemMessages, ...recentMessages];
 
     if (lastUserMessage && !result.includes(lastUserMessage)) {
       result.push(lastUserMessage);
     }
 
-    logger.info(`[PromptCompressor] 截断: ${messages.length} -> ${result.length} 条消息（保留最近 ${this.maxHistoryMessages} 条）`);
+    logger.info(
+      `[PromptCompressor] 截断: ${messages.length} -> ${result.length} 条消息（保留最近 ${this.maxHistoryMessages} 条）`,
+    );
     return result;
   }
 
@@ -309,30 +378,43 @@ class PromptCompressor {
 
     // 分离出需要总结的消息
     const systemMessages = preserveSystemMessage
-      ? messages.filter(msg => msg.role === 'system')
+      ? messages.filter((msg) => msg.role === "system")
       : [];
 
     const lastUserMessage = preserveLastUserMessage
-      ? [...messages].reverse().find(msg => msg.role === 'user')
+      ? [...messages].reverse().find((msg) => msg.role === "user")
       : null;
 
-    const messagesToSummarize = messages.filter(msg => {
-      if (preserveSystemMessage && msg.role === 'system') {return false;}
-      if (preserveLastUserMessage && lastUserMessage && msg === lastUserMessage) {return false;}
+    const messagesToSummarize = messages.filter((msg) => {
+      if (preserveSystemMessage && msg.role === "system") {
+        return false;
+      }
+      if (
+        preserveLastUserMessage &&
+        lastUserMessage &&
+        msg === lastUserMessage
+      ) {
+        return false;
+      }
       return true;
     });
 
     if (messagesToSummarize.length < 3) {
-      logger.info('[PromptCompressor] 消息太少，跳过总结');
+      logger.info("[PromptCompressor] 消息太少，跳过总结");
       return messages;
     }
 
     // 构建总结提示词
-    const historyText = messagesToSummarize.map(msg => {
-      const role = msg.role === 'user' ? '用户' : 'AI';
-      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-      return `${role}: ${content}`;
-    }).join('\n\n');
+    const historyText = messagesToSummarize
+      .map((msg) => {
+        const role = msg.role === "user" ? "用户" : "AI";
+        const content =
+          typeof msg.content === "string"
+            ? msg.content
+            : JSON.stringify(msg.content);
+        return `${role}: ${content}`;
+      })
+      .join("\n\n");
 
     const summaryPrompt = `请总结以下对话历史的关键信息，保留重要的上下文和事实，使用简洁的语言：
 
@@ -341,41 +423,41 @@ ${historyText}
 总结：`;
 
     try {
-      logger.info('[PromptCompressor] 调用 LLM 生成历史总结...');
+      logger.info("[PromptCompressor] 调用 LLM 生成历史总结...");
       const summaryResult = await this.llmManager.query(summaryPrompt, {
         max_tokens: 500,
         temperature: 0.3,
       });
 
-      const summary = summaryResult.text || summaryResult.content || '';
+      const summary = summaryResult.text || summaryResult.content || "";
 
       if (!summary) {
-        throw new Error('LLM 返回空总结');
+        throw new Error("LLM 返回空总结");
       }
 
-      logger.info(`[PromptCompressor] 生成总结成功: ${summary.substring(0, 100)}...`);
+      logger.info(
+        `[PromptCompressor] 生成总结成功: ${summary.substring(0, 100)}...`,
+      );
 
       // 创建总结消息
       const summaryMessage = {
-        role: 'system',
+        role: "system",
         content: `[历史对话总结]\n${summary}`,
       };
 
       // 重新组合消息
-      const result = [
-        ...systemMessages,
-        summaryMessage,
-      ];
+      const result = [...systemMessages, summaryMessage];
 
       if (lastUserMessage && !result.includes(lastUserMessage)) {
         result.push(lastUserMessage);
       }
 
-      logger.info(`[PromptCompressor] 总结: ${messages.length} -> ${result.length} 条消息`);
+      logger.info(
+        `[PromptCompressor] 总结: ${messages.length} -> ${result.length} 条消息`,
+      );
       return result;
-
     } catch (error) {
-      logger.error('[PromptCompressor] 生成总结失败:', error.message);
+      logger.error("[PromptCompressor] 生成总结失败:", error.message);
       throw error;
     }
   }
@@ -424,7 +506,7 @@ ${historyText}
       this.similarityThreshold = options.similarityThreshold;
     }
 
-    logger.info('[PromptCompressor] 配置已更新:', this.getStats());
+    logger.info("[PromptCompressor] 配置已更新:", this.getStats());
   }
 }
 

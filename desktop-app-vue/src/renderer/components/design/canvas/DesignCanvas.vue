@@ -1,53 +1,42 @@
 <template>
-  <div
-    ref="containerRef"
-    class="design-canvas-container"
-  >
-    <canvas
-      :id="canvasId"
-      ref="canvasRef"
-    />
+  <div ref="containerRef" class="design-canvas-container">
+    <canvas :id="canvasId" ref="canvasRef" />
 
     <!-- 加载提示 -->
-    <div
-      v-if="loading"
-      class="loading-overlay"
-    >
-      <a-spin
-        size="large"
-        tip="加载中..."
-      />
+    <div v-if="loading" class="loading-overlay">
+      <a-spin size="large" tip="加载中..." />
     </div>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
-import * as fabric from 'fabric';
-import { useDesignStore } from '../../../stores/design';
-import { storeToRefs } from 'pinia';
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from "vue";
+import * as fabric from "fabric";
+import { useDesignStore } from "../../../stores/design";
+import { storeToRefs } from "pinia";
 
 const props = defineProps({
   artboardId: {
     type: String,
-    required: true
+    required: true,
   },
   width: {
     type: Number,
-    default: 1920
+    default: 1920,
   },
   height: {
     type: Number,
-    default: 1080
-  }
+    default: 1080,
+  },
 });
 
-const emit = defineEmits(['objectsModified', 'selectionChanged']);
+const emit = defineEmits(["objectsModified", "selectionChanged"]);
 
 const designStore = useDesignStore();
-const { activeTool, currentFillColor, currentStrokeColor, currentStrokeWidth } = storeToRefs(designStore);
+const { activeTool, currentFillColor, currentStrokeColor, currentStrokeWidth } =
+  storeToRefs(designStore);
 
 const canvasRef = ref(null);
 const containerRef = ref(null);
@@ -65,16 +54,18 @@ let startY = 0;
  * 初始化 Fabric.js Canvas
  */
 async function initializeCanvas() {
-  if (!canvasRef.value) {return;}
+  if (!canvasRef.value) {
+    return;
+  }
 
   try {
     // 创建 Fabric Canvas
     fabricCanvas.value = new fabric.Canvas(canvasRef.value, {
       width: props.width,
       height: props.height,
-      backgroundColor: '#FFFFFF',
+      backgroundColor: "#FFFFFF",
       selection: true,
-      preserveObjectStacking: true
+      preserveObjectStacking: true,
     });
 
     // 绑定事件
@@ -83,9 +74,9 @@ async function initializeCanvas() {
     // 加载画板数据
     await loadArtboardObjects();
 
-    logger.info('[DesignCanvas] Canvas initialized successfully');
+    logger.info("[DesignCanvas] Canvas initialized successfully");
   } catch (error) {
-    logger.error('[DesignCanvas] Failed to initialize canvas:', error);
+    logger.error("[DesignCanvas] Failed to initialize canvas:", error);
   }
 }
 
@@ -111,12 +102,12 @@ async function loadArtboardObjects() {
               id: obj.id,
               name: obj.name,
               selectable: !obj.is_locked,
-              visible: obj.is_visible
+              visible: obj.is_visible,
             });
             fabricCanvas.value.add(fabricObj);
           });
         } catch (error) {
-          logger.error('[DesignCanvas] Failed to load object:', error);
+          logger.error("[DesignCanvas] Failed to load object:", error);
         }
       }
 
@@ -131,20 +122,22 @@ async function loadArtboardObjects() {
  * 绑定 Canvas 事件
  */
 function bindCanvasEvents() {
-  if (!fabricCanvas.value) {return;}
+  if (!fabricCanvas.value) {
+    return;
+  }
 
   // 对象修改事件
-  fabricCanvas.value.on('object:modified', handleObjectModified);
+  fabricCanvas.value.on("object:modified", handleObjectModified);
 
   // 选区创建事件
-  fabricCanvas.value.on('selection:created', handleSelectionCreated);
-  fabricCanvas.value.on('selection:updated', handleSelectionUpdated);
-  fabricCanvas.value.on('selection:cleared', handleSelectionCleared);
+  fabricCanvas.value.on("selection:created", handleSelectionCreated);
+  fabricCanvas.value.on("selection:updated", handleSelectionUpdated);
+  fabricCanvas.value.on("selection:cleared", handleSelectionCleared);
 
   // 鼠标事件（用于绘图）
-  fabricCanvas.value.on('mouse:down', handleMouseDown);
-  fabricCanvas.value.on('mouse:move', handleMouseMove);
-  fabricCanvas.value.on('mouse:up', handleMouseUp);
+  fabricCanvas.value.on("mouse:down", handleMouseDown);
+  fabricCanvas.value.on("mouse:move", handleMouseMove);
+  fabricCanvas.value.on("mouse:up", handleMouseUp);
 }
 
 /**
@@ -154,17 +147,17 @@ async function handleObjectModified(event) {
   const obj = event.target;
 
   if (obj && obj.id) {
-    const fabricJson = obj.toJSON(['id', 'name']);
+    const fabricJson = obj.toJSON(["id", "name"]);
 
     // 保存到数据库
     try {
       await designStore.updateObjectProperties(obj.id, {
-        fabricJson: fabricJson
+        fabricJson: fabricJson,
       });
 
-      emit('objectsModified');
+      emit("objectsModified");
     } catch (error) {
-      logger.error('[DesignCanvas] Failed to save object:', error);
+      logger.error("[DesignCanvas] Failed to save object:", error);
     }
   }
 }
@@ -188,7 +181,7 @@ function handleSelectionUpdated(event) {
  */
 function handleSelectionCleared() {
   designStore.setSelectedObjects([]);
-  emit('selectionChanged', []);
+  emit("selectionChanged", []);
 }
 
 /**
@@ -196,7 +189,7 @@ function handleSelectionCleared() {
  */
 function updateSelection(event) {
   const selected = event.selected || [event.target];
-  const selectedObjects = selected.map(obj => ({
+  const selectedObjects = selected.map((obj) => ({
     id: obj.id,
     type: obj.type,
     name: obj.name,
@@ -207,18 +200,20 @@ function updateSelection(event) {
     fill: obj.fill,
     stroke: obj.stroke,
     strokeWidth: obj.strokeWidth,
-    angle: obj.angle
+    angle: obj.angle,
   }));
 
   designStore.setSelectedObjects(selectedObjects);
-  emit('selectionChanged', selectedObjects);
+  emit("selectionChanged", selectedObjects);
 }
 
 /**
  * 处理鼠标按下
  */
 function handleMouseDown(options) {
-  if (activeTool.value === 'select') {return;}
+  if (activeTool.value === "select") {
+    return;
+  }
 
   const pointer = fabricCanvas.value.getPointer(options.e);
   startX = pointer.x;
@@ -226,7 +221,7 @@ function handleMouseDown(options) {
   isDrawing = true;
 
   // 根据当前工具创建形状
-  if (activeTool.value === 'rect') {
+  if (activeTool.value === "rect") {
     currentShape = new fabric.Rect({
       left: startX,
       top: startY,
@@ -234,26 +229,26 @@ function handleMouseDown(options) {
       height: 0,
       fill: currentFillColor.value,
       stroke: currentStrokeColor.value,
-      strokeWidth: currentStrokeWidth.value
+      strokeWidth: currentStrokeWidth.value,
     });
     fabricCanvas.value.add(currentShape);
-  } else if (activeTool.value === 'circle') {
+  } else if (activeTool.value === "circle") {
     currentShape = new fabric.Circle({
       left: startX,
       top: startY,
       radius: 0,
       fill: currentFillColor.value,
       stroke: currentStrokeColor.value,
-      strokeWidth: currentStrokeWidth.value
+      strokeWidth: currentStrokeWidth.value,
     });
     fabricCanvas.value.add(currentShape);
-  } else if (activeTool.value === 'text') {
-    const text = new fabric.IText('双击编辑文本', {
+  } else if (activeTool.value === "text") {
+    const text = new fabric.IText("双击编辑文本", {
       left: startX,
       top: startY,
       fill: currentFillColor.value,
       fontSize: 24,
-      fontFamily: 'Arial'
+      fontFamily: "Arial",
     });
     fabricCanvas.value.add(text);
     fabricCanvas.value.setActiveObject(text);
@@ -267,11 +262,13 @@ function handleMouseDown(options) {
  * 处理鼠标移动
  */
 function handleMouseMove(options) {
-  if (!isDrawing || !currentShape) {return;}
+  if (!isDrawing || !currentShape) {
+    return;
+  }
 
   const pointer = fabricCanvas.value.getPointer(options.e);
 
-  if (activeTool.value === 'rect') {
+  if (activeTool.value === "rect") {
     const width = Math.abs(pointer.x - startX);
     const height = Math.abs(pointer.y - startY);
 
@@ -279,15 +276,16 @@ function handleMouseMove(options) {
       left: Math.min(startX, pointer.x),
       top: Math.min(startY, pointer.y),
       width: width,
-      height: height
+      height: height,
     });
-  } else if (activeTool.value === 'circle') {
-    const radius = Math.sqrt(
-      Math.pow(pointer.x - startX, 2) + Math.pow(pointer.y - startY, 2)
-    ) / 2;
+  } else if (activeTool.value === "circle") {
+    const radius =
+      Math.sqrt(
+        Math.pow(pointer.x - startX, 2) + Math.pow(pointer.y - startY, 2),
+      ) / 2;
 
     currentShape.set({
-      radius: Math.max(radius, 1)
+      radius: Math.max(radius, 1),
     });
   }
 
@@ -298,7 +296,9 @@ function handleMouseMove(options) {
  * 处理鼠标释放
  */
 async function handleMouseUp() {
-  if (!isDrawing) {return;}
+  if (!isDrawing) {
+    return;
+  }
 
   isDrawing = false;
 
@@ -308,19 +308,19 @@ async function handleMouseUp() {
       const fabricJson = currentShape.toJSON();
       const objectType = currentShape.type;
 
-      const result = await window.electronAPI.invoke('design:add-object', {
+      const result = await window.electronAPI.invoke("design:add-object", {
         artboardId: props.artboardId,
         objectType: objectType,
         name: `${objectType} ${Date.now()}`,
-        fabricJson: fabricJson
+        fabricJson: fabricJson,
       });
 
       // 设置对象 ID
       currentShape.set({ id: result.id });
 
-      emit('objectsModified');
+      emit("objectsModified");
     } catch (error) {
-      logger.error('[DesignCanvas] Failed to save new object:', error);
+      logger.error("[DesignCanvas] Failed to save new object:", error);
     }
 
     currentShape = null;
@@ -333,22 +333,24 @@ async function handleMouseUp() {
 async function deleteSelected() {
   const activeObjects = fabricCanvas.value.getActiveObjects();
 
-  if (activeObjects.length === 0) {return;}
+  if (activeObjects.length === 0) {
+    return;
+  }
 
   for (const obj of activeObjects) {
     if (obj.id) {
       try {
-        await window.electronAPI.invoke('design:delete-object', obj.id);
+        await window.electronAPI.invoke("design:delete-object", obj.id);
         fabricCanvas.value.remove(obj);
       } catch (error) {
-        logger.error('[DesignCanvas] Failed to delete object:', error);
+        logger.error("[DesignCanvas] Failed to delete object:", error);
       }
     }
   }
 
   fabricCanvas.value.discardActiveObject();
   fabricCanvas.value.renderAll();
-  emit('objectsModified');
+  emit("objectsModified");
 }
 
 /**
@@ -356,7 +358,7 @@ async function deleteSelected() {
  */
 function clearCanvas() {
   fabricCanvas.value.clear();
-  fabricCanvas.value.backgroundColor = '#FFFFFF';
+  fabricCanvas.value.backgroundColor = "#FFFFFF";
   fabricCanvas.value.renderAll();
 }
 
@@ -364,31 +366,33 @@ function clearCanvas() {
  * 获取 Canvas JSON
  */
 function getCanvasJSON() {
-  return fabricCanvas.value.toJSON(['id', 'name']);
+  return fabricCanvas.value.toJSON(["id", "name"]);
 }
 
 /**
  * 导出为图片
  */
-function exportAsImage(format = 'png') {
+function exportAsImage(format = "png") {
   return fabricCanvas.value.toDataURL({
     format: format,
-    quality: 1
+    quality: 1,
   });
 }
 
 // 监听工具切换
 watch(activeTool, (newTool) => {
-  if (!fabricCanvas.value) {return;}
+  if (!fabricCanvas.value) {
+    return;
+  }
 
   // 切换到选择工具
-  if (newTool === 'select') {
+  if (newTool === "select") {
     fabricCanvas.value.isDrawingMode = false;
     fabricCanvas.value.selection = true;
-    fabricCanvas.value.defaultCursor = 'default';
+    fabricCanvas.value.defaultCursor = "default";
   } else {
     fabricCanvas.value.selection = false;
-    fabricCanvas.value.defaultCursor = 'crosshair';
+    fabricCanvas.value.defaultCursor = "crosshair";
   }
 });
 
@@ -410,7 +414,7 @@ defineExpose({
   clearCanvas,
   getCanvasJSON,
   exportAsImage,
-  fabricCanvas
+  fabricCanvas,
 });
 </script>
 

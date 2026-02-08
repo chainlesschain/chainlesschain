@@ -11,13 +11,10 @@
         >
           <play-circle-outlined v-if="!executing" />
           <loading-outlined v-else />
-          {{ executing ? '执行中...' : '运行代码' }}
+          {{ executing ? "执行中..." : "运行代码" }}
         </a-button>
 
-        <a-button
-          :disabled="!executing"
-          @click="handleStop"
-        >
+        <a-button :disabled="!executing" @click="handleStop">
           <stop-outlined />
           停止
         </a-button>
@@ -28,20 +25,14 @@
         </a-button>
 
         <a-tooltip title="代码安全检查">
-          <a-button
-            :loading="checking"
-            @click="handleSafetyCheck"
-          >
+          <a-button :loading="checking" @click="handleSafetyCheck">
             <safety-outlined />
             安全检查
           </a-button>
         </a-tooltip>
       </a-space>
 
-      <div
-        v-if="executionTime"
-        class="execution-time"
-      >
+      <div v-if="executionTime" class="execution-time">
         执行时间: {{ executionTime }}ms
       </div>
     </div>
@@ -57,10 +48,7 @@
       <template #message>
         <div>检测到潜在危险操作:</div>
         <ul class="warning-list">
-          <li
-            v-for="(warning, index) in safetyWarnings"
-            :key="index"
-          >
+          <li v-for="(warning, index) in safetyWarnings" :key="index">
             {{ warning }}
           </li>
         </ul>
@@ -81,23 +69,14 @@
     </a-alert>
 
     <!-- 执行步骤 -->
-    <div
-      v-if="showSteps && steps.length > 0"
-      class="execution-steps"
-    >
-      <div
-        class="steps-header"
-        @click="stepsExpanded = !stepsExpanded"
-      >
+    <div v-if="showSteps && steps.length > 0" class="execution-steps">
+      <div class="steps-header" @click="stepsExpanded = !stepsExpanded">
         <right-outlined :class="{ expanded: stepsExpanded }" />
         <span class="steps-title">{{ steps.length }} 个步骤</span>
       </div>
 
       <transition name="expand">
-        <div
-          v-show="stepsExpanded"
-          class="steps-list"
-        >
+        <div v-show="stepsExpanded" class="steps-list">
           <div
             v-for="(step, index) in steps"
             :key="index"
@@ -105,20 +84,14 @@
           >
             <div class="step-icon">
               <check-circle-outlined v-if="step.status === 'completed'" />
-              <loading-outlined
-                v-else-if="step.status === 'running'"
-                spin
-              />
+              <loading-outlined v-else-if="step.status === 'running'" spin />
               <clock-circle-outlined v-else />
             </div>
             <div class="step-content">
               <div class="step-title">
                 {{ step.title }}
               </div>
-              <div
-                v-if="step.description"
-                class="step-description"
-              >
+              <div v-if="step.description" class="step-description">
                 {{ step.description }}
               </div>
             </div>
@@ -131,19 +104,10 @@
     <div class="execution-output">
       <a-tabs v-model:active-key="activeTab">
         <!-- 标准输出 -->
-        <a-tab-pane
-          key="stdout"
-          tab="输出"
-        >
+        <a-tab-pane key="stdout" tab="输出">
           <div class="output-content">
-            <pre
-              v-if="stdout"
-              class="output-text"
-            >{{ stdout }}</pre>
-            <div
-              v-else
-              class="output-empty"
-            >
+            <pre v-if="stdout" class="output-text">{{ stdout }}</pre>
+            <div v-else class="output-empty">
               <inbox-outlined />
               <span>暂无输出</span>
             </div>
@@ -164,14 +128,8 @@
             </span>
           </template>
           <div class="output-content error">
-            <pre
-              v-if="stderr"
-              class="output-text"
-            >{{ stderr }}</pre>
-            <div
-              v-else
-              class="output-empty"
-            >
+            <pre v-if="stderr" class="output-text">{{ stderr }}</pre>
+            <div v-else class="output-empty">
               <check-circle-outlined />
               <span>无错误</span>
             </div>
@@ -179,30 +137,27 @@
         </a-tab-pane>
 
         <!-- 执行信息 -->
-        <a-tab-pane
-          key="info"
-          tab="信息"
-        >
+        <a-tab-pane key="info" tab="信息">
           <div class="output-content">
             <div class="info-item">
               <span class="info-label">退出代码:</span>
               <a-tag :color="exitCode === 0 ? 'success' : 'error'">
-                {{ exitCode !== null ? exitCode : '-' }}
+                {{ exitCode !== null ? exitCode : "-" }}
               </a-tag>
             </div>
             <div class="info-item">
               <span class="info-label">执行时间:</span>
-              <span>{{ executionTime ? `${executionTime}ms` : '-' }}</span>
+              <span>{{ executionTime ? `${executionTime}ms` : "-" }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">执行状态:</span>
               <a-tag :color="getStatusColor(lastExecutionStatus)">
-                {{ lastExecutionStatus || '未执行' }}
+                {{ lastExecutionStatus || "未执行" }}
               </a-tag>
             </div>
             <div class="info-item">
               <span class="info-label">Python版本:</span>
-              <span>{{ pythonVersion || '检测中...' }}</span>
+              <span>{{ pythonVersion || "检测中..." }}</span>
             </div>
           </div>
         </a-tab-pane>
@@ -212,9 +167,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed } from 'vue';
+import { ref, computed } from "vue";
 import {
   PlayCircleOutlined,
   StopOutlined,
@@ -225,8 +180,8 @@ import {
   LoadingOutlined,
   ClockCircleOutlined,
   InboxOutlined,
-} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 
 const props = defineProps({
   code: {
@@ -243,21 +198,21 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['execution-complete', 'execution-error']);
+const emit = defineEmits(["execution-complete", "execution-error"]);
 
 // 执行状态
 const executing = ref(false);
 const currentExecutionId = ref(null); // 当前执行的进程ID
 const checking = ref(false);
-const activeTab = ref('stdout');
+const activeTab = ref("stdout");
 
 // 输出数据
-const stdout = ref('');
-const stderr = ref('');
+const stdout = ref("");
+const stderr = ref("");
 const exitCode = ref(null);
 const executionTime = ref(null);
-const lastExecutionStatus = ref('');
-const pythonVersion = ref('');
+const lastExecutionStatus = ref("");
+const pythonVersion = ref("");
 
 // 安全检查
 const safetyWarnings = ref([]);
@@ -269,14 +224,17 @@ const stepsExpanded = ref(true);
 // 获取Python版本
 const detectPythonVersion = async () => {
   try {
-    const result = await window.api.code.executePython('import sys; print(sys.version)', {
-      timeout: 3000,
-    });
+    const result = await window.api.code.executePython(
+      "import sys; print(sys.version)",
+      {
+        timeout: 3000,
+      },
+    );
     if (result.success && result.stdout) {
-      pythonVersion.value = result.stdout.trim().split('\n')[0];
+      pythonVersion.value = result.stdout.trim().split("\n")[0];
     }
   } catch (error) {
-    logger.error('检测Python版本失败:', error);
+    logger.error("检测Python版本失败:", error);
   }
 };
 
@@ -288,25 +246,25 @@ detectPythonVersion();
  */
 const handleExecute = async () => {
   if (!props.code || props.code.trim().length === 0) {
-    message.warning('请输入代码');
+    message.warning("请输入代码");
     return;
   }
 
   // 清空之前的输出
-  stdout.value = '';
-  stderr.value = '';
+  stdout.value = "";
+  stderr.value = "";
   exitCode.value = null;
   executionTime.value = null;
   safetyWarnings.value = [];
 
   executing.value = true;
-  lastExecutionStatus.value = '执行中';
+  lastExecutionStatus.value = "执行中";
 
   if (props.showSteps) {
     steps.value = [
-      { title: '正在创建临时文件', status: 'running' },
-      { title: '正在执行代码', status: 'pending' },
-      { title: '正在收集输出', status: 'pending' },
+      { title: "正在创建临时文件", status: "running" },
+      { title: "正在执行代码", status: "pending" },
+      { title: "正在收集输出", status: "pending" },
     ];
   }
 
@@ -314,8 +272,8 @@ const handleExecute = async () => {
     // 步骤1: 创建文件
     if (props.showSteps) {
       await new Promise((resolve) => setTimeout(resolve, 300));
-      steps.value[0].status = 'completed';
-      steps.value[1].status = 'running';
+      steps.value[0].status = "completed";
+      steps.value[1].status = "running";
     }
 
     // 步骤2: 执行代码
@@ -328,42 +286,42 @@ const handleExecute = async () => {
 
     // 步骤3: 收集输出
     if (props.showSteps) {
-      steps.value[1].status = 'completed';
-      steps.value[2].status = 'running';
+      steps.value[1].status = "completed";
+      steps.value[2].status = "running";
       await new Promise((resolve) => setTimeout(resolve, 200));
-      steps.value[2].status = 'completed';
+      steps.value[2].status = "completed";
     }
 
     // 处理结果
-    if (result.success === false && result.error === 'code_unsafe') {
+    if (result.success === false && result.error === "code_unsafe") {
       // 安全检查失败
       safetyWarnings.value = result.warnings || [];
-      lastExecutionStatus.value = '安全检查失败';
-      message.warning('代码包含潜在危险操作');
+      lastExecutionStatus.value = "安全检查失败";
+      message.warning("代码包含潜在危险操作");
       return;
     }
 
-    stdout.value = result.stdout || '';
-    stderr.value = result.stderr || '';
+    stdout.value = result.stdout || "";
+    stderr.value = result.stderr || "";
     exitCode.value = result.exitCode;
     executionTime.value = result.executionTime;
 
     if (result.success) {
-      lastExecutionStatus.value = '执行成功';
-      message.success('代码执行成功');
-      emit('execution-complete', result);
+      lastExecutionStatus.value = "执行成功";
+      message.success("代码执行成功");
+      emit("execution-complete", result);
     } else {
-      lastExecutionStatus.value = '执行失败';
-      message.error('代码执行失败');
-      activeTab.value = 'stderr'; // 切换到错误标签
-      emit('execution-error', result);
+      lastExecutionStatus.value = "执行失败";
+      message.error("代码执行失败");
+      activeTab.value = "stderr"; // 切换到错误标签
+      emit("execution-error", result);
     }
   } catch (error) {
-    logger.error('执行Python代码失败:', error);
-    stderr.value = error.message || '执行失败';
-    lastExecutionStatus.value = '异常终止';
+    logger.error("执行Python代码失败:", error);
+    stderr.value = error.message || "执行失败";
+    lastExecutionStatus.value = "异常终止";
     message.error(`执行失败: ${error.message}`);
-    emit('execution-error', error);
+    emit("execution-error", error);
   } finally {
     executing.value = false;
   }
@@ -375,7 +333,7 @@ const handleExecute = async () => {
 const handleForceExecute = async () => {
   safetyWarnings.value = [];
   executing.value = true;
-  lastExecutionStatus.value = '强制执行中';
+  lastExecutionStatus.value = "强制执行中";
 
   try {
     const result = await window.api.code.executePython(props.code, {
@@ -383,27 +341,27 @@ const handleForceExecute = async () => {
       ignoreWarnings: true,
     });
 
-    stdout.value = result.stdout || '';
-    stderr.value = result.stderr || '';
+    stdout.value = result.stdout || "";
+    stderr.value = result.stderr || "";
     exitCode.value = result.exitCode;
     executionTime.value = result.executionTime;
 
     if (result.success) {
-      lastExecutionStatus.value = '执行成功';
-      message.success('代码执行成功');
-      emit('execution-complete', result);
+      lastExecutionStatus.value = "执行成功";
+      message.success("代码执行成功");
+      emit("execution-complete", result);
     } else {
-      lastExecutionStatus.value = '执行失败';
-      message.error('代码执行失败');
-      activeTab.value = 'stderr';
-      emit('execution-error', result);
+      lastExecutionStatus.value = "执行失败";
+      message.error("代码执行失败");
+      activeTab.value = "stderr";
+      emit("execution-error", result);
     }
   } catch (error) {
-    logger.error('强制执行失败:', error);
-    stderr.value = error.message || '执行失败';
-    lastExecutionStatus.value = '异常终止';
+    logger.error("强制执行失败:", error);
+    stderr.value = error.message || "执行失败";
+    lastExecutionStatus.value = "异常终止";
     message.error(`执行失败: ${error.message}`);
-    emit('execution-error', error);
+    emit("execution-error", error);
   } finally {
     executing.value = false;
   }
@@ -425,26 +383,26 @@ const handleStop = async () => {
 
     executing.value = false;
     currentExecutionId.value = null;
-    lastExecutionStatus.value = '已停止';
-    stderr.value = '执行已被用户中断';
+    lastExecutionStatus.value = "已停止";
+    stderr.value = "执行已被用户中断";
 
     // 更新步骤状态
     if (props.showSteps) {
-      steps.value.forEach(step => {
-        if (step.status === 'running') {
-          step.status = 'error';
+      steps.value.forEach((step) => {
+        if (step.status === "running") {
+          step.status = "error";
         }
       });
     }
 
-    message.warning('执行已停止');
+    message.warning("执行已停止");
   } catch (error) {
-    logger.error('停止执行失败:', error);
+    logger.error("停止执行失败:", error);
     // 即使API调用失败，也重置状态
     executing.value = false;
     currentExecutionId.value = null;
-    lastExecutionStatus.value = '已停止';
-    message.info('执行已停止');
+    lastExecutionStatus.value = "已停止";
+    message.info("执行已停止");
   }
 };
 
@@ -452,14 +410,14 @@ const handleStop = async () => {
  * 清空输出
  */
 const handleClear = () => {
-  stdout.value = '';
-  stderr.value = '';
+  stdout.value = "";
+  stderr.value = "";
   exitCode.value = null;
   executionTime.value = null;
-  lastExecutionStatus.value = '';
+  lastExecutionStatus.value = "";
   safetyWarnings.value = [];
   steps.value = [];
-  message.success('输出已清空');
+  message.success("输出已清空");
 };
 
 /**
@@ -467,7 +425,7 @@ const handleClear = () => {
  */
 const handleSafetyCheck = async () => {
   if (!props.code || props.code.trim().length === 0) {
-    message.warning('请输入代码');
+    message.warning("请输入代码");
     return;
   }
 
@@ -478,14 +436,14 @@ const handleSafetyCheck = async () => {
     const result = await window.api.code.checkSafety(props.code);
 
     if (result.safe) {
-      message.success('代码安全检查通过');
+      message.success("代码安全检查通过");
     } else {
       safetyWarnings.value = result.warnings || [];
       message.warning(`发现 ${result.warnings.length} 个潜在安全问题`);
     }
   } catch (error) {
-    logger.error('安全检查失败:', error);
-    message.error('安全检查失败');
+    logger.error("安全检查失败:", error);
+    message.error("安全检查失败");
   } finally {
     checking.value = false;
   }
@@ -496,14 +454,14 @@ const handleSafetyCheck = async () => {
  */
 const getStatusColor = (status) => {
   const colorMap = {
-    执行成功: 'success',
-    执行中: 'processing',
-    执行失败: 'error',
-    异常终止: 'error',
-    已停止: 'default',
-    安全检查失败: 'warning',
+    执行成功: "success",
+    执行中: "processing",
+    执行失败: "error",
+    异常终止: "error",
+    已停止: "default",
+    安全检查失败: "warning",
   };
-  return colorMap[status] || 'default';
+  return colorMap[status] || "default";
 };
 
 /**
@@ -686,7 +644,7 @@ defineExpose({
       padding: 12px;
       background: #f5f5f5;
       border-radius: 4px;
-      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-family: "Consolas", "Monaco", "Courier New", monospace;
       font-size: 13px;
       line-height: 1.6;
       color: #333;

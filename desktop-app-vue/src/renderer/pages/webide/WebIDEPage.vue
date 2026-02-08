@@ -3,10 +3,7 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <a-space>
-        <a-button
-          type="primary"
-          @click="handleSave"
-        >
+        <a-button type="primary" @click="handleSave">
           <SaveOutlined />
           保存
         </a-button>
@@ -29,10 +26,7 @@
             服务器模式
           </a-select-option>
         </a-select>
-        <a-select
-          v-model:value="currentDevice"
-          style="width: 120px"
-        >
+        <a-select v-model:value="currentDevice" style="width: 120px">
           <a-select-option value="desktop">
             <DesktopOutlined />
             桌面
@@ -59,33 +53,19 @@
       </a-space>
 
       <a-space style="margin-left: auto">
-        <a-tag
-          v-if="serverRunning"
-          color="success"
-        >
+        <a-tag v-if="serverRunning" color="success">
           <PlayCircleOutlined />
           服务器运行中: {{ serverUrl }}
         </a-tag>
-        <a-tag
-          v-else-if="previewMode === 'server'"
-          color="warning"
-        >
+        <a-tag v-else-if="previewMode === 'server'" color="warning">
           <PauseCircleOutlined />
           服务器未启动
         </a-tag>
-        <a-button
-          v-if="showDevTools"
-          type="text"
-          @click="toggleDevTools"
-        >
+        <a-button v-if="showDevTools" type="text" @click="toggleDevTools">
           <CloseOutlined />
           隐藏开发工具
         </a-button>
-        <a-button
-          v-else
-          type="text"
-          @click="toggleDevTools"
-        >
+        <a-button v-else type="text" @click="toggleDevTools">
           <CodeOutlined />
           显示开发工具
         </a-button>
@@ -94,15 +74,9 @@
 
     <!-- 主体区域 -->
     <div class="content-area">
-      <a-row
-        :gutter="0"
-        style="height: 100%"
-      >
+      <a-row :gutter="0" style="height: 100%">
         <!-- 编辑器区域 35% -->
-        <a-col
-          :span="8"
-          class="editor-column"
-        >
+        <a-col :span="8" class="editor-column">
           <EditorPanel
             v-model:html-code="htmlCode"
             v-model:css-code="cssCode"
@@ -112,10 +86,7 @@
         </a-col>
 
         <!-- 预览区域 -->
-        <a-col
-          :span="showDevTools ? 12 : 16"
-          class="preview-column"
-        >
+        <a-col :span="showDevTools ? 12 : 16" class="preview-column">
           <PreviewFrame
             ref="previewFrameRef"
             :html="htmlCode"
@@ -130,15 +101,8 @@
         </a-col>
 
         <!-- 开发工具区域 20% (可折叠) -->
-        <a-col
-          v-if="showDevTools"
-          :span="4"
-          class="devtools-column"
-        >
-          <ConsolePanel
-            ref="consolePanelRef"
-            :logs="consoleLogs"
-          />
+        <a-col v-if="showDevTools" :span="4" class="devtools-column">
+          <ConsolePanel ref="consolePanelRef" :logs="consoleLogs" />
         </a-col>
       </a-row>
     </div>
@@ -153,13 +117,10 @@
         <a-divider type="vertical" />
         <span class="status-item">
           <EyeOutlined />
-          预览模式: {{ previewMode === 'srcdoc' ? '实时' : '服务器' }}
+          预览模式: {{ previewMode === "srcdoc" ? "实时" : "服务器" }}
         </span>
         <a-divider type="vertical" />
-        <span
-          v-if="serverRunning"
-          class="status-item"
-        >
+        <span v-if="serverRunning" class="status-item">
           <LinkOutlined />
           {{ serverUrl }}
         </span>
@@ -178,10 +139,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted, h, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted, h, nextTick } from "vue";
+import { message } from "ant-design-vue";
 import {
   SaveOutlined,
   ExportOutlined,
@@ -200,11 +161,11 @@ import {
   EyeOutlined,
   LinkOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons-vue';
-import { debounce } from 'lodash-es';
-import EditorPanel from '../../components/webide/EditorPanel.vue';
-import PreviewFrame from '../../components/webide/PreviewFrame.vue';
-import ConsolePanel from '../../components/webide/ConsolePanel.vue';
+} from "@ant-design/icons-vue";
+import { debounce } from "lodash-es";
+import EditorPanel from "../../components/webide/EditorPanel.vue";
+import PreviewFrame from "../../components/webide/PreviewFrame.vue";
+import ConsolePanel from "../../components/webide/ConsolePanel.vue";
 
 // 状态
 const htmlCode = ref(`<!DOCTYPE html>
@@ -282,14 +243,14 @@ if (btn) {
   });
 }`);
 
-const previewMode = ref('srcdoc');
-const currentDevice = ref('desktop');
-const currentLanguage = ref('HTML');
+const previewMode = ref("srcdoc");
+const currentDevice = ref("desktop");
+const currentLanguage = ref("HTML");
 const showDevTools = ref(true);
 const serverRunning = ref(false);
-const serverUrl = ref('');
+const serverUrl = ref("");
 const consoleLogs = ref([]);
-const lastUpdateTime = ref('--:--:--');
+const lastUpdateTime = ref("--:--:--");
 
 const previewFrameRef = ref(null);
 const consolePanelRef = ref(null);
@@ -308,41 +269,41 @@ const updateLastUpdateTime = () => {
 // 保存项目
 const handleSave = async () => {
   try {
-    message.loading({ content: '保存中...', key: 'save' });
+    message.loading({ content: "保存中...", key: "save" });
 
     // 使用 Modal 输入项目名称
-    const { Modal } = await import('ant-design-vue');
+    const { Modal } = await import("ant-design-vue");
 
     Modal.confirm({
-      title: '保存项目',
-      content: h('div', [
-        h('p', { style: { marginBottom: '8px' } }, '请输入项目名称:'),
-        h('input', {
-          id: 'project-name-input',
-          type: 'text',
-          placeholder: '例如: 我的网页项目',
+      title: "保存项目",
+      content: h("div", [
+        h("p", { style: { marginBottom: "8px" } }, "请输入项目名称:"),
+        h("input", {
+          id: "project-name-input",
+          type: "text",
+          placeholder: "例如: 我的网页项目",
           style: {
-            width: '100%',
-            padding: '8px',
-            border: '1px solid #d9d9d9',
-            borderRadius: '4px',
-            fontSize: '14px'
+            width: "100%",
+            padding: "8px",
+            border: "1px solid #d9d9d9",
+            borderRadius: "4px",
+            fontSize: "14px",
           },
           onMounted: () => {
             nextTick(() => {
-              const input = document.getElementById('project-name-input');
+              const input = document.getElementById("project-name-input");
               if (input) {
                 input.focus();
               }
             });
-          }
-        })
+          },
+        }),
       ]),
-      okText: '保存',
-      cancelText: '取消',
+      okText: "保存",
+      cancelText: "取消",
       onOk: async () => {
-        const input = document.getElementById('project-name-input');
-        const projectName = input?.value?.trim() || 'Untitled';
+        const input = document.getElementById("project-name-input");
+        const projectName = input?.value?.trim() || "Untitled";
 
         try {
           const result = await window.electronAPI.webIDE.saveProject({
@@ -351,161 +312,190 @@ const handleSave = async () => {
             css: cssCode.value,
             js: jsCode.value,
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
           });
 
           if (result.success) {
-            message.success({ content: `项目 "${projectName}" 保存成功！`, key: 'save', duration: 2 });
+            message.success({
+              content: `项目 "${projectName}" 保存成功！`,
+              key: "save",
+              duration: 2,
+            });
           } else {
-            message.error({ content: `保存失败: ${result.error || '未知错误'}`, key: 'save', duration: 3 });
+            message.error({
+              content: `保存失败: ${result.error || "未知错误"}`,
+              key: "save",
+              duration: 3,
+            });
             return Promise.reject();
           }
         } catch (error) {
-          logger.error('[WebIDE] 保存失败:', error);
+          logger.error("[WebIDE] 保存失败:", error);
 
-          let errorMessage = '保存失败';
+          let errorMessage = "保存失败";
           if (error.message) {
-            if (error.message.includes('database')) {
-              errorMessage = '数据库错误，请重试';
-            } else if (error.message.includes('permission')) {
-              errorMessage = '没有权限保存项目';
+            if (error.message.includes("database")) {
+              errorMessage = "数据库错误，请重试";
+            } else if (error.message.includes("permission")) {
+              errorMessage = "没有权限保存项目";
             } else {
               errorMessage = `保存失败: ${error.message}`;
             }
           }
 
-          message.error({ content: errorMessage, key: 'save', duration: 3 });
+          message.error({ content: errorMessage, key: "save", duration: 3 });
           return Promise.reject();
         }
-      }
+      },
     });
   } catch (error) {
-    logger.error('[WebIDE] 打开保存对话框失败:', error);
-    message.error({ content: '打开保存对话框失败', key: 'save', duration: 3 });
+    logger.error("[WebIDE] 打开保存对话框失败:", error);
+    message.error({ content: "打开保存对话框失败", key: "save", duration: 3 });
   }
 };
 
 // 导出HTML
 const handleExport = async () => {
   try {
-    message.loading({ content: '导出中...', key: 'export' });
+    message.loading({ content: "导出中...", key: "export" });
 
     // 使用 Modal 选择导出格式
-    const { Modal } = await import('ant-design-vue');
+    const { Modal } = await import("ant-design-vue");
 
     Modal.confirm({
-      title: '导出项目',
-      content: h('div', [
-        h('p', { style: { marginBottom: '12px' } }, '选择导出格式:'),
-        h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } }, [
-          h('button', {
-            id: 'export-html-btn',
-            style: {
-              padding: '10px',
-              border: '1px solid #d9d9d9',
-              borderRadius: '4px',
-              background: '#fff',
-              cursor: 'pointer',
-              textAlign: 'left'
-            },
-            onclick: () => {
-              document.getElementById('export-format').value = 'html';
-            }
-          }, '📄 单个 HTML 文件 (包含内联 CSS 和 JS)'),
-          h('button', {
-            id: 'export-zip-btn',
-            style: {
-              padding: '10px',
-              border: '1px solid #d9d9d9',
-              borderRadius: '4px',
-              background: '#fff',
-              cursor: 'pointer',
-              textAlign: 'left'
-            },
-            onclick: () => {
-              document.getElementById('export-format').value = 'zip';
-            }
-          }, '📦 ZIP 压缩包 (分离的 HTML, CSS, JS 文件)'),
-          h('input', {
-            id: 'export-format',
-            type: 'hidden',
-            value: 'html'
-          })
-        ])
+      title: "导出项目",
+      content: h("div", [
+        h("p", { style: { marginBottom: "12px" } }, "选择导出格式:"),
+        h(
+          "div",
+          { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+          [
+            h(
+              "button",
+              {
+                id: "export-html-btn",
+                style: {
+                  padding: "10px",
+                  border: "1px solid #d9d9d9",
+                  borderRadius: "4px",
+                  background: "#fff",
+                  cursor: "pointer",
+                  textAlign: "left",
+                },
+                onclick: () => {
+                  document.getElementById("export-format").value = "html";
+                },
+              },
+              "📄 单个 HTML 文件 (包含内联 CSS 和 JS)",
+            ),
+            h(
+              "button",
+              {
+                id: "export-zip-btn",
+                style: {
+                  padding: "10px",
+                  border: "1px solid #d9d9d9",
+                  borderRadius: "4px",
+                  background: "#fff",
+                  cursor: "pointer",
+                  textAlign: "left",
+                },
+                onclick: () => {
+                  document.getElementById("export-format").value = "zip";
+                },
+              },
+              "📦 ZIP 压缩包 (分离的 HTML, CSS, JS 文件)",
+            ),
+            h("input", {
+              id: "export-format",
+              type: "hidden",
+              value: "html",
+            }),
+          ],
+        ),
       ]),
-      okText: '导出',
-      cancelText: '取消',
+      okText: "导出",
+      cancelText: "取消",
       onOk: async () => {
-        const format = document.getElementById('export-format')?.value || 'html';
+        const format =
+          document.getElementById("export-format")?.value || "html";
 
         try {
           let result;
 
-          if (format === 'zip') {
+          if (format === "zip") {
             // 导出为 ZIP
             result = await window.electronAPI.webIDE.exportZIP({
               html: htmlCode.value,
               css: cssCode.value,
               js: jsCode.value,
-              name: 'webide-project'
+              name: "webide-project",
             });
           } else {
             // 导出为单个 HTML 文件
             result = await window.electronAPI.webIDE.exportHTML({
               html: htmlCode.value,
               css: cssCode.value,
-              js: jsCode.value
+              js: jsCode.value,
             });
           }
 
           if (result.success) {
             message.success({
-              content: `导出成功！文件已保存到: ${result.path || '下载目录'}`,
-              key: 'export',
-              duration: 3
+              content: `导出成功！文件已保存到: ${result.path || "下载目录"}`,
+              key: "export",
+              duration: 3,
             });
           } else {
             message.error({
-              content: `导出失败: ${result.error || '未知错误'}`,
-              key: 'export',
-              duration: 3
+              content: `导出失败: ${result.error || "未知错误"}`,
+              key: "export",
+              duration: 3,
             });
             return Promise.reject();
           }
         } catch (error) {
-          logger.error('[WebIDE] 导出失败:', error);
+          logger.error("[WebIDE] 导出失败:", error);
 
-          let errorMessage = '导出失败';
+          let errorMessage = "导出失败";
           if (error.message) {
-            if (error.message.includes('permission')) {
-              errorMessage = '没有权限写入文件';
-            } else if (error.message.includes('disk')) {
-              errorMessage = '磁盘空间不足';
-            } else if (error.message.includes('canceled')) {
-              errorMessage = '用户取消了导出';
-              message.info({ content: errorMessage, key: 'export', duration: 2 });
+            if (error.message.includes("permission")) {
+              errorMessage = "没有权限写入文件";
+            } else if (error.message.includes("disk")) {
+              errorMessage = "磁盘空间不足";
+            } else if (error.message.includes("canceled")) {
+              errorMessage = "用户取消了导出";
+              message.info({
+                content: errorMessage,
+                key: "export",
+                duration: 2,
+              });
               return;
             } else {
               errorMessage = `导出失败: ${error.message}`;
             }
           }
 
-          message.error({ content: errorMessage, key: 'export', duration: 3 });
+          message.error({ content: errorMessage, key: "export", duration: 3 });
           return Promise.reject();
         }
-      }
+      },
     });
   } catch (error) {
-    logger.error('[WebIDE] 打开导出对话框失败:', error);
-    message.error({ content: '打开导出对话框失败', key: 'export', duration: 3 });
+    logger.error("[WebIDE] 打开导出对话框失败:", error);
+    message.error({
+      content: "打开导出对话框失败",
+      key: "export",
+      duration: 3,
+    });
   }
 };
 
 // 切换预览模式
 const handlePreviewModeChange = async (mode) => {
-  if (mode === 'server' && !serverRunning.value) {
+  if (mode === "server" && !serverRunning.value) {
     await startDevServer();
-  } else if (mode === 'srcdoc' && serverRunning.value) {
+  } else if (mode === "srcdoc" && serverRunning.value) {
     await stopDevServer();
   }
 };
@@ -513,53 +503,56 @@ const handlePreviewModeChange = async (mode) => {
 // 启动开发服务器
 const startDevServer = async () => {
   try {
-    message.loading({ content: '启动服务器...', key: 'server' });
+    message.loading({ content: "启动服务器...", key: "server" });
 
-    logger.info('[WebIDE] 开始启动开发服务器...');
+    logger.info("[WebIDE] 开始启动开发服务器...");
 
     // 调用后端API启动服务器
     const result = await window.electronAPI.webIDE.startDevServer({
       html: htmlCode.value,
       css: cssCode.value,
       js: jsCode.value,
-      port: 3000 // 默认端口
+      port: 3000, // 默认端口
     });
 
-    logger.info('[WebIDE] 服务器启动结果:', result);
+    logger.info("[WebIDE] 服务器启动结果:", result);
 
     if (result.success) {
       serverRunning.value = true;
-      serverUrl.value = result.url || 'http://localhost:3000';
+      serverUrl.value = result.url || "http://localhost:3000";
 
       message.success({
         content: `服务器启动成功！访问地址: ${serverUrl.value}`,
-        key: 'server',
-        duration: 3
+        key: "server",
+        duration: 3,
       });
 
-      logger.info('[WebIDE] ✅ 服务器启动成功:', serverUrl.value);
+      logger.info("[WebIDE] ✅ 服务器启动成功:", serverUrl.value);
     } else {
-      const errorMsg = result.error || '未知错误';
-      logger.error('[WebIDE] ❌ 服务器启动失败:', errorMsg);
+      const errorMsg = result.error || "未知错误";
+      logger.error("[WebIDE] ❌ 服务器启动失败:", errorMsg);
 
       message.error({
         content: `启动失败: ${errorMsg}`,
-        key: 'server',
-        duration: 3
+        key: "server",
+        duration: 3,
       });
     }
   } catch (error) {
-    logger.error('[WebIDE] ❌ 启动服务器异常:', error);
-    logger.error('[WebIDE] 错误堆栈:', error.stack);
+    logger.error("[WebIDE] ❌ 启动服务器异常:", error);
+    logger.error("[WebIDE] 错误堆栈:", error.stack);
 
-    let errorMessage = '启动服务器失败';
+    let errorMessage = "启动服务器失败";
     if (error.message) {
-      if (error.message.includes('port') || error.message.includes('EADDRINUSE')) {
-        errorMessage = '端口已被占用，请关闭其他服务后重试';
-      } else if (error.message.includes('permission')) {
-        errorMessage = '没有权限启动服务器';
-      } else if (error.message.includes('not available')) {
-        errorMessage = '开发服务器不可用，请检查系统配置';
+      if (
+        error.message.includes("port") ||
+        error.message.includes("EADDRINUSE")
+      ) {
+        errorMessage = "端口已被占用，请关闭其他服务后重试";
+      } else if (error.message.includes("permission")) {
+        errorMessage = "没有权限启动服务器";
+      } else if (error.message.includes("not available")) {
+        errorMessage = "开发服务器不可用，请检查系统配置";
       } else {
         errorMessage = `启动失败: ${error.message}`;
       }
@@ -567,8 +560,8 @@ const startDevServer = async () => {
 
     message.error({
       content: errorMessage,
-      key: 'server',
-      duration: 3
+      key: "server",
+      duration: 3,
     });
   }
 };
@@ -576,49 +569,49 @@ const startDevServer = async () => {
 // 停止开发服务器
 const stopDevServer = async () => {
   try {
-    logger.info('[WebIDE] 开始停止开发服务器...');
+    logger.info("[WebIDE] 开始停止开发服务器...");
 
-    message.loading({ content: '停止服务器...', key: 'server-stop' });
+    message.loading({ content: "停止服务器...", key: "server-stop" });
 
     // 调用后端API停止服务器
     const result = await window.electronAPI.webIDE.stopDevServer(3000); // 传入端口号
 
-    logger.info('[WebIDE] 服务器停止结果:', result);
+    logger.info("[WebIDE] 服务器停止结果:", result);
 
     if (result.success) {
       serverRunning.value = false;
-      serverUrl.value = '';
+      serverUrl.value = "";
 
       message.success({
-        content: '服务器已停止',
-        key: 'server-stop',
-        duration: 2
+        content: "服务器已停止",
+        key: "server-stop",
+        duration: 2,
       });
 
-      logger.info('[WebIDE] ✅ 服务器停止成功');
+      logger.info("[WebIDE] ✅ 服务器停止成功");
     } else {
-      const errorMsg = result.error || '未知错误';
-      logger.error('[WebIDE] ❌ 服务器停止失败:', errorMsg);
+      const errorMsg = result.error || "未知错误";
+      logger.error("[WebIDE] ❌ 服务器停止失败:", errorMsg);
 
       message.error({
         content: `停止失败: ${errorMsg}`,
-        key: 'server-stop',
-        duration: 3
+        key: "server-stop",
+        duration: 3,
       });
     }
   } catch (error) {
-    logger.error('[WebIDE] ❌ 停止服务器异常:', error);
-    logger.error('[WebIDE] 错误堆栈:', error.stack);
+    logger.error("[WebIDE] ❌ 停止服务器异常:", error);
+    logger.error("[WebIDE] 错误堆栈:", error.stack);
 
-    let errorMessage = '停止服务器失败';
+    let errorMessage = "停止服务器失败";
     if (error.message) {
-      if (error.message.includes('not running')) {
-        errorMessage = '服务器未运行';
+      if (error.message.includes("not running")) {
+        errorMessage = "服务器未运行";
         // 即使停止失败，也重置状态
         serverRunning.value = false;
-        serverUrl.value = '';
-      } else if (error.message.includes('timeout')) {
-        errorMessage = '停止超时，请重试';
+        serverUrl.value = "";
+      } else if (error.message.includes("timeout")) {
+        errorMessage = "停止超时，请重试";
       } else {
         errorMessage = `停止失败: ${error.message}`;
       }
@@ -626,8 +619,8 @@ const stopDevServer = async () => {
 
     message.error({
       content: errorMessage,
-      key: 'server-stop',
-      duration: 3
+      key: "server-stop",
+      duration: 3,
     });
   }
 };
@@ -637,7 +630,7 @@ const handleRefreshPreview = () => {
   if (previewFrameRef.value) {
     previewFrameRef.value.refresh();
   }
-  message.success('预览已刷新');
+  message.success("预览已刷新");
 };
 
 // 清空控制台
@@ -646,7 +639,7 @@ const handleClearConsole = () => {
   if (consolePanelRef.value) {
     consolePanelRef.value.clear();
   }
-  message.info('控制台已清空');
+  message.info("控制台已清空");
 };
 
 // 切换开发工具面板
@@ -666,19 +659,19 @@ const handleConsoleLog = (log) => {
 
 // 处理预览错误
 const handlePreviewError = (error) => {
-  message.error('预览错误: ' + error.message);
+  message.error("预览错误: " + error.message);
   handleConsoleLog({
     id: Date.now() + Math.random(),
-    method: 'error',
+    method: "error",
     args: [error.message],
-    timestamp: new Date().toLocaleTimeString()
+    timestamp: new Date().toLocaleTimeString(),
   });
 };
 
 // 初始化
 onMounted(() => {
   updateLastUpdateTime();
-  message.info('Web IDE 已就绪');
+  message.info("Web IDE 已就绪");
 });
 
 // 清理

@@ -6,7 +6,7 @@
  * @description 文档处理模块，提供 PPT 导出等功能
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const { ipcMain, dialog } = require("electron");
 
 /**

@@ -4,7 +4,7 @@
  * 提供前端访问 TaskTrackerFile (todo.md 机制) 的接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 const { getTaskTrackerFile } = require("./task-tracker-file");
 
@@ -49,16 +49,19 @@ function registerTaskTrackerIPC() {
   /**
    * 更新任务进度
    */
-  ipcMain.handle("task-tracker:update-progress", async (event, { stepIndex, status, result }) => {
-    try {
-      const tracker = getTaskTrackerFile();
-      const task = await tracker.updateProgress(stepIndex, status, result);
-      return { success: true, task };
-    } catch (error) {
-      logger.error("[TaskTrackerIPC] 更新进度失败:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "task-tracker:update-progress",
+    async (event, { stepIndex, status, result }) => {
+      try {
+        const tracker = getTaskTrackerFile();
+        const task = await tracker.updateProgress(stepIndex, status, result);
+        return { success: true, task };
+      } catch (error) {
+        logger.error("[TaskTrackerIPC] 更新进度失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 完成当前步骤
@@ -105,16 +108,19 @@ function registerTaskTrackerIPC() {
   /**
    * 记录步骤错误
    */
-  ipcMain.handle("task-tracker:record-error", async (event, { stepIndex, error }) => {
-    try {
-      const tracker = getTaskTrackerFile();
-      await tracker.recordStepError(stepIndex, new Error(error));
-      return { success: true };
-    } catch (error) {
-      logger.error("[TaskTrackerIPC] 记录错误失败:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "task-tracker:record-error",
+    async (event, { stepIndex, error }) => {
+      try {
+        const tracker = getTaskTrackerFile();
+        await tracker.recordStepError(stepIndex, new Error(error));
+        return { success: true };
+      } catch (error) {
+        logger.error("[TaskTrackerIPC] 记录错误失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   // ==========================================
   // 任务查询 API
@@ -183,16 +189,19 @@ function registerTaskTrackerIPC() {
   /**
    * 保存中间结果
    */
-  ipcMain.handle("task-tracker:save-result", async (event, { stepIndex, result }) => {
-    try {
-      const tracker = getTaskTrackerFile();
-      await tracker.saveIntermediateResult(stepIndex, result);
-      return { success: true };
-    } catch (error) {
-      logger.error("[TaskTrackerIPC] 保存中间结果失败:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "task-tracker:save-result",
+    async (event, { stepIndex, result }) => {
+      try {
+        const tracker = getTaskTrackerFile();
+        await tracker.saveIntermediateResult(stepIndex, result);
+        return { success: true };
+      } catch (error) {
+        logger.error("[TaskTrackerIPC] 保存中间结果失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 加载中间结果

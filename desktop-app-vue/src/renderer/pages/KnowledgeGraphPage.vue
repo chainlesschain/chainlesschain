@@ -10,47 +10,37 @@
         class="control-panel"
       >
         <div class="panel-content">
-          <a-space
-            direction="vertical"
-            :size="16"
-            style="width: 100%"
-          >
+          <a-space direction="vertical" :size="16" style="width: 100%">
             <!-- 统计信息 -->
-            <a-card
-              title="图谱统计"
-              size="small"
-            >
-                <a-row :gutter="[16, 16]">
-                  <a-col :span="12">
-                    <a-statistic
-                      title="节点数"
-                      :value="graphStore.stats.totalNodes"
-                      :value-style="{ color: '#3f8600' }"
-                    >
-                      <template #prefix>
-                        <NodeIndexOutlined />
-                      </template>
-                    </a-statistic>
-                  </a-col>
-                  <a-col :span="12">
-                    <a-statistic
-                      title="关系数"
-                      :value="graphStore.stats.totalEdges"
-                      :value-style="{ color: '#1890ff' }"
-                    >
-                      <template #prefix>
-                        <LinkOutlined />
-                      </template>
-                    </a-statistic>
-                  </a-col>
-                </a-row>
+            <a-card title="图谱统计" size="small">
+              <a-row :gutter="[16, 16]">
+                <a-col :span="12">
+                  <a-statistic
+                    title="节点数"
+                    :value="graphStore.stats.totalNodes"
+                    :value-style="{ color: '#3f8600' }"
+                  >
+                    <template #prefix>
+                      <NodeIndexOutlined />
+                    </template>
+                  </a-statistic>
+                </a-col>
+                <a-col :span="12">
+                  <a-statistic
+                    title="关系数"
+                    :value="graphStore.stats.totalEdges"
+                    :value-style="{ color: '#1890ff' }"
+                  >
+                    <template #prefix>
+                      <LinkOutlined />
+                    </template>
+                  </a-statistic>
+                </a-col>
+              </a-row>
 
               <a-divider />
 
-              <a-descriptions
-                :column="1"
-                size="small"
-              >
+              <a-descriptions :column="1" size="small">
                 <a-descriptions-item label="链接">
                   {{ graphStore.stats.linkRelations }}
                 </a-descriptions-item>
@@ -67,10 +57,7 @@
             </a-card>
 
             <!-- 筛选选项 -->
-            <a-card
-              title="筛选选项"
-              size="small"
-            >
+            <a-card title="筛选选项" size="small">
               <a-form layout="vertical">
                 <a-form-item label="关系类型">
                   <a-checkbox-group
@@ -113,14 +100,8 @@
             </a-card>
 
             <!-- 操作按钮 -->
-            <a-card
-              title="图谱操作"
-              size="small"
-            >
-              <a-space
-                direction="vertical"
-                style="width: 100%"
-              >
+            <a-card title="图谱操作" size="small">
+              <a-space direction="vertical" style="width: 100%">
                 <a-button
                   type="primary"
                   block
@@ -173,19 +154,10 @@
 
       <!-- 主内容区 - 图谱画布 -->
       <a-layout-content class="graph-content">
-        <a-spin
-          :spinning="graphStore.loading"
-          tip="加载图谱数据..."
-        >
-          <div
-            v-if="!graphStore.hasData"
-            class="empty-state"
-          >
+        <a-spin :spinning="graphStore.loading" tip="加载图谱数据...">
+          <div v-if="!graphStore.hasData" class="empty-state">
             <a-empty description="暂无图谱数据">
-              <a-button
-                type="primary"
-                @click="handleProcessAllNotes"
-              >
+              <a-button type="primary" @click="handleProcessAllNotes">
                 开始构建图谱
               </a-button>
             </a-empty>
@@ -206,11 +178,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
-import { useRouter } from 'vue-router';
+import { ref, reactive, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import { useRouter } from "vue-router";
 import {
   NodeIndexOutlined,
   LinkOutlined,
@@ -218,9 +190,9 @@ import {
   TagsOutlined,
   ClockCircleOutlined,
   ReloadOutlined,
-} from '@ant-design/icons-vue';
-import { useGraphStore } from '../stores/graph';
-import GraphCanvas from '../components/graph/GraphCanvasOptimized.vue';
+} from "@ant-design/icons-vue";
+import { useGraphStore } from "../stores/graph";
+import GraphCanvas from "../components/graph/GraphCanvasOptimized.vue";
 
 const router = useRouter();
 const graphStore = useGraphStore();
@@ -229,24 +201,24 @@ const collapsed = ref(false);
 
 // 筛选选项
 const filters = reactive({
-  relationTypes: ['link', 'tag', 'semantic', 'temporal'],
-  nodeTypes: ['note', 'document', 'conversation', 'web_clip'],
+  relationTypes: ["link", "tag", "semantic", "temporal"],
+  nodeTypes: ["note", "document", "conversation", "web_clip"],
   minWeight: 0.0,
   limit: 500,
 });
 
 const relationTypeOptions = [
-  { label: '链接关系', value: 'link' },
-  { label: '标签关系', value: 'tag' },
-  { label: '语义关系', value: 'semantic' },
-  { label: '时间关系', value: 'temporal' },
+  { label: "链接关系", value: "link" },
+  { label: "标签关系", value: "tag" },
+  { label: "语义关系", value: "semantic" },
+  { label: "时间关系", value: "temporal" },
 ];
 
 const nodeTypeOptions = [
-  { label: '笔记', value: 'note' },
-  { label: '文档', value: 'document' },
-  { label: '对话', value: 'conversation' },
-  { label: '网页剪藏', value: 'web_clip' },
+  { label: "笔记", value: "note" },
+  { label: "文档", value: "document" },
+  { label: "对话", value: "conversation" },
+  { label: "网页剪藏", value: "web_clip" },
 ];
 
 /**
@@ -256,7 +228,7 @@ const loadGraphData = async () => {
   try {
     await graphStore.loadGraphData(filters);
   } catch (error) {
-    message.error('加载图谱数据失败: ' + error.message);
+    message.error("加载图谱数据失败: " + error.message);
   }
 };
 
@@ -277,10 +249,10 @@ const handleProcessAllNotes = async () => {
     message.success(
       `图谱重建完成！处理了 ${result.processed} 个笔记，创建了 ${
         result.linkRelations + result.tagRelations + result.temporalRelations
-      } 个关系`
+      } 个关系`,
     );
   } catch (error) {
-    message.error('重建图谱失败: ' + error.message);
+    message.error("重建图谱失败: " + error.message);
   }
 };
 
@@ -292,7 +264,7 @@ const handleBuildTagRelations = async () => {
     const count = await graphStore.buildTagRelations();
     message.success(`重建标签关系完成！创建了 ${count} 个关系`);
   } catch (error) {
-    message.error('重建标签关系失败: ' + error.message);
+    message.error("重建标签关系失败: " + error.message);
   }
 };
 
@@ -304,7 +276,7 @@ const handleBuildTemporalRelations = async () => {
     const count = await graphStore.buildTemporalRelations(7);
     message.success(`重建时间关系完成！创建了 ${count} 个关系`);
   } catch (error) {
-    message.error('重建时间关系失败: ' + error.message);
+    message.error("重建时间关系失败: " + error.message);
   }
 };
 
@@ -313,14 +285,14 @@ const handleBuildTemporalRelations = async () => {
  */
 const handleRefresh = async () => {
   await loadGraphData();
-  message.success('数据已刷新');
+  message.success("数据已刷新");
 };
 
 /**
  * 处理节点点击
  */
 const handleNodeClick = (node) => {
-  logger.info('节点被点击:', node);
+  logger.info("节点被点击:", node);
 };
 
 /**
@@ -328,7 +300,7 @@ const handleNodeClick = (node) => {
  */
 const handleOpenNote = (noteId) => {
   router.push({
-    name: 'KnowledgeDetail',
+    name: "KnowledgeDetail",
     params: { id: noteId },
   });
 };

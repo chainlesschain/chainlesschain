@@ -3,16 +3,16 @@
  * 运行方式: node src/main/skill-tool-system/db-integration.js
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 
 // 导入数据库管理器
-const DatabaseManager = require('../database');
+const DatabaseManager = require("../database");
 
 // 导入技能和工具定义
-const additionalSkillsV3 = require('./additional-skills-v3');
-const additionalToolsV3 = require('./additional-tools-v3');
+const additionalSkillsV3 = require("./additional-skills-v3");
+const additionalToolsV3 = require("./additional-tools-v3");
 
 class DatabaseIntegration {
   constructor() {
@@ -26,10 +26,12 @@ class DatabaseIntegration {
    */
   async initialize() {
     try {
-      logger.info('[DB Integration] 初始化数据库连接...');
+      logger.info("[DB Integration] 初始化数据库连接...");
 
       // 使用自定义路径或默认路径
-      const dbPath = process.env.DB_PATH || path.join(__dirname, '../../../../data/chainlesschain.db');
+      const dbPath =
+        process.env.DB_PATH ||
+        path.join(__dirname, "../../../../data/chainlesschain.db");
       logger.info(`[DB Integration] 数据库路径: ${dbPath}`);
 
       this.db = new DatabaseManager(dbPath, {
@@ -37,11 +39,11 @@ class DatabaseIntegration {
       });
 
       await this.db.initialize();
-      logger.info('[DB Integration] 数据库连接成功');
+      logger.info("[DB Integration] 数据库连接成功");
 
       return true;
     } catch (error) {
-      logger.error('[DB Integration] 数据库初始化失败:', error);
+      logger.error("[DB Integration] 数据库初始化失败:", error);
       throw error;
     }
   }
@@ -51,8 +53,10 @@ class DatabaseIntegration {
    */
   async insertTools() {
     try {
-      logger.info('\n[DB Integration] ===== 开始插入工具 =====');
-      logger.info(`[DB Integration] 待插入工具数量: ${additionalToolsV3.length}`);
+      logger.info("\n[DB Integration] ===== 开始插入工具 =====");
+      logger.info(
+        `[DB Integration] 待插入工具数量: ${additionalToolsV3.length}`,
+      );
 
       let inserted = 0;
       let skipped = 0;
@@ -61,8 +65,8 @@ class DatabaseIntegration {
         try {
           // 检查是否已存在
           const existing = await this.db.get(
-            'SELECT id FROM tools WHERE id = ? OR name = ?',
-            [tool.id, tool.name]
+            "SELECT id FROM tools WHERE id = ? OR name = ?",
+            [tool.id, tool.name],
           );
 
           if (existing) {
@@ -90,20 +94,20 @@ class DatabaseIntegration {
             tool.id,
             tool.name,
             tool.display_name || tool.name,
-            tool.description || '',
-            tool.tool_type || 'function',
-            tool.category || 'general',
-            '{}', // parameters_schema (暂时为空对象)
-            '{}', // return_schema
+            tool.description || "",
+            tool.tool_type || "function",
+            tool.category || "general",
+            "{}", // parameters_schema (暂时为空对象)
+            "{}", // return_schema
             tool.is_builtin || 0,
             null, // plugin_id
             null, // handler_path
             tool.enabled !== undefined ? tool.enabled : 1,
             0, // deprecated
-            tool.config || '{}',
-            '[]', // examples
+            tool.config || "{}",
+            "[]", // examples
             tool.doc_path || null,
-            '[]', // required_permissions
+            "[]", // required_permissions
             1, // risk_level
             0, // usage_count
             0, // success_count
@@ -117,18 +121,23 @@ class DatabaseIntegration {
 
           this.insertedTools.set(tool.name, tool.id);
           inserted++;
-          logger.info(`[DB Integration] ✅ 工具插入成功: ${tool.name} (${tool.id})`);
-
+          logger.info(
+            `[DB Integration] ✅ 工具插入成功: ${tool.name} (${tool.id})`,
+          );
         } catch (error) {
-          logger.error(`[DB Integration] ❌ 工具插入失败: ${tool.name}`, error.message);
+          logger.error(
+            `[DB Integration] ❌ 工具插入失败: ${tool.name}`,
+            error.message,
+          );
         }
       }
 
-      logger.info(`\n[DB Integration] 工具插入完成: 成功 ${inserted} 个, 跳过 ${skipped} 个`);
+      logger.info(
+        `\n[DB Integration] 工具插入完成: 成功 ${inserted} 个, 跳过 ${skipped} 个`,
+      );
       return { inserted, skipped };
-
     } catch (error) {
-      logger.error('[DB Integration] 插入工具失败:', error);
+      logger.error("[DB Integration] 插入工具失败:", error);
       throw error;
     }
   }
@@ -138,8 +147,10 @@ class DatabaseIntegration {
    */
   async insertSkills() {
     try {
-      logger.info('\n[DB Integration] ===== 开始插入技能 =====');
-      logger.info(`[DB Integration] 待插入技能数量: ${additionalSkillsV3.length}`);
+      logger.info("\n[DB Integration] ===== 开始插入技能 =====");
+      logger.info(
+        `[DB Integration] 待插入技能数量: ${additionalSkillsV3.length}`,
+      );
 
       let inserted = 0;
       let skipped = 0;
@@ -148,8 +159,8 @@ class DatabaseIntegration {
         try {
           // 检查是否已存在
           const existing = await this.db.get(
-            'SELECT id FROM skills WHERE id = ?',
-            [skill.id]
+            "SELECT id FROM skills WHERE id = ?",
+            [skill.id],
           );
 
           if (existing) {
@@ -174,14 +185,14 @@ class DatabaseIntegration {
             skill.id,
             skill.name,
             skill.display_name || skill.name,
-            skill.description || '',
-            skill.category || 'general',
+            skill.description || "",
+            skill.category || "general",
             skill.icon || null,
             skill.enabled !== undefined ? skill.enabled : 1,
             skill.is_builtin || 0,
             null, // plugin_id
-            skill.config || '{}',
-            skill.tags || '[]',
+            skill.config || "{}",
+            skill.tags || "[]",
             skill.doc_path || null,
             0, // usage_count
             0, // success_count
@@ -194,18 +205,23 @@ class DatabaseIntegration {
 
           this.insertedSkills.set(skill.id, skill);
           inserted++;
-          logger.info(`[DB Integration] ✅ 技能插入成功: ${skill.name} (${skill.id})`);
-
+          logger.info(
+            `[DB Integration] ✅ 技能插入成功: ${skill.name} (${skill.id})`,
+          );
         } catch (error) {
-          logger.error(`[DB Integration] ❌ 技能插入失败: ${skill.name}`, error.message);
+          logger.error(
+            `[DB Integration] ❌ 技能插入失败: ${skill.name}`,
+            error.message,
+          );
         }
       }
 
-      logger.info(`\n[DB Integration] 技能插入完成: 成功 ${inserted} 个, 跳过 ${skipped} 个`);
+      logger.info(
+        `\n[DB Integration] 技能插入完成: 成功 ${inserted} 个, 跳过 ${skipped} 个`,
+      );
       return { inserted, skipped };
-
     } catch (error) {
-      logger.error('[DB Integration] 插入技能失败:', error);
+      logger.error("[DB Integration] 插入技能失败:", error);
       throw error;
     }
   }
@@ -215,7 +231,7 @@ class DatabaseIntegration {
    */
   async createSkillToolRelations() {
     try {
-      logger.info('\n[DB Integration] ===== 开始创建技能-工具关联 =====');
+      logger.info("\n[DB Integration] ===== 开始创建技能-工具关联 =====");
 
       let created = 0;
       let skipped = 0;
@@ -223,12 +239,14 @@ class DatabaseIntegration {
 
       for (const [skillId, skill] of this.insertedSkills) {
         if (!skill.tools || skill.tools.length === 0) {
-          logger.info(`[DB Integration] ⚠️  技能无关联工具，跳过: ${skill.name}`);
+          logger.info(
+            `[DB Integration] ⚠️  技能无关联工具，跳过: ${skill.name}`,
+          );
           continue;
         }
 
         logger.info(`\n[DB Integration] 处理技能: ${skill.name}`);
-        logger.info(`[DB Integration] 需关联工具: ${skill.tools.join(', ')}`);
+        logger.info(`[DB Integration] 需关联工具: ${skill.tools.join(", ")}`);
 
         for (let i = 0; i < skill.tools.length; i++) {
           const toolName = skill.tools[i];
@@ -241,61 +259,69 @@ class DatabaseIntegration {
               toolId = this.insertedTools.get(toolName);
             } else {
               // 从数据库查找
-              const tool = await this.db.get('SELECT id FROM tools WHERE name = ?', [toolName]);
+              const tool = await this.db.get(
+                "SELECT id FROM tools WHERE name = ?",
+                [toolName],
+              );
               if (tool) {
                 toolId = tool.id;
               }
             }
 
             if (!toolId) {
-              logger.info(`[DB Integration] ⚠️  工具不存在，跳过关联: ${toolName}`);
+              logger.info(
+                `[DB Integration] ⚠️  工具不存在，跳过关联: ${toolName}`,
+              );
               failed++;
               continue;
             }
 
             // 检查关联是否已存在
             const existing = await this.db.get(
-              'SELECT id FROM skill_tools WHERE skill_id = ? AND tool_id = ?',
-              [skillId, toolId]
+              "SELECT id FROM skill_tools WHERE skill_id = ? AND tool_id = ?",
+              [skillId, toolId],
             );
 
             if (existing) {
-              logger.info(`[DB Integration] ⚠️  关联已存在，跳过: ${skill.name} -> ${toolName}`);
+              logger.info(
+                `[DB Integration] ⚠️  关联已存在，跳过: ${skill.name} -> ${toolName}`,
+              );
               skipped++;
               continue;
             }
 
             // 创建关联
-            const role = i === 0 ? 'primary' : 'secondary';
+            const role = i === 0 ? "primary" : "secondary";
             const priority = skill.tools.length - i;
 
-            await this.db.run(`
+            await this.db.run(
+              `
               INSERT INTO skill_tools (id, skill_id, tool_id, role, priority, created_at)
               VALUES (?, ?, ?, ?, ?, ?)
-            `, [
-              `st_${uuidv4()}`,
-              skillId,
-              toolId,
-              role,
-              priority,
-              Date.now(),
-            ]);
+            `,
+              [`st_${uuidv4()}`, skillId, toolId, role, priority, Date.now()],
+            );
 
             created++;
-            logger.info(`[DB Integration] ✅ 关联创建成功: ${skill.name} -> ${toolName} (${role}, priority=${priority})`);
-
+            logger.info(
+              `[DB Integration] ✅ 关联创建成功: ${skill.name} -> ${toolName} (${role}, priority=${priority})`,
+            );
           } catch (error) {
-            logger.error(`[DB Integration] ❌ 创建关联失败: ${skill.name} -> ${toolName}`, error.message);
+            logger.error(
+              `[DB Integration] ❌ 创建关联失败: ${skill.name} -> ${toolName}`,
+              error.message,
+            );
             failed++;
           }
         }
       }
 
-      logger.info(`\n[DB Integration] 关联创建完成: 成功 ${created} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`);
+      logger.info(
+        `\n[DB Integration] 关联创建完成: 成功 ${created} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`,
+      );
       return { created, skipped, failed };
-
     } catch (error) {
-      logger.error('[DB Integration] 创建技能-工具关联失败:', error);
+      logger.error("[DB Integration] 创建技能-工具关联失败:", error);
       throw error;
     }
   }
@@ -305,37 +331,54 @@ class DatabaseIntegration {
    */
   async verify() {
     try {
-      logger.info('\n[DB Integration] ===== 验证数据 =====');
+      logger.info("\n[DB Integration] ===== 验证数据 =====");
 
       // 验证工具数量
-      const toolCount = await this.db.get('SELECT COUNT(*) as count FROM tools WHERE is_builtin = 1');
-      logger.info(`[DB Integration] 数据库中的内置工具数量: ${toolCount.count}`);
+      const toolCount = await this.db.get(
+        "SELECT COUNT(*) as count FROM tools WHERE is_builtin = 1",
+      );
+      logger.info(
+        `[DB Integration] 数据库中的内置工具数量: ${toolCount.count}`,
+      );
 
       // 验证技能数量
-      const skillCount = await this.db.get('SELECT COUNT(*) as count FROM skills WHERE is_builtin = 1');
-      logger.info(`[DB Integration] 数据库中的内置技能数量: ${skillCount.count}`);
+      const skillCount = await this.db.get(
+        "SELECT COUNT(*) as count FROM skills WHERE is_builtin = 1",
+      );
+      logger.info(
+        `[DB Integration] 数据库中的内置技能数量: ${skillCount.count}`,
+      );
 
       // 验证关联数量
-      const relationCount = await this.db.get('SELECT COUNT(*) as count FROM skill_tools');
-      logger.info(`[DB Integration] 数据库中的技能-工具关联数量: ${relationCount.count}`);
+      const relationCount = await this.db.get(
+        "SELECT COUNT(*) as count FROM skill_tools",
+      );
+      logger.info(
+        `[DB Integration] 数据库中的技能-工具关联数量: ${relationCount.count}`,
+      );
 
       // 列出所有插入的技能及其工具
-      logger.info('\n[DB Integration] 技能列表及其关联工具:');
+      logger.info("\n[DB Integration] 技能列表及其关联工具:");
       for (const [skillId, skill] of this.insertedSkills) {
-        const tools = await this.db.all(`
+        const tools = await this.db.all(
+          `
           SELECT t.name, st.role, st.priority
           FROM tools t
           INNER JOIN skill_tools st ON t.id = st.tool_id
           WHERE st.skill_id = ?
           ORDER BY st.priority DESC
-        `, [skillId]);
+        `,
+          [skillId],
+        );
 
-        logger.info(`  - ${skill.name}: ${tools.map(t => `${t.name}(${t.role})`).join(', ') || '无工具'}`);
+        logger.info(
+          `  - ${skill.name}: ${tools.map((t) => `${t.name}(${t.role})`).join(", ") || "无工具"}`,
+        );
       }
 
       return true;
     } catch (error) {
-      logger.error('[DB Integration] 验证失败:', error);
+      logger.error("[DB Integration] 验证失败:", error);
       return false;
     }
   }
@@ -347,10 +390,10 @@ class DatabaseIntegration {
     try {
       if (this.db && this.db.db) {
         await this.db.db.close();
-        logger.info('\n[DB Integration] 数据库连接已关闭');
+        logger.info("\n[DB Integration] 数据库连接已关闭");
       }
     } catch (error) {
-      logger.error('[DB Integration] 关闭数据库失败:', error);
+      logger.error("[DB Integration] 关闭数据库失败:", error);
     }
   }
 
@@ -359,10 +402,10 @@ class DatabaseIntegration {
    */
   async run() {
     try {
-      logger.info('========================================');
-      logger.info('  ChainlessChain 数据库集成脚本 V3');
-      logger.info('  插入技能和工具到数据库');
-      logger.info('========================================\n');
+      logger.info("========================================");
+      logger.info("  ChainlessChain 数据库集成脚本 V3");
+      logger.info("  插入技能和工具到数据库");
+      logger.info("========================================\n");
 
       // 1. 初始化数据库
       await this.initialize();
@@ -380,18 +423,23 @@ class DatabaseIntegration {
       await this.verify();
 
       // 6. 汇总报告
-      logger.info('\n========================================');
-      logger.info('  集成完成汇总');
-      logger.info('========================================');
-      logger.info(`工具: 插入 ${toolsResult.inserted} 个, 跳过 ${toolsResult.skipped} 个`);
-      logger.info(`技能: 插入 ${skillsResult.inserted} 个, 跳过 ${skillsResult.skipped} 个`);
-      logger.info(`关联: 创建 ${relationsResult.created} 个, 跳过 ${relationsResult.skipped} 个, 失败 ${relationsResult.failed} 个`);
-      logger.info('========================================\n');
+      logger.info("\n========================================");
+      logger.info("  集成完成汇总");
+      logger.info("========================================");
+      logger.info(
+        `工具: 插入 ${toolsResult.inserted} 个, 跳过 ${toolsResult.skipped} 个`,
+      );
+      logger.info(
+        `技能: 插入 ${skillsResult.inserted} 个, 跳过 ${skillsResult.skipped} 个`,
+      );
+      logger.info(
+        `关联: 创建 ${relationsResult.created} 个, 跳过 ${relationsResult.skipped} 个, 失败 ${relationsResult.failed} 个`,
+      );
+      logger.info("========================================\n");
 
       return true;
-
     } catch (error) {
-      logger.error('\n[DB Integration] 集成失败:', error);
+      logger.error("\n[DB Integration] 集成失败:", error);
       return false;
     } finally {
       await this.close();
@@ -402,12 +450,13 @@ class DatabaseIntegration {
 // 如果直接运行此脚本
 if (require.main === module) {
   const integration = new DatabaseIntegration();
-  integration.run()
-    .then(success => {
+  integration
+    .run()
+    .then((success) => {
       process.exit(success ? 0 : 1);
     })
-    .catch(error => {
-      logger.error('Fatal error:', error);
+    .catch((error) => {
+      logger.error("Fatal error:", error);
       process.exit(1);
     });
 }

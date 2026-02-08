@@ -3,10 +3,10 @@
  * 使用 JSZip 和 xml2js 直接解析 PPTX 文件
  */
 
-const { logger, createLogger } = require('./logger.js');
-const fs = require('fs').promises;
-const JSZip = require('jszip');
-const xml2js = require('xml2js');
+const { logger } = require("./logger.js");
+const fs = require("fs").promises;
+const JSZip = require("jszip");
+const xml2js = require("xml2js");
 
 /**
  * 解析 PPTX 文件
@@ -15,7 +15,7 @@ const xml2js = require('xml2js');
  */
 async function parsePPTX(filePath) {
   try {
-    logger.info('[PPTX Parser] 开始解析:', filePath);
+    logger.info("[PPTX Parser] 开始解析:", filePath);
 
     // 读取文件
     const data = await fs.readFile(filePath);
@@ -25,11 +25,11 @@ async function parsePPTX(filePath) {
 
     // 获取所有幻灯片文件
     const slideFiles = [];
-    zip.folder('ppt/slides').forEach((relativePath, file) => {
+    zip.folder("ppt/slides").forEach((relativePath, file) => {
       if (relativePath.match(/slide\d+\.xml$/)) {
         slideFiles.push({
           path: relativePath,
-          file: file
+          file: file,
         });
       }
     });
@@ -49,33 +49,32 @@ async function parsePPTX(filePath) {
 
     for (const { path, file } of slideFiles) {
       try {
-        const xmlContent = await file.async('text');
+        const xmlContent = await file.async("text");
         const result = await parser.parseStringPromise(xmlContent);
 
         // 提取文本内容
         const texts = extractTexts(result);
 
         slides.push({
-          title: texts[0] || '',
+          title: texts[0] || "",
           content: texts.slice(1),
-          allTexts: texts
+          allTexts: texts,
         });
       } catch (err) {
         logger.error(`[PPTX Parser] 解析幻灯片 ${path} 失败:`, err);
         slides.push({
-          title: '',
+          title: "",
           content: [],
           allTexts: [],
-          error: err.message
+          error: err.message,
         });
       }
     }
 
-    logger.info('[PPTX Parser] 解析完成');
+    logger.info("[PPTX Parser] 解析完成");
     return slides;
-
   } catch (error) {
-    logger.error('[PPTX Parser] 解析失败:', error);
+    logger.error("[PPTX Parser] 解析失败:", error);
     throw error;
   }
 }
@@ -87,9 +86,11 @@ async function parsePPTX(filePath) {
  * @returns {Array} 文本数组
  */
 function extractTexts(obj, texts = []) {
-  if (!obj) {return texts;}
+  if (!obj) {
+    return texts;
+  }
 
-  if (typeof obj === 'string') {
+  if (typeof obj === "string") {
     const trimmed = obj.trim();
     if (trimmed) {
       texts.push(trimmed);
@@ -98,14 +99,14 @@ function extractTexts(obj, texts = []) {
   }
 
   if (Array.isArray(obj)) {
-    obj.forEach(item => extractTexts(item, texts));
+    obj.forEach((item) => extractTexts(item, texts));
     return texts;
   }
 
-  if (typeof obj === 'object') {
+  if (typeof obj === "object") {
     // 特别处理文本节点 'a:t'
-    if (obj['a:t']) {
-      const text = Array.isArray(obj['a:t']) ? obj['a:t'].join('') : obj['a:t'];
+    if (obj["a:t"]) {
+      const text = Array.isArray(obj["a:t"]) ? obj["a:t"].join("") : obj["a:t"];
       const trimmed = String(text).trim();
       if (trimmed) {
         texts.push(trimmed);
@@ -113,8 +114,8 @@ function extractTexts(obj, texts = []) {
     }
 
     // 递归处理所有属性
-    Object.values(obj).forEach(value => {
-      if (value && typeof value === 'object') {
+    Object.values(obj).forEach((value) => {
+      if (value && typeof value === "object") {
         extractTexts(value, texts);
       }
     });
@@ -124,5 +125,5 @@ function extractTexts(obj, texts = []) {
 }
 
 module.exports = {
-  parsePPTX
+  parsePPTX,
 };

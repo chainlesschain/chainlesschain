@@ -4,9 +4,9 @@
  * 支持本地Ollama服务
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const axios = require('axios');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const axios = require("axios");
+const EventEmitter = require("events");
 
 /**
  * Ollama客户端类
@@ -15,15 +15,15 @@ class OllamaClient extends EventEmitter {
   constructor(config = {}) {
     super();
 
-    this.baseURL = config.baseURL || 'http://localhost:11434';
+    this.baseURL = config.baseURL || "http://localhost:11434";
     this.timeout = config.timeout || 120000; // 2分钟
-    this.model = config.model || 'llama2';
+    this.model = config.model || "llama2";
 
     this.client = axios.create({
       baseURL: this.baseURL,
       timeout: this.timeout,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
   }
@@ -33,7 +33,7 @@ class OllamaClient extends EventEmitter {
    */
   async checkStatus() {
     try {
-      const response = await this.client.get('/api/tags');
+      const response = await this.client.get("/api/tags");
       const models = response.data.models || [];
 
       return {
@@ -61,7 +61,7 @@ class OllamaClient extends EventEmitter {
    */
   async generate(prompt, options = {}) {
     try {
-      const response = await this.client.post('/api/generate', {
+      const response = await this.client.post("/api/generate", {
         model: options.model || this.model,
         prompt,
         stream: false,
@@ -82,7 +82,7 @@ class OllamaClient extends EventEmitter {
         tokens: response.data.eval_count || 0,
       };
     } catch (error) {
-      logger.error('[OllamaClient] 生成失败:', error);
+      logger.error("[OllamaClient] 生成失败:", error);
       throw error;
     }
   }
@@ -96,7 +96,7 @@ class OllamaClient extends EventEmitter {
   async generateStream(prompt, onChunk, options = {}) {
     try {
       const response = await this.client.post(
-        '/api/generate',
+        "/api/generate",
         {
           model: options.model || this.model,
           prompt,
@@ -109,16 +109,16 @@ class OllamaClient extends EventEmitter {
           context: options.context,
         },
         {
-          responseType: 'stream',
-        }
+          responseType: "stream",
+        },
       );
 
-      let fullText = '';
+      let fullText = "";
       let lastContext = null;
 
       return new Promise((resolve, reject) => {
-        response.data.on('data', (chunk) => {
-          const lines = chunk.toString().split('\n').filter(Boolean);
+        response.data.on("data", (chunk) => {
+          const lines = chunk.toString().split("\n").filter(Boolean);
 
           for (const line of lines) {
             try {
@@ -148,11 +148,11 @@ class OllamaClient extends EventEmitter {
           }
         });
 
-        response.data.on('error', (error) => {
+        response.data.on("error", (error) => {
           reject(error);
         });
 
-        response.data.on('end', () => {
+        response.data.on("end", () => {
           if (!lastContext) {
             resolve({
               text: fullText,
@@ -164,7 +164,7 @@ class OllamaClient extends EventEmitter {
         });
       });
     } catch (error) {
-      logger.error('[OllamaClient] 流式生成失败:', error);
+      logger.error("[OllamaClient] 流式生成失败:", error);
       throw error;
     }
   }
@@ -176,7 +176,7 @@ class OllamaClient extends EventEmitter {
    */
   async chat(messages, options = {}) {
     try {
-      const response = await this.client.post('/api/chat', {
+      const response = await this.client.post("/api/chat", {
         model: options.model || this.model,
         messages,
         stream: false,
@@ -195,7 +195,7 @@ class OllamaClient extends EventEmitter {
         tokens: response.data.eval_count || 0,
       };
     } catch (error) {
-      logger.error('[OllamaClient] 聊天失败:', error);
+      logger.error("[OllamaClient] 聊天失败:", error);
       throw error;
     }
   }
@@ -209,7 +209,7 @@ class OllamaClient extends EventEmitter {
   async chatStream(messages, onChunk, options = {}) {
     try {
       const response = await this.client.post(
-        '/api/chat',
+        "/api/chat",
         {
           model: options.model || this.model,
           messages,
@@ -221,18 +221,18 @@ class OllamaClient extends EventEmitter {
           },
         },
         {
-          responseType: 'stream',
-        }
+          responseType: "stream",
+        },
       );
 
       const fullMessage = {
-        role: 'assistant',
-        content: '',
+        role: "assistant",
+        content: "",
       };
 
       return new Promise((resolve, reject) => {
-        response.data.on('data', (chunk) => {
-          const lines = chunk.toString().split('\n').filter(Boolean);
+        response.data.on("data", (chunk) => {
+          const lines = chunk.toString().split("\n").filter(Boolean);
 
           for (const line of lines) {
             try {
@@ -257,11 +257,11 @@ class OllamaClient extends EventEmitter {
           }
         });
 
-        response.data.on('error', (error) => {
+        response.data.on("error", (error) => {
           reject(error);
         });
 
-        response.data.on('end', () => {
+        response.data.on("end", () => {
           resolve({
             message: fullMessage,
             model: options.model || this.model,
@@ -270,7 +270,7 @@ class OllamaClient extends EventEmitter {
         });
       });
     } catch (error) {
-      logger.error('[OllamaClient] 流式聊天失败:', error);
+      logger.error("[OllamaClient] 流式聊天失败:", error);
       throw error;
     }
   }
@@ -283,19 +283,19 @@ class OllamaClient extends EventEmitter {
   async pullModel(modelName, onProgress) {
     try {
       const response = await this.client.post(
-        '/api/pull',
+        "/api/pull",
         {
           name: modelName,
           stream: true,
         },
         {
-          responseType: 'stream',
-        }
+          responseType: "stream",
+        },
       );
 
       return new Promise((resolve, reject) => {
-        response.data.on('data', (chunk) => {
-          const lines = chunk.toString().split('\n').filter(Boolean);
+        response.data.on("data", (chunk) => {
+          const lines = chunk.toString().split("\n").filter(Boolean);
 
           for (const line of lines) {
             try {
@@ -305,7 +305,7 @@ class OllamaClient extends EventEmitter {
                 onProgress(data);
               }
 
-              if (data.status === 'success') {
+              if (data.status === "success") {
                 resolve(data);
               }
             } catch (e) {
@@ -314,12 +314,12 @@ class OllamaClient extends EventEmitter {
           }
         });
 
-        response.data.on('error', (error) => {
+        response.data.on("error", (error) => {
           reject(error);
         });
       });
     } catch (error) {
-      logger.error('[OllamaClient] 拉取模型失败:', error);
+      logger.error("[OllamaClient] 拉取模型失败:", error);
       throw error;
     }
   }
@@ -330,7 +330,7 @@ class OllamaClient extends EventEmitter {
    */
   async deleteModel(modelName) {
     try {
-      await this.client.delete('/api/delete', {
+      await this.client.delete("/api/delete", {
         data: {
           name: modelName,
         },
@@ -338,7 +338,7 @@ class OllamaClient extends EventEmitter {
 
       return true;
     } catch (error) {
-      logger.error('[OllamaClient] 删除模型失败:', error);
+      logger.error("[OllamaClient] 删除模型失败:", error);
       throw error;
     }
   }
@@ -349,13 +349,13 @@ class OllamaClient extends EventEmitter {
    */
   async showModel(modelName) {
     try {
-      const response = await this.client.post('/api/show', {
+      const response = await this.client.post("/api/show", {
         name: modelName,
       });
 
       return response.data;
     } catch (error) {
-      logger.error('[OllamaClient] 获取模型信息失败:', error);
+      logger.error("[OllamaClient] 获取模型信息失败:", error);
       throw error;
     }
   }
@@ -367,14 +367,14 @@ class OllamaClient extends EventEmitter {
    */
   async embeddings(text, model = null) {
     try {
-      const response = await this.client.post('/api/embeddings', {
+      const response = await this.client.post("/api/embeddings", {
         model: model || this.model,
         prompt: text,
       });
 
       return response.data.embedding;
     } catch (error) {
-      logger.error('[OllamaClient] 生成嵌入失败:', error);
+      logger.error("[OllamaClient] 生成嵌入失败:", error);
       throw error;
     }
   }

@@ -8,8 +8,8 @@
  * - 连接降级策略
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 class P2PConnectionHealthManager extends EventEmitter {
   constructor(p2pManager, options = {}) {
@@ -24,7 +24,7 @@ class P2PConnectionHealthManager extends EventEmitter {
       reconnectBackoffMultiplier: options.reconnectBackoffMultiplier || 1.5,
       maxReconnectDelay: options.maxReconnectDelay || 30000, // 30秒
       connectionTimeout: options.connectionTimeout || 30000, // 30秒
-      ...options
+      ...options,
     };
 
     // 连接状态跟踪
@@ -36,7 +36,7 @@ class P2PConnectionHealthManager extends EventEmitter {
     this.healthCheckTimer = null;
 
     // 网络状态
-    this.networkQuality = 'good'; // good, fair, poor, offline
+    this.networkQuality = "good"; // good, fair, poor, offline
     this.lastNetworkCheck = Date.now();
 
     this.initialized = false;
@@ -50,7 +50,7 @@ class P2PConnectionHealthManager extends EventEmitter {
       return;
     }
 
-    logger.info('[P2PConnectionHealth] 初始化连接健康管理器...');
+    logger.info("[P2PConnectionHealth] 初始化连接健康管理器...");
 
     // 监听P2P事件
     this._setupEventListeners();
@@ -62,7 +62,7 @@ class P2PConnectionHealthManager extends EventEmitter {
     this._setupNetworkMonitoring();
 
     this.initialized = true;
-    logger.info('[P2PConnectionHealth] 连接健康管理器初始化完成');
+    logger.info("[P2PConnectionHealth] 连接健康管理器初始化完成");
   }
 
   /**
@@ -70,17 +70,17 @@ class P2PConnectionHealthManager extends EventEmitter {
    */
   _setupEventListeners() {
     // 监听连接建立
-    this.p2pManager.on('peer:connected', (peerId) => {
+    this.p2pManager.on("peer:connected", (peerId) => {
       this._onPeerConnected(peerId);
     });
 
     // 监听连接断开
-    this.p2pManager.on('peer:disconnected', (peerId) => {
+    this.p2pManager.on("peer:disconnected", (peerId) => {
       this._onPeerDisconnected(peerId);
     });
 
     // 监听连接错误
-    this.p2pManager.on('peer:error', ({ peerId, error }) => {
+    this.p2pManager.on("peer:error", ({ peerId, error }) => {
       this._onPeerError(peerId, error);
     });
   }
@@ -90,16 +90,16 @@ class P2PConnectionHealthManager extends EventEmitter {
    */
   _setupNetworkMonitoring() {
     // 监听在线/离线事件
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => {
-        logger.info('[P2PConnectionHealth] 网络已恢复');
-        this.networkQuality = 'good';
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", () => {
+        logger.info("[P2PConnectionHealth] 网络已恢复");
+        this.networkQuality = "good";
         this._handleNetworkRestore();
       });
 
-      window.addEventListener('offline', () => {
-        logger.info('[P2PConnectionHealth] 网络已断开');
-        this.networkQuality = 'offline';
+      window.addEventListener("offline", () => {
+        logger.info("[P2PConnectionHealth] 网络已断开");
+        this.networkQuality = "offline";
         this._handleNetworkLoss();
       });
     }
@@ -117,7 +117,7 @@ class P2PConnectionHealthManager extends EventEmitter {
       this._performHealthCheck();
     }, this.options.healthCheckInterval);
 
-    logger.info('[P2PConnectionHealth] 健康检查已启动');
+    logger.info("[P2PConnectionHealth] 健康检查已启动");
   }
 
   /**
@@ -135,7 +135,7 @@ class P2PConnectionHealthManager extends EventEmitter {
           // 更新健康状态
           health.lastSeen = now;
           health.consecutiveFailures = 0;
-          health.status = 'healthy';
+          health.status = "healthy";
 
           // 测量延迟
           const latency = await this._measureLatency(peerId);
@@ -146,9 +146,11 @@ class P2PConnectionHealthManager extends EventEmitter {
         } else {
           // 连接不活跃
           health.consecutiveFailures++;
-          health.status = 'unhealthy';
+          health.status = "unhealthy";
 
-          logger.warn(`[P2PConnectionHealth] 对等方 ${peerId} 连接不健康 (失败次数: ${health.consecutiveFailures})`);
+          logger.warn(
+            `[P2PConnectionHealth] 对等方 ${peerId} 连接不健康 (失败次数: ${health.consecutiveFailures})`,
+          );
 
           // 触发重连
           if (health.consecutiveFailures >= 3) {
@@ -156,7 +158,7 @@ class P2PConnectionHealthManager extends EventEmitter {
           }
         }
 
-        this.emit('health-check', { peerId, health });
+        this.emit("health-check", { peerId, health });
       } catch (error) {
         logger.error(`[P2PConnectionHealth] 健康检查失败 (${peerId}):`, error);
       }
@@ -171,8 +173,8 @@ class P2PConnectionHealthManager extends EventEmitter {
       // 发送ping消息
       const pingStart = Date.now();
       await this.p2pManager.sendMessage(peerId, {
-        type: 'ping',
-        timestamp: pingStart
+        type: "ping",
+        timestamp: pingStart,
       });
 
       // 等待pong响应
@@ -182,14 +184,14 @@ class P2PConnectionHealthManager extends EventEmitter {
         }, this.options.pingTimeout);
 
         const handler = (data) => {
-          if (data.type === 'pong' && data.peerId === peerId) {
+          if (data.type === "pong" && data.peerId === peerId) {
             clearTimeout(timeout);
-            this.p2pManager.off('message', handler);
+            this.p2pManager.off("message", handler);
             resolve(true);
           }
         };
 
-        this.p2pManager.on('message', handler);
+        this.p2pManager.on("message", handler);
       });
     } catch (error) {
       logger.error(`[P2PConnectionHealth] Ping失败 (${peerId}):`, error);
@@ -217,18 +219,22 @@ class P2PConnectionHealthManager extends EventEmitter {
     const { latency } = health;
 
     if (latency < 100) {
-      health.quality = 'excellent';
+      health.quality = "excellent";
     } else if (latency < 200) {
-      health.quality = 'good';
+      health.quality = "good";
     } else if (latency < 500) {
-      health.quality = 'fair';
+      health.quality = "fair";
     } else {
-      health.quality = 'poor';
+      health.quality = "poor";
     }
 
     // 触发质量变化事件
     if (health.previousQuality !== health.quality) {
-      this.emit('quality-changed', { peerId, quality: health.quality, latency });
+      this.emit("quality-changed", {
+        peerId,
+        quality: health.quality,
+        latency,
+      });
       health.previousQuality = health.quality;
     }
   }
@@ -246,17 +252,20 @@ class P2PConnectionHealthManager extends EventEmitter {
 
     if (attempts >= this.options.maxReconnectAttempts) {
       logger.error(`[P2PConnectionHealth] 对等方 ${peerId} 重连次数已达上限`);
-      this.emit('reconnect-failed', { peerId, attempts });
+      this.emit("reconnect-failed", { peerId, attempts });
       return;
     }
 
     // 计算重连延迟（指数退避）
     const delay = Math.min(
-      this.options.reconnectDelay * Math.pow(this.options.reconnectBackoffMultiplier, attempts),
-      this.options.maxReconnectDelay
+      this.options.reconnectDelay *
+        Math.pow(this.options.reconnectBackoffMultiplier, attempts),
+      this.options.maxReconnectDelay,
     );
 
-    logger.info(`[P2PConnectionHealth] 将在 ${delay}ms 后重连对等方 ${peerId} (尝试 ${attempts + 1}/${this.options.maxReconnectAttempts})`);
+    logger.info(
+      `[P2PConnectionHealth] 将在 ${delay}ms 后重连对等方 ${peerId} (尝试 ${attempts + 1}/${this.options.maxReconnectAttempts})`,
+    );
 
     const timer = setTimeout(async () => {
       this.reconnectTimers.delete(peerId);
@@ -267,11 +276,15 @@ class P2PConnectionHealthManager extends EventEmitter {
 
         // 重连成功
         this.reconnectAttempts.set(peerId, 0);
-        this.emit('reconnect-success', { peerId, attempts: attempts + 1 });
+        this.emit("reconnect-success", { peerId, attempts: attempts + 1 });
       } catch (error) {
         logger.error(`[P2PConnectionHealth] 重连失败 (${peerId}):`, error);
         this.reconnectAttempts.set(peerId, attempts + 1);
-        this.emit('reconnect-attempt-failed', { peerId, attempts: attempts + 1, error });
+        this.emit("reconnect-attempt-failed", {
+          peerId,
+          attempts: attempts + 1,
+          error,
+        });
 
         // 继续尝试重连
         this._triggerReconnect(peerId);
@@ -291,11 +304,11 @@ class P2PConnectionHealthManager extends EventEmitter {
     // 初始化健康信息
     this.peerHealth.set(peerId, {
       peerId,
-      status: 'healthy',
-      quality: 'good',
+      status: "healthy",
+      quality: "good",
       lastSeen: Date.now(),
       consecutiveFailures: 0,
-      latency: 0
+      latency: 0,
     });
 
     // 重置重连计数
@@ -307,7 +320,7 @@ class P2PConnectionHealthManager extends EventEmitter {
       this.reconnectTimers.delete(peerId);
     }
 
-    this.emit('peer-healthy', { peerId });
+    this.emit("peer-healthy", { peerId });
   }
 
   /**
@@ -318,8 +331,8 @@ class P2PConnectionHealthManager extends EventEmitter {
 
     const health = this.peerHealth.get(peerId);
     if (health) {
-      health.status = 'disconnected';
-      this.emit('peer-disconnected', { peerId, health });
+      health.status = "disconnected";
+      this.emit("peer-disconnected", { peerId, health });
     }
 
     // 触发自动重连
@@ -336,7 +349,7 @@ class P2PConnectionHealthManager extends EventEmitter {
     if (health) {
       health.consecutiveFailures++;
       health.lastError = error.message;
-      this.emit('peer-error', { peerId, error, health });
+      this.emit("peer-error", { peerId, error, health });
     }
   }
 
@@ -344,30 +357,30 @@ class P2PConnectionHealthManager extends EventEmitter {
    * 处理网络恢复
    */
   async _handleNetworkRestore() {
-    logger.info('[P2PConnectionHealth] 处理网络恢复...');
+    logger.info("[P2PConnectionHealth] 处理网络恢复...");
 
     // 重连所有断开的对等方
     for (const [peerId, health] of this.peerHealth.entries()) {
-      if (health.status === 'disconnected' || health.status === 'unhealthy') {
+      if (health.status === "disconnected" || health.status === "unhealthy") {
         this._triggerReconnect(peerId);
       }
     }
 
-    this.emit('network-restored');
+    this.emit("network-restored");
   }
 
   /**
    * 处理网络丢失
    */
   _handleNetworkLoss() {
-    logger.info('[P2PConnectionHealth] 处理网络丢失...');
+    logger.info("[P2PConnectionHealth] 处理网络丢失...");
 
     // 标记所有连接为不健康
     for (const [peerId, health] of this.peerHealth.entries()) {
-      health.status = 'network-lost';
+      health.status = "network-lost";
     }
 
-    this.emit('network-lost');
+    this.emit("network-lost");
   }
 
   /**
@@ -395,7 +408,7 @@ class P2PConnectionHealthManager extends EventEmitter {
    * 清理资源
    */
   cleanup() {
-    logger.info('[P2PConnectionHealth] 清理资源...');
+    logger.info("[P2PConnectionHealth] 清理资源...");
 
     // 停止健康检查
     if (this.healthCheckTimer) {
@@ -414,7 +427,7 @@ class P2PConnectionHealthManager extends EventEmitter {
     this.reconnectAttempts.clear();
 
     this.initialized = false;
-    logger.info('[P2PConnectionHealth] 资源清理完成');
+    logger.info("[P2PConnectionHealth] 资源清理完成");
   }
 }
 

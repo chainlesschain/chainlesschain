@@ -3,11 +3,11 @@
  * 提供文件损坏检测、校验和恢复机制
  */
 
-const { logger, createLogger } = require('./logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const crypto = require('crypto');
-const { EventEmitter } = require('events');
+const { logger } = require("./logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const crypto = require("crypto");
+const { EventEmitter } = require("events");
 
 /**
  * 文件完整性检查器
@@ -17,11 +17,11 @@ class FileIntegrityChecker extends EventEmitter {
     super();
 
     this.options = {
-      hashAlgorithm: options.hashAlgorithm || 'sha256',
+      hashAlgorithm: options.hashAlgorithm || "sha256",
       backupDir: options.backupDir || null,
       autoBackup: options.autoBackup !== false,
       maxBackups: options.maxBackups || 5,
-      verifyOnRead: options.verifyOnRead !== false
+      verifyOnRead: options.verifyOnRead !== false,
     };
 
     this.checksumCache = new Map(); // 缓存文件校验和
@@ -37,7 +37,7 @@ class FileIntegrityChecker extends EventEmitter {
       const content = await fs.readFile(filePath);
       const hash = crypto.createHash(this.options.hashAlgorithm);
       hash.update(content);
-      return hash.digest('hex');
+      return hash.digest("hex");
     } catch (error) {
       logger.error(`[FileIntegrity] 计算哈希失败 ${filePath}:`, error);
       throw error;
@@ -56,10 +56,10 @@ class FileIntegrityChecker extends EventEmitter {
       const isValid = actualHash === expectedHash;
 
       if (!isValid) {
-        this.emit('corruption-detected', {
+        this.emit("corruption-detected", {
           filePath,
           expectedHash,
-          actualHash
+          actualHash,
         });
       }
 
@@ -83,7 +83,7 @@ class FileIntegrityChecker extends EventEmitter {
       readable: false,
       corrupt: false,
       issues: [],
-      metadata: null
+      metadata: null,
     };
 
     try {
@@ -92,7 +92,7 @@ class FileIntegrityChecker extends EventEmitter {
         await fs.access(filePath, fs.constants.F_OK);
         result.exists = true;
       } catch {
-        result.issues.push('文件不存在');
+        result.issues.push("文件不存在");
         return result;
       }
 
@@ -101,7 +101,7 @@ class FileIntegrityChecker extends EventEmitter {
         await fs.access(filePath, fs.constants.R_OK);
         result.readable = true;
       } catch {
-        result.issues.push('文件不可读');
+        result.issues.push("文件不可读");
         result.corrupt = true;
         return result;
       }
@@ -112,13 +112,19 @@ class FileIntegrityChecker extends EventEmitter {
 
         // 检查文件大小
         if (result.metadata.size === 0 && options.allowEmpty !== true) {
-          result.issues.push('文件为空');
+          result.issues.push("文件为空");
           result.corrupt = true;
         }
 
         // 检查文件大小异常（如果提供了预期大小）
-        if (options.expectedSize && Math.abs(result.metadata.size - options.expectedSize) > options.expectedSize * 0.1) {
-          result.issues.push(`文件大小异常（预期: ${options.expectedSize}, 实际: ${result.metadata.size}）`);
+        if (
+          options.expectedSize &&
+          Math.abs(result.metadata.size - options.expectedSize) >
+            options.expectedSize * 0.1
+        ) {
+          result.issues.push(
+            `文件大小异常（预期: ${options.expectedSize}, 实际: ${result.metadata.size}）`,
+          );
           result.corrupt = true;
         }
       } catch (error) {
@@ -144,10 +150,10 @@ class FileIntegrityChecker extends EventEmitter {
         if (options.expectedHash) {
           const hash = crypto.createHash(this.options.hashAlgorithm);
           hash.update(content);
-          const actualHash = hash.digest('hex');
+          const actualHash = hash.digest("hex");
 
           if (actualHash !== options.expectedHash) {
-            result.issues.push('文件校验和不匹配');
+            result.issues.push("文件校验和不匹配");
             result.corrupt = true;
           }
         }
@@ -158,13 +164,15 @@ class FileIntegrityChecker extends EventEmitter {
 
       // 5. 对于特定文件类型，进行深度验证
       if (options.deepCheck && !result.corrupt) {
-        const deepCheckResult = await this._deepCheckByType(filePath, options.fileType);
+        const deepCheckResult = await this._deepCheckByType(
+          filePath,
+          options.fileType,
+        );
         if (!deepCheckResult.valid) {
           result.issues.push(...deepCheckResult.issues);
           result.corrupt = true;
         }
       }
-
     } catch (error) {
       result.issues.push(`检查过程出错: ${error.message}`);
       result.corrupt = true;
@@ -185,14 +193,14 @@ class FileIntegrityChecker extends EventEmitter {
     }
 
     const signatures = {
-      'png': [0x89, 0x50, 0x4E, 0x47],
-      'jpg': [0xFF, 0xD8, 0xFF],
-      'jpeg': [0xFF, 0xD8, 0xFF],
-      'gif': [0x47, 0x49, 0x46],
-      'pdf': [0x25, 0x50, 0x44, 0x46],
-      'zip': [0x50, 0x4B, 0x03, 0x04],
-      'sqlite': [0x53, 0x51, 0x4C, 0x69], // "SQLi"
-      'db': [0x53, 0x51, 0x4C, 0x69]
+      png: [0x89, 0x50, 0x4e, 0x47],
+      jpg: [0xff, 0xd8, 0xff],
+      jpeg: [0xff, 0xd8, 0xff],
+      gif: [0x47, 0x49, 0x46],
+      pdf: [0x25, 0x50, 0x44, 0x46],
+      zip: [0x50, 0x4b, 0x03, 0x04],
+      sqlite: [0x53, 0x51, 0x4c, 0x69], // "SQLi"
+      db: [0x53, 0x51, 0x4c, 0x69],
     };
 
     const signature = signatures[fileType.toLowerCase()];
@@ -217,47 +225,51 @@ class FileIntegrityChecker extends EventEmitter {
   async _deepCheckByType(filePath, fileType) {
     const result = {
       valid: true,
-      issues: []
+      issues: [],
     };
 
     try {
       switch (fileType?.toLowerCase()) {
-        case 'sqlite':
-        case 'db':
+        case "sqlite":
+        case "db":
           // SQLite 数据库完整性检查
           result.valid = await this._checkSQLiteIntegrity(filePath);
           if (!result.valid) {
-            result.issues.push('SQLite 数据库完整性检查失败');
+            result.issues.push("SQLite 数据库完整性检查失败");
           }
           break;
 
-        case 'json': {
+        case "json": {
           // JSON 文件解析检查
-          const jsonContent = await fs.readFile(filePath, 'utf8');
+          const jsonContent = await fs.readFile(filePath, "utf8");
           try {
             JSON.parse(jsonContent);
           } catch {
             result.valid = false;
-            result.issues.push('JSON 格式无效');
+            result.issues.push("JSON 格式无效");
           }
           break;
         }
 
-        case 'png':
-        case 'jpg':
-        case 'jpeg':
+        case "png":
+        case "jpg":
+        case "jpeg":
           // 图片文件检查（使用 sharp 如果可用）
           try {
-            const sharp = require('sharp');
+            const sharp = require("sharp");
             const metadata = await sharp(filePath).metadata();
             if (!metadata.width || !metadata.height) {
               result.valid = false;
-              result.issues.push('图片元数据损坏');
+              result.issues.push("图片元数据损坏");
             }
           } catch (error) {
-            if (error.message.includes('Input buffer contains unsupported image format')) {
+            if (
+              error.message.includes(
+                "Input buffer contains unsupported image format",
+              )
+            ) {
               result.valid = false;
-              result.issues.push('图片格式损坏');
+              result.issues.push("图片格式损坏");
             }
           }
           break;
@@ -275,20 +287,20 @@ class FileIntegrityChecker extends EventEmitter {
    */
   async _checkSQLiteIntegrity(dbPath) {
     try {
-      const Database = require('better-sqlite3');
+      const Database = require("better-sqlite3");
       const db = new Database(dbPath, { readonly: true });
 
       try {
-        const result = db.prepare('PRAGMA integrity_check').get();
+        const result = db.prepare("PRAGMA integrity_check").get();
         db.close();
 
-        return result.integrity_check === 'ok';
+        return result.integrity_check === "ok";
       } catch (error) {
         db.close();
         return false;
       }
     } catch (error) {
-      logger.error('[FileIntegrity] SQLite 检查失败:', error);
+      logger.error("[FileIntegrity] SQLite 检查失败:", error);
       return false;
     }
   }
@@ -301,7 +313,8 @@ class FileIntegrityChecker extends EventEmitter {
    */
   async createBackup(filePath, options = {}) {
     try {
-      const backupDir = options.backupDir || this.options.backupDir || path.dirname(filePath);
+      const backupDir =
+        options.backupDir || this.options.backupDir || path.dirname(filePath);
       const fileName = path.basename(filePath);
       const timestamp = Date.now();
       const backupFileName = `${fileName}.backup.${timestamp}`;
@@ -316,7 +329,7 @@ class FileIntegrityChecker extends EventEmitter {
       // 计算并保存校验和
       const hash = await this.calculateFileHash(backupPath);
       const checksumPath = `${backupPath}.checksum`;
-      await fs.writeFile(checksumPath, hash, 'utf8');
+      await fs.writeFile(checksumPath, hash, "utf8");
 
       logger.info(`[FileIntegrity] 备份创建成功: ${backupPath}`);
 
@@ -325,15 +338,15 @@ class FileIntegrityChecker extends EventEmitter {
         await this._cleanOldBackups(backupDir, fileName);
       }
 
-      this.emit('backup-created', {
+      this.emit("backup-created", {
         originalPath: filePath,
         backupPath,
-        hash
+        hash,
       });
 
       return backupPath;
     } catch (error) {
-      logger.error('[FileIntegrity] 创建备份失败:', error);
+      logger.error("[FileIntegrity] 创建备份失败:", error);
       throw error;
     }
   }
@@ -354,7 +367,7 @@ class FileIntegrityChecker extends EventEmitter {
         backupToUse = await this._findLatestValidBackup(backupDir, fileName);
 
         if (!backupToUse) {
-          throw new Error('未找到有效的备份文件');
+          throw new Error("未找到有效的备份文件");
         }
       }
 
@@ -363,14 +376,14 @@ class FileIntegrityChecker extends EventEmitter {
       let isValid = true;
 
       try {
-        const expectedHash = await fs.readFile(checksumPath, 'utf8');
+        const expectedHash = await fs.readFile(checksumPath, "utf8");
         isValid = await this.verifyFile(backupToUse, expectedHash.trim());
       } catch {
-        logger.warn('[FileIntegrity] 备份校验和文件不存在，跳过验证');
+        logger.warn("[FileIntegrity] 备份校验和文件不存在，跳过验证");
       }
 
       if (!isValid) {
-        throw new Error('备份文件已损坏');
+        throw new Error("备份文件已损坏");
       }
 
       // 备份当前文件（如果存在）
@@ -386,19 +399,21 @@ class FileIntegrityChecker extends EventEmitter {
       // 恢复文件
       await fs.copyFile(backupToUse, filePath);
 
-      logger.info(`[FileIntegrity] 文件已从备份恢复: ${backupToUse} -> ${filePath}`);
+      logger.info(
+        `[FileIntegrity] 文件已从备份恢复: ${backupToUse} -> ${filePath}`,
+      );
 
-      this.emit('file-restored', {
+      this.emit("file-restored", {
         filePath,
-        backupPath: backupToUse
+        backupPath: backupToUse,
       });
 
       return {
         success: true,
-        backupUsed: backupToUse
+        backupUsed: backupToUse,
       };
     } catch (error) {
-      logger.error('[FileIntegrity] 恢复失败:', error);
+      logger.error("[FileIntegrity] 恢复失败:", error);
       throw error;
     }
   }
@@ -412,11 +427,11 @@ class FileIntegrityChecker extends EventEmitter {
       const backupPattern = new RegExp(`^${fileName}\\.backup\\.(\\d+)$`);
 
       const backups = files
-        .filter(f => backupPattern.test(f))
-        .map(f => ({
+        .filter((f) => backupPattern.test(f))
+        .map((f) => ({
           name: f,
           timestamp: parseInt(f.match(backupPattern)[1]),
-          path: path.join(backupDir, f)
+          path: path.join(backupDir, f),
         }))
         .sort((a, b) => b.timestamp - a.timestamp); // 按时间降序
 
@@ -425,8 +440,11 @@ class FileIntegrityChecker extends EventEmitter {
         const checksumPath = `${backup.path}.checksum`;
 
         try {
-          const expectedHash = await fs.readFile(checksumPath, 'utf8');
-          const isValid = await this.verifyFile(backup.path, expectedHash.trim());
+          const expectedHash = await fs.readFile(checksumPath, "utf8");
+          const isValid = await this.verifyFile(
+            backup.path,
+            expectedHash.trim(),
+          );
 
           if (isValid) {
             return backup.path;
@@ -438,7 +456,7 @@ class FileIntegrityChecker extends EventEmitter {
 
       return null;
     } catch (error) {
-      logger.error('[FileIntegrity] 查找备份失败:', error);
+      logger.error("[FileIntegrity] 查找备份失败:", error);
       return null;
     }
   }
@@ -449,14 +467,16 @@ class FileIntegrityChecker extends EventEmitter {
   async _cleanOldBackups(backupDir, fileName) {
     try {
       const files = await fs.readdir(backupDir);
-      const backupPattern = new RegExp(`^${fileName}\\.backup\\.(\\d+)(\\.checksum)?$`);
+      const backupPattern = new RegExp(
+        `^${fileName}\\.backup\\.(\\d+)(\\.checksum)?$`,
+      );
 
       const backups = files
-        .filter(f => backupPattern.test(f) && !f.endsWith('.checksum'))
-        .map(f => ({
+        .filter((f) => backupPattern.test(f) && !f.endsWith(".checksum"))
+        .map((f) => ({
           name: f,
           timestamp: parseInt(f.match(backupPattern)[1]),
-          path: path.join(backupDir, f)
+          path: path.join(backupDir, f),
         }))
         .sort((a, b) => b.timestamp - a.timestamp);
 
@@ -474,7 +494,7 @@ class FileIntegrityChecker extends EventEmitter {
         logger.info(`[FileIntegrity] 删除旧备份: ${backup.name}`);
       }
     } catch (error) {
-      logger.error('[FileIntegrity] 清理备份失败:', error);
+      logger.error("[FileIntegrity] 清理备份失败:", error);
     }
   }
 }
@@ -496,5 +516,5 @@ function getFileIntegrityChecker(options) {
 
 module.exports = {
   FileIntegrityChecker,
-  getFileIntegrityChecker
+  getFileIntegrityChecker,
 };

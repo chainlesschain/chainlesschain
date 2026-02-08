@@ -4,19 +4,11 @@
     <div class="page-header">
       <div class="header-left">
         <h1>技能管理</h1>
-        <p class="subtitle">
-          管理和配置 AI 助手的技能集
-        </p>
+        <p class="subtitle">管理和配置 AI 助手的技能集</p>
       </div>
       <div class="header-right">
-        <a-space
-          :size="24"
-          align="center"
-        >
-          <a-statistic
-            :value="skillStore.totalCount"
-            title="总技能数"
-          />
+        <a-space :size="24" align="center">
+          <a-statistic :value="skillStore.totalCount" title="总技能数" />
           <a-statistic
             :value="skillStore.enabledCount"
             title="已启用"
@@ -52,51 +44,22 @@
           style="width: 150px"
           @change="handleCategoryChange"
         >
-          <a-select-option value="all">
-            全部分类
-          </a-select-option>
-          <a-select-option value="code">
-            代码开发
-          </a-select-option>
-          <a-select-option value="web">
-            Web开发
-          </a-select-option>
-          <a-select-option value="data">
-            数据处理
-          </a-select-option>
-          <a-select-option value="content">
-            内容创作
-          </a-select-option>
-          <a-select-option value="document">
-            文档处理
-          </a-select-option>
-          <a-select-option value="media">
-            媒体处理
-          </a-select-option>
-          <a-select-option value="ai">
-            AI功能
-          </a-select-option>
-          <a-select-option value="system">
-            系统操作
-          </a-select-option>
-          <a-select-option value="network">
-            网络请求
-          </a-select-option>
-          <a-select-option value="automation">
-            自动化
-          </a-select-option>
-          <a-select-option value="project">
-            项目管理
-          </a-select-option>
-          <a-select-option value="template">
-            模板应用
-          </a-select-option>
+          <a-select-option value="all"> 全部分类 </a-select-option>
+          <a-select-option value="code"> 代码开发 </a-select-option>
+          <a-select-option value="web"> Web开发 </a-select-option>
+          <a-select-option value="data"> 数据处理 </a-select-option>
+          <a-select-option value="content"> 内容创作 </a-select-option>
+          <a-select-option value="document"> 文档处理 </a-select-option>
+          <a-select-option value="media"> 媒体处理 </a-select-option>
+          <a-select-option value="ai"> AI功能 </a-select-option>
+          <a-select-option value="system"> 系统操作 </a-select-option>
+          <a-select-option value="network"> 网络请求 </a-select-option>
+          <a-select-option value="automation"> 自动化 </a-select-option>
+          <a-select-option value="project"> 项目管理 </a-select-option>
+          <a-select-option value="template"> 模板应用 </a-select-option>
         </a-select>
 
-        <a-button
-          :loading="skillStore.loading"
-          @click="handleRefresh"
-        >
+        <a-button :loading="skillStore.loading" @click="handleRefresh">
           <template #icon>
             <ReloadOutlined />
           </template>
@@ -105,28 +68,19 @@
       </a-space>
 
       <a-space>
-        <a-button
-          type="primary"
-          @click="handleCreateSkill"
-        >
+        <a-button type="primary" @click="handleCreateSkill">
           <template #icon>
             <PlusOutlined />
           </template>
           创建技能
         </a-button>
-        <a-button
-          type="link"
-          @click="showStats"
-        >
+        <a-button type="link" @click="showStats">
           <template #icon>
             <BarChartOutlined />
           </template>
           统计分析
         </a-button>
-        <a-button
-          type="link"
-          @click="showDependencyGraph"
-        >
+        <a-button type="link" @click="showDependencyGraph">
           <template #icon>
             <ApartmentOutlined />
           </template>
@@ -136,10 +90,7 @@
     </div>
 
     <!-- 批量操作栏 -->
-    <div
-      v-if="selectedSkills.length > 0"
-      class="batch-action-bar"
-    >
+    <div v-if="selectedSkills.length > 0" class="batch-action-bar">
       <div class="selection-info">
         <a-checkbox
           :checked="isAllSelected"
@@ -162,30 +113,19 @@
           </template>
           批量禁用
         </a-button>
-        <a-button
-          danger
-          @click="handleBatchDelete"
-        >
+        <a-button danger @click="handleBatchDelete">
           <template #icon>
             <DeleteOutlined />
           </template>
           批量删除
         </a-button>
-        <a-button @click="handleClearSelection">
-          清空选择
-        </a-button>
+        <a-button @click="handleClearSelection"> 清空选择 </a-button>
       </a-space>
     </div>
 
     <!-- 技能列表 -->
-    <div
-      v-if="skillStore.loading"
-      class="loading-container"
-    >
-      <a-spin
-        size="large"
-        tip="加载中..."
-      />
+    <div v-if="skillStore.loading" class="loading-container">
+      <a-spin size="large" tip="加载中..." />
     </div>
 
     <div
@@ -196,10 +136,7 @@
     </div>
 
     <!-- 使用虚拟滚动优化大数据集 -->
-    <div
-      v-else
-      class="skill-list-container"
-    >
+    <div v-else class="skill-list-container">
       <VirtualGrid
         v-if="skillStore.filteredSkills.length > 50"
         :items="skillStore.filteredSkills"
@@ -226,10 +163,7 @@
       </VirtualGrid>
 
       <!-- 少量数据直接渲染 -->
-      <div
-        v-else
-        class="skill-grid"
-      >
+      <div v-else class="skill-grid">
         <div
           v-for="skill in skillStore.filteredSkills"
           :key="skill.id"
@@ -274,10 +208,7 @@
       :width="800"
       placement="right"
     >
-      <MarkdownViewer
-        v-if="currentDoc"
-        :content="currentDoc"
-      />
+      <MarkdownViewer v-if="currentDoc" :content="currentDoc" />
       <a-spin v-else-if="loadingDoc" />
     </a-drawer>
 
@@ -315,11 +246,14 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
-import { message, Modal } from 'ant-design-vue';
-import { useKeyboardShortcuts, SHORTCUTS } from '../composables/useKeyboardShortcuts';
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from "vue";
+import { message, Modal } from "ant-design-vue";
+import {
+  useKeyboardShortcuts,
+  SHORTCUTS,
+} from "../composables/useKeyboardShortcuts";
 import {
   SearchOutlined,
   ReloadOutlined,
@@ -329,17 +263,17 @@ import {
   CheckOutlined,
   CloseOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { useSkillStore } from '../stores/skill';
-import { useToolStore } from '../stores/tool';
-import SkillCard from '../components/skill/SkillCard.vue';
-import SkillDetails from '../components/skill/SkillDetails.vue';
-import SkillEditor from '../components/skill/SkillEditor.vue';
-import SkillStats from '../components/skill/SkillStats.vue';
-import SkillDependencyGraph from '../components/skill/SkillDependencyGraph.vue';
-import VirtualGrid from '../components/common/VirtualGrid.vue';
-import MarkdownViewer from '../components/common/MarkdownViewer.vue';
-import ErrorBoundary from '../components/common/ErrorBoundary.vue';
+} from "@ant-design/icons-vue";
+import { useSkillStore } from "../stores/skill";
+import { useToolStore } from "../stores/tool";
+import SkillCard from "../components/skill/SkillCard.vue";
+import SkillDetails from "../components/skill/SkillDetails.vue";
+import SkillEditor from "../components/skill/SkillEditor.vue";
+import SkillStats from "../components/skill/SkillStats.vue";
+import SkillDependencyGraph from "../components/skill/SkillDependencyGraph.vue";
+import VirtualGrid from "../components/common/VirtualGrid.vue";
+import MarkdownViewer from "../components/common/MarkdownViewer.vue";
+import ErrorBoundary from "../components/common/ErrorBoundary.vue";
 
 const skillStore = useSkillStore();
 const toolStore = useToolStore();
@@ -348,8 +282,8 @@ const toolStore = useToolStore();
 const { registerShortcut, unregisterShortcut } = useKeyboardShortcuts();
 
 // 搜索和筛选
-const searchKeyword = ref('');
-const categoryFilter = ref('all');
+const searchKeyword = ref("");
+const categoryFilter = ref("all");
 const searchInputRef = ref(null);
 
 // 详情抽屉
@@ -376,11 +310,15 @@ const allSkillTools = ref([]);
 // 批量操作
 const selectedSkillIds = reactive({});
 const selectedSkills = computed(() => {
-  return skillStore.filteredSkills.filter(skill => selectedSkillIds[skill.id]);
+  return skillStore.filteredSkills.filter(
+    (skill) => selectedSkillIds[skill.id],
+  );
 });
 const isAllSelected = computed(() => {
-  return skillStore.filteredSkills.length > 0 &&
-    skillStore.filteredSkills.every(skill => selectedSkillIds[skill.id]);
+  return (
+    skillStore.filteredSkills.length > 0 &&
+    skillStore.filteredSkills.every((skill) => selectedSkillIds[skill.id])
+  );
 });
 
 // 响应式网格列数
@@ -406,24 +344,38 @@ onMounted(async () => {
 
   // 响应式网格
   updateGridColumns();
-  window.addEventListener('resize', updateGridColumns);
+  window.addEventListener("resize", updateGridColumns);
 
   // 注册键盘快捷键
-  registerShortcut(SHORTCUTS.SEARCH, () => {
-    // 聚焦搜索框
-    const searchInput = document.querySelector('.skill-management input[placeholder*="搜索"]');
-    if (searchInput) {
-      searchInput.focus();
-    }
-  }, { global: true });
+  registerShortcut(
+    SHORTCUTS.SEARCH,
+    () => {
+      // 聚焦搜索框
+      const searchInput = document.querySelector(
+        '.skill-management input[placeholder*="搜索"]',
+      );
+      if (searchInput) {
+        searchInput.focus();
+      }
+    },
+    { global: true },
+  );
 
-  registerShortcut(SHORTCUTS.NEW, () => {
-    handleCreateSkill();
-  }, { global: true });
+  registerShortcut(
+    SHORTCUTS.NEW,
+    () => {
+      handleCreateSkill();
+    },
+    { global: true },
+  );
 
-  registerShortcut(SHORTCUTS.REFRESH, () => {
-    handleRefresh();
-  }, { global: true });
+  registerShortcut(
+    SHORTCUTS.REFRESH,
+    () => {
+      handleRefresh();
+    },
+    { global: true },
+  );
 
   registerShortcut(SHORTCUTS.DELETE, () => {
     if (selectedSkills.value.length > 0) {
@@ -441,7 +393,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateGridColumns);
+  window.removeEventListener("resize", updateGridColumns);
 
   // 注销快捷键
   unregisterShortcut(SHORTCUTS.SEARCH);
@@ -465,7 +417,7 @@ const handleCategoryChange = () => {
 // 刷新
 const handleRefresh = async () => {
   await skillStore.fetchAll();
-  message.success('刷新成功');
+  message.success("刷新成功");
 };
 
 // 查看详情
@@ -480,7 +432,7 @@ const handleViewDetails = async (skill) => {
 
 // 切换启用/禁用
 const handleToggleEnabled = async (skill) => {
-  const action = skill.enabled ? '禁用' : '启用';
+  const action = skill.enabled ? "禁用" : "启用";
   try {
     const success = skill.enabled
       ? await skillStore.disable(skill.id)
@@ -508,7 +460,7 @@ const handleViewDoc = async (skill) => {
     currentDoc.value = doc;
   } catch (error) {
     logger.error(error);
-    message.error('加载文档失败');
+    message.error("加载文档失败");
   } finally {
     loadingDoc.value = false;
   }
@@ -518,11 +470,11 @@ const handleViewDoc = async (skill) => {
 const handleUpdateSkill = async (skillId, updates) => {
   const success = await skillStore.update(skillId, updates);
   if (success) {
-    message.success('更新成功');
+    message.success("更新成功");
     await skillStore.fetchById(skillId);
     currentSkill.value = skillStore.currentSkill;
   } else {
-    message.error('更新失败');
+    message.error("更新失败");
   }
 };
 
@@ -545,15 +497,15 @@ const handleSaveSkill = async (skillData) => {
     }
 
     if (success) {
-      message.success(editingSkill.value ? '更新成功' : '创建成功');
+      message.success(editingSkill.value ? "更新成功" : "创建成功");
       editorVisible.value = false;
       await skillStore.fetchAll();
     } else {
-      message.error(editingSkill.value ? '更新失败' : '创建失败');
+      message.error(editingSkill.value ? "更新失败" : "创建失败");
     }
   } catch (error) {
     logger.error(error);
-    message.error('操作失败');
+    message.error("操作失败");
   }
 };
 
@@ -571,7 +523,7 @@ const showDependencyGraph = async () => {
     graphVisible.value = true;
   } catch (error) {
     logger.error(error);
-    message.error('加载依赖关系失败');
+    message.error("加载依赖关系失败");
   }
 };
 
@@ -582,13 +534,13 @@ const handleSkillSelect = (skill) => {
 
 const handleSelectAll = (e) => {
   const checked = e.target.checked;
-  skillStore.filteredSkills.forEach(skill => {
+  skillStore.filteredSkills.forEach((skill) => {
     selectedSkillIds[skill.id] = checked;
   });
 };
 
 const handleClearSelection = () => {
-  Object.keys(selectedSkillIds).forEach(key => {
+  Object.keys(selectedSkillIds).forEach((key) => {
     delete selectedSkillIds[key];
   });
 };
@@ -596,17 +548,19 @@ const handleClearSelection = () => {
 const handleBatchEnable = () => {
   const count = selectedSkills.value.length;
   Modal.confirm({
-    title: '确认批量启用？',
+    title: "确认批量启用？",
     content: `将启用 ${count} 个技能，是否继续？`,
-    okText: '确认',
-    cancelText: '取消',
+    okText: "确认",
+    cancelText: "取消",
     async onOk() {
       try {
         let successCount = 0;
         for (const skill of selectedSkills.value) {
           if (!skill.enabled) {
             const success = await skillStore.enable(skill.id);
-            if (success) {successCount++;}
+            if (success) {
+              successCount++;
+            }
           } else {
             successCount++; // 已启用的也算成功
           }
@@ -616,7 +570,7 @@ const handleBatchEnable = () => {
         await skillStore.fetchAll();
       } catch (error) {
         logger.error(error);
-        message.error('批量启用失败');
+        message.error("批量启用失败");
       }
     },
   });
@@ -625,18 +579,20 @@ const handleBatchEnable = () => {
 const handleBatchDisable = () => {
   const count = selectedSkills.value.length;
   Modal.confirm({
-    title: '确认批量禁用？',
+    title: "确认批量禁用？",
     content: `将禁用 ${count} 个技能，是否继续？`,
-    okText: '确认',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "确认",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         let successCount = 0;
         for (const skill of selectedSkills.value) {
           if (skill.enabled) {
             const success = await skillStore.disable(skill.id);
-            if (success) {successCount++;}
+            if (success) {
+              successCount++;
+            }
           } else {
             successCount++; // 已禁用的也算成功
           }
@@ -646,7 +602,7 @@ const handleBatchDisable = () => {
         await skillStore.fetchAll();
       } catch (error) {
         logger.error(error);
-        message.error('批量禁用失败');
+        message.error("批量禁用失败");
       }
     },
   });
@@ -654,10 +610,12 @@ const handleBatchDisable = () => {
 
 const handleBatchDelete = () => {
   const count = selectedSkills.value.length;
-  const skillNames = selectedSkills.value.map(s => s.display_name || s.name).join('、');
+  const skillNames = selectedSkills.value
+    .map((s) => s.display_name || s.name)
+    .join("、");
 
   Modal.confirm({
-    title: '确认批量删除？',
+    title: "确认批量删除？",
     content: `<div>
       <p>将删除以下 ${count} 个技能：</p>
       <p style="color: #ff4d4f; max-height: 200px; overflow-y: auto;">
@@ -665,18 +623,20 @@ const handleBatchDelete = () => {
       </p>
       <p style="font-weight: bold; color: #ff4d4f;">此操作不可恢复，是否继续？</p>
     </div>`,
-    okText: '确认删除',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "确认删除",
+    okType: "danger",
+    cancelText: "取消",
     width: 600,
     async onOk() {
       try {
         let successCount = 0;
-        const skillIds = selectedSkills.value.map(s => s.id);
+        const skillIds = selectedSkills.value.map((s) => s.id);
 
         for (const skillId of skillIds) {
           const success = await skillStore.delete(skillId);
-          if (success) {successCount++;}
+          if (success) {
+            successCount++;
+          }
         }
 
         message.success(`成功删除 ${successCount} 个技能`);
@@ -684,7 +644,7 @@ const handleBatchDelete = () => {
         await skillStore.fetchAll();
       } catch (error) {
         logger.error(error);
-        message.error('批量删除失败');
+        message.error("批量删除失败");
       }
     },
   });

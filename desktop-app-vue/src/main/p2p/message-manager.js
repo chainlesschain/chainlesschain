@@ -9,9 +9,9 @@
  * - 消息压缩（可选）
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const crypto = require('crypto');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const crypto = require("crypto");
+const EventEmitter = require("events");
 
 class MessageManager extends EventEmitter {
   constructor(options = {}) {
@@ -19,8 +19,8 @@ class MessageManager extends EventEmitter {
 
     this.options = {
       // 批量发送配置
-      batchSize: options.batchSize || 10,           // 批量大小
-      batchInterval: options.batchInterval || 100,   // 批量间隔（ms）
+      batchSize: options.batchSize || 10, // 批量大小
+      batchInterval: options.batchInterval || 100, // 批量间隔（ms）
 
       // 去重配置
       deduplicationWindow: options.deduplicationWindow || 60000, // 去重窗口（1分钟）
@@ -35,16 +35,16 @@ class MessageManager extends EventEmitter {
       enableCompression: options.enableCompression || false,
       compressionThreshold: options.compressionThreshold || 1024, // 1KB
 
-      ...options
+      ...options,
     };
 
     // 消息队列
     this.outgoingQueue = new Map(); // peerId -> Message[]
-    this.batchTimers = new Map();   // peerId -> timer
+    this.batchTimers = new Map(); // peerId -> timer
 
     // 去重缓存
     this.receivedMessages = new Map(); // messageId -> timestamp
-    this.sentMessages = new Map();     // messageId -> { message, sentAt, retries }
+    this.sentMessages = new Map(); // messageId -> { message, sentAt, retries }
 
     // 待确认消息
     this.pendingAcks = new Map(); // messageId -> { message, peerId, timer }
@@ -56,7 +56,7 @@ class MessageManager extends EventEmitter {
       messagesDuplicated: 0,
       messagesRetried: 0,
       batchesSent: 0,
-      bytesCompressed: 0
+      bytesCompressed: 0,
     };
 
     // 定期清理过期数据
@@ -69,7 +69,7 @@ class MessageManager extends EventEmitter {
   generateMessageId() {
     // 使用时间戳 + 随机数 + 计数器
     const timestamp = Date.now();
-    const random = crypto.randomBytes(4).toString('hex');
+    const random = crypto.randomBytes(4).toString("hex");
     const counter = this.stats.messagesSent;
 
     return `${timestamp}-${random}-${counter}`;
@@ -83,10 +83,10 @@ class MessageManager extends EventEmitter {
    */
   async sendMessage(peerId, payload, options = {}) {
     const {
-      priority = 'normal',  // 'high' | 'normal' | 'low'
-      requireAck = false,   // 是否需要确认
+      priority = "normal", // 'high' | 'normal' | 'low'
+      requireAck = false, // 是否需要确认
       compress = this.options.enableCompression,
-      immediate = false     // 是否立即发送（不批量）
+      immediate = false, // 是否立即发送（不批量）
     } = options;
 
     // 生成消息ID
@@ -99,7 +99,7 @@ class MessageManager extends EventEmitter {
       payload: payload,
       timestamp: Date.now(),
       priority,
-      requireAck
+      requireAck,
     };
 
     // 压缩（如果需要）
@@ -114,11 +114,11 @@ class MessageManager extends EventEmitter {
       message,
       peerId,
       sentAt: Date.now(),
-      retries: 0
+      retries: 0,
     });
 
     // 高优先级或立即发送
-    if (priority === 'high' || immediate) {
+    if (priority === "high" || immediate) {
       await this.sendImmediately(peerId, message);
     } else {
       // 加入批量队列
@@ -145,7 +145,7 @@ class MessageManager extends EventEmitter {
 
     // 去重检查
     if (this.isDuplicate(id)) {
-      logger.info('[MessageManager] 重复消息，已忽略:', id);
+      logger.info("[MessageManager] 重复消息，已忽略:", id);
       this.stats.messagesDuplicated++;
       return null;
     }
@@ -167,18 +167,18 @@ class MessageManager extends EventEmitter {
     this.stats.messagesReceived++;
 
     // 触发事件
-    this.emit('message', {
+    this.emit("message", {
       peerId,
       messageId: id,
       type,
       payload: decompressedPayload,
-      timestamp: message.timestamp
+      timestamp: message.timestamp,
     });
 
     return {
       id,
       type,
-      payload: decompressedPayload
+      payload: decompressedPayload,
     };
   }
 
@@ -196,7 +196,7 @@ class MessageManager extends EventEmitter {
           results.push(result);
         }
       } catch (error) {
-        logger.error('[MessageManager] 处理消息失败:', error);
+        logger.error("[MessageManager] 处理消息失败:", error);
       }
     }
 
@@ -252,7 +252,9 @@ class MessageManager extends EventEmitter {
    */
   async flushQueue(peerId) {
     const queue = this.outgoingQueue.get(peerId);
-    if (!queue || queue.length === 0) {return;}
+    if (!queue || queue.length === 0) {
+      return;
+    }
 
     logger.info(`[MessageManager] 批量发送 ${queue.length} 条消息到:`, peerId);
 
@@ -267,7 +269,7 @@ class MessageManager extends EventEmitter {
       await this.sendBatch(peerId, queue);
       this.stats.batchesSent++;
     } catch (error) {
-      logger.error('[MessageManager] 批量发送失败:', error);
+      logger.error("[MessageManager] 批量发送失败:", error);
       // 失败的消息重新加入队列
       // 这里简化处理，实际应该有更复杂的重试逻辑
     }
@@ -280,12 +282,12 @@ class MessageManager extends EventEmitter {
    * 立即发送单条消息
    */
   async sendImmediately(peerId, message) {
-    logger.info('[MessageManager] 立即发送消息:', message.id);
+    logger.info("[MessageManager] 立即发送消息:", message.id);
 
     // 触发发送事件（由P2P Manager处理实际发送）
-    this.emit('send', {
+    this.emit("send", {
       peerId,
-      message
+      message,
     });
   }
 
@@ -296,9 +298,9 @@ class MessageManager extends EventEmitter {
     logger.info(`[MessageManager] 发送批量消息: ${messages.length}条`);
 
     // 触发批量发送事件
-    this.emit('send-batch', {
+    this.emit("send-batch", {
       peerId,
-      messages
+      messages,
     });
   }
 
@@ -308,11 +310,11 @@ class MessageManager extends EventEmitter {
   async sendAck(peerId, messageId) {
     const ackMessage = {
       id: this.generateMessageId(),
-      type: 'message:ack',
+      type: "message:ack",
       payload: {
-        ackFor: messageId
+        ackFor: messageId,
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     await this.sendImmediately(peerId, ackMessage);
@@ -323,14 +325,14 @@ class MessageManager extends EventEmitter {
    */
   waitForAck(messageId, peerId, message) {
     const timeout = setTimeout(() => {
-      logger.warn('[MessageManager] 消息确认超时:', messageId);
+      logger.warn("[MessageManager] 消息确认超时:", messageId);
       this.handleAckTimeout(messageId, peerId, message);
     }, this.options.retryInterval * this.options.maxRetries);
 
     this.pendingAcks.set(messageId, {
       message,
       peerId,
-      timer: timeout
+      timer: timeout,
     });
   }
 
@@ -343,7 +345,7 @@ class MessageManager extends EventEmitter {
       clearTimeout(timer);
       this.pendingAcks.delete(ackFor);
 
-      logger.info('[MessageManager] 收到消息确认:', ackFor);
+      logger.info("[MessageManager] 收到消息确认:", ackFor);
 
       // 从已发送消息中移除
       this.sentMessages.delete(ackFor);
@@ -355,11 +357,16 @@ class MessageManager extends EventEmitter {
    */
   async handleAckTimeout(messageId, peerId, message) {
     const sentInfo = this.sentMessages.get(messageId);
-    if (!sentInfo) {return;}
+    if (!sentInfo) {
+      return;
+    }
 
     if (sentInfo.retries < this.options.maxRetries) {
       // 重试
-      logger.info(`[MessageManager] 重试发送消息 (${sentInfo.retries + 1}/${this.options.maxRetries}):`, messageId);
+      logger.info(
+        `[MessageManager] 重试发送消息 (${sentInfo.retries + 1}/${this.options.maxRetries}):`,
+        messageId,
+      );
 
       sentInfo.retries++;
       sentInfo.sentAt = Date.now();
@@ -371,12 +378,15 @@ class MessageManager extends EventEmitter {
       this.waitForAck(messageId, peerId, message);
     } else {
       // 达到最大重试次数
-      logger.error('[MessageManager] 消息发送失败，已达最大重试次数:', messageId);
+      logger.error(
+        "[MessageManager] 消息发送失败，已达最大重试次数:",
+        messageId,
+      );
 
-      this.emit('send-failed', {
+      this.emit("send-failed", {
         messageId,
         peerId,
-        message
+        message,
       });
 
       this.sentMessages.delete(messageId);
@@ -397,7 +407,7 @@ class MessageManager extends EventEmitter {
    */
   async compressPayload(payload) {
     // 使用zlib压缩
-    const zlib = require('zlib');
+    const zlib = require("zlib");
     const buffer = Buffer.from(JSON.stringify(payload));
 
     return new Promise((resolve, reject) => {
@@ -405,7 +415,7 @@ class MessageManager extends EventEmitter {
         if (err) {
           reject(err);
         } else {
-          resolve(compressed.toString('base64'));
+          resolve(compressed.toString("base64"));
         }
       });
     });
@@ -415,8 +425,8 @@ class MessageManager extends EventEmitter {
    * 解压缩payload
    */
   async decompressPayload(compressedPayload) {
-    const zlib = require('zlib');
-    const buffer = Buffer.from(compressedPayload, 'base64');
+    const zlib = require("zlib");
+    const buffer = Buffer.from(compressedPayload, "base64");
 
     return new Promise((resolve, reject) => {
       zlib.inflate(buffer, (err, decompressed) => {
@@ -455,7 +465,8 @@ class MessageManager extends EventEmitter {
 
     // 限制缓存大小
     if (this.receivedMessages.size > this.options.maxDeduplicationCache) {
-      const toDelete = this.receivedMessages.size - this.options.maxDeduplicationCache;
+      const toDelete =
+        this.receivedMessages.size - this.options.maxDeduplicationCache;
       const entries = Array.from(this.receivedMessages.entries())
         .sort((a, b) => a[1] - b[1])
         .slice(0, toDelete);
@@ -477,10 +488,12 @@ class MessageManager extends EventEmitter {
   getStats() {
     return {
       ...this.stats,
-      queuedMessages: Array.from(this.outgoingQueue.values())
-        .reduce((sum, queue) => sum + queue.length, 0),
+      queuedMessages: Array.from(this.outgoingQueue.values()).reduce(
+        (sum, queue) => sum + queue.length,
+        0,
+      ),
       pendingAcks: this.pendingAcks.size,
-      deduplicationCacheSize: this.receivedMessages.size
+      deduplicationCacheSize: this.receivedMessages.size,
     };
   }
 

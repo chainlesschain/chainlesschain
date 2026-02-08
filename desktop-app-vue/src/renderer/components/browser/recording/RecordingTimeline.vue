@@ -3,17 +3,17 @@
     <!-- Timeline Header -->
     <div class="timeline-header">
       <div class="header-info">
-        <h4>{{ recording?.name || 'Recording' }}</h4>
+        <h4>{{ recording?.name || "Recording" }}</h4>
         <span class="duration">{{ formatDuration(recording?.duration) }}</span>
       </div>
       <div class="header-actions">
         <a-tooltip title="Zoom In">
-          <a-button size="small" @click="zoomIn" :disabled="zoom >= 4">
+          <a-button size="small" :disabled="zoom >= 4" @click="zoomIn">
             <ZoomInOutlined />
           </a-button>
         </a-tooltip>
         <a-tooltip title="Zoom Out">
-          <a-button size="small" @click="zoomOut" :disabled="zoom <= 0.25">
+          <a-button size="small" :disabled="zoom <= 0.25" @click="zoomOut">
             <ZoomOutOutlined />
           </a-button>
         </a-tooltip>
@@ -26,7 +26,7 @@
     </div>
 
     <!-- Timeline Container -->
-    <div class="timeline-container" ref="timelineContainer">
+    <div ref="timelineContainer" class="timeline-container">
       <!-- Time Ruler -->
       <div class="time-ruler" :style="{ width: timelineWidth + 'px' }">
         <div
@@ -64,40 +64,51 @@
           class="playhead"
           :style="{ left: playheadPosition + 'px' }"
         >
-          <div class="playhead-line"></div>
+          <div class="playhead-line" />
         </div>
       </div>
 
       <!-- Waveform/Activity Track (optional) -->
-      <div v-if="showActivityTrack" class="activity-track" :style="{ width: timelineWidth + 'px' }">
-        <canvas ref="activityCanvas" :width="timelineWidth" height="30"></canvas>
+      <div
+        v-if="showActivityTrack"
+        class="activity-track"
+        :style="{ width: timelineWidth + 'px' }"
+      >
+        <canvas ref="activityCanvas" :width="timelineWidth" height="30" />
       </div>
     </div>
 
     <!-- Event Details Panel -->
-    <div class="event-details" v-if="selectedEvent">
+    <div v-if="selectedEvent" class="event-details">
       <div class="details-header">
-        <a-tag :color="getEventColor(selectedEvent.type)">{{ selectedEvent.type }}</a-tag>
-        <span class="event-time">{{ formatTime(selectedEvent.timestamp) }}</span>
+        <a-tag :color="getEventColor(selectedEvent.type)">
+          {{ selectedEvent.type }}
+        </a-tag>
+        <span class="event-time">{{
+          formatTime(selectedEvent.timestamp)
+        }}</span>
         <a-button type="link" size="small" @click="selectedEventIndex = null">
           <CloseOutlined />
         </a-button>
       </div>
       <div class="details-content">
         <a-descriptions :column="1" size="small" bordered>
-          <a-descriptions-item label="Selector" v-if="selectedEvent.selector">
+          <a-descriptions-item v-if="selectedEvent.selector" label="Selector">
             <code>{{ selectedEvent.selector }}</code>
           </a-descriptions-item>
-          <a-descriptions-item label="URL" v-if="selectedEvent.url">
+          <a-descriptions-item v-if="selectedEvent.url" label="URL">
             {{ selectedEvent.url }}
           </a-descriptions-item>
-          <a-descriptions-item label="Text" v-if="selectedEvent.text">
+          <a-descriptions-item v-if="selectedEvent.text" label="Text">
             {{ selectedEvent.text }}
           </a-descriptions-item>
-          <a-descriptions-item label="Value" v-if="selectedEvent.value">
+          <a-descriptions-item v-if="selectedEvent.value" label="Value">
             {{ selectedEvent.value }}
           </a-descriptions-item>
-          <a-descriptions-item label="Position" v-if="selectedEvent.x !== undefined">
+          <a-descriptions-item
+            v-if="selectedEvent.x !== undefined"
+            label="Position"
+          >
             ({{ selectedEvent.x }}, {{ selectedEvent.y }})
           </a-descriptions-item>
         </a-descriptions>
@@ -113,7 +124,7 @@
     </div>
 
     <!-- Event List (Compact) -->
-    <div class="event-list" v-if="showEventList">
+    <div v-if="showEventList" class="event-list">
       <div class="list-header">
         <span>Events ({{ events.length }})</span>
         <a-input-search
@@ -136,7 +147,9 @@
             <component :is="getEventIcon(event.type)" />
           </span>
           <span class="item-type">{{ event.type }}</span>
-          <span class="item-target">{{ truncate(event.selector || event.url || event.text, 30) }}</span>
+          <span class="item-target">{{
+            truncate(event.selector || event.url || event.text, 30)
+          }}</span>
           <span class="item-time">{{ formatTime(event.timestamp) }}</span>
         </div>
       </div>
@@ -145,7 +158,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from "vue";
 import {
   ZoomInOutlined,
   ZoomOutOutlined,
@@ -159,28 +172,33 @@ import {
   ArrowDownOutlined,
   KeyOutlined,
   EyeOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   recording: {
     type: Object,
-    required: true
+    required: true,
   },
   currentTime: {
     type: Number,
-    default: 0
+    default: 0,
   },
   showEventList: {
     type: Boolean,
-    default: true
+    default: true,
   },
   showActivityTrack: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
-const emit = defineEmits(['select-event', 'edit-event', 'delete-event', 'play-from']);
+const emit = defineEmits([
+  "select-event",
+  "edit-event",
+  "delete-event",
+  "play-from",
+]);
 
 // Refs
 const timelineContainer = ref(null);
@@ -189,11 +207,13 @@ const activityCanvas = ref(null);
 // State
 const zoom = ref(1);
 const selectedEventIndex = ref(null);
-const searchQuery = ref('');
+const searchQuery = ref("");
 
 // Computed
 const events = computed(() => {
-  if (!props.recording?.events) return [];
+  if (!props.recording?.events) {
+    return [];
+  }
   try {
     return JSON.parse(props.recording.events);
   } catch {
@@ -222,7 +242,7 @@ const timeTicks = computed(() => {
       time,
       position,
       major,
-      label: formatTime(time)
+      label: formatTime(time),
     });
   }
 
@@ -230,7 +250,9 @@ const timeTicks = computed(() => {
 });
 
 const selectedEvent = computed(() => {
-  if (selectedEventIndex.value === null) return null;
+  if (selectedEventIndex.value === null) {
+    return null;
+  }
   return events.value[selectedEventIndex.value];
 });
 
@@ -238,32 +260,43 @@ const filteredEvents = computed(() => {
   let result = events.value.map((e, i) => ({ ...e, originalIndex: i }));
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter(e =>
-      e.type.toLowerCase().includes(query) ||
-      (e.selector && e.selector.toLowerCase().includes(query)) ||
-      (e.url && e.url.toLowerCase().includes(query)) ||
-      (e.text && e.text.toLowerCase().includes(query))
+    result = result.filter(
+      (e) =>
+        e.type.toLowerCase().includes(query) ||
+        (e.selector && e.selector.toLowerCase().includes(query)) ||
+        (e.url && e.url.toLowerCase().includes(query)) ||
+        (e.text && e.text.toLowerCase().includes(query)),
     );
   }
   return result;
 });
 
 const playheadPosition = computed(() => {
-  if (duration.value === 0) return null;
+  if (duration.value === 0) {
+    return null;
+  }
   return (props.currentTime / duration.value) * timelineWidth.value;
 });
 
 // Methods
 const getTickInterval = () => {
   const durationSec = duration.value / 1000;
-  if (durationSec <= 10) return 1000;
-  if (durationSec <= 60) return 5000;
-  if (durationSec <= 300) return 30000;
+  if (durationSec <= 10) {
+    return 1000;
+  }
+  if (durationSec <= 60) {
+    return 5000;
+  }
+  if (durationSec <= 300) {
+    return 30000;
+  }
   return 60000;
 };
 
 const getEventPosition = (event) => {
-  if (!events.value.length || duration.value === 0) return 0;
+  if (!events.value.length || duration.value === 0) {
+    return 0;
+  }
   const startTime = events.value[0].timestamp;
   const relativeTime = event.timestamp - startTime;
   return (relativeTime / duration.value) * timelineWidth.value;
@@ -284,44 +317,50 @@ const getEventIcon = (type) => {
 
 const getEventColor = (type) => {
   const colors = {
-    click: 'green',
-    type: 'blue',
-    input: 'blue',
-    navigate: 'purple',
-    scroll: 'orange',
-    key: 'cyan',
-    hover: 'default',
+    click: "green",
+    type: "blue",
+    input: "blue",
+    navigate: "purple",
+    scroll: "orange",
+    key: "cyan",
+    hover: "default",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getEventTooltip = (event) => {
   let tooltip = `${event.type}`;
-  if (event.selector) tooltip += `: ${event.selector}`;
-  if (event.text) tooltip += ` "${truncate(event.text, 20)}"`;
-  if (event.url) tooltip += ` ${truncate(event.url, 30)}`;
+  if (event.selector) {
+    tooltip += `: ${event.selector}`;
+  }
+  if (event.text) {
+    tooltip += ` "${truncate(event.text, 20)}"`;
+  }
+  if (event.url) {
+    tooltip += ` ${truncate(event.url, 30)}`;
+  }
   return tooltip;
 };
 
 const selectEvent = (index) => {
   selectedEventIndex.value = index;
-  emit('select-event', index);
+  emit("select-event", index);
 };
 
 const editEvent = (index) => {
-  emit('edit-event', index);
+  emit("edit-event", index);
 };
 
 const deleteEvent = () => {
   if (selectedEventIndex.value !== null) {
-    emit('delete-event', selectedEventIndex.value);
+    emit("delete-event", selectedEventIndex.value);
     selectedEventIndex.value = null;
   }
 };
 
 const playFromEvent = () => {
   if (selectedEventIndex.value !== null) {
-    emit('play-from', selectedEventIndex.value);
+    emit("play-from", selectedEventIndex.value);
   }
 };
 
@@ -342,27 +381,33 @@ const formatTime = (ms) => {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   const milliseconds = Math.floor((ms % 1000) / 10);
-  return `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}.${milliseconds.toString().padStart(2, "0")}`;
 };
 
 const formatDuration = (ms) => {
-  if (!ms) return '0:00';
+  if (!ms) {
+    return "0:00";
+  }
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
 const truncate = (str, maxLen) => {
-  if (!str) return '';
-  return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
+  if (!str) {
+    return "";
+  }
+  return str.length > maxLen ? str.substring(0, maxLen) + "..." : str;
 };
 
 // Draw activity track
 const drawActivityTrack = () => {
-  if (!activityCanvas.value || !events.value.length) return;
+  if (!activityCanvas.value || !events.value.length) {
+    return;
+  }
 
-  const ctx = activityCanvas.value.getContext('2d');
+  const ctx = activityCanvas.value.getContext("2d");
   const width = timelineWidth.value;
   const height = 30;
 
@@ -373,9 +418,11 @@ const drawActivityTrack = () => {
   const buckets = new Array(bucketCount).fill(0);
   const startTime = events.value[0].timestamp;
 
-  events.value.forEach(event => {
+  events.value.forEach((event) => {
     const relativeTime = event.timestamp - startTime;
-    const bucketIndex = Math.floor((relativeTime / duration.value) * bucketCount);
+    const bucketIndex = Math.floor(
+      (relativeTime / duration.value) * bucketCount,
+    );
     if (bucketIndex >= 0 && bucketIndex < bucketCount) {
       buckets[bucketIndex]++;
     }
@@ -384,7 +431,7 @@ const drawActivityTrack = () => {
   const maxCount = Math.max(...buckets, 1);
 
   // Draw bars
-  ctx.fillStyle = 'rgba(24, 144, 255, 0.3)';
+  ctx.fillStyle = "rgba(24, 144, 255, 0.3)";
   const barWidth = width / bucketCount;
 
   buckets.forEach((count, i) => {
@@ -394,11 +441,15 @@ const drawActivityTrack = () => {
 };
 
 // Watch for changes
-watch([() => props.recording, zoom], () => {
-  nextTick(() => {
-    drawActivityTrack();
-  });
-}, { deep: true });
+watch(
+  [() => props.recording, zoom],
+  () => {
+    nextTick(() => {
+      drawActivityTrack();
+    });
+  },
+  { deep: true },
+);
 
 onMounted(() => {
   drawActivityTrack();
@@ -482,11 +533,7 @@ onMounted(() => {
 .events-track {
   height: 50px;
   position: relative;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.02) 1px,
-    transparent 1px
-  );
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
   background-size: 50px 100%;
 }
 

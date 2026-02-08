@@ -11,7 +11,7 @@
         </span>
         <span class="status-text">{{ statusText }}</span>
       </div>
-      <div class="playback-progress" v-if="totalEvents > 0">
+      <div v-if="totalEvents > 0" class="playback-progress">
         {{ currentEventIndex }} / {{ totalEvents }}
       </div>
     </div>
@@ -32,11 +32,7 @@
 
     <!-- Main Controls -->
     <div class="main-controls">
-      <a-button
-        shape="circle"
-        :disabled="!canSkipBack"
-        @click="skipBack"
-      >
+      <a-button shape="circle" :disabled="!canSkipBack" @click="skipBack">
         <StepBackwardOutlined />
       </a-button>
 
@@ -61,11 +57,7 @@
         <PauseOutlined />
       </a-button>
 
-      <a-button
-        shape="circle"
-        :disabled="!canSkipForward"
-        @click="skipForward"
-      >
+      <a-button shape="circle" :disabled="!canSkipForward" @click="skipForward">
         <StepForwardOutlined />
       </a-button>
 
@@ -82,11 +74,15 @@
     <!-- Speed Control -->
     <div class="speed-control">
       <span class="label">Speed:</span>
-      <a-radio-group v-model:value="playbackSpeed" size="small" @change="updateSpeed">
-        <a-radio-button value="0.5">0.5x</a-radio-button>
-        <a-radio-button value="1">1x</a-radio-button>
-        <a-radio-button value="2">2x</a-radio-button>
-        <a-radio-button value="4">4x</a-radio-button>
+      <a-radio-group
+        v-model:value="playbackSpeed"
+        size="small"
+        @change="updateSpeed"
+      >
+        <a-radio-button value="0.5"> 0.5x </a-radio-button>
+        <a-radio-button value="1"> 1x </a-radio-button>
+        <a-radio-button value="2"> 2x </a-radio-button>
+        <a-radio-button value="4"> 4x </a-radio-button>
       </a-radio-group>
     </div>
 
@@ -95,22 +91,22 @@
       <a-checkbox v-model:checked="visualFeedback">
         Visual Feedback
       </a-checkbox>
-      <a-checkbox v-model:checked="stepMode">
-        Step Mode
-      </a-checkbox>
-      <a-checkbox v-model:checked="loopPlayback">
-        Loop
-      </a-checkbox>
+      <a-checkbox v-model:checked="stepMode"> Step Mode </a-checkbox>
+      <a-checkbox v-model:checked="loopPlayback"> Loop </a-checkbox>
     </div>
 
     <!-- Current Event Info -->
-    <div class="current-event" v-if="currentEvent">
+    <div v-if="currentEvent" class="current-event">
       <div class="event-header">Current Event</div>
       <div class="event-details">
-        <a-tag :color="getEventColor(currentEvent.type)">{{ currentEvent.type }}</a-tag>
-        <span class="event-target">{{ currentEvent.selector || currentEvent.url || '' }}</span>
+        <a-tag :color="getEventColor(currentEvent.type)">
+          {{ currentEvent.type }}
+        </a-tag>
+        <span class="event-target">{{
+          currentEvent.selector || currentEvent.url || ""
+        }}</span>
       </div>
-      <div class="event-value" v-if="currentEvent.text || currentEvent.value">
+      <div v-if="currentEvent.text || currentEvent.value" class="event-value">
         {{ currentEvent.text || currentEvent.value }}
       </div>
     </div>
@@ -118,8 +114,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
@@ -129,24 +125,24 @@ import {
   StepForwardOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   recording: {
     type: Object,
-    required: true
+    required: true,
   },
-  targetId: String
+  targetId: String,
 });
 
-const emit = defineEmits(['playback-complete', 'event-played']);
+const emit = defineEmits(["playback-complete", "event-played"]);
 
 // State
-const playbackState = ref('idle'); // idle, loading, playing, paused, completed
+const playbackState = ref("idle"); // idle, loading, playing, paused, completed
 const playbackId = ref(null);
 const currentEventIndex = ref(0);
 const currentTime = ref(0);
-const playbackSpeed = ref('1');
+const playbackSpeed = ref("1");
 const visualFeedback = ref(true);
 const stepMode = ref(false);
 const loopPlayback = ref(false);
@@ -164,46 +160,51 @@ const totalDuration = computed(() => props.recording?.duration || 0);
 
 const currentEvent = computed(() => {
   const events = props.recording?.events;
-  if (!events) return null;
+  if (!events) {
+    return null;
+  }
   const parsed = JSON.parse(events);
   return parsed[currentEventIndex.value];
 });
 
 const statusText = computed(() => {
   const states = {
-    idle: 'Ready',
-    loading: 'Loading...',
-    playing: 'Playing',
-    paused: 'Paused',
-    completed: 'Completed'
+    idle: "Ready",
+    loading: "Loading...",
+    playing: "Playing",
+    paused: "Paused",
+    completed: "Completed",
   };
   return states[playbackState.value];
 });
 
 const canPlay = computed(() => {
-  return totalEvents.value > 0 && playbackState.value !== 'loading';
+  return totalEvents.value > 0 && playbackState.value !== "loading";
 });
 
 const canSeek = computed(() => {
-  return playbackState.value === 'paused' || playbackState.value === 'idle';
+  return playbackState.value === "paused" || playbackState.value === "idle";
 });
 
 const canSkipBack = computed(() => {
-  return currentEventIndex.value > 0 && playbackState.value !== 'loading';
+  return currentEventIndex.value > 0 && playbackState.value !== "loading";
 });
 
 const canSkipForward = computed(() => {
-  return currentEventIndex.value < totalEvents.value - 1 && playbackState.value !== 'loading';
+  return (
+    currentEventIndex.value < totalEvents.value - 1 &&
+    playbackState.value !== "loading"
+  );
 });
 
 // Methods
 const play = async () => {
   if (!props.recording?.id) {
-    message.error('No recording selected');
+    message.error("No recording selected");
     return;
   }
 
-  playbackState.value = 'loading';
+  playbackState.value = "loading";
 
   try {
     const result = await window.electronAPI.browser.recording.play(
@@ -213,15 +214,15 @@ const play = async () => {
         speed: parseFloat(playbackSpeed.value),
         visualFeedback: visualFeedback.value,
         stepMode: stepMode.value,
-        startFromEvent: currentEventIndex.value
-      }
+        startFromEvent: currentEventIndex.value,
+      },
     );
 
     playbackId.value = result.playbackId;
-    playbackState.value = 'playing';
+    playbackState.value = "playing";
   } catch (error) {
-    message.error('Failed to start playback: ' + error.message);
-    playbackState.value = 'idle';
+    message.error("Failed to start playback: " + error.message);
+    playbackState.value = "idle";
   }
 };
 
@@ -229,9 +230,9 @@ const pause = async () => {
   if (playbackId.value) {
     try {
       await window.electronAPI.browser.recording.playPause(playbackId.value);
-      playbackState.value = 'paused';
+      playbackState.value = "paused";
     } catch (error) {
-      message.error('Failed to pause: ' + error.message);
+      message.error("Failed to pause: " + error.message);
     }
   }
 };
@@ -240,9 +241,9 @@ const resume = async () => {
   if (playbackId.value) {
     try {
       await window.electronAPI.browser.recording.playResume(playbackId.value);
-      playbackState.value = 'playing';
+      playbackState.value = "playing";
     } catch (error) {
-      message.error('Failed to resume: ' + error.message);
+      message.error("Failed to resume: " + error.message);
     }
   }
 };
@@ -252,10 +253,10 @@ const stop = async () => {
     try {
       await window.electronAPI.browser.recording.playStop(playbackId.value);
     } catch (error) {
-      console.error('Failed to stop:', error);
+      console.error("Failed to stop:", error);
     }
   }
-  playbackState.value = 'idle';
+  playbackState.value = "idle";
   playbackId.value = null;
   currentEventIndex.value = 0;
   currentTime.value = 0;
@@ -283,17 +284,18 @@ const handleSeek = (value) => {
 };
 
 const updateSpeed = async () => {
-  if (playbackId.value && playbackState.value === 'playing') {
+  if (playbackId.value && playbackState.value === "playing") {
     // Would need an IPC call to update speed mid-playback
     // For now, user needs to restart playback
-    message.info('Restart playback for speed change to take effect');
+    message.info("Restart playback for speed change to take effect");
   }
 };
 
 const updateProgress = () => {
-  progressPercent.value = totalEvents.value > 0
-    ? (currentEventIndex.value / totalEvents.value) * 100
-    : 0;
+  progressPercent.value =
+    totalEvents.value > 0
+      ? (currentEventIndex.value / totalEvents.value) * 100
+      : 0;
 
   const events = props.recording?.events;
   if (events) {
@@ -309,7 +311,7 @@ const formatTime = (ms) => {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
 const formatProgress = (value) => {
@@ -319,47 +321,50 @@ const formatProgress = (value) => {
 
 const getEventColor = (type) => {
   const colors = {
-    click: 'green',
-    type: 'blue',
-    navigate: 'purple',
-    scroll: 'orange',
-    key: 'cyan',
+    click: "green",
+    type: "blue",
+    navigate: "purple",
+    scroll: "orange",
+    key: "cyan",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const handlePlaybackEvent = (event) => {
-  if (event.playbackId !== playbackId.value) return;
+  if (event.playbackId !== playbackId.value) {
+    return;
+  }
 
   switch (event.type) {
-    case 'event:played':
+    case "event:played":
       currentEventIndex.value = event.eventIndex;
       currentTime.value = event.currentTime || 0;
       updateProgress();
-      emit('event-played', event);
+      emit("event-played", event);
       break;
 
-    case 'playback:completed':
-      playbackState.value = 'completed';
+    case "playback:completed":
+      playbackState.value = "completed";
       if (loopPlayback.value) {
         currentEventIndex.value = 0;
         currentTime.value = 0;
         progressPercent.value = 0;
         play();
       } else {
-        emit('playback-complete');
+        emit("playback-complete");
       }
       break;
 
-    case 'playback:error':
-      playbackState.value = 'idle';
-      message.error('Playback error: ' + event.error);
+    case "playback:error":
+      playbackState.value = "idle";
+      message.error("Playback error: " + event.error);
       break;
   }
 };
 
 onMounted(() => {
-  unsubscribe = window.electronAPI.browser.recording.onEvent(handlePlaybackEvent);
+  unsubscribe =
+    window.electronAPI.browser.recording.onEvent(handlePlaybackEvent);
 });
 
 onUnmounted(() => {
@@ -370,9 +375,13 @@ onUnmounted(() => {
 });
 
 // Watch recording change
-watch(() => props.recording, () => {
-  stop();
-}, { deep: true });
+watch(
+  () => props.recording,
+  () => {
+    stop();
+  },
+  { deep: true },
+);
 </script>
 
 <style scoped>

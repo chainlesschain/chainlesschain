@@ -10,9 +10,9 @@
  * 5. 错误日志记录
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
 
 class ToolSandbox {
   constructor(functionCaller, database = null) {
@@ -21,50 +21,50 @@ class ToolSandbox {
 
     // 默认配置
     this.defaultConfig = {
-      timeout: 30000,        // 30秒超时
-      retries: 2,            // 重试2次
-      retryDelay: 1000,      // 重试延迟1秒
+      timeout: 30000, // 30秒超时
+      retries: 2, // 重试2次
+      retryDelay: 1000, // 重试延迟1秒
       enableValidation: true, // 启用结果校验
-      enableSnapshot: true    // 启用快照回滚
+      enableSnapshot: true, // 启用快照回滚
     };
 
     // 工具特定的校验规则
     this.validators = {
-      'html_generator': (result) => {
-        return result && result.html && result.html.includes('<!DOCTYPE');
+      html_generator: (result) => {
+        return result && result.html && result.html.includes("<!DOCTYPE");
       },
-      'css_generator': (result) => {
+      css_generator: (result) => {
         return result && result.css && result.css.length > 0;
       },
-      'js_generator': (result) => {
+      js_generator: (result) => {
         return result && result.js && result.js.length > 0;
       },
-      'file_writer': (result) => {
+      file_writer: (result) => {
         return result && result.success && result.filePath;
       },
-      'file_reader': (result) => {
+      file_reader: (result) => {
         return result && result.success && result.content !== undefined;
       },
-      'word_generator': (result) => {
-        return result && result.filePath && result.filePath.endsWith('.docx');
+      word_generator: (result) => {
+        return result && result.filePath && result.filePath.endsWith(".docx");
       },
-      'excel_generator': (result) => {
-        return result && result.filePath && result.filePath.endsWith('.xlsx');
+      excel_generator: (result) => {
+        return result && result.filePath && result.filePath.endsWith(".xlsx");
       },
-      'pdf_generator': (result) => {
-        return result && result.filePath && result.filePath.endsWith('.pdf');
-      }
+      pdf_generator: (result) => {
+        return result && result.filePath && result.filePath.endsWith(".pdf");
+      },
     };
 
     // 可重试的错误类型
     this.retryableErrors = [
-      'ECONNREFUSED',   // 连接被拒绝
-      'ETIMEDOUT',      // 超时
-      'ENOTFOUND',      // 未找到
-      'ECONNRESET',     // 连接重置
-      'EPIPE',          // 管道破裂
-      'EAI_AGAIN',      // DNS查询失败
-      'EBUSY'           // 资源忙
+      "ECONNREFUSED", // 连接被拒绝
+      "ETIMEDOUT", // 超时
+      "ENOTFOUND", // 未找到
+      "ECONNRESET", // 连接重置
+      "EPIPE", // 管道破裂
+      "EAI_AGAIN", // DNS查询失败
+      "EBUSY", // 资源忙
     ];
   }
 
@@ -93,7 +93,7 @@ class ToolSandbox {
       // 限制超时执行
       const result = await Promise.race([
         this.executeWithRetries(toolName, params, context, config),
-        this.timeoutPromise(config.timeout, toolName)
+        this.timeoutPromise(config.timeout, toolName),
       ]);
 
       // 校验结果（如果启用）
@@ -106,7 +106,9 @@ class ToolSandbox {
       }
 
       const duration = Date.now() - startTime;
-      logger.info(`[ToolSandbox] ✅ 工具执行成功: ${toolName}, 耗时: ${duration}ms`);
+      logger.info(
+        `[ToolSandbox] ✅ 工具执行成功: ${toolName}, 耗时: ${duration}ms`,
+      );
 
       // 记录成功日志
       await this.logExecution(toolName, params, true, duration, null);
@@ -116,9 +118,8 @@ class ToolSandbox {
         result,
         duration,
         toolName,
-        retried: false
+        retried: false,
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
       logger.error(`[ToolSandbox] ❌ 工具执行失败: ${toolName}`, error.message);
@@ -147,19 +148,24 @@ class ToolSandbox {
       try {
         if (attempt > 0) {
           const delay = config.retryDelay * Math.pow(2, attempt - 1); // 指数退避
-          logger.info(`[ToolSandbox] 🔄 重试 ${attempt}/${config.retries}: ${toolName}, 延迟: ${delay}ms`);
+          logger.info(
+            `[ToolSandbox] 🔄 重试 ${attempt}/${config.retries}: ${toolName}, 延迟: ${delay}ms`,
+          );
           await this.sleep(delay);
         }
 
         // 调用工具
-        const result = await this.functionCaller.call(toolName, params, context);
+        const result = await this.functionCaller.call(
+          toolName,
+          params,
+          context,
+        );
 
         if (attempt > 0) {
           logger.info(`[ToolSandbox] ✅ 重试成功: ${toolName}`);
         }
 
         return result;
-
       } catch (error) {
         lastError = error;
 
@@ -171,7 +177,9 @@ class ToolSandbox {
           throw error;
         }
 
-        logger.info(`[ToolSandbox] ⚠️ 尝试 ${attempt + 1} 失败: ${error.message}, ${isRetryable ? '将重试' : '不可重试'}`);
+        logger.info(
+          `[ToolSandbox] ⚠️ 尝试 ${attempt + 1} 失败: ${error.message}, ${isRetryable ? "将重试" : "不可重试"}`,
+        );
       }
     }
 
@@ -183,8 +191,8 @@ class ToolSandbox {
    * @private
    */
   isRetryableError(error) {
-    const errorMessage = error.message || '';
-    const errorCode = error.code || '';
+    const errorMessage = error.message || "";
+    const errorCode = error.code || "";
 
     // 检查错误码
     if (this.retryableErrors.includes(errorCode)) {
@@ -193,16 +201,16 @@ class ToolSandbox {
 
     // 检查错误消息
     const retryableMessages = [
-      '超时',
-      'timeout',
-      '连接失败',
-      'connection',
-      '网络错误',
-      'network',
-      '暂时不可用',
-      'temporarily unavailable',
-      '资源忙',
-      'EBUSY'
+      "超时",
+      "timeout",
+      "连接失败",
+      "connection",
+      "网络错误",
+      "network",
+      "暂时不可用",
+      "temporarily unavailable",
+      "资源忙",
+      "EBUSY",
     ];
 
     for (const msg of retryableMessages) {
@@ -233,12 +241,15 @@ class ToolSandbox {
   async validateResult(result, toolName) {
     // 1. 基本校验：result不能为null/undefined
     if (result === null || result === undefined) {
-      return { valid: false, reason: '结果为空' };
+      return { valid: false, reason: "结果为空" };
     }
 
     // 2. 如果result有success字段，检查它
-    if (Object.prototype.hasOwnProperty.call(result, 'success') && result.success === false) {
-      return { valid: false, reason: 'result.success为false' };
+    if (
+      Object.prototype.hasOwnProperty.call(result, "success") &&
+      result.success === false
+    ) {
+      return { valid: false, reason: "result.success为false" };
     }
 
     // 3. 工具特定的校验规则
@@ -249,7 +260,7 @@ class ToolSandbox {
         const isValid = validator(result);
 
         if (!isValid) {
-          return { valid: false, reason: '未通过工具特定校验规则' };
+          return { valid: false, reason: "未通过工具特定校验规则" };
         }
       } catch (error) {
         return { valid: false, reason: `校验函数执行失败: ${error.message}` };
@@ -257,7 +268,7 @@ class ToolSandbox {
     }
 
     // 4. 通过所有校验
-    return { valid: true, reason: '' };
+    return { valid: true, reason: "" };
   }
 
   /**
@@ -282,29 +293,31 @@ class ToolSandbox {
             const backupPath = `${resolvedPath}.backup_${Date.now()}`;
             await fs.copyFile(resolvedPath, backupPath);
 
-            logger.info(`[ToolSandbox] 📸 创建快照: ${resolvedPath} -> ${backupPath}`);
+            logger.info(
+              `[ToolSandbox] 📸 创建快照: ${resolvedPath} -> ${backupPath}`,
+            );
 
             return {
-              type: 'file',
+              type: "file",
               originalPath: resolvedPath,
               backupPath: backupPath,
-              toolName: toolName
+              toolName: toolName,
             };
           } catch (error) {
             // 文件不存在，不需要备份（可能是创建新文件）
             return {
-              type: 'new_file',
+              type: "new_file",
               originalPath: resolvedPath,
-              toolName: toolName
+              toolName: toolName,
             };
           }
         }
       }
 
-      return { type: 'none' };
+      return { type: "none" };
     } catch (error) {
       logger.error(`[ToolSandbox] 创建快照失败:`, error);
-      return { type: 'none' };
+      return { type: "none" };
     }
   }
 
@@ -314,14 +327,13 @@ class ToolSandbox {
    */
   async rollback(snapshot) {
     try {
-      if (snapshot.type === 'file') {
+      if (snapshot.type === "file") {
         // 恢复文件备份
         await fs.copyFile(snapshot.backupPath, snapshot.originalPath);
         await fs.unlink(snapshot.backupPath); // 删除备份文件
 
         logger.info(`[ToolSandbox] ⏪ 回滚成功: ${snapshot.originalPath}`);
-
-      } else if (snapshot.type === 'new_file') {
+      } else if (snapshot.type === "new_file") {
         // 删除新创建的文件
         try {
           await fs.unlink(snapshot.originalPath);
@@ -341,15 +353,15 @@ class ToolSandbox {
    */
   isFileOperationTool(toolName) {
     const fileTools = [
-      'file_writer',
-      'file_editor',
-      'html_generator',
-      'css_generator',
-      'js_generator',
-      'word_generator',
-      'excel_generator',
-      'pdf_generator',
-      'markdown_generator'
+      "file_writer",
+      "file_editor",
+      "html_generator",
+      "css_generator",
+      "js_generator",
+      "word_generator",
+      "excel_generator",
+      "pdf_generator",
+      "markdown_generator",
     ];
 
     return fileTools.includes(toolName);
@@ -376,27 +388,32 @@ class ToolSandbox {
    * @private
    */
   async logExecution(toolName, params, success, duration, error) {
-    if (!this.database) {return;}
+    if (!this.database) {
+      return;
+    }
 
     try {
       const errorType = error ? this.classifyError(error) : null;
       const errorMessage = error ? error.message : null;
 
-      await this.database.run(`
+      await this.database.run(
+        `
         INSERT INTO tool_execution_logs (
           tool_name, params, success, duration, error_type, error_message, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [
-        toolName,
-        JSON.stringify(params),
-        success ? 1 : 0,
-        duration,
-        errorType,
-        errorMessage,
-        Date.now()
-      ]);
+      `,
+        [
+          toolName,
+          JSON.stringify(params),
+          success ? 1 : 0,
+          duration,
+          errorType,
+          errorMessage,
+          Date.now(),
+        ],
+      );
     } catch (err) {
-      logger.error('[ToolSandbox] 记录日志失败:', err);
+      logger.error("[ToolSandbox] 记录日志失败:", err);
     }
   }
 
@@ -405,34 +422,34 @@ class ToolSandbox {
    * @private
    */
   classifyError(error) {
-    const errorMessage = (error.message || '').toLowerCase();
-    const errorCode = error.code || '';
+    const errorMessage = (error.message || "").toLowerCase();
+    const errorCode = error.code || "";
 
-    if (errorMessage.includes('timeout') || errorMessage.includes('超时')) {
-      return 'timeout';
+    if (errorMessage.includes("timeout") || errorMessage.includes("超时")) {
+      return "timeout";
     }
 
     if (this.retryableErrors.includes(errorCode)) {
-      return 'network';
+      return "network";
     }
 
-    if (errorMessage.includes('enoent') || errorMessage.includes('找不到')) {
-      return 'file_not_found';
+    if (errorMessage.includes("enoent") || errorMessage.includes("找不到")) {
+      return "file_not_found";
     }
 
-    if (errorMessage.includes('eacces') || errorMessage.includes('权限')) {
-      return 'permission';
+    if (errorMessage.includes("eacces") || errorMessage.includes("权限")) {
+      return "permission";
     }
 
-    if (errorMessage.includes('校验失败')) {
-      return 'validation';
+    if (errorMessage.includes("校验失败")) {
+      return "validation";
     }
 
-    if (errorMessage.includes('invalid') || errorMessage.includes('无效')) {
-      return 'invalid_params';
+    if (errorMessage.includes("invalid") || errorMessage.includes("无效")) {
+      return "invalid_params";
     }
 
-    return 'unknown';
+    return "unknown";
   }
 
   /**
@@ -451,12 +468,15 @@ class ToolSandbox {
    * @returns {Promise<Object>} 统计数据
    */
   async getExecutionStats(timeRange = 24 * 60 * 60 * 1000) {
-    if (!this.database) {return null;}
+    if (!this.database) {
+      return null;
+    }
 
     try {
       const since = Date.now() - timeRange;
 
-      const rows = await this.database.all(`
+      const rows = await this.database.all(
+        `
         SELECT
           tool_name,
           COUNT(*) as total_count,
@@ -467,20 +487,23 @@ class ToolSandbox {
         WHERE created_at > ?
         GROUP BY tool_name
         ORDER BY total_count DESC
-      `, [since]);
+      `,
+        [since],
+      );
 
       return {
         timeRange,
-        tools: rows.map(row => ({
+        tools: rows.map((row) => ({
           toolName: row.tool_name,
           totalCalls: row.total_count,
-          successRate: (row.success_count / row.total_count * 100).toFixed(1) + '%',
-          avgDuration: Math.round(row.avg_duration) + 'ms',
-          failureCount: row.total_count - row.success_count
-        }))
+          successRate:
+            ((row.success_count / row.total_count) * 100).toFixed(1) + "%",
+          avgDuration: Math.round(row.avg_duration) + "ms",
+          failureCount: row.total_count - row.success_count,
+        })),
       };
     } catch (error) {
-      logger.error('[ToolSandbox] 获取统计失败:', error);
+      logger.error("[ToolSandbox] 获取统计失败:", error);
       return null;
     }
   }
@@ -490,7 +513,7 @@ class ToolSandbox {
    * @private
    */
   sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

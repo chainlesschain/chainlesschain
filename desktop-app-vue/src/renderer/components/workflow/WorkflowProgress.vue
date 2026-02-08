@@ -3,8 +3,10 @@
     <!-- 顶部概览 -->
     <div class="workflow-header">
       <div class="workflow-title">
-        <h2>{{ workflow.title || '项目工作流' }}</h2>
-        <a-tag :color="statusColor">{{ statusText }}</a-tag>
+        <h2>{{ workflow.title || "项目工作流" }}</h2>
+        <a-tag :color="statusColor">
+          {{ statusText }}
+        </a-tag>
       </div>
       <div class="workflow-meta">
         <span class="elapsed-time">
@@ -17,11 +19,7 @@
 
     <!-- 阶段进度条 -->
     <div class="stages-progress">
-      <a-steps
-        :current="currentStageIndex"
-        :status="stepsStatus"
-        size="small"
-      >
+      <a-steps :current="currentStageIndex" :status="stepsStatus" size="small">
         <a-step
           v-for="(stage, index) in stages"
           :key="stage.id"
@@ -69,12 +67,8 @@
           <SafetyCertificateOutlined />
           质量门禁状态
         </h3>
-        <a-button
-          size="small"
-          type="text"
-          @click="toggleGatesExpand"
-        >
-          {{ gatesExpanded ? '收起' : '展开' }}
+        <a-button size="small" type="text" @click="toggleGatesExpand">
+          {{ gatesExpanded ? "收起" : "展开" }}
         </a-button>
       </div>
       <div v-show="gatesExpanded" class="gates-grid">
@@ -94,12 +88,8 @@
           <FileTextOutlined />
           执行详情
         </h3>
-        <a-button
-          size="small"
-          type="text"
-          @click="toggleLogsExpand"
-        >
-          {{ logsExpanded ? '收起' : '展开' }}
+        <a-button size="small" type="text" @click="toggleLogsExpand">
+          {{ logsExpanded ? "收起" : "展开" }}
         </a-button>
       </div>
       <div v-show="logsExpanded" class="logs-container">
@@ -109,27 +99,15 @@
 
     <!-- 操作按钮 -->
     <div class="workflow-actions">
-      <a-button
-        v-if="canPause"
-        type="default"
-        @click="handlePause"
-      >
+      <a-button v-if="canPause" type="default" @click="handlePause">
         <PauseCircleOutlined />
         暂停
       </a-button>
-      <a-button
-        v-if="canResume"
-        type="primary"
-        @click="handleResume"
-      >
+      <a-button v-if="canResume" type="primary" @click="handleResume">
         <PlayCircleOutlined />
         继续
       </a-button>
-      <a-button
-        v-if="canRetry"
-        type="primary"
-        @click="handleRetry"
-      >
+      <a-button v-if="canRetry" type="primary" @click="handleRetry">
         <ReloadOutlined />
         重试
       </a-button>
@@ -150,8 +128,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   ClockCircleOutlined,
   CheckCircleFilled,
@@ -163,10 +141,10 @@ import {
   PlayCircleOutlined,
   ReloadOutlined,
   StopOutlined,
-} from '@ant-design/icons-vue';
-import StageDetail from './StageDetail.vue';
-import QualityGateCard from './QualityGateCard.vue';
-import StepTimeline from './StepTimeline.vue';
+} from "@ant-design/icons-vue";
+import StageDetail from "./StageDetail.vue";
+import QualityGateCard from "./QualityGateCard.vue";
+import StepTimeline from "./StepTimeline.vue";
 
 const props = defineProps({
   workflowId: {
@@ -179,7 +157,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['complete', 'error', 'update']);
+const emit = defineEmits(["complete", "error", "update"]);
 
 // 状态
 const workflow = ref({});
@@ -201,7 +179,9 @@ const currentStage = computed(() => {
 });
 
 const currentQualityGate = computed(() => {
-  if (!currentStage.value?.id) return null;
+  if (!currentStage.value?.id) {
+    return null;
+  }
   const gateId = `gate_${currentStageIndex.value + 1}_${getStageKey(currentStageIndex.value)}`;
   return qualityGates.value[gateId] || null;
 });
@@ -212,61 +192,69 @@ const overallPercent = computed(() => {
 
 const statusText = computed(() => {
   const statusMap = {
-    idle: '等待中',
-    running: '执行中',
-    paused: '已暂停',
-    completed: '已完成',
-    failed: '失败',
-    cancelled: '已取消',
+    idle: "等待中",
+    running: "执行中",
+    paused: "已暂停",
+    completed: "已完成",
+    failed: "失败",
+    cancelled: "已取消",
   };
-  return statusMap[workflow.value.overall?.status] || '未知';
+  return statusMap[workflow.value.overall?.status] || "未知";
 });
 
 const statusColor = computed(() => {
   const colorMap = {
-    idle: 'default',
-    running: 'processing',
-    paused: 'warning',
-    completed: 'success',
-    failed: 'error',
-    cancelled: 'default',
+    idle: "default",
+    running: "processing",
+    paused: "warning",
+    completed: "success",
+    failed: "error",
+    cancelled: "default",
   };
-  return colorMap[workflow.value.overall?.status] || 'default';
+  return colorMap[workflow.value.overall?.status] || "default";
 });
 
 const stepsStatus = computed(() => {
   const status = workflow.value.overall?.status;
-  if (status === 'failed') return 'error';
-  if (status === 'completed') return 'finish';
-  return 'process';
+  if (status === "failed") {
+    return "error";
+  }
+  if (status === "completed") {
+    return "finish";
+  }
+  return "process";
 });
 
 const progressStatus = computed(() => {
   const status = workflow.value.overall?.status;
-  if (status === 'failed') return 'exception';
-  if (status === 'completed') return 'success';
-  return 'active';
+  if (status === "failed") {
+    return "exception";
+  }
+  if (status === "completed") {
+    return "success";
+  }
+  return "active";
 });
 
 const progressGradient = computed(() => ({
-  '0%': '#108ee9',
-  '100%': '#87d068',
+  "0%": "#108ee9",
+  "100%": "#87d068",
 }));
 
 const canPause = computed(() => {
-  return workflow.value.overall?.status === 'running';
+  return workflow.value.overall?.status === "running";
 });
 
 const canResume = computed(() => {
-  return workflow.value.overall?.status === 'paused';
+  return workflow.value.overall?.status === "paused";
 });
 
 const canRetry = computed(() => {
-  return workflow.value.overall?.status === 'failed';
+  return workflow.value.overall?.status === "failed";
 });
 
 const canCancel = computed(() => {
-  return ['running', 'paused'].includes(workflow.value.overall?.status);
+  return ["running", "paused"].includes(workflow.value.overall?.status);
 });
 
 const executionSteps = computed(() => {
@@ -275,7 +263,7 @@ const executionSteps = computed(() => {
   stages.value.forEach((stage, stageIndex) => {
     // 添加阶段
     steps.push({
-      type: 'stage',
+      type: "stage",
       id: stage.id,
       name: stage.name,
       status: stage.status,
@@ -285,9 +273,9 @@ const executionSteps = computed(() => {
 
     // 添加阶段内的步骤
     if (stage.steps) {
-      stage.steps.forEach(step => {
+      stage.steps.forEach((step) => {
         steps.push({
-          type: 'step',
+          type: "step",
           id: step.id,
           name: step.name,
           status: step.status,
@@ -306,39 +294,52 @@ const executionSteps = computed(() => {
 
 // 方法
 const getStageKey = (index) => {
-  const keys = ['analysis', 'design', 'generation', 'validation', 'integration', 'delivery'];
-  return keys[index] || 'unknown';
+  const keys = [
+    "analysis",
+    "design",
+    "generation",
+    "validation",
+    "integration",
+    "delivery",
+  ];
+  return keys[index] || "unknown";
 };
 
 const getStageDescription = (stage, index) => {
-  if (stage.status === 'completed') {
+  if (stage.status === "completed") {
     return `完成 (${formatDuration(stage.duration)})`;
   }
-  if (stage.status === 'running') {
+  if (stage.status === "running") {
     return `${stage.progress || 0}%`;
   }
-  if (stage.status === 'failed') {
-    return '失败';
+  if (stage.status === "failed") {
+    return "失败";
   }
-  return '';
+  return "";
 };
 
 const getStepIconClass = (stage, index) => {
   return {
-    completed: stage.status === 'completed',
-    running: stage.status === 'running',
-    failed: stage.status === 'failed',
-    pending: stage.status === 'pending',
+    completed: stage.status === "completed",
+    running: stage.status === "running",
+    failed: stage.status === "failed",
+    pending: stage.status === "pending",
   };
 };
 
 const formatDuration = (ms) => {
-  if (!ms || ms === 0) return '0秒';
+  if (!ms || ms === 0) {
+    return "0秒";
+  }
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}秒`;
+  if (seconds < 60) {
+    return `${seconds}秒`;
+  }
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  if (minutes < 60) return `${minutes}分${remainingSeconds}秒`;
+  if (minutes < 60) {
+    return `${minutes}分${remainingSeconds}秒`;
+  }
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   return `${hours}时${remainingMinutes}分`;
@@ -355,106 +356,106 @@ const toggleLogsExpand = () => {
 // IPC 操作
 const handlePause = async () => {
   try {
-    const result = await window.ipc.invoke('workflow:pause', {
+    const result = await window.ipc.invoke("workflow:pause", {
       workflowId: props.workflowId,
     });
     if (!result.success) {
-      message.error(result.error || '暂停失败');
+      message.error(result.error || "暂停失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const handleResume = async () => {
   try {
-    const result = await window.ipc.invoke('workflow:resume', {
+    const result = await window.ipc.invoke("workflow:resume", {
       workflowId: props.workflowId,
     });
     if (!result.success) {
-      message.error(result.error || '恢复失败');
+      message.error(result.error || "恢复失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const handleRetry = async () => {
   try {
-    const result = await window.ipc.invoke('workflow:retry', {
+    const result = await window.ipc.invoke("workflow:retry", {
       workflowId: props.workflowId,
     });
     if (!result.success) {
-      message.error(result.error || '重试失败');
+      message.error(result.error || "重试失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const handleCancel = async () => {
   try {
-    const result = await window.ipc.invoke('workflow:cancel', {
+    const result = await window.ipc.invoke("workflow:cancel", {
       workflowId: props.workflowId,
-      reason: '用户取消',
+      reason: "用户取消",
     });
     if (!result.success) {
-      message.error(result.error || '取消失败');
+      message.error(result.error || "取消失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const handleGateOverride = async (gateId) => {
   try {
-    const result = await window.ipc.invoke('workflow:override-gate', {
+    const result = await window.ipc.invoke("workflow:override-gate", {
       workflowId: props.workflowId,
       gateId,
-      reason: '手动覆盖',
+      reason: "手动覆盖",
     });
     if (result.success) {
-      message.success('门禁已跳过');
+      message.success("门禁已跳过");
     } else {
-      message.error(result.error || '操作失败');
+      message.error(result.error || "操作失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 // 数据加载
 const loadWorkflowStatus = async () => {
   try {
-    const result = await window.ipc.invoke('workflow:get-status', {
+    const result = await window.ipc.invoke("workflow:get-status", {
       workflowId: props.workflowId,
     });
     if (result.success) {
       workflow.value = result.data;
       qualityGates.value = result.data.qualityGates || {};
-      emit('update', result.data);
+      emit("update", result.data);
     }
   } catch (error) {
-    console.error('加载工作流状态失败:', error);
+    console.error("加载工作流状态失败:", error);
   }
 };
 
 const loadStages = async () => {
   try {
-    const result = await window.ipc.invoke('workflow:get-stages', {
+    const result = await window.ipc.invoke("workflow:get-stages", {
       workflowId: props.workflowId,
     });
     if (result.success) {
       stages.value = result.data;
     }
   } catch (error) {
-    console.error('加载阶段失败:', error);
+    console.error("加载阶段失败:", error);
   }
 };
 
 const loadLogs = async () => {
   try {
-    const result = await window.ipc.invoke('workflow:get-logs', {
+    const result = await window.ipc.invoke("workflow:get-logs", {
       workflowId: props.workflowId,
       limit: 100,
     });
@@ -462,30 +463,38 @@ const loadLogs = async () => {
       logs.value = result.data;
     }
   } catch (error) {
-    console.error('加载日志失败:', error);
+    console.error("加载日志失败:", error);
   }
 };
 
 // 事件处理
 const handleWorkflowProgress = (data) => {
-  if (data.workflowId !== props.workflowId) return;
+  if (data.workflowId !== props.workflowId) {
+    return;
+  }
   workflow.value = data;
   qualityGates.value = data.qualityGates || {};
 };
 
 const handleWorkflowStageChange = (data) => {
-  if (data.workflowId !== props.workflowId) return;
+  if (data.workflowId !== props.workflowId) {
+    return;
+  }
   loadStages();
 };
 
 const handleWorkflowComplete = (data) => {
-  if (data.workflowId !== props.workflowId) return;
-  emit('complete', data);
+  if (data.workflowId !== props.workflowId) {
+    return;
+  }
+  emit("complete", data);
 };
 
 const handleWorkflowError = (data) => {
-  if (data.workflowId !== props.workflowId) return;
-  emit('error', data);
+  if (data.workflowId !== props.workflowId) {
+    return;
+  }
+  emit("error", data);
 };
 
 // 生命周期
@@ -497,17 +506,18 @@ onMounted(() => {
 
   // 设置计时器
   elapsedTimer.value = setInterval(() => {
-    if (workflow.value.overall?.status === 'running') {
-      elapsedTime.value = Date.now() - (workflow.value.overall?.elapsedTime || 0);
+    if (workflow.value.overall?.status === "running") {
+      elapsedTime.value =
+        Date.now() - (workflow.value.overall?.elapsedTime || 0);
     }
   }, 1000);
 
   // 监听事件
   if (window.ipc) {
-    window.ipc.on('workflow:progress', handleWorkflowProgress);
-    window.ipc.on('workflow:stage-complete', handleWorkflowStageChange);
-    window.ipc.on('workflow:complete', handleWorkflowComplete);
-    window.ipc.on('workflow:error', handleWorkflowError);
+    window.ipc.on("workflow:progress", handleWorkflowProgress);
+    window.ipc.on("workflow:stage-complete", handleWorkflowStageChange);
+    window.ipc.on("workflow:complete", handleWorkflowComplete);
+    window.ipc.on("workflow:error", handleWorkflowError);
   }
 });
 
@@ -517,10 +527,10 @@ onUnmounted(() => {
   }
 
   if (window.ipc) {
-    window.ipc.off('workflow:progress', handleWorkflowProgress);
-    window.ipc.off('workflow:stage-complete', handleWorkflowStageChange);
-    window.ipc.off('workflow:complete', handleWorkflowComplete);
-    window.ipc.off('workflow:error', handleWorkflowError);
+    window.ipc.off("workflow:progress", handleWorkflowProgress);
+    window.ipc.off("workflow:stage-complete", handleWorkflowStageChange);
+    window.ipc.off("workflow:complete", handleWorkflowComplete);
+    window.ipc.off("workflow:error", handleWorkflowError);
   }
 });
 

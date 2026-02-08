@@ -13,7 +13,7 @@
       </div>
       <div class="header-right">
         <a-space>
-          <a-button @click="handleRefresh" :loading="isLoading">
+          <a-button :loading="isLoading" @click="handleRefresh">
             <ReloadOutlined />
             刷新
           </a-button>
@@ -83,7 +83,7 @@
       <a-empty
         v-if="!loading.skills && skills.length === 0"
         description="暂无已注册技能"
-        style="margin: 40px 0;"
+        style="margin: 40px 0"
       />
     </a-card>
 
@@ -93,7 +93,7 @@
       title="最近执行历史"
       :bordered="false"
       class="history-section"
-      style="margin-top: 24px;"
+      style="margin-top: 24px"
     >
       <a-timeline>
         <a-timeline-item
@@ -103,9 +103,9 @@
         >
           <div class="history-item">
             <div class="history-header">
-              <strong>{{ record.task.name || '未命名任务' }}</strong>
+              <strong>{{ record.task.name || "未命名任务" }}</strong>
               <a-tag :color="record.result.success ? 'success' : 'error'">
-                {{ record.result.success ? '成功' : '失败' }}
+                {{ record.result.success ? "成功" : "失败" }}
               </a-tag>
             </div>
             <div class="history-meta">
@@ -129,10 +129,10 @@
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <a-form-item label="任务类型">
           <a-select v-model:value="testForm.type" placeholder="选择任务类型">
-            <a-select-option value="office">Office 文档</a-select-option>
-            <a-select-option value="coding">编程</a-select-option>
-            <a-select-option value="data-analysis">数据分析</a-select-option>
-            <a-select-option value="other">其他</a-select-option>
+            <a-select-option value="office"> Office 文档 </a-select-option>
+            <a-select-option value="coding"> 编程 </a-select-option>
+            <a-select-option value="data-analysis"> 数据分析 </a-select-option>
+            <a-select-option value="other"> 其他 </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -164,10 +164,10 @@
             placeholder="选择文件类型（可选）"
             allow-clear
           >
-            <a-select-option value="xlsx">Excel (.xlsx)</a-select-option>
-            <a-select-option value="docx">Word (.docx)</a-select-option>
-            <a-select-option value="pptx">PowerPoint (.pptx)</a-select-option>
-            <a-select-option value="pdf">PDF (.pdf)</a-select-option>
+            <a-select-option value="xlsx"> Excel (.xlsx) </a-select-option>
+            <a-select-option value="docx"> Word (.docx) </a-select-option>
+            <a-select-option value="pptx"> PowerPoint (.pptx) </a-select-option>
+            <a-select-option value="pdf"> PDF (.pdf) </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -193,7 +193,12 @@
             </template>
 
             <template v-else-if="column.key === 'recommended'">
-              <a-tag v-if="record.score === Math.max(...testResults.map(r => r.score))" color="green">
+              <a-tag
+                v-if="
+                  record.score === Math.max(...testResults.map((r) => r.score))
+                "
+                color="green"
+              >
                 推荐
               </a-tag>
             </template>
@@ -234,9 +239,9 @@ import SkillCard from "../components/cowork/SkillCard.vue";
 import SkillDetailPanel from "../components/cowork/SkillDetailPanel.vue";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-const skillLogger = createLogger('skill-manager');
+const skillLogger = createLogger("skill-manager");
 
 // Store
 const store = useCoworkStore();
@@ -401,7 +406,9 @@ async function confirmTestSkill() {
 // ==========================================
 
 function formatDate(timestamp) {
-  if (!timestamp) return "-";
+  if (!timestamp) {
+    return "-";
+  }
 
   try {
     return formatDistanceToNow(new Date(timestamp), {

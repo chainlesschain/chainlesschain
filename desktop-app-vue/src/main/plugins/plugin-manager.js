@@ -8,7 +8,7 @@
  * - 事件协调
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const path = require("path");
 const fs = require("fs");
@@ -38,8 +38,8 @@ class PluginManager extends EventEmitter {
 
     // UI 注册表
     this.uiRegistry = {
-      pages: new Map(),      // routePath -> { pluginId, component, title, icon, ... }
-      menus: new Map(),      // menuId -> { pluginId, label, icon, action, position, ... }
+      pages: new Map(), // routePath -> { pluginId, component, title, icon, ... }
+      menus: new Map(), // menuId -> { pluginId, label, icon, action, position, ... }
       components: new Map(), // componentId -> { pluginId, component, slots, props, ... }
     };
 
@@ -90,10 +90,7 @@ class PluginManager extends EventEmitter {
 
           logger.info(`[PluginManager] 插件 ${pluginMeta.id} 加载成功`);
         } catch (error) {
-          logger.error(
-            `[PluginManager] 加载插件失败: ${pluginMeta.id}`,
-            error,
-          );
+          logger.error(`[PluginManager] 加载插件失败: ${pluginMeta.id}`, error);
           await this.registry.recordError(pluginMeta.id, error);
         }
       }
@@ -401,13 +398,18 @@ class PluginManager extends EventEmitter {
       }
 
       // 检查是否有任何权限被授予
-      const anyGranted = Object.values(grantedPermissions).some((v) => v === true);
+      const anyGranted = Object.values(grantedPermissions).some(
+        (v) => v === true,
+      );
       if (!anyGranted) {
         logger.info(`[PluginManager] 用户未授予插件 ${manifest.id} 任何权限`);
         return false;
       }
 
-      logger.info(`[PluginManager] 插件 ${manifest.id} 权限已更新:`, grantedPermissions);
+      logger.info(
+        `[PluginManager] 插件 ${manifest.id} 权限已更新:`,
+        grantedPermissions,
+      );
       return true;
     } catch (error) {
       logger.error(`[PluginManager] 权限请求失败:`, error);

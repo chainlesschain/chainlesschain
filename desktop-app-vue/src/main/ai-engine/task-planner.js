@@ -4,9 +4,9 @@
  * 参考: 系统设计文档 2.4.6节
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { getLLMService } = require('../llm/llm-manager');
-const { getProjectRAGManager } = require('../project/project-rag');
+const { logger } = require("../utils/logger.js");
+const { getLLMService } = require("../llm/llm-manager");
+const { getProjectRAGManager } = require("../project/project-rag");
 
 /**
  * 任务规划器
@@ -22,16 +22,21 @@ class TaskPlanner {
    * 初始化
    */
   async initialize() {
-    if (this.initialized) {return;}
+    if (this.initialized) {
+      return;
+    }
 
     try {
       this.llmService = getLLMService();
       this.ragManager = getProjectRAGManager();
       await this.ragManager.initialize();
       this.initialized = true;
-      logger.info('[TaskPlanner] 初始化完成');
+      logger.info("[TaskPlanner] 初始化完成");
     } catch (error) {
-      logger.warn('[TaskPlanner] 初始化失败，部分功能可能不可用:', error.message);
+      logger.warn(
+        "[TaskPlanner] 初始化失败，部分功能可能不可用:",
+        error.message,
+      );
     }
   }
 
@@ -42,13 +47,13 @@ class TaskPlanner {
    * @returns {Promise<Object>} 任务计划
    */
   async decomposeTask(userRequest, projectContext) {
-    logger.info('[TaskPlanner] 开始拆解任务:', userRequest);
+    logger.info("[TaskPlanner] 开始拆解任务:", userRequest);
 
     await this.initialize();
 
     try {
       // 1. 使用RAG增强项目上下文
-      let enhancedContext = '';
+      let enhancedContext = "";
       if (projectContext.projectId && this.ragManager) {
         try {
           const ragResult = await this.ragManager.enhancedQuery(
@@ -57,60 +62,73 @@ class TaskPlanner {
             {
               projectLimit: 3,
               knowledgeLimit: 2,
-              conversationLimit: 2
-            }
+              conversationLimit: 2,
+            },
           );
 
           if (ragResult.context && ragResult.context.length > 0) {
-            enhancedContext = '\n\n## 相关知识:\n' + ragResult.context
-              .map((doc, idx) => `${idx + 1}. ${doc.metadata?.fileName || '未知来源'}: ${doc.content.substring(0, 200)}...`)
-              .join('\n');
+            enhancedContext =
+              "\n\n## 相关知识:\n" +
+              ragResult.context
+                .map(
+                  (doc, idx) =>
+                    `${idx + 1}. ${doc.metadata?.fileName || "未知来源"}: ${doc.content.substring(0, 200)}...`,
+                )
+                .join("\n");
           }
         } catch (error) {
-          logger.warn('[TaskPlanner] RAG增强失败，继续执行', error);
+          logger.warn("[TaskPlanner] RAG增强失败，继续执行", error);
         }
       }
 
       // 2. 构建提示词
-      const prompt = this.buildDecompositionPrompt(userRequest, projectContext, enhancedContext);
+      const prompt = this.buildDecompositionPrompt(
+        userRequest,
+        projectContext,
+        enhancedContext,
+      );
 
       // 3. 调用LLM生成任务计划
       const result = await this.llmService.complete({
         messages: [
           {
-            role: 'system',
-            content: this.getSystemPrompt()
+            role: "system",
+            content: this.getSystemPrompt(),
           },
           {
-            role: 'user',
-            content: prompt
-          }
+            role: "user",
+            content: prompt,
+          },
         ],
-        temperature: 0.3,  // 降低温度，使输出更确定
-        max_tokens: 2000
+        temperature: 0.3, // 降低温度，使输出更确定
+        max_tokens: 2000,
       });
 
       // 4. 解析LLM返回的JSON
       let taskPlan;
       try {
         // 提取JSON部分（可能包含markdown代码块）
-        const jsonMatch = result.match(/```json\n([\s\S]*?)\n```/) || result.match(/\{[\s\S]*\}/);
-        const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : result;
+        const jsonMatch =
+          result.match(/```json\n([\s\S]*?)\n```/) ||
+          result.match(/\{[\s\S]*\}/);
+        const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : result;
 
         taskPlan = JSON.parse(jsonStr);
       } catch (error) {
-        logger.error('[TaskPlanner] 解析JSON失败，使用快速拆解模式');
+        logger.error("[TaskPlanner] 解析JSON失败，使用快速拆解模式");
         return this.quickDecompose(userRequest, projectContext);
       }
 
       // 5. 验证和增强任务计划
-      const validatedPlan = this.validateAndEnhancePlan(taskPlan, projectContext);
+      const validatedPlan = this.validateAndEnhancePlan(
+        taskPlan,
+        projectContext,
+      );
 
-      logger.info('[TaskPlanner] 任务拆解完成:', validatedPlan);
+      logger.info("[TaskPlanner] 任务拆解完成:", validatedPlan);
       return validatedPlan;
-
     } catch (error) {
-      logger.error('[TaskPlanner] 任务拆解失败，使用快速拆解模式:', error);
+      logger.error("[TaskPlanner] 任务拆解失败，使用快速拆解模式:", error);
       return this.quickDecompose(userRequest, projectContext);
     }
   }
@@ -173,14 +191,17 @@ class TaskPlanner {
 
     // 添加项目上下文
     prompt += `# 项目信息\n`;
-    prompt += `- 项目类型: ${projectContext.type || '未指定'}\n`;
+    prompt += `- 项目类型: ${projectContext.type || "未指定"}\n`;
 
-    if (projectContext.existingFiles && projectContext.existingFiles.length > 0) {
-      prompt += `- 现有文件: ${projectContext.existingFiles.slice(0, 10).join(', ')}`;
+    if (
+      projectContext.existingFiles &&
+      projectContext.existingFiles.length > 0
+    ) {
+      prompt += `- 现有文件: ${projectContext.existingFiles.slice(0, 10).join(", ")}`;
       if (projectContext.existingFiles.length > 10) {
         prompt += ` (共${projectContext.existingFiles.length}个文件)`;
       }
-      prompt += '\n';
+      prompt += "\n";
     }
 
     if (projectContext.description) {
@@ -205,7 +226,7 @@ class TaskPlanner {
     const enhancedPlan = {
       id: `task_${Date.now()}_${Math.random().toString(36).substring(7)}`,
       ...taskPlan,
-      status: 'pending',
+      status: "pending",
       progress_percentage: 0,
       current_step: 0,
       total_steps: taskPlan.subtasks?.length || 0,
@@ -213,7 +234,7 @@ class TaskPlanner {
       started_at: null,
       completed_at: null,
       project_id: projectContext.projectId,
-      project_name: projectContext.projectName || projectContext.name
+      project_name: projectContext.projectName || projectContext.name,
     };
 
     // 为每个子任务添加ID和状态
@@ -222,26 +243,26 @@ class TaskPlanner {
         id: `subtask_${Date.now()}_${index}`,
         ...subtask,
         step: index + 1,
-        status: 'pending',
+        status: "pending",
         started_at: null,
         completed_at: null,
         result: null,
         error: null,
-        command: null
+        command: null,
       }));
     }
 
     // 验证必需字段
     if (!enhancedPlan.task_title) {
-      enhancedPlan.task_title = '未命名任务';
+      enhancedPlan.task_title = "未命名任务";
     }
 
     if (!enhancedPlan.task_type) {
-      enhancedPlan.task_type = 'mixed';
+      enhancedPlan.task_type = "mixed";
     }
 
     if (!enhancedPlan.subtasks || enhancedPlan.subtasks.length === 0) {
-      throw new Error('任务计划必须包含至少一个子任务');
+      throw new Error("任务计划必须包含至少一个子任务");
     }
 
     return enhancedPlan;
@@ -255,29 +276,56 @@ class TaskPlanner {
   recommendTool(taskDescription) {
     const lowerDesc = taskDescription.toLowerCase();
 
-    if (lowerDesc.includes('网页') || lowerDesc.includes('html') || lowerDesc.includes('website')) {
-      return 'web-engine';
+    if (
+      lowerDesc.includes("网页") ||
+      lowerDesc.includes("html") ||
+      lowerDesc.includes("website")
+    ) {
+      return "web-engine";
     }
-    if (lowerDesc.includes('ppt') || lowerDesc.includes('演示') || lowerDesc.includes('幻灯片')) {
-      return 'ppt-engine';
+    if (
+      lowerDesc.includes("ppt") ||
+      lowerDesc.includes("演示") ||
+      lowerDesc.includes("幻灯片")
+    ) {
+      return "ppt-engine";
     }
-    if (lowerDesc.includes('excel') || lowerDesc.includes('表格') || lowerDesc.includes('数据分析') || lowerDesc.includes('图表')) {
-      return 'data-engine';
+    if (
+      lowerDesc.includes("excel") ||
+      lowerDesc.includes("表格") ||
+      lowerDesc.includes("数据分析") ||
+      lowerDesc.includes("图表")
+    ) {
+      return "data-engine";
     }
-    if (lowerDesc.includes('word') || lowerDesc.includes('文档') || lowerDesc.includes('pdf')) {
-      return 'document-engine';
+    if (
+      lowerDesc.includes("word") ||
+      lowerDesc.includes("文档") ||
+      lowerDesc.includes("pdf")
+    ) {
+      return "document-engine";
     }
-    if (lowerDesc.includes('代码') || lowerDesc.includes('程序') || lowerDesc.includes('function') || lowerDesc.includes('class')) {
-      return 'code-engine';
+    if (
+      lowerDesc.includes("代码") ||
+      lowerDesc.includes("程序") ||
+      lowerDesc.includes("function") ||
+      lowerDesc.includes("class")
+    ) {
+      return "code-engine";
     }
-    if (lowerDesc.includes('图片') || lowerDesc.includes('图像') || lowerDesc.includes('设计') || lowerDesc.includes('logo')) {
-      return 'image-engine';
+    if (
+      lowerDesc.includes("图片") ||
+      lowerDesc.includes("图像") ||
+      lowerDesc.includes("设计") ||
+      lowerDesc.includes("logo")
+    ) {
+      return "image-engine";
     }
-    if (lowerDesc.includes('视频') || lowerDesc.includes('video')) {
-      return 'video-engine';
+    if (lowerDesc.includes("视频") || lowerDesc.includes("video")) {
+      return "video-engine";
     }
 
-    return 'code-engine'; // 默认
+    return "code-engine"; // 默认
   }
 
   /**
@@ -288,21 +336,21 @@ class TaskPlanner {
   assessComplexity(taskDescription) {
     const wordCount = taskDescription.length;
 
-    let complexity = 'simple';
+    let complexity = "simple";
     let estimatedTokens = 1000;
 
     if (wordCount > 200) {
-      complexity = 'complex';
+      complexity = "complex";
       estimatedTokens = 4000;
     } else if (wordCount > 100) {
-      complexity = 'medium';
+      complexity = "medium";
       estimatedTokens = 2000;
     }
 
     return {
       complexity,
       estimatedTokens,
-      estimatedDuration: Math.ceil(estimatedTokens / 50) // 假设50 tokens/分钟
+      estimatedDuration: Math.ceil(estimatedTokens / 50), // 假设50 tokens/分钟
     };
   }
 
@@ -311,17 +359,18 @@ class TaskPlanner {
    * 用于一些明确的单步任务或LLM调用失败时的fallback
    */
   quickDecompose(userRequest, projectContext) {
-    logger.info('[TaskPlanner] 使用快速拆解模式');
+    logger.info("[TaskPlanner] 使用快速拆解模式");
 
     const tool = this.recommendTool(userRequest);
     const complexity = this.assessComplexity(userRequest);
 
     return {
       id: `task_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      task_title: userRequest.substring(0, 50) + (userRequest.length > 50 ? '...' : ''),
+      task_title:
+        userRequest.substring(0, 50) + (userRequest.length > 50 ? "..." : ""),
       task_type: this.getTaskTypeFromTool(tool),
       estimated_duration: complexity.estimatedDuration,
-      status: 'pending',
+      status: "pending",
       progress_percentage: 0,
       current_step: 0,
       total_steps: 1,
@@ -340,15 +389,15 @@ class TaskPlanner {
           estimated_tokens: complexity.estimatedTokens,
           dependencies: [],
           output_files: [],
-          status: 'pending',
+          status: "pending",
           started_at: null,
           completed_at: null,
           result: null,
           error: null,
-          command: null
-        }
+          command: null,
+        },
       ],
-      final_deliverables: ['根据用户需求生成的文件']
+      final_deliverables: ["根据用户需求生成的文件"],
     };
   }
 
@@ -357,15 +406,15 @@ class TaskPlanner {
    */
   getTaskTypeFromTool(tool) {
     const mapping = {
-      'web-engine': 'web',
-      'document-engine': 'document',
-      'data-engine': 'data',
-      'ppt-engine': 'ppt',
-      'code-engine': 'code',
-      'image-engine': 'image',
-      'video-engine': 'video'
+      "web-engine": "web",
+      "document-engine": "document",
+      "data-engine": "data",
+      "ppt-engine": "ppt",
+      "code-engine": "code",
+      "image-engine": "image",
+      "video-engine": "video",
     };
-    return mapping[tool] || 'mixed';
+    return mapping[tool] || "mixed";
   }
 }
 
@@ -385,5 +434,5 @@ function getTaskPlanner() {
 
 module.exports = {
   TaskPlanner,
-  getTaskPlanner
+  getTaskPlanner,
 };

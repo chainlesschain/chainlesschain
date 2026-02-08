@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 自我修正循环
@@ -27,61 +27,65 @@ class SelfCorrectionLoop {
 
     // 配置
     this.config = {
-      maxRetries: 3,           // 最大重试次数
-      enableLearning: true,    // 是否启用失败模式学习
-      saveHistory: true        // 是否保存修正历史
+      maxRetries: 3, // 最大重试次数
+      enableLearning: true, // 是否启用失败模式学习
+      saveHistory: true, // 是否保存修正历史
     };
 
     // 常见失败模式及其修正策略
     this.failurePatterns = {
-      'missing_dependency': {
-        name: '缺少依赖',
-        keywords: ['Cannot find', 'Module not found', 'not defined'],
-        strategy: 'add_dependency',
-        description: '添加缺失的依赖项'
+      missing_dependency: {
+        name: "缺少依赖",
+        keywords: ["Cannot find", "Module not found", "not defined"],
+        strategy: "add_dependency",
+        description: "添加缺失的依赖项",
       },
-      'invalid_params': {
-        name: '参数无效',
-        keywords: ['Invalid parameter', 'Required parameter', 'Missing argument'],
-        strategy: 'regenerate_params',
-        description: '重新生成参数'
+      invalid_params: {
+        name: "参数无效",
+        keywords: [
+          "Invalid parameter",
+          "Required parameter",
+          "Missing argument",
+        ],
+        strategy: "regenerate_params",
+        description: "重新生成参数",
       },
-      'timeout': {
-        name: '执行超时',
-        keywords: ['timeout', 'timed out', 'ETIMEDOUT'],
-        strategy: 'increase_timeout',
-        description: '增加超时时间或拆分任务'
+      timeout: {
+        name: "执行超时",
+        keywords: ["timeout", "timed out", "ETIMEDOUT"],
+        strategy: "increase_timeout",
+        description: "增加超时时间或拆分任务",
       },
-      'permission_denied': {
-        name: '权限拒绝',
-        keywords: ['EACCES', 'Permission denied', 'Access denied'],
-        strategy: 'request_permission',
-        description: '请求必要权限'
+      permission_denied: {
+        name: "权限拒绝",
+        keywords: ["EACCES", "Permission denied", "Access denied"],
+        strategy: "request_permission",
+        description: "请求必要权限",
       },
-      'file_not_found': {
-        name: '文件未找到',
-        keywords: ['ENOENT', 'No such file', 'File not found'],
-        strategy: 'create_missing_file',
-        description: '创建缺失的文件'
+      file_not_found: {
+        name: "文件未找到",
+        keywords: ["ENOENT", "No such file", "File not found"],
+        strategy: "create_missing_file",
+        description: "创建缺失的文件",
       },
-      'network_error': {
-        name: '网络错误',
-        keywords: ['ENOTFOUND', 'ECONNREFUSED', 'network error'],
-        strategy: 'retry_with_backoff',
-        description: '网络重试（指数退避）'
+      network_error: {
+        name: "网络错误",
+        keywords: ["ENOTFOUND", "ECONNREFUSED", "network error"],
+        strategy: "retry_with_backoff",
+        description: "网络重试（指数退避）",
       },
-      'out_of_memory': {
-        name: '内存不足',
-        keywords: ['out of memory', 'heap', 'Cannot allocate'],
-        strategy: 'reduce_batch_size',
-        description: '减少批处理大小'
+      out_of_memory: {
+        name: "内存不足",
+        keywords: ["out of memory", "heap", "Cannot allocate"],
+        strategy: "reduce_batch_size",
+        description: "减少批处理大小",
       },
-      'syntax_error': {
-        name: '语法错误',
-        keywords: ['SyntaxError', 'Unexpected token', 'Parse error'],
-        strategy: 'regenerate_code',
-        description: '重新生成代码'
-      }
+      syntax_error: {
+        name: "语法错误",
+        keywords: ["SyntaxError", "Unexpected token", "Parse error"],
+        strategy: "regenerate_code",
+        description: "重新生成代码",
+      },
     };
   }
 
@@ -96,7 +100,7 @@ class SelfCorrectionLoop {
     const {
       maxRetries = this.config.maxRetries,
       onProgress = null,
-      onCorrection = null
+      onCorrection = null,
     } = options;
 
     let currentPlan = plan;
@@ -110,8 +114,8 @@ class SelfCorrectionLoop {
         onProgress({
           attempt,
           maxRetries,
-          phase: 'executing',
-          message: `尝试 ${attempt}/${maxRetries}`
+          phase: "executing",
+          message: `尝试 ${attempt}/${maxRetries}`,
         });
       }
 
@@ -122,7 +126,7 @@ class SelfCorrectionLoop {
 
       // 检查是否全部成功
       if (result.allSuccess) {
-        logger.info('✅ 执行成功!');
+        logger.info("✅ 执行成功!");
 
         // 保存成功历史
         if (this.config.saveHistory) {
@@ -133,11 +137,13 @@ class SelfCorrectionLoop {
           success: true,
           result,
           attempts: attempt,
-          corrections
+          corrections,
         };
       }
 
-      logger.info(`❌ 执行失败 (${result.failedSteps.length}/${result.totalSteps}步失败)`);
+      logger.info(
+        `❌ 执行失败 (${result.failedSteps.length}/${result.totalSteps}步失败)`,
+      );
 
       // 最后一次尝试也失败了
       if (attempt >= maxRetries) {
@@ -152,7 +158,7 @@ class SelfCorrectionLoop {
           result,
           attempts: attempt,
           corrections,
-          error: `经过${maxRetries}次尝试仍然失败`
+          error: `经过${maxRetries}次尝试仍然失败`,
         };
       }
 
@@ -164,7 +170,7 @@ class SelfCorrectionLoop {
       const correction = await this.generateCorrectionPlan(
         currentPlan,
         result,
-        diagnosis
+        diagnosis,
       );
 
       logger.info(`修正策略: ${correction.strategy}`);
@@ -173,7 +179,7 @@ class SelfCorrectionLoop {
         attempt,
         diagnosis,
         strategy: correction.strategy,
-        changes: correction.changes
+        changes: correction.changes,
       });
 
       if (onCorrection) {
@@ -187,9 +193,9 @@ class SelfCorrectionLoop {
     // 不应该到达这里
     return {
       success: false,
-      error: '未知错误',
+      error: "未知错误",
       attempts: attempt,
-      corrections
+      corrections,
     };
   }
 
@@ -208,7 +214,9 @@ class SelfCorrectionLoop {
       const step = steps[i];
 
       try {
-        logger.info(`  执行步骤 ${i + 1}/${steps.length}: ${step.title || step.tool}`);
+        logger.info(
+          `  执行步骤 ${i + 1}/${steps.length}: ${step.title || step.tool}`,
+        );
 
         const stepResult = await executor(step, i, results);
 
@@ -216,11 +224,10 @@ class SelfCorrectionLoop {
           stepIndex: i,
           step,
           success: true,
-          result: stepResult
+          result: stepResult,
         });
 
         successCount++;
-
       } catch (error) {
         logger.error(`  步骤 ${i + 1} 失败:`, error.message);
 
@@ -229,7 +236,7 @@ class SelfCorrectionLoop {
           step,
           success: false,
           error: error.message,
-          errorStack: error.stack
+          errorStack: error.stack,
         });
       }
     }
@@ -240,7 +247,7 @@ class SelfCorrectionLoop {
       failedCount: steps.length - successCount,
       allSuccess: successCount === steps.length,
       steps: results,
-      failedSteps: results.filter(r => !r.success)
+      failedSteps: results.filter((r) => !r.success),
     };
   }
 
@@ -254,19 +261,19 @@ class SelfCorrectionLoop {
 
     if (failedSteps.length === 0) {
       return {
-        pattern: 'unknown',
-        reason: '无失败步骤',
-        failedSteps: []
+        pattern: "unknown",
+        reason: "无失败步骤",
+        failedSteps: [],
       };
     }
 
     // 提取所有错误消息
-    const errors = failedSteps.map(s => s.error || '').join(' ');
+    const errors = failedSteps.map((s) => s.error || "").join(" ");
 
     // 匹配失败模式
     for (const [patternKey, pattern] of Object.entries(this.failurePatterns)) {
-      const matched = pattern.keywords.some(keyword =>
-        errors.toLowerCase().includes(keyword.toLowerCase())
+      const matched = pattern.keywords.some((keyword) =>
+        errors.toLowerCase().includes(keyword.toLowerCase()),
       );
 
       if (matched) {
@@ -275,11 +282,11 @@ class SelfCorrectionLoop {
           name: pattern.name,
           reason: pattern.description,
           strategy: pattern.strategy,
-          failedSteps: failedSteps.map(s => ({
+          failedSteps: failedSteps.map((s) => ({
             stepIndex: s.stepIndex,
             title: s.step.title || s.step.tool,
-            error: s.error
-          }))
+            error: s.error,
+          })),
         };
       }
     }
@@ -298,10 +305,14 @@ class SelfCorrectionLoop {
 分析以下步骤执行失败的原因:
 
 失败步骤:
-${failedSteps.map((s, i) => `
+${failedSteps
+  .map(
+    (s, i) => `
 ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    错误: ${s.error}
-`).join('\n')}
+`,
+  )
+  .join("\n")}
 
 请诊断:
 1. 失败的根本原因
@@ -317,40 +328,39 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
 
     try {
       const result = await this.llmService.complete({
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
       });
 
       const parsed = this.parseJSON(result.content || result);
 
       if (parsed) {
         return {
-          pattern: parsed.pattern || 'unknown',
-          reason: parsed.reason || '未知错误',
-          strategy: parsed.strategy || 'retry',
-          failedSteps: failedSteps.map(s => ({
+          pattern: parsed.pattern || "unknown",
+          reason: parsed.reason || "未知错误",
+          strategy: parsed.strategy || "retry",
+          failedSteps: failedSteps.map((s) => ({
             stepIndex: s.stepIndex,
             title: s.step.title || s.step.tool,
-            error: s.error
+            error: s.error,
           })),
-          llmDiagnosed: true
+          llmDiagnosed: true,
         };
       }
-
     } catch (error) {
-      logger.error('LLM诊断失败:', error);
+      logger.error("LLM诊断失败:", error);
     }
 
     // 降级到默认诊断
     return {
-      pattern: 'unknown',
-      reason: '未知错误类型',
-      strategy: 'retry',
-      failedSteps: failedSteps.map(s => ({
+      pattern: "unknown",
+      reason: "未知错误类型",
+      strategy: "retry",
+      failedSteps: failedSteps.map((s) => ({
         stepIndex: s.stepIndex,
         title: s.step.title || s.step.tool,
-        error: s.error
-      }))
+        error: s.error,
+      })),
     };
   }
 
@@ -368,7 +378,12 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     const predefinedCorrector = this.getCorrectionStrategy(strategy);
 
     if (predefinedCorrector) {
-      return await predefinedCorrector.call(this, originalPlan, failedResult, diagnosis);
+      return await predefinedCorrector.call(
+        this,
+        originalPlan,
+        failedResult,
+        diagnosis,
+      );
     }
 
     // 降级到LLM生成修正方案
@@ -382,13 +397,13 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
    */
   getCorrectionStrategy(strategy) {
     const strategies = {
-      'add_dependency': this.correctMissingDependency,
-      'regenerate_params': this.correctInvalidParams,
-      'increase_timeout': this.correctTimeout,
-      'create_missing_file': this.correctFileNotFound,
-      'retry_with_backoff': this.correctNetworkError,
-      'reduce_batch_size': this.correctOutOfMemory,
-      'regenerate_code': this.correctSyntaxError
+      add_dependency: this.correctMissingDependency,
+      regenerate_params: this.correctInvalidParams,
+      increase_timeout: this.correctTimeout,
+      create_missing_file: this.correctFileNotFound,
+      retry_with_backoff: this.correctNetworkError,
+      reduce_batch_size: this.correctOutOfMemory,
+      regenerate_code: this.correctSyntaxError,
     };
 
     return strategies[strategy] || null;
@@ -405,21 +420,21 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
-      return { strategy: '无法修正：找不到失败步骤', plan };
+      return { strategy: "无法修正：找不到失败步骤", plan };
     }
 
     // 在失败步骤前添加依赖安装步骤
     const newSubtasks = [...plan.subtasks];
     newSubtasks.splice(failedStepIndex, 0, {
-      tool: 'package_installer',
-      title: '安装缺失的依赖',
-      params: { autoDetect: true }
+      tool: "package_installer",
+      title: "安装缺失的依赖",
+      params: { autoDetect: true },
     });
 
     return {
-      strategy: '添加依赖安装步骤',
+      strategy: "添加依赖安装步骤",
       plan: { ...plan, subtasks: newSubtasks },
-      changes: [`在步骤${failedStepIndex + 1}前添加依赖安装`]
+      changes: [`在步骤${failedStepIndex + 1}前添加依赖安装`],
     };
   }
 
@@ -434,7 +449,7 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
-      return { strategy: '无法修正：找不到失败步骤', plan };
+      return { strategy: "无法修正：找不到失败步骤", plan };
     }
 
     // 清空失败步骤的参数，让系统重新生成
@@ -442,13 +457,13 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     newSubtasks[failedStepIndex] = {
       ...newSubtasks[failedStepIndex],
       params: {},
-      regenerateParams: true
+      regenerateParams: true,
     };
 
     return {
-      strategy: '重新生成参数',
+      strategy: "重新生成参数",
       plan: { ...plan, subtasks: newSubtasks },
-      changes: [`重新生成步骤${failedStepIndex + 1}的参数`]
+      changes: [`重新生成步骤${failedStepIndex + 1}的参数`],
     };
   }
 
@@ -463,20 +478,22 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
-      return { strategy: '无法修正：找不到失败步骤', plan };
+      return { strategy: "无法修正：找不到失败步骤", plan };
     }
 
     // 增加超时时间
     const newSubtasks = [...plan.subtasks];
     newSubtasks[failedStepIndex] = {
       ...newSubtasks[failedStepIndex],
-      timeout: (newSubtasks[failedStepIndex].timeout || 30000) * 2  // 超时时间翻倍
+      timeout: (newSubtasks[failedStepIndex].timeout || 30000) * 2, // 超时时间翻倍
     };
 
     return {
-      strategy: '增加超时时间',
+      strategy: "增加超时时间",
       plan: { ...plan, subtasks: newSubtasks },
-      changes: [`将步骤${failedStepIndex + 1}超时时间增加到${newSubtasks[failedStepIndex].timeout}ms`]
+      changes: [
+        `将步骤${failedStepIndex + 1}超时时间增加到${newSubtasks[failedStepIndex].timeout}ms`,
+      ],
     };
   }
 
@@ -491,24 +508,24 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
-      return { strategy: '无法修正：找不到失败步骤', plan };
+      return { strategy: "无法修正：找不到失败步骤", plan };
     }
 
     // 在失败步骤前添加文件创建步骤
     const newSubtasks = [...plan.subtasks];
     newSubtasks.splice(failedStepIndex, 0, {
-      tool: 'file_writer',
-      title: '创建缺失的文件',
+      tool: "file_writer",
+      title: "创建缺失的文件",
       params: {
-        content: '',
-        path: 'temp_file'  // 需要从错误信息中提取实际路径
-      }
+        content: "",
+        path: "temp_file", // 需要从错误信息中提取实际路径
+      },
     });
 
     return {
-      strategy: '创建缺失文件',
+      strategy: "创建缺失文件",
       plan: { ...plan, subtasks: newSubtasks },
-      changes: [`在步骤${failedStepIndex + 1}前创建缺失文件`]
+      changes: [`在步骤${failedStepIndex + 1}前创建缺失文件`],
     };
   }
 
@@ -523,7 +540,7 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
-      return { strategy: '无法修正：找不到失败步骤', plan };
+      return { strategy: "无法修正：找不到失败步骤", plan };
     }
 
     // 添加重试配置
@@ -531,13 +548,13 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     newSubtasks[failedStepIndex] = {
       ...newSubtasks[failedStepIndex],
       retries: 3,
-      retryDelay: 2000  // 2秒延迟
+      retryDelay: 2000, // 2秒延迟
     };
 
     return {
-      strategy: '网络重试（指数退避）',
+      strategy: "网络重试（指数退避）",
       plan: { ...plan, subtasks: newSubtasks },
-      changes: [`为步骤${failedStepIndex + 1}添加重试机制（3次，2秒延迟）`]
+      changes: [`为步骤${failedStepIndex + 1}添加重试机制（3次，2秒延迟）`],
     };
   }
 
@@ -552,25 +569,28 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
-      return { strategy: '无法修正：找不到失败步骤', plan };
+      return { strategy: "无法修正：找不到失败步骤", plan };
     }
 
     // 减少批处理大小
     const newSubtasks = [...plan.subtasks];
-    const currentBatchSize = newSubtasks[failedStepIndex].params?.batchSize || 100;
+    const currentBatchSize =
+      newSubtasks[failedStepIndex].params?.batchSize || 100;
 
     newSubtasks[failedStepIndex] = {
       ...newSubtasks[failedStepIndex],
       params: {
         ...newSubtasks[failedStepIndex].params,
-        batchSize: Math.max(10, Math.floor(currentBatchSize / 2))
-      }
+        batchSize: Math.max(10, Math.floor(currentBatchSize / 2)),
+      },
     };
 
     return {
-      strategy: '减少批处理大小',
+      strategy: "减少批处理大小",
       plan: { ...plan, subtasks: newSubtasks },
-      changes: [`将步骤${failedStepIndex + 1}批处理大小减少到${newSubtasks[failedStepIndex].params.batchSize}`]
+      changes: [
+        `将步骤${failedStepIndex + 1}批处理大小减少到${newSubtasks[failedStepIndex].params.batchSize}`,
+      ],
     };
   }
 
@@ -585,7 +605,7 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     const failedStepIndex = diagnosis.failedSteps[0]?.stepIndex;
 
     if (failedStepIndex === undefined) {
-      return { strategy: '无法修正：找不到失败步骤', plan };
+      return { strategy: "无法修正：找不到失败步骤", plan };
     }
 
     // 标记需要重新生成代码
@@ -593,13 +613,13 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
     newSubtasks[failedStepIndex] = {
       ...newSubtasks[failedStepIndex],
       regenerateCode: true,
-      strictSyntaxCheck: true
+      strictSyntaxCheck: true,
     };
 
     return {
-      strategy: '重新生成代码',
+      strategy: "重新生成代码",
       plan: { ...plan, subtasks: newSubtasks },
-      changes: [`重新生成步骤${failedStepIndex + 1}的代码`]
+      changes: [`重新生成步骤${failedStepIndex + 1}的代码`],
     };
   }
 
@@ -642,8 +662,8 @@ ${JSON.stringify(plan, null, 2)}
 
     try {
       const llmResult = await this.llmService.complete({
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.2,
       });
 
       const parsed = this.parseJSON(llmResult.content || llmResult);
@@ -651,16 +671,15 @@ ${JSON.stringify(plan, null, 2)}
       if (parsed && parsed.plan) {
         return parsed;
       }
-
     } catch (error) {
-      logger.error('LLM修正方案生成失败:', error);
+      logger.error("LLM修正方案生成失败:", error);
     }
 
     // 降级：返回原计划
     return {
-      strategy: '无法生成修正方案，保持原计划',
+      strategy: "无法生成修正方案，保持原计划",
       plan,
-      changes: []
+      changes: [],
     };
   }
 
@@ -678,7 +697,8 @@ ${JSON.stringify(plan, null, 2)}
     }
 
     try {
-      await this.database.run(`
+      await this.database.run(
+        `
         INSERT INTO self_correction_history (
           plan_description,
           total_steps,
@@ -689,19 +709,20 @@ ${JSON.stringify(plan, null, 2)}
           final_success,
           created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        plan.description || 'Unknown task',
-        result.totalSteps,
-        result.successCount,
-        result.failedCount,
-        corrections.length + 1,
-        JSON.stringify(corrections),
-        success ? 1 : 0,
-        Date.now()
-      ]);
-
+      `,
+        [
+          plan.description || "Unknown task",
+          result.totalSteps,
+          result.successCount,
+          result.failedCount,
+          corrections.length + 1,
+          JSON.stringify(corrections),
+          success ? 1 : 0,
+          Date.now(),
+        ],
+      );
     } catch (error) {
-      logger.error('保存执行历史失败:', error);
+      logger.error("保存执行历史失败:", error);
     }
   }
 
@@ -719,7 +740,7 @@ ${JSON.stringify(plan, null, 2)}
         try {
           return JSON.parse(jsonMatch[0]);
         } catch (e) {
-          logger.error('JSON解析失败:', e);
+          logger.error("JSON解析失败:", e);
           return null;
         }
       }
@@ -740,7 +761,8 @@ ${JSON.stringify(plan, null, 2)}
     try {
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
 
-      const stats = await this.database.get(`
+      const stats = await this.database.get(
+        `
         SELECT
           COUNT(*) as total_executions,
           SUM(CASE WHEN final_success = 1 THEN 1 ELSE 0 END) as final_successes,
@@ -749,24 +771,31 @@ ${JSON.stringify(plan, null, 2)}
           SUM(CASE WHEN attempts > 1 THEN 1 ELSE 0 END) as corrected_count
         FROM self_correction_history
         WHERE created_at > ?
-      `, [cutoff]);
+      `,
+        [cutoff],
+      );
 
       return {
         totalExecutions: stats.total_executions,
         finalSuccesses: stats.final_successes,
-        successRate: stats.total_executions > 0
-          ? (stats.final_successes / stats.total_executions * 100).toFixed(2) + '%'
-          : 'N/A',
+        successRate:
+          stats.total_executions > 0
+            ? ((stats.final_successes / stats.total_executions) * 100).toFixed(
+                2,
+              ) + "%"
+            : "N/A",
         totalAttempts: stats.total_attempts,
         avgAttempts: parseFloat(stats.avg_attempts || 0).toFixed(2),
         correctedCount: stats.corrected_count,
-        correctionRate: stats.total_executions > 0
-          ? (stats.corrected_count / stats.total_executions * 100).toFixed(2) + '%'
-          : 'N/A'
+        correctionRate:
+          stats.total_executions > 0
+            ? ((stats.corrected_count / stats.total_executions) * 100).toFixed(
+                2,
+              ) + "%"
+            : "N/A",
       };
-
     } catch (error) {
-      logger.error('获取修正统计失败:', error);
+      logger.error("获取修正统计失败:", error);
       return null;
     }
   }

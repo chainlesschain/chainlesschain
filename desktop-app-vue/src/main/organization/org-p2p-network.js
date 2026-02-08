@@ -9,35 +9,35 @@
  * - 去中心化组织协作
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * 消息类型枚举
  */
 const MessageType = {
   // 成员相关
-  MEMBER_ONLINE: 'member_online',
-  MEMBER_OFFLINE: 'member_offline',
-  MEMBER_JOINED: 'member_joined',
-  MEMBER_LEFT: 'member_left',
-  MEMBER_UPDATED: 'member_updated',
+  MEMBER_ONLINE: "member_online",
+  MEMBER_OFFLINE: "member_offline",
+  MEMBER_JOINED: "member_joined",
+  MEMBER_LEFT: "member_left",
+  MEMBER_UPDATED: "member_updated",
 
   // 发现相关
-  DISCOVERY_REQUEST: 'discovery_request',
-  DISCOVERY_RESPONSE: 'discovery_response',
-  HEARTBEAT: 'heartbeat',
+  DISCOVERY_REQUEST: "discovery_request",
+  DISCOVERY_RESPONSE: "discovery_response",
+  HEARTBEAT: "heartbeat",
 
   // 数据同步
-  SYNC_REQUEST: 'sync_request',
-  SYNC_RESPONSE: 'sync_response',
-  KNOWLEDGE_CREATED: 'knowledge_created',
-  KNOWLEDGE_UPDATED: 'knowledge_updated',
-  KNOWLEDGE_DELETED: 'knowledge_deleted',
+  SYNC_REQUEST: "sync_request",
+  SYNC_RESPONSE: "sync_response",
+  KNOWLEDGE_CREATED: "knowledge_created",
+  KNOWLEDGE_UPDATED: "knowledge_updated",
+  KNOWLEDGE_DELETED: "knowledge_deleted",
 
   // 广播消息
-  BROADCAST: 'broadcast',
-  ANNOUNCEMENT: 'announcement',
+  BROADCAST: "broadcast",
+  ANNOUNCEMENT: "announcement",
 };
 
 /**
@@ -65,11 +65,11 @@ class OrgP2PNetwork extends EventEmitter {
 
     // 配置
     this.config = {
-      heartbeatInterval: 30000,      // 心跳间隔 30秒
-      discoveryInterval: 60000,      // 发现间隔 60秒
-      memberTimeout: 90000,          // 成员超时 90秒
-      maxRetries: 3,                 // 最大重试次数
-      broadcastTimeout: 5000,        // 广播超时 5秒
+      heartbeatInterval: 30000, // 心跳间隔 30秒
+      discoveryInterval: 60000, // 发现间隔 60秒
+      memberTimeout: 90000, // 成员超时 90秒
+      maxRetries: 3, // 最大重试次数
+      broadcastTimeout: 5000, // 广播超时 5秒
     };
   }
 
@@ -102,7 +102,7 @@ class OrgP2PNetwork extends EventEmitter {
 
       logger.info(`[OrgP2PNetwork] ✓ 组织网络初始化完成: ${orgId}`);
 
-      this.emit('network:initialized', { orgId, topic });
+      this.emit("network:initialized", { orgId, topic });
     } catch (error) {
       logger.error(`[OrgP2PNetwork] 初始化失败:`, error);
       throw error;
@@ -117,20 +117,20 @@ class OrgP2PNetwork extends EventEmitter {
    */
   async subscribeTopic(orgId, topic) {
     if (!this.p2pManager || !this.p2pManager.node) {
-      throw new Error('P2P Manager未初始化');
+      throw new Error("P2P Manager未初始化");
     }
 
     try {
       // 检查是否支持PubSub
       const pubsub = this.p2pManager.node.services?.pubsub;
       if (!pubsub) {
-        logger.warn('[OrgP2PNetwork] PubSub服务不可用，使用直接消息模式');
+        logger.warn("[OrgP2PNetwork] PubSub服务不可用，使用直接消息模式");
         // 使用直接消息作为后备方案
         this.orgSubscriptions.set(orgId, {
           topic,
           members: new Set(),
           lastActivity: Date.now(),
-          mode: 'direct'
+          mode: "direct",
         });
         return;
       }
@@ -139,7 +139,7 @@ class OrgP2PNetwork extends EventEmitter {
       await pubsub.subscribe(topic);
 
       // 注册Topic消息处理器
-      pubsub.addEventListener('message', (evt) => {
+      pubsub.addEventListener("message", (evt) => {
         if (evt.detail.topic === topic) {
           this.handleTopicMessage(orgId, evt.detail);
         }
@@ -150,7 +150,7 @@ class OrgP2PNetwork extends EventEmitter {
         topic,
         members: new Set(),
         lastActivity: Date.now(),
-        mode: 'pubsub'
+        mode: "pubsub",
       });
 
       logger.info(`[OrgP2PNetwork] ✓ 已订阅Topic: ${topic}`);
@@ -180,7 +180,7 @@ class OrgP2PNetwork extends EventEmitter {
       await this.broadcastMemberOffline(orgId);
 
       // 取消订阅
-      if (subscription.mode === 'pubsub') {
+      if (subscription.mode === "pubsub") {
         const pubsub = this.p2pManager.node.services?.pubsub;
         if (pubsub) {
           await pubsub.unsubscribe(subscription.topic);
@@ -221,7 +221,9 @@ class OrgP2PNetwork extends EventEmitter {
         return;
       }
 
-      logger.info(`[OrgP2PNetwork] 收到消息: ${data.type} from ${data.senderDID}`);
+      logger.info(
+        `[OrgP2PNetwork] 收到消息: ${data.type} from ${data.senderDID}`,
+      );
 
       // 更新最后活动时间
       const subscription = this.orgSubscriptions.get(orgId);
@@ -273,7 +275,7 @@ class OrgP2PNetwork extends EventEmitter {
       }
 
       // 触发事件
-      this.emit('message:received', { orgId, message: data });
+      this.emit("message:received", { orgId, message: data });
     } catch (error) {
       logger.error(`[OrgP2PNetwork] 处理消息失败:`, error);
     }
@@ -298,10 +300,10 @@ class OrgP2PNetwork extends EventEmitter {
         ...message,
         senderDID: currentDID,
         timestamp: Date.now(),
-        orgId
+        orgId,
       };
 
-      if (subscription.mode === 'pubsub') {
+      if (subscription.mode === "pubsub") {
         // 使用PubSub广播
         const pubsub = this.p2pManager.node.services.pubsub;
         const data = new TextEncoder().encode(JSON.stringify(messageData));
@@ -339,14 +341,16 @@ class OrgP2PNetwork extends EventEmitter {
       }
 
       // 发送直接消息
-      const promise = this.p2pManager.sendEncryptedMessage(
-        memberDID,
-        JSON.stringify(message),
-        null,
-        { autoQueue: true }
-      ).catch(error => {
-        logger.warn(`[OrgP2PNetwork] 发送消息到${memberDID}失败:`, error.message);
-      });
+      const promise = this.p2pManager
+        .sendEncryptedMessage(memberDID, JSON.stringify(message), null, {
+          autoQueue: true,
+        })
+        .catch((error) => {
+          logger.warn(
+            `[OrgP2PNetwork] 发送消息到${memberDID}失败:`,
+            error.message,
+          );
+        });
 
       promises.push(promise);
     }
@@ -400,9 +404,9 @@ class OrgP2PNetwork extends EventEmitter {
     await this.broadcastMessage(orgId, {
       type: MessageType.HEARTBEAT,
       memberDID: currentDID,
-      displayName: currentIdentity?.displayName || 'Unknown',
-      avatar: currentIdentity?.avatar || '',
-      status: 'online'
+      displayName: currentIdentity?.displayName || "Unknown",
+      avatar: currentIdentity?.avatar || "",
+      status: "online",
     });
   }
 
@@ -415,7 +419,7 @@ class OrgP2PNetwork extends EventEmitter {
     this.stopDiscovery(orgId);
 
     // 立即执行一次发现
-    this.requestDiscovery(orgId).catch(error => {
+    this.requestDiscovery(orgId).catch((error) => {
       logger.error(`[OrgP2PNetwork] 初始发现失败:`, error);
     });
 
@@ -455,7 +459,7 @@ class OrgP2PNetwork extends EventEmitter {
 
     await this.broadcastMessage(orgId, {
       type: MessageType.DISCOVERY_REQUEST,
-      requesterDID: currentDID
+      requesterDID: currentDID,
     });
   }
 
@@ -471,9 +475,9 @@ class OrgP2PNetwork extends EventEmitter {
     await this.broadcastMessage(orgId, {
       type: MessageType.MEMBER_ONLINE,
       memberDID: currentDID,
-      displayName: currentIdentity?.displayName || 'Unknown',
-      avatar: currentIdentity?.avatar || '',
-      peerId: this.p2pManager.peerId?.toString()
+      displayName: currentIdentity?.displayName || "Unknown",
+      avatar: currentIdentity?.avatar || "",
+      peerId: this.p2pManager.peerId?.toString(),
     });
 
     // 添加到在线成员列表
@@ -490,7 +494,7 @@ class OrgP2PNetwork extends EventEmitter {
 
     await this.broadcastMessage(orgId, {
       type: MessageType.MEMBER_OFFLINE,
-      memberDID: currentDID
+      memberDID: currentDID,
     });
 
     // 从在线成员列表移除
@@ -507,12 +511,12 @@ class OrgP2PNetwork extends EventEmitter {
 
     this.addOnlineMember(orgId, data.memberDID);
 
-    this.emit('member:online', {
+    this.emit("member:online", {
       orgId,
       memberDID: data.memberDID,
       displayName: data.displayName,
       avatar: data.avatar,
-      peerId: data.peerId
+      peerId: data.peerId,
     });
   }
 
@@ -526,9 +530,9 @@ class OrgP2PNetwork extends EventEmitter {
 
     this.removeOnlineMember(orgId, data.memberDID);
 
-    this.emit('member:offline', {
+    this.emit("member:offline", {
       orgId,
-      memberDID: data.memberDID
+      memberDID: data.memberDID,
     });
   }
 
@@ -541,10 +545,10 @@ class OrgP2PNetwork extends EventEmitter {
     // 更新成员在线状态
     this.addOnlineMember(orgId, data.memberDID);
 
-    this.emit('member:heartbeat', {
+    this.emit("member:heartbeat", {
       orgId,
       memberDID: data.memberDID,
-      status: data.status
+      status: data.status,
     });
   }
 
@@ -562,9 +566,9 @@ class OrgP2PNetwork extends EventEmitter {
       type: MessageType.DISCOVERY_RESPONSE,
       responderDID: currentDID,
       requesterDID: data.requesterDID,
-      displayName: currentIdentity?.displayName || 'Unknown',
-      avatar: currentIdentity?.avatar || '',
-      peerId: this.p2pManager.peerId?.toString()
+      displayName: currentIdentity?.displayName || "Unknown",
+      avatar: currentIdentity?.avatar || "",
+      peerId: this.p2pManager.peerId?.toString(),
     });
   }
 
@@ -585,12 +589,12 @@ class OrgP2PNetwork extends EventEmitter {
 
     this.addOnlineMember(orgId, data.responderDID);
 
-    this.emit('member:discovered', {
+    this.emit("member:discovered", {
       orgId,
       memberDID: data.responderDID,
       displayName: data.displayName,
       avatar: data.avatar,
-      peerId: data.peerId
+      peerId: data.peerId,
     });
   }
 
@@ -600,10 +604,10 @@ class OrgP2PNetwork extends EventEmitter {
    * @param {Object} data - 消息数据
    */
   async handleMemberEvent(orgId, data) {
-    this.emit('member:event', {
+    this.emit("member:event", {
       orgId,
       type: data.type,
-      data
+      data,
     });
   }
 
@@ -613,10 +617,10 @@ class OrgP2PNetwork extends EventEmitter {
    * @param {Object} data - 消息数据
    */
   async handleKnowledgeEvent(orgId, data) {
-    this.emit('knowledge:event', {
+    this.emit("knowledge:event", {
       orgId,
       type: data.type,
-      data
+      data,
     });
   }
 
@@ -626,11 +630,11 @@ class OrgP2PNetwork extends EventEmitter {
    * @param {Object} data - 消息数据
    */
   async handleBroadcastMessage(orgId, data) {
-    this.emit('broadcast:received', {
+    this.emit("broadcast:received", {
       orgId,
       type: data.type,
       content: data.content,
-      senderDID: data.senderDID
+      senderDID: data.senderDID,
     });
   }
 
@@ -723,7 +727,7 @@ class OrgP2PNetwork extends EventEmitter {
       onlineMembers: onlineMembers ? Array.from(onlineMembers) : [],
       lastActivity: subscription?.lastActivity,
       heartbeatActive: this.heartbeatIntervals.has(orgId),
-      discoveryActive: this.discoveryIntervals.has(orgId)
+      discoveryActive: this.discoveryIntervals.has(orgId),
     };
   }
 
@@ -731,7 +735,7 @@ class OrgP2PNetwork extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    logger.info('[OrgP2PNetwork] 清理资源...');
+    logger.info("[OrgP2PNetwork] 清理资源...");
 
     // 取消所有订阅
     const orgIds = Array.from(this.orgSubscriptions.keys());
@@ -745,11 +749,11 @@ class OrgP2PNetwork extends EventEmitter {
     this.heartbeatIntervals.clear();
     this.discoveryIntervals.clear();
 
-    logger.info('[OrgP2PNetwork] ✓ 资源清理完成');
+    logger.info("[OrgP2PNetwork] ✓ 资源清理完成");
   }
 }
 
 module.exports = {
   OrgP2PNetwork,
-  MessageType
+  MessageType,
 };

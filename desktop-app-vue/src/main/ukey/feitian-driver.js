@@ -5,10 +5,10 @@
  * 支持飞天诚信的ePass系列U盾
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const SKFDriver = require('./skf-driver');
-const path = require('path');
-const fs = require('fs');
+const { logger } = require("../utils/logger.js");
+const SKFDriver = require("./skf-driver");
+const path = require("path");
+const fs = require("fs");
 
 /**
  * 飞天诚信驱动类
@@ -23,8 +23,8 @@ class FeiTianDriver extends SKFDriver {
   constructor(config = {}) {
     super(config);
 
-    this.driverName = 'FeiTian';
-    this.driverVersion = '1.0.0';
+    this.driverName = "FeiTian";
+    this.driverVersion = "1.0.0";
   }
 
   /**
@@ -36,34 +36,37 @@ class FeiTianDriver extends SKFDriver {
    * - FT_SKFAPI.dll
    */
   findDllPath() {
-    if (process.platform !== 'win32') {
-      logger.warn('[FeiTian] Only Windows platform is supported');
+    if (process.platform !== "win32") {
+      logger.warn("[FeiTian] Only Windows platform is supported");
       return null;
     }
 
     // 可能的DLL路径
     const possiblePaths = [
       // 项目资源目录
-      path.join(__dirname, '../../../resources/native/feitian/FT_SKFAPI.dll'),
-      path.join(__dirname, '../../../resources/native/feitian/ft2k.dll'),
-      path.join(__dirname, '../../../resources/native/feitian/ShuttleCsp11_3003.dll'),
+      path.join(__dirname, "../../../resources/native/feitian/FT_SKFAPI.dll"),
+      path.join(__dirname, "../../../resources/native/feitian/ft2k.dll"),
+      path.join(
+        __dirname,
+        "../../../resources/native/feitian/ShuttleCsp11_3003.dll",
+      ),
 
       // 系统目录
-      'C:\\Windows\\System32\\FT_SKFAPI.dll',
-      'C:\\Windows\\System32\\ft2k.dll',
-      'C:\\Windows\\System32\\ShuttleCsp11_3003.dll',
-      'C:\\Windows\\SysWOW64\\FT_SKFAPI.dll',
-      'C:\\Windows\\SysWOW64\\ft2k.dll',
+      "C:\\Windows\\System32\\FT_SKFAPI.dll",
+      "C:\\Windows\\System32\\ft2k.dll",
+      "C:\\Windows\\System32\\ShuttleCsp11_3003.dll",
+      "C:\\Windows\\SysWOW64\\FT_SKFAPI.dll",
+      "C:\\Windows\\SysWOW64\\ft2k.dll",
 
       // 程序安装目录
-      'C:\\Program Files\\FeiTian\\ePass\\FT_SKFAPI.dll',
-      'C:\\Program Files (x86)\\FeiTian\\ePass\\FT_SKFAPI.dll',
-      'C:\\Program Files\\FeiTian\\ePass\\ft2k.dll',
-      'C:\\Program Files (x86)\\FeiTian\\ePass\\ft2k.dll',
+      "C:\\Program Files\\FeiTian\\ePass\\FT_SKFAPI.dll",
+      "C:\\Program Files (x86)\\FeiTian\\ePass\\FT_SKFAPI.dll",
+      "C:\\Program Files\\FeiTian\\ePass\\ft2k.dll",
+      "C:\\Program Files (x86)\\FeiTian\\ePass\\ft2k.dll",
 
       // 用户自定义路径
-      path.join(process.cwd(), 'resources', 'native', 'FT_SKFAPI.dll'),
-      path.join(process.cwd(), 'native', 'FT_SKFAPI.dll'),
+      path.join(process.cwd(), "resources", "native", "FT_SKFAPI.dll"),
+      path.join(process.cwd(), "native", "FT_SKFAPI.dll"),
     ];
 
     // 查找第一个存在的DLL
@@ -74,7 +77,7 @@ class FeiTianDriver extends SKFDriver {
       }
     }
 
-    logger.warn('[FeiTian] DLL not found in any standard location');
+    logger.warn("[FeiTian] DLL not found in any standard location");
     return null;
   }
 
@@ -82,7 +85,7 @@ class FeiTianDriver extends SKFDriver {
    * 初始化驱动
    */
   async initialize() {
-    logger.info('[FeiTian] Initializing FeiTian driver...');
+    logger.info("[FeiTian] Initializing FeiTian driver...");
 
     try {
       // 调用父类初始化
@@ -91,10 +94,10 @@ class FeiTianDriver extends SKFDriver {
       // 飞天诚信特定初始化
       // 例如：加载特定配置、检查驱动版本等
 
-      logger.info('[FeiTian] FeiTian driver initialized successfully');
+      logger.info("[FeiTian] FeiTian driver initialized successfully");
       return true;
     } catch (error) {
-      logger.error('[FeiTian] Initialization failed:', error);
+      logger.error("[FeiTian] Initialization failed:", error);
       this.simulationMode = true;
       this.isInitialized = true;
       return true;
@@ -105,21 +108,21 @@ class FeiTianDriver extends SKFDriver {
    * 获取制造商名称
    */
   getManufacturerName() {
-    return '飞天诚信科技股份有限公司';
+    return "飞天诚信科技股份有限公司";
   }
 
   /**
    * 获取型号名称
    */
   getModelName() {
-    return 'FeiTian ePass系列';
+    return "FeiTian ePass系列";
   }
 
   /**
    * 获取驱动名称
    */
   getDriverName() {
-    return '飞天诚信U盾驱动';
+    return "飞天诚信U盾驱动";
   }
 
   /**
@@ -135,7 +138,7 @@ class FeiTianDriver extends SKFDriver {
    * 飞天诚信特定的检测逻辑
    */
   async detect() {
-    logger.info('[FeiTian] Detecting FeiTian device...');
+    logger.info("[FeiTian] Detecting FeiTian device...");
 
     try {
       // 调用父类的检测方法
@@ -149,7 +152,7 @@ class FeiTianDriver extends SKFDriver {
 
       return result;
     } catch (error) {
-      logger.error('[FeiTian] Detection failed:', error);
+      logger.error("[FeiTian] Detection failed:", error);
       return {
         detected: false,
         unlocked: false,
@@ -180,8 +183,8 @@ class FeiTianDriver extends SKFDriver {
     // 添加飞天诚信特定的信息
     info.manufacturer = this.getManufacturerName();
     info.model = this.getModelName();
-    info.vendor = 'FeiTian';
-    info.productLine = 'ePass';
+    info.vendor = "FeiTian";
+    info.productLine = "ePass";
 
     return info;
   }
@@ -193,10 +196,10 @@ class FeiTianDriver extends SKFDriver {
    */
   async getDeviceSerial() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[FeiTian] Getting device serial number...');
+    logger.info("[FeiTian] Getting device serial number...");
 
     if (this.simulationMode) {
       // 模拟序列号
@@ -205,7 +208,7 @@ class FeiTianDriver extends SKFDriver {
 
     // 实际实现需要调用飞天诚信的扩展API
     // 这里先返回设备名作为序列号
-    return this.deviceName || 'UNKNOWN';
+    return this.deviceName || "UNKNOWN";
   }
 
   /**
@@ -213,10 +216,10 @@ class FeiTianDriver extends SKFDriver {
    */
   async getDeviceCertificate() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[FeiTian] Getting device certificate...');
+    logger.info("[FeiTian] Getting device certificate...");
 
     if (this.simulationMode) {
       return null;
@@ -231,13 +234,13 @@ class FeiTianDriver extends SKFDriver {
    * 飞天诚信特定功能：检查设备健康状态
    */
   async checkDeviceHealth() {
-    logger.info('[FeiTian] Checking device health...');
+    logger.info("[FeiTian] Checking device health...");
 
     try {
       if (this.simulationMode) {
         return {
           healthy: true,
-          status: 'simulation',
+          status: "simulation",
         };
       }
 
@@ -247,18 +250,18 @@ class FeiTianDriver extends SKFDriver {
       if (!detected.detected) {
         return {
           healthy: false,
-          status: 'not_connected',
+          status: "not_connected",
         };
       }
 
       return {
         healthy: true,
-        status: 'ok',
+        status: "ok",
       };
     } catch (error) {
       return {
         healthy: false,
-        status: 'error',
+        status: "error",
         error: error.message,
       };
     }

@@ -3,18 +3,18 @@
  * 使用LLM生成查询变体，提升召回率和检索质量
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * 查询重写配置
  */
 const DEFAULT_REWRITER_CONFIG = {
   enabled: true,
-  method: 'multi_query',  // 'multi_query' | 'hyde' | 'step_back' | 'decompose'
-  maxVariants: 3,         // 最大查询变体数量
-  temperature: 0.7,       // LLM温度参数
-  enableCache: true,      // 是否启用缓存
+  method: "multi_query", // 'multi_query' | 'hyde' | 'step_back' | 'decompose'
+  maxVariants: 3, // 最大查询变体数量
+  temperature: 0.7, // LLM温度参数
+  enableCache: true, // 是否启用缓存
 };
 
 /**
@@ -41,7 +41,7 @@ class QueryRewriter extends EventEmitter {
       return {
         originalQuery: query,
         rewrittenQueries: [query],
-        method: 'none',
+        method: "none",
       };
     }
 
@@ -50,25 +50,25 @@ class QueryRewriter extends EventEmitter {
     // 检查缓存
     const cacheKey = `${method}:${query}`;
     if (this.config.enableCache && this.cache.has(cacheKey)) {
-      logger.info('[QueryRewriter] 使用缓存的重写结果');
+      logger.info("[QueryRewriter] 使用缓存的重写结果");
       return this.cache.get(cacheKey);
     }
 
     let result;
     try {
-      this.emit('rewrite-start', { query, method });
+      this.emit("rewrite-start", { query, method });
 
       switch (method) {
-        case 'multi_query':
+        case "multi_query":
           result = await this.multiQueryRewrite(query, options);
           break;
-        case 'hyde':
+        case "hyde":
           result = await this.hydeRewrite(query, options);
           break;
-        case 'step_back':
+        case "step_back":
           result = await this.stepBackRewrite(query, options);
           break;
-        case 'decompose':
+        case "decompose":
           result = await this.decomposeQuery(query, options);
           break;
         default:
@@ -76,7 +76,7 @@ class QueryRewriter extends EventEmitter {
           result = {
             originalQuery: query,
             rewrittenQueries: [query],
-            method: 'none',
+            method: "none",
           };
       }
 
@@ -91,7 +91,7 @@ class QueryRewriter extends EventEmitter {
         }
       }
 
-      this.emit('rewrite-complete', {
+      this.emit("rewrite-complete", {
         query,
         method,
         variantCount: result.rewrittenQueries.length,
@@ -99,14 +99,14 @@ class QueryRewriter extends EventEmitter {
 
       return result;
     } catch (error) {
-      logger.error('[QueryRewriter] 重写失败:', error);
-      this.emit('rewrite-error', { query, method, error });
+      logger.error("[QueryRewriter] 重写失败:", error);
+      this.emit("rewrite-error", { query, method, error });
 
       // 失败时返回原始查询
       return {
         originalQuery: query,
         rewrittenQueries: [query],
-        method: 'fallback',
+        method: "fallback",
         error: error.message,
       };
     }
@@ -144,7 +144,7 @@ class QueryRewriter extends EventEmitter {
     return {
       originalQuery: query,
       rewrittenQueries: [query, ...variants],
-      method: 'multi_query',
+      method: "multi_query",
       variants: variants,
     };
   }
@@ -174,7 +174,7 @@ class QueryRewriter extends EventEmitter {
     return {
       originalQuery: query,
       rewrittenQueries: [query, hypotheticalAnswer.trim()],
-      method: 'hyde',
+      method: "hyde",
       hypotheticalDocument: hypotheticalAnswer.trim(),
     };
   }
@@ -207,7 +207,7 @@ class QueryRewriter extends EventEmitter {
     return {
       originalQuery: query,
       rewrittenQueries: [query, abstractQuery.trim()],
-      method: 'step_back',
+      method: "step_back",
       abstractQuery: abstractQuery.trim(),
     };
   }
@@ -243,7 +243,7 @@ class QueryRewriter extends EventEmitter {
     return {
       originalQuery: query,
       rewrittenQueries: [query, ...subQueries],
-      method: 'decompose',
+      method: "decompose",
       subQueries: subQueries,
     };
   }
@@ -265,31 +265,33 @@ class QueryRewriter extends EventEmitter {
         }
       }
     } catch (error) {
-      logger.info('[QueryRewriter] JSON解析失败，尝试按行解析');
+      logger.info("[QueryRewriter] JSON解析失败，尝试按行解析");
     }
 
     // 如果JSON解析失败，尝试按行分割
     if (variants.length === 0) {
       const lines = response
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => {
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => {
           // 过滤掉空行、JSON符号、编号等
-          return line &&
-                 line.length > 5 &&
-                 !['[', ']', '{', '}'].includes(line) &&
-                 !line.match(/^\d+[.)、]/) &&
-                 !line.match(/^[-*]/) &&
-                 line !== response.trim(); // 排除完整响应
+          return (
+            line &&
+            line.length > 5 &&
+            !["[", "]", "{", "}"].includes(line) &&
+            !line.match(/^\d+[.)、]/) &&
+            !line.match(/^[-*]/) &&
+            line !== response.trim()
+          ); // 排除完整响应
         });
 
       for (const line of lines) {
         // 清理引号
-        let cleaned = line.replace(/^["']|["']$/g, '').trim();
+        let cleaned = line.replace(/^["']|["']$/g, "").trim();
 
         // 移除列表标记
-        cleaned = cleaned.replace(/^[-*•]\s*/, '');
-        cleaned = cleaned.replace(/^\d+[.)、]\s*/, '');
+        cleaned = cleaned.replace(/^[-*•]\s*/, "");
+        cleaned = cleaned.replace(/^\d+[.)、]\s*/, "");
 
         if (cleaned.length > 5) {
           variants.push(cleaned);
@@ -303,7 +305,7 @@ class QueryRewriter extends EventEmitter {
 
     // 如果还是没有解析出来，返回清理后的完整响应
     if (variants.length === 0) {
-      const cleaned = response.trim().replace(/^["']|["']$/g, '');
+      const cleaned = response.trim().replace(/^["']|["']$/g, "");
       if (cleaned.length > 5) {
         variants.push(cleaned);
       }
@@ -331,7 +333,7 @@ class QueryRewriter extends EventEmitter {
    */
   clearCache() {
     this.cache.clear();
-    logger.info('[QueryRewriter] 缓存已清除');
+    logger.info("[QueryRewriter] 缓存已清除");
   }
 
   /**
@@ -349,7 +351,7 @@ class QueryRewriter extends EventEmitter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    logger.info('[QueryRewriter] 配置已更新:', this.config);
+    logger.info("[QueryRewriter] 配置已更新:", this.config);
   }
 
   /**
@@ -364,7 +366,7 @@ class QueryRewriter extends EventEmitter {
    */
   setEnabled(enabled) {
     this.config.enabled = enabled;
-    logger.info(`[QueryRewriter] 查询重写${enabled ? '已启用' : '已禁用'}`);
+    logger.info(`[QueryRewriter] 查询重写${enabled ? "已启用" : "已禁用"}`);
   }
 }
 

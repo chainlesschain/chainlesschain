@@ -3,8 +3,8 @@
  * 处理并发写入冲突、死锁和重试逻辑
  */
 
-const { logger, createLogger } = require('./logger.js');
-const { EventEmitter } = require('events');
+const { logger } = require("./logger.js");
+const { EventEmitter } = require("events");
 
 /**
  * 并发控制配置
@@ -28,11 +28,11 @@ const DEFAULT_CONFIG = {
  * 错误类型
  */
 const ERROR_TYPES = {
-  BUSY: 'SQLITE_BUSY',
-  LOCKED: 'SQLITE_LOCKED',
-  CONSTRAINT: 'SQLITE_CONSTRAINT',
-  CORRUPT: 'SQLITE_CORRUPT',
-  NOSPC: 'ENOSPC'
+  BUSY: "SQLITE_BUSY",
+  LOCKED: "SQLITE_LOCKED",
+  CONSTRAINT: "SQLITE_CONSTRAINT",
+  CORRUPT: "SQLITE_CORRUPT",
+  NOSPC: "ENOSPC",
 };
 
 /**
@@ -53,7 +53,7 @@ class DatabaseConcurrencyController extends EventEmitter {
       totalRetries: 0,
       lockTimeouts: 0,
       busyErrors: 0,
-      constraintViolations: 0
+      constraintViolations: 0,
     };
   }
 
@@ -67,7 +67,7 @@ class DatabaseConcurrencyController extends EventEmitter {
     const {
       maxRetries = this.config.maxRetries,
       onRetry = null,
-      operationName = 'database operation'
+      operationName = "database operation",
     } = options;
 
     this.statistics.totalOperations++;
@@ -80,7 +80,9 @@ class DatabaseConcurrencyController extends EventEmitter {
 
         if (attempt > 0) {
           this.statistics.retriedOperations++;
-          logger.info(`[Concurrency] ${operationName} 成功（第 ${attempt + 1} 次尝试）`);
+          logger.info(
+            `[Concurrency] ${operationName} 成功（第 ${attempt + 1} 次尝试）`,
+          );
         }
 
         return result;
@@ -105,16 +107,16 @@ class DatabaseConcurrencyController extends EventEmitter {
 
         logger.warn(
           `[Concurrency] ${operationName} 遇到 ${errorType} 错误，` +
-          `${delay}ms 后重试 (${attempt + 1}/${maxRetries})`
+            `${delay}ms 后重试 (${attempt + 1}/${maxRetries})`,
         );
 
         // 触发重试事件
-        this.emit('retry', {
+        this.emit("retry", {
           operationName,
           attempt,
           maxRetries,
           errorType,
-          delay
+          delay,
         });
 
         // 调用重试回调
@@ -159,8 +161,8 @@ class DatabaseConcurrencyController extends EventEmitter {
       },
       {
         ...options,
-        operationName: options.operationName || 'transaction'
-      }
+        operationName: options.operationName || "transaction",
+      },
     );
   }
 
@@ -175,7 +177,7 @@ class DatabaseConcurrencyController extends EventEmitter {
         operation: writeOperation,
         options,
         resolve,
-        reject
+        reject,
       });
 
       this._processQueue();
@@ -186,7 +188,10 @@ class DatabaseConcurrencyController extends EventEmitter {
    * 处理写入队列
    */
   async _processQueue() {
-    if (this.activeWrites >= this.config.maxConcurrentWrites || this.writeQueue.length === 0) {
+    if (
+      this.activeWrites >= this.config.maxConcurrentWrites ||
+      this.writeQueue.length === 0
+    ) {
       return;
     }
 
@@ -210,30 +215,34 @@ class DatabaseConcurrencyController extends EventEmitter {
    * @returns {string} 错误类型
    */
   _identifyErrorType(error) {
-    const message = error.message || '';
-    const code = error.code || '';
+    const message = error.message || "";
+    const code = error.code || "";
 
-    if (message.includes('BUSY') || message.includes('database is locked') || code === 'SQLITE_BUSY') {
+    if (
+      message.includes("BUSY") ||
+      message.includes("database is locked") ||
+      code === "SQLITE_BUSY"
+    ) {
       return ERROR_TYPES.BUSY;
     }
 
-    if (message.includes('LOCKED') || code === 'SQLITE_LOCKED') {
+    if (message.includes("LOCKED") || code === "SQLITE_LOCKED") {
       return ERROR_TYPES.LOCKED;
     }
 
-    if (message.includes('CONSTRAINT') || code === 'SQLITE_CONSTRAINT') {
+    if (message.includes("CONSTRAINT") || code === "SQLITE_CONSTRAINT") {
       return ERROR_TYPES.CONSTRAINT;
     }
 
-    if (message.includes('CORRUPT') || code === 'SQLITE_CORRUPT') {
+    if (message.includes("CORRUPT") || code === "SQLITE_CORRUPT") {
       return ERROR_TYPES.CORRUPT;
     }
 
-    if (code === 'ENOSPC') {
+    if (code === "ENOSPC") {
       return ERROR_TYPES.NOSPC;
     }
 
-    return 'UNKNOWN';
+    return "UNKNOWN";
   }
 
   /**
@@ -264,10 +273,7 @@ class DatabaseConcurrencyController extends EventEmitter {
     }
 
     // 可重试的错误类型
-    const retryableErrors = [
-      ERROR_TYPES.BUSY,
-      ERROR_TYPES.LOCKED
-    ];
+    const retryableErrors = [ERROR_TYPES.BUSY, ERROR_TYPES.LOCKED];
 
     return retryableErrors.includes(errorType);
   }
@@ -284,13 +290,13 @@ class DatabaseConcurrencyController extends EventEmitter {
       // 指数退避：baseDelay * 2^attempt
       delay = Math.min(
         this.config.baseDelay * Math.pow(2, attempt),
-        this.config.maxDelay
+        this.config.maxDelay,
       );
     } else {
       // 线性延迟
       delay = Math.min(
         this.config.baseDelay * (attempt + 1),
-        this.config.maxDelay
+        this.config.maxDelay,
       );
     }
 
@@ -307,7 +313,7 @@ class DatabaseConcurrencyController extends EventEmitter {
    * 睡眠函数
    */
   _sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -318,12 +324,20 @@ class DatabaseConcurrencyController extends EventEmitter {
       ...this.statistics,
       queueLength: this.writeQueue.length,
       activeWrites: this.activeWrites,
-      successRate: this.statistics.totalOperations > 0
-        ? (this.statistics.successfulOperations / this.statistics.totalOperations * 100).toFixed(2) + '%'
-        : 'N/A',
-      averageRetries: this.statistics.retriedOperations > 0
-        ? (this.statistics.totalRetries / this.statistics.retriedOperations).toFixed(2)
-        : 0
+      successRate:
+        this.statistics.totalOperations > 0
+          ? (
+              (this.statistics.successfulOperations /
+                this.statistics.totalOperations) *
+              100
+            ).toFixed(2) + "%"
+          : "N/A",
+      averageRetries:
+        this.statistics.retriedOperations > 0
+          ? (
+              this.statistics.totalRetries / this.statistics.retriedOperations
+            ).toFixed(2)
+          : 0,
     };
   }
 
@@ -339,7 +353,7 @@ class DatabaseConcurrencyController extends EventEmitter {
       totalRetries: 0,
       lockTimeouts: 0,
       busyErrors: 0,
-      constraintViolations: 0
+      constraintViolations: 0,
     };
   }
 }
@@ -380,5 +394,5 @@ module.exports = {
   getConcurrencyController,
   withRetry,
   queueWrite,
-  ERROR_TYPES
+  ERROR_TYPES,
 };

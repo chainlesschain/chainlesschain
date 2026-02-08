@@ -12,19 +12,20 @@ export const LOG_LEVELS = {
 };
 
 export const LOG_LEVEL_NAMES = {
-  0: 'DEBUG',
-  1: 'INFO',
-  2: 'WARN',
-  3: 'ERROR',
-  4: 'FATAL',
+  0: "DEBUG",
+  1: "INFO",
+  2: "WARN",
+  3: "ERROR",
+  4: "FATAL",
 };
 
 export const DEFAULT_CONFIG = {
   // 日志级别（开发环境：DEBUG，生产环境：INFO）
-  level: process.env.NODE_ENV === 'production' ? LOG_LEVELS.INFO : LOG_LEVELS.DEBUG,
+  level:
+    process.env.NODE_ENV === "production" ? LOG_LEVELS.INFO : LOG_LEVELS.DEBUG,
 
   // 是否输出到控制台
-  console: process.env.NODE_ENV !== 'production',
+  console: process.env.NODE_ENV !== "production",
 
   // 是否输出到文件（仅主进程）
   file: true,
@@ -74,7 +75,7 @@ export function formatLogMessage(level, module, message, data, timestamp) {
     parts.push(JSON.stringify(data, null, 2));
   }
 
-  return parts.join(' ');
+  return parts.join(" ");
 }
 
 /**
@@ -82,26 +83,37 @@ export function formatLogMessage(level, module, message, data, timestamp) {
  */
 export function getStackTrace() {
   const stack = new Error().stack;
-  if (!stack) return '';
+  if (!stack) {
+    return "";
+  }
 
-  const lines = stack.split('\n');
+  const lines = stack.split("\n");
   // 跳过前3行（Error, getStackTrace, logger方法）
-  return lines.slice(3).join('\n');
+  return lines.slice(3).join("\n");
 }
 
 /**
  * 清理敏感信息
  */
 export function sanitizeData(data) {
-  if (!data || typeof data !== 'object') return data;
+  if (!data || typeof data !== "object") {
+    return data;
+  }
 
-  const sensitiveKeys = ['password', 'token', 'secret', 'apiKey', 'privateKey', 'pin'];
+  const sensitiveKeys = [
+    "password",
+    "token",
+    "secret",
+    "apiKey",
+    "privateKey",
+    "pin",
+  ];
   const sanitized = Array.isArray(data) ? [...data] : { ...data };
 
   for (const key in sanitized) {
-    if (sensitiveKeys.some(sk => key.toLowerCase().includes(sk))) {
-      sanitized[key] = '***REDACTED***';
-    } else if (typeof sanitized[key] === 'object') {
+    if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
+      sanitized[key] = "***REDACTED***";
+    } else if (typeof sanitized[key] === "object") {
       sanitized[key] = sanitizeData(sanitized[key]);
     }
   }

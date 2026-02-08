@@ -7,13 +7,11 @@
           <TeamOutlined />
           Cowork 多代理协作
         </h1>
-        <p class="page-description">
-          管理多代理团队、分配任务、监控进度
-        </p>
+        <p class="page-description">管理多代理团队、分配任务、监控进度</p>
       </div>
       <div class="header-right">
         <a-space>
-          <a-button @click="handleRefresh" :loading="isLoading">
+          <a-button :loading="isLoading" @click="handleRefresh">
             <ReloadOutlined />
             刷新
           </a-button>
@@ -67,7 +65,7 @@
               :precision="1"
               :prefix="h(CheckCircleOutlined)"
               :value-style="{
-                color: globalStats.successRate >= 80 ? '#52c41a' : '#faad14'
+                color: globalStats.successRate >= 80 ? '#52c41a' : '#faad14',
               }"
             />
           </a-card>
@@ -103,8 +101,8 @@
               v-model:value="searchQuery"
               placeholder="搜索团队..."
               style="width: 300px"
-              @search="handleSearch"
               allow-clear
+              @search="handleSearch"
             />
             <a-select
               v-model:value="statusFilter"
@@ -113,10 +111,10 @@
               allow-clear
               @change="handleFilterChange"
             >
-              <a-select-option value="active">活跃</a-select-option>
-              <a-select-option value="paused">暂停</a-select-option>
-              <a-select-option value="completed">已完成</a-select-option>
-              <a-select-option value="failed">失败</a-select-option>
+              <a-select-option value="active"> 活跃 </a-select-option>
+              <a-select-option value="paused"> 暂停 </a-select-option>
+              <a-select-option value="completed"> 已完成 </a-select-option>
+              <a-select-option value="failed"> 失败 </a-select-option>
             </a-select>
           </a-space>
         </div>
@@ -166,8 +164,8 @@
       v-model:open="createTeamModalVisible"
       title="创建新团队"
       :confirm-loading="creatingTeam"
-      @ok="confirmCreateTeam"
       width="600px"
+      @ok="confirmCreateTeam"
     >
       <a-form
         :model="teamForm"
@@ -202,16 +200,12 @@
 
         <a-form-item label="允许动态加入">
           <a-switch v-model:checked="teamForm.allowDynamicJoin" />
-          <div class="form-item-hint">
-            允许代理在团队运行时动态加入
-          </div>
+          <div class="form-item-hint">允许代理在团队运行时动态加入</div>
         </a-form-item>
 
         <a-form-item label="自动分配任务">
           <a-switch v-model:checked="teamForm.autoAssignTasks" />
-          <div class="form-item-hint">
-            根据代理能力自动分配任务
-          </div>
+          <div class="form-item-hint">根据代理能力自动分配任务</div>
         </a-form-item>
 
         <a-form-item label="共识阈值">
@@ -222,9 +216,7 @@
             :step="0.1"
             :marks="{ 0.5: '50%', 0.75: '75%', 1.0: '100%' }"
           />
-          <div class="form-item-hint">
-            投票决策时需要的最低同意比例
-          </div>
+          <div class="form-item-hint">投票决策时需要的最低同意比例</div>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -265,9 +257,9 @@ import {
 import { useCoworkStore } from "../stores/cowork";
 import TeamCard from "../components/cowork/TeamCard.vue";
 import TeamDetailPanel from "../components/cowork/TeamDetailPanel.vue";
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-const coworkLogger = createLogger('cowork-dashboard');
+const coworkLogger = createLogger("cowork-dashboard");
 const router = useRouter();
 
 // Store
@@ -326,10 +318,7 @@ onUnmounted(() => {
 async function loadInitialData() {
   try {
     // 并行加载团队列表和统计信息
-    await Promise.all([
-      store.loadTeams(),
-      store.loadStats(),
-    ]);
+    await Promise.all([store.loadTeams(), store.loadStats()]);
 
     coworkLogger.info("初始数据加载完成");
   } catch (error) {
@@ -414,7 +403,9 @@ async function handleViewTeamDetail(team) {
 }
 
 async function handleRefreshTeamDetail() {
-  if (!currentTeam.value) return;
+  if (!currentTeam.value) {
+    return;
+  }
 
   try {
     await store.loadTeamDetail(currentTeam.value.id);

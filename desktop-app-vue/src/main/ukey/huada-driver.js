@@ -5,10 +5,10 @@
  * 支持华大智能卡芯片和U盾产品
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const SKFDriver = require('./skf-driver');
-const path = require('path');
-const fs = require('fs');
+const { logger } = require("../utils/logger.js");
+const SKFDriver = require("./skf-driver");
+const path = require("path");
+const fs = require("fs");
 
 /**
  * 华大驱动类
@@ -22,8 +22,8 @@ class HuadaDriver extends SKFDriver {
   constructor(config = {}) {
     super(config);
 
-    this.driverName = 'ChinaHuada';
-    this.driverVersion = '1.0.0';
+    this.driverName = "ChinaHuada";
+    this.driverVersion = "1.0.0";
   }
 
   /**
@@ -35,36 +35,36 @@ class HuadaDriver extends SKFDriver {
    * - HDCSP.dll
    */
   findDllPath() {
-    if (process.platform !== 'win32') {
-      logger.warn('[Huada] Only Windows platform is supported');
+    if (process.platform !== "win32") {
+      logger.warn("[Huada] Only Windows platform is supported");
       return null;
     }
 
     // 可能的DLL路径
     const possiblePaths = [
       // 项目资源目录
-      path.join(__dirname, '../../../resources/native/huada/HDSKFAPI.dll'),
-      path.join(__dirname, '../../../resources/native/huada/ChinaHuada.dll'),
-      path.join(__dirname, '../../../resources/native/huada/HDCSP.dll'),
+      path.join(__dirname, "../../../resources/native/huada/HDSKFAPI.dll"),
+      path.join(__dirname, "../../../resources/native/huada/ChinaHuada.dll"),
+      path.join(__dirname, "../../../resources/native/huada/HDCSP.dll"),
 
       // 系统目录
-      'C:\\Windows\\System32\\HDSKFAPI.dll',
-      'C:\\Windows\\System32\\ChinaHuada.dll',
-      'C:\\Windows\\System32\\HDCSP.dll',
-      'C:\\Windows\\SysWOW64\\HDSKFAPI.dll',
-      'C:\\Windows\\SysWOW64\\ChinaHuada.dll',
+      "C:\\Windows\\System32\\HDSKFAPI.dll",
+      "C:\\Windows\\System32\\ChinaHuada.dll",
+      "C:\\Windows\\System32\\HDCSP.dll",
+      "C:\\Windows\\SysWOW64\\HDSKFAPI.dll",
+      "C:\\Windows\\SysWOW64\\ChinaHuada.dll",
 
       // 程序安装目录
-      'C:\\Program Files\\ChinaHuada\\HDSKFAPI.dll',
-      'C:\\Program Files (x86)\\ChinaHuada\\HDSKFAPI.dll',
-      'C:\\Program Files\\ChinaHuada\\UKey\\HDSKFAPI.dll',
-      'C:\\Program Files (x86)\\ChinaHuada\\UKey\\HDSKFAPI.dll',
-      'C:\\Program Files\\Huada\\SecureKey\\HDSKFAPI.dll',
-      'C:\\Program Files (x86)\\Huada\\SecureKey\\HDSKFAPI.dll',
+      "C:\\Program Files\\ChinaHuada\\HDSKFAPI.dll",
+      "C:\\Program Files (x86)\\ChinaHuada\\HDSKFAPI.dll",
+      "C:\\Program Files\\ChinaHuada\\UKey\\HDSKFAPI.dll",
+      "C:\\Program Files (x86)\\ChinaHuada\\UKey\\HDSKFAPI.dll",
+      "C:\\Program Files\\Huada\\SecureKey\\HDSKFAPI.dll",
+      "C:\\Program Files (x86)\\Huada\\SecureKey\\HDSKFAPI.dll",
 
       // 用户自定义路径
-      path.join(process.cwd(), 'resources', 'native', 'HDSKFAPI.dll'),
-      path.join(process.cwd(), 'native', 'HDSKFAPI.dll'),
+      path.join(process.cwd(), "resources", "native", "HDSKFAPI.dll"),
+      path.join(process.cwd(), "native", "HDSKFAPI.dll"),
     ];
 
     // 查找第一个存在的DLL
@@ -75,7 +75,7 @@ class HuadaDriver extends SKFDriver {
       }
     }
 
-    logger.warn('[Huada] DLL not found in any standard location');
+    logger.warn("[Huada] DLL not found in any standard location");
     return null;
   }
 
@@ -83,7 +83,7 @@ class HuadaDriver extends SKFDriver {
    * 初始化驱动
    */
   async initialize() {
-    logger.info('[Huada] Initializing ChinaHuada driver...');
+    logger.info("[Huada] Initializing ChinaHuada driver...");
 
     try {
       // 调用父类初始化
@@ -92,10 +92,10 @@ class HuadaDriver extends SKFDriver {
       // 华大特定初始化
       // 例如：加载特定配置、检查驱动版本等
 
-      logger.info('[Huada] ChinaHuada driver initialized successfully');
+      logger.info("[Huada] ChinaHuada driver initialized successfully");
       return true;
     } catch (error) {
-      logger.error('[Huada] Initialization failed:', error);
+      logger.error("[Huada] Initialization failed:", error);
       this.simulationMode = true;
       this.isInitialized = true;
       return true;
@@ -106,21 +106,21 @@ class HuadaDriver extends SKFDriver {
    * 获取制造商名称
    */
   getManufacturerName() {
-    return '中国华大集成电路设计集团有限公司';
+    return "中国华大集成电路设计集团有限公司";
   }
 
   /**
    * 获取型号名称
    */
   getModelName() {
-    return '华大HD系列U盾';
+    return "华大HD系列U盾";
   }
 
   /**
    * 获取驱动名称
    */
   getDriverName() {
-    return '华大U盾驱动';
+    return "华大U盾驱动";
   }
 
   /**
@@ -136,7 +136,7 @@ class HuadaDriver extends SKFDriver {
    * 华大特定的检测逻辑
    */
   async detect() {
-    logger.info('[Huada] Detecting ChinaHuada device...');
+    logger.info("[Huada] Detecting ChinaHuada device...");
 
     try {
       // 调用父类的检测方法
@@ -150,7 +150,7 @@ class HuadaDriver extends SKFDriver {
 
       return result;
     } catch (error) {
-      logger.error('[Huada] Detection failed:', error);
+      logger.error("[Huada] Detection failed:", error);
       return {
         detected: false,
         unlocked: false,
@@ -181,9 +181,9 @@ class HuadaDriver extends SKFDriver {
     // 添加华大特定的信息
     info.manufacturer = this.getManufacturerName();
     info.model = this.getModelName();
-    info.vendor = 'ChinaHuada';
-    info.productLine = 'HD Series';
-    info.chipType = 'SM2/SM3/SM4'; // 华大主要支持国密算法
+    info.vendor = "ChinaHuada";
+    info.productLine = "HD Series";
+    info.chipType = "SM2/SM3/SM4"; // 华大主要支持国密算法
 
     return info;
   }
@@ -195,10 +195,10 @@ class HuadaDriver extends SKFDriver {
    */
   async getDeviceSerial() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[Huada] Getting device serial number...');
+    logger.info("[Huada] Getting device serial number...");
 
     if (this.simulationMode) {
       // 模拟序列号
@@ -207,7 +207,7 @@ class HuadaDriver extends SKFDriver {
 
     // 实际实现需要调用华大的扩展API
     // 这里先返回设备名作为序列号
-    return this.deviceName || 'UNKNOWN';
+    return this.deviceName || "UNKNOWN";
   }
 
   /**
@@ -215,10 +215,10 @@ class HuadaDriver extends SKFDriver {
    */
   async getDeviceCertificate() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[Huada] Getting device certificate...');
+    logger.info("[Huada] Getting device certificate...");
 
     if (this.simulationMode) {
       return null;
@@ -233,13 +233,13 @@ class HuadaDriver extends SKFDriver {
    * 华大特定功能：检查设备健康状态
    */
   async checkDeviceHealth() {
-    logger.info('[Huada] Checking device health...');
+    logger.info("[Huada] Checking device health...");
 
     try {
       if (this.simulationMode) {
         return {
           healthy: true,
-          status: 'simulation',
+          status: "simulation",
         };
       }
 
@@ -249,18 +249,18 @@ class HuadaDriver extends SKFDriver {
       if (!detected.detected) {
         return {
           healthy: false,
-          status: 'not_connected',
+          status: "not_connected",
         };
       }
 
       return {
         healthy: true,
-        status: 'ok',
+        status: "ok",
       };
     } catch (error) {
       return {
         healthy: false,
-        status: 'error',
+        status: "error",
         error: error.message,
       };
     }
@@ -271,25 +271,25 @@ class HuadaDriver extends SKFDriver {
    */
   async getChipInfo() {
     if (!this.deviceHandle) {
-      throw new Error('设备未连接');
+      throw new Error("设备未连接");
     }
 
-    logger.info('[Huada] Getting chip information...');
+    logger.info("[Huada] Getting chip information...");
 
     if (this.simulationMode) {
       return {
-        chipType: 'HD-SM2',
-        version: '2.0',
-        supportedAlgorithms: ['SM2', 'SM3', 'SM4'],
+        chipType: "HD-SM2",
+        version: "2.0",
+        supportedAlgorithms: ["SM2", "SM3", "SM4"],
       };
     }
 
     // 实际实现需要调用华大特定的API
     // 这里先返回模拟数据
     return {
-      chipType: 'HD-SM2',
-      version: '2.0',
-      supportedAlgorithms: ['SM2', 'SM3', 'SM4'],
+      chipType: "HD-SM2",
+      version: "2.0",
+      supportedAlgorithms: ["SM2", "SM3", "SM4"],
     };
   }
 
@@ -299,9 +299,9 @@ class HuadaDriver extends SKFDriver {
   supportsSM() {
     // 华大U盾主要支持国密算法
     return {
-      SM2: true,  // 国密非对称算法
-      SM3: true,  // 国密哈希算法
-      SM4: true,  // 国密对称算法
+      SM2: true, // 国密非对称算法
+      SM3: true, // 国密哈希算法
+      SM4: true, // 国密对称算法
       SM9: false, // SM9 支持较少
     };
   }

@@ -9,10 +9,10 @@
  * - 事件监听
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const { ethers } = require('ethers');
-const { getNetworkConfig, getRpcUrl } = require('./blockchain-config');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const { ethers } = require("ethers");
+const { getNetworkConfig, getRpcUrl } = require("./blockchain-config");
 const {
   getChainlessTokenArtifact,
   getChainlessNFTArtifact,
@@ -21,7 +21,7 @@ const {
   getBountyContractArtifact,
   getERC20ABI,
   getERC721ABI,
-} = require('./contract-artifacts');
+} = require("./contract-artifacts");
 
 class BlockchainAdapter extends EventEmitter {
   constructor(database, walletManager) {
@@ -43,19 +43,26 @@ class BlockchainAdapter extends EventEmitter {
    * 初始化适配器
    */
   async initialize() {
-    logger.info('[BlockchainAdapter] 初始化区块链适配器...');
+    logger.info("[BlockchainAdapter] 初始化区块链适配器...");
 
     try {
       // 初始化各链的提供者
       const supportedChains = [
-        1, 11155111,      // Ethereum Mainnet, Sepolia
-        137, 80001,       // Polygon Mainnet, Mumbai
-        56, 97,           // BSC Mainnet, Testnet
-        42161, 421614,    // Arbitrum One, Sepolia
-        10, 11155420,     // Optimism Mainnet, Sepolia
-        43114, 43113,     // Avalanche C-Chain, Fuji
-        8453, 84532,      // Base Mainnet, Sepolia
-        31337             // Hardhat Local
+        1,
+        11155111, // Ethereum Mainnet, Sepolia
+        137,
+        80001, // Polygon Mainnet, Mumbai
+        56,
+        97, // BSC Mainnet, Testnet
+        42161,
+        421614, // Arbitrum One, Sepolia
+        10,
+        11155420, // Optimism Mainnet, Sepolia
+        43114,
+        43113, // Avalanche C-Chain, Fuji
+        8453,
+        84532, // Base Mainnet, Sepolia
+        31337, // Hardhat Local
       ];
 
       for (const chainId of supportedChains) {
@@ -66,7 +73,7 @@ class BlockchainAdapter extends EventEmitter {
           // 尝试所有RPC URL直到找到一个可用的
           for (const rpcUrl of config.rpcUrls) {
             // 跳过包含占位符API key的URL
-            if (rpcUrl.includes('your-api-key')) {
+            if (rpcUrl.includes("your-api-key")) {
               continue;
             }
 
@@ -76,39 +83,58 @@ class BlockchainAdapter extends EventEmitter {
               // 验证连接（添加超时）
               await Promise.race([
                 provider.getNetwork(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('连接超时')), 5000))
+                new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error("连接超时")), 5000),
+                ),
               ]);
 
               // 连接成功
               this.providers.set(chainId, provider);
-              logger.info(`[BlockchainAdapter] 链 ${chainId} (${config.name}) 提供者初始化成功 (${rpcUrl})`);
+              logger.info(
+                `[BlockchainAdapter] 链 ${chainId} (${config.name}) 提供者初始化成功 (${rpcUrl})`,
+              );
               break;
             } catch (rpcError) {
-              logger.warn(`[BlockchainAdapter] RPC URL ${rpcUrl} 失败:`, rpcError.message);
+              logger.warn(
+                `[BlockchainAdapter] RPC URL ${rpcUrl} 失败:`,
+                rpcError.message,
+              );
               // 尝试下一个RPC URL
               continue;
             }
           }
 
           if (!this.providers.has(chainId)) {
-            logger.warn(`[BlockchainAdapter] 链 ${chainId} (${config.name}) 所有RPC URL均不可用`);
+            logger.warn(
+              `[BlockchainAdapter] 链 ${chainId} (${config.name}) 所有RPC URL均不可用`,
+            );
           }
         } catch (error) {
-          logger.warn(`[BlockchainAdapter] 链 ${chainId} 初始化失败:`, error.message);
+          logger.warn(
+            `[BlockchainAdapter] 链 ${chainId} 初始化失败:`,
+            error.message,
+          );
           // 继续初始化其他链
         }
       }
 
       if (this.providers.size === 0) {
-        logger.warn('[BlockchainAdapter] 没有可用的网络提供者，将使用公共RPC端点');
+        logger.warn(
+          "[BlockchainAdapter] 没有可用的网络提供者，将使用公共RPC端点",
+        );
         // 至少初始化一个测试网络作为备用
         try {
           const sepoliaConfig = getNetworkConfig(11155111);
-          const sepoliaProvider = new ethers.JsonRpcProvider(sepoliaConfig.rpcUrls[1]); // 使用公共端点
+          const sepoliaProvider = new ethers.JsonRpcProvider(
+            sepoliaConfig.rpcUrls[1],
+          ); // 使用公共端点
           this.providers.set(11155111, sepoliaProvider);
-          logger.info('[BlockchainAdapter] 已初始化Sepolia测试网作为备用');
+          logger.info("[BlockchainAdapter] 已初始化Sepolia测试网作为备用");
         } catch (fallbackError) {
-          logger.error('[BlockchainAdapter] 初始化备用网络失败:', fallbackError);
+          logger.error(
+            "[BlockchainAdapter] 初始化备用网络失败:",
+            fallbackError,
+          );
         }
       }
 
@@ -122,9 +148,11 @@ class BlockchainAdapter extends EventEmitter {
       }
 
       this.initialized = true;
-      logger.info(`[BlockchainAdapter] 区块链适配器初始化成功，共 ${this.providers.size} 个网络可用，当前链: ${this.currentChainId}`);
+      logger.info(
+        `[BlockchainAdapter] 区块链适配器初始化成功，共 ${this.providers.size} 个网络可用，当前链: ${this.currentChainId}`,
+      );
     } catch (error) {
-      logger.error('[BlockchainAdapter] 初始化失败:', error);
+      logger.error("[BlockchainAdapter] 初始化失败:", error);
       throw error;
     }
   }
@@ -142,7 +170,7 @@ class BlockchainAdapter extends EventEmitter {
     this.currentChainId = chainId;
 
     logger.info(`[BlockchainAdapter] 切换网络: ${oldChainId} -> ${chainId}`);
-    this.emit('chain:switched', { from: oldChainId, to: chainId });
+    this.emit("chain:switched", { from: oldChainId, to: chainId });
   }
 
   /**
@@ -152,7 +180,9 @@ class BlockchainAdapter extends EventEmitter {
   getProvider() {
     const provider = this.providers.get(this.currentChainId);
     if (!provider) {
-      throw new Error(`Provider not initialized for chain ${this.currentChainId}`);
+      throw new Error(
+        `Provider not initialized for chain ${this.currentChainId}`,
+      );
     }
     return provider;
   }
@@ -164,17 +194,20 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<{address: string, txHash: string}>}
    */
   async deployERC20Token(walletId, options) {
-    logger.info('[BlockchainAdapter] 部署 ERC-20 代币:', options);
+    logger.info("[BlockchainAdapter] 部署 ERC-20 代币:", options);
 
     const { name, symbol, decimals, initialSupply } = options;
 
     // 验证参数
     if (!name || !symbol || !decimals || !initialSupply) {
-      throw new Error('缺少必要参数: name, symbol, decimals, initialSupply');
+      throw new Error("缺少必要参数: name, symbol, decimals, initialSupply");
     }
 
     // 获取钱包
-    const wallet = await this.walletManager.unlockWallet(walletId, options.password);
+    const wallet = await this.walletManager.unlockWallet(
+      walletId,
+      options.password,
+    );
     const provider = this.getProvider();
     // 如果钱包已经连接到 provider，直接使用；否则连接
     const signer = wallet.provider ? wallet : wallet.connect(provider);
@@ -189,7 +222,7 @@ class BlockchainAdapter extends EventEmitter {
     const supply = ethers.parseUnits(initialSupply.toString(), decimals);
 
     // 部署合约
-    logger.info('[BlockchainAdapter] 开始部署合约...');
+    logger.info("[BlockchainAdapter] 开始部署合约...");
     const contract = await factory.deploy(name, symbol, decimals, supply);
 
     // 等待部署完成
@@ -213,17 +246,20 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<{address: string, txHash: string}>}
    */
   async deployNFT(walletId, options) {
-    logger.info('[BlockchainAdapter] 部署 ERC-721 NFT:', options);
+    logger.info("[BlockchainAdapter] 部署 ERC-721 NFT:", options);
 
     const { name, symbol } = options;
 
     // 验证参数
     if (!name || !symbol) {
-      throw new Error('缺少必要参数: name, symbol');
+      throw new Error("缺少必要参数: name, symbol");
     }
 
     // 获取钱包
-    const wallet = await this.walletManager.unlockWallet(walletId, options.password);
+    const wallet = await this.walletManager.unlockWallet(
+      walletId,
+      options.password,
+    );
     const provider = this.getProvider();
     // 如果钱包已经连接到 provider，直接使用；否则连接
     const signer = wallet.provider ? wallet : wallet.connect(provider);
@@ -235,7 +271,7 @@ class BlockchainAdapter extends EventEmitter {
     const factory = new ethers.ContractFactory(abi, bytecode, signer);
 
     // 部署合约
-    logger.info('[BlockchainAdapter] 开始部署 NFT 合约...');
+    logger.info("[BlockchainAdapter] 开始部署 NFT 合约...");
     const contract = await factory.deploy(name, symbol);
 
     // 等待部署完成
@@ -259,7 +295,7 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<{address: string, txHash: string, abi: Array}>}
    */
   async deployEscrowContract(walletId, password) {
-    logger.info('[BlockchainAdapter] 部署托管合约 (EscrowContract)');
+    logger.info("[BlockchainAdapter] 部署托管合约 (EscrowContract)");
 
     // 获取钱包
     const wallet = await this.walletManager.unlockWallet(walletId, password);
@@ -273,7 +309,7 @@ class BlockchainAdapter extends EventEmitter {
     const factory = new ethers.ContractFactory(abi, bytecode, signer);
 
     // 部署合约
-    logger.info('[BlockchainAdapter] 开始部署托管合约...');
+    logger.info("[BlockchainAdapter] 开始部署托管合约...");
     const contract = await factory.deploy();
 
     // 等待部署完成
@@ -298,7 +334,7 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<{address: string, txHash: string, abi: Array}>}
    */
   async deploySubscriptionContract(walletId, password) {
-    logger.info('[BlockchainAdapter] 部署订阅合约 (SubscriptionContract)');
+    logger.info("[BlockchainAdapter] 部署订阅合约 (SubscriptionContract)");
 
     // 获取钱包
     const wallet = await this.walletManager.unlockWallet(walletId, password);
@@ -312,7 +348,7 @@ class BlockchainAdapter extends EventEmitter {
     const factory = new ethers.ContractFactory(abi, bytecode, signer);
 
     // 部署合约
-    logger.info('[BlockchainAdapter] 开始部署订阅合约...');
+    logger.info("[BlockchainAdapter] 开始部署订阅合约...");
     const contract = await factory.deploy();
 
     // 等待部署完成
@@ -337,7 +373,7 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<{address: string, txHash: string, abi: Array}>}
    */
   async deployBountyContract(walletId, password) {
-    logger.info('[BlockchainAdapter] 部署悬赏合约 (BountyContract)');
+    logger.info("[BlockchainAdapter] 部署悬赏合约 (BountyContract)");
 
     // 获取钱包
     const wallet = await this.walletManager.unlockWallet(walletId, password);
@@ -351,7 +387,7 @@ class BlockchainAdapter extends EventEmitter {
     const factory = new ethers.ContractFactory(abi, bytecode, signer);
 
     // 部署合约
-    logger.info('[BlockchainAdapter] 开始部署悬赏合约...');
+    logger.info("[BlockchainAdapter] 开始部署悬赏合约...");
     const contract = await factory.deploy();
 
     // 等待部署完成
@@ -391,7 +427,7 @@ class BlockchainAdapter extends EventEmitter {
     const contract = new ethers.Contract(contractAddress, abi, signer);
 
     // 调用 mint 方法
-    logger.info('[BlockchainAdapter] 调用 mint 方法...');
+    logger.info("[BlockchainAdapter] 调用 mint 方法...");
     const tx = await contract.mint(to, metadataURI);
 
     // 等待交易确认
@@ -402,7 +438,7 @@ class BlockchainAdapter extends EventEmitter {
     const transferEvent = receipt.logs.find((log) => {
       try {
         const parsed = contract.interface.parseLog(log);
-        return parsed && parsed.name === 'Transfer';
+        return parsed && parsed.name === "Transfer";
       } catch {
         return false;
       }
@@ -450,7 +486,7 @@ class BlockchainAdapter extends EventEmitter {
     const transferAmount = ethers.parseUnits(amount.toString(), decimals);
 
     // 执行转账
-    logger.info('[BlockchainAdapter] 执行代币转账...');
+    logger.info("[BlockchainAdapter] 执行代币转账...");
     const tx = await contract.transfer(to, transferAmount);
 
     // 等待交易确认
@@ -472,7 +508,9 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<string>} 交易哈希
    */
   async transferNFT(walletId, nftAddress, from, to, tokenId, password) {
-    logger.info(`[BlockchainAdapter] 转账 NFT: Token ID ${tokenId} from ${from} -> ${to}`);
+    logger.info(
+      `[BlockchainAdapter] 转账 NFT: Token ID ${tokenId} from ${from} -> ${to}`,
+    );
 
     // 获取钱包
     const wallet = await this.walletManager.unlockWallet(walletId, password);
@@ -493,18 +531,24 @@ class BlockchainAdapter extends EventEmitter {
     try {
       const owner = await contract.ownerOf(tokenId);
       if (owner.toLowerCase() !== from.toLowerCase()) {
-        throw new Error(`Token ID ${tokenId} 不属于地址 ${from}，当前所有者: ${owner}`);
+        throw new Error(
+          `Token ID ${tokenId} 不属于地址 ${from}，当前所有者: ${owner}`,
+        );
       }
     } catch (error) {
-      if (error.message.includes('不属于地址')) {
+      if (error.message.includes("不属于地址")) {
         throw error;
       }
       throw new Error(`无法验证 NFT 所有权: ${error.message}`);
     }
 
     // 执行转账 (使用 safeTransferFrom)
-    logger.info('[BlockchainAdapter] 执行 NFT 转账...');
-    const tx = await contract['safeTransferFrom(address,address,uint256)'](from, to, tokenId);
+    logger.info("[BlockchainAdapter] 执行 NFT 转账...");
+    const tx = await contract["safeTransferFrom(address,address,uint256)"](
+      from,
+      to,
+      tokenId,
+    );
 
     // 等待交易确认
     const receipt = await tx.wait();
@@ -515,12 +559,16 @@ class BlockchainAdapter extends EventEmitter {
     try {
       const newOwner = await contract.ownerOf(tokenId);
       if (newOwner.toLowerCase() !== to.toLowerCase()) {
-        logger.warn(`[BlockchainAdapter] 警告: NFT 转账后所有者验证失败，预期: ${to}, 实际: ${newOwner}`);
+        logger.warn(
+          `[BlockchainAdapter] 警告: NFT 转账后所有者验证失败，预期: ${to}, 实际: ${newOwner}`,
+        );
       } else {
         logger.info(`[BlockchainAdapter] NFT 所有权已成功转移至: ${newOwner}`);
       }
     } catch (error) {
-      logger.warn(`[BlockchainAdapter] 无法验证转账后的所有权: ${error.message}`);
+      logger.warn(
+        `[BlockchainAdapter] 无法验证转账后的所有权: ${error.message}`,
+      );
     }
 
     return receipt.hash;
@@ -536,7 +584,9 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<Array<{success: boolean, txHash?: string, tokenId: string, to: string, error?: string}>>}
    */
   async batchTransferNFT(walletId, nftAddress, from, transfers, password) {
-    logger.info(`[BlockchainAdapter] 批量转账 NFT: ${transfers.length} 个 Token`);
+    logger.info(
+      `[BlockchainAdapter] 批量转账 NFT: ${transfers.length} 个 Token`,
+    );
 
     const results = [];
     const wallet = await this.walletManager.unlockWallet(walletId, password);
@@ -561,10 +611,10 @@ class BlockchainAdapter extends EventEmitter {
         }
 
         // 执行转账
-        const tx = await contract['safeTransferFrom(address,address,uint256)'](
+        const tx = await contract["safeTransferFrom(address,address,uint256)"](
           from,
           transfer.to,
-          transfer.tokenId
+          transfer.tokenId,
         );
         const receipt = await tx.wait();
 
@@ -572,17 +622,22 @@ class BlockchainAdapter extends EventEmitter {
           success: true,
           txHash: receipt.hash,
           tokenId: transfer.tokenId,
-          to: transfer.to
+          to: transfer.to,
         });
 
-        logger.info(`[BlockchainAdapter] NFT 转账成功: Token ID ${transfer.tokenId} -> ${transfer.to}`);
+        logger.info(
+          `[BlockchainAdapter] NFT 转账成功: Token ID ${transfer.tokenId} -> ${transfer.to}`,
+        );
       } catch (error) {
-        logger.error(`[BlockchainAdapter] NFT 转账失败: Token ID ${transfer.tokenId}`, error);
+        logger.error(
+          `[BlockchainAdapter] NFT 转账失败: Token ID ${transfer.tokenId}`,
+          error,
+        );
         results.push({
           success: false,
           error: error.message,
           tokenId: transfer.tokenId,
-          to: transfer.to
+          to: transfer.to,
         });
       }
     }
@@ -597,7 +652,9 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<string>} 所有者地址
    */
   async getNFTOwner(nftAddress, tokenId) {
-    logger.info(`[BlockchainAdapter] 查询 NFT 所有者: ${nftAddress} - Token ID ${tokenId}`);
+    logger.info(
+      `[BlockchainAdapter] 查询 NFT 所有者: ${nftAddress} - Token ID ${tokenId}`,
+    );
 
     const provider = this.getProvider();
     const abi = getERC721ABI();
@@ -620,7 +677,9 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<number>} NFT 数量
    */
   async getNFTBalance(nftAddress, ownerAddress) {
-    logger.info(`[BlockchainAdapter] 查询 NFT 余额: ${nftAddress} - ${ownerAddress}`);
+    logger.info(
+      `[BlockchainAdapter] 查询 NFT 余额: ${nftAddress} - ${ownerAddress}`,
+    );
 
     const provider = this.getProvider();
     const abi = getERC721ABI();
@@ -644,7 +703,9 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<string>} 元数据 URI
    */
   async getNFTTokenURI(nftAddress, tokenId) {
-    logger.info(`[BlockchainAdapter] 查询 NFT 元数据 URI: ${nftAddress} - Token ID ${tokenId}`);
+    logger.info(
+      `[BlockchainAdapter] 查询 NFT 元数据 URI: ${nftAddress} - Token ID ${tokenId}`,
+    );
 
     const provider = this.getProvider();
     const abi = getERC721ABI();
@@ -667,7 +728,9 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<string>} 余额（字符串）
    */
   async getTokenBalance(tokenAddress, ownerAddress) {
-    logger.info(`[BlockchainAdapter] 查询代币余额: ${tokenAddress} - ${ownerAddress}`);
+    logger.info(
+      `[BlockchainAdapter] 查询代币余额: ${tokenAddress} - ${ownerAddress}`,
+    );
 
     const provider = this.getProvider();
 
@@ -697,7 +760,9 @@ class BlockchainAdapter extends EventEmitter {
    * @param {function} callback - 回调函数
    */
   async listenToEvents(contractAddress, abi, eventName, callback) {
-    logger.info(`[BlockchainAdapter] 开始监听事件: ${contractAddress} - ${eventName}`);
+    logger.info(
+      `[BlockchainAdapter] 开始监听事件: ${contractAddress} - ${eventName}`,
+    );
 
     const provider = this.getProvider();
     const contract = new ethers.Contract(contractAddress, abi, provider);
@@ -732,7 +797,9 @@ class BlockchainAdapter extends EventEmitter {
    * @param {string} eventName - 事件名称
    */
   async stopListening(contractAddress, abi, eventName) {
-    logger.info(`[BlockchainAdapter] 停止监听事件: ${contractAddress} - ${eventName}`);
+    logger.info(
+      `[BlockchainAdapter] 停止监听事件: ${contractAddress} - ${eventName}`,
+    );
 
     const provider = this.getProvider();
     const contract = new ethers.Contract(contractAddress, abi, provider);
@@ -771,7 +838,7 @@ class BlockchainAdapter extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    logger.info('[BlockchainAdapter] 清理资源...');
+    logger.info("[BlockchainAdapter] 清理资源...");
 
     // 停止所有提供者
     for (const [chainId, provider] of this.providers.entries()) {
@@ -810,11 +877,16 @@ class BlockchainAdapter extends EventEmitter {
 
     for (const transfer of transfers) {
       try {
-        const transferAmount = ethers.parseUnits(transfer.amount.toString(), decimals);
+        const transferAmount = ethers.parseUnits(
+          transfer.amount.toString(),
+          decimals,
+        );
         const tx = await contract.transfer(transfer.to, transferAmount);
         const receipt = await tx.wait();
         results.push({ success: true, txHash: receipt.hash, to: transfer.to });
-        logger.info(`[BlockchainAdapter] 转账成功: ${transfer.to} - ${receipt.hash}`);
+        logger.info(
+          `[BlockchainAdapter] 转账成功: ${transfer.to} - ${receipt.hash}`,
+        );
       } catch (error) {
         logger.error(`[BlockchainAdapter] 转账失败: ${transfer.to}`, error);
         results.push({ success: false, error: error.message, to: transfer.to });
@@ -844,12 +916,16 @@ class BlockchainAdapter extends EventEmitter {
       };
 
       // L2 链（Arbitrum, Optimism, Base）需要额外计算 L1 数据费用
-      if ([42161, 421614, 10, 11155420, 8453, 84532].includes(this.currentChainId)) {
+      if (
+        [42161, 421614, 10, 11155420, 8453, 84532].includes(this.currentChainId)
+      ) {
         // L2 链的费用 = L2 执行费用 + L1 数据费用
         const l2ExecutionFee = gasEstimate * feeData.gasPrice;
 
         // L1 数据费用估算（简化版本）
-        const txDataSize = ethers.toUtf8Bytes(JSON.stringify(transaction)).length;
+        const txDataSize = ethers.toUtf8Bytes(
+          JSON.stringify(transaction),
+        ).length;
         const l1DataFee = BigInt(txDataSize) * BigInt(16) * feeData.gasPrice;
 
         totalFee = l2ExecutionFee + l1DataFee;
@@ -866,7 +942,7 @@ class BlockchainAdapter extends EventEmitter {
         nativeCurrency: config.nativeCurrency.symbol,
       };
     } catch (error) {
-      logger.error('[BlockchainAdapter] 费用估算失败:', error);
+      logger.error("[BlockchainAdapter] 费用估算失败:", error);
       throw error;
     }
   }
@@ -883,24 +959,29 @@ class BlockchainAdapter extends EventEmitter {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        logger.info(`[BlockchainAdapter] 交易尝试 ${attempt + 1}/${maxRetries}`);
+        logger.info(
+          `[BlockchainAdapter] 交易尝试 ${attempt + 1}/${maxRetries}`,
+        );
         const result = await txFunction();
-        logger.info('[BlockchainAdapter] 交易成功');
+        logger.info("[BlockchainAdapter] 交易成功");
         return result;
       } catch (error) {
         lastError = error;
-        logger.warn(`[BlockchainAdapter] 交易失败 (尝试 ${attempt + 1}):`, error.message);
+        logger.warn(
+          `[BlockchainAdapter] 交易失败 (尝试 ${attempt + 1}):`,
+          error.message,
+        );
 
         // 如果不是最后一次尝试，等待后重试
         if (attempt < maxRetries - 1) {
           const delay = baseDelay * Math.pow(2, attempt); // 指数退避
           logger.info(`[BlockchainAdapter] 等待 ${delay}ms 后重试...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
     }
 
-    logger.error('[BlockchainAdapter] 交易失败，已达最大重试次数');
+    logger.error("[BlockchainAdapter] 交易失败，已达最大重试次数");
     throw lastError;
   }
 
@@ -909,21 +990,25 @@ class BlockchainAdapter extends EventEmitter {
    * @param {string} speed - 速度等级 ('slow', 'standard', 'fast')
    * @returns {Promise<object>} 优化后的 Gas 价格
    */
-  async getOptimizedGasPrice(speed = 'standard') {
+  async getOptimizedGasPrice(speed = "standard") {
     const provider = this.getProvider();
     const feeData = await provider.getFeeData();
     const config = getNetworkConfig(this.currentChainId);
 
     // 获取配置的 Gas 价格
-    const { GasConfigs } = require('./blockchain-config');
-    const gasConfig = GasConfigs[this.currentChainId] || { slow: 1, standard: 2, fast: 3 };
+    const { GasConfigs } = require("./blockchain-config");
+    const gasConfig = GasConfigs[this.currentChainId] || {
+      slow: 1,
+      standard: 2,
+      fast: 3,
+    };
 
     let multiplier = 1;
     switch (speed) {
-      case 'slow':
+      case "slow":
         multiplier = gasConfig.slow / gasConfig.standard;
         break;
-      case 'fast':
+      case "fast":
         multiplier = gasConfig.fast / gasConfig.standard;
         break;
       default:
@@ -933,15 +1018,22 @@ class BlockchainAdapter extends EventEmitter {
     // EIP-1559 支持的链
     if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
       return {
-        maxFeePerGas: (feeData.maxFeePerGas * BigInt(Math.floor(multiplier * 100))) / BigInt(100),
-        maxPriorityFeePerGas: (feeData.maxPriorityFeePerGas * BigInt(Math.floor(multiplier * 100))) / BigInt(100),
-        type: 'eip1559',
+        maxFeePerGas:
+          (feeData.maxFeePerGas * BigInt(Math.floor(multiplier * 100))) /
+          BigInt(100),
+        maxPriorityFeePerGas:
+          (feeData.maxPriorityFeePerGas *
+            BigInt(Math.floor(multiplier * 100))) /
+          BigInt(100),
+        type: "eip1559",
       };
     } else {
       // Legacy 交易
       return {
-        gasPrice: (feeData.gasPrice * BigInt(Math.floor(multiplier * 100))) / BigInt(100),
-        type: 'legacy',
+        gasPrice:
+          (feeData.gasPrice * BigInt(Math.floor(multiplier * 100))) /
+          BigInt(100),
+        type: "legacy",
       };
     }
   }
@@ -951,8 +1043,8 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Array<object>} 链列表
    */
   getSupportedChains() {
-    const { NetworkConfigs } = require('./blockchain-config');
-    return Object.values(NetworkConfigs).map(config => ({
+    const { NetworkConfigs } = require("./blockchain-config");
+    return Object.values(NetworkConfigs).map((config) => ({
       chainId: config.chainId,
       name: config.name,
       symbol: config.symbol,
@@ -986,19 +1078,23 @@ class BlockchainAdapter extends EventEmitter {
    * @returns {Promise<object>} 交易收据
    */
   async monitorTransaction(txHash, confirmations = 1, onUpdate = null) {
-    logger.info(`[BlockchainAdapter] 监控交易: ${txHash}, 需要 ${confirmations} 个确认`);
+    logger.info(
+      `[BlockchainAdapter] 监控交易: ${txHash}, 需要 ${confirmations} 个确认`,
+    );
 
     const provider = this.getProvider();
 
     try {
       // 等待交易被挖掘
-      if (onUpdate) {onUpdate({ status: 'pending', confirmations: 0 });}
+      if (onUpdate) {
+        onUpdate({ status: "pending", confirmations: 0 });
+      }
 
       const receipt = await provider.waitForTransaction(txHash, confirmations);
 
       if (onUpdate) {
         onUpdate({
-          status: receipt.status === 1 ? 'success' : 'failed',
+          status: receipt.status === 1 ? "success" : "failed",
           confirmations: confirmations,
           blockNumber: receipt.blockNumber,
           gasUsed: receipt.gasUsed.toString(),
@@ -1009,7 +1105,9 @@ class BlockchainAdapter extends EventEmitter {
       return receipt;
     } catch (error) {
       logger.error(`[BlockchainAdapter] 交易监控失败: ${txHash}`, error);
-      if (onUpdate) {onUpdate({ status: 'error', error: error.message });}
+      if (onUpdate) {
+        onUpdate({ status: "error", error: error.message });
+      }
       throw error;
     }
   }
@@ -1022,8 +1120,10 @@ class BlockchainAdapter extends EventEmitter {
    * @param {string} password - 钱包密码
    * @returns {Promise<string>} 新交易哈希
    */
-  async replaceTransaction(walletId, txHash, action = 'speedup', password) {
-    logger.info(`[BlockchainAdapter] ${action === 'cancel' ? '取消' : '加速'}交易: ${txHash}`);
+  async replaceTransaction(walletId, txHash, action = "speedup", password) {
+    logger.info(
+      `[BlockchainAdapter] ${action === "cancel" ? "取消" : "加速"}交易: ${txHash}`,
+    );
 
     const provider = this.getProvider();
     const wallet = await this.walletManager.unlockWallet(walletId, password);
@@ -1033,19 +1133,19 @@ class BlockchainAdapter extends EventEmitter {
       // 获取原交易
       const originalTx = await provider.getTransaction(txHash);
       if (!originalTx) {
-        throw new Error('交易不存在');
+        throw new Error("交易不存在");
       }
 
       // 检查交易是否已确认
       if (originalTx.blockNumber) {
-        throw new Error('交易已确认，无法替换');
+        throw new Error("交易已确认，无法替换");
       }
 
       // 获取当前 Gas 价格
       const feeData = await provider.getFeeData();
 
       let newTx;
-      if (action === 'cancel') {
+      if (action === "cancel") {
         // 取消交易：发送 0 ETH 给自己，使用相同 nonce 但更高 Gas 价格
         newTx = {
           to: await signer.getAddress(),
@@ -1067,7 +1167,8 @@ class BlockchainAdapter extends EventEmitter {
       // 设置更高的 Gas 价格（至少提高 10%）
       if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
         newTx.maxFeePerGas = (feeData.maxFeePerGas * BigInt(110)) / BigInt(100);
-        newTx.maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * BigInt(110)) / BigInt(100);
+        newTx.maxPriorityFeePerGas =
+          (feeData.maxPriorityFeePerGas * BigInt(110)) / BigInt(100);
       } else {
         newTx.gasPrice = (feeData.gasPrice * BigInt(110)) / BigInt(100);
       }
@@ -1078,7 +1179,7 @@ class BlockchainAdapter extends EventEmitter {
 
       return tx.hash;
     } catch (error) {
-      logger.error('[BlockchainAdapter] 替换交易失败:', error);
+      logger.error("[BlockchainAdapter] 替换交易失败:", error);
       throw error;
     }
   }

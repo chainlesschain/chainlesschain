@@ -9,15 +9,8 @@
     >
       <div v-if="content">
         <!-- 内容信息 -->
-        <a-card
-          size="small"
-          style="margin-bottom: 16px"
-        >
-          <a-descriptions
-            :column="3"
-            size="small"
-            bordered
-          >
+        <a-card size="small" style="margin-bottom: 16px">
+          <a-descriptions :column="3" size="small" bordered>
             <a-descriptions-item label="内容类型">
               <a-tag :color="getTypeColor(content.contentType)">
                 {{ getTypeName(content.contentType) }}
@@ -29,10 +22,7 @@
               </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="价格">
-              <a-tag
-                color="orange"
-                style="font-size: 16px"
-              >
+              <a-tag color="orange" style="font-size: 16px">
                 ¥{{ content.priceAmount }}
               </a-tag>
             </a-descriptions-item>
@@ -64,21 +54,12 @@
                 allow-half
                 style="font-size: 14px"
               />
-              <span
-                v-else
-                style="color: #999"
-              >暂无评分</span>
+              <span v-else style="color: #999">暂无评分</span>
             </a-descriptions-item>
-            <a-descriptions-item
-              label="创作者"
-              :span="3"
-            >
+            <a-descriptions-item label="创作者" :span="3">
               <a-space>
                 <user-outlined />
-                <a-typography-text
-                  copyable
-                  style="font-size: 12px"
-                >
+                <a-typography-text copyable style="font-size: 12px">
                   {{ content.creatorDid }}
                 </a-typography-text>
               </a-space>
@@ -118,10 +99,7 @@
             </template>
           </a-alert>
 
-          <a-card
-            title="完整内容"
-            size="small"
-          >
+          <a-card title="完整内容" size="small">
             <a-spin :spinning="loadingContent">
               <div class="content-full-text">
                 {{ contentDetail }}
@@ -148,10 +126,7 @@
           </a-alert>
 
           <!-- 购买选项 -->
-          <a-card
-            title="购买选项"
-            size="small"
-          >
+          <a-card title="购买选项" size="small">
             <a-form layout="vertical">
               <!-- 支付资产选择 -->
               <a-form-item label="支付方式">
@@ -180,12 +155,7 @@
                     </template>
                     {{ getPurchaseButtonText() }}
                   </a-button>
-                  <a-button
-                    size="large"
-                    @click="handleClose"
-                  >
-                    取消
-                  </a-button>
+                  <a-button size="large" @click="handleClose"> 取消 </a-button>
                 </a-space>
               </a-form-item>
             </a-form>
@@ -197,18 +167,18 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   EyeOutlined,
   ShoppingOutlined,
   UserOutlined,
   CheckCircleOutlined,
   DollarOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
 
 // Store
 const tradeStore = useTradeStore();
@@ -226,62 +196,64 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['purchased', 'update:open']);
+const emit = defineEmits(["purchased", "update:open"]);
 
 // 状态
 const purchasing = ref(false);
 const loadingContent = ref(false);
 const hasPurchased = ref(false);
-const contentDetail = ref('');
-const paymentAssetId = ref('CNY');
+const contentDetail = ref("");
+const paymentAssetId = ref("CNY");
 
 // 工具函数
 const getTypeColor = (type) => {
   const colors = {
-    article: 'blue',
-    video: 'red',
-    audio: 'purple',
-    course: 'green',
-    consulting: 'orange',
+    article: "blue",
+    video: "red",
+    audio: "purple",
+    course: "green",
+    consulting: "orange",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getTypeName = (type) => {
   const names = {
-    article: '文章',
-    video: '视频',
-    audio: '音频',
-    course: '课程',
-    consulting: '咨询',
+    article: "文章",
+    video: "视频",
+    audio: "音频",
+    course: "课程",
+    consulting: "咨询",
   };
   return names[type] || type;
 };
 
 const getPricingModelColor = (model) => {
   const colors = {
-    one_time: 'green',
-    subscription: 'blue',
-    donation: 'orange',
+    one_time: "green",
+    subscription: "blue",
+    donation: "orange",
   };
-  return colors[model] || 'default';
+  return colors[model] || "default";
 };
 
 const getPricingModelName = (model) => {
   const names = {
-    one_time: '一次性购买',
-    subscription: '订阅制',
-    donation: '打赏',
+    one_time: "一次性购买",
+    subscription: "订阅制",
+    donation: "打赏",
   };
   return names[model] || model;
 };
 
 const getPurchaseButtonText = () => {
-  if (!props.content) {return '购买';}
+  if (!props.content) {
+    return "购买";
+  }
 
-  if (props.content.pricingModel === 'donation') {
+  if (props.content.pricingModel === "donation") {
     return `打赏 ¥${props.content.priceAmount}`;
-  } else if (props.content.pricingModel === 'subscription') {
+  } else if (props.content.pricingModel === "subscription") {
     return `订阅 ¥${props.content.priceAmount}/月`;
   } else {
     return `立即购买 ¥${props.content.priceAmount}`;
@@ -290,7 +262,9 @@ const getPurchaseButtonText = () => {
 
 // 检查访问权限
 const checkAccess = async () => {
-  if (!props.content) {return;}
+  if (!props.content) {
+    return;
+  }
 
   try {
     // 获取当前用户DID
@@ -305,7 +279,7 @@ const checkAccess = async () => {
     // 检查是否已购买（通过 store）
     const hasAccess = await window.electronAPI.knowledge.checkAccess(
       props.content.id,
-      userDid
+      userDid,
     );
 
     hasPurchased.value = hasAccess;
@@ -315,14 +289,16 @@ const checkAccess = async () => {
       await loadFullContent();
     }
   } catch (error) {
-    logger.error('[ContentDetail] 检查访问权限失败:', error);
+    logger.error("[ContentDetail] 检查访问权限失败:", error);
     hasPurchased.value = false;
   }
 };
 
 // 加载完整内容
 const loadFullContent = async () => {
-  if (!props.content) {return;}
+  if (!props.content) {
+    return;
+  }
 
   try {
     loadingContent.value = true;
@@ -332,10 +308,10 @@ const loadFullContent = async () => {
 
     contentDetail.value = result.decryptedContent || result.content;
 
-    logger.info('[ContentDetail] 完整内容已加载');
+    logger.info("[ContentDetail] 完整内容已加载");
   } catch (error) {
-    logger.error('[ContentDetail] 加载完整内容失败:', error);
-    message.error(error.message || '加载完整内容失败');
+    logger.error("[ContentDetail] 加载完整内容失败:", error);
+    message.error(error.message || "加载完整内容失败");
   } finally {
     loadingContent.value = false;
   }
@@ -344,24 +320,26 @@ const loadFullContent = async () => {
 // 购买内容
 const handlePurchase = async () => {
   try {
-    if (!props.content) {return;}
+    if (!props.content) {
+      return;
+    }
 
     purchasing.value = true;
 
     // 使用 store 购买内容
     await tradeStore.purchaseContent(props.content.id, paymentAssetId.value);
 
-    logger.info('[ContentDetail] 购买成功:', props.content.id);
-    message.success('购买成功！');
+    logger.info("[ContentDetail] 购买成功:", props.content.id);
+    message.success("购买成功！");
 
     // 通知父组件
-    emit('purchased', props.content);
+    emit("purchased", props.content);
 
     // 重新检查访问权限并加载内容
     await checkAccess();
   } catch (error) {
-    logger.error('[ContentDetail] 购买失败:', error);
-    message.error(error.message || '购买失败');
+    logger.error("[ContentDetail] 购买失败:", error);
+    message.error(error.message || "购买失败");
   } finally {
     purchasing.value = false;
   }
@@ -369,7 +347,7 @@ const handlePurchase = async () => {
 
 // 关闭对话框
 const handleClose = () => {
-  emit('update:open', false);
+  emit("update:open", false);
 };
 
 // 监听对话框打开
@@ -379,7 +357,7 @@ watch(
     if (newVal && props.content) {
       await checkAccess();
     }
-  }
+  },
 );
 </script>
 

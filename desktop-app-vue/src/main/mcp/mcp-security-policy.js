@@ -7,7 +7,7 @@
  * @module MCPSecurityPolicy
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const crypto = require("crypto");
 
@@ -21,7 +21,9 @@ const isWindows = process.platform === "win32";
  * @returns {string} Normalized path
  */
 function normalizeSecurityPath(inputPath) {
-  if (!inputPath) {return "";}
+  if (!inputPath) {
+    return "";
+  }
 
   // Convert to lowercase on Windows for case-insensitive comparison
   let normalized = inputPath;

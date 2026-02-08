@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { onMounted, onUnmounted } from "vue";
 import { notification, Modal } from "ant-design-vue";

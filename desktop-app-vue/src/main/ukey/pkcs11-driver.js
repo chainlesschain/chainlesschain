@@ -17,7 +17,7 @@
  * - Both pkcs11-js and CLI fallback modes
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const BaseUKeyDriver = require("./base-driver");
 const { exec } = require("child_process");
 const { promisify } = require("util");
@@ -224,10 +224,7 @@ class PKCS11Driver extends BaseUKeyDriver {
           // Get supported mechanisms
           await this.loadSupportedMechanisms();
         } catch (error) {
-          logger.warn(
-            "[PKCS11Driver] pkcs11-js not available:",
-            error.message,
-          );
+          logger.warn("[PKCS11Driver] pkcs11-js not available:", error.message);
           logger.warn("[PKCS11Driver] Using CLI fallback mode");
           this.pkcs11 = null;
           this.useCLIFallback = true;
@@ -248,7 +245,9 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Load supported mechanisms from token
    */
   async loadSupportedMechanisms() {
-    if (!this.pkcs11 || this.slotId === null) {return;}
+    if (!this.pkcs11 || this.slotId === null) {
+      return;
+    }
 
     try {
       const mechanisms = this.pkcs11.C_GetMechanismList(this.slotId);
@@ -608,7 +607,9 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Find and cache key handles
    */
   async findKeys() {
-    if (!this.pkcs11 || !this.sessionHandle) {return;}
+    if (!this.pkcs11 || !this.sessionHandle) {
+      return;
+    }
 
     try {
       // Find private key
@@ -651,7 +652,9 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Export public key in PEM format
    */
   async exportPublicKey() {
-    if (!this.pkcs11 || !this.publicKeyHandle) {return;}
+    if (!this.pkcs11 || !this.publicKeyHandle) {
+      return;
+    }
 
     try {
       // Get key type
@@ -690,10 +693,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         logger.info("[PKCS11Driver] EC/SM2 public key exported");
       }
     } catch (error) {
-      logger.warn(
-        "[PKCS11Driver] Failed to export public key:",
-        error.message,
-      );
+      logger.warn("[PKCS11Driver] Failed to export public key:", error.message);
     }
   }
 

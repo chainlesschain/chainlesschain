@@ -125,7 +125,10 @@
     >
       <a-form :model="snippetForm" layout="vertical">
         <a-form-item label="标题" required>
-          <a-input v-model:value="snippetForm.title" placeholder="输入片段标题" />
+          <a-input
+            v-model:value="snippetForm.title"
+            placeholder="输入片段标题"
+          />
         </a-form-item>
 
         <a-form-item label="描述">
@@ -150,13 +153,13 @@
 
         <a-form-item label="语言" required>
           <a-select v-model:value="snippetForm.language" placeholder="选择语言">
-            <a-select-option value="javascript">JavaScript</a-select-option>
-            <a-select-option value="typescript">TypeScript</a-select-option>
-            <a-select-option value="vue">Vue</a-select-option>
-            <a-select-option value="python">Python</a-select-option>
-            <a-select-option value="java">Java</a-select-option>
-            <a-select-option value="css">CSS</a-select-option>
-            <a-select-option value="html">HTML</a-select-option>
+            <a-select-option value="javascript"> JavaScript </a-select-option>
+            <a-select-option value="typescript"> TypeScript </a-select-option>
+            <a-select-option value="vue"> Vue </a-select-option>
+            <a-select-option value="python"> Python </a-select-option>
+            <a-select-option value="java"> Java </a-select-option>
+            <a-select-option value="css"> CSS </a-select-option>
+            <a-select-option value="html"> HTML </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -174,9 +177,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted } from "vue";
 import {
   CodeOutlined,
   CloseOutlined,
@@ -187,8 +190,8 @@ import {
   PlusOutlined,
   FileTextOutlined,
   Html5Outlined,
-} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 
 const props = defineProps({
   projectId: {
@@ -201,31 +204,31 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'insert-snippet']);
+const emit = defineEmits(["close", "insert-snippet"]);
 
 // 搜索状态
-const searchQuery = ref('');
-const selectedCategory = ref('all');
+const searchQuery = ref("");
+const selectedCategory = ref("all");
 
 // 分类定义
 const categories = [
-  { key: 'all', label: '全部' },
-  { key: 'component', label: 'Vue 组件' },
-  { key: 'composable', label: 'Composables' },
-  { key: 'utility', label: '工具函数' },
-  { key: 'api', label: 'API 调用' },
-  { key: 'style', label: '样式' },
-  { key: 'test', label: '测试' },
+  { key: "all", label: "全部" },
+  { key: "component", label: "Vue 组件" },
+  { key: "composable", label: "Composables" },
+  { key: "utility", label: "工具函数" },
+  { key: "api", label: "API 调用" },
+  { key: "style", label: "样式" },
+  { key: "test", label: "测试" },
 ];
 
 // 代码片段数据
 const snippets = ref([
   {
     id: 1,
-    title: 'Vue 3 Composition API 模板',
-    description: '基础的 Vue 3 组件模板，使用 Composition API',
-    category: 'component',
-    language: 'vue',
+    title: "Vue 3 Composition API 模板",
+    description: "基础的 Vue 3 组件模板，使用 Composition API",
+    category: "component",
+    language: "vue",
     code: `<template>
   <div class="component">
     <h1>{{ title }}</h1>
@@ -252,10 +255,10 @@ onMounted(() => {
   },
   {
     id: 2,
-    title: 'useDebounce Composable',
-    description: '防抖 Hook，用于优化搜索等场景',
-    category: 'composable',
-    language: 'javascript',
+    title: "useDebounce Composable",
+    description: "防抖 Hook，用于优化搜索等场景",
+    category: "composable",
+    language: "javascript",
     code: `import { ref, watch } from 'vue';
 
 export function useDebounce(value, delay = 300) {
@@ -276,10 +279,10 @@ export function useDebounce(value, delay = 300) {
   },
   {
     id: 3,
-    title: 'API 请求封装',
-    description: '统一的 API 请求方法，包含错误处理',
-    category: 'api',
-    language: 'javascript',
+    title: "API 请求封装",
+    description: "统一的 API 请求方法，包含错误处理",
+    category: "api",
+    language: "javascript",
     code: `export async function apiRequest(url, options = {}) {
   try {
     const response = await fetch(url, {
@@ -305,10 +308,10 @@ export function useDebounce(value, delay = 300) {
   },
   {
     id: 4,
-    title: '深拷贝函数',
-    description: '深度克隆对象或数组',
-    category: 'utility',
-    language: 'javascript',
+    title: "深拷贝函数",
+    description: "深度克隆对象或数组",
+    category: "utility",
+    language: "javascript",
     code: `export function deepClone(obj) {
   if (obj === null || typeof obj !== 'object') {
     return obj;
@@ -337,10 +340,10 @@ export function useDebounce(value, delay = 300) {
   },
   {
     id: 5,
-    title: 'Flexbox 居中布局',
-    description: '使用 Flexbox 实现水平垂直居中',
-    category: 'style',
-    language: 'css',
+    title: "Flexbox 居中布局",
+    description: "使用 Flexbox 实现水平垂直居中",
+    category: "style",
+    language: "css",
     code: `.container {
   display: flex;
   justify-content: center;
@@ -352,10 +355,10 @@ export function useDebounce(value, delay = 300) {
   },
   {
     id: 6,
-    title: 'Vue 组件单元测试',
-    description: '使用 Vitest 测试 Vue 组件',
-    category: 'test',
-    language: 'javascript',
+    title: "Vue 组件单元测试",
+    description: "使用 Vitest 测试 Vue 组件",
+    category: "test",
+    language: "javascript",
     code: `import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import MyComponent from './MyComponent.vue';
@@ -382,11 +385,11 @@ describe('MyComponent', () => {
 // 添加/编辑片段
 const showSnippetModal = ref(false);
 const snippetForm = ref({
-  title: '',
-  description: '',
-  category: '',
-  language: '',
-  code: '',
+  title: "",
+  description: "",
+  category: "",
+  language: "",
+  code: "",
 });
 
 // 过滤后的片段
@@ -394,17 +397,18 @@ const filteredSnippets = computed(() => {
   let result = snippets.value;
 
   // 分类过滤
-  if (selectedCategory.value !== 'all') {
-    result = result.filter(s => s.category === selectedCategory.value);
+  if (selectedCategory.value !== "all") {
+    result = result.filter((s) => s.category === selectedCategory.value);
   }
 
   // 搜索过滤
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
-    result = result.filter(s =>
-      s.title.toLowerCase().includes(query) ||
-      s.description.toLowerCase().includes(query) ||
-      s.code.toLowerCase().includes(query)
+    result = result.filter(
+      (s) =>
+        s.title.toLowerCase().includes(query) ||
+        s.description.toLowerCase().includes(query) ||
+        s.code.toLowerCase().includes(query),
     );
   }
 
@@ -424,35 +428,35 @@ const handleCategoryClick = (categoryKey) => {
 // 处理片段点击
 const handleSnippetClick = (snippet) => {
   // 可以展开显示详情
-  logger.info('Snippet clicked:', snippet);
+  logger.info("Snippet clicked:", snippet);
 };
 
 // 复制代码片段
 const handleCopySnippet = async (snippet) => {
   try {
     await navigator.clipboard.writeText(snippet.code);
-    message.success('代码已复制到剪贴板');
+    message.success("代码已复制到剪贴板");
     snippet.usageCount++;
   } catch (error) {
-    message.error('复制失败');
+    message.error("复制失败");
   }
 };
 
 // 插入代码片段
 const handleInsertSnippet = (snippet) => {
-  emit('insert-snippet', snippet);
-  message.success('代码片段已插入');
+  emit("insert-snippet", snippet);
+  message.success("代码片段已插入");
   snippet.usageCount++;
 };
 
 // 添加自定义片段
 const handleAddSnippet = () => {
   snippetForm.value = {
-    title: '',
-    description: '',
-    category: '',
-    language: '',
-    code: '',
+    title: "",
+    description: "",
+    category: "",
+    language: "",
+    code: "",
   };
   showSnippetModal.value = true;
 };
@@ -460,7 +464,7 @@ const handleAddSnippet = () => {
 // 保存片段
 const handleSaveSnippet = () => {
   if (!snippetForm.value.title || !snippetForm.value.code) {
-    message.error('请填写标题和代码');
+    message.error("请填写标题和代码");
     return;
   }
 
@@ -473,7 +477,7 @@ const handleSaveSnippet = () => {
 
   snippets.value.unshift(newSnippet);
   showSnippetModal.value = false;
-  message.success('代码片段已添加');
+  message.success("代码片段已添加");
 };
 
 // 取消添加
@@ -484,19 +488,19 @@ const handleCancelSnippet = () => {
 // 获取分类颜色
 const getCategoryColor = (category) => {
   const colorMap = {
-    component: 'blue',
-    composable: 'green',
-    utility: 'orange',
-    api: 'purple',
-    style: 'cyan',
-    test: 'magenta',
+    component: "blue",
+    composable: "green",
+    utility: "orange",
+    api: "purple",
+    style: "cyan",
+    test: "magenta",
   };
-  return colorMap[category] || 'default';
+  return colorMap[category] || "default";
 };
 
 // 获取分类标签
 const getCategoryLabel = (category) => {
-  const cat = categories.find(c => c.key === category);
+  const cat = categories.find((c) => c.key === category);
   return cat ? cat.label : category;
 };
 
@@ -614,7 +618,7 @@ const getLanguageIcon = (language) => {
 
 .snippet-code pre {
   margin: 0;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 12px;
   line-height: 1.5;
   color: #333;

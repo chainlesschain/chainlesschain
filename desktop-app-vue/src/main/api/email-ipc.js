@@ -5,7 +5,7 @@
  * v0.20.0: 新增邮件集成功能
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 const { v4: uuidv4 } = require("uuid");
 const EmailClient = require("./email-client");

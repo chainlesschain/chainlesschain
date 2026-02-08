@@ -17,59 +17,30 @@
       </template>
 
       <!-- 统计概览 -->
-      <a-row
-        :gutter="[16, 16]"
-        style="margin-bottom: 24px"
-      >
-        <a-col
-          :span="24"
-          :md="6"
-        >
-          <a-statistic
-            title="总评价数"
-            :value="reviews.length"
-          >
+      <a-row :gutter="[16, 16]" style="margin-bottom: 24px">
+        <a-col :span="24" :md="6">
+          <a-statistic title="总评价数" :value="reviews.length">
             <template #prefix>
               <comment-outlined />
             </template>
           </a-statistic>
         </a-col>
-        <a-col
-          :span="24"
-          :md="6"
-        >
-          <a-statistic
-            title="平均评分"
-            :value="averageRating"
-            :precision="1"
-          >
+        <a-col :span="24" :md="6">
+          <a-statistic title="平均评分" :value="averageRating" :precision="1">
             <template #prefix>
               <star-outlined style="color: #faad14" />
             </template>
           </a-statistic>
         </a-col>
-        <a-col
-          :span="24"
-          :md="6"
-        >
-          <a-statistic
-            title="获赞数"
-            :value="totalHelpful"
-          >
+        <a-col :span="24" :md="6">
+          <a-statistic title="获赞数" :value="totalHelpful">
             <template #prefix>
               <like-outlined style="color: #52c41a" />
             </template>
           </a-statistic>
         </a-col>
-        <a-col
-          :span="24"
-          :md="6"
-        >
-          <a-statistic
-            title="推荐率"
-            :value="recommendRate"
-            suffix="%"
-          >
+        <a-col :span="24" :md="6">
+          <a-statistic title="推荐率" :value="recommendRate" suffix="%">
             <template #prefix>
               <heart-outlined style="color: #ff4d4f" />
             </template>
@@ -79,17 +50,11 @@
 
       <!-- 评价列表 -->
       <a-spin :spinning="loading">
-        <a-list
-          :data-source="reviews"
-          item-layout="vertical"
-        >
+        <a-list :data-source="reviews" item-layout="vertical">
           <template #renderItem="{ item }">
             <a-list-item class="review-item">
               <template #actions>
-                <a-button
-                  size="small"
-                  @click="editReview(item)"
-                >
+                <a-button size="small" @click="editReview(item)">
                   <template #icon>
                     <edit-outlined />
                   </template>
@@ -99,10 +64,7 @@
                   title="确定要删除这条评价吗？"
                   @confirm="deleteReview(item)"
                 >
-                  <a-button
-                    size="small"
-                    danger
-                  >
+                  <a-button size="small" danger>
                     <template #icon>
                       <delete-outlined />
                     </template>
@@ -122,25 +84,18 @@
                       disabled
                       style="font-size: 14px"
                     />
-                    <a-tag
-                      v-if="item.isRecommended"
-                      color="success"
-                    >
+                    <a-tag v-if="item.isRecommended" color="success">
                       推荐
                     </a-tag>
-                    <a-tag
-                      v-else
-                      color="default"
-                    >
-                      不推荐
-                    </a-tag>
+                    <a-tag v-else color="default"> 不推荐 </a-tag>
                   </a-space>
                 </template>
                 <template #description>
                   <div class="review-meta">
                     <span>评价时间: {{ formatTime(item.createdAt) }}</span>
                     <span style="margin-left: 16px">
-                      <like-outlined /> {{ item.helpfulCount || 0 }} 人觉得有帮助
+                      <like-outlined />
+                      {{ item.helpfulCount || 0 }} 人觉得有帮助
                     </span>
                   </div>
                 </template>
@@ -151,13 +106,8 @@
               </div>
 
               <!-- 商家回复 -->
-              <div
-                v-if="item.sellerReply"
-                class="seller-reply"
-              >
-                <a-tag color="orange">
-                  商家回复
-                </a-tag>
+              <div v-if="item.sellerReply" class="seller-reply">
+                <a-tag color="orange"> 商家回复 </a-tag>
                 <div class="reply-content">
                   {{ item.sellerReply.content }}
                 </div>
@@ -184,20 +134,11 @@
       @ok="handleUpdate"
     >
       <a-form layout="vertical">
-        <a-form-item
-          label="评分"
-          required
-        >
-          <a-rate
-            v-model:value="editForm.rating"
-            allow-half
-          />
+        <a-form-item label="评分" required>
+          <a-rate v-model:value="editForm.rating" allow-half />
         </a-form-item>
 
-        <a-form-item
-          label="评价内容"
-          required
-        >
+        <a-form-item label="评价内容" required>
           <a-textarea
             v-model:value="editForm.content"
             :rows="6"
@@ -207,12 +148,8 @@
 
         <a-form-item label="是否推荐">
           <a-radio-group v-model:value="editForm.isRecommended">
-            <a-radio :value="true">
-              推荐
-            </a-radio>
-            <a-radio :value="false">
-              不推荐
-            </a-radio>
+            <a-radio :value="true"> 推荐 </a-radio>
+            <a-radio :value="false"> 不推荐 </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>
@@ -221,10 +158,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   CommentOutlined,
   ReloadOutlined,
@@ -233,8 +170,8 @@ import {
   HeartOutlined,
   EditOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
 
 // Store
 const tradeStore = useTradeStore();
@@ -249,13 +186,15 @@ const editingReview = ref(null);
 // 编辑表单
 const editForm = reactive({
   rating: 5,
-  content: '',
+  content: "",
   isRecommended: true,
 });
 
 // 计算属性
 const averageRating = computed(() => {
-  if (reviews.value.length === 0) {return 0;}
+  if (reviews.value.length === 0) {
+    return 0;
+  }
   const sum = reviews.value.reduce((acc, r) => acc + r.rating, 0);
   return (sum / reviews.value.length).toFixed(1);
 });
@@ -265,8 +204,10 @@ const totalHelpful = computed(() => {
 });
 
 const recommendRate = computed(() => {
-  if (reviews.value.length === 0) {return 0;}
-  const recommended = reviews.value.filter(r => r.isRecommended).length;
+  if (reviews.value.length === 0) {
+    return 0;
+  }
+  const recommended = reviews.value.filter((r) => r.isRecommended).length;
   return ((recommended / reviews.value.length) * 100).toFixed(1);
 });
 
@@ -278,17 +219,17 @@ const loadMyReviews = async () => {
     const userDid = currentIdentity?.did;
 
     if (!userDid) {
-      antMessage.warning('请先创建DID身份');
+      antMessage.warning("请先创建DID身份");
       return;
     }
 
     // 使用 store 加载我的评价
     await tradeStore.loadMyReviews(userDid);
 
-    logger.info('[MyReviews] 我的评价已加载:', reviews.value.length);
+    logger.info("[MyReviews] 我的评价已加载:", reviews.value.length);
   } catch (error) {
-    logger.error('[MyReviews] 加载评价失败:', error);
-    antMessage.error(error.message || '加载评价失败');
+    logger.error("[MyReviews] 加载评价失败:", error);
+    antMessage.error(error.message || "加载评价失败");
   }
 };
 
@@ -305,7 +246,7 @@ const editReview = (review) => {
 const handleUpdate = async () => {
   try {
     if (!editForm.content) {
-      antMessage.warning('请填写评价内容');
+      antMessage.warning("请填写评价内容");
       return;
     }
 
@@ -318,16 +259,16 @@ const handleUpdate = async () => {
       isRecommended: editForm.isRecommended,
     });
 
-    logger.info('[MyReviews] 评价已更新:', editingReview.value.id);
-    antMessage.success('评价已更新！');
+    logger.info("[MyReviews] 评价已更新:", editingReview.value.id);
+    antMessage.success("评价已更新！");
 
     showEditModal.value = false;
     editingReview.value = null;
 
     await loadMyReviews();
   } catch (error) {
-    logger.error('[MyReviews] 更新评价失败:', error);
-    antMessage.error(error.message || '更新评价失败');
+    logger.error("[MyReviews] 更新评价失败:", error);
+    antMessage.error(error.message || "更新评价失败");
   } finally {
     updating.value = false;
   }
@@ -338,40 +279,40 @@ const deleteReview = async (review) => {
   try {
     await window.electronAPI.review.delete(review.id);
 
-    logger.info('[MyReviews] 评价已删除:', review.id);
-    antMessage.success('评价已删除！');
+    logger.info("[MyReviews] 评价已删除:", review.id);
+    antMessage.success("评价已删除！");
 
     await loadMyReviews();
   } catch (error) {
-    logger.error('[MyReviews] 删除评价失败:', error);
-    antMessage.error(error.message || '删除评价失败');
+    logger.error("[MyReviews] 删除评价失败:", error);
+    antMessage.error(error.message || "删除评价失败");
   }
 };
 
 // 工具函数
 const getTargetTypeColor = (type) => {
   const colors = {
-    product: 'blue',
-    content: 'green',
-    transaction: 'orange',
-    service: 'purple',
+    product: "blue",
+    content: "green",
+    transaction: "orange",
+    service: "purple",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getTargetTypeName = (type) => {
   const names = {
-    product: '商品',
-    content: '内容',
-    transaction: '交易',
-    service: '服务',
+    product: "商品",
+    content: "内容",
+    transaction: "交易",
+    service: "服务",
   };
   return names[type] || type;
 };
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 
 // 生命周期

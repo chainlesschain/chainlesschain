@@ -9,10 +9,10 @@
  * - 搜索项目文件
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const fs = require("fs").promises;
+const path = require("path");
 
 class ProjectSyncHandler extends EventEmitter {
   constructor(databaseManager, p2pManager, mobileBridge) {
@@ -26,7 +26,7 @@ class ProjectSyncHandler extends EventEmitter {
     this.stats = {
       projectsSynced: 0,
       filesSynced: 0,
-      bytesTransferred: 0
+      bytesTransferred: 0,
     };
   }
 
@@ -37,23 +37,23 @@ class ProjectSyncHandler extends EventEmitter {
     const { type } = message;
 
     switch (type) {
-      case 'project:list-projects':
+      case "project:list-projects":
         await this.handleListProjects(mobilePeerId, message);
         break;
 
-      case 'project:get-project':
+      case "project:get-project":
         await this.handleGetProject(mobilePeerId, message);
         break;
 
-      case 'project:get-file-tree':
+      case "project:get-file-tree":
         await this.handleGetFileTree(mobilePeerId, message);
         break;
 
-      case 'project:get-file':
+      case "project:get-file":
         await this.handleGetFile(mobilePeerId, message);
         break;
 
-      case 'project:search-files':
+      case "project:search-files":
         await this.handleSearchFiles(mobilePeerId, message);
         break;
 
@@ -61,9 +61,9 @@ class ProjectSyncHandler extends EventEmitter {
         logger.warn(`[ProjectSync] 未知消息类型: ${type}`);
         return {
           error: {
-            code: 'UNKNOWN_TYPE',
-            message: `Unknown project sync message type: ${type}`
-          }
+            code: "UNKNOWN_TYPE",
+            message: `Unknown project sync message type: ${type}`,
+          },
         };
     }
 
@@ -74,22 +74,27 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理获取项目列表请求
    */
   async handleListProjects(mobilePeerId, message) {
-    logger.info('[ProjectSync] 处理项目列表请求');
+    logger.info("[ProjectSync] 处理项目列表请求");
 
     try {
       const { limit = 50, offset = 0 } = message.params || {};
 
       // 从数据库获取项目列表
-      const projects = await this.db.all(`
+      const projects = await this.db.all(
+        `
         SELECT
           id, name, description, local_path, git_url,
           created_at, updated_at, last_commit_hash, last_commit_message
         FROM projects
         ORDER BY updated_at DESC
         LIMIT ? OFFSET ?
-      `, [limit, offset]);
+      `,
+        [limit, offset],
+      );
 
-      const { total } = await this.db.get('SELECT COUNT(*) as total FROM projects');
+      const { total } = await this.db.get(
+        "SELECT COUNT(*) as total FROM projects",
+      );
 
       // 统计每个项目的文件数
       for (const project of projects) {
@@ -107,36 +112,39 @@ class ProjectSyncHandler extends EventEmitter {
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'project:list-projects:response',
+        type: "project:list-projects:response",
         requestId: message.requestId,
         data: {
           projects,
           total,
           limit,
-          offset
-        }
+          offset,
+        },
       });
 
       this.stats.projectsSynced += projects.length;
 
-      logger.info('[ProjectSync] ✅ 项目列表已发送:', projects.length);
-
+      logger.info("[ProjectSync] ✅ 项目列表已发送:", projects.length);
     } catch (error) {
-      logger.error('[ProjectSync] 处理项目列表请求失败:', error);
+      logger.error("[ProjectSync] 处理项目列表请求失败:", error);
 
       // 如果是表不存在或列不存在错误，返回空数组
-      if (error.message && (error.message.includes('no such table') || error.message.includes('no such column'))) {
+      if (
+        error.message &&
+        (error.message.includes("no such table") ||
+          error.message.includes("no such column"))
+      ) {
         await this.sendToMobile(mobilePeerId, {
-          type: 'project:list-projects:response',
+          type: "project:list-projects:response",
           requestId: message.requestId,
           data: {
             projects: [],
             total: 0,
             limit: message.params?.limit || 50,
-            offset: message.params?.offset || 0
-          }
+            offset: message.params?.offset || 0,
+          },
         });
-        logger.info('[ProjectSync] ⚠️  数据库表不存在或列缺失，返回空列表');
+        logger.info("[ProjectSync] ⚠️  数据库表不存在或列缺失，返回空列表");
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -147,22 +155,25 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理获取项目详情请求
    */
   async handleGetProject(mobilePeerId, message) {
-    logger.info('[ProjectSync] 处理项目详情请求');
+    logger.info("[ProjectSync] 处理项目详情请求");
 
     try {
       const { projectId } = message.params || {};
 
       if (!projectId) {
-        throw new Error('缺少项目ID');
+        throw new Error("缺少项目ID");
       }
 
       // 从数据库获取项目
-      const project = await this.db.get(`
+      const project = await this.db.get(
+        `
         SELECT * FROM projects WHERE id = ?
-      `, [projectId]);
+      `,
+        [projectId],
+      );
 
       if (!project) {
-        throw new Error('项目不存在');
+        throw new Error("项目不存在");
       }
 
       // 获取项目统计信息
@@ -177,15 +188,14 @@ class ProjectSyncHandler extends EventEmitter {
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'project:get-project:response',
+        type: "project:get-project:response",
         requestId: message.requestId,
-        data: { project }
+        data: { project },
       });
 
-      logger.info('[ProjectSync] ✅ 项目详情已发送:', projectId);
-
+      logger.info("[ProjectSync] ✅ 项目详情已发送:", projectId);
     } catch (error) {
-      logger.error('[ProjectSync] 处理项目详情请求失败:', error);
+      logger.error("[ProjectSync] 处理项目详情请求失败:", error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -194,20 +204,23 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理获取文件树请求
    */
   async handleGetFileTree(mobilePeerId, message) {
-    logger.info('[ProjectSync] 处理文件树请求');
+    logger.info("[ProjectSync] 处理文件树请求");
 
     try {
       const { projectId, maxDepth = 3 } = message.params || {};
 
       if (!projectId) {
-        throw new Error('缺少项目ID');
+        throw new Error("缺少项目ID");
       }
 
       // 获取项目路径
-      const project = await this.db.get('SELECT local_path FROM projects WHERE id = ?', [projectId]);
+      const project = await this.db.get(
+        "SELECT local_path FROM projects WHERE id = ?",
+        [projectId],
+      );
 
       if (!project || !project.local_path) {
-        throw new Error('项目路径不存在');
+        throw new Error("项目路径不存在");
       }
 
       // 读取文件树
@@ -215,15 +228,14 @@ class ProjectSyncHandler extends EventEmitter {
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'project:get-file-tree:response',
+        type: "project:get-file-tree:response",
         requestId: message.requestId,
-        data: { fileTree }
+        data: { fileTree },
       });
 
-      logger.info('[ProjectSync] ✅ 文件树已发送');
-
+      logger.info("[ProjectSync] ✅ 文件树已发送");
     } catch (error) {
-      logger.error('[ProjectSync] 处理文件树请求失败:', error);
+      logger.error("[ProjectSync] 处理文件树请求失败:", error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -232,20 +244,23 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理获取文件内容请求
    */
   async handleGetFile(mobilePeerId, message) {
-    logger.info('[ProjectSync] 处理文件内容请求');
+    logger.info("[ProjectSync] 处理文件内容请求");
 
     try {
       const { projectId, filePath } = message.params || {};
 
       if (!projectId || !filePath) {
-        throw new Error('缺少项目ID或文件路径');
+        throw new Error("缺少项目ID或文件路径");
       }
 
       // 获取项目路径
-      const project = await this.db.get('SELECT local_path FROM projects WHERE id = ?', [projectId]);
+      const project = await this.db.get(
+        "SELECT local_path FROM projects WHERE id = ?",
+        [projectId],
+      );
 
       if (!project || !project.local_path) {
-        throw new Error('项目路径不存在');
+        throw new Error("项目路径不存在");
       }
 
       // 构建完整文件路径
@@ -253,35 +268,34 @@ class ProjectSyncHandler extends EventEmitter {
 
       // 安全检查：确保文件在项目目录内
       if (!fullPath.startsWith(project.local_path)) {
-        throw new Error('非法文件路径');
+        throw new Error("非法文件路径");
       }
 
       // 读取文件
-      const content = await fs.readFile(fullPath, 'utf8');
+      const content = await fs.readFile(fullPath, "utf8");
 
       // 获取文件信息
       const stats = await fs.stat(fullPath);
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'project:get-file:response',
+        type: "project:get-file:response",
         requestId: message.requestId,
         data: {
           filePath,
           content,
           size: stats.size,
           modifiedAt: stats.mtime,
-          createdAt: stats.birthtime
-        }
+          createdAt: stats.birthtime,
+        },
       });
 
       this.stats.filesSynced++;
       this.stats.bytesTransferred += content.length;
 
-      logger.info('[ProjectSync] ✅ 文件内容已发送:', filePath);
-
+      logger.info("[ProjectSync] ✅ 文件内容已发送:", filePath);
     } catch (error) {
-      logger.error('[ProjectSync] 处理文件内容请求失败:', error);
+      logger.error("[ProjectSync] 处理文件内容请求失败:", error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -290,40 +304,46 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理搜索文件请求
    */
   async handleSearchFiles(mobilePeerId, message) {
-    logger.info('[ProjectSync] 处理文件搜索请求');
+    logger.info("[ProjectSync] 处理文件搜索请求");
 
     try {
       const { projectId, query, fileTypes = [] } = message.params || {};
 
       if (!projectId || !query) {
-        throw new Error('缺少项目ID或搜索关键词');
+        throw new Error("缺少项目ID或搜索关键词");
       }
 
       // 获取项目路径
-      const project = await this.db.get('SELECT local_path FROM projects WHERE id = ?', [projectId]);
+      const project = await this.db.get(
+        "SELECT local_path FROM projects WHERE id = ?",
+        [projectId],
+      );
 
       if (!project || !project.local_path) {
-        throw new Error('项目路径不存在');
+        throw new Error("项目路径不存在");
       }
 
       // 搜索文件
-      const files = await this.searchFiles(project.local_path, query, fileTypes);
+      const files = await this.searchFiles(
+        project.local_path,
+        query,
+        fileTypes,
+      );
 
       // 发送响应
       await this.sendToMobile(mobilePeerId, {
-        type: 'project:search-files:response',
+        type: "project:search-files:response",
         requestId: message.requestId,
         data: {
           files,
           query,
-          total: files.length
-        }
+          total: files.length,
+        },
       });
 
-      logger.info('[ProjectSync] ✅ 搜索结果已发送:', files.length);
-
+      logger.info("[ProjectSync] ✅ 搜索结果已发送:", files.length);
     } catch (error) {
-      logger.error('[ProjectSync] 处理文件搜索请求失败:', error);
+      logger.error("[ProjectSync] 处理文件搜索请求失败:", error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -339,7 +359,11 @@ class ProjectSyncHandler extends EventEmitter {
 
       for (const entry of entries) {
         // 忽略 node_modules, .git 等目录
-        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name.startsWith('.')) {
+        if (
+          entry.name === "node_modules" ||
+          entry.name === ".git" ||
+          entry.name.startsWith(".")
+        ) {
           continue;
         }
 
@@ -364,14 +388,18 @@ class ProjectSyncHandler extends EventEmitter {
     const stats = {
       totalFiles: 0,
       totalSize: 0,
-      fileTypes: {}
+      fileTypes: {},
     };
 
     async function statsRecursive(dirPath) {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
       for (const entry of entries) {
-        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name.startsWith('.')) {
+        if (
+          entry.name === "node_modules" ||
+          entry.name === ".git" ||
+          entry.name.startsWith(".")
+        ) {
           continue;
         }
 
@@ -408,19 +436,27 @@ class ProjectSyncHandler extends EventEmitter {
 
     for (const entry of entries) {
       // 忽略特定目录
-      if (entry.name === 'node_modules' || entry.name === '.git' || entry.name.startsWith('.')) {
+      if (
+        entry.name === "node_modules" ||
+        entry.name === ".git" ||
+        entry.name.startsWith(".")
+      ) {
         continue;
       }
 
       const fullPath = path.join(rootPath, entry.name);
       const node = {
         name: entry.name,
-        type: entry.isDirectory() ? 'directory' : 'file',
-        path: fullPath
+        type: entry.isDirectory() ? "directory" : "file",
+        path: fullPath,
       };
 
       if (entry.isDirectory()) {
-        const children = await this.buildFileTree(fullPath, maxDepth, currentDepth + 1);
+        const children = await this.buildFileTree(
+          fullPath,
+          maxDepth,
+          currentDepth + 1,
+        );
         if (children) {
           node.children = children;
         }
@@ -447,7 +483,11 @@ class ProjectSyncHandler extends EventEmitter {
       const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
       for (const entry of entries) {
-        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name.startsWith('.')) {
+        if (
+          entry.name === "node_modules" ||
+          entry.name === ".git" ||
+          entry.name.startsWith(".")
+        ) {
           continue;
         }
 
@@ -469,7 +509,7 @@ class ProjectSyncHandler extends EventEmitter {
               name: entry.name,
               path: path.relative(rootPath, fullPath),
               size: stats.size,
-              modifiedAt: stats.mtime
+              modifiedAt: stats.mtime,
             });
           }
         }
@@ -486,12 +526,12 @@ class ProjectSyncHandler extends EventEmitter {
   async sendToMobile(mobilePeerId, message) {
     if (this.mobileBridge) {
       await this.mobileBridge.send({
-        type: 'message',
+        type: "message",
         to: mobilePeerId,
-        payload: message
+        payload: message,
       });
     } else {
-      logger.error('[ProjectSync] MobileBridge未初始化');
+      logger.error("[ProjectSync] MobileBridge未初始化");
     }
   }
 
@@ -500,9 +540,9 @@ class ProjectSyncHandler extends EventEmitter {
    */
   async sendError(mobilePeerId, requestId, errorMessage) {
     await this.sendToMobile(mobilePeerId, {
-      type: 'error',
+      type: "error",
       requestId,
-      error: errorMessage
+      error: errorMessage,
     });
   }
 

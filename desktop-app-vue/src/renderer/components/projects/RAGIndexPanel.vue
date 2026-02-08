@@ -1,9 +1,6 @@
 <template>
   <div class="rag-index-panel">
-    <a-card
-      title="项目智能索引"
-      :bordered="false"
-    >
+    <a-card title="项目智能索引" :bordered="false">
       <template #extra>
         <a-space>
           <a-button
@@ -12,22 +9,16 @@
             :icon="h(ReloadOutlined)"
             @click="handleIndex"
           >
-            {{ indexing ? '索引中...' : '重新索引' }}
+            {{ indexing ? "索引中..." : "重新索引" }}
           </a-button>
-          <a-button
-            :icon="h(SyncOutlined)"
-            @click="handleRefresh"
-          >
+          <a-button :icon="h(SyncOutlined)" @click="handleRefresh">
             刷新
           </a-button>
         </a-space>
       </template>
 
       <!-- 索引统计 -->
-      <a-row
-        :gutter="16"
-        class="stats-row"
-      >
+      <a-row :gutter="16" class="stats-row">
         <a-col :span="6">
           <a-statistic
             title="总文件数"
@@ -48,7 +39,9 @@
             title="索引率"
             :value="stats.indexedPercentage"
             suffix="%"
-            :value-style="{ color: stats.indexedPercentage >= 80 ? '#3f8600' : '#cf1322' }"
+            :value-style="{
+              color: stats.indexedPercentage >= 80 ? '#3f8600' : '#cf1322',
+            }"
           />
         </a-col>
         <a-col :span="6">
@@ -62,10 +55,7 @@
       </a-row>
 
       <!-- 进度条 -->
-      <div
-        v-if="stats.totalFiles > 0"
-        class="progress-section"
-      >
+      <div v-if="stats.totalFiles > 0" class="progress-section">
         <a-progress
           :percent="parseFloat(stats.indexedPercentage)"
           :status="stats.indexedPercentage >= 100 ? 'success' : 'active'"
@@ -90,12 +80,8 @@
           <a-col :span="12">
             <a-form-item label="索引模式">
               <a-radio-group v-model:value="indexOptions.forceReindex">
-                <a-radio :value="false">
-                  增量索引（跳过已索引）
-                </a-radio>
-                <a-radio :value="true">
-                  强制重新索引
-                </a-radio>
+                <a-radio :value="false"> 增量索引（跳过已索引） </a-radio>
+                <a-radio :value="true"> 强制重新索引 </a-radio>
               </a-radio-group>
             </a-form-item>
           </a-col>
@@ -112,43 +98,27 @@
           :color="item.success ? 'green' : 'red'"
         >
           <template #dot>
-            <CheckCircleOutlined
-              v-if="item.success"
-              style="color: #52c41a"
-            />
-            <CloseCircleOutlined
-              v-else
-              style="color: #ff4d4f"
-            />
+            <CheckCircleOutlined v-if="item.success" style="color: #52c41a" />
+            <CloseCircleOutlined v-else style="color: #ff4d4f" />
           </template>
           <p>
             <strong>{{ formatTime(item.timestamp) }}</strong>
           </p>
           <p v-if="item.success">
             成功索引 {{ item.indexedCount }} 个文件
-            <span v-if="item.skippedCount > 0">，跳过 {{ item.skippedCount }} 个</span>
+            <span v-if="item.skippedCount > 0"
+              >，跳过 {{ item.skippedCount }} 个</span
+            >
           </p>
-          <p
-            v-else
-            class="error-text"
-          >
-            索引失败: {{ item.error }}
-          </p>
+          <p v-else class="error-text">索引失败: {{ item.error }}</p>
         </a-timeline-item>
       </a-timeline>
 
-      <a-empty
-        v-else
-        description="暂无索引历史"
-      />
+      <a-empty v-else description="暂无索引历史" />
     </a-card>
 
     <!-- RAG查询测试面板 -->
-    <a-card
-      title="RAG查询测试"
-      :bordered="false"
-      style="margin-top: 16px"
-    >
+    <a-card title="RAG查询测试" :bordered="false" style="margin-top: 16px">
       <a-form layout="vertical">
         <a-form-item label="测试查询">
           <a-textarea
@@ -167,40 +137,26 @@
             >
               测试查询
             </a-button>
-            <a-button @click="testQuery = ''">
-              清空
-            </a-button>
+            <a-button @click="testQuery = ''"> 清空 </a-button>
           </a-space>
         </a-form-item>
 
         <!-- 查询结果 -->
-        <div
-          v-if="queryResult"
-          class="query-result"
-        >
+        <div v-if="queryResult" class="query-result">
           <a-divider>查询结果</a-divider>
 
-          <a-descriptions
-            bordered
-            size="small"
-          >
+          <a-descriptions bordered size="small">
             <a-descriptions-item label="相关文档数">
               {{ queryResult.totalDocs }}
             </a-descriptions-item>
-            <a-descriptions-item
-              label="来源分布"
-              :span="2"
-            >
-              项目文件: {{ queryResult.sources.project }} |
-              知识库: {{ queryResult.sources.knowledge }} |
-              对话历史: {{ queryResult.sources.conversation }}
+            <a-descriptions-item label="来源分布" :span="2">
+              项目文件: {{ queryResult.sources.project }} | 知识库:
+              {{ queryResult.sources.knowledge }} | 对话历史:
+              {{ queryResult.sources.conversation }}
             </a-descriptions-item>
           </a-descriptions>
 
-          <div
-            class="context-summary"
-            style="margin-top: 16px"
-          >
+          <div class="context-summary" style="margin-top: 16px">
             <h4>上下文摘要：</h4>
             <pre>{{ queryResult.summary }}</pre>
           </div>
@@ -215,9 +171,14 @@
               :key="index"
               :header="`文档 ${index + 1}: ${doc.metadata?.fileName || '未知'} (来源: ${doc.source})`"
             >
-              <p><strong>相关度分数:</strong> {{ doc.score?.toFixed(4) || 'N/A' }}</p>
+              <p>
+                <strong>相关度分数:</strong>
+                {{ doc.score?.toFixed(4) || "N/A" }}
+              </p>
               <p><strong>内容预览:</strong></p>
-              <pre class="doc-content">{{ doc.content.substring(0, 500) }}...</pre>
+              <pre class="doc-content"
+                >{{ doc.content.substring(0, 500) }}...</pre
+              >
             </a-collapse-panel>
           </a-collapse>
         </div>
@@ -227,24 +188,24 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted, h } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, onMounted, h } from "vue";
+import { message } from "ant-design-vue";
 import {
   ReloadOutlined,
   SyncOutlined,
   FileOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
-  CloseCircleOutlined
-} from '@ant-design/icons-vue';
+  CloseCircleOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   projectId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
 // 状态
@@ -253,33 +214,33 @@ const querying = ref(false);
 const stats = ref({
   totalFiles: 0,
   indexedFiles: 0,
-  indexedPercentage: 0
+  indexedPercentage: 0,
 });
 
 // 索引选项
 const indexOptions = ref({
   fileTypes: [],
-  forceReindex: false
+  forceReindex: false,
 });
 
 const fileTypeOptions = [
-  { label: 'Markdown (.md)', value: 'md' },
-  { label: 'JavaScript (.js)', value: 'js' },
-  { label: 'TypeScript (.ts)', value: 'ts' },
-  { label: 'Python (.py)', value: 'py' },
-  { label: 'Java (.java)', value: 'java' },
-  { label: 'C++ (.cpp)', value: 'cpp' },
-  { label: 'HTML (.html)', value: 'html' },
-  { label: 'CSS (.css)', value: 'css' },
-  { label: 'JSON (.json)', value: 'json' },
-  { label: 'Text (.txt)', value: 'txt' }
+  { label: "Markdown (.md)", value: "md" },
+  { label: "JavaScript (.js)", value: "js" },
+  { label: "TypeScript (.ts)", value: "ts" },
+  { label: "Python (.py)", value: "py" },
+  { label: "Java (.java)", value: "java" },
+  { label: "C++ (.cpp)", value: "cpp" },
+  { label: "HTML (.html)", value: "html" },
+  { label: "CSS (.css)", value: "css" },
+  { label: "JSON (.json)", value: "json" },
+  { label: "Text (.txt)", value: "txt" },
 ];
 
 // 索引历史
 const indexHistory = ref([]);
 
 // 测试查询
-const testQuery = ref('');
+const testQuery = ref("");
 const queryResult = ref(null);
 
 /**
@@ -287,11 +248,13 @@ const queryResult = ref(null);
  */
 async function handleRefresh() {
   try {
-    const result = await window.electronAPI.project.getIndexStats(props.projectId);
+    const result = await window.electronAPI.project.getIndexStats(
+      props.projectId,
+    );
     stats.value = result;
   } catch (error) {
-    logger.error('获取索引统计失败:', error);
-    message.error('获取索引统计失败');
+    logger.error("获取索引统计失败:", error);
+    message.error("获取索引统计失败");
   }
 }
 
@@ -303,21 +266,24 @@ async function handleIndex() {
 
   try {
     const options = {
-      forceReindex: indexOptions.value.forceReindex
+      forceReindex: indexOptions.value.forceReindex,
     };
 
     if (indexOptions.value.fileTypes.length > 0) {
       options.fileTypes = indexOptions.value.fileTypes;
     }
 
-    const result = await window.electronAPI.project.indexFiles(props.projectId, options);
+    const result = await window.electronAPI.project.indexFiles(
+      props.projectId,
+      options,
+    );
 
     // 添加到历史
     indexHistory.value.unshift({
       timestamp: Date.now(),
       success: true,
       indexedCount: result.indexedCount,
-      skippedCount: result.skippedCount
+      skippedCount: result.skippedCount,
     });
 
     // 限制历史记录数量
@@ -329,17 +295,16 @@ async function handleIndex() {
 
     // 刷新统计
     await handleRefresh();
-
   } catch (error) {
-    logger.error('索引失败:', error);
+    logger.error("索引失败:", error);
 
     indexHistory.value.unshift({
       timestamp: Date.now(),
       success: false,
-      error: error.message
+      error: error.message,
     });
 
-    message.error('索引失败: ' + error.message);
+    message.error("索引失败: " + error.message);
   } finally {
     indexing.value = false;
   }
@@ -350,7 +315,7 @@ async function handleIndex() {
  */
 async function handleTestQuery() {
   if (!testQuery.value.trim()) {
-    message.warning('请输入测试查询');
+    message.warning("请输入测试查询");
     return;
   }
 
@@ -365,16 +330,15 @@ async function handleTestQuery() {
         projectLimit: 5,
         knowledgeLimit: 3,
         conversationLimit: 3,
-        useReranker: true
-      }
+        useReranker: true,
+      },
     );
 
     queryResult.value = result;
     message.success(`找到 ${result.totalDocs} 个相关文档`);
-
   } catch (error) {
-    logger.error('RAG查询失败:', error);
-    message.error('查询失败: ' + error.message);
+    logger.error("RAG查询失败:", error);
+    message.error("查询失败: " + error.message);
   } finally {
     querying.value = false;
   }
@@ -385,7 +349,7 @@ async function handleTestQuery() {
  */
 function formatTime(timestamp) {
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 }
 
 // 初始化

@@ -9,28 +9,28 @@
  * - 余额管理
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * 资产类型
  */
 const AssetType = {
-  TOKEN: 'token',           // 可替代通证
-  NFT: 'nft',              // 非同质化代币
-  KNOWLEDGE: 'knowledge',   // 知识产品
-  SERVICE: 'service',       // 服务凭证
+  TOKEN: "token", // 可替代通证
+  NFT: "nft", // 非同质化代币
+  KNOWLEDGE: "knowledge", // 知识产品
+  SERVICE: "service", // 服务凭证
 };
 
 /**
  * 转账类型
  */
 const TransactionType = {
-  TRANSFER: 'transfer',     // 转账
-  MINT: 'mint',            // 铸造
-  BURN: 'burn',            // 销毁
-  TRADE: 'trade',          // 交易
+  TRANSFER: "transfer", // 转账
+  MINT: "mint", // 铸造
+  BURN: "burn", // 销毁
+  TRADE: "trade", // 交易
 };
 
 /**
@@ -52,16 +52,16 @@ class AssetManager extends EventEmitter {
    * 初始化资产管理器
    */
   async initialize() {
-    logger.info('[AssetManager] 初始化资产管理器...');
+    logger.info("[AssetManager] 初始化资产管理器...");
 
     try {
       // 初始化数据库表
       await this.initializeTables();
 
       this.initialized = true;
-      logger.info('[AssetManager] 资产管理器初始化成功');
+      logger.info("[AssetManager] 资产管理器初始化成功");
     } catch (error) {
-      logger.error('[AssetManager] 初始化失败:', error);
+      logger.error("[AssetManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -145,7 +145,7 @@ class AssetManager extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_blockchain_assets_contract ON blockchain_assets(contract_address, chain_id);
     `);
 
-    logger.info('[AssetManager] 数据库表初始化完成');
+    logger.info("[AssetManager] 数据库表初始化完成");
   }
 
   /**
@@ -174,26 +174,26 @@ class AssetManager extends EventEmitter {
     onChain = false,
     chainId = null,
     walletId = null,
-    password = null
+    password = null,
   }) {
     try {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
       if (!currentDid) {
-        throw new Error('未登录，无法创建资产');
+        throw new Error("未登录，无法创建资产");
       }
 
       if (!Object.values(AssetType).includes(type)) {
-        throw new Error('无效的资产类型');
+        throw new Error("无效的资产类型");
       }
 
       if (!name || name.trim().length === 0) {
-        throw new Error('资产名称不能为空');
+        throw new Error("资产名称不能为空");
       }
 
       // Token 类型需要 symbol
       if (type === AssetType.TOKEN && !symbol) {
-        throw new Error('Token 资产必须指定 symbol');
+        throw new Error("Token 资产必须指定 symbol");
       }
 
       // NFT 每个都是唯一的，总供应量为 1
@@ -207,11 +207,13 @@ class AssetManager extends EventEmitter {
       const db = this.database.db;
 
       // 插入资产记录
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO assets
         (id, asset_type, name, symbol, description, metadata, creator_did, total_supply, decimals, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         assetId,
         type,
         name.trim(),
@@ -221,7 +223,7 @@ class AssetManager extends EventEmitter {
         currentDid,
         totalSupply,
         decimals,
-        now
+        now,
       );
 
       // 如果有初始供应量，铸造给创建者
@@ -242,7 +244,7 @@ class AssetManager extends EventEmitter {
         created_at: now,
       };
 
-      logger.info('[AssetManager] 已创建资产:', assetId);
+      logger.info("[AssetManager] 已创建资产:", assetId);
 
       // 如果需要部署到区块链
       if (onChain && this.blockchainAdapter) {
@@ -255,23 +257,26 @@ class AssetManager extends EventEmitter {
             totalSupply,
             chainId,
             walletId,
-            password
+            password,
           });
 
-          logger.info('[AssetManager] 资产已成功部署到区块链');
-          this.emit('asset:deployed', { asset });
+          logger.info("[AssetManager] 资产已成功部署到区块链");
+          this.emit("asset:deployed", { asset });
         } catch (error) {
-          logger.error('[AssetManager] 区块链部署失败:', error);
+          logger.error("[AssetManager] 区块链部署失败:", error);
           // 部署失败不影响本地资产创建，只记录错误
-          this.emit('asset:deployment-failed', { assetId, error: error.message });
+          this.emit("asset:deployment-failed", {
+            assetId,
+            error: error.message,
+          });
         }
       }
 
-      this.emit('asset:created', { asset });
+      this.emit("asset:created", { asset });
 
       return asset;
     } catch (error) {
-      logger.error('[AssetManager] 创建资产失败:', error);
+      logger.error("[AssetManager] 创建资产失败:", error);
       throw error;
     }
   }
@@ -287,61 +292,77 @@ class AssetManager extends EventEmitter {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
       if (!currentDid) {
-        throw new Error('未登录');
+        throw new Error("未登录");
       }
 
       if (amount <= 0) {
-        throw new Error('铸造数量必须大于 0');
+        throw new Error("铸造数量必须大于 0");
       }
 
       const db = this.database.db;
 
       // 检查资产是否存在
-      const asset = db.prepare('SELECT * FROM assets WHERE id = ?').get(assetId);
+      const asset = db
+        .prepare("SELECT * FROM assets WHERE id = ?")
+        .get(assetId);
 
       if (!asset) {
-        throw new Error('资产不存在');
+        throw new Error("资产不存在");
       }
 
       // 只有创建者可以铸造
       if (asset.creator_did !== currentDid) {
-        throw new Error('只有创建者可以铸造资产');
+        throw new Error("只有创建者可以铸造资产");
       }
 
       // NFT 不能铸造
       if (asset.asset_type === AssetType.NFT) {
-        throw new Error('NFT 资产不能铸造');
+        throw new Error("NFT 资产不能铸造");
       }
 
       const now = Date.now();
       const transferId = uuidv4();
 
       // 更新总供应量
-      db.prepare('UPDATE assets SET total_supply = total_supply + ? WHERE id = ?').run(amount, assetId);
+      db.prepare(
+        "UPDATE assets SET total_supply = total_supply + ? WHERE id = ?",
+      ).run(amount, assetId);
 
       // 更新持有记录
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO asset_holdings (asset_id, owner_did, amount, acquired_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(asset_id, owner_did) DO UPDATE SET
           amount = amount + ?,
           updated_at = ?
-      `).run(assetId, toDid, amount, now, now, amount, now);
+      `,
+      ).run(assetId, toDid, amount, now, now, amount, now);
 
       // 记录转账
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO asset_transfers
         (id, asset_id, from_did, to_did, amount, transaction_type, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(transferId, assetId, 'SYSTEM', toDid, amount, TransactionType.MINT, now);
+      `,
+      ).run(
+        transferId,
+        assetId,
+        "SYSTEM",
+        toDid,
+        amount,
+        TransactionType.MINT,
+        now,
+      );
 
-      logger.info('[AssetManager] 已铸造资产:', assetId, amount);
+      logger.info("[AssetManager] 已铸造资产:", assetId, amount);
 
-      this.emit('asset:minted', { assetId, toDid, amount });
+      this.emit("asset:minted", { assetId, toDid, amount });
 
       return { success: true, transferId };
     } catch (error) {
-      logger.error('[AssetManager] 铸造资产失败:', error);
+      logger.error("[AssetManager] 铸造资产失败:", error);
       throw error;
     }
   }
@@ -358,36 +379,38 @@ class AssetManager extends EventEmitter {
    * @param {string} onChainOptions.walletId - 钱包 ID
    * @param {string} onChainOptions.password - 钱包密码
    */
-  async transferAsset(assetId, toDid, amount, memo = '', onChainOptions = {}) {
+  async transferAsset(assetId, toDid, amount, memo = "", onChainOptions = {}) {
     try {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
       if (!currentDid) {
-        throw new Error('未登录');
+        throw new Error("未登录");
       }
 
       if (currentDid === toDid) {
-        throw new Error('不能转账给自己');
+        throw new Error("不能转账给自己");
       }
 
       if (amount <= 0) {
-        throw new Error('转账数量必须大于 0');
+        throw new Error("转账数量必须大于 0");
       }
 
       const db = this.database.db;
 
       // 检查资产是否存在
-      const asset = db.prepare('SELECT * FROM assets WHERE id = ?').get(assetId);
+      const asset = db
+        .prepare("SELECT * FROM assets WHERE id = ?")
+        .get(assetId);
 
       if (!asset) {
-        throw new Error('资产不存在');
+        throw new Error("资产不存在");
       }
 
       // 检查余额
       const balance = await this.getBalance(currentDid, assetId);
 
       if (balance < amount) {
-        throw new Error('余额不足');
+        throw new Error("余额不足");
       }
 
       const now = Date.now();
@@ -400,48 +423,49 @@ class AssetManager extends EventEmitter {
           const blockchainAsset = await this._getBlockchainAsset(assetId);
 
           if (!blockchainAsset) {
-            throw new Error('该资产未部署到区块链，无法执行链上转账');
+            throw new Error("该资产未部署到区块链，无法执行链上转账");
           }
 
           if (!onChainOptions.toAddress) {
-            throw new Error('链上转账需要提供接收者区块链地址');
+            throw new Error("链上转账需要提供接收者区块链地址");
           }
 
           if (!onChainOptions.walletId || !onChainOptions.password) {
-            throw new Error('链上转账需要提供钱包 ID 和密码');
+            throw new Error("链上转账需要提供钱包 ID 和密码");
           }
 
-          logger.info('[AssetManager] 执行链上转账:', {
+          logger.info("[AssetManager] 执行链上转账:", {
             contractAddress: blockchainAsset.contract_address,
             chainId: blockchainAsset.chain_id,
             to: onChainOptions.toAddress,
-            amount
+            amount,
           });
 
           // 切换到资产所在的链
           await this.blockchainAdapter.switchChain(blockchainAsset.chain_id);
 
           // 执行链上转账
-          if (blockchainAsset.token_type === 'ERC20') {
+          if (blockchainAsset.token_type === "ERC20") {
             // ERC-20 代币转账
             blockchainTxHash = await this.blockchainAdapter.transferToken(
               onChainOptions.walletId,
               blockchainAsset.contract_address,
               onChainOptions.toAddress,
               amount.toString(),
-              onChainOptions.password
+              onChainOptions.password,
             );
-          } else if (blockchainAsset.token_type === 'ERC721') {
+          } else if (blockchainAsset.token_type === "ERC721") {
             // ERC-721 NFT 转账
             if (!blockchainAsset.token_id) {
-              throw new Error('NFT 资产缺少 token_id');
+              throw new Error("NFT 资产缺少 token_id");
             }
 
             // 获取发送者的区块链地址
-            const wallet = await this.blockchainAdapter.walletManager.unlockWallet(
-              onChainOptions.walletId,
-              onChainOptions.password
-            );
+            const wallet =
+              await this.blockchainAdapter.walletManager.unlockWallet(
+                onChainOptions.walletId,
+                onChainOptions.password,
+              );
             const fromAddress = await wallet.getAddress();
 
             blockchainTxHash = await this.blockchainAdapter.transferNFT(
@@ -450,20 +474,20 @@ class AssetManager extends EventEmitter {
               fromAddress,
               onChainOptions.toAddress,
               blockchainAsset.token_id,
-              onChainOptions.password
+              onChainOptions.password,
             );
           } else {
             throw new Error(`不支持的代币类型: ${blockchainAsset.token_type}`);
           }
 
-          logger.info('[AssetManager] 链上转账成功:', blockchainTxHash);
-          this.emit('asset:on-chain-transferred', {
+          logger.info("[AssetManager] 链上转账成功:", blockchainTxHash);
+          this.emit("asset:on-chain-transferred", {
             assetId,
             txHash: blockchainTxHash,
-            chainId: blockchainAsset.chain_id
+            chainId: blockchainAsset.chain_id,
           });
         } catch (error) {
-          logger.error('[AssetManager] 链上转账失败:', error);
+          logger.error("[AssetManager] 链上转账失败:", error);
           // 链上转账失败，抛出错误，不执行本地转账
           throw new Error(`链上转账失败: ${error.message}`);
         }
@@ -471,27 +495,33 @@ class AssetManager extends EventEmitter {
 
       // 执行本地转账（记录）
       // 扣除发送者余额
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE asset_holdings
         SET amount = amount - ?, updated_at = ?
         WHERE asset_id = ? AND owner_did = ?
-      `).run(amount, now, assetId, currentDid);
+      `,
+      ).run(amount, now, assetId, currentDid);
 
       // 增加接收者余额
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO asset_holdings (asset_id, owner_did, amount, acquired_at, updated_at)
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(asset_id, owner_did) DO UPDATE SET
           amount = amount + ?,
           updated_at = ?
-      `).run(assetId, toDid, amount, now, now, amount, now);
+      `,
+      ).run(assetId, toDid, amount, now, now, amount, now);
 
       // 记录转账（包含链上交易哈希）
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO asset_transfers
         (id, asset_id, from_did, to_did, amount, transaction_type, transaction_id, memo, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         transferId,
         assetId,
         currentDid,
@@ -500,44 +530,54 @@ class AssetManager extends EventEmitter {
         TransactionType.TRANSFER,
         blockchainTxHash,
         memo,
-        now
+        now,
       );
 
-      logger.info('[AssetManager] 已转账资产:', assetId, currentDid, '->', toDid, amount);
+      logger.info(
+        "[AssetManager] 已转账资产:",
+        assetId,
+        currentDid,
+        "->",
+        toDid,
+        amount,
+      );
 
       // 通过 P2P 通知接收者
       if (this.p2pManager) {
         try {
-          await this.p2pManager.sendEncryptedMessage(toDid, JSON.stringify({
-            type: 'asset-transfer',
-            transferId,
-            assetId,
-            fromDid: currentDid,
-            amount,
-            memo,
-            blockchainTxHash,
-            timestamp: now,
-          }));
+          await this.p2pManager.sendEncryptedMessage(
+            toDid,
+            JSON.stringify({
+              type: "asset-transfer",
+              transferId,
+              assetId,
+              fromDid: currentDid,
+              amount,
+              memo,
+              blockchainTxHash,
+              timestamp: now,
+            }),
+          );
         } catch (error) {
-          logger.warn('[AssetManager] 通知接收者失败:', error.message);
+          logger.warn("[AssetManager] 通知接收者失败:", error.message);
         }
       }
 
-      this.emit('asset:transferred', {
+      this.emit("asset:transferred", {
         assetId,
         fromDid: currentDid,
         toDid,
         amount,
-        blockchainTxHash
+        blockchainTxHash,
       });
 
       return {
         success: true,
         transferId,
-        blockchainTxHash
+        blockchainTxHash,
       };
     } catch (error) {
-      logger.error('[AssetManager] 转账失败:', error);
+      logger.error("[AssetManager] 转账失败:", error);
       throw error;
     }
   }
@@ -552,56 +592,72 @@ class AssetManager extends EventEmitter {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
       if (!currentDid) {
-        throw new Error('未登录');
+        throw new Error("未登录");
       }
 
       if (amount <= 0) {
-        throw new Error('销毁数量必须大于 0');
+        throw new Error("销毁数量必须大于 0");
       }
 
       const db = this.database.db;
 
       // 检查资产是否存在
-      const asset = db.prepare('SELECT * FROM assets WHERE id = ?').get(assetId);
+      const asset = db
+        .prepare("SELECT * FROM assets WHERE id = ?")
+        .get(assetId);
 
       if (!asset) {
-        throw new Error('资产不存在');
+        throw new Error("资产不存在");
       }
 
       // 检查余额
       const balance = await this.getBalance(currentDid, assetId);
 
       if (balance < amount) {
-        throw new Error('余额不足');
+        throw new Error("余额不足");
       }
 
       const now = Date.now();
       const transferId = uuidv4();
 
       // 扣除余额
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE asset_holdings
         SET amount = amount - ?, updated_at = ?
         WHERE asset_id = ? AND owner_did = ?
-      `).run(amount, now, assetId, currentDid);
+      `,
+      ).run(amount, now, assetId, currentDid);
 
       // 更新总供应量
-      db.prepare('UPDATE assets SET total_supply = total_supply - ? WHERE id = ?').run(amount, assetId);
+      db.prepare(
+        "UPDATE assets SET total_supply = total_supply - ? WHERE id = ?",
+      ).run(amount, assetId);
 
       // 记录转账
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO asset_transfers
         (id, asset_id, from_did, to_did, amount, transaction_type, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(transferId, assetId, currentDid, 'BURNED', amount, TransactionType.BURN, now);
+      `,
+      ).run(
+        transferId,
+        assetId,
+        currentDid,
+        "BURNED",
+        amount,
+        TransactionType.BURN,
+        now,
+      );
 
-      logger.info('[AssetManager] 已销毁资产:', assetId, amount);
+      logger.info("[AssetManager] 已销毁资产:", assetId, amount);
 
-      this.emit('asset:burned', { assetId, fromDid: currentDid, amount });
+      this.emit("asset:burned", { assetId, fromDid: currentDid, amount });
 
       return { success: true, transferId };
     } catch (error) {
-      logger.error('[AssetManager] 销毁资产失败:', error);
+      logger.error("[AssetManager] 销毁资产失败:", error);
       throw error;
     }
   }
@@ -615,84 +671,100 @@ class AssetManager extends EventEmitter {
    * @param {string} password - 钱包密码
    * @param {string} memo - 备注
    */
-  async transferNFTOnChain(assetId, toDid, toAddress, walletId, password, memo = '') {
+  async transferNFTOnChain(
+    assetId,
+    toDid,
+    toAddress,
+    walletId,
+    password,
+    memo = "",
+  ) {
     try {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
       if (!currentDid) {
-        throw new Error('未登录');
+        throw new Error("未登录");
       }
 
       if (currentDid === toDid) {
-        throw new Error('不能转账给自己');
+        throw new Error("不能转账给自己");
       }
 
       if (!this.blockchainAdapter) {
-        throw new Error('区块链适配器未初始化');
+        throw new Error("区块链适配器未初始化");
       }
 
       const db = this.database.db;
 
       // 检查资产是否存在
-      const asset = db.prepare('SELECT * FROM assets WHERE id = ?').get(assetId);
+      const asset = db
+        .prepare("SELECT * FROM assets WHERE id = ?")
+        .get(assetId);
 
       if (!asset) {
-        throw new Error('资产不存在');
+        throw new Error("资产不存在");
       }
 
       // 验证是 NFT 类型
       if (asset.asset_type !== AssetType.NFT) {
-        throw new Error('该资产不是 NFT 类型');
+        throw new Error("该资产不是 NFT 类型");
       }
 
       // 检查余额（NFT 余额应该是 1）
       const balance = await this.getBalance(currentDid, assetId);
 
       if (balance < 1) {
-        throw new Error('您不拥有此 NFT');
+        throw new Error("您不拥有此 NFT");
       }
 
       // 获取区块链资产信息
       const blockchainAsset = await this._getBlockchainAsset(assetId);
 
       if (!blockchainAsset) {
-        throw new Error('该 NFT 未部署到区块链，无法执行链上转账');
+        throw new Error("该 NFT 未部署到区块链，无法执行链上转账");
       }
 
-      if (blockchainAsset.token_type !== 'ERC721') {
-        throw new Error(`资产类型不匹配，预期 ERC721，实际 ${blockchainAsset.token_type}`);
+      if (blockchainAsset.token_type !== "ERC721") {
+        throw new Error(
+          `资产类型不匹配，预期 ERC721，实际 ${blockchainAsset.token_type}`,
+        );
       }
 
       if (!blockchainAsset.token_id) {
-        throw new Error('NFT 缺少 token_id');
+        throw new Error("NFT 缺少 token_id");
       }
 
-      logger.info('[AssetManager] 执行 NFT 链上转账:', {
+      logger.info("[AssetManager] 执行 NFT 链上转账:", {
         contractAddress: blockchainAsset.contract_address,
         chainId: blockchainAsset.chain_id,
         tokenId: blockchainAsset.token_id,
-        to: toAddress
+        to: toAddress,
       });
 
       // 切换到资产所在的链
       await this.blockchainAdapter.switchChain(blockchainAsset.chain_id);
 
       // 获取发送者的区块链地址
-      const wallet = await this.blockchainAdapter.walletManager.unlockWallet(walletId, password);
+      const wallet = await this.blockchainAdapter.walletManager.unlockWallet(
+        walletId,
+        password,
+      );
       const fromAddress = await wallet.getAddress();
 
       // 验证链上所有权
       try {
         const onChainOwner = await this.blockchainAdapter.getNFTOwner(
           blockchainAsset.contract_address,
-          blockchainAsset.token_id
+          blockchainAsset.token_id,
         );
 
         if (onChainOwner.toLowerCase() !== fromAddress.toLowerCase()) {
-          throw new Error(`链上所有权验证失败。当前所有者: ${onChainOwner}, 您的地址: ${fromAddress}`);
+          throw new Error(
+            `链上所有权验证失败。当前所有者: ${onChainOwner}, 您的地址: ${fromAddress}`,
+          );
         }
       } catch (error) {
-        logger.error('[AssetManager] 链上所有权验证失败:', error);
+        logger.error("[AssetManager] 链上所有权验证失败:", error);
         throw new Error(`无法验证链上所有权: ${error.message}`);
       }
 
@@ -703,37 +775,43 @@ class AssetManager extends EventEmitter {
         fromAddress,
         toAddress,
         blockchainAsset.token_id,
-        password
+        password,
       );
 
-      logger.info('[AssetManager] NFT 链上转账成功:', blockchainTxHash);
+      logger.info("[AssetManager] NFT 链上转账成功:", blockchainTxHash);
 
       // 执行本地转账（记录）
       const now = Date.now();
       const transferId = uuidv4();
 
       // 扣除发送者余额
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE asset_holdings
         SET amount = 0, updated_at = ?
         WHERE asset_id = ? AND owner_did = ?
-      `).run(now, assetId, currentDid);
+      `,
+      ).run(now, assetId, currentDid);
 
       // 增加接收者余额
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO asset_holdings (asset_id, owner_did, amount, acquired_at, updated_at)
         VALUES (?, ?, 1, ?, ?)
         ON CONFLICT(asset_id, owner_did) DO UPDATE SET
           amount = 1,
           updated_at = ?
-      `).run(assetId, toDid, now, now, now);
+      `,
+      ).run(assetId, toDid, now, now, now);
 
       // 记录转账（包含链上交易哈希）
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO asset_transfers
         (id, asset_id, from_did, to_did, amount, transaction_type, transaction_id, memo, created_at)
         VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         transferId,
         assetId,
         currentDid,
@@ -741,40 +819,43 @@ class AssetManager extends EventEmitter {
         TransactionType.TRANSFER,
         blockchainTxHash,
         memo,
-        now
+        now,
       );
 
-      logger.info('[AssetManager] NFT 本地记录已更新');
+      logger.info("[AssetManager] NFT 本地记录已更新");
 
       // 通过 P2P 通知接收者
       if (this.p2pManager) {
         try {
-          await this.p2pManager.sendEncryptedMessage(toDid, JSON.stringify({
-            type: 'nft-transfer',
-            transferId,
-            assetId,
-            fromDid: currentDid,
-            toAddress,
-            blockchainTxHash,
-            chainId: blockchainAsset.chain_id,
-            contractAddress: blockchainAsset.contract_address,
-            tokenId: blockchainAsset.token_id,
-            memo,
-            timestamp: now,
-          }));
+          await this.p2pManager.sendEncryptedMessage(
+            toDid,
+            JSON.stringify({
+              type: "nft-transfer",
+              transferId,
+              assetId,
+              fromDid: currentDid,
+              toAddress,
+              blockchainTxHash,
+              chainId: blockchainAsset.chain_id,
+              contractAddress: blockchainAsset.contract_address,
+              tokenId: blockchainAsset.token_id,
+              memo,
+              timestamp: now,
+            }),
+          );
         } catch (error) {
-          logger.warn('[AssetManager] 通知接收者失败:', error.message);
+          logger.warn("[AssetManager] 通知接收者失败:", error.message);
         }
       }
 
-      this.emit('nft:transferred', {
+      this.emit("nft:transferred", {
         assetId,
         fromDid: currentDid,
         toDid,
         toAddress,
         blockchainTxHash,
         chainId: blockchainAsset.chain_id,
-        tokenId: blockchainAsset.token_id
+        tokenId: blockchainAsset.token_id,
       });
 
       return {
@@ -782,10 +863,10 @@ class AssetManager extends EventEmitter {
         transferId,
         blockchainTxHash,
         chainId: blockchainAsset.chain_id,
-        tokenId: blockchainAsset.token_id
+        tokenId: blockchainAsset.token_id,
       };
     } catch (error) {
-      logger.error('[AssetManager] NFT 转账失败:', error);
+      logger.error("[AssetManager] NFT 转账失败:", error);
       throw error;
     }
   }
@@ -797,7 +878,9 @@ class AssetManager extends EventEmitter {
   async getAsset(assetId) {
     try {
       const db = this.database.db;
-      const asset = db.prepare('SELECT * FROM assets WHERE id = ?').get(assetId);
+      const asset = db
+        .prepare("SELECT * FROM assets WHERE id = ?")
+        .get(assetId);
 
       if (!asset) {
         return null;
@@ -808,7 +891,7 @@ class AssetManager extends EventEmitter {
         metadata: asset.metadata ? JSON.parse(asset.metadata) : {},
       };
     } catch (error) {
-      logger.error('[AssetManager] 获取资产失败:', error);
+      logger.error("[AssetManager] 获取资产失败:", error);
       throw error;
     }
   }
@@ -821,7 +904,9 @@ class AssetManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const holdings = db.prepare(`
+      const holdings = db
+        .prepare(
+          `
         SELECT
           h.*,
           a.asset_type,
@@ -834,14 +919,16 @@ class AssetManager extends EventEmitter {
         JOIN assets a ON h.asset_id = a.id
         WHERE h.owner_did = ? AND h.amount > 0
         ORDER BY h.updated_at DESC
-      `).all(ownerDid);
+      `,
+        )
+        .all(ownerDid);
 
-      return holdings.map(h => ({
+      return holdings.map((h) => ({
         ...h,
         metadata: h.metadata ? JSON.parse(h.metadata) : {},
       }));
     } catch (error) {
-      logger.error('[AssetManager] 获取资产列表失败:', error);
+      logger.error("[AssetManager] 获取资产列表失败:", error);
       throw error;
     }
   }
@@ -855,14 +942,18 @@ class AssetManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      return db.prepare(`
+      return db
+        .prepare(
+          `
         SELECT * FROM asset_transfers
         WHERE asset_id = ?
         ORDER BY created_at DESC
         LIMIT ?
-      `).all(assetId, limit);
+      `,
+        )
+        .all(assetId, limit);
     } catch (error) {
-      logger.error('[AssetManager] 获取资产历史失败:', error);
+      logger.error("[AssetManager] 获取资产历史失败:", error);
       throw error;
     }
   }
@@ -876,14 +967,18 @@ class AssetManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const holding = db.prepare(`
+      const holding = db
+        .prepare(
+          `
         SELECT amount FROM asset_holdings
         WHERE owner_did = ? AND asset_id = ?
-      `).get(ownerDid, assetId);
+      `,
+        )
+        .get(ownerDid, assetId);
 
       return holding ? holding.amount : 0;
     } catch (error) {
-      logger.error('[AssetManager] 获取余额失败:', error);
+      logger.error("[AssetManager] 获取余额失败:", error);
       return 0;
     }
   }
@@ -896,34 +991,34 @@ class AssetManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      let query = 'SELECT * FROM assets WHERE 1=1';
+      let query = "SELECT * FROM assets WHERE 1=1";
       const params = [];
 
       if (filters.type) {
-        query += ' AND asset_type = ?';
+        query += " AND asset_type = ?";
         params.push(filters.type);
       }
 
       if (filters.creatorDid) {
-        query += ' AND creator_did = ?';
+        query += " AND creator_did = ?";
         params.push(filters.creatorDid);
       }
 
-      query += ' ORDER BY created_at DESC';
+      query += " ORDER BY created_at DESC";
 
       if (filters.limit) {
-        query += ' LIMIT ?';
+        query += " LIMIT ?";
         params.push(filters.limit);
       }
 
       const assets = db.prepare(query).all(...params);
 
-      return assets.map(a => ({
+      return assets.map((a) => ({
         ...a,
         metadata: a.metadata ? JSON.parse(a.metadata) : {},
       }));
     } catch (error) {
-      logger.error('[AssetManager] 获取资产列表失败:', error);
+      logger.error("[AssetManager] 获取资产列表失败:", error);
       throw error;
     }
   }
@@ -934,14 +1029,23 @@ class AssetManager extends EventEmitter {
    * @param {Object} options - 部署选项
    */
   async _deployAssetToBlockchain(assetId, options) {
-    const { type, name, symbol, decimals, totalSupply, chainId, walletId, password } = options;
+    const {
+      type,
+      name,
+      symbol,
+      decimals,
+      totalSupply,
+      chainId,
+      walletId,
+      password,
+    } = options;
 
     if (!this.blockchainAdapter) {
-      throw new Error('区块链适配器未初始化');
+      throw new Error("区块链适配器未初始化");
     }
 
     if (!chainId || !walletId || !password) {
-      throw new Error('缺少必要参数: chainId, walletId, password');
+      throw new Error("缺少必要参数: chainId, walletId, password");
     }
 
     // 切换到目标链
@@ -956,12 +1060,12 @@ class AssetManager extends EventEmitter {
         symbol,
         decimals,
         initialSupply: totalSupply.toString(),
-        password
+        password,
       });
 
       contractAddress = result.address;
       deploymentTx = result.txHash;
-      tokenType = 'ERC20';
+      tokenType = "ERC20";
 
       logger.info(`[AssetManager] ERC-20 代币已部署: ${contractAddress}`);
     } else if (type === AssetType.NFT) {
@@ -969,12 +1073,12 @@ class AssetManager extends EventEmitter {
       const result = await this.blockchainAdapter.deployNFT(walletId, {
         name,
         symbol,
-        password
+        password,
       });
 
       contractAddress = result.address;
       deploymentTx = result.txHash;
-      tokenType = 'ERC721';
+      tokenType = "ERC721";
 
       logger.info(`[AssetManager] ERC-721 NFT 已部署: ${contractAddress}`);
     } else {
@@ -987,7 +1091,7 @@ class AssetManager extends EventEmitter {
       contractAddress,
       chainId,
       tokenType,
-      deploymentTx
+      deploymentTx,
     });
 
     return { contractAddress, deploymentTx, tokenType };
@@ -998,17 +1102,35 @@ class AssetManager extends EventEmitter {
    * @param {Object} options - 区块链资产信息
    */
   async _saveBlockchainAsset(options) {
-    const { localAssetId, contractAddress, chainId, tokenType, tokenId = null, deploymentTx } = options;
+    const {
+      localAssetId,
+      contractAddress,
+      chainId,
+      tokenType,
+      tokenId = null,
+      deploymentTx,
+    } = options;
 
     const db = this.database.db;
     const now = Date.now();
     const id = uuidv4();
 
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO blockchain_assets
       (id, local_asset_id, contract_address, chain_id, token_type, token_id, deployment_tx, deployed_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, localAssetId, contractAddress, chainId, tokenType, tokenId, deploymentTx, now);
+    `,
+    ).run(
+      id,
+      localAssetId,
+      contractAddress,
+      chainId,
+      tokenType,
+      tokenId,
+      deploymentTx,
+      now,
+    );
 
     logger.info(`[AssetManager] 已保存区块链资产记录: ${id}`);
 
@@ -1023,14 +1145,18 @@ class AssetManager extends EventEmitter {
     try {
       const db = this.database.db;
 
-      const blockchainAsset = db.prepare(`
+      const blockchainAsset = db
+        .prepare(
+          `
         SELECT * FROM blockchain_assets
         WHERE local_asset_id = ?
-      `).get(assetId);
+      `,
+        )
+        .get(assetId);
 
       return blockchainAsset || null;
     } catch (error) {
-      logger.error('[AssetManager] 获取区块链资产失败:', error);
+      logger.error("[AssetManager] 获取区块链资产失败:", error);
       return null;
     }
   }
@@ -1039,7 +1165,7 @@ class AssetManager extends EventEmitter {
    * 关闭资产管理器
    */
   async close() {
-    logger.info('[AssetManager] 关闭资产管理器');
+    logger.info("[AssetManager] 关闭资产管理器");
 
     this.removeAllListeners();
     this.initialized = false;

@@ -6,9 +6,9 @@
  * @description 提供组织创建、成员管理、权限控制、邀请管理、知识库等完整的企业协作功能 IPC 接口
  */
 
-const { logger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
 
 /**
  * 注册所有 Organization IPC 处理器
@@ -26,20 +26,34 @@ function registerOrganizationIPC({
   versionManager,
   ipcMain: injectedIpcMain,
   dialog: injectedDialog,
-  app: injectedApp
+  app: injectedApp,
 }) {
   // 支持依赖注入，用于测试
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
   const dialog = injectedDialog || electron.dialog;
   const electronApp = injectedApp || electron.app;
 
-  logger.info('[Organization IPC] Registering Organization IPC handlers...');
-  logger.info('[Organization IPC] organizationManager初始化状态:', {
+  logger.info("[Organization IPC] Registering Organization IPC handlers...");
+  logger.info("[Organization IPC] organizationManager初始化状态:", {
     exists: !!organizationManager,
     type: typeof organizationManager,
-    constructor: organizationManager?.constructor?.name
+    constructor: organizationManager?.constructor?.name,
   });
+
+  // 安全注册helper，防止单个handler注册失败导致后续handler全部丢失
+  let registeredCount = 0;
+  const safeHandle = (channel, handler) => {
+    try {
+      ipcMain.handle(channel, handler);
+      registeredCount++;
+    } catch (err) {
+      logger.warn(
+        `[Organization IPC] 注册 ${channel} 失败（可能已注册）:`,
+        err.message,
+      );
+    }
+  };
 
   // ============================================================
   // 组织基础操作 (Basic Organization Operations) - 12 handlers
@@ -49,15 +63,15 @@ function registerOrganizationIPC({
    * 创建组织
    * Channel: 'org:create-organization'
    */
-  ipcMain.handle('org:create-organization', async (_event, orgData) => {
+  safeHandle("org:create-organization", async (_event, orgData) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       return await organizationManager.createOrganization(orgData);
     } catch (error) {
-      logger.error('[Organization IPC] 创建组织失败:', error);
+      logger.error("[Organization IPC] 创建组织失败:", error);
       throw error;
     }
   });
@@ -66,15 +80,15 @@ function registerOrganizationIPC({
    * 通过邀请码加入组织
    * Channel: 'org:join-organization'
    */
-  ipcMain.handle('org:join-organization', async (_event, inviteCode) => {
+  safeHandle("org:join-organization", async (_event, inviteCode) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       return await organizationManager.joinOrganization(inviteCode);
     } catch (error) {
-      logger.error('[Organization IPC] 加入组织失败:', error);
+      logger.error("[Organization IPC] 加入组织失败:", error);
       throw error;
     }
   });
@@ -83,15 +97,15 @@ function registerOrganizationIPC({
    * 获取组织信息
    * Channel: 'org:get-organization'
    */
-  ipcMain.handle('org:get-organization', async (_event, orgId) => {
+  ipcMain.handle("org:get-organization", async (_event, orgId) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       return await organizationManager.getOrganization(orgId);
     } catch (error) {
-      logger.error('[Organization IPC] 获取组织信息失败:', error);
+      logger.error("[Organization IPC] 获取组织信息失败:", error);
       throw error;
     }
   });
@@ -100,13 +114,21 @@ function registerOrganizationIPC({
    * 更新组织信息
    * Channel: 'org:update-organization'
    */
-  ipcMain.handle('org:update-organization', async (_event, params) => {
+  ipcMain.handle("org:update-organization", async (_event, params) => {
     try {
       if (!organizationManager) {
-        return { success: false, error: '组织管理器未初始化' };
+        return { success: false, error: "组织管理器未初始化" };
       }
 
-      const { orgId, name, type, description, visibility, p2pEnabled, syncMode } = params;
+      const {
+        orgId,
+        name,
+        type,
+        description,
+        visibility,
+        p2pEnabled,
+        syncMode,
+      } = params;
 
       const result = await organizationManager.updateOrganization(orgId, {
         name,
@@ -114,12 +136,12 @@ function registerOrganizationIPC({
         description,
         visibility,
         p2p_enabled: p2pEnabled ? 1 : 0,
-        sync_mode: syncMode
+        sync_mode: syncMode,
       });
 
       return result;
     } catch (error) {
-      logger.error('[Organization IPC] 更新组织失败:', error);
+      logger.error("[Organization IPC] 更新组织失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -128,7 +150,7 @@ function registerOrganizationIPC({
    * 获取用户所属组织列表
    * Channel: 'org:get-user-organizations'
    */
-  ipcMain.handle('org:get-user-organizations', async (_event, userDID) => {
+  ipcMain.handle("org:get-user-organizations", async (_event, userDID) => {
     try {
       if (!organizationManager) {
         return [];
@@ -136,7 +158,7 @@ function registerOrganizationIPC({
 
       return await organizationManager.getUserOrganizations(userDID);
     } catch (error) {
-      logger.error('[Organization IPC] 获取用户组织列表失败:', error);
+      logger.error("[Organization IPC] 获取用户组织列表失败:", error);
       return [];
     }
   });
@@ -145,16 +167,16 @@ function registerOrganizationIPC({
    * 离开组织
    * Channel: 'org:leave-organization'
    */
-  ipcMain.handle('org:leave-organization', async (_event, orgId, userDID) => {
+  ipcMain.handle("org:leave-organization", async (_event, orgId, userDID) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       await organizationManager.leaveOrganization(orgId, userDID);
       return { success: true };
     } catch (error) {
-      logger.error('[Organization IPC] 离开组织失败:', error);
+      logger.error("[Organization IPC] 离开组织失败:", error);
       throw error;
     }
   });
@@ -163,16 +185,16 @@ function registerOrganizationIPC({
    * 删除组织
    * Channel: 'org:delete-organization'
    */
-  ipcMain.handle('org:delete-organization', async (_event, orgId, userDID) => {
+  ipcMain.handle("org:delete-organization", async (_event, orgId, userDID) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       await organizationManager.deleteOrganization(orgId, userDID);
       return { success: true };
     } catch (error) {
-      logger.error('[Organization IPC] 删除组织失败:', error);
+      logger.error("[Organization IPC] 删除组织失败:", error);
       throw error;
     }
   });
@@ -181,7 +203,7 @@ function registerOrganizationIPC({
    * 获取组织成员列表
    * Channel: 'org:get-members'
    */
-  ipcMain.handle('org:get-members', async (_event, orgId) => {
+  ipcMain.handle("org:get-members", async (_event, orgId) => {
     try {
       if (!organizationManager) {
         return [];
@@ -189,7 +211,7 @@ function registerOrganizationIPC({
 
       return await organizationManager.getOrganizationMembers(orgId);
     } catch (error) {
-      logger.error('[Organization IPC] 获取组织成员失败:', error);
+      logger.error("[Organization IPC] 获取组织成员失败:", error);
       return [];
     }
   });
@@ -198,34 +220,37 @@ function registerOrganizationIPC({
    * 更新成员角色
    * Channel: 'org:update-member-role'
    */
-  ipcMain.handle('org:update-member-role', async (_event, orgId, memberDID, newRole) => {
-    try {
-      if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
-      }
+  ipcMain.handle(
+    "org:update-member-role",
+    async (_event, orgId, memberDID, newRole) => {
+      try {
+        if (!organizationManager) {
+          throw new Error("组织管理器未初始化");
+        }
 
-      await organizationManager.updateMemberRole(orgId, memberDID, newRole);
-      return { success: true };
-    } catch (error) {
-      logger.error('[Organization IPC] 更新成员角色失败:', error);
-      throw error;
-    }
-  });
+        await organizationManager.updateMemberRole(orgId, memberDID, newRole);
+        return { success: true };
+      } catch (error) {
+        logger.error("[Organization IPC] 更新成员角色失败:", error);
+        throw error;
+      }
+    },
+  );
 
   /**
    * 移除成员
    * Channel: 'org:remove-member'
    */
-  ipcMain.handle('org:remove-member', async (_event, orgId, memberDID) => {
+  ipcMain.handle("org:remove-member", async (_event, orgId, memberDID) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       await organizationManager.removeMember(orgId, memberDID);
       return { success: true };
     } catch (error) {
-      logger.error('[Organization IPC] 移除成员失败:', error);
+      logger.error("[Organization IPC] 移除成员失败:", error);
       throw error;
     }
   });
@@ -234,34 +259,45 @@ function registerOrganizationIPC({
    * 检查权限
    * Channel: 'org:check-permission'
    */
-  ipcMain.handle('org:check-permission', async (_event, orgId, userDID, permission) => {
-    try {
-      if (!organizationManager) {
+  ipcMain.handle(
+    "org:check-permission",
+    async (_event, orgId, userDID, permission) => {
+      try {
+        if (!organizationManager) {
+          return false;
+        }
+
+        return await organizationManager.checkPermission(
+          orgId,
+          userDID,
+          permission,
+        );
+      } catch (error) {
+        logger.error("[Organization IPC] 检查权限失败:", error);
         return false;
       }
-
-      return await organizationManager.checkPermission(orgId, userDID, permission);
-    } catch (error) {
-      logger.error('[Organization IPC] 检查权限失败:', error);
-      return false;
-    }
-  });
+    },
+  );
 
   /**
    * 获取成员活动历史
    * Channel: 'org:get-member-activities'
    */
-  ipcMain.handle('org:get-member-activities', async (_event, params) => {
+  ipcMain.handle("org:get-member-activities", async (_event, params) => {
     try {
       if (!organizationManager) {
-        return { success: false, error: '组织管理器未初始化', activities: [] };
+        return { success: false, error: "组织管理器未初始化", activities: [] };
       }
 
       const { orgId, memberDID, limit = 10 } = params;
-      const activities = organizationManager.getMemberActivities(orgId, memberDID, limit);
+      const activities = organizationManager.getMemberActivities(
+        orgId,
+        memberDID,
+        limit,
+      );
       return { success: true, activities };
     } catch (error) {
-      logger.error('[Organization IPC] 获取成员活动失败:', error);
+      logger.error("[Organization IPC] 获取成员活动失败:", error);
       return { success: false, error: error.message, activities: [] };
     }
   });
@@ -274,15 +310,15 @@ function registerOrganizationIPC({
    * 创建邀请
    * Channel: 'org:create-invitation'
    */
-  ipcMain.handle('org:create-invitation', async (_event, orgId, inviteData) => {
+  ipcMain.handle("org:create-invitation", async (_event, orgId, inviteData) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       return await organizationManager.createInvitation(orgId, inviteData);
     } catch (error) {
-      logger.error('[Organization IPC] 创建邀请失败:', error);
+      logger.error("[Organization IPC] 创建邀请失败:", error);
       throw error;
     }
   });
@@ -291,16 +327,19 @@ function registerOrganizationIPC({
    * 通过DID邀请用户
    * Channel: 'org:invite-by-did'
    */
-  ipcMain.handle('org:invite-by-did', async (_event, orgId, inviteData) => {
+  ipcMain.handle("org:invite-by-did", async (_event, orgId, inviteData) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
-      const invitation = await organizationManager.inviteByDID(orgId, inviteData);
+      const invitation = await organizationManager.inviteByDID(
+        orgId,
+        inviteData,
+      );
       return invitation;
     } catch (error) {
-      logger.error('[Organization IPC] 通过DID邀请失败:', error);
+      logger.error("[Organization IPC] 通过DID邀请失败:", error);
       throw error;
     }
   });
@@ -309,16 +348,16 @@ function registerOrganizationIPC({
    * 接受DID邀请
    * Channel: 'org:accept-did-invitation'
    */
-  ipcMain.handle('org:accept-did-invitation', async (_event, invitationId) => {
+  ipcMain.handle("org:accept-did-invitation", async (_event, invitationId) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       const org = await organizationManager.acceptDIDInvitation(invitationId);
       return org;
     } catch (error) {
-      logger.error('[Organization IPC] 接受DID邀请失败:', error);
+      logger.error("[Organization IPC] 接受DID邀请失败:", error);
       throw error;
     }
   });
@@ -327,16 +366,17 @@ function registerOrganizationIPC({
    * 拒绝DID邀请
    * Channel: 'org:reject-did-invitation'
    */
-  ipcMain.handle('org:reject-did-invitation', async (_event, invitationId) => {
+  ipcMain.handle("org:reject-did-invitation", async (_event, invitationId) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
-      const result = await organizationManager.rejectDIDInvitation(invitationId);
+      const result =
+        await organizationManager.rejectDIDInvitation(invitationId);
       return { success: result };
     } catch (error) {
-      logger.error('[Organization IPC] 拒绝DID邀请失败:', error);
+      logger.error("[Organization IPC] 拒绝DID邀请失败:", error);
       throw error;
     }
   });
@@ -345,7 +385,7 @@ function registerOrganizationIPC({
    * 获取待处理的DID邀请
    * Channel: 'org:get-pending-did-invitations'
    */
-  ipcMain.handle('org:get-pending-did-invitations', async (_event) => {
+  ipcMain.handle("org:get-pending-did-invitations", async (_event) => {
     try {
       if (!organizationManager) {
         return [];
@@ -354,7 +394,7 @@ function registerOrganizationIPC({
       const invitations = await organizationManager.getPendingDIDInvitations();
       return invitations;
     } catch (error) {
-      logger.error('[Organization IPC] 获取待处理DID邀请失败:', error);
+      logger.error("[Organization IPC] 获取待处理DID邀请失败:", error);
       return [];
     }
   });
@@ -363,16 +403,19 @@ function registerOrganizationIPC({
    * 获取组织的DID邀请列表
    * Channel: 'org:get-did-invitations'
    */
-  ipcMain.handle('org:get-did-invitations', async (_event, orgId, options) => {
+  ipcMain.handle("org:get-did-invitations", async (_event, orgId, options) => {
     try {
       if (!organizationManager) {
         return [];
       }
 
-      const invitations = await organizationManager.getDIDInvitations(orgId, options);
+      const invitations = await organizationManager.getDIDInvitations(
+        orgId,
+        options,
+      );
       return invitations;
     } catch (error) {
-      logger.error('[Organization IPC] 获取DID邀请列表失败:', error);
+      logger.error("[Organization IPC] 获取DID邀请列表失败:", error);
       return [];
     }
   });
@@ -381,16 +424,16 @@ function registerOrganizationIPC({
    * 获取邀请列表（包括邀请码和DID邀请）
    * Channel: 'org:get-invitations'
    */
-  ipcMain.handle('org:get-invitations', async (_event, orgId) => {
+  ipcMain.handle("org:get-invitations", async (_event, orgId) => {
     try {
       if (!organizationManager) {
-        return { success: false, error: '组织管理器未初始化', invitations: [] };
+        return { success: false, error: "组织管理器未初始化", invitations: [] };
       }
 
       const invitations = organizationManager.getInvitations(orgId);
       return { success: true, invitations };
     } catch (error) {
-      logger.error('[Organization IPC] 获取邀请列表失败:', error);
+      logger.error("[Organization IPC] 获取邀请列表失败:", error);
       return { success: false, error: error.message, invitations: [] };
     }
   });
@@ -399,17 +442,20 @@ function registerOrganizationIPC({
    * 撤销邀请
    * Channel: 'org:revoke-invitation'
    */
-  ipcMain.handle('org:revoke-invitation', async (_event, params) => {
+  ipcMain.handle("org:revoke-invitation", async (_event, params) => {
     try {
       if (!organizationManager) {
-        return { success: false, error: '组织管理器未初始化' };
+        return { success: false, error: "组织管理器未初始化" };
       }
 
       const { orgId, invitationId } = params;
-      const result = await organizationManager.revokeInvitation(orgId, invitationId);
+      const result = await organizationManager.revokeInvitation(
+        orgId,
+        invitationId,
+      );
       return result;
     } catch (error) {
-      logger.error('[Organization IPC] 撤销邀请失败:', error);
+      logger.error("[Organization IPC] 撤销邀请失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -418,17 +464,20 @@ function registerOrganizationIPC({
    * 删除邀请
    * Channel: 'org:delete-invitation'
    */
-  ipcMain.handle('org:delete-invitation', async (_event, params) => {
+  ipcMain.handle("org:delete-invitation", async (_event, params) => {
     try {
       if (!organizationManager) {
-        return { success: false, error: '组织管理器未初始化' };
+        return { success: false, error: "组织管理器未初始化" };
       }
 
       const { orgId, invitationId } = params;
-      const result = await organizationManager.deleteInvitation(orgId, invitationId);
+      const result = await organizationManager.deleteInvitation(
+        orgId,
+        invitationId,
+      );
       return result;
     } catch (error) {
-      logger.error('[Organization IPC] 删除邀请失败:', error);
+      logger.error("[Organization IPC] 删除邀请失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -441,16 +490,19 @@ function registerOrganizationIPC({
    * 创建邀请链接
    * Channel: 'org:create-invitation-link'
    */
-  ipcMain.handle('org:create-invitation-link', async (_event, params) => {
+  ipcMain.handle("org:create-invitation-link", async (_event, params) => {
     try {
       if (!organizationManager || !organizationManager.didInvitationManager) {
-        throw new Error('邀请管理器未初始化');
+        throw new Error("邀请管理器未初始化");
       }
 
-      const invitationLink = await organizationManager.didInvitationManager.createInvitationLink(params);
+      const invitationLink =
+        await organizationManager.didInvitationManager.createInvitationLink(
+          params,
+        );
       return { success: true, invitationLink };
     } catch (error) {
-      logger.error('[Organization IPC] 创建邀请链接失败:', error);
+      logger.error("[Organization IPC] 创建邀请链接失败:", error);
       throw error;
     }
   });
@@ -459,16 +511,19 @@ function registerOrganizationIPC({
    * 验证邀请令牌
    * Channel: 'org:validate-invitation-token'
    */
-  ipcMain.handle('org:validate-invitation-token', async (_event, token) => {
+  ipcMain.handle("org:validate-invitation-token", async (_event, token) => {
     try {
       if (!organizationManager || !organizationManager.didInvitationManager) {
-        throw new Error('邀请管理器未初始化');
+        throw new Error("邀请管理器未初始化");
       }
 
-      const linkInfo = await organizationManager.didInvitationManager.validateInvitationToken(token);
+      const linkInfo =
+        await organizationManager.didInvitationManager.validateInvitationToken(
+          token,
+        );
       return { success: true, linkInfo };
     } catch (error) {
-      logger.error('[Organization IPC] 验证邀请令牌失败:', error);
+      logger.error("[Organization IPC] 验证邀请令牌失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -477,34 +532,44 @@ function registerOrganizationIPC({
    * 通过邀请链接加入组织
    * Channel: 'org:accept-invitation-link'
    */
-  ipcMain.handle('org:accept-invitation-link', async (_event, token, options) => {
-    try {
-      if (!organizationManager || !organizationManager.didInvitationManager) {
-        throw new Error('邀请管理器未初始化');
-      }
+  ipcMain.handle(
+    "org:accept-invitation-link",
+    async (_event, token, options) => {
+      try {
+        if (!organizationManager || !organizationManager.didInvitationManager) {
+          throw new Error("邀请管理器未初始化");
+        }
 
-      const org = await organizationManager.didInvitationManager.acceptInvitationLink(token, options);
-      return { success: true, org };
-    } catch (error) {
-      logger.error('[Organization IPC] 通过邀请链接加入失败:', error);
-      throw error;
-    }
-  });
+        const org =
+          await organizationManager.didInvitationManager.acceptInvitationLink(
+            token,
+            options,
+          );
+        return { success: true, org };
+      } catch (error) {
+        logger.error("[Organization IPC] 通过邀请链接加入失败:", error);
+        throw error;
+      }
+    },
+  );
 
   /**
    * 获取邀请链接列表
    * Channel: 'org:get-invitation-links'
    */
-  ipcMain.handle('org:get-invitation-links', async (_event, orgId, options) => {
+  ipcMain.handle("org:get-invitation-links", async (_event, orgId, options) => {
     try {
       if (!organizationManager || !organizationManager.didInvitationManager) {
-        return { success: false, error: '邀请管理器未初始化', links: [] };
+        return { success: false, error: "邀请管理器未初始化", links: [] };
       }
 
-      const links = organizationManager.didInvitationManager.getInvitationLinks(orgId, options);
+      const links = organizationManager.didInvitationManager.getInvitationLinks(
+        orgId,
+        options,
+      );
       return { success: true, links };
     } catch (error) {
-      logger.error('[Organization IPC] 获取邀请链接列表失败:', error);
+      logger.error("[Organization IPC] 获取邀请链接列表失败:", error);
       return { success: false, error: error.message, links: [] };
     }
   });
@@ -513,16 +578,17 @@ function registerOrganizationIPC({
    * 获取邀请链接详情
    * Channel: 'org:get-invitation-link'
    */
-  ipcMain.handle('org:get-invitation-link', async (_event, linkId) => {
+  ipcMain.handle("org:get-invitation-link", async (_event, linkId) => {
     try {
       if (!organizationManager || !organizationManager.didInvitationManager) {
-        return { success: false, error: '邀请管理器未初始化', link: null };
+        return { success: false, error: "邀请管理器未初始化", link: null };
       }
 
-      const link = organizationManager.didInvitationManager.getInvitationLink(linkId);
+      const link =
+        organizationManager.didInvitationManager.getInvitationLink(linkId);
       return { success: true, link };
     } catch (error) {
-      logger.error('[Organization IPC] 获取邀请链接详情失败:', error);
+      logger.error("[Organization IPC] 获取邀请链接详情失败:", error);
       return { success: false, error: error.message, link: null };
     }
   });
@@ -531,16 +597,18 @@ function registerOrganizationIPC({
    * 撤销邀请链接
    * Channel: 'org:revoke-invitation-link'
    */
-  ipcMain.handle('org:revoke-invitation-link', async (_event, linkId) => {
+  ipcMain.handle("org:revoke-invitation-link", async (_event, linkId) => {
     try {
       if (!organizationManager || !organizationManager.didInvitationManager) {
-        throw new Error('邀请管理器未初始化');
+        throw new Error("邀请管理器未初始化");
       }
 
-      await organizationManager.didInvitationManager.revokeInvitationLink(linkId);
+      await organizationManager.didInvitationManager.revokeInvitationLink(
+        linkId,
+      );
       return { success: true };
     } catch (error) {
-      logger.error('[Organization IPC] 撤销邀请链接失败:', error);
+      logger.error("[Organization IPC] 撤销邀请链接失败:", error);
       throw error;
     }
   });
@@ -549,16 +617,18 @@ function registerOrganizationIPC({
    * 删除邀请链接
    * Channel: 'org:delete-invitation-link'
    */
-  ipcMain.handle('org:delete-invitation-link', async (_event, linkId) => {
+  ipcMain.handle("org:delete-invitation-link", async (_event, linkId) => {
     try {
       if (!organizationManager || !organizationManager.didInvitationManager) {
-        throw new Error('邀请管理器未初始化');
+        throw new Error("邀请管理器未初始化");
       }
 
-      await organizationManager.didInvitationManager.deleteInvitationLink(linkId);
+      await organizationManager.didInvitationManager.deleteInvitationLink(
+        linkId,
+      );
       return { success: true };
     } catch (error) {
-      logger.error('[Organization IPC] 删除邀请链接失败:', error);
+      logger.error("[Organization IPC] 删除邀请链接失败:", error);
       throw error;
     }
   });
@@ -567,12 +637,12 @@ function registerOrganizationIPC({
    * 获取邀请链接统计信息
    * Channel: 'org:get-invitation-link-stats'
    */
-  ipcMain.handle('org:get-invitation-link-stats', async (_event, orgId) => {
+  ipcMain.handle("org:get-invitation-link-stats", async (_event, orgId) => {
     try {
       if (!organizationManager || !organizationManager.didInvitationManager) {
         return {
           success: false,
-          error: '邀请管理器未初始化',
+          error: "邀请管理器未初始化",
           stats: {
             total: 0,
             active: 0,
@@ -580,15 +650,16 @@ function registerOrganizationIPC({
             revoked: 0,
             totalUses: 0,
             totalMaxUses: 0,
-            utilizationRate: 0
-          }
+            utilizationRate: 0,
+          },
         };
       }
 
-      const stats = organizationManager.didInvitationManager.getInvitationLinkStats(orgId);
+      const stats =
+        organizationManager.didInvitationManager.getInvitationLinkStats(orgId);
       return { success: true, stats };
     } catch (error) {
-      logger.error('[Organization IPC] 获取邀请链接统计失败:', error);
+      logger.error("[Organization IPC] 获取邀请链接统计失败:", error);
       return {
         success: false,
         error: error.message,
@@ -599,8 +670,8 @@ function registerOrganizationIPC({
           revoked: 0,
           totalUses: 0,
           totalMaxUses: 0,
-          utilizationRate: 0
-        }
+          utilizationRate: 0,
+        },
       };
     }
   });
@@ -609,13 +680,13 @@ function registerOrganizationIPC({
    * 复制邀请链接到剪贴板
    * Channel: 'org:copy-invitation-link'
    */
-  ipcMain.handle('org:copy-invitation-link', async (_event, invitationUrl) => {
+  ipcMain.handle("org:copy-invitation-link", async (_event, invitationUrl) => {
     try {
-      const { clipboard } = require('electron');
+      const { clipboard } = require("electron");
       clipboard.writeText(invitationUrl);
       return { success: true };
     } catch (error) {
-      logger.error('[Organization IPC] 复制邀请链接失败:', error);
+      logger.error("[Organization IPC] 复制邀请链接失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -628,70 +699,94 @@ function registerOrganizationIPC({
    * 为邀请链接生成QR码
    * Channel: 'org:generate-invitation-qrcode'
    */
-  ipcMain.handle('org:generate-invitation-qrcode', async (_event, linkId, options) => {
-    try {
-      if (!organizationManager || !organizationManager.didInvitationManager) {
-        return { success: false, error: '邀请管理器未初始化' };
-      }
+  ipcMain.handle(
+    "org:generate-invitation-qrcode",
+    async (_event, linkId, options) => {
+      try {
+        if (!organizationManager || !organizationManager.didInvitationManager) {
+          return { success: false, error: "邀请管理器未初始化" };
+        }
 
-      const qrCode = await organizationManager.didInvitationManager.generateInvitationQRCode(linkId, options);
-      return { success: true, qrCode };
-    } catch (error) {
-      logger.error('[Organization IPC] 生成邀请QR码失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        const qrCode =
+          await organizationManager.didInvitationManager.generateInvitationQRCode(
+            linkId,
+            options,
+          );
+        return { success: true, qrCode };
+      } catch (error) {
+        logger.error("[Organization IPC] 生成邀请QR码失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 为DID邀请生成QR码
    * Channel: 'org:generate-did-invitation-qrcode'
    */
-  ipcMain.handle('org:generate-did-invitation-qrcode', async (_event, invitationId, options) => {
-    try {
-      if (!organizationManager || !organizationManager.didInvitationManager) {
-        return { success: false, error: '邀请管理器未初始化' };
-      }
+  ipcMain.handle(
+    "org:generate-did-invitation-qrcode",
+    async (_event, invitationId, options) => {
+      try {
+        if (!organizationManager || !organizationManager.didInvitationManager) {
+          return { success: false, error: "邀请管理器未初始化" };
+        }
 
-      const qrCode = await organizationManager.didInvitationManager.generateDIDInvitationQRCode(invitationId, options);
-      return { success: true, qrCode };
-    } catch (error) {
-      logger.error('[Organization IPC] 生成DID邀请QR码失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
+        const qrCode =
+          await organizationManager.didInvitationManager.generateDIDInvitationQRCode(
+            invitationId,
+            options,
+          );
+        return { success: true, qrCode };
+      } catch (error) {
+        logger.error("[Organization IPC] 生成DID邀请QR码失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 批量生成邀请QR码
    * Channel: 'org:generate-batch-invitation-qrcodes'
    */
-  ipcMain.handle('org:generate-batch-invitation-qrcodes', async (_event, orgId, options) => {
-    try {
-      if (!organizationManager || !organizationManager.didInvitationManager) {
-        return { success: false, error: '邀请管理器未初始化', qrCodes: [] };
-      }
+  ipcMain.handle(
+    "org:generate-batch-invitation-qrcodes",
+    async (_event, orgId, options) => {
+      try {
+        if (!organizationManager || !organizationManager.didInvitationManager) {
+          return { success: false, error: "邀请管理器未初始化", qrCodes: [] };
+        }
 
-      const qrCodes = await organizationManager.didInvitationManager.generateBatchInvitationQRCodes(orgId, options);
-      return { success: true, qrCodes };
-    } catch (error) {
-      logger.error('[Organization IPC] 批量生成QR码失败:', error);
-      return { success: false, error: error.message, qrCodes: [] };
-    }
-  });
+        const qrCodes =
+          await organizationManager.didInvitationManager.generateBatchInvitationQRCodes(
+            orgId,
+            options,
+          );
+        return { success: true, qrCodes };
+      } catch (error) {
+        logger.error("[Organization IPC] 批量生成QR码失败:", error);
+        return { success: false, error: error.message, qrCodes: [] };
+      }
+    },
+  );
 
   /**
    * 解析邀请QR码
    * Channel: 'org:parse-invitation-qrcode'
    */
-  ipcMain.handle('org:parse-invitation-qrcode', async (_event, qrData) => {
+  ipcMain.handle("org:parse-invitation-qrcode", async (_event, qrData) => {
     try {
       if (!organizationManager || !organizationManager.didInvitationManager) {
-        return { success: false, error: '邀请管理器未初始化' };
+        return { success: false, error: "邀请管理器未初始化" };
       }
 
-      const invitationInfo = await organizationManager.didInvitationManager.parseInvitationQRCode(qrData);
+      const invitationInfo =
+        await organizationManager.didInvitationManager.parseInvitationQRCode(
+          qrData,
+        );
       return { success: true, invitationInfo };
     } catch (error) {
-      logger.error('[Organization IPC] 解析QR码失败:', error);
+      logger.error("[Organization IPC] 解析QR码失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -700,35 +795,41 @@ function registerOrganizationIPC({
    * 下载QR码图片
    * Channel: 'org:download-qrcode'
    */
-  ipcMain.handle('org:download-qrcode', async (_event, qrCodeDataURL, filename) => {
-    try {
-      // 显示保存对话框
-      const result = await dialog.showSaveDialog({
-        title: '保存QR码',
-        defaultPath: filename || 'invitation-qrcode.png',
-        filters: [
-          { name: 'PNG图片', extensions: ['png'] },
-          { name: '所有文件', extensions: ['*'] }
-        ]
-      });
+  ipcMain.handle(
+    "org:download-qrcode",
+    async (_event, qrCodeDataURL, filename) => {
+      try {
+        // 显示保存对话框
+        const result = await dialog.showSaveDialog({
+          title: "保存QR码",
+          defaultPath: filename || "invitation-qrcode.png",
+          filters: [
+            { name: "PNG图片", extensions: ["png"] },
+            { name: "所有文件", extensions: ["*"] },
+          ],
+        });
 
-      if (result.canceled || !result.filePath) {
-        return { success: false, error: '用户取消保存' };
+        if (result.canceled || !result.filePath) {
+          return { success: false, error: "用户取消保存" };
+        }
+
+        // 将DataURL转换为Buffer
+        const base64Data = qrCodeDataURL.replace(
+          /^data:image\/png;base64,/,
+          "",
+        );
+        const buffer = Buffer.from(base64Data, "base64");
+
+        // 保存文件
+        await fs.writeFile(result.filePath, buffer);
+
+        return { success: true, filePath: result.filePath };
+      } catch (error) {
+        logger.error("[Organization IPC] 下载QR码失败:", error);
+        return { success: false, error: error.message };
       }
-
-      // 将DataURL转换为Buffer
-      const base64Data = qrCodeDataURL.replace(/^data:image\/png;base64,/, '');
-      const buffer = Buffer.from(base64Data, 'base64');
-
-      // 保存文件
-      await fs.writeFile(result.filePath, buffer);
-
-      return { success: true, filePath: result.filePath };
-    } catch (error) {
-      logger.error('[Organization IPC] 下载QR码失败:', error);
-      return { success: false, error: error.message };
-    }
-  });
+    },
+  );
 
   // ============================================================
   // 角色与权限管理 (Role & Permission Management) - 6 handlers
@@ -738,16 +839,16 @@ function registerOrganizationIPC({
    * 获取组织所有角色
    * Channel: 'org:get-roles'
    */
-  ipcMain.handle('org:get-roles', async (_event, orgId) => {
+  ipcMain.handle("org:get-roles", async (_event, orgId) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       const roles = await organizationManager.getRoles(orgId);
       return roles;
     } catch (error) {
-      logger.error('[Organization IPC] 获取角色列表失败:', error);
+      logger.error("[Organization IPC] 获取角色列表失败:", error);
       throw error;
     }
   });
@@ -756,16 +857,16 @@ function registerOrganizationIPC({
    * 获取单个角色
    * Channel: 'org:get-role'
    */
-  ipcMain.handle('org:get-role', async (_event, roleId) => {
+  ipcMain.handle("org:get-role", async (_event, roleId) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       const role = await organizationManager.getRole(roleId);
       return role;
     } catch (error) {
-      logger.error('[Organization IPC] 获取角色失败:', error);
+      logger.error("[Organization IPC] 获取角色失败:", error);
       throw error;
     }
   });
@@ -774,52 +875,66 @@ function registerOrganizationIPC({
    * 创建自定义角色
    * Channel: 'org:create-custom-role'
    */
-  ipcMain.handle('org:create-custom-role', async (_event, orgId, roleData, creatorDID) => {
-    try {
-      if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
-      }
+  ipcMain.handle(
+    "org:create-custom-role",
+    async (_event, orgId, roleData, creatorDID) => {
+      try {
+        if (!organizationManager) {
+          throw new Error("组织管理器未初始化");
+        }
 
-      const role = await organizationManager.createCustomRole(orgId, roleData, creatorDID);
-      return role;
-    } catch (error) {
-      logger.error('[Organization IPC] 创建自定义角色失败:', error);
-      throw error;
-    }
-  });
+        const role = await organizationManager.createCustomRole(
+          orgId,
+          roleData,
+          creatorDID,
+        );
+        return role;
+      } catch (error) {
+        logger.error("[Organization IPC] 创建自定义角色失败:", error);
+        throw error;
+      }
+    },
+  );
 
   /**
    * 更新角色
    * Channel: 'org:update-role'
    */
-  ipcMain.handle('org:update-role', async (_event, roleId, updates, updaterDID) => {
-    try {
-      if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
-      }
+  ipcMain.handle(
+    "org:update-role",
+    async (_event, roleId, updates, updaterDID) => {
+      try {
+        if (!organizationManager) {
+          throw new Error("组织管理器未初始化");
+        }
 
-      const role = await organizationManager.updateRole(roleId, updates, updaterDID);
-      return role;
-    } catch (error) {
-      logger.error('[Organization IPC] 更新角色失败:', error);
-      throw error;
-    }
-  });
+        const role = await organizationManager.updateRole(
+          roleId,
+          updates,
+          updaterDID,
+        );
+        return role;
+      } catch (error) {
+        logger.error("[Organization IPC] 更新角色失败:", error);
+        throw error;
+      }
+    },
+  );
 
   /**
    * 删除角色
    * Channel: 'org:delete-role'
    */
-  ipcMain.handle('org:delete-role', async (_event, roleId, deleterDID) => {
+  ipcMain.handle("org:delete-role", async (_event, roleId, deleterDID) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       await organizationManager.deleteRole(roleId, deleterDID);
       return { success: true };
     } catch (error) {
-      logger.error('[Organization IPC] 删除角色失败:', error);
+      logger.error("[Organization IPC] 删除角色失败:", error);
       throw error;
     }
   });
@@ -828,16 +943,16 @@ function registerOrganizationIPC({
    * 获取所有可用权限列表
    * Channel: 'org:get-all-permissions'
    */
-  ipcMain.handle('org:get-all-permissions', async (_event) => {
+  ipcMain.handle("org:get-all-permissions", async (_event) => {
     try {
       if (!organizationManager) {
-        throw new Error('组织管理器未初始化');
+        throw new Error("组织管理器未初始化");
       }
 
       const permissions = organizationManager.getAllPermissions();
       return permissions;
     } catch (error) {
-      logger.error('[Organization IPC] 获取权限列表失败:', error);
+      logger.error("[Organization IPC] 获取权限列表失败:", error);
       throw error;
     }
   });
@@ -850,17 +965,20 @@ function registerOrganizationIPC({
    * 获取组织活动日志
    * Channel: 'org:get-activities'
    */
-  ipcMain.handle('org:get-activities', async (_event, options) => {
+  ipcMain.handle("org:get-activities", async (_event, options) => {
     try {
       if (!organizationManager) {
         return { success: false, activities: [] };
       }
 
       const { orgId, limit = 500 } = options;
-      const activities = await organizationManager.getOrganizationActivities(orgId, limit);
+      const activities = await organizationManager.getOrganizationActivities(
+        orgId,
+        limit,
+      );
       return { success: true, activities };
     } catch (error) {
-      logger.error('[Organization IPC] 获取活动日志失败:', error);
+      logger.error("[Organization IPC] 获取活动日志失败:", error);
       return { success: false, error: error.message, activities: [] };
     }
   });
@@ -869,61 +987,68 @@ function registerOrganizationIPC({
    * 导出组织活动日志
    * Channel: 'org:export-activities'
    */
-  ipcMain.handle('org:export-activities', async (_event, options) => {
+  ipcMain.handle("org:export-activities", async (_event, options) => {
     try {
       const { orgId, activities } = options;
 
       // 弹出保存对话框
       const result = await dialog.showSaveDialog({
-        title: '导出活动日志',
+        title: "导出活动日志",
         defaultPath: path.join(
-          electronApp.getPath('documents'),
-          `organization_${orgId}_activities_${Date.now()}.json`
+          electronApp.getPath("documents"),
+          `organization_${orgId}_activities_${Date.now()}.json`,
         ),
         filters: [
-          { name: 'JSON Files', extensions: ['json'] },
-          { name: 'CSV Files', extensions: ['csv'] },
-          { name: 'All Files', extensions: ['*'] }
-        ]
+          { name: "JSON Files", extensions: ["json"] },
+          { name: "CSV Files", extensions: ["csv"] },
+          { name: "All Files", extensions: ["*"] },
+        ],
       });
 
       if (result.canceled || !result.filePath) {
-        return { success: false, error: '用户取消' };
+        return { success: false, error: "用户取消" };
       }
 
       const filePath = result.filePath;
       const ext = path.extname(filePath).toLowerCase();
 
-      if (ext === '.json') {
+      if (ext === ".json") {
         // 导出为JSON
         await fs.writeFile(
           filePath,
           JSON.stringify(activities, null, 2),
-          'utf-8'
+          "utf-8",
         );
-      } else if (ext === '.csv') {
+      } else if (ext === ".csv") {
         // 导出为CSV
-        const headers = ['操作者DID', '操作类型', '资源类型', '资源ID', '时间', '元数据'];
-        const rows = activities.map(a => [
+        const headers = [
+          "操作者DID",
+          "操作类型",
+          "资源类型",
+          "资源ID",
+          "时间",
+          "元数据",
+        ];
+        const rows = activities.map((a) => [
           a.actor_did,
           a.action,
           a.resource_type,
           a.resource_id,
           new Date(a.timestamp).toISOString(),
-          a.metadata
+          a.metadata,
         ]);
 
         const csv = [
-          headers.join(','),
-          ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-        ].join('\n');
+          headers.join(","),
+          ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+        ].join("\n");
 
-        await fs.writeFile(filePath, csv, 'utf-8');
+        await fs.writeFile(filePath, csv, "utf-8");
       }
 
       return { success: true, filePath };
     } catch (error) {
-      logger.error('[Organization IPC] 导出活动日志失败:', error);
+      logger.error("[Organization IPC] 导出活动日志失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -936,22 +1061,26 @@ function registerOrganizationIPC({
    * 获取组织知识列表
    * Channel: 'org:get-knowledge-items'
    */
-  ipcMain.handle('org:get-knowledge-items', async (_event, params) => {
+  ipcMain.handle("org:get-knowledge-items", async (_event, params) => {
     try {
       const { orgId } = params;
       const db = dbManager.db;
 
       // 获取组织的所有知识（share_scope='org' 或 'public'）
-      const items = db.prepare(`
+      const items = db
+        .prepare(
+          `
         SELECT *
         FROM knowledge_items
         WHERE org_id = ? AND share_scope IN ('org', 'public')
         ORDER BY updated_at DESC
-      `).all(orgId);
+      `,
+        )
+        .all(orgId);
 
       return { success: true, items };
     } catch (error) {
-      logger.error('[Organization IPC] 获取组织知识列表失败:', error);
+      logger.error("[Organization IPC] 获取组织知识列表失败:", error);
       return { success: false, error: error.message, items: [] };
     }
   });
@@ -960,29 +1089,24 @@ function registerOrganizationIPC({
    * 创建组织知识
    * Channel: 'org:create-knowledge'
    */
-  ipcMain.handle('org:create-knowledge', async (_event, params) => {
+  ipcMain.handle("org:create-knowledge", async (_event, params) => {
     try {
-      const {
-        orgId,
-        title,
-        type,
-        content,
-        shareScope,
-        tags,
-        createdBy
-      } = params;
+      const { orgId, title, type, content, shareScope, tags, createdBy } =
+        params;
 
       const db = dbManager.db;
-      const knowledgeId = require('uuid').v4();
+      const knowledgeId = require("uuid").v4();
       const now = Date.now();
 
       // 插入知识
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO knowledge_items (
           id, title, type, content, org_id, created_by, updated_by,
           share_scope, version, created_at, updated_at, sync_status
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      `,
+      ).run(
         knowledgeId,
         title,
         type,
@@ -990,40 +1114,46 @@ function registerOrganizationIPC({
         orgId,
         createdBy,
         createdBy,
-        shareScope || 'org',
+        shareScope || "org",
         1,
         now,
         now,
-        'pending'
+        "pending",
       );
 
       // 添加标签（如果有）
       if (tags && tags.length > 0) {
         for (const tagName of tags) {
           // 查找或创建标签
-          let tag = db.prepare('SELECT * FROM tags WHERE name = ?').get(tagName);
+          let tag = db
+            .prepare("SELECT * FROM tags WHERE name = ?")
+            .get(tagName);
           if (!tag) {
-            const tagId = require('uuid').v4();
-            db.prepare(`
+            const tagId = require("uuid").v4();
+            db.prepare(
+              `
               INSERT INTO tags (id, name, color, created_at)
               VALUES (?, ?, ?, ?)
-            `).run(tagId, tagName, '#1890ff', now);
+            `,
+            ).run(tagId, tagName, "#1890ff", now);
             tag = { id: tagId };
           }
 
           // 关联标签
-          db.prepare(`
+          db.prepare(
+            `
             INSERT INTO knowledge_tags (knowledge_id, tag_id, created_at)
             VALUES (?, ?, ?)
-          `).run(knowledgeId, tag.id, now);
+          `,
+          ).run(knowledgeId, tag.id, now);
         }
       }
 
       // 创建初始版本快照
       if (versionManager) {
         await versionManager.createVersionSnapshot(knowledgeId, createdBy, {
-          changeSummary: '创建知识',
-          metadata: { type: 'initial_create' }
+          changeSummary: "创建知识",
+          metadata: { type: "initial_create" },
         });
       }
 
@@ -1032,16 +1162,16 @@ function registerOrganizationIPC({
         await organizationManager.logActivity(
           orgId,
           createdBy,
-          'create_knowledge',
-          'knowledge',
+          "create_knowledge",
+          "knowledge",
           knowledgeId,
-          { title }
+          { title },
         );
       }
 
       return { success: true, id: knowledgeId };
     } catch (error) {
-      logger.error('[Organization IPC] 创建组织知识失败:', error);
+      logger.error("[Organization IPC] 创建组织知识失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -1050,33 +1180,39 @@ function registerOrganizationIPC({
    * 删除组织知识
    * Channel: 'org:delete-knowledge'
    */
-  ipcMain.handle('org:delete-knowledge', async (_event, params) => {
+  ipcMain.handle("org:delete-knowledge", async (_event, params) => {
     try {
       const { orgId, knowledgeId } = params;
       const db = dbManager.db;
 
       // 检查知识是否存在且属于该组织
-      const knowledge = db.prepare(`
+      const knowledge = db
+        .prepare(
+          `
         SELECT * FROM knowledge_items WHERE id = ? AND org_id = ?
-      `).get(knowledgeId, orgId);
+      `,
+        )
+        .get(knowledgeId, orgId);
 
       if (!knowledge) {
-        return { success: false, error: '知识不存在或无权删除' };
+        return { success: false, error: "知识不存在或无权删除" };
       }
 
       // 删除知识（级联删除关联的标签和搜索索引）
-      db.prepare('DELETE FROM knowledge_items WHERE id = ?').run(knowledgeId);
+      db.prepare("DELETE FROM knowledge_items WHERE id = ?").run(knowledgeId);
 
       return { success: true };
     } catch (error) {
-      logger.error('[Organization IPC] 删除组织知识失败:', error);
+      logger.error("[Organization IPC] 删除组织知识失败:", error);
       return { success: false, error: error.message };
     }
   });
 
-  logger.info('[Organization IPC] ✓ All Organization IPC handlers registered successfully (41 handlers)');
+  logger.info(
+    "[Organization IPC] ✓ All Organization IPC handlers registered successfully (41 handlers)",
+  );
 }
 
 module.exports = {
-  registerOrganizationIPC
+  registerOrganizationIPC,
 };

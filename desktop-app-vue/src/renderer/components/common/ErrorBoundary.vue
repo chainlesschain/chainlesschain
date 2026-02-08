@@ -1,39 +1,19 @@
 <template>
   <div class="error-boundary">
     <slot v-if="!hasError" />
-    <div
-      v-else
-      class="error-fallback"
-    >
-      <a-result
-        status="error"
-        :title="errorTitle"
-        :sub-title="errorSubtitle"
-      >
+    <div v-else class="error-fallback">
+      <a-result status="error" :title="errorTitle" :sub-title="errorSubtitle">
         <template #extra>
           <a-space>
-            <a-button
-              type="primary"
-              @click="handleReset"
-            >
-              重新加载
+            <a-button type="primary" @click="handleReset"> 重新加载 </a-button>
+            <a-button v-if="showDetails" @click="toggleDetails">
+              {{ detailsVisible ? "隐藏详情" : "查看详情" }}
             </a-button>
-            <a-button
-              v-if="showDetails"
-              @click="toggleDetails"
-            >
-              {{ detailsVisible ? '隐藏详情' : '查看详情' }}
-            </a-button>
-            <a-button @click="handleReport">
-              报告问题
-            </a-button>
+            <a-button @click="handleReport"> 报告问题 </a-button>
           </a-space>
         </template>
 
-        <div
-          v-if="detailsVisible && errorDetails"
-          class="error-details"
-        >
+        <div v-if="detailsVisible && errorDetails" class="error-details">
           <a-typography-paragraph>
             <pre>{{ errorDetails }}</pre>
           </a-typography-paragraph>
@@ -44,26 +24,26 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onErrorCaptured, provide } from 'vue';
-import { handleError, ErrorType, ErrorLevel } from '@/utils/errorHandler';
+import { ref, onErrorCaptured, provide } from "vue";
+import { handleError, ErrorType, ErrorLevel } from "@/utils/errorHandler";
 
 const props = defineProps({
   // 错误标题
   errorTitle: {
     type: String,
-    default: '组件渲染失败',
+    default: "组件渲染失败",
   },
   // 错误副标题
   errorSubtitle: {
     type: String,
-    default: '抱歉，该组件遇到错误无法正常显示',
+    default: "抱歉，该组件遇到错误无法正常显示",
   },
   // 是否显示详细错误信息
   showDetails: {
     type: Boolean,
-    default: process.env.NODE_ENV === 'development',
+    default: process.env.NODE_ENV === "development",
   },
   // 自定义错误处理函数
   onError: {
@@ -92,19 +72,19 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['error', 'reset', 'report']);
+const emit = defineEmits(["error", "reset", "report"]);
 
 const hasError = ref(false);
-const errorDetails = ref('');
+const errorDetails = ref("");
 const detailsVisible = ref(false);
 const errorInfo = ref(null);
 const retryCount = ref(0);
 
 // 捕获子组件错误
 onErrorCaptured((err, instance, info) => {
-  logger.error('[ErrorBoundary] Captured error:', err);
-  logger.error('[ErrorBoundary] Error info:', info);
-  logger.error('[ErrorBoundary] Component instance:', instance);
+  logger.error("[ErrorBoundary] Captured error:", err);
+  logger.error("[ErrorBoundary] Error info:", info);
+  logger.error("[ErrorBoundary] Component instance:", instance);
 
   hasError.value = true;
   errorInfo.value = {
@@ -118,17 +98,17 @@ onErrorCaptured((err, instance, info) => {
   errorDetails.value = `错误类型: ${err.name}
 错误消息: ${err.message}
 错误堆栈:
-${err.stack || '无堆栈信息'}
+${err.stack || "无堆栈信息"}
 
 生命周期钩子: ${info}
 时间: ${new Date().toLocaleString()}`;
 
   // 使用统一错误处理工具
   handleError(err, {
-    showMessage: false,  // 不显示消息，由边界组件处理
+    showMessage: false, // 不显示消息，由边界组件处理
     logToFile: true,
     context: {
-      component: 'ErrorBoundary',
+      component: "ErrorBoundary",
       componentInfo: info,
       retryCount: retryCount.value,
     },
@@ -140,16 +120,18 @@ ${err.stack || '无堆栈信息'}
   }
 
   // 触发error事件
-  emit('error', { error: err, instance, info });
+  emit("error", { error: err, instance, info });
 
   // 自动重试逻辑
   if (props.autoRetry && retryCount.value < props.maxRetries) {
     retryCount.value++;
-    logger.info(`[ErrorBoundary] 自动重试 ${retryCount.value}/${props.maxRetries}`);
+    logger.info(
+      `[ErrorBoundary] 自动重试 ${retryCount.value}/${props.maxRetries}`,
+    );
 
     setTimeout(() => {
       handleReset();
-    }, props.retryDelay * retryCount.value);  // 指数退避
+    }, props.retryDelay * retryCount.value); // 指数退避
   }
 
   // 阻止错误继续传播
@@ -164,7 +146,7 @@ const toggleDetails = () => {
 // 重置错误状态
 const handleReset = () => {
   hasError.value = false;
-  errorDetails.value = '';
+  errorDetails.value = "";
   detailsVisible.value = false;
   errorInfo.value = null;
 
@@ -174,7 +156,7 @@ const handleReset = () => {
   }
 
   // 触发reset事件
-  emit('reset');
+  emit("reset");
 };
 
 // 报告问题
@@ -190,28 +172,31 @@ const handleReport = () => {
   };
 
   // 触发report事件
-  emit('report', report);
+  emit("report", report);
 
-  logger.info('[ErrorBoundary] Error report:', report);
+  logger.info("[ErrorBoundary] Error report:", report);
 
   // 复制错误信息到剪贴板
   const reportText = JSON.stringify(report, null, 2);
-  navigator.clipboard.writeText(reportText).then(() => {
-    logger.info('[ErrorBoundary] 错误信息已复制到剪贴板');
-  }).catch((err) => {
-    logger.error('[ErrorBoundary] 复制失败:', err);
-  });
+  navigator.clipboard
+    .writeText(reportText)
+    .then(() => {
+      logger.info("[ErrorBoundary] 错误信息已复制到剪贴板");
+    })
+    .catch((err) => {
+      logger.error("[ErrorBoundary] 复制失败:", err);
+    });
 
   // 可以在这里添加错误上报逻辑（如发送到日志服务）
   if (window.electronAPI && window.electronAPI.logError) {
-    window.electronAPI.logError(report).catch(err => {
-      logger.error('[ErrorBoundary] 上报错误失败:', err);
+    window.electronAPI.logError(report).catch((err) => {
+      logger.error("[ErrorBoundary] 上报错误失败:", err);
     });
   }
 };
 
 // 提供重置方法给子组件
-provide('errorBoundaryReset', handleReset);
+provide("errorBoundaryReset", handleReset);
 </script>
 
 <style scoped lang="scss">
@@ -237,7 +222,7 @@ provide('errorBoundaryReset', handleReset);
 
       pre {
         margin: 0;
-        font-family: 'Courier New', Courier, monospace;
+        font-family: "Courier New", Courier, monospace;
         font-size: 12px;
         line-height: 1.5;
         color: #24292e;

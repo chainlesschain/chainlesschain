@@ -20,14 +20,8 @@
         <div v-if="creditReport">
           <!-- 信用评分概览 -->
           <a-row :gutter="[24, 24]">
-            <a-col
-              :span="24"
-              :md="8"
-            >
-              <a-card
-                class="score-card"
-                :bordered="false"
-              >
+            <a-col :span="24" :md="8">
+              <a-card class="score-card" :bordered="false">
                 <div class="score-display">
                   <div
                     class="score-number"
@@ -35,9 +29,7 @@
                   >
                     {{ creditReport.creditScore }}
                   </div>
-                  <div class="score-label">
-                    信用评分
-                  </div>
+                  <div class="score-label">信用评分</div>
                   <a-progress
                     :percent="(creditReport.creditScore / 1000) * 100"
                     :show-info="false"
@@ -47,23 +39,15 @@
               </a-card>
             </a-col>
 
-            <a-col
-              :span="24"
-              :md="8"
-            >
-              <a-card
-                class="level-card"
-                :bordered="false"
-              >
+            <a-col :span="24" :md="8">
+              <a-card class="level-card" :bordered="false">
                 <div class="level-display">
                   <a-badge
                     :color="getLevelColor(creditReport.levelColor)"
                     :text="creditReport.creditLevel"
                     style="font-size: 24px; font-weight: bold"
                   />
-                  <div class="level-label">
-                    信用等级
-                  </div>
+                  <div class="level-label">信用等级</div>
                   <div class="benefits-list">
                     <div
                       v-for="(benefit, index) in creditReport.benefits"
@@ -78,14 +62,8 @@
               </a-card>
             </a-col>
 
-            <a-col
-              :span="24"
-              :md="8"
-            >
-              <a-card
-                class="stats-card"
-                :bordered="false"
-              >
+            <a-col :span="24" :md="8">
+              <a-card class="stats-card" :bordered="false">
                 <a-statistic
                   title="交易总数"
                   :value="creditReport.statistics.totalTransactions"
@@ -107,15 +85,9 @@
           </a-row>
 
           <!-- 统计详情 -->
-          <a-card
-            title="信用统计"
-            style="margin-top: 24px"
-          >
+          <a-card title="信用统计" style="margin-top: 24px">
             <a-row :gutter="[16, 16]">
-              <a-col
-                :span="12"
-                :md="6"
-              >
+              <a-col :span="12" :md="6">
                 <a-statistic
                   title="完成交易"
                   :value="creditReport.statistics.completedTransactions"
@@ -125,10 +97,7 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col
-                :span="12"
-                :md="6"
-              >
+              <a-col :span="12" :md="6">
                 <a-statistic
                   title="好评数"
                   :value="creditReport.statistics.positiveReviews"
@@ -138,10 +107,7 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col
-                :span="12"
-                :md="6"
-              >
+              <a-col :span="12" :md="6">
                 <a-statistic
                   title="好评率"
                   :value="creditReport.statistics.positiveRate"
@@ -152,10 +118,7 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col
-                :span="12"
-                :md="6"
-              >
+              <a-col :span="12" :md="6">
                 <a-statistic
                   title="交易金额"
                   :value="creditReport.statistics.totalVolume"
@@ -166,57 +129,62 @@
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col
-                :span="12"
-                :md="6"
-              >
+              <a-col :span="12" :md="6">
                 <a-statistic
                   title="纠纷率"
                   :value="creditReport.statistics.disputeRate"
                   suffix="%"
-                  :value-style="{ color: creditReport.statistics.disputeRate > 5 ? '#ff4d4f' : '#52c41a' }"
+                  :value-style="{
+                    color:
+                      creditReport.statistics.disputeRate > 5
+                        ? '#ff4d4f'
+                        : '#52c41a',
+                  }"
                 >
                   <template #prefix>
                     <warning-outlined />
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col
-                :span="12"
-                :md="6"
-              >
+              <a-col :span="12" :md="6">
                 <a-statistic
                   title="退款率"
                   :value="creditReport.statistics.refundRate"
                   suffix="%"
-                  :value-style="{ color: creditReport.statistics.refundRate > 10 ? '#ff4d4f' : '#52c41a' }"
+                  :value-style="{
+                    color:
+                      creditReport.statistics.refundRate > 10
+                        ? '#ff4d4f'
+                        : '#52c41a',
+                  }"
                 >
                   <template #prefix>
                     <undo-outlined />
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col
-                :span="12"
-                :md="6"
-              >
+              <a-col :span="12" :md="6">
                 <a-statistic
                   title="差评数"
                   :value="creditReport.statistics.negativeReviews"
-                  :value-style="{ color: creditReport.statistics.negativeReviews > 0 ? '#ff4d4f' : '#999' }"
+                  :value-style="{
+                    color:
+                      creditReport.statistics.negativeReviews > 0
+                        ? '#ff4d4f'
+                        : '#999',
+                  }"
                 >
                   <template #prefix>
                     <dislike-outlined />
                   </template>
                 </a-statistic>
               </a-col>
-              <a-col
-                :span="12"
-                :md="6"
-              >
+              <a-col :span="12" :md="6">
                 <a-statistic
                   title="平均响应"
-                  :value="formatResponseTime(creditReport.statistics.avgResponseTime)"
+                  :value="
+                    formatResponseTime(creditReport.statistics.avgResponseTime)
+                  "
                 >
                   <template #prefix>
                     <clock-circle-outlined style="color: #1890ff" />
@@ -227,10 +195,7 @@
           </a-card>
 
           <!-- 信用等级说明 -->
-          <a-card
-            title="信用等级体系"
-            style="margin-top: 24px"
-          >
+          <a-card title="信用等级体系" style="margin-top: 24px">
             <a-table
               :columns="levelColumns"
               :data-source="creditLevels"
@@ -258,37 +223,47 @@
                       {{ benefit }}
                     </a-tag>
                   </a-space>
-                  <span
-                    v-if="record.benefits.length === 0"
-                    style="color: #999"
-                  >暂无特权</span>
+                  <span v-if="record.benefits.length === 0" style="color: #999"
+                    >暂无特权</span
+                  >
                 </template>
               </template>
             </a-table>
           </a-card>
 
           <!-- 最近信用记录 -->
-          <a-card
-            title="最近信用记录"
-            style="margin-top: 24px"
-          >
+          <a-card title="最近信用记录" style="margin-top: 24px">
             <a-timeline>
               <a-timeline-item
                 v-for="record in creditReport.recentRecords"
                 :key="record.id"
-                :color="record.scoreChange > 0 ? 'green' : record.scoreChange < 0 ? 'red' : 'blue'"
+                :color="
+                  record.scoreChange > 0
+                    ? 'green'
+                    : record.scoreChange < 0
+                      ? 'red'
+                      : 'blue'
+                "
               >
                 <div class="record-item">
                   <div class="record-header">
                     <span
                       class="record-change"
                       :style="{
-                        color: record.scoreChange > 0 ? '#52c41a' : record.scoreChange < 0 ? '#ff4d4f' : '#1890ff'
+                        color:
+                          record.scoreChange > 0
+                            ? '#52c41a'
+                            : record.scoreChange < 0
+                              ? '#ff4d4f'
+                              : '#1890ff',
                       }"
                     >
-                      {{ record.scoreChange > 0 ? '+' : '' }}{{ record.scoreChange }} 分
+                      {{ record.scoreChange > 0 ? "+" : ""
+                      }}{{ record.scoreChange }} 分
                     </span>
-                    <span class="record-time">{{ formatTime(record.createdAt) }}</span>
+                    <span class="record-time">{{
+                      formatTime(record.createdAt)
+                    }}</span>
                   </div>
                   <div class="record-reason">
                     {{ record.reason }}
@@ -319,10 +294,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   TrophyOutlined,
   ReloadOutlined,
@@ -335,8 +310,8 @@ import {
   WarningOutlined,
   UndoOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
 
 // Store
 const tradeStore = useTradeStore();
@@ -359,18 +334,42 @@ const creditReport = ref(null);
 
 // 信用等级定义
 const creditLevels = [
-  { name: '新手', min: 0, max: 100, color: 'gray', benefits: [] },
-  { name: '青铜', min: 101, max: 300, color: 'bronze', benefits: ['降低 5% 手续费'] },
-  { name: '白银', min: 301, max: 600, color: 'silver', benefits: ['降低 10% 手续费', '优先展示'] },
-  { name: '黄金', min: 601, max: 900, color: 'gold', benefits: ['降低 15% 手续费', '优先展示', '更高托管比例'] },
-  { name: '钻石', min: 901, max: 1000, color: 'diamond', benefits: ['降低 20% 手续费', '优先展示', '免保证金', 'VIP 支持'] }
+  { name: "新手", min: 0, max: 100, color: "gray", benefits: [] },
+  {
+    name: "青铜",
+    min: 101,
+    max: 300,
+    color: "bronze",
+    benefits: ["降低 5% 手续费"],
+  },
+  {
+    name: "白银",
+    min: 301,
+    max: 600,
+    color: "silver",
+    benefits: ["降低 10% 手续费", "优先展示"],
+  },
+  {
+    name: "黄金",
+    min: 601,
+    max: 900,
+    color: "gold",
+    benefits: ["降低 15% 手续费", "优先展示", "更高托管比例"],
+  },
+  {
+    name: "钻石",
+    min: 901,
+    max: 1000,
+    color: "diamond",
+    benefits: ["降低 20% 手续费", "优先展示", "免保证金", "VIP 支持"],
+  },
 ];
 
 // 表格列定义
 const levelColumns = [
-  { title: '等级', key: 'level', width: 120 },
-  { title: '分数范围', key: 'range', width: 150 },
-  { title: '等级特权', key: 'benefits' },
+  { title: "等级", key: "level", width: 120 },
+  { title: "分数范围", key: "range", width: 150 },
+  { title: "等级特权", key: "benefits" },
 ];
 
 // 加载信用报告
@@ -386,7 +385,7 @@ const loadCreditReport = async () => {
     }
 
     if (!targetDid) {
-      antMessage.warning('请先创建DID身份');
+      antMessage.warning("请先创建DID身份");
       return;
     }
 
@@ -401,30 +400,40 @@ const loadCreditReport = async () => {
       const credit = userCredit.value;
 
       // 获取信用等级信息
-      const levelInfo = creditLevels.find(
-        level => credit.credit_score >= level.min && credit.credit_score <= level.max
-      ) || creditLevels[0];
+      const levelInfo =
+        creditLevels.find(
+          (level) =>
+            credit.credit_score >= level.min &&
+            credit.credit_score <= level.max,
+        ) || creditLevels[0];
 
       // 计算完成率
-      const completionRate = credit.total_transactions > 0
-        ? ((credit.completed_transactions / credit.total_transactions) * 100).toFixed(1)
-        : 0;
+      const completionRate =
+        credit.total_transactions > 0
+          ? (
+              (credit.completed_transactions / credit.total_transactions) *
+              100
+            ).toFixed(1)
+          : 0;
 
       // 计算好评率
       const totalReviews = credit.positive_reviews + credit.negative_reviews;
-      const positiveRate = totalReviews > 0
-        ? ((credit.positive_reviews / totalReviews) * 100).toFixed(1)
-        : 0;
+      const positiveRate =
+        totalReviews > 0
+          ? ((credit.positive_reviews / totalReviews) * 100).toFixed(1)
+          : 0;
 
       // 计算纠纷率
-      const disputeRate = credit.total_transactions > 0
-        ? ((credit.disputes / credit.total_transactions) * 100).toFixed(1)
-        : 0;
+      const disputeRate =
+        credit.total_transactions > 0
+          ? ((credit.disputes / credit.total_transactions) * 100).toFixed(1)
+          : 0;
 
       // 计算退款率
-      const refundRate = credit.total_transactions > 0
-        ? ((credit.refunds / credit.total_transactions) * 100).toFixed(1)
-        : 0;
+      const refundRate =
+        credit.total_transactions > 0
+          ? ((credit.refunds / credit.total_transactions) * 100).toFixed(1)
+          : 0;
 
       // 组装信用报告
       creditReport.value = {
@@ -446,7 +455,7 @@ const loadCreditReport = async () => {
           refundRate,
           avgResponseTime: credit.avg_response_time,
         },
-        recentRecords: scoreHistory.value.map(record => ({
+        recentRecords: scoreHistory.value.map((record) => ({
           id: record.id,
           scoreChange: record.score_change,
           scoreAfter: record.score_after,
@@ -456,41 +465,43 @@ const loadCreditReport = async () => {
         })),
       };
 
-      logger.info('[CreditScore] 信用报告已加载:', creditReport.value);
+      logger.info("[CreditScore] 信用报告已加载:", creditReport.value);
     }
   } catch (error) {
-    logger.error('[CreditScore] 加载信用报告失败:', error);
-    antMessage.error(error.message || '加载信用报告失败');
+    logger.error("[CreditScore] 加载信用报告失败:", error);
+    antMessage.error(error.message || "加载信用报告失败");
   }
 };
 
 // 工具函数
 const getLevelColor = (color) => {
   const colors = {
-    gray: '#8c8c8c',
-    bronze: '#cd7f32',
-    silver: '#c0c0c0',
-    gold: '#ffd700',
-    diamond: '#b9f2ff',
+    gray: "#8c8c8c",
+    bronze: "#cd7f32",
+    silver: "#c0c0c0",
+    gold: "#ffd700",
+    diamond: "#b9f2ff",
   };
-  return colors[color] || '#1890ff';
+  return colors[color] || "#1890ff";
 };
 
 const getEventTypeName = (type) => {
   const names = {
-    trade_completed: '完成交易',
-    trade_cancelled: '取消交易',
-    positive_review: '好评',
-    negative_review: '差评',
-    dispute: '纠纷',
-    dispute_resolved: '纠纷解决',
-    refund: '退款',
+    trade_completed: "完成交易",
+    trade_cancelled: "取消交易",
+    positive_review: "好评",
+    negative_review: "差评",
+    dispute: "纠纷",
+    dispute_resolved: "纠纷解决",
+    refund: "退款",
   };
   return names[type] || type;
 };
 
 const formatResponseTime = (ms) => {
-  if (!ms || ms === 0) {return '无数据';}
+  if (!ms || ms === 0) {
+    return "无数据";
+  }
   const hours = Math.floor(ms / (1000 * 60 * 60));
   const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -502,7 +513,7 @@ const formatResponseTime = (ms) => {
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 
 // 生命周期

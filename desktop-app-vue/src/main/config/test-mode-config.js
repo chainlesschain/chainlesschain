@@ -3,7 +3,7 @@
  * 根据环境变量启用不同的Mock服务
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const path = require("path");
 
 class TestModeConfig {

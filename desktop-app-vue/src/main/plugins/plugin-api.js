@@ -1,4 +1,4 @@
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 
 /**
  * PluginAPI - 插件API接口层

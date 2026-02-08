@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 知识图谱分析模块
@@ -13,12 +13,12 @@ function calculateDegreeCentrality(nodes, edges) {
   const centrality = new Map();
 
   // 初始化所有节点的度为0
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     centrality.set(node.id, 0);
   });
 
   // 计算每个节点的度
-  edges.forEach(edge => {
+  edges.forEach((edge) => {
     centrality.set(edge.source_id, (centrality.get(edge.source_id) || 0) + 1);
     centrality.set(edge.target_id, (centrality.get(edge.target_id) || 0) + 1);
   });
@@ -44,9 +44,12 @@ function calculateClosenessCentrality(nodes, edges) {
   // 构建邻接表
   const adjacency = buildAdjacencyList(nodes, edges);
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     const distances = bfs(node.id, adjacency, nodes);
-    const totalDistance = Array.from(distances.values()).reduce((sum, d) => sum + d, 0);
+    const totalDistance = Array.from(distances.values()).reduce(
+      (sum, d) => sum + d,
+      0,
+    );
 
     // 接近中心性 = (n-1) / 总距离
     const n = nodes.length;
@@ -62,19 +65,19 @@ function calculateClosenessCentrality(nodes, edges) {
  */
 function calculateBetweennessCentrality(nodes, edges) {
   const centrality = new Map();
-  nodes.forEach(node => centrality.set(node.id, 0));
+  nodes.forEach((node) => centrality.set(node.id, 0));
 
   const adjacency = buildAdjacencyList(nodes, edges);
 
   // 对每对节点计算最短路径
-  nodes.forEach(source => {
+  nodes.forEach((source) => {
     const stack = [];
     const paths = new Map();
     const sigma = new Map();
     const distance = new Map();
     const delta = new Map();
 
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       paths.set(node.id, []);
       sigma.set(node.id, 0);
       distance.set(node.id, -1);
@@ -92,7 +95,7 @@ function calculateBetweennessCentrality(nodes, edges) {
       stack.push(v);
 
       const neighbors = adjacency.get(v) || [];
-      neighbors.forEach(w => {
+      neighbors.forEach((w) => {
         // 首次发现
         if (distance.get(w) < 0) {
           queue.push(w);
@@ -112,7 +115,7 @@ function calculateBetweennessCentrality(nodes, edges) {
       const w = stack.pop();
       const predecessors = paths.get(w);
 
-      predecessors.forEach(v => {
+      predecessors.forEach((v) => {
         const c = (sigma.get(v) / sigma.get(w)) * (1 + delta.get(w));
         delta.set(v, delta.get(v) + c);
       });
@@ -125,7 +128,7 @@ function calculateBetweennessCentrality(nodes, edges) {
 
   // 归一化
   const n = nodes.length;
-  const normFactor = (n - 1) * (n - 2) / 2;
+  const normFactor = ((n - 1) * (n - 2)) / 2;
   if (normFactor > 0) {
     centrality.forEach((value, key) => {
       centrality.set(key, value / normFactor);
@@ -139,12 +142,18 @@ function calculateBetweennessCentrality(nodes, edges) {
  * PageRank 算法
  * 衡量节点的重要性，考虑链接的质量和数量
  */
-function calculatePageRank(nodes, edges, dampingFactor = 0.85, maxIterations = 100, tolerance = 1e-6) {
+function calculatePageRank(
+  nodes,
+  edges,
+  dampingFactor = 0.85,
+  maxIterations = 100,
+  tolerance = 1e-6,
+) {
   const pageRank = new Map();
   const n = nodes.length;
 
   // 初始化 PageRank 值
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     pageRank.set(node.id, 1 / n);
   });
 
@@ -152,7 +161,7 @@ function calculatePageRank(nodes, edges, dampingFactor = 0.85, maxIterations = 1
   const adjacency = buildAdjacencyList(nodes, edges);
   const outDegree = new Map();
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     outDegree.set(node.id, (adjacency.get(node.id) || []).length);
   });
 
@@ -161,11 +170,11 @@ function calculatePageRank(nodes, edges, dampingFactor = 0.85, maxIterations = 1
     const newPageRank = new Map();
     let diff = 0;
 
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       let sum = 0;
 
       // 找到所有指向当前节点的节点
-      edges.forEach(edge => {
+      edges.forEach((edge) => {
         if (edge.target_id === node.id) {
           const sourceRank = pageRank.get(edge.source_id);
           const sourceDegree = outDegree.get(edge.source_id);
@@ -219,14 +228,14 @@ function detectCommunities(nodes, edges) {
     iteration++;
 
     // 对每个节点尝试移动到邻居的社区
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const currentCommunity = communities.get(node.id);
       const neighbors = adjacency.get(node.id) || [];
 
       // 计算移动到每个邻居社区的模块度增益
       const communityGains = new Map();
 
-      neighbors.forEach(neighborId => {
+      neighbors.forEach((neighborId) => {
         const neighborCommunity = communities.get(neighborId);
         if (neighborCommunity !== currentCommunity) {
           const gain = calculateModularityGain(
@@ -235,10 +244,13 @@ function detectCommunities(nodes, edges) {
             neighborCommunity,
             communities,
             adjacency,
-            m
+            m,
           );
 
-          if (!communityGains.has(neighborCommunity) || gain > communityGains.get(neighborCommunity)) {
+          if (
+            !communityGains.has(neighborCommunity) ||
+            gain > communityGains.get(neighborCommunity)
+          ) {
             communityGains.set(neighborCommunity, gain);
           }
         }
@@ -282,12 +294,19 @@ function detectCommunities(nodes, edges) {
 /**
  * 计算模块度增益
  */
-function calculateModularityGain(nodeId, fromCommunity, toCommunity, communities, adjacency, m) {
+function calculateModularityGain(
+  nodeId,
+  fromCommunity,
+  toCommunity,
+  communities,
+  adjacency,
+  m,
+) {
   const neighbors = adjacency.get(nodeId) || [];
 
   // 计算节点到目标社区的边数
   let edgesToCommunity = 0;
-  neighbors.forEach(neighborId => {
+  neighbors.forEach((neighborId) => {
     if (communities.get(neighborId) === toCommunity) {
       edgesToCommunity++;
     }
@@ -295,7 +314,7 @@ function calculateModularityGain(nodeId, fromCommunity, toCommunity, communities
 
   // 计算节点从原社区的边数
   let edgesFromCommunity = 0;
-  neighbors.forEach(neighborId => {
+  neighbors.forEach((neighborId) => {
     if (communities.get(neighborId) === fromCommunity) {
       edgesFromCommunity++;
     }
@@ -334,7 +353,7 @@ function clusterNodes(nodes, edges, k = 5, maxIterations = 100) {
     iteration++;
 
     // 分配节点到最近的聚类中心
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const feature = features.get(node.id);
       let minDist = Infinity;
       let bestCluster = 0;
@@ -356,9 +375,11 @@ function clusterNodes(nodes, edges, k = 5, maxIterations = 100) {
     // 更新聚类中心
     const newCentroids = [];
     for (let i = 0; i < k; i++) {
-      const clusterNodes = nodes.filter(node => clusters.get(node.id) === i);
+      const clusterNodes = nodes.filter((node) => clusters.get(node.id) === i);
       if (clusterNodes.length > 0) {
-        const clusterFeatures = clusterNodes.map(node => features.get(node.id));
+        const clusterFeatures = clusterNodes.map((node) =>
+          features.get(node.id),
+        );
         newCentroids.push(calculateCentroid(clusterFeatures));
       } else {
         newCentroids.push(centroids[i]); // 保持原中心
@@ -382,7 +403,7 @@ function extractNodeFeatures(nodes, edges) {
   const degreeCentrality = calculateDegreeCentrality(nodes, edges);
   const adjacency = buildAdjacencyList(nodes, edges);
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     const degree = degreeCentrality.get(node.id) || 0;
     const neighbors = adjacency.get(node.id) || [];
 
@@ -400,7 +421,8 @@ function extractNodeFeatures(nodes, edges) {
       }
     }
 
-    const clusteringCoeff = possibleTriangles > 0 ? triangles / possibleTriangles : 0;
+    const clusteringCoeff =
+      possibleTriangles > 0 ? triangles / possibleTriangles : 0;
 
     features.set(node.id, {
       degree,
@@ -419,7 +441,7 @@ function euclideanDistance(feature1, feature2) {
   const keys = Object.keys(feature1);
   let sum = 0;
 
-  keys.forEach(key => {
+  keys.forEach((key) => {
     const diff = (feature1[key] || 0) - (feature2[key] || 0);
     sum += diff * diff;
   });
@@ -431,12 +453,14 @@ function euclideanDistance(feature1, feature2) {
  * 计算质心
  */
 function calculateCentroid(features) {
-  if (features.length === 0) {return {};}
+  if (features.length === 0) {
+    return {};
+  }
 
   const centroid = {};
   const keys = Object.keys(features[0]);
 
-  keys.forEach(key => {
+  keys.forEach((key) => {
     const sum = features.reduce((acc, f) => acc + (f[key] || 0), 0);
     centroid[key] = sum / features.length;
   });
@@ -450,11 +474,11 @@ function calculateCentroid(features) {
 function buildAdjacencyList(nodes, edges) {
   const adjacency = new Map();
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     adjacency.set(node.id, []);
   });
 
-  edges.forEach(edge => {
+  edges.forEach((edge) => {
     if (!adjacency.has(edge.source_id)) {
       adjacency.set(edge.source_id, []);
     }
@@ -477,7 +501,7 @@ function bfs(startId, adjacency, nodes) {
   const visited = new Set();
   const queue = [{ id: startId, distance: 0 }];
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     distances.set(node.id, Infinity);
   });
   distances.set(startId, 0);
@@ -485,11 +509,13 @@ function bfs(startId, adjacency, nodes) {
   while (queue.length > 0) {
     const { id, distance } = queue.shift();
 
-    if (visited.has(id)) {continue;}
+    if (visited.has(id)) {
+      continue;
+    }
     visited.add(id);
 
     const neighbors = adjacency.get(id) || [];
-    neighbors.forEach(neighborId => {
+    neighbors.forEach((neighborId) => {
       if (!visited.has(neighborId)) {
         const newDistance = distance + 1;
         if (newDistance < distances.get(neighborId)) {
@@ -512,7 +538,7 @@ function findKeyNodes(nodes, edges, topN = 10) {
 
   // 综合评分
   const scores = new Map();
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     const degree = degreeCentrality.get(node.id) || 0;
     const rank = pageRank.get(node.id) || 0;
     const score = 0.5 * degree + 0.5 * rank;
@@ -524,7 +550,7 @@ function findKeyNodes(nodes, edges, topN = 10) {
     return (scores.get(b.id) || 0) - (scores.get(a.id) || 0);
   });
 
-  return sortedNodes.slice(0, topN).map(node => ({
+  return sortedNodes.slice(0, topN).map((node) => ({
     ...node,
     score: scores.get(node.id),
     degree: degreeCentrality.get(node.id),
@@ -541,11 +567,12 @@ function analyzeGraphStats(nodes, edges) {
   // 基本统计
   const nodeCount = nodes.length;
   const edgeCount = edges.length;
-  const density = nodeCount > 1 ? (2 * edgeCount) / (nodeCount * (nodeCount - 1)) : 0;
+  const density =
+    nodeCount > 1 ? (2 * edgeCount) / (nodeCount * (nodeCount - 1)) : 0;
 
   // 度分布
   const degrees = [];
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     degrees.push((adjacency.get(node.id) || []).length);
   });
 
@@ -558,7 +585,7 @@ function analyzeGraphStats(nodes, edges) {
 
   // 聚类系数
   let totalClusteringCoeff = 0;
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     const neighbors = adjacency.get(node.id) || [];
     const k = neighbors.length;
 
@@ -577,10 +604,12 @@ function analyzeGraphStats(nodes, edges) {
     }
 
     const possibleTriangles = (k * (k - 1)) / 2;
-    totalClusteringCoeff += possibleTriangles > 0 ? triangles / possibleTriangles : 0;
+    totalClusteringCoeff +=
+      possibleTriangles > 0 ? triangles / possibleTriangles : 0;
   });
 
-  const avgClusteringCoeff = nodeCount > 0 ? totalClusteringCoeff / nodeCount : 0;
+  const avgClusteringCoeff =
+    nodeCount > 0 ? totalClusteringCoeff / nodeCount : 0;
 
   return {
     nodeCount,
@@ -590,7 +619,7 @@ function analyzeGraphStats(nodes, edges) {
     maxDegree,
     minDegree,
     componentCount: components.length,
-    largestComponentSize: Math.max(...components.map(c => c.length)),
+    largestComponentSize: Math.max(...components.map((c) => c.length)),
     avgClusteringCoeff,
   };
 }
@@ -602,7 +631,7 @@ function findConnectedComponents(nodes, adjacency) {
   const visited = new Set();
   const components = [];
 
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     if (!visited.has(node.id)) {
       const component = [];
       const queue = [node.id];
@@ -610,12 +639,14 @@ function findConnectedComponents(nodes, adjacency) {
       while (queue.length > 0) {
         const currentId = queue.shift();
 
-        if (visited.has(currentId)) {continue;}
+        if (visited.has(currentId)) {
+          continue;
+        }
         visited.add(currentId);
         component.push(currentId);
 
         const neighbors = adjacency.get(currentId) || [];
-        neighbors.forEach(neighborId => {
+        neighbors.forEach((neighborId) => {
           if (!visited.has(neighborId)) {
             queue.push(neighborId);
           }

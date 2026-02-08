@@ -3,18 +3,18 @@
  * 负责项目保存、加载、导出等核心功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const { app } = require('electron');
-const archiver = require('archiver');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const { app } = require("electron");
+const archiver = require("archiver");
+const crypto = require("crypto");
 
 class WebIDEManager {
   constructor() {
     // Web IDE 项目存储路径
-    this.projectsPath = path.join(app.getPath('userData'), 'webide-projects');
-    this.tempPath = path.join(app.getPath('temp'), 'webide');
+    this.projectsPath = path.join(app.getPath("userData"), "webide-projects");
+    this.tempPath = path.join(app.getPath("temp"), "webide");
 
     // 初始化目录
     this.initDirectories();
@@ -27,9 +27,9 @@ class WebIDEManager {
     try {
       await fs.mkdir(this.projectsPath, { recursive: true });
       await fs.mkdir(this.tempPath, { recursive: true });
-      logger.info('[WebIDE Manager] 目录初始化完成');
+      logger.info("[WebIDE Manager] 目录初始化完成");
     } catch (error) {
-      logger.error('[WebIDE Manager] 目录初始化失败:', error);
+      logger.error("[WebIDE Manager] 目录初始化失败:", error);
     }
   }
 
@@ -42,11 +42,11 @@ class WebIDEManager {
     try {
       const {
         id = this.generateId(),
-        name = 'Untitled',
-        html = '',
-        css = '',
-        js = '',
-        description = '',
+        name = "Untitled",
+        html = "",
+        css = "",
+        js = "",
+        description = "",
         tags = [],
       } = projectData;
 
@@ -58,11 +58,11 @@ class WebIDEManager {
 
       // 保存文件
       await Promise.all([
-        fs.writeFile(path.join(projectDir, 'index.html'), html, 'utf-8'),
-        fs.writeFile(path.join(projectDir, 'style.css'), css, 'utf-8'),
-        fs.writeFile(path.join(projectDir, 'script.js'), js, 'utf-8'),
+        fs.writeFile(path.join(projectDir, "index.html"), html, "utf-8"),
+        fs.writeFile(path.join(projectDir, "style.css"), css, "utf-8"),
+        fs.writeFile(path.join(projectDir, "script.js"), js, "utf-8"),
         fs.writeFile(
-          path.join(projectDir, 'project.json'),
+          path.join(projectDir, "project.json"),
           JSON.stringify(
             {
               id,
@@ -73,9 +73,9 @@ class WebIDEManager {
               updatedAt: Date.now(),
             },
             null,
-            2
+            2,
           ),
-          'utf-8'
+          "utf-8",
         ),
       ]);
 
@@ -86,10 +86,10 @@ class WebIDEManager {
         id,
         name,
         path: projectDir,
-        message: '项目保存成功',
+        message: "项目保存成功",
       };
     } catch (error) {
-      logger.error('[WebIDE Manager] 保存项目失败:', error);
+      logger.error("[WebIDE Manager] 保存项目失败:", error);
       return {
         success: false,
         error: error.message,
@@ -111,15 +111,15 @@ class WebIDEManager {
       // 检查项目是否存在
       const exists = await this.checkPathExists(projectDir);
       if (!exists) {
-        throw new Error('项目不存在');
+        throw new Error("项目不存在");
       }
 
       // 读取文件
       const [html, css, js, metaJson] = await Promise.all([
-        fs.readFile(path.join(projectDir, 'index.html'), 'utf-8'),
-        fs.readFile(path.join(projectDir, 'style.css'), 'utf-8'),
-        fs.readFile(path.join(projectDir, 'script.js'), 'utf-8'),
-        fs.readFile(path.join(projectDir, 'project.json'), 'utf-8'),
+        fs.readFile(path.join(projectDir, "index.html"), "utf-8"),
+        fs.readFile(path.join(projectDir, "style.css"), "utf-8"),
+        fs.readFile(path.join(projectDir, "script.js"), "utf-8"),
+        fs.readFile(path.join(projectDir, "project.json"), "utf-8"),
       ]);
 
       const meta = JSON.parse(metaJson);
@@ -136,7 +136,7 @@ class WebIDEManager {
         },
       };
     } catch (error) {
-      logger.error('[WebIDE Manager] 加载项目失败:', error);
+      logger.error("[WebIDE Manager] 加载项目失败:", error);
       return {
         success: false,
         error: error.message,
@@ -150,18 +150,18 @@ class WebIDEManager {
    */
   async getProjectList() {
     try {
-      logger.info('[WebIDE Manager] 获取项目列表');
+      logger.info("[WebIDE Manager] 获取项目列表");
 
       const dirs = await fs.readdir(this.projectsPath);
       const projects = [];
 
       for (const dir of dirs) {
         try {
-          const metaPath = path.join(this.projectsPath, dir, 'project.json');
+          const metaPath = path.join(this.projectsPath, dir, "project.json");
           const exists = await this.checkPathExists(metaPath);
 
           if (exists) {
-            const metaJson = await fs.readFile(metaPath, 'utf-8');
+            const metaJson = await fs.readFile(metaPath, "utf-8");
             const meta = JSON.parse(metaJson);
             projects.push(meta);
           }
@@ -180,7 +180,7 @@ class WebIDEManager {
         projects,
       };
     } catch (error) {
-      logger.error('[WebIDE Manager] 获取项目列表失败:', error);
+      logger.error("[WebIDE Manager] 获取项目列表失败:", error);
       return {
         success: false,
         error: error.message,
@@ -203,7 +203,7 @@ class WebIDEManager {
       // 检查项目是否存在
       const exists = await this.checkPathExists(projectDir);
       if (!exists) {
-        throw new Error('项目不存在');
+        throw new Error("项目不存在");
       }
 
       // 递归删除目录
@@ -213,10 +213,10 @@ class WebIDEManager {
 
       return {
         success: true,
-        message: '项目删除成功',
+        message: "项目删除成功",
       };
     } catch (error) {
-      logger.error('[WebIDE Manager] 删除项目失败:', error);
+      logger.error("[WebIDE Manager] 删除项目失败:", error);
       return {
         success: false,
         error: error.message,
@@ -231,7 +231,7 @@ class WebIDEManager {
    */
   async exportHTML(exportData) {
     try {
-      const { html, css, js, filename = 'index.html' } = exportData;
+      const { html, css, js, filename = "index.html" } = exportData;
 
       logger.info(`[WebIDE Manager] 导出 HTML: ${filename}`);
 
@@ -256,7 +256,7 @@ ${js}
 
       // 创建临时文件
       const tempFilePath = path.join(this.tempPath, filename);
-      await fs.writeFile(tempFilePath, fullHTML, 'utf-8');
+      await fs.writeFile(tempFilePath, fullHTML, "utf-8");
 
       logger.info(`[WebIDE Manager] HTML 导出成功: ${tempFilePath}`);
 
@@ -266,7 +266,7 @@ ${js}
         content: fullHTML,
       };
     } catch (error) {
-      logger.error('[WebIDE Manager] 导出 HTML 失败:', error);
+      logger.error("[WebIDE Manager] 导出 HTML 失败:", error);
       return {
         success: false,
         error: error.message,
@@ -281,7 +281,7 @@ ${js}
    */
   async exportZIP(exportData) {
     try {
-      const { html, css, js, filename = 'webide-project.zip' } = exportData;
+      const { html, css, js, filename = "webide-project.zip" } = exportData;
 
       logger.info(`[WebIDE Manager] 导出 ZIP: ${filename}`);
 
@@ -290,13 +290,13 @@ ${js}
       await fs.mkdir(tempDir, { recursive: true });
 
       // 创建项目结构
-      await fs.mkdir(path.join(tempDir, 'css'), { recursive: true });
-      await fs.mkdir(path.join(tempDir, 'js'), { recursive: true });
+      await fs.mkdir(path.join(tempDir, "css"), { recursive: true });
+      await fs.mkdir(path.join(tempDir, "js"), { recursive: true });
 
       // 写入文件
       await Promise.all([
         fs.writeFile(
-          path.join(tempDir, 'index.html'),
+          path.join(tempDir, "index.html"),
           `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -310,10 +310,10 @@ ${html}
   <script src="js/script.js"></script>
 </body>
 </html>`,
-          'utf-8'
+          "utf-8",
         ),
-        fs.writeFile(path.join(tempDir, 'css', 'style.css'), css, 'utf-8'),
-        fs.writeFile(path.join(tempDir, 'js', 'script.js'), js, 'utf-8'),
+        fs.writeFile(path.join(tempDir, "css", "style.css"), css, "utf-8"),
+        fs.writeFile(path.join(tempDir, "js", "script.js"), js, "utf-8"),
       ]);
 
       // 创建 ZIP 文件
@@ -330,7 +330,7 @@ ${html}
         path: zipPath,
       };
     } catch (error) {
-      logger.error('[WebIDE Manager] 导出 ZIP 失败:', error);
+      logger.error("[WebIDE Manager] 导出 ZIP 失败:", error);
       return {
         success: false,
         error: error.message,
@@ -344,17 +344,19 @@ ${html}
    */
   async createZipArchive(sourceDir, outputPath) {
     return new Promise((resolve, reject) => {
-      const output = require('fs').createWriteStream(outputPath);
-      const archive = archiver('zip', {
+      const output = require("fs").createWriteStream(outputPath);
+      const archive = archiver("zip", {
         zlib: { level: 9 }, // 压缩级别
       });
 
-      output.on('close', () => {
-        logger.info(`[WebIDE Manager] ZIP 创建完成: ${archive.pointer()} bytes`);
+      output.on("close", () => {
+        logger.info(
+          `[WebIDE Manager] ZIP 创建完成: ${archive.pointer()} bytes`,
+        );
         resolve();
       });
 
-      archive.on('error', (err) => {
+      archive.on("error", (err) => {
         reject(err);
       });
 
@@ -369,7 +371,7 @@ ${html}
    * @private
    */
   generateId() {
-    return crypto.randomBytes(16).toString('hex');
+    return crypto.randomBytes(16).toString("hex");
   }
 
   /**

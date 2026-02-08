@@ -10,32 +10,27 @@
     >
       <a-form layout="vertical">
         <!-- 资产信息 -->
-        <a-alert
-          v-if="asset"
-          type="info"
-          style="margin-bottom: 16px"
-        >
+        <a-alert v-if="asset" type="info" style="margin-bottom: 16px">
           <template #message>
             <a-space>
-              <span>资产: <strong>{{ asset.name }}</strong></span>
-              <a-tag
-                v-if="asset.symbol"
-                color="blue"
+              <span
+                >资产: <strong>{{ asset.name }}</strong></span
               >
+              <a-tag v-if="asset.symbol" color="blue">
                 {{ asset.symbol }}
               </a-tag>
             </a-space>
           </template>
           <template #description>
-            当前余额: <strong class="balance-value">{{ formatAmount(asset.amount, asset.decimals) }}</strong>
+            当前余额:
+            <strong class="balance-value">{{
+              formatAmount(asset.amount, asset.decimals)
+            }}</strong>
           </template>
         </a-alert>
 
         <!-- 接收者 DID -->
-        <a-form-item
-          label="接收者 DID"
-          required
-        >
+        <a-form-item label="接收者 DID" required>
           <did-selector
             v-model:value="form.toDid"
             placeholder="选择接收者 DID"
@@ -43,16 +38,11 @@
             show-quick-actions
             @create-did="handleCreateDid"
           />
-          <template #extra>
-            从您的身份列表或好友列表中选择接收者
-          </template>
+          <template #extra> 从您的身份列表或好友列表中选择接收者 </template>
         </a-form-item>
 
         <!-- 转账数量 -->
-        <a-form-item
-          label="转账数量"
-          required
-        >
+        <a-form-item label="转账数量" required>
           <a-input-number
             v-model:value="form.amount"
             :min="getMinAmount()"
@@ -63,17 +53,14 @@
             placeholder="输入转账数量"
           >
             <template #addonAfter>
-              <a-button
-                type="link"
-                size="small"
-                @click="setMaxAmount"
-              >
+              <a-button type="link" size="small" @click="setMaxAmount">
                 全部
               </a-button>
             </template>
           </a-input-number>
           <template #extra>
-            可用余额: {{ formatAmount(asset?.amount || 0, asset?.decimals || 0) }}
+            可用余额:
+            {{ formatAmount(asset?.amount || 0, asset?.decimals || 0) }}
           </template>
         </a-form-item>
 
@@ -94,30 +81,26 @@
           size="small"
           title="转账确认"
         >
-          <a-descriptions
-            :column="1"
-            size="small"
-          >
+          <a-descriptions :column="1" size="small">
             <a-descriptions-item label="资产">
-              {{ asset?.name }} {{ asset?.symbol ? `(${asset.symbol})` : '' }}
+              {{ asset?.name }} {{ asset?.symbol ? `(${asset.symbol})` : "" }}
             </a-descriptions-item>
             <a-descriptions-item label="接收者">
-              <a-typography-text
-                copyable
-                style="font-size: 12px"
-              >
+              <a-typography-text copyable style="font-size: 12px">
                 {{ shortenDid(form.toDid) }}
               </a-typography-text>
             </a-descriptions-item>
             <a-descriptions-item label="数量">
               <strong style="color: #1890ff; font-size: 16px">
-                {{ formatAmount(form.amount * Math.pow(10, asset?.decimals || 0), asset?.decimals || 0) }}
+                {{
+                  formatAmount(
+                    form.amount * Math.pow(10, asset?.decimals || 0),
+                    asset?.decimals || 0,
+                  )
+                }}
               </strong>
             </a-descriptions-item>
-            <a-descriptions-item
-              v-if="form.memo"
-              label="备注"
-            >
+            <a-descriptions-item v-if="form.memo" label="备注">
               {{ form.memo }}
             </a-descriptions-item>
           </a-descriptions>
@@ -128,15 +111,13 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, watch, onMounted } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
-import {
-  UserOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import DIDSelector from './common/DIDSelector.vue';
+import { ref, reactive, computed, watch, onMounted } from "vue";
+import { message as antMessage } from "ant-design-vue";
+import { UserOutlined } from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import DIDSelector from "./common/DIDSelector.vue";
 
 // Props
 const props = defineProps({
@@ -151,19 +132,19 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['transferred', 'cancel', 'update:open']);
+const emit = defineEmits(["transferred", "cancel", "update:open"]);
 
 // Store
 const tradeStore = useTradeStore();
 
 // 状态
 const transferring = computed(() => tradeStore.asset.loading);
-const currentUserDid = ref('');
+const currentUserDid = ref("");
 
 const form = reactive({
-  toDid: '',
+  toDid: "",
   amount: 0,
-  memo: '',
+  memo: "",
 });
 
 // 工具函数
@@ -176,7 +157,9 @@ const formatAmount = (amount, decimals = 0) => {
 };
 
 const shortenDid = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
@@ -185,7 +168,9 @@ const getMinAmount = () => {
 };
 
 const getMaxAmount = () => {
-  if (!props.asset) {return 0;}
+  if (!props.asset) {
+    return 0;
+  }
   return parseFloat(formatAmount(props.asset.amount, props.asset.decimals));
 };
 
@@ -199,28 +184,28 @@ const setMaxAmount = () => {
 
 // DID 事件处理
 const handleCreateDid = () => {
-  antMessage.info('请前往身份管理页面创建新的 DID');
+  antMessage.info("请前往身份管理页面创建新的 DID");
 };
 
 // 表单验证
 const validateForm = () => {
   if (!form.toDid || form.toDid.trim().length === 0) {
-    antMessage.warning('请选择接收者 DID');
+    antMessage.warning("请选择接收者 DID");
     return false;
   }
 
   if (form.toDid === currentUserDid.value) {
-    antMessage.warning('不能转账给自己');
+    antMessage.warning("不能转账给自己");
     return false;
   }
 
   if (form.amount <= 0) {
-    antMessage.warning('转账数量必须大于 0');
+    antMessage.warning("转账数量必须大于 0");
     return false;
   }
 
   if (!props.asset) {
-    antMessage.error('资产信息不存在');
+    antMessage.error("资产信息不存在");
     return false;
   }
 
@@ -243,44 +228,48 @@ const handleTransfer = async () => {
     }
 
     // 转换数量（考虑小数位）
-    const actualAmount = Math.floor(form.amount * Math.pow(10, props.asset.decimals));
+    const actualAmount = Math.floor(
+      form.amount * Math.pow(10, props.asset.decimals),
+    );
 
     // 使用 store action 执行转账
     await tradeStore.transferAsset(
       props.asset.id || props.asset.asset_id,
       form.toDid.trim(),
       actualAmount,
-      form.memo.trim()
+      form.memo.trim(),
     );
 
-    antMessage.success(`成功转账 ${form.amount} ${props.asset.symbol || props.asset.name}！`);
+    antMessage.success(
+      `成功转账 ${form.amount} ${props.asset.symbol || props.asset.name}！`,
+    );
 
     // 通知父组件
-    emit('transferred');
+    emit("transferred");
 
     // 关闭对话框
-    emit('update:open', false);
+    emit("update:open", false);
 
     // 重置表单
     resetForm();
   } catch (error) {
-    logger.error('[AssetTransfer] 转账失败:', error);
-    antMessage.error(error.message || '转账失败');
+    logger.error("[AssetTransfer] 转账失败:", error);
+    antMessage.error(error.message || "转账失败");
   }
 };
 
 // 取消
 const handleCancel = () => {
-  emit('cancel');
-  emit('update:open', false);
+  emit("cancel");
+  emit("update:open", false);
   resetForm();
 };
 
 // 重置表单
 const resetForm = () => {
-  form.toDid = '';
+  form.toDid = "";
   form.amount = 0;
-  form.memo = '';
+  form.memo = "";
 };
 
 // 获取当前用户 DID
@@ -291,22 +280,25 @@ const loadCurrentUserDid = async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    logger.error('[AssetTransfer] 获取当前用户 DID 失败:', error);
+    logger.error("[AssetTransfer] 获取当前用户 DID 失败:", error);
   }
 };
 
 // 监听对话框打开
-watch(() => props.open, async (newVal) => {
-  if (newVal) {
-    // 重置表单
-    resetForm();
+watch(
+  () => props.open,
+  async (newVal) => {
+    if (newVal) {
+      // 重置表单
+      resetForm();
 
-    // 加载当前用户 DID
-    if (!currentUserDid.value) {
-      await loadCurrentUserDid();
+      // 加载当前用户 DID
+      if (!currentUserDid.value) {
+        await loadCurrentUserDid();
+      }
     }
-  }
-});
+  },
+);
 
 // 生命周期
 onMounted(() => {

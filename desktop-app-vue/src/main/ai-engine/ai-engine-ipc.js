@@ -3,11 +3,17 @@
  * 处理前端与AI引擎之间的通信
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain } = require('electron');
+const { logger } = require("../utils/logger.js");
+const { ipcMain } = require("electron");
 
 class AIEngineIPC {
-  constructor(aiEngineManager, webEngineManager, documentEngineManager, dataEngineManager, gitAutoCommit) {
+  constructor(
+    aiEngineManager,
+    webEngineManager,
+    documentEngineManager,
+    dataEngineManager,
+    gitAutoCommit,
+  ) {
     this.aiEngineManager = aiEngineManager;
     this.webEngineManager = webEngineManager;
     this.documentEngineManager = documentEngineManager;
@@ -21,19 +27,19 @@ class AIEngineIPC {
    */
   registerHandlers(mainWindow) {
     // AI引擎：处理用户输入
-    ipcMain.handle('ai:processInput', async (event, { input, context }) => {
+    ipcMain.handle("ai:processInput", async (event, { input, context }) => {
       try {
-        logger.info('[AI Engine IPC] 处理用户输入:', input);
+        logger.info("[AI Engine IPC] 处理用户输入:", input);
 
         // 步骤更新回调
         const onStepUpdate = (step) => {
-          mainWindow.webContents.send('ai:stepUpdate', step);
+          mainWindow.webContents.send("ai:stepUpdate", step);
         };
 
         const result = await this.aiEngineManager.processUserInput(
           input,
           context,
-          onStepUpdate
+          onStepUpdate,
         );
 
         return {
@@ -41,7 +47,7 @@ class AIEngineIPC {
           result,
         };
       } catch (error) {
-        logger.error('[AI Engine IPC] 处理失败:', error);
+        logger.error("[AI Engine IPC] 处理失败:", error);
         return {
           success: false,
           error: error.message,
@@ -50,7 +56,7 @@ class AIEngineIPC {
     });
 
     // AI引擎：获取执行历史
-    ipcMain.handle('ai:getHistory', async (_event, limit = 10) => {
+    ipcMain.handle("ai:getHistory", async (_event, limit = 10) => {
       try {
         const history = this.aiEngineManager.getExecutionHistory(limit);
 
@@ -59,7 +65,7 @@ class AIEngineIPC {
           history,
         };
       } catch (error) {
-        logger.error('[AI Engine IPC] 获取历史失败:', error);
+        logger.error("[AI Engine IPC] 获取历史失败:", error);
         return {
           success: false,
           error: error.message,
@@ -68,7 +74,7 @@ class AIEngineIPC {
     });
 
     // AI引擎：清除执行历史
-    ipcMain.handle('ai:clearHistory', async () => {
+    ipcMain.handle("ai:clearHistory", async () => {
       try {
         this.aiEngineManager.clearHistory();
 
@@ -76,7 +82,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        logger.error('[AI Engine IPC] 清除历史失败:', error);
+        logger.error("[AI Engine IPC] 清除历史失败:", error);
         return {
           success: false,
           error: error.message,
@@ -85,7 +91,7 @@ class AIEngineIPC {
     });
 
     // AI引擎：获取可用工具列表
-    ipcMain.handle('ai:getAvailableTools', async () => {
+    ipcMain.handle("ai:getAvailableTools", async () => {
       try {
         const tools = this.aiEngineManager.getAvailableTools();
 
@@ -94,7 +100,7 @@ class AIEngineIPC {
           tools,
         };
       } catch (error) {
-        logger.error('[AI Engine IPC] 获取工具列表失败:', error);
+        logger.error("[AI Engine IPC] 获取工具列表失败:", error);
         return {
           success: false,
           error: error.message,
@@ -103,9 +109,9 @@ class AIEngineIPC {
     });
 
     // Web引擎：生成Web项目
-    ipcMain.handle('web-engine:generate', async (_event, options) => {
+    ipcMain.handle("web-engine:generate", async (_event, options) => {
       try {
-        logger.info('[Web Engine IPC] 生成Web项目:', options);
+        logger.info("[Web Engine IPC] 生成Web项目:", options);
 
         const result = await this.webEngineManager.generateProject(options);
 
@@ -114,7 +120,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        logger.error('[Web Engine IPC] 生成失败:', error);
+        logger.error("[Web Engine IPC] 生成失败:", error);
         return {
           success: false,
           error: error.message,
@@ -123,7 +129,7 @@ class AIEngineIPC {
     });
 
     // Web引擎：获取模板列表
-    ipcMain.handle('web-engine:getTemplates', async () => {
+    ipcMain.handle("web-engine:getTemplates", async () => {
       try {
         const templates = this.webEngineManager.getTemplates();
 
@@ -132,7 +138,7 @@ class AIEngineIPC {
           templates,
         };
       } catch (error) {
-        logger.error('[Web Engine IPC] 获取模板失败:', error);
+        logger.error("[Web Engine IPC] 获取模板失败:", error);
         return {
           success: false,
           error: error.message,
@@ -141,25 +147,31 @@ class AIEngineIPC {
     });
 
     // Web引擎：启动预览服务器
-    ipcMain.handle('web-engine:startPreview', async (_event, projectPath, port) => {
-      try {
-        const result = await this.webEngineManager.startPreview(projectPath, port);
+    ipcMain.handle(
+      "web-engine:startPreview",
+      async (_event, projectPath, port) => {
+        try {
+          const result = await this.webEngineManager.startPreview(
+            projectPath,
+            port,
+          );
 
-        return {
-          success: true,
-          ...result,
-        };
-      } catch (error) {
-        logger.error('[Web Engine IPC] 启动预览失败:', error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    });
+          return {
+            success: true,
+            ...result,
+          };
+        } catch (error) {
+          logger.error("[Web Engine IPC] 启动预览失败:", error);
+          return {
+            success: false,
+            error: error.message,
+          };
+        }
+      },
+    );
 
     // Web引擎：停止预览服务器
-    ipcMain.handle('web-engine:stopPreview', async () => {
+    ipcMain.handle("web-engine:stopPreview", async () => {
       try {
         const result = await this.webEngineManager.stopPreview();
 
@@ -168,7 +180,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        logger.error('[Web Engine IPC] 停止预览失败:', error);
+        logger.error("[Web Engine IPC] 停止预览失败:", error);
         return {
           success: false,
           error: error.message,
@@ -177,7 +189,7 @@ class AIEngineIPC {
     });
 
     // Web引擎：重启预览服务器
-    ipcMain.handle('web-engine:restartPreview', async (_event, projectPath) => {
+    ipcMain.handle("web-engine:restartPreview", async (_event, projectPath) => {
       try {
         const result = await this.webEngineManager.restartPreview(projectPath);
 
@@ -186,7 +198,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        logger.error('[Web Engine IPC] 重启预览失败:', error);
+        logger.error("[Web Engine IPC] 重启预览失败:", error);
         return {
           success: false,
           error: error.message,
@@ -195,7 +207,7 @@ class AIEngineIPC {
     });
 
     // Web引擎：获取预览服务器状态
-    ipcMain.handle('web-engine:getPreviewStatus', async () => {
+    ipcMain.handle("web-engine:getPreviewStatus", async () => {
       try {
         const status = this.webEngineManager.getPreviewStatus();
 
@@ -204,7 +216,7 @@ class AIEngineIPC {
           ...status,
         };
       } catch (error) {
-        logger.error('[Web Engine IPC] 获取预览状态失败:', error);
+        logger.error("[Web Engine IPC] 获取预览状态失败:", error);
         return {
           success: false,
           error: error.message,
@@ -213,7 +225,7 @@ class AIEngineIPC {
     });
 
     // Web引擎：更改预览端口
-    ipcMain.handle('web-engine:changePreviewPort', async (_event, newPort) => {
+    ipcMain.handle("web-engine:changePreviewPort", async (_event, newPort) => {
       try {
         const result = await this.webEngineManager.changePreviewPort(newPort);
 
@@ -222,7 +234,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        logger.error('[Web Engine IPC] 更改端口失败:', error);
+        logger.error("[Web Engine IPC] 更改端口失败:", error);
         return {
           success: false,
           error: error.message,
@@ -231,18 +243,19 @@ class AIEngineIPC {
     });
 
     // 文档引擎：生成文档
-    ipcMain.handle('document-engine:generate', async (_event, options) => {
+    ipcMain.handle("document-engine:generate", async (_event, options) => {
       try {
-        logger.info('[Document Engine IPC] 生成文档:', options);
+        logger.info("[Document Engine IPC] 生成文档:", options);
 
-        const result = await this.documentEngineManager.generateDocument(options);
+        const result =
+          await this.documentEngineManager.generateDocument(options);
 
         return {
           success: true,
           ...result,
         };
       } catch (error) {
-        logger.error('[Document Engine IPC] 生成失败:', error);
+        logger.error("[Document Engine IPC] 生成失败:", error);
         return {
           success: false,
           error: error.message,
@@ -251,7 +264,7 @@ class AIEngineIPC {
     });
 
     // 文档引擎：获取模板列表
-    ipcMain.handle('document-engine:getTemplates', async () => {
+    ipcMain.handle("document-engine:getTemplates", async () => {
       try {
         const templates = this.documentEngineManager.getTemplates();
 
@@ -260,7 +273,7 @@ class AIEngineIPC {
           templates,
         };
       } catch (error) {
-        logger.error('[Document Engine IPC] 获取模板失败:', error);
+        logger.error("[Document Engine IPC] 获取模板失败:", error);
         return {
           success: false,
           error: error.message,
@@ -269,7 +282,7 @@ class AIEngineIPC {
     });
 
     // 数据引擎：读取CSV
-    ipcMain.handle('data-engine:readCSV', async (_event, filePath) => {
+    ipcMain.handle("data-engine:readCSV", async (_event, filePath) => {
       try {
         const result = await this.dataEngineManager.readCSV(filePath);
 
@@ -278,7 +291,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        logger.error('[Data Engine IPC] 读取CSV失败:', error);
+        logger.error("[Data Engine IPC] 读取CSV失败:", error);
         return {
           success: false,
           error: error.message,
@@ -287,7 +300,7 @@ class AIEngineIPC {
     });
 
     // 数据引擎：写入CSV
-    ipcMain.handle('data-engine:writeCSV', async (_event, filePath, data) => {
+    ipcMain.handle("data-engine:writeCSV", async (_event, filePath, data) => {
       try {
         const result = await this.dataEngineManager.writeCSV(filePath, data);
 
@@ -296,7 +309,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        logger.error('[Data Engine IPC] 写入CSV失败:', error);
+        logger.error("[Data Engine IPC] 写入CSV失败:", error);
         return {
           success: false,
           error: error.message,
@@ -305,7 +318,7 @@ class AIEngineIPC {
     });
 
     // 数据引擎：读取Excel
-    ipcMain.handle('data-engine:readExcel', async (_event, filePath) => {
+    ipcMain.handle("data-engine:readExcel", async (_event, filePath) => {
       try {
         const result = await this.dataEngineManager.readExcel(filePath);
 
@@ -314,7 +327,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        logger.error('[Data Engine IPC] 读取Excel失败:', error);
+        logger.error("[Data Engine IPC] 读取Excel失败:", error);
         return {
           success: false,
           error: error.message,
@@ -323,7 +336,7 @@ class AIEngineIPC {
     });
 
     // 数据引擎：写入Excel
-    ipcMain.handle('data-engine:writeExcel', async (_event, filePath, data) => {
+    ipcMain.handle("data-engine:writeExcel", async (_event, filePath, data) => {
       try {
         const result = await this.dataEngineManager.writeExcel(filePath, data);
 
@@ -332,7 +345,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        logger.error('[Data Engine IPC] 写入Excel失败:', error);
+        logger.error("[Data Engine IPC] 写入Excel失败:", error);
         return {
           success: false,
           error: error.message,
@@ -341,7 +354,7 @@ class AIEngineIPC {
     });
 
     // 数据引擎：分析数据
-    ipcMain.handle('data-engine:analyze', async (_event, data, options) => {
+    ipcMain.handle("data-engine:analyze", async (_event, data, options) => {
       try {
         const result = this.dataEngineManager.analyzeData(data, options);
 
@@ -350,7 +363,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        logger.error('[Data Engine IPC] 分析数据失败:', error);
+        logger.error("[Data Engine IPC] 分析数据失败:", error);
         return {
           success: false,
           error: error.message,
@@ -359,63 +372,75 @@ class AIEngineIPC {
     });
 
     // 数据引擎：生成图表
-    ipcMain.handle('data-engine:generateChart', async (_event, data, options) => {
-      try {
-        const result = await this.dataEngineManager.generateChart(data, options);
+    ipcMain.handle(
+      "data-engine:generateChart",
+      async (_event, data, options) => {
+        try {
+          const result = await this.dataEngineManager.generateChart(
+            data,
+            options,
+          );
 
-        return {
-          success: true,
-          ...result,
-        };
-      } catch (error) {
-        logger.error('[Data Engine IPC] 生成图表失败:', error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    });
+          return {
+            success: true,
+            ...result,
+          };
+        } catch (error) {
+          logger.error("[Data Engine IPC] 生成图表失败:", error);
+          return {
+            success: false,
+            error: error.message,
+          };
+        }
+      },
+    );
 
     // 数据引擎：生成报告
-    ipcMain.handle('data-engine:generateReport', async (_event, analysisResults, outputPath) => {
-      try {
-        const result = await this.dataEngineManager.generateReport(
-          analysisResults,
-          outputPath
-        );
+    ipcMain.handle(
+      "data-engine:generateReport",
+      async (_event, analysisResults, outputPath) => {
+        try {
+          const result = await this.dataEngineManager.generateReport(
+            analysisResults,
+            outputPath,
+          );
 
-        return {
-          success: true,
-          ...result,
-        };
-      } catch (error) {
-        logger.error('[Data Engine IPC] 生成报告失败:', error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    });
+          return {
+            success: true,
+            ...result,
+          };
+        } catch (error) {
+          logger.error("[Data Engine IPC] 生成报告失败:", error);
+          return {
+            success: false,
+            error: error.message,
+          };
+        }
+      },
+    );
 
     // Git自动提交：启动监控
-    ipcMain.handle('git-auto-commit:start', async (_event, projectId, repoPath) => {
-      try {
-        this.gitAutoCommit.start(projectId, repoPath);
+    ipcMain.handle(
+      "git-auto-commit:start",
+      async (_event, projectId, repoPath) => {
+        try {
+          this.gitAutoCommit.start(projectId, repoPath);
 
-        return {
-          success: true,
-        };
-      } catch (error) {
-        logger.error('[Git Auto Commit IPC] 启动失败:', error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    });
+          return {
+            success: true,
+          };
+        } catch (error) {
+          logger.error("[Git Auto Commit IPC] 启动失败:", error);
+          return {
+            success: false,
+            error: error.message,
+          };
+        }
+      },
+    );
 
     // Git自动提交：停止监控
-    ipcMain.handle('git-auto-commit:stop', async (_event, projectId) => {
+    ipcMain.handle("git-auto-commit:stop", async (_event, projectId) => {
       try {
         this.gitAutoCommit.stop(projectId);
 
@@ -423,7 +448,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        logger.error('[Git Auto Commit IPC] 停止失败:', error);
+        logger.error("[Git Auto Commit IPC] 停止失败:", error);
         return {
           success: false,
           error: error.message,
@@ -432,7 +457,7 @@ class AIEngineIPC {
     });
 
     // Git自动提交：停止所有
-    ipcMain.handle('git-auto-commit:stopAll', async () => {
+    ipcMain.handle("git-auto-commit:stopAll", async () => {
       try {
         this.gitAutoCommit.stopAll();
 
@@ -440,7 +465,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        logger.error('[Git Auto Commit IPC] 停止所有失败:', error);
+        logger.error("[Git Auto Commit IPC] 停止所有失败:", error);
         return {
           success: false,
           error: error.message,
@@ -449,7 +474,7 @@ class AIEngineIPC {
     });
 
     // Git自动提交：设置间隔
-    ipcMain.handle('git-auto-commit:setInterval', async (_event, interval) => {
+    ipcMain.handle("git-auto-commit:setInterval", async (_event, interval) => {
       try {
         this.gitAutoCommit.setInterval(interval);
 
@@ -457,7 +482,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        logger.error('[Git Auto Commit IPC] 设置间隔失败:', error);
+        logger.error("[Git Auto Commit IPC] 设置间隔失败:", error);
         return {
           success: false,
           error: error.message,
@@ -466,7 +491,7 @@ class AIEngineIPC {
     });
 
     // Git自动提交：启用/禁用
-    ipcMain.handle('git-auto-commit:setEnabled', async (_event, enabled) => {
+    ipcMain.handle("git-auto-commit:setEnabled", async (_event, enabled) => {
       try {
         this.gitAutoCommit.setEnabled(enabled);
 
@@ -474,7 +499,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        logger.error('[Git Auto Commit IPC] 设置启用状态失败:', error);
+        logger.error("[Git Auto Commit IPC] 设置启用状态失败:", error);
         return {
           success: false,
           error: error.message,
@@ -483,7 +508,7 @@ class AIEngineIPC {
     });
 
     // Git自动提交：获取监控的项目列表
-    ipcMain.handle('git-auto-commit:getWatchedProjects', async () => {
+    ipcMain.handle("git-auto-commit:getWatchedProjects", async () => {
       try {
         const projects = this.gitAutoCommit.getWatchedProjects();
 
@@ -492,7 +517,7 @@ class AIEngineIPC {
           projects,
         };
       } catch (error) {
-        logger.error('[Git Auto Commit IPC] 获取监控项目失败:', error);
+        logger.error("[Git Auto Commit IPC] 获取监控项目失败:", error);
         return {
           success: false,
           error: error.message,
@@ -501,13 +526,13 @@ class AIEngineIPC {
     });
 
     // 意图识别：使用LLM分析用户意图
-    ipcMain.handle('aiEngine:recognizeIntent', async (_event, userInput) => {
+    ipcMain.handle("aiEngine:recognizeIntent", async (_event, userInput) => {
       try {
-        logger.info('[AI Engine IPC] 开始意图识别:', userInput);
+        logger.info("[AI Engine IPC] 开始意图识别:", userInput);
 
-        const { recognizeProjectIntent } = require('./intent-recognizer');
-        const { getLLMConfig } = require('../llm/llm-config');
-        const { LLMManager } = require('../llm/llm-manager');
+        const { recognizeProjectIntent } = require("./intent-recognizer");
+        const { getLLMConfig } = require("../llm/llm-config");
+        const { LLMManager } = require("../llm/llm-manager");
 
         // 获取LLM配置并初始化管理器
         const llmConfig = getLLMConfig();
@@ -518,72 +543,75 @@ class AIEngineIPC {
         // 调用意图识别
         const result = await recognizeProjectIntent(userInput, llmManager);
 
-        logger.info('[AI Engine IPC] 意图识别成功:', result);
+        logger.info("[AI Engine IPC] 意图识别成功:", result);
 
         return result;
       } catch (error) {
-        logger.error('[AI Engine IPC] 意图识别失败:', error);
+        logger.error("[AI Engine IPC] 意图识别失败:", error);
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
     });
 
     // PPT生成：从大纲生成PPT文件
-    ipcMain.handle('aiEngine:generatePPT', async (_event, options) => {
+    ipcMain.handle("aiEngine:generatePPT", async (_event, options) => {
       try {
-        logger.info('[AI Engine IPC] 开始生成PPT:', options);
+        logger.info("[AI Engine IPC] 开始生成PPT:", options);
 
-        const PPTEngine = require('../engines/ppt-engine');
+        const PPTEngine = require("../engines/ppt-engine");
         const pptEngine = new PPTEngine();
 
         const result = await pptEngine.generateFromOutline(options.outline, {
-          theme: options.theme || 'business',
-          author: options.author || '作者',
-          outputPath: options.outputPath
+          theme: options.theme || "business",
+          author: options.author || "作者",
+          outputPath: options.outputPath,
         });
 
-        logger.info('[AI Engine IPC] PPT生成成功:', result);
+        logger.info("[AI Engine IPC] PPT生成成功:", result);
 
         return {
           success: true,
-          ...result
+          ...result,
         };
       } catch (error) {
-        logger.error('[AI Engine IPC] PPT生成失败:', error);
+        logger.error("[AI Engine IPC] PPT生成失败:", error);
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
     });
 
     // Word文档生成：从结构生成Word文件
-    ipcMain.handle('aiEngine:generateWord', async (_event, options) => {
+    ipcMain.handle("aiEngine:generateWord", async (_event, options) => {
       try {
-        logger.info('[AI Engine IPC] 开始生成Word文档:', options);
+        logger.info("[AI Engine IPC] 开始生成Word文档:", options);
 
-        const wordEngine = require('../engines/word-engine');
+        const wordEngine = require("../engines/word-engine");
 
-        const result = await wordEngine.writeWord(options.outputPath, options.structure);
+        const result = await wordEngine.writeWord(
+          options.outputPath,
+          options.structure,
+        );
 
-        logger.info('[AI Engine IPC] Word文档生成成功:', result);
+        logger.info("[AI Engine IPC] Word文档生成成功:", result);
 
         return {
           success: true,
-          ...result
+          ...result,
         };
       } catch (error) {
-        logger.error('[AI Engine IPC] Word文档生成失败:', error);
+        logger.error("[AI Engine IPC] Word文档生成失败:", error);
         return {
           success: false,
-          error: error.message
+          error: error.message,
         };
       }
     });
 
-    logger.info('[AI Engine IPC] 所有IPC handlers已注册');
+    logger.info("[AI Engine IPC] 所有IPC handlers已注册");
   }
 
   /**
@@ -591,42 +619,42 @@ class AIEngineIPC {
    */
   unregisterHandlers() {
     const channels = [
-      'ai:processInput',
-      'ai:getHistory',
-      'ai:clearHistory',
-      'ai:getAvailableTools',
-      'web-engine:generate',
-      'web-engine:getTemplates',
-      'web-engine:startPreview',
-      'web-engine:stopPreview',
-      'web-engine:restartPreview',
-      'web-engine:getPreviewStatus',
-      'web-engine:changePreviewPort',
-      'document-engine:generate',
-      'document-engine:getTemplates',
-      'data-engine:readCSV',
-      'data-engine:writeCSV',
-      'data-engine:readExcel',
-      'data-engine:writeExcel',
-      'data-engine:analyze',
-      'data-engine:generateChart',
-      'data-engine:generateReport',
-      'git-auto-commit:start',
-      'git-auto-commit:stop',
-      'git-auto-commit:stopAll',
-      'git-auto-commit:setInterval',
-      'git-auto-commit:setEnabled',
-      'git-auto-commit:getWatchedProjects',
-      'aiEngine:recognizeIntent',
-      'aiEngine:generatePPT',
-      'aiEngine:generateWord',
+      "ai:processInput",
+      "ai:getHistory",
+      "ai:clearHistory",
+      "ai:getAvailableTools",
+      "web-engine:generate",
+      "web-engine:getTemplates",
+      "web-engine:startPreview",
+      "web-engine:stopPreview",
+      "web-engine:restartPreview",
+      "web-engine:getPreviewStatus",
+      "web-engine:changePreviewPort",
+      "document-engine:generate",
+      "document-engine:getTemplates",
+      "data-engine:readCSV",
+      "data-engine:writeCSV",
+      "data-engine:readExcel",
+      "data-engine:writeExcel",
+      "data-engine:analyze",
+      "data-engine:generateChart",
+      "data-engine:generateReport",
+      "git-auto-commit:start",
+      "git-auto-commit:stop",
+      "git-auto-commit:stopAll",
+      "git-auto-commit:setInterval",
+      "git-auto-commit:setEnabled",
+      "git-auto-commit:getWatchedProjects",
+      "aiEngine:recognizeIntent",
+      "aiEngine:generatePPT",
+      "aiEngine:generateWord",
     ];
 
-    channels.forEach(channel => {
+    channels.forEach((channel) => {
       ipcMain.removeHandler(channel);
     });
 
-    logger.info('[AI Engine IPC] 所有IPC handlers已注销');
+    logger.info("[AI Engine IPC] 所有IPC handlers已注销");
   }
 }
 

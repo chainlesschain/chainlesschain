@@ -1,4 +1,4 @@
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 
 /**
  * Git API 封装

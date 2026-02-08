@@ -1,30 +1,18 @@
 <template>
   <div class="database-security-settings">
-    <a-page-header
-      title="数据库安全"
-      sub-title="管理数据库加密和安全设置"
-    />
+    <a-page-header title="数据库安全" sub-title="管理数据库加密和安全设置" />
 
-    <a-card
-      title="加密状态"
-      style="margin-bottom: 16px"
-    >
-      <a-descriptions
-        bordered
-        :column="2"
-      >
+    <a-card title="加密状态" style="margin-bottom: 16px">
+      <a-descriptions bordered :column="2">
         <a-descriptions-item label="加密状态">
           <DatabaseEncryptionStatus ref="statusRef" />
         </a-descriptions-item>
         <a-descriptions-item label="加密方法">
           {{ encryptionMethodText }}
         </a-descriptions-item>
-        <a-descriptions-item
-          label="数据库引擎"
-          :span="2"
-        >
+        <a-descriptions-item label="数据库引擎" :span="2">
           <a-tag :color="engineColor">
-            {{ config.engine || 'sql.js' }}
+            {{ config.engine || "sql.js" }}
           </a-tag>
           <span style="margin-left: 8px; color: #666">
             {{ engineDescription }}
@@ -33,10 +21,7 @@
       </a-descriptions>
     </a-card>
 
-    <a-card
-      title="加密设置"
-      style="margin-bottom: 16px"
-    >
+    <a-card title="加密设置" style="margin-bottom: 16px">
       <a-form layout="vertical">
         <a-form-item
           label="启用数据库加密"
@@ -47,12 +32,8 @@
             :loading="loading"
             @change="handleEncryptionToggle"
           >
-            <template #checkedChildren>
-              已启用
-            </template>
-            <template #unCheckedChildren>
-              已禁用
-            </template>
+            <template #checkedChildren> 已启用 </template>
+            <template #unCheckedChildren> 已禁用 </template>
           </a-switch>
         </a-form-item>
 
@@ -100,10 +81,7 @@
       v-if="config.encryptionEnabled && config.encryptionMethod === 'password'"
       title="密码管理"
     >
-      <a-space
-        direction="vertical"
-        style="width: 100%"
-      >
+      <a-space direction="vertical" style="width: 100%">
         <a-button
           v-if="config.firstTimeSetup"
           type="primary"
@@ -113,11 +91,7 @@
           <LockOutlined /> 设置加密密码
         </a-button>
 
-        <a-button
-          v-else
-          :loading="loading"
-          @click="showChangePasswordDialog"
-        >
+        <a-button v-else :loading="loading" @click="showChangePasswordDialog">
           <EditOutlined /> 修改加密密码
         </a-button>
 
@@ -133,19 +107,14 @@
     <!-- 性能监控 -->
     <DatabasePerformanceMonitor style="margin-top: 16px" />
 
-    <a-card
-      title="高级选项"
-      style="margin-top: 16px"
-    >
-      <a-space
-        direction="vertical"
-        style="width: 100%"
-      >
+    <a-card title="高级选项" style="margin-top: 16px">
+      <a-space direction="vertical" style="width: 100%">
         <div>
           <h4>性能信息</h4>
           <p>
-            当前使用的{{ config.engine === 'sqlcipher' ? 'SQLCipher' : 'sql.js' }}引擎。
-            SQLCipher 性能是 sql.js 的 <strong>25 倍</strong>。
+            当前使用的{{
+              config.engine === "sqlcipher" ? "SQLCipher" : "sql.js"
+            }}引擎。 SQLCipher 性能是 sql.js 的 <strong>25 倍</strong>。
           </p>
         </div>
 
@@ -153,10 +122,7 @@
 
         <div>
           <h4>重置加密配置</h4>
-          <a-button
-            danger
-            @click="showResetConfirm"
-          >
+          <a-button danger @click="showResetConfirm">
             <DeleteOutlined /> 重置配置
           </a-button>
           <p style="margin-top: 8px; color: #999">
@@ -186,21 +152,21 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from "vue";
 import {
   LockOutlined,
   KeyOutlined,
   UsbOutlined,
   EditOutlined,
-  DeleteOutlined
-} from '@ant-design/icons-vue';
-import { message, Modal } from 'ant-design-vue';
-import DatabaseEncryptionStatus from '../../components/DatabaseEncryptionStatus.vue';
-import DatabasePasswordDialog from '../../components/DatabasePasswordDialog.vue';
-import DatabaseEncryptionWizard from '../../components/DatabaseEncryptionWizard.vue';
-import DatabasePerformanceMonitor from '../../components/DatabasePerformanceMonitor.vue';
+  DeleteOutlined,
+} from "@ant-design/icons-vue";
+import { message, Modal } from "ant-design-vue";
+import DatabaseEncryptionStatus from "../../components/DatabaseEncryptionStatus.vue";
+import DatabasePasswordDialog from "../../components/DatabasePasswordDialog.vue";
+import DatabaseEncryptionWizard from "../../components/DatabaseEncryptionWizard.vue";
+import DatabasePerformanceMonitor from "../../components/DatabasePerformanceMonitor.vue";
 
 const statusRef = ref();
 const loading = ref(false);
@@ -209,45 +175,47 @@ const showWizard = ref(false);
 
 const config = reactive({
   encryptionEnabled: false,
-  encryptionMethod: 'password',
+  encryptionMethod: "password",
   autoMigrate: true,
   firstTimeSetup: true,
   engine: null,
   developmentMode: false,
-  canSkipPassword: false
+  canSkipPassword: false,
 });
 
 const encryptionMethodText = computed(() => {
-  if (!config.encryptionEnabled) {return '未启用';}
-  return config.encryptionMethod === 'ukey' ? 'U-Key 硬件加密' : '密码派生';
+  if (!config.encryptionEnabled) {
+    return "未启用";
+  }
+  return config.encryptionMethod === "ukey" ? "U-Key 硬件加密" : "密码派生";
 });
 
 const engineColor = computed(() => {
-  return config.engine === 'sqlcipher' ? 'success' : 'default';
+  return config.engine === "sqlcipher" ? "success" : "default";
 });
 
 const engineDescription = computed(() => {
-  return config.engine === 'sqlcipher'
-    ? '高性能加密数据库'
-    : '传统数据库（建议启用加密）';
+  return config.engine === "sqlcipher"
+    ? "高性能加密数据库"
+    : "传统数据库（建议启用加密）";
 });
 
 // 加载配置
 const loadConfig = async () => {
   try {
     const [statusResult, configResult] = await Promise.all([
-      window.electron.ipcRenderer.invoke('database:get-encryption-status'),
-      window.electron.ipcRenderer.invoke('database:get-encryption-config')
+      window.electron.ipcRenderer.invoke("database:get-encryption-status"),
+      window.electron.ipcRenderer.invoke("database:get-encryption-config"),
     ]);
 
     if (statusResult) {
       Object.assign(config, {
         encryptionEnabled: statusResult.isEncrypted,
-        encryptionMethod: statusResult.method || 'password',
+        encryptionMethod: statusResult.method || "password",
         firstTimeSetup: statusResult.firstTimeSetup,
         engine: statusResult.engine,
         developmentMode: statusResult.developmentMode || false,
-        canSkipPassword: statusResult.canSkipPassword || false
+        canSkipPassword: statusResult.canSkipPassword || false,
       });
     }
 
@@ -255,8 +223,8 @@ const loadConfig = async () => {
       Object.assign(config, configResult.config);
     }
   } catch (error) {
-    logger.error('加载配置失败:', error);
-    message.error('加载配置失败: ' + error.message);
+    logger.error("加载配置失败:", error);
+    message.error("加载配置失败: " + error.message);
   }
 };
 
@@ -265,7 +233,7 @@ const handleEncryptionToggle = async (enabled) => {
   loading.value = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      enabled ? 'database:enable-encryption' : 'database:disable-encryption'
+      enabled ? "database:enable-encryption" : "database:disable-encryption",
     );
 
     if (result.success) {
@@ -276,23 +244,23 @@ const handleEncryptionToggle = async (enabled) => {
         showWizard.value = true;
       } else if (result.requiresRestart) {
         Modal.info({
-          title: '需要重启',
-          content: '加密设置已更新，请重启应用以使更改生效。',
-          okText: '立即重启',
+          title: "需要重启",
+          content: "加密设置已更新，请重启应用以使更改生效。",
+          okText: "立即重启",
           onOk: () => {
-            window.electron.ipcRenderer.invoke('app:restart');
-          }
+            window.electron.ipcRenderer.invoke("app:restart");
+          },
         });
       }
 
       statusRef.value?.refresh();
     } else {
       config.encryptionEnabled = !enabled; // 回滚
-      message.error(result.error || '操作失败');
+      message.error(result.error || "操作失败");
     }
   } catch (error) {
     config.encryptionEnabled = !enabled; // 回滚
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -301,27 +269,33 @@ const handleEncryptionToggle = async (enabled) => {
 // 处理加密方法变更
 const handleMethodChange = async () => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('database:update-encryption-config', {
-      encryptionMethod: config.encryptionMethod
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "database:update-encryption-config",
+      {
+        encryptionMethod: config.encryptionMethod,
+      },
+    );
 
     if (result.success) {
-      message.success('加密方法已更新');
+      message.success("加密方法已更新");
     }
   } catch (error) {
-    message.error('更新失败: ' + error.message);
+    message.error("更新失败: " + error.message);
   }
 };
 
 // 处理自动迁移变更
 const handleAutoMigrateChange = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('database:update-encryption-config', {
-      autoMigrate: config.autoMigrate
-    });
-    message.success('设置已更新');
+    await window.electron.ipcRenderer.invoke(
+      "database:update-encryption-config",
+      {
+        autoMigrate: config.autoMigrate,
+      },
+    );
+    message.success("设置已更新");
   } catch (error) {
-    message.error('更新失败: ' + error.message);
+    message.error("更新失败: " + error.message);
   }
 };
 
@@ -340,13 +314,15 @@ const handlePasswordSubmit = async (data) => {
   loading.value = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      config.firstTimeSetup ? 'database:setup-encryption' : 'database:change-encryption-password',
+      config.firstTimeSetup
+        ? "database:setup-encryption"
+        : "database:change-encryption-password",
       {
         method: config.encryptionMethod,
         password: data.password,
         oldPassword: data.oldPassword,
-        skipPassword: data.skipPassword || false
-      }
+        skipPassword: data.skipPassword || false,
+      },
     );
 
     if (result.success) {
@@ -355,10 +331,10 @@ const handlePasswordSubmit = async (data) => {
       await loadConfig();
       statusRef.value?.refresh();
     } else {
-      message.error(result.error || '操作失败');
+      message.error(result.error || "操作失败");
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -366,7 +342,7 @@ const handlePasswordSubmit = async (data) => {
 
 // 向导完成
 const handleWizardComplete = async () => {
-  message.success('加密设置完成');
+  message.success("加密设置完成");
   await loadConfig();
   statusRef.value?.refresh();
 };
@@ -380,24 +356,27 @@ const handleWizardSkip = () => {
 // 重置配置确认
 const showResetConfirm = () => {
   Modal.confirm({
-    title: '确认重置配置？',
-    content: '这将清除所有加密设置，需要重新配置。此操作不会删除已加密的数据库文件。',
-    okText: '确认重置',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认重置配置？",
+    content:
+      "这将清除所有加密设置，需要重新配置。此操作不会删除已加密的数据库文件。",
+    okText: "确认重置",
+    okType: "danger",
+    cancelText: "取消",
     onOk: async () => {
       try {
-        const result = await window.electron.ipcRenderer.invoke('database:reset-encryption-config');
+        const result = await window.electron.ipcRenderer.invoke(
+          "database:reset-encryption-config",
+        );
         if (result.success) {
-          message.success('配置已重置');
+          message.success("配置已重置");
           await loadConfig();
         } else {
           message.error(result.error);
         }
       } catch (error) {
-        message.error('重置失败: ' + error.message);
+        message.error("重置失败: " + error.message);
       }
-    }
+    },
   });
 };
 

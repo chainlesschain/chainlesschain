@@ -11,14 +11,14 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { RobotOutlined } from '@ant-design/icons-vue';
-import { getEmptyStateText, getEmptyHint } from '../../utils/chatHelpers';
+import { computed } from "vue";
+import { RobotOutlined } from "@ant-design/icons-vue";
+import { getEmptyStateText, getEmptyHint } from "../../utils/chatHelpers";
 
 const props = defineProps({
   contextMode: {
     type: String,
-    default: 'global',
+    default: "global",
   },
   currentFile: {
     type: Object,
@@ -27,7 +27,9 @@ const props = defineProps({
 });
 
 const emptyStateText = computed(() => getEmptyStateText(props.contextMode));
-const emptyHint = computed(() => getEmptyHint(props.contextMode, props.currentFile));
+const emptyHint = computed(() =>
+  getEmptyHint(props.contextMode, props.currentFile),
+);
 </script>
 
 <style scoped>

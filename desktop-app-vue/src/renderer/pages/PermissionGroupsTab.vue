@@ -3,10 +3,7 @@
     <a-spin :spinning="loading">
       <div class="tab-header">
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateGroupModal"
-          >
+          <a-button type="primary" @click="showCreateGroupModal">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -32,11 +29,7 @@
       >
         <template #expandedRowRender="{ record }">
           <div class="group-detail">
-            <a-descriptions
-              title="权限组详情"
-              bordered
-              size="small"
-            >
+            <a-descriptions title="权限组详情" bordered size="small">
               <a-descriptions-item label="组ID">
                 {{ record.groupId }}
               </a-descriptions-item>
@@ -46,11 +39,8 @@
               <a-descriptions-item label="创建时间">
                 {{ record.createdAt }}
               </a-descriptions-item>
-              <a-descriptions-item
-                label="描述"
-                :span="3"
-              >
-                {{ record.description || '无' }}
+              <a-descriptions-item label="描述" :span="3">
+                {{ record.description || "无" }}
               </a-descriptions-item>
             </a-descriptions>
 
@@ -78,13 +68,11 @@
                 <template v-if="column.key === 'actions'">
                   <a-popconfirm
                     title="确定要取消分配吗?"
-                    @confirm="handleUnassignGroup(assignment.roleName, record.groupId)"
+                    @confirm="
+                      handleUnassignGroup(assignment.roleName, record.groupId)
+                    "
                   >
-                    <a-button
-                      type="link"
-                      danger
-                      size="small"
-                    >
+                    <a-button type="link" danger size="small">
                       取消分配
                     </a-button>
                   </a-popconfirm>
@@ -149,13 +137,7 @@
                 title="确定要删除此权限组吗?"
                 @confirm="handleDeleteGroup(record.groupId)"
               >
-                <a-button
-                  type="link"
-                  danger
-                  size="small"
-                >
-                  删除
-                </a-button>
+                <a-button type="link" danger size="small"> 删除 </a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -175,10 +157,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="权限组名称"
-          required
-        >
+        <a-form-item label="权限组名称" required>
           <a-input
             v-model:value="groupForm.groupName"
             placeholder="输入权限组名称"
@@ -193,10 +172,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="权限列表"
-          required
-        >
+        <a-form-item label="权限列表" required>
           <a-select
             v-model:value="groupForm.permissions"
             mode="multiple"
@@ -204,33 +180,19 @@
             style="width: 100%"
           >
             <a-select-opt-group label="组织管理">
-              <a-select-option value="org.view">
-                查看组织
-              </a-select-option>
-              <a-select-option value="org.edit">
-                编辑组织
-              </a-select-option>
-              <a-select-option value="org.settings">
-                组织设置
-              </a-select-option>
-              <a-select-option value="org.manage">
-                管理组织
-              </a-select-option>
+              <a-select-option value="org.view"> 查看组织 </a-select-option>
+              <a-select-option value="org.edit"> 编辑组织 </a-select-option>
+              <a-select-option value="org.settings"> 组织设置 </a-select-option>
+              <a-select-option value="org.manage"> 管理组织 </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="成员管理">
-              <a-select-option value="member.view">
-                查看成员
-              </a-select-option>
-              <a-select-option value="member.add">
-                添加成员
-              </a-select-option>
+              <a-select-option value="member.view"> 查看成员 </a-select-option>
+              <a-select-option value="member.add"> 添加成员 </a-select-option>
               <a-select-option value="member.remove">
                 移除成员
               </a-select-option>
-              <a-select-option value="member.edit">
-                编辑成员
-              </a-select-option>
+              <a-select-option value="member.edit"> 编辑成员 </a-select-option>
               <a-select-option value="member.manage">
                 管理成员
               </a-select-option>
@@ -261,15 +223,11 @@
             </a-select-opt-group>
 
             <a-select-opt-group label="项目管理">
-              <a-select-option value="project.view">
-                查看项目
-              </a-select-option>
+              <a-select-option value="project.view"> 查看项目 </a-select-option>
               <a-select-option value="project.create">
                 创建项目
               </a-select-option>
-              <a-select-option value="project.edit">
-                编辑项目
-              </a-select-option>
+              <a-select-option value="project.edit"> 编辑项目 </a-select-option>
               <a-select-option value="project.delete">
                 删除项目
               </a-select-option>
@@ -279,9 +237,7 @@
             </a-select-opt-group>
 
             <a-select-opt-group label="特殊权限">
-              <a-select-option value="*">
-                所有权限
-              </a-select-option>
+              <a-select-option value="*"> 所有权限 </a-select-option>
             </a-select-opt-group>
           </a-select>
         </a-form-item>
@@ -300,10 +256,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="角色名称"
-          required
-        >
+        <a-form-item label="角色名称" required>
           <a-input
             v-model:value="assignForm.roleName"
             placeholder="输入角色名称"
@@ -315,39 +268,39 @@
 </template>
 
 <script>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { defineComponent, ref, reactive, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
-import { PlusOutlined } from '@ant-design/icons-vue';
+import { defineComponent, ref, reactive, computed, watch } from "vue";
+import { message } from "ant-design-vue";
+import { PlusOutlined } from "@ant-design/icons-vue";
 
 export default defineComponent({
-  name: 'PermissionGroupsTab',
+  name: "PermissionGroupsTab",
 
   components: {
-    PlusOutlined
+    PlusOutlined,
   },
 
   props: {
     orgId: {
       type: String,
-      required: true
+      required: true,
     },
     userDid: {
       type: String,
-      required: true
+      required: true,
     },
     groups: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
 
-  emits: ['create', 'assign', 'refresh'],
+  emits: ["create", "assign", "refresh"],
 
   setup(props, { emit }) {
     const loading = ref(false);
-    const searchText = ref('');
+    const searchText = ref("");
     const expandedRowKeys = ref([]);
 
     const groupModalVisible = ref(false);
@@ -356,78 +309,81 @@ export default defineComponent({
     const currentGroup = ref(null);
 
     const groupForm = reactive({
-      groupName: '',
-      description: '',
-      permissions: []
+      groupName: "",
+      description: "",
+      permissions: [],
     });
 
     const assignForm = reactive({
-      roleName: ''
+      roleName: "",
     });
 
     const columns = [
       {
-        title: '权限组名称',
-        dataIndex: 'groupName',
-        key: 'groupName',
-        width: 200
+        title: "权限组名称",
+        dataIndex: "groupName",
+        key: "groupName",
+        width: 200,
       },
       {
-        title: '描述',
-        dataIndex: 'description',
-        key: 'description',
-        ellipsis: true
+        title: "描述",
+        dataIndex: "description",
+        key: "description",
+        ellipsis: true,
       },
       {
-        title: '权限',
-        key: 'permissions',
-        width: 300
+        title: "权限",
+        key: "permissions",
+        width: 300,
       },
       {
-        title: '分配数',
-        key: 'assignmentCount',
+        title: "分配数",
+        key: "assignmentCount",
         width: 100,
-        align: 'center'
+        align: "center",
       },
       {
-        title: '操作',
-        key: 'actions',
+        title: "操作",
+        key: "actions",
         width: 220,
-        fixed: 'right'
-      }
+        fixed: "right",
+      },
     ];
 
     const assignmentColumns = [
       {
-        title: '角色名称',
-        dataIndex: 'roleName',
-        key: 'roleName'
+        title: "角色名称",
+        dataIndex: "roleName",
+        key: "roleName",
       },
       {
-        title: '分配时间',
-        dataIndex: 'assignedAt',
-        key: 'assignedAt',
-        width: 180
+        title: "分配时间",
+        dataIndex: "assignedAt",
+        key: "assignedAt",
+        width: 180,
       },
       {
-        title: '操作',
-        key: 'actions',
-        width: 100
-      }
+        title: "操作",
+        key: "actions",
+        width: 100,
+      },
     ];
 
     const pagination = {
       pageSize: 10,
       showSizeChanger: true,
-      showTotal: (total) => `共 ${total} 条`
+      showTotal: (total) => `共 ${total} 条`,
     };
 
     const filteredGroups = computed(() => {
-      if (!searchText.value) {return props.groups;}
+      if (!searchText.value) {
+        return props.groups;
+      }
       const search = searchText.value.toLowerCase();
-      return props.groups.filter(g =>
-        g.groupName.toLowerCase().includes(search) ||
-        g.description?.toLowerCase().includes(search)
+      return props.groups.filter(
+        (g) =>
+          g.groupName.toLowerCase().includes(search) ||
+          g.description?.toLowerCase().includes(search),
       );
     });
 
@@ -442,9 +398,9 @@ export default defineComponent({
     const showCreateGroupModal = () => {
       editingGroup.value = null;
       Object.assign(groupForm, {
-        groupName: '',
-        description: '',
-        permissions: []
+        groupName: "",
+        description: "",
+        permissions: [],
       });
       groupModalVisible.value = true;
     };
@@ -453,8 +409,8 @@ export default defineComponent({
       editingGroup.value = group;
       Object.assign(groupForm, {
         groupName: group.groupName,
-        description: group.description || '',
-        permissions: group.permissions || []
+        description: group.description || "",
+        permissions: group.permissions || [],
       });
       groupModalVisible.value = true;
     };
@@ -466,11 +422,11 @@ export default defineComponent({
     const handleGroupSubmit = async () => {
       try {
         loading.value = true;
-        emit('create', { ...groupForm });
+        emit("create", { ...groupForm });
         groupModalVisible.value = false;
       } catch (error) {
-        logger.error('Failed to submit group:', error);
-        message.error('操作失败');
+        logger.error("Failed to submit group:", error);
+        message.error("操作失败");
       } finally {
         loading.value = false;
       }
@@ -479,21 +435,24 @@ export default defineComponent({
     const handleDeleteGroup = async (groupId) => {
       try {
         loading.value = true;
-        const result = await window.electron.ipcRenderer.invoke('permission:delete-group', {
-          orgId: props.orgId,
-          userDID: props.userDid,
-          groupId
-        });
+        const result = await window.electron.ipcRenderer.invoke(
+          "permission:delete-group",
+          {
+            orgId: props.orgId,
+            userDID: props.userDid,
+            groupId,
+          },
+        );
 
         if (result.success) {
-          message.success('权限组删除成功');
-          emit('refresh');
+          message.success("权限组删除成功");
+          emit("refresh");
         } else {
-          message.error(result.error || '删除失败');
+          message.error(result.error || "删除失败");
         }
       } catch (error) {
-        logger.error('Failed to delete group:', error);
-        message.error('删除失败');
+        logger.error("Failed to delete group:", error);
+        message.error("删除失败");
       } finally {
         loading.value = false;
       }
@@ -502,7 +461,7 @@ export default defineComponent({
     const showAssignGroupModal = (group) => {
       currentGroup.value = group;
       Object.assign(assignForm, {
-        roleName: ''
+        roleName: "",
       });
       assignModalVisible.value = true;
     };
@@ -510,11 +469,11 @@ export default defineComponent({
     const handleAssignSubmit = async () => {
       try {
         loading.value = true;
-        emit('assign', assignForm.roleName, currentGroup.value.groupId);
+        emit("assign", assignForm.roleName, currentGroup.value.groupId);
         assignModalVisible.value = false;
       } catch (error) {
-        logger.error('Failed to assign group:', error);
-        message.error('分配失败');
+        logger.error("Failed to assign group:", error);
+        message.error("分配失败");
       } finally {
         loading.value = false;
       }
@@ -523,22 +482,25 @@ export default defineComponent({
     const handleUnassignGroup = async (roleName, groupId) => {
       try {
         loading.value = true;
-        const result = await window.electron.ipcRenderer.invoke('permission:unassign-group', {
-          orgId: props.orgId,
-          userDID: props.userDid,
-          roleName,
-          groupId
-        });
+        const result = await window.electron.ipcRenderer.invoke(
+          "permission:unassign-group",
+          {
+            orgId: props.orgId,
+            userDID: props.userDid,
+            roleName,
+            groupId,
+          },
+        );
 
         if (result.success) {
-          message.success('取消分配成功');
-          emit('refresh');
+          message.success("取消分配成功");
+          emit("refresh");
         } else {
-          message.error(result.error || '取消分配失败');
+          message.error(result.error || "取消分配失败");
         }
       } catch (error) {
-        logger.error('Failed to unassign group:', error);
-        message.error('取消分配失败');
+        logger.error("Failed to unassign group:", error);
+        message.error("取消分配失败");
       } finally {
         loading.value = false;
       }
@@ -571,9 +533,9 @@ export default defineComponent({
       showAssignGroupModal,
       handleAssignSubmit,
       handleUnassignGroup,
-      handleSearch
+      handleSearch,
     };
-  }
+  },
 });
 </script>
 

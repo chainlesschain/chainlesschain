@@ -10,8 +10,8 @@
  * @version 1.0.0
  */
 
-const EventEmitter = require('events');
-const { logger } = require('../utils/logger.js');
+const EventEmitter = require("events");
+const { logger } = require("../utils/logger.js");
 
 /**
  * Memory importance levels
@@ -27,12 +27,12 @@ const MemoryImportance = {
  * Memory types
  */
 const MemoryType = {
-  FACT: 'fact',           // User facts (name, preferences)
-  CONVERSATION: 'conversation',  // Conversation summaries
-  TASK: 'task',           // Task outcomes
-  PATTERN: 'pattern',     // Learned patterns
-  ASSOCIATION: 'association',   // Cross-reference links
-  SYSTEM: 'system',       // System state
+  FACT: "fact", // User facts (name, preferences)
+  CONVERSATION: "conversation", // Conversation summaries
+  TASK: "task", // Task outcomes
+  PATTERN: "pattern", // Learned patterns
+  ASSOCIATION: "association", // Cross-reference links
+  SYSTEM: "system", // System state
 };
 
 /**
@@ -43,8 +43,8 @@ class WorkingMemory {
     this.maxTokens = config.maxTokens || 4000;
     this.currentTokens = 0;
     this.memories = [];
-    this.systemMessage = '';
-    this.userPersona = '';
+    this.systemMessage = "";
+    this.userPersona = "";
   }
 
   /**
@@ -75,7 +75,9 @@ class WorkingMemory {
    * @returns {Object|null} Removed memory
    */
   evictOldest() {
-    if (this.memories.length === 0) return null;
+    if (this.memories.length === 0) {
+      return null;
+    }
 
     // Sort by importance (keep important ones), then by time
     this.memories.sort((a, b) => {
@@ -104,7 +106,7 @@ class WorkingMemory {
    * @returns {string} Formatted context
    */
   getContext() {
-    let context = '';
+    let context = "";
 
     if (this.systemMessage) {
       context += `[System]: ${this.systemMessage}\n\n`;
@@ -115,7 +117,7 @@ class WorkingMemory {
     }
 
     if (this.memories.length > 0) {
-      context += '[Working Memory]:\n';
+      context += "[Working Memory]:\n";
       this.memories.forEach((m, i) => {
         context += `${i + 1}. [${m.type}] ${m.content}\n`;
       });
@@ -156,7 +158,8 @@ class WorkingMemory {
     return {
       currentTokens: this.currentTokens,
       maxTokens: this.maxTokens,
-      utilization: (this.currentTokens / this.maxTokens * 100).toFixed(1) + '%',
+      utilization:
+        ((this.currentTokens / this.maxTokens) * 100).toFixed(1) + "%",
       memoryCount: this.memories.length,
     };
   }
@@ -238,8 +241,12 @@ class RecallMemory {
 
     // Sort by relevance (simple match count) and access frequency
     results.sort((a, b) => {
-      const aMatches = (String(a.content).match(new RegExp(queryLower, 'gi')) || []).length;
-      const bMatches = (String(b.content).match(new RegExp(queryLower, 'gi')) || []).length;
+      const aMatches = (
+        String(a.content).match(new RegExp(queryLower, "gi")) || []
+      ).length;
+      const bMatches = (
+        String(b.content).match(new RegExp(queryLower, "gi")) || []
+      ).length;
       return bMatches - aMatches || b.accessCount - a.accessCount;
     });
 
@@ -298,7 +305,7 @@ class RecallMemory {
     return {
       size: this.memories.size,
       maxSize: this.maxSize,
-      utilization: (this.memories.size / this.maxSize * 100).toFixed(1) + '%',
+      utilization: ((this.memories.size / this.maxSize) * 100).toFixed(1) + "%",
     };
   }
 
@@ -331,7 +338,7 @@ class ArchivalMemory extends EventEmitter {
     super();
     this.db = config.database || null;
     this.ragManager = config.ragManager || null;
-    this.tableName = 'long_term_memories';
+    this.tableName = "long_term_memories";
   }
 
   /**
@@ -357,39 +364,45 @@ class ArchivalMemory extends EventEmitter {
    */
   async store(memory) {
     if (!this.db) {
-      throw new Error('Database not initialized');
+      throw new Error("Database not initialized");
     }
 
     const id = memory.id || this._generateId();
     const now = Date.now();
 
     try {
-      await this.db.run(`
+      await this.db.run(
+        `
         INSERT OR REPLACE INTO ${this.tableName} (
           id, user_id, type, content, importance,
           metadata, embedding, created_at, accessed_at, access_count
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        id,
-        memory.userId || 'default',
-        memory.type || MemoryType.FACT,
-        JSON.stringify(memory.content),
-        memory.importance || MemoryImportance.MEDIUM,
-        JSON.stringify(memory.metadata || {}),
-        memory.embedding ? Buffer.from(new Float32Array(memory.embedding).buffer) : null,
-        now,
-        now,
-        0,
-      ]);
+      `,
+        [
+          id,
+          memory.userId || "default",
+          memory.type || MemoryType.FACT,
+          JSON.stringify(memory.content),
+          memory.importance || MemoryImportance.MEDIUM,
+          JSON.stringify(memory.metadata || {}),
+          memory.embedding
+            ? Buffer.from(new Float32Array(memory.embedding).buffer)
+            : null,
+          now,
+          now,
+          0,
+        ],
+      );
 
       // Also index in RAG if available
       if (this.ragManager && memory.content) {
         try {
           await this.ragManager.addDocument({
             id: `memory_${id}`,
-            content: typeof memory.content === 'string'
-              ? memory.content
-              : JSON.stringify(memory.content),
+            content:
+              typeof memory.content === "string"
+                ? memory.content
+                : JSON.stringify(memory.content),
             metadata: {
               memoryId: id,
               type: memory.type,
@@ -397,14 +410,17 @@ class ArchivalMemory extends EventEmitter {
             },
           });
         } catch (ragError) {
-          logger.warn('[ArchivalMemory] RAG indexing failed:', ragError.message);
+          logger.warn(
+            "[ArchivalMemory] RAG indexing failed:",
+            ragError.message,
+          );
         }
       }
 
-      this.emit('memory-stored', { id, memory });
+      this.emit("memory-stored", { id, memory });
       return id;
     } catch (error) {
-      logger.error('[ArchivalMemory] Store failed:', error);
+      logger.error("[ArchivalMemory] Store failed:", error);
       throw error;
     }
   }
@@ -415,26 +431,34 @@ class ArchivalMemory extends EventEmitter {
    * @returns {Promise<Object|null>} Memory or null
    */
   async get(id) {
-    if (!this.db) return null;
+    if (!this.db) {
+      return null;
+    }
 
     try {
-      const row = await this.db.get(`
+      const row = await this.db.get(
+        `
         SELECT * FROM ${this.tableName} WHERE id = ?
-      `, [id]);
+      `,
+        [id],
+      );
 
       if (row) {
         // Update access stats
-        await this.db.run(`
+        await this.db.run(
+          `
           UPDATE ${this.tableName}
           SET accessed_at = ?, access_count = access_count + 1
           WHERE id = ?
-        `, [Date.now(), id]);
+        `,
+          [Date.now(), id],
+        );
 
         return this._parseRow(row);
       }
       return null;
     } catch (error) {
-      logger.error('[ArchivalMemory] Get failed:', error);
+      logger.error("[ArchivalMemory] Get failed:", error);
       return null;
     }
   }
@@ -473,7 +497,7 @@ class ArchivalMemory extends EventEmitter {
           }
         }
       } catch (error) {
-        logger.warn('[ArchivalMemory] Vector search failed:', error.message);
+        logger.warn("[ArchivalMemory] Vector search failed:", error.message);
       }
     }
 
@@ -481,27 +505,30 @@ class ArchivalMemory extends EventEmitter {
     if (results.length < limit && this.db) {
       try {
         const whereClause = type
-          ? 'WHERE content LIKE ? AND type = ? AND importance >= ?'
-          : 'WHERE content LIKE ? AND importance >= ?';
+          ? "WHERE content LIKE ? AND type = ? AND importance >= ?"
+          : "WHERE content LIKE ? AND importance >= ?";
         const params = type
           ? [`%${query}%`, type, minImportance]
           : [`%${query}%`, minImportance];
 
-        const rows = await this.db.all(`
+        const rows = await this.db.all(
+          `
           SELECT * FROM ${this.tableName}
           ${whereClause}
           ORDER BY importance DESC, accessed_at DESC
           LIMIT ?
-        `, [...params, limit - results.length]);
+        `,
+          [...params, limit - results.length],
+        );
 
         for (const row of rows) {
           const memory = this._parseRow(row);
-          if (!results.find(r => r.id === memory.id)) {
+          if (!results.find((r) => r.id === memory.id)) {
             results.push(memory);
           }
         }
       } catch (error) {
-        logger.warn('[ArchivalMemory] Text search failed:', error.message);
+        logger.warn("[ArchivalMemory] Text search failed:", error.message);
       }
     }
 
@@ -515,19 +542,24 @@ class ArchivalMemory extends EventEmitter {
    * @returns {Promise<Array>} Memories
    */
   async getByType(type, limit = 50) {
-    if (!this.db) return [];
+    if (!this.db) {
+      return [];
+    }
 
     try {
-      const rows = await this.db.all(`
+      const rows = await this.db.all(
+        `
         SELECT * FROM ${this.tableName}
         WHERE type = ?
         ORDER BY importance DESC, created_at DESC
         LIMIT ?
-      `, [type, limit]);
+      `,
+        [type, limit],
+      );
 
-      return rows.map(row => this._parseRow(row));
+      return rows.map((row) => this._parseRow(row));
     } catch (error) {
-      logger.error('[ArchivalMemory] GetByType failed:', error);
+      logger.error("[ArchivalMemory] GetByType failed:", error);
       return [];
     }
   }
@@ -538,18 +570,23 @@ class ArchivalMemory extends EventEmitter {
    * @returns {Promise<Array>} Important memories
    */
   async getMostImportant(limit = 20) {
-    if (!this.db) return [];
+    if (!this.db) {
+      return [];
+    }
 
     try {
-      const rows = await this.db.all(`
+      const rows = await this.db.all(
+        `
         SELECT * FROM ${this.tableName}
         ORDER BY importance DESC, access_count DESC
         LIMIT ?
-      `, [limit]);
+      `,
+        [limit],
+      );
 
-      return rows.map(row => this._parseRow(row));
+      return rows.map((row) => this._parseRow(row));
     } catch (error) {
-      logger.error('[ArchivalMemory] GetMostImportant failed:', error);
+      logger.error("[ArchivalMemory] GetMostImportant failed:", error);
       return [];
     }
   }
@@ -560,16 +597,21 @@ class ArchivalMemory extends EventEmitter {
    * @param {number} importance - New importance
    */
   async updateImportance(id, importance) {
-    if (!this.db) return;
+    if (!this.db) {
+      return;
+    }
 
     try {
-      await this.db.run(`
+      await this.db.run(
+        `
         UPDATE ${this.tableName}
         SET importance = ?
         WHERE id = ?
-      `, [importance, id]);
+      `,
+        [importance, id],
+      );
     } catch (error) {
-      logger.error('[ArchivalMemory] UpdateImportance failed:', error);
+      logger.error("[ArchivalMemory] UpdateImportance failed:", error);
     }
   }
 
@@ -579,7 +621,9 @@ class ArchivalMemory extends EventEmitter {
    * @returns {Promise<boolean>} Success
    */
   async delete(id) {
-    if (!this.db) return false;
+    if (!this.db) {
+      return false;
+    }
 
     try {
       await this.db.run(`DELETE FROM ${this.tableName} WHERE id = ?`, [id]);
@@ -593,10 +637,10 @@ class ArchivalMemory extends EventEmitter {
         }
       }
 
-      this.emit('memory-deleted', { id });
+      this.emit("memory-deleted", { id });
       return true;
     } catch (error) {
-      logger.error('[ArchivalMemory] Delete failed:', error);
+      logger.error("[ArchivalMemory] Delete failed:", error);
       return false;
     }
   }
@@ -634,7 +678,7 @@ class ArchivalMemory extends EventEmitter {
         avgImportance: avgImportance?.avg || 0,
       };
     } catch (error) {
-      logger.error('[ArchivalMemory] GetStats failed:', error);
+      logger.error("[ArchivalMemory] GetStats failed:", error);
       return { total: 0, byType: {}, avgImportance: 0 };
     }
   }
@@ -648,9 +692,9 @@ class ArchivalMemory extends EventEmitter {
       id: row.id,
       userId: row.user_id,
       type: row.type,
-      content: JSON.parse(row.content || '{}'),
+      content: JSON.parse(row.content || "{}"),
       importance: row.importance,
-      metadata: JSON.parse(row.metadata || '{}'),
+      metadata: JSON.parse(row.metadata || "{}"),
       createdAt: row.created_at,
       accessedAt: row.accessed_at,
       accessCount: row.access_count,
@@ -719,18 +763,18 @@ class MemoryHierarchy extends EventEmitter {
    * @param {string} layer - Target layer ('working', 'recall', 'archival')
    * @returns {Promise<string|boolean>} Result
    */
-  async addMemory(memory, layer = 'recall') {
+  async addMemory(memory, layer = "recall") {
     switch (layer) {
-      case 'working':
+      case "working":
         return this.working.add(memory);
 
-      case 'recall': {
+      case "recall": {
         const id = memory.id || this.archival._generateId();
         this.recall.store(id, memory);
         return id;
       }
 
-      case 'archival':
+      case "archival":
         return await this.archival.store(memory);
 
       default:
@@ -745,7 +789,9 @@ class MemoryHierarchy extends EventEmitter {
    */
   promoteToWorking(id) {
     const memory = this.recall.get(id);
-    if (!memory) return false;
+    if (!memory) {
+      return false;
+    }
 
     const added = this.working.add(memory);
     if (!added) {
@@ -766,7 +812,9 @@ class MemoryHierarchy extends EventEmitter {
    */
   async archiveFromRecall(id) {
     const memory = this.recall.get(id);
-    if (!memory) return null;
+    if (!memory) {
+      return null;
+    }
 
     const archivedId = await this.archival.store(memory);
     this.recall.remove(id);
@@ -792,8 +840,8 @@ class MemoryHierarchy extends EventEmitter {
     // Also check working memory
     const workingMemories = this.working.getAll();
     const queryLower = query.toLowerCase();
-    results.working = workingMemories.filter(m =>
-      String(m.content).toLowerCase().includes(queryLower)
+    results.working = workingMemories.filter((m) =>
+      String(m.content).toLowerCase().includes(queryLower),
     );
 
     return results;
@@ -834,11 +882,11 @@ class MemoryHierarchy extends EventEmitter {
    * Clear all memories
    * @param {Array} layers - Layers to clear (default: all)
    */
-  async clear(layers = ['working', 'recall']) {
-    if (layers.includes('working')) {
+  async clear(layers = ["working", "recall"]) {
+    if (layers.includes("working")) {
       this.working.clear();
     }
-    if (layers.includes('recall')) {
+    if (layers.includes("recall")) {
       this.recall.clear();
     }
     // Archival is not cleared by default for safety
@@ -849,12 +897,12 @@ class MemoryHierarchy extends EventEmitter {
    * @private
    */
   _setupEventHandlers() {
-    this.archival.on('memory-stored', (data) => {
-      this.emit('memory-archived', data);
+    this.archival.on("memory-stored", (data) => {
+      this.emit("memory-archived", data);
     });
 
-    this.archival.on('memory-deleted', (data) => {
-      this.emit('memory-deleted', data);
+    this.archival.on("memory-deleted", (data) => {
+      this.emit("memory-deleted", data);
     });
   }
 }

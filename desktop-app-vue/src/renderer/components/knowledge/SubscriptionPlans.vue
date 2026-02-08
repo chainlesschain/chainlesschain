@@ -9,10 +9,7 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             <template #icon>
               <plus-outlined />
             </template>
@@ -41,7 +38,7 @@
             <a-card
               hoverable
               class="plan-card"
-              :class="{ 'recommended': plan.isRecommended }"
+              :class="{ recommended: plan.isRecommended }"
             >
               <template #title>
                 <div class="plan-title">
@@ -77,11 +74,7 @@
               <a-divider />
 
               <div class="plan-stats">
-                <a-space
-                  direction="vertical"
-                  size="small"
-                  style="width: 100%"
-                >
+                <a-space direction="vertical" size="small" style="width: 100%">
                   <div class="stat-item">
                     <team-outlined />
                     <span>{{ plan.subscriberCount || 0 }} 位订阅者</span>
@@ -94,20 +87,14 @@
               </div>
 
               <template #actions>
-                <a-button
-                  type="link"
-                  @click="editPlan(plan)"
-                >
+                <a-button type="link" @click="editPlan(plan)">
                   <edit-outlined /> 编辑
                 </a-button>
                 <a-popconfirm
                   title="确定要删除这个计划吗？"
                   @confirm="deletePlan(plan.id)"
                 >
-                  <a-button
-                    type="link"
-                    danger
-                  >
+                  <a-button type="link" danger>
                     <delete-outlined /> 删除
                   </a-button>
                 </a-popconfirm>
@@ -117,14 +104,8 @@
         </a-row>
 
         <!-- 空状态 -->
-        <a-empty
-          v-if="plans.length === 0"
-          description="暂无订阅计划"
-        >
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+        <a-empty v-if="plans.length === 0" description="暂无订阅计划">
+          <a-button type="primary" @click="showCreateModal = true">
             创建第一个计划
           </a-button>
         </a-empty>
@@ -142,10 +123,7 @@
     >
       <a-form layout="vertical">
         <!-- 计划名称 -->
-        <a-form-item
-          label="计划名称"
-          required
-        >
+        <a-form-item label="计划名称" required>
           <a-input
             v-model:value="form.name"
             placeholder="例如：基础版、专业版、企业版"
@@ -165,10 +143,7 @@
         </a-form-item>
 
         <!-- 月费 -->
-        <a-form-item
-          label="月费（元）"
-          required
-        >
+        <a-form-item label="月费（元）" required>
           <a-input-number
             v-model:value="form.monthlyPrice"
             :min="0"
@@ -176,17 +151,12 @@
             style="width: 100%"
             placeholder="设置月费价格"
           >
-            <template #prefix>
-              ¥
-            </template>
+            <template #prefix> ¥ </template>
           </a-input-number>
         </a-form-item>
 
         <!-- 计划特性 -->
-        <a-form-item
-          label="计划特性（每行一个）"
-          required
-        >
+        <a-form-item label="计划特性（每行一个）" required>
           <a-textarea
             v-model:value="featuresText"
             :rows="6"
@@ -204,12 +174,8 @@
         <!-- 状态 -->
         <a-form-item label="计划状态">
           <a-radio-group v-model:value="form.status">
-            <a-radio value="active">
-              激活（用户可订阅）
-            </a-radio>
-            <a-radio value="inactive">
-              停用（暂时关闭）
-            </a-radio>
+            <a-radio value="active"> 激活（用户可订阅） </a-radio>
+            <a-radio value="inactive"> 停用（暂时关闭） </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>
@@ -235,10 +201,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   CalendarOutlined,
   PlusOutlined,
@@ -248,8 +214,8 @@ import {
   ClockCircleOutlined,
   EditOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
 
 // Store
 const tradeStore = useTradeStore();
@@ -262,15 +228,15 @@ const plans = computed(() => tradeStore.knowledge.subscriptionPlans);
 const saving = ref(false);
 const showCreateModal = ref(false);
 const editingPlan = ref(null);
-const featuresText = ref('');
+const featuresText = ref("");
 
 const form = reactive({
-  name: '',
-  description: '',
+  name: "",
+  description: "",
   monthlyPrice: 0,
-  features: '',
+  features: "",
   isRecommended: false,
-  status: 'active',
+  status: "active",
 });
 
 // 加载订阅计划
@@ -281,27 +247,33 @@ const loadPlans = async () => {
     const userDid = currentIdentity?.did;
 
     if (!userDid) {
-      message.warning('请先创建DID身份');
+      message.warning("请先创建DID身份");
       return;
     }
 
     // 使用 store 加载订阅计划（这里可能需要传 creatorDid）
     // 暂时使用直接 IPC 调用
-    const result = await window.electronAPI.knowledge.getSubscriptionPlans(userDid);
+    const result =
+      await window.electronAPI.knowledge.getSubscriptionPlans(userDid);
     tradeStore.knowledge.subscriptionPlans = result || [];
 
-    logger.info('[SubscriptionPlans] 计划列表已加载:', plans.value.length);
+    logger.info("[SubscriptionPlans] 计划列表已加载:", plans.value.length);
   } catch (error) {
-    logger.error('[SubscriptionPlans] 加载计划失败:', error);
-    message.error(error.message || '加载计划失败');
+    logger.error("[SubscriptionPlans] 加载计划失败:", error);
+    message.error(error.message || "加载计划失败");
   }
 };
 
 // 解析特性列表
 const parsedFeatures = (features) => {
-  if (!features) {return [];}
-  if (typeof features === 'string') {
-    return features.split(',').map(f => f.trim()).filter(f => f);
+  if (!features) {
+    return [];
+  }
+  if (typeof features === "string") {
+    return features
+      .split(",")
+      .map((f) => f.trim())
+      .filter((f) => f);
   }
   return features;
 };
@@ -322,10 +294,10 @@ const handleSave = async () => {
       description: form.description,
       monthlyPrice: form.monthlyPrice,
       features: featuresText.value
-        .split('\n')
-        .map(f => f.trim().replace(/^[-•]\s*/, ''))
-        .filter(f => f)
-        .join(','),
+        .split("\n")
+        .map((f) => f.trim().replace(/^[-•]\s*/, ""))
+        .filter((f) => f)
+        .join(","),
       isRecommended: form.isRecommended,
       status: form.status,
     };
@@ -334,17 +306,17 @@ const handleSave = async () => {
       // 更新计划
       await window.electronAPI.knowledge.updateSubscriptionPlan(
         editingPlan.value.id,
-        planData
+        planData,
       );
 
-      logger.info('[SubscriptionPlans] 计划已更新:', editingPlan.value.id);
-      message.success('计划已更新！');
+      logger.info("[SubscriptionPlans] 计划已更新:", editingPlan.value.id);
+      message.success("计划已更新！");
     } else {
       // 创建计划
       await window.electronAPI.knowledge.createSubscriptionPlan(planData);
 
-      logger.info('[SubscriptionPlans] 计划已创建');
-      message.success('计划创建成功！');
+      logger.info("[SubscriptionPlans] 计划已创建");
+      message.success("计划创建成功！");
     }
 
     showCreateModal.value = false;
@@ -353,8 +325,8 @@ const handleSave = async () => {
 
     await loadPlans();
   } catch (error) {
-    logger.error('[SubscriptionPlans] 保存计划失败:', error);
-    message.error(error.message || '保存计划失败');
+    logger.error("[SubscriptionPlans] 保存计划失败:", error);
+    message.error(error.message || "保存计划失败");
   } finally {
     saving.value = false;
   }
@@ -362,18 +334,18 @@ const handleSave = async () => {
 
 // 验证表单
 const validateForm = () => {
-  if (!form.name || form.name.trim() === '') {
-    message.warning('请输入计划名称');
+  if (!form.name || form.name.trim() === "") {
+    message.warning("请输入计划名称");
     return false;
   }
 
   if (form.monthlyPrice === 0) {
-    message.warning('请设置月费价格');
+    message.warning("请设置月费价格");
     return false;
   }
 
-  if (!featuresText.value || featuresText.value.trim() === '') {
-    message.warning('请输入至少一个特性');
+  if (!featuresText.value || featuresText.value.trim() === "") {
+    message.warning("请输入至少一个特性");
     return false;
   }
 
@@ -384,11 +356,11 @@ const validateForm = () => {
 const editPlan = (plan) => {
   editingPlan.value = plan;
   form.name = plan.name;
-  form.description = plan.description || '';
+  form.description = plan.description || "";
   form.monthlyPrice = plan.monthlyPrice;
-  featuresText.value = parsedFeatures(plan.features).join('\n');
+  featuresText.value = parsedFeatures(plan.features).join("\n");
   form.isRecommended = plan.isRecommended || false;
-  form.status = plan.status || 'active';
+  form.status = plan.status || "active";
   showCreateModal.value = true;
 };
 
@@ -397,13 +369,13 @@ const deletePlan = async (planId) => {
   try {
     await window.electronAPI.knowledge.deleteSubscriptionPlan(planId);
 
-    logger.info('[SubscriptionPlans] 计划已删除:', planId);
-    message.success('计划已删除！');
+    logger.info("[SubscriptionPlans] 计划已删除:", planId);
+    message.success("计划已删除！");
 
     await loadPlans();
   } catch (error) {
-    logger.error('[SubscriptionPlans] 删除计划失败:', error);
-    message.error(error.message || '删除计划失败');
+    logger.error("[SubscriptionPlans] 删除计划失败:", error);
+    message.error(error.message || "删除计划失败");
   }
 };
 
@@ -416,18 +388,18 @@ const handleCancel = () => {
 
 // 重置表单
 const resetForm = () => {
-  form.name = '';
-  form.description = '';
+  form.name = "";
+  form.description = "";
   form.monthlyPrice = 0;
-  featuresText.value = '';
+  featuresText.value = "";
   form.isRecommended = false;
-  form.status = 'active';
+  form.status = "active";
 };
 
 // 格式化日期
 const formatDate = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleDateString('zh-CN');
+  return date.toLocaleDateString("zh-CN");
 };
 
 // 生命周期

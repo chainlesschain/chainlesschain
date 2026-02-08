@@ -16,11 +16,7 @@
             {{ formatTime(post.created_at) }}
           </div>
         </div>
-        <a-tag
-          v-if="post.visibility === 'friends'"
-          color="blue"
-          size="small"
-        >
+        <a-tag v-if="post.visibility === 'friends'" color="blue" size="small">
           <team-outlined /> 仅好友
         </a-tag>
         <a-tag
@@ -36,20 +32,14 @@
     <!-- 操作菜单 -->
     <template #extra>
       <a-dropdown v-if="isAuthor">
-        <a-button
-          type="text"
-          size="small"
-        >
+        <a-button type="text" size="small">
           <template #icon>
             <ellipsis-outlined />
           </template>
         </a-button>
         <template #overlay>
           <a-menu>
-            <a-menu-item
-              danger
-              @click="handleDelete"
-            >
+            <a-menu-item danger @click="handleDelete">
               <delete-outlined /> 删除
             </a-menu-item>
           </a-menu>
@@ -63,10 +53,7 @@
     </div>
 
     <!-- 图片 -->
-    <div
-      v-if="post.images && post.images.length > 0"
-      class="post-images"
-    >
+    <div v-if="post.images && post.images.length > 0" class="post-images">
       <a-image-preview-group>
         <a-image
           v-for="(image, index) in post.images"
@@ -89,19 +76,13 @@
       <div class="link-info">
         <link-outlined class="link-icon" />
         <div class="link-text">
-          <div
-            v-if="post.link_title"
-            class="link-title"
-          >
+          <div v-if="post.link_title" class="link-title">
             {{ post.link_title }}
           </div>
           <div class="link-url">
             {{ post.link_url }}
           </div>
-          <div
-            v-if="post.link_description"
-            class="link-description"
-          >
+          <div v-if="post.link_description" class="link-description">
             {{ post.link_description }}
           </div>
         </div>
@@ -110,9 +91,7 @@
 
     <!-- 互动统计 -->
     <div class="post-stats">
-      <span class="stat-item">
-        <like-outlined /> {{ likeCount }} 赞
-      </span>
+      <span class="stat-item"> <like-outlined /> {{ likeCount }} 赞 </span>
       <span class="stat-item">
         <comment-outlined /> {{ commentCount }} 评论
       </span>
@@ -120,21 +99,14 @@
 
     <!-- 操作按钮 -->
     <div class="post-actions">
-      <a-button
-        type="text"
-        :class="{ liked }"
-        @click="handleLike"
-      >
+      <a-button type="text" :class="{ liked }" @click="handleLike">
         <template #icon>
           <like-filled v-if="liked" />
           <like-outlined v-else />
         </template>
-        {{ liked ? '已赞' : '点赞' }}
+        {{ liked ? "已赞" : "点赞" }}
       </a-button>
-      <a-button
-        type="text"
-        @click="toggleComments"
-      >
+      <a-button type="text" @click="toggleComments">
         <template #icon>
           <comment-outlined />
         </template>
@@ -143,10 +115,7 @@
     </div>
 
     <!-- 评论区域 -->
-    <div
-      v-if="showComments"
-      class="comments-section"
-    >
+    <div v-if="showComments" class="comments-section">
       <a-divider />
 
       <!-- 评论输入框 -->
@@ -180,7 +149,9 @@
           <a-list-item>
             <a-comment>
               <template #avatar>
-                <a-avatar :style="{ backgroundColor: getAvatarColor(item.author_did) }">
+                <a-avatar
+                  :style="{ backgroundColor: getAvatarColor(item.author_did) }"
+                >
                   <template #icon>
                     <user-outlined />
                   </template>
@@ -212,10 +183,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message as antMessage, Modal } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message as antMessage, Modal } from "ant-design-vue";
 import {
   UserOutlined,
   EllipsisOutlined,
@@ -226,7 +197,7 @@ import {
   TeamOutlined,
   LockOutlined,
   LinkOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // Props
 const props = defineProps({
@@ -241,13 +212,13 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['deleted', 'liked', 'unliked', 'commented']);
+const emit = defineEmits(["deleted", "liked", "unliked", "commented"]);
 
 // 状态
 const showComments = ref(false);
 const comments = ref([]);
 const loadingComments = ref(false);
-const commentContent = ref('');
+const commentContent = ref("");
 const commenting = ref(false);
 const liked = ref(false);
 const likeCount = ref(0);
@@ -263,18 +234,20 @@ watch(
     likeCount.value = post?.like_count || 0;
     commentCount.value = post?.comment_count || 0;
   },
-  { immediate: true, deep: true }
+  { immediate: true, deep: true },
 );
 
 // 工具函数
 const shortenDid = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 const getAvatarColor = (did) => {
-  const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#1890ff'];
-  const hash = did.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const colors = ["#f56a00", "#7265e6", "#ffbf00", "#00a2ae", "#1890ff"];
+  const hash = did.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return colors[hash % colors.length];
 };
 
@@ -284,7 +257,7 @@ const formatTime = (timestamp) => {
   const diff = now - date;
 
   if (diff < 60 * 1000) {
-    return '刚刚';
+    return "刚刚";
   }
 
   if (diff < 60 * 60 * 1000) {
@@ -302,38 +275,42 @@ const formatTime = (timestamp) => {
     return `${days} 天前`;
   }
 
-  return date.toLocaleDateString('zh-CN');
+  return date.toLocaleDateString("zh-CN");
 };
 
 const getImageWidth = (count) => {
-  if (count === 1) {return 400;}
-  if (count === 2 || count === 4) {return 200;}
+  if (count === 1) {
+    return 400;
+  }
+  if (count === 2 || count === 4) {
+    return 200;
+  }
   return 150;
 };
 
 // 打开链接
 const openLink = () => {
   if (props.post.link_url) {
-    window.open(props.post.link_url, '_blank');
+    window.open(props.post.link_url, "_blank");
   }
 };
 
 // 删除动态
 const handleDelete = () => {
   Modal.confirm({
-    title: '确认删除',
-    content: '确定要删除这条动态吗？删除后无法恢复。',
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认删除",
+    content: "确定要删除这条动态吗？删除后无法恢复。",
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         await window.electronAPI.post.delete(props.post.id);
-        antMessage.success('动态已删除');
-        emit('deleted', props.post.id);
+        antMessage.success("动态已删除");
+        emit("deleted", props.post.id);
       } catch (error) {
-        logger.error('删除动态失败:', error);
-        antMessage.error('删除动态失败: ' + error.message);
+        logger.error("删除动态失败:", error);
+        antMessage.error("删除动态失败: " + error.message);
       }
     },
   });
@@ -346,15 +323,15 @@ const handleLike = async () => {
       await window.electronAPI.post.unlike(props.post.id);
       liked.value = false;
       likeCount.value = Math.max(0, likeCount.value - 1);
-      emit('unliked', props.post.id);
+      emit("unliked", props.post.id);
     } else {
       await window.electronAPI.post.like(props.post.id);
       liked.value = true;
       likeCount.value += 1;
-      emit('liked', props.post.id);
+      emit("liked", props.post.id);
     }
   } catch (error) {
-    logger.error('点赞操作失败:', error);
+    logger.error("点赞操作失败:", error);
     antMessage.error(error.message);
   }
 };
@@ -374,8 +351,8 @@ const loadComments = async () => {
     loadingComments.value = true;
     comments.value = await window.electronAPI.post.getComments(props.post.id);
   } catch (error) {
-    logger.error('加载评论失败:', error);
-    antMessage.error('加载评论失败: ' + error.message);
+    logger.error("加载评论失败:", error);
+    antMessage.error("加载评论失败: " + error.message);
   } finally {
     loadingComments.value = false;
   }
@@ -384,7 +361,7 @@ const loadComments = async () => {
 // 发表评论
 const handleComment = async () => {
   if (!commentContent.value || commentContent.value.trim().length === 0) {
-    antMessage.warning('请输入评论内容');
+    antMessage.warning("请输入评论内容");
     return;
   }
 
@@ -392,18 +369,18 @@ const handleComment = async () => {
     commenting.value = true;
     const comment = await window.electronAPI.post.addComment(
       props.post.id,
-      commentContent.value.trim()
+      commentContent.value.trim(),
     );
 
     comments.value.unshift(comment);
     commentCount.value += 1;
-    commentContent.value = '';
+    commentContent.value = "";
 
-    antMessage.success('评论已发表');
-    emit('commented', props.post.id);
+    antMessage.success("评论已发表");
+    emit("commented", props.post.id);
   } catch (error) {
-    logger.error('发表评论失败:', error);
-    antMessage.error('发表评论失败: ' + error.message);
+    logger.error("发表评论失败:", error);
+    antMessage.error("发表评论失败: " + error.message);
   } finally {
     commenting.value = false;
   }
@@ -412,20 +389,20 @@ const handleComment = async () => {
 // 删除评论
 const handleDeleteComment = async (commentId) => {
   Modal.confirm({
-    title: '确认删除',
-    content: '确定要删除这条评论吗？',
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认删除",
+    content: "确定要删除这条评论吗？",
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         await window.electronAPI.post.deleteComment(commentId);
-        comments.value = comments.value.filter(c => c.id !== commentId);
+        comments.value = comments.value.filter((c) => c.id !== commentId);
         commentCount.value = Math.max(0, commentCount.value - 1);
-        antMessage.success('评论已删除');
+        antMessage.success("评论已删除");
       } catch (error) {
-        logger.error('删除评论失败:', error);
-        antMessage.error('删除评论失败: ' + error.message);
+        logger.error("删除评论失败:", error);
+        antMessage.error("删除评论失败: " + error.message);
       }
     },
   });

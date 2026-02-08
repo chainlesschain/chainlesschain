@@ -4,8 +4,8 @@
  * 管理 AI 提示词模板，支持变量替换、分类管理、使用统计等功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * 提示词模板管理器类
@@ -21,7 +21,7 @@ class PromptTemplateManager {
    */
   async initialize() {
     try {
-      logger.info('[PromptTemplateManager] 初始化提示词模板管理器...');
+      logger.info("[PromptTemplateManager] 初始化提示词模板管理器...");
 
       // 创建表
       await this.createTable();
@@ -29,10 +29,10 @@ class PromptTemplateManager {
       // 插入内置模板
       await this.insertBuiltInTemplates();
 
-      logger.info('[PromptTemplateManager] 提示词模板管理器初始化成功');
+      logger.info("[PromptTemplateManager] 提示词模板管理器初始化成功");
       return true;
     } catch (error) {
-      logger.error('[PromptTemplateManager] 初始化失败:', error);
+      logger.error("[PromptTemplateManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -57,7 +57,7 @@ class PromptTemplateManager {
     `;
 
     await this.db.run(sql);
-    logger.info('[PromptTemplateManager] 数据库表已创建');
+    logger.info("[PromptTemplateManager] 数据库表已创建");
   }
 
   /**
@@ -66,19 +66,19 @@ class PromptTemplateManager {
   async insertBuiltInTemplates() {
     // 检查是否已经存在内置模板
     const existing = await this.db.get(
-      'SELECT COUNT(*) as count FROM prompt_templates WHERE is_system = 1'
+      "SELECT COUNT(*) as count FROM prompt_templates WHERE is_system = 1",
     );
 
     if (existing && existing.count > 0) {
-      logger.info('[PromptTemplateManager] 内置模板已存在，跳过插入');
+      logger.info("[PromptTemplateManager] 内置模板已存在，跳过插入");
       return;
     }
 
     const builtInTemplates = [
       {
-        id: 'builtin-summarize',
-        name: '内容摘要',
-        description: '为长文本生成简洁摘要',
+        id: "builtin-summarize",
+        name: "内容摘要",
+        description: "为长文本生成简洁摘要",
         template: `请为以下内容生成一个简洁的摘要：
 
 {{content}}
@@ -87,14 +87,14 @@ class PromptTemplateManager {
 - 保留关键信息和核心观点
 - 使用简洁明了的语言
 - 长度控制在 200 字以内`,
-        variables: JSON.stringify(['content']),
-        category: 'writing',
+        variables: JSON.stringify(["content"]),
+        category: "writing",
         is_system: 1,
       },
       {
-        id: 'builtin-expand',
-        name: '内容扩写',
-        description: '扩展和丰富简短内容',
+        id: "builtin-expand",
+        name: "内容扩写",
+        description: "扩展和丰富简短内容",
         template: `请将以下简短内容扩写成详细的文章：
 
 {{content}}
@@ -104,14 +104,14 @@ class PromptTemplateManager {
 - 补充细节和例子
 - 逻辑连贯，结构清晰
 - 目标长度约 {{length}} 字`,
-        variables: JSON.stringify(['content', 'length']),
-        category: 'writing',
+        variables: JSON.stringify(["content", "length"]),
+        category: "writing",
         is_system: 1,
       },
       {
-        id: 'builtin-translate',
-        name: '翻译助手',
-        description: '翻译文本到指定语言',
+        id: "builtin-translate",
+        name: "翻译助手",
+        description: "翻译文本到指定语言",
         template: `请将以下文本翻译成{{target_language}}：
 
 {{content}}
@@ -120,14 +120,14 @@ class PromptTemplateManager {
 - 准确传达原文含义
 - 符合目标语言表达习惯
 - 保持专业术语的准确性`,
-        variables: JSON.stringify(['content', 'target_language']),
-        category: 'translation',
+        variables: JSON.stringify(["content", "target_language"]),
+        category: "translation",
         is_system: 1,
       },
       {
-        id: 'builtin-proofread',
-        name: '文本校对',
-        description: '检查并修正文本错误',
+        id: "builtin-proofread",
+        name: "文本校对",
+        description: "检查并修正文本错误",
         template: `请校对以下文本，找出并修正其中的错误：
 
 {{content}}
@@ -140,14 +140,14 @@ class PromptTemplateManager {
 
 请以表格形式列出：
 | 位置 | 原文 | 修改建议 | 原因 |`,
-        variables: JSON.stringify(['content']),
-        category: 'writing',
+        variables: JSON.stringify(["content"]),
+        category: "writing",
         is_system: 1,
       },
       {
-        id: 'builtin-extract-keywords',
-        name: '关键词提取',
-        description: '提取文本的关键词和主题',
+        id: "builtin-extract-keywords",
+        name: "关键词提取",
+        description: "提取文本的关键词和主题",
         template: `请从以下内容中提取关键词和主题：
 
 {{content}}
@@ -156,14 +156,14 @@ class PromptTemplateManager {
 1. 核心主题：
 2. 关键词列表（5-10个）：
 3. 主要概念：`,
-        variables: JSON.stringify(['content']),
-        category: 'analysis',
+        variables: JSON.stringify(["content"]),
+        category: "analysis",
         is_system: 1,
       },
       {
-        id: 'builtin-qa',
-        name: '问答助手',
-        description: '基于上下文回答问题',
+        id: "builtin-qa",
+        name: "问答助手",
+        description: "基于上下文回答问题",
         template: `根据以下背景信息回答问题：
 
 背景信息：
@@ -172,14 +172,14 @@ class PromptTemplateManager {
 问题：{{question}}
 
 请提供准确、详细的回答。如果背景信息不足以回答问题，请说明。`,
-        variables: JSON.stringify(['context', 'question']),
-        category: 'qa',
+        variables: JSON.stringify(["context", "question"]),
+        category: "qa",
         is_system: 1,
       },
       {
-        id: 'builtin-brainstorm',
-        name: '头脑风暴',
-        description: '生成创意想法',
+        id: "builtin-brainstorm",
+        name: "头脑风暴",
+        description: "生成创意想法",
         template: `请就以下主题进行头脑风暴：
 
 主题：{{topic}}
@@ -189,14 +189,14 @@ class PromptTemplateManager {
 - 每个想法包含简短说明
 - 想法应该新颖、可行
 - 从不同角度思考`,
-        variables: JSON.stringify(['topic', 'count']),
-        category: 'creative',
+        variables: JSON.stringify(["topic", "count"]),
+        category: "creative",
         is_system: 1,
       },
       {
-        id: 'builtin-code-explain',
-        name: '代码解释',
-        description: '解释代码的功能和逻辑',
+        id: "builtin-code-explain",
+        name: "代码解释",
+        description: "解释代码的功能和逻辑",
         template: `请解释以下{{language}}代码的功能和逻辑：
 
 \`\`\`{{language}}
@@ -208,14 +208,14 @@ class PromptTemplateManager {
 2. 关键逻辑说明
 3. 重要函数/方法解释
 4. 可能的优化建议`,
-        variables: JSON.stringify(['code', 'language']),
-        category: 'programming',
+        variables: JSON.stringify(["code", "language"]),
+        category: "programming",
         is_system: 1,
       },
       {
-        id: 'builtin-outline',
-        name: '大纲生成',
-        description: '为文章生成结构化大纲',
+        id: "builtin-outline",
+        name: "大纲生成",
+        description: "为文章生成结构化大纲",
         template: `请为以下主题生成一个详细的文章大纲：
 
 主题：{{topic}}
@@ -225,14 +225,14 @@ class PromptTemplateManager {
 - 每个章节有 2-3 个小节
 - 逻辑清晰，结构合理
 - 包含引言和结论`,
-        variables: JSON.stringify(['topic', 'sections']),
-        category: 'writing',
+        variables: JSON.stringify(["topic", "sections"]),
+        category: "writing",
         is_system: 1,
       },
       {
-        id: 'builtin-rag-query',
-        name: 'RAG 增强查询',
-        description: '基于检索结果回答问题',
+        id: "builtin-rag-query",
+        name: "RAG 增强查询",
+        description: "基于检索结果回答问题",
         template: `你是一个知识助手，请基于以下检索到的相关文档回答用户问题。
 
 相关文档：
@@ -246,17 +246,17 @@ class PromptTemplateManager {
 3. 明确区分文档信息和推理内容
 4. 如果无法回答，诚实说明
 5. 提供信息来源（引用文档序号）`,
-        variables: JSON.stringify(['retrieved_docs', 'question']),
-        category: 'rag',
+        variables: JSON.stringify(["retrieved_docs", "question"]),
+        category: "rag",
         is_system: 1,
       },
       // ============================================
       // 医生/医疗职业专用模板
       // ============================================
       {
-        id: 'builtin-medical-record',
-        name: '病历记录助手',
-        description: '结构化病历记录模板，帮助医生快速整理患者病历',
+        id: "builtin-medical-record",
+        name: "病历记录助手",
+        description: "结构化病历记录模板，帮助医生快速整理患者病历",
         template: `请帮我生成结构化的病历记录：
 
 患者信息：
@@ -310,14 +310,22 @@ class PromptTemplateManager {
 [复诊时间和注意事项]
 
 注意：以上内容仅供参考，请结合实际临床情况进行调整。`,
-        variables: JSON.stringify(['patientName', 'gender', 'age', 'visitDate', 'chiefComplaint', 'presentIllness', 'pastHistory']),
-        category: 'medical',
+        variables: JSON.stringify([
+          "patientName",
+          "gender",
+          "age",
+          "visitDate",
+          "chiefComplaint",
+          "presentIllness",
+          "pastHistory",
+        ]),
+        category: "medical",
         is_system: 1,
       },
       {
-        id: 'builtin-medical-diagnosis-aid',
-        name: '诊断辅助分析',
-        description: '基于症状和检查结果，提供诊断思路梳理',
+        id: "builtin-medical-diagnosis-aid",
+        name: "诊断辅助分析",
+        description: "基于症状和检查结果，提供诊断思路梳理",
         template: `作为医疗诊断辅助工具，请分析以下患者信息并提供诊断思路：
 
 患者症状：{{symptoms}}
@@ -347,14 +355,14 @@ class PromptTemplateManager {
 [初步治疗方向建议]
 
 **免责声明**：本分析仅供临床参考，最终诊断和治疗方案需由执业医师根据完整临床信息综合判断。`,
-        variables: JSON.stringify(['symptoms', 'testResults']),
-        category: 'medical',
+        variables: JSON.stringify(["symptoms", "testResults"]),
+        category: "medical",
         is_system: 1,
       },
       {
-        id: 'builtin-medical-literature-summary',
-        name: '医学文献摘要',
-        description: '快速提取医学论文核心要点',
+        id: "builtin-medical-literature-summary",
+        name: "医学文献摘要",
+        description: "快速提取医学论文核心要点",
         template: `请为以下医学文献生成结构化摘要：
 
 文献标题：{{title}}
@@ -395,14 +403,14 @@ class PromptTemplateManager {
 **关键词**：[提取3-5个关键词]
 
 **证据等级**：[评估证据等级]`,
-        variables: JSON.stringify(['title', 'content']),
-        category: 'medical',
+        variables: JSON.stringify(["title", "content"]),
+        category: "medical",
         is_system: 1,
       },
       {
-        id: 'builtin-medical-medication-guide',
-        name: '用药指导生成',
-        description: '生成患者易懂的用药说明',
+        id: "builtin-medical-medication-guide",
+        name: "用药指导生成",
+        description: "生成患者易懂的用药说明",
         template: `请为以下药物生成患者用药指导：
 
 药物名称：{{medicationName}}
@@ -447,14 +455,14 @@ class PromptTemplateManager {
 
 **复诊提醒**
 [下次复诊时间]`,
-        variables: JSON.stringify(['medicationName', 'indication', 'dosage']),
-        category: 'medical',
+        variables: JSON.stringify(["medicationName", "indication", "dosage"]),
+        category: "medical",
         is_system: 1,
       },
       {
-        id: 'builtin-medical-terminology-explain',
-        name: '医学术语解释',
-        description: '将专业医学术语转换为患者易懂的语言',
+        id: "builtin-medical-terminology-explain",
+        name: "医学术语解释",
+        description: "将专业医学术语转换为患者易懂的语言",
         template: `请将以下医学术语用通俗易懂的语言解释给患者：
 
 医学术语：{{medicalTerm}}
@@ -484,14 +492,14 @@ class PromptTemplateManager {
 
 **记住这一点**
 [最核心、最重要的信息，一句话总结]`,
-        variables: JSON.stringify(['medicalTerm', 'context']),
-        category: 'medical',
+        variables: JSON.stringify(["medicalTerm", "context"]),
+        category: "medical",
         is_system: 1,
       },
       {
-        id: 'builtin-medical-case-discussion',
-        name: '病例讨论记录',
-        description: '多学科会诊和病例讨论记录模板',
+        id: "builtin-medical-case-discussion",
+        name: "病例讨论记录",
+        description: "多学科会诊和病例讨论记录模板",
         template: `请整理以下病例讨论记录：
 
 患者情况：{{patientSummary}}
@@ -538,14 +546,14 @@ class PromptTemplateManager {
 **责任医师**
 主管医师：
 参与会诊医师：`,
-        variables: JSON.stringify(['patientSummary', 'departments', 'topic']),
-        category: 'medical',
+        variables: JSON.stringify(["patientSummary", "departments", "topic"]),
+        category: "medical",
         is_system: 1,
       },
       {
-        id: 'builtin-medical-report-interpret',
-        name: '医疗报告解读',
-        description: '将检验检查报告转换为患者易懂的解读',
+        id: "builtin-medical-report-interpret",
+        name: "医疗报告解读",
+        description: "将检验检查报告转换为患者易懂的解读",
         template: `请将以下医疗报告解读给患者：
 
 报告类型：{{reportType}}
@@ -588,17 +596,17 @@ class PromptTemplateManager {
 
 **疑问解答**
 [预判患者可能的疑问并提前解答]`,
-        variables: JSON.stringify(['reportType', 'reportContent']),
-        category: 'medical',
+        variables: JSON.stringify(["reportType", "reportContent"]),
+        category: "medical",
         is_system: 1,
       },
       // ============================================
       // 律师/法律职业专用模板
       // ============================================
       {
-        id: 'builtin-legal-case-analysis',
-        name: '案件分析助手',
-        description: '案情分析和法律适用框架',
+        id: "builtin-legal-case-analysis",
+        name: "案件分析助手",
+        description: "案情分析和法律适用框架",
         template: `请对以下案件进行法律分析：
 
 案情概述：{{caseDescription}}
@@ -667,14 +675,18 @@ class PromptTemplateManager {
 [提出下一步工作重点]
 
 **注意**：本分析仅供法律专业人士参考，不构成正式法律意见。`,
-        variables: JSON.stringify(['caseDescription', 'disputeFocus', 'evidence']),
-        category: 'legal',
+        variables: JSON.stringify([
+          "caseDescription",
+          "disputeFocus",
+          "evidence",
+        ]),
+        category: "legal",
         is_system: 1,
       },
       {
-        id: 'builtin-legal-opinion-letter',
-        name: '法律意见书撰写',
-        description: '专业法律意见书撰写框架',
+        id: "builtin-legal-opinion-letter",
+        name: "法律意见书撰写",
+        description: "专业法律意见书撰写框架",
         template: `请撰写法律意见书：
 
 委托方：{{client}}
@@ -770,14 +782,14 @@ class PromptTemplateManager {
 **执业证号**：[证号]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['client', 'matter', 'background']),
-        category: 'legal',
+        variables: JSON.stringify(["client", "matter", "background"]),
+        category: "legal",
         is_system: 1,
       },
       {
-        id: 'builtin-legal-contract-review',
-        name: '合同审查清单',
-        description: '全面的合同审查要点清单',
+        id: "builtin-legal-contract-review",
+        name: "合同审查清单",
+        description: "全面的合同审查要点清单",
         template: `请审查以下合同：
 
 合同类型：{{contractType}}
@@ -869,14 +881,14 @@ class PromptTemplateManager {
 **审查律师**：[姓名]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['contractType', 'contractContent']),
-        category: 'legal',
+        variables: JSON.stringify(["contractType", "contractContent"]),
+        category: "legal",
         is_system: 1,
       },
       {
-        id: 'builtin-legal-litigation-strategy',
-        name: '诉讼策略规划',
-        description: '诉讼方案设计和策略规划',
+        id: "builtin-legal-litigation-strategy",
+        name: "诉讼策略规划",
+        description: "诉讼方案设计和策略规划",
         template: `请制定诉讼策略：
 
 案件类型：{{caseType}}
@@ -970,14 +982,14 @@ class PromptTemplateManager {
 **制定人**：[律师姓名]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['caseType', 'partyRole', 'caseBrief']),
-        category: 'legal',
+        variables: JSON.stringify(["caseType", "partyRole", "caseBrief"]),
+        category: "legal",
         is_system: 1,
       },
       {
-        id: 'builtin-legal-consultation-record',
-        name: '法律咨询记录',
-        description: '结构化法律咨询记录模板',
+        id: "builtin-legal-consultation-record",
+        name: "法律咨询记录",
+        description: "结构化法律咨询记录模板",
         template: `请整理法律咨询记录：
 
 咨询人：{{consultantName}}
@@ -1062,14 +1074,18 @@ class PromptTemplateManager {
 **日期**：[日期]
 
 **咨询人签字**：____________`,
-        variables: JSON.stringify(['consultantName', 'consultationMatter', 'consultationContent']),
-        category: 'legal',
+        variables: JSON.stringify([
+          "consultantName",
+          "consultationMatter",
+          "consultationContent",
+        ]),
+        category: "legal",
         is_system: 1,
       },
       {
-        id: 'builtin-legal-precedent-analysis',
-        name: '判例检索分析',
-        description: '相似判例对比分析工具',
+        id: "builtin-legal-precedent-analysis",
+        name: "判例检索分析",
+        description: "相似判例对比分析工具",
         template: `请分析相似判例：
 
 本案情况：{{currentCase}}
@@ -1160,14 +1176,14 @@ class PromptTemplateManager {
 **分析人**：[律师姓名]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['currentCase', 'precedents']),
-        category: 'legal',
+        variables: JSON.stringify(["currentCase", "precedents"]),
+        category: "legal",
         is_system: 1,
       },
       {
-        id: 'builtin-legal-document-proofread',
-        name: '法律文书校对',
-        description: '法律文书规范性和准确性检查',
+        id: "builtin-legal-document-proofread",
+        name: "法律文书校对",
+        description: "法律文书规范性和准确性检查",
         template: `请校对以下法律文书：
 
 文书类型：{{documentType}}
@@ -1271,17 +1287,17 @@ class PromptTemplateManager {
 **校对人**：[姓名]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['documentType', 'documentContent']),
-        category: 'legal',
+        variables: JSON.stringify(["documentType", "documentContent"]),
+        category: "legal",
         is_system: 1,
       },
       // ============================================
       // 教师/教育职业专用模板
       // ============================================
       {
-        id: 'builtin-teacher-lesson-plan',
-        name: '课程大纲生成',
-        description: '完整课程体系设计框架',
+        id: "builtin-teacher-lesson-plan",
+        name: "课程大纲生成",
+        description: "完整课程体系设计框架",
         template: `请设计完整的课程大纲：
 
 课程名称：{{courseName}}
@@ -1403,14 +1419,20 @@ class PromptTemplateManager {
 **制定人**：{{teacherName}}
 
 **制定日期**：[当前日期]`,
-        variables: JSON.stringify(['courseName', 'targetStudents', 'totalHours', 'objectives', 'teacherName']),
-        category: 'education',
+        variables: JSON.stringify([
+          "courseName",
+          "targetStudents",
+          "totalHours",
+          "objectives",
+          "teacherName",
+        ]),
+        category: "education",
         is_system: 1,
       },
       {
-        id: 'builtin-teacher-reflection',
-        name: '教学反思记录',
-        description: '教学效果分析和改进建议',
+        id: "builtin-teacher-reflection",
+        name: "教学反思记录",
+        description: "教学效果分析和改进建议",
         template: `请记录教学反思：
 
 课程：{{lessonName}}
@@ -1516,14 +1538,19 @@ class PromptTemplateManager {
 **反思人**：[教师姓名]
 
 **反思日期**：[当前日期]`,
-        variables: JSON.stringify(['lessonName', 'className', 'date', 'content']),
-        category: 'education',
+        variables: JSON.stringify([
+          "lessonName",
+          "className",
+          "date",
+          "content",
+        ]),
+        category: "education",
         is_system: 1,
       },
       {
-        id: 'builtin-teacher-student-evaluation',
-        name: '学生评价生成',
-        description: '个性化学生评语生成',
+        id: "builtin-teacher-student-evaluation",
+        name: "学生评价生成",
+        description: "个性化学生评语生成",
         template: `请生成学生评价：
 
 学生姓名：{{studentName}}
@@ -1602,14 +1629,18 @@ class PromptTemplateManager {
 **评价教师**：[姓名]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['studentName', 'performance', 'characteristics']),
-        category: 'education',
+        variables: JSON.stringify([
+          "studentName",
+          "performance",
+          "characteristics",
+        ]),
+        category: "education",
         is_system: 1,
       },
       {
-        id: 'builtin-teacher-assignment-feedback',
-        name: '作业批改辅助',
-        description: '作业批改意见生成工具',
+        id: "builtin-teacher-assignment-feedback",
+        name: "作业批改辅助",
+        description: "作业批改意见生成工具",
         template: `请生成作业批改意见：
 
 作业类型：{{assignmentType}}
@@ -1702,14 +1733,18 @@ class PromptTemplateManager {
 **批改教师**：[姓名]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['assignmentType', 'studentAnswer', 'rubric']),
-        category: 'education',
+        variables: JSON.stringify([
+          "assignmentType",
+          "studentAnswer",
+          "rubric",
+        ]),
+        category: "education",
         is_system: 1,
       },
       {
-        id: 'builtin-teacher-exam-design',
-        name: '考试命题助手',
-        description: '试题设计和难度分级工具',
+        id: "builtin-teacher-exam-design",
+        name: "考试命题助手",
+        description: "试题设计和难度分级工具",
         template: `请设计考试试卷：
 
 科目：{{subject}}
@@ -1853,14 +1888,14 @@ class PromptTemplateManager {
 **审核人**：[姓名]
 
 **命题日期**：[日期]`,
-        variables: JSON.stringify(['subject', 'examType', 'duration', 'scope']),
-        category: 'education',
+        variables: JSON.stringify(["subject", "examType", "duration", "scope"]),
+        category: "education",
         is_system: 1,
       },
       {
-        id: 'builtin-teacher-parent-communication',
-        name: '家长沟通模板',
-        description: '家校沟通话术和要点',
+        id: "builtin-teacher-parent-communication",
+        name: "家长沟通模板",
+        description: "家校沟通话术和要点",
         template: `请准备家长沟通内容：
 
 沟通目的：{{purpose}}
@@ -2019,14 +2054,18 @@ class PromptTemplateManager {
 **沟通教师**：[姓名]
 
 **记录日期**：[日期]`,
-        variables: JSON.stringify(['purpose', 'studentSituation', 'communicationType']),
-        category: 'education',
+        variables: JSON.stringify([
+          "purpose",
+          "studentSituation",
+          "communicationType",
+        ]),
+        category: "education",
         is_system: 1,
       },
       {
-        id: 'builtin-teacher-research-activity',
-        name: '教研活动记录',
-        description: '教研讨论总结和行动计划',
+        id: "builtin-teacher-research-activity",
+        name: "教研活动记录",
+        description: "教研讨论总结和行动计划",
         template: `请记录教研活动：
 
 教研主题：{{topic}}
@@ -2166,17 +2205,17 @@ class PromptTemplateManager {
 **记录人签字**：____________
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['topic', 'participants', 'discussion']),
-        category: 'education',
+        variables: JSON.stringify(["topic", "participants", "discussion"]),
+        category: "education",
         is_system: 1,
       },
       // ============================================
       // 研究员/科研职业专用模板
       // ============================================
       {
-        id: 'builtin-research-question-refine',
-        name: '研究问题提炼',
-        description: '从现象到研究问题的转化工具',
+        id: "builtin-research-question-refine",
+        name: "研究问题提炼",
+        description: "从现象到研究问题的转化工具",
         template: `请帮助提炼研究问题：
 
 研究领域：{{field}}
@@ -2305,14 +2344,14 @@ H2: [假设2]
 **研究者**：[姓名]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['field', 'phenomenon', 'initialIdea']),
-        category: 'research',
+        variables: JSON.stringify(["field", "phenomenon", "initialIdea"]),
+        category: "research",
         is_system: 1,
       },
       {
-        id: 'builtin-research-experiment-design',
-        name: '实验设计方案',
-        description: '实验流程和变量设计工具',
+        id: "builtin-research-experiment-design",
+        name: "实验设计方案",
+        description: "实验流程和变量设计工具",
         template: `请设计实验方案：
 
 研究目的：{{purpose}}
@@ -2523,14 +2562,14 @@ H2: [假设2]
 **审核人**：[姓名]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['purpose', 'hypothesis', 'conditions']),
-        category: 'research',
+        variables: JSON.stringify(["purpose", "hypothesis", "conditions"]),
+        category: "research",
         is_system: 1,
       },
       {
-        id: 'builtin-research-data-interpretation',
-        name: '数据分析解读',
-        description: '统计结果解释和可视化建议',
+        id: "builtin-research-data-interpretation",
+        name: "数据分析解读",
+        description: "统计结果解释和可视化建议",
         template: `请解读研究数据：
 
 研究问题：{{researchQuestion}}
@@ -2709,8 +2748,8 @@ H2: [假设内容]
 **审核人**：[姓名]
 
 **日期**：[日期]`,
-        variables: JSON.stringify(['researchQuestion', 'statisticalResults']),
-        category: 'research',
+        variables: JSON.stringify(["researchQuestion", "statisticalResults"]),
+        category: "research",
         is_system: 1,
       },
     ];
@@ -2719,11 +2758,11 @@ H2: [假设内容]
 
     for (const template of builtInTemplates) {
       const id = template.id || uuidv4();
-      const name = template.name || 'Untitled';
-      const description = template.description || '';
-      const templateText = template.template || '';
+      const name = template.name || "Untitled";
+      const description = template.description || "";
+      const templateText = template.template || "";
       const variables = template.variables || JSON.stringify([]);
-      const category = template.category || 'general';
+      const category = template.category || "general";
       const isSystem = template.is_system ? 1 : 0;
 
       await this.db.run(
@@ -2741,11 +2780,14 @@ H2: [假设内容]
           0,
           now,
           now,
-        ]
+        ],
       );
     }
 
-    logger.info('[PromptTemplateManager] 内置模板已插入:', builtInTemplates.length);
+    logger.info(
+      "[PromptTemplateManager] 内置模板已插入:",
+      builtInTemplates.length,
+    );
   }
 
   /**
@@ -2756,14 +2798,14 @@ H2: [假设内容]
   async createTemplate(templateData) {
     const {
       name,
-      description = '',
+      description = "",
       template,
       variables = [],
-      category = 'general',
+      category = "general",
     } = templateData;
 
     if (!name || !template) {
-      throw new Error('模板名称和内容不能为空');
+      throw new Error("模板名称和内容不能为空");
     }
 
     const id = uuidv4();
@@ -2784,7 +2826,7 @@ H2: [假设内容]
         0,
         now,
         now,
-      ]
+      ],
     );
 
     return this.getTemplateById(id);
@@ -2798,25 +2840,25 @@ H2: [假设内容]
   async getTemplates(filters = {}) {
     const { category, isSystem } = filters;
 
-    let sql = 'SELECT * FROM prompt_templates WHERE 1=1';
+    let sql = "SELECT * FROM prompt_templates WHERE 1=1";
     const params = [];
 
     if (category) {
-      sql += ' AND category = ?';
+      sql += " AND category = ?";
       params.push(category);
     }
 
     if (isSystem !== undefined) {
-      sql += ' AND is_system = ?';
+      sql += " AND is_system = ?";
       params.push(isSystem ? 1 : 0);
     }
 
-    sql += ' ORDER BY is_system DESC, usage_count DESC, created_at DESC';
+    sql += " ORDER BY is_system DESC, usage_count DESC, created_at DESC";
 
     const templates = await this.db.all(sql, params);
 
     // 解析 variables JSON
-    return templates.map(template => ({
+    return templates.map((template) => ({
       ...template,
       variables: template.variables ? JSON.parse(template.variables) : [],
       is_system: Boolean(template.is_system),
@@ -2830,8 +2872,8 @@ H2: [假设内容]
    */
   async getTemplateById(id) {
     const template = await this.db.get(
-      'SELECT * FROM prompt_templates WHERE id = ?',
-      [id]
+      "SELECT * FROM prompt_templates WHERE id = ?",
+      [id],
     );
 
     if (!template) {
@@ -2855,11 +2897,11 @@ H2: [假设内容]
     const template = await this.getTemplateById(id);
 
     if (!template) {
-      throw new Error('模板不存在');
+      throw new Error("模板不存在");
     }
 
     if (template.is_system) {
-      throw new Error('系统模板不能修改');
+      throw new Error("系统模板不能修改");
     }
 
     const {
@@ -2874,38 +2916,38 @@ H2: [假设内容]
     const params = [];
 
     if (name !== undefined) {
-      fields.push('name = ?');
+      fields.push("name = ?");
       params.push(name);
     }
 
     if (description !== undefined) {
-      fields.push('description = ?');
+      fields.push("description = ?");
       params.push(description);
     }
 
     if (templateText !== undefined) {
-      fields.push('template = ?');
+      fields.push("template = ?");
       params.push(templateText);
     }
 
     if (variables !== undefined) {
-      fields.push('variables = ?');
+      fields.push("variables = ?");
       params.push(JSON.stringify(variables));
     }
 
     if (category !== undefined) {
-      fields.push('category = ?');
+      fields.push("category = ?");
       params.push(category);
     }
 
-    fields.push('updated_at = ?');
+    fields.push("updated_at = ?");
     params.push(Date.now());
 
     params.push(id);
 
     await this.db.run(
-      `UPDATE prompt_templates SET ${fields.join(', ')} WHERE id = ?`,
-      params
+      `UPDATE prompt_templates SET ${fields.join(", ")} WHERE id = ?`,
+      params,
     );
 
     return this.getTemplateById(id);
@@ -2920,14 +2962,14 @@ H2: [假设内容]
     const template = await this.getTemplateById(id);
 
     if (!template) {
-      throw new Error('模板不存在');
+      throw new Error("模板不存在");
     }
 
     if (template.is_system) {
-      throw new Error('系统模板不能删除');
+      throw new Error("系统模板不能删除");
     }
 
-    await this.db.run('DELETE FROM prompt_templates WHERE id = ?', [id]);
+    await this.db.run("DELETE FROM prompt_templates WHERE id = ?", [id]);
     return true;
   }
 
@@ -2941,14 +2983,14 @@ H2: [假设内容]
     const template = await this.getTemplateById(id);
 
     if (!template) {
-      throw new Error('模板不存在');
+      throw new Error("模板不存在");
     }
 
     let result = template.template;
 
     // 替换所有变量
     for (const [key, value] of Object.entries(values)) {
-      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
       result = result.replace(regex, value);
     }
 
@@ -2964,8 +3006,8 @@ H2: [假设内容]
    */
   async incrementUsage(id) {
     await this.db.run(
-      'UPDATE prompt_templates SET usage_count = usage_count + 1 WHERE id = ?',
-      [id]
+      "UPDATE prompt_templates SET usage_count = usage_count + 1 WHERE id = ?",
+      [id],
     );
   }
 
@@ -2975,10 +3017,10 @@ H2: [假设内容]
    */
   async getCategories() {
     const result = await this.db.all(
-      'SELECT DISTINCT category FROM prompt_templates ORDER BY category'
+      "SELECT DISTINCT category FROM prompt_templates ORDER BY category",
     );
 
-    return result.map(row => row.category);
+    return result.map((row) => row.category);
   }
 
   /**
@@ -2991,10 +3033,10 @@ H2: [假设内容]
       `SELECT * FROM prompt_templates
        WHERE name LIKE ? OR description LIKE ? OR template LIKE ?
        ORDER BY usage_count DESC, created_at DESC`,
-      [`%${query}%`, `%${query}%`, `%${query}%`]
+      [`%${query}%`, `%${query}%`, `%${query}%`],
     );
 
-    return templates.map(template => ({
+    return templates.map((template) => ({
       ...template,
       variables: template.variables ? JSON.parse(template.variables) : [],
       is_system: Boolean(template.is_system),
@@ -3007,23 +3049,23 @@ H2: [假设内容]
    */
   async getStatistics() {
     const total = await this.db.get(
-      'SELECT COUNT(*) as count FROM prompt_templates'
+      "SELECT COUNT(*) as count FROM prompt_templates",
     );
 
     const system = await this.db.get(
-      'SELECT COUNT(*) as count FROM prompt_templates WHERE is_system = 1'
+      "SELECT COUNT(*) as count FROM prompt_templates WHERE is_system = 1",
     );
 
     const custom = await this.db.get(
-      'SELECT COUNT(*) as count FROM prompt_templates WHERE is_system = 0'
+      "SELECT COUNT(*) as count FROM prompt_templates WHERE is_system = 0",
     );
 
     const byCategory = await this.db.all(
-      'SELECT category, COUNT(*) as count FROM prompt_templates GROUP BY category'
+      "SELECT category, COUNT(*) as count FROM prompt_templates GROUP BY category",
     );
 
     const mostUsed = await this.db.all(
-      'SELECT id, name, usage_count FROM prompt_templates ORDER BY usage_count DESC LIMIT 5'
+      "SELECT id, name, usage_count FROM prompt_templates ORDER BY usage_count DESC LIMIT 5",
     );
 
     return {
@@ -3047,11 +3089,11 @@ H2: [假设内容]
     const template = await this.getTemplateById(id);
 
     if (!template) {
-      throw new Error('模板不存在');
+      throw new Error("模板不存在");
     }
 
     return {
-      version: '1.0',
+      version: "1.0",
       exported_at: new Date().toISOString(),
       template: {
         name: template.name,
@@ -3070,10 +3112,11 @@ H2: [假设内容]
    */
   async importTemplate(importData) {
     if (!importData.template) {
-      throw new Error('无效的导入数据');
+      throw new Error("无效的导入数据");
     }
 
-    const { name, description, template, variables, category } = importData.template;
+    const { name, description, template, variables, category } =
+      importData.template;
 
     return await this.createTemplate({
       name,

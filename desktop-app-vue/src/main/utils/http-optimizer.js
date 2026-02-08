@@ -3,8 +3,8 @@
  * 优化请求处理、连接管理和响应速度
  */
 
-const { logger, createLogger } = require('./logger.js');
-const { EventEmitter } = require('events');
+const { logger } = require("./logger.js");
+const { EventEmitter } = require("events");
 
 class HTTPServerOptimizer extends EventEmitter {
   constructor() {
@@ -72,7 +72,7 @@ class HTTPServerOptimizer extends EventEmitter {
     // 清理过期记录
     if (this.requestCounts.has(clientId)) {
       const requests = this.requestCounts.get(clientId);
-      const validRequests = requests.filter(time => time > windowStart);
+      const validRequests = requests.filter((time) => time > windowStart);
       this.requestCounts.set(clientId, validRequests);
     } else {
       this.requestCounts.set(clientId, []);
@@ -138,7 +138,7 @@ class HTTPServerOptimizer extends EventEmitter {
    * 生成缓存键
    */
   generateCacheKey(method, path, body) {
-    const bodyStr = body ? JSON.stringify(body) : '';
+    const bodyStr = body ? JSON.stringify(body) : "";
     return `${method}:${path}:${bodyStr}`;
   }
 
@@ -158,22 +158,27 @@ class HTTPServerOptimizer extends EventEmitter {
     }
 
     try {
-      const zlib = require('zlib');
+      const zlib = require("zlib");
       const compressed = await new Promise((resolve, reject) => {
         zlib.gzip(dataStr, (err, result) => {
-          if (err) {reject(err);}
-          else {resolve(result);}
+          if (err) {
+            reject(err);
+          } else {
+            resolve(result);
+          }
         });
       });
 
-      logger.info(`[HTTPOptimizer] 压缩: ${dataStr.length} -> ${compressed.length} bytes`);
+      logger.info(
+        `[HTTPOptimizer] 压缩: ${dataStr.length} -> ${compressed.length} bytes`,
+      );
 
       return {
         compressed: true,
-        data: compressed.toString('base64'),
+        data: compressed.toString("base64"),
       };
     } catch (error) {
-      logger.error('[HTTPOptimizer] 压缩失败:', error);
+      logger.error("[HTTPOptimizer] 压缩失败:", error);
       return data;
     }
   }
@@ -221,12 +226,12 @@ class HTTPServerOptimizer extends EventEmitter {
 
     // 并行处理所有请求
     const results = await Promise.allSettled(
-      batch.map(item => this.processRequest(item.request))
+      batch.map((item) => this.processRequest(item.request)),
     );
 
     // 返回结果
     results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
+      if (result.status === "fulfilled") {
         batch[index].resolve(result.value);
       } else {
         batch[index].reject(result.reason);
@@ -248,7 +253,7 @@ class HTTPServerOptimizer extends EventEmitter {
   acquireConnection(clientId) {
     // 检查连接数限制
     if (this.activeConnections >= this.config.maxConnections) {
-      throw new Error('连接池已满');
+      throw new Error("连接池已满");
     }
 
     // 创建或复用连接
@@ -319,13 +324,20 @@ class HTTPServerOptimizer extends EventEmitter {
    * 获取性能指标
    */
   getMetrics() {
-    const successRate = this.metrics.totalRequests > 0
-      ? (this.metrics.successfulRequests / this.metrics.totalRequests * 100).toFixed(2)
-      : 0;
+    const successRate =
+      this.metrics.totalRequests > 0
+        ? (
+            (this.metrics.successfulRequests / this.metrics.totalRequests) *
+            100
+          ).toFixed(2)
+        : 0;
 
-    const cacheHitRate = this.metrics.totalRequests > 0
-      ? (this.metrics.cacheHits / this.metrics.totalRequests * 100).toFixed(2)
-      : 0;
+    const cacheHitRate =
+      this.metrics.totalRequests > 0
+        ? ((this.metrics.cacheHits / this.metrics.totalRequests) * 100).toFixed(
+            2,
+          )
+        : 0;
 
     return {
       ...this.metrics,
@@ -342,7 +354,7 @@ class HTTPServerOptimizer extends EventEmitter {
    */
   clearCache() {
     this.responseCache.clear();
-    logger.info('[HTTPOptimizer] 缓存已清理');
+    logger.info("[HTTPOptimizer] 缓存已清理");
   }
 
   /**

@@ -1,40 +1,21 @@
 <template>
-  <a-card
-    title="按模型预算限制"
-    class="model-budget-panel"
-  >
+  <a-card title="按模型预算限制" class="model-budget-panel">
     <template #extra>
-      <a-button
-        type="primary"
-        size="small"
-        @click="showAddModal"
-      >
+      <a-button type="primary" size="small" @click="showAddModal">
         <PlusOutlined /> 添加限制
       </a-button>
     </template>
 
-    <a-skeleton
-      :loading="loading"
-      active
-    >
+    <a-skeleton :loading="loading" active>
       <!-- Empty state -->
-      <a-empty
-        v-if="modelBudgets.length === 0"
-        description="暂无模型预算限制"
-      >
-        <a-button
-          type="primary"
-          @click="showAddModal"
-        >
+      <a-empty v-if="modelBudgets.length === 0" description="暂无模型预算限制">
+        <a-button type="primary" @click="showAddModal">
           <PlusOutlined /> 添加第一个限制
         </a-button>
       </a-empty>
 
       <!-- Model budget list -->
-      <div
-        v-else
-        class="budget-list"
-      >
+      <div v-else class="budget-list">
         <div
           v-for="budget in modelBudgets"
           :key="`${budget.provider}-${budget.model}`"
@@ -54,11 +35,7 @@
                 size="small"
                 @change="(checked) => toggleBudget(budget, checked)"
               />
-              <a-button
-                type="text"
-                size="small"
-                @click="showEditModal(budget)"
-              >
+              <a-button type="text" size="small" @click="showEditModal(budget)">
                 <EditOutlined />
               </a-button>
               <a-popconfirm
@@ -67,11 +44,7 @@
                 cancel-text="取消"
                 @confirm="deleteBudget(budget)"
               >
-                <a-button
-                  type="text"
-                  size="small"
-                  danger
-                >
+                <a-button type="text" size="small" danger>
                   <DeleteOutlined />
                 </a-button>
               </a-popconfirm>
@@ -80,65 +53,90 @@
 
           <div class="budget-progress">
             <!-- Daily -->
-            <div
-              v-if="budget.daily_limit_usd > 0"
-              class="progress-item"
-            >
+            <div v-if="budget.daily_limit_usd > 0" class="progress-item">
               <div class="progress-label">
                 <span>日限额</span>
                 <span class="progress-value">
-                  ${{ (budget.current_daily_spend || 0).toFixed(4) }} /
-                  ${{ budget.daily_limit_usd.toFixed(2) }}
+                  ${{ (budget.current_daily_spend || 0).toFixed(4) }} / ${{
+                    budget.daily_limit_usd.toFixed(2)
+                  }}
                 </span>
               </div>
               <a-progress
-                :percent="getPercent(budget.current_daily_spend, budget.daily_limit_usd)"
-                :status="getProgressStatus(budget.current_daily_spend, budget.daily_limit_usd)"
+                :percent="
+                  getPercent(budget.current_daily_spend, budget.daily_limit_usd)
+                "
+                :status="
+                  getProgressStatus(
+                    budget.current_daily_spend,
+                    budget.daily_limit_usd,
+                  )
+                "
                 size="small"
               />
             </div>
 
             <!-- Weekly -->
-            <div
-              v-if="budget.weekly_limit_usd > 0"
-              class="progress-item"
-            >
+            <div v-if="budget.weekly_limit_usd > 0" class="progress-item">
               <div class="progress-label">
                 <span>周限额</span>
                 <span class="progress-value">
-                  ${{ (budget.current_weekly_spend || 0).toFixed(4) }} /
-                  ${{ budget.weekly_limit_usd.toFixed(2) }}
+                  ${{ (budget.current_weekly_spend || 0).toFixed(4) }} / ${{
+                    budget.weekly_limit_usd.toFixed(2)
+                  }}
                 </span>
               </div>
               <a-progress
-                :percent="getPercent(budget.current_weekly_spend, budget.weekly_limit_usd)"
-                :status="getProgressStatus(budget.current_weekly_spend, budget.weekly_limit_usd)"
+                :percent="
+                  getPercent(
+                    budget.current_weekly_spend,
+                    budget.weekly_limit_usd,
+                  )
+                "
+                :status="
+                  getProgressStatus(
+                    budget.current_weekly_spend,
+                    budget.weekly_limit_usd,
+                  )
+                "
                 size="small"
               />
             </div>
 
             <!-- Monthly -->
-            <div
-              v-if="budget.monthly_limit_usd > 0"
-              class="progress-item"
-            >
+            <div v-if="budget.monthly_limit_usd > 0" class="progress-item">
               <div class="progress-label">
                 <span>月限额</span>
                 <span class="progress-value">
-                  ${{ (budget.current_monthly_spend || 0).toFixed(4) }} /
-                  ${{ budget.monthly_limit_usd.toFixed(2) }}
+                  ${{ (budget.current_monthly_spend || 0).toFixed(4) }} / ${{
+                    budget.monthly_limit_usd.toFixed(2)
+                  }}
                 </span>
               </div>
               <a-progress
-                :percent="getPercent(budget.current_monthly_spend, budget.monthly_limit_usd)"
-                :status="getProgressStatus(budget.current_monthly_spend, budget.monthly_limit_usd)"
+                :percent="
+                  getPercent(
+                    budget.current_monthly_spend,
+                    budget.monthly_limit_usd,
+                  )
+                "
+                :status="
+                  getProgressStatus(
+                    budget.current_monthly_spend,
+                    budget.monthly_limit_usd,
+                  )
+                "
                 size="small"
               />
             </div>
 
             <!-- No limits set -->
             <div
-              v-if="budget.daily_limit_usd === 0 && budget.weekly_limit_usd === 0 && budget.monthly_limit_usd === 0"
+              v-if="
+                budget.daily_limit_usd === 0 &&
+                budget.weekly_limit_usd === 0 &&
+                budget.monthly_limit_usd === 0
+              "
               class="no-limits"
             >
               <WarningOutlined /> 未设置限额
@@ -150,20 +148,15 @@
               <ApiOutlined /> {{ budget.total_calls || 0 }} 次调用
             </span>
             <span class="stat">
-              <DollarOutlined /> ${{ (budget.total_cost_usd || 0).toFixed(4) }} 累计
+              <DollarOutlined /> ${{
+                (budget.total_cost_usd || 0).toFixed(4)
+              }}
+              累计
             </span>
-            <a-tag
-              v-if="budget.blockOnLimit"
-              color="red"
-              size="small"
-            >
+            <a-tag v-if="budget.blockOnLimit" color="red" size="small">
               超限阻止
             </a-tag>
-            <a-tag
-              v-else-if="budget.alertOnLimit"
-              color="orange"
-              size="small"
-            >
+            <a-tag v-else-if="budget.alertOnLimit" color="orange" size="small">
               超限告警
             </a-tag>
           </div>
@@ -184,46 +177,24 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="提供商"
-          required
-        >
+        <a-form-item label="提供商" required>
           <a-select
             v-model:value="formData.provider"
             placeholder="选择提供商"
             :disabled="isEditing"
           >
-            <a-select-option value="ollama">
-              Ollama (本地)
-            </a-select-option>
-            <a-select-option value="openai">
-              OpenAI
-            </a-select-option>
-            <a-select-option value="anthropic">
-              Anthropic
-            </a-select-option>
-            <a-select-option value="deepseek">
-              DeepSeek
-            </a-select-option>
-            <a-select-option value="volcengine">
-              火山引擎
-            </a-select-option>
-            <a-select-option value="dashscope">
-              阿里云
-            </a-select-option>
-            <a-select-option value="zhipuai">
-              智谱AI
-            </a-select-option>
-            <a-select-option value="moonshot">
-              Moonshot
-            </a-select-option>
+            <a-select-option value="ollama"> Ollama (本地) </a-select-option>
+            <a-select-option value="openai"> OpenAI </a-select-option>
+            <a-select-option value="anthropic"> Anthropic </a-select-option>
+            <a-select-option value="deepseek"> DeepSeek </a-select-option>
+            <a-select-option value="volcengine"> 火山引擎 </a-select-option>
+            <a-select-option value="dashscope"> 阿里云 </a-select-option>
+            <a-select-option value="zhipuai"> 智谱AI </a-select-option>
+            <a-select-option value="moonshot"> Moonshot </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="模型"
-          required
-        >
+        <a-form-item label="模型" required>
           <a-auto-complete
             v-model:value="formData.model"
             :options="modelOptions"
@@ -284,7 +255,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted } from "vue";
 import { message } from "ant-design-vue";
@@ -343,10 +314,7 @@ const modelOptions = computed(() => {
       { value: "claude-3-sonnet-20240229" },
       { value: "claude-3-haiku-20240307" },
     ],
-    deepseek: [
-      { value: "deepseek-chat" },
-      { value: "deepseek-coder" },
-    ],
+    deepseek: [{ value: "deepseek-chat" }, { value: "deepseek-coder" }],
     volcengine: [
       { value: "doubao-seed-1-6-flash-250828" },
       { value: "doubao-pro-32k" },
@@ -361,10 +329,7 @@ const modelOptions = computed(() => {
       { value: "glm-4-flash" },
       { value: "glm-3-turbo" },
     ],
-    moonshot: [
-      { value: "moonshot-v1-8k" },
-      { value: "moonshot-v1-32k" },
-    ],
+    moonshot: [{ value: "moonshot-v1-8k" }, { value: "moonshot-v1-32k" }],
   };
   return models[provider] || [];
 });
@@ -501,14 +466,20 @@ const getProviderColor = (provider) => {
 };
 
 const getPercent = (spent, limit) => {
-  if (!limit || limit <= 0) {return 0;}
+  if (!limit || limit <= 0) {
+    return 0;
+  }
   return Math.min(100, ((spent || 0) / limit) * 100);
 };
 
 const getProgressStatus = (spent, limit) => {
   const percent = getPercent(spent, limit);
-  if (percent >= 100) {return "exception";}
-  if (percent >= 80) {return "active";}
+  if (percent >= 100) {
+    return "exception";
+  }
+  if (percent >= 80) {
+    return "active";
+  }
   return "normal";
 };
 

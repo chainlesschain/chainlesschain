@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 检查点校验器
@@ -26,34 +26,34 @@ class CheckpointValidator {
 
     // 校验配置
     this.config = {
-      enableLLMQualityCheck: true,    // 是否启用LLM质量评估
-      qualityThreshold: 0.7,           // 质量评分阈值（0-1）
-      enableStrictMode: false,         // 严格模式（所有校验必须通过）
-      saveValidationHistory: true      // 是否保存校验历史
+      enableLLMQualityCheck: true, // 是否启用LLM质量评估
+      qualityThreshold: 0.7, // 质量评分阈值（0-1）
+      enableStrictMode: false, // 严格模式（所有校验必须通过）
+      saveValidationHistory: true, // 是否保存校验历史
     };
 
     // 预期输出配置（根据工具类型）
     this.expectedOutputs = {
-      'html_generator': ['html', 'title'],
-      'css_generator': ['css'],
-      'js_generator': ['javascript', 'code'],
-      'word_generator': ['filePath', 'success'],
-      'pdf_generator': ['filePath', 'success'],
-      'file_writer': ['path', 'success'],
-      'file_reader': ['content'],
-      'data_analyzer': ['analysis', 'statistics'],
-      'git_commit': ['success', 'commitHash'],
-      'deploy_to_cloud': ['success', 'url']
+      html_generator: ["html", "title"],
+      css_generator: ["css"],
+      js_generator: ["javascript", "code"],
+      word_generator: ["filePath", "success"],
+      pdf_generator: ["filePath", "success"],
+      file_writer: ["path", "success"],
+      file_reader: ["content"],
+      data_analyzer: ["analysis", "statistics"],
+      git_commit: ["success", "commitHash"],
+      deploy_to_cloud: ["success", "url"],
     };
 
     // 质量检查需求（哪些工具需要LLM质量评估）
     this.qualityCheckRequired = new Set([
-      'html_generator',
-      'css_generator',
-      'js_generator',
-      'word_generator',
-      'pdf_generator',
-      'data_analyzer'
+      "html_generator",
+      "css_generator",
+      "js_generator",
+      "word_generator",
+      "pdf_generator",
+      "data_analyzer",
     ]);
   }
 
@@ -66,10 +66,8 @@ class CheckpointValidator {
    * @returns {Object} 校验结果
    */
   async validateCheckpoint(stepIndex, result, plan, options = {}) {
-    const {
-      skipLLMCheck = false,
-      strictMode = this.config.enableStrictMode
-    } = options;
+    const { skipLLMCheck = false, strictMode = this.config.enableStrictMode } =
+      options;
 
     const validations = [];
     const step = plan.subtasks[stepIndex];
@@ -83,7 +81,11 @@ class CheckpointValidator {
     validations.push(expectedOutputCheck);
 
     // 3. 依赖数据检查（为下一步准备）
-    const nextStepCheck = this.checkNextStepDependencies(stepIndex, result, plan);
+    const nextStepCheck = this.checkNextStepDependencies(
+      stepIndex,
+      result,
+      plan,
+    );
     if (nextStepCheck) {
       validations.push(nextStepCheck);
     }
@@ -93,27 +95,29 @@ class CheckpointValidator {
     validations.push(typeCheck);
 
     // 5. LLM质量检查（可选，耗时较长）
-    if (!skipLLMCheck &&
-        this.config.enableLLMQualityCheck &&
-        this.isQualityCheckRequired(step)) {
-
+    if (
+      !skipLLMCheck &&
+      this.config.enableLLMQualityCheck &&
+      this.isQualityCheckRequired(step)
+    ) {
       const qualityCheck = await this.llmQualityCheck(result, step);
       validations.push(qualityCheck);
     }
 
     // 汇总校验结果
     const allPassed = strictMode
-      ? validations.every(v => v.passed)
-      : validations.filter(v => v.critical).every(v => v.passed);
+      ? validations.every((v) => v.passed)
+      : validations.filter((v) => v.critical).every((v) => v.passed);
 
     const summary = {
       stepIndex,
       stepTitle: step.title || step.tool,
       passed: allPassed,
       validations,
-      failedCount: validations.filter(v => !v.passed).length,
-      criticalFailures: validations.filter(v => !v.passed && v.critical).length,
-      recommendation: this.getRecommendation(validations, allPassed)
+      failedCount: validations.filter((v) => !v.passed).length,
+      criticalFailures: validations.filter((v) => !v.passed && v.critical)
+        .length,
+      recommendation: this.getRecommendation(validations, allPassed),
     };
 
     // 保存校验历史
@@ -132,23 +136,23 @@ class CheckpointValidator {
    */
   checkCompleteness(result, step) {
     const validation = {
-      type: 'completeness',
+      type: "completeness",
       critical: true,
       passed: true,
-      reason: ''
+      reason: "",
     };
 
     // 检查结果是否为空
     if (!result || result === null || result === undefined) {
       validation.passed = false;
-      validation.reason = '步骤执行结果为空';
+      validation.reason = "步骤执行结果为空";
       return validation;
     }
 
     // 检查是否明确失败
     if (result.success === false) {
       validation.passed = false;
-      validation.reason = '步骤执行明确标记为失败';
+      validation.reason = "步骤执行明确标记为失败";
       if (result.error) {
         validation.reason += `: ${result.error}`;
       }
@@ -173,40 +177,42 @@ class CheckpointValidator {
    */
   checkExpectedOutputs(result, step) {
     const validation = {
-      type: 'expected_outputs',
+      type: "expected_outputs",
       critical: true,
       passed: true,
-      reason: '',
-      missingOutputs: []
+      reason: "",
+      missingOutputs: [],
     };
 
     // 如果result为null或undefined，认为所有输出缺失
-    if (!result || typeof result !== 'object') {
-      const expectedKeys = step.expected_outputs
-        || this.expectedOutputs[step.tool]
-        || [];
+    if (!result || typeof result !== "object") {
+      const expectedKeys =
+        step.expected_outputs || this.expectedOutputs[step.tool] || [];
 
       validation.passed = false;
       validation.missingOutputs = [...expectedKeys];
-      validation.reason = `结果为空或类型错误，缺少所有预期输出: ${validation.missingOutputs.join(', ')}`;
+      validation.reason = `结果为空或类型错误，缺少所有预期输出: ${validation.missingOutputs.join(", ")}`;
       return validation;
     }
 
     // 获取该工具的预期输出列表
-    const expectedKeys = step.expected_outputs
-      || this.expectedOutputs[step.tool]
-      || [];
+    const expectedKeys =
+      step.expected_outputs || this.expectedOutputs[step.tool] || [];
 
     // 检查每个预期输出
     for (const key of expectedKeys) {
-      if (!(key in result) || result[key] === null || result[key] === undefined) {
+      if (
+        !(key in result) ||
+        result[key] === null ||
+        result[key] === undefined
+      ) {
         validation.passed = false;
         validation.missingOutputs.push(key);
       }
     }
 
     if (!validation.passed) {
-      validation.reason = `缺少预期输出: ${validation.missingOutputs.join(', ')}`;
+      validation.reason = `缺少预期输出: ${validation.missingOutputs.join(", ")}`;
     }
 
     return validation;
@@ -228,11 +234,11 @@ class CheckpointValidator {
     }
 
     const validation = {
-      type: 'next_step_dependencies',
-      critical: false,  // 非关键校验
+      type: "next_step_dependencies",
+      critical: false, // 非关键校验
       passed: true,
-      reason: '',
-      missingDependencies: []
+      reason: "",
+      missingDependencies: [],
     };
 
     // 提取下一步需要的输入
@@ -240,14 +246,18 @@ class CheckpointValidator {
 
     // 检查当前结果是否提供了这些输入
     for (const input of requiredInputs) {
-      if (!(input in result) || result[input] === null || result[input] === undefined) {
+      if (
+        !(input in result) ||
+        result[input] === null ||
+        result[input] === undefined
+      ) {
         validation.passed = false;
         validation.missingDependencies.push(input);
       }
     }
 
     if (!validation.passed) {
-      validation.reason = `下一步需要 ${validation.missingDependencies.join(', ')}，但当前步骤未提供`;
+      validation.reason = `下一步需要 ${validation.missingDependencies.join(", ")}，但当前步骤未提供`;
     }
 
     return validation;
@@ -276,10 +286,10 @@ class CheckpointValidator {
 
     // 添加常见的必需参数
     const commonRequired = {
-      'file_writer': ['content', 'path'],
-      'deploy_to_cloud': ['filePath', 'platform'],
-      'css_generator': ['html'],
-      'js_generator': ['html']
+      file_writer: ["content", "path"],
+      deploy_to_cloud: ["filePath", "platform"],
+      css_generator: ["html"],
+      js_generator: ["html"],
     };
 
     if (commonRequired[step.tool]) {
@@ -298,25 +308,25 @@ class CheckpointValidator {
    */
   checkDataTypes(result, step) {
     const validation = {
-      type: 'data_types',
+      type: "data_types",
       critical: false,
       passed: true,
-      reason: '',
-      typeErrors: []
+      reason: "",
+      typeErrors: [],
     };
 
     // 类型期望配置
     const typeExpectations = {
-      'html_generator': { html: 'string', title: 'string' },
-      'css_generator': { css: 'string' },
-      'file_writer': { path: 'string', success: 'boolean' },
-      'data_analyzer': { analysis: 'object', statistics: 'object' }
+      html_generator: { html: "string", title: "string" },
+      css_generator: { css: "string" },
+      file_writer: { path: "string", success: "boolean" },
+      data_analyzer: { analysis: "object", statistics: "object" },
     };
 
     const expected = typeExpectations[step.tool];
 
     if (!expected) {
-      return validation;  // 无类型期望，跳过检查
+      return validation; // 无类型期望，跳过检查
     }
 
     for (const [key, expectedType] of Object.entries(expected)) {
@@ -328,7 +338,7 @@ class CheckpointValidator {
           validation.typeErrors.push({
             key,
             expected: expectedType,
-            actual: actualType
+            actual: actualType,
           });
         }
       }
@@ -369,11 +379,11 @@ class CheckpointValidator {
    */
   async llmQualityCheck(result, step) {
     const validation = {
-      type: 'llm_quality',
+      type: "llm_quality",
       critical: false,
       passed: true,
-      reason: '',
-      score: 0
+      reason: "",
+      score: 0,
     };
 
     try {
@@ -381,7 +391,7 @@ class CheckpointValidator {
 评估以下步骤的输出质量（0-1分）:
 
 步骤: ${step.title || step.tool}
-预期: ${step.description || '完成任务'}
+预期: ${step.description || "完成任务"}
 
 实际输出:
 ${this.formatResultForDisplay(result)}
@@ -400,24 +410,23 @@ ${this.formatResultForDisplay(result)}
 `;
 
       const llmResult = await this.llmService.complete({
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
       });
 
       const parsed = this.parseJSON(llmResult.content || llmResult);
 
-      if (parsed && typeof parsed.score === 'number') {
+      if (parsed && typeof parsed.score === "number") {
         validation.score = parsed.score;
         validation.passed = parsed.score >= this.config.qualityThreshold;
         validation.reason = parsed.reason || `质量评分: ${parsed.score}`;
       } else {
-        validation.passed = true;  // LLM检查失败时默认通过
-        validation.reason = 'LLM质量评估失败，跳过检查';
+        validation.passed = true; // LLM检查失败时默认通过
+        validation.reason = "LLM质量评估失败，跳过检查";
       }
-
     } catch (error) {
-      logger.error('LLM质量检查失败:', error);
-      validation.passed = true;  // 检查失败时默认通过
+      logger.error("LLM质量检查失败:", error);
+      validation.passed = true; // 检查失败时默认通过
       validation.reason = `LLM质量评估异常: ${error.message}`;
     }
 
@@ -431,12 +440,16 @@ ${this.formatResultForDisplay(result)}
    */
   formatResultForDisplay(result) {
     // 截断过长的内容
-    const formatted = JSON.stringify(result, (key, value) => {
-      if (typeof value === 'string' && value.length > 500) {
-        return value.substring(0, 500) + '... [truncated]';
-      }
-      return value;
-    }, 2);
+    const formatted = JSON.stringify(
+      result,
+      (key, value) => {
+        if (typeof value === "string" && value.length > 500) {
+          return value.substring(0, 500) + "... [truncated]";
+        }
+        return value;
+      },
+      2,
+    );
 
     return formatted;
   }
@@ -449,18 +462,18 @@ ${this.formatResultForDisplay(result)}
    */
   getRecommendation(validations, allPassed) {
     if (allPassed) {
-      return 'continue';  // 继续执行
+      return "continue"; // 继续执行
     }
 
     // 检查关键校验是否失败
-    const criticalFailures = validations.filter(v => !v.passed && v.critical);
+    const criticalFailures = validations.filter((v) => !v.passed && v.critical);
 
     if (criticalFailures.length > 0) {
-      return 'retry';  // 建议重试
+      return "retry"; // 建议重试
     }
 
     // 只有非关键校验失败
-    return 'continue_with_warning';  // 继续，但警告用户
+    return "continue_with_warning"; // 继续，但警告用户
   }
 
   /**
@@ -474,7 +487,8 @@ ${this.formatResultForDisplay(result)}
     }
 
     try {
-      await this.database.run(`
+      await this.database.run(
+        `
         INSERT INTO checkpoint_validations (
           step_index,
           step_title,
@@ -485,19 +499,20 @@ ${this.formatResultForDisplay(result)}
           recommendation,
           created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        summary.stepIndex,
-        summary.stepTitle,
-        summary.passed ? 1 : 0,
-        summary.failedCount,
-        summary.criticalFailures,
-        JSON.stringify(summary.validations),
-        summary.recommendation,
-        Date.now()
-      ]);
-
+      `,
+        [
+          summary.stepIndex,
+          summary.stepTitle,
+          summary.passed ? 1 : 0,
+          summary.failedCount,
+          summary.criticalFailures,
+          JSON.stringify(summary.validations),
+          summary.recommendation,
+          Date.now(),
+        ],
+      );
     } catch (error) {
-      logger.error('保存校验历史失败:', error);
+      logger.error("保存校验历史失败:", error);
     }
   }
 
@@ -514,7 +529,8 @@ ${this.formatResultForDisplay(result)}
     try {
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
 
-      const stats = await this.database.get(`
+      const stats = await this.database.get(
+        `
         SELECT
           COUNT(*) as total_validations,
           SUM(CASE WHEN passed = 1 THEN 1 ELSE 0 END) as passed_count,
@@ -523,21 +539,27 @@ ${this.formatResultForDisplay(result)}
           AVG(failed_count) as avg_failures_per_validation
         FROM checkpoint_validations
         WHERE created_at > ?
-      `, [cutoff]);
+      `,
+        [cutoff],
+      );
 
       return {
         totalValidations: stats.total_validations,
         passedCount: stats.passed_count,
-        passRate: stats.total_validations > 0
-          ? (stats.passed_count / stats.total_validations * 100).toFixed(2) + '%'
-          : 'N/A',
+        passRate:
+          stats.total_validations > 0
+            ? ((stats.passed_count / stats.total_validations) * 100).toFixed(
+                2,
+              ) + "%"
+            : "N/A",
         totalFailures: stats.total_failures,
         totalCriticalFailures: stats.total_critical_failures,
-        avgFailuresPerValidation: parseFloat(stats.avg_failures_per_validation || 0).toFixed(2)
+        avgFailuresPerValidation: parseFloat(
+          stats.avg_failures_per_validation || 0,
+        ).toFixed(2),
       };
-
     } catch (error) {
-      logger.error('获取校验统计失败:', error);
+      logger.error("获取校验统计失败:", error);
       return null;
     }
   }
@@ -556,7 +578,7 @@ ${this.formatResultForDisplay(result)}
         try {
           return JSON.parse(jsonMatch[0]);
         } catch (e) {
-          logger.error('JSON解析失败:', e);
+          logger.error("JSON解析失败:", e);
           return null;
         }
       }

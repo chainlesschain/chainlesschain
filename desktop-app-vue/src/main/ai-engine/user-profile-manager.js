@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * UserProfileManager - 用户画像管理器
@@ -26,7 +26,9 @@ class LRUCache {
   }
 
   get(key) {
-    if (!this.cache.has(key)) {return null;}
+    if (!this.cache.has(key)) {
+      return null;
+    }
 
     const value = this.cache.get(key);
     this.cache.delete(key);
@@ -60,16 +62,17 @@ class LRUCache {
 class UserProfileManager {
   constructor(config = {}) {
     this.config = {
-      updateInterval: 3600000,      // 1小时更新一次
-      minDataPoints: 10,            // 最少10个数据点才建立画像
+      updateInterval: 3600000, // 1小时更新一次
+      minDataPoints: 10, // 最少10个数据点才建立画像
       enableTemporalAnalysis: true, // 启用时间模式分析
-      cacheSize: 1000,              // 缓存大小
-      skillLevelThresholds: {       // 技能水平阈值
+      cacheSize: 1000, // 缓存大小
+      skillLevelThresholds: {
+        // 技能水平阈值
         beginner: 0.4,
         intermediate: 0.7,
-        advanced: 0.9
+        advanced: 0.9,
       },
-      ...config
+      ...config,
     };
 
     this.db = null;
@@ -80,7 +83,7 @@ class UserProfileManager {
       cacheHits: 0,
       cacheMisses: 0,
       profilesCreated: 0,
-      profilesUpdated: 0
+      profilesUpdated: 0,
     };
   }
 
@@ -122,41 +125,55 @@ class UserProfileManager {
    * 从数据库加载用户画像
    */
   async loadProfileFromDB(userId) {
-    if (!this.db) {return null;}
+    if (!this.db) {
+      return null;
+    }
 
     try {
-      const row = this.db.prepare(`
+      const row = this.db
+        .prepare(
+          `
         SELECT * FROM user_profiles WHERE user_id = ?
-      `).get(userId);
+      `,
+        )
+        .get(userId);
 
-      if (!row) {return null;}
+      if (!row) {
+        return null;
+      }
 
       return {
         userId: row.user_id,
         skillLevel: {
           overall: row.overall_skill_level,
-          domains: row.domain_skills ? JSON.parse(row.domain_skills) : {}
+          domains: row.domain_skills ? JSON.parse(row.domain_skills) : {},
         },
         preferences: {
-          preferredTools: row.preferred_tools ? JSON.parse(row.preferred_tools) : [],
+          preferredTools: row.preferred_tools
+            ? JSON.parse(row.preferred_tools)
+            : [],
           preferredWorkflow: row.preferred_workflow,
-          responseExpectation: row.response_expectation
+          responseExpectation: row.response_expectation,
         },
         statistics: {
           totalTasks: row.total_tasks,
           successRate: row.success_rate,
           avgTaskDuration: row.avg_task_duration,
-          mostUsedTools: row.most_used_tools ? JSON.parse(row.most_used_tools) : []
+          mostUsedTools: row.most_used_tools
+            ? JSON.parse(row.most_used_tools)
+            : [],
         },
         temporalPatterns: {
           activeHours: row.active_hours ? JSON.parse(row.active_hours) : [],
-          patterns: row.temporal_patterns ? JSON.parse(row.temporal_patterns) : {}
+          patterns: row.temporal_patterns
+            ? JSON.parse(row.temporal_patterns)
+            : {},
         },
         createdAt: row.created_at,
-        updatedAt: row.updated_at
+        updatedAt: row.updated_at,
       };
     } catch (error) {
-      logger.error('[UserProfileManager] 加载画像失败:', error);
+      logger.error("[UserProfileManager] 加载画像失败:", error);
       return null;
     }
   }
@@ -174,7 +191,9 @@ class UserProfileManager {
       const history = await this.loadUserHistory(userId);
 
       if (history.length < this.config.minDataPoints) {
-        logger.info(`[UserProfileManager] 数据点不足(${history.length}/${this.config.minDataPoints})，使用默认画像`);
+        logger.info(
+          `[UserProfileManager] 数据点不足(${history.length}/${this.config.minDataPoints})，使用默认画像`,
+        );
         return await this.createDefaultProfile(userId);
       }
 
@@ -187,7 +206,7 @@ class UserProfileManager {
           ? this.analyzeTemporalPatterns(history)
           : { activeHours: [], patterns: {} },
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
 
       // 保存到数据库
@@ -196,9 +215,8 @@ class UserProfileManager {
 
       logger.info(`[UserProfileManager] 创建用户画像: ${userId}`);
       return profile;
-
     } catch (error) {
-      logger.error('[UserProfileManager] 构建画像失败:', error);
+      logger.error("[UserProfileManager] 构建画像失败:", error);
       return this.createDefaultProfile(userId);
     }
   }
@@ -210,26 +228,26 @@ class UserProfileManager {
     return {
       userId,
       skillLevel: {
-        overall: 'intermediate',
-        domains: {}
+        overall: "intermediate",
+        domains: {},
       },
       preferences: {
         preferredTools: [],
-        preferredWorkflow: 'sequential',
-        responseExpectation: 'balanced'
+        preferredWorkflow: "sequential",
+        responseExpectation: "balanced",
       },
       statistics: {
         totalTasks: 0,
         successRate: 0,
         avgTaskDuration: 0,
-        mostUsedTools: []
+        mostUsedTools: [],
       },
       temporalPatterns: {
         activeHours: [],
-        patterns: {}
+        patterns: {},
       },
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
   }
 
@@ -237,26 +255,32 @@ class UserProfileManager {
    * 加载用户历史数据
    */
   async loadUserHistory(userId) {
-    if (!this.db) {return [];}
+    if (!this.db) {
+      return [];
+    }
 
     try {
-      const events = this.db.prepare(`
+      const events = this.db
+        .prepare(
+          `
         SELECT * FROM tool_usage_events
         WHERE user_id = ?
         ORDER BY timestamp DESC
         LIMIT 1000
-      `).all(userId);
+      `,
+        )
+        .all(userId);
 
-      return events.map(e => ({
+      return events.map((e) => ({
         toolName: e.tool_name,
         toolCategory: e.tool_category,
         taskType: e.task_type,
         executionTime: e.execution_time,
         success: e.success === 1,
-        timestamp: e.timestamp
+        timestamp: e.timestamp,
       }));
     } catch (error) {
-      logger.error('[UserProfileManager] 加载历史数据失败:', error);
+      logger.error("[UserProfileManager] 加载历史数据失败:", error);
       return [];
     }
   }
@@ -266,31 +290,35 @@ class UserProfileManager {
    */
   assessSkillLevel(history) {
     if (history.length === 0) {
-      return { overall: 'intermediate', domains: {} };
+      return { overall: "intermediate", domains: {} };
     }
 
     // 计算成功率
-    const successRate = history.filter(h => h.success).length / history.length;
+    const successRate =
+      history.filter((h) => h.success).length / history.length;
 
     // 计算平均执行时间
-    const avgTime = history.reduce((sum, h) => sum + (h.executionTime || 0), 0) / history.length;
+    const avgTime =
+      history.reduce((sum, h) => sum + (h.executionTime || 0), 0) /
+      history.length;
 
     // 计算任务复杂度（基于工具类别分布）
-    const categories = new Set(history.map(h => h.toolCategory).filter(Boolean));
+    const categories = new Set(
+      history.map((h) => h.toolCategory).filter(Boolean),
+    );
     const complexityScore = Math.min(categories.size / 5, 1);
 
     // 综合评分
-    const overallScore = (
+    const overallScore =
       successRate * 0.5 +
       (avgTime < 3000 ? 0.3 : avgTime < 5000 ? 0.2 : 0.1) +
-      complexityScore * 0.2
-    );
+      complexityScore * 0.2;
 
-    let overall = 'beginner';
+    let overall = "beginner";
     if (overallScore >= this.config.skillLevelThresholds.advanced) {
-      overall = 'advanced';
+      overall = "advanced";
     } else if (overallScore >= this.config.skillLevelThresholds.intermediate) {
-      overall = 'intermediate';
+      overall = "intermediate";
     }
 
     // 领域技能评估
@@ -304,23 +332,26 @@ class UserProfileManager {
    */
   assessDomainSkills(history) {
     const domainMap = {
-      'development': ['codeGeneration', 'debugging', 'testing'],
-      'data': ['dataAnalysis', 'visualization', 'query'],
-      'design': ['uiDesign', 'prototyping', 'styling'],
-      'writing': ['documentation', 'copywriting', 'translation']
+      development: ["codeGeneration", "debugging", "testing"],
+      data: ["dataAnalysis", "visualization", "query"],
+      design: ["uiDesign", "prototyping", "styling"],
+      writing: ["documentation", "copywriting", "translation"],
     };
 
     const domains = {};
 
     for (const [domain, tools] of Object.entries(domainMap)) {
-      const domainEvents = history.filter(h =>
-        tools.some(tool => h.toolName.toLowerCase().includes(tool.toLowerCase()))
+      const domainEvents = history.filter((h) =>
+        tools.some((tool) =>
+          h.toolName.toLowerCase().includes(tool.toLowerCase()),
+        ),
       );
 
       if (domainEvents.length > 0) {
-        const successRate = domainEvents.filter(e => e.success).length / domainEvents.length;
+        const successRate =
+          domainEvents.filter((e) => e.success).length / domainEvents.length;
         const usage = Math.min(domainEvents.length / history.length, 1);
-        domains[domain] = (successRate * 0.7 + usage * 0.3);
+        domains[domain] = successRate * 0.7 + usage * 0.3;
       }
     }
 
@@ -334,14 +365,14 @@ class UserProfileManager {
     if (history.length === 0) {
       return {
         preferredTools: [],
-        preferredWorkflow: 'sequential',
-        responseExpectation: 'balanced'
+        preferredWorkflow: "sequential",
+        responseExpectation: "balanced",
       };
     }
 
     // 统计工具使用频率
     const toolFrequency = {};
-    history.forEach(h => {
+    history.forEach((h) => {
       toolFrequency[h.toolName] = (toolFrequency[h.toolName] || 0) + 1;
     });
 
@@ -352,16 +383,19 @@ class UserProfileManager {
       .map(([tool]) => tool);
 
     // 推断工作流偏好（简化版）
-    const avgTime = history.reduce((sum, h) => sum + (h.executionTime || 0), 0) / history.length;
-    const preferredWorkflow = avgTime < 2000 ? 'parallel' : 'sequential';
+    const avgTime =
+      history.reduce((sum, h) => sum + (h.executionTime || 0), 0) /
+      history.length;
+    const preferredWorkflow = avgTime < 2000 ? "parallel" : "sequential";
 
     // 推断响应时间期望
-    const responseExpectation = avgTime < 1500 ? 'fast' : avgTime < 3000 ? 'balanced' : 'thorough';
+    const responseExpectation =
+      avgTime < 1500 ? "fast" : avgTime < 3000 ? "balanced" : "thorough";
 
     return {
       preferredTools,
       preferredWorkflow,
-      responseExpectation
+      responseExpectation,
     };
   }
 
@@ -374,28 +408,33 @@ class UserProfileManager {
         totalTasks: 0,
         successRate: 0,
         avgTaskDuration: 0,
-        mostUsedTools: []
+        mostUsedTools: [],
       };
     }
 
-    const successCount = history.filter(h => h.success).length;
-    const totalTime = history.reduce((sum, h) => sum + (h.executionTime || 0), 0);
+    const successCount = history.filter((h) => h.success).length;
+    const totalTime = history.reduce(
+      (sum, h) => sum + (h.executionTime || 0),
+      0,
+    );
 
     // 统计最常用工具
     const toolStats = {};
-    history.forEach(h => {
+    history.forEach((h) => {
       if (!toolStats[h.toolName]) {
         toolStats[h.toolName] = { count: 0, successCount: 0 };
       }
       toolStats[h.toolName].count++;
-      if (h.success) {toolStats[h.toolName].successCount++;}
+      if (h.success) {
+        toolStats[h.toolName].successCount++;
+      }
     });
 
     const mostUsedTools = Object.entries(toolStats)
       .map(([tool, stats]) => ({
         tool,
         count: stats.count,
-        successRate: stats.successCount / stats.count
+        successRate: stats.successCount / stats.count,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
@@ -404,7 +443,7 @@ class UserProfileManager {
       totalTasks: history.length,
       successRate: successCount / history.length,
       avgTaskDuration: Math.round(totalTime / history.length),
-      mostUsedTools
+      mostUsedTools,
     };
   }
 
@@ -418,14 +457,22 @@ class UserProfileManager {
 
     // 统计活跃时段
     const hourCounts = new Array(24).fill(0);
-    const dayActivity = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+    const dayActivity = {
+      Mon: 0,
+      Tue: 0,
+      Wed: 0,
+      Thu: 0,
+      Fri: 0,
+      Sat: 0,
+      Sun: 0,
+    };
 
-    history.forEach(h => {
+    history.forEach((h) => {
       const date = new Date(h.timestamp);
       const hour = date.getHours();
       hourCounts[hour]++;
 
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       const day = days[date.getDay()];
       dayActivity[day]++;
     });
@@ -434,12 +481,12 @@ class UserProfileManager {
     const avgCount = hourCounts.reduce((a, b) => a + b, 0) / 24;
     const activeHours = hourCounts
       .map((count, hour) => ({ hour, count }))
-      .filter(h => h.count > avgCount)
-      .map(h => h.hour);
+      .filter((h) => h.count > avgCount)
+      .map((h) => h.hour);
 
     // 归一化日活跃度
     const totalDays = Object.values(dayActivity).reduce((a, b) => a + b, 0);
-    Object.keys(dayActivity).forEach(day => {
+    Object.keys(dayActivity).forEach((day) => {
       dayActivity[day] = totalDays > 0 ? dayActivity[day] / totalDays : 0;
     });
 
@@ -447,8 +494,8 @@ class UserProfileManager {
       activeHours,
       patterns: {
         weekdayActivity: dayActivity,
-        peakHour: hourCounts.indexOf(Math.max(...hourCounts))
-      }
+        peakHour: hourCounts.indexOf(Math.max(...hourCounts)),
+      },
     };
   }
 
@@ -456,10 +503,14 @@ class UserProfileManager {
    * 保存用户画像
    */
   async saveProfile(profile) {
-    if (!this.db) {return;}
+    if (!this.db) {
+      return;
+    }
 
     try {
-      const existing = this.db.prepare('SELECT id FROM user_profiles WHERE user_id = ?').get(profile.userId);
+      const existing = this.db
+        .prepare("SELECT id FROM user_profiles WHERE user_id = ?")
+        .get(profile.userId);
 
       if (existing) {
         // 更新
@@ -493,7 +544,7 @@ class UserProfileManager {
           JSON.stringify(profile.statistics.mostUsedTools),
           JSON.stringify(profile.temporalPatterns.activeHours),
           JSON.stringify(profile.temporalPatterns.patterns),
-          profile.userId
+          profile.userId,
         );
 
         this.stats.profilesUpdated++;
@@ -520,7 +571,7 @@ class UserProfileManager {
           profile.statistics.avgTaskDuration,
           JSON.stringify(profile.statistics.mostUsedTools),
           JSON.stringify(profile.temporalPatterns.activeHours),
-          JSON.stringify(profile.temporalPatterns.patterns)
+          JSON.stringify(profile.temporalPatterns.patterns),
         );
 
         this.stats.profilesCreated++;
@@ -528,9 +579,8 @@ class UserProfileManager {
 
       // 更新缓存
       this.cache.set(profile.userId, profile);
-
     } catch (error) {
-      logger.error('[UserProfileManager] 保存画像失败:', error);
+      logger.error("[UserProfileManager] 保存画像失败:", error);
     }
   }
 
@@ -581,7 +631,7 @@ class UserProfileManager {
         ? this.analyzeTemporalPatterns(history)
         : { activeHours: [], patterns: {} },
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     await this.saveProfile(profile);
@@ -597,9 +647,14 @@ class UserProfileManager {
     return {
       ...this.stats,
       cacheSize: this.cache.size,
-      cacheHitRate: this.stats.cacheHits + this.stats.cacheMisses > 0
-        ? ((this.stats.cacheHits / (this.stats.cacheHits + this.stats.cacheMisses)) * 100).toFixed(2) + '%'
-        : '0%'
+      cacheHitRate:
+        this.stats.cacheHits + this.stats.cacheMisses > 0
+          ? (
+              (this.stats.cacheHits /
+                (this.stats.cacheHits + this.stats.cacheMisses)) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
     };
   }
 
@@ -607,10 +662,10 @@ class UserProfileManager {
    * 清理资源
    */
   async cleanup() {
-    logger.info('[UserProfileManager] 清理资源...');
+    logger.info("[UserProfileManager] 清理资源...");
     this.cache.clear();
     this.db = null;
-    logger.info('[UserProfileManager] 资源清理完成');
+    logger.info("[UserProfileManager] 资源清理完成");
   }
 }
 

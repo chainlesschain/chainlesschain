@@ -9,107 +9,86 @@
     </div>
 
     <a-spin :spinning="loading">
-      <a-tabs
-        v-model:active-key="activeTab"
-        type="card"
-      >
+      <a-tabs v-model:active-key="activeTab" type="card">
         <!-- 通用设置 -->
-        <a-tab-pane
-          key="general"
-          tab="通用设置"
-        >
+        <a-tab-pane key="general" tab="通用设置">
           <template #tab>
             <SettingOutlined />
             通用设置
           </template>
           <a-card title="通用设置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="主题">
                 <a-radio-group
                   v-model:value="config.general.theme"
                   button-style="solid"
                 >
-                  <a-radio-button value="light">
-                    浅色
-                  </a-radio-button>
-                  <a-radio-button value="dark">
-                    深色
-                  </a-radio-button>
-                  <a-radio-button value="auto">
-                    跟随系统
-                  </a-radio-button>
+                  <a-radio-button value="light"> 浅色 </a-radio-button>
+                  <a-radio-button value="dark"> 深色 </a-radio-button>
+                  <a-radio-button value="auto"> 跟随系统 </a-radio-button>
                 </a-radio-group>
               </a-form-item>
 
               <a-form-item label="语言">
                 <a-select
                   v-model:value="config.general.language"
-                  style="width: 200px;"
+                  style="width: 200px"
                 >
-                  <a-select-option value="zh-CN">
-                    🇨🇳 简体中文
-                  </a-select-option>
-                  <a-select-option value="zh-TW">
-                    🇹🇼 繁体中文
-                  </a-select-option>
-                  <a-select-option value="en-US">
-                    🇺🇸 English
-                  </a-select-option>
-                  <a-select-option value="ja-JP">
-                    🇯🇵 日本語
-                  </a-select-option>
-                  <a-select-option value="ko-KR">
-                    🇰🇷 한국어
-                  </a-select-option>
+                  <a-select-option value="zh-CN"> 🇨🇳 简体中文 </a-select-option>
+                  <a-select-option value="zh-TW"> 🇹🇼 繁体中文 </a-select-option>
+                  <a-select-option value="en-US"> 🇺🇸 English </a-select-option>
+                  <a-select-option value="ja-JP"> 🇯🇵 日本語 </a-select-option>
+                  <a-select-option value="ko-KR"> 🇰🇷 한국어 </a-select-option>
                 </a-select>
               </a-form-item>
 
               <a-form-item label="开机自启">
                 <a-switch v-model:checked="config.general.autoStart" />
-                <span style="margin-left: 8px;">系统启动时自动运行应用</span>
+                <span style="margin-left: 8px">系统启动时自动运行应用</span>
               </a-form-item>
 
               <a-form-item label="最小化到托盘">
                 <a-switch v-model:checked="config.general.minimizeToTray" />
-                <span style="margin-left: 8px;">点击最小化按钮时隐藏到系统托盘</span>
+                <span style="margin-left: 8px"
+                  >点击最小化按钮时隐藏到系统托盘</span
+                >
               </a-form-item>
 
               <a-form-item label="关闭到托盘">
                 <a-switch v-model:checked="config.general.closeToTray" />
-                <span style="margin-left: 8px;">点击关闭按钮时隐藏到系统托盘而不是退出</span>
+                <span style="margin-left: 8px"
+                  >点击关闭按钮时隐藏到系统托盘而不是退出</span
+                >
               </a-form-item>
 
               <a-form-item label="启动时最小化">
                 <a-switch v-model:checked="config.general.startMinimized" />
-                <span style="margin-left: 8px;">应用启动时直接最小化到托盘</span>
+                <span style="margin-left: 8px">应用启动时直接最小化到托盘</span>
               </a-form-item>
             </a-form>
           </a-card>
         </a-tab-pane>
 
         <!-- 编辑器设置 -->
-        <a-tab-pane
-          key="editor"
-          tab="编辑器"
-        >
+        <a-tab-pane key="editor" tab="编辑器">
           <template #tab>
             <EditOutlined />
             编辑器
           </template>
           <a-card title="编辑器设置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="字体大小">
                 <a-slider
                   v-model:value="config.editor.fontSize"
                   :min="10"
                   :max="32"
-                  :marks="{ 10: '10px', 14: '14px', 18: '18px', 24: '24px', 32: '32px' }"
+                  :marks="{
+                    10: '10px',
+                    14: '14px',
+                    18: '18px',
+                    24: '24px',
+                    32: '32px',
+                  }"
                 />
               </a-form-item>
 
@@ -126,7 +105,7 @@
                   :min="1.0"
                   :max="3.0"
                   :step="0.1"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
               </a-form-item>
 
@@ -135,7 +114,7 @@
                   v-model:value="config.editor.tabSize"
                   :min="2"
                   :max="8"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
               </a-form-item>
 
@@ -145,20 +124,17 @@
 
               <a-form-item label="自动保存">
                 <a-switch v-model:checked="config.editor.autoSave" />
-                <span style="margin-left: 8px;">编辑后自动保存</span>
+                <span style="margin-left: 8px">编辑后自动保存</span>
               </a-form-item>
 
-              <a-form-item
-                v-if="config.editor.autoSave"
-                label="自动保存延迟"
-              >
+              <a-form-item v-if="config.editor.autoSave" label="自动保存延迟">
                 <a-input-number
                   v-model:value="config.editor.autoSaveDelay"
                   :min="500"
                   :max="10000"
                   :step="500"
                   addon-after="毫秒"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
               </a-form-item>
 
@@ -170,19 +146,13 @@
         </a-tab-pane>
 
         <!-- 快捷键设置 -->
-        <a-tab-pane
-          key="shortcuts"
-          tab="快捷键"
-        >
+        <a-tab-pane key="shortcuts" tab="快捷键">
           <template #tab>
             <ThunderboltOutlined />
             快捷键
           </template>
           <a-card title="全局快捷键">
-            <a-form
-              :label-col="{ span: 8 }"
-              :wrapper-col="{ span: 16 }"
-            >
+            <a-form :label-col="{ span: 8 }" :wrapper-col="{ span: 16 }">
               <a-form-item label="显示/隐藏窗口">
                 <a-input
                   v-model:value="config.shortcuts['show-hide-window']"
@@ -228,43 +198,39 @@
               description="CommandOrControl 在 macOS 上为 Command 键,在 Windows/Linux 上为 Ctrl 键"
               type="info"
               show-icon
-              style="margin-top: 16px;"
+              style="margin-top: 16px"
             />
           </a-card>
         </a-tab-pane>
 
         <!-- 隐私设置 -->
-        <a-tab-pane
-          key="privacy"
-          tab="隐私"
-        >
+        <a-tab-pane key="privacy" tab="隐私">
           <template #tab>
             <EyeInvisibleOutlined />
             隐私
           </template>
           <a-card title="隐私与数据">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="匿名统计">
                 <a-switch v-model:checked="config.privacy.analytics" />
-                <span style="margin-left: 8px;">帮助我们改进产品(不包含个人信息)</span>
+                <span style="margin-left: 8px"
+                  >帮助我们改进产品(不包含个人信息)</span
+                >
               </a-form-item>
 
               <a-form-item label="崩溃报告">
                 <a-switch v-model:checked="config.privacy.crashReports" />
-                <span style="margin-left: 8px;">自动发送崩溃报告</span>
+                <span style="margin-left: 8px">自动发送崩溃报告</span>
               </a-form-item>
 
               <a-form-item label="错误报告">
                 <a-switch v-model:checked="config.privacy.errorReporting" />
-                <span style="margin-left: 8px;">自动发送错误日志</span>
+                <span style="margin-left: 8px">自动发送错误日志</span>
               </a-form-item>
 
               <a-form-item label="剪贴板历史">
                 <a-switch v-model:checked="config.privacy.clipboardHistory" />
-                <span style="margin-left: 8px;">记录剪贴板历史</span>
+                <span style="margin-left: 8px">记录剪贴板历史</span>
               </a-form-item>
             </a-form>
             <a-alert
@@ -272,33 +238,33 @@
               description="我们承诺不会收集您的个人数据和笔记内容。所有统计数据都是匿名的,仅用于改进产品体验。"
               type="success"
               show-icon
-              style="margin-top: 16px;"
+              style="margin-top: 16px"
             />
           </a-card>
         </a-tab-pane>
 
         <!-- 性能设置 -->
-        <a-tab-pane
-          key="performance"
-          tab="性能"
-        >
+        <a-tab-pane key="performance" tab="性能">
           <template #tab>
             <DashboardOutlined />
             性能
           </template>
           <a-card title="性能优化">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="硬件加速">
-                <a-switch v-model:checked="config.performance.hardwareAcceleration" />
-                <span style="margin-left: 8px;">使用 GPU 加速渲染(需重启)</span>
+                <a-switch
+                  v-model:checked="config.performance.hardwareAcceleration"
+                />
+                <span style="margin-left: 8px">使用 GPU 加速渲染(需重启)</span>
               </a-form-item>
 
               <a-form-item label="GPU 光栅化">
-                <a-switch v-model:checked="config.performance.gpuRasterization" />
-                <span style="margin-left: 8px;">使用 GPU 进行光栅化(需重启)</span>
+                <a-switch
+                  v-model:checked="config.performance.gpuRasterization"
+                />
+                <span style="margin-left: 8px"
+                  >使用 GPU 进行光栅化(需重启)</span
+                >
               </a-form-item>
 
               <a-form-item label="最大内存">
@@ -307,7 +273,12 @@
                   :min="256"
                   :max="2048"
                   :step="256"
-                  :marks="{ 256: '256MB', 512: '512MB', 1024: '1GB', 2048: '2GB' }"
+                  :marks="{
+                    256: '256MB',
+                    512: '512MB',
+                    1024: '1GB',
+                    2048: '2GB',
+                  }"
                 />
                 <template #extra>
                   当前设置: {{ config.performance.maxMemory }} MB
@@ -320,7 +291,12 @@
                   :min="50"
                   :max="500"
                   :step="50"
-                  :marks="{ 50: '50MB', 100: '100MB', 250: '250MB', 500: '500MB' }"
+                  :marks="{
+                    50: '50MB',
+                    100: '100MB',
+                    250: '250MB',
+                    500: '500MB',
+                  }"
                 />
                 <template #extra>
                   当前设置: {{ config.performance.cacheSize }} MB
@@ -332,25 +308,19 @@
               description="修改性能设置后需要重启应用才能生效。如果遇到性能问题,可以尝试禁用硬件加速或减少内存限制。"
               type="warning"
               show-icon
-              style="margin-top: 16px;"
+              style="margin-top: 16px"
             />
           </a-card>
         </a-tab-pane>
 
         <!-- 通知设置 -->
-        <a-tab-pane
-          key="notifications"
-          tab="通知"
-        >
+        <a-tab-pane key="notifications" tab="通知">
           <template #tab>
             <BellOutlined />
             通知
           </template>
           <a-card title="通知设置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="启用通知">
                 <a-switch v-model:checked="config.notifications.enabled" />
               </a-form-item>
@@ -362,12 +332,12 @@
 
                 <a-form-item label="角标提示">
                   <a-switch v-model:checked="config.notifications.badge" />
-                  <span style="margin-left: 8px;">在应用图标上显示未读数量</span>
+                  <span style="margin-left: 8px">在应用图标上显示未读数量</span>
                 </a-form-item>
 
                 <a-form-item label="桌面通知">
                   <a-switch v-model:checked="config.notifications.desktop" />
-                  <span style="margin-left: 8px;">显示系统桌面通知</span>
+                  <span style="margin-left: 8px">显示系统桌面通知</span>
                 </a-form-item>
               </template>
             </a-form>
@@ -375,38 +345,34 @@
         </a-tab-pane>
 
         <!-- 高级设置 -->
-        <a-tab-pane
-          key="advanced"
-          tab="高级"
-        >
+        <a-tab-pane key="advanced" tab="高级">
           <template #tab>
             <ToolOutlined />
             高级
           </template>
           <a-card title="高级设置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="开发者工具">
                 <a-switch v-model:checked="config.advanced.devTools" />
-                <span style="margin-left: 8px;">启用开发者工具(F12)</span>
+                <span style="margin-left: 8px">启用开发者工具(F12)</span>
               </a-form-item>
 
               <a-form-item label="实验性功能">
-                <a-switch v-model:checked="config.advanced.experimentalFeatures" />
-                <span style="margin-left: 8px;">启用实验性功能(可能不稳定)</span>
+                <a-switch
+                  v-model:checked="config.advanced.experimentalFeatures"
+                />
+                <span style="margin-left: 8px">启用实验性功能(可能不稳定)</span>
               </a-form-item>
 
               <a-form-item label="调试模式">
                 <a-switch v-model:checked="config.advanced.debugMode" />
-                <span style="margin-left: 8px;">启用详细日志输出</span>
+                <span style="margin-left: 8px">启用详细日志输出</span>
               </a-form-item>
 
               <a-form-item label="日志级别">
                 <a-select
                   v-model:value="config.advanced.logLevel"
-                  style="width: 200px;"
+                  style="width: 200px"
                 >
                   <a-select-option value="error">
                     Error (仅错误)
@@ -431,25 +397,19 @@
               description="高级设置仅供开发者和高级用户使用。不当的设置可能导致应用不稳定或数据丢失。"
               type="error"
               show-icon
-              style="margin-top: 16px;"
+              style="margin-top: 16px"
             />
           </a-card>
         </a-tab-pane>
 
         <!-- 版本设置 -->
-        <a-tab-pane
-          key="edition"
-          tab="版本设置"
-        >
+        <a-tab-pane key="edition" tab="版本设置">
           <template #tab>
             <AppstoreOutlined />
             版本设置
           </template>
           <a-card title="版本信息">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="当前版本">
                 <a-radio-group
                   v-model:value="config.app.edition"
@@ -465,7 +425,9 @@
               </a-form-item>
 
               <!-- 企业版配置（仅在选择企业版时显示） -->
-              <template v-if="config.app && config.app.edition === 'enterprise'">
+              <template
+                v-if="config.app && config.app.edition === 'enterprise'"
+              >
                 <a-divider>企业版配置</a-divider>
                 <a-form-item label="企业服务器地址">
                   <a-input
@@ -497,19 +459,13 @@
         </a-tab-pane>
 
         <!-- 项目配置 -->
-        <a-tab-pane
-          key="project"
-          tab="项目存储"
-        >
+        <a-tab-pane key="project" tab="项目存储">
           <template #tab>
             <FolderOutlined />
             项目存储
           </template>
           <a-card title="项目存储配置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="项目根目录">
                 <a-input
                   v-model:value="config.project.rootPath"
@@ -524,7 +480,7 @@
                       <FolderOpenOutlined />
                       选择目录
                     </a-button>
-                    <span style="color: #999;">修改后需重启应用生效</span>
+                    <span style="color: #999">修改后需重启应用生效</span>
                   </a-space>
                 </template>
               </a-form-item>
@@ -536,26 +492,23 @@
                   :max="10000"
                   :step="100"
                   addon-after="MB"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
               </a-form-item>
 
               <a-form-item label="自动同步">
                 <a-switch v-model:checked="config.project.autoSync" />
-                <span style="margin-left: 8px;">自动同步项目到后端服务器</span>
+                <span style="margin-left: 8px">自动同步项目到后端服务器</span>
               </a-form-item>
 
-              <a-form-item
-                v-if="config.project.autoSync"
-                label="同步间隔"
-              >
+              <a-form-item v-if="config.project.autoSync" label="同步间隔">
                 <a-input-number
                   v-model:value="config.project.syncIntervalSeconds"
                   :min="60"
                   :max="3600"
                   :step="60"
                   addon-after="秒"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
               </a-form-item>
             </a-form>
@@ -563,30 +516,22 @@
         </a-tab-pane>
 
         <!-- LLM 配置 -->
-        <a-tab-pane
-          key="llm"
-          tab="AI 模型"
-        >
+        <a-tab-pane key="llm" tab="AI 模型">
           <template #tab>
             <RobotOutlined />
             AI 模型
           </template>
           <a-card title="LLM 服务配置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="服务提供商">
                 <a-select
                   v-model:value="config.llm.provider"
-                  style="width: 100%;"
+                  style="width: 100%"
                 >
                   <a-select-option value="ollama">
                     Ollama（本地）
                   </a-select-option>
-                  <a-select-option value="openai">
-                    OpenAI
-                  </a-select-option>
+                  <a-select-option value="openai"> OpenAI </a-select-option>
                   <a-select-option value="anthropic">
                     Claude (Anthropic)
                   </a-select-option>
@@ -596,12 +541,8 @@
                   <a-select-option value="dashscope">
                     阿里通义千问
                   </a-select-option>
-                  <a-select-option value="zhipu">
-                    智谱 AI
-                  </a-select-option>
-                  <a-select-option value="deepseek">
-                    DeepSeek
-                  </a-select-option>
+                  <a-select-option value="zhipu"> 智谱 AI </a-select-option>
+                  <a-select-option value="deepseek"> DeepSeek </a-select-option>
                 </a-select>
               </a-form-item>
 
@@ -609,26 +550,19 @@
 
               <a-form-item label="AI 自主选择">
                 <a-switch v-model:checked="config.llm.autoSelect" />
-                <span style="margin-left: 8px;">AI 根据任务特点自动选择最优 LLM</span>
+                <span style="margin-left: 8px"
+                  >AI 根据任务特点自动选择最优 LLM</span
+                >
               </a-form-item>
 
-              <a-form-item
-                v-if="config.llm.autoSelect"
-                label="选择策略"
-              >
+              <a-form-item v-if="config.llm.autoSelect" label="选择策略">
                 <a-select
                   v-model:value="config.llm.selectionStrategy"
-                  style="width: 100%;"
+                  style="width: 100%"
                 >
-                  <a-select-option value="cost">
-                    成本优先
-                  </a-select-option>
-                  <a-select-option value="speed">
-                    速度优先
-                  </a-select-option>
-                  <a-select-option value="quality">
-                    质量优先
-                  </a-select-option>
+                  <a-select-option value="cost"> 成本优先 </a-select-option>
+                  <a-select-option value="speed"> 速度优先 </a-select-option>
+                  <a-select-option value="quality"> 质量优先 </a-select-option>
                   <a-select-option value="balanced">
                     平衡模式（推荐）
                   </a-select-option>
@@ -637,19 +571,23 @@
 
               <a-form-item label="自动切换备用">
                 <a-switch v-model:checked="config.llm.autoFallback" />
-                <span style="margin-left: 8px;">当前 LLM 不可用时自动切换到备用</span>
+                <span style="margin-left: 8px"
+                  >当前 LLM 不可用时自动切换到备用</span
+                >
               </a-form-item>
 
               <a-form-item label="优先级顺序">
                 <a-select
                   v-model:value="config.llm.priority"
                   mode="tags"
-                  style="width: 100%;"
+                  style="width: 100%"
                   placeholder="拖动调整优先级顺序"
                   :options="llmProviderOptions"
                 />
                 <template #extra>
-                  <span style="color: #999;">从左到右依次尝试，第一个可用的 LLM 将被使用</span>
+                  <span style="color: #999"
+                    >从左到右依次尝试，第一个可用的 LLM 将被使用</span
+                  >
                 </template>
               </a-form-item>
 
@@ -676,7 +614,7 @@
                     placeholder="nomic-embed-text"
                   />
                   <template #extra>
-                    <span style="color: #999;">用于生成文本嵌入向量的模型</span>
+                    <span style="color: #999">用于生成文本嵌入向量的模型</span>
                   </template>
                 </a-form-item>
               </template>
@@ -710,7 +648,10 @@
                     placeholder="text-embedding-3-small"
                   />
                   <template #extra>
-                    <span style="color: #999;">推荐: text-embedding-3-small 或 text-embedding-3-large</span>
+                    <span style="color: #999"
+                      >推荐: text-embedding-3-small 或
+                      text-embedding-3-large</span
+                    >
                   </template>
                 </a-form-item>
               </template>
@@ -745,7 +686,9 @@
                     disabled
                   />
                   <template #extra>
-                    <span style="color: #999;">Claude暂无嵌入模型API，建议使用OpenAI或其他服务</span>
+                    <span style="color: #999"
+                      >Claude暂无嵌入模型API，建议使用OpenAI或其他服务</span
+                    >
                   </template>
                 </a-form-item>
               </template>
@@ -756,7 +699,9 @@
               </a-divider>
               <template v-if="config.llm.provider === 'volcengine'">
                 <a-form-item label="API Key">
-                  <a-input-password v-model:value="config.llm.volcengineApiKey" />
+                  <a-input-password
+                    v-model:value="config.llm.volcengineApiKey"
+                  />
                 </a-form-item>
                 <a-form-item label="对话模型">
                   <a-select
@@ -767,7 +712,9 @@
                     :filter-option="filterOption"
                   />
                   <template #extra>
-                    <span style="color: #999;">推荐使用最新版本：doubao-seed-1-6-251015（注意：模型名称使用下划线，不是点）</span>
+                    <span style="color: #999"
+                      >推荐使用最新版本：doubao-seed-1-6-251015（注意：模型名称使用下划线，不是点）</span
+                    >
                   </template>
                 </a-form-item>
                 <a-form-item label="嵌入模型">
@@ -779,7 +726,9 @@
                     :filter-option="filterOption"
                   />
                   <template #extra>
-                    <span style="color: #999;">用于文本向量化，推荐：doubao-embedding-text-240715</span>
+                    <span style="color: #999"
+                      >用于文本向量化，推荐：doubao-embedding-text-240715</span
+                    >
                   </template>
                 </a-form-item>
               </template>
@@ -790,12 +739,14 @@
               </a-divider>
               <template v-if="config.llm.provider === 'dashscope'">
                 <a-form-item label="API Key">
-                  <a-input-password v-model:value="config.llm.dashscopeApiKey" />
+                  <a-input-password
+                    v-model:value="config.llm.dashscopeApiKey"
+                  />
                 </a-form-item>
                 <a-form-item label="对话模型">
                   <a-select
                     v-model:value="config.llm.dashscopeModel"
-                    style="width: 100%;"
+                    style="width: 100%"
                   >
                     <a-select-option value="qwen-turbo">
                       Qwen Turbo（推荐）
@@ -814,7 +765,7 @@
                     placeholder="text-embedding-v2"
                   />
                   <template #extra>
-                    <span style="color: #999;">阿里云灵积提供的嵌入模型</span>
+                    <span style="color: #999">阿里云灵积提供的嵌入模型</span>
                   </template>
                 </a-form-item>
               </template>
@@ -839,7 +790,7 @@
                     placeholder="embedding-2"
                   />
                   <template #extra>
-                    <span style="color: #999;">智谱AI提供的文本嵌入模型</span>
+                    <span style="color: #999">智谱AI提供的文本嵌入模型</span>
                   </template>
                 </a-form-item>
               </template>
@@ -864,7 +815,7 @@
                     placeholder=""
                   />
                   <template #extra>
-                    <span style="color: #999;">DeepSeek嵌入模型（如支持）</span>
+                    <span style="color: #999">DeepSeek嵌入模型（如支持）</span>
                   </template>
                 </a-form-item>
               </template>
@@ -875,10 +826,7 @@
                 label="功能测试"
                 :wrapper-col="{ span: 18, offset: 6 }"
               >
-                <a-space
-                  direction="vertical"
-                  style="width: 100%;"
-                >
+                <a-space direction="vertical" style="width: 100%">
                   <!-- 测试对话功能 -->
                   <div>
                     <a-space>
@@ -908,7 +856,9 @@
                       </a-button>
                       <a-tag
                         v-if="embeddingTestResult"
-                        :color="embeddingTestResult.success ? 'success' : 'error'"
+                        :color="
+                          embeddingTestResult.success ? 'success' : 'error'
+                        "
                       >
                         {{ embeddingTestResult.message }}
                       </a-tag>
@@ -921,19 +871,13 @@
         </a-tab-pane>
 
         <!-- 向量数据库配置 -->
-        <a-tab-pane
-          key="vector"
-          tab="向量数据库"
-        >
+        <a-tab-pane key="vector" tab="向量数据库">
           <template #tab>
             <DatabaseOutlined />
             向量数据库
           </template>
           <a-card title="Qdrant 向量数据库配置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="服务地址">
                 <a-input
                   v-model:value="config.vector.qdrantHost"
@@ -946,7 +890,7 @@
                   v-model:value="config.vector.qdrantPort"
                   :min="1"
                   :max="65535"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
               </a-form-item>
 
@@ -969,7 +913,7 @@
                   v-model:value="config.vector.embeddingDimension"
                   :min="128"
                   :max="2048"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
               </a-form-item>
             </a-form>
@@ -977,19 +921,13 @@
         </a-tab-pane>
 
         <!-- Git 配置 -->
-        <a-tab-pane
-          key="git"
-          tab="Git 同步"
-        >
+        <a-tab-pane key="git" tab="Git 同步">
           <template #tab>
             <GithubOutlined />
             Git 同步
           </template>
           <a-card title="Git 同步配置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="启用 Git 同步">
                 <a-switch v-model:checked="config.git.enabled" />
               </a-form-item>
@@ -997,20 +935,17 @@
               <template v-if="config.git.enabled">
                 <a-form-item label="自动同步">
                   <a-switch v-model:checked="config.git.autoSync" />
-                  <span style="margin-left: 8px;">自动提交和推送</span>
+                  <span style="margin-left: 8px">自动提交和推送</span>
                 </a-form-item>
 
-                <a-form-item
-                  v-if="config.git.autoSync"
-                  label="同步间隔"
-                >
+                <a-form-item v-if="config.git.autoSync" label="同步间隔">
                   <a-input-number
                     v-model:value="config.git.autoSyncInterval"
                     :min="60"
                     :max="3600"
                     :step="60"
                     addon-after="秒"
-                    style="width: 200px;"
+                    style="width: 200px"
                   />
                 </a-form-item>
 
@@ -1040,19 +975,13 @@
         </a-tab-pane>
 
         <!-- 后端服务配置 -->
-        <a-tab-pane
-          key="backend"
-          tab="后端服务"
-        >
+        <a-tab-pane key="backend" tab="后端服务">
           <template #tab>
             <CloudServerOutlined />
             后端服务
           </template>
           <a-card title="后端服务地址配置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="项目服务">
                 <a-input
                   v-model:value="config.backend.projectServiceUrl"
@@ -1071,24 +1000,18 @@
         </a-tab-pane>
 
         <!-- 数据库配置 -->
-        <a-tab-pane
-          key="database"
-          tab="数据库"
-        >
+        <a-tab-pane key="database" tab="数据库">
           <template #tab>
             <DatabaseOutlined />
             数据库
           </template>
           <a-card title="数据库存储位置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="当前路径">
                 <a-input
                   v-model:value="databaseConfig.path"
                   readonly
-                  style="font-family: monospace;"
+                  style="font-family: monospace"
                 />
               </a-form-item>
 
@@ -1097,7 +1020,7 @@
                   :value="databaseConfig.defaultPath"
                   readonly
                   disabled
-                  style="font-family: monospace; font-size: 12px;"
+                  style="font-family: monospace; font-size: 12px"
                 />
               </a-form-item>
 
@@ -1105,21 +1028,21 @@
                 <a-input
                   v-model:value="newDatabasePath"
                   placeholder="选择新的数据库存储位置"
-                  style="font-family: monospace;"
+                  style="font-family: monospace"
                 />
                 <template #extra>
                   <a-space>
-                    <a-button
-                      size="small"
-                      @click="handleSelectDatabasePath"
-                    >
+                    <a-button size="small" @click="handleSelectDatabasePath">
                       <FolderOpenOutlined />
                       选择位置
                     </a-button>
                     <a-button
                       size="small"
                       type="primary"
-                      :disabled="!newDatabasePath || newDatabasePath === databaseConfig.path"
+                      :disabled="
+                        !newDatabasePath ||
+                        newDatabasePath === databaseConfig.path
+                      "
                       :loading="migrating"
                       @click="handleMigrateDatabase"
                     >
@@ -1140,14 +1063,8 @@
             </a-form>
           </a-card>
 
-          <a-card
-            title="数据库备份管理"
-            style="margin-top: 16px;"
-          >
-            <a-space
-              direction="vertical"
-              style="width: 100%;"
-            >
+          <a-card title="数据库备份管理" style="margin-top: 16px">
+            <a-space direction="vertical" style="width: 100%">
               <a-button
                 type="primary"
                 :loading="backing"
@@ -1160,12 +1077,16 @@
               <a-divider />
 
               <div>
-                <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div
+                  style="
+                    margin-bottom: 12px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                  "
+                >
                   <strong>备份列表</strong>
-                  <a-button
-                    size="small"
-                    @click="loadBackupList"
-                  >
+                  <a-button size="small" @click="loadBackupList">
                     <ReloadOutlined />
                     刷新
                   </a-button>
@@ -1213,19 +1134,13 @@
         </a-tab-pane>
 
         <!-- 安全配置 -->
-        <a-tab-pane
-          key="security"
-          tab="安全"
-        >
+        <a-tab-pane key="security" tab="安全">
           <template #tab>
             <LockOutlined />
             安全
           </template>
           <a-card title="数据库加密配置">
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="SQLCipher 密钥">
                 <a-input-password
                   v-model:value="config.database.sqlcipherKey"
@@ -1237,7 +1152,7 @@
                     description="修改加密密钥后，旧数据将无法访问。请谨慎操作！"
                     type="warning"
                     show-icon
-                    style="margin-top: 8px;"
+                    style="margin-top: 8px"
                   />
                 </template>
               </a-form-item>
@@ -1246,24 +1161,15 @@
         </a-tab-pane>
 
         <!-- P2P 网络配置 -->
-        <a-tab-pane
-          key="p2p"
-          tab="P2P 网络"
-        >
+        <a-tab-pane key="p2p" tab="P2P 网络">
           <template #tab>
             <GlobalOutlined />
             P2P 网络
           </template>
 
           <!-- 传输层配置 -->
-          <a-card
-            title="传输层配置"
-            style="margin-bottom: 16px;"
-          >
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+          <a-card title="传输层配置" style="margin-bottom: 16px">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="WebRTC 传输">
                 <a-switch
                   v-model:checked="config.p2p.transports.webrtc.enabled"
@@ -1271,7 +1177,8 @@
                   un-checked-children="禁用"
                 />
                 <template #extra>
-                  <span style="color: #52c41a;">推荐</span> - 适合大多数NAT环境，提供最佳穿透能力
+                  <span style="color: #52c41a">推荐</span> -
+                  适合大多数NAT环境，提供最佳穿透能力
                 </template>
               </a-form-item>
 
@@ -1303,9 +1210,7 @@
                   checked-children="启用"
                   un-checked-children="禁用"
                 />
-                <template #extra>
-                  根据NAT类型自动选择最优传输层
-                </template>
+                <template #extra> 根据NAT类型自动选择最优传输层 </template>
               </a-form-item>
 
               <a-form-item label="WebSocket 端口">
@@ -1313,37 +1218,29 @@
                   v-model:value="config.p2p.websocket.port"
                   :min="1024"
                   :max="65535"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
               </a-form-item>
             </a-form>
           </a-card>
 
           <!-- WebRTC 配置 -->
-          <a-card
-            title="WebRTC 配置"
-            style="margin-bottom: 16px;"
-          >
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+          <a-card title="WebRTC 配置" style="margin-bottom: 16px">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="WebRTC 端口">
                 <a-input-number
                   v-model:value="config.p2p.webrtc.port"
                   :min="1024"
                   :max="65535"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
-                <template #extra>
-                  WebRTC监听端口（UDP）
-                </template>
+                <template #extra> WebRTC监听端口（UDP） </template>
               </a-form-item>
 
               <a-form-item label="ICE 传输策略">
                 <a-select
                   v-model:value="config.p2p.webrtc.iceTransportPolicy"
-                  style="width: 200px;"
+                  style="width: 200px"
                 >
                   <a-select-option value="all">
                     全部（STUN + TURN）
@@ -1376,7 +1273,7 @@
                 description="如果您已经使用Docker启动了本地coturn服务器，点击下方按钮可以自动配置"
                 type="info"
                 show-icon
-                style="margin-bottom: 16px;"
+                style="margin-bottom: 16px"
               >
                 <template #action>
                   <a-button
@@ -1391,10 +1288,7 @@
               </a-alert>
 
               <a-form-item label="STUN 服务器列表">
-                <a-space
-                  direction="vertical"
-                  style="width: 100%;"
-                >
+                <a-space direction="vertical" style="width: 100%">
                   <a-tag
                     v-for="(server, index) in config.p2p.stun.servers"
                     :key="index"
@@ -1407,20 +1301,15 @@
                     <a-input
                       v-model:value="newStunServer"
                       placeholder="stun:stun.example.com:19302"
-                      style="width: calc(100% - 80px);"
+                      style="width: calc(100% - 80px)"
                       @press-enter="handleAddStunServer"
                     />
-                    <a-button
-                      type="primary"
-                      @click="handleAddStunServer"
-                    >
+                    <a-button type="primary" @click="handleAddStunServer">
                       添加
                     </a-button>
                   </a-input-group>
                 </a-space>
-                <template #extra>
-                  STUN服务器用于NAT穿透和公网IP发现
-                </template>
+                <template #extra> STUN服务器用于NAT穿透和公网IP发现 </template>
               </a-form-item>
 
               <a-divider>TURN 服务器</a-divider>
@@ -1440,15 +1329,12 @@
                 v-if="config.p2p.turn.enabled"
                 label="TURN 服务器列表"
               >
-                <a-space
-                  direction="vertical"
-                  style="width: 100%;"
-                >
+                <a-space direction="vertical" style="width: 100%">
                   <a-card
                     v-for="(server, index) in config.p2p.turn.servers"
                     :key="index"
                     size="small"
-                    style="margin-bottom: 8px;"
+                    style="margin-bottom: 8px"
                   >
                     <template #extra>
                       <a-button
@@ -1460,18 +1346,15 @@
                         删除
                       </a-button>
                     </template>
-                    <a-descriptions
-                      :column="1"
-                      size="small"
-                    >
+                    <a-descriptions :column="1" size="small">
                       <a-descriptions-item label="URL">
                         {{ server.urls }}
                       </a-descriptions-item>
                       <a-descriptions-item label="用户名">
-                        {{ server.username || '-' }}
+                        {{ server.username || "-" }}
                       </a-descriptions-item>
                       <a-descriptions-item label="凭证">
-                        {{ server.credential ? '***' : '-' }}
+                        {{ server.credential ? "***" : "-" }}
                       </a-descriptions-item>
                     </a-descriptions>
                   </a-card>
@@ -1484,23 +1367,14 @@
                     + 添加 TURN 服务器
                   </a-button>
                 </a-space>
-                <template #extra>
-                  生产环境建议配置自建TURN服务器
-                </template>
+                <template #extra> 生产环境建议配置自建TURN服务器 </template>
               </a-form-item>
             </a-form>
           </a-card>
 
           <!-- NAT 穿透状态 -->
-          <a-card
-            title="NAT 穿透状态"
-            style="margin-bottom: 16px;"
-          >
-            <a-space
-              direction="vertical"
-              size="middle"
-              style="width: 100%;"
-            >
+          <a-card title="NAT 穿透状态" style="margin-bottom: 16px">
+            <a-space direction="vertical" size="middle" style="width: 100%">
               <a-row :gutter="16">
                 <a-col :span="6">
                   <a-statistic title="NAT 类型">
@@ -1542,10 +1416,7 @@
                 show-icon
               />
 
-              <a-form
-                :label-col="{ span: 6 }"
-                :wrapper-col="{ span: 18 }"
-              >
+              <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
                 <a-form-item label="自动检测 NAT">
                   <a-switch
                     v-model:checked="config.p2p.nat.autoDetect"
@@ -1563,9 +1434,9 @@
                     :min="60000"
                     :max="86400000"
                     :step="60000"
-                    :formatter="value => `${Math.floor(value / 60000)} 分钟`"
-                    :parser="value => parseInt(value) * 60000"
-                    style="width: 200px;"
+                    :formatter="(value) => `${Math.floor(value / 60000)} 分钟`"
+                    :parser="(value) => parseInt(value) * 60000"
+                    style="width: 200px"
                   />
                   <template #extra>
                     定期重新检测NAT类型（网络环境变化时）
@@ -1576,14 +1447,8 @@
           </a-card>
 
           <!-- Circuit Relay 设置 -->
-          <a-card
-            title="Circuit Relay 中继设置"
-            style="margin-bottom: 16px;"
-          >
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+          <a-card title="Circuit Relay 中继设置" style="margin-bottom: 16px">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="启用中继">
                 <a-switch
                   v-model:checked="config.p2p.relay.enabled"
@@ -1602,9 +1467,7 @@
                   :max="5"
                   :marks="{ 1: '1', 2: '2', 3: '3', 4: '4', 5: '5' }"
                 />
-                <template #extra>
-                  同时保持的中继节点预留数量
-                </template>
+                <template #extra> 同时保持的中继节点预留数量 </template>
               </a-form-item>
 
               <a-form-item label="自动升级直连">
@@ -1629,7 +1492,7 @@
                 <a-list
                   v-if="relayInfo.length > 0"
                   :data-source="relayInfo"
-                  style="margin-top: 12px;"
+                  style="margin-top: 12px"
                 >
                   <template #renderItem="{ item }">
                     <a-list-item>
@@ -1642,7 +1505,9 @@
                         </template>
                       </a-list-item-meta>
                       <template #extra>
-                        <a-tag :color="item.status === 'open' ? 'green' : 'orange'">
+                        <a-tag
+                          :color="item.status === 'open' ? 'green' : 'orange'"
+                        >
                           {{ item.status }}
                         </a-tag>
                       </template>
@@ -1652,22 +1517,15 @@
                 <a-empty
                   v-else
                   description="暂无中继连接"
-                  style="margin-top: 12px;"
+                  style="margin-top: 12px"
                 />
               </a-form-item>
             </a-form>
           </a-card>
 
           <!-- WebRTC 连接质量监控 -->
-          <a-card
-            title="WebRTC 连接质量监控"
-            style="margin-bottom: 16px;"
-          >
-            <a-space
-              direction="vertical"
-              size="middle"
-              style="width: 100%;"
-            >
+          <a-card title="WebRTC 连接质量监控" style="margin-bottom: 16px">
+            <a-space direction="vertical" size="middle" style="width: 100%">
               <a-button
                 type="primary"
                 :loading="refreshingWebRTCQuality"
@@ -1678,7 +1536,9 @@
               </a-button>
 
               <a-empty
-                v-if="!webrtcQualityReports || webrtcQualityReports.length === 0"
+                v-if="
+                  !webrtcQualityReports || webrtcQualityReports.length === 0
+                "
                 description="暂无WebRTC连接"
               />
 
@@ -1687,7 +1547,7 @@
                   v-for="report in webrtcQualityReports"
                   :key="report.peerId"
                   size="small"
-                  style="margin-bottom: 12px;"
+                  style="margin-bottom: 12px"
                 >
                   <template #title>
                     <a-space>
@@ -1698,33 +1558,32 @@
                     </a-space>
                   </template>
 
-                  <a-descriptions
-                    :column="2"
-                    size="small"
-                    bordered
-                  >
+                  <a-descriptions :column="2" size="small" bordered>
                     <a-descriptions-item label="丢包率">
-                      <a-tag :color="report.metrics.packetLoss > 5 ? 'red' : 'green'">
+                      <a-tag
+                        :color="report.metrics.packetLoss > 5 ? 'red' : 'green'"
+                      >
                         {{ report.metrics.packetLoss.toFixed(2) }}%
                       </a-tag>
                     </a-descriptions-item>
                     <a-descriptions-item label="延迟 (RTT)">
-                      <a-tag :color="report.metrics.rtt > 300 ? 'red' : 'green'">
+                      <a-tag
+                        :color="report.metrics.rtt > 300 ? 'red' : 'green'"
+                      >
                         {{ report.metrics.rtt }} ms
                       </a-tag>
                     </a-descriptions-item>
                     <a-descriptions-item label="抖动 (Jitter)">
-                      <a-tag :color="report.metrics.jitter > 50 ? 'red' : 'green'">
+                      <a-tag
+                        :color="report.metrics.jitter > 50 ? 'red' : 'green'"
+                      >
                         {{ report.metrics.jitter }} ms
                       </a-tag>
                     </a-descriptions-item>
                     <a-descriptions-item label="带宽">
                       {{ (report.metrics.bandwidth / 1000).toFixed(2) }} kbps
                     </a-descriptions-item>
-                    <a-descriptions-item
-                      label="运行时间"
-                      :span="2"
-                    >
+                    <a-descriptions-item label="运行时间" :span="2">
                       {{ formatUptime(report.uptime) }}
                     </a-descriptions-item>
                   </a-descriptions>
@@ -1733,14 +1592,15 @@
                   <a-alert
                     v-if="report.alerts && report.alerts.length > 0"
                     type="warning"
-                    style="margin-top: 12px;"
+                    style="margin-top: 12px"
                   >
                     <template #message>
-                      <div
-                        v-for="(alert, index) in report.alerts"
-                        :key="index"
-                      >
-                        <a-tag :color="alert.severity === 'critical' ? 'red' : 'orange'">
+                      <div v-for="(alert, index) in report.alerts" :key="index">
+                        <a-tag
+                          :color="
+                            alert.severity === 'critical' ? 'red' : 'orange'
+                          "
+                        >
                           {{ alert.type }}
                         </a-tag>
                         {{ alert.message }}
@@ -1751,16 +1611,10 @@
                   <!-- 优化建议 -->
                   <a-collapse
                     v-if="report.suggestions && report.suggestions.length > 0"
-                    style="margin-top: 12px;"
+                    style="margin-top: 12px"
                   >
-                    <a-collapse-panel
-                      key="1"
-                      header="优化建议"
-                    >
-                      <a-list
-                        size="small"
-                        :data-source="report.suggestions"
-                      >
+                    <a-collapse-panel key="1" header="优化建议">
+                      <a-list size="small" :data-source="report.suggestions">
                         <template #renderItem="{ item }">
                           <a-list-item>
                             <a-list-item-meta>
@@ -1786,11 +1640,7 @@
 
           <!-- 网络诊断 -->
           <a-card title="网络诊断">
-            <a-space
-              direction="vertical"
-              size="middle"
-              style="width: 100%;"
-            >
+            <a-space direction="vertical" size="middle" style="width: 100%">
               <a-button
                 type="primary"
                 :loading="runningDiagnostics"
@@ -1800,11 +1650,7 @@
                 运行完整诊断
               </a-button>
 
-              <a-descriptions
-                v-if="diagnosticResults"
-                bordered
-                :column="3"
-              >
+              <a-descriptions v-if="diagnosticResults" bordered :column="3">
                 <a-descriptions-item label="总传输层">
                   {{ diagnosticResults.summary?.totalTransports || 0 }}
                 </a-descriptions-item>
@@ -1821,14 +1667,16 @@
               <a-table
                 v-if="diagnosticResults?.transports"
                 :columns="diagnosticColumns"
-                :data-source="formatDiagnosticData(diagnosticResults.transports)"
+                :data-source="
+                  formatDiagnosticData(diagnosticResults.transports)
+                "
                 :pagination="false"
                 size="small"
               >
                 <template #bodyCell="{ column, record }">
                   <template v-if="column.key === 'status'">
                     <a-tag :color="record.available ? 'green' : 'red'">
-                      {{ record.available ? '可用' : '不可用' }}
+                      {{ record.available ? "可用" : "不可用" }}
                     </a-tag>
                   </template>
                   <template v-if="column.key === 'addresses'">
@@ -1836,7 +1684,7 @@
                       <div
                         v-for="(addr, i) in record.listenAddresses"
                         :key="i"
-                        style="font-size: 12px;"
+                        style="font-size: 12px"
                       >
                         {{ addr }}
                       </div>
@@ -1844,13 +1692,8 @@
                     <span v-else>-</span>
                   </template>
                   <template v-if="column.key === 'error'">
-                    <a-tooltip
-                      v-if="record.error"
-                      :title="record.error"
-                    >
-                      <a-tag color="red">
-                        有错误
-                      </a-tag>
+                    <a-tooltip v-if="record.error" :title="record.error">
+                      <a-tag color="red"> 有错误 </a-tag>
                     </a-tooltip>
                     <span v-else>-</span>
                   </template>
@@ -1861,28 +1704,19 @@
         </a-tab-pane>
 
         <!-- 语音识别 -->
-        <a-tab-pane
-          key="speech"
-          tab="语音识别"
-        >
+        <a-tab-pane key="speech" tab="语音识别">
           <template #tab>
             <SoundOutlined />
             语音识别
           </template>
 
           <!-- 引擎选择 -->
-          <a-card
-            title="识别引擎"
-            style="margin-bottom: 16px;"
-          >
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+          <a-card title="识别引擎" style="margin-bottom: 16px">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="默认引擎">
                 <a-select
                   v-model:value="config.speech.defaultEngine"
-                  style="width: 300px;"
+                  style="width: 300px"
                 >
                   <a-select-option value="webspeech">
                     Web Speech API（浏览器内置）
@@ -1895,14 +1729,20 @@
                   </a-select-option>
                 </a-select>
                 <template #extra>
-                  <div style="margin-top: 8px;">
+                  <div style="margin-top: 8px">
                     <div v-if="config.speech.defaultEngine === 'webspeech'">
                       ✓ 免费，无需配置，但准确度较低
                     </div>
-                    <div v-else-if="config.speech.defaultEngine === 'whisper-api'">
+                    <div
+                      v-else-if="config.speech.defaultEngine === 'whisper-api'"
+                    >
                       ⚠ 需要OpenAI API密钥，按使用量计费，准确度高
                     </div>
-                    <div v-else-if="config.speech.defaultEngine === 'whisper-local'">
+                    <div
+                      v-else-if="
+                        config.speech.defaultEngine === 'whisper-local'
+                      "
+                    >
                       ✓ 免费，需要本地部署Whisper服务，准确度高
                     </div>
                   </div>
@@ -1915,16 +1755,13 @@
           <a-card
             v-if="config.speech.defaultEngine === 'webspeech'"
             title="Web Speech API 配置"
-            style="margin-bottom: 16px;"
+            style="margin-bottom: 16px"
           >
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="语言">
                 <a-select
                   v-model:value="config.speech.webSpeech.lang"
-                  style="width: 200px;"
+                  style="width: 200px"
                 >
                   <a-select-option value="zh-CN">
                     中文（简体）
@@ -1938,12 +1775,8 @@
                   <a-select-option value="en-GB">
                     英语（英国）
                   </a-select-option>
-                  <a-select-option value="ja-JP">
-                    日语
-                  </a-select-option>
-                  <a-select-option value="ko-KR">
-                    韩语
-                  </a-select-option>
+                  <a-select-option value="ja-JP"> 日语 </a-select-option>
+                  <a-select-option value="ko-KR"> 韩语 </a-select-option>
                 </a-select>
               </a-form-item>
 
@@ -1964,9 +1797,7 @@
                   checked-children="启用"
                   un-checked-children="禁用"
                 />
-                <template #extra>
-                  显示识别过程中的临时结果
-                </template>
+                <template #extra> 显示识别过程中的临时结果 </template>
               </a-form-item>
             </a-form>
           </a-card>
@@ -1975,17 +1806,14 @@
           <a-card
             v-if="config.speech.defaultEngine === 'whisper-api'"
             title="Whisper API 配置"
-            style="margin-bottom: 16px;"
+            style="margin-bottom: 16px"
           >
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="API 密钥">
                 <a-input-password
                   v-model:value="config.speech.whisperAPI.apiKey"
                   placeholder="sk-..."
-                  style="width: 400px;"
+                  style="width: 400px"
                 />
                 <template #extra>
                   OpenAI API密钥，从环境变量OPENAI_API_KEY读取
@@ -1996,17 +1824,15 @@
                 <a-input
                   v-model:value="config.speech.whisperAPI.baseURL"
                   placeholder="https://api.openai.com/v1"
-                  style="width: 400px;"
+                  style="width: 400px"
                 />
-                <template #extra>
-                  可以使用代理或第三方兼容服务
-                </template>
+                <template #extra> 可以使用代理或第三方兼容服务 </template>
               </a-form-item>
 
               <a-form-item label="模型">
                 <a-select
                   v-model:value="config.speech.whisperAPI.model"
-                  style="width: 200px;"
+                  style="width: 200px"
                 >
                   <a-select-option value="whisper-1">
                     whisper-1
@@ -2017,23 +1843,13 @@
               <a-form-item label="语言">
                 <a-select
                   v-model:value="config.speech.whisperAPI.language"
-                  style="width: 200px;"
+                  style="width: 200px"
                 >
-                  <a-select-option value="zh">
-                    中文
-                  </a-select-option>
-                  <a-select-option value="en">
-                    英语
-                  </a-select-option>
-                  <a-select-option value="ja">
-                    日语
-                  </a-select-option>
-                  <a-select-option value="ko">
-                    韩语
-                  </a-select-option>
-                  <a-select-option value="">
-                    自动检测
-                  </a-select-option>
+                  <a-select-option value="zh"> 中文 </a-select-option>
+                  <a-select-option value="en"> 英语 </a-select-option>
+                  <a-select-option value="ja"> 日语 </a-select-option>
+                  <a-select-option value="ko"> 韩语 </a-select-option>
+                  <a-select-option value=""> 自动检测 </a-select-option>
                 </a-select>
                 <template #extra>
                   指定语言可以提高准确度，留空则自动检测
@@ -2046,9 +1862,9 @@
                   :min="10000"
                   :max="300000"
                   :step="10000"
-                  :formatter="value => `${value / 1000} 秒`"
-                  :parser="value => parseInt(value) * 1000"
-                  style="width: 200px;"
+                  :formatter="(value) => `${value / 1000} 秒`"
+                  :parser="(value) => parseInt(value) * 1000"
+                  style="width: 200px"
                 />
               </a-form-item>
             </a-form>
@@ -2058,42 +1874,35 @@
           <a-card
             v-if="config.speech.defaultEngine === 'whisper-local'"
             title="Whisper Local 配置"
-            style="margin-bottom: 16px;"
+            style="margin-bottom: 16px"
           >
             <a-alert
               message="本地Whisper服务"
               description="需要先启动本地Whisper服务: docker-compose up -d whisper-service"
               type="info"
               show-icon
-              style="margin-bottom: 16px;"
+              style="margin-bottom: 16px"
             />
 
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="服务器地址">
                 <a-input
                   v-model:value="config.speech.whisperLocal.serverUrl"
                   placeholder="http://localhost:8002"
-                  style="width: 400px;"
+                  style="width: 400px"
                 />
-                <template #extra>
-                  本地Whisper服务的地址
-                </template>
+                <template #extra> 本地Whisper服务的地址 </template>
               </a-form-item>
 
               <a-form-item label="模型大小">
                 <a-select
                   v-model:value="config.speech.whisperLocal.modelSize"
-                  style="width: 200px;"
+                  style="width: 200px"
                 >
                   <a-select-option value="tiny">
                     Tiny（最快，准确度低）
                   </a-select-option>
-                  <a-select-option value="base">
-                    Base（推荐）
-                  </a-select-option>
+                  <a-select-option value="base"> Base（推荐） </a-select-option>
                   <a-select-option value="small">
                     Small（较慢，准确度高）
                   </a-select-option>
@@ -2104,22 +1913,16 @@
                     Large（最慢，准确度最高）
                   </a-select-option>
                 </a-select>
-                <template #extra>
-                  模型越大，准确度越高，但速度越慢
-                </template>
+                <template #extra> 模型越大，准确度越高，但速度越慢 </template>
               </a-form-item>
 
               <a-form-item label="计算设备">
                 <a-select
                   v-model:value="config.speech.whisperLocal.device"
-                  style="width: 200px;"
+                  style="width: 200px"
                 >
-                  <a-select-option value="auto">
-                    自动选择
-                  </a-select-option>
-                  <a-select-option value="cpu">
-                    CPU
-                  </a-select-option>
+                  <a-select-option value="auto"> 自动选择 </a-select-option>
+                  <a-select-option value="cpu"> CPU </a-select-option>
                   <a-select-option value="cuda">
                     CUDA（NVIDIA GPU）
                   </a-select-option>
@@ -2132,9 +1935,9 @@
                   :min="30000"
                   :max="600000"
                   :step="30000"
-                  :formatter="value => `${value / 1000} 秒`"
-                  :parser="value => parseInt(value) * 1000"
-                  style="width: 200px;"
+                  :formatter="(value) => `${value / 1000} 秒`"
+                  :parser="(value) => parseInt(value) * 1000"
+                  style="width: 200px"
                 />
               </a-form-item>
 
@@ -2147,10 +1950,7 @@
                     <ExperimentOutlined />
                     测试连接
                   </a-button>
-                  <a-tag
-                    v-if="whisperLocalStatus === 'online'"
-                    color="green"
-                  >
+                  <a-tag v-if="whisperLocalStatus === 'online'" color="green">
                     ✓ 在线
                   </a-tag>
                   <a-tag
@@ -2159,39 +1959,26 @@
                   >
                     ✗ 离线
                   </a-tag>
-                  <a-tag
-                    v-else
-                    color="default"
-                  >
-                    未测试
-                  </a-tag>
+                  <a-tag v-else color="default"> 未测试 </a-tag>
                 </a-space>
               </a-form-item>
             </a-form>
           </a-card>
 
           <!-- 音频处理配置 -->
-          <a-card
-            title="音频处理"
-            style="margin-bottom: 16px;"
-          >
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+          <a-card title="音频处理" style="margin-bottom: 16px">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="最大文件大小">
                 <a-input-number
                   v-model:value="config.speech.audio.maxFileSize"
                   :min="1048576"
                   :max="104857600"
                   :step="1048576"
-                  :formatter="value => `${(value / 1048576).toFixed(0)} MB`"
-                  :parser="value => parseInt(value) * 1048576"
-                  style="width: 200px;"
+                  :formatter="(value) => `${(value / 1048576).toFixed(0)} MB`"
+                  :parser="(value) => parseInt(value) * 1048576"
+                  style="width: 200px"
                 />
-                <template #extra>
-                  Whisper API限制为25MB
-                </template>
+                <template #extra> Whisper API限制为25MB </template>
               </a-form-item>
 
               <a-form-item label="最大时长">
@@ -2200,9 +1987,9 @@
                   :min="60"
                   :max="7200"
                   :step="60"
-                  :formatter="value => `${(value / 60).toFixed(0)} 分钟`"
-                  :parser="value => parseInt(value) * 60"
-                  style="width: 200px;"
+                  :formatter="(value) => `${(value / 60).toFixed(0)} 分钟`"
+                  :parser="(value) => parseInt(value) * 60"
+                  style="width: 200px"
                 />
               </a-form-item>
 
@@ -2212,40 +1999,34 @@
                   :min="60"
                   :max="600"
                   :step="60"
-                  :formatter="value => `${(value / 60).toFixed(0)} 分钟`"
-                  :parser="value => parseInt(value) * 60"
-                  style="width: 200px;"
+                  :formatter="(value) => `${(value / 60).toFixed(0)} 分钟`"
+                  :parser="(value) => parseInt(value) * 60"
+                  style="width: 200px"
                 />
-                <template #extra>
-                  超过此时长的音频将自动分段处理
-                </template>
+                <template #extra> 超过此时长的音频将自动分段处理 </template>
               </a-form-item>
             </a-form>
           </a-card>
 
           <!-- 知识库集成 -->
-          <a-card
-            title="知识库集成"
-            style="margin-bottom: 16px;"
-          >
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+          <a-card title="知识库集成" style="margin-bottom: 16px">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="自动保存">
                 <a-switch
-                  v-model:checked="config.speech.knowledgeIntegration.autoSaveToKnowledge"
+                  v-model:checked="
+                    config.speech.knowledgeIntegration.autoSaveToKnowledge
+                  "
                   checked-children="启用"
                   un-checked-children="禁用"
                 />
-                <template #extra>
-                  识别结果自动保存到知识库
-                </template>
+                <template #extra> 识别结果自动保存到知识库 </template>
               </a-form-item>
 
               <a-form-item label="自动索引">
                 <a-switch
-                  v-model:checked="config.speech.knowledgeIntegration.autoAddToIndex"
+                  v-model:checked="
+                    config.speech.knowledgeIntegration.autoAddToIndex
+                  "
                   checked-children="启用"
                   un-checked-children="禁用"
                 />
@@ -2257,17 +2038,11 @@
               <a-form-item label="默认类型">
                 <a-select
                   v-model:value="config.speech.knowledgeIntegration.defaultType"
-                  style="width: 200px;"
+                  style="width: 200px"
                 >
-                  <a-select-option value="note">
-                    笔记
-                  </a-select-option>
-                  <a-select-option value="meeting">
-                    会议记录
-                  </a-select-option>
-                  <a-select-option value="memo">
-                    备忘录
-                  </a-select-option>
+                  <a-select-option value="note"> 笔记 </a-select-option>
+                  <a-select-option value="meeting"> 会议记录 </a-select-option>
+                  <a-select-option value="memo"> 备忘录 </a-select-option>
                   <a-select-option value="transcript">
                     转录文本
                   </a-select-option>
@@ -2277,19 +2052,13 @@
           </a-card>
 
           <!-- 存储配置 -->
-          <a-card
-            title="存储配置"
-            style="margin-bottom: 16px;"
-          >
-            <a-form
-              :label-col="{ span: 6 }"
-              :wrapper-col="{ span: 18 }"
-            >
+          <a-card title="存储配置" style="margin-bottom: 16px">
+            <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
               <a-form-item label="保存路径">
                 <a-input
                   v-model:value="config.speech.storage.savePath"
                   placeholder="音频文件保存路径"
-                  style="width: 400px;"
+                  style="width: 400px"
                 />
                 <template #extra>
                   <a-button
@@ -2316,9 +2085,7 @@
                   checked-children="启用"
                   un-checked-children="禁用"
                 />
-                <template #extra>
-                  自动清理临时文件
-                </template>
+                <template #extra> 自动清理临时文件 </template>
               </a-form-item>
 
               <a-form-item
@@ -2330,7 +2097,7 @@
                   :min="1"
                   :max="365"
                   addon-after="天"
-                  style="width: 200px;"
+                  style="width: 200px"
                 />
               </a-form-item>
             </a-form>
@@ -2351,28 +2118,17 @@
             保存配置
           </a-button>
 
-          <a-button
-            size="large"
-            @click="handleReset"
-          >
+          <a-button size="large" @click="handleReset">
             <ReloadOutlined />
             重置为默认值
           </a-button>
 
-          <a-button
-            size="large"
-            @click="handleExportEnv"
-          >
+          <a-button size="large" @click="handleExportEnv">
             <ExportOutlined />
             导出为 .env 文件
           </a-button>
 
-          <a-button
-            size="large"
-            @click="handleCancel"
-          >
-            取消
-          </a-button>
+          <a-button size="large" @click="handleCancel"> 取消 </a-button>
         </a-space>
       </div>
     </a-spin>
@@ -2384,14 +2140,8 @@
       @ok="handleAddTurnServer"
       @cancel="resetTurnServerForm"
     >
-      <a-form
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-      >
-        <a-form-item
-          label="服务器 URL"
-          required
-        >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+        <a-form-item label="服务器 URL" required>
           <a-input
             v-model:value="newTurnServer.urls"
             placeholder="turn:turn.example.com:3478"
@@ -2415,11 +2165,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message, Modal } from 'ant-design-vue';
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message, Modal } from "ant-design-vue";
 import {
   SettingOutlined,
   AppstoreOutlined,
@@ -2437,13 +2187,13 @@ import {
   ExperimentOutlined,
   ThunderboltOutlined,
   SoundOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const router = useRouter();
 
 const loading = ref(false);
 const saving = ref(false);
-const activeTab = ref('project');
+const activeTab = ref("project");
 
 // LLM 测试连接相关
 const testingConnection = ref(false);
@@ -2455,57 +2205,89 @@ const embeddingTestResult = ref(null);
 
 // LLM 提供商选项
 const llmProviderOptions = [
-  { label: 'Ollama（本地）', value: 'ollama' },
-  { label: 'OpenAI', value: 'openai' },
-  { label: 'Claude (Anthropic)', value: 'anthropic' },
-  { label: '火山引擎（豆包）', value: 'volcengine' },
-  { label: '阿里通义千问', value: 'dashscope' },
-  { label: '智谱 AI', value: 'zhipu' },
-  { label: 'DeepSeek', value: 'deepseek' },
+  { label: "Ollama（本地）", value: "ollama" },
+  { label: "OpenAI", value: "openai" },
+  { label: "Claude (Anthropic)", value: "anthropic" },
+  { label: "火山引擎（豆包）", value: "volcengine" },
+  { label: "阿里通义千问", value: "dashscope" },
+  { label: "智谱 AI", value: "zhipu" },
+  { label: "DeepSeek", value: "deepseek" },
 ];
 
 // 火山引擎（豆包）模型选项 - 2025年1月最新版本
 const volcengineModelOptions = [
   // Doubao Seed 1.6 系列（最新推荐 - 注意使用下划线格式）
-  { label: 'doubao-seed-1-6-251015（推荐 - 最新，支持reasoning_effort）', value: 'doubao-seed-1-6-251015' },
-  { label: 'doubao-seed-1-6-250615（支持thinking控制）', value: 'doubao-seed-1-6-250615' },
+  {
+    label: "doubao-seed-1-6-251015（推荐 - 最新，支持reasoning_effort）",
+    value: "doubao-seed-1-6-251015",
+  },
+  {
+    label: "doubao-seed-1-6-250615（支持thinking控制）",
+    value: "doubao-seed-1-6-250615",
+  },
 
   // Doubao 1.5 系列
-  { label: 'doubao-1-5-pro-32k-250115（高性能32k）', value: 'doubao-1-5-pro-32k-250115' },
-  { label: 'doubao-1-5-lite-250115（轻量版）', value: 'doubao-1-5-lite-250115' },
-  { label: 'doubao-1-5-vision-pro-250115（视觉模型）', value: 'doubao-1-5-vision-pro-250115' },
+  {
+    label: "doubao-1-5-pro-32k-250115（高性能32k）",
+    value: "doubao-1-5-pro-32k-250115",
+  },
+  {
+    label: "doubao-1-5-lite-250115（轻量版）",
+    value: "doubao-1-5-lite-250115",
+  },
+  {
+    label: "doubao-1-5-vision-pro-250115（视觉模型）",
+    value: "doubao-1-5-vision-pro-250115",
+  },
 
   // Doubao Pro 系列
-  { label: 'doubao-pro-32k-241215（高性能32k）', value: 'doubao-pro-32k-241215' },
-  { label: 'doubao-pro-32k-240828', value: 'doubao-pro-32k-240828' },
+  {
+    label: "doubao-pro-32k-241215（高性能32k）",
+    value: "doubao-pro-32k-241215",
+  },
+  { label: "doubao-pro-32k-240828", value: "doubao-pro-32k-240828" },
 
   // 其他版本
-  { label: 'doubao-lite-32k（轻量32k）', value: 'doubao-lite-32k' },
+  { label: "doubao-lite-32k（轻量32k）", value: "doubao-lite-32k" },
 ];
 
 // 火山引擎（豆包）嵌入模型选项
 const volcengineEmbeddingModelOptions = [
-  { label: 'doubao-embedding-text-240715（推荐 - 最新，2560维）', value: 'doubao-embedding-text-240715' },
-  { label: 'doubao-embedding-text-240515（2048维）', value: 'doubao-embedding-text-240515' },
-  { label: 'doubao-embedding-large（大模型）', value: 'doubao-embedding-large' },
-  { label: 'doubao-embedding-vision（视觉嵌入）', value: 'doubao-embedding-vision' },
+  {
+    label: "doubao-embedding-text-240715（推荐 - 最新，2560维）",
+    value: "doubao-embedding-text-240715",
+  },
+  {
+    label: "doubao-embedding-text-240515（2048维）",
+    value: "doubao-embedding-text-240515",
+  },
+  {
+    label: "doubao-embedding-large（大模型）",
+    value: "doubao-embedding-large",
+  },
+  {
+    label: "doubao-embedding-vision（视觉嵌入）",
+    value: "doubao-embedding-vision",
+  },
 ];
 
 // 过滤选项
 const filterOption = (input, option) => {
-  return option.value.toLowerCase().includes(input.toLowerCase()) ||
-         option.label.toLowerCase().includes(input.toLowerCase());
+  return (
+    option.value.toLowerCase().includes(input.toLowerCase()) ||
+    option.label.toLowerCase().includes(input.toLowerCase())
+  );
 };
 
 // 数据库配置
 const databaseConfig = ref({
-  path: '',
-  defaultPath: '',
+  path: "",
+  defaultPath: "",
   exists: false,
   autoBackup: true,
   maxBackups: 7,
 });
-const newDatabasePath = ref('');
+const newDatabasePath = ref("");
 const migrating = ref(false);
 const backing = ref(false);
 const loadingBackups = ref(false);
@@ -2513,16 +2295,16 @@ const backupList = ref([]);
 
 const config = ref({
   app: {
-    edition: 'personal', // personal | enterprise
+    edition: "personal", // personal | enterprise
   },
   enterprise: {
-    serverUrl: '',
-    tenantId: '',
-    apiKey: '',
+    serverUrl: "",
+    tenantId: "",
+    apiKey: "",
   },
   general: {
-    theme: 'light',
-    language: 'zh-CN',
+    theme: "light",
+    language: "zh-CN",
     autoStart: false,
     minimizeToTray: true,
     closeToTray: true,
@@ -2530,7 +2312,7 @@ const config = ref({
   },
   editor: {
     fontSize: 14,
-    fontFamily: 'Consolas, Monaco, monospace',
+    fontFamily: "Consolas, Monaco, monospace",
     lineHeight: 1.5,
     tabSize: 4,
     wordWrap: true,
@@ -2539,10 +2321,10 @@ const config = ref({
     spellCheck: false,
   },
   shortcuts: {
-    'show-hide-window': 'CommandOrControl+Shift+Space',
-    'new-note': 'CommandOrControl+N',
-    'global-search': 'CommandOrControl+K',
-    'screenshot': 'CommandOrControl+Shift+S',
+    "show-hide-window": "CommandOrControl+Shift+Space",
+    "new-note": "CommandOrControl+N",
+    "global-search": "CommandOrControl+K",
+    screenshot: "CommandOrControl+Shift+S",
   },
   privacy: {
     analytics: false,
@@ -2557,63 +2339,63 @@ const config = ref({
     cacheSize: 100,
   },
   project: {
-    rootPath: '',
+    rootPath: "",
     maxSizeMB: 1000,
     allowedFileTypes: [],
     autoSync: true,
     syncIntervalSeconds: 300,
   },
   llm: {
-    provider: 'volcengine',
-    priority: ['volcengine', 'ollama', 'deepseek'],
+    provider: "volcengine",
+    priority: ["volcengine", "ollama", "deepseek"],
     autoFallback: true,
     autoSelect: true,
-    selectionStrategy: 'balanced',
-    ollamaHost: '',
-    ollamaModel: '',
-    ollamaEmbeddingModel: '',
-    openaiApiKey: '',
-    openaiBaseUrl: '',
-    openaiModel: '',
-    openaiEmbeddingModel: '',
-    anthropicApiKey: '',
-    anthropicBaseUrl: '',
-    anthropicModel: '',
-    anthropicEmbeddingModel: '',
-    volcengineApiKey: '',
-    volcengineModel: '',
-    volcengineEmbeddingModel: '',
-    dashscopeApiKey: '',
-    dashscopeModel: '',
-    dashscopeEmbeddingModel: '',
-    zhipuApiKey: '',
-    zhipuModel: '',
-    zhipuEmbeddingModel: '',
-    deepseekApiKey: '',
-    deepseekModel: '',
-    deepseekEmbeddingModel: '',
+    selectionStrategy: "balanced",
+    ollamaHost: "",
+    ollamaModel: "",
+    ollamaEmbeddingModel: "",
+    openaiApiKey: "",
+    openaiBaseUrl: "",
+    openaiModel: "",
+    openaiEmbeddingModel: "",
+    anthropicApiKey: "",
+    anthropicBaseUrl: "",
+    anthropicModel: "",
+    anthropicEmbeddingModel: "",
+    volcengineApiKey: "",
+    volcengineModel: "",
+    volcengineEmbeddingModel: "",
+    dashscopeApiKey: "",
+    dashscopeModel: "",
+    dashscopeEmbeddingModel: "",
+    zhipuApiKey: "",
+    zhipuModel: "",
+    zhipuEmbeddingModel: "",
+    deepseekApiKey: "",
+    deepseekModel: "",
+    deepseekEmbeddingModel: "",
   },
   vector: {
-    qdrantHost: '',
+    qdrantHost: "",
     qdrantPort: 6333,
-    qdrantCollection: '',
-    embeddingModel: '',
+    qdrantCollection: "",
+    embeddingModel: "",
     embeddingDimension: 768,
   },
   git: {
     enabled: false,
     autoSync: false,
     autoSyncInterval: 300,
-    userName: '',
-    userEmail: '',
-    remoteUrl: '',
+    userName: "",
+    userEmail: "",
+    remoteUrl: "",
   },
   backend: {
-    projectServiceUrl: '',
-    aiServiceUrl: '',
+    projectServiceUrl: "",
+    aiServiceUrl: "",
   },
   database: {
-    sqlcipherKey: '',
+    sqlcipherKey: "",
   },
   p2p: {
     transports: {
@@ -2624,9 +2406,9 @@ const config = ref({
     },
     stun: {
       servers: [
-        'stun:stun.l.google.com:19302',
-        'stun:stun1.l.google.com:19302',
-        'stun:stun2.l.google.com:19302'
+        "stun:stun.l.google.com:19302",
+        "stun:stun1.l.google.com:19302",
+        "stun:stun2.l.google.com:19302",
       ],
     },
     turn: {
@@ -2635,7 +2417,7 @@ const config = ref({
     },
     webrtc: {
       port: 9095,
-      iceTransportPolicy: 'all',
+      iceTransportPolicy: "all",
       iceCandidatePoolSize: 10,
     },
     relay: {
@@ -2660,39 +2442,39 @@ const config = ref({
     },
   },
   speech: {
-    defaultEngine: 'whisper-local',
+    defaultEngine: "whisper-local",
     webSpeech: {
-      lang: 'zh-CN',
+      lang: "zh-CN",
       continuous: true,
       interimResults: true,
       maxAlternatives: 1,
     },
     whisperAPI: {
-      apiKey: '',
-      baseURL: 'https://api.openai.com/v1',
-      model: 'whisper-1',
-      language: 'zh',
+      apiKey: "",
+      baseURL: "https://api.openai.com/v1",
+      model: "whisper-1",
+      language: "zh",
       temperature: 0,
-      responseFormat: 'json',
+      responseFormat: "json",
       timeout: 60000,
     },
     whisperLocal: {
-      serverUrl: 'http://localhost:8002',
-      modelSize: 'base',
-      device: 'auto',
+      serverUrl: "http://localhost:8002",
+      modelSize: "base",
+      device: "auto",
       timeout: 120000,
     },
     audio: {
-      targetFormat: 'wav',
+      targetFormat: "wav",
       targetSampleRate: 16000,
       targetChannels: 1,
       maxFileSize: 26214400, // 25MB
       maxDuration: 3600,
       segmentDuration: 300,
-      supportedFormats: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac', 'webm'],
+      supportedFormats: ["mp3", "wav", "m4a", "aac", "ogg", "flac", "webm"],
     },
     storage: {
-      savePath: '',
+      savePath: "",
       keepOriginal: true,
       keepProcessed: false,
       autoCleanup: true,
@@ -2701,7 +2483,7 @@ const config = ref({
     knowledgeIntegration: {
       autoSaveToKnowledge: true,
       autoAddToIndex: true,
-      defaultType: 'note',
+      defaultType: "note",
     },
     performance: {
       maxConcurrentJobs: 2,
@@ -2716,7 +2498,11 @@ const deepMerge = (target, source) => {
   const result = { ...target };
   for (const key in source) {
     if (Object.prototype.hasOwnProperty.call(source, key)) {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      if (
+        source[key] &&
+        typeof source[key] === "object" &&
+        !Array.isArray(source[key])
+      ) {
         result[key] = deepMerge(target[key] || {}, source[key]);
       } else {
         result[key] = source[key];
@@ -2738,8 +2524,8 @@ const loadConfig = async () => {
     const dbConfig = await window.electronAPI.db.getConfig();
     databaseConfig.value = dbConfig;
   } catch (error) {
-    logger.error('加载配置失败:', error);
-    message.error('加载配置失败：' + error.message);
+    logger.error("加载配置失败:", error);
+    message.error("加载配置失败：" + error.message);
   } finally {
     loading.value = false;
   }
@@ -2751,8 +2537,8 @@ const loadBackupList = async () => {
   try {
     backupList.value = await window.electronAPI.db.listBackups();
   } catch (error) {
-    logger.error('加载备份列表失败:', error);
-    message.error('加载备份列表失败：' + error.message);
+    logger.error("加载备份列表失败:", error);
+    message.error("加载备份列表失败：" + error.message);
   } finally {
     loadingBackups.value = false;
   }
@@ -2767,12 +2553,12 @@ const refreshingRelays = ref(false);
 const runningDiagnostics = ref(false);
 
 // STUN/TURN 服务器管理
-const newStunServer = ref('');
+const newStunServer = ref("");
 const showAddTurnServerModal = ref(false);
 const newTurnServer = ref({
-  urls: '',
-  username: '',
-  credential: ''
+  urls: "",
+  username: "",
+  credential: "",
 });
 
 // WebRTC 质量监控
@@ -2781,36 +2567,36 @@ const refreshingWebRTCQuality = ref(false);
 
 // 诊断表格列定义
 const diagnosticColumns = [
-  { title: '传输层', dataIndex: 'transport', key: 'transport' },
-  { title: '状态', dataIndex: 'available', key: 'status' },
-  { title: '监听地址', dataIndex: 'listenAddresses', key: 'addresses' },
-  { title: '错误信息', dataIndex: 'error', key: 'error' },
+  { title: "传输层", dataIndex: "transport", key: "transport" },
+  { title: "状态", dataIndex: "available", key: "status" },
+  { title: "监听地址", dataIndex: "listenAddresses", key: "addresses" },
+  { title: "错误信息", dataIndex: "error", key: "error" },
 ];
 
 // NAT类型名称映射
 const getNATTypeName = (type) => {
   const names = {
-    'none': '无NAT（公网IP）',
-    'full-cone': '完全锥形NAT',
-    'restricted': '受限锥形NAT',
-    'port-restricted': '端口受限NAT',
-    'symmetric': '对称NAT',
-    'unknown': '未知'
+    none: "无NAT（公网IP）",
+    "full-cone": "完全锥形NAT",
+    restricted: "受限锥形NAT",
+    "port-restricted": "端口受限NAT",
+    symmetric: "对称NAT",
+    unknown: "未知",
   };
-  return names[type] || '未检测';
+  return names[type] || "未检测";
 };
 
 // NAT类型颜色映射
 const getNATTypeColor = (type) => {
   const colors = {
-    'none': 'green',
-    'full-cone': 'green',
-    'restricted': 'blue',
-    'port-restricted': 'orange',
-    'symmetric': 'red',
-    'unknown': 'gray'
+    none: "green",
+    "full-cone": "green",
+    restricted: "blue",
+    "port-restricted": "orange",
+    symmetric: "red",
+    unknown: "gray",
   };
-  return colors[type] || 'gray';
+  return colors[type] || "gray";
 };
 
 // 格式化诊断数据
@@ -2828,10 +2614,10 @@ const handleDetectNAT = async () => {
   detectingNAT.value = true;
   try {
     natInfo.value = await window.electronAPI.p2p.detectNAT();
-    message.success('NAT检测完成');
+    message.success("NAT检测完成");
   } catch (error) {
-    logger.error('NAT检测失败:', error);
-    message.error('NAT检测失败：' + error.message);
+    logger.error("NAT检测失败:", error);
+    message.error("NAT检测失败：" + error.message);
   } finally {
     detectingNAT.value = false;
   }
@@ -2842,10 +2628,10 @@ const handleRefreshRelays = async () => {
   refreshingRelays.value = true;
   try {
     relayInfo.value = await window.electronAPI.p2p.getRelayInfo();
-    message.success('中继信息已更新');
+    message.success("中继信息已更新");
   } catch (error) {
-    logger.error('获取中继信息失败:', error);
-    message.error('获取中继信息失败：' + error.message);
+    logger.error("获取中继信息失败:", error);
+    message.error("获取中继信息失败：" + error.message);
   } finally {
     refreshingRelays.value = false;
   }
@@ -2856,10 +2642,10 @@ const handleRunDiagnostics = async () => {
   runningDiagnostics.value = true;
   try {
     diagnosticResults.value = await window.electronAPI.p2p.runDiagnostics();
-    message.success('诊断完成');
+    message.success("诊断完成");
   } catch (error) {
-    logger.error('诊断失败:', error);
-    message.error('诊断失败：' + error.message);
+    logger.error("诊断失败:", error);
+    message.error("诊断失败：" + error.message);
   } finally {
     runningDiagnostics.value = false;
   }
@@ -2868,42 +2654,45 @@ const handleRunDiagnostics = async () => {
 // STUN 服务器管理
 const handleAddStunServer = () => {
   if (!newStunServer.value) {
-    message.warning('请输入STUN服务器地址');
+    message.warning("请输入STUN服务器地址");
     return;
   }
 
   // 验证格式
-  if (!newStunServer.value.startsWith('stun:')) {
-    message.error('STUN服务器地址格式错误，应以 stun: 开头');
+  if (!newStunServer.value.startsWith("stun:")) {
+    message.error("STUN服务器地址格式错误，应以 stun: 开头");
     return;
   }
 
   // 检查是否已存在
   if (config.value.p2p.stun.servers.includes(newStunServer.value)) {
-    message.warning('该STUN服务器已存在');
+    message.warning("该STUN服务器已存在");
     return;
   }
 
   config.value.p2p.stun.servers.push(newStunServer.value);
-  newStunServer.value = '';
-  message.success('STUN服务器已添加');
+  newStunServer.value = "";
+  message.success("STUN服务器已添加");
 };
 
 const handleRemoveStunServer = (index) => {
   config.value.p2p.stun.servers.splice(index, 1);
-  message.success('STUN服务器已删除');
+  message.success("STUN服务器已删除");
 };
 
 // TURN 服务器管理
 const handleAddTurnServer = () => {
   if (!newTurnServer.value.urls) {
-    message.warning('请输入TURN服务器地址');
+    message.warning("请输入TURN服务器地址");
     return;
   }
 
   // 验证格式
-  if (!newTurnServer.value.urls.startsWith('turn:') && !newTurnServer.value.urls.startsWith('turns:')) {
-    message.error('TURN服务器地址格式错误，应以 turn: 或 turns: 开头');
+  if (
+    !newTurnServer.value.urls.startsWith("turn:") &&
+    !newTurnServer.value.urls.startsWith("turns:")
+  ) {
+    message.error("TURN服务器地址格式错误，应以 turn: 或 turns: 开头");
     return;
   }
 
@@ -2911,32 +2700,32 @@ const handleAddTurnServer = () => {
   config.value.p2p.turn.servers.push({
     urls: newTurnServer.value.urls,
     username: newTurnServer.value.username || undefined,
-    credential: newTurnServer.value.credential || undefined
+    credential: newTurnServer.value.credential || undefined,
   });
 
   // 重置表单
   resetTurnServerForm();
   showAddTurnServerModal.value = false;
-  message.success('TURN服务器已添加');
+  message.success("TURN服务器已添加");
 };
 
 const handleRemoveTurnServer = (index) => {
   config.value.p2p.turn.servers.splice(index, 1);
-  message.success('TURN服务器已删除');
+  message.success("TURN服务器已删除");
 };
 
 const resetTurnServerForm = () => {
   newTurnServer.value = {
-    urls: '',
-    username: '',
-    credential: ''
+    urls: "",
+    username: "",
+    credential: "",
   };
 };
 
 // 快速配置本地coturn服务器
 const handleQuickSetupLocalCoturn = () => {
   // 添加本地STUN服务器（如果不存在）
-  const localStunServer = 'stun:localhost:3478';
+  const localStunServer = "stun:localhost:3478";
   if (!config.value.p2p.stun.servers.includes(localStunServer)) {
     config.value.p2p.stun.servers.unshift(localStunServer);
   }
@@ -2946,20 +2735,20 @@ const handleQuickSetupLocalCoturn = () => {
 
   // 添加本地TURN服务器（如果不存在）
   const localTurnServer = {
-    urls: 'turn:localhost:3478',
-    username: 'chainlesschain',
-    credential: 'chainlesschain2024'
+    urls: "turn:localhost:3478",
+    username: "chainlesschain",
+    credential: "chainlesschain2024",
   };
 
   const exists = config.value.p2p.turn.servers.some(
-    server => server.urls === localTurnServer.urls
+    (server) => server.urls === localTurnServer.urls,
   );
 
   if (!exists) {
     config.value.p2p.turn.servers.unshift(localTurnServer);
   }
 
-  message.success('本地coturn服务器配置已完成！请确保Docker容器正在运行。');
+  message.success("本地coturn服务器配置已完成！请确保Docker容器正在运行。");
 };
 
 // WebRTC 质量监控
@@ -2973,21 +2762,24 @@ const handleRefreshWebRTCQuality = async () => {
       // 为每个报告获取优化建议
       webrtcQualityReports.value = await Promise.all(
         reports.map(async (report) => {
-          const suggestions = await window.electronAPI.p2p.getWebRTCOptimizationSuggestions(report.peerId);
+          const suggestions =
+            await window.electronAPI.p2p.getWebRTCOptimizationSuggestions(
+              report.peerId,
+            );
           return {
             ...report,
-            suggestions
+            suggestions,
           };
-        })
+        }),
       );
     } else {
       webrtcQualityReports.value = [];
     }
 
-    message.success('WebRTC质量报告已更新');
+    message.success("WebRTC质量报告已更新");
   } catch (error) {
-    logger.error('获取WebRTC质量报告失败:', error);
-    message.error('获取WebRTC质量报告失败：' + error.message);
+    logger.error("获取WebRTC质量报告失败:", error);
+    message.error("获取WebRTC质量报告失败：" + error.message);
   } finally {
     refreshingWebRTCQuality.value = false;
   }
@@ -2996,23 +2788,23 @@ const handleRefreshWebRTCQuality = async () => {
 // 质量等级颜色映射
 const getQualityColor = (quality) => {
   const colorMap = {
-    'excellent': 'green',
-    'good': 'blue',
-    'fair': 'orange',
-    'poor': 'red',
-    'critical': 'red'
+    excellent: "green",
+    good: "blue",
+    fair: "orange",
+    poor: "red",
+    critical: "red",
   };
-  return colorMap[quality] || 'default';
+  return colorMap[quality] || "default";
 };
 
 // 质量等级标签映射
 const getQualityLabel = (quality) => {
   const labelMap = {
-    'excellent': '优秀',
-    'good': '良好',
-    'fair': '一般',
-    'poor': '较差',
-    'critical': '严重'
+    excellent: "优秀",
+    good: "良好",
+    fair: "一般",
+    poor: "较差",
+    critical: "严重",
   };
   return labelMap[quality] || quality;
 };
@@ -3020,11 +2812,11 @@ const getQualityLabel = (quality) => {
 // 优先级颜色映射
 const getPriorityColor = (priority) => {
   const colorMap = {
-    'high': 'red',
-    'medium': 'orange',
-    'low': 'blue'
+    high: "red",
+    medium: "orange",
+    low: "blue",
   };
-  return colorMap[priority] || 'default';
+  return colorMap[priority] || "default";
 };
 
 // 格式化运行时间
@@ -3050,23 +2842,23 @@ const testLLMConnection = async () => {
   try {
     // 验证必填字段
     const provider = config.value.llm.provider;
-    if (provider === 'openai' && !config.value.llm.openaiApiKey) {
-      throw new Error('请先输入 OpenAI API Key');
+    if (provider === "openai" && !config.value.llm.openaiApiKey) {
+      throw new Error("请先输入 OpenAI API Key");
     }
-    if (provider === 'anthropic' && !config.value.llm.anthropicApiKey) {
-      throw new Error('请先输入 Claude API Key');
+    if (provider === "anthropic" && !config.value.llm.anthropicApiKey) {
+      throw new Error("请先输入 Claude API Key");
     }
-    if (provider === 'volcengine' && !config.value.llm.volcengineApiKey) {
-      throw new Error('请先输入火山引擎 API Key');
+    if (provider === "volcengine" && !config.value.llm.volcengineApiKey) {
+      throw new Error("请先输入火山引擎 API Key");
     }
-    if (provider === 'deepseek' && !config.value.llm.deepseekApiKey) {
-      throw new Error('请先输入 DeepSeek API Key');
+    if (provider === "deepseek" && !config.value.llm.deepseekApiKey) {
+      throw new Error("请先输入 DeepSeek API Key");
     }
-    if (provider === 'dashscope' && !config.value.llm.dashscopeApiKey) {
-      throw new Error('请先输入阿里通义千问 API Key');
+    if (provider === "dashscope" && !config.value.llm.dashscopeApiKey) {
+      throw new Error("请先输入阿里通义千问 API Key");
     }
-    if (provider === 'zhipu' && !config.value.llm.zhipuApiKey) {
-      throw new Error('请先输入智谱 AI API Key');
+    if (provider === "zhipu" && !config.value.llm.zhipuApiKey) {
+      throw new Error("请先输入智谱 AI API Key");
     }
 
     // 构建LLM配置对象
@@ -3080,51 +2872,54 @@ const testLLMConnection = async () => {
 
     // 根据提供商添加特定配置
     switch (provider) {
-      case 'ollama':
+      case "ollama":
         llmConfig.ollama = {
-          url: config.value.llm.ollamaHost || 'http://localhost:11434',
-          model: config.value.llm.ollamaModel || 'llama2',
+          url: config.value.llm.ollamaHost || "http://localhost:11434",
+          model: config.value.llm.ollamaModel || "llama2",
         };
         break;
-      case 'openai':
+      case "openai":
         llmConfig.openai = {
           apiKey: config.value.llm.openaiApiKey,
-          baseURL: config.value.llm.openaiBaseUrl || 'https://api.openai.com/v1',
-          model: config.value.llm.openaiModel || 'gpt-3.5-turbo',
+          baseURL:
+            config.value.llm.openaiBaseUrl || "https://api.openai.com/v1",
+          model: config.value.llm.openaiModel || "gpt-3.5-turbo",
         };
         break;
-      case 'anthropic':
+      case "anthropic":
         llmConfig.anthropic = {
           apiKey: config.value.llm.anthropicApiKey,
-          baseURL: config.value.llm.anthropicBaseUrl || 'https://api.anthropic.com',
-          model: config.value.llm.anthropicModel || 'claude-3-5-sonnet-20241022',
-          version: '2023-06-01',
+          baseURL:
+            config.value.llm.anthropicBaseUrl || "https://api.anthropic.com",
+          model:
+            config.value.llm.anthropicModel || "claude-3-5-sonnet-20241022",
+          version: "2023-06-01",
         };
         break;
-      case 'volcengine':
+      case "volcengine":
         llmConfig.volcengine = {
           apiKey: config.value.llm.volcengineApiKey,
-          baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-          model: config.value.llm.volcengineModel || 'doubao-pro-4k',
+          baseURL: "https://ark.cn-beijing.volces.com/api/v3",
+          model: config.value.llm.volcengineModel || "doubao-pro-4k",
         };
         break;
-      case 'deepseek':
+      case "deepseek":
         llmConfig.deepseek = {
           apiKey: config.value.llm.deepseekApiKey,
-          baseURL: 'https://api.deepseek.com/v1',
-          model: config.value.llm.deepseekModel || 'deepseek-chat',
+          baseURL: "https://api.deepseek.com/v1",
+          model: config.value.llm.deepseekModel || "deepseek-chat",
         };
         break;
-      case 'dashscope':
+      case "dashscope":
         llmConfig.dashscope = {
           apiKey: config.value.llm.dashscopeApiKey,
-          model: config.value.llm.dashscopeModel || 'qwen-turbo',
+          model: config.value.llm.dashscopeModel || "qwen-turbo",
         };
         break;
-      case 'zhipu':
+      case "zhipu":
         llmConfig.zhipu = {
           apiKey: config.value.llm.zhipuApiKey,
-          model: config.value.llm.zhipuModel || 'glm-4',
+          model: config.value.llm.zhipuModel || "glm-4",
         };
         break;
     }
@@ -3138,23 +2933,23 @@ const testLLMConnection = async () => {
     if (result.available) {
       llmTestResult.value = {
         success: true,
-        message: '连接成功！服务正常运行',
+        message: "连接成功！服务正常运行",
       };
-      message.success('LLM 服务连接成功');
+      message.success("LLM 服务连接成功");
     } else {
       llmTestResult.value = {
         success: false,
-        message: '连接失败: ' + (result.error || '未知错误'),
+        message: "连接失败: " + (result.error || "未知错误"),
       };
-      message.error('LLM 服务连接失败');
+      message.error("LLM 服务连接失败");
     }
   } catch (error) {
-    logger.error('测试LLM连接失败:', error);
+    logger.error("测试LLM连接失败:", error);
     llmTestResult.value = {
       success: false,
-      message: '测试失败: ' + error.message,
+      message: "测试失败: " + error.message,
     };
-    message.error('测试失败：' + error.message);
+    message.error("测试失败：" + error.message);
   } finally {
     testingConnection.value = false;
   }
@@ -3168,20 +2963,20 @@ const testEmbedding = async () => {
   try {
     // 验证必填字段
     const provider = config.value.llm.provider;
-    if (provider === 'openai' && !config.value.llm.openaiApiKey) {
-      throw new Error('请先输入 OpenAI API Key');
+    if (provider === "openai" && !config.value.llm.openaiApiKey) {
+      throw new Error("请先输入 OpenAI API Key");
     }
-    if (provider === 'volcengine' && !config.value.llm.volcengineApiKey) {
-      throw new Error('请先输入火山引擎 API Key');
+    if (provider === "volcengine" && !config.value.llm.volcengineApiKey) {
+      throw new Error("请先输入火山引擎 API Key");
     }
-    if (provider === 'deepseek' && !config.value.llm.deepseekApiKey) {
-      throw new Error('请先输入 DeepSeek API Key');
+    if (provider === "deepseek" && !config.value.llm.deepseekApiKey) {
+      throw new Error("请先输入 DeepSeek API Key");
     }
-    if (provider === 'dashscope' && !config.value.llm.dashscopeApiKey) {
-      throw new Error('请先输入阿里通义千问 API Key');
+    if (provider === "dashscope" && !config.value.llm.dashscopeApiKey) {
+      throw new Error("请先输入阿里通义千问 API Key");
     }
-    if (provider === 'zhipu' && !config.value.llm.zhipuApiKey) {
-      throw new Error('请先输入智谱 AI API Key');
+    if (provider === "zhipu" && !config.value.llm.zhipuApiKey) {
+      throw new Error("请先输入智谱 AI API Key");
     }
 
     // 构建LLM配置对象（包含嵌入模型）
@@ -3194,49 +2989,54 @@ const testEmbedding = async () => {
 
     // 根据提供商添加特定配置
     switch (provider) {
-      case 'ollama':
+      case "ollama":
         llmConfig.ollama = {
-          url: config.value.llm.ollamaHost || 'http://localhost:11434',
-          model: config.value.llm.ollamaModel || 'llama2',
-          embeddingModel: config.value.llm.ollamaEmbeddingModel || 'nomic-embed-text',
+          url: config.value.llm.ollamaHost || "http://localhost:11434",
+          model: config.value.llm.ollamaModel || "llama2",
+          embeddingModel:
+            config.value.llm.ollamaEmbeddingModel || "nomic-embed-text",
         };
         break;
-      case 'openai':
+      case "openai":
         llmConfig.openai = {
           apiKey: config.value.llm.openaiApiKey,
-          baseURL: config.value.llm.openaiBaseUrl || 'https://api.openai.com/v1',
-          model: config.value.llm.openaiModel || 'gpt-3.5-turbo',
-          embeddingModel: config.value.llm.openaiEmbeddingModel || 'text-embedding-3-small',
+          baseURL:
+            config.value.llm.openaiBaseUrl || "https://api.openai.com/v1",
+          model: config.value.llm.openaiModel || "gpt-3.5-turbo",
+          embeddingModel:
+            config.value.llm.openaiEmbeddingModel || "text-embedding-3-small",
         };
         break;
-      case 'volcengine':
+      case "volcengine":
         llmConfig.volcengine = {
           apiKey: config.value.llm.volcengineApiKey,
-          baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-          model: config.value.llm.volcengineModel || 'doubao-pro-4k',
-          embeddingModel: config.value.llm.volcengineEmbeddingModel || 'doubao-embedding',
+          baseURL: "https://ark.cn-beijing.volces.com/api/v3",
+          model: config.value.llm.volcengineModel || "doubao-pro-4k",
+          embeddingModel:
+            config.value.llm.volcengineEmbeddingModel || "doubao-embedding",
         };
         break;
-      case 'deepseek':
+      case "deepseek":
         llmConfig.deepseek = {
           apiKey: config.value.llm.deepseekApiKey,
-          baseURL: 'https://api.deepseek.com/v1',
-          model: config.value.llm.deepseekModel || 'deepseek-chat',
-          embeddingModel: config.value.llm.deepseekEmbeddingModel || '',
+          baseURL: "https://api.deepseek.com/v1",
+          model: config.value.llm.deepseekModel || "deepseek-chat",
+          embeddingModel: config.value.llm.deepseekEmbeddingModel || "",
         };
         break;
-      case 'dashscope':
+      case "dashscope":
         llmConfig.dashscope = {
           apiKey: config.value.llm.dashscopeApiKey,
-          model: config.value.llm.dashscopeModel || 'qwen-turbo',
-          embeddingModel: config.value.llm.dashscopeEmbeddingModel || 'text-embedding-v2',
+          model: config.value.llm.dashscopeModel || "qwen-turbo",
+          embeddingModel:
+            config.value.llm.dashscopeEmbeddingModel || "text-embedding-v2",
         };
         break;
-      case 'zhipu':
+      case "zhipu":
         llmConfig.zhipu = {
           apiKey: config.value.llm.zhipuApiKey,
-          model: config.value.llm.zhipuModel || 'glm-4',
-          embeddingModel: config.value.llm.zhipuEmbeddingModel || 'embedding-2',
+          model: config.value.llm.zhipuModel || "glm-4",
+          embeddingModel: config.value.llm.zhipuEmbeddingModel || "embedding-2",
         };
         break;
       default:
@@ -3247,7 +3047,7 @@ const testEmbedding = async () => {
     await window.electronAPI.llm.setConfig(llmConfig);
 
     // 测试嵌入功能
-    const testText = '这是一段用于测试嵌入模型的中文文本。';
+    const testText = "这是一段用于测试嵌入模型的中文文本。";
     const result = await window.electronAPI.llm.embeddings(testText);
 
     if (result && Array.isArray(result) && result.length > 0) {
@@ -3259,17 +3059,17 @@ const testEmbedding = async () => {
     } else {
       embeddingTestResult.value = {
         success: false,
-        message: '嵌入生成失败: 返回结果为空',
+        message: "嵌入生成失败: 返回结果为空",
       };
-      message.error('嵌入模型测试失败');
+      message.error("嵌入模型测试失败");
     }
   } catch (error) {
-    logger.error('测试嵌入模型失败:', error);
+    logger.error("测试嵌入模型失败:", error);
     embeddingTestResult.value = {
       success: false,
-      message: '测试失败: ' + error.message,
+      message: "测试失败: " + error.message,
     };
-    message.error('测试失败：' + error.message);
+    message.error("测试失败：" + error.message);
   } finally {
     testingEmbedding.value = false;
   }
@@ -3282,10 +3082,10 @@ const handleSave = async () => {
     // 深拷贝并清理配置对象，确保可序列化
     const cleanConfig = JSON.parse(JSON.stringify(config.value));
     await window.electronAPI.config.update(cleanConfig);
-    message.success('配置已保存，部分修改需要重启应用生效');
+    message.success("配置已保存，部分修改需要重启应用生效");
   } catch (error) {
-    logger.error('保存配置失败:', error);
-    message.error('保存配置失败：' + error.message);
+    logger.error("保存配置失败:", error);
+    message.error("保存配置失败：" + error.message);
   } finally {
     saving.value = false;
   }
@@ -3294,19 +3094,19 @@ const handleSave = async () => {
 // 重置配置
 const handleReset = () => {
   Modal.confirm({
-    title: '确认重置',
-    content: '确定要将所有配置重置为默认值吗？此操作不可撤销！',
-    okText: '重置',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认重置",
+    content: "确定要将所有配置重置为默认值吗？此操作不可撤销！",
+    okText: "重置",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         await window.electronAPI.config.reset();
         await loadConfig();
-        message.success('配置已重置为默认值');
+        message.success("配置已重置为默认值");
       } catch (error) {
-        logger.error('重置配置失败:', error);
-        message.error('重置配置失败：' + error.message);
+        logger.error("重置配置失败:", error);
+        message.error("重置配置失败：" + error.message);
       }
     },
   });
@@ -3317,21 +3117,21 @@ const handleExportEnv = async () => {
   try {
     // 使用 showSaveDialog 让用户选择保存位置
     const result = await window.electronAPI.dialog.showSaveDialog({
-      title: '导出配置为 .env 文件',
-      defaultPath: '.env',
+      title: "导出配置为 .env 文件",
+      defaultPath: ".env",
       filters: [
-        { name: '环境变量文件', extensions: ['env'] },
-        { name: '所有文件', extensions: ['*'] }
-      ]
+        { name: "环境变量文件", extensions: ["env"] },
+        { name: "所有文件", extensions: ["*"] },
+      ],
     });
 
     if (result && !result.canceled && result.filePath) {
       await window.electronAPI.config.exportEnv(result.filePath);
-      message.success('配置已导出到：' + result.filePath);
+      message.success("配置已导出到：" + result.filePath);
     }
   } catch (error) {
-    logger.error('导出配置失败:', error);
-    message.error('导出配置失败：' + error.message);
+    logger.error("导出配置失败:", error);
+    message.error("导出配置失败：" + error.message);
   }
 };
 
@@ -3339,28 +3139,30 @@ const handleExportEnv = async () => {
 const handleSelectFolder = async (configPath) => {
   try {
     // 获取当前配置值作为默认路径
-    const currentValue = configPath.split('.').reduce((obj, key) => obj?.[key], config.value);
+    const currentValue = configPath
+      .split(".")
+      .reduce((obj, key) => obj?.[key], config.value);
 
     const selectedPath = await window.electronAPI.dialog.selectFolder({
-      title: '选择文件夹',
+      title: "选择文件夹",
       defaultPath: currentValue || undefined,
-      buttonLabel: '选择'
+      buttonLabel: "选择",
     });
 
     if (selectedPath) {
       // 更新配置对象
-      const keys = configPath.split('.');
+      const keys = configPath.split(".");
       let obj = config.value;
       for (let i = 0; i < keys.length - 1; i++) {
         obj = obj[keys[i]];
       }
       obj[keys[keys.length - 1]] = selectedPath;
 
-      message.success('文件夹已选择：' + selectedPath);
+      message.success("文件夹已选择：" + selectedPath);
     }
   } catch (error) {
-    logger.error('选择文件夹失败:', error);
-    message.error('选择文件夹失败：' + error.message);
+    logger.error("选择文件夹失败:", error);
+    message.error("选择文件夹失败：" + error.message);
   }
 };
 
@@ -3373,54 +3175,59 @@ const handleCancel = () => {
 const handleSelectDatabasePath = async () => {
   try {
     // 获取当前数据库目录作为默认路径
-    const currentPath = databaseConfig.value.path || '';
-    const lastSlash = Math.max(currentPath.lastIndexOf('/'), currentPath.lastIndexOf('\\'));
-    const defaultDir = lastSlash > 0 ? currentPath.substring(0, lastSlash) : '';
+    const currentPath = databaseConfig.value.path || "";
+    const lastSlash = Math.max(
+      currentPath.lastIndexOf("/"),
+      currentPath.lastIndexOf("\\"),
+    );
+    const defaultDir = lastSlash > 0 ? currentPath.substring(0, lastSlash) : "";
 
     const selectedPath = await window.electronAPI.dialog.selectFolder({
-      title: '选择数据库存储位置',
+      title: "选择数据库存储位置",
       defaultPath: defaultDir,
-      buttonLabel: '选择'
+      buttonLabel: "选择",
     });
 
     if (selectedPath) {
       // 构造完整的数据库文件路径（处理路径分隔符）
-      const separator = selectedPath.includes('\\') ? '\\' : '/';
-      newDatabasePath.value = selectedPath + separator + 'chainlesschain.db';
-      message.success('已选择新位置：' + newDatabasePath.value);
+      const separator = selectedPath.includes("\\") ? "\\" : "/";
+      newDatabasePath.value = selectedPath + separator + "chainlesschain.db";
+      message.success("已选择新位置：" + newDatabasePath.value);
     }
   } catch (error) {
-    logger.error('选择数据库路径失败:', error);
-    message.error('选择数据库路径失败：' + error.message);
+    logger.error("选择数据库路径失败:", error);
+    message.error("选择数据库路径失败：" + error.message);
   }
 };
 
 // 迁移数据库
 const handleMigrateDatabase = async () => {
   if (!newDatabasePath.value) {
-    message.warning('请先选择新的数据库位置');
+    message.warning("请先选择新的数据库位置");
     return;
   }
 
   Modal.confirm({
-    title: '确认迁移数据库',
+    title: "确认迁移数据库",
     content: `确定要将数据库迁移到新位置吗？\n新位置：${newDatabasePath.value}\n\n迁移完成后将自动重启应用。`,
-    okText: '迁移',
-    cancelText: '取消',
+    okText: "迁移",
+    cancelText: "取消",
     async onOk() {
       migrating.value = true;
       try {
-        const result = await window.electronAPI.db.migrate(newDatabasePath.value);
+        const result = await window.electronAPI.db.migrate(
+          newDatabasePath.value,
+        );
 
-        message.success('数据库迁移成功！应用即将重启...');
+        message.success("数据库迁移成功！应用即将重启...");
 
         // 等待2秒后重启应用
         setTimeout(async () => {
           await window.electronAPI.app.restart();
         }, 2000);
       } catch (error) {
-        logger.error('迁移数据库失败:', error);
-        message.error('迁移数据库失败：' + error.message);
+        logger.error("迁移数据库失败:", error);
+        message.error("迁移数据库失败：" + error.message);
         migrating.value = false;
       }
     },
@@ -3432,13 +3239,13 @@ const handleCreateBackup = async () => {
   backing.value = true;
   try {
     const backupPath = await window.electronAPI.db.createBackup();
-    message.success('备份创建成功：' + backupPath);
+    message.success("备份创建成功：" + backupPath);
 
     // 刷新备份列表
     await loadBackupList();
   } catch (error) {
-    logger.error('创建备份失败:', error);
-    message.error('创建备份失败：' + error.message);
+    logger.error("创建备份失败:", error);
+    message.error("创建备份失败：" + error.message);
   } finally {
     backing.value = false;
   }
@@ -3447,23 +3254,23 @@ const handleCreateBackup = async () => {
 // 恢复备份
 const handleRestoreBackup = (backupPath) => {
   Modal.confirm({
-    title: '确认恢复备份',
+    title: "确认恢复备份",
     content: `确定要从此备份恢复数据库吗？\n备份文件：${backupPath}\n\n当前数据将被覆盖，恢复后需要重启应用。`,
-    okText: '恢复',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "恢复",
+    okType: "danger",
+    cancelText: "取消",
     async onOk() {
       try {
         await window.electronAPI.db.restoreBackup(backupPath);
-        message.success('备份恢复成功！应用即将重启...');
+        message.success("备份恢复成功！应用即将重启...");
 
         // 等待2秒后重启应用
         setTimeout(async () => {
           await window.electronAPI.app.restart();
         }, 2000);
       } catch (error) {
-        logger.error('恢复备份失败:', error);
-        message.error('恢复备份失败：' + error.message);
+        logger.error("恢复备份失败:", error);
+        message.error("恢复备份失败：" + error.message);
       }
     },
   });
@@ -3471,17 +3278,19 @@ const handleRestoreBackup = (backupPath) => {
 
 // 格式化文件大小
 const formatFileSize = (bytes) => {
-  if (bytes === 0) {return '0 B';}
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };
 
 // 格式化日期
 const formatDate = (date) => {
   const d = new Date(date);
-  return d.toLocaleString('zh-CN');
+  return d.toLocaleString("zh-CN");
 };
 
 // 语音识别相关
@@ -3496,26 +3305,26 @@ const handleTestWhisperLocal = async () => {
   try {
     const serverUrl = config.value.speech.whisperLocal.serverUrl;
     if (!serverUrl) {
-      throw new Error('请先输入Whisper服务器地址');
+      throw new Error("请先输入Whisper服务器地址");
     }
 
     // 测试健康检查端点
     const response = await fetch(`${serverUrl}/health`, {
-      method: 'GET',
+      method: "GET",
       timeout: 5000,
     });
 
     if (response.ok) {
-      whisperLocalStatus.value = 'online';
-      message.success('Whisper服务连接成功！');
+      whisperLocalStatus.value = "online";
+      message.success("Whisper服务连接成功！");
     } else {
-      whisperLocalStatus.value = 'offline';
-      message.error('Whisper服务响应异常');
+      whisperLocalStatus.value = "offline";
+      message.error("Whisper服务响应异常");
     }
   } catch (error) {
-    logger.error('测试Whisper连接失败:', error);
-    whisperLocalStatus.value = 'offline';
-    message.error('Whisper服务连接失败：' + error.message);
+    logger.error("测试Whisper连接失败:", error);
+    whisperLocalStatus.value = "offline";
+    message.error("Whisper服务连接失败：" + error.message);
   } finally {
     testingWhisperLocal.value = false;
   }
@@ -3529,7 +3338,7 @@ onMounted(async () => {
   try {
     natInfo.value = await window.electronAPI.p2p.getNATInfo();
   } catch (error) {
-    logger.error('加载NAT信息失败:', error);
+    logger.error("加载NAT信息失败:", error);
   }
 });
 </script>

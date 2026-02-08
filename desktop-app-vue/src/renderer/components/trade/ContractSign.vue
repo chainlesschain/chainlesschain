@@ -29,29 +29,15 @@
         </a-alert>
 
         <!-- 合约信息 -->
-        <a-card
-          size="small"
-          title="合约信息"
-          style="margin-bottom: 16px"
-        >
-          <a-descriptions
-            :column="2"
-            size="small"
-            bordered
-          >
-            <a-descriptions-item
-              label="合约ID"
-              :span="2"
-            >
+        <a-card size="small" title="合约信息" style="margin-bottom: 16px">
+          <a-descriptions :column="2" size="small" bordered>
+            <a-descriptions-item label="合约ID" :span="2">
               <a-typography-text copyable>
                 {{ contract.id }}
               </a-typography-text>
             </a-descriptions-item>
 
-            <a-descriptions-item
-              label="合约名称"
-              :span="2"
-            >
+            <a-descriptions-item label="合约名称" :span="2">
               <strong>{{ contract.name || contract.title }}</strong>
             </a-descriptions-item>
 
@@ -72,20 +58,15 @@
         </a-card>
 
         <!-- 合约参与方 -->
-        <a-card
-          size="small"
-          title="合约参与方"
-          style="margin-bottom: 16px"
-        >
-          <a-list
-            :data-source="contractParties"
-            size="small"
-          >
+        <a-card size="small" title="合约参与方" style="margin-bottom: 16px">
+          <a-list :data-source="contractParties" size="small">
             <template #renderItem="{ item }">
               <a-list-item>
                 <a-list-item-meta>
                   <template #avatar>
-                    <a-avatar :style="{ backgroundColor: getPartyColor(item.role) }">
+                    <a-avatar
+                      :style="{ backgroundColor: getPartyColor(item.role) }"
+                    >
                       {{ getPartyLabel(item.role) }}
                     </a-avatar>
                   </template>
@@ -94,28 +75,17 @@
                       <a-typography-text copyable>
                         {{ item.did }}
                       </a-typography-text>
-                      <a-tag
-                        v-if="item.isCurrentUser"
-                        color="blue"
-                      >
-                        我
-                      </a-tag>
+                      <a-tag v-if="item.isCurrentUser" color="blue"> 我 </a-tag>
                     </a-space>
                   </template>
                   <template #description>
                     <a-space>
                       <span>{{ item.role }}</span>
                       <a-divider type="vertical" />
-                      <span
-                        v-if="item.signed"
-                        style="color: #52c41a"
-                      >
+                      <span v-if="item.signed" style="color: #52c41a">
                         <check-circle-outlined /> 已签名
                       </span>
-                      <span
-                        v-else
-                        style="color: #8c8c8c"
-                      >
+                      <span v-else style="color: #8c8c8c">
                         <clock-circle-outlined /> 待签名
                       </span>
                     </a-space>
@@ -139,11 +109,7 @@
         </a-card>
 
         <!-- 签名确认 -->
-        <a-card
-          size="small"
-          title="签名确认"
-          style="margin-bottom: 16px"
-        >
+        <a-card size="small" title="签名确认" style="margin-bottom: 16px">
           <a-form layout="vertical">
             <!-- 签名方式 -->
             <a-form-item label="签名方式">
@@ -154,10 +120,7 @@
                 <a-radio-button value="did">
                   <idcard-outlined /> DID签名
                 </a-radio-button>
-                <a-radio-button
-                  value="manual"
-                  disabled
-                >
+                <a-radio-button value="manual" disabled>
                   <edit-outlined /> 手动签名（暂不支持）
                 </a-radio-button>
               </a-radio-group>
@@ -183,11 +146,15 @@
                 </div>
                 <div class="preview-item">
                   <span class="label">签名时间:</span>
-                  <span class="value">{{ new Date().toLocaleString('zh-CN') }}</span>
+                  <span class="value">{{
+                    new Date().toLocaleString("zh-CN")
+                  }}</span>
                 </div>
                 <div class="preview-item">
                   <span class="label">签名方式:</span>
-                  <span class="value">{{ form.signatureType === 'did' ? 'DID数字签名' : '手动签名' }}</span>
+                  <span class="value">{{
+                    form.signatureType === "did" ? "DID数字签名" : "手动签名"
+                  }}</span>
                 </div>
               </div>
             </a-form-item>
@@ -204,19 +171,19 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   SafetyCertificateOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   IdcardOutlined,
   EditOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import StatusBadge from './common/StatusBadge.vue';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import StatusBadge from "./common/StatusBadge.vue";
 
 // Store
 const tradeStore = useTradeStore();
@@ -234,15 +201,15 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['signed', 'update:open']);
+const emit = defineEmits(["signed", "update:open"]);
 
 // 状态
 const signing = ref(false);
-const currentUserDid = ref('');
+const currentUserDid = ref("");
 
 const form = reactive({
-  signatureType: 'did',
-  memo: '',
+  signatureType: "did",
+  memo: "",
   agreeTerms: false,
 });
 
@@ -250,14 +217,16 @@ const form = reactive({
 
 // 合约参与方
 const contractParties = computed(() => {
-  if (!props.contract) {return [];}
+  if (!props.contract) {
+    return [];
+  }
 
   const parties = [];
 
   // 甲方
   if (props.contract.party_a_did) {
     parties.push({
-      role: '甲方',
+      role: "甲方",
       did: props.contract.party_a_did,
       signed: props.contract.party_a_signed,
       isCurrentUser: props.contract.party_a_did === currentUserDid.value,
@@ -267,7 +236,7 @@ const contractParties = computed(() => {
   // 乙方
   if (props.contract.party_b_did) {
     parties.push({
-      role: '乙方',
+      role: "乙方",
       did: props.contract.party_b_did,
       signed: props.contract.party_b_signed,
       isCurrentUser: props.contract.party_b_did === currentUserDid.value,
@@ -282,35 +251,35 @@ const contractParties = computed(() => {
 // 合约类型颜色
 const getContractTypeColor = (type) => {
   const colorMap = {
-    trade: 'green',
-    service: 'blue',
-    escrow: 'orange',
-    subscription: 'purple',
-    exchange: 'cyan',
+    trade: "green",
+    service: "blue",
+    escrow: "orange",
+    subscription: "purple",
+    exchange: "cyan",
   };
-  return colorMap[type] || 'default';
+  return colorMap[type] || "default";
 };
 
 // 合约类型名称
 const getContractTypeName = (type) => {
   const nameMap = {
-    trade: '交易合约',
-    service: '服务合约',
-    escrow: '托管合约',
-    subscription: '订阅合约',
-    exchange: '交换合约',
+    trade: "交易合约",
+    service: "服务合约",
+    escrow: "托管合约",
+    subscription: "订阅合约",
+    exchange: "交换合约",
   };
   return nameMap[type] || type;
 };
 
 // 参与方颜色
 const getPartyColor = (role) => {
-  return role === '甲方' ? '#1890ff' : '#52c41a';
+  return role === "甲方" ? "#1890ff" : "#52c41a";
 };
 
 // 参与方标签
 const getPartyLabel = (role) => {
-  return role === '甲方' ? '甲' : '乙';
+  return role === "甲方" ? "甲" : "乙";
 };
 
 // 事件处理
@@ -338,24 +307,24 @@ const handleSign = async () => {
     // 使用 store 签名合约
     await tradeStore.signContract(props.contract.id, signature);
 
-    logger.info('[ContractSign] 合约签名成功:', props.contract.id);
-    message.success('合约签名成功！');
+    logger.info("[ContractSign] 合约签名成功:", props.contract.id);
+    message.success("合约签名成功！");
 
     // 通知父组件
-    emit('signed', {
+    emit("signed", {
       contractId: props.contract.id,
       signature,
       memo: form.memo,
     });
 
     // 关闭对话框
-    emit('update:open', false);
+    emit("update:open", false);
 
     // 重置表单
     resetForm();
   } catch (error) {
-    logger.error('[ContractSign] 签名失败:', error);
-    message.error(error.message || '签名失败');
+    logger.error("[ContractSign] 签名失败:", error);
+    message.error(error.message || "签名失败");
   } finally {
     signing.value = false;
   }
@@ -364,12 +333,12 @@ const handleSign = async () => {
 // 验证表单
 const validateForm = () => {
   if (!props.contract) {
-    message.warning('合约信息无效');
+    message.warning("合约信息无效");
     return false;
   }
 
   if (!currentUserDid.value) {
-    message.warning('未获取到当前用户身份');
+    message.warning("未获取到当前用户身份");
     return false;
   }
 
@@ -379,21 +348,23 @@ const validateForm = () => {
     props.contract.party_b_did === currentUserDid.value;
 
   if (!isParty) {
-    message.warning('您不是此合约的参与方');
+    message.warning("您不是此合约的参与方");
     return false;
   }
 
   // 检查是否已签名
   if (
-    (props.contract.party_a_did === currentUserDid.value && props.contract.party_a_signed) ||
-    (props.contract.party_b_did === currentUserDid.value && props.contract.party_b_signed)
+    (props.contract.party_a_did === currentUserDid.value &&
+      props.contract.party_a_signed) ||
+    (props.contract.party_b_did === currentUserDid.value &&
+      props.contract.party_b_signed)
   ) {
-    message.warning('您已签署此合约');
+    message.warning("您已签署此合约");
     return false;
   }
 
   if (!form.agreeTerms) {
-    message.warning('请阅读并同意合约条款');
+    message.warning("请阅读并同意合约条款");
     return false;
   }
 
@@ -402,14 +373,14 @@ const validateForm = () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:open', false);
+  emit("update:open", false);
   resetForm();
 };
 
 // 重置表单
 const resetForm = () => {
-  form.signatureType = 'did';
-  form.memo = '';
+  form.signatureType = "did";
+  form.memo = "";
   form.agreeTerms = false;
 };
 
@@ -421,7 +392,7 @@ const loadCurrentUserDid = async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    logger.error('[ContractSign] 获取当前用户 DID 失败:', error);
+    logger.error("[ContractSign] 获取当前用户 DID 失败:", error);
   }
 };
 
@@ -433,7 +404,7 @@ watch(
       await loadCurrentUserDid();
       resetForm();
     }
-  }
+  },
 );
 </script>
 

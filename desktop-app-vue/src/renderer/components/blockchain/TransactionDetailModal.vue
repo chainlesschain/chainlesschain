@@ -33,10 +33,7 @@
                   </template>
                   在区块链浏览器查看
                 </a-button>
-                <a-button
-                  :loading="refreshing"
-                  @click="handleRefresh"
-                >
+                <a-button :loading="refreshing" @click="handleRefresh">
                   <template #icon>
                     <reload-outlined />
                   </template>
@@ -49,13 +46,11 @@
           <a-divider />
 
           <!-- 交易信息 -->
-          <a-descriptions
-            title="基本信息"
-            :column="2"
-            bordered
-          >
+          <a-descriptions title="基本信息" :column="2" bordered>
             <a-descriptions-item label="交易类型">
-              <a-tag :color="getTypeColor(transaction.tx_type || transaction.type)">
+              <a-tag
+                :color="getTypeColor(transaction.tx_type || transaction.type)"
+              >
                 {{ getTypeText(transaction.tx_type || transaction.type) }}
               </a-tag>
             </a-descriptions-item>
@@ -64,11 +59,10 @@
                 {{ getStatusText(transaction.status) }}
               </a-tag>
             </a-descriptions-item>
-            <a-descriptions-item
-              label="发起时间"
-              :span="2"
-            >
-              {{ formatDateTime(transaction.created_at || transaction.timestamp) }}
+            <a-descriptions-item label="发起时间" :span="2">
+              {{
+                formatDateTime(transaction.created_at || transaction.timestamp)
+              }}
             </a-descriptions-item>
             <a-descriptions-item
               v-if="transaction.confirmed_at"
@@ -94,16 +88,10 @@
             <a-descriptions-item label="链ID">
               {{ transaction.chain_id }}
             </a-descriptions-item>
-            <a-descriptions-item
-              v-if="transaction.block_number"
-              label="区块号"
-            >
+            <a-descriptions-item v-if="transaction.block_number" label="区块号">
               {{ transaction.block_number }}
             </a-descriptions-item>
-            <a-descriptions-item
-              v-if="transaction.gas_used"
-              label="Gas费用"
-            >
+            <a-descriptions-item v-if="transaction.gas_used" label="Gas费用">
               {{ formatGas(transaction.gas_used, transaction.gas_price) }}
             </a-descriptions-item>
             <a-descriptions-item
@@ -120,11 +108,7 @@
           <a-divider />
 
           <!-- 交易详情 -->
-          <a-descriptions
-            title="交易详情"
-            :column="1"
-            bordered
-          >
+          <a-descriptions title="交易详情" :column="1" bordered>
             <a-descriptions-item
               v-if="transaction.from_address || transaction.from_did"
               label="发送方"
@@ -141,11 +125,8 @@
                 {{ transaction.to_address || transaction.to_did }}
               </a-typography-text>
             </a-descriptions-item>
-            <a-descriptions-item
-              v-if="transaction.amount"
-              label="金额"
-            >
-              {{ transaction.amount }} {{ transaction.asset_symbol || '' }}
+            <a-descriptions-item v-if="transaction.amount" label="金额">
+              {{ transaction.amount }} {{ transaction.asset_symbol || "" }}
             </a-descriptions-item>
             <a-descriptions-item
               v-if="transaction.memo || transaction.description"
@@ -165,37 +146,25 @@
           />
 
           <!-- 原始数据 -->
-          <a-collapse
-            v-if="transaction.raw_data"
-            style="margin-top: 16px"
-          >
-            <a-collapse-panel
-              key="raw"
-              header="原始数据"
-            >
+          <a-collapse v-if="transaction.raw_data" style="margin-top: 16px">
+            <a-collapse-panel key="raw" header="原始数据">
               <pre class="raw-data">{{ formatJSON(transaction.raw_data) }}</pre>
             </a-collapse-panel>
           </a-collapse>
         </div>
 
-        <a-empty
-          v-else
-          description="暂无交易数据"
-        />
+        <a-empty v-else description="暂无交易数据" />
       </a-spin>
     </div>
   </a-modal>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, watch } from 'vue';
-import { message } from 'ant-design-vue';
-import {
-  LinkOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons-vue';
+import { ref, watch } from "vue";
+import { message } from "ant-design-vue";
+import { LinkOutlined, ReloadOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
   open: {
@@ -212,7 +181,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:open', 'refresh']);
+const emit = defineEmits(["update:open", "refresh"]);
 
 const loading = ref(false);
 const refreshing = ref(false);
@@ -223,11 +192,11 @@ const refreshing = ref(false);
 const handleRefresh = async () => {
   refreshing.value = true;
   try {
-    emit('refresh', props.transaction);
-    message.success('刷新成功');
+    emit("refresh", props.transaction);
+    message.success("刷新成功");
   } catch (error) {
-    logger.error('刷新失败:', error);
-    message.error('刷新失败');
+    logger.error("刷新失败:", error);
+    message.error("刷新失败");
   } finally {
     refreshing.value = false;
   }
@@ -237,19 +206,20 @@ const handleRefresh = async () => {
  * 在区块链浏览器查看
  */
 const handleViewOnExplorer = () => {
-  const txHash = props.transaction.tx_hash || props.transaction.transaction_hash;
+  const txHash =
+    props.transaction.tx_hash || props.transaction.transaction_hash;
   if (!txHash) {
-    message.warning('交易哈希不存在');
+    message.warning("交易哈希不存在");
     return;
   }
 
   const chainId = props.transaction.chain_id || props.chainId;
-  const explorerUrl = getBlockExplorerUrl(chainId, 'tx', txHash);
+  const explorerUrl = getBlockExplorerUrl(chainId, "tx", txHash);
 
   if (explorerUrl) {
-    window.open(explorerUrl, '_blank');
+    window.open(explorerUrl, "_blank");
   } else {
-    message.warning('当前网络不支持区块链浏览器');
+    message.warning("当前网络不支持区块链浏览器");
   }
 };
 
@@ -257,7 +227,7 @@ const handleViewOnExplorer = () => {
  * 关闭对话框
  */
 const handleClose = () => {
-  emit('update:open', false);
+  emit("update:open", false);
 };
 
 /**
@@ -265,31 +235,33 @@ const handleClose = () => {
  */
 const getBlockExplorerUrl = (chainId, type, value) => {
   const explorers = {
-    1: 'https://etherscan.io',
-    11155111: 'https://sepolia.etherscan.io',
-    137: 'https://polygonscan.com',
-    80001: 'https://mumbai.polygonscan.com',
-    56: 'https://bscscan.com',
-    97: 'https://testnet.bscscan.com',
-    42161: 'https://arbiscan.io',
-    421613: 'https://goerli.arbiscan.io',
-    10: 'https://optimistic.etherscan.io',
-    420: 'https://goerli-optimism.etherscan.io',
-    43114: 'https://snowtrace.io',
-    43113: 'https://testnet.snowtrace.io',
-    250: 'https://ftmscan.com',
-    4002: 'https://testnet.ftmscan.com',
-    100: 'https://gnosisscan.io',
+    1: "https://etherscan.io",
+    11155111: "https://sepolia.etherscan.io",
+    137: "https://polygonscan.com",
+    80001: "https://mumbai.polygonscan.com",
+    56: "https://bscscan.com",
+    97: "https://testnet.bscscan.com",
+    42161: "https://arbiscan.io",
+    421613: "https://goerli.arbiscan.io",
+    10: "https://optimistic.etherscan.io",
+    420: "https://goerli-optimism.etherscan.io",
+    43114: "https://snowtrace.io",
+    43113: "https://testnet.snowtrace.io",
+    250: "https://ftmscan.com",
+    4002: "https://testnet.ftmscan.com",
+    100: "https://gnosisscan.io",
     31337: null,
   };
 
   const baseUrl = explorers[chainId];
-  if (!baseUrl) {return null;}
+  if (!baseUrl) {
+    return null;
+  }
 
   const paths = {
-    address: 'address',
-    tx: 'tx',
-    block: 'block',
+    address: "address",
+    tx: "tx",
+    block: "block",
   };
 
   return `${baseUrl}/${paths[type]}/${value}`;
@@ -300,22 +272,22 @@ const getBlockExplorerUrl = (chainId, type, value) => {
  */
 const getNetworkName = (chainId) => {
   const networks = {
-    1: '以太坊主网',
-    11155111: 'Sepolia测试网',
-    137: 'Polygon主网',
-    80001: 'Mumbai测试网',
-    56: 'BSC主网',
-    97: 'BSC测试网',
-    42161: 'Arbitrum One',
-    421613: 'Arbitrum Goerli',
-    10: 'Optimism',
-    420: 'Optimism Goerli',
-    43114: 'Avalanche C-Chain',
-    43113: 'Avalanche Fuji',
-    250: 'Fantom Opera',
-    4002: 'Fantom Testnet',
-    100: 'Gnosis Chain',
-    31337: 'Hardhat本地网络',
+    1: "以太坊主网",
+    11155111: "Sepolia测试网",
+    137: "Polygon主网",
+    80001: "Mumbai测试网",
+    56: "BSC主网",
+    97: "BSC测试网",
+    42161: "Arbitrum One",
+    421613: "Arbitrum Goerli",
+    10: "Optimism",
+    420: "Optimism Goerli",
+    43114: "Avalanche C-Chain",
+    43113: "Avalanche Fuji",
+    250: "Fantom Opera",
+    4002: "Fantom Testnet",
+    100: "Gnosis Chain",
+    31337: "Hardhat本地网络",
   };
   return networks[chainId] || `Chain ${chainId}`;
 };
@@ -325,13 +297,13 @@ const getNetworkName = (chainId) => {
  */
 const getStatusIcon = (status) => {
   const icons = {
-    pending: 'info',
-    confirmed: 'success',
-    success: 'success',
-    failed: 'error',
-    error: 'error',
+    pending: "info",
+    confirmed: "success",
+    success: "success",
+    failed: "error",
+    error: "error",
   };
-  return icons[status] || 'info';
+  return icons[status] || "info";
 };
 
 /**
@@ -339,13 +311,13 @@ const getStatusIcon = (status) => {
  */
 const getStatusTitle = (status) => {
   const titles = {
-    pending: '交易待确认',
-    confirmed: '交易已确认',
-    success: '交易成功',
-    failed: '交易失败',
-    error: '交易错误',
+    pending: "交易待确认",
+    confirmed: "交易已确认",
+    success: "交易成功",
+    failed: "交易失败",
+    error: "交易错误",
   };
-  return titles[status] || '未知状态';
+  return titles[status] || "未知状态";
 };
 
 /**
@@ -353,13 +325,13 @@ const getStatusTitle = (status) => {
  */
 const getStatusColor = (status) => {
   const colors = {
-    pending: 'processing',
-    confirmed: 'success',
-    success: 'success',
-    failed: 'error',
-    error: 'error',
+    pending: "processing",
+    confirmed: "success",
+    success: "success",
+    failed: "error",
+    error: "error",
   };
-  return colors[status] || 'default';
+  return colors[status] || "default";
 };
 
 /**
@@ -367,11 +339,11 @@ const getStatusColor = (status) => {
  */
 const getStatusText = (status) => {
   const texts = {
-    pending: '待确认',
-    confirmed: '已确认',
-    success: '成功',
-    failed: '失败',
-    error: '错误',
+    pending: "待确认",
+    confirmed: "已确认",
+    success: "成功",
+    failed: "失败",
+    error: "错误",
   };
   return texts[status] || status;
 };
@@ -381,14 +353,14 @@ const getStatusText = (status) => {
  */
 const getTypeColor = (type) => {
   const colors = {
-    transfer: 'blue',
-    deploy: 'purple',
-    mint: 'green',
-    burn: 'orange',
-    approve: 'cyan',
-    swap: 'magenta',
+    transfer: "blue",
+    deploy: "purple",
+    mint: "green",
+    burn: "orange",
+    approve: "cyan",
+    swap: "magenta",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 /**
@@ -396,12 +368,12 @@ const getTypeColor = (type) => {
  */
 const getTypeText = (type) => {
   const texts = {
-    transfer: '转账',
-    deploy: '部署合约',
-    mint: '铸造',
-    burn: '销毁',
-    approve: '授权',
-    swap: '交换',
+    transfer: "转账",
+    deploy: "部署合约",
+    mint: "铸造",
+    burn: "销毁",
+    approve: "授权",
+    swap: "交换",
   };
   return texts[type] || type;
 };
@@ -410,15 +382,17 @@ const getTypeText = (type) => {
  * 格式化日期时间
  */
 const formatDateTime = (timestamp) => {
-  if (!timestamp) {return '-';}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
+  return date.toLocaleString("zh-CN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };
 
@@ -426,7 +400,9 @@ const formatDateTime = (timestamp) => {
  * 格式化Gas费用
  */
 const formatGas = (gasUsed, gasPrice) => {
-  if (!gasUsed || !gasPrice) {return '-';}
+  if (!gasUsed || !gasPrice) {
+    return "-";
+  }
   const gasCost = (gasUsed * gasPrice) / 1e18;
   return `${gasCost.toFixed(6)} ETH`;
 };
@@ -436,7 +412,7 @@ const formatGas = (gasUsed, gasPrice) => {
  */
 const formatJSON = (data) => {
   try {
-    if (typeof data === 'string') {
+    if (typeof data === "string") {
       return JSON.stringify(JSON.parse(data), null, 2);
     }
     return JSON.stringify(data, null, 2);

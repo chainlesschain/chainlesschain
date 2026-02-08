@@ -24,7 +24,9 @@
             @click="handleSourceClick(source)"
           >
             {{ source.fileName }}
-            <span class="source-score">{{ (source.score * 100).toFixed(0) }}%</span>
+            <span class="source-score"
+              >{{ (source.score * 100).toFixed(0) }}%</span
+            >
           </a-tag>
         </div>
       </div>
@@ -37,9 +39,13 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { UserOutlined, RobotOutlined, DatabaseOutlined } from '@ant-design/icons-vue';
-import { renderMarkdown, formatTime } from '../../utils/chatHelpers';
+import { computed } from "vue";
+import {
+  UserOutlined,
+  RobotOutlined,
+  DatabaseOutlined,
+} from "@ant-design/icons-vue";
+import { renderMarkdown, formatTime } from "../../utils/chatHelpers";
 
 const props = defineProps({
   message: {
@@ -48,13 +54,13 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['open-source']);
+const emit = defineEmits(["open-source"]);
 
 const renderedContent = computed(() => renderMarkdown(props.message.content));
 const formattedTime = computed(() => formatTime(props.message.timestamp));
 
 const handleSourceClick = (source) => {
-  emit('open-source', source);
+  emit("open-source", source);
 };
 </script>
 
@@ -195,7 +201,7 @@ const handleSourceClick = (source) => {
   background: rgba(0, 0, 0, 0.05);
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: "Consolas", "Monaco", monospace;
 }
 
 .message-item.user .message-text :deep(code) {

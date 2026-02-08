@@ -1,7 +1,7 @@
-const { logger, createLogger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const EventEmitter = require('events');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const EventEmitter = require("events");
+const crypto = require("crypto");
 
 /**
  * 知识付费管理器
@@ -22,14 +22,14 @@ class KnowledgePaymentManager extends EventEmitter {
    * 初始化知识付费管理器
    */
   async initialize() {
-    logger.info('[KnowledgePayment] 初始化知识付费管理器...');
+    logger.info("[KnowledgePayment] 初始化知识付费管理器...");
 
     try {
       // 数据库表已在构造函数中初始化
-      logger.info('[KnowledgePayment] 知识付费管理器初始化成功');
+      logger.info("[KnowledgePayment] 知识付费管理器初始化成功");
       return true;
     } catch (error) {
-      logger.error('[KnowledgePayment] 初始化失败:', error);
+      logger.error("[KnowledgePayment] 初始化失败:", error);
       return false;
     }
   }
@@ -125,7 +125,7 @@ class KnowledgePaymentManager extends EventEmitter {
       )
     `);
 
-    logger.info('[KnowledgePayment] 数据库表初始化完成');
+    logger.info("[KnowledgePayment] 数据库表初始化完成");
   }
 
   /**
@@ -147,17 +147,17 @@ class KnowledgePaymentManager extends EventEmitter {
       preview,
       priceAssetId,
       priceAmount,
-      pricingModel = 'one_time',
+      pricingModel = "one_time",
       accessControl = {},
-      metadata = {}
+      metadata = {},
     } = options;
 
     if (!this.currentUserDid) {
-      throw new Error('用户未登录');
+      throw new Error("用户未登录");
     }
 
     // 生成加密密钥
-    const encryptionKey = crypto.randomBytes(32).toString('hex');
+    const encryptionKey = crypto.randomBytes(32).toString("hex");
 
     // 加密内容
     const encryptedContent = this.encryptContent(content, encryptionKey);
@@ -189,7 +189,7 @@ class KnowledgePaymentManager extends EventEmitter {
       JSON.stringify(accessControl),
       JSON.stringify(metadata),
       now,
-      now
+      now,
     );
 
     const contentData = {
@@ -204,18 +204,18 @@ class KnowledgePaymentManager extends EventEmitter {
       preview,
       accessControl,
       metadata,
-      createdAt: now
+      createdAt: now,
     };
 
     // 触发事件
-    this.emit('content:created', contentData);
+    this.emit("content:created", contentData);
 
     // P2P 广播（如果是公开内容）
-    if (accessControl.visibility === 'public') {
-      this.p2pManager.broadcast('knowledge:new-content', contentData);
+    if (accessControl.visibility === "public") {
+      this.p2pManager.broadcast("knowledge:new-content", contentData);
     }
 
-    logger.info('[KnowledgePayment] 付费内容已创建:', contentId);
+    logger.info("[KnowledgePayment] 付费内容已创建:", contentId);
     return contentData;
   }
 
@@ -228,36 +228,44 @@ class KnowledgePaymentManager extends EventEmitter {
     }
 
     if (!buyerDid) {
-      throw new Error('用户未登录');
+      throw new Error("用户未登录");
     }
 
     // 检查是否已购买
-    const existing = this.db.prepare(`
+    const existing = this.db
+      .prepare(
+        `
       SELECT * FROM content_purchases
       WHERE content_id = ? AND buyer_did = ? AND status = 'active'
-    `).get(contentId, buyerDid);
+    `,
+      )
+      .get(contentId, buyerDid);
 
     if (existing) {
-      throw new Error('您已购买过此内容');
+      throw new Error("您已购买过此内容");
     }
 
     // 获取内容信息
-    const content = this.db.prepare(`
+    const content = this.db
+      .prepare(
+        `
       SELECT * FROM paid_contents WHERE id = ? AND status = 'active'
-    `).get(contentId);
+    `,
+      )
+      .get(contentId);
 
     if (!content) {
-      throw new Error('内容不存在或已下架');
+      throw new Error("内容不存在或已下架");
     }
 
     // 检查余额并扣款
     const balance = await this.assetManager.getBalance(
       buyerDid,
-      content.price_asset_id
+      content.price_asset_id,
     );
 
     if (balance < content.price_amount) {
-      throw new Error('余额不足');
+      throw new Error("余额不足");
     }
 
     // 转账给创作者
@@ -265,7 +273,7 @@ class KnowledgePaymentManager extends EventEmitter {
       content.price_asset_id,
       buyerDid,
       content.creator_did,
-      content.price_amount
+      content.price_amount,
     );
 
     // 创建购买记录
@@ -289,36 +297,40 @@ class KnowledgePaymentManager extends EventEmitter {
       content.price_amount,
       content.price_asset_id,
       accessKey,
-      'purchase',
-      'active',
-      now
+      "purchase",
+      "active",
+      now,
     );
 
     // 更新购买计数
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE paid_contents SET purchase_count = purchase_count + 1
       WHERE id = ?
-    `).run(contentId);
+    `,
+      )
+      .run(contentId);
 
     // 触发事件
-    this.emit('content:purchased', {
+    this.emit("content:purchased", {
       contentId,
       buyerDid,
       creatorDid: content.creator_did,
       amount: content.price_amount,
-      assetId: content.price_asset_id
+      assetId: content.price_asset_id,
     });
 
     // 通知创作者
     this.p2pManager.sendMessage(content.creator_did, {
-      type: 'knowledge:purchase-notification',
+      type: "knowledge:purchase-notification",
       contentId,
       contentTitle: content.title,
       buyerDid,
-      amount: content.price_amount
+      amount: content.price_amount,
     });
 
-    logger.info('[KnowledgePayment] 内容购买成功:', contentId);
+    logger.info("[KnowledgePayment] 内容购买成功:", contentId);
     return { purchaseId, contentId };
   }
 
@@ -335,9 +347,13 @@ class KnowledgePaymentManager extends EventEmitter {
     }
 
     // 获取内容信息
-    const content = this.db.prepare(`
+    const content = this.db
+      .prepare(
+        `
       SELECT * FROM paid_contents WHERE id = ?
-    `).get(contentId);
+    `,
+      )
+      .get(contentId);
 
     if (!content) {
       return false;
@@ -354,10 +370,14 @@ class KnowledgePaymentManager extends EventEmitter {
     }
 
     // 检查购买记录
-    const purchase = this.db.prepare(`
+    const purchase = this.db
+      .prepare(
+        `
       SELECT * FROM content_purchases
       WHERE content_id = ? AND buyer_did = ? AND status = 'active'
-    `).get(contentId, userDid);
+    `,
+      )
+      .get(contentId, userDid);
 
     if (!purchase) {
       return false;
@@ -366,9 +386,13 @@ class KnowledgePaymentManager extends EventEmitter {
     // 检查订阅是否过期
     if (purchase.expires_at && purchase.expires_at < Date.now()) {
       // 更新状态为过期
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         UPDATE content_purchases SET status = 'expired' WHERE id = ?
-      `).run(purchase.id);
+      `,
+        )
+        .run(purchase.id);
       return false;
     }
 
@@ -386,26 +410,34 @@ class KnowledgePaymentManager extends EventEmitter {
     // 验证访问权限
     const hasAccess = await this.verifyAccess(contentId, userDid);
     if (!hasAccess) {
-      throw new Error('无访问权限');
+      throw new Error("无访问权限");
     }
 
     // 获取内容和解密密钥
-    const content = this.db.prepare(`
+    const content = this.db
+      .prepare(
+        `
       SELECT * FROM paid_contents WHERE id = ?
-    `).get(contentId);
+    `,
+      )
+      .get(contentId);
 
     if (!content) {
-      throw new Error('内容不存在');
+      throw new Error("内容不存在");
     }
 
     let decryptionKey = content.encryption_key;
 
     // 如果不是创作者，从购买记录获取访问密钥
     if (content.creator_did !== userDid) {
-      const purchase = this.db.prepare(`
+      const purchase = this.db
+        .prepare(
+          `
         SELECT access_key FROM content_purchases
         WHERE content_id = ? AND buyer_did = ? AND status = 'active'
-      `).get(contentId, userDid);
+      `,
+        )
+        .get(contentId, userDid);
 
       if (purchase) {
         decryptionKey = purchase.access_key;
@@ -415,16 +447,20 @@ class KnowledgePaymentManager extends EventEmitter {
     // 解密内容
     const decryptedContent = this.decryptContent(
       content.content_data,
-      decryptionKey
+      decryptionKey,
     );
 
     // 记录访问日志
-    this.logAccess(contentId, userDid, 'view');
+    this.logAccess(contentId, userDid, "view");
 
     // 更新浏览计数
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE paid_contents SET view_count = view_count + 1 WHERE id = ?
-    `).run(contentId);
+    `,
+      )
+      .run(contentId);
 
     return {
       id: content.id,
@@ -432,9 +468,9 @@ class KnowledgePaymentManager extends EventEmitter {
       title: content.title,
       description: content.description,
       content: decryptedContent,
-      metadata: JSON.parse(content.metadata || '{}'),
+      metadata: JSON.parse(content.metadata || "{}"),
       creatorDid: content.creator_did,
-      createdAt: content.created_at
+      createdAt: content.created_at,
     };
   }
 
@@ -448,11 +484,11 @@ class KnowledgePaymentManager extends EventEmitter {
       priceAssetId,
       monthlyPrice,
       durationMonths = 1,
-      benefits = []
+      benefits = [],
     } = options;
 
     if (!this.currentUserDid) {
-      throw new Error('用户未登录');
+      throw new Error("用户未登录");
     }
 
     const planId = uuidv4();
@@ -475,10 +511,10 @@ class KnowledgePaymentManager extends EventEmitter {
       monthlyPrice,
       durationMonths,
       JSON.stringify(benefits),
-      now
+      now,
     );
 
-    logger.info('[KnowledgePayment] 订阅计划已创建:', planId);
+    logger.info("[KnowledgePayment] 订阅计划已创建:", planId);
     return { planId, planName };
   }
 
@@ -491,26 +527,34 @@ class KnowledgePaymentManager extends EventEmitter {
     }
 
     if (!subscriberDid) {
-      throw new Error('用户未登录');
+      throw new Error("用户未登录");
     }
 
     // 获取计划信息
-    const plan = this.db.prepare(`
+    const plan = this.db
+      .prepare(
+        `
       SELECT * FROM subscription_plans WHERE id = ? AND status = 'active'
-    `).get(planId);
+    `,
+      )
+      .get(planId);
 
     if (!plan) {
-      throw new Error('订阅计划不存在');
+      throw new Error("订阅计划不存在");
     }
 
     // 检查是否已订阅
-    const existing = this.db.prepare(`
+    const existing = this.db
+      .prepare(
+        `
       SELECT * FROM user_subscriptions
       WHERE plan_id = ? AND subscriber_did = ? AND status = 'active'
-    `).get(planId, subscriberDid);
+    `,
+      )
+      .get(planId, subscriberDid);
 
     if (existing) {
-      throw new Error('已经订阅了此计划');
+      throw new Error("已经订阅了此计划");
     }
 
     // 计算总价
@@ -519,11 +563,11 @@ class KnowledgePaymentManager extends EventEmitter {
     // 检查余额并扣款
     const balance = await this.assetManager.getBalance(
       subscriberDid,
-      plan.price_asset_id
+      plan.price_asset_id,
     );
 
     if (balance < totalPrice) {
-      throw new Error('余额不足');
+      throw new Error("余额不足");
     }
 
     // 转账给创作者
@@ -531,13 +575,13 @@ class KnowledgePaymentManager extends EventEmitter {
       plan.price_asset_id,
       subscriberDid,
       plan.creator_did,
-      totalPrice
+      totalPrice,
     );
 
     // 创建订阅记录
     const subscriptionId = uuidv4();
     const now = Date.now();
-    const endDate = now + (plan.duration_months * 30 * 24 * 60 * 60 * 1000);
+    const endDate = now + plan.duration_months * 30 * 24 * 60 * 60 * 1000;
 
     const stmt = this.db.prepare(`
       INSERT INTO user_subscriptions (
@@ -554,18 +598,18 @@ class KnowledgePaymentManager extends EventEmitter {
       now,
       endDate,
       autoRenew ? 1 : 0,
-      now
+      now,
     );
 
     // 触发事件
-    this.emit('subscription:created', {
+    this.emit("subscription:created", {
       subscriptionId,
       planId,
       subscriberDid,
-      creatorDid: plan.creator_did
+      creatorDid: plan.creator_did,
     });
 
-    logger.info('[KnowledgePayment] 订阅成功:', subscriptionId);
+    logger.info("[KnowledgePayment] 订阅成功:", subscriptionId);
     return { subscriptionId, endDate };
   }
 
@@ -573,34 +617,42 @@ class KnowledgePaymentManager extends EventEmitter {
    * 取消订阅
    */
   async cancelSubscription(subscriptionId) {
-    const subscription = this.db.prepare(`
+    const subscription = this.db
+      .prepare(
+        `
       SELECT * FROM user_subscriptions WHERE id = ?
-    `).get(subscriptionId);
+    `,
+      )
+      .get(subscriptionId);
 
     if (!subscription) {
-      throw new Error('订阅不存在');
+      throw new Error("订阅不存在");
     }
 
     if (subscription.subscriber_did !== this.currentUserDid) {
-      throw new Error('无权限取消此订阅');
+      throw new Error("无权限取消此订阅");
     }
 
     // 更新状态
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE user_subscriptions
       SET status = 'cancelled', auto_renew = 0
       WHERE id = ?
-    `).run(subscriptionId);
+    `,
+      )
+      .run(subscriptionId);
 
-    this.emit('subscription:cancelled', { subscriptionId });
-    logger.info('[KnowledgePayment] 订阅已取消:', subscriptionId);
+    this.emit("subscription:cancelled", { subscriptionId });
+    logger.info("[KnowledgePayment] 订阅已取消:", subscriptionId);
   }
 
   /**
    * 获取我的内容列表
    */
   getMyContents(filters = {}) {
-    const { contentType, status = 'active' } = filters;
+    const { contentType, status = "active" } = filters;
 
     let query = `
       SELECT * FROM paid_contents
@@ -617,7 +669,7 @@ class KnowledgePaymentManager extends EventEmitter {
 
     const rows = this.db.prepare(query).all(...params);
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: row.id,
       contentType: row.content_type,
       title: row.title,
@@ -629,7 +681,7 @@ class KnowledgePaymentManager extends EventEmitter {
       purchaseCount: row.purchase_count,
       rating: row.rating,
       status: row.status,
-      createdAt: row.created_at
+      createdAt: row.created_at,
     }));
   }
 
@@ -637,15 +689,19 @@ class KnowledgePaymentManager extends EventEmitter {
    * 获取我的购买列表
    */
   getMyPurchases() {
-    const rows = this.db.prepare(`
+    const rows = this.db
+      .prepare(
+        `
       SELECT cp.*, pc.title, pc.content_type, pc.creator_did
       FROM content_purchases cp
       JOIN paid_contents pc ON cp.content_id = pc.id
       WHERE cp.buyer_did = ?
       ORDER BY cp.created_at DESC
-    `).all(this.currentUserDid);
+    `,
+      )
+      .all(this.currentUserDid);
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: row.id,
       contentId: row.content_id,
       title: row.title,
@@ -656,7 +712,7 @@ class KnowledgePaymentManager extends EventEmitter {
       purchaseType: row.purchase_type,
       status: row.status,
       expiresAt: row.expires_at,
-      createdAt: row.created_at
+      createdAt: row.created_at,
     }));
   }
 
@@ -664,15 +720,19 @@ class KnowledgePaymentManager extends EventEmitter {
    * 获取订阅列表
    */
   getMySubscriptions() {
-    const rows = this.db.prepare(`
+    const rows = this.db
+      .prepare(
+        `
       SELECT us.*, sp.plan_name, sp.creator_did
       FROM user_subscriptions us
       JOIN subscription_plans sp ON us.plan_id = sp.id
       WHERE us.subscriber_did = ?
       ORDER BY us.created_at DESC
-    `).all(this.currentUserDid);
+    `,
+      )
+      .all(this.currentUserDid);
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: row.id,
       planId: row.plan_id,
       planName: row.plan_name,
@@ -681,7 +741,7 @@ class KnowledgePaymentManager extends EventEmitter {
       endDate: row.end_date,
       autoRenew: row.auto_renew === 1,
       status: row.status,
-      createdAt: row.created_at
+      createdAt: row.created_at,
     }));
   }
 
@@ -689,7 +749,7 @@ class KnowledgePaymentManager extends EventEmitter {
    * 搜索内容
    */
   searchContents(keyword, filters = {}) {
-    const { contentType, priceRange, sortBy = 'created_at' } = filters;
+    const { contentType, priceRange, sortBy = "created_at" } = filters;
 
     let query = `
       SELECT * FROM paid_contents
@@ -712,7 +772,7 @@ class KnowledgePaymentManager extends EventEmitter {
 
     const rows = this.db.prepare(query).all(...params);
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: row.id,
       contentType: row.content_type,
       title: row.title,
@@ -725,7 +785,7 @@ class KnowledgePaymentManager extends EventEmitter {
       viewCount: row.view_count,
       purchaseCount: row.purchase_count,
       rating: row.rating,
-      createdAt: row.created_at
+      createdAt: row.created_at,
     }));
   }
 
@@ -735,35 +795,39 @@ class KnowledgePaymentManager extends EventEmitter {
   logAccess(contentId, userDid, accessType) {
     const now = Date.now();
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO content_access_logs (
         content_id, user_did, access_type, accessed_at
       ) VALUES (?, ?, ?, ?)
-    `).run(contentId, userDid, accessType, now);
+    `,
+      )
+      .run(contentId, userDid, accessType, now);
   }
 
   /**
    * 加密内容
    */
   encryptContent(content, key) {
-    const algorithm = 'aes-256-cbc';
+    const algorithm = "aes-256-cbc";
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(
       algorithm,
-      Buffer.from(key, 'hex'),
-      iv
+      Buffer.from(key, "hex"),
+      iv,
     );
 
     let encrypted = cipher.update(
-      typeof content === 'string' ? content : JSON.stringify(content),
-      'utf8',
-      'hex'
+      typeof content === "string" ? content : JSON.stringify(content),
+      "utf8",
+      "hex",
     );
-    encrypted += cipher.final('hex');
+    encrypted += cipher.final("hex");
 
     return JSON.stringify({
-      iv: iv.toString('hex'),
-      data: encrypted
+      iv: iv.toString("hex"),
+      data: encrypted,
     });
   }
 
@@ -771,17 +835,17 @@ class KnowledgePaymentManager extends EventEmitter {
    * 解密内容
    */
   decryptContent(encryptedData, key) {
-    const algorithm = 'aes-256-cbc';
+    const algorithm = "aes-256-cbc";
     const { iv, data } = JSON.parse(encryptedData);
 
     const decipher = crypto.createDecipheriv(
       algorithm,
-      Buffer.from(key, 'hex'),
-      Buffer.from(iv, 'hex')
+      Buffer.from(key, "hex"),
+      Buffer.from(iv, "hex"),
     );
 
-    let decrypted = decipher.update(data, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+    let decrypted = decipher.update(data, "hex", "utf8");
+    decrypted += decipher.final("utf8");
 
     try {
       return JSON.parse(decrypted);
@@ -800,12 +864,7 @@ class KnowledgePaymentManager extends EventEmitter {
    * @returns {Array} 内容列表
    */
   listContents(filters = {}) {
-    const {
-      contentType,
-      status = 'active',
-      limit = 50,
-      offset = 0
-    } = filters;
+    const { contentType, status = "active", limit = 50, offset = 0 } = filters;
 
     let query = `
       SELECT
@@ -839,7 +898,7 @@ class KnowledgePaymentManager extends EventEmitter {
 
     const rows = this.db.prepare(query).all(...params);
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       id: row.id,
       contentType: row.content_type,
       title: row.title,
@@ -854,7 +913,7 @@ class KnowledgePaymentManager extends EventEmitter {
       rating: row.rating,
       status: row.status,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
     }));
   }
 
@@ -866,7 +925,9 @@ class KnowledgePaymentManager extends EventEmitter {
       creatorDid = this.currentUserDid;
     }
 
-    const stats = this.db.prepare(`
+    const stats = this.db
+      .prepare(
+        `
       SELECT
         COUNT(*) as total_contents,
         SUM(view_count) as total_views,
@@ -874,22 +935,28 @@ class KnowledgePaymentManager extends EventEmitter {
         AVG(rating) as avg_rating
       FROM paid_contents
       WHERE creator_did = ? AND status = 'active'
-    `).get(creatorDid);
+    `,
+      )
+      .get(creatorDid);
 
-    const revenue = this.db.prepare(`
+    const revenue = this.db
+      .prepare(
+        `
       SELECT
         SUM(cp.price_paid) as total_revenue
       FROM content_purchases cp
       JOIN paid_contents pc ON cp.content_id = pc.id
       WHERE pc.creator_did = ? AND cp.status = 'active'
-    `).get(creatorDid);
+    `,
+      )
+      .get(creatorDid);
 
     return {
       totalContents: stats.total_contents || 0,
       totalViews: stats.total_views || 0,
       totalPurchases: stats.total_purchases || 0,
       avgRating: stats.avg_rating || 0,
-      totalRevenue: revenue.total_revenue || 0
+      totalRevenue: revenue.total_revenue || 0,
     };
   }
 }

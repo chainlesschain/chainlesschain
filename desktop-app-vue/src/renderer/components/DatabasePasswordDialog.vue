@@ -9,12 +9,7 @@
     @ok="handleSubmit"
     @cancel="handleCancel"
   >
-    <a-form
-      ref="formRef"
-      :model="formState"
-      :rules="rules"
-      layout="vertical"
-    >
+    <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical">
       <a-alert
         v-if="isFirstTime"
         message="首次使用数据库加密"
@@ -34,12 +29,18 @@
       />
 
       <a-form-item
-        :label="developmentMode && canSkipPassword ? '加密密码（可选）' : '加密密码'"
+        :label="
+          developmentMode && canSkipPassword ? '加密密码（可选）' : '加密密码'
+        "
         name="password"
       >
         <a-input-password
           v-model:value="formState.password"
-          :placeholder="developmentMode && canSkipPassword ? '请输入加密密码（可跳过）' : '请输入加密密码（至少12位）'"
+          :placeholder="
+            developmentMode && canSkipPassword
+              ? '请输入加密密码（可跳过）'
+              : '请输入加密密码（至少12位）'
+          "
           autocomplete="new-password"
         >
           <template #prefix>
@@ -54,19 +55,13 @@
               :style="{ width: passwordStrength.width }"
             />
           </div>
-          <span
-            class="strength-text"
-            :class="passwordStrength.class"
-          >
+          <span class="strength-text" :class="passwordStrength.class">
             {{ passwordStrength.text }}
           </span>
         </div>
       </a-form-item>
 
-      <a-form-item
-        label="确认密码"
-        name="confirmPassword"
-      >
+      <a-form-item label="确认密码" name="confirmPassword">
         <a-input-password
           v-model:value="formState.confirmPassword"
           placeholder="请再次输入密码"
@@ -78,11 +73,7 @@
         </a-input-password>
       </a-form-item>
 
-      <a-form-item
-        v-if="showOldPassword"
-        label="当前密码"
-        name="oldPassword"
-      >
+      <a-form-item v-if="showOldPassword" label="当前密码" name="oldPassword">
         <a-input-password
           v-model:value="formState.oldPassword"
           placeholder="请输入当前密码"
@@ -96,21 +87,10 @@
 
       <a-divider />
 
-      <a-space
-        direction="vertical"
-        style="width: 100%"
-      >
-        <a-typography-title :level="5">
-          密码要求
-        </a-typography-title>
-        <a-space
-          direction="vertical"
-          :size="4"
-        >
-          <div
-            class="requirement-item"
-            :class="{ valid: requirements.length }"
-          >
+      <a-space direction="vertical" style="width: 100%">
+        <a-typography-title :level="5"> 密码要求 </a-typography-title>
+        <a-space direction="vertical" :size="4">
+          <div class="requirement-item" :class="{ valid: requirements.length }">
             <CheckCircleOutlined v-if="requirements.length" />
             <CloseCircleOutlined v-else />
             <span>至少 12 个字符</span>
@@ -131,10 +111,7 @@
             <CloseCircleOutlined v-else />
             <span>包含小写字母</span>
           </div>
-          <div
-            class="requirement-item"
-            :class="{ valid: requirements.number }"
-          >
+          <div class="requirement-item" :class="{ valid: requirements.number }">
             <CheckCircleOutlined v-if="requirements.number" />
             <CloseCircleOutlined v-else />
             <span>包含数字</span>
@@ -153,16 +130,8 @@
 
     <template #footer>
       <a-space>
-        <a-button
-          v-if="!isRequired"
-          @click="handleCancel"
-        >
-          取消
-        </a-button>
-        <a-button
-          v-if="developmentMode && canSkipPassword"
-          @click="handleSkip"
-        >
+        <a-button v-if="!isRequired" @click="handleCancel"> 取消 </a-button>
+        <a-button v-if="developmentMode && canSkipPassword" @click="handleSkip">
           跳过密码设置
         </a-button>
         <a-button
@@ -179,58 +148,58 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, watch } from 'vue';
+import { ref, reactive, computed, watch } from "vue";
 import {
   LockOutlined,
   KeyOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined
-} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+  CloseCircleOutlined,
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 
 const props = defineProps({
   modelValue: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isFirstTime: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isRequired: {
     type: Boolean,
-    default: false
+    default: false,
   },
   showOldPassword: {
     type: Boolean,
-    default: false
+    default: false,
   },
   developmentMode: {
     type: Boolean,
-    default: false
+    default: false,
   },
   canSkipPassword: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
-const emit = defineEmits(['update:modelValue', 'submit', 'cancel']);
+const emit = defineEmits(["update:modelValue", "submit", "cancel"]);
 
 const formRef = ref();
 const loading = ref(false);
 
 const formState = reactive({
-  password: '',
-  confirmPassword: '',
-  oldPassword: ''
+  password: "",
+  confirmPassword: "",
+  oldPassword: "",
 });
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
+  set: (val) => emit("update:modelValue", val),
 });
 
 // 密码要求检查
@@ -239,45 +208,59 @@ const requirements = computed(() => ({
   uppercase: /[A-Z]/.test(formState.password),
   lowercase: /[a-z]/.test(formState.password),
   number: /\d/.test(formState.password),
-  special: /[!@#$%^&*(),.?":{}|<>]/.test(formState.password)
+  special: /[!@#$%^&*(),.?":{}|<>]/.test(formState.password),
 }));
 
 // 密码强度计算
 const passwordStrength = computed(() => {
   const password = formState.password;
   if (!password) {
-    return { width: '0%', class: '', text: '' };
+    return { width: "0%", class: "", text: "" };
   }
 
   let score = 0;
-  if (requirements.value.length) {score++;}
-  if (requirements.value.uppercase) {score++;}
-  if (requirements.value.lowercase) {score++;}
-  if (requirements.value.number) {score++;}
-  if (requirements.value.special) {score++;}
+  if (requirements.value.length) {
+    score++;
+  }
+  if (requirements.value.uppercase) {
+    score++;
+  }
+  if (requirements.value.lowercase) {
+    score++;
+  }
+  if (requirements.value.number) {
+    score++;
+  }
+  if (requirements.value.special) {
+    score++;
+  }
 
   if (score <= 2) {
-    return { width: '33%', class: 'weak', text: '弱' };
+    return { width: "33%", class: "weak", text: "弱" };
   } else if (score <= 4) {
-    return { width: '66%', class: 'medium', text: '中' };
+    return { width: "66%", class: "medium", text: "中" };
   } else {
-    return { width: '100%', class: 'strong', text: '强' };
+    return { width: "100%", class: "strong", text: "强" };
   }
 });
 
 // 是否可以提交
 const canSubmit = computed(() => {
   return (
-    Object.values(requirements.value).every(v => v) &&
+    Object.values(requirements.value).every((v) => v) &&
     formState.password === formState.confirmPassword &&
     (!props.showOldPassword || formState.oldPassword)
   );
 });
 
 const submitButtonText = computed(() => {
-  if (props.isFirstTime) {return '设置密码';}
-  if (props.showOldPassword) {return '修改密码';}
-  return '确定';
+  if (props.isFirstTime) {
+    return "设置密码";
+  }
+  if (props.showOldPassword) {
+    return "修改密码";
+  }
+  return "确定";
 });
 
 // 表单验证规则
@@ -285,26 +268,28 @@ const rules = computed(() => ({
   password: [
     {
       required: !(props.developmentMode && props.canSkipPassword),
-      message: '请输入密码'
+      message: "请输入密码",
     },
-    { min: 12, message: '密码至少需要12个字符' },
+    { min: 12, message: "密码至少需要12个字符" },
     {
       validator: (_, value) => {
         if (!value && props.developmentMode && props.canSkipPassword) {
           return Promise.resolve();
         }
-        if (!value) {return Promise.resolve();}
-        if (!Object.values(requirements.value).every(v => v)) {
-          return Promise.reject('密码不符合安全要求');
+        if (!value) {
+          return Promise.resolve();
+        }
+        if (!Object.values(requirements.value).every((v) => v)) {
+          return Promise.reject("密码不符合安全要求");
         }
         return Promise.resolve();
-      }
-    }
+      },
+    },
   ],
   confirmPassword: [
     {
       required: !(props.developmentMode && props.canSkipPassword),
-      message: '请确认密码'
+      message: "请确认密码",
     },
     {
       validator: (_, value) => {
@@ -312,18 +297,18 @@ const rules = computed(() => ({
           return Promise.resolve();
         }
         if (value !== formState.password) {
-          return Promise.reject('两次输入的密码不一致');
+          return Promise.reject("两次输入的密码不一致");
         }
         return Promise.resolve();
-      }
-    }
+      },
+    },
   ],
   oldPassword: [
     {
       required: props.showOldPassword,
-      message: '请输入当前密码'
-    }
-  ]
+      message: "请输入当前密码",
+    },
+  ],
 }));
 
 // 提交表单
@@ -334,12 +319,12 @@ const handleSubmit = async () => {
 
     const data = {
       password: formState.password,
-      oldPassword: formState.oldPassword || undefined
+      oldPassword: formState.oldPassword || undefined,
     };
 
-    emit('submit', data);
+    emit("submit", data);
   } catch (error) {
-    logger.error('表单验证失败:', error);
+    logger.error("表单验证失败:", error);
   } finally {
     loading.value = false;
   }
@@ -348,25 +333,25 @@ const handleSubmit = async () => {
 // 取消
 const handleCancel = () => {
   if (props.isRequired && !props.canSkipPassword) {
-    message.warning('必须设置数据库密码才能继续使用');
+    message.warning("必须设置数据库密码才能继续使用");
     return;
   }
-  emit('cancel');
+  emit("cancel");
   visible.value = false;
 };
 
 // 跳过密码设置（仅开发模式）
 const handleSkip = () => {
   if (!props.developmentMode || !props.canSkipPassword) {
-    message.warning('仅开发模式下可以跳过密码设置');
+    message.warning("仅开发模式下可以跳过密码设置");
     return;
   }
 
   loading.value = true;
 
   try {
-    emit('submit', { skipPassword: true });
-    message.success('已跳过密码设置（开发模式）');
+    emit("submit", { skipPassword: true });
+    message.success("已跳过密码设置（开发模式）");
   } finally {
     loading.value = false;
   }
@@ -374,9 +359,9 @@ const handleSkip = () => {
 
 // 重置表单
 const resetForm = () => {
-  formState.password = '';
-  formState.confirmPassword = '';
-  formState.oldPassword = '';
+  formState.password = "";
+  formState.confirmPassword = "";
+  formState.oldPassword = "";
   formRef.value?.resetFields();
 };
 
@@ -388,7 +373,7 @@ watch(visible, (val) => {
 });
 
 defineExpose({
-  resetForm
+  resetForm,
 });
 </script>
 

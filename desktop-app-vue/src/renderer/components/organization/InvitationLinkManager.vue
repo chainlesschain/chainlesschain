@@ -5,12 +5,7 @@
       <div class="header-left">
         <LinkOutlined class="page-icon" />
         <h2>邀请链接管理</h2>
-        <a-tag
-          color="blue"
-          style="margin-left: 12px"
-        >
-          企业版
-        </a-tag>
+        <a-tag color="blue" style="margin-left: 12px"> 企业版 </a-tag>
       </div>
       <div class="header-right">
         <a-space>
@@ -35,10 +30,7 @@
     </div>
 
     <!-- 统计卡片 -->
-    <a-row
-      :gutter="16"
-      class="stats-section"
-    >
+    <a-row :gutter="16" class="stats-section">
       <a-col :span="6">
         <a-card>
           <a-statistic
@@ -103,18 +95,10 @@
           style="width: 150px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部状态
-          </a-select-option>
-          <a-select-option value="active">
-            活跃
-          </a-select-option>
-          <a-select-option value="expired">
-            已过期
-          </a-select-option>
-          <a-select-option value="revoked">
-            已撤销
-          </a-select-option>
+          <a-select-option value=""> 全部状态 </a-select-option>
+          <a-select-option value="active"> 活跃 </a-select-option>
+          <a-select-option value="expired"> 已过期 </a-select-option>
+          <a-select-option value="revoked"> 已撤销 </a-select-option>
         </a-select>
         <a-input-search
           v-model:value="searchText"
@@ -181,10 +165,7 @@
               :status="getUsageStatus(record)"
               :format="() => `${record.used_count}/${record.max_uses}`"
             />
-            <a-typography-text
-              type="secondary"
-              style="font-size: 12px"
-            >
+            <a-typography-text type="secondary" style="font-size: 12px">
               剩余 {{ record.remainingUses }} 次
             </a-typography-text>
           </div>
@@ -202,17 +183,11 @@
         <template v-else-if="column.key === 'expires_at'">
           <div v-if="record.expires_at">
             <div>{{ formatDate(record.expires_at) }}</div>
-            <a-typography-text
-              type="secondary"
-              style="font-size: 12px"
-            >
+            <a-typography-text type="secondary" style="font-size: 12px">
               {{ getTimeRemaining(record.expires_at) }}
             </a-typography-text>
           </div>
-          <a-typography-text
-            v-else
-            type="secondary"
-          >
+          <a-typography-text v-else type="secondary">
             永不过期
           </a-typography-text>
         </template>
@@ -220,10 +195,7 @@
         <!-- 操作列 -->
         <template v-else-if="column.key === 'actions'">
           <a-space>
-            <a-button
-              size="small"
-              @click="showLinkDetail(record)"
-            >
+            <a-button size="small" @click="showLinkDetail(record)">
               详情
             </a-button>
             <a-dropdown>
@@ -247,10 +219,7 @@
                   >
                     <StopOutlined /> 撤销链接
                   </a-menu-item>
-                  <a-menu-item
-                    key="delete"
-                    danger
-                  >
+                  <a-menu-item key="delete" danger>
                     <DeleteOutlined /> 删除链接
                   </a-menu-item>
                 </a-menu>
@@ -285,10 +254,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   LinkOutlined,
   PlusOutlined,
@@ -300,24 +269,24 @@ import {
   QrcodeOutlined,
   DownOutlined,
   StopOutlined,
-  DeleteOutlined
-} from '@ant-design/icons-vue';
-import CreateInvitationLinkDialog from './CreateInvitationLinkDialog.vue';
-import InvitationLinkDetailDialog from './InvitationLinkDetailDialog.vue';
-import QRCodeDialog from './QRCodeDialog.vue';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
+  DeleteOutlined,
+} from "@ant-design/icons-vue";
+import CreateInvitationLinkDialog from "./CreateInvitationLinkDialog.vue";
+import InvitationLinkDetailDialog from "./InvitationLinkDetailDialog.vue";
+import QRCodeDialog from "./QRCodeDialog.vue";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 // Props
 const props = defineProps({
   orgId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
 // State
@@ -330,16 +299,16 @@ const stats = ref({
   revoked: 0,
   totalUses: 0,
   totalMaxUses: 0,
-  utilizationRate: 0
+  utilizationRate: 0,
 });
-const statusFilter = ref('');
-const searchText = ref('');
+const statusFilter = ref("");
+const searchText = ref("");
 const showCreateDialog = ref(false);
 const showDetailDialog = ref(false);
 const showQRDialog = ref(false);
-const selectedLinkId = ref('');
-const selectedUrl = ref('');
-const qrCodeTitle = ref('');
+const selectedLinkId = ref("");
+const selectedUrl = ref("");
+const qrCodeTitle = ref("");
 const canCreateInvitation = ref(true);
 const currentOrgId = computed(() => props.orgId);
 
@@ -349,49 +318,49 @@ const pagination = ref({
   pageSize: 10,
   total: 0,
   showSizeChanger: true,
-  showTotal: (total) => `共 ${total} 条`
+  showTotal: (total) => `共 ${total} 条`,
 });
 
 // Table columns
 const columns = [
   {
-    title: '链接URL',
-    key: 'invitationUrl',
-    width: 350
+    title: "链接URL",
+    key: "invitationUrl",
+    width: 350,
   },
   {
-    title: '角色',
-    key: 'role',
-    width: 100
+    title: "角色",
+    key: "role",
+    width: 100,
   },
   {
-    title: '使用情况',
-    key: 'usage',
-    width: 200
+    title: "使用情况",
+    key: "usage",
+    width: 200,
   },
   {
-    title: '状态',
-    key: 'status',
-    width: 100
+    title: "状态",
+    key: "status",
+    width: 100,
   },
   {
-    title: '创建时间',
-    dataIndex: 'created_at',
-    key: 'created_at',
+    title: "创建时间",
+    dataIndex: "created_at",
+    key: "created_at",
     width: 180,
-    customRender: ({ text }) => formatDate(text)
+    customRender: ({ text }) => formatDate(text),
   },
   {
-    title: '过期时间',
-    key: 'expires_at',
-    width: 180
+    title: "过期时间",
+    key: "expires_at",
+    width: 180,
   },
   {
-    title: '操作',
-    key: 'actions',
+    title: "操作",
+    key: "actions",
     width: 150,
-    fixed: 'right'
-  }
+    fixed: "right",
+  },
 ];
 
 // Computed
@@ -400,46 +369,51 @@ const filteredLinks = computed(() => {
 
   // 状态筛选
   if (statusFilter.value) {
-    result = result.filter(link => link.status === statusFilter.value);
+    result = result.filter((link) => link.status === statusFilter.value);
   }
 
   // 搜索筛选
   if (searchText.value) {
     const search = searchText.value.toLowerCase();
-    result = result.filter(link =>
-      link.link_id.toLowerCase().includes(search) ||
-      (link.message && link.message.toLowerCase().includes(search))
+    result = result.filter(
+      (link) =>
+        link.link_id.toLowerCase().includes(search) ||
+        (link.message && link.message.toLowerCase().includes(search)),
     );
   }
 
   return result;
 });
 
-watch(filteredLinks, (items) => {
-  pagination.value.total = items.length;
-}, { immediate: true });
+watch(
+  filteredLinks,
+  (items) => {
+    pagination.value.total = items.length;
+  },
+  { immediate: true },
+);
 
 // Methods
 const loadInvitationLinks = async () => {
   loading.value = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'org:get-invitation-links',
+      "org:get-invitation-links",
       currentOrgId.value,
-      { status: statusFilter.value || undefined }
+      { status: statusFilter.value || undefined },
     );
 
     if (result.success) {
       links.value = result.links;
     } else {
-      message.error(result.error || '加载邀请链接失败');
+      message.error(result.error || "加载邀请链接失败");
     }
 
     // 加载统计信息
     await loadStats();
   } catch (error) {
-    logger.error('加载邀请链接失败:', error);
-    message.error('加载邀请链接失败');
+    logger.error("加载邀请链接失败:", error);
+    message.error("加载邀请链接失败");
   } finally {
     loading.value = false;
   }
@@ -448,15 +422,15 @@ const loadInvitationLinks = async () => {
 const loadStats = async () => {
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'org:get-invitation-link-stats',
-      currentOrgId.value
+      "org:get-invitation-link-stats",
+      currentOrgId.value,
     );
 
     if (result.success) {
       stats.value = result.stats;
     }
   } catch (error) {
-    logger.error('加载统计信息失败:', error);
+    logger.error("加载统计信息失败:", error);
   }
 };
 
@@ -471,18 +445,18 @@ const handleSearch = () => {
 const copyLink = async (url) => {
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'org:copy-invitation-link',
-      url
+      "org:copy-invitation-link",
+      url,
     );
 
     if (result.success) {
-      message.success('链接已复制到剪贴板');
+      message.success("链接已复制到剪贴板");
     } else {
-      message.error('复制失败');
+      message.error("复制失败");
     }
   } catch (error) {
-    logger.error('复制链接失败:', error);
-    message.error('复制链接失败');
+    logger.error("复制链接失败:", error);
+    message.error("复制链接失败");
   }
 };
 
@@ -499,16 +473,16 @@ const showLinkDetail = (record) => {
 
 const handleMenuClick = async ({ key }, record) => {
   switch (key) {
-    case 'copy':
+    case "copy":
       await copyLink(record.invitationUrl);
       break;
-    case 'qrcode':
+    case "qrcode":
       showQRCode(record);
       break;
-    case 'revoke':
+    case "revoke":
       await revokeLink(record);
       break;
-    case 'delete':
+    case "delete":
       await deleteLink(record);
       break;
   }
@@ -518,29 +492,31 @@ const revokeLink = async (record) => {
   try {
     const confirmed = await new Promise((resolve) => {
       window.antd.Modal.confirm({
-        title: '确认撤销',
-        content: '撤销后此链接将无法使用，确定要撤销吗？',
+        title: "确认撤销",
+        content: "撤销后此链接将无法使用，确定要撤销吗？",
         onOk: () => resolve(true),
-        onCancel: () => resolve(false)
+        onCancel: () => resolve(false),
       });
     });
 
-    if (!confirmed) {return;}
+    if (!confirmed) {
+      return;
+    }
 
     const result = await window.electron.ipcRenderer.invoke(
-      'org:revoke-invitation-link',
-      record.link_id
+      "org:revoke-invitation-link",
+      record.link_id,
     );
 
     if (result.success) {
-      message.success('链接已撤销');
+      message.success("链接已撤销");
       await loadInvitationLinks();
     } else {
-      message.error(result.error || '撤销失败');
+      message.error(result.error || "撤销失败");
     }
   } catch (error) {
-    logger.error('撤销链接失败:', error);
-    message.error('撤销链接失败');
+    logger.error("撤销链接失败:", error);
+    message.error("撤销链接失败");
   }
 };
 
@@ -548,31 +524,33 @@ const deleteLink = async (record) => {
   try {
     const confirmed = await new Promise((resolve) => {
       window.antd.Modal.confirm({
-        title: '确认删除',
-        content: '删除后将无法恢复，确定要删除吗？',
-        okText: '删除',
-        okType: 'danger',
+        title: "确认删除",
+        content: "删除后将无法恢复，确定要删除吗？",
+        okText: "删除",
+        okType: "danger",
         onOk: () => resolve(true),
-        onCancel: () => resolve(false)
+        onCancel: () => resolve(false),
       });
     });
 
-    if (!confirmed) {return;}
+    if (!confirmed) {
+      return;
+    }
 
     const result = await window.electron.ipcRenderer.invoke(
-      'org:delete-invitation-link',
-      record.link_id
+      "org:delete-invitation-link",
+      record.link_id,
     );
 
     if (result.success) {
-      message.success('链接已删除');
+      message.success("链接已删除");
       await loadInvitationLinks();
     } else {
-      message.error(result.error || '删除失败');
+      message.error(result.error || "删除失败");
     }
   } catch (error) {
-    logger.error('删除链接失败:', error);
-    message.error('删除链接失败');
+    logger.error("删除链接失败:", error);
+    message.error("删除链接失败");
   }
 };
 
@@ -583,60 +561,66 @@ const handleLinkCreated = () => {
 // Helper functions
 const getRoleColor = (role) => {
   const colors = {
-    owner: 'red',
-    admin: 'orange',
-    member: 'blue',
-    viewer: 'green'
+    owner: "red",
+    admin: "orange",
+    member: "blue",
+    viewer: "green",
   };
-  return colors[role] || 'default';
+  return colors[role] || "default";
 };
 
 const getRoleLabel = (role) => {
   const labels = {
-    owner: '所有者',
-    admin: '管理员',
-    member: '成员',
-    viewer: '访客'
+    owner: "所有者",
+    admin: "管理员",
+    member: "成员",
+    viewer: "访客",
   };
   return labels[role] || role;
 };
 
 const getUsagePercent = (record) => {
-  if (record.max_uses === 0) {return 0;}
+  if (record.max_uses === 0) {
+    return 0;
+  }
   return Math.round((record.used_count / record.max_uses) * 100);
 };
 
 const getUsageStatus = (record) => {
   const percent = getUsagePercent(record);
-  if (percent >= 100) {return 'exception';}
-  if (percent >= 80) {return 'active';}
-  return 'normal';
+  if (percent >= 100) {
+    return "exception";
+  }
+  if (percent >= 80) {
+    return "active";
+  }
+  return "normal";
 };
 
 const getStatusBadge = (record) => {
   if (record.isExpired) {
-    return { status: 'default', text: '已过期' };
+    return { status: "default", text: "已过期" };
   }
   if (record.isExhausted) {
-    return { status: 'default', text: '已用尽' };
+    return { status: "default", text: "已用尽" };
   }
-  if (record.status === 'revoked') {
-    return { status: 'error', text: '已撤销' };
+  if (record.status === "revoked") {
+    return { status: "error", text: "已撤销" };
   }
-  if (record.status === 'active') {
-    return { status: 'success', text: '活跃' };
+  if (record.status === "active") {
+    return { status: "success", text: "活跃" };
   }
-  return { status: 'default', text: record.status };
+  return { status: "default", text: record.status };
 };
 
 const formatDate = (timestamp) => {
-  return dayjs(timestamp).format('YYYY-MM-DD HH:mm');
+  return dayjs(timestamp).format("YYYY-MM-DD HH:mm");
 };
 
 const getTimeRemaining = (expiresAt) => {
   const now = Date.now();
   if (expiresAt < now) {
-    return '已过期';
+    return "已过期";
   }
   return dayjs(expiresAt).fromNow();
 };
@@ -646,9 +630,12 @@ onMounted(() => {
   loadInvitationLinks();
 });
 
-watch(() => props.orgId, () => {
-  loadInvitationLinks();
-});
+watch(
+  () => props.orgId,
+  () => {
+    loadInvitationLinks();
+  },
+);
 </script>
 
 <style scoped lang="scss">

@@ -3,8 +3,8 @@
  * 根据用户意图自动选择和调度技能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 class AISkillScheduler extends EventEmitter {
   constructor(skillManager, toolManager, skillExecutor, llmService) {
@@ -40,7 +40,11 @@ class AISkillScheduler extends EventEmitter {
       logger.info(`[AIScheduler] 推荐 ${recommendations.length} 个技能`);
 
       // 3. 选择最佳技能
-      const selectedSkill = this.selectBestSkill(recommendations, intent, context);
+      const selectedSkill = this.selectBestSkill(
+        recommendations,
+        intent,
+        context,
+      );
       logger.info(`[AIScheduler] 选择技能: ${selectedSkill.name}`);
 
       // 4. 生成执行参数
@@ -51,7 +55,7 @@ class AISkillScheduler extends EventEmitter {
       const result = await this.skillExecutor.executeSkill(
         selectedSkill.id,
         params,
-        { intelligent: true }
+        { intelligent: true },
       );
 
       // 6. 学习用户偏好
@@ -62,14 +66,13 @@ class AISkillScheduler extends EventEmitter {
         intent,
         skill: selectedSkill.name,
         result,
-        recommendations
+        recommendations,
       };
-
     } catch (error) {
       logger.error(`[AIScheduler] 智能调度失败:`, error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -87,7 +90,10 @@ class AISkillScheduler extends EventEmitter {
         const llmIntent = await this.analyzeByLLM(userInput, context);
         return this.mergeIntents(keywordIntent, llmIntent);
       } catch (error) {
-        logger.warn('[AIScheduler] LLM分析失败，使用关键词分析:', error.message);
+        logger.warn(
+          "[AIScheduler] LLM分析失败，使用关键词分析:",
+          error.message,
+        );
         return keywordIntent;
       }
     }
@@ -104,70 +110,70 @@ class AISkillScheduler extends EventEmitter {
     // 意图规则库
     const intentRules = [
       {
-        keywords: ['创建', '新建', '生成', 'create', 'new'],
-        action: 'create',
-        confidence: 0.8
+        keywords: ["创建", "新建", "生成", "create", "new"],
+        action: "create",
+        confidence: 0.8,
       },
       {
-        keywords: ['读取', '打开', '查看', 'read', 'open', 'view'],
-        action: 'read',
-        confidence: 0.8
+        keywords: ["读取", "打开", "查看", "read", "open", "view"],
+        action: "read",
+        confidence: 0.8,
       },
       {
-        keywords: ['修改', '编辑', '更新', 'edit', 'update', 'modify'],
-        action: 'edit',
-        confidence: 0.8
+        keywords: ["修改", "编辑", "更新", "edit", "update", "modify"],
+        action: "edit",
+        confidence: 0.8,
       },
       {
-        keywords: ['删除', '移除', 'delete', 'remove'],
-        action: 'delete',
-        confidence: 0.8
+        keywords: ["删除", "移除", "delete", "remove"],
+        action: "delete",
+        confidence: 0.8,
       },
       {
-        keywords: ['网页', '网站', 'web', 'html', 'website'],
-        target: 'web',
-        confidence: 0.9
+        keywords: ["网页", "网站", "web", "html", "website"],
+        target: "web",
+        confidence: 0.9,
       },
       {
-        keywords: ['代码', 'code', '程序', 'program'],
-        target: 'code',
-        confidence: 0.9
+        keywords: ["代码", "code", "程序", "program"],
+        target: "code",
+        confidence: 0.9,
       },
       {
-        keywords: ['数据', 'data', '分析', 'analysis'],
-        target: 'data',
-        confidence: 0.9
+        keywords: ["数据", "data", "分析", "analysis"],
+        target: "data",
+        confidence: 0.9,
       },
       {
-        keywords: ['文档', 'document', 'word', 'pdf'],
-        target: 'document',
-        confidence: 0.9
+        keywords: ["文档", "document", "word", "pdf"],
+        target: "document",
+        confidence: 0.9,
       },
       {
-        keywords: ['图片', 'image', '图像', 'picture'],
-        target: 'image',
-        confidence: 0.9
+        keywords: ["图片", "image", "图像", "picture"],
+        target: "image",
+        confidence: 0.9,
       },
       {
-        keywords: ['项目', 'project', '仓库', 'repository'],
-        target: 'project',
-        confidence: 0.9
+        keywords: ["项目", "project", "仓库", "repository"],
+        target: "project",
+        confidence: 0.9,
       },
       {
-        keywords: ['搜索', 'search', '查找', 'find'],
-        action: 'search',
-        confidence: 0.8
-      }
+        keywords: ["搜索", "search", "查找", "find"],
+        action: "search",
+        confidence: 0.8,
+      },
     ];
 
     const detectedIntents = [];
 
-    intentRules.forEach(rule => {
-      const matched = rule.keywords.some(keyword => input.includes(keyword));
+    intentRules.forEach((rule) => {
+      const matched = rule.keywords.some((keyword) => input.includes(keyword));
       if (matched) {
         detectedIntents.push({
           ...rule,
-          matched: true
+          matched: true,
         });
       }
     });
@@ -178,10 +184,10 @@ class AISkillScheduler extends EventEmitter {
       target: null,
       entities: this.extractEntities(userInput),
       confidence: 0,
-      rawInput: userInput
+      rawInput: userInput,
     };
 
-    detectedIntents.forEach(detected => {
+    detectedIntents.forEach((detected) => {
       if (detected.action) {
         intent.action = detected.action;
         intent.confidence = Math.max(intent.confidence, detected.confidence);
@@ -222,8 +228,9 @@ class AISkillScheduler extends EventEmitter {
 
     try {
       // 提取JSON（处理可能的markdown包装）
-      const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/) ||
-                       response.match(/\{[\s\S]*\}/);
+      const jsonMatch =
+        response.match(/```json\n([\s\S]*?)\n```/) ||
+        response.match(/\{[\s\S]*\}/);
 
       if (jsonMatch) {
         const jsonStr = jsonMatch[1] || jsonMatch[0];
@@ -236,15 +243,15 @@ class AISkillScheduler extends EventEmitter {
         target: null,
         entities: {},
         confidence: 0.3,
-        rawResponse: response
+        rawResponse: response,
       };
     } catch (error) {
-      logger.error('[AIScheduler] LLM响应解析失败:', error);
+      logger.error("[AIScheduler] LLM响应解析失败:", error);
       return {
         action: null,
         target: null,
         entities: {},
-        confidence: 0.3
+        confidence: 0.3,
       };
     }
   }
@@ -256,13 +263,17 @@ class AISkillScheduler extends EventEmitter {
     const entities = {};
 
     // 提取文件路径
-    const pathMatch = userInput.match(/[/\\]?[\w./\\-]+\.(txt|md|js|html|css|json|pdf|docx)/i);
+    const pathMatch = userInput.match(
+      /[/\\]?[\w./\\-]+\.(txt|md|js|html|css|json|pdf|docx)/i,
+    );
     if (pathMatch) {
       entities.filePath = pathMatch[0];
     }
 
     // 提取项目名
-    const projectMatch = userInput.match(/项目名[：:]\s*(\S+)|project\s+name[：:]\s*(\S+)/i);
+    const projectMatch = userInput.match(
+      /项目名[：:]\s*(\S+)|project\s+name[：:]\s*(\S+)/i,
+    );
     if (projectMatch) {
       entities.projectName = projectMatch[1] || projectMatch[2];
     }
@@ -285,7 +296,7 @@ class AISkillScheduler extends EventEmitter {
       target: llmIntent.target || keywordIntent.target,
       entities: { ...keywordIntent.entities, ...llmIntent.entities },
       confidence: Math.max(keywordIntent.confidence, llmIntent.confidence),
-      rawInput: keywordIntent.rawInput
+      rawInput: keywordIntent.rawInput,
     };
   }
 
@@ -297,17 +308,17 @@ class AISkillScheduler extends EventEmitter {
 
     // 获取所有启用的技能
     const allSkills = await this.skillManager.getAllSkills();
-    const enabledSkills = allSkills.filter(s => s.enabled);
+    const enabledSkills = allSkills.filter((s) => s.enabled);
 
     // 评分和排序
-    const scoredSkills = enabledSkills.map(skill => ({
+    const scoredSkills = enabledSkills.map((skill) => ({
       ...skill,
-      score: this.calculateSkillScore(skill, intent, context)
+      score: this.calculateSkillScore(skill, intent, context),
     }));
 
     // 过滤低分技能并排序
     const recommendations = scoredSkills
-      .filter(skill => skill.score > 0.3)
+      .filter((skill) => skill.score > 0.3)
       .sort((a, b) => b.score - a.score)
       .slice(0, 5); // 返回Top 5
 
@@ -326,9 +337,10 @@ class AISkillScheduler extends EventEmitter {
     }
 
     // 2. 标签匹配（权重 30%）
-    const tags = typeof skill.tags === 'string' ? JSON.parse(skill.tags) : skill.tags;
-    const tagMatch = tags.some(tag =>
-      intent.rawInput.toLowerCase().includes(tag.toLowerCase())
+    const tags =
+      typeof skill.tags === "string" ? JSON.parse(skill.tags) : skill.tags;
+    const tagMatch = tags.some((tag) =>
+      intent.rawInput.toLowerCase().includes(tag.toLowerCase()),
     );
     if (tagMatch) {
       score += 0.3;
@@ -339,9 +351,8 @@ class AISkillScheduler extends EventEmitter {
     score += usageFrequency * 0.2;
 
     // 4. 技能成功率（权重 10%）
-    const successRate = skill.success_count > 0
-      ? skill.success_count / skill.usage_count
-      : 0.5;
+    const successRate =
+      skill.success_count > 0 ? skill.success_count / skill.usage_count : 0.5;
     score += successRate * 0.1;
 
     return Math.min(score, 1.0);
@@ -352,7 +363,7 @@ class AISkillScheduler extends EventEmitter {
    */
   selectBestSkill(recommendations, intent, context) {
     if (recommendations.length === 0) {
-      throw new Error('没有找到合适的技能');
+      throw new Error("没有找到合适的技能");
     }
 
     // 返回评分最高的技能
@@ -371,7 +382,10 @@ class AISkillScheduler extends EventEmitter {
     });
 
     // 根据技能类型生成默认参数
-    const config = typeof skill.config === 'string' ? JSON.parse(skill.config) : skill.config;
+    const config =
+      typeof skill.config === "string"
+        ? JSON.parse(skill.config)
+        : skill.config;
 
     // 合并配置默认值
     Object.entries(config).forEach(([key, value]) => {
@@ -383,10 +397,14 @@ class AISkillScheduler extends EventEmitter {
     // 使用LLM生成更智能的参数
     if (this.llmService && intent.confidence < 0.8) {
       try {
-        const llmParams = await this.generateParamsByLLM(skill, intent, context);
+        const llmParams = await this.generateParamsByLLM(
+          skill,
+          intent,
+          context,
+        );
         Object.assign(params, llmParams);
       } catch (error) {
-        logger.warn('[AIScheduler] LLM参数生成失败:', error.message);
+        logger.warn("[AIScheduler] LLM参数生成失败:", error.message);
       }
     }
 
@@ -402,7 +420,7 @@ class AISkillScheduler extends EventEmitter {
     const prompt = `根据用户意图生成技能执行参数：
 
 技能: ${skill.name} (${skill.description})
-包含工具: ${tools.map(t => t.name).join(', ')}
+包含工具: ${tools.map((t) => t.name).join(", ")}
 用户意图: ${JSON.stringify(intent)}
 上下文: ${JSON.stringify(context)}
 
@@ -411,8 +429,9 @@ class AISkillScheduler extends EventEmitter {
     const response = await this.llmService.chat(prompt);
 
     try {
-      const jsonMatch = response.match(/```json\n([\s\S]*?)\n```/) ||
-                       response.match(/\{[\s\S]*\}/);
+      const jsonMatch =
+        response.match(/```json\n([\s\S]*?)\n```/) ||
+        response.match(/\{[\s\S]*\}/);
 
       if (jsonMatch) {
         const jsonStr = jsonMatch[1] || jsonMatch[0];
@@ -421,7 +440,7 @@ class AISkillScheduler extends EventEmitter {
 
       return {};
     } catch (error) {
-      logger.error('[AIScheduler] 参数解析失败:', error);
+      logger.error("[AIScheduler] 参数解析失败:", error);
       return {};
     }
   }
@@ -435,7 +454,7 @@ class AISkillScheduler extends EventEmitter {
       skillId: skill.id,
       skillName: skill.name,
       success: result.success,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // 更新用户偏好
@@ -463,27 +482,27 @@ class AISkillScheduler extends EventEmitter {
   buildIntentMapping() {
     return {
       // 创建类意图
-      'create.web': 'skill_web_development',
-      'create.code': 'skill_code_development',
-      'create.project': 'skill_project_management',
-      'create.document': 'skill_document_processing',
+      "create.web": "skill_web_development",
+      "create.code": "skill_code_development",
+      "create.project": "skill_project_management",
+      "create.document": "skill_document_processing",
 
       // 分析类意图
-      'analyze.data': 'skill_data_analysis',
-      'analyze.image': 'skill_image_processing',
+      "analyze.data": "skill_data_analysis",
+      "analyze.image": "skill_image_processing",
 
       // 搜索类意图
-      'search.knowledge': 'skill_knowledge_search',
-      'search.info': 'skill_network_requests',
+      "search.knowledge": "skill_knowledge_search",
+      "search.info": "skill_network_requests",
 
       // 处理类意图
-      'process.document': 'skill_document_processing',
-      'process.image': 'skill_image_processing',
-      'process.video': 'skill_video_processing',
+      "process.document": "skill_document_processing",
+      "process.image": "skill_image_processing",
+      "process.video": "skill_video_processing",
 
       // AI类意图
-      'chat': 'skill_ai_conversation',
-      'automate': 'skill_automation_workflow'
+      chat: "skill_ai_conversation",
+      automate: "skill_automation_workflow",
     };
   }
 
@@ -507,7 +526,7 @@ class AISkillScheduler extends EventEmitter {
       const result = await this.smartSchedule(input, context);
       results.push({
         input,
-        result
+        result,
       });
 
       // 更新上下文（传递前一个任务的结果）
@@ -519,7 +538,7 @@ class AISkillScheduler extends EventEmitter {
     return {
       success: true,
       total: userInputs.length,
-      results
+      results,
     };
   }
 
@@ -529,7 +548,7 @@ class AISkillScheduler extends EventEmitter {
   getRecommendationStats() {
     const skillUsage = new Map();
 
-    this.executionHistory.forEach(record => {
+    this.executionHistory.forEach((record) => {
       const count = skillUsage.get(record.skillId) || 0;
       skillUsage.set(record.skillId, count + 1);
     });
@@ -540,13 +559,13 @@ class AISkillScheduler extends EventEmitter {
       .map(([skillId, count]) => ({
         skillId,
         count,
-        percentage: (count / this.executionHistory.length * 100).toFixed(2)
+        percentage: ((count / this.executionHistory.length) * 100).toFixed(2),
       }));
 
     return {
       totalExecutions: this.executionHistory.length,
       uniqueSkills: skillUsage.size,
-      topSkills
+      topSkills,
     };
   }
 }

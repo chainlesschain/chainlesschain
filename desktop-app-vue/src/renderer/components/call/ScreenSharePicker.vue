@@ -9,10 +9,7 @@
     <a-spin :spinning="loading">
       <a-tabs v-model:active-key="activeTab">
         <!-- 屏幕标签页 -->
-        <a-tab-pane
-          key="screen"
-          tab="整个屏幕"
-        >
+        <a-tab-pane key="screen" tab="整个屏幕">
           <div class="source-grid">
             <div
               v-for="source in screenSources"
@@ -22,10 +19,7 @@
               @click="selectSource(source)"
             >
               <div class="source-thumbnail">
-                <img
-                  :src="source.thumbnail"
-                  :alt="source.name"
-                >
+                <img :src="source.thumbnail" :alt="source.name" />
               </div>
               <div class="source-name">
                 {{ source.name }}
@@ -39,10 +33,7 @@
         </a-tab-pane>
 
         <!-- 窗口标签页 -->
-        <a-tab-pane
-          key="window"
-          tab="应用窗口"
-        >
+        <a-tab-pane key="window" tab="应用窗口">
           <div class="source-grid">
             <div
               v-for="source in windowSources"
@@ -52,15 +43,12 @@
               @click="selectSource(source)"
             >
               <div class="source-thumbnail">
-                <img
-                  :src="source.thumbnail"
-                  :alt="source.name"
-                >
+                <img :src="source.thumbnail" :alt="source.name" />
                 <img
                   v-if="source.appIcon"
                   :src="source.appIcon"
                   class="app-icon"
-                >
+                />
               </div>
               <div class="source-name">
                 {{ source.name }}
@@ -76,9 +64,7 @@
 
       <div class="modal-footer">
         <a-space>
-          <a-button @click="handleCancel">
-            取消
-          </a-button>
+          <a-button @click="handleCancel"> 取消 </a-button>
           <a-button
             type="primary"
             :disabled="!selectedSource"
@@ -93,85 +79,88 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 
 const props = defineProps({
   visible: {
     type: Boolean,
-    default: false
-  }
-})
+    default: false,
+  },
+});
 
-const emit = defineEmits(['update:visible', 'select'])
+const emit = defineEmits(["update:visible", "select"]);
 
 // 状态
 const visible = computed({
   get: () => props.visible,
-  set: (val) => emit('update:visible', val)
-})
+  set: (val) => emit("update:visible", val),
+});
 
-const loading = ref(false)
-const activeTab = ref('screen')
-const sources = ref([])
-const selectedSource = ref(null)
+const loading = ref(false);
+const activeTab = ref("screen");
+const sources = ref([]);
+const selectedSource = ref(null);
 
 // 计算属性
 const screenSources = computed(() => {
-  return sources.value.filter(s => s.id.startsWith('screen:'))
-})
+  return sources.value.filter((s) => s.id.startsWith("screen:"));
+});
 
 const windowSources = computed(() => {
-  return sources.value.filter(s => s.id.startsWith('window:'))
-})
+  return sources.value.filter((s) => s.id.startsWith("window:"));
+});
 
 // 监听visible变化，加载屏幕源
 watch(visible, async (newVal) => {
   if (newVal) {
-    await loadSources()
+    await loadSources();
   } else {
-    selectedSource.value = null
+    selectedSource.value = null;
   }
-})
+});
 
 // 方法
 const loadSources = async () => {
   try {
-    loading.value = true
-    const result = await window.electron.ipcRenderer.invoke('screen-share:get-sources', {
-      types: ['screen', 'window'],
-      thumbnailSize: { width: 300, height: 200 }
-    })
+    loading.value = true;
+    const result = await window.electron.ipcRenderer.invoke(
+      "screen-share:get-sources",
+      {
+        types: ["screen", "window"],
+        thumbnailSize: { width: 300, height: 200 },
+      },
+    );
 
     if (result.success) {
-      sources.value = result.sources
+      sources.value = result.sources;
     } else {
-      message.error('获取屏幕源失败: ' + result.error)
+      message.error("获取屏幕源失败: " + result.error);
     }
   } catch (error) {
-    logger.error('加载屏幕源失败:', error)
-    message.error('加载屏幕源失败')
+    logger.error("加载屏幕源失败:", error);
+    message.error("加载屏幕源失败");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const selectSource = (source) => {
-  selectedSource.value = source
-}
+  selectedSource.value = source;
+};
 
 const handleConfirm = () => {
   if (selectedSource.value) {
-    emit('select', selectedSource.value)
-    visible.value = false
+    emit("select", selectedSource.value);
+    visible.value = false;
   }
-}
+};
 
 const handleCancel = () => {
-  visible.value = false
-}
+  visible.value = false;
+};
 </script>
 
 <style scoped>

@@ -9,38 +9,38 @@
  * - WebSocket通信
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * 订单类型
  */
 const OrderType = {
-  MARKET: 'market',       // 市价单
-  LIMIT: 'limit',         // 限价单
-  STOP_LOSS: 'stop_loss', // 止损单
-  STOP_LIMIT: 'stop_limit' // 止损限价单
+  MARKET: "market", // 市价单
+  LIMIT: "limit", // 限价单
+  STOP_LOSS: "stop_loss", // 止损单
+  STOP_LIMIT: "stop_limit", // 止损限价单
 };
 
 /**
  * 订单方向
  */
 const OrderSide = {
-  BUY: 'buy',
-  SELL: 'sell'
+  BUY: "buy",
+  SELL: "sell",
 };
 
 /**
  * 订单状态
  */
 const OrderStatus = {
-  PENDING: 'pending',       // 待处理
-  OPEN: 'open',             // 已开启
-  PARTIAL: 'partial',       // 部分成交
-  FILLED: 'filled',         // 完全成交
-  CANCELLED: 'cancelled',   // 已取消
-  REJECTED: 'rejected'      // 已拒绝
+  PENDING: "pending", // 待处理
+  OPEN: "open", // 已开启
+  PARTIAL: "partial", // 部分成交
+  FILLED: "filled", // 完全成交
+  CANCELLED: "cancelled", // 已取消
+  REJECTED: "rejected", // 已拒绝
 };
 
 /**
@@ -69,7 +69,7 @@ class RealtimeTradingEngine extends EventEmitter {
    * 初始化交易引擎
    */
   async initialize() {
-    logger.info('[RealtimeTradingEngine] 初始化实时交易引擎...');
+    logger.info("[RealtimeTradingEngine] 初始化实时交易引擎...");
 
     try {
       // 加载活跃订单
@@ -85,9 +85,9 @@ class RealtimeTradingEngine extends EventEmitter {
       this.startPriceUpdates(5000);
 
       this.initialized = true;
-      logger.info('[RealtimeTradingEngine] 实时交易引擎初始化成功');
+      logger.info("[RealtimeTradingEngine] 实时交易引擎初始化成功");
     } catch (error) {
-      logger.error('[RealtimeTradingEngine] 初始化失败:', error);
+      logger.error("[RealtimeTradingEngine] 初始化失败:", error);
       throw error;
     }
   }
@@ -127,8 +127,9 @@ class RealtimeTradingEngine extends EventEmitter {
       const orderBook = new OrderBook(row.asset_id);
 
       // 加载该资产的所有活跃订单
-      const orders = Array.from(this.activeOrders.values())
-        .filter(o => o.asset_id === row.asset_id);
+      const orders = Array.from(this.activeOrders.values()).filter(
+        (o) => o.asset_id === row.asset_id,
+      );
 
       for (const order of orders) {
         orderBook.addOrder(order);
@@ -137,7 +138,9 @@ class RealtimeTradingEngine extends EventEmitter {
       this.orderBooks.set(row.asset_id, orderBook);
     }
 
-    logger.info(`[RealtimeTradingEngine] 初始化了 ${this.orderBooks.size} 个订单簿`);
+    logger.info(
+      `[RealtimeTradingEngine] 初始化了 ${this.orderBooks.size} 个订单簿`,
+    );
   }
 
   /**
@@ -158,7 +161,7 @@ class RealtimeTradingEngine extends EventEmitter {
         filled_quantity: 0,
         remaining_quantity: orderData.quantity,
         created_at: Date.now(),
-        updated_at: Date.now()
+        updated_at: Date.now(),
       };
 
       // 检查资产余额
@@ -183,7 +186,7 @@ class RealtimeTradingEngine extends EventEmitter {
       await this.updateOrder(order);
 
       // 触发订单事件
-      this.emit('order:submitted', order);
+      this.emit("order:submitted", order);
 
       // 如果是市价单，立即尝试匹配
       if (order.order_type === OrderType.MARKET) {
@@ -192,13 +195,13 @@ class RealtimeTradingEngine extends EventEmitter {
 
       return {
         success: true,
-        order
+        order,
       };
     } catch (error) {
-      logger.error('[RealtimeTradingEngine] 提交订单失败:', error);
+      logger.error("[RealtimeTradingEngine] 提交订单失败:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -208,23 +211,29 @@ class RealtimeTradingEngine extends EventEmitter {
    */
   validateOrder(orderData) {
     if (!orderData.asset_id) {
-      throw new Error('缺少资产ID');
+      throw new Error("缺少资产ID");
     }
 
-    if (!orderData.order_type || !Object.values(OrderType).includes(orderData.order_type)) {
-      throw new Error('无效的订单类型');
+    if (
+      !orderData.order_type ||
+      !Object.values(OrderType).includes(orderData.order_type)
+    ) {
+      throw new Error("无效的订单类型");
     }
 
     if (!orderData.side || !Object.values(OrderSide).includes(orderData.side)) {
-      throw new Error('无效的订单方向');
+      throw new Error("无效的订单方向");
     }
 
     if (!orderData.quantity || orderData.quantity <= 0) {
-      throw new Error('无效的订单数量');
+      throw new Error("无效的订单数量");
     }
 
-    if (orderData.order_type === OrderType.LIMIT && (!orderData.price || orderData.price <= 0)) {
-      throw new Error('限价单必须指定价格');
+    if (
+      orderData.order_type === OrderType.LIMIT &&
+      (!orderData.price || orderData.price <= 0)
+    ) {
+      throw new Error("限价单必须指定价格");
     }
   }
 
@@ -236,7 +245,7 @@ class RealtimeTradingEngine extends EventEmitter {
       // 卖单：检查资产余额
       const asset = await this.assetManager.getAsset(order.asset_id);
       if (!asset || asset.quantity < order.quantity) {
-        throw new Error('资产余额不足');
+        throw new Error("资产余额不足");
       }
     } else {
       // 买单：检查资金余额
@@ -252,10 +261,14 @@ class RealtimeTradingEngine extends EventEmitter {
       const availableBalance = fundBalance - lockedFunds;
 
       if (availableBalance < requiredAmount) {
-        throw new Error(`资金余额不足: 需要 ${requiredAmount}, 可用 ${availableBalance}`);
+        throw new Error(
+          `资金余额不足: 需要 ${requiredAmount}, 可用 ${availableBalance}`,
+        );
       }
 
-      logger.info(`[RealtimeTradingEngine] 资金余额检查通过: 用户=${order.user_did}, 需要=${requiredAmount}, 可用=${availableBalance}`);
+      logger.info(
+        `[RealtimeTradingEngine] 资金余额检查通过: 用户=${order.user_did}, 需要=${requiredAmount}, 可用=${availableBalance}`,
+      );
     }
   }
 
@@ -267,23 +280,33 @@ class RealtimeTradingEngine extends EventEmitter {
   async getUserFundBalance(userDid) {
     try {
       // 查询用户资金账户
-      const account = this.database.prepare(`
+      const account = this.database
+        .prepare(
+          `
         SELECT balance FROM user_fund_accounts WHERE user_did = ?
-      `).get(userDid);
+      `,
+        )
+        .get(userDid);
 
       if (account) {
         return parseFloat(account.balance) || 0;
       }
 
       // 如果没有资金账户记录，尝试从钱包或资产管理器获取
-      if (this.assetManager && typeof this.assetManager.getFundBalance === 'function') {
+      if (
+        this.assetManager &&
+        typeof this.assetManager.getFundBalance === "function"
+      ) {
         return await this.assetManager.getFundBalance(userDid);
       }
 
       // 默认返回0
       return 0;
     } catch (error) {
-      logger.warn(`[RealtimeTradingEngine] 获取资金余额失败: ${userDid}`, error);
+      logger.warn(
+        `[RealtimeTradingEngine] 获取资金余额失败: ${userDid}`,
+        error,
+      );
       return 0;
     }
   }
@@ -296,18 +319,25 @@ class RealtimeTradingEngine extends EventEmitter {
   async getLockedFunds(userDid) {
     try {
       // 计算所有未成交买单的锁定资金
-      const result = this.database.prepare(`
+      const result = this.database
+        .prepare(
+          `
         SELECT COALESCE(SUM(remaining_quantity * price), 0) as locked
         FROM marketplace_orders
         WHERE user_did = ?
           AND side = 'buy'
           AND status IN ('open', 'partial', 'pending')
           AND price IS NOT NULL
-      `).get(userDid);
+      `,
+        )
+        .get(userDid);
 
       return parseFloat(result?.locked) || 0;
     } catch (error) {
-      logger.warn(`[RealtimeTradingEngine] 获取锁定资金失败: ${userDid}`, error);
+      logger.warn(
+        `[RealtimeTradingEngine] 获取锁定资金失败: ${userDid}`,
+        error,
+      );
       return 0;
     }
   }
@@ -336,7 +366,7 @@ class RealtimeTradingEngine extends EventEmitter {
       order.remaining_quantity,
       order.status,
       order.created_at,
-      order.updated_at
+      order.updated_at,
     ]);
   }
 
@@ -358,11 +388,11 @@ class RealtimeTradingEngine extends EventEmitter {
       order.remaining_quantity,
       order.status,
       Date.now(),
-      order.id
+      order.id,
     ]);
 
     // 触发订单更新事件
-    this.emit('order:updated', order);
+    this.emit("order:updated", order);
   }
 
   /**
@@ -374,11 +404,14 @@ class RealtimeTradingEngine extends EventEmitter {
     try {
       const order = this.activeOrders.get(orderId);
       if (!order) {
-        throw new Error('订单不存在');
+        throw new Error("订单不存在");
       }
 
-      if (order.status !== OrderStatus.OPEN && order.status !== OrderStatus.PARTIAL) {
-        throw new Error('订单状态不允许取消');
+      if (
+        order.status !== OrderStatus.OPEN &&
+        order.status !== OrderStatus.PARTIAL
+      ) {
+        throw new Error("订单状态不允许取消");
       }
 
       // 更新订单状态
@@ -397,11 +430,11 @@ class RealtimeTradingEngine extends EventEmitter {
       }
 
       // 触发取消事件
-      this.emit('order:cancelled', order);
+      this.emit("order:cancelled", order);
 
       return true;
     } catch (error) {
-      logger.error('[RealtimeTradingEngine] 取消订单失败:', error);
+      logger.error("[RealtimeTradingEngine] 取消订单失败:", error);
       return false;
     }
   }
@@ -440,7 +473,9 @@ class RealtimeTradingEngine extends EventEmitter {
    */
   async matchOrder(order) {
     const orderBook = this.orderBooks.get(order.asset_id);
-    if (!orderBook) {return;}
+    if (!orderBook) {
+      return;
+    }
 
     const matches = orderBook.findMatchesForOrder(order);
 
@@ -488,22 +523,21 @@ class RealtimeTradingEngine extends EventEmitter {
         quantity,
         price,
         buyerDid: buyOrder.user_did,
-        sellerDid: sellOrder.user_did
+        sellerDid: sellOrder.user_did,
       });
 
       // 触发匹配事件
-      this.emit('trade:executed', {
+      this.emit("trade:executed", {
         buyOrder,
         sellOrder,
         quantity,
-        price
+        price,
       });
 
       // 更新价格
       await this.updatePrice(buyOrder.asset_id, price);
-
     } catch (error) {
-      logger.error('[RealtimeTradingEngine] 执行匹配失败:', error);
+      logger.error("[RealtimeTradingEngine] 执行匹配失败:", error);
     }
   }
 
@@ -530,7 +564,7 @@ class RealtimeTradingEngine extends EventEmitter {
       tradeData.price,
       tradeData.buyerDid,
       tradeData.sellerDid,
-      Date.now()
+      Date.now(),
     ]);
 
     return tradeId;
@@ -568,14 +602,14 @@ class RealtimeTradingEngine extends EventEmitter {
         assetId,
         prices: [],
         currentPrice: price,
-        lastUpdate: Date.now()
+        lastUpdate: Date.now(),
       };
       this.priceFeeds.set(assetId, priceFeed);
     }
 
     priceFeed.prices.push({
       price,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     // 只保留最近100个价格
@@ -587,10 +621,10 @@ class RealtimeTradingEngine extends EventEmitter {
     priceFeed.lastUpdate = Date.now();
 
     // 触发价格更新事件
-    this.emit('price:updated', {
+    this.emit("price:updated", {
       assetId,
       price,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -613,8 +647,9 @@ class RealtimeTradingEngine extends EventEmitter {
    */
   getActiveOrders(assetId = null) {
     if (assetId) {
-      return Array.from(this.activeOrders.values())
-        .filter(o => o.asset_id === assetId);
+      return Array.from(this.activeOrders.values()).filter(
+        (o) => o.asset_id === assetId,
+      );
     }
     return Array.from(this.activeOrders.values());
   }
@@ -668,9 +703,9 @@ class OrderBook {
    */
   removeOrder(order) {
     if (order.side === OrderSide.BUY) {
-      this.buyOrders = this.buyOrders.filter(o => o.id !== order.id);
+      this.buyOrders = this.buyOrders.filter((o) => o.id !== order.id);
     } else {
-      this.sellOrders = this.sellOrders.filter(o => o.id !== order.id);
+      this.sellOrders = this.sellOrders.filter((o) => o.id !== order.id);
     }
   }
 
@@ -690,7 +725,10 @@ class OrderBook {
       }
 
       // 计算成交数量
-      const quantity = Math.min(buyOrder.remaining_quantity, sellOrder.remaining_quantity);
+      const quantity = Math.min(
+        buyOrder.remaining_quantity,
+        sellOrder.remaining_quantity,
+      );
 
       // 成交价格（取卖单价格）
       const price = sellOrder.price;
@@ -699,7 +737,7 @@ class OrderBook {
         buyOrder,
         sellOrder,
         quantity,
-        price
+        price,
       });
 
       // 更新剩余数量
@@ -727,15 +765,23 @@ class OrderBook {
     if (order.side === OrderSide.BUY) {
       // 买单匹配卖单
       for (const sellOrder of this.sellOrders) {
-        if (order.remaining_quantity === 0) {break;}
+        if (order.remaining_quantity === 0) {
+          break;
+        }
 
-        if (order.order_type === OrderType.MARKET || order.price >= sellOrder.price) {
-          const quantity = Math.min(order.remaining_quantity, sellOrder.remaining_quantity);
+        if (
+          order.order_type === OrderType.MARKET ||
+          order.price >= sellOrder.price
+        ) {
+          const quantity = Math.min(
+            order.remaining_quantity,
+            sellOrder.remaining_quantity,
+          );
           matches.push({
             buyOrder: order,
             sellOrder,
             quantity,
-            price: sellOrder.price
+            price: sellOrder.price,
           });
 
           order.remaining_quantity -= quantity;
@@ -745,15 +791,23 @@ class OrderBook {
     } else {
       // 卖单匹配买单
       for (const buyOrder of this.buyOrders) {
-        if (order.remaining_quantity === 0) {break;}
+        if (order.remaining_quantity === 0) {
+          break;
+        }
 
-        if (order.order_type === OrderType.MARKET || order.price <= buyOrder.price) {
-          const quantity = Math.min(order.remaining_quantity, buyOrder.remaining_quantity);
+        if (
+          order.order_type === OrderType.MARKET ||
+          order.price <= buyOrder.price
+        ) {
+          const quantity = Math.min(
+            order.remaining_quantity,
+            buyOrder.remaining_quantity,
+          );
           matches.push({
             buyOrder,
             sellOrder: order,
             quantity,
-            price: buyOrder.price
+            price: buyOrder.price,
           });
 
           order.remaining_quantity -= quantity;
@@ -786,15 +840,15 @@ class OrderBook {
   getSnapshot(depth = 10) {
     return {
       assetId: this.assetId,
-      bids: this.buyOrders.slice(0, depth).map(o => ({
+      bids: this.buyOrders.slice(0, depth).map((o) => ({
         price: o.price,
-        quantity: o.remaining_quantity
+        quantity: o.remaining_quantity,
       })),
-      asks: this.sellOrders.slice(0, depth).map(o => ({
+      asks: this.sellOrders.slice(0, depth).map((o) => ({
         price: o.price,
-        quantity: o.remaining_quantity
+        quantity: o.remaining_quantity,
       })),
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 }
@@ -804,5 +858,5 @@ module.exports = {
   OrderBook,
   OrderType,
   OrderSide,
-  OrderStatus
+  OrderStatus,
 };

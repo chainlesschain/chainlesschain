@@ -9,8 +9,8 @@
  * - Storage and resource usage
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain } = require('electron');
+const { logger } = require("../utils/logger.js");
+const { ipcMain } = require("electron");
 
 /**
  * Register all dashboard IPC handlers
@@ -20,48 +20,66 @@ const { ipcMain } = require('electron');
  */
 function registerDashboardIPC({ database, organizationManager }) {
   // Statistics
-  ipcMain.handle('dashboard:get-stats', async (event, { orgId, dateRange }) => {
+  ipcMain.handle("dashboard:get-stats", async (event, { orgId, dateRange }) => {
     return getStats(database, organizationManager, orgId, dateRange);
   });
 
-  ipcMain.handle('dashboard:get-top-contributors', async (event, { orgId, limit = 10 }) => {
-    return getTopContributors(database, orgId, limit);
-  });
+  ipcMain.handle(
+    "dashboard:get-top-contributors",
+    async (event, { orgId, limit = 10 }) => {
+      return getTopContributors(database, orgId, limit);
+    },
+  );
 
-  ipcMain.handle('dashboard:get-recent-activities', async (event, { orgId, limit = 20 }) => {
-    return getRecentActivities(database, orgId, limit);
-  });
+  ipcMain.handle(
+    "dashboard:get-recent-activities",
+    async (event, { orgId, limit = 20 }) => {
+      return getRecentActivities(database, orgId, limit);
+    },
+  );
 
-  ipcMain.handle('dashboard:get-role-stats', async (event, { orgId }) => {
+  ipcMain.handle("dashboard:get-role-stats", async (event, { orgId }) => {
     return getRoleStats(database, orgId);
   });
 
   // Charts and analytics
-  ipcMain.handle('dashboard:get-activity-timeline', async (event, { orgId, days = 30 }) => {
-    return getActivityTimeline(database, orgId, days);
-  });
+  ipcMain.handle(
+    "dashboard:get-activity-timeline",
+    async (event, { orgId, days = 30 }) => {
+      return getActivityTimeline(database, orgId, days);
+    },
+  );
 
-  ipcMain.handle('dashboard:get-activity-breakdown', async (event, { orgId }) => {
-    return getActivityBreakdown(database, orgId);
-  });
+  ipcMain.handle(
+    "dashboard:get-activity-breakdown",
+    async (event, { orgId }) => {
+      return getActivityBreakdown(database, orgId);
+    },
+  );
 
-  ipcMain.handle('dashboard:get-knowledge-graph', async (event, { orgId }) => {
+  ipcMain.handle("dashboard:get-knowledge-graph", async (event, { orgId }) => {
     return getKnowledgeGraph(database, orgId);
   });
 
-  ipcMain.handle('dashboard:get-storage-breakdown', async (event, { orgId }) => {
-    return getStorageBreakdown(database, orgId);
-  });
+  ipcMain.handle(
+    "dashboard:get-storage-breakdown",
+    async (event, { orgId }) => {
+      return getStorageBreakdown(database, orgId);
+    },
+  );
 
-  ipcMain.handle('dashboard:get-member-engagement', async (event, { orgId }) => {
-    return getMemberEngagement(database, orgId);
-  });
+  ipcMain.handle(
+    "dashboard:get-member-engagement",
+    async (event, { orgId }) => {
+      return getMemberEngagement(database, orgId);
+    },
+  );
 
-  ipcMain.handle('dashboard:get-activity-heatmap', async (event, { orgId }) => {
+  ipcMain.handle("dashboard:get-activity-heatmap", async (event, { orgId }) => {
     return getActivityHeatmap(database, orgId);
   });
 
-  logger.info('[DashboardIPC] All handlers registered (10 handlers)');
+  logger.info("[DashboardIPC] All handlers registered (10 handlers)");
 }
 
 /**
@@ -74,59 +92,99 @@ async function getStats(database, organizationManager, orgId, dateRange) {
     const oneMonthAgo = now - 30 * 24 * 60 * 60 * 1000;
 
     // Get total members
-    const totalMembers = db.prepare(`
+    const totalMembers =
+      db
+        .prepare(
+          `
       SELECT COUNT(*) as count
       FROM organization_members
       WHERE org_id = ? AND status = 'active'
-    `).get(orgId)?.count || 0;
+    `,
+        )
+        .get(orgId)?.count || 0;
 
     // Get member growth (last month)
-    const previousMonthMembers = db.prepare(`
+    const previousMonthMembers =
+      db
+        .prepare(
+          `
       SELECT COUNT(*) as count
       FROM organization_members
       WHERE org_id = ? AND status = 'active' AND joined_at < ?
-    `).get(orgId, oneMonthAgo)?.count || 0;
+    `,
+        )
+        .get(orgId, oneMonthAgo)?.count || 0;
 
-    const memberGrowth = previousMonthMembers > 0
-      ? ((totalMembers - previousMonthMembers) / previousMonthMembers * 100).toFixed(1)
-      : 0;
+    const memberGrowth =
+      previousMonthMembers > 0
+        ? (
+            ((totalMembers - previousMonthMembers) / previousMonthMembers) *
+            100
+          ).toFixed(1)
+        : 0;
 
     // Get total knowledge items
-    const totalKnowledge = db.prepare(`
+    const totalKnowledge =
+      db
+        .prepare(
+          `
       SELECT COUNT(*) as count
       FROM knowledge_items
       WHERE org_id = ? AND deleted_at IS NULL
-    `).get(orgId)?.count || 0;
+    `,
+        )
+        .get(orgId)?.count || 0;
 
     // Get knowledge created today
     const todayStart = new Date().setHours(0, 0, 0, 0);
-    const knowledgeCreatedToday = db.prepare(`
+    const knowledgeCreatedToday =
+      db
+        .prepare(
+          `
       SELECT COUNT(*) as count
       FROM knowledge_items
       WHERE org_id = ? AND created_at >= ? AND deleted_at IS NULL
-    `).get(orgId, todayStart)?.count || 0;
+    `,
+        )
+        .get(orgId, todayStart)?.count || 0;
 
     // Get active collaborations (documents with recent activity)
     const recentThreshold = now - 24 * 60 * 60 * 1000; // Last 24 hours
-    const activeCollaborations = db.prepare(`
+    const activeCollaborations =
+      db
+        .prepare(
+          `
       SELECT COUNT(DISTINCT knowledge_id) as count
       FROM organization_activities
       WHERE org_id = ? AND timestamp >= ?
-    `).get(orgId, recentThreshold)?.count || 0;
+    `,
+        )
+        .get(orgId, recentThreshold)?.count || 0;
 
     // Get online members (from P2P network)
-    const onlineMembers = organizationManager ? organizationManager.getOnlineMemberCount(orgId) : 0;
+    const onlineMembers = organizationManager
+      ? organizationManager.getOnlineMemberCount(orgId)
+      : 0;
 
     // Get storage used
-    const storageUsed = db.prepare(`
+    const storageUsed =
+      db
+        .prepare(
+          `
       SELECT SUM(LENGTH(content)) as total
       FROM knowledge_items
       WHERE org_id = ? AND deleted_at IS NULL
-    `).get(orgId)?.total || 0;
+    `,
+        )
+        .get(orgId)?.total || 0;
 
     // Get network health
-    const networkStats = organizationManager ? organizationManager.getOrgNetworkStats(orgId) : null;
-    const networkHealth = networkStats ? Math.min(100, networkStats.connectedPeers * 20) : 0;
+    const networkStats = organizationManager
+      ? organizationManager.getOrgNetworkStats(orgId)
+      : null;
+    const networkHealth = networkStats
+      ? Math.min(100, networkStats.connectedPeers * 20)
+      : 0;
 
     return {
       success: true,
@@ -143,12 +201,11 @@ async function getStats(database, organizationManager, orgId, dateRange) {
         bandwidthLimit: 100 * 1024 * 1024 * 1024, // 100GB
         networkHealth,
         activeConnections: networkStats?.connectedPeers || 0,
-        maxConnections: 100
-      }
+        maxConnections: 100,
+      },
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting stats:', error);
+    logger.error("[DashboardIPC] Error getting stats:", error);
     return { success: false, error: error.message };
   }
 }
@@ -160,7 +217,9 @@ async function getTopContributors(database, orgId, limit) {
   try {
     const db = database.getDatabase();
 
-    const contributors = db.prepare(`
+    const contributors = db
+      .prepare(
+        `
       SELECT
         m.member_did,
         m.display_name as name,
@@ -174,15 +233,16 @@ async function getTopContributors(database, orgId, limit) {
       GROUP BY m.member_did
       ORDER BY (knowledgeCreated + edits + comments) DESC
       LIMIT ?
-    `).all(orgId, limit);
+    `,
+      )
+      .all(orgId, limit);
 
     return {
       success: true,
-      contributors
+      contributors,
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting top contributors:', error);
+    logger.error("[DashboardIPC] Error getting top contributors:", error);
     return { success: false, error: error.message };
   }
 }
@@ -194,7 +254,9 @@ async function getRecentActivities(database, orgId, limit) {
   try {
     const db = database.getDatabase();
 
-    const activities = db.prepare(`
+    const activities = db
+      .prepare(
+        `
       SELECT
         a.id,
         a.action as activity_type,
@@ -207,21 +269,22 @@ async function getRecentActivities(database, orgId, limit) {
       WHERE a.org_id = ?
       ORDER BY a.timestamp DESC
       LIMIT ?
-    `).all(orgId, limit);
+    `,
+      )
+      .all(orgId, limit);
 
     // Parse metadata JSON
-    const parsedActivities = activities.map(activity => ({
+    const parsedActivities = activities.map((activity) => ({
       ...activity,
-      metadata: activity.metadata ? JSON.parse(activity.metadata) : {}
+      metadata: activity.metadata ? JSON.parse(activity.metadata) : {},
     }));
 
     return {
       success: true,
-      activities: parsedActivities
+      activities: parsedActivities,
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting recent activities:', error);
+    logger.error("[DashboardIPC] Error getting recent activities:", error);
     return { success: false, error: error.message };
   }
 }
@@ -233,29 +296,32 @@ async function getRoleStats(database, orgId) {
   try {
     const db = database.getDatabase();
 
-    const roleStats = db.prepare(`
+    const roleStats = db
+      .prepare(
+        `
       SELECT
         role,
         COUNT(*) as count
       FROM organization_members
       WHERE org_id = ? AND status = 'active'
       GROUP BY role
-    `).all(orgId);
+    `,
+      )
+      .all(orgId);
 
     const total = roleStats.reduce((sum, r) => sum + r.count, 0);
 
-    const rolesWithPercentage = roleStats.map(r => ({
+    const rolesWithPercentage = roleStats.map((r) => ({
       ...r,
-      percentage: total > 0 ? ((r.count / total) * 100).toFixed(1) + '%' : '0%'
+      percentage: total > 0 ? ((r.count / total) * 100).toFixed(1) + "%" : "0%",
     }));
 
     return {
       success: true,
-      roles: rolesWithPercentage
+      roles: rolesWithPercentage,
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting role stats:', error);
+    logger.error("[DashboardIPC] Error getting role stats:", error);
     return { success: false, error: error.message };
   }
 }
@@ -273,21 +339,25 @@ async function getActivityTimeline(database, orgId, days) {
     const timeline = [];
     for (let i = 0; i < days; i++) {
       const date = new Date(now - i * 24 * 60 * 60 * 1000);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = date.toISOString().split("T")[0];
       const dayStart = new Date(date.setHours(0, 0, 0, 0)).getTime();
       const dayEnd = dayStart + 24 * 60 * 60 * 1000;
 
-      const activities = db.prepare(`
+      const activities = db
+        .prepare(
+          `
         SELECT
           action,
           COUNT(*) as count
         FROM organization_activities
         WHERE org_id = ? AND timestamp >= ? AND timestamp < ?
         GROUP BY action
-      `).all(orgId, dayStart, dayEnd);
+      `,
+        )
+        .all(orgId, dayStart, dayEnd);
 
       const activityMap = {};
-      activities.forEach(a => {
+      activities.forEach((a) => {
         activityMap[a.action] = a.count;
       });
 
@@ -296,17 +366,16 @@ async function getActivityTimeline(database, orgId, days) {
         creates: activityMap.create || 0,
         edits: activityMap.edit || 0,
         views: activityMap.view || 0,
-        comments: activityMap.comment || 0
+        comments: activityMap.comment || 0,
       });
     }
 
     return {
       success: true,
-      timeline
+      timeline,
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting activity timeline:', error);
+    logger.error("[DashboardIPC] Error getting activity timeline:", error);
     return { success: false, error: error.message };
   }
 }
@@ -318,22 +387,25 @@ async function getActivityBreakdown(database, orgId) {
   try {
     const db = database.getDatabase();
 
-    const breakdown = db.prepare(`
+    const breakdown = db
+      .prepare(
+        `
       SELECT
         action as name,
         COUNT(*) as value
       FROM organization_activities
       WHERE org_id = ?
       GROUP BY action
-    `).all(orgId);
+    `,
+      )
+      .all(orgId);
 
     return {
       success: true,
-      breakdown
+      breakdown,
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting activity breakdown:', error);
+    logger.error("[DashboardIPC] Error getting activity breakdown:", error);
     return { success: false, error: error.message };
   }
 }
@@ -346,7 +418,9 @@ async function getKnowledgeGraph(database, orgId) {
     const db = database.getDatabase();
 
     // Get knowledge items as nodes
-    const items = db.prepare(`
+    const items = db
+      .prepare(
+        `
       SELECT
         id,
         title,
@@ -355,13 +429,15 @@ async function getKnowledgeGraph(database, orgId) {
       FROM knowledge_items
       WHERE org_id = ? AND deleted_at IS NULL
       LIMIT 100
-    `).all(orgId);
+    `,
+      )
+      .all(orgId);
 
-    const nodes = items.map(item => ({
+    const nodes = items.map((item) => ({
       id: item.id,
-      name: item.title || 'Untitled',
+      name: item.title || "Untitled",
       category: item.type,
-      symbolSize: 20
+      symbolSize: 20,
     }));
 
     // Get relationships (based on tags or references)
@@ -369,18 +445,18 @@ async function getKnowledgeGraph(database, orgId) {
 
     // Simple relationship: items by same creator
     const creatorGroups = {};
-    items.forEach(item => {
+    items.forEach((item) => {
       if (!creatorGroups[item.created_by]) {
         creatorGroups[item.created_by] = [];
       }
       creatorGroups[item.created_by].push(item.id);
     });
 
-    Object.values(creatorGroups).forEach(group => {
+    Object.values(creatorGroups).forEach((group) => {
       for (let i = 0; i < group.length - 1; i++) {
         links.push({
           source: group[i],
-          target: group[i + 1]
+          target: group[i + 1],
         });
       }
     });
@@ -388,11 +464,10 @@ async function getKnowledgeGraph(database, orgId) {
     return {
       success: true,
       nodes,
-      links
+      links,
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting knowledge graph:', error);
+    logger.error("[DashboardIPC] Error getting knowledge graph:", error);
     return { success: false, error: error.message };
   }
 }
@@ -404,22 +479,25 @@ async function getStorageBreakdown(database, orgId) {
   try {
     const db = database.getDatabase();
 
-    const breakdown = db.prepare(`
+    const breakdown = db
+      .prepare(
+        `
       SELECT
         type as name,
         SUM(LENGTH(content)) as value
       FROM knowledge_items
       WHERE org_id = ? AND deleted_at IS NULL
       GROUP BY type
-    `).all(orgId);
+    `,
+      )
+      .all(orgId);
 
     return {
       success: true,
-      breakdown
+      breakdown,
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting storage breakdown:', error);
+    logger.error("[DashboardIPC] Error getting storage breakdown:", error);
     return { success: false, error: error.message };
   }
 }
@@ -431,7 +509,9 @@ async function getMemberEngagement(database, orgId) {
   try {
     const db = database.getDatabase();
 
-    const members = db.prepare(`
+    const members = db
+      .prepare(
+        `
       SELECT
         m.member_did,
         m.display_name as name,
@@ -442,10 +522,12 @@ async function getMemberEngagement(database, orgId) {
       WHERE m.org_id = ? AND m.status = 'active'
       GROUP BY m.member_did
       ORDER BY activityCount DESC
-    `).all(orgId);
+    `,
+      )
+      .all(orgId);
 
     const now = Date.now();
-    const membersWithScore = members.map(m => {
+    const membersWithScore = members.map((m) => {
       const daysSinceActivity = m.lastActivity
         ? Math.floor((now - m.lastActivity) / (24 * 60 * 60 * 1000))
         : 999;
@@ -456,17 +538,16 @@ async function getMemberEngagement(database, orgId) {
 
       return {
         ...m,
-        engagementScore
+        engagementScore,
       };
     });
 
     return {
       success: true,
-      members: membersWithScore
+      members: membersWithScore,
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting member engagement:', error);
+    logger.error("[DashboardIPC] Error getting member engagement:", error);
     return { success: false, error: error.message };
   }
 }
@@ -481,28 +562,34 @@ async function getActivityHeatmap(database, orgId) {
     const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
 
     // Get activities for last 7 days
-    const activities = db.prepare(`
+    const activities = db
+      .prepare(
+        `
       SELECT timestamp
       FROM organization_activities
       WHERE org_id = ? AND timestamp >= ?
-    `).all(orgId, sevenDaysAgo);
+    `,
+      )
+      .all(orgId, sevenDaysAgo);
 
     // Create heatmap data structure
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const hours = Array.from({ length: 24 }, (_, i) =>
+      i.toString().padStart(2, "0"),
+    );
 
     const heatmapData = {};
-    days.forEach(day => {
-      hours.forEach(hour => {
+    days.forEach((day) => {
+      hours.forEach((hour) => {
         heatmapData[`${day}-${hour}`] = 0;
       });
     });
 
     // Fill heatmap with activity data
-    activities.forEach(activity => {
+    activities.forEach((activity) => {
       const date = new Date(activity.timestamp);
       const day = days[date.getDay()];
-      const hour = date.getHours().toString().padStart(2, '0');
+      const hour = date.getHours().toString().padStart(2, "0");
       const key = `${day}-${hour}`;
       if (heatmapData[key] !== undefined) {
         heatmapData[key]++;
@@ -526,11 +613,10 @@ async function getActivityHeatmap(database, orgId) {
       hours,
       days,
       data,
-      maxValue
+      maxValue,
     };
-
   } catch (error) {
-    logger.error('[DashboardIPC] Error getting activity heatmap:', error);
+    logger.error("[DashboardIPC] Error getting activity heatmap:", error);
     return { success: false, error: error.message };
   }
 }
@@ -546,17 +632,21 @@ async function getActivityHeatmap(database, orgId) {
 function getBandwidthUsed(db, orgId, dateRange) {
   try {
     const now = Date.now();
-    const startTime = dateRange?.start || (now - 30 * 24 * 60 * 60 * 1000); // Default: last 30 days
+    const startTime = dateRange?.start || now - 30 * 24 * 60 * 60 * 1000; // Default: last 30 days
 
     let totalBytes = 0;
 
     // 1. Calculate from P2P sync transfer logs
     try {
-      const syncBytes = db.prepare(`
+      const syncBytes = db
+        .prepare(
+          `
         SELECT COALESCE(SUM(bytes_transferred), 0) as total
         FROM p2p_transfer_logs
         WHERE org_id = ? AND timestamp >= ?
-      `).get(orgId, startTime);
+      `,
+        )
+        .get(orgId, startTime);
       totalBytes += parseInt(syncBytes?.total || 0);
     } catch (e) {
       // Table might not exist
@@ -564,11 +654,15 @@ function getBandwidthUsed(db, orgId, dateRange) {
 
     // 2. Calculate from file sync activities
     try {
-      const fileSyncBytes = db.prepare(`
+      const fileSyncBytes = db
+        .prepare(
+          `
         SELECT COALESCE(SUM(file_size), 0) as total
         FROM sync_queue
         WHERE org_id = ? AND created_at >= ? AND status = 'completed'
-      `).get(orgId, startTime);
+      `,
+        )
+        .get(orgId, startTime);
       totalBytes += parseInt(fileSyncBytes?.total || 0);
     } catch (e) {
       // Table might not exist
@@ -576,11 +670,15 @@ function getBandwidthUsed(db, orgId, dateRange) {
 
     // 3. Calculate from knowledge sync (estimate based on content size)
     try {
-      const knowledgeBytes = db.prepare(`
+      const knowledgeBytes = db
+        .prepare(
+          `
         SELECT COALESCE(SUM(LENGTH(content)), 0) as total
         FROM organization_knowledge
         WHERE org_id = ? AND updated_at >= ? AND sync_status = 'synced'
-      `).get(orgId, startTime);
+      `,
+        )
+        .get(orgId, startTime);
       // Multiply by 2 to account for upload + download
       totalBytes += parseInt(knowledgeBytes?.total || 0) * 2;
     } catch (e) {
@@ -589,11 +687,15 @@ function getBandwidthUsed(db, orgId, dateRange) {
 
     // 4. Calculate from message sync
     try {
-      const messageBytes = db.prepare(`
+      const messageBytes = db
+        .prepare(
+          `
         SELECT COALESCE(SUM(LENGTH(content) + LENGTH(COALESCE(metadata, ''))), 0) as total
         FROM p2p_messages
         WHERE org_id = ? AND created_at >= ?
-      `).get(orgId, startTime);
+      `,
+        )
+        .get(orgId, startTime);
       totalBytes += parseInt(messageBytes?.total || 0);
     } catch (e) {
       // Table might not exist
@@ -601,11 +703,11 @@ function getBandwidthUsed(db, orgId, dateRange) {
 
     return totalBytes;
   } catch (error) {
-    logger.warn('[DashboardIPC] Error calculating bandwidth:', error.message);
+    logger.warn("[DashboardIPC] Error calculating bandwidth:", error.message);
     return 0;
   }
 }
 
 module.exports = {
-  registerDashboardIPC
+  registerDashboardIPC,
 };

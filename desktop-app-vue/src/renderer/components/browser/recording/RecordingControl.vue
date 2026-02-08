@@ -1,12 +1,15 @@
 <template>
   <div class="recording-control">
     <!-- Recording Status -->
-    <div class="recording-status" :class="{ recording: isRecording, paused: isPaused }">
+    <div
+      class="recording-status"
+      :class="{ recording: isRecording, paused: isPaused }"
+    >
       <div class="status-indicator">
-        <span class="recording-dot" v-if="isRecording && !isPaused"></span>
+        <span v-if="isRecording && !isPaused" class="recording-dot" />
         <span class="status-text">{{ statusText }}</span>
       </div>
-      <div class="recording-time" v-if="isRecording">
+      <div v-if="isRecording" class="recording-time">
         {{ formatDuration(recordingDuration) }}
       </div>
     </div>
@@ -18,59 +21,56 @@
         type="primary"
         size="large"
         danger
-        @click="startRecording"
         :loading="starting"
+        @click="startRecording"
       >
-        <template #icon><VideoCameraOutlined /></template>
+        <template #icon>
+          <VideoCameraOutlined />
+        </template>
         Start Recording
       </a-button>
 
       <template v-else>
-        <a-button
-          v-if="!isPaused"
-          size="large"
-          @click="pauseRecording"
-        >
-          <template #icon><PauseOutlined /></template>
+        <a-button v-if="!isPaused" size="large" @click="pauseRecording">
+          <template #icon>
+            <PauseOutlined />
+          </template>
           Pause
         </a-button>
-        <a-button
-          v-else
-          type="primary"
-          size="large"
-          @click="resumeRecording"
-        >
-          <template #icon><PlayCircleOutlined /></template>
+        <a-button v-else type="primary" size="large" @click="resumeRecording">
+          <template #icon>
+            <PlayCircleOutlined />
+          </template>
           Resume
         </a-button>
 
-        <a-button
-          type="primary"
-          size="large"
-          danger
-          @click="stopRecording"
-        >
-          <template #icon><StopOutlined /></template>
+        <a-button type="primary" size="large" danger @click="stopRecording">
+          <template #icon>
+            <StopOutlined />
+          </template>
           Stop
         </a-button>
       </template>
     </div>
 
     <!-- Recording Options -->
-    <div class="recording-options" v-if="!isRecording">
+    <div v-if="!isRecording" class="recording-options">
       <a-collapse :bordered="false">
         <a-collapse-panel key="options" header="Recording Options">
           <a-form layout="vertical" size="small">
             <a-form-item label="Recording Name">
-              <a-input v-model:value="recordingName" placeholder="My Recording" />
+              <a-input
+                v-model:value="recordingName"
+                placeholder="My Recording"
+              />
             </a-form-item>
             <a-form-item label="Capture">
               <a-checkbox-group v-model:value="captureOptions">
-                <a-checkbox value="clicks">Clicks</a-checkbox>
-                <a-checkbox value="typing">Typing</a-checkbox>
-                <a-checkbox value="scrolls">Scrolls</a-checkbox>
-                <a-checkbox value="navigation">Navigation</a-checkbox>
-                <a-checkbox value="screenshots">Auto Screenshots</a-checkbox>
+                <a-checkbox value="clicks"> Clicks </a-checkbox>
+                <a-checkbox value="typing"> Typing </a-checkbox>
+                <a-checkbox value="scrolls"> Scrolls </a-checkbox>
+                <a-checkbox value="navigation"> Navigation </a-checkbox>
+                <a-checkbox value="screenshots"> Auto Screenshots </a-checkbox>
               </a-checkbox-group>
             </a-form-item>
             <a-form-item label="Event Coalescing">
@@ -88,7 +88,7 @@
     </div>
 
     <!-- Live Stats -->
-    <div class="live-stats" v-if="isRecording">
+    <div v-if="isRecording" class="live-stats">
       <a-statistic title="Events" :value="eventCount" />
       <a-statistic title="Clicks" :value="clickCount" />
       <a-statistic title="Inputs" :value="inputCount" />
@@ -96,7 +96,7 @@
     </div>
 
     <!-- Recent Events -->
-    <div class="recent-events" v-if="isRecording && recentEvents.length > 0">
+    <div v-if="isRecording && recentEvents.length > 0" class="recent-events">
       <div class="events-header">
         <span>Recent Events</span>
         <a-badge :count="eventCount" :overflow-count="999" />
@@ -120,8 +120,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   VideoCameraOutlined,
   PauseOutlined,
@@ -132,20 +132,24 @@ import {
   GlobalOutlined,
   ArrowDownOutlined,
   KeyOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
-  targetId: String
+  targetId: String,
 });
 
-const emit = defineEmits(['recording-saved', 'recording-started', 'recording-stopped']);
+const emit = defineEmits([
+  "recording-saved",
+  "recording-started",
+  "recording-stopped",
+]);
 
 // State
 const isRecording = ref(false);
 const isPaused = ref(false);
 const starting = ref(false);
-const recordingName = ref('');
-const captureOptions = ref(['clicks', 'typing', 'scrolls', 'navigation']);
+const recordingName = ref("");
+const captureOptions = ref(["clicks", "typing", "scrolls", "navigation"]);
 const coalesceDelay = ref(300);
 const recordingDuration = ref(0);
 const eventCount = ref(0);
@@ -159,9 +163,13 @@ let unsubscribe = null;
 
 // Computed
 const statusText = computed(() => {
-  if (!isRecording.value) return 'Ready to Record';
-  if (isPaused.value) return 'Paused';
-  return 'Recording...';
+  if (!isRecording.value) {
+    return "Ready to Record";
+  }
+  if (isPaused.value) {
+    return "Paused";
+  }
+  return "Recording...";
 });
 
 // Methods
@@ -170,12 +178,12 @@ const startRecording = async () => {
   try {
     await window.electronAPI.browser.recording.start(props.targetId, {
       name: recordingName.value || `Recording ${Date.now()}`,
-      captureClicks: captureOptions.value.includes('clicks'),
-      captureTyping: captureOptions.value.includes('typing'),
-      captureScrolls: captureOptions.value.includes('scrolls'),
-      captureNavigation: captureOptions.value.includes('navigation'),
-      captureScreenshots: captureOptions.value.includes('screenshots'),
-      coalesceDelay: coalesceDelay.value
+      captureClicks: captureOptions.value.includes("clicks"),
+      captureTyping: captureOptions.value.includes("typing"),
+      captureScrolls: captureOptions.value.includes("scrolls"),
+      captureNavigation: captureOptions.value.includes("navigation"),
+      captureScreenshots: captureOptions.value.includes("screenshots"),
+      coalesceDelay: coalesceDelay.value,
     });
 
     isRecording.value = true;
@@ -194,10 +202,10 @@ const startRecording = async () => {
       }
     }, 1000);
 
-    emit('recording-started');
-    message.success('Recording started');
+    emit("recording-started");
+    message.success("Recording started");
   } catch (error) {
-    message.error('Failed to start recording: ' + error.message);
+    message.error("Failed to start recording: " + error.message);
   } finally {
     starting.value = false;
   }
@@ -207,9 +215,9 @@ const pauseRecording = async () => {
   try {
     await window.electronAPI.browser.recording.pause(props.targetId);
     isPaused.value = true;
-    message.info('Recording paused');
+    message.info("Recording paused");
   } catch (error) {
-    message.error('Failed to pause: ' + error.message);
+    message.error("Failed to pause: " + error.message);
   }
 };
 
@@ -217,15 +225,17 @@ const resumeRecording = async () => {
   try {
     await window.electronAPI.browser.recording.resume(props.targetId);
     isPaused.value = false;
-    message.info('Recording resumed');
+    message.info("Recording resumed");
   } catch (error) {
-    message.error('Failed to resume: ' + error.message);
+    message.error("Failed to resume: " + error.message);
   }
 };
 
 const stopRecording = async () => {
   try {
-    const recording = await window.electronAPI.browser.recording.stop(props.targetId);
+    const recording = await window.electronAPI.browser.recording.stop(
+      props.targetId,
+    );
 
     isRecording.value = false;
     isPaused.value = false;
@@ -239,15 +249,15 @@ const stopRecording = async () => {
     if (recording) {
       const saved = await window.electronAPI.browser.recording.save({
         ...recording,
-        name: recordingName.value || `Recording ${new Date().toLocaleString()}`
+        name: recordingName.value || `Recording ${new Date().toLocaleString()}`,
       });
-      emit('recording-saved', saved);
-      message.success('Recording saved');
+      emit("recording-saved", saved);
+      message.success("Recording saved");
     }
 
-    emit('recording-stopped');
+    emit("recording-stopped");
   } catch (error) {
-    message.error('Failed to stop recording: ' + error.message);
+    message.error("Failed to stop recording: " + error.message);
   }
 };
 
@@ -256,14 +266,14 @@ const handleRecordingEvent = (event) => {
 
   // Update counters
   switch (event.type) {
-    case 'click':
+    case "click":
       clickCount.value++;
       break;
-    case 'type':
-    case 'input':
+    case "type":
+    case "input":
       inputCount.value++;
       break;
-    case 'navigate':
+    case "navigate":
       navigationCount.value++;
       break;
   }
@@ -289,16 +299,16 @@ const getEventIcon = (type) => {
 
 const getEventDescription = (event) => {
   switch (event.type) {
-    case 'click':
-      return `Clicked ${event.selector || 'element'}`;
-    case 'type':
-    case 'input':
+    case "click":
+      return `Clicked ${event.selector || "element"}`;
+    case "type":
+    case "input":
       return `Typed "${truncate(event.text, 20)}"`;
-    case 'navigate':
+    case "navigate":
       return `Navigated to ${truncate(event.url, 30)}`;
-    case 'scroll':
-      return `Scrolled ${event.direction || 'down'}`;
-    case 'key':
+    case "scroll":
+      return `Scrolled ${event.direction || "down"}`;
+    case "key":
       return `Pressed ${event.key}`;
     default:
       return event.type;
@@ -306,23 +316,25 @@ const getEventDescription = (event) => {
 };
 
 const truncate = (str, maxLen) => {
-  if (!str) return '';
-  return str.length > maxLen ? str.substring(0, maxLen) + '...' : str;
+  if (!str) {
+    return "";
+  }
+  return str.length > maxLen ? str.substring(0, maxLen) + "..." : str;
 };
 
 const formatDuration = (ms) => {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
 };
 
 const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleTimeString('en-US', {
+  return new Date(timestamp).toLocaleTimeString("en-US", {
     hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
   });
 };
 
@@ -387,8 +399,13 @@ onUnmounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .status-text {

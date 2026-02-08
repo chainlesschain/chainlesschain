@@ -12,7 +12,7 @@
  * @since 2026-01-18
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 const crypto = require("crypto");
@@ -380,9 +380,7 @@ class AutoBackupManager extends EventEmitter {
           backupData.tables[table] = rows;
           totalItems += rows.length;
         } catch (tableError) {
-          logger.warn(
-            `[AutoBackupManager] Table ${table} not found, skipping`,
-          );
+          logger.warn(`[AutoBackupManager] Table ${table} not found, skipping`);
         }
       }
 
@@ -572,9 +570,7 @@ class AutoBackupManager extends EventEmitter {
             backupData.changes[table] = { added, modified, deleted };
           }
         } catch (tableError) {
-          logger.warn(
-            `[AutoBackupManager] Table ${table} not found, skipping`,
-          );
+          logger.warn(`[AutoBackupManager] Table ${table} not found, skipping`);
         }
       }
 

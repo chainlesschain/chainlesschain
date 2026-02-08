@@ -1,9 +1,6 @@
 <template>
   <div class="tool-details">
-    <a-descriptions
-      :column="1"
-      bordered
-    >
+    <a-descriptions :column="1" bordered>
       <a-descriptions-item label="工具ID">
         {{ tool.id }}
       </a-descriptions-item>
@@ -24,7 +21,7 @@
           v-model:value="editForm.display_name"
           placeholder="输入显示名称"
         />
-        <span v-else>{{ tool.display_name || '-' }}</span>
+        <span v-else>{{ tool.display_name || "-" }}</span>
       </a-descriptions-item>
 
       <a-descriptions-item label="描述">
@@ -34,7 +31,7 @@
           :rows="3"
           placeholder="输入描述"
         />
-        <span v-else>{{ tool.description || '-' }}</span>
+        <span v-else>{{ tool.description || "-" }}</span>
       </a-descriptions-item>
 
       <a-descriptions-item label="分类">
@@ -43,29 +40,14 @@
           v-model:value="editForm.category"
           style="width: 200px"
         >
-          <a-select-option value="file">
-            文件操作
-          </a-select-option>
-          <a-select-option value="code">
-            代码生成
-          </a-select-option>
-          <a-select-option value="project">
-            项目管理
-          </a-select-option>
-          <a-select-option value="system">
-            系统操作
-          </a-select-option>
-          <a-select-option value="output">
-            输出格式化
-          </a-select-option>
-          <a-select-option value="general">
-            通用
-          </a-select-option>
+          <a-select-option value="file"> 文件操作 </a-select-option>
+          <a-select-option value="code"> 代码生成 </a-select-option>
+          <a-select-option value="project"> 项目管理 </a-select-option>
+          <a-select-option value="system"> 系统操作 </a-select-option>
+          <a-select-option value="output"> 输出格式化 </a-select-option>
+          <a-select-option value="general"> 通用 </a-select-option>
         </a-select>
-        <a-tag
-          v-else
-          :color="getCategoryColor(tool.category)"
-        >
+        <a-tag v-else :color="getCategoryColor(tool.category)">
           {{ getCategoryName(tool.category) }}
         </a-tag>
       </a-descriptions-item>
@@ -83,26 +65,16 @@
       <a-descriptions-item label="状态">
         <a-badge :status="tool.enabled ? 'success' : 'default'" />
         <span style="margin-left: 8px">
-          {{ tool.enabled ? '已启用' : '已禁用' }}
+          {{ tool.enabled ? "已启用" : "已禁用" }}
         </span>
       </a-descriptions-item>
 
       <a-descriptions-item label="来源">
-        <a-tag
-          v-if="tool.is_builtin"
-          color="blue"
-        >
-          内置
-        </a-tag>
-        <a-tag
-          v-else-if="tool.plugin_id"
-          color="purple"
-        >
+        <a-tag v-if="tool.is_builtin" color="blue"> 内置 </a-tag>
+        <a-tag v-else-if="tool.plugin_id" color="purple">
           插件 ({{ tool.plugin_id }})
         </a-tag>
-        <a-tag v-else>
-          自定义
-        </a-tag>
+        <a-tag v-else> 自定义 </a-tag>
       </a-descriptions-item>
     </a-descriptions>
 
@@ -118,44 +90,23 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'required'">
-            <a-tag
-              v-if="record.required"
-              color="red"
-            >
-              必填
-            </a-tag>
-            <a-tag v-else>
-              可选
-            </a-tag>
+            <a-tag v-if="record.required" color="red"> 必填 </a-tag>
+            <a-tag v-else> 可选 </a-tag>
           </template>
         </template>
       </a-table>
     </div>
-    <a-empty
-      v-else
-      description="无参数"
-      :image="simpleImage"
-      size="small"
-    />
+    <a-empty v-else description="无参数" :image="simpleImage" size="small" />
 
     <!-- 权限要求 -->
     <a-divider>权限要求</a-divider>
 
     <div v-if="parsedPermissions && parsedPermissions.length > 0">
-      <a-tag
-        v-for="perm in parsedPermissions"
-        :key="perm"
-        color="orange"
-      >
+      <a-tag v-for="perm in parsedPermissions" :key="perm" color="orange">
         {{ perm }}
       </a-tag>
     </div>
-    <div
-      v-else
-      style="color: #8c8c8c"
-    >
-      无特殊权限要求
-    </div>
+    <div v-else style="color: #8c8c8c">无特殊权限要求</div>
 
     <!-- 文档 -->
     <a-divider>文档</a-divider>
@@ -169,11 +120,7 @@
         @skill-link-click="handleSkillLinkClick"
         @tool-link-click="handleToolLinkClick"
       />
-      <a-empty
-        v-else
-        description="暂无文档"
-        :image="simpleImage"
-      />
+      <a-empty v-else description="暂无文档" :image="simpleImage" />
     </ErrorBoundary>
 
     <!-- 统计信息 -->
@@ -181,16 +128,10 @@
 
     <a-row :gutter="16">
       <a-col :span="6">
-        <a-statistic
-          title="调用次数"
-          :value="tool.usage_count || 0"
-        />
+        <a-statistic title="调用次数" :value="tool.usage_count || 0" />
       </a-col>
       <a-col :span="6">
-        <a-statistic
-          title="成功次数"
-          :value="tool.success_count || 0"
-        />
+        <a-statistic title="成功次数" :value="tool.success_count || 0" />
       </a-col>
       <a-col :span="6">
         <a-statistic
@@ -213,12 +154,7 @@
     <!-- 操作按钮 -->
     <div class="actions">
       <a-space>
-        <a-button
-          v-if="!editing"
-          @click="startEdit"
-        >
-          编辑
-        </a-button>
+        <a-button v-if="!editing" @click="startEdit"> 编辑 </a-button>
         <a-button
           v-if="editing"
           type="primary"
@@ -227,28 +163,21 @@
         >
           保存
         </a-button>
-        <a-button
-          v-if="editing"
-          @click="cancelEdit"
-        >
-          取消
-        </a-button>
-        <a-button @click="$emit('close')">
-          关闭
-        </a-button>
+        <a-button v-if="editing" @click="cancelEdit"> 取消 </a-button>
+        <a-button @click="$emit('close')"> 关闭 </a-button>
       </a-space>
     </div>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed } from 'vue';
-import { message, Empty } from 'ant-design-vue';
-import { useRouter } from 'vue-router';
-import MarkdownViewer from '../common/MarkdownViewer.vue';
-import ErrorBoundary from '../common/ErrorBoundary.vue';
+import { ref, computed } from "vue";
+import { message, Empty } from "ant-design-vue";
+import { useRouter } from "vue-router";
+import MarkdownViewer from "../common/MarkdownViewer.vue";
+import ErrorBoundary from "../common/ErrorBoundary.vue";
 
 const props = defineProps({
   tool: {
@@ -257,7 +186,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update', 'close']);
+const emit = defineEmits(["update", "close"]);
 
 const router = useRouter();
 const simpleImage = Empty.PRESENTED_IMAGE_SIMPLE;
@@ -268,15 +197,15 @@ const editForm = ref({});
 
 // 参数表格列
 const paramColumns = [
-  { title: '参数名', dataIndex: 'name', key: 'name' },
-  { title: '类型', dataIndex: 'type', key: 'type' },
-  { title: '必填', key: 'required', width: 80 },
-  { title: '描述', dataIndex: 'description', key: 'description' },
+  { title: "参数名", dataIndex: "name", key: "name" },
+  { title: "类型", dataIndex: "type", key: "type" },
+  { title: "必填", key: "required", width: 80 },
+  { title: "描述", dataIndex: "description", key: "description" },
 ];
 
 // 解析Schema
 const parsedSchema = computed(() => {
-  if (typeof props.tool.parameters_schema === 'string') {
+  if (typeof props.tool.parameters_schema === "string") {
     try {
       return JSON.parse(props.tool.parameters_schema);
     } catch {
@@ -291,15 +220,15 @@ const paramDataSource = computed(() => {
   const schema = parsedSchema.value;
   return Object.entries(schema).map(([name, param]) => ({
     name,
-    type: param.type || 'any',
+    type: param.type || "any",
     required: param.required || false,
-    description: param.description || '-',
+    description: param.description || "-",
   }));
 });
 
 // 解析权限
 const parsedPermissions = computed(() => {
-  if (typeof props.tool.required_permissions === 'string') {
+  if (typeof props.tool.required_permissions === "string") {
     try {
       return JSON.parse(props.tool.required_permissions);
     } catch {
@@ -312,31 +241,33 @@ const parsedPermissions = computed(() => {
 // 计算成功率
 const successRate = computed(() => {
   const { usage_count, success_count } = props.tool;
-  if (!usage_count || usage_count === 0) {return 0;}
+  if (!usage_count || usage_count === 0) {
+    return 0;
+  }
   return ((success_count / usage_count) * 100).toFixed(1);
 });
 
 // 分类相关
 const getCategoryColor = (category) => {
   const colorMap = {
-    file: 'blue',
-    code: 'cyan',
-    project: 'green',
-    system: 'volcano',
-    output: 'orange',
-    general: 'default',
+    file: "blue",
+    code: "cyan",
+    project: "green",
+    system: "volcano",
+    output: "orange",
+    general: "default",
   };
-  return colorMap[category] || 'default';
+  return colorMap[category] || "default";
 };
 
 const getCategoryName = (category) => {
   const nameMap = {
-    file: '文件操作',
-    code: '代码生成',
-    project: '项目管理',
-    system: '系统操作',
-    output: '输出格式化',
-    general: '通用',
+    file: "文件操作",
+    code: "代码生成",
+    project: "项目管理",
+    system: "系统操作",
+    output: "输出格式化",
+    general: "通用",
   };
   return nameMap[category] || category;
 };
@@ -344,24 +275,24 @@ const getCategoryName = (category) => {
 // 风险等级
 const getRiskColor = (level) => {
   const colorMap = {
-    1: 'success',
-    2: 'warning',
-    3: 'orange',
-    4: 'error',
-    5: 'red',
+    1: "success",
+    2: "warning",
+    3: "orange",
+    4: "error",
+    5: "red",
   };
-  return colorMap[level] || 'default';
+  return colorMap[level] || "default";
 };
 
 const getRiskLabel = (level) => {
   const labelMap = {
-    1: '低风险',
-    2: '中风险',
-    3: '较高风险',
-    4: '高风险',
-    5: '极高风险',
+    1: "低风险",
+    2: "中风险",
+    3: "较高风险",
+    4: "高风险",
+    5: "极高风险",
   };
-  return labelMap[level] || '未知';
+  return labelMap[level] || "未知";
 };
 
 // 开始编辑
@@ -379,11 +310,11 @@ const startEdit = () => {
 const saveEdit = async () => {
   saving.value = true;
   try {
-    await emit('update', props.tool.id, editForm.value);
+    await emit("update", props.tool.id, editForm.value);
     editing.value = false;
   } catch (error) {
     logger.error(error);
-    message.error('保存失败');
+    message.error("保存失败");
   } finally {
     saving.value = false;
   }
@@ -396,14 +327,14 @@ const cancelEdit = () => {
 
 // 处理技能链接点击
 const handleSkillLinkClick = (skillId) => {
-  logger.info('Navigate to skill:', skillId);
-  router.push({ name: 'SkillManagement', query: { skillId } });
+  logger.info("Navigate to skill:", skillId);
+  router.push({ name: "SkillManagement", query: { skillId } });
 };
 
 // 处理工具链接点击
 const handleToolLinkClick = (toolId) => {
-  logger.info('Navigate to tool:', toolId);
-  router.push({ name: 'ToolManagement', query: { toolId } });
+  logger.info("Navigate to tool:", toolId);
+  router.push({ name: "ToolManagement", query: { toolId } });
 };
 </script>
 

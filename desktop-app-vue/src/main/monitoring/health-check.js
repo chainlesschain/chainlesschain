@@ -3,7 +3,7 @@
  * 定期检查各个服务和组件的健康状态,并尝试自动修复问题
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const axios = require("axios");
 const fs = require("fs").promises;
 const path = require("path");
@@ -116,8 +116,11 @@ class HealthCheckService {
       // 执行简单查询测试连接
       await new Promise((resolve, reject) => {
         db.get("SELECT 1 as test", (err, row) => {
-          if (err) {reject(err);}
-          else {resolve(row);}
+          if (err) {
+            reject(err);
+          } else {
+            resolve(row);
+          }
         });
       });
 

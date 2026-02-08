@@ -14,10 +14,7 @@
       <a-row :gutter="24">
         <!-- 左侧：语音输入组件 -->
         <a-col :span="16">
-          <a-card
-            title="语音输入"
-            :bordered="false"
-          >
+          <a-card title="语音输入" :bordered="false">
             <RealtimeVoiceInput
               :auto-insert="false"
               :enable-commands="true"
@@ -30,15 +27,8 @@
         <!-- 右侧：信息面板 -->
         <a-col :span="8">
           <!-- 缓存统计 -->
-          <a-card
-            title="缓存统计"
-            :bordered="false"
-            class="info-card"
-          >
-            <a-descriptions
-              :column="1"
-              size="small"
-            >
+          <a-card title="缓存统计" :bordered="false" class="info-card">
+            <a-descriptions :column="1" size="small">
               <a-descriptions-item label="磁盘缓存数">
                 {{ cacheStats.diskEntries || 0 }}
               </a-descriptions-item>
@@ -51,10 +41,7 @@
             </a-descriptions>
 
             <div class="card-actions">
-              <a-button
-                :loading="loadingCacheStats"
-                @click="refreshCacheStats"
-              >
+              <a-button :loading="loadingCacheStats" @click="refreshCacheStats">
                 <ReloadOutlined />
                 刷新
               </a-button>
@@ -71,24 +58,14 @@
           </a-card>
 
           <!-- 可用命令列表 -->
-          <a-card
-            title="可用语音命令"
-            :bordered="false"
-            class="info-card"
-          >
-            <a-collapse
-              v-model:active-key="activeCommandCategory"
-              accordion
-            >
+          <a-card title="可用语音命令" :bordered="false" class="info-card">
+            <a-collapse v-model:active-key="activeCommandCategory" accordion>
               <a-collapse-panel
                 v-for="category in commandCategories"
                 :key="category.name"
                 :header="category.label"
               >
-                <a-list
-                  size="small"
-                  :data-source="category.commands"
-                >
+                <a-list size="small" :data-source="category.commands">
                   <template #renderItem="{ item }">
                     <a-list-item>
                       <a-list-item-meta>
@@ -107,11 +84,7 @@
           </a-card>
 
           <!-- 识别历史 -->
-          <a-card
-            title="识别历史"
-            :bordered="false"
-            class="info-card"
-          >
+          <a-card title="识别历史" :bordered="false" class="info-card">
             <a-timeline>
               <a-timeline-item
                 v-for="(item, index) in recognitionHistory"
@@ -127,10 +100,7 @@
                     {{ item.time }}
                   </div>
                   <div class="timeline-content">
-                    <a-tag
-                      v-if="item.type === 'command'"
-                      color="green"
-                    >
+                    <a-tag v-if="item.type === 'command'" color="green">
                       命令: {{ item.command }}
                     </a-tag>
                     <span v-else>{{ item.text }}</span>
@@ -146,18 +116,18 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   AudioOutlined,
   ReloadOutlined,
   DeleteOutlined,
   ThunderboltOutlined,
   FileTextOutlined,
-} from '@ant-design/icons-vue';
-import RealtimeVoiceInput from '@/components/RealtimeVoiceInput.vue';
+} from "@ant-design/icons-vue";
+import RealtimeVoiceInput from "@/components/RealtimeVoiceInput.vue";
 
 // 状态
 const cacheStats = ref({
@@ -166,38 +136,40 @@ const cacheStats = ref({
   totalSize: 0,
 });
 const loadingCacheStats = ref(false);
-const activeCommandCategory = ref(['navigation']);
+const activeCommandCategory = ref(["navigation"]);
 const recognitionHistory = ref([]);
 const commandCategories = ref([
   {
-    name: 'navigation',
-    label: '导航命令',
-    commands: []
+    name: "navigation",
+    label: "导航命令",
+    commands: [],
   },
   {
-    name: 'operation',
-    label: '操作命令',
-    commands: []
+    name: "operation",
+    label: "操作命令",
+    commands: [],
   },
   {
-    name: 'ai',
-    label: 'AI命令',
-    commands: []
+    name: "ai",
+    label: "AI命令",
+    commands: [],
   },
   {
-    name: 'system',
-    label: '系统命令',
-    commands: []
-  }
+    name: "system",
+    label: "系统命令",
+    commands: [],
+  },
 ]);
 
 // 格式化文件大小
 const formatSize = (bytes) => {
-  if (bytes === 0) {return '0 B';}
+  if (bytes === 0) {
+    return "0 B";
+  }
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };
 
 // 刷新缓存统计
@@ -209,8 +181,8 @@ const refreshCacheStats = async () => {
       cacheStats.value = result.stats;
     }
   } catch (error) {
-    logger.error('获取缓存统计失败:', error);
-    message.error('获取缓存统计失败');
+    logger.error("获取缓存统计失败:", error);
+    message.error("获取缓存统计失败");
   } finally {
     loadingCacheStats.value = false;
   }
@@ -221,12 +193,12 @@ const clearCache = async () => {
   try {
     const result = await window.electronAPI.speech.clearCache();
     if (result.success) {
-      message.success('缓存已清空');
+      message.success("缓存已清空");
       await refreshCacheStats();
     }
   } catch (error) {
-    logger.error('清空缓存失败:', error);
-    message.error('清空缓存失败');
+    logger.error("清空缓存失败:", error);
+    message.error("清空缓存失败");
   }
 };
 
@@ -240,16 +212,25 @@ const loadAvailableCommands = async () => {
         navigation: [],
         operation: [],
         ai: [],
-        system: []
+        system: [],
       };
 
-      result.commands.forEach(cmd => {
+      result.commands.forEach((cmd) => {
         const name = cmd.name;
-        if (name.startsWith('navigate_')) {
+        if (name.startsWith("navigate_")) {
           categorized.navigation.push(cmd);
-        } else if (name.startsWith('create_') || name === 'save' || name === 'search') {
+        } else if (
+          name.startsWith("create_") ||
+          name === "save" ||
+          name === "search"
+        ) {
           categorized.operation.push(cmd);
-        } else if (name === 'summarize' || name === 'translate' || name === 'generate_outline' || name === 'explain') {
+        } else if (
+          name === "summarize" ||
+          name === "translate" ||
+          name === "generate_outline" ||
+          name === "explain"
+        ) {
           categorized.ai.push(cmd);
         } else {
           categorized.system.push(cmd);
@@ -257,25 +238,35 @@ const loadAvailableCommands = async () => {
       });
 
       commandCategories.value = [
-        { name: 'navigation', label: '导航命令', commands: categorized.navigation },
-        { name: 'operation', label: '操作命令', commands: categorized.operation },
-        { name: 'ai', label: 'AI命令', commands: categorized.ai },
-        { name: 'system', label: '系统命令', commands: categorized.system }
+        {
+          name: "navigation",
+          label: "导航命令",
+          commands: categorized.navigation,
+        },
+        {
+          name: "operation",
+          label: "操作命令",
+          commands: categorized.operation,
+        },
+        { name: "ai", label: "AI命令", commands: categorized.ai },
+        { name: "system", label: "系统命令", commands: categorized.system },
       ];
     }
   } catch (error) {
-    logger.error('加载可用命令失败:', error);
+    logger.error("加载可用命令失败:", error);
   }
 };
 
 // 处理转录完成
 const handleTranscriptCompleted = (data) => {
   const now = new Date();
-  const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
   recognitionHistory.value.unshift({
-    type: 'transcript',
-    text: data.transcript.substring(0, 50) + (data.transcript.length > 50 ? '...' : ''),
+    type: "transcript",
+    text:
+      data.transcript.substring(0, 50) +
+      (data.transcript.length > 50 ? "..." : ""),
     time: time,
   });
 
@@ -288,10 +279,10 @@ const handleTranscriptCompleted = (data) => {
 // 处理命令识别
 const handleCommandRecognized = (command) => {
   const now = new Date();
-  const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
   recognitionHistory.value.unshift({
-    type: 'command',
+    type: "command",
     command: command.command,
     time: time,
   });

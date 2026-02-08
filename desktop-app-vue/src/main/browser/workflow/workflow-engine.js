@@ -6,22 +6,22 @@
  * @since v0.30.0
  */
 
-const { EventEmitter } = require('events');
-const { v4: uuidv4 } = require('uuid');
-const { logger } = require('../../utils/logger');
-const { VariableManager, VariableScope } = require('./workflow-variables');
-const { ControlFlowManager, StepType } = require('./control-flow');
+const { EventEmitter } = require("events");
+const { v4: uuidv4 } = require("uuid");
+const { logger } = require("../../utils/logger");
+const { VariableManager, VariableScope } = require("./workflow-variables");
+const { ControlFlowManager, StepType } = require("./control-flow");
 
 /**
  * Execution status enum
  */
 const ExecutionStatus = {
-  PENDING: 'pending',
-  RUNNING: 'running',
-  PAUSED: 'paused',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
-  CANCELLED: 'cancelled'
+  PENDING: "pending",
+  RUNNING: "running",
+  PAUSED: "paused",
+  COMPLETED: "completed",
+  FAILED: "failed",
+  CANCELLED: "cancelled",
 };
 
 /**
@@ -47,7 +47,7 @@ class ExecutionContext {
     // Variable manager
     this.variables = new VariableManager({
       ...workflow.variables,
-      ...options.initialVariables
+      ...options.initialVariables,
     });
 
     // Control flow manager
@@ -73,7 +73,7 @@ class WorkflowEngine extends EventEmitter {
       defaultTimeout: options.defaultTimeout || 30000,
       maxRetries: options.maxRetries || 2,
       retryDelay: options.retryDelay || 1000,
-      ...options
+      ...options,
     };
 
     // Active executions
@@ -104,24 +104,30 @@ class WorkflowEngine extends EventEmitter {
           workflowName: workflow.name,
           targetId: options.targetId,
           variables: context.variables.getAll(),
-          totalSteps: context.totalSteps
+          totalSteps: context.totalSteps,
         });
       }
 
-      this.emit('workflow:started', {
+      this.emit("workflow:started", {
         executionId,
         workflowId: workflow.id,
-        workflowName: workflow.name
+        workflowName: workflow.name,
       });
 
       // Set page info in variables if we have a target
       if (options.targetId && this.browserEngine) {
         try {
           const page = this.browserEngine.getPage(options.targetId);
-          context.variables.set('page_url', page.url(), VariableScope.STEP);
-          context.variables.set('page_title', await page.title(), VariableScope.STEP);
+          context.variables.set("page_url", page.url(), VariableScope.STEP);
+          context.variables.set(
+            "page_title",
+            await page.title(),
+            VariableScope.STEP,
+          );
         } catch (e) {
-          logger.warn('[WorkflowEngine] Could not get page info', { error: e.message });
+          logger.warn("[WorkflowEngine] Could not get page info", {
+            error: e.message,
+          });
         }
       }
 
@@ -136,22 +142,22 @@ class WorkflowEngine extends EventEmitter {
         await this.storage.updateExecution(executionId, {
           status: ExecutionStatus.COMPLETED,
           results: context.results,
-          currentStep: context.currentStepIndex
+          currentStep: context.currentStepIndex,
         });
 
         // Update workflow stats
         await this.storage.updateWorkflowStats(
           workflow.id,
           true,
-          context.endTime - context.startTime
+          context.endTime - context.startTime,
         );
       }
 
-      this.emit('workflow:completed', {
+      this.emit("workflow:completed", {
         executionId,
         workflowId: workflow.id,
         duration: context.endTime - context.startTime,
-        stepsExecuted: context.results.length
+        stepsExecuted: context.results.length,
       });
 
       return {
@@ -159,9 +165,8 @@ class WorkflowEngine extends EventEmitter {
         status: ExecutionStatus.COMPLETED,
         results: context.results,
         variables: context.variables.getAll(),
-        duration: context.endTime - context.startTime
+        duration: context.endTime - context.startTime,
       };
-
     } catch (error) {
       context.status = ExecutionStatus.FAILED;
       context.endTime = Date.now();
@@ -173,26 +178,25 @@ class WorkflowEngine extends EventEmitter {
           status: ExecutionStatus.FAILED,
           results: context.results,
           errorMessage: error.message,
-          errorStep: context.errorStep
+          errorStep: context.errorStep,
         });
 
         // Update workflow stats
         await this.storage.updateWorkflowStats(
           workflow.id,
           false,
-          context.endTime - context.startTime
+          context.endTime - context.startTime,
         );
       }
 
-      this.emit('workflow:failed', {
+      this.emit("workflow:failed", {
         executionId,
         workflowId: workflow.id,
         error: error.message,
-        errorStep: context.errorStep
+        errorStep: context.errorStep,
       });
 
       throw error;
-
     } finally {
       this.executions.delete(executionId);
     }
@@ -210,11 +214,11 @@ class WorkflowEngine extends EventEmitter {
     // Check for pause/cancel
     await this._checkPauseCancel(context);
 
-    this.emit('workflow:step:started', {
+    this.emit("workflow:step:started", {
       executionId: context.executionId,
       stepIndex,
       stepType: step.type || StepType.ACTION,
-      description: step.description
+      description: step.description,
     });
 
     try {
@@ -230,7 +234,7 @@ class WorkflowEngine extends EventEmitter {
         case StepType.CONDITION:
           result = await context.controlFlow.executeCondition(
             interpolatedStep,
-            (steps) => this._executeSteps(steps, context)
+            (steps) => this._executeSteps(steps, context),
           );
           break;
 
@@ -238,7 +242,7 @@ class WorkflowEngine extends EventEmitter {
           result = await context.controlFlow.executeLoop(
             interpolatedStep,
             (steps) => this._executeSteps(steps, context),
-            { stopOnError: interpolatedStep.stopOnError }
+            { stopOnError: interpolatedStep.stopOnError },
           );
           break;
 
@@ -257,7 +261,7 @@ class WorkflowEngine extends EventEmitter {
         case StepType.TRY_CATCH:
           result = await context.controlFlow.executeTryCatch(
             interpolatedStep,
-            (steps) => this._executeSteps(steps, context)
+            (steps) => this._executeSteps(steps, context),
           );
           break;
 
@@ -278,24 +282,23 @@ class WorkflowEngine extends EventEmitter {
         description: step.description,
         success: true,
         result,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
-      this.emit('workflow:step:completed', {
+      this.emit("workflow:step:completed", {
         executionId: context.executionId,
         stepIndex,
-        result
+        result,
       });
 
       return result;
-
     } catch (error) {
       // Handle retry
       if (this._shouldRetry(step, context, error)) {
         context.retryCount++;
-        logger.info('[WorkflowEngine] Retrying step', {
+        logger.info("[WorkflowEngine] Retrying step", {
           stepIndex,
-          retryCount: context.retryCount
+          retryCount: context.retryCount,
         });
 
         await this._delay(this.options.retryDelay * context.retryCount);
@@ -310,13 +313,13 @@ class WorkflowEngine extends EventEmitter {
         description: step.description,
         success: false,
         error: error.message,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
-      this.emit('workflow:step:failed', {
+      this.emit("workflow:step:failed", {
         executionId: context.executionId,
         stepIndex,
-        error: error.message
+        error: error.message,
       });
 
       // Throw if critical
@@ -362,7 +365,7 @@ class WorkflowEngine extends EventEmitter {
       context.resumeResolve = null;
     }
 
-    this.emit('workflow:resumed', { executionId });
+    this.emit("workflow:resumed", { executionId });
     return true;
   }
 
@@ -409,7 +412,7 @@ class WorkflowEngine extends EventEmitter {
       stepsCompleted: context.results.length,
       startTime: context.startTime,
       duration: context.startTime ? Date.now() - context.startTime : 0,
-      error: context.error
+      error: context.error,
     };
   }
 
@@ -418,7 +421,7 @@ class WorkflowEngine extends EventEmitter {
    * @returns {Array} Active execution statuses
    */
   listActiveExecutions() {
-    return Array.from(this.executions.keys()).map(id => this.getStatus(id));
+    return Array.from(this.executions.keys()).map((id) => this.getStatus(id));
   }
 
   // ==================== Private Methods ====================
@@ -439,7 +442,7 @@ class WorkflowEngine extends EventEmitter {
       if (this.storage) {
         await this.storage.updateExecution(context.executionId, {
           currentStep: i,
-          results: context.results
+          results: context.results,
         });
       }
 
@@ -461,53 +464,74 @@ class WorkflowEngine extends EventEmitter {
     const targetId = context.targetId;
 
     if (!this.browserEngine) {
-      throw new Error('Browser engine not available');
+      throw new Error("Browser engine not available");
     }
 
     if (!targetId) {
-      throw new Error('No target tab specified');
+      throw new Error("No target tab specified");
     }
 
     const timeout = step.timeout || this.options.defaultTimeout;
 
     switch (action) {
-      case 'navigate':
-        return this.browserEngine.navigate(targetId, step.url, { timeout, ...options });
+      case "navigate":
+        return this.browserEngine.navigate(targetId, step.url, {
+          timeout,
+          ...options,
+        });
 
-      case 'click':
-        return this.browserEngine.act(targetId, 'click', ref, { timeout, ...options });
+      case "click":
+        return this.browserEngine.act(targetId, "click", ref, {
+          timeout,
+          ...options,
+        });
 
-      case 'type':
-        return this.browserEngine.act(targetId, 'type', ref, { text: step.text, timeout, ...options });
+      case "type":
+        return this.browserEngine.act(targetId, "type", ref, {
+          text: step.text,
+          timeout,
+          ...options,
+        });
 
-      case 'select':
-        return this.browserEngine.act(targetId, 'select', ref, { value: step.value, timeout, ...options });
+      case "select":
+        return this.browserEngine.act(targetId, "select", ref, {
+          value: step.value,
+          timeout,
+          ...options,
+        });
 
-      case 'hover':
-        return this.browserEngine.act(targetId, 'hover', ref, { timeout, ...options });
+      case "hover":
+        return this.browserEngine.act(targetId, "hover", ref, {
+          timeout,
+          ...options,
+        });
 
-      case 'drag':
-        return this.browserEngine.act(targetId, 'drag', ref, { target: step.target, timeout, ...options });
+      case "drag":
+        return this.browserEngine.act(targetId, "drag", ref, {
+          target: step.target,
+          timeout,
+          ...options,
+        });
 
-      case 'screenshot':
+      case "screenshot":
         return this.browserEngine.screenshot(targetId, options);
 
-      case 'snapshot':
+      case "snapshot":
         return this.browserEngine.takeSnapshot(targetId, options);
 
-      case 'scroll':
+      case "scroll":
         return this._executeScroll(targetId, step, context);
 
-      case 'keyboard':
+      case "keyboard":
         return this._executeKeyboard(targetId, step, context);
 
-      case 'upload':
+      case "upload":
         return this._executeUpload(targetId, step, context);
 
-      case 'extract':
+      case "extract":
         return this._executeExtract(targetId, step, context);
 
-      case 'evaluate':
+      case "evaluate":
         return this._executeEvaluate(targetId, step, context);
 
       default:
@@ -520,7 +544,7 @@ class WorkflowEngine extends EventEmitter {
    */
   async _executeScroll(targetId, step, context) {
     const page = this.browserEngine.getPage(targetId);
-    const { direction, distance, element, behavior = 'smooth' } = step;
+    const { direction, distance, element, behavior = "smooth" } = step;
 
     if (element) {
       // Scroll element into view
@@ -528,39 +552,48 @@ class WorkflowEngine extends EventEmitter {
       if (!elem) {
         throw new Error(`Element ${element} not found`);
       }
-      const locator = await require('../element-locator').ElementLocator.locate(page, elem);
+      const locator = await require("../element-locator").ElementLocator.locate(
+        page,
+        elem,
+      );
       await locator.scrollIntoViewIfNeeded();
       return { scrolledToElement: element };
     }
 
     // Scroll page
     const scrollOptions = { behavior };
-    let x = 0, y = 0;
+    let x = 0,
+      y = 0;
 
     switch (direction) {
-      case 'down':
+      case "down":
         y = distance || 300;
         break;
-      case 'up':
+      case "up":
         y = -(distance || 300);
         break;
-      case 'right':
+      case "right":
         x = distance || 300;
         break;
-      case 'left':
+      case "left":
         x = -(distance || 300);
         break;
-      case 'bottom':
-        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-        return { scrolledTo: 'bottom' };
-      case 'top':
+      case "bottom":
+        await page.evaluate(() =>
+          window.scrollTo(0, document.body.scrollHeight),
+        );
+        return { scrolledTo: "bottom" };
+      case "top":
         await page.evaluate(() => window.scrollTo(0, 0));
-        return { scrolledTo: 'top' };
+        return { scrolledTo: "top" };
     }
 
-    await page.evaluate(({ x, y, behavior }) => {
-      window.scrollBy({ left: x, top: y, behavior });
-    }, { x, y, behavior });
+    await page.evaluate(
+      ({ x, y, behavior }) => {
+        window.scrollBy({ left: x, top: y, behavior });
+      },
+      { x, y, behavior },
+    );
 
     return { scrolled: { x, y } };
   }
@@ -580,7 +613,7 @@ class WorkflowEngine extends EventEmitter {
 
     if (keys) {
       // Press key combination
-      const keyCombo = [...modifiers, keys].join('+');
+      const keyCombo = [...modifiers, keys].join("+");
       await page.keyboard.press(keyCombo);
       return { pressed: keyCombo };
     }
@@ -596,7 +629,7 @@ class WorkflowEngine extends EventEmitter {
     const { files, inputRef } = step;
 
     if (!files || files.length === 0) {
-      throw new Error('No files specified for upload');
+      throw new Error("No files specified for upload");
     }
 
     if (inputRef) {
@@ -605,12 +638,15 @@ class WorkflowEngine extends EventEmitter {
       if (!elem) {
         throw new Error(`Element ${inputRef} not found`);
       }
-      const locator = await require('../element-locator').ElementLocator.locate(page, elem);
+      const locator = await require("../element-locator").ElementLocator.locate(
+        page,
+        elem,
+      );
       await locator.setInputFiles(files);
     } else {
       // Use file chooser
       const [fileChooser] = await Promise.all([
-        page.waitForEvent('filechooser'),
+        page.waitForEvent("filechooser"),
         // Trigger file selection (caller should have clicked upload button)
       ]);
       await fileChooser.setFiles(files);
@@ -630,7 +666,7 @@ class WorkflowEngine extends EventEmitter {
       type,
       selector,
       attribute,
-      saveTo
+      saveTo,
     });
 
     return { extracted: value, savedTo: saveTo };
@@ -644,7 +680,9 @@ class WorkflowEngine extends EventEmitter {
     const { script, args = [] } = step;
 
     // Interpolate args
-    const interpolatedArgs = args.map(arg => context.variables.interpolate(arg));
+    const interpolatedArgs = args.map((arg) =>
+      context.variables.interpolate(arg),
+    );
 
     const result = await page.evaluate(script, ...interpolatedArgs);
 
@@ -691,18 +729,18 @@ class WorkflowEngine extends EventEmitter {
     } else if (inlineWorkflow) {
       subWorkflow = inlineWorkflow;
     } else {
-      throw new Error('No workflow specified for subprocess');
+      throw new Error("No workflow specified for subprocess");
     }
 
     // Merge variables
     const subVars = {
       ...context.variables.getAll(),
-      ...inputVars
+      ...inputVars,
     };
 
     const result = await this.executeWorkflow(subWorkflow, {
       targetId: context.targetId,
-      initialVariables: subVars
+      initialVariables: subVars,
     });
 
     // Copy output variables back if specified
@@ -724,34 +762,34 @@ class WorkflowEngine extends EventEmitter {
   async _checkPauseCancel(context) {
     if (context.cancelRequested) {
       context.status = ExecutionStatus.CANCELLED;
-      throw new Error('Workflow cancelled');
+      throw new Error("Workflow cancelled");
     }
 
     if (context.pauseRequested) {
       context.status = ExecutionStatus.PAUSED;
       context.pausedAt = Date.now();
 
-      this.emit('workflow:paused', {
+      this.emit("workflow:paused", {
         executionId: context.executionId,
-        currentStep: context.currentStepIndex
+        currentStep: context.currentStepIndex,
       });
 
       // Update storage
       if (this.storage) {
         await this.storage.updateExecution(context.executionId, {
-          status: ExecutionStatus.PAUSED
+          status: ExecutionStatus.PAUSED,
         });
       }
 
       // Wait for resume
-      await new Promise(resolve => {
+      await new Promise((resolve) => {
         context.resumeResolve = resolve;
       });
 
       // Check cancel again after resume
       if (context.cancelRequested) {
         context.status = ExecutionStatus.CANCELLED;
-        throw new Error('Workflow cancelled');
+        throw new Error("Workflow cancelled");
       }
     }
   }
@@ -760,7 +798,9 @@ class WorkflowEngine extends EventEmitter {
    * Check if step should be retried
    */
   _shouldRetry(step, context, error) {
-    if (step.noRetry) return false;
+    if (step.noRetry) {
+      return false;
+    }
 
     const maxRetries = step.maxRetries || this.options.maxRetries;
     return context.retryCount < maxRetries;
@@ -770,12 +810,12 @@ class WorkflowEngine extends EventEmitter {
    * Delay helper
    */
   _delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
 module.exports = {
   WorkflowEngine,
   ExecutionContext,
-  ExecutionStatus
+  ExecutionStatus,
 };

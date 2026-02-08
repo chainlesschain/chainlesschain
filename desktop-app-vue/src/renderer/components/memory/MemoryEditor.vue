@@ -23,25 +23,33 @@
           :type="viewMode === 'preview' ? 'primary' : 'default'"
           @click="viewMode = 'preview'"
         >
-          <template #icon><EyeOutlined /></template>
+          <template #icon>
+            <EyeOutlined />
+          </template>
           预览
         </a-button>
         <a-button
           :type="viewMode === 'edit' ? 'primary' : 'default'"
           @click="viewMode = 'edit'"
         >
-          <template #icon><EditOutlined /></template>
+          <template #icon>
+            <EditOutlined />
+          </template>
           编辑
         </a-button>
       </a-button-group>
 
       <a-button @click="showAppendModal = true">
-        <template #icon><PlusOutlined /></template>
+        <template #icon>
+          <PlusOutlined />
+        </template>
         添加记忆
       </a-button>
 
-      <a-button type="text" @click="refreshMemory" :loading="loading.memory">
-        <template #icon><ReloadOutlined /></template>
+      <a-button type="text" :loading="loading.memory" @click="refreshMemory">
+        <template #icon>
+          <ReloadOutlined />
+        </template>
       </a-button>
     </div>
 
@@ -49,7 +57,11 @@
     <div class="content-area">
       <a-spin :spinning="loading.memory">
         <!-- 预览模式 -->
-        <div v-if="viewMode === 'preview'" class="preview-mode" ref="previewRef">
+        <div
+          v-if="viewMode === 'preview'"
+          ref="previewRef"
+          class="preview-mode"
+        >
           <MarkdownViewer v-if="memoryContent" :content="memoryContent" />
           <a-empty v-else description="MEMORY.md 暂无内容" />
         </div>
@@ -62,8 +74,8 @@
             placeholder="编辑 MEMORY.md..."
           />
           <div class="edit-actions">
-            <a-button @click="cancelEdit">取消</a-button>
-            <a-button type="primary" @click="saveEdit" :loading="loading.write">
+            <a-button @click="cancelEdit"> 取消 </a-button>
+            <a-button type="primary" :loading="loading.write" @click="saveEdit">
               保存
             </a-button>
           </div>
@@ -76,8 +88,8 @@
       v-model:open="showAppendModal"
       title="添加长期记忆"
       :confirm-loading="loading.write"
-      @ok="handleAppend"
       width="600px"
+      @ok="handleAppend"
     >
       <a-form layout="vertical">
         <a-form-item label="章节">
@@ -104,40 +116,36 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
-import { storeToRefs } from 'pinia';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, nextTick } from "vue";
+import { storeToRefs } from "pinia";
+import { message } from "ant-design-vue";
 import {
   EyeOutlined,
   EditOutlined,
   PlusOutlined,
   ReloadOutlined,
-} from '@ant-design/icons-vue';
-import { useMemoryStore } from '@/stores/memory';
-import MarkdownViewer from '@/components/common/MarkdownViewer.vue';
+} from "@ant-design/icons-vue";
+import { useMemoryStore } from "@/stores/memory";
+import MarkdownViewer from "@/components/common/MarkdownViewer.vue";
 
 const memoryStore = useMemoryStore();
 
-const {
-  memoryContent,
-  loading,
-  sectionList,
-} = storeToRefs(memoryStore);
+const { memoryContent, loading, sectionList } = storeToRefs(memoryStore);
 
 // 本地状态
-const viewMode = ref('preview');
-const localContent = ref('');
+const viewMode = ref("preview");
+const localContent = ref("");
 const selectedSection = ref(null);
 const previewRef = ref(null);
 
 // 添加记忆相关
 const showAppendModal = ref(false);
 const appendSection = ref(null);
-const appendContent = ref('');
+const appendContent = ref("");
 
 // 章节选项
 const sectionOptions = computed(() => {
-  return (sectionList.value || []).map(s => ({
+  return (sectionList.value || []).map((s) => ({
     label: s.title,
     value: s.title,
   }));
@@ -145,7 +153,7 @@ const sectionOptions = computed(() => {
 
 // 监听编辑模式切换
 watch(viewMode, (newMode) => {
-  if (newMode === 'edit') {
+  if (newMode === "edit") {
     localContent.value = memoryContent.value;
   }
 });
@@ -157,15 +165,17 @@ const refreshMemory = async () => {
 
 // 滚动到指定章节
 const scrollToSection = async (sectionTitle) => {
-  if (!sectionTitle || !previewRef.value) return;
+  if (!sectionTitle || !previewRef.value) {
+    return;
+  }
 
   await nextTick();
 
   // 查找章节标题元素
-  const headers = previewRef.value.querySelectorAll('h2');
+  const headers = previewRef.value.querySelectorAll("h2");
   for (const header of headers) {
     if (header.textContent.includes(sectionTitle)) {
-      header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      header.scrollIntoView({ behavior: "smooth", block: "start" });
       break;
     }
   }
@@ -173,45 +183,45 @@ const scrollToSection = async (sectionTitle) => {
 
 // 取消编辑
 const cancelEdit = () => {
-  viewMode.value = 'preview';
-  localContent.value = '';
+  viewMode.value = "preview";
+  localContent.value = "";
 };
 
 // 保存编辑
 const saveEdit = async () => {
   if (!localContent.value.trim()) {
-    message.warning('内容不能为空');
+    message.warning("内容不能为空");
     return;
   }
 
   const success = await memoryStore.updateMemory(localContent.value);
   if (success) {
-    message.success('记忆已保存');
-    viewMode.value = 'preview';
+    message.success("记忆已保存");
+    viewMode.value = "preview";
   } else {
-    message.error('保存失败: ' + (memoryStore.error || '未知错误'));
+    message.error("保存失败: " + (memoryStore.error || "未知错误"));
   }
 };
 
 // 添加记忆
 const handleAppend = async () => {
   if (!appendContent.value.trim()) {
-    message.warning('请输入内容');
+    message.warning("请输入内容");
     return;
   }
 
   const success = await memoryStore.appendToMemory(
     appendContent.value,
-    appendSection.value || null
+    appendSection.value || null,
   );
 
   if (success) {
-    message.success('记忆已添加');
+    message.success("记忆已添加");
     showAppendModal.value = false;
     appendSection.value = null;
-    appendContent.value = '';
+    appendContent.value = "";
   } else {
-    message.error('添加失败');
+    message.error("添加失败");
   }
 };
 </script>

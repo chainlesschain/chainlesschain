@@ -3,10 +3,10 @@
  * 支持分块读取、流式搜索，避免将整个文件加载到内存
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs');
-const readline = require('readline');
-const { once } = require('events');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs");
+const readline = require("readline");
+const { once } = require("events");
 
 class LargeFileReader {
   constructor() {
@@ -35,7 +35,7 @@ class LargeFileReader {
     return new Promise((resolve, reject) => {
       const buffer = Buffer.alloc(size);
 
-      fs.open(filePath, 'r', (err, fd) => {
+      fs.open(filePath, "r", (err, fd) => {
         if (err) {
           reject(err);
           return;
@@ -68,7 +68,7 @@ class LargeFileReader {
       let hasMore = false;
 
       const stream = fs.createReadStream(filePath, {
-        encoding: 'utf-8',
+        encoding: "utf-8",
         highWaterMark: 64 * 1024, // 64KB buffer
       });
 
@@ -77,7 +77,7 @@ class LargeFileReader {
         crlfDelay: Infinity,
       });
 
-      rl.on('line', (line) => {
+      rl.on("line", (line) => {
         if (currentLine >= startLine && lines.length < lineCount) {
           lines.push({
             lineNumber: currentLine + 1,
@@ -94,7 +94,7 @@ class LargeFileReader {
         currentLine++;
       });
 
-      rl.on('close', () => {
+      rl.on("close", () => {
         resolve({
           lines,
           hasMore: hasMore || currentLine > startLine + lineCount,
@@ -102,11 +102,11 @@ class LargeFileReader {
         });
       });
 
-      rl.on('error', (err) => {
+      rl.on("error", (err) => {
         reject(err);
       });
 
-      stream.on('error', (err) => {
+      stream.on("error", (err) => {
         reject(err);
       });
     });
@@ -122,7 +122,7 @@ class LargeFileReader {
       let lineCount = 0;
 
       const stream = fs.createReadStream(filePath, {
-        encoding: 'utf-8',
+        encoding: "utf-8",
         highWaterMark: 64 * 1024,
       });
 
@@ -131,16 +131,16 @@ class LargeFileReader {
         crlfDelay: Infinity,
       });
 
-      rl.on('line', () => {
+      rl.on("line", () => {
         lineCount++;
       });
 
-      rl.on('close', () => {
+      rl.on("close", () => {
         resolve(lineCount);
       });
 
-      rl.on('error', reject);
-      stream.on('error', reject);
+      rl.on("error", reject);
+      stream.on("error", reject);
     });
   }
 
@@ -166,7 +166,7 @@ class LargeFileReader {
       const searchQuery = caseSensitive ? query : query.toLowerCase();
 
       const stream = fs.createReadStream(filePath, {
-        encoding: 'utf-8',
+        encoding: "utf-8",
         highWaterMark: 64 * 1024,
       });
 
@@ -175,7 +175,7 @@ class LargeFileReader {
         crlfDelay: Infinity,
       });
 
-      rl.on('line', (line) => {
+      rl.on("line", (line) => {
         lineNumber++;
 
         // 保持一个滑动窗口来存储上下文
@@ -188,17 +188,25 @@ class LargeFileReader {
         const searchLine = caseSensitive ? line : line.toLowerCase();
         if (searchLine.includes(searchQuery)) {
           // 找到匹配，提取上下文
-          const contextStart = Math.max(0, linesBuffer.length - contextLines - 1);
-          const contextEnd = Math.min(linesBuffer.length, contextStart + contextLines * 2 + 1);
+          const contextStart = Math.max(
+            0,
+            linesBuffer.length - contextLines - 1,
+          );
+          const contextEnd = Math.min(
+            linesBuffer.length,
+            contextStart + contextLines * 2 + 1,
+          );
 
           results.push({
             lineNumber: lineNumber,
             line: line,
-            context: linesBuffer.slice(contextStart, contextEnd).map(item => ({
-              lineNumber: item.lineNumber,
-              content: item.content,
-              isMatch: item.lineNumber === lineNumber,
-            })),
+            context: linesBuffer
+              .slice(contextStart, contextEnd)
+              .map((item) => ({
+                lineNumber: item.lineNumber,
+                content: item.content,
+                isMatch: item.lineNumber === lineNumber,
+              })),
           });
 
           if (results.length >= maxResults) {
@@ -208,7 +216,7 @@ class LargeFileReader {
         }
       });
 
-      rl.on('close', () => {
+      rl.on("close", () => {
         resolve({
           results,
           totalMatches: results.length,
@@ -216,8 +224,8 @@ class LargeFileReader {
         });
       });
 
-      rl.on('error', reject);
-      stream.on('error', reject);
+      rl.on("error", reject);
+      stream.on("error", reject);
     });
   }
 
@@ -259,11 +267,11 @@ class LargeFileReader {
     try {
       const sampleSize = Math.min(100 * 1024, stats.size);
       const buffer = await this.readChunk(filePath, 0, sampleSize);
-      const sampleText = buffer.toString('utf-8');
-      const sampleLines = sampleText.split('\n').length;
+      const sampleText = buffer.toString("utf-8");
+      const sampleLines = sampleText.split("\n").length;
       estimatedLines = Math.round((stats.size / sampleSize) * sampleLines);
     } catch (err) {
-      logger.warn('[Large File Reader] 估算行数失败:', err);
+      logger.warn("[Large File Reader] 估算行数失败:", err);
     }
 
     return {
@@ -291,16 +299,16 @@ class LargeFileReader {
 
       let totalBytesRead = 0;
 
-      stream.on('data', (chunk) => {
+      stream.on("data", (chunk) => {
         totalBytesRead += chunk.length;
         onChunk(chunk, totalBytesRead);
       });
 
-      stream.on('end', () => {
+      stream.on("end", () => {
         resolve({ totalBytesRead });
       });
 
-      stream.on('error', reject);
+      stream.on("error", reject);
     });
   }
 }

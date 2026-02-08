@@ -5,11 +5,11 @@
  * v0.20.0: 新增 RSS 订阅功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { ipcMain } = require('electron');
-const { v4: uuidv4 } = require('uuid');
-const RSSFetcher = require('./rss-fetcher');
-const { getAPINotificationManager } = require('./notification-manager');
+const { logger } = require("../utils/logger.js");
+const { ipcMain } = require("electron");
+const { v4: uuidv4 } = require("uuid");
+const RSSFetcher = require("./rss-fetcher");
+const { getAPINotificationManager } = require("./notification-manager");
 
 class RSSIPCHandler {
   constructor(database) {
@@ -22,95 +22,98 @@ class RSSIPCHandler {
 
   registerHandlers() {
     // RSS 订阅源管理
-    ipcMain.handle('rss:add-feed', async (event, feedUrl, options = {}) => {
+    ipcMain.handle("rss:add-feed", async (event, feedUrl, options = {}) => {
       return this.addFeed(feedUrl, options);
     });
 
-    ipcMain.handle('rss:remove-feed', async (event, feedId) => {
+    ipcMain.handle("rss:remove-feed", async (event, feedId) => {
       return this.removeFeed(feedId);
     });
 
-    ipcMain.handle('rss:update-feed', async (event, feedId, updates) => {
+    ipcMain.handle("rss:update-feed", async (event, feedId, updates) => {
       return this.updateFeed(feedId, updates);
     });
 
-    ipcMain.handle('rss:get-feeds', async (event, options = {}) => {
+    ipcMain.handle("rss:get-feeds", async (event, options = {}) => {
       return this.getFeeds(options);
     });
 
-    ipcMain.handle('rss:get-feed', async (event, feedId) => {
+    ipcMain.handle("rss:get-feed", async (event, feedId) => {
       return this.getFeed(feedId);
     });
 
     // RSS 文章管理
-    ipcMain.handle('rss:fetch-feed', async (event, feedId) => {
+    ipcMain.handle("rss:fetch-feed", async (event, feedId) => {
       return this.fetchFeed(feedId);
     });
 
-    ipcMain.handle('rss:fetch-all-feeds', async (event) => {
+    ipcMain.handle("rss:fetch-all-feeds", async (event) => {
       return this.fetchAllFeeds();
     });
 
-    ipcMain.handle('rss:get-items', async (event, options = {}) => {
+    ipcMain.handle("rss:get-items", async (event, options = {}) => {
       return this.getItems(options);
     });
 
-    ipcMain.handle('rss:get-item', async (event, itemId) => {
+    ipcMain.handle("rss:get-item", async (event, itemId) => {
       return this.getItem(itemId);
     });
 
-    ipcMain.handle('rss:mark-as-read', async (event, itemId) => {
+    ipcMain.handle("rss:mark-as-read", async (event, itemId) => {
       return this.markAsRead(itemId);
     });
 
-    ipcMain.handle('rss:mark-as-unread', async (event, itemId) => {
+    ipcMain.handle("rss:mark-as-unread", async (event, itemId) => {
       return this.markAsUnread(itemId);
     });
 
-    ipcMain.handle('rss:mark-as-starred', async (event, itemId, starred = true) => {
-      return this.markAsStarred(itemId, starred);
-    });
+    ipcMain.handle(
+      "rss:mark-as-starred",
+      async (event, itemId, starred = true) => {
+        return this.markAsStarred(itemId, starred);
+      },
+    );
 
-    ipcMain.handle('rss:archive-item', async (event, itemId) => {
+    ipcMain.handle("rss:archive-item", async (event, itemId) => {
       return this.archiveItem(itemId);
     });
 
-    ipcMain.handle('rss:save-to-knowledge', async (event, itemId) => {
+    ipcMain.handle("rss:save-to-knowledge", async (event, itemId) => {
       return this.saveToKnowledge(itemId);
     });
 
     // RSS 分类管理
-    ipcMain.handle('rss:add-category', async (event, name, options = {}) => {
+    ipcMain.handle("rss:add-category", async (event, name, options = {}) => {
       return this.addCategory(name, options);
     });
 
-    ipcMain.handle('rss:get-categories', async (event) => {
+    ipcMain.handle("rss:get-categories", async (event) => {
       return this.getCategories();
     });
 
-    ipcMain.handle('rss:assign-category', async (event, feedId, categoryId) => {
+    ipcMain.handle("rss:assign-category", async (event, feedId, categoryId) => {
       return this.assignCategory(feedId, categoryId);
     });
 
     // Feed 发现
-    ipcMain.handle('rss:discover-feeds', async (event, websiteUrl) => {
+    ipcMain.handle("rss:discover-feeds", async (event, websiteUrl) => {
       return this.discoverFeeds(websiteUrl);
     });
 
-    ipcMain.handle('rss:validate-feed', async (event, feedUrl) => {
+    ipcMain.handle("rss:validate-feed", async (event, feedUrl) => {
       return this.validateFeed(feedUrl);
     });
 
     // 自动同步
-    ipcMain.handle('rss:start-auto-sync', async (event, feedId) => {
+    ipcMain.handle("rss:start-auto-sync", async (event, feedId) => {
       return this.startAutoSync(feedId);
     });
 
-    ipcMain.handle('rss:stop-auto-sync', async (event, feedId) => {
+    ipcMain.handle("rss:stop-auto-sync", async (event, feedId) => {
       return this.stopAutoSync(feedId);
     });
 
-    logger.info('[RSSIPCHandler] RSS IPC handlers registered');
+    logger.info("[RSSIPCHandler] RSS IPC handlers registered");
   }
 
   /**
@@ -145,7 +148,7 @@ class RSSIPCHandler {
         options.updateFrequency || 3600,
         now,
         feedData.lastBuildDate,
-        'active',
+        "active",
         now,
         now,
       ]);
@@ -164,7 +167,7 @@ class RSSIPCHandler {
         feed: feedData,
       };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 添加订阅源失败:', error);
+      logger.error("[RSSIPCHandler] 添加订阅源失败:", error);
       throw error;
     }
   }
@@ -177,12 +180,14 @@ class RSSIPCHandler {
       // 停止自动同步
       this.stopAutoSync(feedId);
 
-      const stmt = this.database.db.prepare('DELETE FROM rss_feeds WHERE id = ?');
+      const stmt = this.database.db.prepare(
+        "DELETE FROM rss_feeds WHERE id = ?",
+      );
       stmt.run([feedId]);
 
       return { success: true };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 删除订阅源失败:', error);
+      logger.error("[RSSIPCHandler] 删除订阅源失败:", error);
       throw error;
     }
   }
@@ -200,18 +205,18 @@ class RSSIPCHandler {
         values.push(value);
       }
 
-      fields.push('updated_at = ?');
+      fields.push("updated_at = ?");
       values.push(Date.now());
       values.push(feedId);
 
       const stmt = this.database.db.prepare(`
-        UPDATE rss_feeds SET ${fields.join(', ')} WHERE id = ?
+        UPDATE rss_feeds SET ${fields.join(", ")} WHERE id = ?
       `);
       stmt.run(values);
 
       return { success: true };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 更新订阅源失败:', error);
+      logger.error("[RSSIPCHandler] 更新订阅源失败:", error);
       throw error;
     }
   }
@@ -221,32 +226,32 @@ class RSSIPCHandler {
    */
   async getFeeds(options = {}) {
     try {
-      let query = 'SELECT * FROM rss_feeds';
+      let query = "SELECT * FROM rss_feeds";
       const conditions = [];
       const params = [];
 
       if (options.status) {
-        conditions.push('status = ?');
+        conditions.push("status = ?");
         params.push(options.status);
       }
 
       if (options.category) {
-        conditions.push('category = ?');
+        conditions.push("category = ?");
         params.push(options.category);
       }
 
       if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
+        query += " WHERE " + conditions.join(" AND ");
       }
 
-      query += ' ORDER BY title ASC';
+      query += " ORDER BY title ASC";
 
       const stmt = this.database.db.prepare(query);
       const feeds = stmt.all(params);
 
       return { success: true, feeds };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 获取订阅源列表失败:', error);
+      logger.error("[RSSIPCHandler] 获取订阅源列表失败:", error);
       throw error;
     }
   }
@@ -256,16 +261,18 @@ class RSSIPCHandler {
    */
   async getFeed(feedId) {
     try {
-      const stmt = this.database.db.prepare('SELECT * FROM rss_feeds WHERE id = ?');
+      const stmt = this.database.db.prepare(
+        "SELECT * FROM rss_feeds WHERE id = ?",
+      );
       const feed = stmt.get([feedId]);
 
       if (!feed) {
-        throw new Error('订阅源不存在');
+        throw new Error("订阅源不存在");
       }
 
       return { success: true, feed };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 获取订阅源失败:', error);
+      logger.error("[RSSIPCHandler] 获取订阅源失败:", error);
       throw error;
     }
   }
@@ -275,35 +282,35 @@ class RSSIPCHandler {
    */
   async getItems(options = {}) {
     try {
-      let query = 'SELECT * FROM rss_items';
+      let query = "SELECT * FROM rss_items";
       const conditions = [];
       const params = [];
 
       if (options.feedId) {
-        conditions.push('feed_id = ?');
+        conditions.push("feed_id = ?");
         params.push(options.feedId);
       }
 
       if (options.isRead !== undefined) {
-        conditions.push('is_read = ?');
+        conditions.push("is_read = ?");
         params.push(options.isRead ? 1 : 0);
       }
 
       if (options.isStarred !== undefined) {
-        conditions.push('is_starred = ?');
+        conditions.push("is_starred = ?");
         params.push(options.isStarred ? 1 : 0);
       }
 
       if (options.isArchived !== undefined) {
-        conditions.push('is_archived = ?');
+        conditions.push("is_archived = ?");
         params.push(options.isArchived ? 1 : 0);
       }
 
       if (conditions.length > 0) {
-        query += ' WHERE ' + conditions.join(' AND ');
+        query += " WHERE " + conditions.join(" AND ");
       }
 
-      query += ' ORDER BY pub_date DESC';
+      query += " ORDER BY pub_date DESC";
 
       if (options.limit) {
         query += ` LIMIT ${options.limit}`;
@@ -314,7 +321,7 @@ class RSSIPCHandler {
 
       return { success: true, items };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 获取文章列表失败:', error);
+      logger.error("[RSSIPCHandler] 获取文章列表失败:", error);
       throw error;
     }
   }
@@ -324,16 +331,18 @@ class RSSIPCHandler {
    */
   async getItem(itemId) {
     try {
-      const stmt = this.database.db.prepare('SELECT * FROM rss_items WHERE id = ?');
+      const stmt = this.database.db.prepare(
+        "SELECT * FROM rss_items WHERE id = ?",
+      );
       const item = stmt.get([itemId]);
 
       if (!item) {
-        throw new Error('文章不存在');
+        throw new Error("文章不存在");
       }
 
       return { success: true, item };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 获取文章失败:', error);
+      logger.error("[RSSIPCHandler] 获取文章失败:", error);
       throw error;
     }
   }
@@ -343,12 +352,14 @@ class RSSIPCHandler {
    */
   async markAsRead(itemId) {
     try {
-      const stmt = this.database.db.prepare('UPDATE rss_items SET is_read = 1 WHERE id = ?');
+      const stmt = this.database.db.prepare(
+        "UPDATE rss_items SET is_read = 1 WHERE id = ?",
+      );
       stmt.run([itemId]);
 
       return { success: true };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 标记已读失败:', error);
+      logger.error("[RSSIPCHandler] 标记已读失败:", error);
       throw error;
     }
   }
@@ -358,12 +369,14 @@ class RSSIPCHandler {
    */
   async markAsUnread(itemId) {
     try {
-      const stmt = this.database.db.prepare('UPDATE rss_items SET is_read = 0 WHERE id = ?');
+      const stmt = this.database.db.prepare(
+        "UPDATE rss_items SET is_read = 0 WHERE id = ?",
+      );
       stmt.run([itemId]);
 
       return { success: true };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 标记未读失败:', error);
+      logger.error("[RSSIPCHandler] 标记未读失败:", error);
       throw error;
     }
   }
@@ -373,12 +386,14 @@ class RSSIPCHandler {
    */
   async markAsStarred(itemId, starred = true) {
     try {
-      const stmt = this.database.db.prepare('UPDATE rss_items SET is_starred = ? WHERE id = ?');
+      const stmt = this.database.db.prepare(
+        "UPDATE rss_items SET is_starred = ? WHERE id = ?",
+      );
       stmt.run([starred ? 1 : 0, itemId]);
 
       return { success: true };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 标记收藏失败:', error);
+      logger.error("[RSSIPCHandler] 标记收藏失败:", error);
       throw error;
     }
   }
@@ -388,12 +403,14 @@ class RSSIPCHandler {
    */
   async archiveItem(itemId) {
     try {
-      const stmt = this.database.db.prepare('UPDATE rss_items SET is_archived = 1 WHERE id = ?');
+      const stmt = this.database.db.prepare(
+        "UPDATE rss_items SET is_archived = 1 WHERE id = ?",
+      );
       stmt.run([itemId]);
 
       return { success: true };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 归档文章失败:', error);
+      logger.error("[RSSIPCHandler] 归档文章失败:", error);
       throw error;
     }
   }
@@ -403,11 +420,13 @@ class RSSIPCHandler {
    */
   async saveToKnowledge(itemId) {
     try {
-      const itemStmt = this.database.db.prepare('SELECT * FROM rss_items WHERE id = ?');
+      const itemStmt = this.database.db.prepare(
+        "SELECT * FROM rss_items WHERE id = ?",
+      );
       const item = itemStmt.get([itemId]);
 
       if (!item) {
-        throw new Error('文章不存在');
+        throw new Error("文章不存在");
       }
 
       // 创建知识库条目
@@ -423,22 +442,22 @@ class RSSIPCHandler {
       knowledgeStmt.run([
         knowledgeId,
         item.title,
-        'web_clip',
+        "web_clip",
         item.content || item.description,
         now,
         now,
-        'pending',
+        "pending",
       ]);
 
       // 更新 RSS 文章关联
       const updateStmt = this.database.db.prepare(
-        'UPDATE rss_items SET knowledge_item_id = ? WHERE id = ?'
+        "UPDATE rss_items SET knowledge_item_id = ? WHERE id = ?",
       );
       updateStmt.run([knowledgeId, itemId]);
 
       return { success: true, knowledgeId };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 保存到知识库失败:', error);
+      logger.error("[RSSIPCHandler] 保存到知识库失败:", error);
       throw error;
     }
   }
@@ -448,15 +467,19 @@ class RSSIPCHandler {
    */
   async fetchFeed(feedId) {
     try {
-      const feedStmt = this.database.db.prepare('SELECT * FROM rss_feeds WHERE id = ?');
+      const feedStmt = this.database.db.prepare(
+        "SELECT * FROM rss_feeds WHERE id = ?",
+      );
       const feed = feedStmt.get([feedId]);
 
       if (!feed) {
-        throw new Error('订阅源不存在');
+        throw new Error("订阅源不存在");
       }
 
       // 获取当前文章数量（用于计算新文章）
-      const countStmt = this.database.db.prepare('SELECT COUNT(*) as count FROM rss_items WHERE feed_id = ?');
+      const countStmt = this.database.db.prepare(
+        "SELECT COUNT(*) as count FROM rss_items WHERE feed_id = ?",
+      );
       const beforeCount = countStmt.get([feedId])?.count || 0;
 
       // 获取最新内容
@@ -482,16 +505,18 @@ class RSSIPCHandler {
         this.notificationManager.notifyNewArticles(
           feed.title,
           newItemsCount,
-          feedData.items.slice(0, 5)
+          feedData.items.slice(0, 5),
         );
       }
 
       return { success: true, itemCount: feedData.items.length, newItemsCount };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 获取 Feed 更新失败:', error);
+      logger.error("[RSSIPCHandler] 获取 Feed 更新失败:", error);
 
       // 获取 feed 信息用于通知
-      const feedStmt = this.database.db.prepare('SELECT title FROM rss_feeds WHERE id = ?');
+      const feedStmt = this.database.db.prepare(
+        "SELECT title FROM rss_feeds WHERE id = ?",
+      );
       const feed = feedStmt.get([feedId]);
 
       // 发送错误通知
@@ -514,7 +539,9 @@ class RSSIPCHandler {
    */
   async fetchAllFeeds() {
     try {
-      const stmt = this.database.db.prepare("SELECT id FROM rss_feeds WHERE status = 'active'");
+      const stmt = this.database.db.prepare(
+        "SELECT id FROM rss_feeds WHERE status = 'active'",
+      );
       const feeds = stmt.all([]);
 
       const results = {
@@ -534,7 +561,7 @@ class RSSIPCHandler {
 
       return { success: true, results };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 批量获取更新失败:', error);
+      logger.error("[RSSIPCHandler] 批量获取更新失败:", error);
       throw error;
     }
   }
@@ -585,7 +612,7 @@ class RSSIPCHandler {
       stmt.run([
         categoryId,
         name,
-        options.color || '#1890ff',
+        options.color || "#1890ff",
         options.icon || null,
         options.sortOrder || 0,
         Date.now(),
@@ -593,7 +620,7 @@ class RSSIPCHandler {
 
       return { success: true, categoryId };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 添加分类失败:', error);
+      logger.error("[RSSIPCHandler] 添加分类失败:", error);
       throw error;
     }
   }
@@ -603,12 +630,14 @@ class RSSIPCHandler {
    */
   async getCategories() {
     try {
-      const stmt = this.database.db.prepare('SELECT * FROM rss_categories ORDER BY sort_order, name');
+      const stmt = this.database.db.prepare(
+        "SELECT * FROM rss_categories ORDER BY sort_order, name",
+      );
       const categories = stmt.all([]);
 
       return { success: true, categories };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 获取分类列表失败:', error);
+      logger.error("[RSSIPCHandler] 获取分类列表失败:", error);
       throw error;
     }
   }
@@ -627,7 +656,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 分配分类失败:', error);
+      logger.error("[RSSIPCHandler] 分配分类失败:", error);
       throw error;
     }
   }
@@ -640,7 +669,7 @@ class RSSIPCHandler {
       const feeds = await this.rssFetcher.discoverFeeds(websiteUrl);
       return { success: true, feeds };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 发现 Feed 失败:', error);
+      logger.error("[RSSIPCHandler] 发现 Feed 失败:", error);
       throw error;
     }
   }
@@ -653,7 +682,7 @@ class RSSIPCHandler {
       const validation = await this.rssFetcher.validateFeed(feedUrl);
       return { success: true, validation };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 验证 Feed 失败:', error);
+      logger.error("[RSSIPCHandler] 验证 Feed 失败:", error);
       throw error;
     }
   }
@@ -666,11 +695,13 @@ class RSSIPCHandler {
       // 如果已存在，先停止
       this.stopAutoSync(feedId);
 
-      const feedStmt = this.database.db.prepare('SELECT update_frequency FROM rss_feeds WHERE id = ?');
+      const feedStmt = this.database.db.prepare(
+        "SELECT update_frequency FROM rss_feeds WHERE id = ?",
+      );
       const feed = feedStmt.get([feedId]);
 
       if (!feed) {
-        return { success: false, error: '订阅源不存在' };
+        return { success: false, error: "订阅源不存在" };
       }
 
       const interval = setInterval(async () => {
@@ -686,7 +717,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      logger.error('[RSSIPCHandler] 启动自动同步失败:', error);
+      logger.error("[RSSIPCHandler] 启动自动同步失败:", error);
       throw error;
     }
   }

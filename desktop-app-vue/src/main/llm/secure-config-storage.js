@@ -9,7 +9,7 @@
  * @module secure-config-storage
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -118,10 +118,7 @@ class SecureConfigStorage {
         return available;
       }
     } catch (error) {
-      logger.warn(
-        "[SecureConfigStorage] safeStorage 检查失败:",
-        error.message,
-      );
+      logger.warn("[SecureConfigStorage] safeStorage 检查失败:", error.message);
     }
     return false;
   }
@@ -265,11 +262,17 @@ class SecureConfigStorage {
    * @private
    */
   _getEncryptionType(data) {
-    if (data.length < 3) {return "unknown";}
+    if (data.length < 3) {
+      return "unknown";
+    }
 
     const header = data.subarray(0, 2).toString("ascii");
-    if (header === "SS") {return "safeStorage";}
-    if (header === "AE") {return "aes";}
+    if (header === "SS") {
+      return "safeStorage";
+    }
+    if (header === "AE") {
+      return "aes";
+    }
 
     // 旧版本没有标记头，尝试作为AES解密
     return "legacy";

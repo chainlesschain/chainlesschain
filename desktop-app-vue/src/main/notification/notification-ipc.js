@@ -6,7 +6,7 @@
  * @description 提供通知标记、未读计数、桌面通知等 IPC 接口
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const { ipcMain, Notification } = require("electron");
 const path = require("path");
 

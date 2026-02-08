@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 动态Few-shot学习器
@@ -25,17 +25,17 @@ class DynamicFewShotLearner {
 
     // 缓存配置
     this.cacheConfig = {
-      maxAge: 3600000,  // 1小时过期
-      maxSize: 100      // 每个用户最多缓存100个示例
+      maxAge: 3600000, // 1小时过期
+      maxSize: 100, // 每个用户最多缓存100个示例
     };
 
     // Few-shot配置
     this.fewShotConfig = {
-      minExamples: 1,       // 最少示例数
-      maxExamples: 10,      // 最多示例数
-      defaultExamples: 3,   // 默认示例数
-      minConfidence: 0.85,  // 最低置信度阈值
-      minSuccessRate: 0.9   // 最低成功率阈值
+      minExamples: 1, // 最少示例数
+      maxExamples: 10, // 最多示例数
+      defaultExamples: 3, // 默认示例数
+      minConfidence: 0.85, // 最低置信度阈值
+      minSuccessRate: 0.9, // 最低成功率阈值
     };
   }
 
@@ -50,7 +50,7 @@ class DynamicFewShotLearner {
     const actualLimit = limit || this.fewShotConfig.defaultExamples;
 
     // 检查缓存
-    const cacheKey = `${userId}_${intent || 'all'}_${actualLimit}`;
+    const cacheKey = `${userId}_${intent || "all"}_${actualLimit}`;
     const cached = this.getFromCache(cacheKey);
     if (cached) {
       return cached;
@@ -70,7 +70,7 @@ class DynamicFewShotLearner {
 
       // 如果指定了意图类型
       if (intent) {
-        query += ' AND intent = ?';
+        query += " AND intent = ?";
         params.push(intent);
       }
 
@@ -84,23 +84,22 @@ class DynamicFewShotLearner {
       const rows = await this.database.all(query, params);
 
       // 转换为Few-shot格式
-      const examples = rows.map(row => ({
+      const examples = rows.map((row) => ({
         input: row.user_input,
         output: {
           intent: row.intent,
-          entities: JSON.parse(row.entities || '{}')
+          entities: JSON.parse(row.entities || "{}"),
         },
         confidence: row.confidence,
-        timestamp: row.created_at
+        timestamp: row.created_at,
       }));
 
       // 缓存结果
       this.setToCache(cacheKey, examples);
 
       return examples;
-
     } catch (error) {
-      logger.error('获取用户示例失败:', error);
+      logger.error("获取用户示例失败:", error);
       return [];
     }
   }
@@ -114,16 +113,16 @@ class DynamicFewShotLearner {
    */
   async buildDynamicPrompt(text, userId, options = {}) {
     const {
-      includeIntent = null,      // 特定意图的示例
-      exampleCount = null,       // 示例数量
-      includeSystemPrompt = true // 是否包含系统提示
+      includeIntent = null, // 特定意图的示例
+      exampleCount = null, // 示例数量
+      includeSystemPrompt = true, // 是否包含系统提示
     } = options;
 
     // 1. 获取用户历史示例
     const userExamples = await this.getUserExamples(
       userId,
       includeIntent,
-      exampleCount
+      exampleCount,
     );
 
     // 2. 如果用户示例不足，使用通用示例补充
@@ -131,21 +130,22 @@ class DynamicFewShotLearner {
     if (examples.length < this.fewShotConfig.minExamples) {
       const genericExamples = await this.getGenericExamples(
         includeIntent,
-        this.fewShotConfig.defaultExamples
+        this.fewShotConfig.defaultExamples,
       );
       examples = [...examples, ...genericExamples];
     }
 
     // 3. 构建prompt
-    let prompt = '';
+    let prompt = "";
 
     if (includeSystemPrompt) {
-      prompt += '你是一个智能意图识别助手。请基于以下用户历史习惯识别意图。\n\n';
+      prompt +=
+        "你是一个智能意图识别助手。请基于以下用户历史习惯识别意图。\n\n";
     }
 
     // 4. 添加Few-shot示例
     if (examples.length > 0) {
-      prompt += '参考示例:\n\n';
+      prompt += "参考示例:\n\n";
 
       examples.forEach((ex, i) => {
         prompt += `示例${i + 1}:\n`;
@@ -180,7 +180,7 @@ class DynamicFewShotLearner {
       const params = [this.fewShotConfig.minConfidence];
 
       if (intent) {
-        query += ' AND intent = ?';
+        query += " AND intent = ?";
         params.push(intent);
       }
 
@@ -193,18 +193,17 @@ class DynamicFewShotLearner {
 
       const rows = await this.database.all(query, params);
 
-      return rows.map(row => ({
+      return rows.map((row) => ({
         input: row.user_input,
         output: {
           intent: row.intent,
-          entities: JSON.parse(row.entities || '{}')
+          entities: JSON.parse(row.entities || "{}"),
         },
         confidence: row.avg_confidence,
-        isGeneric: true
+        isGeneric: true,
       }));
-
     } catch (error) {
-      logger.error('获取通用示例失败:', error);
+      logger.error("获取通用示例失败:", error);
       return this.getHardcodedExamples(intent, limit);
     }
   }
@@ -217,50 +216,59 @@ class DynamicFewShotLearner {
    */
   getHardcodedExamples(intent = null, limit = 3) {
     const allExamples = {
-      'CREATE_FILE': [
+      CREATE_FILE: [
         {
-          input: '创建一个HTML网页',
-          output: { intent: 'CREATE_FILE', entities: { fileType: 'HTML' } }
+          input: "创建一个HTML网页",
+          output: { intent: "CREATE_FILE", entities: { fileType: "HTML" } },
         },
         {
-          input: '生成Word文档',
-          output: { intent: 'CREATE_FILE', entities: { fileType: 'Word' } }
+          input: "生成Word文档",
+          output: { intent: "CREATE_FILE", entities: { fileType: "Word" } },
         },
         {
-          input: '做个博客网站',
-          output: { intent: 'CREATE_FILE', entities: { fileType: 'HTML', theme: 'blog' } }
-        }
+          input: "做个博客网站",
+          output: {
+            intent: "CREATE_FILE",
+            entities: { fileType: "HTML", theme: "blog" },
+          },
+        },
       ],
-      'EDIT_FILE': [
+      EDIT_FILE: [
         {
-          input: '修改index.html',
-          output: { intent: 'EDIT_FILE', entities: { fileName: 'index.html' } }
+          input: "修改index.html",
+          output: { intent: "EDIT_FILE", entities: { fileName: "index.html" } },
         },
         {
-          input: '编辑配置文件',
-          output: { intent: 'EDIT_FILE', entities: { fileType: 'config' } }
-        }
+          input: "编辑配置文件",
+          output: { intent: "EDIT_FILE", entities: { fileType: "config" } },
+        },
       ],
-      'DEPLOY_PROJECT': [
+      DEPLOY_PROJECT: [
         {
-          input: '部署到Vercel',
-          output: { intent: 'DEPLOY_PROJECT', entities: { platform: 'Vercel' } }
+          input: "部署到Vercel",
+          output: {
+            intent: "DEPLOY_PROJECT",
+            entities: { platform: "Vercel" },
+          },
         },
         {
-          input: '发布到GitHub Pages',
-          output: { intent: 'DEPLOY_PROJECT', entities: { platform: 'GitHub Pages' } }
-        }
+          input: "发布到GitHub Pages",
+          output: {
+            intent: "DEPLOY_PROJECT",
+            entities: { platform: "GitHub Pages" },
+          },
+        },
       ],
-      'ANALYZE_DATA': [
+      ANALYZE_DATA: [
         {
-          input: '分析销售数据',
-          output: { intent: 'ANALYZE_DATA', entities: { dataType: 'sales' } }
+          input: "分析销售数据",
+          output: { intent: "ANALYZE_DATA", entities: { dataType: "sales" } },
         },
         {
-          input: '统计用户访问量',
-          output: { intent: 'ANALYZE_DATA', entities: { metric: 'visits' } }
-        }
-      ]
+          input: "统计用户访问量",
+          output: { intent: "ANALYZE_DATA", entities: { metric: "visits" } },
+        },
+      ],
     };
 
     // 如果指定了意图，返回该意图的示例
@@ -288,7 +296,8 @@ class DynamicFewShotLearner {
    */
   async recordRecognition(userId, userInput, result, success = true) {
     try {
-      await this.database.run(`
+      await this.database.run(
+        `
         INSERT INTO intent_recognition_history (
           user_id,
           user_input,
@@ -298,21 +307,22 @@ class DynamicFewShotLearner {
           success,
           created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [
-        userId,
-        userInput,
-        result.intent,
-        JSON.stringify(result.entities || {}),
-        result.confidence || 0.5,
-        success ? 1 : 0,
-        Date.now()
-      ]);
+      `,
+        [
+          userId,
+          userInput,
+          result.intent,
+          JSON.stringify(result.entities || {}),
+          result.confidence || 0.5,
+          success ? 1 : 0,
+          Date.now(),
+        ],
+      );
 
       // 清除缓存（新数据到来）
       this.clearUserCache(userId);
-
     } catch (error) {
-      logger.error('记录识别结果失败:', error);
+      logger.error("记录识别结果失败:", error);
     }
   }
 
@@ -324,7 +334,8 @@ class DynamicFewShotLearner {
    */
   async getUserIntentPreference(userId, limit = 10) {
     try {
-      const rows = await this.database.all(`
+      const rows = await this.database.all(
+        `
         SELECT
           intent,
           COUNT(*) as usage_count,
@@ -335,17 +346,18 @@ class DynamicFewShotLearner {
         GROUP BY intent
         ORDER BY usage_count DESC
         LIMIT ?
-      `, [userId, limit]);
+      `,
+        [userId, limit],
+      );
 
-      return rows.map(row => ({
+      return rows.map((row) => ({
         intent: row.intent,
         usageCount: row.usage_count,
         avgConfidence: row.avg_confidence,
-        lastUsed: row.last_used
+        lastUsed: row.last_used,
       }));
-
     } catch (error) {
-      logger.error('获取用户偏好失败:', error);
+      logger.error("获取用户偏好失败:", error);
       return [];
     }
   }
@@ -359,14 +371,17 @@ class DynamicFewShotLearner {
   async adaptiveExampleCount(userId, baseCount = 3) {
     try {
       // 计算用户历史成功率
-      const stats = await this.database.get(`
+      const stats = await this.database.get(
+        `
         SELECT
           COUNT(*) as total,
           SUM(CASE WHEN success = 1 THEN 1 ELSE 0 END) as successes
         FROM intent_recognition_history
         WHERE user_id = ?
           AND created_at > ?
-      `, [userId, Date.now() - 30 * 24 * 60 * 60 * 1000]); // 最近30天
+      `,
+        [userId, Date.now() - 30 * 24 * 60 * 60 * 1000],
+      ); // 最近30天
 
       if (!stats || stats.total === 0) {
         return baseCount;
@@ -385,9 +400,8 @@ class DynamicFewShotLearner {
       }
 
       return baseCount;
-
     } catch (error) {
-      logger.error('自适应调整失败:', error);
+      logger.error("自适应调整失败:", error);
       return baseCount;
     }
   }
@@ -401,17 +415,19 @@ class DynamicFewShotLearner {
     try {
       const cutoffTime = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
-      const result = await this.database.run(`
+      const result = await this.database.run(
+        `
         DELETE FROM intent_recognition_history
         WHERE created_at < ?
-      `, [cutoffTime]);
+      `,
+        [cutoffTime],
+      );
 
       logger.info(`清理了${result.changes}条旧记录（保留${retentionDays}天）`);
 
       return result.changes;
-
     } catch (error) {
-      logger.error('清理旧数据失败:', error);
+      logger.error("清理旧数据失败:", error);
       return 0;
     }
   }
@@ -453,7 +469,7 @@ class DynamicFewShotLearner {
 
     this.exampleCache.set(key, {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -466,12 +482,12 @@ class DynamicFewShotLearner {
     const keysToDelete = [];
 
     for (const key of this.exampleCache.keys()) {
-      if (key.startsWith(userId + '_')) {
+      if (key.startsWith(userId + "_")) {
         keysToDelete.push(key);
       }
     }
 
-    keysToDelete.forEach(key => this.exampleCache.delete(key));
+    keysToDelete.forEach((key) => this.exampleCache.delete(key));
   }
 
   /**
@@ -490,7 +506,7 @@ class DynamicFewShotLearner {
     return {
       size: this.exampleCache.size,
       maxSize: this.cacheConfig.maxSize,
-      maxAge: this.cacheConfig.maxAge
+      maxAge: this.cacheConfig.maxAge,
     };
   }
 }

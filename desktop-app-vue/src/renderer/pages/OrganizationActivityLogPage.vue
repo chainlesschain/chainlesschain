@@ -6,10 +6,7 @@
       @back="() => $router.back()"
     >
       <template #extra>
-        <a-button
-          type="primary"
-          @click="refreshLogs"
-        >
+        <a-button type="primary" @click="refreshLogs">
           <ReloadOutlined />
           刷新
         </a-button>
@@ -22,11 +19,7 @@
 
     <div class="activity-log-container">
       <!-- 筛选器 -->
-      <a-card
-        title="筛选条件"
-        :bordered="false"
-        class="filter-card"
-      >
+      <a-card title="筛选条件" :bordered="false" class="filter-card">
         <a-row :gutter="16">
           <a-col :span="6">
             <a-select
@@ -36,12 +29,8 @@
               allow-clear
               @change="handleFilterChange"
             >
-              <a-select-option value="">
-                全部
-              </a-select-option>
-              <a-select-option value="add_member">
-                添加成员
-              </a-select-option>
+              <a-select-option value=""> 全部 </a-select-option>
+              <a-select-option value="add_member"> 添加成员 </a-select-option>
               <a-select-option value="remove_member">
                 移除成员
               </a-select-option>
@@ -63,9 +52,7 @@
               <a-select-option value="update_organization">
                 更新组织
               </a-select-option>
-              <a-select-option value="create_role">
-                创建角色
-              </a-select-option>
+              <a-select-option value="create_role"> 创建角色 </a-select-option>
               <a-select-option value="invite_member">
                 邀请成员
               </a-select-option>
@@ -82,9 +69,7 @@
               :filter-option="filterMember"
               @change="handleFilterChange"
             >
-              <a-select-option value="">
-                全部
-              </a-select-option>
+              <a-select-option value=""> 全部 </a-select-option>
               <a-select-option
                 v-for="member in members"
                 :key="member.member_did"
@@ -114,10 +99,7 @@
       </a-card>
 
       <!-- 活动日志表格 -->
-      <a-card
-        :bordered="false"
-        class="log-table-card"
-      >
+      <a-card :bordered="false" class="log-table-card">
         <a-table
           :columns="columns"
           :data-source="filteredActivities"
@@ -169,10 +151,7 @@
 
             <!-- 操作列 -->
             <template v-else-if="column.key === 'operations'">
-              <a-button
-                type="link"
-                @click="showDetails(record)"
-              >
+              <a-button type="link" @click="showDetails(record)">
                 详情
               </a-button>
             </template>
@@ -188,11 +167,7 @@
       :footer="null"
       width="600px"
     >
-      <a-descriptions
-        v-if="selectedActivity"
-        :column="1"
-        bordered
-      >
+      <a-descriptions v-if="selectedActivity" :column="1" bordered>
         <a-descriptions-item label="操作者">
           <a-space>
             <a-avatar
@@ -218,7 +193,11 @@
         </a-descriptions-item>
         <a-descriptions-item label="详细信息">
           <pre style="margin: 0; max-height: 300px; overflow: auto">{{
-            JSON.stringify(JSON.parse(selectedActivity.metadata || '{}'), null, 2)
+            JSON.stringify(
+              JSON.parse(selectedActivity.metadata || "{}"),
+              null,
+              2,
+            )
           }}</pre>
         </a-descriptions-item>
       </a-descriptions>
@@ -227,21 +206,18 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { message } from 'ant-design-vue';
-import {
-  ReloadOutlined,
-  ExportOutlined
-} from '@ant-design/icons-vue';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
+import { message } from "ant-design-vue";
+import { ReloadOutlined, ExportOutlined } from "@ant-design/icons-vue";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const route = useRoute();
 const orgId = ref(route.params.orgId || null);
@@ -255,10 +231,10 @@ const selectedActivity = ref(null);
 
 // 筛选器
 const filters = reactive({
-  actionType: '',
-  actorDID: '',
+  actionType: "",
+  actorDID: "",
   dateRange: null,
-  keyword: ''
+  keyword: "",
 });
 
 // 分页
@@ -268,47 +244,47 @@ const pagination = reactive({
   total: 0,
   showSizeChanger: true,
   showQuickJumper: true,
-  showTotal: (total) => `共 ${total} 条记录`
+  showTotal: (total) => `共 ${total} 条记录`,
 });
 
 // 表格列定义
 const columns = [
   {
-    title: '操作者',
-    key: 'actor',
-    dataIndex: 'actor_did',
-    width: 180
+    title: "操作者",
+    key: "actor",
+    dataIndex: "actor_did",
+    width: 180,
   },
   {
-    title: '操作类型',
-    key: 'action',
-    dataIndex: 'action',
-    width: 150
-  },
-  {
-    title: '资源类型',
-    key: 'resource_type',
-    dataIndex: 'resource_type',
-    width: 120
-  },
-  {
-    title: '详细信息',
-    key: 'details',
-    width: 300
-  },
-  {
-    title: '时间',
-    key: 'timestamp',
-    dataIndex: 'timestamp',
+    title: "操作类型",
+    key: "action",
+    dataIndex: "action",
     width: 150,
-    sorter: (a, b) => a.timestamp - b.timestamp
   },
   {
-    title: '操作',
-    key: 'operations',
+    title: "资源类型",
+    key: "resource_type",
+    dataIndex: "resource_type",
+    width: 120,
+  },
+  {
+    title: "详细信息",
+    key: "details",
+    width: 300,
+  },
+  {
+    title: "时间",
+    key: "timestamp",
+    dataIndex: "timestamp",
+    width: 150,
+    sorter: (a, b) => a.timestamp - b.timestamp,
+  },
+  {
+    title: "操作",
+    key: "operations",
     width: 100,
-    fixed: 'right'
-  }
+    fixed: "right",
+  },
 ];
 
 // 过滤后的活动日志
@@ -317,59 +293,70 @@ const filteredActivities = computed(() => {
 
   // 操作类型筛选
   if (filters.actionType) {
-    result = result.filter(a => a.action === filters.actionType);
+    result = result.filter((a) => a.action === filters.actionType);
   }
 
   // 操作者筛选
   if (filters.actorDID) {
-    result = result.filter(a => a.actor_did === filters.actorDID);
+    result = result.filter((a) => a.actor_did === filters.actorDID);
   }
 
   // 日期范围筛选
   if (filters.dateRange && filters.dateRange.length === 2) {
     const startTime = filters.dateRange[0].valueOf();
     const endTime = filters.dateRange[1].valueOf();
-    result = result.filter(a => a.timestamp >= startTime && a.timestamp <= endTime);
+    result = result.filter(
+      (a) => a.timestamp >= startTime && a.timestamp <= endTime,
+    );
   }
 
   // 关键词筛选
   if (filters.keyword) {
     const keyword = filters.keyword.toLowerCase();
-    result = result.filter(a => {
+    result = result.filter((a) => {
       const actorName = getActorName(a.actor_did).toLowerCase();
       const actionLabel = getActionLabel(a.action).toLowerCase();
       const details = getActivityDetails(a).toLowerCase();
-      return actorName.includes(keyword) ||
-             actionLabel.includes(keyword) ||
-             details.includes(keyword);
+      return (
+        actorName.includes(keyword) ||
+        actionLabel.includes(keyword) ||
+        details.includes(keyword)
+      );
     });
   }
 
   return result;
 });
 
-watch(filteredActivities, (items) => {
-  pagination.total = items.length;
-}, { immediate: true });
+watch(
+  filteredActivities,
+  (items) => {
+    pagination.total = items.length;
+  },
+  { immediate: true },
+);
 
 // 获取活动日志
 async function loadActivities() {
   loading.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:get-activities', {
-      orgId: orgId.value,
-      limit: 500
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:get-activities",
+      {
+        orgId: orgId.value,
+        limit: 500,
+      },
+    );
 
     if (result.success) {
       activities.value = result.activities;
       pagination.total = result.activities.length;
     } else {
-      message.error(result.error || '加载活动日志失败');
+      message.error(result.error || "加载活动日志失败");
     }
   } catch (error) {
-    logger.error('加载活动日志失败:', error);
-    message.error('加载活动日志失败');
+    logger.error("加载活动日志失败:", error);
+    message.error("加载活动日志失败");
   } finally {
     loading.value = false;
   }
@@ -378,12 +365,14 @@ async function loadActivities() {
 // 加载成员列表
 async function loadMembers() {
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:get-members', { orgId: orgId.value });
+    const result = await window.electron.ipcRenderer.invoke("org:get-members", {
+      orgId: orgId.value,
+    });
     if (result.success) {
       members.value = result.members;
     }
   } catch (error) {
-    logger.error('加载成员列表失败:', error);
+    logger.error("加载成员列表失败:", error);
   }
 }
 
@@ -412,52 +401,55 @@ function showDetails(activity) {
 // 导出日志
 async function exportLogs() {
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:export-activities', {
-      orgId: orgId.value,
-      activities: filteredActivities.value
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:export-activities",
+      {
+        orgId: orgId.value,
+        activities: filteredActivities.value,
+      },
+    );
 
     if (result.success) {
-      message.success('活动日志已导出到: ' + result.filePath);
+      message.success("活动日志已导出到: " + result.filePath);
     } else {
-      message.error('导出失败');
+      message.error("导出失败");
     }
   } catch (error) {
-    logger.error('导出失败:', error);
-    message.error('导出失败');
+    logger.error("导出失败:", error);
+    message.error("导出失败");
   }
 }
 
 // 获取操作者名称
 function getActorName(actorDID) {
-  const member = members.value.find(m => m.member_did === actorDID);
-  return member?.display_name || actorDID.substring(0, 12) + '...';
+  const member = members.value.find((m) => m.member_did === actorDID);
+  return member?.display_name || actorDID.substring(0, 12) + "...";
 }
 
 // 获取操作者头像
 function getActorAvatar(actorDID) {
-  const member = members.value.find(m => m.member_did === actorDID);
-  return member?.avatar || '';
+  const member = members.value.find((m) => m.member_did === actorDID);
+  return member?.avatar || "";
 }
 
 // 获取操作类型标签
 function getActionLabel(action) {
   const labels = {
-    'add_member': '添加成员',
-    'remove_member': '移除成员',
-    'update_member_role': '更新角色',
-    'create_knowledge': '创建知识库',
-    'update_knowledge': '更新知识库',
-    'delete_knowledge': '删除知识库',
-    'create_project': '创建项目',
-    'update_project': '更新项目',
-    'delete_project': '删除项目',
-    'update_organization': '更新组织',
-    'create_role': '创建角色',
-    'update_role': '更新角色',
-    'delete_role': '删除角色',
-    'invite_member': '邀请成员',
-    'leave_organization': '离开组织'
+    add_member: "添加成员",
+    remove_member: "移除成员",
+    update_member_role: "更新角色",
+    create_knowledge: "创建知识库",
+    update_knowledge: "更新知识库",
+    delete_knowledge: "删除知识库",
+    create_project: "创建项目",
+    update_project: "更新项目",
+    delete_project: "删除项目",
+    update_organization: "更新组织",
+    create_role: "创建角色",
+    update_role: "更新角色",
+    delete_role: "删除角色",
+    invite_member: "邀请成员",
+    leave_organization: "离开组织",
   };
   return labels[action] || action;
 }
@@ -465,29 +457,29 @@ function getActionLabel(action) {
 // 获取操作类型颜色
 function getActionColor(action) {
   const colors = {
-    'add_member': 'green',
-    'remove_member': 'red',
-    'update_member_role': 'blue',
-    'create_knowledge': 'cyan',
-    'update_knowledge': 'blue',
-    'delete_knowledge': 'red',
-    'create_project': 'green',
-    'update_organization': 'orange',
-    'create_role': 'purple',
-    'invite_member': 'geekblue'
+    add_member: "green",
+    remove_member: "red",
+    update_member_role: "blue",
+    create_knowledge: "cyan",
+    update_knowledge: "blue",
+    delete_knowledge: "red",
+    create_project: "green",
+    update_organization: "orange",
+    create_role: "purple",
+    invite_member: "geekblue",
   };
-  return colors[action] || 'default';
+  return colors[action] || "default";
 }
 
 // 获取资源类型标签
 function getResourceTypeLabel(resourceType) {
   const labels = {
-    'member': '成员',
-    'knowledge': '知识库',
-    'project': '项目',
-    'organization': '组织',
-    'role': '角色',
-    'invitation': '邀请'
+    member: "成员",
+    knowledge: "知识库",
+    project: "项目",
+    organization: "组织",
+    role: "角色",
+    invitation: "邀请",
   };
   return labels[resourceType] || resourceType;
 }
@@ -495,34 +487,34 @@ function getResourceTypeLabel(resourceType) {
 // 获取活动详细信息
 function getActivityDetails(activity) {
   try {
-    const metadata = JSON.parse(activity.metadata || '{}');
+    const metadata = JSON.parse(activity.metadata || "{}");
 
     switch (activity.action) {
-      case 'add_member':
+      case "add_member":
         return `添加了成员: ${metadata.display_name} (${metadata.role})`;
-      case 'remove_member':
+      case "remove_member":
         return `移除了成员: ${metadata.member_name || activity.resource_id}`;
-      case 'update_member_role':
+      case "update_member_role":
         return `将 ${metadata.member_name} 的角色从 ${metadata.old_role} 更改为 ${metadata.new_role}`;
-      case 'create_knowledge':
-        return `创建了知识库: ${metadata.title || ''}`;
-      case 'update_knowledge':
-        return `更新了知识库: ${metadata.title || ''}`;
-      case 'delete_knowledge':
+      case "create_knowledge":
+        return `创建了知识库: ${metadata.title || ""}`;
+      case "update_knowledge":
+        return `更新了知识库: ${metadata.title || ""}`;
+      case "delete_knowledge":
         return `删除了知识库: ${metadata.title || activity.resource_id}`;
-      case 'create_project':
-        return `创建了项目: ${metadata.name || ''}`;
-      case 'update_organization':
+      case "create_project":
+        return `创建了项目: ${metadata.name || ""}`;
+      case "update_organization":
         return `更新了组织信息`;
-      case 'create_role':
-        return `创建了角色: ${metadata.name || ''}`;
-      case 'invite_member':
+      case "create_role":
+        return `创建了角色: ${metadata.name || ""}`;
+      case "invite_member":
         return `生成了邀请码`;
       default:
         return JSON.stringify(metadata);
     }
   } catch (error) {
-    return activity.metadata || '';
+    return activity.metadata || "";
   }
 }
 
@@ -533,23 +525,25 @@ function formatRelativeTime(timestamp) {
 
 // 格式化完整时间
 function formatFullTime(timestamp) {
-  return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss');
+  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
 }
 
 // 获取角色标签
 function getRoleLabel(role) {
   const labels = {
-    'owner': '所有者',
-    'admin': '管理员',
-    'member': '成员',
-    'viewer': '访客'
+    owner: "所有者",
+    admin: "管理员",
+    member: "成员",
+    viewer: "访客",
   };
   return labels[role] || role;
 }
 
 // 成员筛选
 function filterMember(input, option) {
-  return option.children[0].children.toLowerCase().includes(input.toLowerCase());
+  return option.children[0].children
+    .toLowerCase()
+    .includes(input.toLowerCase());
 }
 
 // 组件挂载

@@ -19,10 +19,7 @@
     </a-steps>
 
     <!-- 步骤1: 设置密码 -->
-    <div
-      v-if="currentStep === 0"
-      class="step-content"
-    >
+    <div v-if="currentStep === 0" class="step-content">
       <a-alert
         message="重要提示"
         description="密码用于加密您的私钥。请务必牢记密码，密码丢失将无法找回！"
@@ -37,10 +34,7 @@
         :rules="formRules"
         layout="vertical"
       >
-        <a-form-item
-          label="钱包密码"
-          name="password"
-        >
+        <a-form-item label="钱包密码" name="password">
           <a-input-password
             v-model:value="formData.password"
             placeholder="请输入密码（至少8位）"
@@ -67,10 +61,7 @@
           </template>
         </a-form-item>
 
-        <a-form-item
-          label="确认密码"
-          name="confirmPassword"
-        >
+        <a-form-item label="确认密码" name="confirmPassword">
           <a-input-password
             v-model:value="formData.confirmPassword"
             placeholder="请再次输入密码"
@@ -95,10 +86,7 @@
     </div>
 
     <!-- 步骤2: 备份助记词 -->
-    <div
-      v-if="currentStep === 1"
-      class="step-content"
-    >
+    <div v-if="currentStep === 1" class="step-content">
       <a-alert
         message="请备份助记词"
         description="这是恢复钱包的唯一方式。请将助记词抄写在纸上，并妥善保管。切勿截图或通过网络传输！"
@@ -149,10 +137,7 @@
     </div>
 
     <!-- 步骤3: 确认完成 -->
-    <div
-      v-if="currentStep === 2"
-      class="step-content"
-    >
+    <div v-if="currentStep === 2" class="step-content">
       <a-result
         status="success"
         title="钱包创建成功！"
@@ -160,14 +145,10 @@
       >
         <template #extra>
           <div class="wallet-info">
-            <a-descriptions
-              :column="1"
-              bordered
-              size="small"
-            >
+            <a-descriptions :column="1" bordered size="small">
               <a-descriptions-item label="钱包地址">
                 <div class="wallet-address">
-                  {{ walletAddress || '生成中...' }}
+                  {{ walletAddress || "生成中..." }}
                   <copy-outlined
                     v-if="walletAddress"
                     class="copy-icon"
@@ -176,10 +157,10 @@
                 </div>
               </a-descriptions-item>
               <a-descriptions-item label="U-Key 保护">
-                {{ formData.useUKey ? '已启用' : '未启用' }}
+                {{ formData.useUKey ? "已启用" : "未启用" }}
               </a-descriptions-item>
               <a-descriptions-item label="创建时间">
-                {{ new Date().toLocaleString('zh-CN') }}
+                {{ new Date().toLocaleString("zh-CN") }}
               </a-descriptions-item>
             </a-descriptions>
           </div>
@@ -189,14 +170,11 @@
 
     <template #footer>
       <a-space>
-        <a-button
-          v-if="currentStep > 0"
-          @click="handlePrevStep"
-        >
+        <a-button v-if="currentStep > 0" @click="handlePrevStep">
           上一步
         </a-button>
         <a-button @click="handleCancel">
-          {{ currentStep === 2 ? '关闭' : '取消' }}
+          {{ currentStep === 2 ? "关闭" : "取消" }}
         </a-button>
         <a-button
           v-if="currentStep < 2"
@@ -205,7 +183,7 @@
           :disabled="!canProceed"
           @click="handleNextStep"
         >
-          {{ currentStep === 1 ? '创建钱包' : '下一步' }}
+          {{ currentStep === 1 ? "创建钱包" : "下一步" }}
         </a-button>
       </a-space>
     </template>
@@ -213,16 +191,16 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   LockOutlined,
   CopyOutlined,
   ReloadOutlined,
-} from '@ant-design/icons-vue';
-import { useBlockchainStore } from '@/stores/blockchain';
+} from "@ant-design/icons-vue";
+import { useBlockchainStore } from "@/stores/blockchain";
 
 const props = defineProps({
   open: {
@@ -231,13 +209,12 @@ const props = defineProps({
   },
 });
 
-
-const emit = defineEmits(['update:open', 'created']);
+const emit = defineEmits(["update:open", "created"]);
 
 // Computed property for modal visibility (two-way binding with prop)
 const modalVisible = computed({
   get: () => props.open,
-  set: (value) => emit('update:open', value),
+  set: (value) => emit("update:open", value),
 });
 
 const blockchainStore = useBlockchainStore();
@@ -246,13 +223,13 @@ const blockchainStore = useBlockchainStore();
 const loading = ref(false);
 const currentStep = ref(0);
 const formRef = ref(null);
-const walletAddress = ref('');
+const walletAddress = ref("");
 const mnemonicWords = ref([]);
 
 // 表单数据
 const formData = ref({
-  password: '',
-  confirmPassword: '',
+  password: "",
+  confirmPassword: "",
   useUKey: false,
   confirmedBackup: false,
 });
@@ -260,19 +237,19 @@ const formData = ref({
 // 表单验证规则
 const formRules = {
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 8, message: '密码至少8位', trigger: 'blur' },
+    { required: true, message: "请输入密码", trigger: "blur" },
+    { min: 8, message: "密码至少8位", trigger: "blur" },
   ],
   confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
+    { required: true, message: "请确认密码", trigger: "blur" },
     {
       validator: (rule, value) => {
         if (value !== formData.value.password) {
-          return Promise.reject('两次输入的密码不一致');
+          return Promise.reject("两次输入的密码不一致");
         }
         return Promise.resolve();
       },
-      trigger: 'blur',
+      trigger: "blur",
     },
   ],
 };
@@ -280,45 +257,73 @@ const formRules = {
 // 密码强度计算
 const passwordStrength = computed(() => {
   const password = formData.value.password;
-  if (!password) {return 0;}
+  if (!password) {
+    return 0;
+  }
 
   let strength = 0;
   // 长度
-  if (password.length >= 8) {strength += 25;}
-  if (password.length >= 12) {strength += 25;}
+  if (password.length >= 8) {
+    strength += 25;
+  }
+  if (password.length >= 12) {
+    strength += 25;
+  }
   // 包含数字
-  if (/\d/.test(password)) {strength += 15;}
+  if (/\d/.test(password)) {
+    strength += 15;
+  }
   // 包含小写字母
-  if (/[a-z]/.test(password)) {strength += 15;}
+  if (/[a-z]/.test(password)) {
+    strength += 15;
+  }
   // 包含大写字母
-  if (/[A-Z]/.test(password)) {strength += 10;}
+  if (/[A-Z]/.test(password)) {
+    strength += 10;
+  }
   // 包含特殊字符
-  if (/[^a-zA-Z0-9]/.test(password)) {strength += 10;}
+  if (/[^a-zA-Z0-9]/.test(password)) {
+    strength += 10;
+  }
 
   return Math.min(strength, 100);
 });
 
 const passwordStrengthText = computed(() => {
   const strength = passwordStrength.value;
-  if (strength < 30) {return '弱';}
-  if (strength < 60) {return '中等';}
-  if (strength < 80) {return '强';}
-  return '非常强';
+  if (strength < 30) {
+    return "弱";
+  }
+  if (strength < 60) {
+    return "中等";
+  }
+  if (strength < 80) {
+    return "强";
+  }
+  return "非常强";
 });
 
 const passwordColor = computed(() => {
   const strength = passwordStrength.value;
-  if (strength < 30) {return '#ff4d4f';}
-  if (strength < 60) {return '#faad14';}
-  if (strength < 80) {return '#52c41a';}
-  return '#1890ff';
+  if (strength < 30) {
+    return "#ff4d4f";
+  }
+  if (strength < 60) {
+    return "#faad14";
+  }
+  if (strength < 80) {
+    return "#52c41a";
+  }
+  return "#1890ff";
 });
 
 // 是否可以继续
 const canProceed = computed(() => {
   if (currentStep.value === 0) {
-    return formData.value.password.length >= 8 &&
-           formData.value.password === formData.value.confirmPassword;
+    return (
+      formData.value.password.length >= 8 &&
+      formData.value.password === formData.value.confirmPassword
+    );
   } else if (currentStep.value === 1) {
     return formData.value.confirmedBackup && mnemonicWords.value.length === 12;
   }
@@ -332,8 +337,18 @@ const generateMnemonic = () => {
   // 模拟生成12个助记词
   // 实际应该调用后端 API 生成真实的 BIP39 助记词
   const words = [
-    'abandon', 'ability', 'able', 'about', 'above', 'absent',
-    'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident',
+    "abandon",
+    "ability",
+    "able",
+    "about",
+    "above",
+    "absent",
+    "absorb",
+    "abstract",
+    "absurd",
+    "abuse",
+    "access",
+    "accident",
   ];
 
   mnemonicWords.value = words.sort(() => Math.random() - 0.5).slice(0, 12);
@@ -343,13 +358,13 @@ const generateMnemonic = () => {
  * 复制助记词
  */
 const handleCopyMnemonic = async () => {
-  const mnemonic = mnemonicWords.value.join(' ');
+  const mnemonic = mnemonicWords.value.join(" ");
   try {
     await navigator.clipboard.writeText(mnemonic);
-    message.success('助记词已复制到剪贴板');
+    message.success("助记词已复制到剪贴板");
   } catch (error) {
-    logger.error('[CreateWalletModal] 复制失败:', error);
-    message.error('复制失败');
+    logger.error("[CreateWalletModal] 复制失败:", error);
+    message.error("复制失败");
   }
 };
 
@@ -359,7 +374,7 @@ const handleCopyMnemonic = async () => {
 const handleRegenerateMnemonic = () => {
   generateMnemonic();
   formData.value.confirmedBackup = false;
-  message.info('已重新生成助记词');
+  message.info("已重新生成助记词");
 };
 
 /**
@@ -368,10 +383,10 @@ const handleRegenerateMnemonic = () => {
 const handleCopyAddress = async () => {
   try {
     await navigator.clipboard.writeText(walletAddress.value);
-    message.success('地址已复制到剪贴板');
+    message.success("地址已复制到剪贴板");
   } catch (error) {
-    logger.error('[CreateWalletModal] 复制地址失败:', error);
-    message.error('复制失败');
+    logger.error("[CreateWalletModal] 复制地址失败:", error);
+    message.error("复制失败");
   }
 };
 
@@ -411,20 +426,22 @@ const handlePrevStep = () => {
 const handleCreate = async () => {
   if (currentStep.value === 1) {
     if (!formData.value.confirmedBackup) {
-      message.warning('请确认已备份助记词');
+      message.warning("请确认已备份助记词");
       return;
     }
 
     loading.value = true;
     try {
-      const wallet = await blockchainStore.createWallet(formData.value.password);
+      const wallet = await blockchainStore.createWallet(
+        formData.value.password,
+      );
       walletAddress.value = wallet.address;
       currentStep.value = 2;
-      message.success('钱包创建成功');
-      emit('created', wallet);
+      message.success("钱包创建成功");
+      emit("created", wallet);
     } catch (error) {
-      logger.error('[CreateWalletModal] 创建钱包失败:', error);
-      message.error('创建钱包失败: ' + error.message);
+      logger.error("[CreateWalletModal] 创建钱包失败:", error);
+      message.error("创建钱包失败: " + error.message);
     } finally {
       loading.value = false;
     }
@@ -438,7 +455,7 @@ const handleCreate = async () => {
  * 取消
  */
 const handleCancel = () => {
-  emit('update:open', false);
+  emit("update:open", false);
 };
 
 /**
@@ -447,13 +464,13 @@ const handleCancel = () => {
 const resetForm = () => {
   currentStep.value = 0;
   formData.value = {
-    password: '',
-    confirmPassword: '',
+    password: "",
+    confirmPassword: "",
     useUKey: false,
     confirmedBackup: false,
   };
   mnemonicWords.value = [];
-  walletAddress.value = '';
+  walletAddress.value = "";
 };
 
 // 监听 open 变化
@@ -464,7 +481,7 @@ watch(
       // 对话框关闭时重置表单
       resetForm();
     }
-  }
+  },
 );
 </script>
 
@@ -524,7 +541,7 @@ watch(
 }
 
 .word-text {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 14px;
   font-weight: 500;
   color: #262626;
@@ -544,7 +561,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 13px;
 }
 

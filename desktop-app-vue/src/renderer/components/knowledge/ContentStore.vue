@@ -9,10 +9,7 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateModal = true"
-          >
+          <a-button type="primary" @click="showCreateModal = true">
             <template #icon>
               <plus-outlined />
             </template>
@@ -28,10 +25,7 @@
       </template>
 
       <!-- 搜索和筛选 -->
-      <a-row
-        :gutter="[16, 16]"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="[16, 16]" style="margin-bottom: 16px">
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
@@ -50,24 +44,12 @@
             placeholder="内容类型"
             @change="handleSearch"
           >
-            <a-select-option value="">
-              全部类型
-            </a-select-option>
-            <a-select-option value="article">
-              文章
-            </a-select-option>
-            <a-select-option value="video">
-              视频
-            </a-select-option>
-            <a-select-option value="audio">
-              音频
-            </a-select-option>
-            <a-select-option value="course">
-              课程
-            </a-select-option>
-            <a-select-option value="consulting">
-              咨询
-            </a-select-option>
+            <a-select-option value=""> 全部类型 </a-select-option>
+            <a-select-option value="article"> 文章 </a-select-option>
+            <a-select-option value="video"> 视频 </a-select-option>
+            <a-select-option value="audio"> 音频 </a-select-option>
+            <a-select-option value="course"> 课程 </a-select-option>
+            <a-select-option value="consulting"> 咨询 </a-select-option>
           </a-select>
         </a-col>
         <a-col :span="6">
@@ -76,18 +58,10 @@
             style="width: 100%"
             @change="handleSearch"
           >
-            <a-select-option value="created_at">
-              最新发布
-            </a-select-option>
-            <a-select-option value="view_count">
-              浏览最多
-            </a-select-option>
-            <a-select-option value="purchase_count">
-              购买最多
-            </a-select-option>
-            <a-select-option value="rating">
-              评分最高
-            </a-select-option>
+            <a-select-option value="created_at"> 最新发布 </a-select-option>
+            <a-select-option value="view_count"> 浏览最多 </a-select-option>
+            <a-select-option value="purchase_count"> 购买最多 </a-select-option>
+            <a-select-option value="rating"> 评分最高 </a-select-option>
           </a-select>
         </a-col>
       </a-row>
@@ -100,11 +74,7 @@
         >
           <template #renderItem="{ item }">
             <a-list-item>
-              <a-card
-                hoverable
-                class="content-card"
-                @click="viewContent(item)"
-              >
+              <a-card hoverable class="content-card" @click="viewContent(item)">
                 <!-- 内容类型标签 -->
                 <a-tag
                   :color="getTypeColor(item.contentType)"
@@ -118,15 +88,9 @@
                   v-if="item.preview && item.preview.image"
                   class="content-preview"
                 >
-                  <img
-                    :src="item.preview.image"
-                    :alt="item.title"
-                  >
+                  <img :src="item.preview.image" :alt="item.title" />
                 </div>
-                <div
-                  v-else
-                  class="content-preview-placeholder"
-                >
+                <div v-else class="content-preview-placeholder">
                   <file-text-outlined style="font-size: 48px; color: #ccc" />
                 </div>
 
@@ -138,14 +102,12 @@
                   </template>
                   <template #description>
                     <div class="content-description">
-                      {{ item.description || '暂无描述' }}
+                      {{ item.description || "暂无描述" }}
                     </div>
                     <div class="content-meta">
                       <div class="content-stats">
                         <a-space size="small">
-                          <span>
-                            <eye-outlined /> {{ item.viewCount }}
-                          </span>
+                          <span> <eye-outlined /> {{ item.viewCount }} </span>
                           <span>
                             <shopping-outlined /> {{ item.purchaseCount }}
                           </span>
@@ -155,9 +117,7 @@
                         </a-space>
                       </div>
                       <div class="content-price">
-                        <a-tag color="orange">
-                          ¥{{ item.priceAmount }}
-                        </a-tag>
+                        <a-tag color="orange"> ¥{{ item.priceAmount }} </a-tag>
                       </div>
                     </div>
                     <div class="content-creator">
@@ -174,10 +134,7 @@
 
           <template #empty>
             <a-empty description="暂无内容">
-              <a-button
-                type="primary"
-                @click="showCreateModal = true"
-              >
+              <a-button type="primary" @click="showCreateModal = true">
                 发布第一个内容
               </a-button>
             </a-empty>
@@ -202,10 +159,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   BookOutlined,
   PlusOutlined,
@@ -216,10 +173,10 @@ import {
   StarOutlined,
   UserOutlined,
   FileTextOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import ContentCreate from './ContentCreate.vue';
-import ContentDetail from './ContentDetail.vue';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import ContentCreate from "./ContentCreate.vue";
+import ContentDetail from "./ContentDetail.vue";
 
 // Store
 const tradeStore = useTradeStore();
@@ -229,9 +186,9 @@ const loading = computed(() => tradeStore.knowledge.loading);
 const contents = computed(() => tradeStore.knowledge.contents);
 
 // 本地状态
-const searchKeyword = ref('');
-const filterType = ref('');
-const sortBy = ref('created_at');
+const searchKeyword = ref("");
+const filterType = ref("");
+const sortBy = ref("created_at");
 const showCreateModal = ref(false);
 const showDetailModal = ref(false);
 const selectedContent = ref(null);
@@ -243,16 +200,16 @@ const loadContents = async () => {
       contentType: filterType.value || undefined,
       sortBy: sortBy.value,
       keyword: searchKeyword.value || undefined,
-      status: 'active',
+      status: "active",
     };
 
     // 使用 store 加载内容
     await tradeStore.loadKnowledgeContents(filters);
 
-    logger.info('[ContentStore] 内容列表已加载:', contents.value.length);
+    logger.info("[ContentStore] 内容列表已加载:", contents.value.length);
   } catch (error) {
-    logger.error('[ContentStore] 加载内容列表失败:', error);
-    antMessage.error(error.message || '加载内容列表失败');
+    logger.error("[ContentStore] 加载内容列表失败:", error);
+    antMessage.error(error.message || "加载内容列表失败");
   }
 };
 
@@ -280,28 +237,30 @@ const viewContent = (content) => {
 // 工具函数
 const getTypeColor = (type) => {
   const colors = {
-    article: 'blue',
-    video: 'red',
-    audio: 'purple',
-    course: 'green',
-    consulting: 'orange',
+    article: "blue",
+    video: "red",
+    audio: "purple",
+    course: "green",
+    consulting: "orange",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 const getTypeName = (type) => {
   const names = {
-    article: '文章',
-    video: '视频',
-    audio: '音频',
-    course: '课程',
-    consulting: '咨询',
+    article: "文章",
+    video: "视频",
+    audio: "音频",
+    course: "课程",
+    consulting: "咨询",
   };
   return names[type] || type;
 };
 
 const shortenDid = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 

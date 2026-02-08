@@ -8,15 +8,15 @@
  * 3. 全流程性能监控和瓶颈分析
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const IntentClassifier = require('./intent-classifier');
-const SlotFiller = require('./slot-filler');
-const { TaskPlanner } = require('./task-planner');
-const TaskPlannerEnhanced = require('./task-planner-enhanced');
-const FunctionCaller = require('./function-caller');
-const ToolSandbox = require('./tool-sandbox');
-const PerformanceMonitor = require('../monitoring/performance-monitor');
-const { getAIEngineConfig, mergeConfig } = require('./ai-engine-config');
+const { logger } = require("../utils/logger.js");
+const IntentClassifier = require("./intent-classifier");
+const SlotFiller = require("./slot-filler");
+const { TaskPlanner } = require("./task-planner");
+const TaskPlannerEnhanced = require("./task-planner-enhanced");
+const FunctionCaller = require("./function-caller");
+const ToolSandbox = require("./tool-sandbox");
+const PerformanceMonitor = require("../monitoring/performance-monitor");
+const { getAIEngineConfig, mergeConfig } = require("./ai-engine-config");
 
 class AIEngineManagerOptimized {
   constructor() {
@@ -44,7 +44,7 @@ class AIEngineManagerOptimized {
     this.sessionId = null;
 
     // 用户ID（可配置）
-    this.userId = 'default_user';
+    this.userId = "default_user";
 
     // 配置选项（从配置文件加载默认值）
     this.config = getAIEngineConfig();
@@ -56,21 +56,21 @@ class AIEngineManagerOptimized {
    */
   async initialize(options = {}) {
     try {
-      logger.info('[AIEngineManager-Optimized] 开始初始化...');
+      logger.info("[AIEngineManager-Optimized] 开始初始化...");
 
       // 合并用户配置
       this.config = mergeConfig(options);
-      logger.info('[AIEngineManager-Optimized] 配置已加载:', {
+      logger.info("[AIEngineManager-Optimized] 配置已加载:", {
         slotFilling: this.config.enableSlotFilling,
         toolSandbox: this.config.enableToolSandbox,
-        performanceMonitor: this.config.enablePerformanceMonitor
+        performanceMonitor: this.config.enablePerformanceMonitor,
       });
 
       // 获取依赖项
       if (!this.llmManager) {
-        const { getLLMManager } = require('../llm/llm-manager');
-        const { getDatabase } = require('../database');
-        const { getProjectConfig } = require('../project/project-config');
+        const { getLLMManager } = require("../llm/llm-manager");
+        const { getDatabase } = require("../database");
+        const { getProjectConfig } = require("../project/project-config");
 
         this.llmManager = getLLMManager();
         this.database = getDatabase();
@@ -85,17 +85,17 @@ class AIEngineManagerOptimized {
       // 初始化优化模块
       if (this.config.enableSlotFilling) {
         this.slotFiller = new SlotFiller(this.llmManager, this.database);
-        logger.info('[AIEngineManager-Optimized] ✅ 槽位填充器已初始化');
+        logger.info("[AIEngineManager-Optimized] ✅ 槽位填充器已初始化");
       }
 
       if (this.config.enableToolSandbox) {
         this.toolSandbox = new ToolSandbox(this.functionCaller, this.database);
-        logger.info('[AIEngineManager-Optimized] ✅ 工具沙箱已初始化');
+        logger.info("[AIEngineManager-Optimized] ✅ 工具沙箱已初始化");
       }
 
       if (this.config.enablePerformanceMonitor) {
         this.performanceMonitor = new PerformanceMonitor(this.database);
-        logger.info('[AIEngineManager-Optimized] ✅ 性能监控已初始化');
+        logger.info("[AIEngineManager-Optimized] ✅ 性能监控已初始化");
       }
 
       // 初始化增强版任务规划器
@@ -103,19 +103,19 @@ class AIEngineManagerOptimized {
         this.taskPlannerEnhanced = new TaskPlannerEnhanced({
           llmManager: this.llmManager,
           database: this.database,
-          projectConfig: this.projectConfig
+          projectConfig: this.projectConfig,
         });
 
-        logger.info('[AIEngineManager-Optimized] ✅ 增强版任务规划器已初始化');
+        logger.info("[AIEngineManager-Optimized] ✅ 增强版任务规划器已初始化");
       }
 
       // 生成会话ID
       this.sessionId = `session_${Date.now()}`;
 
-      logger.info('[AIEngineManager-Optimized] ✅ 初始化完成');
+      logger.info("[AIEngineManager-Optimized] ✅ 初始化完成");
       return true;
     } catch (error) {
-      logger.error('[AIEngineManager-Optimized] ❌ 初始化失败:', error);
+      logger.error("[AIEngineManager-Optimized] ❌ 初始化失败:", error);
       throw error;
     }
   }
@@ -128,142 +128,170 @@ class AIEngineManagerOptimized {
    * @param {Function} askUserCallback - 询问用户回调函数 (question, options) => Promise<answer>
    * @returns {Promise<Object>} 执行结果
    */
-  async processUserInput(userInput, context = {}, onStepUpdate = null, askUserCallback = null) {
+  async processUserInput(
+    userInput,
+    context = {},
+    onStepUpdate = null,
+    askUserCallback = null,
+  ) {
     const pipelineStartTime = Date.now();
     const executionId = `exec_${Date.now()}`;
 
     try {
-      logger.info(`\n${'='.repeat(60)}`);
+      logger.info(`\n${"=".repeat(60)}`);
       logger.info(`[AI Engine] 🚀 开始处理用户输入: "${userInput}"`);
       logger.info(`[AI Engine] 会话ID: ${this.sessionId}`);
-      logger.info(`${'='.repeat(60)}\n`);
+      logger.info(`${"=".repeat(60)}\n`);
 
       // =====================================================
       // 步骤1: 意图识别 (Intent Recognition)
       // =====================================================
-      logger.info('[步骤1] 意图识别...');
+      logger.info("[步骤1] 意图识别...");
       const intentStartTime = Date.now();
 
       const intentStep = {
         id: `${executionId}_step_1`,
-        name: '理解用户意图',
-        status: 'running',
+        name: "理解用户意图",
+        status: "running",
         startTime: intentStartTime,
       };
 
-      if (onStepUpdate) {onStepUpdate(intentStep);}
+      if (onStepUpdate) {
+        onStepUpdate(intentStep);
+      }
 
       const intent = await this.intentClassifier.classify(userInput, context);
 
       const intentDuration = Date.now() - intentStartTime;
 
-      intentStep.status = 'completed';
+      intentStep.status = "completed";
       intentStep.endTime = Date.now();
       intentStep.duration = intentDuration;
       intentStep.result = intent;
 
-      if (onStepUpdate) {onStepUpdate(intentStep);}
+      if (onStepUpdate) {
+        onStepUpdate(intentStep);
+      }
 
-      logger.info(`[步骤1] ✅ 识别完成: ${intent.intent}, 置信度: ${intent.confidence}`);
+      logger.info(
+        `[步骤1] ✅ 识别完成: ${intent.intent}, 置信度: ${intent.confidence}`,
+      );
 
       // 记录性能
       if (this.performanceMonitor) {
         await this.performanceMonitor.recordPhase(
-          'intent_recognition',
+          "intent_recognition",
           intentDuration,
           { intent: intent.intent, confidence: intent.confidence },
           this.userId,
-          this.sessionId
+          this.sessionId,
         );
       }
 
       // =====================================================
       // 步骤2: 槽位填充 (Slot Filling)
       // =====================================================
-      let slotFillingResult = { entities: intent.entities, validation: { valid: true } };
+      let slotFillingResult = {
+        entities: intent.entities,
+        validation: { valid: true },
+      };
 
       if (this.config.enableSlotFilling && this.slotFiller) {
-        logger.info('[步骤2] 槽位填充...');
+        logger.info("[步骤2] 槽位填充...");
         const slotStartTime = Date.now();
 
         const slotStep = {
           id: `${executionId}_step_2`,
-          name: '填充必需参数',
-          status: 'running',
+          name: "填充必需参数",
+          status: "running",
           startTime: slotStartTime,
         };
 
-        if (onStepUpdate) {onStepUpdate(slotStep);}
+        if (onStepUpdate) {
+          onStepUpdate(slotStep);
+        }
 
         slotFillingResult = await this.slotFiller.fillSlots(
           intent,
           context,
-          askUserCallback
+          askUserCallback,
         );
 
         const slotDuration = Date.now() - slotStartTime;
 
-        slotStep.status = 'completed';
+        slotStep.status = "completed";
         slotStep.endTime = Date.now();
         slotStep.duration = slotDuration;
         slotStep.result = this.slotFiller.getSummary(slotFillingResult);
 
-        if (onStepUpdate) {onStepUpdate(slotStep);}
+        if (onStepUpdate) {
+          onStepUpdate(slotStep);
+        }
 
-        logger.info(`[步骤2] ✅ 槽位填充完成: 完整度 ${slotFillingResult.validation.completeness}%`);
+        logger.info(
+          `[步骤2] ✅ 槽位填充完成: 完整度 ${slotFillingResult.validation.completeness}%`,
+        );
 
         // 更新intent的entities
         intent.entities = slotFillingResult.entities;
 
         // 记录槽位填充历史
         if (this.database && this.slotFiller) {
-          await this.slotFiller.recordFillingHistory(this.userId, intent.intent, slotFillingResult.entities);
+          await this.slotFiller.recordFillingHistory(
+            this.userId,
+            intent.intent,
+            slotFillingResult.entities,
+          );
         }
       }
 
       // =====================================================
       // 步骤3: 任务规划 (Task Planning)
       // =====================================================
-      logger.info('[步骤3] 任务规划...');
+      logger.info("[步骤3] 任务规划...");
       const planStartTime = Date.now();
 
       const planStep = {
         id: `${executionId}_step_3`,
-        name: '制定执行计划',
-        status: 'running',
+        name: "制定执行计划",
+        status: "running",
         startTime: planStartTime,
       };
 
-      if (onStepUpdate) {onStepUpdate(planStep);}
+      if (onStepUpdate) {
+        onStepUpdate(planStep);
+      }
 
       const plan = await this.taskPlanner.plan(intent, context);
 
       const planDuration = Date.now() - planStartTime;
 
-      planStep.status = 'completed';
+      planStep.status = "completed";
       planStep.endTime = Date.now();
       planStep.duration = planDuration;
       planStep.result = plan;
 
-      if (onStepUpdate) {onStepUpdate(planStep);}
+      if (onStepUpdate) {
+        onStepUpdate(planStep);
+      }
 
       logger.info(`[步骤3] ✅ 规划完成: ${plan.steps.length} 个步骤`);
 
       // 记录性能
       if (this.performanceMonitor) {
         await this.performanceMonitor.recordPhase(
-          'task_planning',
+          "task_planning",
           planDuration,
           { stepsCount: plan.steps.length },
           this.userId,
-          this.sessionId
+          this.sessionId,
         );
       }
 
       // =====================================================
       // 步骤4: 执行任务步骤 (Tool Execution)
       // =====================================================
-      logger.info('[步骤4] 执行任务步骤...');
+      logger.info("[步骤4] 执行任务步骤...");
       const results = [];
       let failedStepIndex = null;
 
@@ -275,13 +303,15 @@ class AIEngineManagerOptimized {
         const execStep = {
           id: `${executionId}_step_${i + 4}`,
           name: taskStep.name || taskStep.description || `执行步骤 ${i + 1}`,
-          status: 'running',
+          status: "running",
           startTime: Date.now(),
           tool: taskStep.tool,
           params: taskStep.params,
         };
 
-        if (onStepUpdate) {onStepUpdate(execStep);}
+        if (onStepUpdate) {
+          onStepUpdate(execStep);
+        }
 
         try {
           let result;
@@ -292,7 +322,7 @@ class AIEngineManagerOptimized {
               taskStep.tool,
               taskStep.params,
               context,
-              this.config.sandboxConfig
+              this.config.sandboxConfig,
             );
           } else {
             // 直接执行
@@ -300,7 +330,7 @@ class AIEngineManagerOptimized {
             const toolResult = await this.functionCaller.call(
               taskStep.tool,
               taskStep.params,
-              context
+              context,
             );
             const toolDuration = Date.now() - toolStartTime;
 
@@ -308,41 +338,46 @@ class AIEngineManagerOptimized {
               success: true,
               result: toolResult,
               duration: toolDuration,
-              toolName: taskStep.tool
+              toolName: taskStep.tool,
             };
           }
 
-          execStep.status = 'completed';
+          execStep.status = "completed";
           execStep.endTime = Date.now();
           execStep.duration = execStep.endTime - execStep.startTime;
           execStep.result = result.result;
 
-          if (onStepUpdate) {onStepUpdate(execStep);}
+          if (onStepUpdate) {
+            onStepUpdate(execStep);
+          }
 
           results.push(result.result);
 
-          logger.info(`  ✅ 完成: ${taskStep.tool}, 耗时: ${result.duration}ms`);
+          logger.info(
+            `  ✅ 完成: ${taskStep.tool}, 耗时: ${result.duration}ms`,
+          );
 
           // 记录工具执行性能
           if (this.performanceMonitor) {
             await this.performanceMonitor.recordPhase(
-              'tool_execution',
+              "tool_execution",
               result.duration,
               { toolName: taskStep.tool, stepIndex: i },
               this.userId,
-              this.sessionId
+              this.sessionId,
             );
           }
-
         } catch (error) {
           logger.error(`  ❌ 失败: ${taskStep.tool}`, error.message);
 
-          execStep.status = 'failed';
+          execStep.status = "failed";
           execStep.endTime = Date.now();
           execStep.duration = execStep.endTime - execStep.startTime;
           execStep.error = error.message;
 
-          if (onStepUpdate) {onStepUpdate(execStep);}
+          if (onStepUpdate) {
+            onStepUpdate(execStep);
+          }
 
           failedStepIndex = i;
 
@@ -350,10 +385,10 @@ class AIEngineManagerOptimized {
           if (askUserCallback) {
             const shouldContinue = await askUserCallback(
               `步骤 ${i + 1} 执行失败: ${error.message}\n是否继续执行剩余步骤？`,
-              ['继续', '中止']
+              ["继续", "中止"],
             );
 
-            if (shouldContinue !== '继续') {
+            if (shouldContinue !== "继续") {
               break;
             }
           } else {
@@ -366,26 +401,28 @@ class AIEngineManagerOptimized {
       // 完成统计
       // =====================================================
       const pipelineDuration = Date.now() - pipelineStartTime;
-      const allSuccess = results.every(r => r.success !== false);
+      const allSuccess = results.every((r) => r.success !== false);
 
-      logger.info(`\n${'='.repeat(60)}`);
-      logger.info(`[AI Engine] ${allSuccess ? '✅ 执行成功' : '⚠️ 部分失败'}`);
+      logger.info(`\n${"=".repeat(60)}`);
+      logger.info(`[AI Engine] ${allSuccess ? "✅ 执行成功" : "⚠️ 部分失败"}`);
       logger.info(`[AI Engine] 总耗时: ${pipelineDuration}ms`);
-      logger.info(`[AI Engine] 成功步骤: ${results.length}/${plan.steps.length}`);
-      logger.info(`${'='.repeat(60)}\n`);
+      logger.info(
+        `[AI Engine] 成功步骤: ${results.length}/${plan.steps.length}`,
+      );
+      logger.info(`${"=".repeat(60)}\n`);
 
       // 记录整体Pipeline性能
       if (this.performanceMonitor) {
         await this.performanceMonitor.recordPhase(
-          'total_pipeline',
+          "total_pipeline",
           pipelineDuration,
           {
             totalSteps: plan.steps.length,
             successSteps: results.length,
-            allSuccess
+            allSuccess,
           },
           this.userId,
-          this.sessionId
+          this.sessionId,
         );
       }
 
@@ -404,10 +441,9 @@ class AIEngineManagerOptimized {
         performance: {
           intent_recognition: intentDuration,
           task_planning: planDuration,
-          total: pipelineDuration
-        }
+          total: pipelineDuration,
+        },
       };
-
     } catch (error) {
       const pipelineDuration = Date.now() - pipelineStartTime;
 
@@ -416,11 +452,11 @@ class AIEngineManagerOptimized {
       // 记录失败
       if (this.performanceMonitor) {
         await this.performanceMonitor.recordPhase(
-          'total_pipeline',
+          "total_pipeline",
           pipelineDuration,
           { error: error.message },
           this.userId,
-          this.sessionId
+          this.sessionId,
         );
       }
 
@@ -435,17 +471,18 @@ class AIEngineManagerOptimized {
    */
   async getPerformanceReport(timeRange = 7 * 24 * 60 * 60 * 1000) {
     if (!this.performanceMonitor) {
-      throw new Error('性能监控未启用');
+      throw new Error("性能监控未启用");
     }
 
     const report = await this.performanceMonitor.generateReport(timeRange);
     const bottlenecks = await this.performanceMonitor.findBottlenecks(5000, 10);
-    const suggestions = this.performanceMonitor.generateOptimizationSuggestions(report);
+    const suggestions =
+      this.performanceMonitor.generateOptimizationSuggestions(report);
 
     return {
       ...report,
       bottlenecks,
-      suggestions
+      suggestions,
     };
   }
 
@@ -456,10 +493,12 @@ class AIEngineManagerOptimized {
    */
   async getSessionPerformance(sessionId = null) {
     if (!this.performanceMonitor) {
-      throw new Error('性能监控未启用');
+      throw new Error("性能监控未启用");
     }
 
-    return await this.performanceMonitor.getSessionPerformance(sessionId || this.sessionId);
+    return await this.performanceMonitor.getSessionPerformance(
+      sessionId || this.sessionId,
+    );
   }
 
   /**
@@ -486,7 +525,7 @@ class AIEngineManagerOptimized {
    */
   getTaskPlanner() {
     if (!this.taskPlannerEnhanced) {
-      throw new Error('增强版任务规划器未初始化，请先调用 initialize()');
+      throw new Error("增强版任务规划器未初始化，请先调用 initialize()");
     }
     return this.taskPlannerEnhanced;
   }
@@ -534,5 +573,5 @@ function getAIEngineManagerOptimized() {
 
 module.exports = {
   AIEngineManagerOptimized,
-  getAIEngineManagerOptimized
+  getAIEngineManagerOptimized,
 };

@@ -9,17 +9,17 @@
  * - 交易重试机制
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * 交易状态
  */
 const TransactionStatus = {
-  PENDING: 'pending', // 待确认
-  CONFIRMED: 'confirmed', // 已确认
-  FAILED: 'failed', // 失败
+  PENDING: "pending", // 待确认
+  CONFIRMED: "confirmed", // 已确认
+  FAILED: "failed", // 失败
 };
 
 class TransactionMonitor extends EventEmitter {
@@ -45,7 +45,7 @@ class TransactionMonitor extends EventEmitter {
    * 初始化监控器
    */
   async initialize() {
-    logger.info('[TransactionMonitor] 初始化交易监控器...');
+    logger.info("[TransactionMonitor] 初始化交易监控器...");
 
     try {
       // 初始化数据库表
@@ -58,9 +58,9 @@ class TransactionMonitor extends EventEmitter {
       this.startMonitoring();
 
       this.initialized = true;
-      logger.info('[TransactionMonitor] 交易监控器初始化成功');
+      logger.info("[TransactionMonitor] 交易监控器初始化成功");
     } catch (error) {
-      logger.error('[TransactionMonitor] 初始化失败:', error);
+      logger.error("[TransactionMonitor] 初始化失败:", error);
       throw error;
     }
   }
@@ -143,20 +143,20 @@ class TransactionMonitor extends EventEmitter {
         // 交易成功
         await this.updateTxStatus(txHash, TransactionStatus.CONFIRMED, receipt);
         onConfirmed?.(receipt);
-        this.emit('tx:confirmed', { txHash, receipt });
+        this.emit("tx:confirmed", { txHash, receipt });
         logger.info(`[TransactionMonitor] 交易确认成功: ${txHash}`);
       } else {
         // 交易失败
         await this.updateTxStatus(txHash, TransactionStatus.FAILED, receipt);
         onFailed?.(receipt);
-        this.emit('tx:failed', { txHash, receipt });
+        this.emit("tx:failed", { txHash, receipt });
         logger.error(`[TransactionMonitor] 交易失败: ${txHash}`);
       }
     } catch (error) {
       // 监控出错
       await this.updateTxStatus(txHash, TransactionStatus.FAILED);
       onFailed?.(error);
-      this.emit('tx:failed', { txHash, error });
+      this.emit("tx:failed", { txHash, error });
       logger.error(`[TransactionMonitor] 交易监控出错: ${txHash}`, error);
     }
   }
@@ -200,7 +200,7 @@ class TransactionMonitor extends EventEmitter {
       status,
       txType,
       localRefId,
-      createdAt
+      createdAt,
     );
   }
 
@@ -233,7 +233,7 @@ class TransactionMonitor extends EventEmitter {
       updates.gas_used,
       updates.gas_price,
       updates.block_number,
-      txHash
+      txHash,
     );
 
     // 从监控列表移除
@@ -252,7 +252,7 @@ class TransactionMonitor extends EventEmitter {
       await this.checkPendingTransactions();
     }, this.monitorInterval);
 
-    logger.info('[TransactionMonitor] 启动交易监控定时器');
+    logger.info("[TransactionMonitor] 启动交易监控定时器");
   }
 
   /**
@@ -262,7 +262,7 @@ class TransactionMonitor extends EventEmitter {
     if (this.monitorTimer) {
       clearInterval(this.monitorTimer);
       this.monitorTimer = null;
-      logger.info('[TransactionMonitor] 停止交易监控定时器');
+      logger.info("[TransactionMonitor] 停止交易监控定时器");
     }
   }
 
@@ -312,20 +312,20 @@ class TransactionMonitor extends EventEmitter {
     const db = this.database.db;
     const { address, chainId, limit = 100, offset = 0 } = filters;
 
-    let query = 'SELECT * FROM blockchain_transactions WHERE 1=1';
+    let query = "SELECT * FROM blockchain_transactions WHERE 1=1";
     const params = [];
 
     if (address) {
-      query += ' AND (from_address = ? OR to_address = ?)';
+      query += " AND (from_address = ? OR to_address = ?)";
       params.push(address, address);
     }
 
     if (chainId) {
-      query += ' AND chain_id = ?';
+      query += " AND chain_id = ?";
       params.push(chainId);
     }
 
-    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    query += " ORDER BY created_at DESC LIMIT ? OFFSET ?";
     params.push(limit, offset);
 
     const stmt = db.prepare(query);
@@ -339,7 +339,9 @@ class TransactionMonitor extends EventEmitter {
    */
   async getTxDetail(txHash) {
     const db = this.database.db;
-    const stmt = db.prepare('SELECT * FROM blockchain_transactions WHERE tx_hash = ?');
+    const stmt = db.prepare(
+      "SELECT * FROM blockchain_transactions WHERE tx_hash = ?",
+    );
     return stmt.get(txHash);
   }
 
@@ -347,7 +349,7 @@ class TransactionMonitor extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    logger.info('[TransactionMonitor] 清理资源...');
+    logger.info("[TransactionMonitor] 清理资源...");
 
     this.stopMonitoring();
     this.pendingTxs.clear();

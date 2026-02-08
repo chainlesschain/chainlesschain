@@ -3,14 +3,11 @@
     <a-card title="动态">
       <template #extra>
         <a-space>
-          <a-button
-            type="primary"
-            @click="showComposer = !showComposer"
-          >
+          <a-button type="primary" @click="showComposer = !showComposer">
             <template #icon>
               <edit-outlined />
             </template>
-            {{ showComposer ? '取消发布' : '发布动态' }}
+            {{ showComposer ? "取消发布" : "发布动态" }}
           </a-button>
           <a-button @click="loadFeed">
             <template #icon>
@@ -22,10 +19,7 @@
       </template>
 
       <!-- 动态发布器 -->
-      <div
-        v-if="showComposer"
-        class="composer-section"
-      >
+      <div v-if="showComposer" class="composer-section">
         <post-composer
           @published="handlePublished"
           @cancel="showComposer = false"
@@ -41,24 +35,15 @@
           button-style="solid"
           @change="handleFilterChange"
         >
-          <a-radio-button value="all">
-            全部动态
-          </a-radio-button>
-          <a-radio-button value="friends">
-            好友动态
-          </a-radio-button>
-          <a-radio-button value="mine">
-            我的动态
-          </a-radio-button>
+          <a-radio-button value="all"> 全部动态 </a-radio-button>
+          <a-radio-button value="friends"> 好友动态 </a-radio-button>
+          <a-radio-button value="mine"> 我的动态 </a-radio-button>
         </a-radio-group>
       </a-space>
 
       <!-- 动态列表 -->
       <a-spin :spinning="loading">
-        <a-list
-          :data-source="posts"
-          :loading="loading"
-        >
+        <a-list :data-source="posts" :loading="loading">
           <template #renderItem="{ item }">
             <post-card
               :post="item"
@@ -72,10 +57,7 @@
 
           <template #empty>
             <a-empty description="暂无动态">
-              <a-button
-                type="primary"
-                @click="showComposer = true"
-              >
+              <a-button type="primary" @click="showComposer = true">
                 发布第一条动态
               </a-button>
             </a-empty>
@@ -84,40 +66,29 @@
       </a-spin>
 
       <!-- 加载更多 -->
-      <div
-        v-if="posts.length > 0 && hasMore"
-        class="load-more"
-      >
-        <a-button
-          :loading="loadingMore"
-          @click="loadMore"
-        >
-          加载更多
-        </a-button>
+      <div v-if="posts.length > 0 && hasMore" class="load-more">
+        <a-button :loading="loadingMore" @click="loadMore"> 加载更多 </a-button>
       </div>
     </a-card>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
-import {
-  EditOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons-vue';
-import PostComposer from './PostComposer.vue';
-import PostCard from './PostCard.vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { message as antMessage } from "ant-design-vue";
+import { EditOutlined, ReloadOutlined } from "@ant-design/icons-vue";
+import PostComposer from "./PostComposer.vue";
+import PostCard from "./PostCard.vue";
 
 // 状态
 const loading = ref(false);
 const loadingMore = ref(false);
 const showComposer = ref(false);
 const posts = ref([]);
-const currentDid = ref('');
-const filterType = ref('all');
+const currentDid = ref("");
+const filterType = ref("all");
 const hasMore = ref(true);
 
 const PAGE_SIZE = 20;
@@ -131,7 +102,7 @@ const loadCurrentDid = async () => {
       currentDid.value = identity.did;
     }
   } catch (error) {
-    logger.error('获取当前身份失败:', error);
+    logger.error("获取当前身份失败:", error);
   }
 };
 
@@ -152,7 +123,7 @@ const loadFeed = async (append = false) => {
     };
 
     // 根据筛选类型添加参数
-    if (filterType.value === 'mine') {
+    if (filterType.value === "mine") {
       options.authorDid = currentDid.value;
     }
 
@@ -168,10 +139,10 @@ const loadFeed = async (append = false) => {
     hasMore.value = newPosts.length === PAGE_SIZE;
     currentOffset += newPosts.length;
 
-    logger.info('动态流已加载:', newPosts.length, '条');
+    logger.info("动态流已加载:", newPosts.length, "条");
   } catch (error) {
-    logger.error('加载动态流失败:', error);
-    antMessage.error('加载动态流失败: ' + error.message);
+    logger.error("加载动态流失败:", error);
+    antMessage.error("加载动态流失败: " + error.message);
   } finally {
     loading.value = false;
     loadingMore.value = false;
@@ -192,17 +163,17 @@ const handleFilterChange = () => {
 const handlePublished = (post) => {
   posts.value.unshift(post);
   showComposer.value = false;
-  antMessage.success('动态已发布');
+  antMessage.success("动态已发布");
 };
 
 // 删除成功
 const handleDeleted = (postId) => {
-  posts.value = posts.value.filter(p => p.id !== postId);
+  posts.value = posts.value.filter((p) => p.id !== postId);
 };
 
 // 点赞成功
 const handleLiked = (postId) => {
-  const post = posts.value.find(p => p.id === postId);
+  const post = posts.value.find((p) => p.id === postId);
   if (post) {
     post.liked = true;
     post.like_count++;
@@ -211,7 +182,7 @@ const handleLiked = (postId) => {
 
 // 取消点赞成功
 const handleUnliked = (postId) => {
-  const post = posts.value.find(p => p.id === postId);
+  const post = posts.value.find((p) => p.id === postId);
   if (post) {
     post.liked = false;
     post.like_count--;
@@ -220,7 +191,7 @@ const handleUnliked = (postId) => {
 
 // 评论成功
 const handleCommented = (postId) => {
-  const post = posts.value.find(p => p.id === postId);
+  const post = posts.value.find((p) => p.id === postId);
   if (post) {
     post.comment_count++;
   }

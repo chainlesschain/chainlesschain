@@ -1,9 +1,6 @@
 <template>
   <div class="offline-queue-manager">
-    <a-card
-      title="离线消息队列"
-      :loading="loading"
-    >
+    <a-card title="离线消息队列" :loading="loading">
       <template #extra>
         <a-space>
           <a-badge
@@ -40,10 +37,7 @@
       </template>
 
       <!-- 队列统计 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 24px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 24px">
         <a-col :span="6">
           <a-statistic
             title="待发送消息"
@@ -78,10 +72,7 @@
           </a-statistic>
         </a-col>
         <a-col :span="6">
-          <a-statistic
-            title="总消息数"
-            :value="queueStats.totalMessages"
-          >
+          <a-statistic title="总消息数" :value="queueStats.totalMessages">
             <template #prefix>
               <InboxOutlined />
             </template>
@@ -107,9 +98,7 @@
 
           <template v-else-if="column.key === 'targetPeerId'">
             <a-typography-text copyable>
-              {{
-                shortenPeerId(record.targetPeerId)
-              }}
+              {{ shortenPeerId(record.targetPeerId) }}
             </a-typography-text>
           </template>
 
@@ -182,30 +171,20 @@
       width="600px"
       :footer="null"
     >
-      <a-descriptions
-        v-if="selectedMessage"
-        bordered
-        :column="1"
-      >
+      <a-descriptions v-if="selectedMessage" bordered :column="1">
         <a-descriptions-item label="消息ID">
           <a-typography-text copyable>
-            {{
-              selectedMessage.id
-            }}
+            {{ selectedMessage.id }}
           </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="目标节点">
           <a-typography-text copyable>
-            {{
-              selectedMessage.targetPeerId
-            }}
+            {{ selectedMessage.targetPeerId }}
           </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="设备ID">
           <a-typography-text copyable>
-            {{
-              selectedMessage.deviceId || "未指定"
-            }}
+            {{ selectedMessage.deviceId || "未指定" }}
           </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="状态">
@@ -233,9 +212,7 @@
         </a-descriptions-item>
         <a-descriptions-item label="错误信息">
           <a-typography-text type="danger">
-            {{
-              selectedMessage.error || "无"
-            }}
+            {{ selectedMessage.error || "无" }}
           </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="消息内容">
@@ -281,7 +258,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted } from "vue";
 import { message } from "ant-design-vue";
@@ -497,19 +474,29 @@ function getStatusText(status) {
 }
 
 function shortenPeerId(peerId) {
-  if (!peerId) {return "";}
-  if (peerId.length <= 20) {return peerId;}
+  if (!peerId) {
+    return "";
+  }
+  if (peerId.length <= 20) {
+    return peerId;
+  }
   return `${peerId.substring(0, 10)}...${peerId.substring(peerId.length - 6)}`;
 }
 
 function truncateContent(content) {
-  if (!content) {return "";}
-  if (content.length <= 50) {return content;}
+  if (!content) {
+    return "";
+  }
+  if (content.length <= 50) {
+    return content;
+  }
   return content.substring(0, 50) + "...";
 }
 
 function formatTime(timestamp) {
-  if (!timestamp) {return "";}
+  if (!timestamp) {
+    return "";
+  }
 
   const now = Date.now();
   const diff = now - timestamp;

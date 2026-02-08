@@ -3,10 +3,10 @@
  * 执行AI解析出的文件操作
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const { validateOperations } = require('./response-parser');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const { validateOperations } = require("./response-parser");
 
 /**
  * 执行文件操作列表
@@ -20,7 +20,7 @@ async function executeOperations(operations, projectPath, database = null) {
   // 1. 验证所有操作
   const validation = validateOperations(operations, projectPath);
   if (!validation.valid) {
-    throw new Error(`操作验证失败:\n${validation.errors.join('\n')}`);
+    throw new Error(`操作验证失败:\n${validation.errors.join("\n")}`);
   }
 
   // 2. 执行操作
@@ -28,7 +28,9 @@ async function executeOperations(operations, projectPath, database = null) {
 
   for (let i = 0; i < operations.length; i++) {
     const operation = operations[i];
-    logger.info(`执行操作 ${i + 1}/${operations.length}: ${operation.type} ${operation.path}`);
+    logger.info(
+      `执行操作 ${i + 1}/${operations.length}: ${operation.type} ${operation.path}`,
+    );
 
     try {
       const result = await executeOperation(operation, projectPath, database);
@@ -37,8 +39,8 @@ async function executeOperations(operations, projectPath, database = null) {
       logger.error(`操作失败:`, error);
       results.push({
         operation: operation,
-        status: 'error',
-        error: error.message
+        status: "error",
+        error: error.message,
       });
 
       // 如果是关键操作失败，可以选择中断整个流程
@@ -61,16 +63,26 @@ async function executeOperation(operation, projectPath, database) {
   const absolutePath = path.resolve(projectPath, operation.path);
 
   switch (operation.type) {
-    case 'CREATE':
-      return await createFile(absolutePath, operation.content, operation, database);
+    case "CREATE":
+      return await createFile(
+        absolutePath,
+        operation.content,
+        operation,
+        database,
+      );
 
-    case 'UPDATE':
-      return await updateFile(absolutePath, operation.content, operation, database);
+    case "UPDATE":
+      return await updateFile(
+        absolutePath,
+        operation.content,
+        operation,
+        database,
+      );
 
-    case 'DELETE':
+    case "DELETE":
       return await deleteFile(absolutePath, operation, database);
 
-    case 'READ':
+    case "READ":
       return await readFile(absolutePath, operation, database);
 
     default:
@@ -102,32 +114,32 @@ async function createFile(filePath, content, operation, database) {
     await fs.mkdir(dirPath, { recursive: true });
 
     // 写入文件
-    await fs.writeFile(filePath, content, 'utf8');
+    await fs.writeFile(filePath, content, "utf8");
 
     // 获取文件信息
     const stats = await fs.stat(filePath);
 
     const result = {
       operation: operation,
-      status: 'success',
-      message: '文件创建成功',
+      status: "success",
+      message: "文件创建成功",
       filePath: filePath,
-      size: stats.size
+      size: stats.size,
     };
 
     // 记录日志
     if (database) {
       await logOperation(database, {
-        type: 'CREATE',
+        type: "CREATE",
         path: operation.path,
-        status: 'success',
-        size: stats.size
+        status: "success",
+        size: stats.size,
       });
     }
 
     return result;
   } catch (error) {
-    logger.error('创建文件失败:', error);
+    logger.error("创建文件失败:", error);
     throw error;
   }
 }
@@ -155,32 +167,32 @@ async function updateFile(filePath, content, operation, database) {
     // await backupFile(filePath);
 
     // 写入新内容
-    await fs.writeFile(filePath, content, 'utf8');
+    await fs.writeFile(filePath, content, "utf8");
 
     // 获取文件信息
     const stats = await fs.stat(filePath);
 
     const result = {
       operation: operation,
-      status: 'success',
-      message: '文件更新成功',
+      status: "success",
+      message: "文件更新成功",
       filePath: filePath,
-      size: stats.size
+      size: stats.size,
     };
 
     // 记录日志
     if (database) {
       await logOperation(database, {
-        type: 'UPDATE',
+        type: "UPDATE",
         path: operation.path,
-        status: 'success',
-        size: stats.size
+        status: "success",
+        size: stats.size,
       });
     }
 
     return result;
   } catch (error) {
-    logger.error('更新文件失败:', error);
+    logger.error("更新文件失败:", error);
     throw error;
   }
 }
@@ -200,9 +212,9 @@ async function deleteFile(filePath, operation, database) {
     if (!exists) {
       return {
         operation: operation,
-        status: 'skipped',
-        message: '文件不存在，跳过删除',
-        filePath: filePath
+        status: "skipped",
+        message: "文件不存在，跳过删除",
+        filePath: filePath,
       };
     }
 
@@ -214,25 +226,25 @@ async function deleteFile(filePath, operation, database) {
 
     const result = {
       operation: operation,
-      status: 'success',
-      message: '文件删除成功',
+      status: "success",
+      message: "文件删除成功",
       filePath: filePath,
-      backupPath: backupPath
+      backupPath: backupPath,
     };
 
     // 记录日志
     if (database) {
       await logOperation(database, {
-        type: 'DELETE',
+        type: "DELETE",
         path: operation.path,
-        status: 'success',
-        backupPath: backupPath
+        status: "success",
+        backupPath: backupPath,
       });
     }
 
     return result;
   } catch (error) {
-    logger.error('删除文件失败:', error);
+    logger.error("删除文件失败:", error);
     throw error;
   }
 }
@@ -250,35 +262,35 @@ async function readFile(filePath, operation, database) {
     // 检查文件是否存在
     const exists = await fileExists(filePath);
     if (!exists) {
-      throw new Error('文件不存在');
+      throw new Error("文件不存在");
     }
 
     // 读取文件
-    const content = await fs.readFile(filePath, 'utf8');
+    const content = await fs.readFile(filePath, "utf8");
     const stats = await fs.stat(filePath);
 
     const result = {
       operation: operation,
-      status: 'success',
-      message: '文件读取成功',
+      status: "success",
+      message: "文件读取成功",
       filePath: filePath,
       content: content,
-      size: stats.size
+      size: stats.size,
     };
 
     // 记录日志
     if (database) {
       await logOperation(database, {
-        type: 'READ',
+        type: "READ",
         path: operation.path,
-        status: 'success',
-        size: stats.size
+        status: "success",
+        size: stats.size,
       });
     }
 
     return result;
   } catch (error) {
-    logger.error('读取文件失败:', error);
+    logger.error("读取文件失败:", error);
     throw error;
   }
 }
@@ -305,14 +317,14 @@ async function fileExists(filePath) {
  * @returns {Promise<string>} 备份文件路径
  */
 async function backupFile(filePath) {
-  const os = require('os');
-  const backupDir = path.join(os.tmpdir(), 'chainlesschain-backups');
+  const os = require("os");
+  const backupDir = path.join(os.tmpdir(), "chainlesschain-backups");
 
   // 确保备份目录存在
   await fs.mkdir(backupDir, { recursive: true });
 
   // 生成备份文件名（带时间戳）
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   const fileName = path.basename(filePath);
   const backupPath = path.join(backupDir, `${timestamp}_${fileName}`);
 
@@ -333,7 +345,7 @@ async function backupFile(filePath) {
 async function logOperation(database, logData) {
   try {
     if (!database || !database.db) {
-      logger.warn('数据库实例无效，跳过日志记录');
+      logger.warn("数据库实例无效，跳过日志记录");
       return;
     }
 
@@ -350,10 +362,10 @@ async function logOperation(database, logData) {
       logData.path,
       logData.status,
       logData.size || null,
-      logData.backupPath || null
+      logData.backupPath || null,
     );
   } catch (error) {
-    logger.error('记录操作日志失败:', error);
+    logger.error("记录操作日志失败:", error);
     // 日志记录失败不影响主流程
   }
 }
@@ -383,7 +395,7 @@ async function ensureLogTable(database) {
       )
     `);
   } catch (error) {
-    logger.error('创建日志表失败:', error);
+    logger.error("创建日志表失败:", error);
   }
 }
 
@@ -394,5 +406,5 @@ module.exports = {
   updateFile,
   deleteFile,
   readFile,
-  ensureLogTable
+  ensureLogTable,
 };

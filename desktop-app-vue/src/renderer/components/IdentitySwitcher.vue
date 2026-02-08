@@ -1,22 +1,10 @@
 <template>
   <!-- 只有在有有效的身份上下文时才显示 -->
-  <div
-    v-if="hasValidContext"
-    class="identity-switcher"
-  >
+  <div v-if="hasValidContext" class="identity-switcher">
     <!-- 当前身份显示 -->
-    <div
-      class="current-identity"
-      @click="showSwitcher = true"
-    >
-      <a-avatar
-        :src="currentIdentity.avatar"
-        :size="32"
-      >
-        <template
-          v-if="!currentIdentity.avatar"
-          #icon
-        >
+    <div class="current-identity" @click="showSwitcher = true">
+      <a-avatar :src="currentIdentity.avatar" :size="32">
+        <template v-if="!currentIdentity.avatar" #icon>
           <UserOutlined v-if="currentIdentity.type === 'personal'" />
           <TeamOutlined v-else />
         </template>
@@ -26,7 +14,11 @@
           {{ currentIdentity.displayName }}
         </div>
         <div class="identity-type">
-          {{ currentIdentity.type === 'personal' ? '个人' : currentIdentity.orgName }}
+          {{
+            currentIdentity.type === "personal"
+              ? "个人"
+              : currentIdentity.orgName
+          }}
         </div>
       </div>
       <SwapOutlined class="swap-icon" />
@@ -47,14 +39,8 @@
           :class="{ active: currentContext === 'personal' }"
           @click="handleSwitch('personal')"
         >
-          <a-avatar
-            :src="contexts.personal.avatar"
-            :size="40"
-          >
-            <template
-              v-if="!contexts.personal.avatar"
-              #icon
-            >
+          <a-avatar :src="contexts.personal.avatar" :size="40">
+            <template v-if="!contexts.personal.avatar" #icon>
               <UserOutlined />
             </template>
           </a-avatar>
@@ -63,9 +49,7 @@
               <UserOutlined style="margin-right: 8px" />
               个人
             </div>
-            <div class="item-desc">
-              私人知识库和项目
-            </div>
+            <div class="item-desc">私人知识库和项目</div>
           </div>
           <CheckCircleFilled
             v-if="currentContext === 'personal'"
@@ -76,9 +60,7 @@
         <a-divider style="margin: 12px 0" />
 
         <!-- 组织身份列表 -->
-        <div class="org-section-title">
-          我的组织
-        </div>
+        <div class="org-section-title">我的组织</div>
         <template v-if="organizationIdentities.length > 0">
           <div
             v-for="org in organizationIdentities"
@@ -87,14 +69,8 @@
             :class="{ active: currentContext === `org_${org.orgId}` }"
             @click="handleSwitch(`org_${org.orgId}`)"
           >
-            <a-avatar
-              :src="org.avatar"
-              :size="40"
-            >
-              <template
-                v-if="!org.avatar"
-                #icon
-              >
+            <a-avatar :src="org.avatar" :size="40">
+              <template v-if="!org.avatar" #icon>
                 <TeamOutlined />
               </template>
             </a-avatar>
@@ -104,10 +80,7 @@
                 {{ org.orgName }}
               </div>
               <div class="item-desc">
-                <a-tag
-                  size="small"
-                  :color="getRoleColor(org.role)"
-                >
+                <a-tag size="small" :color="getRoleColor(org.role)">
                   {{ getRoleLabel(org.role) }}
                 </a-tag>
               </div>
@@ -118,11 +91,7 @@
             />
           </div>
         </template>
-        <a-empty
-          v-else
-          description="暂无组织"
-          style="margin: 20px 0"
-        />
+        <a-empty v-else description="暂无组织" style="margin: 20px 0" />
 
         <a-divider style="margin: 12px 0" />
 
@@ -140,11 +109,7 @@
             创建新组织
           </a-button>
 
-          <a-button
-            type="dashed"
-            block
-            @click="showJoinOrg = true"
-          >
+          <a-button type="dashed" block @click="showJoinOrg = true">
             <template #icon>
               <LinkOutlined />
             </template>
@@ -168,10 +133,7 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="组织名称"
-          required
-        >
+        <a-form-item label="组织名称" required>
           <a-input
             v-model:value="newOrgForm.name"
             placeholder="请输入组织名称"
@@ -180,21 +142,11 @@
 
         <a-form-item label="组织类型">
           <a-select v-model:value="newOrgForm.type">
-            <a-select-option value="startup">
-              创业团队
-            </a-select-option>
-            <a-select-option value="company">
-              公司
-            </a-select-option>
-            <a-select-option value="community">
-              社区
-            </a-select-option>
-            <a-select-option value="opensource">
-              开源项目
-            </a-select-option>
-            <a-select-option value="education">
-              教育机构
-            </a-select-option>
+            <a-select-option value="startup"> 创业团队 </a-select-option>
+            <a-select-option value="company"> 公司 </a-select-option>
+            <a-select-option value="community"> 社区 </a-select-option>
+            <a-select-option value="opensource"> 开源项目 </a-select-option>
+            <a-select-option value="education"> 教育机构 </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -208,12 +160,8 @@
 
         <a-form-item label="可见性">
           <a-radio-group v-model:value="newOrgForm.visibility">
-            <a-radio value="private">
-              私有（仅邀请）
-            </a-radio>
-            <a-radio value="public">
-              公开
-            </a-radio>
+            <a-radio value="private"> 私有（仅邀请） </a-radio>
+            <a-radio value="public"> 公开 </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>
@@ -228,14 +176,8 @@
       cancel-text="取消"
       @ok="handleJoinOrg"
     >
-      <a-form
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-      >
-        <a-form-item
-          label="邀请码"
-          required
-        >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+        <a-form-item label="邀请码" required>
           <a-input
             v-model:value="inviteCode"
             placeholder="输入6位邀请码"
@@ -255,19 +197,19 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed } from "vue";
+import { message } from "ant-design-vue";
 import {
   UserOutlined,
   TeamOutlined,
   SwapOutlined,
   CheckCircleFilled,
   PlusOutlined,
-  LinkOutlined
-} from '@ant-design/icons-vue';
-import { useIdentityStore } from '../stores/identityStore';
+  LinkOutlined,
+} from "@ant-design/icons-vue";
+import { useIdentityStore } from "../stores/identityStore";
 
 // ==================== Store ====================
 const identityStore = useIdentityStore();
@@ -282,45 +224,49 @@ const joining = ref(false);
 
 // 新组织表单
 const newOrgForm = ref({
-  name: '',
-  description: '',
-  type: 'startup',
-  visibility: 'private'
+  name: "",
+  description: "",
+  type: "startup",
+  visibility: "private",
 });
 
 // 邀请码
-const inviteCode = ref('');
+const inviteCode = ref("");
 
 // ==================== Computed ====================
 const currentIdentity = computed(() => {
   const ctx = identityStore.activeContext;
-  if (!ctx) {return { displayName: '加载中...', type: 'personal' };}
+  if (!ctx) {
+    return { displayName: "加载中...", type: "personal" };
+  }
 
   return {
     displayName: ctx.display_name,
     type: ctx.context_type,
     avatar: ctx.avatar,
-    orgName: ctx.display_name
+    orgName: ctx.display_name,
   };
 });
 
 const contexts = computed(() => ({
-  personal: identityStore.personalContext || {}
+  personal: identityStore.personalContext || {},
 }));
 
 const currentContext = computed(() => identityStore.currentContextId);
 const organizationIdentities = computed(() => {
-  return identityStore.organizationContexts.map(ctx => ({
+  return identityStore.organizationContexts.map((ctx) => ({
     orgId: ctx.org_id,
     orgName: ctx.display_name,
     avatar: ctx.avatar,
-    role: ctx.member_role || ctx.role || 'member'
+    role: ctx.member_role || ctx.role || "member",
   }));
 });
 
 // 检查是否有有效的身份上下文
 const hasValidContext = computed(() => {
-  return identityStore.activeContext !== null || identityStore.contexts.length > 0;
+  return (
+    identityStore.activeContext !== null || identityStore.contexts.length > 0
+  );
 });
 
 // ==================== Methods ====================
@@ -346,11 +292,11 @@ async function handleSwitch(contextId) {
         window.location.reload();
       }, 500);
     } else {
-      message.error(result.error || '切换身份失败');
+      message.error(result.error || "切换身份失败");
     }
   } catch (error) {
-    logger.error('切换身份失败:', error);
-    message.error(error.message || '切换身份失败');
+    logger.error("切换身份失败:", error);
+    message.error(error.message || "切换身份失败");
   }
 }
 
@@ -359,7 +305,7 @@ async function handleSwitch(contextId) {
  */
 async function handleCreateOrg() {
   if (!newOrgForm.value.name.trim()) {
-    message.warning('请输入组织名称');
+    message.warning("请输入组织名称");
     return;
   }
 
@@ -367,14 +313,17 @@ async function handleCreateOrg() {
 
   try {
     // 1. 创建组织
-    const orgResult = await window.electron.ipcRenderer.invoke('org:create-organization', {
-      name: newOrgForm.value.name,
-      description: newOrgForm.value.description,
-      type: newOrgForm.value.type
-    });
+    const orgResult = await window.electron.ipcRenderer.invoke(
+      "org:create-organization",
+      {
+        name: newOrgForm.value.name,
+        description: newOrgForm.value.description,
+        type: newOrgForm.value.type,
+      },
+    );
 
     if (!orgResult.success) {
-      throw new Error(orgResult.error || '创建组织失败');
+      throw new Error(orgResult.error || "创建组织失败");
     }
 
     const { organization } = orgResult;
@@ -384,21 +333,21 @@ async function handleCreateOrg() {
       organization.org_id,
       organization.org_did,
       organization.name,
-      null
+      null,
     );
 
     if (!contextResult.success) {
-      throw new Error(contextResult.error || '创建身份上下文失败');
+      throw new Error(contextResult.error || "创建身份上下文失败");
     }
 
     message.success(`组织"${newOrgForm.value.name}"创建成功！`);
 
     // 重置表单
     newOrgForm.value = {
-      name: '',
-      description: '',
-      type: 'startup',
-      visibility: 'private'
+      name: "",
+      description: "",
+      type: "startup",
+      visibility: "private",
     };
 
     showCreateOrg.value = false;
@@ -406,8 +355,8 @@ async function handleCreateOrg() {
     // 刷新上下文列表
     await identityStore.loadContexts();
   } catch (error) {
-    logger.error('创建组织失败:', error);
-    message.error(error.message || '创建组织失败');
+    logger.error("创建组织失败:", error);
+    message.error(error.message || "创建组织失败");
   } finally {
     creating.value = false;
   }
@@ -418,7 +367,7 @@ async function handleCreateOrg() {
  */
 async function handleJoinOrg() {
   if (!inviteCode.value.trim() || inviteCode.value.length !== 6) {
-    message.warning('请输入正确的6位邀请码');
+    message.warning("请输入正确的6位邀请码");
     return;
   }
 
@@ -426,12 +375,15 @@ async function handleJoinOrg() {
 
   try {
     // 1. 加入组织
-    const joinResult = await window.electron.ipcRenderer.invoke('org:join-organization', {
-      inviteCode: inviteCode.value.toUpperCase()
-    });
+    const joinResult = await window.electron.ipcRenderer.invoke(
+      "org:join-organization",
+      {
+        inviteCode: inviteCode.value.toUpperCase(),
+      },
+    );
 
     if (!joinResult.success) {
-      throw new Error(joinResult.error || '加入组织失败');
+      throw new Error(joinResult.error || "加入组织失败");
     }
 
     const { organization } = joinResult;
@@ -441,23 +393,23 @@ async function handleJoinOrg() {
       organization.org_id,
       organization.org_did,
       organization.name,
-      organization.avatar || null
+      organization.avatar || null,
     );
 
     if (!contextResult.success) {
-      throw new Error(contextResult.error || '创建身份上下文失败');
+      throw new Error(contextResult.error || "创建身份上下文失败");
     }
 
     message.success(`成功加入组织"${organization.name}"！`);
 
-    inviteCode.value = '';
+    inviteCode.value = "";
     showJoinOrg.value = false;
 
     // 刷新上下文列表
     await identityStore.loadContexts();
   } catch (error) {
-    logger.error('加入组织失败:', error);
-    message.error(error.message || '加入组织失败，请检查邀请码是否正确');
+    logger.error("加入组织失败:", error);
+    message.error(error.message || "加入组织失败，请检查邀请码是否正确");
   } finally {
     joining.value = false;
   }
@@ -468,10 +420,10 @@ async function handleJoinOrg() {
  */
 function getRoleLabel(role) {
   const labels = {
-    owner: '所有者',
-    admin: '管理员',
-    member: '成员',
-    viewer: '访客'
+    owner: "所有者",
+    admin: "管理员",
+    member: "成员",
+    viewer: "访客",
   };
   return labels[role] || role;
 }
@@ -481,12 +433,12 @@ function getRoleLabel(role) {
  */
 function getRoleColor(role) {
   const colors = {
-    owner: 'red',
-    admin: 'orange',
-    member: 'blue',
-    viewer: 'default'
+    owner: "red",
+    admin: "orange",
+    member: "blue",
+    viewer: "default",
   };
-  return colors[role] || 'default';
+  return colors[role] || "default";
 }
 </script>
 

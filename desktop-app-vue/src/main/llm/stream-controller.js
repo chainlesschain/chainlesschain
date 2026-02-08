@@ -6,19 +6,19 @@
  * @description 管理流式输出的生命周期，支持AbortController和自定义控制逻辑
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { EventEmitter } = require('events');
+const { logger } = require("../utils/logger.js");
+const { EventEmitter } = require("events");
 
 /**
  * 流式输出状态
  */
 const StreamStatus = {
-  IDLE: 'idle',         // 空闲
-  RUNNING: 'running',   // 运行中
-  PAUSED: 'paused',     // 已暂停
-  CANCELLED: 'cancelled', // 已取消
-  COMPLETED: 'completed', // 已完成
-  ERROR: 'error',       // 错误
+  IDLE: "idle", // 空闲
+  RUNNING: "running", // 运行中
+  PAUSED: "paused", // 已暂停
+  CANCELLED: "cancelled", // 已取消
+  COMPLETED: "completed", // 已完成
+  ERROR: "error", // 错误
 };
 
 /**
@@ -57,7 +57,7 @@ class StreamController extends EventEmitter {
 
     this.status = StreamStatus.RUNNING;
     this.startTime = Date.now();
-    this.emit('start', { timestamp: this.startTime });
+    this.emit("start", { timestamp: this.startTime });
   }
 
   /**
@@ -91,7 +91,7 @@ class StreamController extends EventEmitter {
       this.buffer.push(chunk);
     }
 
-    this.emit('chunk', {
+    this.emit("chunk", {
       chunk,
       index: this.processedChunks,
       total: this.totalChunks,
@@ -111,7 +111,7 @@ class StreamController extends EventEmitter {
 
     this.isPaused = true;
     this.status = StreamStatus.PAUSED;
-    this.emit('pause', { timestamp: Date.now() });
+    this.emit("pause", { timestamp: Date.now() });
   }
 
   /**
@@ -132,7 +132,7 @@ class StreamController extends EventEmitter {
       resolve();
     }
 
-    this.emit('resume', { timestamp: Date.now() });
+    this.emit("resume", { timestamp: Date.now() });
   }
 
   /**
@@ -154,8 +154,11 @@ class StreamController extends EventEmitter {
    * 取消流式输出
    * @param {string} reason - 取消原因
    */
-  cancel(reason = '用户取消') {
-    if (this.status === StreamStatus.CANCELLED || this.status === StreamStatus.COMPLETED) {
+  cancel(reason = "用户取消") {
+    if (
+      this.status === StreamStatus.CANCELLED ||
+      this.status === StreamStatus.COMPLETED
+    ) {
       return;
     }
 
@@ -169,7 +172,7 @@ class StreamController extends EventEmitter {
       resolve();
     }
 
-    this.emit('cancel', {
+    this.emit("cancel", {
       reason,
       timestamp: this.endTime,
       processedChunks: this.processedChunks,
@@ -190,7 +193,7 @@ class StreamController extends EventEmitter {
 
     const stats = this.getStats();
 
-    this.emit('complete', {
+    this.emit("complete", {
       result,
       stats,
       timestamp: this.endTime,
@@ -205,7 +208,7 @@ class StreamController extends EventEmitter {
     this.status = StreamStatus.ERROR;
     this.endTime = Date.now();
 
-    this.emit('error', {
+    this.emit("error", {
       error,
       timestamp: this.endTime,
       processedChunks: this.processedChunks,
@@ -217,7 +220,9 @@ class StreamController extends EventEmitter {
    * @returns {Object} 统计信息
    */
   getStats() {
-    const duration = this.endTime ? (this.endTime - this.startTime) : (Date.now() - this.startTime);
+    const duration = this.endTime
+      ? this.endTime - this.startTime
+      : Date.now() - this.startTime;
 
     return {
       status: this.status,
@@ -225,7 +230,8 @@ class StreamController extends EventEmitter {
       processedChunks: this.processedChunks,
       duration,
       throughput: duration > 0 ? (this.processedChunks / duration) * 1000 : 0, // chunks/秒
-      averageChunkTime: this.processedChunks > 0 ? duration / this.processedChunks : 0,
+      averageChunkTime:
+        this.processedChunks > 0 ? duration / this.processedChunks : 0,
       startTime: this.startTime,
       endTime: this.endTime,
       isPaused: this.isPaused,
@@ -261,14 +267,14 @@ class StreamController extends EventEmitter {
     this.endTime = null;
     this.pauseResolvers = [];
 
-    this.emit('reset');
+    this.emit("reset");
   }
 
   /**
    * 销毁控制器
    */
   destroy() {
-    this.cancel('控制器销毁');
+    this.cancel("控制器销毁");
     this.removeAllListeners();
   }
 }

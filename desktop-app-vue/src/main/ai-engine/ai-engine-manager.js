@@ -3,11 +3,11 @@
  * 负责协调意图识别、任务规划和Function Calling
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const IntentClassifier = require('./intent-classifier');
-const { TaskPlanner } = require('./task-planner');
-const TaskPlannerEnhanced = require('./task-planner-enhanced');
-const FunctionCaller = require('./function-caller');
+const { logger } = require("../utils/logger.js");
+const IntentClassifier = require("./intent-classifier");
+const { TaskPlanner } = require("./task-planner");
+const TaskPlannerEnhanced = require("./task-planner-enhanced");
+const FunctionCaller = require("./function-caller");
 
 class AIEngineManager {
   constructor() {
@@ -40,9 +40,9 @@ class AIEngineManager {
     try {
       // 获取LLM管理器
       if (!this.llmManager) {
-        const { getLLMManager } = require('../llm/llm-manager');
-        const { getDatabase } = require('../database');
-        const { getProjectConfig } = require('../project/project-config');
+        const { getLLMManager } = require("../llm/llm-manager");
+        const { getDatabase } = require("../database");
+        const { getProjectConfig } = require("../project/project-config");
 
         this.llmManager = getLLMManager();
         this.database = getDatabase();
@@ -59,10 +59,10 @@ class AIEngineManager {
         this.taskPlannerEnhanced = new TaskPlannerEnhanced({
           llmManager: this.llmManager,
           database: this.database,
-          projectConfig: this.projectConfig
+          projectConfig: this.projectConfig,
         });
 
-        logger.info('[AIEngineManager] 增强版任务规划器已初始化');
+        logger.info("[AIEngineManager] 增强版任务规划器已初始化");
       }
 
       // 初始化工作流优化模块（Phase 3）
@@ -70,7 +70,7 @@ class AIEngineManager {
 
       return true;
     } catch (error) {
-      logger.error('[AIEngineManager] 初始化失败:', error);
+      logger.error("[AIEngineManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -86,31 +86,34 @@ class AIEngineManager {
 
       // 1. LLM决策引擎
       if (config.phase3.llmDecision.enabled) {
-        const { LLMDecisionEngine } = require('./llm-decision-engine');
+        const { LLMDecisionEngine } = require("./llm-decision-engine");
         this.decisionEngine = new LLMDecisionEngine({
           enabled: true,
           llmManager: this.llmManager,
           database: this.database,
-          highConfidenceThreshold: config.phase3.llmDecision.highConfidenceThreshold,
-          contextLengthThreshold: config.phase3.llmDecision.contextLengthThreshold,
-          subtaskCountThreshold: config.phase3.llmDecision.subtaskCountThreshold,
+          highConfidenceThreshold:
+            config.phase3.llmDecision.highConfidenceThreshold,
+          contextLengthThreshold:
+            config.phase3.llmDecision.contextLengthThreshold,
+          subtaskCountThreshold:
+            config.phase3.llmDecision.subtaskCountThreshold,
         });
-        logger.info('[AIEngineManager] ✓ LLM决策引擎已初始化');
+        logger.info("[AIEngineManager] ✓ LLM决策引擎已初始化");
       }
 
       // 2. 关键路径优化器
       if (config.phase3.criticalPath.enabled) {
-        const { CriticalPathOptimizer } = require('./critical-path-optimizer');
+        const { CriticalPathOptimizer } = require("./critical-path-optimizer");
         this.criticalPathOptimizer = new CriticalPathOptimizer({
           enabled: true,
           priorityBoost: config.phase3.criticalPath.priorityBoost,
         });
-        logger.info('[AIEngineManager] ✓ 关键路径优化器已初始化');
+        logger.info("[AIEngineManager] ✓ 关键路径优化器已初始化");
       }
 
       // 3. 代理池（可选，通常在TeammateTool中管理）
       if (config.phase3.agentPool.enabled) {
-        const { AgentPool } = require('./cowork/agent-pool');
+        const { AgentPool } = require("./cowork/agent-pool");
         this.agentPool = new AgentPool({
           minSize: config.phase3.agentPool.minSize,
           maxSize: config.phase3.agentPool.maxSize,
@@ -119,12 +122,15 @@ class AIEngineManager {
 
         // 初始化代理池
         await this.agentPool.initialize();
-        logger.info('[AIEngineManager] ✓ 代理池已初始化');
+        logger.info("[AIEngineManager] ✓ 代理池已初始化");
       }
 
-      logger.info('[AIEngineManager] 工作流优化模块初始化完成');
+      logger.info("[AIEngineManager] 工作流优化模块初始化完成");
     } catch (error) {
-      logger.warn('[AIEngineManager] 工作流优化模块初始化部分失败:', error.message);
+      logger.warn(
+        "[AIEngineManager] 工作流优化模块初始化部分失败:",
+        error.message,
+      );
       // 不抛出错误，允许部分失败
     }
   }
@@ -135,19 +141,26 @@ class AIEngineManager {
    */
   _loadWorkflowConfig() {
     try {
-      const fs = require('fs');
-      const path = require('path');
-      const configPath = path.join(process.cwd(), '.chainlesschain', 'config.json');
+      const fs = require("fs");
+      const path = require("path");
+      const configPath = path.join(
+        process.cwd(),
+        ".chainlesschain",
+        "config.json",
+      );
 
       if (fs.existsSync(configPath)) {
-        const data = fs.readFileSync(configPath, 'utf-8');
+        const data = fs.readFileSync(configPath, "utf-8");
         const config = JSON.parse(data);
         if (config.workflow && config.workflow.optimizations) {
           return config.workflow.optimizations;
         }
       }
     } catch (error) {
-      logger.warn('[AIEngineManager] 加载工作流配置失败，使用默认值:', error.message);
+      logger.warn(
+        "[AIEngineManager] 加载工作流配置失败，使用默认值:",
+        error.message,
+      );
     }
 
     // 返回默认配置
@@ -180,7 +193,7 @@ class AIEngineManager {
    */
   getTaskPlanner() {
     if (!this.taskPlannerEnhanced) {
-      throw new Error('增强版任务规划器未初始化，请先调用 initialize()');
+      throw new Error("增强版任务规划器未初始化，请先调用 initialize()");
     }
     return this.taskPlannerEnhanced;
   }
@@ -232,42 +245,50 @@ class AIEngineManager {
       // 步骤1: 意图识别
       const intentStep = {
         id: `${executionId}_step_1`,
-        name: '理解用户意图',
-        status: 'running',
+        name: "理解用户意图",
+        status: "running",
         startTime: Date.now(),
       };
 
-      if (onStepUpdate) {onStepUpdate(intentStep);}
+      if (onStepUpdate) {
+        onStepUpdate(intentStep);
+      }
 
       const intent = await this.intentClassifier.classify(userInput, context);
 
-      intentStep.status = 'completed';
+      intentStep.status = "completed";
       intentStep.endTime = Date.now();
       intentStep.duration = intentStep.endTime - intentStep.startTime;
       intentStep.result = intent;
 
-      if (onStepUpdate) {onStepUpdate(intentStep);}
+      if (onStepUpdate) {
+        onStepUpdate(intentStep);
+      }
 
       logger.info(`[AI Engine] 识别意图:`, intent);
 
       // 步骤2: 任务规划
       const planStep = {
         id: `${executionId}_step_2`,
-        name: '制定执行计划',
-        status: 'running',
+        name: "制定执行计划",
+        status: "running",
         startTime: Date.now(),
       };
 
-      if (onStepUpdate) {onStepUpdate(planStep);}
+      if (onStepUpdate) {
+        onStepUpdate(planStep);
+      }
 
       const plan = await this.taskPlanner.plan(intent, context);
 
-      planStep.status = 'completed';
+      planStep.status = "completed";
       planStep.endTime = Date.now();
       planStep.duration = planStep.endTime - planStep.startTime;
       planStep.result = plan;
 
-      if (onStepUpdate) {onStepUpdate(planStep);}
+      if (onStepUpdate) {
+        onStepUpdate(planStep);
+      }
 
       logger.info(`[AI Engine] 生成计划:`, plan);
 
@@ -280,22 +301,24 @@ class AIEngineManager {
         const execStep = {
           id: `${executionId}_step_${i + 3}`,
           name: taskStep.name || taskStep.description || `执行步骤 ${i + 1}`,
-          status: 'running',
+          status: "running",
           startTime: Date.now(),
           tool: taskStep.tool,
           params: taskStep.params,
         };
 
-        if (onStepUpdate) {onStepUpdate(execStep);}
+        if (onStepUpdate) {
+          onStepUpdate(execStep);
+        }
 
         try {
           const result = await this.functionCaller.call(
             taskStep.tool,
             taskStep.params,
-            context
+            context,
           );
 
-          execStep.status = 'completed';
+          execStep.status = "completed";
           execStep.endTime = Date.now();
           execStep.duration = execStep.endTime - execStep.startTime;
           execStep.result = result;
@@ -304,7 +327,7 @@ class AIEngineManager {
         } catch (error) {
           logger.error(`[AI Engine] 执行步骤失败:`, error);
 
-          execStep.status = 'failed';
+          execStep.status = "failed";
           execStep.endTime = Date.now();
           execStep.duration = execStep.endTime - execStep.startTime;
           execStep.error = error.message;
@@ -315,7 +338,9 @@ class AIEngineManager {
           });
         }
 
-        if (onStepUpdate) {onStepUpdate(execStep);}
+        if (onStepUpdate) {
+          onStepUpdate(execStep);
+        }
       }
 
       // 汇总执行结果
@@ -325,7 +350,7 @@ class AIEngineManager {
         intent,
         plan,
         results,
-        success: results.every(r => r.success !== false),
+        success: results.every((r) => r.success !== false),
         duration: Date.now() - startTime,
         timestamp: new Date().toISOString(),
       };
@@ -407,5 +432,5 @@ function getAIEngineManager() {
 
 module.exports = {
   AIEngineManager,
-  getAIEngineManager
+  getAIEngineManager,
 };

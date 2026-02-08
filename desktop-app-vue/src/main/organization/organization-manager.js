@@ -1,8 +1,8 @@
-const { logger, createLogger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const crypto = require('crypto');
-const { OrgP2PNetwork, MessageType } = require('./org-p2p-network');
-const { DIDInvitationManager } = require('./did-invitation-manager');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const crypto = require("crypto");
+const { OrgP2PNetwork, MessageType } = require("./org-p2p-network");
+const { DIDInvitationManager } = require("./did-invitation-manager");
 
 /**
  * 组织管理器 - 去中心化组织核心模块
@@ -20,8 +20,13 @@ class OrganizationManager {
     // 初始化DID邀请管理器
     this.didInvitationManager = null;
     if (db && didManager) {
-      this.didInvitationManager = new DIDInvitationManager(db, didManager, p2pManager, this);
-      logger.info('[OrganizationManager] ✓ DID邀请管理器已初始化');
+      this.didInvitationManager = new DIDInvitationManager(
+        db,
+        didManager,
+        p2pManager,
+        this,
+      );
+      logger.info("[OrganizationManager] ✓ DID邀请管理器已初始化");
     }
 
     // 初始化组织P2P网络管理器
@@ -41,31 +46,46 @@ class OrganizationManager {
     }
 
     // 成员上线
-    this.orgP2PNetwork.on('member:online', ({ orgId, memberDID, displayName }) => {
-      logger.info(`[OrganizationManager] 成员上线: ${displayName} (${memberDID})`);
-      // 可以在这里更新UI或触发其他操作
-    });
+    this.orgP2PNetwork.on(
+      "member:online",
+      ({ orgId, memberDID, displayName }) => {
+        logger.info(
+          `[OrganizationManager] 成员上线: ${displayName} (${memberDID})`,
+        );
+        // 可以在这里更新UI或触发其他操作
+      },
+    );
 
     // 成员下线
-    this.orgP2PNetwork.on('member:offline', ({ orgId, memberDID }) => {
+    this.orgP2PNetwork.on("member:offline", ({ orgId, memberDID }) => {
       logger.info(`[OrganizationManager] 成员下线: ${memberDID}`);
     });
 
     // 成员发现
-    this.orgP2PNetwork.on('member:discovered', ({ orgId, memberDID, displayName }) => {
-      logger.info(`[OrganizationManager] 发现成员: ${displayName} (${memberDID})`);
-    });
+    this.orgP2PNetwork.on(
+      "member:discovered",
+      ({ orgId, memberDID, displayName }) => {
+        logger.info(
+          `[OrganizationManager] 发现成员: ${displayName} (${memberDID})`,
+        );
+      },
+    );
 
     // 知识库事件
-    this.orgP2PNetwork.on('knowledge:event', async ({ orgId, type, data }) => {
+    this.orgP2PNetwork.on("knowledge:event", async ({ orgId, type, data }) => {
       logger.info(`[OrganizationManager] 知识库事件: ${type}`);
       await this.handleKnowledgeEvent(orgId, type, data);
     });
 
     // 广播消息
-    this.orgP2PNetwork.on('broadcast:received', ({ orgId, type, content, senderDID }) => {
-      logger.info(`[OrganizationManager] 收到广播: ${type} from ${senderDID}`);
-    });
+    this.orgP2PNetwork.on(
+      "broadcast:received",
+      ({ orgId, type, content, senderDID }) => {
+        logger.info(
+          `[OrganizationManager] 收到广播: ${type} from ${senderDID}`,
+        );
+      },
+    );
   }
 
   /**
@@ -78,17 +98,20 @@ class OrganizationManager {
    * @returns {Promise<Object>} 创建的组织信息
    */
   async createOrganization(orgData) {
-    logger.info('[OrganizationManager] 创建组织:', orgData.name);
+    logger.info("[OrganizationManager] 创建组织:", orgData.name);
 
     try {
       // 1. 生成组织ID和DID
-      const orgId = `org_${uuidv4().replace(/-/g, '')}`;
-      const orgDID = await this.didManager.createOrganizationDID(orgId, orgData.name);
+      const orgId = `org_${uuidv4().replace(/-/g, "")}`;
+      const orgDID = await this.didManager.createOrganizationDID(
+        orgId,
+        orgData.name,
+      );
 
       // 2. 获取当前用户DID
       const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
-        throw new Error('未找到当前用户身份');
+        throw new Error("未找到当前用户身份");
       }
 
       // 3. 创建组织记录
@@ -97,18 +120,18 @@ class OrganizationManager {
         org_id: orgId,
         org_did: orgDID,
         name: orgData.name,
-        description: orgData.description || '',
-        type: orgData.type || 'startup',
-        avatar: orgData.avatar || '',
+        description: orgData.description || "",
+        type: orgData.type || "startup",
+        avatar: orgData.avatar || "",
         owner_did: currentIdentity.did,
         settings_json: JSON.stringify({
-          visibility: orgData.visibility || 'private',
+          visibility: orgData.visibility || "private",
           maxMembers: orgData.maxMembers || 100,
           allowMemberInvite: orgData.allowMemberInvite !== false,
-          defaultMemberRole: 'member'
+          defaultMemberRole: "member",
         }),
         created_at: now,
-        updated_at: now
+        updated_at: now,
       };
 
       this.db.run(
@@ -125,17 +148,17 @@ class OrganizationManager {
           organization.owner_did,
           organization.settings_json,
           organization.created_at,
-          organization.updated_at
-        ]
+          organization.updated_at,
+        ],
       );
 
       // 4. 添加创建者为Owner
       await this.addMember(orgId, {
         memberDID: currentIdentity.did,
-        displayName: currentIdentity.displayName || 'Owner',
-        avatar: currentIdentity.avatar || '',
-        role: 'owner',
-        permissions: JSON.stringify(['*']) // 所有权限
+        displayName: currentIdentity.displayName || "Owner",
+        avatar: currentIdentity.avatar || "",
+        role: "owner",
+        permissions: JSON.stringify(["*"]), // 所有权限
       });
 
       // 5. 初始化内置角色
@@ -145,9 +168,9 @@ class OrganizationManager {
       if (orgData.enableInviteCode !== false) {
         await this.createInvitation(orgId, {
           invitedBy: currentIdentity.did,
-          role: 'member',
+          role: "member",
           maxUses: 999,
-          expireAt: null // 永不过期
+          expireAt: null, // 永不过期
         });
       }
 
@@ -155,18 +178,25 @@ class OrganizationManager {
       await this.initializeOrgP2PNetwork(orgId);
 
       // 8. 记录活动日志
-      await this.logActivity(orgId, currentIdentity.did, 'create_organization', 'organization', orgId, {
-        orgName: orgData.name
-      });
+      await this.logActivity(
+        orgId,
+        currentIdentity.did,
+        "create_organization",
+        "organization",
+        orgId,
+        {
+          orgName: orgData.name,
+        },
+      );
 
-      logger.info('[OrganizationManager] ✓ 组织创建成功:', orgId);
+      logger.info("[OrganizationManager] ✓ 组织创建成功:", orgId);
 
       return {
         ...organization,
-        settings: JSON.parse(organization.settings_json)
+        settings: JSON.parse(organization.settings_json),
       };
     } catch (error) {
-      logger.error('[OrganizationManager] 创建组织失败:', error);
+      logger.error("[OrganizationManager] 创建组织失败:", error);
       throw error;
     }
   }
@@ -177,53 +207,59 @@ class OrganizationManager {
    * @returns {Promise<Object>} 加入的组织信息
    */
   async joinOrganization(inviteCode) {
-    logger.info('[OrganizationManager] 通过邀请码加入组织:', inviteCode);
+    logger.info("[OrganizationManager] 通过邀请码加入组织:", inviteCode);
 
     try {
       // 1. 验证邀请码
-      const invitation = this.db.prepare(
-        `SELECT * FROM organization_invitations
-         WHERE invite_code = ? AND (expire_at IS NULL OR expire_at > ?) AND used_count < max_uses`
-      ).get(inviteCode, Date.now());
+      const invitation = this.db
+        .prepare(
+          `SELECT * FROM organization_invitations
+         WHERE invite_code = ? AND (expire_at IS NULL OR expire_at > ?) AND used_count < max_uses`,
+        )
+        .get(inviteCode, Date.now());
 
       if (!invitation) {
-        throw new Error('邀请码无效或已过期');
+        throw new Error("邀请码无效或已过期");
       }
 
       // 2. 获取组织信息
       const org = await this.getOrganization(invitation.org_id);
       if (!org) {
-        throw new Error('组织不存在');
+        throw new Error("组织不存在");
       }
 
       // 3. 获取当前用户DID
       const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
-        throw new Error('未找到当前用户身份');
+        throw new Error("未找到当前用户身份");
       }
 
       // 4. 检查是否已经是成员
-      const existingMember = this.db.prepare(
-        `SELECT * FROM organization_members WHERE org_id = ? AND member_did = ?`
-      ).get(invitation.org_id, currentIdentity.did);
+      const existingMember = this.db
+        .prepare(
+          `SELECT * FROM organization_members WHERE org_id = ? AND member_did = ?`,
+        )
+        .get(invitation.org_id, currentIdentity.did);
 
       if (existingMember) {
-        throw new Error('您已经是该组织的成员');
+        throw new Error("您已经是该组织的成员");
       }
 
       // 5. 添加为成员
       await this.addMember(invitation.org_id, {
         memberDID: currentIdentity.did,
-        displayName: currentIdentity.displayName || 'Member',
-        avatar: currentIdentity.avatar || '',
+        displayName: currentIdentity.displayName || "Member",
+        avatar: currentIdentity.avatar || "",
         role: invitation.role,
-        permissions: JSON.stringify(this.getDefaultPermissionsByRole(invitation.role))
+        permissions: JSON.stringify(
+          this.getDefaultPermissionsByRole(invitation.role),
+        ),
       });
 
       // 6. 更新邀请码使用次数
       this.db.run(
         `UPDATE organization_invitations SET used_count = used_count + 1 WHERE id = ?`,
-        [invitation.id]
+        [invitation.id],
       );
 
       // 7. 连接到组织P2P网络
@@ -233,15 +269,22 @@ class OrganizationManager {
       await this.syncOrganizationData(invitation.org_id);
 
       // 9. 记录活动日志
-      await this.logActivity(invitation.org_id, currentIdentity.did, 'join_organization', 'member', currentIdentity.did, {
-        inviteCode: inviteCode
-      });
+      await this.logActivity(
+        invitation.org_id,
+        currentIdentity.did,
+        "join_organization",
+        "member",
+        currentIdentity.did,
+        {
+          inviteCode: inviteCode,
+        },
+      );
 
-      logger.info('[OrganizationManager] ✓ 成功加入组织:', invitation.org_id);
+      logger.info("[OrganizationManager] ✓ 成功加入组织:", invitation.org_id);
 
       return org;
     } catch (error) {
-      logger.error('[OrganizationManager] 加入组织失败:', error);
+      logger.error("[OrganizationManager] 加入组织失败:", error);
       throw error;
     }
   }
@@ -252,7 +295,9 @@ class OrganizationManager {
    * @returns {Promise<Object|null>} 组织信息
    */
   async getOrganization(orgId) {
-    const org = this.db.prepare(`SELECT * FROM organization_info WHERE org_id = ?`).get(orgId);
+    const org = this.db
+      .prepare(`SELECT * FROM organization_info WHERE org_id = ?`)
+      .get(orgId);
 
     if (!org) {
       return null;
@@ -260,7 +305,7 @@ class OrganizationManager {
 
     return {
       ...org,
-      settings: JSON.parse(org.settings_json || '{}')
+      settings: JSON.parse(org.settings_json || "{}"),
     };
   }
 
@@ -274,7 +319,7 @@ class OrganizationManager {
     try {
       const org = await this.getOrganization(orgId);
       if (!org) {
-        return { success: false, error: '组织不存在' };
+        return { success: false, error: "组织不存在" };
       }
 
       // 构建更新SQL
@@ -282,57 +327,64 @@ class OrganizationManager {
       const values = [];
 
       if (updates.name !== undefined) {
-        fields.push('name = ?');
+        fields.push("name = ?");
         values.push(updates.name);
       }
       if (updates.type !== undefined) {
-        fields.push('type = ?');
+        fields.push("type = ?");
         values.push(updates.type);
       }
       if (updates.description !== undefined) {
-        fields.push('description = ?');
+        fields.push("description = ?");
         values.push(updates.description);
       }
       if (updates.avatar !== undefined) {
-        fields.push('avatar = ?');
+        fields.push("avatar = ?");
         values.push(updates.avatar);
       }
       if (updates.visibility !== undefined) {
-        fields.push('visibility = ?');
+        fields.push("visibility = ?");
         values.push(updates.visibility);
       }
       if (updates.p2p_enabled !== undefined) {
-        fields.push('p2p_enabled = ?');
+        fields.push("p2p_enabled = ?");
         values.push(updates.p2p_enabled);
       }
       if (updates.sync_mode !== undefined) {
-        fields.push('sync_mode = ?');
+        fields.push("sync_mode = ?");
         values.push(updates.sync_mode);
       }
 
       if (fields.length === 0) {
-        return { success: false, error: '没有需要更新的字段' };
+        return { success: false, error: "没有需要更新的字段" };
       }
 
       // 添加更新时间
-      fields.push('updated_at = ?');
+      fields.push("updated_at = ?");
       values.push(Date.now());
 
       // 添加orgId到values
       values.push(orgId);
 
       // 执行更新
-      const sql = `UPDATE organization_info SET ${fields.join(', ')} WHERE org_id = ?`;
+      const sql = `UPDATE organization_info SET ${fields.join(", ")} WHERE org_id = ?`;
       this.db.prepare(sql).run(...values);
 
       // 记录活动
-      await this.logActivity(orgId, updates.updatedBy || 'system', 'update_organization', 'organization', orgId, {
-        updates: Object.keys(updates)
-      });
+      await this.logActivity(
+        orgId,
+        updates.updatedBy || "system",
+        "update_organization",
+        "organization",
+        orgId,
+        {
+          updates: Object.keys(updates),
+        },
+      );
 
       return { success: true };
     } catch (error) {
-      logger.error('更新组织失败:', error);
+      logger.error("更新组织失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -343,22 +395,24 @@ class OrganizationManager {
    * @returns {Promise<Array>} 组织列表
    */
   async getUserOrganizations(userDID) {
-    const memberships = this.db.prepare(
-      `SELECT om.*, oi.name, oi.description, oi.type, oi.avatar
+    const memberships = this.db
+      .prepare(
+        `SELECT om.*, oi.name, oi.description, oi.type, oi.avatar
        FROM organization_members om
        JOIN organization_info oi ON om.org_id = oi.org_id
        WHERE om.member_did = ? AND om.status = 'active'
-       ORDER BY om.joined_at DESC`
-    ).all(userDID);
+       ORDER BY om.joined_at DESC`,
+      )
+      .all(userDID);
 
-    return memberships.map(m => ({
+    return memberships.map((m) => ({
       orgId: m.org_id,
       name: m.name,
       description: m.description,
       type: m.type,
       avatar: m.avatar,
       role: m.role,
-      joinedAt: m.joined_at
+      joinedAt: m.joined_at,
     }));
   }
 
@@ -382,7 +436,7 @@ class OrganizationManager {
       permissions: memberData.permissions,
       joined_at: now,
       last_active_at: now,
-      status: 'active'
+      status: "active",
     };
 
     this.db.run(
@@ -399,8 +453,8 @@ class OrganizationManager {
         member.permissions,
         member.joined_at,
         member.last_active_at,
-        member.status
-      ]
+        member.status,
+      ],
     );
 
     return member;
@@ -412,9 +466,11 @@ class OrganizationManager {
    * @returns {Promise<Array>} 成员列表
    */
   async getOrganizationMembers(orgId) {
-    return this.db.prepare(
-      `SELECT * FROM organization_members WHERE org_id = ? AND status = 'active' ORDER BY joined_at ASC`
-    ).all(orgId);
+    return this.db
+      .prepare(
+        `SELECT * FROM organization_members WHERE org_id = ? AND status = 'active' ORDER BY joined_at ASC`,
+      )
+      .all(orgId);
   }
 
   /**
@@ -427,22 +483,38 @@ class OrganizationManager {
   async updateMemberRole(orgId, memberDID, newRole) {
     // 检查操作者权限
     const currentIdentity = await this.didManager.getCurrentIdentity();
-    const canManage = await this.checkPermission(orgId, currentIdentity.did, 'member.manage');
+    const canManage = await this.checkPermission(
+      orgId,
+      currentIdentity.did,
+      "member.manage",
+    );
 
     if (!canManage) {
-      throw new Error('没有权限管理成员');
+      throw new Error("没有权限管理成员");
     }
 
     // 更新角色
     this.db.run(
       `UPDATE organization_members SET role = ?, permissions = ? WHERE org_id = ? AND member_did = ?`,
-      [newRole, JSON.stringify(this.getDefaultPermissionsByRole(newRole)), orgId, memberDID]
+      [
+        newRole,
+        JSON.stringify(this.getDefaultPermissionsByRole(newRole)),
+        orgId,
+        memberDID,
+      ],
     );
 
     // 记录活动日志
-    await this.logActivity(orgId, currentIdentity.did, 'update_member_role', 'member', memberDID, {
-      newRole: newRole
-    });
+    await this.logActivity(
+      orgId,
+      currentIdentity.did,
+      "update_member_role",
+      "member",
+      memberDID,
+      {
+        newRole: newRole,
+      },
+    );
   }
 
   /**
@@ -454,29 +526,42 @@ class OrganizationManager {
   async removeMember(orgId, memberDID) {
     // 检查操作者权限
     const currentIdentity = await this.didManager.getCurrentIdentity();
-    const canRemove = await this.checkPermission(orgId, currentIdentity.did, 'member.remove');
+    const canRemove = await this.checkPermission(
+      orgId,
+      currentIdentity.did,
+      "member.remove",
+    );
 
     if (!canRemove) {
-      throw new Error('没有权限移除成员');
+      throw new Error("没有权限移除成员");
     }
 
     // 不能移除owner
-    const member = this.db.prepare(
-      `SELECT role FROM organization_members WHERE org_id = ? AND member_did = ?`
-    ).get(orgId, memberDID);
+    const member = this.db
+      .prepare(
+        `SELECT role FROM organization_members WHERE org_id = ? AND member_did = ?`,
+      )
+      .get(orgId, memberDID);
 
-    if (member && member.role === 'owner') {
-      throw new Error('不能移除组织所有者');
+    if (member && member.role === "owner") {
+      throw new Error("不能移除组织所有者");
     }
 
     // 更新状态为removed
     this.db.run(
       `UPDATE organization_members SET status = 'removed' WHERE org_id = ? AND member_did = ?`,
-      [orgId, memberDID]
+      [orgId, memberDID],
     );
 
     // 记录活动日志
-    await this.logActivity(orgId, currentIdentity.did, 'remove_member', 'member', memberDID, {});
+    await this.logActivity(
+      orgId,
+      currentIdentity.did,
+      "remove_member",
+      "member",
+      memberDID,
+      {},
+    );
   }
 
   /**
@@ -494,11 +579,11 @@ class OrganizationManager {
       org_id: orgId,
       invite_code: inviteCode,
       invited_by: inviteData.invitedBy,
-      role: inviteData.role || 'member',
+      role: inviteData.role || "member",
       max_uses: inviteData.maxUses || 1,
       used_count: 0,
       expire_at: inviteData.expireAt || null,
-      created_at: Date.now()
+      created_at: Date.now(),
     };
 
     this.db.run(
@@ -514,8 +599,8 @@ class OrganizationManager {
         invitation.max_uses,
         invitation.used_count,
         invitation.expire_at,
-        invitation.created_at
-      ]
+        invitation.created_at,
+      ],
     );
 
     return invitation;
@@ -529,40 +614,48 @@ class OrganizationManager {
   getInvitations(orgId) {
     try {
       // 获取邀请码邀请
-      const codeInvitations = this.db.prepare(`
+      const codeInvitations = this.db
+        .prepare(
+          `
         SELECT * FROM organization_invitations
         WHERE org_id = ?
         ORDER BY created_at DESC
-      `).all(orgId);
+      `,
+        )
+        .all(orgId);
 
       // 获取DID邀请
-      const didInvitations = this.db.prepare(`
+      const didInvitations = this.db
+        .prepare(
+          `
         SELECT * FROM organization_did_invitations
         WHERE org_id = ?
         ORDER BY created_at DESC
-      `).all(orgId);
+      `,
+        )
+        .all(orgId);
 
       // 合并两种邀请，添加类型标识
       const allInvitations = [
-        ...codeInvitations.map(inv => ({
+        ...codeInvitations.map((inv) => ({
           ...inv,
           invitation_id: inv.id,
-          type: 'code',
+          type: "code",
           code: inv.invite_code,
-          status: this.getInvitationStatus(inv)
+          status: this.getInvitationStatus(inv),
         })),
-        ...didInvitations.map(inv => ({
+        ...didInvitations.map((inv) => ({
           ...inv,
           invitation_id: inv.id,
-          type: 'did',
+          type: "did",
           code: `DID: ${this.shortenDID(inv.invited_did)}`,
-          status: inv.status
-        }))
+          status: inv.status,
+        })),
       ];
 
       return allInvitations;
     } catch (error) {
-      logger.error('获取邀请列表失败:', error);
+      logger.error("获取邀请列表失败:", error);
       return [];
     }
   }
@@ -575,25 +668,25 @@ class OrganizationManager {
   getInvitationStatus(invitation) {
     // 检查是否已撤销
     if (invitation.is_revoked) {
-      return 'revoked';
+      return "revoked";
     }
 
     // 检查是否过期
     if (invitation.expire_at && Date.now() > invitation.expire_at) {
-      return 'expired';
+      return "expired";
     }
 
     // 检查是否用尽
     if (invitation.used_count >= invitation.max_uses) {
-      return 'exhausted';
+      return "exhausted";
     }
 
     // 检查是否已使用过
     if (invitation.used_count > 0) {
-      return 'accepted';
+      return "accepted";
     }
 
-    return 'pending';
+    return "pending";
   }
 
   /**
@@ -605,40 +698,52 @@ class OrganizationManager {
   async revokeInvitation(orgId, invitationId) {
     try {
       // 先检查是否是邀请码邀请
-      const codeInv = this.db.prepare(
-        'SELECT * FROM organization_invitations WHERE id = ? AND org_id = ?'
-      ).get(invitationId, orgId);
+      const codeInv = this.db
+        .prepare(
+          "SELECT * FROM organization_invitations WHERE id = ? AND org_id = ?",
+        )
+        .get(invitationId, orgId);
 
       if (codeInv) {
         // 标记为已撤销
-        this.db.prepare(`
+        this.db
+          .prepare(
+            `
           UPDATE organization_invitations
           SET is_revoked = 1, updated_at = ?
           WHERE id = ?
-        `).run(Date.now(), invitationId);
+        `,
+          )
+          .run(Date.now(), invitationId);
 
         return { success: true };
       }
 
       // 检查是否是DID邀请
-      const didInv = this.db.prepare(
-        'SELECT * FROM organization_did_invitations WHERE id = ? AND org_id = ?'
-      ).get(invitationId, orgId);
+      const didInv = this.db
+        .prepare(
+          "SELECT * FROM organization_did_invitations WHERE id = ? AND org_id = ?",
+        )
+        .get(invitationId, orgId);
 
       if (didInv) {
         // 更新状态为已撤销
-        this.db.prepare(`
+        this.db
+          .prepare(
+            `
           UPDATE organization_did_invitations
           SET status = 'revoked', updated_at = ?
           WHERE id = ?
-        `).run(Date.now(), invitationId);
+        `,
+          )
+          .run(Date.now(), invitationId);
 
         return { success: true };
       }
 
-      return { success: false, error: '邀请不存在' };
+      return { success: false, error: "邀请不存在" };
     } catch (error) {
-      logger.error('撤销邀请失败:', error);
+      logger.error("撤销邀请失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -652,26 +757,30 @@ class OrganizationManager {
   async deleteInvitation(orgId, invitationId) {
     try {
       // 先尝试删除邀请码邀请
-      const codeResult = this.db.prepare(
-        'DELETE FROM organization_invitations WHERE id = ? AND org_id = ?'
-      ).run(invitationId, orgId);
+      const codeResult = this.db
+        .prepare(
+          "DELETE FROM organization_invitations WHERE id = ? AND org_id = ?",
+        )
+        .run(invitationId, orgId);
 
       if (codeResult.changes > 0) {
         return { success: true };
       }
 
       // 尝试删除DID邀请
-      const didResult = this.db.prepare(
-        'DELETE FROM organization_did_invitations WHERE id = ? AND org_id = ?'
-      ).run(invitationId, orgId);
+      const didResult = this.db
+        .prepare(
+          "DELETE FROM organization_did_invitations WHERE id = ? AND org_id = ?",
+        )
+        .run(invitationId, orgId);
 
       if (didResult.changes > 0) {
         return { success: true };
       }
 
-      return { success: false, error: '邀请不存在' };
+      return { success: false, error: "邀请不存在" };
     } catch (error) {
-      logger.error('删除邀请失败:', error);
+      logger.error("删除邀请失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -682,7 +791,9 @@ class OrganizationManager {
    * @returns {string} 缩短的DID
    */
   shortenDID(did) {
-    if (!did || did.length <= 30) {return did;}
+    if (!did || did.length <= 30) {
+      return did;
+    }
     return `${did.slice(0, 15)}...${did.slice(-10)}`;
   }
 
@@ -697,49 +808,60 @@ class OrganizationManager {
    * @returns {Promise<Object>} 邀请信息
    */
   async inviteByDID(orgId, inviteData) {
-    logger.info('[OrganizationManager] 通过DID邀请用户:', inviteData.invitedDID);
+    logger.info(
+      "[OrganizationManager] 通过DID邀请用户:",
+      inviteData.invitedDID,
+    );
 
     try {
       // 1. 获取组织信息
       const org = await this.getOrganization(orgId);
       if (!org) {
-        throw new Error('组织不存在');
+        throw new Error("组织不存在");
       }
 
       // 2. 获取当前用户DID
       const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
-        throw new Error('未找到当前用户身份');
+        throw new Error("未找到当前用户身份");
       }
 
       // 3. 检查权限（只有Owner和Admin可以邀请）
-      const hasPermission = await this.checkPermission(orgId, currentIdentity.did, 'member.invite');
+      const hasPermission = await this.checkPermission(
+        orgId,
+        currentIdentity.did,
+        "member.invite",
+      );
       if (!hasPermission) {
-        throw new Error('没有邀请权限');
+        throw new Error("没有邀请权限");
       }
 
       // 4. 验证被邀请人的DID格式
-      if (!inviteData.invitedDID || !inviteData.invitedDID.startsWith('did:')) {
-        throw new Error('无效的DID格式');
+      if (!inviteData.invitedDID || !inviteData.invitedDID.startsWith("did:")) {
+        throw new Error("无效的DID格式");
       }
 
       // 5. 检查用户是否已经是成员
-      const existingMember = this.db.prepare(
-        `SELECT * FROM organization_members WHERE org_id = ? AND member_did = ?`
-      ).get(orgId, inviteData.invitedDID);
+      const existingMember = this.db
+        .prepare(
+          `SELECT * FROM organization_members WHERE org_id = ? AND member_did = ?`,
+        )
+        .get(orgId, inviteData.invitedDID);
 
       if (existingMember) {
-        throw new Error('该用户已经是组织成员');
+        throw new Error("该用户已经是组织成员");
       }
 
       // 6. 检查是否已有待处理的邀请
-      const existingInvitation = this.db.prepare(
-        `SELECT * FROM organization_did_invitations
-         WHERE org_id = ? AND invited_did = ? AND status = 'pending'`
-      ).get(orgId, inviteData.invitedDID);
+      const existingInvitation = this.db
+        .prepare(
+          `SELECT * FROM organization_did_invitations
+         WHERE org_id = ? AND invited_did = ? AND status = 'pending'`,
+        )
+        .get(orgId, inviteData.invitedDID);
 
       if (existingInvitation) {
-        throw new Error('已有待处理的邀请');
+        throw new Error("已有待处理的邀请");
       }
 
       // 7. 创建DID邀请记录
@@ -750,14 +872,15 @@ class OrganizationManager {
         org_id: orgId,
         org_name: org.name,
         invited_by_did: currentIdentity.did,
-        invited_by_name: currentIdentity.nickname || currentIdentity.displayName || 'Unknown',
+        invited_by_name:
+          currentIdentity.nickname || currentIdentity.displayName || "Unknown",
         invited_did: inviteData.invitedDID,
-        role: inviteData.role || 'member',
-        status: 'pending',
+        role: inviteData.role || "member",
+        status: "pending",
         message: inviteData.message || `邀请您加入组织 ${org.name}`,
         expire_at: inviteData.expireAt || null,
         created_at: now,
-        updated_at: now
+        updated_at: now,
       };
 
       this.db.run(
@@ -776,15 +899,19 @@ class OrganizationManager {
           invitation.message,
           invitation.expire_at,
           invitation.created_at,
-          invitation.updated_at
-        ]
+          invitation.updated_at,
+        ],
       );
 
       // 8. 通过P2P发送邀请通知
-      if (this.p2pManager && this.p2pManager.isInitialized && this.p2pManager.isInitialized()) {
+      if (
+        this.p2pManager &&
+        this.p2pManager.isInitialized &&
+        this.p2pManager.isInitialized()
+      ) {
         try {
           await this.p2pManager.sendMessage(inviteData.invitedDID, {
-            type: 'org_invitation',
+            type: "org_invitation",
             invitationId: invitation.id,
             orgId: invitation.org_id,
             orgName: invitation.org_name,
@@ -793,28 +920,38 @@ class OrganizationManager {
             role: invitation.role,
             message: invitation.message,
             expireAt: invitation.expire_at,
-            createdAt: invitation.created_at
+            createdAt: invitation.created_at,
           });
-          logger.info('[OrganizationManager] P2P邀请通知已发送');
+          logger.info("[OrganizationManager] P2P邀请通知已发送");
         } catch (error) {
-          logger.warn('[OrganizationManager] P2P邀请通知发送失败:', error.message);
+          logger.warn(
+            "[OrganizationManager] P2P邀请通知发送失败:",
+            error.message,
+          );
           // 不中断流程，邀请记录已创建，用户可以通过其他方式看到
         }
       } else {
-        logger.warn('[OrganizationManager] P2P未初始化，无法发送邀请通知');
+        logger.warn("[OrganizationManager] P2P未初始化，无法发送邀请通知");
       }
 
       // 9. 记录活动日志
-      await this.logActivity(orgId, currentIdentity.did, 'invite_by_did', 'invitation', invitationId, {
-        invitedDID: inviteData.invitedDID,
-        role: invitation.role
-      });
+      await this.logActivity(
+        orgId,
+        currentIdentity.did,
+        "invite_by_did",
+        "invitation",
+        invitationId,
+        {
+          invitedDID: inviteData.invitedDID,
+          role: invitation.role,
+        },
+      );
 
-      logger.info('[OrganizationManager] ✓ DID邀请创建成功:', invitationId);
+      logger.info("[OrganizationManager] ✓ DID邀请创建成功:", invitationId);
 
       return invitation;
     } catch (error) {
-      logger.error('[OrganizationManager] 创建DID邀请失败:', error);
+      logger.error("[OrganizationManager] 创建DID邀请失败:", error);
       throw error;
     }
   }
@@ -825,20 +962,20 @@ class OrganizationManager {
    * @returns {Promise<Object>} 组织信息
    */
   async acceptDIDInvitation(invitationId) {
-    logger.info('[OrganizationManager] 接受DID邀请:', invitationId);
+    logger.info("[OrganizationManager] 接受DID邀请:", invitationId);
 
     try {
       // 1. 获取邀请信息
-      const invitation = this.db.prepare(
-        `SELECT * FROM organization_did_invitations WHERE id = ?`
-      ).get(invitationId);
+      const invitation = this.db
+        .prepare(`SELECT * FROM organization_did_invitations WHERE id = ?`)
+        .get(invitationId);
 
       if (!invitation) {
-        throw new Error('邀请不存在');
+        throw new Error("邀请不存在");
       }
 
       // 2. 检查邀请状态
-      if (invitation.status !== 'pending') {
+      if (invitation.status !== "pending") {
         throw new Error(`邀请状态为 ${invitation.status}，无法接受`);
       }
 
@@ -847,52 +984,64 @@ class OrganizationManager {
         // 更新状态为过期
         this.db.run(
           `UPDATE organization_did_invitations SET status = 'expired', updated_at = ? WHERE id = ?`,
-          [Date.now(), invitationId]
+          [Date.now(), invitationId],
         );
-        throw new Error('邀请已过期');
+        throw new Error("邀请已过期");
       }
 
       // 4. 获取当前用户DID
       const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
-        throw new Error('未找到当前用户身份');
+        throw new Error("未找到当前用户身份");
       }
 
       // 5. 验证被邀请人
       if (currentIdentity.did !== invitation.invited_did) {
-        throw new Error('邀请对象不匹配');
+        throw new Error("邀请对象不匹配");
       }
 
       // 6. 检查是否已经是成员
-      const existingMember = this.db.prepare(
-        `SELECT * FROM organization_members WHERE org_id = ? AND member_did = ?`
-      ).get(invitation.org_id, currentIdentity.did);
+      const existingMember = this.db
+        .prepare(
+          `SELECT * FROM organization_members WHERE org_id = ? AND member_did = ?`,
+        )
+        .get(invitation.org_id, currentIdentity.did);
 
       if (existingMember) {
-        throw new Error('您已经是该组织的成员');
+        throw new Error("您已经是该组织的成员");
       }
 
       // 7. 添加为组织成员
       await this.addMember(invitation.org_id, {
         memberDID: currentIdentity.did,
-        displayName: currentIdentity.nickname || currentIdentity.displayName || 'Member',
-        avatar: currentIdentity.avatar || '',
+        displayName:
+          currentIdentity.nickname || currentIdentity.displayName || "Member",
+        avatar: currentIdentity.avatar || "",
         role: invitation.role,
-        permissions: JSON.stringify(this.getDefaultPermissionsByRole(invitation.role))
+        permissions: JSON.stringify(
+          this.getDefaultPermissionsByRole(invitation.role),
+        ),
       });
 
       // 8. 更新邀请状态
       this.db.run(
         `UPDATE organization_did_invitations SET status = 'accepted', updated_at = ? WHERE id = ?`,
-        [Date.now(), invitationId]
+        [Date.now(), invitationId],
       );
 
       // 9. 连接到组织P2P网络
-      if (this.p2pManager && this.p2pManager.isInitialized && this.p2pManager.isInitialized()) {
+      if (
+        this.p2pManager &&
+        this.p2pManager.isInitialized &&
+        this.p2pManager.isInitialized()
+      ) {
         try {
           await this.connectToOrgP2PNetwork(invitation.org_id);
         } catch (error) {
-          logger.warn('[OrganizationManager] 连接组织P2P网络失败:', error.message);
+          logger.warn(
+            "[OrganizationManager] 连接组织P2P网络失败:",
+            error.message,
+          );
         }
       }
 
@@ -900,37 +1049,54 @@ class OrganizationManager {
       try {
         await this.syncOrganizationData(invitation.org_id);
       } catch (error) {
-        logger.warn('[OrganizationManager] 同步组织数据失败:', error.message);
+        logger.warn("[OrganizationManager] 同步组织数据失败:", error.message);
       }
 
       // 11. 通过P2P通知邀请人
-      if (this.p2pManager && this.p2pManager.isInitialized && this.p2pManager.isInitialized()) {
+      if (
+        this.p2pManager &&
+        this.p2pManager.isInitialized &&
+        this.p2pManager.isInitialized()
+      ) {
         try {
           await this.p2pManager.sendMessage(invitation.invited_by_did, {
-            type: 'org_invitation_accepted',
+            type: "org_invitation_accepted",
             invitationId: invitation.id,
             orgId: invitation.org_id,
             acceptedBy: currentIdentity.did,
-            acceptedByName: currentIdentity.nickname || currentIdentity.displayName || 'Unknown'
+            acceptedByName:
+              currentIdentity.nickname ||
+              currentIdentity.displayName ||
+              "Unknown",
           });
         } catch (error) {
-          logger.warn('[OrganizationManager] 发送接受通知失败:', error.message);
+          logger.warn("[OrganizationManager] 发送接受通知失败:", error.message);
         }
       }
 
       // 12. 记录活动日志
-      await this.logActivity(invitation.org_id, currentIdentity.did, 'accept_invitation', 'invitation', invitationId, {
-        invitedBy: invitation.invited_by_did
-      });
+      await this.logActivity(
+        invitation.org_id,
+        currentIdentity.did,
+        "accept_invitation",
+        "invitation",
+        invitationId,
+        {
+          invitedBy: invitation.invited_by_did,
+        },
+      );
 
       // 13. 获取并返回组织信息
       const org = await this.getOrganization(invitation.org_id);
 
-      logger.info('[OrganizationManager] ✓ 成功接受邀请并加入组织:', invitation.org_id);
+      logger.info(
+        "[OrganizationManager] ✓ 成功接受邀请并加入组织:",
+        invitation.org_id,
+      );
 
       return org;
     } catch (error) {
-      logger.error('[OrganizationManager] 接受DID邀请失败:', error);
+      logger.error("[OrganizationManager] 接受DID邀请失败:", error);
       throw error;
     }
   }
@@ -941,60 +1107,67 @@ class OrganizationManager {
    * @returns {Promise<boolean>} 是否成功
    */
   async rejectDIDInvitation(invitationId) {
-    logger.info('[OrganizationManager] 拒绝DID邀请:', invitationId);
+    logger.info("[OrganizationManager] 拒绝DID邀请:", invitationId);
 
     try {
       // 1. 获取邀请信息
-      const invitation = this.db.prepare(
-        `SELECT * FROM organization_did_invitations WHERE id = ?`
-      ).get(invitationId);
+      const invitation = this.db
+        .prepare(`SELECT * FROM organization_did_invitations WHERE id = ?`)
+        .get(invitationId);
 
       if (!invitation) {
-        throw new Error('邀请不存在');
+        throw new Error("邀请不存在");
       }
 
       // 2. 检查邀请状态
-      if (invitation.status !== 'pending') {
+      if (invitation.status !== "pending") {
         throw new Error(`邀请状态为 ${invitation.status}，无法拒绝`);
       }
 
       // 3. 获取当前用户DID
       const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
-        throw new Error('未找到当前用户身份');
+        throw new Error("未找到当前用户身份");
       }
 
       // 4. 验证被邀请人
       if (currentIdentity.did !== invitation.invited_did) {
-        throw new Error('邀请对象不匹配');
+        throw new Error("邀请对象不匹配");
       }
 
       // 5. 更新邀请状态
       this.db.run(
         `UPDATE organization_did_invitations SET status = 'rejected', updated_at = ? WHERE id = ?`,
-        [Date.now(), invitationId]
+        [Date.now(), invitationId],
       );
 
       // 6. 通过P2P通知邀请人
-      if (this.p2pManager && this.p2pManager.isInitialized && this.p2pManager.isInitialized()) {
+      if (
+        this.p2pManager &&
+        this.p2pManager.isInitialized &&
+        this.p2pManager.isInitialized()
+      ) {
         try {
           await this.p2pManager.sendMessage(invitation.invited_by_did, {
-            type: 'org_invitation_rejected',
+            type: "org_invitation_rejected",
             invitationId: invitation.id,
             orgId: invitation.org_id,
             rejectedBy: currentIdentity.did,
-            rejectedByName: currentIdentity.nickname || currentIdentity.displayName || 'Unknown'
+            rejectedByName:
+              currentIdentity.nickname ||
+              currentIdentity.displayName ||
+              "Unknown",
           });
         } catch (error) {
-          logger.warn('[OrganizationManager] 发送拒绝通知失败:', error.message);
+          logger.warn("[OrganizationManager] 发送拒绝通知失败:", error.message);
         }
       }
 
-      logger.info('[OrganizationManager] ✓ 成功拒绝邀请:', invitationId);
+      logger.info("[OrganizationManager] ✓ 成功拒绝邀请:", invitationId);
 
       return true;
     } catch (error) {
-      logger.error('[OrganizationManager] 拒绝DID邀请失败:', error);
+      logger.error("[OrganizationManager] 拒绝DID邀请失败:", error);
       throw error;
     }
   }
@@ -1010,16 +1183,18 @@ class OrganizationManager {
         return [];
       }
 
-      const invitations = this.db.prepare(
-        `SELECT * FROM organization_did_invitations
+      const invitations = this.db
+        .prepare(
+          `SELECT * FROM organization_did_invitations
          WHERE invited_did = ? AND status = 'pending'
          AND (expire_at IS NULL OR expire_at > ?)
-         ORDER BY created_at DESC`
-      ).all(currentIdentity.did, Date.now());
+         ORDER BY created_at DESC`,
+        )
+        .all(currentIdentity.did, Date.now());
 
       return invitations || [];
     } catch (error) {
-      logger.error('[OrganizationManager] 获取待处理邀请失败:', error);
+      logger.error("[OrganizationManager] 获取待处理邀请失败:", error);
       return [];
     }
   }
@@ -1053,7 +1228,7 @@ class OrganizationManager {
 
       return invitations || [];
     } catch (error) {
-      logger.error('[OrganizationManager] 获取DID邀请列表失败:', error);
+      logger.error("[OrganizationManager] 获取DID邀请列表失败:", error);
       return [];
     }
   }
@@ -1066,39 +1241,65 @@ class OrganizationManager {
   async initializeBuiltinRoles(orgId) {
     const builtinRoles = [
       {
-        name: 'owner',
-        description: '组织创建者，拥有最高权限',
-        permissions: JSON.stringify(['*'])
+        name: "owner",
+        description: "组织创建者，拥有最高权限",
+        permissions: JSON.stringify(["*"]),
       },
       {
-        name: 'admin',
-        description: '管理员，可以管理成员和内容',
+        name: "admin",
+        description: "管理员，可以管理成员和内容",
         permissions: JSON.stringify([
-          'org.manage', 'member.invite', 'member.remove', 'member.manage',
-          'knowledge.create', 'knowledge.read', 'knowledge.write', 'knowledge.delete',
-          'project.create', 'project.delete', 'role.create', 'role.assign'
-        ])
+          "org.manage",
+          "member.invite",
+          "member.remove",
+          "member.manage",
+          "knowledge.create",
+          "knowledge.read",
+          "knowledge.write",
+          "knowledge.delete",
+          "project.create",
+          "project.delete",
+          "role.create",
+          "role.assign",
+        ]),
       },
       {
-        name: 'member',
-        description: '普通成员，可以创建和编辑内容',
+        name: "member",
+        description: "普通成员，可以创建和编辑内容",
         permissions: JSON.stringify([
-          'knowledge.create', 'knowledge.read', 'knowledge.write',
-          'project.create', 'project.read', 'project.write', 'message.send'
-        ])
+          "knowledge.create",
+          "knowledge.read",
+          "knowledge.write",
+          "project.create",
+          "project.read",
+          "project.write",
+          "message.send",
+        ]),
       },
       {
-        name: 'viewer',
-        description: '访客，只能查看内容',
-        permissions: JSON.stringify(['knowledge.read', 'project.read', 'message.read'])
-      }
+        name: "viewer",
+        description: "访客，只能查看内容",
+        permissions: JSON.stringify([
+          "knowledge.read",
+          "project.read",
+          "message.read",
+        ]),
+      },
     ];
 
     for (const role of builtinRoles) {
       this.db.run(
         `INSERT INTO organization_roles (id, org_id, name, description, permissions, is_builtin, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [uuidv4(), orgId, role.name, role.description, role.permissions, 1, Date.now()]
+        [
+          uuidv4(),
+          orgId,
+          role.name,
+          role.description,
+          role.permissions,
+          1,
+          Date.now(),
+        ],
       );
     }
   }
@@ -1112,27 +1313,31 @@ class OrganizationManager {
    */
   async checkPermission(orgId, userDID, permission) {
     // 获取用户成员信息
-    const member = this.db.prepare(
-      `SELECT role, permissions FROM organization_members WHERE org_id = ? AND member_did = ? AND status = 'active'`
-    ).get(orgId, userDID);
+    const member = this.db
+      .prepare(
+        `SELECT role, permissions FROM organization_members WHERE org_id = ? AND member_did = ? AND status = 'active'`,
+      )
+      .get(orgId, userDID);
 
     if (!member) {
       return false; // 不是成员
     }
 
     // 获取角色权限
-    const role = this.db.prepare(
-      `SELECT permissions FROM organization_roles WHERE org_id = ? AND name = ?`
-    ).get(orgId, member.role);
+    const role = this.db
+      .prepare(
+        `SELECT permissions FROM organization_roles WHERE org_id = ? AND name = ?`,
+      )
+      .get(orgId, member.role);
 
     if (!role) {
       return false;
     }
 
-    const permissions = JSON.parse(role.permissions || '[]');
+    const permissions = JSON.parse(role.permissions || "[]");
 
     // Owner 拥有所有权限
-    if (permissions.includes('*')) {
+    if (permissions.includes("*")) {
       return true;
     }
 
@@ -1142,7 +1347,7 @@ class OrganizationManager {
     }
 
     // 检查通配符权限 (例如: knowledge.* 包含 knowledge.read)
-    const [resource, action] = permission.split('.');
+    const [resource, action] = permission.split(".");
     const wildcardPermission = `${resource}.*`;
     if (permissions.includes(wildcardPermission)) {
       return true;
@@ -1161,11 +1366,27 @@ class OrganizationManager {
    * @param {Object} metadata - 元数据
    * @returns {Promise<void>}
    */
-  async logActivity(orgId, actorDID, action, resourceType, resourceId, metadata) {
+  async logActivity(
+    orgId,
+    actorDID,
+    action,
+    resourceType,
+    resourceId,
+    metadata,
+  ) {
     this.db.run(
       `INSERT INTO organization_activities (id, org_id, actor_did, action, resource_type, resource_id, metadata, timestamp)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [uuidv4(), orgId, actorDID, action, resourceType, resourceId, JSON.stringify(metadata), Date.now()]
+      [
+        uuidv4(),
+        orgId,
+        actorDID,
+        action,
+        resourceType,
+        resourceId,
+        JSON.stringify(metadata),
+        Date.now(),
+      ],
     );
   }
 
@@ -1176,9 +1397,11 @@ class OrganizationManager {
    * @returns {Promise<Array>} 活动日志列表
    */
   async getOrganizationActivities(orgId, limit = 50) {
-    return this.db.prepare(
-      `SELECT * FROM organization_activities WHERE org_id = ? ORDER BY timestamp DESC LIMIT ?`
-    ).all(orgId, limit);
+    return this.db
+      .prepare(
+        `SELECT * FROM organization_activities WHERE org_id = ? ORDER BY timestamp DESC LIMIT ?`,
+      )
+      .all(orgId, limit);
   }
 
   /**
@@ -1190,16 +1413,20 @@ class OrganizationManager {
    */
   getMemberActivities(orgId, memberDID, limit = 10) {
     try {
-      const activities = this.db.prepare(`
+      const activities = this.db
+        .prepare(
+          `
         SELECT * FROM organization_activities
         WHERE org_id = ? AND user_did = ?
         ORDER BY activity_timestamp DESC
         LIMIT ?
-      `).all(orgId, memberDID, limit);
+      `,
+        )
+        .all(orgId, memberDID, limit);
 
       return activities;
     } catch (error) {
-      logger.error('获取成员活动失败:', error);
+      logger.error("获取成员活动失败:", error);
       return [];
     }
   }
@@ -1210,8 +1437,8 @@ class OrganizationManager {
    */
   generateInviteCode() {
     // 生成6位大写字母和数字的邀请码
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
     for (let i = 0; i < 6; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -1225,17 +1452,31 @@ class OrganizationManager {
    */
   getDefaultPermissionsByRole(role) {
     const rolePermissions = {
-      owner: ['*'],
+      owner: ["*"],
       admin: [
-        'org.manage', 'member.invite', 'member.remove', 'member.manage',
-        'knowledge.create', 'knowledge.read', 'knowledge.write', 'knowledge.delete',
-        'project.create', 'project.delete', 'role.create', 'role.assign'
+        "org.manage",
+        "member.invite",
+        "member.remove",
+        "member.manage",
+        "knowledge.create",
+        "knowledge.read",
+        "knowledge.write",
+        "knowledge.delete",
+        "project.create",
+        "project.delete",
+        "role.create",
+        "role.assign",
       ],
       member: [
-        'knowledge.create', 'knowledge.read', 'knowledge.write',
-        'project.create', 'project.read', 'project.write', 'message.send'
+        "knowledge.create",
+        "knowledge.read",
+        "knowledge.write",
+        "project.create",
+        "project.read",
+        "project.write",
+        "message.send",
       ],
-      viewer: ['knowledge.read', 'project.read', 'message.read']
+      viewer: ["knowledge.read", "project.read", "message.read"],
     };
 
     return rolePermissions[role] || rolePermissions.viewer;
@@ -1248,19 +1489,19 @@ class OrganizationManager {
    */
   async initializeOrgP2PNetwork(orgId) {
     if (!this.orgP2PNetwork) {
-      logger.warn('[OrganizationManager] OrgP2PNetwork未初始化，跳过网络设置');
+      logger.warn("[OrganizationManager] OrgP2PNetwork未初始化，跳过网络设置");
       return;
     }
 
     try {
-      logger.info('[OrganizationManager] 初始化组织P2P网络:', orgId);
+      logger.info("[OrganizationManager] 初始化组织P2P网络:", orgId);
 
       // 使用新的P2P网络模块初始化
       await this.orgP2PNetwork.initialize(orgId);
 
-      logger.info('[OrganizationManager] ✓ 组织P2P网络初始化完成');
+      logger.info("[OrganizationManager] ✓ 组织P2P网络初始化完成");
     } catch (error) {
-      logger.error('[OrganizationManager] P2P网络初始化失败:', error);
+      logger.error("[OrganizationManager] P2P网络初始化失败:", error);
       // 不抛出错误，允许组织创建继续
     }
   }
@@ -1272,19 +1513,19 @@ class OrganizationManager {
    */
   async connectToOrgP2PNetwork(orgId) {
     if (!this.orgP2PNetwork) {
-      logger.warn('[OrganizationManager] OrgP2PNetwork未初始化，跳过连接');
+      logger.warn("[OrganizationManager] OrgP2PNetwork未初始化，跳过连接");
       return;
     }
 
     try {
-      logger.info('[OrganizationManager] 连接到组织P2P网络:', orgId);
+      logger.info("[OrganizationManager] 连接到组织P2P网络:", orgId);
 
       // 初始化网络订阅
       await this.orgP2PNetwork.initialize(orgId);
 
-      logger.info('[OrganizationManager] ✓ 已连接到组织P2P网络');
+      logger.info("[OrganizationManager] ✓ 已连接到组织P2P网络");
     } catch (error) {
-      logger.error('[OrganizationManager] 连接P2P网络失败:', error);
+      logger.error("[OrganizationManager] 连接P2P网络失败:", error);
     }
   }
 
@@ -1297,41 +1538,45 @@ class OrganizationManager {
   async handleOrgSyncMessage(orgId, message) {
     try {
       const data = JSON.parse(message.toString());
-      logger.info('[OrganizationManager] 收到同步消息:', data.type);
+      logger.info("[OrganizationManager] 收到同步消息:", data.type);
 
       switch (data.type) {
-        case 'sync_request':
+        case "sync_request":
           // 收到同步请求,发送增量数据
-          await this.sendIncrementalData(orgId, data.requester, data.localVersion);
+          await this.sendIncrementalData(
+            orgId,
+            data.requester,
+            data.localVersion,
+          );
           break;
 
-        case 'sync_data':
+        case "sync_data":
           // 收到同步数据,应用到本地
           await this.applyIncrementalData(orgId, data);
           break;
 
-        case 'member_joined':
+        case "member_joined":
           // 成员加入通知
-          logger.info('[OrganizationManager] 成员加入:', data.memberDID);
+          logger.info("[OrganizationManager] 成员加入:", data.memberDID);
           break;
 
-        case 'member_updated':
+        case "member_updated":
           // 成员信息更新
           await this.syncMemberUpdate(orgId, data);
           break;
 
-        case 'knowledge_created':
-        case 'knowledge_updated':
-        case 'knowledge_deleted':
+        case "knowledge_created":
+        case "knowledge_updated":
+        case "knowledge_deleted":
           // 知识库变更
           await this.syncKnowledgeChange(orgId, data);
           break;
 
         default:
-          logger.warn('[OrganizationManager] 未知的同步消息类型:', data.type);
+          logger.warn("[OrganizationManager] 未知的同步消息类型:", data.type);
       }
     } catch (error) {
-      logger.error('[OrganizationManager] 处理同步消息失败:', error);
+      logger.error("[OrganizationManager] 处理同步消息失败:", error);
     }
   }
 
@@ -1343,7 +1588,7 @@ class OrganizationManager {
    */
   async broadcastOrgMessage(orgId, data) {
     if (!this.p2pManager || !this.p2pManager.node?.services?.pubsub) {
-      logger.warn('[OrganizationManager] P2P网络未就绪，无法广播消息');
+      logger.warn("[OrganizationManager] P2P网络未就绪，无法广播消息");
       return;
     }
 
@@ -1352,9 +1597,9 @@ class OrganizationManager {
       const message = Buffer.from(JSON.stringify(data));
 
       await this.p2pManager.node.services.pubsub.publish(topic, message);
-      logger.info('[OrganizationManager] ✓ 已广播消息:', data.type);
+      logger.info("[OrganizationManager] ✓ 已广播消息:", data.type);
     } catch (error) {
-      logger.error('[OrganizationManager] 广播消息失败:', error);
+      logger.error("[OrganizationManager] 广播消息失败:", error);
     }
   }
 
@@ -1370,16 +1615,19 @@ class OrganizationManager {
 
       // 广播同步请求
       await this.broadcastOrgMessage(orgId, {
-        type: 'sync_request',
+        type: "sync_request",
         orgId: orgId,
         requester: await this.didManager.getCurrentDID(),
         localVersion: localVersion,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
 
-      logger.info('[OrganizationManager] ✓ 已请求增量同步，本地版本:', localVersion);
+      logger.info(
+        "[OrganizationManager] ✓ 已请求增量同步，本地版本:",
+        localVersion,
+      );
     } catch (error) {
-      logger.error('[OrganizationManager] 请求同步失败:', error);
+      logger.error("[OrganizationManager] 请求同步失败:", error);
     }
   }
 
@@ -1390,13 +1638,15 @@ class OrganizationManager {
    */
   async getLocalVersion(orgId) {
     try {
-      const result = this.db.prepare(
-        `SELECT MAX(timestamp) as max_timestamp FROM organization_activities WHERE org_id = ?`
-      ).get(orgId);
+      const result = this.db
+        .prepare(
+          `SELECT MAX(timestamp) as max_timestamp FROM organization_activities WHERE org_id = ?`,
+        )
+        .get(orgId);
 
       return result?.max_timestamp || 0;
     } catch (error) {
-      logger.error('[OrganizationManager] 获取本地版本失败:', error);
+      logger.error("[OrganizationManager] 获取本地版本失败:", error);
       return 0;
     }
   }
@@ -1411,37 +1661,46 @@ class OrganizationManager {
   async sendIncrementalData(orgId, targetDID, sinceVersion) {
     try {
       // 查询大于sinceVersion的所有变更
-      const changes = this.db.prepare(
-        `SELECT * FROM organization_activities
+      const changes = this.db
+        .prepare(
+          `SELECT * FROM organization_activities
          WHERE org_id = ? AND timestamp > ?
          ORDER BY timestamp ASC
-         LIMIT 100`
-      ).all(orgId, sinceVersion);
+         LIMIT 100`,
+        )
+        .all(orgId, sinceVersion);
 
       if (changes.length === 0) {
-        logger.info('[OrganizationManager] 没有新数据需要同步');
+        logger.info("[OrganizationManager] 没有新数据需要同步");
         return;
       }
 
       // 获取相关的完整数据
       const syncData = {
-        type: 'sync_data',
+        type: "sync_data",
         orgId: orgId,
         sender: await this.didManager.getCurrentDID(),
         sinceVersion: sinceVersion,
         toVersion: await this.getLocalVersion(orgId),
-        changes: changes.map(change => ({
+        changes: changes.map((change) => ({
           ...change,
-          metadata: JSON.parse(change.metadata || '{}')
+          metadata: JSON.parse(change.metadata || "{}"),
         })),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // 直接发送给请求者
-      await this.p2pManager.sendEncryptedMessage(targetDID, JSON.stringify(syncData));
-      logger.info('[OrganizationManager] ✓ 已发送增量数据，共', changes.length, '条变更');
+      await this.p2pManager.sendEncryptedMessage(
+        targetDID,
+        JSON.stringify(syncData),
+      );
+      logger.info(
+        "[OrganizationManager] ✓ 已发送增量数据，共",
+        changes.length,
+        "条变更",
+      );
     } catch (error) {
-      logger.error('[OrganizationManager] 发送增量数据失败:', error);
+      logger.error("[OrganizationManager] 发送增量数据失败:", error);
     }
   }
 
@@ -1454,7 +1713,11 @@ class OrganizationManager {
   async applyIncrementalData(orgId, syncData) {
     const { changes } = syncData;
 
-    logger.info('[OrganizationManager] 应用增量数据，共', changes.length, '条变更');
+    logger.info(
+      "[OrganizationManager] 应用增量数据，共",
+      changes.length,
+      "条变更",
+    );
 
     for (const change of changes) {
       try {
@@ -1469,11 +1732,11 @@ class OrganizationManager {
         // 应用变更
         await this.applyChange(orgId, change);
       } catch (error) {
-        logger.error('[OrganizationManager] 应用变更失败:', change, error);
+        logger.error("[OrganizationManager] 应用变更失败:", change, error);
       }
     }
 
-    logger.info('[OrganizationManager] ✓ 增量数据应用完成');
+    logger.info("[OrganizationManager] ✓ 增量数据应用完成");
   }
 
   /**
@@ -1487,20 +1750,26 @@ class OrganizationManager {
       const { resource_type, resource_id, timestamp } = change;
 
       // 查询本地是否有更新的版本
-      const localActivity = this.db.prepare(
-        `SELECT timestamp FROM organization_activities
+      const localActivity = this.db
+        .prepare(
+          `SELECT timestamp FROM organization_activities
          WHERE org_id = ? AND resource_type = ? AND resource_id = ?
-         ORDER BY timestamp DESC LIMIT 1`
-      ).get(orgId, resource_type, resource_id);
+         ORDER BY timestamp DESC LIMIT 1`,
+        )
+        .get(orgId, resource_type, resource_id);
 
       if (localActivity && localActivity.timestamp > timestamp) {
-        logger.warn('[OrganizationManager] 检测到冲突:', resource_type, resource_id);
+        logger.warn(
+          "[OrganizationManager] 检测到冲突:",
+          resource_type,
+          resource_id,
+        );
         return true;
       }
 
       return false;
     } catch (error) {
-      logger.error('[OrganizationManager] 冲突检查失败:', error);
+      logger.error("[OrganizationManager] 冲突检查失败:", error);
       return false;
     }
   }
@@ -1512,22 +1781,24 @@ class OrganizationManager {
    * @returns {Promise<void>}
    */
   async resolveConflict(orgId, change) {
-    logger.info('[OrganizationManager] 解决冲突:', change.action);
+    logger.info("[OrganizationManager] 解决冲突:", change.action);
 
     // 策略1: Last-Write-Wins (保留时间戳更新的版本)
-    const localActivity = this.db.prepare(
-      `SELECT timestamp FROM organization_activities
+    const localActivity = this.db
+      .prepare(
+        `SELECT timestamp FROM organization_activities
        WHERE org_id = ? AND resource_type = ? AND resource_id = ?
-       ORDER BY timestamp DESC LIMIT 1`
-    ).get(orgId, change.resource_type, change.resource_id);
+       ORDER BY timestamp DESC LIMIT 1`,
+      )
+      .get(orgId, change.resource_type, change.resource_id);
 
     if (!localActivity || change.timestamp > localActivity.timestamp) {
       // 远程更新,覆盖本地
       await this.applyChange(orgId, change);
-      logger.info('[OrganizationManager] ✓ 冲突已解决: 应用远程版本');
+      logger.info("[OrganizationManager] ✓ 冲突已解决: 应用远程版本");
     } else {
       // 本地更新,保留本地
-      logger.info('[OrganizationManager] ✓ 冲突已解决: 保留本地版本');
+      logger.info("[OrganizationManager] ✓ 冲突已解决: 保留本地版本");
     }
   }
 
@@ -1540,47 +1811,61 @@ class OrganizationManager {
   async applyChange(orgId, change) {
     const { action, resource_type, resource_id, metadata } = change;
 
-    logger.info('[OrganizationManager] 应用变更:', action, resource_type, resource_id);
+    logger.info(
+      "[OrganizationManager] 应用变更:",
+      action,
+      resource_type,
+      resource_id,
+    );
 
     switch (action) {
-      case 'update_member_role':
+      case "update_member_role":
         await this.db.run(
           `UPDATE organization_members SET role = ? WHERE org_id = ? AND member_did = ?`,
-          [metadata.new_role, orgId, resource_id]
+          [metadata.new_role, orgId, resource_id],
         );
         break;
 
-      case 'remove_member':
+      case "remove_member":
         await this.db.run(
           `UPDATE organization_members SET status = 'removed' WHERE org_id = ? AND member_did = ?`,
-          [orgId, resource_id]
+          [orgId, resource_id],
         );
         break;
 
-      case 'add_member': {
+      case "add_member": {
         // 检查成员是否已存在
-        const existingMember = this.db.prepare(
-          `SELECT id FROM organization_members WHERE org_id = ? AND member_did = ?`
-        ).get(orgId, metadata.member_did);
+        const existingMember = this.db
+          .prepare(
+            `SELECT id FROM organization_members WHERE org_id = ? AND member_did = ?`,
+          )
+          .get(orgId, metadata.member_did);
 
         if (!existingMember) {
           await this.db.run(
             `INSERT INTO organization_members (id, org_id, member_did, display_name, role, joined_at, status)
              VALUES (?, ?, ?, ?, ?, ?, 'active')`,
-            [resource_id, orgId, metadata.member_did, metadata.display_name, metadata.role, metadata.joined_at]
+            [
+              resource_id,
+              orgId,
+              metadata.member_did,
+              metadata.display_name,
+              metadata.role,
+              metadata.joined_at,
+            ],
           );
         }
         break;
       }
 
       default:
-        logger.warn('[OrganizationManager] 未知的变更操作:', action);
+        logger.warn("[OrganizationManager] 未知的变更操作:", action);
     }
 
     // 记录到本地活动日志 (如果不存在)
-    const existingActivity = this.db.prepare(
-      `SELECT id FROM organization_activities WHERE id = ?`
-    ).get(change.id);
+    const existingActivity = this.db
+      .prepare(`SELECT id FROM organization_activities WHERE id = ?`)
+      .get(change.id);
 
     if (!existingActivity) {
       await this.db.run(
@@ -1594,8 +1879,8 @@ class OrganizationManager {
           resource_type,
           resource_id,
           JSON.stringify(metadata),
-          change.timestamp
-        ]
+          change.timestamp,
+        ],
       );
     }
   }
@@ -1613,12 +1898,12 @@ class OrganizationManager {
       await this.db.run(
         `UPDATE organization_members SET display_name = ?, avatar = ?
          WHERE org_id = ? AND member_did = ?`,
-        [updates.display_name, updates.avatar, orgId, memberDID]
+        [updates.display_name, updates.avatar, orgId, memberDID],
       );
 
-      logger.info('[OrganizationManager] ✓ 成员信息已同步:', memberDID);
+      logger.info("[OrganizationManager] ✓ 成员信息已同步:", memberDID);
     } catch (error) {
-      logger.error('[OrganizationManager] 同步成员更新失败:', error);
+      logger.error("[OrganizationManager] 同步成员更新失败:", error);
     }
   }
 
@@ -1641,65 +1926,89 @@ class OrganizationManager {
   async syncKnowledgeChange(orgId, data) {
     try {
       const { type, knowledgeId, content, authorDID, timestamp } = data;
-      logger.info('[OrganizationManager] 知识库变更:', type, knowledgeId);
+      logger.info("[OrganizationManager] 知识库变更:", type, knowledgeId);
 
       // 检查是否为本地已有的变更（避免重复应用）
-      const existing = this.db.prepare(`
+      const existing = this.db
+        .prepare(
+          `
         SELECT id, updated_at FROM organization_knowledge
         WHERE org_id = ? AND knowledge_id = ?
-      `).get(orgId, knowledgeId);
+      `,
+        )
+        .get(orgId, knowledgeId);
 
       if (existing && existing.updated_at >= timestamp) {
-        logger.info('[OrganizationManager] 跳过已同步的知识库变更:', knowledgeId);
+        logger.info(
+          "[OrganizationManager] 跳过已同步的知识库变更:",
+          knowledgeId,
+        );
         return { skipped: true };
       }
 
       // 根据变更类型处理
       switch (type) {
-        case 'create':
-          await this.createKnowledgeEntry(orgId, knowledgeId, content, authorDID, timestamp);
+        case "create":
+          await this.createKnowledgeEntry(
+            orgId,
+            knowledgeId,
+            content,
+            authorDID,
+            timestamp,
+          );
           break;
 
-        case 'update':
-          await this.updateKnowledgeEntry(orgId, knowledgeId, content, authorDID, timestamp);
+        case "update":
+          await this.updateKnowledgeEntry(
+            orgId,
+            knowledgeId,
+            content,
+            authorDID,
+            timestamp,
+          );
           break;
 
-        case 'delete':
-          await this.deleteKnowledgeEntry(orgId, knowledgeId, authorDID, timestamp);
+        case "delete":
+          await this.deleteKnowledgeEntry(
+            orgId,
+            knowledgeId,
+            authorDID,
+            timestamp,
+          );
           break;
 
         default:
-          logger.warn('[OrganizationManager] 未知的知识库变更类型:', type);
-          return { success: false, error: '未知变更类型' };
+          logger.warn("[OrganizationManager] 未知的知识库变更类型:", type);
+          return { success: false, error: "未知变更类型" };
       }
 
       // 触发 RAG 索引更新（如果可用）
       try {
-        const { getRAGManager } = require('../rag/rag-manager');
+        const { getRAGManager } = require("../rag/rag-manager");
         const ragManager = getRAGManager();
 
         if (ragManager && ragManager.isInitialized) {
-          if (type === 'delete') {
+          if (type === "delete") {
             await ragManager.removeFromIndex(`org_knowledge_${knowledgeId}`);
           } else {
             await ragManager.addToIndex({
               id: `org_knowledge_${knowledgeId}`,
-              title: content?.title || '',
-              content: content?.content || '',
-              type: 'organization_knowledge',
+              title: content?.title || "",
+              content: content?.content || "",
+              type: "organization_knowledge",
               org_id: orgId,
               created_at: timestamp,
             });
           }
         }
       } catch (ragError) {
-        logger.warn('[OrganizationManager] RAG索引更新失败:', ragError.message);
+        logger.warn("[OrganizationManager] RAG索引更新失败:", ragError.message);
       }
 
-      logger.info('[OrganizationManager] ✓ 知识库变更已应用:', knowledgeId);
+      logger.info("[OrganizationManager] ✓ 知识库变更已应用:", knowledgeId);
       return { success: true };
     } catch (error) {
-      logger.error('[OrganizationManager] 同步知识库变更失败:', error);
+      logger.error("[OrganizationManager] 同步知识库变更失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -1707,7 +2016,13 @@ class OrganizationManager {
   /**
    * 创建知识库条目
    */
-  async createKnowledgeEntry(orgId, knowledgeId, content, authorDID, timestamp) {
+  async createKnowledgeEntry(
+    orgId,
+    knowledgeId,
+    content,
+    authorDID,
+    timestamp,
+  ) {
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO organization_knowledge
       (id, org_id, knowledge_id, title, content, author_did, created_at, updated_at, sync_status)
@@ -1718,18 +2033,24 @@ class OrganizationManager {
       `${orgId}_${knowledgeId}`,
       orgId,
       knowledgeId,
-      content?.title || '',
+      content?.title || "",
       JSON.stringify(content),
       authorDID,
       timestamp,
-      timestamp
+      timestamp,
     );
   }
 
   /**
    * 更新知识库条目
    */
-  async updateKnowledgeEntry(orgId, knowledgeId, content, authorDID, timestamp) {
+  async updateKnowledgeEntry(
+    orgId,
+    knowledgeId,
+    content,
+    authorDID,
+    timestamp,
+  ) {
     const stmt = this.db.prepare(`
       UPDATE organization_knowledge
       SET title = ?, content = ?, author_did = ?, updated_at = ?, sync_status = 'synced'
@@ -1737,12 +2058,12 @@ class OrganizationManager {
     `);
 
     stmt.run(
-      content?.title || '',
+      content?.title || "",
       JSON.stringify(content),
       authorDID,
       timestamp,
       orgId,
-      knowledgeId
+      knowledgeId,
     );
   }
 
@@ -1766,7 +2087,7 @@ class OrganizationManager {
    * @returns {Promise<void>}
    */
   async syncOrganizationData(orgId) {
-    logger.info('[OrganizationManager] 同步组织数据:', orgId);
+    logger.info("[OrganizationManager] 同步组织数据:", orgId);
 
     try {
       // 1. 连接到组织P2P网络
@@ -1775,9 +2096,9 @@ class OrganizationManager {
       // 2. 请求增量同步
       await this.requestIncrementalSync(orgId);
 
-      logger.info('[OrganizationManager] ✓ 组织数据同步已启动');
+      logger.info("[OrganizationManager] ✓ 组织数据同步已启动");
     } catch (error) {
-      logger.error('[OrganizationManager] 数据同步失败:', error);
+      logger.error("[OrganizationManager] 数据同步失败:", error);
     }
   }
 
@@ -1789,24 +2110,33 @@ class OrganizationManager {
    */
   async leaveOrganization(orgId, userDID) {
     // 检查是否是owner
-    const member = this.db.prepare(
-      `SELECT role FROM organization_members WHERE org_id = ? AND member_did = ?`
-    ).get(orgId, userDID);
+    const member = this.db
+      .prepare(
+        `SELECT role FROM organization_members WHERE org_id = ? AND member_did = ?`,
+      )
+      .get(orgId, userDID);
 
-    if (member && member.role === 'owner') {
-      throw new Error('组织所有者不能离开组织，请先转让所有权或删除组织');
+    if (member && member.role === "owner") {
+      throw new Error("组织所有者不能离开组织，请先转让所有权或删除组织");
     }
 
     // 更新状态为removed
     this.db.run(
       `UPDATE organization_members SET status = 'removed' WHERE org_id = ? AND member_did = ?`,
-      [orgId, userDID]
+      [orgId, userDID],
     );
 
     // 记录活动日志
-    await this.logActivity(orgId, userDID, 'leave_organization', 'member', userDID, {});
+    await this.logActivity(
+      orgId,
+      userDID,
+      "leave_organization",
+      "member",
+      userDID,
+      {},
+    );
 
-    logger.info('[OrganizationManager] ✓ 成功离开组织:', orgId);
+    logger.info("[OrganizationManager] ✓ 成功离开组织:", orgId);
   }
 
   /**
@@ -1817,22 +2147,29 @@ class OrganizationManager {
    */
   async deleteOrganization(orgId, userDID) {
     // 检查权限
-    const canDelete = await this.checkPermission(orgId, userDID, 'org.delete');
+    const canDelete = await this.checkPermission(orgId, userDID, "org.delete");
 
     if (!canDelete) {
-      throw new Error('只有组织所有者可以删除组织');
+      throw new Error("只有组织所有者可以删除组织");
     }
 
     // 软删除：将所有成员状态设为removed
     this.db.run(
       `UPDATE organization_members SET status = 'removed' WHERE org_id = ?`,
-      [orgId]
+      [orgId],
     );
 
     // 记录活动日志
-    await this.logActivity(orgId, userDID, 'delete_organization', 'organization', orgId, {});
+    await this.logActivity(
+      orgId,
+      userDID,
+      "delete_organization",
+      "organization",
+      orgId,
+      {},
+    );
 
-    logger.info('[OrganizationManager] ✓ 组织已删除:', orgId);
+    logger.info("[OrganizationManager] ✓ 组织已删除:", orgId);
   }
 
   /**
@@ -1841,13 +2178,15 @@ class OrganizationManager {
    * @returns {Promise<Array>} 角色列表
    */
   async getRoles(orgId) {
-    const roles = this.db.prepare(
-      `SELECT * FROM organization_roles WHERE org_id = ? ORDER BY is_builtin DESC, created_at ASC`
-    ).all(orgId);
+    const roles = this.db
+      .prepare(
+        `SELECT * FROM organization_roles WHERE org_id = ? ORDER BY is_builtin DESC, created_at ASC`,
+      )
+      .all(orgId);
 
-    return roles.map(role => ({
+    return roles.map((role) => ({
       ...role,
-      permissions: JSON.parse(role.permissions || '[]')
+      permissions: JSON.parse(role.permissions || "[]"),
     }));
   }
 
@@ -1857,9 +2196,9 @@ class OrganizationManager {
    * @returns {Promise<Object|null>} 角色信息
    */
   async getRole(roleId) {
-    const role = this.db.prepare(
-      `SELECT * FROM organization_roles WHERE id = ?`
-    ).get(roleId);
+    const role = this.db
+      .prepare(`SELECT * FROM organization_roles WHERE id = ?`)
+      .get(roleId);
 
     if (!role) {
       return null;
@@ -1867,7 +2206,7 @@ class OrganizationManager {
 
     return {
       ...role,
-      permissions: JSON.parse(role.permissions || '[]')
+      permissions: JSON.parse(role.permissions || "[]"),
     };
   }
 
@@ -1882,26 +2221,32 @@ class OrganizationManager {
    * @returns {Promise<Object>} 创建的角色
    */
   async createCustomRole(orgId, roleData, creatorDID) {
-    logger.info('[OrganizationManager] 创建自定义角色:', roleData.name);
+    logger.info("[OrganizationManager] 创建自定义角色:", roleData.name);
 
     // 1. 检查权限
-    const canCreate = await this.checkPermission(orgId, creatorDID, 'role.create');
+    const canCreate = await this.checkPermission(
+      orgId,
+      creatorDID,
+      "role.create",
+    );
     if (!canCreate) {
-      throw new Error('没有权限创建角色');
+      throw new Error("没有权限创建角色");
     }
 
     // 2. 验证角色名称唯一性
-    const existingRole = this.db.prepare(
-      `SELECT id FROM organization_roles WHERE org_id = ? AND name = ?`
-    ).get(orgId, roleData.name);
+    const existingRole = this.db
+      .prepare(
+        `SELECT id FROM organization_roles WHERE org_id = ? AND name = ?`,
+      )
+      .get(orgId, roleData.name);
 
     if (existingRole) {
-      throw new Error('角色名称已存在');
+      throw new Error("角色名称已存在");
     }
 
     // 3. 验证权限格式
     if (!Array.isArray(roleData.permissions)) {
-      throw new Error('权限必须是数组');
+      throw new Error("权限必须是数组");
     }
 
     // 4. 创建角色
@@ -1915,29 +2260,29 @@ class OrganizationManager {
         roleId,
         orgId,
         roleData.name,
-        roleData.description || '',
+        roleData.description || "",
         JSON.stringify(roleData.permissions),
         0, // 非内置角色
-        now
-      ]
+        now,
+      ],
     );
 
     // 5. 记录活动日志
-    await this.logActivity(orgId, creatorDID, 'create_role', 'role', roleId, {
+    await this.logActivity(orgId, creatorDID, "create_role", "role", roleId, {
       roleName: roleData.name,
-      permissions: roleData.permissions
+      permissions: roleData.permissions,
     });
 
-    logger.info('[OrganizationManager] ✓ 自定义角色创建成功:', roleId);
+    logger.info("[OrganizationManager] ✓ 自定义角色创建成功:", roleId);
 
     return {
       id: roleId,
       org_id: orgId,
       name: roleData.name,
-      description: roleData.description || '',
+      description: roleData.description || "",
       permissions: roleData.permissions,
       is_builtin: 0,
-      created_at: now
+      created_at: now,
     };
   }
 
@@ -1952,33 +2297,39 @@ class OrganizationManager {
    * @returns {Promise<Object>} 更新后的角色
    */
   async updateRole(roleId, updates, updaterDID) {
-    logger.info('[OrganizationManager] 更新角色:', roleId);
+    logger.info("[OrganizationManager] 更新角色:", roleId);
 
     // 1. 获取角色信息
     const role = await this.getRole(roleId);
     if (!role) {
-      throw new Error('角色不存在');
+      throw new Error("角色不存在");
     }
 
     // 2. 检查是否是内置角色
     if (role.is_builtin) {
-      throw new Error('不能修改内置角色');
+      throw new Error("不能修改内置角色");
     }
 
     // 3. 检查权限
-    const canUpdate = await this.checkPermission(role.org_id, updaterDID, 'role.manage');
+    const canUpdate = await this.checkPermission(
+      role.org_id,
+      updaterDID,
+      "role.manage",
+    );
     if (!canUpdate) {
-      throw new Error('没有权限更新角色');
+      throw new Error("没有权限更新角色");
     }
 
     // 4. 如果更改名称，检查唯一性
     if (updates.name && updates.name !== role.name) {
-      const existingRole = this.db.prepare(
-        `SELECT id FROM organization_roles WHERE org_id = ? AND name = ? AND id != ?`
-      ).get(role.org_id, updates.name, roleId);
+      const existingRole = this.db
+        .prepare(
+          `SELECT id FROM organization_roles WHERE org_id = ? AND name = ? AND id != ?`,
+        )
+        .get(role.org_id, updates.name, roleId);
 
       if (existingRole) {
-        throw new Error('角色名称已存在');
+        throw new Error("角色名称已存在");
       }
     }
 
@@ -1987,20 +2338,20 @@ class OrganizationManager {
     const updateValues = [];
 
     if (updates.name !== undefined) {
-      updateFields.push('name = ?');
+      updateFields.push("name = ?");
       updateValues.push(updates.name);
     }
 
     if (updates.description !== undefined) {
-      updateFields.push('description = ?');
+      updateFields.push("description = ?");
       updateValues.push(updates.description);
     }
 
     if (updates.permissions !== undefined) {
       if (!Array.isArray(updates.permissions)) {
-        throw new Error('权限必须是数组');
+        throw new Error("权限必须是数组");
       }
-      updateFields.push('permissions = ?');
+      updateFields.push("permissions = ?");
       updateValues.push(JSON.stringify(updates.permissions));
     }
 
@@ -2012,17 +2363,24 @@ class OrganizationManager {
 
     // 6. 执行更新
     this.db.run(
-      `UPDATE organization_roles SET ${updateFields.join(', ')} WHERE id = ?`,
-      updateValues
+      `UPDATE organization_roles SET ${updateFields.join(", ")} WHERE id = ?`,
+      updateValues,
     );
 
     // 7. 记录活动日志
-    await this.logActivity(role.org_id, updaterDID, 'update_role', 'role', roleId, {
-      roleName: updates.name || role.name,
-      updates: updates
-    });
+    await this.logActivity(
+      role.org_id,
+      updaterDID,
+      "update_role",
+      "role",
+      roleId,
+      {
+        roleName: updates.name || role.name,
+        updates: updates,
+      },
+    );
 
-    logger.info('[OrganizationManager] ✓ 角色更新成功:', roleId);
+    logger.info("[OrganizationManager] ✓ 角色更新成功:", roleId);
 
     // 8. 返回更新后的角色
     return await this.getRole(roleId);
@@ -2035,46 +2393,58 @@ class OrganizationManager {
    * @returns {Promise<void>}
    */
   async deleteRole(roleId, deleterDID) {
-    logger.info('[OrganizationManager] 删除角色:', roleId);
+    logger.info("[OrganizationManager] 删除角色:", roleId);
 
     // 1. 获取角色信息
     const role = await this.getRole(roleId);
     if (!role) {
-      throw new Error('角色不存在');
+      throw new Error("角色不存在");
     }
 
     // 2. 检查是否是内置角色
     if (role.is_builtin) {
-      throw new Error('不能删除内置角色');
+      throw new Error("不能删除内置角色");
     }
 
     // 3. 检查权限
-    const canDelete = await this.checkPermission(role.org_id, deleterDID, 'role.delete');
+    const canDelete = await this.checkPermission(
+      role.org_id,
+      deleterDID,
+      "role.delete",
+    );
     if (!canDelete) {
-      throw new Error('没有权限删除角色');
+      throw new Error("没有权限删除角色");
     }
 
     // 4. 检查是否有成员正在使用此角色
-    const membersWithRole = this.db.prepare(
-      `SELECT COUNT(*) as count FROM organization_members WHERE org_id = ? AND role = ? AND status = 'active'`
-    ).get(role.org_id, role.name);
+    const membersWithRole = this.db
+      .prepare(
+        `SELECT COUNT(*) as count FROM organization_members WHERE org_id = ? AND role = ? AND status = 'active'`,
+      )
+      .get(role.org_id, role.name);
 
     if (membersWithRole && membersWithRole.count > 0) {
-      throw new Error(`有 ${membersWithRole.count} 个成员正在使用此角色，请先更改这些成员的角色`);
+      throw new Error(
+        `有 ${membersWithRole.count} 个成员正在使用此角色，请先更改这些成员的角色`,
+      );
     }
 
     // 5. 删除角色
-    this.db.run(
-      `DELETE FROM organization_roles WHERE id = ?`,
-      [roleId]
-    );
+    this.db.run(`DELETE FROM organization_roles WHERE id = ?`, [roleId]);
 
     // 6. 记录活动日志
-    await this.logActivity(role.org_id, deleterDID, 'delete_role', 'role', roleId, {
-      roleName: role.name
-    });
+    await this.logActivity(
+      role.org_id,
+      deleterDID,
+      "delete_role",
+      "role",
+      roleId,
+      {
+        roleName: role.name,
+      },
+    );
 
-    logger.info('[OrganizationManager] ✓ 角色删除成功:', roleId);
+    logger.info("[OrganizationManager] ✓ 角色删除成功:", roleId);
   }
 
   /**
@@ -2083,37 +2453,131 @@ class OrganizationManager {
    */
   getAllPermissions() {
     return [
-      { category: '组织管理', permissions: [
-        { value: 'org.manage', label: '管理组织', description: '修改组织基本信息' },
-        { value: 'org.delete', label: '删除组织', description: '删除整个组织（仅所有者）' }
-      ]},
-      { category: '成员管理', permissions: [
-        { value: 'member.invite', label: '邀请成员', description: '创建邀请链接或邀请码' },
-        { value: 'member.manage', label: '管理成员', description: '更改成员角色' },
-        { value: 'member.remove', label: '移除成员', description: '将成员移出组织' }
-      ]},
-      { category: '角色管理', permissions: [
-        { value: 'role.create', label: '创建角色', description: '创建自定义角色' },
-        { value: 'role.manage', label: '管理角色', description: '修改角色权限' },
-        { value: 'role.assign', label: '分配角色', description: '给成员分配角色' },
-        { value: 'role.delete', label: '删除角色', description: '删除自定义角色' }
-      ]},
-      { category: '知识库', permissions: [
-        { value: 'knowledge.create', label: '创建知识', description: '创建新的知识条目' },
-        { value: 'knowledge.read', label: '查看知识', description: '查看知识库内容' },
-        { value: 'knowledge.write', label: '编辑知识', description: '修改知识库内容' },
-        { value: 'knowledge.delete', label: '删除知识', description: '删除知识条目' }
-      ]},
-      { category: '项目管理', permissions: [
-        { value: 'project.create', label: '创建项目', description: '创建新项目' },
-        { value: 'project.read', label: '查看项目', description: '查看项目信息' },
-        { value: 'project.write', label: '编辑项目', description: '修改项目信息' },
-        { value: 'project.delete', label: '删除项目', description: '删除项目' }
-      ]},
-      { category: '消息通信', permissions: [
-        { value: 'message.send', label: '发送消息', description: '在组织中发送消息' },
-        { value: 'message.read', label: '阅读消息', description: '阅读组织消息' }
-      ]}
+      {
+        category: "组织管理",
+        permissions: [
+          {
+            value: "org.manage",
+            label: "管理组织",
+            description: "修改组织基本信息",
+          },
+          {
+            value: "org.delete",
+            label: "删除组织",
+            description: "删除整个组织（仅所有者）",
+          },
+        ],
+      },
+      {
+        category: "成员管理",
+        permissions: [
+          {
+            value: "member.invite",
+            label: "邀请成员",
+            description: "创建邀请链接或邀请码",
+          },
+          {
+            value: "member.manage",
+            label: "管理成员",
+            description: "更改成员角色",
+          },
+          {
+            value: "member.remove",
+            label: "移除成员",
+            description: "将成员移出组织",
+          },
+        ],
+      },
+      {
+        category: "角色管理",
+        permissions: [
+          {
+            value: "role.create",
+            label: "创建角色",
+            description: "创建自定义角色",
+          },
+          {
+            value: "role.manage",
+            label: "管理角色",
+            description: "修改角色权限",
+          },
+          {
+            value: "role.assign",
+            label: "分配角色",
+            description: "给成员分配角色",
+          },
+          {
+            value: "role.delete",
+            label: "删除角色",
+            description: "删除自定义角色",
+          },
+        ],
+      },
+      {
+        category: "知识库",
+        permissions: [
+          {
+            value: "knowledge.create",
+            label: "创建知识",
+            description: "创建新的知识条目",
+          },
+          {
+            value: "knowledge.read",
+            label: "查看知识",
+            description: "查看知识库内容",
+          },
+          {
+            value: "knowledge.write",
+            label: "编辑知识",
+            description: "修改知识库内容",
+          },
+          {
+            value: "knowledge.delete",
+            label: "删除知识",
+            description: "删除知识条目",
+          },
+        ],
+      },
+      {
+        category: "项目管理",
+        permissions: [
+          {
+            value: "project.create",
+            label: "创建项目",
+            description: "创建新项目",
+          },
+          {
+            value: "project.read",
+            label: "查看项目",
+            description: "查看项目信息",
+          },
+          {
+            value: "project.write",
+            label: "编辑项目",
+            description: "修改项目信息",
+          },
+          {
+            value: "project.delete",
+            label: "删除项目",
+            description: "删除项目",
+          },
+        ],
+      },
+      {
+        category: "消息通信",
+        permissions: [
+          {
+            value: "message.send",
+            label: "发送消息",
+            description: "在组织中发送消息",
+          },
+          {
+            value: "message.read",
+            label: "阅读消息",
+            description: "阅读组织消息",
+          },
+        ],
+      },
     ];
   }
 
@@ -2162,13 +2626,15 @@ class OrganizationManager {
    */
   async isMember(orgId, userDID) {
     try {
-      const member = this.db.prepare(
-        `SELECT id FROM organization_members WHERE org_id = ? AND member_did = ? AND status = 'active'`
-      ).get(orgId, userDID);
+      const member = this.db
+        .prepare(
+          `SELECT id FROM organization_members WHERE org_id = ? AND member_did = ? AND status = 'active'`,
+        )
+        .get(orgId, userDID);
 
       return !!member;
     } catch (error) {
-      logger.error('[OrganizationManager] 检查成员失败:', error);
+      logger.error("[OrganizationManager] 检查成员失败:", error);
       return false;
     }
   }
@@ -2181,7 +2647,7 @@ class OrganizationManager {
    */
   async broadcastOrgP2PMessage(orgId, message) {
     if (!this.orgP2PNetwork) {
-      throw new Error('OrgP2PNetwork未初始化');
+      throw new Error("OrgP2PNetwork未初始化");
     }
     await this.orgP2PNetwork.broadcastMessage(orgId, message);
   }
@@ -2222,19 +2688,19 @@ class OrganizationManager {
 
     try {
       switch (type) {
-        case 'knowledge:create':
-        case 'knowledge:update':
-        case 'knowledge:delete':
+        case "knowledge:create":
+        case "knowledge:update":
+        case "knowledge:delete":
           // 调用知识库同步方法
           return await this.syncKnowledgeChange(orgId, {
-            type: type.split(':')[1], // 'create', 'update', 'delete'
+            type: type.split(":")[1], // 'create', 'update', 'delete'
             knowledgeId: data.knowledgeId || data.id,
             content: data.content || data,
             authorDID: data.authorDID || data.author,
             timestamp: data.timestamp || Date.now(),
           });
 
-        case 'knowledge:sync':
+        case "knowledge:sync":
           // 批量同步
           if (Array.isArray(data.changes)) {
             const results = [];
@@ -2245,22 +2711,22 @@ class OrganizationManager {
             return {
               success: true,
               total: data.changes.length,
-              applied: results.filter(r => r.success).length,
-              skipped: results.filter(r => r.skipped).length,
+              applied: results.filter((r) => r.success).length,
+              skipped: results.filter((r) => r.skipped).length,
             };
           }
-          return { success: false, error: '无效的同步数据格式' };
+          return { success: false, error: "无效的同步数据格式" };
 
-        case 'knowledge:request':
+        case "knowledge:request":
           // 请求知识库数据（用于新成员加入时的初始同步）
           return await this.getOrgKnowledgeForSync(orgId, data.since || 0);
 
         default:
-          logger.warn('[OrganizationManager] 未知的知识库事件类型:', type);
-          return { success: false, error: '未知事件类型' };
+          logger.warn("[OrganizationManager] 未知的知识库事件类型:", type);
+          return { success: false, error: "未知事件类型" };
       }
     } catch (error) {
-      logger.error('[OrganizationManager] 处理知识库事件失败:', error);
+      logger.error("[OrganizationManager] 处理知识库事件失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -2273,30 +2739,37 @@ class OrganizationManager {
    */
   async getOrgKnowledgeForSync(orgId, since = 0) {
     try {
-      const knowledge = this.db.prepare(`
+      const knowledge = this.db
+        .prepare(
+          `
         SELECT knowledge_id, title, content, author_did, created_at, updated_at, is_deleted
         FROM organization_knowledge
         WHERE org_id = ? AND updated_at > ? AND sync_status = 'synced'
         ORDER BY updated_at ASC
         LIMIT 1000
-      `).all(orgId, since);
+      `,
+        )
+        .all(orgId, since);
 
       return {
         success: true,
-        knowledge: knowledge.map(k => ({
+        knowledge: knowledge.map((k) => ({
           knowledgeId: k.knowledge_id,
           title: k.title,
-          content: JSON.parse(k.content || '{}'),
+          content: JSON.parse(k.content || "{}"),
           authorDID: k.author_did,
           createdAt: k.created_at,
           updatedAt: k.updated_at,
           isDeleted: k.is_deleted === 1,
         })),
         count: knowledge.length,
-        lastTimestamp: knowledge.length > 0 ? knowledge[knowledge.length - 1].updated_at : since,
+        lastTimestamp:
+          knowledge.length > 0
+            ? knowledge[knowledge.length - 1].updated_at
+            : since,
       };
     } catch (error) {
-      logger.error('[OrganizationManager] 获取同步知识库数据失败:', error);
+      logger.error("[OrganizationManager] 获取同步知识库数据失败:", error);
       return { success: false, error: error.message };
     }
   }

@@ -4,10 +4,7 @@
     <div class="ppt-toolbar">
       <div class="toolbar-left">
         <a-button-group size="small">
-          <a-button
-            title="新建幻灯片"
-            @click="addSlide"
-          >
+          <a-button title="新建幻灯片" @click="addSlide">
             <PlusOutlined />
             新建
           </a-button>
@@ -37,18 +34,10 @@
           style="width: 120px"
           @change="handleThemeChange"
         >
-          <a-select-option value="business">
-            商务主题
-          </a-select-option>
-          <a-select-option value="academic">
-            学术主题
-          </a-select-option>
-          <a-select-option value="creative">
-            创意主题
-          </a-select-option>
-          <a-select-option value="dark">
-            深色主题
-          </a-select-option>
+          <a-select-option value="business"> 商务主题 </a-select-option>
+          <a-select-option value="academic"> 学术主题 </a-select-option>
+          <a-select-option value="creative"> 创意主题 </a-select-option>
+          <a-select-option value="dark"> 深色主题 </a-select-option>
         </a-select>
 
         <a-divider type="vertical" />
@@ -89,25 +78,16 @@
       <div class="toolbar-spacer" />
 
       <div class="toolbar-right">
-        <a-tag
-          v-if="slides.length > 0"
-          color="blue"
-        >
+        <a-tag v-if="slides.length > 0" color="blue">
           {{ currentSlideIndex + 1 }} / {{ slides.length }}
         </a-tag>
 
-        <a-tag
-          v-if="hasChanges"
-          color="orange"
-        >
+        <a-tag v-if="hasChanges" color="orange">
           <ClockCircleOutlined />
           未保存
         </a-tag>
 
-        <a-button
-          size="small"
-          @click="exportPPT"
-        >
+        <a-button size="small" @click="exportPPT">
           <ExportOutlined />
           导出
         </a-button>
@@ -129,14 +109,15 @@
     <div class="ppt-content">
       <!-- 左侧：幻灯片缩略图列表 -->
       <div class="slides-panel">
-        <div class="slides-header">
-          幻灯片
-        </div>
+        <div class="slides-header">幻灯片</div>
         <div class="slides-list">
           <div
             v-for="(slide, index) in slides"
             :key="slide.id"
-            :class="['slide-thumbnail', { active: index === currentSlideIndex }]"
+            :class="[
+              'slide-thumbnail',
+              { active: index === currentSlideIndex },
+            ]"
             @click="selectSlide(index)"
           >
             <div class="thumbnail-number">
@@ -144,7 +125,7 @@
             </div>
             <div class="thumbnail-preview">
               <div class="thumbnail-title">
-                {{ slide.title || '无标题' }}
+                {{ slide.title || "无标题" }}
               </div>
               <div class="thumbnail-content">
                 <div
@@ -162,27 +143,36 @@
 
       <!-- 中间：幻灯片编辑区 -->
       <div class="slide-editor">
-        <div
-          v-if="currentSlide"
-          class="slide-canvas"
-          :style="getThemeStyle()"
-        >
+        <div v-if="currentSlide" class="slide-canvas" :style="getThemeStyle()">
           <!-- 幻灯片元素列表 -->
           <div
             v-for="(element, index) in currentSlide.elements"
             :key="element.id"
-            :class="['slide-element', element.type, { selected: selectedElementIndex === index }]"
+            :class="[
+              'slide-element',
+              element.type,
+              { selected: selectedElementIndex === index },
+            ]"
             :style="getElementStyle(element)"
             @click="selectElement(index)"
           >
             <!-- 文本元素 -->
-            <template v-if="element.type === 'text' || element.type === 'title' || element.type === 'list'">
+            <template
+              v-if="
+                element.type === 'text' ||
+                element.type === 'title' ||
+                element.type === 'list'
+              "
+            >
               <textarea
                 v-if="editingElementIndex === index"
                 ref="elementTextarea"
                 v-model="element.text"
                 class="element-textarea"
-                :style="{ fontSize: element.fontSize + 'px', color: '#' + element.color }"
+                :style="{
+                  fontSize: element.fontSize + 'px',
+                  color: '#' + element.color,
+                }"
                 @blur="stopEditElement"
                 @input="handleElementChange"
               />
@@ -192,7 +182,7 @@
                 :style="getTextStyle(element)"
                 @dblclick="startEditElement(index)"
               >
-                {{ element.text || '双击编辑' }}
+                {{ element.text || "双击编辑" }}
               </div>
             </template>
 
@@ -202,29 +192,20 @@
                 v-if="element.src"
                 :src="element.src"
                 class="element-image"
-              >
-              <div
-                v-else
-                class="element-placeholder"
-              >
-                <PictureOutlined style="font-size: 48px; color: #ccc;" />
+              />
+              <div v-else class="element-placeholder">
+                <PictureOutlined style="font-size: 48px; color: #ccc" />
                 <div>双击选择图片</div>
               </div>
             </template>
 
             <!-- 形状元素 -->
             <template v-else-if="element.type === 'shape'">
-              <div
-                class="element-shape"
-                :style="getShapeStyle(element)"
-              />
+              <div class="element-shape" :style="getShapeStyle(element)" />
             </template>
 
             <!-- 元素控制按钮 -->
-            <div
-              v-if="selectedElementIndex === index"
-              class="element-controls"
-            >
+            <div v-if="selectedElementIndex === index" class="element-controls">
               <a-button
                 size="small"
                 type="text"
@@ -236,11 +217,8 @@
           </div>
 
           <!-- 空状态 -->
-          <div
-            v-if="currentSlide.elements.length === 0"
-            class="empty-slide"
-          >
-            <PlusCircleOutlined style="font-size: 64px; color: #ccc;" />
+          <div v-if="currentSlide.elements.length === 0" class="empty-slide">
+            <PlusCircleOutlined style="font-size: 64px; color: #ccc" />
             <p>点击"添加元素"开始编辑幻灯片</p>
           </div>
         </div>
@@ -251,16 +229,13 @@
         v-if="selectedElementIndex >= 0 && currentSlide"
         class="properties-panel"
       >
-        <div class="panel-header">
-          属性
-        </div>
+        <div class="panel-header">属性</div>
         <div class="panel-content">
-          <a-form
-            layout="vertical"
-            size="small"
-          >
+          <a-form layout="vertical" size="small">
             <a-form-item label="类型">
-              <a-tag>{{ currentSlide.elements[selectedElementIndex]?.type }}</a-tag>
+              <a-tag>{{
+                currentSlide.elements[selectedElementIndex]?.type
+              }}</a-tag>
             </a-form-item>
 
             <a-form-item label="位置 X (%)">
@@ -299,10 +274,14 @@
               />
             </a-form-item>
 
-            <template v-if="isTextElement(currentSlide.elements[selectedElementIndex])">
+            <template
+              v-if="isTextElement(currentSlide.elements[selectedElementIndex])"
+            >
               <a-form-item label="字体大小">
                 <a-input-number
-                  v-model:value="currentSlide.elements[selectedElementIndex].fontSize"
+                  v-model:value="
+                    currentSlide.elements[selectedElementIndex].fontSize
+                  "
                   :min="12"
                   :max="72"
                   @change="handleElementChange"
@@ -312,38 +291,40 @@
               <a-form-item label="颜色">
                 <input
                   type="color"
-                  :value="'#' + currentSlide.elements[selectedElementIndex].color"
+                  :value="
+                    '#' + currentSlide.elements[selectedElementIndex].color
+                  "
                   class="color-picker"
                   @input="handleColorChange"
-                >
+                />
               </a-form-item>
 
               <a-form-item label="对齐">
                 <a-radio-group
-                  v-model:value="currentSlide.elements[selectedElementIndex].align"
+                  v-model:value="
+                    currentSlide.elements[selectedElementIndex].align
+                  "
                   @change="handleElementChange"
                 >
-                  <a-radio-button value="left">
-                    左对齐
-                  </a-radio-button>
-                  <a-radio-button value="center">
-                    居中
-                  </a-radio-button>
-                  <a-radio-button value="right">
-                    右对齐
-                  </a-radio-button>
+                  <a-radio-button value="left"> 左对齐 </a-radio-button>
+                  <a-radio-button value="center"> 居中 </a-radio-button>
+                  <a-radio-button value="right"> 右对齐 </a-radio-button>
                 </a-radio-group>
               </a-form-item>
 
               <a-form-item>
                 <a-checkbox
-                  v-model:checked="currentSlide.elements[selectedElementIndex].bold"
+                  v-model:checked="
+                    currentSlide.elements[selectedElementIndex].bold
+                  "
                   @change="handleElementChange"
                 >
                   粗体
                 </a-checkbox>
                 <a-checkbox
-                  v-model:checked="currentSlide.elements[selectedElementIndex].italic"
+                  v-model:checked="
+                    currentSlide.elements[selectedElementIndex].italic
+                  "
                   @change="handleElementChange"
                 >
                   斜体
@@ -358,10 +339,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { message } from "ant-design-vue";
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -376,7 +357,7 @@ import {
   ExportOutlined,
   SaveOutlined,
   ClockCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   file: {
@@ -389,14 +370,14 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['change', 'save']);
+const emit = defineEmits(["change", "save"]);
 
 // 状态
 const slides = ref([]);
 const currentSlideIndex = ref(0);
 const selectedElementIndex = ref(-1);
 const editingElementIndex = ref(-1);
-const currentTheme = ref('business');
+const currentTheme = ref("business");
 const saving = ref(false);
 const hasChanges = ref(false);
 const elementTextarea = ref(null);
@@ -404,38 +385,41 @@ const elementTextarea = ref(null);
 // 主题配置
 const themes = {
   business: {
-    name: '商务主题',
-    primaryColor: '1E40AF',
-    secondaryColor: '3B82F6',
-    backgroundColor: 'FFFFFF',
-    textColor: '1F2937',
+    name: "商务主题",
+    primaryColor: "1E40AF",
+    secondaryColor: "3B82F6",
+    backgroundColor: "FFFFFF",
+    textColor: "1F2937",
   },
   academic: {
-    name: '学术主题',
-    primaryColor: '7C3AED',
-    secondaryColor: 'A78BFA',
-    backgroundColor: 'FFFFFF',
-    textColor: '374151',
+    name: "学术主题",
+    primaryColor: "7C3AED",
+    secondaryColor: "A78BFA",
+    backgroundColor: "FFFFFF",
+    textColor: "374151",
   },
   creative: {
-    name: '创意主题',
-    primaryColor: 'EC4899',
-    secondaryColor: 'F472B6',
-    backgroundColor: 'FFFFFF',
-    textColor: '111827',
+    name: "创意主题",
+    primaryColor: "EC4899",
+    secondaryColor: "F472B6",
+    backgroundColor: "FFFFFF",
+    textColor: "111827",
   },
   dark: {
-    name: '深色主题',
-    primaryColor: '3B82F6',
-    secondaryColor: '60A5FA',
-    backgroundColor: '1F2937',
-    textColor: 'F9FAFB',
+    name: "深色主题",
+    primaryColor: "3B82F6",
+    secondaryColor: "60A5FA",
+    backgroundColor: "1F2937",
+    textColor: "F9FAFB",
   },
 };
 
 // 计算属性
 const currentSlide = computed(() => {
-  if (currentSlideIndex.value >= 0 && currentSlideIndex.value < slides.value.length) {
+  if (
+    currentSlideIndex.value >= 0 &&
+    currentSlideIndex.value < slides.value.length
+  ) {
     return slides.value[currentSlideIndex.value];
   }
   return null;
@@ -456,15 +440,15 @@ const addSlide = () => {
     elements: [
       {
         id: Date.now() + Math.random(),
-        type: 'title',
-        text: '点击编辑标题',
+        type: "title",
+        text: "点击编辑标题",
         x: 10,
         y: 35,
         w: 80,
         h: 15,
         fontSize: 36,
         color: themes[currentTheme.value].primaryColor,
-        align: 'center',
+        align: "center",
         bold: true,
       },
     ],
@@ -473,13 +457,13 @@ const addSlide = () => {
   slides.value.push(newSlide);
   currentSlideIndex.value = slides.value.length - 1;
   hasChanges.value = true;
-  emit('change', slides.value);
+  emit("change", slides.value);
 };
 
 // 删除幻灯片
 const deleteSlide = () => {
   if (slides.value.length <= 1) {
-    message.warning('至少保留一张幻灯片');
+    message.warning("至少保留一张幻灯片");
     return;
   }
 
@@ -488,18 +472,20 @@ const deleteSlide = () => {
     currentSlideIndex.value = slides.value.length - 1;
   }
   hasChanges.value = true;
-  emit('change', slides.value);
+  emit("change", slides.value);
 };
 
 // 复制幻灯片
 const duplicateSlide = () => {
-  if (currentSlideIndex.value < 0) {return;}
+  if (currentSlideIndex.value < 0) {
+    return;
+  }
 
   const originalSlide = slides.value[currentSlideIndex.value];
   const newSlide = JSON.parse(JSON.stringify(originalSlide));
   newSlide.id = Date.now() + Math.random();
-  newSlide.title = originalSlide.title + ' (副本)';
-  newSlide.elements = newSlide.elements.map(el => ({
+  newSlide.title = originalSlide.title + " (副本)";
+  newSlide.elements = newSlide.elements.map((el) => ({
     ...el,
     id: Date.now() + Math.random(),
   }));
@@ -507,7 +493,7 @@ const duplicateSlide = () => {
   slides.value.splice(currentSlideIndex.value + 1, 0, newSlide);
   currentSlideIndex.value++;
   hasChanges.value = true;
-  emit('change', slides.value);
+  emit("change", slides.value);
 };
 
 // 选择幻灯片
@@ -519,65 +505,67 @@ const selectSlide = (index) => {
 
 // 添加元素
 const handleAddElement = ({ key }) => {
-  if (!currentSlide.value) {return;}
+  if (!currentSlide.value) {
+    return;
+  }
 
   const elementTemplates = {
     text: {
-      type: 'text',
-      text: '文本内容',
+      type: "text",
+      text: "文本内容",
       x: 20,
       y: 40,
       w: 60,
       h: 10,
       fontSize: 18,
       color: themes[currentTheme.value].textColor,
-      align: 'left',
+      align: "left",
       bold: false,
       italic: false,
     },
     title: {
-      type: 'title',
-      text: '标题文本',
+      type: "title",
+      text: "标题文本",
       x: 10,
       y: 10,
       w: 80,
       h: 15,
       fontSize: 36,
       color: themes[currentTheme.value].primaryColor,
-      align: 'center',
+      align: "center",
       bold: true,
       italic: false,
     },
     list: {
-      type: 'list',
-      text: '• 列表项 1\n• 列表项 2\n• 列表项 3',
+      type: "list",
+      text: "• 列表项 1\n• 列表项 2\n• 列表项 3",
       x: 20,
       y: 30,
       w: 60,
       h: 30,
       fontSize: 18,
       color: themes[currentTheme.value].textColor,
-      align: 'left',
+      align: "left",
       bold: false,
       italic: false,
     },
     image: {
-      type: 'image',
-      src: '',
+      type: "image",
+      src: "",
       x: 25,
       y: 25,
       w: 50,
       h: 40,
     },
     shape: {
-      type: 'shape',
-      shape: 'rect',
+      type: "shape",
+      shape: "rect",
       x: 30,
       y: 30,
       w: 40,
       h: 30,
       fill: themes[currentTheme.value].secondaryColor,
-      line: '000000',
+      line: "000000",
     },
   };
 
@@ -589,7 +577,7 @@ const handleAddElement = ({ key }) => {
   currentSlide.value.elements.push(newElement);
   selectedElementIndex.value = currentSlide.value.elements.length - 1;
   hasChanges.value = true;
-  emit('change', slides.value);
+  emit("change", slides.value);
 };
 
 // 选择元素
@@ -612,27 +600,29 @@ const startEditElement = (index) => {
 const stopEditElement = () => {
   editingElementIndex.value = -1;
   hasChanges.value = true;
-  emit('change', slides.value);
+  emit("change", slides.value);
 };
 
 // 删除元素
 const deleteElement = (index) => {
-  if (!currentSlide.value) {return;}
+  if (!currentSlide.value) {
+    return;
+  }
   currentSlide.value.elements.splice(index, 1);
   selectedElementIndex.value = -1;
   hasChanges.value = true;
-  emit('change', slides.value);
+  emit("change", slides.value);
 };
 
 // 元素改变
 const handleElementChange = () => {
   hasChanges.value = true;
-  emit('change', slides.value);
+  emit("change", slides.value);
 };
 
 // 颜色改变
 const handleColorChange = (e) => {
-  const color = e.target.value.replace('#', '').toUpperCase();
+  const color = e.target.value.replace("#", "").toUpperCase();
   currentSlide.value.elements[selectedElementIndex.value].color = color;
   handleElementChange();
 };
@@ -640,52 +630,52 @@ const handleColorChange = (e) => {
 // 主题改变
 const handleThemeChange = () => {
   hasChanges.value = true;
-  emit('change', slides.value);
+  emit("change", slides.value);
 };
 
 // 判断是否为文本元素
 const isTextElement = (element) => {
-  return element && ['text', 'title', 'list'].includes(element.type);
+  return element && ["text", "title", "list"].includes(element.type);
 };
 
 // 获取主题样式
 const getThemeStyle = () => {
   const theme = themes[currentTheme.value];
   return {
-    backgroundColor: '#' + theme.backgroundColor,
-    color: '#' + theme.textColor,
+    backgroundColor: "#" + theme.backgroundColor,
+    color: "#" + theme.textColor,
   };
 };
 
 // 获取元素样式
 const getElementStyle = (element) => {
   return {
-    left: element.x + '%',
-    top: element.y + '%',
-    width: element.w + '%',
-    height: element.h + '%',
+    left: element.x + "%",
+    top: element.y + "%",
+    width: element.w + "%",
+    height: element.h + "%",
   };
 };
 
 // 获取文本样式
 const getTextStyle = (element) => {
   return {
-    fontSize: element.fontSize + 'px',
-    color: '#' + element.color,
-    textAlign: element.align || 'left',
-    fontWeight: element.bold ? 'bold' : 'normal',
-    fontStyle: element.italic ? 'italic' : 'normal',
+    fontSize: element.fontSize + "px",
+    color: "#" + element.color,
+    textAlign: element.align || "left",
+    fontWeight: element.bold ? "bold" : "normal",
+    fontStyle: element.italic ? "italic" : "normal",
   };
 };
 
 // 获取形状样式
 const getShapeStyle = (element) => {
   return {
-    backgroundColor: '#' + element.fill,
+    backgroundColor: "#" + element.fill,
     border: `2px solid #${element.line}`,
-    width: '100%',
-    height: '100%',
-    borderRadius: element.shape === 'ellipse' ? '50%' : '0',
+    width: "100%",
+    height: "100%",
+    borderRadius: element.shape === "ellipse" ? "50%" : "0",
   };
 };
 
@@ -693,17 +683,19 @@ const getShapeStyle = (element) => {
 const exportPPT = async () => {
   try {
     const result = await window.electronAPI.dialog.showSaveDialog({
-      defaultPath: props.file?.file_name?.replace(/\.\w+$/, '.pptx') || 'presentation.pptx',
-      filters: [{ name: 'PowerPoint演示文稿', extensions: ['pptx'] }],
+      defaultPath:
+        props.file?.file_name?.replace(/\.\w+$/, ".pptx") ||
+        "presentation.pptx",
+      filters: [{ name: "PowerPoint演示文稿", extensions: ["pptx"] }],
     });
 
     if (!result.canceled && result.filePath) {
       // 构建PPT数据
       const pptData = {
-        title: props.file?.file_name?.replace(/\.\w+$/, '') || '演示文稿',
-        author: 'ChainlessChain',
-        slides: slides.value.map(slide => ({
-          elements: slide.elements.map(el => ({
+        title: props.file?.file_name?.replace(/\.\w+$/, "") || "演示文稿",
+        author: "ChainlessChain",
+        slides: slides.value.map((slide) => ({
+          elements: slide.elements.map((el) => ({
             type: el.type,
             text: el.text,
             x: el.x / 100,
@@ -724,26 +716,28 @@ const exportPPT = async () => {
       };
 
       await window.electronAPI.file.writePPT(result.filePath, pptData);
-      message.success('导出成功: ' + result.filePath);
+      message.success("导出成功: " + result.filePath);
     }
   } catch (error) {
-    logger.error('[PPTEditor] 导出失败:', error);
-    message.error('导出失败: ' + error.message);
+    logger.error("[PPTEditor] 导出失败:", error);
+    message.error("导出失败: " + error.message);
   }
 };
 
 // 保存
 const save = async () => {
-  if (!hasChanges.value) {return;}
+  if (!hasChanges.value) {
+    return;
+  }
 
   saving.value = true;
   try {
-    emit('save', slides.value);
+    emit("save", slides.value);
     hasChanges.value = false;
-    message.success('已保存');
+    message.success("已保存");
   } catch (error) {
-    logger.error('[PPTEditor] 保存失败:', error);
-    message.error('保存失败: ' + error.message);
+    logger.error("[PPTEditor] 保存失败:", error);
+    message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -917,7 +911,7 @@ defineExpose({
   outline: none;
   resize: none;
   background: transparent;
-  font-family: 'Microsoft YaHei', sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   padding: 0;
 }
 
@@ -925,7 +919,7 @@ defineExpose({
   width: 100%;
   height: 100%;
   overflow: hidden;
-  font-family: 'Microsoft YaHei', sans-serif;
+  font-family: "Microsoft YaHei", sans-serif;
   white-space: pre-wrap;
   word-wrap: break-word;
 }

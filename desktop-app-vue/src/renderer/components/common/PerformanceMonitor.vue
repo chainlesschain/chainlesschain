@@ -1,65 +1,35 @@
 <template>
-  <div
-    class="performance-monitor"
-    :class="{ collapsed: isCollapsed }"
-  >
+  <div class="performance-monitor" :class="{ collapsed: isCollapsed }">
     <!-- 切换按钮 -->
-    <div
-      class="monitor-header"
-      @click="toggleCollapse"
-    >
+    <div class="monitor-header" @click="toggleCollapse">
       <DashboardOutlined class="monitor-icon" />
       <span class="monitor-title">性能监控</span>
-      <UpOutlined
-        v-if="!isCollapsed"
-        class="toggle-icon"
-      />
-      <DownOutlined
-        v-else
-        class="toggle-icon"
-      />
+      <UpOutlined v-if="!isCollapsed" class="toggle-icon" />
+      <DownOutlined v-else class="toggle-icon" />
     </div>
 
     <!-- 监控内容 -->
-    <div
-      v-if="!isCollapsed"
-      class="monitor-content"
-    >
+    <div v-if="!isCollapsed" class="monitor-content">
       <!-- 总览 -->
       <div class="monitor-section">
         <h4>📊 总体性能</h4>
         <div class="stat-grid">
           <div class="stat-item">
-            <div class="stat-label">
-              FPS
-            </div>
-            <div
-              class="stat-value"
-              :class="getFPSClass(overallStats.fps)"
-            >
+            <div class="stat-label">FPS</div>
+            <div class="stat-value" :class="getFPSClass(overallStats.fps)">
               {{ overallStats.fps }}
             </div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">
-              内存
-            </div>
-            <div class="stat-value">
-              {{ overallStats.memoryMB }} MB
-            </div>
+            <div class="stat-label">内存</div>
+            <div class="stat-value">{{ overallStats.memoryMB }} MB</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">
-              加载时间
-            </div>
-            <div class="stat-value">
-              {{ overallStats.loadTime }} ms
-            </div>
+            <div class="stat-label">加载时间</div>
+            <div class="stat-value">{{ overallStats.loadTime }} ms</div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">
-              节省带宽
-            </div>
+            <div class="stat-label">节省带宽</div>
             <div class="stat-value success">
               {{ overallStats.bandwidthSavedMB }} MB
             </div>
@@ -197,7 +167,7 @@
         <div class="stat-row">
           <span>在线状态:</span>
           <span :class="syncStats.isOnline ? 'success' : 'error'">
-            {{ syncStats.isOnline ? '在线' : '离线' }}
+            {{ syncStats.isOnline ? "在线" : "离线" }}
           </span>
         </div>
       </div>
@@ -244,7 +214,9 @@
         </div>
         <div class="stat-row">
           <span>平均压缩率:</span>
-          <span class="success">{{ compressionStats.averageCompressionRatio }}</span>
+          <span class="success">{{
+            compressionStats.averageCompressionRatio
+          }}</span>
         </div>
         <div class="stat-row">
           <span>节省空间:</span>
@@ -271,30 +243,21 @@
         </div>
         <div class="stat-row">
           <span>Reduced Motion:</span>
-          <span>{{ animationStats.reducedMotion ? '是' : '否' }}</span>
+          <span>{{ animationStats.reducedMotion ? "是" : "否" }}</span>
         </div>
       </div>
 
       <!-- 操作按钮 -->
       <div class="monitor-actions">
-        <a-button
-          size="small"
-          @click="refreshStats"
-        >
+        <a-button size="small" @click="refreshStats">
           <ReloadOutlined />
           刷新
         </a-button>
-        <a-button
-          size="small"
-          @click="resetStats"
-        >
+        <a-button size="small" @click="resetStats">
           <ClearOutlined />
           重置统计
         </a-button>
-        <a-button
-          size="small"
-          @click="exportStats"
-        >
+        <a-button size="small" @click="exportStats">
           <DownloadOutlined />
           导出
         </a-button>
@@ -304,9 +267,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from "vue";
 import {
   DashboardOutlined,
   UpOutlined,
@@ -314,28 +277,28 @@ import {
   ReloadOutlined,
   ClearOutlined,
   DownloadOutlined,
-} from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 
 // Import stats functions
-import { getLazyLoader } from '@/utils/image-lazy-loader'
-import { getRequestBatcher } from '@/utils/request-batcher'
-import { getComponentLazyLoader } from '@/utils/component-lazy-loader'
-import { getOptimisticUpdateManager } from '@/utils/optimistic-update-manager'
-import { getIncrementalSyncManager } from '@/utils/incremental-sync'
-import { getIntelligentPrefetchManager } from '@/utils/intelligent-prefetch'
-import { getDataCompressor } from '@/utils/data-compression'
-import { getAnimationController } from '@/utils/animation-controller'
+import { getLazyLoader } from "@/utils/image-lazy-loader";
+import { getRequestBatcher } from "@/utils/request-batcher";
+import { getComponentLazyLoader } from "@/utils/component-lazy-loader";
+import { getOptimisticUpdateManager } from "@/utils/optimistic-update-manager";
+import { getIncrementalSyncManager } from "@/utils/incremental-sync";
+import { getIntelligentPrefetchManager } from "@/utils/intelligent-prefetch";
+import { getDataCompressor } from "@/utils/data-compression";
+import { getAnimationController } from "@/utils/animation-controller";
 
 // State
-const isCollapsed = ref(true) // 默认最小化
+const isCollapsed = ref(true); // 默认最小化
 
 const overallStats = reactive({
   fps: 60,
   memoryMB: 0,
   loadTime: 0,
   bandwidthSavedMB: 0,
-})
+});
 
 const imageStats = reactive({
   totalImages: 0,
@@ -344,23 +307,23 @@ const imageStats = reactive({
   successRate: 0,
   averageLoadTime: 0,
   bandwidthSavedKB: 0,
-})
+});
 
 const requestStats = reactive({
   totalRequests: 0,
   batchedRequests: 0,
   cachedRequests: 0,
   deduplicatedRequests: 0,
-  batchRate: '0%',
-  cacheHitRate: '0%',
-})
+  batchRate: "0%",
+  cacheHitRate: "0%",
+});
 
 const componentStats = reactive({
   totalComponents: 0,
   loadedComponents: 0,
   prefetchedComponents: 0,
-  cacheHitRate: '0%',
-})
+  cacheHitRate: "0%",
+});
 
 const optimisticStats = reactive({
   totalUpdates: 0,
@@ -369,7 +332,7 @@ const optimisticStats = reactive({
   rolledBackUpdates: 0,
   conflictedUpdates: 0,
   averageResponseTime: 0,
-})
+});
 
 const syncStats = reactive({
   totalSyncs: 0,
@@ -378,46 +341,50 @@ const syncStats = reactive({
   pendingChanges: 0,
   dataSavedMB: 0,
   isOnline: true,
-})
+});
 
 const prefetchStats = reactive({
   totalPrefetches: 0,
   successfulPrefetches: 0,
   cacheHits: 0,
   queueSize: 0,
-  networkType: '4g',
+  networkType: "4g",
   bytesPrefetchedMB: 0,
-})
+});
 
 const compressionStats = reactive({
   totalCompressed: 0,
   totalDecompressed: 0,
-  averageCompressionRatio: '0%',
+  averageCompressionRatio: "0%",
   bytesSavedMB: 0,
-})
+});
 
 const animationStats = reactive({
   activeAnimations: 0,
   averageFPS: 60,
   droppedFrames: 0,
   reducedMotion: false,
-})
+});
 
 /**
  * Toggle collapse
  */
 const toggleCollapse = () => {
-  isCollapsed.value = !isCollapsed.value
-}
+  isCollapsed.value = !isCollapsed.value;
+};
 
 /**
  * Get FPS class
  */
 const getFPSClass = (fps) => {
-  if (fps >= 55) {return 'success'}
-  if (fps >= 30) {return 'warning'}
-  return 'error'
-}
+  if (fps >= 55) {
+    return "success";
+  }
+  if (fps >= 30) {
+    return "warning";
+  }
+  return "error";
+};
 
 /**
  * Refresh all statistics
@@ -425,74 +392,76 @@ const getFPSClass = (fps) => {
 const refreshStats = () => {
   try {
     // Image lazy loader
-    const imageLazyLoader = getLazyLoader()
-    const imgStats = imageLazyLoader?.getStats() || {}
-    Object.assign(imageStats, imgStats)
+    const imageLazyLoader = getLazyLoader();
+    const imgStats = imageLazyLoader?.getStats() || {};
+    Object.assign(imageStats, imgStats);
 
     // Request batcher
-    const requestBatcher = getRequestBatcher()
-    const reqStats = requestBatcher?.getStats() || {}
-    Object.assign(requestStats, reqStats)
+    const requestBatcher = getRequestBatcher();
+    const reqStats = requestBatcher?.getStats() || {};
+    Object.assign(requestStats, reqStats);
 
     // Component lazy loader
-    const componentLoader = getComponentLazyLoader()
-    const compStats = componentLoader?.getStats() || {}
-    Object.assign(componentStats, compStats)
+    const componentLoader = getComponentLazyLoader();
+    const compStats = componentLoader?.getStats() || {};
+    Object.assign(componentStats, compStats);
 
     // Optimistic update manager
-    const optimisticManager = getOptimisticUpdateManager()
-    const optStats = optimisticManager?.getStats() || {}
+    const optimisticManager = getOptimisticUpdateManager();
+    const optStats = optimisticManager?.getStats() || {};
     Object.assign(optimisticStats, {
       ...optStats,
       averageResponseTime: Math.round(optStats.averageResponseTime || 0),
-    })
+    });
 
     // Incremental sync manager
-    const syncManager = getIncrementalSyncManager()
-    const sStats = syncManager?.getStats() || {}
-    Object.assign(syncStats, sStats)
+    const syncManager = getIncrementalSyncManager();
+    const sStats = syncManager?.getStats() || {};
+    Object.assign(syncStats, sStats);
 
     // Intelligent prefetch manager
-    const prefetchManager = getIntelligentPrefetchManager()
-    const pfStats = prefetchManager?.getStats() || {}
-    Object.assign(prefetchStats, pfStats)
+    const prefetchManager = getIntelligentPrefetchManager();
+    const pfStats = prefetchManager?.getStats() || {};
+    Object.assign(prefetchStats, pfStats);
 
     // Data compressor
-    const compressor = getDataCompressor()
-    const cStats = compressor?.getStats() || {}
-    Object.assign(compressionStats, cStats)
+    const compressor = getDataCompressor();
+    const cStats = compressor?.getStats() || {};
+    Object.assign(compressionStats, cStats);
 
     // Animation controller
-    const animationController = getAnimationController()
-    const aStats = animationController?.getStats() || {}
-    Object.assign(animationStats, aStats)
+    const animationController = getAnimationController();
+    const aStats = animationController?.getStats() || {};
+    Object.assign(animationStats, aStats);
 
     // Overall stats
-    overallStats.fps = animationStats.averageFPS
+    overallStats.fps = animationStats.averageFPS;
     overallStats.bandwidthSavedMB = Math.round(
       (imageStats.bandwidthSavedKB || 0) / 1024 +
         (requestStats.bandwidthSavedKB || 0) / 1024 +
         (syncStats.dataSavedMB || 0) +
-        (compressionStats.bytesSavedMB || 0)
-    )
+        (compressionStats.bytesSavedMB || 0),
+    );
 
     // Memory (if available)
     if (performance.memory) {
-      overallStats.memoryMB = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)
+      overallStats.memoryMB = Math.round(
+        performance.memory.usedJSHeapSize / 1024 / 1024,
+      );
     }
   } catch (error) {
-    logger.error('[PerformanceMonitor] Error refreshing stats:', error)
+    logger.error("[PerformanceMonitor] Error refreshing stats:", error);
   }
-}
+};
 
 /**
  * Reset all statistics
  */
 const resetStats = () => {
   // This would require implementing reset methods in each manager
-  message.info('统计数据已重置')
-  refreshStats()
-}
+  message.info("统计数据已重置");
+  refreshStats();
+};
 
 /**
  * Export statistics as JSON
@@ -509,41 +478,41 @@ const exportStats = () => {
     prefetch: prefetchStats,
     compression: compressionStats,
     animation: animationStats,
-  }
+  };
 
-  const json = JSON.stringify(allStats, null, 2)
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
+  const json = JSON.stringify(allStats, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
 
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `performance-stats-${Date.now()}.json`
-  a.click()
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `performance-stats-${Date.now()}.json`;
+  a.click();
 
-  URL.revokeObjectURL(url)
+  URL.revokeObjectURL(url);
 
-  message.success('统计数据已导出')
-}
+  message.success("统计数据已导出");
+};
 
 // Auto-refresh interval
-let refreshInterval = null
+let refreshInterval = null;
 
 onMounted(() => {
-  refreshStats()
+  refreshStats();
 
   // Auto-refresh every 2 seconds
   refreshInterval = setInterval(() => {
     if (!isCollapsed.value) {
-      refreshStats()
+      refreshStats();
     }
-  }, 2000)
-})
+  }, 2000);
+});
 
 onUnmounted(() => {
   if (refreshInterval) {
-    clearInterval(refreshInterval)
+    clearInterval(refreshInterval);
   }
-})
+});
 </script>
 
 <style scoped>

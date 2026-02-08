@@ -8,7 +8,7 @@
  * - 统计查询和报告导出
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");

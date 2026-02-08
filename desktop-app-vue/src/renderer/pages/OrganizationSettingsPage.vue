@@ -24,20 +24,11 @@
     <!-- 设置内容 -->
     <div class="settings-content">
       <!-- 基本信息 -->
-      <a-card
-        title="基本信息"
-        class="settings-card"
-      >
-        <a-form
-          :model="orgForm"
-          layout="vertical"
-        >
+      <a-card title="基本信息" class="settings-card">
+        <a-form :model="orgForm" layout="vertical">
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-form-item
-                label="组织名称"
-                required
-              >
+              <a-form-item label="组织名称" required>
                 <a-input
                   v-model:value="orgForm.name"
                   placeholder="输入组织名称"
@@ -51,15 +42,9 @@
                   v-model:value="orgForm.type"
                   :disabled="!canManageOrg"
                 >
-                  <a-select-option value="startup">
-                    初创公司
-                  </a-select-option>
-                  <a-select-option value="company">
-                    企业
-                  </a-select-option>
-                  <a-select-option value="community">
-                    社区
-                  </a-select-option>
+                  <a-select-option value="startup"> 初创公司 </a-select-option>
+                  <a-select-option value="company"> 企业 </a-select-option>
+                  <a-select-option value="community"> 社区 </a-select-option>
                   <a-select-option value="opensource">
                     开源项目
                   </a-select-option>
@@ -82,14 +67,8 @@
 
           <a-form-item label="组织头像">
             <div class="avatar-upload">
-              <a-avatar
-                :src="orgForm.avatar"
-                :size="80"
-              >
-                <template
-                  v-if="!orgForm.avatar"
-                  #icon
-                >
+              <a-avatar :src="orgForm.avatar" :size="80">
+                <template v-if="!orgForm.avatar" #icon>
                   <TeamOutlined />
                 </template>
               </a-avatar>
@@ -116,23 +95,15 @@
               >
                 保存更改
               </a-button>
-              <a-button @click="loadOrganizationInfo">
-                取消
-              </a-button>
+              <a-button @click="loadOrganizationInfo"> 取消 </a-button>
             </a-space>
           </a-form-item>
         </a-form>
       </a-card>
 
       <!-- 组织信息 -->
-      <a-card
-        title="组织信息"
-        class="settings-card"
-      >
-        <a-descriptions
-          :column="2"
-          bordered
-        >
+      <a-card title="组织信息" class="settings-card">
+        <a-descriptions :column="2" bordered>
           <a-descriptions-item label="组织ID">
             {{ currentOrgInfo?.org_id }}
           </a-descriptions-item>
@@ -160,10 +131,7 @@
       </a-card>
 
       <!-- 权限设置 -->
-      <a-card
-        title="权限设置"
-        class="settings-card"
-      >
+      <a-card title="权限设置" class="settings-card">
         <a-form layout="vertical">
           <!-- 角色管理快捷入口 -->
           <a-alert
@@ -195,12 +163,8 @@
               v-model:value="settingsForm.visibility"
               :disabled="!canManageOrg"
             >
-              <a-radio value="private">
-                私有 - 仅邀请加入
-              </a-radio>
-              <a-radio value="public">
-                公开 - 可被搜索和发现
-              </a-radio>
+              <a-radio value="private"> 私有 - 仅邀请加入 </a-radio>
+              <a-radio value="public"> 公开 - 可被搜索和发现 </a-radio>
             </a-radio-group>
           </a-form-item>
 
@@ -232,12 +196,8 @@
               style="width: 200px"
               :disabled="!canManageOrg"
             >
-              <a-select-option value="member">
-                成员
-              </a-select-option>
-              <a-select-option value="viewer">
-                访客
-              </a-select-option>
+              <a-select-option value="member"> 成员 </a-select-option>
+              <a-select-option value="viewer"> 访客 </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -250,24 +210,15 @@
               >
                 保存设置
               </a-button>
-              <a-button @click="loadOrganizationInfo">
-                取消
-              </a-button>
+              <a-button @click="loadOrganizationInfo"> 取消 </a-button>
             </a-space>
           </a-form-item>
         </a-form>
       </a-card>
 
       <!-- 数据与同步 -->
-      <a-card
-        title="数据与同步"
-        class="settings-card"
-      >
-        <a-space
-          direction="vertical"
-          style="width: 100%"
-          :size="16"
-        >
+      <a-card title="数据与同步" class="settings-card">
+        <a-space direction="vertical" style="width: 100%" :size="16">
           <div class="info-item">
             <div class="item-label">
               <CloudSyncOutlined class="item-icon" />
@@ -279,7 +230,7 @@
                 :disabled="!canManageOrg"
               />
               <span style="margin-left: 8px; color: #8c8c8c">
-                {{ syncForm.p2pEnabled ? '已启用' : '已禁用' }}
+                {{ syncForm.p2pEnabled ? "已启用" : "已禁用" }}
               </span>
             </div>
           </div>
@@ -316,10 +267,7 @@
               <ExportOutlined />
               备份数据
             </a-button>
-            <a-button
-              :loading="syncing"
-              @click="handleSyncNow"
-            >
+            <a-button :loading="syncing" @click="handleSyncNow">
               <SyncOutlined />
               立即同步
             </a-button>
@@ -328,10 +276,7 @@
       </a-card>
 
       <!-- 活动日志 -->
-      <a-card
-        title="最近活动"
-        class="settings-card"
-      >
+      <a-card title="最近活动" class="settings-card">
         <a-list
           :loading="loadingActivities"
           :data-source="recentActivities"
@@ -365,39 +310,23 @@
         title="危险操作"
         class="settings-card danger-zone"
       >
-        <a-space
-          direction="vertical"
-          style="width: 100%"
-          :size="16"
-        >
+        <a-space direction="vertical" style="width: 100%" :size="16">
           <div class="danger-item">
             <div class="danger-info">
               <h4>离开组织</h4>
               <p>您将无法再访问此组织的数据和资源</p>
             </div>
-            <a-button
-              danger
-              @click="handleLeaveOrg"
-            >
-              离开组织
-            </a-button>
+            <a-button danger @click="handleLeaveOrg"> 离开组织 </a-button>
           </div>
 
           <a-divider />
 
-          <div
-            v-if="isOwner"
-            class="danger-item"
-          >
+          <div v-if="isOwner" class="danger-item">
             <div class="danger-info">
               <h4>删除组织</h4>
               <p>此操作无法撤销，将永久删除组织及所有数据</p>
             </div>
-            <a-button
-              danger
-              type="primary"
-              @click="showDeleteOrgModal = true"
-            >
+            <a-button danger type="primary" @click="showDeleteOrgModal = true">
               <DeleteOutlined />
               删除组织
             </a-button>
@@ -430,17 +359,19 @@
         </a-form-item>
       </a-form>
 
-      <p>组织名称: <strong>{{ currentOrgInfo?.name }}</strong></p>
+      <p>
+        组织名称: <strong>{{ currentOrgInfo?.name }}</strong>
+      </p>
     </a-modal>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message, Modal } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message, Modal } from "ant-design-vue";
 import {
   SettingOutlined,
   DeleteOutlined,
@@ -457,8 +388,8 @@ import {
   UserAddOutlined,
   EditOutlined,
   LogoutOutlined,
-} from '@ant-design/icons-vue';
-import { useIdentityStore } from '@/stores/identity';
+} from "@ant-design/icons-vue";
+import { useIdentityStore } from "@/stores/identity";
 
 const router = useRouter();
 const identityStore = useIdentityStore();
@@ -470,8 +401,8 @@ const syncing = ref(false);
 const deleting = ref(false);
 const loadingActivities = ref(false);
 const showDeleteOrgModal = ref(false);
-const deleteConfirmName = ref('');
-const databasePath = ref('');
+const deleteConfirmName = ref("");
+const databasePath = ref("");
 const memberCount = ref(0);
 const recentActivities = ref([]);
 
@@ -480,17 +411,17 @@ const currentOrgInfo = ref(null);
 
 // 表单数据
 const orgForm = ref({
-  name: '',
-  type: 'startup',
-  description: '',
-  avatar: '',
+  name: "",
+  type: "startup",
+  description: "",
+  avatar: "",
 });
 
 const settingsForm = ref({
-  visibility: 'private',
+  visibility: "private",
   maxMembers: 100,
   allowMemberInvite: true,
-  defaultMemberRole: 'member',
+  defaultMemberRole: "member",
 });
 
 const syncForm = ref({
@@ -499,25 +430,27 @@ const syncForm = ref({
 
 // 当前用户角色
 const currentUserRole = computed(() => {
-  if (!identityStore.isOrganizationContext) {return null;}
+  if (!identityStore.isOrganizationContext) {
+    return null;
+  }
   const orgId = identityStore.currentOrgId;
-  const org = identityStore.organizations.find(o => o.org_id === orgId);
+  const org = identityStore.organizations.find((o) => o.org_id === orgId);
   return org?.role || null;
 });
 
 // 权限检查
 const canManageOrg = computed(() => {
-  return ['owner', 'admin'].includes(currentUserRole.value);
+  return ["owner", "admin"].includes(currentUserRole.value);
 });
 
 const isOwner = computed(() => {
-  return currentUserRole.value === 'owner';
+  return currentUserRole.value === "owner";
 });
 
 // 加载组织信息
 const loadOrganizationInfo = async () => {
   if (!identityStore.isOrganizationContext) {
-    message.warning('请先切换到组织身份');
+    message.warning("请先切换到组织身份");
     return;
   }
 
@@ -526,39 +459,45 @@ const loadOrganizationInfo = async () => {
     const orgId = identityStore.currentOrgId;
 
     // 获取组织信息
-    currentOrgInfo.value = await window.ipc.invoke('org:get-organization', orgId);
+    currentOrgInfo.value = await window.ipc.invoke(
+      "org:get-organization",
+      orgId,
+    );
 
     // 填充表单
     orgForm.value = {
       name: currentOrgInfo.value.name,
       type: currentOrgInfo.value.type,
-      description: currentOrgInfo.value.description || '',
-      avatar: currentOrgInfo.value.avatar || '',
+      description: currentOrgInfo.value.description || "",
+      avatar: currentOrgInfo.value.avatar || "",
     };
 
     // 解析设置
     if (currentOrgInfo.value.settings_json) {
       const settings = JSON.parse(currentOrgInfo.value.settings_json);
       settingsForm.value = {
-        visibility: settings.visibility || 'private',
+        visibility: settings.visibility || "private",
         maxMembers: settings.maxMembers || 100,
         allowMemberInvite: settings.allowMemberInvite !== false,
-        defaultMemberRole: settings.defaultMemberRole || 'member',
+        defaultMemberRole: settings.defaultMemberRole || "member",
       };
     }
 
     // 获取成员数量
-    const members = await window.ipc.invoke('org:get-members', orgId);
+    const members = await window.ipc.invoke("org:get-members", orgId);
     memberCount.value = members?.length || 0;
 
     // 获取数据库路径
-    databasePath.value = await window.ipc.invoke('db:get-context-path', `org_${orgId}`);
+    databasePath.value = await window.ipc.invoke(
+      "db:get-context-path",
+      `org_${orgId}`,
+    );
 
     // 加载活动日志
     await loadActivities();
   } catch (error) {
-    logger.error('加载组织信息失败:', error);
-    message.error('加载组织信息失败');
+    logger.error("加载组织信息失败:", error);
+    message.error("加载组织信息失败");
   } finally {
     loading.value = false;
   }
@@ -569,10 +508,10 @@ const loadActivities = async () => {
   loadingActivities.value = true;
   try {
     const orgId = identityStore.currentOrgId;
-    const activities = await window.ipc.invoke('org:get-activities', orgId, 20);
+    const activities = await window.ipc.invoke("org:get-activities", orgId, 20);
     recentActivities.value = activities || [];
   } catch (error) {
-    logger.error('加载活动日志失败:', error);
+    logger.error("加载活动日志失败:", error);
   } finally {
     loadingActivities.value = false;
   }
@@ -584,27 +523,27 @@ const handleSaveBasicInfo = async () => {
   try {
     const orgId = identityStore.currentOrgId;
     if (!orgId) {
-      message.error('未找到当前组织');
+      message.error("未找到当前组织");
       return;
     }
 
-    const result = await window.ipc.invoke('org:update-organization', {
+    const result = await window.ipc.invoke("org:update-organization", {
       orgId,
       name: orgForm.value.name,
       type: orgForm.value.type,
       description: orgForm.value.description,
-      visibility: orgForm.value.visibility
+      visibility: orgForm.value.visibility,
     });
 
     if (result.success) {
-      message.success('保存成功');
+      message.success("保存成功");
       await loadOrganizationInfo();
     } else {
-      message.error(result.error || '保存失败');
+      message.error(result.error || "保存失败");
     }
   } catch (error) {
-    logger.error('保存失败:', error);
-    message.error('保存失败');
+    logger.error("保存失败:", error);
+    message.error("保存失败");
   } finally {
     saving.value = false;
   }
@@ -616,25 +555,25 @@ const handleSaveSettings = async () => {
   try {
     const orgId = identityStore.currentOrgId;
     if (!orgId) {
-      message.error('未找到当前组织');
+      message.error("未找到当前组织");
       return;
     }
 
-    const result = await window.ipc.invoke('org:update-organization', {
+    const result = await window.ipc.invoke("org:update-organization", {
       orgId,
       p2pEnabled: settingsForm.value.p2pEnabled,
-      syncMode: settingsForm.value.syncMode
+      syncMode: settingsForm.value.syncMode,
     });
 
     if (result.success) {
-      message.success('设置已保存');
+      message.success("设置已保存");
       await loadOrganizationInfo();
     } else {
-      message.error(result.error || '保存设置失败');
+      message.error(result.error || "保存设置失败");
     }
   } catch (error) {
-    logger.error('保存设置失败:', error);
-    message.error('保存设置失败');
+    logger.error("保存设置失败:", error);
+    message.error("保存设置失败");
   } finally {
     saving.value = false;
   }
@@ -642,7 +581,7 @@ const handleSaveSettings = async () => {
 
 // 跳转到角色管理页面
 const handleGoToRolesPage = () => {
-  router.push('/organization/roles');
+  router.push("/organization/roles");
 };
 
 // 上传头像
@@ -655,27 +594,27 @@ const handleAvatarUpload = async (file) => {
 
       const orgId = identityStore.currentOrgId;
       if (!orgId) {
-        message.error('未找到当前组织');
+        message.error("未找到当前组织");
         return;
       }
 
       // Update organization with new avatar
-      const result = await window.ipc.invoke('org:update-organization', {
+      const result = await window.ipc.invoke("org:update-organization", {
         orgId,
-        avatar: base64Data
+        avatar: base64Data,
       });
 
       if (result.success) {
         orgForm.value.avatar = base64Data;
-        message.success('头像上传成功');
+        message.success("头像上传成功");
       } else {
-        message.error(result.error || '头像上传失败');
+        message.error(result.error || "头像上传失败");
       }
     };
     reader.readAsDataURL(file);
   } catch (error) {
-    logger.error('头像上传失败:', error);
-    message.error('头像上传失败');
+    logger.error("头像上传失败:", error);
+    message.error("头像上传失败");
   }
   return false; // Prevent default upload behavior
 };
@@ -683,16 +622,16 @@ const handleAvatarUpload = async (file) => {
 // 备份数据库
 const handleBackupDatabase = async () => {
   try {
-    const result = await window.electronAPI.invoke('db:backup');
+    const result = await window.electronAPI.invoke("db:backup");
 
     if (result.success) {
       message.success(`数据备份成功: ${result.backupPath}`);
     } else {
-      message.error(result.error || '备份失败');
+      message.error(result.error || "备份失败");
     }
   } catch (error) {
-    logger.error('备份失败:', error);
-    message.error('备份失败');
+    logger.error("备份失败:", error);
+    message.error("备份失败");
   }
 };
 
@@ -702,21 +641,23 @@ const handleSyncNow = async () => {
   try {
     const orgId = identityStore.currentOrgId;
     if (!orgId) {
-      message.error('未找到当前组织');
+      message.error("未找到当前组织");
       return;
     }
 
     // Trigger P2P sync
-    const result = await window.electronAPI.invoke('p2p:sync-organization', { orgId });
+    const result = await window.electronAPI.invoke("p2p:sync-organization", {
+      orgId,
+    });
 
     if (result.success) {
-      message.success('同步完成');
+      message.success("同步完成");
     } else {
-      message.error(result.error || '同步失败');
+      message.error(result.error || "同步失败");
     }
   } catch (error) {
-    logger.error('同步失败:', error);
-    message.error('同步失败');
+    logger.error("同步失败:", error);
+    message.error("同步失败");
   } finally {
     syncing.value = false;
   }
@@ -725,20 +666,20 @@ const handleSyncNow = async () => {
 // 离开组织
 const handleLeaveOrg = () => {
   Modal.confirm({
-    title: '确认离开组织？',
-    content: '离开后，您将无法访问该组织的数据和资源',
-    okText: '确认离开',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认离开组织？",
+    content: "离开后，您将无法访问该组织的数据和资源",
+    okText: "确认离开",
+    okType: "danger",
+    cancelText: "取消",
     onOk: async () => {
       try {
         const orgId = identityStore.currentOrgId;
         await identityStore.leaveOrganization(orgId);
-        message.success('已离开组织');
-        router.push('/');
+        message.success("已离开组织");
+        router.push("/");
       } catch (error) {
-        logger.error('离开组织失败:', error);
-        message.error('离开组织失败');
+        logger.error("离开组织失败:", error);
+        message.error("离开组织失败");
       }
     },
   });
@@ -747,24 +688,28 @@ const handleLeaveOrg = () => {
 // 删除组织
 const handleDeleteOrg = async () => {
   if (deleteConfirmName.value !== currentOrgInfo.value?.name) {
-    message.error('组织名称不匹配');
+    message.error("组织名称不匹配");
     return;
   }
 
   deleting.value = true;
   try {
     const orgId = identityStore.currentOrgId;
-    await window.ipc.invoke('org:delete-organization', orgId, identityStore.primaryDID);
+    await window.ipc.invoke(
+      "org:delete-organization",
+      orgId,
+      identityStore.primaryDID,
+    );
 
-    message.success('组织已删除');
+    message.success("组织已删除");
     showDeleteOrgModal.value = false;
 
     // 切换回个人身份
-    await identityStore.switchContext('personal');
-    router.push('/');
+    await identityStore.switchContext("personal");
+    router.push("/");
   } catch (error) {
-    logger.error('删除组织失败:', error);
-    message.error('删除组织失败');
+    logger.error("删除组织失败:", error);
+    message.error("删除组织失败");
   } finally {
     deleting.value = false;
   }
@@ -772,17 +717,21 @@ const handleDeleteOrg = async () => {
 
 // 工具函数
 const formatDID = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   if (did.length > 30) {
-    return did.substring(0, 20) + '...' + did.substring(did.length - 10);
+    return did.substring(0, 20) + "..." + did.substring(did.length - 10);
   }
   return did;
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 
 const getActivityIcon = (actionType) => {
@@ -799,12 +748,12 @@ const getActivityIcon = (actionType) => {
 
 const getActivityTitle = (activity) => {
   const titles = {
-    create_organization: '创建了组织',
-    join_organization: '加入了组织',
-    add_member: '添加了新成员',
-    remove_member: '移除了成员',
-    update_member_role: '更新了成员角色',
-    leave_organization: '离开了组织',
+    create_organization: "创建了组织",
+    join_organization: "加入了组织",
+    add_member: "添加了新成员",
+    remove_member: "移除了成员",
+    update_member_role: "更新了成员角色",
+    leave_organization: "离开了组织",
   };
   return titles[activity.action_type] || activity.action_type;
 };

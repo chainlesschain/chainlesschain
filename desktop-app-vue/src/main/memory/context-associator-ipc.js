@@ -7,7 +7,7 @@
  * @since 2026-01-18
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -157,10 +157,7 @@ function registerContextAssociatorIPC({
         }
         return await associatorRef.current.searchKnowledge(query, options);
       } catch (error) {
-        logger.error(
-          "[ContextAssociator IPC] Search knowledge failed:",
-          error,
-        );
+        logger.error("[ContextAssociator IPC] Search knowledge failed:", error);
         throw error;
       }
     },
@@ -183,10 +180,7 @@ function registerContextAssociatorIPC({
         }
         return await associatorRef.current.getOrCreateTopic(topicName, options);
       } catch (error) {
-        logger.error(
-          "[ContextAssociator IPC] Get/create topic failed:",
-          error,
-        );
+        logger.error("[ContextAssociator IPC] Get/create topic failed:", error);
         throw error;
       }
     },
@@ -203,10 +197,7 @@ function registerContextAssociatorIPC({
       }
       return await associatorRef.current.getPopularTopics(options);
     } catch (error) {
-      logger.error(
-        "[ContextAssociator IPC] Get popular topics failed:",
-        error,
-      );
+      logger.error("[ContextAssociator IPC] Get popular topics failed:", error);
       throw error;
     }
   });

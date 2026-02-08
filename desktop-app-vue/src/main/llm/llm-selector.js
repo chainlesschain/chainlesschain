@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * LLM 智能选择器
@@ -10,68 +10,68 @@ const { logger, createLogger } = require('../utils/logger.js');
  */
 const LLM_CHARACTERISTICS = {
   ollama: {
-    name: 'Ollama（本地）',
+    name: "Ollama（本地）",
     cost: 0, // 免费本地
     speed: 70, // 中等速度（依赖硬件）
     quality: 75, // 中上质量
     contextLength: 4096,
-    capabilities: ['chat', 'completion', 'embedding'],
-    suitable: ['quick', 'offline', 'privacy'], // 适合快速查询、离线使用、隐私场景
+    capabilities: ["chat", "completion", "embedding"],
+    suitable: ["quick", "offline", "privacy"], // 适合快速查询、离线使用、隐私场景
     requiresInternet: false,
   },
 
   volcengine: {
-    name: '火山引擎（豆包）',
+    name: "火山引擎（豆包）",
     cost: 30, // 低成本
     speed: 90, // 高速
     quality: 85, // 高质量
     contextLength: 8192,
-    capabilities: ['chat', 'completion', 'function-calling'],
-    suitable: ['general', 'fast', 'chinese'], // 适合通用、快速响应、中文任务
+    capabilities: ["chat", "completion", "function-calling"],
+    suitable: ["general", "fast", "chinese"], // 适合通用、快速响应、中文任务
     requiresInternet: true,
   },
 
   openai: {
-    name: 'OpenAI',
+    name: "OpenAI",
     cost: 80, // 较高成本
     speed: 85, // 高速
     quality: 95, // 最高质量
     contextLength: 16384,
-    capabilities: ['chat', 'completion', 'function-calling', 'vision'],
-    suitable: ['complex', 'quality', 'english'], // 适合复杂任务、高质量要求、英文
+    capabilities: ["chat", "completion", "function-calling", "vision"],
+    suitable: ["complex", "quality", "english"], // 适合复杂任务、高质量要求、英文
     requiresInternet: true,
   },
 
   deepseek: {
-    name: 'DeepSeek',
+    name: "DeepSeek",
     cost: 20, // 低成本
     speed: 80, // 较快
     quality: 85, // 高质量
     contextLength: 32768,
-    capabilities: ['chat', 'completion', 'code'],
-    suitable: ['code', 'long-context', 'analysis'], // 适合代码、长上下文、分析任务
+    capabilities: ["chat", "completion", "code"],
+    suitable: ["code", "long-context", "analysis"], // 适合代码、长上下文、分析任务
     requiresInternet: true,
   },
 
   dashscope: {
-    name: '阿里通义千问',
+    name: "阿里通义千问",
     cost: 40, // 中等成本
     speed: 85, // 较快
     quality: 88, // 高质量
     contextLength: 8192,
-    capabilities: ['chat', 'completion', 'multimodal'],
-    suitable: ['general', 'chinese', 'multimodal'], // 适合通用、中文、多模态
+    capabilities: ["chat", "completion", "multimodal"],
+    suitable: ["general", "chinese", "multimodal"], // 适合通用、中文、多模态
     requiresInternet: true,
   },
 
   zhipu: {
-    name: '智谱AI',
+    name: "智谱AI",
     cost: 35, // 中低成本
     speed: 82, // 较快
     quality: 86, // 高质量
     contextLength: 8192,
-    capabilities: ['chat', 'completion', 'code'],
-    suitable: ['general', 'code', 'chinese'], // 适合通用、代码、中文
+    capabilities: ["chat", "completion", "code"],
+    suitable: ["general", "code", "chinese"], // 适合通用、代码、中文
     requiresInternet: true,
   },
 };
@@ -80,14 +80,14 @@ const LLM_CHARACTERISTICS = {
  * 任务类型特征
  */
 const TASK_TYPES = {
-  quick: { name: '快速查询', prioritize: ['speed', 'cost'] },
-  complex: { name: '复杂推理', prioritize: ['quality', 'contextLength'] },
-  code: { name: '代码生成', prioritize: ['quality', 'capabilities'] },
-  translation: { name: '翻译', prioritize: ['quality', 'speed'] },
-  summary: { name: '摘要', prioritize: ['speed', 'cost'] },
-  analysis: { name: '深度分析', prioritize: ['quality', 'contextLength'] },
-  chat: { name: '日常对话', prioritize: ['speed', 'cost'] },
-  creative: { name: '创意生成', prioritize: ['quality'] },
+  quick: { name: "快速查询", prioritize: ["speed", "cost"] },
+  complex: { name: "复杂推理", prioritize: ["quality", "contextLength"] },
+  code: { name: "代码生成", prioritize: ["quality", "capabilities"] },
+  translation: { name: "翻译", prioritize: ["quality", "speed"] },
+  summary: { name: "摘要", prioritize: ["speed", "cost"] },
+  analysis: { name: "深度分析", prioritize: ["quality", "contextLength"] },
+  chat: { name: "日常对话", prioritize: ["speed", "cost"] },
+  creative: { name: "创意生成", prioritize: ["quality"] },
 };
 
 /**
@@ -106,11 +106,16 @@ class LLMSelector {
    */
   loadConfig() {
     return {
-      provider: this.database.getSetting('llm.provider') || 'volcengine',
-      priority: this.database.getSetting('llm.priority') || ['volcengine', 'ollama', 'deepseek'],
-      autoFallback: this.database.getSetting('llm.autoFallback') !== false,
-      autoSelect: this.database.getSetting('llm.autoSelect') !== false,
-      selectionStrategy: this.database.getSetting('llm.selectionStrategy') || 'balanced',
+      provider: this.database.getSetting("llm.provider") || "volcengine",
+      priority: this.database.getSetting("llm.priority") || [
+        "volcengine",
+        "ollama",
+        "deepseek",
+      ],
+      autoFallback: this.database.getSetting("llm.autoFallback") !== false,
+      autoSelect: this.database.getSetting("llm.autoSelect") !== false,
+      selectionStrategy:
+        this.database.getSetting("llm.selectionStrategy") || "balanced",
     };
   }
 
@@ -121,35 +126,35 @@ class LLMSelector {
     const config = {};
 
     switch (provider) {
-      case 'ollama':
-        config.host = this.database.getSetting('llm.ollamaHost');
-        config.model = this.database.getSetting('llm.ollamaModel');
+      case "ollama":
+        config.host = this.database.getSetting("llm.ollamaHost");
+        config.model = this.database.getSetting("llm.ollamaModel");
         break;
 
-      case 'openai':
-        config.apiKey = this.database.getSetting('llm.openaiApiKey');
-        config.baseUrl = this.database.getSetting('llm.openaiBaseUrl');
-        config.model = this.database.getSetting('llm.openaiModel');
+      case "openai":
+        config.apiKey = this.database.getSetting("llm.openaiApiKey");
+        config.baseUrl = this.database.getSetting("llm.openaiBaseUrl");
+        config.model = this.database.getSetting("llm.openaiModel");
         break;
 
-      case 'volcengine':
-        config.apiKey = this.database.getSetting('llm.volcengineApiKey');
-        config.model = this.database.getSetting('llm.volcengineModel');
+      case "volcengine":
+        config.apiKey = this.database.getSetting("llm.volcengineApiKey");
+        config.model = this.database.getSetting("llm.volcengineModel");
         break;
 
-      case 'deepseek':
-        config.apiKey = this.database.getSetting('llm.deepseekApiKey');
-        config.model = this.database.getSetting('llm.deepseekModel');
+      case "deepseek":
+        config.apiKey = this.database.getSetting("llm.deepseekApiKey");
+        config.model = this.database.getSetting("llm.deepseekModel");
         break;
 
-      case 'dashscope':
-        config.apiKey = this.database.getSetting('llm.dashscopeApiKey');
-        config.model = this.database.getSetting('llm.dashscopeModel');
+      case "dashscope":
+        config.apiKey = this.database.getSetting("llm.dashscopeApiKey");
+        config.model = this.database.getSetting("llm.dashscopeModel");
         break;
 
-      case 'zhipu':
-        config.apiKey = this.database.getSetting('llm.zhipuApiKey');
-        config.model = this.database.getSetting('llm.zhipuModel');
+      case "zhipu":
+        config.apiKey = this.database.getSetting("llm.zhipuApiKey");
+        config.model = this.database.getSetting("llm.zhipuModel");
         break;
     }
 
@@ -163,10 +168,12 @@ class LLMSelector {
     const config = this.getProviderConfig(provider);
     const chars = LLM_CHARACTERISTICS[provider];
 
-    if (!chars) {return false;}
+    if (!chars) {
+      return false;
+    }
 
     // 本地服务（Ollama）只需要host
-    if (provider === 'ollama') {
+    if (provider === "ollama") {
       return !!config.host;
     }
 
@@ -181,9 +188,11 @@ class LLMSelector {
    * @param {string} taskType - 任务类型
    * @returns {number} 得分（0-100）
    */
-  calculateScore(provider, strategy, taskType = 'chat') {
+  calculateScore(provider, strategy, taskType = "chat") {
     const chars = LLM_CHARACTERISTICS[provider];
-    if (!chars) {return 0;}
+    if (!chars) {
+      return 0;
+    }
 
     // 检查是否配置
     if (!this.isProviderConfigured(provider)) {
@@ -200,21 +209,25 @@ class LLMSelector {
 
     // 根据策略计算得分
     switch (strategy) {
-      case 'cost': // 成本优先
-        score = (100 - chars.cost) * 0.7 + chars.quality * 0.2 + chars.speed * 0.1;
+      case "cost": // 成本优先
+        score =
+          (100 - chars.cost) * 0.7 + chars.quality * 0.2 + chars.speed * 0.1;
         break;
 
-      case 'speed': // 速度优先
-        score = chars.speed * 0.7 + chars.quality * 0.2 + (100 - chars.cost) * 0.1;
+      case "speed": // 速度优先
+        score =
+          chars.speed * 0.7 + chars.quality * 0.2 + (100 - chars.cost) * 0.1;
         break;
 
-      case 'quality': // 质量优先
-        score = chars.quality * 0.7 + chars.speed * 0.2 + (100 - chars.cost) * 0.1;
+      case "quality": // 质量优先
+        score =
+          chars.quality * 0.7 + chars.speed * 0.2 + (100 - chars.cost) * 0.1;
         break;
 
-      case 'balanced': // 平衡
+      case "balanced": // 平衡
       default:
-        score = chars.quality * 0.4 + chars.speed * 0.3 + (100 - chars.cost) * 0.3;
+        score =
+          chars.quality * 0.4 + chars.speed * 0.3 + (100 - chars.cost) * 0.3;
         break;
     }
 
@@ -222,8 +235,8 @@ class LLMSelector {
     const task = TASK_TYPES[taskType];
     if (task && chars.suitable) {
       // 检查是否适合该任务
-      const taskMatch = chars.suitable.some(s =>
-        task.name.toLowerCase().includes(s) || taskType === s
+      const taskMatch = chars.suitable.some(
+        (s) => task.name.toLowerCase().includes(s) || taskType === s,
       );
       if (taskMatch) {
         score *= 1.2; // 提升20%
@@ -246,7 +259,7 @@ class LLMSelector {
   selectBestLLM(options = {}) {
     const config = this.loadConfig();
     const {
-      taskType = 'chat',
+      taskType = "chat",
       strategy = config.selectionStrategy,
       excludes = [],
     } = options;
@@ -257,12 +270,18 @@ class LLMSelector {
     }
 
     // 获取优先级列表
-    const priorityList = config.priority || ['volcengine', 'ollama', 'deepseek'];
+    const priorityList = config.priority || [
+      "volcengine",
+      "ollama",
+      "deepseek",
+    ];
 
     // 计算每个LLM的得分
     const scores = [];
     for (const provider of priorityList) {
-      if (excludes.includes(provider)) {continue;}
+      if (excludes.includes(provider)) {
+        continue;
+      }
 
       const score = this.calculateScore(provider, strategy, taskType);
       if (score > 0) {
@@ -275,13 +294,15 @@ class LLMSelector {
 
     // 返回得分最高的
     if (scores.length > 0) {
-      logger.info(`[LLMSelector] 智能选择: ${scores[0].provider} (得分: ${scores[0].score.toFixed(2)})`);
+      logger.info(
+        `[LLMSelector] 智能选择: ${scores[0].provider} (得分: ${scores[0].score.toFixed(2)})`,
+      );
       return scores[0].provider;
     }
 
     // 如果都不可用，返回第一个优先级
-    logger.warn('[LLMSelector] 没有可用的LLM，返回默认');
-    return priorityList[0] || 'volcengine';
+    logger.warn("[LLMSelector] 没有可用的LLM，返回默认");
+    return priorityList[0] || "volcengine";
   }
 
   /**
@@ -291,10 +312,16 @@ class LLMSelector {
    */
   getFallbackList(currentProvider) {
     const config = this.loadConfig();
-    const priorityList = config.priority || ['volcengine', 'ollama', 'deepseek'];
+    const priorityList = config.priority || [
+      "volcengine",
+      "ollama",
+      "deepseek",
+    ];
 
     // 排除当前提供商
-    return priorityList.filter(p => p !== currentProvider && this.isProviderConfigured(p));
+    return priorityList.filter(
+      (p) => p !== currentProvider && this.isProviderConfigured(p),
+    );
   }
 
   /**
@@ -339,7 +366,9 @@ class LLMSelector {
    */
   needsHealthCheck(provider) {
     const lastCheck = this.lastCheck.get(provider);
-    if (!lastCheck) {return true;}
+    if (!lastCheck) {
+      return true;
+    }
 
     return Date.now() - lastCheck > this.checkInterval;
   }
@@ -365,15 +394,21 @@ class LLMSelector {
    * @param {string} taskType - 任务类型
    * @returns {Array} 排序后的LLM列表及得分
    */
-  generateSelectionReport(taskType = 'chat') {
+  generateSelectionReport(taskType = "chat") {
     const config = this.loadConfig();
     const strategy = config.selectionStrategy;
-    const priorityList = config.priority || ['volcengine', 'ollama', 'deepseek'];
+    const priorityList = config.priority || [
+      "volcengine",
+      "ollama",
+      "deepseek",
+    ];
 
     const report = [];
     for (const provider of priorityList) {
       const chars = LLM_CHARACTERISTICS[provider];
-      if (!chars) {continue;}
+      if (!chars) {
+        continue;
+      }
 
       const score = this.calculateScore(provider, strategy, taskType);
       const configured = this.isProviderConfigured(provider);

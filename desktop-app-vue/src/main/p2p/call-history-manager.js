@@ -4,8 +4,8 @@
  * 管理通话历史记录
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 class CallHistoryManager extends EventEmitter {
   constructor(database) {
@@ -60,9 +60,9 @@ class CallHistoryManager extends EventEmitter {
       `);
 
       this.initialized = true;
-      logger.info('[CallHistoryManager] 初始化完成');
+      logger.info("[CallHistoryManager] 初始化完成");
     } catch (error) {
-      logger.error('[CallHistoryManager] 初始化失败:', error);
+      logger.error("[CallHistoryManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -71,39 +71,37 @@ class CallHistoryManager extends EventEmitter {
    * 记录通话开始
    */
   async recordCallStart(callData) {
-    const {
-      callId,
-      peerId,
-      type,
-      isInitiator
-    } = callData;
+    const { callId, peerId, type, isInitiator } = callData;
 
     const now = Date.now();
 
     try {
-      await this.database.run(`
+      await this.database.run(
+        `
         INSERT INTO call_history (
           call_id, peer_id, call_type, direction, status,
           start_time, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        callId,
-        peerId,
-        type,
-        isInitiator ? 'outgoing' : 'incoming',
-        'calling',
-        now,
-        now,
-        now
-      ]);
+      `,
+        [
+          callId,
+          peerId,
+          type,
+          isInitiator ? "outgoing" : "incoming",
+          "calling",
+          now,
+          now,
+          now,
+        ],
+      );
 
-      logger.info('[CallHistoryManager] 通话记录已创建:', callId);
+      logger.info("[CallHistoryManager] 通话记录已创建:", callId);
 
-      this.emit('call-recorded', { callId, peerId, type });
+      this.emit("call-recorded", { callId, peerId, type });
 
       return callId;
     } catch (error) {
-      logger.error('[CallHistoryManager] 记录通话开始失败:', error);
+      logger.error("[CallHistoryManager] 记录通话开始失败:", error);
       throw error;
     }
   }
@@ -115,48 +113,51 @@ class CallHistoryManager extends EventEmitter {
     const now = Date.now();
 
     try {
-      const updates = ['status = ?', 'updated_at = ?'];
+      const updates = ["status = ?", "updated_at = ?"];
       const values = [status, now];
 
       // 处理额外数据
       if (additionalData.isAnswered !== undefined) {
-        updates.push('is_answered = ?');
+        updates.push("is_answered = ?");
         values.push(additionalData.isAnswered ? 1 : 0);
       }
 
       if (additionalData.rejectReason) {
-        updates.push('reject_reason = ?');
+        updates.push("reject_reason = ?");
         values.push(additionalData.rejectReason);
       }
 
       if (additionalData.endTime) {
-        updates.push('end_time = ?');
+        updates.push("end_time = ?");
         values.push(additionalData.endTime);
       }
 
       if (additionalData.duration !== undefined) {
-        updates.push('duration = ?');
+        updates.push("duration = ?");
         values.push(additionalData.duration);
       }
 
       if (additionalData.qualityStats) {
-        updates.push('quality_stats = ?');
+        updates.push("quality_stats = ?");
         values.push(JSON.stringify(additionalData.qualityStats));
       }
 
       values.push(callId);
 
-      await this.database.run(`
+      await this.database.run(
+        `
         UPDATE call_history
-        SET ${updates.join(', ')}
+        SET ${updates.join(", ")}
         WHERE call_id = ?
-      `, values);
+      `,
+        values,
+      );
 
-      logger.info('[CallHistoryManager] 通话状态已更新:', callId, status);
+      logger.info("[CallHistoryManager] 通话状态已更新:", callId, status);
 
-      this.emit('call-updated', { callId, status, ...additionalData });
+      this.emit("call-updated", { callId, status, ...additionalData });
     } catch (error) {
-      logger.error('[CallHistoryManager] 更新通话状态失败:', error);
+      logger.error("[CallHistoryManager] 更新通话状态失败:", error);
       throw error;
     }
   }
@@ -170,29 +171,34 @@ class CallHistoryManager extends EventEmitter {
     try {
       // 获取通话记录
       const call = await this.database.get(
-        'SELECT * FROM call_history WHERE call_id = ?',
-        [callId]
+        "SELECT * FROM call_history WHERE call_id = ?",
+        [callId],
       );
 
       if (!call) {
-        logger.warn('[CallHistoryManager] 通话记录不存在:', callId);
+        logger.warn("[CallHistoryManager] 通话记录不存在:", callId);
         return;
       }
 
       // 计算通话时长
-      const duration = endData.duration || (call.end_time || now) - call.start_time;
+      const duration =
+        endData.duration || (call.end_time || now) - call.start_time;
 
-      await this.updateCallStatus(callId, 'ended', {
+      await this.updateCallStatus(callId, "ended", {
         endTime: now,
         duration: Math.floor(duration / 1000), // 转换为秒
-        qualityStats: endData.qualityStats
+        qualityStats: endData.qualityStats,
       });
 
-      logger.info('[CallHistoryManager] 通话已结束:', callId, `${Math.floor(duration / 1000)}秒`);
+      logger.info(
+        "[CallHistoryManager] 通话已结束:",
+        callId,
+        `${Math.floor(duration / 1000)}秒`,
+      );
 
-      this.emit('call-ended', { callId, duration });
+      this.emit("call-ended", { callId, duration });
     } catch (error) {
-      logger.error('[CallHistoryManager] 记录通话结束失败:', error);
+      logger.error("[CallHistoryManager] 记录通话结束失败:", error);
       throw error;
     }
   }
@@ -201,60 +207,57 @@ class CallHistoryManager extends EventEmitter {
    * 获取通话历史
    */
   async getCallHistory(options = {}) {
-    const {
-      peerId,
-      type,
-      direction,
-      status,
-      limit = 50,
-      offset = 0
-    } = options;
+    const { peerId, type, direction, status, limit = 50, offset = 0 } = options;
 
     try {
       const conditions = [];
       const values = [];
 
       if (peerId) {
-        conditions.push('peer_id = ?');
+        conditions.push("peer_id = ?");
         values.push(peerId);
       }
 
       if (type) {
-        conditions.push('call_type = ?');
+        conditions.push("call_type = ?");
         values.push(type);
       }
 
       if (direction) {
-        conditions.push('direction = ?');
+        conditions.push("direction = ?");
         values.push(direction);
       }
 
       if (status) {
-        conditions.push('status = ?');
+        conditions.push("status = ?");
         values.push(status);
       }
 
-      const whereClause = conditions.length > 0
-        ? `WHERE ${conditions.join(' AND ')}`
-        : '';
+      const whereClause =
+        conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
       values.push(limit, offset);
 
-      const calls = await this.database.all(`
+      const calls = await this.database.all(
+        `
         SELECT * FROM call_history
         ${whereClause}
         ORDER BY start_time DESC
         LIMIT ? OFFSET ?
-      `, values);
+      `,
+        values,
+      );
 
       // 解析质量统计
-      return calls.map(call => ({
+      return calls.map((call) => ({
         ...call,
         isAnswered: Boolean(call.is_answered),
-        qualityStats: call.quality_stats ? JSON.parse(call.quality_stats) : null
+        qualityStats: call.quality_stats
+          ? JSON.parse(call.quality_stats)
+          : null,
       }));
     } catch (error) {
-      logger.error('[CallHistoryManager] 获取通话历史失败:', error);
+      logger.error("[CallHistoryManager] 获取通话历史失败:", error);
       throw error;
     }
   }
@@ -265,8 +268,8 @@ class CallHistoryManager extends EventEmitter {
   async getCallDetails(callId) {
     try {
       const call = await this.database.get(
-        'SELECT * FROM call_history WHERE call_id = ?',
-        [callId]
+        "SELECT * FROM call_history WHERE call_id = ?",
+        [callId],
       );
 
       if (!call) {
@@ -276,10 +279,12 @@ class CallHistoryManager extends EventEmitter {
       return {
         ...call,
         isAnswered: Boolean(call.is_answered),
-        qualityStats: call.quality_stats ? JSON.parse(call.quality_stats) : null
+        qualityStats: call.quality_stats
+          ? JSON.parse(call.quality_stats)
+          : null,
       };
     } catch (error) {
-      logger.error('[CallHistoryManager] 获取通话详情失败:', error);
+      logger.error("[CallHistoryManager] 获取通话详情失败:", error);
       throw error;
     }
   }
@@ -289,10 +294,11 @@ class CallHistoryManager extends EventEmitter {
    */
   async getCallStatistics(peerId = null) {
     try {
-      const whereClause = peerId ? 'WHERE peer_id = ?' : '';
+      const whereClause = peerId ? "WHERE peer_id = ?" : "";
       const values = peerId ? [peerId] : [];
 
-      const stats = await this.database.get(`
+      const stats = await this.database.get(
+        `
         SELECT
           COUNT(*) as total_calls,
           SUM(CASE WHEN direction = 'outgoing' THEN 1 ELSE 0 END) as outgoing_calls,
@@ -304,7 +310,9 @@ class CallHistoryManager extends EventEmitter {
           AVG(CASE WHEN status = 'ended' AND is_answered = 1 THEN duration ELSE NULL END) as avg_duration
         FROM call_history
         ${whereClause}
-      `, values);
+      `,
+        values,
+      );
 
       return {
         totalCalls: stats.total_calls || 0,
@@ -315,10 +323,10 @@ class CallHistoryManager extends EventEmitter {
         answeredCalls: stats.answered_calls || 0,
         missedCalls: (stats.total_calls || 0) - (stats.answered_calls || 0),
         totalDuration: stats.total_duration || 0,
-        avgDuration: Math.round(stats.avg_duration || 0)
+        avgDuration: Math.round(stats.avg_duration || 0),
       };
     } catch (error) {
-      logger.error('[CallHistoryManager] 获取通话统计失败:', error);
+      logger.error("[CallHistoryManager] 获取通话统计失败:", error);
       throw error;
     }
   }
@@ -328,16 +336,15 @@ class CallHistoryManager extends EventEmitter {
    */
   async deleteCallHistory(callId) {
     try {
-      await this.database.run(
-        'DELETE FROM call_history WHERE call_id = ?',
-        [callId]
-      );
+      await this.database.run("DELETE FROM call_history WHERE call_id = ?", [
+        callId,
+      ]);
 
-      logger.info('[CallHistoryManager] 通话记录已删除:', callId);
+      logger.info("[CallHistoryManager] 通话记录已删除:", callId);
 
-      this.emit('call-deleted', { callId });
+      this.emit("call-deleted", { callId });
     } catch (error) {
-      logger.error('[CallHistoryManager] 删除通话记录失败:', error);
+      logger.error("[CallHistoryManager] 删除通话记录失败:", error);
       throw error;
     }
   }
@@ -348,19 +355,18 @@ class CallHistoryManager extends EventEmitter {
   async clearCallHistory(peerId = null) {
     try {
       if (peerId) {
-        await this.database.run(
-          'DELETE FROM call_history WHERE peer_id = ?',
-          [peerId]
-        );
-        logger.info('[CallHistoryManager] 已清空指定用户的通话历史:', peerId);
+        await this.database.run("DELETE FROM call_history WHERE peer_id = ?", [
+          peerId,
+        ]);
+        logger.info("[CallHistoryManager] 已清空指定用户的通话历史:", peerId);
       } else {
-        await this.database.run('DELETE FROM call_history');
-        logger.info('[CallHistoryManager] 已清空所有通话历史');
+        await this.database.run("DELETE FROM call_history");
+        logger.info("[CallHistoryManager] 已清空所有通话历史");
       }
 
-      this.emit('history-cleared', { peerId });
+      this.emit("history-cleared", { peerId });
     } catch (error) {
-      logger.error('[CallHistoryManager] 清空通话历史失败:', error);
+      logger.error("[CallHistoryManager] 清空通话历史失败:", error);
       throw error;
     }
   }
@@ -370,7 +376,7 @@ class CallHistoryManager extends EventEmitter {
    */
   cleanup() {
     this.removeAllListeners();
-    logger.info('[CallHistoryManager] 资源已清理');
+    logger.info("[CallHistoryManager] 资源已清理");
   }
 }
 

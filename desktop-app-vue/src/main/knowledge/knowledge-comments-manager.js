@@ -13,9 +13,9 @@
  * - Activity tracking
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const EventEmitter = require("events");
 
 class KnowledgeCommentsManager extends EventEmitter {
   constructor(database, p2pManager) {
@@ -39,7 +39,7 @@ class KnowledgeCommentsManager extends EventEmitter {
       positionStart,
       positionEnd,
       threadId,
-      parentCommentId
+      parentCommentId,
     } = params;
 
     const commentId = uuidv4();
@@ -50,17 +50,30 @@ class KnowledgeCommentsManager extends EventEmitter {
       const mentions = this._extractMentions(content);
 
       // Insert comment
-      this.database.run(`
+      this.database.run(
+        `
         INSERT INTO knowledge_comments (
           id, knowledge_id, org_id, author_did, author_name,
           content, position_start, position_end, thread_id,
           parent_comment_id, status, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        commentId, knowledgeId, orgId, authorDid, authorName,
-        content, positionStart, positionEnd, threadId,
-        parentCommentId, 'open', now, now
-      ]);
+      `,
+        [
+          commentId,
+          knowledgeId,
+          orgId,
+          authorDid,
+          authorName,
+          content,
+          positionStart,
+          positionEnd,
+          threadId,
+          parentCommentId,
+          "open",
+          now,
+          now,
+        ],
+      );
 
       const comment = {
         id: commentId,
@@ -74,32 +87,44 @@ class KnowledgeCommentsManager extends EventEmitter {
         threadId,
         parentCommentId,
         mentions,
-        status: 'open',
+        status: "open",
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
       };
 
       // Log activity
-      await this._logActivity(orgId, knowledgeId, authorDid, 'comment', commentId);
+      await this._logActivity(
+        orgId,
+        knowledgeId,
+        authorDid,
+        "comment",
+        commentId,
+      );
 
       // Broadcast comment creation
       await this._broadcastCommentEvent(knowledgeId, {
-        type: 'comment:created',
-        comment
+        type: "comment:created",
+        comment,
       });
 
       // Send notifications to mentioned users
       if (mentions.length > 0) {
-        await this._notifyMentionedUsers(knowledgeId, mentions, authorName, content);
+        await this._notifyMentionedUsers(
+          knowledgeId,
+          mentions,
+          authorName,
+          content,
+        );
       }
 
-      this.emit('comment:created', comment);
+      this.emit("comment:created", comment);
 
-      logger.info(`[KnowledgeComments] Created comment ${commentId} for knowledge ${knowledgeId}`);
+      logger.info(
+        `[KnowledgeComments] Created comment ${commentId} for knowledge ${knowledgeId}`,
+      );
       return comment;
-
     } catch (error) {
-      logger.error('[KnowledgeComments] Error creating comment:', error);
+      logger.error("[KnowledgeComments] Error creating comment:", error);
       throw error;
     }
   }
@@ -111,11 +136,7 @@ class KnowledgeCommentsManager extends EventEmitter {
    * @returns {Array} Comments
    */
   async getComments(knowledgeId, options = {}) {
-    const {
-      status = null,
-      threadId = null,
-      includeReplies = true
-    } = options;
+    const { status = null, threadId = null, includeReplies = true } = options;
 
     try {
       let query = `
@@ -125,20 +146,20 @@ class KnowledgeCommentsManager extends EventEmitter {
       const params = [knowledgeId];
 
       if (status) {
-        query += ' AND status = ?';
+        query += " AND status = ?";
         params.push(status);
       }
 
       if (threadId) {
-        query += ' AND thread_id = ?';
+        query += " AND thread_id = ?";
         params.push(threadId);
       }
 
       if (!includeReplies) {
-        query += ' AND parent_comment_id IS NULL';
+        query += " AND parent_comment_id IS NULL";
       }
 
-      query += ' ORDER BY created_at ASC';
+      query += " ORDER BY created_at ASC";
 
       const stmt = this.database.prepare(query);
       const comments = stmt.all(...params);
@@ -149,9 +170,8 @@ class KnowledgeCommentsManager extends EventEmitter {
       }
 
       return comments;
-
     } catch (error) {
-      logger.error('[KnowledgeComments] Error getting comments:', error);
+      logger.error("[KnowledgeComments] Error getting comments:", error);
       throw error;
     }
   }
@@ -170,31 +190,33 @@ class KnowledgeCommentsManager extends EventEmitter {
       // Extract mentions from new content
       const mentions = content ? this._extractMentions(content) : null;
 
-      this.database.run(`
+      this.database.run(
+        `
         UPDATE knowledge_comments
         SET content = COALESCE(?, content),
             updated_at = ?
         WHERE id = ?
-      `, [content, now, commentId]);
+      `,
+        [content, now, commentId],
+      );
 
       // Get updated comment
-      const comment = this.database.prepare(
-        'SELECT * FROM knowledge_comments WHERE id = ?'
-      ).get(commentId);
+      const comment = this.database
+        .prepare("SELECT * FROM knowledge_comments WHERE id = ?")
+        .get(commentId);
 
       // Broadcast update
       await this._broadcastCommentEvent(comment.knowledge_id, {
-        type: 'comment:updated',
+        type: "comment:updated",
         commentId,
-        updates: { content, mentions }
+        updates: { content, mentions },
       });
 
-      this.emit('comment:updated', comment);
+      this.emit("comment:updated", comment);
 
       return comment;
-
     } catch (error) {
-      logger.error('[KnowledgeComments] Error updating comment:', error);
+      logger.error("[KnowledgeComments] Error updating comment:", error);
       throw error;
     }
   }
@@ -206,34 +228,39 @@ class KnowledgeCommentsManager extends EventEmitter {
   async deleteComment(commentId) {
     try {
       // Get comment info before deletion
-      const comment = this.database.prepare(
-        'SELECT * FROM knowledge_comments WHERE id = ?'
-      ).get(commentId);
+      const comment = this.database
+        .prepare("SELECT * FROM knowledge_comments WHERE id = ?")
+        .get(commentId);
 
       if (!comment) {
-        throw new Error('Comment not found');
+        throw new Error("Comment not found");
       }
 
       // Soft delete
-      this.database.run(`
+      this.database.run(
+        `
         UPDATE knowledge_comments
         SET status = 'deleted',
             updated_at = ?
         WHERE id = ?
-      `, [Date.now(), commentId]);
+      `,
+        [Date.now(), commentId],
+      );
 
       // Broadcast deletion
       await this._broadcastCommentEvent(comment.knowledge_id, {
-        type: 'comment:deleted',
-        commentId
+        type: "comment:deleted",
+        commentId,
       });
 
-      this.emit('comment:deleted', { commentId, knowledgeId: comment.knowledge_id });
+      this.emit("comment:deleted", {
+        commentId,
+        knowledgeId: comment.knowledge_id,
+      });
 
       logger.info(`[KnowledgeComments] Deleted comment ${commentId}`);
-
     } catch (error) {
-      logger.error('[KnowledgeComments] Error deleting comment:', error);
+      logger.error("[KnowledgeComments] Error deleting comment:", error);
       throw error;
     }
   }
@@ -247,33 +274,35 @@ class KnowledgeCommentsManager extends EventEmitter {
     const now = Date.now();
 
     try {
-      this.database.run(`
+      this.database.run(
+        `
         UPDATE knowledge_comments
         SET status = 'resolved',
             resolved_by = ?,
             resolved_at = ?,
             updated_at = ?
         WHERE id = ?
-      `, [resolvedBy, now, now, commentId]);
+      `,
+        [resolvedBy, now, now, commentId],
+      );
 
       // Get comment info
-      const comment = this.database.prepare(
-        'SELECT * FROM knowledge_comments WHERE id = ?'
-      ).get(commentId);
+      const comment = this.database
+        .prepare("SELECT * FROM knowledge_comments WHERE id = ?")
+        .get(commentId);
 
       // Broadcast resolution
       await this._broadcastCommentEvent(comment.knowledge_id, {
-        type: 'comment:resolved',
+        type: "comment:resolved",
         commentId,
-        resolvedBy
+        resolvedBy,
       });
 
-      this.emit('comment:resolved', { commentId, resolvedBy });
+      this.emit("comment:resolved", { commentId, resolvedBy });
 
       logger.info(`[KnowledgeComments] Resolved comment ${commentId}`);
-
     } catch (error) {
-      logger.error('[KnowledgeComments] Error resolving comment:', error);
+      logger.error("[KnowledgeComments] Error resolving comment:", error);
       throw error;
     }
   }
@@ -285,7 +314,9 @@ class KnowledgeCommentsManager extends EventEmitter {
    */
   async getCommentStats(knowledgeId) {
     try {
-      const stats = this.database.prepare(`
+      const stats = this.database
+        .prepare(
+          `
         SELECT
           COUNT(*) as total,
           SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open,
@@ -293,12 +324,13 @@ class KnowledgeCommentsManager extends EventEmitter {
           COUNT(DISTINCT author_did) as contributors
         FROM knowledge_comments
         WHERE knowledge_id = ? AND status != 'deleted'
-      `).get(knowledgeId);
+      `,
+        )
+        .get(knowledgeId);
 
       return stats;
-
     } catch (error) {
-      logger.error('[KnowledgeComments] Error getting stats:', error);
+      logger.error("[KnowledgeComments] Error getting stats:", error);
       throw error;
     }
   }
@@ -328,13 +360,13 @@ class KnowledgeCommentsManager extends EventEmitter {
     const rootComments = [];
 
     // First pass: create map
-    comments.forEach(comment => {
+    comments.forEach((comment) => {
       comment.replies = [];
       commentMap.set(comment.id, comment);
     });
 
     // Second pass: build tree
-    comments.forEach(comment => {
+    comments.forEach((comment) => {
       if (comment.parent_comment_id) {
         const parent = commentMap.get(comment.parent_comment_id);
         if (parent) {
@@ -353,27 +385,32 @@ class KnowledgeCommentsManager extends EventEmitter {
    * @private
    */
   async _logActivity(orgId, knowledgeId, userDid, activityType, resourceId) {
-    if (!orgId) {return;}
+    if (!orgId) {
+      return;
+    }
 
     try {
       const activityId = uuidv4();
-      this.database.run(`
+      this.database.run(
+        `
         INSERT INTO knowledge_activities (
           id, knowledge_id, org_id, user_did, user_name,
           activity_type, metadata, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        activityId,
-        knowledgeId,
-        orgId,
-        userDid,
-        '', // user_name will be filled by caller
-        activityType,
-        JSON.stringify({ resourceId }),
-        Date.now()
-      ]);
+      `,
+        [
+          activityId,
+          knowledgeId,
+          orgId,
+          userDid,
+          "", // user_name will be filled by caller
+          activityType,
+          JSON.stringify({ resourceId }),
+          Date.now(),
+        ],
+      );
     } catch (error) {
-      logger.error('[KnowledgeComments] Error logging activity:', error);
+      logger.error("[KnowledgeComments] Error logging activity:", error);
     }
   }
 
@@ -391,7 +428,7 @@ class KnowledgeCommentsManager extends EventEmitter {
       const message = JSON.stringify(event);
       await this.p2pManager.pubsub.publish(topic, Buffer.from(message));
     } catch (error) {
-      logger.error('[KnowledgeComments] Error broadcasting event:', error);
+      logger.error("[KnowledgeComments] Error broadcasting event:", error);
     }
   }
 
@@ -408,23 +445,30 @@ class KnowledgeCommentsManager extends EventEmitter {
 
     try {
       // 获取知识条目信息
-      const knowledge = this.database.prepare(`
+      const knowledge = this.database
+        .prepare(
+          `
         SELECT title FROM knowledge_items WHERE id = ?
-      `).get(knowledgeId);
+      `,
+        )
+        .get(knowledgeId);
 
-      const knowledgeTitle = knowledge?.title || '知识条目';
+      const knowledgeTitle = knowledge?.title || "知识条目";
 
       // 截取评论内容预览
-      const contentPreview = content.length > 100
-        ? content.substring(0, 100) + '...'
-        : content;
+      const contentPreview =
+        content.length > 100 ? content.substring(0, 100) + "..." : content;
 
       for (const mention of mentions) {
         // 查找被@的用户
-        const user = this.database.prepare(`
+        const user = this.database
+          .prepare(
+            `
           SELECT did, nickname, email FROM contacts
           WHERE nickname = ? OR did = ?
-        `).get(mention, mention);
+        `,
+          )
+          .get(mention, mention);
 
         if (!user) {
           logger.warn(`[KnowledgeComments] 未找到被@的用户: ${mention}`);
@@ -435,30 +479,37 @@ class KnowledgeCommentsManager extends EventEmitter {
         const notificationId = uuidv4();
         const now = Date.now();
 
-        this.database.prepare(`
+        this.database
+          .prepare(
+            `
           INSERT INTO notifications (
             id, type, recipient_did, title, content,
             metadata, read, created_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          notificationId,
-          'mention',
-          user.did,
-          `${authorName} 在评论中提到了你`,
-          `在「${knowledgeTitle}」中: ${contentPreview}`,
-          JSON.stringify({
-            knowledgeId,
-            authorName,
-            mention,
-          }),
-          0, // unread
-          now
-        );
+        `,
+          )
+          .run(
+            notificationId,
+            "mention",
+            user.did,
+            `${authorName} 在评论中提到了你`,
+            `在「${knowledgeTitle}」中: ${contentPreview}`,
+            JSON.stringify({
+              knowledgeId,
+              authorName,
+              mention,
+            }),
+            0, // unread
+            now,
+          );
 
         // 通过 P2P 发送实时通知
-        if (this.p2pManager && typeof this.p2pManager.sendNotification === 'function') {
+        if (
+          this.p2pManager &&
+          typeof this.p2pManager.sendNotification === "function"
+        ) {
           await this.p2pManager.sendNotification(user.did, {
-            type: 'mention',
+            type: "mention",
             title: `${authorName} 在评论中提到了你`,
             body: `在「${knowledgeTitle}」中: ${contentPreview}`,
             data: {
@@ -469,7 +520,7 @@ class KnowledgeCommentsManager extends EventEmitter {
         }
 
         // 触发事件
-        this.emit('user:mentioned', {
+        this.emit("user:mentioned", {
           notificationId,
           recipientDid: user.did,
           authorName,
@@ -480,7 +531,7 @@ class KnowledgeCommentsManager extends EventEmitter {
         logger.info(`[KnowledgeComments] 已通知用户: ${user.did}`);
       }
     } catch (error) {
-      logger.error('[KnowledgeComments] 通知用户失败:', error);
+      logger.error("[KnowledgeComments] 通知用户失败:", error);
     }
   }
 }

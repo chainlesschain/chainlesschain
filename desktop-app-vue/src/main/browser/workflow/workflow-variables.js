@@ -6,28 +6,28 @@
  * @since v0.30.0
  */
 
-const { logger } = require('../../utils/logger');
+const { logger } = require("../../utils/logger");
 
 /**
  * Variable scope types
  */
 const VariableScope = {
-  GLOBAL: 'global',     // Available across all steps
-  STEP: 'step',         // Available only in current step
-  LOOP: 'loop',         // Loop iteration variables
-  EXTRACTED: 'extracted' // Extracted from page
+  GLOBAL: "global", // Available across all steps
+  STEP: "step", // Available only in current step
+  LOOP: "loop", // Loop iteration variables
+  EXTRACTED: "extracted", // Extracted from page
 };
 
 /**
  * Built-in variable prefixes
  */
 const BuiltInPrefixes = {
-  STEP: '$step',        // Step result access
-  LOOP: '$loop',        // Loop variables
-  PAGE: '$page',        // Page information
-  ENV: '$env',          // Environment variables
-  DATE: '$date',        // Date/time functions
-  RANDOM: '$random'     // Random generators
+  STEP: "$step", // Step result access
+  LOOP: "$loop", // Loop variables
+  PAGE: "$page", // Page information
+  ENV: "$env", // Environment variables
+  DATE: "$date", // Date/time functions
+  RANDOM: "$random", // Random generators
 };
 
 /**
@@ -36,7 +36,10 @@ const BuiltInPrefixes = {
 class VariableManager {
   constructor(initialVariables = {}) {
     this.scopes = new Map();
-    this.scopes.set(VariableScope.GLOBAL, new Map(Object.entries(initialVariables)));
+    this.scopes.set(
+      VariableScope.GLOBAL,
+      new Map(Object.entries(initialVariables)),
+    );
     this.scopes.set(VariableScope.STEP, new Map());
     this.scopes.set(VariableScope.LOOP, new Map());
     this.scopes.set(VariableScope.EXTRACTED, new Map());
@@ -57,7 +60,11 @@ class VariableManager {
       throw new Error(`Invalid scope: ${scope}`);
     }
     scopeMap.set(name, value);
-    logger.debug('[VariableManager] Variable set', { name, scope, type: typeof value });
+    logger.debug("[VariableManager] Variable set", {
+      name,
+      scope,
+      type: typeof value,
+    });
   }
 
   /**
@@ -67,7 +74,7 @@ class VariableManager {
    */
   get(name) {
     // Check for built-in variables first
-    if (name.startsWith('$')) {
+    if (name.startsWith("$")) {
       return this._getBuiltIn(name);
     }
 
@@ -76,7 +83,7 @@ class VariableManager {
       VariableScope.LOOP,
       VariableScope.STEP,
       VariableScope.EXTRACTED,
-      VariableScope.GLOBAL
+      VariableScope.GLOBAL,
     ];
 
     for (const scope of scopeOrder) {
@@ -87,7 +94,7 @@ class VariableManager {
     }
 
     // Handle dot notation for nested objects
-    const parts = name.split('.');
+    const parts = name.split(".");
     if (parts.length > 1) {
       let value = this.get(parts[0]);
       for (let i = 1; i < parts.length && value !== undefined; i++) {
@@ -152,7 +159,7 @@ class VariableManager {
       VariableScope.GLOBAL,
       VariableScope.EXTRACTED,
       VariableScope.STEP,
-      VariableScope.LOOP
+      VariableScope.LOOP,
     ];
 
     for (const scope of scopeOrder) {
@@ -200,14 +207,16 @@ class VariableManager {
    * @returns {string} Interpolated string
    */
   interpolate(template) {
-    if (typeof template !== 'string') {
+    if (typeof template !== "string") {
       return template;
     }
 
     return template.replace(/\$\{([^}]+)\}/g, (match, expr) => {
       const value = this._evaluateExpression(expr.trim());
       if (value === undefined) {
-        logger.warn('[VariableManager] Undefined variable in interpolation', { expr });
+        logger.warn("[VariableManager] Undefined variable in interpolation", {
+          expr,
+        });
         return match; // Keep original if undefined
       }
       return String(value);
@@ -220,15 +229,15 @@ class VariableManager {
    * @returns {any} Interpolated object
    */
   interpolateDeep(obj) {
-    if (typeof obj === 'string') {
+    if (typeof obj === "string") {
       return this.interpolate(obj);
     }
 
     if (Array.isArray(obj)) {
-      return obj.map(item => this.interpolateDeep(item));
+      return obj.map((item) => this.interpolateDeep(item));
     }
 
-    if (obj && typeof obj === 'object') {
+    if (obj && typeof obj === "object") {
       const result = {};
       for (const [key, value] of Object.entries(obj)) {
         result[key] = this.interpolateDeep(value);
@@ -247,41 +256,41 @@ class VariableManager {
    * @returns {Promise<any>} Extracted value
    */
   async extractFromPage(page, expression, options = {}) {
-    const { type = 'text', selector, attribute } = options;
+    const { type = "text", selector, attribute } = options;
 
     try {
       let value;
 
       switch (type) {
-        case 'text':
+        case "text":
           value = await page.locator(selector).textContent();
           break;
 
-        case 'value':
+        case "value":
           value = await page.locator(selector).inputValue();
           break;
 
-        case 'attribute':
+        case "attribute":
           value = await page.locator(selector).getAttribute(attribute);
           break;
 
-        case 'innerHtml':
+        case "innerHtml":
           value = await page.locator(selector).innerHTML();
           break;
 
-        case 'count':
+        case "count":
           value = await page.locator(selector).count();
           break;
 
-        case 'evaluate':
+        case "evaluate":
           value = await page.evaluate(expression);
           break;
 
-        case 'url':
+        case "url":
           value = page.url();
           break;
 
-        case 'title':
+        case "title":
           value = await page.title();
           break;
 
@@ -296,10 +305,10 @@ class VariableManager {
 
       return value;
     } catch (error) {
-      logger.error('[VariableManager] Extraction failed', {
+      logger.error("[VariableManager] Extraction failed", {
         expression,
         options,
-        error: error.message
+        error: error.message,
       });
       throw error;
     }
@@ -368,21 +377,21 @@ class VariableManager {
     const now = new Date();
 
     switch (fn) {
-      case 'now':
+      case "now":
         return now.toISOString();
-      case 'timestamp':
+      case "timestamp":
         return Date.now();
-      case 'iso':
+      case "iso":
         return now.toISOString();
-      case 'date':
-        return now.toISOString().split('T')[0];
-      case 'time':
-        return now.toTimeString().split(' ')[0];
-      case 'year':
+      case "date":
+        return now.toISOString().split("T")[0];
+      case "time":
+        return now.toTimeString().split(" ")[0];
+      case "year":
         return now.getFullYear();
-      case 'month':
+      case "month":
         return now.getMonth() + 1;
-      case 'day':
+      case "day":
         return now.getDate();
       default:
         return undefined;
@@ -397,43 +406,48 @@ class VariableManager {
   _getRandomValue(fn) {
     // Parse function and parameters: int(1,100), string(10)
     const match = fn.match(/^(\w+)(?:\(([^)]*)\))?$/);
-    if (!match) return undefined;
+    if (!match) {
+      return undefined;
+    }
 
     const [, funcName, params] = match;
-    const args = params ? params.split(',').map(s => s.trim()) : [];
+    const args = params ? params.split(",").map((s) => s.trim()) : [];
 
     switch (funcName) {
-      case 'int': {
+      case "int": {
         const min = parseInt(args[0], 10) || 0;
         const max = parseInt(args[1], 10) || 100;
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
 
-      case 'float': {
+      case "float": {
         const min = parseFloat(args[0]) || 0;
         const max = parseFloat(args[1]) || 1;
         return Math.random() * (max - min) + min;
       }
 
-      case 'uuid':
-        return require('uuid').v4();
+      case "uuid":
+        return require("uuid").v4();
 
-      case 'string': {
+      case "string": {
         const length = parseInt(args[0], 10) || 8;
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let result = '';
+        const chars =
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let result = "";
         for (let i = 0; i < length; i++) {
           result += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         return result;
       }
 
-      case 'choice': {
-        if (args.length === 0) return undefined;
+      case "choice": {
+        if (args.length === 0) {
+          return undefined;
+        }
         return args[Math.floor(Math.random() * args.length)];
       }
 
-      case 'boolean':
+      case "boolean":
         return Math.random() > 0.5;
 
       default:
@@ -449,7 +463,7 @@ class VariableManager {
    */
   _evaluateExpression(expr) {
     // Simple variable reference
-    if (!expr.includes(' ') && !expr.includes('(')) {
+    if (!expr.includes(" ") && !expr.includes("(")) {
       return this.get(expr);
     }
 
@@ -482,36 +496,36 @@ class VariableManager {
    */
   _applyFunction(fn, value) {
     switch (fn.toLowerCase()) {
-      case 'length':
+      case "length":
         return value?.length || 0;
-      case 'upper':
+      case "upper":
         return String(value).toUpperCase();
-      case 'lower':
+      case "lower":
         return String(value).toLowerCase();
-      case 'trim':
+      case "trim":
         return String(value).trim();
-      case 'int':
+      case "int":
         return parseInt(value, 10);
-      case 'float':
+      case "float":
         return parseFloat(value);
-      case 'string':
+      case "string":
         return String(value);
-      case 'json':
+      case "json":
         return JSON.stringify(value);
-      case 'parse':
+      case "parse":
         return JSON.parse(value);
-      case 'not':
+      case "not":
         return !value;
-      case 'abs':
+      case "abs":
         return Math.abs(value);
-      case 'round':
+      case "round":
         return Math.round(value);
-      case 'floor':
+      case "floor":
         return Math.floor(value);
-      case 'ceil':
+      case "ceil":
         return Math.ceil(value);
       default:
-        logger.warn('[VariableManager] Unknown function', { fn });
+        logger.warn("[VariableManager] Unknown function", { fn });
         return value;
     }
   }
@@ -525,32 +539,32 @@ class VariableManager {
    */
   _applyOperator(op, left, right) {
     switch (op) {
-      case '+':
+      case "+":
         return left + right;
-      case '-':
+      case "-":
         return left - right;
-      case '*':
+      case "*":
         return left * right;
-      case '/':
+      case "/":
         return left / right;
-      case '%':
+      case "%":
         return left % right;
-      case '==':
-      case '===':
+      case "==":
+      case "===":
         return left === right;
-      case '!=':
-      case '!==':
+      case "!=":
+      case "!==":
         return left !== right;
-      case '<':
+      case "<":
         return left < right;
-      case '>':
+      case ">":
         return left > right;
-      case '<=':
+      case "<=":
         return left <= right;
-      case '>=':
+      case ">=":
         return left >= right;
       default:
-        logger.warn('[VariableManager] Unknown operator', { op });
+        logger.warn("[VariableManager] Unknown operator", { op });
         return undefined;
     }
   }
@@ -562,8 +576,10 @@ class VariableManager {
    */
   _parseLiteral(expr) {
     // String literal
-    if ((expr.startsWith('"') && expr.endsWith('"')) ||
-        (expr.startsWith("'") && expr.endsWith("'"))) {
+    if (
+      (expr.startsWith('"') && expr.endsWith('"')) ||
+      (expr.startsWith("'") && expr.endsWith("'"))
+    ) {
       return expr.slice(1, -1);
     }
 
@@ -574,10 +590,18 @@ class VariableManager {
     }
 
     // Boolean
-    if (expr === 'true') return true;
-    if (expr === 'false') return false;
-    if (expr === 'null') return null;
-    if (expr === 'undefined') return undefined;
+    if (expr === "true") {
+      return true;
+    }
+    if (expr === "false") {
+      return false;
+    }
+    if (expr === "null") {
+      return null;
+    }
+    if (expr === "undefined") {
+      return undefined;
+    }
 
     // Assume it's a variable reference
     return this.get(expr);
@@ -599,7 +623,7 @@ function createLoopContext(index, value, total) {
     last: index === total - 1,
     even: index % 2 === 0,
     odd: index % 2 === 1,
-    count: total
+    count: total,
   };
 }
 
@@ -607,5 +631,5 @@ module.exports = {
   VariableManager,
   VariableScope,
   BuiltInPrefixes,
-  createLoopContext
+  createLoopContext,
 };

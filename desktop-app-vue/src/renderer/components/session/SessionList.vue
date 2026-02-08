@@ -28,11 +28,7 @@
             {{ tag.tag }} ({{ tag.count }})
           </a-select-option>
         </a-select>
-        <a-button
-          v-if="hasActiveFilters"
-          type="link"
-          @click="clearFilters"
-        >
+        <a-button v-if="hasActiveFilters" type="link" @click="clearFilters">
           清空筛选
         </a-button>
       </div>
@@ -116,10 +112,7 @@
             >
               {{ tag }}
             </a-tag>
-            <a-tag
-              v-if="(record.tags || []).length > 3"
-              color="default"
-            >
+            <a-tag v-if="(record.tags || []).length > 3" color="default">
               +{{ record.tags.length - 3 }}
             </a-tag>
             <span
@@ -186,7 +179,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, computed, watch } from "vue";
 import {
@@ -430,7 +423,9 @@ defineExpose({
 
 // 格式化相对时间
 const formatRelativeTime = (timestamp) => {
-  if (!timestamp) {return "-";}
+  if (!timestamp) {
+    return "-";
+  }
 
   const now = Date.now();
   const time =
@@ -460,7 +455,9 @@ const formatRelativeTime = (timestamp) => {
 
 // 格式化完整日期
 const formatFullDate = (timestamp) => {
-  if (!timestamp) {return "-";}
+  if (!timestamp) {
+    return "-";
+  }
 
   const date = new Date(typeof timestamp === "number" ? timestamp : timestamp);
   return date.toLocaleString("zh-CN", {

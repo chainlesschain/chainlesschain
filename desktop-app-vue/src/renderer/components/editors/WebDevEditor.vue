@@ -30,30 +30,19 @@
         size="small"
       />
 
-      <a-button
-        v-if="!autoRefresh"
-        size="small"
-        @click="refreshPreview"
-      >
+      <a-button v-if="!autoRefresh" size="small" @click="refreshPreview">
         <ReloadOutlined />
         刷新预览
       </a-button>
 
       <div class="toolbar-spacer" />
 
-      <a-button
-        size="small"
-        @click="fullscreenPreview"
-      >
+      <a-button size="small" @click="fullscreenPreview">
         <FullscreenOutlined />
         全屏预览
       </a-button>
 
-      <a-button
-        type="primary"
-        size="small"
-        @click="exportProject"
-      >
+      <a-button type="primary" size="small" @click="exportProject">
         <ExportOutlined />
         导出项目
       </a-button>
@@ -74,13 +63,8 @@
     <div class="webdev-content">
       <!-- 左侧：代码编辑器 -->
       <div class="code-section">
-        <div
-          v-show="activeTab === 'html'"
-          class="code-panel"
-        >
-          <div class="panel-header">
-            HTML
-          </div>
+        <div v-show="activeTab === 'html'" class="code-panel">
+          <div class="panel-header">HTML</div>
           <textarea
             ref="htmlEditorRef"
             v-model="htmlCode"
@@ -90,13 +74,8 @@
           />
         </div>
 
-        <div
-          v-show="activeTab === 'css'"
-          class="code-panel"
-        >
-          <div class="panel-header">
-            CSS
-          </div>
+        <div v-show="activeTab === 'css'" class="code-panel">
+          <div class="panel-header">CSS</div>
           <textarea
             ref="cssEditorRef"
             v-model="cssCode"
@@ -106,13 +85,8 @@
           />
         </div>
 
-        <div
-          v-show="activeTab === 'js'"
-          class="code-panel"
-        >
-          <div class="panel-header">
-            JavaScript
-          </div>
+        <div v-show="activeTab === 'js'" class="code-panel">
+          <div class="panel-header">JavaScript</div>
           <textarea
             ref="jsEditorRef"
             v-model="jsCode"
@@ -131,11 +105,7 @@
             实时预览
           </span>
           <div class="preview-actions">
-            <a-button
-              type="text"
-              size="small"
-              @click="refreshPreview"
-            >
+            <a-button type="text" size="small" @click="refreshPreview">
               <ReloadOutlined />
             </a-button>
           </div>
@@ -166,10 +136,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, watch, onMounted, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, watch, onMounted, nextTick } from "vue";
+import { message } from "ant-design-vue";
 import {
   Html5Outlined,
   BgColorsOutlined,
@@ -179,16 +149,18 @@ import {
   ExportOutlined,
   SaveOutlined,
   EyeOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   initialHTML: {
     type: String,
-    default: '<div class="container">\n  <h1>Hello World</h1>\n  <p>欢迎使用Web开发编辑器</p>\n</div>',
+    default:
+      '<div class="container">\n  <h1>Hello World</h1>\n  <p>欢迎使用Web开发编辑器</p>\n</div>',
   },
   initialCSS: {
     type: String,
-    default: 'body {\n  margin: 0;\n  font-family: Arial, sans-serif;\n}\n\n.container {\n  max-width: 800px;\n  margin: 40px auto;\n  padding: 20px;\n}\n\nh1 {\n  color: #333;\n}',
+    default:
+      "body {\n  margin: 0;\n  font-family: Arial, sans-serif;\n}\n\n.container {\n  max-width: 800px;\n  margin: 40px auto;\n  padding: 20px;\n}\n\nh1 {\n  color: #333;\n}",
   },
   initialJS: {
     type: String,
@@ -196,10 +168,10 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['save']);
+const emit = defineEmits(["save"]);
 
 // 状态
-const activeTab = ref('html');
+const activeTab = ref("html");
 const htmlCode = ref(props.initialHTML);
 const cssCode = ref(props.initialCSS);
 const jsCode = ref(props.initialJS);
@@ -242,7 +214,9 @@ const refreshPreview = () => {
 
 // 更新iframe内容
 const updateFrame = (frame) => {
-  if (!frame) {return;}
+  if (!frame) {
+    return;
+  }
 
   const doc = frame.contentDocument || frame.contentWindow.document;
   const html = `
@@ -260,7 +234,7 @@ const updateFrame = (frame) => {
     (function() {
       ${jsCode.value}
     })();
-  ${'</scr' + 'ipt>'}
+  ${"</scr" + "ipt>"}
 </body>
 </html>
   `;
@@ -282,38 +256,36 @@ const fullscreenPreview = () => {
 const exportProject = async () => {
   try {
     const result = await window.electronAPI.dialog.showSaveDialog({
-      defaultPath: 'web-project.zip',
-      filters: [
-        { name: '所有文件', extensions: ['*'] },
-      ],
-      properties: ['createDirectory'],
+      defaultPath: "web-project.zip",
+      filters: [{ name: "所有文件", extensions: ["*"] }],
+      properties: ["createDirectory"],
     });
 
     if (!result.canceled && result.filePath) {
       // 移除.zip扩展名（如果有）
-      const dirPath = result.filePath.replace(/\.zip$/, '');
+      const dirPath = result.filePath.replace(/\.zip$/, "");
 
       // 创建项目目录
       await window.electronAPI.file.writeContent(
         `${dirPath}/index.html`,
-        generateFullHTML()
+        generateFullHTML(),
       );
 
       await window.electronAPI.file.writeContent(
         `${dirPath}/style.css`,
-        cssCode.value
+        cssCode.value,
       );
 
       await window.electronAPI.file.writeContent(
         `${dirPath}/script.js`,
-        jsCode.value
+        jsCode.value,
       );
 
-      message.success('项目导出成功: ' + dirPath);
+      message.success("项目导出成功: " + dirPath);
     }
   } catch (error) {
-    logger.error('[WebDevEditor] 导出失败:', error);
-    message.error('导出失败: ' + error.message);
+    logger.error("[WebDevEditor] 导出失败:", error);
+    message.error("导出失败: " + error.message);
   }
 };
 
@@ -329,7 +301,7 @@ const generateFullHTML = () => {
 </head>
 <body>
   ${htmlCode.value}
-  <script src="script.js">${'</scr' + 'ipt>'}
+  <script src="script.js">${"</scr" + "ipt>"}
 </body>
 </html>`;
 };
@@ -344,12 +316,12 @@ const saveAll = async () => {
       js: jsCode.value,
     };
 
-    emit('save', projectData);
+    emit("save", projectData);
     hasChanges.value = false;
-    message.success('已保存');
+    message.success("已保存");
   } catch (error) {
-    logger.error('[WebDevEditor] 保存失败:', error);
-    message.error('保存失败: ' + error.message);
+    logger.error("[WebDevEditor] 保存失败:", error);
+    message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -475,7 +447,7 @@ defineExpose({
   padding: 16px;
   border: none;
   outline: none;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   font-size: 14px;
   line-height: 1.6;
   resize: none;

@@ -1,9 +1,6 @@
 <template>
   <div class="prompt-templates-container">
-    <a-card
-      title="提示词模板库"
-      :bordered="false"
-    >
+    <a-card title="提示词模板库" :bordered="false">
       <!-- 工具栏 -->
       <template #extra>
         <a-space>
@@ -27,9 +24,7 @@
             allow-clear
             @change="handleCategoryChange"
           >
-            <a-select-option value="">
-              全部分类
-            </a-select-option>
+            <a-select-option value=""> 全部分类 </a-select-option>
             <a-select-option
               v-for="category in categories"
               :key="category"
@@ -39,24 +34,16 @@
             </a-select-option>
           </a-select>
 
-          <a-button
-            type="primary"
-            @click="showCreateModal"
-          >
+          <a-button type="primary" @click="showCreateModal">
             <plus-outlined /> 创建模板
           </a-button>
 
-          <a-button @click="loadTemplates">
-            <reload-outlined /> 刷新
-          </a-button>
+          <a-button @click="loadTemplates"> <reload-outlined /> 刷新 </a-button>
         </a-space>
       </template>
 
       <!-- 统计信息 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 24px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 24px">
         <a-col :span="6">
           <a-statistic
             title="模板总数"
@@ -104,14 +91,8 @@
       </a-row>
 
       <!-- 模板标签页 -->
-      <a-tabs
-        v-model:active-key="activeTab"
-        @change="handleTabChange"
-      >
-        <a-tab-pane
-          key="all"
-          tab="全部模板"
-        >
+      <a-tabs v-model:active-key="activeTab" @change="handleTabChange">
+        <a-tab-pane key="all" tab="全部模板">
           <template-list
             :templates="filteredTemplates"
             :loading="loading"
@@ -122,10 +103,7 @@
           />
         </a-tab-pane>
 
-        <a-tab-pane
-          key="system"
-          tab="系统模板"
-        >
+        <a-tab-pane key="system" tab="系统模板">
           <template-list
             :templates="systemTemplates"
             :loading="loading"
@@ -133,10 +111,7 @@
           />
         </a-tab-pane>
 
-        <a-tab-pane
-          key="custom"
-          tab="自定义模板"
-        >
+        <a-tab-pane key="custom" tab="自定义模板">
           <template-list
             :templates="customTemplates"
             :loading="loading"
@@ -147,10 +122,7 @@
           />
         </a-tab-pane>
 
-        <a-tab-pane
-          key="most-used"
-          tab="常用模板"
-        >
+        <a-tab-pane key="most-used" tab="常用模板">
           <template-list
             :templates="mostUsedTemplates"
             :loading="loading"
@@ -170,14 +142,8 @@
       @ok="handleSaveTemplate"
       @cancel="handleCancelTemplate"
     >
-      <a-form
-        :model="templateForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="模板名称"
-          required
-        >
+      <a-form :model="templateForm" layout="vertical">
+        <a-form-item label="模板名称" required>
           <a-input
             v-model:value="templateForm.name"
             placeholder="输入模板名称"
@@ -197,37 +163,18 @@
             v-model:value="templateForm.category"
             placeholder="选择分类"
           >
-            <a-select-option value="general">
-              通用
-            </a-select-option>
-            <a-select-option value="writing">
-              写作
-            </a-select-option>
-            <a-select-option value="translation">
-              翻译
-            </a-select-option>
-            <a-select-option value="analysis">
-              分析
-            </a-select-option>
-            <a-select-option value="programming">
-              编程
-            </a-select-option>
-            <a-select-option value="creative">
-              创意
-            </a-select-option>
-            <a-select-option value="qa">
-              问答
-            </a-select-option>
-            <a-select-option value="rag">
-              RAG
-            </a-select-option>
+            <a-select-option value="general"> 通用 </a-select-option>
+            <a-select-option value="writing"> 写作 </a-select-option>
+            <a-select-option value="translation"> 翻译 </a-select-option>
+            <a-select-option value="analysis"> 分析 </a-select-option>
+            <a-select-option value="programming"> 编程 </a-select-option>
+            <a-select-option value="creative"> 创意 </a-select-option>
+            <a-select-option value="qa"> 问答 </a-select-option>
+            <a-select-option value="rag"> RAG </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="模板内容"
-          required
-        >
+        <a-form-item label="模板内容" required>
           <a-textarea
             v-model:value="templateForm.template"
             placeholder="输入模板内容，使用 {{变量名}} 定义变量"
@@ -248,10 +195,7 @@
           >
             {{ variable }}
           </a-tag>
-          <span
-            v-if="templateForm.variables.length === 0"
-            style="color: #999"
-          >
+          <span v-if="templateForm.variables.length === 0" style="color: #999">
             暂无变量
           </span>
         </a-form-item>
@@ -325,10 +269,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch, toRaw } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, watch, toRaw } from "vue";
+import { message } from "ant-design-vue";
 import {
   PlusOutlined,
   SearchOutlined,
@@ -337,8 +281,8 @@ import {
   TagOutlined,
   UserOutlined,
   LineChartOutlined,
-} from '@ant-design/icons-vue';
-import TemplateList from './PromptTemplateList.vue';
+} from "@ant-design/icons-vue";
+import TemplateList from "./PromptTemplateList.vue";
 
 // 数据状态
 const loading = ref(false);
@@ -353,18 +297,18 @@ const statistics = ref({
 });
 
 // 筛选和搜索
-const searchQuery = ref('');
-const selectedCategory = ref('');
-const activeTab = ref('all');
+const searchQuery = ref("");
+const selectedCategory = ref("");
+const activeTab = ref("all");
 
 // 模板表单
 const templateModalVisible = ref(false);
 const editingTemplate = ref(null);
 const templateForm = ref({
-  name: '',
-  description: '',
-  template: '',
-  category: 'general',
+  name: "",
+  description: "",
+  template: "",
+  category: "general",
   variables: [],
 });
 
@@ -372,33 +316,35 @@ const templateForm = ref({
 const useTemplateModalVisible = ref(false);
 const currentTemplate = ref(null);
 const variableValues = ref({});
-const filledPrompt = ref('');
+const filledPrompt = ref("");
 
 // 导入
 const importModalVisible = ref(false);
-const importData = ref('');
+const importData = ref("");
 
 // 计算属性
 const filteredTemplates = computed(() => {
   let result = templates.value;
 
   if (selectedCategory.value) {
-    result = result.filter(t => t.category === selectedCategory.value);
+    result = result.filter((t) => t.category === selectedCategory.value);
   }
 
   return result;
 });
 
 const systemTemplates = computed(() => {
-  return templates.value.filter(t => t.is_system);
+  return templates.value.filter((t) => t.is_system);
 });
 
 const customTemplates = computed(() => {
-  return templates.value.filter(t => !t.is_system);
+  return templates.value.filter((t) => !t.is_system);
 });
 
 const mostUsedTemplates = computed(() => {
-  return [...templates.value].sort((a, b) => b.usage_count - a.usage_count).slice(0, 10);
+  return [...templates.value]
+    .sort((a, b) => b.usage_count - a.usage_count)
+    .slice(0, 10);
 });
 
 const totalUsageCount = computed(() => {
@@ -413,8 +359,8 @@ const loadTemplates = async () => {
     categories.value = await window.electronAPI.promptTemplate.getCategories();
     statistics.value = await window.electronAPI.promptTemplate.getStatistics();
   } catch (error) {
-    logger.error('加载模板失败:', error);
-    message.error('加载模板失败: ' + error.message);
+    logger.error("加载模板失败:", error);
+    message.error("加载模板失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -428,11 +374,13 @@ const handleSearch = async () => {
 
   loading.value = true;
   try {
-    templates.value = await window.electronAPI.promptTemplate.search(searchQuery.value);
+    templates.value = await window.electronAPI.promptTemplate.search(
+      searchQuery.value,
+    );
     message.info(`找到 ${templates.value.length} 个模板`);
   } catch (error) {
-    logger.error('搜索失败:', error);
-    message.error('搜索失败: ' + error.message);
+    logger.error("搜索失败:", error);
+    message.error("搜索失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -445,17 +393,17 @@ const handleCategoryChange = () => {
 
 const handleTabChange = () => {
   // 标签页变化时清空搜索
-  searchQuery.value = '';
-  selectedCategory.value = '';
+  searchQuery.value = "";
+  selectedCategory.value = "";
 };
 
 const showCreateModal = () => {
   editingTemplate.value = null;
   templateForm.value = {
-    name: '',
-    description: '',
-    template: '',
-    category: 'general',
+    name: "",
+    description: "",
+    template: "",
+    category: "general",
     variables: [],
   };
   templateModalVisible.value = true;
@@ -476,17 +424,17 @@ const handleEditTemplate = async (template) => {
 const buildTemplatePayload = () => {
   const raw = toRaw(templateForm.value);
   return {
-    name: raw.name || '',
-    description: raw.description || '',
-    template: raw.template || '',
-    category: raw.category || 'general',
+    name: raw.name || "",
+    description: raw.description || "",
+    template: raw.template || "",
+    category: raw.category || "general",
     variables: Array.isArray(raw.variables) ? [...raw.variables] : [],
   };
 };
 
 const handleSaveTemplate = async () => {
   if (!templateForm.value.name || !templateForm.value.template) {
-    message.warning('请填写模板名称和内容');
+    message.warning("请填写模板名称和内容");
     return;
   }
 
@@ -496,20 +444,20 @@ const handleSaveTemplate = async () => {
       // 更新
       await window.electronAPI.promptTemplate.update(
         editingTemplate.value.id,
-        payload
+        payload,
       );
-      message.success('模板已更新');
+      message.success("模板已更新");
     } else {
       // 创建
       await window.electronAPI.promptTemplate.create(payload);
-      message.success('模板已创建');
+      message.success("模板已创建");
     }
 
     templateModalVisible.value = false;
     await loadTemplates();
   } catch (error) {
-    logger.error('保存模板失败:', error);
-    message.error('保存模板失败: ' + error.message);
+    logger.error("保存模板失败:", error);
+    message.error("保存模板失败: " + error.message);
   }
 };
 
@@ -521,11 +469,11 @@ const handleCancelTemplate = () => {
 const handleDeleteTemplate = async (template) => {
   try {
     await window.electronAPI.promptTemplate.delete(template.id);
-    message.success('模板已删除');
+    message.success("模板已删除");
     await loadTemplates();
   } catch (error) {
-    logger.error('删除模板失败:', error);
-    message.error('删除模板失败: ' + error.message);
+    logger.error("删除模板失败:", error);
+    message.error("删除模板失败: " + error.message);
   }
 };
 
@@ -534,8 +482,8 @@ const handleUseTemplate = (template) => {
   variableValues.value = {};
 
   // 初始化变量值
-  template.variables.forEach(v => {
-    variableValues.value[v] = '';
+  template.variables.forEach((v) => {
+    variableValues.value[v] = "";
   });
 
   useTemplateModalVisible.value = true;
@@ -546,36 +494,38 @@ const handleFillTemplate = async () => {
     const values = { ...toRaw(variableValues.value) };
     filledPrompt.value = await window.electronAPI.promptTemplate.fill(
       currentTemplate.value.id,
-      values
+      values,
     );
 
     // 复制到剪贴板
     await navigator.clipboard.writeText(filledPrompt.value);
-    message.success('提示词已生成并复制到剪贴板');
+    message.success("提示词已生成并复制到剪贴板");
 
     useTemplateModalVisible.value = false;
     await loadTemplates(); // 刷新使用次数
   } catch (error) {
-    logger.error('填充模板失败:', error);
-    message.error('填充模板失败: ' + error.message);
+    logger.error("填充模板失败:", error);
+    message.error("填充模板失败: " + error.message);
   }
 };
 
 const handleExportTemplate = async (template) => {
   try {
-    const exportData = await window.electronAPI.promptTemplate.export(template.id);
+    const exportData = await window.electronAPI.promptTemplate.export(
+      template.id,
+    );
     const jsonString = JSON.stringify(exportData, null, 2);
 
     await navigator.clipboard.writeText(jsonString);
-    message.success('模板已导出到剪贴板');
+    message.success("模板已导出到剪贴板");
   } catch (error) {
-    logger.error('导出模板失败:', error);
-    message.error('导出模板失败: ' + error.message);
+    logger.error("导出模板失败:", error);
+    message.error("导出模板失败: " + error.message);
   }
 };
 
 const showImportModal = () => {
-  importData.value = '';
+  importData.value = "";
   importModalVisible.value = true;
 };
 
@@ -583,12 +533,12 @@ const handleImportTemplate = async () => {
   try {
     const data = JSON.parse(importData.value);
     await window.electronAPI.promptTemplate.import(data);
-    message.success('模板已导入');
+    message.success("模板已导入");
     importModalVisible.value = false;
     await loadTemplates();
   } catch (error) {
-    logger.error('导入模板失败:', error);
-    message.error('导入模板失败: ' + error.message);
+    logger.error("导入模板失败:", error);
+    message.error("导入模板失败: " + error.message);
   }
 };
 
@@ -606,31 +556,37 @@ const extractVariables = () => {
 
 const getCategoryLabel = (category) => {
   const labels = {
-    general: '通用',
-    writing: '写作',
-    translation: '翻译',
-    analysis: '分析',
-    programming: '编程',
-    creative: '创意',
-    qa: '问答',
-    rag: 'RAG',
+    general: "通用",
+    writing: "写作",
+    translation: "翻译",
+    analysis: "分析",
+    programming: "编程",
+    creative: "创意",
+    qa: "问答",
+    rag: "RAG",
   };
   return labels[category] || category;
 };
 
 // 监听变量值变化，实时预览
-watch(variableValues, () => {
-  if (!currentTemplate.value) {return;}
+watch(
+  variableValues,
+  () => {
+    if (!currentTemplate.value) {
+      return;
+    }
 
-  let result = currentTemplate.value.template;
+    let result = currentTemplate.value.template;
 
-  for (const [key, value] of Object.entries(variableValues.value)) {
-    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
-    result = result.replace(regex, value || `{{${key}}}`);
-  }
+    for (const [key, value] of Object.entries(variableValues.value)) {
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, "g");
+      result = result.replace(regex, value || `{{${key}}}`);
+    }
 
-  filledPrompt.value = result;
-}, { deep: true });
+    filledPrompt.value = result;
+  },
+  { deep: true },
+);
 
 // 组件挂载时加载数据
 onMounted(() => {

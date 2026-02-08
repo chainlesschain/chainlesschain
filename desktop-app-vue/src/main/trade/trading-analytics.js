@@ -9,30 +9,30 @@
  * - 市场洞察
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * 时间范围
  */
 const TimeRange = {
-  DAY: 'day',
-  WEEK: 'week',
-  MONTH: 'month',
-  QUARTER: 'quarter',
-  YEAR: 'year',
-  ALL: 'all'
+  DAY: "day",
+  WEEK: "week",
+  MONTH: "month",
+  QUARTER: "quarter",
+  YEAR: "year",
+  ALL: "all",
 };
 
 /**
  * 分析类型
  */
 const AnalysisType = {
-  TRADING_VOLUME: 'trading_volume',       // 交易量分析
-  PROFIT_LOSS: 'profit_loss',             // 盈亏分析
-  ASSET_PERFORMANCE: 'asset_performance', // 资产表现
-  RISK_ASSESSMENT: 'risk_assessment',     // 风险评估
-  MARKET_TREND: 'market_trend'            // 市场趋势
+  TRADING_VOLUME: "trading_volume", // 交易量分析
+  PROFIT_LOSS: "profit_loss", // 盈亏分析
+  ASSET_PERFORMANCE: "asset_performance", // 资产表现
+  RISK_ASSESSMENT: "risk_assessment", // 风险评估
+  MARKET_TREND: "market_trend", // 市场趋势
 };
 
 /**
@@ -55,16 +55,16 @@ class TradingAnalytics extends EventEmitter {
    * 初始化分析引擎
    */
   async initialize() {
-    logger.info('[TradingAnalytics] 初始化交易分析引擎...');
+    logger.info("[TradingAnalytics] 初始化交易分析引擎...");
 
     try {
       // 初始化数据库表
       await this.initializeTables();
 
       this.initialized = true;
-      logger.info('[TradingAnalytics] 交易分析引擎初始化成功');
+      logger.info("[TradingAnalytics] 交易分析引擎初始化成功");
     } catch (error) {
-      logger.error('[TradingAnalytics] 初始化失败:', error);
+      logger.error("[TradingAnalytics] 初始化失败:", error);
       throw error;
     }
   }
@@ -95,7 +95,9 @@ class TradingAnalytics extends EventEmitter {
   async getTradingOverview(timeRange = TimeRange.MONTH) {
     const cacheKey = `overview_${timeRange}`;
     const cached = this.getCache(cacheKey);
-    if (cached) {return cached;}
+    if (cached) {
+      return cached;
+    }
 
     try {
       const { startTime, endTime } = this.getTimeRange(timeRange);
@@ -115,13 +117,13 @@ class TradingAnalytics extends EventEmitter {
         transactions: stats,
         assets: assetStats,
         orders: orderStats,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.setCache(cacheKey, overview);
       return overview;
     } catch (error) {
-      logger.error('[TradingAnalytics] 获取交易概览失败:', error);
+      logger.error("[TradingAnalytics] 获取交易概览失败:", error);
       throw error;
     }
   }
@@ -142,13 +144,15 @@ class TradingAnalytics extends EventEmitter {
     `;
 
     const result = await this.database.get(sql, [startTime, endTime]);
-    return result || {
-      total_count: 0,
-      completed_count: 0,
-      cancelled_count: 0,
-      total_volume: 0,
-      avg_amount: 0
-    };
+    return (
+      result || {
+        total_count: 0,
+        completed_count: 0,
+        cancelled_count: 0,
+        total_volume: 0,
+        avg_amount: 0,
+      }
+    );
   }
 
   /**
@@ -196,7 +200,9 @@ class TradingAnalytics extends EventEmitter {
   async getProfitLossAnalysis(timeRange = TimeRange.MONTH) {
     const cacheKey = `profit_loss_${timeRange}`;
     const cached = this.getCache(cacheKey);
-    if (cached) {return cached;}
+    if (cached) {
+      return cached;
+    }
 
     try {
       const { startTime, endTime } = this.getTimeRange(timeRange);
@@ -209,7 +215,8 @@ class TradingAnalytics extends EventEmitter {
 
       // 计算净利润
       const netProfit = income.total - expenses.total;
-      const profitMargin = income.total > 0 ? (netProfit / income.total) * 100 : 0;
+      const profitMargin =
+        income.total > 0 ? (netProfit / income.total) * 100 : 0;
 
       const analysis = {
         timeRange,
@@ -218,13 +225,13 @@ class TradingAnalytics extends EventEmitter {
         expenses,
         netProfit,
         profitMargin,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.setCache(cacheKey, analysis);
       return analysis;
     } catch (error) {
-      logger.error('[TradingAnalytics] 获取盈亏分析失败:', error);
+      logger.error("[TradingAnalytics] 获取盈亏分析失败:", error);
       throw error;
     }
   }
@@ -276,9 +283,11 @@ class TradingAnalytics extends EventEmitter {
    * @returns {Promise<Object>} 资产表现数据
    */
   async getAssetPerformance(assetId = null, timeRange = TimeRange.MONTH) {
-    const cacheKey = `asset_performance_${assetId || 'all'}_${timeRange}`;
+    const cacheKey = `asset_performance_${assetId || "all"}_${timeRange}`;
     const cached = this.getCache(cacheKey);
-    if (cached) {return cached;}
+    if (cached) {
+      return cached;
+    }
 
     try {
       const { startTime, endTime } = this.getTimeRange(timeRange);
@@ -330,13 +339,13 @@ class TradingAnalytics extends EventEmitter {
         timeRange,
         period: { startTime, endTime },
         assets: results || [],
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.setCache(cacheKey, performance);
       return performance;
     } catch (error) {
-      logger.error('[TradingAnalytics] 获取资产表现失败:', error);
+      logger.error("[TradingAnalytics] 获取资产表现失败:", error);
       throw error;
     }
   }
@@ -346,9 +355,11 @@ class TradingAnalytics extends EventEmitter {
    * @returns {Promise<Object>} 风险评估数据
    */
   async getRiskAssessment() {
-    const cacheKey = 'risk_assessment';
+    const cacheKey = "risk_assessment";
     const cached = this.getCache(cacheKey);
-    if (cached) {return cached;}
+    if (cached) {
+      return cached;
+    }
 
     try {
       // 获取资产集中度风险
@@ -364,7 +375,7 @@ class TradingAnalytics extends EventEmitter {
       const overallRisk = this.calculateOverallRisk({
         concentrationRisk,
         liquidityRisk,
-        counterpartyRisk
+        counterpartyRisk,
       });
 
       const assessment = {
@@ -374,13 +385,13 @@ class TradingAnalytics extends EventEmitter {
         counterpartyRisk,
         riskLevel: this.getRiskLevel(overallRisk),
         recommendations: this.generateRiskRecommendations(overallRisk),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.setCache(cacheKey, assessment);
       return assessment;
     } catch (error) {
-      logger.error('[TradingAnalytics] 获取风险评估失败:', error);
+      logger.error("[TradingAnalytics] 获取风险评估失败:", error);
       throw error;
     }
   }
@@ -405,18 +416,21 @@ class TradingAnalytics extends EventEmitter {
       return { score: 0, distribution: [] };
     }
 
-    const totalValue = results.reduce((sum, r) => sum + (r.total_value || 0), 0);
-    const distribution = results.map(r => ({
+    const totalValue = results.reduce(
+      (sum, r) => sum + (r.total_value || 0),
+      0,
+    );
+    const distribution = results.map((r) => ({
       type: r.asset_type,
       count: r.count,
       value: r.total_value || 0,
-      percentage: totalValue > 0 ? (r.total_value / totalValue) * 100 : 0
+      percentage: totalValue > 0 ? (r.total_value / totalValue) * 100 : 0,
     }));
 
     // 计算集中度风险评分（基于赫芬达尔指数）
     const herfindahlIndex = distribution.reduce((sum, d) => {
       const share = d.percentage / 100;
-      return sum + (share * share);
+      return sum + share * share;
     }, 0);
 
     const score = herfindahlIndex * 100; // 0-100
@@ -436,7 +450,7 @@ class TradingAnalytics extends EventEmitter {
       WHERE status = 'active'
     `;
 
-    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const result = await this.database.get(sql, [thirtyDaysAgo]);
 
     if (!result || result.total_assets === 0) {
@@ -464,31 +478,35 @@ class TradingAnalytics extends EventEmitter {
       GROUP BY counterparty_did
     `;
 
-    const ninetyDaysAgo = Date.now() - (90 * 24 * 60 * 60 * 1000);
+    const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
     const results = await this.database.all(sql, [ninetyDaysAgo]);
 
     if (!results || results.length === 0) {
       return { score: 0, counterparties: [] };
     }
 
-    const counterparties = results.map(r => {
-      const completionRate = r.transaction_count > 0
-        ? (r.completed_count / r.transaction_count) * 100
-        : 0;
-      const disputeRate = r.transaction_count > 0
-        ? (r.disputed_count / r.transaction_count) * 100
-        : 0;
+    const counterparties = results.map((r) => {
+      const completionRate =
+        r.transaction_count > 0
+          ? (r.completed_count / r.transaction_count) * 100
+          : 0;
+      const disputeRate =
+        r.transaction_count > 0
+          ? (r.disputed_count / r.transaction_count) * 100
+          : 0;
 
       return {
         did: r.counterparty_did,
         transactionCount: r.transaction_count,
         completionRate,
         disputeRate,
-        riskScore: disputeRate * 2 + (100 - completionRate) // 简化风险评分
+        riskScore: disputeRate * 2 + (100 - completionRate), // 简化风险评分
       };
     });
 
-    const avgRiskScore = counterparties.reduce((sum, c) => sum + c.riskScore, 0) / counterparties.length;
+    const avgRiskScore =
+      counterparties.reduce((sum, c) => sum + c.riskScore, 0) /
+      counterparties.length;
 
     return { score: avgRiskScore, counterparties };
   }
@@ -500,7 +518,7 @@ class TradingAnalytics extends EventEmitter {
     const weights = {
       concentrationRisk: 0.3,
       liquidityRisk: 0.3,
-      counterpartyRisk: 0.4
+      counterpartyRisk: 0.4,
     };
 
     return (
@@ -514,11 +532,19 @@ class TradingAnalytics extends EventEmitter {
    * 获取风险等级
    */
   getRiskLevel(score) {
-    if (score < 20) {return 'low';}
-    if (score < 40) {return 'moderate';}
-    if (score < 60) {return 'medium';}
-    if (score < 80) {return 'high';}
-    return 'critical';
+    if (score < 20) {
+      return "low";
+    }
+    if (score < 40) {
+      return "moderate";
+    }
+    if (score < 60) {
+      return "medium";
+    }
+    if (score < 80) {
+      return "high";
+    }
+    return "critical";
   }
 
   /**
@@ -528,14 +554,14 @@ class TradingAnalytics extends EventEmitter {
     const recommendations = [];
 
     if (score >= 60) {
-      recommendations.push('建议分散资产配置，降低集中度风险');
-      recommendations.push('增加流动性较好的资产比例');
-      recommendations.push('审慎选择交易对手，优先选择信用评分高的用户');
+      recommendations.push("建议分散资产配置，降低集中度风险");
+      recommendations.push("增加流动性较好的资产比例");
+      recommendations.push("审慎选择交易对手，优先选择信用评分高的用户");
     } else if (score >= 40) {
-      recommendations.push('适当调整资产配置，保持多样化');
-      recommendations.push('关注资产流动性变化');
+      recommendations.push("适当调整资产配置，保持多样化");
+      recommendations.push("关注资产流动性变化");
     } else {
-      recommendations.push('当前风险水平较低，继续保持');
+      recommendations.push("当前风险水平较低，继续保持");
     }
 
     return recommendations;
@@ -549,7 +575,9 @@ class TradingAnalytics extends EventEmitter {
   async getMarketTrend(timeRange = TimeRange.MONTH) {
     const cacheKey = `market_trend_${timeRange}`;
     const cached = this.getCache(cacheKey);
-    if (cached) {return cached;}
+    if (cached) {
+      return cached;
+    }
 
     try {
       const { startTime, endTime } = this.getTimeRange(timeRange);
@@ -569,13 +597,13 @@ class TradingAnalytics extends EventEmitter {
         volumeTrend,
         priceTrend,
         activityTrend,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       this.setCache(cacheKey, trend);
       return trend;
     } catch (error) {
-      logger.error('[TradingAnalytics] 获取市场趋势失败:', error);
+      logger.error("[TradingAnalytics] 获取市场趋势失败:", error);
       throw error;
     }
   }
@@ -653,25 +681,25 @@ class TradingAnalytics extends EventEmitter {
 
     switch (range) {
       case TimeRange.DAY:
-        startTime = now - (24 * 60 * 60 * 1000);
+        startTime = now - 24 * 60 * 60 * 1000;
         break;
       case TimeRange.WEEK:
-        startTime = now - (7 * 24 * 60 * 60 * 1000);
+        startTime = now - 7 * 24 * 60 * 60 * 1000;
         break;
       case TimeRange.MONTH:
-        startTime = now - (30 * 24 * 60 * 60 * 1000);
+        startTime = now - 30 * 24 * 60 * 60 * 1000;
         break;
       case TimeRange.QUARTER:
-        startTime = now - (90 * 24 * 60 * 60 * 1000);
+        startTime = now - 90 * 24 * 60 * 60 * 1000;
         break;
       case TimeRange.YEAR:
-        startTime = now - (365 * 24 * 60 * 60 * 1000);
+        startTime = now - 365 * 24 * 60 * 60 * 1000;
         break;
       case TimeRange.ALL:
         startTime = 0;
         break;
       default:
-        startTime = now - (30 * 24 * 60 * 60 * 1000);
+        startTime = now - 30 * 24 * 60 * 60 * 1000;
     }
 
     return { startTime, endTime: now };
@@ -712,7 +740,7 @@ class TradingAnalytics extends EventEmitter {
   setCache(key, data) {
     this.cache.set(key, {
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
 
@@ -736,5 +764,5 @@ class TradingAnalytics extends EventEmitter {
 module.exports = {
   TradingAnalytics,
   TimeRange,
-  AnalysisType
+  AnalysisType,
 };

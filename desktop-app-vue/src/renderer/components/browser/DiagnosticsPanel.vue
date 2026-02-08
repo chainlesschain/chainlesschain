@@ -1,6 +1,6 @@
 <template>
   <a-card title="🔍 浏览器诊断工具" :bordered="false" class="diagnostics-panel">
-    <a-tabs v-model:activeKey="activeTab" type="card">
+    <a-tabs v-model:active-key="activeTab" type="card">
       <!-- OCR 文本识别 -->
       <a-tab-pane key="ocr" tab="OCR 文本识别">
         <a-space direction="vertical" style="width: 100%" size="large">
@@ -52,15 +52,15 @@
           <a-space>
             <a-button
               type="primary"
-              @click="handleOCRRecognize"
               :loading="loading.ocr"
+              @click="handleOCRRecognize"
             >
-              <template #icon><ScanOutlined /></template>
+              <template #icon>
+                <ScanOutlined />
+              </template>
               开始识别
             </a-button>
-            <a-button @click="handleClearOCRResult">
-              清除结果
-            </a-button>
+            <a-button @click="handleClearOCRResult"> 清除结果 </a-button>
           </a-space>
 
           <!-- OCR 结果 -->
@@ -147,12 +147,16 @@
             <a-col :span="12">
               <a-card title="基准截图" size="small">
                 <a-upload
-                  :before-upload="(file) => handleUploadScreenshot(file, 'baseline')"
+                  :before-upload="
+                    (file) => handleUploadScreenshot(file, 'baseline')
+                  "
                   :show-upload-list="false"
                   accept="image/png,image/jpeg"
                 >
                   <a-button>
-                    <template #icon><UploadOutlined /></template>
+                    <template #icon>
+                      <UploadOutlined />
+                    </template>
                     上传基准截图
                   </a-button>
                 </a-upload>
@@ -165,21 +169,27 @@
               <a-card title="当前截图" size="small">
                 <a-space>
                   <a-upload
-                    :before-upload="(file) => handleUploadScreenshot(file, 'current')"
+                    :before-upload="
+                      (file) => handleUploadScreenshot(file, 'current')
+                    "
                     :show-upload-list="false"
                     accept="image/png,image/jpeg"
                   >
                     <a-button>
-                      <template #icon><UploadOutlined /></template>
+                      <template #icon>
+                        <UploadOutlined />
+                      </template>
                       上传当前截图
                     </a-button>
                   </a-upload>
                   <a-button
                     type="primary"
-                    @click="handleCaptureCurrentScreenshot"
                     :loading="loading.capture"
+                    @click="handleCaptureCurrentScreenshot"
                   >
-                    <template #icon><CameraOutlined /></template>
+                    <template #icon>
+                      <CameraOutlined />
+                    </template>
                     截取当前页面
                   </a-button>
                 </a-space>
@@ -194,12 +204,14 @@
           <a-button
             type="primary"
             size="large"
-            @click="handleCompareScreenshots"
             :loading="loading.compare"
             :disabled="!diffScreenshots.baseline || !diffScreenshots.current"
             block
+            @click="handleCompareScreenshots"
           >
-            <template #icon><DiffOutlined /></template>
+            <template #icon>
+              <DiffOutlined />
+            </template>
             开始比对
           </a-button>
 
@@ -217,7 +229,8 @@
                   suffix="%"
                   :value-style="{
                     fontSize: '16px',
-                    color: diffResult.status === 'passed' ? '#52c41a' : '#ff4d4f'
+                    color:
+                      diffResult.status === 'passed' ? '#52c41a' : '#ff4d4f',
                   }"
                 />
                 <a-statistic
@@ -228,7 +241,7 @@
               </a-space>
             </template>
 
-            <a-row :gutter="16" v-if="diffResult.diffImage">
+            <a-row v-if="diffResult.diffImage" :gutter="16">
               <a-col :span="24">
                 <div class="diff-image-container">
                   <img
@@ -237,7 +250,7 @@
                   />
                   <p class="diff-legend">
                     <span class="legend-item">
-                      <span class="legend-color" style="background: #ff00ff"></span>
+                      <span class="legend-color" style="background: #ff00ff" />
                       差异区域
                     </span>
                   </p>
@@ -245,15 +258,28 @@
               </a-col>
             </a-row>
 
-            <a-descriptions :column="2" size="small" bordered style="margin-top: 16px">
+            <a-descriptions
+              :column="2"
+              size="small"
+              bordered
+              style="margin-top: 16px"
+            >
               <a-descriptions-item label="分析尺寸">
-                {{ diffResult.dimensions?.width }} x {{ diffResult.dimensions?.height }}
+                {{ diffResult.dimensions?.width }} x
+                {{ diffResult.dimensions?.height }}
               </a-descriptions-item>
               <a-descriptions-item label="耗时">
                 {{ diffResult.duration }} ms
               </a-descriptions-item>
               <a-descriptions-item label="差异百分比">
-                {{ ((diffResult.mismatchedPixels / (diffResult.dimensions?.width * diffResult.dimensions?.height)) * 100).toFixed(4) }}%
+                {{
+                  (
+                    (diffResult.mismatchedPixels /
+                      (diffResult.dimensions?.width *
+                        diffResult.dimensions?.height)) *
+                    100
+                  ).toFixed(4)
+                }}%
               </a-descriptions-item>
               <a-descriptions-item label="阈值">
                 {{ (diffConfig.threshold * 100).toFixed(0) }}%
@@ -268,7 +294,9 @@
         <a-space direction="vertical" style="width: 100%" size="large">
           <a-space>
             <a-button type="primary" @click="handleRefreshHistory">
-              <template #icon><ReloadOutlined /></template>
+              <template #icon>
+                <ReloadOutlined />
+              </template>
               刷新历史
             </a-button>
             <a-button danger @click="handleClearHistory">
@@ -286,7 +314,7 @@
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'type'">
                 <a-tag :color="record.type === 'ocr' ? 'blue' : 'green'">
-                  {{ record.type === 'ocr' ? 'OCR识别' : '截图比对' }}
+                  {{ record.type === "ocr" ? "OCR识别" : "截图比对" }}
                 </a-tag>
               </template>
               <template v-if="column.key === 'status'">
@@ -300,7 +328,11 @@
               </template>
               <template v-if="column.key === 'action'">
                 <a-space>
-                  <a-button type="link" size="small" @click="handleViewHistoryDetail(record)">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="handleViewHistoryDetail(record)"
+                  >
                     查看详情
                   </a-button>
                   <a-button
@@ -322,76 +354,76 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive } from "vue";
+import { message } from "ant-design-vue";
 import {
   ScanOutlined,
   CameraOutlined,
   UploadOutlined,
   DiffOutlined,
-  ReloadOutlined
-} from '@ant-design/icons-vue';
+  ReloadOutlined,
+} from "@ant-design/icons-vue";
 
 // Props
 const props = defineProps({
   targetId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
 // State
-const activeTab = ref('ocr');
+const activeTab = ref("ocr");
 
 const loading = reactive({
   ocr: false,
   compare: false,
   capture: false,
-  history: false
+  history: false,
 });
 
 // OCR Configuration
 const ocrConfig = reactive({
-  lang: 'eng',
+  lang: "eng",
   rectangle: {
     left: 0,
     top: 0,
     width: 0,
-    height: 0
+    height: 0,
   },
-  useFullPage: true
+  useFullPage: true,
 });
 
 const languageOptions = [
-  { label: 'English', value: 'eng' },
-  { label: '简体中文', value: 'chi_sim' },
-  { label: '繁体中文', value: 'chi_tra' },
-  { label: '日本語', value: 'jpn' },
-  { label: '한국어', value: 'kor' },
-  { label: 'Español', value: 'spa' },
-  { label: 'Français', value: 'fra' },
-  { label: 'Deutsch', value: 'deu' }
+  { label: "English", value: "eng" },
+  { label: "简体中文", value: "chi_sim" },
+  { label: "繁体中文", value: "chi_tra" },
+  { label: "日本語", value: "jpn" },
+  { label: "한국어", value: "kor" },
+  { label: "Español", value: "spa" },
+  { label: "Français", value: "fra" },
+  { label: "Deutsch", value: "deu" },
 ];
 
 const ocrResult = ref(null);
 
 const ocrWordsColumns = [
-  { title: '文本', dataIndex: 'text', key: 'text' },
-  { title: '置信度', dataIndex: 'confidence', key: 'confidence', width: 200 },
-  { title: 'X', dataIndex: 'x', key: 'x', width: 60 },
-  { title: 'Y', dataIndex: 'y', key: 'y', width: 60 }
+  { title: "文本", dataIndex: "text", key: "text" },
+  { title: "置信度", dataIndex: "confidence", key: "confidence", width: 200 },
+  { title: "X", dataIndex: "x", key: "x", width: 60 },
+  { title: "Y", dataIndex: "y", key: "y", width: 60 },
 ];
 
 // Screenshot Diff Configuration
 const diffConfig = reactive({
   threshold: 0.95,
   antialiasing: true,
-  ignoreColors: false
+  ignoreColors: false,
 });
 
 const diffScreenshots = reactive({
   baseline: null,
-  current: null
+  current: null,
 });
 
 const diffResult = ref(null);
@@ -400,11 +432,11 @@ const diffResult = ref(null);
 const diagnosticsHistory = ref([]);
 
 const historyColumns = [
-  { title: '类型', dataIndex: 'type', key: 'type', width: 120 },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
-  { title: '时间', dataIndex: 'timestamp', key: 'timestamp', width: 180 },
-  { title: '描述', dataIndex: 'description', key: 'description' },
-  { title: '操作', key: 'action', width: 180 }
+  { title: "类型", dataIndex: "type", key: "type", width: 120 },
+  { title: "状态", dataIndex: "status", key: "status", width: 100 },
+  { title: "时间", dataIndex: "timestamp", key: "timestamp", width: 180 },
+  { title: "描述", dataIndex: "description", key: "description" },
+  { title: "操作", key: "action", width: 180 },
 ];
 
 // Methods
@@ -416,40 +448,42 @@ const handleOCRRecognize = async () => {
   loading.ocr = true;
   try {
     const options = {
-      lang: ocrConfig.lang
+      lang: ocrConfig.lang,
     };
 
     // 如果不是全屏识别，添加区域参数
-    if (!ocrConfig.useFullPage &&
-        (ocrConfig.rectangle.width > 0 || ocrConfig.rectangle.height > 0)) {
+    if (
+      !ocrConfig.useFullPage &&
+      (ocrConfig.rectangle.width > 0 || ocrConfig.rectangle.height > 0)
+    ) {
       options.rectangle = { ...ocrConfig.rectangle };
     }
 
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:ocr:recognize',
+      "browser:ocr:recognize",
       props.targetId,
-      options
+      options,
     );
 
     ocrResult.value = result;
 
     // 添加到历史
     addToHistory({
-      type: 'ocr',
-      status: 'success',
+      type: "ocr",
+      status: "success",
       description: `识别语言: ${ocrConfig.lang}, 置信度: ${result.confidence.toFixed(2)}%`,
-      data: result
+      data: result,
     });
 
-    message.success('OCR 识别完成');
+    message.success("OCR 识别完成");
   } catch (error) {
-    message.error('OCR 识别失败: ' + error.message);
-    console.error('OCR error:', error);
+    message.error("OCR 识别失败: " + error.message);
+    console.error("OCR error:", error);
 
     addToHistory({
-      type: 'ocr',
-      status: 'error',
-      description: `识别失败: ${error.message}`
+      type: "ocr",
+      status: "error",
+      description: `识别失败: ${error.message}`,
     });
   } finally {
     loading.ocr = false;
@@ -461,9 +495,13 @@ const handleClearOCRResult = () => {
 };
 
 const getConfidenceColor = (confidence) => {
-  if (confidence >= 90) return '#52c41a';
-  if (confidence >= 70) return '#faad14';
-  return '#ff4d4f';
+  if (confidence >= 90) {
+    return "#52c41a";
+  }
+  if (confidence >= 70) {
+    return "#faad14";
+  }
+  return "#ff4d4f";
 };
 
 /**
@@ -473,7 +511,7 @@ const handleUploadScreenshot = (file, type) => {
   const reader = new FileReader();
   reader.onload = (e) => {
     diffScreenshots[type] = e.target.result;
-    message.success(`${type === 'baseline' ? '基准' : '当前'}截图已加载`);
+    message.success(`${type === "baseline" ? "基准" : "当前"}截图已加载`);
   };
   reader.readAsDataURL(file);
   return false; // 阻止自动上传
@@ -486,16 +524,16 @@ const handleCaptureCurrentScreenshot = async () => {
   loading.capture = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:screenshot',
+      "browser:screenshot",
       props.targetId,
-      { type: 'png', fullPage: false }
+      { type: "png", fullPage: false },
     );
 
     diffScreenshots.current = `data:image/png;base64,${result.screenshot}`;
-    message.success('当前页面截图成功');
+    message.success("当前页面截图成功");
   } catch (error) {
-    message.error('截图失败: ' + error.message);
-    console.error('Screenshot error:', error);
+    message.error("截图失败: " + error.message);
+    console.error("Screenshot error:", error);
   } finally {
     loading.capture = false;
   }
@@ -508,44 +546,44 @@ const handleCompareScreenshots = async () => {
   loading.compare = true;
   try {
     // 提取 base64 数据
-    const baselineBase64 = diffScreenshots.baseline.split(',')[1];
-    const currentBase64 = diffScreenshots.current.split(',')[1];
+    const baselineBase64 = diffScreenshots.baseline.split(",")[1];
+    const currentBase64 = diffScreenshots.current.split(",")[1];
 
     const result = await window.electron.ipcRenderer.invoke(
-      'browser:screenshot:compare',
+      "browser:screenshot:compare",
       baselineBase64,
       currentBase64,
       {
         threshold: diffConfig.threshold,
         antialiasing: diffConfig.antialiasing,
         ignoreColors: diffConfig.ignoreColors,
-        generateDiff: true
-      }
+        generateDiff: true,
+      },
     );
 
     diffResult.value = result;
 
     // 添加到历史
     addToHistory({
-      type: 'diff',
-      status: result.status === 'passed' ? 'success' : 'warning',
+      type: "diff",
+      status: result.status === "passed" ? "success" : "warning",
       description: `相似度: ${(result.similarity * 100).toFixed(2)}%, 差异像素: ${result.mismatchedPixels}`,
-      data: result
+      data: result,
     });
 
-    if (result.status === 'passed') {
-      message.success('截图比对通过');
+    if (result.status === "passed") {
+      message.success("截图比对通过");
     } else {
-      message.warning('截图比对失败，存在差异');
+      message.warning("截图比对失败，存在差异");
     }
   } catch (error) {
-    message.error('截图比对失败: ' + error.message);
-    console.error('Compare error:', error);
+    message.error("截图比对失败: " + error.message);
+    console.error("Compare error:", error);
 
     addToHistory({
-      type: 'diff',
-      status: 'error',
-      description: `比对失败: ${error.message}`
+      type: "diff",
+      status: "error",
+      description: `比对失败: ${error.message}`,
     });
   } finally {
     loading.compare = false;
@@ -559,7 +597,7 @@ const addToHistory = (item) => {
   const historyItem = {
     id: Date.now() + Math.random(),
     timestamp: Date.now(),
-    ...item
+    ...item,
   };
   diagnosticsHistory.value.unshift(historyItem);
 
@@ -570,26 +608,28 @@ const addToHistory = (item) => {
 };
 
 const handleRefreshHistory = () => {
-  message.info('历史记录已刷新');
+  message.info("历史记录已刷新");
 };
 
 const handleClearHistory = () => {
   diagnosticsHistory.value = [];
-  message.success('历史记录已清除');
+  message.success("历史记录已清除");
 };
 
 const handleViewHistoryDetail = (record) => {
-  console.log('View history detail:', record);
-  message.info('查看详情功能开发中');
+  console.log("View history detail:", record);
+  message.info("查看详情功能开发中");
 };
 
 const handleDeleteHistory = (id) => {
-  diagnosticsHistory.value = diagnosticsHistory.value.filter(item => item.id !== id);
-  message.success('已删除');
+  diagnosticsHistory.value = diagnosticsHistory.value.filter(
+    (item) => item.id !== id,
+  );
+  message.success("已删除");
 };
 
 const formatTimestamp = (timestamp) => {
-  return new Date(timestamp).toLocaleString('zh-CN');
+  return new Date(timestamp).toLocaleString("zh-CN");
 };
 </script>
 

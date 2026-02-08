@@ -6,7 +6,7 @@
  * @description 提供 LLM 服务的所有 IPC 接口，包括聊天、查询、配置管理、智能选择等
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const defaultIpcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -110,7 +110,8 @@ function registerLLMIPC({
 
   // 🔥 在测试模式下，如果 llmManager 为 null，创建 Mock LLM 服务
   let effectiveManager = llmManager;
-  const isTestMode = process.env.NODE_ENV === 'test' && process.env.MOCK_LLM === 'true';
+  const isTestMode =
+    process.env.NODE_ENV === "test" && process.env.MOCK_LLM === "true";
 
   if (isTestMode && !effectiveManager) {
     logger.info("[LLM IPC] 测试模式且无 LLM Manager，创建 Mock LLM 服务");
@@ -1059,11 +1060,13 @@ function registerLLMIPC({
           logger.info("[LLM IPC] 测试模式：使用简单模板填充");
           // 简单的模板填充逻辑
           const templates = {
-            'code-review': `Please review the following ${variables?.language || 'code'}:\n\n${variables?.code || ''}`,
-            'translate': `Please translate the following text to ${variables?.targetLanguage || 'English'}:\n\n${variables?.text || ''}`,
-            'summarize': `Please summarize the following text:\n\n${variables?.text || ''}`,
+            "code-review": `Please review the following ${variables?.language || "code"}:\n\n${variables?.code || ""}`,
+            translate: `Please translate the following text to ${variables?.targetLanguage || "English"}:\n\n${variables?.text || ""}`,
+            summarize: `Please summarize the following text:\n\n${variables?.text || ""}`,
           };
-          filledPrompt = templates[templateId] || `Template: ${templateId}\nVariables: ${JSON.stringify(variables)}`;
+          filledPrompt =
+            templates[templateId] ||
+            `Template: ${templateId}\nVariables: ${JSON.stringify(variables)}`;
         } else {
           // 填充模板变量
           filledPrompt = await promptTemplateManager.fillTemplate(
@@ -1159,12 +1162,16 @@ function registerLLMIPC({
       llmConfig.save();
 
       // 🔥 在测试模式下，不重新初始化LLM Manager，保持使用Mock LLM
-      const isTestMode = process.env.NODE_ENV === 'test' && process.env.MOCK_LLM === 'true';
+      const isTestMode =
+        process.env.NODE_ENV === "test" && process.env.MOCK_LLM === "true";
 
       if (isTestMode) {
         logger.info("[LLM IPC] 测试模式：配置已更新，但保持使用 Mock LLM 服务");
         // 如果 managerRef.current 是 MockLLMService，更新其配置
-        if (managerRef.current && typeof managerRef.current.setConfig === 'function') {
+        if (
+          managerRef.current &&
+          typeof managerRef.current.setConfig === "function"
+        ) {
           await managerRef.current.setConfig(config);
         }
         return true;
@@ -2419,7 +2426,9 @@ function registerLLMIPC({
 
     const calculateCost = (provider, model, inputTokens, outputTokens) => {
       const pricing = PRICING[provider]?.[model];
-      if (!pricing) {return { costUsd: 0, costCny: 0 };}
+      if (!pricing) {
+        return { costUsd: 0, costCny: 0 };
+      }
       const inputCost = (inputTokens / 1_000_000) * pricing.input;
       const outputCost = (outputTokens / 1_000_000) * pricing.output;
       const costUsd = inputCost + outputCost;

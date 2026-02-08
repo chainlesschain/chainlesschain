@@ -21,15 +21,12 @@
           @keydown.up.prevent="selectPrevious"
           @keydown.enter.prevent="executeSelected"
           @keydown.esc="close"
-        >
+        />
         <span class="search-hint">Esc 关闭</span>
       </div>
 
       <!-- 命令列表 -->
-      <div
-        ref="commandList"
-        class="command-list"
-      >
+      <div ref="commandList" class="command-list">
         <div
           v-for="(command, index) in filteredCommands"
           :key="command.key"
@@ -42,10 +39,7 @@
             <div class="command-description">
               {{ command.description }}
             </div>
-            <div
-              v-if="command.scope !== 'global'"
-              class="command-scope"
-            >
+            <div v-if="command.scope !== 'global'" class="command-scope">
               <TagOutlined />
               {{ command.scope }}
             </div>
@@ -56,17 +50,10 @@
         </div>
 
         <!-- 空状态 -->
-        <div
-          v-if="filteredCommands.length === 0"
-          class="empty-state"
-        >
+        <div v-if="filteredCommands.length === 0" class="empty-state">
           <InboxOutlined class="empty-icon" />
-          <div class="empty-text">
-            没有找到匹配的命令
-          </div>
-          <div class="empty-hint">
-            试试其他关键词
-          </div>
+          <div class="empty-text">没有找到匹配的命令</div>
+          <div class="empty-hint">试试其他关键词</div>
         </div>
       </div>
 
@@ -86,9 +73,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
 import {
   SearchOutlined,
   TagOutlined,
@@ -96,147 +83,147 @@ import {
   ArrowUpOutlined,
   ArrowDownOutlined,
   EnterOutlined,
-  CloseOutlined
-} from '@ant-design/icons-vue'
-import keyboardShortcuts from '@/utils/keyboard-shortcuts'
+  CloseOutlined,
+} from "@ant-design/icons-vue";
+import keyboardShortcuts from "@/utils/keyboard-shortcuts";
 
-const visible = ref(false)
-const searchQuery = ref('')
-const selectedIndex = ref(0)
-const searchInput = ref(null)
-const commandList = ref(null)
-const allCommands = ref([])
+const visible = ref(false);
+const searchQuery = ref("");
+const selectedIndex = ref(0);
+const searchInput = ref(null);
+const commandList = ref(null);
+const allCommands = ref([]);
 
 // 过滤后的命令列表
 const filteredCommands = computed(() => {
   if (!searchQuery.value.trim()) {
-    return allCommands.value
+    return allCommands.value;
   }
 
-  const query = searchQuery.value.toLowerCase()
+  const query = searchQuery.value.toLowerCase();
 
-  return allCommands.value.filter(command => {
+  return allCommands.value.filter((command) => {
     return (
       command.description.toLowerCase().includes(query) ||
       command.keyDisplay.toLowerCase().includes(query) ||
       command.scope.toLowerCase().includes(query)
-    )
-  })
-})
+    );
+  });
+});
 
 // 监听搜索变化，重置选中索引
 watch(searchQuery, () => {
-  selectedIndex.value = 0
-})
+  selectedIndex.value = 0;
+});
 
 // 监听选中索引变化，滚动到可见区域
 watch(selectedIndex, async () => {
-  await nextTick()
+  await nextTick();
 
   if (commandList.value) {
-    const activeItem = commandList.value.querySelector('.command-item.active')
+    const activeItem = commandList.value.querySelector(".command-item.active");
     if (activeItem) {
       activeItem.scrollIntoView({
-        block: 'nearest',
-        behavior: 'smooth'
-      })
+        block: "nearest",
+        behavior: "smooth",
+      });
     }
   }
-})
+});
 
 /**
  * 显示命令面板
  */
 const show = () => {
-  visible.value = true
-  searchQuery.value = ''
-  selectedIndex.value = 0
-  allCommands.value = keyboardShortcuts.getAllCommands()
+  visible.value = true;
+  searchQuery.value = "";
+  selectedIndex.value = 0;
+  allCommands.value = keyboardShortcuts.getAllCommands();
 
   // 聚焦搜索框
   nextTick(() => {
-    searchInput.value?.focus()
-  })
-}
+    searchInput.value?.focus();
+  });
+};
 
 /**
  * 关闭命令面板
  */
 const close = () => {
-  visible.value = false
-  keyboardShortcuts.hideCommandPalette()
-}
+  visible.value = false;
+  keyboardShortcuts.hideCommandPalette();
+};
 
 /**
  * 选择下一个命令
  */
 const selectNext = () => {
   if (selectedIndex.value < filteredCommands.value.length - 1) {
-    selectedIndex.value++
+    selectedIndex.value++;
   } else {
-    selectedIndex.value = 0
+    selectedIndex.value = 0;
   }
-}
+};
 
 /**
  * 选择上一个命令
  */
 const selectPrevious = () => {
   if (selectedIndex.value > 0) {
-    selectedIndex.value--
+    selectedIndex.value--;
   } else {
-    selectedIndex.value = filteredCommands.value.length - 1
+    selectedIndex.value = filteredCommands.value.length - 1;
   }
-}
+};
 
 /**
  * 执行选中的命令
  */
 const executeSelected = () => {
-  const command = filteredCommands.value[selectedIndex.value]
+  const command = filteredCommands.value[selectedIndex.value];
   if (command) {
-    executeCommand(command)
+    executeCommand(command);
   }
-}
+};
 
 /**
  * 执行命令
  */
 const executeCommand = (command) => {
   try {
-    command.handler()
-    close()
+    command.handler();
+    close();
   } catch (error) {
-    logger.error('[CommandPalette] Execute error:', error)
+    logger.error("[CommandPalette] Execute error:", error);
   }
-}
+};
 
 /**
  * 监听显示/隐藏事件
  */
 const handleShowEvent = () => {
-  show()
-}
+  show();
+};
 
 const handleHideEvent = () => {
-  close()
-}
+  close();
+};
 
 onMounted(() => {
-  window.addEventListener('show-command-palette', handleShowEvent)
-  window.addEventListener('hide-command-palette', handleHideEvent)
-})
+  window.addEventListener("show-command-palette", handleShowEvent);
+  window.addEventListener("hide-command-palette", handleHideEvent);
+});
 
 onUnmounted(() => {
-  window.removeEventListener('show-command-palette', handleShowEvent)
-  window.removeEventListener('hide-command-palette', handleHideEvent)
-})
+  window.removeEventListener("show-command-palette", handleShowEvent);
+  window.removeEventListener("hide-command-palette", handleHideEvent);
+});
 
 // 暴露方法
 defineExpose({
   show,
-  close
-})
+  close,
+});
 </script>
 
 <style scoped>

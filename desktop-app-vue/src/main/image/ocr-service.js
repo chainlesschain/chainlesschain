@@ -4,7 +4,7 @@
  * 使用 Tesseract.js 进行图片文字识别
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const defaultTesseract = require("tesseract.js");
 const { EventEmitter } = require("events");
 

@@ -9,11 +9,15 @@
       <template #extra>
         <a-space>
           <a-button @click="handleRefresh">
-            <template #icon><ReloadOutlined /></template>
+            <template #icon>
+              <ReloadOutlined />
+            </template>
             刷新
           </a-button>
-          <a-button type="primary" @click="handleSave" :loading="saving">
-            <template #icon><SaveOutlined /></template>
+          <a-button type="primary" :loading="saving" @click="handleSave">
+            <template #icon>
+              <SaveOutlined />
+            </template>
             保存更改
           </a-button>
         </a-space>
@@ -24,34 +28,46 @@
       <div class="settings-container">
         <!-- 左侧菜单 -->
         <a-menu
-          v-model:selectedKeys="selectedKeys"
+          v-model:selected-keys="selectedKeys"
           mode="inline"
           class="settings-menu"
         >
           <a-menu-item key="basic">
-            <template #icon><InfoCircleOutlined /></template>
+            <template #icon>
+              <InfoCircleOutlined />
+            </template>
             基本信息
           </a-menu-item>
           <a-menu-item key="members">
-            <template #icon><TeamOutlined /></template>
+            <template #icon>
+              <TeamOutlined />
+            </template>
             成员管理
             <a-badge :count="memberCount" :offset="[10, 0]" />
           </a-menu-item>
           <a-menu-item key="invitations">
-            <template #icon><MailOutlined /></template>
+            <template #icon>
+              <MailOutlined />
+            </template>
             邀请管理
             <a-badge :count="activeInvitationCount" :offset="[10, 0]" />
           </a-menu-item>
           <a-menu-item key="roles">
-            <template #icon><SafetyOutlined /></template>
+            <template #icon>
+              <SafetyOutlined />
+            </template>
             角色权限
           </a-menu-item>
           <a-menu-item key="advanced">
-            <template #icon><SettingOutlined /></template>
+            <template #icon>
+              <SettingOutlined />
+            </template>
             高级设置
           </a-menu-item>
           <a-menu-item key="danger" class="danger-menu-item">
-            <template #icon><WarningOutlined /></template>
+            <template #icon>
+              <WarningOutlined />
+            </template>
             危险操作
           </a-menu-item>
         </a-menu>
@@ -79,11 +95,15 @@
                   v-model:value="formData.type"
                   :disabled="!canManageOrg"
                 >
-                  <a-select-option value="startup">创业团队</a-select-option>
-                  <a-select-option value="company">公司</a-select-option>
-                  <a-select-option value="community">社区</a-select-option>
-                  <a-select-option value="opensource">开源项目</a-select-option>
-                  <a-select-option value="education">教育机构</a-select-option>
+                  <a-select-option value="startup"> 创业团队 </a-select-option>
+                  <a-select-option value="company"> 公司 </a-select-option>
+                  <a-select-option value="community"> 社区 </a-select-option>
+                  <a-select-option value="opensource">
+                    开源项目
+                  </a-select-option>
+                  <a-select-option value="education">
+                    教育机构
+                  </a-select-option>
                 </a-select>
               </a-form-item>
 
@@ -101,8 +121,8 @@
                   <template #suffix>
                     <a-tooltip title="复制DID">
                       <CopyOutlined
-                        @click="copyToClipboard(orgData?.org_did)"
                         style="cursor: pointer"
+                        @click="copyToClipboard(orgData?.org_did)"
                       />
                     </a-tooltip>
                   </template>
@@ -125,7 +145,10 @@
           </div>
 
           <!-- 邀请管理 -->
-          <div v-if="selectedKeys[0] === 'invitations'" class="settings-section">
+          <div
+            v-if="selectedKeys[0] === 'invitations'"
+            class="settings-section"
+          >
             <invitation-manager :org-id="orgId" />
           </div>
 
@@ -167,11 +190,13 @@
             <a-button
               type="dashed"
               block
-              @click="showCreateRoleModal = true"
               style="margin-top: 16px"
               :disabled="!canManageRoles"
+              @click="showCreateRoleModal = true"
             >
-              <template #icon><PlusOutlined /></template>
+              <template #icon>
+                <PlusOutlined />
+              </template>
               创建自定义角色
             </a-button>
           </div>
@@ -185,11 +210,15 @@
                   v-model:value="formData.visibility"
                   :disabled="!canManageOrg"
                 >
-                  <a-radio value="private">私有（仅邀请）</a-radio>
-                  <a-radio value="public">公开</a-radio>
+                  <a-radio value="private"> 私有（仅邀请） </a-radio>
+                  <a-radio value="public"> 公开 </a-radio>
                 </a-radio-group>
                 <div style="color: #999; margin-top: 8px">
-                  {{ formData.visibility === 'private' ? '只有受邀请的成员才能加入' : '任何人都可以通过邀请码加入' }}
+                  {{
+                    formData.visibility === "private"
+                      ? "只有受邀请的成员才能加入"
+                      : "任何人都可以通过邀请码加入"
+                  }}
                 </div>
               </a-form-item>
 
@@ -208,9 +237,9 @@
                   v-model:value="formData.syncMode"
                   :disabled="!canManageOrg"
                 >
-                  <a-select-option value="auto">自动同步</a-select-option>
-                  <a-select-option value="manual">手动同步</a-select-option>
-                  <a-select-option value="off">关闭同步</a-select-option>
+                  <a-select-option value="auto"> 自动同步 </a-select-option>
+                  <a-select-option value="manual"> 手动同步 </a-select-option>
+                  <a-select-option value="off"> 关闭同步 </a-select-option>
                 </a-select>
               </a-form-item>
             </a-form>
@@ -237,15 +266,16 @@
               </a-card>
 
               <!-- 删除组织 -->
-              <a-card
-                title="删除组织"
-                v-if="isOwner"
-              >
+              <a-card v-if="isOwner" title="删除组织">
                 <p style="color: #f5222d">
                   <strong>警告：</strong>
                   删除组织将永久删除所有数据，包括成员、项目、知识库等。此操作无法撤销！
                 </p>
-                <a-button danger type="primary" @click="handleDeleteOrganization">
+                <a-button
+                  danger
+                  type="primary"
+                  @click="handleDeleteOrganization"
+                >
                   永久删除组织
                 </a-button>
               </a-card>
@@ -259,15 +289,12 @@
     <a-modal
       v-model:open="showCreateRoleModal"
       title="创建自定义角色"
-      @ok="handleCreateRole"
       :confirm-loading="creatingRole"
+      @ok="handleCreateRole"
     >
       <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <a-form-item label="角色名称" required>
-          <a-input
-            v-model:value="newRole.name"
-            placeholder="例如：编辑者"
-          />
+          <a-input v-model:value="newRole.name" placeholder="例如：编辑者" />
         </a-form-item>
 
         <a-form-item label="角色描述">
@@ -281,7 +308,11 @@
         <a-form-item label="权限">
           <a-checkbox-group v-model:value="newRole.permissions">
             <a-row>
-              <a-col :span="24" v-for="perm in availablePermissions" :key="perm.value">
+              <a-col
+                v-for="perm in availablePermissions"
+                :key="perm.value"
+                :span="24"
+              >
                 <a-checkbox :value="perm.value">
                   {{ perm.label }}
                 </a-checkbox>
@@ -295,12 +326,12 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { message, Modal } from 'ant-design-vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useIdentityStore } from '@/stores/identityStore';
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { message, Modal } from "ant-design-vue";
+import { useRoute, useRouter } from "vue-router";
+import { useIdentityStore } from "@/stores/identityStore";
 import {
   InfoCircleOutlined,
   TeamOutlined,
@@ -311,10 +342,10 @@ import {
   ReloadOutlined,
   SaveOutlined,
   CopyOutlined,
-  PlusOutlined
-} from '@ant-design/icons-vue';
-import OrganizationMembersPage from './OrganizationMembersPage.vue';
-import InvitationManager from '@/components/InvitationManager.vue';
+  PlusOutlined,
+} from "@ant-design/icons-vue";
+import OrganizationMembersPage from "./OrganizationMembersPage.vue";
+import InvitationManager from "@/components/InvitationManager.vue";
 
 // ==================== Setup ====================
 const route = useRoute();
@@ -326,7 +357,7 @@ const orgId = computed(() => route.params.orgId || identityStore.currentOrgId);
 // ==================== State ====================
 const loading = ref(false);
 const saving = ref(false);
-const selectedKeys = ref(['basic']);
+const selectedKeys = ref(["basic"]);
 
 const orgData = ref(null);
 const members = ref([]);
@@ -334,64 +365,73 @@ const roles = ref([]);
 const invitations = ref([]);
 
 const formData = reactive({
-  name: '',
-  type: 'startup',
-  description: '',
-  visibility: 'private',
+  name: "",
+  type: "startup",
+  description: "",
+  visibility: "private",
   p2pEnabled: true,
-  syncMode: 'auto'
+  syncMode: "auto",
 });
 
 const showCreateRoleModal = ref(false);
 const creatingRole = ref(false);
 const newRole = reactive({
-  name: '',
-  description: '',
-  permissions: []
+  name: "",
+  description: "",
+  permissions: [],
 });
 
 // ==================== Computed ====================
-const organizationName = computed(() => orgData.value?.name || '加载中...');
+const organizationName = computed(() => orgData.value?.name || "加载中...");
 const memberCount = computed(() => members.value.length);
 const activeInvitationCount = computed(() => {
-  return invitations.value.filter(inv => inv.status === 'pending').length;
+  return invitations.value.filter((inv) => inv.status === "pending").length;
 });
 
 const currentUserRole = computed(() => {
-  if (!orgData.value || !identityStore.currentUserDID) return 'viewer';
+  if (!orgData.value || !identityStore.currentUserDID) {
+    return "viewer";
+  }
   const member = members.value.find(
-    m => m.member_did === identityStore.currentUserDID
+    (m) => m.member_did === identityStore.currentUserDID,
   );
-  return member?.role || 'viewer';
+  return member?.role || "viewer";
 });
 
-const isOwner = computed(() => currentUserRole.value === 'owner');
-const canManageOrg = computed(() => ['owner', 'admin'].includes(currentUserRole.value));
-const canManageRoles = computed(() => ['owner', 'admin'].includes(currentUserRole.value));
+const isOwner = computed(() => currentUserRole.value === "owner");
+const canManageOrg = computed(() =>
+  ["owner", "admin"].includes(currentUserRole.value),
+);
+const canManageRoles = computed(() =>
+  ["owner", "admin"].includes(currentUserRole.value),
+);
 
 const roleColumns = [
-  { title: '角色名称', dataIndex: 'role_name', key: 'role_name' },
-  { title: '描述', dataIndex: 'description', key: 'description' },
-  { title: '权限', key: 'permissions' },
-  { title: '类型', dataIndex: 'is_builtin', key: 'is_builtin',
-    customRender: ({ text }) => text ? '内置' : '自定义'
+  { title: "角色名称", dataIndex: "role_name", key: "role_name" },
+  { title: "描述", dataIndex: "description", key: "description" },
+  { title: "权限", key: "permissions" },
+  {
+    title: "类型",
+    dataIndex: "is_builtin",
+    key: "is_builtin",
+    customRender: ({ text }) => (text ? "内置" : "自定义"),
   },
-  { title: '操作', key: 'actions', width: 120 }
+  { title: "操作", key: "actions", width: 120 },
 ];
 
 const availablePermissions = [
-  { label: '管理组织', value: 'org.manage' },
-  { label: '管理成员', value: 'member.manage' },
-  { label: '管理角色', value: 'role.manage' },
-  { label: '管理邀请', value: 'invitation.manage' },
-  { label: '创建知识', value: 'knowledge.create' },
-  { label: '阅读知识', value: 'knowledge.read' },
-  { label: '编辑知识', value: 'knowledge.write' },
-  { label: '删除知识', value: 'knowledge.delete' },
-  { label: '创建项目', value: 'project.create' },
-  { label: '阅读项目', value: 'project.read' },
-  { label: '编辑项目', value: 'project.write' },
-  { label: '删除项目', value: 'project.delete' }
+  { label: "管理组织", value: "org.manage" },
+  { label: "管理成员", value: "member.manage" },
+  { label: "管理角色", value: "role.manage" },
+  { label: "管理邀请", value: "invitation.manage" },
+  { label: "创建知识", value: "knowledge.create" },
+  { label: "阅读知识", value: "knowledge.read" },
+  { label: "编辑知识", value: "knowledge.write" },
+  { label: "删除知识", value: "knowledge.delete" },
+  { label: "创建项目", value: "project.create" },
+  { label: "阅读项目", value: "project.read" },
+  { label: "编辑项目", value: "project.write" },
+  { label: "删除项目", value: "project.delete" },
 ];
 
 // ==================== Methods ====================
@@ -404,40 +444,51 @@ async function loadOrganizationData() {
     loading.value = true;
 
     // 1. 获取组织信息
-    const orgResult = await window.electron.ipcRenderer.invoke('org:get-organization', orgId.value);
+    const orgResult = await window.electron.ipcRenderer.invoke(
+      "org:get-organization",
+      orgId.value,
+    );
     if (orgResult.success) {
       orgData.value = orgResult.organization;
 
       // 填充表单
       formData.name = orgData.value.name;
-      formData.type = orgData.value.type || 'startup';
-      formData.description = orgData.value.description || '';
-      formData.visibility = orgData.value.visibility || 'private';
+      formData.type = orgData.value.type || "startup";
+      formData.description = orgData.value.description || "";
+      formData.visibility = orgData.value.visibility || "private";
       formData.p2pEnabled = orgData.value.p2p_enabled !== 0;
-      formData.syncMode = orgData.value.sync_mode || 'auto';
+      formData.syncMode = orgData.value.sync_mode || "auto";
     }
 
     // 2. 获取成员列表
-    const membersResult = await window.electron.ipcRenderer.invoke('org:get-members', orgId.value);
+    const membersResult = await window.electron.ipcRenderer.invoke(
+      "org:get-members",
+      orgId.value,
+    );
     if (membersResult.success) {
       members.value = membersResult.members;
     }
 
     // 3. 获取角色列表
-    const rolesResult = await window.electron.ipcRenderer.invoke('org:get-roles', orgId.value);
+    const rolesResult = await window.electron.ipcRenderer.invoke(
+      "org:get-roles",
+      orgId.value,
+    );
     if (rolesResult.success) {
       roles.value = rolesResult.roles;
     }
 
     // 4. 获取邀请列表
-    const invitationsResult = await window.electron.ipcRenderer.invoke('org:get-invitations', orgId.value);
+    const invitationsResult = await window.electron.ipcRenderer.invoke(
+      "org:get-invitations",
+      orgId.value,
+    );
     if (invitationsResult.success) {
       invitations.value = invitationsResult.invitations;
     }
-
   } catch (error) {
-    logger.error('加载组织数据失败:', error);
-    message.error('加载组织数据失败');
+    logger.error("加载组织数据失败:", error);
+    message.error("加载组织数据失败");
   } finally {
     loading.value = false;
   }
@@ -448,32 +499,35 @@ async function loadOrganizationData() {
  */
 async function handleSave() {
   if (!canManageOrg.value) {
-    message.warning('您没有权限修改组织设置');
+    message.warning("您没有权限修改组织设置");
     return;
   }
 
   try {
     saving.value = true;
 
-    const result = await window.electron.ipcRenderer.invoke('org:update-organization', {
-      orgId: orgId.value,
-      name: formData.name,
-      type: formData.type,
-      description: formData.description,
-      visibility: formData.visibility,
-      p2pEnabled: formData.p2pEnabled,
-      syncMode: formData.syncMode
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:update-organization",
+      {
+        orgId: orgId.value,
+        name: formData.name,
+        type: formData.type,
+        description: formData.description,
+        visibility: formData.visibility,
+        p2pEnabled: formData.p2pEnabled,
+        syncMode: formData.syncMode,
+      },
+    );
 
     if (result.success) {
-      message.success('保存成功');
+      message.success("保存成功");
       await loadOrganizationData();
     } else {
-      message.error(result.error || '保存失败');
+      message.error(result.error || "保存失败");
     }
   } catch (error) {
-    logger.error('保存失败:', error);
-    message.error('保存失败');
+    logger.error("保存失败:", error);
+    message.error("保存失败");
   } finally {
     saving.value = false;
   }
@@ -484,7 +538,7 @@ async function handleSave() {
  */
 async function handleRefresh() {
   await loadOrganizationData();
-  message.success('刷新成功');
+  message.success("刷新成功");
 }
 
 /**
@@ -499,27 +553,33 @@ function handleBack() {
  */
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text);
-  message.success('已复制到剪贴板');
+  message.success("已复制到剪贴板");
 }
 
 /**
  * 格式化日期
  */
 function formatDate(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 }
 
 /**
  * 获取权限标签
  */
 function getPermissionTags(permissions) {
-  if (!permissions) return [];
+  if (!permissions) {
+    return [];
+  }
 
   try {
     const perms = JSON.parse(permissions);
-    if (perms.includes('*')) return ['全部权限'];
+    if (perms.includes("*")) {
+      return ["全部权限"];
+    }
     return perms.slice(0, 5); // 只显示前5个
   } catch {
     return [];
@@ -531,37 +591,40 @@ function getPermissionTags(permissions) {
  */
 async function handleCreateRole() {
   if (!newRole.name.trim()) {
-    message.warning('请输入角色名称');
+    message.warning("请输入角色名称");
     return;
   }
 
   try {
     creatingRole.value = true;
 
-    const result = await window.electron.ipcRenderer.invoke('org:create-custom-role', {
-      orgId: orgId.value,
-      roleName: newRole.name,
-      description: newRole.description,
-      permissions: newRole.permissions
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:create-custom-role",
+      {
+        orgId: orgId.value,
+        roleName: newRole.name,
+        description: newRole.description,
+        permissions: newRole.permissions,
+      },
+    );
 
     if (result.success) {
-      message.success('角色创建成功');
+      message.success("角色创建成功");
       showCreateRoleModal.value = false;
 
       // 重置表单
-      newRole.name = '';
-      newRole.description = '';
+      newRole.name = "";
+      newRole.description = "";
       newRole.permissions = [];
 
       // 刷新角色列表
       await loadOrganizationData();
     } else {
-      message.error(result.error || '创建失败');
+      message.error(result.error || "创建失败");
     }
   } catch (error) {
-    logger.error('创建角色失败:', error);
-    message.error('创建角色失败');
+    logger.error("创建角色失败:", error);
+    message.error("创建角色失败");
   } finally {
     creatingRole.value = false;
   }
@@ -572,32 +635,34 @@ async function handleCreateRole() {
  */
 async function handleDeleteRole(role) {
   // 确认删除
-  const confirmed = await new Promise(resolve => {
+  const confirmed = await new Promise((resolve) => {
     message.confirm({
-      title: '确认删除',
+      title: "确认删除",
       content: `确定要删除角色"${role.role_name}"吗？`,
       onOk: () => resolve(true),
-      onCancel: () => resolve(false)
+      onCancel: () => resolve(false),
     });
   });
 
-  if (!confirmed) return;
+  if (!confirmed) {
+    return;
+  }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:delete-role', {
+    const result = await window.electron.ipcRenderer.invoke("org:delete-role", {
       orgId: orgId.value,
-      roleName: role.role_name
+      roleName: role.role_name,
     });
 
     if (result.success) {
-      message.success('角色删除成功');
+      message.success("角色删除成功");
       await loadOrganizationData();
     } else {
-      message.error(result.error || '删除失败');
+      message.error(result.error || "删除失败");
     }
   } catch (error) {
-    logger.error('删除角色失败:', error);
-    message.error('删除角色失败');
+    logger.error("删除角色失败:", error);
+    message.error("删除角色失败");
   }
 }
 
@@ -606,42 +671,47 @@ async function handleDeleteRole(role) {
  */
 async function handleLeaveOrganization() {
   if (isOwner.value) {
-    message.warning('所有者无法离开组织，请先转让所有权或删除组织');
+    message.warning("所有者无法离开组织，请先转让所有权或删除组织");
     return;
   }
 
   // 确认离开
-  const confirmed = await new Promise(resolve => {
+  const confirmed = await new Promise((resolve) => {
     message.confirm({
-      title: '确认离开',
-      content: '确定要离开该组织吗？您将失去访问权限。',
+      title: "确认离开",
+      content: "确定要离开该组织吗？您将失去访问权限。",
       onOk: () => resolve(true),
-      onCancel: () => resolve(false)
+      onCancel: () => resolve(false),
     });
   });
 
-  if (!confirmed) return;
+  if (!confirmed) {
+    return;
+  }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:leave-organization', {
-      orgId: orgId.value,
-      userDID: identityStore.currentUserDID
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:leave-organization",
+      {
+        orgId: orgId.value,
+        userDID: identityStore.currentUserDID,
+      },
+    );
 
     if (result.success) {
-      message.success('已离开组织');
+      message.success("已离开组织");
 
       // 切换回个人身份
       await identityStore.switchToPersonal();
 
       // 跳转回首页
-      router.push('/');
+      router.push("/");
     } else {
-      message.error(result.error || '离开失败');
+      message.error(result.error || "离开失败");
     }
   } catch (error) {
-    logger.error('离开组织失败:', error);
-    message.error('离开组织失败');
+    logger.error("离开组织失败:", error);
+    message.error("离开组织失败");
   }
 }
 
@@ -649,47 +719,55 @@ async function handleLeaveOrganization() {
  * 删除组织
  */
 async function handleDeleteOrganization() {
-  const orgName = orgData.value?.name || '';
-  const inputName = window.prompt(`此操作不可撤销，请输入组织名称 "${orgName}" 确认删除`);
+  const orgName = orgData.value?.name || "";
+  const inputName = window.prompt(
+    `此操作不可撤销，请输入组织名称 "${orgName}" 确认删除`,
+  );
   if (inputName !== orgName) {
-    message.error('组织名称不匹配');
+    message.error("组织名称不匹配");
     return;
   }
 
-  const confirmed = await new Promise(resolve => {
+  const confirmed = await new Promise((resolve) => {
     Modal.confirm({
-      title: '永久删除组织',
-      content: '将永久删除组织数据库、成员关系、项目和知识库、邀请记录。确认继续吗？',
-      okText: '确认删除',
-      okType: 'danger',
-      cancelText: '取消',
+      title: "永久删除组织",
+      content:
+        "将永久删除组织数据库、成员关系、项目和知识库、邀请记录。确认继续吗？",
+      okText: "确认删除",
+      okType: "danger",
+      cancelText: "取消",
       onOk: () => resolve(true),
       onCancel: () => resolve(false),
     });
   });
 
-  if (!confirmed) return;
+  if (!confirmed) {
+    return;
+  }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:delete-organization', {
-      orgId: orgId.value,
-      userDID: identityStore.currentUserDID
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:delete-organization",
+      {
+        orgId: orgId.value,
+        userDID: identityStore.currentUserDID,
+      },
+    );
 
     if (result.success) {
-      message.success('组织已删除');
+      message.success("组织已删除");
 
       // 切换回个人身份
       await identityStore.switchToPersonal();
 
       // 跳转回首页
-      router.push('/');
+      router.push("/");
     } else {
-      message.error(result.error || '删除失败');
+      message.error(result.error || "删除失败");
     }
   } catch (error) {
-    logger.error('删除组织失败:', error);
-    message.error('删除组织失败');
+    logger.error("删除组织失败:", error);
+    message.error("删除组织失败");
   }
 }
 
@@ -699,11 +777,14 @@ onMounted(async () => {
 });
 
 // 监听组织ID变化
-watch(() => orgId.value, async (newOrgId) => {
-  if (newOrgId) {
-    await loadOrganizationData();
-  }
-});
+watch(
+  () => orgId.value,
+  async (newOrgId) => {
+    if (newOrgId) {
+      await loadOrganizationData();
+    }
+  },
+);
 </script>
 
 <style scoped lang="less">

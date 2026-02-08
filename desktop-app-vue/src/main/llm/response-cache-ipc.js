@@ -13,8 +13,8 @@
  * @module response-cache-ipc
  */
 
-const { logger } = require('../utils/logger.js');
-const defaultIpcGuard = require('../ipc/ipc-guard');
+const { logger } = require("../utils/logger.js");
+const defaultIpcGuard = require("../ipc/ipc-guard");
 
 // 模块级别的实例引用
 let responseCacheInstance = null;
@@ -52,12 +52,14 @@ function registerResponseCacheIPC({
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
 
   // 防止重复注册
-  if (ipcGuard.isModuleRegistered('response-cache-ipc')) {
-    logger.info('[Response Cache IPC] Handlers already registered, skipping...');
+  if (ipcGuard.isModuleRegistered("response-cache-ipc")) {
+    logger.info(
+      "[Response Cache IPC] Handlers already registered, skipping...",
+    );
     return;
   }
 
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
   // 设置实例
@@ -65,7 +67,7 @@ function registerResponseCacheIPC({
     setResponseCacheInstance(responseCache);
   }
 
-  logger.info('[Response Cache IPC] Registering handlers...');
+  logger.info("[Response Cache IPC] Registering handlers...");
 
   // ============================================================
   // 辅助函数
@@ -79,7 +81,7 @@ function registerResponseCacheIPC({
     if (!cache) {
       return {
         success: false,
-        error: 'Response cache not initialized',
+        error: "Response cache not initialized",
       };
     }
     return { success: true, cache };
@@ -95,10 +97,12 @@ function registerResponseCacheIPC({
    *
    * @returns {Object} 统计数据（运行时统计、数据库统计、配置）
    */
-  ipcMain.handle('cache:get-stats', async () => {
+  ipcMain.handle("cache:get-stats", async () => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const stats = await result.cache.getStats();
       return {
@@ -106,7 +110,7 @@ function registerResponseCacheIPC({
         stats,
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 获取统计失败:', error);
+      logger.error("[Response Cache IPC] 获取统计失败:", error);
       return {
         success: false,
         error: error.message,
@@ -120,10 +124,12 @@ function registerResponseCacheIPC({
    *
    * @returns {Object} 各提供商的缓存统计
    */
-  ipcMain.handle('cache:get-stats-by-provider', async () => {
+  ipcMain.handle("cache:get-stats-by-provider", async () => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const stats = await result.cache.getStatsByProvider();
       return {
@@ -131,7 +137,7 @@ function registerResponseCacheIPC({
         providers: stats,
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 获取提供商统计失败:', error);
+      logger.error("[Response Cache IPC] 获取提供商统计失败:", error);
       return {
         success: false,
         error: error.message,
@@ -145,17 +151,20 @@ function registerResponseCacheIPC({
    *
    * @returns {Object} 命中率和趋势数据
    */
-  ipcMain.handle('cache:get-hit-rate-trend', async () => {
+  ipcMain.handle("cache:get-hit-rate-trend", async () => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const stats = await result.cache.getStats();
 
       // 计算命中率
       const runtime = stats.runtime;
       const totalRequests = runtime.hits + runtime.misses;
-      const hitRate = totalRequests > 0 ? (runtime.hits / totalRequests) * 100 : 0;
+      const hitRate =
+        totalRequests > 0 ? (runtime.hits / totalRequests) * 100 : 0;
 
       return {
         success: true,
@@ -171,7 +180,7 @@ function registerResponseCacheIPC({
         },
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 获取命中率趋势失败:', error);
+      logger.error("[Response Cache IPC] 获取命中率趋势失败:", error);
       return {
         success: false,
         error: error.message,
@@ -189,10 +198,12 @@ function registerResponseCacheIPC({
    *
    * @returns {Object} 当前配置
    */
-  ipcMain.handle('cache:get-config', async () => {
+  ipcMain.handle("cache:get-config", async () => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const cache = result.cache;
 
@@ -208,7 +219,7 @@ function registerResponseCacheIPC({
         },
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 获取配置失败:', error);
+      logger.error("[Response Cache IPC] 获取配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -225,10 +236,12 @@ function registerResponseCacheIPC({
    * @param {Object} config - 新配置
    * @returns {Object} 更新结果
    */
-  ipcMain.handle('cache:set-config', async (_event, config) => {
+  ipcMain.handle("cache:set-config", async (_event, config) => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const cache = result.cache;
 
@@ -252,11 +265,11 @@ function registerResponseCacheIPC({
         cache.maxSize = config.maxSize;
       }
 
-      logger.info('[Response Cache IPC] 配置已更新:', config);
+      logger.info("[Response Cache IPC] 配置已更新:", config);
 
       return {
         success: true,
-        message: 'Configuration updated',
+        message: "Configuration updated",
         config: {
           ttl: cache.ttl,
           ttlDays: cache.ttl / 1000 / 60 / 60 / 24,
@@ -265,7 +278,7 @@ function registerResponseCacheIPC({
         },
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 设置配置失败:', error);
+      logger.error("[Response Cache IPC] 设置配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -283,14 +296,20 @@ function registerResponseCacheIPC({
    *
    * @returns {Object} 清除结果
    */
-  ipcMain.handle('cache:clear-all', async () => {
+  ipcMain.handle("cache:clear-all", async () => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const deletedCount = await result.cache.clear();
 
-      logger.info('[Response Cache IPC] 所有缓存已清除，共', deletedCount, '条');
+      logger.info(
+        "[Response Cache IPC] 所有缓存已清除，共",
+        deletedCount,
+        "条",
+      );
 
       return {
         success: true,
@@ -298,7 +317,7 @@ function registerResponseCacheIPC({
         message: `Cleared ${deletedCount} cache entries`,
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 清除缓存失败:', error);
+      logger.error("[Response Cache IPC] 清除缓存失败:", error);
       return {
         success: false,
         error: error.message,
@@ -312,14 +331,20 @@ function registerResponseCacheIPC({
    *
    * @returns {Object} 清除结果
    */
-  ipcMain.handle('cache:clear-expired', async () => {
+  ipcMain.handle("cache:clear-expired", async () => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const deletedCount = await result.cache.clearExpired();
 
-      logger.info('[Response Cache IPC] 过期缓存已清除，共', deletedCount, '条');
+      logger.info(
+        "[Response Cache IPC] 过期缓存已清除，共",
+        deletedCount,
+        "条",
+      );
 
       return {
         success: true,
@@ -327,7 +352,7 @@ function registerResponseCacheIPC({
         message: `Cleared ${deletedCount} expired cache entries`,
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 清除过期缓存失败:', error);
+      logger.error("[Response Cache IPC] 清除过期缓存失败:", error);
       return {
         success: false,
         error: error.message,
@@ -345,17 +370,19 @@ function registerResponseCacheIPC({
    * @param {Array} options.messages - 消息数组
    * @returns {Object} 缓存状态
    */
-  ipcMain.handle('cache:check', async (_event, options = {}) => {
+  ipcMain.handle("cache:check", async (_event, options = {}) => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const { provider, model, messages } = options;
 
       if (!provider || !model || !Array.isArray(messages)) {
         return {
           success: false,
-          error: 'provider, model, and messages are required',
+          error: "provider, model, and messages are required",
         };
       }
 
@@ -368,7 +395,7 @@ function registerResponseCacheIPC({
         tokensSaved: cacheResult.tokensSaved,
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 检查缓存失败:', error);
+      logger.error("[Response Cache IPC] 检查缓存失败:", error);
       return {
         success: false,
         error: error.message,
@@ -382,10 +409,12 @@ function registerResponseCacheIPC({
    *
    * @returns {Object} 预热状态
    */
-  ipcMain.handle('cache:warmup-status', async () => {
+  ipcMain.handle("cache:warmup-status", async () => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const stats = await result.cache.getStats();
 
@@ -393,7 +422,8 @@ function registerResponseCacheIPC({
       const totalEntries = stats.database.totalEntries || 0;
       const expiredEntries = stats.database.expiredEntries || 0;
       const healthyEntries = totalEntries - expiredEntries;
-      const healthPercent = totalEntries > 0 ? (healthyEntries / totalEntries) * 100 : 100;
+      const healthPercent =
+        totalEntries > 0 ? (healthyEntries / totalEntries) * 100 : 100;
 
       return {
         success: true,
@@ -402,15 +432,16 @@ function registerResponseCacheIPC({
           healthyEntries,
           expiredEntries,
           healthPercent: healthPercent.toFixed(2),
-          recommendation: healthPercent < 50
-            ? 'Consider clearing expired entries'
-            : healthPercent < 80
-              ? 'Cache is moderately healthy'
-              : 'Cache is healthy',
+          recommendation:
+            healthPercent < 50
+              ? "Consider clearing expired entries"
+              : healthPercent < 80
+                ? "Cache is moderately healthy"
+                : "Cache is healthy",
         },
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 获取预热状态失败:', error);
+      logger.error("[Response Cache IPC] 获取预热状态失败:", error);
       return {
         success: false,
         error: error.message,
@@ -428,31 +459,33 @@ function registerResponseCacheIPC({
    *
    * @returns {Object} 操作结果
    */
-  ipcMain.handle('cache:start-auto-cleanup', async () => {
+  ipcMain.handle("cache:start-auto-cleanup", async () => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const cache = result.cache;
 
       if (cache.enableAutoCleanup) {
         return {
           success: true,
-          message: 'Auto cleanup is already running',
+          message: "Auto cleanup is already running",
         };
       }
 
       cache.enableAutoCleanup = true;
       cache._startAutoCleanup();
 
-      logger.info('[Response Cache IPC] 自动清理已启动');
+      logger.info("[Response Cache IPC] 自动清理已启动");
 
       return {
         success: true,
-        message: 'Auto cleanup started',
+        message: "Auto cleanup started",
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 启动自动清理失败:', error);
+      logger.error("[Response Cache IPC] 启动自动清理失败:", error);
       return {
         success: false,
         error: error.message,
@@ -466,31 +499,33 @@ function registerResponseCacheIPC({
    *
    * @returns {Object} 操作结果
    */
-  ipcMain.handle('cache:stop-auto-cleanup', async () => {
+  ipcMain.handle("cache:stop-auto-cleanup", async () => {
     try {
       const result = getCacheOrError();
-      if (!result.success) return result;
+      if (!result.success) {
+        return result;
+      }
 
       const cache = result.cache;
 
       if (!cache.enableAutoCleanup) {
         return {
           success: true,
-          message: 'Auto cleanup is already stopped',
+          message: "Auto cleanup is already stopped",
         };
       }
 
       cache.stopAutoCleanup();
       cache.enableAutoCleanup = false;
 
-      logger.info('[Response Cache IPC] 自动清理已停止');
+      logger.info("[Response Cache IPC] 自动清理已停止");
 
       return {
         success: true,
-        message: 'Auto cleanup stopped',
+        message: "Auto cleanup stopped",
       };
     } catch (error) {
-      logger.error('[Response Cache IPC] 停止自动清理失败:', error);
+      logger.error("[Response Cache IPC] 停止自动清理失败:", error);
       return {
         success: false,
         error: error.message,
@@ -499,46 +534,51 @@ function registerResponseCacheIPC({
   });
 
   // 标记模块为已注册
-  ipcGuard.markModuleRegistered('response-cache-ipc');
+  ipcGuard.markModuleRegistered("response-cache-ipc");
 
-  logger.info('[Response Cache IPC] ✓ All handlers registered (11 handlers: 3 stats + 2 config + 4 operations + 2 control)');
+  logger.info(
+    "[Response Cache IPC] ✓ All handlers registered (11 handlers: 3 stats + 2 config + 4 operations + 2 control)",
+  );
 }
 
 /**
  * 注销 Response Cache IPC 处理器
  * @param {Object} [dependencies] - 依赖
  */
-function unregisterResponseCacheIPC({ ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard } = {}) {
+function unregisterResponseCacheIPC({
+  ipcMain: injectedIpcMain,
+  ipcGuard: injectedIpcGuard,
+} = {}) {
   const ipcGuard = injectedIpcGuard || defaultIpcGuard;
 
-  if (!ipcGuard.isModuleRegistered('response-cache-ipc')) {
+  if (!ipcGuard.isModuleRegistered("response-cache-ipc")) {
     return;
   }
 
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
   // 所有 channel 名称
   const channels = [
-    'cache:get-stats',
-    'cache:get-stats-by-provider',
-    'cache:get-hit-rate-trend',
-    'cache:get-config',
-    'cache:set-config',
-    'cache:clear-all',
-    'cache:clear-expired',
-    'cache:check',
-    'cache:warmup-status',
-    'cache:start-auto-cleanup',
-    'cache:stop-auto-cleanup',
+    "cache:get-stats",
+    "cache:get-stats-by-provider",
+    "cache:get-hit-rate-trend",
+    "cache:get-config",
+    "cache:set-config",
+    "cache:clear-all",
+    "cache:clear-expired",
+    "cache:check",
+    "cache:warmup-status",
+    "cache:start-auto-cleanup",
+    "cache:stop-auto-cleanup",
   ];
 
   for (const channel of channels) {
     ipcMain.removeHandler(channel);
   }
 
-  ipcGuard.unmarkModuleRegistered('response-cache-ipc');
-  logger.info('[Response Cache IPC] Handlers unregistered');
+  ipcGuard.unmarkModuleRegistered("response-cache-ipc");
+  logger.info("[Response Cache IPC] Handlers unregistered");
 }
 
 module.exports = {

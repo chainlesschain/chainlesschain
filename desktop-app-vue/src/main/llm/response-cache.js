@@ -12,7 +12,7 @@
  * @module response-cache
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const crypto = require("crypto");
 
 /**
@@ -456,7 +456,9 @@ class ResponseCache {
    * @private
    */
   _estimateTokens(text) {
-    if (!text) {return 0;}
+    if (!text) {
+      return 0;
+    }
 
     const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
     const otherChars = text.length - chineseChars;

@@ -6,7 +6,7 @@
  * @description 项目导出分享模块，包括文档导出、PPT生成、分享功能、文件操作等
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const path = require("path");
 const PathSecurity = require("./path-security.js");
 

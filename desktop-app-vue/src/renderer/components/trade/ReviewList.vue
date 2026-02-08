@@ -4,17 +4,11 @@
       <template #title>
         <a-space>
           <star-outlined />
-          <span>{{ title || '评价列表' }}</span>
+          <span>{{ title || "评价列表" }}</span>
         </a-space>
       </template>
-      <template
-        v-if="showCreateButton"
-        #extra
-      >
-        <a-button
-          type="primary"
-          @click="showReviewModal = true"
-        >
+      <template v-if="showCreateButton" #extra>
+        <a-button type="primary" @click="showReviewModal = true">
           <template #icon>
             <plus-outlined />
           </template>
@@ -23,28 +17,15 @@
       </template>
 
       <!-- 统计信息 -->
-      <a-row
-        v-if="statistics"
-        :gutter="[16, 16]"
-        style="margin-bottom: 24px"
-      >
-        <a-col
-          :span="24"
-          :md="6"
-        >
-          <a-statistic
-            title="总评价"
-            :value="statistics.totalReviews"
-          >
+      <a-row v-if="statistics" :gutter="[16, 16]" style="margin-bottom: 24px">
+        <a-col :span="24" :md="6">
+          <a-statistic title="总评价" :value="statistics.totalReviews">
             <template #prefix>
               <comment-outlined />
             </template>
           </a-statistic>
         </a-col>
-        <a-col
-          :span="24"
-          :md="6"
-        >
+        <a-col :span="24" :md="6">
           <a-statistic
             title="平均评分"
             :value="statistics.averageRating"
@@ -55,10 +36,7 @@
             </template>
           </a-statistic>
         </a-col>
-        <a-col
-          :span="24"
-          :md="6"
-        >
+        <a-col :span="24" :md="6">
           <a-statistic
             title="好评率"
             :value="statistics.positiveRate"
@@ -69,10 +47,7 @@
             </template>
           </a-statistic>
         </a-col>
-        <a-col
-          :span="24"
-          :md="6"
-        >
+        <a-col :span="24" :md="6">
           <a-statistic
             title="推荐率"
             :value="statistics.recommendRate"
@@ -86,72 +61,44 @@
       </a-row>
 
       <!-- 筛选 -->
-      <a-row
-        :gutter="[16, 16]"
-        style="margin-bottom: 16px"
-      >
-        <a-col
-          :span="12"
-          :md="6"
-        >
+      <a-row :gutter="[16, 16]" style="margin-bottom: 16px">
+        <a-col :span="12" :md="6">
           <a-select
             v-model:value="filterRating"
             style="width: 100%"
             @change="loadReviews"
           >
-            <a-select-option :value="0">
-              全部评分
-            </a-select-option>
-            <a-select-option :value="5">
-              5星
-            </a-select-option>
-            <a-select-option :value="4">
-              4星
-            </a-select-option>
-            <a-select-option :value="3">
-              3星
-            </a-select-option>
-            <a-select-option :value="2">
-              2星
-            </a-select-option>
-            <a-select-option :value="1">
-              1星
-            </a-select-option>
+            <a-select-option :value="0"> 全部评分 </a-select-option>
+            <a-select-option :value="5"> 5星 </a-select-option>
+            <a-select-option :value="4"> 4星 </a-select-option>
+            <a-select-option :value="3"> 3星 </a-select-option>
+            <a-select-option :value="2"> 2星 </a-select-option>
+            <a-select-option :value="1"> 1星 </a-select-option>
           </a-select>
         </a-col>
-        <a-col
-          :span="12"
-          :md="6"
-        >
+        <a-col :span="12" :md="6">
           <a-select
             v-model:value="sortBy"
             style="width: 100%"
             @change="loadReviews"
           >
-            <a-select-option value="created_at">
-              最新发布
-            </a-select-option>
-            <a-select-option value="helpful_count">
-              最有帮助
-            </a-select-option>
-            <a-select-option value="rating">
-              评分最高
-            </a-select-option>
+            <a-select-option value="created_at"> 最新发布 </a-select-option>
+            <a-select-option value="helpful_count"> 最有帮助 </a-select-option>
+            <a-select-option value="rating"> 评分最高 </a-select-option>
           </a-select>
         </a-col>
       </a-row>
 
       <!-- 评价列表 -->
       <a-spin :spinning="loading">
-        <a-list
-          :data-source="reviews"
-          item-layout="vertical"
-        >
+        <a-list :data-source="reviews" item-layout="vertical">
           <template #renderItem="{ item }">
             <a-list-item class="review-item">
               <a-comment>
                 <template #author>
-                  <span class="review-author">{{ shortenDid(item.reviewerDid) }}</span>
+                  <span class="review-author">{{
+                    shortenDid(item.reviewerDid)
+                  }}</span>
                   <a-rate
                     :value="item.rating"
                     disabled
@@ -186,18 +133,20 @@
                   <span>{{ formatTime(item.createdAt) }}</span>
                 </template>
                 <template #actions>
-                  <span
-                    key="helpful"
-                    @click="markHelpful(item, true)"
-                  >
-                    <like-outlined :style="{ color: item.isHelpful === true ? '#1890ff' : undefined }" />
+                  <span key="helpful" @click="markHelpful(item, true)">
+                    <like-outlined
+                      :style="{
+                        color: item.isHelpful === true ? '#1890ff' : undefined,
+                      }"
+                    />
                     有帮助 ({{ item.helpfulCount || 0 }})
                   </span>
-                  <span
-                    key="unhelpful"
-                    @click="markHelpful(item, false)"
-                  >
-                    <dislike-outlined :style="{ color: item.isHelpful === false ? '#1890ff' : undefined }" />
+                  <span key="unhelpful" @click="markHelpful(item, false)">
+                    <dislike-outlined
+                      :style="{
+                        color: item.isHelpful === false ? '#1890ff' : undefined,
+                      }"
+                    />
                     无帮助 ({{ item.unhelpfulCount || 0 }})
                   </span>
                   <span
@@ -208,10 +157,7 @@
                     <message-outlined />
                     回复
                   </span>
-                  <span
-                    key="report"
-                    @click="reportReview(item)"
-                  >
+                  <span key="report" @click="reportReview(item)">
                     <warning-outlined />
                     举报
                   </span>
@@ -219,15 +165,10 @@
               </a-comment>
 
               <!-- 商家回复 -->
-              <div
-                v-if="item.sellerReply"
-                class="seller-reply"
-              >
+              <div v-if="item.sellerReply" class="seller-reply">
                 <a-comment>
                   <template #author>
-                    <a-tag color="orange">
-                      商家回复
-                    </a-tag>
+                    <a-tag color="orange"> 商家回复 </a-tag>
                   </template>
                   <template #content>
                     {{ item.sellerReply.content }}
@@ -280,26 +221,13 @@
       @ok="handleReport"
     >
       <a-form layout="vertical">
-        <a-form-item
-          label="举报原因"
-          required
-        >
+        <a-form-item label="举报原因" required>
           <a-select v-model:value="reportForm.reason">
-            <a-select-option value="spam">
-              垃圾信息
-            </a-select-option>
-            <a-select-option value="abuse">
-              辱骂攻击
-            </a-select-option>
-            <a-select-option value="fake">
-              虚假评价
-            </a-select-option>
-            <a-select-option value="inappropriate">
-              不当内容
-            </a-select-option>
-            <a-select-option value="other">
-              其他
-            </a-select-option>
+            <a-select-option value="spam"> 垃圾信息 </a-select-option>
+            <a-select-option value="abuse"> 辱骂攻击 </a-select-option>
+            <a-select-option value="fake"> 虚假评价 </a-select-option>
+            <a-select-option value="inappropriate"> 不当内容 </a-select-option>
+            <a-select-option value="other"> 其他 </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -316,10 +244,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, watch } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   StarOutlined,
   PlusOutlined,
@@ -330,10 +258,10 @@ import {
   UserOutlined,
   MessageOutlined,
   WarningOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
-import ReviewCreate from './ReviewCreate.vue';
-import ReviewReply from './ReviewReply.vue';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
+import ReviewCreate from "./ReviewCreate.vue";
+import ReviewReply from "./ReviewReply.vue";
 
 // Store
 const tradeStore = useTradeStore();
@@ -367,7 +295,7 @@ const statistics = computed(() => tradeStore.review.statistics);
 // 本地状态
 const reporting = ref(false);
 const filterRating = ref(0);
-const sortBy = ref('created_at');
+const sortBy = ref("created_at");
 const showReviewModal = ref(false);
 const showReplyModal = ref(false);
 const showReportModal = ref(false);
@@ -375,8 +303,8 @@ const replyingReview = ref(null);
 const reportingReview = ref(null);
 
 const reportForm = reactive({
-  reason: '',
-  description: '',
+  reason: "",
+  description: "",
 });
 
 // 加载评价列表
@@ -393,10 +321,10 @@ const loadReviews = async () => {
     // 使用 store 加载统计信息
     await tradeStore.loadReviewStatistics(props.targetId, props.targetType);
 
-    logger.info('[ReviewList] 评价列表已加载:', reviews.value.length);
+    logger.info("[ReviewList] 评价列表已加载:", reviews.value.length);
   } catch (error) {
-    logger.error('[ReviewList] 加载评价失败:', error);
-    antMessage.error(error.message || '加载评价失败');
+    logger.error("[ReviewList] 加载评价失败:", error);
+    antMessage.error(error.message || "加载评价失败");
   }
 };
 
@@ -416,8 +344,8 @@ const markHelpful = async (review, helpful) => {
     await tradeStore.markReviewHelpful(review.id, helpful);
     await loadReviews();
   } catch (error) {
-    logger.error('[ReviewList] 标记失败:', error);
-    antMessage.error(error.message || '操作失败');
+    logger.error("[ReviewList] 标记失败:", error);
+    antMessage.error(error.message || "操作失败");
   }
 };
 
@@ -430,8 +358,8 @@ const replyToReview = (review) => {
 // 举报评价
 const reportReview = (review) => {
   reportingReview.value = review;
-  reportForm.reason = '';
-  reportForm.description = '';
+  reportForm.reason = "";
+  reportForm.description = "";
   showReportModal.value = true;
 };
 
@@ -439,7 +367,7 @@ const reportReview = (review) => {
 const handleReport = async () => {
   try {
     if (!reportForm.reason) {
-      antMessage.warning('请选择举报原因');
+      antMessage.warning("请选择举报原因");
       return;
     }
 
@@ -448,17 +376,17 @@ const handleReport = async () => {
     await tradeStore.reportReview(
       reportingReview.value.id,
       reportForm.reason,
-      reportForm.description
+      reportForm.description,
     );
 
-    logger.info('[ReviewList] 举报已提交:', reportingReview.value.id);
-    antMessage.success('举报已提交，我们会尽快处理');
+    logger.info("[ReviewList] 举报已提交:", reportingReview.value.id);
+    antMessage.success("举报已提交，我们会尽快处理");
 
     showReportModal.value = false;
     reportingReview.value = null;
   } catch (error) {
-    logger.error('[ReviewList] 举报失败:', error);
-    antMessage.error(error.message || '举报失败');
+    logger.error("[ReviewList] 举报失败:", error);
+    antMessage.error(error.message || "举报失败");
   } finally {
     reporting.value = false;
   }
@@ -466,19 +394,24 @@ const handleReport = async () => {
 
 // 工具函数
 const shortenDid = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 
 // 监听props变化
-watch(() => props.targetId, () => {
-  loadReviews();
-});
+watch(
+  () => props.targetId,
+  () => {
+    loadReviews();
+  },
+);
 
 // 生命周期
 onMounted(() => {

@@ -3,27 +3,29 @@
  * 负责Excel/CSV数据读写、数据分析和可视化
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
 
 // 尝试加载Excel库（可选依赖）
 let xlsx = null;
 try {
-  xlsx = require('xlsx');
+  xlsx = require("xlsx");
 } catch (e) {
-  logger.warn('[Data Engine] xlsx库未安装，Excel功能将不可用。安装命令: npm install xlsx');
+  logger.warn(
+    "[Data Engine] xlsx库未安装，Excel功能将不可用。安装命令: npm install xlsx",
+  );
 }
 
 class DataEngine {
   constructor() {
     // 图表类型定义
     this.chartTypes = {
-      line: '折线图',
-      bar: '柱状图',
-      pie: '饼图',
-      scatter: '散点图',
-      area: '面积图',
+      line: "折线图",
+      bar: "柱状图",
+      pie: "饼图",
+      scatter: "散点图",
+      area: "面积图",
     };
 
     // 检查Excel支持
@@ -37,11 +39,11 @@ class DataEngine {
    */
   async readCSV(filePath) {
     try {
-      const content = await fs.readFile(filePath, 'utf-8');
-      const lines = content.split('\n').filter(line => line.trim());
+      const content = await fs.readFile(filePath, "utf-8");
+      const lines = content.split("\n").filter((line) => line.trim());
 
       if (lines.length === 0) {
-        throw new Error('CSV文件为空');
+        throw new Error("CSV文件为空");
       }
 
       // 解析表头
@@ -54,7 +56,7 @@ class DataEngine {
         const row = {};
 
         headers.forEach((header, index) => {
-          row[header] = values[index] || '';
+          row[header] = values[index] || "";
         });
 
         rows.push(row);
@@ -78,12 +80,12 @@ class DataEngine {
    */
   async readExcel(filePath) {
     if (!this.excelSupported) {
-      throw new Error('Excel功能不可用，请安装xlsx库: npm install xlsx');
+      throw new Error("Excel功能不可用，请安装xlsx库: npm install xlsx");
     }
 
     try {
       const buffer = await fs.readFile(filePath);
-      const workbook = xlsx.read(buffer, { type: 'buffer' });
+      const workbook = xlsx.read(buffer, { type: "buffer" });
 
       // 默认读取第一个工作表
       const sheetName = workbook.SheetNames[0];
@@ -93,17 +95,18 @@ class DataEngine {
       const jsonData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
 
       if (jsonData.length === 0) {
-        throw new Error('Excel文件为空');
+        throw new Error("Excel文件为空");
       }
 
       // 解析表头和数据
-      const headers = jsonData[0].map(h => String(h || ''));
+      const headers = jsonData[0].map((h) => String(h || ""));
       const rows = [];
 
       for (let i = 1; i < jsonData.length; i++) {
         const row = {};
         headers.forEach((header, index) => {
-          row[header] = jsonData[i][index] !== undefined ? String(jsonData[i][index]) : '';
+          row[header] =
+            jsonData[i][index] !== undefined ? String(jsonData[i][index]) : "";
         });
         rows.push(row);
       }
@@ -130,23 +133,26 @@ class DataEngine {
     try {
       const { headers, rows } = data;
 
-      let csvContent = '';
+      let csvContent = "";
 
       // 写入表头
-      csvContent += headers.join(',') + '\n';
+      csvContent += headers.join(",") + "\n";
 
       // 写入数据行
       for (const row of rows) {
-        const values = headers.map(header => {
-          const value = row[header] || '';
+        const values = headers.map((header) => {
+          const value = row[header] || "";
           // 如果值包含逗号或引号，需要用引号包裹
-          if (value.toString().includes(',') || value.toString().includes('"')) {
+          if (
+            value.toString().includes(",") ||
+            value.toString().includes('"')
+          ) {
             return `"${value.toString().replace(/"/g, '""')}"`;
           }
           return value;
         });
 
-        csvContent += values.join(',') + '\n';
+        csvContent += values.join(",") + "\n";
       }
 
       // 确保目录存在
@@ -154,7 +160,7 @@ class DataEngine {
       await fs.mkdir(dir, { recursive: true });
 
       // 写入文件
-      await fs.writeFile(filePath, csvContent, 'utf-8');
+      await fs.writeFile(filePath, csvContent, "utf-8");
 
       return {
         success: true,
@@ -174,7 +180,7 @@ class DataEngine {
    */
   async writeExcel(filePath, data) {
     if (!this.excelSupported) {
-      throw new Error('Excel功能不可用，请安装xlsx库: npm install xlsx');
+      throw new Error("Excel功能不可用，请安装xlsx库: npm install xlsx");
     }
 
     try {
@@ -186,7 +192,7 @@ class DataEngine {
       // 准备数据（包含表头）
       const wsData = [headers];
       for (const row of rows) {
-        const rowData = headers.map(header => row[header] || '');
+        const rowData = headers.map((header) => row[header] || "");
         wsData.push(rowData);
       }
 
@@ -194,7 +200,7 @@ class DataEngine {
       const worksheet = xlsx.utils.aoa_to_sheet(wsData);
 
       // 添加到工作簿
-      xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+      xlsx.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
       // 确保目录存在
       const dir = path.dirname(filePath);
@@ -226,12 +232,17 @@ class DataEngine {
     const results = {};
 
     // 如果没有指定列，分析所有数值列
-    const analyzedColumns = columns.length > 0 ? columns : this.findNumericColumns(rows);
+    const analyzedColumns =
+      columns.length > 0 ? columns : this.findNumericColumns(rows);
 
     for (const column of analyzedColumns) {
-      const values = rows.map(row => parseFloat(row[column])).filter(v => !isNaN(v));
+      const values = rows
+        .map((row) => parseFloat(row[column]))
+        .filter((v) => !isNaN(v));
 
-      if (values.length === 0) {continue;}
+      if (values.length === 0) {
+        continue;
+      }
 
       results[column] = {
         count: values.length,
@@ -259,8 +270,8 @@ class DataEngine {
    */
   async generateChart(data, options = {}) {
     const {
-      chartType = 'bar',
-      title = '数据图表',
+      chartType = "bar",
+      title = "数据图表",
       xColumn,
       yColumn,
       outputPath,
@@ -269,12 +280,12 @@ class DataEngine {
     const { rows } = data;
 
     if (!xColumn || !yColumn) {
-      throw new Error('必须指定X轴和Y轴列');
+      throw new Error("必须指定X轴和Y轴列");
     }
 
     // 提取图表数据
-    const labels = rows.map(row => row[xColumn]);
-    const values = rows.map(row => parseFloat(row[yColumn]));
+    const labels = rows.map((row) => row[xColumn]);
+    const values = rows.map((row) => parseFloat(row[yColumn]));
 
     // 生成图表HTML
     const chartHTML = this.generateChartHTML(chartType, {
@@ -289,7 +300,7 @@ class DataEngine {
       await fs.mkdir(dir, { recursive: true });
 
       // 写入HTML文件
-      await fs.writeFile(outputPath, chartHTML, 'utf-8');
+      await fs.writeFile(outputPath, chartHTML, "utf-8");
 
       return {
         success: true,
@@ -319,7 +330,7 @@ class DataEngine {
     await fs.mkdir(dir, { recursive: true });
 
     // 写入Markdown文件
-    await fs.writeFile(outputPath, reportMarkdown, 'utf-8');
+    await fs.writeFile(outputPath, reportMarkdown, "utf-8");
 
     return {
       success: true,
@@ -335,7 +346,7 @@ class DataEngine {
    */
   parseCSVLine(line) {
     const values = [];
-    let current = '';
+    let current = "";
     let inQuotes = false;
 
     for (let i = 0; i < line.length; i++) {
@@ -350,9 +361,9 @@ class DataEngine {
         } else {
           inQuotes = !inQuotes;
         }
-      } else if (char === ',' && !inQuotes) {
+      } else if (char === "," && !inQuotes) {
         values.push(current.trim());
-        current = '';
+        current = "";
       } else {
         current += char;
       }
@@ -367,7 +378,9 @@ class DataEngine {
    * @private
    */
   findNumericColumns(rows) {
-    if (rows.length === 0) {return [];}
+    if (rows.length === 0) {
+      return [];
+    }
 
     const firstRow = rows[0];
     const numericColumns = [];
@@ -418,12 +431,15 @@ class DataEngine {
    * @private
    */
   standardDeviation(values) {
-    if (values.length <= 1) {return 0;}
+    if (values.length <= 1) {
+      return 0;
+    }
 
     const avg = this.mean(values);
-    const squareDiffs = values.map(value => Math.pow(value - avg, 2));
+    const squareDiffs = values.map((value) => Math.pow(value - avg, 2));
     // 使用 n-1 计算样本标准差
-    const variance = squareDiffs.reduce((sum, val) => sum + val, 0) / (values.length - 1);
+    const variance =
+      squareDiffs.reduce((sum, val) => sum + val, 0) / (values.length - 1);
     return Math.sqrt(variance);
   }
 
@@ -507,11 +523,15 @@ class DataEngine {
             display: false
           }
         },
-        scales: ${chartType !== 'pie' ? `{
+        scales: ${
+          chartType !== "pie"
+            ? `{
           y: {
             beginAtZero: true
           }
-        }` : '{}'}
+        }`
+            : "{}"
+        }
       }
     });
   </script>
@@ -527,7 +547,7 @@ class DataEngine {
     const { analysis, columns } = analysisResults;
 
     let markdown = `# 数据分析报告\n\n`;
-    markdown += `**生成时间**: ${new Date().toLocaleString('zh-CN')}\n\n`;
+    markdown += `**生成时间**: ${new Date().toLocaleString("zh-CN")}\n\n`;
     markdown += `**分析工具**: ChainlessChain Data Engine\n\n`;
     markdown += `---\n\n`;
     markdown += `## 概述\n\n`;
@@ -572,7 +592,7 @@ class DataEngine {
       markdown += `**需求描述**: ${description}\n\n`;
     }
 
-    if (typeof rowCount === 'number') {
+    if (typeof rowCount === "number") {
       markdown += `**数据行数**: ${rowCount}\n\n`;
     }
 
@@ -587,7 +607,9 @@ class DataEngine {
 
     for (const column of columns) {
       const stats = analysis ? analysis[column] : null;
-      if (!stats) {continue;}
+      if (!stats) {
+        continue;
+      }
       markdown += `| ${column} | ${stats.count} | ${stats.sum.toFixed(2)} | ${stats.mean.toFixed(2)} | ${stats.min.toFixed(2)} | ${stats.max.toFixed(2)} | ${stats.stdDev.toFixed(2)} |\n`;
     }
 
@@ -599,21 +621,41 @@ class DataEngine {
    * @private
    */
   findNutritionColumns(headers) {
-    if (!Array.isArray(headers)) {return [];}
+    if (!Array.isArray(headers)) {
+      return [];
+    }
 
     const keywords = [
-      'calorie', 'calories', 'kcal', 'energy',
-      'protein', 'fat', 'lipid',
-      'carb', 'carbohydrate', 'fiber', 'sugar',
-      'sodium', 'cholesterol',
-      '热量', '能量', '蛋白', '蛋白质', '脂肪',
-      '碳水', '碳水化合物', '膳食纤维', '纤维',
-      '糖', '钠', '胆固醇'
+      "calorie",
+      "calories",
+      "kcal",
+      "energy",
+      "protein",
+      "fat",
+      "lipid",
+      "carb",
+      "carbohydrate",
+      "fiber",
+      "sugar",
+      "sodium",
+      "cholesterol",
+      "热量",
+      "能量",
+      "蛋白",
+      "蛋白质",
+      "脂肪",
+      "碳水",
+      "碳水化合物",
+      "膳食纤维",
+      "纤维",
+      "糖",
+      "钠",
+      "胆固醇",
     ];
 
     return headers.filter((header) => {
       const normalized = String(header).toLowerCase();
-      return keywords.some(keyword => normalized.includes(keyword));
+      return keywords.some((keyword) => normalized.includes(keyword));
     });
   }
 
@@ -627,27 +669,31 @@ class DataEngine {
     try {
       let responseText;
 
-      if (typeof llmManager.query === 'function') {
+      if (typeof llmManager.query === "function") {
         const response = await llmManager.query(prompt, {
           temperature: 0.4,
-          maxTokens: 1500
+          maxTokens: 1500,
         });
         responseText = response.text || response;
-      } else if (typeof llmManager.chat === 'function') {
-        const response = await llmManager.chat([
-          { role: 'user', content: prompt }
-        ], {
-          temperature: 0.4,
-          max_tokens: 1500
-        });
+      } else if (typeof llmManager.chat === "function") {
+        const response = await llmManager.chat(
+          [{ role: "user", content: prompt }],
+          {
+            temperature: 0.4,
+            max_tokens: 1500,
+          },
+        );
         responseText = response.text || response.content || response;
       } else {
-        throw new Error('LLM Manager 没有可用的查询方法');
+        throw new Error("LLM Manager 没有可用的查询方法");
       }
 
-      return String(responseText || '').trim();
+      return String(responseText || "").trim();
     } catch (error) {
-      logger.warn('[Data Engine] LLM生成营养报告失败，使用兜底报告:', error.message);
+      logger.warn(
+        "[Data Engine] LLM生成营养报告失败，使用兜底报告:",
+        error.message,
+      );
       return this.generateNutritionFallbackMarkdown(description);
     }
   }
@@ -673,92 +719,101 @@ class DataEngine {
    * @returns {Promise<Object>} 处理结果
    */
   async handleProjectTask(params) {
-    const { action, description, outputFiles = [], projectPath, llmManager } = params;
+    const {
+      action,
+      description,
+      outputFiles = [],
+      projectPath,
+      llmManager,
+    } = params;
 
-    logger.info('[Data Engine] 处理数据任务:', action);
-    logger.info('[Data Engine] 项目路径:', projectPath);
+    logger.info("[Data Engine] 处理数据任务:", action);
+    logger.info("[Data Engine] 项目路径:", projectPath);
 
     try {
       switch (action) {
-        case 'read_excel': {
+        case "read_excel": {
           // 读取Excel文件
-          const fileName = outputFiles[0] || this.extractFileNameFromDescription(description);
+          const fileName =
+            outputFiles[0] || this.extractFileNameFromDescription(description);
           const filePath = path.join(projectPath, fileName);
 
-          logger.info('[Data Engine] 读取Excel文件:', filePath);
+          logger.info("[Data Engine] 读取Excel文件:", filePath);
 
           // 根据文件扩展名选择读取方法
           const ext = path.extname(filePath).toLowerCase();
           let data;
 
-          if (ext === '.csv') {
+          if (ext === ".csv") {
             data = await this.readCSV(filePath);
-          } else if (ext === '.xlsx' || ext === '.xls') {
+          } else if (ext === ".xlsx" || ext === ".xls") {
             data = await this.readExcel(filePath);
           } else {
             throw new Error(`不支持的文件格式: ${ext}`);
           }
 
           return {
-            type: 'data',
-            action: 'read',
+            type: "data",
+            action: "read",
             filePath,
             success: true,
-            data
+            data,
           };
         }
 
-        case 'read_csv': {
+        case "read_csv": {
           // 读取CSV文件
-          const fileName = outputFiles[0] || this.extractFileNameFromDescription(description);
+          const fileName =
+            outputFiles[0] || this.extractFileNameFromDescription(description);
           const filePath = path.join(projectPath, fileName);
 
-          logger.info('[Data Engine] 读取CSV文件:', filePath);
+          logger.info("[Data Engine] 读取CSV文件:", filePath);
 
           const data = await this.readCSV(filePath);
 
           return {
-            type: 'data',
-            action: 'read',
+            type: "data",
+            action: "read",
             filePath,
             success: true,
-            data
+            data,
           };
         }
 
-        case 'analyze_data': {
+        case "analyze_data": {
           // 分析数据
           // 首先需要读取数据文件
           const fileName = this.extractFileNameFromDescription(description);
           const filePath = path.join(projectPath, fileName);
 
-          logger.info('[Data Engine] 分析文件:', filePath);
+          logger.info("[Data Engine] 分析文件:", filePath);
 
           const data = await this.readCSV(filePath);
           const analysis = this.analyzeData(data);
 
           // 生成分析报告
-          const reportFileName = 'analysis_report.md';
+          const reportFileName = "analysis_report.md";
           const reportPath = path.join(projectPath, reportFileName);
           await this.generateReport(analysis, reportPath);
 
           return {
-            type: 'data',
-            action: 'analyze',
+            type: "data",
+            action: "analyze",
             filePath,
             reportPath,
             success: true,
-            analysis
+            analysis,
           };
         }
 
-        case 'calculate_nutrition': {
-          const reportFileName = outputFiles[0] || 'nutrition_report.md';
+        case "calculate_nutrition": {
+          const reportFileName = outputFiles[0] || "nutrition_report.md";
           const reportPath = path.join(projectPath, reportFileName);
 
-          const safeDescription = description || '';
+          const safeDescription = description || "";
           const fileMatch = safeDescription.match(/[\w\-_]+\.(csv|xlsx|xls)/i);
-          const fileName = fileMatch && this.isPathSafe(fileMatch[0]) ? fileMatch[0] : null;
+          const fileName =
+            fileMatch && this.isPathSafe(fileMatch[0]) ? fileMatch[0] : null;
 
           let data = null;
           let sourcePath = null;
@@ -767,13 +822,16 @@ class DataEngine {
             sourcePath = path.join(projectPath, fileName);
             const ext = path.extname(sourcePath).toLowerCase();
             try {
-              if (ext === '.csv') {
+              if (ext === ".csv") {
                 data = await this.readCSV(sourcePath);
-              } else if (ext === '.xlsx' || ext === '.xls') {
+              } else if (ext === ".xlsx" || ext === ".xls") {
                 data = await this.readExcel(sourcePath);
               }
             } catch (error) {
-              logger.warn('[Data Engine] 读取营养数据文件失败，尝试降级处理:', error.message);
+              logger.warn(
+                "[Data Engine] 读取营养数据文件失败，尝试降级处理:",
+                error.message,
+              );
             }
           }
 
@@ -786,33 +844,37 @@ class DataEngine {
             reportMarkdown = this.generateNutritionReportMarkdown(analysis, {
               sourceFile: fileName,
               description: safeDescription,
-              rowCount: data.rowCount || data.rows.length
+              rowCount: data.rowCount || data.rows.length,
             });
           } else if (llmManager) {
-            reportMarkdown = await this.generateNutritionReportWithLLM(safeDescription, llmManager);
+            reportMarkdown = await this.generateNutritionReportWithLLM(
+              safeDescription,
+              llmManager,
+            );
           } else {
-            reportMarkdown = this.generateNutritionFallbackMarkdown(safeDescription);
+            reportMarkdown =
+              this.generateNutritionFallbackMarkdown(safeDescription);
           }
 
           await fs.mkdir(path.dirname(reportPath), { recursive: true });
-          await fs.writeFile(reportPath, reportMarkdown, 'utf-8');
+          await fs.writeFile(reportPath, reportMarkdown, "utf-8");
 
           return {
-            type: 'data',
-            action: 'calculate_nutrition',
+            type: "data",
+            action: "calculate_nutrition",
             filePath: sourcePath,
             reportPath,
             success: true,
-            analysis
+            analysis,
           };
         }
 
-        case 'create_chart': {
+        case "create_chart": {
           // 创建图表
           const fileName = this.extractFileNameFromDescription(description);
           const filePath = path.join(projectPath, fileName);
 
-          logger.info('[Data Engine] 从文件创建图表:', filePath);
+          logger.info("[Data Engine] 从文件创建图表:", filePath);
 
           const data = await this.readCSV(filePath);
 
@@ -820,92 +882,98 @@ class DataEngine {
           const xColumn = data.headers[0];
           const yColumn = data.headers[1];
 
-          const chartFileName = 'chart.html';
+          const chartFileName = "chart.html";
           const chartPath = path.join(projectPath, chartFileName);
 
           const chartResult = await this.generateChart(data, {
-            chartType: 'bar',
-            title: '数据图表',
+            chartType: "bar",
+            title: "数据图表",
             xColumn,
             yColumn,
-            outputPath: chartPath
+            outputPath: chartPath,
           });
 
           return {
-            type: 'data',
-            action: 'chart',
+            type: "data",
+            action: "chart",
             filePath,
             chartPath,
             success: true,
-            ...chartResult
+            ...chartResult,
           };
         }
 
-        case 'export_csv': {
+        case "export_csv": {
           // 导出CSV文件
-          const fileName = outputFiles[0] || 'data.csv';
+          const fileName = outputFiles[0] || "data.csv";
           const filePath = path.join(projectPath, fileName);
 
-          logger.info('[Data Engine] 导出CSV:', filePath);
+          logger.info("[Data Engine] 导出CSV:", filePath);
 
           // 使用LLM生成示例数据
           let sampleData;
           if (llmManager) {
-            sampleData = await this.generateSampleDataWithLLM(description, llmManager);
+            sampleData = await this.generateSampleDataWithLLM(
+              description,
+              llmManager,
+            );
           } else {
             // 默认示例数据
             sampleData = {
-              headers: ['名称', '数值'],
+              headers: ["名称", "数值"],
               rows: [
-                { '名称': '项目A', '数值': '100' },
-                { '名称': '项目B', '数值': '200' },
-                { '名称': '项目C', '数值': '150' }
-              ]
+                { 名称: "项目A", 数值: "100" },
+                { 名称: "项目B", 数值: "200" },
+                { 名称: "项目C", 数值: "150" },
+              ],
             };
           }
 
           await this.writeCSV(filePath, sampleData);
 
           return {
-            type: 'data',
-            action: 'export',
+            type: "data",
+            action: "export",
             filePath,
             success: true,
-            rowCount: sampleData.rows.length
+            rowCount: sampleData.rows.length,
           };
         }
 
-        case 'export_excel': {
+        case "export_excel": {
           // 导出Excel文件
-          const fileName = outputFiles[0] || 'data.xlsx';
+          const fileName = outputFiles[0] || "data.xlsx";
           const filePath = path.join(projectPath, fileName);
 
-          logger.info('[Data Engine] 导出Excel:', filePath);
+          logger.info("[Data Engine] 导出Excel:", filePath);
 
           // 使用LLM生成示例数据
           let sampleData;
           if (llmManager) {
-            sampleData = await this.generateSampleDataWithLLM(description, llmManager);
+            sampleData = await this.generateSampleDataWithLLM(
+              description,
+              llmManager,
+            );
           } else {
             // 默认示例数据
             sampleData = {
-              headers: ['名称', '数值'],
+              headers: ["名称", "数值"],
               rows: [
-                { '名称': '项目A', '数值': '100' },
-                { '名称': '项目B', '数值': '200' },
-                { '名称': '项目C', '数值': '150' }
-              ]
+                { 名称: "项目A", 数值: "100" },
+                { 名称: "项目B", 数值: "200" },
+                { 名称: "项目C", 数值: "150" },
+              ],
             };
           }
 
           await this.writeExcel(filePath, sampleData);
 
           return {
-            type: 'data',
-            action: 'export',
+            type: "data",
+            action: "export",
             filePath,
             success: true,
-            rowCount: sampleData.rows.length
+            rowCount: sampleData.rows.length,
           };
         }
 
@@ -913,7 +981,7 @@ class DataEngine {
           throw new Error(`不支持的数据操作: ${action}`);
       }
     } catch (error) {
-      logger.error('[Data Engine] 任务执行失败:', error);
+      logger.error("[Data Engine] 任务执行失败:", error);
       throw error;
     }
   }
@@ -936,7 +1004,7 @@ class DataEngine {
     }
 
     // 默认文件名
-    return 'data.csv';
+    return "data.csv";
   }
 
   /**
@@ -946,14 +1014,19 @@ class DataEngine {
   isPathSafe(filePath) {
     // 检查是否包含路径遍历字符
     const dangerousPatterns = [
-      /\.\./,           // 父目录引用
-      /^[/\\]/,         // 绝对路径
-      /[/\\]{2,}/,      // 多个斜杠
-      /[<>:"|?*]/       // Windows不允许的字符
+      /\.\./, // 父目录引用
+      /^[/\\]/, // 绝对路径
+      /[/\\]{2,}/, // 多个斜杠
+      /[<>:"|?*]/, // Windows不允许的字符
     ];
-    const hasControlChars = [...filePath].some((char) => char.charCodeAt(0) <= 31);
+    const hasControlChars = [...filePath].some(
+      (char) => char.charCodeAt(0) <= 31,
+    );
 
-    return !hasControlChars && !dangerousPatterns.some(pattern => pattern.test(filePath));
+    return (
+      !hasControlChars &&
+      !dangerousPatterns.some((pattern) => pattern.test(filePath))
+    );
   }
 
   /**
@@ -980,24 +1053,25 @@ ${description}
       // 尝试使用不同的LLM方法（兼容多种接口）
       let responseText;
 
-      if (typeof llmManager.query === 'function') {
+      if (typeof llmManager.query === "function") {
         // 使用 query 方法
         const response = await llmManager.query(prompt, {
           temperature: 0.7,
-          maxTokens: 2000
+          maxTokens: 2000,
         });
         responseText = response.text || response;
-      } else if (typeof llmManager.chat === 'function') {
+      } else if (typeof llmManager.chat === "function") {
         // 使用 chat 方法
-        const response = await llmManager.chat([
-          { role: 'user', content: prompt }
-        ], {
-          temperature: 0.7,
-          max_tokens: 2000
-        });
+        const response = await llmManager.chat(
+          [{ role: "user", content: prompt }],
+          {
+            temperature: 0.7,
+            max_tokens: 2000,
+          },
+        );
         responseText = response.text || response.content || response;
       } else {
-        throw new Error('LLM Manager 没有可用的查询方法');
+        throw new Error("LLM Manager 没有可用的查询方法");
       }
 
       // 提取JSON
@@ -1006,17 +1080,20 @@ ${description}
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      logger.warn('[Data Engine] LLM生成数据失败，使用默认数据:', error.message);
+      logger.warn(
+        "[Data Engine] LLM生成数据失败，使用默认数据:",
+        error.message,
+      );
     }
 
     // 默认数据
     return {
-      headers: ['名称', '数值'],
+      headers: ["名称", "数值"],
       rows: [
-        { '名称': '项目A', '数值': '100' },
-        { '名称': '项目B', '数值': '200' },
-        { '名称': '项目C', '数值': '150' }
-      ]
+        { 名称: "项目A", 数值: "100" },
+        { 名称: "项目B", 数值: "200" },
+        { 名称: "项目C", 数值: "150" },
+      ],
     };
   }
 }

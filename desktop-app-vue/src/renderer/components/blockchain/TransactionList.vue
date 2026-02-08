@@ -1,10 +1,7 @@
 <template>
   <div class="transaction-list">
     <!-- 过滤器 -->
-    <div
-      v-if="showFilters"
-      class="list-header"
-    >
+    <div v-if="showFilters" class="list-header">
       <a-space :size="12">
         <a-select
           v-model:value="filters.status"
@@ -13,18 +10,10 @@
           allow-clear
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部状态
-          </a-select-option>
-          <a-select-option value="pending">
-            待确认
-          </a-select-option>
-          <a-select-option value="confirmed">
-            已确认
-          </a-select-option>
-          <a-select-option value="failed">
-            失败
-          </a-select-option>
+          <a-select-option value=""> 全部状态 </a-select-option>
+          <a-select-option value="pending"> 待确认 </a-select-option>
+          <a-select-option value="confirmed"> 已确认 </a-select-option>
+          <a-select-option value="failed"> 失败 </a-select-option>
         </a-select>
 
         <a-select
@@ -34,24 +23,13 @@
           allow-clear
           @change="handleFilterChange"
         >
-          <a-select-option value="">
-            全部类型
-          </a-select-option>
-          <a-select-option value="transfer">
-            转账
-          </a-select-option>
-          <a-select-option value="mint">
-            铸造
-          </a-select-option>
-          <a-select-option value="contract_call">
-            合约调用
-          </a-select-option>
+          <a-select-option value=""> 全部类型 </a-select-option>
+          <a-select-option value="transfer"> 转账 </a-select-option>
+          <a-select-option value="mint"> 铸造 </a-select-option>
+          <a-select-option value="contract_call"> 合约调用 </a-select-option>
         </a-select>
 
-        <a-button
-          :loading="loading"
-          @click="handleRefresh"
-        >
+        <a-button :loading="loading" @click="handleRefresh">
           <template #icon>
             <reload-outlined />
           </template>
@@ -72,7 +50,9 @@
           <a-list-item-meta>
             <!-- 交易类型图标 -->
             <template #avatar>
-              <a-avatar :style="{ backgroundColor: getTxTypeColor(item.tx_type) }">
+              <a-avatar
+                :style="{ backgroundColor: getTxTypeColor(item.tx_type) }"
+              >
                 <component :is="getTxTypeIcon(item.tx_type)" />
               </a-avatar>
             </template>
@@ -81,10 +61,7 @@
             <template #title>
               <div class="tx-title">
                 <span class="tx-type">{{ getTxTypeText(item.tx_type) }}</span>
-                <a-tag
-                  :color="getStatusColor(item.status)"
-                  size="small"
-                >
+                <a-tag :color="getStatusColor(item.status)" size="small">
                   {{ getStatusText(item.status) }}
                 </a-tag>
                 <span class="tx-time">{{ formatTime(item.created_at) }}</span>
@@ -113,32 +90,29 @@
                 <!-- 发送方和接收方 -->
                 <div class="tx-addresses">
                   <span class="label">从:</span>
-                  <span class="value">{{ formatAddress(item.from_address) }}</span>
+                  <span class="value">{{
+                    formatAddress(item.from_address)
+                  }}</span>
                   <arrow-right-outlined class="arrow-icon" />
                   <span class="label">到:</span>
-                  <span class="value">{{ formatAddress(item.to_address) }}</span>
+                  <span class="value">{{
+                    formatAddress(item.to_address)
+                  }}</span>
                 </div>
 
                 <!-- 金额和 Gas -->
                 <div class="tx-details">
-                  <span
-                    v-if="item.value"
-                    class="detail-item"
-                  >
+                  <span v-if="item.value" class="detail-item">
                     <span class="label">金额:</span>
-                    <span class="value amount">{{ formatValue(item.value) }}</span>
+                    <span class="value amount">{{
+                      formatValue(item.value)
+                    }}</span>
                   </span>
-                  <span
-                    v-if="item.gas_used"
-                    class="detail-item"
-                  >
+                  <span v-if="item.gas_used" class="detail-item">
                     <span class="label">Gas:</span>
                     <span class="value">{{ item.gas_used }}</span>
                   </span>
-                  <span
-                    v-if="item.block_number"
-                    class="detail-item"
-                  >
+                  <span v-if="item.block_number" class="detail-item">
                     <span class="label">区块:</span>
                     <span class="value">{{ item.block_number }}</span>
                   </span>
@@ -149,11 +123,7 @@
 
           <!-- 操作按钮 -->
           <template #actions>
-            <a-button
-              type="link"
-              size="small"
-              @click="handleViewDetails(item)"
-            >
+            <a-button type="link" size="small" @click="handleViewDetails(item)">
               详情
             </a-button>
           </template>
@@ -164,10 +134,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, onMounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   ReloadOutlined,
   CopyOutlined,
@@ -176,8 +146,8 @@ import {
   SwapOutlined,
   PlusCircleOutlined,
   FileTextOutlined,
-} from '@ant-design/icons-vue';
-import { useBlockchainStore } from '@/stores/blockchain';
+} from "@ant-design/icons-vue";
+import { useBlockchainStore } from "@/stores/blockchain";
 
 const props = defineProps({
   // 地址过滤（只显示该地址相关的交易）
@@ -207,7 +177,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['view-details']);
+const emit = defineEmits(["view-details"]);
 
 const blockchainStore = useBlockchainStore();
 
@@ -215,8 +185,8 @@ const blockchainStore = useBlockchainStore();
 const loading = ref(false);
 const currentPage = ref(1);
 const filters = ref({
-  status: '',
-  tx_type: '',
+  status: "",
+  tx_type: "",
 });
 
 // 从 store 获取数据
@@ -230,23 +200,24 @@ const filteredTransactions = computed(() => {
   // 按地址过滤
   if (props.address) {
     result = result.filter(
-      tx => tx.from_address === props.address || tx.to_address === props.address
+      (tx) =>
+        tx.from_address === props.address || tx.to_address === props.address,
     );
   }
 
   // 按链 ID 过滤
   if (props.chainId !== null) {
-    result = result.filter(tx => tx.chain_id === props.chainId);
+    result = result.filter((tx) => tx.chain_id === props.chainId);
   }
 
   // 按状态过滤
   if (filters.value.status) {
-    result = result.filter(tx => tx.status === filters.value.status);
+    result = result.filter((tx) => tx.status === filters.value.status);
   }
 
   // 按类型过滤
   if (filters.value.tx_type) {
-    result = result.filter(tx => tx.tx_type === filters.value.tx_type);
+    result = result.filter((tx) => tx.tx_type === filters.value.tx_type);
   }
 
   return result;
@@ -276,11 +247,11 @@ const pagination = computed(() => ({
  */
 const getTxTypeText = (type) => {
   const typeMap = {
-    transfer: '转账',
-    mint: '铸造',
-    contract_call: '合约调用',
+    transfer: "转账",
+    mint: "铸造",
+    contract_call: "合约调用",
   };
-  return typeMap[type] || '未知';
+  return typeMap[type] || "未知";
 };
 
 /**
@@ -300,11 +271,11 @@ const getTxTypeIcon = (type) => {
  */
 const getTxTypeColor = (type) => {
   const colorMap = {
-    transfer: '#1890ff',
-    mint: '#52c41a',
-    contract_call: '#fa8c16',
+    transfer: "#1890ff",
+    mint: "#52c41a",
+    contract_call: "#fa8c16",
   };
-  return colorMap[type] || '#8c8c8c';
+  return colorMap[type] || "#8c8c8c";
 };
 
 /**
@@ -312,11 +283,11 @@ const getTxTypeColor = (type) => {
  */
 const getStatusText = (status) => {
   const statusMap = {
-    pending: '待确认',
-    confirmed: '已确认',
-    failed: '失败',
+    pending: "待确认",
+    confirmed: "已确认",
+    failed: "失败",
   };
-  return statusMap[status] || '未知';
+  return statusMap[status] || "未知";
 };
 
 /**
@@ -324,19 +295,23 @@ const getStatusText = (status) => {
  */
 const getStatusColor = (status) => {
   const colorMap = {
-    pending: 'processing',
-    confirmed: 'success',
-    failed: 'error',
+    pending: "processing",
+    confirmed: "success",
+    failed: "error",
   };
-  return colorMap[status] || 'default';
+  return colorMap[status] || "default";
 };
 
 /**
  * 格式化哈希
  */
 const formatHash = (hash) => {
-  if (!hash) {return '';}
-  if (hash.length <= 20) {return hash;}
+  if (!hash) {
+    return "";
+  }
+  if (hash.length <= 20) {
+    return hash;
+  }
   return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
 };
 
@@ -344,8 +319,12 @@ const formatHash = (hash) => {
  * 格式化地址
  */
 const formatAddress = (address) => {
-  if (!address) {return '';}
-  if (address.length <= 20) {return address;}
+  if (!address) {
+    return "";
+  }
+  if (address.length <= 20) {
+    return address;
+  }
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
@@ -353,11 +332,13 @@ const formatAddress = (address) => {
  * 格式化金额
  */
 const formatValue = (value) => {
-  if (!value || value === '0') {return '0 ETH';}
+  if (!value || value === "0") {
+    return "0 ETH";
+  }
 
   // 简化版本：将 wei 转换为 ether
   const etherValue = (parseFloat(value) / 1e18).toFixed(6);
-  const symbol = currentNetwork.value?.symbol || 'ETH';
+  const symbol = currentNetwork.value?.symbol || "ETH";
 
   return `${etherValue} ${symbol}`;
 };
@@ -366,7 +347,9 @@ const formatValue = (value) => {
  * 格式化时间
  */
 const formatTime = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
 
   const date = new Date(timestamp);
   const now = new Date();
@@ -374,7 +357,7 @@ const formatTime = (timestamp) => {
 
   // 小于1分钟
   if (diff < 60000) {
-    return '刚刚';
+    return "刚刚";
   }
 
   // 小于1小时
@@ -390,11 +373,11 @@ const formatTime = (timestamp) => {
   }
 
   // 超过24小时，显示具体日期
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
+  return date.toLocaleString("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -404,10 +387,10 @@ const formatTime = (timestamp) => {
 const handleCopyHash = async (hash) => {
   try {
     await navigator.clipboard.writeText(hash);
-    message.success('交易哈希已复制');
+    message.success("交易哈希已复制");
   } catch (error) {
-    logger.error('[TransactionList] 复制失败:', error);
-    message.error('复制失败');
+    logger.error("[TransactionList] 复制失败:", error);
+    message.error("复制失败");
   }
 };
 
@@ -416,7 +399,7 @@ const handleCopyHash = async (hash) => {
  */
 const handleViewInExplorer = (hash) => {
   if (!currentNetwork.value?.blockExplorer) {
-    message.warning('当前网络没有区块浏览器');
+    message.warning("当前网络没有区块浏览器");
     return;
   }
 
@@ -426,7 +409,7 @@ const handleViewInExplorer = (hash) => {
   if (window.electronAPI?.shell?.openExternal) {
     window.electronAPI.shell.openExternal(url);
   } else {
-    window.open(url, '_blank');
+    window.open(url, "_blank");
   }
 };
 
@@ -434,7 +417,7 @@ const handleViewInExplorer = (hash) => {
  * 查看详情
  */
 const handleViewDetails = (transaction) => {
-  emit('view-details', transaction);
+  emit("view-details", transaction);
 };
 
 /**
@@ -447,10 +430,10 @@ const handleRefresh = async () => {
       address: props.address,
       chainId: props.chainId,
     });
-    message.success('刷新成功');
+    message.success("刷新成功");
   } catch (error) {
-    logger.error('[TransactionList] 刷新失败:', error);
-    message.error('刷新失败: ' + error.message);
+    logger.error("[TransactionList] 刷新失败:", error);
+    message.error("刷新失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -471,14 +454,11 @@ onMounted(() => {
 });
 
 // 监听 address 和 chainId 变化
-watch(
-  [() => props.address, () => props.chainId],
-  () => {
-    if (props.autoLoad) {
-      handleRefresh();
-    }
+watch([() => props.address, () => props.chainId], () => {
+  if (props.autoLoad) {
+    handleRefresh();
   }
-);
+});
 </script>
 
 <style scoped>
@@ -542,7 +522,7 @@ watch(
 
 .value {
   color: #595959;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .value.amount {

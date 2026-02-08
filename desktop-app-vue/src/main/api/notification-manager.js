@@ -5,9 +5,9 @@
  * v0.20.0: 新增 RSS 和邮件通知功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { Notification } = require('electron');
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const { Notification } = require("electron");
+const path = require("path");
 
 class APINotificationManager {
   constructor() {
@@ -36,28 +36,30 @@ class APINotificationManager {
    * RSS 新文章通知
    */
   notifyNewArticles(feedTitle, count, items = []) {
-    if (!this.enabled || count === 0) {return;}
+    if (!this.enabled || count === 0) {
+      return;
+    }
 
     const notification = new Notification({
-      title: 'RSS 新文章',
+      title: "RSS 新文章",
       body: `${feedTitle} 有 ${count} 篇新文章`,
-      icon: this.getIconPath('rss'),
+      icon: this.getIconPath("rss"),
       silent: false,
-      urgency: 'normal',
+      urgency: "normal",
     });
 
-    notification.on('click', () => {
-      logger.info('[Notification] 用户点击了 RSS 通知');
+    notification.on("click", () => {
+      logger.info("[Notification] 用户点击了 RSS 通知");
       this.openRSSReader(feedTitle, items);
     });
 
     notification.show();
 
     // 记录通知
-    this.logNotification('rss', 'new_articles', {
+    this.logNotification("rss", "new_articles", {
       feedTitle,
       count,
-      items: items.slice(0, 5).map(item => item.title),
+      items: items.slice(0, 5).map((item) => item.title),
     });
   }
 
@@ -65,28 +67,30 @@ class APINotificationManager {
    * 新邮件通知
    */
   notifyNewEmails(accountEmail, count, emails = []) {
-    if (!this.enabled || count === 0) {return;}
+    if (!this.enabled || count === 0) {
+      return;
+    }
 
     const notification = new Notification({
-      title: '新邮件',
+      title: "新邮件",
       body: `${accountEmail} 收到 ${count} 封新邮件`,
-      icon: this.getIconPath('email'),
+      icon: this.getIconPath("email"),
       silent: false,
-      urgency: 'normal',
+      urgency: "normal",
     });
 
-    notification.on('click', () => {
-      logger.info('[Notification] 用户点击了邮件通知');
+    notification.on("click", () => {
+      logger.info("[Notification] 用户点击了邮件通知");
       this.openEmailReader(accountEmail, emails);
     });
 
     notification.show();
 
     // 记录通知
-    this.logNotification('email', 'new_emails', {
+    this.logNotification("email", "new_emails", {
       accountEmail,
       count,
-      subjects: emails.slice(0, 5).map(email => email.subject),
+      subjects: emails.slice(0, 5).map((email) => email.subject),
     });
   }
 
@@ -94,19 +98,21 @@ class APINotificationManager {
    * RSS 同步错误通知
    */
   notifyRSSError(feedTitle, error) {
-    if (!this.enabled) {return;}
+    if (!this.enabled) {
+      return;
+    }
 
     const notification = new Notification({
-      title: 'RSS 同步失败',
+      title: "RSS 同步失败",
       body: `${feedTitle}: ${error}`,
-      icon: this.getIconPath('error'),
+      icon: this.getIconPath("error"),
       silent: false,
-      urgency: 'critical',
+      urgency: "critical",
     });
 
     notification.show();
 
-    this.logNotification('rss', 'sync_error', {
+    this.logNotification("rss", "sync_error", {
       feedTitle,
       error,
     });
@@ -116,19 +122,21 @@ class APINotificationManager {
    * 邮件同步错误通知
    */
   notifyEmailError(accountEmail, error) {
-    if (!this.enabled) {return;}
+    if (!this.enabled) {
+      return;
+    }
 
     const notification = new Notification({
-      title: '邮件同步失败',
+      title: "邮件同步失败",
       body: `${accountEmail}: ${error}`,
-      icon: this.getIconPath('error'),
+      icon: this.getIconPath("error"),
       silent: false,
-      urgency: 'critical',
+      urgency: "critical",
     });
 
     notification.show();
 
-    this.logNotification('email', 'sync_error', {
+    this.logNotification("email", "sync_error", {
       accountEmail,
       error,
     });
@@ -138,19 +146,21 @@ class APINotificationManager {
    * 邮件发送成功通知
    */
   notifyEmailSent(to, subject) {
-    if (!this.enabled) {return;}
+    if (!this.enabled) {
+      return;
+    }
 
     const notification = new Notification({
-      title: '邮件已发送',
+      title: "邮件已发送",
       body: `收件人: ${to}\n主题: ${subject}`,
-      icon: this.getIconPath('email'),
+      icon: this.getIconPath("email"),
       silent: true,
-      urgency: 'low',
+      urgency: "low",
     });
 
     notification.show();
 
-    this.logNotification('email', 'sent', {
+    this.logNotification("email", "sent", {
       to,
       subject,
     });
@@ -160,31 +170,33 @@ class APINotificationManager {
    * 批量通知（避免通知轰炸）
    */
   notifyBatch(notifications) {
-    if (!this.enabled || notifications.length === 0) {return;}
+    if (!this.enabled || notifications.length === 0) {
+      return;
+    }
 
     // 合并相同类型的通知
     const grouped = this.groupNotifications(notifications);
 
     for (const [type, items] of Object.entries(grouped)) {
-      if (type === 'rss') {
+      if (type === "rss") {
         const totalCount = items.reduce((sum, item) => sum + item.count, 0);
         const feedCount = items.length;
 
         const notification = new Notification({
-          title: 'RSS 更新',
+          title: "RSS 更新",
           body: `${feedCount} 个订阅源有 ${totalCount} 篇新文章`,
-          icon: this.getIconPath('rss'),
+          icon: this.getIconPath("rss"),
         });
 
         notification.show();
-      } else if (type === 'email') {
+      } else if (type === "email") {
         const totalCount = items.reduce((sum, item) => sum + item.count, 0);
         const accountCount = items.length;
 
         const notification = new Notification({
-          title: '邮件更新',
+          title: "邮件更新",
           body: `${accountCount} 个账户收到 ${totalCount} 封新邮件`,
-          icon: this.getIconPath('email'),
+          icon: this.getIconPath("email"),
         });
 
         notification.show();
@@ -213,22 +225,22 @@ class APINotificationManager {
    */
   getIconPath(type) {
     const iconMap = {
-      rss: 'rss-icon.png',
-      email: 'email-icon.png',
-      error: 'error-icon.png',
+      rss: "rss-icon.png",
+      email: "email-icon.png",
+      error: "error-icon.png",
     };
 
-    const iconFile = iconMap[type] || 'default-icon.png';
+    const iconFile = iconMap[type] || "default-icon.png";
 
     // 尝试多个可能的路径
     const possiblePaths = [
-      path.join(__dirname, '../../assets', iconFile),
-      path.join(__dirname, '../../../assets', iconFile),
-      path.join(process.resourcesPath, 'assets', iconFile),
+      path.join(__dirname, "../../assets", iconFile),
+      path.join(__dirname, "../../../assets", iconFile),
+      path.join(process.resourcesPath, "assets", iconFile),
     ];
 
     // 返回第一个存在的路径，或者默认路径
-    const fs = require('fs');
+    const fs = require("fs");
     for (const iconPath of possiblePaths) {
       if (fs.existsSync(iconPath)) {
         return iconPath;
@@ -256,7 +268,7 @@ class APINotificationManager {
    */
   openRSSReader(feedTitle, items = []) {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
-      logger.warn('[Notification] 主窗口不可用，无法打开 RSS 阅读器');
+      logger.warn("[Notification] 主窗口不可用，无法打开 RSS 阅读器");
       return;
     }
 
@@ -267,11 +279,11 @@ class APINotificationManager {
     this.mainWindow.focus();
 
     // 发送导航事件到渲染进程
-    this.mainWindow.webContents.send('notification:navigate', {
-      route: '/rss',
+    this.mainWindow.webContents.send("notification:navigate", {
+      route: "/rss",
       params: {
         feedTitle,
-        highlightItems: items.slice(0, 10).map(item => item.id || item.link),
+        highlightItems: items.slice(0, 10).map((item) => item.id || item.link),
       },
     });
 
@@ -285,7 +297,7 @@ class APINotificationManager {
    */
   openEmailReader(accountEmail, emails = []) {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
-      logger.warn('[Notification] 主窗口不可用，无法打开邮件阅读器');
+      logger.warn("[Notification] 主窗口不可用，无法打开邮件阅读器");
       return;
     }
 
@@ -296,12 +308,14 @@ class APINotificationManager {
     this.mainWindow.focus();
 
     // 发送导航事件到渲染进程
-    this.mainWindow.webContents.send('notification:navigate', {
-      route: '/email',
+    this.mainWindow.webContents.send("notification:navigate", {
+      route: "/email",
       params: {
         account: accountEmail,
-        folder: 'inbox',
-        highlightEmails: emails.slice(0, 10).map(email => email.id || email.messageId),
+        folder: "inbox",
+        highlightEmails: emails
+          .slice(0, 10)
+          .map((email) => email.id || email.messageId),
       },
     });
 
@@ -315,7 +329,7 @@ class APINotificationManager {
    */
   navigateTo(route, params = {}) {
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
-      logger.warn('[Notification] 主窗口不可用，无法导航');
+      logger.warn("[Notification] 主窗口不可用，无法导航");
       return false;
     }
 
@@ -326,7 +340,7 @@ class APINotificationManager {
     this.mainWindow.focus();
 
     // 发送导航事件
-    this.mainWindow.webContents.send('notification:navigate', {
+    this.mainWindow.webContents.send("notification:navigate", {
       route,
       params,
     });

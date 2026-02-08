@@ -8,14 +8,8 @@
   >
     <div class="asset-qr-modal">
       <!-- 资产信息 -->
-      <a-card
-        :bordered="false"
-        class="asset-info-card"
-      >
-        <a-descriptions
-          :column="1"
-          size="small"
-        >
+      <a-card :bordered="false" class="asset-info-card">
+        <a-descriptions :column="1" size="small">
           <a-descriptions-item label="资产名称">
             <a-typography-text strong>
               {{ asset?.name }}
@@ -31,10 +25,7 @@
               {{ asset?.id }}
             </a-typography-text>
           </a-descriptions-item>
-          <a-descriptions-item
-            v-if="asset?.contract_address"
-            label="合约地址"
-          >
+          <a-descriptions-item v-if="asset?.contract_address" label="合约地址">
             <a-typography-text copyable>
               {{ formatAddress(asset.contract_address) }}
             </a-typography-text>
@@ -47,23 +38,15 @@
       <!-- 二维码显示 -->
       <div class="qr-code-container">
         <div class="qr-code-wrapper">
-          <canvas
-            ref="qrCanvas"
-            class="qr-canvas"
-          />
+          <canvas ref="qrCanvas" class="qr-canvas" />
         </div>
-        <p class="qr-hint">
-          扫描二维码查看资产详情
-        </p>
+        <p class="qr-hint">扫描二维码查看资产详情</p>
       </div>
 
       <!-- 操作按钮 -->
       <div class="action-buttons">
         <a-space :size="12">
-          <a-button
-            type="primary"
-            @click="handleDownloadQR"
-          >
+          <a-button type="primary" @click="handleDownloadQR">
             <template #icon>
               <download-outlined />
             </template>
@@ -88,16 +71,16 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, watch, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, watch, nextTick } from "vue";
+import { message } from "ant-design-vue";
 import {
   DownloadOutlined,
   CopyOutlined,
   ShareAltOutlined,
-} from '@ant-design/icons-vue';
-import QRCode from 'qrcode';
+} from "@ant-design/icons-vue";
+import QRCode from "qrcode";
 
 const props = defineProps({
   open: {
@@ -110,7 +93,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:open']);
+const emit = defineEmits(["update:open"]);
 
 const qrCanvas = ref(null);
 
@@ -118,7 +101,9 @@ const qrCanvas = ref(null);
  * 生成二维码
  */
 const generateQRCode = async () => {
-  if (!props.asset || !qrCanvas.value) {return;}
+  if (!props.asset || !qrCanvas.value) {
+    return;
+  }
 
   try {
     // 构建资产信息JSON
@@ -143,14 +128,14 @@ const generateQRCode = async () => {
       width: 300,
       margin: 2,
       color: {
-        dark: '#000000',
-        light: '#FFFFFF',
+        dark: "#000000",
+        light: "#FFFFFF",
       },
-      errorCorrectionLevel: 'H',
+      errorCorrectionLevel: "H",
     });
   } catch (error) {
-    logger.error('生成二维码失败:', error);
-    message.error('生成二维码失败');
+    logger.error("生成二维码失败:", error);
+    message.error("生成二维码失败");
   }
 };
 
@@ -158,17 +143,19 @@ const generateQRCode = async () => {
  * 下载二维码
  */
 const handleDownloadQR = () => {
-  if (!qrCanvas.value) {return;}
+  if (!qrCanvas.value) {
+    return;
+  }
 
   try {
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.download = `asset-${props.asset.id}-qr.png`;
-    link.href = qrCanvas.value.toDataURL('image/png');
+    link.href = qrCanvas.value.toDataURL("image/png");
     link.click();
-    message.success('二维码已下载');
+    message.success("二维码已下载");
   } catch (error) {
-    logger.error('下载二维码失败:', error);
-    message.error('下载失败');
+    logger.error("下载二维码失败:", error);
+    message.error("下载失败");
   }
 };
 
@@ -179,10 +166,10 @@ const handleCopyLink = async () => {
   try {
     const assetLink = `chainlesschain://asset/${props.asset.id}`;
     await navigator.clipboard.writeText(assetLink);
-    message.success('链接已复制到剪贴板');
+    message.success("链接已复制到剪贴板");
   } catch (error) {
-    logger.error('复制链接失败:', error);
-    message.error('复制失败');
+    logger.error("复制链接失败:", error);
+    message.error("复制失败");
   }
 };
 
@@ -199,15 +186,15 @@ const handleShare = async () => {
 
     if (navigator.share) {
       await navigator.share(assetData);
-      message.success('分享成功');
+      message.success("分享成功");
     } else {
       // 降级方案：复制链接
       await handleCopyLink();
     }
   } catch (error) {
-    if (error.name !== 'AbortError') {
-      logger.error('分享失败:', error);
-      message.error('分享失败');
+    if (error.name !== "AbortError") {
+      logger.error("分享失败:", error);
+      message.error("分享失败");
     }
   }
 };
@@ -216,15 +203,19 @@ const handleShare = async () => {
  * 关闭对话框
  */
 const handleClose = () => {
-  emit('update:open', false);
+  emit("update:open", false);
 };
 
 /**
  * 格式化地址
  */
 const formatAddress = (address) => {
-  if (!address) {return '';}
-  if (address.length <= 20) {return address;}
+  if (!address) {
+    return "";
+  }
+  if (address.length <= 20) {
+    return address;
+  }
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 };
 
@@ -233,13 +224,13 @@ const formatAddress = (address) => {
  */
 const getAssetTypeColor = (type) => {
   const colors = {
-    token: 'blue',
-    nft: 'purple',
-    currency: 'green',
-    commodity: 'orange',
-    security: 'red',
+    token: "blue",
+    nft: "purple",
+    currency: "green",
+    commodity: "orange",
+    security: "red",
   };
-  return colors[type] || 'default';
+  return colors[type] || "default";
 };
 
 /**
@@ -247,11 +238,11 @@ const getAssetTypeColor = (type) => {
  */
 const getAssetTypeText = (type) => {
   const texts = {
-    token: '代币',
-    nft: 'NFT',
-    currency: '货币',
-    commodity: '商品',
-    security: '证券',
+    token: "代币",
+    nft: "NFT",
+    currency: "货币",
+    commodity: "商品",
+    security: "证券",
   };
   return texts[type] || type;
 };
@@ -265,7 +256,7 @@ watch(
       await generateQRCode();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>
 

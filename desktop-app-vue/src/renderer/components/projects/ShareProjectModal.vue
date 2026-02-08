@@ -13,25 +13,17 @@
           v-model:value="shareType"
           @change="handleShareTypeChange"
         >
-          <a-radio
-            value="private"
-            class="share-option"
-          >
+          <a-radio value="private" class="share-option">
             <div class="option-content">
               <div class="option-header">
                 <LockOutlined class="option-icon" />
                 <span class="option-title">仅限自己</span>
               </div>
-              <div class="option-description">
-                仅你已登录
-              </div>
+              <div class="option-description">仅你已登录</div>
             </div>
           </a-radio>
 
-          <a-radio
-            value="public"
-            class="share-option"
-          >
+          <a-radio value="public" class="share-option">
             <div class="option-content">
               <div class="option-header">
                 <GlobalOutlined class="option-icon" />
@@ -46,10 +38,7 @@
       </div>
 
       <!-- 分享链接 (仅在公开访问时显示) -->
-      <div
-        v-if="shareType === 'public'"
-        class="share-link-section"
-      >
+      <div v-if="shareType === 'public'" class="share-link-section">
         <div class="share-link-header">
           <LinkOutlined />
           <span>分享链接</span>
@@ -62,10 +51,7 @@
             :suffix="copyStatus === 'success' ? '已复制' : ''"
           >
             <template #addonAfter>
-              <a-button
-                type="link"
-                @click="handleCopyLink"
-              >
+              <a-button type="link" @click="handleCopyLink">
                 <CopyOutlined v-if="copyStatus !== 'success'" />
                 <CheckOutlined v-else />
               </a-button>
@@ -81,15 +67,9 @@
 
       <!-- 操作按钮 -->
       <div class="share-actions">
-        <a-button @click="handleClose">
-          取消
-        </a-button>
-        <a-button
-          type="primary"
-          :loading="saving"
-          @click="handleConfirm"
-        >
-          {{ shareType === 'public' ? '复制链接' : '确定' }}
+        <a-button @click="handleClose"> 取消 </a-button>
+        <a-button type="primary" :loading="saving" @click="handleConfirm">
+          {{ shareType === "public" ? "复制链接" : "确定" }}
         </a-button>
       </div>
     </div>
@@ -97,10 +77,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   LockOutlined,
   GlobalOutlined,
@@ -108,7 +88,7 @@ import {
   CopyOutlined,
   CheckOutlined,
   InfoCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   open: {
@@ -117,23 +97,23 @@ const props = defineProps({
   },
   projectId: {
     type: String,
-    default: '',
+    default: "",
   },
   projectName: {
     type: String,
-    default: '',
+    default: "",
   },
   currentShareType: {
     type: String,
-    default: 'private', // 'private' | 'public'
+    default: "private", // 'private' | 'public'
   },
 });
 
-const emit = defineEmits(['close', 'update:shareType']);
+const emit = defineEmits(["close", "update:shareType"]);
 
-const shareType = ref('private');
+const shareType = ref("private");
 const saving = ref(false);
-const copyStatus = ref(''); // '' | 'success'
+const copyStatus = ref(""); // '' | 'success'
 const currentShareInfo = ref(null); // 当前分享信息
 
 // 生成分享链接
@@ -142,25 +122,32 @@ const shareLink = computed(() => {
     return currentShareInfo.value.share_link;
   }
   // 默认值（当还没加载时）
-  if (!props.projectId) {return '';}
+  if (!props.projectId) {
+    return "";
+  }
   const baseUrl = window.location.origin;
   return `${baseUrl}/share/project/${props.projectId}`;
 });
 
 // 监听props变化
-watch(() => props.open, async (val) => {
-  if (val) {
-    shareType.value = props.currentShareType || 'private';
-    copyStatus.value = '';
+watch(
+  () => props.open,
+  async (val) => {
+    if (val) {
+      shareType.value = props.currentShareType || "private";
+      copyStatus.value = "";
 
-    // 加载现有分享信息
-    await loadShareInfo();
-  }
-});
+      // 加载现有分享信息
+      await loadShareInfo();
+    }
+  },
+);
 
 // 加载分享信息
 const loadShareInfo = async () => {
-  if (!props.projectId) {return;}
+  if (!props.projectId) {
+    return;
+  }
 
   try {
     const result = await window.electronAPI.project.getShare(props.projectId);
@@ -171,36 +158,36 @@ const loadShareInfo = async () => {
       currentShareInfo.value = null;
     }
   } catch (error) {
-    logger.error('加载分享信息失败:', error);
+    logger.error("加载分享信息失败:", error);
     currentShareInfo.value = null;
   }
 };
 
 // 处理分享类型变化
 const handleShareTypeChange = () => {
-  copyStatus.value = '';
+  copyStatus.value = "";
 };
 
 // 复制链接
 const handleCopyLink = async () => {
   try {
     await navigator.clipboard.writeText(shareLink.value);
-    copyStatus.value = 'success';
-    message.success('链接已复制到剪贴板');
+    copyStatus.value = "success";
+    message.success("链接已复制到剪贴板");
 
     // 3秒后重置状态
     setTimeout(() => {
-      copyStatus.value = '';
+      copyStatus.value = "";
     }, 3000);
   } catch (error) {
-    logger.error('复制链接失败:', error);
-    message.error('复制失败,请手动复制');
+    logger.error("复制链接失败:", error);
+    message.error("复制失败,请手动复制");
   }
 };
 
 // 确认
 const handleConfirm = async () => {
-  if (shareType.value === 'public') {
+  if (shareType.value === "public") {
     // 如果是公开访问,复制链接
     await handleCopyLink();
   }
@@ -212,22 +199,24 @@ const handleConfirm = async () => {
       projectId: props.projectId,
       shareMode: shareType.value,
       expiresInDays: null, // 永不过期
-      regenerateToken: false // 不重新生成token
+      regenerateToken: false, // 不重新生成token
     });
 
     if (result.success) {
       // 更新本地分享信息
       currentShareInfo.value = result.share;
 
-      emit('update:shareType', shareType.value);
-      message.success(shareType.value === 'public' ? '已设置为公开访问' : '已设置为私密访问');
+      emit("update:shareType", shareType.value);
+      message.success(
+        shareType.value === "public" ? "已设置为公开访问" : "已设置为私密访问",
+      );
       handleClose();
     } else {
-      throw new Error('分享设置失败');
+      throw new Error("分享设置失败");
     }
   } catch (error) {
-    logger.error('保存分享设置失败:', error);
-    message.error('保存失败: ' + error.message);
+    logger.error("保存分享设置失败:", error);
+    message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -235,7 +224,7 @@ const handleConfirm = async () => {
 
 // 关闭
 const handleClose = () => {
-  emit('close');
+  emit("close");
 };
 </script>
 

@@ -34,11 +34,7 @@
           </a-list-item-meta>
           <template #actions>
             <a-dropdown :trigger="['click']">
-              <a-button
-                type="text"
-                size="small"
-                @click.stop
-              >
+              <a-button type="text" size="small" @click.stop>
                 <more-outlined />
               </a-button>
               <template #overlay>
@@ -47,10 +43,7 @@
                     <edit-outlined /> 重命名
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item
-                    danger
-                    @click="handleDelete(item)"
-                  >
+                  <a-menu-item danger @click="handleDelete(item)">
                     <delete-outlined /> 删除
                   </a-menu-item>
                 </a-menu>
@@ -61,16 +54,8 @@
       </template>
 
       <template #loadMore>
-        <div
-          v-if="hasMore"
-          style="text-align: center; margin-top: 12px"
-        >
-          <a-button
-            size="small"
-            @click="loadMore"
-          >
-            加载更多
-          </a-button>
+        <div v-if="hasMore" style="text-align: center; margin-top: 12px">
+          <a-button size="small" @click="loadMore"> 加载更多 </a-button>
         </div>
       </template>
     </a-list>
@@ -91,33 +76,35 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, computed, onMounted } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   MoreOutlined,
   EditOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import { useConversationStore } from '../stores/conversation';
+} from "@ant-design/icons-vue";
+import { useConversationStore } from "../stores/conversation";
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(["select"]);
 
 const conversationStore = useConversationStore();
 
 // 状态
-const searchQuery = ref('');
+const searchQuery = ref("");
 const loading = ref(false);
 const hasMore = ref(false);
 const showRenameModal = ref(false);
-const renameTitle = ref('');
+const renameTitle = ref("");
 const renamingConversation = ref(null);
 const currentPage = ref(1);
 const pageSize = ref(20);
 
 // 当前对话ID
-const currentConversationId = computed(() => conversationStore.currentConversation?.id);
+const currentConversationId = computed(
+  () => conversationStore.currentConversation?.id,
+);
 
 // 过滤后的对话列表
 const filteredConversations = computed(() => {
@@ -127,7 +114,7 @@ const filteredConversations = computed(() => {
   }
 
   return conversationStore.conversations.filter((conv) =>
-    conv.title.toLowerCase().includes(query)
+    conv.title.toLowerCase().includes(query),
   );
 });
 
@@ -145,7 +132,7 @@ onMounted(() => {
 
 // 选择对话
 const handleSelect = (conversation) => {
-  emit('select', conversation);
+  emit("select", conversation);
 };
 
 // 重命名
@@ -158,26 +145,25 @@ const handleRename = (conversation) => {
 // 确认重命名
 const handleRenameConfirm = async () => {
   if (!renameTitle.value.trim()) {
-    message.warning('请输入标题');
+    message.warning("请输入标题");
     return;
   }
 
   try {
-    await conversationStore.updateConversation(
-      renamingConversation.value.id,
-      { title: renameTitle.value.trim() }
-    );
-    message.success('重命名成功');
+    await conversationStore.updateConversation(renamingConversation.value.id, {
+      title: renameTitle.value.trim(),
+    });
+    message.success("重命名成功");
     showRenameModal.value = false;
   } catch (error) {
-    logger.error('[ConversationHistory] 重命名失败:', error);
+    logger.error("[ConversationHistory] 重命名失败:", error);
 
-    let errorMessage = '重命名失败';
+    let errorMessage = "重命名失败";
     if (error.message) {
-      if (error.message.includes('not found')) {
-        errorMessage = '对话不存在';
-      } else if (error.message.includes('database')) {
-        errorMessage = '数据库错误，请重试';
+      if (error.message.includes("not found")) {
+        errorMessage = "对话不存在";
+      } else if (error.message.includes("database")) {
+        errorMessage = "数据库错误，请重试";
       } else {
         errorMessage = `重命名失败: ${error.message}`;
       }
@@ -190,27 +176,27 @@ const handleRenameConfirm = async () => {
 // 删除
 const handleDelete = (conversation) => {
   Modal.confirm({
-    title: '确认删除',
+    title: "确认删除",
     content: `确定要删除对话"${conversation.title}"吗？此操作不可恢复。`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     onOk: async () => {
       try {
         await conversationStore.deleteConversation(conversation.id);
-        message.success('删除成功');
+        message.success("删除成功");
 
         // 重新检查是否还有更多数据
         checkHasMore();
       } catch (error) {
-        logger.error('[ConversationHistory] 删除失败:', error);
+        logger.error("[ConversationHistory] 删除失败:", error);
 
-        let errorMessage = '删除失败';
+        let errorMessage = "删除失败";
         if (error.message) {
-          if (error.message.includes('not found')) {
-            errorMessage = '对话不存在';
-          } else if (error.message.includes('database')) {
-            errorMessage = '数据库错误，请重试';
+          if (error.message.includes("not found")) {
+            errorMessage = "对话不存在";
+          } else if (error.message.includes("database")) {
+            errorMessage = "数据库错误，请重试";
           } else {
             errorMessage = `删除失败: ${error.message}`;
           }
@@ -240,15 +226,15 @@ const loadMore = async () => {
 
     message.success(`已加载 ${conversationStore.conversations.length} 条对话`);
   } catch (error) {
-    logger.error('[ConversationHistory] 加载更多失败:', error);
+    logger.error("[ConversationHistory] 加载更多失败:", error);
 
     // 提供友好的错误消息
-    let errorMessage = '加载失败';
+    let errorMessage = "加载失败";
     if (error.message) {
-      if (error.message.includes('database')) {
-        errorMessage = '数据库错误，请重试';
-      } else if (error.message.includes('timeout')) {
-        errorMessage = '加载超时，请重试';
+      if (error.message.includes("database")) {
+        errorMessage = "数据库错误，请重试";
+      } else if (error.message.includes("timeout")) {
+        errorMessage = "加载超时，请重试";
       } else {
         errorMessage = `加载失败: ${error.message}`;
       }
@@ -262,7 +248,9 @@ const loadMore = async () => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
 
   const date = new Date(timestamp);
   const now = new Date();
@@ -270,25 +258,28 @@ const formatDate = (timestamp) => {
 
   if (diff < 86400000) {
     // 今天
-    return date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } else if (diff < 172800000) {
     // 昨天
-    return '昨天 ' + date.toLocaleTimeString('zh-CN', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return (
+      "昨天 " +
+      date.toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    );
   } else if (diff < 604800000) {
     // 本周
-    const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const days = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
     return days[date.getDay()];
   } else {
     // 更早
-    return date.toLocaleDateString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
+    return date.toLocaleDateString("zh-CN", {
+      month: "2-digit",
+      day: "2-digit",
     });
   }
 };

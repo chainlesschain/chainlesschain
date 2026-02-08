@@ -3,11 +3,11 @@
  * 负责文件版本历史、版本比较、版本回滚等功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
+const { logger } = require("../utils/logger.js");
+const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 
 class VersionManager {
   /**
@@ -24,50 +24,57 @@ class VersionManager {
    * @returns {Object} 版本信息
    */
   createVersion(versionData, creatorDID) {
-    const {
-      file_id,
-      file_path,
-      file_size,
-      checksum,
-      change_description
-    } = versionData;
+    const { file_id, file_path, file_size, checksum, change_description } =
+      versionData;
 
     // 获取当前最新版本号
-    const latestVersion = this.db.prepare(`
+    const latestVersion = this.db
+      .prepare(
+        `
       SELECT MAX(version_number) as max_version
       FROM file_versions
       WHERE file_id = ?
-    `).get(file_id);
+    `,
+      )
+      .get(file_id);
 
     const newVersionNumber = (latestVersion?.max_version || 0) + 1;
 
     // 插入版本记录
-    const versionId = `ver_${uuidv4().replace(/-/g, '')}`;
+    const versionId = `ver_${uuidv4().replace(/-/g, "")}`;
     const now = Date.now();
 
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT INTO file_versions (
         id, file_id, version_number, file_path, file_size,
         checksum, created_by, created_at, change_description
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      versionId,
-      file_id,
-      newVersionNumber,
-      file_path,
-      file_size,
-      checksum,
-      creatorDID,
-      now,
-      change_description || null
-    );
+    `,
+      )
+      .run(
+        versionId,
+        file_id,
+        newVersionNumber,
+        file_path,
+        file_size,
+        checksum,
+        creatorDID,
+        now,
+        change_description || null,
+      );
 
     // 更新主文件表的版本号
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE project_files
       SET version_number = ?, updated_at = ?
       WHERE id = ?
-    `).run(newVersionNumber, now, file_id);
+    `,
+      )
+      .run(newVersionNumber, now, file_id);
 
     logger.info(`[VersionManager] 版本创建成功: v${newVersionNumber}`);
 
@@ -80,12 +87,16 @@ class VersionManager {
    * @returns {Object} 版本信息
    */
   getVersion(versionId) {
-    const version = this.db.prepare(`
+    const version = this.db
+      .prepare(
+        `
       SELECT * FROM file_versions WHERE id = ?
-    `).get(versionId);
+    `,
+      )
+      .get(versionId);
 
     if (!version) {
-      throw new Error('版本不存在');
+      throw new Error("版本不存在");
     }
 
     return version;
@@ -97,11 +108,15 @@ class VersionManager {
    * @returns {Array} 版本列表
    */
   getFileVersions(fileId) {
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT * FROM file_versions
       WHERE file_id = ?
       ORDER BY version_number DESC
-    `).all(fileId);
+    `,
+      )
+      .all(fileId);
   }
 
   /**
@@ -111,13 +126,17 @@ class VersionManager {
    * @returns {Object} 版本信息
    */
   getVersionByNumber(fileId, versionNumber) {
-    const version = this.db.prepare(`
+    const version = this.db
+      .prepare(
+        `
       SELECT * FROM file_versions
       WHERE file_id = ? AND version_number = ?
-    `).get(fileId, versionNumber);
+    `,
+      )
+      .get(fileId, versionNumber);
 
     if (!version) {
-      throw new Error('指定版本不存在');
+      throw new Error("指定版本不存在");
     }
 
     return version;
@@ -129,12 +148,16 @@ class VersionManager {
    * @returns {Object} 版本信息
    */
   getLatestVersion(fileId) {
-    const version = this.db.prepare(`
+    const version = this.db
+      .prepare(
+        `
       SELECT * FROM file_versions
       WHERE file_id = ?
       ORDER BY version_number DESC
       LIMIT 1
-    `).get(fileId);
+    `,
+      )
+      .get(fileId);
 
     return version || null;
   }
@@ -155,26 +178,33 @@ class VersionManager {
     }
 
     // 创建新版本（基于目标版本的内容）
-    const newVersion = this.createVersion({
-      file_id: fileId,
-      file_path: targetVersionData.file_path,
-      file_size: targetVersionData.file_size,
-      checksum: targetVersionData.checksum,
-      change_description: `回滚到版本 v${targetVersion}`
-    }, rollerDID);
+    const newVersion = this.createVersion(
+      {
+        file_id: fileId,
+        file_path: targetVersionData.file_path,
+        file_size: targetVersionData.file_size,
+        checksum: targetVersionData.checksum,
+        change_description: `回滚到版本 v${targetVersion}`,
+      },
+      rollerDID,
+    );
 
     // 更新主文件表
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       UPDATE project_files
       SET file_path = ?, file_size = ?, checksum = ?, updated_at = ?
       WHERE id = ?
-    `).run(
-      targetVersionData.file_path,
-      targetVersionData.file_size,
-      targetVersionData.checksum,
-      Date.now(),
-      fileId
-    );
+    `,
+      )
+      .run(
+        targetVersionData.file_path,
+        targetVersionData.file_size,
+        targetVersionData.checksum,
+        Date.now(),
+        fileId,
+      );
 
     logger.info(`[VersionManager] 文件已回滚到版本 v${targetVersion}`);
 
@@ -199,7 +229,7 @@ class VersionManager {
         checksum: v1.checksum,
         created_at: v1.created_at,
         created_by: v1.created_by,
-        description: v1.change_description
+        description: v1.change_description,
       },
       version2: {
         number: v2.version_number,
@@ -207,14 +237,14 @@ class VersionManager {
         checksum: v2.checksum,
         created_at: v2.created_at,
         created_by: v2.created_by,
-        description: v2.change_description
+        description: v2.change_description,
       },
       differences: {
         size_changed: v1.file_size !== v2.file_size,
         size_diff: v2.file_size - v1.file_size,
         content_changed: v1.checksum !== v2.checksum,
-        time_diff: v2.created_at - v1.created_at
-      }
+        time_diff: v2.created_at - v1.created_at,
+      },
     };
   }
 
@@ -242,11 +272,11 @@ class VersionManager {
           // fs.unlinkSync(version.file_path); // 谨慎使用
         }
       } catch (error) {
-        logger.error('[VersionManager] 删除版本文件失败:', error);
+        logger.error("[VersionManager] 删除版本文件失败:", error);
       }
 
       // 删除数据库记录
-      this.db.prepare('DELETE FROM file_versions WHERE id = ?').run(version.id);
+      this.db.prepare("DELETE FROM file_versions WHERE id = ?").run(version.id);
       deletedCount++;
     }
 
@@ -261,7 +291,9 @@ class VersionManager {
    * @returns {Object} 统计信息
    */
   getVersionStats(fileId) {
-    const stats = this.db.prepare(`
+    const stats = this.db
+      .prepare(
+        `
       SELECT
         COUNT(*) as total_versions,
         MIN(version_number) as first_version,
@@ -271,7 +303,9 @@ class VersionManager {
         MAX(created_at) as last_created_at
       FROM file_versions
       WHERE file_id = ?
-    `).get(fileId);
+    `,
+      )
+      .get(fileId);
 
     return {
       total_versions: stats.total_versions || 0,
@@ -280,7 +314,10 @@ class VersionManager {
       total_size: stats.total_size || 0,
       first_created_at: stats.first_created_at,
       last_created_at: stats.last_created_at,
-      size_avg: stats.total_versions > 0 ? Math.round(stats.total_size / stats.total_versions) : 0
+      size_avg:
+        stats.total_versions > 0
+          ? Math.round(stats.total_size / stats.total_versions)
+          : 0,
     };
   }
 
@@ -290,13 +327,17 @@ class VersionManager {
    * @returns {Array} 创建者DID列表
    */
   getVersionContributors(fileId) {
-    const contributors = this.db.prepare(`
+    const contributors = this.db
+      .prepare(
+        `
       SELECT DISTINCT created_by, COUNT(*) as version_count
       FROM file_versions
       WHERE file_id = ?
       GROUP BY created_by
       ORDER BY version_count DESC
-    `).all(fileId);
+    `,
+      )
+      .all(fileId);
 
     return contributors;
   }
@@ -308,10 +349,14 @@ class VersionManager {
    * @returns {boolean}
    */
   versionExists(fileId, versionNumber) {
-    const version = this.db.prepare(`
+    const version = this.db
+      .prepare(
+        `
       SELECT id FROM file_versions
       WHERE file_id = ? AND version_number = ?
-    `).get(fileId, versionNumber);
+    `,
+      )
+      .get(fileId, versionNumber);
 
     return !!version;
   }
@@ -323,7 +368,9 @@ class VersionManager {
    * @returns {Array} 变更摘要列表
    */
   getVersionHistory(fileId, limit = 20) {
-    return this.db.prepare(`
+    return this.db
+      .prepare(
+        `
       SELECT
         version_number,
         file_size,
@@ -334,7 +381,9 @@ class VersionManager {
       WHERE file_id = ?
       ORDER BY version_number DESC
       LIMIT ?
-    `).all(fileId, limit);
+    `,
+      )
+      .all(fileId, limit);
   }
 }
 

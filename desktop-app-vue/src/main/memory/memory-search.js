@@ -11,16 +11,16 @@
  * @version 1.0.0
  */
 
-const { logger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * Search modes
  */
 const SearchMode = {
-  SEMANTIC: 'semantic',     // Vector similarity
-  KEYWORD: 'keyword',       // Text matching
-  HYBRID: 'hybrid',         // Combined
-  TEMPORAL: 'temporal',     // Time-based
+  SEMANTIC: "semantic", // Vector similarity
+  KEYWORD: "keyword", // Text matching
+  HYBRID: "hybrid", // Combined
+  TEMPORAL: "temporal", // Time-based
 };
 
 /**
@@ -93,7 +93,7 @@ class MemorySearchEngine {
     const cacheKey = this._getCacheKey(query, options);
     const cached = this._getFromCache(cacheKey);
     if (cached) {
-      logger.debug('[MemorySearch] Cache hit for:', query);
+      logger.debug("[MemorySearch] Cache hit for:", query);
       return cached;
     }
 
@@ -102,30 +102,54 @@ class MemorySearchEngine {
     try {
       switch (mode) {
         case SearchMode.SEMANTIC:
-          results = await this._semanticSearch(query, { limit, types, includeArchival });
+          results = await this._semanticSearch(query, {
+            limit,
+            types,
+            includeArchival,
+          });
           break;
 
         case SearchMode.KEYWORD:
-          results = await this._keywordSearch(query, { limit, types, includeArchival });
+          results = await this._keywordSearch(query, {
+            limit,
+            types,
+            includeArchival,
+          });
           break;
 
         case SearchMode.HYBRID:
-          results = await this._hybridSearch(query, { limit, types, includeArchival });
+          results = await this._hybridSearch(query, {
+            limit,
+            types,
+            includeArchival,
+          });
           break;
 
         case SearchMode.TEMPORAL:
-          results = await this._temporalSearch(query, { limit, types, timeRange });
+          results = await this._temporalSearch(query, {
+            limit,
+            types,
+            timeRange,
+          });
           break;
 
         default:
-          results = await this._hybridSearch(query, { limit, types, includeArchival });
+          results = await this._hybridSearch(query, {
+            limit,
+            types,
+            includeArchival,
+          });
       }
 
       // Filter by relevance
-      results = results.filter(r => (r.relevance || r.score || 0) >= minRelevance);
+      results = results.filter(
+        (r) => (r.relevance || r.score || 0) >= minRelevance,
+      );
 
       // Sort by relevance
-      results.sort((a, b) => (b.relevance || b.score || 0) - (a.relevance || a.score || 0));
+      results.sort(
+        (a, b) => (b.relevance || b.score || 0) - (a.relevance || a.score || 0),
+      );
 
       // Limit results
       results = results.slice(0, limit);
@@ -135,7 +159,7 @@ class MemorySearchEngine {
 
       return results;
     } catch (error) {
-      logger.error('[MemorySearch] Search failed:', error);
+      logger.error("[MemorySearch] Search failed:", error);
       return [];
     }
   }
@@ -160,40 +184,43 @@ class MemorySearchEngine {
           results.push({
             id: result.id,
             content: result.content,
-            type: result.metadata?.type || 'unknown',
+            type: result.metadata?.type || "unknown",
             relevance: result.score,
-            source: 'semantic',
+            source: "semantic",
             metadata: result.metadata,
           });
         }
       } catch (error) {
-        logger.warn('[MemorySearch] RAG search failed:', error.message);
+        logger.warn("[MemorySearch] RAG search failed:", error.message);
       }
     }
 
     // Also search archival memory directly if available
     if (includeArchival && this.memoryHierarchy) {
       try {
-        const archivalResults = await this.memoryHierarchy.archival.search(query, {
-          limit,
-          type: types?.[0],
-          useVector: true,
-        });
+        const archivalResults = await this.memoryHierarchy.archival.search(
+          query,
+          {
+            limit,
+            type: types?.[0],
+            useVector: true,
+          },
+        );
 
         for (const memory of archivalResults) {
-          if (!results.find(r => r.id === memory.id)) {
+          if (!results.find((r) => r.id === memory.id)) {
             results.push({
               id: memory.id,
               content: memory.content,
               type: memory.type,
               relevance: memory.score || 0.5,
-              source: 'archival',
+              source: "archival",
               metadata: memory.metadata,
             });
           }
         }
       } catch (error) {
-        logger.warn('[MemorySearch] Archival search failed:', error.message);
+        logger.warn("[MemorySearch] Archival search failed:", error.message);
       }
     }
 
@@ -221,7 +248,7 @@ class MemorySearchEngine {
           content: memory.content,
           type: memory.type,
           relevance: this._calculateKeywordRelevance(query, memory.content),
-          source: 'recall',
+          source: "recall",
           metadata: memory.metadata,
         });
       }
@@ -230,26 +257,32 @@ class MemorySearchEngine {
     // Search archival memory
     if (includeArchival) {
       try {
-        const archivalResults = await this.memoryHierarchy.archival.search(query, {
-          limit,
-          type: types?.[0],
-          useVector: false, // Keyword only
-        });
+        const archivalResults = await this.memoryHierarchy.archival.search(
+          query,
+          {
+            limit,
+            type: types?.[0],
+            useVector: false, // Keyword only
+          },
+        );
 
         for (const memory of archivalResults) {
-          if (!results.find(r => r.id === memory.id)) {
+          if (!results.find((r) => r.id === memory.id)) {
             results.push({
               id: memory.id,
               content: memory.content,
               type: memory.type,
               relevance: this._calculateKeywordRelevance(query, memory.content),
-              source: 'archival',
+              source: "archival",
               metadata: memory.metadata,
             });
           }
         }
       } catch (error) {
-        logger.warn('[MemorySearch] Archival keyword search failed:', error.message);
+        logger.warn(
+          "[MemorySearch] Archival keyword search failed:",
+          error.message,
+        );
       }
     }
 
@@ -291,13 +324,12 @@ class MemorySearchEngine {
     }
 
     // Calculate combined relevance
-    const results = Array.from(merged.values()).map(r => ({
+    const results = Array.from(merged.values()).map((r) => ({
       ...r,
-      relevance: (
+      relevance:
         r.semanticScore * this.config.semanticWeight +
-        r.keywordScore * this.config.keywordWeight
-      ),
-      source: 'hybrid',
+        r.keywordScore * this.config.keywordWeight,
+      source: "hybrid",
     }));
 
     return results;
@@ -325,27 +357,27 @@ class MemorySearchEngine {
 
       // Add time constraints
       if (timeRange?.start) {
-        sql += ' AND created_at >= ?';
+        sql += " AND created_at >= ?";
         params.push(timeRange.start);
       }
       if (timeRange?.end) {
-        sql += ' AND created_at <= ?';
+        sql += " AND created_at <= ?";
         params.push(timeRange.end);
       }
 
       // Add type filter
       if (types && types.length > 0) {
-        sql += ` AND type IN (${types.map(() => '?').join(',')})`;
+        sql += ` AND type IN (${types.map(() => "?").join(",")})`;
         params.push(...types);
       }
 
       // Add keyword search if query provided
       if (query) {
-        sql += ' AND content LIKE ?';
+        sql += " AND content LIKE ?";
         params.push(`%${query}%`);
       }
 
-      sql += ' ORDER BY created_at DESC LIMIT ?';
+      sql += " ORDER BY created_at DESC LIMIT ?";
       params.push(limit);
 
       const rows = await db.all(sql, params);
@@ -353,16 +385,16 @@ class MemorySearchEngine {
       for (const row of rows) {
         results.push({
           id: row.id,
-          content: JSON.parse(row.content || '{}'),
+          content: JSON.parse(row.content || "{}"),
           type: row.type,
           relevance: row.importance || 0.5,
-          source: 'temporal',
+          source: "temporal",
           createdAt: row.created_at,
-          metadata: JSON.parse(row.metadata || '{}'),
+          metadata: JSON.parse(row.metadata || "{}"),
         });
       }
     } catch (error) {
-      logger.error('[MemorySearch] Temporal search failed:', error);
+      logger.error("[MemorySearch] Temporal search failed:", error);
     }
 
     return results;
@@ -386,9 +418,10 @@ class MemorySearchEngine {
     }
 
     // Search for similar content
-    const content = typeof sourceMemory.content === 'string'
-      ? sourceMemory.content
-      : JSON.stringify(sourceMemory.content);
+    const content =
+      typeof sourceMemory.content === "string"
+        ? sourceMemory.content
+        : JSON.stringify(sourceMemory.content);
 
     const results = await this.search(content, {
       mode: SearchMode.SEMANTIC,
@@ -396,7 +429,7 @@ class MemorySearchEngine {
     });
 
     // Exclude the source memory
-    return results.filter(r => r.id !== memoryId).slice(0, limit);
+    return results.filter((r) => r.id !== memoryId).slice(0, limit);
   }
 
   /**
@@ -414,13 +447,19 @@ class MemorySearchEngine {
     } = options;
 
     const types = [];
-    if (includeUserFacts) types.push('fact');
-    if (includeConversations) types.push('conversation');
-    if (includePatterns) types.push('pattern');
+    if (includeUserFacts) {
+      types.push("fact");
+    }
+    if (includeConversations) {
+      types.push("conversation");
+    }
+    if (includePatterns) {
+      types.push("pattern");
+    }
 
     // Extract key concepts from context
     const keywords = this._extractKeywords(context);
-    const query = keywords.join(' ');
+    const query = keywords.join(" ");
 
     const results = await this.search(query, {
       mode: SearchMode.HYBRID,
@@ -437,12 +476,13 @@ class MemorySearchEngine {
    */
   _calculateKeywordRelevance(query, content) {
     const queryLower = query.toLowerCase();
-    const contentStr = typeof content === 'string'
-      ? content.toLowerCase()
-      : JSON.stringify(content).toLowerCase();
+    const contentStr =
+      typeof content === "string"
+        ? content.toLowerCase()
+        : JSON.stringify(content).toLowerCase();
 
     // Calculate match ratio
-    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
+    const queryWords = queryLower.split(/\s+/).filter((w) => w.length > 2);
     let matchCount = 0;
 
     for (const word of queryWords) {
@@ -451,7 +491,8 @@ class MemorySearchEngine {
       }
     }
 
-    const baseScore = queryWords.length > 0 ? matchCount / queryWords.length : 0;
+    const baseScore =
+      queryWords.length > 0 ? matchCount / queryWords.length : 0;
 
     // Boost for exact phrase match
     const exactMatch = contentStr.includes(queryLower) ? 0.3 : 0;
@@ -465,19 +506,35 @@ class MemorySearchEngine {
    */
   _extractKeywords(text) {
     // Simple keyword extraction
-    const words = text.toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
+    const words = text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, " ")
       .split(/\s+/)
-      .filter(w => w.length > 3);
+      .filter((w) => w.length > 3);
 
     // Remove common stop words
     const stopWords = new Set([
-      'this', 'that', 'with', 'from', 'have', 'been',
-      'will', 'would', 'could', 'should', 'what', 'when',
-      'where', 'which', 'there', 'their', 'about', 'into',
+      "this",
+      "that",
+      "with",
+      "from",
+      "have",
+      "been",
+      "will",
+      "would",
+      "could",
+      "should",
+      "what",
+      "when",
+      "where",
+      "which",
+      "there",
+      "their",
+      "about",
+      "into",
     ]);
 
-    const keywords = words.filter(w => !stopWords.has(w));
+    const keywords = words.filter((w) => !stopWords.has(w));
 
     // Return unique keywords
     return [...new Set(keywords)].slice(0, 10);
@@ -496,7 +553,9 @@ class MemorySearchEngine {
    * @private
    */
   _getFromCache(key) {
-    if (!this.config.enableCaching) return null;
+    if (!this.config.enableCaching) {
+      return null;
+    }
 
     const timestamp = this.cacheTimestamps.get(key);
     if (!timestamp || Date.now() - timestamp > this.config.cacheTTL) {
@@ -513,7 +572,9 @@ class MemorySearchEngine {
    * @private
    */
   _addToCache(key, results) {
-    if (!this.config.enableCaching) return;
+    if (!this.config.enableCaching) {
+      return;
+    }
 
     // Evict old entries if over size
     if (this.cache.size >= this.config.cacheMaxSize) {

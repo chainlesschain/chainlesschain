@@ -5,10 +5,10 @@
  * 支持握奇的各系列U盾产品
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const SKFDriver = require('./skf-driver');
-const path = require('path');
-const fs = require('fs');
+const { logger } = require("../utils/logger.js");
+const SKFDriver = require("./skf-driver");
+const path = require("path");
+const fs = require("fs");
 
 /**
  * 握奇驱动类
@@ -22,8 +22,8 @@ class WatchDataDriver extends SKFDriver {
   constructor(config = {}) {
     super(config);
 
-    this.driverName = 'WatchData';
-    this.driverVersion = '1.0.0';
+    this.driverName = "WatchData";
+    this.driverVersion = "1.0.0";
   }
 
   /**
@@ -35,36 +35,36 @@ class WatchDataDriver extends SKFDriver {
    * - TimeCOS.dll
    */
   findDllPath() {
-    if (process.platform !== 'win32') {
-      logger.warn('[WatchData] Only Windows platform is supported');
+    if (process.platform !== "win32") {
+      logger.warn("[WatchData] Only Windows platform is supported");
       return null;
     }
 
     // 可能的DLL路径
     const possiblePaths = [
       // 项目资源目录
-      path.join(__dirname, '../../../resources/native/watchdata/WDSKFAPI.dll'),
-      path.join(__dirname, '../../../resources/native/watchdata/WatchData.dll'),
-      path.join(__dirname, '../../../resources/native/watchdata/TimeCOS.dll'),
+      path.join(__dirname, "../../../resources/native/watchdata/WDSKFAPI.dll"),
+      path.join(__dirname, "../../../resources/native/watchdata/WatchData.dll"),
+      path.join(__dirname, "../../../resources/native/watchdata/TimeCOS.dll"),
 
       // 系统目录
-      'C:\\Windows\\System32\\WDSKFAPI.dll',
-      'C:\\Windows\\System32\\WatchData.dll',
-      'C:\\Windows\\System32\\TimeCOS.dll',
-      'C:\\Windows\\SysWOW64\\WDSKFAPI.dll',
-      'C:\\Windows\\SysWOW64\\WatchData.dll',
+      "C:\\Windows\\System32\\WDSKFAPI.dll",
+      "C:\\Windows\\System32\\WatchData.dll",
+      "C:\\Windows\\System32\\TimeCOS.dll",
+      "C:\\Windows\\SysWOW64\\WDSKFAPI.dll",
+      "C:\\Windows\\SysWOW64\\WatchData.dll",
 
       // 程序安装目录
-      'C:\\Program Files\\WatchData\\WDSKFAPI.dll',
-      'C:\\Program Files (x86)\\WatchData\\WDSKFAPI.dll',
-      'C:\\Program Files\\WatchData\\WatchKey\\WDSKFAPI.dll',
-      'C:\\Program Files (x86)\\WatchData\\WatchKey\\WDSKFAPI.dll',
-      'C:\\Program Files\\WatchData\\TimeCOS\\TimeCOS.dll',
-      'C:\\Program Files (x86)\\WatchData\\TimeCOS\\TimeCOS.dll',
+      "C:\\Program Files\\WatchData\\WDSKFAPI.dll",
+      "C:\\Program Files (x86)\\WatchData\\WDSKFAPI.dll",
+      "C:\\Program Files\\WatchData\\WatchKey\\WDSKFAPI.dll",
+      "C:\\Program Files (x86)\\WatchData\\WatchKey\\WDSKFAPI.dll",
+      "C:\\Program Files\\WatchData\\TimeCOS\\TimeCOS.dll",
+      "C:\\Program Files (x86)\\WatchData\\TimeCOS\\TimeCOS.dll",
 
       // 用户自定义路径
-      path.join(process.cwd(), 'resources', 'native', 'WDSKFAPI.dll'),
-      path.join(process.cwd(), 'native', 'WDSKFAPI.dll'),
+      path.join(process.cwd(), "resources", "native", "WDSKFAPI.dll"),
+      path.join(process.cwd(), "native", "WDSKFAPI.dll"),
     ];
 
     // 查找第一个存在的DLL
@@ -75,7 +75,7 @@ class WatchDataDriver extends SKFDriver {
       }
     }
 
-    logger.warn('[WatchData] DLL not found in any standard location');
+    logger.warn("[WatchData] DLL not found in any standard location");
     return null;
   }
 
@@ -83,7 +83,7 @@ class WatchDataDriver extends SKFDriver {
    * 初始化驱动
    */
   async initialize() {
-    logger.info('[WatchData] Initializing WatchData driver...');
+    logger.info("[WatchData] Initializing WatchData driver...");
 
     try {
       // 调用父类初始化
@@ -92,10 +92,10 @@ class WatchDataDriver extends SKFDriver {
       // 握奇特定初始化
       // 例如：加载特定配置、检查驱动版本等
 
-      logger.info('[WatchData] WatchData driver initialized successfully');
+      logger.info("[WatchData] WatchData driver initialized successfully");
       return true;
     } catch (error) {
-      logger.error('[WatchData] Initialization failed:', error);
+      logger.error("[WatchData] Initialization failed:", error);
       this.simulationMode = true;
       this.isInitialized = true;
       return true;
@@ -106,21 +106,21 @@ class WatchDataDriver extends SKFDriver {
    * 获取制造商名称
    */
   getManufacturerName() {
-    return '北京握奇数据股份有限公司';
+    return "北京握奇数据股份有限公司";
   }
 
   /**
    * 获取型号名称
    */
   getModelName() {
-    return 'WatchData WatchKey系列';
+    return "WatchData WatchKey系列";
   }
 
   /**
    * 获取驱动名称
    */
   getDriverName() {
-    return '握奇U盾驱动';
+    return "握奇U盾驱动";
   }
 
   /**
@@ -136,7 +136,7 @@ class WatchDataDriver extends SKFDriver {
    * 握奇特定的检测逻辑
    */
   async detect() {
-    logger.info('[WatchData] Detecting WatchData device...');
+    logger.info("[WatchData] Detecting WatchData device...");
 
     try {
       // 调用父类的检测方法
@@ -150,7 +150,7 @@ class WatchDataDriver extends SKFDriver {
 
       return result;
     } catch (error) {
-      logger.error('[WatchData] Detection failed:', error);
+      logger.error("[WatchData] Detection failed:", error);
       return {
         detected: false,
         unlocked: false,
@@ -181,8 +181,8 @@ class WatchDataDriver extends SKFDriver {
     // 添加握奇特定的信息
     info.manufacturer = this.getManufacturerName();
     info.model = this.getModelName();
-    info.vendor = 'WatchData';
-    info.productLine = 'WatchKey';
+    info.vendor = "WatchData";
+    info.productLine = "WatchKey";
 
     return info;
   }
@@ -194,10 +194,10 @@ class WatchDataDriver extends SKFDriver {
    */
   async getDeviceSerial() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[WatchData] Getting device serial number...');
+    logger.info("[WatchData] Getting device serial number...");
 
     if (this.simulationMode) {
       // 模拟序列号
@@ -206,7 +206,7 @@ class WatchDataDriver extends SKFDriver {
 
     // 实际实现需要调用握奇的扩展API
     // 这里先返回设备名作为序列号
-    return this.deviceName || 'UNKNOWN';
+    return this.deviceName || "UNKNOWN";
   }
 
   /**
@@ -214,10 +214,10 @@ class WatchDataDriver extends SKFDriver {
    */
   async getDeviceCertificate() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[WatchData] Getting device certificate...');
+    logger.info("[WatchData] Getting device certificate...");
 
     if (this.simulationMode) {
       return null;
@@ -232,13 +232,13 @@ class WatchDataDriver extends SKFDriver {
    * 握奇特定功能：检查设备健康状态
    */
   async checkDeviceHealth() {
-    logger.info('[WatchData] Checking device health...');
+    logger.info("[WatchData] Checking device health...");
 
     try {
       if (this.simulationMode) {
         return {
           healthy: true,
-          status: 'simulation',
+          status: "simulation",
         };
       }
 
@@ -248,18 +248,18 @@ class WatchDataDriver extends SKFDriver {
       if (!detected.detected) {
         return {
           healthy: false,
-          status: 'not_connected',
+          status: "not_connected",
         };
       }
 
       return {
         healthy: true,
-        status: 'ok',
+        status: "ok",
       };
     } catch (error) {
       return {
         healthy: false,
-        status: 'error',
+        status: "error",
         error: error.message,
       };
     }
@@ -270,10 +270,10 @@ class WatchDataDriver extends SKFDriver {
    */
   async setDeviceLabel(label) {
     if (!this.deviceHandle) {
-      throw new Error('设备未连接');
+      throw new Error("设备未连接");
     }
 
-    logger.info('[WatchData] Setting device label:', label);
+    logger.info("[WatchData] Setting device label:", label);
 
     if (this.simulationMode) {
       return true;

@@ -20,10 +20,7 @@
 
     <a-tabs v-model:active-key="activeTab">
       <!-- 助记词导入 -->
-      <a-tab-pane
-        key="mnemonic"
-        tab="助记词导入"
-      >
+      <a-tab-pane key="mnemonic" tab="助记词导入">
         <a-form
           ref="mnemonicFormRef"
           :model="mnemonicForm"
@@ -43,10 +40,7 @@
             />
           </a-form-item>
 
-          <a-form-item
-            label="钱包密码"
-            name="password"
-          >
+          <a-form-item label="钱包密码" name="password">
             <a-input-password
               v-model:value="mnemonicForm.password"
               placeholder="请输入密码（至少8位）"
@@ -59,10 +53,7 @@
             </a-input-password>
           </a-form-item>
 
-          <a-form-item
-            label="确认密码"
-            name="confirmPassword"
-          >
+          <a-form-item label="确认密码" name="confirmPassword">
             <a-input-password
               v-model:value="mnemonicForm.confirmPassword"
               placeholder="请再次输入密码"
@@ -78,10 +69,7 @@
       </a-tab-pane>
 
       <!-- 私钥导入 -->
-      <a-tab-pane
-        key="privateKey"
-        tab="私钥导入"
-      >
+      <a-tab-pane key="privateKey" tab="私钥导入">
         <a-form
           ref="privateKeyFormRef"
           :model="privateKeyForm"
@@ -105,10 +93,7 @@
             </a-input>
           </a-form-item>
 
-          <a-form-item
-            label="钱包密码"
-            name="password"
-          >
+          <a-form-item label="钱包密码" name="password">
             <a-input-password
               v-model:value="privateKeyForm.password"
               placeholder="请输入密码（至少8位）"
@@ -121,10 +106,7 @@
             </a-input-password>
           </a-form-item>
 
-          <a-form-item
-            label="确认密码"
-            name="confirmPassword"
-          >
+          <a-form-item label="确认密码" name="confirmPassword">
             <a-input-password
               v-model:value="privateKeyForm.confirmPassword"
               placeholder="请再次输入密码"
@@ -148,7 +130,9 @@
     >
       <template #message>
         <div class="import-success">
-          <check-circle-outlined :style="{ color: '#52c41a', fontSize: '18px' }" />
+          <check-circle-outlined
+            :style="{ color: '#52c41a', fontSize: '18px' }"
+          />
           <span>钱包导入成功！</span>
         </div>
       </template>
@@ -158,10 +142,7 @@
             <span class="info-label">地址:</span>
             <span class="info-value">
               {{ formatAddress(importedWallet.address) }}
-              <copy-outlined
-                class="copy-icon"
-                @click="handleCopyAddress"
-              />
+              <copy-outlined class="copy-icon" @click="handleCopyAddress" />
             </span>
           </div>
         </div>
@@ -171,17 +152,17 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   LockOutlined,
   KeyOutlined,
   CopyOutlined,
   CheckCircleOutlined,
-} from '@ant-design/icons-vue';
-import { useBlockchainStore } from '@/stores/blockchain';
+} from "@ant-design/icons-vue";
+import { useBlockchainStore } from "@/stores/blockchain";
 
 const props = defineProps({
   open: {
@@ -190,77 +171,83 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:open', 'imported']);
+const emit = defineEmits(["update:open", "imported"]);
 
 // Computed property for modal visibility (two-way binding with prop)
 const modalVisible = computed({
   get: () => props.open,
-  set: (value) => emit('update:open', value),
+  set: (value) => emit("update:open", value),
 });
 
 const blockchainStore = useBlockchainStore();
 
 // 状态
 const loading = ref(false);
-const activeTab = ref('mnemonic');
+const activeTab = ref("mnemonic");
 const mnemonicFormRef = ref(null);
 const privateKeyFormRef = ref(null);
 const importedWallet = ref(null);
 
 // 助记词表单
 const mnemonicForm = ref({
-  mnemonic: '',
-  password: '',
-  confirmPassword: '',
+  mnemonic: "",
+  password: "",
+  confirmPassword: "",
 });
 
 // 私钥表单
 const privateKeyForm = ref({
-  privateKey: '',
-  password: '',
-  confirmPassword: '',
+  privateKey: "",
+  password: "",
+  confirmPassword: "",
 });
 
 // 助记词单词数量
 const wordCount = computed(() => {
-  const words = mnemonicForm.value.mnemonic.trim().split(/\s+/).filter(w => w.length > 0);
+  const words = mnemonicForm.value.mnemonic
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 0);
   return words.length;
 });
 
 // 助记词表单验证规则
 const mnemonicRules = {
   mnemonic: [
-    { required: true, message: '请输入助记词', trigger: 'blur' },
+    { required: true, message: "请输入助记词", trigger: "blur" },
     {
       validator: (rule, value) => {
-        const words = value.trim().split(/\s+/).filter(w => w.length > 0);
+        const words = value
+          .trim()
+          .split(/\s+/)
+          .filter((w) => w.length > 0);
         if (words.length !== 12) {
-          return Promise.reject('请输入 12 个助记词');
+          return Promise.reject("请输入 12 个助记词");
         }
         // 简单验证：每个词应该是字母且长度在2-10之间
-        const invalidWords = words.filter(w => !/^[a-z]{2,10}$/i.test(w));
+        const invalidWords = words.filter((w) => !/^[a-z]{2,10}$/i.test(w));
         if (invalidWords.length > 0) {
-          return Promise.reject('助记词格式不正确');
+          return Promise.reject("助记词格式不正确");
         }
         return Promise.resolve();
       },
-      trigger: 'blur',
+      trigger: "blur",
     },
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 8, message: '密码至少8位', trigger: 'blur' },
+    { required: true, message: "请输入密码", trigger: "blur" },
+    { min: 8, message: "密码至少8位", trigger: "blur" },
   ],
   confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
+    { required: true, message: "请确认密码", trigger: "blur" },
     {
       validator: (rule, value) => {
         if (value !== mnemonicForm.value.password) {
-          return Promise.reject('两次输入的密码不一致');
+          return Promise.reject("两次输入的密码不一致");
         }
         return Promise.resolve();
       },
-      trigger: 'blur',
+      trigger: "blur",
     },
   ],
 };
@@ -268,41 +255,41 @@ const mnemonicRules = {
 // 私钥表单验证规则
 const privateKeyRules = {
   privateKey: [
-    { required: true, message: '请输入私钥', trigger: 'blur' },
+    { required: true, message: "请输入私钥", trigger: "blur" },
     {
       validator: (rule, value) => {
         // 移除可选的 0x 前缀
-        const cleanKey = value.startsWith('0x') ? value.slice(2) : value;
+        const cleanKey = value.startsWith("0x") ? value.slice(2) : value;
 
         // 验证长度（64位十六进制）
         if (cleanKey.length !== 64) {
-          return Promise.reject('私钥必须是 64 位十六进制字符');
+          return Promise.reject("私钥必须是 64 位十六进制字符");
         }
 
         // 验证是否为有效的十六进制
         if (!/^[0-9a-f]{64}$/i.test(cleanKey)) {
-          return Promise.reject('私钥格式不正确，必须是十六进制字符');
+          return Promise.reject("私钥格式不正确，必须是十六进制字符");
         }
 
         return Promise.resolve();
       },
-      trigger: 'blur',
+      trigger: "blur",
     },
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 8, message: '密码至少8位', trigger: 'blur' },
+    { required: true, message: "请输入密码", trigger: "blur" },
+    { min: 8, message: "密码至少8位", trigger: "blur" },
   ],
   confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
+    { required: true, message: "请确认密码", trigger: "blur" },
     {
       validator: (rule, value) => {
         if (value !== privateKeyForm.value.password) {
-          return Promise.reject('两次输入的密码不一致');
+          return Promise.reject("两次输入的密码不一致");
         }
         return Promise.resolve();
       },
-      trigger: 'blur',
+      trigger: "blur",
     },
   ],
 };
@@ -311,8 +298,12 @@ const privateKeyRules = {
  * 格式化地址显示
  */
 const formatAddress = (address) => {
-  if (!address) {return '';}
-  if (address.length <= 20) {return address;}
+  if (!address) {
+    return "";
+  }
+  if (address.length <= 20) {
+    return address;
+  }
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 };
 
@@ -326,10 +317,10 @@ const handleCopyAddress = async () => {
 
   try {
     await navigator.clipboard.writeText(importedWallet.value.address);
-    message.success('地址已复制到剪贴板');
+    message.success("地址已复制到剪贴板");
   } catch (error) {
-    logger.error('[ImportWalletModal] 复制地址失败:', error);
-    message.error('复制失败');
+    logger.error("[ImportWalletModal] 复制地址失败:", error);
+    message.error("复制失败");
   }
 };
 
@@ -343,7 +334,7 @@ const handleImport = async () => {
   try {
     let wallet;
 
-    if (activeTab.value === 'mnemonic') {
+    if (activeTab.value === "mnemonic") {
       // 验证助记词表单
       await mnemonicFormRef.value.validate();
 
@@ -351,36 +342,36 @@ const handleImport = async () => {
       const mnemonic = mnemonicForm.value.mnemonic.trim().toLowerCase();
       wallet = await blockchainStore.importFromMnemonic(
         mnemonic,
-        mnemonicForm.value.password
+        mnemonicForm.value.password,
       );
-    } else if (activeTab.value === 'privateKey') {
+    } else if (activeTab.value === "privateKey") {
       // 验证私钥表单
       await privateKeyFormRef.value.validate();
 
       // 导入私钥
       let privateKey = privateKeyForm.value.privateKey.trim();
       // 确保有 0x 前缀
-      if (!privateKey.startsWith('0x')) {
-        privateKey = '0x' + privateKey;
+      if (!privateKey.startsWith("0x")) {
+        privateKey = "0x" + privateKey;
       }
 
       wallet = await blockchainStore.importFromPrivateKey(
         privateKey,
-        privateKeyForm.value.password
+        privateKeyForm.value.password,
       );
     }
 
     importedWallet.value = wallet;
-    message.success('钱包导入成功');
-    emit('imported', wallet);
+    message.success("钱包导入成功");
+    emit("imported", wallet);
 
     // 2秒后自动关闭对话框
     setTimeout(() => {
       handleCancel();
     }, 2000);
   } catch (error) {
-    logger.error('[ImportWalletModal] 导入钱包失败:', error);
-    message.error('导入钱包失败: ' + error.message);
+    logger.error("[ImportWalletModal] 导入钱包失败:", error);
+    message.error("导入钱包失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -390,7 +381,7 @@ const handleImport = async () => {
  * 取消
  */
 const handleCancel = () => {
-  emit('update:open', false);
+  emit("update:open", false);
 };
 
 /**
@@ -398,17 +389,17 @@ const handleCancel = () => {
  */
 const resetForms = () => {
   mnemonicForm.value = {
-    mnemonic: '',
-    password: '',
-    confirmPassword: '',
+    mnemonic: "",
+    password: "",
+    confirmPassword: "",
   };
   privateKeyForm.value = {
-    privateKey: '',
-    password: '',
-    confirmPassword: '',
+    privateKey: "",
+    password: "",
+    confirmPassword: "",
   };
   importedWallet.value = null;
-  activeTab.value = 'mnemonic';
+  activeTab.value = "mnemonic";
 };
 
 // 监听 open 变化
@@ -419,7 +410,7 @@ watch(
       // 对话框关闭时重置表单
       resetForms();
     }
-  }
+  },
 );
 </script>
 
@@ -448,7 +439,7 @@ watch(
 }
 
 .info-value {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   color: #262626;
   display: flex;
   align-items: center;
@@ -476,7 +467,7 @@ watch(
 }
 
 :deep(.ant-input-textarea) {
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
   font-size: 13px;
 }
 

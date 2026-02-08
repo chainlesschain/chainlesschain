@@ -4,7 +4,7 @@
  * 提供渲染进程与主进程之间的通信桥梁
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 const { VolcengineToolsClient } = require("./volcengine-tools");
 const { getLLMConfig } = require("./llm-config");

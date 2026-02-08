@@ -7,12 +7,7 @@
     @ok="handleUpdate"
     @cancel="handleCancel"
   >
-    <a-form
-      ref="formRef"
-      :model="form"
-      :rules="rules"
-      layout="vertical"
-    >
+    <a-form ref="formRef" :model="form" :rules="rules" layout="vertical">
       <!-- 订单类型（不可编辑） -->
       <a-form-item label="订单类型">
         <a-tag
@@ -30,13 +25,8 @@
       <a-form-item label="资产">
         <a-space>
           <span style="font-weight: 500">{{ order.asset_name }}</span>
-          <a-tag
-            v-if="order.asset_symbol"
-            color="blue"
-          >
-            {{
-              order.asset_symbol
-            }}
+          <a-tag v-if="order.asset_symbol" color="blue">
+            {{ order.asset_symbol }}
           </a-tag>
         </a-space>
         <div style="color: #8c8c8c; font-size: 12px; margin-top: 4px">
@@ -45,11 +35,7 @@
       </a-form-item>
 
       <!-- 单价 -->
-      <a-form-item
-        label="单价"
-        name="price_amount"
-        required
-      >
+      <a-form-item label="单价" name="price_amount" required>
         <a-input-number
           v-model:value="form.price_amount"
           :min="0.00000001"
@@ -64,11 +50,7 @@
       </a-form-item>
 
       <!-- 数量 -->
-      <a-form-item
-        label="数量"
-        name="quantity"
-        required
-      >
+      <a-form-item label="数量" name="quantity" required>
         <a-input-number
           v-model:value="form.quantity"
           :min="1"
@@ -92,21 +74,14 @@
           :suffix="order.price_asset_symbol || 'CC'"
           style="display: inline-block"
         />
-        <a-tag
-          v-if="priceChanged"
-          color="orange"
-          style="margin-left: 12px"
-        >
+        <a-tag v-if="priceChanged" color="orange" style="margin-left: 12px">
           原价: {{ originalTotalPrice.toFixed(2) }}
           {{ order.price_asset_symbol || "CC" }}
         </a-tag>
       </a-form-item>
 
       <!-- 描述 -->
-      <a-form-item
-        label="订单描述"
-        name="description"
-      >
+      <a-form-item label="订单描述" name="description">
         <a-textarea
           v-model:value="form.description"
           :rows="4"
@@ -117,10 +92,7 @@
       </a-form-item>
 
       <!-- 联系方式 -->
-      <a-form-item
-        label="联系方式"
-        name="contact_info"
-      >
+      <a-form-item label="联系方式" name="contact_info">
         <a-input
           v-model:value="form.contact_info"
           placeholder="您的联系方式（可选）"
@@ -129,10 +101,7 @@
       </a-form-item>
 
       <!-- 位置信息 -->
-      <a-form-item
-        label="位置"
-        name="location"
-      >
+      <a-form-item label="位置" name="location">
         <a-input
           v-model:value="form.location"
           placeholder="交易地点或发货地址（可选）"
@@ -141,10 +110,7 @@
       </a-form-item>
 
       <!-- 有效期 -->
-      <a-form-item
-        label="有效期"
-        name="valid_until"
-      >
+      <a-form-item label="有效期" name="valid_until">
         <a-date-picker
           v-model:value="form.valid_until"
           show-time
@@ -153,9 +119,7 @@
           :disabled-date="disabledDate"
           placeholder="选择订单有效期（可选）"
         />
-        <template #extra>
-          留空表示永久有效
-        </template>
+        <template #extra> 留空表示永久有效 </template>
       </a-form-item>
 
       <!-- 修改说明 -->
@@ -183,7 +147,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, computed, watch } from "vue";
 import { message } from "ant-design-vue";

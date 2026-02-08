@@ -4,10 +4,10 @@
     title="文件访问授权"
     :width="700"
     :confirm-loading="confirming"
-    @ok="handleGrant"
-    @cancel="handleDeny"
     ok-text="授予权限"
     cancel-text="拒绝访问"
+    @ok="handleGrant"
+    @cancel="handleDeny"
   >
     <!-- 请求信息 -->
     <a-alert
@@ -15,19 +15,23 @@
       :description="`团队 '${requestData.teamName || requestData.teamId}' 请求访问以下路径`"
       type="info"
       show-icon
-      style="margin-bottom: 16px;"
+      style="margin-bottom: 16px"
     />
 
     <!-- 路径信息 -->
     <a-descriptions :column="1" bordered size="small" class="path-info">
       <a-descriptions-item label="团队 ID">
-        <a-typography-text copyable>{{ requestData.teamId }}</a-typography-text>
+        <a-typography-text copyable>
+          {{ requestData.teamId }}
+        </a-typography-text>
       </a-descriptions-item>
       <a-descriptions-item label="团队名称">
         {{ requestData.teamName || "-" }}
       </a-descriptions-item>
       <a-descriptions-item label="请求路径">
-        <a-typography-text copyable>{{ requestData.folderPath }}</a-typography-text>
+        <a-typography-text copyable>
+          {{ requestData.folderPath }}
+        </a-typography-text>
       </a-descriptions-item>
     </a-descriptions>
 
@@ -38,7 +42,7 @@
       :description="sensitiveWarningMessage"
       type="warning"
       show-icon
-      style="margin-top: 16px; margin-bottom: 16px;"
+      style="margin-top: 16px; margin-bottom: 16px"
     />
 
     <!-- 权限选择 -->
@@ -46,7 +50,7 @@
       <h4>请选择授予的权限：</h4>
       <a-checkbox-group
         v-model:value="selectedPermissions"
-        style="display: flex; flex-direction: column; gap: 12px;"
+        style="display: flex; flex-direction: column; gap: 12px"
       >
         <a-checkbox value="READ">
           <span class="permission-label">
@@ -98,9 +102,9 @@
               <a-tag
                 :color="log.success ? 'success' : 'error'"
                 size="small"
-                style="margin-left: 8px;"
+                style="margin-left: 8px"
               >
-                {{ log.success ? '成功' : '失败' }}
+                {{ log.success ? "成功" : "失败" }}
               </a-tag>
             </div>
             <div class="audit-meta">
@@ -129,9 +133,9 @@ import {
 } from "@ant-design/icons-vue";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-const permissionLogger = createLogger('file-permission');
+const permissionLogger = createLogger("file-permission");
 
 // Props
 const props = defineProps({
@@ -184,7 +188,9 @@ const isSensitivePath = computed(() => {
 });
 
 const sensitiveWarningMessage = computed(() => {
-  if (!isSensitivePath.value) return "";
+  if (!isSensitivePath.value) {
+    return "";
+  }
 
   return `此路径可能包含敏感信息（如密钥、凭证等）。授予访问权限可能导致安全风险。建议仅授予必要的最小权限，或拒绝访问。`;
 });
@@ -206,7 +212,10 @@ watch(
 watch(
   () => props.requestData,
   (newValue) => {
-    if (newValue.requestedPermissions && newValue.requestedPermissions.length > 0) {
+    if (
+      newValue.requestedPermissions &&
+      newValue.requestedPermissions.length > 0
+    ) {
       selectedPermissions.value = [...newValue.requestedPermissions];
     }
   },
@@ -309,7 +318,9 @@ function getOperationText(operation) {
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return "-";
+  if (!timestamp) {
+    return "-";
+  }
 
   try {
     return formatDistanceToNow(new Date(timestamp), {

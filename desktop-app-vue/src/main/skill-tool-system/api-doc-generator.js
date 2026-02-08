@@ -3,7 +3,7 @@
  * 从JSDoc注释自动生成Markdown格式的API文档
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 

@@ -3,10 +3,10 @@
  * 提供Web项目的本地预览功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
+const { logger } = require("../utils/logger.js");
+const express = require("express");
+const path = require("path");
+const fs = require("fs");
 
 class PreviewServer {
   constructor() {
@@ -42,15 +42,21 @@ class PreviewServer {
 
         // 添加CORS支持
         this.app.use((req, res, next) => {
-          res.header('Access-Control-Allow-Origin', '*');
-          res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-          res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+          res.header("Access-Control-Allow-Origin", "*");
+          res.header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, PUT, DELETE, OPTIONS",
+          );
+          res.header(
+            "Access-Control-Allow-Headers",
+            "Origin, X-Requested-With, Content-Type, Accept",
+          );
           next();
         });
 
         // 处理根路径
-        this.app.get('/', (req, res) => {
-          const indexPath = path.join(projectPath, 'index.html');
+        this.app.get("/", (req, res) => {
+          const indexPath = path.join(projectPath, "index.html");
 
           if (fs.existsSync(indexPath)) {
             res.sendFile(indexPath);
@@ -60,12 +66,12 @@ class PreviewServer {
         });
 
         // 处理所有HTML文件请求(不带.html后缀)
-        this.app.get('*', (req, res, next) => {
+        this.app.get("*", (req, res, next) => {
           const requestPath = req.path;
 
           // 如果请求路径不包含扩展名,尝试查找对应的HTML文件
           if (!path.extname(requestPath)) {
-            const htmlPath = path.join(projectPath, requestPath + '.html');
+            const htmlPath = path.join(projectPath, requestPath + ".html");
 
             if (fs.existsSync(htmlPath)) {
               res.sendFile(htmlPath);
@@ -132,13 +138,15 @@ class PreviewServer {
         });
 
         // 处理服务器错误
-        this.server.on('error', (error) => {
-          logger.error('[Preview Server] 服务器错误:', error);
+        this.server.on("error", (error) => {
+          logger.error("[Preview Server] 服务器错误:", error);
           this.isRunning = false;
 
           // 如果端口被占用,尝试使用其他端口
-          if (error.code === 'EADDRINUSE') {
-            logger.info(`[Preview Server] 端口 ${this.port} 被占用,尝试使用端口 ${this.port + 1}`);
+          if (error.code === "EADDRINUSE") {
+            logger.info(
+              `[Preview Server] 端口 ${this.port} 被占用,尝试使用端口 ${this.port + 1}`,
+            );
             this.start(projectPath, this.port + 1)
               .then(resolve)
               .catch(reject);
@@ -147,7 +155,7 @@ class PreviewServer {
           }
         });
       } catch (error) {
-        logger.error('[Preview Server] 启动失败:', error);
+        logger.error("[Preview Server] 启动失败:", error);
         reject(error);
       }
     });
@@ -162,7 +170,7 @@ class PreviewServer {
       if (!this.isRunning || !this.server) {
         resolve({
           success: true,
-          message: '服务器未运行',
+          message: "服务器未运行",
         });
         return;
       }
@@ -170,10 +178,10 @@ class PreviewServer {
       try {
         this.server.close((error) => {
           if (error) {
-            logger.error('[Preview Server] 停止失败:', error);
+            logger.error("[Preview Server] 停止失败:", error);
             reject(error);
           } else {
-            logger.info('[Preview Server] 预览服务器已停止');
+            logger.info("[Preview Server] 预览服务器已停止");
             this.isRunning = false;
             this.server = null;
             this.app = null;
@@ -181,12 +189,12 @@ class PreviewServer {
 
             resolve({
               success: true,
-              message: '服务器已停止',
+              message: "服务器已停止",
             });
           }
         });
       } catch (error) {
-        logger.error('[Preview Server] 停止失败:', error);
+        logger.error("[Preview Server] 停止失败:", error);
         reject(error);
       }
     });
@@ -198,14 +206,14 @@ class PreviewServer {
    * @returns {Promise<Object>}
    */
   async restart(projectPath = null) {
-    logger.info('[Preview Server] 重启预览服务器...');
+    logger.info("[Preview Server] 重启预览服务器...");
 
     await this.stop();
 
     const path = projectPath || this.currentProjectPath;
 
     if (!path) {
-      throw new Error('未指定项目路径');
+      throw new Error("未指定项目路径");
     }
 
     return await this.start(path, this.port);
@@ -223,25 +231,25 @@ class PreviewServer {
     try {
       files = fs.readdirSync(directoryPath);
     } catch (error) {
-      logger.error('[Preview Server] 读取目录失败:', error);
+      logger.error("[Preview Server] 读取目录失败:", error);
     }
 
     const fileLinks = files
-      .map(file => {
+      .map((file) => {
         const filePath = path.join(directoryPath, file);
         const stats = fs.statSync(filePath);
         const isDirectory = stats.isDirectory();
-        const icon = isDirectory ? '📁' : '📄';
+        const icon = isDirectory ? "📁" : "📄";
 
         return `
           <li>
-            <a href="${file}${isDirectory ? '/' : ''}">
+            <a href="${file}${isDirectory ? "/" : ""}">
               ${icon} ${file}
             </a>
           </li>
         `;
       })
-      .join('');
+      .join("");
 
     return `
       <!DOCTYPE html>

@@ -8,7 +8,7 @@
  * - 消息转发和协议转换
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const WebSocket = require("ws");
 const EventEmitter = require("events");
 
@@ -422,7 +422,9 @@ class MobileBridge extends EventEmitter {
   async handleICECandidates(message) {
     const { from, candidates } = message;
 
-    if (!candidates || candidates.length === 0) {return;}
+    if (!candidates || candidates.length === 0) {
+      return;
+    }
 
     logger.info(`[MobileBridge] 处理批量ICE候选: ${candidates.length}个`, from);
 
@@ -481,7 +483,9 @@ class MobileBridge extends EventEmitter {
    */
   flushIceCandidates(peerId) {
     const candidates = this.pendingIceCandidates.get(peerId);
-    if (!candidates || candidates.length === 0) {return;}
+    if (!candidates || candidates.length === 0) {
+      return;
+    }
 
     logger.info(
       `[MobileBridge] 批量发送 ${candidates.length} 个ICE候选:`,

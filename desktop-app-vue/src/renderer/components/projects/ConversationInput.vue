@@ -1,14 +1,8 @@
 <template>
   <div class="conversation-input-wrapper">
-    <div
-      class="input-container"
-      :class="{ 'is-focused': isFocused }"
-    >
+    <div class="input-container" :class="{ 'is-focused': isFocused }">
       <!-- 提及建议列表 -->
-      <div
-        v-if="showMentionSuggestions"
-        class="mention-suggestions"
-      >
+      <div v-if="showMentionSuggestions" class="mention-suggestions">
         <div
           v-for="(item, index) in mentionSuggestions"
           :key="index"
@@ -71,21 +65,15 @@
             multiple
             class="file-input"
             @change="handleFileSelect"
-          >
+          />
 
           <!-- 语音输入按钮 -->
           <div class="voice-input-wrapper">
-            <VoiceInput
-              @result="handleVoiceResult"
-              @error="handleVoiceError"
-            />
+            <VoiceInput @result="handleVoiceResult" @error="handleVoiceError" />
           </div>
 
           <!-- 已选附件展示 -->
-          <div
-            v-if="attachments.length > 0"
-            class="attachments-preview"
-          >
+          <div v-if="attachments.length > 0" class="attachments-preview">
             <a-tag
               v-for="(file, index) in attachments"
               :key="index"
@@ -118,10 +106,7 @@
     </div>
 
     <!-- 提示文本 -->
-    <div
-      v-if="showHint"
-      class="input-hint"
-    >
+    <div v-if="showHint" class="input-hint">
       <InfoCircleOutlined />
       {{ hintText }}
     </div>
@@ -129,22 +114,22 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, nextTick } from "vue";
+import { message } from "ant-design-vue";
 import {
   PaperClipOutlined,
   SendOutlined,
   FileOutlined,
   InfoCircleOutlined,
-} from '@ant-design/icons-vue';
-import VoiceInput from '../common/EnhancedVoiceInput.vue';
+} from "@ant-design/icons-vue";
+import VoiceInput from "../common/EnhancedVoiceInput.vue";
 
 const props = defineProps({
   placeholder: {
     type: String,
-    default: '给我发消息或描述你的任务...',
+    default: "给我发消息或描述你的任务...",
   },
   maxLength: {
     type: Number,
@@ -160,24 +145,34 @@ const props = defineProps({
   },
   hintText: {
     type: String,
-    default: '按 @ 可以提及知识库或文件，按 Ctrl+Enter 快速发送',
+    default: "按 @ 可以提及知识库或文件，按 Ctrl+Enter 快速发送",
   },
   mentionItems: {
     type: Array,
     default: () => [
-      { icon: '📚', label: '知识库', type: 'knowledge', description: '引用知识库内容' },
-      { icon: '📁', label: '项目文件', type: 'file', description: '引用项目文件' },
-      { icon: '🔧', label: '工具', type: 'tool', description: '调用AI工具' },
+      {
+        icon: "📚",
+        label: "知识库",
+        type: "knowledge",
+        description: "引用知识库内容",
+      },
+      {
+        icon: "📁",
+        label: "项目文件",
+        type: "file",
+        description: "引用项目文件",
+      },
+      { icon: "🔧", label: "工具", type: "tool", description: "调用AI工具" },
     ],
   },
 });
 
-const emit = defineEmits(['submit', 'change', 'file-upload']);
+const emit = defineEmits(["submit", "change", "file-upload"]);
 
 // 响应式状态
 const textareaRef = ref(null);
 const fileInputRef = ref(null);
-const inputText = ref('');
+const inputText = ref("");
 const isFocused = ref(false);
 const submitting = ref(false);
 const attachments = ref([]);
@@ -190,37 +185,42 @@ const mentionStartPos = ref(-1);
 
 // 计算属性
 const canSubmit = computed(() => {
-  return inputText.value.trim().length > 0 && !submitting.value && !props.disabled;
+  return (
+    inputText.value.trim().length > 0 && !submitting.value && !props.disabled
+  );
 });
 
 // 自动调整textarea高度
 const autoResize = () => {
-  if (!textareaRef.value) {return;}
-  textareaRef.value.style.height = 'auto';
+  if (!textareaRef.value) {
+    return;
+  }
+  textareaRef.value.style.height = "auto";
   const scrollHeight = textareaRef.value.scrollHeight;
   const maxHeight = 300; // 最大高度300px
   const minHeight = 120; // 最小高度120px
-  textareaRef.value.style.height = Math.min(Math.max(scrollHeight, minHeight), maxHeight) + 'px';
+  textareaRef.value.style.height =
+    Math.min(Math.max(scrollHeight, minHeight), maxHeight) + "px";
 };
 
 // 处理输入
 const handleInput = (e) => {
   autoResize();
-  emit('change', inputText.value);
+  emit("change", inputText.value);
 
   // 检测 @ 符号
   const cursorPos = e.target.selectionStart;
   const textBeforeCursor = inputText.value.substring(0, cursorPos);
-  const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+  const lastAtIndex = textBeforeCursor.lastIndexOf("@");
 
   if (lastAtIndex !== -1) {
     const textAfterAt = textBeforeCursor.substring(lastAtIndex + 1);
     // 如果 @ 后面没有空格，显示建议
-    if (!textAfterAt.includes(' ')) {
+    if (!textAfterAt.includes(" ")) {
       showMentionSuggestions.value = true;
       mentionStartPos.value = lastAtIndex;
-      mentionSuggestions.value = props.mentionItems.filter(item =>
-        item.label.toLowerCase().includes(textAfterAt.toLowerCase())
+      mentionSuggestions.value = props.mentionItems.filter((item) =>
+        item.label.toLowerCase().includes(textAfterAt.toLowerCase()),
       );
       mentionActiveIndex.value = 0;
     } else {
@@ -234,7 +234,7 @@ const handleInput = (e) => {
 // 处理键盘事件
 const handleKeydown = (e) => {
   // Ctrl+Enter 提交
-  if (e.ctrlKey && e.key === 'Enter') {
+  if (e.ctrlKey && e.key === "Enter") {
     e.preventDefault();
     handleSubmit();
     return;
@@ -242,19 +242,19 @@ const handleKeydown = (e) => {
 
   // 当显示提及建议时，处理上下键和Enter
   if (showMentionSuggestions.value) {
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
       mentionActiveIndex.value = Math.min(
         mentionActiveIndex.value + 1,
-        mentionSuggestions.value.length - 1
+        mentionSuggestions.value.length - 1,
       );
-    } else if (e.key === 'ArrowUp') {
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       mentionActiveIndex.value = Math.max(mentionActiveIndex.value - 1, 0);
-    } else if (e.key === 'Enter' && !e.ctrlKey) {
+    } else if (e.key === "Enter" && !e.ctrlKey) {
       e.preventDefault();
       selectMention(mentionSuggestions.value[mentionActiveIndex.value]);
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       showMentionSuggestions.value = false;
     }
   }
@@ -262,10 +262,14 @@ const handleKeydown = (e) => {
 
 // 选择提及项
 const selectMention = (item) => {
-  if (!item) {return;}
+  if (!item) {
+    return;
+  }
 
   const beforeMention = inputText.value.substring(0, mentionStartPos.value);
-  const afterCursor = inputText.value.substring(textareaRef.value.selectionStart);
+  const afterCursor = inputText.value.substring(
+    textareaRef.value.selectionStart,
+  );
   inputText.value = `${beforeMention}@${item.label} ${afterCursor}`;
 
   showMentionSuggestions.value = false;
@@ -280,7 +284,9 @@ const selectMention = (item) => {
 
 // 触发提及
 const triggerMention = () => {
-  if (!textareaRef.value) {return;}
+  if (!textareaRef.value) {
+    return;
+  }
 
   const cursorPos = textareaRef.value.selectionStart;
   const textBefore = inputText.value.substring(0, cursorPos);
@@ -306,17 +312,19 @@ const triggerFileUpload = () => {
 // 处理文件选择
 const handleFileSelect = (e) => {
   const files = Array.from(e.target.files);
-  attachments.value.push(...files.map(file => ({
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    file: file,
-  })));
+  attachments.value.push(
+    ...files.map((file) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      file: file,
+    })),
+  );
 
-  emit('file-upload', files);
+  emit("file-upload", files);
 
   // 重置文件输入
-  e.target.value = '';
+  e.target.value = "";
 };
 
 // 移除附件
@@ -327,11 +335,13 @@ const removeAttachment = (index) => {
 // 处理粘贴
 const handlePaste = (e) => {
   const items = e.clipboardData?.items;
-  if (!items) {return;}
+  if (!items) {
+    return;
+  }
 
   // 检查是否有图片
   for (const item of items) {
-    if (item.type.startsWith('image/')) {
+    if (item.type.startsWith("image/")) {
       e.preventDefault();
       const file = item.getAsFile();
       if (file) {
@@ -341,7 +351,7 @@ const handlePaste = (e) => {
           type: file.type,
           file: file,
         });
-        emit('file-upload', [file]);
+        emit("file-upload", [file]);
       }
     }
   }
@@ -351,15 +361,15 @@ const handlePaste = (e) => {
 const handleVoiceResult = (text) => {
   if (text) {
     // 追加语音识别的文本到输入框
-    inputText.value += (inputText.value ? ' ' : '') + text;
+    inputText.value += (inputText.value ? " " : "") + text;
     autoResize();
-    message.success('语音识别成功');
+    message.success("语音识别成功");
   }
 };
 
 // 处理语音输入错误
 const handleVoiceError = (error) => {
-  logger.error('语音输入错误:', error);
+  logger.error("语音输入错误:", error);
 };
 
 // 处理聚焦
@@ -378,36 +388,41 @@ const handleBlur = () => {
 
 // 提交
 const handleSubmit = async () => {
-  if (!canSubmit.value) {return;}
+  if (!canSubmit.value) {
+    return;
+  }
 
   submitting.value = true;
   try {
-    emit('submit', {
+    emit("submit", {
       text: inputText.value,
       attachments: attachments.value,
     });
 
     // 清空输入
-    inputText.value = '';
+    inputText.value = "";
     attachments.value = [];
     autoResize();
   } catch (error) {
-    logger.error('Submit failed:', error);
+    logger.error("Submit failed:", error);
   } finally {
     submitting.value = false;
   }
 };
 
 // 监听输入变化，调整高度
-watch(() => inputText.value, () => {
-  nextTick(autoResize);
-});
+watch(
+  () => inputText.value,
+  () => {
+    nextTick(autoResize);
+  },
+);
 
 // 暴露方法
 defineExpose({
   focus: () => textareaRef.value?.focus(),
   clear: () => {
-    inputText.value = '';
+    inputText.value = "";
     attachments.value = [];
     autoResize();
   },
@@ -424,20 +439,20 @@ defineExpose({
 }
 
 .input-container {
-  background: #FFFFFF;
-  border: 2px solid #E5E7EB;
+  background: #ffffff;
+  border: 2px solid #e5e7eb;
   border-radius: 12px;
   padding: 16px;
   transition: all 0.3s;
   position: relative;
 
   &.is-focused {
-    border-color: #1677FF;
+    border-color: #1677ff;
     box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.1);
   }
 
   &:hover {
-    border-color: #B0B8C1;
+    border-color: #b0b8c1;
   }
 }
 
@@ -447,7 +462,7 @@ defineExpose({
   left: 0;
   right: 0;
   background: white;
-  border: 1px solid #E5E7EB;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   margin-bottom: 8px;
@@ -466,7 +481,7 @@ defineExpose({
 
   &:hover,
   &.is-active {
-    background: #F5F7FA;
+    background: #f5f7fa;
   }
 
   .mention-icon {
@@ -497,10 +512,12 @@ defineExpose({
   font-size: 15px;
   line-height: 1.6;
   color: #333;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
 
   &::placeholder {
-    color: #9CA3AF;
+    color: #9ca3af;
   }
 
   &::-webkit-scrollbar {
@@ -508,12 +525,12 @@ defineExpose({
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #D1D5DB;
+    background: #d1d5db;
     border-radius: 3px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: #9CA3AF;
+    background: #9ca3af;
   }
 }
 
@@ -523,7 +540,7 @@ defineExpose({
   align-items: center;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #E5E7EB;
+  border-top: 1px solid #e5e7eb;
 }
 
 .toolbar-left {
@@ -534,7 +551,7 @@ defineExpose({
 }
 
 .toolbar-btn {
-  color: #6B7280;
+  color: #6b7280;
   padding: 4px 8px;
   height: 32px;
   display: inline-flex;
@@ -547,42 +564,42 @@ defineExpose({
   }
 
   &:hover {
-    color: #1677FF;
-    background: #F0F5FF;
+    color: #1677ff;
+    background: #f0f5ff;
   }
 }
 
 .voice-input-wrapper {
   display: inline-flex;
   align-items: center;
-  
+
   :deep(.voice-button) {
-    color: #6B7280;
+    color: #6b7280;
     padding: 4px 8px;
     height: 32px;
     border: none;
     background: transparent;
     box-shadow: none;
-    
+
     // 隐藏按钮文字，只显示图标
     font-size: 0;
-    
+
     .anticon {
       font-size: 18px;
     }
-    
+
     &:hover {
-      color: #1677FF;
-      background: #F0F5FF;
+      color: #1677ff;
+      background: #f0f5ff;
     }
-    
+
     &.ant-btn-primary {
       animation: none;
       background: transparent;
-      color: #1677FF;
-      
+      color: #1677ff;
+
       &:hover {
-        background: #F0F5FF;
+        background: #f0f5ff;
       }
     }
   }
@@ -610,7 +627,7 @@ defineExpose({
 
 .char-count {
   font-size: 12px;
-  color: #9CA3AF;
+  color: #9ca3af;
 }
 
 .shortcut-hint {
@@ -625,13 +642,13 @@ defineExpose({
   gap: 8px;
   margin-top: 8px;
   font-size: 13px;
-  color: #6B7280;
+  color: #6b7280;
   padding: 8px 12px;
-  background: #F9FAFB;
+  background: #f9fafb;
   border-radius: 6px;
 
   .anticon {
-    color: #1677FF;
+    color: #1677ff;
   }
 }
 </style>

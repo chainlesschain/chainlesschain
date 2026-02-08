@@ -6,7 +6,7 @@
  * @module hooks/hook-middleware
  */
 
-const { HookResult } = require('./hook-executor');
+const { HookResult } = require("./hook-executor");
 
 /**
  * 创建 IPC 钩子中间件
@@ -25,7 +25,11 @@ function createIPCHookMiddleware(hookSystem) {
      * @returns {Function} 包装后的处理器
      */
     wrap(channel, handler, options = {}) {
-      const { skipPreHook = false, skipPostHook = false, contextExtractor = null } = options;
+      const {
+        skipPreHook = false,
+        skipPostHook = false,
+        contextExtractor = null,
+      } = options;
 
       return async (event, ...args) => {
         const context = {
@@ -39,17 +43,19 @@ function createIPCHookMiddleware(hookSystem) {
         // Pre 钩子
         if (!skipPreHook) {
           const preResult = await hookSystem.trigger(
-            'PreIPCCall',
+            "PreIPCCall",
             {
               channel,
               args,
             },
-            context
+            context,
           );
 
           if (preResult.prevented) {
-            const error = new Error(`IPC call prevented: ${preResult.preventReason}`);
-            error.code = 'HOOK_PREVENTED';
+            const error = new Error(
+              `IPC call prevented: ${preResult.preventReason}`,
+            );
+            error.code = "HOOK_PREVENTED";
             error.preventReason = preResult.preventReason;
             throw error;
           }
@@ -71,7 +77,7 @@ function createIPCHookMiddleware(hookSystem) {
 
           // 错误钩子
           await hookSystem.trigger(
-            'IPCError',
+            "IPCError",
             {
               channel,
               args,
@@ -81,7 +87,7 @@ function createIPCHookMiddleware(hookSystem) {
                 code: err.code,
               },
             },
-            context
+            context,
           );
 
           throw err;
@@ -90,18 +96,21 @@ function createIPCHookMiddleware(hookSystem) {
         // Post 钩子
         if (!skipPostHook && !error) {
           const postResult = await hookSystem.trigger(
-            'PostIPCCall',
+            "PostIPCCall",
             {
               channel,
               args,
               result,
               executionTime: Date.now() - startTime,
             },
-            context
+            context,
           );
 
           // Post 钩子可以修改返回值
-          if (postResult.modifications && postResult.modifications.result !== undefined) {
+          if (
+            postResult.modifications &&
+            postResult.modifications.result !== undefined
+          ) {
             result = postResult.modifications.result;
           }
         }
@@ -167,12 +176,12 @@ function createToolHookMiddleware(hookSystem) {
         // PreToolUse 钩子
         if (!skipPreHook) {
           const preResult = await hookSystem.trigger(
-            'PreToolUse',
+            "PreToolUse",
             {
               toolName,
               params,
             },
-            toolContext
+            toolContext,
           );
 
           if (preResult.prevented) {
@@ -201,7 +210,7 @@ function createToolHookMiddleware(hookSystem) {
 
           // ToolError 钩子
           await hookSystem.trigger(
-            'ToolError',
+            "ToolError",
             {
               toolName,
               params,
@@ -210,7 +219,7 @@ function createToolHookMiddleware(hookSystem) {
                 stack: err.stack,
               },
             },
-            toolContext
+            toolContext,
           );
 
           throw err;
@@ -219,7 +228,7 @@ function createToolHookMiddleware(hookSystem) {
         // PostToolUse 钩子
         if (!skipPostHook) {
           const postResult = await hookSystem.trigger(
-            'PostToolUse',
+            "PostToolUse",
             {
               toolName,
               params,
@@ -227,11 +236,14 @@ function createToolHookMiddleware(hookSystem) {
               executionTime: Date.now() - startTime,
               success: !error,
             },
-            toolContext
+            toolContext,
           );
 
           // 允许修改结果
-          if (postResult.modifications && postResult.modifications.result !== undefined) {
+          if (
+            postResult.modifications &&
+            postResult.modifications.result !== undefined
+          ) {
             result = postResult.modifications.result;
           }
         }
@@ -250,7 +262,7 @@ function createToolHookMiddleware(hookSystem) {
       if (tools instanceof Map) {
         const wrapped = new Map();
         for (const [name, tool] of tools) {
-          if (typeof tool.handler === 'function') {
+          if (typeof tool.handler === "function") {
             wrapped.set(name, {
               ...tool,
               handler: this.wrap(name, tool.handler, options),
@@ -285,54 +297,59 @@ function createSessionHookMiddleware(hookSystem) {
      */
     bindToSessionManager(sessionManager) {
       if (!sessionManager) {
-        console.warn('[HookMiddleware] SessionManager is null, skipping binding');
+        console.warn(
+          "[HookMiddleware] SessionManager is null, skipping binding",
+        );
         return;
       }
 
       // 会话创建
-      sessionManager.on('session-created', async (data) => {
+      sessionManager.on("session-created", async (data) => {
         await hookSystem.trigger(
-          'SessionStart',
+          "SessionStart",
           {
             sessionId: data.sessionId || data.id,
             metadata: data.metadata || {},
           },
-          { sessionId: data.sessionId || data.id }
+          { sessionId: data.sessionId || data.id },
         );
       });
 
       // 会话结束
-      sessionManager.on('session-ended', async (data) => {
+      sessionManager.on("session-ended", async (data) => {
         await hookSystem.trigger(
-          'SessionEnd',
+          "SessionEnd",
           {
             sessionId: data.sessionId || data.id,
-            reason: data.reason || 'ended',
+            reason: data.reason || "ended",
           },
-          { sessionId: data.sessionId || data.id }
+          { sessionId: data.sessionId || data.id },
         );
       });
 
       // 上下文压缩 - 包装 compressContext 方法
-      if (typeof sessionManager.compressContext === 'function') {
-        const originalCompress = sessionManager.compressContext.bind(sessionManager);
+      if (typeof sessionManager.compressContext === "function") {
+        const originalCompress =
+          sessionManager.compressContext.bind(sessionManager);
 
         sessionManager.compressContext = async function (...args) {
           const sessionId = this.currentSessionId || this.activeSessionId;
 
           // PreCompact 钩子
           const preResult = await hookSystem.trigger(
-            'PreCompact',
+            "PreCompact",
             {
               sessionId,
               messageCount: this.messages?.length || 0,
               contextSize: this.getContextSize?.() || 0,
             },
-            { sessionId }
+            { sessionId },
           );
 
           if (preResult.prevented) {
-            console.log(`[HookMiddleware] Context compression prevented: ${preResult.preventReason}`);
+            console.log(
+              `[HookMiddleware] Context compression prevented: ${preResult.preventReason}`,
+            );
             return null;
           }
 
@@ -341,13 +358,13 @@ function createSessionHookMiddleware(hookSystem) {
 
           // PostCompact 钩子
           await hookSystem.trigger(
-            'PostCompact',
+            "PostCompact",
             {
               sessionId,
               compressionRatio: result?.compressionRatio || 0,
               savedTokens: result?.savedTokens || 0,
             },
-            { sessionId }
+            { sessionId },
           );
 
           return result;
@@ -370,9 +387,13 @@ function createFileHookMiddleware(hookSystem) {
      */
     wrapRead(readFn) {
       return async (filePath, options = {}) => {
-        const context = { filePath, operation: 'read' };
+        const context = { filePath, operation: "read" };
 
-        const preResult = await hookSystem.trigger('PreFileAccess', { filePath, operation: 'read' }, context);
+        const preResult = await hookSystem.trigger(
+          "PreFileAccess",
+          { filePath, operation: "read" },
+          context,
+        );
 
         if (preResult.prevented) {
           throw new Error(`File access prevented: ${preResult.preventReason}`);
@@ -381,14 +402,14 @@ function createFileHookMiddleware(hookSystem) {
         const result = await readFn(filePath, options);
 
         await hookSystem.trigger(
-          'PostFileAccess',
+          "PostFileAccess",
           {
             filePath,
-            operation: 'read',
+            operation: "read",
             success: true,
             size: result?.length || 0,
           },
-          context
+          context,
         );
 
         return result;
@@ -400,16 +421,16 @@ function createFileHookMiddleware(hookSystem) {
      */
     wrapWrite(writeFn) {
       return async (filePath, content, options = {}) => {
-        const context = { filePath, operation: 'write' };
+        const context = { filePath, operation: "write" };
 
         const preResult = await hookSystem.trigger(
-          'PreFileAccess',
+          "PreFileAccess",
           {
             filePath,
-            operation: 'write',
+            operation: "write",
             contentSize: content?.length || 0,
           },
-          context
+          context,
         );
 
         if (preResult.prevented) {
@@ -419,24 +440,24 @@ function createFileHookMiddleware(hookSystem) {
         const result = await writeFn(filePath, content, options);
 
         await hookSystem.trigger(
-          'PostFileAccess',
+          "PostFileAccess",
           {
             filePath,
-            operation: 'write',
+            operation: "write",
             success: true,
           },
-          context
+          context,
         );
 
         // 触发文件修改事件
         await hookSystem.trigger(
-          'FileModified',
+          "FileModified",
           {
             filePath,
-            operation: 'write',
+            operation: "write",
             contentSize: content?.length || 0,
           },
-          context
+          context,
         );
 
         return result;
@@ -457,52 +478,54 @@ function createAgentHookMiddleware(hookSystem) {
      * 绑定到 AgentOrchestrator 或 TeammateTool
      */
     bindToOrchestrator(orchestrator) {
-      if (!orchestrator) return;
+      if (!orchestrator) {
+        return;
+      }
 
       // Agent 启动
-      orchestrator.on('agent-started', async (data) => {
+      orchestrator.on("agent-started", async (data) => {
         await hookSystem.trigger(
-          'AgentStart',
+          "AgentStart",
           {
             agentId: data.agentId,
             agentType: data.type,
             capabilities: data.capabilities,
           },
-          { agentId: data.agentId }
+          { agentId: data.agentId },
         );
       });
 
       // Agent 停止
-      orchestrator.on('agent-stopped', async (data) => {
+      orchestrator.on("agent-stopped", async (data) => {
         await hookSystem.trigger(
-          'AgentStop',
+          "AgentStop",
           {
             agentId: data.agentId,
             reason: data.reason,
             result: data.result,
           },
-          { agentId: data.agentId }
+          { agentId: data.agentId },
         );
       });
 
       // 任务分配
-      orchestrator.on('task-assigned', async (data) => {
+      orchestrator.on("task-assigned", async (data) => {
         await hookSystem.trigger(
-          'TaskAssigned',
+          "TaskAssigned",
           {
             taskId: data.taskId,
             agentId: data.agentId,
             taskType: data.type,
             description: data.description,
           },
-          { taskId: data.taskId, agentId: data.agentId }
+          { taskId: data.taskId, agentId: data.agentId },
         );
       });
 
       // 任务完成
-      orchestrator.on('task-completed', async (data) => {
+      orchestrator.on("task-completed", async (data) => {
         await hookSystem.trigger(
-          'TaskCompleted',
+          "TaskCompleted",
           {
             taskId: data.taskId,
             agentId: data.agentId,
@@ -510,7 +533,7 @@ function createAgentHookMiddleware(hookSystem) {
             result: data.result,
             executionTime: data.executionTime,
           },
-          { taskId: data.taskId, agentId: data.agentId }
+          { taskId: data.taskId, agentId: data.agentId },
         );
       });
     },

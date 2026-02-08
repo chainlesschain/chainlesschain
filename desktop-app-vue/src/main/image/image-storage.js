@@ -4,20 +4,20 @@
  * 负责图片文件的存储、检索和管理
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-const { app } = require('electron');
-const { getResourceMonitor } = require('../utils/resource-monitor');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
+const { app } = require("electron");
+const { getResourceMonitor } = require("../utils/resource-monitor");
 
 /**
  * 图片存储配置
  */
 const DEFAULT_CONFIG = {
   // 存储目录
-  storageDir: 'images',
-  thumbnailDir: 'images/thumbnails',
+  storageDir: "images",
+  thumbnailDir: "images/thumbnails",
 
   // 文件命名
   useUUID: true,
@@ -35,9 +35,12 @@ class ImageStorage {
     this.config = { ...DEFAULT_CONFIG, ...config };
 
     // 获取用户数据目录
-    this.userDataPath = app.getPath('userData');
+    this.userDataPath = app.getPath("userData");
     this.storageBasePath = path.join(this.userDataPath, this.config.storageDir);
-    this.thumbnailBasePath = path.join(this.userDataPath, this.config.thumbnailDir);
+    this.thumbnailBasePath = path.join(
+      this.userDataPath,
+      this.config.thumbnailDir,
+    );
 
     // 资源监控器
     this.resourceMonitor = getResourceMonitor();
@@ -51,9 +54,9 @@ class ImageStorage {
       try {
         await fs.mkdir(this.storageBasePath, { recursive: true });
         await fs.mkdir(this.thumbnailBasePath, { recursive: true });
-        logger.info('[ImageStorage] 存储目录已创建:', this.storageBasePath);
+        logger.info("[ImageStorage] 存储目录已创建:", this.storageBasePath);
       } catch (error) {
-        logger.error('[ImageStorage] 创建存储目录失败:', error);
+        logger.error("[ImageStorage] 创建存储目录失败:", error);
         throw error;
       }
     }
@@ -88,9 +91,9 @@ class ImageStorage {
         )
       `);
 
-      logger.info('[ImageStorage] 数据库表已初始化');
+      logger.info("[ImageStorage] 数据库表已初始化");
     } catch (error) {
-      logger.error('[ImageStorage] 初始化数据库失败:', error);
+      logger.error("[ImageStorage] 初始化数据库失败:", error);
       throw error;
     }
   }
@@ -127,23 +130,26 @@ class ImageStorage {
 
       // 检查磁盘空间（预留额外20%作为缓冲）
       const requiredSpace = fileSize * 1.2;
-      const diskCheck = await this.resourceMonitor.checkDiskSpace(this.storageBasePath, requiredSpace);
+      const diskCheck = await this.resourceMonitor.checkDiskSpace(
+        this.storageBasePath,
+        requiredSpace,
+      );
 
       if (!diskCheck.available) {
-        const error = new Error('磁盘空间不足');
-        error.code = 'ENOSPC';
+        const error = new Error("磁盘空间不足");
+        error.code = "ENOSPC";
         error.details = {
           required: requiredSpace,
           available: diskCheck.freeSpace,
-          deficit: diskCheck.deficit
+          deficit: diskCheck.deficit,
         };
         throw error;
       }
 
       if (diskCheck.warning) {
-        logger.warn('[ImageStorage] 磁盘空间警告:', {
+        logger.warn("[ImageStorage] 磁盘空间警告:", {
           freeSpace: diskCheck.freeSpace,
-          threshold: this.resourceMonitor.thresholds.diskWarning
+          threshold: this.resourceMonitor.thresholds.diskWarning,
         });
       }
 
@@ -178,7 +184,7 @@ class ImageStorage {
       // 保存到数据库
       await this.addImageRecord(imageRecord);
 
-      logger.info('[ImageStorage] 图片已保存:', newFilename);
+      logger.info("[ImageStorage] 图片已保存:", newFilename);
 
       return {
         success: true,
@@ -188,7 +194,7 @@ class ImageStorage {
         size: stats.size,
       };
     } catch (error) {
-      logger.error('[ImageStorage] 保存图片失败:', error);
+      logger.error("[ImageStorage] 保存图片失败:", error);
       throw error;
     }
   }
@@ -204,11 +210,14 @@ class ImageStorage {
       // 检查磁盘空间
       const stats = await fs.stat(thumbnailPath);
       const requiredSpace = stats.size * 1.2;
-      const diskCheck = await this.resourceMonitor.checkDiskSpace(this.thumbnailBasePath, requiredSpace);
+      const diskCheck = await this.resourceMonitor.checkDiskSpace(
+        this.thumbnailBasePath,
+        requiredSpace,
+      );
 
       if (!diskCheck.available) {
-        const error = new Error('磁盘空间不足，无法保存缩略图');
-        error.code = 'ENOSPC';
+        const error = new Error("磁盘空间不足，无法保存缩略图");
+        error.code = "ENOSPC";
         error.details = diskCheck;
         throw error;
       }
@@ -225,14 +234,14 @@ class ImageStorage {
         updated_at: Date.now(),
       });
 
-      logger.info('[ImageStorage] 缩略图已保存:', filename);
+      logger.info("[ImageStorage] 缩略图已保存:", filename);
 
       return {
         success: true,
         path: destPath,
       };
     } catch (error) {
-      logger.error('[ImageStorage] 保存缩略图失败:', error);
+      logger.error("[ImageStorage] 保存缩略图失败:", error);
       throw error;
     }
   }
@@ -286,7 +295,7 @@ class ImageStorage {
 
     params.push(imageId);
 
-    const sql = `UPDATE images SET ${fields.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE images SET ${fields.join(", ")} WHERE id = ?`;
     await this.db.run(sql, params);
   }
 
@@ -296,7 +305,7 @@ class ImageStorage {
    * @returns {Promise<Object|null>}
    */
   async getImageRecord(imageId) {
-    const sql = 'SELECT * FROM images WHERE id = ?';
+    const sql = "SELECT * FROM images WHERE id = ?";
     const row = await this.db.get(sql, [imageId]);
     return row || null;
   }
@@ -311,15 +320,15 @@ class ImageStorage {
       limit = 100,
       offset = 0,
       knowledgeId = null,
-      orderBy = 'created_at',
-      order = 'DESC',
+      orderBy = "created_at",
+      order = "DESC",
     } = options;
 
-    let sql = 'SELECT * FROM images';
+    let sql = "SELECT * FROM images";
     const params = [];
 
     if (knowledgeId) {
-      sql += ' WHERE knowledge_id = ?';
+      sql += " WHERE knowledge_id = ?";
       params.push(knowledgeId);
     }
 
@@ -357,38 +366,38 @@ class ImageStorage {
       const record = await this.getImageRecord(imageId);
 
       if (!record) {
-        throw new Error('图片不存在');
+        throw new Error("图片不存在");
       }
 
       // 删除文件
       try {
         await fs.unlink(record.path);
-        logger.info('[ImageStorage] 已删除图片文件:', record.path);
+        logger.info("[ImageStorage] 已删除图片文件:", record.path);
       } catch (error) {
-        logger.warn('[ImageStorage] 删除图片文件失败:', error);
+        logger.warn("[ImageStorage] 删除图片文件失败:", error);
       }
 
       // 删除缩略图
       if (record.thumbnail_path) {
         try {
           await fs.unlink(record.thumbnail_path);
-          logger.info('[ImageStorage] 已删除缩略图:', record.thumbnail_path);
+          logger.info("[ImageStorage] 已删除缩略图:", record.thumbnail_path);
         } catch (error) {
-          logger.warn('[ImageStorage] 删除缩略图失败:', error);
+          logger.warn("[ImageStorage] 删除缩略图失败:", error);
         }
       }
 
       // 从数据库删除
-      await this.db.run('DELETE FROM images WHERE id = ?', [imageId]);
+      await this.db.run("DELETE FROM images WHERE id = ?", [imageId]);
 
-      logger.info('[ImageStorage] 图片记录已删除:', imageId);
+      logger.info("[ImageStorage] 图片记录已删除:", imageId);
 
       return {
         success: true,
         id: imageId,
       };
     } catch (error) {
-      logger.error('[ImageStorage] 删除图片失败:', error);
+      logger.error("[ImageStorage] 删除图片失败:", error);
       throw error;
     }
   }
@@ -399,17 +408,25 @@ class ImageStorage {
    */
   async getStats() {
     try {
-      const countRow = await this.db.get('SELECT COUNT(*) as count FROM images');
-      const sizeRow = await this.db.get('SELECT SUM(size) as totalSize FROM images');
-      const avgConfidenceRow = await this.db.get('SELECT AVG(ocr_confidence) as avgConfidence FROM images WHERE ocr_confidence IS NOT NULL');
+      const countRow = await this.db.get(
+        "SELECT COUNT(*) as count FROM images",
+      );
+      const sizeRow = await this.db.get(
+        "SELECT SUM(size) as totalSize FROM images",
+      );
+      const avgConfidenceRow = await this.db.get(
+        "SELECT AVG(ocr_confidence) as avgConfidence FROM images WHERE ocr_confidence IS NOT NULL",
+      );
 
       return {
         totalImages: countRow ? countRow.count : 0,
         totalSize: sizeRow ? sizeRow.totalSize || 0 : 0,
-        averageOcrConfidence: avgConfidenceRow ? avgConfidenceRow.avgConfidence || 0 : 0,
+        averageOcrConfidence: avgConfidenceRow
+          ? avgConfidenceRow.avgConfidence || 0
+          : 0,
       };
     } catch (error) {
-      logger.error('[ImageStorage] 获取统计信息失败:', error);
+      logger.error("[ImageStorage] 获取统计信息失败:", error);
       return {
         totalImages: 0,
         totalSize: 0,
@@ -431,14 +448,17 @@ class ImageStorage {
 
       for (const filename of files) {
         // 检查是否在数据库中
-        const record = await this.db.get('SELECT id FROM images WHERE filename = ?', [filename]);
+        const record = await this.db.get(
+          "SELECT id FROM images WHERE filename = ?",
+          [filename],
+        );
 
         if (!record) {
           // 孤立文件，删除
           const filePath = path.join(this.storageBasePath, filename);
           await fs.unlink(filePath);
           cleaned++;
-          logger.info('[ImageStorage] 已清理孤立文件:', filename);
+          logger.info("[ImageStorage] 已清理孤立文件:", filename);
         }
       }
 
@@ -447,7 +467,7 @@ class ImageStorage {
         cleaned: cleaned,
       };
     } catch (error) {
-      logger.error('[ImageStorage] 清理孤立文件失败:', error);
+      logger.error("[ImageStorage] 清理孤立文件失败:", error);
       throw error;
     }
   }

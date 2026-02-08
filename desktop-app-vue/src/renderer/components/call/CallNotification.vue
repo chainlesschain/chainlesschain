@@ -1,28 +1,19 @@
 <template>
-  <div
-    v-if="incomingCall"
-    class="call-notification"
-  >
+  <div v-if="incomingCall" class="call-notification">
     <div class="call-notification-content">
       <div class="call-header">
         <PhoneOutlined
           v-if="incomingCall.type === 'audio'"
           class="call-icon audio"
         />
-        <VideoCameraOutlined
-          v-else
-          class="call-icon video"
-        />
+        <VideoCameraOutlined v-else class="call-icon video" />
         <span class="call-title">
-          {{ incomingCall.type === 'audio' ? '语音通话' : '视频通话' }}
+          {{ incomingCall.type === "audio" ? "语音通话" : "视频通话" }}
         </span>
       </div>
 
       <div class="caller-info">
-        <a-avatar
-          :size="64"
-          :src="getCallerAvatar(incomingCall.peerId)"
-        >
+        <a-avatar :size="64" :src="getCallerAvatar(incomingCall.peerId)">
           <template #icon>
             <UserOutlined />
           </template>
@@ -30,9 +21,7 @@
         <div class="caller-name">
           {{ getCallerName(incomingCall.peerId) }}
         </div>
-        <div class="caller-status">
-          来电中...
-        </div>
+        <div class="caller-status">来电中...</div>
       </div>
 
       <div class="call-actions">
@@ -65,30 +54,24 @@
     </div>
 
     <!-- 铃声音频 -->
-    <audio
-      ref="ringtone"
-      loop
-    >
-      <source
-        src="@/assets/sounds/ringtone.mp3"
-        type="audio/mpeg"
-      >
+    <audio ref="ringtone" loop>
+      <source src="@/assets/sounds/ringtone.mp3" type="audio/mpeg" />
     </audio>
   </div>
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, watch, onMounted, onUnmounted } from 'vue';
-import { getIpcBridge } from '@/utils/ipc-shim';
+import { ref, watch, onMounted, onUnmounted } from "vue";
+import { getIpcBridge } from "@/utils/ipc-shim";
 import {
   PhoneOutlined,
   VideoCameraOutlined,
   UserOutlined,
-  CloseOutlined
-} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+  CloseOutlined,
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 
 const ipcRenderer = getIpcBridge();
 
@@ -96,12 +79,12 @@ const ipcRenderer = getIpcBridge();
 const props = defineProps({
   contactsMap: {
     type: Map,
-    default: () => new Map()
-  }
+    default: () => new Map(),
+  },
 });
 
 // Emits
-const emit = defineEmits(['call-accepted', 'call-rejected']);
+const emit = defineEmits(["call-accepted", "call-rejected"]);
 
 // State
 const incomingCall = ref(null);
@@ -120,58 +103,62 @@ const getCallerAvatar = (peerId) => {
 
 // 接受通话
 const acceptCall = async () => {
-  if (!incomingCall.value) {return;}
+  if (!incomingCall.value) {
+    return;
+  }
 
   try {
     // 停止铃声
     stopRingtone();
 
-    const result = await ipcRenderer.invoke('p2p-enhanced:accept-call', {
-      callId: incomingCall.value.callId
+    const result = await ipcRenderer.invoke("p2p-enhanced:accept-call", {
+      callId: incomingCall.value.callId,
     });
 
     if (result.success) {
-      emit('call-accepted', incomingCall.value);
+      emit("call-accepted", incomingCall.value);
       incomingCall.value = null;
     } else {
-      message.error('接受通话失败: ' + result.error);
+      message.error("接受通话失败: " + result.error);
     }
   } catch (error) {
-    logger.error('接受通话失败:', error);
-    message.error('接受通话失败');
+    logger.error("接受通话失败:", error);
+    message.error("接受通话失败");
   }
 };
 
 // 拒绝通话
 const rejectCall = async () => {
-  if (!incomingCall.value) {return;}
+  if (!incomingCall.value) {
+    return;
+  }
 
   try {
     // 停止铃声
     stopRingtone();
 
-    const result = await ipcRenderer.invoke('p2p-enhanced:reject-call', {
+    const result = await ipcRenderer.invoke("p2p-enhanced:reject-call", {
       callId: incomingCall.value.callId,
-      reason: 'rejected'
+      reason: "rejected",
     });
 
     if (result.success) {
-      emit('call-rejected', incomingCall.value);
+      emit("call-rejected", incomingCall.value);
       incomingCall.value = null;
     } else {
-      message.error('拒绝通话失败: ' + result.error);
+      message.error("拒绝通话失败: " + result.error);
     }
   } catch (error) {
-    logger.error('拒绝通话失败:', error);
-    message.error('拒绝通话失败');
+    logger.error("拒绝通话失败:", error);
+    message.error("拒绝通话失败");
   }
 };
 
 // 播放铃声
 const playRingtone = () => {
   if (ringtone.value) {
-    ringtone.value.play().catch(err => {
-      logger.error('播放铃声失败:', err);
+    ringtone.value.play().catch((err) => {
+      logger.error("播放铃声失败:", err);
     });
   }
 };
@@ -186,7 +173,7 @@ const stopRingtone = () => {
 
 // 监听来电事件
 const handleIncomingCall = (event, data) => {
-  logger.info('收到来电:', data);
+  logger.info("收到来电:", data);
   incomingCall.value = data;
   playRingtone();
 };
@@ -201,18 +188,22 @@ const handleCallEnded = (event, data) => {
 
 // 生命周期
 onMounted(() => {
-  if (!ipcRenderer?.on) {return;}
-  ipcRenderer.on('p2p-enhanced:call-incoming', handleIncomingCall);
-  ipcRenderer.on('p2p-enhanced:call-ended', handleCallEnded);
-  ipcRenderer.on('p2p-enhanced:call-rejected', handleCallEnded);
+  if (!ipcRenderer?.on) {
+    return;
+  }
+  ipcRenderer.on("p2p-enhanced:call-incoming", handleIncomingCall);
+  ipcRenderer.on("p2p-enhanced:call-ended", handleCallEnded);
+  ipcRenderer.on("p2p-enhanced:call-rejected", handleCallEnded);
 });
 
 onUnmounted(() => {
   stopRingtone();
-  if (!ipcRenderer?.removeListener) {return;}
-  ipcRenderer.removeListener('p2p-enhanced:call-incoming', handleIncomingCall);
-  ipcRenderer.removeListener('p2p-enhanced:call-ended', handleCallEnded);
-  ipcRenderer.removeListener('p2p-enhanced:call-rejected', handleCallEnded);
+  if (!ipcRenderer?.removeListener) {
+    return;
+  }
+  ipcRenderer.removeListener("p2p-enhanced:call-incoming", handleIncomingCall);
+  ipcRenderer.removeListener("p2p-enhanced:call-ended", handleCallEnded);
+  ipcRenderer.removeListener("p2p-enhanced:call-rejected", handleCallEnded);
 });
 
 // 监听来电变化
@@ -301,7 +292,8 @@ watch(incomingCall, (newCall) => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

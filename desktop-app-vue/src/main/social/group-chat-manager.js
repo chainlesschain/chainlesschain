@@ -6,10 +6,10 @@
  * @module group-chat-manager
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const EventEmitter = require('events');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const EventEmitter = require("events");
+const crypto = require("crypto");
 
 class GroupChatManager extends EventEmitter {
   constructor(database, p2pManager, signalSessionManager) {
@@ -25,7 +25,7 @@ class GroupChatManager extends EventEmitter {
     // 当前用户DID
     this.currentUserDid = null;
 
-    logger.info('[GroupChatManager] 群聊管理器已初始化');
+    logger.info("[GroupChatManager] 群聊管理器已初始化");
   }
 
   /**
@@ -33,7 +33,7 @@ class GroupChatManager extends EventEmitter {
    */
   setCurrentUserDid(did) {
     this.currentUserDid = did;
-    logger.info('[GroupChatManager] 当前用户DID已设置:', did);
+    logger.info("[GroupChatManager] 当前用户DID已设置:", did);
   }
 
   /**
@@ -48,18 +48,18 @@ class GroupChatManager extends EventEmitter {
   async createGroup(options) {
     const {
       name,
-      description = '',
-      avatar = '',
+      description = "",
+      avatar = "",
       memberDids = [],
-      encrypted = true
+      encrypted = true,
     } = options;
 
     if (!this.currentUserDid) {
-      throw new Error('当前用户DID未设置');
+      throw new Error("当前用户DID未设置");
     }
 
-    if (!name || name.trim() === '') {
-      throw new Error('群聊名称不能为空');
+    if (!name || name.trim() === "") {
+      throw new Error("群聊名称不能为空");
     }
 
     try {
@@ -88,20 +88,20 @@ class GroupChatManager extends EventEmitter {
         description,
         avatar,
         this.currentUserDid,
-        encrypted ? 'encrypted' : 'normal',
+        encrypted ? "encrypted" : "normal",
         500,
         memberDids.length + 1, // 包括创建者
         encryptionKey,
         now,
-        now
+        now,
       );
 
       // 添加创建者为群主
-      await this.addGroupMember(groupId, this.currentUserDid, 'owner');
+      await this.addGroupMember(groupId, this.currentUserDid, "owner");
 
       // 添加初始成员
       for (const memberDid of memberDids) {
-        await this.addGroupMember(groupId, memberDid, 'member');
+        await this.addGroupMember(groupId, memberDid, "member");
       }
 
       // 发送系统消息
@@ -109,30 +109,30 @@ class GroupChatManager extends EventEmitter {
 
       // 通过P2P网络通知所有成员
       await this.notifyGroupMembers(groupId, {
-        type: 'group:created',
+        type: "group:created",
         groupId,
         name,
-        creator: this.currentUserDid
+        creator: this.currentUserDid,
       });
 
       this.database.saveToFile();
 
-      logger.info('[GroupChatManager] 群聊已创建:', groupId);
+      logger.info("[GroupChatManager] 群聊已创建:", groupId);
 
-      this.emit('group:created', {
+      this.emit("group:created", {
         groupId,
         name,
-        memberCount: memberDids.length + 1
+        memberCount: memberDids.length + 1,
       });
 
       return {
         success: true,
         groupId,
         name,
-        memberCount: memberDids.length + 1
+        memberCount: memberDids.length + 1,
       };
     } catch (error) {
-      logger.error('[GroupChatManager] 创建群聊失败:', error);
+      logger.error("[GroupChatManager] 创建群聊失败:", error);
       throw error;
     }
   }
@@ -157,7 +157,7 @@ class GroupChatManager extends EventEmitter {
       const groups = stmt.all(this.currentUserDid);
       return groups || [];
     } catch (error) {
-      logger.error('[GroupChatManager] 获取群聊列表失败:', error);
+      logger.error("[GroupChatManager] 获取群聊列表失败:", error);
       return [];
     }
   }
@@ -167,11 +167,13 @@ class GroupChatManager extends EventEmitter {
    */
   async getGroupDetails(groupId) {
     try {
-      const groupStmt = this.database.prepare('SELECT * FROM group_chats WHERE id = ?');
+      const groupStmt = this.database.prepare(
+        "SELECT * FROM group_chats WHERE id = ?",
+      );
       const group = groupStmt.get(groupId);
 
       if (!group) {
-        throw new Error('群聊不存在');
+        throw new Error("群聊不存在");
       }
 
       // 获取成员列表
@@ -186,10 +188,10 @@ class GroupChatManager extends EventEmitter {
 
       return {
         ...group,
-        members: members || []
+        members: members || [],
       };
     } catch (error) {
-      logger.error('[GroupChatManager] 获取群聊详情失败:', error);
+      logger.error("[GroupChatManager] 获取群聊详情失败:", error);
       throw error;
     }
   }
@@ -197,7 +199,7 @@ class GroupChatManager extends EventEmitter {
   /**
    * 添加群成员
    */
-  async addGroupMember(groupId, memberDid, role = 'member') {
+  async addGroupMember(groupId, memberDid, role = "member") {
     try {
       const memberId = uuidv4();
       const now = Date.now();
@@ -217,11 +219,16 @@ class GroupChatManager extends EventEmitter {
       `);
       updateStmt.run(now, groupId);
 
-      logger.info('[GroupChatManager] 成员已添加:', memberDid, '到群聊:', groupId);
+      logger.info(
+        "[GroupChatManager] 成员已添加:",
+        memberDid,
+        "到群聊:",
+        groupId,
+      );
 
       return { success: true, memberId };
     } catch (error) {
-      logger.error('[GroupChatManager] 添加成员失败:', error);
+      logger.error("[GroupChatManager] 添加成员失败:", error);
       throw error;
     }
   }
@@ -232,9 +239,15 @@ class GroupChatManager extends EventEmitter {
   async removeGroupMember(groupId, memberDid) {
     try {
       // 检查权限
-      const currentMember = await this.getGroupMember(groupId, this.currentUserDid);
-      if (!currentMember || (currentMember.role !== 'owner' && currentMember.role !== 'admin')) {
-        throw new Error('没有权限移除成员');
+      const currentMember = await this.getGroupMember(
+        groupId,
+        this.currentUserDid,
+      );
+      if (
+        !currentMember ||
+        (currentMember.role !== "owner" && currentMember.role !== "admin")
+      ) {
+        throw new Error("没有权限移除成员");
       }
 
       const stmt = this.database.prepare(`
@@ -256,11 +269,11 @@ class GroupChatManager extends EventEmitter {
 
       this.database.saveToFile();
 
-      logger.info('[GroupChatManager] 成员已移除:', memberDid);
+      logger.info("[GroupChatManager] 成员已移除:", memberDid);
 
       return { success: true };
     } catch (error) {
-      logger.error('[GroupChatManager] 移除成员失败:', error);
+      logger.error("[GroupChatManager] 移除成员失败:", error);
       throw error;
     }
   }
@@ -271,29 +284,32 @@ class GroupChatManager extends EventEmitter {
   async leaveGroup(groupId) {
     try {
       if (!this.currentUserDid) {
-        throw new Error('当前用户DID未设置');
+        throw new Error("当前用户DID未设置");
       }
 
       const member = await this.getGroupMember(groupId, this.currentUserDid);
       if (!member) {
-        throw new Error('您不是该群成员');
+        throw new Error("您不是该群成员");
       }
 
       // 如果是群主，需要转让群主或解散群聊
-      if (member.role === 'owner') {
-        throw new Error('群主不能直接退出，请先转让群主或解散群聊');
+      if (member.role === "owner") {
+        throw new Error("群主不能直接退出，请先转让群主或解散群聊");
       }
 
       await this.removeGroupMember(groupId, this.currentUserDid);
 
       // 发送系统消息
-      await this.sendSystemMessage(groupId, `成员 ${this.currentUserDid} 已退出群聊`);
+      await this.sendSystemMessage(
+        groupId,
+        `成员 ${this.currentUserDid} 已退出群聊`,
+      );
 
-      logger.info('[GroupChatManager] 已退出群聊:', groupId);
+      logger.info("[GroupChatManager] 已退出群聊:", groupId);
 
       return { success: true };
     } catch (error) {
-      logger.error('[GroupChatManager] 退出群聊失败:', error);
+      logger.error("[GroupChatManager] 退出群聊失败:", error);
       throw error;
     }
   }
@@ -304,21 +320,23 @@ class GroupChatManager extends EventEmitter {
   async dismissGroup(groupId) {
     try {
       const member = await this.getGroupMember(groupId, this.currentUserDid);
-      if (!member || member.role !== 'owner') {
-        throw new Error('只有群主可以解散群聊');
+      if (!member || member.role !== "owner") {
+        throw new Error("只有群主可以解散群聊");
       }
 
       // 删除群聊（级联删除成员和消息）
-      const stmt = this.database.prepare('DELETE FROM group_chats WHERE id = ?');
+      const stmt = this.database.prepare(
+        "DELETE FROM group_chats WHERE id = ?",
+      );
       stmt.run(groupId);
 
       this.database.saveToFile();
 
-      logger.info('[GroupChatManager] 群聊已解散:', groupId);
+      logger.info("[GroupChatManager] 群聊已解散:", groupId);
 
       return { success: true };
     } catch (error) {
-      logger.error('[GroupChatManager] 解散群聊失败:', error);
+      logger.error("[GroupChatManager] 解散群聊失败:", error);
       throw error;
     }
   }
@@ -328,44 +346,46 @@ class GroupChatManager extends EventEmitter {
    */
   async sendGroupMessage(groupId, content, options = {}) {
     const {
-      messageType = 'text',
+      messageType = "text",
       filePath = null,
       replyToId = null,
-      mentions = []
+      mentions = [],
     } = options;
 
     try {
       if (!this.currentUserDid) {
-        throw new Error('当前用户DID未设置');
+        throw new Error("当前用户DID未设置");
       }
 
       // 检查是否是群成员
       const member = await this.getGroupMember(groupId, this.currentUserDid);
       if (!member) {
-        throw new Error('您不是该群成员');
+        throw new Error("您不是该群成员");
       }
 
       // 检查是否被禁言
       if (member.muted) {
-        throw new Error('您已被禁言');
+        throw new Error("您已被禁言");
       }
 
       const messageId = uuidv4();
       const now = Date.now();
 
       // 获取群聊信息
-      const groupStmt = this.database.prepare('SELECT * FROM group_chats WHERE id = ?');
+      const groupStmt = this.database.prepare(
+        "SELECT * FROM group_chats WHERE id = ?",
+      );
       const group = groupStmt.get(groupId);
 
       if (!group) {
-        throw new Error('群聊不存在');
+        throw new Error("群聊不存在");
       }
 
       // 加密消息内容（如果群聊启用了加密）
       let encryptedContent = content;
       let encryptionKeyId = null;
 
-      if (group.group_type === 'encrypted') {
+      if (group.group_type === "encrypted") {
         const encrypted = await this.encryptGroupMessage(groupId, content);
         encryptedContent = encrypted.ciphertext;
         encryptionKeyId = encrypted.keyId;
@@ -388,11 +408,11 @@ class GroupChatManager extends EventEmitter {
         encryptedContent,
         messageType,
         filePath,
-        group.group_type === 'encrypted' ? 1 : 0,
+        group.group_type === "encrypted" ? 1 : 0,
         encryptionKeyId,
         replyToId,
         mentions.length > 0 ? JSON.stringify(mentions) : null,
-        now
+        now,
       );
 
       // 更新群聊最后更新时间
@@ -411,28 +431,28 @@ class GroupChatManager extends EventEmitter {
         content: encryptedContent,
         messageType,
         filePath,
-        encrypted: group.group_type === 'encrypted',
+        encrypted: group.group_type === "encrypted",
         encryptionKeyId,
         replyToId,
         mentions,
-        timestamp: now
+        timestamp: now,
       });
 
-      logger.info('[GroupChatManager] 群消息已发送:', messageId);
+      logger.info("[GroupChatManager] 群消息已发送:", messageId);
 
-      this.emit('message:sent', {
+      this.emit("message:sent", {
         messageId,
         groupId,
-        content
+        content,
       });
 
       return {
         success: true,
         messageId,
-        timestamp: now
+        timestamp: now,
       };
     } catch (error) {
-      logger.error('[GroupChatManager] 发送群消息失败:', error);
+      logger.error("[GroupChatManager] 发送群消息失败:", error);
       throw error;
     }
   }
@@ -461,19 +481,19 @@ class GroupChatManager extends EventEmitter {
             const decrypted = await this.decryptGroupMessage(
               groupId,
               msg.content,
-              msg.encryption_key_id
+              msg.encryption_key_id,
             );
             decryptedMessages.push({
               ...msg,
               content: decrypted,
-              decrypted: true
+              decrypted: true,
             });
           } catch (error) {
-            logger.error('[GroupChatManager] 解密消息失败:', error);
+            logger.error("[GroupChatManager] 解密消息失败:", error);
             decryptedMessages.push({
               ...msg,
-              content: '[加密消息]',
-              decryptFailed: true
+              content: "[加密消息]",
+              decryptFailed: true,
             });
           }
         } else {
@@ -483,7 +503,7 @@ class GroupChatManager extends EventEmitter {
 
       return decryptedMessages;
     } catch (error) {
-      logger.error('[GroupChatManager] 获取群消息失败:', error);
+      logger.error("[GroupChatManager] 获取群消息失败:", error);
       return [];
     }
   }
@@ -512,7 +532,7 @@ class GroupChatManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      logger.error('[GroupChatManager] 标记已读失败:', error);
+      logger.error("[GroupChatManager] 标记已读失败:", error);
       return { success: false };
     }
   }
@@ -528,7 +548,7 @@ class GroupChatManager extends EventEmitter {
       `);
       return stmt.get(groupId, memberDid);
     } catch (error) {
-      logger.error('[GroupChatManager] 获取群成员失败:', error);
+      logger.error("[GroupChatManager] 获取群成员失败:", error);
       return null;
     }
   }
@@ -549,19 +569,11 @@ class GroupChatManager extends EventEmitter {
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `);
 
-      stmt.run(
-        messageId,
-        groupId,
-        'system',
-        content,
-        'system',
-        0,
-        now
-      );
+      stmt.run(messageId, groupId, "system", content, "system", 0, now);
 
       return { success: true, messageId };
     } catch (error) {
-      logger.error('[GroupChatManager] 发送系统消息失败:', error);
+      logger.error("[GroupChatManager] 发送系统消息失败:", error);
       return { success: false };
     }
   }
@@ -572,8 +584,8 @@ class GroupChatManager extends EventEmitter {
   async generateGroupEncryptionKey(groupId) {
     try {
       const keyId = uuidv4();
-      const chainKey = crypto.randomBytes(32).toString('base64');
-      const signatureKey = crypto.randomBytes(32).toString('base64');
+      const chainKey = crypto.randomBytes(32).toString("base64");
+      const signatureKey = crypto.randomBytes(32).toString("base64");
       const now = Date.now();
 
       // 保存到数据库
@@ -593,7 +605,7 @@ class GroupChatManager extends EventEmitter {
         chainKey,
         signatureKey,
         0,
-        now
+        now,
       );
 
       // 缓存密钥
@@ -601,14 +613,14 @@ class GroupChatManager extends EventEmitter {
         keyId,
         chainKey,
         signatureKey,
-        iteration: 0
+        iteration: 0,
       });
 
-      logger.info('[GroupChatManager] 群组加密密钥已生成:', keyId);
+      logger.info("[GroupChatManager] 群组加密密钥已生成:", keyId);
 
       return { keyId, chainKey, signatureKey };
     } catch (error) {
-      logger.error('[GroupChatManager] 生成加密密钥失败:', error);
+      logger.error("[GroupChatManager] 生成加密密钥失败:", error);
       throw error;
     }
   }
@@ -636,7 +648,7 @@ class GroupChatManager extends EventEmitter {
             keyId: keyRecord.key_id,
             chainKey: keyRecord.chain_key,
             signatureKey: keyRecord.signature_key,
-            iteration: keyRecord.iteration
+            iteration: keyRecord.iteration,
           };
           this.groupKeys.set(groupId, keyData);
         } else {
@@ -648,27 +660,27 @@ class GroupChatManager extends EventEmitter {
       // 使用AES-256-GCM加密
       const iv = crypto.randomBytes(12);
       const cipher = crypto.createCipheriv(
-        'aes-256-gcm',
-        Buffer.from(keyData.chainKey, 'base64'),
-        iv
+        "aes-256-gcm",
+        Buffer.from(keyData.chainKey, "base64"),
+        iv,
       );
 
-      let encrypted = cipher.update(plaintext, 'utf8', 'base64');
-      encrypted += cipher.final('base64');
+      let encrypted = cipher.update(plaintext, "utf8", "base64");
+      encrypted += cipher.final("base64");
       const authTag = cipher.getAuthTag();
 
       const ciphertext = JSON.stringify({
-        iv: iv.toString('base64'),
+        iv: iv.toString("base64"),
         data: encrypted,
-        tag: authTag.toString('base64')
+        tag: authTag.toString("base64"),
       });
 
       return {
         ciphertext,
-        keyId: keyData.keyId
+        keyId: keyData.keyId,
       };
     } catch (error) {
-      logger.error('[GroupChatManager] 加密消息失败:', error);
+      logger.error("[GroupChatManager] 加密消息失败:", error);
       throw error;
     }
   }
@@ -686,26 +698,26 @@ class GroupChatManager extends EventEmitter {
       const keyRecord = stmt.get(groupId, keyId);
 
       if (!keyRecord) {
-        throw new Error('加密密钥不存在');
+        throw new Error("加密密钥不存在");
       }
 
       const { iv, data, tag } = JSON.parse(ciphertext);
 
       // 使用AES-256-GCM解密
       const decipher = crypto.createDecipheriv(
-        'aes-256-gcm',
-        Buffer.from(keyRecord.chain_key, 'base64'),
-        Buffer.from(iv, 'base64')
+        "aes-256-gcm",
+        Buffer.from(keyRecord.chain_key, "base64"),
+        Buffer.from(iv, "base64"),
       );
 
-      decipher.setAuthTag(Buffer.from(tag, 'base64'));
+      decipher.setAuthTag(Buffer.from(tag, "base64"));
 
-      let decrypted = decipher.update(data, 'base64', 'utf8');
-      decrypted += decipher.final('utf8');
+      let decrypted = decipher.update(data, "base64", "utf8");
+      decrypted += decipher.final("utf8");
 
       return decrypted;
     } catch (error) {
-      logger.error('[GroupChatManager] 解密消息失败:', error);
+      logger.error("[GroupChatManager] 解密消息失败:", error);
       throw error;
     }
   }
@@ -727,18 +739,26 @@ class GroupChatManager extends EventEmitter {
         try {
           if (this.p2pManager) {
             await this.p2pManager.sendMessage(member.member_did, {
-              type: 'group:message',
-              ...message
+              type: "group:message",
+              ...message,
             });
           }
         } catch (error) {
-          logger.error('[GroupChatManager] 发送消息给成员失败:', member.member_did, error);
+          logger.error(
+            "[GroupChatManager] 发送消息给成员失败:",
+            member.member_did,
+            error,
+          );
         }
       }
 
-      logger.info('[GroupChatManager] 群消息已广播给', members.length, '个成员');
+      logger.info(
+        "[GroupChatManager] 群消息已广播给",
+        members.length,
+        "个成员",
+      );
     } catch (error) {
-      logger.error('[GroupChatManager] 广播群消息失败:', error);
+      logger.error("[GroupChatManager] 广播群消息失败:", error);
     }
   }
 
@@ -759,11 +779,15 @@ class GroupChatManager extends EventEmitter {
             await this.p2pManager.sendMessage(member.member_did, notification);
           }
         } catch (error) {
-          logger.error('[GroupChatManager] 通知成员失败:', member.member_did, error);
+          logger.error(
+            "[GroupChatManager] 通知成员失败:",
+            member.member_did,
+            error,
+          );
         }
       }
     } catch (error) {
-      logger.error('[GroupChatManager] 通知群成员失败:', error);
+      logger.error("[GroupChatManager] 通知群成员失败:", error);
     }
   }
 
@@ -773,8 +797,8 @@ class GroupChatManager extends EventEmitter {
   async updateGroupInfo(groupId, updates) {
     try {
       const member = await this.getGroupMember(groupId, this.currentUserDid);
-      if (!member || (member.role !== 'owner' && member.role !== 'admin')) {
-        throw new Error('没有权限修改群信息');
+      if (!member || (member.role !== "owner" && member.role !== "admin")) {
+        throw new Error("没有权限修改群信息");
       }
 
       const { name, description, avatar } = updates;
@@ -782,15 +806,15 @@ class GroupChatManager extends EventEmitter {
       const values = [];
 
       if (name !== undefined) {
-        fields.push('name = ?');
+        fields.push("name = ?");
         values.push(name);
       }
       if (description !== undefined) {
-        fields.push('description = ?');
+        fields.push("description = ?");
         values.push(description);
       }
       if (avatar !== undefined) {
-        fields.push('avatar = ?');
+        fields.push("avatar = ?");
         values.push(avatar);
       }
 
@@ -798,13 +822,13 @@ class GroupChatManager extends EventEmitter {
         return { success: true };
       }
 
-      fields.push('updated_at = ?');
+      fields.push("updated_at = ?");
       values.push(Date.now());
       values.push(groupId);
 
       const stmt = this.database.prepare(`
         UPDATE group_chats
-        SET ${fields.join(', ')}
+        SET ${fields.join(", ")}
         WHERE id = ?
       `);
 
@@ -813,14 +837,14 @@ class GroupChatManager extends EventEmitter {
 
       // 通知群成员
       await this.notifyGroupMembers(groupId, {
-        type: 'group:updated',
+        type: "group:updated",
         groupId,
-        updates
+        updates,
       });
 
       return { success: true };
     } catch (error) {
-      logger.error('[GroupChatManager] 更新群信息失败:', error);
+      logger.error("[GroupChatManager] 更新群信息失败:", error);
       throw error;
     }
   }
@@ -831,7 +855,7 @@ class GroupChatManager extends EventEmitter {
   cleanup() {
     this.groupKeys.clear();
     this.removeAllListeners();
-    logger.info('[GroupChatManager] 资源已清理');
+    logger.info("[GroupChatManager] 资源已清理");
   }
 }
 

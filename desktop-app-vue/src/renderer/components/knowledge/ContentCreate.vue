@@ -10,14 +10,8 @@
     >
       <a-form layout="vertical">
         <!-- 内容类型 -->
-        <a-form-item
-          label="内容类型"
-          required
-        >
-          <a-radio-group
-            v-model:value="form.contentType"
-            button-style="solid"
-          >
+        <a-form-item label="内容类型" required>
+          <a-radio-group v-model:value="form.contentType" button-style="solid">
             <a-radio-button value="article">
               <file-text-outlined /> 文章
             </a-radio-button>
@@ -37,10 +31,7 @@
         </a-form-item>
 
         <!-- 标题 -->
-        <a-form-item
-          label="标题"
-          required
-        >
+        <a-form-item label="标题" required>
           <a-input
             v-model:value="form.title"
             placeholder="输入内容标题（最多100字）"
@@ -61,10 +52,7 @@
         </a-form-item>
 
         <!-- 内容 -->
-        <a-form-item
-          label="正文内容"
-          required
-        >
+        <a-form-item label="正文内容" required>
           <a-textarea
             v-model:value="form.content"
             :rows="12"
@@ -88,10 +76,7 @@
         <!-- 定价模式和价格 -->
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-form-item
-              label="定价模式"
-              required
-            >
+            <a-form-item label="定价模式" required>
               <a-select v-model:value="form.pricingModel">
                 <a-select-option value="one_time">
                   <shopping-outlined /> 一次性购买
@@ -106,20 +91,19 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item
-              label="价格（元）"
-              required
-            >
+            <a-form-item label="价格（元）" required>
               <a-input-number
                 v-model:value="form.priceAmount"
                 :min="0"
                 :max="99999"
                 style="width: 100%"
-                :placeholder="form.pricingModel === 'donation' ? '建议价格（可选）' : '设置价格'"
+                :placeholder="
+                  form.pricingModel === 'donation'
+                    ? '建议价格（可选）'
+                    : '设置价格'
+                "
               >
-                <template #prefix>
-                  ¥
-                </template>
+                <template #prefix> ¥ </template>
               </a-input-number>
             </a-form-item>
           </a-col>
@@ -134,39 +118,21 @@
             :max-tag-count="5"
             style="width: 100%"
           >
-            <a-select-option value="技术">
-              技术
-            </a-select-option>
-            <a-select-option value="设计">
-              设计
-            </a-select-option>
-            <a-select-option value="商业">
-              商业
-            </a-select-option>
-            <a-select-option value="生活">
-              生活
-            </a-select-option>
-            <a-select-option value="教育">
-              教育
-            </a-select-option>
-            <a-select-option value="娱乐">
-              娱乐
-            </a-select-option>
+            <a-select-option value="技术"> 技术 </a-select-option>
+            <a-select-option value="设计"> 设计 </a-select-option>
+            <a-select-option value="商业"> 商业 </a-select-option>
+            <a-select-option value="生活"> 生活 </a-select-option>
+            <a-select-option value="教育"> 教育 </a-select-option>
+            <a-select-option value="娱乐"> 娱乐 </a-select-option>
           </a-select>
         </a-form-item>
 
         <!-- 访问级别 -->
         <a-form-item label="访问级别">
           <a-radio-group v-model:value="form.accessLevel">
-            <a-radio value="public">
-              公开（所有人可见）
-            </a-radio>
-            <a-radio value="subscribers">
-              仅订阅者
-            </a-radio>
-            <a-radio value="private">
-              私有（仅自己）
-            </a-radio>
+            <a-radio value="public"> 公开（所有人可见） </a-radio>
+            <a-radio value="subscribers"> 仅订阅者 </a-radio>
+            <a-radio value="private"> 私有（仅自己） </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>
@@ -192,10 +158,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   FileTextOutlined,
   VideoCameraOutlined,
@@ -205,8 +171,8 @@ import {
   ShoppingOutlined,
   SyncOutlined,
   HeartOutlined,
-} from '@ant-design/icons-vue';
-import { useTradeStore } from '../../stores/trade';
+} from "@ant-design/icons-vue";
+import { useTradeStore } from "../../stores/trade";
 
 // Store
 const tradeStore = useTradeStore();
@@ -220,21 +186,21 @@ const props = defineProps({
 });
 
 // Emits
-const emit = defineEmits(['created', 'update:open']);
+const emit = defineEmits(["created", "update:open"]);
 
 // 状态
 const creating = ref(false);
 
 const form = reactive({
-  contentType: 'article',
-  title: '',
-  description: '',
-  content: '',
-  preview: '',
-  pricingModel: 'one_time',
+  contentType: "article",
+  title: "",
+  description: "",
+  content: "",
+  preview: "",
+  pricingModel: "one_time",
   priceAmount: 0,
   tags: [],
-  accessLevel: 'public',
+  accessLevel: "public",
 });
 
 // 创建内容
@@ -254,10 +220,10 @@ const handleCreate = async () => {
       description: form.description,
       content: form.content,
       preview: form.preview ? { text: form.preview } : null,
-      priceAssetId: 'CNY', // 暂时使用人民币
+      priceAssetId: "CNY", // 暂时使用人民币
       priceAmount: form.priceAmount,
       pricingModel: form.pricingModel,
-      tags: form.tags.join(','),
+      tags: form.tags.join(","),
       metadata: {
         accessLevel: form.accessLevel,
       },
@@ -266,20 +232,20 @@ const handleCreate = async () => {
     // 使用 store 创建内容
     const content = await tradeStore.createKnowledgeContent(contentData);
 
-    logger.info('[ContentCreate] 内容创建成功:', content.id);
-    message.success('内容发布成功！');
+    logger.info("[ContentCreate] 内容创建成功:", content.id);
+    message.success("内容发布成功！");
 
     // 通知父组件
-    emit('created', content);
+    emit("created", content);
 
     // 关闭对话框
-    emit('update:open', false);
+    emit("update:open", false);
 
     // 重置表单
     resetForm();
   } catch (error) {
-    logger.error('[ContentCreate] 创建内容失败:', error);
-    message.error(error.message || '创建内容失败');
+    logger.error("[ContentCreate] 创建内容失败:", error);
+    message.error(error.message || "创建内容失败");
   } finally {
     creating.value = false;
   }
@@ -287,28 +253,28 @@ const handleCreate = async () => {
 
 // 验证表单
 const validateForm = () => {
-  if (!form.title || form.title.trim() === '') {
-    message.warning('请输入标题');
+  if (!form.title || form.title.trim() === "") {
+    message.warning("请输入标题");
     return false;
   }
 
   if (form.title.trim().length < 5) {
-    message.warning('标题至少5个字');
+    message.warning("标题至少5个字");
     return false;
   }
 
-  if (!form.content || form.content.trim() === '') {
-    message.warning('请输入正文内容');
+  if (!form.content || form.content.trim() === "") {
+    message.warning("请输入正文内容");
     return false;
   }
 
   if (form.content.trim().length < 50) {
-    message.warning('正文内容至少50个字');
+    message.warning("正文内容至少50个字");
     return false;
   }
 
-  if (form.pricingModel !== 'donation' && form.priceAmount === 0) {
-    message.warning('请设置价格（设为0表示免费）');
+  if (form.pricingModel !== "donation" && form.priceAmount === 0) {
+    message.warning("请设置价格（设为0表示免费）");
     return false;
   }
 
@@ -317,29 +283,32 @@ const validateForm = () => {
 
 // 取消
 const handleCancel = () => {
-  emit('update:open', false);
+  emit("update:open", false);
   resetForm();
 };
 
 // 重置表单
 const resetForm = () => {
-  form.contentType = 'article';
-  form.title = '';
-  form.description = '';
-  form.content = '';
-  form.preview = '';
-  form.pricingModel = 'one_time';
+  form.contentType = "article";
+  form.title = "";
+  form.description = "";
+  form.content = "";
+  form.preview = "";
+  form.pricingModel = "one_time";
   form.priceAmount = 0;
   form.tags = [];
-  form.accessLevel = 'public';
+  form.accessLevel = "public";
 };
 
 // 监听对话框打开
-watch(() => props.open, (newVal) => {
-  if (newVal) {
-    resetForm();
-  }
-});
+watch(
+  () => props.open,
+  (newVal) => {
+    if (newVal) {
+      resetForm();
+    }
+  },
+);
 </script>
 
 <style scoped>

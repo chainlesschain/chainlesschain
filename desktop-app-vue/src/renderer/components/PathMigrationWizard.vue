@@ -6,11 +6,7 @@
     :footer="null"
     @cancel="handleCancel"
   >
-    <a-steps
-      :current="currentStep"
-      size="small"
-      class="migration-steps"
-    >
+    <a-steps :current="currentStep" size="small" class="migration-steps">
       <a-step title="选择类型" />
       <a-step title="设置路径" />
       <a-step title="确认迁移" />
@@ -19,27 +15,16 @@
 
     <div class="migration-content">
       <!-- 步骤0: 选择迁移类型 -->
-      <div
-        v-if="currentStep === 0"
-        class="step-panel"
-      >
-        <a-typography-title :level="4">
-          选择要迁移的内容
-        </a-typography-title>
+      <div v-if="currentStep === 0" class="step-panel">
+        <a-typography-title :level="4"> 选择要迁移的内容 </a-typography-title>
         <a-radio-group
           v-model:value="migrationType"
           button-style="solid"
           size="large"
         >
-          <a-radio-button value="project">
-            项目文件
-          </a-radio-button>
-          <a-radio-button value="database">
-            数据库
-          </a-radio-button>
-          <a-radio-button value="both">
-            全部迁移
-          </a-radio-button>
+          <a-radio-button value="project"> 项目文件 </a-radio-button>
+          <a-radio-button value="database"> 数据库 </a-radio-button>
+          <a-radio-button value="both"> 全部迁移 </a-radio-button>
         </a-radio-group>
 
         <a-alert
@@ -52,23 +37,15 @@
       </div>
 
       <!-- 步骤1: 设置新路径 -->
-      <div
-        v-if="currentStep === 1"
-        class="step-panel"
-      >
-        <a-typography-title :level="4">
-          设置新路径
-        </a-typography-title>
+      <div v-if="currentStep === 1" class="step-panel">
+        <a-typography-title :level="4"> 设置新路径 </a-typography-title>
 
         <a-form layout="vertical">
           <a-form-item
             v-if="migrationType === 'project' || migrationType === 'both'"
             label="当前项目路径"
           >
-            <a-input
-              :value="currentPaths.project"
-              disabled
-            />
+            <a-input :value="currentPaths.project" disabled />
           </a-form-item>
 
           <a-form-item
@@ -82,10 +59,7 @@
                 style="width: calc(100% - 100px)"
                 placeholder="选择新的项目路径"
               />
-              <a-button
-                style="width: 100px"
-                @click="browseProjectPath"
-              >
+              <a-button style="width: 100px" @click="browseProjectPath">
                 浏览...
               </a-button>
             </a-input-group>
@@ -95,10 +69,7 @@
             v-if="migrationType === 'database' || migrationType === 'both'"
             label="当前数据库路径"
           >
-            <a-input
-              :value="currentPaths.database"
-              disabled
-            />
+            <a-input :value="currentPaths.database" disabled />
           </a-form-item>
 
           <a-form-item
@@ -112,10 +83,7 @@
                 style="width: calc(100% - 100px)"
                 placeholder="选择新的数据库路径"
               />
-              <a-button
-                style="width: 100px"
-                @click="browseDatabasePath"
-              >
+              <a-button style="width: 100px" @click="browseDatabasePath">
                 浏览...
               </a-button>
             </a-input-group>
@@ -124,18 +92,10 @@
       </div>
 
       <!-- 步骤2: 确认迁移 -->
-      <div
-        v-if="currentStep === 2"
-        class="step-panel"
-      >
-        <a-typography-title :level="4">
-          确认迁移信息
-        </a-typography-title>
+      <div v-if="currentStep === 2" class="step-panel">
+        <a-typography-title :level="4"> 确认迁移信息 </a-typography-title>
 
-        <a-descriptions
-          bordered
-          :column="1"
-        >
+        <a-descriptions bordered :column="1">
           <a-descriptions-item
             v-if="migrationType === 'project' || migrationType === 'both'"
             label="项目文件迁移"
@@ -161,29 +121,20 @@
           class="migration-alert"
         />
 
-        <a-checkbox
-          v-model:checked="confirmed"
-          class="migration-checkbox"
-        >
+        <a-checkbox v-model:checked="confirmed" class="migration-checkbox">
           我已阅读并理解上述提示，确认开始迁移
         </a-checkbox>
       </div>
 
       <!-- 步骤3: 迁移进度 -->
-      <div
-        v-if="currentStep === 3"
-        class="step-panel"
-      >
+      <div v-if="currentStep === 3" class="step-panel">
         <a-result
           :status="migrationStatus"
           :title="getMigrationStatusTitle()"
           :sub-title="migrationMessage"
         >
           <template #icon>
-            <a-spin
-              v-if="migrating"
-              size="large"
-            />
+            <a-spin v-if="migrating" size="large" />
           </template>
         </a-result>
 
@@ -196,10 +147,7 @@
     </div>
 
     <div class="migration-actions">
-      <a-button
-        v-if="currentStep > 0 && currentStep < 3"
-        @click="prevStep"
-      >
+      <a-button v-if="currentStep > 0 && currentStep < 3" @click="prevStep">
         上一步
       </a-button>
       <a-button
@@ -231,10 +179,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, onMounted } from "vue";
+import { message } from "ant-design-vue";
 
 const props = defineProps({
   visible: {
@@ -243,52 +191,52 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'complete']);
+const emit = defineEmits(["close", "complete"]);
 
 const currentStep = ref(0);
-const migrationType = ref('project');
+const migrationType = ref("project");
 const confirmed = ref(false);
 const migrating = ref(false);
 const migrationProgress = ref(0);
-const migrationStatus = ref('info');
-const migrationMessage = ref('');
+const migrationStatus = ref("info");
+const migrationMessage = ref("");
 
 const currentPaths = reactive({
-  project: '',
-  database: '',
+  project: "",
+  database: "",
 });
 
 const newPaths = reactive({
-  project: '',
-  database: '',
+  project: "",
+  database: "",
 });
 
 onMounted(async () => {
   try {
     // 加载当前路径
-    const projectPath = await window.electronAPI.config.get('project.rootPath');
-    currentPaths.project = projectPath || '未设置';
+    const projectPath = await window.electronAPI.config.get("project.rootPath");
+    currentPaths.project = projectPath || "未设置";
 
     const dbConfig = await window.electronAPI.db.getConfig();
-    currentPaths.database = dbConfig.path || '未设置';
+    currentPaths.database = dbConfig.path || "未设置";
   } catch (error) {
-    logger.error('加载当前路径失败:', error);
+    logger.error("加载当前路径失败:", error);
   }
 });
 
 const getMigrationTypeDescription = () => {
   const descriptions = {
-    project: '将所有项目文件迁移到新位置。包括知识库文件、附件、导出的文档等。',
-    database: '将数据库文件迁移到新位置。包括所有笔记、标签、配置等数据。',
-    both: '同时迁移项目文件和数据库到新位置。这是最完整的迁移方式。',
+    project: "将所有项目文件迁移到新位置。包括知识库文件、附件、导出的文档等。",
+    database: "将数据库文件迁移到新位置。包括所有笔记、标签、配置等数据。",
+    both: "同时迁移项目文件和数据库到新位置。这是最完整的迁移方式。",
   };
-  return descriptions[migrationType.value] || '';
+  return descriptions[migrationType.value] || "";
 };
 
 const browseProjectPath = async () => {
   try {
     const result = await window.electronAPI.dialog.selectFolder({
-      title: '选择新的项目路径',
+      title: "选择新的项目路径",
       defaultPath: currentPaths.project,
     });
 
@@ -296,24 +244,27 @@ const browseProjectPath = async () => {
       newPaths.project = result.filePaths[0];
     }
   } catch (error) {
-    logger.error('选择路径失败:', error);
-    message.error('打开文件夹选择对话框失败');
+    logger.error("选择路径失败:", error);
+    message.error("打开文件夹选择对话框失败");
   }
 };
 
 const browseDatabasePath = async () => {
   try {
     const result = await window.electronAPI.dialog.selectFolder({
-      title: '选择新的数据库路径',
-      defaultPath: currentPaths.database.substring(0, currentPaths.database.lastIndexOf('/')),
+      title: "选择新的数据库路径",
+      defaultPath: currentPaths.database.substring(
+        0,
+        currentPaths.database.lastIndexOf("/"),
+      ),
     });
 
     if (result && !result.canceled && result.filePaths.length > 0) {
-      newPaths.database = result.filePaths[0] + '/chainlesschain.db';
+      newPaths.database = result.filePaths[0] + "/chainlesschain.db";
     }
   } catch (error) {
-    logger.error('选择路径失败:', error);
-    message.error('打开文件夹选择对话框失败');
+    logger.error("选择路径失败:", error);
+    message.error("打开文件夹选择对话框失败");
   }
 };
 
@@ -322,13 +273,13 @@ const canProceed = () => {
     return !!migrationType.value;
   }
   if (currentStep.value === 1) {
-    if (migrationType.value === 'project') {
+    if (migrationType.value === "project") {
       return !!newPaths.project;
     }
-    if (migrationType.value === 'database') {
+    if (migrationType.value === "database") {
       return !!newPaths.database;
     }
-    if (migrationType.value === 'both') {
+    if (migrationType.value === "both") {
       return !!newPaths.project && !!newPaths.database;
     }
   }
@@ -361,32 +312,32 @@ const handleMigrate = async () => {
     }, 500);
 
     // 执行迁移
-    if (migrationType.value === 'database' || migrationType.value === 'both') {
-      migrationMessage.value = '正在迁移数据库...';
+    if (migrationType.value === "database" || migrationType.value === "both") {
+      migrationMessage.value = "正在迁移数据库...";
       await window.electronAPI.db.migrate(newPaths.database);
     }
 
-    if (migrationType.value === 'project' || migrationType.value === 'both') {
-      migrationMessage.value = '正在迁移项目文件...';
-      await window.electronAPI.config.set('project.rootPath', newPaths.project);
+    if (migrationType.value === "project" || migrationType.value === "both") {
+      migrationMessage.value = "正在迁移项目文件...";
+      await window.electronAPI.config.set("project.rootPath", newPaths.project);
     }
 
     clearInterval(progressInterval);
     migrationProgress.value = 100;
-    migrationStatus.value = 'success';
-    migrationMessage.value = '迁移完成！应用将在3秒后重启...';
+    migrationStatus.value = "success";
+    migrationMessage.value = "迁移完成！应用将在3秒后重启...";
 
     // 3秒后重启应用
     setTimeout(async () => {
       await window.electronAPI.app.restart();
     }, 3000);
 
-    emit('complete');
+    emit("complete");
   } catch (error) {
-    logger.error('迁移失败:', error);
-    migrationStatus.value = 'error';
-    migrationMessage.value = '迁移失败: ' + error.message;
-    message.error('迁移失败: ' + error.message);
+    logger.error("迁移失败:", error);
+    migrationStatus.value = "error";
+    migrationMessage.value = "迁移失败: " + error.message;
+    message.error("迁移失败: " + error.message);
   } finally {
     migrating.value = false;
   }
@@ -394,25 +345,25 @@ const handleMigrate = async () => {
 
 const getMigrationStatusTitle = () => {
   if (migrating.value) {
-    return '正在迁移...';
+    return "正在迁移...";
   }
-  if (migrationStatus.value === 'success') {
-    return '迁移成功';
+  if (migrationStatus.value === "success") {
+    return "迁移成功";
   }
-  if (migrationStatus.value === 'error') {
-    return '迁移失败';
+  if (migrationStatus.value === "error") {
+    return "迁移失败";
   }
-  return '';
+  return "";
 };
 
 const handleCancel = () => {
   if (!migrating.value) {
-    emit('close');
+    emit("close");
   }
 };
 
 const handleClose = () => {
-  emit('close');
+  emit("close");
 };
 </script>
 

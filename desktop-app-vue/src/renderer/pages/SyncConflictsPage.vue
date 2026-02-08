@@ -3,31 +3,18 @@
     <!-- 页面头部 -->
     <div class="page-header">
       <h2>同步冲突</h2>
-      <p class="subtitle">
-        解决数据同步过程中的冲突
-      </p>
+      <p class="subtitle">解决数据同步过程中的冲突</p>
     </div>
 
     <!-- 冲突列表 -->
     <a-spin :spinning="loading">
-      <div
-        v-if="conflicts.length === 0"
-        class="empty-state"
-      >
+      <div v-if="conflicts.length === 0" class="empty-state">
         <a-empty description="没有未解决的冲突">
-          <a-button
-            type="primary"
-            @click="goBack"
-          >
-            返回
-          </a-button>
+          <a-button type="primary" @click="goBack"> 返回 </a-button>
         </a-empty>
       </div>
 
-      <div
-        v-else
-        class="conflicts-list"
-      >
+      <div v-else class="conflicts-list">
         <a-card
           v-for="conflict in conflicts"
           :key="conflict.id"
@@ -35,17 +22,12 @@
         >
           <template #title>
             <div class="conflict-title">
-              <a-tag color="red">
-                冲突
-              </a-tag>
+              <a-tag color="red"> 冲突 </a-tag>
               <span>{{ getResourceTypeName(conflict.resource_type) }}</span>
             </div>
           </template>
 
-          <a-descriptions
-            bordered
-            :column="1"
-          >
+          <a-descriptions bordered :column="1">
             <a-descriptions-item label="资源ID">
               {{ conflict.resource_id }}
             </a-descriptions-item>
@@ -136,7 +118,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, onMounted } from "vue";
 import { message } from "ant-design-vue";
@@ -268,7 +250,9 @@ function getResourceTypeName(type) {
  * 格式化时间
  */
 function formatTime(timestamp) {
-  if (!timestamp) {return "-";}
+  if (!timestamp) {
+    return "-";
+  }
   const date = new Date(timestamp);
   return date.toLocaleString("zh-CN");
 }

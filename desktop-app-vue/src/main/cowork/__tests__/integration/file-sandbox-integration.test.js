@@ -21,8 +21,14 @@ const SkillRegistry = require("../../skills/skill-registry");
 const OfficeSkill = require("../../skills/office-skill");
 
 // Test configuration
-const TEST_DB_PATH = path.join(__dirname, "../../../../../../../data/test-file-sandbox.db");
-const TEST_SANDBOX_ROOT = path.join(__dirname, "../../../../../../../data/test-file-sandbox");
+const TEST_DB_PATH = path.join(
+  __dirname,
+  "../../../../../../../data/test-file-sandbox.db",
+);
+const TEST_SANDBOX_ROOT = path.join(
+  __dirname,
+  "../../../../../../../data/test-file-sandbox",
+);
 const TEST_KEY = "test-encryption-key-32-chars!!!";
 
 describe("File Sandbox Integration Tests", () => {
@@ -98,7 +104,11 @@ describe("File Sandbox Integration Tests", () => {
       const targetPath = path.join(TEST_SANDBOX_ROOT, "test-file.txt");
 
       // 2. Team requests file access (initially denied)
-      let validation = await fileSandbox.validateAccess(team.id, targetPath, "WRITE");
+      let validation = await fileSandbox.validateAccess(
+        team.id,
+        targetPath,
+        "WRITE",
+      );
       expect(validation.allowed).toBe(false);
       expect(validation.reason).toBe("insufficient_permission");
 
@@ -115,11 +125,15 @@ describe("File Sandbox Integration Tests", () => {
         permissionRequest.teamId,
         permissionRequest.folderPath,
         permissionRequest.requestedPermissions,
-        { remember: true }
+        { remember: true },
       );
 
       // 5. Validate access again (should succeed now)
-      validation = await fileSandbox.validateAccess(team.id, targetPath, "WRITE");
+      validation = await fileSandbox.validateAccess(
+        team.id,
+        targetPath,
+        "WRITE",
+      );
       expect(validation.allowed).toBe(true);
 
       // 6. Create file
@@ -143,7 +157,7 @@ describe("File Sandbox Integration Tests", () => {
       expect(auditLogs.logs.length).toBeGreaterThan(0);
 
       const writeLog = auditLogs.logs.find(
-        (log) => log.operation === "WRITE" && log.path === targetPath
+        (log) => log.operation === "WRITE" && log.path === targetPath,
       );
       expect(writeLog).toBeDefined();
       expect(writeLog.success).toBe(true);
@@ -153,7 +167,11 @@ describe("File Sandbox Integration Tests", () => {
       const team = await teammateTool.spawnTeam("Security Test Team");
 
       // Grant broad permissions
-      await fileSandbox.grantPermission(team.id, "/", ["READ", "WRITE", "EXECUTE"]);
+      await fileSandbox.grantPermission(team.id, "/", [
+        "READ",
+        "WRITE",
+        "EXECUTE",
+      ]);
 
       // Define sensitive paths
       const sensitivePaths = [
@@ -169,7 +187,11 @@ describe("File Sandbox Integration Tests", () => {
 
       // Verify all sensitive paths are blocked
       for (const sensitivePath of sensitivePaths) {
-        const validation = await fileSandbox.validateAccess(team.id, sensitivePath, "READ");
+        const validation = await fileSandbox.validateAccess(
+          team.id,
+          sensitivePath,
+          "READ",
+        );
         expect(validation.allowed).toBe(false);
         expect(validation.reason).toBe("sensitive_file");
 
@@ -202,33 +224,64 @@ describe("File Sandbox Integration Tests", () => {
       await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ"]);
 
       // Can read
-      let readValidation = await fileSandbox.validateAccess(team.id, testPath, "READ");
+      const readValidation = await fileSandbox.validateAccess(
+        team.id,
+        testPath,
+        "READ",
+      );
       expect(readValidation.allowed).toBe(true);
 
       // Cannot write
-      let writeValidation = await fileSandbox.validateAccess(team.id, testPath, "WRITE");
+      let writeValidation = await fileSandbox.validateAccess(
+        team.id,
+        testPath,
+        "WRITE",
+      );
       expect(writeValidation.allowed).toBe(false);
 
       // Cannot execute
-      let executeValidation = await fileSandbox.validateAccess(team.id, testPath, "EXECUTE");
+      let executeValidation = await fileSandbox.validateAccess(
+        team.id,
+        testPath,
+        "EXECUTE",
+      );
       expect(executeValidation.allowed).toBe(false);
 
       // Upgrade to READ + WRITE
-      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
 
       // Now can write
-      writeValidation = await fileSandbox.validateAccess(team.id, testPath, "WRITE");
+      writeValidation = await fileSandbox.validateAccess(
+        team.id,
+        testPath,
+        "WRITE",
+      );
       expect(writeValidation.allowed).toBe(true);
 
       // Still cannot execute
-      executeValidation = await fileSandbox.validateAccess(team.id, testPath, "EXECUTE");
+      executeValidation = await fileSandbox.validateAccess(
+        team.id,
+        testPath,
+        "EXECUTE",
+      );
       expect(executeValidation.allowed).toBe(false);
 
       // Grant all permissions
-      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE", "EXECUTE"]);
+      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+        "EXECUTE",
+      ]);
 
       // Now can execute
-      executeValidation = await fileSandbox.validateAccess(team.id, testPath, "EXECUTE");
+      executeValidation = await fileSandbox.validateAccess(
+        team.id,
+        testPath,
+        "EXECUTE",
+      );
       expect(executeValidation.allowed).toBe(true);
     });
 
@@ -236,7 +289,10 @@ describe("File Sandbox Integration Tests", () => {
       const team = await teammateTool.spawnTeam("Inheritance Test Team");
 
       // Grant permission to parent directory
-      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
 
       // Create subdirectories
       const subdir1 = path.join(TEST_SANDBOX_ROOT, "subdir1");
@@ -279,7 +335,10 @@ describe("File Sandbox Integration Tests", () => {
       await fs.ensureDir(reportsDir);
 
       // Grant permission to project root
-      await fileSandbox.grantPermission(team.id, projectRoot, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team.id, projectRoot, [
+        "READ",
+        "WRITE",
+      ]);
 
       // Create documents
       const tasks = [
@@ -315,7 +374,7 @@ describe("File Sandbox Integration Tests", () => {
 
       // Execute all tasks
       const results = await Promise.all(
-        tasks.map((task) => skillRegistry.autoExecute(task.input))
+        tasks.map((task) => skillRegistry.autoExecute(task.input)),
       );
 
       // All should succeed
@@ -347,7 +406,9 @@ describe("File Sandbox Integration Tests", () => {
         limit: 10,
       });
 
-      expect(auditLogs.logs.filter((log) => log.success).length).toBeGreaterThanOrEqual(3);
+      expect(
+        auditLogs.logs.filter((log) => log.success).length,
+      ).toBeGreaterThanOrEqual(3);
     });
 
     test("should handle file access denial scenario", async () => {
@@ -359,11 +420,19 @@ describe("File Sandbox Integration Tests", () => {
       });
 
       // Try to create file without permission
-      const restrictedPath = path.join(TEST_SANDBOX_ROOT, "restricted", "file.txt");
+      const restrictedPath = path.join(
+        TEST_SANDBOX_ROOT,
+        "restricted",
+        "file.txt",
+      );
       await fs.ensureDir(path.dirname(restrictedPath));
 
       // Validation should fail
-      const validation = await fileSandbox.validateAccess(team.id, restrictedPath, "WRITE");
+      const validation = await fileSandbox.validateAccess(
+        team.id,
+        restrictedPath,
+        "WRITE",
+      );
       expect(validation.allowed).toBe(false);
 
       // Record denied attempt
@@ -382,7 +451,7 @@ describe("File Sandbox Integration Tests", () => {
       });
 
       const denialLog = auditLogs.logs.find(
-        (log) => log.path === restrictedPath && log.success === false
+        (log) => log.path === restrictedPath && log.success === false,
       );
 
       expect(denialLog).toBeDefined();
@@ -395,7 +464,10 @@ describe("File Sandbox Integration Tests", () => {
       const testFile = path.join(TEST_SANDBOX_ROOT, "revocation-test.txt");
 
       // Grant permissions
-      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
 
       // Create file successfully
       await fs.writeFile(testFile, "Initial content");
@@ -408,7 +480,11 @@ describe("File Sandbox Integration Tests", () => {
       });
 
       // Verify can write
-      let validation = await fileSandbox.validateAccess(team.id, testFile, "WRITE");
+      let validation = await fileSandbox.validateAccess(
+        team.id,
+        testFile,
+        "WRITE",
+      );
       expect(validation.allowed).toBe(true);
 
       // Revoke WRITE permission
@@ -438,10 +514,10 @@ describe("File Sandbox Integration Tests", () => {
       });
 
       const successLog = auditLogs.logs.find(
-        (log) => log.path === testFile && log.success === true
+        (log) => log.path === testFile && log.success === true,
       );
       const deniedLog = auditLogs.logs.find(
-        (log) => log.path === testFile && log.success === false
+        (log) => log.path === testFile && log.success === false,
       );
 
       expect(successLog).toBeDefined();
@@ -458,7 +534,10 @@ describe("File Sandbox Integration Tests", () => {
       const team = await teammateTool.spawnTeam("Security Team");
 
       // Grant permission to sandbox only
-      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
 
       // Attempt path traversal attacks
       const attackPaths = [
@@ -477,7 +556,11 @@ describe("File Sandbox Integration Tests", () => {
         // So we rely on permission check
 
         // Validate access
-        const validation = await fileSandbox.validateAccess(team.id, attackPath, "READ");
+        const validation = await fileSandbox.validateAccess(
+          team.id,
+          attackPath,
+          "READ",
+        );
 
         // Should be denied (either unsafe path or insufficient permission)
         expect(validation.allowed).toBe(false);
@@ -498,9 +581,9 @@ describe("File Sandbox Integration Tests", () => {
         limit: 10,
       });
 
-      expect(auditLogs.logs.filter((log) => !log.success).length).toBeGreaterThanOrEqual(
-        attackPaths.length
-      );
+      expect(
+        auditLogs.logs.filter((log) => !log.success).length,
+      ).toBeGreaterThanOrEqual(attackPaths.length);
     });
 
     test("should allow safe relative paths within sandbox", async () => {
@@ -511,7 +594,10 @@ describe("File Sandbox Integration Tests", () => {
       await fs.ensureDir(subdir);
 
       // Grant permission
-      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
 
       // Safe relative paths (within sandbox)
       const safePaths = [
@@ -521,7 +607,11 @@ describe("File Sandbox Integration Tests", () => {
       ];
 
       for (const safePath of safePaths) {
-        const validation = await fileSandbox.validateAccess(team.id, safePath, "WRITE");
+        const validation = await fileSandbox.validateAccess(
+          team.id,
+          safePath,
+          "WRITE",
+        );
         expect(validation.allowed).toBe(true);
       }
     });
@@ -535,16 +625,39 @@ describe("File Sandbox Integration Tests", () => {
     test("should provide comprehensive audit trail", async () => {
       const team = await teammateTool.spawnTeam("Audit Team");
 
-      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
 
       const testFile = path.join(TEST_SANDBOX_ROOT, "audit-trail.txt");
 
       // Perform various operations
       const operations = [
-        { operation: "WRITE", path: testFile, success: true, metadata: { action: "create" } },
-        { operation: "READ", path: testFile, success: true, metadata: { action: "read" } },
-        { operation: "WRITE", path: testFile, success: true, metadata: { action: "update" } },
-        { operation: "DELETE", path: testFile, success: true, metadata: { action: "delete" } },
+        {
+          operation: "WRITE",
+          path: testFile,
+          success: true,
+          metadata: { action: "create" },
+        },
+        {
+          operation: "READ",
+          path: testFile,
+          success: true,
+          metadata: { action: "read" },
+        },
+        {
+          operation: "WRITE",
+          path: testFile,
+          success: true,
+          metadata: { action: "update" },
+        },
+        {
+          operation: "DELETE",
+          path: testFile,
+          success: true,
+          metadata: { action: "delete" },
+        },
       ];
 
       for (const op of operations) {
@@ -578,8 +691,14 @@ describe("File Sandbox Integration Tests", () => {
       const team1 = await teammateTool.spawnTeam("Team 1");
       const team2 = await teammateTool.spawnTeam("Team 2");
 
-      await fileSandbox.grantPermission(team1.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
-      await fileSandbox.grantPermission(team2.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team1.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
+      await fileSandbox.grantPermission(team2.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
 
       // Record operations from different teams
       await fileSandbox.recordAuditLog({
@@ -618,7 +737,9 @@ describe("File Sandbox Integration Tests", () => {
         limit: 10,
       });
 
-      expect(writeLogs.logs.every((log) => log.operation === "WRITE")).toBe(true);
+      expect(writeLogs.logs.every((log) => log.operation === "WRITE")).toBe(
+        true,
+      );
       expect(writeLogs.logs.length).toBeGreaterThanOrEqual(2);
     });
 
@@ -637,7 +758,10 @@ describe("File Sandbox Integration Tests", () => {
       });
 
       // Upgrade permission
-      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
 
       await fileSandbox.recordAuditLog({
         teamId: team.id,
@@ -665,14 +789,18 @@ describe("File Sandbox Integration Tests", () => {
       });
 
       const permissionLogs = auditLogs.logs.filter((log) =>
-        log.operation.startsWith("PERMISSION_")
+        log.operation.startsWith("PERMISSION_"),
       );
 
       expect(permissionLogs.length).toBeGreaterThanOrEqual(3);
 
       // Verify permission change history
-      const grants = permissionLogs.filter((log) => log.operation === "PERMISSION_GRANT");
-      const revokes = permissionLogs.filter((log) => log.operation === "PERMISSION_REVOKE");
+      const grants = permissionLogs.filter(
+        (log) => log.operation === "PERMISSION_GRANT",
+      );
+      const revokes = permissionLogs.filter(
+        (log) => log.operation === "PERMISSION_REVOKE",
+      );
 
       expect(grants.length).toBeGreaterThanOrEqual(2);
       expect(revokes.length).toBeGreaterThanOrEqual(1);
@@ -687,7 +815,10 @@ describe("File Sandbox Integration Tests", () => {
     test("should handle high-volume permission checks efficiently", async () => {
       const team = await teammateTool.spawnTeam("Performance Team");
 
-      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, ["READ", "WRITE"]);
+      await fileSandbox.grantPermission(team.id, TEST_SANDBOX_ROOT, [
+        "READ",
+        "WRITE",
+      ]);
 
       const startTime = Date.now();
 
@@ -698,8 +829,8 @@ describe("File Sandbox Integration Tests", () => {
           fileSandbox.validateAccess(
             team.id,
             path.join(TEST_SANDBOX_ROOT, `file-${i}.txt`),
-            "WRITE"
-          )
+            "WRITE",
+          ),
         );
       }
 
@@ -728,7 +859,7 @@ describe("File Sandbox Integration Tests", () => {
             path: path.join(TEST_SANDBOX_ROOT, `file-${i}.txt`),
             success: i % 10 !== 0, // Every 10th fails
             metadata: { index: i },
-          })
+          }),
         );
       }
 

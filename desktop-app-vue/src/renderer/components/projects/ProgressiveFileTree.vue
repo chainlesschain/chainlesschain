@@ -7,15 +7,8 @@
       @search="handleSearch"
     />
 
-    <a-spin
-      :spinning="loading"
-      tip="Loading files..."
-    >
-      <div
-        ref="treeContainer"
-        class="tree-container"
-        @scroll="handleScroll"
-      >
+    <a-spin :spinning="loading" tip="Loading files...">
+      <div ref="treeContainer" class="tree-container" @scroll="handleScroll">
         <a-tree
           v-if="visibleNodes.length > 0"
           :tree-data="visibleNodes"
@@ -28,22 +21,17 @@
           @expand="onExpand"
           @select="onSelect"
         >
-          <template #title="{ title, key, isLeaf, loaded, loading: nodeLoading }">
+          <template
+            #title="{ title, key, isLeaf, loaded, loading: nodeLoading }"
+          >
             <div class="tree-node-title">
               <span class="node-icon">
                 <FileOutlined v-if="isLeaf" />
                 <FolderOutlined v-else-if="!expandedKeys.includes(key)" />
                 <FolderOpenOutlined v-else />
               </span>
-              <span
-                class="node-text"
-                :title="title"
-              >{{ title }}</span>
-              <a-spin
-                v-if="nodeLoading"
-                size="small"
-                class="node-loading"
-              />
+              <span class="node-text" :title="title">{{ title }}</span>
+              <a-spin v-if="nodeLoading" size="small" class="node-loading" />
               <a-badge
                 v-if="!isLeaf && !loaded"
                 :count="getChildCount(key)"
@@ -55,11 +43,7 @@
         </a-tree>
 
         <!-- Virtual scroll placeholder -->
-        <div
-          v-if="hasMore"
-          ref="loadMoreTrigger"
-          class="load-more-trigger"
-        >
+        <div v-if="hasMore" ref="loadMoreTrigger" class="load-more-trigger">
           <a-spin size="small" />
           <span>Loading more...</span>
         </div>
@@ -86,416 +70,438 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import {
+  ref,
+  reactive,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  nextTick,
+} from "vue";
 import {
   FileOutlined,
   FolderOutlined,
-  FolderOpenOutlined
-} from '@ant-design/icons-vue'
-import performanceTracker from '@/utils/performance-tracker'
+  FolderOpenOutlined,
+} from "@ant-design/icons-vue";
+import performanceTracker from "@/utils/performance-tracker";
 
 const props = defineProps({
   projectPath: {
     type: String,
-    required: true
+    required: true,
   },
   batchSize: {
     type: Number,
-    default: 50
+    default: 50,
   },
   expandDepth: {
     type: Number,
-    default: 1
-  }
-})
+    default: 1,
+  },
+});
 
-const emit = defineEmits(['select', 'load', 'error'])
+const emit = defineEmits(["select", "load", "error"]);
 
 // State
-const loading = ref(false)
-const searchQuery = ref('')
-const treeContainer = ref(null)
-const loadMoreTrigger = ref(null)
-const treeHeight = ref(600)
+const loading = ref(false);
+const searchQuery = ref("");
+const treeContainer = ref(null);
+const loadMoreTrigger = ref(null);
+const treeHeight = ref(600);
 
 // Tree data
-const allNodes = ref([])
-const visibleNodes = ref([])
-const expandedKeys = ref([])
-const selectedKeys = ref([])
-const loadedNodes = new Map()
-const nodeChildrenMap = new Map()
+const allNodes = ref([]);
+const visibleNodes = ref([]);
+const expandedKeys = ref([]);
+const selectedKeys = ref([]);
+const loadedNodes = new Map();
+const nodeChildrenMap = new Map();
 
 // Pagination
-const currentBatch = ref(0)
-const batchSize = computed(() => props.batchSize)
+const currentBatch = ref(0);
+const batchSize = computed(() => props.batchSize);
 const hasMore = computed(() => {
-  return visibleNodes.value.length < allNodes.value.length
-})
+  return visibleNodes.value.length < allNodes.value.length;
+});
 
 // Stats
-const loadedCount = computed(() => loadedNodes.size)
-const totalCount = ref(0)
+const loadedCount = computed(() => loadedNodes.size);
+const totalCount = ref(0);
 
 // Intersection Observer for infinite scroll
-let intersectionObserver = null
+let intersectionObserver = null;
 
 /**
  * Initialize tree
  */
 const initTree = async () => {
-  loading.value = true
-  const startTime = performance.now()
+  loading.value = true;
+  const startTime = performance.now();
 
   try {
     // Load root level files
-    const files = await window.electron.ipcRenderer.invoke('get-project-files', {
-      projectPath: props.projectPath,
-      depth: 0
-    })
+    const files = await window.electron.ipcRenderer.invoke(
+      "get-project-files",
+      {
+        projectPath: props.projectPath,
+        depth: 0,
+      },
+    );
 
     // Build tree structure
-    const tree = buildTreeStructure(files)
-    allNodes.value = tree
-    totalCount.value = countTotalNodes(tree)
+    const tree = buildTreeStructure(files);
+    allNodes.value = tree;
+    totalCount.value = countTotalNodes(tree);
 
     // Load first batch
-    loadNextBatch()
+    loadNextBatch();
 
     // Auto-expand to specified depth
     if (props.expandDepth > 0) {
-      await autoExpandToDepth(props.expandDepth)
+      await autoExpandToDepth(props.expandDepth);
     }
 
     performanceTracker.trackFileOperation(
-      'load-file-tree',
+      "load-file-tree",
       props.projectPath,
-      startTime
-    )
+      startTime,
+    );
 
-    emit('load', { total: totalCount.value })
+    emit("load", { total: totalCount.value });
   } catch (error) {
-    logger.error('Failed to load file tree:', error)
-    emit('error', error)
+    logger.error("Failed to load file tree:", error);
+    emit("error", error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 /**
  * Build tree structure from flat file list
  */
 const buildTreeStructure = (files) => {
-  const tree = []
-  const map = new Map()
+  const tree = [];
+  const map = new Map();
 
   // Sort files by path depth and name
   files.sort((a, b) => {
-    const depthA = a.path.split('/').length
-    const depthB = b.path.split('/').length
-    if (depthA !== depthB) {return depthA - depthB}
-    return a.path.localeCompare(b.path)
-  })
+    const depthA = a.path.split("/").length;
+    const depthB = b.path.split("/").length;
+    if (depthA !== depthB) {
+      return depthA - depthB;
+    }
+    return a.path.localeCompare(b.path);
+  });
 
-  files.forEach(file => {
-    const parts = file.path.split('/')
-    const name = parts[parts.length - 1]
-    const parentPath = parts.slice(0, -1).join('/')
+  files.forEach((file) => {
+    const parts = file.path.split("/");
+    const name = parts[parts.length - 1];
+    const parentPath = parts.slice(0, -1).join("/");
 
     const node = {
       key: file.path,
       title: name,
-      isLeaf: file.type === 'file',
+      isLeaf: file.type === "file",
       children: [],
       loaded: false,
       loading: false,
       path: file.path,
       type: file.type,
       size: file.size,
-      modified: file.modified
-    }
+      modified: file.modified,
+    };
 
-    map.set(file.path, node)
+    map.set(file.path, node);
 
-    if (parentPath === '') {
-      tree.push(node)
+    if (parentPath === "") {
+      tree.push(node);
     } else {
-      const parent = map.get(parentPath)
+      const parent = map.get(parentPath);
       if (parent) {
-        parent.children.push(node)
-        nodeChildrenMap.set(parentPath, parent.children.length)
+        parent.children.push(node);
+        nodeChildrenMap.set(parentPath, parent.children.length);
       }
     }
-  })
+  });
 
-  return tree
-}
+  return tree;
+};
 
 /**
  * Count total nodes in tree
  */
 const countTotalNodes = (nodes) => {
-  let count = 0
+  let count = 0;
   const traverse = (items) => {
-    items.forEach(item => {
-      count++
+    items.forEach((item) => {
+      count++;
       if (item.children && item.children.length > 0) {
-        traverse(item.children)
+        traverse(item.children);
       }
-    })
-  }
-  traverse(nodes)
-  return count
-}
+    });
+  };
+  traverse(nodes);
+  return count;
+};
 
 /**
  * Load next batch of nodes
  */
 const loadNextBatch = () => {
-  const start = currentBatch.value * batchSize.value
-  const end = start + batchSize.value
+  const start = currentBatch.value * batchSize.value;
+  const end = start + batchSize.value;
 
-  const flatNodes = flattenTree(allNodes.value)
-  const batch = flatNodes.slice(start, end)
+  const flatNodes = flattenTree(allNodes.value);
+  const batch = flatNodes.slice(start, end);
 
-  visibleNodes.value = [...visibleNodes.value, ...batch]
-  currentBatch.value++
-}
+  visibleNodes.value = [...visibleNodes.value, ...batch];
+  currentBatch.value++;
+};
 
 /**
  * Flatten tree to array
  */
 const flattenTree = (nodes, depth = 0) => {
-  const result = []
+  const result = [];
 
   const traverse = (items, currentDepth) => {
-    items.forEach(item => {
-      result.push({ ...item, depth: currentDepth })
+    items.forEach((item) => {
+      result.push({ ...item, depth: currentDepth });
 
       if (expandedKeys.value.includes(item.key) && item.children) {
-        traverse(item.children, currentDepth + 1)
+        traverse(item.children, currentDepth + 1);
       }
-    })
-  }
+    });
+  };
 
-  traverse(nodes, depth)
-  return result
-}
+  traverse(nodes, depth);
+  return result;
+};
 
 /**
  * Load data for a node (lazy loading)
  */
 const onLoadData = async (treeNode) => {
-  const { key, dataRef } = treeNode
+  const { key, dataRef } = treeNode;
 
   if (dataRef.loaded || dataRef.isLeaf) {
-    return
+    return;
   }
 
-  dataRef.loading = true
-  const startTime = performance.now()
+  dataRef.loading = true;
+  const startTime = performance.now();
 
   try {
-    const children = await window.electron.ipcRenderer.invoke('get-directory-contents', {
-      path: dataRef.path
-    })
+    const children = await window.electron.ipcRenderer.invoke(
+      "get-directory-contents",
+      {
+        path: dataRef.path,
+      },
+    );
 
-    const childNodes = children.map(child => ({
+    const childNodes = children.map((child) => ({
       key: child.path,
       title: child.name,
-      isLeaf: child.type === 'file',
+      isLeaf: child.type === "file",
       children: [],
       loaded: false,
       loading: false,
       path: child.path,
       type: child.type,
       size: child.size,
-      modified: child.modified
-    }))
+      modified: child.modified,
+    }));
 
-    dataRef.children = childNodes
-    dataRef.loaded = true
-    loadedNodes.set(key, dataRef)
+    dataRef.children = childNodes;
+    dataRef.loaded = true;
+    loadedNodes.set(key, dataRef);
 
     performanceTracker.trackFileOperation(
-      'load-directory',
+      "load-directory",
       dataRef.path,
-      startTime
-    )
+      startTime,
+    );
   } catch (error) {
-    logger.error('Failed to load directory:', error)
-    emit('error', error)
+    logger.error("Failed to load directory:", error);
+    emit("error", error);
   } finally {
-    dataRef.loading = false
+    dataRef.loading = false;
   }
-}
+};
 
 /**
  * Handle node expand
  */
 const onExpand = (keys, { expanded, node }) => {
-  expandedKeys.value = keys
+  expandedKeys.value = keys;
 
   if (expanded) {
     // Refresh visible nodes when expanding
     nextTick(() => {
-      refreshVisibleNodes()
-    })
+      refreshVisibleNodes();
+    });
   }
-}
+};
 
 /**
  * Handle node select
  */
 const onSelect = (keys, { selected, node }) => {
-  selectedKeys.value = keys
+  selectedKeys.value = keys;
 
   if (selected && node.dataRef.isLeaf) {
-    emit('select', {
+    emit("select", {
       path: node.dataRef.path,
       type: node.dataRef.type,
-      size: node.dataRef.size
-    })
+      size: node.dataRef.size,
+    });
   }
-}
+};
 
 /**
  * Refresh visible nodes
  */
 const refreshVisibleNodes = () => {
-  const flatNodes = flattenTree(allNodes.value)
-  const end = currentBatch.value * batchSize.value
-  visibleNodes.value = flatNodes.slice(0, end)
-}
+  const flatNodes = flattenTree(allNodes.value);
+  const end = currentBatch.value * batchSize.value;
+  visibleNodes.value = flatNodes.slice(0, end);
+};
 
 /**
  * Auto-expand to specified depth
  */
 const autoExpandToDepth = async (depth) => {
-  const keysToExpand = []
+  const keysToExpand = [];
 
   const traverse = async (nodes, currentDepth) => {
-    if (currentDepth >= depth) {return}
+    if (currentDepth >= depth) {
+      return;
+    }
 
     for (const node of nodes) {
       if (!node.isLeaf) {
-        keysToExpand.push(node.key)
+        keysToExpand.push(node.key);
 
         if (!node.loaded) {
-          await onLoadData({ key: node.key, dataRef: node })
+          await onLoadData({ key: node.key, dataRef: node });
         }
 
         if (node.children && node.children.length > 0) {
-          await traverse(node.children, currentDepth + 1)
+          await traverse(node.children, currentDepth + 1);
         }
       }
     }
-  }
+  };
 
-  await traverse(allNodes.value, 0)
-  expandedKeys.value = keysToExpand
-  refreshVisibleNodes()
-}
+  await traverse(allNodes.value, 0);
+  expandedKeys.value = keysToExpand;
+  refreshVisibleNodes();
+};
 
 /**
  * Handle scroll for infinite loading
  */
 const handleScroll = () => {
-  if (!treeContainer.value || !hasMore.value) {return}
+  if (!treeContainer.value || !hasMore.value) {
+    return;
+  }
 
-  const { scrollTop, scrollHeight, clientHeight } = treeContainer.value
-  const scrollPercentage = (scrollTop + clientHeight) / scrollHeight
+  const { scrollTop, scrollHeight, clientHeight } = treeContainer.value;
+  const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
 
   // Load more when scrolled 80%
   if (scrollPercentage > 0.8) {
-    loadNextBatch()
+    loadNextBatch();
   }
-}
+};
 
 /**
  * Handle search
  */
 const handleSearch = async (value) => {
   if (!value.trim()) {
-    refreshVisibleNodes()
-    return
+    refreshVisibleNodes();
+    return;
   }
 
-  const startTime = performance.now()
+  const startTime = performance.now();
 
   try {
-    const results = await window.electron.ipcRenderer.invoke('search-files', {
+    const results = await window.electron.ipcRenderer.invoke("search-files", {
       projectPath: props.projectPath,
-      query: value
-    })
+      query: value,
+    });
 
     // Build tree from search results
-    const tree = buildTreeStructure(results)
-    visibleNodes.value = flattenTree(tree)
+    const tree = buildTreeStructure(results);
+    visibleNodes.value = flattenTree(tree);
 
     performanceTracker.trackFileOperation(
-      'search-files',
+      "search-files",
       props.projectPath,
-      startTime
-    )
+      startTime,
+    );
   } catch (error) {
-    logger.error('Search failed:', error)
-    emit('error', error)
+    logger.error("Search failed:", error);
+    emit("error", error);
   }
-}
+};
 
 /**
  * Get child count for a node
  */
 const getChildCount = (key) => {
-  return nodeChildrenMap.get(key) || 0
-}
+  return nodeChildrenMap.get(key) || 0;
+};
 
 /**
  * Setup intersection observer for infinite scroll
  */
 const setupIntersectionObserver = () => {
-  if (!loadMoreTrigger.value) {return}
+  if (!loadMoreTrigger.value) {
+    return;
+  }
 
   intersectionObserver = new IntersectionObserver(
     (entries) => {
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting && hasMore.value) {
-          loadNextBatch()
+          loadNextBatch();
         }
-      })
+      });
     },
     {
       root: treeContainer.value,
-      threshold: 0.1
-    }
-  )
+      threshold: 0.1,
+    },
+  );
 
-  intersectionObserver.observe(loadMoreTrigger.value)
-}
+  intersectionObserver.observe(loadMoreTrigger.value);
+};
 
 /**
  * Expand node by path
  */
 const expandNode = async (path) => {
-  const parts = path.split('/')
-  const keysToExpand = []
+  const parts = path.split("/");
+  const keysToExpand = [];
 
   for (let i = 0; i < parts.length; i++) {
-    const currentPath = parts.slice(0, i + 1).join('/')
-    keysToExpand.push(currentPath)
+    const currentPath = parts.slice(0, i + 1).join("/");
+    keysToExpand.push(currentPath);
 
-    const node = findNodeByKey(currentPath)
+    const node = findNodeByKey(currentPath);
     if (node && !node.loaded && !node.isLeaf) {
-      await onLoadData({ key: currentPath, dataRef: node })
+      await onLoadData({ key: currentPath, dataRef: node });
     }
   }
 
-  expandedKeys.value = [...new Set([...expandedKeys.value, ...keysToExpand])]
-  refreshVisibleNodes()
-}
+  expandedKeys.value = [...new Set([...expandedKeys.value, ...keysToExpand])];
+  refreshVisibleNodes();
+};
 
 /**
  * Find node by key
@@ -503,63 +509,70 @@ const expandNode = async (path) => {
 const findNodeByKey = (key) => {
   const traverse = (nodes) => {
     for (const node of nodes) {
-      if (node.key === key) {return node}
+      if (node.key === key) {
+        return node;
+      }
       if (node.children) {
-        const found = traverse(node.children)
-        if (found) {return found}
+        const found = traverse(node.children);
+        if (found) {
+          return found;
+        }
       }
     }
-    return null
-  }
+    return null;
+  };
 
-  return traverse(allNodes.value)
-}
+  return traverse(allNodes.value);
+};
 
 /**
  * Refresh tree
  */
 const refresh = async () => {
-  allNodes.value = []
-  visibleNodes.value = []
-  expandedKeys.value = []
-  selectedKeys.value = []
-  loadedNodes.clear()
-  nodeChildrenMap.clear()
-  currentBatch.value = 0
+  allNodes.value = [];
+  visibleNodes.value = [];
+  expandedKeys.value = [];
+  selectedKeys.value = [];
+  loadedNodes.clear();
+  nodeChildrenMap.clear();
+  currentBatch.value = 0;
 
-  await initTree()
-}
+  await initTree();
+};
 
 // Expose methods
 defineExpose({
   refresh,
-  expandNode
-})
+  expandNode,
+});
 
 // Watch for project path changes
-watch(() => props.projectPath, () => {
-  refresh()
-})
+watch(
+  () => props.projectPath,
+  () => {
+    refresh();
+  },
+);
 
 onMounted(() => {
-  initTree()
+  initTree();
 
   // Calculate tree height
   if (treeContainer.value) {
-    treeHeight.value = treeContainer.value.clientHeight
+    treeHeight.value = treeContainer.value.clientHeight;
   }
 
   // Setup intersection observer
   nextTick(() => {
-    setupIntersectionObserver()
-  })
-})
+    setupIntersectionObserver();
+  });
+});
 
 onUnmounted(() => {
   if (intersectionObserver) {
-    intersectionObserver.disconnect()
+    intersectionObserver.disconnect();
   }
-})
+});
 </script>
 
 <style scoped>

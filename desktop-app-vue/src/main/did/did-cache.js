@@ -10,7 +10,7 @@
  * - 持久化支持
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 
 /**

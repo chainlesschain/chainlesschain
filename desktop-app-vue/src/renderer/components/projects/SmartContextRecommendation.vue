@@ -1,8 +1,5 @@
 <template>
-  <div
-    v-if="recommendations.length > 0"
-    class="smart-context-panel"
-  >
+  <div v-if="recommendations.length > 0" class="smart-context-panel">
     <div class="context-header">
       <h4 class="context-title">
         <BulbOutlined />
@@ -14,10 +11,7 @@
     </div>
 
     <div class="recommendations-list">
-      <a-collapse
-        v-model:active-key="activeKeys"
-        ghost
-      >
+      <a-collapse v-model:active-key="activeKeys" ghost>
         <!-- 相关文件推荐 -->
         <a-collapse-panel
           v-if="fileRecommendations.length > 0"
@@ -34,7 +28,10 @@
             <div
               v-for="file in fileRecommendations"
               :key="file.id"
-              :class="['recommendation-item', { selected: selectedFiles.includes(file.id) }]"
+              :class="[
+                'recommendation-item',
+                { selected: selectedFiles.includes(file.id) },
+              ]"
               @click="toggleFileSelection(file)"
             >
               <div class="item-icon">
@@ -64,7 +61,7 @@
                   :type="selectedFiles.includes(file.id) ? 'primary' : 'text'"
                   @click.stop="toggleFileSelection(file)"
                 >
-                  {{ selectedFiles.includes(file.id) ? '已选择' : '选择' }}
+                  {{ selectedFiles.includes(file.id) ? "已选择" : "选择" }}
                 </a-button>
               </div>
             </div>
@@ -105,12 +102,7 @@
                 </div>
               </div>
               <div class="item-actions">
-                <a-button
-                  size="small"
-                  type="text"
-                >
-                  查看
-                </a-button>
+                <a-button size="small" type="text"> 查看 </a-button>
               </div>
             </div>
           </div>
@@ -146,22 +138,13 @@
                   {{ knowledge.preview }}
                 </div>
                 <div class="item-tags">
-                  <a-tag
-                    v-for="tag in knowledge.tags"
-                    :key="tag"
-                    size="small"
-                  >
+                  <a-tag v-for="tag in knowledge.tags" :key="tag" size="small">
                     {{ tag }}
                   </a-tag>
                 </div>
               </div>
               <div class="item-actions">
-                <a-button
-                  size="small"
-                  type="text"
-                >
-                  查看
-                </a-button>
+                <a-button size="small" type="text"> 查看 </a-button>
               </div>
             </div>
           </div>
@@ -170,16 +153,8 @@
     </div>
 
     <!-- 应用选择的上下文 -->
-    <div
-      v-if="selectedFiles.length > 0"
-      class="context-actions"
-    >
-      <a-button
-        type="primary"
-        size="small"
-        block
-        @click="applyContext"
-      >
+    <div v-if="selectedFiles.length > 0" class="context-actions">
+      <a-button type="primary" size="small" block @click="applyContext">
         <PlusCircleOutlined />
         添加 {{ selectedFiles.length }} 个文件到上下文
       </a-button>
@@ -188,81 +163,85 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch } from "vue";
 import {
   BulbOutlined,
   QuestionCircleOutlined,
   FileTextOutlined,
   MessageOutlined,
   BookOutlined,
-  PlusCircleOutlined
-} from '@ant-design/icons-vue';
+  PlusCircleOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   projectId: {
     type: String,
-    required: true
+    required: true,
   },
   currentMessage: {
     type: String,
-    default: ''
+    default: "",
   },
   conversationHistory: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
   projectFiles: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 });
 
-const emit = defineEmits(['apply-context', 'view-conversation', 'view-knowledge']);
+const emit = defineEmits([
+  "apply-context",
+  "view-conversation",
+  "view-knowledge",
+]);
 
 // 状态
-const activeKeys = ref(['files']); // 默认展开文件推荐
+const activeKeys = ref(["files"]); // 默认展开文件推荐
 const selectedFiles = ref([]);
 const recommendations = ref([]);
 
 // 分类推荐
 const fileRecommendations = computed(() =>
-  recommendations.value.filter(r => r.type === 'file')
+  recommendations.value.filter((r) => r.type === "file"),
 );
 
 const conversationRecommendations = computed(() =>
-  recommendations.value.filter(r => r.type === 'conversation')
+  recommendations.value.filter((r) => r.type === "conversation"),
 );
 
 const knowledgeRecommendations = computed(() =>
-  recommendations.value.filter(r => r.type === 'knowledge')
+  recommendations.value.filter((r) => r.type === "knowledge"),
 );
 
 // 生成智能推荐
 const generateRecommendations = () => {
-  logger.info('[SmartContext] 🧠 生成智能推荐...');
+  logger.info("[SmartContext] 🧠 生成智能推荐...");
 
   const newRecommendations = [];
 
   // 1. 分析当前消息的关键词
   const keywords = extractKeywords(props.currentMessage);
-  logger.info('[SmartContext] 关键词:', keywords);
+  logger.info("[SmartContext] 关键词:", keywords);
 
   // 2. 根据关键词推荐相关文件
   if (props.projectFiles.length > 0) {
     const relevantFiles = props.projectFiles
-      .map(file => {
+      .map((file) => {
         const score = calculateFileRelevance(file, keywords);
         if (score > 30) {
           // 只推荐相关度 > 30% 的文件
           return {
-            type: 'file',
+            type: "file",
             id: file.file_name || file.name,
             name: file.file_name || file.name,
             path: file.file_path || file.path,
             relevanceScore: score,
-            reason: generateFileReason(file, keywords, score)
+            reason: generateFileReason(file, keywords, score),
           };
         }
         return null;
@@ -277,18 +256,21 @@ const generateRecommendations = () => {
   // 3. 推荐相关历史对话
   if (props.conversationHistory.length > 3) {
     const relevantConversations = props.conversationHistory
-      .filter(msg => msg.role === 'user' || msg.role === 'assistant')
-      .map(msg => {
-        const score = calculateTextSimilarity(props.currentMessage, msg.content);
+      .filter((msg) => msg.role === "user" || msg.role === "assistant")
+      .map((msg) => {
+        const score = calculateTextSimilarity(
+          props.currentMessage,
+          msg.content,
+        );
         if (score > 40) {
           return {
-            type: 'conversation',
+            type: "conversation",
             id: msg.id,
             summary: truncateText(msg.content, 50),
             content: msg.content,
             timestamp: msg.timestamp,
-            reason: '讨论了类似的话题',
-            relevanceScore: score
+            reason: "讨论了类似的话题",
+            relevanceScore: score,
           };
         }
         return null;
@@ -304,31 +286,33 @@ const generateRecommendations = () => {
   if (keywords.length > 0) {
     const knowledgeItems = [
       {
-        type: 'knowledge',
-        id: 'k1',
-        title: '相关技术文档',
-        preview: '包含相关技术实现的详细说明...',
+        type: "knowledge",
+        id: "k1",
+        title: "相关技术文档",
+        preview: "包含相关技术实现的详细说明...",
         tags: keywords.slice(0, 3),
-        relevanceScore: 75
-      }
+        relevanceScore: 75,
+      },
     ];
     // newRecommendations.push(...knowledgeItems); // 暂时注释掉，等知识库功能完善
   }
 
   recommendations.value = newRecommendations;
-  logger.info('[SmartContext] ✅ 生成了', newRecommendations.length, '条推荐');
+  logger.info("[SmartContext] ✅ 生成了", newRecommendations.length, "条推荐");
 };
 
 // 提取关键词（简单实现）
 const extractKeywords = (text) => {
-  if (!text) {return [];}
+  if (!text) {
+    return [];
+  }
 
   // 移除标点符号，分词
   const words = text
     .toLowerCase()
-    .replace(/[^\w\s\u4e00-\u9fa5]/g, ' ')
+    .replace(/[^\w\s\u4e00-\u9fa5]/g, " ")
     .split(/\s+/)
-    .filter(word => word.length > 2); // 过滤掉长度小于3的词
+    .filter((word) => word.length > 2); // 过滤掉长度小于3的词
 
   // 去重
   return [...new Set(words)];
@@ -336,16 +320,18 @@ const extractKeywords = (text) => {
 
 // 计算文件相关度
 const calculateFileRelevance = (file, keywords) => {
-  if (keywords.length === 0) {return 0;}
+  if (keywords.length === 0) {
+    return 0;
+  }
 
-  const fileName = (file.file_name || file.name || '').toLowerCase();
-  const filePath = (file.file_path || file.path || '').toLowerCase();
-  const fileContent = (file.content || '').toLowerCase();
+  const fileName = (file.file_name || file.name || "").toLowerCase();
+  const filePath = (file.file_path || file.path || "").toLowerCase();
+  const fileContent = (file.content || "").toLowerCase();
 
   let score = 0;
   let matchCount = 0;
 
-  keywords.forEach(keyword => {
+  keywords.forEach((keyword) => {
     // 文件名匹配（权重最高）
     if (fileName.includes(keyword)) {
       score += 30;
@@ -366,22 +352,25 @@ const calculateFileRelevance = (file, keywords) => {
   });
 
   // 标准化分数到 0-100
-  return Math.min(100, Math.round((score / keywords.length) * (matchCount / keywords.length)));
+  return Math.min(
+    100,
+    Math.round((score / keywords.length) * (matchCount / keywords.length)),
+  );
 };
 
 // 生成文件推荐原因
 const generateFileReason = (file, keywords, score) => {
-  const matchedKeywords = keywords.filter(kw => {
-    const fileName = (file.file_name || file.name || '').toLowerCase();
-    const fileContent = (file.content || '').toLowerCase();
+  const matchedKeywords = keywords.filter((kw) => {
+    const fileName = (file.file_name || file.name || "").toLowerCase();
+    const fileContent = (file.content || "").toLowerCase();
     return fileName.includes(kw) || fileContent.includes(kw);
   });
 
   if (matchedKeywords.length > 0) {
-    return `包含关键词: ${matchedKeywords.slice(0, 3).join(', ')}`;
+    return `包含关键词: ${matchedKeywords.slice(0, 3).join(", ")}`;
   }
 
-  return '可能与当前讨论相关';
+  return "可能与当前讨论相关";
 };
 
 // 计算文本相似度（简单实现）
@@ -389,10 +378,12 @@ const calculateTextSimilarity = (text1, text2) => {
   const words1 = new Set(extractKeywords(text1));
   const words2 = new Set(extractKeywords(text2));
 
-  if (words1.size === 0 || words2.size === 0) {return 0;}
+  if (words1.size === 0 || words2.size === 0) {
+    return 0;
+  }
 
   // 计算交集
-  const intersection = new Set([...words1].filter(x => words2.has(x)));
+  const intersection = new Set([...words1].filter((x) => words2.has(x)));
 
   // Jaccard 相似度
   const union = new Set([...words1, ...words2]);
@@ -403,16 +394,24 @@ const calculateTextSimilarity = (text1, text2) => {
 
 // 截断文本
 const truncateText = (text, maxLength) => {
-  if (text.length <= maxLength) {return text;}
-  return text.substring(0, maxLength) + '...';
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return text.substring(0, maxLength) + "...";
 };
 
 // 获取分数颜色
 const getScoreColor = (score) => {
-  if (score >= 80) {return '#52c41a';} // 绿色
-  if (score >= 60) {return '#1890ff';} // 蓝色
-  if (score >= 40) {return '#faad14';} // 橙色
-  return '#d9d9d9'; // 灰色
+  if (score >= 80) {
+    return "#52c41a";
+  } // 绿色
+  if (score >= 60) {
+    return "#1890ff";
+  } // 蓝色
+  if (score >= 40) {
+    return "#faad14";
+  } // 橙色
+  return "#d9d9d9"; // 灰色
 };
 
 // 格式化时间
@@ -421,12 +420,20 @@ const formatTime = (timestamp) => {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60 * 1000) {return '刚刚';}
-  if (diff < 60 * 60 * 1000) {return `${Math.floor(diff / (60 * 1000))}分钟前`;}
-  if (diff < 24 * 60 * 60 * 1000) {return `${Math.floor(diff / (60 * 60 * 1000))}小时前`;}
-  if (diff < 7 * 24 * 60 * 60 * 1000) {return `${Math.floor(diff / (24 * 60 * 60 * 1000))}天前`;}
+  if (diff < 60 * 1000) {
+    return "刚刚";
+  }
+  if (diff < 60 * 60 * 1000) {
+    return `${Math.floor(diff / (60 * 1000))}分钟前`;
+  }
+  if (diff < 24 * 60 * 60 * 1000) {
+    return `${Math.floor(diff / (60 * 60 * 1000))}小时前`;
+  }
+  if (diff < 7 * 24 * 60 * 60 * 1000) {
+    return `${Math.floor(diff / (24 * 60 * 60 * 1000))}天前`;
+  }
 
-  return date.toLocaleDateString('zh-CN');
+  return date.toLocaleDateString("zh-CN");
 };
 
 // 切换文件选择
@@ -441,41 +448,49 @@ const toggleFileSelection = (file) => {
 
 // 应用上下文
 const applyContext = () => {
-  const selected = recommendations.value.filter(r =>
-    r.type === 'file' && selectedFiles.value.includes(r.id)
+  const selected = recommendations.value.filter(
+    (r) => r.type === "file" && selectedFiles.value.includes(r.id),
   );
-  emit('apply-context', selected);
+  emit("apply-context", selected);
   selectedFiles.value = [];
 };
 
 // 查看对话
 const handleConversationClick = (conv) => {
-  emit('view-conversation', conv);
+  emit("view-conversation", conv);
 };
 
 // 查看知识
 const handleKnowledgeClick = (knowledge) => {
-  emit('view-knowledge', knowledge);
+  emit("view-knowledge", knowledge);
 };
 
 // 监听当前消息变化
-watch(() => props.currentMessage, (newMessage) => {
-  if (newMessage && newMessage.trim().length > 5) {
-    // 防抖：延迟生成推荐
-    setTimeout(() => {
-      generateRecommendations();
-    }, 500);
-  } else {
-    recommendations.value = [];
-  }
-}, { immediate: false });
+watch(
+  () => props.currentMessage,
+  (newMessage) => {
+    if (newMessage && newMessage.trim().length > 5) {
+      // 防抖：延迟生成推荐
+      setTimeout(() => {
+        generateRecommendations();
+      }, 500);
+    } else {
+      recommendations.value = [];
+    }
+  },
+  { immediate: false },
+);
 
 // 监听项目文件变化
-watch(() => props.projectFiles, () => {
-  if (props.currentMessage) {
-    generateRecommendations();
-  }
-}, { deep: true });
+watch(
+  () => props.projectFiles,
+  () => {
+    if (props.currentMessage) {
+      generateRecommendations();
+    }
+  },
+  { deep: true },
+);
 </script>
 
 <style scoped>

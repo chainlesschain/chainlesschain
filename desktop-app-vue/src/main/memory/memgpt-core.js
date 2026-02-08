@@ -11,10 +11,14 @@
  * @version 1.0.0
  */
 
-const EventEmitter = require('events');
-const { logger } = require('../utils/logger.js');
-const { MemoryHierarchy, MemoryType, MemoryImportance } = require('./memory-hierarchy.js');
-const { MemorySearchEngine, SearchMode } = require('./memory-search.js');
+const EventEmitter = require("events");
+const { logger } = require("../utils/logger.js");
+const {
+  MemoryHierarchy,
+  MemoryType,
+  MemoryImportance,
+} = require("./memory-hierarchy.js");
+const { MemorySearchEngine, SearchMode } = require("./memory-search.js");
 
 /**
  * MemGPT Memory Tools - Functions exposed to LLM
@@ -22,41 +26,44 @@ const { MemorySearchEngine, SearchMode } = require('./memory-search.js');
 const MEMGPT_TOOLS = {
   // Core memory operations
   core_memory_append: {
-    name: 'core_memory_append',
-    description: 'Append to core memory (persona or human section). Use this to add new information about yourself or the human.',
+    name: "core_memory_append",
+    description:
+      "Append to core memory (persona or human section). Use this to add new information about yourself or the human.",
     parameters: {
       section: {
-        type: 'string',
-        description: 'Memory section: "persona" (about AI) or "human" (about user)',
-        enum: ['persona', 'human'],
+        type: "string",
+        description:
+          'Memory section: "persona" (about AI) or "human" (about user)',
+        enum: ["persona", "human"],
         required: true,
       },
       content: {
-        type: 'string',
-        description: 'Content to append',
+        type: "string",
+        description: "Content to append",
         required: true,
       },
     },
   },
 
   core_memory_replace: {
-    name: 'core_memory_replace',
-    description: 'Replace content in core memory. Use this to update existing information.',
+    name: "core_memory_replace",
+    description:
+      "Replace content in core memory. Use this to update existing information.",
     parameters: {
       section: {
-        type: 'string',
+        type: "string",
         description: 'Memory section: "persona" or "human"',
-        enum: ['persona', 'human'],
+        enum: ["persona", "human"],
         required: true,
       },
       old_content: {
-        type: 'string',
-        description: 'Content to replace',
+        type: "string",
+        description: "Content to replace",
         required: true,
       },
       new_content: {
-        type: 'string',
-        description: 'New content',
+        type: "string",
+        description: "New content",
         required: true,
       },
     },
@@ -64,17 +71,18 @@ const MEMGPT_TOOLS = {
 
   // Recall memory operations
   recall_memory_search: {
-    name: 'recall_memory_search',
-    description: 'Search recent conversation memory. Use this to find something said recently.',
+    name: "recall_memory_search",
+    description:
+      "Search recent conversation memory. Use this to find something said recently.",
     parameters: {
       query: {
-        type: 'string',
-        description: 'Search query',
+        type: "string",
+        description: "Search query",
         required: true,
       },
       limit: {
-        type: 'number',
-        description: 'Maximum results (default: 5)',
+        type: "number",
+        description: "Maximum results (default: 5)",
         default: 5,
       },
     },
@@ -82,40 +90,42 @@ const MEMGPT_TOOLS = {
 
   // Archival memory operations
   archival_memory_insert: {
-    name: 'archival_memory_insert',
-    description: 'Insert into archival memory. Use this to save important information for long-term.',
+    name: "archival_memory_insert",
+    description:
+      "Insert into archival memory. Use this to save important information for long-term.",
     parameters: {
       content: {
-        type: 'string',
-        description: 'Content to archive',
+        type: "string",
+        description: "Content to archive",
         required: true,
       },
       importance: {
-        type: 'number',
-        description: 'Importance score 0-1 (default: 0.5)',
+        type: "number",
+        description: "Importance score 0-1 (default: 0.5)",
         default: 0.5,
       },
       type: {
-        type: 'string',
-        description: 'Memory type: fact, conversation, task, pattern',
-        enum: ['fact', 'conversation', 'task', 'pattern'],
-        default: 'fact',
+        type: "string",
+        description: "Memory type: fact, conversation, task, pattern",
+        enum: ["fact", "conversation", "task", "pattern"],
+        default: "fact",
       },
     },
   },
 
   archival_memory_search: {
-    name: 'archival_memory_search',
-    description: 'Search archival memory. Use this to find information from long-term storage.',
+    name: "archival_memory_search",
+    description:
+      "Search archival memory. Use this to find information from long-term storage.",
     parameters: {
       query: {
-        type: 'string',
-        description: 'Search query',
+        type: "string",
+        description: "Search query",
         required: true,
       },
       limit: {
-        type: 'number',
-        description: 'Maximum results (default: 10)',
+        type: "number",
+        description: "Maximum results (default: 10)",
         default: 10,
       },
     },
@@ -123,22 +133,22 @@ const MEMGPT_TOOLS = {
 
   // Memory management
   conversation_search: {
-    name: 'conversation_search',
-    description: 'Search through past conversations by date range or keywords.',
+    name: "conversation_search",
+    description: "Search through past conversations by date range or keywords.",
     parameters: {
       query: {
-        type: 'string',
-        description: 'Search query',
+        type: "string",
+        description: "Search query",
         required: true,
       },
       start_date: {
-        type: 'string',
-        description: 'Start date (ISO format)',
+        type: "string",
+        description: "Start date (ISO format)",
         required: false,
       },
       end_date: {
-        type: 'string',
-        description: 'End date (ISO format)',
+        type: "string",
+        description: "End date (ISO format)",
         required: false,
       },
     },
@@ -178,8 +188,8 @@ class MemGPTCore extends EventEmitter {
 
     // Core memory sections
     this.coreMemory = {
-      persona: '', // AI's self-description
-      human: '',   // Information about the user
+      persona: "", // AI's self-description
+      human: "", // Information about the user
     };
 
     // Dependencies
@@ -197,7 +207,7 @@ class MemGPTCore extends EventEmitter {
       summarizations: 0,
     };
 
-    logger.info('[MemGPTCore] Initialized with config:', {
+    logger.info("[MemGPTCore] Initialized with config:", {
       workingMemoryTokens: this.config.workingMemoryTokens,
       archivalSearchTopK: this.config.archivalSearchTopK,
     });
@@ -220,7 +230,7 @@ class MemGPTCore extends EventEmitter {
       this.setRagManager(ragManager);
     }
 
-    this.userId = userId || 'default';
+    this.userId = userId || "default";
 
     // Ensure database table exists
     await this._ensureTable();
@@ -229,7 +239,7 @@ class MemGPTCore extends EventEmitter {
     await this._loadCoreMemory();
 
     this.initialized = true;
-    logger.info('[MemGPTCore] Initialization complete');
+    logger.info("[MemGPTCore] Initialization complete");
   }
 
   /**
@@ -280,22 +290,22 @@ class MemGPTCore extends EventEmitter {
     this.stats.memoryOperations++;
 
     switch (toolName) {
-      case 'core_memory_append':
+      case "core_memory_append":
         return await this._coreMemoryAppend(params);
 
-      case 'core_memory_replace':
+      case "core_memory_replace":
         return await this._coreMemoryReplace(params);
 
-      case 'recall_memory_search':
+      case "recall_memory_search":
         return await this._recallMemorySearch(params);
 
-      case 'archival_memory_insert':
+      case "archival_memory_insert":
         return await this._archivalMemoryInsert(params);
 
-      case 'archival_memory_search':
+      case "archival_memory_search":
         return await this._archivalMemorySearch(params);
 
-      case 'conversation_search':
+      case "conversation_search":
         return await this._conversationSearch(params);
 
       default:
@@ -318,11 +328,14 @@ class MemGPTCore extends EventEmitter {
     });
 
     // Add to recall memory
-    const recallId = await this.memoryHierarchy.addMemory({
-      type: MemoryType.CONVERSATION,
-      content: { role, content },
-      importance: MemoryImportance.MEDIUM,
-    }, 'recall');
+    const recallId = await this.memoryHierarchy.addMemory(
+      {
+        type: MemoryType.CONVERSATION,
+        content: { role, content },
+        importance: MemoryImportance.MEDIUM,
+      },
+      "recall",
+    );
 
     // Check if we need to summarize
     if (this.config.enableAutoSummarize) {
@@ -332,7 +345,7 @@ class MemGPTCore extends EventEmitter {
     // Auto-manage memory hierarchy
     await this.memoryHierarchy.autoManage();
 
-    this.emit('message-processed', { role, recallId });
+    this.emit("message-processed", { role, recallId });
   }
 
   /**
@@ -340,7 +353,7 @@ class MemGPTCore extends EventEmitter {
    * @returns {string} Memory context
    */
   getMemoryContext() {
-    let context = '';
+    let context = "";
 
     // Core memory
     if (this.coreMemory.persona) {
@@ -353,7 +366,7 @@ class MemGPTCore extends EventEmitter {
     // Working memory
     const workingContext = this.memoryHierarchy.working.getContext();
     if (workingContext) {
-      context += workingContext + '\n';
+      context += workingContext + "\n";
     }
 
     return context;
@@ -403,7 +416,7 @@ class MemGPTCore extends EventEmitter {
       importance,
     });
 
-    this.emit('fact-learned', { fact, importance });
+    this.emit("fact-learned", { fact, importance });
   }
 
   /**
@@ -430,9 +443,9 @@ class MemGPTCore extends EventEmitter {
    * Clear session memory (keep archival)
    */
   clearSession() {
-    this.memoryHierarchy.clear(['working', 'recall']);
+    this.memoryHierarchy.clear(["working", "recall"]);
     this.conversationBuffer = [];
-    logger.info('[MemGPTCore] Session memory cleared');
+    logger.info("[MemGPTCore] Session memory cleared");
   }
 
   /**
@@ -451,7 +464,9 @@ class MemGPTCore extends EventEmitter {
    * @private
    */
   async _ensureTable() {
-    if (!this.db) return;
+    if (!this.db) {
+      return;
+    }
 
     try {
       await this.db.run(`
@@ -491,9 +506,9 @@ class MemGPTCore extends EventEmitter {
         )
       `);
 
-      logger.info('[MemGPTCore] Database tables ensured');
+      logger.info("[MemGPTCore] Database tables ensured");
     } catch (error) {
-      logger.error('[MemGPTCore] Failed to ensure tables:', error);
+      logger.error("[MemGPTCore] Failed to ensure tables:", error);
     }
   }
 
@@ -502,20 +517,25 @@ class MemGPTCore extends EventEmitter {
    * @private
    */
   async _loadCoreMemory() {
-    if (!this.db) return;
+    if (!this.db) {
+      return;
+    }
 
     try {
-      const row = await this.db.get(`
+      const row = await this.db.get(
+        `
         SELECT persona, human FROM core_memory WHERE user_id = ?
-      `, [this.userId]);
+      `,
+        [this.userId],
+      );
 
       if (row) {
-        this.coreMemory.persona = row.persona || '';
-        this.coreMemory.human = row.human || '';
-        logger.info('[MemGPTCore] Core memory loaded');
+        this.coreMemory.persona = row.persona || "";
+        this.coreMemory.human = row.human || "";
+        logger.info("[MemGPTCore] Core memory loaded");
       }
     } catch (error) {
-      logger.warn('[MemGPTCore] Failed to load core memory:', error.message);
+      logger.warn("[MemGPTCore] Failed to load core memory:", error.message);
     }
   }
 
@@ -524,20 +544,25 @@ class MemGPTCore extends EventEmitter {
    * @private
    */
   async _saveCoreMemory() {
-    if (!this.db) return;
+    if (!this.db) {
+      return;
+    }
 
     try {
-      await this.db.run(`
+      await this.db.run(
+        `
         INSERT OR REPLACE INTO core_memory (user_id, persona, human, updated_at)
         VALUES (?, ?, ?, ?)
-      `, [
-        this.userId,
-        this.coreMemory.persona,
-        this.coreMemory.human,
-        Date.now(),
-      ]);
+      `,
+        [
+          this.userId,
+          this.coreMemory.persona,
+          this.coreMemory.human,
+          Date.now(),
+        ],
+      );
     } catch (error) {
-      logger.error('[MemGPTCore] Failed to save core memory:', error);
+      logger.error("[MemGPTCore] Failed to save core memory:", error);
     }
   }
 
@@ -548,14 +573,14 @@ class MemGPTCore extends EventEmitter {
   async _coreMemoryAppend(params) {
     const { section, content } = params;
 
-    if (!['persona', 'human'].includes(section)) {
+    if (!["persona", "human"].includes(section)) {
       throw new Error('Invalid section. Use "persona" or "human".');
     }
 
     this.coreMemory[section] += `\n${content}`;
     await this._saveCoreMemory();
 
-    this.emit('core-memory-updated', { section, action: 'append' });
+    this.emit("core-memory-updated", { section, action: "append" });
 
     return {
       success: true,
@@ -571,7 +596,7 @@ class MemGPTCore extends EventEmitter {
   async _coreMemoryReplace(params) {
     const { section, old_content, new_content } = params;
 
-    if (!['persona', 'human'].includes(section)) {
+    if (!["persona", "human"].includes(section)) {
       throw new Error('Invalid section. Use "persona" or "human".');
     }
 
@@ -582,10 +607,13 @@ class MemGPTCore extends EventEmitter {
       };
     }
 
-    this.coreMemory[section] = this.coreMemory[section].replace(old_content, new_content);
+    this.coreMemory[section] = this.coreMemory[section].replace(
+      old_content,
+      new_content,
+    );
     await this._saveCoreMemory();
 
-    this.emit('core-memory-updated', { section, action: 'replace' });
+    this.emit("core-memory-updated", { section, action: "replace" });
 
     return {
       success: true,
@@ -606,7 +634,7 @@ class MemGPTCore extends EventEmitter {
     return {
       success: true,
       count: results.length,
-      memories: results.map(m => ({
+      memories: results.map((m) => ({
         content: m.content,
         timestamp: m.storedAt,
         type: m.type,
@@ -619,7 +647,7 @@ class MemGPTCore extends EventEmitter {
    * @private
    */
   async _archivalMemoryInsert(params) {
-    const { content, importance = 0.5, type = 'fact' } = params;
+    const { content, importance = 0.5, type = "fact" } = params;
 
     this.stats.archivalInserts++;
 
@@ -628,14 +656,14 @@ class MemGPTCore extends EventEmitter {
       type,
       content,
       importance,
-      metadata: { source: 'memgpt' },
+      metadata: { source: "memgpt" },
     });
 
-    this.emit('memory-archived', { id, type });
+    this.emit("memory-archived", { id, type });
 
     return {
       success: true,
-      message: 'Memory archived successfully',
+      message: "Memory archived successfully",
       memoryId: id,
     };
   }
@@ -649,12 +677,14 @@ class MemGPTCore extends EventEmitter {
 
     this.stats.searches++;
 
-    const results = await this.memoryHierarchy.archival.search(query, { limit });
+    const results = await this.memoryHierarchy.archival.search(query, {
+      limit,
+    });
 
     return {
       success: true,
       count: results.length,
-      memories: results.map(m => ({
+      memories: results.map((m) => ({
         id: m.id,
         content: m.content,
         type: m.type,
@@ -682,7 +712,7 @@ class MemGPTCore extends EventEmitter {
     const results = await this.searchEngine.search(query, {
       mode: SearchMode.TEMPORAL,
       timeRange: Object.keys(timeRange).length > 0 ? timeRange : null,
-      types: ['conversation'],
+      types: ["conversation"],
       limit: 20,
     });
 
@@ -711,26 +741,31 @@ class MemGPTCore extends EventEmitter {
    */
   async _summarizeWorkingMemory() {
     if (!this.llmManager) {
-      logger.warn('[MemGPTCore] No LLM manager for summarization');
+      logger.warn("[MemGPTCore] No LLM manager for summarization");
       return;
     }
 
     const memories = this.memoryHierarchy.working.getAll();
-    if (memories.length < 3) return;
+    if (memories.length < 3) {
+      return;
+    }
 
     try {
       // Build content to summarize
-      const content = memories.map(m => `[${m.type}] ${JSON.stringify(m.content)}`).join('\n');
+      const content = memories
+        .map((m) => `[${m.type}] ${JSON.stringify(m.content)}`)
+        .join("\n");
 
       // Request summarization from LLM
       const response = await this.llmManager.chat({
         messages: [
           {
-            role: 'system',
-            content: 'Summarize the following conversation memories into key points. Be concise.',
+            role: "system",
+            content:
+              "Summarize the following conversation memories into key points. Be concise.",
           },
           {
-            role: 'user',
+            role: "user",
             content,
           },
         ],
@@ -757,10 +792,10 @@ class MemGPTCore extends EventEmitter {
         });
 
         this.stats.summarizations++;
-        logger.info('[MemGPTCore] Working memory summarized');
+        logger.info("[MemGPTCore] Working memory summarized");
       }
     } catch (error) {
-      logger.error('[MemGPTCore] Summarization failed:', error);
+      logger.error("[MemGPTCore] Summarization failed:", error);
     }
   }
 }

@@ -3,7 +3,7 @@
  * 管理多窗口、窗口状态保存和恢复
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { BrowserWindow, screen } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -124,7 +124,9 @@ class WindowManager {
    * 保存窗口状态
    */
   saveWindowState(window, windowId) {
-    if (!window || window.isDestroyed()) {return;}
+    if (!window || window.isDestroyed()) {
+      return;
+    }
 
     const bounds = window.getBounds();
     const state = {

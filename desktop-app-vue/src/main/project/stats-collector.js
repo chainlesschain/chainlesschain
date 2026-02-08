@@ -2,7 +2,7 @@
  * 项目统计收集器
  * 功能：实时收集项目统计数据
  */
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const chokidar = require("chokidar");
 const fs = require("fs-extra");
 const path = require("path");
@@ -294,8 +294,12 @@ class ProjectStatsCollector {
             ext === ".c" ||
             ext === ".cpp"
           ) {
-            if (trimmed.includes("/*")) {inBlockComment = true;}
-            if (trimmed.includes("*/")) {inBlockComment = false;}
+            if (trimmed.includes("/*")) {
+              inBlockComment = true;
+            }
+            if (trimmed.includes("*/")) {
+              inBlockComment = false;
+            }
           }
         } else {
           stats.code++;
@@ -313,7 +317,9 @@ class ProjectStatsCollector {
    * 判断是否为注释行
    */
   isCommentLine(trimmed, ext, inBlockComment) {
-    if (inBlockComment) {return true;}
+    if (inBlockComment) {
+      return true;
+    }
 
     // JavaScript/TypeScript/Vue/Java/C/C++
     if (

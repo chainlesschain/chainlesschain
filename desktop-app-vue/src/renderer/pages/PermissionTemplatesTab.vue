@@ -3,10 +3,7 @@
     <a-spin :spinning="loading">
       <div class="tab-header">
         <a-space>
-          <a-button
-            type="primary"
-            @click="showCreateTemplateModal"
-          >
+          <a-button type="primary" @click="showCreateTemplateModal">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -77,13 +74,7 @@
                 title="确定要删除此模板吗?"
                 @confirm="handleDeleteTemplate(record.templateId)"
               >
-                <a-button
-                  type="link"
-                  danger
-                  size="small"
-                >
-                  删除
-                </a-button>
+                <a-button type="link" danger size="small"> 删除 </a-button>
               </a-popconfirm>
             </a-space>
           </template>
@@ -103,30 +94,18 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="模板名称"
-          required
-        >
+        <a-form-item label="模板名称" required>
           <a-input
             v-model:value="templateForm.templateName"
             placeholder="输入模板名称"
           />
         </a-form-item>
 
-        <a-form-item
-          label="模板类型"
-          required
-        >
+        <a-form-item label="模板类型" required>
           <a-select v-model:value="templateForm.templateType">
-            <a-select-option value="role">
-              角色模板
-            </a-select-option>
-            <a-select-option value="resource">
-              资源模板
-            </a-select-option>
-            <a-select-option value="custom">
-              自定义模板
-            </a-select-option>
+            <a-select-option value="role"> 角色模板 </a-select-option>
+            <a-select-option value="resource"> 资源模板 </a-select-option>
+            <a-select-option value="custom"> 自定义模板 </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -138,10 +117,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="权限列表"
-          required
-        >
+        <a-form-item label="权限列表" required>
           <a-select
             v-model:value="templateForm.permissions"
             mode="multiple"
@@ -149,33 +125,19 @@
             style="width: 100%"
           >
             <a-select-opt-group label="组织管理">
-              <a-select-option value="org.view">
-                查看组织
-              </a-select-option>
-              <a-select-option value="org.edit">
-                编辑组织
-              </a-select-option>
-              <a-select-option value="org.settings">
-                组织设置
-              </a-select-option>
-              <a-select-option value="org.manage">
-                管理组织
-              </a-select-option>
+              <a-select-option value="org.view"> 查看组织 </a-select-option>
+              <a-select-option value="org.edit"> 编辑组织 </a-select-option>
+              <a-select-option value="org.settings"> 组织设置 </a-select-option>
+              <a-select-option value="org.manage"> 管理组织 </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="成员管理">
-              <a-select-option value="member.view">
-                查看成员
-              </a-select-option>
-              <a-select-option value="member.add">
-                添加成员
-              </a-select-option>
+              <a-select-option value="member.view"> 查看成员 </a-select-option>
+              <a-select-option value="member.add"> 添加成员 </a-select-option>
               <a-select-option value="member.remove">
                 移除成员
               </a-select-option>
-              <a-select-option value="member.edit">
-                编辑成员
-              </a-select-option>
+              <a-select-option value="member.edit"> 编辑成员 </a-select-option>
               <a-select-option value="member.manage">
                 管理成员
               </a-select-option>
@@ -206,15 +168,11 @@
             </a-select-opt-group>
 
             <a-select-opt-group label="项目管理">
-              <a-select-option value="project.view">
-                查看项目
-              </a-select-option>
+              <a-select-option value="project.view"> 查看项目 </a-select-option>
               <a-select-option value="project.create">
                 创建项目
               </a-select-option>
-              <a-select-option value="project.edit">
-                编辑项目
-              </a-select-option>
+              <a-select-option value="project.edit"> 编辑项目 </a-select-option>
               <a-select-option value="project.delete">
                 删除项目
               </a-select-option>
@@ -224,9 +182,7 @@
             </a-select-opt-group>
 
             <a-select-opt-group label="特殊权限">
-              <a-select-option value="*">
-                所有权限
-              </a-select-option>
+              <a-select-option value="*"> 所有权限 </a-select-option>
             </a-select-opt-group>
           </a-select>
         </a-form-item>
@@ -245,27 +201,15 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item
-          label="应用目标"
-          required
-        >
+        <a-form-item label="应用目标" required>
           <a-radio-group v-model:value="applyForm.targetType">
-            <a-radio value="role">
-              角色
-            </a-radio>
-            <a-radio value="user">
-              用户
-            </a-radio>
-            <a-radio value="resource">
-              资源
-            </a-radio>
+            <a-radio value="role"> 角色 </a-radio>
+            <a-radio value="user"> 用户 </a-radio>
+            <a-radio value="resource"> 资源 </a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item
-          label="目标ID"
-          required
-        >
+        <a-form-item label="目标ID" required>
           <a-input
             v-model:value="applyForm.targetId"
             placeholder="输入角色名/用户DID/资源ID"
@@ -277,39 +221,39 @@
 </template>
 
 <script>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { defineComponent, ref, reactive, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
-import { PlusOutlined } from '@ant-design/icons-vue';
+import { defineComponent, ref, reactive, computed, watch } from "vue";
+import { message } from "ant-design-vue";
+import { PlusOutlined } from "@ant-design/icons-vue";
 
 export default defineComponent({
-  name: 'PermissionTemplatesTab',
+  name: "PermissionTemplatesTab",
 
   components: {
-    PlusOutlined
+    PlusOutlined,
   },
 
   props: {
     orgId: {
       type: String,
-      required: true
+      required: true,
     },
     userDid: {
       type: String,
-      required: true
+      required: true,
     },
     templates: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
 
-  emits: ['create', 'apply', 'refresh'],
+  emits: ["create", "apply", "refresh"],
 
   setup(props, { emit }) {
     const loading = ref(false);
-    const searchText = ref('');
+    const searchText = ref("");
 
     const templateModalVisible = ref(false);
     const applyModalVisible = ref(false);
@@ -317,83 +261,86 @@ export default defineComponent({
     const currentTemplate = ref(null);
 
     const templateForm = reactive({
-      templateName: '',
-      templateType: 'role',
-      description: '',
-      permissions: []
+      templateName: "",
+      templateType: "role",
+      description: "",
+      permissions: [],
     });
 
     const applyForm = reactive({
-      targetType: 'role',
-      targetId: ''
+      targetType: "role",
+      targetId: "",
     });
 
     const columns = [
       {
-        title: '模板名称',
-        dataIndex: 'templateName',
-        key: 'templateName',
-        width: 200
-      },
-      {
-        title: '模板类型',
-        key: 'templateType',
-        width: 120
-      },
-      {
-        title: '描述',
-        dataIndex: 'description',
-        key: 'description',
-        ellipsis: true
-      },
-      {
-        title: '权限',
-        key: 'permissions',
-        width: 300
-      },
-      {
-        title: '使用次数',
-        key: 'usageCount',
-        width: 100,
-        align: 'center'
-      },
-      {
-        title: '操作',
-        key: 'actions',
+        title: "模板名称",
+        dataIndex: "templateName",
+        key: "templateName",
         width: 200,
-        fixed: 'right'
-      }
+      },
+      {
+        title: "模板类型",
+        key: "templateType",
+        width: 120,
+      },
+      {
+        title: "描述",
+        dataIndex: "description",
+        key: "description",
+        ellipsis: true,
+      },
+      {
+        title: "权限",
+        key: "permissions",
+        width: 300,
+      },
+      {
+        title: "使用次数",
+        key: "usageCount",
+        width: 100,
+        align: "center",
+      },
+      {
+        title: "操作",
+        key: "actions",
+        width: 200,
+        fixed: "right",
+      },
     ];
 
     const pagination = {
       pageSize: 10,
       showSizeChanger: true,
-      showTotal: (total) => `共 ${total} 条`
+      showTotal: (total) => `共 ${total} 条`,
     };
 
     const filteredTemplates = computed(() => {
-      if (!searchText.value) {return props.templates;}
+      if (!searchText.value) {
+        return props.templates;
+      }
       const search = searchText.value.toLowerCase();
-      return props.templates.filter(t =>
-        t.templateName.toLowerCase().includes(search) ||
-        t.description?.toLowerCase().includes(search)
+      return props.templates.filter(
+        (t) =>
+          t.templateName.toLowerCase().includes(search) ||
+          t.description?.toLowerCase().includes(search),
       );
     });
 
     const getTemplateTypeColor = (type) => {
       const colorMap = {
-        'role': 'blue',
-        'resource': 'green',
-        'custom': 'orange'
+        role: "blue",
+        resource: "green",
+        custom: "orange",
       };
-      return colorMap[type] || 'default';
+      return colorMap[type] || "default";
     };
 
     const getTemplateTypeLabel = (type) => {
       const labelMap = {
-        'role': '角色模板',
-        'resource': '资源模板',
-        'custom': '自定义模板'
+        role: "角色模板",
+        resource: "资源模板",
+        custom: "自定义模板",
       };
       return labelMap[type] || type;
     };
@@ -401,10 +348,10 @@ export default defineComponent({
     const showCreateTemplateModal = () => {
       editingTemplate.value = null;
       Object.assign(templateForm, {
-        templateName: '',
-        templateType: 'role',
-        description: '',
-        permissions: []
+        templateName: "",
+        templateType: "role",
+        description: "",
+        permissions: [],
       });
       templateModalVisible.value = true;
     };
@@ -414,8 +361,8 @@ export default defineComponent({
       Object.assign(templateForm, {
         templateName: template.templateName,
         templateType: template.templateType,
-        description: template.description || '',
-        permissions: template.permissions || []
+        description: template.description || "",
+        permissions: template.permissions || [],
       });
       templateModalVisible.value = true;
     };
@@ -423,11 +370,11 @@ export default defineComponent({
     const handleTemplateSubmit = async () => {
       try {
         loading.value = true;
-        emit('create', { ...templateForm });
+        emit("create", { ...templateForm });
         templateModalVisible.value = false;
       } catch (error) {
-        logger.error('Failed to submit template:', error);
-        message.error('操作失败');
+        logger.error("Failed to submit template:", error);
+        message.error("操作失败");
       } finally {
         loading.value = false;
       }
@@ -436,21 +383,24 @@ export default defineComponent({
     const handleDeleteTemplate = async (templateId) => {
       try {
         loading.value = true;
-        const result = await window.electron.ipcRenderer.invoke('permission:delete-template', {
-          orgId: props.orgId,
-          userDID: props.userDid,
-          templateId
-        });
+        const result = await window.electron.ipcRenderer.invoke(
+          "permission:delete-template",
+          {
+            orgId: props.orgId,
+            userDID: props.userDid,
+            templateId,
+          },
+        );
 
         if (result.success) {
-          message.success('模板删除成功');
-          emit('refresh');
+          message.success("模板删除成功");
+          emit("refresh");
         } else {
-          message.error(result.error || '删除失败');
+          message.error(result.error || "删除失败");
         }
       } catch (error) {
-        logger.error('Failed to delete template:', error);
-        message.error('删除失败');
+        logger.error("Failed to delete template:", error);
+        message.error("删除失败");
       } finally {
         loading.value = false;
       }
@@ -459,8 +409,8 @@ export default defineComponent({
     const handleApplyTemplate = (template) => {
       currentTemplate.value = template;
       Object.assign(applyForm, {
-        targetType: 'role',
-        targetId: ''
+        targetType: "role",
+        targetId: "",
       });
       applyModalVisible.value = true;
     };
@@ -468,11 +418,16 @@ export default defineComponent({
     const handleApplySubmit = async () => {
       try {
         loading.value = true;
-        emit('apply', currentTemplate.value.templateId, applyForm.targetType, applyForm.targetId);
+        emit(
+          "apply",
+          currentTemplate.value.templateId,
+          applyForm.targetType,
+          applyForm.targetId,
+        );
         applyModalVisible.value = false;
       } catch (error) {
-        logger.error('Failed to apply template:', error);
-        message.error('应用失败');
+        logger.error("Failed to apply template:", error);
+        message.error("应用失败");
       } finally {
         loading.value = false;
       }
@@ -502,9 +457,9 @@ export default defineComponent({
       handleDeleteTemplate,
       handleApplyTemplate,
       handleApplySubmit,
-      handleSearch
+      handleSearch,
     };
-  }
+  },
 });
 </script>
 

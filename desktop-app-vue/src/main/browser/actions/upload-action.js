@@ -6,17 +6,17 @@
  * @since v0.30.0
  */
 
-const { logger } = require('../../utils/logger');
-const path = require('path');
-const fs = require('fs').promises;
+const { logger } = require("../../utils/logger");
+const path = require("path");
+const fs = require("fs").promises;
 
 /**
  * Upload method types
  */
 const UploadMethod = {
-  INPUT: 'input',         // Standard file input
-  DROP: 'drop',           // Drag and drop
-  CHOOSER: 'chooser'      // File chooser dialog
+  INPUT: "input", // Standard file input
+  DROP: "drop", // Drag and drop
+  CHOOSER: "chooser", // File chooser dialog
 };
 
 /**
@@ -40,7 +40,7 @@ class UploadAction {
       method = UploadMethod.INPUT,
       inputRef,
       dropZoneRef,
-      validateFiles = true
+      validateFiles = true,
     } = options;
 
     // Validate files exist
@@ -62,9 +62,8 @@ class UploadAction {
         default:
           throw new Error(`Unknown upload method: ${method}`);
       }
-
     } catch (error) {
-      logger.error('[UploadAction] Upload failed', { error: error.message });
+      logger.error("[UploadAction] Upload failed", { error: error.message });
       throw error;
     }
   }
@@ -74,7 +73,7 @@ class UploadAction {
    */
   async _validateFiles(files) {
     if (!files || files.length === 0) {
-      throw new Error('No files specified for upload');
+      throw new Error("No files specified for upload");
     }
 
     const normalizedFiles = Array.isArray(files) ? files : [files];
@@ -100,7 +99,7 @@ class UploadAction {
     let locator;
 
     if (inputRef) {
-      const { ElementLocator } = require('../element-locator');
+      const { ElementLocator } = require("../element-locator");
       const element = this.browserEngine.findElement(targetId, inputRef);
 
       if (!element) {
@@ -119,8 +118,8 @@ class UploadAction {
     return {
       success: true,
       method: UploadMethod.INPUT,
-      files: normalizedFiles.map(f => path.basename(f)),
-      count: normalizedFiles.length
+      files: normalizedFiles.map((f) => path.basename(f)),
+      count: normalizedFiles.length,
     };
   }
 
@@ -134,7 +133,7 @@ class UploadAction {
     let dropZone;
 
     if (dropZoneRef) {
-      const { ElementLocator } = require('../element-locator');
+      const { ElementLocator } = require("../element-locator");
       const element = this.browserEngine.findElement(targetId, dropZoneRef);
 
       if (!element) {
@@ -144,7 +143,9 @@ class UploadAction {
       dropZone = await ElementLocator.locate(page, element);
     } else {
       // Try to find common drop zone patterns
-      dropZone = page.locator('[data-dropzone], .dropzone, .upload-area, .drop-area').first();
+      dropZone = page
+        .locator("[data-dropzone], .dropzone, .upload-area, .drop-area")
+        .first();
     }
 
     // Read file data
@@ -155,36 +156,39 @@ class UploadAction {
         const type = this._getMimeType(name);
 
         return { name, type, buffer };
-      })
+      }),
     );
 
     // Create DataTransfer and drop
-    await dropZone.evaluate(async (el, filesData) => {
-      const dt = new DataTransfer();
+    await dropZone.evaluate(
+      async (el, filesData) => {
+        const dt = new DataTransfer();
 
-      for (const { name, type, buffer } of filesData) {
-        const file = new File([new Uint8Array(buffer)], name, { type });
-        dt.items.add(file);
-      }
+        for (const { name, type, buffer } of filesData) {
+          const file = new File([new Uint8Array(buffer)], name, { type });
+          dt.items.add(file);
+        }
 
-      const dropEvent = new DragEvent('drop', {
-        bubbles: true,
-        cancelable: true,
-        dataTransfer: dt
-      });
+        const dropEvent = new DragEvent("drop", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dt,
+        });
 
-      el.dispatchEvent(dropEvent);
-    }, fileData.map(f => ({
-      name: f.name,
-      type: f.type,
-      buffer: Array.from(f.buffer)
-    })));
+        el.dispatchEvent(dropEvent);
+      },
+      fileData.map((f) => ({
+        name: f.name,
+        type: f.type,
+        buffer: Array.from(f.buffer),
+      })),
+    );
 
     return {
       success: true,
       method: UploadMethod.DROP,
-      files: normalizedFiles.map(f => path.basename(f)),
-      count: normalizedFiles.length
+      files: normalizedFiles.map((f) => path.basename(f)),
+      count: normalizedFiles.length,
     };
   }
 
@@ -195,12 +199,17 @@ class UploadAction {
     const normalizedFiles = Array.isArray(files) ? files : [files];
 
     // Set up file chooser listener
-    const fileChooserPromise = page.waitForEvent('filechooser', { timeout: 30000 });
+    const fileChooserPromise = page.waitForEvent("filechooser", {
+      timeout: 30000,
+    });
 
     // Trigger file chooser (e.g., click upload button)
     if (triggerRef) {
-      const { ElementLocator } = require('../element-locator');
-      const element = this.browserEngine.findElement(page._targetId, triggerRef);
+      const { ElementLocator } = require("../element-locator");
+      const element = this.browserEngine.findElement(
+        page._targetId,
+        triggerRef,
+      );
 
       if (element) {
         const locator = await ElementLocator.locate(page, element);
@@ -215,8 +224,8 @@ class UploadAction {
     return {
       success: true,
       method: UploadMethod.CHOOSER,
-      files: normalizedFiles.map(f => path.basename(f)),
-      count: normalizedFiles.length
+      files: normalizedFiles.map((f) => path.basename(f)),
+      count: normalizedFiles.length,
     };
   }
 
@@ -226,31 +235,34 @@ class UploadAction {
   _getMimeType(filename) {
     const ext = path.extname(filename).toLowerCase();
     const mimeTypes = {
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.gif': 'image/gif',
-      '.webp': 'image/webp',
-      '.svg': 'image/svg+xml',
-      '.pdf': 'application/pdf',
-      '.doc': 'application/msword',
-      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      '.xls': 'application/vnd.ms-excel',
-      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      '.ppt': 'application/vnd.ms-powerpoint',
-      '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      '.txt': 'text/plain',
-      '.csv': 'text/csv',
-      '.json': 'application/json',
-      '.xml': 'application/xml',
-      '.zip': 'application/zip',
-      '.mp3': 'audio/mpeg',
-      '.mp4': 'video/mp4',
-      '.avi': 'video/x-msvideo',
-      '.mov': 'video/quicktime'
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".svg": "image/svg+xml",
+      ".pdf": "application/pdf",
+      ".doc": "application/msword",
+      ".docx":
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ".xls": "application/vnd.ms-excel",
+      ".xlsx":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ".ppt": "application/vnd.ms-powerpoint",
+      ".pptx":
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      ".txt": "text/plain",
+      ".csv": "text/csv",
+      ".json": "application/json",
+      ".xml": "application/xml",
+      ".zip": "application/zip",
+      ".mp3": "audio/mpeg",
+      ".mp4": "video/mp4",
+      ".avi": "video/x-msvideo",
+      ".mov": "video/quicktime",
     };
 
-    return mimeTypes[ext] || 'application/octet-stream';
+    return mimeTypes[ext] || "application/octet-stream";
   }
 
   /**
@@ -265,7 +277,7 @@ class UploadAction {
       successSelector,
       progressSelector,
       timeout = 60000,
-      pollInterval = 500
+      pollInterval = 500,
     } = options;
 
     const startTime = Date.now();
@@ -273,7 +285,7 @@ class UploadAction {
     while (Date.now() - startTime < timeout) {
       // Check for success indicator
       if (successSelector) {
-        const success = await page.locator(successSelector).count() > 0;
+        const success = (await page.locator(successSelector).count()) > 0;
         if (success) {
           return { success: true, completed: true };
         }
@@ -281,16 +293,19 @@ class UploadAction {
 
       // Check progress if available
       if (progressSelector) {
-        const progress = await page.locator(progressSelector).textContent().catch(() => null);
+        const progress = await page
+          .locator(progressSelector)
+          .textContent()
+          .catch(() => null);
         if (progress) {
-          logger.debug('[UploadAction] Upload progress', { progress });
+          logger.debug("[UploadAction] Upload progress", { progress });
         }
       }
 
       await page.waitForTimeout(pollInterval);
     }
 
-    throw new Error('Upload did not complete within timeout');
+    throw new Error("Upload did not complete within timeout");
   }
 
   /**
@@ -312,9 +327,9 @@ class UploadAction {
           size: stats.size,
           sizeFormatted: this._formatFileSize(stats.size),
           type: this._getMimeType(name),
-          lastModified: stats.mtime
+          lastModified: stats.mtime,
         };
-      })
+      }),
     );
   }
 
@@ -322,17 +337,19 @@ class UploadAction {
    * Format file size for display
    */
   _formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) {
+      return "0 Bytes";
+    }
 
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 }
 
 module.exports = {
   UploadAction,
-  UploadMethod
+  UploadMethod,
 };

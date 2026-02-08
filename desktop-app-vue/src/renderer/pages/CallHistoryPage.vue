@@ -164,7 +164,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from "@/utils/logger";
+import { logger } from "@/utils/logger";
 
 import { ref, computed, onMounted } from "vue";
 import { message, Modal } from "ant-design-vue";
@@ -204,7 +204,12 @@ const loadFriendsList = async () => {
       // 建立 DID 到昵称的映射
       const map = new Map();
       result.friends.forEach((friend) => {
-        map.set(friend.friend_did, friend.display_name || friend.nickname || friend.friend_did.substring(0, 8) + "...");
+        map.set(
+          friend.friend_did,
+          friend.display_name ||
+            friend.nickname ||
+            friend.friend_did.substring(0, 8) + "...",
+        );
       });
       friendsMap.value = map;
     }

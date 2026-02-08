@@ -9,11 +9,15 @@
         @change="handleDateChange"
       />
       <a-button type="primary" @click="goToToday">
-        <template #icon><CalendarOutlined /></template>
+        <template #icon>
+          <CalendarOutlined />
+        </template>
         今日
       </a-button>
       <a-button @click="showWriteModal = true">
-        <template #icon><EditOutlined /></template>
+        <template #icon>
+          <EditOutlined />
+        </template>
         写入
       </a-button>
     </div>
@@ -33,15 +37,25 @@
                 :class="{ active: note.date === selectedDate }"
                 @click="selectDate(note.date)"
               >
-                <div class="date">{{ formatDate(note.date) }}</div>
+                <div class="date">
+                  {{ formatDate(note.date) }}
+                </div>
                 <div class="meta">
                   <a-tag v-if="note.conversation_count > 0" size="small">
                     {{ note.conversation_count }} 对话
                   </a-tag>
-                  <a-tag v-if="note.completed_tasks > 0" color="green" size="small">
+                  <a-tag
+                    v-if="note.completed_tasks > 0"
+                    color="green"
+                    size="small"
+                  >
                     {{ note.completed_tasks }} 完成
                   </a-tag>
-                  <a-tag v-if="note.pending_tasks > 0" color="orange" size="small">
+                  <a-tag
+                    v-if="note.pending_tasks > 0"
+                    color="orange"
+                    size="small"
+                  >
                     {{ note.pending_tasks }} 待办
                   </a-tag>
                 </div>
@@ -63,7 +77,9 @@
               size="small"
               @click="copyContent"
             >
-              <template #icon><CopyOutlined /></template>
+              <template #icon>
+                <CopyOutlined />
+              </template>
             </a-button>
             <a-button
               v-if="currentDailyNote"
@@ -71,7 +87,9 @@
               size="small"
               @click="startEdit"
             >
-              <template #icon><EditOutlined /></template>
+              <template #icon>
+                <EditOutlined />
+              </template>
             </a-button>
           </a-space>
         </div>
@@ -85,8 +103,12 @@
                 placeholder="编写 Daily Note..."
               />
               <div class="edit-actions">
-                <a-button @click="cancelEdit">取消</a-button>
-                <a-button type="primary" @click="saveEdit" :loading="loading.write">
+                <a-button @click="cancelEdit"> 取消 </a-button>
+                <a-button
+                  type="primary"
+                  :loading="loading.write"
+                  @click="saveEdit"
+                >
                   保存
                 </a-button>
               </div>
@@ -116,7 +138,7 @@
           />
         </a-form-item>
         <a-form-item>
-          <a-checkbox v-model:checked="appendMode">追加到今日日志</a-checkbox>
+          <a-checkbox v-model:checked="appendMode"> 追加到今日日志 </a-checkbox>
         </a-form-item>
       </a-form>
       <a-typography-text type="secondary">
@@ -127,17 +149,17 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { storeToRefs } from 'pinia';
-import { message } from 'ant-design-vue';
-import dayjs from 'dayjs';
+import { ref, computed, watch } from "vue";
+import { storeToRefs } from "pinia";
+import { message } from "ant-design-vue";
+import dayjs from "dayjs";
 import {
   CalendarOutlined,
   EditOutlined,
   CopyOutlined,
-} from '@ant-design/icons-vue';
-import { useMemoryStore } from '@/stores/memory';
-import MarkdownViewer from '@/components/common/MarkdownViewer.vue';
+} from "@ant-design/icons-vue";
+import { useMemoryStore } from "@/stores/memory";
+import MarkdownViewer from "@/components/common/MarkdownViewer.vue";
 
 const memoryStore = useMemoryStore();
 
@@ -152,12 +174,12 @@ const {
 
 // 本地状态
 const showWriteModal = ref(false);
-const writeContent = ref('');
+const writeContent = ref("");
 const appendMode = ref(true);
 
 // 日期选择器绑定值
 const selectedDateValue = computed({
-  get: () => selectedDate.value ? dayjs(selectedDate.value) : null,
+  get: () => (selectedDate.value ? dayjs(selectedDate.value) : null),
   set: () => {},
 });
 
@@ -165,16 +187,20 @@ const selectedDateValue = computed({
 const formatDate = (date) => {
   const d = dayjs(date);
   const today = dayjs();
-  const yesterday = today.subtract(1, 'day');
+  const yesterday = today.subtract(1, "day");
 
-  if (d.isSame(today, 'day')) return '今天';
-  if (d.isSame(yesterday, 'day')) return '昨天';
-  return d.format('MM-DD');
+  if (d.isSame(today, "day")) {
+    return "今天";
+  }
+  if (d.isSame(yesterday, "day")) {
+    return "昨天";
+  }
+  return d.format("MM-DD");
 };
 
 // 禁用未来日期
 const disabledDate = (current) => {
-  return current && current > dayjs().endOf('day');
+  return current && current > dayjs().endOf("day");
 };
 
 // 选择日期
@@ -185,7 +211,7 @@ const selectDate = (date) => {
 // 日期选择器变化
 const handleDateChange = (date) => {
   if (date) {
-    selectDate(date.format('YYYY-MM-DD'));
+    selectDate(date.format("YYYY-MM-DD"));
   }
 };
 
@@ -198,9 +224,9 @@ const goToToday = () => {
 const copyContent = async () => {
   try {
     await navigator.clipboard.writeText(currentDailyNote.value);
-    message.success('已复制到剪贴板');
+    message.success("已复制到剪贴板");
   } catch (err) {
-    message.error('复制失败');
+    message.error("复制失败");
   }
 };
 
@@ -217,13 +243,13 @@ const cancelEdit = () => {
 // 保存编辑
 const saveEdit = async () => {
   await memoryStore.saveEditing();
-  message.success('保存成功');
+  message.success("保存成功");
 };
 
 // 写入新内容
 const handleWrite = async () => {
   if (!writeContent.value.trim()) {
-    message.warning('请输入内容');
+    message.warning("请输入内容");
     return;
   }
 
@@ -232,11 +258,11 @@ const handleWrite = async () => {
   });
 
   if (success) {
-    message.success('写入成功');
+    message.success("写入成功");
     showWriteModal.value = false;
-    writeContent.value = '';
+    writeContent.value = "";
   } else {
-    message.error('写入失败');
+    message.error("写入失败");
   }
 };
 </script>

@@ -2,7 +2,7 @@
  * 数据库加密 IPC 处理程序
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 const path = require("path");
 const EncryptionConfigManager = require("./config-manager");

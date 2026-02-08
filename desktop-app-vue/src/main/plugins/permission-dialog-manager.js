@@ -7,7 +7,7 @@
  * - 维护待处理的权限请求队列
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { BrowserWindow } = require("electron");
 const EventEmitter = require("events");
 

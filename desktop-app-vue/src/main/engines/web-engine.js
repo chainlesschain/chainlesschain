@@ -4,10 +4,10 @@
  * 支持5种模板: 博客、作品集、企业站、产品页、单页应用
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs').promises;
-const path = require('path');
-const PreviewServer = require('./preview-server');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs").promises;
+const path = require("path");
+const PreviewServer = require("./preview-server");
 
 class WebEngine {
   constructor() {
@@ -20,29 +20,29 @@ class WebEngine {
     // 模板定义
     this.templates = {
       blog: {
-        name: '博客',
-        description: '适合个人博客、文章发布',
-        files: ['index.html', 'css/style.css', 'js/script.js'],
+        name: "博客",
+        description: "适合个人博客、文章发布",
+        files: ["index.html", "css/style.css", "js/script.js"],
       },
       portfolio: {
-        name: '作品集',
-        description: '展示个人作品和项目',
-        files: ['index.html', 'css/style.css', 'js/script.js'],
+        name: "作品集",
+        description: "展示个人作品和项目",
+        files: ["index.html", "css/style.css", "js/script.js"],
       },
       corporate: {
-        name: '企业站',
-        description: '企业官网、公司介绍',
-        files: ['index.html', 'css/style.css', 'js/script.js'],
+        name: "企业站",
+        description: "企业官网、公司介绍",
+        files: ["index.html", "css/style.css", "js/script.js"],
       },
       product: {
-        name: '产品页',
-        description: '产品介绍、功能展示',
-        files: ['index.html', 'css/style.css', 'js/script.js'],
+        name: "产品页",
+        description: "产品介绍、功能展示",
+        files: ["index.html", "css/style.css", "js/script.js"],
       },
       spa: {
-        name: '单页应用',
-        description: '单页面应用程序',
-        files: ['index.html', 'css/style.css', 'js/app.js'],
+        name: "单页应用",
+        description: "单页面应用程序",
+        files: ["index.html", "css/style.css", "js/app.js"],
       },
     };
   }
@@ -67,10 +67,10 @@ class WebEngine {
         taskName,
         status,
         timestamp: Date.now(),
-        ...data
+        ...data,
       };
-      logger.info('[Web Engine] 发送任务事件:', event);
-      this.mainWindow.webContents.send('task:progress', event);
+      logger.info("[Web Engine] 发送任务事件:", event);
+      this.mainWindow.webContents.send("task:progress", event);
     }
   }
 
@@ -81,104 +81,97 @@ class WebEngine {
    */
   async generateProject(options = {}) {
     const {
-      template = 'product',
-      title = '我的网站',
-      description = '欢迎访问我的网站',
-      primaryColor = '#667eea',
-      secondaryColor = '#764ba2',
+      template = "product",
+      title = "我的网站",
+      description = "欢迎访问我的网站",
+      primaryColor = "#667eea",
+      secondaryColor = "#764ba2",
       projectPath,
       content = {},
     } = options;
 
     if (!projectPath) {
-      throw new Error('未指定项目路径');
+      throw new Error("未指定项目路径");
     }
 
-    logger.info(`[Web Engine] 生成${this.templates[template]?.name || template}项目...`);
+    logger.info(
+      `[Web Engine] 生成${this.templates[template]?.name || template}项目...`,
+    );
 
     try {
       // 发送开始事件
-      this.sendTaskEvent('generate-project', 'started', { template, title });
+      this.sendTaskEvent("generate-project", "started", { template, title });
 
       // 创建项目目录结构
-      this.sendTaskEvent('create-structure', 'started');
+      this.sendTaskEvent("create-structure", "started");
       await this.createProjectStructure(projectPath);
-      this.sendTaskEvent('create-structure', 'completed');
+      this.sendTaskEvent("create-structure", "completed");
 
       // 生成HTML文件
-      this.sendTaskEvent('generate-html', 'started');
+      this.sendTaskEvent("generate-html", "started");
       const html = this.generateHTML(template, {
         title,
         description,
         content,
       });
 
-      await fs.writeFile(
-        path.join(projectPath, 'index.html'),
-        html,
-        'utf-8'
-      );
-      this.sendTaskEvent('generate-html', 'completed', { file: 'index.html' });
+      await fs.writeFile(path.join(projectPath, "index.html"), html, "utf-8");
+      this.sendTaskEvent("generate-html", "completed", { file: "index.html" });
 
       // 生成CSS文件
-      this.sendTaskEvent('generate-css', 'started');
+      this.sendTaskEvent("generate-css", "started");
       const css = this.generateCSS(template, {
         primaryColor,
         secondaryColor,
       });
 
       await fs.writeFile(
-        path.join(projectPath, 'css', 'style.css'),
+        path.join(projectPath, "css", "style.css"),
         css,
-        'utf-8'
+        "utf-8",
       );
-      this.sendTaskEvent('generate-css', 'completed', { file: 'css/style.css' });
+      this.sendTaskEvent("generate-css", "completed", {
+        file: "css/style.css",
+      });
 
       // 生成JavaScript文件
-      this.sendTaskEvent('generate-js', 'started');
+      this.sendTaskEvent("generate-js", "started");
       const js = this.generateJavaScript(template);
 
       await fs.writeFile(
-        path.join(projectPath, 'js', 'script.js'),
+        path.join(projectPath, "js", "script.js"),
         js,
-        'utf-8'
+        "utf-8",
       );
-      this.sendTaskEvent('generate-js', 'completed', { file: 'js/script.js' });
+      this.sendTaskEvent("generate-js", "completed", { file: "js/script.js" });
 
       // 生成README
-      this.sendTaskEvent('generate-readme', 'started');
+      this.sendTaskEvent("generate-readme", "started");
       const readme = this.generateReadme(title, description, template);
 
-      await fs.writeFile(
-        path.join(projectPath, 'README.md'),
-        readme,
-        'utf-8'
-      );
-      this.sendTaskEvent('generate-readme', 'completed', { file: 'README.md' });
+      await fs.writeFile(path.join(projectPath, "README.md"), readme, "utf-8");
+      this.sendTaskEvent("generate-readme", "completed", { file: "README.md" });
 
       logger.info(`[Web Engine] 项目生成成功: ${projectPath}`);
 
       // 发送完成事件
-      this.sendTaskEvent('generate-project', 'completed', {
+      this.sendTaskEvent("generate-project", "completed", {
         projectPath,
-        filesCount: 4
+        filesCount: 4,
       });
 
       return {
         success: true,
         projectPath,
         template,
-        files: [
-          'index.html',
-          'css/style.css',
-          'js/script.js',
-          'README.md',
-        ],
+        files: ["index.html", "css/style.css", "js/script.js", "README.md"],
       };
     } catch (error) {
-      logger.error('[Web Engine] 生成项目失败:', error);
+      logger.error("[Web Engine] 生成项目失败:", error);
       // 发送失败事件
-      this.sendTaskEvent('generate-project', 'failed', { error: error.message });
+      this.sendTaskEvent("generate-project", "failed", {
+        error: error.message,
+      });
       throw new Error(`生成Web项目失败: ${error.message}`);
     }
   }
@@ -188,12 +181,7 @@ class WebEngine {
    * @private
    */
   async createProjectStructure(projectPath) {
-    const directories = [
-      'css',
-      'js',
-      'assets',
-      'assets/images',
-    ];
+    const directories = ["css", "js", "assets", "assets/images"];
 
     for (const dir of directories) {
       const dirPath = path.join(projectPath, dir);
@@ -209,15 +197,15 @@ class WebEngine {
     const { title, description, content } = options;
 
     switch (template) {
-      case 'blog':
+      case "blog":
         return this.generateBlogHTML(title, description, content);
-      case 'portfolio':
+      case "portfolio":
         return this.generatePortfolioHTML(title, description, content);
-      case 'corporate':
+      case "corporate":
         return this.generateCorporateHTML(title, description, content);
-      case 'product':
+      case "product":
         return this.generateProductHTML(title, description, content);
-      case 'spa':
+      case "spa":
         return this.generateSPAHTML(title, description, content);
       default:
         return this.generateBasicHTML(title, description);
@@ -263,7 +251,7 @@ class WebEngine {
         <h2>欢迎来到我的博客</h2>
         <p class="post-meta">发布于 2024年12月23日</p>
         <div class="post-content">
-          <p>${content.firstPost || '这是我的第一篇博客文章。'}</p>
+          <p>${content.firstPost || "这是我的第一篇博客文章。"}</p>
         </div>
       </article>
     </section>
@@ -853,7 +841,7 @@ ${description}
 ## 项目信息
 
 - **模板类型**: ${this.templates[template]?.name || template}
-- **创建时间**: ${new Date().toLocaleString('zh-CN')}
+- **创建时间**: ${new Date().toLocaleString("zh-CN")}
 - **生成工具**: ChainlessChain Web Engine
 
 ## 项目结构
@@ -955,11 +943,17 @@ MIT License
    * @returns {Promise<Object>} 处理结果
    */
   async handleProjectTask(params) {
-    const { action, description, outputFiles = [], projectPath, llmManager } = params;
+    const {
+      action,
+      description,
+      outputFiles = [],
+      projectPath,
+      llmManager,
+    } = params;
 
-    logger.info('[Web Engine] 处理Web任务:', action);
-    logger.info('[Web Engine] 项目路径:', projectPath);
-    logger.info('[Web Engine] 描述:', description);
+    logger.info("[Web Engine] 处理Web任务:", action);
+    logger.info("[Web Engine] 项目路径:", projectPath);
+    logger.info("[Web Engine] 描述:", description);
 
     try {
       // 使用LLM解析需求，提取关键信息
@@ -985,59 +979,65 @@ MIT License
       try {
         const response = await llmManager.query(analysisPrompt, {
           temperature: 0.3,
-          maxTokens: 500
+          maxTokens: 500,
         });
 
         // 提取JSON
-        const jsonMatch = response.text.match(/```json\n?([\s\S]*?)\n?```/) ||
-                         response.text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : response.text;
+        const jsonMatch =
+          response.text.match(/```json\n?([\s\S]*?)\n?```/) ||
+          response.text.match(/\{[\s\S]*\}/);
+        const jsonText = jsonMatch
+          ? jsonMatch[1] || jsonMatch[0]
+          : response.text;
         parsedRequirements = JSON.parse(jsonText);
       } catch (parseError) {
-        logger.warn('[Web Engine] LLM解析失败，使用默认配置:', parseError.message);
+        logger.warn(
+          "[Web Engine] LLM解析失败，使用默认配置:",
+          parseError.message,
+        );
         // 使用默认配置
         parsedRequirements = {
-          template: 'product',
-          title: outputFiles[0]?.replace(/\.(html|htm)$/i, '') || '我的网站',
+          template: "product",
+          title: outputFiles[0]?.replace(/\.(html|htm)$/i, "") || "我的网站",
           description: description.substring(0, 100),
-          primaryColor: '#667eea',
-          secondaryColor: '#764ba2',
-          content: {}
+          primaryColor: "#667eea",
+          secondaryColor: "#764ba2",
+          content: {},
         };
       }
 
       // 根据action执行不同操作
       switch (action) {
-        case 'generate_html':
-        case 'generate_css':
-        case 'generate_js':
-        case 'create_web_project':
+        case "generate_html":
+        case "generate_css":
+        case "generate_js":
+        case "create_web_project":
         default: {
           // 生成完整的Web项目
           const result = await this.generateProject({
-            template: parsedRequirements.template || 'product',
+            template: parsedRequirements.template || "product",
             title: parsedRequirements.title,
             description: parsedRequirements.description,
-            primaryColor: parsedRequirements.primaryColor || '#667eea',
-            secondaryColor: parsedRequirements.secondaryColor || '#764ba2',
+            primaryColor: parsedRequirements.primaryColor || "#667eea",
+            secondaryColor: parsedRequirements.secondaryColor || "#764ba2",
             projectPath: projectPath,
-            content: parsedRequirements.content || {}
+            content: parsedRequirements.content || {},
           });
 
-          logger.info('[Web Engine] Web项目生成成功');
+          logger.info("[Web Engine] Web项目生成成功");
 
           return {
             success: true,
-            type: 'web_project',
+            type: "web_project",
             projectPath: result.projectPath,
             files: result.files,
             template: result.template,
-            message: `成功生成${this.templates[result.template]?.name || result.template}项目`
+            message: `成功生成${this.templates[result.template]?.name || result.template}项目`,
           };
         }
       }
     } catch (error) {
-      logger.error('[Web Engine] 处理任务失败:', error);
+      logger.error("[Web Engine] 处理任务失败:", error);
       throw new Error(`Web引擎任务失败: ${error.message}`);
     }
   }

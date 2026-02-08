@@ -14,7 +14,7 @@
  * @since 2026-01-16
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");

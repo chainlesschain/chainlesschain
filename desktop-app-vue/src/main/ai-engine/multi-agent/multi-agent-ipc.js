@@ -4,12 +4,9 @@
  * 提供前端访问多 Agent 系统的接口
  */
 
-const { logger, createLogger } = require('../../utils/logger.js');
+const { logger } = require("../../utils/logger.js");
 const { ipcMain } = require("electron");
-const {
-  getAgentOrchestrator,
-  initializeDefaultAgents,
-} = require("./index");
+const { getAgentOrchestrator, initializeDefaultAgents } = require("./index");
 
 /**
  * 注册多 Agent 系统 IPC 处理器
@@ -91,16 +88,19 @@ function registerMultiAgentIPC(options = {}) {
   /**
    * 并行执行多个任务
    */
-  ipcMain.handle("agent:execute-parallel", async (event, { tasks, options = {} }) => {
-    try {
-      const orch = ensureInitialized();
-      const results = await orch.executeParallel(tasks, options);
-      return { success: true, results };
-    } catch (error) {
-      logger.error("[MultiAgentIPC] 并行执行失败:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "agent:execute-parallel",
+    async (event, { tasks, options = {} }) => {
+      try {
+        const orch = ensureInitialized();
+        const results = await orch.executeParallel(tasks, options);
+        return { success: true, results };
+      } catch (error) {
+        logger.error("[MultiAgentIPC] 并行执行失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 链式执行任务
@@ -144,16 +144,19 @@ function registerMultiAgentIPC(options = {}) {
   /**
    * 发送消息给特定 Agent
    */
-  ipcMain.handle("agent:send-message", async (event, { fromAgent, toAgent, message }) => {
-    try {
-      const orch = ensureInitialized();
-      const response = await orch.sendMessage(fromAgent, toAgent, message);
-      return { success: true, response };
-    } catch (error) {
-      logger.error("[MultiAgentIPC] 发送消息失败:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "agent:send-message",
+    async (event, { fromAgent, toAgent, message }) => {
+      try {
+        const orch = ensureInitialized();
+        const response = await orch.sendMessage(fromAgent, toAgent, message);
+        return { success: true, response };
+      } catch (error) {
+        logger.error("[MultiAgentIPC] 发送消息失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   /**
    * 广播消息给所有 Agent
@@ -172,16 +175,19 @@ function registerMultiAgentIPC(options = {}) {
   /**
    * 获取消息历史
    */
-  ipcMain.handle("agent:get-messages", async (event, { agentId = null, limit = 50 }) => {
-    try {
-      const orch = ensureInitialized();
-      const messages = orch.getMessageHistory(agentId, limit);
-      return { success: true, messages };
-    } catch (error) {
-      logger.error("[MultiAgentIPC] 获取消息历史失败:", error);
-      return { success: false, error: error.message };
-    }
-  });
+  ipcMain.handle(
+    "agent:get-messages",
+    async (event, { agentId = null, limit = 50 }) => {
+      try {
+        const orch = ensureInitialized();
+        const messages = orch.getMessageHistory(agentId, limit);
+        return { success: true, messages };
+      } catch (error) {
+        logger.error("[MultiAgentIPC] 获取消息历史失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
 
   // ==========================================
   // 统计和调试 API

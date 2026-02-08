@@ -3,7 +3,7 @@
  * 负责技能的注册、管理、统计和与工具的关联
  */
 
-const { logger, createLogger } = require("../utils/logger.js");
+const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const DocGenerator = require("./doc-generator");
 

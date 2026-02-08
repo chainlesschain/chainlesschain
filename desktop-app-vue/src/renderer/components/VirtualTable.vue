@@ -68,8 +68,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { Empty, Spin } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { Empty, Spin } from "ant-design-vue";
 
 const props = defineProps({
   columns: {
@@ -90,7 +90,7 @@ const props = defineProps({
   },
   containerHeight: {
     type: String,
-    default: '600px',
+    default: "600px",
   },
   loading: {
     type: Boolean,
@@ -180,7 +180,7 @@ watch(
     if (oldLength > 0 && newLength !== oldLength) {
       scrollToTop();
     }
-  }
+  },
 );
 </script>
 

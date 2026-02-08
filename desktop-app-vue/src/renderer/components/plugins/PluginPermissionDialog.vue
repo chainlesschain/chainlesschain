@@ -23,10 +23,7 @@
             <a-divider type="vertical" />
             <span>{{ pluginInfo?.author || "未知作者" }}</span>
           </p>
-          <p
-            v-if="pluginInfo?.description"
-            class="plugin-description"
-          >
+          <p v-if="pluginInfo?.description" class="plugin-description">
             {{ pluginInfo.description }}
           </p>
         </div>
@@ -54,7 +51,9 @@
               style="margin-right: 8px"
             />
             <span class="category-name">{{ group.name }}</span>
-            <span class="category-count">({{ group.permissions.length }}项)</span>
+            <span class="category-count"
+              >({{ group.permissions.length }}项)</span
+            >
             <a-button
               type="link"
               size="small"
@@ -81,11 +80,7 @@
                   >
                     <span class="permission-name">{{ perm.name }}</span>
                   </a-checkbox>
-                  <a-tag
-                    :color="perm.riskColor"
-                    size="small"
-                    class="risk-tag"
-                  >
+                  <a-tag :color="perm.riskColor" size="small" class="risk-tag">
                     {{ perm.riskLabel }}
                   </a-tag>
                 </div>
@@ -99,10 +94,7 @@
       </div>
 
       <!-- 风险提示 -->
-      <div
-        v-if="hasDangerousPermissions"
-        class="danger-warning"
-      >
+      <div v-if="hasDangerousPermissions" class="danger-warning">
         <a-alert
           message="高风险权限警告"
           :description="dangerousWarningText"
@@ -125,12 +117,8 @@
             <CloseOutlined />
             拒绝
           </a-button>
-          <a-button @click="selectAll">
-            全部选中
-          </a-button>
-          <a-button @click="unselectAll">
-            全部取消
-          </a-button>
+          <a-button @click="selectAll"> 全部选中 </a-button>
+          <a-button @click="unselectAll"> 全部取消 </a-button>
           <a-button
             type="primary"
             :disabled="!hasAnySelected"
@@ -146,7 +134,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
 import {
@@ -256,13 +244,17 @@ const getCategoryName = (category) => {
 
 const isCategoryAllSelected = (category) => {
   const group = groupedPermissions.value[category];
-  if (!group) {return false;}
+  if (!group) {
+    return false;
+  }
   return group.permissions.every((p) => permissionStates[p.permission]);
 };
 
 const toggleCategory = (category) => {
   const group = groupedPermissions.value[category];
-  if (!group) {return;}
+  if (!group) {
+    return;
+  }
 
   const allSelected = isCategoryAllSelected(category);
   for (const perm of group.permissions) {

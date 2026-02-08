@@ -6,7 +6,7 @@
  * @description 提供文件选择、导入、格式检查等 IPC 接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const defaultIpcGuard = require("../ipc/ipc-guard");
 
 /**

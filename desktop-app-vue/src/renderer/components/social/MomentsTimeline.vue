@@ -3,10 +3,7 @@
     <!-- 头部 -->
     <div class="moments-header">
       <h2>朋友圈</h2>
-      <a-button
-        type="primary"
-        @click="showPublishModal"
-      >
+      <a-button type="primary" @click="showPublishModal">
         <PlusOutlined /> 发布动态
       </a-button>
     </div>
@@ -18,10 +15,7 @@
       :confirm-loading="publishing"
       @ok="handlePublish"
     >
-      <a-form
-        :model="publishForm"
-        layout="vertical"
-      >
+      <a-form :model="publishForm" layout="vertical">
         <a-form-item label="内容">
           <a-textarea
             v-model:value="publishForm.content"
@@ -41,27 +35,16 @@
           >
             <div v-if="publishForm.images.length < 9">
               <PlusOutlined />
-              <div style="margin-top: 8px">
-                上传
-              </div>
+              <div style="margin-top: 8px">上传</div>
             </div>
           </a-upload>
         </a-form-item>
 
         <a-form-item label="可见范围">
-          <a-select
-            v-model:value="publishForm.visibility"
-            style="width: 100%"
-          >
-            <a-select-option value="public">
-              公开
-            </a-select-option>
-            <a-select-option value="friends">
-              仅好友
-            </a-select-option>
-            <a-select-option value="private">
-              仅自己
-            </a-select-option>
+          <a-select v-model:value="publishForm.visibility" style="width: 100%">
+            <a-select-option value="public"> 公开 </a-select-option>
+            <a-select-option value="friends"> 仅好友 </a-select-option>
+            <a-select-option value="private"> 仅自己 </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -75,11 +58,7 @@
           description="暂无动态"
         />
 
-        <div
-          v-for="moment in moments"
-          :key="moment.id"
-          class="moment-item"
-        >
+        <div v-for="moment in moments" :key="moment.id" class="moment-item">
           <!-- 用户信息 -->
           <div class="moment-header">
             <a-avatar :size="48">
@@ -96,10 +75,7 @@
               </div>
             </div>
             <a-dropdown v-if="moment.author_did === currentUserDid">
-              <a-button
-                type="text"
-                size="small"
-              >
+              <a-button type="text" size="small">
                 <MoreOutlined />
               </a-button>
               <template #overlay>
@@ -107,10 +83,7 @@
                   <a-menu-item @click="handleEdit(moment)">
                     <EditOutlined /> 编辑
                   </a-menu-item>
-                  <a-menu-item
-                    danger
-                    @click="handleDelete(moment.id)"
-                  >
+                  <a-menu-item danger @click="handleDelete(moment.id)">
                     <DeleteOutlined /> 删除
                   </a-menu-item>
                 </a-menu>
@@ -150,18 +123,10 @@
               >
                 <LikeOutlined /> {{ moment.likes_count || 0 }}
               </a-button>
-              <a-button
-                type="text"
-                size="small"
-                @click="handleComment(moment)"
-              >
+              <a-button type="text" size="small" @click="handleComment(moment)">
                 <CommentOutlined /> {{ moment.comments_count || 0 }}
               </a-button>
-              <a-button
-                type="text"
-                size="small"
-                @click="handleShare(moment)"
-              >
+              <a-button type="text" size="small" @click="handleShare(moment)">
                 <ShareAltOutlined /> 分享
               </a-button>
             </a-space>
@@ -179,15 +144,14 @@
             >
               <span class="comment-author">{{ comment.author_name }}:</span>
               <span class="comment-content">{{ comment.content }}</span>
-              <span class="comment-time">{{ formatTime(comment.created_at) }}</span>
+              <span class="comment-time">{{
+                formatTime(comment.created_at)
+              }}</span>
             </div>
           </div>
 
           <!-- 评论输入框 -->
-          <div
-            v-if="moment.showCommentInput"
-            class="moment-comment-input"
-          >
+          <div v-if="moment.showCommentInput" class="moment-comment-input">
             <a-input
               v-model:value="moment.commentText"
               placeholder="写下你的评论..."
@@ -207,15 +171,8 @@
         </div>
 
         <!-- 加载更多 -->
-        <div
-          v-if="hasMore"
-          class="load-more"
-        >
-          <a-button
-            type="link"
-            :loading="loadingMore"
-            @click="loadMore"
-          >
+        <div v-if="hasMore" class="load-more">
+          <a-button type="link" :loading="loadingMore" @click="loadMore">
             加载更多
           </a-button>
         </div>
@@ -225,10 +182,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, onMounted, computed } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
+import { ref, reactive, onMounted, computed } from "vue";
+import { message as antMessage } from "ant-design-vue";
 import {
   PlusOutlined,
   UserOutlined,
@@ -238,9 +195,9 @@ import {
   LikeOutlined,
   CommentOutlined,
   ShareAltOutlined,
-} from '@ant-design/icons-vue';
-import { useSocialStore } from '../../stores/social';
-import { useIdentityStore } from '../../stores/identity';
+} from "@ant-design/icons-vue";
+import { useSocialStore } from "../../stores/social";
+import { useIdentityStore } from "../../stores/identity";
 
 const socialStore = useSocialStore();
 const identityStore = useIdentityStore();
@@ -257,9 +214,9 @@ const pageSize = 20;
 const currentUserDid = computed(() => identityStore.currentDid);
 
 const publishForm = reactive({
-  content: '',
+  content: "",
   images: [],
-  visibility: 'public',
+  visibility: "public",
 });
 
 // 加载动态列表
@@ -272,7 +229,7 @@ const loadMoments = async (page = 1) => {
     }
 
     const result = await window.electronAPI.social.getPosts({
-      type: 'moments',
+      type: "moments",
       page,
       pageSize,
     });
@@ -286,11 +243,11 @@ const loadMoments = async (page = 1) => {
       hasMore.value = result.data.hasMore || false;
       currentPage.value = page;
     } else {
-      antMessage.error(result.error || '加载动态失败');
+      antMessage.error(result.error || "加载动态失败");
     }
   } catch (error) {
-    logger.error('加载动态失败:', error);
-    antMessage.error('加载动态失败');
+    logger.error("加载动态失败:", error);
+    antMessage.error("加载动态失败");
   } finally {
     loading.value = false;
     loadingMore.value = false;
@@ -300,15 +257,15 @@ const loadMoments = async (page = 1) => {
 // 显示发布模态框
 const showPublishModal = () => {
   publishModalVisible.value = true;
-  publishForm.content = '';
+  publishForm.content = "";
   publishForm.images = [];
-  publishForm.visibility = 'public';
+  publishForm.visibility = "public";
 };
 
 // 发布动态
 const handlePublish = async () => {
   if (!publishForm.content.trim()) {
-    antMessage.warning('请输入内容');
+    antMessage.warning("请输入内容");
     return;
   }
 
@@ -316,22 +273,22 @@ const handlePublish = async () => {
     publishing.value = true;
 
     const result = await window.electronAPI.social.createPost({
-      type: 'moments',
+      type: "moments",
       content: publishForm.content,
-      images: publishForm.images.map(img => img.url || img.response?.url),
+      images: publishForm.images.map((img) => img.url || img.response?.url),
       visibility: publishForm.visibility,
     });
 
     if (result.success) {
-      antMessage.success('发布成功');
+      antMessage.success("发布成功");
       publishModalVisible.value = false;
       loadMoments(1); // 重新加载
     } else {
-      antMessage.error(result.error || '发布失败');
+      antMessage.error(result.error || "发布失败");
     }
   } catch (error) {
-    logger.error('发布动态失败:', error);
-    antMessage.error('发布失败');
+    logger.error("发布动态失败:", error);
+    antMessage.error("发布失败");
   } finally {
     publishing.value = false;
   }
@@ -339,14 +296,14 @@ const handlePublish = async () => {
 
 // 图片上传前处理
 const beforeUpload = (file) => {
-  const isImage = file.type.startsWith('image/');
+  const isImage = file.type.startsWith("image/");
   if (!isImage) {
-    antMessage.error('只能上传图片文件');
+    antMessage.error("只能上传图片文件");
     return false;
   }
   const isLt5M = file.size / 1024 / 1024 < 5;
   if (!isLt5M) {
-    antMessage.error('图片大小不能超过5MB');
+    antMessage.error("图片大小不能超过5MB");
     return false;
   }
   return true;
@@ -361,8 +318,8 @@ const handleLike = async (moment) => {
       moment.likes_count = (moment.likes_count || 0) + (moment.liked ? 1 : -1);
     }
   } catch (error) {
-    logger.error('点赞失败:', error);
-    antMessage.error('操作失败');
+    logger.error("点赞失败:", error);
+    antMessage.error("操作失败");
   }
 };
 
@@ -389,31 +346,32 @@ const handleSubmitComment = async (moment) => {
       }
       moment.comments.push(result.data);
       moment.comments_count = (moment.comments_count || 0) + 1;
-      moment.commentText = '';
+      moment.commentText = "";
       moment.showCommentInput = false;
-      antMessage.success('评论成功');
+      antMessage.success("评论成功");
     }
   } catch (error) {
-    logger.error('评论失败:', error);
-    antMessage.error('评论失败');
+    logger.error("评论失败:", error);
+    antMessage.error("评论失败");
   }
 };
 
 // 分享
 const handleShare = (moment) => {
-  antMessage.info('分享功能开发中');
+  antMessage.info("分享功能开发中");
 };
 
 // 编辑
 const handleEdit = (moment) => {
   publishForm.content = moment.content;
-  publishForm.images = moment.images?.map((url, index) => ({
-    uid: index,
-    name: `image${index}`,
-    status: 'done',
-    url,
-  })) || [];
-  publishForm.visibility = moment.visibility || 'public';
+  publishForm.images =
+    moment.images?.map((url, index) => ({
+      uid: index,
+      name: `image${index}`,
+      status: "done",
+      url,
+    })) || [];
+  publishForm.visibility = moment.visibility || "public";
   publishModalVisible.value = true;
 };
 
@@ -422,12 +380,12 @@ const handleDelete = async (momentId) => {
   try {
     const result = await window.electronAPI.social.deletePost(momentId);
     if (result.success) {
-      moments.value = moments.value.filter(m => m.id !== momentId);
-      antMessage.success('删除成功');
+      moments.value = moments.value.filter((m) => m.id !== momentId);
+      antMessage.success("删除成功");
     }
   } catch (error) {
-    logger.error('删除失败:', error);
-    antMessage.error('删除失败');
+    logger.error("删除失败:", error);
+    antMessage.error("删除失败");
   }
 };
 
@@ -442,24 +400,38 @@ const formatTime = (timestamp) => {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) {return '刚刚';}
-  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
-  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
-  if (diff < 604800000) {return `${Math.floor(diff / 86400000)}天前`;}
+  if (diff < 60000) {
+    return "刚刚";
+  }
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
+  if (diff < 604800000) {
+    return `${Math.floor(diff / 86400000)}天前`;
+  }
 
   return date.toLocaleDateString();
 };
 
 // 缩短DID显示
 const shortenDid = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   return `${did.slice(0, 8)}...${did.slice(-6)}`;
 };
 
 // 计算图片宽度
 const getImageWidth = (count) => {
-  if (count === 1) {return 300;}
-  if (count <= 4) {return 150;}
+  if (count === 1) {
+    return 300;
+  }
+  if (count <= 4) {
+    return 150;
+  }
   return 100;
 };
 

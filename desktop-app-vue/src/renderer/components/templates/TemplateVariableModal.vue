@@ -13,10 +13,7 @@
       <!-- 左侧：变量表单 -->
       <div class="variable-form-container">
         <!-- 模板描述 -->
-        <div
-          v-if="template?.description"
-          class="template-description"
-        >
+        <div v-if="template?.description" class="template-description">
           <p>{{ template.description }}</p>
         </div>
 
@@ -27,10 +24,7 @@
           layout="vertical"
           :rules="formRules"
         >
-          <template
-            v-for="variable in variablesSchema"
-            :key="variable.name"
-          >
+          <template v-for="variable in variablesSchema" :key="variable.name">
             <!-- String 类型 -->
             <a-form-item
               v-if="variable.type === 'string'"
@@ -93,7 +87,9 @@
               <a-select
                 v-model:value="formData[variable.name]"
                 mode="tags"
-                :placeholder="variable.placeholder || `请输入${variable.label}（回车分隔）`"
+                :placeholder="
+                  variable.placeholder || `请输入${variable.label}（回车分隔）`
+                "
                 allow-clear
               />
             </a-form-item>
@@ -105,10 +101,7 @@
               :name="variable.name"
             >
               <a-switch v-model:checked="formData[variable.name]" />
-              <span
-                v-if="variable.placeholder"
-                class="hint-text"
-              >
+              <span v-if="variable.placeholder" class="hint-text">
                 {{ variable.placeholder }}
               </span>
             </a-form-item>
@@ -116,10 +109,7 @@
         </a-form>
 
         <!-- 变量数量提示 -->
-        <div
-          v-if="variablesSchema.length === 0"
-          class="no-variables-hint"
-        >
+        <div v-if="variablesSchema.length === 0" class="no-variables-hint">
           <InfoCircleOutlined />
           此模板无需填写额外参数，点击"创建项目"即可开始
         </div>
@@ -130,11 +120,13 @@
         <div class="preview-header">
           <EyeOutlined v-if="!isEditMode" />
           <EditOutlined v-else />
-          <span>{{ isEditMode ? '编辑内容' : '实时预览' }}</span>
+          <span>{{ isEditMode ? "编辑内容" : "实时预览" }}</span>
 
           <!-- 切换编辑/预览模式按钮 -->
           <div class="header-actions">
-            <a-tooltip :title="isEditMode ? '切换到预览模式' : '切换到编辑模式'">
+            <a-tooltip
+              :title="isEditMode ? '切换到预览模式' : '切换到编辑模式'"
+            >
               <a-button
                 type="text"
                 size="small"
@@ -149,15 +141,8 @@
             </a-tooltip>
 
             <!-- 重置按钮（仅编辑模式显示） -->
-            <a-tooltip
-              v-if="isEditMode && hasEdited"
-              title="重置为原始内容"
-            >
-              <a-button
-                type="text"
-                size="small"
-                @click="resetEditedContent"
-              >
+            <a-tooltip v-if="isEditMode && hasEdited" title="重置为原始内容">
+              <a-button type="text" size="small" @click="resetEditedContent">
                 <template #icon>
                   <UndoOutlined />
                 </template>
@@ -168,19 +153,13 @@
 
         <div class="preview-content">
           <!-- 加载状态 -->
-          <div
-            v-if="renderingPreview"
-            class="preview-loading"
-          >
+          <div v-if="renderingPreview" class="preview-loading">
             <a-spin size="small" />
             <span>渲染中...</span>
           </div>
 
           <!-- 编辑模式 -->
-          <div
-            v-else-if="isEditMode && renderedPrompt"
-            class="preview-editor"
-          >
+          <div v-else-if="isEditMode && renderedPrompt" class="preview-editor">
             <a-textarea
               v-model:value="editedPrompt"
               :auto-size="{ minRows: 15, maxRows: 25 }"
@@ -191,49 +170,32 @@
           </div>
 
           <!-- 预览模式 - 渲染成功 -->
-          <div
-            v-else-if="renderedPrompt && !renderError"
-            class="preview-text"
-          >
+          <div v-else-if="renderedPrompt && !renderError" class="preview-text">
             <pre>{{ displayPrompt }}</pre>
           </div>
 
           <!-- 渲染错误 -->
-          <div
-            v-else-if="renderError"
-            class="preview-error"
-          >
+          <div v-else-if="renderError" class="preview-error">
             <ExclamationCircleOutlined />
             <span>渲染失败: {{ renderError }}</span>
           </div>
 
           <!-- 初始状态/等待必填字段 -->
-          <div
-            v-else
-            class="preview-placeholder"
-          >
+          <div v-else class="preview-placeholder">
             <FileTextOutlined />
-            <p v-if="variablesSchema.some(v => v.required)">
+            <p v-if="variablesSchema.some((v) => v.required)">
               请填写必填项后，这里将实时显示渲染后的提示词
             </p>
-            <p v-else>
-              填写变量后，这里将实时显示渲染后的提示词
-            </p>
+            <p v-else>填写变量后，这里将实时显示渲染后的提示词</p>
           </div>
         </div>
 
         <!-- 统计信息 -->
-        <div
-          v-if="displayPrompt"
-          class="preview-stats"
-        >
+        <div v-if="displayPrompt" class="preview-stats">
           <span>字符数: {{ displayPrompt.length }}</span>
           <span>•</span>
-          <span>行数: {{ displayPrompt.split('\n').length }}</span>
-          <span
-            v-if="hasEdited"
-            class="edited-badge"
-          >
+          <span>行数: {{ displayPrompt.split("\n").length }}</span>
+          <span v-if="hasEdited" class="edited-badge">
             <CheckCircleOutlined />
             已编辑
           </span>
@@ -244,10 +206,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, nextTick } from 'vue'
-import { message } from 'ant-design-vue'
+import { ref, computed, watch, nextTick } from "vue";
+import { message } from "ant-design-vue";
 import {
   InfoCircleOutlined,
   EyeOutlined,
@@ -255,123 +217,126 @@ import {
   FileTextOutlined,
   ExclamationCircleOutlined,
   UndoOutlined,
-  CheckCircleOutlined
-} from '@ant-design/icons-vue'
-import { useTemplateStore } from '@/stores/template'
-import { useProjectStore } from '@/stores/project'
-import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+  CheckCircleOutlined,
+} from "@ant-design/icons-vue";
+import { useTemplateStore } from "@/stores/template";
+import { useProjectStore } from "@/stores/project";
+import { useAuthStore } from "@/stores/auth";
+import { useRouter } from "vue-router";
 
 const props = defineProps({
   open: {
     type: Boolean,
-    default: false
+    default: false,
   },
   template: {
     type: Object,
-    default: null
-  }
-})
+    default: null,
+  },
+});
 
-const emit = defineEmits(['update:open', 'success', 'cancel', 'start-create'])
+const emit = defineEmits(["update:open", "success", "cancel", "start-create"]);
 
-const router = useRouter()
-const templateStore = useTemplateStore()
-const projectStore = useProjectStore()
-const authStore = useAuthStore()
+const router = useRouter();
+const templateStore = useTemplateStore();
+const projectStore = useProjectStore();
+const authStore = useAuthStore();
 
-const formRef = ref(null)
-const formData = ref({})
-const creating = ref(false)
+const formRef = ref(null);
+const formData = ref({});
+const creating = ref(false);
 
 // 预览相关状态
-const renderingPreview = ref(false)
-const renderedPrompt = ref('')
-const renderError = ref('')
-let renderDebounceTimer = null
+const renderingPreview = ref(false);
+const renderedPrompt = ref("");
+const renderError = ref("");
+let renderDebounceTimer = null;
 
 // 编辑模式相关状态
-const isEditMode = ref(false)
-const editedPrompt = ref('')
-const hasEdited = ref(false)
+const isEditMode = ref(false);
+const editedPrompt = ref("");
+const hasEdited = ref(false);
 
 const isVisible = computed({
   get: () => props.open,
-  set: (val) => emit('update:open', val)
-})
+  set: (val) => emit("update:open", val),
+});
 
 const modalTitle = computed(() => {
-  return `使用模板：${props.template?.display_name || '新建项目'}`
-})
+  return `使用模板：${props.template?.display_name || "新建项目"}`;
+});
 
 const variablesSchema = computed(() => {
-  return props.template?.variables_schema || []
-})
+  return props.template?.variables_schema || [];
+});
 
 // 显示的内容（编辑后的或原始的）
 const displayPrompt = computed(() => {
-  return hasEdited.value ? editedPrompt.value : renderedPrompt.value
-})
+  return hasEdited.value ? editedPrompt.value : renderedPrompt.value;
+});
 
 const formRules = computed(() => {
-  const rules = {}
-  variablesSchema.value.forEach(variable => {
+  const rules = {};
+  variablesSchema.value.forEach((variable) => {
     if (variable.required) {
       rules[variable.name] = [
         {
           required: true,
           message: `请输入${variable.label}`,
-          trigger: variable.type === 'select' ? 'change' : 'blur'
-        }
-      ]
+          trigger: variable.type === "select" ? "change" : "blur",
+        },
+      ];
     }
 
     // 数字类型的 min/max 验证
-    if (variable.type === 'number') {
-      const numberRules = []
+    if (variable.type === "number") {
+      const numberRules = [];
       if (variable.min !== undefined) {
         numberRules.push({
-          type: 'number',
+          type: "number",
           min: variable.min,
-          message: `${variable.label}不能小于${variable.min}`
-        })
+          message: `${variable.label}不能小于${variable.min}`,
+        });
       }
       if (variable.max !== undefined) {
         numberRules.push({
-          type: 'number',
+          type: "number",
           max: variable.max,
-          message: `${variable.label}不能大于${variable.max}`
-        })
+          message: `${variable.label}不能大于${variable.max}`,
+        });
       }
       if (numberRules.length > 0) {
-        rules[variable.name] = [...(rules[variable.name] || []), ...numberRules]
+        rules[variable.name] = [
+          ...(rules[variable.name] || []),
+          ...numberRules,
+        ];
       }
     }
 
     // 字符串的 pattern 验证
-    if (variable.type === 'string' && variable.pattern) {
+    if (variable.type === "string" && variable.pattern) {
       rules[variable.name] = [
         ...(rules[variable.name] || []),
         {
           pattern: new RegExp(variable.pattern),
-          message: variable.patternMessage || `${variable.label}格式不正确`
-        }
-      ]
+          message: variable.patternMessage || `${variable.label}格式不正确`,
+        },
+      ];
     }
-  })
-  return rules
-})
+  });
+  return rules;
+});
 
 // 监听 template 变化，初始化表单数据
 watch(
   () => props.template,
   (newTemplate) => {
     if (newTemplate) {
-      initFormData()
+      initFormData();
     }
   },
-  { immediate: true }
-)
+  { immediate: true },
+);
 
 // 监听 visible 变化，重置表单
 watch(
@@ -379,25 +344,25 @@ watch(
   (visible) => {
     if (visible) {
       nextTick(() => {
-        formRef.value?.resetFields()
-        initFormData()
+        formRef.value?.resetFields();
+        initFormData();
         // 重置编辑状态
-        isEditMode.value = false
-        hasEdited.value = false
-        editedPrompt.value = ''
+        isEditMode.value = false;
+        hasEdited.value = false;
+        editedPrompt.value = "";
         // 初次打开时渲染预览
-        renderPreview()
-      })
+        renderPreview();
+      });
     } else {
       // 关闭时清空预览
-      renderedPrompt.value = ''
-      renderError.value = ''
-      isEditMode.value = false
-      hasEdited.value = false
-      editedPrompt.value = ''
+      renderedPrompt.value = "";
+      renderError.value = "";
+      isEditMode.value = false;
+      hasEdited.value = false;
+      editedPrompt.value = "";
     }
-  }
-)
+  },
+);
 
 // 监听 formData 变化，实时渲染预览（带防抖）
 watch(
@@ -405,216 +370,220 @@ watch(
   () => {
     // 清除之前的定时器
     if (renderDebounceTimer) {
-      clearTimeout(renderDebounceTimer)
+      clearTimeout(renderDebounceTimer);
     }
     // 300ms 防抖
     renderDebounceTimer = setTimeout(() => {
-      renderPreview()
-    }, 300)
+      renderPreview();
+    }, 300);
   },
-  { deep: true }
-)
+  { deep: true },
+);
 
 // 监听 renderedPrompt 变化，同步到 editedPrompt
-watch(
-  renderedPrompt,
-  (newPrompt) => {
-    if (newPrompt && !hasEdited.value) {
-      editedPrompt.value = newPrompt
-    }
+watch(renderedPrompt, (newPrompt) => {
+  if (newPrompt && !hasEdited.value) {
+    editedPrompt.value = newPrompt;
   }
-)
+});
 
 function getSelectInitialValue(variable) {
-  const options = Array.isArray(variable.options) ? variable.options : []
+  const options = Array.isArray(variable.options) ? variable.options : [];
   if (options.length === 0) {
-    return variable.default ?? ''
+    return variable.default ?? "";
   }
 
   // allow default to match option value or label
   const matchedOption =
-    options.find(opt => opt.value === variable.default) ||
-    options.find(opt => opt.label === variable.default)
+    options.find((opt) => opt.value === variable.default) ||
+    options.find((opt) => opt.label === variable.default);
 
   if (matchedOption) {
-    return matchedOption.value
+    return matchedOption.value;
   }
 
-  if (typeof variable.default === 'string') {
+  if (typeof variable.default === "string") {
     const partialMatch = options.find(
-      opt => typeof opt.label === 'string' && opt.label.includes(variable.default)
-    )
+      (opt) =>
+        typeof opt.label === "string" && opt.label.includes(variable.default),
+    );
     if (partialMatch) {
-      return partialMatch.value
+      return partialMatch.value;
     }
   }
 
   // fallback to first option to keep select valid by default
-  return options[0]?.value ?? ''
+  return options[0]?.value ?? "";
 }
 
 function initFormData() {
-  const data = {}
-  variablesSchema.value.forEach(variable => {
-    if (variable.type === 'select') {
-      data[variable.name] = getSelectInitialValue(variable)
+  const data = {};
+  variablesSchema.value.forEach((variable) => {
+    if (variable.type === "select") {
+      data[variable.name] = getSelectInitialValue(variable);
     } else if (variable.default !== undefined) {
-      data[variable.name] = variable.default
-    } else if (variable.type === 'array') {
-      data[variable.name] = []
-    } else if (variable.type === 'boolean') {
-      data[variable.name] = false
-    } else if (variable.type === 'number') {
-      data[variable.name] = variable.min || 0
+      data[variable.name] = variable.default;
+    } else if (variable.type === "array") {
+      data[variable.name] = [];
+    } else if (variable.type === "boolean") {
+      data[variable.name] = false;
+    } else if (variable.type === "number") {
+      data[variable.name] = variable.min || 0;
     } else {
-      data[variable.name] = ''
+      data[variable.name] = "";
     }
-  })
-  formData.value = data
-  logger.info('[TemplateVariableModal] 初始化表单数据:', formData.value)
+  });
+  formData.value = data;
+  logger.info("[TemplateVariableModal] 初始化表单数据:", formData.value);
 }
 
 // 检查所有必填字段是否已填写
 function checkRequiredFields() {
   for (const variable of variablesSchema.value) {
     if (variable.required) {
-      const value = formData.value[variable.name]
+      const value = formData.value[variable.name];
       // 检查值是否为空
-      if (value === undefined || value === null || value === '' ||
-          (Array.isArray(value) && value.length === 0)) {
-        return false
+      if (
+        value === undefined ||
+        value === null ||
+        value === "" ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        return false;
       }
     }
   }
-  return true
+  return true;
 }
 
 // 渲染预览
 async function renderPreview() {
   if (!props.template || !props.template.id) {
-    logger.warn('[TemplateVariableModal] 模板或模板ID为空')
-    return
+    logger.warn("[TemplateVariableModal] 模板或模板ID为空");
+    return;
   }
 
   // 如果有必填字段未填写，清空预览并返回
   if (!checkRequiredFields()) {
-    renderedPrompt.value = ''
-    renderError.value = ''
-    return
+    renderedPrompt.value = "";
+    renderError.value = "";
+    return;
   }
 
   try {
-    renderingPreview.value = true
-    renderError.value = ''
+    renderingPreview.value = true;
+    renderError.value = "";
 
-    logger.info('[TemplateVariableModal] 开始渲染预览:', {
+    logger.info("[TemplateVariableModal] 开始渲染预览:", {
       templateId: props.template.id,
       templateName: props.template.display_name,
-      variables: formData.value
-    })
+      variables: formData.value,
+    });
 
     // 调用 API 渲染 prompt（renderPrompt 内部会调用 getTemplateById 获取完整数据）
     const prompt = await templateStore.renderPrompt(
       props.template.id,
-      formData.value
-    )
+      formData.value,
+    );
 
-    renderedPrompt.value = prompt
-    logger.info('[TemplateVariableModal] 预览渲染成功, 长度:', prompt?.length || 0)
+    renderedPrompt.value = prompt;
+    logger.info(
+      "[TemplateVariableModal] 预览渲染成功, 长度:",
+      prompt?.length || 0,
+    );
   } catch (error) {
-    logger.error('[TemplateVariableModal] 预览渲染失败:', error)
-    renderError.value = error.message || '渲染失败'
-    renderedPrompt.value = ''
+    logger.error("[TemplateVariableModal] 预览渲染失败:", error);
+    renderError.value = error.message || "渲染失败";
+    renderedPrompt.value = "";
   } finally {
-    renderingPreview.value = false
+    renderingPreview.value = false;
   }
 }
 
 // 切换编辑/预览模式
 function toggleEditMode() {
-  isEditMode.value = !isEditMode.value
-  logger.info('[TemplateVariableModal] 切换编辑模式:', isEditMode.value)
+  isEditMode.value = !isEditMode.value;
+  logger.info("[TemplateVariableModal] 切换编辑模式:", isEditMode.value);
 }
 
 // 处理内容编辑
 function handleContentEdit() {
-  hasEdited.value = true
-  logger.info('[TemplateVariableModal] 内容已编辑')
+  hasEdited.value = true;
+  logger.info("[TemplateVariableModal] 内容已编辑");
 }
 
 // 重置编辑内容
 function resetEditedContent() {
-  editedPrompt.value = renderedPrompt.value
-  hasEdited.value = false
-  message.success('已重置为原始内容')
-  logger.info('[TemplateVariableModal] 重置编辑内容')
+  editedPrompt.value = renderedPrompt.value;
+  hasEdited.value = false;
+  message.success("已重置为原始内容");
+  logger.info("[TemplateVariableModal] 重置编辑内容");
 }
 
 async function handleSubmit() {
   try {
     // 1. 验证表单
-    await formRef.value?.validate()
+    await formRef.value?.validate();
 
     // 2. 使用编辑后的内容或渲染的内容
-    creating.value = true
-    let finalPrompt = displayPrompt.value
+    creating.value = true;
+    let finalPrompt = displayPrompt.value;
 
     // 如果没有编辑过且没有渲染内容，则重新渲染
     if (!finalPrompt) {
-      logger.info('[TemplateVariableModal] 渲染 prompt...', {
+      logger.info("[TemplateVariableModal] 渲染 prompt...", {
         templateId: props.template.id,
-        variables: formData.value
-      })
+        variables: formData.value,
+      });
 
       finalPrompt = await templateStore.renderPrompt(
         props.template.id,
-        formData.value
-      )
+        formData.value,
+      );
     }
 
-    logger.info('[TemplateVariableModal] 使用最终内容:', {
+    logger.info("[TemplateVariableModal] 使用最终内容:", {
       length: finalPrompt?.length || 0,
-      hasEdited: hasEdited.value
-    })
+      hasEdited: hasEdited.value,
+    });
 
     // 3. 获取项目名称（使用第一个变量的值或模板名称）
-    const firstVariable = variablesSchema.value[0]
-    let projectName = props.template.display_name
+    const firstVariable = variablesSchema.value[0];
+    let projectName = props.template.display_name;
     if (firstVariable && formData.value[firstVariable.name]) {
-      projectName = String(formData.value[firstVariable.name]).substring(0, 50)
+      projectName = String(formData.value[firstVariable.name]).substring(0, 50);
     }
 
     // 4. Emit 创建事件，让父组件处理流式创建和进度展示
-    logger.info('[TemplateVariableModal] Emit start-create 事件')
-    emit('start-create', {
+    logger.info("[TemplateVariableModal] Emit start-create 事件");
+    emit("start-create", {
       templateId: props.template.id,
       projectName: projectName,
-      projectType: props.template.project_type || 'document',
+      projectType: props.template.project_type || "document",
       renderedPrompt: finalPrompt,
       variables: formData.value,
-      isEdited: hasEdited.value
-    })
+      isEdited: hasEdited.value,
+    });
 
     // 5. 重置状态并关闭对话框
-    creating.value = false
-    isVisible.value = false
-
+    creating.value = false;
+    isVisible.value = false;
   } catch (error) {
     if (error.errorFields) {
       // 表单验证错误
-      message.warning('请填写必填项')
+      message.warning("请填写必填项");
     } else {
-      logger.error('[TemplateVariableModal] 提交失败:', error)
-      message.error('创建失败: ' + (error.message || '未知错误'))
+      logger.error("[TemplateVariableModal] 提交失败:", error);
+      message.error("创建失败: " + (error.message || "未知错误"));
     }
-    creating.value = false
+    creating.value = false;
   }
 }
 
 function handleCancel() {
   if (!creating.value) {
-    isVisible.value = false
-    emit('cancel')
+    isVisible.value = false;
+    emit("cancel");
   }
 }
 </script>
@@ -636,7 +605,11 @@ function handleCancel() {
   .template-description {
     margin-bottom: 24px;
     padding: 12px 16px;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 0.05) 0%,
+      rgba(118, 75, 162, 0.05) 100%
+    );
     border-left: 3px solid #667eea;
     border-radius: 4px;
 
@@ -738,7 +711,11 @@ function handleCancel() {
     justify-content: space-between;
     gap: 8px;
     padding: 12px 16px;
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+    background: linear-gradient(
+      135deg,
+      rgba(102, 126, 234, 0.05) 0%,
+      rgba(118, 75, 162, 0.05) 100%
+    );
     border-bottom: 1px solid #e5e5ea;
     font-weight: 600;
     color: #667eea;
@@ -789,7 +766,7 @@ function handleCancel() {
 
     .preview-editor {
       .editor-textarea {
-        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
         font-size: 13px;
         line-height: 1.6;
         border-radius: 8px;
@@ -801,7 +778,7 @@ function handleCancel() {
         }
 
         :deep(textarea) {
-          font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+          font-family: "Consolas", "Monaco", "Courier New", monospace;
           font-size: 13px;
           line-height: 1.6;
         }
@@ -812,7 +789,7 @@ function handleCancel() {
       pre {
         margin: 0;
         padding: 0;
-        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-family: "Consolas", "Monaco", "Courier New", monospace;
         font-size: 13px;
         line-height: 1.6;
         color: #1d1d1f;

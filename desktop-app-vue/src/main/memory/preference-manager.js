@@ -15,7 +15,7 @@
  * @since 2026-01-17
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -446,10 +446,7 @@ class PreferenceManager extends EventEmitter {
 
       return result;
     } catch (error) {
-      logger.error(
-        "[PreferenceManager] Failed to get all preferences:",
-        error,
-      );
+      logger.error("[PreferenceManager] Failed to get all preferences:", error);
       return {};
     }
   }
@@ -735,10 +732,7 @@ class PreferenceManager extends EventEmitter {
       const filePath = path.join(this.preferencesDir, `${category}.json`);
       await fs.writeFile(filePath, JSON.stringify(prefs, null, 2), "utf-8");
     } catch (error) {
-      logger.error(
-        `[PreferenceManager] Backup failed for ${category}:`,
-        error,
-      );
+      logger.error(`[PreferenceManager] Backup failed for ${category}:`, error);
     }
   }
 
@@ -787,7 +781,9 @@ class PreferenceManager extends EventEmitter {
       const results = {};
 
       for (const file of files) {
-        if (!file.endsWith(".json")) {continue;}
+        if (!file.endsWith(".json")) {
+          continue;
+        }
 
         const category = path.basename(file, ".json");
 

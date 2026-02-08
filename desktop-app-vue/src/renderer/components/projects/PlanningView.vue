@@ -9,9 +9,7 @@
         <LoadingOutlined spin />
         <h3>正在分析您的需求...</h3>
       </div>
-      <p class="stage-desc">
-        AI正在理解您的需求并检查是否需要补充信息
-      </p>
+      <p class="stage-desc">AI正在理解您的需求并检查是否需要补充信息</p>
     </div>
 
     <!-- 采访阶段 -->
@@ -24,27 +22,28 @@
         <h3>需要了解更多信息</h3>
       </div>
       <p class="stage-desc">
-        为了更好地完成任务，请回答以下问题
-        ({{ currentQuestionIndex + 1 }}/{{ totalQuestions }})
+        为了更好地完成任务，请回答以下问题 ({{ currentQuestionIndex + 1 }}/{{
+          totalQuestions
+        }})
       </p>
 
       <!-- 当前问题 -->
-      <div
-        v-if="currentQuestion"
-        class="current-question"
-      >
+      <div v-if="currentQuestion" class="current-question">
         <div class="question-text">
-          <span class="question-number">问题 {{ currentQuestionIndex + 1 }}</span>
-          <span
-            v-if="currentQuestion.required"
-            class="required-mark"
-          >*</span>
+          <span class="question-number"
+            >问题 {{ currentQuestionIndex + 1 }}</span
+          >
+          <span v-if="currentQuestion.required" class="required-mark">*</span>
           {{ currentQuestion.question }}
         </div>
 
         <a-textarea
           v-model:value="currentAnswer"
-          :placeholder="currentQuestion.required ? '请输入答案（必填）' : '请输入答案（选填，可跳过）'"
+          :placeholder="
+            currentQuestion.required
+              ? '请输入答案（必填）'
+              : '请输入答案（选填，可跳过）'
+          "
           :auto-size="{ minRows: 2, maxRows: 6 }"
           class="answer-input"
           @keydown.ctrl.enter="handleSubmitAnswer"
@@ -64,16 +63,13 @@
             size="small"
             @click="handleSubmitAnswer"
           >
-            {{ currentQuestionIndex < totalQuestions - 1 ? '下一个' : '完成' }}
+            {{ currentQuestionIndex < totalQuestions - 1 ? "下一个" : "完成" }}
           </a-button>
         </div>
       </div>
 
       <!-- 已回答的问题 -->
-      <div
-        v-if="answeredQuestions.length > 0"
-        class="answered-questions"
-      >
+      <div v-if="answeredQuestions.length > 0" class="answered-questions">
         <a-collapse>
           <a-collapse-panel
             v-for="(item, index) in answeredQuestions"
@@ -81,7 +77,7 @@
             :header="`✓ ${item.question.question}`"
           >
             <div class="answer-text">
-              {{ item.answer || '已跳过' }}
+              {{ item.answer || "已跳过" }}
             </div>
           </a-collapse-panel>
         </a-collapse>
@@ -97,9 +93,7 @@
         <LoadingOutlined spin />
         <h3>正在生成任务计划...</h3>
       </div>
-      <p class="stage-desc">
-        AI正在根据您提供的信息制定详细的执行计划
-      </p>
+      <p class="stage-desc">AI正在根据您提供的信息制定详细的执行计划</p>
     </div>
 
     <!-- 计划确认阶段 -->
@@ -112,10 +106,7 @@
         <h3>任务计划已生成</h3>
       </div>
 
-      <div
-        v-if="plan"
-        class="plan-content"
-      >
+      <div v-if="plan" class="plan-content">
         <!-- 计划标题和摘要 -->
         <div class="plan-header">
           <h2>{{ plan.title }}</h2>
@@ -159,26 +150,17 @@
         >
           <h3>🎯 预期输出</h3>
           <ul>
-            <li
-              v-for="(output, index) in plan.outputs"
-              :key="index"
-            >
+            <li v-for="(output, index) in plan.outputs" :key="index">
               {{ output }}
             </li>
           </ul>
         </div>
 
         <!-- 注意事项 -->
-        <div
-          v-if="plan.notes && plan.notes.length > 0"
-          class="plan-notes"
-        >
+        <div v-if="plan.notes && plan.notes.length > 0" class="plan-notes">
           <h3>⚠️ 注意事项</h3>
           <ul>
-            <li
-              v-for="(note, index) in plan.notes"
-              :key="index"
-            >
+            <li v-for="(note, index) in plan.notes" :key="index">
               {{ note }}
             </li>
           </ul>
@@ -186,25 +168,15 @@
 
         <!-- 确认按钮 -->
         <div class="plan-actions">
-          <a-button
-            size="large"
-            @click="handleCancelPlan"
-          >
+          <a-button size="large" @click="handleCancelPlan">
             <CloseOutlined />
             取消
           </a-button>
-          <a-button
-            size="large"
-            @click="handleModifyPlan"
-          >
+          <a-button size="large" @click="handleModifyPlan">
             <EditOutlined />
             修改计划
           </a-button>
-          <a-button
-            type="primary"
-            size="large"
-            @click="handleConfirmPlan"
-          >
+          <a-button type="primary" size="large" @click="handleConfirmPlan">
             <CheckOutlined />
             确认执行
           </a-button>
@@ -221,14 +193,9 @@
         <LoadingOutlined spin />
         <h3>正在执行任务...</h3>
       </div>
-      <p class="stage-desc">
-        AI正在按照计划执行任务，请稍候
-      </p>
+      <p class="stage-desc">AI正在按照计划执行任务，请稍候</p>
 
-      <div
-        v-if="executingTask"
-        class="current-task"
-      >
+      <div v-if="executingTask" class="current-task">
         <a-progress
           :percent="executionProgress"
           :status="executionProgress === 100 ? 'success' : 'active'"
@@ -242,9 +209,9 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from "vue";
 import {
   LoadingOutlined,
   QuestionCircleOutlined,
@@ -252,8 +219,8 @@ import {
   CheckOutlined,
   EditOutlined,
   CloseOutlined,
-} from '@ant-design/icons-vue';
-import { PlanningState } from '../../utils/taskPlanner';
+} from "@ant-design/icons-vue";
+import { PlanningState } from "../../utils/taskPlanner";
 
 const props = defineProps({
   state: {
@@ -267,19 +234,21 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'answer-submitted',
-  'question-skipped',
-  'plan-confirmed',
-  'plan-cancelled',
-  'plan-modify',
+  "answer-submitted",
+  "question-skipped",
+  "plan-confirmed",
+  "plan-cancelled",
+  "plan-modify",
 ]);
 
 // 当前问题和答案
-const currentAnswer = ref('');
+const currentAnswer = ref("");
 
 // 计算属性
 const currentQuestion = computed(() => {
-  if (!props.session?.interview) {return null;}
+  if (!props.session?.interview) {
+    return null;
+  }
   const index = props.session.interview.currentIndex;
   return props.session.interview.questions[index] || null;
 });
@@ -293,7 +262,9 @@ const totalQuestions = computed(() => {
 });
 
 const answeredQuestions = computed(() => {
-  if (!props.session?.interview) {return [];}
+  if (!props.session?.interview) {
+    return [];
+  }
   return props.session.interview.questions
     .slice(0, currentQuestionIndex.value)
     .map((q, index) => ({
@@ -304,7 +275,7 @@ const answeredQuestions = computed(() => {
 
 const plan = computed(() => props.session?.plan);
 
-const executingTask = ref('');
+const executingTask = ref("");
 const executionProgress = ref(0);
 
 // 方法
@@ -313,46 +284,53 @@ const handleSubmitAnswer = () => {
     return;
   }
 
-  emit('answer-submitted', {
+  emit("answer-submitted", {
     questionIndex: currentQuestionIndex.value,
     answer: currentAnswer.value.trim(),
   });
 
-  currentAnswer.value = '';
+  currentAnswer.value = "";
 };
 
 const handleSkipQuestion = () => {
-  emit('question-skipped', currentQuestionIndex.value);
-  currentAnswer.value = '';
+  emit("question-skipped", currentQuestionIndex.value);
+  currentAnswer.value = "";
 };
 
 const handleConfirmPlan = () => {
-  emit('plan-confirmed');
+  emit("plan-confirmed");
 };
 
 const handleCancelPlan = () => {
-  emit('plan-cancelled');
+  emit("plan-cancelled");
 };
 
 const handleModifyPlan = () => {
-  emit('plan-modify');
+  emit("plan-modify");
 };
 
 // 组件挂载时输出日志
 onMounted(() => {
-  logger.info('[PlanningView] 组件已挂载');
-  logger.info('[PlanningView] state:', props.state);
-  logger.info('[PlanningView] session:', props.session);
+  logger.info("[PlanningView] 组件已挂载");
+  logger.info("[PlanningView] state:", props.state);
+  logger.info("[PlanningView] session:", props.session);
 });
 
 // 监听状态变化
-watch(() => props.state, (newState, oldState) => {
-  logger.info('[PlanningView] 状态变化:', oldState, '→', newState);
-});
+watch(
+  () => props.state,
+  (newState, oldState) => {
+    logger.info("[PlanningView] 状态变化:", oldState, "→", newState);
+  },
+);
 
-watch(() => props.session, (newSession) => {
-  logger.info('[PlanningView] session变化:', newSession);
-}, { deep: true });
+watch(
+  () => props.session,
+  (newSession) => {
+    logger.info("[PlanningView] session变化:", newSession);
+  },
+  { deep: true },
+);
 
 // 暴露方法供父组件调用
 defineExpose({

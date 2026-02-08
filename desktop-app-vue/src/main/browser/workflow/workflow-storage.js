@@ -6,8 +6,8 @@
  * @since v0.30.0
  */
 
-const { v4: uuidv4 } = require('uuid');
-const { logger } = require('../../utils/logger');
+const { v4: uuidv4 } = require("uuid");
+const { logger } = require("../../utils/logger");
 
 /**
  * Workflow Storage class for database operations
@@ -47,12 +47,15 @@ class WorkflowStorage {
       workflow.isEnabled !== false ? 1 : 0,
       workflow.createdBy || null,
       now,
-      now
+      now,
     ];
 
     try {
       this.db.run(sql, params);
-      logger.info('[WorkflowStorage] Workflow created', { id, name: workflow.name });
+      logger.info("[WorkflowStorage] Workflow created", {
+        id,
+        name: workflow.name,
+      });
 
       return {
         id,
@@ -66,10 +69,12 @@ class WorkflowStorage {
         usageCount: 0,
         successCount: 0,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
       };
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to create workflow', { error: error.message });
+      logger.error("[WorkflowStorage] Failed to create workflow", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -95,7 +100,10 @@ class WorkflowStorage {
       stmt.free();
       return null;
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to get workflow', { id, error: error.message });
+      logger.error("[WorkflowStorage] Failed to get workflow", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -113,8 +121,8 @@ class WorkflowStorage {
       search,
       limit = 100,
       offset = 0,
-      orderBy = 'updated_at',
-      orderDir = 'DESC'
+      orderBy = "updated_at",
+      orderDir = "DESC",
     } = options;
 
     let sql = `SELECT * FROM browser_workflows WHERE 1=1`;
@@ -137,15 +145,21 @@ class WorkflowStorage {
 
     if (tags && tags.length > 0) {
       // Match any tag
-      const tagConditions = tags.map(() => `tags LIKE ?`).join(' OR ');
+      const tagConditions = tags.map(() => `tags LIKE ?`).join(" OR ");
       sql += ` AND (${tagConditions})`;
-      tags.forEach(tag => params.push(`%"${tag}"%`));
+      tags.forEach((tag) => params.push(`%"${tag}"%`));
     }
 
     // Validate orderBy to prevent SQL injection
-    const validColumns = ['updated_at', 'created_at', 'name', 'usage_count', 'last_executed_at'];
-    const safeOrderBy = validColumns.includes(orderBy) ? orderBy : 'updated_at';
-    const safeOrderDir = orderDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const validColumns = [
+      "updated_at",
+      "created_at",
+      "name",
+      "usage_count",
+      "last_executed_at",
+    ];
+    const safeOrderBy = validColumns.includes(orderBy) ? orderBy : "updated_at";
+    const safeOrderDir = orderDir.toUpperCase() === "ASC" ? "ASC" : "DESC";
 
     sql += ` ORDER BY ${safeOrderBy} ${safeOrderDir} LIMIT ? OFFSET ?`;
     params.push(limit, offset);
@@ -162,7 +176,9 @@ class WorkflowStorage {
 
       return workflows;
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to list workflows', { error: error.message });
+      logger.error("[WorkflowStorage] Failed to list workflows", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -174,18 +190,26 @@ class WorkflowStorage {
    * @returns {Object} Updated workflow
    */
   async updateWorkflow(id, updates) {
-    const allowed = ['name', 'description', 'steps', 'variables', 'triggers',
-                     'tags', 'isTemplate', 'isEnabled'];
+    const allowed = [
+      "name",
+      "description",
+      "steps",
+      "variables",
+      "triggers",
+      "tags",
+      "isTemplate",
+      "isEnabled",
+    ];
     const setClauses = [];
     const params = [];
 
     for (const key of allowed) {
       if (updates[key] !== undefined) {
         const dbKey = this._toSnakeCase(key);
-        if (['steps', 'variables', 'triggers', 'tags'].includes(key)) {
+        if (["steps", "variables", "triggers", "tags"].includes(key)) {
           setClauses.push(`${dbKey} = ?`);
           params.push(JSON.stringify(updates[key]));
-        } else if (['isTemplate', 'isEnabled'].includes(key)) {
+        } else if (["isTemplate", "isEnabled"].includes(key)) {
           setClauses.push(`${dbKey} = ?`);
           params.push(updates[key] ? 1 : 0);
         } else {
@@ -199,18 +223,21 @@ class WorkflowStorage {
       return this.getWorkflow(id);
     }
 
-    setClauses.push('updated_at = ?');
+    setClauses.push("updated_at = ?");
     params.push(Date.now());
     params.push(id);
 
-    const sql = `UPDATE browser_workflows SET ${setClauses.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE browser_workflows SET ${setClauses.join(", ")} WHERE id = ?`;
 
     try {
       this.db.run(sql, params);
-      logger.info('[WorkflowStorage] Workflow updated', { id });
+      logger.info("[WorkflowStorage] Workflow updated", { id });
       return this.getWorkflow(id);
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to update workflow', { id, error: error.message });
+      logger.error("[WorkflowStorage] Failed to update workflow", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -225,10 +252,13 @@ class WorkflowStorage {
 
     try {
       this.db.run(sql, [id]);
-      logger.info('[WorkflowStorage] Workflow deleted', { id });
+      logger.info("[WorkflowStorage] Workflow deleted", { id });
       return true;
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to delete workflow', { id, error: error.message });
+      logger.error("[WorkflowStorage] Failed to delete workflow", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -253,7 +283,7 @@ class WorkflowStorage {
       triggers: [], // Don't copy triggers
       tags: source.tags,
       isTemplate: false,
-      isEnabled: true
+      isEnabled: true,
     });
   }
 
@@ -280,30 +310,35 @@ class WorkflowStorage {
       execution.workflowId,
       execution.workflowName || null,
       execution.targetId || null,
-      execution.status || 'pending',
+      execution.status || "pending",
       JSON.stringify(execution.variables || {}),
       execution.totalSteps || 0,
-      now
+      now,
     ];
 
     try {
       this.db.run(sql, params);
-      logger.info('[WorkflowStorage] Execution created', { id, workflowId: execution.workflowId });
+      logger.info("[WorkflowStorage] Execution created", {
+        id,
+        workflowId: execution.workflowId,
+      });
 
       return {
         id,
         workflowId: execution.workflowId,
         workflowName: execution.workflowName,
         targetId: execution.targetId,
-        status: 'pending',
+        status: "pending",
         variablesSnapshot: execution.variables || {},
         results: [],
         currentStep: 0,
         totalSteps: execution.totalSteps || 0,
-        startedAt: now
+        startedAt: now,
       };
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to create execution', { error: error.message });
+      logger.error("[WorkflowStorage] Failed to create execution", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -319,50 +354,50 @@ class WorkflowStorage {
     const params = [];
 
     if (updates.status !== undefined) {
-      setClauses.push('status = ?');
+      setClauses.push("status = ?");
       params.push(updates.status);
     }
 
     if (updates.currentStep !== undefined) {
-      setClauses.push('current_step = ?');
+      setClauses.push("current_step = ?");
       params.push(updates.currentStep);
     }
 
     if (updates.results !== undefined) {
-      setClauses.push('results = ?');
+      setClauses.push("results = ?");
       params.push(JSON.stringify(updates.results));
     }
 
     if (updates.errorMessage !== undefined) {
-      setClauses.push('error_message = ?');
+      setClauses.push("error_message = ?");
       params.push(updates.errorMessage);
     }
 
     if (updates.errorStep !== undefined) {
-      setClauses.push('error_step = ?');
+      setClauses.push("error_step = ?");
       params.push(updates.errorStep);
     }
 
-    if (updates.status === 'paused') {
-      setClauses.push('paused_at = ?');
+    if (updates.status === "paused") {
+      setClauses.push("paused_at = ?");
       params.push(Date.now());
     }
 
-    if (['completed', 'failed', 'cancelled'].includes(updates.status)) {
+    if (["completed", "failed", "cancelled"].includes(updates.status)) {
       const now = Date.now();
-      setClauses.push('completed_at = ?');
+      setClauses.push("completed_at = ?");
       params.push(now);
 
       // Calculate duration
       const execution = await this.getExecution(id);
       if (execution) {
-        setClauses.push('duration = ?');
+        setClauses.push("duration = ?");
         params.push(now - execution.startedAt);
       }
     }
 
     if (updates.retryCount !== undefined) {
-      setClauses.push('retry_count = ?');
+      setClauses.push("retry_count = ?");
       params.push(updates.retryCount);
     }
 
@@ -371,13 +406,16 @@ class WorkflowStorage {
     }
 
     params.push(id);
-    const sql = `UPDATE browser_workflow_executions SET ${setClauses.join(', ')} WHERE id = ?`;
+    const sql = `UPDATE browser_workflow_executions SET ${setClauses.join(", ")} WHERE id = ?`;
 
     try {
       this.db.run(sql, params);
       return this.getExecution(id);
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to update execution', { id, error: error.message });
+      logger.error("[WorkflowStorage] Failed to update execution", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -403,7 +441,10 @@ class WorkflowStorage {
       stmt.free();
       return null;
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to get execution', { id, error: error.message });
+      logger.error("[WorkflowStorage] Failed to get execution", {
+        id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -444,7 +485,9 @@ class WorkflowStorage {
 
       return executions;
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to list executions', { error: error.message });
+      logger.error("[WorkflowStorage] Failed to list executions", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -459,14 +502,20 @@ class WorkflowStorage {
    */
   async updateWorkflowStats(workflowId, success, duration) {
     const workflow = await this.getWorkflow(workflowId);
-    if (!workflow) return;
+    if (!workflow) {
+      return;
+    }
 
     const usageCount = workflow.usageCount + 1;
-    const successCount = success ? workflow.successCount + 1 : workflow.successCount;
+    const successCount = success
+      ? workflow.successCount + 1
+      : workflow.successCount;
 
     // Calculate running average duration
     const avgDuration = workflow.avgDuration
-      ? Math.round((workflow.avgDuration * workflow.usageCount + duration) / usageCount)
+      ? Math.round(
+          (workflow.avgDuration * workflow.usageCount + duration) / usageCount,
+        )
       : duration;
 
     const sql = `
@@ -477,9 +526,19 @@ class WorkflowStorage {
 
     const now = Date.now();
     try {
-      this.db.run(sql, [usageCount, successCount, avgDuration, now, now, workflowId]);
+      this.db.run(sql, [
+        usageCount,
+        successCount,
+        avgDuration,
+        now,
+        now,
+        workflowId,
+      ]);
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to update workflow stats', { workflowId, error: error.message });
+      logger.error("[WorkflowStorage] Failed to update workflow stats", {
+        workflowId,
+        error: error.message,
+      });
     }
   }
 
@@ -490,7 +549,9 @@ class WorkflowStorage {
    */
   async getWorkflowStats(workflowId) {
     const workflow = await this.getWorkflow(workflowId);
-    if (!workflow) return null;
+    if (!workflow) {
+      return null;
+    }
 
     // Get recent execution stats
     const recentSql = `
@@ -517,20 +578,24 @@ class WorkflowStorage {
 
       return {
         totalExecutions: workflow.usageCount,
-        successRate: workflow.usageCount > 0
-          ? (workflow.successCount / workflow.usageCount * 100).toFixed(1)
-          : 0,
+        successRate:
+          workflow.usageCount > 0
+            ? ((workflow.successCount / workflow.usageCount) * 100).toFixed(1)
+            : 0,
         avgDuration: workflow.avgDuration,
         lastExecutedAt: workflow.lastExecutedAt,
         recentWeek: {
           total: recentStats.total || 0,
           completed: recentStats.completed || 0,
           failed: recentStats.failed || 0,
-          avgDuration: Math.round(recentStats.avgDuration || 0)
-        }
+          avgDuration: Math.round(recentStats.avgDuration || 0),
+        },
       };
     } catch (error) {
-      logger.error('[WorkflowStorage] Failed to get workflow stats', { workflowId, error: error.message });
+      logger.error("[WorkflowStorage] Failed to get workflow stats", {
+        workflowId,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -549,12 +614,20 @@ class WorkflowStorage {
     }
 
     // Remove internal fields
-    const { usageCount, successCount, lastExecutedAt, avgDuration, createdAt, updatedAt, ...exportData } = workflow;
+    const {
+      usageCount,
+      successCount,
+      lastExecutedAt,
+      avgDuration,
+      createdAt,
+      updatedAt,
+      ...exportData
+    } = workflow;
 
     return {
-      version: '1.0',
+      version: "1.0",
       exportedAt: new Date().toISOString(),
-      workflow: exportData
+      workflow: exportData,
     };
   }
 
@@ -566,7 +639,7 @@ class WorkflowStorage {
    */
   async importWorkflow(data, options = {}) {
     if (!data.workflow) {
-      throw new Error('Invalid import data: missing workflow');
+      throw new Error("Invalid import data: missing workflow");
     }
 
     const workflow = data.workflow;
@@ -591,10 +664,10 @@ class WorkflowStorage {
       id: row.id,
       name: row.name,
       description: row.description,
-      steps: JSON.parse(row.steps || '[]'),
-      variables: JSON.parse(row.variables || '{}'),
-      triggers: JSON.parse(row.triggers || '[]'),
-      tags: JSON.parse(row.tags || '[]'),
+      steps: JSON.parse(row.steps || "[]"),
+      variables: JSON.parse(row.variables || "{}"),
+      triggers: JSON.parse(row.triggers || "[]"),
+      tags: JSON.parse(row.tags || "[]"),
       isTemplate: row.is_template === 1,
       isEnabled: row.is_enabled === 1,
       usageCount: row.usage_count || 0,
@@ -603,7 +676,7 @@ class WorkflowStorage {
       avgDuration: row.avg_duration,
       createdBy: row.created_by,
       createdAt: row.created_at,
-      updatedAt: row.updated_at
+      updatedAt: row.updated_at,
     };
   }
 
@@ -614,8 +687,8 @@ class WorkflowStorage {
       workflowName: row.workflow_name,
       targetId: row.target_id,
       status: row.status,
-      variablesSnapshot: JSON.parse(row.variables_snapshot || '{}'),
-      results: JSON.parse(row.results || '[]'),
+      variablesSnapshot: JSON.parse(row.variables_snapshot || "{}"),
+      results: JSON.parse(row.results || "[]"),
       currentStep: row.current_step || 0,
       totalSteps: row.total_steps || 0,
       errorMessage: row.error_message,
@@ -624,12 +697,12 @@ class WorkflowStorage {
       startedAt: row.started_at,
       pausedAt: row.paused_at,
       completedAt: row.completed_at,
-      duration: row.duration
+      duration: row.duration,
     };
   }
 
   _toSnakeCase(str) {
-    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+    return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 }
 

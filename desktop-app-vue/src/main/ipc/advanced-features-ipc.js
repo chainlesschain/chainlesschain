@@ -3,7 +3,7 @@
  * 将三大高级特性集成到主应用的IPC系统
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");

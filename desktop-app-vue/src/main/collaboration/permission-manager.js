@@ -17,8 +17,8 @@
  * - manage: Can manage permissions
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 class PermissionManager extends EventEmitter {
   constructor(database) {
@@ -27,29 +27,29 @@ class PermissionManager extends EventEmitter {
 
     // Permission hierarchy (higher level includes lower level permissions)
     this.roleHierarchy = {
-      owner: ['view', 'edit', 'delete', 'share', 'manage'],
-      admin: ['view', 'edit', 'delete', 'share'],
-      editor: ['view', 'edit'],
-      member: ['view'],
-      viewer: ['view']
+      owner: ["view", "edit", "delete", "share", "manage"],
+      admin: ["view", "edit", "delete", "share"],
+      editor: ["view", "edit"],
+      member: ["view"],
+      viewer: ["view"],
     };
 
     // Default folder permissions
     this.defaultFolderPermissions = {
-      view: ['member', 'editor', 'admin', 'owner'],
-      edit: ['editor', 'admin', 'owner'],
-      delete: ['admin', 'owner'],
-      share: ['admin', 'owner'],
-      manage: ['owner']
+      view: ["member", "editor", "admin", "owner"],
+      edit: ["editor", "admin", "owner"],
+      delete: ["admin", "owner"],
+      share: ["admin", "owner"],
+      manage: ["owner"],
     };
 
     // Default knowledge permissions
     this.defaultKnowledgePermissions = {
-      view: ['member', 'editor', 'admin', 'owner'],
-      edit: ['editor', 'admin', 'owner'],
-      delete: ['admin', 'owner'],
-      share: ['admin', 'owner'],
-      comment: ['member', 'editor', 'admin', 'owner']
+      view: ["member", "editor", "admin", "owner"],
+      edit: ["editor", "admin", "owner"],
+      delete: ["admin", "owner"],
+      share: ["admin", "owner"],
+      comment: ["member", "editor", "admin", "owner"],
     };
   }
 
@@ -61,23 +61,27 @@ class PermissionManager extends EventEmitter {
       // Get user's role in organization
       const userRole = await this.getUserRole(orgId, userDID);
       if (!userRole) {
-        logger.info(`[PermissionManager] User ${userDID} not found in org ${orgId}`);
+        logger.info(
+          `[PermissionManager] User ${userDID} not found in org ${orgId}`,
+        );
         return false;
       }
 
       // Owner has all permissions
-      if (userRole === 'owner') {
+      if (userRole === "owner") {
         return true;
       }
 
       // Get resource permissions
       let permissions;
-      if (resourceType === 'folder') {
+      if (resourceType === "folder") {
         permissions = await this.getFolderPermissions(resourceId);
-      } else if (resourceType === 'knowledge') {
+      } else if (resourceType === "knowledge") {
         permissions = await this.getKnowledgePermissions(resourceId);
       } else {
-        logger.warn(`[PermissionManager] Unknown resource type: ${resourceType}`);
+        logger.warn(
+          `[PermissionManager] Unknown resource type: ${resourceType}`,
+        );
         return false;
       }
 
@@ -85,12 +89,13 @@ class PermissionManager extends EventEmitter {
       const allowedRoles = permissions[action] || [];
       const hasPermission = allowedRoles.includes(userRole);
 
-      logger.info(`[PermissionManager] User ${userDID} (${userRole}) ${hasPermission ? 'HAS' : 'DOES NOT HAVE'} ${action} permission on ${resourceType} ${resourceId}`);
+      logger.info(
+        `[PermissionManager] User ${userDID} (${userRole}) ${hasPermission ? "HAS" : "DOES NOT HAVE"} ${action} permission on ${resourceType} ${resourceId}`,
+      );
 
       return hasPermission;
-
     } catch (error) {
-      logger.error('[PermissionManager] Error checking permission:', error);
+      logger.error("[PermissionManager] Error checking permission:", error);
       return false;
     }
   }
@@ -101,15 +106,18 @@ class PermissionManager extends EventEmitter {
   async getUserRole(orgId, userDID) {
     try {
       const db = this.database.getDatabase();
-      const member = db.prepare(`
+      const member = db
+        .prepare(
+          `
         SELECT role FROM organization_members
         WHERE org_id = ? AND member_did = ?
-      `).get(orgId, userDID);
+      `,
+        )
+        .get(orgId, userDID);
 
       return member?.role || null;
-
     } catch (error) {
-      logger.error('[PermissionManager] Error getting user role:', error);
+      logger.error("[PermissionManager] Error getting user role:", error);
       return null;
     }
   }
@@ -120,19 +128,25 @@ class PermissionManager extends EventEmitter {
   async getFolderPermissions(folderId) {
     try {
       const db = this.database.getDatabase();
-      const folder = db.prepare(`
+      const folder = db
+        .prepare(
+          `
         SELECT permissions FROM org_knowledge_folders
         WHERE id = ?
-      `).get(folderId);
+      `,
+        )
+        .get(folderId);
 
       if (!folder) {
         return this.defaultFolderPermissions;
       }
 
       return JSON.parse(folder.permissions);
-
     } catch (error) {
-      logger.error('[PermissionManager] Error getting folder permissions:', error);
+      logger.error(
+        "[PermissionManager] Error getting folder permissions:",
+        error,
+      );
       return this.defaultFolderPermissions;
     }
   }
@@ -143,19 +157,25 @@ class PermissionManager extends EventEmitter {
   async getKnowledgePermissions(knowledgeId) {
     try {
       const db = this.database.getDatabase();
-      const orgKnowledge = db.prepare(`
+      const orgKnowledge = db
+        .prepare(
+          `
         SELECT permissions FROM org_knowledge_items
         WHERE knowledge_id = ?
-      `).get(knowledgeId);
+      `,
+        )
+        .get(knowledgeId);
 
       if (!orgKnowledge) {
         return this.defaultKnowledgePermissions;
       }
 
       return JSON.parse(orgKnowledge.permissions);
-
     } catch (error) {
-      logger.error('[PermissionManager] Error getting knowledge permissions:', error);
+      logger.error(
+        "[PermissionManager] Error getting knowledge permissions:",
+        error,
+      );
       return this.defaultKnowledgePermissions;
     }
   }
@@ -166,9 +186,15 @@ class PermissionManager extends EventEmitter {
   async updateFolderPermissions(orgId, folderId, userDID, newPermissions) {
     try {
       // Check if user has manage permission
-      const hasPermission = await this.checkPermission(orgId, userDID, 'folder', folderId, 'manage');
+      const hasPermission = await this.checkPermission(
+        orgId,
+        userDID,
+        "folder",
+        folderId,
+        "manage",
+      );
       if (!hasPermission) {
-        throw new Error('No permission to manage folder permissions');
+        throw new Error("No permission to manage folder permissions");
       }
 
       // Validate permissions structure
@@ -176,23 +202,27 @@ class PermissionManager extends EventEmitter {
 
       // Update in database
       const db = this.database.getDatabase();
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE org_knowledge_folders
         SET permissions = ?, updated_at = ?
         WHERE id = ?
-      `).run(JSON.stringify(validatedPermissions), Date.now(), folderId);
+      `,
+      ).run(JSON.stringify(validatedPermissions), Date.now(), folderId);
 
-      this.emit('permissions-updated', {
-        type: 'folder',
+      this.emit("permissions-updated", {
+        type: "folder",
         id: folderId,
         permissions: validatedPermissions,
-        updatedBy: userDID
+        updatedBy: userDID,
       });
 
       return validatedPermissions;
-
     } catch (error) {
-      logger.error('[PermissionManager] Error updating folder permissions:', error);
+      logger.error(
+        "[PermissionManager] Error updating folder permissions:",
+        error,
+      );
       throw error;
     }
   }
@@ -200,12 +230,17 @@ class PermissionManager extends EventEmitter {
   /**
    * Update knowledge item permissions
    */
-  async updateKnowledgePermissions(orgId, knowledgeId, userDID, newPermissions) {
+  async updateKnowledgePermissions(
+    orgId,
+    knowledgeId,
+    userDID,
+    newPermissions,
+  ) {
     try {
       // Check if user has manage permission (usually owner/admin only)
       const userRole = await this.getUserRole(orgId, userDID);
-      if (!['owner', 'admin'].includes(userRole)) {
-        throw new Error('No permission to manage knowledge permissions');
+      if (!["owner", "admin"].includes(userRole)) {
+        throw new Error("No permission to manage knowledge permissions");
       }
 
       // Validate permissions structure
@@ -213,23 +248,32 @@ class PermissionManager extends EventEmitter {
 
       // Update in database
       const db = this.database.getDatabase();
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE org_knowledge_items
         SET permissions = ?, updated_at = ?
         WHERE knowledge_id = ? AND org_id = ?
-      `).run(JSON.stringify(validatedPermissions), Date.now(), knowledgeId, orgId);
+      `,
+      ).run(
+        JSON.stringify(validatedPermissions),
+        Date.now(),
+        knowledgeId,
+        orgId,
+      );
 
-      this.emit('permissions-updated', {
-        type: 'knowledge',
+      this.emit("permissions-updated", {
+        type: "knowledge",
         id: knowledgeId,
         permissions: validatedPermissions,
-        updatedBy: userDID
+        updatedBy: userDID,
       });
 
       return validatedPermissions;
-
     } catch (error) {
-      logger.error('[PermissionManager] Error updating knowledge permissions:', error);
+      logger.error(
+        "[PermissionManager] Error updating knowledge permissions:",
+        error,
+      );
       throw error;
     }
   }
@@ -238,15 +282,24 @@ class PermissionManager extends EventEmitter {
    * Validate permissions structure
    */
   validatePermissions(permissions) {
-    const validActions = ['view', 'edit', 'delete', 'share', 'manage', 'comment'];
-    const validRoles = ['viewer', 'member', 'editor', 'admin', 'owner'];
+    const validActions = [
+      "view",
+      "edit",
+      "delete",
+      "share",
+      "manage",
+      "comment",
+    ];
+    const validRoles = ["viewer", "member", "editor", "admin", "owner"];
 
     const validated = {};
 
     for (const action of validActions) {
       if (permissions[action]) {
         // Ensure all roles are valid
-        validated[action] = permissions[action].filter(role => validRoles.includes(role));
+        validated[action] = permissions[action].filter((role) =>
+          validRoles.includes(role),
+        );
       }
     }
 
@@ -264,15 +317,15 @@ class PermissionManager extends EventEmitter {
       }
 
       // Owner has all permissions
-      if (userRole === 'owner') {
+      if (userRole === "owner") {
         return this.roleHierarchy.owner;
       }
 
       // Get resource permissions
       let resourcePermissions;
-      if (resourceType === 'folder') {
+      if (resourceType === "folder") {
         resourcePermissions = await this.getFolderPermissions(resourceId);
-      } else if (resourceType === 'knowledge') {
+      } else if (resourceType === "knowledge") {
         resourcePermissions = await this.getKnowledgePermissions(resourceId);
       } else {
         return [];
@@ -280,16 +333,20 @@ class PermissionManager extends EventEmitter {
 
       // Calculate effective permissions
       const effectivePermissions = [];
-      for (const [action, allowedRoles] of Object.entries(resourcePermissions)) {
+      for (const [action, allowedRoles] of Object.entries(
+        resourcePermissions,
+      )) {
         if (allowedRoles.includes(userRole)) {
           effectivePermissions.push(action);
         }
       }
 
       return effectivePermissions;
-
     } catch (error) {
-      logger.error('[PermissionManager] Error getting effective permissions:', error);
+      logger.error(
+        "[PermissionManager] Error getting effective permissions:",
+        error,
+      );
       return [];
     }
   }
@@ -298,14 +355,26 @@ class PermissionManager extends EventEmitter {
    * Check if user can access folder
    */
   async canAccessFolder(orgId, userDID, folderId) {
-    return await this.checkPermission(orgId, userDID, 'folder', folderId, 'view');
+    return await this.checkPermission(
+      orgId,
+      userDID,
+      "folder",
+      folderId,
+      "view",
+    );
   }
 
   /**
    * Check if user can access knowledge item
    */
   async canAccessKnowledge(orgId, userDID, knowledgeId) {
-    return await this.checkPermission(orgId, userDID, 'knowledge', knowledgeId, 'view');
+    return await this.checkPermission(
+      orgId,
+      userDID,
+      "knowledge",
+      knowledgeId,
+      "view",
+    );
   }
 
   /**
@@ -314,11 +383,15 @@ class PermissionManager extends EventEmitter {
   async getAccessibleFolders(orgId, userDID) {
     try {
       const db = this.database.getDatabase();
-      const allFolders = db.prepare(`
+      const allFolders = db
+        .prepare(
+          `
         SELECT * FROM org_knowledge_folders
         WHERE org_id = ?
         ORDER BY name ASC
-      `).all(orgId);
+      `,
+        )
+        .all(orgId);
 
       const accessibleFolders = [];
 
@@ -328,15 +401,22 @@ class PermissionManager extends EventEmitter {
           accessibleFolders.push({
             ...folder,
             permissions: JSON.parse(folder.permissions),
-            effectivePermissions: await this.getEffectivePermissions(orgId, userDID, 'folder', folder.id)
+            effectivePermissions: await this.getEffectivePermissions(
+              orgId,
+              userDID,
+              "folder",
+              folder.id,
+            ),
           });
         }
       }
 
       return accessibleFolders;
-
     } catch (error) {
-      logger.error('[PermissionManager] Error getting accessible folders:', error);
+      logger.error(
+        "[PermissionManager] Error getting accessible folders:",
+        error,
+      );
       return [];
     }
   }
@@ -358,14 +438,14 @@ class PermissionManager extends EventEmitter {
       const params = [orgId];
 
       if (options.folderId) {
-        query += ' AND ok.folder_id = ?';
+        query += " AND ok.folder_id = ?";
         params.push(options.folderId);
       }
 
-      query += ' ORDER BY k.updated_at DESC';
+      query += " ORDER BY k.updated_at DESC";
 
       if (options.limit) {
-        query += ' LIMIT ?';
+        query += " LIMIT ?";
         params.push(options.limit);
       }
 
@@ -374,20 +454,31 @@ class PermissionManager extends EventEmitter {
       const accessibleKnowledge = [];
 
       for (const knowledge of allKnowledge) {
-        const canAccess = await this.canAccessKnowledge(orgId, userDID, knowledge.knowledge_id);
+        const canAccess = await this.canAccessKnowledge(
+          orgId,
+          userDID,
+          knowledge.knowledge_id,
+        );
         if (canAccess) {
           accessibleKnowledge.push({
             ...knowledge,
             permissions: JSON.parse(knowledge.permissions),
-            effectivePermissions: await this.getEffectivePermissions(orgId, userDID, 'knowledge', knowledge.knowledge_id)
+            effectivePermissions: await this.getEffectivePermissions(
+              orgId,
+              userDID,
+              "knowledge",
+              knowledge.knowledge_id,
+            ),
           });
         }
       }
 
       return accessibleKnowledge;
-
     } catch (error) {
-      logger.error('[PermissionManager] Error getting accessible knowledge:', error);
+      logger.error(
+        "[PermissionManager] Error getting accessible knowledge:",
+        error,
+      );
       return [];
     }
   }
@@ -397,34 +488,34 @@ class PermissionManager extends EventEmitter {
    */
   getPermissionPreset(presetName) {
     const presets = {
-      'public-read': {
-        view: ['viewer', 'member', 'editor', 'admin', 'owner'],
-        edit: ['admin', 'owner'],
-        delete: ['owner'],
-        share: ['admin', 'owner'],
-        manage: ['owner']
+      "public-read": {
+        view: ["viewer", "member", "editor", "admin", "owner"],
+        edit: ["admin", "owner"],
+        delete: ["owner"],
+        share: ["admin", "owner"],
+        manage: ["owner"],
       },
-      'team-edit': {
-        view: ['member', 'editor', 'admin', 'owner'],
-        edit: ['editor', 'admin', 'owner'],
-        delete: ['admin', 'owner'],
-        share: ['admin', 'owner'],
-        manage: ['owner']
+      "team-edit": {
+        view: ["member", "editor", "admin", "owner"],
+        edit: ["editor", "admin", "owner"],
+        delete: ["admin", "owner"],
+        share: ["admin", "owner"],
+        manage: ["owner"],
       },
-      'admin-only': {
-        view: ['admin', 'owner'],
-        edit: ['admin', 'owner'],
-        delete: ['owner'],
-        share: ['owner'],
-        manage: ['owner']
+      "admin-only": {
+        view: ["admin", "owner"],
+        edit: ["admin", "owner"],
+        delete: ["owner"],
+        share: ["owner"],
+        manage: ["owner"],
       },
-      'private': {
-        view: ['owner'],
-        edit: ['owner'],
-        delete: ['owner'],
-        share: ['owner'],
-        manage: ['owner']
-      }
+      private: {
+        view: ["owner"],
+        edit: ["owner"],
+        delete: ["owner"],
+        share: ["owner"],
+        manage: ["owner"],
+      },
     };
 
     return presets[presetName] || this.defaultFolderPermissions;
@@ -441,23 +532,26 @@ class PermissionManager extends EventEmitter {
         const { type, id, permissions } = update;
 
         try {
-          if (type === 'folder') {
+          if (type === "folder") {
             await this.updateFolderPermissions(orgId, id, userDID, permissions);
-          } else if (type === 'knowledge') {
-            await this.updateKnowledgePermissions(orgId, id, userDID, permissions);
+          } else if (type === "knowledge") {
+            await this.updateKnowledgePermissions(
+              orgId,
+              id,
+              userDID,
+              permissions,
+            );
           }
 
           results.push({ id, type, success: true });
-
         } catch (error) {
           results.push({ id, type, success: false, error: error.message });
         }
       }
 
       return results;
-
     } catch (error) {
-      logger.error('[PermissionManager] Error in bulk update:', error);
+      logger.error("[PermissionManager] Error in bulk update:", error);
       throw error;
     }
   }
@@ -470,16 +564,20 @@ class PermissionManager extends EventEmitter {
       const parentPermissions = await this.getFolderPermissions(parentFolderId);
 
       const db = this.database.getDatabase();
-      db.prepare(`
+      db.prepare(
+        `
         UPDATE org_knowledge_folders
         SET permissions = ?, updated_at = ?
         WHERE id = ?
-      `).run(JSON.stringify(parentPermissions), Date.now(), childFolderId);
+      `,
+      ).run(JSON.stringify(parentPermissions), Date.now(), childFolderId);
 
       return parentPermissions;
-
     } catch (error) {
-      logger.error('[PermissionManager] Error inheriting folder permissions:', error);
+      logger.error(
+        "[PermissionManager] Error inheriting folder permissions:",
+        error,
+      );
       throw error;
     }
   }
@@ -492,24 +590,36 @@ class PermissionManager extends EventEmitter {
       const db = this.database.getDatabase();
 
       // Count folders by permission type
-      const folders = db.prepare(`
+      const folders = db
+        .prepare(
+          `
         SELECT permissions FROM org_knowledge_folders
         WHERE org_id = ?
-      `).all(orgId);
+      `,
+        )
+        .all(orgId);
 
       // Count knowledge items by permission type
-      const knowledge = db.prepare(`
+      const knowledge = db
+        .prepare(
+          `
         SELECT permissions FROM org_knowledge_items
         WHERE org_id = ?
-      `).all(orgId);
+      `,
+        )
+        .all(orgId);
 
       // Count members by role
-      const members = db.prepare(`
+      const members = db
+        .prepare(
+          `
         SELECT role, COUNT(*) as count
         FROM organization_members
         WHERE org_id = ?
         GROUP BY role
-      `).all(orgId);
+      `,
+        )
+        .all(orgId);
 
       return {
         totalFolders: folders.length,
@@ -518,11 +628,16 @@ class PermissionManager extends EventEmitter {
           acc[m.role] = m.count;
           return acc;
         }, {}),
-        permissionDistribution: this._analyzePermissionDistribution(folders, knowledge)
+        permissionDistribution: this._analyzePermissionDistribution(
+          folders,
+          knowledge,
+        ),
       };
-
     } catch (error) {
-      logger.error('[PermissionManager] Error getting permission summary:', error);
+      logger.error(
+        "[PermissionManager] Error getting permission summary:",
+        error,
+      );
       return null;
     }
   }
@@ -534,20 +649,20 @@ class PermissionManager extends EventEmitter {
     const distribution = {
       public: 0,
       restricted: 0,
-      private: 0
+      private: 0,
     };
 
     const allResources = [
-      ...folders.map(f => JSON.parse(f.permissions)),
-      ...knowledge.map(k => JSON.parse(k.permissions))
+      ...folders.map((f) => JSON.parse(f.permissions)),
+      ...knowledge.map((k) => JSON.parse(k.permissions)),
     ];
 
     for (const permissions of allResources) {
       const viewRoles = permissions.view || [];
 
-      if (viewRoles.includes('viewer') || viewRoles.includes('member')) {
+      if (viewRoles.includes("viewer") || viewRoles.includes("member")) {
         distribution.public++;
-      } else if (viewRoles.includes('editor') || viewRoles.includes('admin')) {
+      } else if (viewRoles.includes("editor") || viewRoles.includes("admin")) {
         distribution.restricted++;
       } else {
         distribution.private++;

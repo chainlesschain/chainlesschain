@@ -6,7 +6,7 @@
  * @description 提供对话创建、查询、更新、删除等 IPC 接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const ipcGuard = require("../ipc/ipc-guard");
 const { getStreamControllerManager } = require("./stream-controller-manager");
 

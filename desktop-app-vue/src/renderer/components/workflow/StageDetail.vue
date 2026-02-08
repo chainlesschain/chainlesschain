@@ -27,15 +27,28 @@
         :class="getStepClass(step)"
       >
         <div class="step-status">
-          <CheckCircleFilled v-if="step.status === 'completed'" class="icon-success" />
-          <LoadingOutlined v-else-if="step.status === 'running'" spin class="icon-running" />
-          <CloseCircleFilled v-else-if="step.status === 'failed'" class="icon-error" />
+          <CheckCircleFilled
+            v-if="step.status === 'completed'"
+            class="icon-success"
+          />
+          <LoadingOutlined
+            v-else-if="step.status === 'running'"
+            spin
+            class="icon-running"
+          />
+          <CloseCircleFilled
+            v-else-if="step.status === 'failed'"
+            class="icon-error"
+          />
           <ClockCircleOutlined v-else class="icon-pending" />
         </div>
         <div class="step-content">
           <div class="step-header">
             <span class="step-name">{{ step.name }}</span>
-            <span v-if="step.progress > 0 && step.status === 'running'" class="step-progress">
+            <span
+              v-if="step.progress > 0 && step.status === 'running'"
+              class="step-progress"
+            >
               {{ step.progress }}%
             </span>
           </div>
@@ -43,7 +56,12 @@
             {{ step.message }}
           </div>
           <!-- 展开详情 -->
-          <a-collapse v-if="step.details" ghost size="small" class="step-details-collapse">
+          <a-collapse
+            v-if="step.details"
+            ghost
+            size="small"
+            class="step-details-collapse"
+          >
             <a-collapse-panel key="1" header="查看详情">
               <pre class="step-details">{{ formatDetails(step.details) }}</pre>
             </a-collapse-panel>
@@ -74,7 +92,7 @@
           class="check-item"
         >
           <span class="check-icon">
-            {{ check.passed ? '✅' : '❌' }}
+            {{ check.passed ? "✅" : "❌" }}
           </span>
           <span class="check-name">{{ check.name }}</span>
           <span class="check-score" :class="{ low: check.score < 0.7 }">
@@ -91,7 +109,7 @@
           :value-style="{ color: getScoreColor(qualityGate.score) }"
         />
         <a-tag :color="qualityGate.passed ? 'success' : 'error'">
-          {{ qualityGate.passed ? '门禁通过' : '门禁失败' }}
+          {{ qualityGate.passed ? "门禁通过" : "门禁失败" }}
         </a-tag>
       </div>
     </div>
@@ -99,7 +117,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from "vue";
 import {
   CheckCircleFilled,
   CloseCircleFilled,
@@ -107,7 +125,7 @@ import {
   ClockCircleOutlined,
   InboxOutlined,
   SafetyCertificateOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   stage: {
@@ -123,70 +141,84 @@ const props = defineProps({
 // 方法
 const getStageIcon = (stageName) => {
   const iconMap = {
-    '需求分析': '1',
-    '方案设计': '2',
-    '内容生成': '3',
-    '质量验证': '4',
-    '集成优化': '5',
-    '交付确认': '6',
+    需求分析: "1",
+    方案设计: "2",
+    内容生成: "3",
+    质量验证: "4",
+    集成优化: "5",
+    交付确认: "6",
   };
-  return iconMap[stageName] || '?';
+  return iconMap[stageName] || "?";
 };
 
 const getStatusColor = (status) => {
   const colorMap = {
-    pending: 'default',
-    running: 'processing',
-    completed: 'success',
-    failed: 'error',
-    skipped: 'warning',
+    pending: "default",
+    running: "processing",
+    completed: "success",
+    failed: "error",
+    skipped: "warning",
   };
-  return colorMap[status] || 'default';
+  return colorMap[status] || "default";
 };
 
 const getStatusText = (status) => {
   const textMap = {
-    pending: '等待中',
-    running: '执行中',
-    completed: '已完成',
-    failed: '失败',
-    skipped: '已跳过',
+    pending: "等待中",
+    running: "执行中",
+    completed: "已完成",
+    failed: "失败",
+    skipped: "已跳过",
   };
-  return textMap[status] || '未知';
+  return textMap[status] || "未知";
 };
 
 const getProgressStatus = (status) => {
-  if (status === 'failed') return 'exception';
-  if (status === 'completed') return 'success';
-  return 'active';
+  if (status === "failed") {
+    return "exception";
+  }
+  if (status === "completed") {
+    return "success";
+  }
+  return "active";
 };
 
 const getStepClass = (step) => {
   return {
-    completed: step.status === 'completed',
-    running: step.status === 'running',
-    failed: step.status === 'failed',
-    pending: step.status === 'pending',
+    completed: step.status === "completed",
+    running: step.status === "running",
+    failed: step.status === "failed",
+    pending: step.status === "pending",
   };
 };
 
 const getScoreColor = (score) => {
-  if (score >= 0.8) return '#52c41a';
-  if (score >= 0.6) return '#faad14';
-  return '#ff4d4f';
+  if (score >= 0.8) {
+    return "#52c41a";
+  }
+  if (score >= 0.6) {
+    return "#faad14";
+  }
+  return "#ff4d4f";
 };
 
 const formatDuration = (ms) => {
-  if (!ms || ms === 0) return '';
+  if (!ms || ms === 0) {
+    return "";
+  }
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}秒`;
+  if (seconds < 60) {
+    return `${seconds}秒`;
+  }
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return `${minutes}分${remainingSeconds}秒`;
 };
 
 const formatDetails = (details) => {
-  if (typeof details === 'string') return details;
+  if (typeof details === "string") {
+    return details;
+  }
   return JSON.stringify(details, null, 2);
 };
 </script>
@@ -412,7 +444,8 @@ const formatDetails = (details) => {
 }
 
 @keyframes pulse-bg {
-  0%, 100% {
+  0%,
+  100% {
     background: #e6f7ff;
   }
   50% {

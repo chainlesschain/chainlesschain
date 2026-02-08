@@ -6,11 +6,7 @@
       class="scope-selector"
       @change="handleScopeChange"
     >
-      <a-space
-        direction="vertical"
-        size="large"
-        style="width: 100%"
-      >
+      <a-space direction="vertical" size="large" style="width: 100%">
         <!-- 私有 -->
         <a-radio value="private">
           <div class="scope-option">
@@ -18,31 +14,19 @@
               <LockOutlined class="scope-icon" />
               <span class="scope-title">私有</span>
             </div>
-            <div class="scope-description">
-              仅您自己可见，其他人无法访问
-            </div>
+            <div class="scope-description">仅您自己可见，其他人无法访问</div>
           </div>
         </a-radio>
 
         <!-- 团队（未来扩展） -->
-        <a-radio
-          value="team"
-          disabled
-        >
+        <a-radio value="team" disabled>
           <div class="scope-option">
             <div class="scope-header">
               <UsergroupAddOutlined class="scope-icon" />
               <span class="scope-title">团队</span>
-              <a-tag
-                size="small"
-                color="blue"
-              >
-                即将推出
-              </a-tag>
+              <a-tag size="small" color="blue"> 即将推出 </a-tag>
             </div>
-            <div class="scope-description">
-              指定团队成员可见（功能开发中）
-            </div>
+            <div class="scope-description">指定团队成员可见（功能开发中）</div>
           </div>
         </a-radio>
 
@@ -57,40 +41,25 @@
               组织内所有成员可见，根据角色权限进行访问控制
             </div>
             <!-- 组织权限详情 -->
-            <div
-              v-if="selectedScope === 'org'"
-              class="scope-detail"
-            >
+            <div v-if="selectedScope === 'org'" class="scope-detail">
               <a-divider style="margin: 12px 0" />
               <div class="permission-preview">
                 <h4>组织成员权限：</h4>
-                <a-space
-                  direction="vertical"
-                  size="small"
-                  style="width: 100%"
-                >
+                <a-space direction="vertical" size="small" style="width: 100%">
                   <div class="permission-item">
-                    <a-tag color="red">
-                      所有者
-                    </a-tag>
+                    <a-tag color="red"> 所有者 </a-tag>
                     <span>完全控制权限（读、写、删除、管理）</span>
                   </div>
                   <div class="permission-item">
-                    <a-tag color="orange">
-                      管理员
-                    </a-tag>
+                    <a-tag color="orange"> 管理员 </a-tag>
                     <span>读、写、删除权限</span>
                   </div>
                   <div class="permission-item">
-                    <a-tag color="blue">
-                      成员
-                    </a-tag>
+                    <a-tag color="blue"> 成员 </a-tag>
                     <span>读、写权限</span>
                   </div>
                   <div class="permission-item">
-                    <a-tag color="default">
-                      访客
-                    </a-tag>
+                    <a-tag color="default"> 访客 </a-tag>
                     <span>仅可查看</span>
                   </div>
                 </a-space>
@@ -119,10 +88,7 @@
       v-if="showAdvanced && selectedScope === 'org'"
       style="margin-top: 16px"
     >
-      <a-collapse-panel
-        key="advanced"
-        header="高级权限设置"
-      >
+      <a-collapse-panel key="advanced" header="高级权限设置">
         <a-form layout="vertical">
           <a-form-item label="特定成员权限">
             <a-select
@@ -143,15 +109,9 @@
 
           <a-form-item label="权限级别">
             <a-select v-model:value="advancedPermissions.permissionLevel">
-              <a-select-option value="read">
-                只读
-              </a-select-option>
-              <a-select-option value="write">
-                读写
-              </a-select-option>
-              <a-select-option value="admin">
-                管理
-              </a-select-option>
+              <a-select-option value="read"> 只读 </a-select-option>
+              <a-select-option value="write"> 读写 </a-select-option>
+              <a-select-option value="admin"> 管理 </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -183,53 +143,53 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from "vue";
 import {
   LockOutlined,
   UsergroupAddOutlined,
   TeamOutlined,
   GlobalOutlined,
-  InfoCircleOutlined
-} from '@ant-design/icons-vue';
+  InfoCircleOutlined,
+} from "@ant-design/icons-vue";
 
 // ==================== Props & Emits ====================
 const props = defineProps({
   value: {
     type: String,
-    default: 'org'
+    default: "org",
   },
   orgId: {
     type: String,
-    default: null
+    default: null,
   },
   showAdvanced: {
     type: Boolean,
-    default: false
+    default: false,
   },
   showSummary: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
 
-const emit = defineEmits(['update:value', 'change']);
+const emit = defineEmits(["update:value", "change"]);
 
 // ==================== State ====================
 const selectedScope = ref(props.value);
 const orgMembers = ref([]);
 const advancedPermissions = ref({
   specificMembers: [],
-  permissionLevel: 'read',
-  expiresAt: null
+  permissionLevel: "read",
+  expiresAt: null,
 });
 
 // ==================== Computed ====================
 const scopeConfig = computed(() => {
   return {
     scope: selectedScope.value,
-    advancedPermissions: props.showAdvanced ? advancedPermissions.value : null
+    advancedPermissions: props.showAdvanced ? advancedPermissions.value : null,
   };
 });
 
@@ -241,8 +201,8 @@ const scopeConfig = computed(() => {
 function handleScopeChange(e) {
   const newScope = e.target.value;
   selectedScope.value = newScope;
-  emit('update:value', newScope);
-  emit('change', scopeConfig.value);
+  emit("update:value", newScope);
+  emit("change", scopeConfig.value);
 }
 
 /**
@@ -250,38 +210,49 @@ function handleScopeChange(e) {
  */
 function getScopeSummary() {
   const summaries = {
-    private: '这条知识将保持私有，只有您可以查看和编辑。',
-    team: '这条知识将对指定团队成员可见。',
+    private: "这条知识将保持私有，只有您可以查看和编辑。",
+    team: "这条知识将对指定团队成员可见。",
     org: `这条知识将对组织内所有成员可见，根据其角色自动分配权限。`,
-    public: '这条知识将公开可见，任何人都可以查看（只读）。'
+    public: "这条知识将公开可见，任何人都可以查看（只读）。",
   };
-  return summaries[selectedScope.value] || '';
+  return summaries[selectedScope.value] || "";
 }
 
 /**
  * 加载组织成员（用于高级权限设置）
  */
 async function loadOrgMembers() {
-  if (!props.orgId || !props.showAdvanced) {return;}
+  if (!props.orgId || !props.showAdvanced) {
+    return;
+  }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('org:get-members', props.orgId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:get-members",
+      props.orgId,
+    );
     if (result.success) {
       orgMembers.value = result.members || [];
     }
   } catch (error) {
-    logger.error('加载组织成员失败:', error);
+    logger.error("加载组织成员失败:", error);
   }
 }
 
 // ==================== Watchers ====================
-watch(() => props.value, (newValue) => {
-  selectedScope.value = newValue;
-});
+watch(
+  () => props.value,
+  (newValue) => {
+    selectedScope.value = newValue;
+  },
+);
 
-watch(() => props.orgId, () => {
-  loadOrgMembers();
-});
+watch(
+  () => props.orgId,
+  () => {
+    loadOrgMembers();
+  },
+);
 
 // ==================== Lifecycle ====================
 onMounted(() => {

@@ -10,30 +10,30 @@
  * - WorkExperience: 工作经历
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const nacl = require('tweetnacl');
-const naclUtil = require('tweetnacl-util');
-const { v4: uuidv4 } = require('uuid');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const nacl = require("tweetnacl");
+const naclUtil = require("tweetnacl-util");
+const { v4: uuidv4 } = require("uuid");
+const EventEmitter = require("events");
 
 /**
  * VC 类型常量
  */
 const VC_TYPES = {
-  SELF_DECLARATION: 'SelfDeclaration',
-  SKILL_CERTIFICATE: 'SkillCertificate',
-  TRUST_ENDORSEMENT: 'TrustEndorsement',
-  EDUCATION_CREDENTIAL: 'EducationCredential',
-  WORK_EXPERIENCE: 'WorkExperience',
+  SELF_DECLARATION: "SelfDeclaration",
+  SKILL_CERTIFICATE: "SkillCertificate",
+  TRUST_ENDORSEMENT: "TrustEndorsement",
+  EDUCATION_CREDENTIAL: "EducationCredential",
+  WORK_EXPERIENCE: "WorkExperience",
 };
 
 /**
  * VC 状态常量
  */
 const VC_STATUS = {
-  ACTIVE: 'active',
-  REVOKED: 'revoked',
-  EXPIRED: 'expired',
+  ACTIVE: "active",
+  REVOKED: "revoked",
+  EXPIRED: "expired",
 };
 
 /**
@@ -51,18 +51,18 @@ class VCManager extends EventEmitter {
    * 初始化 VC 管理器
    */
   async initialize() {
-    logger.info('[VCManager] 初始化可验证凭证管理器...');
+    logger.info("[VCManager] 初始化可验证凭证管理器...");
 
     try {
       // 确保数据库表存在
       await this.ensureTables();
 
-      logger.info('[VCManager] 可验证凭证管理器初始化成功');
-      this.emit('initialized');
+      logger.info("[VCManager] 可验证凭证管理器初始化成功");
+      this.emit("initialized");
 
       return true;
     } catch (error) {
-      logger.error('[VCManager] 初始化失败:', error);
+      logger.error("[VCManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -72,9 +72,11 @@ class VCManager extends EventEmitter {
    */
   async ensureTables() {
     try {
-      const result = this.db.prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='verifiable_credentials'"
-      ).all();
+      const result = this.db
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='verifiable_credentials'",
+        )
+        .all();
 
       if (!result || result.length === 0) {
         // 创建可验证凭证表
@@ -101,10 +103,10 @@ class VCManager extends EventEmitter {
           CREATE INDEX IF NOT EXISTS idx_vc_status ON verifiable_credentials(status);
         `);
 
-        logger.info('[VCManager] verifiable_credentials 表已创建');
+        logger.info("[VCManager] verifiable_credentials 表已创建");
       }
     } catch (error) {
-      logger.error('[VCManager] 检查数据库表失败:', error);
+      logger.error("[VCManager] 检查数据库表失败:", error);
       throw error;
     }
   }
@@ -122,13 +124,13 @@ class VCManager extends EventEmitter {
   async createCredential(params) {
     const { type, issuerDID, subjectDID, claims, expiresIn } = params;
 
-    logger.info('[VCManager] 创建可验证凭证:', { type, issuerDID, subjectDID });
+    logger.info("[VCManager] 创建可验证凭证:", { type, issuerDID, subjectDID });
 
     try {
       // 验证颁发者身份
       const issuer = this.didManager.getIdentityByDID(issuerDID);
       if (!issuer) {
-        throw new Error('颁发者身份不存在');
+        throw new Error("颁发者身份不存在");
       }
 
       // 生成 VC ID
@@ -154,12 +156,12 @@ class VCManager extends EventEmitter {
 
       // 创建 VC 文档
       const vcDocument = {
-        '@context': [
-          'https://www.w3.org/2018/credentials/v1',
-          'https://chainlesschain.com/credentials/v1',
+        "@context": [
+          "https://www.w3.org/2018/credentials/v1",
+          "https://chainlesschain.com/credentials/v1",
         ],
         id: vcId,
-        type: ['VerifiableCredential', type],
+        type: ["VerifiableCredential", type],
         issuer: issuerDID,
         issuanceDate,
         expirationDate,
@@ -185,8 +187,13 @@ class VCManager extends EventEmitter {
 
       await this.saveCredential(vcRecord);
 
-      logger.info('[VCManager] 可验证凭证已创建:', vcId);
-      this.emit('credential-created', { id: vcId, type, issuerDID, subjectDID });
+      logger.info("[VCManager] 可验证凭证已创建:", vcId);
+      this.emit("credential-created", {
+        id: vcId,
+        type,
+        issuerDID,
+        subjectDID,
+      });
 
       return {
         id: vcId,
@@ -200,7 +207,7 @@ class VCManager extends EventEmitter {
         document: signedVC,
       };
     } catch (error) {
-      logger.error('[VCManager] 创建可验证凭证失败:', error);
+      logger.error("[VCManager] 创建可验证凭证失败:", error);
       throw error;
     }
   }
@@ -229,15 +236,15 @@ class VCManager extends EventEmitter {
       return {
         ...vcDocument,
         proof: {
-          type: 'Ed25519Signature2020',
+          type: "Ed25519Signature2020",
           created: new Date().toISOString(),
           verificationMethod: `${issuerIdentity.did}#sign-key-1`,
-          proofPurpose: 'assertionMethod',
+          proofPurpose: "assertionMethod",
           proofValue: signatureBase64,
         },
       };
     } catch (error) {
-      logger.error('[VCManager] 签名 VC 文档失败:', error);
+      logger.error("[VCManager] 签名 VC 文档失败:", error);
       throw error;
     }
   }
@@ -252,7 +259,7 @@ class VCManager extends EventEmitter {
       const { proof, ...vcDocument } = signedVC;
 
       if (!proof || !proof.proofValue) {
-        throw new Error('缺少签名');
+        throw new Error("缺少签名");
       }
 
       // 获取颁发者 DID
@@ -263,7 +270,7 @@ class VCManager extends EventEmitter {
 
       // 如果本地没有，尝试从 DHT 解析
       if (!issuerIdentity) {
-        logger.info('[VCManager] 本地未找到颁发者身份，尝试从 DHT 解析...');
+        logger.info("[VCManager] 本地未找到颁发者身份，尝试从 DHT 解析...");
         try {
           const dhtData = await this.didManager.resolveFromDHT(issuerDID);
           issuerIdentity = {
@@ -271,7 +278,7 @@ class VCManager extends EventEmitter {
             public_key_sign: dhtData.publicKeySign,
           };
         } catch (error) {
-          throw new Error('无法解析颁发者 DID');
+          throw new Error("无法解析颁发者 DID");
         }
       }
 
@@ -284,20 +291,24 @@ class VCManager extends EventEmitter {
       const messageBytes = naclUtil.decodeUTF8(message);
 
       // 验证签名
-      const isValid = nacl.sign.detached.verify(messageBytes, signature, publicKey);
+      const isValid = nacl.sign.detached.verify(
+        messageBytes,
+        signature,
+        publicKey,
+      );
 
       // 检查是否过期
       if (isValid && vcDocument.expirationDate) {
         const expirationTime = new Date(vcDocument.expirationDate).getTime();
         if (Date.now() > expirationTime) {
-          logger.info('[VCManager] VC 已过期');
+          logger.info("[VCManager] VC 已过期");
           return false;
         }
       }
 
       return isValid;
     } catch (error) {
-      logger.error('[VCManager] 验证 VC 文档失败:', error);
+      logger.error("[VCManager] 验证 VC 文档失败:", error);
       return false;
     }
   }
@@ -308,27 +319,31 @@ class VCManager extends EventEmitter {
    */
   async saveCredential(vcRecord) {
     try {
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         INSERT OR REPLACE INTO verifiable_credentials (
           id, type, issuer_did, subject_did, claims,
           vc_document, issued_at, expires_at, status, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        vcRecord.id,
-        vcRecord.type,
-        vcRecord.issuer_did,
-        vcRecord.subject_did,
-        vcRecord.claims,
-        vcRecord.vc_document,
-        vcRecord.issued_at,
-        vcRecord.expires_at,
-        vcRecord.status,
-        vcRecord.created_at
-      );
+      `,
+        )
+        .run(
+          vcRecord.id,
+          vcRecord.type,
+          vcRecord.issuer_did,
+          vcRecord.subject_did,
+          vcRecord.claims,
+          vcRecord.vc_document,
+          vcRecord.issued_at,
+          vcRecord.expires_at,
+          vcRecord.status,
+          vcRecord.created_at,
+        );
 
       this.db.saveToFile();
     } catch (error) {
-      logger.error('[VCManager] 保存凭证失败:', error);
+      logger.error("[VCManager] 保存凭证失败:", error);
       throw error;
     }
   }
@@ -340,30 +355,30 @@ class VCManager extends EventEmitter {
    */
   getCredentials(filters = {}) {
     try {
-      let query = 'SELECT * FROM verifiable_credentials WHERE 1=1';
+      let query = "SELECT * FROM verifiable_credentials WHERE 1=1";
       const params = [];
 
       if (filters.issuerDID) {
-        query += ' AND issuer_did = ?';
+        query += " AND issuer_did = ?";
         params.push(filters.issuerDID);
       }
 
       if (filters.subjectDID) {
-        query += ' AND subject_did = ?';
+        query += " AND subject_did = ?";
         params.push(filters.subjectDID);
       }
 
       if (filters.type) {
-        query += ' AND type = ?';
+        query += " AND type = ?";
         params.push(filters.type);
       }
 
       if (filters.status) {
-        query += ' AND status = ?';
+        query += " AND status = ?";
         params.push(filters.status);
       }
 
-      query += ' ORDER BY created_at DESC';
+      query += " ORDER BY created_at DESC";
 
       const result = this.db.prepare(query).all(params);
 
@@ -382,7 +397,7 @@ class VCManager extends EventEmitter {
         return credential;
       });
     } catch (error) {
-      logger.error('[VCManager] 获取凭证列表失败:', error);
+      logger.error("[VCManager] 获取凭证列表失败:", error);
       return [];
     }
   }
@@ -394,9 +409,16 @@ class VCManager extends EventEmitter {
    */
   getCredentialById(id) {
     try {
-      const result = this.db.prepare('SELECT * FROM verifiable_credentials WHERE id = ?').all([id]);
+      const result = this.db
+        .prepare("SELECT * FROM verifiable_credentials WHERE id = ?")
+        .all([id]);
 
-      if (!result || result.length === 0 || !result[0].values || result[0].values.length === 0) {
+      if (
+        !result ||
+        result.length === 0 ||
+        !result[0].values ||
+        result[0].values.length === 0
+      ) {
         return null;
       }
 
@@ -410,7 +432,7 @@ class VCManager extends EventEmitter {
 
       return credential;
     } catch (error) {
-      logger.error('[VCManager] 获取凭证失败:', error);
+      logger.error("[VCManager] 获取凭证失败:", error);
       return null;
     }
   }
@@ -426,23 +448,25 @@ class VCManager extends EventEmitter {
       const credential = this.getCredentialById(id);
 
       if (!credential) {
-        throw new Error('凭证不存在');
+        throw new Error("凭证不存在");
       }
 
       if (credential.issuer_did !== issuerDID) {
-        throw new Error('只有颁发者可以撤销凭证');
+        throw new Error("只有颁发者可以撤销凭证");
       }
 
-      this.db.prepare('UPDATE verifiable_credentials SET status = ? WHERE id = ?').run([VC_STATUS.REVOKED, id]);
+      this.db
+        .prepare("UPDATE verifiable_credentials SET status = ? WHERE id = ?")
+        .run([VC_STATUS.REVOKED, id]);
 
       this.db.saveToFile();
 
-      logger.info('[VCManager] 凭证已撤销:', id);
-      this.emit('credential-revoked', { id, issuerDID });
+      logger.info("[VCManager] 凭证已撤销:", id);
+      this.emit("credential-revoked", { id, issuerDID });
 
       return true;
     } catch (error) {
-      logger.error('[VCManager] 撤销凭证失败:', error);
+      logger.error("[VCManager] 撤销凭证失败:", error);
       throw error;
     }
   }
@@ -457,18 +481,20 @@ class VCManager extends EventEmitter {
       const credential = this.getCredentialById(id);
 
       if (!credential) {
-        throw new Error('凭证不存在');
+        throw new Error("凭证不存在");
       }
 
-      this.db.prepare('DELETE FROM verifiable_credentials WHERE id = ?').run([id]);
+      this.db
+        .prepare("DELETE FROM verifiable_credentials WHERE id = ?")
+        .run([id]);
       this.db.saveToFile();
 
-      logger.info('[VCManager] 凭证已删除:', id);
-      this.emit('credential-deleted', { id });
+      logger.info("[VCManager] 凭证已删除:", id);
+      this.emit("credential-deleted", { id });
 
       return true;
     } catch (error) {
-      logger.error('[VCManager] 删除凭证失败:', error);
+      logger.error("[VCManager] 删除凭证失败:", error);
       throw error;
     }
   }
@@ -482,7 +508,7 @@ class VCManager extends EventEmitter {
     const credential = this.getCredentialById(id);
 
     if (!credential) {
-      throw new Error('凭证不存在');
+      throw new Error("凭证不存在");
     }
 
     return JSON.parse(credential.vc_document);
@@ -495,15 +521,17 @@ class VCManager extends EventEmitter {
    */
   getStatistics(did = null) {
     try {
-      let issuedQuery = 'SELECT COUNT(*) as count FROM verifiable_credentials WHERE 1=1';
-      let receivedQuery = 'SELECT COUNT(*) as count FROM verifiable_credentials WHERE 1=1';
+      let issuedQuery =
+        "SELECT COUNT(*) as count FROM verifiable_credentials WHERE 1=1";
+      let receivedQuery =
+        "SELECT COUNT(*) as count FROM verifiable_credentials WHERE 1=1";
       const issuedParams = [];
       const receivedParams = [];
 
       if (did) {
-        issuedQuery += ' AND issuer_did = ?';
+        issuedQuery += " AND issuer_did = ?";
         issuedParams.push(did);
-        receivedQuery += ' AND subject_did = ?';
+        receivedQuery += " AND subject_did = ?";
         receivedParams.push(did);
       }
 
@@ -515,8 +543,8 @@ class VCManager extends EventEmitter {
 
       // 按类型统计
       const typeQuery = did
-        ? 'SELECT type, COUNT(*) as count FROM verifiable_credentials WHERE subject_did = ? GROUP BY type'
-        : 'SELECT type, COUNT(*) as count FROM verifiable_credentials GROUP BY type';
+        ? "SELECT type, COUNT(*) as count FROM verifiable_credentials WHERE subject_did = ? GROUP BY type"
+        : "SELECT type, COUNT(*) as count FROM verifiable_credentials GROUP BY type";
       const typeParams = did ? [did] : [];
       const typeResult = this.db.prepare(typeQuery).all(...typeParams);
 
@@ -534,7 +562,7 @@ class VCManager extends EventEmitter {
         byType,
       };
     } catch (error) {
-      logger.error('[VCManager] 获取统计信息失败:', error);
+      logger.error("[VCManager] 获取统计信息失败:", error);
       return {
         issued: 0,
         received: 0,
@@ -551,11 +579,11 @@ class VCManager extends EventEmitter {
    */
   async generateShareData(id) {
     try {
-      logger.info('[VCManager] 生成凭证分享数据:', id);
+      logger.info("[VCManager] 生成凭证分享数据:", id);
 
       const credential = this.getCredentialById(id);
       if (!credential) {
-        throw new Error('凭证不存在');
+        throw new Error("凭证不存在");
       }
 
       // 导出完整的 VC 文档
@@ -563,8 +591,8 @@ class VCManager extends EventEmitter {
 
       // 生成分享数据
       const shareData = {
-        type: 'VerifiableCredential',
-        version: '1.0',
+        type: "VerifiableCredential",
+        version: "1.0",
         sharedAt: Date.now(),
         credential: vcDocument,
         // 添加元数据
@@ -579,19 +607,19 @@ class VCManager extends EventEmitter {
 
       // 生成紧凑的 JSON 用于二维码（压缩）
       const compactData = {
-        t: 'vc',  // type
-        v: '1.0', // version
-        c: vcDocument,  // credential
+        t: "vc", // type
+        v: "1.0", // version
+        c: vcDocument, // credential
       };
 
       return {
         fullData: shareData,
         compactData,
         qrCodeData: JSON.stringify(compactData),
-        shareUrl: `chainlesschain://vc/${id}`,  // 自定义协议
+        shareUrl: `chainlesschain://vc/${id}`, // 自定义协议
       };
     } catch (error) {
-      logger.error('[VCManager] 生成分享数据失败:', error);
+      logger.error("[VCManager] 生成分享数据失败:", error);
       throw error;
     }
   }
@@ -603,38 +631,38 @@ class VCManager extends EventEmitter {
    */
   async importFromShareData(shareData) {
     try {
-      logger.info('[VCManager] 从分享数据导入凭证');
+      logger.info("[VCManager] 从分享数据导入凭证");
 
       // 解析数据格式
       let vcDocument;
-      if (shareData.t === 'vc') {
+      if (shareData.t === "vc") {
         // 紧凑格式
         vcDocument = shareData.c;
-      } else if (shareData.type === 'VerifiableCredential') {
+      } else if (shareData.type === "VerifiableCredential") {
         // 完整格式
         vcDocument = shareData.credential;
       } else {
-        throw new Error('不支持的分享数据格式');
+        throw new Error("不支持的分享数据格式");
       }
 
       // 验证凭证
       const isValid = await this.verifyCredential(vcDocument);
       if (!isValid) {
-        throw new Error('凭证验证失败：签名无效或已过期');
+        throw new Error("凭证验证失败：签名无效或已过期");
       }
 
       // 检查是否已存在
       const existing = this.getCredentialById(vcDocument.id);
       if (existing) {
-        throw new Error('凭证已存在');
+        throw new Error("凭证已存在");
       }
 
       // 解析凭证数据
       const issuerDID = vcDocument.issuer;
       const subjectDID = vcDocument.credentialSubject.id;
-      const type = vcDocument.type.find(t => t !== 'VerifiableCredential');
+      const type = vcDocument.type.find((t) => t !== "VerifiableCredential");
       const claims = { ...vcDocument.credentialSubject };
-      delete claims.id;  // 移除 id 字段
+      delete claims.id; // 移除 id 字段
 
       const issuedAt = new Date(vcDocument.issuanceDate).getTime();
       const expiresAt = vcDocument.expirationDate
@@ -657,8 +685,8 @@ class VCManager extends EventEmitter {
 
       await this.saveCredential(vcRecord);
 
-      logger.info('[VCManager] 凭证已从分享数据导入:', vcDocument.id);
-      this.emit('credential-imported', vcDocument.id);
+      logger.info("[VCManager] 凭证已从分享数据导入:", vcDocument.id);
+      this.emit("credential-imported", vcDocument.id);
 
       return {
         id: vcDocument.id,
@@ -669,7 +697,7 @@ class VCManager extends EventEmitter {
         expires_at: expiresAt,
       };
     } catch (error) {
-      logger.error('[VCManager] 导入分享数据失败:', error);
+      logger.error("[VCManager] 导入分享数据失败:", error);
       throw error;
     }
   }
@@ -678,8 +706,8 @@ class VCManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
-    logger.info('[VCManager] 关闭可验证凭证管理器');
-    this.emit('closed');
+    logger.info("[VCManager] 关闭可验证凭证管理器");
+    this.emit("closed");
   }
 }
 

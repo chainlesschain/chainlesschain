@@ -8,7 +8,7 @@
  * @since 2026-01-18
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -68,10 +68,7 @@ function registerMemorySyncIPC(options) {
       const result = await syncService.syncCategory(category);
       return result;
     } catch (error) {
-      logger.error(
-        `[MemorySync IPC] Sync category ${category} failed:`,
-        error,
-      );
+      logger.error(`[MemorySync IPC] Sync category ${category} failed:`, error);
       throw error;
     }
   });

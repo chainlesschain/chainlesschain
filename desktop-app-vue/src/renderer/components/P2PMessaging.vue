@@ -1,9 +1,6 @@
 <template>
   <div class="p2p-messaging">
-    <a-card
-      title="P2P 加密消息"
-      :loading="loading"
-    >
+    <a-card title="P2P 加密消息" :loading="loading">
       <template #extra>
         <a-space>
           <a-badge
@@ -52,7 +49,9 @@
       >
         <template #message>
           <a-space>
-            <span><strong>当前设备:</strong> {{ currentDevice.deviceName }}</span>
+            <span
+              ><strong>当前设备:</strong> {{ currentDevice.deviceName }}</span
+            >
             <a-tag color="blue">
               {{ currentDevice.platform }}
             </a-tag>
@@ -91,11 +90,15 @@
         style="margin-bottom: 16px"
       >
         <template #header>
-          <div style="display: flex; align-items: center; justify-content: space-between">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+            "
+          >
             <strong>连接的节点</strong>
-            <a-tag color="blue">
-              {{ peers.length }} 个节点
-            </a-tag>
+            <a-tag color="blue"> {{ peers.length }} 个节点 </a-tag>
           </div>
         </template>
         <template #renderItem="{ item }">
@@ -113,8 +116,18 @@
                   设备 ({{ getPeerDeviceCount(item.peerId) }})
                 </a-button>
               </a-tooltip>
-              <a-tooltip :title="hasAnyEncryptionSession(item.peerId) ? '已建立加密会话' : '未建立加密会话'">
-                <a-badge :status="hasAnyEncryptionSession(item.peerId) ? 'success' : 'default'" />
+              <a-tooltip
+                :title="
+                  hasAnyEncryptionSession(item.peerId)
+                    ? '已建立加密会话'
+                    : '未建立加密会话'
+                "
+              >
+                <a-badge
+                  :status="
+                    hasAnyEncryptionSession(item.peerId) ? 'success' : 'default'
+                  "
+                />
               </a-tooltip>
               <a-tooltip title="语音通话">
                 <a-button
@@ -175,10 +188,14 @@
               </template>
               <template #description>
                 <a-space>
-                  <a-tag :color="item.status === 'open' ? 'success' : 'default'">
+                  <a-tag
+                    :color="item.status === 'open' ? 'success' : 'default'"
+                  >
                     {{ item.status }}
                   </a-tag>
-                  <span style="font-size: 12px; color: #999">{{ item.remoteAddr }}</span>
+                  <span style="font-size: 12px; color: #999">{{
+                    item.remoteAddr
+                  }}</span>
                 </a-space>
               </template>
             </a-list-item-meta>
@@ -187,14 +204,8 @@
       </a-list>
 
       <!-- 连接新节点 -->
-      <a-card
-        size="small"
-        title="连接新节点"
-      >
-        <a-form
-          layout="inline"
-          @submit.prevent="handleConnect"
-        >
+      <a-card size="small" title="连接新节点">
+        <a-form layout="inline" @submit.prevent="handleConnect">
           <a-form-item label="Multiaddr">
             <a-input
               v-model:value="connectAddress"
@@ -203,11 +214,7 @@
             />
           </a-form-item>
           <a-form-item>
-            <a-button
-              type="primary"
-              html-type="submit"
-              :loading="connecting"
-            >
+            <a-button type="primary" html-type="submit" :loading="connecting">
               连接
             </a-button>
           </a-form-item>
@@ -229,14 +236,36 @@
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
-              <a-tooltip :title="hasEncryptionSession(currentPeerDevices.peerId, item.deviceId) ? '已建立加密' : '未加密'">
-                <a-badge :status="hasEncryptionSession(currentPeerDevices.peerId, item.deviceId) ? 'success' : 'default'" />
+              <a-tooltip
+                :title="
+                  hasEncryptionSession(currentPeerDevices.peerId, item.deviceId)
+                    ? '已建立加密'
+                    : '未加密'
+                "
+              >
+                <a-badge
+                  :status="
+                    hasEncryptionSession(
+                      currentPeerDevices.peerId,
+                      item.deviceId,
+                    )
+                      ? 'success'
+                      : 'default'
+                  "
+                />
               </a-tooltip>
               <a-button
-                v-if="!hasEncryptionSession(currentPeerDevices.peerId, item.deviceId)"
+                v-if="
+                  !hasEncryptionSession(
+                    currentPeerDevices.peerId,
+                    item.deviceId,
+                  )
+                "
                 type="link"
                 size="small"
-                @click="handleKeyExchange(currentPeerDevices.peerId, item.deviceId)"
+                @click="
+                  handleKeyExchange(currentPeerDevices.peerId, item.deviceId)
+                "
               >
                 <template #icon>
                   <safety-outlined />
@@ -247,7 +276,9 @@
                 v-else
                 type="link"
                 size="small"
-                @click="handleChatWithDevice(currentPeerDevices.peerId, item.deviceId)"
+                @click="
+                  handleChatWithDevice(currentPeerDevices.peerId, item.deviceId)
+                "
               >
                 <template #icon>
                   <message-outlined />
@@ -257,9 +288,15 @@
             </template>
             <a-list-item-meta>
               <template #avatar>
-                <a-avatar :style="{ backgroundColor: getDeviceColor(item.platform) }">
+                <a-avatar
+                  :style="{ backgroundColor: getDeviceColor(item.platform) }"
+                >
                   <template #icon>
-                    <mobile-outlined v-if="item.platform === 'android' || item.platform === 'ios'" />
+                    <mobile-outlined
+                      v-if="
+                        item.platform === 'android' || item.platform === 'ios'
+                      "
+                    />
                     <laptop-outlined v-else />
                   </template>
                 </a-avatar>
@@ -294,10 +331,7 @@
       width="500px"
       :footer="null"
     >
-      <a-descriptions
-        bordered
-        :column="1"
-      >
+      <a-descriptions bordered :column="1">
         <a-descriptions-item label="用户总数">
           {{ deviceStats.userCount }}
         </a-descriptions-item>
@@ -305,18 +339,18 @@
           {{ deviceStats.totalDevices }}
         </a-descriptions-item>
         <a-descriptions-item label="当前设备">
-          {{ deviceStats.currentDevice?.deviceName || 'N/A' }}
+          {{ deviceStats.currentDevice?.deviceName || "N/A" }}
         </a-descriptions-item>
         <a-descriptions-item label="设备 ID">
           <a-typography-text copyable>
-            {{ deviceStats.currentDevice?.deviceId || 'N/A' }}
+            {{ deviceStats.currentDevice?.deviceId || "N/A" }}
           </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="平台">
-          {{ deviceStats.currentDevice?.platform || 'N/A' }}
+          {{ deviceStats.currentDevice?.platform || "N/A" }}
         </a-descriptions-item>
         <a-descriptions-item label="版本">
-          {{ deviceStats.currentDevice?.version || 'N/A' }}
+          {{ deviceStats.currentDevice?.version || "N/A" }}
         </a-descriptions-item>
       </a-descriptions>
     </a-modal>
@@ -328,14 +362,8 @@
       width="600px"
       :footer="null"
     >
-      <a-descriptions
-        bordered
-        :column="2"
-      >
-        <a-descriptions-item
-          label="队列消息总数"
-          :span="2"
-        >
+      <a-descriptions bordered :column="2">
+        <a-descriptions-item label="队列消息总数" :span="2">
           {{ syncStats.totalMessages }}
         </a-descriptions-item>
         <a-descriptions-item label="设备队列数">
@@ -344,10 +372,7 @@
         <a-descriptions-item label="活动同步">
           {{ syncStats.activeSyncs }}
         </a-descriptions-item>
-        <a-descriptions-item
-          label="消息状态跟踪"
-          :span="2"
-        >
+        <a-descriptions-item label="消息状态跟踪" :span="2">
           {{ syncStats.statusCount }}
         </a-descriptions-item>
       </a-descriptions>
@@ -363,12 +388,8 @@
           :key="deviceId"
         >
           <a-list-item-meta>
-            <template #title>
-              设备: {{ deviceId.slice(0, 12) }}...
-            </template>
-            <template #description>
-              队列消息: {{ count }} 条
-            </template>
+            <template #title> 设备: {{ deviceId.slice(0, 12) }}... </template>
+            <template #description> 队列消息: {{ count }} 条 </template>
           </a-list-item-meta>
           <template #actions>
             <a-button
@@ -382,10 +403,7 @@
         </a-list-item>
       </a-list>
 
-      <a-empty
-        v-else
-        description="暂无队列消息"
-      />
+      <a-empty v-else description="暂无队列消息" />
     </a-modal>
 
     <!-- 聊天对话框 -->
@@ -398,10 +416,7 @@
     >
       <div class="chat-container">
         <!-- 设备选择器 -->
-        <div
-          v-if="currentChatDevices.length > 1"
-          class="device-selector"
-        >
+        <div v-if="currentChatDevices.length > 1" class="device-selector">
           <a-select
             v-model:value="currentChatDeviceId"
             style="width: 100%; margin-bottom: 12px"
@@ -414,7 +429,11 @@
               :value="device.deviceId"
             >
               <a-space>
-                <mobile-outlined v-if="device.platform === 'android' || device.platform === 'ios'" />
+                <mobile-outlined
+                  v-if="
+                    device.platform === 'android' || device.platform === 'ios'
+                  "
+                />
                 <laptop-outlined v-else />
                 {{ device.deviceName }}
                 <a-tag
@@ -430,10 +449,7 @@
         </div>
 
         <!-- 消息列表 -->
-        <div
-          ref="messageList"
-          class="message-list"
-        >
+        <div ref="messageList" class="message-list">
           <div
             v-for="msg in chatMessages"
             :key="msg.id"
@@ -462,35 +478,35 @@
                   <span
                     v-if="msg.status === 'queued'"
                     title="消息已入队,等待发送"
-                  >⏳</span>
-                  <span
-                    v-else-if="msg.status === 'sent'"
-                    title="已发送"
-                  >✓</span>
-                  <span
-                    v-else-if="msg.status === 'delivered'"
-                    title="已送达"
-                  >✓✓</span>
+                    >⏳</span
+                  >
+                  <span v-else-if="msg.status === 'sent'" title="已发送"
+                    >✓</span
+                  >
+                  <span v-else-if="msg.status === 'delivered'" title="已送达"
+                    >✓✓</span
+                  >
                   <span
                     v-else-if="msg.status === 'read'"
                     title="已读"
                     style="color: #1890ff"
-                  >✓✓</span>
-                  <span
-                    v-else-if="msg.status === 'failed'"
-                    title="发送失败"
-                  >✗</span>
+                    >✓✓</span
+                  >
+                  <span v-else-if="msg.status === 'failed'" title="发送失败"
+                    >✗</span
+                  >
                 </span>
               </div>
             </div>
           </div>
-          <div
-            v-if="chatMessages.length === 0"
-            class="empty-messages"
-          >
+          <div v-if="chatMessages.length === 0" class="empty-messages">
             <a-empty description="暂无消息">
               <template #description>
-                <span v-if="!hasEncryptionSession(currentChatPeer, currentChatDeviceId)">
+                <span
+                  v-if="
+                    !hasEncryptionSession(currentChatPeer, currentChatDeviceId)
+                  "
+                >
                   请先建立加密会话
                 </span>
                 <span v-else>暂无消息</span>
@@ -505,14 +521,18 @@
             <a-input
               v-model:value="messageInput"
               placeholder="输入消息 (端到端加密)..."
-              :disabled="!hasEncryptionSession(currentChatPeer, currentChatDeviceId)"
+              :disabled="
+                !hasEncryptionSession(currentChatPeer, currentChatDeviceId)
+              "
               style="width: calc(100% - 80px)"
               @keyup.enter="handleSendMessage"
             />
             <a-button
               type="primary"
               :loading="sending"
-              :disabled="!hasEncryptionSession(currentChatPeer, currentChatDeviceId)"
+              :disabled="
+                !hasEncryptionSession(currentChatPeer, currentChatDeviceId)
+              "
               @click="handleSendMessage"
             >
               发送
@@ -540,11 +560,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue';
-import { message as antMessage } from 'ant-design-vue';
-import { useSocialStore } from '../stores/social';
+import { ref, reactive, onMounted, onUnmounted, nextTick } from "vue";
+import { message as antMessage } from "ant-design-vue";
+import { useSocialStore } from "../stores/social";
 import {
   TeamOutlined,
   ReloadOutlined,
@@ -557,7 +577,7 @@ import {
   SyncOutlined,
   PhoneOutlined,
   VideoCameraOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // 状态
 // 社交模块 Store
@@ -568,7 +588,7 @@ const connecting = ref(false);
 const sending = ref(false);
 const nodeInfo = ref(null);
 const peers = ref([]);
-const connectAddress = ref('');
+const connectAddress = ref("");
 const encryptionSessions = reactive(new Map()); // Map<peerId-deviceId, boolean>
 const onlinePeersCount = ref(0);
 const currentDevice = ref(null);
@@ -596,17 +616,21 @@ const showSyncStatsModal = ref(false);
 
 // 聊天相关
 const showChatModal = ref(false);
-const currentChatPeer = ref('');
-const currentChatDeviceId = ref('');
+const currentChatPeer = ref("");
+const currentChatDeviceId = ref("");
 const currentChatDevices = ref([]);
 const chatMessages = ref([]);
-const messageInput = ref('');
+const messageInput = ref("");
 const messageList = ref(null);
 
 // 缩短 Peer ID 显示
 const shortenPeerId = (peerId) => {
-  if (!peerId) {return '';}
-  return peerId.length > 20 ? `${peerId.slice(0, 10)}...${peerId.slice(-8)}` : peerId;
+  if (!peerId) {
+    return "";
+  }
+  return peerId.length > 20
+    ? `${peerId.slice(0, 10)}...${peerId.slice(-8)}`
+    : peerId;
 };
 
 // 获取会话标识
@@ -623,7 +647,7 @@ const hasEncryptionSession = (peerId, deviceId) => {
 // 检查是否有任何加密会话
 const hasAnyEncryptionSession = (peerId) => {
   for (const key of encryptionSessions.keys()) {
-    if (key.startsWith(peerId + '-')) {
+    if (key.startsWith(peerId + "-")) {
       return true;
     }
   }
@@ -639,13 +663,13 @@ const getPeerDeviceCount = (peerId) => {
 // 获取设备颜色
 const getDeviceColor = (platform) => {
   const colors = {
-    'win32': '#1890ff',
-    'darwin': '#722ed1',
-    'linux': '#fa8c16',
-    'android': '#52c41a',
-    'ios': '#13c2c2',
+    win32: "#1890ff",
+    darwin: "#722ed1",
+    linux: "#fa8c16",
+    android: "#52c41a",
+    ios: "#13c2c2",
   };
-  return colors[platform] || '#999';
+  return colors[platform] || "#999";
 };
 
 // 格式化时间
@@ -656,7 +680,10 @@ const formatTime = (timestamp) => {
 
   // 如果是今天
   if (diff < 24 * 60 * 60 * 1000) {
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString("zh-CN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   // 如果是最近7天
@@ -666,14 +693,16 @@ const formatTime = (timestamp) => {
   }
 
   // 否则显示日期
-  return date.toLocaleDateString('zh-CN');
+  return date.toLocaleDateString("zh-CN");
 };
 
 // 获取聊天标题
 const getChatTitle = () => {
   const peerIdShort = shortenPeerId(currentChatPeer.value);
   if (currentChatDeviceId.value && currentChatDevices.value.length > 0) {
-    const device = currentChatDevices.value.find(d => d.deviceId === currentChatDeviceId.value);
+    const device = currentChatDevices.value.find(
+      (d) => d.deviceId === currentChatDeviceId.value,
+    );
     if (device) {
       return `与 ${peerIdShort} (${device.deviceName}) 聊天`;
     }
@@ -701,7 +730,7 @@ const loadNodeInfo = async () => {
       nodeInfo.value = info;
     }
   } catch (error) {
-    logger.error('加载节点信息失败:', error);
+    logger.error("加载节点信息失败:", error);
   } finally {
     loading.value = false;
   }
@@ -715,7 +744,7 @@ const loadCurrentDevice = async () => {
       currentDevice.value = device;
     }
   } catch (error) {
-    logger.error('加载当前设备失败:', error);
+    logger.error("加载当前设备失败:", error);
   }
 };
 
@@ -727,7 +756,7 @@ const loadDeviceStatistics = async () => {
       deviceStats.value = stats;
     }
   } catch (error) {
-    logger.error('加载设备统计失败:', error);
+    logger.error("加载设备统计失败:", error);
   }
 };
 
@@ -739,7 +768,7 @@ const loadSyncStatistics = async () => {
       syncStats.value = stats;
     }
   } catch (error) {
-    logger.error('加载同步统计失败:', error);
+    logger.error("加载同步统计失败:", error);
   }
 };
 
@@ -747,12 +776,12 @@ const loadSyncStatistics = async () => {
 const handleStartSync = async (deviceId) => {
   try {
     await window.electronAPI.p2p.startDeviceSync(deviceId);
-    antMessage.success('已启动设备同步');
+    antMessage.success("已启动设备同步");
     // 刷新统计
     await loadSyncStatistics();
   } catch (error) {
-    logger.error('启动设备同步失败:', error);
-    antMessage.error('启动设备同步失败: ' + error.message);
+    logger.error("启动设备同步失败:", error);
+    antMessage.error("启动设备同步失败: " + error.message);
   }
 };
 
@@ -772,7 +801,9 @@ const loadPeers = async () => {
     for (const peer of peers.value) {
       const devices = peerDevices.get(peer.peerId) || [];
       for (const device of devices) {
-        const hasSession = await window.electronAPI.p2p.hasEncryptedSession(peer.peerId);
+        const hasSession = await window.electronAPI.p2p.hasEncryptedSession(
+          peer.peerId,
+        );
         if (hasSession) {
           const key = getSessionKey(peer.peerId, device.deviceId);
           encryptionSessions.set(key, true);
@@ -780,7 +811,7 @@ const loadPeers = async () => {
       }
     }
   } catch (error) {
-    logger.error('加载对等节点失败:', error);
+    logger.error("加载对等节点失败:", error);
   }
 };
 
@@ -792,26 +823,26 @@ const loadPeerDevices = async (peerId) => {
       peerDevices.set(peerId, devices);
     }
   } catch (error) {
-    logger.error('加载设备列表失败:', error);
+    logger.error("加载设备列表失败:", error);
   }
 };
 
 // 连接新节点
 const handleConnect = async () => {
   if (!connectAddress.value) {
-    antMessage.warning('请输入节点地址');
+    antMessage.warning("请输入节点地址");
     return;
   }
 
   try {
     connecting.value = true;
     await window.electronAPI.p2p.connect(connectAddress.value);
-    antMessage.success('连接成功');
-    connectAddress.value = '';
+    antMessage.success("连接成功");
+    connectAddress.value = "";
     await loadPeers();
   } catch (error) {
-    logger.error('连接失败:', error);
-    antMessage.error('连接失败: ' + error.message);
+    logger.error("连接失败:", error);
+    antMessage.error("连接失败: " + error.message);
   } finally {
     connecting.value = false;
   }
@@ -821,7 +852,7 @@ const handleConnect = async () => {
 const handleDisconnect = async (peerId) => {
   try {
     await window.electronAPI.p2p.disconnect(peerId);
-    antMessage.success('已断开连接');
+    antMessage.success("已断开连接");
 
     // 清除该节点的所有加密会话
     const devices = peerDevices.get(peerId) || [];
@@ -833,8 +864,8 @@ const handleDisconnect = async (peerId) => {
     peerDevices.delete(peerId);
     await loadPeers();
   } catch (error) {
-    logger.error('断开连接失败:', error);
-    antMessage.error('断开连接失败: ' + error.message);
+    logger.error("断开连接失败:", error);
+    antMessage.error("断开连接失败: " + error.message);
   }
 };
 
@@ -856,7 +887,7 @@ const handleKeyExchange = async (peerId, deviceId = null) => {
   try {
     loading.value = true;
     await window.electronAPI.p2p.initiateKeyExchange(peerId, deviceId);
-    antMessage.success('密钥交换成功，已建立加密会话');
+    antMessage.success("密钥交换成功，已建立加密会话");
 
     const key = getSessionKey(peerId, deviceId);
     encryptionSessions.set(key, true);
@@ -864,8 +895,8 @@ const handleKeyExchange = async (peerId, deviceId = null) => {
     // 刷新设备列表
     await loadPeerDevices(peerId);
   } catch (error) {
-    logger.error('密钥交换失败:', error);
-    antMessage.error('密钥交换失败: ' + error.message);
+    logger.error("密钥交换失败:", error);
+    antMessage.error("密钥交换失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -880,8 +911,12 @@ const handleOpenChat = async (peer) => {
   // 如果有设备，选择第一个已加密的设备或第一个设备
   let targetDeviceId = null;
   if (devices.length > 0) {
-    const encryptedDevice = devices.find(d => hasEncryptionSession(peer.peerId, d.deviceId));
-    targetDeviceId = encryptedDevice ? encryptedDevice.deviceId : devices[0].deviceId;
+    const encryptedDevice = devices.find((d) =>
+      hasEncryptionSession(peer.peerId, d.deviceId),
+    );
+    targetDeviceId = encryptedDevice
+      ? encryptedDevice.deviceId
+      : devices[0].deviceId;
   }
 
   currentChatPeer.value = peer.peerId;
@@ -908,12 +943,12 @@ const handleVoiceCall = async (peer) => {
     if (result.success) {
       antMessage.success(`语音通话已建立`);
     } else {
-      antMessage.error(`语音通话失败: ${result.error || '未知错误'}`);
+      antMessage.error(`语音通话失败: ${result.error || "未知错误"}`);
     }
   } catch (error) {
     antMessage.destroy();
-    logger.error('发起语音通话失败:', error);
-    antMessage.error('发起语音通话失败');
+    logger.error("发起语音通话失败:", error);
+    antMessage.error("发起语音通话失败");
   }
 };
 
@@ -932,12 +967,12 @@ const handleVideoCall = async (peer) => {
     if (result.success) {
       antMessage.success(`视频通话已建立`);
     } else {
-      antMessage.error(`视频通话失败: ${result.error || '未知错误'}`);
+      antMessage.error(`视频通话失败: ${result.error || "未知错误"}`);
     }
   } catch (error) {
     antMessage.destroy();
-    logger.error('发起视频通话失败:', error);
-    antMessage.error('发起视频通话失败');
+    logger.error("发起视频通话失败:", error);
+    antMessage.error("发起视频通话失败");
   }
 };
 
@@ -962,8 +997,8 @@ const handleDeviceChange = (deviceId) => {
 // 关闭聊天窗口
 const handleCloseChat = () => {
   showChatModal.value = false;
-  currentChatPeer.value = '';
-  currentChatDeviceId.value = '';
+  currentChatPeer.value = "";
+  currentChatDeviceId.value = "";
   currentChatDevices.value = [];
   chatMessages.value = [];
 };
@@ -987,7 +1022,7 @@ const handleSendMessage = async () => {
   }
 
   if (!hasEncryptionSession(currentChatPeer.value, currentChatDeviceId.value)) {
-    antMessage.warning('请先建立加密会话');
+    antMessage.warning("请先建立加密会话");
     return;
   }
 
@@ -1001,7 +1036,7 @@ const handleSendMessage = async () => {
     const result = await window.electronAPI.p2p.sendEncryptedMessage(
       currentChatPeer.value,
       content,
-      currentChatDeviceId.value
+      currentChatDeviceId.value,
     );
 
     // 根据发送结果创建消息
@@ -1012,7 +1047,7 @@ const handleSendMessage = async () => {
       isSent: true,
       encrypted: true,
       deviceName: currentDevice.value?.deviceName,
-      status: result.status || 'sent', // 'sent' 或 'queued'
+      status: result.status || "sent", // 'sent' 或 'queued'
       messageId: result.messageId, // 如果是队列消息,保存消息 ID
     };
 
@@ -1026,25 +1061,25 @@ const handleSendMessage = async () => {
 
     // 【新增】保存到数据库持久化
     try {
-      await window.electron.ipcRenderer.invoke('chat:save-message', {
+      await window.electron.ipcRenderer.invoke("chat:save-message", {
         id: `msg_${messageId}_${Math.random().toString(36).substr(2, 9)}`,
         sessionId: `session_${currentChatPeer.value}_${currentChatDeviceId.value}`,
         senderDid: await socialStore.getCurrentUserDid(),
         receiverDid: currentChatPeer.value,
         content: content,
-        messageType: 'text',
+        messageType: "text",
         encrypted: 1,
-        status: result.status || 'sent',
+        status: result.status || "sent",
         deviceId: currentChatDeviceId.value,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     } catch (dbError) {
-      logger.error('保存消息到数据库失败:', dbError);
+      logger.error("保存消息到数据库失败:", dbError);
       // 不影响消息发送，只记录错误
     }
 
     // 清空输入框
-    messageInput.value = '';
+    messageInput.value = "";
 
     // 滚动到底部
     nextTick(() => {
@@ -1052,16 +1087,16 @@ const handleSendMessage = async () => {
     });
 
     // 显示不同的提示信息
-    if (result.status === 'queued') {
+    if (result.status === "queued") {
       antMessage.info(`消息已加入队列(对方离线)`);
       // 刷新同步统计
       await loadSyncStatistics();
     } else {
-      antMessage.success('消息已发送（加密）');
+      antMessage.success("消息已发送（加密）");
     }
   } catch (error) {
-    logger.error('发送消息失败:', error);
-    antMessage.error('发送失败: ' + error.message);
+    logger.error("发送消息失败:", error);
+    antMessage.error("发送失败: " + error.message);
   } finally {
     sending.value = false;
   }
@@ -1076,7 +1111,7 @@ const scrollToBottom = () => {
 
 // 接收消息事件处理
 const handleEncryptedMessageReceived = (data) => {
-  logger.info('收到加密消息:', data);
+  logger.info("收到加密消息:", data);
 
   const newMessage = {
     id: Date.now(),
@@ -1096,7 +1131,7 @@ const handleEncryptedMessageReceived = (data) => {
 
   // 保存到历史记录（内存）
   const devices = peerDevices.get(data.from) || [];
-  const deviceId = devices.length > 0 ? devices[0].deviceId : 'unknown';
+  const deviceId = devices.length > 0 ? devices[0].deviceId : "unknown";
   const key = getSessionKey(data.from, deviceId);
   const history = chatHistoryStore.get(key) || [];
   history.push(newMessage);
@@ -1109,11 +1144,11 @@ const handleEncryptedMessageReceived = (data) => {
         messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         senderDid: data.from,
         content: data.message,
-        messageType: 'text',
-        timestamp: Date.now()
+        messageType: "text",
+        timestamp: Date.now(),
       });
     } catch (dbError) {
-      logger.error('保存接收消息到数据库失败:', dbError);
+      logger.error("保存接收消息到数据库失败:", dbError);
     }
   })();
 
@@ -1123,12 +1158,14 @@ const handleEncryptedMessageReceived = (data) => {
 
 // 密钥交换成功事件处理
 const handleKeyExchangeSuccess = (data) => {
-  logger.info('密钥交换成功:', data);
+  logger.info("密钥交换成功:", data);
 
   const key = getSessionKey(data.peerId, data.deviceId);
   encryptionSessions.set(key, true);
 
-  antMessage.success(`与 ${shortenPeerId(data.peerId)} 的设备 ${data.deviceId?.slice(0, 8)}... 建立了加密会话`);
+  antMessage.success(
+    `与 ${shortenPeerId(data.peerId)} 的设备 ${data.deviceId?.slice(0, 8)}... 建立了加密会话`,
+  );
 };
 
 // 生命周期
@@ -1136,8 +1173,14 @@ onMounted(async () => {
   await loadAllData();
 
   // 监听 P2P 事件
-  window.electronAPI.p2p.on('p2p:encrypted-message', handleEncryptedMessageReceived);
-  window.electronAPI.p2p.on('p2p:key-exchange-success', handleKeyExchangeSuccess);
+  window.electronAPI.p2p.on(
+    "p2p:encrypted-message",
+    handleEncryptedMessageReceived,
+  );
+  window.electronAPI.p2p.on(
+    "p2p:key-exchange-success",
+    handleKeyExchangeSuccess,
+  );
 
   // 定期刷新节点列表和设备信息
   const refreshInterval = setInterval(() => {
@@ -1154,8 +1197,14 @@ onUnmounted(() => {
   if (window.__p2pRefreshInterval) {
     clearInterval(window.__p2pRefreshInterval);
   }
-  window.electronAPI.p2p.off('p2p:encrypted-message', handleEncryptedMessageReceived);
-  window.electronAPI.p2p.off('p2p:key-exchange-success', handleKeyExchangeSuccess);
+  window.electronAPI.p2p.off(
+    "p2p:encrypted-message",
+    handleEncryptedMessageReceived,
+  );
+  window.electronAPI.p2p.off(
+    "p2p:key-exchange-success",
+    handleKeyExchangeSuccess,
+  );
 });
 </script>
 

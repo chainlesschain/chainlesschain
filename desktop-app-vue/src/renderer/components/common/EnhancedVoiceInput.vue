@@ -7,7 +7,7 @@
         :danger="isRecording"
         :loading="isProcessing"
         class="voice-button"
-        :class="{ 'recording': isRecording }"
+        :class="{ recording: isRecording }"
         @click="toggleRecording"
       >
         <template #icon>
@@ -31,18 +31,9 @@
       <div class="recording-modal-content">
         <!-- 录音动画 -->
         <div class="recording-animation">
-          <div
-            class="wave-circle"
-            :class="{ active: isRecording }"
-          />
-          <div
-            class="wave-circle"
-            :class="{ active: isRecording }"
-          />
-          <div
-            class="wave-circle"
-            :class="{ active: isRecording }"
-          />
+          <div class="wave-circle" :class="{ active: isRecording }" />
+          <div class="wave-circle" :class="{ active: isRecording }" />
+          <div class="wave-circle" :class="{ active: isRecording }" />
           <AudioOutlined class="microphone-icon" />
         </div>
 
@@ -57,18 +48,12 @@
 
           <!-- 音量指示器 -->
           <div class="volume-indicator">
-            <div
-              class="volume-bar"
-              :style="{ width: volumeLevel + '%' }"
-            />
+            <div class="volume-bar" :style="{ width: volumeLevel + '%' }" />
           </div>
         </div>
 
         <!-- 实时转录文本 -->
-        <div
-          v-if="partialText"
-          class="partial-transcript"
-        >
+        <div v-if="partialText" class="partial-transcript">
           <a-typography-paragraph :ellipsis="{ rows: 3, expandable: true }">
             {{ partialText }}
           </a-typography-paragraph>
@@ -77,38 +62,25 @@
         <!-- 操作按钮 -->
         <div class="recording-actions">
           <a-space>
-            <a-button
-              danger
-              @click="cancelRecording"
-            >
+            <a-button danger @click="cancelRecording">
               <template #icon>
                 <CloseOutlined />
               </template>
               取消
             </a-button>
-            <a-button
-              v-if="isRecording && !isPaused"
-              @click="pauseRecording"
-            >
+            <a-button v-if="isRecording && !isPaused" @click="pauseRecording">
               <template #icon>
                 <PauseCircleOutlined />
               </template>
               暂停
             </a-button>
-            <a-button
-              v-if="isPaused"
-              type="default"
-              @click="resumeRecording"
-            >
+            <a-button v-if="isPaused" type="default" @click="resumeRecording">
               <template #icon>
                 <PlayCircleOutlined />
               </template>
               继续
             </a-button>
-            <a-button
-              type="primary"
-              @click="stopRecording"
-            >
+            <a-button type="primary" @click="stopRecording">
               <template #icon>
                 <CheckOutlined />
               </template>
@@ -122,10 +94,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   AudioOutlined,
   AudioMutedOutlined,
@@ -133,18 +105,18 @@ import {
   CheckOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
-const emit = defineEmits(['result', 'error', 'partial']);
+const emit = defineEmits(["result", "error", "partial"]);
 
 // 状态
 const isRecording = ref(false);
 const isPaused = ref(false);
 const isProcessing = ref(false);
 const showRecordingModal = ref(false);
-const recordingTime = ref('00:00');
-const statusText = ref('准备中...');
-const partialText = ref('');
+const recordingTime = ref("00:00");
+const statusText = ref("准备中...");
+const partialText = ref("");
 const volumeLevel = ref(0);
 
 // Web Speech API
@@ -156,14 +128,20 @@ let totalPausedTime = 0;
 
 // 计算属性
 const buttonText = computed(() => {
-  if (isProcessing.value) {return '处理中...';}
-  if (isRecording.value) {return '录音中';}
-  return '';
+  if (isProcessing.value) {
+    return "处理中...";
+  }
+  if (isRecording.value) {
+    return "录音中";
+  }
+  return "";
 });
 
 const tooltipText = computed(() => {
-  if (isRecording.value) {return '点击停止录音';}
-  return '点击开始语音输入';
+  if (isRecording.value) {
+    return "点击停止录音";
+  }
+  return "点击开始语音输入";
 });
 
 // 初始化
@@ -181,13 +159,13 @@ const initSpeechRecognition = () => {
     window.SpeechRecognition || window.webkitSpeechRecognition;
 
   if (!SpeechRecognition) {
-    message.error('您的浏览器不支持语音识别功能');
+    message.error("您的浏览器不支持语音识别功能");
     return false;
   }
 
   try {
     recognition = new SpeechRecognition();
-    recognition.lang = 'zh-CN';
+    recognition.lang = "zh-CN";
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
@@ -196,22 +174,22 @@ const initSpeechRecognition = () => {
     recognition.onerror = handleRecognitionError;
     recognition.onend = handleRecognitionEnd;
     recognition.onstart = () => {
-      statusText.value = '正在录音...';
+      statusText.value = "正在录音...";
       startRecordingTimer();
     };
 
     return true;
   } catch (error) {
-    logger.error('初始化语音识别失败:', error);
-    message.error('初始化语音识别失败');
+    logger.error("初始化语音识别失败:", error);
+    message.error("初始化语音识别失败");
     return false;
   }
 };
 
 // 处理识别结果
 const handleRecognitionResult = (event) => {
-  let interimTranscript = '';
-  let finalTranscript = '';
+  let interimTranscript = "";
+  let finalTranscript = "";
 
   for (let i = event.resultIndex; i < event.results.length; i++) {
     const transcript = event.results[i][0].transcript;
@@ -225,14 +203,14 @@ const handleRecognitionResult = (event) => {
   // 显示临时结果
   if (interimTranscript) {
     partialText.value = interimTranscript;
-    statusText.value = '识别中...';
-    emit('partial', interimTranscript);
+    statusText.value = "识别中...";
+    emit("partial", interimTranscript);
   }
 
   // 发送最终结果
   if (finalTranscript) {
     partialText.value = finalTranscript;
-    emit('result', finalTranscript);
+    emit("result", finalTranscript);
   }
 
   // 模拟音量变化
@@ -241,28 +219,28 @@ const handleRecognitionResult = (event) => {
 
 // 处理识别错误
 const handleRecognitionError = (event) => {
-  logger.error('语音识别错误:', event.error);
+  logger.error("语音识别错误:", event.error);
 
-  let errorMessage = '语音识别失败';
+  let errorMessage = "语音识别失败";
   switch (event.error) {
-    case 'no-speech':
-      errorMessage = '未检测到语音';
+    case "no-speech":
+      errorMessage = "未检测到语音";
       break;
-    case 'audio-capture':
-      errorMessage = '无法访问麦克风';
+    case "audio-capture":
+      errorMessage = "无法访问麦克风";
       break;
-    case 'not-allowed':
-      errorMessage = '请允许麦克风权限';
+    case "not-allowed":
+      errorMessage = "请允许麦克风权限";
       break;
-    case 'network':
-      errorMessage = '网络错误';
+    case "network":
+      errorMessage = "网络错误";
       break;
     default:
       errorMessage = `语音识别失败: ${event.error}`;
   }
 
   message.error(errorMessage);
-  emit('error', event.error);
+  emit("error", event.error);
   stopRecording();
 };
 
@@ -272,7 +250,7 @@ const handleRecognitionEnd = () => {
     try {
       recognition.start();
     } catch (error) {
-      logger.error('重启识别失败:', error);
+      logger.error("重启识别失败:", error);
     }
   }
 };
@@ -298,16 +276,16 @@ const startRecording = () => {
     isRecording.value = true;
     isPaused.value = false;
     showRecordingModal.value = true;
-    statusText.value = '准备录音...';
-    recordingTime.value = '00:00';
-    partialText.value = '';
+    statusText.value = "准备录音...";
+    recordingTime.value = "00:00";
+    partialText.value = "";
     totalPausedTime = 0;
 
     recognition.start();
     recordingStartTime = Date.now();
   } catch (error) {
-    logger.error('启动录音失败:', error);
-    message.error('启动录音失败');
+    logger.error("启动录音失败:", error);
+    message.error("启动录音失败");
     isRecording.value = false;
     showRecordingModal.value = false;
   }
@@ -320,10 +298,10 @@ const pauseRecording = () => {
       recognition.stop();
       isPaused.value = true;
       pauseStartTime = Date.now();
-      statusText.value = '已暂停';
+      statusText.value = "已暂停";
       stopRecordingTimer();
     } catch (error) {
-      logger.error('暂停录音失败:', error);
+      logger.error("暂停录音失败:", error);
     }
   }
 };
@@ -335,10 +313,10 @@ const resumeRecording = () => {
       totalPausedTime += Date.now() - pauseStartTime;
       isPaused.value = false;
       recognition.start();
-      statusText.value = '正在录音...';
+      statusText.value = "正在录音...";
       startRecordingTimer();
     } catch (error) {
-      logger.error('恢复录音失败:', error);
+      logger.error("恢复录音失败:", error);
     }
   }
 };
@@ -353,29 +331,31 @@ const stopRecording = () => {
     isRecording.value = false;
     isPaused.value = false;
     showRecordingModal.value = false;
-    statusText.value = '准备中...';
-    recordingTime.value = '00:00';
-    partialText.value = '';
+    statusText.value = "准备中...";
+    recordingTime.value = "00:00";
+    partialText.value = "";
     volumeLevel.value = 0;
     stopRecordingTimer();
   } catch (error) {
-    logger.error('停止录音失败:', error);
+    logger.error("停止录音失败:", error);
   }
 };
 
 // 取消录音
 const cancelRecording = () => {
   stopRecording();
-  message.info('已取消录音');
+  message.info("已取消录音");
 };
 
 // 启动录音计时器
 const startRecordingTimer = () => {
   recordingTimer = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - recordingStartTime - totalPausedTime) / 1000);
+    const elapsed = Math.floor(
+      (Date.now() - recordingStartTime - totalPausedTime) / 1000,
+    );
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
-    recordingTime.value = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    recordingTime.value = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }, 1000);
 };
 
@@ -507,7 +487,7 @@ const cleanup = () => {
     font-size: 28px;
     font-weight: 600;
     color: #1677ff;
-    font-family: 'Monaco', 'Courier New', monospace;
+    font-family: "Monaco", "Courier New", monospace;
     margin-bottom: 16px;
   }
 

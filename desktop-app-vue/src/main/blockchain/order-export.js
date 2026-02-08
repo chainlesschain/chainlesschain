@@ -2,7 +2,7 @@
  * 订单导出模块
  * 支持导出订单为 PDF 和图片格式
  */
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const puppeteer = require("puppeteer");
 const sharp = require("sharp");
 const path = require("path");
@@ -29,12 +29,16 @@ function generateOrderHTML(order) {
   };
 
   const formatDate = (timestamp) => {
-    if (!timestamp) {return "-";}
+    if (!timestamp) {
+      return "-";
+    }
     return new Date(timestamp).toLocaleString("zh-CN");
   };
 
   const formatPrice = (price, currency = "CNY") => {
-    if (price === undefined || price === null) {return "-";}
+    if (price === undefined || price === null) {
+      return "-";
+    }
     return `${price.toFixed(2)} ${currency}`;
   };
 
@@ -416,7 +420,9 @@ class ShareLinkManager {
    * 确保分享链接表存在
    */
   _ensureTable() {
-    if (!this.db) {return;}
+    if (!this.db) {
+      return;
+    }
 
     try {
       this.db.exec(`

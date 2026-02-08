@@ -4,9 +4,9 @@
  * 将SQLite数据库中的知识库项导出为Markdown文件
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs');
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs");
+const path = require("path");
 
 /**
  * Markdown导出器类
@@ -22,7 +22,7 @@ class MarkdownExporter {
    */
   async exportAll() {
     try {
-      logger.info('[MarkdownExporter] 开始导出所有知识库项...');
+      logger.info("[MarkdownExporter] 开始导出所有知识库项...");
 
       // 确保导出目录存在
       if (!fs.existsSync(this.exportPath)) {
@@ -39,11 +39,13 @@ class MarkdownExporter {
         exportedFiles.push(filename);
       }
 
-      logger.info(`[MarkdownExporter] 导出完成: ${exportedFiles.length} 个文件`);
+      logger.info(
+        `[MarkdownExporter] 导出完成: ${exportedFiles.length} 个文件`,
+      );
 
       return exportedFiles;
     } catch (error) {
-      logger.error('[MarkdownExporter] 导出失败:', error);
+      logger.error("[MarkdownExporter] 导出失败:", error);
       throw error;
     }
   }
@@ -62,13 +64,13 @@ class MarkdownExporter {
       const markdown = this.generateMarkdown(item);
 
       // 写入文件
-      fs.writeFileSync(filepath, markdown, 'utf8');
+      fs.writeFileSync(filepath, markdown, "utf8");
 
-      logger.info('[MarkdownExporter] 导出文件:', filename);
+      logger.info("[MarkdownExporter] 导出文件:", filename);
 
       return filename;
     } catch (error) {
-      logger.error('[MarkdownExporter] 导出项失败:', error);
+      logger.error("[MarkdownExporter] 导出项失败:", error);
       throw error;
     }
   }
@@ -80,8 +82,8 @@ class MarkdownExporter {
   generateFilename(item) {
     // 清理标题，移除特殊字符
     const cleanTitle = item.title
-      .replace(/[<>:"/\\|?*]/g, '-')
-      .replace(/\s+/g, '-')
+      .replace(/[<>:"/\\|?*]/g, "-")
+      .replace(/\s+/g, "-")
       .substring(0, 50);
 
     return `${item.id}-${cleanTitle}.md`;
@@ -95,14 +97,14 @@ class MarkdownExporter {
     const lines = [];
 
     // 前置元数据（YAML front matter）
-    lines.push('---');
+    lines.push("---");
     lines.push(`id: ${item.id}`);
     lines.push(`title: ${item.title}`);
     lines.push(`type: ${item.type}`);
 
     // 标签
     if (item.tags && item.tags.length > 0) {
-      lines.push(`tags: [${item.tags.join(', ')}]`);
+      lines.push(`tags: [${item.tags.join(", ")}]`);
     }
 
     lines.push(`created_at: ${item.created_at}`);
@@ -112,37 +114,37 @@ class MarkdownExporter {
       lines.push(`source_url: ${item.source_url}`);
     }
 
-    lines.push('---');
-    lines.push('');
+    lines.push("---");
+    lines.push("");
 
     // 标题
     lines.push(`# ${item.title}`);
-    lines.push('');
+    lines.push("");
 
     // 内容
     if (item.content) {
       lines.push(item.content);
-      lines.push('');
+      lines.push("");
     }
 
     // 元数据部分
-    lines.push('---');
-    lines.push('');
-    lines.push('## 元数据');
-    lines.push('');
+    lines.push("---");
+    lines.push("");
+    lines.push("## 元数据");
+    lines.push("");
     lines.push(`- **类型**: ${item.type}`);
     lines.push(`- **创建时间**: ${item.created_at}`);
     lines.push(`- **更新时间**: ${item.updated_at}`);
 
     if (item.tags && item.tags.length > 0) {
-      lines.push(`- **标签**: ${item.tags.join(', ')}`);
+      lines.push(`- **标签**: ${item.tags.join(", ")}`);
     }
 
     if (item.source_url) {
       lines.push(`- **来源**: [${item.source_url}](${item.source_url})`);
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -159,7 +161,7 @@ class MarkdownExporter {
 
       return await this.exportItem(item);
     } catch (error) {
-      logger.error('[MarkdownExporter] 导出项失败:', error);
+      logger.error("[MarkdownExporter] 导出项失败:", error);
       throw error;
     }
   }
@@ -174,13 +176,13 @@ class MarkdownExporter {
 
       if (fs.existsSync(filepath)) {
         fs.unlinkSync(filepath);
-        logger.info('[MarkdownExporter] 删除文件:', filename);
+        logger.info("[MarkdownExporter] 删除文件:", filename);
         return true;
       }
 
       return false;
     } catch (error) {
-      logger.error('[MarkdownExporter] 删除文件失败:', error);
+      logger.error("[MarkdownExporter] 删除文件失败:", error);
       throw error;
     }
   }
@@ -198,7 +200,7 @@ class MarkdownExporter {
       let count = 0;
 
       for (const file of files) {
-        if (file.endsWith('.md')) {
+        if (file.endsWith(".md")) {
           const filepath = path.join(this.exportPath, file);
           fs.unlinkSync(filepath);
           count++;
@@ -209,7 +211,7 @@ class MarkdownExporter {
 
       return count;
     } catch (error) {
-      logger.error('[MarkdownExporter] 清理失败:', error);
+      logger.error("[MarkdownExporter] 清理失败:", error);
       throw error;
     }
   }
@@ -221,7 +223,7 @@ class MarkdownExporter {
    */
   async sync() {
     try {
-      logger.info('[MarkdownExporter] 开始同步...');
+      logger.info("[MarkdownExporter] 开始同步...");
 
       // 获取数据库中的所有项
       const items = this.database.getKnowledgeItems(9999, 0);
@@ -230,7 +232,7 @@ class MarkdownExporter {
       // 导出所有项
       const exportedFiles = await this.exportAll();
       const exportedIds = new Set(
-        exportedFiles.map((filename) => filename.split('-')[0])
+        exportedFiles.map((filename) => filename.split("-")[0]),
       );
 
       // 查找需要删除的文件（数据库中不存在的项）
@@ -241,8 +243,8 @@ class MarkdownExporter {
       let deletedCount = 0;
 
       for (const file of files) {
-        if (file.endsWith('.md')) {
-          const fileId = file.split('-')[0];
+        if (file.endsWith(".md")) {
+          const fileId = file.split("-")[0];
 
           if (!itemIds.has(fileId)) {
             this.deleteExportedFile(file);
@@ -251,7 +253,7 @@ class MarkdownExporter {
         }
       }
 
-      logger.info('[MarkdownExporter] 同步完成');
+      logger.info("[MarkdownExporter] 同步完成");
       logger.info(`  导出: ${exportedFiles.length} 个文件`);
       logger.info(`  删除: ${deletedCount} 个文件`);
 
@@ -260,7 +262,7 @@ class MarkdownExporter {
         deleted: deletedCount,
       };
     } catch (error) {
-      logger.error('[MarkdownExporter] 同步失败:', error);
+      logger.error("[MarkdownExporter] 同步失败:", error);
       throw error;
     }
   }

@@ -3,18 +3,32 @@
  * 递归字符文本分块器，用于将长文档切分为小块以提升RAG检索精度
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * 文本分块器配置
  */
 const DEFAULT_SPLITTER_CONFIG = {
-  chunkSize: 500,           // 块大小（字符数）
-  chunkOverlap: 50,         // 块重叠（字符数）
-  separators: ['\n\n', '\n', '. ', '。', '! ', '！', '? ', '？', '; ', '；', ', ', '，', ' '], // 分隔符优先级
-  keepSeparator: true,      // 是否保留分隔符
-  lengthFunction: null,     // 自定义长度计算函数
+  chunkSize: 500, // 块大小（字符数）
+  chunkOverlap: 50, // 块重叠（字符数）
+  separators: [
+    "\n\n",
+    "\n",
+    ". ",
+    "。",
+    "! ",
+    "！",
+    "? ",
+    "？",
+    "; ",
+    "；",
+    ", ",
+    "，",
+    " ",
+  ], // 分隔符优先级
+  keepSeparator: true, // 是否保留分隔符
+  lengthFunction: null, // 自定义长度计算函数
 };
 
 /**
@@ -55,7 +69,7 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
       },
     }));
 
-    this.emit('split-complete', {
+    this.emit("split-complete", {
       originalLength: text.length,
       chunkCount: chunks.length,
       avgChunkSize: Math.round(text.length / chunks.length),
@@ -72,7 +86,7 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
     const finalChunks = [];
 
     // 当前要使用的分隔符
-    let separator = separators.length > 0 ? separators[0] : '';
+    let separator = separators.length > 0 ? separators[0] : "";
     let newSeparators = [];
 
     if (separator) {
@@ -81,7 +95,7 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
         newSeparators = separators.slice(1);
       }
     } else {
-      separator = '';
+      separator = "";
     }
 
     // 按当前分隔符分割
@@ -136,7 +150,7 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
       }
     }
 
-    return splits.filter(s => s.length > 0);
+    return splits.filter((s) => s.length > 0);
   }
 
   /**
@@ -145,11 +159,11 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
    */
   _mergeSplits(splits, separator) {
     const merged = [];
-    let currentChunk = '';
+    let currentChunk = "";
 
     for (const split of splits) {
       const testChunk = currentChunk
-        ? currentChunk + (separator || '') + split
+        ? currentChunk + (separator || "") + split
         : split;
 
       const testLength = this.config.lengthFunction(testChunk);
@@ -267,7 +281,7 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
   getChunkStats(text) {
     const chunks = this.splitText(text);
 
-    const sizes = chunks.map(c => c.content.length);
+    const sizes = chunks.map((c) => c.content.length);
     const avgSize = sizes.reduce((a, b) => a + b, 0) / sizes.length || 0;
     const minSize = Math.min(...sizes);
     const maxSize = Math.max(...sizes);
@@ -287,7 +301,7 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    logger.info('[TextSplitter] 配置已更新:', this.config);
+    logger.info("[TextSplitter] 配置已更新:", this.config);
   }
 
   /**
@@ -305,13 +319,13 @@ class MarkdownTextSplitter extends RecursiveCharacterTextSplitter {
   constructor(config = {}) {
     // Markdown特定的分隔符优先级
     const markdownSeparators = [
-      '\n## ',    // H2标题
-      '\n### ',   // H3标题
-      '\n#### ',  // H4标题
-      '\n\n',     // 段落
-      '\n',       // 行
-      '. ',       // 句子
-      ' ',        // 词
+      "\n## ", // H2标题
+      "\n### ", // H3标题
+      "\n#### ", // H4标题
+      "\n\n", // 段落
+      "\n", // 行
+      ". ", // 句子
+      " ", // 词
     ];
 
     super({
@@ -325,7 +339,7 @@ class MarkdownTextSplitter extends RecursiveCharacterTextSplitter {
  * 代码专用分块器
  */
 class CodeTextSplitter extends RecursiveCharacterTextSplitter {
-  constructor(language = 'javascript', config = {}) {
+  constructor(language = "javascript", config = {}) {
     const codeSeparators = CodeTextSplitter.getSeparatorsForLanguage(language);
 
     super({
@@ -343,11 +357,28 @@ class CodeTextSplitter extends RecursiveCharacterTextSplitter {
    */
   static getSeparatorsForLanguage(language) {
     const separatorMap = {
-      javascript: ['\nfunction ', '\nconst ', '\nlet ', '\nvar ', '\nclass ', '\n\n', '\n', ' '],
-      python: ['\ndef ', '\nclass ', '\n\n', '\n', ' '],
-      java: ['\npublic ', '\nprivate ', '\nprotected ', '\nclass ', '\n\n', '\n', ' '],
-      cpp: ['\nvoid ', '\nint ', '\nclass ', '\n\n', '\n', ' '],
-      default: ['\n\n', '\n', ' '],
+      javascript: [
+        "\nfunction ",
+        "\nconst ",
+        "\nlet ",
+        "\nvar ",
+        "\nclass ",
+        "\n\n",
+        "\n",
+        " ",
+      ],
+      python: ["\ndef ", "\nclass ", "\n\n", "\n", " "],
+      java: [
+        "\npublic ",
+        "\nprivate ",
+        "\nprotected ",
+        "\nclass ",
+        "\n\n",
+        "\n",
+        " ",
+      ],
+      cpp: ["\nvoid ", "\nint ", "\nclass ", "\n\n", "\n", " "],
+      default: ["\n\n", "\n", " "],
     };
 
     return separatorMap[language] || separatorMap.default;

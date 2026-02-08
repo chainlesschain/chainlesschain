@@ -9,9 +9,9 @@
  * 5. 质量评估和迭代优化
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const EventEmitter = require("events");
 
 class InteractiveTaskPlanner extends EventEmitter {
   constructor(dependencies) {
@@ -38,14 +38,14 @@ class InteractiveTaskPlanner extends EventEmitter {
    * @returns {Promise<Object>} Plan会话信息
    */
   async startPlanSession(userRequest, projectContext = {}) {
-    logger.info('[InteractiveTaskPlanner] 开始Plan模式对话:', userRequest);
+    logger.info("[InteractiveTaskPlanner] 开始Plan模式对话:", userRequest);
 
     const sessionId = uuidv4();
     const session = {
       id: sessionId,
       userRequest,
       projectContext,
-      status: 'planning', // planning -> awaiting_confirmation -> executing -> completed
+      status: "planning", // planning -> awaiting_confirmation -> executing -> completed
       createdAt: Date.now(),
 
       // Plan相关数据
@@ -61,7 +61,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       // 执行结果
       executionResult: null,
       qualityScore: null,
-      userFeedback: null
+      userFeedback: null,
     };
 
     this.planSessions.set(sessionId, session);
@@ -72,41 +72,52 @@ class InteractiveTaskPlanner extends EventEmitter {
       session.taskPlan = taskPlan;
 
       // Step 2: 推荐相关模板
-      const templates = await this.recommendTemplates(userRequest, projectContext, taskPlan);
+      const templates = await this.recommendTemplates(
+        userRequest,
+        projectContext,
+        taskPlan,
+      );
       session.recommendedTemplates = templates;
 
       // Step 3: 推荐技能和工具
-      const skills = await this.recommendSkills(userRequest, projectContext, taskPlan);
+      const skills = await this.recommendSkills(
+        userRequest,
+        projectContext,
+        taskPlan,
+      );
       session.recommendedSkills = skills;
 
-      const tools = await this.recommendTools(userRequest, projectContext, taskPlan);
+      const tools = await this.recommendTools(
+        userRequest,
+        projectContext,
+        taskPlan,
+      );
       session.recommendedTools = tools;
 
       // Step 4: 状态更新为等待确认
-      session.status = 'awaiting_confirmation';
+      session.status = "awaiting_confirmation";
 
       // Step 5: 返回Plan供用户确认
       const planPresentation = this.formatPlanForUser(session);
 
-      this.emit('plan-generated', { sessionId, planPresentation });
+      this.emit("plan-generated", { sessionId, planPresentation });
 
       return {
         sessionId,
-        status: 'awaiting_confirmation',
+        status: "awaiting_confirmation",
         plan: planPresentation,
-        message: '已生成任务计划，请确认或调整'
+        message: "已生成任务计划，请确认或调整",
       };
-
     } catch (error) {
-      logger.error('[InteractiveTaskPlanner] Plan生成失败:', error);
-      session.status = 'failed';
+      logger.error("[InteractiveTaskPlanner] Plan生成失败:", error);
+      session.status = "failed";
       session.error = error.message;
 
       return {
         sessionId,
-        status: 'failed',
+        status: "failed",
         error: error.message,
-        message: '任务计划生成失败，请重试'
+        message: "任务计划生成失败，请重试",
       };
     }
   }
@@ -116,7 +127,10 @@ class InteractiveTaskPlanner extends EventEmitter {
    */
   async generateTaskPlan(userRequest, projectContext) {
     // 使用基础任务规划器生成计划
-    const taskPlan = await this.baseTaskPlanner.decomposeTask(userRequest, projectContext);
+    const taskPlan = await this.baseTaskPlanner.decomposeTask(
+      userRequest,
+      projectContext,
+    );
     return taskPlan;
   }
 
@@ -126,7 +140,7 @@ class InteractiveTaskPlanner extends EventEmitter {
   async recommendTemplates(userRequest, projectContext, taskPlan) {
     try {
       if (!this.templateManager) {
-        logger.warn('[InteractiveTaskPlanner] 模板管理器未初始化');
+        logger.warn("[InteractiveTaskPlanner] 模板管理器未初始化");
         return [];
       }
 
@@ -136,18 +150,23 @@ class InteractiveTaskPlanner extends EventEmitter {
       const templates = await this.templateManager.searchTemplates({
         category: projectType,
         tags: [subType, taskPlan.task_type],
-        limit: 5
+        limit: 5,
       });
 
       // 为每个模板计算相关度分数
-      return templates.map(template => ({
-        ...template,
-        relevanceScore: this.calculateTemplateRelevance(template, userRequest, taskPlan),
-        reason: `推荐理由：此模板适用于${template.category}类项目`
-      })).sort((a, b) => b.relevanceScore - a.relevanceScore);
-
+      return templates
+        .map((template) => ({
+          ...template,
+          relevanceScore: this.calculateTemplateRelevance(
+            template,
+            userRequest,
+            taskPlan,
+          ),
+          reason: `推荐理由：此模板适用于${template.category}类项目`,
+        }))
+        .sort((a, b) => b.relevanceScore - a.relevanceScore);
     } catch (error) {
-      logger.error('[InteractiveTaskPlanner] 模板推荐失败:', error);
+      logger.error("[InteractiveTaskPlanner] 模板推荐失败:", error);
       return [];
     }
   }
@@ -158,20 +177,19 @@ class InteractiveTaskPlanner extends EventEmitter {
   async recommendSkills(userRequest, projectContext, taskPlan) {
     try {
       if (!this.skillRecommender) {
-        logger.warn('[InteractiveTaskPlanner] 技能推荐器未初始化');
+        logger.warn("[InteractiveTaskPlanner] 技能推荐器未初始化");
         return [];
       }
 
       const skills = await this.skillRecommender.recommendSkills(userRequest, {
         limit: 10,
         threshold: 0.3,
-        includeUsageStats: true
+        includeUsageStats: true,
       });
 
       return skills;
-
     } catch (error) {
-      logger.error('[InteractiveTaskPlanner] 技能推荐失败:', error);
+      logger.error("[InteractiveTaskPlanner] 技能推荐失败:", error);
       return [];
     }
   }
@@ -187,7 +205,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       if (taskPlan.subtasks) {
         const toolSet = new Set();
 
-        taskPlan.subtasks.forEach(subtask => {
+        taskPlan.subtasks.forEach((subtask) => {
           if (subtask.tool) {
             toolSet.add(subtask.tool);
           }
@@ -195,37 +213,76 @@ class InteractiveTaskPlanner extends EventEmitter {
 
         // 为每个工具添加描述
         const toolDescriptions = {
-          'web-engine': { name: 'Web引擎', description: '生成HTML/CSS/JS网页', capability: '前端开发' },
-          'document-engine': { name: '文档引擎', description: '生成Word/PDF/Markdown文档', capability: '文档撰写' },
-          'word-engine': { name: 'Word引擎', description: '生成Word文档', capability: 'Word文档生成' },
-          'excel-engine': { name: 'Excel引擎', description: '生成Excel表格', capability: 'Excel表格处理' },
-          'ppt-engine': { name: 'PPT引擎', description: '生成PowerPoint演示文稿', capability: 'PPT制作' },
-          'pdf-engine': { name: 'PDF引擎', description: '生成PDF文档', capability: 'PDF生成' },
-          'data-engine': { name: '数据引擎', description: '数据分析和可视化', capability: '数据处理' },
-          'code-engine': { name: '代码引擎', description: '生成代码文件', capability: '代码生成' },
-          'image-engine': { name: '图片引擎', description: '图片处理和生成', capability: '图像处理' },
-          'video-engine': { name: '视频引擎', description: '视频制作和编辑', capability: '视频处理' }
+          "web-engine": {
+            name: "Web引擎",
+            description: "生成HTML/CSS/JS网页",
+            capability: "前端开发",
+          },
+          "document-engine": {
+            name: "文档引擎",
+            description: "生成Word/PDF/Markdown文档",
+            capability: "文档撰写",
+          },
+          "word-engine": {
+            name: "Word引擎",
+            description: "生成Word文档",
+            capability: "Word文档生成",
+          },
+          "excel-engine": {
+            name: "Excel引擎",
+            description: "生成Excel表格",
+            capability: "Excel表格处理",
+          },
+          "ppt-engine": {
+            name: "PPT引擎",
+            description: "生成PowerPoint演示文稿",
+            capability: "PPT制作",
+          },
+          "pdf-engine": {
+            name: "PDF引擎",
+            description: "生成PDF文档",
+            capability: "PDF生成",
+          },
+          "data-engine": {
+            name: "数据引擎",
+            description: "数据分析和可视化",
+            capability: "数据处理",
+          },
+          "code-engine": {
+            name: "代码引擎",
+            description: "生成代码文件",
+            capability: "代码生成",
+          },
+          "image-engine": {
+            name: "图片引擎",
+            description: "图片处理和生成",
+            capability: "图像处理",
+          },
+          "video-engine": {
+            name: "视频引擎",
+            description: "视频制作和编辑",
+            capability: "视频处理",
+          },
         };
 
-        toolSet.forEach(toolName => {
+        toolSet.forEach((toolName) => {
           const info = toolDescriptions[toolName] || {
             name: toolName,
-            description: '未知工具',
-            capability: '通用处理'
+            description: "未知工具",
+            capability: "通用处理",
           };
 
           tools.push({
             tool: toolName,
             ...info,
-            recommendationReason: `此任务需要使用${info.name}完成${info.capability}功能`
+            recommendationReason: `此任务需要使用${info.name}完成${info.capability}功能`,
           });
         });
       }
 
       return tools;
-
     } catch (error) {
-      logger.error('[InteractiveTaskPlanner] 工具推荐失败:', error);
+      logger.error("[InteractiveTaskPlanner] 工具推荐失败:", error);
       return [];
     }
   }
@@ -243,8 +300,8 @@ class InteractiveTaskPlanner extends EventEmitter {
 
     // 2. 检查标签匹配
     if (template.tags && Array.isArray(template.tags)) {
-      const matchedTags = template.tags.filter(tag =>
-        userRequest.toLowerCase().includes(tag.toLowerCase())
+      const matchedTags = template.tags.filter((tag) =>
+        userRequest.toLowerCase().includes(tag.toLowerCase()),
       );
       score += matchedTags.length * 0.1;
     }
@@ -261,7 +318,12 @@ class InteractiveTaskPlanner extends EventEmitter {
    * 格式化Plan供用户查看
    */
   formatPlanForUser(session) {
-    const { taskPlan, recommendedTemplates, recommendedSkills, recommendedTools } = session;
+    const {
+      taskPlan,
+      recommendedTemplates,
+      recommendedSkills,
+      recommendedTools,
+    } = session;
 
     return {
       // 任务概述
@@ -270,11 +332,11 @@ class InteractiveTaskPlanner extends EventEmitter {
         type: taskPlan.task_type,
         estimatedDuration: taskPlan.estimated_duration,
         totalSteps: taskPlan.total_steps,
-        description: taskPlan.user_request
+        description: taskPlan.user_request,
       },
 
       // 执行步骤
-      steps: taskPlan.subtasks.map(subtask => ({
+      steps: taskPlan.subtasks.map((subtask) => ({
         step: subtask.step,
         title: subtask.title,
         description: subtask.description,
@@ -282,7 +344,7 @@ class InteractiveTaskPlanner extends EventEmitter {
         action: subtask.action,
         estimatedTokens: subtask.estimated_tokens,
         dependencies: subtask.dependencies,
-        outputFiles: subtask.output_files
+        outputFiles: subtask.output_files,
       })),
 
       // 最终输出
@@ -290,35 +352,35 @@ class InteractiveTaskPlanner extends EventEmitter {
 
       // 推荐资源
       recommendations: {
-        templates: recommendedTemplates.slice(0, 3).map(t => ({
+        templates: recommendedTemplates.slice(0, 3).map((t) => ({
           id: t.id,
           title: t.title,
           category: t.category,
           description: t.description,
           relevanceScore: t.relevanceScore,
-          reason: t.reason
+          reason: t.reason,
         })),
 
-        skills: recommendedSkills.slice(0, 5).map(s => ({
+        skills: recommendedSkills.slice(0, 5).map((s) => ({
           id: s.id,
           name: s.name,
           category: s.category,
           description: s.description,
           recommendationScore: s.recommendationScore,
-          reason: s.reason
+          reason: s.reason,
         })),
 
-        tools: recommendedTools.map(t => ({
+        tools: recommendedTools.map((t) => ({
           tool: t.tool,
           name: t.name,
           description: t.description,
           capability: t.capability,
-          reason: t.recommendationReason
-        }))
+          reason: t.recommendationReason,
+        })),
       },
 
       // 可调整参数
-      adjustableParameters: this.extractAdjustableParameters(taskPlan)
+      adjustableParameters: this.extractAdjustableParameters(taskPlan),
     };
   }
 
@@ -331,43 +393,43 @@ class InteractiveTaskPlanner extends EventEmitter {
     // 1. 文档标题
     if (taskPlan.task_title) {
       parameters.push({
-        key: 'title',
-        label: '文档标题',
+        key: "title",
+        label: "文档标题",
         currentValue: taskPlan.task_title,
-        type: 'string',
-        editable: true
+        type: "string",
+        editable: true,
       });
     }
 
     // 2. 输出格式
     if (taskPlan.final_output && taskPlan.final_output.type) {
       parameters.push({
-        key: 'outputFormat',
-        label: '输出格式',
+        key: "outputFormat",
+        label: "输出格式",
         currentValue: taskPlan.final_output.type,
-        type: 'select',
-        options: ['file', 'report', 'visualization', 'presentation'],
-        editable: true
+        type: "select",
+        options: ["file", "report", "visualization", "presentation"],
+        editable: true,
       });
     }
 
     // 3. 详细程度
     parameters.push({
-      key: 'detailLevel',
-      label: '详细程度',
-      currentValue: 'standard',
-      type: 'select',
-      options: ['brief', 'standard', 'detailed', 'comprehensive'],
-      editable: true
+      key: "detailLevel",
+      label: "详细程度",
+      currentValue: "standard",
+      type: "select",
+      options: ["brief", "standard", "detailed", "comprehensive"],
+      editable: true,
     });
 
     // 4. 是否包含示例
     parameters.push({
-      key: 'includeExamples',
-      label: '包含示例',
+      key: "includeExamples",
+      label: "包含示例",
       currentValue: true,
-      type: 'boolean',
-      editable: true
+      type: "boolean",
+      editable: true,
     });
 
     return parameters;
@@ -386,51 +448,52 @@ class InteractiveTaskPlanner extends EventEmitter {
       throw new Error(`会话不存在: ${sessionId}`);
     }
 
-    if (session.status !== 'awaiting_confirmation') {
-      throw new Error(`会话状态错误: ${session.status}，期望: awaiting_confirmation`);
+    if (session.status !== "awaiting_confirmation") {
+      throw new Error(
+        `会话状态错误: ${session.status}，期望: awaiting_confirmation`,
+      );
     }
 
     const { action, adjustments, selectedTemplate, feedback } = userResponse;
 
     try {
       switch (action) {
-        case 'confirm':
+        case "confirm":
           // 用户确认，开始执行
           return await this.executeConfirmedPlan(sessionId);
 
-        case 'adjust':
+        case "adjust":
           // 用户调整参数
           return await this.adjustPlan(sessionId, adjustments);
 
-        case 'use_template':
+        case "use_template":
           // 用户选择使用推荐的模板
           return await this.applyTemplate(sessionId, selectedTemplate);
 
-        case 'cancel':
+        case "cancel":
           // 用户取消
-          session.status = 'cancelled';
+          session.status = "cancelled";
           session.cancelledAt = Date.now();
           return {
             sessionId,
-            status: 'cancelled',
-            message: '任务已取消'
+            status: "cancelled",
+            message: "任务已取消",
           };
 
-        case 'regenerate':
+        case "regenerate":
           // 用户要求重新生成Plan
           return await this.regeneratePlan(sessionId, feedback);
 
         default:
           throw new Error(`未知的操作: ${action}`);
       }
-
     } catch (error) {
-      logger.error('[InteractiveTaskPlanner] 处理用户响应失败:', error);
+      logger.error("[InteractiveTaskPlanner] 处理用户响应失败:", error);
       return {
         sessionId,
-        status: 'error',
+        status: "error",
         error: error.message,
-        message: '处理失败，请重试'
+        message: "处理失败，请重试",
       };
     }
   }
@@ -441,10 +504,10 @@ class InteractiveTaskPlanner extends EventEmitter {
   async executeConfirmedPlan(sessionId) {
     const session = this.planSessions.get(sessionId);
 
-    session.status = 'executing';
+    session.status = "executing";
     session.executionStartedAt = Date.now();
 
-    this.emit('execution-started', { sessionId });
+    this.emit("execution-started", { sessionId });
 
     try {
       // 使用基础任务规划器执行
@@ -453,42 +516,41 @@ class InteractiveTaskPlanner extends EventEmitter {
         session.projectContext,
         (progress) => {
           // 转发进度事件
-          this.emit('execution-progress', { sessionId, progress });
-        }
+          this.emit("execution-progress", { sessionId, progress });
+        },
       );
 
       session.executionResult = result;
-      session.status = 'completed';
+      session.status = "completed";
       session.completedAt = Date.now();
 
       // 执行质量评估
       const qualityScore = await this.evaluateQuality(session);
       session.qualityScore = qualityScore;
 
-      this.emit('execution-completed', { sessionId, result, qualityScore });
+      this.emit("execution-completed", { sessionId, result, qualityScore });
 
       return {
         sessionId,
-        status: 'completed',
+        status: "completed",
         result,
         qualityScore,
-        message: '任务执行完成'
+        message: "任务执行完成",
       };
-
     } catch (error) {
-      logger.error('[InteractiveTaskPlanner] 执行失败:', error);
+      logger.error("[InteractiveTaskPlanner] 执行失败:", error);
 
-      session.status = 'failed';
+      session.status = "failed";
       session.error = error.message;
       session.failedAt = Date.now();
 
-      this.emit('execution-failed', { sessionId, error });
+      this.emit("execution-failed", { sessionId, error });
 
       return {
         sessionId,
-        status: 'failed',
+        status: "failed",
         error: error.message,
-        message: '任务执行失败'
+        message: "任务执行失败",
       };
     }
   }
@@ -499,12 +561,12 @@ class InteractiveTaskPlanner extends EventEmitter {
   async adjustPlan(sessionId, adjustments) {
     const session = this.planSessions.get(sessionId);
 
-    logger.info('[InteractiveTaskPlanner] 调整Plan:', adjustments);
+    logger.info("[InteractiveTaskPlanner] 调整Plan:", adjustments);
 
     // 记录用户调整
     session.userAdjustments.push({
       timestamp: Date.now(),
-      adjustments
+      adjustments,
     });
 
     // 应用调整到taskPlan
@@ -515,16 +577,18 @@ class InteractiveTaskPlanner extends EventEmitter {
     if (adjustments.detailLevel) {
       // 根据详细程度调整estimated_tokens
       const tokenMultipliers = {
-        'brief': 0.5,
-        'standard': 1.0,
-        'detailed': 1.5,
-        'comprehensive': 2.0
+        brief: 0.5,
+        standard: 1.0,
+        detailed: 1.5,
+        comprehensive: 2.0,
       };
 
       const multiplier = tokenMultipliers[adjustments.detailLevel] || 1.0;
 
-      session.taskPlan.subtasks.forEach(subtask => {
-        subtask.estimated_tokens = Math.round(subtask.estimated_tokens * multiplier);
+      session.taskPlan.subtasks.forEach((subtask) => {
+        subtask.estimated_tokens = Math.round(
+          subtask.estimated_tokens * multiplier,
+        );
       });
     }
 
@@ -533,25 +597,25 @@ class InteractiveTaskPlanner extends EventEmitter {
       if (adjustments.includeExamples) {
         // 检查是否已有示例步骤
         const hasExampleStep = session.taskPlan.subtasks.some(
-          st => st.type === 'example' || st.title?.includes('示例')
+          (st) => st.type === "example" || st.title?.includes("示例"),
         );
 
         if (!hasExampleStep) {
           // 添加示例生成步骤
           session.taskPlan.subtasks.push({
             id: uuidv4(),
-            title: '生成使用示例',
-            description: '创建代码示例和使用场景演示',
-            type: 'example',
+            title: "生成使用示例",
+            description: "创建代码示例和使用场景演示",
+            type: "example",
             estimated_tokens: 500,
             order: session.taskPlan.subtasks.length + 1,
-            status: 'pending',
+            status: "pending",
           });
         }
       } else {
         // 移除示例步骤
         session.taskPlan.subtasks = session.taskPlan.subtasks.filter(
-          st => st.type !== 'example' && !st.title?.includes('示例')
+          (st) => st.type !== "example" && !st.title?.includes("示例"),
         );
 
         // 重新编号
@@ -566,9 +630,9 @@ class InteractiveTaskPlanner extends EventEmitter {
 
     return {
       sessionId,
-      status: 'awaiting_confirmation',
+      status: "awaiting_confirmation",
       plan: updatedPlan,
-      message: 'Plan已更新，请确认'
+      message: "Plan已更新，请确认",
     };
   }
 
@@ -578,7 +642,7 @@ class InteractiveTaskPlanner extends EventEmitter {
   async applyTemplate(sessionId, templateId) {
     const session = this.planSessions.get(sessionId);
 
-    logger.info('[InteractiveTaskPlanner] 应用模板:', templateId);
+    logger.info("[InteractiveTaskPlanner] 应用模板:", templateId);
 
     try {
       // 获取模板
@@ -592,7 +656,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       const templateBasedPlan = await this.generatePlanFromTemplate(
         template,
         session.userRequest,
-        session.projectContext
+        session.projectContext,
       );
 
       session.taskPlan = templateBasedPlan;
@@ -603,18 +667,17 @@ class InteractiveTaskPlanner extends EventEmitter {
 
       return {
         sessionId,
-        status: 'awaiting_confirmation',
+        status: "awaiting_confirmation",
         plan: updatedPlan,
-        message: `已应用模板"${template.title}"，请确认`
+        message: `已应用模板"${template.title}"，请确认`,
       };
-
     } catch (error) {
-      logger.error('[InteractiveTaskPlanner] 应用模板失败:', error);
+      logger.error("[InteractiveTaskPlanner] 应用模板失败:", error);
       return {
         sessionId,
-        status: 'error',
+        status: "error",
         error: error.message,
-        message: '应用模板失败'
+        message: "应用模板失败",
       };
     }
   }
@@ -634,25 +697,31 @@ class InteractiveTaskPlanner extends EventEmitter {
     // 将用户请求中的信息提取为变量值
     const extractedVariables = this.extractVariablesFromRequest(
       userRequest,
-      templateVariables
+      templateVariables,
     );
 
     // 根据模板步骤生成子任务
     const subtasks = templateSteps.map((step, index) => {
       // 替换步骤中的变量占位符
-      const title = this.replaceVariables(step.title || step.name, extractedVariables);
-      const description = this.replaceVariables(step.description || '', extractedVariables);
+      const title = this.replaceVariables(
+        step.title || step.name,
+        extractedVariables,
+      );
+      const description = this.replaceVariables(
+        step.description || "",
+        extractedVariables,
+      );
 
       return {
         id: uuidv4(),
         title,
         description,
-        type: step.type || 'task',
+        type: step.type || "task",
         order: index + 1,
         estimated_tokens: step.estimatedTokens || step.estimated_tokens || 200,
         dependencies: step.dependencies || [],
         tools: step.tools || [],
-        status: 'pending',
+        status: "pending",
       };
     });
 
@@ -661,31 +730,31 @@ class InteractiveTaskPlanner extends EventEmitter {
       subtasks.push(
         {
           id: uuidv4(),
-          title: '分析需求',
+          title: "分析需求",
           description: `分析用户需求: ${userRequest}`,
-          type: 'analysis',
+          type: "analysis",
           order: 1,
           estimated_tokens: 200,
-          status: 'pending',
+          status: "pending",
         },
         {
           id: uuidv4(),
-          title: '执行任务',
-          description: template.description || '根据模板执行主要任务',
-          type: 'execution',
+          title: "执行任务",
+          description: template.description || "根据模板执行主要任务",
+          type: "execution",
           order: 2,
           estimated_tokens: 500,
-          status: 'pending',
+          status: "pending",
         },
         {
           id: uuidv4(),
-          title: '验证结果',
-          description: '验证输出是否满足需求',
-          type: 'validation',
+          title: "验证结果",
+          description: "验证输出是否满足需求",
+          type: "validation",
           order: 3,
           estimated_tokens: 100,
-          status: 'pending',
-        }
+          status: "pending",
+        },
       );
     }
 
@@ -695,19 +764,22 @@ class InteractiveTaskPlanner extends EventEmitter {
       for (const file of template.outputFiles) {
         outputFiles.push({
           path: this.replaceVariables(file.path || file, extractedVariables),
-          type: file.type || 'code',
+          type: file.type || "code",
         });
       }
     }
 
     // 计算预估时长
-    const totalTokens = subtasks.reduce((sum, st) => sum + (st.estimated_tokens || 0), 0);
+    const totalTokens = subtasks.reduce(
+      (sum, st) => sum + (st.estimated_tokens || 0),
+      0,
+    );
     const estimatedMinutes = Math.ceil(totalTokens / 500); // 假设每500 token约1分钟
 
     return {
       id: planId,
       task_title: this.replaceVariables(template.title, extractedVariables),
-      task_type: template.category || template.type || 'create',
+      task_type: template.category || template.type || "create",
       user_request: userRequest,
       template_id: template.id,
       template_name: template.title,
@@ -716,12 +788,12 @@ class InteractiveTaskPlanner extends EventEmitter {
       subtasks,
       variables: extractedVariables,
       final_output: {
-        type: template.outputType || 'file',
+        type: template.outputType || "file",
         description: template.description || template.outputDescription,
         files: outputFiles,
       },
       context: projectContext,
-      status: 'pending',
+      status: "pending",
       created_at: now,
     };
   }
@@ -737,7 +809,7 @@ class InteractiveTaskPlanner extends EventEmitter {
 
       if (pattern) {
         // 使用正则表达式提取
-        const regex = new RegExp(pattern, 'i');
+        const regex = new RegExp(pattern, "i");
         const match = request.match(regex);
         if (match) {
           extracted[varName] = match[1] || match[0];
@@ -754,13 +826,15 @@ class InteractiveTaskPlanner extends EventEmitter {
    * 替换字符串中的变量占位符
    */
   replaceVariables(text, variables) {
-    if (!text || typeof text !== 'string') return text;
+    if (!text || typeof text !== "string") {
+      return text;
+    }
 
     let result = text;
     for (const [key, value] of Object.entries(variables)) {
       // 支持 {{variable}} 和 ${variable} 格式
-      result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
-      result = result.replace(new RegExp(`\\$\\{${key}\\}`, 'g'), value);
+      result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), value);
+      result = result.replace(new RegExp(`\\$\\{${key}\\}`, "g"), value);
     }
     return result;
   }
@@ -771,7 +845,7 @@ class InteractiveTaskPlanner extends EventEmitter {
   async regeneratePlan(sessionId, feedback) {
     const session = this.planSessions.get(sessionId);
 
-    logger.info('[InteractiveTaskPlanner] 重新生成Plan，用户反馈:', feedback);
+    logger.info("[InteractiveTaskPlanner] 重新生成Plan，用户反馈:", feedback);
 
     // 结合用户反馈重新生成
     const enhancedRequest = feedback
@@ -779,30 +853,44 @@ class InteractiveTaskPlanner extends EventEmitter {
       : session.userRequest;
 
     try {
-      const newTaskPlan = await this.generateTaskPlan(enhancedRequest, session.projectContext);
+      const newTaskPlan = await this.generateTaskPlan(
+        enhancedRequest,
+        session.projectContext,
+      );
       session.taskPlan = newTaskPlan;
 
       // 重新推荐资源
-      session.recommendedTemplates = await this.recommendTemplates(enhancedRequest, session.projectContext, newTaskPlan);
-      session.recommendedSkills = await this.recommendSkills(enhancedRequest, session.projectContext, newTaskPlan);
-      session.recommendedTools = await this.recommendTools(enhancedRequest, session.projectContext, newTaskPlan);
+      session.recommendedTemplates = await this.recommendTemplates(
+        enhancedRequest,
+        session.projectContext,
+        newTaskPlan,
+      );
+      session.recommendedSkills = await this.recommendSkills(
+        enhancedRequest,
+        session.projectContext,
+        newTaskPlan,
+      );
+      session.recommendedTools = await this.recommendTools(
+        enhancedRequest,
+        session.projectContext,
+        newTaskPlan,
+      );
 
       const updatedPlan = this.formatPlanForUser(session);
 
       return {
         sessionId,
-        status: 'awaiting_confirmation',
+        status: "awaiting_confirmation",
         plan: updatedPlan,
-        message: 'Plan已重新生成，请确认'
+        message: "Plan已重新生成，请确认",
       };
-
     } catch (error) {
-      logger.error('[InteractiveTaskPlanner] 重新生成失败:', error);
+      logger.error("[InteractiveTaskPlanner] 重新生成失败:", error);
       return {
         sessionId,
-        status: 'error',
+        status: "error",
         error: error.message,
-        message: '重新生成失败'
+        message: "重新生成失败",
       };
     }
   }
@@ -811,7 +899,7 @@ class InteractiveTaskPlanner extends EventEmitter {
    * 评估生成质量
    */
   async evaluateQuality(session) {
-    logger.info('[InteractiveTaskPlanner] 开始质量评估');
+    logger.info("[InteractiveTaskPlanner] 开始质量评估");
 
     const { taskPlan, executionResult } = session;
 
@@ -821,7 +909,9 @@ class InteractiveTaskPlanner extends EventEmitter {
     // 1. 完成度评分 (0-30分)
     maxScore += 30;
     if (executionResult && executionResult.success) {
-      const completedSubtasks = taskPlan.subtasks.filter(s => s.status === 'completed').length;
+      const completedSubtasks = taskPlan.subtasks.filter(
+        (s) => s.status === "completed",
+      ).length;
       const completionRate = completedSubtasks / taskPlan.subtasks.length;
       totalScore += Math.round(completionRate * 30);
     }
@@ -829,7 +919,9 @@ class InteractiveTaskPlanner extends EventEmitter {
     // 2. 文件输出评分 (0-20分)
     maxScore += 20;
     if (executionResult && executionResult.results) {
-      const filesGenerated = executionResult.results.filter(r => r.success).length;
+      const filesGenerated = executionResult.results.filter(
+        (r) => r.success,
+      ).length;
       const expectedFiles = taskPlan.final_output.files?.length || 1;
       const fileScore = Math.min(filesGenerated / expectedFiles, 1.0) * 20;
       totalScore += Math.round(fileScore);
@@ -839,12 +931,15 @@ class InteractiveTaskPlanner extends EventEmitter {
     maxScore += 15;
     if (session.completedAt && session.executionStartedAt) {
       const actualDuration = session.completedAt - session.executionStartedAt;
-      const estimatedMs = this.parseEstimatedDuration(taskPlan.estimated_duration);
+      const estimatedMs = this.parseEstimatedDuration(
+        taskPlan.estimated_duration,
+      );
 
       if (estimatedMs > 0) {
         const timeRatio = actualDuration / estimatedMs;
         // 在预估时间内完成得满分，超时会扣分
-        const timeScore = timeRatio <= 1.0 ? 15 : Math.max(0, 15 - (timeRatio - 1) * 10);
+        const timeScore =
+          timeRatio <= 1.0 ? 15 : Math.max(0, 15 - (timeRatio - 1) * 10);
         totalScore += Math.round(timeScore);
       } else {
         totalScore += 10; // 无法估算，给基础分
@@ -853,7 +948,9 @@ class InteractiveTaskPlanner extends EventEmitter {
 
     // 4. 错误率评分 (0-20分)
     maxScore += 20;
-    const failedSubtasks = taskPlan.subtasks.filter(s => s.status === 'failed').length;
+    const failedSubtasks = taskPlan.subtasks.filter(
+      (s) => s.status === "failed",
+    ).length;
     const errorRate = failedSubtasks / taskPlan.subtasks.length;
     totalScore += Math.round((1 - errorRate) * 20);
 
@@ -875,8 +972,8 @@ class InteractiveTaskPlanner extends EventEmitter {
         fileOutput: 20,
         executionTime: 15,
         errorRate: 20,
-        resourceUsage: 15
-      }
+        resourceUsage: 15,
+      },
     };
   }
 
@@ -884,19 +981,27 @@ class InteractiveTaskPlanner extends EventEmitter {
    * 解析预估时长
    */
   parseEstimatedDuration(duration) {
-    if (!duration) {return 0;}
+    if (!duration) {
+      return 0;
+    }
 
     const match = duration.match(/(\d+)\s*(分钟|秒|小时)/);
-    if (!match) {return 0;}
+    if (!match) {
+      return 0;
+    }
 
     const value = parseInt(match[1]);
     const unit = match[2];
 
     switch (unit) {
-      case '秒': return value * 1000;
-      case '分钟': return value * 60 * 1000;
-      case '小时': return value * 60 * 60 * 1000;
-      default: return 0;
+      case "秒":
+        return value * 1000;
+      case "分钟":
+        return value * 60 * 1000;
+      case "小时":
+        return value * 60 * 60 * 1000;
+      default:
+        return 0;
     }
   }
 
@@ -904,11 +1009,19 @@ class InteractiveTaskPlanner extends EventEmitter {
    * 获取等级
    */
   getGrade(percentage) {
-    if (percentage >= 90) {return 'A';}
-    if (percentage >= 80) {return 'B';}
-    if (percentage >= 70) {return 'C';}
-    if (percentage >= 60) {return 'D';}
-    return 'F';
+    if (percentage >= 90) {
+      return "A";
+    }
+    if (percentage >= 80) {
+      return "B";
+    }
+    if (percentage >= 70) {
+      return "C";
+    }
+    if (percentage >= 60) {
+      return "D";
+    }
+    return "F";
   }
 
   /**
@@ -925,21 +1038,21 @@ class InteractiveTaskPlanner extends EventEmitter {
 
     session.userFeedback = {
       ...feedback,
-      submittedAt: Date.now()
+      submittedAt: Date.now(),
     };
 
     // 保存反馈到数据库
     try {
       await this.saveFeedbackToDatabase(sessionId, feedback);
     } catch (error) {
-      logger.error('[InteractiveTaskPlanner] 保存反馈失败:', error);
+      logger.error("[InteractiveTaskPlanner] 保存反馈失败:", error);
     }
 
-    this.emit('feedback-submitted', { sessionId, feedback });
+    this.emit("feedback-submitted", { sessionId, feedback });
 
     return {
       success: true,
-      message: '感谢您的反馈'
+      message: "感谢您的反馈",
     };
   }
 
@@ -962,7 +1075,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       comment || null,
       JSON.stringify(issues || []),
       JSON.stringify(suggestions || []),
-      Date.now()
+      Date.now(),
     ]);
   }
 
@@ -983,7 +1096,12 @@ class InteractiveTaskPlanner extends EventEmitter {
     for (const [sessionId, session] of this.planSessions.entries()) {
       const age = now - session.createdAt;
 
-      if (age > maxAge && (session.status === 'completed' || session.status === 'cancelled' || session.status === 'failed')) {
+      if (
+        age > maxAge &&
+        (session.status === "completed" ||
+          session.status === "cancelled" ||
+          session.status === "failed")
+      ) {
         this.planSessions.delete(sessionId);
         cleanedCount++;
       }

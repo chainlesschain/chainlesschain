@@ -8,18 +8,18 @@
  * - 提供优化建议
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * 连接质量等级
  */
 const QualityLevel = {
-  EXCELLENT: 'excellent',  // 优秀
-  GOOD: 'good',           // 良好
-  FAIR: 'fair',           // 一般
-  POOR: 'poor',           // 较差
-  CRITICAL: 'critical'    // 严重
+  EXCELLENT: "excellent", // 优秀
+  GOOD: "good", // 良好
+  FAIR: "fair", // 一般
+  POOR: "poor", // 较差
+  CRITICAL: "critical", // 严重
 };
 
 /**
@@ -31,17 +31,17 @@ class WebRTCQualityMonitor extends EventEmitter {
 
     this.p2pManager = p2pManager;
     this.options = {
-      monitorInterval: options.monitorInterval || 5000,  // 监控间隔（毫秒）
-      statsRetention: options.statsRetention || 100,     // 保留统计数据条数
+      monitorInterval: options.monitorInterval || 5000, // 监控间隔（毫秒）
+      statsRetention: options.statsRetention || 100, // 保留统计数据条数
       alertThresholds: {
-        packetLoss: options.packetLossThreshold || 5,    // 丢包率阈值（%）
-        rtt: options.rttThreshold || 300,                // RTT阈值（毫秒）
-        jitter: options.jitterThreshold || 50,           // 抖动阈值（毫秒）
-        bandwidth: options.bandwidthThreshold || 100000  // 带宽阈值（bps）
-      }
+        packetLoss: options.packetLossThreshold || 5, // 丢包率阈值（%）
+        rtt: options.rttThreshold || 300, // RTT阈值（毫秒）
+        jitter: options.jitterThreshold || 50, // 抖动阈值（毫秒）
+        bandwidth: options.bandwidthThreshold || 100000, // 带宽阈值（bps）
+      },
     };
 
-    this.connections = new Map();  // peerId -> connection stats
+    this.connections = new Map(); // peerId -> connection stats
     this.monitorTimer = null;
     this.isMonitoring = false;
   }
@@ -51,11 +51,11 @@ class WebRTCQualityMonitor extends EventEmitter {
    */
   start() {
     if (this.isMonitoring) {
-      logger.warn('[WebRTC Monitor] 监控已在运行');
+      logger.warn("[WebRTC Monitor] 监控已在运行");
       return;
     }
 
-    logger.info('[WebRTC Monitor] 开始监控WebRTC连接质量');
+    logger.info("[WebRTC Monitor] 开始监控WebRTC连接质量");
     this.isMonitoring = true;
 
     // 定期收集统计信息
@@ -75,7 +75,7 @@ class WebRTCQualityMonitor extends EventEmitter {
       return;
     }
 
-    logger.info('[WebRTC Monitor] 停止监控');
+    logger.info("[WebRTC Monitor] 停止监控");
     this.isMonitoring = false;
 
     if (this.monitorTimer) {
@@ -93,14 +93,14 @@ class WebRTCQualityMonitor extends EventEmitter {
     }
 
     // 监听新连接
-    this.p2pManager.node.addEventListener('peer:connect', (event) => {
+    this.p2pManager.node.addEventListener("peer:connect", (event) => {
       const peerId = event.detail.toString();
       logger.info(`[WebRTC Monitor] 新连接: ${peerId}`);
       this.initializeConnectionStats(peerId);
     });
 
     // 监听连接断开
-    this.p2pManager.node.addEventListener('peer:disconnect', (event) => {
+    this.p2pManager.node.addEventListener("peer:disconnect", (event) => {
       const peerId = event.detail.toString();
       logger.info(`[WebRTC Monitor] 连接断开: ${peerId}`);
       this.connections.delete(peerId);
@@ -116,7 +116,7 @@ class WebRTCQualityMonitor extends EventEmitter {
       startTime: Date.now(),
       stats: [],
       currentQuality: QualityLevel.GOOD,
-      alerts: []
+      alerts: [],
     });
   }
 
@@ -145,7 +145,7 @@ class WebRTCQualityMonitor extends EventEmitter {
         }
       }
     } catch (error) {
-      logger.error('[WebRTC Monitor] 收集统计信息失败:', error);
+      logger.error("[WebRTC Monitor] 收集统计信息失败:", error);
     }
   }
 
@@ -155,7 +155,7 @@ class WebRTCQualityMonitor extends EventEmitter {
   isWebRTCConnection(connection) {
     // 检查连接的multiaddr是否包含webrtc
     const remoteAddr = connection.remoteAddr.toString();
-    return remoteAddr.includes('/webrtc');
+    return remoteAddr.includes("/webrtc");
   }
 
   /**
@@ -175,7 +175,7 @@ class WebRTCQualityMonitor extends EventEmitter {
         packetsLost: 0,
         rtt: 0,
         jitter: 0,
-        bandwidth: 0
+        bandwidth: 0,
       };
 
       // 尝试从connection获取统计信息
@@ -187,7 +187,7 @@ class WebRTCQualityMonitor extends EventEmitter {
 
       return stats;
     } catch (error) {
-      logger.warn('[WebRTC Monitor] 获取连接统计失败:', error.message);
+      logger.warn("[WebRTC Monitor] 获取连接统计失败:", error.message);
       return null;
     }
   }
@@ -217,12 +217,14 @@ class WebRTCQualityMonitor extends EventEmitter {
 
     // 检测质量变化
     if (quality !== previousQuality) {
-      logger.info(`[WebRTC Monitor] ${peerId} 连接质量变化: ${previousQuality} -> ${quality}`);
-      this.emit('quality:change', {
+      logger.info(
+        `[WebRTC Monitor] ${peerId} 连接质量变化: ${previousQuality} -> ${quality}`,
+      );
+      this.emit("quality:change", {
         peerId,
         previousQuality,
         currentQuality: quality,
-        stats: stats
+        stats: stats,
       });
     }
 
@@ -230,10 +232,10 @@ class WebRTCQualityMonitor extends EventEmitter {
     this.checkAlerts(peerId, stats, connData);
 
     // 发送统计更新事件
-    this.emit('stats:update', {
+    this.emit("stats:update", {
       peerId,
       stats,
-      quality
+      quality,
     });
   }
 
@@ -252,25 +254,45 @@ class WebRTCQualityMonitor extends EventEmitter {
     let score = 100;
 
     // 丢包率影响（权重40%）
-    if (packetLoss > 10) {score -= 40;}
-    else if (packetLoss > 5) {score -= 30;}
-    else if (packetLoss > 2) {score -= 15;}
+    if (packetLoss > 10) {
+      score -= 40;
+    } else if (packetLoss > 5) {
+      score -= 30;
+    } else if (packetLoss > 2) {
+      score -= 15;
+    }
 
     // RTT影响（权重30%）
-    if (rtt > 500) {score -= 30;}
-    else if (rtt > 300) {score -= 20;}
-    else if (rtt > 150) {score -= 10;}
+    if (rtt > 500) {
+      score -= 30;
+    } else if (rtt > 300) {
+      score -= 20;
+    } else if (rtt > 150) {
+      score -= 10;
+    }
 
     // 抖动影响（权重30%）
-    if (jitter > 100) {score -= 30;}
-    else if (jitter > 50) {score -= 20;}
-    else if (jitter > 30) {score -= 10;}
+    if (jitter > 100) {
+      score -= 30;
+    } else if (jitter > 50) {
+      score -= 20;
+    } else if (jitter > 30) {
+      score -= 10;
+    }
 
     // 根据分数确定质量等级
-    if (score >= 90) {return QualityLevel.EXCELLENT;}
-    if (score >= 75) {return QualityLevel.GOOD;}
-    if (score >= 50) {return QualityLevel.FAIR;}
-    if (score >= 25) {return QualityLevel.POOR;}
+    if (score >= 90) {
+      return QualityLevel.EXCELLENT;
+    }
+    if (score >= 75) {
+      return QualityLevel.GOOD;
+    }
+    if (score >= 50) {
+      return QualityLevel.FAIR;
+    }
+    if (score >= 25) {
+      return QualityLevel.POOR;
+    }
     return QualityLevel.CRITICAL;
   }
 
@@ -314,50 +336,50 @@ class WebRTCQualityMonitor extends EventEmitter {
     // 检查丢包率
     if (metrics.packetLoss > this.options.alertThresholds.packetLoss) {
       alerts.push({
-        type: 'packet_loss',
-        severity: metrics.packetLoss > 10 ? 'critical' : 'warning',
+        type: "packet_loss",
+        severity: metrics.packetLoss > 10 ? "critical" : "warning",
         message: `丢包率过高: ${metrics.packetLoss.toFixed(2)}%`,
-        value: metrics.packetLoss
+        value: metrics.packetLoss,
       });
     }
 
     // 检查RTT
     if (metrics.rtt > this.options.alertThresholds.rtt) {
       alerts.push({
-        type: 'high_rtt',
-        severity: metrics.rtt > 500 ? 'critical' : 'warning',
+        type: "high_rtt",
+        severity: metrics.rtt > 500 ? "critical" : "warning",
         message: `延迟过高: ${metrics.rtt}ms`,
-        value: metrics.rtt
+        value: metrics.rtt,
       });
     }
 
     // 检查抖动
     if (metrics.jitter > this.options.alertThresholds.jitter) {
       alerts.push({
-        type: 'high_jitter',
-        severity: metrics.jitter > 100 ? 'critical' : 'warning',
+        type: "high_jitter",
+        severity: metrics.jitter > 100 ? "critical" : "warning",
         message: `抖动过高: ${metrics.jitter}ms`,
-        value: metrics.jitter
+        value: metrics.jitter,
       });
     }
 
     // 检查带宽
     if (metrics.bandwidth < this.options.alertThresholds.bandwidth) {
       alerts.push({
-        type: 'low_bandwidth',
-        severity: 'warning',
+        type: "low_bandwidth",
+        severity: "warning",
         message: `带宽过低: ${(metrics.bandwidth / 1000).toFixed(2)} kbps`,
-        value: metrics.bandwidth
+        value: metrics.bandwidth,
       });
     }
 
     // 发送告警
     if (alerts.length > 0) {
       connData.alerts = alerts;
-      this.emit('alert', {
+      this.emit("alert", {
         peerId,
         alerts,
-        metrics
+        metrics,
       });
     }
   }
@@ -379,7 +401,7 @@ class WebRTCQualityMonitor extends EventEmitter {
       uptime: Date.now() - connData.startTime,
       metrics,
       alerts: connData.alerts,
-      statsCount: connData.stats.length
+      statsCount: connData.stats.length,
     };
   }
 
@@ -412,41 +434,41 @@ class WebRTCQualityMonitor extends EventEmitter {
     // 基于质量和指标提供建议
     if (metrics.packetLoss > 5) {
       suggestions.push({
-        issue: '高丢包率',
-        suggestion: '考虑切换到更稳定的网络连接，或启用TURN服务器中继',
-        priority: 'high'
+        issue: "高丢包率",
+        suggestion: "考虑切换到更稳定的网络连接，或启用TURN服务器中继",
+        priority: "high",
       });
     }
 
     if (metrics.rtt > 300) {
       suggestions.push({
-        issue: '高延迟',
-        suggestion: '尝试连接到地理位置更近的节点，或检查网络路由',
-        priority: 'medium'
+        issue: "高延迟",
+        suggestion: "尝试连接到地理位置更近的节点，或检查网络路由",
+        priority: "medium",
       });
     }
 
     if (metrics.jitter > 50) {
       suggestions.push({
-        issue: '高抖动',
-        suggestion: '网络不稳定，建议使用有线连接或改善WiFi信号',
-        priority: 'medium'
+        issue: "高抖动",
+        suggestion: "网络不稳定，建议使用有线连接或改善WiFi信号",
+        priority: "medium",
       });
     }
 
     if (metrics.bandwidth < 100000) {
       suggestions.push({
-        issue: '低带宽',
-        suggestion: '当前带宽较低，可能影响大文件传输，建议升级网络套餐',
-        priority: 'low'
+        issue: "低带宽",
+        suggestion: "当前带宽较低，可能影响大文件传输，建议升级网络套餐",
+        priority: "low",
       });
     }
 
     if (quality === QualityLevel.CRITICAL || quality === QualityLevel.POOR) {
       suggestions.push({
-        issue: '连接质量差',
-        suggestion: '建议重新连接或切换到其他传输协议（WebSocket/TCP）',
-        priority: 'high'
+        issue: "连接质量差",
+        suggestion: "建议重新连接或切换到其他传输协议（WebSocket/TCP）",
+        priority: "high",
       });
     }
 
@@ -456,5 +478,5 @@ class WebRTCQualityMonitor extends EventEmitter {
 
 module.exports = {
   WebRTCQualityMonitor,
-  QualityLevel
+  QualityLevel,
 };

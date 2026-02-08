@@ -1,4 +1,4 @@
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * 工具组合系统 (Tool Composition System)
@@ -15,10 +15,10 @@ const { logger, createLogger } = require('../utils/logger.js');
  */
 
 const CompositionStrategy = {
-  PIPELINE: 'pipeline',         // 管道式(A的输出给B)
-  PARALLEL: 'parallel',         // 并行式(同时执行)
-  CONDITIONAL: 'conditional',   // 条件式(根据结果选择)
-  ITERATIVE: 'iterative'        // 迭代式(循环执行)
+  PIPELINE: "pipeline", // 管道式(A的输出给B)
+  PARALLEL: "parallel", // 并行式(同时执行)
+  CONDITIONAL: "conditional", // 条件式(根据结果选择)
+  ITERATIVE: "iterative", // 迭代式(循环执行)
 };
 
 class ToolCompositionSystem {
@@ -28,7 +28,7 @@ class ToolCompositionSystem {
       enableEffectPrediction: true,
       enableOptimization: true,
       maxCompositionDepth: 5,
-      ...config
+      ...config,
     };
 
     this.db = null;
@@ -38,11 +38,13 @@ class ToolCompositionSystem {
     this.stats = {
       totalCompositions: 0,
       successfulCompositions: 0,
-      avgToolsPerComposition: 0
+      avgToolsPerComposition: 0,
     };
   }
 
-  setDatabase(db) { this.db = db; }
+  setDatabase(db) {
+    this.db = db;
+  }
 
   registerTool(name, tool) {
     this.toolRegistry.set(name, {
@@ -51,7 +53,7 @@ class ToolCompositionSystem {
       inputs: tool.inputs || [],
       outputs: tool.outputs || [],
       dependencies: tool.dependencies || [],
-      cost: tool.cost || 1
+      cost: tool.cost || 1,
     });
   }
 
@@ -65,8 +67,10 @@ class ToolCompositionSystem {
 
     this.stats.successfulCompositions++;
     this.stats.avgToolsPerComposition =
-      (this.stats.avgToolsPerComposition * (this.stats.successfulCompositions - 1) +
-       optimized.length) / this.stats.successfulCompositions;
+      (this.stats.avgToolsPerComposition *
+        (this.stats.successfulCompositions - 1) +
+        optimized.length) /
+      this.stats.successfulCompositions;
 
     return optimized;
   }
@@ -81,7 +85,7 @@ class ToolCompositionSystem {
         chain.push({
           tool: tool.name,
           strategy: CompositionStrategy.PIPELINE,
-          estimatedCost: tool.cost
+          estimatedCost: tool.cost,
         });
       }
     }
@@ -90,8 +94,8 @@ class ToolCompositionSystem {
   }
 
   _matchesGoal(tool, goal) {
-    return tool.outputs.some(output => 
-      goal.toLowerCase().includes(output.toLowerCase())
+    return tool.outputs.some((output) =>
+      goal.toLowerCase().includes(output.toLowerCase()),
     );
   }
 
@@ -101,13 +105,16 @@ class ToolCompositionSystem {
     const parallelGroup = [];
 
     for (const step of toolChain) {
-      if (parallelGroup.length === 0 || this._canParallelize(step, parallelGroup)) {
+      if (
+        parallelGroup.length === 0 ||
+        this._canParallelize(step, parallelGroup)
+      ) {
         parallelGroup.push(step);
       } else {
         if (parallelGroup.length > 1) {
           optimized.push({
             tools: parallelGroup,
-            strategy: CompositionStrategy.PARALLEL
+            strategy: CompositionStrategy.PARALLEL,
           });
         } else {
           optimized.push(parallelGroup[0]);
@@ -118,10 +125,14 @@ class ToolCompositionSystem {
     }
 
     if (parallelGroup.length > 0) {
-      optimized.push(parallelGroup.length > 1 ? {
-        tools: parallelGroup,
-        strategy: CompositionStrategy.PARALLEL
-      } : parallelGroup[0]);
+      optimized.push(
+        parallelGroup.length > 1
+          ? {
+              tools: parallelGroup,
+              strategy: CompositionStrategy.PARALLEL,
+            }
+          : parallelGroup[0],
+      );
     }
 
     return optimized;
@@ -129,9 +140,7 @@ class ToolCompositionSystem {
 
   _canParallelize(step, group) {
     // Simplified: check if no data dependencies
-    return group.every(s =>
-      !this._hasDependency(step.tool, s.tool)
-    );
+    return group.every((s) => !this._hasDependency(step.tool, s.tool));
   }
 
   _hasDependency(tool1, tool2) {
@@ -146,7 +155,7 @@ class ToolCompositionSystem {
     for (const step of composition) {
       if (step.strategy === CompositionStrategy.PARALLEL && step.tools) {
         const parallelResults = await Promise.all(
-          step.tools.map(s => this._executeTool(s.tool, inputs))
+          step.tools.map((s) => this._executeTool(s.tool, inputs)),
         );
         results.push(...parallelResults);
       } else {
@@ -169,7 +178,9 @@ class ToolCompositionSystem {
   }
 
   async _recordComposition(goal, composition, context) {
-    if (!this.db) {return;}
+    if (!this.db) {
+      return;
+    }
 
     try {
       const insertStmt = this.db.prepare(`
@@ -178,23 +189,28 @@ class ToolCompositionSystem {
       `);
 
       insertStmt.run(
-        context.sessionId || 'unknown',
+        context.sessionId || "unknown",
         goal,
         JSON.stringify(composition),
-        composition.length
+        composition.length,
       );
     } catch (error) {
-      logger.error('[ToolComp] 记录组合历史失败:', error);
+      logger.error("[ToolComp] 记录组合历史失败:", error);
     }
   }
 
   getStats() {
     return {
       ...this.stats,
-      successRate: this.stats.totalCompositions > 0
-        ? (this.stats.successfulCompositions / this.stats.totalCompositions * 100).toFixed(2) + '%'
-        : '0%',
-      registeredTools: this.toolRegistry.size
+      successRate:
+        this.stats.totalCompositions > 0
+          ? (
+              (this.stats.successfulCompositions /
+                this.stats.totalCompositions) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
+      registeredTools: this.toolRegistry.size,
     };
   }
 

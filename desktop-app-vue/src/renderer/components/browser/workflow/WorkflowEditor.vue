@@ -10,21 +10,27 @@
           :bordered="false"
           @blur="saveWorkflowName"
         />
-        <a-tag v-if="workflow?.is_template" color="purple">Template</a-tag>
-        <a-tag v-if="hasUnsavedChanges" color="orange">Unsaved</a-tag>
+        <a-tag v-if="workflow?.is_template" color="purple"> Template </a-tag>
+        <a-tag v-if="hasUnsavedChanges" color="orange"> Unsaved </a-tag>
       </div>
       <div class="header-actions">
         <a-button-group>
-          <a-button @click="saveWorkflow" :loading="saving">
-            <template #icon><SaveOutlined /></template>
+          <a-button :loading="saving" @click="saveWorkflow">
+            <template #icon>
+              <SaveOutlined />
+            </template>
             Save
           </a-button>
-          <a-button @click="runWorkflow" :disabled="!canRun" :loading="running">
-            <template #icon><PlayCircleOutlined /></template>
+          <a-button :disabled="!canRun" :loading="running" @click="runWorkflow">
+            <template #icon>
+              <PlayCircleOutlined />
+            </template>
             Run
           </a-button>
-          <a-button @click="stopWorkflow" v-if="running" danger>
-            <template #icon><StopOutlined /></template>
+          <a-button v-if="running" danger @click="stopWorkflow">
+            <template #icon>
+              <StopOutlined />
+            </template>
             Stop
           </a-button>
         </a-button-group>
@@ -61,10 +67,7 @@
           <span v-if="!paletteCollapsed">Steps</span>
           <RightOutlined :rotate="paletteCollapsed ? 0 : 180" />
         </div>
-        <step-palette
-          v-if="!paletteCollapsed"
-          @add-step="addStep"
-        />
+        <step-palette v-if="!paletteCollapsed" @add-step="addStep" />
       </div>
 
       <!-- Center: Canvas -->
@@ -100,8 +103,8 @@
     </div>
 
     <!-- Bottom Panel: Variables & Test Runner -->
-    <div class="bottom-panel" v-if="showBottomPanel">
-      <a-tabs v-model:activeKey="bottomTab">
+    <div v-if="showBottomPanel" class="bottom-panel">
+      <a-tabs v-model:active-key="bottomTab">
         <a-tab-pane key="variables" tab="Variables">
           <div class="variables-editor">
             <a-table
@@ -119,7 +122,12 @@
                   />
                 </template>
                 <template v-if="column.key === 'action'">
-                  <a-button type="link" danger size="small" @click="deleteVariable(record.name)">
+                  <a-button
+                    type="link"
+                    danger
+                    size="small"
+                    @click="deleteVariable(record.name)"
+                  >
                     <DeleteOutlined />
                   </a-button>
                 </template>
@@ -150,13 +158,19 @@
                   <a-list-item-meta>
                     <template #title>
                       <a-space>
-                        <a-tag :color="getStatusColor(item.status)">{{ item.status }}</a-tag>
+                        <a-tag :color="getStatusColor(item.status)">
+                          {{ item.status }}
+                        </a-tag>
                         <span>{{ formatDate(item.started_at) }}</span>
                       </a-space>
                     </template>
                     <template #description>
-                      <span v-if="item.duration">Duration: {{ item.duration }}ms</span>
-                      <span v-if="item.error_message" class="error-text">{{ item.error_message }}</span>
+                      <span v-if="item.duration"
+                        >Duration: {{ item.duration }}ms</span
+                      >
+                      <span v-if="item.error_message" class="error-text">{{
+                        item.error_message
+                      }}</span>
                     </template>
                   </a-list-item-meta>
                 </a-list-item>
@@ -176,8 +190,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { message, Modal } from 'ant-design-vue';
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { message, Modal } from "ant-design-vue";
 import {
   SaveOutlined,
   PlayCircleOutlined,
@@ -193,24 +207,24 @@ import {
   PlusOutlined,
   UpOutlined,
   DownOutlined,
-} from '@ant-design/icons-vue';
-import StepPalette from './StepPalette.vue';
-import WorkflowCanvas from './WorkflowCanvas.vue';
-import StepConfigPanel from './StepConfigPanel.vue';
-import WorkflowTestRunner from './WorkflowTestRunner.vue';
+} from "@ant-design/icons-vue";
+import StepPalette from "./StepPalette.vue";
+import WorkflowCanvas from "./WorkflowCanvas.vue";
+import StepConfigPanel from "./StepConfigPanel.vue";
+import WorkflowTestRunner from "./WorkflowTestRunner.vue";
 
 const props = defineProps({
   workflowId: {
     type: String,
-    default: null
-  }
+    default: null,
+  },
 });
 
-const emit = defineEmits(['saved', 'deleted']);
+const emit = defineEmits(["saved", "deleted"]);
 
 // State
 const workflow = ref(null);
-const workflowName = ref('New Workflow');
+const workflowName = ref("New Workflow");
 const steps = ref([]);
 const variables = ref({});
 const selectedStep = ref(null);
@@ -225,7 +239,7 @@ const loadingHistory = ref(false);
 const paletteCollapsed = ref(false);
 const configCollapsed = ref(false);
 const showBottomPanel = ref(false);
-const bottomTab = ref('variables');
+const bottomTab = ref("variables");
 const canvasRef = ref(null);
 
 // Computed
@@ -235,43 +249,52 @@ const variableList = computed(() => {
   return Object.entries(variables.value).map(([name, value]) => ({
     key: name,
     name,
-    value: typeof value === 'object' ? JSON.stringify(value) : String(value)
+    value: typeof value === "object" ? JSON.stringify(value) : String(value),
   }));
 });
 
 const variableColumns = [
-  { title: 'Name', dataIndex: 'name', key: 'name', width: 150 },
-  { title: 'Value', dataIndex: 'value', key: 'value' },
-  { title: '', key: 'action', width: 50 }
+  { title: "Name", dataIndex: "name", key: "name", width: 150 },
+  { title: "Value", dataIndex: "value", key: "value" },
+  { title: "", key: "action", width: 50 },
 ];
 
 // Methods
 const loadWorkflow = async () => {
-  if (!props.workflowId) return;
+  if (!props.workflowId) {
+    return;
+  }
 
   try {
-    const result = await window.electronAPI.browser.workflow.get(props.workflowId);
+    const result = await window.electronAPI.browser.workflow.get(
+      props.workflowId,
+    );
     if (result) {
       workflow.value = result;
       workflowName.value = result.name;
-      steps.value = JSON.parse(result.steps || '[]');
-      variables.value = JSON.parse(result.variables || '{}');
+      steps.value = JSON.parse(result.steps || "[]");
+      variables.value = JSON.parse(result.variables || "{}");
       hasUnsavedChanges.value = false;
     }
   } catch (error) {
-    message.error('Failed to load workflow: ' + error.message);
+    message.error("Failed to load workflow: " + error.message);
   }
 };
 
 const loadHistory = async () => {
-  if (!props.workflowId) return;
+  if (!props.workflowId) {
+    return;
+  }
 
   loadingHistory.value = true;
   try {
-    const result = await window.electronAPI.browser.workflow.listExecutions(props.workflowId, { limit: 20 });
+    const result = await window.electronAPI.browser.workflow.listExecutions(
+      props.workflowId,
+      { limit: 20 },
+    );
     executionHistory.value = result.executions || [];
   } catch (error) {
-    console.error('Failed to load history:', error);
+    console.error("Failed to load history:", error);
   } finally {
     loadingHistory.value = false;
   }
@@ -283,20 +306,24 @@ const saveWorkflow = async () => {
     const workflowData = {
       name: workflowName.value,
       steps: JSON.stringify(steps.value),
-      variables: JSON.stringify(variables.value)
+      variables: JSON.stringify(variables.value),
     };
 
     if (props.workflowId) {
-      await window.electronAPI.browser.workflow.update(props.workflowId, workflowData);
+      await window.electronAPI.browser.workflow.update(
+        props.workflowId,
+        workflowData,
+      );
     } else {
-      const result = await window.electronAPI.browser.workflow.create(workflowData);
-      emit('saved', result);
+      const result =
+        await window.electronAPI.browser.workflow.create(workflowData);
+      emit("saved", result);
     }
 
     hasUnsavedChanges.value = false;
-    message.success('Workflow saved');
+    message.success("Workflow saved");
   } catch (error) {
-    message.error('Failed to save: ' + error.message);
+    message.error("Failed to save: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -310,25 +337,25 @@ const saveWorkflowName = () => {
 
 const runWorkflow = async () => {
   running.value = true;
-  executionStatus.value = { status: 'running', currentStep: 0 };
+  executionStatus.value = { status: "running", currentStep: 0 };
 
   try {
     const result = await window.electronAPI.browser.workflow.executeInline(
       { steps: steps.value, variables: variables.value },
       null, // targetId will be auto-selected
-      variables.value
+      variables.value,
     );
 
     executionStatus.value = { status: result.status, results: result.results };
 
-    if (result.status === 'completed') {
-      message.success('Workflow completed successfully');
+    if (result.status === "completed") {
+      message.success("Workflow completed successfully");
     } else {
-      message.error('Workflow failed: ' + result.errorMessage);
+      message.error("Workflow failed: " + result.errorMessage);
     }
   } catch (error) {
-    message.error('Execution failed: ' + error.message);
-    executionStatus.value = { status: 'failed', error: error.message };
+    message.error("Execution failed: " + error.message);
+    executionStatus.value = { status: "failed", error: error.message };
   } finally {
     running.value = false;
     loadHistory();
@@ -338,10 +365,12 @@ const runWorkflow = async () => {
 const stopWorkflow = async () => {
   if (executionStatus.value?.executionId) {
     try {
-      await window.electronAPI.browser.workflow.cancel(executionStatus.value.executionId);
-      message.info('Workflow cancelled');
+      await window.electronAPI.browser.workflow.cancel(
+        executionStatus.value.executionId,
+      );
+      message.info("Workflow cancelled");
     } catch (error) {
-      message.error('Failed to cancel: ' + error.message);
+      message.error("Failed to cancel: " + error.message);
     }
   }
   running.value = false;
@@ -351,7 +380,7 @@ const addStep = (stepTemplate) => {
   const newStep = {
     id: `step_${Date.now()}`,
     ...stepTemplate,
-    config: { ...stepTemplate.defaultConfig }
+    config: { ...stepTemplate.defaultConfig },
   };
   steps.value.push(newStep);
   selectedStep.value = newStep;
@@ -363,7 +392,7 @@ const selectStep = (step) => {
 };
 
 const updateStep = (updatedStep) => {
-  const index = steps.value.findIndex(s => s.id === updatedStep.id);
+  const index = steps.value.findIndex((s) => s.id === updatedStep.id);
   if (index !== -1) {
     steps.value[index] = updatedStep;
     hasUnsavedChanges.value = true;
@@ -371,7 +400,7 @@ const updateStep = (updatedStep) => {
 };
 
 const deleteStep = (stepId) => {
-  const index = steps.value.findIndex(s => s.id === stepId);
+  const index = steps.value.findIndex((s) => s.id === stepId);
   if (index !== -1) {
     steps.value.splice(index, 1);
     if (selectedStep.value?.id === stepId) {
@@ -388,7 +417,7 @@ const reorderSteps = (newSteps) => {
 
 const addVariable = () => {
   const name = `var_${Object.keys(variables.value).length + 1}`;
-  variables.value[name] = '';
+  variables.value[name] = "";
   hasUnsavedChanges.value = true;
 };
 
@@ -408,75 +437,82 @@ const deleteVariable = (name) => {
 
 const handleMenuClick = async ({ key }) => {
   switch (key) {
-    case 'duplicate':
+    case "duplicate":
       if (props.workflowId) {
         try {
           const result = await window.electronAPI.browser.workflow.duplicate(
             props.workflowId,
-            workflowName.value + ' (Copy)'
+            workflowName.value + " (Copy)",
           );
-          message.success('Workflow duplicated');
-          emit('saved', result);
+          message.success("Workflow duplicated");
+          emit("saved", result);
         } catch (error) {
-          message.error('Failed to duplicate: ' + error.message);
+          message.error("Failed to duplicate: " + error.message);
         }
       }
       break;
-    case 'export':
+    case "export":
       if (props.workflowId) {
         try {
-          const data = await window.electronAPI.browser.workflow.export(props.workflowId);
-          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const data = await window.electronAPI.browser.workflow.export(
+            props.workflowId,
+          );
+          const blob = new Blob([JSON.stringify(data, null, 2)], {
+            type: "application/json",
+          });
           const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
+          const a = document.createElement("a");
           a.href = url;
           a.download = `${workflowName.value}.workflow.json`;
           a.click();
           URL.revokeObjectURL(url);
         } catch (error) {
-          message.error('Failed to export: ' + error.message);
+          message.error("Failed to export: " + error.message);
         }
       }
       break;
-    case 'import': {
+    case "import": {
       // Handle import via file input
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.json';
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
       input.onchange = async (e) => {
         const file = e.target.files[0];
         if (file) {
           const text = await file.text();
           try {
             const data = JSON.parse(text);
-            const result = await window.electronAPI.browser.workflow.import(data);
-            message.success('Workflow imported');
-            emit('saved', result);
+            const result =
+              await window.electronAPI.browser.workflow.import(data);
+            message.success("Workflow imported");
+            emit("saved", result);
           } catch (error) {
-            message.error('Failed to import: ' + error.message);
+            message.error("Failed to import: " + error.message);
           }
         }
       };
       input.click();
       break;
     }
-    case 'delete':
+    case "delete":
       Modal.confirm({
-        title: 'Delete Workflow',
-        content: 'Are you sure you want to delete this workflow?',
-        okText: 'Delete',
-        okType: 'danger',
+        title: "Delete Workflow",
+        content: "Are you sure you want to delete this workflow?",
+        okText: "Delete",
+        okType: "danger",
         onOk: async () => {
           if (props.workflowId) {
             try {
-              await window.electronAPI.browser.workflow.delete(props.workflowId);
-              message.success('Workflow deleted');
-              emit('deleted', props.workflowId);
+              await window.electronAPI.browser.workflow.delete(
+                props.workflowId,
+              );
+              message.success("Workflow deleted");
+              emit("deleted", props.workflowId);
             } catch (error) {
-              message.error('Failed to delete: ' + error.message);
+              message.error("Failed to delete: " + error.message);
             }
           }
-        }
+        },
       });
       break;
   }
@@ -484,7 +520,7 @@ const handleMenuClick = async ({ key }) => {
 
 const handleExecutionUpdate = (status) => {
   executionStatus.value = status;
-  if (status.status === 'completed' || status.status === 'failed') {
+  if (status.status === "completed" || status.status === "failed") {
     running.value = false;
     loadHistory();
   }
@@ -492,18 +528,20 @@ const handleExecutionUpdate = (status) => {
 
 const getStatusColor = (status) => {
   const colors = {
-    pending: 'default',
-    running: 'processing',
-    paused: 'warning',
-    completed: 'success',
-    failed: 'error',
-    cancelled: 'default'
+    pending: "default",
+    running: "processing",
+    paused: "warning",
+    completed: "success",
+    failed: "error",
+    cancelled: "default",
   };
-  return colors[status] || 'default';
+  return colors[status] || "default";
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {
+    return "";
+  }
   return new Date(timestamp).toLocaleString();
 };
 
@@ -529,10 +567,13 @@ onUnmounted(() => {
 });
 
 // Watch for changes
-watch(() => props.workflowId, () => {
-  loadWorkflow();
-  loadHistory();
-});
+watch(
+  () => props.workflowId,
+  () => {
+    loadWorkflow();
+    loadHistory();
+  },
+);
 </script>
 
 <style scoped>

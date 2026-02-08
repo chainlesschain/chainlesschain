@@ -14,14 +14,14 @@
     </div>
 
     <!-- 搜索选项 -->
-    <a-collapse v-model:activeKey="optionsPanelKey" ghost>
+    <a-collapse v-model:active-key="optionsPanelKey" ghost>
       <a-collapse-panel key="options" header="搜索选项">
         <div class="search-options">
           <div class="option-row">
             <span class="option-label">搜索范围：</span>
             <a-checkbox-group v-model:value="searchScope">
-              <a-checkbox value="daily">Daily Notes</a-checkbox>
-              <a-checkbox value="memory">MEMORY.md</a-checkbox>
+              <a-checkbox value="daily"> Daily Notes </a-checkbox>
+              <a-checkbox value="memory"> MEMORY.md </a-checkbox>
             </a-checkbox-group>
           </div>
 
@@ -29,7 +29,11 @@
             <span class="option-label">搜索权重：</span>
             <div class="weight-sliders">
               <div class="weight-item">
-                <span>语义搜索 (Vector)：{{ (vectorWeight * 100).toFixed(0) }}%</span>
+                <span
+                  >语义搜索 (Vector)：{{
+                    (vectorWeight * 100).toFixed(0)
+                  }}%</span
+                >
                 <a-slider
                   v-model:value="vectorWeight"
                   :min="0"
@@ -39,7 +43,9 @@
                 />
               </div>
               <div class="weight-item">
-                <span>关键词匹配 (BM25)：{{ (textWeight * 100).toFixed(0) }}%</span>
+                <span
+                  >关键词匹配 (BM25)：{{ (textWeight * 100).toFixed(0) }}%</span
+                >
                 <a-slider
                   v-model:value="textWeight"
                   :min="0"
@@ -70,10 +76,7 @@
             </a-button>
           </div>
 
-          <a-list
-            :data-source="searchResults"
-            item-layout="vertical"
-          >
+          <a-list :data-source="searchResults" item-layout="vertical">
             <template #renderItem="{ item, index }">
               <a-list-item class="result-item">
                 <template #extra>
@@ -92,7 +95,7 @@
                   <template #description>
                     <div class="result-meta">
                       <FileTextOutlined />
-                      {{ item.document?.metadata?.type || 'unknown' }}
+                      {{ item.document?.metadata?.type || "unknown" }}
                       <template v-if="item.document?.metadata?.date">
                         | {{ item.document.metadata.date }}
                       </template>
@@ -128,14 +131,18 @@
         </div>
 
         <div v-else class="search-tips">
-          <a-typography-title :level="5">搜索提示</a-typography-title>
+          <a-typography-title :level="5"> 搜索提示 </a-typography-title>
           <ul>
             <li><strong>语义搜索</strong>：理解查询意图，找到语义相关的内容</li>
-            <li><strong>关键词搜索</strong>：精确匹配关键词，适合技术术语查询</li>
-            <li><strong>权重调整</strong>：增加 BM25 权重可提高关键词匹配准确性</li>
+            <li>
+              <strong>关键词搜索</strong>：精确匹配关键词，适合技术术语查询
+            </li>
+            <li>
+              <strong>权重调整</strong>：增加 BM25 权重可提高关键词匹配准确性
+            </li>
           </ul>
 
-          <a-typography-title :level="5">示例查询</a-typography-title>
+          <a-typography-title :level="5"> 示例查询 </a-typography-title>
           <a-space wrap>
             <a-tag
               v-for="example in exampleQueries"
@@ -166,7 +173,10 @@
           <a-descriptions-item label="类型">
             {{ selectedResult.document?.metadata?.type }}
           </a-descriptions-item>
-          <a-descriptions-item v-if="selectedResult.document?.metadata?.date" label="日期">
+          <a-descriptions-item
+            v-if="selectedResult.document?.metadata?.date"
+            label="日期"
+          >
             {{ selectedResult.document.metadata.date }}
           </a-descriptions-item>
           <a-descriptions-item label="相关度">
@@ -185,12 +195,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-import { storeToRefs } from 'pinia';
-import { message } from 'ant-design-vue';
-import { FileTextOutlined } from '@ant-design/icons-vue';
-import { useMemoryStore } from '@/stores/memory';
-import MarkdownViewer from '@/components/common/MarkdownViewer.vue';
+import { ref, computed, watch } from "vue";
+import { storeToRefs } from "pinia";
+import { message } from "ant-design-vue";
+import { FileTextOutlined } from "@ant-design/icons-vue";
+import { useMemoryStore } from "@/stores/memory";
+import MarkdownViewer from "@/components/common/MarkdownViewer.vue";
 
 const memoryStore = useMemoryStore();
 
@@ -211,27 +221,27 @@ const showDetailModal = ref(false);
 const selectedResult = ref(null);
 
 // 搜索范围
-const searchScope = ref(['daily', 'memory']);
+const searchScope = ref(["daily", "memory"]);
 
 // 示例查询
 const exampleQueries = [
-  '数据库优化',
-  '如何解决内存泄漏',
-  'WebRTC 连接问题',
-  'LLM 提供商配置',
-  '架构决策',
+  "数据库优化",
+  "如何解决内存泄漏",
+  "WebRTC 连接问题",
+  "LLM 提供商配置",
+  "架构决策",
 ];
 
 // 计算属性
 const searchScopeOptions = computed(() => ({
-  searchDailyNotes: searchScope.value.includes('daily'),
-  searchMemory: searchScope.value.includes('memory'),
+  searchDailyNotes: searchScope.value.includes("daily"),
+  searchMemory: searchScope.value.includes("memory"),
 }));
 
 // 执行搜索
 const handleSearch = async () => {
   if (!searchQuery.value.trim()) {
-    message.warning('请输入搜索关键词');
+    message.warning("请输入搜索关键词");
     return;
   }
 
@@ -251,7 +261,7 @@ const handleWeightChange = () => {
 
 // 清除搜索
 const clearSearch = () => {
-  searchQuery.value = '';
+  searchQuery.value = "";
   memoryStore.clearSearch();
 };
 
@@ -264,42 +274,52 @@ const useExample = (example) => {
 // 获取来源颜色
 const getSourceColor = (source) => {
   switch (source) {
-    case 'vector': return 'blue';
-    case 'bm25': return 'green';
-    case 'hybrid': return 'purple';
-    case 'simple': return 'gray';
-    default: return 'default';
+    case "vector":
+      return "blue";
+    case "bm25":
+      return "green";
+    case "hybrid":
+      return "purple";
+    case "simple":
+      return "gray";
+    default:
+      return "default";
   }
 };
 
 // 获取来源标签
 const getSourceLabel = (source) => {
   switch (source) {
-    case 'vector': return '语义匹配';
-    case 'bm25': return '关键词匹配';
-    case 'hybrid': return '混合搜索';
-    case 'simple': return '简单搜索';
-    default: return source;
+    case "vector":
+      return "语义匹配";
+    case "bm25":
+      return "关键词匹配";
+    case "hybrid":
+      return "混合搜索";
+    case "simple":
+      return "简单搜索";
+    default:
+      return source;
   }
 };
 
 // 获取结果标题
 const getResultTitle = (item) => {
-  const id = item.document?.id || '';
-  if (id.startsWith('daily-')) {
-    return `Daily Note: ${id.replace('daily-', '')}`;
+  const id = item.document?.id || "";
+  if (id.startsWith("daily-")) {
+    return `Daily Note: ${id.replace("daily-", "")}`;
   }
-  if (id === 'memory') {
-    return 'MEMORY.md';
+  if (id === "memory") {
+    return "MEMORY.md";
   }
   return id;
 };
 
 // 获取结果摘要
 const getResultSnippet = (item) => {
-  const content = item.document?.content || '';
+  const content = item.document?.content || "";
   // 取前 200 个字符
-  return content.substring(0, 200) + (content.length > 200 ? '...' : '');
+  return content.substring(0, 200) + (content.length > 200 ? "..." : "");
 };
 
 // 查看详情
@@ -311,10 +331,10 @@ const viewDetail = (item) => {
 // 复制结果
 const copyResult = async (item) => {
   try {
-    await navigator.clipboard.writeText(item.document?.content || '');
-    message.success('已复制到剪贴板');
+    await navigator.clipboard.writeText(item.document?.content || "");
+    message.success("已复制到剪贴板");
   } catch (err) {
-    message.error('复制失败');
+    message.error("复制失败");
   }
 };
 </script>

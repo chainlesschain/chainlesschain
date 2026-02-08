@@ -4,7 +4,7 @@
  * 提供预定义的凭证模板，简化凭证创建流程
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 

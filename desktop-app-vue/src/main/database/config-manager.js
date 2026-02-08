@@ -2,9 +2,9 @@
  * 数据库加密配置管理器
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const fs = require('fs');
-const path = require('path');
+const { logger } = require("../utils/logger.js");
+const fs = require("fs");
+const path = require("path");
 
 class EncryptionConfigManager {
   constructor(configPath) {
@@ -16,7 +16,7 @@ class EncryptionConfigManager {
    * 检查是否为开发模式
    */
   isDevelopmentMode() {
-    return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    return process.env.NODE_ENV === "development" || !process.env.NODE_ENV;
   }
 
   /**
@@ -25,11 +25,11 @@ class EncryptionConfigManager {
   loadConfig() {
     try {
       if (fs.existsSync(this.configPath)) {
-        const data = fs.readFileSync(this.configPath, 'utf8');
+        const data = fs.readFileSync(this.configPath, "utf8");
         return JSON.parse(data);
       }
     } catch (error) {
-      logger.error('[EncryptionConfig] 加载配置失败:', error);
+      logger.error("[EncryptionConfig] 加载配置失败:", error);
     }
 
     // 返回默认配置
@@ -38,10 +38,10 @@ class EncryptionConfigManager {
 
     return {
       encryptionEnabled: defaultEncryptionEnabled,
-      encryptionMethod: 'password', // 'password' | 'ukey' | 'mixed'
+      encryptionMethod: "password", // 'password' | 'ukey' | 'mixed'
       autoMigrate: true,
       firstTimeSetup: true,
-      developmentMode: this.isDevelopmentMode()
+      developmentMode: this.isDevelopmentMode(),
     };
   }
 
@@ -59,13 +59,13 @@ class EncryptionConfigManager {
       fs.writeFileSync(
         this.configPath,
         JSON.stringify(this.config, null, 2),
-        'utf8'
+        "utf8",
       );
 
-      logger.info('[EncryptionConfig] 配置已保存');
+      logger.info("[EncryptionConfig] 配置已保存");
       return true;
     } catch (error) {
-      logger.error('[EncryptionConfig] 保存配置失败:', error);
+      logger.error("[EncryptionConfig] 保存配置失败:", error);
       return false;
     }
   }
@@ -97,42 +97,42 @@ class EncryptionConfigManager {
    * 是否已完成首次设置
    */
   isFirstTimeSetup() {
-    return this.get('firstTimeSetup', true);
+    return this.get("firstTimeSetup", true);
   }
 
   /**
    * 标记首次设置已完成
    */
   markFirstTimeSetupComplete() {
-    return this.set('firstTimeSetup', false);
+    return this.set("firstTimeSetup", false);
   }
 
   /**
    * 是否启用加密
    */
   isEncryptionEnabled() {
-    return this.get('encryptionEnabled', false);
+    return this.get("encryptionEnabled", false);
   }
 
   /**
    * 启用/禁用加密
    */
   setEncryptionEnabled(enabled) {
-    return this.set('encryptionEnabled', enabled);
+    return this.set("encryptionEnabled", enabled);
   }
 
   /**
    * 获取加密方法
    */
   getEncryptionMethod() {
-    return this.get('encryptionMethod', 'password');
+    return this.get("encryptionMethod", "password");
   }
 
   /**
    * 设置加密方法
    */
   setEncryptionMethod(method) {
-    return this.set('encryptionMethod', method);
+    return this.set("encryptionMethod", method);
   }
 
   /**
@@ -146,7 +146,7 @@ class EncryptionConfigManager {
    * 获取开发模式状态
    */
   getDevelopmentMode() {
-    return this.get('developmentMode', this.isDevelopmentMode());
+    return this.get("developmentMode", this.isDevelopmentMode());
   }
 
   /**
@@ -163,10 +163,10 @@ class EncryptionConfigManager {
     const defaultEncryptionEnabled = !this.isDevelopmentMode();
     this.config = {
       encryptionEnabled: defaultEncryptionEnabled,
-      encryptionMethod: 'password',
+      encryptionMethod: "password",
       autoMigrate: true,
       firstTimeSetup: true,
-      developmentMode: this.isDevelopmentMode()
+      developmentMode: this.isDevelopmentMode(),
     };
     return this.saveConfig();
   }

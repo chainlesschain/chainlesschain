@@ -6,22 +6,22 @@
  * @since v0.30.0
  */
 
-const { logger } = require('../../utils/logger');
+const { logger } = require("../../utils/logger");
 
 /**
  * Supported languages
  */
 const OCRLanguage = {
-  ENGLISH: 'eng',
-  CHINESE_SIMPLIFIED: 'chi_sim',
-  CHINESE_TRADITIONAL: 'chi_tra',
-  JAPANESE: 'jpn',
-  KOREAN: 'kor',
-  SPANISH: 'spa',
-  FRENCH: 'fra',
-  GERMAN: 'deu',
-  PORTUGUESE: 'por',
-  RUSSIAN: 'rus'
+  ENGLISH: "eng",
+  CHINESE_SIMPLIFIED: "chi_sim",
+  CHINESE_TRADITIONAL: "chi_tra",
+  JAPANESE: "jpn",
+  KOREAN: "kor",
+  SPANISH: "spa",
+  FRENCH: "fra",
+  GERMAN: "deu",
+  PORTUGUESE: "por",
+  RUSSIAN: "rus",
 };
 
 /**
@@ -32,7 +32,7 @@ class OCREngine {
     this.options = {
       lang: options.lang || OCRLanguage.ENGLISH,
       cacheResults: options.cacheResults !== false,
-      ...options
+      ...options,
     };
 
     this.tesseract = null;
@@ -46,27 +46,32 @@ class OCREngine {
    * @returns {Promise<void>}
    */
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {
+      return;
+    }
 
     try {
       // Dynamic import of Tesseract.js
-      const Tesseract = require('tesseract.js');
+      const Tesseract = require("tesseract.js");
       this.tesseract = Tesseract;
 
       // Create worker
       this.worker = await Tesseract.createWorker(this.options.lang, 1, {
         logger: (m) => {
-          if (m.status === 'recognizing text') {
-            logger.debug('[OCREngine] Progress', { progress: Math.round(m.progress * 100) });
+          if (m.status === "recognizing text") {
+            logger.debug("[OCREngine] Progress", {
+              progress: Math.round(m.progress * 100),
+            });
           }
-        }
+        },
       });
 
       this.initialized = true;
-      logger.info('[OCREngine] Initialized', { lang: this.options.lang });
-
+      logger.info("[OCREngine] Initialized", { lang: this.options.lang });
     } catch (error) {
-      logger.error('[OCREngine] Failed to initialize', { error: error.message });
+      logger.error("[OCREngine] Failed to initialize", {
+        error: error.message,
+      });
       throw new Error(`OCR initialization failed: ${error.message}`);
     }
   }
@@ -81,10 +86,10 @@ class OCREngine {
     await this.initialize();
 
     const {
-      rectangle,   // { left, top, width, height } - region to scan
-      lang,        // Override language
-      psm = 3,     // Page segmentation mode
-      oem = 1      // OCR Engine mode
+      rectangle, // { left, top, width, height } - region to scan
+      lang, // Override language
+      psm = 3, // Page segmentation mode
+      oem = 1, // OCR Engine mode
     } = options;
 
     try {
@@ -93,7 +98,7 @@ class OCREngine {
       // Check cache
       const cacheKey = this._getCacheKey(image, options);
       if (this.options.cacheResults && this.cache.has(cacheKey)) {
-        logger.debug('[OCREngine] Cache hit');
+        logger.debug("[OCREngine] Cache hit");
         return this.cache.get(cacheKey);
       }
 
@@ -106,7 +111,7 @@ class OCREngine {
       // Set parameters
       await this.worker.setParameters({
         tessedit_pageseg_mode: psm,
-        tessedit_ocr_engine_mode: oem
+        tessedit_ocr_engine_mode: oem,
       });
 
       // Recognize
@@ -122,24 +127,27 @@ class OCREngine {
       const output = {
         text: result.data.text.trim(),
         confidence: result.data.confidence,
-        words: result.data.words?.map(w => ({
-          text: w.text,
-          confidence: w.confidence,
-          bbox: w.bbox
-        })) || [],
-        lines: result.data.lines?.map(l => ({
-          text: l.text,
-          confidence: l.confidence,
-          bbox: l.bbox
-        })) || [],
-        blocks: result.data.blocks?.map(b => ({
-          text: b.text,
-          confidence: b.confidence,
-          bbox: b.bbox,
-          paragraphs: b.paragraphs?.length || 0
-        })) || [],
+        words:
+          result.data.words?.map((w) => ({
+            text: w.text,
+            confidence: w.confidence,
+            bbox: w.bbox,
+          })) || [],
+        lines:
+          result.data.lines?.map((l) => ({
+            text: l.text,
+            confidence: l.confidence,
+            bbox: l.bbox,
+          })) || [],
+        blocks:
+          result.data.blocks?.map((b) => ({
+            text: b.text,
+            confidence: b.confidence,
+            bbox: b.bbox,
+            paragraphs: b.paragraphs?.length || 0,
+          })) || [],
         processingTime,
-        language: this.options.lang
+        language: this.options.lang,
       };
 
       // Cache result
@@ -152,16 +160,15 @@ class OCREngine {
         }
       }
 
-      logger.info('[OCREngine] Recognition completed', {
+      logger.info("[OCREngine] Recognition completed", {
         textLength: output.text.length,
         confidence: output.confidence,
-        processingTime
+        processingTime,
       });
 
       return output;
-
     } catch (error) {
-      logger.error('[OCREngine] Recognition failed', { error: error.message });
+      logger.error("[OCREngine] Recognition failed", { error: error.message });
       throw error;
     }
   }
@@ -176,8 +183,8 @@ class OCREngine {
     const { element, fullPage = false, ...ocrOptions } = options;
 
     try {
-      let screenshotOptions = {
-        type: 'png'
+      const screenshotOptions = {
+        type: "png",
       };
 
       if (element) {
@@ -193,9 +200,10 @@ class OCREngine {
 
       const screenshot = await page.screenshot(screenshotOptions);
       return this.recognize(screenshot, ocrOptions);
-
     } catch (error) {
-      logger.error('[OCREngine] Page recognition failed', { error: error.message });
+      logger.error("[OCREngine] Page recognition failed", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -224,8 +232,8 @@ class OCREngine {
           confidence: word.confidence,
           center: {
             x: word.bbox.x0 + (word.bbox.x1 - word.bbox.x0) / 2,
-            y: word.bbox.y0 + (word.bbox.y1 - word.bbox.y0) / 2
-          }
+            y: word.bbox.y0 + (word.bbox.y1 - word.bbox.y0) / 2,
+          },
         });
       }
     }
@@ -233,16 +241,16 @@ class OCREngine {
     // Also check lines for multi-word matches
     for (const line of result.lines) {
       const lineText = caseSensitive ? line.text : line.text.toLowerCase();
-      if (lineText.includes(searchLower) && searchText.includes(' ')) {
+      if (lineText.includes(searchLower) && searchText.includes(" ")) {
         found.push({
           text: line.text,
           bbox: line.bbox,
           confidence: line.confidence,
           center: {
             x: line.bbox.x0 + (line.bbox.x1 - line.bbox.x0) / 2,
-            y: line.bbox.y0 + (line.bbox.y1 - line.bbox.y0) / 2
+            y: line.bbox.y0 + (line.bbox.y1 - line.bbox.y0) / 2,
           },
-          type: 'line'
+          type: "line",
         });
       }
     }
@@ -251,7 +259,7 @@ class OCREngine {
       searchText,
       found: found.length > 0,
       matches: found,
-      totalMatches: found.length
+      totalMatches: found.length,
     };
   }
 
@@ -268,12 +276,12 @@ class OCREngine {
 
     const extracted = {
       text: result.text,
-      patterns: {}
+      patterns: {},
     };
 
     // Apply regex patterns
     for (const pattern of patterns) {
-      const regex = new RegExp(pattern.regex, pattern.flags || 'g');
+      const regex = new RegExp(pattern.regex, pattern.flags || "g");
       const matches = result.text.match(regex);
       extracted.patterns[pattern.name] = matches || [];
     }
@@ -284,12 +292,12 @@ class OCREngine {
       phones: result.text.match(/[\d\s+()-]{10,}/g) || [],
       urls: result.text.match(/https?:\/\/[^\s]+/g) || [],
       dates: result.text.match(/\d{1,4}[-/]\d{1,2}[-/]\d{1,4}/g) || [],
-      numbers: result.text.match(/\$?[\d,]+\.?\d*/g) || []
+      numbers: result.text.match(/\$?[\d,]+\.?\d*/g) || [],
     };
 
     return {
       ...extracted,
-      common: commonPatterns
+      common: commonPatterns,
     };
   }
 
@@ -302,7 +310,7 @@ class OCREngine {
     await this.initialize();
     await this.worker.reinitialize(lang);
     this.options.lang = lang;
-    logger.info('[OCREngine] Language changed', { lang });
+    logger.info("[OCREngine] Language changed", { lang });
   }
 
   /**
@@ -310,7 +318,7 @@ class OCREngine {
    */
   clearCache() {
     this.cache.clear();
-    logger.info('[OCREngine] Cache cleared');
+    logger.info("[OCREngine] Cache cleared");
   }
 
   /**
@@ -322,7 +330,7 @@ class OCREngine {
       await this.worker.terminate();
       this.worker = null;
       this.initialized = false;
-      logger.info('[OCREngine] Worker terminated');
+      logger.info("[OCREngine] Worker terminated");
     }
   }
 
@@ -331,10 +339,11 @@ class OCREngine {
    * @private
    */
   _getCacheKey(image, options) {
-    const crypto = require('crypto');
-    const imageHash = crypto.createHash('md5')
-      .update(Buffer.isBuffer(image) ? image : Buffer.from(image, 'base64'))
-      .digest('hex')
+    const crypto = require("crypto");
+    const imageHash = crypto
+      .createHash("md5")
+      .update(Buffer.isBuffer(image) ? image : Buffer.from(image, "base64"))
+      .digest("hex")
       .substring(0, 16);
 
     return `${imageHash}-${JSON.stringify(options)}`;
@@ -343,5 +352,5 @@ class OCREngine {
 
 module.exports = {
   OCREngine,
-  OCRLanguage
+  OCRLanguage,
 };

@@ -5,10 +5,10 @@
  * 支持天地融支付密码器和U盾产品
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const SKFDriver = require('./skf-driver');
-const path = require('path');
-const fs = require('fs');
+const { logger } = require("../utils/logger.js");
+const SKFDriver = require("./skf-driver");
+const path = require("path");
+const fs = require("fs");
 
 /**
  * 天地融驱动类
@@ -22,8 +22,8 @@ class TDRDriver extends SKFDriver {
   constructor(config = {}) {
     super(config);
 
-    this.driverName = 'TDR';
-    this.driverVersion = '1.0.0';
+    this.driverName = "TDR";
+    this.driverVersion = "1.0.0";
   }
 
   /**
@@ -35,38 +35,38 @@ class TDRDriver extends SKFDriver {
    * - TianDiRong.dll
    */
   findDllPath() {
-    if (process.platform !== 'win32') {
-      logger.warn('[TDR] Only Windows platform is supported');
+    if (process.platform !== "win32") {
+      logger.warn("[TDR] Only Windows platform is supported");
       return null;
     }
 
     // 可能的DLL路径
     const possiblePaths = [
       // 项目资源目录
-      path.join(__dirname, '../../../resources/native/tdr/TDRSKFAPI.dll'),
-      path.join(__dirname, '../../../resources/native/tdr/TDR_CSP.dll'),
-      path.join(__dirname, '../../../resources/native/tdr/TianDiRong.dll'),
+      path.join(__dirname, "../../../resources/native/tdr/TDRSKFAPI.dll"),
+      path.join(__dirname, "../../../resources/native/tdr/TDR_CSP.dll"),
+      path.join(__dirname, "../../../resources/native/tdr/TianDiRong.dll"),
 
       // 系统目录
-      'C:\\Windows\\System32\\TDRSKFAPI.dll',
-      'C:\\Windows\\System32\\TDR_CSP.dll',
-      'C:\\Windows\\System32\\TianDiRong.dll',
-      'C:\\Windows\\SysWOW64\\TDRSKFAPI.dll',
-      'C:\\Windows\\SysWOW64\\TDR_CSP.dll',
+      "C:\\Windows\\System32\\TDRSKFAPI.dll",
+      "C:\\Windows\\System32\\TDR_CSP.dll",
+      "C:\\Windows\\System32\\TianDiRong.dll",
+      "C:\\Windows\\SysWOW64\\TDRSKFAPI.dll",
+      "C:\\Windows\\SysWOW64\\TDR_CSP.dll",
 
       // 程序安装目录
-      'C:\\Program Files\\TDR\\TDRSKFAPI.dll',
-      'C:\\Program Files (x86)\\TDR\\TDRSKFAPI.dll',
-      'C:\\Program Files\\TDR\\SecureKey\\TDRSKFAPI.dll',
-      'C:\\Program Files (x86)\\TDR\\SecureKey\\TDRSKFAPI.dll',
-      'C:\\Program Files\\TianDiRong\\TDRSKFAPI.dll',
-      'C:\\Program Files (x86)\\TianDiRong\\TDRSKFAPI.dll',
-      'C:\\Program Files\\TianDiRong\\UKey\\TDRSKFAPI.dll',
-      'C:\\Program Files (x86)\\TianDiRong\\UKey\\TDRSKFAPI.dll',
+      "C:\\Program Files\\TDR\\TDRSKFAPI.dll",
+      "C:\\Program Files (x86)\\TDR\\TDRSKFAPI.dll",
+      "C:\\Program Files\\TDR\\SecureKey\\TDRSKFAPI.dll",
+      "C:\\Program Files (x86)\\TDR\\SecureKey\\TDRSKFAPI.dll",
+      "C:\\Program Files\\TianDiRong\\TDRSKFAPI.dll",
+      "C:\\Program Files (x86)\\TianDiRong\\TDRSKFAPI.dll",
+      "C:\\Program Files\\TianDiRong\\UKey\\TDRSKFAPI.dll",
+      "C:\\Program Files (x86)\\TianDiRong\\UKey\\TDRSKFAPI.dll",
 
       // 用户自定义路径
-      path.join(process.cwd(), 'resources', 'native', 'TDRSKFAPI.dll'),
-      path.join(process.cwd(), 'native', 'TDRSKFAPI.dll'),
+      path.join(process.cwd(), "resources", "native", "TDRSKFAPI.dll"),
+      path.join(process.cwd(), "native", "TDRSKFAPI.dll"),
     ];
 
     // 查找第一个存在的DLL
@@ -77,7 +77,7 @@ class TDRDriver extends SKFDriver {
       }
     }
 
-    logger.warn('[TDR] DLL not found in any standard location');
+    logger.warn("[TDR] DLL not found in any standard location");
     return null;
   }
 
@@ -85,7 +85,7 @@ class TDRDriver extends SKFDriver {
    * 初始化驱动
    */
   async initialize() {
-    logger.info('[TDR] Initializing TDR driver...');
+    logger.info("[TDR] Initializing TDR driver...");
 
     try {
       // 调用父类初始化
@@ -94,10 +94,10 @@ class TDRDriver extends SKFDriver {
       // 天地融特定初始化
       // 例如：加载特定配置、检查驱动版本等
 
-      logger.info('[TDR] TDR driver initialized successfully');
+      logger.info("[TDR] TDR driver initialized successfully");
       return true;
     } catch (error) {
-      logger.error('[TDR] Initialization failed:', error);
+      logger.error("[TDR] Initialization failed:", error);
       this.simulationMode = true;
       this.isInitialized = true;
       return true;
@@ -108,21 +108,21 @@ class TDRDriver extends SKFDriver {
    * 获取制造商名称
    */
   getManufacturerName() {
-    return '深圳市天地融科技股份有限公司';
+    return "深圳市天地融科技股份有限公司";
   }
 
   /**
    * 获取型号名称
    */
   getModelName() {
-    return '天地融SecureKey系列';
+    return "天地融SecureKey系列";
   }
 
   /**
    * 获取驱动名称
    */
   getDriverName() {
-    return '天地融U盾驱动';
+    return "天地融U盾驱动";
   }
 
   /**
@@ -138,7 +138,7 @@ class TDRDriver extends SKFDriver {
    * 天地融特定的检测逻辑
    */
   async detect() {
-    logger.info('[TDR] Detecting TDR device...');
+    logger.info("[TDR] Detecting TDR device...");
 
     try {
       // 调用父类的检测方法
@@ -152,7 +152,7 @@ class TDRDriver extends SKFDriver {
 
       return result;
     } catch (error) {
-      logger.error('[TDR] Detection failed:', error);
+      logger.error("[TDR] Detection failed:", error);
       return {
         detected: false,
         unlocked: false,
@@ -183,9 +183,9 @@ class TDRDriver extends SKFDriver {
     // 添加天地融特定的信息
     info.manufacturer = this.getManufacturerName();
     info.model = this.getModelName();
-    info.vendor = 'TDR';
-    info.productLine = 'SecureKey';
-    info.industry = 'Payment'; // 支付行业
+    info.vendor = "TDR";
+    info.productLine = "SecureKey";
+    info.industry = "Payment"; // 支付行业
 
     return info;
   }
@@ -197,10 +197,10 @@ class TDRDriver extends SKFDriver {
    */
   async getDeviceSerial() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[TDR] Getting device serial number...');
+    logger.info("[TDR] Getting device serial number...");
 
     if (this.simulationMode) {
       // 模拟序列号
@@ -209,7 +209,7 @@ class TDRDriver extends SKFDriver {
 
     // 实际实现需要调用天地融的扩展API
     // 这里先返回设备名作为序列号
-    return this.deviceName || 'UNKNOWN';
+    return this.deviceName || "UNKNOWN";
   }
 
   /**
@@ -217,10 +217,10 @@ class TDRDriver extends SKFDriver {
    */
   async getDeviceCertificate() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[TDR] Getting device certificate...');
+    logger.info("[TDR] Getting device certificate...");
 
     if (this.simulationMode) {
       return null;
@@ -235,13 +235,13 @@ class TDRDriver extends SKFDriver {
    * 天地融特定功能：检查设备健康状态
    */
   async checkDeviceHealth() {
-    logger.info('[TDR] Checking device health...');
+    logger.info("[TDR] Checking device health...");
 
     try {
       if (this.simulationMode) {
         return {
           healthy: true,
-          status: 'simulation',
+          status: "simulation",
         };
       }
 
@@ -251,18 +251,18 @@ class TDRDriver extends SKFDriver {
       if (!detected.detected) {
         return {
           healthy: false,
-          status: 'not_connected',
+          status: "not_connected",
         };
       }
 
       return {
         healthy: true,
-        status: 'ok',
+        status: "ok",
       };
     } catch (error) {
       return {
         healthy: false,
-        status: 'error',
+        status: "error",
         error: error.message,
       };
     }
@@ -274,15 +274,15 @@ class TDRDriver extends SKFDriver {
    * 天地融设备常用于支付场景，支持PIN输入保护
    */
   async enablePaymentMode() {
-    logger.info('[TDR] Enabling payment mode...');
+    logger.info("[TDR] Enabling payment mode...");
 
     if (this.simulationMode) {
-      return { enabled: true, mode: 'payment' };
+      return { enabled: true, mode: "payment" };
     }
 
     // 实际实现需要调用天地融特定的API
     // 启用支付密码器保护模式
-    return { enabled: true, mode: 'payment' };
+    return { enabled: true, mode: "payment" };
   }
 
   /**
@@ -292,10 +292,10 @@ class TDRDriver extends SKFDriver {
    */
   async getTransactionCounter() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[TDR] Getting transaction counter...');
+    logger.info("[TDR] Getting transaction counter...");
 
     if (this.simulationMode) {
       // 模拟交易计数
@@ -317,10 +317,10 @@ class TDRDriver extends SKFDriver {
    */
   async resetTransactionCounter() {
     if (!this.isUnlocked) {
-      throw new Error('设备未解锁');
+      throw new Error("设备未解锁");
     }
 
-    logger.info('[TDR] Resetting transaction counter...');
+    logger.info("[TDR] Resetting transaction counter...");
 
     if (this.simulationMode) {
       return { success: true, counter: 0 };
