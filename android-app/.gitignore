@@ -74,6 +74,15 @@ proguard/
 
 # Log Files
 *.log
+replay_*.log
+
+# Build output
+build-*.log
+build_*.txt
+*-output.txt
+
+# JVM crash logs
+hs_err_pid*.log
 
 # Android Profiling
 *.hprof
@@ -93,3 +102,6 @@ proguard/
 
 # Secure files
 chainlesschain_secure_prefs.xml
+
+# Keystore directory (actual keys)
+keystore/

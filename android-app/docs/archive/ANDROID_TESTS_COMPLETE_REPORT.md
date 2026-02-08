@@ -687,6 +687,7 @@ open app/build/reports/jacoco/jacocoTestReport/html/index.html
    - 确定性测试
 
 5. **In-Memory Database**
+
    ```kotlin
    Room.inMemoryDatabaseBuilder(context, Database::class.java)
        .allowMainThreadQueries()

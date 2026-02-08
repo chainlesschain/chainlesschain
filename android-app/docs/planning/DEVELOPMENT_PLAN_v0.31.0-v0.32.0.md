@@ -9,11 +9,13 @@
 ## 📋 功能清单
 
 ### v0.31.0 功能 (前4周)
+
 1. ✨ **二维码扫描** - 扫描添加好友、分享个人DID
 2. ✏️ **动态编辑** - 编辑已发布动态（24小时内）
 3. 📝 **富文本编辑器** - Markdown编辑器增强版
 
 ### v0.32.0 功能 (后4周)
+
 4. 📞 **语音/视频通话** - P2P实时通信
 5. 🤖 **AI内容审核** - 基于LLM的智能审核
 6. ⚡ **性能优化** - 启动速度、内存、滚动性能
@@ -30,6 +32,7 @@
 #### Task 1.1: 二维码生成 (Day 1-2)
 
 **需求描述**:
+
 - 生成个人DID二维码（包含签名验证）
 - 生成动态分享二维码
 - 支持自定义样式（颜色、Logo）
@@ -37,6 +40,7 @@
 **技术方案**:
 
 **依赖添加** (`app/build.gradle.kts`):
+
 ```kotlin
 // 二维码生成
 implementation("com.google.zxing:core:3.5.2")
@@ -46,6 +50,7 @@ implementation("com.journeyapps:zxing-android-embedded:4.3.0")
 **核心文件**:
 
 1. **`core-ui/src/main/java/com/chainlesschain/android/core/ui/components/QRCodeGenerator.kt`** (120行)
+
 ```kotlin
 object QRCodeGenerator {
     fun generateQRCode(
@@ -103,6 +108,7 @@ object QRCodeGenerator {
 ```
 
 2. **`feature-p2p/src/main/java/com/chainlesschain/android/feature/p2p/ui/social/MyQRCodeScreen.kt`** (180行)
+
 ```kotlin
 @Composable
 fun MyQRCodeScreen(
@@ -188,6 +194,7 @@ fun MyQRCodeScreen(
 **技术方案**:
 
 **权限配置** (`app/src/main/AndroidManifest.xml`):
+
 ```xml
 <uses-permission android:name="android.permission.CAMERA" />
 <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -196,6 +203,7 @@ fun MyQRCodeScreen(
 **核心文件**:
 
 1. **`feature-p2p/src/main/java/com/chainlesschain/android/feature/p2p/ui/social/QRCodeScannerScreen.kt`** (250行)
+
 ```kotlin
 @Composable
 fun QRCodeScannerScreen(
@@ -378,6 +386,7 @@ private class QRCodeAnalyzer(
 ```
 
 2. **`feature-p2p/src/main/java/com/chainlesschain/android/feature/p2p/viewmodel/social/QRCodeScannerViewModel.kt`** (100行)
+
 ```kotlin
 @HiltViewModel
 class QRCodeScannerViewModel @Inject constructor(
@@ -433,6 +442,7 @@ sealed class QRCodeData {
 ```
 
 **新增依赖**:
+
 ```kotlin
 // CameraX
 implementation("androidx.camera:camera-core:1.3.1")
@@ -454,6 +464,7 @@ implementation("com.google.accompanist:accompanist-permissions:0.32.0")
 **修改文件**: `AddFriendScreen.kt`
 
 在搜索栏右侧添加扫描按钮：
+
 ```kotlin
 Row(
     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -484,6 +495,7 @@ Row(
 #### Task 2.1: 编辑权限检查 (Day 6)
 
 **需求描述**:
+
 - 只允许作者在24小时内编辑
 - 超时后禁用编辑按钮
 - 已有评论/点赞时显示警告
@@ -491,6 +503,7 @@ Row(
 **核心逻辑**:
 
 1. **`feature-p2p/src/main/java/com/chainlesschain/android/feature/p2p/util/PostEditPolicy.kt`** (80行)
+
 ```kotlin
 object PostEditPolicy {
     const val EDIT_WINDOW_HOURS = 24
@@ -543,6 +556,7 @@ sealed class EditWarning {
 **核心文件**:
 
 1. **`feature-p2p/src/main/java/com/chainlesschain/android/feature/p2p/ui/social/EditPostScreen.kt`** (300行)
+
 ```kotlin
 @Composable
 fun EditPostScreen(
@@ -725,6 +739,7 @@ fun EditPostScreen(
 ```
 
 2. **`EditPostViewModel.kt`** (200行)
+
 ```kotlin
 @HiltViewModel
 class EditPostViewModel @Inject constructor(
@@ -864,6 +879,7 @@ interface PostEditHistoryDao {
 ```
 
 在PostCard上显示"已编辑"标签：
+
 ```kotlin
 if (post.isEdited) {
     Text(
@@ -884,6 +900,7 @@ if (post.isEdited) {
 #### Task 3.1: Markdown编辑器增强 (Day 11-13)
 
 **需求描述**:
+
 - 工具栏快捷按钮（加粗、斜体、标题、列表、链接、图片）
 - 实时预览模式（编辑/预览切换）
 - 语法高亮
@@ -892,6 +909,7 @@ if (post.isEdited) {
 **技术方案**:
 
 **新增依赖**:
+
 ```kotlin
 // Markdown解析和渲染
 implementation("io.noties.markwon:core:4.6.2")
@@ -903,6 +921,7 @@ implementation("io.noties.markwon:image-coil:4.6.2")
 **核心文件**:
 
 1. **`core-ui/src/main/java/com/chainlesschain/android/core/ui/components/RichTextEditor.kt`** (450行)
+
 ```kotlin
 @Composable
 fun RichTextEditor(
@@ -1145,6 +1164,7 @@ private fun Dp.toPx(context: Context): Float {
 **修改** `PublishPostScreen.kt`:
 
 替换现有的TextField为RichTextEditor：
+
 ```kotlin
 // 原代码
 OutlinedTextField(
@@ -1171,7 +1191,7 @@ RichTextEditor(
 
 **新增测试文件**: `SocialEnhancementE2ETest.kt` (15个测试用例)
 
-```kotlin
+````kotlin
 @HiltAndroidTest
 @RunWith(AndroidJUnit4::class)
 class SocialEnhancementE2ETest {
@@ -1294,7 +1314,7 @@ class SocialEnhancementE2ETest {
 
     // ... 其他10个测试用例
 }
-```
+````
 
 ---
 
@@ -1308,6 +1328,7 @@ class SocialEnhancementE2ETest {
 4. **`RICH_TEXT_EDITOR_GUIDE.md`** - 富文本编辑器使用指南
 
 **更新文档**:
+
 - `README.md` - 添加v0.31.0新功能
 - `CHANGELOG.md` - 添加变更记录
 
@@ -1325,6 +1346,7 @@ class SocialEnhancementE2ETest {
 **技术栈**: WebRTC + libp2p
 
 **依赖添加**:
+
 ```kotlin
 // WebRTC
 implementation("io.getstream:stream-webrtc-android:1.1.0")
@@ -1336,6 +1358,7 @@ implementation("org.webrtc:google-webrtc:1.0.32006")
 **核心文件**:
 
 1. **`feature-p2p/src/main/java/com/chainlesschain/android/feature/p2p/webrtc/WebRTCManager.kt`** (400行)
+
 ```kotlin
 @Singleton
 class WebRTCManager @Inject constructor(
@@ -1465,6 +1488,7 @@ sealed class SignalMessage {
 3. **`feature-p2p/src/main/java/com/chainlesschain/android/feature/p2p/ui/call/VideoCallScreen.kt`** (350行)
 
 **权限配置**:
+
 ```xml
 <uses-permission android:name="android.permission.RECORD_AUDIO" />
 <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
@@ -1476,12 +1500,14 @@ sealed class SignalMessage {
 #### Task 5.2: 通话UI (Day 24-26)
 
 **语音通话界面**:
+
 - 对方头像 + 昵称
 - 通话时长计时器
 - 静音/扬声器/结束按钮
 - 通话状态（呼叫中/通话中/已结束）
 
 **视频通话界面**:
+
 - 远程视频画面（全屏）
 - 本地视频画面（小窗，可拖动）
 - 控制栏（静音/摄像头/翻转/结束）
@@ -1492,6 +1518,7 @@ sealed class SignalMessage {
 #### Task 5.3: 通话历史记录 (Day 27)
 
 **数据库**:
+
 ```kotlin
 @Entity(tableName = "call_history")
 data class CallHistoryEntity(
@@ -1517,6 +1544,7 @@ enum class CallStatus { MISSED, ANSWERED, REJECTED, FAILED }
 #### Task 6.1: 审核规则引擎 (Day 31-32)
 
 **需求描述**:
+
 - 基于本地LLM的智能审核（Ollama）
 - 6种违规类别检测（暴力、色情、政治敏感、违法、垃圾广告、其他）
 - 置信度评分 (0-1)
@@ -1525,6 +1553,7 @@ enum class CallStatus { MISSED, ANSWERED, REJECTED, FAILED }
 **核心文件**:
 
 1. **`core-ai/src/main/java/com/chainlesschain/android/core/ai/ContentModerator.kt`** (300行)
+
 ```kotlin
 @Singleton
 class ContentModerator @Inject constructor(
@@ -1600,6 +1629,7 @@ data class ModerationResult(
 **集成点**:
 
 在 `PublishPostScreen` 发布前自动审核：
+
 ```kotlin
 fun publishPost() = viewModelScope.launch {
     _uiState.update { it.copy(isPublishing = true) }
@@ -1626,6 +1656,7 @@ fun publishPost() = viewModelScope.launch {
 ```
 
 **人工复核队列**:
+
 ```kotlin
 @Entity(tableName = "moderation_queue")
 data class ModerationQueueEntity(
@@ -1654,6 +1685,7 @@ enum class ReviewStatus { PENDING, APPROVED, REJECTED }
 **优化策略**:
 
 1. **延迟初始化** - 使用Hilt lazy注入
+
 ```kotlin
 @Inject
 lateinit var heavyService: Lazy<HeavyService>
@@ -1663,6 +1695,7 @@ heavyService.get().doSomething()
 ```
 
 2. **异步初始化** - 将非必要初始化移到后台线程
+
 ```kotlin
 class App : Application() {
     override fun onCreate() {
@@ -1683,6 +1716,7 @@ class App : Application() {
 ```
 
 3. **R8/ProGuard优化**:
+
 ```
 # proguard-rules.pro
 -optimizationpasses 5
@@ -1701,6 +1735,7 @@ class App : Application() {
 **优化点**:
 
 1. **图片内存优化** - Coil配置
+
 ```kotlin
 Coil.setImageLoader(
     ImageLoader.Builder(context)
@@ -1720,6 +1755,7 @@ Coil.setImageLoader(
 ```
 
 2. **LazyColumn优化** - 使用key避免重组
+
 ```kotlin
 LazyColumn {
     items(
@@ -1732,6 +1768,7 @@ LazyColumn {
 ```
 
 3. **LeakCanary检测** - 集成内存泄漏检测
+
 ```kotlin
 debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
 ```
@@ -1778,6 +1815,7 @@ class ScrollBenchmark {
 **优化策略**:
 
 1. **资源优化**:
+
 ```gradle
 android {
     buildTypes {
@@ -1796,6 +1834,7 @@ android {
 ```
 
 2. **分架构打包** (AAB):
+
 ```gradle
 android {
     bundle {
@@ -1820,23 +1859,26 @@ android {
 
 ### 里程碑时间表
 
-| 版本 | 开始日期 | 结束日期 | 主要功能 | 测试 | 发布日期 |
-|------|----------|----------|----------|------|----------|
-| **v0.31.0** | 2026-01-27 | 2026-02-14 | 二维码、动态编辑、富文本 | Day 16-20 | 2026-02-15 |
+| 版本        | 开始日期   | 结束日期   | 主要功能                    | 测试      | 发布日期   |
+| ----------- | ---------- | ---------- | --------------------------- | --------- | ---------- |
+| **v0.31.0** | 2026-01-27 | 2026-02-14 | 二维码、动态编辑、富文本    | Day 16-20 | 2026-02-15 |
 | **v0.32.0** | 2026-02-24 | 2026-03-14 | 语音/视频、AI审核、性能优化 | Day 36-40 | 2026-03-15 |
 
 ### 资源需求
 
 **开发团队**:
+
 - Android开发: 1人全职
 - 后端支持: 0.5人（API扩展）
 - 测试: 0.5人（E2E测试编写）
 
 **硬件需求**:
+
 - 测试设备: 3台（低端/中端/高端）
 - 摄像头测试: 2台（前置/后置）
 
 **第三方服务**:
+
 - STUN/TURN服务器（WebRTC）- 可使用Google免费服务
 - 无其他额外费用
 
@@ -1846,19 +1888,19 @@ android {
 
 ### E2E测试目标
 
-| 版本 | 新增测试 | 累计测试 | 目标覆盖率 |
-|------|----------|----------|-----------|
-| v0.31.0 | +15 | 77 | UI 88%, 业务 94% |
-| v0.32.0 | +12 | 89 | UI 90%, 业务 95% |
+| 版本    | 新增测试 | 累计测试 | 目标覆盖率       |
+| ------- | -------- | -------- | ---------------- |
+| v0.31.0 | +15      | 77       | UI 88%, 业务 94% |
+| v0.32.0 | +12      | 89       | UI 90%, 业务 95% |
 
 ### 性能基准
 
-| 指标 | v0.30.0 | v0.31.0目标 | v0.32.0目标 |
-|------|---------|-------------|-------------|
-| **冷启动** | 1.5s | 1.5s | <1.2s ⬇️ |
-| **内存峰值** | 200MB | 200MB | <180MB ⬇️ |
-| **滚动帧率** | 58fps | 58fps | ≥58fps ✅ |
-| **APK体积** | 45MB | 47MB | <40MB ⬇️ |
+| 指标         | v0.30.0 | v0.31.0目标 | v0.32.0目标 |
+| ------------ | ------- | ----------- | ----------- |
+| **冷启动**   | 1.5s    | 1.5s        | <1.2s ⬇️    |
+| **内存峰值** | 200MB   | 200MB       | <180MB ⬇️   |
+| **滚动帧率** | 58fps   | 58fps       | ≥58fps ✅   |
+| **APK体积**  | 45MB    | 47MB        | <40MB ⬇️    |
 
 ---
 
@@ -1888,6 +1930,7 @@ android {
 ### 高风险
 
 **Risk 1: WebRTC兼容性问题**
+
 - **影响**: 部分设备通话失败
 - **缓解**:
   1. 早期在3种不同设备测试
@@ -1895,6 +1938,7 @@ android {
   3. 提供降级方案（仅音频）
 
 **Risk 2: AI审核准确率不足**
+
 - **影响**: 误杀正常内容或漏过违规内容
 - **缓解**:
   1. 人工复核机制
@@ -1904,6 +1948,7 @@ android {
 ### 中风险
 
 **Risk 3: 相机权限被拒绝**
+
 - **影响**: 二维码扫描/视频通话无法使用
 - **缓解**:
   1. 友好的权限请求说明
@@ -1936,12 +1981,12 @@ android {
 
 ### 技术指标
 
-| 指标 | v0.30.0 | v0.32.0目标 |
-|------|---------|-------------|
-| **功能完成度** | 100% | 100% |
-| **测试覆盖率** | 88% (UI) | 90% (UI) |
-| **性能得分** | 良好 | 优秀 |
-| **崩溃率** | <1% | <0.5% |
+| 指标           | v0.30.0  | v0.32.0目标 |
+| -------------- | -------- | ----------- |
+| **功能完成度** | 100%     | 100%        |
+| **测试覆盖率** | 88% (UI) | 90% (UI)    |
+| **性能得分**   | 良好     | 优秀        |
+| **崩溃率**     | <1%      | <0.5%       |
 
 ### 用户指标（可选，如有用户）
 
@@ -1976,8 +2021,9 @@ android {
 ---
 
 **计划审批**:
-- 技术负责人: ___________
-- 产品负责人: ___________
-- 测试负责人: ___________
+
+- 技术负责人: ****\_\_\_****
+- 产品负责人: ****\_\_\_****
+- 测试负责人: ****\_\_\_****
 
 **计划最后更新**: 2026-01-26

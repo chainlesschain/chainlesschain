@@ -102,7 +102,7 @@ Caused by: java.lang.NullPointerException: Attempt to invoke virtual method 'xxx
 - [ ] 显示权限请求时崩溃
 - [ ] 授予权限后崩溃
 - [ ] 开始扫描文件时崩溃
-- [ ] 其他: ****\_\_\_****
+- [ ] 其他: \***\*\_\_\_\*\***
 
 ### 3. 权限状态
 

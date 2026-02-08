@@ -24,11 +24,13 @@
 #### 1. AddFriendScreen - 添加好友页面 ✅
 
 **入口位置**:
+
 ```
 主界面 → 社交Tab → 好友子Tab → 右上角"添加"图标
 ```
 
 **代码位置**:
+
 - 入口按钮: `FriendListScreen.kt:82`
   ```kotlin
   IconButton(onClick = onNavigateToAddFriend) {
@@ -40,6 +42,7 @@
   - `NavGraph.kt:91-93` → `MainContainer.kt:89` → `SocialScreen.kt:25,56` → `FriendListScreen.kt:31`
 
 **功能入口**:
+
 - ✅ DID搜索输入框（搜索栏）
 - ✅ 附近的人列表（自动发现）
 - ✅ 好友推荐列表（系统推荐）
@@ -50,11 +53,13 @@
 #### 2. FriendDetailScreen - 好友详情页面 ✅
 
 **入口位置**:
+
 ```
 主界面 → 社交Tab → 好友子Tab → 点击任意好友头像/名称
 ```
 
 **代码位置**:
+
 - 入口触发: `FriendCard.kt` (点击整个卡片)
   ```kotlin
   Card(onClick = { onItemClick(friend.did) })
@@ -64,6 +69,7 @@
   - `NavGraph.kt:88` → `MainContainer.kt:88` → `SocialScreen.kt:24,55` → `FriendListScreen.kt:30`
 
 **功能入口**:
+
 - ✅ 个人信息展示（头像、昵称、DID、简介）
 - ✅ 在线状态指示器
 - ✅ 快捷操作按钮（发消息、语音、视频）
@@ -75,12 +81,14 @@
 #### 3. UserProfileScreen - 用户资料页面 ✅
 
 **入口位置**:
+
 ```
 主界面 → 社交Tab → 动态子Tab → 点击动态作者头像/名称
 主界面 → 社交Tab → 通知子Tab → 点击通知中的用户
 ```
 
 **代码位置**:
+
 - 入口1: `PostCard.kt` (点击头像)
   ```kotlin
   Image(onClick = { onAuthorClick(authorDid) })
@@ -91,6 +99,7 @@
   - `NavGraph.kt:100-101` → `MainContainer.kt:92` → `SocialScreen.kt:28,65` → `TimelineScreen.kt`
 
 **功能入口**:
+
 - ✅ 用户信息展示
 - ✅ 关系状态识别（陌生人/好友/待处理/已屏蔽）
 - ✅ 动态操作按钮（添加好友/发消息/解除屏蔽）
@@ -102,12 +111,14 @@
 #### 4. CommentDetailScreen - 评论详情页面 ✅
 
 **入口位置**:
+
 ```
 主界面 → 社交Tab → 动态子Tab → 点击动态 → 点击评论列表中的某条评论
 主界面 → 社交Tab → 通知子Tab → 点击评论通知
 ```
 
 **代码位置**:
+
 - 入口1: `CommentItem.kt` (点击评论)
   ```kotlin
   ListItem(onClick = { onCommentClick(comment.id) })
@@ -118,6 +129,7 @@
   - `NavGraph.kt:103-104` → `MainContainer.kt:93` → `SocialScreen.kt:29,74` → `NotificationCenterScreen.kt`
 
 **功能入口**:
+
 - ✅ 主评论扩展显示
 - ✅ 嵌套回复列表
 - ✅ 回复输入框
@@ -131,11 +143,13 @@
 #### 1. 动态配图上传 ✅
 
 **入口位置**:
+
 ```
 主界面 → 社交Tab → 动态子Tab → 右下角"发布"按钮 → 点击"图片"按钮
 ```
 
 **代码位置**:
+
 - 发布入口: `TimelineScreen.kt` (FloatingActionButton)
   ```kotlin
   FloatingActionButton(onClick = onNavigateToPublishPost)
@@ -152,6 +166,7 @@
   ```
 
 **功能组件**:
+
 - ✅ 图片选择器（最多9张）`PublishPostScreen.kt:114-127`
 - ✅ 图片预览网格 `ImagePreviewGrid.kt`
 - ✅ 上传进度显示
@@ -163,11 +178,13 @@
 #### 2. 链接卡片预览 ✅
 
 **入口位置**:
+
 ```
 主界面 → 社交Tab → 动态子Tab → 发布按钮 → 在文本框中输入URL（自动触发）
 ```
 
 **代码位置**:
+
 - 自动检测: `PublishPostScreen.kt:129-149`
   ```kotlin
   LaunchedEffect(content) {
@@ -189,6 +206,7 @@
   ```
 
 **功能组件**:
+
 - ✅ URL自动检测（500ms防抖）
 - ✅ LinkPreviewCard显示 `LinkPreviewCard.kt`
 - ✅ 加载骨架屏 `LinkPreviewSkeleton.kt`
@@ -199,11 +217,13 @@
 #### 3. 分享功能 ✅
 
 **入口位置**:
+
 ```
 主界面 → 社交Tab → 动态子Tab → 任意动态卡片 → 点击"分享"图标
 ```
 
 **代码位置**:
+
 - 分享按钮: `PostCard.kt` (底部操作栏)
   ```kotlin
   IconButton(onClick = { onShareClick(post.id, post.authorDid) }) {
@@ -224,6 +244,7 @@
   ```
 
 **功能组件**:
+
 - ✅ Android ShareSheet集成 `ShareManager.kt`
 - ✅ 内容格式化（作者+内容+链接+来源）
 - ✅ 分享计数统计
@@ -234,11 +255,13 @@
 #### 4. 举报和屏蔽用户 ✅
 
 **入口位置**:
+
 ```
 主界面 → 社交Tab → 动态子Tab → 任意动态卡片 → 点击右上角"更多"按钮 → 选择"举报"或"屏蔽该用户"
 ```
 
 **代码位置**:
+
 - 更多按钮: `PostCard.kt` (TopBar右上角)
   ```kotlin
   IconButton(onClick = { showBottomSheet = true }) {
@@ -267,6 +290,7 @@
   ```
 
 **功能组件**:
+
 - ✅ ModalBottomSheet操作菜单
 - ✅ 举报对话框 `ReportDialog.kt`
   - 6种举报原因选择（RadioButton）
@@ -281,16 +305,19 @@
 #### 5. 好友备注编辑 ✅
 
 **入口位置 #1**:
+
 ```
 主界面 → 社交Tab → 好友子Tab → 长按好友卡片 → 选择"设置备注"
 ```
 
 **入口位置 #2**:
+
 ```
 主界面 → 社交Tab → 好友子Tab → 点击好友 → 好友详情页 → 点击更多菜单 → 选择"编辑备注"
 ```
 
 **代码位置**:
+
 - 入口1: `FriendListScreen.kt:296-302`
   ```kotlin
   ListItem(
@@ -317,6 +344,7 @@
   ```
 
 **功能组件**:
+
 - ✅ AlertDialog样式编辑器 `RemarkNameDialog.kt`
 - ✅ 显示原昵称提示
 - ✅ 清除按钮
@@ -333,6 +361,7 @@
 **文件**: `NavGraph.kt:468-515`
 
 所有Screen对象已定义:
+
 ```kotlin
 sealed class Screen(val route: String) {
     // ... 其他Screen
@@ -350,6 +379,7 @@ sealed class Screen(val route: String) {
 **文件**: `NavGraph.kt:393-461`
 
 所有composable已注册:
+
 - ✅ `friend_detail/{did}` → FriendDetailScreen
 - ✅ `user_profile/{did}` → UserProfileScreen
 - ✅ `add_friend` → AddFriendScreen
@@ -362,6 +392,7 @@ sealed class Screen(val route: String) {
 **完整传递链验证**:
 
 1. **添加好友**:
+
    ```
    NavGraph.kt:91-93
    → MainContainer.kt:89
@@ -370,6 +401,7 @@ sealed class Screen(val route: String) {
    ```
 
 2. **好友详情**:
+
    ```
    NavGraph.kt:88
    → MainContainer.kt:88
@@ -379,6 +411,7 @@ sealed class Screen(val route: String) {
    ```
 
 3. **用户资料**:
+
    ```
    NavGraph.kt:100-101
    → MainContainer.kt:92
@@ -388,6 +421,7 @@ sealed class Screen(val route: String) {
    ```
 
 4. **评论详情**:
+
    ```
    NavGraph.kt:103-104
    → MainContainer.kt:93
