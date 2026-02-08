@@ -1071,6 +1071,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     aiChat: (chatData) =>
       ipcRenderer.invoke("project:aiChat", removeUndefined(chatData)),
 
+    // 取消正在进行的AI对话
+    cancelAiChat: () => ipcRenderer.invoke("project:cancelAiChat"),
+
     // AI对话（流式） - 支持文件操作和流式输出
     aiChatStream: (chatData) =>
       ipcRenderer.invoke("project:aiChatStream", removeUndefined(chatData)),
@@ -2727,33 +2730,70 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // -------- 工作流管理 (Phase 4) --------
     workflow: {
       // CRUD 操作
-      create: (workflow) => ipcRenderer.invoke("browser:workflow:create", workflow),
-      get: (workflowId) => ipcRenderer.invoke("browser:workflow:get", workflowId),
+      create: (workflow) =>
+        ipcRenderer.invoke("browser:workflow:create", workflow),
+      get: (workflowId) =>
+        ipcRenderer.invoke("browser:workflow:get", workflowId),
       list: (options) => ipcRenderer.invoke("browser:workflow:list", options),
-      update: (workflowId, updates) => ipcRenderer.invoke("browser:workflow:update", workflowId, updates),
-      delete: (workflowId) => ipcRenderer.invoke("browser:workflow:delete", workflowId),
-      duplicate: (workflowId, newName) => ipcRenderer.invoke("browser:workflow:duplicate", workflowId, newName),
+      update: (workflowId, updates) =>
+        ipcRenderer.invoke("browser:workflow:update", workflowId, updates),
+      delete: (workflowId) =>
+        ipcRenderer.invoke("browser:workflow:delete", workflowId),
+      duplicate: (workflowId, newName) =>
+        ipcRenderer.invoke("browser:workflow:duplicate", workflowId, newName),
 
       // 执行控制
-      execute: (workflowId, targetId, variables) => ipcRenderer.invoke("browser:workflow:execute", workflowId, targetId, variables),
-      executeInline: (workflow, targetId, variables) => ipcRenderer.invoke("browser:workflow:executeInline", workflow, targetId, variables),
-      pause: (executionId) => ipcRenderer.invoke("browser:workflow:pause", executionId),
-      resume: (executionId) => ipcRenderer.invoke("browser:workflow:resume", executionId),
-      cancel: (executionId) => ipcRenderer.invoke("browser:workflow:cancel", executionId),
-      getStatus: (executionId) => ipcRenderer.invoke("browser:workflow:getStatus", executionId),
+      execute: (workflowId, targetId, variables) =>
+        ipcRenderer.invoke(
+          "browser:workflow:execute",
+          workflowId,
+          targetId,
+          variables,
+        ),
+      executeInline: (workflow, targetId, variables) =>
+        ipcRenderer.invoke(
+          "browser:workflow:executeInline",
+          workflow,
+          targetId,
+          variables,
+        ),
+      pause: (executionId) =>
+        ipcRenderer.invoke("browser:workflow:pause", executionId),
+      resume: (executionId) =>
+        ipcRenderer.invoke("browser:workflow:resume", executionId),
+      cancel: (executionId) =>
+        ipcRenderer.invoke("browser:workflow:cancel", executionId),
+      getStatus: (executionId) =>
+        ipcRenderer.invoke("browser:workflow:getStatus", executionId),
       listActive: () => ipcRenderer.invoke("browser:workflow:listActive"),
 
       // 执行历史
-      getExecution: (executionId) => ipcRenderer.invoke("browser:workflow:getExecution", executionId),
-      listExecutions: (workflowId, options) => ipcRenderer.invoke("browser:workflow:listExecutions", workflowId, options),
-      getStats: (workflowId) => ipcRenderer.invoke("browser:workflow:getStats", workflowId),
+      getExecution: (executionId) =>
+        ipcRenderer.invoke("browser:workflow:getExecution", executionId),
+      listExecutions: (workflowId, options) =>
+        ipcRenderer.invoke(
+          "browser:workflow:listExecutions",
+          workflowId,
+          options,
+        ),
+      getStats: (workflowId) =>
+        ipcRenderer.invoke("browser:workflow:getStats", workflowId),
 
       // 变量管理
-      setVariable: (executionId, name, value, scope) => ipcRenderer.invoke("browser:workflow:setVariable", executionId, name, value, scope),
-      getVariables: (executionId) => ipcRenderer.invoke("browser:workflow:getVariables", executionId),
+      setVariable: (executionId, name, value, scope) =>
+        ipcRenderer.invoke(
+          "browser:workflow:setVariable",
+          executionId,
+          name,
+          value,
+          scope,
+        ),
+      getVariables: (executionId) =>
+        ipcRenderer.invoke("browser:workflow:getVariables", executionId),
 
       // 导入导出
-      export: (workflowId) => ipcRenderer.invoke("browser:workflow:export", workflowId),
+      export: (workflowId) =>
+        ipcRenderer.invoke("browser:workflow:export", workflowId),
       import: (data) => ipcRenderer.invoke("browser:workflow:import", data),
 
       // 工作流构建
@@ -2763,75 +2803,115 @@ contextBridge.exposeInMainWorld("electronAPI", {
       onEvent: (callback) => {
         const handler = (_event, data) => callback(data);
         ipcRenderer.on("browser:workflow:event", handler);
-        return () => ipcRenderer.removeListener("browser:workflow:event", handler);
+        return () =>
+          ipcRenderer.removeListener("browser:workflow:event", handler);
       },
     },
 
     // -------- 扩展操作 (Phase 4) --------
     actions: {
-      scroll: (targetId, options) => ipcRenderer.invoke("browser:action:scroll", targetId, options),
-      keyboard: (targetId, options) => ipcRenderer.invoke("browser:action:keyboard", targetId, options),
-      upload: (targetId, options) => ipcRenderer.invoke("browser:action:upload", targetId, options),
-      multiTab: (options) => ipcRenderer.invoke("browser:action:multiTab", options),
+      scroll: (targetId, options) =>
+        ipcRenderer.invoke("browser:action:scroll", targetId, options),
+      keyboard: (targetId, options) =>
+        ipcRenderer.invoke("browser:action:keyboard", targetId, options),
+      upload: (targetId, options) =>
+        ipcRenderer.invoke("browser:action:upload", targetId, options),
+      multiTab: (options) =>
+        ipcRenderer.invoke("browser:action:multiTab", options),
     },
 
     // -------- 高级页面支持 (Phase 4) --------
     advanced: {
-      scan: (targetId, options) => ipcRenderer.invoke("browser:scan:advanced", targetId, options),
+      scan: (targetId, options) =>
+        ipcRenderer.invoke("browser:scan:advanced", targetId, options),
     },
 
     // -------- 录制回放 (Phase 5) --------
     recording: {
       // 录制控制
-      start: (targetId, options) => ipcRenderer.invoke("browser:recording:start", targetId, options),
-      stop: (targetId) => ipcRenderer.invoke("browser:recording:stop", targetId),
-      pause: (targetId) => ipcRenderer.invoke("browser:recording:pause", targetId),
-      resume: (targetId) => ipcRenderer.invoke("browser:recording:resume", targetId),
-      getStatus: (targetId) => ipcRenderer.invoke("browser:recording:getStatus", targetId),
+      start: (targetId, options) =>
+        ipcRenderer.invoke("browser:recording:start", targetId, options),
+      stop: (targetId) =>
+        ipcRenderer.invoke("browser:recording:stop", targetId),
+      pause: (targetId) =>
+        ipcRenderer.invoke("browser:recording:pause", targetId),
+      resume: (targetId) =>
+        ipcRenderer.invoke("browser:recording:resume", targetId),
+      getStatus: (targetId) =>
+        ipcRenderer.invoke("browser:recording:getStatus", targetId),
 
       // 回放控制
-      play: (recordingId, targetId, options) => ipcRenderer.invoke("browser:recording:play", recordingId, targetId, options),
-      playPause: (playbackId) => ipcRenderer.invoke("browser:recording:playPause", playbackId),
-      playResume: (playbackId) => ipcRenderer.invoke("browser:recording:playResume", playbackId),
-      playStop: (playbackId) => ipcRenderer.invoke("browser:recording:playStop", playbackId),
-      getPlaybackStatus: (playbackId) => ipcRenderer.invoke("browser:recording:getPlaybackStatus", playbackId),
+      play: (recordingId, targetId, options) =>
+        ipcRenderer.invoke(
+          "browser:recording:play",
+          recordingId,
+          targetId,
+          options,
+        ),
+      playPause: (playbackId) =>
+        ipcRenderer.invoke("browser:recording:playPause", playbackId),
+      playResume: (playbackId) =>
+        ipcRenderer.invoke("browser:recording:playResume", playbackId),
+      playStop: (playbackId) =>
+        ipcRenderer.invoke("browser:recording:playStop", playbackId),
+      getPlaybackStatus: (playbackId) =>
+        ipcRenderer.invoke("browser:recording:getPlaybackStatus", playbackId),
 
       // 录制存储
-      save: (recording) => ipcRenderer.invoke("browser:recording:save", recording),
-      load: (recordingId) => ipcRenderer.invoke("browser:recording:load", recordingId),
+      save: (recording) =>
+        ipcRenderer.invoke("browser:recording:save", recording),
+      load: (recordingId) =>
+        ipcRenderer.invoke("browser:recording:load", recordingId),
       list: (options) => ipcRenderer.invoke("browser:recording:list", options),
-      update: (recordingId, updates) => ipcRenderer.invoke("browser:recording:update", recordingId, updates),
-      delete: (recordingId) => ipcRenderer.invoke("browser:recording:delete", recordingId),
+      update: (recordingId, updates) =>
+        ipcRenderer.invoke("browser:recording:update", recordingId, updates),
+      delete: (recordingId) =>
+        ipcRenderer.invoke("browser:recording:delete", recordingId),
 
       // 转换为工作流
-      toWorkflow: (recordingId, options) => ipcRenderer.invoke("browser:recording:toWorkflow", recordingId, options),
+      toWorkflow: (recordingId, options) =>
+        ipcRenderer.invoke(
+          "browser:recording:toWorkflow",
+          recordingId,
+          options,
+        ),
 
       // 事件监听
       onEvent: (callback) => {
         const handler = (_event, data) => callback(data);
         ipcRenderer.on("browser:recording:event", handler);
-        return () => ipcRenderer.removeListener("browser:recording:event", handler);
+        return () =>
+          ipcRenderer.removeListener("browser:recording:event", handler);
       },
     },
 
     // -------- 截图基线 (Phase 5) --------
     baseline: {
       save: (baseline) => ipcRenderer.invoke("browser:baseline:save", baseline),
-      get: (baselineId) => ipcRenderer.invoke("browser:baseline:get", baselineId),
+      get: (baselineId) =>
+        ipcRenderer.invoke("browser:baseline:get", baselineId),
       list: (options) => ipcRenderer.invoke("browser:baseline:list", options),
-      delete: (baselineId) => ipcRenderer.invoke("browser:baseline:delete", baselineId),
+      delete: (baselineId) =>
+        ipcRenderer.invoke("browser:baseline:delete", baselineId),
     },
 
     // -------- 诊断工具 (Phase 5) --------
     diagnostics: {
       // OCR 识别
       ocr: {
-        recognize: (targetId, options) => ipcRenderer.invoke("browser:ocr:recognize", targetId, options),
+        recognize: (targetId, options) =>
+          ipcRenderer.invoke("browser:ocr:recognize", targetId, options),
       },
 
       // 截图对比
       screenshot: {
-        compare: (targetId, baselineId, options) => ipcRenderer.invoke("browser:screenshot:compare", targetId, baselineId, options),
+        compare: (targetId, baselineId, options) =>
+          ipcRenderer.invoke(
+            "browser:screenshot:compare",
+            targetId,
+            baselineId,
+            options,
+          ),
       },
     },
   },
