@@ -281,6 +281,7 @@ import {
   EyeOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons-vue";
+import * as echarts from "echarts";
 import { useCoworkStore } from "../stores/cowork";
 import TaskDetailPanel from "../components/cowork/TaskDetailPanel.vue";
 import { formatDistanceToNow } from "date-fns";
@@ -298,9 +299,11 @@ const taskDetailDrawerVisible = ref(false);
 const searchQuery = ref("");
 const statusFilter = ref(null);
 const teamFilter = ref(null);
-const showCharts = ref(false); // TODO: 集成 ECharts 后设为 true
+const showCharts = ref(true);
 const successRateChartRef = ref(null);
 const durationChartRef = ref(null);
+let successRateChart = null;
+let durationChart = null;
 
 // 表格分页
 const tablePagination = ref({
@@ -389,6 +392,11 @@ const successRate = computed(() => {
 // 生命周期钩子
 // ==========================================
 
+const handleResize = () => {
+  successRateChart?.resize();
+  durationChart?.resize();
+};
+
 onMounted(async () => {
   taskLogger.info("TaskMonitor 挂载");
 
@@ -398,19 +406,23 @@ onMounted(async () => {
   // 加载初始数据
   await loadInitialData();
 
-  // TODO: 初始化图表
-  // await nextTick();
-  // initCharts();
+  // 初始化图表
+  await nextTick();
+  initCharts();
+
+  window.addEventListener("resize", handleResize);
 });
 
 onUnmounted(() => {
   taskLogger.info("TaskMonitor 卸载");
 
+  window.removeEventListener("resize", handleResize);
+
   // 清理事件监听
   store.cleanupEventListeners();
 
-  // TODO: 销毁图表
-  // destroyCharts();
+  // 销毁图表
+  destroyCharts();
 });
 
 // ==========================================
@@ -664,22 +676,107 @@ function formatDate(timestamp) {
 }
 
 // ==========================================
-// 图表相关（TODO: 集成 ECharts）
+// 图表相关
 // ==========================================
 
-// function initCharts() {
-//   if (!successRateChartRef.value || !durationChartRef.value) return;
-//
-//   // TODO: 使用 ECharts 初始化图表
-//   // import * as echarts from 'echarts';
-//   // const successRateChart = echarts.init(successRateChartRef.value);
-//   // const durationChart = echarts.init(durationChartRef.value);
-//   // ...
-// }
-//
-// function destroyCharts() {
-//   // TODO: 销毁图表实例
-// }
+function initCharts() {
+  if (!successRateChartRef.value || !durationChartRef.value) return;
+
+  initSuccessRateChart();
+  initDurationChart();
+}
+
+function initSuccessRateChart() {
+  successRateChart = echarts.init(successRateChartRef.value);
+
+  const statusCounts = {
+    completed: completedTasks.value.length,
+    failed: globalStats.value.failedTasks || 0,
+    running: runningTasks.value.length,
+    pending: (globalStats.value.totalTasks || 0) - completedTasks.value.length - (globalStats.value.failedTasks || 0) - runningTasks.value.length,
+  };
+
+  successRateChart.setOption({
+    title: { text: "任务状态分布", left: "center" },
+    tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+    legend: { bottom: 0 },
+    series: [{
+      type: "pie",
+      radius: ["40%", "70%"],
+      avoidLabelOverlap: false,
+      itemStyle: { borderRadius: 6, borderColor: "#fff", borderWidth: 2 },
+      label: { show: false },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: "bold" } },
+      data: [
+        { value: statusCounts.completed, name: "已完成", itemStyle: { color: "#52c41a" } },
+        { value: statusCounts.failed, name: "失败", itemStyle: { color: "#ff4d4f" } },
+        { value: statusCounts.running, name: "运行中", itemStyle: { color: "#1890ff" } },
+        { value: statusCounts.pending, name: "待处理", itemStyle: { color: "#d9d9d9" } },
+      ].filter((d) => d.value > 0),
+    }],
+  });
+}
+
+function initDurationChart() {
+  durationChart = echarts.init(durationChartRef.value);
+
+  // 按耗时分段统计
+  const buckets = { "<10s": 0, "10-30s": 0, "30s-1m": 0, "1-5m": 0, "5-30m": 0, ">30m": 0 };
+  for (const task of tasks.value) {
+    const ms = task.duration || 0;
+    if (ms <= 0) continue;
+    const sec = ms / 1000;
+    if (sec < 10) buckets["<10s"]++;
+    else if (sec < 30) buckets["10-30s"]++;
+    else if (sec < 60) buckets["30s-1m"]++;
+    else if (sec < 300) buckets["1-5m"]++;
+    else if (sec < 1800) buckets["5-30m"]++;
+    else buckets[">30m"]++;
+  }
+
+  durationChart.setOption({
+    title: { text: "任务耗时分布", left: "center" },
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+    xAxis: { type: "category", data: Object.keys(buckets), axisLabel: { fontSize: 12 } },
+    yAxis: { type: "value", name: "任务数", minInterval: 1 },
+    series: [{
+      type: "bar",
+      data: Object.values(buckets),
+      itemStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: "#1890ff" },
+          { offset: 1, color: "#69c0ff" },
+        ]),
+        borderRadius: [4, 4, 0, 0],
+      },
+      barWidth: "50%",
+    }],
+    grid: { left: 60, right: 20, bottom: 40, top: 50 },
+  });
+}
+
+function updateCharts() {
+  if (successRateChart) initSuccessRateChart();
+  if (durationChart) initDurationChart();
+}
+
+function destroyCharts() {
+  if (successRateChart) {
+    successRateChart.dispose();
+    successRateChart = null;
+  }
+  if (durationChart) {
+    durationChart.dispose();
+    durationChart = null;
+  }
+}
+
+// 数据变化时更新图表
+watch([tasks, globalStats], () => {
+  if (showCharts.value) {
+    nextTick(() => updateCharts());
+  }
+});
 </script>
 
 <style scoped lang="scss">
