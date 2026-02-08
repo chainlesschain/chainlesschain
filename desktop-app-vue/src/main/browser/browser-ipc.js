@@ -106,7 +106,13 @@ function getAutomationAgent() {
  */
 function registerBrowserIPC(deps = {}) {
   const _ipcMain = deps.ipcMain || ipcMain;
-  const _getBrowserEngine = deps.getBrowserEngine || getBrowserEngine;
+  const _getBrowserEngineRaw = deps.getBrowserEngine || getBrowserEngine;
+  // Cache the engine so cleanupBrowser() can find it
+  const _getBrowserEngine = () => {
+    const engine = _getBrowserEngineRaw();
+    if (engine) browserEngine = engine;
+    return engine;
+  };
   const _getAutomationAgent = deps.getAutomationAgent || getAutomationAgent;
   const withErrorHandler = (deps.createIPCErrorHandler || createIPCErrorHandler)('browser');
 
@@ -120,7 +126,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { success, cdpPort, pid }
    */
   _ipcMain.handle('browser:start', withErrorHandler(async (event, options = {}) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.start(options);
 
     logger.info('[Browser IPC] Browser started', {
@@ -136,7 +142,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { success, uptime }
    */
   _ipcMain.handle('browser:stop', withErrorHandler(async (event) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.stop();
 
     logger.info('[Browser IPC] Browser stopped', {
@@ -151,7 +157,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} 状态信息
    */
   _ipcMain.handle('browser:getStatus', withErrorHandler(async (event) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     return engine.getStatus();
   }));
 
@@ -164,7 +170,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { success, profileName, exists }
    */
   _ipcMain.handle('browser:createContext', withErrorHandler(async (event, profileName, options = {}) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.createContext(profileName, options);
 
     logger.info('[Browser IPC] Context created', {
@@ -185,7 +191,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { success, targetId, url, title }
    */
   _ipcMain.handle('browser:openTab', withErrorHandler(async (event, profileName, url, options = {}) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.openTab(profileName, url, options);
 
     logger.info('[Browser IPC] Tab opened', {
@@ -203,7 +209,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { success, targetId }
    */
   _ipcMain.handle('browser:closeTab', withErrorHandler(async (event, targetId) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.closeTab(targetId);
 
     logger.info('[Browser IPC] Tab closed', { targetId });
@@ -217,7 +223,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { success, targetId }
    */
   _ipcMain.handle('browser:focusTab', withErrorHandler(async (event, targetId) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.focusTab(targetId);
 
     logger.info('[Browser IPC] Tab focused', { targetId });
@@ -231,7 +237,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Array>} 标签页列表
    */
   _ipcMain.handle('browser:listTabs', withErrorHandler(async (event, profileName = null) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const tabs = await engine.listTabs(profileName);
 
     logger.debug('[Browser IPC] List tabs', {
@@ -252,7 +258,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { success, url, title }
    */
   _ipcMain.handle('browser:navigate', withErrorHandler(async (event, targetId, url, options = {}) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.navigate(targetId, url, options);
 
     logger.info('[Browser IPC] Navigated', {
@@ -270,7 +276,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { screenshot: base64 }
    */
   _ipcMain.handle('browser:screenshot', withErrorHandler(async (event, targetId, options = {}) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const buffer = await engine.screenshot(targetId, options);
 
     logger.info('[Browser IPC] Screenshot taken', {
@@ -294,7 +300,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { success, stateFile, cookiesCount, originsCount }
    */
   _ipcMain.handle('browser:saveSession', withErrorHandler(async (event, profileName, stateFile = null) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.saveSession(profileName, stateFile);
 
     logger.info('[Browser IPC] Session saved', {
@@ -313,7 +319,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} { success, profileName, cookiesCount, originsCount }
    */
   _ipcMain.handle('browser:restoreSession', withErrorHandler(async (event, profileName, stateFile = null) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.restoreSession(profileName, stateFile);
 
     logger.info('[Browser IPC] Session restored', {
@@ -333,7 +339,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} 快照对象
    */
   _ipcMain.handle('browser:snapshot', withErrorHandler(async (event, targetId, options = {}) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const snapshot = await engine.takeSnapshot(targetId, options);
 
     logger.info('[Browser IPC] Snapshot taken', {
@@ -353,7 +359,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} 操作结果
    */
   _ipcMain.handle('browser:act', withErrorHandler(async (event, targetId, action, ref, options = {}) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const result = await engine.act(targetId, action, ref, options);
 
     logger.info('[Browser IPC] Element action executed', {
@@ -372,7 +378,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} 元素对象
    */
   _ipcMain.handle('browser:findElement', withErrorHandler(async (event, targetId, ref) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const element = engine.findElement(targetId, ref);
 
     if (!element) {
@@ -391,7 +397,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<boolean>}
    */
   _ipcMain.handle('browser:validateRef', withErrorHandler(async (event, targetId, ref) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const isValid = engine.validateRef(targetId, ref);
 
     logger.debug('[Browser IPC] Reference validated', {
@@ -409,7 +415,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle('browser:clearSnapshot', withErrorHandler(async (event, targetId = null) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     engine.clearSnapshot(targetId);
 
     logger.info('[Browser IPC] Snapshot cleared', { targetId });
@@ -422,7 +428,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle('browser:getSnapshotStats', withErrorHandler(async (event) => {
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const stats = engine.getSnapshotStats();
 
     logger.debug('[Browser IPC] Snapshot stats retrieved', {
@@ -442,7 +448,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>} 执行结果
    */
   _ipcMain.handle('browser:aiExecute', withErrorHandler(async (event, targetId, prompt, options = {}) => {
-    const agent = getAutomationAgent();
+    const agent = _getAutomationAgent();
 
     if (!agent.llmService) {
       throw new Error('LLM Service not available. Please configure LLM settings.');
@@ -466,13 +472,13 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Array>} 操作步骤
    */
   _ipcMain.handle('browser:aiParse', withErrorHandler(async (event, targetId, prompt) => {
-    const agent = getAutomationAgent();
+    const agent = _getAutomationAgent();
 
     if (!agent.llmService) {
       throw new Error('LLM Service not available. Please configure LLM settings.');
     }
 
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const snapshot = await engine.takeSnapshot(targetId, {
       interactive: true,
       visible: true,
@@ -496,7 +502,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Array>}
    */
   _ipcMain.handle('browser:aiGetHistory', withErrorHandler(async (event, limit = 10) => {
-    const agent = getAutomationAgent();
+    const agent = _getAutomationAgent();
     const history = agent.getHistory(limit);
 
     logger.debug('[Browser IPC] AI history retrieved', {
@@ -511,7 +517,7 @@ function registerBrowserIPC(deps = {}) {
    * @returns {Promise<Object>}
    */
   _ipcMain.handle('browser:aiClearHistory', withErrorHandler(async (event) => {
-    const agent = getAutomationAgent();
+    const agent = _getAutomationAgent();
     agent.clearHistory();
 
     logger.info('[Browser IPC] AI history cleared');
@@ -529,7 +535,7 @@ function registerBrowserIPC(deps = {}) {
    */
   _ipcMain.handle('browser:action:scroll', withErrorHandler(async (event, targetId, options = {}) => {
     const { ScrollAction } = require('./actions');
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const scrollAction = new ScrollAction(engine);
     return scrollAction.execute(targetId, options);
   }));
@@ -542,7 +548,7 @@ function registerBrowserIPC(deps = {}) {
    */
   _ipcMain.handle('browser:action:keyboard', withErrorHandler(async (event, targetId, options = {}) => {
     const { KeyboardAction } = require('./actions');
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const keyboardAction = new KeyboardAction(engine);
     return keyboardAction.execute(targetId, options);
   }));
@@ -555,7 +561,7 @@ function registerBrowserIPC(deps = {}) {
    */
   _ipcMain.handle('browser:action:upload', withErrorHandler(async (event, targetId, options = {}) => {
     const { UploadAction } = require('./actions');
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const uploadAction = new UploadAction(engine);
     return uploadAction.execute(targetId, options);
   }));
@@ -568,7 +574,7 @@ function registerBrowserIPC(deps = {}) {
    */
   _ipcMain.handle('browser:action:multiTab', withErrorHandler(async (event, targetId, options = {}) => {
     const { MultiTabAction } = require('./actions');
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const multiTabAction = new MultiTabAction(engine);
     return multiTabAction.execute(targetId, options);
   }));
@@ -583,7 +589,7 @@ function registerBrowserIPC(deps = {}) {
    */
   _ipcMain.handle('browser:scan:advanced', withErrorHandler(async (event, targetId, options = {}) => {
     const { ShadowDOMScanner, IframeScanner } = require('./advanced');
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
 
     const result = {
       shadowDOM: null,
@@ -613,7 +619,7 @@ function registerBrowserIPC(deps = {}) {
    */
   _ipcMain.handle('browser:ocr:recognize', withErrorHandler(async (event, targetId, options = {}) => {
     const { OCREngine } = require('./diagnostics');
-    const engine = getBrowserEngine();
+    const engine = _getBrowserEngine();
     const page = engine.getPage(targetId);
     const ocr = new OCREngine(options);
     return ocr.recognizeFromPage(page, options);

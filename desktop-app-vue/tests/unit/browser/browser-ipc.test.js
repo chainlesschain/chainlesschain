@@ -71,6 +71,16 @@ vi.mock('../../../src/main/utils/logger.js', () => ({
 // Mock IPC Error Handler - injected via DI parameter instead of vi.mock
 const mockCreateIPCErrorHandler = vi.fn(() => (handler) => handler);
 
+// Mock getBrowserEngine - injected via DI parameter
+const mockGetBrowserEngine = vi.fn(() => mockBrowserEngine);
+
+// All deps for registerBrowserIPC DI
+const testDeps = {
+  ipcMain: mockIpcMain,
+  createIPCErrorHandler: mockCreateIPCErrorHandler,
+  getBrowserEngine: mockGetBrowserEngine
+};
+
 describe('Browser IPC', () => {
   let browserIPC;
 
@@ -89,7 +99,7 @@ describe('Browser IPC', () => {
 
   describe('registerBrowserIPC()', () => {
     it('应该注册所有 IPC 处理器', () => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
 
       const expectedHandlers = [
         'browser:start',
@@ -117,7 +127,7 @@ describe('Browser IPC', () => {
 
   describe('browser:start', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功启动浏览器', async () => {
@@ -135,7 +145,7 @@ describe('Browser IPC', () => {
 
   describe('browser:stop', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功停止浏览器', async () => {
@@ -153,7 +163,7 @@ describe('Browser IPC', () => {
 
   describe('browser:getStatus', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该返回浏览器状态', async () => {
@@ -171,7 +181,7 @@ describe('Browser IPC', () => {
 
   describe('browser:createContext', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功创建上下文', async () => {
@@ -192,7 +202,7 @@ describe('Browser IPC', () => {
 
   describe('browser:openTab', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功打开标签页', async () => {
@@ -214,7 +224,7 @@ describe('Browser IPC', () => {
 
   describe('browser:closeTab', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功关闭标签页', async () => {
@@ -231,7 +241,7 @@ describe('Browser IPC', () => {
 
   describe('browser:focusTab', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功聚焦标签页', async () => {
@@ -248,7 +258,7 @@ describe('Browser IPC', () => {
 
   describe('browser:listTabs', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该列出所有标签页', async () => {
@@ -266,7 +276,7 @@ describe('Browser IPC', () => {
 
   describe('browser:navigate', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功导航', async () => {
@@ -287,7 +297,7 @@ describe('Browser IPC', () => {
 
   describe('browser:screenshot', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功截图', async () => {
@@ -305,7 +315,7 @@ describe('Browser IPC', () => {
 
   describe('browser:saveSession', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功保存会话', async () => {
@@ -323,7 +333,7 @@ describe('Browser IPC', () => {
 
   describe('browser:restoreSession', () => {
     beforeEach(() => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
     });
 
     it('应该成功恢复会话', async () => {
@@ -341,7 +351,7 @@ describe('Browser IPC', () => {
 
   describe('cleanupBrowser()', () => {
     it('应该清理浏览器资源', async () => {
-      browserIPC.registerBrowserIPC({ ipcMain: mockIpcMain, createIPCErrorHandler: mockCreateIPCErrorHandler });
+      browserIPC.registerBrowserIPC(testDeps);
       await browserIPC.cleanupBrowser();
 
       expect(mockBrowserEngine.cleanup).toHaveBeenCalled();
