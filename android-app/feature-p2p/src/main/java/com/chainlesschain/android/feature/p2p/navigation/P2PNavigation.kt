@@ -18,6 +18,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
  * P2P 功能导航图
  */
 const val P2P_ROUTE = "p2p"
+const val CHAT_SESSION_LIST_ROUTE = "chat_session_list"
 const val DEVICE_LIST_ROUTE = "device_list"
 const val P2P_CHAT_ROUTE = "p2p_chat/{deviceId}/{deviceName}"
 const val DEVICE_PAIRING_ROUTE = "device_pairing/{deviceId}/{deviceName}"
@@ -354,4 +355,8 @@ fun NavController.navigateToCallHistory() {
 
 fun NavController.navigateToCallHistoryWithPeer(peerDid: String) {
     navigate("call_history/$peerDid")
+}
+
+fun NavController.navigateToChatSessionList() {
+    navigate(CHAT_SESSION_LIST_ROUTE)
 }

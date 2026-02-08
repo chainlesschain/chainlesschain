@@ -64,7 +64,10 @@ data class TransferQueueEntity(
     val startedAt: Long? = null,
 
     /** 完成时间戳 */
-    val completedAt: Long? = null
+    val completedAt: Long? = null,
+
+    /** 原始文件 URI（出站传输时使用） */
+    val fileUri: String? = null
 ) {
     companion object {
         /**
@@ -77,7 +80,8 @@ data class TransferQueueEntity(
             mimeType: String,
             isOutgoing: Boolean,
             peerId: String,
-            priority: Int = 5
+            priority: Int = 5,
+            fileUri: String? = null
         ): TransferQueueEntity {
             return TransferQueueEntity(
                 transferId = transferId,
@@ -86,7 +90,8 @@ data class TransferQueueEntity(
                 mimeType = mimeType,
                 isOutgoing = isOutgoing,
                 peerId = peerId,
-                priority = priority.coerceIn(1, 10)
+                priority = priority.coerceIn(1, 10),
+                fileUri = fileUri
             )
         }
     }

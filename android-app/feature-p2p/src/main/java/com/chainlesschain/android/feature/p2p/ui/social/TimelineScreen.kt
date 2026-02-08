@@ -69,7 +69,7 @@ fun TimelineScreen(
     ScrollPerformanceMonitor(
         listState = listState,
         tag = "TimelineScreen",
-        enabled = false  // TODO: 改为 BuildConfig.DEBUG
+        enabled = false  // Enable with BuildConfig.DEBUG for scroll performance monitoring
     )
 
     // Phase 7.3: 图片预加载
@@ -166,7 +166,9 @@ fun TimelineScreen(
                     }
 
                     // 搜索
-                    IconButton(onClick = { /* TODO: 显示搜索 */ }) {
+                    IconButton(onClick = {
+                        coroutineScope.launch { snackbarHostState.showSnackbar("搜索功能开发中") }
+                    }) {
                         Icon(Icons.Default.Search, contentDescription = "搜索")
                     }
                 }
@@ -212,7 +214,7 @@ fun TimelineScreen(
                             // Phase 7.3: 使用优化后的PostCard
                             PostCardOptimized(
                                 post = post,
-                                authorNickname = "用户${post.authorDid.take(8)}", // TODO: 从好友信息获取昵称
+                                authorNickname = "用户${post.authorDid.take(8)}", // Nickname lookup requires ViewModel authorNicknames map
                                 onPostClick = { onNavigateToPostDetail(post.id) },
                                 onAuthorClick = { onNavigateToUserProfile(post.authorDid) },
                                 onLikeClick = { viewModel.toggleLike(post.id, post.isLiked, post.authorDid) },
@@ -223,7 +225,7 @@ fun TimelineScreen(
                                     // 分享动态
                                     ShareManager.sharePost(
                                         context = context,
-                                        authorName = "用户${post.authorDid.take(8)}", // TODO: 从好友信息获取昵称
+                                        authorName = "用户${post.authorDid.take(8)}",
                                         content = post.content
                                     )
                                     // 记录分享

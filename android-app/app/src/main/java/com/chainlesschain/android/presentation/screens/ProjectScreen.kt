@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,14 +19,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
-import com.chainlesschain.android.feature.project.domain.*
+import com.chainlesschain.android.core.database.entity.ProjectEntity
+import com.chainlesschain.android.core.database.entity.ProjectStatus
+import com.chainlesschain.android.core.database.entity.ProjectType
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
 import com.chainlesschain.android.feature.project.viewmodel.ProjectUiEvent
 import com.chainlesschain.android.feature.project.model.ProjectListState
+import com.chainlesschain.android.feature.project.model.ProjectSortBy
+import com.chainlesschain.android.feature.project.model.ProjectWithStats
 import com.chainlesschain.android.feature.project.ui.components.TemplateSelectionDialog
 import kotlinx.coroutines.flow.collectLatest
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 /**
  * 项目页面（整合任务功能）
@@ -43,20 +44,18 @@ fun ProjectScreen(
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("全部") }
+    var showSearchBar by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var showSortMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     // 获取认证状态
     val authState by authViewModel.uiState.collectAsState()
 
     // 初始化用户上下文
     LaunchedEffect(authState.currentUser) {
-        android.util.Log.d("ProjectScreen", "LaunchedEffect triggered: authState.currentUser=${authState.currentUser?.id}")
         authState.currentUser?.let { user ->
-            android.util.Log.d("ProjectScreen", "Calling setCurrentUser with userId=${user.id}")
             projectViewModel.setCurrentUser(user.id)
-        } ?: run {
-            android.util.Log.w("ProjectScreen", "authState.currentUser is NULL")
         }
     }
 
@@ -81,71 +80,72 @@ fun ProjectScreen(
     // 获取项目列表状态
     val projectListState by projectViewModel.projectListState.collectAsState()
 
-    // TODO: 集成真实数据（待实现数据转换）
-    // 暂时使用模拟数据避免类型不匹配
-    val projects = remember {
-        listOf(
-            ProjectWithTasks(
-                project = ProjectEntity(
-                    id = "1",
-                    name = "AI助手开发",
-                    description = "开发一个智能AI助手应用",
-                    type = ProjectType.DEVELOPMENT,
-                    status = ProjectStatus.ACTIVE,
-                    progress = 0.65f
-                ),
-                totalTasks = 12,
-                completedTasks = 8,
-                pendingTasks = 4,
-                lastUpdated = LocalDateTime.now().minusHours(2)
-            ),
-            ProjectWithTasks(
-                project = ProjectEntity(
-                    id = "2",
-                    name = "产品设计文档",
-                    description = "整理产品设计相关文档和资料",
-                    type = ProjectType.WRITING,
-                    status = ProjectStatus.ACTIVE,
-                    progress = 0.40f
-                ),
-                totalTasks = 8,
-                completedTasks = 3,
-                pendingTasks = 5,
-                lastUpdated = LocalDateTime.now().minusDays(1)
-            )
-        )
+    // 从ViewModel状态获取真实数据
+    val projects = when (val state = projectListState) {
+        is ProjectListState.Success -> state.projects
+        else -> emptyList()
     }
-
-    // 显示加载指示器
-    val isLoading = false
+    val isLoading = projectListState is ProjectListState.Loading
 
     // 筛选项目
-    val filteredProjects = remember(selectedFilter, projects) {
-        when (selectedFilter) {
+    val filteredProjects = remember(selectedFilter, projects, searchQuery) {
+        val filtered = when (selectedFilter) {
             "进行中" -> projects.filter { it.project.status == ProjectStatus.ACTIVE }
             "已完成" -> projects.filter { it.project.status == ProjectStatus.COMPLETED }
-            "草稿" -> projects.filter { it.project.status == ProjectStatus.DRAFT }
+            "已暂停" -> projects.filter { it.project.status == ProjectStatus.PAUSED }
             else -> projects
+        }
+        if (searchQuery.isBlank()) filtered
+        else filtered.filter {
+            it.project.name.contains(searchQuery, ignoreCase = true) ||
+                (it.project.description?.contains(searchQuery, ignoreCase = true) == true)
         }
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = { Text("我的项目", fontWeight = FontWeight.Bold) },
-                actions = {
-                    IconButton(onClick = onNavigateToFileBrowser) {
-                        Icon(Icons.Default.FolderOpen, contentDescription = "文件浏览器")
+            if (showSearchBar) {
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onSearch = { showSearchBar = false },
+                    active = false,
+                    onActiveChange = {},
+                    leadingIcon = {
+                        IconButton(onClick = {
+                            showSearchBar = false
+                            searchQuery = ""
+                        }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        }
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Clear, contentDescription = "清除")
+                            }
+                        }
+                    },
+                    placeholder = { Text("搜索项目...") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {}
+            } else {
+                TopAppBar(
+                    title = { Text("我的项目", fontWeight = FontWeight.Bold) },
+                    actions = {
+                        IconButton(onClick = onNavigateToFileBrowser) {
+                            Icon(Icons.Default.FolderOpen, contentDescription = "文件浏览器")
+                        }
+                        IconButton(onClick = { showSearchBar = true }) {
+                            Icon(Icons.Default.Search, contentDescription = "搜索")
+                        }
+                        IconButton(onClick = { showAddDialog = true }) {
+                            Icon(Icons.Default.Add, contentDescription = "新建项目")
+                        }
                     }
-                    IconButton(onClick = { /* TODO: 搜索 */ }) {
-                        Icon(Icons.Default.Search, contentDescription = "搜索")
-                    }
-                    IconButton(onClick = { showAddDialog = true }) {
-                        Icon(Icons.Default.Add, contentDescription = "新建项目")
-                    }
-                }
-            )
+                )
+            }
         },
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
@@ -162,9 +162,9 @@ fun ProjectScreen(
             item {
                 ProjectStatsCard(
                     totalProjects = projects.size,
-                    totalTasks = projects.sumOf { it.totalTasks },
-                    completedTasks = projects.sumOf { it.completedTasks },
-                    activeProjects = projects.count { it.project.status == ProjectStatus.ACTIVE }
+                    activeProjects = projects.count { it.project.status == ProjectStatus.ACTIVE },
+                    totalFiles = projects.sumOf { it.project.fileCount },
+                    completedProjects = projects.count { it.project.status == ProjectStatus.COMPLETED }
                 )
             }
 
@@ -190,14 +190,45 @@ fun ProjectScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
-                    TextButton(onClick = { /* TODO: 排序 */ }) {
-                        Icon(
-                            Icons.Default.Sort,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("排序")
+                    Box {
+                        TextButton(onClick = { showSortMenu = true }) {
+                            Icon(
+                                Icons.Default.Sort,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("排序")
+                        }
+                        DropdownMenu(
+                            expanded = showSortMenu,
+                            onDismissRequest = { showSortMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("更新时间") },
+                                onClick = {
+                                    showSortMenu = false
+                                    projectViewModel.setSorting(ProjectSortBy.UPDATED_AT)
+                                },
+                                leadingIcon = { Icon(Icons.Default.Update, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("名称") },
+                                onClick = {
+                                    showSortMenu = false
+                                    projectViewModel.setSorting(ProjectSortBy.NAME)
+                                },
+                                leadingIcon = { Icon(Icons.Default.SortByAlpha, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("创建时间") },
+                                onClick = {
+                                    showSortMenu = false
+                                    projectViewModel.setSorting(ProjectSortBy.CREATED_AT)
+                                },
+                                leadingIcon = { Icon(Icons.Default.DateRange, null) }
+                            )
+                        }
                     }
                 }
             }
@@ -257,10 +288,10 @@ fun ProjectScreen(
             }
 
             // 项目列表
-            items(filteredProjects, key = { it.project.id }) { projectWithTasks ->
+            items(filteredProjects, key = { it.project.id }) { projectWithStats ->
                 EnhancedProjectCard(
-                    projectWithTasks = projectWithTasks,
-                    onClick = { onProjectClick(projectWithTasks.project.id) }
+                    projectWithStats = projectWithStats,
+                    onClick = { onProjectClick(projectWithStats.project.id) }
                 )
             }
         }
@@ -290,7 +321,7 @@ fun ProjectFilterChips(
     selectedFilter: String,
     onFilterSelected: (String) -> Unit
 ) {
-    val filters = listOf("全部", "进行中", "已完成", "草稿")
+    val filters = listOf("全部", "进行中", "已完成", "已暂停")
 
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
@@ -311,14 +342,14 @@ fun ProjectFilterChips(
 }
 
 /**
- * 项目统计卡片（增强版）
+ * 项目统计卡片
  */
 @Composable
 fun ProjectStatsCard(
     totalProjects: Int,
-    totalTasks: Int,
-    completedTasks: Int,
-    activeProjects: Int
+    activeProjects: Int,
+    totalFiles: Int,
+    completedProjects: Int
 ) {
     Card(
         modifier = Modifier
@@ -341,19 +372,19 @@ fun ProjectStatsCard(
                 label = "总项目"
             )
             ProjectStatItem(
-                icon = Icons.Outlined.Assignment,
-                value = totalTasks.toString(),
-                label = "总任务"
-            )
-            ProjectStatItem(
-                icon = Icons.Outlined.CheckCircle,
-                value = completedTasks.toString(),
-                label = "已完成"
-            )
-            ProjectStatItem(
                 icon = Icons.Outlined.TrendingUp,
                 value = activeProjects.toString(),
                 label = "进行中"
+            )
+            ProjectStatItem(
+                icon = Icons.Outlined.InsertDriveFile,
+                value = totalFiles.toString(),
+                label = "总文件"
+            )
+            ProjectStatItem(
+                icon = Icons.Outlined.CheckCircle,
+                value = completedProjects.toString(),
+                label = "已完成"
             )
         }
     }
@@ -393,21 +424,21 @@ fun ProjectStatItem(
 }
 
 /**
- * 增强的项目卡片（包含任务信息）
+ * 增强的项目卡片（使用真实数据）
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedProjectCard(
-    projectWithTasks: ProjectWithTasks,
+    projectWithStats: ProjectWithStats,
     onClick: () -> Unit
 ) {
-    val project = projectWithTasks.project
+    val project = projectWithStats.project
     val statusColor = when (project.status) {
         ProjectStatus.ACTIVE -> MaterialTheme.colorScheme.primary
         ProjectStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
         ProjectStatus.PAUSED -> MaterialTheme.colorScheme.secondary
-        ProjectStatus.DRAFT -> MaterialTheme.colorScheme.outline
         ProjectStatus.ARCHIVED -> MaterialTheme.colorScheme.onSurfaceVariant
+        else -> MaterialTheme.colorScheme.outline
     }
 
     Card(
@@ -425,7 +456,7 @@ fun EnhancedProjectCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // 顶部行：项目信息 + 状态 + 操作
+            // 顶部行：项目信息 + 状态
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -478,7 +509,7 @@ fun EnhancedProjectCard(
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
-                        text = project.status.displayName,
+                        text = project.getStatusDisplayName(),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = statusColor,
@@ -489,71 +520,48 @@ fun EnhancedProjectCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 任务进度信息
+            // 文件信息和更新时间
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 任务统计
+                // 文件统计
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    TaskStatBadge(
-                        icon = Icons.Outlined.Assignment,
-                        count = projectWithTasks.totalTasks,
-                        label = "任务"
+                    FileStatBadge(
+                        icon = Icons.Outlined.InsertDriveFile,
+                        count = project.fileCount,
+                        label = "文件"
                     )
-                    TaskStatBadge(
-                        icon = Icons.Outlined.CheckCircle,
-                        count = projectWithTasks.completedTasks,
-                        label = "完成",
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                    TaskStatBadge(
-                        icon = Icons.Outlined.Schedule,
-                        count = projectWithTasks.pendingTasks,
-                        label = "待办",
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    if (projectWithStats.fileCountByExtension.isNotEmpty()) {
+                        Text(
+                            text = projectWithStats.getFileTypeDistribution(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
                 }
 
                 // 更新时间
                 Text(
-                    text = formatLastUpdated(projectWithTasks.lastUpdated),
+                    text = formatTimestamp(project.updatedAt),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 进度条
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "项目进度",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${(project.progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                LinearProgressIndicator(
-                    progress = { project.progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            // 项目大小
+            if (project.totalSize > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "大小: ${project.getReadableSize()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -561,10 +569,10 @@ fun EnhancedProjectCard(
 }
 
 /**
- * 任务统计徽章
+ * 文件统计徽章
  */
 @Composable
-fun TaskStatBadge(
+fun FileStatBadge(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     count: Int,
     label: String,
@@ -581,7 +589,7 @@ fun TaskStatBadge(
             tint = color
         )
         Text(
-            text = "$count",
+            text = "$count $label",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Medium,
             color = color
@@ -592,44 +600,39 @@ fun TaskStatBadge(
 /**
  * 获取项目类型图标
  */
-fun getProjectTypeIcon(type: ProjectType): androidx.compose.ui.graphics.vector.ImageVector {
+fun getProjectTypeIcon(type: String): androidx.compose.ui.graphics.vector.ImageVector {
     return when (type) {
-        ProjectType.GENERAL -> Icons.Outlined.Folder
-        ProjectType.RESEARCH -> Icons.Outlined.Science
-        ProjectType.DEVELOPMENT -> Icons.Outlined.Code
-        ProjectType.WRITING -> Icons.Outlined.Edit
+        ProjectType.DOCUMENT -> Icons.Outlined.Description
+        ProjectType.WEB -> Icons.Outlined.Language
+        ProjectType.APP -> Icons.Outlined.PhoneAndroid
+        ProjectType.DATA -> Icons.Outlined.Analytics
         ProjectType.DESIGN -> Icons.Outlined.Palette
+        ProjectType.RESEARCH -> Icons.Outlined.Science
         ProjectType.ANDROID -> Icons.Outlined.PhoneAndroid
         ProjectType.BACKEND -> Icons.Outlined.Storage
         ProjectType.DATA_SCIENCE -> Icons.Outlined.Analytics
         ProjectType.MULTIPLATFORM -> Icons.Outlined.Devices
         ProjectType.FLUTTER -> Icons.Outlined.Folder
+        else -> Icons.Outlined.Folder
     }
 }
 
 /**
- * 格式化最后更新时间
+ * 格式化时间戳（Long毫秒 -> 友好显示）
  */
-fun formatLastUpdated(dateTime: LocalDateTime): String {
-    val now = LocalDateTime.now()
-    val minutes = java.time.Duration.between(dateTime, now).toMinutes()
+fun formatTimestamp(timestamp: Long): String {
+    val now = System.currentTimeMillis()
+    val diffMs = now - timestamp
+    val minutes = diffMs / 60_000
 
     return when {
         minutes < 1 -> "刚刚更新"
         minutes < 60 -> "${minutes}分钟前"
         minutes < 1440 -> "${minutes / 60}小时前"
         minutes < 10080 -> "${minutes / 1440}天前"
-        else -> dateTime.format(DateTimeFormatter.ofPattern("MM-dd"))
+        else -> {
+            val sdf = java.text.SimpleDateFormat("MM-dd", java.util.Locale.getDefault())
+            sdf.format(java.util.Date(timestamp))
+        }
     }
 }
-
-/**
- * 项目与任务数据类
- */
-data class ProjectWithTasks(
-    val project: ProjectEntity,
-    val totalTasks: Int,
-    val completedTasks: Int,
-    val pendingTasks: Int,
-    val lastUpdated: LocalDateTime
-)

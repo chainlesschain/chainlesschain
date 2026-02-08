@@ -103,11 +103,11 @@ fun NewHomeScreen(
             value = inputText,
             onValueChange = { inputText = it },
             onSendMessage = { message ->
-                // TODO: 处理发送消息
                 inputText = ""
+                onNavigateToAIChat()
             },
             onVoiceInput = {
-                // TODO: 处理语音输入
+                // Voice input will be available in a future release
             }
         )
     }

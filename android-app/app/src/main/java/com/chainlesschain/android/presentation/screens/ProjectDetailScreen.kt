@@ -23,9 +23,12 @@ import com.chainlesschain.android.presentation.components.*
 import java.time.format.DateTimeFormatter
 
 /**
- * 项目详情页面
- * 参考: iOS ProjectDetailView.swift 和 PC端 ProjectDetailPage.vue
+ * 项目详情页面 (V1 - 已废弃)
+ *
+ * 此页面已被 ProjectDetailScreenV2 替代，不在 NavGraph 中使用。
+ * 保留仅供参考。使用 ProjectDetailScreenV2 代替。
  */
+@Deprecated("Use ProjectDetailScreenV2 instead. This screen is not in the NavGraph.")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectDetailScreen(

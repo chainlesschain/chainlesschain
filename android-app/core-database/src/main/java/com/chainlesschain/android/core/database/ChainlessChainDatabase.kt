@@ -12,6 +12,7 @@ import com.chainlesschain.android.core.database.dao.TransferCheckpointDao
 import com.chainlesschain.android.core.database.dao.TransferQueueDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.dao.ProjectChatMessageDao
+import com.chainlesschain.android.core.database.dao.social.BlockedUserDao
 import com.chainlesschain.android.core.database.dao.social.FriendDao
 import com.chainlesschain.android.core.database.dao.social.PostDao
 import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
@@ -98,7 +99,7 @@ import com.chainlesschain.android.core.database.util.Converters
         // 任务功能实体
         TaskEntity::class,
     ],
-    version = 20,
+    version = 21,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -139,6 +140,7 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
 
     // 社交功能DAO
     abstract fun friendDao(): FriendDao
+    abstract fun blockedUserDao(): BlockedUserDao
     abstract fun postDao(): PostDao
     abstract fun postInteractionDao(): PostInteractionDao
     abstract fun notificationDao(): NotificationDao

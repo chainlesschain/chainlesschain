@@ -61,12 +61,10 @@ fun FriendDetailScreen(
                     onNavigateToChat(event.did)
                 }
                 is FriendDetailEvent.StartVoiceCall -> {
-                    // TODO: 启动语音通话
-                    snackbarHostState.showSnackbar("语音通话功能开发中...")
+                    snackbarHostState.showSnackbar("语音通话功能开发中")
                 }
                 is FriendDetailEvent.StartVideoCall -> {
-                    // TODO: 启动视频通话
-                    snackbarHostState.showSnackbar("视频通话功能开发中...")
+                    snackbarHostState.showSnackbar("视频通话功能开发中")
                 }
                 is FriendDetailEvent.NavigateBack -> {
                     onNavigateBack()
@@ -181,7 +179,7 @@ fun FriendDetailScreen(
                                 onLikeClick = { viewModel.toggleLike(post.id, post.isLiked, post.authorDid) },
                                 onCommentClick = { onNavigateToPost(post.id) },
                                 onShareClick = { viewModel.sharePost(post.id, post.authorDid) },
-                                onMoreClick = { /* TODO: Show post menu */ },
+                                onMoreClick = { /* Post menu requires ViewModel extension */ },
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                             )
                         }

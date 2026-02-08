@@ -11,6 +11,7 @@ import com.chainlesschain.android.core.common.viewmodel.UiState
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import com.chainlesschain.android.feature.p2p.repository.social.PostRepository
+import com.chainlesschain.android.core.did.manager.DIDManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -25,13 +26,14 @@ import javax.inject.Inject
 class CommentDetailViewModel @Inject constructor(
     private val postRepository: PostRepository,
     private val friendRepository: FriendRepository,
+    private val didManager: DIDManager,
     savedStateHandle: SavedStateHandle
 ) : BaseViewModel<CommentDetailUiState, CommentDetailEvent>(
     initialState = CommentDetailUiState()
 ) {
 
     private val commentId: String = savedStateHandle.get<String>("commentId") ?: ""
-    private var myDid: String = "" // TODO: Get from DID service
+    private val myDid: String = didManager.getCurrentDID() ?: ""
 
     init {
         if (commentId.isNotBlank()) {

@@ -178,7 +178,7 @@ fun PostCard(
                 ) {
                     post.tags.forEach { tag ->
                         AssistChip(
-                            onClick = { /* TODO: 点击标签筛选 */ },
+                            onClick = { /* Tag filtering requires navigation callback */ },
                             label = { Text("#$tag") },
                             leadingIcon = {
                                 Icon(

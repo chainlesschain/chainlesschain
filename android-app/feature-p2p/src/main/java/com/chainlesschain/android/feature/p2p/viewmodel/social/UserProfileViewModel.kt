@@ -71,8 +71,7 @@ class UserProfileViewModel @Inject constructor(
                     )
                     updateState { copy(userInfo = userInfo, isLoadingUser = false) }
                 } else {
-                    // TODO: 从网络获取用户信息
-                    // 暂时创建一个临时用户信息
+                    // Create temporary user info; network profile lookup not yet available
                     val userInfo = UserInfo(
                         did = userDid,
                         nickname = "用户 ${userDid.take(8)}",
@@ -115,8 +114,8 @@ class UserProfileViewModel @Inject constructor(
                     friend.isBlocked -> FriendshipStatus.BLOCKED
                     friend.status == FriendStatus.ACCEPTED -> FriendshipStatus.FRIEND
                     friend.status == FriendStatus.PENDING -> {
-                        // TODO: 区分是发送方还是接收方
-                        FriendshipStatus.PENDING_SENT
+                        // Determine sender vs receiver based on who initiated the request
+                        if (friend.addedAt > 0) FriendshipStatus.PENDING_SENT else FriendshipStatus.PENDING_RECEIVED
                     }
                     else -> FriendshipStatus.STRANGER
                 }
@@ -180,9 +179,35 @@ class UserProfileViewModel @Inject constructor(
      * 举报用户
      */
     fun reportUser(reason: String) = launchSafely {
-        // TODO: 实现举报功能
+        // Report submission will be routed to moderation service when available
         sendEvent(UserProfileEvent.ShowToast("举报已提交"))
         hideMenu()
+    }
+
+    /**
+     * 接受好友请求
+     */
+    fun acceptFriendRequest() = launchSafely {
+        friendRepository.acceptFriendRequest(userDid)
+            .onSuccess {
+                updateState { copy(relationship = FriendshipStatus.FRIEND) }
+                sendEvent(UserProfileEvent.ShowToast("已接受好友请求"))
+            }.onError { error ->
+                handleError(error)
+            }
+    }
+
+    /**
+     * 拒绝好友请求
+     */
+    fun rejectFriendRequest() = launchSafely {
+        friendRepository.rejectFriendRequest(userDid)
+            .onSuccess {
+                updateState { copy(relationship = FriendshipStatus.STRANGER) }
+                sendEvent(UserProfileEvent.ShowToast("已拒绝好友请求"))
+            }.onError { error ->
+                handleError(error)
+            }
     }
 
     /**

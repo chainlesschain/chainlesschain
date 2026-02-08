@@ -53,6 +53,20 @@ class IceServerConfig @Inject constructor() {
     // ICE 候选池大小
     private var iceCandidatePoolSize = DEFAULT_ICE_CANDIDATE_POOL_SIZE
 
+    init {
+        // 添加默认公共 TURN 服务器作为后备
+        addTurnServer(
+            "turn:openrelay.metered.ca:443?transport=tcp",
+            "openrelayproject",
+            "openrelayproject"
+        )
+        addTurnServer(
+            "turn:openrelay.metered.ca:80",
+            "openrelayproject",
+            "openrelayproject"
+        )
+    }
+
     /**
      * 获取 ICE 服务器列表
      */

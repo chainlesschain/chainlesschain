@@ -192,7 +192,7 @@ fun EditPostScreen(
                         images = uiState.images,
                         canAddImages = uiState.canAddImages,
                         onRemoveImage = { viewModel.removeImage(it) },
-                        onAddImages = { /* TODO: 图片选择器 */ }
+                        onAddImages = { /* Image picker requires ActivityResultLauncher integration */ }
                     )
                 }
 

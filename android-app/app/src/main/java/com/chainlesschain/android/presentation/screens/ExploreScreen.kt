@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /**
@@ -36,6 +37,10 @@ import kotlin.random.Random
 @Composable
 fun ExploreScreen() {
     var selectedCategory by remember { mutableStateOf(ExploreContentCategory.ALL) }
+    var showSearchBar by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // 模拟探索内容数据
     val exploreContents = remember {
@@ -136,19 +141,25 @@ fun ExploreScreen() {
         }
     }
 
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) { scaffoldPadding ->
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .padding(scaffoldPadding)
             .background(MaterialTheme.colorScheme.background)
     ) {
         // 顶部栏
         TopAppBar(
             title = { Text("探索", fontWeight = FontWeight.Bold) },
             actions = {
-                IconButton(onClick = { /* TODO: 搜索 */ }) {
+                IconButton(onClick = { showSearchBar = !showSearchBar }) {
                     Icon(Icons.Default.Search, contentDescription = "搜索")
                 }
-                IconButton(onClick = { /* TODO: 发布 */ }) {
+                IconButton(onClick = {
+                    scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                }) {
                     Icon(Icons.Default.Add, contentDescription = "发布")
                 }
             }
@@ -171,13 +182,16 @@ fun ExploreScreen() {
             items(filteredContents, key = { it.id }) { content ->
                 ExploreContentCard(
                     content = content,
-                    onClick = { /* TODO: 查看详情 */ },
-                    onLike = { /* TODO: 点赞 */ },
-                    onBookmark = { /* TODO: 收藏 */ }
+                    onClick = {
+                        scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                    },
+                    onLike = { },
+                    onBookmark = { }
                 )
             }
         }
     }
+    } // end Scaffold
 }
 
 /**

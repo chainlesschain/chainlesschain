@@ -7,6 +7,7 @@ import com.chainlesschain.android.core.e2ee.session.SessionInfo
 import com.chainlesschain.android.core.e2ee.verification.CompleteVerificationInfo
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
 import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
+import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -22,7 +23,8 @@ import javax.inject.Inject
 class P2PDeviceViewModel @Inject constructor(
     private val deviceDiscovery: DeviceDiscovery,
     private val sessionManager: PersistentSessionManager,
-    private val verificationManager: VerificationManager
+    private val verificationManager: VerificationManager,
+    private val didManager: DIDManager
 ) : ViewModel() {
 
     // 发现的设备
@@ -141,8 +143,7 @@ class P2PDeviceViewModel @Inject constructor(
                 return null
             }
 
-            // 使用 peerId 作为标识符（简化版，实际应该使用 DID）
-            val localIdentifier = "local" // TODO: 从 DID 管理器获取
+            val localIdentifier = didManager.getCurrentDID() ?: "local"
             val remoteIdentifier = peerId
 
             // 生成完整验证信息（使用空的 associated data）

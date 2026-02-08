@@ -44,6 +44,7 @@ fun MainContainer(
     onNavigateToAbout: () -> Unit = {},
     onNavigateToHelpFeedback: () -> Unit = {},
     onNavigateToBookmark: () -> Unit = {},
+    onNavigateToP2PChatSessionList: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     // 使用 rememberSaveable 保存状态（进程重建后恢复）
@@ -113,7 +114,8 @@ fun MainContainer(
                         onNavigateToPostDetail = onNavigateToPostDetail,
                         onNavigateToUserProfile = onNavigateToUserProfile,
                         onNavigateToEditPost = onNavigateToEditPost,
-                        onNavigateToComment = onNavigateToComment
+                        onNavigateToComment = onNavigateToComment,
+                        onNavigateToP2PChat = onNavigateToP2PChatSessionList
                     )
                 }
                 3 -> key("profile") {

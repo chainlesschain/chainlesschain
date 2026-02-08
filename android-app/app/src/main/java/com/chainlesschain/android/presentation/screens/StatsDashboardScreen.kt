@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.presentation.components.*
+import kotlinx.coroutines.launch
 
 /**
  * 统计仪表板
@@ -19,6 +20,8 @@ import com.chainlesschain.android.presentation.components.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatsDashboardScreen() {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     // 模拟数据
     val knowledgeCategories = remember {
         listOf(
@@ -57,14 +60,19 @@ fun StatsDashboardScreen() {
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("统计分析", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = { /* TODO: 导出报告 */ }) {
+                    IconButton(onClick = {
+                        scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                    }) {
                         Icon(Icons.Default.Download, contentDescription = "导出")
                     }
-                    IconButton(onClick = { /* TODO: 设置 */ }) {
+                    IconButton(onClick = {
+                        scope.launch { snackbarHostState.showSnackbar("功能开发中") }
+                    }) {
                         Icon(Icons.Default.Settings, contentDescription = "设置")
                     }
                 }

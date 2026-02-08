@@ -13,6 +13,7 @@ import com.chainlesschain.android.feature.project.ui.CreateProjectScreen
 import com.chainlesschain.android.feature.project.ui.FileEditorScreen
 import com.chainlesschain.android.feature.project.ui.ProjectDetailScreen
 import com.chainlesschain.android.feature.project.ui.ProjectListScreen
+import com.chainlesschain.android.feature.project.ui.screens.TaskDetailScreen
 import com.chainlesschain.android.feature.project.ui.screens.TaskListScreen
 import com.chainlesschain.android.feature.project.ui.screens.TaskCreateScreen
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
@@ -227,19 +228,14 @@ fun NavGraphBuilder.projectNavGraph(
                 viewModel.selectTask(taskId)
             }
 
-            // TODO: 实现 TaskDetailScreen
-            // 暂时重定向到 TaskListScreen
-            TaskListScreen(
+            TaskDetailScreen(
                 viewModel = viewModel,
-                userId = userId,
+                taskId = taskId,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToTask = { id ->
                     if (id != taskId) {
                         navController.navigateToTaskDetail(id)
                     }
-                },
-                onNavigateToCreateTask = {
-                    navController.navigateToCreateTask()
                 }
             )
         }

@@ -9,4 +9,8 @@
     <string name="social_friends_placeholder">好友页面为了构建稳定性暂时简化。</string>
     <string name="social_timeline_placeholder">动态页面为了构建稳定性暂时简化。</string>
     <string name="social_notifications_placeholder">通知页面为了构建稳定性暂时简化。</string>
+
+    <!-- P2P Chat -->
+    <string name="p2p_chat_title">消息</string>
+    <string name="p2p_chat_empty">暂无对话</string>
 </resources>

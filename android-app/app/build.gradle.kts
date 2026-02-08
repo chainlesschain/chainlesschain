@@ -276,7 +276,7 @@ dependencies {
     implementation(project(":feature-auth"))
     implementation(project(":feature-knowledge"))
     implementation(project(":feature-ai"))
-    // implementation(project(":feature-p2p")) // Temporarily disabled due to Hilt compilation errors
+    implementation(project(":feature-p2p"))
     implementation(project(":feature-project"))
     implementation(project(":feature-file-browser"))
 

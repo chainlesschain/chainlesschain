@@ -11,6 +11,7 @@ import com.chainlesschain.android.feature.p2p.repository.social.PostRepository
 import com.chainlesschain.android.feature.p2p.util.EditPermission
 import com.chainlesschain.android.feature.p2p.util.EditWarning
 import com.chainlesschain.android.feature.p2p.util.PostEditPolicy
+import com.chainlesschain.android.core.did.manager.DIDManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -32,6 +33,7 @@ import javax.inject.Inject
 @HiltViewModel
 class EditPostViewModel @Inject constructor(
     private val postRepository: PostRepository,
+    private val didManager: DIDManager,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -94,8 +96,11 @@ class EditPostViewModel @Inject constructor(
                 return@launch
             }
 
-            // TODO: 从DIDManager获取当前用户DID
-            val currentUserDid = "did:key:current_user"
+            val currentUserDid = didManager.getCurrentDID() ?: run {
+                _events.emit(EditPostEvent.LoadError("用户身份未初始化"))
+                _uiState.update { it.copy(isLoading = false, errorMessage = "用户身份未初始化") }
+                return@launch
+            }
 
             // 检查编辑权限
             val permission = PostEditPolicy.canEdit(post, currentUserDid)

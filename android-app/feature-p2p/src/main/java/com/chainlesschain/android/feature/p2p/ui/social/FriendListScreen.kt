@@ -128,7 +128,7 @@ fun FriendListScreen(
             // 好友请求徽章
             if (uiState.pendingRequestCount > 0) {
                 ExtendedFloatingActionButton(
-                    onClick = { /* TODO: 导航到好友请求页面 */ },
+                    onClick = { onNavigateToAddFriend() },
                     icon = {
                         BadgedBox(
                             badge = {

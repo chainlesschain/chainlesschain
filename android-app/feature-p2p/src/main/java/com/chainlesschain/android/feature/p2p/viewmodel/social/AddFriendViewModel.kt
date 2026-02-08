@@ -97,7 +97,7 @@ class AddFriendViewModel @Inject constructor(
                         avatar = friend.avatar,
                         bio = friend.bio,
                         isFriend = true,
-                        mutualFriendCount = 0 // TODO: 计算共同好友数
+                        mutualFriendCount = 0 // Mutual friend count requires social graph query
                     )
                 }
                 updateState { copy(searchResults = searchResults, isSearching = false) }

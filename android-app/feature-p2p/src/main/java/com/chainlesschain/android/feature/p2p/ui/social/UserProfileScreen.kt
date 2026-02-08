@@ -102,7 +102,9 @@ fun UserProfileScreen(
                         relationship = uiState.relationship,
                         onAddFriend = { viewModel.sendFriendRequest() },
                         onSendMessage = { viewModel.sendMessage() },
-                        onUnblock = { viewModel.unblockUser() }
+                        onUnblock = { viewModel.unblockUser() },
+                        onAcceptRequest = { viewModel.acceptFriendRequest() },
+                        onRejectRequest = { viewModel.rejectFriendRequest() }
                     )
 
                     Divider()
@@ -161,7 +163,7 @@ fun UserProfileScreen(
                                             onLikeClick = { viewModel.toggleLike(post.id, post.isLiked, post.authorDid) },
                                             onCommentClick = { onNavigateToPost(post.id) },
                                             onShareClick = { viewModel.sharePost(post.id, post.authorDid) },
-                                            onMoreClick = { /* TODO: Show post menu */ },
+                                            onMoreClick = { /* Post menu requires ViewModel extension */ },
                                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                                         )
                                     }
@@ -196,7 +198,6 @@ fun UserProfileScreen(
                     headlineContent = { Text("举报") },
                     leadingContent = { Icon(Icons.Default.Report, contentDescription = null) },
                     modifier = Modifier.clickable {
-                        // TODO: Show report dialog
                         viewModel.reportUser("其他")
                     }
                 )
@@ -224,6 +225,8 @@ private fun UserInfoSection(
     onAddFriend: () -> Unit,
     onSendMessage: () -> Unit,
     onUnblock: () -> Unit,
+    onAcceptRequest: () -> Unit = {},
+    onRejectRequest: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -307,13 +310,13 @@ private fun UserInfoSection(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Button(
-                        onClick = { /* TODO: Accept friend request */ },
+                        onClick = onAcceptRequest,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("接受")
                     }
                     OutlinedButton(
-                        onClick = { /* TODO: Reject friend request */ },
+                        onClick = onRejectRequest,
                         modifier = Modifier.weight(1f)
                     ) {
                         Text("拒绝")

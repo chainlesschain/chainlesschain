@@ -13,6 +13,7 @@ import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
+import com.chainlesschain.android.core.database.dao.social.BlockedUserDao
 import com.chainlesschain.android.core.database.dao.social.FriendDao
 import com.chainlesschain.android.core.database.dao.social.PostDao
 import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
@@ -170,6 +171,13 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideFriendDao(database: ChainlessChainDatabase) = database.friendDao()
+
+    /**
+     * 提供屏蔽用户DAO
+     */
+    @Provides
+    @Singleton
+    fun provideBlockedUserDao(database: ChainlessChainDatabase) = database.blockedUserDao()
 
     /**
      * 提供动态DAO
