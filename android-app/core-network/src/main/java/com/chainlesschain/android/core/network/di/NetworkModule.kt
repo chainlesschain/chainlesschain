@@ -1,5 +1,6 @@
 package com.chainlesschain.android.core.network.di
 
+import com.chainlesschain.android.core.network.config.NetworkConfig
 import com.chainlesschain.android.core.network.interceptor.AuthInterceptor
 import com.chainlesschain.android.core.network.interceptor.LoggingInterceptor
 import dagger.Module
@@ -39,12 +40,14 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
-        loggingInterceptor: LoggingInterceptor
+        loggingInterceptor: LoggingInterceptor,
+        networkConfig: NetworkConfig
     ): OkHttpClient {
+        val timeoutMs = networkConfig.requestTimeoutMs
         return OkHttpClient.Builder()
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            .writeTimeout(timeoutMs, TimeUnit.MILLISECONDS)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .build()
@@ -57,10 +60,11 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(
         okHttpClient: OkHttpClient,
-        json: Json
+        json: Json,
+        networkConfig: NetworkConfig
     ): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("http://localhost:9090/") // TODO: 配置实际API地址
+            .baseUrl(networkConfig.apiBaseUrl)
             .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()

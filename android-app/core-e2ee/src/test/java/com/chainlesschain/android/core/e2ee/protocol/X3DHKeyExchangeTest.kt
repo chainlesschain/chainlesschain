@@ -1,5 +1,6 @@
 package com.chainlesschain.android.core.e2ee.protocol
 
+import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.test.E2EETestFactory
 import org.junit.Assert.*
 import org.junit.Test
@@ -31,10 +32,12 @@ class X3DHKeyExchangeTest {
         val identityKeyPair = E2EETestFactory.generateIdentityKeyPair()
         val signedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
         val oneTimePreKeyPair = E2EETestFactory.generateOneTimePreKeyPair()
+        val signingKeyPair = Ed25519KeyPair.generate()
 
         // When
         val bundle = X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = identityKeyPair,
+            signingKeyPair = signingKeyPair,
             signedPreKeyPair = signedPreKeyPair,
             oneTimePreKeyPair = oneTimePreKeyPair
         )
@@ -58,9 +61,12 @@ class X3DHKeyExchangeTest {
         val identityKeyPair = E2EETestFactory.generateIdentityKeyPair()
         val signedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
 
+        val signingKeyPair = Ed25519KeyPair.generate()
+
         // When
         val bundle = X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = identityKeyPair,
+            signingKeyPair = signingKeyPair,
             signedPreKeyPair = signedPreKeyPair,
             oneTimePreKeyPair = null
         )
@@ -81,10 +87,12 @@ class X3DHKeyExchangeTest {
             identityKeyPair.publicKey
         )
         val signedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
+        val signingKeyPair = Ed25519KeyPair.generate()
 
         // When: Generate bundle with public-only key
         X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = publicOnlyIdentity,
+            signingKeyPair = signingKeyPair,
             signedPreKeyPair = signedPreKeyPair
         )
 
@@ -104,9 +112,11 @@ class X3DHKeyExchangeTest {
         val bobIdentityKeyPair = E2EETestFactory.generateIdentityKeyPair()
         val bobSignedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
         val bobOneTimePreKeyPair = E2EETestFactory.generateOneTimePreKeyPair()
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
 
         val bobBundle = X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = bobIdentityKeyPair,
+            signingKeyPair = bobSigningKeyPair,
             signedPreKeyPair = bobSignedPreKeyPair,
             oneTimePreKeyPair = bobOneTimePreKeyPair
         )
@@ -137,9 +147,11 @@ class X3DHKeyExchangeTest {
         val bobIdentityKeyPair = E2EETestFactory.generateIdentityKeyPair()
         val bobSignedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
         val bobOneTimePreKeyPair = E2EETestFactory.generateOneTimePreKeyPair()
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
 
         val bobBundle = X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = bobIdentityKeyPair,
+            signingKeyPair = bobSigningKeyPair,
             signedPreKeyPair = bobSignedPreKeyPair,
             oneTimePreKeyPair = bobOneTimePreKeyPair
         )
@@ -174,8 +186,10 @@ class X3DHKeyExchangeTest {
         val bobIdentityKeyPair = E2EETestFactory.generateIdentityKeyPair()
         val bobSignedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobBundle = X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = bobIdentityKeyPair,
+            signingKeyPair = bobSigningKeyPair,
             signedPreKeyPair = bobSignedPreKeyPair,
             oneTimePreKeyPair = null
         )
@@ -211,8 +225,10 @@ class X3DHKeyExchangeTest {
         val bobIdentityKeyPair = E2EETestFactory.generateIdentityKeyPair()
         val bobSignedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobBundle = X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = bobIdentityKeyPair,
+            signingKeyPair = bobSigningKeyPair,
             signedPreKeyPair = bobSignedPreKeyPair
         )
 
@@ -346,8 +362,10 @@ class X3DHKeyExchangeTest {
         val bobIdentityKeyPair = E2EETestFactory.generateIdentityKeyPair()
         val bobSignedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobBundle = X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = bobIdentityKeyPair,
+            signingKeyPair = bobSigningKeyPair,
             signedPreKeyPair = bobSignedPreKeyPair
         )
 
@@ -380,8 +398,10 @@ class X3DHKeyExchangeTest {
         val bobIdentityKeyPair = E2EETestFactory.generateIdentityKeyPair()
         val bobSignedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobBundle = X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = bobIdentityKeyPair,
+            signingKeyPair = bobSigningKeyPair,
             signedPreKeyPair = bobSignedPreKeyPair
         )
 
@@ -416,8 +436,10 @@ class X3DHKeyExchangeTest {
         val bobIdentityKeyPair = E2EETestFactory.generateIdentityKeyPair()
         val bobSignedPreKeyPair = E2EETestFactory.generateSignedPreKeyPair()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobBundle = X3DHKeyExchange.generatePreKeyBundle(
             identityKeyPair = bobIdentityKeyPair,
+            signingKeyPair = bobSigningKeyPair,
             signedPreKeyPair = bobSignedPreKeyPair
         )
 

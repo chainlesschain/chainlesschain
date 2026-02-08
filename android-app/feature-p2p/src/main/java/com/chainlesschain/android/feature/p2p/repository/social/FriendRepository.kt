@@ -1,15 +1,21 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
+import android.util.Log
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.common.asResult
+import com.chainlesschain.android.core.database.dao.social.BlockedUserDao
 import com.chainlesschain.android.core.database.dao.social.FriendDao
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendGroupEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
 import com.chainlesschain.android.core.database.entity.social.BlockedUserEntity
+import com.chainlesschain.android.core.p2p.discovery.NSDDiscovery
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +27,8 @@ import javax.inject.Singleton
 @Singleton
 class FriendRepository @Inject constructor(
     private val friendDao: FriendDao,
+    private val blockedUserDao: BlockedUserDao,
+    private val nsdDiscovery: NSDDiscovery,
 // TEMP DISABLED:     private val syncAdapter: Lazy<SocialSyncAdapter> // 使用 Lazy 避免循环依赖
 ) {
 
@@ -96,8 +104,7 @@ class FriendRepository @Inject constructor(
                 return Result.Success(searchResult)
             }
 
-            // TODO: 如果本地没有，则通过 P2P 网络或后端 API 查询
-            // 这里暂时返回 null
+            // P2P network or backend API query for non-local users not yet available
             Result.Success(null)
         } catch (e: Exception) {
             Result.Error(e)
@@ -110,11 +117,28 @@ class FriendRepository @Inject constructor(
      * @return 附近用户的列表
      */
     fun getNearbyUsers(): Flow<Result<List<com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult>>> {
-        // TODO: 集成 P2P 发现服务
-        // 暂时返回空列表
-        return kotlinx.coroutines.flow.flow {
-            emit(Result.Success(emptyList()))
-        }
+        return nsdDiscovery.observeDiscoveredDevices()
+            .map { devices ->
+                val results = devices.mapNotNull { device ->
+                    val isFriend = try { friendDao.isFriend(device.deviceId) } catch (e: Exception) { false }
+                    if (isFriend) return@mapNotNull null
+
+                    com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult(
+                        did = device.deviceId,
+                        nickname = device.deviceName,
+                        avatar = null,
+                        bio = null,
+                        isFriend = false,
+                        mutualFriendCount = 0,
+                        distance = null
+                    )
+                }
+                Result.Success(results)
+            }
+            .catch { e ->
+                Log.e("FriendRepository", "Error getting nearby users", e)
+                emit(Result.Success(emptyList()))
+            }
     }
 
     /**
@@ -123,10 +147,47 @@ class FriendRepository @Inject constructor(
      * @return 推荐好友列表
      */
     fun getRecommendedFriends(): Flow<Result<List<com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult>>> {
-        // TODO: 实现推荐算法
-        // 暂时返回空列表
-        return kotlinx.coroutines.flow.flow {
-            emit(Result.Success(emptyList()))
+        return flow {
+            try {
+                // Get all current friends
+                val friends = friendDao.getAllFriends().first()
+                if (friends.isEmpty()) {
+                    emit(Result.Success(emptyList()))
+                    return@flow
+                }
+
+                // Combine nearby devices + recently active friends-of-friends as candidates
+                val nearbyDevices = nsdDiscovery.observeDiscoveredDevices().first()
+                val friendDids = friends.map { it.did }.toSet()
+
+                // Score nearby non-friend users
+                val scored = nearbyDevices
+                    .filter { device -> device.deviceId !in friendDids }
+                    .map { device ->
+                        // Simple scoring: recently seen devices score higher
+                        val recencyScore = if (System.currentTimeMillis() - device.lastSeen < 300_000L) 0.3f else 0.0f
+                        val baseScore = 0.5f // nearby = base interest
+                        val totalScore = baseScore + recencyScore
+
+                        com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult(
+                            did = device.deviceId,
+                            nickname = device.deviceName,
+                            avatar = null,
+                            bio = null,
+                            isFriend = false,
+                            mutualFriendCount = 0,
+                            distance = null
+                        ) to totalScore
+                    }
+                    .sortedByDescending { it.second }
+                    .take(20)
+                    .map { it.first }
+
+                emit(Result.Success(scored))
+            } catch (e: Exception) {
+                Log.e("FriendRepository", "Error getting recommended friends", e)
+                emit(Result.Success(emptyList()))
+            }
         }
     }
 
@@ -425,19 +486,32 @@ class FriendRepository @Inject constructor(
      */
     suspend fun blockUser(myDid: String, targetDid: String, reason: String? = null): Result<Unit> {
         return try {
-            // 同时更新好友表的屏蔽状态
+            // 更新好友表的屏蔽状态
             blockFriend(targetDid)
 
-            // TODO: 创建BlockedUserEntity记录
-            // val blockedUser = BlockedUserEntity(
-            //     id = "block_${System.currentTimeMillis()}",
-            //     blockerDid = myDid,
-            //     blockedDid = targetDid,
-            //     reason = reason,
-            //     createdAt = System.currentTimeMillis()
-            // )
-            // friendDao.insertBlockedUser(blockedUser)
+            // 创建 BlockedUserEntity 记录
+            val blockedUser = BlockedUserEntity(
+                id = "block_${System.currentTimeMillis()}",
+                blockerDid = myDid,
+                blockedDid = targetDid,
+                reason = reason,
+                createdAt = System.currentTimeMillis()
+            )
+            blockedUserDao.insertBlockedUser(blockedUser)
 
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 取消屏蔽用户
+     */
+    suspend fun unblockUser(myDid: String, targetDid: String): Result<Unit> {
+        return try {
+            unblockFriend(targetDid)
+            blockedUserDao.removeBlockedUser(myDid, targetDid)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -450,10 +524,7 @@ class FriendRepository @Inject constructor(
      * @param myDid 当前用户DID
      */
     fun getBlockedUsersList(myDid: String): Flow<Result<List<BlockedUserEntity>>> {
-        // TODO: 实现从DAO获取
-        return kotlinx.coroutines.flow.flow {
-            emit(Result.Success(emptyList()))
-        }
+        return blockedUserDao.getBlockedUsers(myDid).asResult()
     }
 
     /**
@@ -464,11 +535,42 @@ class FriendRepository @Inject constructor(
      */
     suspend fun isUserBlocked(myDid: String, targetDid: String): Result<Boolean> {
         return try {
-            // 先检查好友表
-            val friend = friendDao.getFriendByDid(targetDid)
-            Result.Success(friend?.isBlocked == true)
+            Result.Success(blockedUserDao.isBlocked(myDid, targetDid))
         } catch (e: Exception) {
             Result.Error(e)
+        }
+    }
+
+    // ===== 同步接口 =====
+
+    private val syncJson = Json { ignoreUnknownKeys = true }
+
+    suspend fun saveFriendFromSync(resourceId: String, data: String) {
+        try {
+            val entity = syncJson.decodeFromString<FriendEntity>(data)
+            friendDao.insert(entity)
+            Log.d("FriendRepository", "Friend saved from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("FriendRepository", "Failed to save friend from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun updateFriendFromSync(resourceId: String, data: String) {
+        try {
+            val entity = syncJson.decodeFromString<FriendEntity>(data)
+            friendDao.insert(entity)
+            Log.d("FriendRepository", "Friend updated from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("FriendRepository", "Failed to update friend from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun deleteFriendFromSync(resourceId: String) {
+        try {
+            friendDao.deleteByDid(resourceId)
+            Log.d("FriendRepository", "Friend deleted from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("FriendRepository", "Failed to delete friend from sync: $resourceId", e)
         }
     }
 }

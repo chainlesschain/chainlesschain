@@ -1,5 +1,6 @@
 package com.chainlesschain.android.core.e2ee
 
+import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.X3DHKeyExchange
 import com.chainlesschain.android.core.e2ee.session.E2EESession
@@ -32,8 +33,10 @@ class E2EEIntegrationTest {
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
         // Bob发布预密钥包
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobPreKeyBundle = X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
@@ -77,8 +80,10 @@ class E2EEIntegrationTest {
         val bobIdentityKeyPair = X25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobPreKeyBundle = X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
@@ -119,8 +124,10 @@ class E2EEIntegrationTest {
         val bobIdentityKeyPair = X25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobPreKeyBundle = X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
@@ -163,8 +170,10 @@ class E2EEIntegrationTest {
         val bobIdentityKeyPair = X25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobPreKeyBundle = X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
@@ -198,8 +207,10 @@ class E2EEIntegrationTest {
         val bobIdentityKeyPair = X25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobPreKeyBundle = X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
@@ -237,8 +248,10 @@ class E2EEIntegrationTest {
         val bobIdentityKeyPair = X25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobPreKeyBundle = X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
@@ -272,8 +285,10 @@ class E2EEIntegrationTest {
         val bobIdentityKeyPair = X25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobPreKeyBundle = X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
@@ -309,8 +324,10 @@ class E2EEIntegrationTest {
         val bobIdentityKeyPair = X25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobPreKeyBundle = X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 

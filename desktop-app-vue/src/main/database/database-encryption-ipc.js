@@ -3,13 +3,14 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
+const defaultIpcMain = require("electron").ipcMain;
 const path = require("path");
 const EncryptionConfigManager = require("./config-manager");
 
 class DatabaseEncryptionIPC {
-  constructor(app) {
+  constructor(app, options = {}) {
     this.app = app;
+    this.ipcMain = options.ipcMain || defaultIpcMain;
     this.configManager = null;
     this.databaseManager = null;
     this.setupHandlers();
@@ -41,7 +42,7 @@ class DatabaseEncryptionIPC {
    */
   setupHandlers() {
     // 获取加密状态
-    ipcMain.handle("database:get-encryption-status", async () => {
+    this.ipcMain.handle("database:get-encryption-status", async () => {
       try {
         const config = this.initConfigManager();
 
@@ -68,53 +69,56 @@ class DatabaseEncryptionIPC {
     });
 
     // 设置数据库加密
-    ipcMain.handle("database:setup-encryption", async (_event, options) => {
-      try {
-        const config = this.initConfigManager();
+    this.ipcMain.handle(
+      "database:setup-encryption",
+      async (_event, options) => {
+        try {
+          const config = this.initConfigManager();
 
-        // 开发模式：如果跳过密码，禁用加密
-        if (config.isDevelopmentMode() && options.skipPassword) {
+          // 开发模式：如果跳过密码，禁用加密
+          if (config.isDevelopmentMode() && options.skipPassword) {
+            config.setMultiple({
+              encryptionEnabled: false,
+              encryptionMethod: "password",
+              firstTimeSetup: false,
+            });
+
+            logger.info("[DatabaseEncryptionIPC] 开发模式：跳过密码，禁用加密");
+
+            return {
+              success: true,
+              message: "开发模式：已跳过密码设置",
+            };
+          }
+
+          // 保存配置
           config.setMultiple({
-            encryptionEnabled: false,
-            encryptionMethod: "password",
+            encryptionEnabled: true,
+            encryptionMethod: options.method || "password",
             firstTimeSetup: false,
           });
 
-          logger.info("[DatabaseEncryptionIPC] 开发模式：跳过密码，禁用加密");
+          logger.info("[DatabaseEncryptionIPC] 加密配置已保存:", {
+            method: options.method,
+            enabled: true,
+          });
 
           return {
             success: true,
-            message: "开发模式：已跳过密码设置",
+            message: "加密设置成功，将在下次启动时生效",
+          };
+        } catch (error) {
+          logger.error("[DatabaseEncryptionIPC] 设置加密失败:", error);
+          return {
+            success: false,
+            error: error.message,
           };
         }
-
-        // 保存配置
-        config.setMultiple({
-          encryptionEnabled: true,
-          encryptionMethod: options.method || "password",
-          firstTimeSetup: false,
-        });
-
-        logger.info("[DatabaseEncryptionIPC] 加密配置已保存:", {
-          method: options.method,
-          enabled: true,
-        });
-
-        return {
-          success: true,
-          message: "加密设置成功，将在下次启动时生效",
-        };
-      } catch (error) {
-        logger.error("[DatabaseEncryptionIPC] 设置加密失败:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    });
+      },
+    );
 
     // 修改加密密码
-    ipcMain.handle(
+    this.ipcMain.handle(
       "database:change-encryption-password",
       async (_event, data) => {
         try {
@@ -150,7 +154,7 @@ class DatabaseEncryptionIPC {
     );
 
     // 启用加密
-    ipcMain.handle("database:enable-encryption", async () => {
+    this.ipcMain.handle("database:enable-encryption", async () => {
       try {
         const config = this.initConfigManager();
         config.setEncryptionEnabled(true);
@@ -170,7 +174,7 @@ class DatabaseEncryptionIPC {
     });
 
     // 禁用加密
-    ipcMain.handle("database:disable-encryption", async () => {
+    this.ipcMain.handle("database:disable-encryption", async () => {
       try {
         const config = this.initConfigManager();
         config.setEncryptionEnabled(false);
@@ -191,7 +195,7 @@ class DatabaseEncryptionIPC {
     });
 
     // 获取加密配置
-    ipcMain.handle("database:get-encryption-config", async () => {
+    this.ipcMain.handle("database:get-encryption-config", async () => {
       try {
         const config = this.initConfigManager();
         return {
@@ -208,7 +212,7 @@ class DatabaseEncryptionIPC {
     });
 
     // 更新加密配置
-    ipcMain.handle(
+    this.ipcMain.handle(
       "database:update-encryption-config",
       async (_event, newConfig) => {
         try {
@@ -230,7 +234,7 @@ class DatabaseEncryptionIPC {
     );
 
     // 重置加密配置
-    ipcMain.handle("database:reset-encryption-config", async () => {
+    this.ipcMain.handle("database:reset-encryption-config", async () => {
       try {
         const config = this.initConfigManager();
         config.reset();

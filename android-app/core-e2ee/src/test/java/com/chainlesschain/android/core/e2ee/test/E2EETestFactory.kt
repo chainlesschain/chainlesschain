@@ -1,5 +1,6 @@
 package com.chainlesschain.android.core.e2ee.test
 
+import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.MessageHeader
 import com.chainlesschain.android.core.e2ee.protocol.PreKeyBundle
@@ -46,11 +47,13 @@ object E2EETestFactory {
      */
     fun generatePreKeyBundle(
         identityKeyPair: X25519KeyPair = generateIdentityKeyPair(),
+        signingKeyPair: Ed25519KeyPair = Ed25519KeyPair.generate(),
         signedPreKeyPair: X25519KeyPair = generateSignedPreKeyPair(),
         oneTimePreKeyPair: X25519KeyPair? = generateOneTimePreKeyPair()
     ): PreKeyBundle {
         return PreKeyBundle(
             identityKey = identityKeyPair.publicKey,
+            signingPublicKey = signingKeyPair.publicKey,
             signedPreKey = signedPreKeyPair.publicKey,
             signedPreKeySignature = ByteArray(64), // Placeholder signature
             oneTimePreKey = oneTimePreKeyPair?.publicKey

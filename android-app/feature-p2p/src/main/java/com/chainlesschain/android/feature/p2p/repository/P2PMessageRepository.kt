@@ -324,4 +324,35 @@ class P2PMessageRepository @Inject constructor(
     fun getLastMessagePerPeer(): Flow<List<P2PMessageEntity>> {
         return p2pMessageDao.getLastMessagePerPeer()
     }
+
+    // ===== 同步接口 =====
+
+    suspend fun saveMessageFromSync(resourceId: String, data: String) {
+        try {
+            val entity = json.decodeFromString<P2PMessageEntity>(data)
+            p2pMessageDao.insertMessage(entity)
+            Log.d(TAG, "Message saved from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save message from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun updateMessageFromSync(resourceId: String, data: String) {
+        try {
+            val entity = json.decodeFromString<P2PMessageEntity>(data)
+            p2pMessageDao.insertMessage(entity)
+            Log.d(TAG, "Message updated from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to update message from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun deleteMessageFromSync(resourceId: String) {
+        try {
+            p2pMessageDao.deleteMessageById(resourceId)
+            Log.d(TAG, "Message deleted from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete message from sync: $resourceId", e)
+        }
+    }
 }

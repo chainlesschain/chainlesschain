@@ -2,6 +2,8 @@ package com.chainlesschain.android.di
 
 import android.app.Application
 import android.content.Context
+import com.chainlesschain.android.config.AppConfigManager
+import com.chainlesschain.android.core.network.config.NetworkConfig
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,5 +26,19 @@ object AppModule {
     @Singleton
     fun provideContext(application: Application): Context {
         return application.applicationContext
+    }
+
+    /**
+     * 提供 NetworkConfig，桥接 AppConfigManager 到 core-network 模块
+     */
+    @Provides
+    @Singleton
+    fun provideNetworkConfig(appConfigManager: AppConfigManager): NetworkConfig {
+        return object : NetworkConfig {
+            override val apiBaseUrl: String
+                get() = appConfigManager.config.value.apiBaseUrl
+            override val requestTimeoutMs: Long
+                get() = appConfigManager.config.value.requestTimeout
+        }
     }
 }
