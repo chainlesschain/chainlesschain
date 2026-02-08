@@ -29,6 +29,12 @@ fun ProfileDialog(
     onLogout: () -> Unit,
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
+    onNavigateToKnowledgeList: () -> Unit = {},
+    onNavigateToAIChat: () -> Unit = {},
+    onNavigateToP2P: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {},
+    onNavigateToHelpFeedback: () -> Unit = {},
     viewModel: AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -59,7 +65,7 @@ fun ProfileDialog(
                         }
                     },
                     actions = {
-                        IconButton(onClick = {}) {
+                        IconButton(onClick = onNavigateToSettings) {
                             Icon(Icons.Default.Settings, contentDescription = "设置")
                         }
                     },
@@ -163,7 +169,7 @@ fun ProfileDialog(
                             icon = Icons.Default.Book,
                             title = "知识库",
                             subtitle = "管理我的知识库",
-                            onClick = {}
+                            onClick = onNavigateToKnowledgeList
                         )
                     }
 
@@ -172,7 +178,7 @@ fun ProfileDialog(
                             icon = Icons.Default.Chat,
                             title = "AI对话",
                             subtitle = "智能助手对话记录",
-                            onClick = {}
+                            onClick = onNavigateToAIChat
                         )
                     }
 
@@ -199,7 +205,7 @@ fun ProfileDialog(
                             icon = Icons.Default.Devices,
                             title = "P2P设备管理",
                             subtitle = "管理连接的设备",
-                            onClick = {}
+                            onClick = onNavigateToP2P
                         )
                     }
 
@@ -218,7 +224,7 @@ fun ProfileDialog(
                             icon = Icons.Default.Settings,
                             title = "设置",
                             subtitle = "应用设置",
-                            onClick = {}
+                            onClick = onNavigateToSettings
                         )
                     }
 
@@ -227,7 +233,7 @@ fun ProfileDialog(
                             icon = Icons.Default.Info,
                             title = "关于",
                             subtitle = "应用信息和版本",
-                            onClick = {}
+                            onClick = onNavigateToAbout
                         )
                     }
 
@@ -236,7 +242,7 @@ fun ProfileDialog(
                             icon = Icons.Default.Help,
                             title = "帮助与反馈",
                             subtitle = "获取帮助",
-                            onClick = {}
+                            onClick = onNavigateToHelpFeedback
                         )
                     }
 

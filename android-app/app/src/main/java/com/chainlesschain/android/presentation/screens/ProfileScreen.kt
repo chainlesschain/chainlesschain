@@ -27,6 +27,10 @@ fun ProfileScreen(
     onNavigateToKnowledgeList: () -> Unit = {},
     onNavigateToAIChat: () -> Unit = {},
     onNavigateToP2P: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {},
+    onNavigateToHelpFeedback: () -> Unit = {},
+    onNavigateToBookmark: () -> Unit = {},
     viewModel: AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -173,6 +177,52 @@ fun ProfileScreen(
                     title = "P2P设备管理",
                     subtitle = "管理连接的设备",
                     onClick = onNavigateToP2P
+                )
+            }
+
+            item {
+                ProfileMenuItem(
+                    icon = Icons.Default.Bookmark,
+                    title = "我的收藏",
+                    subtitle = "查看收藏的内容",
+                    onClick = onNavigateToBookmark
+                )
+            }
+
+            // 系统设置
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "系统",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
+            item {
+                ProfileMenuItem(
+                    icon = Icons.Default.Settings,
+                    title = "设置",
+                    subtitle = "应用设置",
+                    onClick = onNavigateToSettings
+                )
+            }
+
+            item {
+                ProfileMenuItem(
+                    icon = Icons.Default.Info,
+                    title = "关于",
+                    subtitle = "应用版本和信息",
+                    onClick = onNavigateToAbout
+                )
+            }
+
+            item {
+                ProfileMenuItem(
+                    icon = Icons.Default.Help,
+                    title = "帮助与反馈",
+                    subtitle = "获取帮助或提交反馈",
+                    onClick = onNavigateToHelpFeedback
                 )
             }
 
