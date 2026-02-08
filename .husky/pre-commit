@@ -64,42 +64,12 @@ echo "   (仅运行稳定的核心测试)"
 # 使用 vitest 直接运行，排除不稳定的测试
 # 这些测试需要特定环境、硬件或有复杂的 mock 依赖
 npx vitest run tests/unit \
-  --exclude="**/ocr-service.test.js" \
-  --exclude="**/mcp/**" \
-  --exclude="**/p2p/**" \
-  --exclude="**/ukey/**" \
-  --exclude="**/blockchain/**" \
-  --exclude="**/components/**" \
-  --exclude="**/import/**" \
-  --exclude="**/extended-tools*.test.js" \
-  --exclude="**/*-ipc.test.js" \
-  --exclude="**/session-manager*.test.js" \
-  --exclude="**/llm-performance.test.js" \
-  --exclude="**/tool-manager.test.js" \
-  --exclude="**/skill-manager.test.js" \
-  --exclude="**/word-engine.test.js" \
-  --exclude="**/image-engine.test.js" \
-  --exclude="**/did-invitation.test.js" \
-  --exclude="**/ipc-guard.test.js" \
-  --exclude="**/permission-system.test.js" \
-  --exclude="**/api/**" \
-  --exclude="**/pages/**" \
-  --exclude="**/stores/**" \
-  --exclude="**/sync/**" \
-  --exclude="**/builtin-tools.test.js" \
-  --exclude="**/pdf-engine.test.js" \
-  --exclude="**/ppt-engine.test.js" \
-  --exclude="**/p2p-sync-engine.test.js" \
-  --exclude="**/planning-components.test.js" \
-  --exclude="**/PlanningView.test.js" \
-  --exclude="**/function-caller.test.js" \
-  --exclude="**/response-parser.test.js" \
-  --exclude="**/speech-recognizer.test.js" \
-  --exclude="**/task-planner*.test.js" \
-  --exclude="**/taskPlanner.test.js" \
+  --exclude="**/tests/ai-engine/**" \
+  --exclude="**/tests/cowork/**" \
+  --exclude="**/tests/remote/**" \
+  --exclude="**/tests/integration/**" \
   --exclude="**/src/main/**/__tests__/**" \
-  --exclude="**/src/renderer/**/__tests__/**" \
-  --exclude="**/tests/integration/**"
+  --exclude="**/src/renderer/**/__tests__/**"
 
 # 检查测试退出码
 if [ $? -ne 0 ]; then
