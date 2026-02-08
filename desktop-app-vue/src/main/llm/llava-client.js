@@ -403,16 +403,22 @@ class LLaVAClient extends EventEmitter {
         }),
       );
 
-      const response = await this.client.post("/api/chat", {
-        model: options.model || this.model,
-        messages: processedMessages,
-        stream: false,
-        options: {
-          temperature: options.temperature || 0.7,
-          top_p: options.top_p || 0.9,
-          num_predict: options.maxTokens || 2048,
+      const response = await this.client.post(
+        "/api/chat",
+        {
+          model: options.model || this.model,
+          messages: processedMessages,
+          stream: false,
+          options: {
+            temperature: options.temperature || 0.7,
+            top_p: options.top_p || 0.9,
+            num_predict: options.maxTokens || 2048,
+          },
         },
-      });
+        {
+          ...(options.signal && { signal: options.signal }),
+        },
+      );
 
       return {
         message: response.data.message,

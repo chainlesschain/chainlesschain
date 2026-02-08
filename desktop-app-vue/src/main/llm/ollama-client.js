@@ -176,16 +176,22 @@ class OllamaClient extends EventEmitter {
    */
   async chat(messages, options = {}) {
     try {
-      const response = await this.client.post("/api/chat", {
-        model: options.model || this.model,
-        messages,
-        stream: false,
-        options: {
-          temperature: options.temperature || 0.7,
-          top_p: options.top_p || 0.9,
-          top_k: options.top_k || 40,
+      const response = await this.client.post(
+        "/api/chat",
+        {
+          model: options.model || this.model,
+          messages,
+          stream: false,
+          options: {
+            temperature: options.temperature || 0.7,
+            top_p: options.top_p || 0.9,
+            top_k: options.top_k || 40,
+          },
         },
-      });
+        {
+          ...(options.signal && { signal: options.signal }),
+        },
+      );
 
       return {
         message: response.data.message,

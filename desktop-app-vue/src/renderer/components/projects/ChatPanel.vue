@@ -320,7 +320,7 @@ const contextInfo = computed(() => {
 // 🔥 跟踪所有需要清理的资源
 const activeTimers = ref([]); // 存储所有setTimeout/setInterval的ID
 const activeListeners = ref([]); // 存储所有事件监听器的清理函数
-const abortController = ref(null); // 用于取消进行中的API调用
+// AI对话取消通过 project:cancelAiChat IPC 在主进程中实现
 
 /**
  * 安全的setTimeout包装器 - 自动跟踪并在组件卸载时清理
@@ -1053,12 +1053,20 @@ const handleScrollToBottom = () => {
 /**
  * 取消AI思考/生成
  */
-const handleCancelThinking = () => {
+const handleCancelThinking = async () => {
   logger.info("[ChatPanel] ⛔ 用户取消了AI思考");
   isLoading.value = false;
   thinkingState.show = false;
 
-  // TODO: 实际取消正在进行的API调用（需要AbortController支持）
+  // 通过IPC通知主进程取消正在进行的AI请求
+  try {
+    if (window.electronAPI?.project?.cancelAiChat) {
+      await window.electronAPI.project.cancelAiChat();
+    }
+  } catch (error) {
+    logger.warn("[ChatPanel] 取消请求失败:", error);
+  }
+
   antMessage.info("已取消");
 };
 
@@ -2786,16 +2794,12 @@ const handlePlanConfirm = async (message) => {
     // 执行任务：调用AI对话API
     const prompt = `请根据以下任务计划执行任务：\n\n${JSON.stringify(plan, null, 2)}\n\n请按照计划逐步完成任务。`;
 
-    // 🔥 创建新的 AbortController 用于取消请求
-    abortController.value = new AbortController();
-
+    // 取消通过 project:cancelAiChat IPC 实现
     const response = await window.electronAPI.project.aiChat({
       projectId: props.projectId,
       userMessage: prompt,
       conversationId: currentConversation.value?.id,
       context: contextMode.value,
-      // BUGFIX: AbortSignal cannot be serialized through Electron IPC (circular references)
-      // Removed: signal: abortController.value.signal
     });
 
     // 添加AI响应消息
@@ -3326,11 +3330,7 @@ const executeChatWithInput = async (input) => {
         }
       : null;
 
-    // 🔥 创建新的 AbortController 用于取消请求
-    abortController.value = new AbortController();
-
-    // 调用AI对话API
-    // BUGFIX: AbortSignal cannot be serialized through Electron IPC (circular references cause stack overflow)
+    // 调用AI对话API（取消通过 project:cancelAiChat IPC 实现）
     const response = await window.electronAPI.project.aiChat({
       projectId: props.projectId,
       userMessage: input,
@@ -3339,10 +3339,16 @@ const executeChatWithInput = async (input) => {
       currentFile: cleanCurrentFile,
       projectInfo: projectInfo,
       fileList: fileList,
-      // Removed: signal: abortController.value.signal
     });
 
     logger.info("[ChatPanel] AI响应:", response);
+
+    // 检查是否被用户取消
+    if (response.cancelled) {
+      logger.info("[ChatPanel] AI对话已被用户取消，跳过后续处理");
+      thinkingState.show = false;
+      return;
+    }
 
     // 🔥 更新思考状态：生成完成
     thinkingState.steps[2].status = "completed";
@@ -3573,10 +3579,9 @@ onUnmounted(() => {
   logger.info("[ChatPanel] 组件卸载，开始清理资源...");
 
   // 0. 取消所有进行中的API调用
-  if (abortController.value) {
+  if (window.electronAPI?.project?.cancelAiChat) {
     logger.info("[ChatPanel] 取消进行中的API请求");
-    abortController.value.abort();
-    abortController.value = null;
+    window.electronAPI.project.cancelAiChat().catch(() => {});
   }
 
   // 1. 清理所有定时器

@@ -14,6 +14,12 @@ const path = require("path");
 const { getMessageAggregator } = require("../utils/message-aggregator.js");
 
 /**
+ * 当前活跃的AI对话AbortController
+ * 用于在主进程中取消正在进行的AI请求（因为AbortSignal无法通过IPC序列化）
+ */
+let activeChatAbortController = null;
+
+/**
  * 从AI响应中提取PPT大纲
  * @param {string} aiResponse - AI响应文本
  * @returns {Object|null} PPT大纲对象，如果没有则返回null
@@ -246,6 +252,10 @@ function registerProjectAIIPC({
    * Channel: 'project:aiChat'
    */
   ipcMain.handle("project:aiChat", async (_event, chatData) => {
+    // 创建AbortController用于取消支持
+    activeChatAbortController = new AbortController();
+    const chatSignal = activeChatAbortController.signal;
+
     try {
       const { parseAIResponse } = require("../ai-engine/response-parser");
       const {
@@ -410,6 +420,7 @@ function registerProjectAIIPC({
           requestData,
           {
             timeout: 5000, // 5秒超时，快速失败
+            signal: chatSignal,
           },
         );
 
@@ -557,6 +568,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         const chatOptions = {
           temperature: 0.7,
           maxTokens: 2000,
+          signal: chatSignal,
         };
 
         const _useToolCalling = false;
@@ -1000,6 +1012,20 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         wordResult: wordResult,
       };
     } catch (error) {
+      // 检查是否是用户主动取消（AbortError for fetch, ERR_CANCELED for axios）
+      if (
+        error.name === "AbortError" ||
+        error.code === "ERR_CANCELED" ||
+        chatSignal.aborted
+      ) {
+        logger.info("[Main] AI对话已被用户取消");
+        return {
+          success: false,
+          cancelled: true,
+          conversationResponse: "对话已取消。",
+        };
+      }
+
       logger.error("[Main] 项目AI对话失败:", error);
 
       // 提供更友好的错误信息
@@ -1017,7 +1043,23 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
       }
 
       throw error;
+    } finally {
+      activeChatAbortController = null;
     }
+  });
+
+  /**
+   * 取消正在进行的AI对话请求
+   * Channel: 'project:cancelAiChat'
+   */
+  ipcMain.handle("project:cancelAiChat", async () => {
+    if (activeChatAbortController) {
+      logger.info("[Main] 用户取消AI对话请求");
+      activeChatAbortController.abort("用户取消");
+      activeChatAbortController = null;
+      return { success: true, message: "已取消" };
+    }
+    return { success: true, message: "没有正在进行的请求" };
   });
 
   /**

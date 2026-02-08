@@ -129,7 +129,9 @@ class AnthropicClient extends EventEmitter {
   async chat(messages, options = {}) {
     try {
       const payload = this.buildPayload(messages, options, false);
-      const response = await this.client.post("/v1/messages", payload);
+      const response = await this.client.post("/v1/messages", payload, {
+        ...(options.signal && { signal: options.signal }),
+      });
       const blocks = response.data?.content || [];
       const text = blocks
         .filter((block) => block.type === "text")

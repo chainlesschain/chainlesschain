@@ -129,7 +129,13 @@ class OpenAIClient extends EventEmitter {
         }
       }
 
-      const response = await this.client.post("/chat/completions", requestBody);
+      const response = await this.client.post(
+        "/chat/completions",
+        requestBody,
+        {
+          ...(options.signal && { signal: options.signal }),
+        },
+      );
 
       const choice = response.data.choices[0];
 
