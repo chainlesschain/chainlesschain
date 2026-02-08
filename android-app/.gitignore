@@ -105,3 +105,12 @@ chainlesschain_secure_prefs.xml
 
 # Keystore directory (actual keys)
 keystore/
+
+# Temporary completion/session reports
+docs/archive/
+docs/development-phases/
+*_COMPLETION_REPORT.md
+*_COMPLETION_SUMMARY.md
+*_PROGRESS_REPORT.md
+*_STATUS_FINAL.md
+*_SESSION_*.md
