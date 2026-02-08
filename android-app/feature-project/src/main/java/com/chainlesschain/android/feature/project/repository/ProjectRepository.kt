@@ -590,6 +590,91 @@ class ProjectRepository @Inject constructor(
     }
 
     /**
+     * 重命名文件
+     */
+    suspend fun renameFile(fileId: String, newName: String): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val file = projectDao.getFileById(fileId)
+                    ?: return@withContext Result.failure(IllegalArgumentException("File not found"))
+
+                val oldPath = file.path
+                val newPath = if (oldPath.contains("/")) {
+                    oldPath.substringBeforeLast("/") + "/" + newName
+                } else {
+                    newName
+                }
+
+                val updated = file.copy(
+                    name = newName,
+                    path = newPath,
+                    extension = if (file.isFile()) newName.substringAfterLast('.', "") else file.extension,
+                    updatedAt = System.currentTimeMillis()
+                )
+                projectDao.updateFile(updated)
+
+                recordActivity(
+                    file.projectId,
+                    "file_renamed",
+                    "重命名: ${file.name} → $newName",
+                    fileId
+                )
+
+                Log.i(TAG, "Renamed file: $fileId to $newName")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to rename file: $fileId", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
+     * 移动文件到目标文件夹
+     */
+    suspend fun moveFile(fileId: String, targetFolderId: String?): Result<Unit> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val file = projectDao.getFileById(fileId)
+                    ?: return@withContext Result.failure(IllegalArgumentException("File not found"))
+
+                val newPath = if (targetFolderId != null) {
+                    val targetFolder = projectDao.getFileById(targetFolderId)
+                        ?: return@withContext Result.failure(IllegalArgumentException("Target folder not found"))
+                    "${targetFolder.path}/${file.name}"
+                } else {
+                    file.name
+                }
+
+                val updated = file.copy(
+                    parentId = targetFolderId,
+                    path = newPath,
+                    updatedAt = System.currentTimeMillis()
+                )
+                projectDao.updateFile(updated)
+
+                val targetName = if (targetFolderId != null) {
+                    projectDao.getFileById(targetFolderId)?.name ?: "未知文件夹"
+                } else {
+                    "根目录"
+                }
+                recordActivity(
+                    file.projectId,
+                    "file_moved",
+                    "移动 ${file.name} 到 $targetName",
+                    fileId
+                )
+
+                Log.i(TAG, "Moved file: $fileId to folder: $targetFolderId")
+                Result.success(Unit)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to move file: $fileId", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
      * 获取未保存的文件
      */
     suspend fun getDirtyFiles(projectId: String): List<ProjectFileEntity> {

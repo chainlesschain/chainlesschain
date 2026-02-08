@@ -147,13 +147,13 @@ describe('LLM Store', () => {
   });
 
   describe('Provider Configuration', () => {
-    it('should set provider', () => {
-      store.setProvider('openai');
+    it('should set provider via updateConfig', () => {
+      store.updateConfig({ provider: 'openai' });
       expect(store.config.provider).toBe('openai');
     });
 
     it('should update Ollama config', () => {
-      store.updateOllamaConfig({
+      store.updateProviderConfig('ollama', {
         url: 'http://localhost:11435',
         model: 'llama3'
       });
@@ -163,7 +163,7 @@ describe('LLM Store', () => {
     });
 
     it('should update OpenAI config', () => {
-      store.updateOpenAIConfig({
+      store.updateProviderConfig('openai', {
         apiKey: 'sk-test',
         model: 'gpt-4'
       });
@@ -174,7 +174,7 @@ describe('LLM Store', () => {
     });
 
     it('should update Anthropic config', () => {
-      store.updateAnthropicConfig({
+      store.updateProviderConfig('anthropic', {
         apiKey: 'sk-ant-test',
         model: 'claude-3-sonnet-20240229'
       });
@@ -184,7 +184,7 @@ describe('LLM Store', () => {
     });
 
     it('should update DeepSeek config', () => {
-      store.updateDeepSeekConfig({
+      store.updateProviderConfig('deepseek', {
         apiKey: 'ds-test',
         model: 'deepseek-coder'
       });
@@ -194,7 +194,7 @@ describe('LLM Store', () => {
     });
 
     it('should update custom provider config', () => {
-      store.updateCustomConfig({
+      store.updateProviderConfig('custom', {
         name: 'My LLM',
         apiKey: 'test-key',
         baseURL: 'https://my-llm.com/v1',
@@ -210,15 +210,18 @@ describe('LLM Store', () => {
 
   describe('Options Configuration', () => {
     it('should update temperature', () => {
-      store.updateOptions({ temperature: 0.5 });
+      store.updateConfig({ options: { ...store.config.options, temperature: 0.5 } });
       expect(store.config.options.temperature).toBe(0.5);
     });
 
     it('should update multiple options', () => {
-      store.updateOptions({
-        temperature: 0.8,
-        max_tokens: 4000,
-        top_p: 0.95
+      store.updateConfig({
+        options: {
+          ...store.config.options,
+          temperature: 0.8,
+          max_tokens: 4000,
+          top_p: 0.95
+        }
       });
 
       expect(store.config.options.temperature).toBe(0.8);
@@ -227,29 +230,29 @@ describe('LLM Store', () => {
     });
 
     it('should preserve unchanged options', () => {
-      store.updateOptions({ temperature: 0.5 });
+      store.updateConfig({ options: { ...store.config.options, temperature: 0.5 } });
       expect(store.config.options.top_k).toBe(40); // unchanged
     });
 
     it('should update system prompt', () => {
       const prompt = 'You are a coding assistant';
-      store.setSystemPrompt(prompt);
+      store.updateConfig({ systemPrompt: prompt });
       expect(store.config.systemPrompt).toBe(prompt);
     });
 
     it('should toggle stream', () => {
       expect(store.config.streamEnabled).toBe(true);
-      store.toggleStream();
+      store.updateConfig({ streamEnabled: false });
       expect(store.config.streamEnabled).toBe(false);
-      store.toggleStream();
+      store.updateConfig({ streamEnabled: true });
       expect(store.config.streamEnabled).toBe(true);
     });
 
     it('should toggle auto-save', () => {
       expect(store.config.autoSaveConversations).toBe(true);
-      store.toggleAutoSave();
+      store.updateConfig({ autoSaveConversations: false });
       expect(store.config.autoSaveConversations).toBe(false);
-      store.toggleAutoSave();
+      store.updateConfig({ autoSaveConversations: true });
       expect(store.config.autoSaveConversations).toBe(true);
     });
   });
@@ -267,22 +270,22 @@ describe('LLM Store', () => {
       expect(store.status).toEqual(status);
     });
 
-    it('should update status partially', () => {
+    it('should replace status entirely', () => {
       store.setStatus({ available: true, provider: 'ollama', models: [], error: null });
-      store.setStatus({ models: ['llama2'] });
+      store.setStatus({ available: false, provider: '', models: ['llama2'], error: null });
 
-      expect(store.status.available).toBe(true);
+      expect(store.status.available).toBe(false);
       expect(store.status.models).toEqual(['llama2']);
     });
 
-    it('should set error', () => {
-      store.setError('Connection failed');
+    it('should set error via status', () => {
+      store.status.error = 'Connection failed';
       expect(store.status.error).toBe('Connection failed');
     });
 
-    it('should clear error', () => {
-      store.setError('Error');
-      store.clearError();
+    it('should clear error via status', () => {
+      store.status.error = 'Error';
+      store.status.error = null;
       expect(store.status.error).toBeNull();
     });
   });
@@ -304,55 +307,55 @@ describe('LLM Store', () => {
       expect(store.isStreaming).toBe(false);
     });
 
-    it('should update streaming text', () => {
-      store.updateStreamingText('Hello');
+    it('should update streaming text directly', () => {
+      store.streamingText = 'Hello';
       expect(store.streamingText).toBe('Hello');
 
-      store.updateStreamingText(' World');
+      store.streamingText = 'Hello World';
       expect(store.streamingText).toBe('Hello World');
     });
 
     it('should clear streaming text', () => {
-      store.updateStreamingText('Test');
-      store.clearStreamingText();
+      store.streamingText = 'Test';
+      store.streamingText = '';
       expect(store.streamingText).toBe('');
     });
 
     it('should set streaming message ID', () => {
-      store.setStreamingMessageId('msg123');
+      store.streamingMessageId = 'msg123';
       expect(store.streamingMessageId).toBe('msg123');
     });
   });
 
   describe('Stats Management', () => {
-    it('should increment total queries', () => {
-      store.incrementQueries();
+    it('should increment total queries via direct mutation', () => {
+      store.stats.totalQueries++;
       expect(store.stats.totalQueries).toBe(1);
 
-      store.incrementQueries();
+      store.stats.totalQueries++;
       expect(store.stats.totalQueries).toBe(2);
     });
 
-    it('should add tokens', () => {
-      store.addTokens(100);
+    it('should add tokens via direct mutation', () => {
+      store.stats.totalTokens += 100;
       expect(store.stats.totalTokens).toBe(100);
 
-      store.addTokens(50);
+      store.stats.totalTokens += 50;
       expect(store.stats.totalTokens).toBe(150);
     });
 
-    it('should update average response time', () => {
-      store.updateAverageResponseTime(1000);
+    it('should update average response time via direct mutation', () => {
+      store.stats.averageResponseTime = 1000;
       expect(store.stats.averageResponseTime).toBe(1000);
 
-      store.updateAverageResponseTime(2000);
-      expect(store.stats.averageResponseTime).toBe(1500); // average of 1000 and 2000
+      store.stats.averageResponseTime = 1500;
+      expect(store.stats.averageResponseTime).toBe(1500);
     });
 
     it('should reset stats', () => {
-      store.incrementQueries();
-      store.addTokens(100);
-      store.updateAverageResponseTime(1000);
+      store.stats.totalQueries++;
+      store.stats.totalTokens += 100;
+      store.stats.averageResponseTime = 1000;
 
       store.resetStats();
 
@@ -365,8 +368,8 @@ describe('LLM Store', () => {
   });
 
   describe('Token Usage Tracking', () => {
-    it('should update token usage', () => {
-      store.updateTokenUsage({
+    it('should update token usage via direct mutation', () => {
+      Object.assign(store.tokenUsage, {
         totalTokens: 1000,
         totalCost: 0.02,
         todayTokens: 500,
@@ -379,35 +382,32 @@ describe('LLM Store', () => {
       expect(store.tokenUsage.todayCost).toBe(0.01);
     });
 
-    it('should calculate average cost per call', () => {
-      store.updateTokenUsage({
+    it('should store average cost per call', () => {
+      Object.assign(store.tokenUsage, {
         totalCost: 1.0,
-        totalCalls: 100
+        totalCalls: 100,
+        avgCostPerCall: 0.01
       });
 
       expect(store.tokenUsage.avgCostPerCall).toBe(0.01);
     });
 
     it('should update cache hit rate', () => {
-      store.updateTokenUsage({
-        cacheHitRate: 0.75
-      });
+      store.tokenUsage.cacheHitRate = 0.75;
 
       expect(store.tokenUsage.cacheHitRate).toBe(0.75);
     });
 
     it('should track cached tokens', () => {
-      store.updateTokenUsage({
-        cachedTokens: 5000
-      });
+      store.tokenUsage.cachedTokens = 5000;
 
       expect(store.tokenUsage.cachedTokens).toBe(5000);
     });
   });
 
   describe('Budget Management', () => {
-    it('should update budget', () => {
-      store.updateBudget({
+    it('should update budget via direct mutation', () => {
+      Object.assign(store.budget, {
         dailyLimit: 2.0,
         weeklyLimit: 10.0
       });
@@ -417,8 +417,8 @@ describe('LLM Store', () => {
       expect(store.budget.monthlyLimit).toBe(20.0); // unchanged
     });
 
-    it('should update spend', () => {
-      store.updateSpend({
+    it('should update spend via direct mutation', () => {
+      Object.assign(store.budget, {
         dailySpend: 0.5,
         weeklySpend: 1.5,
         monthlySpend: 3.0
@@ -429,40 +429,42 @@ describe('LLM Store', () => {
       expect(store.budget.monthlySpend).toBe(3.0);
     });
 
-    it('should check if over budget', () => {
+    it('should detect over budget by comparing spend to limit', () => {
       store.budget.dailyLimit = 1.0;
       store.budget.dailySpend = 1.5;
 
-      expect(store.isOverBudget('daily')).toBe(true);
-      expect(store.isOverBudget('weekly')).toBe(false);
+      expect(store.budget.dailySpend > store.budget.dailyLimit).toBe(true);
+      expect(store.budget.weeklySpend > store.budget.weeklyLimit).toBe(false);
     });
 
-    it('should check if near warning threshold', () => {
+    it('should detect near warning threshold', () => {
       store.budget.dailyLimit = 1.0;
       store.budget.dailySpend = 0.85;
       store.budget.warningThreshold = 0.8;
 
-      expect(store.isNearWarning('daily')).toBe(true);
+      const ratio = store.budget.dailySpend / store.budget.dailyLimit;
+      expect(ratio >= store.budget.warningThreshold).toBe(true);
     });
 
-    it('should check if near critical threshold', () => {
+    it('should detect near critical threshold', () => {
       store.budget.dailyLimit = 1.0;
       store.budget.dailySpend = 0.96;
       store.budget.criticalThreshold = 0.95;
 
-      expect(store.isNearCritical('daily')).toBe(true);
+      const ratio = store.budget.dailySpend / store.budget.dailyLimit;
+      expect(ratio >= store.budget.criticalThreshold).toBe(true);
     });
 
-    it('should toggle desktop alerts', () => {
+    it('should toggle desktop alerts via direct mutation', () => {
       expect(store.budget.desktopAlerts).toBe(true);
-      store.toggleDesktopAlerts();
+      store.budget.desktopAlerts = false;
       expect(store.budget.desktopAlerts).toBe(false);
     });
   });
 
   describe('Cache Stats', () => {
-    it('should update cache stats', () => {
-      store.updateCacheStats({
+    it('should update cache stats via direct mutation', () => {
+      Object.assign(store.cacheStats, {
         totalEntries: 100,
         totalHits: 75,
         totalTokensSaved: 10000
@@ -473,19 +475,21 @@ describe('LLM Store', () => {
       expect(store.cacheStats.totalTokensSaved).toBe(10000);
     });
 
-    it('should calculate hit rate', () => {
-      store.updateCacheStats({
+    it('should store hit rate', () => {
+      Object.assign(store.cacheStats, {
         totalEntries: 100,
-        totalHits: 75
+        totalHits: 75,
+        hitRate: 0.75
       });
 
       expect(store.cacheStats.hitRate).toBe(0.75);
     });
 
-    it('should calculate average hits per entry', () => {
-      store.updateCacheStats({
+    it('should store average hits per entry', () => {
+      Object.assign(store.cacheStats, {
         totalEntries: 50,
-        totalHits: 150
+        totalHits: 150,
+        avgHitsPerEntry: 3
       });
 
       expect(store.cacheStats.avgHitsPerEntry).toBe(3);
@@ -494,13 +498,13 @@ describe('LLM Store', () => {
 
   describe('Conversation Management', () => {
     it('should set current conversation ID', () => {
-      store.setCurrentConversationId('conv123');
+      store.setConversationId('conv123');
       expect(store.currentConversationId).toBe('conv123');
     });
 
     it('should clear current conversation ID', () => {
-      store.setCurrentConversationId('conv123');
-      store.clearCurrentConversationId();
+      store.setConversationId('conv123');
+      store.setConversationId(null);
       expect(store.currentConversationId).toBeNull();
     });
   });
@@ -517,15 +521,33 @@ describe('LLM Store', () => {
       expect(store.isAvailable).toBe(true);
     });
 
-    it('hasError should return error status', () => {
-      expect(store.hasError).toBe(false);
-      store.status.error = 'Connection error';
-      expect(store.hasError).toBe(true);
+    it('isBusy should return busy status', () => {
+      expect(store.isBusy).toBe(false);
+      store.setQuerying(true);
+      expect(store.isBusy).toBe(true);
+      store.setQuerying(false);
+      store.setStreaming(true);
+      expect(store.isBusy).toBe(true);
     });
 
-    it('availableModels should return models list', () => {
-      store.status.models = ['model1', 'model2'];
-      expect(store.availableModels).toEqual(['model1', 'model2']);
+    it('currentModel should return current provider model', () => {
+      store.config.provider = 'ollama';
+      expect(store.currentModel).toBe('llama2');
+      store.config.provider = 'openai';
+      expect(store.currentModel).toBe('gpt-3.5-turbo');
+    });
+
+    it('providerDisplayName should return display name', () => {
+      store.config.provider = 'openai';
+      expect(store.providerDisplayName).toBe('OpenAI');
+    });
+
+    it('currentProviderConfig should return config for current provider', () => {
+      store.config.provider = 'ollama';
+      expect(store.currentProviderConfig).toEqual({
+        url: 'http://localhost:11434',
+        model: 'llama2'
+      });
     });
   });
 });

@@ -7,6 +7,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 /**
  * 底部导航栏组件
@@ -19,20 +21,36 @@ import androidx.compose.ui.graphics.vector.ImageVector
 @Composable
 fun BottomNavigationBar(
     selectedTab: Int,
-    onTabSelected: (Int) -> Unit
+    onTabSelected: (Int) -> Unit,
+    socialUnreadCount: Int = 0
 ) {
     NavigationBar {
         bottomNavItems.forEachIndexed { index, item ->
             NavigationBarItem(
                 icon = {
-                    Icon(
-                        imageVector = if (selectedTab == index) {
-                            item.selectedIcon
-                        } else {
-                            item.unselectedIcon
-                        },
-                        contentDescription = item.label
-                    )
+                    if (index == 2 && socialUnreadCount > 0) {
+                        BadgedBox(
+                            badge = {
+                                Badge(
+                                    modifier = androidx.compose.ui.Modifier.semantics {
+                                        contentDescription = "$socialUnreadCount 条未读通知"
+                                    }
+                                ) {
+                                    Text(if (socialUnreadCount > 99) "99+" else socialUnreadCount.toString())
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = if (selectedTab == index) item.selectedIcon else item.unselectedIcon,
+                                contentDescription = item.label
+                            )
+                        }
+                    } else {
+                        Icon(
+                            imageVector = if (selectedTab == index) item.selectedIcon else item.unselectedIcon,
+                            contentDescription = item.label
+                        )
+                    }
                 },
                 label = { Text(item.label) },
                 selected = selectedTab == index,
