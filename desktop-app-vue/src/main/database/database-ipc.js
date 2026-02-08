@@ -7,8 +7,8 @@
  */
 
 const { logger } = require("../utils/logger.js");
-const { ipcMain } = require("electron");
-const ipcGuard = require("../ipc/ipc-guard");
+const defaultIpcMain = require("electron").ipcMain;
+const defaultIpcGuard = require("../ipc/ipc-guard");
 
 /**
  * 注册所有数据库 IPC 处理器
@@ -16,8 +16,19 @@ const ipcGuard = require("../ipc/ipc-guard");
  * @param {Object} dependencies.database - 数据库管理器
  * @param {Object} [dependencies.ragManager] - RAG 管理器（用于知识库同步）
  * @param {Function} dependencies.getAppConfig - 获取应用配置函数
+ * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} [dependencies.ipcGuard] - IPC防护对象（可选，用于测试注入）
  */
-function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
+function registerDatabaseIPC({
+  database,
+  ragManager,
+  getAppConfig,
+  ipcMain,
+  ipcGuard,
+}) {
+  ipcMain = ipcMain || defaultIpcMain;
+  ipcGuard = ipcGuard || defaultIpcGuard;
+
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("database-ipc")) {
     logger.info("[Database IPC] Handlers already registered, skipping...");

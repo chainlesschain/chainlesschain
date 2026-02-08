@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.p2p.viewmodel
 
+import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.session.SessionInfo
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
@@ -49,10 +50,13 @@ class P2PDeviceViewModelTest {
         every { deviceDiscovery.observeDiscoveredDevices() } returns discoveredDevicesFlow
         every { sessionManager.activeSessions } returns activeSessionsFlow
 
+        val didManager: DIDManager = mockk(relaxed = true)
+
         viewModel = P2PDeviceViewModel(
             deviceDiscovery = deviceDiscovery,
             sessionManager = sessionManager,
-            verificationManager = verificationManager
+            verificationManager = verificationManager,
+            didManager = didManager
         )
     }
 

@@ -3,6 +3,7 @@ package com.chainlesschain.android.core.e2ee.storage
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.DoubleRatchet
 import com.chainlesschain.android.core.e2ee.session.E2EESession
@@ -85,10 +86,12 @@ class SessionStorageTest {
         val peerId = "test_peer"
         val aliceIdentityKeyPair = X25519KeyPair.generate()
         val bobIdentityKeyPair = X25519KeyPair.generate()
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
         val bobPreKeyBundle = com.chainlesschain.android.core.e2ee.protocol.X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
@@ -122,10 +125,12 @@ class SessionStorageTest {
         val peerId = "test_peer"
         val aliceIdentityKeyPair = X25519KeyPair.generate()
         val bobIdentityKeyPair = X25519KeyPair.generate()
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
         val bobPreKeyBundle = com.chainlesschain.android.core.e2ee.protocol.X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
@@ -158,10 +163,12 @@ class SessionStorageTest {
 
         for (peerId in peerIds) {
             val bobIdentityKeyPair = X25519KeyPair.generate()
+            val bobSigningKeyPair = Ed25519KeyPair.generate()
             val bobSignedPreKeyPair = X25519KeyPair.generate()
 
             val bobPreKeyBundle = com.chainlesschain.android.core.e2ee.protocol.X3DHKeyExchange.generatePreKeyBundle(
                 bobIdentityKeyPair,
+                bobSigningKeyPair,
                 bobSignedPreKeyPair
             )
 
@@ -193,10 +200,12 @@ class SessionStorageTest {
         val peerId = "test_peer"
         val aliceIdentityKeyPair = X25519KeyPair.generate()
         val bobIdentityKeyPair = X25519KeyPair.generate()
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
         val bobPreKeyBundle = com.chainlesschain.android.core.e2ee.protocol.X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 

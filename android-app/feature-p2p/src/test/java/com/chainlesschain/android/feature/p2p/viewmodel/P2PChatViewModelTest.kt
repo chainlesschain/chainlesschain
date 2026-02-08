@@ -79,7 +79,7 @@ class P2PChatViewModelTest {
         // Given
         val testSession = mockk<E2EESession>()
         every { sessionManager.getSession(testPeerId) } returns testSession
-        every { verificationManager.isVerified(testPeerId) } returns true
+        coEvery { verificationManager.isVerified(testPeerId) } returns true
 
         val testMessages = listOf(
             createTestMessage("msg1", "Hello", isOutgoing = true),
@@ -101,7 +101,7 @@ class P2PChatViewModelTest {
     fun `loadChat without session should set disconnected status`() = runTest {
         // Given
         every { sessionManager.getSession(testPeerId) } returns null
-        every { verificationManager.isVerified(testPeerId) } returns false
+        coEvery { verificationManager.isVerified(testPeerId) } returns false
 
         // When
         viewModel.loadChat(testPeerId)

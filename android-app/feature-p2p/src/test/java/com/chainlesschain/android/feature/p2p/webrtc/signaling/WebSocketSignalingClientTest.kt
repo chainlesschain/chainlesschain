@@ -1,9 +1,12 @@
 package com.chainlesschain.android.feature.p2p.webrtc.signaling
 import org.junit.Ignore
 
+import com.chainlesschain.android.remote.config.SignalingConfig
 import io.mockk.*
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
@@ -26,6 +29,7 @@ class WebSocketSignalingClientTest {
     private lateinit var client: WebSocketSignalingClient
     private lateinit var mockOkHttpClient: OkHttpClient
     private lateinit var mockWebSocket: WebSocket
+    private lateinit var mockSignalingConfig: SignalingConfig
     private val json = Json { ignoreUnknownKeys = true }
 
     private val testDispatcher = StandardTestDispatcher()
@@ -37,6 +41,7 @@ class WebSocketSignalingClientTest {
         // Mock OkHttpClient and WebSocket
         mockOkHttpClient = mockk(relaxed = true)
         mockWebSocket = mockk(relaxed = true)
+        mockSignalingConfig = mockk(relaxed = true)
 
         every { mockOkHttpClient.newWebSocket(any(), any()) } answers {
             val listener = secondArg<WebSocketListener>()
@@ -45,7 +50,7 @@ class WebSocketSignalingClientTest {
             mockWebSocket
         }
 
-        client = WebSocketSignalingClient(mockOkHttpClient, json)
+        client = WebSocketSignalingClient(mockOkHttpClient, json, mockSignalingConfig)
     }
 
     @After
@@ -184,7 +189,7 @@ class WebSocketSignalingClientTest {
             mockWebSocket
         }
 
-        client = WebSocketSignalingClient(mockOkHttpClient, json)
+        client = WebSocketSignalingClient(mockOkHttpClient, json, mockSignalingConfig)
 
         // When
         client.connect("did:example:alice", "test-token")
@@ -209,7 +214,7 @@ class WebSocketSignalingClientTest {
         advanceTimeBy(30_000L)
 
         // Then - should have sent at least one ping
-        verify(atLeast = 1) { mockWebSocket.send(match { it.contains("\"type\":\"ping\"") }) }
+        verify(atLeast = 1) { mockWebSocket.send(match<String> { it.contains("\"type\":\"ping\"") }) }
     }
 
     @Test
@@ -233,7 +238,7 @@ class WebSocketSignalingClientTest {
         advanceUntilIdle()
 
         // Then - all should be sent
-        verify(exactly = 5) { mockWebSocket.send(match { it.contains("\"type\":\"offer\"") }) }
+        verify(exactly = 5) { mockWebSocket.send(match<String> { it.contains("\"type\":\"offer\"") }) }
     }
 
     @Test
@@ -269,6 +274,6 @@ class WebSocketSignalingClientTest {
         advanceUntilIdle()
 
         // Then
-        verify { mockWebSocket.send(match { it.contains("\"type\":\"bye\"") }) }
+        verify { mockWebSocket.send(match<String> { it.contains("\"type\":\"bye\"") }) }
     }
 }

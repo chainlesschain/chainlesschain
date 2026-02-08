@@ -25,6 +25,13 @@ android {
     }
 }
 
+// Workaround for KSP byRounds duplicate class issue with Hilt
+afterEvaluate {
+    tasks.withType<JavaCompile>().configureEach {
+        exclude { it.file.path.replace("\\", "/").contains("/byRounds/") }
+    }
+}
+
 dependencies {
     implementation(project(":core-common"))
 

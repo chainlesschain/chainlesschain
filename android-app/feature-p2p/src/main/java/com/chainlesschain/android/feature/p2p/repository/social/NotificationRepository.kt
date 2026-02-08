@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
+import android.util.Log
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
@@ -8,6 +9,7 @@ import com.chainlesschain.android.core.database.entity.social.NotificationType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -488,5 +490,38 @@ class NotificationRepository @Inject constructor(
             createdAt = System.currentTimeMillis()
         )
         return createNotification(notification)
+    }
+
+    // ===== 同步接口 =====
+
+    private val syncJson = Json { ignoreUnknownKeys = true }
+
+    suspend fun saveNotificationFromSync(resourceId: String, data: String) {
+        try {
+            val entity = syncJson.decodeFromString<NotificationEntity>(data)
+            notificationDao.insert(entity)
+            Log.d("NotificationRepository", "Notification saved from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("NotificationRepository", "Failed to save notification from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun updateNotificationFromSync(resourceId: String, data: String) {
+        try {
+            val entity = syncJson.decodeFromString<NotificationEntity>(data)
+            notificationDao.insert(entity)
+            Log.d("NotificationRepository", "Notification updated from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("NotificationRepository", "Failed to update notification from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun deleteNotificationFromSync(resourceId: String) {
+        try {
+            notificationDao.deleteById(resourceId)
+            Log.d("NotificationRepository", "Notification deleted from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("NotificationRepository", "Failed to delete notification from sync: $resourceId", e)
+        }
     }
 }

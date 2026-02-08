@@ -1,6 +1,7 @@
 package com.chainlesschain.android.core.e2ee.protocol
 
 import android.util.Log
+import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.crypto.HKDF
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import kotlinx.serialization.Serializable
@@ -27,18 +28,23 @@ object X3DHKeyExchange {
      *
      * 接收方发布到服务器，发送方获取后进行密钥交换
      *
-     * @param identityKeyPair 身份密钥对（长期）
+     * @param identityKeyPair 身份密钥对（长期，X25519用于DH）
+     * @param signingKeyPair 签名密钥对（长期，Ed25519用于签名）
      * @param signedPreKeyPair 签名预密钥对（中期）
      * @param oneTimePreKeyPair 一次性预密钥对（短期，可选）
      * @return 预密钥包
      */
     fun generatePreKeyBundle(
         identityKeyPair: X25519KeyPair,
+        signingKeyPair: Ed25519KeyPair,
         signedPreKeyPair: X25519KeyPair,
         oneTimePreKeyPair: X25519KeyPair? = null
     ): PreKeyBundle {
         require(identityKeyPair.hasPrivateKey()) {
             "Identity key must have private key"
+        }
+        require(signingKeyPair.hasPrivateKey()) {
+            "Signing key must have private key"
         }
         require(signedPreKeyPair.hasPrivateKey()) {
             "Signed pre-key must have private key"
@@ -46,12 +52,15 @@ object X3DHKeyExchange {
 
         Log.d(TAG, "Generating pre-key bundle")
 
-        // TODO: 实际应该用Ed25519签名signedPreKey
-        // 这里简化处理，假设已签名
-        val signedPreKeySignature = ByteArray(64) // 占位符
+        // 使用Ed25519签名对signedPreKey的公钥进行签名
+        val signedPreKeySignature = Ed25519KeyPair.sign(
+            signingKeyPair.privateKey,
+            signedPreKeyPair.publicKey
+        )
 
         return PreKeyBundle(
             identityKey = identityKeyPair.publicKey,
+            signingPublicKey = signingKeyPair.publicKey,
             signedPreKey = signedPreKeyPair.publicKey,
             signedPreKeySignature = signedPreKeySignature,
             oneTimePreKey = oneTimePreKeyPair?.publicKey
@@ -79,6 +88,19 @@ object X3DHKeyExchange {
         }
 
         Log.d(TAG, "Sender executing X3DH")
+
+        // 验证接收方的signedPreKey签名
+        if (receiverPreKeyBundle.signingPublicKey != null) {
+            val signatureValid = Ed25519KeyPair.verify(
+                receiverPreKeyBundle.signingPublicKey,
+                receiverPreKeyBundle.signedPreKey,
+                receiverPreKeyBundle.signedPreKeySignature
+            )
+            require(signatureValid) {
+                "Receiver's signed pre-key signature verification failed"
+            }
+            Log.d(TAG, "Signed pre-key signature verified successfully")
+        }
 
         // DH1 = DH(IK_A, SPK_B)
         val dh1 = X25519KeyPair.computeSharedSecret(
@@ -253,13 +275,16 @@ object X3DHKeyExchange {
  */
 @Serializable
 data class PreKeyBundle(
-    /** 身份公钥（长期） */
+    /** 身份公钥（长期，X25519用于DH） */
     val identityKey: ByteArray,
+
+    /** 签名公钥（长期，Ed25519用于验签） */
+    val signingPublicKey: ByteArray? = null,
 
     /** 签名预公钥（中期） */
     val signedPreKey: ByteArray,
 
-    /** 签名预公钥的签名 */
+    /** 签名预公钥的签名（Ed25519签名，64字节） */
     val signedPreKeySignature: ByteArray,
 
     /** 一次性预公钥（短期，可选） */
@@ -272,6 +297,10 @@ data class PreKeyBundle(
         other as PreKeyBundle
 
         if (!identityKey.contentEquals(other.identityKey)) return false
+        if (signingPublicKey != null) {
+            if (other.signingPublicKey == null) return false
+            if (!signingPublicKey.contentEquals(other.signingPublicKey)) return false
+        } else if (other.signingPublicKey != null) return false
         if (!signedPreKey.contentEquals(other.signedPreKey)) return false
         if (!signedPreKeySignature.contentEquals(other.signedPreKeySignature)) return false
         if (oneTimePreKey != null) {
@@ -284,6 +313,7 @@ data class PreKeyBundle(
 
     override fun hashCode(): Int {
         var result = identityKey.contentHashCode()
+        result = 31 * result + (signingPublicKey?.contentHashCode() ?: 0)
         result = 31 * result + signedPreKey.contentHashCode()
         result = 31 * result + signedPreKeySignature.contentHashCode()
         result = 31 * result + (oneTimePreKey?.contentHashCode() ?: 0)

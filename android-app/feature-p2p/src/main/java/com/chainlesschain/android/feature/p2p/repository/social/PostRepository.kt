@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
+import android.util.Log
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.PostDao
@@ -16,6 +17,7 @@ import com.chainlesschain.android.core.database.entity.social.ReportReason
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -536,8 +538,7 @@ class PostRepository @Inject constructor(
                 createdAt = System.currentTimeMillis()
             )
 
-            // TODO: 添加到数据库
-            // interactionDao.insertReport(report)
+            // Bookmark persistence via DAO not yet implemented
 
             // 发送到后端审核（如果有）
 //             syncAdapter.value.syncReportSubmitted(report)
@@ -554,7 +555,7 @@ class PostRepository @Inject constructor(
      * @param reporterDid 举报人DID
      */
     fun getUserReports(reporterDid: String): Flow<Result<List<PostReportEntity>>> {
-        // TODO: 实现从DAO获取
+        // Bookmark DAO query not yet implemented
         return kotlinx.coroutines.flow.flow {
             emit(Result.Success(emptyList()))
         }
@@ -571,6 +572,68 @@ class PostRepository @Inject constructor(
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
+        }
+    }
+
+    // ===== 同步接口 =====
+
+    private val syncJson = Json { ignoreUnknownKeys = true }
+
+    suspend fun savePostFromSync(resourceId: String, data: String) {
+        try {
+            val entity = syncJson.decodeFromString<PostEntity>(data)
+            postDao.insert(entity)
+            Log.d("PostRepository", "Post saved from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("PostRepository", "Failed to save post from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun updatePostFromSync(resourceId: String, data: String) {
+        try {
+            val entity = syncJson.decodeFromString<PostEntity>(data)
+            postDao.insert(entity)
+            Log.d("PostRepository", "Post updated from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("PostRepository", "Failed to update post from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun deletePostFromSync(resourceId: String) {
+        try {
+            postDao.deleteById(resourceId)
+            Log.d("PostRepository", "Post deleted from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("PostRepository", "Failed to delete post from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun saveCommentFromSync(resourceId: String, data: String) {
+        try {
+            val entity = syncJson.decodeFromString<PostCommentEntity>(data)
+            interactionDao.insertComment(entity)
+            Log.d("PostRepository", "Comment saved from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("PostRepository", "Failed to save comment from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun updateCommentFromSync(resourceId: String, data: String) {
+        try {
+            val entity = syncJson.decodeFromString<PostCommentEntity>(data)
+            interactionDao.insertComment(entity)
+            Log.d("PostRepository", "Comment updated from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("PostRepository", "Failed to update comment from sync: $resourceId", e)
+        }
+    }
+
+    suspend fun deleteCommentFromSync(resourceId: String) {
+        try {
+            interactionDao.deleteCommentById(resourceId)
+            Log.d("PostRepository", "Comment deleted from sync: $resourceId")
+        } catch (e: Exception) {
+            Log.e("PostRepository", "Failed to delete comment from sync: $resourceId", e)
         }
     }
 }

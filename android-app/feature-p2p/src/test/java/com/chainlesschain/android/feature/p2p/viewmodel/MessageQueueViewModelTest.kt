@@ -1,66 +1,54 @@
 package com.chainlesschain.android.feature.p2p.viewmodel
 
-import org.junit.Ignore
-
-/*
- * FIXME: 暂时禁用 - 等待P2P消息队列架构重构
- *
- * 问题: 此测试引用的类已不存在或已重构:
- *   - PersistentMessageQueueManager (包路径已变更)
- *   - QueuedOutgoingMessage (已移除)
- *   - QueuedIncomingMessage (已移除)
- *   - RatchetMessage (包路径已变更)
- *
- * 需要根据新的P2P消息队列架构重写此测试
- * 相关文件: core-e2ee/queue/, core-e2ee/protocol/
- *
- * TODO: 在Phase 2重构时重新启用并更新测试
- */
-
-/*
-import com.chainlesschain.android.core.e2ee.messaging.PersistentMessageQueueManager
-import com.chainlesschain.android.core.e2ee.messaging.QueuedOutgoingMessage
-import com.chainlesschain.android.core.e2ee.messaging.QueuedIncomingMessage
-import com.chainlesschain.android.core.e2ee.ratchet.RatchetMessage
-import com.chainlesschain.android.feature.p2p.ui.MessagePriority
+import com.chainlesschain.android.core.database.entity.MessagePriority
+import com.chainlesschain.android.core.database.entity.OfflineQueueEntity
+import com.chainlesschain.android.core.database.entity.QueueStatus
+import com.chainlesschain.android.feature.p2p.queue.MessageStatusEvent
+import com.chainlesschain.android.feature.p2p.queue.OfflineMessageQueue
 import com.chainlesschain.android.feature.p2p.ui.MessageStatus
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-*/
 
 /**
  * MessageQueueViewModel 单元测试
+ *
+ * 基于当前架构重写：使用 OfflineMessageQueue + OfflineQueueEntity
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-@Ignore("等待P2P消息队列架构重构 - 引用的类已不存在")
 class MessageQueueViewModelTest {
-/*
+
     private lateinit var viewModel: MessageQueueViewModel
-    private lateinit var queueManager: PersistentMessageQueueManager
+    private lateinit var offlineMessageQueue: OfflineMessageQueue
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private val outgoingQueueFlow = MutableStateFlow<Map<String, List<QueuedOutgoingMessage>>>(emptyMap())
-    private val incomingQueueFlow = MutableStateFlow<Map<String, List<QueuedIncomingMessage>>>(emptyMap())
+    private val pendingMessagesFlow = MutableStateFlow<List<OfflineQueueEntity>>(emptyList())
+    private val pendingCountFlow = MutableStateFlow(0)
+    private val messageStatusChanged = MutableSharedFlow<MessageStatusEvent>()
+    private val retryReadyMessages = MutableSharedFlow<OfflineQueueEntity>()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
-        queueManager = mockk(relaxed = true)
+        offlineMessageQueue = mockk(relaxed = true)
 
-        every { queueManager.outgoingQueue } returns outgoingQueueFlow
-        every { queueManager.incomingQueue } returns incomingQueueFlow
+        every { offlineMessageQueue.getAllPendingMessages() } returns pendingMessagesFlow
+        every { offlineMessageQueue.getTotalPendingCount() } returns pendingCountFlow
+        every { offlineMessageQueue.messageStatusChanged } returns messageStatusChanged
+        every { offlineMessageQueue.retryReadyMessages } returns retryReadyMessages
 
-        viewModel = MessageQueueViewModel(queueManager)
+        viewModel = MessageQueueViewModel(offlineMessageQueue)
     }
 
     @After
@@ -68,249 +56,213 @@ class MessageQueueViewModelTest {
         Dispatchers.resetMain()
     }
 
-    @Test
-    fun `outgoing messages should be collected from queue manager`() = runTest {
-        // Given
-        val testMessage = QueuedOutgoingMessage(
-            messageId = "msg1",
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            queuedAt = System.currentTimeMillis(),
-            priority = 50,
-            retryCount = 0,
-            lastError = null
-        )
-
-        // When
-        outgoingQueueFlow.value = mapOf("peer1" to listOf(testMessage))
+    /**
+     * Helper: subscribe to outgoingMessages to activate WhileSubscribed stateIn,
+     * then set the flow value and advance the dispatcher.
+     */
+    private fun TestScope.collectOutgoingAndSet(entities: List<OfflineQueueEntity>) {
+        // Start a collector to activate WhileSubscribed
+        backgroundScope.launch {
+            viewModel.outgoingMessages.collect { }
+        }
         advanceUntilIdle()
 
-        // Then
-        assertEquals(1, viewModel.outgoingMessages.value.size)
-        assertEquals("msg1", viewModel.outgoingMessages.value[0].id)
-        assertEquals("peer1", viewModel.outgoingMessages.value[0].peerId)
-        assertEquals(MessagePriority.NORMAL, viewModel.outgoingMessages.value[0].priority)
+        // Set the flow value
+        pendingMessagesFlow.value = entities
+        advanceUntilIdle()
     }
 
     @Test
-    fun `incoming messages should be collected from queue manager`() = runTest {
+    fun `outgoing messages should be collected from offline queue`() = runTest {
         // Given
-        val testMessage = QueuedIncomingMessage(
-            messageId = "msg2",
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            receivedAt = System.currentTimeMillis()
+        val entity = createTestEntity(
+            id = "msg1",
+            peerId = "peer1",
+            status = QueueStatus.PENDING,
+            priority = MessagePriority.NORMAL
         )
 
         // When
-        incomingQueueFlow.value = mapOf("peer2" to listOf(testMessage))
-        advanceUntilIdle()
+        collectOutgoingAndSet(listOf(entity))
 
         // Then
-        assertEquals(1, viewModel.incomingMessages.value.size)
-        assertEquals("msg2", viewModel.incomingMessages.value[0].id)
-        assertEquals("peer2", viewModel.incomingMessages.value[0].peerId)
-        assertEquals(MessageStatus.PENDING, viewModel.incomingMessages.value[0].status)
+        val messages = viewModel.outgoingMessages.value
+        assertEquals(1, messages.size)
+        assertEquals("msg1", messages[0].id)
+        assertEquals("peer1", messages[0].peerId)
+        assertEquals(MessageStatus.PENDING, messages[0].status)
     }
 
     @Test
-    fun `retryMessage should call queue manager retry`() = runTest {
+    fun `retryMessage should call markAsFailed with shouldRetry true`() = runTest {
         // Given
         val messageId = "msg1"
-        val testMessage = QueuedOutgoingMessage(
-            messageId = messageId,
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            queuedAt = System.currentTimeMillis(),
-            priority = 50,
-            retryCount = 1,
-            lastError = "Network error"
-        )
-
-        outgoingQueueFlow.value = mapOf("peer1" to listOf(testMessage))
-        advanceUntilIdle()
-
-        coEvery { queueManager.retryMessage("peer1", messageId) } just Runs
+        coEvery { offlineMessageQueue.markAsFailed(messageId, shouldRetry = true) } just Runs
 
         // When
         viewModel.retryMessage(messageId)
         advanceUntilIdle()
 
         // Then
-        coVerify { queueManager.retryMessage("peer1", messageId) }
+        coVerify { offlineMessageQueue.markAsFailed(messageId, shouldRetry = true) }
     }
 
     @Test
-    fun `cancelMessage should remove message from queue`() = runTest {
+    fun `cancelMessage should call markAsFailed with shouldRetry false`() = runTest {
         // Given
         val messageId = "msg1"
-        val testMessage = QueuedOutgoingMessage(
-            messageId = messageId,
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            queuedAt = System.currentTimeMillis(),
-            priority = 50,
-            retryCount = 0,
-            lastError = null
-        )
-
-        outgoingQueueFlow.value = mapOf("peer1" to listOf(testMessage))
-        advanceUntilIdle()
-
-        coEvery { queueManager.removeOutgoingMessage("peer1", messageId) } just Runs
+        coEvery { offlineMessageQueue.markAsFailed(messageId, shouldRetry = false) } just Runs
 
         // When
         viewModel.cancelMessage(messageId)
         advanceUntilIdle()
 
         // Then
-        coVerify { queueManager.removeOutgoingMessage("peer1", messageId) }
+        coVerify { offlineMessageQueue.markAsFailed(messageId, shouldRetry = false) }
     }
 
     @Test
-    fun `clearCompleted should remove completed messages`() = runTest {
+    fun `clearCompleted should call cleanupOldMessages`() = runTest {
         // Given
-        coEvery { queueManager.removeOutgoingMessage(any(), any()) } just Runs
-        coEvery { queueManager.removeIncomingMessage(any(), any()) } just Runs
+        coEvery { offlineMessageQueue.cleanupOldMessages() } just Runs
 
         // When
         viewModel.clearCompleted()
         advanceUntilIdle()
 
         // Then
-        // Verify that removal methods were attempted
-        // (actual completed messages would need to be in the flow)
-        assertTrue(true) // Test structure validation
+        coVerify { offlineMessageQueue.cleanupOldMessages() }
     }
 
     @Test
     fun `getQueueStats should return correct statistics`() = runTest {
         // Given
-        val outgoingMessage1 = QueuedOutgoingMessage(
-            messageId = "msg1",
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            queuedAt = System.currentTimeMillis(),
-            priority = 50,
-            retryCount = 0,
-            lastError = null
+        val pendingEntity = createTestEntity(
+            id = "msg1",
+            peerId = "peer1",
+            status = QueueStatus.PENDING
+        )
+        val failedEntity = createTestEntity(
+            id = "msg2",
+            peerId = "peer1",
+            status = QueueStatus.FAILED,
+            retryCount = 3
         )
 
-        val outgoingMessage2 = QueuedOutgoingMessage(
-            messageId = "msg2",
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            queuedAt = System.currentTimeMillis(),
-            priority = 50,
-            retryCount = 1,
-            lastError = "Failed"
-        )
-
-        outgoingQueueFlow.value = mapOf("peer1" to listOf(outgoingMessage1, outgoingMessage2))
-        advanceUntilIdle()
+        collectOutgoingAndSet(listOf(pendingEntity, failedEntity))
 
         // When
         val stats = viewModel.getQueueStats()
 
         // Then
         assertEquals(2, stats.totalOutgoing)
-        assertEquals(1, stats.pendingOutgoing) // msg1 with retryCount=0
-        assertEquals(1, stats.failedOutgoing) // msg2 with error
+        assertEquals(1, stats.pendingOutgoing)
+        assertEquals(1, stats.failedOutgoing)
     }
 
     @Test
     fun `high priority messages should be mapped correctly`() = runTest {
         // Given
-        val highPriorityMessage = QueuedOutgoingMessage(
-            messageId = "msg1",
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            queuedAt = System.currentTimeMillis(),
-            priority = 100, // HIGH priority
-            retryCount = 0,
-            lastError = null
+        val entity = createTestEntity(
+            id = "msg1",
+            peerId = "peer1",
+            priority = MessagePriority.HIGH
         )
 
         // When
-        outgoingQueueFlow.value = mapOf("peer1" to listOf(highPriorityMessage))
-        advanceUntilIdle()
+        collectOutgoingAndSet(listOf(entity))
 
         // Then
-        assertEquals(MessagePriority.HIGH, viewModel.outgoingMessages.value[0].priority)
+        val messages = viewModel.outgoingMessages.value
+        assertEquals(1, messages.size)
+        assertEquals(
+            com.chainlesschain.android.feature.p2p.ui.MessagePriority.HIGH,
+            messages[0].priority
+        )
     }
 
     @Test
     fun `failed messages should have FAILED status`() = runTest {
         // Given
-        val failedMessage = QueuedOutgoingMessage(
-            messageId = "msg1",
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            queuedAt = System.currentTimeMillis(),
-            priority = 50,
-            retryCount = 1,
-            lastError = "Connection timeout"
+        val entity = createTestEntity(
+            id = "msg1",
+            peerId = "peer1",
+            status = QueueStatus.FAILED,
+            retryCount = 3
         )
 
         // When
-        outgoingQueueFlow.value = mapOf("peer1" to listOf(failedMessage))
-        advanceUntilIdle()
+        collectOutgoingAndSet(listOf(entity))
 
         // Then
-        assertEquals(MessageStatus.FAILED, viewModel.outgoingMessages.value[0].status)
-        assertEquals("Connection timeout", viewModel.outgoingMessages.value[0].error)
+        val messages = viewModel.outgoingMessages.value
+        assertEquals(1, messages.size)
+        assertEquals(MessageStatus.FAILED, messages[0].status)
+        assertTrue(messages[0].error?.contains("3 retries") == true)
     }
 
     @Test
-    fun `messages should be sorted by timestamp descending`() = runTest {
+    fun `messages should be mapped with correct preview`() = runTest {
         // Given
-        val message1 = QueuedOutgoingMessage(
-            messageId = "msg1",
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            queuedAt = 1000L,
-            priority = 50,
-            retryCount = 0,
-            lastError = null
-        )
-
-        val message2 = QueuedOutgoingMessage(
-            messageId = "msg2",
-            encryptedMessage = RatchetMessage(
-                header = byteArrayOf(1, 2, 3),
-                ciphertext = byteArrayOf(4, 5, 6)
-            ),
-            queuedAt = 2000L,
-            priority = 50,
-            retryCount = 0,
-            lastError = null
+        val entity = createTestEntity(
+            id = "msg1",
+            peerId = "peer1",
+            messageType = "TEXT",
+            payload = "Hello World"
         )
 
         // When
-        outgoingQueueFlow.value = mapOf("peer1" to listOf(message1, message2))
+        collectOutgoingAndSet(listOf(entity))
+
+        // Then
+        val messages = viewModel.outgoingMessages.value
+        assertEquals(1, messages.size)
+        assertTrue(messages[0].preview.contains("TEXT"))
+        assertTrue(messages[0].preview.contains("Hello World"))
+    }
+
+    @Test
+    fun `incoming messages should be empty by default`() = runTest {
+        // Given/When
+        advanceUntilIdle()
+
+        // Then - incomingMessages is an empty MutableStateFlow in current implementation
+        assertTrue(viewModel.incomingMessages.value.isEmpty())
+    }
+
+    @Test
+    fun `clearAll should call clearAllQueues`() = runTest {
+        // Given
+        coEvery { offlineMessageQueue.clearAllQueues() } just Runs
+
+        // When
+        viewModel.clearAll()
         advanceUntilIdle()
 
         // Then
-        assertEquals("msg2", viewModel.outgoingMessages.value[0].id) // Newer first
-        assertEquals("msg1", viewModel.outgoingMessages.value[1].id)
+        coVerify { offlineMessageQueue.clearAllQueues() }
     }
-*/
+
+    // ===== Helper Methods =====
+
+    private fun createTestEntity(
+        id: String = "test-${System.currentTimeMillis()}",
+        peerId: String = "peer1",
+        messageType: String = "TEXT",
+        payload: String = """{"content":"test message"}""",
+        priority: String = MessagePriority.NORMAL,
+        status: String = QueueStatus.PENDING,
+        retryCount: Int = 0
+    ): OfflineQueueEntity {
+        return OfflineQueueEntity(
+            id = id,
+            peerId = peerId,
+            messageType = messageType,
+            payload = payload,
+            priority = priority,
+            status = status,
+            retryCount = retryCount,
+            createdAt = System.currentTimeMillis()
+        )
+    }
 }

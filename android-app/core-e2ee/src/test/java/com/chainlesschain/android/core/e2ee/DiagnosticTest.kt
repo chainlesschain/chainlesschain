@@ -1,5 +1,6 @@
 package com.chainlesschain.android.core.e2ee
 
+import com.chainlesschain.android.core.e2ee.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.X3DHKeyExchange
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -31,8 +32,10 @@ class DiagnosticTest {
         val bobSignedPreKeyPair = X25519KeyPair.generate()
 
         // Bob publishes pre-key bundle
+        val bobSigningKeyPair = Ed25519KeyPair.generate()
         val bobPreKeyBundle = X3DHKeyExchange.generatePreKeyBundle(
             bobIdentityKeyPair,
+            bobSigningKeyPair,
             bobSignedPreKeyPair
         )
 
