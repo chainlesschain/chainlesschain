@@ -293,7 +293,7 @@ function registerConversationIPC({
 
         logger.info("[Conversation IPC] 更新对话:", conversationId);
 
-        const { title, context_type, context_data } = updates;
+        const { title, context_type, context_data, is_starred } = updates;
         const updated_at = Date.now();
 
         // 更新对话元数据
@@ -305,6 +305,7 @@ function registerConversationIPC({
         SET title = COALESCE(?, title),
             context_type = COALESCE(?, context_type),
             context_data = COALESCE(?, context_data),
+            is_starred = COALESCE(?, is_starred),
             updated_at = ?
         WHERE id = ?
       `,
@@ -313,6 +314,7 @@ function registerConversationIPC({
             title || null,
             context_type || null,
             context_data ? JSON.stringify(context_data) : null,
+            is_starred != null ? (is_starred ? 1 : 0) : null,
             updated_at,
             conversationId,
           );
