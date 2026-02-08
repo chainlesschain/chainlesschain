@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -78,7 +80,7 @@ fun LLMTestChatScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回")
                     }
                 },
                 actions = {
@@ -499,7 +501,7 @@ fun ChatInputArea(
                 },
                 enabled = message.isNotBlank() && !isLoading
             ) {
-                Icon(Icons.Default.Send, "发送")
+                Icon(Icons.AutoMirrored.Filled.Send, "发送")
             }
         }
     }

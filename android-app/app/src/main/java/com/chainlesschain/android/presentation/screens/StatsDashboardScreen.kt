@@ -3,9 +3,9 @@ package com.chainlesschain.android.presentation.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -181,7 +181,7 @@ fun OverviewCards() {
                 value = "89",
                 change = "+15",
                 isPositive = true,
-                icon = Icons.AutoMirrored.Filled.Chat
+                icon = Icons.Default.Chat
             )
 
             // 任务完成率
@@ -249,7 +249,7 @@ fun StatsCard(
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = if (isPositive) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+                            imageVector = if (isPositive) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
                             tint = MaterialTheme.colorScheme.onPrimary

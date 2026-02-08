@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,7 +36,7 @@ fun UsageStatisticsScreen(
                 title = { Text("Token使用统计") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -182,7 +184,7 @@ private fun TotalUsageCard(allUsage: List<UsageStatistics>) {
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 StatisticItem(
-                    icon = Icons.Default.Chat,
+                    icon = Icons.AutoMirrored.Filled.Chat,
                     label = "总请求",
                     value = formatNumber(totalRequests),
                     color = MaterialTheme.colorScheme.onPrimaryContainer

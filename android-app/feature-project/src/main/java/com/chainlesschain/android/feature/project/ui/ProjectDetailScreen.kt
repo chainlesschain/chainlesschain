@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Add
@@ -197,7 +198,7 @@ fun ProjectDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
@@ -1020,7 +1021,6 @@ private fun formatActivityTime(timestamp: Long): String {
 /**
  * 编辑项目对话框
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditProjectDialog(
     project: ProjectEntity,
@@ -1065,21 +1065,25 @@ private fun EditProjectDialog(
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
-                ExposedDropdownMenuBox(
-                    expanded = typeMenuExpanded,
-                    onExpandedChange = { typeMenuExpanded = it }
-                ) {
+                Box {
                     OutlinedTextField(
                         value = typeOptions.firstOrNull { it.first == editType }?.second ?: editType,
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("项目类型") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeMenuExpanded) },
+                        trailingIcon = {
+                            IconButton(onClick = { typeMenuExpanded = !typeMenuExpanded }) {
+                                Icon(
+                                    imageVector = if (typeMenuExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = null
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor()
+                            .clickable { typeMenuExpanded = true }
                     )
-                    ExposedDropdownMenu(
+                    DropdownMenu(
                         expanded = typeMenuExpanded,
                         onDismissRequest = { typeMenuExpanded = false }
                     ) {
