@@ -2800,9 +2800,15 @@ describe("Organization IPC 处理器", () => {
       expect(Object.keys(handlers).length).toBeGreaterThanOrEqual(total);
     });
 
-    it("all handler channels should use org: prefix", () => {
+    it("all handler channels should use org: prefix (except documented aliases)", () => {
+      // Known aliases that intentionally don't use org: prefix
+      // organization:get-info is an alias for org:get-organization for frontend compatibility
+      const allowedAliases = ["organization:get-info"];
+
       Object.keys(handlers).forEach((channel) => {
-        expect(channel.startsWith("org:")).toBe(true);
+        if (!allowedAliases.includes(channel)) {
+          expect(channel.startsWith("org:")).toBe(true);
+        }
       });
     });
   });
