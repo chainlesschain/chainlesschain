@@ -680,8 +680,9 @@ describe("Asset IPC Handlers", () => {
  */
 function extractHandlerBlock(content, channelName) {
   const escapedChannel = channelName.replace(/:/g, "\\:");
+  // 支持多行格式：ipcMain.handle(\n  "channel", ...
   const pattern = new RegExp(
-    `ipcMain\\.handle\\(['"]${escapedChannel}['"].*?\\n  \\}\\);`,
+    `ipcMain\\.handle\\(\\s*['"]${escapedChannel}['"].*?\\n  \\}\\);`,
     "s",
   );
   const match = content.match(pattern);
