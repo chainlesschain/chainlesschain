@@ -392,7 +392,7 @@ describe('SyncConflictsPage', () => {
   describe('冲突解决 - 本地优先', () => {
     it('应该能使用本地版本解决冲突', async () => {
       wrapper = createWrapper();
-      wrapper.vm.conflicts = mockConflicts;
+      wrapper.vm.conflicts = [...mockConflicts];
       const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
@@ -454,7 +454,7 @@ describe('SyncConflictsPage', () => {
       wrapper.vm.showManualMerge(mockConflicts[0]);
 
       expect(wrapper.vm.mergeModalVisible).toBe(true);
-      expect(wrapper.vm.currentConflict).toBe(mockConflicts[0]);
+      expect(wrapper.vm.currentConflict).toStrictEqual(mockConflicts[0]);
       expect(wrapper.vm.mergedData).toBe(
         JSON.stringify(mockConflicts[0].local_data, null, 2)
       );
