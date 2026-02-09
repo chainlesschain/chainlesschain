@@ -187,6 +187,10 @@ vi.mock('@ant-design/icons-vue', () => ({
     name: 'TeamOutlined',
     template: '<span class="team-outlined">T</span>'
   },
+  CloudSyncOutlined: {
+    name: 'CloudSyncOutlined',
+    template: '<span class="cloud-sync-outlined">C</span>'
+  },
   SettingOutlined: {
     name: 'SettingOutlined',
     template: '<span class="setting-outlined">S</span>'

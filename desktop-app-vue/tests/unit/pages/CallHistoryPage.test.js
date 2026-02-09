@@ -41,14 +41,14 @@ vi.mock('ant-design-vue', () => ({
   Modal: mockModal,
 }));
 
-// Mock useP2PCall composable
-const mockUseP2PCall = {
+// Hoist mock for useP2PCall so it can be used directly in setup
+const mockUseP2PCall = vi.hoisted(() => ({
   startAudioCall: vi.fn(),
   startVideoCall: vi.fn(),
   startScreenShare: vi.fn(),
-};
+}));
 
-vi.mock('@renderer/composables/useP2PCall', () => ({
+vi.mock('@/composables/useP2PCall', () => ({
   useP2PCall: () => mockUseP2PCall,
 }));
 
@@ -179,9 +179,8 @@ describe('CallHistoryPage', () => {
           const { ref, computed } = require('vue');
           const message = mockMessage;
           const Modal = mockModal;
-          const { useP2PCall } = require('@renderer/composables/useP2PCall');
-
-          const { startAudioCall, startVideoCall, startScreenShare } = useP2PCall();
+          // Use mock directly instead of requiring - vi.mock doesn't intercept require() in setup
+          const { startAudioCall, startVideoCall, startScreenShare } = mockUseP2PCall;
 
           const loading = ref(false);
           const filterType = ref('all');
