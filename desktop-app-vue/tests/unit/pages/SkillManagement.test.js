@@ -18,9 +18,9 @@
  * - 空状态处理
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
-import { ref, computed, onMounted } from 'vue';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mount, flushPromises } from "@vue/test-utils";
+import { ref, computed, onMounted } from "vue";
 
 // Hoisted mocks for ant-design-vue
 const mockMessage = vi.hoisted(() => ({
@@ -32,7 +32,9 @@ const mockMessage = vi.hoisted(() => ({
 
 const mockModal = vi.hoisted(() => ({
   confirm: vi.fn((opts) => {
-    if (opts?.onOk) Promise.resolve().then(() => opts.onOk());
+    if (opts?.onOk) {
+      Promise.resolve().then(() => opts.onOk());
+    }
     return { destroy: vi.fn() };
   }),
   info: vi.fn(),
@@ -42,7 +44,7 @@ const mockModal = vi.hoisted(() => ({
 }));
 
 // Mock ant-design-vue
-vi.mock('ant-design-vue', () => ({
+vi.mock("ant-design-vue", () => ({
   message: mockMessage,
   Modal: mockModal,
 }));
@@ -62,34 +64,34 @@ const mockSkillStore = {
   searchSkills: vi.fn(),
 };
 
-vi.mock('@renderer/stores/skill', () => ({
+vi.mock("@renderer/stores/skill", () => ({
   useSkillStore: () => mockSkillStore,
 }));
 
-describe('SkillManagement', () => {
+describe("SkillManagement", () => {
   let wrapper;
 
   const mockSkills = [
     {
-      id: 'skill-1',
-      name: 'Code Generator',
-      category: 'code',
+      id: "skill-1",
+      name: "Code Generator",
+      category: "code",
       enabled: true,
-      description: 'Generate code snippets',
+      description: "Generate code snippets",
     },
     {
-      id: 'skill-2',
-      name: 'Web Scraper',
-      category: 'web',
+      id: "skill-2",
+      name: "Web Scraper",
+      category: "web",
       enabled: true,
-      description: 'Scrape web content',
+      description: "Scrape web content",
     },
     {
-      id: 'skill-3',
-      name: 'Data Analyzer',
-      category: 'data',
+      id: "skill-3",
+      name: "Data Analyzer",
+      category: "data",
       enabled: false,
-      description: 'Analyze data sets',
+      description: "Analyze data sets",
     },
   ];
 
@@ -209,8 +211,8 @@ describe('SkillManagement', () => {
           const message = mockMessage;
           const Modal = mockModal;
           const skillStore = mockSkillStore;
-          const searchKeyword = ref('');
-          const categoryFilter = ref('all');
+          const searchKeyword = ref("");
+          const categoryFilter = ref("all");
           const selectedSkills = ref([]);
           const selectedSkillIds = ref({});
           const gridColumns = ref(3);
@@ -232,20 +234,20 @@ describe('SkillManagement', () => {
 
           const handleRefresh = async () => {
             await skillStore.loadSkills();
-            message.success('刷新成功');
+            message.success("刷新成功");
           };
 
           const handleCreateSkill = () => {
             // Navigate to create skill page
-            message.info('创建技能功能');
+            message.info("创建技能功能");
           };
 
           const showStats = () => {
-            message.info('统计分析功能');
+            message.info("统计分析功能");
           };
 
           const showDependencyGraph = () => {
-            message.info('依赖关系图功能');
+            message.info("依赖关系图功能");
           };
 
           const handleSkillSelect = (skill) => {
@@ -253,7 +255,7 @@ describe('SkillManagement', () => {
               selectedSkills.value.push(skill);
             } else {
               selectedSkills.value = selectedSkills.value.filter(
-                (s) => s.id !== skill.id
+                (s) => s.id !== skill.id,
               );
             }
           };
@@ -280,12 +282,12 @@ describe('SkillManagement', () => {
             try {
               await skillStore.batchUpdateSkills(
                 selectedSkills.value.map((s) => s.id),
-                { enabled: true }
+                { enabled: true },
               );
-              message.success('批量启用成功');
+              message.success("批量启用成功");
               handleClearSelection();
             } catch (error) {
-              message.error('批量启用失败: ' + error.message);
+              message.error("批量启用失败: " + error.message);
             }
           };
 
@@ -293,29 +295,29 @@ describe('SkillManagement', () => {
             try {
               await skillStore.batchUpdateSkills(
                 selectedSkills.value.map((s) => s.id),
-                { enabled: false }
+                { enabled: false },
               );
-              message.success('批量禁用成功');
+              message.success("批量禁用成功");
               handleClearSelection();
             } catch (error) {
-              message.error('批量禁用失败: ' + error.message);
+              message.error("批量禁用失败: " + error.message);
             }
           };
 
           const handleBatchDelete = () => {
             Modal.confirm({
-              title: '确认删除',
+              title: "确认删除",
               content: `确定要删除选中的 ${selectedSkills.value.length} 个技能吗？`,
               onOk: async () => {
                 try {
                   for (const skill of selectedSkills.value) {
                     await skillStore.deleteSkill(skill.id);
                   }
-                  message.success('批量删除成功');
+                  message.success("批量删除成功");
                   handleClearSelection();
                   await skillStore.loadSkills();
                 } catch (error) {
-                  message.error('批量删除失败: ' + error.message);
+                  message.error("批量删除失败: " + error.message);
                 }
               },
             });
@@ -326,9 +328,9 @@ describe('SkillManagement', () => {
               await skillStore.updateSkill(skill.id, {
                 enabled: !skill.enabled,
               });
-              message.success(skill.enabled ? '已禁用' : '已启用');
+              message.success(skill.enabled ? "已禁用" : "已启用");
             } catch (error) {
-              message.error('操作失败: ' + error.message);
+              message.error("操作失败: " + error.message);
             }
           };
 
@@ -373,21 +375,21 @@ describe('SkillManagement', () => {
       {
         global: {
           stubs: {
-            'a-space': true,
-            'a-statistic': true,
-            'a-input-search': true,
-            'a-select': true,
-            'a-select-option': true,
-            'a-button': true,
-            'a-checkbox': true,
-            'a-spin': true,
-            'a-empty': true,
+            "a-space": true,
+            "a-statistic": true,
+            "a-input-search": true,
+            "a-select": true,
+            "a-select-option": true,
+            "a-button": true,
+            "a-checkbox": true,
+            "a-spin": true,
+            "a-empty": true,
             SkillCard: true,
             VirtualGrid: true,
           },
         },
         ...options,
-      }
+      },
     );
   };
 
@@ -399,97 +401,99 @@ describe('SkillManagement', () => {
     mockSkillStore.filteredSkills = [...mockSkills];
   });
 
-  describe('组件挂载', () => {
-    it('应该成功挂载组件', () => {
+  describe("组件挂载", () => {
+    it("应该成功挂载组件", () => {
       wrapper = createWrapper();
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.find('.skill-management').exists()).toBe(true);
+      expect(wrapper.find(".skill-management").exists()).toBe(true);
     });
 
-    it('应该在挂载时加载技能', () => {
+    it("应该在挂载时加载技能", () => {
       wrapper = createWrapper();
       expect(mockSkillStore.loadSkills).toHaveBeenCalled();
     });
   });
 
-  describe('统计信息', () => {
-    it('应该显示总技能数', () => {
+  describe("统计信息", () => {
+    it("应该显示总技能数", () => {
       wrapper = createWrapper();
       expect(wrapper.vm.skillStore.totalCount).toBe(50);
     });
 
-    it('应该显示已启用技能数', () => {
+    it("应该显示已启用技能数", () => {
       wrapper = createWrapper();
       expect(wrapper.vm.skillStore.enabledCount).toBe(35);
     });
 
-    it('应该计算已禁用技能数', () => {
+    it("应该计算已禁用技能数", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.skillStore.totalCount - wrapper.vm.skillStore.enabledCount).toBe(15);
+      expect(
+        wrapper.vm.skillStore.totalCount - wrapper.vm.skillStore.enabledCount,
+      ).toBe(15);
     });
   });
 
-  describe('搜索功能', () => {
-    it('应该能搜索技能', () => {
+  describe("搜索功能", () => {
+    it("应该能搜索技能", () => {
       wrapper = createWrapper();
-      wrapper.vm.searchKeyword = 'Generator';
+      wrapper.vm.searchKeyword = "Generator";
 
       wrapper.vm.handleSearch();
 
-      expect(mockSkillStore.searchSkills).toHaveBeenCalledWith('Generator');
+      expect(mockSkillStore.searchSkills).toHaveBeenCalledWith("Generator");
     });
 
-    it('应该能处理空搜索', () => {
+    it("应该能处理空搜索", () => {
       wrapper = createWrapper();
-      wrapper.vm.searchKeyword = '';
+      wrapper.vm.searchKeyword = "";
 
       wrapper.vm.handleSearch();
 
-      expect(mockSkillStore.searchSkills).toHaveBeenCalledWith('');
+      expect(mockSkillStore.searchSkills).toHaveBeenCalledWith("");
     });
 
-    it('应该能搜索多次', () => {
+    it("应该能搜索多次", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.searchKeyword = 'Code';
+      wrapper.vm.searchKeyword = "Code";
       wrapper.vm.handleSearch();
 
-      wrapper.vm.searchKeyword = 'Web';
+      wrapper.vm.searchKeyword = "Web";
       wrapper.vm.handleSearch();
 
       expect(mockSkillStore.searchSkills).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('分类筛选', () => {
-    it('应该能按分类筛选', () => {
+  describe("分类筛选", () => {
+    it("应该能按分类筛选", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.handleCategoryChange('code');
+      wrapper.vm.handleCategoryChange("code");
 
-      expect(mockSkillStore.filterByCategory).toHaveBeenCalledWith('code');
+      expect(mockSkillStore.filterByCategory).toHaveBeenCalledWith("code");
     });
 
-    it('应该能显示全部分类', () => {
+    it("应该能显示全部分类", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.handleCategoryChange('all');
+      wrapper.vm.handleCategoryChange("all");
 
-      expect(mockSkillStore.filterByCategory).toHaveBeenCalledWith('all');
+      expect(mockSkillStore.filterByCategory).toHaveBeenCalledWith("all");
     });
 
-    it('应该支持多种分类', () => {
+    it("应该支持多种分类", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.handleCategoryChange('web');
-      wrapper.vm.handleCategoryChange('data');
+      wrapper.vm.handleCategoryChange("web");
+      wrapper.vm.handleCategoryChange("data");
 
       expect(mockSkillStore.filterByCategory).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('刷新功能', () => {
-    it('应该能刷新技能列表', async () => {
+  describe("刷新功能", () => {
+    it("应该能刷新技能列表", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       mockSkillStore.loadSkills.mockResolvedValue();
@@ -497,43 +501,43 @@ describe('SkillManagement', () => {
       await wrapper.vm.handleRefresh();
 
       expect(mockSkillStore.loadSkills).toHaveBeenCalled();
-      expect(message.success).toHaveBeenCalledWith('刷新成功');
+      expect(message.success).toHaveBeenCalledWith("刷新成功");
     });
   });
 
-  describe('创建技能', () => {
-    it('应该能触发创建技能', () => {
+  describe("创建技能", () => {
+    it("应该能触发创建技能", () => {
       wrapper = createWrapper();
       const message = mockMessage;
 
       wrapper.vm.handleCreateSkill();
 
-      expect(message.info).toHaveBeenCalledWith('创建技能功能');
+      expect(message.info).toHaveBeenCalledWith("创建技能功能");
     });
   });
 
-  describe('统计和依赖图', () => {
-    it('应该能显示统计分析', () => {
+  describe("统计和依赖图", () => {
+    it("应该能显示统计分析", () => {
       wrapper = createWrapper();
       const message = mockMessage;
 
       wrapper.vm.showStats();
 
-      expect(message.info).toHaveBeenCalledWith('统计分析功能');
+      expect(message.info).toHaveBeenCalledWith("统计分析功能");
     });
 
-    it('应该能显示依赖关系图', () => {
+    it("应该能显示依赖关系图", () => {
       wrapper = createWrapper();
       const message = mockMessage;
 
       wrapper.vm.showDependencyGraph();
 
-      expect(message.info).toHaveBeenCalledWith('依赖关系图功能');
+      expect(message.info).toHaveBeenCalledWith("依赖关系图功能");
     });
   });
 
-  describe('技能选择', () => {
-    it('应该能选择单个技能', () => {
+  describe("技能选择", () => {
+    it("应该能选择单个技能", () => {
       wrapper = createWrapper();
       const skill = mockSkills[0];
 
@@ -543,7 +547,7 @@ describe('SkillManagement', () => {
       expect(wrapper.vm.selectedSkills).toContainEqual(skill);
     });
 
-    it('应该能取消选择技能', () => {
+    it("应该能取消选择技能", () => {
       wrapper = createWrapper();
       const skill = mockSkills[0];
 
@@ -555,7 +559,7 @@ describe('SkillManagement', () => {
       expect(wrapper.vm.selectedSkills).not.toContainEqual(skill);
     });
 
-    it('应该能全选技能', () => {
+    it("应该能全选技能", () => {
       wrapper = createWrapper();
 
       wrapper.vm.handleSelectAll();
@@ -563,7 +567,7 @@ describe('SkillManagement', () => {
       expect(wrapper.vm.selectedSkills.length).toBe(mockSkills.length);
     });
 
-    it('应该能取消全选', () => {
+    it("应该能取消全选", () => {
       wrapper = createWrapper();
 
       wrapper.vm.handleSelectAll(); // 全选
@@ -572,7 +576,7 @@ describe('SkillManagement', () => {
       expect(wrapper.vm.selectedSkills.length).toBe(0);
     });
 
-    it('应该能清空选择', () => {
+    it("应该能清空选择", () => {
       wrapper = createWrapper();
 
       wrapper.vm.handleSelectAll();
@@ -582,7 +586,7 @@ describe('SkillManagement', () => {
       expect(Object.keys(wrapper.vm.selectedSkillIds).length).toBe(0);
     });
 
-    it('应该计算是否全选', () => {
+    it("应该计算是否全选", () => {
       wrapper = createWrapper();
 
       wrapper.vm.handleSelectAll();
@@ -591,8 +595,8 @@ describe('SkillManagement', () => {
     });
   });
 
-  describe('批量操作', () => {
-    it('应该能批量启用技能', async () => {
+  describe("批量操作", () => {
+    it("应该能批量启用技能", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       mockSkillStore.batchUpdateSkills.mockResolvedValue();
@@ -603,13 +607,13 @@ describe('SkillManagement', () => {
 
       expect(mockSkillStore.batchUpdateSkills).toHaveBeenCalledWith(
         [mockSkills[0].id, mockSkills[1].id],
-        { enabled: true }
+        { enabled: true },
       );
-      expect(message.success).toHaveBeenCalledWith('批量启用成功');
+      expect(message.success).toHaveBeenCalledWith("批量启用成功");
       expect(wrapper.vm.selectedSkills.length).toBe(0);
     });
 
-    it('应该能批量禁用技能', async () => {
+    it("应该能批量禁用技能", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       mockSkillStore.batchUpdateSkills.mockResolvedValue();
@@ -620,12 +624,12 @@ describe('SkillManagement', () => {
 
       expect(mockSkillStore.batchUpdateSkills).toHaveBeenCalledWith(
         [mockSkills[0].id],
-        { enabled: false }
+        { enabled: false },
       );
-      expect(message.success).toHaveBeenCalledWith('批量禁用成功');
+      expect(message.success).toHaveBeenCalledWith("批量禁用成功");
     });
 
-    it('应该能批量删除技能', async () => {
+    it("应该能批量删除技能", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       const Modal = mockModal;
@@ -636,26 +640,30 @@ describe('SkillManagement', () => {
 
       wrapper.vm.handleBatchDelete();
 
+      // Wait for Modal.confirm to be called and onOk callback to complete
+      await flushPromises();
+      await flushPromises();
+
       expect(Modal.confirm).toHaveBeenCalled();
       expect(mockSkillStore.deleteSkill).toHaveBeenCalledTimes(2);
-      expect(message.success).toHaveBeenCalledWith('批量删除成功');
+      expect(message.success).toHaveBeenCalledWith("批量删除成功");
     });
 
-    it('应该能处理批量操作失败', async () => {
+    it("应该能处理批量操作失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      mockSkillStore.batchUpdateSkills.mockRejectedValue(new Error('操作失败'));
+      mockSkillStore.batchUpdateSkills.mockRejectedValue(new Error("操作失败"));
 
       wrapper.vm.selectedSkills = [mockSkills[0]];
 
       await wrapper.vm.handleBatchEnable();
 
-      expect(message.error).toHaveBeenCalledWith('批量启用失败: 操作失败');
+      expect(message.error).toHaveBeenCalledWith("批量启用失败: 操作失败");
     });
   });
 
-  describe('启用/禁用技能', () => {
-    it('应该能启用技能', async () => {
+  describe("启用/禁用技能", () => {
+    it("应该能启用技能", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       mockSkillStore.updateSkill.mockResolvedValue();
@@ -667,10 +675,10 @@ describe('SkillManagement', () => {
       expect(mockSkillStore.updateSkill).toHaveBeenCalledWith(skill.id, {
         enabled: true,
       });
-      expect(message.success).toHaveBeenCalledWith('已启用');
+      expect(message.success).toHaveBeenCalledWith("已启用");
     });
 
-    it('应该能禁用技能', async () => {
+    it("应该能禁用技能", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       mockSkillStore.updateSkill.mockResolvedValue();
@@ -682,49 +690,53 @@ describe('SkillManagement', () => {
       expect(mockSkillStore.updateSkill).toHaveBeenCalledWith(skill.id, {
         enabled: false,
       });
-      expect(message.success).toHaveBeenCalledWith('已禁用');
+      expect(message.success).toHaveBeenCalledWith("已禁用");
     });
 
-    it('应该能处理切换失败', async () => {
+    it("应该能处理切换失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      mockSkillStore.updateSkill.mockRejectedValue(new Error('更新失败'));
+      mockSkillStore.updateSkill.mockRejectedValue(new Error("更新失败"));
 
       await wrapper.vm.handleToggleEnabled(mockSkills[0]);
 
-      expect(message.error).toHaveBeenCalledWith('操作失败: 更新失败');
+      expect(message.error).toHaveBeenCalledWith("操作失败: 更新失败");
     });
   });
 
-  describe('查看详情', () => {
-    it('应该能查看技能详情', () => {
+  describe("查看详情", () => {
+    it("应该能查看技能详情", () => {
       wrapper = createWrapper();
       const message = mockMessage;
 
       wrapper.vm.handleViewDetails(mockSkills[0]);
 
-      expect(message.info).toHaveBeenCalledWith(`查看技能详情: ${mockSkills[0].name}`);
+      expect(message.info).toHaveBeenCalledWith(
+        `查看技能详情: ${mockSkills[0].name}`,
+      );
     });
 
-    it('应该能查看技能文档', () => {
+    it("应该能查看技能文档", () => {
       wrapper = createWrapper();
       const message = mockMessage;
 
       wrapper.vm.handleViewDoc(mockSkills[0]);
 
-      expect(message.info).toHaveBeenCalledWith(`查看技能文档: ${mockSkills[0].name}`);
+      expect(message.info).toHaveBeenCalledWith(
+        `查看技能文档: ${mockSkills[0].name}`,
+      );
     });
   });
 
-  describe('加载状态', () => {
-    it('应该显示加载状态', () => {
+  describe("加载状态", () => {
+    it("应该显示加载状态", () => {
       mockSkillStore.loading = true;
       wrapper = createWrapper();
 
       expect(wrapper.vm.skillStore.loading).toBe(true);
     });
 
-    it('应该隐藏加载状态', () => {
+    it("应该隐藏加载状态", () => {
       mockSkillStore.loading = false;
       wrapper = createWrapper();
 
@@ -732,15 +744,15 @@ describe('SkillManagement', () => {
     });
   });
 
-  describe('空状态', () => {
-    it('应该显示空状态', () => {
+  describe("空状态", () => {
+    it("应该显示空状态", () => {
       mockSkillStore.filteredSkills = [];
       wrapper = createWrapper();
 
       expect(wrapper.vm.skillStore.filteredSkills.length).toBe(0);
     });
 
-    it('应该在有数据时不显示空状态', () => {
+    it("应该在有数据时不显示空状态", () => {
       mockSkillStore.filteredSkills = mockSkills;
       wrapper = createWrapper();
 
@@ -748,17 +760,19 @@ describe('SkillManagement', () => {
     });
   });
 
-  describe('边界情况', () => {
-    it('应该处理空选择的批量操作', async () => {
+  describe("边界情况", () => {
+    it("应该处理空选择的批量操作", async () => {
       wrapper = createWrapper();
       wrapper.vm.selectedSkills = [];
 
       await wrapper.vm.handleBatchEnable();
 
-      expect(mockSkillStore.batchUpdateSkills).toHaveBeenCalledWith([], { enabled: true });
+      expect(mockSkillStore.batchUpdateSkills).toHaveBeenCalledWith([], {
+        enabled: true,
+      });
     });
 
-    it('应该处理大量技能选择', () => {
+    it("应该处理大量技能选择", () => {
       wrapper = createWrapper();
       const manySkills = Array.from({ length: 100 }, (_, i) => ({
         id: `skill-${i}`,
@@ -772,7 +786,7 @@ describe('SkillManagement', () => {
       expect(wrapper.vm.selectedSkills.length).toBe(100);
     });
 
-    it('应该处理网格列数配置', () => {
+    it("应该处理网格列数配置", () => {
       wrapper = createWrapper();
       wrapper.vm.gridColumns = 4;
 

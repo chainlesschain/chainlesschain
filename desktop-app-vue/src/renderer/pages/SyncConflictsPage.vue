@@ -267,6 +267,23 @@ function goBack() {
 onMounted(() => {
   loadConflicts();
 });
+
+// 暴露给测试使用
+defineExpose({
+  loading,
+  conflicts,
+  mergeModalVisible,
+  currentConflict,
+  mergedData,
+  mergeError,
+  loadConflicts,
+  handleResolve,
+  showManualMerge,
+  handleManualMergeOk,
+  getResourceTypeName,
+  formatTime,
+  goBack,
+});
 </script>
 
 <style scoped>

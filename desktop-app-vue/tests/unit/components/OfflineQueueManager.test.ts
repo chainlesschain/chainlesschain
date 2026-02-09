@@ -466,7 +466,8 @@ describe('OfflineQueueManager.vue', () => {
       const shortContent = '短消息';
       expect(wrapper.vm.truncateContent(shortContent)).toBe(shortContent);
 
-      const longContent = '这是一条非常长的消息内容，超过了50个字符的限制，应该被截断并添加省略号';
+      // 使用超过50个字符的字符串（这个字符串有60+个字符）
+      const longContent = '这是一条非常非常非常非常非常非常非常非常非常非常长的消息内容，超过了五十个字符的限制，应该被截断并添加省略号';
       const truncated = wrapper.vm.truncateContent(longContent);
       expect(truncated).toContain('...');
       expect(truncated.length).toBeLessThan(longContent.length);
