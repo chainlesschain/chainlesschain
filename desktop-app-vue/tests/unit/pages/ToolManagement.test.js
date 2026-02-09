@@ -21,9 +21,9 @@
  * - 加载状态和空状态
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
-import { ref, onMounted } from 'vue';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mount, flushPromises } from "@vue/test-utils";
+import { ref, onMounted } from "vue";
 
 // Hoisted mocks for ant-design-vue
 const mockMessage = vi.hoisted(() => ({
@@ -35,7 +35,9 @@ const mockMessage = vi.hoisted(() => ({
 
 const mockModal = vi.hoisted(() => ({
   confirm: vi.fn((opts) => {
-    if (opts?.onOk) Promise.resolve().then(() => opts.onOk());
+    if (opts?.onOk) {
+      Promise.resolve().then(() => opts.onOk());
+    }
     return { destroy: vi.fn() };
   }),
   info: vi.fn(),
@@ -45,7 +47,7 @@ const mockModal = vi.hoisted(() => ({
 }));
 
 // Mock ant-design-vue - use the same mockMessage and mockModal objects
-vi.mock('ant-design-vue', () => ({
+vi.mock("ant-design-vue", () => ({
   message: mockMessage,
   Modal: mockModal,
 }));
@@ -68,49 +70,49 @@ const mockToolStore = {
   searchTools: vi.fn(),
 };
 
-vi.mock('@/stores/tool', () => ({
+vi.mock("@/stores/tool", () => ({
   useToolStore: () => mockToolStore,
 }));
 
-describe('ToolManagement', () => {
+describe("ToolManagement", () => {
   let wrapper;
 
   const mockTools = [
     {
-      id: 'tool-1',
-      name: 'file_read',
-      display_name: 'Read File',
-      description: 'Read file contents',
-      category: 'file',
-      tool_type: 'builtin',
-      risk_level: 'low',
+      id: "tool-1",
+      name: "file_read",
+      display_name: "Read File",
+      description: "Read file contents",
+      category: "file",
+      tool_type: "builtin",
+      risk_level: "low",
       enabled: 1,
       usage_count: 150,
-      last_used: '2026-01-26T10:00:00.000Z',
+      last_used: "2026-01-26T10:00:00.000Z",
     },
     {
-      id: 'tool-2',
-      name: 'code_generator',
-      display_name: 'Code Generator',
-      description: 'Generate code snippets',
-      category: 'code',
-      tool_type: 'plugin',
-      risk_level: 'medium',
+      id: "tool-2",
+      name: "code_generator",
+      display_name: "Code Generator",
+      description: "Generate code snippets",
+      category: "code",
+      tool_type: "plugin",
+      risk_level: "medium",
       enabled: 1,
       usage_count: 80,
-      last_used: '2026-01-25T15:30:00.000Z',
+      last_used: "2026-01-25T15:30:00.000Z",
     },
     {
-      id: 'tool-3',
-      name: 'system_cmd',
-      display_name: 'System Command',
-      description: 'Execute system commands',
-      category: 'system',
-      tool_type: 'builtin',
-      risk_level: 'high',
+      id: "tool-3",
+      name: "system_cmd",
+      display_name: "System Command",
+      description: "Execute system commands",
+      category: "system",
+      tool_type: "builtin",
+      risk_level: "high",
       enabled: 0,
       usage_count: 5,
-      last_used: '2026-01-20T08:00:00.000Z',
+      last_used: "2026-01-20T08:00:00.000Z",
     },
   ];
 
@@ -220,52 +222,52 @@ describe('ToolManagement', () => {
           const message = mockMessage;
           const Modal = mockModal;
           const toolStore = mockToolStore;
-          const searchKeyword = ref('');
-          const categoryFilter = ref('all');
-          const statusFilter = ref('all');
+          const searchKeyword = ref("");
+          const categoryFilter = ref("all");
+          const statusFilter = ref("all");
           const selectedTools = ref([]);
           const switchingIds = ref(new Set());
 
           const getCategoryName = (category) => {
             const categoryMap = {
-              file: '文件操作',
-              code: '代码生成',
-              project: '项目管理',
-              system: '系统操作',
-              output: '输出格式化',
-              general: '通用',
+              file: "文件操作",
+              code: "代码生成",
+              project: "项目管理",
+              system: "系统操作",
+              output: "输出格式化",
+              general: "通用",
             };
             return categoryMap[category] || category;
           };
 
           const getCategoryColor = (category) => {
             const colorMap = {
-              file: 'blue',
-              code: 'green',
-              project: 'purple',
-              system: 'orange',
-              output: 'cyan',
-              general: 'default',
+              file: "blue",
+              code: "green",
+              project: "purple",
+              system: "orange",
+              output: "cyan",
+              general: "default",
             };
-            return colorMap[category] || 'default';
+            return colorMap[category] || "default";
           };
 
           const getRiskLabel = (level) => {
             const labelMap = {
-              low: '低风险',
-              medium: '中风险',
-              high: '高风险',
+              low: "低风险",
+              medium: "中风险",
+              high: "高风险",
             };
             return labelMap[level] || level;
           };
 
           const getRiskColor = (level) => {
             const colorMap = {
-              low: 'success',
-              medium: 'warning',
-              high: 'error',
+              low: "success",
+              medium: "warning",
+              high: "error",
             };
-            return colorMap[level] || 'default';
+            return colorMap[level] || "default";
           };
 
           const handleSearch = () => {
@@ -282,32 +284,34 @@ describe('ToolManagement', () => {
 
           const handleRefresh = async () => {
             await toolStore.loadTools();
-            message.success('刷新成功');
+            message.success("刷新成功");
           };
 
           const handleCreateTool = () => {
-            message.info('创建工具功能');
+            message.info("创建工具功能");
           };
 
           const showAnalytics = () => {
-            message.info('使用统计功能');
+            message.info("使用统计功能");
           };
 
           const showDependencyGraph = () => {
-            message.info('依赖关系图功能');
+            message.info("依赖关系图功能");
           };
 
           const handleToggleEnabled = async (tool) => {
-            if (switchingIds.value.has(tool.id)) return;
+            if (switchingIds.value.has(tool.id)) {
+              return;
+            }
 
             switchingIds.value.add(tool.id);
             try {
               await toolStore.updateTool(tool.id, {
                 enabled: tool.enabled === 1 ? 0 : 1,
               });
-              message.success(tool.enabled === 1 ? '已禁用' : '已启用');
+              message.success(tool.enabled === 1 ? "已禁用" : "已启用");
             } catch (error) {
-              message.error('操作失败: ' + error.message);
+              message.error("操作失败: " + error.message);
             } finally {
               switchingIds.value.delete(tool.id);
             }
@@ -317,12 +321,12 @@ describe('ToolManagement', () => {
             try {
               await toolStore.batchUpdateTools(
                 selectedTools.value.map((t) => t.id),
-                { enabled: 1 }
+                { enabled: 1 },
               );
-              message.success('批量启用成功');
+              message.success("批量启用成功");
               handleClearSelection();
             } catch (error) {
-              message.error('批量启用失败: ' + error.message);
+              message.error("批量启用失败: " + error.message);
             }
           };
 
@@ -330,29 +334,29 @@ describe('ToolManagement', () => {
             try {
               await toolStore.batchUpdateTools(
                 selectedTools.value.map((t) => t.id),
-                { enabled: 0 }
+                { enabled: 0 },
               );
-              message.success('批量禁用成功');
+              message.success("批量禁用成功");
               handleClearSelection();
             } catch (error) {
-              message.error('批量禁用失败: ' + error.message);
+              message.error("批量禁用失败: " + error.message);
             }
           };
 
           const handleBatchDelete = () => {
             Modal.confirm({
-              title: '确认删除',
+              title: "确认删除",
               content: `确定要删除选中的 ${selectedTools.value.length} 个工具吗？`,
               onOk: async () => {
                 try {
                   for (const tool of selectedTools.value) {
                     await toolStore.deleteTool(tool.id);
                   }
-                  message.success('批量删除成功');
+                  message.success("批量删除成功");
                   handleClearSelection();
                   await toolStore.loadTools();
                 } catch (error) {
-                  message.error('批量删除失败: ' + error.message);
+                  message.error("批量删除失败: " + error.message);
                 }
               },
             });
@@ -395,23 +399,23 @@ describe('ToolManagement', () => {
       {
         global: {
           stubs: {
-            'a-space': true,
-            'a-statistic': true,
-            'a-input-search': true,
-            'a-select': true,
-            'a-select-option': true,
-            'a-button': true,
-            'a-spin': true,
-            'a-empty': true,
-            'a-tag': true,
-            'a-switch': true,
-            'a-table': true,
-            'a-tooltip': true,
-            'a-popconfirm': true,
+            "a-space": true,
+            "a-statistic": true,
+            "a-input-search": true,
+            "a-select": true,
+            "a-select-option": true,
+            "a-button": true,
+            "a-spin": true,
+            "a-empty": true,
+            "a-tag": true,
+            "a-switch": true,
+            "a-table": true,
+            "a-tooltip": true,
+            "a-popconfirm": true,
           },
         },
         ...options,
-      }
+      },
     );
   };
 
@@ -421,161 +425,161 @@ describe('ToolManagement', () => {
     mockToolStore.filteredTools = [...mockTools];
   });
 
-  describe('组件挂载', () => {
-    it('应该成功挂载组件', () => {
+  describe("组件挂载", () => {
+    it("应该成功挂载组件", () => {
       wrapper = createWrapper();
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.find('.tool-management').exists()).toBe(true);
+      expect(wrapper.find(".tool-management").exists()).toBe(true);
     });
 
-    it('应该在挂载时加载工具', () => {
+    it("应该在挂载时加载工具", () => {
       wrapper = createWrapper();
       expect(mockToolStore.loadTools).toHaveBeenCalled();
     });
   });
 
-  describe('统计信息', () => {
-    it('应该显示总工具数', () => {
+  describe("统计信息", () => {
+    it("应该显示总工具数", () => {
       wrapper = createWrapper();
       expect(wrapper.vm.toolStore.totalCount).toBe(45);
     });
 
-    it('应该显示已启用工具数', () => {
+    it("应该显示已启用工具数", () => {
       wrapper = createWrapper();
       expect(wrapper.vm.toolStore.enabledCount).toBe(32);
     });
 
-    it('应该显示内置工具数', () => {
+    it("应该显示内置工具数", () => {
       wrapper = createWrapper();
       expect(wrapper.vm.toolStore.builtinCount).toBe(20);
     });
 
-    it('应该显示插件工具数', () => {
+    it("应该显示插件工具数", () => {
       wrapper = createWrapper();
       expect(wrapper.vm.toolStore.pluginCount).toBe(25);
     });
   });
 
-  describe('搜索功能', () => {
-    it('应该能搜索工具', () => {
+  describe("搜索功能", () => {
+    it("应该能搜索工具", () => {
       wrapper = createWrapper();
-      wrapper.vm.searchKeyword = 'file';
+      wrapper.vm.searchKeyword = "file";
 
       wrapper.vm.handleSearch();
 
-      expect(mockToolStore.searchTools).toHaveBeenCalledWith('file');
+      expect(mockToolStore.searchTools).toHaveBeenCalledWith("file");
     });
 
-    it('应该能处理空搜索', () => {
+    it("应该能处理空搜索", () => {
       wrapper = createWrapper();
-      wrapper.vm.searchKeyword = '';
+      wrapper.vm.searchKeyword = "";
 
       wrapper.vm.handleSearch();
 
-      expect(mockToolStore.searchTools).toHaveBeenCalledWith('');
+      expect(mockToolStore.searchTools).toHaveBeenCalledWith("");
     });
   });
 
-  describe('分类筛选', () => {
-    it('应该能按分类筛选', () => {
+  describe("分类筛选", () => {
+    it("应该能按分类筛选", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.categoryFilter = 'file';
+      wrapper.vm.categoryFilter = "file";
       wrapper.vm.handleCategoryChange();
 
-      expect(mockToolStore.filterByCategory).toHaveBeenCalledWith('file');
+      expect(mockToolStore.filterByCategory).toHaveBeenCalledWith("file");
     });
 
-    it('应该能显示全部分类', () => {
+    it("应该能显示全部分类", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.categoryFilter = 'all';
+      wrapper.vm.categoryFilter = "all";
       wrapper.vm.handleCategoryChange();
 
-      expect(mockToolStore.filterByCategory).toHaveBeenCalledWith('all');
+      expect(mockToolStore.filterByCategory).toHaveBeenCalledWith("all");
     });
 
-    it('应该支持多种分类', () => {
+    it("应该支持多种分类", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.categoryFilter = 'code';
+      wrapper.vm.categoryFilter = "code";
       wrapper.vm.handleCategoryChange();
 
-      wrapper.vm.categoryFilter = 'system';
+      wrapper.vm.categoryFilter = "system";
       wrapper.vm.handleCategoryChange();
 
       expect(mockToolStore.filterByCategory).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('状态筛选', () => {
-    it('应该能筛选已启用工具', () => {
+  describe("状态筛选", () => {
+    it("应该能筛选已启用工具", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.statusFilter = 'enabled';
+      wrapper.vm.statusFilter = "enabled";
       wrapper.vm.handleStatusChange();
 
-      expect(mockToolStore.filterByStatus).toHaveBeenCalledWith('enabled');
+      expect(mockToolStore.filterByStatus).toHaveBeenCalledWith("enabled");
     });
 
-    it('应该能筛选已禁用工具', () => {
+    it("应该能筛选已禁用工具", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.statusFilter = 'disabled';
+      wrapper.vm.statusFilter = "disabled";
       wrapper.vm.handleStatusChange();
 
-      expect(mockToolStore.filterByStatus).toHaveBeenCalledWith('disabled');
+      expect(mockToolStore.filterByStatus).toHaveBeenCalledWith("disabled");
     });
 
-    it('应该能显示全部状态', () => {
+    it("应该能显示全部状态", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.statusFilter = 'all';
+      wrapper.vm.statusFilter = "all";
       wrapper.vm.handleStatusChange();
 
-      expect(mockToolStore.filterByStatus).toHaveBeenCalledWith('all');
+      expect(mockToolStore.filterByStatus).toHaveBeenCalledWith("all");
     });
   });
 
-  describe('刷新功能', () => {
-    it('应该能刷新工具列表', async () => {
+  describe("刷新功能", () => {
+    it("应该能刷新工具列表", async () => {
       wrapper = createWrapper();
       mockToolStore.loadTools.mockResolvedValue();
 
       await wrapper.vm.handleRefresh();
 
       expect(mockToolStore.loadTools).toHaveBeenCalled();
-      expect(mockMessage.success).toHaveBeenCalledWith('刷新成功');
+      expect(mockMessage.success).toHaveBeenCalledWith("刷新成功");
     });
   });
 
-  describe('创建工具', () => {
-    it('应该能触发创建工具', () => {
+  describe("创建工具", () => {
+    it("应该能触发创建工具", () => {
       wrapper = createWrapper();
       wrapper.vm.handleCreateTool();
 
-      expect(mockMessage.info).toHaveBeenCalledWith('创建工具功能');
+      expect(mockMessage.info).toHaveBeenCalledWith("创建工具功能");
     });
   });
 
-  describe('统计和依赖图', () => {
-    it('应该能显示使用统计', () => {
+  describe("统计和依赖图", () => {
+    it("应该能显示使用统计", () => {
       wrapper = createWrapper();
       wrapper.vm.showAnalytics();
 
-      expect(mockMessage.info).toHaveBeenCalledWith('使用统计功能');
+      expect(mockMessage.info).toHaveBeenCalledWith("使用统计功能");
     });
 
-    it('应该能显示依赖关系图', () => {
+    it("应该能显示依赖关系图", () => {
       wrapper = createWrapper();
       wrapper.vm.showDependencyGraph();
 
-      expect(mockMessage.info).toHaveBeenCalledWith('依赖关系图功能');
+      expect(mockMessage.info).toHaveBeenCalledWith("依赖关系图功能");
     });
   });
 
-  describe('启用/禁用工具', () => {
-    it('应该能启用工具', async () => {
+  describe("启用/禁用工具", () => {
+    it("应该能启用工具", async () => {
       wrapper = createWrapper();
       mockToolStore.updateTool.mockResolvedValue();
 
@@ -586,10 +590,10 @@ describe('ToolManagement', () => {
       expect(mockToolStore.updateTool).toHaveBeenCalledWith(tool.id, {
         enabled: 1,
       });
-      expect(mockMessage.success).toHaveBeenCalledWith('已启用');
+      expect(mockMessage.success).toHaveBeenCalledWith("已启用");
     });
 
-    it('应该能禁用工具', async () => {
+    it("应该能禁用工具", async () => {
       wrapper = createWrapper();
       mockToolStore.updateTool.mockResolvedValue();
 
@@ -600,19 +604,19 @@ describe('ToolManagement', () => {
       expect(mockToolStore.updateTool).toHaveBeenCalledWith(tool.id, {
         enabled: 0,
       });
-      expect(mockMessage.success).toHaveBeenCalledWith('已禁用');
+      expect(mockMessage.success).toHaveBeenCalledWith("已禁用");
     });
 
-    it('应该能处理切换失败', async () => {
+    it("应该能处理切换失败", async () => {
       wrapper = createWrapper();
-      mockToolStore.updateTool.mockRejectedValue(new Error('更新失败'));
+      mockToolStore.updateTool.mockRejectedValue(new Error("更新失败"));
 
       await wrapper.vm.handleToggleEnabled(mockTools[0]);
 
-      expect(mockMessage.error).toHaveBeenCalledWith('操作失败: 更新失败');
+      expect(mockMessage.error).toHaveBeenCalledWith("操作失败: 更新失败");
     });
 
-    it('应该防止重复切换', async () => {
+    it("应该防止重复切换", async () => {
       wrapper = createWrapper();
       const tool = mockTools[0];
 
@@ -624,8 +628,8 @@ describe('ToolManagement', () => {
     });
   });
 
-  describe('批量操作', () => {
-    it('应该能批量启用工具', async () => {
+  describe("批量操作", () => {
+    it("应该能批量启用工具", async () => {
       wrapper = createWrapper();
       mockToolStore.batchUpdateTools.mockResolvedValue();
 
@@ -635,13 +639,13 @@ describe('ToolManagement', () => {
 
       expect(mockToolStore.batchUpdateTools).toHaveBeenCalledWith(
         [mockTools[0].id, mockTools[1].id],
-        { enabled: 1 }
+        { enabled: 1 },
       );
-      expect(mockMessage.success).toHaveBeenCalledWith('批量启用成功');
+      expect(mockMessage.success).toHaveBeenCalledWith("批量启用成功");
       expect(wrapper.vm.selectedTools.length).toBe(0);
     });
 
-    it('应该能批量禁用工具', async () => {
+    it("应该能批量禁用工具", async () => {
       wrapper = createWrapper();
       mockToolStore.batchUpdateTools.mockResolvedValue();
 
@@ -651,12 +655,12 @@ describe('ToolManagement', () => {
 
       expect(mockToolStore.batchUpdateTools).toHaveBeenCalledWith(
         [mockTools[0].id],
-        { enabled: 0 }
+        { enabled: 0 },
       );
-      expect(mockMessage.success).toHaveBeenCalledWith('批量禁用成功');
+      expect(mockMessage.success).toHaveBeenCalledWith("批量禁用成功");
     });
 
-    it('应该能批量删除工具', async () => {
+    it("应该能批量删除工具", async () => {
       wrapper = createWrapper();
       mockToolStore.deleteTool.mockResolvedValue();
       mockToolStore.loadTools.mockResolvedValue();
@@ -664,34 +668,36 @@ describe('ToolManagement', () => {
       wrapper.vm.selectedTools = [mockTools[0], mockTools[1]];
 
       // Call handleBatchDelete which will trigger Modal.confirm
-      const deletePromise = wrapper.vm.handleBatchDelete();
+      wrapper.vm.handleBatchDelete();
 
-      // Wait for the Modal.confirm to be called and its onOk to complete
-      await deletePromise;
+      // Wait for Modal.confirm to be called
+      await flushPromises();
 
-      // Also wait for any pending microtasks
-      await vi.waitFor(() => {
-        expect(mockModal.confirm).toHaveBeenCalled();
-      });
+      // Verify Modal.confirm was called
+      expect(mockModal.confirm).toHaveBeenCalled();
+
+      // Wait for the onOk callback and all async operations to complete
+      await flushPromises();
+      await flushPromises();
 
       expect(mockToolStore.deleteTool).toHaveBeenCalledTimes(2);
-      expect(mockMessage.success).toHaveBeenCalledWith('批量删除成功');
+      expect(mockMessage.success).toHaveBeenCalledWith("批量删除成功");
     });
 
-    it('应该能处理批量操作失败', async () => {
+    it("应该能处理批量操作失败", async () => {
       wrapper = createWrapper();
-      mockToolStore.batchUpdateTools.mockRejectedValue(new Error('操作失败'));
+      mockToolStore.batchUpdateTools.mockRejectedValue(new Error("操作失败"));
 
       wrapper.vm.selectedTools = [mockTools[0]];
 
       await wrapper.vm.handleBatchEnable();
 
-      expect(mockMessage.error).toHaveBeenCalledWith('批量启用失败: 操作失败');
+      expect(mockMessage.error).toHaveBeenCalledWith("批量启用失败: 操作失败");
     });
   });
 
-  describe('选择功能', () => {
-    it('应该能清空选择', () => {
+  describe("选择功能", () => {
+    it("应该能清空选择", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedTools = [mockTools[0], mockTools[1]];
 
@@ -701,45 +707,45 @@ describe('ToolManagement', () => {
     });
   });
 
-  describe('工具信息', () => {
-    it('应该获取分类名称', () => {
+  describe("工具信息", () => {
+    it("应该获取分类名称", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.getCategoryName('file')).toBe('文件操作');
-      expect(wrapper.vm.getCategoryName('code')).toBe('代码生成');
-      expect(wrapper.vm.getCategoryName('unknown')).toBe('unknown');
+      expect(wrapper.vm.getCategoryName("file")).toBe("文件操作");
+      expect(wrapper.vm.getCategoryName("code")).toBe("代码生成");
+      expect(wrapper.vm.getCategoryName("unknown")).toBe("unknown");
     });
 
-    it('应该获取分类颜色', () => {
+    it("应该获取分类颜色", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.getCategoryColor('file')).toBe('blue');
-      expect(wrapper.vm.getCategoryColor('code')).toBe('green');
-      expect(wrapper.vm.getCategoryColor('unknown')).toBe('default');
+      expect(wrapper.vm.getCategoryColor("file")).toBe("blue");
+      expect(wrapper.vm.getCategoryColor("code")).toBe("green");
+      expect(wrapper.vm.getCategoryColor("unknown")).toBe("default");
     });
 
-    it('应该获取风险标签', () => {
+    it("应该获取风险标签", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.getRiskLabel('low')).toBe('低风险');
-      expect(wrapper.vm.getRiskLabel('medium')).toBe('中风险');
-      expect(wrapper.vm.getRiskLabel('high')).toBe('高风险');
+      expect(wrapper.vm.getRiskLabel("low")).toBe("低风险");
+      expect(wrapper.vm.getRiskLabel("medium")).toBe("中风险");
+      expect(wrapper.vm.getRiskLabel("high")).toBe("高风险");
     });
 
-    it('应该获取风险颜色', () => {
+    it("应该获取风险颜色", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.getRiskColor('low')).toBe('success');
-      expect(wrapper.vm.getRiskColor('medium')).toBe('warning');
-      expect(wrapper.vm.getRiskColor('high')).toBe('error');
+      expect(wrapper.vm.getRiskColor("low")).toBe("success");
+      expect(wrapper.vm.getRiskColor("medium")).toBe("warning");
+      expect(wrapper.vm.getRiskColor("high")).toBe("error");
     });
   });
 
-  describe('加载状态', () => {
-    it('应该显示加载状态', () => {
+  describe("加载状态", () => {
+    it("应该显示加载状态", () => {
       mockToolStore.loading = true;
       wrapper = createWrapper();
 
       expect(wrapper.vm.toolStore.loading).toBe(true);
     });
 
-    it('应该隐藏加载状态', () => {
+    it("应该隐藏加载状态", () => {
       mockToolStore.loading = false;
       wrapper = createWrapper();
 
@@ -747,15 +753,15 @@ describe('ToolManagement', () => {
     });
   });
 
-  describe('空状态', () => {
-    it('应该显示空状态', () => {
+  describe("空状态", () => {
+    it("应该显示空状态", () => {
       mockToolStore.filteredTools = [];
       wrapper = createWrapper();
 
       expect(wrapper.vm.toolStore.filteredTools.length).toBe(0);
     });
 
-    it('应该在有数据时不显示空状态', () => {
+    it("应该在有数据时不显示空状态", () => {
       mockToolStore.filteredTools = mockTools;
       wrapper = createWrapper();
 
@@ -763,14 +769,16 @@ describe('ToolManagement', () => {
     });
   });
 
-  describe('边界情况', () => {
-    it('应该处理空选择的批量操作', async () => {
+  describe("边界情况", () => {
+    it("应该处理空选择的批量操作", async () => {
       wrapper = createWrapper();
       wrapper.vm.selectedTools = [];
 
       await wrapper.vm.handleBatchEnable();
 
-      expect(mockToolStore.batchUpdateTools).toHaveBeenCalledWith([], { enabled: 1 });
+      expect(mockToolStore.batchUpdateTools).toHaveBeenCalledWith([], {
+        enabled: 1,
+      });
     });
   });
 });

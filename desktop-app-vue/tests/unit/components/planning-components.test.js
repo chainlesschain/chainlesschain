@@ -10,6 +10,94 @@ import PlanPreview from "@renderer/components/planning/PlanPreview.vue";
 import ExecutionProgress from "@renderer/components/planning/ExecutionProgress.vue";
 import ExecutionResult from "@renderer/components/planning/ExecutionResult.vue";
 
+// Stubs for Ant Design Vue components
+const globalStubs = {
+  "a-result": {
+    template:
+      '<div class="a-result"><div class="result-title">{{ title }}</div><div class="result-subtitle">{{ subTitle }}</div><slot name="icon" /><slot /></div>',
+    props: ["status", "title", "subTitle"],
+  },
+  "a-progress": {
+    template: '<div class="a-progress">{{ percent }}%</div>',
+    props: ["percent", "showInfo", "strokeColor"],
+  },
+  "a-form": {
+    template: '<form class="a-form"><slot /></form>',
+    props: ["model"],
+  },
+  "a-form-item": {
+    template:
+      '<div class="a-form-item"><label>{{ label }}</label><slot /></div>',
+    props: ["label"],
+  },
+  "a-rate": {
+    template: '<div class="a-rate"></div>',
+    props: ["value"],
+  },
+  "a-input": {
+    template: '<input class="a-input" />',
+    props: ["value", "placeholder"],
+  },
+  "a-textarea": {
+    template: '<textarea class="a-textarea"></textarea>',
+    props: ["value", "placeholder", "rows", "autosize"],
+  },
+  "a-button": {
+    template:
+      '<button class="a-button" @click="$emit(\'click\')"><slot /></button>',
+    props: ["type", "loading"],
+  },
+  "a-card": {
+    template:
+      '<div class="a-card"><div class="card-title">{{ title }}</div><slot /></div>',
+    props: ["title"],
+  },
+  "a-steps": {
+    template: '<div class="a-steps"><slot /></div>',
+    props: ["current", "size", "direction"],
+  },
+  "a-step": {
+    template: '<div class="a-step">{{ title }}</div>',
+    props: ["title", "description", "status"],
+  },
+  "a-timeline": {
+    template: '<div class="a-timeline"><slot /></div>',
+  },
+  "a-timeline-item": {
+    template: '<div class="a-timeline-item"><slot /></div>',
+    props: ["color"],
+  },
+  "a-tag": {
+    template: '<span class="a-tag"><slot /></span>',
+    props: ["color"],
+  },
+  "a-statistic": {
+    template: '<div class="a-statistic">{{ value }}</div>',
+    props: ["title", "value", "valueStyle"],
+  },
+  "a-collapse": {
+    template: '<div class="a-collapse"><slot /></div>',
+    props: ["activeKey"],
+  },
+  "a-collapse-panel": {
+    template:
+      '<div class="a-collapse-panel"><div class="panel-header">{{ header }}</div><slot /></div>',
+    props: ["key", "header"],
+  },
+  "a-space": {
+    template: '<div class="a-space"><slot /></div>',
+    props: ["size"],
+  },
+  "a-tooltip": {
+    template: '<div class="a-tooltip"><slot /></div>',
+    props: ["title"],
+  },
+  "a-badge": {
+    template: '<div class="a-badge"><slot /></div>',
+    props: ["count", "dot"],
+  },
+};
+
 describe("PlanPreview 组件", () => {
   let wrapper;
 
@@ -388,6 +476,9 @@ describe("ExecutionResult 组件", () => {
         result: mockResult,
         qualityScore: null,
       },
+      global: {
+        stubs: globalStubs,
+      },
     });
 
     expect(wrapper.text()).toContain("任务执行完成");
@@ -400,6 +491,9 @@ describe("ExecutionResult 组件", () => {
         result: mockResult,
         qualityScore: mockQualityScore,
       },
+      global: {
+        stubs: globalStubs,
+      },
     });
 
     expect(wrapper.text()).toContain("92");
@@ -411,6 +505,9 @@ describe("ExecutionResult 组件", () => {
       props: {
         result: mockResult,
         qualityScore: mockQualityScore,
+      },
+      global: {
+        stubs: globalStubs,
       },
     });
 
@@ -432,6 +529,9 @@ describe("ExecutionResult 组件", () => {
         result: mockResult,
         qualityScore: null,
       },
+      global: {
+        stubs: globalStubs,
+      },
     });
 
     expect(wrapper.text()).toContain("产品发布会演示.pptx");
@@ -443,6 +543,9 @@ describe("ExecutionResult 组件", () => {
       props: {
         result: mockResult,
         qualityScore: null,
+      },
+      global: {
+        stubs: globalStubs,
       },
     });
 
@@ -459,6 +562,9 @@ describe("ExecutionResult 组件", () => {
         result: mockResult,
         qualityScore: null,
       },
+      global: {
+        stubs: globalStubs,
+      },
     });
 
     // Check for feedback section header
@@ -473,6 +579,9 @@ describe("ExecutionResult 组件", () => {
       props: {
         result: mockResult,
         qualityScore: null,
+      },
+      global: {
+        stubs: globalStubs,
       },
     });
 
@@ -489,6 +598,9 @@ describe("ExecutionResult 组件", () => {
       props: {
         result: mockResult,
         qualityScore: null,
+      },
+      global: {
+        stubs: globalStubs,
       },
     });
 
@@ -509,6 +621,9 @@ describe("ExecutionResult 组件", () => {
         result: mockResult,
         qualityScore: null,
       },
+      global: {
+        stubs: globalStubs,
+      },
     });
 
     const buttons = wrapper.findAll("button");
@@ -524,6 +639,9 @@ describe("ExecutionResult 组件", () => {
       props: {
         result: mockResult,
         qualityScore: null,
+      },
+      global: {
+        stubs: globalStubs,
       },
     });
 

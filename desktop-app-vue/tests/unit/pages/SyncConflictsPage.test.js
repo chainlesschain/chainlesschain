@@ -12,9 +12,9 @@
  * - 辅助方法
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
-import { ref, onMounted } from 'vue';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mount, flushPromises } from "@vue/test-utils";
+import { ref, onMounted } from "vue";
 
 // Define mock using vi.hoisted to ensure it's available for vi.mock
 const mockMessage = vi.hoisted(() => ({
@@ -25,7 +25,7 @@ const mockMessage = vi.hoisted(() => ({
 }));
 
 // Mock ant-design-vue with our hoisted mock
-vi.mock('ant-design-vue', () => ({
+vi.mock("ant-design-vue", () => ({
   message: mockMessage,
 }));
 
@@ -42,13 +42,13 @@ const mockRouter = {
   back: vi.fn(),
 };
 
-vi.mock('vue-router', () => ({
+vi.mock("vue-router", () => ({
   useRouter: () => mockRouter,
   useRoute: () => ({ params: {}, query: {} }),
 }));
 
 // Mock logger
-vi.mock('@/utils/logger', () => ({
+vi.mock("@/utils/logger", () => ({
   logger: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -59,10 +59,10 @@ vi.mock('@/utils/logger', () => ({
 
 // Mock identity store
 const mockIdentityStore = {
-  currentOrgId: 'org-123',
+  currentOrgId: "org-123",
 };
 
-vi.mock('../stores/identity', () => ({
+vi.mock("../stores/identity", () => ({
   useIdentityStore: () => mockIdentityStore,
 }));
 
@@ -75,28 +75,28 @@ global.window = {
   },
 };
 
-describe('SyncConflictsPage', () => {
+describe("SyncConflictsPage", () => {
   let wrapper;
 
   const mockConflicts = [
     {
-      id: 'conflict-1',
-      resource_type: 'knowledge',
-      resource_id: 'knowledge-123',
+      id: "conflict-1",
+      resource_type: "knowledge",
+      resource_id: "knowledge-123",
       local_version: 2,
       remote_version: 3,
-      local_data: { title: 'Local Title', content: 'Local content' },
-      remote_data: { title: 'Remote Title', content: 'Remote content' },
+      local_data: { title: "Local Title", content: "Local content" },
+      remote_data: { title: "Remote Title", content: "Remote content" },
       created_at: Date.now() - 3600000, // 1 hour ago
     },
     {
-      id: 'conflict-2',
-      resource_type: 'project',
-      resource_id: 'project-456',
+      id: "conflict-2",
+      resource_type: "project",
+      resource_id: "project-456",
       local_version: 5,
       remote_version: 6,
-      local_data: { name: 'Local Project', description: 'Local desc' },
-      remote_data: { name: 'Remote Project', description: 'Remote desc' },
+      local_data: { name: "Local Project", description: "Local desc" },
+      remote_data: { name: "Remote Project", description: "Remote desc" },
       created_at: Date.now() - 7200000, // 2 hours ago
     },
   ];
@@ -178,8 +178,8 @@ describe('SyncConflictsPage', () => {
           const conflicts = ref([]);
           const mergeModalVisible = ref(false);
           const currentConflict = ref(null);
-          const mergedData = ref('');
-          const mergeError = ref('');
+          const mergedData = ref("");
+          const mergeError = ref("");
 
           const ipcRenderer = window.electron?.ipcRenderer;
 
@@ -189,15 +189,18 @@ describe('SyncConflictsPage', () => {
             try {
               const orgId = identityStore.currentOrgId;
               if (!orgId) {
-                message.error('未选择组织');
+                message.error("未选择组织");
                 return;
               }
 
-              const result = await ipcRenderer.invoke('sync:get-conflicts', orgId);
+              const result = await ipcRenderer.invoke(
+                "sync:get-conflicts",
+                orgId,
+              );
               conflicts.value = result || [];
             } catch (error) {
-              logger.error('加载冲突列表失败:', error);
-              message.error('加载冲突列表失败');
+              logger.error("加载冲突列表失败:", error);
+              message.error("加载冲突列表失败");
             } finally {
               loading.value = false;
             }
@@ -205,69 +208,77 @@ describe('SyncConflictsPage', () => {
 
           async function handleResolve(conflict, strategy) {
             try {
-              await ipcRenderer.invoke('sync:resolve-conflict', conflict.id, {
+              await ipcRenderer.invoke("sync:resolve-conflict", conflict.id, {
                 strategy,
               });
 
-              message.success('冲突已解决');
+              message.success("冲突已解决");
 
-              conflicts.value = conflicts.value.filter((c) => c.id !== conflict.id);
+              conflicts.value = conflicts.value.filter(
+                (c) => c.id !== conflict.id,
+              );
             } catch (error) {
-              logger.error('解决冲突失败:', error);
-              message.error(error.message || '解决冲突失败');
+              logger.error("解决冲突失败:", error);
+              message.error(error.message || "解决冲突失败");
             }
           }
 
           function showManualMerge(conflict) {
             currentConflict.value = conflict;
             mergedData.value = JSON.stringify(conflict.local_data, null, 2);
-            mergeError.value = '';
+            mergeError.value = "";
             mergeModalVisible.value = true;
           }
 
           async function handleManualMergeOk() {
-            mergeError.value = '';
+            mergeError.value = "";
 
             try {
               const data = JSON.parse(mergedData.value);
 
-              await ipcRenderer.invoke('sync:resolve-conflict', currentConflict.value.id, {
-                strategy: 'manual',
-                data,
-              });
+              await ipcRenderer.invoke(
+                "sync:resolve-conflict",
+                currentConflict.value.id,
+                {
+                  strategy: "manual",
+                  data,
+                },
+              );
 
-              message.success('冲突已解决');
+              message.success("冲突已解决");
 
               conflicts.value = conflicts.value.filter(
-                (c) => c.id !== currentConflict.value.id
+                (c) => c.id !== currentConflict.value.id,
               );
 
               mergeModalVisible.value = false;
             } catch (error) {
               if (error instanceof SyntaxError) {
-                mergeError.value = 'JSON格式错误: ' + error.message;
+                mergeError.value = "JSON格式错误: " + error.message;
               } else {
-                logger.error('解决冲突失败:', error);
-                message.error(error.message || '解决冲突失败');
+                logger.error("解决冲突失败:", error);
+                message.error(error.message || "解决冲突失败");
               }
             }
           }
 
           function getResourceTypeName(type) {
             const names = {
-              knowledge: '知识库',
-              project: '项目',
-              member: '成员',
-              role: '角色',
-              settings: '设置',
+              knowledge: "知识库",
+              project: "项目",
+              member: "成员",
+              role: "角色",
+              settings: "设置",
             };
             return names[type] || type;
           }
 
           function formatTime(timestamp) {
-            if (!timestamp) return '-';
+            if (!timestamp) {
+              return "-";
+            }
             const date = new Date(timestamp);
-            return date.toLocaleString('zh-CN');
+            return date.toLocaleString("zh-CN");
           }
 
           function goBack() {
@@ -295,24 +306,24 @@ describe('SyncConflictsPage', () => {
           };
         },
       },
-      options
+      options,
     );
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     window.electron.ipcRenderer.invoke.mockResolvedValue([]);
-    mockIdentityStore.currentOrgId = 'org-123';
+    mockIdentityStore.currentOrgId = "org-123";
   });
 
-  describe('组件挂载', () => {
-    it('应该成功挂载组件', () => {
+  describe("组件挂载", () => {
+    it("应该成功挂载组件", () => {
       wrapper = createWrapper();
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.find('.sync-conflicts-page').exists()).toBe(true);
+      expect(wrapper.find(".sync-conflicts-page").exists()).toBe(true);
     });
 
-    it('应该在挂载时加载冲突列表', async () => {
+    it("应该在挂载时加载冲突列表", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue(mockConflicts);
       wrapper = createWrapper();
 
@@ -320,14 +331,14 @@ describe('SyncConflictsPage', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'sync:get-conflicts',
-        'org-123'
+        "sync:get-conflicts",
+        "org-123",
       );
     });
   });
 
-  describe('冲突列表加载', () => {
-    it('应该能加载冲突列表', async () => {
+  describe("冲突列表加载", () => {
+    it("应该能加载冲突列表", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue(mockConflicts);
 
@@ -336,47 +347,49 @@ describe('SyncConflictsPage', () => {
       expect(wrapper.vm.conflicts.length).toBe(2);
     });
 
-    it('应该显示空状态当没有冲突时', async () => {
+    it("应该显示空状态当没有冲突时", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue([]);
 
       await wrapper.vm.loadConflicts();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.empty-state').exists()).toBe(true);
+      expect(wrapper.find(".empty-state").exists()).toBe(true);
     });
 
-    it('应该显示冲突列表当有冲突时', async () => {
+    it("应该显示冲突列表当有冲突时", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue(mockConflicts);
 
       await wrapper.vm.loadConflicts();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.findAll('.conflict-card').length).toBe(2);
+      expect(wrapper.findAll(".conflict-card").length).toBe(2);
     });
 
-    it('应该处理未选择组织的情况', async () => {
+    it("应该处理未选择组织的情况", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       mockIdentityStore.currentOrgId = null;
 
       await wrapper.vm.loadConflicts();
 
-      expect(message.error).toHaveBeenCalledWith('未选择组织');
+      expect(message.error).toHaveBeenCalledWith("未选择组织");
     });
 
-    it('应该处理加载失败', async () => {
+    it("应该处理加载失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Load failed'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(
+        new Error("Load failed"),
+      );
 
       await wrapper.vm.loadConflicts();
 
-      expect(message.error).toHaveBeenCalledWith('加载冲突列表失败');
+      expect(message.error).toHaveBeenCalledWith("加载冲突列表失败");
     });
 
-    it('应该在加载时设置loading状态', async () => {
+    it("应该在加载时设置loading状态", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockImplementation(() => {
         expect(wrapper.vm.loading).toBe(true);
@@ -389,173 +402,195 @@ describe('SyncConflictsPage', () => {
     });
   });
 
-  describe('冲突解决 - 本地优先', () => {
-    it('应该能使用本地版本解决冲突', async () => {
+  describe("冲突解决 - 本地优先", () => {
+    it("应该能使用本地版本解决冲突", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
       wrapper.vm.conflicts = [...mockConflicts];
+      await wrapper.vm.$nextTick();
       const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
-      await wrapper.vm.handleResolve(mockConflicts[0], 'local_wins');
+      await wrapper.vm.handleResolve(mockConflicts[0], "local_wins");
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'sync:resolve-conflict',
-        'conflict-1',
-        { strategy: 'local_wins' }
+        "sync:resolve-conflict",
+        "conflict-1",
+        { strategy: "local_wins" },
       );
-      expect(message.success).toHaveBeenCalledWith('冲突已解决');
+      expect(message.success).toHaveBeenCalledWith("冲突已解决");
       expect(wrapper.vm.conflicts.length).toBe(1);
     });
 
-    it('应该能移除已解决的冲突', async () => {
+    it("应该能移除已解决的冲突", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
       wrapper.vm.conflicts = [...mockConflicts];
+      await wrapper.vm.$nextTick();
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
-      await wrapper.vm.handleResolve(mockConflicts[0], 'local_wins');
+      await wrapper.vm.handleResolve(mockConflicts[0], "local_wins");
 
-      expect(wrapper.vm.conflicts.find((c) => c.id === 'conflict-1')).toBeUndefined();
+      expect(
+        wrapper.vm.conflicts.find((c) => c.id === "conflict-1"),
+      ).toBeUndefined();
     });
   });
 
-  describe('冲突解决 - 远程优先', () => {
-    it('应该能使用远程版本解决冲突', async () => {
+  describe("冲突解决 - 远程优先", () => {
+    it("应该能使用远程版本解决冲突", async () => {
       wrapper = createWrapper();
-      wrapper.vm.conflicts = mockConflicts;
+      await flushPromises(); // 等待初始 loadConflicts 完成
+      wrapper.vm.conflicts = [...mockConflicts];
+      await wrapper.vm.$nextTick();
       const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
-      await wrapper.vm.handleResolve(mockConflicts[0], 'remote_wins');
+      await wrapper.vm.handleResolve(mockConflicts[0], "remote_wins");
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'sync:resolve-conflict',
-        'conflict-1',
-        { strategy: 'remote_wins' }
+        "sync:resolve-conflict",
+        "conflict-1",
+        { strategy: "remote_wins" },
       );
-      expect(message.success).toHaveBeenCalledWith('冲突已解决');
+      expect(message.success).toHaveBeenCalledWith("冲突已解决");
     });
 
-    it('应该能处理解决失败', async () => {
+    it("应该能处理解决失败", async () => {
       wrapper = createWrapper();
-      wrapper.vm.conflicts = mockConflicts;
+      await flushPromises(); // 等待初始 loadConflicts 完成
+      wrapper.vm.conflicts = [...mockConflicts];
+      await wrapper.vm.$nextTick();
       const message = mockMessage;
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Resolve failed'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(
+        new Error("Resolve failed"),
+      );
 
-      await wrapper.vm.handleResolve(mockConflicts[0], 'remote_wins');
+      await wrapper.vm.handleResolve(mockConflicts[0], "remote_wins");
 
-      expect(message.error).toHaveBeenCalledWith('Resolve failed');
+      expect(message.error).toHaveBeenCalledWith("Resolve failed");
     });
   });
 
-  describe('手动合并', () => {
-    it('应该能显示手动合并对话框', () => {
+  describe("手动合并", () => {
+    it("应该能显示手动合并对话框", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
 
       wrapper.vm.showManualMerge(mockConflicts[0]);
 
       expect(wrapper.vm.mergeModalVisible).toBe(true);
       expect(wrapper.vm.currentConflict).toStrictEqual(mockConflicts[0]);
       expect(wrapper.vm.mergedData).toBe(
-        JSON.stringify(mockConflicts[0].local_data, null, 2)
+        JSON.stringify(mockConflicts[0].local_data, null, 2),
       );
-      expect(wrapper.vm.mergeError).toBe('');
+      expect(wrapper.vm.mergeError).toBe("");
     });
 
-    it('应该能手动合并并解决冲突', async () => {
+    it("应该能手动合并并解决冲突", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
       wrapper.vm.conflicts = [...mockConflicts];
       wrapper.vm.currentConflict = mockConflicts[0];
       wrapper.vm.mergedData = JSON.stringify(
-        { title: 'Merged Title', content: 'Merged content' },
+        { title: "Merged Title", content: "Merged content" },
         null,
-        2
+        2,
       );
+      wrapper.vm.mergeModalVisible = true;
+      await wrapper.vm.$nextTick();
       const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
       await wrapper.vm.handleManualMergeOk();
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'sync:resolve-conflict',
-        'conflict-1',
+        "sync:resolve-conflict",
+        "conflict-1",
         {
-          strategy: 'manual',
-          data: { title: 'Merged Title', content: 'Merged content' },
-        }
+          strategy: "manual",
+          data: { title: "Merged Title", content: "Merged content" },
+        },
       );
-      expect(message.success).toHaveBeenCalledWith('冲突已解决');
+      expect(message.success).toHaveBeenCalledWith("冲突已解决");
       expect(wrapper.vm.mergeModalVisible).toBe(false);
     });
 
-    it('应该能验证JSON格式', async () => {
+    it("应该能验证JSON格式", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
       wrapper.vm.currentConflict = mockConflicts[0];
-      wrapper.vm.mergedData = 'invalid json{';
+      wrapper.vm.mergedData = "invalid json{";
+      wrapper.vm.mergeModalVisible = true; // 模态框已打开状态
 
       await wrapper.vm.handleManualMergeOk();
 
-      expect(wrapper.vm.mergeError).toContain('JSON格式错误');
-      expect(wrapper.vm.mergeModalVisible).toBe(true);
+      expect(wrapper.vm.mergeError).toContain("JSON格式错误");
+      expect(wrapper.vm.mergeModalVisible).toBe(true); // 错误时应保持打开
     });
 
-    it('应该能处理手动合并失败', async () => {
+    it("应该能处理手动合并失败", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
       wrapper.vm.currentConflict = mockConflicts[0];
-      wrapper.vm.mergedData = JSON.stringify({ title: 'Test' }, null, 2);
+      wrapper.vm.mergedData = JSON.stringify({ title: "Test" }, null, 2);
       const message = mockMessage;
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Merge failed'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(
+        new Error("Merge failed"),
+      );
 
       await wrapper.vm.handleManualMergeOk();
 
-      expect(message.error).toHaveBeenCalledWith('Merge failed');
+      expect(message.error).toHaveBeenCalledWith("Merge failed");
     });
 
-    it('应该在关闭模态框时重置错误', () => {
+    it("应该在关闭模态框时重置错误", async () => {
       wrapper = createWrapper();
-      wrapper.vm.mergeError = 'Some error';
+      await flushPromises(); // 等待初始 loadConflicts 完成
+      wrapper.vm.mergeError = "Some error";
 
       wrapper.vm.showManualMerge(mockConflicts[0]);
 
-      expect(wrapper.vm.mergeError).toBe('');
+      expect(wrapper.vm.mergeError).toBe("");
     });
   });
 
-  describe('资源类型显示', () => {
-    it('应该返回正确的资源类型名称', () => {
+  describe("资源类型显示", () => {
+    it("应该返回正确的资源类型名称", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.getResourceTypeName('knowledge')).toBe('知识库');
-      expect(wrapper.vm.getResourceTypeName('project')).toBe('项目');
-      expect(wrapper.vm.getResourceTypeName('member')).toBe('成员');
-      expect(wrapper.vm.getResourceTypeName('role')).toBe('角色');
-      expect(wrapper.vm.getResourceTypeName('settings')).toBe('设置');
-      expect(wrapper.vm.getResourceTypeName('unknown')).toBe('unknown');
+      expect(wrapper.vm.getResourceTypeName("knowledge")).toBe("知识库");
+      expect(wrapper.vm.getResourceTypeName("project")).toBe("项目");
+      expect(wrapper.vm.getResourceTypeName("member")).toBe("成员");
+      expect(wrapper.vm.getResourceTypeName("role")).toBe("角色");
+      expect(wrapper.vm.getResourceTypeName("settings")).toBe("设置");
+      expect(wrapper.vm.getResourceTypeName("unknown")).toBe("unknown");
     });
   });
 
-  describe('时间格式化', () => {
-    it('应该格式化时间戳', () => {
+  describe("时间格式化", () => {
+    it("应该格式化时间戳", () => {
       wrapper = createWrapper();
-      const timestamp = new Date('2026-01-26T12:00:00').getTime();
+      const timestamp = new Date("2026-01-26T12:00:00").getTime();
 
       const formatted = wrapper.vm.formatTime(timestamp);
 
-      expect(formatted).toContain('2026');
-      expect(formatted).toContain('1');
-      expect(formatted).toContain('26');
+      expect(formatted).toContain("2026");
+      expect(formatted).toContain("1");
+      expect(formatted).toContain("26");
     });
 
-    it('应该处理空时间戳', () => {
+    it("应该处理空时间戳", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.formatTime(null)).toBe('-');
-      expect(wrapper.vm.formatTime(undefined)).toBe('-');
-      expect(wrapper.vm.formatTime(0)).toBe('-');
+      expect(wrapper.vm.formatTime(null)).toBe("-");
+      expect(wrapper.vm.formatTime(undefined)).toBe("-");
+      expect(wrapper.vm.formatTime(0)).toBe("-");
     });
   });
 
-  describe('导航', () => {
-    it('应该能返回上一页', () => {
+  describe("导航", () => {
+    it("应该能返回上一页", () => {
       wrapper = createWrapper();
 
       wrapper.vm.goBack();
@@ -564,8 +599,8 @@ describe('SyncConflictsPage', () => {
     });
   });
 
-  describe('边界情况', () => {
-    it('应该处理空冲突数组', async () => {
+  describe("边界情况", () => {
+    it("应该处理空冲突数组", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue(null);
 
@@ -574,12 +609,12 @@ describe('SyncConflictsPage', () => {
       expect(wrapper.vm.conflicts).toEqual([]);
     });
 
-    it('应该处理复杂的合并数据', async () => {
+    it("应该处理复杂的合并数据", async () => {
       wrapper = createWrapper();
       wrapper.vm.conflicts = [...mockConflicts];
       wrapper.vm.currentConflict = mockConflicts[0];
       const complexData = {
-        title: 'Complex',
+        title: "Complex",
         nested: {
           deep: {
             value: 123,
@@ -593,40 +628,45 @@ describe('SyncConflictsPage', () => {
       await wrapper.vm.handleManualMergeOk();
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'sync:resolve-conflict',
-        'conflict-1',
+        "sync:resolve-conflict",
+        "conflict-1",
         {
-          strategy: 'manual',
+          strategy: "manual",
           data: complexData,
-        }
+        },
       );
     });
 
-    it('应该处理多个冲突解决', async () => {
+    it("应该处理多个冲突解决", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
       wrapper.vm.conflicts = [...mockConflicts];
+      await wrapper.vm.$nextTick();
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
-      await wrapper.vm.handleResolve(mockConflicts[0], 'local_wins');
-      await wrapper.vm.handleResolve(mockConflicts[1], 'remote_wins');
+      await wrapper.vm.handleResolve(mockConflicts[0], "local_wins");
+      await wrapper.vm.handleResolve(mockConflicts[1], "remote_wins");
 
       expect(wrapper.vm.conflicts.length).toBe(0);
     });
 
-    it('应该在解决冲突失败时保留冲突', async () => {
+    it("应该在解决冲突失败时保留冲突", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
       wrapper.vm.conflicts = [...mockConflicts];
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Failed'));
+      await wrapper.vm.$nextTick();
+      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error("Failed"));
 
-      await wrapper.vm.handleResolve(mockConflicts[0], 'local_wins');
+      await wrapper.vm.handleResolve(mockConflicts[0], "local_wins");
 
       expect(wrapper.vm.conflicts.length).toBe(2);
     });
   });
 
-  describe('JSON验证', () => {
-    it('应该接受有效的JSON', async () => {
+  describe("JSON验证", () => {
+    it("应该接受有效的JSON", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
       wrapper.vm.conflicts = [...mockConflicts];
       wrapper.vm.currentConflict = mockConflicts[0];
       wrapper.vm.mergedData = '{"valid": "json", "number": 123}';
@@ -634,51 +674,52 @@ describe('SyncConflictsPage', () => {
 
       await wrapper.vm.handleManualMergeOk();
 
-      expect(wrapper.vm.mergeError).toBe('');
+      expect(wrapper.vm.mergeError).toBe("");
     });
 
-    it('应该拒绝无效的JSON - 缺少引号', async () => {
+    it("应该拒绝无效的JSON - 缺少引号", async () => {
       wrapper = createWrapper();
+      await flushPromises(); // 等待初始 loadConflicts 完成
       wrapper.vm.currentConflict = mockConflicts[0];
-      wrapper.vm.mergedData = '{invalid: json}';
+      wrapper.vm.mergedData = "{invalid: json}";
 
       await wrapper.vm.handleManualMergeOk();
 
-      expect(wrapper.vm.mergeError).toContain('JSON格式错误');
+      expect(wrapper.vm.mergeError).toContain("JSON格式错误");
     });
 
-    it('应该拒绝无效的JSON - 缺少逗号', async () => {
+    it("应该拒绝无效的JSON - 缺少逗号", async () => {
       wrapper = createWrapper();
       wrapper.vm.currentConflict = mockConflicts[0];
       wrapper.vm.mergedData = '{"a": 1 "b": 2}';
 
       await wrapper.vm.handleManualMergeOk();
 
-      expect(wrapper.vm.mergeError).toContain('JSON格式错误');
+      expect(wrapper.vm.mergeError).toContain("JSON格式错误");
     });
 
-    it('应该接受空对象', async () => {
+    it("应该接受空对象", async () => {
       wrapper = createWrapper();
       wrapper.vm.conflicts = [...mockConflicts];
       wrapper.vm.currentConflict = mockConflicts[0];
-      wrapper.vm.mergedData = '{}';
+      wrapper.vm.mergedData = "{}";
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
       await wrapper.vm.handleManualMergeOk();
 
-      expect(wrapper.vm.mergeError).toBe('');
+      expect(wrapper.vm.mergeError).toBe("");
     });
 
-    it('应该接受数组', async () => {
+    it("应该接受数组", async () => {
       wrapper = createWrapper();
       wrapper.vm.conflicts = [...mockConflicts];
       wrapper.vm.currentConflict = mockConflicts[0];
-      wrapper.vm.mergedData = '[1, 2, 3]';
+      wrapper.vm.mergedData = "[1, 2, 3]";
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
       await wrapper.vm.handleManualMergeOk();
 
-      expect(wrapper.vm.mergeError).toBe('');
+      expect(wrapper.vm.mergeError).toBe("");
     });
   });
 });

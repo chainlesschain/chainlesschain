@@ -531,6 +531,28 @@ onMounted(async () => {
     await loadQueue();
   });
 });
+
+// 暴露给测试使用
+defineExpose({
+  loading,
+  queueMessages,
+  queueStats,
+  selectedMessage,
+  showDetailsModal,
+  pagination,
+  loadQueue,
+  handleRetry,
+  handleRetryAll,
+  handleDelete,
+  handleClearAll,
+  handleViewDetails,
+  handleTableChange,
+  getStatusColor,
+  getStatusText,
+  shortenPeerId,
+  truncateContent,
+  formatTime,
+});
 </script>
 
 <style scoped>

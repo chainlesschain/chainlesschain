@@ -649,6 +649,45 @@ const handleBatchDelete = () => {
     },
   });
 };
+
+// 暴露给测试使用
+defineExpose({
+  searchKeyword,
+  categoryFilter,
+  searchInputRef,
+  detailsVisible,
+  currentSkill,
+  docVisible,
+  currentDoc,
+  loadingDoc,
+  editorVisible,
+  editingSkill,
+  statsVisible,
+  graphVisible,
+  allTools,
+  allSkillTools,
+  selectedSkillIds,
+  selectedSkills,
+  isAllSelected,
+  gridColumns,
+  handleSearch,
+  handleCategoryChange,
+  handleRefresh,
+  handleViewDetails,
+  handleToggleEnabled,
+  handleViewDoc,
+  handleUpdateSkill,
+  handleCreateSkill,
+  handleSaveSkill,
+  showStats,
+  showDependencyGraph,
+  handleSkillSelect,
+  handleSelectAll,
+  handleClearSelection,
+  handleBatchEnable,
+  handleBatchDisable,
+  handleBatchDelete,
+});
 </script>
 
 <style scoped lang="scss">
