@@ -68,6 +68,7 @@ npx vitest run tests/unit \
   --exclude="**/tests/cowork/**" \
   --exclude="**/tests/remote/**" \
   --exclude="**/tests/integration/**" \
+  --exclude="**/tests/unit/integration/**" \
   --exclude="**/src/main/**/__tests__/**" \
   --exclude="**/src/renderer/**/__tests__/**"
 
