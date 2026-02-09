@@ -141,12 +141,9 @@ fun NavGraphBuilder.projectNavGraph(
             val parentEntry = navController.getBackStackEntry(ProjectRoute.LIST)
             val viewModel: ProjectViewModel = hiltViewModel(parentEntry)
 
-            LaunchedEffect(userId) {
-                viewModel.setCurrentUser(userId)
-            }
-
             CreateProjectScreen(
                 viewModel = viewModel,
+                userId = userId,
                 onNavigateBack = { navController.popBackStack() },
                 onProjectCreated = { projectId ->
                     navController.navigateToProjectDetail(
