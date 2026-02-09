@@ -56,10 +56,17 @@ mybatis-plus:
 # JWT配置
 jwt:
   secret: chainlesschain-community-forum-secret-key-change-this-in-production-environment
-  expiration: 86400000  # 24小时
-  refresh-expiration: 604800000  # 7天
+  expiration: 86400000 # 24小时
+  refresh-expiration: 604800000 # 7天
   header: Authorization
   prefix: Bearer
+
+# U盾/SIMKey配置
+ukey:
+  # 开发模式：设置为true时使用简化验证（仅用于开发，生产环境必须设为false）
+  dev-mode: ${UKEY_DEV_MODE:true}
+  # 默认PIN码（仅用于开发模式）
+  default-pin: ${UKEY_DEFAULT_PIN:123456}
 
 # 系统配置
 system:
@@ -70,7 +77,7 @@ system:
   # 允许的文件类型
   allowed-file-types: jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,zip,rar
   # 最大上传大小
-  max-upload-size: 10485760  # 10MB
+  max-upload-size: 10485760 # 10MB
   # 帖子每页数量
   page-size: 20
   # 回复每页数量

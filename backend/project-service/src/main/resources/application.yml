@@ -122,6 +122,11 @@ jwt:
   secret: ${JWT_SECRET:chainlesschain-secret-key-for-jwt-token-generation-2024-please-change-in-production}
   expiration: ${JWT_EXPIRATION:86400000} # 24小时（毫秒）
 
+# 安全配置
+security:
+  # 开发模式：设置为true时跳过API认证检查（仅用于开发，生产环境必须设为false）
+  dev-mode: ${SECURITY_DEV_MODE:true}
+
 # 文件上传配置
 file:
   upload:
