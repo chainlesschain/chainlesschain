@@ -13,9 +13,9 @@
  * - Store集成
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
-import { ref, computed, onMounted, watch } from 'vue';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mount } from "@vue/test-utils";
+import { ref, computed, onMounted, watch } from "vue";
 
 // Mock message object
 const mockMessage = {
@@ -32,7 +32,7 @@ const mockLogger = {
 };
 
 // Mock ant-design-vue
-vi.mock('ant-design-vue', () => ({
+vi.mock("ant-design-vue", () => ({
   message: {
     success: vi.fn(),
     error: vi.fn(),
@@ -41,7 +41,7 @@ vi.mock('ant-design-vue', () => ({
 }));
 
 // Mock logger
-vi.mock('@/utils/logger', () => ({
+vi.mock("@/utils/logger", () => ({
   logger: {
     error: vi.fn(),
     warn: vi.fn(),
@@ -53,7 +53,7 @@ vi.mock('@/utils/logger', () => ({
 // Mock Trade Store
 const mockTradeStore = {
   ui: {
-    activeTab: 'assets',
+    activeTab: "assets",
     selectedDid: null,
   },
   asset: { loading: false },
@@ -64,7 +64,7 @@ const mockTradeStore = {
   review: { loading: false },
   knowledge: { loading: false },
   creditScore: 750,
-  creditLevelColor: '#52c41a',
+  creditLevelColor: "#52c41a",
   setActiveTab: vi.fn(),
   setSelectedDid: vi.fn(),
   initUI: vi.fn(),
@@ -81,7 +81,7 @@ const mockTradeStore = {
   loadTransactions: vi.fn(),
 };
 
-vi.mock('../stores/trade', () => ({
+vi.mock("../stores/trade", () => ({
   useTradeStore: () => mockTradeStore,
 }));
 
@@ -94,20 +94,20 @@ global.window = {
   },
 };
 
-describe('TradingHub', () => {
+describe("TradingHub", () => {
   let wrapper;
 
   const mockDids = [
     {
-      did: 'did:chainlesschain:user1',
-      profile: { name: 'User One' },
+      did: "did:chainlesschain:user1",
+      profile: { name: "User One" },
     },
     {
-      did: 'did:chainlesschain:user2',
-      profile: { name: 'User Two' },
+      did: "did:chainlesschain:user2",
+      profile: { name: "User Two" },
     },
     {
-      did: 'did:chainlesschain:user3',
+      did: "did:chainlesschain:user3",
       profile: null,
     },
   ];
@@ -190,15 +190,15 @@ describe('TradingHub', () => {
           const loadingDids = ref(false);
 
           const tabs = [
-            { key: 'assets', label: '我的资产' },
-            { key: 'marketplace', label: '交易市场' },
-            { key: 'escrow', label: '托管管理' },
-            { key: 'contracts', label: '智能合约' },
-            { key: 'credit', label: '信用评分' },
-            { key: 'reviews', label: '评价管理' },
-            { key: 'knowledge', label: '知识付费' },
-            { key: 'transactions', label: '交易记录' },
-            { key: 'statistics', label: '统计面板' },
+            { key: "assets", label: "我的资产" },
+            { key: "marketplace", label: "交易市场" },
+            { key: "escrow", label: "托管管理" },
+            { key: "contracts", label: "智能合约" },
+            { key: "credit", label: "信用评分" },
+            { key: "reviews", label: "评价管理" },
+            { key: "knowledge", label: "知识付费" },
+            { key: "transactions", label: "交易记录" },
+            { key: "statistics", label: "统计面板" },
           ];
 
           const activeTab = computed({
@@ -217,19 +217,19 @@ describe('TradingHub', () => {
           const isLoading = computed(() => {
             const tab = activeTab.value;
             switch (tab) {
-              case 'assets':
+              case "assets":
                 return tradeStore.asset.loading;
-              case 'marketplace':
+              case "marketplace":
                 return tradeStore.marketplace.loading;
-              case 'escrow':
+              case "escrow":
                 return tradeStore.escrow.loading;
-              case 'contracts':
+              case "contracts":
                 return tradeStore.contract.loading;
-              case 'credit':
+              case "credit":
                 return tradeStore.credit.loading;
-              case 'reviews':
+              case "reviews":
                 return tradeStore.review.loading;
-              case 'knowledge':
+              case "knowledge":
                 return tradeStore.knowledge.loading;
               default:
                 return false;
@@ -246,18 +246,22 @@ describe('TradingHub', () => {
                 selectedDid.value = availableDids.value[0].did;
               }
             } catch (error) {
-              logger.error('加载DID列表失败:', error);
-              message.error('加载DID列表失败: ' + error.message);
+              logger.error("加载DID列表失败:", error);
+              message.error("加载DID列表失败: " + error.message);
             } finally {
               loadingDids.value = false;
             }
           };
 
           const handleTabChange = (key) => {
-            logger.info('Tab changed to:', key);
+            logger.info("Tab changed to:", key);
 
-            if (!selectedDid.value && key !== 'marketplace' && key !== 'knowledge') {
-              message.warning('请先选择DID身份');
+            if (
+              !selectedDid.value &&
+              key !== "marketplace" &&
+              key !== "knowledge"
+            ) {
+              message.warning("请先选择DID身份");
               return;
             }
 
@@ -267,41 +271,41 @@ describe('TradingHub', () => {
           const loadTabData = async (tab) => {
             try {
               switch (tab) {
-                case 'assets':
+                case "assets":
                   if (selectedDid.value) {
                     await tradeStore.loadMyAssets(selectedDid.value);
                   }
                   break;
-                case 'marketplace':
+                case "marketplace":
                   await tradeStore.loadOrders();
                   break;
-                case 'escrow':
+                case "escrow":
                   await tradeStore.loadEscrows();
                   await tradeStore.loadEscrowStatistics();
                   break;
-                case 'contracts':
+                case "contracts":
                   await tradeStore.loadContracts();
                   await tradeStore.loadContractTemplates();
                   break;
-                case 'credit':
+                case "credit":
                   if (selectedDid.value) {
                     await tradeStore.loadUserCredit(selectedDid.value);
                     await tradeStore.loadScoreHistory(selectedDid.value, 20);
                   }
                   break;
-                case 'reviews':
+                case "reviews":
                   if (selectedDid.value) {
                     await tradeStore.loadMyReviews(selectedDid.value);
                   }
                   break;
-                case 'knowledge':
+                case "knowledge":
                   await tradeStore.loadKnowledgeContents();
                   break;
-                case 'transactions':
+                case "transactions":
                   await tradeStore.loadTransactions();
                   break;
                 default:
-                  logger.warn('未知的Tab:', tab);
+                  logger.warn("未知的Tab:", tab);
               }
             } catch (error) {
               logger.error(`加载Tab数据失败 [${tab}]:`, error);
@@ -311,39 +315,39 @@ describe('TradingHub', () => {
 
           const handleRefresh = () => {
             loadTabData(activeTab.value);
-            message.success('刷新成功');
+            message.success("刷新成功");
           };
 
           const handleViewCredit = () => {
-            activeTab.value = 'credit';
+            activeTab.value = "credit";
           };
 
           const handleDidChange = async (event) => {
             const newDid = event.target.value;
-            logger.info('DID changed to:', newDid);
+            logger.info("DID changed to:", newDid);
 
             await loadTabData(activeTab.value);
 
-            if (activeTab.value === 'credit') {
+            if (activeTab.value === "credit") {
               try {
                 await tradeStore.loadUserCredit(newDid);
                 await tradeStore.loadScoreHistory(newDid, 20);
               } catch (error) {
-                logger.error('加载新DID信用信息失败:', error);
+                logger.error("加载新DID信用信息失败:", error);
               }
             }
           };
 
           watch(selectedDid, (newDid) => {
-            if (newDid && activeTab.value === 'credit') {
+            if (newDid && activeTab.value === "credit") {
               tradeStore.loadUserCredit(newDid).catch((error) => {
-                logger.error('加载信用信息失败:', error);
+                logger.error("加载信用信息失败:", error);
               });
             }
           });
 
           onMounted(async () => {
-            logger.info('[TradingHub] 组件挂载');
+            logger.info("[TradingHub] 组件挂载");
 
             tradeStore.initUI();
 
@@ -352,7 +356,7 @@ describe('TradingHub', () => {
             if (availableDids.value.length > 0) {
               await loadTabData(activeTab.value);
             } else {
-              message.warning('请先创建DID身份', 3);
+              message.warning("请先创建DID身份", 3);
             }
           });
 
@@ -374,7 +378,7 @@ describe('TradingHub', () => {
           };
         },
       },
-      options
+      options,
     );
   };
 
@@ -389,19 +393,19 @@ describe('TradingHub', () => {
     mockLogger.info.mockClear();
     // Reset store and API mocks
     window.electronAPI.did.getAllIdentities.mockResolvedValue([]);
-    mockTradeStore.ui.activeTab = 'assets';
+    mockTradeStore.ui.activeTab = "assets";
     mockTradeStore.ui.selectedDid = null;
     mockTradeStore.creditScore = 750;
   });
 
-  describe('组件挂载', () => {
-    it('应该成功挂载组件', () => {
+  describe("组件挂载", () => {
+    it("应该成功挂载组件", () => {
       wrapper = createWrapper();
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.find('.trading-hub').exists()).toBe(true);
+      expect(wrapper.find(".trading-hub").exists()).toBe(true);
     });
 
-    it('应该在挂载时初始化UI状态', async () => {
+    it("应该在挂载时初始化UI状态", async () => {
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
@@ -410,7 +414,7 @@ describe('TradingHub', () => {
       expect(mockTradeStore.initUI).toHaveBeenCalled();
     });
 
-    it('应该在挂载时加载DID列表', async () => {
+    it("应该在挂载时加载DID列表", async () => {
       window.electronAPI.did.getAllIdentities.mockResolvedValue(mockDids);
       wrapper = createWrapper();
 
@@ -420,7 +424,7 @@ describe('TradingHub', () => {
       expect(window.electronAPI.did.getAllIdentities).toHaveBeenCalled();
     });
 
-    it('应该在挂载时提示创建DID', async () => {
+    it("应该在挂载时提示创建DID", async () => {
       window.electronAPI.did.getAllIdentities.mockResolvedValue([]);
       wrapper = createWrapper();
 
@@ -435,8 +439,8 @@ describe('TradingHub', () => {
     });
   });
 
-  describe('DID管理', () => {
-    it('应该能加载DID列表', async () => {
+  describe("DID管理", () => {
+    it("应该能加载DID列表", async () => {
       wrapper = createWrapper();
       window.electronAPI.did.getAllIdentities.mockResolvedValue(mockDids);
 
@@ -445,212 +449,216 @@ describe('TradingHub', () => {
       expect(wrapper.vm.availableDids.length).toBe(3);
     });
 
-    it('应该能自动选择第一个DID', async () => {
+    it("应该能自动选择第一个DID", async () => {
       wrapper = createWrapper();
       window.electronAPI.did.getAllIdentities.mockResolvedValue(mockDids);
 
       await wrapper.vm.loadAvailableDids();
 
-      expect(mockTradeStore.setSelectedDid).toHaveBeenCalledWith(mockDids[0].did);
+      expect(mockTradeStore.setSelectedDid).toHaveBeenCalledWith(
+        mockDids[0].did,
+      );
     });
 
-    it('应该能处理DID加载失败', async () => {
+    it("应该能处理DID加载失败", async () => {
       wrapper = createWrapper();
       window.electronAPI.did.getAllIdentities.mockRejectedValue(
-        new Error('Network error')
+        new Error("Network error"),
       );
 
       await wrapper.vm.loadAvailableDids();
 
-      expect(mockMessage.error).toHaveBeenCalledWith('加载DID列表失败: Network error');
+      expect(mockMessage.error).toHaveBeenCalledWith(
+        "加载DID列表失败: Network error",
+      );
     });
 
-    it('应该能显示DID名称', async () => {
+    it("应该能显示DID名称", async () => {
       wrapper = createWrapper();
       window.electronAPI.did.getAllIdentities.mockResolvedValue(mockDids);
 
       await wrapper.vm.loadAvailableDids();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.text()).toContain('User One');
-      expect(wrapper.text()).toContain('User Two');
+      expect(wrapper.text()).toContain("User One");
+      expect(wrapper.text()).toContain("User Two");
     });
 
-    it('应该能处理没有profile的DID', async () => {
+    it("应该能处理没有profile的DID", async () => {
       wrapper = createWrapper();
       window.electronAPI.did.getAllIdentities.mockResolvedValue([mockDids[2]]);
 
       await wrapper.vm.loadAvailableDids();
       await wrapper.vm.$nextTick();
 
-      const expectedText = mockDids[2].did.slice(0, 12) + '...';
+      const expectedText = mockDids[2].did.slice(0, 12) + "...";
       expect(wrapper.text()).toContain(expectedText);
     });
   });
 
-  describe('Tab切换', () => {
-    it('应该能切换到资产Tab', async () => {
+  describe("Tab切换", () => {
+    it("应该能切换到资产Tab", async () => {
       // Set mock state BEFORE creating wrapper (computed caches initial value)
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user1";
       wrapper = createWrapper();
 
-      wrapper.vm.activeTab = 'assets';
-      await wrapper.vm.handleTabChange('assets');
+      wrapper.vm.activeTab = "assets";
+      await wrapper.vm.handleTabChange("assets");
 
-      expect(mockTradeStore.setActiveTab).toHaveBeenCalledWith('assets');
+      expect(mockTradeStore.setActiveTab).toHaveBeenCalledWith("assets");
       expect(mockTradeStore.loadMyAssets).toHaveBeenCalledWith(
-        'did:chainlesschain:user1'
+        "did:chainlesschain:user1",
       );
     });
 
-    it('应该能切换到市场Tab', async () => {
+    it("应该能切换到市场Tab", async () => {
       wrapper = createWrapper();
 
-      wrapper.vm.activeTab = 'marketplace';
-      await wrapper.vm.handleTabChange('marketplace');
+      wrapper.vm.activeTab = "marketplace";
+      await wrapper.vm.handleTabChange("marketplace");
 
       expect(mockTradeStore.loadOrders).toHaveBeenCalled();
     });
 
-    it('应该能切换到托管Tab', async () => {
+    it("应该能切换到托管Tab", async () => {
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user1";
       wrapper = createWrapper();
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
 
-      wrapper.vm.activeTab = 'escrow';
-      await wrapper.vm.handleTabChange('escrow');
+      wrapper.vm.activeTab = "escrow";
+      await wrapper.vm.handleTabChange("escrow");
 
       expect(mockTradeStore.loadEscrows).toHaveBeenCalled();
       expect(mockTradeStore.loadEscrowStatistics).toHaveBeenCalled();
     });
 
-    it('应该能切换到合约Tab', async () => {
+    it("应该能切换到合约Tab", async () => {
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user1";
       wrapper = createWrapper();
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
 
-      wrapper.vm.activeTab = 'contracts';
-      await wrapper.vm.handleTabChange('contracts');
+      wrapper.vm.activeTab = "contracts";
+      await wrapper.vm.handleTabChange("contracts");
 
       expect(mockTradeStore.loadContracts).toHaveBeenCalled();
       expect(mockTradeStore.loadContractTemplates).toHaveBeenCalled();
     });
 
-    it('应该能切换到信用Tab', async () => {
+    it("应该能切换到信用Tab", async () => {
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user1";
       wrapper = createWrapper();
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
 
-      wrapper.vm.activeTab = 'credit';
-      await wrapper.vm.handleTabChange('credit');
+      wrapper.vm.activeTab = "credit";
+      await wrapper.vm.handleTabChange("credit");
 
       expect(mockTradeStore.loadUserCredit).toHaveBeenCalledWith(
-        'did:chainlesschain:user1'
+        "did:chainlesschain:user1",
       );
       expect(mockTradeStore.loadScoreHistory).toHaveBeenCalledWith(
-        'did:chainlesschain:user1',
-        20
+        "did:chainlesschain:user1",
+        20,
       );
     });
 
-    it('应该能切换到评价Tab', async () => {
+    it("应该能切换到评价Tab", async () => {
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user1";
       wrapper = createWrapper();
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
 
-      wrapper.vm.activeTab = 'reviews';
-      await wrapper.vm.handleTabChange('reviews');
+      wrapper.vm.activeTab = "reviews";
+      await wrapper.vm.handleTabChange("reviews");
 
       expect(mockTradeStore.loadMyReviews).toHaveBeenCalledWith(
-        'did:chainlesschain:user1'
+        "did:chainlesschain:user1",
       );
     });
 
-    it('应该能切换到知识付费Tab', async () => {
+    it("应该能切换到知识付费Tab", async () => {
       wrapper = createWrapper();
 
-      wrapper.vm.activeTab = 'knowledge';
-      await wrapper.vm.handleTabChange('knowledge');
+      wrapper.vm.activeTab = "knowledge";
+      await wrapper.vm.handleTabChange("knowledge");
 
       expect(mockTradeStore.loadKnowledgeContents).toHaveBeenCalled();
     });
 
-    it('应该能切换到交易记录Tab', async () => {
+    it("应该能切换到交易记录Tab", async () => {
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user1";
       wrapper = createWrapper();
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
 
-      wrapper.vm.activeTab = 'transactions';
-      await wrapper.vm.handleTabChange('transactions');
+      wrapper.vm.activeTab = "transactions";
+      await wrapper.vm.handleTabChange("transactions");
 
       expect(mockTradeStore.loadTransactions).toHaveBeenCalled();
     });
 
-    it('应该在没有DID时警告用户', async () => {
+    it("应该在没有DID时警告用户", async () => {
       wrapper = createWrapper();
       mockTradeStore.ui.selectedDid = null;
 
-      await wrapper.vm.handleTabChange('assets');
+      await wrapper.vm.handleTabChange("assets");
 
-      expect(mockMessage.warning).toHaveBeenCalledWith('请先选择DID身份');
+      expect(mockMessage.warning).toHaveBeenCalledWith("请先选择DID身份");
     });
 
-    it('应该允许在没有DID时访问市场', async () => {
+    it("应该允许在没有DID时访问市场", async () => {
       wrapper = createWrapper();
       mockTradeStore.ui.selectedDid = null;
 
-      await wrapper.vm.handleTabChange('marketplace');
+      await wrapper.vm.handleTabChange("marketplace");
 
       expect(mockMessage.warning).not.toHaveBeenCalled();
       expect(mockTradeStore.loadOrders).toHaveBeenCalled();
     });
 
-    it('应该允许在没有DID时访问知识付费', async () => {
+    it("应该允许在没有DID时访问知识付费", async () => {
       wrapper = createWrapper();
       mockTradeStore.ui.selectedDid = null;
 
-      await wrapper.vm.handleTabChange('knowledge');
+      await wrapper.vm.handleTabChange("knowledge");
 
       expect(mockMessage.warning).not.toHaveBeenCalled();
       expect(mockTradeStore.loadKnowledgeContents).toHaveBeenCalled();
     });
   });
 
-  describe('信用评分', () => {
-    it('应该显示信用评分', async () => {
+  describe("信用评分", () => {
+    it("应该显示信用评分", async () => {
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.text()).toContain('750');
+      expect(wrapper.text()).toContain("750");
     });
 
-    it('应该能点击查看信用', async () => {
+    it("应该能点击查看信用", async () => {
       wrapper = createWrapper();
 
       await wrapper.vm.handleViewCredit();
 
-      expect(mockTradeStore.setActiveTab).toHaveBeenCalledWith('credit');
+      expect(mockTradeStore.setActiveTab).toHaveBeenCalledWith("credit");
     });
 
-    it('应该显示信用等级颜色', () => {
+    it("应该显示信用等级颜色", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.creditLevelColor).toBe('#52c41a');
+      expect(wrapper.vm.creditLevelColor).toBe("#52c41a");
     });
   });
 
-  describe('刷新功能', () => {
-    it('应该能刷新当前Tab数据', async () => {
-      wrapper = createWrapper();
-      mockTradeStore.ui.activeTab = 'marketplace';
+  describe("刷新功能", () => {
+    it("应该能刷新当前Tab数据", async () => {
+      mockTradeStore.ui.activeTab = "marketplace";
       mockTradeStore.ui.selectedDid = null;
+      wrapper = createWrapper();
 
       await wrapper.vm.handleRefresh();
 
       expect(mockTradeStore.loadOrders).toHaveBeenCalled();
-      expect(mockMessage.success).toHaveBeenCalledWith('刷新成功');
+      expect(mockMessage.success).toHaveBeenCalledWith("刷新成功");
     });
 
-    it('应该能刷新资产数据', async () => {
+    it("应该能刷新资产数据", async () => {
+      mockTradeStore.ui.activeTab = "assets";
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user1";
       wrapper = createWrapper();
-      mockTradeStore.ui.activeTab = 'assets';
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
 
       await wrapper.vm.handleRefresh();
 
@@ -658,113 +666,113 @@ describe('TradingHub', () => {
     });
   });
 
-  describe('DID切换', () => {
-    it('应该能切换DID', async () => {
+  describe("DID切换", () => {
+    it("应该能切换DID", async () => {
+      mockTradeStore.ui.activeTab = "assets";
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user2";
       wrapper = createWrapper();
-      mockTradeStore.ui.activeTab = 'assets';
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user2';
 
-      const event = { target: { value: 'did:chainlesschain:user2' } };
+      const event = { target: { value: "did:chainlesschain:user2" } };
       await wrapper.vm.handleDidChange(event);
 
       expect(mockTradeStore.loadMyAssets).toHaveBeenCalled();
     });
 
-    it('应该在信用Tab时加载新DID信用信息', async () => {
+    it("应该在信用Tab时加载新DID信用信息", async () => {
+      mockTradeStore.ui.activeTab = "credit";
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user2";
       wrapper = createWrapper();
-      mockTradeStore.ui.activeTab = 'credit';
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user2';
 
-      const event = { target: { value: 'did:chainlesschain:user2' } };
+      const event = { target: { value: "did:chainlesschain:user2" } };
       await wrapper.vm.handleDidChange(event);
 
       expect(mockTradeStore.loadUserCredit).toHaveBeenCalledWith(
-        'did:chainlesschain:user2'
+        "did:chainlesschain:user2",
       );
       expect(mockTradeStore.loadScoreHistory).toHaveBeenCalledWith(
-        'did:chainlesschain:user2',
-        20
+        "did:chainlesschain:user2",
+        20,
       );
     });
   });
 
-  describe('加载状态', () => {
-    it('应该在资产Tab显示加载状态', () => {
-      wrapper = createWrapper();
-      mockTradeStore.ui.activeTab = 'assets';
+  describe("加载状态", () => {
+    it("应该在资产Tab显示加载状态", () => {
+      mockTradeStore.ui.activeTab = "assets";
       mockTradeStore.asset.loading = true;
+      wrapper = createWrapper();
 
       expect(wrapper.vm.isLoading).toBe(true);
     });
 
-    it('应该在市场Tab显示加载状态', () => {
-      wrapper = createWrapper();
-      mockTradeStore.ui.activeTab = 'marketplace';
+    it("应该在市场Tab显示加载状态", () => {
+      mockTradeStore.ui.activeTab = "marketplace";
       mockTradeStore.marketplace.loading = true;
+      wrapper = createWrapper();
 
       expect(wrapper.vm.isLoading).toBe(true);
     });
 
-    it('应该在托管Tab显示加载状态', () => {
-      wrapper = createWrapper();
-      mockTradeStore.ui.activeTab = 'escrow';
+    it("应该在托管Tab显示加载状态", () => {
+      mockTradeStore.ui.activeTab = "escrow";
       mockTradeStore.escrow.loading = true;
+      wrapper = createWrapper();
 
       expect(wrapper.vm.isLoading).toBe(true);
     });
 
-    it('应该在合约Tab显示加载状态', () => {
-      wrapper = createWrapper();
-      mockTradeStore.ui.activeTab = 'contracts';
+    it("应该在合约Tab显示加载状态", () => {
+      mockTradeStore.ui.activeTab = "contracts";
       mockTradeStore.contract.loading = true;
+      wrapper = createWrapper();
 
       expect(wrapper.vm.isLoading).toBe(true);
     });
   });
 
-  describe('错误处理', () => {
-    it('应该能处理Tab数据加载失败', async () => {
+  describe("错误处理", () => {
+    it("应该能处理Tab数据加载失败", async () => {
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user1";
+      mockTradeStore.loadMyAssets.mockRejectedValue(new Error("Load failed"));
       wrapper = createWrapper();
-      mockTradeStore.loadMyAssets.mockRejectedValue(new Error('Load failed'));
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
 
-      await wrapper.vm.loadTabData('assets');
+      await wrapper.vm.loadTabData("assets");
 
-      expect(mockMessage.error).toHaveBeenCalledWith('加载数据失败: Load failed');
+      expect(mockMessage.error).toHaveBeenCalledWith(
+        "加载数据失败: Load failed",
+      );
     });
 
-    it('应该能处理未知Tab', async () => {
+    it("应该能处理未知Tab", async () => {
       wrapper = createWrapper();
 
-      await wrapper.vm.loadTabData('unknown-tab');
+      await wrapper.vm.loadTabData("unknown-tab");
 
-      expect(mockLogger.warn).toHaveBeenCalledWith('未知的Tab:', 'unknown-tab');
+      expect(mockLogger.warn).toHaveBeenCalledWith("未知的Tab:", "unknown-tab");
     });
   });
 
-  describe('Watch机制', () => {
-    it('应该监听selectedDid变化并加载信用信息', async () => {
-      wrapper = createWrapper();
-      mockTradeStore.ui.activeTab = 'credit';
-      mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
-
-      // Simulate watch trigger
+  describe("Watch机制", () => {
+    it("应该监听selectedDid变化并加载信用信息", async () => {
+      mockTradeStore.ui.activeTab = "credit";
+      mockTradeStore.ui.selectedDid = "did:chainlesschain:user1";
       mockTradeStore.loadUserCredit.mockResolvedValue();
+      wrapper = createWrapper();
 
-      // Manually trigger the watch callback
-      const newDid = 'did:chainlesschain:user1';
-      if (newDid && wrapper.vm.activeTab === 'credit') {
+      // Manually trigger the watch callback logic
+      const newDid = "did:chainlesschain:user1";
+      if (newDid && wrapper.vm.activeTab === "credit") {
         await mockTradeStore.loadUserCredit(newDid);
       }
 
       expect(mockTradeStore.loadUserCredit).toHaveBeenCalledWith(
-        'did:chainlesschain:user1'
+        "did:chainlesschain:user1",
       );
     });
   });
 
-  describe('边界情况', () => {
-    it('应该处理空DID列表', async () => {
+  describe("边界情况", () => {
+    it("应该处理空DID列表", async () => {
       wrapper = createWrapper();
       window.electronAPI.did.getAllIdentities.mockResolvedValue([]);
 
@@ -773,23 +781,23 @@ describe('TradingHub', () => {
       expect(wrapper.vm.availableDids.length).toBe(0);
     });
 
-    it('应该处理零信用评分', () => {
-      wrapper = createWrapper();
+    it("应该处理零信用评分", () => {
       mockTradeStore.creditScore = 0;
+      wrapper = createWrapper();
 
       expect(wrapper.vm.creditScore).toBe(0);
     });
 
-    it('应该处理undefined信用评分', () => {
-      wrapper = createWrapper();
+    it("应该处理undefined信用评分", () => {
       mockTradeStore.creditScore = undefined;
+      wrapper = createWrapper();
 
       expect(wrapper.vm.creditScore).toBe(0);
     });
 
-    it('应该处理非常长的DID', async () => {
+    it("应该处理非常长的DID", async () => {
       wrapper = createWrapper();
-      const longDid = 'did:chainlesschain:' + 'a'.repeat(100);
+      const longDid = "did:chainlesschain:" + "a".repeat(100);
       window.electronAPI.did.getAllIdentities.mockResolvedValue([
         { did: longDid, profile: null },
       ]);
@@ -797,36 +805,36 @@ describe('TradingHub', () => {
       await wrapper.vm.loadAvailableDids();
       await wrapper.vm.$nextTick();
 
-      const expectedText = longDid.slice(0, 12) + '...';
+      const expectedText = longDid.slice(0, 12) + "...";
       expect(wrapper.text()).toContain(expectedText);
     });
   });
 
-  describe('所有Tabs完整性', () => {
-    it('应该有9个Tab', () => {
+  describe("所有Tabs完整性", () => {
+    it("应该有9个Tab", () => {
       wrapper = createWrapper();
 
       expect(wrapper.vm.tabs.length).toBe(9);
     });
 
-    it('应该包含所有必需的Tab', () => {
+    it("应该包含所有必需的Tab", () => {
       wrapper = createWrapper();
 
       const tabKeys = wrapper.vm.tabs.map((t) => t.key);
-      expect(tabKeys).toContain('assets');
-      expect(tabKeys).toContain('marketplace');
-      expect(tabKeys).toContain('escrow');
-      expect(tabKeys).toContain('contracts');
-      expect(tabKeys).toContain('credit');
-      expect(tabKeys).toContain('reviews');
-      expect(tabKeys).toContain('knowledge');
-      expect(tabKeys).toContain('transactions');
-      expect(tabKeys).toContain('statistics');
+      expect(tabKeys).toContain("assets");
+      expect(tabKeys).toContain("marketplace");
+      expect(tabKeys).toContain("escrow");
+      expect(tabKeys).toContain("contracts");
+      expect(tabKeys).toContain("credit");
+      expect(tabKeys).toContain("reviews");
+      expect(tabKeys).toContain("knowledge");
+      expect(tabKeys).toContain("transactions");
+      expect(tabKeys).toContain("statistics");
     });
   });
 
-  describe('loading状态', () => {
-    it('应该在加载DID时设置loading状态', async () => {
+  describe("loading状态", () => {
+    it("应该在加载DID时设置loading状态", async () => {
       wrapper = createWrapper();
       window.electronAPI.did.getAllIdentities.mockImplementation(() => {
         expect(wrapper.vm.loadingDids).toBe(true);
@@ -838,9 +846,11 @@ describe('TradingHub', () => {
       expect(wrapper.vm.loadingDids).toBe(false);
     });
 
-    it('应该在加载失败后重置loading状态', async () => {
+    it("应该在加载失败后重置loading状态", async () => {
       wrapper = createWrapper();
-      window.electronAPI.did.getAllIdentities.mockRejectedValue(new Error('Failed'));
+      window.electronAPI.did.getAllIdentities.mockRejectedValue(
+        new Error("Failed"),
+      );
 
       await wrapper.vm.loadAvailableDids();
 
