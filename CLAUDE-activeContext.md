@@ -932,6 +932,20 @@ npm run test:session # Session 压缩测试
 
 ## 更新日志
 
+### 2026-02-09 (晚上)
+
+- **RAG增强项目AI 实施完成** (100%):
+  - 实现计划中的全部 4 个新类 (~700 行代码)
+  - IncrementalIndexManager: MD5 content hash 变化检测，避免重复索引
+  - MultiFileRetriever: 跨文件上下文聚合，import/require 依赖追踪
+  - UnifiedRetriever: 并行检索 3 数据源 (项目 0.5 + 对话 0.2 + 知识库 0.3 权重)
+  - ProjectAwareReranker: 同目录 +15%、最近文件 +10%、类型匹配 +10% 加权
+  - 新增 `project_rag_index` 表 (增量索引追踪)
+  - 6 个新 IPC handlers + Preload API
+  - 测试验证通过，已提交并推送到远程仓库
+- **测试修复**:
+  - permission-system.test.js 断言优化 (folder access assertion)
+
 ### 2026-02-09 (下午)
 
 - **安全认证增强**:
