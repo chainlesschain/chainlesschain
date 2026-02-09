@@ -1009,7 +1009,11 @@ describe("SessionManager", () => {
         "sess-2",
       ]);
 
-      expect(Array.isArray(exported)).toBe(true);
+      // exportMultiple returns a JSON string
+      expect(typeof exported).toBe("string");
+      const parsed = JSON.parse(exported);
+      expect(Array.isArray(parsed.sessions)).toBe(true);
+      expect(parsed.sessions.length).toBe(2);
     });
   });
 
@@ -1038,13 +1042,18 @@ describe("SessionManager", () => {
 
     it("应该批量生成摘要", async () => {
       const sessions = [
-        { id: "sess-1", messages: [], metadata: {} },
-        { id: "sess-2", messages: [], metadata: {} },
+        { id: "sess-1", messages: [{ role: "user", content: "Hello" }], metadata: {} },
+        { id: "sess-2", messages: [{ role: "assistant", content: "Hi there!" }], metadata: {} },
       ];
 
       // Mock listSessions to return our test sessions
       mockDatabase.prepare.mockReturnValueOnce({
         all: vi.fn(() => sessions),
+      });
+
+      // Mock for saveSession calls
+      mockDatabase.prepare.mockReturnValue({
+        run: vi.fn(() => ({ changes: 1 })),
       });
 
       sessions.forEach((s) => sessionManager.sessionCache.set(s.id, s));

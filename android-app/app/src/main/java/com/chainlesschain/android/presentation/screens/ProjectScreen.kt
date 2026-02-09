@@ -32,6 +32,7 @@ import com.chainlesschain.android.feature.project.model.ProjectWithStats
 import com.chainlesschain.android.feature.project.ui.components.TemplateSelectionDialog
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import android.util.Log
 
 /**
  * 项目页面（整合任务功能）
@@ -307,16 +308,20 @@ fun ProjectScreen(
             onTemplateSelected = { template ->
                 // 确保用户已登录后再创建项目
                 val currentUser = authState.currentUser
+                Log.d("ProjectScreen", "Template selected: ${template.name}, currentUser: ${currentUser?.id}")
                 if (currentUser != null) {
                     // 确保 ViewModel 有用户 ID
+                    Log.d("ProjectScreen", "Setting currentUser: ${currentUser.id}")
                     projectViewModel.setCurrentUser(currentUser.id)
                     // 使用模板创建项目
+                    Log.d("ProjectScreen", "Calling createProjectFromTemplate")
                     projectViewModel.createProjectFromTemplate(
                         template = template,
                         name = template.name
                     )
                 } else {
                     // 用户未登录，显示错误提示
+                    Log.e("ProjectScreen", "currentUser is null, cannot create project")
                     scope.launch {
                         snackbarHostState.showSnackbar("请先登录后再创建项目")
                     }
