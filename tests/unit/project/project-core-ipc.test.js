@@ -866,9 +866,51 @@ describe('Project Core IPC', () => {
     });
 
     it('should handle recovery with empty project list', async () => {
-      // 这个测试需要重构,因为 recovery mock 已经在 beforeEach 中设置
-      // 暂时跳过这个测试用例
-      // TODO: 重构此测试以正确模拟空项目列表场景
+      // 重新导入模块以应用新的 mock
+      vi.resetModules();
+
+      // 使用返回空列表的 recovery mock
+      vi.doMock('../../../desktop-app-vue/src/main/sync/project-recovery', () => {
+        return {
+          default: vi.fn().mockImplementation(() => ({
+            scanRecoverableProjects: vi.fn(() => []),
+            recoverProject: vi.fn(() => false),
+            recoverProjects: vi.fn(() => ({
+              success: [],
+              failed: [],
+            })),
+            autoRecoverAll: vi.fn(() => ({
+              success: [],
+              failed: [],
+            })),
+            getRecoveryStats: vi.fn(() => ({
+              total: 0,
+              recoverable: 0,
+              recovered: 0,
+            })),
+          })),
+        };
+      });
+
+      // 重新注册 handlers
+      const localHandlers = {};
+      ipcMain.handle.mockImplementation((channel, handler) => {
+        localHandlers[channel] = handler;
+      });
+
+      const { registerProjectCoreIPC: register } = require('../../../desktop-app-vue/src/main/project/project-core-ipc.js');
+      register({
+        database: mockDatabase,
+        removeUndefinedValues: mockRemoveUndefinedValues,
+        _replaceUndefinedWithNull: mockReplaceUndefinedWithNull,
+      });
+
+      // 测试自动恢复空列表场景
+      const result = await localHandlers['project:auto-recover']();
+
+      expect(result.success).toBe(true);
+      expect(result.results.success).toHaveLength(0);
+      expect(result.results.failed).toHaveLength(0);
     });
   });
 
