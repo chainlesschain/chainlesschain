@@ -8,19 +8,22 @@ import { mount } from "@vue/test-utils";
 import KnowledgeListPage from "@renderer/pages/KnowledgeListPage.vue";
 import { nextTick } from "vue";
 
-// Mock Ant Design Vue
-const Modal = {
-  confirm: vi.fn(),
-};
-
-vi.mock("ant-design-vue", () => ({
-  Modal,
+// Mock Ant Design Vue - use vi.hoisted to avoid initialization order issues
+const { Modal, message } = vi.hoisted(() => ({
+  Modal: {
+    confirm: vi.fn(),
+  },
   message: {
     success: vi.fn(),
     error: vi.fn(),
     warning: vi.fn(),
     info: vi.fn(),
   },
+}));
+
+vi.mock("ant-design-vue", () => ({
+  Modal,
+  message,
 }));
 
 // Mock Vue Router
