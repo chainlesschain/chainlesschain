@@ -250,6 +250,7 @@ const creating = ref(false);
 const renderingPreview = ref(false);
 const renderedPrompt = ref("");
 const renderError = ref("");
+const lastPreviewError = ref("");
 let renderDebounceTimer = null;
 
 // 编辑模式相关状态
@@ -350,6 +351,7 @@ watch(
         isEditMode.value = false;
         hasEdited.value = false;
         editedPrompt.value = "";
+        lastPreviewError.value = "";
         // 初次打开时渲染预览
         renderPreview();
       });
@@ -357,6 +359,7 @@ watch(
       // 关闭时清空预览
       renderedPrompt.value = "";
       renderError.value = "";
+      lastPreviewError.value = "";
       isEditMode.value = false;
       hasEdited.value = false;
       editedPrompt.value = "";
@@ -487,13 +490,17 @@ async function renderPreview() {
     );
 
     renderedPrompt.value = prompt;
+    lastPreviewError.value = "";
     logger.info(
       "[TemplateVariableModal] 预览渲染成功, 长度:",
       prompt?.length || 0,
     );
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error("[TemplateVariableModal] 预览渲染失败:", errorMessage);
+    if (errorMessage !== lastPreviewError.value) {
+      logger.warn("[TemplateVariableModal] 预览渲染失败:", errorMessage);
+      lastPreviewError.value = errorMessage;
+    }
     renderError.value = errorMessage || "渲染失败";
     renderedPrompt.value = "";
   } finally {

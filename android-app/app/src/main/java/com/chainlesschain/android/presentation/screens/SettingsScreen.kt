@@ -42,11 +42,11 @@ fun SettingsScreen(
     var showSignalingDialog by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf("简体中文") }
 
-    // 信令服务器配置
+    // 信令服务器配置 (与 SignalingConfig 使用相同的 SharedPreferences)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val prefs = context.getSharedPreferences("signaling_config", android.content.Context.MODE_PRIVATE)
+    val prefs = context.getSharedPreferences("signaling_prefs", android.content.Context.MODE_PRIVATE)
     var signalingServerUrl by remember {
         mutableStateOf(prefs.getString("custom_signaling_url", "ws://192.168.3.59:9001") ?: "ws://192.168.3.59:9001")
     }
