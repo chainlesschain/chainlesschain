@@ -71,17 +71,17 @@ vi.mock("ant-design-vue", () => ({
   },
 }));
 
+// Hoisted logger mock
+const mockLogger = vi.hoisted(() => ({
+  error: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+}));
+
 // Mock logger
 vi.mock("@/utils/logger", () => ({
-  logger: {
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-  },
-  createLogger: vi.fn(() => ({
-    error: vi.fn(),
-    info: vi.fn(),
-  })),
+  logger: mockLogger,
+  createLogger: vi.fn(() => mockLogger),
 }));
 
 describe("CategoryManagePage.vue", () => {
@@ -448,7 +448,7 @@ describe("CategoryManagePage.vue", () => {
       wrapper = createWrapper();
 
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       mockCategoryStore.createCategory.mockRejectedValue(new Error("创建失败"));
 
@@ -476,7 +476,7 @@ describe("CategoryManagePage.vue", () => {
       wrapper = createWrapper();
 
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       mockCategoryStore.updateCategory.mockRejectedValue(new Error("更新失败"));
 
@@ -548,7 +548,7 @@ describe("CategoryManagePage.vue", () => {
       wrapper = createWrapper();
 
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       mockCategoryStore.deleteCategory.mockRejectedValue(new Error("删除失败"));
 
@@ -602,7 +602,7 @@ describe("CategoryManagePage.vue", () => {
       wrapper = createWrapper();
 
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       mockCategoryStore.initializeDefaults.mockRejectedValue(
         new Error("初始化失败"),
@@ -618,7 +618,7 @@ describe("CategoryManagePage.vue", () => {
       wrapper = createWrapper();
 
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       mockCategoryStore.initializeDefaults.mockRejectedValue(
         new Error("No handler registered"),
@@ -637,7 +637,7 @@ describe("CategoryManagePage.vue", () => {
       wrapper = createWrapper();
 
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       mockCategoryStore.fetchCategories.mockRejectedValue(
         new Error("加载失败"),
@@ -655,7 +655,7 @@ describe("CategoryManagePage.vue", () => {
       wrapper = createWrapper();
 
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       mockCategoryStore.fetchCategories.mockRejectedValue(
         new Error("No handler registered for ipc"),

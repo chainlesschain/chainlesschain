@@ -26,7 +26,7 @@ const mockPptxGenConstructor = vi.hoisted(() => {
     writeFile: vi.fn().mockResolvedValue(undefined),
   });
 
-  const constructor = vi.fn(function() {
+  const constructor = vi.fn(function () {
     return createMockInstance();
   });
 
@@ -53,12 +53,15 @@ vi.mock("fs", () => ({
   },
 }));
 
-vi.mock("http", () => ({
+// Create hoisted mock for http
+const mockHttp = vi.hoisted(() => ({
   default: {
     request: vi.fn(),
   },
   request: vi.fn(),
 }));
+
+vi.mock("http", () => mockHttp);
 
 // Import PPTEngine once at module level (after mocks are set up)
 let PPTEngineModule;
@@ -467,7 +470,9 @@ Valid point
 
       const outline = pptEngine.parseMarkdownToOutline(markdown);
 
-      expect(outline.subtitle).toContain("2025"); // Current date
+      // Check that subtitle contains current year
+      const currentYear = new Date().getFullYear().toString();
+      expect(outline.subtitle).toContain(currentYear);
     });
 
     it("should handle empty markdown", () => {

@@ -257,9 +257,10 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该处理添加账户失败", async () => {
+      // First call (add-account) should fail, any subsequent call (loadAccounts) should succeed
       window.electron.ipcRenderer.invoke
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
-        .mockRejectedValueOnce(new Error("Add failed"));
+        .mockRejectedValueOnce(new Error("Add failed"))
+        .mockResolvedValue({ success: true, accounts: mockAccounts });
       const message = mockMessage;
 
       wrapper.vm.accountForm.email = "new@example.com";
@@ -290,17 +291,17 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该能更新账户", async () => {
+      // Clear previous calls and set up fresh mocks
+      window.electron.ipcRenderer.invoke.mockClear();
       window.electron.ipcRenderer.invoke
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
-        .mockResolvedValueOnce({ success: true })
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts });
+        .mockResolvedValueOnce({ success: true }) // For update-account call
+        .mockResolvedValueOnce({ success: true, accounts: mockAccounts }); // For loadAccounts refresh
       const message = mockMessage;
 
-      wrapper.vm.editingAccount = mockAccounts[0];
+      // Use editAccount to properly set up the editing state
+      wrapper.vm.editAccount(mockAccounts[0]);
       wrapper.vm.accountForm.displayName = "Updated Name";
       wrapper.vm.accountForm.password = "newpassword";
-      wrapper.vm.accountForm.imapHost = "imap.gmail.com";
-      wrapper.vm.accountForm.smtpHost = "smtp.gmail.com";
 
       await wrapper.vm.handleSaveAccount();
 
@@ -363,9 +364,11 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该处理删除失败", async () => {
-      window.electron.ipcRenderer.invoke
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
-        .mockRejectedValueOnce(new Error("Delete failed"));
+      // Clear previous calls and set up rejection for delete call
+      window.electron.ipcRenderer.invoke.mockClear();
+      window.electron.ipcRenderer.invoke.mockRejectedValueOnce(
+        new Error("Delete failed"),
+      );
       const message = mockMessage;
 
       await wrapper.vm.deleteAccount("account-1");
@@ -382,10 +385,11 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该能同步账户", async () => {
+      // Clear previous calls and set up fresh mocks
+      window.electron.ipcRenderer.invoke.mockClear();
       window.electron.ipcRenderer.invoke
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
-        .mockResolvedValueOnce({ success: true, count: 5 })
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts });
+        .mockResolvedValueOnce({ success: true, count: 5 }) // For fetch-emails call
+        .mockResolvedValueOnce({ success: true, accounts: mockAccounts }); // For loadAccounts refresh
       const message = mockMessage;
 
       await wrapper.vm.syncAccount("account-1");
@@ -420,9 +424,11 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该处理同步失败", async () => {
-      window.electron.ipcRenderer.invoke
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
-        .mockRejectedValueOnce(new Error("Sync failed"));
+      // Clear previous calls and set up rejection for sync call
+      window.electron.ipcRenderer.invoke.mockClear();
+      window.electron.ipcRenderer.invoke.mockRejectedValueOnce(
+        new Error("Sync failed"),
+      );
       const message = mockMessage;
 
       await wrapper.vm.syncAccount("account-1");
@@ -475,9 +481,11 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该处理切换状态失败", async () => {
-      window.electron.ipcRenderer.invoke
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
-        .mockRejectedValueOnce(new Error("Toggle failed"));
+      // Clear previous calls and set up rejection for toggle call
+      window.electron.ipcRenderer.invoke.mockClear();
+      window.electron.ipcRenderer.invoke.mockRejectedValueOnce(
+        new Error("Toggle failed"),
+      );
       const message = mockMessage;
 
       await wrapper.vm.toggleAccountStatus(mockAccounts[0]);
@@ -494,12 +502,12 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该能测试连接", async () => {
-      window.electron.ipcRenderer.invoke
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
-        .mockResolvedValueOnce({
-          success: true,
-          result: { success: true, mailboxes: 5 },
-        });
+      // Clear previous calls and set up fresh mocks
+      window.electron.ipcRenderer.invoke.mockClear();
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce({
+        success: true,
+        result: { success: true, mailboxes: 5 },
+      });
 
       wrapper.vm.accountForm.email = "test@example.com";
       wrapper.vm.accountForm.password = "password";
@@ -526,12 +534,12 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该处理连接失败", async () => {
-      window.electron.ipcRenderer.invoke
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
-        .mockResolvedValueOnce({
-          success: true,
-          result: { success: false, error: "Authentication failed" },
-        });
+      // Clear previous calls and set up mock for connection failure response
+      window.electron.ipcRenderer.invoke.mockClear();
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce({
+        success: true,
+        result: { success: false, error: "Authentication failed" },
+      });
 
       wrapper.vm.accountForm.email = "test@example.com";
       wrapper.vm.accountForm.password = "wrong";
@@ -543,9 +551,11 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该处理测试异常", async () => {
-      window.electron.ipcRenderer.invoke
-        .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
-        .mockRejectedValueOnce(new Error("Connection error"));
+      // Clear previous calls and set up rejection for test connection
+      window.electron.ipcRenderer.invoke.mockClear();
+      window.electron.ipcRenderer.invoke.mockRejectedValueOnce(
+        new Error("Connection error"),
+      );
 
       wrapper.vm.accountForm.email = "test@example.com";
       wrapper.vm.accountForm.password = "password";
@@ -586,11 +596,14 @@ describe("AccountManager.vue", () => {
 
     it("应该验证是否选择了预设", () => {
       const message = mockMessage;
+      // First open the preset modal
+      wrapper.vm.presetModalVisible = true;
       wrapper.vm.selectedPreset = null;
 
       wrapper.vm.applyPreset();
 
       expect(message.warning).toHaveBeenCalledWith("请选择一个预设");
+      // Modal should stay open when validation fails
       expect(wrapper.vm.presetModalVisible).toBe(true);
     });
 

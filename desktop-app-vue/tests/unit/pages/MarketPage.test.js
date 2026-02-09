@@ -59,17 +59,17 @@ vi.mock("vue-router", () => ({
   useRouter: () => mockRouter,
 }));
 
+// Hoisted logger mock
+const mockLogger = vi.hoisted(() => ({
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+}));
+
 // Mock logger
 vi.mock("@/utils/logger", () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-  },
-  createLogger: vi.fn(() => ({
-    error: vi.fn(),
-    warn: vi.fn(),
-  })),
+  logger: mockLogger,
+  createLogger: vi.fn(() => mockLogger),
 }));
 
 // Mock localStorage
@@ -227,7 +227,8 @@ describe("MarketPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { logger } = require("@/utils/logger");
+      // Use hoisted mock directly
+      const logger = mockLogger;
       await wrapper.vm.$nextTick();
 
       expect(logger.warn).toHaveBeenCalled();
@@ -463,7 +464,8 @@ describe("MarketPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { logger } = require("@/utils/logger");
+      // Use hoisted mock directly
+      const logger = mockLogger;
 
       wrapper.vm.viewMode = "list";
       wrapper.vm.handleViewModeChange();
@@ -516,7 +518,8 @@ describe("MarketPage.vue", () => {
     it("应该处理刷新失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      // Use hoisted mock directly
+      const logger = mockLogger;
 
       // Mock loadMarketProjects to throw error
       wrapper.vm.loadMarketProjects = vi
@@ -597,7 +600,8 @@ describe("MarketPage.vue", () => {
       await wrapper.vm.loadMarketProjects();
 
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      // Use hoisted mock directly
+      const logger = mockLogger;
 
       wrapper.vm.selectedProject = wrapper.vm.marketProjects[0];
       wrapper.vm.walletBalance = 1500;
@@ -731,7 +735,8 @@ describe("MarketPage.vue", () => {
     it("应该处理上架失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      // Use hoisted mock directly
+      const logger = mockLogger;
 
       wrapper.vm.sellForm = {
         projectId: "proj-1",
@@ -865,7 +870,8 @@ describe("MarketPage.vue", () => {
   describe("Image Error Handling", () => {
     it("应该处理图片加载失败", () => {
       wrapper = createWrapper();
-      const { logger } = require("@/utils/logger");
+      // Use hoisted mock directly
+      const logger = mockLogger;
 
       const event = {
         target: {
