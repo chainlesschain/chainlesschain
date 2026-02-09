@@ -328,6 +328,31 @@ function registerAllIPC(dependencies) {
       );
     }
 
+    // 🔥 AI Engine IPC (AI引擎核心, 含Word/PPT生成等, 20+ handlers)
+    logger.info("[IPC Registry] Registering AI Engine IPC...");
+    try {
+      const AIEngineIPC = require("../ai-engine/ai-engine-ipc");
+      const aiEngineIPC = new AIEngineIPC(
+        aiEngineManager || null,
+        webEngine || null,
+        documentEngine || null,
+        dataEngine || null,
+        gitAutoCommit || null,
+      );
+      aiEngineIPC.registerHandlers(mainWindow);
+      logger.info(
+        "[IPC Registry] ✓ AI Engine IPC registered (20+ handlers including aiEngine:generateWord)",
+      );
+    } catch (aiEngineError) {
+      logger.error(
+        "[IPC Registry] ✗ AI Engine IPC registration failed:",
+        aiEngineError.message,
+      );
+      logger.info(
+        "[IPC Registry] ⚠ Word/PPT generation will not be available",
+      );
+    }
+
     // 🔥 Prompt Compressor 系统 (上下文压缩, 10 handlers)
     logger.info("[IPC Registry] Registering Prompt Compressor IPC...");
     try {
