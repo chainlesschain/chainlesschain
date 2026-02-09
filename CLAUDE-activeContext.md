@@ -76,7 +76,11 @@
 
 ### 最近完成
 
-0. **安全认证增强 + 增量RAG索引 + SIMKey NFC检测** (2026-02-09 下午):
+0. **TODO 修复完成** (2026-02-09 晚):
+   - 搜索并修复 4 个 TODO: delivered_at、UKeyVerification、Export、恢复测试
+   - 提交: `e2b43e2b`, `02e7cfb2`, `532abb51` - 已推送远程
+
+1. **安全认证增强 + 增量RAG索引 + SIMKey NFC检测** (2026-02-09 下午):
    - **后端安全认证增强** (project-service + community-forum):
      - 更新 `SecurityConfig.java` - 添加 dev-mode 环境切换
      - 生产模式: `/api/projects/**` 和 `/api/sync/**` 需要 JWT 认证
@@ -680,42 +684,42 @@
 
 ### 本次会话修改 (2026-02-09 下午) - 安全认证 + 增量RAG + SIMKey
 
-| 文件                                    | 修改类型 | 说明                                         |
-| --------------------------------------- | -------- | -------------------------------------------- |
-| `SecurityConfig.java`                   | 修改     | dev-mode 环境切换、动态公开端点列表          |
-| `application.yml` (project-service)     | 修改     | 添加 security.dev-mode 配置                  |
-| `DeviceKey.java`                        | 新建     | 设备公钥实体（deviceId, publicKey, status）  |
-| `DeviceKeyMapper.java`                  | 新建     | 公钥查询 Mapper（findByDeviceId, revoke）    |
-| `UKeyVerificationService.java`          | 修改     | 集成 DeviceKeyMapper 数据库加载              |
-| `AuthService.java`                      | 修改     | 集成 U-Key 验证服务                          |
-| `LoginRequest.java`                     | 修改     | 添加 signature、challenge 字段               |
-| `schema.sql`                            | 修改     | 添加 device_keys 表                          |
-| `project-rag.js`                        | 修改     | +1000行 增量索引 + 统一检索系统              |
-| `project-rag-ipc.js`                    | 修改     | +134行 6个新 IPC handlers                    |
-| `preload/index.js`                      | 修改     | 暴露新 RAG API                               |
-| `auth.js` (mobile)                      | 修改     | +210行 SIMKey NFC 检测实现                   |
-| `database.js`                           | 修改     | delivered_at + project_rag_index 表          |
-| `ipc-registry.js`                       | 修改     | Social IPC 降级模式                          |
-| `setup.ts`                              | 修改     | +89行 Ant Design Vue 组件 stubs              |
-| `EmailReader.vue`                       | 修改     | 防御性 null 检查                             |
-| 多个测试文件                            | 修改     | dayjs mock 修复、断言优化                    |
+| 文件                                | 修改类型 | 说明                                        |
+| ----------------------------------- | -------- | ------------------------------------------- |
+| `SecurityConfig.java`               | 修改     | dev-mode 环境切换、动态公开端点列表         |
+| `application.yml` (project-service) | 修改     | 添加 security.dev-mode 配置                 |
+| `DeviceKey.java`                    | 新建     | 设备公钥实体（deviceId, publicKey, status） |
+| `DeviceKeyMapper.java`              | 新建     | 公钥查询 Mapper（findByDeviceId, revoke）   |
+| `UKeyVerificationService.java`      | 修改     | 集成 DeviceKeyMapper 数据库加载             |
+| `AuthService.java`                  | 修改     | 集成 U-Key 验证服务                         |
+| `LoginRequest.java`                 | 修改     | 添加 signature、challenge 字段              |
+| `schema.sql`                        | 修改     | 添加 device_keys 表                         |
+| `project-rag.js`                    | 修改     | +1000行 增量索引 + 统一检索系统             |
+| `project-rag-ipc.js`                | 修改     | +134行 6个新 IPC handlers                   |
+| `preload/index.js`                  | 修改     | 暴露新 RAG API                              |
+| `auth.js` (mobile)                  | 修改     | +210行 SIMKey NFC 检测实现                  |
+| `database.js`                       | 修改     | delivered_at + project_rag_index 表         |
+| `ipc-registry.js`                   | 修改     | Social IPC 降级模式                         |
+| `setup.ts`                          | 修改     | +89行 Ant Design Vue 组件 stubs             |
+| `EmailReader.vue`                   | 修改     | 防御性 null 检查                            |
+| 多个测试文件                        | 修改     | dayjs mock 修复、断言优化                   |
 
 ### 历史会话修改 (2026-02-09 上午) - 文件版本控制 + LLM Function Calling
 
-| 文件                                    | 修改类型 | 说明                                         |
-| --------------------------------------- | -------- | -------------------------------------------- |
-| `FileVersion.java`                      | 新建     | 文件版本实体（版本号、内容、哈希、创建者）   |
-| `FileVersionMapper.java`                | 新建     | 版本历史 Mapper（getVersionHistory 等）      |
-| `V012__create_file_versions_table.sql`  | 新建     | 数据库迁移（file_versions 表 + 索引）        |
-| `ProjectFileService.java`               | 修改     | 版本保存/恢复逻辑、SHA-256 内容哈希          |
-| `FileUpdateRequest.java`                | 修改     | 添加 generatedBy、versionMessage 字段        |
-| `llm_client.py`                         | 修改     | 添加 chat_with_tools、supports_function_calling |
-| `main.py`                               | 修改     | 根据 LLM 能力选择 function calling 或基础 chat |
-| `deep-link-handler.js`                  | 修改     | 新增 notes/clip 处理、focusMainWindow        |
-| `popup.js`                              | 修改     | 通过自定义协议启动桌面应用                   |
-| `stores/social.ts`                      | 修改     | IPC 错误静默处理、空数组回退                 |
-| `utils/ipc.ts`                          | 修改     | 添加 null 检查、空操作包装器                 |
-| `STREAMING_CHAT_INTEGRATION_GUIDE.md`   | 修改     | 添加流式控制器使用示例                       |
+| 文件                                   | 修改类型 | 说明                                            |
+| -------------------------------------- | -------- | ----------------------------------------------- |
+| `FileVersion.java`                     | 新建     | 文件版本实体（版本号、内容、哈希、创建者）      |
+| `FileVersionMapper.java`               | 新建     | 版本历史 Mapper（getVersionHistory 等）         |
+| `V012__create_file_versions_table.sql` | 新建     | 数据库迁移（file_versions 表 + 索引）           |
+| `ProjectFileService.java`              | 修改     | 版本保存/恢复逻辑、SHA-256 内容哈希             |
+| `FileUpdateRequest.java`               | 修改     | 添加 generatedBy、versionMessage 字段           |
+| `llm_client.py`                        | 修改     | 添加 chat_with_tools、supports_function_calling |
+| `main.py`                              | 修改     | 根据 LLM 能力选择 function calling 或基础 chat  |
+| `deep-link-handler.js`                 | 修改     | 新增 notes/clip 处理、focusMainWindow           |
+| `popup.js`                             | 修改     | 通过自定义协议启动桌面应用                      |
+| `stores/social.ts`                     | 修改     | IPC 错误静默处理、空数组回退                    |
+| `utils/ipc.ts`                         | 修改     | 添加 null 检查、空操作包装器                    |
+| `STREAMING_CHAT_INTEGRATION_GUIDE.md`  | 修改     | 添加流式控制器使用示例                          |
 
 ### 历史会话修改 (2026-01-20) - Android P2P 网络
 
@@ -934,6 +938,14 @@ npm run test:session # Session 压缩测试
 
 ### 2026-02-09 (晚上)
 
+- **TODO 修复完成**:
+  - 搜索项目中所有 `// TODO:` 标记
+  - 修复 4 个核心 TODO 项：
+    1. `delivered_at` 字段未返回 - database.js V6 迁移 + updateProject allowedFields
+    2. UKeyVerificationService 数据库加载 - DeviceKey 实体 + DeviceKeyMapper + loadDevicePublicKey
+    3. Export 测试文件系统问题 - project:export-file 支持从数据库导出
+    4. 项目恢复失败测试 - 完整实现 mock 重设置
+  - 所有修复已提交并推送到远程仓库
 - **RAG增强项目AI 实施完成** (100%):
   - 实现计划中的全部 4 个新类 (~700 行代码)
   - IncrementalIndexManager: MD5 content hash 变化检测，避免重复索引
@@ -943,8 +955,6 @@ npm run test:session # Session 压缩测试
   - 新增 `project_rag_index` 表 (增量索引追踪)
   - 6 个新 IPC handlers + Preload API
   - 测试验证通过，已提交并推送到远程仓库
-- **测试修复**:
-  - permission-system.test.js 断言优化 (folder access assertion)
 
 ### 2026-02-09 (下午)
 

@@ -56,6 +56,7 @@ const INIT_PHASES = [
       "promptCompressor",
       "responseCache",
       "llmManager",
+      "permanentMemoryManager",
     ],
   },
   {
