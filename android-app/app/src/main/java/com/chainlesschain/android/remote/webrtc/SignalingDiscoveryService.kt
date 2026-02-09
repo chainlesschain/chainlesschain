@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.webrtc
 
+import android.util.Log
 import com.chainlesschain.android.remote.config.SignalingConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CompletableDeferred
@@ -23,13 +24,23 @@ class SignalingDiscoveryService @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val signalingConfig: SignalingConfig
 ) {
+    companion object {
+        private const val TAG = "SignalingDiscoveryService"
+    }
+
     suspend fun discoverPeers(timeoutMs: Long = 2500): Result<List<DiscoveredPeer>> = withContext(Dispatchers.IO) {
         val deferred = CompletableDeferred<List<DiscoveredPeer>>()
-        val request = Request.Builder().url(signalingConfig.getSignalingUrl()).build()
+        val signalingUrl = signalingConfig.getSignalingUrl()
+        Log.i(TAG, "========================================")
+        Log.i(TAG, "Starting peer discovery")
+        Log.i(TAG, "Signaling URL: $signalingUrl")
+        Log.i(TAG, "========================================")
+        val request = Request.Builder().url(signalingUrl).build()
         var ws: WebSocket? = null
         try {
             ws = okHttpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
+                    Log.i(TAG, "WebSocket connected to $signalingUrl")
                     // Register first so the server accepts our get-peers request
                     val registerMsg = JSONObject().apply {
                         put("type", "register")
@@ -51,13 +62,16 @@ class SignalingDiscoveryService @Inject constructor(
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
+                    Log.d(TAG, "Received message: $text")
                     val peers = parsePeerPayload(text) ?: return
+                    Log.i(TAG, "Parsed ${peers.size} peers: ${peers.map { it.deviceName }}")
                     if (!deferred.isCompleted) {
                         deferred.complete(peers)
                     }
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+                    Log.e(TAG, "WebSocket failure: ${t.message}", t)
                     if (!deferred.isCompleted) deferred.complete(emptyList())
                 }
             })

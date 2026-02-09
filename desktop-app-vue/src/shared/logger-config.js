@@ -102,6 +102,24 @@ export function sanitizeData(data, seen = new WeakSet()) {
     return data;
   }
 
+  if (data instanceof Error) {
+    const serializedError = {
+      name: data.name,
+      message: data.message,
+      stack: data.stack,
+    };
+
+    for (const key of Object.keys(data)) {
+      const value = data[key];
+      serializedError[key] =
+        typeof value === "object" && value !== null
+          ? sanitizeData(value, seen)
+          : value;
+    }
+
+    return serializedError;
+  }
+
   // 检测循环引用
   if (seen.has(data)) {
     return "[Circular Reference]";

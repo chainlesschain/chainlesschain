@@ -509,6 +509,104 @@ const fileType = computed(() => {
   return 'unsupported';
 });
 
+const getFileExtension = (fileName = '') => {
+  const lastDot = fileName.lastIndexOf('.');
+  if (lastDot === -1 || lastDot === fileName.length - 1) {
+    return '';
+  }
+  return fileName.slice(lastDot + 1).toLowerCase();
+};
+
+const extractResolvedPath = (resolvedPath, actionLabel = '路径解析') => {
+  if (typeof resolvedPath === 'string' && resolvedPath) {
+    return resolvedPath;
+  }
+
+  if (resolvedPath && typeof resolvedPath === 'object') {
+    if (resolvedPath.success === false) {
+      throw new Error(resolvedPath.error || `${actionLabel}失败`);
+    }
+    if (typeof resolvedPath.path === 'string' && resolvedPath.path) {
+      return resolvedPath.path;
+    }
+  }
+
+  throw new Error(`${actionLabel}失败: 无效路径返回`);
+};
+
+const normalizeErrorMessage = (err, fallbackMessage = '加载失败') => {
+  if (err instanceof Error && err.message) {
+    return err.message;
+  }
+
+  if (typeof err === 'string' && err.trim()) {
+    return err;
+  }
+
+  try {
+    const serialized = JSON.stringify(err);
+    if (serialized && serialized !== '{}' && serialized !== 'null') {
+      return serialized;
+    }
+  } catch (_serializationError) {
+    // ignore
+  }
+
+  return fallbackMessage;
+};
+
+const toLogErrorData = (err) => {
+  if (err instanceof Error) {
+    return {
+      name: err.name,
+      message: err.message,
+      stack: err.stack,
+    };
+  }
+  return err;
+};
+
+const ensureSupportedOfficeExtension = (targetType) => {
+  const extension = getFileExtension(props.file?.file_name || '');
+  const legacyMap = {
+    word: { legacy: ['doc'], modern: '.docx' },
+    excel: { legacy: ['xls'], modern: '.xlsx' },
+    powerpoint: { legacy: ['ppt'], modern: '.pptx' },
+  };
+
+  const config = legacyMap[targetType];
+  if (!config) {
+    return;
+  }
+
+  if (config.legacy.includes(extension)) {
+    throw new Error(`暂不支持 .${extension} 预览，请转换为 ${config.modern} 后重试`);
+  }
+};
+
+const normalizePreviewFailureMessage = (result, fallbackMessage) => {
+  if (!result || typeof result !== 'object') {
+    return fallbackMessage;
+  }
+
+  const baseMessage = result.error || fallbackMessage;
+  const details = result.details;
+  if (!details) {
+    return baseMessage;
+  }
+
+  if (typeof details === 'string') {
+    return `${baseMessage} (${details})`;
+  }
+
+  if (typeof details === 'object') {
+    const detailMessage = details.message || details.name || '';
+    return detailMessage ? `${baseMessage} (${detailMessage})` : baseMessage;
+  }
+
+  return baseMessage;
+};
+
 /**
  * 获取文件类型标签颜色
  */
@@ -599,7 +697,8 @@ const loadFileContent = async () => {
           fullPath = `/data/projects/${props.projectId}/${filePath}`;
         }
         const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-        const sizeResult = await window.electronAPI.file.stat(resolvedPath);
+        const actualPath = extractResolvedPath(resolvedPath, '文件路径解析');
+        const sizeResult = await window.electronAPI.file.stat(actualPath);
 
         if (sizeResult.success && sizeResult.stats.size > 10 * 1024 * 1024) {
           // 文件大于10MB，使用大文件预览组件
@@ -649,8 +748,13 @@ const loadFileContent = async () => {
         break;
     }
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : (typeof err === 'string' ? err : JSON.stringify(err));
-    logger.error('加载文件失败:', errorMessage, err);
+    const errorMessage = normalizeErrorMessage(err, '加载文件失败');
+    logger.error('加载文件失败:', {
+      errorMessage,
+      error: toLogErrorData(err),
+      fileType: fileType.value,
+      file: props.file,
+    });
     error.value = errorMessage || '加载文件失败';
   } finally {
     loading.value = false;
@@ -828,7 +932,8 @@ const loadPdf = async (filePath) => {
   }
 
   const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-  pdfUrl.value = `file://${resolvedPath}`;
+  const actualPath = extractResolvedPath(resolvedPath, 'PDF路径解析');
+  pdfUrl.value = `file://${actualPath}`;
 };
 
 /**
@@ -842,7 +947,8 @@ const loadVideo = async (filePath) => {
   }
 
   const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-  videoUrl.value = `file://${resolvedPath}`;
+  const actualPath = extractResolvedPath(resolvedPath, '视频路径解析');
+  videoUrl.value = `file://${actualPath}`;
 };
 
 /**
@@ -856,7 +962,8 @@ const loadAudio = async (filePath) => {
   }
 
   const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-  audioUrl.value = `file://${resolvedPath}`;
+  const actualPath = extractResolvedPath(resolvedPath, '音频路径解析');
+  audioUrl.value = `file://${actualPath}`;
 };
 
 /**
@@ -877,12 +984,13 @@ const loadWord = async (filePath) => {
   });
 
   try {
+    ensureSupportedOfficeExtension('word');
+
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
     logger.info('[PreviewPanel] Word文档解析后路径:', resolvedPath);
 
-    // 🔥 修复：从resolvedPath对象中提取path字符串
-    const actualPath = resolvedPath?.path || resolvedPath;
+    const actualPath = extractResolvedPath(resolvedPath, 'Word路径解析');
     const result = await window.electronAPI.file.previewOffice(actualPath, 'word');
     logger.info('[PreviewPanel] Word预览结果:', result);
 
@@ -895,11 +1003,16 @@ const loadWord = async (filePath) => {
       officeType.value = 'word';
       logger.info('[PreviewPanel] Word内容已设置，长度:', result.data.html.length);
     } else {
-      throw new Error(result.error || 'Word文档预览失败');
+      throw new Error(normalizePreviewFailureMessage(result, 'Word文档预览失败'));
     }
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : (typeof err === 'string' ? err : JSON.stringify(err));
-    logger.error('[PreviewPanel] Word加载失败:', errorMessage, err);
+    const errorMessage = normalizeErrorMessage(err, 'Word文档加载失败');
+    logger.error('[PreviewPanel] Word加载失败:', {
+      errorMessage,
+      error: toLogErrorData(err),
+      file: props.file,
+      projectId: props.projectId,
+    });
     throw new Error(errorMessage || 'Word文档加载失败');
   }
 };
@@ -921,12 +1034,13 @@ const loadExcel = async (filePath) => {
   });
 
   try {
+    ensureSupportedOfficeExtension('excel');
+
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
     logger.info('[PreviewPanel] Excel解析后路径:', resolvedPath);
 
-    // 🔥 修复：从resolvedPath对象中提取path字符串
-    const actualPath = resolvedPath?.path || resolvedPath;
+    const actualPath = extractResolvedPath(resolvedPath, 'Excel路径解析');
     const result = await window.electronAPI.file.previewOffice(actualPath, 'excel');
     logger.info('[PreviewPanel] Excel预览结果:', result);
 
@@ -939,11 +1053,17 @@ const loadExcel = async (filePath) => {
       officeType.value = 'excel';
       logger.info('[PreviewPanel] Excel内容已设置，工作表数量:', result.data.sheets.length);
     } else {
-      throw new Error(result.error || 'Excel表格预览失败');
+      throw new Error(normalizePreviewFailureMessage(result, 'Excel表格预览失败'));
     }
   } catch (err) {
-    logger.error('[PreviewPanel] Excel加载失败:', err);
-    throw err;
+    const errorMessage = normalizeErrorMessage(err, 'Excel表格加载失败');
+    logger.error('[PreviewPanel] Excel加载失败:', {
+      errorMessage,
+      error: toLogErrorData(err),
+      file: props.file,
+      projectId: props.projectId,
+    });
+    throw new Error(errorMessage);
   }
 };
 
@@ -964,12 +1084,13 @@ const loadPowerPoint = async (filePath) => {
   });
 
   try {
+    ensureSupportedOfficeExtension('powerpoint');
+
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
     logger.info('[PreviewPanel] PowerPoint解析后路径:', resolvedPath);
 
-    // 🔥 修复：从resolvedPath对象中提取path字符串
-    const actualPath = resolvedPath?.path || resolvedPath;
+    const actualPath = extractResolvedPath(resolvedPath, 'PowerPoint路径解析');
     const result = await window.electronAPI.file.previewOffice(actualPath, 'powerpoint');
     logger.info('[PreviewPanel] PowerPoint预览结果:', result);
 
@@ -983,11 +1104,17 @@ const loadPowerPoint = async (filePath) => {
       currentSlide.value = 0; // 重置到第一张幻灯片
       logger.info('[PreviewPanel] PowerPoint内容已设置，幻灯片数量:', result.data.slides.length);
     } else {
-      throw new Error(result.error || 'PowerPoint预览失败');
+      throw new Error(normalizePreviewFailureMessage(result, 'PowerPoint预览失败'));
     }
   } catch (err) {
-    logger.error('[PreviewPanel] PowerPoint加载失败:', err);
-    throw err;
+    const errorMessage = normalizeErrorMessage(err, 'PowerPoint加载失败');
+    logger.error('[PreviewPanel] PowerPoint加载失败:', {
+      errorMessage,
+      error: toLogErrorData(err),
+      file: props.file,
+      projectId: props.projectId,
+    });
+    throw new Error(errorMessage);
   }
 };
 
@@ -1014,7 +1141,8 @@ const handleOpenExternal = async () => {
 
   try {
     const resolvedPath = await window.electronAPI.project.resolvePath(props.file.file_path);
-    await window.electronAPI.shell.openPath(resolvedPath);
+    const actualPath = extractResolvedPath(resolvedPath, '打开文件路径解析');
+    await window.electronAPI.shell.openPath(actualPath);
     message.success('已在系统中打开');
   } catch (err) {
     logger.error('打开文件失败:', err);
@@ -1047,8 +1175,9 @@ const handleDownload = async () => {
 
     // 复制文件到目标位置
     const resolvedPath = await window.electronAPI.project.resolvePath(props.file.file_path);
+    const actualPath = extractResolvedPath(resolvedPath, '下载文件路径解析');
     await window.electron.ipcRenderer.invoke('file:copy', {
-      sourcePath: resolvedPath,
+      sourcePath: actualPath,
       destinationPath: result.filePath
     });
 

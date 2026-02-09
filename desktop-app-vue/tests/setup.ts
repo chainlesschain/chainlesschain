@@ -156,6 +156,55 @@ vi.mock('../../../src/main/utils/logger.js', () => ({
   createLogger: vi.fn().mockReturnValue(mockLoggerInstance),
 }));
 
+// Global mock for ant-design-vue message and Modal
+// These need to be proper vi.fn() spies so toHaveBeenCalledWith() works
+// Define using vi.hoisted to ensure they're available when vi.mock runs
+const hoistedMocks = vi.hoisted(() => ({
+  mockAntMessage: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    destroy: vi.fn(),
+  },
+  mockAntModal: {
+    confirm: vi.fn((options: any) => {
+      if (options?.onOk) {
+        Promise.resolve().then(() => options.onOk());
+      }
+      return { destroy: vi.fn() };
+    }),
+    info: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    destroyAll: vi.fn(),
+  },
+  mockAntNotification: {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    open: vi.fn(),
+    destroy: vi.fn(),
+  },
+}));
+
+export const mockAntMessage = hoistedMocks.mockAntMessage;
+export const mockAntModal = hoistedMocks.mockAntModal;
+export const mockAntNotification = hoistedMocks.mockAntNotification;
+
+vi.mock('ant-design-vue', async (importOriginal) => {
+  const original = await importOriginal() as any;
+  return {
+    ...original,
+    message: mockAntMessage,
+    Modal: mockAntModal,
+    notification: mockAntNotification,
+  };
+});
+
 // Centralized mocks that WordEngine reads via global overrides to avoid actual FS access.
 const createDefaultWordStat = () => ({
   size: 1024,
@@ -255,6 +304,26 @@ beforeEach(() => {
   // Create and activate a new Pinia instance before each test
   testPinia = createPinia();
   setActivePinia(testPinia);
+
+  // Reset ant-design-vue mocks
+  mockAntMessage.success.mockClear();
+  mockAntMessage.error.mockClear();
+  mockAntMessage.warning.mockClear();
+  mockAntMessage.info.mockClear();
+  mockAntMessage.loading.mockClear();
+  mockAntMessage.destroy.mockClear();
+  mockAntModal.confirm.mockClear();
+  mockAntModal.info.mockClear();
+  mockAntModal.success.mockClear();
+  mockAntModal.error.mockClear();
+  mockAntModal.warning.mockClear();
+  mockAntModal.destroyAll.mockClear();
+  mockAntNotification.success.mockClear();
+  mockAntNotification.error.mockClear();
+  mockAntNotification.warning.mockClear();
+  mockAntNotification.info.mockClear();
+  mockAntNotification.open.mockClear();
+  mockAntNotification.destroy.mockClear();
 });
 
 // Global cleanup after each test to prevent resource leaks and timeout errors
