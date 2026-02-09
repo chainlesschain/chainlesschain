@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-06 (Android TODO 任务全部完成)
+> **最后更新**: 2026-02-09 (文件版本控制 + LLM Function Calling + Deep Link 增强)
 
 ---
 
@@ -61,10 +61,37 @@
 - [x] Stream Controller IPC 系统实现 (流式输出控制, 12 handlers)
 - [x] Resource Monitor IPC 系统实现 (资源监控与降级, 13 handlers)
 - [x] Message Aggregator IPC 系统实现 (消息批量聚合, 10 handlers)
+- [x] 后端文件版本控制 (FileVersion 实体 + Mapper + 数据库迁移 V012)
+- [x] LLM Function Calling 支持 (OpenAI/DashScope chat_with_tools)
+- [x] Deep Link 增强 (notes/clip 链接处理 + 通用导航)
+- [x] 浏览器扩展增强 (通过自定义协议启动桌面应用)
+- [x] IPC 错误处理优化 (social.ts + ipc.ts 静默回退)
 
 ### 最近完成
 
-0. **Android TODO 任务全部完成** (2026-02-06):
+0. **文件版本控制 + LLM Function Calling + Deep Link 增强** (2026-02-09):
+   - **后端文件版本控制** (project-service):
+     - 新建 `FileVersion.java` - 文件版本实体（版本号、内容快照、哈希）
+     - 新建 `FileVersionMapper.java` - 版本历史查询 Mapper
+     - 新建 `V012__create_file_versions_table.sql` - 数据库迁移
+     - 更新 `ProjectFileService.java` - 版本保存/恢复逻辑、SHA-256 哈希
+     - 更新 `FileUpdateRequest.java` - 添加版本相关字段
+   - **LLM Function Calling 支持** (ai-service):
+     - 更新 `llm_client.py` - 添加 `supports_function_calling` 属性
+     - 添加 `chat_with_tools()` 方法支持结构化输出
+     - OpenAI 和 DashScope (阿里云) 完整实现
+     - 更新 `main.py` - 根据 LLM 能力自动选择调用方式
+   - **Deep Link + 浏览器扩展增强** (desktop-app-vue):
+     - 更新 `deep-link-handler.js` - 新增 notes/clip 链接处理
+     - 添加 `focusMainWindow()` 和通用导航支持
+     - 更新 `popup.js` - 通过 `chainlesschain://` 协议启动桌面应用
+     - 添加 `openDesktopApp()` 和 `viewClipInApp()` 函数
+   - **IPC 错误处理优化**:
+     - 更新 `stores/social.ts` - IPC 未就绪时静默回退
+     - 更新 `utils/ipc.ts` - 添加 null 检查和空操作包装器
+     - 更新流式聊天集成指南文档
+
+1. **Android TODO 任务全部完成** (2026-02-06):
    - **WebRTC 编译错误修复**：RemoteModule.kt 添加 OkHttpClient 提供方法
    - **离线消息队列增强**：core-p2p/OfflineMessageQueue.kt
      - MessagePriority 枚举（HIGH/NORMAL/LOW）
@@ -605,7 +632,24 @@
 
 ## 关键文件修改记录
 
-### 本次会话修改 (2026-01-20) - Android P2P 网络
+### 本次会话修改 (2026-02-09) - 文件版本控制 + LLM Function Calling
+
+| 文件                                    | 修改类型 | 说明                                         |
+| --------------------------------------- | -------- | -------------------------------------------- |
+| `FileVersion.java`                      | 新建     | 文件版本实体（版本号、内容、哈希、创建者）   |
+| `FileVersionMapper.java`                | 新建     | 版本历史 Mapper（getVersionHistory 等）      |
+| `V012__create_file_versions_table.sql`  | 新建     | 数据库迁移（file_versions 表 + 索引）        |
+| `ProjectFileService.java`               | 修改     | 版本保存/恢复逻辑、SHA-256 内容哈希          |
+| `FileUpdateRequest.java`                | 修改     | 添加 generatedBy、versionMessage 字段        |
+| `llm_client.py`                         | 修改     | 添加 chat_with_tools、supports_function_calling |
+| `main.py`                               | 修改     | 根据 LLM 能力选择 function calling 或基础 chat |
+| `deep-link-handler.js`                  | 修改     | 新增 notes/clip 处理、focusMainWindow        |
+| `popup.js`                              | 修改     | 通过自定义协议启动桌面应用                   |
+| `stores/social.ts`                      | 修改     | IPC 错误静默处理、空数组回退                 |
+| `utils/ipc.ts`                          | 修改     | 添加 null 检查、空操作包装器                 |
+| `STREAMING_CHAT_INTEGRATION_GUIDE.md`   | 修改     | 添加流式控制器使用示例                       |
+
+### 历史会话修改 (2026-01-20) - Android P2P 网络
 
 | 文件                          | 修改类型 | 说明                                           |
 | ----------------------------- | -------- | ---------------------------------------------- |
@@ -715,7 +759,7 @@
 
 ### 版本信息
 
-- **当前版本**: v0.29.0
+- **当前版本**: v0.32.0
 - **进度**: 100% 完成
 - **主要应用**: desktop-app-vue (Electron + Vue3)
 
@@ -817,6 +861,26 @@ npm run test:session # Session 压缩测试
 ---
 
 ## 更新日志
+
+### 2026-02-09
+
+- **文件版本控制** (后端 project-service):
+  - 新建 FileVersion 实体、Mapper、数据库迁移
+  - ProjectFileService 版本保存/恢复逻辑
+  - SHA-256 内容哈希计算
+- **LLM Function Calling 支持** (后端 ai-service):
+  - BaseLLMClient 添加 chat_with_tools 方法
+  - OpenAI、DashScope 完整实现
+  - 根据 LLM 能力自动选择调用方式
+- **Deep Link 增强** (桌面端):
+  - 支持 notes/clip 链接处理
+  - 通用导航和 focusMainWindow
+- **浏览器扩展增强**:
+  - 通过 chainlesschain:// 协议启动桌面应用
+  - 剪藏后可直接在应用中查看
+- **IPC 错误处理优化**:
+  - social.ts 静默回退
+  - ipc.ts 空操作包装器
 
 ### 2026-01-18
 
