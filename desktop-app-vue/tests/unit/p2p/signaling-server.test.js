@@ -369,6 +369,7 @@ describe('SignalingHandlers', () => {
       isOnline: vi.fn(),
       updateLastSeen: vi.fn(),
       getOnlinePeers: vi.fn(() => []),
+      getAllPeerIds: vi.fn(() => []),
     };
 
     mockQueue = {

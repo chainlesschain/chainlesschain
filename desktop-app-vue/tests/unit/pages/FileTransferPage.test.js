@@ -406,11 +406,30 @@ describe('FileTransferPage.vue', () => {
     });
 
     it('应该能重新发送失败的文件', async () => {
-      const transfer = wrapper.vm.transfers[2]; // failed transfer
+      // Set up a failed upload transfer for resend
+      const transfer = {
+        id: 'transfer-failed',
+        fileName: 'test.pdf',
+        fileSize: 1024,
+        localPath: '/path/to/test.pdf',
+        direction: 'upload',
+        status: 'failed',
+        peerId: 'peer-123',
+        peerName: 'Device 1',
+      };
+      wrapper.vm.transfers.push(transfer);
+
+      window.electron.invoke.mockResolvedValueOnce('new-transfer-id');
 
       await wrapper.vm.handleResend(transfer);
 
-      expect(mockMessage.info).toHaveBeenCalledWith('重新发送功能开发中...');
+      expect(window.electron.invoke).toHaveBeenCalledWith('p2p:send-file', {
+        peerId: 'peer-123',
+        filePath: '/path/to/test.pdf',
+        fileName: 'test.pdf',
+        fileSize: 1024,
+      });
+      expect(mockMessage.success).toHaveBeenCalledWith('正在重新发送文件...');
     });
 
     it('应该能删除历史记录', async () => {

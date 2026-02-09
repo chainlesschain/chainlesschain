@@ -107,8 +107,9 @@ describe('PlanningView', () => {
         },
       });
 
-      // 模拟提交答案
-      await wrapper.vm.handleAnswerSubmitted({ questionIndex: 0, answer: '答案1' });
+      // 模拟提交答案 - 先设置答案内容，然后调用提交方法
+      wrapper.vm.currentAnswer = '答案1';
+      await wrapper.vm.handleSubmitAnswer();
 
       expect(wrapper.emitted('answer-submitted')).toBeTruthy();
       expect(wrapper.emitted('answer-submitted')[0][0]).toEqual({

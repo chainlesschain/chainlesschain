@@ -326,7 +326,7 @@ describe("EmailComposer.vue", () => {
 
       const result = wrapper.vm.beforeUpload(file);
 
-      expect(wrapper.vm.fileList).toContain(file);
+      expect(wrapper.vm.fileList).toContainEqual(file);
       expect(result).toBe(false); // 阻止自动上传
     });
 
@@ -577,6 +577,11 @@ describe("EmailComposer.vue", () => {
 
       wrapper = createWrapper({ replyTo });
 
+      // Set up required fields for validation
+      wrapper.vm.emailForm.to = ["recipient@example.com"];
+      wrapper.vm.emailForm.subject = "Re: 原始主题";
+      wrapper.vm.emailForm.text = "Reply content";
+
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
       });
@@ -662,13 +667,18 @@ describe("EmailComposer.vue", () => {
 
   // 草稿功能测试
   describe("Draft Functionality", () => {
-    it("应该显示草稿保存提示", () => {
+    it("应该保存草稿", async () => {
       wrapper = createWrapper();
-      const message = mockMessage;
+      window.electron.ipcRenderer.invoke.mockResolvedValueOnce({ success: true, draftId: 'draft-1' });
 
-      wrapper.vm.saveDraft();
+      await wrapper.vm.saveDraft();
 
-      expect(message.info).toHaveBeenCalledWith("草稿保存功能开发中");
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+        "email:save-draft",
+        "account-123",
+        expect.any(Object)
+      );
+      expect(mockMessage.success).toHaveBeenCalledWith("草稿已保存");
     });
   });
 

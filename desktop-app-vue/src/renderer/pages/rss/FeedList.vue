@@ -643,9 +643,10 @@ const handleDiscoverFeeds = async () => {
 };
 
 const addDiscoveredFeed = async (url) => {
-  feedForm.url = url;
   discoverModalVisible.value = false;
   showAddFeedModal();
+  // Set URL after showAddFeedModal() since it resets the form
+  feedForm.url = url;
 };
 
 const showAddCategoryModal = () => {
