@@ -50,6 +50,7 @@ fun ProjectScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showSortMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     // 获取认证状态
     val authState by authViewModel.uiState.collectAsState()
@@ -303,11 +304,22 @@ fun ProjectScreen(
     if (showAddDialog) {
         TemplateSelectionDialog(
             onTemplateSelected = { template ->
-                // 使用模板创建项目
-                projectViewModel.createProjectFromTemplate(
-                    template = template,
-                    name = template.name
-                )
+                // 确保用户已登录后再创建项目
+                val currentUser = authState.currentUser
+                if (currentUser != null) {
+                    // 确保 ViewModel 有用户 ID
+                    projectViewModel.setCurrentUser(currentUser.id)
+                    // 使用模板创建项目
+                    projectViewModel.createProjectFromTemplate(
+                        template = template,
+                        name = template.name
+                    )
+                } else {
+                    // 用户未登录，显示错误提示
+                    scope.launch {
+                        snackbarHostState.showSnackbar("请先登录后再创建项目")
+                    }
+                }
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false }
