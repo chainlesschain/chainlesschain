@@ -111,6 +111,33 @@ function registerOrganizationIPC({
   });
 
   /**
+   * 获取组织信息（前端友好格式）
+   * Channel: 'organization:get-info'
+   *
+   * 这是 org:get-organization 的别名，返回格式为 { success: true, organization: {...} }
+   * 用于 EnterpriseDashboard 等页面
+   */
+  ipcMain.handle("organization:get-info", async (_event, params) => {
+    try {
+      if (!organizationManager) {
+        return { success: false, error: "组织管理器未初始化" };
+      }
+
+      const orgId = params?.orgId || params;
+      const organization = await organizationManager.getOrganization(orgId);
+
+      if (!organization) {
+        return { success: false, error: "组织不存在" };
+      }
+
+      return { success: true, organization };
+    } catch (error) {
+      logger.error("[Organization IPC] 获取组织信息失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
    * 更新组织信息
    * Channel: 'org:update-organization'
    */
