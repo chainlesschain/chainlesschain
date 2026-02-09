@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-09 (测试改进 + 项目模板库 UI 增强)
+> **最后更新**: 2026-02-09 (UTF-8 编码修复 + tool-masking 测试确认通过)
 
 ---
 
@@ -1000,6 +1000,23 @@ npm run test:session # Session 压缩测试
 ---
 
 ## 更新日志
+
+### 2026-02-09 (下午续)
+
+- **ProjectsPage.vue UTF-8 编码修复**:
+  - 文件存在字符编码损坏（中文字符变成 `�?`）
+  - 通过 `git checkout HEAD --` 从 HEAD 恢复
+  - TypeScript 编译错误消除，允许 git push
+- **tool-masking.test.js 确认修复**:
+  - 运行测试验证：**54 tests passed in 682ms**
+  - 更新 KNOWN_TEST_ISSUES.md：
+    - 标记 tool-masking 为 ✅ RESOLVED
+    - 更新测试统计：8,788+ tests passing
+    - 只有 database-adapter.test.js 仍有已知问题（CommonJS mocking）
+- **Git 推送成功**:
+  - Android 导航重构 (`8e898adc`) 已推送
+  - 后续模板修复 commits 已推送
+  - Pre-push TypeScript 检查通过
 
 ### 2026-02-09 (白天)
 
