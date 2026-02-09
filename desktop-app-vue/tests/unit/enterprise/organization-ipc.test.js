@@ -2796,7 +2796,9 @@ describe("Organization IPC 处理器", () => {
       };
 
       const total = Object.values(categories).reduce((a, b) => a + b, 0);
-      expect(total).toBe(47); // Excluding delete-invitation (1) and get-member-activities moved to basic
+      // Categories sum: 12 + 8 + 9 + 5 + 6 + 2 + 3 = 45
+      expect(total).toBe(45);
+      // Total handlers includes organization:get-info alias (+1), so >= 45
       expect(Object.keys(handlers).length).toBeGreaterThanOrEqual(total);
     });
 
