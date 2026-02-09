@@ -20,7 +20,8 @@ class OpenAIClient extends EventEmitter {
     this.baseURL = config.baseURL || "https://api.openai.com/v1";
     this.model = config.model || "gpt-3.5-turbo";
     this.embeddingModel = config.embeddingModel || "text-embedding-ada-002";
-    this.timeout = config.timeout || 120000;
+    this.timeout = config.timeout || 180000; // 3 minutes default
+    this.maxRetries = config.maxRetries || 2; // Retry up to 2 times on timeout
     this.organization = config.organization;
 
     // 创建axios实例
@@ -97,59 +98,83 @@ class OpenAIClient extends EventEmitter {
    * @param {Object} options - 选项
    */
   async chat(messages, options = {}) {
-    try {
-      // 构建请求体
-      const requestBody = {
-        model: options.model || this.model,
-        messages,
-        temperature: options.temperature || 0.7,
-        top_p: options.top_p || 1,
-        max_tokens: options.max_tokens,
-        presence_penalty: options.presence_penalty || 0,
-        frequency_penalty: options.frequency_penalty || 0,
-        stream: false,
-      };
+    const maxRetries = options.maxRetries ?? this.maxRetries;
+    let lastError = null;
 
-      // 🔥 修复：只有在 tools 有效且非空时才添加（避免阿里云等API报错）
-      if (
-        options.tools &&
-        Array.isArray(options.tools) &&
-        options.tools.length > 0
-      ) {
-        // 验证每个tool都有必要的字段
-        const validTools = options.tools.filter((tool) => {
-          if (tool.type === "function") {
-            return tool.function && tool.function.name;
-          }
-          return true; // 其他类型的工具暂时允许
-        });
-
-        if (validTools.length > 0) {
-          requestBody.tools = validTools;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          logger.info(`[OpenAIClient] 重试第 ${attempt} 次...`);
         }
+
+        // 构建请求体
+        const requestBody = {
+          model: options.model || this.model,
+          messages,
+          temperature: options.temperature || 0.7,
+          top_p: options.top_p || 1,
+          max_tokens: options.max_tokens,
+          presence_penalty: options.presence_penalty || 0,
+          frequency_penalty: options.frequency_penalty || 0,
+          stream: false,
+        };
+
+        // 🔥 修复：只有在 tools 有效且非空时才添加（避免阿里云等API报错）
+        if (
+          options.tools &&
+          Array.isArray(options.tools) &&
+          options.tools.length > 0
+        ) {
+          // 验证每个tool都有必要的字段
+          const validTools = options.tools.filter((tool) => {
+            if (tool.type === "function") {
+              return tool.function && tool.function.name;
+            }
+            return true; // 其他类型的工具暂时允许
+          });
+
+          if (validTools.length > 0) {
+            requestBody.tools = validTools;
+          }
+        }
+
+        const response = await this.client.post(
+          "/chat/completions",
+          requestBody,
+          {
+            ...(options.signal && { signal: options.signal }),
+          },
+        );
+
+        const choice = response.data.choices[0];
+
+        return {
+          message: choice.message,
+          finish_reason: choice.finish_reason,
+          model: response.data.model,
+          usage: response.data.usage,
+          tokens: response.data.usage.total_tokens,
+        };
+      } catch (error) {
+        lastError = error;
+        const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+        const isNetworkError = error.code === 'ECONNRESET' || error.code === 'ENOTFOUND';
+
+        // Only retry on timeout or network errors
+        if ((isTimeout || isNetworkError) && attempt < maxRetries) {
+          logger.warn(`[OpenAIClient] 请求超时或网络错误，将重试: ${error.message}`);
+          // Wait before retry (exponential backoff: 2s, 4s)
+          await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, attempt)));
+          continue;
+        }
+
+        logger.error("[OpenAIClient] 聊天失败:", error.response?.data || error);
+        throw new Error(error.response?.data?.error?.message || error.message);
       }
-
-      const response = await this.client.post(
-        "/chat/completions",
-        requestBody,
-        {
-          ...(options.signal && { signal: options.signal }),
-        },
-      );
-
-      const choice = response.data.choices[0];
-
-      return {
-        message: choice.message,
-        finish_reason: choice.finish_reason,
-        model: response.data.model,
-        usage: response.data.usage,
-        tokens: response.data.usage.total_tokens,
-      };
-    } catch (error) {
-      logger.error("[OpenAIClient] 聊天失败:", error.response?.data || error);
-      throw new Error(error.response?.data?.error?.message || error.message);
     }
+
+    // Should not reach here, but just in case
+    throw lastError;
   }
 
   /**
