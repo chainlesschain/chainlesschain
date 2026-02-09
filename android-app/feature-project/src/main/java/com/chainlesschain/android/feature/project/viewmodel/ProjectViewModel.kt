@@ -31,6 +31,7 @@ import com.chainlesschain.android.feature.project.repository.ProjectChatReposito
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
 import com.chainlesschain.android.feature.project.util.ContextManager
 import com.chainlesschain.android.feature.project.util.ContextResult
+import com.chainlesschain.android.feature.project.util.ProjectFileStorage
 import com.chainlesschain.android.core.common.fold
 import com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository
 import com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository
@@ -79,7 +80,8 @@ class ProjectViewModel @Inject constructor(
     private val llmAdapterFactory: LLMAdapterFactory,
     private val llmConfigManager: com.chainlesschain.android.feature.ai.data.config.LLMConfigManager,
     private val externalFileRepository: ExternalFileRepository,
-    private val fileImportRepository: FileImportRepository
+    private val fileImportRepository: FileImportRepository,
+    private val projectFileStorage: ProjectFileStorage
 ) : ViewModel() {
 
     companion object {
