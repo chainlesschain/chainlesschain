@@ -19,8 +19,8 @@
  * - 错误处理
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mount } from "@vue/test-utils";
 
 // Mock ant-design-vue
 const mockMessage = vi.hoisted(() => ({
@@ -31,12 +31,14 @@ const mockMessage = vi.hoisted(() => ({
 }));
 
 const mockModal = vi.hoisted(() => ({
-  confirm: vi.fn((options) => {
-    options.onOk && options.onOk();
+  confirm: vi.fn(async (options) => {
+    if (options.onOk) {
+      await options.onOk();
+    }
   }),
 }));
 
-vi.mock('ant-design-vue', () => ({
+vi.mock("ant-design-vue", () => ({
   message: mockMessage,
   Modal: mockModal,
 }));
@@ -48,7 +50,7 @@ const mockUseP2PCall = vi.hoisted(() => ({
   startScreenShare: vi.fn(),
 }));
 
-vi.mock('@/composables/useP2PCall', () => ({
+vi.mock("@/composables/useP2PCall", () => ({
   useP2PCall: () => mockUseP2PCall,
 }));
 
@@ -61,17 +63,17 @@ global.window = {
   },
 };
 
-describe('CallHistoryPage', () => {
+describe("CallHistoryPage", () => {
   let wrapper;
 
   const mockCallHistory = [
     {
-      id: 'call-1',
-      type: 'audio',
-      status: 'completed',
-      peerId: 'peer-1',
-      startTime: '2026-01-26T10:00:00.000Z',
-      endTime: '2026-01-26T10:05:30.000Z',
+      id: "call-1",
+      type: "audio",
+      status: "completed",
+      peerId: "peer-1",
+      startTime: "2026-01-26T10:00:00.000Z",
+      endTime: "2026-01-26T10:05:30.000Z",
       duration: 330000, // 5.5 minutes in ms
       isInitiator: true,
       stats: {
@@ -83,22 +85,22 @@ describe('CallHistoryPage', () => {
       },
     },
     {
-      id: 'call-2',
-      type: 'video',
-      status: 'failed',
-      peerId: 'peer-2',
-      startTime: '2026-01-26T09:30:00.000Z',
+      id: "call-2",
+      type: "video",
+      status: "failed",
+      peerId: "peer-2",
+      startTime: "2026-01-26T09:30:00.000Z",
       endTime: null,
       duration: null,
       isInitiator: false,
       stats: null,
     },
     {
-      id: 'call-3',
-      type: 'screen',
-      status: 'missed',
-      peerId: 'peer-3',
-      startTime: '2026-01-26T09:00:00.000Z',
+      id: "call-3",
+      type: "screen",
+      status: "missed",
+      peerId: "peer-3",
+      startTime: "2026-01-26T09:00:00.000Z",
       endTime: null,
       duration: null,
       isInitiator: false,
@@ -107,9 +109,9 @@ describe('CallHistoryPage', () => {
   ];
 
   const mockPeers = {
-    'peer-1': { nickname: 'Alice' },
-    'peer-2': { nickname: 'Bob' },
-    'peer-3': { nickname: 'Charlie' },
+    "peer-1": { nickname: "Alice" },
+    "peer-2": { nickname: "Bob" },
+    "peer-3": { nickname: "Charlie" },
   };
 
   const createWrapper = (options = {}) => {
@@ -176,23 +178,26 @@ describe('CallHistoryPage', () => {
           </div>
         `,
         setup() {
-          const { ref, computed } = require('vue');
+          const { ref, computed } = require("vue");
           const message = mockMessage;
           const Modal = mockModal;
           // Use mock directly instead of requiring - vi.mock doesn't intercept require() in setup
-          const { startAudioCall, startVideoCall, startScreenShare } = mockUseP2PCall;
+          const { startAudioCall, startVideoCall, startScreenShare } =
+            mockUseP2PCall;
 
           const loading = ref(false);
-          const filterType = ref('all');
+          const filterType = ref("all");
           const callHistory = ref([...mockCallHistory]);
           const showDetails = ref(false);
           const selectedRecord = ref(null);
 
           const filteredHistory = computed(() => {
-            if (filterType.value === 'all') {
+            if (filterType.value === "all") {
               return callHistory.value;
             }
-            return callHistory.value.filter((record) => record.type === filterType.value);
+            return callHistory.value.filter(
+              (record) => record.type === filterType.value,
+            );
           });
 
           const getPeerName = (peerId) => {
@@ -201,31 +206,35 @@ describe('CallHistoryPage', () => {
 
           const getCallStatusText = (status) => {
             const statusMap = {
-              completed: '已完成',
-              failed: '失败',
-              missed: '未接听',
-              rejected: '已拒绝',
+              completed: "已完成",
+              failed: "失败",
+              missed: "未接听",
+              rejected: "已拒绝",
             };
             return statusMap[status] || status;
           };
 
           const getCallStatusColor = (status) => {
             const colorMap = {
-              completed: 'success',
-              failed: 'error',
-              missed: 'warning',
-              rejected: 'default',
+              completed: "success",
+              failed: "error",
+              missed: "warning",
+              rejected: "default",
             };
-            return colorMap[status] || 'default';
+            return colorMap[status] || "default";
           };
 
           const formatDateTime = (timestamp) => {
-            if (!timestamp) return '';
-            return new Date(timestamp).toLocaleString('zh-CN');
+            if (!timestamp) {
+              return "";
+            }
+            return new Date(timestamp).toLocaleString("zh-CN");
           };
 
           const formatDuration = (ms) => {
-            if (!ms) return '0秒';
+            if (!ms) {
+              return "0秒";
+            }
             const seconds = Math.floor(ms / 1000);
             const minutes = Math.floor(seconds / 60);
             const hours = Math.floor(minutes / 60);
@@ -239,24 +248,30 @@ describe('CallHistoryPage', () => {
           };
 
           const formatBytes = (bytes) => {
-            if (bytes === 0) return '0 B';
+            if (bytes === 0) {
+              return "0 B";
+            }
             const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const sizes = ["B", "KB", "MB", "GB"];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+            return (
+              Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i]
+            );
           };
 
           const loadCallHistory = async () => {
             loading.value = true;
             try {
-              const result = await window.electron.ipcRenderer.invoke('call-history:get-all');
+              const result = await window.electron.ipcRenderer.invoke(
+                "call-history:get-all",
+              );
               if (result.success) {
                 callHistory.value = result.history;
               } else {
-                message.error('加载通话记录失败');
+                message.error("加载通话记录失败");
               }
             } catch (error) {
-              message.error('加载通话记录失败');
+              message.error("加载通话记录失败");
             } finally {
               loading.value = false;
             }
@@ -272,19 +287,21 @@ describe('CallHistoryPage', () => {
 
           const handleClearAll = () => {
             Modal.confirm({
-              title: '确认清空',
-              content: '确定要清空所有通话记录吗？此操作不可恢复。',
+              title: "确认清空",
+              content: "确定要清空所有通话记录吗？此操作不可恢复。",
               onOk: async () => {
                 try {
-                  const result = await window.electron.ipcRenderer.invoke('call-history:clear-all');
+                  const result = await window.electron.ipcRenderer.invoke(
+                    "call-history:clear-all",
+                  );
                   if (result.success) {
                     callHistory.value = [];
-                    message.success('已清空通话记录');
+                    message.success("已清空通话记录");
                   } else {
-                    message.error('清空失败');
+                    message.error("清空失败");
                   }
                 } catch (error) {
-                  message.error('清空失败');
+                  message.error("清空失败");
                 }
               },
             });
@@ -292,30 +309,35 @@ describe('CallHistoryPage', () => {
 
           const handleDelete = async (record) => {
             try {
-              const result = await window.electron.ipcRenderer.invoke('call-history:delete', record.id);
+              const result = await window.electron.ipcRenderer.invoke(
+                "call-history:delete",
+                record.id,
+              );
               if (result.success) {
-                callHistory.value = callHistory.value.filter((r) => r.id !== record.id);
-                message.success('已删除');
+                callHistory.value = callHistory.value.filter(
+                  (r) => r.id !== record.id,
+                );
+                message.success("已删除");
               } else {
-                message.error('删除失败');
+                message.error("删除失败");
               }
             } catch (error) {
-              message.error('删除失败');
+              message.error("删除失败");
             }
           };
 
           const handleCallAgain = async (record) => {
             try {
-              if (record.type === 'audio') {
+              if (record.type === "audio") {
                 await startAudioCall(record.peerId);
-              } else if (record.type === 'video') {
+              } else if (record.type === "video") {
                 await startVideoCall(record.peerId);
-              } else if (record.type === 'screen') {
+              } else if (record.type === "screen") {
                 await startScreenShare(record.peerId);
               }
-              message.success('正在发起通话...');
+              message.success("正在发起通话...");
             } catch (error) {
-              message.error('发起通话失败');
+              message.error("发起通话失败");
             }
           };
 
@@ -350,100 +372,103 @@ describe('CallHistoryPage', () => {
       {
         global: {
           stubs: {
-            'a-space': true,
-            'a-select': true,
-            'a-select-option': true,
-            'a-button': true,
-            'a-spin': true,
-            'a-empty': true,
-            'a-tag': true,
-            'a-drawer': true,
-            'a-descriptions': true,
-            'a-descriptions-item': true,
-            'a-tooltip': true,
-            'a-popconfirm': true,
+            "a-space": true,
+            "a-select": true,
+            "a-select-option": true,
+            "a-button": true,
+            "a-spin": true,
+            "a-empty": true,
+            "a-tag": true,
+            "a-drawer": true,
+            "a-descriptions": true,
+            "a-descriptions-item": true,
+            "a-tooltip": true,
+            "a-popconfirm": true,
           },
         },
         ...options,
-      }
+      },
     );
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true, history: mockCallHistory });
+    window.electron.ipcRenderer.invoke.mockResolvedValue({
+      success: true,
+      history: mockCallHistory,
+    });
   });
 
-  describe('组件挂载', () => {
-    it('应该成功挂载组件', () => {
+  describe("组件挂载", () => {
+    it("应该成功挂载组件", () => {
       wrapper = createWrapper();
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.find('.call-history-page').exists()).toBe(true);
+      expect(wrapper.find(".call-history-page").exists()).toBe(true);
     });
 
-    it('应该显示通话记录列表', () => {
+    it("应该显示通话记录列表", () => {
       wrapper = createWrapper();
       expect(wrapper.vm.callHistory).toHaveLength(3);
     });
   });
 
-  describe('通话类型筛选', () => {
-    it('应该显示所有通话记录', () => {
+  describe("通话类型筛选", () => {
+    it("应该显示所有通话记录", () => {
       wrapper = createWrapper();
-      wrapper.vm.filterType = 'all';
+      wrapper.vm.filterType = "all";
       expect(wrapper.vm.filteredHistory).toHaveLength(3);
     });
 
-    it('应该筛选语音通话', () => {
+    it("应该筛选语音通话", () => {
       wrapper = createWrapper();
-      wrapper.vm.filterType = 'audio';
+      wrapper.vm.filterType = "audio";
       expect(wrapper.vm.filteredHistory).toHaveLength(1);
-      expect(wrapper.vm.filteredHistory[0].type).toBe('audio');
+      expect(wrapper.vm.filteredHistory[0].type).toBe("audio");
     });
 
-    it('应该筛选视频通话', () => {
+    it("应该筛选视频通话", () => {
       wrapper = createWrapper();
-      wrapper.vm.filterType = 'video';
+      wrapper.vm.filterType = "video";
       expect(wrapper.vm.filteredHistory).toHaveLength(1);
-      expect(wrapper.vm.filteredHistory[0].type).toBe('video');
+      expect(wrapper.vm.filteredHistory[0].type).toBe("video");
     });
 
-    it('应该筛选屏幕共享', () => {
+    it("应该筛选屏幕共享", () => {
       wrapper = createWrapper();
-      wrapper.vm.filterType = 'screen';
+      wrapper.vm.filterType = "screen";
       expect(wrapper.vm.filteredHistory).toHaveLength(1);
-      expect(wrapper.vm.filteredHistory[0].type).toBe('screen');
+      expect(wrapper.vm.filteredHistory[0].type).toBe("screen");
     });
   });
 
-  describe('通话状态', () => {
-    it('应该显示已完成状态', () => {
+  describe("通话状态", () => {
+    it("应该显示已完成状态", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.getCallStatusText('completed')).toBe('已完成');
-      expect(wrapper.vm.getCallStatusColor('completed')).toBe('success');
+      expect(wrapper.vm.getCallStatusText("completed")).toBe("已完成");
+      expect(wrapper.vm.getCallStatusColor("completed")).toBe("success");
     });
 
-    it('应该显示失败状态', () => {
+    it("应该显示失败状态", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.getCallStatusText('failed')).toBe('失败');
-      expect(wrapper.vm.getCallStatusColor('failed')).toBe('error');
+      expect(wrapper.vm.getCallStatusText("failed")).toBe("失败");
+      expect(wrapper.vm.getCallStatusColor("failed")).toBe("error");
     });
 
-    it('应该显示未接听状态', () => {
+    it("应该显示未接听状态", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.getCallStatusText('missed')).toBe('未接听');
-      expect(wrapper.vm.getCallStatusColor('missed')).toBe('warning');
+      expect(wrapper.vm.getCallStatusText("missed")).toBe("未接听");
+      expect(wrapper.vm.getCallStatusColor("missed")).toBe("warning");
     });
 
-    it('应该显示已拒绝状态', () => {
+    it("应该显示已拒绝状态", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.getCallStatusText('rejected')).toBe('已拒绝');
-      expect(wrapper.vm.getCallStatusColor('rejected')).toBe('default');
+      expect(wrapper.vm.getCallStatusText("rejected")).toBe("已拒绝");
+      expect(wrapper.vm.getCallStatusColor("rejected")).toBe("default");
     });
   });
 
-  describe('刷新和清空', () => {
-    it('应该能刷新通话记录', async () => {
+  describe("刷新和清空", () => {
+    it("应该能刷新通话记录", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
@@ -452,36 +477,40 @@ describe('CallHistoryPage', () => {
 
       await wrapper.vm.handleRefresh();
 
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith('call-history:get-all');
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+        "call-history:get-all",
+      );
     });
 
-    it('应该能清空所有记录', async () => {
+    it("应该能清空所有记录", async () => {
       wrapper = createWrapper();
       const Modal = mockModal;
       const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
-      wrapper.vm.handleClearAll();
+      await wrapper.vm.handleClearAll();
 
       expect(Modal.confirm).toHaveBeenCalled();
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith('call-history:clear-all');
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+        "call-history:clear-all",
+      );
       expect(wrapper.vm.callHistory).toHaveLength(0);
-      expect(message.success).toHaveBeenCalledWith('已清空通话记录');
+      expect(message.success).toHaveBeenCalledWith("已清空通话记录");
     });
 
-    it('应该能处理清空失败', async () => {
+    it("应该能处理清空失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: false });
 
-      wrapper.vm.handleClearAll();
+      await wrapper.vm.handleClearAll();
 
-      expect(message.error).toHaveBeenCalledWith('清空失败');
+      expect(message.error).toHaveBeenCalledWith("清空失败");
     });
   });
 
-  describe('删除记录', () => {
-    it('应该能删除单条记录', async () => {
+  describe("删除记录", () => {
+    it("应该能删除单条记录", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
@@ -489,65 +518,76 @@ describe('CallHistoryPage', () => {
       const record = mockCallHistory[0];
       await wrapper.vm.handleDelete(record);
 
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith('call-history:delete', record.id);
+      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
+        "call-history:delete",
+        record.id,
+      );
       expect(wrapper.vm.callHistory).toHaveLength(2);
-      expect(message.success).toHaveBeenCalledWith('已删除');
+      expect(message.success).toHaveBeenCalledWith("已删除");
     });
 
-    it('应该能处理删除失败', async () => {
+    it("应该能处理删除失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Delete failed'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(
+        new Error("Delete failed"),
+      );
 
       await wrapper.vm.handleDelete(mockCallHistory[0]);
 
-      expect(message.error).toHaveBeenCalledWith('删除失败');
+      expect(message.error).toHaveBeenCalledWith("删除失败");
     });
   });
 
-  describe('再次呼叫', () => {
-    it('应该能发起语音通话', async () => {
+  describe("再次呼叫", () => {
+    it("应该能发起语音通话", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
 
-      const audioRecord = { ...mockCallHistory[0], type: 'audio' };
+      const audioRecord = { ...mockCallHistory[0], type: "audio" };
       await wrapper.vm.handleCallAgain(audioRecord);
 
-      expect(mockUseP2PCall.startAudioCall).toHaveBeenCalledWith(audioRecord.peerId);
-      expect(message.success).toHaveBeenCalledWith('正在发起通话...');
+      expect(mockUseP2PCall.startAudioCall).toHaveBeenCalledWith(
+        audioRecord.peerId,
+      );
+      expect(message.success).toHaveBeenCalledWith("正在发起通话...");
     });
 
-    it('应该能发起视频通话', async () => {
+    it("应该能发起视频通话", async () => {
       wrapper = createWrapper();
 
-      const videoRecord = { ...mockCallHistory[1], type: 'video' };
+      const videoRecord = { ...mockCallHistory[1], type: "video" };
       await wrapper.vm.handleCallAgain(videoRecord);
 
-      expect(mockUseP2PCall.startVideoCall).toHaveBeenCalledWith(videoRecord.peerId);
+      expect(mockUseP2PCall.startVideoCall).toHaveBeenCalledWith(
+        videoRecord.peerId,
+      );
     });
 
-    it('应该能发起屏幕共享', async () => {
+    it("应该能发起屏幕共享", async () => {
       wrapper = createWrapper();
 
-      const screenRecord = { ...mockCallHistory[2], type: 'screen' };
+      const screenRecord = { ...mockCallHistory[2], type: "screen" };
       await wrapper.vm.handleCallAgain(screenRecord);
 
-      expect(mockUseP2PCall.startScreenShare).toHaveBeenCalledWith(screenRecord.peerId);
+      expect(mockUseP2PCall.startScreenShare).toHaveBeenCalledWith(
+        screenRecord.peerId,
+      );
     });
 
-    it('应该能处理通话失败', async () => {
+    it("应该能处理通话失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      mockUseP2PCall.startAudioCall.mockRejectedValue(new Error('Call failed'));
+      mockUseP2PCall.startAudioCall.mockRejectedValue(new Error("Call failed"));
 
       await wrapper.vm.handleCallAgain(mockCallHistory[0]);
 
-      expect(message.error).toHaveBeenCalledWith('发起通话失败');
+      expect(message.error).toHaveBeenCalledWith("发起通话失败");
     });
   });
 
-  describe('通话详情', () => {
-    it('应该能打开通话详情', () => {
+  describe("通话详情", () => {
+    it("应该能打开通话详情", () => {
       wrapper = createWrapper();
 
       wrapper.vm.handleRecordClick(mockCallHistory[0]);
@@ -556,7 +596,7 @@ describe('CallHistoryPage', () => {
       expect(wrapper.vm.showDetails).toBe(true);
     });
 
-    it('应该显示通话统计信息', () => {
+    it("应该显示通话统计信息", () => {
       wrapper = createWrapper();
       const record = mockCallHistory[0];
 
@@ -567,94 +607,96 @@ describe('CallHistoryPage', () => {
     });
   });
 
-  describe('格式化功能', () => {
-    it('应该能格式化日期时间', () => {
+  describe("格式化功能", () => {
+    it("应该能格式化日期时间", () => {
       wrapper = createWrapper();
-      const formatted = wrapper.vm.formatDateTime('2026-01-26T10:00:00.000Z');
+      const formatted = wrapper.vm.formatDateTime("2026-01-26T10:00:00.000Z");
       expect(formatted).toBeTruthy();
     });
 
-    it('应该能格式化时长（秒）', () => {
+    it("应该能格式化时长（秒）", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.formatDuration(30000)).toBe('30秒');
+      expect(wrapper.vm.formatDuration(30000)).toBe("30秒");
     });
 
-    it('应该能格式化时长（分钟）', () => {
+    it("应该能格式化时长（分钟）", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.formatDuration(90000)).toBe('1分30秒');
+      expect(wrapper.vm.formatDuration(90000)).toBe("1分30秒");
     });
 
-    it('应该能格式化时长（小时）', () => {
+    it("应该能格式化时长（小时）", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.formatDuration(3690000)).toBe('1小时1分30秒');
+      expect(wrapper.vm.formatDuration(3690000)).toBe("1小时1分30秒");
     });
 
-    it('应该能格式化字节数', () => {
+    it("应该能格式化字节数", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.formatBytes(1024)).toBe('1 KB');
-      expect(wrapper.vm.formatBytes(1048576)).toBe('1 MB');
-      expect(wrapper.vm.formatBytes(0)).toBe('0 B');
+      expect(wrapper.vm.formatBytes(1024)).toBe("1 KB");
+      expect(wrapper.vm.formatBytes(1048576)).toBe("1 MB");
+      expect(wrapper.vm.formatBytes(0)).toBe("0 B");
     });
 
-    it('应该获取对方名称', () => {
+    it("应该获取对方名称", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.getPeerName('peer-1')).toBe('Alice');
-      expect(wrapper.vm.getPeerName('peer-2')).toBe('Bob');
-      expect(wrapper.vm.getPeerName('unknown')).toBe('unknown');
+      expect(wrapper.vm.getPeerName("peer-1")).toBe("Alice");
+      expect(wrapper.vm.getPeerName("peer-2")).toBe("Bob");
+      expect(wrapper.vm.getPeerName("unknown")).toBe("unknown");
     });
   });
 
-  describe('空状态', () => {
-    it('应该显示空状态', () => {
+  describe("空状态", () => {
+    it("应该显示空状态", () => {
       wrapper = createWrapper();
       wrapper.vm.callHistory = [];
       expect(wrapper.vm.filteredHistory).toHaveLength(0);
     });
 
-    it('应该在筛选后显示空状态', () => {
+    it("应该在筛选后显示空状态", () => {
       wrapper = createWrapper();
-      wrapper.vm.filterType = 'video';
+      wrapper.vm.filterType = "video";
       wrapper.vm.callHistory = [mockCallHistory[0]]; // only audio
       expect(wrapper.vm.filteredHistory).toHaveLength(0);
     });
   });
 
-  describe('加载状态', () => {
-    it('应该初始化loading为false', () => {
+  describe("加载状态", () => {
+    it("应该初始化loading为false", () => {
       wrapper = createWrapper();
       expect(wrapper.vm.loading).toBe(false);
     });
 
-    it('应该在加载时设置loading为true', async () => {
+    it("应该在加载时设置loading为true", async () => {
       wrapper = createWrapper();
       const loadPromise = wrapper.vm.loadCallHistory();
       expect(wrapper.vm.loading).toBe(true);
       await loadPromise;
     });
 
-    it('应该能处理加载失败', async () => {
+    it("应该能处理加载失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Load failed'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(
+        new Error("Load failed"),
+      );
 
       await wrapper.vm.loadCallHistory();
 
-      expect(message.error).toHaveBeenCalledWith('加载通话记录失败');
+      expect(message.error).toHaveBeenCalledWith("加载通话记录失败");
     });
   });
 
-  describe('边界情况', () => {
-    it('应该处理null时长', () => {
+  describe("边界情况", () => {
+    it("应该处理null时长", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.formatDuration(null)).toBe('0秒');
+      expect(wrapper.vm.formatDuration(null)).toBe("0秒");
     });
 
-    it('应该处理空时间戳', () => {
+    it("应该处理空时间戳", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.formatDateTime('')).toBe('');
+      expect(wrapper.vm.formatDateTime("")).toBe("");
     });
 
-    it('应该处理无统计信息的记录', () => {
+    it("应该处理无统计信息的记录", () => {
       wrapper = createWrapper();
       wrapper.vm.handleRecordClick(mockCallHistory[1]);
       expect(wrapper.vm.selectedRecord.stats).toBeNull();

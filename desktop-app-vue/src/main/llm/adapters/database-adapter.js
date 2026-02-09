@@ -90,6 +90,9 @@ class InMemoryDatabaseAdapter {
 
     // Auto-increment IDs
     this.nextId = 1;
+
+    // Insertion sequence counter for stable sort tiebreaking
+    this._insertSeq = 0;
   }
 
   /**
@@ -110,30 +113,60 @@ class InMemoryDatabaseAdapter {
         // Parse SQL to determine operation
         const sqlUpper = sql.toUpperCase().trim();
 
-        if (sqlUpper.startsWith("INSERT INTO CHAT_SESSIONS")) {
-          const [id, title, messages, createdAt, updatedAt] = params;
+        if (
+          sqlUpper.startsWith("INSERT INTO CHAT_SESSIONS") ||
+          sqlUpper.startsWith("INSERT INTO LLM_SESSIONS")
+        ) {
+          const [
+            id,
+            conversationId,
+            title,
+            messages,
+            compressedHistory,
+            metadata,
+            createdAt,
+            updatedAt,
+          ] = params;
+          adapter._insertSeq++;
           adapter.sessions.set(id, {
             id,
+            conversationId: conversationId || null,
             title: title || "",
             messages: messages || "[]",
+            compressedHistory: compressedHistory || null,
+            metadata: metadata || "{}",
             created_at: createdAt || Date.now(),
             updated_at: updatedAt || Date.now(),
+            _seq: adapter._insertSeq,
           });
           result.changes = 1;
           result.lastInsertRowid = id;
-        } else if (sqlUpper.startsWith("UPDATE CHAT_SESSIONS")) {
+        } else if (
+          sqlUpper.startsWith("UPDATE CHAT_SESSIONS") ||
+          sqlUpper.startsWith("UPDATE LLM_SESSIONS")
+        ) {
           const id = params[params.length - 1]; // Last param is usually ID
           if (adapter.sessions.has(id)) {
             const session = adapter.sessions.get(id);
             // Update fields based on params
-            if (params.length >= 2) {
+            if (params.length >= 5) {
+              // LLM_SESSIONS format: title, messages, compressed_history, metadata, updated_at, id
+              session.title = params[0];
+              session.messages = params[1] || session.messages;
+              session.compressedHistory = params[2];
+              session.metadata = params[3] || session.metadata;
+              session.updated_at = params[4] || Date.now();
+            } else if (params.length >= 2) {
               session.title = params[0];
               session.messages = params[1] || session.messages;
               session.updated_at = Date.now();
             }
             result.changes = 1;
           }
-        } else if (sqlUpper.startsWith("DELETE FROM CHAT_SESSIONS")) {
+        } else if (
+          sqlUpper.startsWith("DELETE FROM CHAT_SESSIONS") ||
+          sqlUpper.startsWith("DELETE FROM LLM_SESSIONS")
+        ) {
           const id = params[0];
           if (adapter.sessions.has(id)) {
             adapter.sessions.delete(id);
@@ -230,14 +263,25 @@ class InMemoryDatabaseAdapter {
           // Return all sessions
           let sessions = Array.from(adapter.sessions.values());
 
-          // Sort by updated_at DESC (most recent first)
-          sessions.sort((a, b) => b.updated_at - a.updated_at);
+          // Sort by updated_at DESC (most recent first), use _seq as tiebreaker
+          sessions.sort((a, b) => {
+            const timeDiff = b.updated_at - a.updated_at;
+            if (timeDiff !== 0) {
+              return timeDiff;
+            }
+            return (b._seq || 0) - (a._seq || 0);
+          });
 
-          // Apply LIMIT and OFFSET
+          // Apply LIMIT and OFFSET (from SQL literals or from params)
           const limitMatch = sql.match(/LIMIT\s+(\d+)(?:\s+OFFSET\s+(\d+))?/i);
           if (limitMatch) {
             const limit = parseInt(limitMatch[1]);
             const offset = limitMatch[2] ? parseInt(limitMatch[2]) : 0;
+            sessions = sessions.slice(offset, offset + limit);
+          } else if (sql.toUpperCase().includes("LIMIT")) {
+            // LIMIT/OFFSET passed as params (LIMIT ? OFFSET ?)
+            const limit = params.length > 0 ? parseInt(params[0]) || 50 : 50;
+            const offset = params.length > 1 ? parseInt(params[1]) || 0 : 0;
             sessions = sessions.slice(offset, offset + limit);
           }
 

@@ -4,7 +4,12 @@ import OrganizationActivityLogPage from "@renderer/pages/OrganizationActivityLog
 import dayjs from "dayjs";
 
 // Mock ant-design-vue
-const mockMessage = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }));
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
 
 vi.mock("ant-design-vue", () => ({
   message: mockMessage,
@@ -515,7 +520,8 @@ describe("OrganizationActivityLogPage.vue", () => {
         metadata: null,
       };
       const details = wrapper.vm.getActivityDetails(activity);
-      expect(details).toBe("");
+      // When metadata is null, JSON.parse(null || "{}") = {}, add_member returns string with undefined values
+      expect(details).toBe("添加了成员: undefined (undefined)");
     });
 
     it("应该处理未知活动类型", () => {

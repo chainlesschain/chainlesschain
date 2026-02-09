@@ -12,13 +12,18 @@
  * - localStorage交互
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mount } from "@vue/test-utils";
 
 // Mock ant-design-vue
-const mockMessage = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }));
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
 
-vi.mock('ant-design-vue', () => ({
+vi.mock("ant-design-vue", () => ({
   message: mockMessage,
 }));
 
@@ -28,7 +33,7 @@ const mockRouter = {
   back: vi.fn(),
 };
 
-vi.mock('vue-router', () => ({
+vi.mock("vue-router", () => ({
   useRouter: () => mockRouter,
   useRoute: () => ({ params: {}, query: {} }),
 }));
@@ -41,7 +46,7 @@ const mockLogger = vi.hoisted(() => ({
 }));
 
 // Mock logger
-vi.mock('@/utils/logger', () => ({
+vi.mock("@/utils/logger", () => ({
   logger: mockLogger,
   createLogger: vi.fn(() => mockLogger),
 }));
@@ -49,14 +54,14 @@ vi.mock('@/utils/logger', () => ({
 // Mock stores
 const mockProjectStore = {};
 const mockAuthStore = {
-  currentUser: { id: 'user-123' },
+  currentUser: { id: "user-123" },
 };
 
-vi.mock('@/stores/project', () => ({
+vi.mock("@/stores/project", () => ({
   useProjectStore: () => mockProjectStore,
 }));
 
-vi.mock('@/stores/auth', () => ({
+vi.mock("@/stores/auth", () => ({
   useAuthStore: () => mockAuthStore,
 }));
 
@@ -75,7 +80,7 @@ const localStorageMock = (() => {
 })();
 global.localStorage = localStorageMock;
 
-describe('NewProjectPage', () => {
+describe("NewProjectPage", () => {
   let wrapper;
 
   const createWrapper = (options = {}) => {
@@ -129,7 +134,7 @@ describe('NewProjectPage', () => {
           </div>
         `,
         setup() {
-          const { ref, onMounted } = require('vue');
+          const { ref, onMounted } = require("vue");
           const message = mockMessage;
           // Use mocks directly instead of requiring - vi.mock doesn't intercept require() in setup
           const logger = mockLogger;
@@ -137,13 +142,13 @@ describe('NewProjectPage', () => {
           const projectStore = mockProjectStore;
           const authStore = mockAuthStore;
 
-          const activeTab = ref('ai');
+          const activeTab = ref("ai");
           const showTemplateRecommendModal = ref(false);
           const showTemplateSelectorModal = ref(false);
           const hasShownTemplateRecommend = ref(false);
 
           const handleBack = () => {
-            router.push('/projects');
+            router.push("/projects");
           };
 
           const handleCreateProject = async (createData) => {
@@ -152,10 +157,10 @@ describe('NewProjectPage', () => {
 
           const handleTemplateSelect = async (template) => {
             const createData = {
-              userPrompt: `使用${template.name}模板创建项目${template.description ? '：' + template.description : ''}`,
+              userPrompt: `使用${template.name}模板创建项目${template.description ? "：" + template.description : ""}`,
               name: `基于${template.name}的新项目`,
-              projectType: template.project_type || 'general',
-              userId: authStore.currentUser?.id || 'default-user',
+              projectType: template.project_type || "general",
+              userId: authStore.currentUser?.id || "default-user",
             };
 
             if (template.id) {
@@ -167,15 +172,15 @@ describe('NewProjectPage', () => {
 
           const startCreateProcess = async (createData) => {
             try {
-              router.push({
+              await router.push({
                 path: `/projects/ai-creating`,
                 query: {
                   createData: JSON.stringify(createData),
                 },
               });
             } catch (error) {
-              logger.error('Start create process failed:', error);
-              message.error('启动创建流程失败：' + error.message);
+              logger.error("Start create process failed:", error);
+              message.error("启动创建流程失败：" + error.message);
             }
           };
 
@@ -195,9 +200,9 @@ describe('NewProjectPage', () => {
           const checkTemplateRecommend = () => {
             let hasVisited = false;
             try {
-              hasVisited = localStorage.getItem('hasVisitedNewProject');
+              hasVisited = localStorage.getItem("hasVisitedNewProject");
             } catch (error) {
-              logger.warn('[NewProject] 读取访问记录失败:', error.message);
+              logger.warn("[NewProject] 读取访问记录失败:", error.message);
             }
             if (!hasVisited && !hasShownTemplateRecommend.value) {
               setTimeout(() => {
@@ -205,9 +210,9 @@ describe('NewProjectPage', () => {
                 hasShownTemplateRecommend.value = true;
               }, 500);
               try {
-                localStorage.setItem('hasVisitedNewProject', 'true');
+                localStorage.setItem("hasVisitedNewProject", "true");
               } catch (error) {
-                logger.warn('[NewProject] 保存访问记录失败:', error.message);
+                logger.warn("[NewProject] 保存访问记录失败:", error.message);
               }
             }
           };
@@ -236,25 +241,25 @@ describe('NewProjectPage', () => {
         global: {
           stubs: {
             AIProjectCreator: {
-              name: 'AIProjectCreator',
+              name: "AIProjectCreator",
               template: '<div class="ai-project-creator"></div>',
-              emits: ['create'],
+              emits: ["create"],
             },
             ManualProjectForm: {
-              name: 'ManualProjectForm',
+              name: "ManualProjectForm",
               template: '<div class="manual-project-form"></div>',
-              emits: ['create'],
+              emits: ["create"],
             },
             TemplateSelectionModal: {
-              name: 'TemplateSelectionModal',
+              name: "TemplateSelectionModal",
               template: '<div class="template-selection-modal"></div>',
-              props: ['open'],
-              emits: ['confirm', 'cancel'],
+              props: ["open"],
+              emits: ["confirm", "cancel"],
             },
           },
         },
         ...options,
-      }
+      },
     );
   };
 
@@ -263,84 +268,86 @@ describe('NewProjectPage', () => {
     localStorageMock.clear();
   });
 
-  describe('组件挂载', () => {
-    it('应该成功挂载组件', () => {
+  describe("组件挂载", () => {
+    it("应该成功挂载组件", () => {
       wrapper = createWrapper();
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.find('.new-project-page').exists()).toBe(true);
+      expect(wrapper.find(".new-project-page").exists()).toBe(true);
     });
 
-    it('应该默认显示AI创建Tab', () => {
+    it("应该默认显示AI创建Tab", () => {
       wrapper = createWrapper();
-      expect(wrapper.vm.activeTab).toBe('ai');
+      expect(wrapper.vm.activeTab).toBe("ai");
     });
 
-    it('应该在挂载时检查模板推荐', async () => {
+    it("应该在挂载时检查模板推荐", async () => {
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(localStorageMock.getItem).toHaveBeenCalledWith('hasVisitedNewProject');
+      expect(localStorageMock.getItem).toHaveBeenCalledWith(
+        "hasVisitedNewProject",
+      );
     });
   });
 
-  describe('Tab切换', () => {
-    it('应该能切换到手动创建Tab', async () => {
+  describe("Tab切换", () => {
+    it("应该能切换到手动创建Tab", async () => {
       wrapper = createWrapper();
 
-      wrapper.vm.activeTab = 'manual';
+      wrapper.vm.activeTab = "manual";
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('manual');
-      expect(wrapper.find('.manual-form').exists()).toBe(true);
+      expect(wrapper.vm.activeTab).toBe("manual");
+      expect(wrapper.find(".manual-form").exists()).toBe(true);
     });
 
-    it('应该能切换回AI创建Tab', async () => {
+    it("应该能切换回AI创建Tab", async () => {
       wrapper = createWrapper();
-      wrapper.vm.activeTab = 'manual';
+      wrapper.vm.activeTab = "manual";
 
-      wrapper.vm.activeTab = 'ai';
+      wrapper.vm.activeTab = "ai";
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('ai');
-      expect(wrapper.find('.ai-creator').exists()).toBe(true);
+      expect(wrapper.vm.activeTab).toBe("ai");
+      expect(wrapper.find(".ai-creator").exists()).toBe(true);
     });
   });
 
-  describe('创建项目', () => {
-    it('应该能处理创建项目请求', async () => {
+  describe("创建项目", () => {
+    it("应该能处理创建项目请求", async () => {
       wrapper = createWrapper();
       const createData = {
-        name: 'Test Project',
-        projectType: 'web',
-        userPrompt: 'Create a web application',
+        name: "Test Project",
+        projectType: "web",
+        userPrompt: "Create a web application",
       };
 
       await wrapper.vm.handleCreateProject(createData);
 
       expect(mockRouter.push).toHaveBeenCalledWith({
-        path: '/projects/ai-creating',
+        path: "/projects/ai-creating",
         query: {
           createData: JSON.stringify(createData),
         },
       });
     });
 
-    it('应该能处理创建失败', async () => {
+    it("应该能处理创建失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      mockRouter.push.mockRejectedValue(new Error('Navigation failed'));
+      mockRouter.push.mockRejectedValue(new Error("Navigation failed"));
 
-      const createData = { name: 'Test' };
+      const createData = { name: "Test" };
       await wrapper.vm.handleCreateProject(createData);
 
       expect(message.error).toHaveBeenCalled();
     });
   });
 
-  describe('模板推荐', () => {
-    it('应该在首次访问时显示模板推荐', async () => {
+  describe("模板推荐", () => {
+    it("应该在首次访问时显示模板推荐", async () => {
       localStorageMock.getItem.mockReturnValue(null);
       wrapper = createWrapper();
 
@@ -351,8 +358,8 @@ describe('NewProjectPage', () => {
       expect(wrapper.vm.hasShownTemplateRecommend).toBe(true);
     });
 
-    it('应该在已访问时不显示模板推荐', async () => {
-      localStorageMock.getItem.mockReturnValue('true');
+    it("应该在已访问时不显示模板推荐", async () => {
+      localStorageMock.getItem.mockReturnValue("true");
       wrapper = createWrapper();
 
       await wrapper.vm.checkTemplateRecommend();
@@ -361,17 +368,20 @@ describe('NewProjectPage', () => {
       expect(wrapper.vm.showTemplateRecommendModal).toBe(false);
     });
 
-    it('应该能保存访问记录', async () => {
+    it("应该能保存访问记录", async () => {
       localStorageMock.getItem.mockReturnValue(null);
       wrapper = createWrapper();
 
       await wrapper.vm.checkTemplateRecommend();
       await new Promise((resolve) => setTimeout(resolve, 600));
 
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('hasVisitedNewProject', 'true');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        "hasVisitedNewProject",
+        "true",
+      );
     });
 
-    it('应该能接受模板推荐', async () => {
+    it("应该能接受模板推荐", async () => {
       wrapper = createWrapper();
       wrapper.vm.showTemplateRecommendModal = true;
 
@@ -381,7 +391,7 @@ describe('NewProjectPage', () => {
       expect(wrapper.vm.showTemplateSelectorModal).toBe(true);
     });
 
-    it('应该能拒绝模板推荐', async () => {
+    it("应该能拒绝模板推荐", async () => {
       wrapper = createWrapper();
       wrapper.vm.showTemplateRecommendModal = true;
 
@@ -391,10 +401,10 @@ describe('NewProjectPage', () => {
       expect(wrapper.vm.showTemplateSelectorModal).toBe(false);
     });
 
-    it('应该能处理localStorage错误', async () => {
+    it("应该能处理localStorage错误", async () => {
       const logger = mockLogger;
       localStorageMock.getItem.mockImplementation(() => {
-        throw new Error('Storage error');
+        throw new Error("Storage error");
       });
       wrapper = createWrapper();
 
@@ -403,11 +413,11 @@ describe('NewProjectPage', () => {
       expect(logger.warn).toHaveBeenCalled();
     });
 
-    it('应该能处理保存localStorage错误', async () => {
+    it("应该能处理保存localStorage错误", async () => {
       const logger = mockLogger;
       localStorageMock.getItem.mockReturnValue(null);
       localStorageMock.setItem.mockImplementation(() => {
-        throw new Error('Storage error');
+        throw new Error("Storage error");
       });
       wrapper = createWrapper();
 
@@ -418,31 +428,31 @@ describe('NewProjectPage', () => {
     });
   });
 
-  describe('模板选择', () => {
-    it('应该能选择模板', async () => {
+  describe("模板选择", () => {
+    it("应该能选择模板", async () => {
       wrapper = createWrapper();
       const template = {
-        id: 'template-1',
-        name: 'Web App',
-        description: 'A web application template',
-        project_type: 'web',
+        id: "template-1",
+        name: "Web App",
+        description: "A web application template",
+        project_type: "web",
       };
 
       await wrapper.vm.handleTemplateSelect(template);
 
       expect(mockRouter.push).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: '/projects/ai-creating',
-        })
+          path: "/projects/ai-creating",
+        }),
       );
     });
 
-    it('应该能处理没有templateId的模板', async () => {
+    it("应该能处理没有templateId的模板", async () => {
       wrapper = createWrapper();
       const template = {
-        name: 'Simple Template',
-        description: 'A simple template',
-        project_type: 'general',
+        name: "Simple Template",
+        description: "A simple template",
+        project_type: "general",
       };
 
       await wrapper.vm.handleTemplateSelect(template);
@@ -453,12 +463,12 @@ describe('NewProjectPage', () => {
       expect(createData.templateId).toBeUndefined();
     });
 
-    it('应该能处理没有描述的模板', async () => {
+    it("应该能处理没有描述的模板", async () => {
       wrapper = createWrapper();
       const template = {
-        id: 'template-2',
-        name: 'Basic Template',
-        project_type: 'general',
+        id: "template-2",
+        name: "Basic Template",
+        project_type: "general",
       };
 
       await wrapper.vm.handleTemplateSelect(template);
@@ -466,10 +476,10 @@ describe('NewProjectPage', () => {
       expect(mockRouter.push).toHaveBeenCalled();
       const callArgs = mockRouter.push.mock.calls[0][0];
       const createData = JSON.parse(callArgs.query.createData);
-      expect(createData.userPrompt).toContain('Basic Template');
+      expect(createData.userPrompt).toContain("Basic Template");
     });
 
-    it('应该能取消模板选择', async () => {
+    it("应该能取消模板选择", async () => {
       wrapper = createWrapper();
       wrapper.vm.showTemplateSelectorModal = true;
 
@@ -478,68 +488,73 @@ describe('NewProjectPage', () => {
       expect(wrapper.vm.showTemplateSelectorModal).toBe(false);
     });
 
-    it('应该使用当前用户ID', async () => {
+    it("应该使用当前用户ID", async () => {
       wrapper = createWrapper();
-      mockAuthStore.currentUser = { id: 'test-user-123' };
+      mockAuthStore.currentUser = { id: "test-user-123" };
       const template = {
-        id: 'template-1',
-        name: 'Test',
-        project_type: 'web',
+        id: "template-1",
+        name: "Test",
+        project_type: "web",
       };
 
       await wrapper.vm.handleTemplateSelect(template);
 
       const callArgs = mockRouter.push.mock.calls[0][0];
       const createData = JSON.parse(callArgs.query.createData);
-      expect(createData.userId).toBe('test-user-123');
+      expect(createData.userId).toBe("test-user-123");
     });
 
-    it('应该使用默认用户ID当没有当前用户时', async () => {
+    it("应该使用默认用户ID当没有当前用户时", async () => {
       wrapper = createWrapper();
       mockAuthStore.currentUser = null;
       const template = {
-        id: 'template-1',
-        name: 'Test',
-        project_type: 'web',
+        id: "template-1",
+        name: "Test",
+        project_type: "web",
       };
 
       await wrapper.vm.handleTemplateSelect(template);
 
       const callArgs = mockRouter.push.mock.calls[0][0];
       const createData = JSON.parse(callArgs.query.createData);
-      expect(createData.userId).toBe('default-user');
+      expect(createData.userId).toBe("default-user");
     });
   });
 
-  describe('导航', () => {
-    it('应该能返回项目列表', () => {
+  describe("导航", () => {
+    it("应该能返回项目列表", () => {
       wrapper = createWrapper();
 
       wrapper.vm.handleBack();
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/projects');
+      expect(mockRouter.push).toHaveBeenCalledWith("/projects");
     });
   });
 
-  describe('边界情况', () => {
-    it('应该处理没有项目类型的模板', async () => {
+  describe("边界情况", () => {
+    it("应该处理没有项目类型的模板", async () => {
       wrapper = createWrapper();
       const template = {
-        id: 'template-1',
-        name: 'No Type Template',
-        description: 'Test',
+        id: "template-1",
+        name: "No Type Template",
+        description: "Test",
       };
 
       await wrapper.vm.handleTemplateSelect(template);
 
       const callArgs = mockRouter.push.mock.calls[0][0];
       const createData = JSON.parse(callArgs.query.createData);
-      expect(createData.projectType).toBe('general');
+      expect(createData.projectType).toBe("general");
     });
 
-    it('应该处理已显示过推荐的情况', async () => {
+    it("应该处理已显示过推荐的情况", async () => {
+      // Set localStorage to 'true' so onMounted's checkTemplateRecommend is a no-op
+      localStorageMock.getItem.mockReturnValue("true");
       wrapper = createWrapper();
+
+      // Now manually set hasShownTemplateRecommend and call again
       wrapper.vm.hasShownTemplateRecommend = true;
+      localStorageMock.getItem.mockReturnValue(null);
 
       await wrapper.vm.checkTemplateRecommend();
       await new Promise((resolve) => setTimeout(resolve, 600));
@@ -547,13 +562,13 @@ describe('NewProjectPage', () => {
       expect(wrapper.vm.showTemplateRecommendModal).toBe(false);
     });
 
-    it('应该生成正确的userPrompt', async () => {
+    it("应该生成正确的userPrompt", async () => {
       wrapper = createWrapper();
       const template = {
-        id: 'template-1',
-        name: 'React App',
-        description: 'Modern React application',
-        project_type: 'web',
+        id: "template-1",
+        name: "React App",
+        description: "Modern React application",
+        project_type: "web",
       };
 
       await wrapper.vm.handleTemplateSelect(template);
@@ -561,34 +576,34 @@ describe('NewProjectPage', () => {
       const callArgs = mockRouter.push.mock.calls[0][0];
       const createData = JSON.parse(callArgs.query.createData);
       expect(createData.userPrompt).toBe(
-        '使用React App模板创建项目：Modern React application'
+        "使用React App模板创建项目：Modern React application",
       );
     });
 
-    it('应该生成正确的项目名称', async () => {
+    it("应该生成正确的项目名称", async () => {
       wrapper = createWrapper();
       const template = {
-        id: 'template-1',
-        name: 'Vue App',
-        project_type: 'web',
+        id: "template-1",
+        name: "Vue App",
+        project_type: "web",
       };
 
       await wrapper.vm.handleTemplateSelect(template);
 
       const callArgs = mockRouter.push.mock.calls[0][0];
       const createData = JSON.parse(callArgs.query.createData);
-      expect(createData.name).toBe('基于Vue App的新项目');
+      expect(createData.name).toBe("基于Vue App的新项目");
     });
   });
 
-  describe('创建数据验证', () => {
-    it('应该创建正确格式的创建数据', async () => {
+  describe("创建数据验证", () => {
+    it("应该创建正确格式的创建数据", async () => {
       wrapper = createWrapper();
       const template = {
-        id: 'template-1',
-        name: 'Full Template',
-        description: 'Complete template',
-        project_type: 'mobile',
+        id: "template-1",
+        name: "Full Template",
+        description: "Complete template",
+        project_type: "mobile",
       };
 
       await wrapper.vm.handleTemplateSelect(template);
@@ -596,25 +611,25 @@ describe('NewProjectPage', () => {
       const callArgs = mockRouter.push.mock.calls[0][0];
       const createData = JSON.parse(callArgs.query.createData);
 
-      expect(createData).toHaveProperty('userPrompt');
-      expect(createData).toHaveProperty('name');
-      expect(createData).toHaveProperty('projectType');
-      expect(createData).toHaveProperty('userId');
-      expect(createData).toHaveProperty('templateId');
+      expect(createData).toHaveProperty("userPrompt");
+      expect(createData).toHaveProperty("name");
+      expect(createData).toHaveProperty("projectType");
+      expect(createData).toHaveProperty("userId");
+      expect(createData).toHaveProperty("templateId");
     });
 
-    it('应该正确序列化和传递创建数据', async () => {
+    it("应该正确序列化和传递创建数据", async () => {
       wrapper = createWrapper();
       const createData = {
-        name: 'Complex Project',
-        userPrompt: 'Create something complex',
-        projectType: 'enterprise',
+        name: "Complex Project",
+        userPrompt: "Create something complex",
+        projectType: "enterprise",
       };
 
       await wrapper.vm.startCreateProcess(createData);
 
       expect(mockRouter.push).toHaveBeenCalledWith({
-        path: '/projects/ai-creating',
+        path: "/projects/ai-creating",
         query: {
           createData: JSON.stringify(createData),
         },

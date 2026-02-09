@@ -79,7 +79,9 @@ const mockMessage = vi.hoisted(() => ({
 
 const mockModal = vi.hoisted(() => ({
   confirm: vi.fn((opts) => {
-    if (opts?.onOk) Promise.resolve().then(() => opts.onOk());
+    if (opts?.onOk) {
+      Promise.resolve().then(() => opts.onOk());
+    }
     return { destroy: vi.fn() };
   }),
   info: vi.fn(),
@@ -93,21 +95,23 @@ vi.mock("ant-design-vue", () => ({
   Modal: mockModal,
 }));
 
-// Mock logger object (used directly in tests)
-const mockLogger = {
+// Mock logger object (hoisted, used directly in tests)
+const mockLogger = vi.hoisted(() => ({
   error: vi.fn(),
+  warn: vi.fn(),
   info: vi.fn(),
-};
+}));
 
-// Mock XLSX object (used directly in tests)
-const mockXLSX = {
-  utils: {
-    json_to_sheet: vi.fn(() => ({})),
-    book_new: vi.fn(() => ({})),
-    book_append_sheet: vi.fn(),
+// Mock ExcelJS (used by the component) - hoisted for vi.mock factory access
+const mockWorksheet = vi.hoisted(() => ({
+  addRow: vi.fn(),
+}));
+const mockWorkbook = vi.hoisted(() => ({
+  addWorksheet: vi.fn(() => mockWorksheet),
+  xlsx: {
+    writeBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
   },
-  writeFile: vi.fn(),
-};
+}));
 
 // Mock vue-router
 const mockRouter = {
@@ -118,27 +122,22 @@ vi.mock("vue-router", () => ({
   useRouter: () => mockRouter,
 }));
 
-// Mock xlsx
-vi.mock("xlsx", () => ({
+// Mock exceljs
+vi.mock("exceljs", () => ({
   default: {
-    utils: {
-      json_to_sheet: vi.fn(() => ({})),
-      book_new: vi.fn(() => ({})),
-      book_append_sheet: vi.fn(),
+    Workbook: class {
+      constructor() {
+        this.addWorksheet = mockWorkbook.addWorksheet;
+        this.xlsx = mockWorkbook.xlsx;
+      }
     },
-    writeFile: vi.fn(),
   },
 }));
 
 // Mock logger
 vi.mock("@/utils/logger", () => ({
-  logger: {
-    error: vi.fn(),
-    info: vi.fn(),
-  },
-  createLogger: vi.fn(() => ({
-    error: vi.fn(),
-  })),
+  logger: mockLogger,
+  createLogger: vi.fn(() => mockLogger),
 }));
 
 describe("ProjectManagementPage.vue", () => {
@@ -182,6 +181,11 @@ describe("ProjectManagementPage.vue", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reset pagination state that may be mutated by tests
+    mockProjectStore.pagination.current = 1;
+    mockProjectStore.pagination.pageSize = 10;
+    mockProjectStore.paginatedProjects = [];
+    mockProjectStore.filteredProjects = [];
   });
 
   afterEach(() => {
@@ -409,7 +413,6 @@ describe("ProjectManagementPage.vue", () => {
       };
 
       const message = mockMessage;
-      const logger = mockLogger;
 
       wrapper.vm.formData.name = "新项目";
       wrapper.vm.formData.project_type = "web";
@@ -417,7 +420,7 @@ describe("ProjectManagementPage.vue", () => {
 
       await wrapper.vm.handleModalOk();
 
-      expect(logger.error).toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalled();
       expect(message.error).toHaveBeenCalledWith(
         expect.stringContaining("创建失败"),
       );
@@ -513,11 +516,10 @@ describe("ProjectManagementPage.vue", () => {
 
       wrapper = createWrapper();
       const message = mockMessage;
-      const logger = mockLogger;
 
       await wrapper.vm.handleDelete("proj-1");
 
-      expect(logger.error).toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalled();
       expect(message.error).toHaveBeenCalledWith(
         expect.stringContaining("删除失败"),
       );
@@ -526,12 +528,44 @@ describe("ProjectManagementPage.vue", () => {
     it("应该在删除后调整分页", async () => {
       mockProjectStore.deleteProject.mockResolvedValue();
       mockProjectStore.pagination.current = 2;
-
-      wrapper = createWrapper();
+      // Set paginatedProjects to empty BEFORE mounting so computed sees empty
       mockProjectStore.paginatedProjects = [];
+      mockProjectStore.filteredProjects = mockProjectStore.projects;
+
+      wrapper = mount(ProjectManagementPage, {
+        global: {
+          stubs: {
+            "a-page-header": {
+              template: '<div><slot /><slot name="extra" /></div>',
+            },
+            "a-button": { template: "<button><slot /></button>" },
+            "a-row": { template: "<div><slot /></div>" },
+            "a-col": { template: "<div><slot /></div>" },
+            "a-card": {
+              template:
+                '<div><slot /><slot name="title" /><slot name="extra" /></div>',
+            },
+            "a-statistic": { template: "<div />" },
+            "a-input-search": { template: "<input />" },
+            "a-select": { template: "<select><slot /></select>" },
+            "a-select-option": { template: "<option />" },
+            "a-table": { template: "<table />" },
+            "a-space": { template: "<div><slot /></div>" },
+            "a-tag": { template: "<span />" },
+            "a-popconfirm": { template: "<div><slot /></div>" },
+            "a-modal": { template: "<div><slot /></div>" },
+            "a-form": { template: "<div><slot /></div>" },
+            "a-form-item": { template: "<div><slot /></div>" },
+            "a-input": { template: "<input />" },
+            "a-textarea": { template: "<textarea />" },
+            "a-input-number": { template: '<input type="number" />' },
+          },
+        },
+      });
 
       await wrapper.vm.handleDelete("proj-1");
 
+      // Component checks if paginatedData is empty and current > 1, then goes to current - 1
       expect(mockProjectStore.setPagination).toHaveBeenCalledWith(1);
     });
   });
@@ -568,16 +602,22 @@ describe("ProjectManagementPage.vue", () => {
     it("应该能批量删除", async () => {
       mockProjectStore.deleteProject.mockResolvedValue();
 
+      // Override confirm to not auto-call onOk
+      let capturedOpts;
+      mockModal.confirm.mockImplementation((opts) => {
+        capturedOpts = opts;
+        return { destroy: vi.fn() };
+      });
+
       wrapper = createWrapper();
       wrapper.vm.selectedRowKeys = ["proj-1", "proj-2"];
 
-      const Modal = mockModal; const message = mockMessage;
+      const message = mockMessage;
 
       wrapper.vm.handleBatchDelete();
 
       // 执行确认回调
-      const confirmCall = Modal.confirm.mock.calls[0][0];
-      await confirmCall.onOk();
+      await capturedOpts.onOk();
 
       expect(mockProjectStore.deleteProject).toHaveBeenCalledTimes(2);
       expect(message.success).toHaveBeenCalledWith("成功删除 2 个项目");
@@ -587,18 +627,23 @@ describe("ProjectManagementPage.vue", () => {
     it("应该处理批量删除失败", async () => {
       mockProjectStore.deleteProject.mockRejectedValue(new Error("删除失败"));
 
+      // Override confirm to not auto-call onOk
+      let capturedOpts;
+      mockModal.confirm.mockImplementation((opts) => {
+        capturedOpts = opts;
+        return { destroy: vi.fn() };
+      });
+
       wrapper = createWrapper();
       wrapper.vm.selectedRowKeys = ["proj-1"];
 
-      const Modal = mockModal; const message = mockMessage;
-      const logger = mockLogger;
+      const message = mockMessage;
 
       wrapper.vm.handleBatchDelete();
 
-      const confirmCall = Modal.confirm.mock.calls[0][0];
-      await confirmCall.onOk();
+      await capturedOpts.onOk();
 
-      expect(logger.error).toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalled();
       expect(message.error).toHaveBeenCalledWith(
         expect.stringContaining("批量删除失败"),
       );
@@ -619,29 +664,33 @@ describe("ProjectManagementPage.vue", () => {
 
   // 导出Excel测试
   describe("Export Excel", () => {
-    it("应该能导出Excel", () => {
+    it("应该能导出Excel", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      const XLSX = mockXLSX;
 
-      wrapper.vm.handleExport();
+      // Mock URL.createObjectURL and document.createElement
+      global.URL.createObjectURL = vi.fn(() => "blob:test");
+      global.URL.revokeObjectURL = vi.fn();
+      const mockAnchor = { href: "", download: "", click: vi.fn() };
+      vi.spyOn(document, "createElement").mockReturnValue(mockAnchor);
 
-      expect(XLSX.utils.json_to_sheet).toHaveBeenCalled();
-      expect(XLSX.writeFile).toHaveBeenCalled();
+      await wrapper.vm.handleExport();
+
+      expect(mockWorkbook.addWorksheet).toHaveBeenCalledWith("项目列表");
       expect(message.success).toHaveBeenCalledWith("导出成功");
     });
 
-    it("应该处理导出失败", () => {
+    it("应该处理导出失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       const logger = mockLogger;
-      const XLSX = mockXLSX;
 
-      XLSX.utils.json_to_sheet.mockImplementation(() => {
-        throw new Error("导出失败");
-      });
+      // Mock writeBuffer to throw error
+      mockWorkbook.xlsx.writeBuffer.mockRejectedValueOnce(
+        new Error("导出失败"),
+      );
 
-      wrapper.vm.handleExport();
+      await wrapper.vm.handleExport();
 
       expect(logger.error).toHaveBeenCalled();
       expect(message.error).toHaveBeenCalledWith(
@@ -876,9 +925,40 @@ describe("ProjectManagementPage.vue", () => {
     });
 
     it("应该处理分页数据为空", () => {
+      // Set paginatedProjects to empty BEFORE mounting so computed sees empty on first access
       mockProjectStore.paginatedProjects = [];
+      mockProjectStore.filteredProjects = [];
 
-      wrapper = createWrapper();
+      wrapper = mount(ProjectManagementPage, {
+        global: {
+          stubs: {
+            "a-page-header": {
+              template: '<div><slot /><slot name="extra" /></div>',
+            },
+            "a-button": { template: "<button><slot /></button>" },
+            "a-row": { template: "<div><slot /></div>" },
+            "a-col": { template: "<div><slot /></div>" },
+            "a-card": {
+              template:
+                '<div><slot /><slot name="title" /><slot name="extra" /></div>',
+            },
+            "a-statistic": { template: "<div />" },
+            "a-input-search": { template: "<input />" },
+            "a-select": { template: "<select><slot /></select>" },
+            "a-select-option": { template: "<option />" },
+            "a-table": { template: "<table />" },
+            "a-space": { template: "<div><slot /></div>" },
+            "a-tag": { template: "<span />" },
+            "a-popconfirm": { template: "<div><slot /></div>" },
+            "a-modal": { template: "<div><slot /></div>" },
+            "a-form": { template: "<div><slot /></div>" },
+            "a-form-item": { template: "<div><slot /></div>" },
+            "a-input": { template: "<input />" },
+            "a-textarea": { template: "<textarea />" },
+            "a-input-number": { template: '<input type="number" />' },
+          },
+        },
+      });
 
       expect(wrapper.vm.paginatedData).toEqual([]);
     });
