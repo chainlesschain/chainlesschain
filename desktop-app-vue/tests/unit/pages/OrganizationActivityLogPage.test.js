@@ -28,17 +28,14 @@ vi.mock("vue-router", () => ({
 
 // Mock dayjs
 vi.mock("dayjs", () => {
-  const actual = vi.importActual("dayjs");
-  return {
-    default: vi.fn((timestamp) => {
-      const dayjsInstance = actual.default(timestamp);
-      dayjsInstance.fromNow = vi.fn(() => "2小时前");
-      dayjsInstance.format = vi.fn((format) => "2024-01-01 12:00:00");
-      return dayjsInstance;
-    }),
-    extend: vi.fn(),
-    locale: vi.fn(),
-  };
+  const mockDayjs = vi.fn((timestamp) => ({
+    fromNow: vi.fn(() => "2小时前"),
+    format: vi.fn(() => "2024-01-01 12:00:00"),
+    valueOf: vi.fn(() => timestamp || Date.now()),
+  }));
+  mockDayjs.extend = vi.fn();
+  mockDayjs.locale = vi.fn();
+  return { default: mockDayjs };
 });
 
 // Mock activities data
