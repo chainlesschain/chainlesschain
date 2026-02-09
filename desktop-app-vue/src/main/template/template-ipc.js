@@ -258,10 +258,18 @@ function registerTemplateIPC({
       }
 
       const renderedPrompt = templateManager.renderPrompt(template, userVariables);
+      if (!renderedPrompt) {
+        logger.warn('[Template] 模板渲染结果为空:', { templateId, templateName: template.display_name });
+      }
       return { success: true, renderedPrompt };
     } catch (error) {
-      logger.error('[Template] 渲染模板提示词失败:', error);
-      return { success: false, error: error.message };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('[Template] 渲染模板提示词失败:', {
+        templateId,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      return { success: false, error: errorMessage || '渲染模板时发生未知错误' };
     }
   });
 

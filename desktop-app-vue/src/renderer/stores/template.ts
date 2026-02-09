@@ -315,11 +315,14 @@ export const useTemplateStore = defineStore('template', () => {
 
       if (result.success && result.renderedPrompt) {
         return result.renderedPrompt;
+      } else if (result.success && !result.renderedPrompt) {
+        throw new Error('渲染成功但返回结果为空');
       } else {
-        throw new Error(result.error || '渲染失败');
+        throw new Error(result.error || '渲染失败，未知错误');
       }
     } catch (error) {
-      logger.error('[TemplateStore] 渲染 prompt 异常:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('[TemplateStore] 渲染 prompt 异常:', errorMessage);
       throw error;
     }
   }
