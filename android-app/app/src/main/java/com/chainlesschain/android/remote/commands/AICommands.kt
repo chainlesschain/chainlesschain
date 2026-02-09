@@ -1,7 +1,9 @@
 package com.chainlesschain.android.remote.commands
 
 import com.chainlesschain.android.remote.client.RemoteCommandClient
+import com.google.gson.Gson
 import kotlinx.serialization.Serializable
+import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -14,6 +16,8 @@ import javax.inject.Singleton
 class AICommands @Inject constructor(
     private val client: RemoteCommandClient
 ) {
+    private val gson = Gson()
+
     /**
      * AI 对话
      */
@@ -33,7 +37,27 @@ class AICommands @Inject constructor(
         systemPrompt?.let { params["systemPrompt"] = it }
         temperature?.let { params["temperature"] = it }
 
-        return client.invoke("ai.chat", params)
+        // 获取原始结果（可能是 Map 类型）
+        val rawResult = client.invoke<Any>("ai.chat", params)
+
+        return rawResult.mapCatching { result ->
+            Timber.d("[AICommands] chat 原始结果类型: ${result?.javaClass?.simpleName}")
+            Timber.d("[AICommands] chat 原始结果: $result")
+
+            when (result) {
+                is ChatResponse -> result
+                is Map<*, *> -> {
+                    // 将 Map 转换为 ChatResponse
+                    val jsonStr = gson.toJson(result)
+                    Timber.d("[AICommands] 转换后的 JSON: $jsonStr")
+                    gson.fromJson(jsonStr, ChatResponse::class.java)
+                }
+                else -> {
+                    val jsonStr = gson.toJson(result)
+                    gson.fromJson(jsonStr, ChatResponse::class.java)
+                }
+            }
+        }
     }
 
     /**

@@ -75,6 +75,13 @@ class WebRTCClient @Inject constructor(
                 .setOptions(options)
                 .createPeerConnectionFactory()
 
+            // 设置信令服务器转发消息的回调
+            signalClient.setOnForwardedMessageReceived { message ->
+                Timber.d("Received forwarded message via signaling: ${message.take(100)}...")
+                onMessageReceived?.invoke(message)
+                _messages.tryEmit(message)
+            }
+
             Timber.d("WebRTC init success")
         } catch (e: Exception) {
             Timber.e(e, "WebRTC init failed")
@@ -84,51 +91,74 @@ class WebRTCClient @Inject constructor(
 
     suspend fun connect(pcPeerId: String, localPeerId: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            Timber.d("Connecting to PC: $pcPeerId (local: $localPeerId)")
+            Timber.i("========================================")
+            Timber.i("Starting P2P connection to PC: $pcPeerId")
+            Timber.i("Local peer ID: $localPeerId")
+            Timber.i("========================================")
 
             // 1. Connect to signaling server
+            Timber.i("[Step 1/5] Connecting to signaling server...")
             val connectResult = signalClient.connect()
             if (connectResult.isFailure) {
+                val error = connectResult.exceptionOrNull() ?: Exception("Signal server connect failed")
+                Timber.e("[Step 1/5] FAILED: ${error.message}")
                 _connectionState.value = P2PConnectionState.FAILED
-                return@withContext Result.failure(
-                    connectResult.exceptionOrNull() ?: Exception("Signal server connect failed")
-                )
+                return@withContext Result.failure(Exception("信令服务器连接失败: ${error.message}"))
             }
             _connectionState.value = P2PConnectionState.SIGNALING_CONNECTED
+            Timber.i("[Step 1/5] ✓ Signaling server connected")
 
             // 2. Register with signaling server
+            Timber.i("[Step 2/5] Registering as $localPeerId...")
             signalClient.register(localPeerId, mapOf(
                 "name" to android.os.Build.MODEL,
                 "platform" to "android",
                 "version" to android.os.Build.VERSION.RELEASE
             ))
             _connectionState.value = P2PConnectionState.REGISTERED
-            Timber.d("Registered as $localPeerId")
+            Timber.i("[Step 2/5] ✓ Registered successfully")
 
             // 3. Create PeerConnection and DataChannel
+            Timber.i("[Step 3/5] Creating PeerConnection and DataChannel...")
             createPeerConnection(pcPeerId)
             createDataChannel()
             startRemoteIceListener()
+            Timber.i("[Step 3/5] ✓ PeerConnection and DataChannel created")
 
             // 4. Create and send offer
+            Timber.i("[Step 4/5] Creating and sending offer to $pcPeerId...")
             _connectionState.value = P2PConnectionState.CREATING_OFFER
             val offer = createOffer()
             signalClient.sendOffer(pcPeerId, offer)
+            Timber.i("[Step 4/5] ✓ Offer sent")
 
             // 5. Wait for answer
+            Timber.i("[Step 5/5] Waiting for answer from PC (15s timeout)...")
             _connectionState.value = P2PConnectionState.WAITING_ANSWER
             val answer = signalClient.waitForAnswer(pcPeerId, timeout = 15000)
+            Timber.i("[Step 5/5] ✓ Answer received, setting remote description...")
             setRemoteDescription(answer)
             isRemoteDescriptionSet = true
             drainPendingRemoteCandidates()
 
             _connectionState.value = P2PConnectionState.ICE_CONNECTING
-            Timber.d("Connected: $pcPeerId")
+            Timber.i("========================================")
+            Timber.i("✓ P2P connection initiated, ICE negotiation in progress")
+            Timber.i("========================================")
             Result.success(Unit)
         } catch (e: Exception) {
-            Timber.e(e, "Connect failed")
+            Timber.e("========================================")
+            Timber.e("P2P Connection FAILED: ${e.message}")
+            Timber.e(e, "Stack trace:")
+            Timber.e("========================================")
             _connectionState.value = P2PConnectionState.FAILED
-            Result.failure(e)
+            // Provide more descriptive error messages
+            val errorMessage = when {
+                e.message?.contains("timeout", ignoreCase = true) == true -> "PC端未响应，请确保PC应用已启动并连接到同一网络"
+                e.message?.contains("connect", ignoreCase = true) == true -> "无法连接到信令服务器，请检查网络设置"
+                else -> "连接失败: ${e.message}"
+            }
+            Result.failure(Exception(errorMessage, e))
         }
     }
 
@@ -400,6 +430,7 @@ interface SignalClient {
     suspend fun waitForAnswer(peerId: String, timeout: Long): org.webrtc.SessionDescription
     suspend fun receiveIceCandidate(): org.webrtc.IceCandidate
     fun disconnect()
+    fun setOnForwardedMessageReceived(callback: ((String) -> Unit)?)
 }
 
 class WebSocketSignalClient @Inject constructor(
@@ -414,6 +445,13 @@ class WebSocketSignalClient @Inject constructor(
     private var currentPeerId: String? = null
     private var isConnected = false
     private var reconnectAttempts = 0
+
+    // 用于转发来自信令服务器的 P2P 消息
+    private var onForwardedMessageCallback: ((String) -> Unit)? = null
+
+    override fun setOnForwardedMessageReceived(callback: ((String) -> Unit)?) {
+        onForwardedMessageCallback = callback
+    }
 
     override suspend fun connect(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
@@ -485,7 +523,12 @@ class WebSocketSignalClient @Inject constructor(
 
     override suspend fun register(peerId: String, deviceInfo: Map<String, String>) {
         currentPeerId = peerId
-        Timber.d("Registering as $peerId")
+        Timber.i("[SignalClient] ========================================")
+        Timber.i("[SignalClient] 注册到信令服务器")
+        Timber.i("[SignalClient] peerId: $peerId")
+        Timber.i("[SignalClient] isConnected: $isConnected")
+        Timber.i("[SignalClient] webSocket: ${if (webSocket != null) "存在" else "null"}")
+        Timber.i("[SignalClient] ========================================")
 
         val json = org.json.JSONObject().apply {
             put("type", "register")
@@ -497,6 +540,7 @@ class WebSocketSignalClient @Inject constructor(
         }
 
         sendWebSocketMessage(json.toString())
+        Timber.i("[SignalClient] ✓ register 消息已发送")
     }
 
     private fun handleSignalingMessage(message: String) {
@@ -583,6 +627,14 @@ class WebSocketSignalClient @Inject constructor(
                     Timber.w("Peer offline: $offlinePeerId (attempted: $messageType)")
                 }
 
+                "offer-pending" -> {
+                    val pendingPeerId = json.optString("peerId")
+                    val pendingMessage = json.optString("message", "PC is starting up...")
+                    Timber.i("Offer pending for $pendingPeerId: $pendingMessage")
+                    // The offer was queued, PC will process it when MobileBridge connects
+                    // We should wait for the answer instead of treating it as an error
+                }
+
                 "peer-status-response" -> {
                     val statusPeerId = json.optString("peerId")
                     val status = json.optString("status")
@@ -591,6 +643,23 @@ class WebSocketSignalClient @Inject constructor(
 
                 "pong" -> {
                     Timber.d("Pong received")
+                }
+
+                "message" -> {
+                    // PC端通过信令服务器转发的消息（当DataChannel未就绪时的回退机制）
+                    val payload = json.opt("payload")
+                    Timber.d("Message received via signaling server: ${payload.toString().take(100)}...")
+
+                    if (payload != null) {
+                        // 将消息转发到P2P消息处理流程
+                        val messageStr = when (payload) {
+                            is org.json.JSONObject -> payload.toString()
+                            is String -> payload
+                            else -> payload.toString()
+                        }
+                        Timber.d("Forwarding message to WebRTCClient: ${messageStr.take(100)}...")
+                        onForwardedMessageCallback?.invoke(messageStr)
+                    }
                 }
 
                 "error" -> {
@@ -637,7 +706,12 @@ class WebSocketSignalClient @Inject constructor(
     }
 
     override suspend fun sendOffer(peerId: String, offer: org.webrtc.SessionDescription) {
-        Timber.d("Send offer to $peerId")
+        Timber.i("[SignalClient] ========================================")
+        Timber.i("[SignalClient] 发送 Offer")
+        Timber.i("[SignalClient] 目标 peerId: $peerId")
+        Timber.i("[SignalClient] SDP 长度: ${offer.description.length}")
+        Timber.i("[SignalClient] ========================================")
+
         currentPeerId = peerId
 
         val json = org.json.JSONObject().apply {
@@ -650,6 +724,7 @@ class WebSocketSignalClient @Inject constructor(
         }
 
         sendWebSocketMessage(json.toString())
+        Timber.i("[SignalClient] ✓ Offer 消息已发送到 $peerId")
     }
 
     override suspend fun sendIceCandidate(peerId: String, candidate: org.webrtc.IceCandidate) {
@@ -680,16 +755,20 @@ class WebSocketSignalClient @Inject constructor(
     }
 
     private fun sendWebSocketMessage(message: String) {
+        Timber.i("[SignalClient] sendWebSocketMessage 调用")
+        Timber.i("[SignalClient]   isConnected: $isConnected")
+        Timber.i("[SignalClient]   webSocket: ${if (webSocket != null) "存在" else "null"}")
+
         if (!isConnected) {
-            Timber.e("WebSocket not connected, cannot send message")
+            Timber.e("[SignalClient] ✗ WebSocket 未连接，无法发送消息")
             return
         }
 
         val sent = webSocket?.send(message) ?: false
         if (sent) {
-            Timber.d("Message sent: ${message.take(100)}...")
+            Timber.i("[SignalClient] ✓ 消息已发送: ${message.take(150)}...")
         } else {
-            Timber.e("Send message failed")
+            Timber.e("[SignalClient] ✗ 发送消息失败 (send() 返回 false)")
         }
     }
 

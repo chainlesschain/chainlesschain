@@ -98,10 +98,11 @@ class MobileBridge extends EventEmitter {
         this.signalingSocket = new WebSocket(this.options.signalingUrl);
 
         this.signalingSocket.on("open", () => {
-          logger.info("[MobileBridge] 信令服务器连接成功");
+          logger.info("[MobileBridge] ✓ 信令服务器 WebSocket 连接成功");
           this.isConnected = true;
 
           // 注册PC端身份
+          logger.info("[MobileBridge] 开始注册PC端身份...");
           this.register();
 
           resolve();
@@ -139,15 +140,48 @@ class MobileBridge extends EventEmitter {
 
   /**
    * 注册PC端身份到信令服务器
+   * 使用与 signaling-server registerLocal 相同的 deviceId，
+   * 这样 Android 发送 offer 到该 ID 时可以正确转发到 MobileBridge
    */
   register() {
     if (!this.isConnected || !this.signalingSocket) {
+      logger.warn("[MobileBridge] register() 调用但未连接，跳过");
       return;
     }
 
-    const peerId = this.p2pManager.peerId
-      ? this.p2pManager.peerId.toString()
-      : "unknown";
+    logger.info("[MobileBridge] ========================================");
+    logger.info("[MobileBridge] 开始注册到信令服务器");
+    logger.info("[MobileBridge] p2pManager存在: " + !!this.p2pManager);
+    logger.info(
+      "[MobileBridge] deviceManager存在: " + !!this.p2pManager?.deviceManager,
+    );
+
+    // 优先使用 deviceManager 中的 deviceId（与 signaling-server 的 registerLocal 保持一致）
+    let peerId = "unknown";
+    if (this.p2pManager.deviceManager) {
+      const currentDevice = this.p2pManager.deviceManager.getCurrentDevice();
+      logger.info(
+        "[MobileBridge] currentDevice: " + JSON.stringify(currentDevice || {}),
+      );
+      if (currentDevice && currentDevice.deviceId) {
+        peerId = currentDevice.deviceId;
+        logger.info("[MobileBridge] ✓ 使用 deviceManager deviceId:", peerId);
+      } else {
+        logger.warn("[MobileBridge] ✗ deviceManager 存在但无有效 deviceId");
+      }
+    }
+    // 如果没有 deviceManager，回退到 p2pManager.peerId
+    if (peerId === "unknown" && this.p2pManager.peerId) {
+      peerId = this.p2pManager.peerId.toString();
+      logger.warn("[MobileBridge] ⚠ 回退使用 p2pManager.peerId:", peerId);
+    }
+
+    if (peerId === "unknown") {
+      logger.error("[MobileBridge] ✗ 无法获取有效的 peerId！");
+    }
+
+    logger.info("[MobileBridge] 最终注册 peerId:", peerId);
+    logger.info("[MobileBridge] ========================================");
 
     this.send({
       type: "register",
@@ -216,17 +250,29 @@ class MobileBridge extends EventEmitter {
   async handleOffer(message) {
     const { from, offer, iceRestart } = message;
 
-    logger.info(
-      "[MobileBridge] 收到移动端Offer:",
-      from,
-      iceRestart ? "(ICE重启)" : "",
-    );
+    logger.info("========================================");
+    logger.info("[MobileBridge] 收到移动端Offer");
+    logger.info("[MobileBridge] 发送方: " + from);
+    logger.info("[MobileBridge] ICE重启: " + (iceRestart ? "是" : "否"));
+    logger.info("[MobileBridge] Offer类型: " + (offer?.type || "未知"));
+    logger.info("[MobileBridge] SDP长度: " + (offer?.sdp?.length || 0));
+    // Base64 encode SDP for safe logging
+    const sdpB64 = Buffer.from(offer?.sdp || "").toString("base64");
+    logger.info("[MobileBridge] SDP内容(Base64):\n" + sdpB64);
+    // Also show first 200 chars escaped
+    const sdpEscaped = JSON.stringify(offer?.sdp || "").substring(0, 500);
+    logger.info("[MobileBridge] SDP前500字符(JSON转义): " + sdpEscaped);
+    logger.info("========================================");
 
     // 检查wrtc是否可用
     if (!wrtc) {
+      logger.error("========================================");
+      logger.error("[MobileBridge] wrtc (werift) 不可用!");
+      logger.error("[MobileBridge] 无法处理WebRTC连接");
       logger.error(
-        "[MobileBridge] wrtc not available, cannot handle WebRTC offer",
+        "[MobileBridge] loadError: " + (wrtcCompat.loadError?.message || "无"),
       );
+      logger.error("========================================");
       this.send({
         type: "error",
         to: from,
@@ -234,6 +280,7 @@ class MobileBridge extends EventEmitter {
       });
       return;
     }
+    logger.info("[MobileBridge] ✓ werift WebRTC可用");
 
     try {
       // 检查连接池限制
@@ -315,23 +362,50 @@ class MobileBridge extends EventEmitter {
       // 监听数据通道
       pc.ondatachannel = (event) => {
         const channel = event.channel;
+        logger.info("[MobileBridge] ========================================");
         logger.info("[MobileBridge] 数据通道已建立:", from);
+        logger.info("[MobileBridge] 通道标签:", channel.label);
+        logger.info("[MobileBridge] 通道状态:", channel.readyState);
+        logger.info("[MobileBridge] ========================================");
 
         this.dataChannels.set(from, channel);
 
         channel.onopen = () => {
-          logger.info("[MobileBridge] 数据通道已打开:", from);
+          logger.info(
+            "[MobileBridge] 数据通道已打开:",
+            from,
+            "状态:",
+            channel.readyState,
+          );
         };
 
         channel.onmessage = async (event) => {
+          logger.info(
+            "[MobileBridge] ========================================",
+          );
+          logger.info("[MobileBridge] 收到DataChannel消息:", from);
+          const msgData =
+            typeof event.data === "string"
+              ? event.data
+              : event.data instanceof ArrayBuffer
+                ? new TextDecoder().decode(event.data)
+                : event.data?.toString
+                  ? event.data.toString()
+                  : JSON.stringify(event.data);
+          logger.info("[MobileBridge] 消息内容:", msgData.slice(0, 200));
+          logger.info(
+            "[MobileBridge] ========================================",
+          );
           try {
-            await this.bridgeToLibp2p(from, event.data);
+            await this.bridgeToLibp2p(from, msgData);
           } catch (error) {
+            logger.error("[MobileBridge] 桥接消息失败:", error);
             this.handleError(from, "桥接消息失败", error);
           }
         };
 
         channel.onerror = (error) => {
+          logger.error("[MobileBridge] DataChannel错误:", from, error);
           this.handleError(from, "DataChannel错误", error);
         };
 
@@ -339,28 +413,73 @@ class MobileBridge extends EventEmitter {
           logger.info("[MobileBridge] 数据通道已关闭:", from);
           this.dataChannels.delete(from);
         };
+
+        // 如果通道已经打开，立即触发
+        if (channel.readyState === "open") {
+          logger.info("[MobileBridge] 通道已经处于打开状态:", from);
+        }
       };
 
       // 设置远程描述（Offer）
-      await pc.setRemoteDescription(new wrtc.RTCSessionDescription(offer));
+      logger.info("[MobileBridge] 准备设置远程描述:");
+      logger.info("[MobileBridge]   offer对象类型: " + typeof offer);
+      logger.info("[MobileBridge]   offer.type: " + offer?.type);
+      logger.info("[MobileBridge]   offer.sdp类型: " + typeof offer?.sdp);
+      logger.info(
+        "[MobileBridge]   offer.sdp长度: " + (offer?.sdp?.length || 0),
+      );
+      logger.info(
+        "[MobileBridge]   offer对象结构: " +
+          JSON.stringify(Object.keys(offer || {})),
+      );
+
+      const sdpToUse = {
+        type: offer?.type || "offer",
+        sdp: offer?.sdp || "",
+      };
+      logger.info("[MobileBridge]   规范化后的SDP长度: " + sdpToUse.sdp.length);
+      logger.info("[MobileBridge]   sdpToUse.type: " + sdpToUse.type);
+      logger.info("[MobileBridge]   sdpToUse.sdp存在: " + !!sdpToUse.sdp);
+
+      // Pass plain object directly - werift accepts RTCSessionDescriptionInit
+      // Don't use RTCSessionDescription wrapper as werift has non-standard constructor
+      await pc.setRemoteDescription(sdpToUse);
 
       // 创建Answer
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
       // 发送Answer到移动端
+      // werift's localDescription doesn't have toJSON(), so we manually construct the object
+      const localDesc = pc.localDescription;
+      const answerData = {
+        type: localDesc.type,
+        sdp: localDesc.sdp,
+      };
+      logger.info("[MobileBridge] 准备发送Answer:");
+      logger.info("[MobileBridge]   类型: " + answerData.type);
+      logger.info("[MobileBridge]   SDP长度: " + (answerData.sdp?.length || 0));
+
       this.send({
         type: "answer",
         to: from,
-        answer: pc.localDescription.toJSON(),
+        answer: answerData,
       });
 
       // 保存PeerConnection
       this.peerConnections.set(from, pc);
       this.stats.totalConnections++;
 
-      logger.info("[MobileBridge] Answer已发送:", from);
+      logger.info("========================================");
+      logger.info("[MobileBridge] ✓ Answer已发送到: " + from);
+      logger.info("[MobileBridge] 等待ICE连接建立...");
+      logger.info("========================================");
     } catch (error) {
+      logger.error("========================================");
+      logger.error("[MobileBridge] 处理Offer失败!");
+      logger.error("[MobileBridge] 错误: " + error.message);
+      logger.error("[MobileBridge] 堆栈: " + error.stack);
+      logger.error("========================================");
       this.handleError(from, "处理Offer失败", error);
     }
   }
@@ -625,10 +744,33 @@ class MobileBridge extends EventEmitter {
 
   /**
    * 处理离线消息
+   * 包括在 MobileBridge 连接前入队的 offer 等消息
    */
-  handleOfflineMessage(message) {
+  async handleOfflineMessage(message) {
     const { originalMessage, storedAt, deliveredAt } = message;
-    logger.info("[MobileBridge] 收到离线消息:", originalMessage);
+    logger.info(
+      "[MobileBridge] 收到离线消息:",
+      JSON.stringify(originalMessage).slice(0, 200),
+    );
+
+    // 检查原始消息类型，如果是 offer，需要特殊处理
+    if (originalMessage && originalMessage.type === "offer") {
+      logger.info("[MobileBridge] 离线消息是 Offer，处理中...");
+      await this.handleOffer(originalMessage);
+      return;
+    }
+
+    if (originalMessage && originalMessage.type === "ice-candidate") {
+      logger.info("[MobileBridge] 离线消息是 ICE候选，处理中...");
+      await this.handleICECandidate(originalMessage);
+      return;
+    }
+
+    if (originalMessage && originalMessage.type === "ice-candidates") {
+      logger.info("[MobileBridge] 离线消息是批量ICE候选，处理中...");
+      await this.handleICECandidates(originalMessage);
+      return;
+    }
 
     // 转发到libp2p层
     this.emit("offline-message", { originalMessage, storedAt, deliveredAt });
@@ -651,8 +793,20 @@ class MobileBridge extends EventEmitter {
    */
   async bridgeToLibp2p(mobilePeerId, data) {
     try {
+      logger.info("[MobileBridge] ========================================");
+      logger.info("[MobileBridge] bridgeToLibp2p 被调用");
+      logger.info("[MobileBridge] mobilePeerId:", mobilePeerId);
+      logger.info("[MobileBridge] data类型:", typeof data);
+      logger.info("[MobileBridge] data长度:", data?.length || 0);
+
       // 解析消息
       const message = typeof data === "string" ? JSON.parse(data) : data;
+
+      logger.info("[MobileBridge] 解析后的消息类型:", message?.type);
+      logger.info(
+        "[MobileBridge] 解析后的消息payload存在:",
+        !!message?.payload,
+      );
 
       this.stats.messagesForwarded++;
       this.stats.bytesTransferred += JSON.stringify(message).length;
@@ -663,9 +817,14 @@ class MobileBridge extends EventEmitter {
         message,
       });
 
-      logger.info("[MobileBridge] 消息已桥接到libp2p:", mobilePeerId);
+      logger.info("[MobileBridge] ✓ message-from-mobile 事件已触发");
+      logger.info("[MobileBridge] ========================================");
     } catch (error) {
-      logger.error("[MobileBridge] 桥接消息失败:", error);
+      logger.error("[MobileBridge] ========================================");
+      logger.error("[MobileBridge] 桥接消息失败!");
+      logger.error("[MobileBridge] 错误:", error.message);
+      logger.error("[MobileBridge] 原始数据:", data?.slice?.(0, 200) || data);
+      logger.error("[MobileBridge] ========================================");
     }
   }
 
@@ -673,10 +832,36 @@ class MobileBridge extends EventEmitter {
    * 发送消息到移动端
    */
   async sendToMobile(mobilePeerId, message) {
+    logger.info("[MobileBridge] ========================================");
+    logger.info("[MobileBridge] 准备发送消息到移动端:", mobilePeerId);
+
     const channel = this.dataChannels.get(mobilePeerId);
 
-    if (!channel || channel.readyState !== "open") {
+    logger.info("[MobileBridge] DataChannel存在:", !!channel);
+    if (channel) {
+      logger.info("[MobileBridge] DataChannel状态:", channel.readyState);
+      logger.info(
+        "[MobileBridge] DataChannel状态类型:",
+        typeof channel.readyState,
+      );
+    }
+    logger.info(
+      "[MobileBridge] 当前所有DataChannels:",
+      Array.from(this.dataChannels.keys()),
+    );
+
+    // werift 可能使用不同的状态值，支持 "open", "Open", 1 等
+    const isChannelOpen =
+      channel &&
+      (channel.readyState === "open" ||
+        channel.readyState === "Open" ||
+        channel.readyState === 1 ||
+        channel.readyState === "OPEN");
+
+    if (!isChannelOpen) {
       logger.warn("[MobileBridge] 数据通道未就绪，使用信令服务器转发");
+      logger.warn("[MobileBridge]   channel存在:", !!channel);
+      logger.warn("[MobileBridge]   readyState:", channel?.readyState);
 
       // 通过信令服务器转发
       this.send({
@@ -684,19 +869,26 @@ class MobileBridge extends EventEmitter {
         to: mobilePeerId,
         payload: message,
       });
-
+      logger.info("[MobileBridge] ========================================");
       return;
     }
 
     try {
       // 通过DataChannel直接发送
-      channel.send(JSON.stringify(message));
+      const msgStr = JSON.stringify(message);
+      channel.send(msgStr);
       this.stats.messagesForwarded++;
-      this.stats.bytesTransferred += JSON.stringify(message).length;
+      this.stats.bytesTransferred += msgStr.length;
 
-      logger.info("[MobileBridge] 消息已发送到移动端:", mobilePeerId);
+      logger.info(
+        "[MobileBridge] ✓ 消息已通过DataChannel发送到移动端:",
+        mobilePeerId,
+      );
+      logger.info("[MobileBridge]   消息长度:", msgStr.length);
+      logger.info("[MobileBridge] ========================================");
     } catch (error) {
-      logger.error("[MobileBridge] 发送消息失败:", error);
+      logger.error("[MobileBridge] ✗ 发送消息失败:", error);
+      logger.info("[MobileBridge] ========================================");
       throw error;
     }
   }

@@ -5,7 +5,7 @@
  * Handles all signaling message types: register, offer, answer, ice-candidate, etc.
  */
 
-const { logger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 /**
  * Handle peer registration
@@ -16,16 +16,40 @@ const { logger } = require('../utils/logger.js');
  * @param {Function} sendMessage - Function to send messages
  * @param {Function} broadcastPeerStatus - Function to broadcast peer status
  */
-function handleRegister(socket, message, registry, queue, sendMessage, broadcastPeerStatus) {
+function handleRegister(
+  socket,
+  message,
+  registry,
+  queue,
+  sendMessage,
+  broadcastPeerStatus,
+) {
   const { peerId, deviceInfo, deviceType } = message;
+
+  logger.info(`[Handlers] ========================================`);
+  logger.info(`[Handlers] 收到注册请求`);
+  logger.info(`[Handlers] peerId: ${peerId}`);
+  logger.info(`[Handlers] deviceType: ${deviceType || "unknown"}`);
+  logger.info(`[Handlers] deviceInfo: ${JSON.stringify(deviceInfo || {})}`);
+  logger.info(`[Handlers] ========================================`);
 
   if (!peerId) {
     sendMessage(socket, {
-      type: 'error',
-      error: 'peerId is required for registration',
+      type: "error",
+      error: "peerId is required for registration",
       timestamp: Date.now(),
     });
     return;
+  }
+
+  // Check if peer already exists (important for MobileBridge replacing local registration)
+  const existingPeer = registry.getPeer(peerId);
+  if (existingPeer) {
+    logger.info(`[Handlers] 已存在同ID节点:`);
+    logger.info(`[Handlers]   isLocal: ${existingPeer.isLocal || false}`);
+    logger.info(`[Handlers]   hasSocket: ${!!existingPeer.socket}`);
+    logger.info(`[Handlers]   deviceType: ${existingPeer.deviceType}`);
+    logger.info(`[Handlers] 将被新注册覆盖...`);
   }
 
   // Register the peer
@@ -35,8 +59,12 @@ function handleRegister(socket, message, registry, queue, sendMessage, broadcast
   if (result.previousConnection && result.previousConnection.socket) {
     try {
       result.previousConnection.socket.close();
+      logger.info(`[Handlers] 已关闭旧连接`);
     } catch (error) {
-      logger.warn('[Handlers] Failed to close previous connection:', error.message);
+      logger.warn(
+        "[Handlers] Failed to close previous connection:",
+        error.message,
+      );
     }
   }
 
@@ -45,7 +73,7 @@ function handleRegister(socket, message, registry, queue, sendMessage, broadcast
 
   // Send registration confirmation
   sendMessage(socket, {
-    type: 'registered',
+    type: "registered",
     peerId,
     serverTime: Date.now(),
     isReconnect: result.isReconnect,
@@ -54,11 +82,13 @@ function handleRegister(socket, message, registry, queue, sendMessage, broadcast
   // Deliver any pending offline messages
   const pendingMessages = queue.dequeue(peerId);
   if (pendingMessages.length > 0) {
-    logger.info(`[Handlers] Delivering ${pendingMessages.length} offline messages to ${peerId}`);
+    logger.info(
+      `[Handlers] 递送 ${pendingMessages.length} 条离线消息给 ${peerId}`,
+    );
 
     for (const entry of pendingMessages) {
       sendMessage(socket, {
-        type: 'offline-message',
+        type: "offline-message",
         originalMessage: entry.message,
         storedAt: entry.storedAt,
         deliveredAt: Date.now(),
@@ -67,9 +97,13 @@ function handleRegister(socket, message, registry, queue, sendMessage, broadcast
   }
 
   // Broadcast peer online status to others
-  broadcastPeerStatus(peerId, 'online', { deviceType, deviceInfo });
+  broadcastPeerStatus(peerId, "online", { deviceType, deviceInfo });
 
-  logger.info(`[Handlers] Peer registered: ${peerId} (${deviceType || 'unknown'})`);
+  // Log final registration state
+  const registeredPeer = registry.getPeer(peerId);
+  logger.info(`[Handlers] ✓ 注册完成: ${peerId} (${deviceType || "unknown"})`);
+  logger.info(`[Handlers]   hasSocket: ${!!registeredPeer?.socket}`);
+  logger.info(`[Handlers]   isOnline: ${registry.isOnline(peerId)}`);
 }
 
 /**
@@ -83,9 +117,23 @@ function handleRegister(socket, message, registry, queue, sendMessage, broadcast
 function handleOffer(socket, message, registry, queue, sendMessage) {
   const { to, offer, sdp, iceRestart } = message;
 
+  logger.info(`[Handlers] ========================================`);
+  logger.info(`[Handlers] 收到 Offer 消息`);
+  logger.info(`[Handlers] From: ${socket.peerId || message.from}`);
+  logger.info(`[Handlers] To: ${to}`);
+  logger.info(`[Handlers] Offer类型: ${offer?.type || sdp?.type || "unknown"}`);
+  logger.info(
+    `[Handlers] SDP长度: ${offer?.sdp?.length || sdp?.sdp?.length || sdp?.length || 0}`,
+  );
+
+  // 列出所有已注册的节点
+  const allPeerIds = registry.getAllPeerIds();
+  logger.info(`[Handlers] 当前所有注册节点: [${allPeerIds.join(", ")}]`);
+  logger.info(`[Handlers] ========================================`);
+
   if (!to) {
     sendMessage(socket, {
-      type: 'error',
+      type: "error",
       error: 'Missing "to" field in offer',
       timestamp: Date.now(),
     });
@@ -96,7 +144,7 @@ function handleOffer(socket, message, registry, queue, sendMessage) {
   const offerPayload = offer || sdp; // Support both formats
 
   const forwardMessage = {
-    type: 'offer',
+    type: "offer",
     from,
     offer: offerPayload,
     sdp: offerPayload, // Include both for compatibility
@@ -106,24 +154,62 @@ function handleOffer(socket, message, registry, queue, sendMessage) {
 
   const targetPeer = registry.getPeer(to);
 
+  // Log target peer state for debugging
+  if (targetPeer) {
+    logger.info(`[Handlers] 目标节点信息:`);
+    logger.info(`[Handlers]   deviceType: ${targetPeer.deviceType}`);
+    logger.info(`[Handlers]   isLocal: ${targetPeer.isLocal || false}`);
+    logger.info(`[Handlers]   hasSocket: ${!!targetPeer.socket}`);
+    logger.info(`[Handlers]   isOnline: ${registry.isOnline(to)}`);
+  } else {
+    logger.warn(`[Handlers] 目标节点不存在: ${to}`);
+    // Log all registered peers for debugging
+    const allPeers = registry.getAllPeerIds();
+    logger.info(`[Handlers] 当前注册的节点: ${allPeers.join(", ") || "无"}`);
+  }
+
   if (targetPeer && registry.isOnline(to)) {
-    // Target is online, forward directly
-    sendMessage(targetPeer.socket, forwardMessage);
-    registry.updateLastSeen(to);
-    logger.info(`[Handlers] Forwarded offer: ${from} -> ${to}`);
+    // Check if target has a valid socket
+    if (targetPeer.socket) {
+      // Target is online with valid socket, forward directly
+      sendMessage(targetPeer.socket, forwardMessage);
+      registry.updateLastSeen(to);
+      logger.info(`[Handlers] ✓ Offer已转发: ${from} -> ${to}`);
+    } else if (targetPeer.isLocal) {
+      // Target is local PC without socket (MobileBridge not yet connected)
+      // Queue the message for later delivery when MobileBridge connects
+      queue.enqueue(to, forwardMessage);
+      logger.info(
+        `[Handlers] ⏳ 目标是本地PC但MobileBridge未连接，Offer已入队: ${from} -> ${to}`,
+      );
+
+      // Notify sender to wait (not offline, just pending)
+      sendMessage(socket, {
+        type: "offer-pending",
+        peerId: to,
+        message: "PC is starting up, please wait...",
+        timestamp: Date.now(),
+      });
+    } else {
+      // Should not happen, but handle gracefully
+      queue.enqueue(to, forwardMessage);
+      logger.warn(
+        `[Handlers] ⚠ 目标在线但无socket，Offer已入队: ${from} -> ${to}`,
+      );
+    }
   } else {
     // Target is offline, queue the message
     queue.enqueue(to, forwardMessage);
 
     // Notify sender that target is offline
     sendMessage(socket, {
-      type: 'peer-offline',
+      type: "peer-offline",
       peerId: to,
-      messageType: 'offer',
+      messageType: "offer",
       timestamp: Date.now(),
     });
 
-    logger.info(`[Handlers] Target offline, queued offer: ${from} -> ${to}`);
+    logger.info(`[Handlers] ✗ 目标离线，Offer已入队: ${from} -> ${to}`);
   }
 }
 
@@ -140,7 +226,7 @@ function handleAnswer(socket, message, registry, queue, sendMessage) {
 
   if (!to) {
     sendMessage(socket, {
-      type: 'error',
+      type: "error",
       error: 'Missing "to" field in answer',
       timestamp: Date.now(),
     });
@@ -151,7 +237,7 @@ function handleAnswer(socket, message, registry, queue, sendMessage) {
   const answerPayload = answer || sdp;
 
   const forwardMessage = {
-    type: 'answer',
+    type: "answer",
     from,
     answer: answerPayload,
     sdp: answerPayload,
@@ -168,9 +254,9 @@ function handleAnswer(socket, message, registry, queue, sendMessage) {
     queue.enqueue(to, forwardMessage);
 
     sendMessage(socket, {
-      type: 'peer-offline',
+      type: "peer-offline",
       peerId: to,
-      messageType: 'answer',
+      messageType: "answer",
       timestamp: Date.now(),
     });
 
@@ -191,7 +277,7 @@ function handleIceCandidate(socket, message, registry, queue, sendMessage) {
 
   if (!to) {
     sendMessage(socket, {
-      type: 'error',
+      type: "error",
       error: 'Missing "to" field in ice-candidate',
       timestamp: Date.now(),
     });
@@ -201,7 +287,7 @@ function handleIceCandidate(socket, message, registry, queue, sendMessage) {
   const from = socket.peerId || message.from;
 
   const forwardMessage = {
-    type: 'ice-candidate',
+    type: "ice-candidate",
     from,
     candidate,
     timestamp: Date.now(),
@@ -231,7 +317,7 @@ function handleIceCandidates(socket, message, registry, queue, sendMessage) {
 
   if (!to) {
     sendMessage(socket, {
-      type: 'error',
+      type: "error",
       error: 'Missing "to" field in ice-candidates',
       timestamp: Date.now(),
     });
@@ -240,8 +326,8 @@ function handleIceCandidates(socket, message, registry, queue, sendMessage) {
 
   if (!candidates || !Array.isArray(candidates)) {
     sendMessage(socket, {
-      type: 'error',
-      error: 'Invalid candidates array in ice-candidates',
+      type: "error",
+      error: "Invalid candidates array in ice-candidates",
       timestamp: Date.now(),
     });
     return;
@@ -250,7 +336,7 @@ function handleIceCandidates(socket, message, registry, queue, sendMessage) {
   const from = socket.peerId || message.from;
 
   const forwardMessage = {
-    type: 'ice-candidates',
+    type: "ice-candidates",
     from,
     candidates,
     timestamp: Date.now(),
@@ -261,10 +347,14 @@ function handleIceCandidates(socket, message, registry, queue, sendMessage) {
   if (targetPeer && registry.isOnline(to)) {
     sendMessage(targetPeer.socket, forwardMessage);
     registry.updateLastSeen(to);
-    logger.info(`[Handlers] Forwarded ${candidates.length} ICE candidates: ${from} -> ${to}`);
+    logger.info(
+      `[Handlers] Forwarded ${candidates.length} ICE candidates: ${from} -> ${to}`,
+    );
   } else {
     queue.enqueue(to, forwardMessage);
-    logger.info(`[Handlers] Target offline, queued ${candidates.length} ICE candidates: ${from} -> ${to}`);
+    logger.info(
+      `[Handlers] Target offline, queued ${candidates.length} ICE candidates: ${from} -> ${to}`,
+    );
   }
 }
 
@@ -281,7 +371,7 @@ function handleMessage(socket, message, registry, queue, sendMessage) {
 
   if (!to) {
     sendMessage(socket, {
-      type: 'error',
+      type: "error",
       error: 'Missing "to" field in message',
       timestamp: Date.now(),
     });
@@ -290,7 +380,7 @@ function handleMessage(socket, message, registry, queue, sendMessage) {
 
   if (!payload) {
     sendMessage(socket, {
-      type: 'error',
+      type: "error",
       error: 'Missing "payload" field in message',
       timestamp: Date.now(),
     });
@@ -300,7 +390,7 @@ function handleMessage(socket, message, registry, queue, sendMessage) {
   const from = socket.peerId || message.from;
 
   const forwardMessage = {
-    type: 'message',
+    type: "message",
     from,
     payload,
     timestamp: Date.now(),
@@ -316,9 +406,9 @@ function handleMessage(socket, message, registry, queue, sendMessage) {
     queue.enqueue(to, forwardMessage);
 
     sendMessage(socket, {
-      type: 'peer-offline',
+      type: "peer-offline",
       peerId: to,
-      messageType: 'message',
+      messageType: "message",
       timestamp: Date.now(),
     });
 
@@ -342,9 +432,9 @@ function handlePeerStatusRequest(socket, message, registry, sendMessage) {
     const peerInfo = registry.getPeer(peerId);
 
     sendMessage(socket, {
-      type: 'peer-status-response',
+      type: "peer-status-response",
       peerId,
-      status: isOnline ? 'online' : 'offline',
+      status: isOnline ? "online" : "offline",
       deviceType: peerInfo?.deviceType,
       deviceInfo: peerInfo?.deviceInfo,
       timestamp: Date.now(),
@@ -354,7 +444,7 @@ function handlePeerStatusRequest(socket, message, registry, sendMessage) {
     const onlinePeers = registry.getOnlinePeers();
 
     sendMessage(socket, {
-      type: 'peers-list',
+      type: "peers-list",
       peers: onlinePeers,
       count: onlinePeers.length,
       timestamp: Date.now(),
@@ -372,10 +462,10 @@ function handleGetPeers(socket, registry, sendMessage) {
   const onlinePeers = registry.getOnlinePeers();
 
   // Exclude the requesting peer from the list
-  const peers = onlinePeers.filter(peer => peer.peerId !== socket.peerId);
+  const peers = onlinePeers.filter((peer) => peer.peerId !== socket.peerId);
 
   sendMessage(socket, {
-    type: 'peers-list',
+    type: "peers-list",
     peers,
     count: peers.length,
     timestamp: Date.now(),
@@ -395,7 +485,7 @@ function handlePairing(socket, message, registry, queue, sendMessage) {
 
   if (!to) {
     sendMessage(socket, {
-      type: 'error',
+      type: "error",
       error: `Missing "to" field in ${message.type}`,
       timestamp: Date.now(),
     });
@@ -419,13 +509,15 @@ function handlePairing(socket, message, registry, queue, sendMessage) {
     queue.enqueue(to, forwardMessage);
 
     sendMessage(socket, {
-      type: 'peer-offline',
+      type: "peer-offline",
       peerId: to,
       messageType: message.type,
       timestamp: Date.now(),
     });
 
-    logger.info(`[Handlers] Target offline, queued ${message.type}: ${from} -> ${to}`);
+    logger.info(
+      `[Handlers] Target offline, queued ${message.type}: ${from} -> ${to}`,
+    );
   }
 }
 
@@ -436,7 +528,7 @@ function handlePairing(socket, message, registry, queue, sendMessage) {
  */
 function handlePing(socket, sendMessage) {
   sendMessage(socket, {
-    type: 'pong',
+    type: "pong",
     timestamp: Date.now(),
   });
 }

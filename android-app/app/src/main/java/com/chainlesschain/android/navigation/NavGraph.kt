@@ -61,6 +61,8 @@ import com.chainlesschain.android.remote.ui.system.SystemMonitorScreen
 import com.chainlesschain.android.feature.filebrowser.ui.SafeFileBrowserScreen
 import com.chainlesschain.android.feature.p2p.ui.ChatSessionListScreen
 import com.chainlesschain.android.feature.p2p.ui.P2PChatScreen
+import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
+import com.chainlesschain.android.feature.p2p.ui.social.QRCodeScannerScreen
 
 @Composable
 fun NavGraph(
@@ -267,8 +269,27 @@ fun NavGraph(
         registerPlaceholder(navController, "${Screen.UserProfile.route}/{did}", "User Profile", "did")
         registerPlaceholder(navController, Screen.AddFriend.route, "Add Friend")
         registerPlaceholder(navController, "${Screen.CommentDetail.route}/{commentId}", "Comment Detail", "commentId")
-        registerPlaceholder(navController, Screen.MyQRCode.route, "My QR Code")
-        registerPlaceholder(navController, Screen.QRCodeScanner.route, "QR Scanner")
+        // 我的二维码页面
+        composable(Screen.MyQRCode.route) {
+            MyQRCodeScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onShowToast = { message ->
+                    android.widget.Toast.makeText(navController.context, message, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+
+        // 扫描二维码页面
+        composable(Screen.QRCodeScanner.route) {
+            QRCodeScannerScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onQRCodeScanned = { qrContent ->
+                    // 处理扫描结果：如果是好友添加链接，导航到添加好友页面
+                    android.widget.Toast.makeText(navController.context, "扫描成功: $qrContent", android.widget.Toast.LENGTH_LONG).show()
+                    navController.popBackStack()
+                }
+            )
+        }
         registerPlaceholder(navController, "${Screen.EditPost.route}/{postId}", "Edit Post", "postId")
         composable(Screen.DeviceManagement.route) {
             DeviceListScreen(

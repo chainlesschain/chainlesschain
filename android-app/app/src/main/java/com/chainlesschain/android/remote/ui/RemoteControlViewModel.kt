@@ -71,17 +71,28 @@ class RemoteControlViewModel @Inject constructor(
     }
 
     fun connectToPC(pcPeerId: String, pcDID: String) {
+        Timber.i("========================================")
+        Timber.i("[ViewModel] connectToPC() 被调用")
+        Timber.i("[ViewModel] pcPeerId: $pcPeerId")
+        Timber.i("[ViewModel] pcDID: $pcDID")
+        Timber.i("========================================")
+
         viewModelScope.launch {
+            Timber.i("[ViewModel] 开始连接流程...")
             _uiState.update { it.copy(isLoading = true, error = null) }
             val result = p2pClient.connect(pcPeerId, pcDID)
+            Timber.i("[ViewModel] p2pClient.connect() 返回: ${if (result.isSuccess) "SUCCESS" else "FAILURE"}")
             if (result.isSuccess) {
                 _uiState.update { it.copy(isLoading = false) }
                 addRecentAction("Connected to $pcPeerId")
+                Timber.i("[ViewModel] ✓ 连接成功!")
             } else {
+                val error = result.exceptionOrNull()?.message ?: "Connect failed"
+                Timber.e("[ViewModel] ✗ 连接失败: $error")
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = result.exceptionOrNull()?.message ?: "Connect failed"
+                        error = error
                     )
                 }
             }

@@ -228,11 +228,15 @@ class ChainlessChainApp {
     }
 
     // P2P 后续初始化
+    logger.info("[Main] ========================================");
+    logger.info("[Main] 调用 setupP2PPostInit...");
+    logger.info("[Main] ========================================");
     await setupP2PPostInit(
       getAllModules(),
       () => this.setupP2PEncryptionEvents(),
       () => this.initializeMobileBridge(),
     );
+    logger.info("[Main] setupP2PPostInit 完成");
 
     // 初始化外部设备文件管理器
     if (this.database && this.p2pManager) {
@@ -810,8 +814,469 @@ class ChainlessChainApp {
   }
 
   async initializeMobileBridge() {
-    // 移动端桥接初始化
-    logger.info("[Main] 移动端桥接初始化完成");
+    try {
+      logger.info("[Main] ========================================");
+      logger.info("[Main] 初始化移动端桥接...");
+
+      // 获取 P2P 管理器 (使用已导入的 getAllModules)
+      const modules = getAllModules();
+      const p2pManager = modules.p2pManager;
+
+      logger.info("[Main] p2pManager 存在:", !!p2pManager);
+
+      if (!p2pManager) {
+        logger.warn("[Main] P2P管理器未初始化，跳过移动端桥接");
+        return;
+      }
+
+      // 等待 P2P 初始化完成，但不阻塞 MobileBridge 启动
+      let p2pInitialized = false;
+      if (p2pManager._initPromise) {
+        try {
+          // 最多等待 5 秒
+          p2pInitialized = await Promise.race([
+            p2pManager._initPromise,
+            new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
+          ]);
+          logger.info("[Main] P2P 初始化状态:", p2pInitialized);
+        } catch (error) {
+          logger.warn("[Main] P2P 初始化等待出错:", error.message);
+        }
+      }
+
+      // 即使 P2P 未完全初始化，也尝试启动 MobileBridge
+      // MobileBridge 只需要信令服务器，不需要完整的 P2P 功能
+      if (!p2pInitialized) {
+        logger.warn("[Main] P2P未完全初始化，但仍尝试启动MobileBridge...");
+      }
+
+      // 检查信令服务器是否已启动
+      const signalingPort = p2pManager.p2pConfig?.signaling?.port || 9001;
+      const signalingUrl = `ws://localhost:${signalingPort}`;
+
+      // 如果信令服务器没有启动，尝试独立启动它
+      if (
+        !p2pManager.signalingServer ||
+        !p2pManager.signalingServer.isRunning
+      ) {
+        logger.info("[Main] 信令服务器未运行，尝试独立启动...");
+        try {
+          await p2pManager.startSignalingServer();
+          logger.info("[Main] ✓ 信令服务器已独立启动");
+        } catch (error) {
+          logger.error("[Main] ✗ 信令服务器启动失败:", error.message);
+          return;
+        }
+      } else {
+        logger.info("[Main] ✓ 信令服务器已在运行");
+      }
+
+      // 创建 MobileBridge 实例
+      const MobileBridge = require("./p2p/mobile-bridge");
+      this.mobileBridge = new MobileBridge(p2pManager, {
+        signalingUrl,
+        reconnectInterval: 5000,
+        enableAutoReconnect: true,
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun1.l.google.com:19302" },
+        ],
+      });
+
+      // 设置事件处理
+      this.mobileBridge.on("registered", (data) => {
+        logger.info("[Main] MobileBridge 已注册到信令服务器:", data.peerId);
+      });
+
+      this.mobileBridge.on("peer-connected", (data) => {
+        logger.info("[Main] 移动端已连接:", data.peerId);
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send("mobile:peer-connected", data);
+        }
+      });
+
+      this.mobileBridge.on("peer-disconnected", (data) => {
+        logger.info("[Main] 移动端已断开:", data.peerId);
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send("mobile:peer-disconnected", data);
+        }
+      });
+
+      this.mobileBridge.on("message-from-mobile", async (data) => {
+        logger.info("[Main] ========================================");
+        logger.info("[Main] 收到 message-from-mobile 事件");
+        logger.info("[Main] mobilePeerId:", data.mobilePeerId);
+        logger.info("[Main] message.type:", data.message?.type);
+        logger.info("[Main] message.payload存在:", !!data.message?.payload);
+        logger.info("[Main] ========================================");
+
+        // 处理命令请求
+        await this.handleMobileCommand(data);
+
+        // 同时通知渲染进程
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send("mobile:message", data);
+        }
+      });
+
+      this.mobileBridge.on("error", (data) => {
+        logger.error("[Main] MobileBridge 错误:", data);
+      });
+
+      // 连接到信令服务器
+      await this.mobileBridge.connect();
+
+      logger.info("[Main] ✓ 移动端桥接初始化完成");
+      logger.info(`[Main]   信令服务器: ${signalingUrl}`);
+    } catch (error) {
+      logger.error("[Main] 移动端桥接初始化失败:", error);
+    }
+  }
+
+  /**
+   * 处理来自移动端的命令
+   * @param {Object} data - { mobilePeerId, message }
+   */
+  async handleMobileCommand(data) {
+    const { mobilePeerId, message } = data;
+
+    logger.info("[Main] ========================================");
+    logger.info("[Main] handleMobileCommand 开始处理");
+    logger.info("[Main] mobilePeerId:", mobilePeerId);
+    logger.info("[Main] message:", JSON.stringify(message).slice(0, 300));
+
+    // 消息类型常量
+    const MESSAGE_TYPES = {
+      COMMAND_REQUEST: "chainlesschain:command:request",
+      COMMAND_RESPONSE: "chainlesschain:command:response",
+    };
+
+    try {
+      // 检查消息格式
+      if (!message || !message.type) {
+        logger.warn("[Main] 移动端消息格式无效:", message);
+        logger.info("[Main] ========================================");
+        return;
+      }
+
+      logger.info("[Main] 消息类型:", message.type);
+      logger.info("[Main] 期望类型:", MESSAGE_TYPES.COMMAND_REQUEST);
+      logger.info(
+        "[Main] 类型匹配:",
+        message.type === MESSAGE_TYPES.COMMAND_REQUEST,
+      );
+
+      // 只处理命令请求
+      if (message.type !== MESSAGE_TYPES.COMMAND_REQUEST) {
+        logger.debug("[Main] 非命令请求消息，跳过:", message.type);
+        logger.info("[Main] ========================================");
+        return;
+      }
+
+      // 解析 payload
+      let payload;
+      try {
+        payload =
+          typeof message.payload === "string"
+            ? JSON.parse(message.payload)
+            : message.payload;
+        logger.info("[Main] payload 解析成功");
+        logger.info("[Main] payload.id:", payload?.id);
+        logger.info("[Main] payload.method:", payload?.method);
+      } catch (e) {
+        logger.error("[Main] 解析命令 payload 失败:", e);
+        logger.info("[Main] ========================================");
+        return;
+      }
+
+      const { id, method, params } = payload;
+      logger.info(`[Main] 处理移动端命令: ${method} (id: ${id})`);
+
+      // 路由命令并获取结果
+      let result = null;
+      let error = null;
+
+      try {
+        result = await this.routeMobileCommand(method, params);
+      } catch (e) {
+        logger.error(`[Main] 命令执行失败: ${method}`, e);
+        error = {
+          code: -32603,
+          message: e.message || "Internal Error",
+        };
+      }
+
+      // 构建响应
+      const response = {
+        type: MESSAGE_TYPES.COMMAND_RESPONSE,
+        payload: JSON.stringify({
+          jsonrpc: "2.0",
+          id,
+          result: error ? null : result,
+          error: error,
+        }),
+      };
+
+      logger.info("[Main] 构建响应完成");
+      logger.info("[Main] 响应类型:", response.type);
+      logger.info("[Main] 响应payload长度:", response.payload?.length);
+
+      // 发送响应
+      logger.info("[Main] 准备调用 sendToMobile...");
+      await this.mobileBridge.sendToMobile(mobilePeerId, response);
+      logger.info(`[Main] ✓ 命令响应已发送: ${method}`);
+      logger.info("[Main] ========================================");
+    } catch (error) {
+      logger.error("[Main] ========================================");
+      logger.error("[Main] 处理移动端命令失败!");
+      logger.error("[Main] 错误:", error.message);
+      logger.error("[Main] 堆栈:", error.stack);
+      logger.error("[Main] ========================================");
+    }
+  }
+
+  /**
+   * 路由移动端命令到具体处理器
+   * @param {string} method - 命令方法名 (如 "system.getStatus")
+   * @param {Object} params - 命令参数
+   * @returns {Promise<any>} 命令结果
+   */
+  async routeMobileCommand(method, params = {}) {
+    const [namespace, action] = method.split(".");
+
+    logger.info(`[Main] 路由命令: ${namespace}.${action}`);
+
+    switch (namespace) {
+      case "system":
+        return this.handleSystemCommand(action, params);
+
+      case "ai":
+        return this.handleAICommand(action, params);
+
+      case "conversation":
+        return this.handleConversationCommand(action, params);
+
+      case "file":
+        return this.handleFileCommand(action, params);
+
+      case "desktop":
+        return this.handleDesktopCommand(action, params);
+
+      case "knowledge":
+        return this.handleKnowledgeCommand(action, params);
+
+      default:
+        throw new Error(`Unknown command namespace: ${namespace}`);
+    }
+  }
+
+  /**
+   * 处理系统命令
+   */
+  async handleSystemCommand(action, params) {
+    switch (action) {
+      case "getStatus":
+        return {
+          status: "online",
+          version: app.getVersion(),
+          platform: process.platform,
+          uptime: process.uptime(),
+        };
+
+      case "getInfo":
+        return {
+          appName: app.getName(),
+          version: app.getVersion(),
+          platform: process.platform,
+          arch: process.arch,
+          nodeVersion: process.version,
+          electronVersion: process.versions.electron,
+        };
+
+      case "notify":
+        if (this.mainWindow && Notification.isSupported()) {
+          new Notification({
+            title: params.title || "ChainlessChain",
+            body: params.message || "",
+          }).show();
+        }
+        return { success: true };
+
+      default:
+        throw new Error(`Unknown system action: ${action}`);
+    }
+  }
+
+  /**
+   * 处理 AI 命令
+   */
+  async handleAICommand(action, params) {
+    switch (action) {
+      case "getModels":
+        if (this.llmManager) {
+          const models = await this.llmManager.listModels();
+          return { models };
+        }
+        return { models: [] };
+
+      case "chat": {
+        if (!this.llmManager) {
+          throw new Error("LLM Manager not initialized");
+        }
+        const { conversationId, message, model } = params;
+        logger.info(
+          `[Main] AI chat 请求: conversationId=${conversationId}, model=${model}`,
+        );
+        logger.info(`[Main] 消息内容: ${message?.slice(0, 100)}...`);
+
+        // 简单的聊天请求处理
+        const chatResponse = await this.llmManager.chat({
+          messages: [{ role: "user", content: message }],
+          model: model,
+        });
+
+        logger.info(
+          `[Main] AI chat 响应: ${JSON.stringify(chatResponse).slice(0, 200)}...`,
+        );
+
+        // 返回 Android 期望的格式
+        return {
+          conversationId: conversationId || `conv-${Date.now()}`,
+          reply:
+            chatResponse.content ||
+            chatResponse.message ||
+            (typeof chatResponse === "string"
+              ? chatResponse
+              : JSON.stringify(chatResponse)),
+          model: model || chatResponse.model || "unknown",
+          tokens: chatResponse.usage
+            ? {
+                prompt: chatResponse.usage.prompt_tokens || 0,
+                completion: chatResponse.usage.completion_tokens || 0,
+                total: chatResponse.usage.total_tokens || 0,
+              }
+            : null,
+        };
+      }
+
+      case "getConversations":
+        if (this.database) {
+          const conversations =
+            (await this.database.getAllConversations?.()) || [];
+          return { conversations };
+        }
+        return { conversations: [] };
+
+      case "ragSearch":
+        if (this.ragManager) {
+          const results = await this.ragManager.search(params.query, {
+            limit: params.limit || 10,
+          });
+          return { results };
+        }
+        return { results: [] };
+
+      case "listAgents":
+        return { agents: [] }; // TODO: 实现代理列表
+
+      default:
+        throw new Error(`Unknown AI action: ${action}`);
+    }
+  }
+
+  /**
+   * 处理会话命令
+   */
+  async handleConversationCommand(action, params) {
+    switch (action) {
+      case "list":
+        if (this.database) {
+          const conversations =
+            (await this.database.getAllConversations?.()) || [];
+          return { conversations };
+        }
+        return { conversations: [] };
+
+      case "get":
+        if (this.database && params.id) {
+          const conversation = await this.database.getConversation?.(params.id);
+          return { conversation };
+        }
+        return { conversation: null };
+
+      case "create":
+        if (this.database) {
+          const id = await this.database.createConversation?.(params);
+          return { id, success: true };
+        }
+        throw new Error("Database not available");
+
+      default:
+        throw new Error(`Unknown conversation action: ${action}`);
+    }
+  }
+
+  /**
+   * 处理文件命令
+   */
+  async handleFileCommand(action, _params) {
+    switch (action) {
+      case "list":
+        // TODO: 实现文件列表
+        return { files: [] };
+
+      case "requestUpload":
+        // TODO: 实现文件上传请求
+        return { uploadId: null, error: "Not implemented" };
+
+      default:
+        throw new Error(`Unknown file action: ${action}`);
+    }
+  }
+
+  /**
+   * 处理桌面命令
+   */
+  async handleDesktopCommand(action, _params) {
+    switch (action) {
+      case "getDisplays": {
+        const { screen } = require("electron");
+        const displays = screen.getAllDisplays().map((d) => ({
+          id: d.id,
+          bounds: d.bounds,
+          primary: d === screen.getPrimaryDisplay(),
+        }));
+        return { displays };
+      }
+
+      case "getStats":
+        return {
+          memory: process.memoryUsage(),
+          cpu: process.cpuUsage(),
+        };
+
+      default:
+        throw new Error(`Unknown desktop action: ${action}`);
+    }
+  }
+
+  /**
+   * 处理知识库命令
+   */
+  async handleKnowledgeCommand(action, params) {
+    switch (action) {
+      case "search":
+        if (this.ragManager) {
+          const results = await this.ragManager.search(params.query, {
+            limit: params.limit || 10,
+          });
+          return { results };
+        }
+        return { results: [] };
+
+      default:
+        throw new Error(`Unknown knowledge action: ${action}`);
+    }
   }
 
   setupUKeyEvents() {
@@ -847,6 +1312,17 @@ class ChainlessChainApp {
     if (this.menuManager) {
       this.menuManager.destroy();
       this.menuManager = null;
+    }
+
+    // 清理移动端桥接
+    if (this.mobileBridge) {
+      try {
+        await this.mobileBridge.disconnect();
+        this.mobileBridge = null;
+        logger.info("[Main] MobileBridge cleanup completed");
+      } catch (error) {
+        logger.error("[Main] MobileBridge cleanup error:", error);
+      }
     }
 
     // 清理浏览器资源

@@ -52,6 +52,29 @@ fun RemoteControlScreen(
 
     var showNotificationDialog by remember { mutableStateOf(false) }
 
+    // Auto-connect when navigating from DeviceScanScreen with valid peerId
+    LaunchedEffect(defaultPeerId) {
+        timber.log.Timber.i("========================================")
+        timber.log.Timber.i("[RemoteControl] LaunchedEffect 触发")
+        timber.log.Timber.i("[RemoteControl] defaultPeerId: '$defaultPeerId'")
+        timber.log.Timber.i("[RemoteControl] defaultDid: '$defaultDid'")
+        timber.log.Timber.i("[RemoteControl] connectionState: $connectionState")
+        timber.log.Timber.i("========================================")
+
+        val peerId = defaultPeerId?.trim().orEmpty()
+        if (peerId.isNotBlank() && (connectionState == ConnectionState.DISCONNECTED || connectionState == ConnectionState.ERROR)) {
+            val did = defaultDid?.trim().takeUnless { it.isNullOrBlank() } ?: "did:key:$peerId"
+            timber.log.Timber.i("[RemoteControl] ✓ 条件满足，开始自动连接")
+            timber.log.Timber.i("[RemoteControl] peerId=$peerId, did=$did")
+            viewModel.connectToPC(peerId, did)
+        } else {
+            timber.log.Timber.w("[RemoteControl] ✗ 条件不满足，不自动连接")
+            timber.log.Timber.w("[RemoteControl]   peerId.isNotBlank(): ${peerId.isNotBlank()}")
+            timber.log.Timber.w("[RemoteControl]   connectionState == DISCONNECTED: ${connectionState == ConnectionState.DISCONNECTED}")
+            timber.log.Timber.w("[RemoteControl]   connectionState == ERROR: ${connectionState == ConnectionState.ERROR}")
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -298,7 +321,7 @@ fun DeviceConnectionPanel(
                 onClick = {
                     when (connectionState) {
                         ConnectionState.CONNECTED -> onDisconnect()
-                        ConnectionState.DISCONNECTED -> onConnect()
+                        ConnectionState.DISCONNECTED, ConnectionState.ERROR -> onConnect()
                         else -> {}
                     }
                 },

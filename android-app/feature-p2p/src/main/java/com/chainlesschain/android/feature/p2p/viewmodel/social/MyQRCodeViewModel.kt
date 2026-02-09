@@ -58,13 +58,25 @@ class MyQRCodeViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         try {
+            // 确保 DID 身份已初始化
             didManager.initialize()
+
+            // 等待一小段时间确保初始化完成
+            kotlinx.coroutines.delay(100)
 
             // 获取当前用户DID身份
             val identity = didManager.currentIdentity.value
-                ?: throw IllegalStateException("用户身份未初始化，请先完成注册")
+            if (identity == null) {
+                Timber.w("DID identity is null after initialization, attempting to create new identity")
+                // 尝试重新初始化
+                didManager.initialize()
+                kotlinx.coroutines.delay(200)
+            }
 
-            val myDid = identity.did
+            val finalIdentity = didManager.currentIdentity.value
+                ?: throw IllegalStateException("无法生成身份，请检查应用权限或重新安装应用")
+
+            val myDid = finalIdentity.did
 
             // 生成时间戳并签名（防止二维码被复制滥用）
             val timestamp = System.currentTimeMillis().toString()

@@ -28,9 +28,17 @@ class SignalingDiscoveryService @Inject constructor(
         private const val TAG = "SignalingDiscoveryService"
     }
 
+    // 最后一次扫描的调试信息
+    var lastScanDebugInfo: String = ""
+        private set
+
     suspend fun discoverPeers(timeoutMs: Long = 2500): Result<List<DiscoveredPeer>> = withContext(Dispatchers.IO) {
         val deferred = CompletableDeferred<List<DiscoveredPeer>>()
         val signalingUrl = signalingConfig.getSignalingUrl()
+        val debugBuilder = StringBuilder()
+        debugBuilder.appendLine("========== 设备扫描调试信息 ==========")
+        debugBuilder.appendLine("信令服务器: $signalingUrl")
+        debugBuilder.appendLine("开始时间: ${java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())}")
         Log.i(TAG, "========================================")
         Log.i(TAG, "Starting peer discovery")
         Log.i(TAG, "Signaling URL: $signalingUrl")
@@ -41,6 +49,7 @@ class SignalingDiscoveryService @Inject constructor(
             ws = okHttpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     Log.i(TAG, "WebSocket connected to $signalingUrl")
+                    debugBuilder.appendLine("✓ WebSocket 连接成功")
                     // Register first so the server accepts our get-peers request
                     val registerMsg = JSONObject().apply {
                         put("type", "register")
@@ -63,7 +72,16 @@ class SignalingDiscoveryService @Inject constructor(
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     Log.d(TAG, "Received message: $text")
-                    val peers = parsePeerPayload(text) ?: return
+                    debugBuilder.appendLine("收到消息: ${text.take(200)}${if (text.length > 200) "..." else ""}")
+                    val peers = parsePeerPayload(text)
+                    if (peers == null) {
+                        debugBuilder.appendLine("  → 非 peers-list 消息，忽略")
+                        return
+                    }
+                    debugBuilder.appendLine("  → 解析到 ${peers.size} 个设备")
+                    peers.forEach { peer ->
+                        debugBuilder.appendLine("    - ${peer.deviceName} (${peer.deviceType}) [${peer.peerId.take(8)}...]")
+                    }
                     Log.i(TAG, "Parsed ${peers.size} peers: ${peers.map { it.deviceName }}")
                     if (!deferred.isCompleted) {
                         deferred.complete(peers)
@@ -72,6 +90,7 @@ class SignalingDiscoveryService @Inject constructor(
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     Log.e(TAG, "WebSocket failure: ${t.message}", t)
+                    debugBuilder.appendLine("✗ WebSocket 连接失败: ${t.message}")
                     if (!deferred.isCompleted) deferred.complete(emptyList())
                 }
             })
@@ -82,9 +101,15 @@ class SignalingDiscoveryService @Inject constructor(
             }
 
             val result = withTimeout(timeoutMs) { deferred.await() }
+            debugBuilder.appendLine("========== 扫描完成 ==========")
+            debugBuilder.appendLine("发现设备数: ${result.size}")
+            lastScanDebugInfo = debugBuilder.toString()
             Result.success(result)
         } catch (e: Exception) {
             Timber.w(e, "discoverPeers timeout/failure")
+            debugBuilder.appendLine("✗ 扫描超时或失败: ${e.message}")
+            debugBuilder.appendLine("========== 扫描结束 ==========")
+            lastScanDebugInfo = debugBuilder.toString()
             Result.success(emptyList())
         } finally {
             ws?.close(1000, "done")

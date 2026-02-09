@@ -50,8 +50,11 @@ function registerSocialInitializers(factory) {
       p2pManager._initPromise = Promise.race([
         p2pManager.initialize(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('P2P初始化超时')), P2P_INIT_TIMEOUT)
-        )
+          setTimeout(
+            () => reject(new Error("P2P初始化超时")),
+            P2P_INIT_TIMEOUT,
+          ),
+        ),
       ])
         .then((initialized) => {
           if (initialized) {
@@ -63,7 +66,7 @@ function registerSocialInitializers(factory) {
         })
         .catch((error) => {
           logger.error("[Social] P2P管理器初始化失败:", error.message);
-          if (error.message.includes('超时')) {
+          if (error.message.includes("超时")) {
             logger.warn("[Social] P2P初始化超时，可能是网络问题或配置错误");
           }
           return false;
@@ -140,7 +143,7 @@ function registerSocialInitializers(factory) {
   factory.register({
     name: "organizationManager",
     dependsOn: ["database", "didManager", "p2pManager"],
-    required: false,  // Non-critical, app can run without organization features
+    required: false, // Non-critical, app can run without organization features
     async init(context) {
       try {
         if (!context.database || !context.database.db) {
@@ -154,10 +157,15 @@ function registerSocialInitializers(factory) {
           context.didManager,
           context.p2pManager,
         );
-        logger.info('[Bootstrap] ✓ OrganizationManager initialized successfully');
+        logger.info(
+          "[Bootstrap] ✓ OrganizationManager initialized successfully",
+        );
         return manager;
       } catch (error) {
-        logger.error('[Bootstrap] OrganizationManager initialization failed:', error);
+        logger.error(
+          "[Bootstrap] OrganizationManager initialization failed:",
+          error,
+        );
         // Return null to indicate initialization failure
         return null;
       }
@@ -265,26 +273,67 @@ async function setupP2PPostInit(
 ) {
   const { p2pManager, didManager, friendManager } = context;
 
-  if (!p2pManager || !p2pManager._initPromise) {
+  logger.info("[Social] ========================================");
+  logger.info("[Social] setupP2PPostInit 开始执行");
+  logger.info("[Social] p2pManager 存在:", !!p2pManager);
+  logger.info(
+    "[Social] p2pManager._initPromise 存在:",
+    !!(p2pManager && p2pManager._initPromise),
+  );
+  logger.info(
+    "[Social] initializeMobileBridge 回调存在:",
+    !!initializeMobileBridge,
+  );
+  logger.info("[Social] ========================================");
+
+  // 即使 p2pManager 不存在，也尝试初始化 MobileBridge
+  if (!p2pManager) {
+    logger.warn("[Social] ✗ P2P管理器不存在");
+    if (initializeMobileBridge) {
+      logger.info("[Social] 仍尝试初始化移动端桥接...");
+      initializeMobileBridge().catch((error) => {
+        logger.error("[Social] 移动端桥接初始化失败:", error);
+      });
+    }
+    return;
+  }
+
+  if (!p2pManager._initPromise) {
+    logger.warn("[Social] ✗ P2P管理器._initPromise 不存在");
+    if (initializeMobileBridge) {
+      logger.info("[Social] 仍尝试初始化移动端桥接...");
+      initializeMobileBridge().catch((error) => {
+        logger.error("[Social] 移动端桥接初始化失败:", error);
+      });
+    }
     return;
   }
 
   // 等待 P2P 初始化完成
+  logger.info("[Social] 等待 P2P 初始化完成...");
   const initialized = await p2pManager._initPromise;
+  logger.info("[Social] P2P 初始化结果:", initialized);
+
   if (!initialized) {
-    return;
+    logger.warn("[Social] ✗ P2P 初始化失败，但仍尝试初始化移动端桥接");
+  } else {
+    logger.info("[Social] ✓ P2P 初始化成功");
   }
 
   // 设置 P2P 加密消息事件监听
-  if (setupEncryptionEvents) {
+  if (setupEncryptionEvents && initialized) {
     setupEncryptionEvents();
   }
 
-  // 初始化移动端桥接
+  // 初始化移动端桥接（即使 P2P 初始化失败也尝试）
+  // MobileBridge 可以独立启动信令服务器
   if (initializeMobileBridge) {
+    logger.info("[Social] 开始初始化移动端桥接...");
     initializeMobileBridge().catch((error) => {
       logger.error("[Social] 移动端桥接初始化失败:", error);
     });
+  } else {
+    logger.warn("[Social] ✗ initializeMobileBridge 回调未提供");
   }
 
   // 设置到 DID 管理器

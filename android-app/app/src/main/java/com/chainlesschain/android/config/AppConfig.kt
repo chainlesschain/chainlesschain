@@ -104,6 +104,12 @@ class AppConfigManager @Inject constructor(
                     DEFAULT_ENABLE_P2P
                 ),
 
+                // P2P/信令服务器配置
+                signalingServerUrl = sharedPreferences.getString(
+                    KEY_SIGNALING_SERVER_URL,
+                    DEFAULT_SIGNALING_SERVER_URL
+                ) ?: DEFAULT_SIGNALING_SERVER_URL,
+
                 // 性能配置
                 imageCacheSize = sharedPreferences.getLong(
                     KEY_IMAGE_CACHE_SIZE,
@@ -135,6 +141,7 @@ class AppConfigManager @Inject constructor(
                 .putBoolean(KEY_ENABLE_CRASH_REPORTING, config.enableCrashReporting)
                 .putBoolean(KEY_ENABLE_ANALYTICS, config.enableAnalytics)
                 .putBoolean(KEY_ENABLE_P2P, config.enableP2P)
+                .putString(KEY_SIGNALING_SERVER_URL, config.signalingServerUrl)
                 .putLong(KEY_IMAGE_CACHE_SIZE, config.imageCacheSize)
                 .putInt(KEY_DATABASE_CACHE_SIZE, config.databaseCacheSize)
                 .apply()
@@ -182,6 +189,9 @@ class AppConfigManager @Inject constructor(
         private const val KEY_ENABLE_ANALYTICS = "enable_analytics"
         private const val KEY_ENABLE_P2P = "enable_p2p"
 
+        // P2P配置键
+        private const val KEY_SIGNALING_SERVER_URL = "signaling_server_url"
+
         // 性能配置键
         private const val KEY_IMAGE_CACHE_SIZE = "image_cache_size"
         private const val KEY_DATABASE_CACHE_SIZE = "database_cache_size"
@@ -196,6 +206,8 @@ class AppConfigManager @Inject constructor(
         private const val DEFAULT_ENABLE_CRASH_REPORTING = true
         private const val DEFAULT_ENABLE_ANALYTICS = true
         private const val DEFAULT_ENABLE_P2P = true
+        // P2P默认值 - 使用局域网广播发现或用户配置
+        private const val DEFAULT_SIGNALING_SERVER_URL = "ws://192.168.1.1:9001"
         private const val DEFAULT_IMAGE_CACHE_SIZE = 100L * 1024 * 1024 // 100MB
         private const val DEFAULT_DATABASE_CACHE_SIZE = 2000 // 2000条记录
     }
@@ -222,6 +234,9 @@ data class AppConfig(
     val enableAnalytics: Boolean,
     val enableP2P: Boolean,
 
+    // P2P/信令服务器配置
+    val signalingServerUrl: String,
+
     // 性能配置
     val imageCacheSize: Long,
     val databaseCacheSize: Int
@@ -237,6 +252,7 @@ data class AppConfig(
             enableCrashReporting = true,
             enableAnalytics = true,
             enableP2P = true,
+            signalingServerUrl = "ws://192.168.1.1:9001",
             imageCacheSize = 100L * 1024 * 1024,
             databaseCacheSize = 2000
         )

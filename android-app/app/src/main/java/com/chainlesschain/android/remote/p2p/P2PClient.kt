@@ -7,6 +7,7 @@ import com.chainlesschain.android.remote.data.MessageTypes
 import com.chainlesschain.android.remote.data.P2PMessage
 import com.chainlesschain.android.remote.data.fromJson
 import com.chainlesschain.android.remote.data.toJsonString
+import com.google.gson.Gson
 import com.chainlesschain.android.remote.webrtc.WebRTCClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -39,6 +40,7 @@ class P2PClient @Inject constructor(
     private var heartbeatJob: Job? = null
 
     private val config = P2PClientConfig()
+    private val gson = Gson()
 
     private val _events = MutableSharedFlow<EventNotification>(replay = 0, extraBufferCapacity = 16)
     val events: SharedFlow<EventNotification> = _events.asSharedFlow()
@@ -58,13 +60,24 @@ class P2PClient @Inject constructor(
 
     suspend fun connect(pcPeerId: String, pcDID: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
+            Timber.i("========================================")
+            Timber.i("[P2PClient] connect() 被调用")
+            Timber.i("[P2PClient] 目标 pcPeerId: $pcPeerId")
+            Timber.i("[P2PClient] 目标 pcDID: $pcDID")
+            Timber.i("[P2PClient] 当前连接状态: ${_connectionState.value}")
+            Timber.i("========================================")
+
             if (_connectionState.value == ConnectionState.CONNECTED) {
+                Timber.i("[P2PClient] 已连接，先断开...")
                 disconnect()
             }
             _connectionState.value = ConnectionState.CONNECTING
+            Timber.i("[P2PClient] 状态更新为 CONNECTING")
 
             // Generate a local peerId for signaling registration
             val localPeerId = "mobile-${java.util.UUID.randomUUID().toString().take(8)}"
+            Timber.i("[P2PClient] 生成本地 peerId: $localPeerId")
+            Timber.i("[P2PClient] 正在调用 webRTCClient.connect()...")
             val result = webRTCClient.connect(pcPeerId, localPeerId)
             if (result.isFailure) {
                 _connectionState.value = ConnectionState.ERROR
@@ -131,8 +144,26 @@ class P2PClient @Inject constructor(
                     return@withContext Result.failure(Exception(response.error?.message ?: "Unknown error"))
                 }
 
+                // response.result 可能是 Map、JsonElement 等类型
+                // 需要先转换为 JSON 字符串，再反序列化为目标类型
+                val result = response.result
+                Timber.d("[P2PClient] 原始 result 类型: ${result?.javaClass?.simpleName}")
+                Timber.d("[P2PClient] 原始 result 内容: $result")
+
                 @Suppress("UNCHECKED_CAST")
-                Result.success(response.result as T)
+                val convertedResult: T = when (result) {
+                    null -> null as T
+                    is String -> result as T
+                    is Number -> result as T
+                    is Boolean -> result as T
+                    else -> {
+                        // 对于复杂对象（Map、JsonElement等），先转为 JSON 再解析
+                        // 这里返回原始对象，让调用方处理
+                        // 因为泛型类型擦除，无法在这里正确转换
+                        result as T
+                    }
+                }
+                Result.success(convertedResult)
             } catch (e: Exception) {
                 timeoutJob.cancel()
                 pendingRequests.remove(requestId)

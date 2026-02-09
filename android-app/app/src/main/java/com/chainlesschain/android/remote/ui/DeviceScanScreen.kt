@@ -67,6 +67,7 @@ fun DeviceScanScreen(
 
     var showRegisterDialog by remember { mutableStateOf(false) }
     var selectedDevice by remember { mutableStateOf<DiscoveredDevice?>(null) }
+    var showDebugDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(isScanning) {
         if (isScanning) {
@@ -83,6 +84,14 @@ fun DeviceScanScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                },
+                actions = {
+                    // 调试信息按钮
+                    if (uiState.lastScanDebugInfo.isNotBlank()) {
+                        IconButton(onClick = { showDebugDialog = true }) {
+                            Icon(Icons.Default.NetworkCheck, contentDescription = "调试信息")
+                        }
                     }
                 }
             )
@@ -116,9 +125,16 @@ fun DeviceScanScreen(
                         DiscoveredDeviceItem(
                             device = device,
                             onClick = {
+                                timber.log.Timber.i("========================================")
+                                timber.log.Timber.i("[DeviceScan] 点击设备: ${device.deviceName}")
+                                timber.log.Timber.i("[DeviceScan] peerId: ${device.peerId}")
+                                timber.log.Timber.i("[DeviceScan] isRegistered: ${device.isRegistered}")
+                                timber.log.Timber.i("========================================")
                                 if (device.isRegistered) {
+                                    timber.log.Timber.i("[DeviceScan] 设备已注册，导航到远程控制页面")
                                     onDeviceSelected(device.peerId, device.did)
                                 } else {
+                                    timber.log.Timber.i("[DeviceScan] 设备未注册，显示注册对话框")
                                     selectedDevice = device
                                     showRegisterDialog = true
                                 }
@@ -141,11 +157,35 @@ fun DeviceScanScreen(
             },
             onConfirm = { deviceName ->
                 val target = selectedDevice ?: return@RegisterDeviceDialog
+                timber.log.Timber.i("[DeviceScan] 注册设备: $deviceName -> ${target.peerId}")
                 viewModel.registerDevice(target, deviceName) {
+                    timber.log.Timber.i("[DeviceScan] 注册完成，导航到远程控制: ${target.peerId}")
                     onDeviceSelected(target.peerId, target.did)
                 }
                 showRegisterDialog = false
                 selectedDevice = null
+            }
+        )
+    }
+
+    // 调试信息对话框
+    if (showDebugDialog) {
+        AlertDialog(
+            onDismissRequest = { showDebugDialog = false },
+            title = { Text("扫描调试信息") },
+            text = {
+                Column {
+                    Text(
+                        text = uiState.lastScanDebugInfo.ifBlank { "暂无调试信息，请先扫描" },
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDebugDialog = false }) {
+                    Text("关闭")
+                }
             }
         )
     }

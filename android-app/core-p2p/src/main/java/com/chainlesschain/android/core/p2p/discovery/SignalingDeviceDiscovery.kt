@@ -34,11 +34,32 @@ class SignalingDeviceDiscovery @Inject constructor(
         private const val TAG = "SignalingDeviceDiscovery"
         private const val PREFS_NAME = "signaling_prefs"
         private const val KEY_CUSTOM_URL = "custom_signaling_url"
-        // 默认使用局域网 PC 地址
-        private const val DEFAULT_URL = "ws://192.168.3.59:9001"
+        // 默认使用局域网广播发现或用户配置的地址
+        // 用户需要在设置中配置实际的 PC 信令服务器地址
+        private const val DEFAULT_URL = "ws://192.168.1.1:9001"
         private const val RECONNECT_DELAY_MS = 5000L
         private const val HEARTBEAT_INTERVAL_MS = 30000L
     }
+
+    /**
+     * 设置信令服务器地址
+     * @param url WebSocket URL，例如 "ws://192.168.1.100:9001"
+     */
+    fun setSignalingServerUrl(url: String) {
+        prefs.edit().putString(KEY_CUSTOM_URL, url).apply()
+        Log.i(TAG, "Signaling server URL updated to: $url")
+
+        // 如果正在扫描，重新连接到新的服务器
+        if (discovering) {
+            stopDiscovery()
+            startDiscovery()
+        }
+    }
+
+    /**
+     * 获取当前信令服务器地址
+     */
+    fun getCurrentSignalingUrl(): String = getSignalingUrl()
 
     private val json = Json {
         ignoreUnknownKeys = true
