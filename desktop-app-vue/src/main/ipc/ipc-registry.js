@@ -244,6 +244,7 @@ function registerAllIPC(dependencies) {
         "memory:clear-embedding-cache",
         "memory:save-to-memory",
         "memory:extract-from-conversation",
+        "memory:extract-from-session",
         "memory:get-memory-sections",
       ];
       for (const channel of fallbackChannels) {
@@ -611,7 +612,7 @@ function registerAllIPC(dependencies) {
       const { registerBasicMCPConfigIPC } = require("../mcp/mcp-ipc");
       registerBasicMCPConfigIPC();
       logger.info(
-        "[IPC Registry] ✓ MCP Basic Config IPC registered (early, 3 handlers)",
+        "[IPC Registry] ✓ MCP Basic Config IPC registered (early, 5 handlers)",
       );
     } catch (mcpError) {
       logger.error(
@@ -763,7 +764,9 @@ function registerAllIPC(dependencies) {
 
     // 企业版权限管理扩展 (降级模式 - 6 handlers)
     // 这些处理器为 PermissionManagementPage 提供基本功能
-    logger.info("[IPC Registry] Registering Organization Permission IPC (degraded mode)...");
+    logger.info(
+      "[IPC Registry] Registering Organization Permission IPC (degraded mode)...",
+    );
     const { ipcMain } = require("electron");
 
     // permission:get-overrides - 获取权限覆盖列表
@@ -776,7 +779,7 @@ function registerAllIPC(dependencies) {
         const { orgId } = args || {};
         const overrides = db
           .prepare(
-            `SELECT * FROM permission_overrides WHERE org_id = ? ORDER BY created_at DESC`
+            `SELECT * FROM permission_overrides WHERE org_id = ? ORDER BY created_at DESC`,
           )
           .all(orgId || "");
         return { success: true, overrides: overrides || [] };
@@ -796,7 +799,7 @@ function registerAllIPC(dependencies) {
         const { orgId } = args || {};
         const templates = db
           .prepare(
-            `SELECT * FROM permission_templates WHERE org_id = ? ORDER BY name ASC`
+            `SELECT * FROM permission_templates WHERE org_id = ? ORDER BY name ASC`,
           )
           .all(orgId || "");
         return {
@@ -822,7 +825,7 @@ function registerAllIPC(dependencies) {
         const { orgId } = args || {};
         const groups = db
           .prepare(
-            `SELECT * FROM permission_groups WHERE org_id = ? ORDER BY name ASC`
+            `SELECT * FROM permission_groups WHERE org_id = ? ORDER BY name ASC`,
           )
           .all(orgId || "");
         return {
@@ -861,28 +864,28 @@ function registerAllIPC(dependencies) {
         const usersCount =
           db
             .prepare(
-              `SELECT COUNT(*) as count FROM organization_members WHERE org_id = ? AND status = 'active'`
+              `SELECT COUNT(*) as count FROM organization_members WHERE org_id = ? AND status = 'active'`,
             )
             .get(orgId || "")?.count || 0;
 
         const overridesCount =
           db
             .prepare(
-              `SELECT COUNT(*) as count FROM permission_overrides WHERE org_id = ?`
+              `SELECT COUNT(*) as count FROM permission_overrides WHERE org_id = ?`,
             )
             .get(orgId || "")?.count || 0;
 
         const templatesCount =
           db
             .prepare(
-              `SELECT COUNT(*) as count FROM permission_templates WHERE org_id = ?`
+              `SELECT COUNT(*) as count FROM permission_templates WHERE org_id = ?`,
             )
             .get(orgId || "")?.count || 0;
 
         const groupsCount =
           db
             .prepare(
-              `SELECT COUNT(*) as count FROM permission_groups WHERE org_id = ?`
+              `SELECT COUNT(*) as count FROM permission_groups WHERE org_id = ?`,
             )
             .get(orgId || "")?.count || 0;
 
@@ -914,7 +917,7 @@ function registerAllIPC(dependencies) {
     });
 
     logger.info(
-      "[IPC Registry] ✓ Organization Permission IPC registered (4 handlers, degraded mode)"
+      "[IPC Registry] ✓ Organization Permission IPC registered (4 handlers, degraded mode)",
     );
 
     // ============================================================

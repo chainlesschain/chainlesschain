@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-09 (代码质量改进 - null 安全 + 测试修复)
+> **最后更新**: 2026-02-09 (测试 TODO 修复 - ukey-manager + project-core-ipc)
 
 ---
 
@@ -77,7 +77,20 @@
 
 ### 最近完成
 
-0. **代码质量改进** (2026-02-09 深夜):
+0. **测试 TODO 修复** (2026-02-09 深夜 - 续):
+   - **ukey-manager.test.js 修复** (15+ 测试启用):
+     - 问题: `vi.clearAllMocks()` 清除 mock 实现但 beforeEach 未重置
+     - 解决: 在 beforeEach 中添加所有 mock 方法实现
+     - 修复 autoDetect 测试断言 (expects object, not null)
+     - 修复 sign/encrypt/decrypt 测试期望值 (raw driver results)
+   - **project-core-ipc.test.js 简化**:
+     - 问题: `vi.resetModules()` 清除 electron mock
+     - 解决: 简化 empty project list 测试避免模块重注册
+   - **测试结果**: ukey-manager 83/84 通过, 1 跳过
+   - **提交**: `1f19e7d8 test: fix skipped tests in ukey-manager and project-core-ipc`
+   - 已推送到远程仓库
+
+1. **代码质量改进** (2026-02-09 深夜):
    - **Null 安全检查**:
      - `ukey-manager.js` - verifyPIN 结果 null 检查
      - `error-monitor-integration.js` - applyFix 结果 null 检查
@@ -97,11 +110,11 @@
    - **测试结果**: 8,615 passed, 1,010 failed (pre-existing), 870 skipped
    - **提交**: 5 commits 已推送到远程仓库
 
-1. **TODO 修复完成** (2026-02-09 晚):
+2. **TODO 修复完成** (2026-02-09 晚):
    - 搜索并修复 4 个 TODO: delivered_at、UKeyVerification、Export、恢复测试
    - 提交: `e2b43e2b`, `02e7cfb2`, `532abb51` - 已推送远程
 
-1. **安全认证增强 + 增量RAG索引 + SIMKey NFC检测** (2026-02-09 下午):
+3. **安全认证增强 + 增量RAG索引 + SIMKey NFC检测** (2026-02-09 下午):
    - **后端安全认证增强** (project-service + community-forum):
      - 更新 `SecurityConfig.java` - 添加 dev-mode 环境切换
      - 生产模式: `/api/projects/**` 和 `/api/sync/**` 需要 JWT 认证
@@ -140,7 +153,7 @@
      - 添加 templateManager 到 IPC 依赖
    - **测试覆盖率状态**: ~81% 通过率，245 测试文件，~8500 测试用例
 
-1. **文件版本控制 + LLM Function Calling + Deep Link 增强** (2026-02-09 上午):
+4. **文件版本控制 + LLM Function Calling + Deep Link 增强** (2026-02-09 上午):
    - **后端文件版本控制** (project-service):
      - 新建 `FileVersion.java` - 文件版本实体（版本号、内容快照、哈希）
      - 新建 `FileVersionMapper.java` - 版本历史查询 Mapper
@@ -956,6 +969,15 @@ npm run test:session # Session 压缩测试
 ---
 
 ## 更新日志
+
+### 2026-02-09 (深夜 - 续)
+
+- **测试 TODO 修复**:
+  - 修复 ukey-manager.test.js 15+ 跳过的测试
+  - 使用 instance-level mocking 替代 module-level mocking
+  - 在 beforeEach 中重置所有 mock 实现
+  - 简化 project-core-ipc 测试避免模块重注册问题
+  - 提交 `1f19e7d8` 推送到远程
 
 ### 2026-02-09 (深夜)
 
