@@ -473,7 +473,10 @@ const unreadCount = computed(() => {
 });
 
 const mailboxTree = computed(() => {
-  const tree = mailboxes.value.map((mb) => ({
+  const mailboxList = mailboxes.value || [];
+  const draftList = drafts.value || [];
+
+  const tree = mailboxList.map((mb) => ({
     key: mb.id,
     title: mb.display_name,
     name: mb.name,
@@ -483,7 +486,7 @@ const mailboxTree = computed(() => {
   // 添加草稿箱选项
   tree.push({
     key: "drafts",
-    title: `草稿箱 (${drafts.value.length})`,
+    title: `草稿箱 (${draftList.length})`,
     name: "Drafts",
     isDraft: true,
     children: [],
@@ -547,8 +550,8 @@ const loadMailboxes = async () => {
       accountId.value,
     );
 
-    if (result.success) {
-      mailboxes.value = result.mailboxes;
+    if (result?.success) {
+      mailboxes.value = result.mailboxes || [];
 
       // 默认选择 INBOX
       const inbox = mailboxes.value.find((mb) => mb.name === "INBOX");
@@ -595,8 +598,8 @@ const loadEmails = async (mailboxId) => {
       options,
     );
 
-    if (result.success) {
-      emails.value = result.emails;
+    if (result?.success) {
+      emails.value = result.emails || [];
     }
   } catch (error) {
     message.error("加载邮件失败: " + error.message);
@@ -631,8 +634,8 @@ const syncEmails = async () => {
       },
     );
 
-    if (result.success) {
-      message.success(`已同步 ${result.count} 封新邮件`);
+    if (result?.success) {
+      message.success(`已同步 ${result.count || 0} 封新邮件`);
       await loadEmails(selectedMailbox.value[0]);
     }
   } catch (error) {
@@ -666,8 +669,8 @@ const loadAttachments = async (emailId) => {
       emailId,
     );
 
-    if (result.success) {
-      attachments.value = result.attachments;
+    if (result?.success) {
+      attachments.value = result.attachments || [];
     }
   } catch (error) {
     logger.error("加载附件失败:", error);
@@ -738,7 +741,7 @@ const saveToKnowledge = async () => {
       selectedEmail.value.id,
     );
 
-    if (result.success) {
+    if (result?.success) {
       message.success("已保存到知识库");
     }
   } catch (error) {
@@ -846,8 +849,8 @@ const loadDrafts = async () => {
       accountId.value,
     );
 
-    if (result.success) {
-      drafts.value = result.drafts;
+    if (result?.success) {
+      drafts.value = result.drafts || [];
     }
   } catch (error) {
     message.error("加载草稿失败: " + error.message);

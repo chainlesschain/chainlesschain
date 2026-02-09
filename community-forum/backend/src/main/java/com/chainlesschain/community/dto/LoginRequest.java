@@ -16,4 +16,16 @@ public class LoginRequest {
     private String pin;
 
     private String deviceType; // UKEY / SIMKEY
+
+    /**
+     * 设备签名（生产模式必需）
+     * 使用设备私钥对challenge进行签名
+     */
+    private String signature;
+
+    /**
+     * 挑战值（生产模式必需）
+     * 由服务器生成，客户端签名后返回
+     */
+    private String challenge;
 }

@@ -27,14 +27,28 @@ public class AuthService {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private UKeyVerificationService ukeyVerificationService;
+
     /**
      * U盾/SIMKey登录
      */
     @Transactional
     public Result<LoginVO> login(LoginRequest request) {
         try {
-            // 1. 验证设备ID（实际应用中需要验证U盾/SIMKey的PIN码）
-            // TODO: 集成U盾/SIMKey验证逻辑
+            // 1. 验证U盾/SIMKey
+            UKeyVerificationService.VerificationResult verifyResult =
+                ukeyVerificationService.verify(
+                    request.getDeviceId(),
+                    request.getPin(),
+                    request.getDeviceType(),
+                    request.getSignature(),  // 生产模式需要
+                    request.getChallenge()   // 生产模式需要
+                );
+
+            if (!verifyResult.isSuccess()) {
+                return Result.error(401, verifyResult.getMessage());
+            }
 
             // 2. 查询或创建用户
             User user = userMapper.findByDeviceId(request.getDeviceId());
