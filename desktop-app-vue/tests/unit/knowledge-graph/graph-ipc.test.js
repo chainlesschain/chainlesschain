@@ -350,7 +350,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
     it("should have error logging for graph operations", () => {
       // 检查是否有Graph IPC相关的错误日志
       expect(sourceCode).toMatch(
-        /console\.error\(\s*['"][^'"]*Graph IPC[^'"]*['"]/,
+        /logger\.error\(\s*['"][^'"]*Graph IPC[^'"]*['"]/,
       );
     });
 
@@ -473,7 +473,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
 
     it("should have warning logs for uninitialized managers", () => {
       expect(sourceCode).toMatch(
-        /console\.warn\([^)]*GraphExtractor\s+未初始化/,
+        /logger\.warn\([^)]*GraphExtractor\s+未初始化/,
       );
     });
   });
@@ -491,7 +491,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
 
       let count = 0;
       queryHandlers.forEach((handler) => {
-        if (sourceCode.includes(`'${handler}'`)) {
+        if (sourceCode.includes(`"${handler}"`)) {
           count++;
         }
       });
@@ -516,7 +516,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
 
       let count = 0;
       processHandlers.forEach((handler) => {
-        if (sourceCode.includes(`'${handler}'`)) {
+        if (sourceCode.includes(`"${handler}"`)) {
           count++;
         }
       });
@@ -541,7 +541,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
 
       let count = 0;
       relationHandlers.forEach((handler) => {
-        if (sourceCode.includes(`'${handler}'`)) {
+        if (sourceCode.includes(`"${handler}"`)) {
           count++;
         }
       });
@@ -568,7 +568,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
 
       let count = 0;
       analysisHandlers.forEach((handler) => {
-        if (sourceCode.includes(`'${handler}'`)) {
+        if (sourceCode.includes(`"${handler}"`)) {
           count++;
         }
       });
@@ -596,7 +596,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
 
       let count = 0;
       buildHandlers.forEach((handler) => {
-        if (sourceCode.includes(`'${handler}'`)) {
+        if (sourceCode.includes(`"${handler}"`)) {
           count++;
         }
       });
@@ -617,7 +617,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
 
   describe("语义关系提取处理器 (1 handler)", () => {
     it("should have semantic extraction handler", () => {
-      expect(sourceCode).toContain("'graph:extract-semantic-relations'");
+      expect(sourceCode).toContain('"graph:extract-semantic-relations"');
     });
 
     it("semantic extraction should use both graphExtractor and llmManager", () => {
@@ -664,7 +664,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
       ];
 
       expectedHandlers.forEach((channel) => {
-        expect(sourceCode).toContain(`'${channel}'`);
+        expect(sourceCode).toContain(`"${channel}"`);
       });
     });
 
@@ -697,7 +697,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
     it("should have proper summary console log", () => {
       // 检查是否有完成日志
       const summaryPattern =
-        /console\.log\s*\(\s*['"][^'"]*11[^'"]*知识图谱[^'"]*IPC[^'"]*处理器[^'"]*['"]\s*\)/;
+        /logger\.info\s*\(\s*['"][^'"]*21[^'"]*知识图谱[^'"]*IPC[^'"]*处理器[^'"]*['"]\s*\)/;
       expect(sourceCode).toMatch(summaryPattern);
     });
 
@@ -717,7 +717,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
       );
     });
 
-    it("summary: all 11 Knowledge Graph IPC handlers should be properly defined in source", () => {
+    it("summary: all 21 Knowledge Graph IPC handlers should be properly defined in source", () => {
       const expectedHandlers = [
         "graph:get-graph-data",
         "graph:process-note",
@@ -741,7 +741,7 @@ describe("Knowledge Graph IPC 处理器注册", () => {
 
       // 验证每个 handler 都存在
       expectedHandlers.forEach((channel) => {
-        expect(sourceCode).toContain(`'${channel}'`);
+        expect(sourceCode).toContain(`"${channel}"`);
       });
 
       // 验证导出

@@ -210,6 +210,8 @@ describe('FriendsPage.vue', () => {
     });
 
     it('应该正确设置loading状态', async () => {
+      vi.useFakeTimers();
+
       mockIpcRenderer.invoke.mockImplementation(() => {
         return new Promise((resolve) => {
           setTimeout(() => resolve({ success: true, friends: [] }), 100);
@@ -225,9 +227,13 @@ describe('FriendsPage.vue', () => {
 
       expect(wrapper.vm.loading).toBe(true);
 
+      // Advance past the 100ms setTimeout and flush promises
+      await vi.advanceTimersByTimeAsync(150);
       await flushPromises();
 
       expect(wrapper.vm.loading).toBe(false);
+
+      vi.useRealTimers();
     });
   });
 

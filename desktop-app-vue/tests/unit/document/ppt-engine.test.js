@@ -34,10 +34,9 @@ const mockPptxGenConstructor = vi.hoisted(() => {
 });
 
 vi.mock("pptxgenjs", () => {
-  // For CommonJS require(), Vitest will use `default` export
-  return {
-    default: mockPptxGenConstructor,
-  };
+  // Return constructor as default - interopDefault: true in vitest.config
+  // handles unwrapping for CJS require() calls
+  return { default: mockPptxGenConstructor };
 });
 
 vi.mock("fs", () => ({
@@ -45,11 +44,13 @@ vi.mock("fs", () => ({
     promises: {
       writeFile: vi.fn(),
       unlink: vi.fn(),
+      mkdir: vi.fn().mockResolvedValue(undefined),
     },
   },
   promises: {
     writeFile: vi.fn(),
     unlink: vi.fn(),
+    mkdir: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -166,7 +167,7 @@ describe("PPT引擎测试", () => {
       expect(result.success).toBe(true);
       expect(result.path).toBe(testPptxPath);
       expect(result.fileName).toBe("Test Presentation.pptx");
-      expect(mockPptxgen).toHaveBeenCalled();
+      expect(result.theme).toBe("business");
     });
 
     it("should use custom theme", async () => {
@@ -175,12 +176,13 @@ describe("PPT引擎测试", () => {
         sections: [],
       };
 
-      await pptEngine.generateFromOutline(outline, {
+      const result = await pptEngine.generateFromOutline(outline, {
         theme: "academic",
         outputPath: testPptxPath,
       });
 
-      expect(mockPptxgen).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(result.theme).toBe("academic");
     });
 
     it("should use custom author", async () => {
@@ -189,13 +191,21 @@ describe("PPT引擎测试", () => {
         sections: [],
       };
 
+      const spy = vi.spyOn(pptEngine, "createTitleSlide");
+
       await pptEngine.generateFromOutline(outline, {
         author: "John Doe",
         outputPath: testPptxPath,
       });
 
-      const pptInstance = mockPptxgen.mock.results[0].value;
-      expect(pptInstance.author).toBe("John Doe");
+      expect(spy).toHaveBeenCalledWith(
+        expect.anything(),
+        "Test",
+        undefined,
+        "John Doe",
+        expect.anything(),
+      );
+      spy.mockRestore();
     });
 
     it("should create title slide", async () => {
@@ -205,13 +215,21 @@ describe("PPT引擎测试", () => {
         sections: [],
       };
 
+      const spy = vi.spyOn(pptEngine, "createTitleSlide");
+
       await pptEngine.generateFromOutline(outline, {
         author: "Author",
         outputPath: testPptxPath,
       });
 
-      const pptInstance = mockPptxgen.mock.results[0].value;
-      expect(pptInstance.addSlide).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith(
+        expect.anything(),
+        "My Presentation",
+        "My Subtitle",
+        "Author",
+        expect.anything(),
+      );
+      spy.mockRestore();
     });
 
     it("should create section slides", async () => {
@@ -223,13 +241,24 @@ describe("PPT引擎测试", () => {
         ],
       };
 
+      const spy = vi.spyOn(pptEngine, "createSectionSlide");
+
       await pptEngine.generateFromOutline(outline, {
         outputPath: testPptxPath,
       });
 
-      const pptInstance = mockPptxgen.mock.results[0].value;
-      // Title + 2 sections + end slide
-      expect(pptInstance.addSlide).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledTimes(2);
+      expect(spy).toHaveBeenCalledWith(
+        expect.anything(),
+        "Section 1",
+        expect.anything(),
+      );
+      expect(spy).toHaveBeenCalledWith(
+        expect.anything(),
+        "Section 2",
+        expect.anything(),
+      );
+      spy.mockRestore();
     });
 
     it("should create content slides for subsections", async () => {
@@ -246,12 +275,14 @@ describe("PPT引擎测试", () => {
         ],
       };
 
+      const spy = vi.spyOn(pptEngine, "createContentSlide");
+
       await pptEngine.generateFromOutline(outline, {
         outputPath: testPptxPath,
       });
 
-      const pptInstance = mockPptxgen.mock.results[0].value;
-      expect(pptInstance.addSlide).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledTimes(2);
+      spy.mockRestore();
     });
 
     it("should create end slide", async () => {
@@ -260,16 +291,23 @@ describe("PPT引擎测试", () => {
         sections: [],
       };
 
+      const spy = vi.spyOn(pptEngine, "createEndSlide");
+
       await pptEngine.generateFromOutline(outline, {
         outputPath: testPptxPath,
       });
 
-      const pptInstance = mockPptxgen.mock.results[0].value;
-      expect(pptInstance.addSlide).toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledWith(
+        expect.anything(),
+        "谢谢观看",
+        expect.anything(),
+      );
+      spy.mockRestore();
     });
 
     it("should handle generation errors", async () => {
-      mockPptxgen.mockImplementationOnce(() => {
+      // Make an internal method throw to trigger the error path
+      vi.spyOn(pptEngine, "createTitleSlide").mockImplementation(() => {
         throw new Error("Generation failed");
       });
 
@@ -303,24 +341,12 @@ describe("PPT引擎测试", () => {
         ],
       };
 
-      const pptInstance = {
-        author: "",
-        title: "",
-        company: "",
-        slides: [1, 2, 3, 4], // Mock slides array
-        addSlide: vi.fn(() => ({
-          background: null,
-          addText: vi.fn(),
-        })),
-        writeFile: vi.fn().mockResolvedValue(undefined),
-      };
-
-      mockPptxgen.mockReturnValueOnce(pptInstance);
-
       const result = await pptEngine.generateFromOutline(outline, {
         outputPath: testPptxPath,
       });
 
+      // slideCount from real pptxgenjs: title + section + content + end = 4
+      expect(typeof result.slideCount).toBe("number");
       expect(result.slideCount).toBe(4);
     });
   });
@@ -351,7 +377,10 @@ describe("PPT引擎测试", () => {
     });
 
     it("should handle H2 as sections", () => {
-      const markdown = `## Section 1
+      // When there is no H1, the first H2 becomes the title.
+      // Provide an H1 so all H2s remain as sections.
+      const markdown = `# Title
+## Section 1
 ## Section 2`;
 
       const outline = pptEngine.parseMarkdownToOutline(markdown);
@@ -362,7 +391,8 @@ describe("PPT引擎测试", () => {
     });
 
     it("should handle H3 as subsections", () => {
-      const markdown = `## Section
+      const markdown = `# Title
+## Section
 ### Sub 1
 ### Sub 2`;
 
@@ -372,7 +402,8 @@ describe("PPT引擎测试", () => {
     });
 
     it("should parse bullet points", () => {
-      const markdown = `## Section
+      const markdown = `# Title
+## Section
 ### Subsection
 - Point 1
 - Point 2
@@ -386,7 +417,8 @@ describe("PPT引擎测试", () => {
     });
 
     it("should parse numbered lists", () => {
-      const markdown = `## Section
+      const markdown = `# Title
+## Section
 ### Subsection
 1. First
 2. Second
@@ -400,7 +432,8 @@ describe("PPT引擎测试", () => {
     });
 
     it("should handle mixed list types", () => {
-      const markdown = `## Section
+      const markdown = `# Title
+## Section
 ### Subsection
 - Bullet
 * Another bullet
@@ -415,7 +448,8 @@ describe("PPT引擎测试", () => {
 
     it("should truncate long lines", () => {
       const longLine = "a".repeat(150);
-      const markdown = `## Section
+      const markdown = `# Title
+## Section
 ### Subsection
 ${longLine}`;
 
@@ -427,7 +461,8 @@ ${longLine}`;
     });
 
     it("should skip short lines", () => {
-      const markdown = `## Section
+      const markdown = `# Title
+## Section
 ### Subsection
 Short
 This is a longer line that should be included`;
@@ -441,17 +476,18 @@ This is a longer line that should be included`;
     });
 
     it("should skip separator lines", () => {
-      const markdown = `## Section
+      const markdown = `# Title
+## Section
 ### Subsection
 ---
-Valid point
+Valid point text here
 ===`;
 
       const outline = pptEngine.parseMarkdownToOutline(markdown);
 
       const points = outline.sections[0].subsections[0].points;
       expect(points).toHaveLength(1);
-      expect(points[0]).toBe("Valid point");
+      expect(points[0]).toBe("Valid point text here");
     });
 
     it("should use first section as title if no H1", () => {
@@ -483,7 +519,8 @@ Valid point
     });
 
     it("should handle points without subsection", () => {
-      const markdown = `## Section
+      const markdown = `# Title
+## Section
 - Point 1
 - Point 2`;
 
@@ -507,7 +544,7 @@ Valid point
       });
 
       expect(result.success).toBe(true);
-      expect(mockPptxgen).toHaveBeenCalled();
+      expect(result.theme).toBe("business");
     });
 
     it("should use LLM enhancement if parsing fails", async () => {
@@ -544,8 +581,8 @@ Valid point
     });
 
     it("should handle markdown conversion errors", async () => {
-      // Force an error by mocking pptxgen to throw
-      mockPptxgen.mockImplementationOnce(() => {
+      // Force an error by making an internal method throw
+      vi.spyOn(pptEngine, "createTitleSlide").mockImplementation(() => {
         throw new Error("PPT creation failed");
       });
 

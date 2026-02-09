@@ -13,9 +13,9 @@
  * - 图表初始化
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { mount } from '@vue/test-utils';
-import { h } from 'vue';
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { mount } from "@vue/test-utils";
+import { h } from "vue";
 
 // Mock ant-design-vue
 const mockMessage = vi.hoisted(() => ({
@@ -25,7 +25,7 @@ const mockMessage = vi.hoisted(() => ({
   info: vi.fn(),
 }));
 
-vi.mock('ant-design-vue', () => ({
+vi.mock("ant-design-vue", () => ({
   message: mockMessage,
 }));
 
@@ -37,18 +37,22 @@ const mockLogger = vi.hoisted(() => ({
 }));
 
 // Mock logger
-vi.mock('@/utils/logger', () => ({
+vi.mock("@/utils/logger", () => ({
   logger: mockLogger,
   createLogger: vi.fn(() => mockLogger),
 }));
 
 // Mock echarts
-vi.mock('../utils/echartsConfig', () => ({
-  init: vi.fn(() => ({
+const mockEchartsInit = vi.hoisted(() =>
+  vi.fn(() => ({
     setOption: vi.fn(),
     resize: vi.fn(),
     dispose: vi.fn(),
   })),
+);
+
+vi.mock("@/utils/echartsConfig", () => ({
+  init: mockEchartsInit,
 }));
 
 // Mock window.electron.ipcRenderer
@@ -62,7 +66,7 @@ global.window = {
   removeEventListener: vi.fn(),
 };
 
-describe('EnterpriseDashboard', () => {
+describe("EnterpriseDashboard", () => {
   let wrapper;
   let intervalId;
 
@@ -84,15 +88,15 @@ describe('EnterpriseDashboard', () => {
 
   const mockContributors = [
     {
-      name: 'Alice',
-      role: 'owner',
+      name: "Alice",
+      role: "owner",
       knowledgeCreated: 50,
       edits: 120,
       comments: 80,
     },
     {
-      name: 'Bob',
-      role: 'admin',
+      name: "Bob",
+      role: "admin",
       knowledgeCreated: 40,
       edits: 100,
       comments: 60,
@@ -101,17 +105,17 @@ describe('EnterpriseDashboard', () => {
 
   const mockActivities = [
     {
-      id: 'act-1',
-      user_name: 'Alice',
-      activity_type: 'create',
-      metadata: { title: 'New Document' },
+      id: "act-1",
+      user_name: "Alice",
+      activity_type: "create",
+      metadata: { title: "New Document" },
       created_at: Date.now() - 3600000,
     },
     {
-      id: 'act-2',
-      user_name: 'Bob',
-      activity_type: 'edit',
-      metadata: { title: 'Updated Project' },
+      id: "act-2",
+      user_name: "Bob",
+      activity_type: "edit",
+      metadata: { title: "Updated Project" },
       created_at: Date.now() - 7200000,
     },
   ];
@@ -181,16 +185,16 @@ describe('EnterpriseDashboard', () => {
           },
         },
         setup(props) {
-          const { ref, onMounted, onUnmounted, h } = require('vue');
+          const { ref, onMounted, onUnmounted, h } = require("vue");
           const message = mockMessage;
           const logger = mockLogger;
-          const { init } = require('../utils/echartsConfig');
+          const init = mockEchartsInit;
 
           const activityChartRef = ref(null);
           const storageBreakdownRef = ref(null);
 
           const loading = ref(false);
-          const organizationName = ref('');
+          const organizationName = ref("");
           const stats = ref({ ...mockStats });
           const topContributors = ref([]);
           const recentActivities = ref([]);
@@ -202,15 +206,15 @@ describe('EnterpriseDashboard', () => {
           async function loadOrganizationInfo() {
             try {
               const result = await window.electron.ipcRenderer.invoke(
-                'organization:get-info',
-                { orgId: props.organizationId }
+                "organization:get-info",
+                { orgId: props.organizationId },
               );
 
               if (result.success) {
                 organizationName.value = result.organization.name;
               }
             } catch (error) {
-              logger.error('Error loading organization info:', error);
+              logger.error("Error loading organization info:", error);
             }
           }
 
@@ -219,26 +223,27 @@ describe('EnterpriseDashboard', () => {
               loading.value = true;
 
               const statsResult = await window.electron.ipcRenderer.invoke(
-                'dashboard:get-stats',
-                { orgId: props.organizationId }
+                "dashboard:get-stats",
+                { orgId: props.organizationId },
               );
 
               if (statsResult.success) {
                 stats.value = { ...stats.value, ...statsResult.stats };
               }
 
-              const contributorsResult = await window.electron.ipcRenderer.invoke(
-                'dashboard:get-top-contributors',
-                { orgId: props.organizationId, limit: 10 }
-              );
+              const contributorsResult =
+                await window.electron.ipcRenderer.invoke(
+                  "dashboard:get-top-contributors",
+                  { orgId: props.organizationId, limit: 10 },
+                );
 
               if (contributorsResult.success) {
                 topContributors.value = contributorsResult.contributors;
               }
 
               const activitiesResult = await window.electron.ipcRenderer.invoke(
-                'dashboard:get-recent-activities',
-                { orgId: props.organizationId, limit: 20 }
+                "dashboard:get-recent-activities",
+                { orgId: props.organizationId, limit: 20 },
               );
 
               if (activitiesResult.success) {
@@ -247,8 +252,8 @@ describe('EnterpriseDashboard', () => {
 
               updateCharts();
             } catch (error) {
-              logger.error('Error loading dashboard data:', error);
-              message.error('Failed to load dashboard data');
+              logger.error("Error loading dashboard data:", error);
+              message.error("Failed to load dashboard data");
             } finally {
               loading.value = false;
             }
@@ -269,58 +274,84 @@ describe('EnterpriseDashboard', () => {
 
           async function refreshData() {
             await loadDashboardData();
-            message.success('Dashboard refreshed');
+            message.success("Dashboard refreshed");
           }
 
           function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
+            if (bytes === 0) {
+              return "0 B";
+            }
             const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const sizes = ["B", "KB", "MB", "GB", "TB"];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+            return (
+              Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i]
+            );
           }
 
           function formatTime(timestamp) {
             const now = Date.now();
             const diff = now - timestamp;
 
-            if (diff < 60000) return 'Just now';
-            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-            if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+            if (diff < 60000) {
+              return "Just now";
+            }
+            if (diff < 3600000) {
+              return `${Math.floor(diff / 60000)}m ago`;
+            }
+            if (diff < 86400000) {
+              return `${Math.floor(diff / 3600000)}h ago`;
+            }
+            if (diff < 604800000) {
+              return `${Math.floor(diff / 86400000)}d ago`;
+            }
             return new Date(timestamp).toLocaleDateString();
           }
 
           function getStorageColor() {
-            const percent = (stats.value.storageUsed / stats.value.storageLimit) * 100;
-            if (percent > 90) return '#ff4d4f';
-            if (percent > 75) return '#faad14';
-            return '#52c41a';
+            const percent =
+              (stats.value.storageUsed / stats.value.storageLimit) * 100;
+            if (percent > 90) {
+              return "#ff4d4f";
+            }
+            if (percent > 75) {
+              return "#faad14";
+            }
+            return "#52c41a";
           }
 
           function getBandwidthColor() {
-            const percent = (stats.value.bandwidthUsed / stats.value.bandwidthLimit) * 100;
-            if (percent > 90) return '#ff4d4f';
-            if (percent > 75) return '#faad14';
-            return '#1890ff';
+            const percent =
+              (stats.value.bandwidthUsed / stats.value.bandwidthLimit) * 100;
+            if (percent > 90) {
+              return "#ff4d4f";
+            }
+            if (percent > 75) {
+              return "#faad14";
+            }
+            return "#1890ff";
           }
 
           function getNetworkHealthColor() {
-            if (stats.value.networkHealth > 80) return '#52c41a';
-            if (stats.value.networkHealth > 50) return '#faad14';
-            return '#ff4d4f';
+            if (stats.value.networkHealth > 80) {
+              return "#52c41a";
+            }
+            if (stats.value.networkHealth > 50) {
+              return "#faad14";
+            }
+            return "#ff4d4f";
           }
 
           function getActivityText(type) {
             const texts = {
-              create: 'created',
-              edit: 'edited',
-              view: 'viewed',
-              comment: 'commented on',
-              share: 'shared',
-              delete: 'deleted',
+              create: "created",
+              edit: "edited",
+              view: "viewed",
+              comment: "commented on",
+              share: "shared",
+              delete: "deleted",
             };
-            return texts[type] || 'interacted with';
+            return texts[type] || "interacted with";
           }
 
           onMounted(async () => {
@@ -338,8 +369,12 @@ describe('EnterpriseDashboard', () => {
               clearInterval(refreshInterval);
               refreshInterval = null;
             }
-            if (activityChart) activityChart.dispose();
-            if (storageBreakdownChart) storageBreakdownChart.dispose();
+            if (activityChart) {
+              activityChart.dispose();
+            }
+            if (storageBreakdownChart) {
+              storageBreakdownChart.dispose();
+            }
           });
 
           return {
@@ -365,11 +400,11 @@ describe('EnterpriseDashboard', () => {
       },
       {
         props: {
-          organizationId: 'org-123',
+          organizationId: "org-123",
           ...props,
         },
         ...options,
-      }
+      },
     );
   };
 
@@ -386,30 +421,30 @@ describe('EnterpriseDashboard', () => {
     }
   });
 
-  describe('组件挂载', () => {
-    it('应该成功挂载组件', () => {
+  describe("组件挂载", () => {
+    it("应该成功挂载组件", () => {
       wrapper = createWrapper();
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.find('.enterprise-dashboard').exists()).toBe(true);
+      expect(wrapper.find(".enterprise-dashboard").exists()).toBe(true);
     });
 
-    it('应该在挂载时加载组织信息', async () => {
+    it("应该在挂载时加载组织信息", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
-        organization: { name: 'Test Org' },
+        organization: { name: "Test Org" },
       });
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await vi.advanceTimersByTimeAsync(0);
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'organization:get-info',
-        { orgId: 'org-123' }
+        "organization:get-info",
+        { orgId: "org-123" },
       );
     });
 
-    it('应该在挂载时加载仪表盘数据', async () => {
+    it("应该在挂载时加载仪表盘数据", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         stats: mockStats,
@@ -417,17 +452,17 @@ describe('EnterpriseDashboard', () => {
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await vi.advanceTimersByTimeAsync(0);
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'dashboard:get-stats',
-        expect.objectContaining({ orgId: 'org-123' })
+        "dashboard:get-stats",
+        expect.objectContaining({ orgId: "org-123" }),
       );
     });
   });
 
-  describe('统计数据加载', () => {
-    it('应该能加载统计数据', async () => {
+  describe("统计数据加载", () => {
+    it("应该能加载统计数据", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
@@ -440,10 +475,10 @@ describe('EnterpriseDashboard', () => {
       expect(wrapper.vm.stats.networkHealth).toBe(85);
     });
 
-    it('应该能加载贡献者数据', async () => {
+    it("应该能加载贡献者数据", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
-        if (channel === 'dashboard:get-top-contributors') {
+        if (channel === "dashboard:get-top-contributors") {
           return Promise.resolve({
             success: true,
             contributors: mockContributors,
@@ -455,13 +490,13 @@ describe('EnterpriseDashboard', () => {
       await wrapper.vm.loadDashboardData();
 
       expect(wrapper.vm.topContributors.length).toBe(2);
-      expect(wrapper.vm.topContributors[0].name).toBe('Alice');
+      expect(wrapper.vm.topContributors[0].name).toBe("Alice");
     });
 
-    it('应该能加载活动数据', async () => {
+    it("应该能加载活动数据", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
-        if (channel === 'dashboard:get-recent-activities') {
+        if (channel === "dashboard:get-recent-activities") {
           return Promise.resolve({
             success: true,
             activities: mockActivities,
@@ -473,20 +508,24 @@ describe('EnterpriseDashboard', () => {
       await wrapper.vm.loadDashboardData();
 
       expect(wrapper.vm.recentActivities.length).toBe(2);
-      expect(wrapper.vm.recentActivities[0].user_name).toBe('Alice');
+      expect(wrapper.vm.recentActivities[0].user_name).toBe("Alice");
     });
 
-    it('应该能处理加载失败', async () => {
+    it("应该能处理加载失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Load failed'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(
+        new Error("Load failed"),
+      );
 
       await wrapper.vm.loadDashboardData();
 
-      expect(message.error).toHaveBeenCalledWith('Failed to load dashboard data');
+      expect(message.error).toHaveBeenCalledWith(
+        "Failed to load dashboard data",
+      );
     });
 
-    it('应该在加载时设置loading状态', async () => {
+    it("应该在加载时设置loading状态", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockImplementation(() => {
         expect(wrapper.vm.loading).toBe(true);
@@ -499,35 +538,39 @@ describe('EnterpriseDashboard', () => {
     });
   });
 
-  describe('刷新功能', () => {
-    it('应该能手动刷新数据', async () => {
+  describe("刷新功能", () => {
+    it("应该能手动刷新数据", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
       await wrapper.vm.refreshData();
 
-      expect(message.success).toHaveBeenCalledWith('Dashboard refreshed');
+      expect(message.success).toHaveBeenCalledWith("Dashboard refreshed");
     });
 
-    it('应该设置自动刷新定时器', async () => {
+    it("应该设置自动刷新定时器", async () => {
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await vi.advanceTimersByTimeAsync(0);
 
       vi.advanceTimersByTime(60000);
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'dashboard:get-stats',
-        expect.any(Object)
+        "dashboard:get-stats",
+        expect.any(Object),
       );
     });
 
-    it('应该在卸载时清除定时器', async () => {
+    it("应该在卸载时清除定时器", async () => {
       wrapper = createWrapper();
 
-      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+      // Ensure onMounted completes so setInterval is registered
+      await wrapper.vm.$nextTick();
+      await vi.advanceTimersByTimeAsync(0);
+
+      const clearIntervalSpy = vi.spyOn(global, "clearInterval");
 
       wrapper.unmount();
 
@@ -535,141 +578,141 @@ describe('EnterpriseDashboard', () => {
     });
   });
 
-  describe('字节格式化', () => {
-    it('应该格式化字节数', () => {
+  describe("字节格式化", () => {
+    it("应该格式化字节数", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.formatBytes(0)).toBe('0 B');
-      expect(wrapper.vm.formatBytes(1024)).toBe('1 KB');
-      expect(wrapper.vm.formatBytes(1024 * 1024)).toBe('1 MB');
-      expect(wrapper.vm.formatBytes(5 * 1024 * 1024 * 1024)).toBe('5 GB');
+      expect(wrapper.vm.formatBytes(0)).toBe("0 B");
+      expect(wrapper.vm.formatBytes(1024)).toBe("1 KB");
+      expect(wrapper.vm.formatBytes(1024 * 1024)).toBe("1 MB");
+      expect(wrapper.vm.formatBytes(5 * 1024 * 1024 * 1024)).toBe("5 GB");
     });
 
-    it('应该处理小数', () => {
+    it("应该处理小数", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.formatBytes(1536)).toBe('1.5 KB');
-      expect(wrapper.vm.formatBytes(2.5 * 1024 * 1024)).toBe('2.5 MB');
+      expect(wrapper.vm.formatBytes(1536)).toBe("1.5 KB");
+      expect(wrapper.vm.formatBytes(2.5 * 1024 * 1024)).toBe("2.5 MB");
     });
   });
 
-  describe('时间格式化', () => {
-    it('应该格式化刚刚', () => {
+  describe("时间格式化", () => {
+    it("应该格式化刚刚", () => {
       wrapper = createWrapper();
 
       const formatted = wrapper.vm.formatTime(Date.now() - 30000);
 
-      expect(formatted).toBe('Just now');
+      expect(formatted).toBe("Just now");
     });
 
-    it('应该格式化分钟前', () => {
+    it("应该格式化分钟前", () => {
       wrapper = createWrapper();
 
       const formatted = wrapper.vm.formatTime(Date.now() - 120000);
 
-      expect(formatted).toBe('2m ago');
+      expect(formatted).toBe("2m ago");
     });
 
-    it('应该格式化小时前', () => {
+    it("应该格式化小时前", () => {
       wrapper = createWrapper();
 
       const formatted = wrapper.vm.formatTime(Date.now() - 7200000);
 
-      expect(formatted).toBe('2h ago');
+      expect(formatted).toBe("2h ago");
     });
 
-    it('应该格式化天前', () => {
+    it("应该格式化天前", () => {
       wrapper = createWrapper();
 
       const formatted = wrapper.vm.formatTime(Date.now() - 172800000);
 
-      expect(formatted).toBe('2d ago');
+      expect(formatted).toBe("2d ago");
     });
 
-    it('应该格式化超过一周', () => {
+    it("应该格式化超过一周", () => {
       wrapper = createWrapper();
 
       const timestamp = Date.now() - 86400000 * 10;
       const formatted = wrapper.vm.formatTime(timestamp);
 
-      expect(formatted).toContain('/');
+      expect(formatted).toContain("/");
     });
   });
 
-  describe('颜色辅助方法', () => {
-    it('应该返回正确的存储颜色', () => {
+  describe("颜色辅助方法", () => {
+    it("应该返回正确的存储颜色", () => {
       wrapper = createWrapper();
 
       wrapper.vm.stats.storageUsed = 5 * 1024 * 1024 * 1024;
       wrapper.vm.stats.storageLimit = 10 * 1024 * 1024 * 1024;
-      expect(wrapper.vm.getStorageColor()).toBe('#52c41a');
+      expect(wrapper.vm.getStorageColor()).toBe("#52c41a");
 
       wrapper.vm.stats.storageUsed = 8 * 1024 * 1024 * 1024;
-      expect(wrapper.vm.getStorageColor()).toBe('#faad14');
+      expect(wrapper.vm.getStorageColor()).toBe("#faad14");
 
       wrapper.vm.stats.storageUsed = 9.5 * 1024 * 1024 * 1024;
-      expect(wrapper.vm.getStorageColor()).toBe('#ff4d4f');
+      expect(wrapper.vm.getStorageColor()).toBe("#ff4d4f");
     });
 
-    it('应该返回正确的带宽颜色', () => {
+    it("应该返回正确的带宽颜色", () => {
       wrapper = createWrapper();
 
       wrapper.vm.stats.bandwidthUsed = 50 * 1024 * 1024 * 1024;
       wrapper.vm.stats.bandwidthLimit = 100 * 1024 * 1024 * 1024;
-      expect(wrapper.vm.getBandwidthColor()).toBe('#1890ff');
+      expect(wrapper.vm.getBandwidthColor()).toBe("#1890ff");
 
       wrapper.vm.stats.bandwidthUsed = 80 * 1024 * 1024 * 1024;
-      expect(wrapper.vm.getBandwidthColor()).toBe('#faad14');
+      expect(wrapper.vm.getBandwidthColor()).toBe("#faad14");
 
       wrapper.vm.stats.bandwidthUsed = 95 * 1024 * 1024 * 1024;
-      expect(wrapper.vm.getBandwidthColor()).toBe('#ff4d4f');
+      expect(wrapper.vm.getBandwidthColor()).toBe("#ff4d4f");
     });
 
-    it('应该返回正确的网络健康颜色', () => {
+    it("应该返回正确的网络健康颜色", () => {
       wrapper = createWrapper();
 
       wrapper.vm.stats.networkHealth = 85;
-      expect(wrapper.vm.getNetworkHealthColor()).toBe('#52c41a');
+      expect(wrapper.vm.getNetworkHealthColor()).toBe("#52c41a");
 
       wrapper.vm.stats.networkHealth = 65;
-      expect(wrapper.vm.getNetworkHealthColor()).toBe('#faad14');
+      expect(wrapper.vm.getNetworkHealthColor()).toBe("#faad14");
 
       wrapper.vm.stats.networkHealth = 45;
-      expect(wrapper.vm.getNetworkHealthColor()).toBe('#ff4d4f');
+      expect(wrapper.vm.getNetworkHealthColor()).toBe("#ff4d4f");
     });
   });
 
-  describe('活动文本', () => {
-    it('应该返回正确的活动文本', () => {
+  describe("活动文本", () => {
+    it("应该返回正确的活动文本", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.getActivityText('create')).toBe('created');
-      expect(wrapper.vm.getActivityText('edit')).toBe('edited');
-      expect(wrapper.vm.getActivityText('view')).toBe('viewed');
-      expect(wrapper.vm.getActivityText('comment')).toBe('commented on');
-      expect(wrapper.vm.getActivityText('share')).toBe('shared');
-      expect(wrapper.vm.getActivityText('delete')).toBe('deleted');
-      expect(wrapper.vm.getActivityText('unknown')).toBe('interacted with');
+      expect(wrapper.vm.getActivityText("create")).toBe("created");
+      expect(wrapper.vm.getActivityText("edit")).toBe("edited");
+      expect(wrapper.vm.getActivityText("view")).toBe("viewed");
+      expect(wrapper.vm.getActivityText("comment")).toBe("commented on");
+      expect(wrapper.vm.getActivityText("share")).toBe("shared");
+      expect(wrapper.vm.getActivityText("delete")).toBe("deleted");
+      expect(wrapper.vm.getActivityText("unknown")).toBe("interacted with");
     });
   });
 
-  describe('组织信息', () => {
-    it('应该能加载组织名称', async () => {
+  describe("组织信息", () => {
+    it("应该能加载组织名称", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
-        organization: { name: 'My Organization' },
+        organization: { name: "My Organization" },
       });
 
       await wrapper.vm.loadOrganizationInfo();
 
-      expect(wrapper.vm.organizationName).toBe('My Organization');
+      expect(wrapper.vm.organizationName).toBe("My Organization");
     });
 
-    it('应该能处理组织信息加载失败', async () => {
+    it("应该能处理组织信息加载失败", async () => {
       wrapper = createWrapper();
       const logger = mockLogger;
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Failed'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error("Failed"));
 
       await wrapper.vm.loadOrganizationInfo();
 
@@ -677,26 +720,26 @@ describe('EnterpriseDashboard', () => {
     });
   });
 
-  describe('边界情况', () => {
-    it('应该处理零字节', () => {
+  describe("边界情况", () => {
+    it("应该处理零字节", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.formatBytes(0)).toBe('0 B');
+      expect(wrapper.vm.formatBytes(0)).toBe("0 B");
     });
 
-    it('应该处理非常大的字节数', () => {
+    it("应该处理非常大的字节数", () => {
       wrapper = createWrapper();
 
       const bytes = 5 * 1024 * 1024 * 1024 * 1024; // 5TB
       const formatted = wrapper.vm.formatBytes(bytes);
 
-      expect(formatted).toContain('TB');
+      expect(formatted).toContain("TB");
     });
 
-    it('应该处理空贡献者列表', async () => {
+    it("应该处理空贡献者列表", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
-        if (channel === 'dashboard:get-top-contributors') {
+        if (channel === "dashboard:get-top-contributors") {
           return Promise.resolve({
             success: true,
             contributors: [],
@@ -710,10 +753,10 @@ describe('EnterpriseDashboard', () => {
       expect(wrapper.vm.topContributors.length).toBe(0);
     });
 
-    it('应该处理空活动列表', async () => {
+    it("应该处理空活动列表", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
-        if (channel === 'dashboard:get-recent-activities') {
+        if (channel === "dashboard:get-recent-activities") {
           return Promise.resolve({
             success: true,
             activities: [],
@@ -727,26 +770,26 @@ describe('EnterpriseDashboard', () => {
       expect(wrapper.vm.recentActivities.length).toBe(0);
     });
 
-    it('应该处理百分比计算', () => {
+    it("应该处理百分比计算", () => {
       wrapper = createWrapper();
 
       wrapper.vm.stats.storageUsed = 0;
       wrapper.vm.stats.storageLimit = 10 * 1024 * 1024 * 1024;
 
-      const percent = (wrapper.vm.stats.storageUsed / wrapper.vm.stats.storageLimit) * 100;
+      const percent =
+        (wrapper.vm.stats.storageUsed / wrapper.vm.stats.storageLimit) * 100;
       expect(percent).toBe(0);
     });
   });
 
-  describe('图表初始化', () => {
-    it('应该初始化图表', async () => {
-      const { init } = require('../utils/echartsConfig');
+  describe("图表初始化", () => {
+    it("应该初始化图表", async () => {
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
       wrapper.vm.initializeCharts();
 
-      expect(init).toHaveBeenCalled();
+      expect(mockEchartsInit).toHaveBeenCalled();
     });
   });
 });

@@ -111,7 +111,15 @@ describe("CategoryManagePage.vue", () => {
           "a-table": { template: "<table />" },
           "a-empty": { template: "<div><slot /></div>" },
           "a-modal": { template: "<div><slot /></div>" },
-          "a-form": { template: "<div><slot /></div>" },
+          "a-form": {
+            template: "<div><slot /></div>",
+            methods: {
+              resetFields() {},
+              validate() {
+                return Promise.resolve();
+              },
+            },
+          },
           "a-form-item": { template: "<div><slot /></div>" },
           "a-input": { template: "<input />" },
           "a-input-number": { template: '<input type="number" />' },
@@ -311,7 +319,7 @@ describe("CategoryManagePage.vue", () => {
       wrapper.vm.showEditDialog(category);
 
       expect(wrapper.vm.editDialogVisible).toBe(true);
-      expect(wrapper.vm.editingCategory).toBe(category);
+      expect(wrapper.vm.editingCategory).toEqual(category);
     });
 
     it("应该填充表单数据", () => {
@@ -857,8 +865,15 @@ describe("CategoryManagePage.vue", () => {
 
   // 加载状态测试
   describe("Loading State", () => {
-    it("应该初始化为未加载状态", () => {
+    it("应该初始化为未加载状态", async () => {
+      mockCategoryStore.fetchCategories.mockResolvedValue();
+      mockCategoryStore.initializeDefaults.mockResolvedValue();
       wrapper = createWrapper();
+
+      // loading is true during the initial loadCategories() call from onMounted
+      // Wait for all async operations to complete
+      await wrapper.vm.$nextTick();
+      await new Promise((r) => setTimeout(r, 0));
 
       expect(wrapper.vm.loading).toBe(false);
     });

@@ -82,6 +82,20 @@ const localStorageMock = {
 
 global.localStorage = localStorageMock;
 
+// Mock window.electronAPI.marketplace
+const mockMarketplace = {
+  searchOrders: vi.fn(),
+  matchOrder: vi.fn(),
+  createOrder: vi.fn(),
+};
+if (!global.window) {
+  global.window = {};
+}
+if (!global.window.electronAPI) {
+  global.window.electronAPI = {};
+}
+global.window.electronAPI.marketplace = mockMarketplace;
+
 describe("MarketPage.vue", () => {
   let wrapper;
 
@@ -190,6 +204,10 @@ describe("MarketPage.vue", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
+    // Default: searchOrders returns empty so default data is used
+    mockMarketplace.searchOrders.mockResolvedValue({ items: [] });
+    mockMarketplace.matchOrder.mockResolvedValue({ success: true });
+    mockMarketplace.createOrder.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
@@ -340,13 +358,18 @@ describe("MarketPage.vue", () => {
     });
 
     it("应该支持防抖搜索", () => {
-      wrapper = createWrapper();
       vi.useFakeTimers();
+      wrapper = createWrapper();
+
+      // Set currentPage to something other than 1 first
+      wrapper.vm.currentPage = 3;
 
       wrapper.vm.debouncedSearch();
-      expect(wrapper.vm.currentPage).not.toBe(1);
+      // Before debounce fires, page should still be 3
+      expect(wrapper.vm.currentPage).toBe(3);
 
       vi.advanceTimersByTime(300);
+      // After debounce fires, handleSearch resets to 1
       expect(wrapper.vm.currentPage).toBe(1);
 
       vi.useRealTimers();
@@ -518,15 +541,35 @@ describe("MarketPage.vue", () => {
     it("应该处理刷新失败", async () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      // Use hoisted mock directly
       const logger = mockLogger;
 
-      // Mock loadMarketProjects to throw error
-      wrapper.vm.loadMarketProjects = vi
-        .fn()
-        .mockRejectedValue(new Error("刷新失败"));
+      // Make searchOrders throw so loadMarketProjects enters catch path,
+      // then make projectStore.projects throw (it's accessed outside the inner try-catch)
+      mockMarketplace.searchOrders.mockRejectedValue(
+        new Error("network error"),
+      );
+      const originalProjects = mockProjectStore.projects;
+      let shouldThrow = false;
+      Object.defineProperty(mockProjectStore, "projects", {
+        get() {
+          if (shouldThrow) {
+            throw new Error("刷新失败");
+          }
+          return originalProjects;
+        },
+        configurable: true,
+      });
+      // Enable throwing right before refresh
+      shouldThrow = true;
 
       await wrapper.vm.handleRefresh();
+
+      // Restore
+      Object.defineProperty(mockProjectStore, "projects", {
+        value: originalProjects,
+        writable: true,
+        configurable: true,
+      });
 
       expect(logger.error).toHaveBeenCalled();
       expect(message.error).toHaveBeenCalledWith(
@@ -559,6 +602,7 @@ describe("MarketPage.vue", () => {
 
       await wrapper.vm.handleConfirmPurchase();
 
+      expect(mockMarketplace.matchOrder).toHaveBeenCalled();
       expect(message.success).toHaveBeenCalledWith(
         "购买成功！项目已添加到你的账户",
       );
@@ -600,24 +644,23 @@ describe("MarketPage.vue", () => {
       await wrapper.vm.loadMarketProjects();
 
       const message = mockMessage;
-      // Use hoisted mock directly
       const logger = mockLogger;
 
       wrapper.vm.selectedProject = wrapper.vm.marketProjects[0];
       wrapper.vm.walletBalance = 1500;
 
-      // Mock to throw error
-      vi.spyOn(global, "Promise").mockImplementationOnce(() => {
-        throw new Error("购买失败");
+      // Mock matchOrder to return failure
+      mockMarketplace.matchOrder.mockResolvedValue({
+        success: false,
+        error: "购买失败",
       });
 
-      try {
-        await wrapper.vm.handleConfirmPurchase();
-      } catch (error) {
-        // Expected error
-      }
+      await wrapper.vm.handleConfirmPurchase();
 
-      vi.restoreAllMocks();
+      expect(logger.error).toHaveBeenCalled();
+      expect(message.error).toHaveBeenCalledWith(
+        expect.stringContaining("购买失败"),
+      );
     });
   });
 
@@ -708,6 +751,7 @@ describe("MarketPage.vue", () => {
 
       await wrapper.vm.handleConfirmSell();
 
+      expect(mockMarketplace.createOrder).toHaveBeenCalled();
       expect(message.success).toHaveBeenCalledWith("项目已成功上架到市场！");
       expect(wrapper.vm.showSellModal).toBe(false);
     });
@@ -746,10 +790,11 @@ describe("MarketPage.vue", () => {
         thumbnail: "",
       };
 
-      // Mock loadMarketProjects to throw error
-      wrapper.vm.loadMarketProjects = vi
-        .fn()
-        .mockRejectedValue(new Error("上架失败"));
+      // Mock createOrder to return failure
+      mockMarketplace.createOrder.mockResolvedValue({
+        success: false,
+        error: "上架失败",
+      });
 
       await wrapper.vm.handleConfirmSell();
 
@@ -897,13 +942,13 @@ describe("MarketPage.vue", () => {
       expect(mockRouter.push).toHaveBeenCalledWith("/projects");
     });
 
-    it("应该显示详情开发中提示", () => {
+    it("应该跳转到项目详情页", () => {
       wrapper = createWrapper();
-      const message = mockMessage;
 
       wrapper.vm.handleViewDetail("market-1");
 
-      expect(message.info).toHaveBeenCalledWith("项目详情页开发中...");
+      // Component now navigates to project detail page
+      expect(mockRouter.push).toHaveBeenCalledWith("/projects/market-1");
     });
   });
 
@@ -944,7 +989,8 @@ describe("MarketPage.vue", () => {
     it("应该在加载时显示loading", async () => {
       wrapper = createWrapper();
 
-      const promise = wrapper.vm.loadMarketProjects();
+      // handleRefresh sets loading=true then calls loadMarketProjects
+      const promise = wrapper.vm.handleRefresh();
       expect(wrapper.vm.loading).toBe(true);
 
       await promise;
@@ -958,9 +1004,21 @@ describe("MarketPage.vue", () => {
       wrapper.vm.selectedProject = wrapper.vm.marketProjects[0];
       wrapper.vm.walletBalance = 1500;
 
+      // Make matchOrder take some time so we can observe purchasing=true
+      let resolveOrder;
+      mockMarketplace.matchOrder.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveOrder = resolve;
+          }),
+      );
+
       const promise = wrapper.vm.handleConfirmPurchase();
+      // After balance check passes (sync), purchasing is set to true
+      await wrapper.vm.$nextTick();
       expect(wrapper.vm.purchasing).toBe(true);
 
+      resolveOrder({ success: true });
       await promise;
       expect(wrapper.vm.purchasing).toBe(false);
     });
@@ -973,11 +1031,24 @@ describe("MarketPage.vue", () => {
         category: "web",
         price: 100,
         description: "测试",
+        thumbnail: "",
       };
 
+      // Make createOrder take some time so we can observe selling=true
+      let resolveOrder;
+      mockMarketplace.createOrder.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveOrder = resolve;
+          }),
+      );
+
       const promise = wrapper.vm.handleConfirmSell();
+      // After form validation passes (sync), selling is set to true
+      await wrapper.vm.$nextTick();
       expect(wrapper.vm.selling).toBe(true);
 
+      resolveOrder({ success: true });
       await promise;
       expect(wrapper.vm.selling).toBe(false);
     });
