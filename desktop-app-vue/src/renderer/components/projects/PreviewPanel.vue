@@ -649,8 +649,9 @@ const loadFileContent = async () => {
         break;
     }
   } catch (err) {
-    logger.error('加载文件失败:', err);
-    error.value = err.message || '加载文件失败';
+    const errorMessage = err instanceof Error ? err.message : (typeof err === 'string' ? err : JSON.stringify(err));
+    logger.error('加载文件失败:', errorMessage, err);
+    error.value = errorMessage || '加载文件失败';
   } finally {
     loading.value = false;
   }
@@ -897,8 +898,9 @@ const loadWord = async (filePath) => {
       throw new Error(result.error || 'Word文档预览失败');
     }
   } catch (err) {
-    logger.error('[PreviewPanel] Word加载失败:', err);
-    throw err;
+    const errorMessage = err instanceof Error ? err.message : (typeof err === 'string' ? err : JSON.stringify(err));
+    logger.error('[PreviewPanel] Word加载失败:', errorMessage, err);
+    throw new Error(errorMessage || 'Word文档加载失败');
   }
 };
 

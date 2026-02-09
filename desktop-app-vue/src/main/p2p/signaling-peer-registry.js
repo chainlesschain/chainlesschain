@@ -190,6 +190,27 @@ class SignalingPeerRegistry {
   }
 
   /**
+   * Register the local host device (no WebSocket needed)
+   * This allows the signaling server host to appear in the peers list
+   * @param {string} peerId - Local peer identifier
+   * @param {Object} deviceInfo - Device metadata
+   * @param {string} deviceType - Device type (usually 'DESKTOP')
+   */
+  registerLocal(peerId, deviceInfo = {}, deviceType = 'DESKTOP') {
+    this.peers.set(peerId, {
+      socket: null, // Local peer has no socket
+      deviceInfo,
+      deviceType,
+      connectedAt: Date.now(),
+      lastSeen: Date.now(),
+      isLocal: true, // Mark as local peer
+    });
+
+    this.stats.totalRegistrations++;
+    logger.info(`[PeerRegistry] Local peer registered: ${peerId} (${deviceType})`);
+  }
+
+  /**
    * Get all online peers
    * @returns {Array} List of online peer objects with peerId
    */
@@ -198,7 +219,8 @@ class SignalingPeerRegistry {
     const WebSocket = require('ws');
 
     for (const [peerId, peer] of this.peers.entries()) {
-      if (peer.socket && peer.socket.readyState === WebSocket.OPEN) {
+      // Include local peer (no socket) or peers with open socket
+      if (peer.isLocal || (peer.socket && peer.socket.readyState === WebSocket.OPEN)) {
         result.push({
           peerId,
           deviceType: peer.deviceType,

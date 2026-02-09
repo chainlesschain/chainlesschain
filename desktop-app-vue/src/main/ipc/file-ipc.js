@@ -1103,8 +1103,9 @@ class FileIPC {
         }
       }
     } catch (error) {
-      logger.error("[FileIPC] Word预览失败:", error);
-      throw error;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("[FileIPC] Word预览失败:", errorMessage, error);
+      throw new Error(`Word预览失败: ${errorMessage}`);
     }
   }
 
