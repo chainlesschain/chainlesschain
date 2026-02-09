@@ -8,8 +8,10 @@ import com.chainlesschain.android.core.p2p.connection.AutoReconnectManager
 import com.chainlesschain.android.core.p2p.connection.HeartbeatManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.connection.SignalingClient
+import com.chainlesschain.android.core.p2p.discovery.CompositeDeviceDiscovery
 import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
 import com.chainlesschain.android.core.p2p.discovery.NSDDiscovery
+import com.chainlesschain.android.core.p2p.discovery.SignalingDeviceDiscovery
 import com.chainlesschain.android.core.p2p.filetransfer.FileTransferManager
 import com.chainlesschain.android.core.p2p.ice.IceServerConfig
 import com.chainlesschain.android.core.p2p.network.NetworkMonitor
@@ -47,14 +49,38 @@ object P2PNetworkModule {
     }
 
     /**
-     * 提供设备发现服务
+     * 提供 NSD 设备发现服务
+     */
+    @Provides
+    @Singleton
+    fun provideNSDDiscovery(
+        @ApplicationContext context: Context
+    ): NSDDiscovery {
+        return NSDDiscovery(context)
+    }
+
+    /**
+     * 提供信令服务器设备发现服务
+     */
+    @Provides
+    @Singleton
+    fun provideSignalingDeviceDiscovery(
+        @ApplicationContext context: Context
+    ): SignalingDeviceDiscovery {
+        return SignalingDeviceDiscovery(context)
+    }
+
+    /**
+     * 提供组合设备发现服务（同时支持 NSD 和信令服务器）
      */
     @Provides
     @Singleton
     fun provideDeviceDiscovery(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        nsdDiscovery: NSDDiscovery,
+        signalingDiscovery: SignalingDeviceDiscovery
     ): DeviceDiscovery {
-        return NSDDiscovery(context)
+        return CompositeDeviceDiscovery(context, nsdDiscovery, signalingDiscovery)
     }
 
     /**

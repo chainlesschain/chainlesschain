@@ -26,7 +26,8 @@ data class UpdateProjectRequest(
     val icon: String? = null,
     val coverImage: String? = null,
     val tags: List<String>? = null,
-    val metadata: String? = null
+    val metadata: String? = null,
+    val rootPath: String? = null  // 项目根目录路径（与PC端对齐）
 )
 
 /**
