@@ -443,13 +443,8 @@ describe("IntentClassifier", () => {
         expect(result.entities.fileName).toBe("report.pdf");
       });
 
-      it.skip("should extract Word file name", async () => {
-        // SKIP: 源代码问题 - 正则表达式先匹配短扩展名
-        // 文件名正则: /[\w-]+\.(html|css|js|pdf|doc|docx|xls|xlsx|md|txt)/gi
-        // "document.docx" 会先匹配到 "doc" 而不是 "docx"
-        //
-        // 修复建议: intent-classifier.js line 299
-        // 将长扩展名放在前面: /(docx|xlsx|html|css|js|pdf|doc|xls|md|txt)/
+      it("should extract Word file name", async () => {
+        // Fixed: regex now matches longer extensions first (docx before doc)
         const result = await classifier.classify("编辑document.docx");
         expect(result.entities.fileName).toBe("document.docx");
       });
@@ -459,9 +454,8 @@ describe("IntentClassifier", () => {
         expect(result.entities.fileName).toBe("user-profile.html");
       });
 
-      it.skip("should extract file name with underscores", async () => {
-        // SKIP: 源代码问题 - 同上，正则表达式先匹配短扩展名
-        // "test_data.xlsx" 会先匹配到 "xls" 而不是 "xlsx"
+      it("should extract file name with underscores", async () => {
+        // Fixed: regex now matches longer extensions first (xlsx before xls)
         const result = await classifier.classify("查看test_data.xlsx");
         expect(result.entities.fileName).toBe("test_data.xlsx");
       });
