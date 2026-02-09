@@ -79,10 +79,10 @@ fun DeviceScanScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Scan Devices") },
+                title = { Text("扫描设备") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 }
             )
@@ -101,7 +101,7 @@ fun DeviceScanScreen(
 
             if (discoveredDevices.isNotEmpty()) {
                 Text(
-                    text = "Discovered Devices (${discoveredDevices.size})",
+                    text = "发现的设备 (${discoveredDevices.size})",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(16.dp)
@@ -179,21 +179,21 @@ fun ScanStatusCard(
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = if (isScanning) "Scanning..." else "Ready to scan",
+                text = if (isScanning) "扫描中..." else "准备扫描",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = if (isScanning) "Looking for remote peers in local network"
-                else "Tap the button below to discover available PCs",
+                text = if (isScanning) "正在搜索局域网内的设备"
+                else "点击下方按钮发现可用的电脑",
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center
             )
             if (!isScanning && deviceCount > 0) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "$deviceCount device(s) found",
+                    text = "发现 $deviceCount 台设备",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
@@ -205,7 +205,7 @@ fun ScanStatusCard(
                 enabled = !isScanning,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isScanning) "Scanning..." else "Start Scan")
+                Text(if (isScanning) "扫描中..." else "开始扫描")
             }
         }
     }
@@ -266,7 +266,7 @@ fun DiscoveredDeviceItem(
                             tint = Color(0xFF2E7D32)
                         )
                         Spacer(modifier = Modifier.size(4.dp))
-                        Text("Registered", style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
+                        Text("已注册", style = MaterialTheme.typography.labelSmall, color = Color(0xFF2E7D32))
                     }
                 }
             } else {
@@ -292,10 +292,10 @@ fun EmptyScanState() {
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Text("No devices found", style = MaterialTheme.typography.titleMedium)
+        Text("未发现设备", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "Ensure your desktop app is running in the same LAN",
+            "请确保桌面应用在同一局域网内运行",
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center
         )
@@ -311,15 +311,15 @@ fun RegisterDeviceDialog(
     var deviceName by remember { mutableStateOf(device.deviceName) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Register Device") },
+        title = { Text("注册设备") },
         text = {
             Column {
-                Text("Register this device before connecting.")
+                Text("连接前请先注册此设备")
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = deviceName,
                     onValueChange = { deviceName = it },
-                    label = { Text("Device Name") },
+                    label = { Text("设备名称") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -329,12 +329,12 @@ fun RegisterDeviceDialog(
         },
         confirmButton = {
             Button(onClick = { onConfirm(deviceName) }, enabled = deviceName.isNotBlank()) {
-                Text("Register")
+                Text("注册")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("取消")
             }
         }
     )

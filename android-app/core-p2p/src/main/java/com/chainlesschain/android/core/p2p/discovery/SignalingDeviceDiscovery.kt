@@ -34,6 +34,7 @@ class SignalingDeviceDiscovery @Inject constructor(
         private const val TAG = "SignalingDeviceDiscovery"
         private const val PREFS_NAME = "signaling_prefs"
         private const val KEY_CUSTOM_URL = "custom_signaling_url"
+        // 默认使用局域网 PC 地址
         private const val DEFAULT_URL = "ws://192.168.3.59:9001"
         private const val RECONNECT_DELAY_MS = 5000L
         private const val HEARTBEAT_INTERVAL_MS = 30000L

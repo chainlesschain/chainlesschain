@@ -16,11 +16,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { ref, onMounted } from 'vue';
 
-// Mock message object (used directly in setup)
-const mockMessage = {
+// Define mock using vi.hoisted to ensure it's available for vi.mock
+const mockMessage = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
-};
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+// Mock ant-design-vue with our hoisted mock
+vi.mock('ant-design-vue', () => ({
+  message: mockMessage,
+}));
 
 // Mock logger object (used directly in setup)
 const mockLogger = {
@@ -28,14 +35,6 @@ const mockLogger = {
   warn: vi.fn(),
   info: vi.fn(),
 };
-
-// Mock ant-design-vue
-vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-}));
 
 // Mock vue-router
 const mockRouter = {
@@ -359,7 +358,7 @@ describe('SyncConflictsPage', () => {
 
     it('应该处理未选择组织的情况', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockIdentityStore.currentOrgId = null;
 
       await wrapper.vm.loadConflicts();
@@ -369,7 +368,7 @@ describe('SyncConflictsPage', () => {
 
     it('应该处理加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Load failed'));
 
       await wrapper.vm.loadConflicts();
@@ -394,7 +393,7 @@ describe('SyncConflictsPage', () => {
     it('应该能使用本地版本解决冲突', async () => {
       wrapper = createWrapper();
       wrapper.vm.conflicts = mockConflicts;
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
       await wrapper.vm.handleResolve(mockConflicts[0], 'local_wins');
@@ -423,7 +422,7 @@ describe('SyncConflictsPage', () => {
     it('应该能使用远程版本解决冲突', async () => {
       wrapper = createWrapper();
       wrapper.vm.conflicts = mockConflicts;
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
       await wrapper.vm.handleResolve(mockConflicts[0], 'remote_wins');
@@ -439,7 +438,7 @@ describe('SyncConflictsPage', () => {
     it('应该能处理解决失败', async () => {
       wrapper = createWrapper();
       wrapper.vm.conflicts = mockConflicts;
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Resolve failed'));
 
       await wrapper.vm.handleResolve(mockConflicts[0], 'remote_wins');
@@ -471,7 +470,7 @@ describe('SyncConflictsPage', () => {
         null,
         2
       );
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
       await wrapper.vm.handleManualMergeOk();
@@ -503,7 +502,7 @@ describe('SyncConflictsPage', () => {
       wrapper = createWrapper();
       wrapper.vm.currentConflict = mockConflicts[0];
       wrapper.vm.mergedData = JSON.stringify({ title: 'Test' }, null, 2);
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Merge failed'));
 
       await wrapper.vm.handleManualMergeOk();

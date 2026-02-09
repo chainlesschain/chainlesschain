@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ChainlessChain</string>
+    <string name="app_name">无链之链</string>
 
     <!-- Social Screen -->
-    <string name="social_tab_friends">Friends</string>
-    <string name="social_tab_timeline">Timeline</string>
-    <string name="social_tab_notifications">Notifications</string>
-    <string name="social_friends_placeholder">Friends screen is temporarily simplified for build stability.</string>
-    <string name="social_timeline_placeholder">Timeline screen is temporarily simplified for build stability.</string>
-    <string name="social_notifications_placeholder">Notifications screen is temporarily simplified for build stability.</string>
+    <string name="social_tab_friends">好友</string>
+    <string name="social_tab_timeline">动态</string>
+    <string name="social_tab_notifications">通知</string>
+    <string name="social_friends_placeholder">好友页面为了构建稳定性暂时简化。</string>
+    <string name="social_timeline_placeholder">动态页面为了构建稳定性暂时简化。</string>
+    <string name="social_notifications_placeholder">通知页面为了构建稳定性暂时简化。</string>
 
     <!-- P2P Chat -->
-    <string name="p2p_chat_title">Messages</string>
-    <string name="p2p_chat_empty">No conversations yet</string>
+    <string name="p2p_chat_title">消息</string>
+    <string name="p2p_chat_empty">暂无对话</string>
 
     <!-- File Statistics -->
-    <string name="file_statistics_title">File Statistics</string>
-    <string name="file_statistics_total">%1$d files, %2$s</string>
-    <string name="file_statistics_favorites">%d favorites</string>
-    <string name="file_statistics_imported">%d imported</string>
+    <string name="file_statistics_title">文件统计</string>
+    <string name="file_statistics_total">%1$d 个文件，%2$s</string>
+    <string name="file_statistics_favorites">%d 个收藏</string>
+    <string name="file_statistics_imported">%d 个已导入</string>
 </resources>

@@ -395,6 +395,98 @@ const sanitizeJSONString = (jsonString) => {
   return jsonString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "");
 };
 
+const WINDOWS_RESERVED_FILE_NAMES = new Set([
+  "CON",
+  "PRN",
+  "AUX",
+  "NUL",
+  "COM1",
+  "COM2",
+  "COM3",
+  "COM4",
+  "COM5",
+  "COM6",
+  "COM7",
+  "COM8",
+  "COM9",
+  "LPT1",
+  "LPT2",
+  "LPT3",
+  "LPT4",
+  "LPT5",
+  "LPT6",
+  "LPT7",
+  "LPT8",
+  "LPT9",
+]);
+
+const sanitizeFileName = (rawName, fallbackName = "document") => {
+  const baseName = String(rawName || fallbackName)
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\.+$/, "");
+  const normalized = baseName || fallbackName;
+  const safeName = WINDOWS_RESERVED_FILE_NAMES.has(normalized.toUpperCase())
+    ? `${normalized}_file`
+    : normalized;
+  return safeName.slice(0, 120);
+};
+
+const getDirectoryPath = (targetPath) => {
+  if (!targetPath || typeof targetPath !== "string") {
+    return "";
+  }
+  const normalized = targetPath.trim();
+  const lastSlashIndex = Math.max(
+    normalized.lastIndexOf("/"),
+    normalized.lastIndexOf("\\"),
+  );
+  if (lastSlashIndex <= 0) {
+    return normalized;
+  }
+  return normalized.slice(0, lastSlashIndex);
+};
+
+const joinPath = (dirPath, fileName) => {
+  const separator = dirPath.includes("\\") ? "\\" : "/";
+  return dirPath.endsWith("/") || dirPath.endsWith("\\")
+    ? `${dirPath}${fileName}`
+    : `${dirPath}${separator}${fileName}`;
+};
+
+const resolveProjectOutput = async (
+  projectId,
+  rawBaseName,
+  extension,
+  fallbackBaseName,
+) => {
+  const project = await window.electronAPI.project.get(projectId);
+  if (!project || !project.root_path) {
+    throw new Error("无法获取项目路径，请确保项目已正确配置");
+  }
+
+  let targetDir = project.root_path;
+  try {
+    const statResult = await window.electronAPI.file.stat(targetDir);
+    if (statResult?.success && statResult.stats?.isFile) {
+      targetDir = getDirectoryPath(targetDir);
+    }
+  } catch (statError) {
+    logger.warn("[ChatPanel] 项目路径检查失败，按目录继续处理:", statError);
+  }
+
+  if (!targetDir) {
+    throw new Error("项目路径无效，无法生成输出文件");
+  }
+
+  const safeBaseName = sanitizeFileName(rawBaseName, fallbackBaseName);
+  const fileName = `${safeBaseName}.${extension}`;
+  const outputPath = joinPath(targetDir, fileName);
+
+  return { fileName, outputPath, targetDir };
+};
+
 /**
  * 清理对象，移除不可序列化的内容（用于IPC传输）
  * @param {any} obj - 要清理的对象
@@ -2048,17 +2140,12 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         messages.value = [...messages.value];
 
         // 获取项目路径
-        const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.root_path) {
-          throw new Error("无法获取项目路径，请确保项目已正确配置");
-        }
-        const projectPath = project.root_path;
-        // 使用简单的路径拼接（跨平台兼容）
-        const fileName = `${outline.title || "presentation"}.pptx`;
-        const outputPath =
-          projectPath.endsWith("/") || projectPath.endsWith("\\")
-            ? projectPath + fileName
-            : projectPath + "/" + fileName;
+        const { fileName, outputPath } = await resolveProjectOutput(
+          props.projectId,
+          outline.title || "presentation",
+          "pptx",
+          "presentation",
+        );
 
         // 调用PPT生成API
         const result = await window.electronAPI.aiEngine.generatePPT({
@@ -2205,16 +2292,12 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         messages.value = [...messages.value];
 
         // 获取项目路径
-        const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.root_path) {
-          throw new Error("无法获取项目路径，请确保项目已正确配置");
-        }
-        const projectPath = project.root_path;
-        const fileName = `${documentStructure.title || "document"}.docx`;
-        const outputPath =
-          projectPath.endsWith("/") || projectPath.endsWith("\\")
-            ? projectPath + fileName
-            : projectPath + "/" + fileName;
+        const { fileName, outputPath } = await resolveProjectOutput(
+          props.projectId,
+          documentStructure.title || "document",
+          "docx",
+          "document",
+        );
 
         // 调用Word生成API
         const result = await window.electronAPI.aiEngine.generateWord({
@@ -2337,16 +2420,12 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         generatingExcelMsg.content = "⏳ 正在写入Excel文件...";
         messages.value = [...messages.value];
 
-        const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.root_path) {
-          throw new Error("无法获取项目路径");
-        }
-        const projectPath = project.root_path;
-        const fileName = `${plan.title || "data"}.xlsx`;
-        const outputPath =
-          projectPath.endsWith("/") || projectPath.endsWith("\\")
-            ? projectPath + fileName
-            : projectPath + "/" + fileName;
+        const { fileName, outputPath } = await resolveProjectOutput(
+          props.projectId,
+          plan.title || "data",
+          "xlsx",
+          "data",
+        );
 
         // 调用data-engine写入Excel
         await window.electronAPI.file.writeExcel(outputPath, {
@@ -2428,19 +2507,15 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         generatingMdMsg.content = "⏳ 正在写入Markdown文件...";
         messages.value = [...messages.value];
 
-        const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.root_path) {
-          throw new Error("无法获取项目路径");
-        }
-        const projectPath = project.root_path;
-        const fileName = `${plan.title || "document"}.md`;
-        const outputPath =
-          projectPath.endsWith("/") || projectPath.endsWith("\\")
-            ? projectPath + fileName
-            : projectPath + "/" + fileName;
+        const { fileName, outputPath } = await resolveProjectOutput(
+          props.projectId,
+          plan.title || "document",
+          "md",
+          "document",
+        );
 
         // 写入Markdown文件
-        await window.electronAPI.file.write(outputPath, mdResponse);
+        await window.electronAPI.file.writeContent(outputPath, mdResponse);
 
         logger.info("[ChatPanel] ✅ Markdown文件生成成功");
 
@@ -2521,19 +2596,15 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         generatingWebMsg.content = "⏳ 正在写入HTML文件...";
         messages.value = [...messages.value];
 
-        const project = await window.electronAPI.project.get(props.projectId);
-        if (!project || !project.root_path) {
-          throw new Error("无法获取项目路径");
-        }
-        const projectPath = project.root_path;
-        const fileName = `${plan.title || "index"}.html`;
-        const outputPath =
-          projectPath.endsWith("/") || projectPath.endsWith("\\")
-            ? projectPath + fileName
-            : projectPath + "/" + fileName;
+        const { fileName, outputPath } = await resolveProjectOutput(
+          props.projectId,
+          plan.title || "index",
+          "html",
+          "index",
+        );
 
         // 写入HTML文件
-        await window.electronAPI.file.write(outputPath, htmlContent);
+        await window.electronAPI.file.writeContent(outputPath, htmlContent);
 
         logger.info("[ChatPanel] ✅ 网页文件生成成功");
 

@@ -10,13 +10,20 @@
         </trust-anchors>
     </base-config>
 
-    <!-- 开发环境配置：仅允许 localhost 明文流量 -->
+    <!-- 开发环境配置：允许本地开发和局域网明文流量 -->
     <domain-config cleartextTrafficPermitted="true">
         <!-- 本地开发服务器 -->
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android 模拟器 host -->
-        <domain includeSubdomains="true">192.168.1.1</domain> <!-- 局域网开发 -->
+        <!-- 局域网 P2P 信令服务器 -->
+        <domain includeSubdomains="true">192.168.3.59</domain>
+        <domain includeSubdomains="true">192.168.1.1</domain>
+        <!-- 允许常见局域网网段 -->
+        <domain includeSubdomains="true">192.168.0.1</domain>
+        <domain includeSubdomains="true">192.168.2.1</domain>
+        <domain includeSubdomains="true">192.168.4.1</domain>
+        <domain includeSubdomains="true">192.168.5.1</domain>
     </domain-config>
 
     <!-- 可选：针对特定域名的配置 -->

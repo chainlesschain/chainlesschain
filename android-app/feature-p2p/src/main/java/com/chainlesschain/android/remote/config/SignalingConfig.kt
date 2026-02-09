@@ -26,8 +26,8 @@ class SignalingConfig @Inject constructor() {
          */
         const val DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com:9001"
 
-        /** Debug-only fallback for Android emulator (10.0.2.2 maps to host loopback) */
-        const val DEBUG_SIGNALING_URL = "ws://10.0.2.2:9001"
+        /** Debug-only fallback - use local network IP for real device testing */
+        const val DEBUG_SIGNALING_URL = "ws://192.168.3.59:9001"
 
         /**
          * 连接超时（毫秒）

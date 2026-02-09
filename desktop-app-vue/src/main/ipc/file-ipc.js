@@ -653,10 +653,12 @@ class FileIPC {
           data,
         };
       } catch (error) {
+        const normalizedError = this.normalizeError(error, "Office文件预览失败");
         logger.error("[File IPC] Office文件预览失败:", error);
         return {
           success: false,
-          error: error.message,
+          error: normalizedError.message,
+          details: normalizedError.details,
         };
       }
     });
@@ -957,6 +959,56 @@ class FileIPC {
     }
   }
 
+  normalizeError(error, fallbackMessage = "未知错误") {
+    if (error instanceof Error) {
+      const details = {
+        name: error.name,
+        stack: error.stack,
+      };
+
+      if (Object.prototype.hasOwnProperty.call(error, "code")) {
+        details.code = error.code;
+      }
+
+      return {
+        message: error.message || fallbackMessage,
+        details,
+      };
+    }
+
+    if (typeof error === "string") {
+      return {
+        message: error || fallbackMessage,
+        details: null,
+      };
+    }
+
+    try {
+      return {
+        message: JSON.stringify(error) || fallbackMessage,
+        details: error ?? null,
+      };
+    } catch (_serializationError) {
+      return {
+        message: fallbackMessage,
+        details: null,
+      };
+    }
+  }
+
+  assertOfficeExtension(filePath, format, supportedExtensions) {
+    const extension = path.extname(filePath || "").toLowerCase();
+
+    if (!supportedExtensions.includes(extension)) {
+      const supportedList = supportedExtensions.join(", ");
+      throw new Error(
+        `${format} 预览仅支持 ${supportedList} 文件，当前为 ${
+          extension || "未知扩展名"
+        }`,
+      );
+    }
+  }
+
   /**
    * 预览Word文档
    */
@@ -964,6 +1016,8 @@ class FileIPC {
     logger.info("[FileIPC] 开始预览Word文档:", filePath);
 
     try {
+      this.assertOfficeExtension(filePath, "Word", [".docx"]);
+
       // 检查文件是否存在
       const fileExists = await fs
         .access(filePath)
@@ -1116,6 +1170,8 @@ class FileIPC {
     logger.info("[FileIPC] 开始预览Excel表格:", filePath);
 
     try {
+      this.assertOfficeExtension(filePath, "Excel", [".xlsx"]);
+
       // 检查文件是否存在
       const fileExists = await fs
         .access(filePath)
@@ -1163,8 +1219,9 @@ class FileIPC {
         sheetNames,
       };
     } catch (error) {
+      const errorMessage = this.normalizeError(error, "Excel预览失败").message;
       logger.error("[FileIPC] Excel预览失败:", error);
-      throw error;
+      throw new Error(`Excel预览失败: ${errorMessage}`);
     }
   }
 
@@ -1175,6 +1232,8 @@ class FileIPC {
     logger.info("[FileIPC] 开始预览PowerPoint:", filePath);
 
     try {
+      this.assertOfficeExtension(filePath, "PowerPoint", [".pptx"]);
+
       // 检查文件是否存在
       const fileExists = await fs
         .access(filePath)
@@ -1198,8 +1257,12 @@ class FileIPC {
         slideCount: slides.length,
       };
     } catch (error) {
+      const errorMessage = this.normalizeError(
+        error,
+        "PowerPoint预览失败",
+      ).message;
       logger.error("[FileIPC] PowerPoint预览外部失败:", error);
-      throw error;
+      throw new Error(`PowerPoint预览失败: ${errorMessage}`);
     }
   }
 }

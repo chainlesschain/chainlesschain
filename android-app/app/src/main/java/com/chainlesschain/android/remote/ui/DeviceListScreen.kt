@@ -46,15 +46,15 @@ fun DeviceListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Device Management") },
+                title = { Text("设备管理") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToDeviceScan) {
-                        Icon(Icons.Default.Add, contentDescription = "Scan")
+                        Icon(Icons.Default.Add, contentDescription = "扫描")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -71,14 +71,14 @@ fun DeviceListScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Registered devices",
+                text = "已注册设备",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
 
             if (devices.isEmpty()) {
                 Text(
-                    text = "No registered devices. Tap + to scan and register.",
+                    text = "暂无已注册设备，点击 + 扫描并注册设备",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -109,7 +109,7 @@ fun DeviceListScreen(
                                 )
                             }
                             TextButton(onClick = { viewModel.remove(device.peerId) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                Icon(Icons.Default.Delete, contentDescription = "删除")
                             }
                             Icon(Icons.Default.ChevronRight, contentDescription = null)
                         }
@@ -119,7 +119,7 @@ fun DeviceListScreen(
 
             HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
             Text(
-                text = "Tip: tap a device card to open remote control.",
+                text = "提示：点击设备卡片进入远程控制",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
