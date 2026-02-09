@@ -837,13 +837,14 @@ console.log("nested");
     });
 
     it('should handle operations with relative paths', () => {
+      const path = require('path');
       const operation = {
         type: 'CREATE',
         path: './src/app.js',
         content: 'code'
       };
 
-      const result = validateOperation(operation, '/project/root');
+      const result = validateOperation(operation, path.resolve('/project/root'));
 
       expect(result.valid).toBe(true);
     });

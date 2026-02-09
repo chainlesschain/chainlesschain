@@ -1862,6 +1862,132 @@ class MainViewModel : ViewModel() {
     this.structures[type] = structure;
     logger.info(`[Project Structure] 添加项目类型: ${type}`);
   }
+
+  // ============================================================
+  // 新增模板相关方法（与Android对齐）
+  // ============================================================
+
+  /**
+   * 根据模板ID获取模板
+   * @param {string} templateId - 模板ID
+   * @returns {Object|null} 模板对象
+   */
+  getTemplateById(templateId) {
+    return getTemplateById(templateId);
+  }
+
+  /**
+   * 根据分类获取模板
+   * @param {string} category - 分类
+   * @returns {Array} 模板列表
+   */
+  getTemplatesByCategory(category) {
+    return getTemplatesByCategory(category);
+  }
+
+  /**
+   * 根据项目类型获取模板
+   * @param {string} projectType - 项目类型
+   * @returns {Array} 模板列表
+   */
+  getTemplatesByProjectType(projectType) {
+    return getTemplatesByProjectType(projectType);
+  }
+
+  /**
+   * 从模板创建项目结构
+   * @param {string} projectPath - 项目路径
+   * @param {string} templateId - 模板ID
+   * @param {string} projectName - 项目名称
+   * @returns {Promise<Object>} 创建结果
+   */
+  async createFromTemplate(projectPath, templateId, projectName = "My Project") {
+    const template = getTemplateById(templateId);
+
+    if (!template) {
+      throw new Error(`模板不存在: ${templateId}`);
+    }
+
+    logger.info(
+      `[Project Structure] 从模板创建项目: ${template.name}, 路径: ${projectPath}`
+    );
+
+    try {
+      // 确保项目根目录存在
+      await fs.mkdir(projectPath, { recursive: true });
+
+      // 创建目录结构
+      for (const dir of template.directories || []) {
+        const dirPath = path.join(projectPath, dir);
+        await fs.mkdir(dirPath, { recursive: true });
+        logger.info(`[Project Structure] 创建目录: ${dir}`);
+      }
+
+      // 创建文件
+      const createdFiles = [];
+
+      for (const fileConfig of template.files || []) {
+        const filePath = path.join(projectPath, fileConfig.path);
+        const templateName = fileConfig.template;
+
+        // 确保文件所在目录存在
+        await fs.mkdir(path.dirname(filePath), { recursive: true });
+
+        let content = "";
+
+        if (fileConfig.content) {
+          // 如果模板定义中直接包含内容
+          content = fileConfig.content;
+        } else if (templateName && this.templates[templateName]) {
+          // 从templates中获取内容
+          if (typeof this.templates[templateName] === "function") {
+            content = this.templates[templateName](projectName);
+          } else if (typeof this.templates[templateName] === "string") {
+            content = this.templates[templateName];
+          }
+        }
+
+        await fs.writeFile(filePath, content, "utf-8");
+        createdFiles.push(fileConfig.path);
+        logger.info(`[Project Structure] 创建文件: ${fileConfig.path}`);
+      }
+
+      logger.info(`[Project Structure] 模板项目创建成功`);
+
+      return {
+        success: true,
+        projectPath,
+        templateId,
+        templateName: template.name,
+        projectType: template.projectType,
+        directories: template.directories || [],
+        files: createdFiles,
+      };
+    } catch (error) {
+      logger.error("[Project Structure] 从模板创建失败:", error);
+      throw new Error(`从模板创建项目失败: ${error.message}`);
+    }
+  }
+
+  /**
+   * 获取项目类型信息
+   * @param {string} projectType - 项目类型
+   * @returns {Object|null} 项目类型信息
+   */
+  getProjectTypeInfo(projectType) {
+    return ProjectTypeInfo[projectType] || null;
+  }
+
+  /**
+   * 获取所有项目类型信息
+   * @returns {Array} 项目类型信息列表
+   */
+  getAllProjectTypeInfo() {
+    return Object.keys(ProjectType).map((key) => ({
+      type: ProjectType[key],
+      ...ProjectTypeInfo[ProjectType[key]],
+    }));
+  }
 }
 
 module.exports = ProjectStructureManager;
