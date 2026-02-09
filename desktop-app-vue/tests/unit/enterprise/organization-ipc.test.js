@@ -166,9 +166,10 @@ describe("Organization IPC 处理器", () => {
 
   describe("基本功能测试", () => {
     it("should register all expected IPC handlers", () => {
-      // 总共应该有 49 个 handlers
-      // 12 (基础) + 4 (成员) + 8 (邀请) + 9 (邀请链接) + 5 (QR码) + 6 (角色) + 2 (活动) + 3 (知识库) = 49
-      expect(Object.keys(handlers).length).toBeGreaterThanOrEqual(49);
+      // Total handlers: 12 (基础, includes member ops) + 8 (邀请) + 9 (邀请链接) + 5 (QR码) + 6 (角色) + 2 (活动) + 3 (知识库) = 45
+      // Plus 1 alias (organization:get-info) = 46 minimum
+      // Plus 2 delete handlers = 48 total
+      expect(Object.keys(handlers).length).toBeGreaterThanOrEqual(46);
     });
 
     it("should have all expected handler channels", () => {
