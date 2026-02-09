@@ -561,10 +561,15 @@ class AnimationController {
    * Check if user prefers reduced motion
    */
   private checkReducedMotion(): boolean {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       return false;
     }
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    try {
+      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      return mediaQuery?.matches ?? false;
+    } catch {
+      return false;
+    }
   }
 
   /**
