@@ -838,7 +838,8 @@ class DatabaseManager {
         synced_at INTEGER,
         device_id TEXT,
         deleted INTEGER DEFAULT 0,
-        category_id TEXT
+        category_id TEXT,
+        delivered_at TEXT
       );
 
       -- 项目文件表
@@ -1138,6 +1139,19 @@ class DatabaseManager {
         UNIQUE(template_id, user_id)
       );
 
+      -- 项目RAG索引表 (用于增量索引追踪)
+      CREATE TABLE IF NOT EXISTS project_rag_index (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        file_id TEXT NOT NULL,
+        content_hash TEXT NOT NULL,
+        indexed_at INTEGER NOT NULL,
+        chunk_count INTEGER DEFAULT 0,
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (file_id) REFERENCES project_files(id) ON DELETE CASCADE,
+        UNIQUE(project_id, file_id)
+      );
+
       -- 创建所有索引
       CREATE INDEX IF NOT EXISTS idx_knowledge_items_created_at ON knowledge_items(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_knowledge_items_updated_at ON knowledge_items(updated_at DESC);
@@ -1194,6 +1208,10 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_project_shares_project_id ON project_shares(project_id);
       CREATE INDEX IF NOT EXISTS idx_project_shares_token ON project_shares(share_token);
       CREATE INDEX IF NOT EXISTS idx_project_shares_mode ON project_shares(share_mode);
+
+      CREATE INDEX IF NOT EXISTS idx_project_rag_index_project_id ON project_rag_index(project_id);
+      CREATE INDEX IF NOT EXISTS idx_project_rag_index_file_id ON project_rag_index(file_id);
+      CREATE INDEX IF NOT EXISTS idx_project_rag_index_content_hash ON project_rag_index(content_hash);
 
       CREATE INDEX IF NOT EXISTS idx_templates_category ON project_templates(category);
       CREATE INDEX IF NOT EXISTS idx_templates_subcategory ON project_templates(subcategory);
@@ -3832,6 +3850,18 @@ class DatabaseManager {
       if (!messagesInfoV5.some((col) => col.name === "metadata")) {
         logger.info("[Database] 添加 messages.metadata 列");
         this.db.run("ALTER TABLE messages ADD COLUMN metadata TEXT");
+      }
+
+      // ==================== 项目交付时间迁移 (V6) ====================
+      logger.info("[Database] 执行项目交付时间迁移 (V6)...");
+
+      // 为 projects 表添加 delivered_at 字段
+      const projectsInfoV6 = this.db
+        .prepare("PRAGMA table_info(projects)")
+        .all();
+      if (!projectsInfoV6.some((col) => col.name === "delivered_at")) {
+        logger.info("[Database] 添加 projects.delivered_at 列");
+        this.db.run("ALTER TABLE projects ADD COLUMN delivered_at TEXT");
       }
 
       logger.info("[Database] 数据库迁移完成");
@@ -6844,6 +6874,7 @@ class DatabaseManager {
       "root_path",
       "folder_path",
       "project_type",
+      "delivered_at",
     ];
 
     allowedFields.forEach((field) => {
