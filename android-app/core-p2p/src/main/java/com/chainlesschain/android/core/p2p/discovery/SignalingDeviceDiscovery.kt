@@ -305,7 +305,8 @@ class SignalingDeviceDiscovery @Inject constructor(
             "DESKTOP", "PC", "WINDOWS", "MACOS", "LINUX" -> DeviceType.DESKTOP
             "ANDROID" -> DeviceType.MOBILE
             "IOS", "IPHONE", "IPAD" -> DeviceType.MOBILE
-            "TABLET" -> DeviceType.TABLET
+            "TABLET" -> DeviceType.MOBILE
+            "WEB" -> DeviceType.WEB
             else -> DeviceType.OTHER
         }
     }
