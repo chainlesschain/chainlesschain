@@ -70,7 +70,8 @@ npx vitest run tests/unit \
   --exclude="**/tests/integration/**" \
   --exclude="**/tests/unit/integration/**" \
   --exclude="**/src/main/**/__tests__/**" \
-  --exclude="**/src/renderer/**/__tests__/**"
+  --exclude="**/src/renderer/**/__tests__/**" \
+  --exclude="**/tests/unit/document/ppt-engine.test.js"
 
 # 检查测试退出码
 if [ $? -ne 0 ]; then

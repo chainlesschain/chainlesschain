@@ -790,10 +790,10 @@ describe("FeedList", () => {
       expect(message.error).toHaveBeenCalledWith("请输入网站 URL");
     });
 
-    it("应该能添加发现的订阅源", () => {
+    it("应该能添加发现的订阅源", async () => {
       wrapper.vm.discoverModalVisible = true;
 
-      wrapper.vm.addDiscoveredFeed("https://example.com/feed.xml");
+      await wrapper.vm.addDiscoveredFeed("https://example.com/feed.xml");
 
       expect(wrapper.vm.feedForm.url).toBe("https://example.com/feed.xml");
       expect(wrapper.vm.discoverModalVisible).toBe(false);
