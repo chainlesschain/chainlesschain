@@ -622,20 +622,40 @@ function registerAllIPC(dependencies) {
     }
 
     // 系统窗口控制 - 提前注册 (不需要 mainWindow 的部分)
-    logger.info("[IPC Registry] Registering System IPC (early)...");
-    const { registerSystemIPC } = require("../system/system-ipc");
-    registerSystemIPC({ mainWindow: mainWindow || null });
-    logger.info("[IPC Registry] ✓ System IPC registered (early, 16 handlers)");
+    try {
+      logger.info("[IPC Registry] Registering System IPC (early)...");
+      const { registerSystemIPC } = require("../system/system-ipc");
+      registerSystemIPC({ mainWindow: mainWindow || null });
+      logger.info("[IPC Registry] ✓ System IPC registered (early, 16 handlers)");
+    } catch (systemError) {
+      logger.error(
+        "[IPC Registry] ✗ System IPC registration failed:",
+        systemError.message,
+      );
+      logger.info(
+        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
+      );
+    }
 
     // 通知管理 - 提前注册
-    logger.info("[IPC Registry] Registering Notification IPC (early)...");
-    const {
-      registerNotificationIPC,
-    } = require("../notification/notification-ipc");
-    registerNotificationIPC({ database: database || null });
-    logger.info(
-      "[IPC Registry] ✓ Notification IPC registered (early, 5 handlers)",
-    );
+    try {
+      logger.info("[IPC Registry] Registering Notification IPC (early)...");
+      const {
+        registerNotificationIPC,
+      } = require("../notification/notification-ipc");
+      registerNotificationIPC({ database: database || null });
+      logger.info(
+        "[IPC Registry] ✓ Notification IPC registered (early, 5 handlers)",
+      );
+    } catch (notificationError) {
+      logger.error(
+        "[IPC Registry] ✗ Notification IPC registration failed:",
+        notificationError.message,
+      );
+      logger.info(
+        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
+      );
+    }
 
     // ============================================================
     // 第三阶段模块 (社交网络 - DID, P2P, Social)
@@ -643,28 +663,48 @@ function registerAllIPC(dependencies) {
 
     // DID 身份管理 (函数模式 - 中等模块，24 handlers)
     if (didManager) {
-      logger.info("[IPC Registry] Registering DID IPC...");
-      const { registerDIDIPC } = require("../did/did-ipc");
-      registerDIDIPC({ didManager });
-      logger.info("[IPC Registry] ✓ DID IPC registered (24 handlers)");
+      try {
+        logger.info("[IPC Registry] Registering DID IPC...");
+        const { registerDIDIPC } = require("../did/did-ipc");
+        registerDIDIPC({ didManager });
+        logger.info("[IPC Registry] ✓ DID IPC registered (24 handlers)");
+      } catch (didError) {
+        logger.error(
+          "[IPC Registry] ✗ DID IPC registration failed:",
+          didError.message,
+        );
+        logger.info(
+          "[IPC Registry] ⚠ Continuing with other IPC registrations...",
+        );
+      }
     }
 
     // P2P 网络通信 (函数模式 - 中等模块，18 handlers)
     if (p2pManager) {
-      logger.info("[IPC Registry] Registering P2P IPC...");
-      const { registerP2PIPC } = require("../p2p/p2p-ipc");
-      registerP2PIPC({ p2pManager });
-      logger.info("[IPC Registry] ✓ P2P IPC registered (18 handlers)");
+      try {
+        logger.info("[IPC Registry] Registering P2P IPC...");
+        const { registerP2PIPC } = require("../p2p/p2p-ipc");
+        registerP2PIPC({ p2pManager });
+        logger.info("[IPC Registry] ✓ P2P IPC registered (18 handlers)");
 
-      // 嵌入式信令服务器 (函数模式 - 小模块，11 handlers)
-      // Note: Signaling server IPC is registered with p2pManager as provider
-      // The signaling server may be started later during P2P initialization
-      logger.info("[IPC Registry] Registering Signaling Server IPC...");
-      const { registerSignalingIPC } = require("../p2p/signaling-ipc");
-      registerSignalingIPC({ p2pManager });
-      logger.info(
-        "[IPC Registry] ✓ Signaling Server IPC registered (11 handlers)",
-      );
+        // 嵌入式信令服务器 (函数模式 - 小模块，11 handlers)
+        // Note: Signaling server IPC is registered with p2pManager as provider
+        // The signaling server may be started later during P2P initialization
+        logger.info("[IPC Registry] Registering Signaling Server IPC...");
+        const { registerSignalingIPC } = require("../p2p/signaling-ipc");
+        registerSignalingIPC({ p2pManager });
+        logger.info(
+          "[IPC Registry] ✓ Signaling Server IPC registered (11 handlers)",
+        );
+      } catch (p2pError) {
+        logger.error(
+          "[IPC Registry] ✗ P2P/Signaling IPC registration failed:",
+          p2pError.message,
+        );
+        logger.info(
+          "[IPC Registry] ⚠ Continuing with other IPC registrations...",
+        );
+      }
     }
 
     // 外部设备文件管理 (函数模式 - 中等模块，15 handlers)
@@ -686,20 +726,30 @@ function registerAllIPC(dependencies) {
     }
 
     // 社交网络 (函数模式 - 大模块，33 handlers: contact + friend + post + chat)
-    logger.info("[IPC Registry] Registering Social IPC...");
-    const { registerSocialIPC } = require("../social/social-ipc");
-    registerSocialIPC({
-      contactManager: contactManager || null,
-      friendManager: friendManager || null,
-      postManager: postManager || null,
-      database: database || null,
-    });
-    if (!contactManager && !friendManager && !postManager && !database) {
-      logger.warn(
-        "[IPC Registry] ⚠ Social IPC registered with null dependencies (degraded mode)",
+    try {
+      logger.info("[IPC Registry] Registering Social IPC...");
+      const { registerSocialIPC } = require("../social/social-ipc");
+      registerSocialIPC({
+        contactManager: contactManager || null,
+        friendManager: friendManager || null,
+        postManager: postManager || null,
+        database: database || null,
+      });
+      if (!contactManager && !friendManager && !postManager && !database) {
+        logger.warn(
+          "[IPC Registry] ⚠ Social IPC registered with null dependencies (degraded mode)",
+        );
+      } else {
+        logger.info("[IPC Registry] ✓ Social IPC registered (33 handlers)");
+      }
+    } catch (socialError) {
+      logger.error(
+        "[IPC Registry] ✗ Social IPC registration failed:",
+        socialError.message,
       );
-    } else {
-      logger.info("[IPC Registry] ✓ Social IPC registered (33 handlers)");
+      logger.info(
+        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
+      );
     }
 
     // ============================================================
@@ -1056,24 +1106,44 @@ function registerAllIPC(dependencies) {
     }
 
     // Office 文件操作 (类模式 - Office 文件处理)
-    logger.info("[IPC Registry] Registering Office File IPC...");
-    const FileIPC = require("../ipc/file-ipc");
-    const fileIPC = new FileIPC();
-    fileIPC.registerHandlers(mainWindow);
-    logger.info("[IPC Registry] ✓ Office File IPC registered");
+    try {
+      logger.info("[IPC Registry] Registering Office File IPC...");
+      const FileIPC = require("../ipc/file-ipc");
+      const fileIPC = new FileIPC();
+      fileIPC.registerHandlers(mainWindow);
+      logger.info("[IPC Registry] ✓ Office File IPC registered");
+    } catch (officeFileError) {
+      logger.error(
+        "[IPC Registry] ✗ Office File IPC registration failed:",
+        officeFileError.message,
+      );
+      logger.info(
+        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
+      );
+    }
 
     // 模板管理 (函数模式 - 大模块，20 handlers)
-    logger.info("[IPC Registry] Registering Template IPC...");
-    const { registerTemplateIPC } = require("../template/template-ipc");
-    registerTemplateIPC({
-      templateManager: templateManager || null,
-    });
-    if (!templateManager) {
-      logger.warn(
-        "[IPC Registry] ⚠ templateManager not initialized, Template IPC running in degraded mode",
+    try {
+      logger.info("[IPC Registry] Registering Template IPC...");
+      const { registerTemplateIPC } = require("../template/template-ipc");
+      registerTemplateIPC({
+        templateManager: templateManager || null,
+      });
+      if (!templateManager) {
+        logger.warn(
+          "[IPC Registry] ⚠ templateManager not initialized, Template IPC running in degraded mode",
+        );
+      } else {
+        logger.info("[IPC Registry] ✓ Template IPC registered (20 handlers)");
+      }
+    } catch (templateError) {
+      logger.error(
+        "[IPC Registry] ✗ Template IPC registration failed:",
+        templateError.message,
       );
-    } else {
-      logger.info("[IPC Registry] ✓ Template IPC registered (20 handlers)");
+      logger.info(
+        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
+      );
     }
 
     // 知识管理 (函数模式 - 中等模块，17 handlers)
