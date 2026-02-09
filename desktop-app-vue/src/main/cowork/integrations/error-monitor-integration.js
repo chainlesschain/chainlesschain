@@ -289,13 +289,13 @@ class CoworkErrorMonitorIntegration {
 
       const result = await this.errorMonitor.applyFix(errorId);
 
-      if (result.success) {
+      if (result?.success) {
         errorLogger.info(`Fix applied successfully`);
       } else {
-        errorLogger.warn(`Fix failed: ${result.reason}`);
+        errorLogger.warn(`Fix failed: ${result?.reason || 'unknown'}`);
       }
 
-      return result;
+      return result || { success: false, reason: 'no_result' };
     } catch (error) {
       errorLogger.error('Failed to apply fix:', error);
       return { success: false, error: error.message };

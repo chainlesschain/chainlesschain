@@ -252,13 +252,13 @@ class UKeyManager extends EventEmitter {
 
     const result = await this.currentDriver.verifyPIN(pin);
 
-    if (result.success) {
+    if (result?.success) {
       this.emit("unlocked", result);
     } else {
-      this.emit("unlock-failed", result);
+      this.emit("unlock-failed", result || { success: false, reason: "no_result" });
     }
 
-    return result;
+    return result || { success: false, reason: "no_result" };
   }
 
   /**
