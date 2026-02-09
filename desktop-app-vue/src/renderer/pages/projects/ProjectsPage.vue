@@ -987,12 +987,16 @@ const handleConversationalCreate = async ({ text, attachments }) => {
 
       // 跳转到项目详情页，传递用户输入给ChatPanel
       setTimeout(() => {
-        router.push({
-          path: `/projects/${createdProject.id}`,
-          query: {
-            autoSendMessage: text, // 传递给ChatPanel自动发送，触发意图识别和任务规划
-          },
-        });
+        router
+          .push({
+            path: `/projects/${createdProject.id}`,
+            query: {
+              autoSendMessage: text, // 传递给ChatPanel自动发送，触发意图识别和任务规划
+            },
+          })
+          .catch((navError) => {
+            logger.error('[ProjectsPage] Project navigation failed:', navError);
+          });
       }, 300);
 
     } catch (error) {
@@ -1157,7 +1161,7 @@ const handleTemplateCreateStart = async (createData) => {
     };
 
     // 🔥 跳转到 ai-creating 模式，在 ProjectDetailPage 的 AI对话面板中展示创建过程
-    router.push({
+    await router.push({
       path: `/projects/ai-creating`,
       query: {
         createData: JSON.stringify(aiCreateData),
