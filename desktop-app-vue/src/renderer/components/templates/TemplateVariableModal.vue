@@ -492,8 +492,9 @@ async function renderPreview() {
       prompt?.length || 0,
     );
   } catch (error) {
-    logger.error("[TemplateVariableModal] 预览渲染失败:", error);
-    renderError.value = error.message || "渲染失败";
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error("[TemplateVariableModal] 预览渲染失败:", errorMessage);
+    renderError.value = errorMessage || "渲染失败";
     renderedPrompt.value = "";
   } finally {
     renderingPreview.value = false;
