@@ -1176,8 +1176,19 @@ class ChainlessChainApp {
         }
         return { results: [] };
 
-      case "listAgents":
-        return { agents: [] }; // TODO: 实现代理列表
+      case "listAgents": {
+        const agents = [];
+
+        // 从 Multi-Agent 编排器获取已注册的代理
+        if (this.agentOrchestrator) {
+          const allAgents = this.agentOrchestrator.getAllAgents();
+          for (const agent of allAgents) {
+            agents.push(agent.getInfo());
+          }
+        }
+
+        return { agents };
+      }
 
       default:
         throw new Error(`Unknown AI action: ${action}`);
@@ -1219,15 +1230,68 @@ class ChainlessChainApp {
   /**
    * 处理文件命令
    */
-  async handleFileCommand(action, _params) {
+  async handleFileCommand(action, params) {
     switch (action) {
-      case "list":
-        // TODO: 实现文件列表
+      case "list": {
+        if (this.database) {
+          try {
+            const projectId = params.projectId;
+            if (projectId) {
+              // 按项目查询文件
+              const files = this.database.getProjectFiles(projectId);
+              return { files };
+            }
+            // 查询所有未删除的文件（带分页）
+            const limit = params.limit || 50;
+            const offset = params.offset || 0;
+            const files = this.database.db
+              .prepare(
+                `SELECT id, project_id, file_name, file_path, file_type, file_size,
+                        created_at, updated_at
+                 FROM project_files
+                 WHERE deleted = 0
+                 ORDER BY updated_at DESC
+                 LIMIT ? OFFSET ?`,
+              )
+              .all(limit, offset);
+            return { files };
+          } catch (err) {
+            logger.warn("[Main] 查询文件列表失败:", err.message);
+            return { files: [] };
+          }
+        }
         return { files: [] };
+      }
 
-      case "requestUpload":
-        // TODO: 实现文件上传请求
-        return { uploadId: null, error: "Not implemented" };
+      case "requestUpload": {
+        const { dialog } = require("electron");
+        const fs = require("fs");
+
+        // 打开文件选择对话框
+        const result = await dialog.showOpenDialog(this.mainWindow, {
+          title: "选择要上传的文件",
+          properties: ["openFile", "multiSelections"],
+        });
+
+        if (result.canceled || result.filePaths.length === 0) {
+          return { uploadId: null, canceled: true };
+        }
+
+        const uploadId = `upload_${Date.now()}`;
+        const uploadedFiles = [];
+
+        for (const filePath of result.filePaths) {
+          const stat = fs.statSync(filePath);
+          uploadedFiles.push({
+            name: path.basename(filePath),
+            path: filePath,
+            size: stat.size,
+            type: path.extname(filePath).slice(1) || "unknown",
+          });
+        }
+
+        return { uploadId, files: uploadedFiles, success: true };
+      }
 
       default:
         throw new Error(`Unknown file action: ${action}`);

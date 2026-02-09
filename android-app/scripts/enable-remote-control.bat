@@ -12,12 +12,6 @@ set BASE_DIR=app\src\main\java\com\chainlesschain\android\remote
 echo 正在启用远程控制文件...
 echo.
 
-REM P2P WebRTC 客户端
-if exist "%BASE_DIR%\p2p\P2PClientWithWebRTC.kt.disabled" (
-    ren "%BASE_DIR%\p2p\P2PClientWithWebRTC.kt.disabled" "P2PClientWithWebRTC.kt"
-    echo [OK] P2PClientWithWebRTC.kt
-)
-
 REM WebRTC 客户端
 if exist "%BASE_DIR%\webrtc\WebRTCClient.kt.disabled" (
     ren "%BASE_DIR%\webrtc\WebRTCClient.kt.disabled" "WebRTCClient.kt"

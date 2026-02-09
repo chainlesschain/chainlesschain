@@ -446,6 +446,13 @@ class WebSocketSignalClient @Inject constructor(
     private var isConnected = false
     private var reconnectAttempts = 0
 
+    // Application-layer heartbeat
+    private val heartbeatScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var heartbeatJob: Job? = null
+    @Volatile
+    private var lastPongTime = 0L
+    private val missedPongThreshold = 3
+
     // 用于转发来自信令服务器的 P2P 消息
     private var onForwardedMessageCallback: ((String) -> Unit)? = null
 
@@ -481,6 +488,7 @@ class WebSocketSignalClient @Inject constructor(
                 override fun onFailure(webSocket: okhttp3.WebSocket, t: Throwable, response: okhttp3.Response?) {
                     Timber.e(t, "WebSocket failed (attempt ${reconnectAttempts + 1}/${com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS})")
                     isConnected = false
+                    stopHeartbeat()
 
                     if (reconnectAttempts < com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS) {
                         reconnectAttempts++
@@ -497,6 +505,7 @@ class WebSocketSignalClient @Inject constructor(
                 override fun onClosed(webSocket: okhttp3.WebSocket, code: Int, reason: String) {
                     Timber.d("WebSocket closed code=$code reason=$reason")
                     isConnected = false
+                    stopHeartbeat()
                 }
             }
 
@@ -510,6 +519,7 @@ class WebSocketSignalClient @Inject constructor(
 
             if (isConnected) {
                 reconnectAttempts = 0
+                startHeartbeat()
                 Timber.d("Signaling connected")
                 Result.success(Unit)
             } else {
@@ -642,6 +652,7 @@ class WebSocketSignalClient @Inject constructor(
                 }
 
                 "pong" -> {
+                    lastPongTime = System.currentTimeMillis()
                     Timber.d("Pong received")
                 }
 
@@ -772,8 +783,52 @@ class WebSocketSignalClient @Inject constructor(
         }
     }
 
+    private fun startHeartbeat() {
+        stopHeartbeat()
+        lastPongTime = System.currentTimeMillis()
+        heartbeatJob = heartbeatScope.launch {
+            var missedPongs = 0
+            while (isActive && isConnected) {
+                delay(com.chainlesschain.android.remote.config.SignalingConfig.PING_INTERVAL_SECONDS * 1000)
+                if (!isConnected) break
+
+                val ping = org.json.JSONObject().apply {
+                    put("type", "ping")
+                    put("timestamp", System.currentTimeMillis())
+                }
+                sendWebSocketMessage(ping.toString())
+
+                // Check if we received a pong since last ping
+                val timeSinceLastPong = System.currentTimeMillis() - lastPongTime
+                val expectedInterval = com.chainlesschain.android.remote.config.SignalingConfig.PING_INTERVAL_SECONDS * 1000
+                if (timeSinceLastPong > expectedInterval * 2) {
+                    missedPongs++
+                    Timber.w("Missed pong ($missedPongs/$missedPongThreshold), last pong ${timeSinceLastPong}ms ago")
+                    if (missedPongs >= missedPongThreshold) {
+                        Timber.e("Connection stale: $missedPongs missed pongs, triggering reconnect")
+                        isConnected = false
+                        webSocket?.cancel()
+                        if (reconnectAttempts < com.chainlesschain.android.remote.config.SignalingConfig.MAX_RECONNECT_ATTEMPTS) {
+                            reconnectAttempts++
+                            connect()
+                        }
+                        break
+                    }
+                } else {
+                    missedPongs = 0
+                }
+            }
+        }
+    }
+
+    private fun stopHeartbeat() {
+        heartbeatJob?.cancel()
+        heartbeatJob = null
+    }
+
     override fun disconnect() {
         Timber.d("Disconnect signaling")
+        stopHeartbeat()
         webSocket?.close(1000, "Normal closure")
         webSocket = null
         isConnected = false

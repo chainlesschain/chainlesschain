@@ -89,11 +89,7 @@ data class VerificationMethod(
     val publicKeyMultibase: String? = null,
 
     /** 公钥（JWK格式） */
-    val publicKeyJwk: Map<String, String>? = null,
-
-    /** 公钥（Base58编码，已废弃） */
-    @Deprecated("Use publicKeyMultibase instead")
-    val publicKeyBase58: String? = null
+    val publicKeyJwk: Map<String, String>? = null
 )
 
 /**

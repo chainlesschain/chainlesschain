@@ -8,6 +8,8 @@ import com.chainlesschain.android.remote.data.P2PMessage
 import com.chainlesschain.android.remote.data.fromJson
 import com.chainlesschain.android.remote.data.toJsonString
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import java.lang.reflect.Type
 import com.chainlesschain.android.remote.webrtc.WebRTCClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -99,6 +101,10 @@ class P2PClient @Inject constructor(
         }
     }
 
+    /**
+     * Send a command and return the raw result (no type conversion).
+     * Callers should handle type conversion themselves or use the typed overload.
+     */
     suspend fun <T> sendCommand(
         method: String,
         params: Map<String, Any> = emptyMap(),
@@ -108,70 +114,106 @@ class P2PClient @Inject constructor(
             return@withContext Result.failure(Exception("Not connected"))
         }
         try {
-            val requestId = generateRequestId()
-            val requestPayload = mapOf(
-                "id" to requestId,
-                "method" to method,
-                "params" to params,
-                "auth" to createAuth(method)
-            )
+            val response = sendCommandInternal(method, params, timeout)
 
-            val deferred = CompletableDeferred<CommandResponse>()
-            pendingRequests[requestId] = PendingRequest(
-                requestId = requestId,
-                method = method,
-                timestamp = System.currentTimeMillis(),
-                deferred = deferred
-            )
-
-            val timeoutJob = scope.launch {
-                delay(timeout)
-                val pending = pendingRequests.remove(requestId)
-                pending?.deferred?.completeExceptionally(Exception("Request timeout: $method"))
+            if (response.isError()) {
+                return@withContext Result.failure(Exception(response.error?.message ?: "Unknown error"))
             }
 
-            try {
-                val message = P2PMessage(
-                    type = MessageTypes.COMMAND_REQUEST,
-                    payload = requestPayload.toJsonString()
-                )
-                webRTCClient.sendMessage(message.toJsonString())
-                val response = deferred.await()
-                timeoutJob.cancel()
-                pendingRequests.remove(requestId)
-
-                if (response.isError()) {
-                    return@withContext Result.failure(Exception(response.error?.message ?: "Unknown error"))
-                }
-
-                // response.result 可能是 Map、JsonElement 等类型
-                // 需要先转换为 JSON 字符串，再反序列化为目标类型
-                val result = response.result
-                Timber.d("[P2PClient] 原始 result 类型: ${result?.javaClass?.simpleName}")
-                Timber.d("[P2PClient] 原始 result 内容: $result")
-
-                @Suppress("UNCHECKED_CAST")
-                val convertedResult: T = when (result) {
-                    null -> null as T
-                    is String -> result as T
-                    is Number -> result as T
-                    is Boolean -> result as T
-                    else -> {
-                        // 对于复杂对象（Map、JsonElement等），先转为 JSON 再解析
-                        // 这里返回原始对象，让调用方处理
-                        // 因为泛型类型擦除，无法在这里正确转换
-                        result as T
-                    }
-                }
-                Result.success(convertedResult)
-            } catch (e: Exception) {
-                timeoutJob.cancel()
-                pendingRequests.remove(requestId)
-                throw e
-            }
+            @Suppress("UNCHECKED_CAST")
+            Result.success(response.result as T)
         } catch (e: Exception) {
             Timber.e(e, "sendCommand failed: $method")
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Send a command with proper type-safe deserialization via Gson TypeToken.
+     * Use this when you need a specific return type (e.g., a data class).
+     *
+     * Example: sendCommand("ai.chat", params, typeOf = object : TypeToken<ChatResponse>() {}.type)
+     */
+    suspend fun <T> sendCommand(
+        method: String,
+        params: Map<String, Any> = emptyMap(),
+        timeout: Long = config.requestTimeout,
+        typeOf: Type
+    ): Result<T> = withContext(Dispatchers.IO) {
+        if (_connectionState.value != ConnectionState.CONNECTED) {
+            return@withContext Result.failure(Exception("Not connected"))
+        }
+        try {
+            val response = sendCommandInternal(method, params, timeout)
+
+            if (response.isError()) {
+                return@withContext Result.failure(Exception(response.error?.message ?: "Unknown error"))
+            }
+
+            val result = response.result
+            val converted: T = when (result) {
+                null -> {
+                    @Suppress("UNCHECKED_CAST")
+                    null as T
+                }
+                is String, is Number, is Boolean -> {
+                    @Suppress("UNCHECKED_CAST")
+                    result as T
+                }
+                else -> {
+                    // Convert via JSON round-trip for proper type safety
+                    val json = gson.toJson(result)
+                    gson.fromJson(json, typeOf)
+                }
+            }
+            Result.success(converted)
+        } catch (e: Exception) {
+            Timber.e(e, "sendCommand failed: $method")
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun sendCommandInternal(
+        method: String,
+        params: Map<String, Any>,
+        timeout: Long
+    ): CommandResponse = withContext(Dispatchers.IO) {
+        val requestId = generateRequestId()
+        val requestPayload = mapOf(
+            "id" to requestId,
+            "method" to method,
+            "params" to params,
+            "auth" to createAuth(method)
+        )
+
+        val deferred = CompletableDeferred<CommandResponse>()
+        pendingRequests[requestId] = PendingRequest(
+            requestId = requestId,
+            method = method,
+            timestamp = System.currentTimeMillis(),
+            deferred = deferred
+        )
+
+        val timeoutJob = scope.launch {
+            delay(timeout)
+            val pending = pendingRequests.remove(requestId)
+            pending?.deferred?.completeExceptionally(Exception("Request timeout: $method"))
+        }
+
+        try {
+            val message = P2PMessage(
+                type = MessageTypes.COMMAND_REQUEST,
+                payload = requestPayload.toJsonString()
+            )
+            webRTCClient.sendMessage(message.toJsonString())
+            val response = deferred.await()
+            timeoutJob.cancel()
+            pendingRequests.remove(requestId)
+            response
+        } catch (e: Exception) {
+            timeoutJob.cancel()
+            pendingRequests.remove(requestId)
+            throw e
         }
     }
 
