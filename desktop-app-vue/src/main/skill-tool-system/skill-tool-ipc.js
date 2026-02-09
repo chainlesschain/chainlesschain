@@ -88,10 +88,10 @@ function registerSkillToolIPC({
     try {
       const result = await skillManager.getSkillsByCategory(category);
       // getSkillsByCategory 已经返回 { success, skills } 格式
-      if (result.success) {
-        return { success: true, data: result.skills };
+      if (result?.success) {
+        return { success: true, data: result.skills || [] };
       } else {
-        return { success: false, error: result.error };
+        return { success: false, error: result?.error || 'Unknown error' };
       }
     } catch (error) {
       logger.error("[IPC] skill:get-by-category 失败:", error);

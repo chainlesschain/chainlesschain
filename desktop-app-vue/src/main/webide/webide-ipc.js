@@ -156,7 +156,7 @@ ${html}
         // 启动预览服务器
         const result = await this.previewServer.start(tempPath, port);
 
-        if (result.success) {
+        if (result?.success) {
           // 保存服务器信息
           this.activeServers.set(port, {
             tempPath,
@@ -167,7 +167,7 @@ ${html}
           logger.info(`[WebIDE IPC] 开发服务器启动成功: ${result.url}`);
         }
 
-        return result;
+        return result || { success: false, error: 'No result from preview server' };
       } catch (error) {
         logger.error("[WebIDE IPC] 启动开发服务器失败:", error);
         return {
