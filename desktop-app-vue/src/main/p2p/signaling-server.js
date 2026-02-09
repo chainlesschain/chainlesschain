@@ -13,13 +13,13 @@
  * - Graceful shutdown
  */
 
-const { EventEmitter } = require('events');
-const { logger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
+const { EventEmitter } = require("events");
+const { logger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
 
-const SignalingPeerRegistry = require('./signaling-peer-registry');
-const SignalingMessageQueue = require('./signaling-message-queue');
-const handlers = require('./signaling-handlers');
+const SignalingPeerRegistry = require("./signaling-peer-registry");
+const SignalingMessageQueue = require("./signaling-message-queue");
+const handlers = require("./signaling-handlers");
 
 class SignalingServer extends EventEmitter {
   constructor(options = {}) {
@@ -27,7 +27,7 @@ class SignalingServer extends EventEmitter {
 
     // Configuration
     this.port = options.port || 9001;
-    this.host = options.host || '0.0.0.0';
+    this.host = options.host || "0.0.0.0";
     this.maxConnections = options.maxConnections || 100;
     this.heartbeatInterval = options.heartbeatInterval || 30000;
     this.messageQueueSize = options.messageQueueSize || 100;
@@ -65,12 +65,12 @@ class SignalingServer extends EventEmitter {
    */
   async start() {
     if (this.isRunning) {
-      logger.warn('[SignalingServer] Server already running');
+      logger.warn("[SignalingServer] Server already running");
       return;
     }
 
     try {
-      const WebSocket = require('ws');
+      const WebSocket = require("ws");
 
       // Create WebSocket server
       this.wss = new WebSocket.Server({
@@ -84,15 +84,15 @@ class SignalingServer extends EventEmitter {
       this.messageQueue.initialize();
 
       // Handle new connections
-      this.wss.on('connection', (socket, req) => {
+      this.wss.on("connection", (socket, req) => {
         this.handleConnection(socket, req);
       });
 
       // Handle server errors
-      this.wss.on('error', (error) => {
-        logger.error('[SignalingServer] Server error:', error);
+      this.wss.on("error", (error) => {
+        logger.error("[SignalingServer] Server error:", error);
         this.stats.errors++;
-        this.emit('error', error);
+        this.emit("error", error);
       });
 
       // Start heartbeat
@@ -102,10 +102,9 @@ class SignalingServer extends EventEmitter {
       this.startTime = Date.now();
 
       logger.info(`[SignalingServer] Started on ${this.host}:${this.port}`);
-      this.emit('started', { port: this.port, host: this.host });
-
+      this.emit("started", { port: this.port, host: this.host });
     } catch (error) {
-      logger.error('[SignalingServer] Failed to start:', error);
+      logger.error("[SignalingServer] Failed to start:", error);
       throw error;
     }
   }
@@ -116,11 +115,11 @@ class SignalingServer extends EventEmitter {
    */
   async stop() {
     if (!this.isRunning) {
-      logger.warn('[SignalingServer] Server not running');
+      logger.warn("[SignalingServer] Server not running");
       return;
     }
 
-    logger.info('[SignalingServer] Stopping server...');
+    logger.info("[SignalingServer] Stopping server...");
 
     // Stop heartbeat
     if (this.heartbeatTimer) {
@@ -129,12 +128,12 @@ class SignalingServer extends EventEmitter {
     }
 
     // Notify all connected clients
-    const WebSocket = require('ws');
+    const WebSocket = require("ws");
     if (this.wss) {
       // Send shutdown notification to all clients
       const shutdownMessage = JSON.stringify({
-        type: 'server-shutdown',
-        message: 'Signaling server is shutting down',
+        type: "server-shutdown",
+        message: "Signaling server is shutting down",
         timestamp: Date.now(),
       });
 
@@ -142,7 +141,7 @@ class SignalingServer extends EventEmitter {
         if (client.readyState === WebSocket.OPEN) {
           try {
             client.send(shutdownMessage);
-            client.close(1001, 'Server shutting down');
+            client.close(1001, "Server shutting down");
           } catch (error) {
             // Ignore errors during shutdown
           }
@@ -163,8 +162,8 @@ class SignalingServer extends EventEmitter {
 
     this.isRunning = false;
 
-    logger.info('[SignalingServer] Stopped');
-    this.emit('stopped');
+    logger.info("[SignalingServer] Stopped");
+    this.emit("stopped");
   }
 
   /**
@@ -173,12 +172,12 @@ class SignalingServer extends EventEmitter {
    * @param {http.IncomingMessage} req - HTTP request
    */
   handleConnection(socket, req) {
-    const WebSocket = require('ws');
+    const WebSocket = require("ws");
 
     // Check connection limit
     if (this.wss.clients.size > this.maxConnections) {
-      logger.warn('[SignalingServer] Connection limit reached');
-      socket.close(1013, 'Server at capacity');
+      logger.warn("[SignalingServer] Connection limit reached");
+      socket.close(1013, "Server at capacity");
       return;
     }
 
@@ -189,12 +188,14 @@ class SignalingServer extends EventEmitter {
     socket.peerId = null;
 
     const clientIP = req.socket.remoteAddress;
-    logger.info(`[SignalingServer] New connection: ${connectionId} from ${clientIP}`);
+    logger.info(
+      `[SignalingServer] New connection: ${connectionId} from ${clientIP}`,
+    );
 
     this.stats.totalConnections++;
 
     // Handle pong (heartbeat response)
-    socket.on('pong', () => {
+    socket.on("pong", () => {
       socket.isAlive = true;
       if (socket.peerId) {
         this.registry.updateLastSeen(socket.peerId);
@@ -202,15 +203,18 @@ class SignalingServer extends EventEmitter {
     });
 
     // Handle messages
-    socket.on('message', (data) => {
+    socket.on("message", (data) => {
       try {
         const message = JSON.parse(data.toString());
         this.handleMessage(socket, message);
       } catch (error) {
-        logger.error('[SignalingServer] Invalid message format:', error.message);
+        logger.error(
+          "[SignalingServer] Invalid message format:",
+          error.message,
+        );
         this.sendMessage(socket, {
-          type: 'error',
-          error: 'Invalid message format',
+          type: "error",
+          error: "Invalid message format",
           timestamp: Date.now(),
         });
         this.stats.errors++;
@@ -218,17 +222,20 @@ class SignalingServer extends EventEmitter {
     });
 
     // Handle connection close
-    socket.on('close', (code, reason) => {
+    socket.on("close", (code, reason) => {
       this.handleDisconnection(socket, code, reason);
     });
 
     // Handle connection errors
-    socket.on('error', (error) => {
-      logger.error(`[SignalingServer] Socket error (${socket.peerId || connectionId}):`, error.message);
+    socket.on("error", (error) => {
+      logger.error(
+        `[SignalingServer] Socket error (${socket.peerId || connectionId}):`,
+        error.message,
+      );
       this.stats.errors++;
     });
 
-    this.emit('connection', { connectionId, clientIP });
+    this.emit("connection", { connectionId, clientIP });
   }
 
   /**
@@ -239,122 +246,126 @@ class SignalingServer extends EventEmitter {
   handleMessage(socket, message) {
     const { type } = message;
 
+    logger.info(
+      `[SignalingServer] 收到消息: type=${type}, from=${socket.peerId || "unknown"}, to=${message.to || "N/A"}`,
+    );
+
     // Update last seen
     if (socket.peerId) {
       this.registry.updateLastSeen(socket.peerId);
     }
 
     switch (type) {
-      case 'register':
+      case "register":
         handlers.handleRegister(
           socket,
           message,
           this.registry,
           this.messageQueue,
           this.sendMessage.bind(this),
-          this.broadcastPeerStatus.bind(this)
+          this.broadcastPeerStatus.bind(this),
         );
         break;
 
-      case 'offer':
+      case "offer":
         handlers.handleOffer(
           socket,
           message,
           this.registry,
           this.messageQueue,
-          this.sendMessage.bind(this)
+          this.sendMessage.bind(this),
         );
         this.stats.messagesForwarded++;
         break;
 
-      case 'answer':
+      case "answer":
         handlers.handleAnswer(
           socket,
           message,
           this.registry,
           this.messageQueue,
-          this.sendMessage.bind(this)
+          this.sendMessage.bind(this),
         );
         this.stats.messagesForwarded++;
         break;
 
-      case 'ice-candidate':
+      case "ice-candidate":
         handlers.handleIceCandidate(
           socket,
           message,
           this.registry,
           this.messageQueue,
-          this.sendMessage.bind(this)
+          this.sendMessage.bind(this),
         );
         this.stats.messagesForwarded++;
         break;
 
-      case 'ice-candidates':
+      case "ice-candidates":
         handlers.handleIceCandidates(
           socket,
           message,
           this.registry,
           this.messageQueue,
-          this.sendMessage.bind(this)
+          this.sendMessage.bind(this),
         );
         this.stats.messagesForwarded++;
         break;
 
-      case 'message':
+      case "message":
         handlers.handleMessage(
           socket,
           message,
           this.registry,
           this.messageQueue,
-          this.sendMessage.bind(this)
+          this.sendMessage.bind(this),
         );
         this.stats.messagesForwarded++;
         break;
 
-      case 'pairing:request':
-      case 'pairing:confirmation':
-      case 'pairing:reject':
+      case "pairing:request":
+      case "pairing:confirmation":
+      case "pairing:reject":
         handlers.handlePairing(
           socket,
           message,
           this.registry,
           this.messageQueue,
-          this.sendMessage.bind(this)
+          this.sendMessage.bind(this),
         );
         this.stats.messagesForwarded++;
         break;
 
-      case 'get-peers':
+      case "get-peers":
         handlers.handleGetPeers(
           socket,
           this.registry,
-          this.sendMessage.bind(this)
+          this.sendMessage.bind(this),
         );
         break;
 
-      case 'peer-status':
+      case "peer-status":
         handlers.handlePeerStatusRequest(
           socket,
           message,
           this.registry,
-          this.sendMessage.bind(this)
+          this.sendMessage.bind(this),
         );
         break;
 
-      case 'ping':
+      case "ping":
         handlers.handlePing(socket, this.sendMessage.bind(this));
         break;
 
       default:
         logger.warn(`[SignalingServer] Unknown message type: ${type}`);
         this.sendMessage(socket, {
-          type: 'error',
+          type: "error",
           error: `Unknown message type: ${type}`,
           timestamp: Date.now(),
         });
     }
 
-    this.emit('message', { type, from: socket.peerId });
+    this.emit("message", { type, from: socket.peerId });
   }
 
   /**
@@ -372,16 +383,20 @@ class SignalingServer extends EventEmitter {
       this.registry.unregister(peerId);
 
       // Broadcast offline status
-      this.broadcastPeerStatus(peerId, 'offline');
+      this.broadcastPeerStatus(peerId, "offline");
 
-      logger.info(`[SignalingServer] Peer disconnected: ${peerId} (code: ${code})`);
+      logger.info(
+        `[SignalingServer] Peer disconnected: ${peerId} (code: ${code})`,
+      );
     } else {
       // Unregistered connection closed
       this.registry.unregisterByConnectionId(connectionId);
-      logger.info(`[SignalingServer] Connection closed: ${connectionId} (code: ${code})`);
+      logger.info(
+        `[SignalingServer] Connection closed: ${connectionId} (code: ${code})`,
+      );
     }
 
-    this.emit('disconnection', { peerId, connectionId, code, reason });
+    this.emit("disconnection", { peerId, connectionId, code, reason });
   }
 
   /**
@@ -390,13 +405,16 @@ class SignalingServer extends EventEmitter {
    * @param {Object} message - Message to send
    */
   sendMessage(socket, message) {
-    const WebSocket = require('ws');
+    const WebSocket = require("ws");
 
     if (socket.readyState === WebSocket.OPEN) {
       try {
         socket.send(JSON.stringify(message));
       } catch (error) {
-        logger.error('[SignalingServer] Failed to send message:', error.message);
+        logger.error(
+          "[SignalingServer] Failed to send message:",
+          error.message,
+        );
         this.stats.errors++;
       }
     }
@@ -409,10 +427,10 @@ class SignalingServer extends EventEmitter {
    * @param {Object} metadata - Additional metadata
    */
   broadcastPeerStatus(peerId, status, metadata = {}) {
-    const WebSocket = require('ws');
+    const WebSocket = require("ws");
 
     const message = {
-      type: 'peer-status',
+      type: "peer-status",
       peerId,
       status,
       ...metadata,
@@ -424,7 +442,11 @@ class SignalingServer extends EventEmitter {
     for (const peer of onlinePeers) {
       if (peer.peerId !== peerId) {
         const peerData = this.registry.getPeer(peer.peerId);
-        if (peerData && peerData.socket && peerData.socket.readyState === WebSocket.OPEN) {
+        if (
+          peerData &&
+          peerData.socket &&
+          peerData.socket.readyState === WebSocket.OPEN
+        ) {
           this.sendMessage(peerData.socket, message);
         }
       }
@@ -435,12 +457,14 @@ class SignalingServer extends EventEmitter {
    * Start heartbeat timer
    */
   startHeartbeat() {
-    const WebSocket = require('ws');
+    const WebSocket = require("ws");
 
     this.heartbeatTimer = setInterval(() => {
       this.wss.clients.forEach((socket) => {
         if (socket.isAlive === false) {
-          logger.info(`[SignalingServer] Heartbeat timeout: ${socket.peerId || socket.connectionId}`);
+          logger.info(
+            `[SignalingServer] Heartbeat timeout: ${socket.peerId || socket.connectionId}`,
+          );
           return socket.terminate();
         }
 
@@ -458,7 +482,9 @@ class SignalingServer extends EventEmitter {
    * @returns {Object} Statistics object
    */
   getStats() {
-    const uptime = this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0;
+    const uptime = this.startTime
+      ? Math.floor((Date.now() - this.startTime) / 1000)
+      : 0;
 
     return {
       isRunning: this.isRunning,
@@ -486,7 +512,7 @@ class SignalingServer extends EventEmitter {
    * @param {string} reason - Reason for kicking
    * @returns {boolean} True if peer was found and kicked
    */
-  kickPeer(peerId, reason = 'Kicked by server') {
+  kickPeer(peerId, reason = "Kicked by server") {
     const peer = this.registry.getPeer(peerId);
 
     if (!peer) {
@@ -495,7 +521,7 @@ class SignalingServer extends EventEmitter {
 
     // Send kick notification
     this.sendMessage(peer.socket, {
-      type: 'kicked',
+      type: "kicked",
       reason,
       timestamp: Date.now(),
     });
@@ -516,7 +542,7 @@ class SignalingServer extends EventEmitter {
    * @param {string} excludePeerId - Peer ID to exclude (optional)
    */
   broadcast(message, excludePeerId = null) {
-    const WebSocket = require('ws');
+    const WebSocket = require("ws");
 
     const broadcastMessage = {
       ...message,
@@ -559,7 +585,7 @@ class SignalingServer extends EventEmitter {
       this.messageQueue.setMessageTTL(config.messageTTL);
     }
 
-    logger.info('[SignalingServer] Configuration updated');
+    logger.info("[SignalingServer] Configuration updated");
   }
 
   /**

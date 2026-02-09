@@ -718,7 +718,94 @@ class ChainlessChainApp {
 
   async initializeMobileBridge() {
     // 移动端桥接初始化
-    logger.info("[Main] 移动端桥接初始化完成");
+    logger.info("[Main] ========================================");
+    logger.info("[Main] 开始初始化移动端桥接...");
+    logger.info("[Main] ========================================");
+
+    if (!this.p2pManager) {
+      logger.warn("[Main] P2P管理器未初始化，跳过移动端桥接");
+      return;
+    }
+    logger.info("[Main] ✓ P2P管理器已就绪");
+
+    // 检查信令服务器状态
+    const signalingStatus = this.p2pManager.getSignalingServerStatus?.();
+    logger.info("[Main] 信令服务器状态:", JSON.stringify(signalingStatus));
+
+    if (!signalingStatus?.running) {
+      logger.error("[Main] ✗ 信令服务器未运行，无法初始化移动端桥接");
+      return;
+    }
+    logger.info("[Main] ✓ 信令服务器已运行");
+
+    try {
+      const MobileBridge = require("./p2p/mobile-bridge.js");
+      logger.info("[Main] ✓ MobileBridge模块已加载");
+
+      // 创建 MobileBridge 实例，连接到本地信令服务器
+      this.mobileBridge = new MobileBridge(this.p2pManager, {
+        signalingUrl: "ws://localhost:9001",
+        reconnectInterval: 5000,
+        enableAutoReconnect: true,
+      });
+      logger.info("[Main] ✓ MobileBridge实例已创建");
+
+      // 监听移动端连接事件
+      this.mobileBridge.on("peer-connected", ({ peerId, type }) => {
+        logger.info(`[Main] 移动设备已连接: ${peerId} (${type})`);
+        this.mainWindow?.webContents.send("mobile:peer-connected", {
+          peerId,
+          type,
+        });
+      });
+
+      this.mobileBridge.on("peer-disconnected", ({ peerId }) => {
+        logger.info(`[Main] 移动设备已断开: ${peerId}`);
+        this.mainWindow?.webContents.send("mobile:peer-disconnected", {
+          peerId,
+        });
+      });
+
+      this.mobileBridge.on("connection-failed", ({ peerId }) => {
+        logger.error(`[Main] 移动设备连接失败: ${peerId}`);
+      });
+
+      this.mobileBridge.on(
+        "message-from-mobile",
+        ({ mobilePeerId, message }) => {
+          logger.info(`[Main] 收到移动端消息: ${mobilePeerId}`);
+          // 可以在这里处理来自移动端的消息
+          this.handleMobileMessage(mobilePeerId, message);
+        },
+      );
+
+      // 连接到信令服务器
+      logger.info("[Main] 正在连接到信令服务器...");
+      await this.mobileBridge.connect();
+      logger.info("[Main] ========================================");
+      logger.info("[Main] ✓ 移动端桥接初始化完成!");
+      logger.info("[Main] MobileBridge 已连接到 ws://localhost:9001");
+      logger.info("[Main] wrtc可用:", this.mobileBridge.wrtcAvailable);
+      logger.info("[Main] ========================================");
+    } catch (error) {
+      logger.error("[Main] ========================================");
+      logger.error("[Main] ✗ 移动端桥接初始化失败!");
+      logger.error("[Main] 错误:", error.message);
+      logger.error("[Main] 堆栈:", error.stack);
+      logger.error("[Main] ========================================");
+    }
+  }
+
+  handleMobileMessage(mobilePeerId, message) {
+    // 处理来自移动端的消息
+    const { type } = message;
+    logger.info(`[Main] 处理移动端消息: ${type} from ${mobilePeerId}`);
+
+    // 转发到渲染进程
+    this.mainWindow?.webContents.send("mobile:message", {
+      mobilePeerId,
+      message,
+    });
   }
 
   setupUKeyEvents() {
@@ -754,6 +841,12 @@ class ChainlessChainApp {
     if (this.menuManager) {
       this.menuManager.destroy();
       this.menuManager = null;
+    }
+
+    // 清理移动端桥接
+    if (this.mobileBridge) {
+      await this.mobileBridge.disconnect();
+      this.mobileBridge = null;
     }
 
     const {

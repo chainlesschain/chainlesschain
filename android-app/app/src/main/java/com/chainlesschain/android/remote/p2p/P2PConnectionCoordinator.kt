@@ -73,21 +73,33 @@ class P2PConnectionCoordinator @Inject constructor(
      * Connect to a specific peer via WebRTC.
      */
     suspend fun connectToPeer(targetPeerId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        Timber.i("========================================")
+        Timber.i("[Coordinator] connectToPeer 开始")
+        Timber.i("[Coordinator] 目标 peerId: $targetPeerId")
+        Timber.i("[Coordinator] 本地 peerId: $localPeerId")
+        Timber.i("========================================")
+
         _state.value = P2PState.CONNECTING
         try {
+            Timber.i("[Coordinator] 正在初始化 WebRTC...")
             webRTCClient.initialize()
+            Timber.i("[Coordinator] ✓ WebRTC 初始化完成")
+
+            Timber.i("[Coordinator] 正在连接到 $targetPeerId...")
             val result = webRTCClient.connect(targetPeerId, localPeerId)
+
             if (result.isSuccess) {
                 _state.value = P2PState.CONNECTED
                 _connectedPeerId.value = targetPeerId
-                Timber.d("Connected to peer: $targetPeerId")
+                Timber.i("[Coordinator] ✓ 连接成功: $targetPeerId")
             } else {
                 _state.value = P2PState.ERROR
-                Timber.e("Connection failed to peer: $targetPeerId")
+                val error = result.exceptionOrNull()?.message ?: "未知错误"
+                Timber.e("[Coordinator] ✗ 连接失败: $error")
             }
             result
         } catch (e: Exception) {
-            Timber.e(e, "Connect to peer failed: $targetPeerId")
+            Timber.e(e, "[Coordinator] ✗ connectToPeer 异常: ${e.message}")
             _state.value = P2PState.ERROR
             Result.failure(e)
         }

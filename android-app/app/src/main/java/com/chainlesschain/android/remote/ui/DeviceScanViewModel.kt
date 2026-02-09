@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.ui
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.remote.data.RegisteredDeviceRepository
@@ -18,11 +19,16 @@ class DeviceScanViewModel @Inject constructor(
     private val discoveryService: SignalingDiscoveryService
 ) : ViewModel() {
 
+    companion object {
+        private const val TAG = "DeviceScanViewModel"
+    }
+
     private val _uiState = MutableStateFlow(DeviceScanUiState())
     val uiState: StateFlow<DeviceScanUiState> = _uiState.asStateFlow()
 
     fun setDiscovered(devices: List<DiscoveredDevice>) {
         viewModelScope.launch {
+            Log.i(TAG, "setDiscovered called with ${devices.size} devices")
             val normalized = devices.map { it.copy(isRegistered = repository.isRegistered(it.peerId)) }
             _uiState.update { it.copy(discoveredDevices = normalized) }
         }
@@ -30,7 +36,12 @@ class DeviceScanViewModel @Inject constructor(
 
     fun discoverDevices(fallbackDevices: List<DiscoveredDevice> = emptyList()) {
         viewModelScope.launch {
-            val discovered = discoveryService.discoverPeers().getOrDefault(emptyList()).map {
+            Log.i(TAG, "========================================")
+            Log.i(TAG, "discoverDevices() called")
+            Log.i(TAG, "========================================")
+            val result = discoveryService.discoverPeers()
+            Log.i(TAG, "discoverPeers result: $result")
+            val discovered = result.getOrDefault(emptyList()).map {
                 DiscoveredDevice(
                     peerId = it.peerId,
                     deviceName = it.deviceName,
@@ -39,6 +50,9 @@ class DeviceScanViewModel @Inject constructor(
                     isRegistered = false
                 )
             }
+            // 更新调试信息
+            _uiState.update { it.copy(lastScanDebugInfo = discoveryService.lastScanDebugInfo) }
+
             when {
                 discovered.isNotEmpty() -> setDiscovered(discovered)
                 fallbackDevices.isNotEmpty() -> setDiscovered(fallbackDevices)
@@ -68,5 +82,6 @@ class DeviceScanViewModel @Inject constructor(
 }
 
 data class DeviceScanUiState(
-    val discoveredDevices: List<DiscoveredDevice> = emptyList()
+    val discoveredDevices: List<DiscoveredDevice> = emptyList(),
+    val lastScanDebugInfo: String = ""
 )

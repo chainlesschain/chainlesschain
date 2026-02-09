@@ -1,5 +1,6 @@
 package com.chainlesschain.android.remote.data
 
+import com.google.gson.Gson
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -108,6 +109,11 @@ val JsonSerializer = Json {
 }
 
 /**
+ * Gson 实例，用于处理 Map<String, Any> 等动态类型序列化
+ */
+private val gson = Gson()
+
+/**
  * 辅助扩展函数
  */
 
@@ -123,4 +129,12 @@ inline fun <reified T> T.toJsonString(): String {
  */
 inline fun <reified T> String.fromJson(): T {
     return JsonSerializer.decodeFromString(kotlinx.serialization.serializer(), this)
+}
+
+/**
+ * 将 Map<String, Any> 序列化为 JSON 字符串
+ * 使用 Gson 处理动态类型，因为 kotlinx.serialization 不支持 Any 类型
+ */
+fun Map<String, Any?>.toJsonString(): String {
+    return gson.toJson(this)
 }

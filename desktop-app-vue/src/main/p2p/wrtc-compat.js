@@ -81,11 +81,23 @@ class MediaStreamCompat {
 
 /**
  * RTCSessionDescription compatibility wrapper
+ *
+ * IMPORTANT: werift's RTCSessionDescription uses (sdp, type) as separate arguments,
+ * but the standard WebRTC API expects ({type, sdp}) as an init object.
+ * This wrapper provides the standard API.
  */
 class RTCSessionDescriptionCompat {
   constructor(init = {}) {
-    this.type = init.type || "";
-    this.sdp = init.sdp || "";
+    // Handle both standard API {type, sdp} and werift's (sdp, type) patterns
+    if (typeof init === "string") {
+      // werift-style: first arg is sdp string
+      this.sdp = init;
+      this.type = arguments[1] || "";
+    } else {
+      // Standard API: init object with type and sdp
+      this.type = init.type || "";
+      this.sdp = init.sdp || "";
+    }
   }
 
   toJSON() {
@@ -130,10 +142,9 @@ module.exports = {
   // Use werift's RTCPeerConnection if available, otherwise provide a stub
   RTCPeerConnection: available ? werift.RTCPeerConnection : null,
 
-  // werift has its own RTCSessionDescription, use it or our compat layer
-  RTCSessionDescription: available
-    ? werift.RTCSessionDescription || RTCSessionDescriptionCompat
-    : RTCSessionDescriptionCompat,
+  // Always use our compat layer because werift's RTCSessionDescription uses (sdp, type) constructor
+  // instead of the standard ({type, sdp}) init object pattern
+  RTCSessionDescription: RTCSessionDescriptionCompat,
 
   // werift has its own RTCIceCandidate, use it or our compat layer
   RTCIceCandidate: available

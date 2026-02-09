@@ -5,7 +5,7 @@
  * Tracks connected peers, their device information, and connection state.
  */
 
-const { logger } = require('../utils/logger.js');
+const { logger } = require("../utils/logger.js");
 
 class SignalingPeerRegistry {
   constructor(options = {}) {
@@ -40,7 +40,7 @@ class SignalingPeerRegistry {
       this.checkStaleConnections();
     }, this.staleCheckInterval);
 
-    logger.info('[PeerRegistry] Initialized');
+    logger.info("[PeerRegistry] Initialized");
   }
 
   /**
@@ -51,7 +51,7 @@ class SignalingPeerRegistry {
    * @param {string} deviceType - 'mobile' | 'desktop' | 'unknown'
    * @returns {Object} Registration result with previous connection info if any
    */
-  register(peerId, socket, deviceInfo = {}, deviceType = 'unknown') {
+  register(peerId, socket, deviceInfo = {}, deviceType = "unknown") {
     const result = {
       success: true,
       previousConnection: null,
@@ -69,7 +69,9 @@ class SignalingPeerRegistry {
       result.isReconnect = true;
       this.stats.duplicateRegistrations++;
 
-      logger.info(`[PeerRegistry] Peer ${peerId} reconnecting, closing old connection`);
+      logger.info(
+        `[PeerRegistry] Peer ${peerId} reconnecting, closing old connection`,
+      );
     }
 
     // Store new registration
@@ -184,8 +186,14 @@ class SignalingPeerRegistry {
       return false;
     }
 
+    // Local peer (the host) is always considered online
+    // Messages to local peer will be handled by MobileBridge which registers with a socket
+    if (peer.isLocal) {
+      return true;
+    }
+
     // Check if socket is still open
-    const WebSocket = require('ws');
+    const WebSocket = require("ws");
     return peer.socket && peer.socket.readyState === WebSocket.OPEN;
   }
 
@@ -196,7 +204,7 @@ class SignalingPeerRegistry {
    * @param {Object} deviceInfo - Device metadata
    * @param {string} deviceType - Device type (usually 'DESKTOP')
    */
-  registerLocal(peerId, deviceInfo = {}, deviceType = 'DESKTOP') {
+  registerLocal(peerId, deviceInfo = {}, deviceType = "DESKTOP") {
     this.peers.set(peerId, {
       socket: null, // Local peer has no socket
       deviceInfo,
@@ -207,7 +215,9 @@ class SignalingPeerRegistry {
     });
 
     this.stats.totalRegistrations++;
-    logger.info(`[PeerRegistry] Local peer registered: ${peerId} (${deviceType})`);
+    logger.info(
+      `[PeerRegistry] Local peer registered: ${peerId} (${deviceType})`,
+    );
   }
 
   /**
@@ -216,17 +226,35 @@ class SignalingPeerRegistry {
    */
   getOnlinePeers() {
     const result = [];
-    const WebSocket = require('ws');
+    const WebSocket = require("ws");
+    const os = require("os");
+
+    // Get local IP for local peer
+    const getLocalIP = () => {
+      const interfaces = os.networkInterfaces();
+      for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+          if (iface.family === "IPv4" && !iface.internal) {
+            return iface.address;
+          }
+        }
+      }
+      return "127.0.0.1";
+    };
 
     for (const [peerId, peer] of this.peers.entries()) {
       // Include local peer (no socket) or peers with open socket
-      if (peer.isLocal || (peer.socket && peer.socket.readyState === WebSocket.OPEN)) {
+      if (
+        peer.isLocal ||
+        (peer.socket && peer.socket.readyState === WebSocket.OPEN)
+      ) {
         result.push({
           peerId,
           deviceType: peer.deviceType,
           deviceInfo: peer.deviceInfo,
           connectedAt: peer.connectedAt,
           lastSeen: peer.lastSeen,
+          ipAddress: peer.isLocal ? getLocalIP() : peer.ipAddress || "",
         });
       }
     }
@@ -262,9 +290,14 @@ class SignalingPeerRegistry {
   checkStaleConnections() {
     const now = Date.now();
     const removed = [];
-    const WebSocket = require('ws');
+    const WebSocket = require("ws");
 
     for (const [peerId, peer] of this.peers.entries()) {
+      // Skip local peers (they have no socket but should not be removed)
+      if (peer.isLocal) {
+        continue;
+      }
+
       // Check if socket is closed/closing
       if (!peer.socket || peer.socket.readyState >= WebSocket.CLOSING) {
         this.unregister(peerId);
@@ -304,8 +337,8 @@ class SignalingPeerRegistry {
       ...this.stats,
       currentPeers: this.peers.size,
       onlinePeers: this.getOnlinePeers().length,
-      mobileCount: this.getPeersByType('mobile').length,
-      desktopCount: this.getPeersByType('desktop').length,
+      mobileCount: this.getPeersByType("mobile").length,
+      desktopCount: this.getPeersByType("desktop").length,
     };
   }
 
@@ -323,7 +356,7 @@ class SignalingPeerRegistry {
   clear() {
     this.peers.clear();
     this.connectionToPeer.clear();
-    logger.info('[PeerRegistry] Cleared all peers');
+    logger.info("[PeerRegistry] Cleared all peers");
   }
 
   /**
@@ -335,7 +368,7 @@ class SignalingPeerRegistry {
       this.staleCheckTimer = null;
     }
 
-    logger.info('[PeerRegistry] Stopped');
+    logger.info("[PeerRegistry] Stopped");
   }
 }
 

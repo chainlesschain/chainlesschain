@@ -28,7 +28,8 @@ class SignalingConfig @Inject constructor(
         const val DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com:9001"
 
         /** Debug-only fallback - use local network IP for real device testing */
-        const val DEBUG_SIGNALING_URL = "ws://192.168.3.59:9001"
+        // Note: This should match the default shown in SettingsScreen for consistency
+        const val DEBUG_SIGNALING_URL = "ws://192.168.1.1:9001"
 
         const val CONNECT_TIMEOUT_MS = 10000L
         const val RECONNECT_DELAY_MS = 3000L

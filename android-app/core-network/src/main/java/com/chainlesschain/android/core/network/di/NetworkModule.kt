@@ -48,6 +48,8 @@ object NetworkModule {
             .connectTimeout(timeoutMs, TimeUnit.MILLISECONDS)
             .readTimeout(timeoutMs, TimeUnit.MILLISECONDS)
             .writeTimeout(timeoutMs, TimeUnit.MILLISECONDS)
+            // WebSocket ping interval for keep-alive (responds to server pings automatically)
+            .pingInterval(20, TimeUnit.SECONDS)
             .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .build()
