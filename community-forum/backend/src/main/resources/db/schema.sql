@@ -282,3 +282,21 @@ INSERT INTO `posts` (`user_id`, `category_id`, `title`, `content`, `type`, `stat
 
 -- 更新分类帖子数
 UPDATE `categories` SET `posts_count` = 1 WHERE `id` = 4;
+
+-- 设备公钥表（用于生产模式U盾/SIMKey验证）
+CREATE TABLE `device_keys` (
+  `id` BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '主键ID',
+  `device_id` VARCHAR(200) UNIQUE NOT NULL COMMENT '设备ID',
+  `device_type` ENUM('UKEY', 'SIMKEY') NOT NULL COMMENT '设备类型',
+  `public_key` TEXT NOT NULL COMMENT '公钥(Base64编码)',
+  `status` ENUM('active', 'revoked', 'expired') DEFAULT 'active' COMMENT '设备状态',
+  `user_id` BIGINT COMMENT '关联用户ID',
+  `alias` VARCHAR(100) COMMENT '设备别名',
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` TINYINT DEFAULT 0 COMMENT '是否删除',
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL,
+  INDEX idx_device_id (`device_id`),
+  INDEX idx_user_id (`user_id`),
+  INDEX idx_status (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='设备公钥表';

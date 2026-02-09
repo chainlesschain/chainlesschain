@@ -1,5 +1,7 @@
 package com.chainlesschain.community.service;
 
+import com.chainlesschain.community.mapper.DeviceKeyMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
@@ -23,6 +25,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class UKeyVerificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(UKeyVerificationService.class);
+
+    @Autowired(required = false)
+    private DeviceKeyMapper deviceKeyMapper;
 
     /**
      * 开发模式标志
@@ -175,9 +180,29 @@ public class UKeyVerificationService {
      * 从数据库加载设备公钥
      */
     private PublicKey loadDevicePublicKey(String deviceId) {
-        // TODO: 实际实现应从数据库加载
-        // 示例：return deviceRepository.findPublicKeyByDeviceId(deviceId);
-        return null;
+        if (deviceKeyMapper == null) {
+            logger.warn("[UKey] DeviceKeyMapper未注入，无法从数据库加载公钥");
+            return null;
+        }
+
+        try {
+            String publicKeyBase64 = deviceKeyMapper.findPublicKeyByDeviceId(deviceId);
+            if (publicKeyBase64 == null || publicKeyBase64.isEmpty()) {
+                logger.debug("[UKey] 未找到设备公钥: {}", deviceId);
+                return null;
+            }
+
+            byte[] keyBytes = Base64.getDecoder().decode(publicKeyBase64);
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey publicKey = keyFactory.generatePublic(spec);
+
+            logger.info("[UKey] 成功从数据库加载设备公钥: {}", deviceId);
+            return publicKey;
+        } catch (Exception e) {
+            logger.error("[UKey] 加载设备公钥失败: {}", deviceId, e);
+            return null;
+        }
     }
 
     /**
