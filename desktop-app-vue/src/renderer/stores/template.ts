@@ -303,9 +303,14 @@ export const useTemplateStore = defineStore('template', () => {
     variables: Record<string, any>
   ): Promise<string> {
     try {
+      if (!templateId) {
+        throw new Error('模板ID不能为空');
+      }
+
       // 将 Vue 响应式对象转换为普通对象，避免 IPC 传输时的克隆错误
-      // 使用 JSON 序列化进行深拷贝，确保移除所有响应式引用
-      const plainVariables = JSON.parse(JSON.stringify(toRaw(variables)));
+      const rawVariables = toRaw(variables || {});
+      const plainVariables =
+        rawVariables && typeof rawVariables === 'object' ? { ...rawVariables } : {};
 
       // 使用项目模板API渲染
       const result: TemplateApiResult = await electronAPI.template.renderPrompt(
@@ -318,11 +323,15 @@ export const useTemplateStore = defineStore('template', () => {
       } else if (result.success && !result.renderedPrompt) {
         throw new Error('渲染成功但返回结果为空');
       } else {
-        throw new Error(result.error || '渲染失败，未知错误');
+        throw new Error(result.error || `渲染失败，未知错误 (templateId=${templateId})`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('[TemplateStore] 渲染 prompt 异常:', errorMessage);
+      if (errorMessage.includes('变量验证失败') || errorMessage.includes('格式不正确')) {
+        logger.warn('[TemplateStore] 渲染 prompt 校验未通过:', errorMessage);
+      } else {
+        logger.error('[TemplateStore] 渲染 prompt 异常:', errorMessage);
+      }
       throw error;
     }
   }

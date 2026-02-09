@@ -1,6 +1,8 @@
 package com.chainlesschain.android.feature.project.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -162,6 +164,12 @@ fun TemplateSelectionDialog(
                                     template = template,
                                     isSelected = selectedTemplate == template,
                                     onClick = {
+                                        // 直接使用选中的模板创建项目
+                                        onTemplateSelected(template)
+                                        onDismiss()
+                                    },
+                                    onLongClick = {
+                                        // 长按查看详情
                                         selectedTemplate = template
                                         selectedTab = 1
                                     },
@@ -225,11 +233,13 @@ fun TemplateSelectionDialog(
 /**
  * Template card item
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TemplateCard(
     template: ProjectTemplate,
     isSelected: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     templateManager: ProjectTemplateManager,
     modifier: Modifier = Modifier
 ) {
@@ -240,7 +250,10 @@ private fun TemplateCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected)
                 MaterialTheme.colorScheme.primaryContainer
