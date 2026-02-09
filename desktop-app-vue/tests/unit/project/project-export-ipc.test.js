@@ -383,7 +383,7 @@ describe('Project Export IPC', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.message).toContain('开发中');
+      expect(result.message).toContain('二维码生成成功');
     });
   });
 

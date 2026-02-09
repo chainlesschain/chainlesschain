@@ -39,7 +39,15 @@ fun SettingsScreen(
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showPinDialog by remember { mutableStateOf(false) }
     var showDataManagementSheet by remember { mutableStateOf(false) }
+    var showSignalingDialog by remember { mutableStateOf(false) }
     var selectedLanguage by remember { mutableStateOf("简体中文") }
+
+    // 信令服务器配置
+    val prefs = context.getSharedPreferences("signaling_config", android.content.Context.MODE_PRIVATE)
+    var signalingServerUrl by remember {
+        mutableStateOf(prefs.getString("custom_signaling_url", "ws://192.168.3.59:9001") ?: "ws://192.168.3.59:9001")
+    }
+    var signalingTestStatus by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -110,6 +118,26 @@ fun SettingsScreen(
                     title = "语言",
                     subtitle = "简体中文",
                     onClick = { showLanguageDialog = true }
+                )
+            }
+
+            // 网络设置
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "网络",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            item {
+                SettingsNavigationItem(
+                    icon = Icons.Default.Wifi,
+                    title = "P2P 信令服务器",
+                    subtitle = signalingServerUrl,
+                    onClick = { showSignalingDialog = true }
                 )
             }
 
@@ -359,6 +387,97 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showDataManagementSheet = false }) { Text("关闭") }
+            }
+        )
+    }
+
+    // 信令服务器配置对话框
+    if (showSignalingDialog) {
+        var tempUrl by remember { mutableStateOf(signalingServerUrl) }
+        var isTesting by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { showSignalingDialog = false },
+            title = { Text("P2P 信令服务器") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "请输入 PC 端信令服务器地址。格式: ws://IP地址:端口",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = tempUrl,
+                        onValueChange = { tempUrl = it },
+                        label = { Text("服务器地址") },
+                        placeholder = { Text("ws://192.168.x.x:9001") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // 测试连接按钮
+                    OutlinedButton(
+                        onClick = {
+                            isTesting = true
+                            signalingTestStatus = "正在测试连接..."
+                            scope.launch {
+                                try {
+                                    // 简单的 WebSocket 连接测试
+                                    val socket = java.net.Socket()
+                                    val uri = java.net.URI(tempUrl)
+                                    val host = uri.host
+                                    val port = if (uri.port > 0) uri.port else 9001
+                                    socket.connect(java.net.InetSocketAddress(host, port), 5000)
+                                    socket.close()
+                                    signalingTestStatus = "✓ 连接成功!"
+                                } catch (e: Exception) {
+                                    signalingTestStatus = "✗ 连接失败: ${e.message}"
+                                } finally {
+                                    isTesting = false
+                                }
+                            }
+                        },
+                        enabled = !isTesting && tempUrl.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isTesting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        Text(if (isTesting) "测试中..." else "测试连接")
+                    }
+
+                    // 测试状态
+                    if (signalingTestStatus.isNotBlank()) {
+                        Text(
+                            text = signalingTestStatus,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (signalingTestStatus.startsWith("✓"))
+                                MaterialTheme.colorScheme.primary
+                            else if (signalingTestStatus.startsWith("✗"))
+                                MaterialTheme.colorScheme.error
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        // 保存到 SharedPreferences
+                        prefs.edit().putString("custom_signaling_url", tempUrl).apply()
+                        signalingServerUrl = tempUrl
+                        showSignalingDialog = false
+                        scope.launch { snackbarHostState.showSnackbar("信令服务器地址已保存") }
+                    }
+                ) { Text("保存") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSignalingDialog = false }) { Text("取消") }
             }
         )
     }
