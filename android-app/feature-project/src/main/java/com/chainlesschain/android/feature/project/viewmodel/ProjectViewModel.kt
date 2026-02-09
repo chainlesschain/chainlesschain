@@ -412,6 +412,8 @@ class ProjectViewModel @Inject constructor(
 
     /**
      * 从模板创建项目
+     *
+     * 与PC端对齐：不仅保存到数据库，还写入实际文件到存储
      */
     fun createProjectFromTemplate(
         template: com.chainlesschain.android.feature.project.model.ProjectTemplate,
@@ -439,12 +441,28 @@ class ProjectViewModel @Inject constructor(
                 val templateManager = com.chainlesschain.android.feature.project.util.ProjectTemplateManager()
                 val result = templateManager.applyTemplate(template, name, userId)
 
-                // Create project
+                // Create project in database
                 val projectResult = projectRepository.createProject(result.projectRequest)
 
                 projectResult.fold(
                     onSuccess = { project ->
-                        // Insert template files - addFile internally updates project stats
+                        Log.d(TAG, "Project created in database: ${project.id}")
+
+                        // 1. 创建项目目录结构（与PC端对齐）
+                        val projectPath = projectFileStorage.createProjectDirectories(
+                            projectId = project.id,
+                            directories = result.folders
+                        )
+                        Log.d(TAG, "Project directory created: $projectPath")
+
+                        // 2. 写入文件到存储（与PC端对齐）
+                        val filesWritten = projectFileStorage.writeProjectFiles(
+                            projectId = project.id,
+                            files = result.files
+                        )
+                        Log.d(TAG, "Files written to storage: $filesWritten/${result.files.size}")
+
+                        // 3. 保存文件记录到数据库
                         result.files.forEach { file ->
                             projectRepository.addFile(
                                 projectId = project.id,
@@ -457,12 +475,22 @@ class ProjectViewModel @Inject constructor(
                                 content = file.content
                             )
                         }
+                        Log.d(TAG, "Files saved to database: ${result.files.size}")
 
-                        _uiEvents.emit(ProjectUiEvent.ShowMessage("项目创建成功 (使用模板: ${template.name})"))
+                        // 4. 更新项目的 rootPath
+                        projectRepository.updateProject(
+                            project.id,
+                            UpdateProjectRequest(rootPath = projectPath)
+                        )
+
+                        _uiEvents.emit(ProjectUiEvent.ShowMessage(
+                            "项目创建成功 (使用模板: ${template.name}, 文件: ${filesWritten}个)"
+                        ))
                         _uiEvents.emit(ProjectUiEvent.NavigateToProject(project.id))
                         loadStatistics()
                     },
                     onFailure = { error ->
+                        Log.e(TAG, "Failed to create project", error)
                         _uiEvents.emit(ProjectUiEvent.ShowError(error.message ?: "创建失败"))
                     }
                 )

@@ -206,6 +206,7 @@ class ProjectRepository @Inject constructor(
                         )
                     } ?: existing.tags,
                     metadata = request.metadata ?: existing.metadata,
+                    rootPath = request.rootPath ?: existing.rootPath,  // 支持更新rootPath
                     updatedAt = System.currentTimeMillis()
                 )
 
