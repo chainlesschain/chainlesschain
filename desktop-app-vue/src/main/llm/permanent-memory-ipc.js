@@ -319,6 +319,28 @@ function registerPermanentMemoryIPC(permanentMemory) {
   );
 
   /**
+   * memory:extract-from-session
+   * 兼容旧调用：当前默认未实现，避免 renderer 侧出现 No handler registered
+   */
+  ipcMain.handle("memory:extract-from-session", async (event, { sessionId }) => {
+    try {
+      if (typeof permanentMemory.extractFromSession === "function") {
+        const result = await permanentMemory.extractFromSession(sessionId);
+        return { success: true, result };
+      }
+
+      return {
+        success: false,
+        error:
+          "extract-from-session is not supported by current PermanentMemoryManager",
+      };
+    } catch (error) {
+      logger.error("[PermanentMemoryIPC] 从会话提取记忆失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
    * memory:get-memory-sections
    * 获取 MEMORY.md 的章节列表
    */
@@ -631,6 +653,7 @@ function unregisterPermanentMemoryIPC() {
   // Phase 6
   ipcMain.removeHandler("memory:save-to-memory");
   ipcMain.removeHandler("memory:extract-from-conversation");
+  ipcMain.removeHandler("memory:extract-from-session");
   ipcMain.removeHandler("memory:get-memory-sections");
 
   logger.info("[PermanentMemoryIPC] IPC 通道注销完成");

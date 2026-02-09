@@ -98,8 +98,71 @@ function registerBasicMCPConfigIPC() {
     }
   });
 
+  /**
+   * Get server config for a specific server (always available)
+   */
+  ipcMain.handle("mcp:get-server-config", async (event, { serverName }) => {
+    try {
+      const {
+        getUnifiedConfigManager,
+      } = require("../config/unified-config-manager");
+      const configManager = getUnifiedConfigManager();
+
+      const mcpConfig = configManager.getConfig("mcp") || {};
+      const serverConfig = mcpConfig.servers?.[serverName] || null;
+
+      return {
+        success: true,
+        config: serverConfig,
+      };
+    } catch (error) {
+      logger.error("[MCP IPC] Failed to get server config:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * Update server config for a specific server (always available)
+   * Note: Security policy permissions are only updated when MCP is enabled
+   */
+  ipcMain.handle(
+    "mcp:update-server-config",
+    async (event, { serverName, config }) => {
+      try {
+        const {
+          getUnifiedConfigManager,
+        } = require("../config/unified-config-manager");
+        const configManager = getUnifiedConfigManager();
+
+        const mcpConfig = configManager.getConfig("mcp") || { servers: {} };
+
+        // Update server config
+        if (!mcpConfig.servers) {
+          mcpConfig.servers = {};
+        }
+        mcpConfig.servers[serverName] = config;
+
+        // Save to config manager
+        configManager.updateConfig({ mcp: mcpConfig });
+
+        return {
+          success: true,
+        };
+      } catch (error) {
+        logger.error("[MCP IPC] Failed to update server config:", error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    },
+  );
+
   basicConfigIPCRegistered = true;
-  logger.info("[MCP IPC] Basic config IPC handlers registered (3 handlers)");
+  logger.info("[MCP IPC] Basic config IPC handlers registered (5 handlers)");
 }
 
 /**
@@ -584,73 +647,6 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
       };
     }
   });
-
-  /**
-   * Get server config for a specific server
-   */
-  ipcMain.handle("mcp:get-server-config", async (event, { serverName }) => {
-    try {
-      const {
-        getUnifiedConfigManager,
-      } = require("../config/unified-config-manager");
-      const configManager = getUnifiedConfigManager();
-
-      const mcpConfig = configManager.getConfig("mcp") || {};
-      const serverConfig = mcpConfig.servers?.[serverName] || null;
-
-      return {
-        success: true,
-        config: serverConfig,
-      };
-    } catch (error) {
-      logger.error("[MCP IPC] Failed to get server config:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
-  /**
-   * Update server config for a specific server
-   */
-  ipcMain.handle(
-    "mcp:update-server-config",
-    async (event, { serverName, config }) => {
-      try {
-        const {
-          getUnifiedConfigManager,
-        } = require("../config/unified-config-manager");
-        const configManager = getUnifiedConfigManager();
-
-        const mcpConfig = configManager.getConfig("mcp") || { servers: {} };
-
-        // Update server config
-        if (!mcpConfig.servers) {
-          mcpConfig.servers = {};
-        }
-        mcpConfig.servers[serverName] = config;
-
-        // Save to config manager
-        configManager.updateConfig({ mcp: mcpConfig });
-
-        // Also update security policy permissions if applicable
-        if (config.permissions) {
-          securityPolicy.setServerPermissions(serverName, config.permissions);
-        }
-
-        return {
-          success: true,
-        };
-      } catch (error) {
-        logger.error("[MCP IPC] Failed to update server config:", error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    },
-  );
 
   logger.info("[MCP IPC] All handlers registered successfully");
 }
