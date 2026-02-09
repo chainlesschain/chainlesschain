@@ -122,6 +122,7 @@ function registerAllIPC(dependencies) {
       toolManager,
       imageUploader,
       fileImporter,
+      templateManager,
       promptTemplateManager,
       knowledgePaymentManager,
       creditScoreManager,
@@ -490,9 +491,19 @@ function registerAllIPC(dependencies) {
 
     // 浏览器自动化控制 (Browser Control，22 handlers: 12 Phase1 + 6 Phase2 + 4 Phase3)
     logger.info("[IPC Registry] Registering Browser IPC...");
-    const { registerBrowserIPC } = require("../browser/browser-ipc");
-    registerBrowserIPC();
-    logger.info("[IPC Registry] ✓ Browser IPC registered (22 handlers)");
+    try {
+      const { registerBrowserIPC } = require("../browser/browser-ipc");
+      registerBrowserIPC();
+      logger.info("[IPC Registry] ✓ Browser IPC registered (22 handlers)");
+    } catch (browserError) {
+      logger.warn(
+        "[IPC Registry] ⚠️ Browser IPC registration failed (non-fatal):",
+        browserError.message,
+      );
+      logger.warn(
+        "[IPC Registry] Browser automation features will be disabled",
+      );
+    }
 
     // ============================================================
     // 第二阶段模块 (核心功能)
@@ -856,19 +867,19 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ✓ Office File IPC registered");
 
     // 模板管理 (函数模式 - 大模块，20 handlers)
-    if (app.templateManager) {
+    if (templateManager) {
       logger.info("[IPC Registry] Registering Template IPC...");
       const { registerTemplateIPC } = require("../template/template-ipc");
 
       registerTemplateIPC({
-        templateManager: app.templateManager,
+        templateManager: templateManager,
       });
       logger.info("[IPC Registry] ✓ Template IPC registered (20 handlers)");
     } else {
-      logger.error(
-        "[IPC Registry] ❌ templateManager 未初始化，跳过 Template IPC 注册",
+      logger.warn(
+        "[IPC Registry] ⚠ templateManager 未初始化，跳过 Template IPC 注册",
       );
-      logger.error("[IPC Registry] 模板功能将不可用，可能导致部分页面出错");
+      logger.warn("[IPC Registry] 模板功能将不可用，可能导致部分页面出错");
     }
 
     // 知识管理 (函数模式 - 中等模块，17 handlers)
