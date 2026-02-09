@@ -697,8 +697,8 @@ describe('TaskPlannerEnhanced', () => {
 
       const result = await planner.decomposeTask('测试', {});
 
-      // Should use fallback plan
-      expect(result.subtasks).toHaveLength(1);
+      // Should use rule-based fallback (file_writer + generic_executor = 2 subtasks)
+      expect(result.subtasks).toHaveLength(2);
     });
 
     it('should handle subtasks with missing step numbers', () => {
