@@ -86,6 +86,16 @@ const mockLogger = {
   info: vi.fn(),
 };
 
+// Mock XLSX object (used directly in tests)
+const mockXLSX = {
+  utils: {
+    json_to_sheet: vi.fn(() => ({})),
+    book_new: vi.fn(() => ({})),
+    book_append_sheet: vi.fn(),
+  },
+  writeFile: vi.fn(),
+};
+
 // Mock ant-design-vue
 vi.mock("ant-design-vue", () => ({
   message: {
@@ -611,7 +621,7 @@ describe("ProjectManagementPage.vue", () => {
     it("应该能导出Excel", () => {
       wrapper = createWrapper();
       const message = mockMessage;
-      const XLSX = require("xlsx").default;
+      const XLSX = mockXLSX;
 
       wrapper.vm.handleExport();
 
@@ -624,7 +634,7 @@ describe("ProjectManagementPage.vue", () => {
       wrapper = createWrapper();
       const message = mockMessage;
       const logger = mockLogger;
-      const XLSX = require("xlsx").default;
+      const XLSX = mockXLSX;
 
       XLSX.utils.json_to_sheet.mockImplementation(() => {
         throw new Error("导出失败");
