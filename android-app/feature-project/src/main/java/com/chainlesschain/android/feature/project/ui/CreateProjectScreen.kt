@@ -83,10 +83,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun CreateProjectScreen(
     viewModel: ProjectViewModel = hiltViewModel(),
+    userId: String? = null,
     onNavigateBack: () -> Unit,
     onProjectCreated: (String) -> Unit
 ) {
     val isLoading by viewModel.isLoading.collectAsState()
+    val currentUserId by viewModel.currentUserId.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var name by remember { mutableStateOf("") }
@@ -96,6 +98,11 @@ fun CreateProjectScreen(
     val tags = remember { mutableStateListOf<String>() }
 
     val scope = rememberCoroutineScope()
+
+    // 确保用户ID已设置
+    LaunchedEffect(userId) {
+        userId?.let { viewModel.setCurrentUser(it) }
+    }
 
     // AI Assistant state
     var showAiAssistant by remember { mutableStateOf(false) }
@@ -304,12 +311,21 @@ fun CreateProjectScreen(
             // 创建按钮
             Button(
                 onClick = {
-                    viewModel.createProject(
-                        name = name.trim(),
-                        description = description.trim().takeIf { it.isNotEmpty() },
-                        type = selectedType,
-                        tags = tags.toList().takeIf { it.isNotEmpty() }
-                    )
+                    // 确保用户ID已设置
+                    val effectiveUserId = userId ?: currentUserId
+                    if (effectiveUserId != null) {
+                        viewModel.setCurrentUser(effectiveUserId)
+                        viewModel.createProject(
+                            name = name.trim(),
+                            description = description.trim().takeIf { it.isNotEmpty() },
+                            type = selectedType,
+                            tags = tags.toList().takeIf { it.isNotEmpty() }
+                        )
+                    } else {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("请先登录后再创建项目")
+                        }
+                    }
                 },
                 enabled = name.isNotBlank() && !isLoading,
                 modifier = Modifier.fillMaxWidth()
