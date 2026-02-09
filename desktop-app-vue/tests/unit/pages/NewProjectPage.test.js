@@ -33,14 +33,17 @@ vi.mock('vue-router', () => ({
   useRoute: () => ({ params: {}, query: {} }),
 }));
 
+// Hoist mock logger so it can be used directly
+const mockLogger = vi.hoisted(() => ({
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+}));
+
 // Mock logger
 vi.mock('@/utils/logger', () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-  },
-  createLogger: vi.fn(),
+  logger: mockLogger,
+  createLogger: vi.fn(() => mockLogger),
 }));
 
 // Mock stores
@@ -127,15 +130,12 @@ describe('NewProjectPage', () => {
         `,
         setup() {
           const { ref, onMounted } = require('vue');
-          const { useRouter } = require('vue-router');
           const message = mockMessage;
-          const { useProjectStore } = require('@/stores/project');
-          const { useAuthStore } = require('@/stores/auth');
-          const { logger } = require('@/utils/logger');
-
-          const router = useRouter();
-          const projectStore = useProjectStore();
-          const authStore = useAuthStore();
+          // Use mocks directly instead of requiring - vi.mock doesn't intercept require() in setup
+          const logger = mockLogger;
+          const router = mockRouter;
+          const projectStore = mockProjectStore;
+          const authStore = mockAuthStore;
 
           const activeTab = ref('ai');
           const showTemplateRecommendModal = ref(false);
@@ -392,7 +392,7 @@ describe('NewProjectPage', () => {
     });
 
     it('应该能处理localStorage错误', async () => {
-      const { logger } = require('@/utils/logger');
+      const logger = mockLogger;
       localStorageMock.getItem.mockImplementation(() => {
         throw new Error('Storage error');
       });
@@ -404,7 +404,7 @@ describe('NewProjectPage', () => {
     });
 
     it('应该能处理保存localStorage错误', async () => {
-      const { logger } = require('@/utils/logger');
+      const logger = mockLogger;
       localStorageMock.getItem.mockReturnValue(null);
       localStorageMock.setItem.mockImplementation(() => {
         throw new Error('Storage error');
