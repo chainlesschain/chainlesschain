@@ -14,6 +14,20 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { ref, onMounted } from 'vue';
+
+// Mock message object (used directly in setup)
+const mockMessage = {
+  success: vi.fn(),
+  error: vi.fn(),
+};
+
+// Mock logger object (used directly in setup)
+const mockLogger = {
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+};
 
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({
@@ -155,14 +169,11 @@ describe('SyncConflictsPage', () => {
           </div>
         `,
         setup() {
-          const { ref, onMounted } = require('vue');
-          const { message } = require('ant-design-vue');
-          const { useIdentityStore } = require('../stores/identity');
-          const { useRouter } = require('vue-router');
-          const { logger } = require('@/utils/logger');
-
-          const router = useRouter();
-          const identityStore = useIdentityStore();
+          // Use imported modules directly instead of require()
+          const message = mockMessage;
+          const logger = mockLogger;
+          const router = mockRouter;
+          const identityStore = mockIdentityStore;
 
           const loading = ref(false);
           const conflicts = ref([]);

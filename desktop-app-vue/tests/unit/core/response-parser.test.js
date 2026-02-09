@@ -546,7 +546,9 @@ const x = 1;
 
   // ==================== validateOperation 测试 ====================
   describe('validateOperation', () => {
-    const projectPath = '/project/root';
+    // 使用平台无关的路径格式
+    const path = require('path');
+    const projectPath = path.resolve('/project/root');
 
     it('should validate valid CREATE operation', () => {
       const operation = {
@@ -684,7 +686,8 @@ const x = 1;
 
   // ==================== validateOperations 测试 ====================
   describe('validateOperations', () => {
-    const projectPath = '/project/root';
+    const path = require('path');
+    const projectPath = path.resolve('/project/root');
 
     it('should validate all valid operations', () => {
       const operations = [

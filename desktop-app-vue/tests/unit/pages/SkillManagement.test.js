@@ -20,6 +20,22 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { ref, computed, onMounted } from 'vue';
+
+// Mock message object (used directly in setup)
+const mockMessage = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+};
+
+// Mock Modal object
+const mockModal = {
+  confirm: vi.fn((options) => {
+    options.onOk && options.onOk();
+  }),
+};
 
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({
@@ -194,11 +210,10 @@ describe('SkillManagement', () => {
           </div>
         `,
         setup() {
-          const { ref, computed, onMounted } = require('vue');
-          const { message, Modal } = require('ant-design-vue');
-          const { useSkillStore } = require('@renderer/stores/skill');
-
-          const skillStore = useSkillStore();
+          // Use imported modules directly instead of require()
+          const message = mockMessage;
+          const Modal = mockModal;
+          const skillStore = mockSkillStore;
           const searchKeyword = ref('');
           const categoryFilter = ref('all');
           const selectedSkills = ref([]);
