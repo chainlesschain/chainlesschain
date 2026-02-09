@@ -507,6 +507,34 @@ const loadCategories = async () => {
 onMounted(() => {
   loadCategories();
 });
+
+// 暴露给测试使用
+defineExpose({
+  // 状态
+  loading,
+  editDialogVisible,
+  activeKeys,
+  formRef,
+  editingCategory,
+  parentId,
+  formData,
+  formRules,
+  subCategoryColumns,
+  // 计算属性
+  categories,
+  primaryCount,
+  secondaryCount,
+  totalCount,
+  // 方法
+  loadCategories,
+  showAddDialog,
+  showEditDialog,
+  handleEditCancel,
+  handleSave,
+  handleDelete,
+  handleInitDefaults,
+  getCategoryHeader,
+});
 </script>
 
 <style scoped lang="scss">

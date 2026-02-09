@@ -65,12 +65,12 @@ const mockGraphStore = {
   applyFilters: vi.fn(),
 };
 
-vi.mock('@renderer/stores/graph', () => ({
+vi.mock('@/stores/graph', () => ({
   useGraphStore: () => mockGraphStore,
 }));
 
 // Mock GraphCanvas component
-vi.mock('@renderer/components/graph/GraphCanvasOptimized.vue', () => ({
+vi.mock('@/components/graph/GraphCanvasOptimized.vue', () => ({
   default: {
     name: 'GraphCanvas',
     template: '<div class="mock-graph-canvas"></div>',
@@ -218,12 +218,11 @@ describe('KnowledgeGraphPage', () => {
         `,
         setup() {
           const { ref, reactive } = require('vue');
-          const { useRouter } = require('vue-router');
           const message = mockMessage;
-          const { useGraphStore } = require('@renderer/stores/graph');
+          // Use mocks directly instead of requiring - vi.mock doesn't intercept require() in setup
+          const graphStore = mockGraphStore;
+          const router = mockRouter;
 
-          const router = useRouter();
-          const graphStore = useGraphStore();
           const collapsed = ref(false);
 
           const filters = reactive({
