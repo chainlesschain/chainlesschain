@@ -158,6 +158,62 @@ function registerConversationIPC({
   });
 
   /**
+   * 获取最近对话
+   * Channel: 'conversation:get-recent'
+   *
+   * @param {Object} options - 查询选项
+   * @param {number} options.limit - 返回数量限制
+   * @param {string} [options.projectId] - 可选的项目ID筛选
+   * @returns {Promise<Object>} { success: boolean, conversations?: Object[], error?: string }
+   */
+  ipcMain.handle("conversation:get-recent", async (_event, options = {}) => {
+    try {
+      if (!database) {
+        return { success: false, error: "数据库未初始化" };
+      }
+
+      const { limit = 10, projectId = null } = options;
+      logger.info("[Conversation IPC] 获取最近对话:", { limit, projectId });
+
+      let conversations = [];
+
+      try {
+        if (projectId) {
+          conversations = database.db
+            .prepare(
+              `
+              SELECT * FROM conversations
+              WHERE project_id = ?
+              ORDER BY updated_at DESC, created_at DESC
+              LIMIT ?
+            `,
+            )
+            .all(projectId, limit);
+        } else {
+          conversations = database.db
+            .prepare(
+              `
+              SELECT * FROM conversations
+              ORDER BY updated_at DESC, created_at DESC
+              LIMIT ?
+            `,
+            )
+            .all(limit);
+        }
+      } catch (tableError) {
+        logger.error("[Conversation IPC] 查询最近对话失败:", tableError.message);
+        conversations = [];
+      }
+
+      logger.info("[Conversation IPC] 找到最近对话数量:", conversations.length);
+      return { success: true, conversations };
+    } catch (error) {
+      logger.error("[Conversation IPC] 获取最近对话失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
    * 获取对话详情
    * Channel: 'conversation:get-by-id'
    *
@@ -1572,9 +1628,10 @@ function registerConversationIPC({
   ipcGuard.markModuleRegistered("conversation-ipc");
 
   logger.info(
-    "[Conversation IPC] ✅ Successfully registered 17 conversation handlers",
+    "[Conversation IPC] ✅ Successfully registered 18 conversation handlers",
   );
   logger.info("[Conversation IPC] - conversation:get-by-project");
+  logger.info("[Conversation IPC] - conversation:get-recent");
   logger.info("[Conversation IPC] - conversation:get-by-id");
   logger.info("[Conversation IPC] - conversation:create ✓");
   logger.info("[Conversation IPC] - conversation:update");

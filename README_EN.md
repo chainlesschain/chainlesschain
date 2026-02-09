@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.29.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.32.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,13 +19,25 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.29.0 (2026-02-08)
+## ⭐ Current Version: v0.32.0 (2026-02-09)
 
-### Latest Updates - Test Refactoring + Android Enhancements + Social Notifications + ECharts
+### Latest Updates - Security Auth + Incremental RAG + SIMKey NFC + File Versioning
 
-**DI Test Refactoring + Android Enhancements + Social Notifications + ECharts Dashboard** - Dependency injection test refactoring, Android multi-screen enhancements, social notifications UI, TaskMonitor visualization dashboard
+**Security Authentication Enhancement + Incremental RAG Indexing + SIMKey NFC Detection + File Version Control** - Production-grade security, intelligent document indexing, mobile hardware key support, complete file history
 
-#### New Core Features (2026-02-08)
+#### New Core Features (2026-02-09)
+
+- ✅ **Security Authentication Enhancement** - Dev/prod mode switching, JWT authentication for API endpoints, device key database integration
+- ✅ **Incremental RAG Indexing** - MD5 content hash change detection, multi-file joint retrieval, unified search (vector+keyword+graph)
+- ✅ **Project-Aware Reranker** - Context-aware result reranking, 6 new IPC handlers
+- ✅ **SIMKey NFC Detection** - NFC reading and SIM security element detection for mobile, simulator support for dev mode
+- ✅ **File Version Control** - FileVersion entity, version history, SHA-256 content hashing, restore capability
+- ✅ **LLM Function Calling** - OpenAI and DashScope chat_with_tools support, automatic capability detection
+- ✅ **Deep Link Enhancement** - Notes/clip link handling, universal navigation, focusMainWindow
+- ✅ **Browser Extension Enhancement** - Launch desktop app via chainlesschain:// protocol
+- ✅ **Test Infrastructure Optimization** - 89 Ant Design Vue component stubs, dayjs mock fixes, permission system test improvements
+
+#### v0.29.0-v0.31.0 Features Recap
 
 - ✅ **DI Test Refactoring** - 102 database tests enabled via dependency injection, Browser IPC testability improved
 - ✅ **Social Notifications UI** - Social notification features, project file operations enhancement

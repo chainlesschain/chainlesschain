@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.29.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.32.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,13 +19,25 @@
 
 ---
 
-## ⭐ 当前版本: v0.29.0 (2026-02-08)
+## ⭐ 当前版本: v0.32.0 (2026-02-09)
 
-### 最新更新 - 测试体系重构 + Android 增强 + 社交通知 + ECharts 可视化
+### 最新更新 - 安全认证增强 + 增量RAG索引 + SIMKey NFC检测 + 文件版本控制
 
-**DI Test Refactoring + Android Enhancements + Social Notifications + ECharts Dashboard** - 依赖注入测试重构、Android 多页面增强、社交通知 UI、TaskMonitor 可视化仪表盘
+**Security Auth + Incremental RAG + SIMKey NFC + File Versioning** - 生产级安全认证、智能文档索引、移动端硬件密钥支持、完整文件历史
 
-#### 新增核心功能 (2026-02-08)
+#### 新增核心功能 (2026-02-09)
+
+- ✅ **安全认证增强** - dev/prod 模式切换、API 端点 JWT 认证、设备密钥数据库集成
+- ✅ **增量RAG索引系统** - MD5 content hash 变化检测、多文件联合检索、统一检索(向量+关键词+图谱)
+- ✅ **项目上下文感知重排** - 上下文感知结果重排、6 个新 IPC handlers
+- ✅ **SIMKey NFC检测** - 移动端 NFC 读取和 SIM 安全元件检测、开发模式模拟器支持
+- ✅ **文件版本控制** - FileVersion 实体、版本历史、SHA-256 内容哈希、版本恢复
+- ✅ **LLM Function Calling** - OpenAI 和 DashScope chat_with_tools 支持、自动能力检测
+- ✅ **Deep Link 增强** - notes/clip 链接处理、通用导航、focusMainWindow
+- ✅ **浏览器扩展增强** - 通过 chainlesschain:// 协议启动桌面应用
+- ✅ **测试基础设施优化** - 89 个 Ant Design Vue 组件 stubs、dayjs mock 修复、权限系统测试优化
+
+#### v0.29.0-v0.31.0 功能回顾
 
 - ✅ **测试体系依赖注入重构** - 102 个数据库测试通过 DI 解除跳过、Browser IPC 可测性提升
 - ✅ **社交通知 UI** - 社交通知功能实现、项目文件操作增强
