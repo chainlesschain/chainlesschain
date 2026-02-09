@@ -711,17 +711,27 @@ function registerAllIPC(dependencies) {
     if (p2pManager && database) {
       const externalFileManager = dependencies.externalFileManager;
       if (externalFileManager) {
-        logger.info("[IPC Registry] Registering External Device File IPC...");
-        const {
-          registerExternalDeviceFileIPC,
-        } = require("../file/external-device-file-ipc");
-        registerExternalDeviceFileIPC(
-          require("electron").ipcMain,
-          externalFileManager,
-        );
-        logger.info(
-          "[IPC Registry] ✓ External Device File IPC registered (15 handlers)",
-        );
+        try {
+          logger.info("[IPC Registry] Registering External Device File IPC...");
+          const {
+            registerExternalDeviceFileIPC,
+          } = require("../file/external-device-file-ipc");
+          registerExternalDeviceFileIPC(
+            require("electron").ipcMain,
+            externalFileManager,
+          );
+          logger.info(
+            "[IPC Registry] ✓ External Device File IPC registered (15 handlers)",
+          );
+        } catch (externalFileError) {
+          logger.error(
+            "[IPC Registry] ✗ External Device File IPC registration failed:",
+            externalFileError.message,
+          );
+          logger.info(
+            "[IPC Registry] ⚠ Continuing with other IPC registrations...",
+          );
+        }
       }
     }
 
@@ -1365,32 +1375,52 @@ function registerAllIPC(dependencies) {
       logger.info("[IPC Registry] ✓ Import IPC registered (5 handlers)");
     }
 
-    logger.info("[IPC Registry] Registering Sync IPC...");
-    if (!syncManager) {
-      logger.warn(
-        "[IPC Registry] ⚠️ syncManager 未初始化，将注册降级的 Sync IPC handlers",
+    try {
+      logger.info("[IPC Registry] Registering Sync IPC...");
+      if (!syncManager) {
+        logger.warn(
+          "[IPC Registry] ⚠️ syncManager 未初始化，将注册降级的 Sync IPC handlers",
+        );
+      }
+      const { registerSyncIPC } = require("../sync/sync-ipc");
+      registerSyncIPC({ syncManager: syncManager || null });
+      logger.info("[IPC Registry] ✓ Sync IPC registered (4 handlers)");
+    } catch (syncError) {
+      logger.error(
+        "[IPC Registry] ✗ Sync IPC registration failed:",
+        syncError.message,
+      );
+      logger.info(
+        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
       );
     }
-    const { registerSyncIPC } = require("../sync/sync-ipc");
-    registerSyncIPC({ syncManager: syncManager || null });
-    logger.info("[IPC Registry] ✓ Sync IPC registered (4 handlers)");
 
     // Notification IPC already registered early (line 305-311)
 
     // Preference Manager IPC
-    logger.info("[IPC Registry] Registering Preference Manager IPC...");
-    const preferenceManager = app ? app.preferenceManager || null : null;
-    if (preferenceManager) {
-      const {
-        registerPreferenceManagerIPC,
-      } = require("../memory/preference-manager-ipc");
-      registerPreferenceManagerIPC({ preferenceManager });
-      logger.info(
-        "[IPC Registry] ✓ Preference Manager IPC registered (12 handlers)",
+    try {
+      logger.info("[IPC Registry] Registering Preference Manager IPC...");
+      const preferenceManager = app ? app.preferenceManager || null : null;
+      if (preferenceManager) {
+        const {
+          registerPreferenceManagerIPC,
+        } = require("../memory/preference-manager-ipc");
+        registerPreferenceManagerIPC({ preferenceManager });
+        logger.info(
+          "[IPC Registry] ✓ Preference Manager IPC registered (12 handlers)",
+        );
+      } else {
+        logger.warn(
+          "[IPC Registry] ⚠️ preferenceManager 未初始化，跳过 Preference IPC 注册",
+        );
+      }
+    } catch (preferenceError) {
+      logger.error(
+        "[IPC Registry] ✗ Preference Manager IPC registration failed:",
+        preferenceError.message,
       );
-    } else {
-      logger.warn(
-        "[IPC Registry] ⚠️ preferenceManager 未初始化，跳过 Preference IPC 注册",
+      logger.info(
+        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
       );
     }
 
