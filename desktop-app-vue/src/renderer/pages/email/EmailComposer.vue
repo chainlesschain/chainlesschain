@@ -309,7 +309,7 @@ const sendEmail = async () => {
       },
     );
 
-    if (result.success) {
+    if (result?.success) {
       // 如果是从草稿发送的，删除草稿
       if (currentDraftId.value) {
         try {

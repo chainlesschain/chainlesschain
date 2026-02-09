@@ -668,9 +668,43 @@ describe('Project Core IPC', () => {
     });
 
     it('should handle recovery failure', async () => {
-      // 这个测试需要重构,因为 recovery mock 已经在 beforeEach 中设置
-      // 暂时跳过这个测试用例
-      // TODO: 重构此测试以正确模拟恢复失败场景
+      // 重新设置 mock 以模拟恢复失败场景
+      vi.doMock('../../../desktop-app-vue/src/main/sync/project-recovery', () => {
+        return {
+          default: vi.fn().mockImplementation(() => ({
+            scanRecoverableProjects: vi.fn(() => []),
+            recoverProject: vi.fn(() => false), // 模拟恢复失败
+            recoverProjects: vi.fn((ids) => ({
+              success: [],
+              failed: ids,
+            })),
+            autoRecoverAll: vi.fn(() => ({
+              success: [],
+              failed: ['project-1'],
+            })),
+            getRecoveryStats: vi.fn(() => ({
+              total: 10,
+              recoverable: 2,
+              recovered: 8,
+            })),
+          })),
+        };
+      });
+
+      // 重新注册 IPC handlers
+      vi.resetModules();
+      const { registerProjectCoreIPC: register } = require('../../../desktop-app-vue/src/main/project/project-core-ipc.js');
+      register({
+        database: mockDatabase,
+        fileSyncManager: mockFileSyncManager,
+        removeUndefinedValues: mockRemoveUndefinedValues,
+        _replaceUndefinedWithNull: mockReplaceUndefinedWithNull,
+      });
+
+      const result = await handlers['project:recover'](null, 'non-existent-project');
+
+      // 恢复失败时应该返回 success: false
+      expect(result.success).toBe(false);
     });
 
     it('should recover projects in batch', async () => {

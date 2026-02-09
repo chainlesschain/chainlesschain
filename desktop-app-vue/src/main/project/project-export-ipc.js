@@ -685,28 +685,52 @@ ${content.substring(0, 2000)}
       logger.info(`[Main] 验证后的源路径: ${safeSourcePath}`);
       logger.info(`[Main] 目标路径: ${targetPath}`);
 
-      // 3. 检查源文件/文件夹是否存在
+      // 3. 检查源文件/文件夹是否存在（优先从文件系统，其次从数据库）
+      let fileExists = false;
+      let stats = null;
       try {
         await fs.access(safeSourcePath);
+        stats = await fs.stat(safeSourcePath);
+        fileExists = true;
       } catch (err) {
-        logger.error(`[Main] 源文件不存在: ${safeSourcePath}`);
-        throw new Error(`源文件不存在: ${projectPath}`);
+        logger.info(`[Main] 文件系统中不存在，尝试从数据库导出: ${projectPath}`);
       }
 
-      const stats = await fs.stat(safeSourcePath);
+      if (fileExists && stats) {
+        // 从文件系统导出
+        if (stats.isDirectory()) {
+          // 递归复制目录
+          logger.info(`[Main] 复制目录: ${safeSourcePath} -> ${targetPath}`);
+          await copyDirectory(safeSourcePath, targetPath);
+        } else {
+          // 确保目标目录存在
+          const targetDir = path.dirname(targetPath);
+          await fs.mkdir(targetDir, { recursive: true });
 
-      if (stats.isDirectory()) {
-        // 递归复制目录
-        logger.info(`[Main] 复制目录: ${safeSourcePath} -> ${targetPath}`);
-        await copyDirectory(safeSourcePath, targetPath);
+          // 复制单个文件
+          logger.info(`[Main] 复制文件: ${safeSourcePath} -> ${targetPath}`);
+          await fs.copyFile(safeSourcePath, targetPath);
+        }
       } else {
+        // 从数据库导出
+        const dbFile = await db.get(
+          "SELECT * FROM project_files WHERE project_id = ? AND file_path = ? AND deleted = 0",
+          [projectId, projectPath]
+        );
+
+        if (!dbFile) {
+          logger.error(`[Main] 文件不存在（文件系统和数据库均未找到）: ${projectPath}`);
+          throw new Error(`源文件不存在: ${projectPath}`);
+        }
+
         // 确保目标目录存在
         const targetDir = path.dirname(targetPath);
         await fs.mkdir(targetDir, { recursive: true });
 
-        // 复制单个文件
-        logger.info(`[Main] 复制文件: ${safeSourcePath} -> ${targetPath}`);
-        await fs.copyFile(safeSourcePath, targetPath);
+        // 从数据库写入文件
+        const content = dbFile.content || "";
+        logger.info(`[Main] 从数据库导出文件: ${projectPath} -> ${targetPath}`);
+        await fs.writeFile(targetPath, content, "utf-8");
       }
 
       logger.info(`[Main] 文件导出成功: ${targetPath}`);

@@ -748,8 +748,1003 @@ class ProjectRAGManager extends EventEmitter {
   }
 }
 
-// 单例模式
+// ============================================================
+// 增量索引管理器
+// ============================================================
+
+const crypto = require("crypto");
+
+/**
+ * 增量索引管理器
+ * 通过 content hash 检测文件变化，避免重复索引
+ */
+class IncrementalIndexManager {
+  constructor(database, ragManager) {
+    this.database = database;
+    this.ragManager = ragManager;
+  }
+
+  /**
+   * 计算内容的 MD5 哈希
+   * @param {string} content - 文件内容
+   * @returns {string} MD5 哈希值
+   */
+  _computeHash(content) {
+    return crypto.createHash("md5").update(content, "utf8").digest("hex");
+  }
+
+  /**
+   * 检测文件变化
+   * @param {Array} files - 文件列表 [{id, content, ...}]
+   * @param {string} projectId - 项目ID
+   * @returns {Object} { toIndex, toUpdate, unchanged }
+   */
+  async detectChanges(files, projectId) {
+    const result = {
+      toIndex: [], // 新文件，需要索引
+      toUpdate: [], // 内容变化，需要更新
+      unchanged: [], // 无变化，跳过
+    };
+
+    for (const file of files) {
+      if (!file.content) {
+        continue;
+      }
+
+      const currentHash = this._computeHash(file.content);
+
+      // 查询现有索引记录
+      const existing = this.database
+        .prepare(
+          `
+        SELECT content_hash FROM project_rag_index
+        WHERE project_id = ? AND file_id = ?
+      `,
+        )
+        .get(projectId, file.id);
+
+      if (!existing) {
+        // 新文件
+        result.toIndex.push({ ...file, contentHash: currentHash });
+      } else if (existing.content_hash !== currentHash) {
+        // 内容变化
+        result.toUpdate.push({ ...file, contentHash: currentHash });
+      } else {
+        // 无变化
+        result.unchanged.push(file);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * 增量索引项目文件
+   * @param {string} projectId - 项目ID
+   * @param {Object} options - 选项
+   * @param {Function} onProgress - 进度回调
+   * @returns {Promise<Object>} 索引结果
+   */
+  async incrementalIndex(projectId, options = {}, onProgress = null) {
+    const { fileTypes = null } = options;
+
+    logger.info(`[IncrementalIndex] 开始增量索引: ${projectId}`);
+    const startTime = Date.now();
+
+    try {
+      // 1. 获取项目信息
+      const project = this.database
+        .prepare("SELECT * FROM projects WHERE id = ?")
+        .get(projectId);
+
+      if (!project) {
+        throw new Error(`项目不存在: ${projectId}`);
+      }
+
+      // 2. 获取项目所有文件
+      let query = "SELECT * FROM project_files WHERE project_id = ?";
+      const params = [projectId];
+
+      if (fileTypes && fileTypes.length > 0) {
+        const placeholders = fileTypes.map(() => "?").join(",");
+        query += ` AND file_type IN (${placeholders})`;
+        params.push(...fileTypes);
+      }
+
+      const files = this.database.prepare(query).all(...params);
+
+      // 3. 读取文件内容
+      const filesWithContent = [];
+      const textFileTypes = [
+        "md",
+        "txt",
+        "html",
+        "css",
+        "js",
+        "ts",
+        "json",
+        "xml",
+        "py",
+        "java",
+        "cpp",
+        "c",
+        "h",
+        "go",
+        "rs",
+        "vue",
+        "jsx",
+        "tsx",
+      ];
+
+      for (const file of files) {
+        if (!textFileTypes.includes(file.file_type?.toLowerCase())) {
+          continue;
+        }
+
+        try {
+          const content = await fs.readFile(file.file_path, "utf-8");
+          if (content && content.trim().length > 0) {
+            filesWithContent.push({ ...file, content });
+          }
+        } catch (error) {
+          logger.warn(
+            `[IncrementalIndex] 读取文件失败: ${file.file_path}`,
+            error.message,
+          );
+        }
+      }
+
+      // 4. 检测变化
+      const changes = await this.detectChanges(filesWithContent, projectId);
+      const totalToProcess = changes.toIndex.length + changes.toUpdate.length;
+
+      logger.info(
+        `[IncrementalIndex] 变化检测: 新增${changes.toIndex.length}, 更新${changes.toUpdate.length}, 无变化${changes.unchanged.length}`,
+      );
+
+      // 5. 索引新文件
+      let processedCount = 0;
+      const errors = [];
+
+      for (const file of changes.toIndex) {
+        try {
+          if (onProgress) {
+            onProgress(++processedCount, totalToProcess, file.file_name);
+          }
+
+          await this.ragManager.addDocument({
+            id: `project_file_${file.id}`,
+            content: file.content,
+            metadata: {
+              type: "project_file",
+              projectId: projectId,
+              projectName: project.name,
+              fileId: file.id,
+              fileName: file.file_name,
+              filePath: file.file_path,
+              fileType: file.file_type,
+            },
+          });
+
+          // 记录索引信息
+          this.database
+            .prepare(
+              `
+            INSERT OR REPLACE INTO project_rag_index
+            (id, project_id, file_id, content_hash, indexed_at, chunk_count)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `,
+            )
+            .run(
+              `${projectId}_${file.id}`,
+              projectId,
+              file.id,
+              file.contentHash,
+              Date.now(),
+              1,
+            );
+        } catch (error) {
+          errors.push({ fileId: file.id, fileName: file.file_name, error: error.message });
+        }
+      }
+
+      // 6. 更新变化的文件
+      for (const file of changes.toUpdate) {
+        try {
+          if (onProgress) {
+            onProgress(++processedCount, totalToProcess, file.file_name);
+          }
+
+          // 删除旧索引
+          await this.ragManager.deleteDocument(`project_file_${file.id}`);
+
+          // 添加新索引
+          await this.ragManager.addDocument({
+            id: `project_file_${file.id}`,
+            content: file.content,
+            metadata: {
+              type: "project_file",
+              projectId: projectId,
+              projectName: project.name,
+              fileId: file.id,
+              fileName: file.file_name,
+              filePath: file.file_path,
+              fileType: file.file_type,
+            },
+          });
+
+          // 更新索引记录
+          this.database
+            .prepare(
+              `
+            UPDATE project_rag_index
+            SET content_hash = ?, indexed_at = ?
+            WHERE project_id = ? AND file_id = ?
+          `,
+            )
+            .run(file.contentHash, Date.now(), projectId, file.id);
+        } catch (error) {
+          errors.push({ fileId: file.id, fileName: file.file_name, error: error.message });
+        }
+      }
+
+      const duration = Date.now() - startTime;
+
+      const result = {
+        success: true,
+        projectId,
+        stats: {
+          indexed: changes.toIndex.length,
+          updated: changes.toUpdate.length,
+          unchanged: changes.unchanged.length,
+          errors: errors.length,
+        },
+        duration,
+        errors,
+      };
+
+      logger.info(`[IncrementalIndex] 完成 (${duration}ms):`, result.stats);
+      return result;
+    } catch (error) {
+      logger.error("[IncrementalIndex] 增量索引失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 清理项目的索引记录
+   * @param {string} projectId - 项目ID
+   */
+  async cleanupIndexRecords(projectId) {
+    this.database
+      .prepare("DELETE FROM project_rag_index WHERE project_id = ?")
+      .run(projectId);
+    logger.info(`[IncrementalIndex] 已清理项目索引记录: ${projectId}`);
+  }
+}
+
+// ============================================================
+// 多文件联合检索器
+// ============================================================
+
+/**
+ * 多文件联合检索器
+ * 支持文件关系追踪和跨文件上下文聚合
+ */
+class MultiFileRetriever {
+  constructor(database, ragManager) {
+    this.database = database;
+    this.ragManager = ragManager;
+  }
+
+  /**
+   * 提取文件中的导入语句
+   * @param {string} content - 文件内容
+   * @param {string} fileType - 文件类型
+   * @returns {Array<string>} 导入的文件路径列表
+   */
+  _extractImports(content, fileType) {
+    const imports = [];
+
+    if (!content) return imports;
+
+    // JavaScript/TypeScript imports
+    if (["js", "ts", "jsx", "tsx", "vue"].includes(fileType)) {
+      // ES6 imports: import xxx from 'path'
+      const es6Regex = /import\s+(?:[\w\s{},*]+\s+from\s+)?['"]([^'"]+)['"]/g;
+      let match;
+      while ((match = es6Regex.exec(content)) !== null) {
+        imports.push(match[1]);
+      }
+
+      // CommonJS requires: require('path')
+      const cjsRegex = /require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+      while ((match = cjsRegex.exec(content)) !== null) {
+        imports.push(match[1]);
+      }
+    }
+
+    // Python imports
+    if (fileType === "py") {
+      // from xxx import yyy
+      const fromRegex = /from\s+([^\s]+)\s+import/g;
+      let match;
+      while ((match = fromRegex.exec(content)) !== null) {
+        imports.push(match[1].replace(/\./g, "/"));
+      }
+
+      // import xxx
+      const importRegex = /^import\s+([^\s,]+)/gm;
+      while ((match = importRegex.exec(content)) !== null) {
+        imports.push(match[1].replace(/\./g, "/"));
+      }
+    }
+
+    // Java imports
+    if (fileType === "java") {
+      const javaRegex = /import\s+([^;]+);/g;
+      let match;
+      while ((match = javaRegex.exec(content)) !== null) {
+        imports.push(match[1].replace(/\./g, "/"));
+      }
+    }
+
+    // Go imports
+    if (fileType === "go") {
+      const goRegex = /import\s+(?:\(\s*)?["']([^"']+)["']/g;
+      let match;
+      while ((match = goRegex.exec(content)) !== null) {
+        imports.push(match[1]);
+      }
+    }
+
+    return imports;
+  }
+
+  /**
+   * 查找相关文件
+   * @param {Array<string>} fileIds - 初始文件ID列表
+   * @param {string} projectId - 项目ID
+   * @param {number} depth - 查找深度
+   * @returns {Promise<Array>} 相关文件列表
+   */
+  async _findRelatedFiles(fileIds, projectId, depth = 1) {
+    if (depth <= 0 || fileIds.length === 0) {
+      return [];
+    }
+
+    const relatedFiles = [];
+    const processedIds = new Set(fileIds);
+
+    for (const fileId of fileIds) {
+      // 获取文件信息
+      const file = this.database
+        .prepare("SELECT * FROM project_files WHERE id = ?")
+        .get(fileId);
+
+      if (!file) continue;
+
+      // 读取文件内容
+      let content;
+      try {
+        content = await fs.readFile(file.file_path, "utf-8");
+      } catch (error) {
+        continue;
+      }
+
+      // 提取导入
+      const imports = this._extractImports(content, file.file_type);
+
+      // 查找匹配的项目文件
+      for (const importPath of imports) {
+        // 尝试匹配项目中的文件
+        const baseName = path.basename(importPath).replace(/\.[^.]+$/, "");
+        const candidates = this.database
+          .prepare(
+            `
+          SELECT * FROM project_files
+          WHERE project_id = ?
+          AND (file_name LIKE ? OR file_path LIKE ?)
+          LIMIT 5
+        `,
+          )
+          .all(projectId, `${baseName}%`, `%${importPath}%`);
+
+        for (const candidate of candidates) {
+          if (!processedIds.has(candidate.id)) {
+            processedIds.add(candidate.id);
+            relatedFiles.push({
+              ...candidate,
+              relationType: "import",
+              referencedBy: fileId,
+            });
+          }
+        }
+      }
+    }
+
+    // 递归查找更深层的关系
+    if (depth > 1 && relatedFiles.length > 0) {
+      const deeperRelated = await this._findRelatedFiles(
+        relatedFiles.map((f) => f.id),
+        projectId,
+        depth - 1,
+      );
+      relatedFiles.push(...deeperRelated);
+    }
+
+    return relatedFiles;
+  }
+
+  /**
+   * 按文件分组检索结果
+   * @param {Array} chunks - 检索到的片段列表
+   * @returns {Object} 按文件分组的结果
+   */
+  _groupByFile(chunks) {
+    const grouped = {};
+
+    for (const chunk of chunks) {
+      const fileId = chunk.metadata?.fileId || "unknown";
+      if (!grouped[fileId]) {
+        grouped[fileId] = {
+          fileId,
+          fileName: chunk.metadata?.fileName || "unknown",
+          filePath: chunk.metadata?.filePath || "",
+          chunks: [],
+          totalScore: 0,
+        };
+      }
+      grouped[fileId].chunks.push(chunk);
+      grouped[fileId].totalScore += chunk.score || 0;
+    }
+
+    // 按总分排序
+    return Object.values(grouped).sort((a, b) => b.totalScore - a.totalScore);
+  }
+
+  /**
+   * 构建联合上下文
+   * @param {Array} primaryFiles - 主要文件
+   * @param {Array} relatedFiles - 关联文件
+   * @returns {Object} 联合上下文
+   */
+  async _buildJointContext(primaryFiles, relatedFiles) {
+    const context = {
+      primary: [],
+      related: [],
+    };
+
+    // 处理主要文件
+    for (const file of primaryFiles) {
+      let content = "";
+      try {
+        content = await fs.readFile(file.filePath, "utf-8");
+        // 截取相关部分
+        content = content.substring(0, 2000);
+      } catch (error) {
+        content = file.chunks.map((c) => c.content).join("\n\n");
+      }
+
+      context.primary.push({
+        fileId: file.fileId,
+        fileName: file.fileName,
+        content,
+        relevanceScore: file.totalScore,
+      });
+    }
+
+    // 处理关联文件
+    for (const file of relatedFiles.slice(0, 5)) {
+      let content = "";
+      try {
+        content = await fs.readFile(file.file_path, "utf-8");
+        content = content.substring(0, 1000);
+      } catch (error) {
+        continue;
+      }
+
+      context.related.push({
+        fileId: file.id,
+        fileName: file.file_name,
+        relationType: file.relationType,
+        content,
+      });
+    }
+
+    return context;
+  }
+
+  /**
+   * 多文件联合检索
+   * @param {string} projectId - 项目ID
+   * @param {string} query - 查询文本
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} 联合检索结果
+   */
+  async jointRetrieve(projectId, query, options = {}) {
+    const {
+      maxFiles = 5,
+      maxChunksPerFile = 3,
+      includeRelated = true,
+      relatedDepth = 1,
+    } = options;
+
+    logger.info(`[MultiFileRetriever] 联合检索: ${query}`);
+    const startTime = Date.now();
+
+    try {
+      // 1. 向量检索
+      const searchResults = await this.ragManager.search(query, {
+        filter: {
+          type: "project_file",
+          projectId: projectId,
+        },
+        limit: maxFiles * maxChunksPerFile,
+      });
+
+      // 2. 按文件分组
+      const groupedFiles = this._groupByFile(searchResults);
+
+      // 3. 限制每个文件的片段数
+      const primaryFiles = groupedFiles.slice(0, maxFiles).map((file) => ({
+        ...file,
+        chunks: file.chunks.slice(0, maxChunksPerFile),
+      }));
+
+      // 4. 查找关联文件
+      let relatedFiles = [];
+      if (includeRelated && primaryFiles.length > 0) {
+        const primaryFileIds = primaryFiles.map((f) => f.fileId);
+        relatedFiles = await this._findRelatedFiles(
+          primaryFileIds,
+          projectId,
+          relatedDepth,
+        );
+      }
+
+      // 5. 构建联合上下文
+      const jointContext = await this._buildJointContext(
+        primaryFiles,
+        relatedFiles,
+      );
+
+      const duration = Date.now() - startTime;
+
+      const result = {
+        success: true,
+        projectId,
+        query,
+        primaryFiles: jointContext.primary,
+        relatedFiles: jointContext.related,
+        stats: {
+          primaryCount: primaryFiles.length,
+          relatedCount: relatedFiles.length,
+          totalChunks: searchResults.length,
+        },
+        duration,
+      };
+
+      logger.info(
+        `[MultiFileRetriever] 完成 (${duration}ms): 主文件${result.stats.primaryCount}, 关联${result.stats.relatedCount}`,
+      );
+      return result;
+    } catch (error) {
+      logger.error("[MultiFileRetriever] 联合检索失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取文件关系
+   * @param {string} projectId - 项目ID
+   * @param {string} fileId - 文件ID
+   * @returns {Promise<Object>} 文件关系
+   */
+  async getFileRelations(projectId, fileId) {
+    const file = this.database
+      .prepare("SELECT * FROM project_files WHERE id = ?")
+      .get(fileId);
+
+    if (!file) {
+      throw new Error(`文件不存在: ${fileId}`);
+    }
+
+    let content;
+    try {
+      content = await fs.readFile(file.file_path, "utf-8");
+    } catch (error) {
+      return { imports: [], importedBy: [] };
+    }
+
+    // 获取此文件导入的文件
+    const imports = this._extractImports(content, file.file_type);
+
+    // 查找导入此文件的其他文件
+    const importedBy = [];
+    const allFiles = this.database
+      .prepare("SELECT * FROM project_files WHERE project_id = ? AND id != ?")
+      .all(projectId, fileId);
+
+    for (const otherFile of allFiles) {
+      try {
+        const otherContent = await fs.readFile(otherFile.file_path, "utf-8");
+        const otherImports = this._extractImports(
+          otherContent,
+          otherFile.file_type,
+        );
+
+        // 检查是否导入了当前文件
+        const baseName = path.basename(file.file_name, path.extname(file.file_name));
+        if (
+          otherImports.some(
+            (imp) => imp.includes(baseName) || imp.includes(file.file_name),
+          )
+        ) {
+          importedBy.push({
+            fileId: otherFile.id,
+            fileName: otherFile.file_name,
+            filePath: otherFile.file_path,
+          });
+        }
+      } catch (error) {
+        // 跳过无法读取的文件
+      }
+    }
+
+    return {
+      fileId,
+      fileName: file.file_name,
+      imports,
+      importedBy,
+    };
+  }
+}
+
+// ============================================================
+// 统一检索器
+// ============================================================
+
+/**
+ * 统一检索器
+ * 知识库-项目-对话联合检索，支持来源权重
+ */
+class UnifiedRetriever {
+  constructor(database, ragManager) {
+    this.database = database;
+    this.ragManager = ragManager;
+
+    // 默认来源权重
+    this.sourceWeights = {
+      project: 0.5,
+      conversation: 0.2,
+      knowledge: 0.3,
+    };
+  }
+
+  /**
+   * 更新来源权重
+   * @param {Object} weights - 新的权重配置
+   */
+  updateWeights(weights) {
+    if (weights.project !== undefined) {
+      this.sourceWeights.project = weights.project;
+    }
+    if (weights.conversation !== undefined) {
+      this.sourceWeights.conversation = weights.conversation;
+    }
+    if (weights.knowledge !== undefined) {
+      this.sourceWeights.knowledge = weights.knowledge;
+    }
+
+    // 归一化权重
+    const total =
+      this.sourceWeights.project +
+      this.sourceWeights.conversation +
+      this.sourceWeights.knowledge;
+
+    if (total > 0) {
+      this.sourceWeights.project /= total;
+      this.sourceWeights.conversation /= total;
+      this.sourceWeights.knowledge /= total;
+    }
+
+    logger.info("[UnifiedRetriever] 权重已更新:", this.sourceWeights);
+    return this.sourceWeights;
+  }
+
+  /**
+   * 应用来源权重到文档分数
+   * @param {Array} docs - 文档列表
+   * @param {string} source - 来源类型
+   * @returns {Array} 加权后的文档
+   */
+  _applySourceWeight(docs, source) {
+    const weight = this.sourceWeights[source] || 0.33;
+    return docs.map((doc) => ({
+      ...doc,
+      source,
+      originalScore: doc.score,
+      score: (doc.score || 0) * weight,
+    }));
+  }
+
+  /**
+   * 统一检索
+   * @param {string} projectId - 项目ID
+   * @param {string} query - 查询文本
+   * @param {Object} options - 选项
+   * @returns {Promise<Object>} 统一检索结果
+   */
+  async unifiedRetrieve(projectId, query, options = {}) {
+    const {
+      projectLimit = 5,
+      conversationLimit = 3,
+      knowledgeLimit = 3,
+      useReranker = false,
+    } = options;
+
+    logger.info(`[UnifiedRetriever] 统一检索: ${query}`);
+    const startTime = Date.now();
+
+    try {
+      // 并行检索三个数据源
+      const [projectDocs, conversationDocs, knowledgeDocs] = await Promise.all([
+        // 项目文件
+        this.ragManager
+          .search(query, {
+            filter: { type: "project_file", projectId },
+            limit: projectLimit,
+          })
+          .catch((err) => {
+            logger.warn("[UnifiedRetriever] 项目检索失败:", err.message);
+            return [];
+          }),
+
+        // 对话历史
+        this.ragManager
+          .search(query, {
+            filter: { type: "conversation", projectId },
+            limit: conversationLimit,
+          })
+          .catch((err) => {
+            logger.warn("[UnifiedRetriever] 对话检索失败:", err.message);
+            return [];
+          }),
+
+        // 知识库
+        this.ragManager
+          .search(query, {
+            filter: { type: "knowledge" },
+            limit: knowledgeLimit,
+          })
+          .catch((err) => {
+            logger.warn("[UnifiedRetriever] 知识库检索失败:", err.message);
+            return [];
+          }),
+      ]);
+
+      // 应用来源权重
+      const weightedProject = this._applySourceWeight(projectDocs, "project");
+      const weightedConversation = this._applySourceWeight(
+        conversationDocs,
+        "conversation",
+      );
+      const weightedKnowledge = this._applySourceWeight(
+        knowledgeDocs,
+        "knowledge",
+      );
+
+      // 合并并排序
+      let allDocs = [
+        ...weightedProject,
+        ...weightedConversation,
+        ...weightedKnowledge,
+      ].sort((a, b) => b.score - a.score);
+
+      // 可选重排序
+      if (useReranker && allDocs.length > 0) {
+        try {
+          allDocs = await this.ragManager.rerank(query, allDocs);
+        } catch (error) {
+          logger.warn("[UnifiedRetriever] 重排序失败:", error.message);
+        }
+      }
+
+      const duration = Date.now() - startTime;
+
+      const result = {
+        success: true,
+        projectId,
+        query,
+        documents: allDocs,
+        sources: {
+          project: projectDocs.length,
+          conversation: conversationDocs.length,
+          knowledge: knowledgeDocs.length,
+        },
+        weights: { ...this.sourceWeights },
+        duration,
+      };
+
+      logger.info(
+        `[UnifiedRetriever] 完成 (${duration}ms): 总计${allDocs.length}条`,
+      );
+      return result;
+    } catch (error) {
+      logger.error("[UnifiedRetriever] 统一检索失败:", error);
+      throw error;
+    }
+  }
+}
+
+// ============================================================
+// 项目感知重排序器
+// ============================================================
+
+/**
+ * 项目感知重排序器
+ * 基于项目上下文优化检索结果排序
+ */
+class ProjectAwareReranker {
+  constructor(database) {
+    this.database = database;
+  }
+
+  /**
+   * 应用项目感知权重
+   * @param {Array} docs - 文档列表
+   * @param {Object} context - 项目上下文
+   * @returns {Array} 加权后的文档
+   */
+  _applyProjectAwareWeights(docs, context) {
+    const { currentFile, recentFiles = [], projectType } = context;
+
+    return docs.map((doc) => {
+      let boost = 0;
+      const metadata = doc.metadata || {};
+
+      // 1. 同目录加权 (+15%)
+      if (currentFile && metadata.filePath) {
+        const currentDir = path.dirname(currentFile);
+        const docDir = path.dirname(metadata.filePath);
+        if (currentDir === docDir) {
+          boost += 0.15;
+        }
+      }
+
+      // 2. 最近访问加权 (+10%)
+      if (recentFiles.includes(metadata.fileId)) {
+        boost += 0.1;
+      }
+
+      // 3. 文件类型匹配加权 (+10%)
+      if (currentFile && metadata.fileType) {
+        const currentExt = path.extname(currentFile).slice(1);
+        if (currentExt === metadata.fileType) {
+          boost += 0.1;
+        }
+      }
+
+      // 4. 项目类型相关性加权
+      if (projectType && metadata.fileType) {
+        const relevantTypes = this._getRelevantFileTypes(projectType);
+        if (relevantTypes.includes(metadata.fileType)) {
+          boost += 0.05;
+        }
+      }
+
+      return {
+        ...doc,
+        originalScore: doc.score,
+        score: (doc.score || 0) * (1 + boost),
+        boostApplied: boost,
+      };
+    });
+  }
+
+  /**
+   * 根据项目类型获取相关文件类型
+   * @param {string} projectType - 项目类型
+   * @returns {Array<string>} 相关文件类型列表
+   */
+  _getRelevantFileTypes(projectType) {
+    const typeMap = {
+      frontend: ["js", "ts", "jsx", "tsx", "vue", "css", "scss", "html"],
+      backend: ["js", "ts", "py", "java", "go", "rs"],
+      mobile: ["js", "ts", "jsx", "tsx", "swift", "kt"],
+      data: ["py", "sql", "json", "csv"],
+      devops: ["yml", "yaml", "sh", "dockerfile"],
+    };
+    return typeMap[projectType] || [];
+  }
+
+  /**
+   * 应用代码相关性评分
+   * @param {Array} docs - 文档列表
+   * @param {string} query - 查询文本
+   * @param {string} projectType - 项目类型
+   * @returns {Array} 加权后的文档
+   */
+  _applyCodeRelevance(docs, query, projectType) {
+    // 提取查询中的代码关键词
+    const codeKeywords = query.match(
+      /\b(function|class|method|api|endpoint|component|service|module|interface|type)\b/gi,
+    );
+
+    if (!codeKeywords || codeKeywords.length === 0) {
+      return docs;
+    }
+
+    return docs.map((doc) => {
+      let relevanceBoost = 0;
+      const content = (doc.content || "").toLowerCase();
+
+      for (const keyword of codeKeywords) {
+        if (content.includes(keyword.toLowerCase())) {
+          relevanceBoost += 0.05;
+        }
+      }
+
+      return {
+        ...doc,
+        score: (doc.score || 0) * (1 + Math.min(relevanceBoost, 0.2)),
+        codeRelevanceBoost: relevanceBoost,
+      };
+    });
+  }
+
+  /**
+   * 项目感知重排序
+   * @param {string} query - 查询文本
+   * @param {Array} documents - 文档列表
+   * @param {Object} context - 项目上下文
+   * @returns {Promise<Array>} 重排序后的文档
+   */
+  async rerank(query, documents, context = {}) {
+    if (!documents || documents.length === 0) {
+      return [];
+    }
+
+    logger.info(
+      `[ProjectAwareReranker] 重排序 ${documents.length} 个文档`,
+    );
+    const startTime = Date.now();
+
+    try {
+      // 1. 应用项目感知权重
+      let rerankedDocs = this._applyProjectAwareWeights(documents, context);
+
+      // 2. 应用代码相关性
+      rerankedDocs = this._applyCodeRelevance(
+        rerankedDocs,
+        query,
+        context.projectType,
+      );
+
+      // 3. 按最终分数排序
+      rerankedDocs.sort((a, b) => b.score - a.score);
+
+      const duration = Date.now() - startTime;
+      logger.info(`[ProjectAwareReranker] 完成 (${duration}ms)`);
+
+      return rerankedDocs;
+    } catch (error) {
+      logger.error("[ProjectAwareReranker] 重排序失败:", error);
+      return documents; // 返回原始文档
+    }
+  }
+}
+
+// ============================================================
+// 单例模式与导出
+// ============================================================
+
 let projectRAGManager = null;
+let incrementalIndexManager = null;
+let multiFileRetriever = null;
+let unifiedRetriever = null;
+let projectAwareReranker = null;
 
 /**
  * 获取项目RAG管理器实例
@@ -762,7 +1757,69 @@ function getProjectRAGManager() {
   return projectRAGManager;
 }
 
+/**
+ * 获取增量索引管理器实例
+ * @returns {IncrementalIndexManager}
+ */
+function getIncrementalIndexManager() {
+  if (!incrementalIndexManager) {
+    const { getDatabase } = require("../database");
+    const { getRAGManager } = require("../rag/rag-manager");
+    incrementalIndexManager = new IncrementalIndexManager(
+      getDatabase(),
+      getRAGManager(),
+    );
+  }
+  return incrementalIndexManager;
+}
+
+/**
+ * 获取多文件检索器实例
+ * @returns {MultiFileRetriever}
+ */
+function getMultiFileRetriever() {
+  if (!multiFileRetriever) {
+    const { getDatabase } = require("../database");
+    const { getRAGManager } = require("../rag/rag-manager");
+    multiFileRetriever = new MultiFileRetriever(getDatabase(), getRAGManager());
+  }
+  return multiFileRetriever;
+}
+
+/**
+ * 获取统一检索器实例
+ * @returns {UnifiedRetriever}
+ */
+function getUnifiedRetriever() {
+  if (!unifiedRetriever) {
+    const { getDatabase } = require("../database");
+    const { getRAGManager } = require("../rag/rag-manager");
+    unifiedRetriever = new UnifiedRetriever(getDatabase(), getRAGManager());
+  }
+  return unifiedRetriever;
+}
+
+/**
+ * 获取项目感知重排序器实例
+ * @returns {ProjectAwareReranker}
+ */
+function getProjectAwareReranker() {
+  if (!projectAwareReranker) {
+    const { getDatabase } = require("../database");
+    projectAwareReranker = new ProjectAwareReranker(getDatabase());
+  }
+  return projectAwareReranker;
+}
+
 module.exports = {
   ProjectRAGManager,
   getProjectRAGManager,
+  IncrementalIndexManager,
+  getIncrementalIndexManager,
+  MultiFileRetriever,
+  getMultiFileRetriever,
+  UnifiedRetriever,
+  getUnifiedRetriever,
+  ProjectAwareReranker,
+  getProjectAwareReranker,
 };

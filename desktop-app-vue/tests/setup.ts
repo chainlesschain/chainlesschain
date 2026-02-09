@@ -407,6 +407,95 @@ config.global.mocks = {
   $t: (key: string) => key, // i18n mock
 };
 
+// 全局 Ant Design Vue 组件 stubs
+// 这些 stubs 用于避免组件未注册的警告，同时保持测试的稳定性
+config.global.stubs = {
+  // 布局组件
+  'a-layout': { template: '<div class="a-layout"><slot /></div>' },
+  'a-layout-header': { template: '<header class="a-layout-header"><slot /></header>' },
+  'a-layout-content': { template: '<main class="a-layout-content"><slot /></main>' },
+  'a-layout-sider': { template: '<aside class="a-layout-sider"><slot /></aside>' },
+  'a-layout-footer': { template: '<footer class="a-layout-footer"><slot /></footer>' },
+  // 表单组件
+  'a-form': { template: '<form class="a-form"><slot /></form>' },
+  'a-form-item': { template: '<div class="a-form-item"><slot /></div>' },
+  'a-input': { template: '<input class="a-input" />' },
+  'a-input-password': { template: '<input class="a-input-password" type="password" />' },
+  'a-input-search': { template: '<input class="a-input-search" />' },
+  'a-textarea': { template: '<textarea class="a-textarea" />' },
+  'a-select': { template: '<select class="a-select"><slot /></select>' },
+  'a-select-option': { template: '<option class="a-select-option"><slot /></option>' },
+  'a-checkbox': { template: '<input type="checkbox" class="a-checkbox" />' },
+  'a-radio': { template: '<input type="radio" class="a-radio" />' },
+  'a-radio-group': { template: '<div class="a-radio-group"><slot /></div>' },
+  'a-switch': { template: '<input type="checkbox" class="a-switch" />' },
+  'a-slider': { template: '<input type="range" class="a-slider" />' },
+  'a-date-picker': { template: '<input class="a-date-picker" />' },
+  'a-time-picker': { template: '<input class="a-time-picker" />' },
+  'a-range-picker': { template: '<div class="a-range-picker" />' },
+  'a-upload': { template: '<div class="a-upload"><slot /></div>' },
+  'a-rate': { template: '<div class="a-rate" />' },
+  // 按钮和链接
+  'a-button': { template: '<button class="a-button"><slot /></button>' },
+  'a-link': { template: '<a class="a-link"><slot /></a>' },
+  // 数据展示
+  'a-table': { template: '<table class="a-table"><slot /></table>' },
+  'a-list': { template: '<div class="a-list"><slot /></div>' },
+  'a-list-item': { template: '<div class="a-list-item"><slot /></div>' },
+  'a-list-item-meta': { template: '<div class="a-list-item-meta"><slot name="title" /><slot name="description" /></div>' },
+  'a-card': { template: '<div class="a-card"><slot /><slot name="extra" /><slot name="actions" /></div>' },
+  'a-descriptions': { template: '<div class="a-descriptions"><slot /></div>' },
+  'a-descriptions-item': { template: '<div class="a-descriptions-item"><slot /></div>' },
+  'a-statistic': { template: '<div class="a-statistic" />' },
+  'a-tree': { template: '<div class="a-tree" />' },
+  'a-tree-select': { template: '<div class="a-tree-select" />' },
+  'a-tag': { template: '<span class="a-tag"><slot /></span>' },
+  'a-badge': { template: '<span class="a-badge"><slot /></span>' },
+  'a-avatar': { template: '<span class="a-avatar"><slot /></span>' },
+  'a-image': { template: '<img class="a-image" />' },
+  'a-empty': { template: '<div class="a-empty" />' },
+  'a-result': { template: '<div class="a-result"><slot /></div>' },
+  'a-progress': { template: '<div class="a-progress" />' },
+  'a-spin': { template: '<div class="a-spin"><slot /></div>' },
+  'a-skeleton': { template: '<div class="a-skeleton" />' },
+  'a-collapse': { template: '<div class="a-collapse"><slot /></div>' },
+  'a-collapse-panel': { template: '<div class="a-collapse-panel"><slot /></div>' },
+  'a-timeline': { template: '<div class="a-timeline"><slot /></div>' },
+  'a-timeline-item': { template: '<div class="a-timeline-item"><slot /></div>' },
+  'a-tabs': { template: '<div class="a-tabs"><slot /></div>' },
+  'a-tab-pane': { template: '<div class="a-tab-pane"><slot /></div>' },
+  // 导航
+  'a-menu': { template: '<nav class="a-menu"><slot /></nav>' },
+  'a-menu-item': { template: '<div class="a-menu-item"><slot /></div>' },
+  'a-menu-sub-menu': { template: '<div class="a-menu-sub-menu"><slot /></div>' },
+  'a-menu-item-group': { template: '<div class="a-menu-item-group"><slot /></div>' },
+  'a-menu-divider': { template: '<div class="a-menu-divider" />' },
+  'a-breadcrumb': { template: '<nav class="a-breadcrumb"><slot /></nav>' },
+  'a-breadcrumb-item': { template: '<span class="a-breadcrumb-item"><slot /></span>' },
+  'a-pagination': { template: '<div class="a-pagination" />' },
+  'a-steps': { template: '<div class="a-steps"><slot /></div>' },
+  'a-step': { template: '<div class="a-step"><slot /></div>' },
+  'a-dropdown': { template: '<div class="a-dropdown"><slot /></div>' },
+  // 反馈
+  'a-modal': { template: '<div class="a-modal"><slot /></div>' },
+  'a-drawer': { template: '<div class="a-drawer"><slot /></div>' },
+  'a-tooltip': { template: '<span class="a-tooltip"><slot /></span>' },
+  'a-popover': { template: '<span class="a-popover"><slot /></span>' },
+  'a-popconfirm': { template: '<span class="a-popconfirm"><slot /></span>' },
+  'a-alert': { template: '<div class="a-alert"><slot /></div>' },
+  // 布局辅助
+  'a-row': { template: '<div class="a-row"><slot /></div>' },
+  'a-col': { template: '<div class="a-col"><slot /></div>' },
+  'a-space': { template: '<div class="a-space"><slot /></div>' },
+  'a-divider': { template: '<div class="a-divider" />' },
+  'a-affix': { template: '<div class="a-affix"><slot /></div>' },
+  'a-anchor': { template: '<div class="a-anchor"><slot /></div>' },
+  'a-anchor-link': { template: '<div class="a-anchor-link"><slot /></div>' },
+  'a-back-top': { template: '<div class="a-back-top" />' },
+  // 图标
+  'a-icon': { template: '<span class="a-icon" />' },
+};
+
 // Mock Electron API
 const mockElectronAPI = {
   // 代码执行相关

@@ -535,8 +535,8 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     });
 
     expect(exportResult).toBeDefined();
-    // TODO: Export test needs actual file system setup - files are in DB only
-    // expect(exportResult.success).toBe(true);
+    // Export now supports both filesystem and database-only files
+    expect(exportResult.success).toBe(true);
       });
 
   test('Phase 7.3: Share project', async () => {

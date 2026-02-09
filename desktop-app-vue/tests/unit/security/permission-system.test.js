@@ -432,6 +432,11 @@ describe("Permission System", () => {
   });
 
   describe("Permission Caching", () => {
+    beforeEach(() => {
+      // Clear mock call counts before each caching test
+      vi.clearAllMocks();
+    });
+
     it("should cache permission checks", async () => {
       mockDb.prepare().get.mockReturnValue({ role: "editor" });
 
