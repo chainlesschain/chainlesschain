@@ -44,7 +44,8 @@ function extractIPCHandlers(filePath) {
   const content = fs.readFileSync(filePath, "utf-8");
 
   // 匹配 ipcMain.handle('channel-name', ...) 的模式
-  const handlerPattern = /ipcMain\.handle\(['"]([^'"]+)['"]/g;
+  // 支持多行格式（channel名称可能在下一行）
+  const handlerPattern = /ipcMain\.handle\(\s*['"]([^'"]+)['"]/g;
 
   const handlers = [];
   let match;
@@ -67,7 +68,13 @@ function extractHandlerDocumentation(filePath) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.includes("ipcMain.handle")) {
-      const match = line.match(/ipcMain\.handle\(['"]([^'"]+)['"]/);
+      // 尝试在当前行匹配
+      let match = line.match(/ipcMain\.handle\(\s*['"]([^'"]+)['"]/);
+      // 如果当前行只有 ipcMain.handle(，检查下一行
+      if (!match && i + 1 < lines.length) {
+        const nextLine = lines[i + 1];
+        match = nextLine.match(/^\s*['"]([^'"]+)['"]/);
+      }
       if (match) {
         const channelName = match[1];
         // 检查前面是否有注释

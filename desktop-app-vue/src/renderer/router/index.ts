@@ -444,37 +444,37 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'projects',
         name: 'Projects',
-        component: () => import('../pages/projects/ProjectsPage.vue'),
+        component: corePages.projects,
         meta: { title: '我的项目' },
       },
       {
         path: 'projects/new',
         name: 'NewProject',
-        component: () => import('../pages/projects/NewProjectPage.vue'),
+        component: projectPages.new,
         meta: { title: '新建项目' },
       },
       {
         path: 'projects/market',
         name: 'ProjectMarket',
-        component: () => import('../pages/projects/MarketPage.vue'),
+        component: projectPages.market,
         meta: { title: '项目市场' },
       },
       {
         path: 'projects/collaboration',
         name: 'ProjectCollaboration',
-        component: () => import('../pages/projects/CollaborationPage.vue'),
+        component: projectPages.collaboration,
         meta: { title: '协作项目' },
       },
       {
         path: 'projects/archived',
         name: 'ProjectArchived',
-        component: () => import('../pages/projects/ArchivedPage.vue'),
+        component: projectPages.archived,
         meta: { title: '已归档项目' },
       },
       {
         path: 'projects/:id',
         name: 'ProjectDetail',
-        component: () => import('../pages/projects/ProjectDetailPage.vue'),
+        component: projectPages.detail,
         meta: { title: '项目详情' },
       },
       // 设计工具编辑器
@@ -487,7 +487,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'projects/:id/edit',
         name: 'ProjectEdit',
-        component: () => import('../pages/projects/ProjectDetailPage.vue'),
+        component: projectPages.detail,
         meta: { title: '编辑项目' },
       },
       // 知识模块
@@ -847,6 +847,52 @@ const router = createRouter({
   routes,
 });
 
+const DYNAMIC_IMPORT_ERROR_PATTERNS = [
+  'Failed to fetch dynamically imported module',
+  'Importing a module script failed',
+  'ChunkLoadError',
+];
+const MAX_DYNAMIC_IMPORT_RETRIES = 2;
+const dynamicImportRetryCount = new Map<string, number>();
+
+function isDynamicImportLoadError(error: unknown): boolean {
+  const message = String((error as { message?: string })?.message || error || '');
+  return DYNAMIC_IMPORT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+router.onError((error, to) => {
+  if (!isDynamicImportLoadError(error) || !to?.fullPath) {
+    return;
+  }
+
+  const key = to.fullPath;
+  const currentRetry = dynamicImportRetryCount.get(key) || 0;
+  if (currentRetry >= MAX_DYNAMIC_IMPORT_RETRIES) {
+    logger.error('[Router] Dynamic import failed after retries', { path: key, error });
+    return;
+  }
+
+  const nextRetry = currentRetry + 1;
+  const delay = 400 * nextRetry;
+  dynamicImportRetryCount.set(key, nextRetry);
+
+  logger.warn('[Router] Dynamic import failed, retrying navigation', {
+    path: key,
+    retry: nextRetry,
+    delay,
+  });
+
+  setTimeout(() => {
+    router.replace(key).catch((retryError: unknown) => {
+      logger.warn('[Router] Retry navigation failed', {
+        path: key,
+        retry: nextRetry,
+        error: retryError,
+      });
+    });
+  }, delay);
+});
+
 // 路由守卫
 router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, next) => {
   // 测试环境：跳过认证检查
@@ -896,6 +942,7 @@ interface RouteResourceConfig {
 
 // 路由导航后预加载下一个可能访问的资源
 router.afterEach((to: RouteLocationNormalized) => {
+  dynamicImportRetryCount.delete(to.fullPath);
   // 根据当前路由预加载相关资源
   const routeResourceMap: Record<string, RouteResourceConfig> = {
     '/': {
