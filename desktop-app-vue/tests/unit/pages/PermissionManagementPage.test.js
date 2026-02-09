@@ -36,17 +36,17 @@ vi.mock("vue-router", () => ({
   useRouter: () => mockRouter,
 }));
 
+// Hoisted logger mock
+const mockLogger = vi.hoisted(() => ({
+  error: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+}));
+
 // Mock logger
 vi.mock("@/utils/logger", () => ({
-  logger: {
-    error: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-  },
-  createLogger: vi.fn(() => ({
-    error: vi.fn(),
-    info: vi.fn(),
-  })),
+  logger: mockLogger,
+  createLogger: vi.fn(() => mockLogger),
 }));
 
 // Mock Electron IPC
@@ -276,7 +276,7 @@ describe("PermissionManagementPage.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       await wrapper.vm.loadOverrides();
 
@@ -311,7 +311,7 @@ describe("PermissionManagementPage.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       await wrapper.vm.loadTemplates();
 
@@ -346,7 +346,7 @@ describe("PermissionManagementPage.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       await wrapper.vm.loadGroups();
 
@@ -382,7 +382,7 @@ describe("PermissionManagementPage.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       await wrapper.vm.loadStatistics();
 
@@ -439,7 +439,7 @@ describe("PermissionManagementPage.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       await wrapper.vm.loadAuditLogs();
 
@@ -552,7 +552,7 @@ describe("PermissionManagementPage.vue", () => {
 
       wrapper = createWrapper();
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       wrapper.vm.templateForm.templateName = "New Template";
 
@@ -968,7 +968,7 @@ describe("PermissionManagementPage.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       await wrapper.vm.loadTemplates();
 
@@ -1012,7 +1012,7 @@ describe("PermissionManagementPage.vue", () => {
 
       wrapper = createWrapper();
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       await wrapper.vm.handleCreateGroup(null);
 
@@ -1027,7 +1027,7 @@ describe("PermissionManagementPage.vue", () => {
 
       wrapper = createWrapper();
       const message = mockMessage;
-      const { logger } = require("@/utils/logger");
+      const logger = mockLogger;
 
       await wrapper.vm.handleCreateOverride(null);
 
