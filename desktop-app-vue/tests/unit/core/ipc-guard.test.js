@@ -13,7 +13,7 @@ describe("IPC Guard", () => {
   beforeEach(async () => {
     // 动态导入模块（ESM）
     const module = await import(
-      "../../src/main/ipc/ipc-guard.js?t=" + Date.now()
+      "../../../src/main/ipc/ipc-guard.js?t=" + Date.now()
     );
     ipcGuard = module.default || module;
 
