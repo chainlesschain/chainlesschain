@@ -23,6 +23,22 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { ref, onMounted } from 'vue';
+
+// Mock message object (used directly in setup)
+const mockMessage = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+};
+
+// Mock Modal object
+const mockModal = {
+  confirm: vi.fn((options) => {
+    options.onOk && options.onOk();
+  }),
+};
 
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({
@@ -61,8 +77,7 @@ vi.mock('@/stores/tool', () => ({
   useToolStore: () => mockToolStore,
 }));
 
-describe.skip('ToolManagement', () => {
-  // SKIP: Inline component with require() bypasses vi.mock(), needs refactoring
+describe('ToolManagement', () => {
   let wrapper;
 
   const mockTools = [
@@ -206,11 +221,10 @@ describe.skip('ToolManagement', () => {
           </div>
         `,
         setup() {
-          const { ref, onMounted } = require('vue');
-          const { message, Modal } = require('ant-design-vue');
-          const { useToolStore } = require('@/stores/tool');
-
-          const toolStore = useToolStore();
+          // Use imported modules directly instead of require()
+          const message = mockMessage;
+          const Modal = mockModal;
+          const toolStore = mockToolStore;
           const searchKeyword = ref('');
           const categoryFilter = ref('all');
           const statusFilter = ref('all');
