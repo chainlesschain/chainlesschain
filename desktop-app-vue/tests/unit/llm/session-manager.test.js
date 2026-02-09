@@ -1103,10 +1103,15 @@ describe("SessionManager", () => {
     });
 
     it("应该列出模板", async () => {
+      // First call is _ensureTemplateTable which calls .run()
+      mockDatabase.prepare.mockReturnValueOnce({
+        run: vi.fn(() => ({ changes: 0 })),
+      });
+      // Second call is the actual SELECT query which calls .all()
       mockDatabase.prepare.mockReturnValueOnce({
         all: vi.fn(() => [
-          { id: "t1", name: "Template 1" },
-          { id: "t2", name: "Template 2" },
+          { id: "t1", name: "Template 1", metadata: "{}" },
+          { id: "t2", name: "Template 2", metadata: "{}" },
         ]),
       });
 
