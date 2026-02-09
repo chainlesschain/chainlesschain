@@ -442,4 +442,205 @@ class ProjectServiceTest {
         // 通过createProject间接测试统计更新
         // updateProjectStats是private方法
     }
+
+    // ==================== 项目导出测试 ====================
+
+    /**
+     * 测试项目导出 - 成功
+     */
+    @Test
+    void testExportProject_Success() throws Exception {
+        // 准备测试文件
+        ProjectFile file1 = new ProjectFile();
+        file1.setId("file-1");
+        file1.setProjectId(testProjectId);
+        file1.setFileName("index.html");
+        file1.setFilePath("index.html");
+        file1.setContent("<html></html>");
+        file1.setFileSize(13L);
+
+        List<ProjectFile> files = Arrays.asList(file1);
+
+        when(projectMapper.selectById(testProjectId)).thenReturn(testProject);
+        when(projectFileMapper.selectList(any())).thenReturn(files);
+
+        // 执行测试
+        Map<String, Object> result = projectService.exportProject(testProjectId, "zip", false, false);
+
+        // 验证结果
+        assertNotNull(result);
+        assertTrue(result.containsKey("downloadPath"));
+        assertTrue(result.containsKey("fileName"));
+        assertTrue(result.get("fileName").toString().contains("project_"));
+        assertTrue(result.get("fileName").toString().endsWith(".zip"));
+
+        verify(projectMapper, times(1)).selectById(testProjectId);
+        verify(projectFileMapper, times(1)).selectList(any());
+
+        // 清理生成的文件
+        String downloadPath = result.get("downloadPath").toString();
+        Files.deleteIfExists(Path.of(downloadPath));
+    }
+
+    /**
+     * 测试项目导出 - 项目不存在
+     */
+    @Test
+    void testExportProject_NotFound() {
+        when(projectMapper.selectById(testProjectId)).thenReturn(null);
+
+        // 执行测试并验证异常
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            projectService.exportProject(testProjectId, "zip", false, false);
+        });
+
+        assertTrue(exception.getMessage().contains("项目不存在"));
+    }
+
+    /**
+     * 测试项目导出 - 包含历史
+     */
+    @Test
+    void testExportProject_WithHistory() throws Exception {
+        // 准备测试数据
+        List<ProjectFile> files = new ArrayList<>();
+
+        when(projectMapper.selectById(testProjectId)).thenReturn(testProject);
+        when(projectFileMapper.selectList(any())).thenReturn(files);
+        when(projectConversationMapper.selectList(any())).thenReturn(new ArrayList<>());
+
+        // 执行测试 - 包含历史
+        Map<String, Object> result = projectService.exportProject(testProjectId, "zip", true, false);
+
+        // 验证结果
+        assertNotNull(result);
+        assertTrue(result.containsKey("downloadPath"));
+
+        // 验证调用了对话历史查询
+        verify(projectConversationMapper, times(1)).selectList(any());
+
+        // 清理
+        String downloadPath = result.get("downloadPath").toString();
+        Files.deleteIfExists(Path.of(downloadPath));
+    }
+
+    // ==================== 项目导入测试 ====================
+
+    /**
+     * 测试项目导入 - 成功
+     */
+    @Test
+    void testImportProject_Success() throws Exception {
+        // 准备测试ZIP文件
+        Path testZipDir = tempDir.resolve("import_test");
+        Files.createDirectories(testZipDir);
+
+        // 创建project.json
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("name", "导入测试项目");
+        metadata.put("type", "web");
+        metadata.put("description", "测试描述");
+
+        String metadataJson = realObjectMapper.writeValueAsString(metadata);
+        Files.writeString(testZipDir.resolve("project.json"), metadataJson);
+
+        // 创建测试文件
+        Files.writeString(testZipDir.resolve("index.html"), "<html></html>");
+
+        // 创建ZIP文件
+        Path zipPath = tempDir.resolve("test_import.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zipPath.toFile()))) {
+            // 添加project.json
+            zos.putNextEntry(new java.util.zip.ZipEntry("project.json"));
+            zos.write(metadataJson.getBytes());
+            zos.closeEntry();
+
+            // 添加index.html
+            zos.putNextEntry(new java.util.zip.ZipEntry("index.html"));
+            zos.write("<html></html>".getBytes());
+            zos.closeEntry();
+        }
+
+        when(projectMapper.insert(any(Project.class))).thenReturn(1);
+        when(projectFileMapper.insert(any(ProjectFile.class))).thenReturn(1);
+
+        // 执行测试
+        ProjectResponse result = projectService.importProject(zipPath.toString(), null, false);
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals("导入测试项目", result.getName());
+        assertEquals("web", result.getProjectType());
+
+        verify(projectMapper, times(1)).insert(any(Project.class));
+    }
+
+    /**
+     * 测试项目导入 - 文件不存在
+     */
+    @Test
+    void testImportProject_FileNotFound() {
+        String nonExistentPath = "/path/to/nonexistent.zip";
+
+        // 执行测试并验证异常
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            projectService.importProject(nonExistentPath, null, false);
+        });
+
+        assertTrue(exception.getMessage().contains("导入文件不存在"));
+    }
+
+    /**
+     * 测试项目导入 - 无效的ZIP格式（缺少project.json）
+     */
+    @Test
+    void testImportProject_InvalidFormat() throws Exception {
+        // 创建不包含project.json的ZIP
+        Path zipPath = tempDir.resolve("invalid.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zipPath.toFile()))) {
+            zos.putNextEntry(new java.util.zip.ZipEntry("random.txt"));
+            zos.write("random content".getBytes());
+            zos.closeEntry();
+        }
+
+        // 执行测试并验证异常
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            projectService.importProject(zipPath.toString(), null, false);
+        });
+
+        assertTrue(exception.getMessage().contains("缺少project.json"));
+    }
+
+    /**
+     * 测试项目导入 - 自定义项目名
+     */
+    @Test
+    void testImportProject_WithCustomName() throws Exception {
+        // 准备测试数据
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("name", "原始名称");
+        metadata.put("type", "web");
+
+        String metadataJson = realObjectMapper.writeValueAsString(metadata);
+
+        // 创建ZIP文件
+        Path zipPath = tempDir.resolve("custom_name_test.zip");
+        try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                new java.io.FileOutputStream(zipPath.toFile()))) {
+            zos.putNextEntry(new java.util.zip.ZipEntry("project.json"));
+            zos.write(metadataJson.getBytes());
+            zos.closeEntry();
+        }
+
+        when(projectMapper.insert(any(Project.class))).thenReturn(1);
+
+        // 执行测试 - 使用自定义名称
+        ProjectResponse result = projectService.importProject(zipPath.toString(), "自定义项目名", false);
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals("自定义项目名", result.getName());  // 应该使用自定义名称
+    }
 }

@@ -5,8 +5,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.chainlesschain.project.dto.FileCreateRequest;
 import com.chainlesschain.project.dto.FileUpdateRequest;
 import com.chainlesschain.project.dto.ProjectFileDTO;
+import com.chainlesschain.project.entity.FileVersion;
 import com.chainlesschain.project.entity.Project;
 import com.chainlesschain.project.entity.ProjectFile;
+import com.chainlesschain.project.mapper.FileVersionMapper;
 import com.chainlesschain.project.mapper.ProjectFileMapper;
 import com.chainlesschain.project.mapper.ProjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,6 +39,9 @@ class ProjectFileServiceTest {
 
     @Mock
     private ProjectMapper projectMapper;
+
+    @Mock
+    private FileVersionMapper fileVersionMapper;
 
     @InjectMocks
     private ProjectFileService projectFileService;
@@ -280,5 +286,228 @@ class ProjectFileServiceTest {
         });
 
         assertTrue(exception.getMessage().contains("文件不存在"));
+    }
+
+    // ==================== 文件搜索测试 ====================
+
+    @Test
+    void testSearchFiles_ByFileName() {
+        // 准备数据
+        List<ProjectFile> files = Arrays.asList(testFile);
+        Page<ProjectFile> page = new Page<>(1, 10);
+        page.setRecords(files);
+        page.setTotal(1);
+
+        when(projectFileMapper.selectPage(any(Page.class), any())).thenReturn(page);
+
+        // 执行测试 - 按文件名搜索
+        Page<ProjectFileDTO> result = projectFileService.searchFiles(testProjectId, "Test", null, 1, 10);
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(1, result.getTotal());
+        assertEquals(1, result.getRecords().size());
+        assertEquals("Test.java", result.getRecords().get(0).getFileName());
+
+        verify(projectFileMapper, times(1)).selectPage(any(Page.class), any());
+    }
+
+    @Test
+    void testSearchFiles_ByContent() {
+        // 准备数据
+        testFile.setContent("public class HelloWorld { public void sayHello() {} }");
+        List<ProjectFile> files = Arrays.asList(testFile);
+        Page<ProjectFile> page = new Page<>(1, 10);
+        page.setRecords(files);
+        page.setTotal(1);
+
+        when(projectFileMapper.selectPage(any(Page.class), any())).thenReturn(page);
+
+        // 执行测试 - 按内容搜索
+        Page<ProjectFileDTO> result = projectFileService.searchFiles(testProjectId, "HelloWorld", null, 1, 10);
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(1, result.getTotal());
+
+        verify(projectFileMapper, times(1)).selectPage(any(Page.class), any());
+    }
+
+    @Test
+    void testSearchFiles_WithFileTypeFilter() {
+        // 准备数据
+        List<ProjectFile> files = Arrays.asList(testFile);
+        Page<ProjectFile> page = new Page<>(1, 10);
+        page.setRecords(files);
+        page.setTotal(1);
+
+        when(projectFileMapper.selectPage(any(Page.class), any())).thenReturn(page);
+
+        // 执行测试 - 带文件类型过滤
+        Page<ProjectFileDTO> result = projectFileService.searchFiles(testProjectId, "Test", "java", 1, 10);
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(1, result.getTotal());
+        assertEquals("java", result.getRecords().get(0).getFileType());
+
+        verify(projectFileMapper, times(1)).selectPage(any(Page.class), any());
+    }
+
+    @Test
+    void testSearchFiles_NoResults() {
+        // 准备数据 - 空结果
+        Page<ProjectFile> page = new Page<>(1, 10);
+        page.setRecords(new ArrayList<>());
+        page.setTotal(0);
+
+        when(projectFileMapper.selectPage(any(Page.class), any())).thenReturn(page);
+
+        // 执行测试
+        Page<ProjectFileDTO> result = projectFileService.searchFiles(testProjectId, "nonexistent", null, 1, 10);
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(0, result.getTotal());
+        assertTrue(result.getRecords().isEmpty());
+    }
+
+    // ==================== 文件版本历史测试 ====================
+
+    @Test
+    void testGetFileVersions_Success() {
+        // 准备数据
+        FileVersion version1 = new FileVersion();
+        version1.setId("version-1");
+        version1.setFileId(testFileId);
+        version1.setProjectId(testProjectId);
+        version1.setVersion(2);
+        version1.setContent("public class Test { v2 }");
+        version1.setCreatedAt(LocalDateTime.now());
+
+        FileVersion version2 = new FileVersion();
+        version2.setId("version-2");
+        version2.setFileId(testFileId);
+        version2.setProjectId(testProjectId);
+        version2.setVersion(1);
+        version2.setContent("public class Test { v1 }");
+        version2.setCreatedAt(LocalDateTime.now().minusHours(1));
+
+        List<FileVersion> versions = Arrays.asList(version1, version2);
+
+        when(projectFileMapper.selectOne(any())).thenReturn(testFile);
+        when(fileVersionMapper.getVersionHistory(testFileId, testProjectId, 10)).thenReturn(versions);
+
+        // 执行测试
+        List<ProjectFileDTO> result = projectFileService.getFileVersions(testProjectId, testFileId, 10);
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(2, result.get(0).getVersion());
+        assertEquals(1, result.get(1).getVersion());
+
+        verify(projectFileMapper, times(1)).selectOne(any());
+        verify(fileVersionMapper, times(1)).getVersionHistory(testFileId, testProjectId, 10);
+    }
+
+    @Test
+    void testGetFileVersions_FileNotFound() {
+        when(projectFileMapper.selectOne(any())).thenReturn(null);
+
+        // 执行测试并验证异常
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            projectFileService.getFileVersions(testProjectId, testFileId, 10);
+        });
+
+        assertTrue(exception.getMessage().contains("文件不存在"));
+    }
+
+    @Test
+    void testGetFileVersions_EmptyHistory() {
+        when(projectFileMapper.selectOne(any())).thenReturn(testFile);
+        when(fileVersionMapper.getVersionHistory(testFileId, testProjectId, 10)).thenReturn(new ArrayList<>());
+
+        // 执行测试
+        List<ProjectFileDTO> result = projectFileService.getFileVersions(testProjectId, testFileId, 10);
+
+        // 验证结果
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    // ==================== 文件版本恢复测试 ====================
+
+    @Test
+    void testRestoreFileVersion_Success() {
+        // 准备版本数据
+        FileVersion targetVersion = new FileVersion();
+        targetVersion.setId("version-1");
+        targetVersion.setFileId(testFileId);
+        targetVersion.setProjectId(testProjectId);
+        targetVersion.setVersion(1);
+        targetVersion.setContent("public class Test { original }");
+        targetVersion.setFileSize(100L);
+
+        when(projectFileMapper.selectOne(any())).thenReturn(testFile);
+        when(fileVersionMapper.selectById("version-1")).thenReturn(targetVersion);
+        when(fileVersionMapper.insert(any(FileVersion.class))).thenReturn(1);
+        when(projectFileMapper.updateById(any(ProjectFile.class))).thenReturn(1);
+
+        // 执行测试
+        ProjectFileDTO result = projectFileService.restoreFileVersion(testProjectId, testFileId, "version-1");
+
+        // 验证结果
+        assertNotNull(result);
+        assertEquals("public class Test { original }", result.getContent());
+
+        verify(projectFileMapper, times(1)).selectOne(any());
+        verify(fileVersionMapper, times(1)).selectById("version-1");
+        verify(projectFileMapper, times(1)).updateById(any(ProjectFile.class));
+    }
+
+    @Test
+    void testRestoreFileVersion_FileNotFound() {
+        when(projectFileMapper.selectOne(any())).thenReturn(null);
+
+        // 执行测试并验证异常
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            projectFileService.restoreFileVersion(testProjectId, testFileId, "version-1");
+        });
+
+        assertTrue(exception.getMessage().contains("文件不存在"));
+    }
+
+    @Test
+    void testRestoreFileVersion_VersionNotFound() {
+        when(projectFileMapper.selectOne(any())).thenReturn(testFile);
+        when(fileVersionMapper.selectById("nonexistent")).thenReturn(null);
+
+        // 执行测试并验证异常
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            projectFileService.restoreFileVersion(testProjectId, testFileId, "nonexistent");
+        });
+
+        assertTrue(exception.getMessage().contains("版本不存在"));
+    }
+
+    @Test
+    void testRestoreFileVersion_VersionBelongsToOtherFile() {
+        // 准备版本数据 - 属于其他文件
+        FileVersion otherFileVersion = new FileVersion();
+        otherFileVersion.setId("version-1");
+        otherFileVersion.setFileId("other-file-id");  // 不匹配
+        otherFileVersion.setProjectId(testProjectId);
+        otherFileVersion.setVersion(1);
+
+        when(projectFileMapper.selectOne(any())).thenReturn(testFile);
+        when(fileVersionMapper.selectById("version-1")).thenReturn(otherFileVersion);
+
+        // 执行测试并验证异常
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            projectFileService.restoreFileVersion(testProjectId, testFileId, "version-1");
+        });
+
+        assertTrue(exception.getMessage().contains("版本不属于该文件"));
     }
 }

@@ -596,10 +596,10 @@ public ApiResponse<Map<String, Object>> exportProject(
 - [x] 代码注释完整
 - [x] 日志记录完整
 - [x] 异常处理完善
-- [ ] 单元测试编写 (TODO)
-- [ ] 集成测试编写 (TODO)
-- [ ] Swagger文档更新 (TODO)
-- [ ] 用户手册更新 (TODO)
+- [x] 单元测试编写 ✅ (2026-02-09 完成)
+- [ ] 集成测试编写 (低优先级，可选)
+- [x] Swagger文档更新 ✅ (已通过 @Operation 注解完成)
+- [ ] 用户手册更新 (低优先级，可选)
 
 ---
 
