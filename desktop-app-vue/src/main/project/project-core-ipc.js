@@ -1915,8 +1915,432 @@ function registerProjectCoreIPC({
     }
   });
 
+  // ============================================================
+  // 模板管理操作 (Template Management Operations)
+  // ============================================================
+
+  /**
+   * 获取所有模板（预置 + 自定义）
+   * Channel: 'template:get-all'
+   */
+  ipcMain.handle("template:get-all", async () => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      const templates = templateLibrary.getAllTemplates();
+      logger.info(`[Main] 获取所有模板，数量: ${templates.length}`);
+
+      return {
+        success: true,
+        templates,
+        total: templates.length,
+      };
+    } catch (error) {
+      logger.error("[Main] 获取模板列表失败:", error);
+      return {
+        success: false,
+        error: error.message,
+        templates: [],
+        total: 0,
+      };
+    }
+  });
+
+  /**
+   * 根据ID获取模板
+   * Channel: 'template:get-by-id'
+   */
+  ipcMain.handle("template:get-by-id", async (_event, templateId) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      const template = templateLibrary.getTemplateById(templateId);
+
+      if (!template) {
+        return {
+          success: false,
+          error: `模板不存在: ${templateId}`,
+          template: null,
+        };
+      }
+
+      logger.info(`[Main] 获取模板: ${templateId}`);
+      return {
+        success: true,
+        template,
+      };
+    } catch (error) {
+      logger.error("[Main] 获取模板失败:", error);
+      return {
+        success: false,
+        error: error.message,
+        template: null,
+      };
+    }
+  });
+
+  /**
+   * 根据分类获取模板
+   * Channel: 'template:get-by-category'
+   */
+  ipcMain.handle("template:get-by-category", async (_event, category) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      const templates = templateLibrary.getTemplatesByCategory(category);
+      logger.info(`[Main] 获取分类 ${category} 的模板，数量: ${templates.length}`);
+
+      return {
+        success: true,
+        templates,
+        category,
+      };
+    } catch (error) {
+      logger.error("[Main] 获取分类模板失败:", error);
+      return {
+        success: false,
+        error: error.message,
+        templates: [],
+      };
+    }
+  });
+
+  /**
+   * 搜索模板
+   * Channel: 'template:search'
+   */
+  ipcMain.handle("template:search", async (_event, query, options = {}) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      const templates = templateLibrary.search(query, options);
+      logger.info(`[Main] 搜索模板 "${query}"，结果: ${templates.length}`);
+
+      return {
+        success: true,
+        templates,
+        query,
+        total: templates.length,
+      };
+    } catch (error) {
+      logger.error("[Main] 搜索模板失败:", error);
+      return {
+        success: false,
+        error: error.message,
+        templates: [],
+      };
+    }
+  });
+
+  /**
+   * 推荐模板（基于项目描述）
+   * Channel: 'template:recommend'
+   */
+  ipcMain.handle("template:recommend", async (_event, description, limit = 5) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      const templates = templateLibrary.recommend(description, limit);
+      logger.info(`[Main] 推荐模板，数量: ${templates.length}`);
+
+      return {
+        success: true,
+        templates,
+        description,
+      };
+    } catch (error) {
+      logger.error("[Main] 推荐模板失败:", error);
+      return {
+        success: false,
+        error: error.message,
+        templates: [],
+      };
+    }
+  });
+
+  /**
+   * 获取模板预览（树形结构）
+   * Channel: 'template:preview'
+   */
+  ipcMain.handle("template:preview", async (_event, templateId) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      const preview = templateLibrary.getTemplatePreview(templateId);
+
+      if (!preview) {
+        return {
+          success: false,
+          error: `模板不存在: ${templateId}`,
+          preview: null,
+        };
+      }
+
+      logger.info(`[Main] 获取模板预览: ${templateId}`);
+      return {
+        success: true,
+        preview,
+      };
+    } catch (error) {
+      logger.error("[Main] 获取模板预览失败:", error);
+      return {
+        success: false,
+        error: error.message,
+        preview: null,
+      };
+    }
+  });
+
+  /**
+   * 保存自定义模板
+   * Channel: 'template:save-custom'
+   */
+  ipcMain.handle("template:save-custom", async (_event, template) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      const savedTemplate = await templateLibrary.saveCustomTemplate(template);
+      logger.info(`[Main] 保存自定义模板: ${savedTemplate.id}`);
+
+      return {
+        success: true,
+        template: savedTemplate,
+      };
+    } catch (error) {
+      logger.error("[Main] 保存自定义模板失败:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * 删除自定义模板
+   * Channel: 'template:delete-custom'
+   */
+  ipcMain.handle("template:delete-custom", async (_event, templateId) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      await templateLibrary.deleteCustomTemplate(templateId);
+      logger.info(`[Main] 删除自定义模板: ${templateId}`);
+
+      return {
+        success: true,
+        templateId,
+      };
+    } catch (error) {
+      logger.error("[Main] 删除自定义模板失败:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * 导出模板
+   * Channel: 'template:export'
+   */
+  ipcMain.handle("template:export", async (_event, templateIds) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      let exportData;
+      if (Array.isArray(templateIds)) {
+        exportData = await templateLibrary.exportTemplates(templateIds);
+      } else {
+        exportData = await templateLibrary.exportTemplate(templateIds);
+      }
+
+      logger.info(`[Main] 导出模板成功`);
+      return {
+        success: true,
+        data: exportData,
+      };
+    } catch (error) {
+      logger.error("[Main] 导出模板失败:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * 导入模板
+   * Channel: 'template:import'
+   */
+  ipcMain.handle("template:import", async (_event, importData, options = {}) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      const results = await templateLibrary.importTemplate(importData, options);
+      logger.info(
+        `[Main] 导入模板完成: 成功 ${results.success.length}, 失败 ${results.failed.length}, 跳过 ${results.skipped.length}`
+      );
+
+      return {
+        success: true,
+        results,
+      };
+    } catch (error) {
+      logger.error("[Main] 导入模板失败:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * 从项目创建模板
+   * Channel: 'template:create-from-project'
+   */
+  ipcMain.handle("template:create-from-project", async (_event, projectPath, templateInfo) => {
+    try {
+      const { getTemplateLibrary } = require("./template-library");
+      const templateLibrary = getTemplateLibrary();
+      await templateLibrary.initialize();
+
+      const template = await templateLibrary.createTemplateFromProject(projectPath, templateInfo);
+      logger.info(`[Main] 从项目创建模板: ${template.id}`);
+
+      return {
+        success: true,
+        template,
+      };
+    } catch (error) {
+      logger.error("[Main] 从项目创建模板失败:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * 获取项目类型列表（与Android对齐的12种）
+   * Channel: 'project-types:get-all'
+   */
+  ipcMain.handle("project-types:get-all", async () => {
+    try {
+      const { getProjectTypes, getTemplateCategories } = require("./project-types");
+
+      const projectTypes = getProjectTypes();
+      const templateCategories = getTemplateCategories();
+
+      logger.info(`[Main] 获取项目类型，数量: ${projectTypes.length}`);
+
+      return {
+        success: true,
+        projectTypes,
+        templateCategories,
+      };
+    } catch (error) {
+      logger.error("[Main] 获取项目类型失败:", error);
+      return {
+        success: false,
+        error: error.message,
+        projectTypes: [],
+        templateCategories: [],
+      };
+    }
+  });
+
+  /**
+   * 从模板创建项目
+   * Channel: 'project:create-from-template'
+   */
+  ipcMain.handle("project:create-from-template", async (_event, createData) => {
+    try {
+      const path = require("path");
+      const crypto = require("crypto");
+      const { getProjectConfig } = require("./project-config");
+      const ProjectStructureManager = require("./project-structure");
+
+      const {
+        templateId,
+        name,
+        description,
+        userId = "default-user",
+      } = createData;
+
+      logger.info(`[Main] 从模板创建项目: ${templateId}, 名称: ${name}`);
+
+      // 生成项目ID和路径
+      const projectId = crypto.randomUUID();
+      const projectConfig = getProjectConfig();
+      const projectRootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
+
+      // 使用 ProjectStructureManager 从模板创建
+      const structureManager = new ProjectStructureManager();
+      const result = await structureManager.createFromTemplate(projectRootPath, templateId, name);
+
+      // 保存到数据库
+      if (database) {
+        const project = {
+          id: projectId,
+          name: name,
+          description: description || "",
+          project_type: result.projectType,
+          user_id: userId,
+          root_path: projectRootPath,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          sync_status: "pending",
+          file_count: result.files.length,
+          metadata: JSON.stringify({
+            created_from_template: templateId,
+            template_name: result.templateName,
+          }),
+        };
+
+        await database.saveProject(project);
+        logger.info("[Main] 项目已保存到数据库, ID:", projectId);
+      }
+
+      return {
+        success: true,
+        projectId,
+        projectPath: projectRootPath,
+        templateId,
+        templateName: result.templateName,
+        files: result.files,
+        directories: result.directories,
+      };
+    } catch (error) {
+      logger.error("[Main] 从模板创建项目失败:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
   logger.info(
-    "[Project Core IPC] ✓ All Project Core IPC handlers registered successfully (34 handlers)",
+    "[Project Core IPC] ✓ All Project Core IPC handlers registered successfully (47 handlers)",
   );
 }
 

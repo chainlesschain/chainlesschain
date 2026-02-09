@@ -69,6 +69,23 @@ vi.mock("@/stores/auth", () => ({
   useAuthStore: () => mockAuthStore,
 }));
 
+// Mock message and Modal objects (used directly in tests)
+const mockMessage = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+};
+
+const mockModalObj = {
+  confirm: vi.fn(),
+};
+
+// Mock logger object (used directly in tests)
+const mockLogger = {
+  error: vi.fn(),
+  info: vi.fn(),
+};
+
 // Mock ant-design-vue
 vi.mock("ant-design-vue", () => ({
   message: {
@@ -342,7 +359,7 @@ describe("ProjectManagementPage.vue", () => {
         validate: vi.fn().mockResolvedValue(),
       };
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.formData.name = "新项目";
       wrapper.vm.formData.project_type = "web";
@@ -380,8 +397,8 @@ describe("ProjectManagementPage.vue", () => {
         validate: vi.fn().mockResolvedValue(),
       };
 
-      const { message } = require("ant-design-vue");
-      const { logger } = require("@/utils/logger");
+      const message = mockMessage;
+      const logger = mockLogger;
 
       wrapper.vm.formData.name = "新项目";
       wrapper.vm.formData.project_type = "web";
@@ -448,7 +465,7 @@ describe("ProjectManagementPage.vue", () => {
         validate: vi.fn().mockResolvedValue(),
       };
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.isEditing = true;
       wrapper.vm.currentEditId = "proj-1";
@@ -472,7 +489,7 @@ describe("ProjectManagementPage.vue", () => {
       mockProjectStore.deleteProject.mockResolvedValue();
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleDelete("proj-1");
 
@@ -484,8 +501,8 @@ describe("ProjectManagementPage.vue", () => {
       mockProjectStore.deleteProject.mockRejectedValue(new Error("删除失败"));
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
-      const { logger } = require("@/utils/logger");
+      const message = mockMessage;
+      const logger = mockLogger;
 
       await wrapper.vm.handleDelete("proj-1");
 
@@ -514,7 +531,7 @@ describe("ProjectManagementPage.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedRowKeys = [];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleBatchDelete();
 
@@ -525,7 +542,7 @@ describe("ProjectManagementPage.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedRowKeys = ["proj-1", "proj-2"];
 
-      const { Modal } = require("ant-design-vue");
+      const Modal = mockModalObj;
 
       wrapper.vm.handleBatchDelete();
 
@@ -543,7 +560,7 @@ describe("ProjectManagementPage.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedRowKeys = ["proj-1", "proj-2"];
 
-      const { Modal, message } = require("ant-design-vue");
+      const Modal = mockModalObj; const message = mockMessage;
 
       wrapper.vm.handleBatchDelete();
 
@@ -562,8 +579,8 @@ describe("ProjectManagementPage.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedRowKeys = ["proj-1"];
 
-      const { Modal, message } = require("ant-design-vue");
-      const { logger } = require("@/utils/logger");
+      const Modal = mockModalObj; const message = mockMessage;
+      const logger = mockLogger;
 
       wrapper.vm.handleBatchDelete();
 
@@ -593,7 +610,7 @@ describe("ProjectManagementPage.vue", () => {
   describe("Export Excel", () => {
     it("应该能导出Excel", () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const XLSX = require("xlsx").default;
 
       wrapper.vm.handleExport();
@@ -605,8 +622,8 @@ describe("ProjectManagementPage.vue", () => {
 
     it("应该处理导出失败", () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
-      const { logger } = require("@/utils/logger");
+      const message = mockMessage;
+      const logger = mockLogger;
       const XLSX = require("xlsx").default;
 
       XLSX.utils.json_to_sheet.mockImplementation(() => {
