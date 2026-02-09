@@ -1094,7 +1094,7 @@ class DatabaseManager {
         description TEXT,
         icon TEXT,
         cover_image TEXT,
-        category TEXT NOT NULL CHECK(category IN ('medical', 'legal', 'education', 'research', 'writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'marketing', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'learning', 'health', 'time-management', 'productivity', 'finance', 'photography', 'music', 'gaming', 'cooking', 'career')),
+        category TEXT NOT NULL CHECK(category IN ('medical', 'legal', 'education', 'research', 'writing', 'ppt', 'excel', 'web', 'design', 'podcast', 'resume', 'marketing', 'lifestyle', 'travel', 'video', 'social-media', 'creative-writing', 'code-project', 'data-science', 'tech-docs', 'ecommerce', 'marketing-pro', 'learning', 'health', 'time-management', 'productivity', 'finance', 'photography', 'music', 'gaming', 'cooking', 'career', 'business', 'hr', 'project')),
         subcategory TEXT,
         tags TEXT,
         project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code')),
@@ -3807,14 +3807,14 @@ class DatabaseManager {
         this.rebuildProjectsTable();
       }
 
-      // 检查是否需要重建project_templates表
+      // 检查是否需要重建project_templates表 (检查是否支持business分类)
       const needsTemplatesRebuild = this.checkIfTableNeedsRebuild(
         "project_templates",
-        "career",
+        "business",
       );
       if (needsTemplatesRebuild) {
         logger.info(
-          "[Database] 检测到project_templates表需要更新CHECK约束，开始重建...",
+          "[Database] 检测到project_templates表需要更新CHECK约束（添加business/hr/project分类），开始重建...",
         );
         this.rebuildProjectTemplatesTable();
       }
@@ -4655,8 +4655,17 @@ class DatabaseManager {
             'marketing-pro',    -- 营销推广
             'learning',         -- 学习成长
             'health',           -- 健康生活
-            'productivity',     -- 时间管理
-            'career'            -- 职业发展
+            'time-management',  -- 时间管理
+            'productivity',     -- 效率工具
+            'finance',          -- 财务管理
+            'photography',      -- 摄影
+            'music',            -- 音乐创作
+            'gaming',           -- 游戏设计
+            'cooking',          -- 烹饪美食
+            'career',           -- 职业发展
+            'business',         -- 商业
+            'hr',               -- 人力资源
+            'project'           -- 项目管理
           )),
           subcategory TEXT,
           tags TEXT,

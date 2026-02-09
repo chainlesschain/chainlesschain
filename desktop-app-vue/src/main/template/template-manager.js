@@ -413,8 +413,10 @@ class ProjectTemplateManager {
   /**
    * 验证模板变量
    */
-  validateVariables(variablesSchema, userVariables) {
+  validateVariables(variablesSchema, userVariables = {}) {
     const errors = [];
+    const safeVariables =
+      userVariables && typeof userVariables === "object" ? userVariables : {};
 
     if (!Array.isArray(variablesSchema)) {
       return { valid: true, errors: [] };
@@ -423,7 +425,7 @@ class ProjectTemplateManager {
     for (const varDef of variablesSchema) {
       const { name, label, type, required, pattern, min, max, options } =
         varDef;
-      const value = userVariables[name];
+      const value = safeVariables[name];
 
       // 检查必填项
       if (required && (value === undefined || value === null || value === "")) {
@@ -466,12 +468,20 @@ class ProjectTemplateManager {
 
       // 正则表达式验证
       if (pattern && typeof value === "string") {
-        const regex = new RegExp(pattern);
-        if (!regex.test(value)) {
-          errors.push({
-            field: name,
-            message: `${label || name} 格式不正确`,
-          });
+        try {
+          const regex = new RegExp(pattern);
+          if (!regex.test(value)) {
+            errors.push({
+              field: name,
+              message: `${label || name} 格式不正确`,
+            });
+          }
+        } catch (regexError) {
+          // 模板中的 pattern 配置错误不应导致整个渲染流程崩溃
+          logger.warn(
+            `[TemplateManager] 跳过无效正则 pattern (${label || name}): ${pattern}`,
+            regexError.message,
+          );
         }
       }
 
@@ -502,7 +512,7 @@ class ProjectTemplateManager {
   /**
    * 渲染模板提示词
    */
-  renderPrompt(template, userVariables) {
+  renderPrompt(template, userVariables = {}) {
     this.initializeTemplateEngine();
 
     try {
@@ -533,10 +543,13 @@ class ProjectTemplateManager {
         );
       }
 
+      const safeUserVariables =
+        userVariables && typeof userVariables === "object" ? userVariables : {};
+
       // 验证变量
       const validation = this.validateVariables(
         template.variables_schema,
-        userVariables,
+        safeUserVariables,
       );
       if (!validation.valid) {
         throw new Error(
@@ -545,7 +558,7 @@ class ProjectTemplateManager {
       }
 
       // 合并默认值
-      const variables = { ...userVariables };
+      const variables = { ...safeUserVariables };
       if (Array.isArray(template.variables_schema)) {
         for (const varDef of template.variables_schema) {
           if (
