@@ -29,14 +29,17 @@ vi.mock('ant-design-vue', () => ({
   message: mockMessage,
 }));
 
+// Hoist mock logger so it can be used directly
+const mockLogger = vi.hoisted(() => ({
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+}));
+
 // Mock logger
 vi.mock('@/utils/logger', () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-  },
-  createLogger: vi.fn(),
+  logger: mockLogger,
+  createLogger: vi.fn(() => mockLogger),
 }));
 
 // Mock echarts
@@ -180,7 +183,7 @@ describe('EnterpriseDashboard', () => {
         setup(props) {
           const { ref, onMounted, onUnmounted, h } = require('vue');
           const message = mockMessage;
-          const { logger } = require('@/utils/logger');
+          const logger = mockLogger;
           const { init } = require('../utils/echartsConfig');
 
           const activityChartRef = ref(null);
@@ -665,7 +668,7 @@ describe('EnterpriseDashboard', () => {
 
     it('应该能处理组织信息加载失败', async () => {
       wrapper = createWrapper();
-      const { logger } = require('@/utils/logger');
+      const logger = mockLogger;
       window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Failed'));
 
       await wrapper.vm.loadOrganizationInfo();

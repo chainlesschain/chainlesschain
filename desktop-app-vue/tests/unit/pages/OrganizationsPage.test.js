@@ -39,14 +39,18 @@ vi.mock('vue-router', () => ({
   useRoute: () => ({ params: {}, query: {} }),
 }));
 
-// Mock dayjs
-vi.mock('dayjs', () => {
-  const dayjs = (timestamp) => ({
+// Mock dayjs with hoisted pattern
+const mockDayjs = vi.hoisted(() => {
+  const dayjsFn = (timestamp) => ({
     fromNow: () => '2天前',
   });
-  dayjs.extend = vi.fn();
-  dayjs.locale = vi.fn();
-  return { default: dayjs };
+  dayjsFn.extend = vi.fn();
+  dayjsFn.locale = vi.fn();
+  return dayjsFn;
+});
+
+vi.mock('dayjs', () => {
+  return { default: mockDayjs };
 });
 
 vi.mock('dayjs/plugin/relativeTime', () => ({ default: {} }));
@@ -308,8 +312,8 @@ describe('OrganizationsPage', () => {
           };
 
           const formatDate = (timestamp) => {
-            const dayjs = require('dayjs').default;
-            return dayjs(timestamp).fromNow();
+            // Use the mocked dayjs function directly
+            return mockDayjs(timestamp).fromNow();
           };
 
           onMounted(() => {
@@ -470,7 +474,6 @@ describe('OrganizationsPage', () => {
 
     it('应该能处理加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: false,
         error: 'Network error',
@@ -478,17 +481,16 @@ describe('OrganizationsPage', () => {
 
       await wrapper.vm.loadOrganizations();
 
-      expect(message.error).toHaveBeenCalledWith('Network error');
+      expect(mockMessage.error).toHaveBeenCalledWith('Network error');
     });
 
     it('应该能处理加载异常', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Connection failed'));
 
       await wrapper.vm.loadOrganizations();
 
-      expect(message.error).toHaveBeenCalledWith('加载组织列表失败');
+      expect(mockMessage.error).toHaveBeenCalledWith('加载组织列表失败');
     });
 
     it('应该在加载时设置loading状态', async () => {
@@ -516,7 +518,6 @@ describe('OrganizationsPage', () => {
 
     it('应该能创建组织', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organization: { org_id: 'new-org-1' },
@@ -538,14 +539,12 @@ describe('OrganizationsPage', () => {
           description: 'Test description',
         }
       );
-      expect(message.success).toHaveBeenCalledWith('组织创建成功');
+      expect(mockMessage.success).toHaveBeenCalledWith('组织创建成功');
       expect(wrapper.vm.showCreateModal).toBe(false);
     });
 
     it('应该验证组织名称', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
-
       wrapper.vm.createForm = {
         name: '',
         type: 'startup',
@@ -554,7 +553,7 @@ describe('OrganizationsPage', () => {
 
       await wrapper.vm.handleCreate();
 
-      expect(message.warning).toHaveBeenCalledWith('请输入组织名称');
+      expect(mockMessage.warning).toHaveBeenCalledWith('请输入组织名称');
       expect(window.electron.ipcRenderer.invoke).not.toHaveBeenCalledWith(
         'org:create-organization',
         expect.any(Object)
@@ -563,7 +562,6 @@ describe('OrganizationsPage', () => {
 
     it('应该能处理创建失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: false,
         error: 'Organization name already exists',
@@ -577,12 +575,11 @@ describe('OrganizationsPage', () => {
 
       await wrapper.vm.handleCreate();
 
-      expect(message.error).toHaveBeenCalledWith('Organization name already exists');
+      expect(mockMessage.error).toHaveBeenCalledWith('Organization name already exists');
     });
 
     it('应该能处理创建异常', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Server error'));
 
       wrapper.vm.createForm = {
@@ -593,7 +590,7 @@ describe('OrganizationsPage', () => {
 
       await wrapper.vm.handleCreate();
 
-      expect(message.error).toHaveBeenCalledWith('创建组织失败');
+      expect(mockMessage.error).toHaveBeenCalledWith('创建组织失败');
     });
 
     it('应该在创建后重置表单', async () => {
