@@ -227,6 +227,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("conversation:get", conversationId),
     getByProject: (projectId) =>
       ipcRenderer.invoke("conversation:get-by-project", projectId),
+    getRecent: (options) =>
+      ipcRenderer.invoke("conversation:get-recent", options),
     getAll: (options) => ipcRenderer.invoke("conversation:get-all", options),
     update: (conversationId, updates) =>
       ipcRenderer.invoke("conversation:update", conversationId, updates),
