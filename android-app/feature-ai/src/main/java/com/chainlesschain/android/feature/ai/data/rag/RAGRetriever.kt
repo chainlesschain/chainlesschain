@@ -445,17 +445,3 @@ data class RAGRetrieverStats(
     val bm25Stats: BM25Stats,
     val hybridStats: HybridRetrieverStats?
 )
-
-/**
- * 向量化工具（保留向后兼容）
- */
-@Deprecated("Use VectorMath instead", ReplaceWith("VectorMath"))
-object VectorUtils {
-    fun embed(text: String): FloatArray {
-        return FloatArray(384) { Math.random().toFloat() }
-    }
-
-    fun cosineSimilarity(vec1: FloatArray, vec2: FloatArray): Double {
-        return VectorMath.cosineSimilarity(vec1, vec2)
-    }
-}
