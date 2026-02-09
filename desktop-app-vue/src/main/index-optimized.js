@@ -439,8 +439,6 @@ class ChainlessChainApp {
       error: "MCP system is disabled",
     };
     const handlers = [
-      "mcp:get-config",
-      "mcp:list-servers",
       "mcp:get-connected-servers",
       "mcp:connect-server",
       "mcp:disconnect-server",
@@ -449,20 +447,11 @@ class ChainlessChainApp {
       "mcp:list-resources",
       "mcp:read-resource",
       "mcp:get-metrics",
-      "mcp:update-config",
     ];
 
     for (const channel of handlers) {
       try {
-        if (channel === "mcp:get-config") {
-          ipcMain.handle(channel, () => ({
-            success: true,
-            config: { enabled: false, servers: {} },
-          }));
-        } else if (
-          channel === "mcp:list-servers" ||
-          channel === "mcp:get-connected-servers"
-        ) {
+        if (channel === "mcp:get-connected-servers") {
           ipcMain.handle(channel, () => ({ success: true, servers: [] }));
         } else {
           ipcMain.handle(channel, () => disabledResponse);
