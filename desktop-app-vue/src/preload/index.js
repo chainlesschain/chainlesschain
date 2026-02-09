@@ -1293,6 +1293,42 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getIndexStats: (projectId) =>
       ipcRenderer.invoke("project:getIndexStats", projectId),
 
+    // 增强 RAG 功能 (v0.32.0)
+    incrementalIndex: (projectId, options) =>
+      ipcRenderer.invoke(
+        "project:incrementalIndex",
+        projectId,
+        removeUndefined(options || {}),
+      ),
+    jointRetrieve: (projectId, query, options) =>
+      ipcRenderer.invoke(
+        "project:jointRetrieve",
+        projectId,
+        query,
+        removeUndefined(options || {}),
+      ),
+    getFileRelations: (projectId, fileId) =>
+      ipcRenderer.invoke("project:getFileRelations", projectId, fileId),
+    unifiedRetrieve: (projectId, query, options) =>
+      ipcRenderer.invoke(
+        "project:unifiedRetrieve",
+        projectId,
+        query,
+        removeUndefined(options || {}),
+      ),
+    updateRetrieveWeights: (weights) =>
+      ipcRenderer.invoke(
+        "project:updateRetrieveWeights",
+        removeUndefined(weights),
+      ),
+    projectAwareRerank: (query, documents, context) =>
+      ipcRenderer.invoke(
+        "project:projectAwareRerank",
+        query,
+        documents,
+        removeUndefined(context || {}),
+      ),
+
     // 项目统计收集
     startStats: (projectId, projectPath) =>
       ipcRenderer.invoke("project:stats:start", projectId, projectPath),

@@ -301,15 +301,15 @@ export default {
               format
             )
 
-            // 保存到文件或分享
-            // TODO: 实现文件保存功能
-            console.log('导出内容:', content)
+            // 保存文件
+            await this.saveExportedFile(content, format)
 
             uni.showToast({
               title: '导出成功',
               icon: 'success'
             })
           } catch (error) {
+            console.error('导出失败:', error)
             uni.showToast({
               title: '导出失败',
               icon: 'none'
@@ -410,6 +410,113 @@ export default {
       if (model.includes('qwen')) return '通义千问'
       if (model.includes('doubao')) return '豆包'
       return model
+    },
+
+    /**
+     * 保存导出的文件
+     * @param {string} content - 文件内容
+     * @param {string} format - 文件格式 (markdown/json/txt)
+     */
+    async saveExportedFile(content, format) {
+      const extensions = { markdown: 'md', json: 'json', txt: 'txt' }
+      const ext = extensions[format] || 'txt'
+      const fileName = `chat_${this.selectedConv?.title || 'export'}_${Date.now()}.${ext}`
+
+      // #ifdef APP-PLUS
+      try {
+        // 使用 plus.io 保存文件
+        const basePath = plus.io.convertLocalFileSystemURL('_downloads/')
+        const filePath = basePath + fileName
+
+        await new Promise((resolve, reject) => {
+          plus.io.resolveLocalFileSystemURL(basePath, (entry) => {
+            entry.getFile(fileName, { create: true }, (fileEntry) => {
+              fileEntry.createWriter((writer) => {
+                writer.onwrite = resolve
+                writer.onerror = reject
+                writer.write(content)
+              }, reject)
+            }, reject)
+          }, reject)
+        })
+
+        // 提示用户
+        uni.showModal({
+          title: '导出成功',
+          content: `文件已保存到下载目录：${fileName}`,
+          showCancel: true,
+          cancelText: '确定',
+          confirmText: '打开文件',
+          success: (res) => {
+            if (res.confirm) {
+              plus.runtime.openFile(filePath)
+            }
+          }
+        })
+      } catch (error) {
+        console.error('保存文件失败:', error)
+        // 降级到分享方式
+        await this.shareContent(content, fileName)
+      }
+      // #endif
+
+      // #ifdef H5
+      // H5 平台使用下载方式
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      a.click()
+      URL.revokeObjectURL(url)
+      // #endif
+
+      // #ifdef MP-WEIXIN
+      // 微信小程序使用文件系统
+      try {
+        const fs = uni.getFileSystemManager()
+        const filePath = `${wx.env.USER_DATA_PATH}/${fileName}`
+        fs.writeFileSync(filePath, content, 'utf8')
+        uni.showModal({
+          title: '导出成功',
+          content: '文件已保存，可在"文件管理"中查看',
+          showCancel: false
+        })
+      } catch (error) {
+        console.error('小程序保存文件失败:', error)
+        throw error
+      }
+      // #endif
+    },
+
+    /**
+     * 通过分享方式导出内容
+     * @param {string} content - 文件内容
+     * @param {string} fileName - 文件名
+     */
+    async shareContent(content, fileName) {
+      // #ifdef APP-PLUS
+      uni.share({
+        provider: 'system',
+        type: 0,
+        summary: content.substring(0, 500),
+        success: () => console.log('分享成功'),
+        fail: (err) => console.error('分享失败:', err)
+      })
+      // #endif
+
+      // #ifndef APP-PLUS
+      // 复制到剪贴板作为备选
+      uni.setClipboardData({
+        data: content,
+        success: () => {
+          uni.showToast({
+            title: '已复制到剪贴板',
+            icon: 'success'
+          })
+        }
+      })
+      // #endif
     },
 
     formatTime(timestamp) {

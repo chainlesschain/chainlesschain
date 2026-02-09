@@ -652,15 +652,19 @@ function registerAllIPC(dependencies) {
     }
 
     // 社交网络 (函数模式 - 大模块，33 handlers: contact + friend + post + chat)
-    if (contactManager || friendManager || postManager || database) {
-      logger.info("[IPC Registry] Registering Social IPC...");
-      const { registerSocialIPC } = require("../social/social-ipc");
-      registerSocialIPC({
-        contactManager,
-        friendManager,
-        postManager,
-        database,
-      });
+    logger.info("[IPC Registry] Registering Social IPC...");
+    const { registerSocialIPC } = require("../social/social-ipc");
+    registerSocialIPC({
+      contactManager: contactManager || null,
+      friendManager: friendManager || null,
+      postManager: postManager || null,
+      database: database || null,
+    });
+    if (!contactManager && !friendManager && !postManager && !database) {
+      logger.warn(
+        "[IPC Registry] ⚠ Social IPC registered with null dependencies (degraded mode)",
+      );
+    } else {
       logger.info("[IPC Registry] ✓ Social IPC registered (33 handlers)");
     }
 
@@ -867,19 +871,17 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ✓ Office File IPC registered");
 
     // 模板管理 (函数模式 - 大模块，20 handlers)
-    if (templateManager) {
-      logger.info("[IPC Registry] Registering Template IPC...");
-      const { registerTemplateIPC } = require("../template/template-ipc");
-
-      registerTemplateIPC({
-        templateManager: templateManager,
-      });
-      logger.info("[IPC Registry] ✓ Template IPC registered (20 handlers)");
-    } else {
+    logger.info("[IPC Registry] Registering Template IPC...");
+    const { registerTemplateIPC } = require("../template/template-ipc");
+    registerTemplateIPC({
+      templateManager: templateManager || null,
+    });
+    if (!templateManager) {
       logger.warn(
-        "[IPC Registry] ⚠ templateManager 未初始化，跳过 Template IPC 注册",
+        "[IPC Registry] ⚠ templateManager not initialized, Template IPC running in degraded mode",
       );
-      logger.warn("[IPC Registry] 模板功能将不可用，可能导致部分页面出错");
+    } else {
+      logger.info("[IPC Registry] ✓ Template IPC registered (20 handlers)");
     }
 
     // 知识管理 (函数模式 - 中等模块，17 handlers)

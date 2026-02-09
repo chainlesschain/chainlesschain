@@ -888,9 +888,12 @@ describe("EmailReader.vue", () => {
     it("应该生成邮箱树", () => {
       wrapper = createWrapper();
       wrapper.vm.mailboxes = mockMailboxes;
+      wrapper.vm.drafts = [];
 
-      expect(wrapper.vm.mailboxTree).toHaveLength(3);
+      // 3个邮箱 + 1个草稿箱
+      expect(wrapper.vm.mailboxTree).toHaveLength(4);
       expect(wrapper.vm.mailboxTree[0].title).toBe("收件箱");
+      expect(wrapper.vm.mailboxTree[3].title).toBe("草稿箱 (0)");
     });
 
     it("应该清理邮件内容", () => {

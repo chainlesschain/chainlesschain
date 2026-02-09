@@ -580,6 +580,7 @@ class ChainlessChainApp {
         toolManager: this.toolManager,
         imageUploader: this.imageUploader,
         fileImporter: this.fileImporter,
+        templateManager: this.templateManager,
         promptTemplateManager: this.promptTemplateManager,
         knowledgePaymentManager: this.knowledgePaymentManager,
         creditScoreManager: this.creditScoreManager,

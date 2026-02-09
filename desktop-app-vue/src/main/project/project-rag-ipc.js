@@ -8,6 +8,12 @@
 
 const { logger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
+const {
+  getIncrementalIndexManager,
+  getMultiFileRetriever,
+  getUnifiedRetriever,
+  getProjectAwareReranker,
+} = require("./project-rag.js");
 
 /**
  * 注册项目 RAG 检索相关的 IPC 处理器
@@ -225,11 +231,145 @@ function registerProjectRAGIPC({
     }
   });
 
-  logger.info("[Project RAG IPC] ✓ 10 handlers registered");
+  // ============================================================
+  // 增强 RAG 接口 (v0.32.0) - 6 handlers
+  // ============================================================
+
+  /**
+   * 增量索引项目文件
+   * 通过 content hash 检测变化，避免重复索引
+   */
+  ipcMain.handle(
+    "project:incrementalIndex",
+    async (_event, projectId, options = {}) => {
+      try {
+        logger.info(`[Main] 增量索引项目: ${projectId}`);
+
+        const manager = getIncrementalIndexManager();
+        const result = await manager.incrementalIndex(projectId, options);
+
+        logger.info("[Main] 增量索引完成:", result.stats);
+        return result;
+      } catch (error) {
+        logger.error("[Main] 增量索引失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * 多文件联合检索
+   * 支持文件关系追踪和跨文件上下文聚合
+   */
+  ipcMain.handle(
+    "project:jointRetrieve",
+    async (_event, projectId, query, options = {}) => {
+      try {
+        logger.info(`[Main] 联合检索: ${query}`);
+
+        const retriever = getMultiFileRetriever();
+        const result = await retriever.jointRetrieve(projectId, query, options);
+
+        logger.info("[Main] 联合检索完成:", result.stats);
+        return result;
+      } catch (error) {
+        logger.error("[Main] 联合检索失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * 获取文件关系（导入/被导入）
+   */
+  ipcMain.handle(
+    "project:getFileRelations",
+    async (_event, projectId, fileId) => {
+      try {
+        logger.info(`[Main] 获取文件关系: ${fileId}`);
+
+        const retriever = getMultiFileRetriever();
+        const result = await retriever.getFileRelations(projectId, fileId);
+
+        return { success: true, ...result };
+      } catch (error) {
+        logger.error("[Main] 获取文件关系失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * 统一检索（知识库-项目-对话联合）
+   * 并行检索3个数据源，应用来源权重
+   */
+  ipcMain.handle(
+    "project:unifiedRetrieve",
+    async (_event, projectId, query, options = {}) => {
+      try {
+        logger.info(`[Main] 统一检索: ${query}`);
+
+        const retriever = getUnifiedRetriever();
+        const result = await retriever.unifiedRetrieve(
+          projectId,
+          query,
+          options,
+        );
+
+        logger.info("[Main] 统一检索完成:", result.sources);
+        return result;
+      } catch (error) {
+        logger.error("[Main] 统一检索失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  /**
+   * 更新检索权重
+   * 调整项目/对话/知识库的检索权重
+   */
+  ipcMain.handle("project:updateRetrieveWeights", async (_event, weights) => {
+    try {
+      logger.info("[Main] 更新检索权重:", weights);
+
+      const retriever = getUnifiedRetriever();
+      const newWeights = retriever.updateWeights(weights);
+
+      return { success: true, weights: newWeights };
+    } catch (error) {
+      logger.error("[Main] 更新检索权重失败:", error);
+      return { success: false, error: error.message };
+    }
+  });
+
+  /**
+   * 项目感知重排序
+   * 基于项目上下文优化检索结果排序
+   */
+  ipcMain.handle(
+    "project:projectAwareRerank",
+    async (_event, query, documents, context = {}) => {
+      try {
+        logger.info(`[Main] 项目感知重排序: ${documents.length} 个文档`);
+
+        const reranker = getProjectAwareReranker();
+        const result = await reranker.rerank(query, documents, context);
+
+        return { success: true, documents: result };
+      } catch (error) {
+        logger.error("[Main] 项目感知重排序失败:", error);
+        return { success: false, error: error.message };
+      }
+    },
+  );
+
+  logger.info("[Project RAG IPC] ✓ 16 handlers registered");
   logger.info(
     "[Project RAG IPC] - 5 legacy RAG handlers (via ProjectRAGManager)",
   );
   logger.info("[Project RAG IPC] - 5 new RAG handlers (via RAGAPI)");
+  logger.info("[Project RAG IPC] - 6 enhanced RAG handlers (v0.32.0)");
 }
 
 module.exports = {

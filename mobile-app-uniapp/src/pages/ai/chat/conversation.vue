@@ -347,14 +347,15 @@ export default {
               format
             )
 
-            // TODO: 实现文件保存
-            console.log('导出内容:', content)
+            // 保存文件
+            await this.saveExportedFile(content, format)
 
             uni.showToast({
               title: '导出成功',
               icon: 'success'
             })
           } catch (error) {
+            console.error('导出失败:', error)
             uni.showToast({
               title: '导出失败',
               icon: 'none'
@@ -477,6 +478,60 @@ export default {
       if (model.includes('qwen')) return '通义千问'
       if (model.includes('doubao')) return '豆包'
       return model
+    },
+
+    /**
+     * 保存导出的文件
+     */
+    async saveExportedFile(content, format) {
+      const extensions = { markdown: 'md', json: 'json', txt: 'txt' }
+      const ext = extensions[format] || 'txt'
+      const fileName = `chat_export_${Date.now()}.${ext}`
+
+      // #ifdef APP-PLUS
+      try {
+        const basePath = plus.io.convertLocalFileSystemURL('_downloads/')
+        const filePath = basePath + fileName
+
+        await new Promise((resolve, reject) => {
+          plus.io.resolveLocalFileSystemURL(basePath, (entry) => {
+            entry.getFile(fileName, { create: true }, (fileEntry) => {
+              fileEntry.createWriter((writer) => {
+                writer.onwrite = resolve
+                writer.onerror = reject
+                writer.write(content)
+              }, reject)
+            }, reject)
+          }, reject)
+        })
+
+        uni.showModal({
+          title: '导出成功',
+          content: `文件已保存：${fileName}`,
+          confirmText: '打开',
+          success: (res) => {
+            if (res.confirm) plus.runtime.openFile(filePath)
+          }
+        })
+      } catch (e) {
+        uni.setClipboardData({ data: content })
+      }
+      // #endif
+
+      // #ifdef H5
+      const blob = new Blob([content], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      a.click()
+      URL.revokeObjectURL(url)
+      // #endif
+
+      // #ifdef MP-WEIXIN
+      const fs = uni.getFileSystemManager()
+      fs.writeFileSync(`${wx.env.USER_DATA_PATH}/${fileName}`, content, 'utf8')
+      // #endif
     }
   }
 }
