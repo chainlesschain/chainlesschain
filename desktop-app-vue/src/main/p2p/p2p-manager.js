@@ -2074,6 +2074,24 @@ class P2PManager extends EventEmitter {
 
       await this.signalingServer.start();
 
+      // 注册本地设备到信令服务器的 peer 列表中
+      // 这样移动端可以通过 get-peers 发现这台 PC
+      const currentDevice = this.deviceManager?.getCurrentDevice();
+      if (currentDevice && this.signalingServer.registry) {
+        const os = require("os");
+        this.signalingServer.registry.registerLocal(
+          currentDevice.deviceId,
+          {
+            name: currentDevice.deviceName || os.hostname(),
+            platform: `${os.platform()} ${os.release()}`,
+          },
+          "DESKTOP"
+        );
+        logger.info(
+          `[P2PManager] 本地设备已注册到信令服务器: ${currentDevice.deviceId}`
+        );
+      }
+
       logger.info("[P2PManager] 嵌入式信令服务器已启动");
     } catch (error) {
       logger.error("[P2PManager] 启动信令服务器失败:", error);

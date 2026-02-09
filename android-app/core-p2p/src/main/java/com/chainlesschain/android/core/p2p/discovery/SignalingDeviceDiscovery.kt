@@ -95,7 +95,10 @@ class SignalingDeviceDiscovery @Inject constructor(
         _discoveryEvents.value = DiscoveryEvent.DiscoveryStarted
 
         val signalingUrl = getSignalingUrl()
-        Log.i(TAG, "Starting signaling discovery, connecting to: $signalingUrl")
+        Log.i(TAG, "========================================")
+        Log.i(TAG, "Starting signaling discovery")
+        Log.i(TAG, "Signaling URL: $signalingUrl")
+        Log.i(TAG, "========================================")
 
         connectToSignalingServer(signalingUrl)
     }

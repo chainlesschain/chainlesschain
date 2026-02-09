@@ -33,26 +33,19 @@ const mockMessage = {
   info: vi.fn(),
 };
 
-// Mock Modal object
+// Mock Modal object - the confirm returns a promise that resolves after onOk
 const mockModal = {
-  confirm: vi.fn((options) => {
-    options.onOk && options.onOk();
+  confirm: vi.fn(async (options) => {
+    if (options && options.onOk) {
+      await options.onOk();
+    }
   }),
 };
 
-// Mock ant-design-vue
+// Mock ant-design-vue - use the same mockMessage and mockModal objects
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
-  Modal: {
-    confirm: vi.fn((options) => {
-      options.onOk && options.onOk();
-    }),
-  },
+  message: mockMessage,
+  Modal: mockModal,
 }));
 
 // Mock tool store
@@ -545,51 +538,43 @@ describe('ToolManagement', () => {
   describe('刷新功能', () => {
     it('应该能刷新工具列表', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockToolStore.loadTools.mockResolvedValue();
 
       await wrapper.vm.handleRefresh();
 
       expect(mockToolStore.loadTools).toHaveBeenCalled();
-      expect(message.success).toHaveBeenCalledWith('刷新成功');
+      expect(mockMessage.success).toHaveBeenCalledWith('刷新成功');
     });
   });
 
   describe('创建工具', () => {
     it('应该能触发创建工具', () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
-
       wrapper.vm.handleCreateTool();
 
-      expect(message.info).toHaveBeenCalledWith('创建工具功能');
+      expect(mockMessage.info).toHaveBeenCalledWith('创建工具功能');
     });
   });
 
   describe('统计和依赖图', () => {
     it('应该能显示使用统计', () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
-
       wrapper.vm.showAnalytics();
 
-      expect(message.info).toHaveBeenCalledWith('使用统计功能');
+      expect(mockMessage.info).toHaveBeenCalledWith('使用统计功能');
     });
 
     it('应该能显示依赖关系图', () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
-
       wrapper.vm.showDependencyGraph();
 
-      expect(message.info).toHaveBeenCalledWith('依赖关系图功能');
+      expect(mockMessage.info).toHaveBeenCalledWith('依赖关系图功能');
     });
   });
 
   describe('启用/禁用工具', () => {
     it('应该能启用工具', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockToolStore.updateTool.mockResolvedValue();
 
       const tool = { ...mockTools[2], enabled: 0 };
@@ -599,12 +584,11 @@ describe('ToolManagement', () => {
       expect(mockToolStore.updateTool).toHaveBeenCalledWith(tool.id, {
         enabled: 1,
       });
-      expect(message.success).toHaveBeenCalledWith('已启用');
+      expect(mockMessage.success).toHaveBeenCalledWith('已启用');
     });
 
     it('应该能禁用工具', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockToolStore.updateTool.mockResolvedValue();
 
       const tool = { ...mockTools[0], enabled: 1 };
@@ -614,17 +598,16 @@ describe('ToolManagement', () => {
       expect(mockToolStore.updateTool).toHaveBeenCalledWith(tool.id, {
         enabled: 0,
       });
-      expect(message.success).toHaveBeenCalledWith('已禁用');
+      expect(mockMessage.success).toHaveBeenCalledWith('已禁用');
     });
 
     it('应该能处理切换失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockToolStore.updateTool.mockRejectedValue(new Error('更新失败'));
 
       await wrapper.vm.handleToggleEnabled(mockTools[0]);
 
-      expect(message.error).toHaveBeenCalledWith('操作失败: 更新失败');
+      expect(mockMessage.error).toHaveBeenCalledWith('操作失败: 更新失败');
     });
 
     it('应该防止重复切换', async () => {
@@ -642,7 +625,6 @@ describe('ToolManagement', () => {
   describe('批量操作', () => {
     it('应该能批量启用工具', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockToolStore.batchUpdateTools.mockResolvedValue();
 
       wrapper.vm.selectedTools = [mockTools[0], mockTools[1]];
@@ -653,13 +635,12 @@ describe('ToolManagement', () => {
         [mockTools[0].id, mockTools[1].id],
         { enabled: 1 }
       );
-      expect(message.success).toHaveBeenCalledWith('批量启用成功');
+      expect(mockMessage.success).toHaveBeenCalledWith('批量启用成功');
       expect(wrapper.vm.selectedTools.length).toBe(0);
     });
 
     it('应该能批量禁用工具', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockToolStore.batchUpdateTools.mockResolvedValue();
 
       wrapper.vm.selectedTools = [mockTools[0]];
@@ -670,34 +651,40 @@ describe('ToolManagement', () => {
         [mockTools[0].id],
         { enabled: 0 }
       );
-      expect(message.success).toHaveBeenCalledWith('批量禁用成功');
+      expect(mockMessage.success).toHaveBeenCalledWith('批量禁用成功');
     });
 
     it('应该能批量删除工具', async () => {
       wrapper = createWrapper();
-      const { message, Modal } = require('ant-design-vue');
       mockToolStore.deleteTool.mockResolvedValue();
       mockToolStore.loadTools.mockResolvedValue();
 
       wrapper.vm.selectedTools = [mockTools[0], mockTools[1]];
 
-      wrapper.vm.handleBatchDelete();
+      // Call handleBatchDelete which will trigger Modal.confirm
+      const deletePromise = wrapper.vm.handleBatchDelete();
 
-      expect(Modal.confirm).toHaveBeenCalled();
+      // Wait for the Modal.confirm to be called and its onOk to complete
+      await deletePromise;
+
+      // Also wait for any pending microtasks
+      await vi.waitFor(() => {
+        expect(mockModal.confirm).toHaveBeenCalled();
+      });
+
       expect(mockToolStore.deleteTool).toHaveBeenCalledTimes(2);
-      expect(message.success).toHaveBeenCalledWith('批量删除成功');
+      expect(mockMessage.success).toHaveBeenCalledWith('批量删除成功');
     });
 
     it('应该能处理批量操作失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockToolStore.batchUpdateTools.mockRejectedValue(new Error('操作失败'));
 
       wrapper.vm.selectedTools = [mockTools[0]];
 
       await wrapper.vm.handleBatchEnable();
 
-      expect(message.error).toHaveBeenCalledWith('批量启用失败: 操作失败');
+      expect(mockMessage.error).toHaveBeenCalledWith('批量启用失败: 操作失败');
     });
   });
 
