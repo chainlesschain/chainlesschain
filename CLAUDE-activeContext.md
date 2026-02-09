@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-09 (文件版本控制 + LLM Function Calling + Deep Link 增强)
+> **最后更新**: 2026-02-09 (安全认证增强 + 增量RAG索引 + SIMKey NFC检测)
 
 ---
 
@@ -66,10 +66,52 @@
 - [x] Deep Link 增强 (notes/clip 链接处理 + 通用导航)
 - [x] 浏览器扩展增强 (通过自定义协议启动桌面应用)
 - [x] IPC 错误处理优化 (social.ts + ipc.ts 静默回退)
+- [x] 安全认证增强 - dev-mode 生产环境切换 (SecurityConfig + application.yml)
+- [x] U-Key 验证服务数据库集成 (DeviceKey + DeviceKeyMapper + UKeyVerificationService)
+- [x] 项目 RAG 增强 - 增量索引系统 (IncrementalIndexManager + content hash)
+- [x] 项目 RAG 增强 - 统一检索系统 (MultiFileRetriever + UnifiedRetriever + ProjectAwareReranker)
+- [x] 移动端 SIMKey NFC 检测实现 (auth.js detectSIMKey)
+- [x] 数据库 schema 增强 (delivered_at + project_rag_index 表)
+- [x] 测试基础设施优化 (Ant Design Vue stubs + dayjs mock 修复)
 
 ### 最近完成
 
-0. **文件版本控制 + LLM Function Calling + Deep Link 增强** (2026-02-09):
+0. **安全认证增强 + 增量RAG索引 + SIMKey NFC检测** (2026-02-09 下午):
+   - **后端安全认证增强** (project-service + community-forum):
+     - 更新 `SecurityConfig.java` - 添加 dev-mode 环境切换
+     - 生产模式: `/api/projects/**` 和 `/api/sync/**` 需要 JWT 认证
+     - 开发模式: 跳过认证检查 (`SECURITY_DEV_MODE=true`)
+     - 新建 `DeviceKey.java` - 设备公钥实体
+     - 新建 `DeviceKeyMapper.java` - 公钥查询 Mapper
+     - 更新 `UKeyVerificationService.java` - 集成数据库公钥加载
+     - 更新 `AuthService.java` - 集成 U-Key 验证服务
+     - 更新 `schema.sql` - 添加 device_keys 表
+   - **项目 RAG 增强** (desktop-app-vue):
+     - 新增 `IncrementalIndexManager` - MD5 content hash 变化检测
+     - 新增 `MultiFileRetriever` - 多文件联合检索
+     - 新增 `UnifiedRetriever` - 向量+关键词+图谱统一检索
+     - 新增 `ProjectAwareReranker` - 项目上下文感知重排
+     - 新增 6 个 IPC handlers: incrementalIndex, jointRetrieve, getFileRelations, unifiedRetrieve, updateRetrieveWeights, projectAwareRerank
+     - 更新 `preload/index.js` - 暴露新 RAG API
+   - **移动端 SIMKey 集成** (mobile-app-uniapp):
+     - 更新 `auth.js` - 实现 SIMKey NFC 检测 (~210 行)
+     - 支持 NFC 读取和 SIM 安全元件检测
+     - 开发模式模拟器支持
+   - **数据库 Schema 增强**:
+     - 添加 `projects.delivered_at` 列 - 项目交付时间
+     - 新建 `project_rag_index` 表 - 增量索引追踪
+     - 添加相关索引
+   - **测试基础设施优化**:
+     - 新增 89 个 Ant Design Vue 组件 stubs
+     - 修复 dayjs mock (移除 importActual)
+     - 修复 permission-system 测试断言
+     - 启用 delivered_at 端到端测试
+   - **其他修复**:
+     - Social IPC 降级模式支持 (null 依赖处理)
+     - 添加 templateManager 到 IPC 依赖
+     - Hooks _normalizeResult 布尔值处理修复
+
+1. **文件版本控制 + LLM Function Calling + Deep Link 增强** (2026-02-09 上午):
    - **后端文件版本控制** (project-service):
      - 新建 `FileVersion.java` - 文件版本实体（版本号、内容快照、哈希）
      - 新建 `FileVersionMapper.java` - 版本历史查询 Mapper
@@ -632,7 +674,29 @@
 
 ## 关键文件修改记录
 
-### 本次会话修改 (2026-02-09) - 文件版本控制 + LLM Function Calling
+### 本次会话修改 (2026-02-09 下午) - 安全认证 + 增量RAG + SIMKey
+
+| 文件                                    | 修改类型 | 说明                                         |
+| --------------------------------------- | -------- | -------------------------------------------- |
+| `SecurityConfig.java`                   | 修改     | dev-mode 环境切换、动态公开端点列表          |
+| `application.yml` (project-service)     | 修改     | 添加 security.dev-mode 配置                  |
+| `DeviceKey.java`                        | 新建     | 设备公钥实体（deviceId, publicKey, status）  |
+| `DeviceKeyMapper.java`                  | 新建     | 公钥查询 Mapper（findByDeviceId, revoke）    |
+| `UKeyVerificationService.java`          | 修改     | 集成 DeviceKeyMapper 数据库加载              |
+| `AuthService.java`                      | 修改     | 集成 U-Key 验证服务                          |
+| `LoginRequest.java`                     | 修改     | 添加 signature、challenge 字段               |
+| `schema.sql`                            | 修改     | 添加 device_keys 表                          |
+| `project-rag.js`                        | 修改     | +1000行 增量索引 + 统一检索系统              |
+| `project-rag-ipc.js`                    | 修改     | +134行 6个新 IPC handlers                    |
+| `preload/index.js`                      | 修改     | 暴露新 RAG API                               |
+| `auth.js` (mobile)                      | 修改     | +210行 SIMKey NFC 检测实现                   |
+| `database.js`                           | 修改     | delivered_at + project_rag_index 表          |
+| `ipc-registry.js`                       | 修改     | Social IPC 降级模式                          |
+| `setup.ts`                              | 修改     | +89行 Ant Design Vue 组件 stubs              |
+| `EmailReader.vue`                       | 修改     | 防御性 null 检查                             |
+| 多个测试文件                            | 修改     | dayjs mock 修复、断言优化                    |
+
+### 历史会话修改 (2026-02-09 上午) - 文件版本控制 + LLM Function Calling
 
 | 文件                                    | 修改类型 | 说明                                         |
 | --------------------------------------- | -------- | -------------------------------------------- |
@@ -778,6 +842,8 @@
 | Skills 系统  | ✅ 生产就绪 | Markdown Skills、三层加载、17 IPC     |
 | Hooks 系统   | ✅ 生产就绪 | 21 事件、4 类型、优先级系统           |
 | 永久记忆     | ✅ 生产就绪 | Daily Notes、MEMORY.md、混合搜索      |
+| 项目 RAG     | ✅ 生产就绪 | 增量索引、统一检索、上下文重排、6 IPC |
+| U-Key 验证   | ✅ 生产就绪 | dev/prod 模式、RSA 签名、NFC 检测     |
 
 ### 依赖服务
 
@@ -862,7 +928,31 @@ npm run test:session # Session 压缩测试
 
 ## 更新日志
 
-### 2026-02-09
+### 2026-02-09 (下午)
+
+- **安全认证增强**:
+  - SecurityConfig dev-mode 环境切换
+  - 生产环境 API 端点强制 JWT 认证
+  - DeviceKey 实体和 Mapper
+  - UKeyVerificationService 数据库集成
+- **项目 RAG 增强** (+1000 行):
+  - IncrementalIndexManager - MD5 content hash 增量索引
+  - MultiFileRetriever - 多文件联合检索
+  - UnifiedRetriever - 向量+关键词+图谱统一检索
+  - ProjectAwareReranker - 上下文感知重排
+  - 6 个新 IPC handlers
+- **移动端 SIMKey NFC 检测**:
+  - NFC 读取和 SIM 安全元件检测
+  - 开发模式模拟器支持
+- **数据库 Schema 增强**:
+  - projects.delivered_at 列
+  - project_rag_index 增量索引追踪表
+- **测试基础设施**:
+  - 89 个 Ant Design Vue 组件 stubs
+  - dayjs mock 修复
+  - permission-system 测试优化
+
+### 2026-02-09 (上午)
 
 - **文件版本控制** (后端 project-service):
   - 新建 FileVersion 实体、Mapper、数据库迁移
