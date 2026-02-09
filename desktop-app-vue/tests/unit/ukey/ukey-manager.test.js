@@ -264,34 +264,93 @@ describe('UKeyManager', () => {
       expect(eventSpy).toHaveBeenCalledWith(DriverTypes.SIMULATED);
     });
 
-    it.skip('应该更新driverType属性', async () => {
-      // TODO: Driver mocks don't work with CommonJS require()
+    it('应该更新driverType属性', async () => {
+      ukeyManager = new UKeyManager({ driverType: DriverTypes.XINJINKE });
+      ukeyManager.currentDriver = mockDriverInstance;
+      ukeyManager.createDriver = vi.fn().mockResolvedValue(mockDriverInstance);
+
+      expect(ukeyManager.driverType).toBe(DriverTypes.XINJINKE);
+
+      await ukeyManager.switchDriver(DriverTypes.SIMULATED);
+
+      expect(ukeyManager.driverType).toBe(DriverTypes.SIMULATED);
     });
   });
 
   describe('autoDetect', () => {
-    it.skip('应该在Windows平台优先检测国产驱动', async () => {
-      // TODO: os.platform() mock and driver mocks don't work with CommonJS
+    it('应该在检测到设备时返回驱动类型', async () => {
+      ukeyManager = new UKeyManager();
+
+      // Mock createDriver 以返回检测到设备的驱动
+      const detectingDriver = {
+        ...mockDriverInstance,
+        detect: vi.fn().mockResolvedValue({ detected: true }),
+      };
+      ukeyManager.createDriver = vi.fn().mockResolvedValue(detectingDriver);
+
+      const result = await ukeyManager.autoDetect();
+
+      // autoDetect 应该返回检测到的驱动类型
+      expect(ukeyManager.createDriver).toHaveBeenCalled();
+      expect(result).not.toBeNull();
     });
 
-    it.skip('应该在非Windows平台优先检测PKCS11', async () => {
-      // TODO: os.platform() mock and driver mocks don't work with CommonJS
+    it('应该在未检测到设备时返回null', async () => {
+      ukeyManager = new UKeyManager();
+
+      // Mock createDriver 以返回未检测到设备的驱动
+      const noDeviceDriver = {
+        ...mockDriverInstance,
+        detect: vi.fn().mockResolvedValue({ detected: false }),
+      };
+      ukeyManager.createDriver = vi.fn().mockResolvedValue(noDeviceDriver);
+
+      const result = await ukeyManager.autoDetect();
+
+      // autoDetect 在所有驱动都未检测到设备时应返回 null
+      expect(result).toBeNull();
     });
 
-    it.skip('应该在检测到设备时返回驱动类型', async () => {
-      // TODO: Driver mocks don't work with CommonJS require()
+    it('应该触发device-detected事件', async () => {
+      ukeyManager = new UKeyManager();
+
+      const detectingDriver = {
+        ...mockDriverInstance,
+        detect: vi.fn().mockResolvedValue({ detected: true }),
+      };
+      ukeyManager.createDriver = vi.fn().mockResolvedValue(detectingDriver);
+
+      const eventSpy = vi.fn();
+      ukeyManager.on('device-detected', eventSpy);
+
+      await ukeyManager.autoDetect();
+
+      expect(eventSpy).toHaveBeenCalled();
     });
 
-    it.skip('应该在未检测到设备时返回null', async () => {
-      // TODO: Driver mocks don't work with CommonJS require()
-    });
+    it('应该在检测失败时尝试下一个驱动', async () => {
+      ukeyManager = new UKeyManager();
 
-    it.skip('应该触发device-detected事件', async () => {
-      // TODO: Driver mocks don't work with CommonJS require()
-    });
+      // 第一次调用返回检测失败，第二次返回成功
+      let callCount = 0;
+      ukeyManager.createDriver = vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.resolve({
+            ...mockDriverInstance,
+            detect: vi.fn().mockResolvedValue({ detected: false }),
+          });
+        }
+        return Promise.resolve({
+          ...mockDriverInstance,
+          detect: vi.fn().mockResolvedValue({ detected: true }),
+        });
+      });
 
-    it.skip('应该在检测失败时尝试下一个驱动', async () => {
-      // TODO: Driver mocks don't work with CommonJS require()
+      await ukeyManager.autoDetect();
+
+      // 应该尝试多个驱动
+      expect(callCount).toBeGreaterThan(1);
     });
   });
 
@@ -305,8 +364,13 @@ describe('UKeyManager', () => {
       expect(result.reason).toBe('driver_not_initialized');
     });
 
-    it.skip('应该调用当前驱动的detect方法', async () => {
-      // TODO: Driver mocks don't work with CommonJS require()
+    it('应该调用当前驱动的detect方法', async () => {
+      ukeyManager = new UKeyManager();
+      ukeyManager.currentDriver = mockDriverInstance;
+
+      await ukeyManager.detect();
+
+      expect(mockDriverInstance.detect).toHaveBeenCalled();
     });
 
     it('应该在检测到设备时触发device-detected事件', async () => {
