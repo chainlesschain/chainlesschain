@@ -6,11 +6,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.chainlesschain.project.dto.FileCreateRequest;
 import com.chainlesschain.project.dto.FileUpdateRequest;
 import com.chainlesschain.project.dto.ProjectFileDTO;
+import com.chainlesschain.project.entity.FileVersion;
 import com.chainlesschain.project.entity.Project;
 import com.chainlesschain.project.entity.ProjectFile;
+import com.chainlesschain.project.mapper.FileVersionMapper;
 import com.chainlesschain.project.mapper.ProjectFileMapper;
 import com.chainlesschain.project.mapper.ProjectMapper;
 import lombok.RequiredArgsConstructor;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -32,6 +36,7 @@ public class ProjectFileService {
 
     private final ProjectFileMapper projectFileMapper;
     private final ProjectMapper projectMapper;
+    private final FileVersionMapper fileVersionMapper;
 
     /**
      * 获取项目文件列表
@@ -116,6 +121,9 @@ public class ProjectFileService {
 
         projectFileMapper.insert(file);
 
+        // 保存初始版本到版本历史
+        saveFileVersion(file, request.getGeneratedBy() != null ? request.getGeneratedBy() : "user", "Initial version");
+
         // 更新项目统计
         updateProjectStats(projectId);
 
@@ -176,6 +184,11 @@ public class ProjectFileService {
         file.setVersion(file.getVersion() + 1);
 
         projectFileMapper.updateById(file);
+
+        // 保存新版本到版本历史
+        String createdBy = request.getGeneratedBy() != null ? request.getGeneratedBy() : "user";
+        String message = request.getVersionMessage() != null ? request.getVersionMessage() : "Updated file";
+        saveFileVersion(file, createdBy, message);
 
         // 更新项目统计
         updateProjectStats(projectId);
@@ -279,13 +292,12 @@ public class ProjectFileService {
 
     /**
      * 获取文件版本历史
-     * 注意：当前实现基于文件的version字段，实际应用中可能需要单独的file_versions表
+     * 从 file_versions 表查询完整的版本历史记录
      */
     public List<ProjectFileDTO> getFileVersions(String projectId, String fileId, int limit) {
         log.info("获取文件版本历史: projectId={}, fileId={}, limit={}", projectId, fileId, limit);
 
-        // 当前简化实现：只返回当前版本
-        // TODO: 需要添加file_versions表来存储完整的版本历史
+        // 验证文件存在
         LambdaQueryWrapper<ProjectFile> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProjectFile::getId, fileId)
                 .eq(ProjectFile::getProjectId, projectId);
@@ -295,27 +307,42 @@ public class ProjectFileService {
             throw new RuntimeException("文件不存在: " + fileId);
         }
 
-        // 返回当前版本（实际应从file_versions表查询）
-        ProjectFileDTO dto = toDTO(file);
-        dto.setContent(file.getContent());
+        // 从 file_versions 表查询版本历史
+        List<FileVersion> versions = fileVersionMapper.getVersionHistory(fileId, projectId, limit);
 
-        List<ProjectFileDTO> versions = new ArrayList<>();
-        versions.add(dto);
+        // 转换为 DTO
+        List<ProjectFileDTO> result = versions.stream()
+                .map(version -> {
+                    ProjectFileDTO dto = new ProjectFileDTO();
+                    dto.setId(version.getId());
+                    dto.setProjectId(version.getProjectId());
+                    dto.setVersion(version.getVersion());
+                    dto.setContent(version.getContent());
+                    dto.setFileSize(version.getFileSize());
+                    dto.setCommitHash(version.getCommitHash());
+                    dto.setCreatedAt(version.getCreatedAt());
+                    // 从原文件复制其他属性
+                    dto.setFileName(file.getFileName());
+                    dto.setFilePath(file.getFilePath());
+                    dto.setFileType(file.getFileType());
+                    dto.setLanguage(file.getLanguage());
+                    return dto;
+                })
+                .collect(Collectors.toList());
 
-        log.warn("文件版本历史功能需要完整实现file_versions表");
-        return versions;
+        log.info("获取到 {} 个版本记录", result.size());
+        return result;
     }
 
     /**
      * 恢复到指定版本
-     * 注意：当前实现为占位符，实际应用需要file_versions表支持
+     * 从 file_versions 表获取指定版本并恢复文件内容
      */
     @Transactional
     public ProjectFileDTO restoreFileVersion(String projectId, String fileId, String versionId) {
         log.info("恢复文件版本: projectId={}, fileId={}, versionId={}", projectId, fileId, versionId);
 
-        // 当前简化实现：直接返回当前文件
-        // TODO: 需要从file_versions表恢复指定版本
+        // 查找当前文件
         LambdaQueryWrapper<ProjectFile> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProjectFile::getId, fileId)
                 .eq(ProjectFile::getProjectId, projectId);
@@ -325,13 +352,78 @@ public class ProjectFileService {
             throw new RuntimeException("文件不存在: " + fileId);
         }
 
-        log.warn("文件版本恢复功能需要完整实现file_versions表");
+        // 查找目标版本
+        FileVersion targetVersion = fileVersionMapper.selectById(versionId);
+        if (targetVersion == null) {
+            throw new RuntimeException("版本不存在: " + versionId);
+        }
 
-        // 增加版本号（模拟恢复）
+        // 验证版本属于该文件
+        if (!targetVersion.getFileId().equals(fileId)) {
+            throw new RuntimeException("版本不属于该文件");
+        }
+
+        // 恢复文件内容
+        file.setContent(targetVersion.getContent());
+        file.setFileSize(targetVersion.getFileSize());
+        file.setContentHash(targetVersion.getContentHash());
         file.setVersion(file.getVersion() + 1);
+
         projectFileMapper.updateById(file);
 
+        // 保存恢复操作作为新版本
+        saveFileVersion(file, "user", "Restored from version " + targetVersion.getVersion());
+
+        log.info("文件版本恢复成功: fileId={}, restoredFromVersion={}, newVersion={}",
+                fileId, targetVersion.getVersion(), file.getVersion());
+
         return toDTO(file);
+    }
+
+    /**
+     * 保存文件版本到版本历史表
+     */
+    private void saveFileVersion(ProjectFile file, String createdBy, String message) {
+        FileVersion version = new FileVersion();
+        version.setId(IdWorker.get32UUID());
+        version.setFileId(file.getId());
+        version.setProjectId(file.getProjectId());
+        version.setVersion(file.getVersion());
+        version.setContent(file.getContent());
+        version.setContentHash(calculateContentHash(file.getContent()));
+        version.setFileSize(file.getFileSize());
+        version.setCommitHash(file.getCommitHash());
+        version.setCreatedBy(createdBy);
+        version.setMessage(message);
+        version.setDeviceId(file.getDeviceId());
+
+        fileVersionMapper.insert(version);
+        log.debug("保存文件版本: fileId={}, version={}", file.getId(), file.getVersion());
+    }
+
+    /**
+     * 计算内容的 SHA-256 哈希值
+     */
+    private String calculateContentHash(String content) {
+        if (content == null || content.isEmpty()) {
+            return null;
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(content.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            log.error("计算内容哈希失败", e);
+            return null;
+        }
     }
 
     /**

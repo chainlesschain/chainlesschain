@@ -323,6 +323,22 @@ const aiResponse = ref('');
 const isStreaming = ref(false);
 const stats = ref(null);
 const currentMessageId = ref(null);
+const controllerId = ref(null);
+const isPaused = ref(false);
+
+// 创建流式控制器
+async function createStreamController() {
+  try {
+    const result = await window.electron.ipcRenderer.invoke('llm:create-stream-controller', {
+      enableBuffering: true
+    });
+    controllerId.value = result.controllerId;
+    return result.controllerId;
+  } catch (error) {
+    console.error('创建控制器失败:', error);
+    return null;
+  }
+}
 
 // 发送消息
 async function sendMessage() {
@@ -339,6 +355,10 @@ async function sendMessage() {
   userMessage.value = '';
   isStreaming.value = true;
   aiResponse.value = '';
+  isPaused.value = false;
+
+  // 创建流式控制器（可选，用于暂停/恢复/取消）
+  await createStreamController();
 
   try {
     const result = await window.electron.ipcRenderer.invoke('conversation:chat-stream', {
@@ -364,24 +384,58 @@ async function sendMessage() {
   }
 }
 
-// 暂停流式输出（需要集成StreamController）
+// 暂停流式输出
 async function pauseStream() {
-  // TODO: 实现暂停逻辑
-  console.log('暂停功能待实现');
+  if (!controllerId.value || isPaused.value) return;
+
+  try {
+    const result = await window.electron.ipcRenderer.invoke('llm:pause-stream', controllerId.value);
+    if (result.success) {
+      isPaused.value = true;
+      console.log('流式输出已暂停');
+    }
+  } catch (error) {
+    console.error('暂停失败:', error);
+  }
 }
 
 // 恢复流式输出
 async function resumeStream() {
-  // TODO: 实现恢复逻辑
-  console.log('恢复功能待实现');
+  if (!controllerId.value || !isPaused.value) return;
+
+  try {
+    const result = await window.electron.ipcRenderer.invoke('llm:resume-stream', controllerId.value);
+    if (result.success) {
+      isPaused.value = false;
+      console.log('流式输出已恢复');
+    }
+  } catch (error) {
+    console.error('恢复失败:', error);
+  }
 }
 
 // 取消流式输出
 async function cancelStream() {
-  // TODO: 实现取消逻辑
-  isStreaming.value = false;
-  aiResponse.value = '';
-  console.log('取消功能待实现');
+  if (!controllerId.value) {
+    isStreaming.value = false;
+    aiResponse.value = '';
+    return;
+  }
+
+  try {
+    const result = await window.electron.ipcRenderer.invoke('llm:cancel-stream', controllerId.value, '用户取消');
+    if (result.success) {
+      isStreaming.value = false;
+      isPaused.value = false;
+      aiResponse.value = '';
+      controllerId.value = null;
+      console.log('流式输出已取消');
+    }
+  } catch (error) {
+    console.error('取消失败:', error);
+    isStreaming.value = false;
+    aiResponse.value = '';
+  }
 }
 
 // 事件监听器
@@ -404,7 +458,10 @@ function setupEventListeners() {
       });
 
       isStreaming.value = false;
+      isPaused.value = false;
       aiResponse.value = '';
+      controllerId.value = null; // 清理控制器
+
       stats.value = {
         tokens: data.tokens,
         duration: data.stats.duration,
@@ -423,7 +480,9 @@ function setupEventListeners() {
     if (data.conversationId === conversationId.value) {
       alert('AI对话出错: ' + data.error);
       isStreaming.value = false;
+      isPaused.value = false;
       aiResponse.value = '';
+      controllerId.value = null; // 清理控制器
     }
   });
 }

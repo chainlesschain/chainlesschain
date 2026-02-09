@@ -1159,23 +1159,61 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
         # 添加当前用户消息
         messages.append({"role": "user", "content": request.user_message})
 
-        # 5. 调用LLM（尝试使用function calling）
-        # 注意：不是所有LLM都支持function calling，这里先用基础版本
-        # TODO: 后续可以根据不同LLM提供商使用不同的实现
-
-        response_text = await llm_client.chat(
-            messages=messages,
-            temperature=0.7,
-            max_tokens=2048
-        )
-
-        # 6. 解析响应提取文件操作
+        # 5. 调用LLM（根据提供商能力选择不同实现）
         operations = []
+        response_text = ""
 
-        logger.info(f"AI Response (first 500 chars): {response_text[:500]}")
+        # 构建 tools 定义（OpenAI function calling 格式）
+        tools = [{
+            "type": "function",
+            "function": FILE_OPERATIONS_SCHEMA
+        }]
 
-        # 方法1: 尝试解析JSON代码块格式
-        if "```json" in response_text.lower():
+        # 根据 LLM 能力选择调用方式
+        if llm_client.supports_function_calling:
+            # 使用 function calling 获取结构化输出
+            logger.info("Using function calling for structured output")
+            try:
+                result = await llm_client.chat_with_tools(
+                    messages=messages,
+                    tools=tools,
+                    temperature=0.7,
+                    max_tokens=2048
+                )
+                response_text = result.get("content") or ""
+
+                # 解析 tool_calls
+                if result.get("tool_calls"):
+                    for tool_call in result["tool_calls"]:
+                        if tool_call["function"]["name"] == "file_operations":
+                            try:
+                                args = json.loads(tool_call["function"]["arguments"])
+                                if "operations" in args:
+                                    operations.extend(args["operations"])
+                                    logger.info(f"Parsed {len(args['operations'])} operations from function calling")
+                            except json.JSONDecodeError as e:
+                                logger.error(f"Failed to parse tool call arguments: {e}")
+            except Exception as e:
+                logger.warning(f"Function calling failed, falling back to basic chat: {e}")
+                response_text = await llm_client.chat(
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=2048
+                )
+        else:
+            # 回退到基础 chat 模式
+            logger.info("LLM does not support function calling, using basic chat")
+            response_text = await llm_client.chat(
+                messages=messages,
+                temperature=0.7,
+                max_tokens=2048
+            )
+
+        # 6. 如果 function calling 未返回操作，尝试从文本解析
+        logger.info(f"AI Response (first 500 chars): {response_text[:500] if response_text else 'N/A'}")
+
+        # 方法1: 尝试解析JSON代码块格式（仅当 function calling 未返回操作时）
+        if not operations and response_text and "```json" in response_text.lower():
             try:
                 # 提取JSON代码块
                 json_start = response_text.lower().find("```json") + 7
@@ -1194,7 +1232,7 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
                 logger.error(f"JSON string: {json_str[:200] if 'json_str' in locals() else 'N/A'}")
 
         # 方法2: 尝试解析 file_operations() 函数调用格式（回退方案）
-        elif "file_operations(" in response_text:
+        elif not operations and response_text and "file_operations(" in response_text:
             import re
             logger.warning("AI returned file_operations() format instead of JSON. Attempting to parse...")
 
@@ -1216,7 +1254,7 @@ async def project_chat(project_id: str, request: ProjectChatRequest):
                 logger.info(f"Parsed {len(operations)} operations from function call format")
             else:
                 logger.error(f"Failed to parse file_operations() calls. Response: {response_text[:300]}")
-        else:
+        elif not operations:
             logger.info("No file operations found in response (conversational response)")
 
         # 7. 返回结果
