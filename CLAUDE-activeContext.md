@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-09 (TODO 修复完成)
+> **最后更新**: 2026-02-09 (代码质量改进 - null 安全 + 测试修复)
 
 ---
 
@@ -73,10 +73,31 @@
 - [x] 移动端 SIMKey NFC 检测实现 (auth.js detectSIMKey)
 - [x] 数据库 schema 增强 (delivered_at + project_rag_index 表)
 - [x] 测试基础设施优化 (Ant Design Vue stubs + dayjs mock 修复)
+- [x] 代码质量改进 - null 安全检查 + IPC 降级处理 + 测试修复
 
 ### 最近完成
 
-0. **TODO 修复完成** (2026-02-09 晚):
+0. **代码质量改进** (2026-02-09 深夜):
+   - **Null 安全检查**:
+     - `ukey-manager.js` - verifyPIN 结果 null 检查
+     - `error-monitor-integration.js` - applyFix 结果 null 检查
+     - `skill-tool-ipc.js` - getSkillsByCategory 结果 null 检查
+     - `webide-ipc.js` - preview server 结果 null 检查
+   - **IPC 降级处理**:
+     - `ipc-registry.js` - PermanentMemoryManager 18 个 fallback handlers
+     - `index.js/index-optimized.js` - 简化 MCP stub handlers
+   - **测试修复**:
+     - `animation-controller.test.ts` - 添加 requestAnimationFrame mock
+     - 启用 4 个之前跳过的动画/弹簧测试
+     - `ukey-manager.test.js` - 修复 7 个跳过的测试
+       - initialize 驱动初始化
+       - switchDriver 类型更新
+       - autoDetect 设备检测场景
+       - detect 驱动方法调用
+   - **测试结果**: 8,615 passed, 1,010 failed (pre-existing), 870 skipped
+   - **提交**: 5 commits 已推送到远程仓库
+
+1. **TODO 修复完成** (2026-02-09 晚):
    - 搜索并修复 4 个 TODO: delivered_at、UKeyVerification、Export、恢复测试
    - 提交: `e2b43e2b`, `02e7cfb2`, `532abb51` - 已推送远程
 
@@ -935,6 +956,21 @@ npm run test:session # Session 压缩测试
 ---
 
 ## 更新日志
+
+### 2026-02-09 (深夜)
+
+- **代码质量改进**:
+  - 添加 null 安全检查到 4 个 IPC 模块
+  - PermanentMemoryManager 18 个 fallback handlers
+  - 简化 MCP stub handlers
+  - 修复 animation-controller 测试 (requestAnimationFrame mock)
+  - 修复 7 个跳过的 ukey-manager 测试
+  - 测试结果: 8,615 通过 / 1,010 失败 (预存问题) / 870 跳过
+  - 5 commits 推送到远程仓库:
+    - `564da5b6` - fix: improve MCP stubs and add PermanentMemory fallback handlers
+    - `be097d12` - fix: add null safety and improve animation tests
+    - `7bcdaed5` - fix: add null safety to skill and webide IPC and fix ukey test
+    - `279b86e9` - test: fix more skipped ukey-manager tests
 
 ### 2026-02-09 (晚上)
 
