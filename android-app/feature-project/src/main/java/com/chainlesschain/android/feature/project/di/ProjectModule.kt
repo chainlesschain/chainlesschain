@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.project.di
 
+import android.content.Context
 import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ProjectChatMessageDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
@@ -7,9 +8,11 @@ import com.chainlesschain.android.core.database.dao.TaskDao
 import com.chainlesschain.android.feature.project.repository.ProjectChatRepository
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
 import com.chainlesschain.android.feature.project.repository.TaskRepository
+import com.chainlesschain.android.feature.project.util.ProjectFileStorage
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -21,6 +24,14 @@ object ProjectModule {
     @Singleton
     fun provideProjectDao(database: ChainlessChainDatabase): ProjectDao {
         return database.projectDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideProjectFileStorage(
+        @ApplicationContext context: Context
+    ): ProjectFileStorage {
+        return ProjectFileStorage(context)
     }
 
     @Provides

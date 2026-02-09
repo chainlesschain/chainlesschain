@@ -589,6 +589,7 @@ class AIEngineIPC {
       try {
         logger.info("[AI Engine IPC] 开始生成Word文档:", options);
 
+        const path = require("path");
         const wordEngine = require("../engines/word-engine");
 
         const result = await wordEngine.writeWord(
@@ -598,15 +599,19 @@ class AIEngineIPC {
 
         logger.info("[AI Engine IPC] Word文档生成成功:", result);
 
+        // 返回前端期望的字段格式
         return {
           success: true,
-          ...result,
+          fileName: path.basename(options.outputPath),
+          path: result.filePath || options.outputPath,
+          fileSize: result.fileSize,
+          paragraphCount: options.structure?.paragraphs?.length || 0,
         };
       } catch (error) {
         logger.error("[AI Engine IPC] Word文档生成失败:", error);
         return {
           success: false,
-          error: error.message,
+          error: error.message || String(error),
         };
       }
     });

@@ -2097,7 +2097,12 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           throw new Error(result.error || "生成PPT失败");
         }
       } catch (error) {
-        logger.error("[ChatPanel] ❌ 生成PPT文件失败:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error("[ChatPanel] ❌ 生成PPT文件失败:", {
+          message: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+          error,
+        });
 
         // 移除"正在生成"消息
         const genPPTIndex = messages.value.findIndex(
@@ -2109,7 +2114,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         // 显示错误消息
         const errorMsg = createSystemMessage(
-          `⚠️ PPT文件生成失败: ${error.message}\n📋 任务计划已生成，您可以稍后手动创建PPT`,
+          `⚠️ PPT文件生成失败: ${errorMessage || "未知错误"}\n📋 任务计划已生成，您可以稍后手动创建PPT`,
           { type: "warning" },
         );
         messages.value.push(errorMsg);
@@ -2174,8 +2179,26 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           sanitizedJSON.length,
         );
 
-        const documentStructure = JSON.parse(sanitizedJSON);
-        logger.info("[ChatPanel] ✅ 文档结构解析成功:", documentStructure);
+        const rawDocumentStructure = JSON.parse(sanitizedJSON);
+        logger.info("[ChatPanel] ✅ 文档结构解析成功:", rawDocumentStructure);
+
+        // 🔥 转换LLM返回的格式为word-engine期望的格式
+        // LLM返回: { heading: "string", level: number, content: "string" }
+        // word-engine期望: { text: "string", heading: number }
+        const documentStructure = {
+          title: rawDocumentStructure.title || "文档",
+          paragraphs: (rawDocumentStructure.paragraphs || []).map((para) => ({
+            text: para.content || para.text || para.heading || "",
+            heading: para.level || (typeof para.heading === "number" ? para.heading : undefined),
+            alignment: para.alignment || "left",
+            style: para.style || {},
+            spacing: para.spacing || { after: 200 },
+          })),
+        };
+        logger.info("[ChatPanel] 📝 文档结构已转换:", {
+          title: documentStructure.title,
+          paragraphCount: documentStructure.paragraphs.length,
+        });
 
         // 更新消息为"正在写入文件"
         generatingWordMsg.content = "⏳ 正在写入Word文件...";
@@ -2228,7 +2251,13 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           throw new Error(result.error || "生成Word文档失败");
         }
       } catch (error) {
-        logger.error("[ChatPanel] ❌ 生成Word文件失败:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        logger.error("[ChatPanel] ❌ 生成Word文件失败:", {
+          message: errorMessage,
+          stack: errorStack,
+          error,
+        });
 
         // 移除"正在生成"消息
         const genWordIndex = messages.value.findIndex(
@@ -2240,7 +2269,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         // 显示错误消息
         const errorMsg = createSystemMessage(
-          `⚠️ Word文件生成失败: ${error.message}\n📋 任务计划已生成，您可以稍后手动创建Word文档`,
+          `⚠️ Word文件生成失败: ${errorMessage || "未知错误"}\n📋 任务计划已生成，您可以稍后手动创建Word文档`,
           { type: "warning" },
         );
         messages.value.push(errorMsg);
@@ -2347,7 +2376,12 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           emit("files-changed");
         }, 2000);
       } catch (error) {
-        logger.error("[ChatPanel] ❌ 生成Excel文件失败:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error("[ChatPanel] ❌ 生成Excel文件失败:", {
+          message: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+          error,
+        });
 
         const genExcelIndex = messages.value.findIndex(
           (m) => m.id === generatingExcelMsg.id,
@@ -2357,7 +2391,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         }
 
         const errorMsg = createSystemMessage(
-          `⚠️ Excel文件生成失败: ${error.message}\n📋 任务计划已生成，您可以稍后手动创建Excel文件`,
+          `⚠️ Excel文件生成失败: ${errorMessage || "未知错误"}\n📋 任务计划已生成，您可以稍后手动创建Excel文件`,
           { type: "warning" },
         );
         messages.value.push(errorMsg);
@@ -2429,7 +2463,12 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           emit("files-changed");
         }, 2000);
       } catch (error) {
-        logger.error("[ChatPanel] ❌ 生成Markdown文件失败:", error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        logger.error("[ChatPanel] ❌ 生成Markdown文件失败:", {
+          message: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+          error,
+        });
 
         const genMdIndex = messages.value.findIndex(
           (m) => m.id === generatingMdMsg.id,
@@ -2439,7 +2478,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         }
 
         const errorMsg = createSystemMessage(
-          `⚠️ Markdown文件生成失败: ${error.message}\n📋 任务计划已生成，您可以稍后手动创建Markdown文档`,
+          `⚠️ Markdown文件生成失败: ${errorMessage || "未知错误"}\n📋 任务计划已生成，您可以稍后手动创建Markdown文档`,
           { type: "warning" },
         );
         messages.value.push(errorMsg);

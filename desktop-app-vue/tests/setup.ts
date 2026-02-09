@@ -4,6 +4,7 @@
 
 import { vi, beforeEach, afterEach } from 'vitest';
 import { config } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 
 // ============================================================
 // CRITICAL: Mock electron, logger, and vue-i18n FIRST before any other imports
@@ -245,8 +246,15 @@ const resetWordEngineMocks = () => {
 };
 
 resetWordEngineMocks();
+
+// Create a fresh Pinia instance for each test
+let testPinia: ReturnType<typeof createPinia>;
+
 beforeEach(() => {
   resetWordEngineMocks();
+  // Create and activate a new Pinia instance before each test
+  testPinia = createPinia();
+  setActivePinia(testPinia);
 });
 
 // Global cleanup after each test to prevent resource leaks and timeout errors
@@ -406,6 +414,11 @@ vi.mock('wrtc', () => {
 config.global.mocks = {
   $t: (key: string) => key, // i18n mock
 };
+
+// Add Pinia plugin to Vue Test Utils global config
+// Note: Each test also gets a fresh Pinia via beforeEach/setActivePinia
+config.global.plugins = config.global.plugins || [];
+config.global.plugins.push(createPinia());
 
 // 全局 Ant Design Vue 组件 stubs
 // 这些 stubs 用于避免组件未注册的警告，同时保持测试的稳定性

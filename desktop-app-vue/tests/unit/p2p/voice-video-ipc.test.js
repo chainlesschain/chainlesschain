@@ -22,7 +22,8 @@ const VOICE_VIDEO_IPC_PATH = path.join(
 function extractIPCHandlers(filePath) {
   const content = fs.readFileSync(filePath, "utf-8");
   // 匹配 this.registerHandler('channel-name', ...) 的模式
-  const handlerPattern = /this\.registerHandler\(['"]([^'"]+)['"]/g;
+  // 支持单行和多行格式
+  const handlerPattern = /this\.registerHandler\(\s*['"]([^'"]+)['"]/g;
   const handlers = [];
   let match;
   while ((match = handlerPattern.exec(content)) !== null) {
