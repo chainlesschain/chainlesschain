@@ -15,6 +15,21 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { ref, computed, onMounted, watch } from 'vue';
+
+// Mock message object
+const mockMessage = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+};
+
+// Mock logger object
+const mockLogger = {
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+};
 
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({
@@ -165,12 +180,11 @@ describe('TradingHub', () => {
           </div>
         `,
         setup() {
-          const { ref, computed, onMounted, watch } = require('vue');
-          const { message } = require('ant-design-vue');
-          const { logger } = require('@/utils/logger');
-          const { useTradeStore } = require('../stores/trade');
+          // Use imported modules directly instead of require()
+          const message = mockMessage;
+          const logger = mockLogger;
 
-          const tradeStore = useTradeStore();
+          const tradeStore = mockTradeStore;
 
           const availableDids = ref([]);
           const loadingDids = ref(false);
@@ -399,7 +413,6 @@ describe('TradingHub', () => {
     });
 
     it('应该在挂载时提示创建DID', async () => {
-      const { message } = require('ant-design-vue');
       window.electronAPI.did.getAllIdentities.mockResolvedValue([]);
       wrapper = createWrapper();
 
@@ -435,14 +448,13 @@ describe('TradingHub', () => {
 
     it('应该能处理DID加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       window.electronAPI.did.getAllIdentities.mockRejectedValue(
         new Error('Network error')
       );
 
       await wrapper.vm.loadAvailableDids();
 
-      expect(message.error).toHaveBeenCalledWith('加载DID列表失败: Network error');
+      expect(mockMessage.error).toHaveBeenCalledWith('加载DID列表失败: Network error');
     });
 
     it('应该能显示DID名称', async () => {
@@ -562,33 +574,30 @@ describe('TradingHub', () => {
 
     it('应该在没有DID时警告用户', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockTradeStore.ui.selectedDid = null;
 
       await wrapper.vm.handleTabChange('assets');
 
-      expect(message.warning).toHaveBeenCalledWith('请先选择DID身份');
+      expect(mockMessage.warning).toHaveBeenCalledWith('请先选择DID身份');
     });
 
     it('应该允许在没有DID时访问市场', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockTradeStore.ui.selectedDid = null;
 
       await wrapper.vm.handleTabChange('marketplace');
 
-      expect(message.warning).not.toHaveBeenCalled();
+      expect(mockMessage.warning).not.toHaveBeenCalled();
       expect(mockTradeStore.loadOrders).toHaveBeenCalled();
     });
 
     it('应该允许在没有DID时访问知识付费', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockTradeStore.ui.selectedDid = null;
 
       await wrapper.vm.handleTabChange('knowledge');
 
-      expect(message.warning).not.toHaveBeenCalled();
+      expect(mockMessage.warning).not.toHaveBeenCalled();
       expect(mockTradeStore.loadKnowledgeContents).toHaveBeenCalled();
     });
   });

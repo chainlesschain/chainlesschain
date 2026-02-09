@@ -8,20 +8,23 @@ import { mount } from "@vue/test-utils";
 import DeviceManagementPage from "@renderer/pages/p2p/DeviceManagementPage.vue";
 import { nextTick } from "vue";
 
-// Mock Ant Design Vue
-const Modal = {
-  confirm: vi.fn(),
-  info: vi.fn(),
-};
-
-vi.mock("ant-design-vue", () => ({
+// Mock Ant Design Vue - use vi.hoisted to avoid initialization order issues
+const { Modal, message } = vi.hoisted(() => ({
+  Modal: {
+    confirm: vi.fn(),
+    info: vi.fn(),
+  },
   message: {
     success: vi.fn(),
     error: vi.fn(),
     warning: vi.fn(),
     info: vi.fn(),
   },
+}));
+
+vi.mock("ant-design-vue", () => ({
   Modal,
+  message,
 }));
 
 // Mock Vue Router
