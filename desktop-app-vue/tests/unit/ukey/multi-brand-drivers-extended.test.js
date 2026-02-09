@@ -287,6 +287,8 @@ class XinJinKeDriverMock extends BaseMockDriver {
  * SKF (Standard) Driver Mock
  */
 class SKFDriverMock extends BaseMockDriver {
+  static containerCounter = 0;
+
   constructor(options = {}) {
     super('skf', {
       ...options,
@@ -298,7 +300,8 @@ class SKFDriverMock extends BaseMockDriver {
 
   async createContainer(name) {
     if (!this.loggedIn) throw new Error('Not logged in');
-    const containerId = `container-${Date.now()}`;
+    // Use counter + timestamp to ensure unique IDs even within same millisecond
+    const containerId = `container-${Date.now()}-${++SKFDriverMock.containerCounter}`;
     this.containers.set(containerId, { name, created: Date.now() });
     return { success: true, containerId };
   }
