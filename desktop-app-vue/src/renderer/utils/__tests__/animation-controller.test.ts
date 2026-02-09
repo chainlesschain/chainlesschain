@@ -38,10 +38,47 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+// Mock requestAnimationFrame to work with fake timers
+// Uses setTimeout(cb, 16) to simulate ~60fps frame rate
+let rafId = 0;
+const rafCallbacks = new Map<number, FrameRequestCallback>();
+
+const mockRequestAnimationFrame = vi.fn((callback: FrameRequestCallback): number => {
+  const id = ++rafId;
+  // Use setTimeout to integrate with Vitest fake timers
+  setTimeout(() => {
+    if (rafCallbacks.has(id)) {
+      rafCallbacks.delete(id);
+      callback(performance.now());
+    }
+  }, 16); // ~60fps
+  rafCallbacks.set(id, callback);
+  return id;
+});
+
+const mockCancelAnimationFrame = vi.fn((id: number): void => {
+  rafCallbacks.delete(id);
+});
+
+// Apply mocks before tests
+Object.defineProperty(window, 'requestAnimationFrame', {
+  writable: true,
+  value: mockRequestAnimationFrame,
+});
+
+Object.defineProperty(window, 'cancelAnimationFrame', {
+  writable: true,
+  value: mockCancelAnimationFrame,
+});
+
 describe('animation-controller', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     resetAnimationController();
+    rafId = 0;
+    rafCallbacks.clear();
+    mockRequestAnimationFrame.mockClear();
+    mockCancelAnimationFrame.mockClear();
   });
 
   afterEach(() => {
@@ -192,8 +229,7 @@ describe('animation-controller', () => {
   });
 
   describe('animate 方法', () => {
-    // TODO: Fix requestAnimationFrame infinite loop with fake timers
-    it.skip('应该从 from 值过渡到 to 值', async () => {
+    it('应该从 from 值过渡到 to 值', async () => {
       const controller = new AnimationController();
       const updates: number[] = [];
 
@@ -205,8 +241,8 @@ describe('animation-controller', () => {
         onUpdate: (value) => updates.push(value),
       });
 
-      // 推进时间完成动画
-      await vi.runAllTimersAsync();
+      // 推进时间完成动画 (100ms duration + extra frames)
+      await vi.advanceTimersByTimeAsync(200);
 
       const result = await promise;
       expect(result).toBe(100);
@@ -215,8 +251,7 @@ describe('animation-controller', () => {
       controller.destroy();
     });
 
-    // TODO: Fix requestAnimationFrame infinite loop with fake timers
-    it.skip('应该调用 onComplete 回调', async () => {
+    it('应该调用 onComplete 回调', async () => {
       const controller = new AnimationController();
       const onComplete = vi.fn();
 
@@ -227,7 +262,7 @@ describe('animation-controller', () => {
         onComplete,
       });
 
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(200);
       await promise;
 
       expect(onComplete).toHaveBeenCalledWith(100);
@@ -235,8 +270,7 @@ describe('animation-controller', () => {
       controller.destroy();
     });
 
-    // TODO: Fix requestAnimationFrame infinite loop with fake timers
-    it.skip('应该使用自定义缓动函数', async () => {
+    it('应该使用自定义缓动函数', async () => {
       const controller = new AnimationController();
       const customEasing = (t: number) => t * t;
       const updates: number[] = [];
@@ -249,7 +283,7 @@ describe('animation-controller', () => {
         onUpdate: (value) => updates.push(value),
       });
 
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(200);
       await promise;
 
       expect(updates.length).toBeGreaterThan(0);
@@ -292,8 +326,7 @@ describe('animation-controller', () => {
   });
 
   describe('spring 方法', () => {
-    // TODO: Fix requestAnimationFrame infinite loop with fake timers
-    it.skip('应该执行弹簧物理动画', async () => {
+    it('应该执行弹簧物理动画', async () => {
       const controller = new AnimationController();
       const onUpdate = vi.fn();
 
@@ -305,7 +338,8 @@ describe('animation-controller', () => {
         onUpdate,
       });
 
-      await vi.runAllTimersAsync();
+      // Spring animations may take longer, advance by 2 seconds
+      await vi.advanceTimersByTimeAsync(2000);
       const result = await promise;
 
       expect(result).toBe(100);
@@ -314,8 +348,7 @@ describe('animation-controller', () => {
       controller.destroy();
     });
 
-    // TODO: Fix requestAnimationFrame infinite loop with fake timers
-    it.skip('应该使用默认张力和摩擦力', async () => {
+    it('应该使用默认张力和摩擦力', async () => {
       const controller = new AnimationController();
 
       const promise = controller.spring({
@@ -323,7 +356,7 @@ describe('animation-controller', () => {
         to: 50,
       });
 
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(2000);
       const result = await promise;
 
       expect(result).toBe(50);
@@ -458,28 +491,26 @@ describe('animation-controller', () => {
   });
 
   describe('便捷函数', () => {
-    // TODO: Fix requestAnimationFrame infinite loop with fake timers
-    it.skip('animate 函数应该使用单例', async () => {
+    it('animate 函数应该使用单例', async () => {
       const promise = animate({
         from: 0,
         to: 100,
         duration: 50,
       });
 
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(200);
       const result = await promise;
 
       expect(result).toBe(100);
     });
 
-    // TODO: Fix requestAnimationFrame infinite loop with fake timers
-    it.skip('spring 函数应该使用单例', async () => {
+    it('spring 函数应该使用单例', async () => {
       const promise = spring({
         from: 0,
         to: 100,
       });
 
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(2000);
       const result = await promise;
 
       expect(result).toBe(100);
