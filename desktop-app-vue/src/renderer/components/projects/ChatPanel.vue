@@ -422,6 +422,7 @@ const WINDOWS_RESERVED_FILE_NAMES = new Set([
 
 const sanitizeFileName = (rawName, fallbackName = "document") => {
   const baseName = String(rawName || fallbackName)
+    // eslint-disable-next-line no-control-regex
     .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
     .replace(/\s+/g, " ")
     .trim()
