@@ -52,14 +52,17 @@ vi.mock('dayjs', () => {
 vi.mock('dayjs/plugin/relativeTime', () => ({ default: {} }));
 vi.mock('dayjs/locale/zh-cn', () => ({}));
 
+// Hoist mock logger so it can be used directly
+const mockLogger = vi.hoisted(() => ({
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+}));
+
 // Mock logger
 vi.mock('@/utils/logger', () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-  },
-  createLogger: vi.fn(),
+  logger: mockLogger,
+  createLogger: vi.fn(() => mockLogger),
 }));
 
 // Mock window.electron.ipcRenderer
@@ -175,11 +178,10 @@ describe('OrganizationsPage', () => {
         `,
         setup() {
           const { ref, onMounted } = require('vue');
-          const { useRouter } = require('vue-router');
           const message = mockMessage;
-          const { logger } = require('@/utils/logger');
-
-          const router = useRouter();
+          // Use mocks directly instead of requiring - vi.mock doesn't intercept require() in setup
+          const logger = mockLogger;
+          const router = mockRouter;
           const loading = ref(false);
           const organizations = ref([]);
           const showCreateModal = ref(false);

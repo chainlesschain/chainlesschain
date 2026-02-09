@@ -30,14 +30,17 @@ vi.mock('ant-design-vue', () => ({
   message: mockMessage,
 }));
 
+// Hoist mock logger so it can be used directly
+const mockLogger = vi.hoisted(() => ({
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+}));
+
 // Mock logger
 vi.mock('@/utils/logger', () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-  },
-  createLogger: vi.fn(),
+  logger: mockLogger,
+  createLogger: vi.fn(() => mockLogger),
 }));
 
 // Mock window.electronAPI
@@ -240,7 +243,8 @@ describe('PluginMarketplace', () => {
         setup() {
           const { ref, computed, onMounted } = require('vue');
           const message = mockMessage;
-          const { logger } = require('@/utils/logger');
+          // Use mock directly instead of requiring - vi.mock doesn't intercept require() in setup
+          const logger = mockLogger;
 
           const loading = ref(false);
           const searchQuery = ref('');
