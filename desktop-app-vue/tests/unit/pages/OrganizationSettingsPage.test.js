@@ -139,15 +139,8 @@ vi.mock('../stores/identity', () => ({
 }))
 
 // Mock message and Modal
-const mockMessage = {
-  success: vi.fn(),
-  error: vi.fn(),
-  warning: vi.fn()
-}
-
-const mockModal = {
-  confirm: vi.fn()
-}
+const mockMessage = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }));
+const mockModal = vi.hoisted(() => ({ confirm: vi.fn((opts) => { if (opts?.onOk) Promise.resolve().then(() => opts.onOk()); return { destroy: vi.fn() }; }), info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }));
 
 vi.mock('ant-design-vue', () => ({
   message: mockMessage,

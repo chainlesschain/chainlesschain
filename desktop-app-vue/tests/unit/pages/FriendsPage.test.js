@@ -20,19 +20,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
+// Hoisted mocks for ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn((options) => {
+    options.onOk && options.onOk();
+  }),
+}));
+
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
-  Modal: {
-    confirm: vi.fn((options) => {
-      options.onOk && options.onOk();
-    }),
-  },
+  message: mockMessage,
+  Modal: mockModal,
 }));
 
 // Mock vue-router
@@ -236,7 +241,8 @@ describe('FriendsPage', () => {
         setup() {
           const { ref, computed } = require('vue');
           const { useRouter } = require('vue-router');
-          const { message, Modal } = require('ant-design-vue');
+          const message = mockMessage;
+          const Modal = mockModal;
 
           const router = useRouter();
           const loading = ref(false);
@@ -630,7 +636,7 @@ describe('FriendsPage', () => {
 
     it('应该验证DID必填', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       wrapper.vm.addFriendForm.did = '';
 
       await wrapper.vm.handleAddFriend();
@@ -640,7 +646,7 @@ describe('FriendsPage', () => {
 
     it('应该能添加好友', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke
         .mockResolvedValueOnce()
         .mockResolvedValueOnce([]);
@@ -659,7 +665,7 @@ describe('FriendsPage', () => {
 
     it('应该能处理添加失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('添加失败'));
 
       wrapper.vm.addFriendForm.did = 'did:chainlesschain:newuser';
@@ -683,7 +689,7 @@ describe('FriendsPage', () => {
 
     it('应该能保存编辑', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockResolvedValue();
 
       const friend = mockFriends[0];
@@ -706,7 +712,7 @@ describe('FriendsPage', () => {
 
     it('应该能处理保存失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('保存失败'));
 
       const friend = mockFriends[0];
@@ -731,7 +737,7 @@ describe('FriendsPage', () => {
 
     it('应该能保存分组移动', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockResolvedValue();
 
       const friend = mockFriends[0];
@@ -754,7 +760,7 @@ describe('FriendsPage', () => {
   describe('删除好友', () => {
     it('应该确认删除', () => {
       wrapper = createWrapper();
-      const { Modal } = require('ant-design-vue');
+      const Modal = mockModal;
       const friend = mockFriends[0];
 
       wrapper.vm.handleMenuAction('delete', friend);
@@ -764,7 +770,7 @@ describe('FriendsPage', () => {
 
     it('应该能删除好友', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockResolvedValue();
 
       const friend = mockFriends[0];
@@ -793,7 +799,7 @@ describe('FriendsPage', () => {
 
     it('应该能发起语音通话', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockResolvedValue();
 
       await wrapper.vm.handleVoiceCall(mockFriends[0]);
@@ -809,7 +815,7 @@ describe('FriendsPage', () => {
 
     it('应该能发起视频通话', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockResolvedValue();
 
       await wrapper.vm.handleVideoCall(mockFriends[0]);
@@ -825,7 +831,7 @@ describe('FriendsPage', () => {
 
     it('应该能处理通话失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('通话失败'));
 
       await wrapper.vm.handleVoiceCall(mockFriends[0]);
@@ -889,7 +895,7 @@ describe('FriendsPage', () => {
 
     it('应该能处理加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('加载失败'));
 
       await wrapper.vm.loadFriends();

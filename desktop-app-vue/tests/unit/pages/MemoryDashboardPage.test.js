@@ -17,14 +17,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
+// Hoisted mock for ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock window.electronAPI
@@ -302,7 +305,7 @@ describe('MemoryDashboardPage', () => {
         `,
         setup() {
           const { ref, onMounted } = require('vue');
-          const { message } = require('ant-design-vue');
+          const message = mockMessage;
 
           const loading = ref(false);
           const activeTab = ref('patterns');
@@ -715,7 +718,7 @@ describe('MemoryDashboardPage', () => {
   describe('数据导出', () => {
     it('应该能导出全部数据', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockResolvedValue();
 
       await wrapper.vm.handleExport({ key: 'all' });
@@ -731,7 +734,7 @@ describe('MemoryDashboardPage', () => {
 
     it('应该能导出学习模式', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockResolvedValue();
 
       await wrapper.vm.handleExport({ key: 'patterns' });
@@ -775,7 +778,7 @@ describe('MemoryDashboardPage', () => {
 
     it('应该能处理导出失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('导出错误'));
 
       await wrapper.vm.handleExport({ key: 'all' });
@@ -787,7 +790,7 @@ describe('MemoryDashboardPage', () => {
   describe('刷新功能', () => {
     it('应该能刷新所有数据', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke
         .mockResolvedValueOnce(mockStats)
         .mockResolvedValueOnce({
@@ -809,7 +812,7 @@ describe('MemoryDashboardPage', () => {
 
     it('应该能处理刷新失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('网络错误'));
 
       await wrapper.vm.loadData();
@@ -881,7 +884,7 @@ describe('MemoryDashboardPage', () => {
   describe('错误处理', () => {
     it('应该能处理数据加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(
         new Error('Database error')
       );

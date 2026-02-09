@@ -3,13 +3,15 @@ import { mount } from "@vue/test-utils";
 import EmailComposer from "@renderer/pages/email/EmailComposer.vue";
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock Electron IPC
@@ -105,7 +107,7 @@ describe("EmailComposer.vue", () => {
   describe("Send Email", () => {
     it("应该验证收件人为必填", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.emailForm.subject = "测试主题";
       wrapper.vm.emailForm.text = "测试内容";
@@ -118,7 +120,7 @@ describe("EmailComposer.vue", () => {
 
     it("应该验证主题为必填", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.emailForm.to = ["test@example.com"];
       wrapper.vm.emailForm.text = "测试内容";
@@ -131,7 +133,7 @@ describe("EmailComposer.vue", () => {
 
     it("应该验证邮件内容为必填", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.emailForm.to = ["test@example.com"];
       wrapper.vm.emailForm.subject = "测试主题";
@@ -144,7 +146,7 @@ describe("EmailComposer.vue", () => {
 
     it("应该成功发送纯文本邮件", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
@@ -171,7 +173,7 @@ describe("EmailComposer.vue", () => {
 
     it("应该成功发送HTML邮件", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
@@ -275,7 +277,7 @@ describe("EmailComposer.vue", () => {
 
     it("应该处理发送失败", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("发送失败"),
@@ -330,7 +332,7 @@ describe("EmailComposer.vue", () => {
 
     it("应该警告过大的文件", () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const file = {
         name: "large.pdf",
@@ -662,7 +664,7 @@ describe("EmailComposer.vue", () => {
   describe("Draft Functionality", () => {
     it("应该显示草稿保存提示", () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.saveDraft();
 

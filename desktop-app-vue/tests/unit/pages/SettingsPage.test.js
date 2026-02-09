@@ -8,14 +8,16 @@ import { mount } from "@vue/test-utils";
 import SettingsPage from "@renderer/pages/SettingsPage.vue";
 import { nextTick } from "vue";
 
-// Mock Ant Design Vue
+// Mock Ant Design Vue - use vi.hoisted to avoid initialization order issues
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock Vue Router
@@ -342,7 +344,7 @@ describe.skip("SettingsPage", () => {
     });
 
     it("应该能切换语言", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleLanguageChange("en-US");
 
@@ -369,7 +371,7 @@ describe.skip("SettingsPage", () => {
     });
 
     it("应该能保存通用设置", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleSaveGeneral();
 
@@ -677,7 +679,7 @@ describe.skip("SettingsPage", () => {
     });
 
     it("应该能检查更新", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.checkUpdate();
 
@@ -685,7 +687,7 @@ describe.skip("SettingsPage", () => {
     });
 
     it("应该能打开GitHub页面", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.openGithub();
 
@@ -749,7 +751,7 @@ describe.skip("SettingsPage", () => {
     });
 
     it("应该支持切换到英文", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleLanguageChange("en-US");
 
@@ -758,7 +760,7 @@ describe.skip("SettingsPage", () => {
     });
 
     it("应该支持切换到日文", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleLanguageChange("ja-JP");
 
@@ -767,7 +769,7 @@ describe.skip("SettingsPage", () => {
     });
 
     it("应该在切换语言时显示成功消息", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleLanguageChange("en-US");
 

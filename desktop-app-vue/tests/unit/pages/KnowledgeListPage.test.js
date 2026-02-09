@@ -9,21 +9,27 @@ import KnowledgeListPage from "@renderer/pages/KnowledgeListPage.vue";
 import { nextTick } from "vue";
 
 // Mock Ant Design Vue - use vi.hoisted to avoid initialization order issues
-const { Modal, message } = vi.hoisted(() => ({
-  Modal: {
-    confirm: vi.fn(),
-  },
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn((opts) => {
+    if (opts?.onOk) Promise.resolve().then(() => opts.onOk());
+    return { destroy: vi.fn() };
+  }),
+  info: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
 }));
 
 vi.mock("ant-design-vue", () => ({
-  Modal,
-  message,
+  Modal: mockModal,
+  message: mockMessage,
 }));
 
 // Mock Vue Router
@@ -386,9 +392,9 @@ describe.skip("KnowledgeListPage", () => {
 
       wrapper.vm.deleteItem(item);
 
-      expect(Modal.confirm).toHaveBeenCalled();
+      expect(mockModal.confirm).toHaveBeenCalled();
 
-      const confirmCall = Modal.confirm.mock.calls[0][0];
+      const confirmCall = mockModal.confirm.mock.calls[0][0];
       expect(confirmCall.title).toBe("确认删除");
       expect(confirmCall.content).toContain(item.title);
       expect(confirmCall.okText).toBe("删除");
@@ -397,12 +403,12 @@ describe.skip("KnowledgeListPage", () => {
     });
 
     it("确认删除后应该调用删除方法", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const item = mockKnowledgeItems[0];
 
       wrapper.vm.deleteItem(item);
 
-      const confirmCall = Modal.confirm.mock.calls[0][0];
+      const confirmCall = mockModal.confirm.mock.calls[0][0];
       await confirmCall.onOk();
 
       expect(mockAppStore.deleteKnowledgeItem).toHaveBeenCalledWith("k1");
@@ -410,13 +416,13 @@ describe.skip("KnowledgeListPage", () => {
     });
 
     it("删除失败时应该显示错误消息", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const item = mockKnowledgeItems[0];
       mockAppStore.deleteKnowledgeItem.mockRejectedValue(new Error("删除失败"));
 
       wrapper.vm.deleteItem(item);
 
-      const confirmCall = Modal.confirm.mock.calls[0][0];
+      const confirmCall = mockModal.confirm.mock.calls[0][0];
       await confirmCall.onOk();
 
       expect(message.error).toHaveBeenCalledWith("删除失败: 删除失败");

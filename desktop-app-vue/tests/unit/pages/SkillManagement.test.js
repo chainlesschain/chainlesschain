@@ -22,34 +22,29 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { ref, computed, onMounted } from 'vue';
 
-// Mock message object (used directly in setup)
-const mockMessage = {
+// Hoisted mocks for ant-design-vue
+const mockMessage = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
   warning: vi.fn(),
   info: vi.fn(),
-};
+}));
 
-// Mock Modal object
-const mockModal = {
-  confirm: vi.fn((options) => {
-    options.onOk && options.onOk();
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn((opts) => {
+    if (opts?.onOk) Promise.resolve().then(() => opts.onOk());
+    return { destroy: vi.fn() };
   }),
-};
+  info: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+}));
 
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
-  Modal: {
-    confirm: vi.fn((options) => {
-      options.onOk && options.onOk();
-    }),
-  },
+  message: mockMessage,
+  Modal: mockModal,
 }));
 
 // Mock skill store
@@ -496,7 +491,7 @@ describe('SkillManagement', () => {
   describe('刷新功能', () => {
     it('应该能刷新技能列表', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockSkillStore.loadSkills.mockResolvedValue();
 
       await wrapper.vm.handleRefresh();
@@ -509,7 +504,7 @@ describe('SkillManagement', () => {
   describe('创建技能', () => {
     it('应该能触发创建技能', () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       wrapper.vm.handleCreateSkill();
 
@@ -520,7 +515,7 @@ describe('SkillManagement', () => {
   describe('统计和依赖图', () => {
     it('应该能显示统计分析', () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       wrapper.vm.showStats();
 
@@ -529,7 +524,7 @@ describe('SkillManagement', () => {
 
     it('应该能显示依赖关系图', () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       wrapper.vm.showDependencyGraph();
 
@@ -599,7 +594,7 @@ describe('SkillManagement', () => {
   describe('批量操作', () => {
     it('应该能批量启用技能', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockSkillStore.batchUpdateSkills.mockResolvedValue();
 
       wrapper.vm.selectedSkills = [mockSkills[0], mockSkills[1]];
@@ -616,7 +611,7 @@ describe('SkillManagement', () => {
 
     it('应该能批量禁用技能', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockSkillStore.batchUpdateSkills.mockResolvedValue();
 
       wrapper.vm.selectedSkills = [mockSkills[0]];
@@ -632,7 +627,8 @@ describe('SkillManagement', () => {
 
     it('应该能批量删除技能', async () => {
       wrapper = createWrapper();
-      const { message, Modal } = require('ant-design-vue');
+      const message = mockMessage;
+      const Modal = mockModal;
       mockSkillStore.deleteSkill.mockResolvedValue();
       mockSkillStore.loadSkills.mockResolvedValue();
 
@@ -647,7 +643,7 @@ describe('SkillManagement', () => {
 
     it('应该能处理批量操作失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockSkillStore.batchUpdateSkills.mockRejectedValue(new Error('操作失败'));
 
       wrapper.vm.selectedSkills = [mockSkills[0]];
@@ -661,7 +657,7 @@ describe('SkillManagement', () => {
   describe('启用/禁用技能', () => {
     it('应该能启用技能', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockSkillStore.updateSkill.mockResolvedValue();
 
       const skill = { ...mockSkills[2], enabled: false };
@@ -676,7 +672,7 @@ describe('SkillManagement', () => {
 
     it('应该能禁用技能', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockSkillStore.updateSkill.mockResolvedValue();
 
       const skill = { ...mockSkills[0], enabled: true };
@@ -691,7 +687,7 @@ describe('SkillManagement', () => {
 
     it('应该能处理切换失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockSkillStore.updateSkill.mockRejectedValue(new Error('更新失败'));
 
       await wrapper.vm.handleToggleEnabled(mockSkills[0]);
@@ -703,7 +699,7 @@ describe('SkillManagement', () => {
   describe('查看详情', () => {
     it('应该能查看技能详情', () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       wrapper.vm.handleViewDetails(mockSkills[0]);
 
@@ -712,7 +708,7 @@ describe('SkillManagement', () => {
 
     it('应该能查看技能文档', () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       wrapper.vm.handleViewDoc(mockSkills[0]);
 

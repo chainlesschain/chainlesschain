@@ -16,11 +16,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }));
+
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock vue-router
@@ -129,7 +128,7 @@ describe('NewProjectPage', () => {
         setup() {
           const { ref, onMounted } = require('vue');
           const { useRouter } = require('vue-router');
-          const { message } = require('ant-design-vue');
+          const message = mockMessage;
           const { useProjectStore } = require('@/stores/project');
           const { useAuthStore } = require('@/stores/auth');
           const { logger } = require('@/utils/logger');
@@ -330,7 +329,7 @@ describe('NewProjectPage', () => {
 
     it('应该能处理创建失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockRouter.push.mockRejectedValue(new Error('Navigation failed'));
 
       const createData = { name: 'Test' };

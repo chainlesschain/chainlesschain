@@ -8,14 +8,17 @@ import { mount } from "@vue/test-utils";
 import AIChatPage from "@renderer/pages/AIChatPage.vue";
 import { nextTick } from "vue";
 
-// Mock Ant Design Vue
+// Define mock using vi.hoisted to ensure it's available for vi.mock
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+// Mock Ant Design Vue with hoisted mock
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock Vue Router
@@ -327,7 +330,7 @@ describe("AIChatPage", () => {
     });
 
     it("应该能新建对话", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const newConv = {
         id: "conv-new",
         title: "新对话",
@@ -347,7 +350,7 @@ describe("AIChatPage", () => {
     });
 
     it("处理新建对话失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electronAPI.conversation.create.mockRejectedValue(
         new Error("创建失败"),
       );
@@ -397,7 +400,7 @@ describe("AIChatPage", () => {
     });
 
     it("处理收藏失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const conv = wrapper.vm.conversations[0];
       window.electronAPI.conversation.toggleStar.mockRejectedValue(
         new Error("操作失败"),
@@ -412,7 +415,7 @@ describe("AIChatPage", () => {
     });
 
     it("应该能删除对话", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const conv = wrapper.vm.conversations[1];
       window.electronAPI.conversation.delete.mockResolvedValue();
 
@@ -458,7 +461,7 @@ describe("AIChatPage", () => {
     });
 
     it("处理删除失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const conv = wrapper.vm.conversations[0];
       window.electronAPI.conversation.delete.mockRejectedValue(
         new Error("删除失败"),
@@ -525,7 +528,7 @@ describe("AIChatPage", () => {
     });
 
     it("空消息应该显示警告", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleSubmitMessage({
         text: "   ",
@@ -668,7 +671,7 @@ describe("AIChatPage", () => {
     });
 
     it("处理AI响应失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electronAPI.conversation.addMessage.mockResolvedValue();
       window.electronAPI.llm.chat.mockRejectedValue(new Error("AI错误"));
 
@@ -1111,7 +1114,7 @@ describe("AIChatPage", () => {
     });
 
     it("处理加载消息失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electronAPI.conversation.getMessages.mockRejectedValue(
         new Error("加载失败"),
       );

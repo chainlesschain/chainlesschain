@@ -16,14 +16,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
+// Hoisted mock for ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock vue-router
@@ -216,7 +219,7 @@ describe('KnowledgeGraphPage', () => {
         setup() {
           const { ref, reactive } = require('vue');
           const { useRouter } = require('vue-router');
-          const { message } = require('ant-design-vue');
+          const message = mockMessage;
           const { useGraphStore } = require('@renderer/stores/graph');
 
           const router = useRouter();
@@ -521,7 +524,7 @@ describe('KnowledgeGraphPage', () => {
   describe('图谱操作', () => {
     it('应该能重建图谱', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockGraphStore.processAllNotes.mockResolvedValue();
 
       await wrapper.vm.handleProcessAllNotes();
@@ -532,7 +535,7 @@ describe('KnowledgeGraphPage', () => {
 
     it('应该能处理重建图谱失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockGraphStore.processAllNotes.mockRejectedValue(
         new Error('网络错误')
       );
@@ -546,7 +549,7 @@ describe('KnowledgeGraphPage', () => {
 
     it('应该能重建标签关系', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockGraphStore.buildTagRelations.mockResolvedValue();
 
       await wrapper.vm.handleBuildTagRelations();
@@ -557,7 +560,7 @@ describe('KnowledgeGraphPage', () => {
 
     it('应该能处理标签关系构建失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockGraphStore.buildTagRelations.mockRejectedValue(
         new Error('数据库错误')
       );
@@ -571,7 +574,7 @@ describe('KnowledgeGraphPage', () => {
 
     it('应该能重建时间关系', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockGraphStore.buildTemporalRelations.mockResolvedValue();
 
       await wrapper.vm.handleBuildTemporalRelations();
@@ -582,7 +585,7 @@ describe('KnowledgeGraphPage', () => {
 
     it('应该能处理时间关系构建失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockGraphStore.buildTemporalRelations.mockRejectedValue(
         new Error('处理错误')
       );
@@ -596,7 +599,7 @@ describe('KnowledgeGraphPage', () => {
 
     it('应该能刷新数据', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockGraphStore.refreshData.mockResolvedValue();
 
       await wrapper.vm.handleRefresh();
@@ -607,7 +610,7 @@ describe('KnowledgeGraphPage', () => {
 
     it('应该能处理刷新失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockGraphStore.refreshData.mockRejectedValue(
         new Error('加载失败')
       );
@@ -705,7 +708,7 @@ describe('KnowledgeGraphPage', () => {
     it('应该能从空状态开始构建图谱', async () => {
       mockGraphStore.hasData = false;
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockGraphStore.processAllNotes.mockResolvedValue();
 
       await wrapper.vm.handleProcessAllNotes();

@@ -19,13 +19,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock logger
@@ -237,7 +239,7 @@ describe('PluginMarketplace', () => {
         `,
         setup() {
           const { ref, computed, onMounted } = require('vue');
-          const { message } = require('ant-design-vue');
+          const message = mockMessage;
           const { logger } = require('@/utils/logger');
 
           const loading = ref(false);
@@ -739,7 +741,7 @@ describe('PluginMarketplace', () => {
   describe('插件安装', () => {
     it('应该能安装插件', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.pluginMarketplace.install.mockResolvedValue({
         success: true,
       });
@@ -775,7 +777,7 @@ describe('PluginMarketplace', () => {
 
     it('应该能处理安装失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.pluginMarketplace.install.mockResolvedValue({
         success: false,
         error: 'Installation failed',
@@ -790,7 +792,7 @@ describe('PluginMarketplace', () => {
 
     it('应该能处理安装异常', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.pluginMarketplace.install.mockRejectedValue(
         new Error('Network error')
       );
@@ -894,7 +896,7 @@ describe('PluginMarketplace', () => {
   describe('管理插件', () => {
     it('应该能管理已安装插件', () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       wrapper.vm.managePlugin(mockPlugins[1]);
 

@@ -23,18 +23,22 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn((options) => {
+    options.onOk && options.onOk();
+  }),
+}));
+
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
-  Modal: {
-    confirm: vi.fn((options) => {
-      options.onOk && options.onOk();
-    }),
-  },
+  message: mockMessage,
+  Modal: mockModal,
 }));
 
 // Mock useP2PCall composable
@@ -173,7 +177,8 @@ describe('CallHistoryPage', () => {
         `,
         setup() {
           const { ref, computed } = require('vue');
-          const { message, Modal } = require('ant-design-vue');
+          const message = mockMessage;
+          const Modal = mockModal;
           const { useP2PCall } = require('@renderer/composables/useP2PCall');
 
           const { startAudioCall, startVideoCall, startScreenShare } = useP2PCall();
@@ -453,7 +458,8 @@ describe('CallHistoryPage', () => {
 
     it('应该能清空所有记录', async () => {
       wrapper = createWrapper();
-      const { Modal, message } = require('ant-design-vue');
+      const Modal = mockModal;
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
       wrapper.vm.handleClearAll();
@@ -466,7 +472,7 @@ describe('CallHistoryPage', () => {
 
     it('应该能处理清空失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: false });
 
       wrapper.vm.handleClearAll();
@@ -478,7 +484,7 @@ describe('CallHistoryPage', () => {
   describe('删除记录', () => {
     it('应该能删除单条记录', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
       const record = mockCallHistory[0];
@@ -491,7 +497,7 @@ describe('CallHistoryPage', () => {
 
     it('应该能处理删除失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Delete failed'));
 
       await wrapper.vm.handleDelete(mockCallHistory[0]);
@@ -503,7 +509,7 @@ describe('CallHistoryPage', () => {
   describe('再次呼叫', () => {
     it('应该能发起语音通话', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       const audioRecord = { ...mockCallHistory[0], type: 'audio' };
       await wrapper.vm.handleCallAgain(audioRecord);
@@ -532,7 +538,7 @@ describe('CallHistoryPage', () => {
 
     it('应该能处理通话失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       mockUseP2PCall.startAudioCall.mockRejectedValue(new Error('Call failed'));
 
       await wrapper.vm.handleCallAgain(mockCallHistory[0]);
@@ -629,7 +635,7 @@ describe('CallHistoryPage', () => {
 
     it('应该能处理加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Load failed'));
 
       await wrapper.vm.loadCallHistory();

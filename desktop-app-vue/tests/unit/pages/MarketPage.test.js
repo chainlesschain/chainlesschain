@@ -32,17 +32,22 @@ vi.mock("@/stores/auth", () => ({
   useAuthStore: () => mockAuthStore,
 }));
 
+// Hoisted mocks for ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn(),
+}));
+
 // Mock ant-design-vue
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
-  Modal: {
-    confirm: vi.fn(),
-  },
+  message: mockMessage,
+  Modal: mockModal,
 }));
 
 // Mock vue-router
@@ -501,7 +506,7 @@ describe("MarketPage.vue", () => {
   describe("Refresh Functionality", () => {
     it("应该能刷新市场项目", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleRefresh();
 
@@ -510,7 +515,7 @@ describe("MarketPage.vue", () => {
 
     it("应该处理刷新失败", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       // Mock loadMarketProjects to throw error
@@ -544,7 +549,7 @@ describe("MarketPage.vue", () => {
       wrapper = createWrapper();
       await wrapper.vm.loadMarketProjects();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.selectedProject = wrapper.vm.marketProjects[0];
       wrapper.vm.walletBalance = 1500;
@@ -562,7 +567,7 @@ describe("MarketPage.vue", () => {
       wrapper = createWrapper();
       await wrapper.vm.loadMarketProjects();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.selectedProject = wrapper.vm.marketProjects[0];
       wrapper.vm.walletBalance = 50;
@@ -591,7 +596,7 @@ describe("MarketPage.vue", () => {
       wrapper = createWrapper();
       await wrapper.vm.loadMarketProjects();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       wrapper.vm.selectedProject = wrapper.vm.marketProjects[0];
@@ -626,7 +631,7 @@ describe("MarketPage.vue", () => {
 
     it("应该警告无可售项目", () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.myProjects = [];
 
@@ -637,7 +642,7 @@ describe("MarketPage.vue", () => {
 
     it("应该验证出售表单", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.sellForm.projectId = null;
 
@@ -648,7 +653,7 @@ describe("MarketPage.vue", () => {
 
     it("应该验证分类", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.sellForm.projectId = "proj-1";
       wrapper.vm.sellForm.category = "";
@@ -660,7 +665,7 @@ describe("MarketPage.vue", () => {
 
     it("应该验证价格", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.sellForm.projectId = "proj-1";
       wrapper.vm.sellForm.category = "web";
@@ -673,7 +678,7 @@ describe("MarketPage.vue", () => {
 
     it("应该验证描述", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.sellForm.projectId = "proj-1";
       wrapper.vm.sellForm.category = "web";
@@ -687,7 +692,7 @@ describe("MarketPage.vue", () => {
 
     it("应该能成功上架项目", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.sellForm = {
         projectId: "proj-1",
@@ -725,7 +730,7 @@ describe("MarketPage.vue", () => {
 
     it("应该处理上架失败", async () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       wrapper.vm.sellForm = {
@@ -754,7 +759,7 @@ describe("MarketPage.vue", () => {
   describe("Image Upload", () => {
     it("应该验证图片类型", () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const file = { type: "text/plain", size: 1024 };
 
@@ -766,7 +771,7 @@ describe("MarketPage.vue", () => {
 
     it("应该验证图片大小", () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const file = { type: "image/jpeg", size: 3 * 1024 * 1024 };
 
@@ -888,7 +893,7 @@ describe("MarketPage.vue", () => {
 
     it("应该显示详情开发中提示", () => {
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleViewDetail("market-1");
 

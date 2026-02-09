@@ -18,11 +18,15 @@ import { mount } from '@vue/test-utils';
 import { h } from 'vue';
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock logger
@@ -175,7 +179,7 @@ describe('EnterpriseDashboard', () => {
         },
         setup(props) {
           const { ref, onMounted, onUnmounted, h } = require('vue');
-          const { message } = require('ant-design-vue');
+          const message = mockMessage;
           const { logger } = require('@/utils/logger');
           const { init } = require('../utils/echartsConfig');
 
@@ -471,7 +475,7 @@ describe('EnterpriseDashboard', () => {
 
     it('应该能处理加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Load failed'));
 
       await wrapper.vm.loadDashboardData();
@@ -495,7 +499,7 @@ describe('EnterpriseDashboard', () => {
   describe('刷新功能', () => {
     it('应该能手动刷新数据', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
       await wrapper.vm.refreshData();
