@@ -272,9 +272,11 @@ describe('TaskPlanner', () => {
         chat: vi.fn().mockRejectedValue(new Error('LLM服务不可用')),
       };
 
-      await expect(
-        TaskPlanner.analyzeRequirements('做个ppt', 'document', mockLLMService)
-      ).rejects.toThrow('LLM服务不可用');
+      // LLM失败时返回默认降级结果，不抛出异常
+      const result = await TaskPlanner.analyzeRequirements('做个ppt', 'document', mockLLMService);
+      expect(result.isComplete).toBe(false);
+      expect(result.needsInterview).toBe(true);
+      expect(result.suggestedQuestions.length).toBeGreaterThan(0);
     });
   });
 
@@ -333,9 +335,10 @@ describe('TaskPlanner', () => {
         chat: vi.fn().mockResolvedValue('无效的响应'),
       };
 
-      await expect(
-        TaskPlanner.generatePlan(session, mockLLMService)
-      ).rejects.toThrow('无法解析任务计划');
+      // LLM返回无效JSON时返回默认降级计划，不抛出异常
+      const plan = await TaskPlanner.generatePlan(session, mockLLMService);
+      expect(plan.title).toContain('执行计划');
+      expect(plan.tasks.length).toBeGreaterThan(0);
     });
 
     it('应该包含采访收集的信息', async () => {

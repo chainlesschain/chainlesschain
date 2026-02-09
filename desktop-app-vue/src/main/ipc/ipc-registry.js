@@ -1397,7 +1397,8 @@ function registerAllIPC(dependencies) {
     // 对话管理 (函数模式 - 中等模块，17 handlers)
     // 注意：即使 database 为 null 也注册，handler 内部会处理 null 情况
     // 🔥 v2.0: 整合高级特性（SessionManager, Manus, Multi-Agent, RAG等）
-    logger.info("[IPC Registry] Registering Conversation IPC...");
+    try {
+      logger.info("[IPC Registry] Registering Conversation IPC...");
     const {
       registerConversationIPC,
     } = require("../conversation/conversation-ipc");
@@ -1425,13 +1426,22 @@ function registerAllIPC(dependencies) {
       );
     }
     // 🔥 打印高级特性状态
-    logger.info("[IPC Registry] ✓ Conversation IPC registered (17 handlers)", {
-      sessionManager: !!sessionManager,
-      agentOrchestrator: !!agentOrchestrator,
-      ragManager: !!ragManager,
-      promptCompressor: !!promptCompressor,
-      tokenTracker: !!tokenTracker,
-    });
+      logger.info("[IPC Registry] ✓ Conversation IPC registered (17 handlers)", {
+        sessionManager: !!sessionManager,
+        agentOrchestrator: !!agentOrchestrator,
+        ragManager: !!ragManager,
+        promptCompressor: !!promptCompressor,
+        tokenTracker: !!tokenTracker,
+      });
+    } catch (conversationError) {
+      logger.error(
+        "[IPC Registry] ✗ Conversation IPC registration failed:",
+        conversationError.message,
+      );
+      logger.info(
+        "[IPC Registry] ⚠ Continuing with other IPC registrations...",
+      );
+    }
 
     // 文件同步监听 (函数模式 - 小模块，3 handlers)
     if (database) {

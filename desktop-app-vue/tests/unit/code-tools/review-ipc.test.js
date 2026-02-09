@@ -554,10 +554,8 @@ describe("Review System IPC", () => {
       ];
 
       errorThrowingHandlers.forEach((handler) => {
-        const handlerSection = content.substring(
-          content.indexOf(`'${handler}'`),
-          content.indexOf(`'${handler}'`) + 500,
-        );
+        const startIndex = findHandlerIndex(content, handler);
+        const handlerSection = content.substring(startIndex, startIndex + 500);
         expect(handlerSection).toContain("throw error");
       });
     });
@@ -574,20 +572,16 @@ describe("Review System IPC", () => {
       const listHandlers = ["review:get-by-target", "review:get-my-reviews"];
 
       listHandlers.forEach((handler) => {
-        const handlerSection = content.substring(
-          content.indexOf(`'${handler}'`),
-          content.indexOf(`'${handler}'`) + 500,
-        );
+        const startIndex = findHandlerIndex(content, handler);
+        const handlerSection = content.substring(startIndex, startIndex + 500);
         expect(handlerSection).toContain("return []");
       });
     });
 
     it("get-statistics handler should return null on error or when manager not initialized", () => {
       const content = fs.readFileSync(REVIEW_IPC_PATH, "utf-8");
-      const statsHandlerSection = content.substring(
-        content.indexOf("'review:get-statistics'"),
-        content.indexOf("'review:get-statistics'") + 500,
-      );
+      const startIndex = findHandlerIndex(content, "review:get-statistics");
+      const statsHandlerSection = content.substring(startIndex, startIndex + 500);
       expect(statsHandlerSection).toContain("return null");
     });
   });
