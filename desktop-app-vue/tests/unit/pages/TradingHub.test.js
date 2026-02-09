@@ -380,6 +380,14 @@ describe('TradingHub', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Clear local mock objects
+    mockMessage.success.mockClear();
+    mockMessage.error.mockClear();
+    mockMessage.warning.mockClear();
+    mockLogger.error.mockClear();
+    mockLogger.warn.mockClear();
+    mockLogger.info.mockClear();
+    // Reset store and API mocks
     window.electronAPI.did.getAllIdentities.mockResolvedValue([]);
     mockTradeStore.ui.activeTab = 'assets';
     mockTradeStore.ui.selectedDid = null;
@@ -482,8 +490,9 @@ describe('TradingHub', () => {
 
   describe('Tab切换', () => {
     it('应该能切换到资产Tab', async () => {
-      wrapper = createWrapper();
+      // Set mock state BEFORE creating wrapper (computed caches initial value)
       mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
+      wrapper = createWrapper();
 
       wrapper.vm.activeTab = 'assets';
       await wrapper.vm.handleTabChange('assets');
@@ -629,14 +638,13 @@ describe('TradingHub', () => {
   describe('刷新功能', () => {
     it('应该能刷新当前Tab数据', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockTradeStore.ui.activeTab = 'marketplace';
       mockTradeStore.ui.selectedDid = null;
 
       await wrapper.vm.handleRefresh();
 
       expect(mockTradeStore.loadOrders).toHaveBeenCalled();
-      expect(message.success).toHaveBeenCalledWith('刷新成功');
+      expect(mockMessage.success).toHaveBeenCalledWith('刷新成功');
     });
 
     it('应该能刷新资产数据', async () => {
@@ -717,22 +725,20 @@ describe('TradingHub', () => {
   describe('错误处理', () => {
     it('应该能处理Tab数据加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
       mockTradeStore.loadMyAssets.mockRejectedValue(new Error('Load failed'));
       mockTradeStore.ui.selectedDid = 'did:chainlesschain:user1';
 
       await wrapper.vm.loadTabData('assets');
 
-      expect(message.error).toHaveBeenCalledWith('加载数据失败: Load failed');
+      expect(mockMessage.error).toHaveBeenCalledWith('加载数据失败: Load failed');
     });
 
     it('应该能处理未知Tab', async () => {
       wrapper = createWrapper();
-      const { logger } = require('@/utils/logger');
 
       await wrapper.vm.loadTabData('unknown-tab');
 
-      expect(logger.warn).toHaveBeenCalledWith('未知的Tab:', 'unknown-tab');
+      expect(mockLogger.warn).toHaveBeenCalledWith('未知的Tab:', 'unknown-tab');
     });
   });
 
