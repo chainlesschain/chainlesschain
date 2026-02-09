@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-09 (UTF-8 编码修复 + tool-masking 测试确认通过)
+> **最后更新**: 2026-02-09 (TODO 清理完成 - resolve-conflicts API + 单元测试)
 
 ---
 
@@ -77,7 +77,19 @@
 
 ### 最近完成
 
-0. **IPC 错误处理增强 + 测试稳定性改进** (2026-02-09 续):
+0. **TODO 清理完成** (2026-02-09 最新):
+   - **resolve-conflicts API 确认完成**:
+     - 接口早已在 `conflict_resolver.py` 完整实现 (401 行)
+     - 更新文档状态 `后端接口完善实施完成报告.md`
+   - **单元测试编写完成**:
+     - ProjectServiceTest: +8 测试 (exportProject, importProject)
+     - ProjectFileServiceTest: +11 测试 (searchFiles, getFileVersions, restoreFileVersion)
+     - 更新 `NEW_FEATURES_IMPLEMENTATION.md` 验收清单
+   - **提交**:
+     - `417668d2` docs: mark resolve-conflicts API as completed
+     - `e7a46eee` test: add unit tests for project export/import and file search/versions
+
+1. **IPC 错误处理增强 + 测试稳定性改进** (2026-02-09 续):
    - **IPC Registry 错误隔离**:
      - External Device File IPC 注册失败时不阻塞其他注册
      - Sync IPC 注册失败时继续其他模块
