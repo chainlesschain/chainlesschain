@@ -57,7 +57,7 @@ const mockToolStore = {
   searchTools: vi.fn(),
 };
 
-vi.mock('@renderer/stores/tool', () => ({
+vi.mock('@/stores/tool', () => ({
   useToolStore: () => mockToolStore,
 }));
 
@@ -207,7 +207,7 @@ describe('ToolManagement', () => {
         setup() {
           const { ref, onMounted } = require('vue');
           const { message, Modal } = require('ant-design-vue');
-          const { useToolStore } = require('@renderer/stores/tool');
+          const { useToolStore } = require('@/stores/tool');
 
           const toolStore = useToolStore();
           const searchKeyword = ref('');

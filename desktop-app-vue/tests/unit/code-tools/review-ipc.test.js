@@ -63,8 +63,13 @@ function extractHandlerComments(filePath) {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    // 查找 handler 注册行
-    const handlerMatch = line.match(/ipcMain\.handle\(['"]([^'"]+)['"]/);
+    // 查找 handler 注册行（支持多行格式）
+    let handlerMatch = line.match(/ipcMain\.handle\(\s*['"]([^'"]+)['"]/);
+    // 如果当前行只有 ipcMain.handle(，检查下一行
+    if (!handlerMatch && line.includes("ipcMain.handle(") && i + 1 < lines.length) {
+      const nextLine = lines[i + 1];
+      handlerMatch = nextLine.match(/^\s*['"]([^'"]+)['"]/);
+    }
     if (handlerMatch) {
       const channelName = handlerMatch[1];
       // 向上查找注释（通常在前一行或两行）
@@ -79,6 +84,18 @@ function extractHandlerComments(filePath) {
   }
 
   return comments;
+}
+
+/**
+ * 辅助函数：在源代码中查找 handler 的位置
+ * 支持单引号和双引号格式
+ */
+function findHandlerIndex(content, channel) {
+  let index = content.indexOf(`"${channel}"`);
+  if (index === -1) {
+    index = content.indexOf(`'${channel}'`);
+  }
+  return index;
 }
 
 describe("Review System IPC", () => {
@@ -547,10 +564,8 @@ describe("Review System IPC", () => {
 
     it("get handler should return null on error or when manager not initialized", () => {
       const content = fs.readFileSync(REVIEW_IPC_PATH, "utf-8");
-      const getHandlerSection = content.substring(
-        content.indexOf("'review:get'"),
-        content.indexOf("'review:get'") + 500,
-      );
+      const startIndex = findHandlerIndex(content, "review:get");
+      const getHandlerSection = content.substring(startIndex, startIndex + 500);
       expect(getHandlerSection).toContain("return null");
     });
 
@@ -607,7 +622,11 @@ describe("Review System IPC", () => {
 
       // 验证所有handler都有错误处理
       expectedChannels.forEach((channel) => {
-        const channelIndex = content.indexOf(`'${channel}'`);
+        // 支持单引号和双引号
+        let channelIndex = content.indexOf(`"${channel}"`);
+        if (channelIndex === -1) {
+          channelIndex = content.indexOf(`'${channel}'`);
+        }
         expect(channelIndex).toBeGreaterThan(-1);
 
         // 检查该handler后面是否有try-catch
