@@ -47,7 +47,7 @@ describe("IPC Guard", () => {
       );
 
       expect(result).toBe(true);
-      expect(ipcGuard.isChannelRegistered("test:channel")).to.be.true;
+      expect(ipcGuard.isChannelRegistered("test:channel")).toBe(true);
     });
 
     it("应该阻止重复注册相同的channel", () => {
@@ -89,7 +89,7 @@ describe("IPC Guard", () => {
 
       expect(result).toBe(true);
       expect(registerFunc).toHaveBeenCalled();
-      expect(ipcGuard.isModuleRegistered("test-module")).to.be.true;
+      expect(ipcGuard.isModuleRegistered("test-module")).toBe(true);
     });
 
     it("应该阻止重复注册相同的模块", () => {
@@ -141,10 +141,10 @@ describe("IPC Guard", () => {
   describe("注销功能", () => {
     it("应该能够注销单个channel", () => {
       ipcGuard.safeRegisterHandler("test:channel", vi.fn(), "test-module");
-      expect(ipcGuard.isChannelRegistered("test:channel")).to.be.true;
+      expect(ipcGuard.isChannelRegistered("test:channel")).toBe(true);
 
       ipcGuard.unregisterChannel("test:channel");
-      expect(ipcGuard.isChannelRegistered("test:channel")).to.be.false;
+      expect(ipcGuard.isChannelRegistered("test:channel")).toBe(false);
     });
 
     it("应该能够注销整个模块", () => {
@@ -152,15 +152,15 @@ describe("IPC Guard", () => {
       ipcGuard.safeRegisterHandler("test:channel2", vi.fn(), "test-module");
       ipcGuard.markModuleRegistered("test-module");
 
-      expect(ipcGuard.isModuleRegistered("test-module")).to.be.true;
-      expect(ipcGuard.isChannelRegistered("test:channel1")).to.be.true;
-      expect(ipcGuard.isChannelRegistered("test:channel2")).to.be.true;
+      expect(ipcGuard.isModuleRegistered("test-module")).toBe(true);
+      expect(ipcGuard.isChannelRegistered("test:channel1")).toBe(true);
+      expect(ipcGuard.isChannelRegistered("test:channel2")).toBe(true);
 
       ipcGuard.unregisterModule("test-module");
 
-      expect(ipcGuard.isModuleRegistered("test-module")).to.be.false;
-      expect(ipcGuard.isChannelRegistered("test:channel1")).to.be.false;
-      expect(ipcGuard.isChannelRegistered("test:channel2")).to.be.false;
+      expect(ipcGuard.isModuleRegistered("test-module")).toBe(false);
+      expect(ipcGuard.isChannelRegistered("test:channel1")).toBe(false);
+      expect(ipcGuard.isChannelRegistered("test:channel2")).toBe(false);
     });
 
     it("应该能够重置所有注册", () => {
