@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-09 (测试 TODO 修复 - ukey-manager + project-core-ipc)
+> **最后更新**: 2026-02-09 (测试修复 + UKey null 安全 + IPC 改进)
 
 ---
 
@@ -77,7 +77,26 @@
 
 ### 最近完成
 
-0. **测试 TODO 修复** (2026-02-09 深夜 - 续):
+0. **UKey Null 安全 + IPC 改进 + 测试修复** (2026-02-09 续):
+   - **UKey 配置安全导入**:
+     - `config.js` - Safe Electron app import with fallback for test environments
+     - 非 Electron 环境使用 `~/.chainlesschain` 作为 userDataPath
+   - **UKey Manager Null 处理**:
+     - `ukey-manager.js` - 规范化 config 处理 null/undefined
+     - 启用之前跳过的 null config 测试
+   - **Session Manager 测试修复**:
+     - `session-manager.test.js` - 修复模板列表测试 mock 设置
+     - 添加 `_ensureTemplateTable` .run() mock
+   - **IPC Registry 和 MCP 改进**:
+     - `ipc-registry.js` - handler 注册优化
+     - `mcp-ipc.js` - 代码结构重构
+   - **测试结果改进**: 1011 失败 → 1011 失败 (9 项测试新通过)
+   - **提交**:
+     - `e187e008` test(session-manager): fix template list test mock setup
+     - `a8db057e` fix(ukey): handle null config and non-Electron environments
+     - `ca4f86ee` chore: minor IPC registry and MCP improvements
+
+1. **测试 TODO 修复** (2026-02-09 深夜 - 续):
    - **ukey-manager.test.js 修复** (15+ 测试启用):
      - 问题: `vi.clearAllMocks()` 清除 mock 实现但 beforeEach 未重置
      - 解决: 在 beforeEach 中添加所有 mock 方法实现
@@ -969,6 +988,16 @@ npm run test:session # Session 压缩测试
 ---
 
 ## 更新日志
+
+### 2026-02-09 (深夜 - 续2)
+
+- **UKey Null 安全 + IPC 改进**:
+  - UKey config.js 安全 Electron 导入 (非 Electron 环境 fallback)
+  - UKey manager 规范化 null/undefined config
+  - Session manager 测试 mock 修复
+  - IPC registry 和 MCP 代码改进
+  - 测试通过数 +9 (8605 → 8614)
+  - 3 commits: `e187e008`, `a8db057e`, `ca4f86ee`
 
 ### 2026-02-09 (深夜 - 续)
 
