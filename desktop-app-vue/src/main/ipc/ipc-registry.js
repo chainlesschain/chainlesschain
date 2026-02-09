@@ -728,6 +728,162 @@ function registerAllIPC(dependencies) {
       logger.info("[IPC Registry] ✓ Dashboard IPC registered (10 handlers)");
     }
 
+    // 企业版权限管理扩展 (降级模式 - 6 handlers)
+    // 这些处理器为 PermissionManagementPage 提供基本功能
+    logger.info("[IPC Registry] Registering Organization Permission IPC (degraded mode)...");
+    const { ipcMain } = require("electron");
+
+    // permission:get-overrides - 获取权限覆盖列表
+    ipcMain.handle("permission:get-overrides", async (_event, args) => {
+      try {
+        if (!database) {
+          return { success: true, overrides: [] };
+        }
+        const db = database.getDatabase();
+        const { orgId } = args || {};
+        const overrides = db
+          .prepare(
+            `SELECT * FROM permission_overrides WHERE org_id = ? ORDER BY created_at DESC`
+          )
+          .all(orgId || "");
+        return { success: true, overrides: overrides || [] };
+      } catch (error) {
+        logger.warn("[IPC] permission:get-overrides failed:", error.message);
+        return { success: true, overrides: [] };
+      }
+    });
+
+    // permission:get-templates - 获取权限模板列表
+    ipcMain.handle("permission:get-templates", async (_event, args) => {
+      try {
+        if (!database) {
+          return { success: true, templates: [] };
+        }
+        const db = database.getDatabase();
+        const { orgId } = args || {};
+        const templates = db
+          .prepare(
+            `SELECT * FROM permission_templates WHERE org_id = ? ORDER BY name ASC`
+          )
+          .all(orgId || "");
+        return {
+          success: true,
+          templates: (templates || []).map((t) => ({
+            ...t,
+            permissions: t.permissions ? JSON.parse(t.permissions) : [],
+          })),
+        };
+      } catch (error) {
+        logger.warn("[IPC] permission:get-templates failed:", error.message);
+        return { success: true, templates: [] };
+      }
+    });
+
+    // permission:get-groups - 获取权限组列表
+    ipcMain.handle("permission:get-groups", async (_event, args) => {
+      try {
+        if (!database) {
+          return { success: true, groups: [] };
+        }
+        const db = database.getDatabase();
+        const { orgId } = args || {};
+        const groups = db
+          .prepare(
+            `SELECT * FROM permission_groups WHERE org_id = ? ORDER BY name ASC`
+          )
+          .all(orgId || "");
+        return {
+          success: true,
+          groups: (groups || []).map((g) => ({
+            ...g,
+            permissions: g.permissions ? JSON.parse(g.permissions) : [],
+          })),
+        };
+      } catch (error) {
+        logger.warn("[IPC] permission:get-groups failed:", error.message);
+        return { success: true, groups: [] };
+      }
+    });
+
+    // permission:get-statistics - 获取权限统计信息
+    ipcMain.handle("permission:get-statistics", async (_event, args) => {
+      try {
+        if (!database) {
+          return {
+            success: true,
+            statistics: {
+              totalUsers: 0,
+              totalResources: 0,
+              totalOverrides: 0,
+              totalTemplates: 0,
+              totalGroups: 0,
+              recentChanges: [],
+            },
+          };
+        }
+        const db = database.getDatabase();
+        const { orgId } = args || {};
+
+        // Get counts
+        const usersCount =
+          db
+            .prepare(
+              `SELECT COUNT(*) as count FROM organization_members WHERE org_id = ? AND status = 'active'`
+            )
+            .get(orgId || "")?.count || 0;
+
+        const overridesCount =
+          db
+            .prepare(
+              `SELECT COUNT(*) as count FROM permission_overrides WHERE org_id = ?`
+            )
+            .get(orgId || "")?.count || 0;
+
+        const templatesCount =
+          db
+            .prepare(
+              `SELECT COUNT(*) as count FROM permission_templates WHERE org_id = ?`
+            )
+            .get(orgId || "")?.count || 0;
+
+        const groupsCount =
+          db
+            .prepare(
+              `SELECT COUNT(*) as count FROM permission_groups WHERE org_id = ?`
+            )
+            .get(orgId || "")?.count || 0;
+
+        return {
+          success: true,
+          statistics: {
+            totalUsers: usersCount,
+            totalResources: 0,
+            totalOverrides: overridesCount,
+            totalTemplates: templatesCount,
+            totalGroups: groupsCount,
+            recentChanges: [],
+          },
+        };
+      } catch (error) {
+        logger.warn("[IPC] permission:get-statistics failed:", error.message);
+        return {
+          success: true,
+          statistics: {
+            totalUsers: 0,
+            totalResources: 0,
+            totalOverrides: 0,
+            totalTemplates: 0,
+            totalGroups: 0,
+            recentChanges: [],
+          },
+        };
+      }
+    });
+
+    logger.info(
+      "[IPC Registry] ✓ Organization Permission IPC registered (4 handlers, degraded mode)"
+    );
+
     // ============================================================
     // 第五阶段模块 (项目管理 - 最大模块组，分为多个子模块)
     // ============================================================
