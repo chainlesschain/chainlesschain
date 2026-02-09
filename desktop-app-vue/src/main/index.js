@@ -295,6 +295,7 @@ class ChainlessChainApp {
     this.promptCompressor = instances.promptCompressor;
     this.responseCache = instances.responseCache;
     this.llmManager = instances.llmManager;
+    this.permanentMemoryManager = instances.permanentMemoryManager;
     this.sessionManager = instances.sessionManager;
     this.errorMonitor = instances.errorMonitor;
 

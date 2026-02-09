@@ -94,11 +94,19 @@ export function getStackTrace() {
 
 /**
  * 清理敏感信息
+ * @param {any} data - 需要清理的数据
+ * @param {WeakSet} [seen] - 已访问对象的集合，用于检测循环引用
  */
-export function sanitizeData(data) {
+export function sanitizeData(data, seen = new WeakSet()) {
   if (!data || typeof data !== "object") {
     return data;
   }
+
+  // 检测循环引用
+  if (seen.has(data)) {
+    return "[Circular Reference]";
+  }
+  seen.add(data);
 
   const sensitiveKeys = [
     "password",
@@ -113,8 +121,8 @@ export function sanitizeData(data) {
   for (const key in sanitized) {
     if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
       sanitized[key] = "***REDACTED***";
-    } else if (typeof sanitized[key] === "object") {
-      sanitized[key] = sanitizeData(sanitized[key]);
+    } else if (typeof sanitized[key] === "object" && sanitized[key] !== null) {
+      sanitized[key] = sanitizeData(sanitized[key], seen);
     }
   }
 
