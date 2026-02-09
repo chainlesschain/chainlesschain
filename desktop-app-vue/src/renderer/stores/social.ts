@@ -282,8 +282,10 @@ export const useSocialStore = defineStore('social', {
       this.friendsLoading = true;
       try {
         const result = await ipcRenderer.invoke('friend:get-list');
-        if (result.success) {
-          this.friends = result.friends || [];
+        // 处理不同格式的返回值
+        if (result && result.success !== false) {
+          const friends = result.friends || result || [];
+          this.friends = Array.isArray(friends) ? friends : [];
 
           // 加载好友在线状态
           for (const friend of this.friends) {
@@ -297,9 +299,17 @@ export const useSocialStore = defineStore('social', {
             }
             this.onlineStatus.set(friend.friend_did, status);
           }
+        } else if (result && result.error) {
+          // 服务返回错误但不是致命错误
+          logger.warn('好友服务返回错误:', result.error);
+          this.friends = [];
         }
-      } catch (error) {
-        logger.error('加载好友列表失败:', error as any);
+      } catch (error: any) {
+        // IPC 未就绪或其他错误，静默处理
+        if (error?.message !== 'IPC not available') {
+          logger.error('加载好友列表失败:', error);
+        }
+        this.friends = [];
       } finally {
         this.friendsLoading = false;
       }
@@ -311,9 +321,13 @@ export const useSocialStore = defineStore('social', {
     async loadFriendRequests(): Promise<void> {
       try {
         const requests = await ipcRenderer.invoke('friend:get-pending-requests');
-        this.friendRequests = requests;
-      } catch (error) {
-        logger.error('加载好友请求失败:', error as any);
+        this.friendRequests = Array.isArray(requests) ? requests : [];
+      } catch (error: any) {
+        // IPC 未就绪或其他错误，静默处理
+        if (error?.message !== 'IPC not available') {
+          logger.error('加载好友请求失败:', error);
+        }
+        this.friendRequests = [];
       }
     },
 
@@ -434,8 +448,13 @@ export const useSocialStore = defineStore('social', {
           (sum, s) => sum + (s?.unread_count || 0),
           0
         );
-      } catch (error) {
-        logger.error('加载聊天会话失败:', error as any);
+      } catch (error: any) {
+        // IPC 未就绪或其他错误，静默处理
+        if (error?.message !== 'IPC not available') {
+          logger.error('加载聊天会话失败:', error);
+        }
+        this.chatSessions = [];
+        this.unreadCount = 0;
       }
     },
 

@@ -117,11 +117,20 @@ function showError(message) {
 }
 
 // 显示成功消息
-function showSuccess() {
+// @param {string} clipId - 可选的剪藏ID，用于"在应用中查看"
+function showSuccess(clipId = null) {
   elements.content.style.display = 'none';
   elements.disconnectedMessage.style.display = 'none';
   elements.errorMessage.style.display = 'none';
   elements.successMessage.style.display = 'block';
+
+  // 如果有剪藏ID，更新"在应用中查看"按钮
+  if (clipId && elements.viewInAppBtn) {
+    elements.viewInAppBtn.onclick = () => {
+      viewClipInApp(clipId);
+      window.close();
+    };
+  }
 }
 
 // 加载当前页面信息
@@ -212,7 +221,7 @@ function bindEvents() {
 
   // 在应用中查看按钮
   elements.viewInAppBtn.addEventListener('click', () => {
-    // TODO: 打开桌面应用
+    openDesktopApp();
     window.close();
   });
 }
@@ -263,7 +272,9 @@ async function handleClip(event) {
 
     if (response && response.success) {
       console.log('[Popup] 剪藏成功:', response.data);
-      showSuccess();
+      // 保存剪藏ID用于"在应用中查看"
+      const clipId = response.data?.id || response.data?.noteId;
+      showSuccess(clipId);
     } else {
       throw new Error(response?.error || '剪藏失败');
     }
@@ -276,6 +287,58 @@ async function handleClip(event) {
     elements.btnText.style.display = 'inline';
     elements.btnLoading.style.display = 'none';
   }
+}
+
+/**
+ * 打开桌面应用
+ * 使用自定义协议 chainlesschain:// 启动桌面应用
+ * 支持传递参数以导航到特定页面
+ */
+function openDesktopApp(path = '', params = {}) {
+  // 构建协议 URL
+  let protocolUrl = 'chainlesschain://';
+
+  // 添加路径
+  if (path) {
+    protocolUrl += path;
+  }
+
+  // 添加查询参数
+  const queryParams = new URLSearchParams(params);
+  if (queryParams.toString()) {
+    protocolUrl += '?' + queryParams.toString();
+  }
+
+  console.log('[Popup] 打开桌面应用:', protocolUrl);
+
+  // 尝试通过自定义协议打开
+  try {
+    // 方法1: 直接通过 location 打开（最兼容）
+    const link = document.createElement('a');
+    link.href = protocolUrl;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 延迟检测是否成功打开
+    setTimeout(() => {
+      // 如果协议未注册，浏览器可能会显示错误
+      // 这里可以添加回退逻辑
+    }, 1000);
+  } catch (error) {
+    console.error('[Popup] 打开桌面应用失败:', error);
+
+    // 回退方案：提示用户手动打开
+    showError('无法自动打开应用，请手动启动 ChainlessChain 桌面应用');
+  }
+}
+
+/**
+ * 在桌面应用中查看剪藏的内容
+ */
+function viewClipInApp(clipId) {
+  openDesktopApp('notes/' + clipId);
 }
 
 // 启动

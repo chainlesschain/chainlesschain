@@ -10,6 +10,11 @@ from abc import ABC, abstractmethod
 class BaseLLMClient(ABC):
     """LLM客户端基类"""
 
+    @property
+    def supports_function_calling(self) -> bool:
+        """是否支持 function calling / tools"""
+        return False
+
     @abstractmethod
     async def chat(
         self,
@@ -29,6 +34,33 @@ class BaseLLMClient(ABC):
             LLM响应文本
         """
         pass
+
+    async def chat_with_tools(
+        self,
+        messages: List[Dict[str, str]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7,
+        max_tokens: int = 2048
+    ) -> Dict[str, Any]:
+        """
+        带工具调用的对话接口
+
+        Args:
+            messages: 消息列表
+            tools: 工具定义列表 (OpenAI function calling 格式)
+            temperature: 温度参数
+            max_tokens: 最大token数
+
+        Returns:
+            包含 content 和 tool_calls 的响应字典
+            {
+                "content": str | None,
+                "tool_calls": [{"id": str, "function": {"name": str, "arguments": str}}] | None
+            }
+        """
+        # 默认实现：不支持 function calling，直接调用 chat
+        content = await self.chat(messages, temperature, max_tokens)
+        return {"content": content, "tool_calls": None}
 
     async def generate(
         self,
@@ -93,6 +125,10 @@ class OpenAIClient(BaseLLMClient):
         self.model = model
         self.client = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
+    @property
+    def supports_function_calling(self) -> bool:
+        return True
+
     async def chat(
         self,
         messages: List[Dict[str, str]],
@@ -110,6 +146,38 @@ class OpenAIClient(BaseLLMClient):
         except Exception as e:
             raise Exception(f"OpenAI API调用失败: {e}")
 
+    async def chat_with_tools(
+        self,
+        messages: List[Dict[str, str]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7,
+        max_tokens: int = 2048
+    ) -> Dict[str, Any]:
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            message = response.choices[0].message
+            return {
+                "content": message.content,
+                "tool_calls": [
+                    {
+                        "id": tc.id,
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    }
+                    for tc in (message.tool_calls or [])
+                ] if message.tool_calls else None
+            }
+        except Exception as e:
+            raise Exception(f"OpenAI API调用失败: {e}")
+
 
 class DashScopeClient(BaseLLMClient):
     """阿里云通义千问客户端"""
@@ -122,6 +190,10 @@ class DashScopeClient(BaseLLMClient):
             self.model = model
         except ImportError:
             raise Exception("请先安装: pip install dashscope")
+
+    @property
+    def supports_function_calling(self) -> bool:
+        return True
 
     async def chat(
         self,
@@ -148,6 +220,49 @@ class DashScopeClient(BaseLLMClient):
         except Exception as e:
             raise Exception(f"DashScope调用失败: {e}")
 
+    async def chat_with_tools(
+        self,
+        messages: List[Dict[str, str]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7,
+        max_tokens: int = 2048
+    ) -> Dict[str, Any]:
+        try:
+            from dashscope import Generation
+
+            response = Generation.call(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                result_format='message'
+            )
+
+            if response.status_code == 200:
+                message = response.output.choices[0].message
+                tool_calls = None
+                if hasattr(message, 'tool_calls') and message.tool_calls:
+                    tool_calls = [
+                        {
+                            "id": tc.get('id', f"call_{i}"),
+                            "function": {
+                                "name": tc['function']['name'],
+                                "arguments": tc['function']['arguments']
+                            }
+                        }
+                        for i, tc in enumerate(message.tool_calls)
+                    ]
+                return {
+                    "content": message.content if hasattr(message, 'content') else None,
+                    "tool_calls": tool_calls
+                }
+            else:
+                raise Exception(f"DashScope错误: {response.message}")
+
+        except Exception as e:
+            raise Exception(f"DashScope调用失败: {e}")
+
 
 class ZhipuAIClient(BaseLLMClient):
     """智谱AI客户端"""
@@ -159,6 +274,10 @@ class ZhipuAIClient(BaseLLMClient):
             self.model = model
         except ImportError:
             raise Exception("请先安装: pip install zhipuai")
+
+    @property
+    def supports_function_calling(self) -> bool:
+        return True
 
     async def chat(
         self,
@@ -174,6 +293,41 @@ class ZhipuAIClient(BaseLLMClient):
                 max_tokens=max_tokens
             )
             return response.choices[0].message.content
+        except Exception as e:
+            raise Exception(f"智谱AI调用失败: {e}")
+
+    async def chat_with_tools(
+        self,
+        messages: List[Dict[str, str]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7,
+        max_tokens: int = 2048
+    ) -> Dict[str, Any]:
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            message = response.choices[0].message
+            tool_calls = None
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                tool_calls = [
+                    {
+                        "id": tc.id,
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    }
+                    for tc in message.tool_calls
+                ]
+            return {
+                "content": message.content,
+                "tool_calls": tool_calls
+            }
         except Exception as e:
             raise Exception(f"智谱AI调用失败: {e}")
 
@@ -387,6 +541,10 @@ class DeepSeekClient(BaseLLMClient):
             base_url="https://api.deepseek.com/v1"
         )
 
+    @property
+    def supports_function_calling(self) -> bool:
+        return True
+
     async def chat(
         self,
         messages: List[Dict[str, str]],
@@ -401,6 +559,38 @@ class DeepSeekClient(BaseLLMClient):
                 max_tokens=max_tokens
             )
             return response.choices[0].message.content
+        except Exception as e:
+            raise Exception(f"DeepSeek调用失败: {e}")
+
+    async def chat_with_tools(
+        self,
+        messages: List[Dict[str, str]],
+        tools: List[Dict[str, Any]],
+        temperature: float = 0.7,
+        max_tokens: int = 2048
+    ) -> Dict[str, Any]:
+        try:
+            response = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            message = response.choices[0].message
+            return {
+                "content": message.content,
+                "tool_calls": [
+                    {
+                        "id": tc.id,
+                        "function": {
+                            "name": tc.function.name,
+                            "arguments": tc.function.arguments
+                        }
+                    }
+                    for tc in (message.tool_calls or [])
+                ] if message.tool_calls else None
+            }
         except Exception as e:
             raise Exception(f"DeepSeek调用失败: {e}")
 

@@ -18,7 +18,8 @@ const STARTUP_RETRY_CHANNELS: string[] = [
   'template:getAll',
   'notification:get-all',
   'chat:get-sessions',
-  'friend:get-friends',
+  'friend:get-list',
+  'friend:get-pending-requests',
 ];
 
 /**
@@ -131,9 +132,22 @@ export interface RetryableIPC {
 }
 
 export function createRetryableIPC(
-  ipcObject: RetryableIPC,
+  ipcObject: RetryableIPC | undefined | null,
   options: IPCRetryOptions = {}
 ): RetryableIPC {
+  // 如果 ipcObject 未定义，返回一个空操作的包装器
+  if (!ipcObject) {
+    return {
+      invoke: async <T>(_channel: string, ..._args: any[]): Promise<T> => {
+        throw new Error('IPC not available');
+      },
+      on: () => {},
+      once: () => {},
+      removeListener: () => {},
+      removeAllListeners: () => {},
+    };
+  }
+
   return {
     invoke: <T>(channel: string, ...args: any[]) => ipcWithRetry<T>(
       () => ipcObject.invoke(channel, ...args),

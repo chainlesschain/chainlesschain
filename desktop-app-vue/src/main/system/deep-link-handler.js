@@ -92,8 +92,21 @@ class DeepLinkHandler {
         case "knowledge":
           await this.handleKnowledgeLink(parts[1]);
           break;
+        case "notes":
+          await this.handleNotesLink(parts[1], url.searchParams);
+          break;
+        case "clip":
+          await this.handleClipLink(parts[1], url.searchParams);
+          break;
+        case "":
+        case undefined:
+          // 空路径：只聚焦应用
+          await this.focusMainWindow();
+          break;
         default:
           logger.warn("[DeepLinkHandler] 未知的深链接类型:", parts[0]);
+          // 尝试作为通用导航处理
+          await this.handleGenericNavigation(path, url.searchParams);
       }
     } catch (error) {
       logger.error("[DeepLinkHandler] 处理深链接失败:", error);
@@ -179,6 +192,85 @@ class DeepLinkHandler {
 
     // 发送事件到渲染进程
     this.mainWindow.webContents.send("deep-link:knowledge", knowledgeId);
+  }
+
+  /**
+   * 处理笔记链接
+   * @param {string} noteId - 笔记ID
+   * @param {URLSearchParams} params - URL参数
+   */
+  async handleNotesLink(noteId, params) {
+    logger.info("[DeepLinkHandler] 处理笔记链接:", noteId);
+
+    await this.focusMainWindow();
+
+    if (!this.mainWindow) {
+      return;
+    }
+
+    // 发送事件到渲染进程，导航到笔记页面
+    this.mainWindow.webContents.send("deep-link:navigate", {
+      route: noteId ? `/notes/${noteId}` : "/notes",
+      params: Object.fromEntries(params || []),
+    });
+  }
+
+  /**
+   * 处理剪藏链接（来自浏览器扩展）
+   * @param {string} clipId - 剪藏ID
+   * @param {URLSearchParams} params - URL参数
+   */
+  async handleClipLink(clipId, params) {
+    logger.info("[DeepLinkHandler] 处理剪藏链接:", clipId);
+
+    await this.focusMainWindow();
+
+    if (!this.mainWindow) {
+      return;
+    }
+
+    // 发送事件到渲染进程
+    this.mainWindow.webContents.send("deep-link:clip", {
+      clipId,
+      action: params?.get("action") || "view",
+    });
+  }
+
+  /**
+   * 处理通用导航链接
+   * @param {string} path - 路径
+   * @param {URLSearchParams} params - URL参数
+   */
+  async handleGenericNavigation(path, params) {
+    logger.info("[DeepLinkHandler] 处理通用导航:", path);
+
+    await this.focusMainWindow();
+
+    if (!this.mainWindow) {
+      return;
+    }
+
+    // 发送导航事件
+    this.mainWindow.webContents.send("deep-link:navigate", {
+      route: "/" + path,
+      params: Object.fromEntries(params || []),
+    });
+  }
+
+  /**
+   * 聚焦主窗口
+   */
+  async focusMainWindow() {
+    if (!this.mainWindow) {
+      logger.warn("[DeepLinkHandler] 主窗口未创建");
+      return;
+    }
+
+    if (this.mainWindow.isMinimized()) {
+      this.mainWindow.restore();
+    }
+    this.mainWindow.show();
+    this.mainWindow.focus();
   }
 
   /**
