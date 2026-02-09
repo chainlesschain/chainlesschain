@@ -25,22 +25,24 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { ref, onMounted } from 'vue';
 
-// Mock message object (used directly in setup)
-const mockMessage = {
+// Hoisted mocks for ant-design-vue
+const mockMessage = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
   warning: vi.fn(),
   info: vi.fn(),
-};
+}));
 
-// Mock Modal object - the confirm returns a promise that resolves after onOk
-const mockModal = {
-  confirm: vi.fn(async (options) => {
-    if (options && options.onOk) {
-      await options.onOk();
-    }
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn((opts) => {
+    if (opts?.onOk) Promise.resolve().then(() => opts.onOk());
+    return { destroy: vi.fn() };
   }),
-};
+  info: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+}));
 
 // Mock ant-design-vue - use the same mockMessage and mockModal objects
 vi.mock('ant-design-vue', () => ({

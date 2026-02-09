@@ -9,22 +9,27 @@ import DeviceManagementPage from "@renderer/pages/p2p/DeviceManagementPage.vue";
 import { nextTick } from "vue";
 
 // Mock Ant Design Vue - use vi.hoisted to avoid initialization order issues
-const { Modal, message } = vi.hoisted(() => ({
-  Modal: {
-    confirm: vi.fn(),
-    info: vi.fn(),
-  },
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn((opts) => {
+    if (opts?.onOk) Promise.resolve().then(() => opts.onOk());
+    return { destroy: vi.fn() };
+  }),
+  info: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
 }));
 
 vi.mock("ant-design-vue", () => ({
-  Modal,
-  message,
+  Modal: mockModal,
+  message: mockMessage,
 }));
 
 // Mock Vue Router
@@ -329,7 +334,7 @@ describe.skip("DeviceManagementPage", () => {
     });
 
     it("应该能刷新设备列表", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleRefresh();
 
@@ -350,7 +355,7 @@ describe.skip("DeviceManagementPage", () => {
     });
 
     it("处理刷新失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.invoke.mockRejectedValue(new Error("刷新失败"));
 
       await wrapper.vm.handleRefresh();
@@ -404,8 +409,8 @@ describe.skip("DeviceManagementPage", () => {
 
       wrapper.vm.handleViewDetails(device);
 
-      expect(Modal.info).toHaveBeenCalled();
-      const callArgs = Modal.info.mock.calls[0][0];
+      expect(mockModal.info).toHaveBeenCalled();
+      const callArgs = mockModal.info.mock.calls[0][0];
       expect(callArgs.title).toBe("设备详情");
       expect(callArgs.content).toContain(device.deviceId);
     });
@@ -442,7 +447,7 @@ describe.skip("DeviceManagementPage", () => {
     });
 
     it("应该能确认重命名", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const device = wrapper.vm.devices[0];
       window.electron.invoke.mockResolvedValue();
 
@@ -461,7 +466,7 @@ describe.skip("DeviceManagementPage", () => {
     });
 
     it("空名称不能重命名", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedDevice = wrapper.vm.devices[0];
       wrapper.vm.newDeviceName = "";
 
@@ -471,7 +476,7 @@ describe.skip("DeviceManagementPage", () => {
     });
 
     it("空格名称不能重命名", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedDevice = wrapper.vm.devices[0];
       wrapper.vm.newDeviceName = "   ";
 
@@ -481,7 +486,7 @@ describe.skip("DeviceManagementPage", () => {
     });
 
     it("处理重命名失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedDevice = wrapper.vm.devices[0];
       wrapper.vm.newDeviceName = "新名称";
       window.electron.invoke.mockRejectedValue(new Error("重命名失败"));
@@ -515,7 +520,7 @@ describe.skip("DeviceManagementPage", () => {
 
       wrapper.vm.handleRemove(device);
 
-      expect(Modal.confirm).toHaveBeenCalled();
+      expect(mockModal.confirm).toHaveBeenCalled();
       const callArgs = Modal.confirm.mock.calls[0][0];
       expect(callArgs.title).toBe("确认移除设备");
       expect(callArgs.content).toContain(device.deviceName);
@@ -523,13 +528,13 @@ describe.skip("DeviceManagementPage", () => {
     });
 
     it("应该能确认移除设备", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const device = wrapper.vm.devices[0];
       window.electron.invoke.mockResolvedValue();
 
       wrapper.vm.handleRemove(device);
 
-      const confirmCall = Modal.confirm.mock.calls[0][0];
+      const confirmCall = mockModal.confirm.mock.calls[0][0];
       await confirmCall.onOk();
 
       expect(window.electron.invoke).toHaveBeenCalledWith("p2p:remove-device", {
@@ -542,13 +547,13 @@ describe.skip("DeviceManagementPage", () => {
     });
 
     it("处理移除失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const device = wrapper.vm.devices[0];
       window.electron.invoke.mockRejectedValue(new Error("移除失败"));
 
       wrapper.vm.handleRemove(device);
 
-      const confirmCall = Modal.confirm.mock.calls[0][0];
+      const confirmCall = mockModal.confirm.mock.calls[0][0];
       await confirmCall.onOk();
 
       expect(message.error).toHaveBeenCalledWith("移除失败");

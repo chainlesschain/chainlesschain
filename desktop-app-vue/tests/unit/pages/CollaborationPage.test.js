@@ -3,20 +3,24 @@ import { mount } from "@vue/test-utils";
 import CollaborationPage from "@renderer/pages/projects/CollaborationPage.vue";
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn((config) => {
+    if (config.onOk) {
+      config.onOk();
+    }
+  }),
+}));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
-  Modal: {
-    confirm: vi.fn((config) => {
-      if (config.onOk) {
-        config.onOk();
-      }
-    }),
-  },
+  message: mockMessage,
+  Modal: mockModal,
 }));
 
 // Mock vue-router
@@ -352,7 +356,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该能刷新项目列表", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleRefresh();
 
@@ -368,7 +372,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该处理刷新失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       vi.spyOn(wrapper.vm, "loadCollaborationProjects").mockRejectedValue(
         new Error("Refresh failed"),
       );
@@ -409,7 +413,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该对演示数据显示提示", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleViewProject("collab-demo-1");
 
@@ -419,7 +423,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该处理不存在的项目", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleViewProject("non-existent");
 
@@ -441,7 +445,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该在没有项目时提示用户", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.collaborationProjects = [];
 
       wrapper.vm.handleInviteCollaborator();
@@ -452,7 +456,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该能发送邀请", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.inviteForm.projectId = "project-1";
       wrapper.vm.inviteForm.collaboratorDid = "did:chainless:user1";
 
@@ -463,7 +467,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该验证项目ID", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.inviteForm.projectId = null;
       wrapper.vm.inviteForm.collaboratorDid = "did:chainless:user1";
 
@@ -473,7 +477,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该验证协作者DID", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.inviteForm.projectId = "project-1";
       wrapper.vm.inviteForm.collaboratorDid = "";
 
@@ -507,7 +511,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该能接受邀请", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const invitationId = "inv-1";
 
       await wrapper.vm.handleAcceptInvitation(invitationId);
@@ -519,7 +523,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该能拒绝邀请", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const invitationId = "inv-1";
 
       await wrapper.vm.handleRejectInvitation(invitationId);
@@ -547,7 +551,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该能打开管理协作者", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.handleAction("manage", "project-1");
 
@@ -555,7 +559,8 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该能退出协作", async () => {
-      const { Modal, message } = require("ant-design-vue");
+      const Modal = mockModal;
+      const message = mockMessage;
 
       wrapper.vm.handleAction("leave", "collab-demo-2");
 
@@ -566,7 +571,7 @@ describe("CollaborationPage.vue", () => {
     });
 
     it("应该在退出协作后更新项目列表", async () => {
-      const { Modal } = require("ant-design-vue");
+      const Modal = mockModal;
       const projectId = "collab-demo-2";
 
       wrapper.vm.handleAction("leave", projectId);

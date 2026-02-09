@@ -2,14 +2,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import AccountManager from "@renderer/pages/email/AccountManager.vue";
 
-// Mock ant-design-vue
+// Define mock using vi.hoisted to ensure it's available for vi.mock
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+// Mock ant-design-vue with hoisted mock
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock vue-router
@@ -170,7 +173,7 @@ describe("AccountManager.vue", () => {
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("Network error"),
       );
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
@@ -205,7 +208,7 @@ describe("AccountManager.vue", () => {
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockResolvedValueOnce({ success: true })
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts });
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.accountForm.email = "new@example.com";
       wrapper.vm.accountForm.password = "password123";
@@ -225,7 +228,7 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该验证必填字段（邮箱和密码）", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.accountForm.email = "";
       wrapper.vm.accountForm.password = "";
@@ -239,7 +242,7 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该验证IMAP和SMTP服务器地址", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.accountForm.email = "test@example.com";
       wrapper.vm.accountForm.password = "password";
@@ -257,7 +260,7 @@ describe("AccountManager.vue", () => {
       window.electron.ipcRenderer.invoke
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockRejectedValueOnce(new Error("Add failed"));
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.accountForm.email = "new@example.com";
       wrapper.vm.accountForm.password = "password123";
@@ -291,7 +294,7 @@ describe("AccountManager.vue", () => {
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockResolvedValueOnce({ success: true })
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts });
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.editingAccount = mockAccounts[0];
       wrapper.vm.accountForm.displayName = "Updated Name";
@@ -335,7 +338,7 @@ describe("AccountManager.vue", () => {
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockResolvedValueOnce({ success: true })
         .mockResolvedValueOnce({ success: true, accounts: [] });
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.deleteAccount("account-1");
 
@@ -363,7 +366,7 @@ describe("AccountManager.vue", () => {
       window.electron.ipcRenderer.invoke
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockRejectedValueOnce(new Error("Delete failed"));
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.deleteAccount("account-1");
 
@@ -383,7 +386,7 @@ describe("AccountManager.vue", () => {
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockResolvedValueOnce({ success: true, count: 5 })
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts });
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.syncAccount("account-1");
 
@@ -420,7 +423,7 @@ describe("AccountManager.vue", () => {
       window.electron.ipcRenderer.invoke
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockRejectedValueOnce(new Error("Sync failed"));
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.syncAccount("account-1");
 
@@ -440,7 +443,7 @@ describe("AccountManager.vue", () => {
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockResolvedValueOnce({ success: true })
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts });
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const account = mockAccounts[0];
       await wrapper.vm.toggleAccountStatus(account);
@@ -458,7 +461,7 @@ describe("AccountManager.vue", () => {
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockResolvedValueOnce({ success: true })
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts });
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const account = mockAccounts[1]; // paused account
       await wrapper.vm.toggleAccountStatus(account);
@@ -475,7 +478,7 @@ describe("AccountManager.vue", () => {
       window.electron.ipcRenderer.invoke
         .mockResolvedValueOnce({ success: true, accounts: mockAccounts })
         .mockRejectedValueOnce(new Error("Toggle failed"));
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.toggleAccountStatus(mockAccounts[0]);
 
@@ -512,7 +515,7 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该验证测试连接的必填字段", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.accountForm.email = "";
       wrapper.vm.accountForm.password = "";
@@ -569,7 +572,7 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该能应用预设配置", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedPreset = wrapper.vm.presets[0]; // Gmail
 
       wrapper.vm.applyPreset();
@@ -582,7 +585,7 @@ describe("AccountManager.vue", () => {
     });
 
     it("应该验证是否选择了预设", () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedPreset = null;
 
       wrapper.vm.applyPreset();

@@ -4,12 +4,10 @@ import OrganizationActivityLogPage from "@renderer/pages/OrganizationActivityLog
 import dayjs from "dayjs";
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock vue-router
@@ -206,7 +204,7 @@ describe("OrganizationActivityLogPage.vue", () => {
         success: false,
         error: "Load failed",
       });
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
@@ -218,7 +216,7 @@ describe("OrganizationActivityLogPage.vue", () => {
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("Network error"),
       );
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
@@ -345,7 +343,7 @@ describe("OrganizationActivityLogPage.vue", () => {
         success: true,
         filePath: "/path/to/export.csv",
       });
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.exportLogs();
 
@@ -365,7 +363,7 @@ describe("OrganizationActivityLogPage.vue", () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: false,
       });
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.exportLogs();
 
@@ -376,7 +374,7 @@ describe("OrganizationActivityLogPage.vue", () => {
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("Export error"),
       );
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.exportLogs();
 

@@ -56,13 +56,15 @@ vi.mock("@/stores/category", () => ({
 }));
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
   Empty: {
     PRESENTED_IMAGE_SIMPLE: "simple",
   },
@@ -352,7 +354,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该能创建新分类", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       mockCategoryStore.createCategory.mockResolvedValue();
 
       wrapper.vm.formRef = {
@@ -390,7 +392,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该能更新分类", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       mockCategoryStore.updateCategory.mockResolvedValue();
 
       wrapper.vm.formRef = {
@@ -440,7 +442,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该处理创建失败", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       mockCategoryStore.createCategory.mockRejectedValue(new Error("创建失败"));
@@ -468,7 +470,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该处理更新失败", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       mockCategoryStore.updateCategory.mockRejectedValue(new Error("更新失败"));
@@ -528,7 +530,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该能删除分类", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       mockCategoryStore.deleteCategory.mockResolvedValue();
 
       await wrapper.vm.handleDelete("cat-1");
@@ -540,7 +542,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该处理删除失败", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       mockCategoryStore.deleteCategory.mockRejectedValue(new Error("删除失败"));
@@ -582,7 +584,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该能初始化默认分类", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       mockCategoryStore.initializeDefaults.mockResolvedValue();
 
       await wrapper.vm.handleInitDefaults();
@@ -594,7 +596,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该处理初始化失败", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       mockCategoryStore.initializeDefaults.mockRejectedValue(
@@ -610,7 +612,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该静默处理IPC未就绪错误", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       mockCategoryStore.initializeDefaults.mockRejectedValue(
@@ -629,7 +631,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该处理加载失败", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       mockCategoryStore.fetchCategories.mockRejectedValue(
@@ -647,7 +649,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该静默处理IPC未就绪错误", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       mockCategoryStore.fetchCategories.mockRejectedValue(
@@ -964,7 +966,7 @@ describe("CategoryManagePage.vue", () => {
     it("应该处理空的错误消息", async () => {
       wrapper = createWrapper();
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       mockCategoryStore.createCategory.mockRejectedValue(new Error());
 

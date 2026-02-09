@@ -69,16 +69,29 @@ vi.mock("@/stores/auth", () => ({
   useAuthStore: () => mockAuthStore,
 }));
 
-// Mock message and Modal objects (used directly in tests)
-const mockMessage = {
+// Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
   warning: vi.fn(),
-};
+  info: vi.fn(),
+}));
 
-const mockModalObj = {
-  confirm: vi.fn(),
-};
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn((opts) => {
+    if (opts?.onOk) Promise.resolve().then(() => opts.onOk());
+    return { destroy: vi.fn() };
+  }),
+  info: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+}));
+
+vi.mock("ant-design-vue", () => ({
+  message: mockMessage,
+  Modal: mockModal,
+}));
 
 // Mock logger object (used directly in tests)
 const mockLogger = {
@@ -95,18 +108,6 @@ const mockXLSX = {
   },
   writeFile: vi.fn(),
 };
-
-// Mock ant-design-vue
-vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-  },
-  Modal: {
-    confirm: vi.fn(),
-  },
-}));
 
 // Mock vue-router
 const mockRouter = {
@@ -552,7 +553,7 @@ describe("ProjectManagementPage.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedRowKeys = ["proj-1", "proj-2"];
 
-      const Modal = mockModalObj;
+      const Modal = mockModal;
 
       wrapper.vm.handleBatchDelete();
 
@@ -570,7 +571,7 @@ describe("ProjectManagementPage.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedRowKeys = ["proj-1", "proj-2"];
 
-      const Modal = mockModalObj; const message = mockMessage;
+      const Modal = mockModal; const message = mockMessage;
 
       wrapper.vm.handleBatchDelete();
 
@@ -589,7 +590,7 @@ describe("ProjectManagementPage.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedRowKeys = ["proj-1"];
 
-      const Modal = mockModalObj; const message = mockMessage;
+      const Modal = mockModal; const message = mockMessage;
       const logger = mockLogger;
 
       wrapper.vm.handleBatchDelete();

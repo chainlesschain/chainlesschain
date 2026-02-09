@@ -17,13 +17,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock vue-router
@@ -63,7 +65,7 @@ describe('AIPromptsPage', () => {
         `,
         setup() {
           const { useRouter } = require('vue-router');
-          const { message: antMessage } = require('ant-design-vue');
+          const antMessage = mockMessage;
 
           const router = useRouter();
 
@@ -141,7 +143,7 @@ describe('AIPromptsPage', () => {
   describe('发送提示词', () => {
     it('应该能发送提示词并创建对话', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
 
       const promptText = 'Help me write a function to sort an array';
 
@@ -187,7 +189,7 @@ describe('AIPromptsPage', () => {
 
     it('应该验证空输入', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
 
       await wrapper.vm.handleSend('');
 
@@ -197,7 +199,7 @@ describe('AIPromptsPage', () => {
 
     it('应该验证仅空格输入', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
 
       await wrapper.vm.handleSend('   ');
 
@@ -207,7 +209,7 @@ describe('AIPromptsPage', () => {
 
     it('应该能处理创建对话失败', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
       window.electronAPI.conversation.create.mockRejectedValue(
         new Error('Network error')
       );
@@ -220,7 +222,7 @@ describe('AIPromptsPage', () => {
 
     it('应该能处理添加消息失败', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
       window.electronAPI.conversation.addMessage.mockRejectedValue(
         new Error('Message error')
       );
@@ -341,7 +343,7 @@ describe('AIPromptsPage', () => {
   describe('错误处理', () => {
     it('应该能处理网络错误', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
       window.electronAPI.conversation.create.mockRejectedValue(
         new Error('Network error')
       );
@@ -353,7 +355,7 @@ describe('AIPromptsPage', () => {
 
     it('应该能处理超时错误', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
       window.electronAPI.conversation.create.mockRejectedValue(
         new Error('Timeout')
       );
@@ -365,7 +367,7 @@ describe('AIPromptsPage', () => {
 
     it('应该能处理未知错误', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
       window.electronAPI.conversation.create.mockRejectedValue(
         new Error('Unknown error')
       );
@@ -379,7 +381,7 @@ describe('AIPromptsPage', () => {
   describe('边界情况', () => {
     it('应该处理null输入', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
 
       await wrapper.vm.handleSend(null);
 
@@ -388,7 +390,7 @@ describe('AIPromptsPage', () => {
 
     it('应该处理undefined输入', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
 
       await wrapper.vm.handleSend(undefined);
 
@@ -486,7 +488,7 @@ describe('AIPromptsPage', () => {
   describe('成功消息', () => {
     it('应该显示成功消息', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
 
       await wrapper.vm.handleSend('Test');
 
@@ -495,7 +497,7 @@ describe('AIPromptsPage', () => {
 
     it('应该仅在成功时显示成功消息', async () => {
       wrapper = createWrapper();
-      const { message: antMessage } = require('ant-design-vue');
+      const antMessage = mockMessage;
       window.electronAPI.conversation.create.mockRejectedValue(new Error());
 
       await wrapper.vm.handleSend('Test');

@@ -9,13 +9,15 @@ import FeedList from "@renderer/pages/rss/FeedList.vue";
 import { nextTick } from "vue";
 
 // Mock Ant Design Vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock Vue Router
@@ -217,7 +219,7 @@ describe("FeedList", () => {
     });
 
     it("处理加载订阅源失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("加载失败"),
       );
@@ -423,7 +425,7 @@ describe("FeedList", () => {
     });
 
     it("应该能添加新订阅源", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
       wrapper.vm.feedForm.url = "https://example.com/feed.xml";
@@ -447,7 +449,7 @@ describe("FeedList", () => {
     });
 
     it("空URL不能添加订阅", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.feedForm.url = "";
 
       await wrapper.vm.handleAddFeed();
@@ -456,7 +458,7 @@ describe("FeedList", () => {
     });
 
     it("处理添加订阅失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("添加失败"),
       );
@@ -504,7 +506,7 @@ describe("FeedList", () => {
     });
 
     it("应该能更新订阅源", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
       const feed = wrapper.vm.feeds[0];
@@ -524,7 +526,7 @@ describe("FeedList", () => {
     });
 
     it("处理更新失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("更新失败"),
       );
@@ -561,7 +563,7 @@ describe("FeedList", () => {
     });
 
     it("应该能刷新单个订阅源", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         itemCount: 5,
@@ -590,7 +592,7 @@ describe("FeedList", () => {
     });
 
     it("处理刷新失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("刷新失败"),
       );
@@ -603,7 +605,7 @@ describe("FeedList", () => {
     });
 
     it("应该能刷新全部订阅源", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         results: {
@@ -621,7 +623,7 @@ describe("FeedList", () => {
     });
 
     it("处理批量刷新失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("批量刷新失败"),
       );
@@ -655,7 +657,7 @@ describe("FeedList", () => {
     });
 
     it("应该能删除订阅源", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
       await wrapper.vm.deleteFeed("feed-1");
@@ -668,7 +670,7 @@ describe("FeedList", () => {
     });
 
     it("处理删除失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("删除失败"),
       );
@@ -744,7 +746,7 @@ describe("FeedList", () => {
     });
 
     it("应该能发现订阅源", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const discovered = [
         { title: "Feed 1", url: "https://example.com/feed1.xml" },
         { title: "Feed 2", url: "https://example.com/feed2.xml" },
@@ -767,7 +769,7 @@ describe("FeedList", () => {
     });
 
     it("未发现订阅源时应该显示警告", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         feeds: [],
@@ -780,7 +782,7 @@ describe("FeedList", () => {
     });
 
     it("空URL不能发现订阅", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.discoverUrl = "";
 
       await wrapper.vm.handleDiscoverFeeds();
@@ -799,7 +801,7 @@ describe("FeedList", () => {
     });
 
     it("处理发现订阅失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("发现失败"),
       );
@@ -844,7 +846,7 @@ describe("FeedList", () => {
     });
 
     it("应该能添加新分类", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
       wrapper.vm.categoryForm.name = "新闻";
@@ -862,7 +864,7 @@ describe("FeedList", () => {
     });
 
     it("空名称不能添加分类", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.categoryForm.name = "";
 
       await wrapper.vm.handleAddCategory();
@@ -871,7 +873,7 @@ describe("FeedList", () => {
     });
 
     it("处理添加分类失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("添加失败"),
       );

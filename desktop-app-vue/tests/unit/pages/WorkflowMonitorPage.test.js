@@ -18,14 +18,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
-// Mock ant-design-vue
+// Mock ant-design-vue - use vi.hoisted to avoid initialization order issues
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock vue-router
@@ -187,7 +189,7 @@ describe.skip('WorkflowMonitorPage', () => {
         setup() {
           const { ref, onMounted, onUnmounted } = require('vue');
           const { useRouter } = require('vue-router');
-          const { message } = require('ant-design-vue');
+          const message = mockMessage;
 
           const router = useRouter();
           const workflows = ref([]);
@@ -597,7 +599,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能处理刷新失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockRejectedValue(new Error('Network error'));
 
       await wrapper.vm.refreshWorkflows();
@@ -633,7 +635,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能创建工作流', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({
         success: true,
         data: { workflowId: 'new-wf-1' },
@@ -662,7 +664,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该验证必填项', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       wrapper.vm.createForm = {
         title: '',
@@ -678,7 +680,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该验证标题必填', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       wrapper.vm.createForm = {
         title: '',
@@ -693,7 +695,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该验证用户请求必填', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       wrapper.vm.createForm = {
         title: 'Test',
@@ -708,7 +710,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能处理创建失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({ success: false, error: 'Creation failed' });
 
       wrapper.vm.createForm = {
@@ -724,7 +726,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能处理创建异常', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockRejectedValue(new Error('Network error'));
 
       wrapper.vm.createForm = {
@@ -742,7 +744,7 @@ describe.skip('WorkflowMonitorPage', () => {
   describe('工作流操作', () => {
     it('应该能暂停工作流', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({ success: true });
 
       await wrapper.vm.pauseWorkflow('wf-1');
@@ -755,7 +757,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能恢复工作流', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({ success: true });
 
       await wrapper.vm.resumeWorkflow('wf-3');
@@ -768,7 +770,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能删除工作流', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({ success: true });
 
       await wrapper.vm.deleteWorkflow('wf-1');
@@ -791,7 +793,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能处理暂停失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({ success: false, error: 'Pause failed' });
 
       await wrapper.vm.pauseWorkflow('wf-1');
@@ -801,7 +803,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能处理恢复失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({ success: false, error: 'Resume failed' });
 
       await wrapper.vm.resumeWorkflow('wf-3');
@@ -811,7 +813,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能处理删除失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({ success: false, error: 'Delete failed' });
 
       await wrapper.vm.deleteWorkflow('wf-1');
@@ -821,7 +823,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能处理暂停异常', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockRejectedValue(new Error('Network error'));
 
       await wrapper.vm.pauseWorkflow('wf-1');
@@ -886,7 +888,7 @@ describe.skip('WorkflowMonitorPage', () => {
     it('应该能处理工作流完成', async () => {
       wrapper = createWrapper();
       wrapper.vm.selectedWorkflowId = 'wf-1';
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       const completionData = { workflowId: 'wf-1', status: 'completed' };
 
       window.ipc.invoke
@@ -939,7 +941,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能处理工作流错误', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       const errorData = { workflowId: 'wf-1', error: 'Something went wrong' };
 
       window.ipc.invoke.mockResolvedValue({ success: true, data: [] });
@@ -957,7 +959,7 @@ describe.skip('WorkflowMonitorPage', () => {
       wrapper = createWrapper();
       wrapper.vm.selectedWorkflowId = 'wf-1';
       wrapper.vm.showSummary = true;
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({ success: true });
 
       await wrapper.vm.handleRetry();
@@ -972,7 +974,7 @@ describe.skip('WorkflowMonitorPage', () => {
     it('应该能处理重试失败', async () => {
       wrapper = createWrapper();
       wrapper.vm.selectedWorkflowId = 'wf-1';
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockResolvedValue({ success: false, error: 'Retry failed' });
 
       await wrapper.vm.handleRetry();
@@ -983,7 +985,7 @@ describe.skip('WorkflowMonitorPage', () => {
     it('应该能处理重试异常', async () => {
       wrapper = createWrapper();
       wrapper.vm.selectedWorkflowId = 'wf-1';
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.ipc.invoke.mockRejectedValue(new Error('Network error'));
 
       await wrapper.vm.handleRetry();
@@ -995,7 +997,7 @@ describe.skip('WorkflowMonitorPage', () => {
   describe('查看结果和导出', () => {
     it('应该能查看结果', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       await wrapper.vm.handleViewResult();
 
@@ -1004,7 +1006,7 @@ describe.skip('WorkflowMonitorPage', () => {
 
     it('应该能导出报告', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
 
       await wrapper.vm.handleExport();
 

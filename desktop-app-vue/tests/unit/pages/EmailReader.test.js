@@ -21,13 +21,15 @@ vi.mock("dayjs", () => {
 });
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock vue-router
@@ -233,7 +235,7 @@ describe("EmailReader.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.loadMailboxes();
 
@@ -254,7 +256,7 @@ describe("EmailReader.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.mailboxes = mockMailboxes;
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.syncMailboxes();
 
@@ -271,7 +273,7 @@ describe("EmailReader.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.syncMailboxes();
 
@@ -348,7 +350,7 @@ describe("EmailReader.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.loadEmails("mailbox-1");
 
@@ -371,7 +373,7 @@ describe("EmailReader.vue", () => {
       wrapper.vm.mailboxes = mockMailboxes;
       wrapper.vm.selectedMailbox = ["mailbox-1"];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.syncEmails();
 
@@ -391,7 +393,7 @@ describe("EmailReader.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedMailbox = [];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.syncEmails();
 
@@ -403,7 +405,7 @@ describe("EmailReader.vue", () => {
       wrapper.vm.mailboxes = mockMailboxes;
       wrapper.vm.selectedMailbox = ["non-existent"];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.syncEmails();
 
@@ -419,7 +421,7 @@ describe("EmailReader.vue", () => {
       wrapper.vm.mailboxes = mockMailboxes;
       wrapper.vm.selectedMailbox = ["mailbox-1"];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.syncEmails();
 
@@ -539,7 +541,7 @@ describe("EmailReader.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const attachment = { ...mockAttachments[0] };
       await wrapper.vm.downloadAttachment(attachment);
@@ -580,7 +582,7 @@ describe("EmailReader.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const attachment = { ...mockAttachments[0] };
       await wrapper.vm.downloadAttachment(attachment);
@@ -602,7 +604,7 @@ describe("EmailReader.vue", () => {
       wrapper.vm.emails = [...mockEmails];
       wrapper.vm.selectedEmail = { ...mockEmails[0], is_starred: 0 };
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.toggleStar();
 
@@ -624,7 +626,7 @@ describe("EmailReader.vue", () => {
       wrapper.vm.emails = [...mockEmails];
       wrapper.vm.selectedEmail = { ...mockEmails[1], is_starred: 1 };
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.toggleStar();
 
@@ -657,7 +659,7 @@ describe("EmailReader.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedEmail = mockEmails[0];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.saveToKnowledge();
 
@@ -676,7 +678,7 @@ describe("EmailReader.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedEmail = mockEmails[0];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.saveToKnowledge();
 
@@ -722,7 +724,7 @@ describe("EmailReader.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.composerVisible = true;
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.onEmailSent();
 
@@ -745,7 +747,7 @@ describe("EmailReader.vue", () => {
       wrapper.vm.selectedEmail = { ...mockEmails[0] };
       wrapper.vm.selectedMailbox = ["mailbox-1"];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleMenuClick({ key: "markRead" });
 
@@ -762,7 +764,7 @@ describe("EmailReader.vue", () => {
       wrapper.vm.selectedEmail = { ...mockEmails[0] };
       wrapper.vm.selectedMailbox = ["mailbox-1"];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleMenuClick({ key: "archive" });
 
@@ -779,7 +781,7 @@ describe("EmailReader.vue", () => {
       wrapper.vm.selectedEmail = { ...mockEmails[0] };
       wrapper.vm.selectedMailbox = ["mailbox-1"];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleMenuClick({ key: "delete" });
 
@@ -795,7 +797,7 @@ describe("EmailReader.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedEmail = mockEmails[0];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleMenuClick({ key: "markUnread" });
 
@@ -810,7 +812,7 @@ describe("EmailReader.vue", () => {
       wrapper = createWrapper();
       wrapper.vm.selectedEmail = mockEmails[0];
 
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleMenuClick({ key: "delete" });
 

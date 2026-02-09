@@ -1,19 +1,23 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
 import FileTransferPage from '../../../src/renderer/pages/p2p/FileTransferPage.vue';
-import { message, Modal } from 'ant-design-vue';
+
+// Hoisted mocks for ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
+const mockModal = vi.hoisted(() => ({
+  confirm: vi.fn(),
+}));
 
 // Mock Ant Design Vue
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
-  Modal: {
-    confirm: vi.fn(),
-  },
+  message: mockMessage,
+  Modal: mockModal,
 }));
 
 // Mock Vue Router
@@ -226,7 +230,7 @@ describe('FileTransferPage.vue', () => {
 
       const result = await wrapper.vm.handleBeforeUpload(file);
 
-      expect(message.error).toHaveBeenCalledWith('请先选择接收设备');
+      expect(mockMessage.error).toHaveBeenCalledWith('请先选择接收设备');
       expect(result).toBe(false);
     });
 
@@ -241,7 +245,7 @@ describe('FileTransferPage.vue', () => {
 
       await wrapper.vm.handleBeforeUpload(file);
 
-      expect(message.error).toHaveBeenCalledWith('发送失败: Upload failed');
+      expect(mockMessage.error).toHaveBeenCalledWith('发送失败: Upload failed');
     });
 
     it('应该显示上传进度', async () => {
@@ -323,7 +327,7 @@ describe('FileTransferPage.vue', () => {
         transferId: transfer.id,
       });
       expect(transfer.status).toBe('cancelled');
-      expect(message.info).toHaveBeenCalledWith('已取消传输');
+      expect(mockMessage.info).toHaveBeenCalledWith('已取消传输');
     });
 
     it('取消传输失败应该显示错误', async () => {
@@ -333,7 +337,7 @@ describe('FileTransferPage.vue', () => {
 
       await wrapper.vm.handleCancel(transfer);
 
-      expect(message.error).toHaveBeenCalledWith('取消失败');
+      expect(mockMessage.error).toHaveBeenCalledWith('取消失败');
     });
 
     it('应该能打开已完成的文件', async () => {
@@ -355,7 +359,7 @@ describe('FileTransferPage.vue', () => {
 
       await wrapper.vm.handleOpenFile(transfer);
 
-      expect(message.error).toHaveBeenCalledWith('打开文件失败');
+      expect(mockMessage.error).toHaveBeenCalledWith('打开文件失败');
     });
 
     it('应该能更新传输状态', async () => {
@@ -406,11 +410,11 @@ describe('FileTransferPage.vue', () => {
 
       await wrapper.vm.handleResend(transfer);
 
-      expect(message.info).toHaveBeenCalledWith('重新发送功能开发中...');
+      expect(mockMessage.info).toHaveBeenCalledWith('重新发送功能开发中...');
     });
 
     it('应该能删除历史记录', async () => {
-      Modal.confirm.mockImplementation(({ onOk }) => {
+      mockModal.confirm.mockImplementation(({ onOk }) => {
         onOk();
         return Promise.resolve();
       });
@@ -420,8 +424,8 @@ describe('FileTransferPage.vue', () => {
 
       await wrapper.vm.handleDelete(transfer);
 
-      expect(Modal.confirm).toHaveBeenCalled();
-      expect(message.success).toHaveBeenCalledWith('已删除');
+      expect(mockModal.confirm).toHaveBeenCalled();
+      expect(mockMessage.success).toHaveBeenCalledWith('已删除');
       expect(wrapper.vm.transfers.length).toBe(initialLength - 1);
     });
 
@@ -581,7 +585,7 @@ describe('FileTransferPage.vue', () => {
 
       await wrapper.vm.handleOpenFile(transfer);
 
-      expect(message.error).toHaveBeenCalled();
+      expect(mockMessage.error).toHaveBeenCalled();
     });
 
     it('应该处理非常大的文件', () => {
@@ -611,8 +615,8 @@ describe('FileTransferPage.vue', () => {
       await wrapper.vm.handleRefresh();
 
       // loadTransfers handles errors internally and falls back to dummy data
-      // So message.success should still be called
-      expect(message.success).toHaveBeenCalledWith('刷新成功');
+      // So mockMessage.success should still be called
+      expect(mockMessage.success).toHaveBeenCalledWith('刷新成功');
     });
 
     it('应该处理网络错误', async () => {
@@ -625,7 +629,7 @@ describe('FileTransferPage.vue', () => {
 
       await wrapper.vm.handleBeforeUpload(file);
 
-      expect(message.error).toHaveBeenCalledWith('发送失败: Network error');
+      expect(mockMessage.error).toHaveBeenCalledWith('发送失败: Network error');
     });
 
     it('应该处理打开文件权限错误', async () => {
@@ -637,7 +641,7 @@ describe('FileTransferPage.vue', () => {
 
       await wrapper.vm.handleOpenFile(transfer);
 
-      expect(message.error).toHaveBeenCalledWith('打开文件失败');
+      expect(mockMessage.error).toHaveBeenCalledWith('打开文件失败');
     });
   });
 

@@ -13,13 +13,15 @@ vi.mock("@/stores/identity", () => ({
 }));
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock vue-router
@@ -483,7 +485,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.templateForm.templateName = "New Template";
       wrapper.vm.templateForm.templateType = "role";
@@ -534,7 +536,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.templateForm.templateName = "New Template";
 
@@ -549,7 +551,7 @@ describe("PermissionManagementPage.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       wrapper.vm.templateForm.templateName = "New Template";
@@ -587,7 +589,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const override = {
         targetType: "user",
@@ -616,7 +618,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleCreateOverride({});
 
@@ -653,7 +655,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleDeleteOverride("override-1");
 
@@ -675,7 +677,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleDeleteOverride("override-1");
 
@@ -707,7 +709,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleApplyTemplate("template-1", "role", "role-1");
 
@@ -731,7 +733,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleApplyTemplate("template-1", "role", "role-1");
 
@@ -762,7 +764,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const group = {
         name: "New Group",
@@ -789,7 +791,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleCreateGroup({});
 
@@ -824,7 +826,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleAssignGroup("admin", "group-1");
 
@@ -847,7 +849,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleAssignGroup("admin", "group-1");
 
@@ -996,7 +998,7 @@ describe("PermissionManagementPage.vue", () => {
       });
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleCreateOverride({});
 
@@ -1009,7 +1011,7 @@ describe("PermissionManagementPage.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       await wrapper.vm.handleCreateGroup(null);
@@ -1024,7 +1026,7 @@ describe("PermissionManagementPage.vue", () => {
       );
 
       wrapper = createWrapper();
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const { logger } = require("@/utils/logger");
 
       await wrapper.vm.handleCreateOverride(null);

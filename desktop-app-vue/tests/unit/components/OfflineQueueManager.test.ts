@@ -7,6 +7,14 @@ import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import OfflineQueueManager from '@renderer/components/OfflineQueueManager.vue';
 
+// Hoisted mocks for ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 // Mock Ant Design Vue components
 const globalStubs = {
   'a-card': {
@@ -98,12 +106,7 @@ global.window = global.window || {};
 
 // Mock ant-design-vue message
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 describe('OfflineQueueManager.vue', () => {
@@ -164,7 +167,7 @@ describe('OfflineQueueManager.vue', () => {
         error: '网络错误',
       });
 
-      const { message } = await import('ant-design-vue');
+      const message = mockMessage;
 
       const wrapper = mount(OfflineQueueManager, {
         global: {
@@ -179,6 +182,8 @@ describe('OfflineQueueManager.vue', () => {
     });
 
     it('应该正确设置loading状态', async () => {
+      vi.useFakeTimers();
+
       mockIpcRenderer.invoke.mockImplementation(() => {
         return new Promise((resolve) => {
           setTimeout(() => resolve({ success: true, messages: [] }), 100);
@@ -192,11 +197,16 @@ describe('OfflineQueueManager.vue', () => {
         },
       });
 
+      // 初始状态应该是 loading
       expect(wrapper.vm.loading).toBe(true);
 
+      // 推进定时器并等待 Promise 完成
+      await vi.advanceTimersByTimeAsync(100);
       await flushPromises();
 
       expect(wrapper.vm.loading).toBe(false);
+
+      vi.useRealTimers();
     });
   });
 

@@ -3,15 +3,12 @@ import { mount } from "@vue/test-utils";
 import OrganizationMembersPage from "@renderer/pages/OrganizationMembersPage.vue";
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() }));
+const mockModal = vi.hoisted(() => ({ confirm: vi.fn((opts) => { if (opts?.onOk) Promise.resolve().then(() => opts.onOk()); return { destroy: vi.fn() }; }), info: vi.fn(), success: vi.fn(), error: vi.fn(), warning: vi.fn() }));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-  },
-  Modal: {
-    confirm: vi.fn(),
-  },
+  message: mockMessage,
+  Modal: mockModal,
 }));
 
 // Mock vue-router
@@ -184,7 +181,7 @@ describe("OrganizationMembersPage.vue", () => {
 
     it("应该在非组织上下文时警告用户", async () => {
       mockIdentityStore.isOrganizationContext = false;
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper = createWrapper();
 
       await wrapper.vm.loadMembers();
@@ -195,7 +192,7 @@ describe("OrganizationMembersPage.vue", () => {
 
     it("应该处理加载成员失败的情况", async () => {
       window.ipc.invoke.mockRejectedValue(new Error("Network error"));
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper = createWrapper();
 
       await wrapper.vm.$nextTick();
@@ -311,7 +308,7 @@ describe("OrganizationMembersPage.vue", () => {
     });
 
     it("应该创建邀请码", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       const mockInvitation = {
         invite_code: "ABC123",
       };
@@ -371,7 +368,7 @@ describe("OrganizationMembersPage.vue", () => {
 
     it("应该能复制邀请码", async () => {
       wrapper.vm.generatedInviteCode = "ABC123";
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.copyInviteCode();
 
@@ -381,7 +378,7 @@ describe("OrganizationMembersPage.vue", () => {
 
     it("应该处理创建邀请失败", async () => {
       window.ipc.invoke.mockRejectedValue(new Error("Failed"));
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleCreateInvitation();
 
@@ -410,7 +407,7 @@ describe("OrganizationMembersPage.vue", () => {
         .mockResolvedValueOnce(mockMembers)
         .mockResolvedValueOnce()
         .mockResolvedValueOnce(mockMembers);
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.selectedMember = mockMembers[1];
       wrapper.vm.newRole = "member";
@@ -446,7 +443,7 @@ describe("OrganizationMembersPage.vue", () => {
 
     it("应该处理更新角色失败", async () => {
       window.ipc.invoke.mockRejectedValue(new Error("Update failed"));
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       wrapper.vm.selectedMember = mockMembers[1];
       await wrapper.vm.handleUpdateRole();
@@ -467,7 +464,7 @@ describe("OrganizationMembersPage.vue", () => {
         .mockResolvedValueOnce(mockMembers)
         .mockResolvedValueOnce()
         .mockResolvedValueOnce(mockMembers);
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       const member = mockMembers[1];
       await wrapper.vm.handleRemoveMember(member);
@@ -496,7 +493,7 @@ describe("OrganizationMembersPage.vue", () => {
 
     it("应该处理移除成员失败", async () => {
       window.ipc.invoke.mockRejectedValue(new Error("Remove failed"));
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
 
       await wrapper.vm.handleRemoveMember(mockMembers[1]);
 

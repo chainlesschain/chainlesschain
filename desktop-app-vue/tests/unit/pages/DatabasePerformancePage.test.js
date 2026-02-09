@@ -17,13 +17,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 
 // Mock ant-design-vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock('ant-design-vue', () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
   Modal: {
     confirm: vi.fn(),
   },
@@ -236,7 +238,7 @@ describe('DatabasePerformancePage', () => {
         `,
         setup() {
           const { ref, computed, onMounted } = require('vue');
-          const { message } = require('ant-design-vue');
+          const message = mockMessage;
 
           const stats = ref({ ...mockStats });
           const slowQueries = ref([...mockSlowQueries]);
@@ -515,7 +517,7 @@ describe('DatabasePerformancePage', () => {
   describe('数据库操作', () => {
     it('应该能刷新统计', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke
         .mockResolvedValueOnce(mockStats)
         .mockResolvedValueOnce(mockSlowQueries)
@@ -531,7 +533,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能重置统计', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke
         .mockResolvedValueOnce()
         .mockResolvedValueOnce(mockStats);
@@ -544,7 +546,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能处理重置失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('重置失败'));
 
       await wrapper.vm.resetStats();
@@ -554,7 +556,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能清空缓存', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke
         .mockResolvedValueOnce()
         .mockResolvedValueOnce(mockStats);
@@ -567,7 +569,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能处理清空缓存失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('清空失败'));
 
       await wrapper.vm.clearCache();
@@ -577,7 +579,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能优化数据库', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke
         .mockResolvedValueOnce()
         .mockResolvedValueOnce(mockStats);
@@ -590,7 +592,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能处理优化失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('优化失败'));
 
       await wrapper.vm.optimizeDatabase();
@@ -661,7 +663,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能应用单个索引建议', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke
         .mockResolvedValueOnce()
         .mockResolvedValueOnce([]);
@@ -682,7 +684,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能处理应用索引失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('索引错误'));
 
       await wrapper.vm.applyIndexSuggestion(mockIndexSuggestions[0]);
@@ -692,7 +694,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能应用所有索引建议', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke
         .mockResolvedValueOnce()
         .mockResolvedValueOnce([]);
@@ -708,7 +710,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能处理批量应用失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('批量失败'));
 
       await wrapper.vm.applyAllIndexSuggestions();
@@ -867,7 +869,7 @@ describe('DatabasePerformancePage', () => {
   describe('错误处理', () => {
     it('应该能处理统计加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('加载错误'));
 
       await wrapper.vm.loadStats();
@@ -877,7 +879,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能处理慢查询加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('查询错误'));
 
       await wrapper.vm.loadSlowQueries();
@@ -889,7 +891,7 @@ describe('DatabasePerformancePage', () => {
 
     it('应该能处理索引建议加载失败', async () => {
       wrapper = createWrapper();
-      const { message } = require('ant-design-vue');
+      const message = mockMessage;
       window.electronAPI.invoke.mockRejectedValue(new Error('建议错误'));
 
       await wrapper.vm.loadIndexSuggestions();

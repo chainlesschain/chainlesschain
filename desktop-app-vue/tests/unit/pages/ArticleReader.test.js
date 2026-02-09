@@ -9,13 +9,15 @@ import ArticleReader from "@renderer/pages/rss/ArticleReader.vue";
 import { nextTick } from "vue";
 
 // Mock Ant Design Vue
+const mockMessage = vi.hoisted(() => ({
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+}));
+
 vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-  },
+  message: mockMessage,
 }));
 
 // Mock Vue Router
@@ -245,7 +247,7 @@ describe("ArticleReader", () => {
     });
 
     it("处理加载订阅源失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("加载失败"),
       );
@@ -510,7 +512,7 @@ describe("ArticleReader", () => {
     });
 
     it("应该能收藏文章", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedArticle = { ...wrapper.vm.articles[0] };
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
@@ -526,7 +528,7 @@ describe("ArticleReader", () => {
     });
 
     it("应该能取消收藏", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedArticle = { ...wrapper.vm.articles[1] };
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
@@ -565,7 +567,7 @@ describe("ArticleReader", () => {
     });
 
     it("处理收藏失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedArticle = { ...wrapper.vm.articles[0] };
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("操作失败"),
@@ -598,7 +600,7 @@ describe("ArticleReader", () => {
     });
 
     it("应该能保存到知识库", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedArticle = wrapper.vm.articles[0];
       window.electron.ipcRenderer.invoke.mockResolvedValue({ success: true });
 
@@ -623,7 +625,7 @@ describe("ArticleReader", () => {
     });
 
     it("处理保存失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedArticle = wrapper.vm.articles[0];
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("保存失败"),
@@ -702,7 +704,7 @@ describe("ArticleReader", () => {
     });
 
     it("应该能标记为已读", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedArticle = { ...wrapper.vm.articles[0] };
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
@@ -717,7 +719,7 @@ describe("ArticleReader", () => {
     });
 
     it("应该能标记为未读", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedArticle = { ...wrapper.vm.articles[1] };
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
@@ -744,7 +746,7 @@ describe("ArticleReader", () => {
     });
 
     it("应该能归档文章", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedArticle = { ...wrapper.vm.articles[0] };
       window.electron.ipcRenderer.invoke.mockResolvedValue();
 
@@ -770,7 +772,7 @@ describe("ArticleReader", () => {
     });
 
     it("处理菜单操作失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       wrapper.vm.selectedArticle = { ...wrapper.vm.articles[0] };
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("操作失败"),
@@ -817,7 +819,7 @@ describe("ArticleReader", () => {
     });
 
     it("处理加载文章失败", async () => {
-      const { message } = require("ant-design-vue");
+      const message = mockMessage;
       window.electron.ipcRenderer.invoke.mockRejectedValue(
         new Error("加载失败"),
       );
