@@ -247,7 +247,7 @@ class SessionManager extends EventEmitter {
         title: row.title,
         messages: JSON.parse(row.messages || "[]"),
         compressedHistory: row.compressed_history,
-        metadata: JSON.parse(row.metadata || "{}"),
+        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
       };
 
       // 缓存
@@ -860,7 +860,7 @@ ${conversationText}
         id: row.id,
         conversationId: row.conversation_id,
         title: row.title,
-        metadata: JSON.parse(row.metadata || "{}"),
+        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -1046,7 +1046,7 @@ ${conversationText}
       id: row.id,
       conversationId: row.conversation_id,
       title: row.title,
-      metadata: JSON.parse(row.metadata || "{}"),
+      metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };
@@ -1129,7 +1129,7 @@ ${conversationText}
 
       const tagCount = new Map();
       for (const row of rows) {
-        const metadata = JSON.parse(row.metadata || "{}");
+        const metadata = typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {});
         const tags = metadata.tags || [];
         for (const tag of tags) {
           tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
@@ -1776,7 +1776,7 @@ ${conversationText}
         description: row.description,
         category: row.category,
         sourceSessionId: row.source_session_id,
-        metadata: JSON.parse(row.metadata || "{}"),
+        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));
@@ -2408,7 +2408,7 @@ ${conversationText}
         id: row.id,
         conversationId: row.conversation_id,
         title: row.title,
-        metadata: JSON.parse(row.metadata || "{}"),
+        metadata: typeof row.metadata === 'string' ? JSON.parse(row.metadata || "{}") : (row.metadata || {}),
         createdAt: row.created_at,
         updatedAt: row.updated_at,
       }));

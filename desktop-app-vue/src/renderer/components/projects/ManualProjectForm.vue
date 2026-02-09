@@ -379,7 +379,7 @@ const selectTemplate = async (template) => {
 
   // 获取模板预览
   try {
-    const result = await window.electronAPI?.invoke('template:preview', template.id);
+    const result = await window.electronAPI?.invoke('template-library:preview', template.id);
     if (result && result.success) {
       selectedTemplatePreview.value = result.preview;
     }
@@ -509,7 +509,7 @@ onMounted(() => {
 watch(() => formData.description, async (newDesc) => {
   if (newDesc && newDesc.length > 10 && templateFilter.value === 'recommended') {
     try {
-      const result = await window.electronAPI?.invoke('template:recommend', newDesc, 5);
+      const result = await window.electronAPI?.invoke('template-library:recommend', newDesc, 5);
       if (result && result.success) {
         // 更新推荐模板
       }
