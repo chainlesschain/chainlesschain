@@ -501,9 +501,9 @@ describe("Review System IPC", () => {
     it("get-by-target handler should accept targetId, targetType, and filters parameters", () => {
       const content = fs.readFileSync(REVIEW_IPC_PATH, "utf-8");
       expect(content).toContain("review:get-by-target");
-      expect(content).toContain(
-        "getReviewsByTarget(targetId, targetType, filters)",
-      );
+      // 验证方法调用包含必要的参数（支持多行格式）
+      expect(content).toContain("getReviewsByTarget");
+      expect(content).toMatch(/getReviewsByTarget\s*\([^)]*targetId[^)]*targetType[^)]*filters/s);
     });
 
     it("reply handler should accept reviewId and content parameters", () => {
