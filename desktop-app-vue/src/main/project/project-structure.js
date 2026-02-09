@@ -1,71 +1,100 @@
 /**
  * 项目文件夹结构管理器
  * 定义和创建不同类型项目的标准目录结构
+ * 与 Android 端对齐的 12 种项目类型
  */
 
 const { logger } = require("../utils/logger.js");
 const fs = require("fs").promises;
 const path = require("path");
+const {
+  ProjectType,
+  ProjectTypeInfo,
+  ProjectTemplates,
+  getTemplateById,
+  getTemplatesByCategory,
+  getTemplatesByProjectType,
+} = require("./project-types.js");
 
 class ProjectStructureManager {
   constructor() {
-    // 项目结构定义
+    // 项目结构定义 - 12种项目类型（与Android对齐）
     this.structures = {
-      // Web开发项目
-      web: {
+      // 1. Android应用项目
+      [ProjectType.ANDROID]: {
+        name: "Android应用项目",
+        directories: [
+          "app/src/main/java/com/example/app",
+          "app/src/main/java/com/example/app/ui",
+          "app/src/main/java/com/example/app/data",
+          "app/src/main/java/com/example/app/viewmodel",
+          "app/src/main/res/layout",
+          "app/src/main/res/values",
+          "app/src/main/res/drawable",
+          "app/src/test/java/com/example/app",
+          "app/src/androidTest/java/com/example/app",
+          "gradle/wrapper",
+        ],
+        files: [
+          { path: "README.md", template: "readme_android" },
+          { path: "build.gradle.kts", template: "android_build_gradle_root" },
+          { path: "settings.gradle.kts", template: "android_settings_gradle" },
+          { path: "gradle.properties", template: "android_gradle_properties" },
+          { path: "app/build.gradle.kts", template: "android_build_gradle_app" },
+          { path: "app/src/main/AndroidManifest.xml", template: "android_manifest" },
+          { path: "app/src/main/java/com/example/app/MainActivity.kt", template: "android_main_activity" },
+          { path: ".gitignore", template: "gitignore_android" },
+        ],
+      },
+
+      // 2. iOS应用项目
+      [ProjectType.IOS]: {
+        name: "iOS应用项目",
+        directories: [
+          "Sources",
+          "Sources/App",
+          "Sources/Views",
+          "Sources/Models",
+          "Sources/ViewModels",
+          "Sources/Services",
+          "Resources",
+          "Resources/Assets.xcassets",
+          "Tests",
+        ],
+        files: [
+          { path: "README.md", template: "readme_ios" },
+          { path: "Package.swift", template: "ios_package_swift" },
+          { path: "Sources/App/App.swift", template: "ios_app" },
+          { path: "Sources/Views/ContentView.swift", template: "ios_content_view" },
+          { path: ".gitignore", template: "gitignore_ios" },
+        ],
+      },
+
+      // 3. Web开发项目
+      [ProjectType.WEB]: {
         name: "Web开发项目",
         directories: [
           "src",
-          "src/css",
-          "src/js",
-          "src/images",
-          "assets",
-          "assets/fonts",
-          "assets/icons",
+          "src/components",
+          "src/pages",
+          "src/styles",
+          "src/utils",
+          "src/assets",
+          "public",
           "dist",
-          "docs",
         ],
         files: [
           { path: "src/index.html", template: "html_basic" },
-          { path: "src/css/style.css", template: "css_basic" },
-          { path: "src/js/script.js", template: "js_basic" },
+          { path: "src/styles/style.css", template: "css_basic" },
+          { path: "src/utils/script.js", template: "js_basic" },
           { path: "README.md", template: "readme_web" },
           { path: ".gitignore", template: "gitignore_web" },
         ],
       },
 
-      // 文档项目
-      document: {
-        name: "文档项目",
-        directories: ["docs", "assets", "assets/images", "templates", "output"],
-        files: [
-          { path: "docs/README.md", template: "readme_document" },
-          { path: ".gitignore", template: "gitignore_document" },
-        ],
-      },
-
-      // 数据分析项目
-      data: {
-        name: "数据分析项目",
-        directories: [
-          "data",
-          "data/raw",
-          "data/processed",
-          "scripts",
-          "notebooks",
-          "output",
-          "output/charts",
-          "output/reports",
-        ],
-        files: [
-          { path: "README.md", template: "readme_data" },
-          { path: ".gitignore", template: "gitignore_data" },
-        ],
-      },
-
-      // 应用开发项目
-      app: {
-        name: "应用程序项目",
+      // 4. 桌面应用项目
+      [ProjectType.DESKTOP]: {
+        name: "桌面应用项目",
         directories: [
           "src",
           "src/main",
@@ -77,12 +106,183 @@ class ProjectStructureManager {
           "docs",
         ],
         files: [
-          { path: "README.md", template: "readme_app" },
+          { path: "README.md", template: "readme_desktop" },
           { path: ".gitignore", template: "gitignore_app" },
           { path: "package.json", template: "package_json" },
         ],
       },
+
+      // 5. API服务项目
+      [ProjectType.API]: {
+        name: "API服务项目",
+        directories: [
+          "src",
+          "src/controllers",
+          "src/middlewares",
+          "src/models",
+          "src/routes",
+          "src/services",
+          "src/utils",
+          "src/config",
+          "tests",
+        ],
+        files: [
+          { path: "README.md", template: "readme_api" },
+          { path: "package.json", template: "nodejs_package_json" },
+          { path: "src/index.ts", template: "nodejs_index" },
+          { path: "src/app.ts", template: "nodejs_app" },
+          { path: ".gitignore", template: "gitignore_node" },
+        ],
+      },
+
+      // 6. 数据分析项目
+      [ProjectType.DATA]: {
+        name: "数据分析项目",
+        directories: [
+          "data",
+          "data/raw",
+          "data/processed",
+          "notebooks",
+          "src",
+          "src/data",
+          "src/features",
+          "src/models",
+          "src/visualization",
+          "reports",
+          "reports/figures",
+        ],
+        files: [
+          { path: "README.md", template: "readme_data" },
+          { path: "requirements.txt", template: "python_ds_requirements" },
+          { path: "notebooks/01_exploration.ipynb", template: "python_ds_notebook" },
+          { path: ".gitignore", template: "gitignore_python" },
+        ],
+      },
+
+      // 7. 文档项目
+      [ProjectType.DOCUMENT]: {
+        name: "文档项目",
+        directories: ["docs", "assets", "assets/images", "templates", "output"],
+        files: [
+          { path: "docs/README.md", template: "readme_document" },
+          { path: ".gitignore", template: "gitignore_document" },
+        ],
+      },
+
+      // 8. 游戏开发项目
+      [ProjectType.GAME]: {
+        name: "游戏开发项目",
+        directories: [
+          "src",
+          "src/scenes",
+          "src/entities",
+          "src/components",
+          "src/systems",
+          "src/utils",
+          "assets",
+          "assets/sprites",
+          "assets/audio",
+          "assets/fonts",
+        ],
+        files: [
+          { path: "README.md", template: "readme_game" },
+          { path: "package.json", template: "game_package_json" },
+          { path: "src/main.js", template: "game_main" },
+          { path: ".gitignore", template: "gitignore_node" },
+        ],
+      },
+
+      // 9. AI/ML项目
+      [ProjectType.AI]: {
+        name: "AI/ML项目",
+        directories: [
+          "data",
+          "data/raw",
+          "data/processed",
+          "models",
+          "models/checkpoints",
+          "notebooks",
+          "src",
+          "src/data",
+          "src/models",
+          "src/training",
+          "src/evaluation",
+          "src/utils",
+          "configs",
+          "logs",
+        ],
+        files: [
+          { path: "README.md", template: "readme_ai" },
+          { path: "requirements.txt", template: "ai_requirements" },
+          { path: "src/train.py", template: "ai_train" },
+          { path: "configs/config.yaml", template: "ai_config" },
+          { path: ".gitignore", template: "gitignore_python" },
+        ],
+      },
+
+      // 10. IoT项目
+      [ProjectType.IOT]: {
+        name: "IoT项目",
+        directories: [
+          "firmware",
+          "firmware/src",
+          "firmware/include",
+          "firmware/lib",
+          "hardware",
+          "docs",
+          "tools",
+        ],
+        files: [
+          { path: "README.md", template: "readme_iot" },
+          { path: "platformio.ini", template: "iot_platformio" },
+          { path: "firmware/src/main.cpp", template: "iot_main" },
+          { path: ".gitignore", template: "gitignore_iot" },
+        ],
+      },
+
+      // 11. 嵌入式开发项目
+      [ProjectType.EMBEDDED]: {
+        name: "嵌入式开发项目",
+        directories: [
+          "src",
+          "include",
+          "lib",
+          "drivers",
+          "hal",
+          "tests",
+          "docs",
+          "tools",
+        ],
+        files: [
+          { path: "README.md", template: "readme_embedded" },
+          { path: "CMakeLists.txt", template: "embedded_cmake" },
+          { path: "src/main.c", template: "embedded_main" },
+          { path: ".gitignore", template: "gitignore_embedded" },
+        ],
+      },
+
+      // 12. 其他项目（通用）
+      [ProjectType.OTHER]: {
+        name: "通用项目",
+        directories: ["src", "docs", "assets"],
+        files: [
+          { path: "README.md", template: "readme_empty" },
+          { path: ".gitignore", template: "gitignore_general" },
+        ],
+      },
+
+      // 保留旧的别名以保持向后兼容
+      web: null, // 将在构造函数中设置
+      document: null,
+      data: null,
+      app: null,
     };
+
+    // 设置向后兼容的别名
+    this.structures.web = this.structures[ProjectType.WEB];
+    this.structures.document = this.structures[ProjectType.DOCUMENT];
+    this.structures.data = this.structures[ProjectType.DATA];
+    this.structures.app = this.structures[ProjectType.DESKTOP];
 
     // 文件模板
     this.templates = {
