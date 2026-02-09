@@ -564,8 +564,7 @@ test.describe.serial('Project Management Journey (Full Lifecycle)', () => {
     const project: any = await callIPC(window, 'project:get', projectId);
     expect(project).toBeDefined();
     expect(project.status).toBe('completed');
-    // TODO: delivered_at field not returned by project:get API
-    // expect(project.delivered_at).toBeDefined();
+    expect(project.delivered_at).toBeDefined();
       });
 
   test('Phase 7.5: Archive board', async () => {
