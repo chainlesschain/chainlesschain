@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer, desktopCapturer } = require("electron");
 
 /**
  * 清理对象中的 undefined 值
@@ -2956,8 +2956,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
 });
 
 // Also expose a direct electron object for components that use window.electron.ipcRenderer
-const { desktopCapturer } = require("electron");
-
 contextBridge.exposeInMainWorld("electron", {
   ipcRenderer: {
     invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
