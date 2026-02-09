@@ -933,9 +933,11 @@ describe('UKeyManager', () => {
       expect(ukeyManager.driverType).toBe(DriverTypes.XINJINKE);
     });
 
-    it.skip('应该处理null配置', () => {
-      // TODO: Source code doesn't handle null config - will throw "Cannot read properties of null"
-      // This is a real bug in the source code at ukey-manager.js:48
+    it('应该处理null配置', () => {
+      ukeyManager = new UKeyManager(null);
+
+      expect(ukeyManager.config).toEqual({});
+      expect(ukeyManager.driverType).toBe(DriverTypes.XINJINKE);
     });
 
     it('应该处理undefined配置', () => {

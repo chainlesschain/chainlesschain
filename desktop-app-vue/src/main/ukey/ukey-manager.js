@@ -43,9 +43,10 @@ class UKeyManager extends EventEmitter {
   constructor(config = {}) {
     super();
 
-    this.config = config;
+    // Normalize config - handle null/undefined
+    this.config = config || {};
     this.currentDriver = null;
-    this.driverType = config.driverType || DriverTypes.XINJINKE;
+    this.driverType = this.config.driverType || DriverTypes.XINJINKE;
     this.isInitialized = false;
 
     // 驱动实例缓存

@@ -7,7 +7,15 @@
 const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
-const { app } = require('electron');
+const os = require('os');
+
+// Safe import of electron app - may not exist in test environment
+let app;
+try {
+  app = require('electron').app;
+} catch {
+  app = null;
+}
 
 /**
  * 默认配置
@@ -65,7 +73,13 @@ class UKeyConfig {
    * 获取配置文件路径
    */
   getConfigPath() {
-    const userDataPath = app.getPath('userData');
+    let userDataPath;
+    if (app && typeof app.getPath === 'function') {
+      userDataPath = app.getPath('userData');
+    } else {
+      // Fallback for non-Electron environment (e.g., tests)
+      userDataPath = path.join(os.homedir(), '.chainlesschain');
+    }
     return path.join(userDataPath, 'ukey-config.json');
   }
 
