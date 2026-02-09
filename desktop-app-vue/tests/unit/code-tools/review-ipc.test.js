@@ -41,7 +41,8 @@ function extractIPCHandlers(filePath) {
   const content = fs.readFileSync(filePath, "utf-8");
 
   // 匹配 ipcMain.handle('channel-name', ...) 的模式
-  const handlerPattern = /ipcMain\.handle\(['"]([^'"]+)['"]/g;
+  // 支持多行格式（channel名称可能在下一行）
+  const handlerPattern = /ipcMain\.handle\(\s*['"]([^'"]+)['"]/g;
 
   const handlers = [];
   let match;
