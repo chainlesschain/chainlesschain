@@ -8,11 +8,11 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 
-// Mock dependencies
+// Mock dependencies using vi.hoisted to ensure mocks survive vi.resetModules()
 // IMPORTANT: Source uses `const pptxgen = require('pptxgenjs')` then `new pptxgen()`
 // So we must return the constructor function as the default export
-const mockPptxGenConstructor = vi.fn(function () {
-  return {
+const mockPptxGenConstructor = vi.hoisted(() => {
+  const createMockInstance = () => ({
     author: "",
     title: "",
     company: "",
@@ -24,7 +24,13 @@ const mockPptxGenConstructor = vi.fn(function () {
       addImage: vi.fn(),
     })),
     writeFile: vi.fn().mockResolvedValue(undefined),
-  };
+  });
+
+  const constructor = vi.fn(function() {
+    return createMockInstance();
+  });
+
+  return constructor;
 });
 
 vi.mock("pptxgenjs", () => {
@@ -54,20 +60,24 @@ vi.mock("http", () => ({
   request: vi.fn(),
 }));
 
+// Import PPTEngine once at module level (after mocks are set up)
+let PPTEngineModule;
+
 describe("PPT引擎测试", () => {
   let PPTEngine;
   let pptEngine;
   let mockPptxgen;
-  let mockFs;
-  let mockHttp;
   let tmpDir;
   let testPptxPath;
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
+  beforeAll(async () => {
+    // Import the module once - mocks are already set up by vi.mock
+    PPTEngineModule = await import("../../../src/main/engines/ppt-engine.js");
+  });
 
-    // CRITICAL: Reset modules to ensure mocks are applied
-    vi.resetModules();
+  beforeEach(async () => {
+    // Clear mock call history but don't reset modules
+    vi.clearAllMocks();
 
     // Create temporary directory for test files
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ppt-test-"));
@@ -76,14 +86,8 @@ describe("PPT引擎测试", () => {
     // Use the module-level mock constructor
     mockPptxgen = mockPptxGenConstructor;
 
-    mockFs = await import("fs");
-    mockHttp = await import("http");
-
-    // Import PPTEngine after mocks
-    const module = await import(
-      "../../../src/main/engines/ppt-engine.js?t=" + Date.now()
-    );
-    PPTEngine = module.default;
+    // Get PPTEngine from the cached module
+    PPTEngine = PPTEngineModule.default;
     pptEngine = new PPTEngine();
   });
 

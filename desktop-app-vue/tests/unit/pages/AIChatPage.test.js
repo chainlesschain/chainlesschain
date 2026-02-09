@@ -39,29 +39,39 @@ vi.mock("vue-router", () => ({
   useRoute: () => mockRouter.currentRoute.value,
 }));
 
-// Mock auth store
-const mockAuthStore = {
+// Mock auth store - use hoisted to ensure it's available when mock is evaluated
+const mockAuthStore = vi.hoisted(() => ({
   currentUser: {
     username: "testuser",
     avatar: "/avatar.png",
   },
-};
+  logout: vi.fn(),
+}));
 
 vi.mock("@/stores/auth", () => ({
   useAuthStore: () => mockAuthStore,
 }));
 
-// Mock marked library
-vi.mock("marked", () => ({
-  marked: {
-    parse: vi.fn((content) => `<p>${content}</p>`),
-    setOptions: vi.fn(),
-    use: vi.fn(),
-    Renderer: vi.fn().mockImplementation(() => ({
-      code: vi.fn(),
-    })),
-  },
-}));
+// Hoist marked mock parse function so tests can access it
+const mockMarkedParse = vi.hoisted(() => vi.fn((content) => `<p>${content}</p>`));
+
+// Mock marked library - use class to properly support new Renderer() and method binding
+vi.mock("marked", () => {
+  class MockRenderer {
+    constructor() {
+      this.code = vi.fn((code, lang) => `<pre><code>${code}</code></pre>`);
+    }
+  }
+
+  return {
+    marked: {
+      parse: mockMarkedParse,
+      setOptions: vi.fn(),
+      use: vi.fn(),
+      Renderer: MockRenderer,
+    },
+  };
+});
 
 // Mock components
 vi.mock("@/components/projects/ConversationInput.vue", () => ({
@@ -129,6 +139,18 @@ describe("AIChatPage", () => {
         llm: {
           chat: vi.fn(),
         },
+      },
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      localStorage: {
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
+      },
+      location: {
+        hash: "",
+        href: "",
+        pathname: "/",
       },
     };
 
@@ -714,6 +736,14 @@ describe("AIChatPage", () => {
   });
 
   describe("用户信息显示", () => {
+    beforeEach(() => {
+      // Reset mockAuthStore to original values before each test
+      mockAuthStore.currentUser = {
+        username: "testuser",
+        avatar: "/avatar.png",
+      };
+    });
+
     it("应该显示用户名", async () => {
       wrapper = mount(AIChatPage, {
         global: {
@@ -798,13 +828,12 @@ describe("AIChatPage", () => {
     });
 
     it("应该能渲染Markdown内容", () => {
-      const { marked } = require("marked");
-      marked.parse.mockReturnValue("<h1>Title</h1>");
+      mockMarkedParse.mockReturnValue("<h1>Title</h1>");
 
       const result = wrapper.vm.renderMarkdown("# Title");
 
       expect(result).toBe("<h1>Title</h1>");
-      expect(marked.parse).toHaveBeenCalledWith("# Title");
+      expect(mockMarkedParse).toHaveBeenCalledWith("# Title");
     });
 
     it("空内容应该返回空字符串", () => {
@@ -814,14 +843,16 @@ describe("AIChatPage", () => {
     });
 
     it("处理Markdown渲染错误", () => {
-      const { marked } = require("marked");
-      marked.parse.mockImplementation(() => {
+      mockMarkedParse.mockImplementation(() => {
         throw new Error("Parse error");
       });
 
       const result = wrapper.vm.renderMarkdown("# Title");
 
       expect(result).toBeTruthy();
+
+      // Reset the mock for other tests
+      mockMarkedParse.mockImplementation((content) => `<p>${content}</p>`);
     });
   });
 
@@ -998,7 +1029,7 @@ describe("AIChatPage", () => {
     });
 
     it("应该能处理文件上传", () => {
-      const files = [{ name: "test.txt" }];
+      const files = [{ name: "test.txt", type: "text/plain", size: 100 }];
 
       wrapper.vm.handleFileUpload(files);
 

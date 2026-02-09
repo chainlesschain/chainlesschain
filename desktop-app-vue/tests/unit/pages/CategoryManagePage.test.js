@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mount } from "@vue/test-utils";
+import { createPinia, setActivePinia } from "pinia";
 import CategoryManagePage from "@renderer/pages/projects/CategoryManagePage.vue";
 
 // Mock stores
@@ -85,10 +86,12 @@ vi.mock("@/utils/logger", () => ({
 
 describe("CategoryManagePage.vue", () => {
   let wrapper;
+  let pinia;
 
   const createWrapper = () => {
     return mount(CategoryManagePage, {
       global: {
+        plugins: [pinia],
         stubs: {
           "a-page-header": {
             template: "<div><slot /></div>",
@@ -121,6 +124,8 @@ describe("CategoryManagePage.vue", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    pinia = createPinia();
+    setActivePinia(pinia);
     mockCategoryStore.rootCategories = [
       {
         id: "cat-1",

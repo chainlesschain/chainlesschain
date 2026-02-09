@@ -1012,6 +1012,41 @@ watch(
     });
   },
 );
+
+// 暴露给测试使用
+defineExpose({
+  // 状态
+  conversations,
+  activeConversationId,
+  messages,
+  isThinking,
+  messagesContainerRef,
+  inputRef,
+  savingConversation,
+  renameModalVisible,
+  renameConversation,
+  newConversationTitle,
+  // 计算属性
+  userName,
+  userAvatar,
+  inputPlaceholder,
+  // 方法
+  loadConversations,
+  loadConversationMessages,
+  handleNewConversation,
+  handleConversationClick,
+  handleConversationAction,
+  handleSubmitMessage,
+  handleFileUpload,
+  handleNavClick,
+  handleStepRetry,
+  handleStepCancel,
+  handleUserAction,
+  renderMarkdown,
+  formatTime,
+  scrollToBottom,
+  enhanceCodeBlocks,
+});
 </script>
 
 <style scoped lang="scss">
