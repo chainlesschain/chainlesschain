@@ -46,7 +46,8 @@ function extractIPCHandlers(filePath) {
   const content = fs.readFileSync(filePath, "utf-8");
 
   // 匹配 ipcMain.handle('channel-name', ...) 的模式
-  const handlerPattern = /ipcMain\.handle\(['"]([^'"]+)['"]/g;
+  // 支持单行和多行格式（handler名称可能在下一行）
+  const handlerPattern = /ipcMain\.handle\(\s*['"]([^'"]+)['"]/g;
 
   const handlers = [];
   let match;
@@ -95,7 +96,8 @@ function extractAsyncHandlers(filePath) {
   const asyncHandlers = [];
 
   // 匹配 ipcMain.handle('channel', async (...) => 的模式
-  const asyncPattern = /ipcMain\.handle\(['"]([^'"]+)['"],\s*async\s*\(/g;
+  // 支持多行格式（channel和async可能跨行）
+  const asyncPattern = /ipcMain\.handle\(\s*['"]([^'"]+)['"],\s*async\s*\(/gs;
 
   let match;
   while ((match = asyncPattern.exec(content)) !== null) {
@@ -227,8 +229,9 @@ describe("Asset IPC Handlers", () => {
 
     it("asset:transfer should accept assetId, toDid, amount, and memo parameters", () => {
       const content = fs.readFileSync(ASSET_IPC_PATH, "utf-8");
+      // 使用 s 标志支持多行匹配
       expect(content).toMatch(
-        /asset:transfer.*async.*\(_event,\s*assetId,\s*toDid,\s*amount,\s*memo\)/,
+        /asset:transfer.*async.*\(_event,\s*assetId,\s*toDid,\s*amount,\s*memo\)/s,
       );
     });
 
