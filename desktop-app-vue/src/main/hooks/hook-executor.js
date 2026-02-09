@@ -414,14 +414,16 @@ class HookExecutor extends EventEmitter {
    * @private
    */
   _normalizeResult(result) {
-    if (!result) {
-      return { result: HookResult.CONTINUE };
-    }
-
+    // 先检查布尔值（false 应该返回 PREVENT）
     if (typeof result === "boolean") {
       return {
         result: result ? HookResult.CONTINUE : HookResult.PREVENT,
       };
+    }
+
+    // null/undefined 返回 CONTINUE
+    if (result == null) {
+      return { result: HookResult.CONTINUE };
     }
 
     if (typeof result === "object") {
