@@ -1994,7 +1994,9 @@ function registerProjectCoreIPC({
       await templateLibrary.initialize();
 
       const templates = templateLibrary.getTemplatesByCategory(category);
-      logger.info(`[Main] 获取分类 ${category} 的模板，数量: ${templates.length}`);
+      logger.info(
+        `[Main] 获取分类 ${category} 的模板，数量: ${templates.length}`,
+      );
 
       return {
         success: true,
@@ -2013,66 +2015,72 @@ function registerProjectCoreIPC({
 
   /**
    * 搜索模板
-   * Channel: 'template:search'
+   * Channel: 'template-library:search'
    */
-  ipcMain.handle("template:search", async (_event, query, options = {}) => {
-    try {
-      const { getTemplateLibrary } = require("./template-library");
-      const templateLibrary = getTemplateLibrary();
-      await templateLibrary.initialize();
+  ipcMain.handle(
+    "template-library:search",
+    async (_event, query, options = {}) => {
+      try {
+        const { getTemplateLibrary } = require("./template-library");
+        const templateLibrary = getTemplateLibrary();
+        await templateLibrary.initialize();
 
-      const templates = templateLibrary.search(query, options);
-      logger.info(`[Main] 搜索模板 "${query}"，结果: ${templates.length}`);
+        const templates = templateLibrary.search(query, options);
+        logger.info(`[Main] 搜索模板 "${query}"，结果: ${templates.length}`);
 
-      return {
-        success: true,
-        templates,
-        query,
-        total: templates.length,
-      };
-    } catch (error) {
-      logger.error("[Main] 搜索模板失败:", error);
-      return {
-        success: false,
-        error: error.message,
-        templates: [],
-      };
-    }
-  });
+        return {
+          success: true,
+          templates,
+          query,
+          total: templates.length,
+        };
+      } catch (error) {
+        logger.error("[Main] 搜索模板失败:", error);
+        return {
+          success: false,
+          error: error.message,
+          templates: [],
+        };
+      }
+    },
+  );
 
   /**
    * 推荐模板（基于项目描述）
-   * Channel: 'template:recommend'
+   * Channel: 'template-library:recommend'
    */
-  ipcMain.handle("template:recommend", async (_event, description, limit = 5) => {
-    try {
-      const { getTemplateLibrary } = require("./template-library");
-      const templateLibrary = getTemplateLibrary();
-      await templateLibrary.initialize();
+  ipcMain.handle(
+    "template-library:recommend",
+    async (_event, description, limit = 5) => {
+      try {
+        const { getTemplateLibrary } = require("./template-library");
+        const templateLibrary = getTemplateLibrary();
+        await templateLibrary.initialize();
 
-      const templates = templateLibrary.recommend(description, limit);
-      logger.info(`[Main] 推荐模板，数量: ${templates.length}`);
+        const templates = templateLibrary.recommend(description, limit);
+        logger.info(`[Main] 推荐模板，数量: ${templates.length}`);
 
-      return {
-        success: true,
-        templates,
-        description,
-      };
-    } catch (error) {
-      logger.error("[Main] 推荐模板失败:", error);
-      return {
-        success: false,
-        error: error.message,
-        templates: [],
-      };
-    }
-  });
+        return {
+          success: true,
+          templates,
+          description,
+        };
+      } catch (error) {
+        logger.error("[Main] 推荐模板失败:", error);
+        return {
+          success: false,
+          error: error.message,
+          templates: [],
+        };
+      }
+    },
+  );
 
   /**
    * 获取模板预览（树形结构）
-   * Channel: 'template:preview'
+   * Channel: 'template-library:preview'
    */
-  ipcMain.handle("template:preview", async (_event, templateId) => {
+  ipcMain.handle("template-library:preview", async (_event, templateId) => {
     try {
       const { getTemplateLibrary } = require("./template-library");
       const templateLibrary = getTemplateLibrary();
@@ -2190,55 +2198,67 @@ function registerProjectCoreIPC({
    * 导入模板
    * Channel: 'template:import'
    */
-  ipcMain.handle("template:import", async (_event, importData, options = {}) => {
-    try {
-      const { getTemplateLibrary } = require("./template-library");
-      const templateLibrary = getTemplateLibrary();
-      await templateLibrary.initialize();
+  ipcMain.handle(
+    "template:import",
+    async (_event, importData, options = {}) => {
+      try {
+        const { getTemplateLibrary } = require("./template-library");
+        const templateLibrary = getTemplateLibrary();
+        await templateLibrary.initialize();
 
-      const results = await templateLibrary.importTemplate(importData, options);
-      logger.info(
-        `[Main] 导入模板完成: 成功 ${results.success.length}, 失败 ${results.failed.length}, 跳过 ${results.skipped.length}`
-      );
+        const results = await templateLibrary.importTemplate(
+          importData,
+          options,
+        );
+        logger.info(
+          `[Main] 导入模板完成: 成功 ${results.success.length}, 失败 ${results.failed.length}, 跳过 ${results.skipped.length}`,
+        );
 
-      return {
-        success: true,
-        results,
-      };
-    } catch (error) {
-      logger.error("[Main] 导入模板失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+        return {
+          success: true,
+          results,
+        };
+      } catch (error) {
+        logger.error("[Main] 导入模板失败:", error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    },
+  );
 
   /**
    * 从项目创建模板
    * Channel: 'template:create-from-project'
    */
-  ipcMain.handle("template:create-from-project", async (_event, projectPath, templateInfo) => {
-    try {
-      const { getTemplateLibrary } = require("./template-library");
-      const templateLibrary = getTemplateLibrary();
-      await templateLibrary.initialize();
+  ipcMain.handle(
+    "template:create-from-project",
+    async (_event, projectPath, templateInfo) => {
+      try {
+        const { getTemplateLibrary } = require("./template-library");
+        const templateLibrary = getTemplateLibrary();
+        await templateLibrary.initialize();
 
-      const template = await templateLibrary.createTemplateFromProject(projectPath, templateInfo);
-      logger.info(`[Main] 从项目创建模板: ${template.id}`);
+        const template = await templateLibrary.createTemplateFromProject(
+          projectPath,
+          templateInfo,
+        );
+        logger.info(`[Main] 从项目创建模板: ${template.id}`);
 
-      return {
-        success: true,
-        template,
-      };
-    } catch (error) {
-      logger.error("[Main] 从项目创建模板失败:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
+        return {
+          success: true,
+          template,
+        };
+      } catch (error) {
+        logger.error("[Main] 从项目创建模板失败:", error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    },
+  );
 
   /**
    * 获取项目类型列表（与Android对齐的12种）
@@ -2246,7 +2266,10 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle("project-types:get-all", async () => {
     try {
-      const { getProjectTypes, getTemplateCategories } = require("./project-types");
+      const {
+        getProjectTypes,
+        getTemplateCategories,
+      } = require("./project-types");
 
       const projectTypes = getProjectTypes();
       const templateCategories = getTemplateCategories();
@@ -2292,11 +2315,18 @@ function registerProjectCoreIPC({
       // 生成项目ID和路径
       const projectId = crypto.randomUUID();
       const projectConfig = getProjectConfig();
-      const projectRootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
+      const projectRootPath = path.join(
+        projectConfig.getProjectsRootPath(),
+        projectId,
+      );
 
       // 使用 ProjectStructureManager 从模板创建
       const structureManager = new ProjectStructureManager();
-      const result = await structureManager.createFromTemplate(projectRootPath, templateId, name);
+      const result = await structureManager.createFromTemplate(
+        projectRootPath,
+        templateId,
+        name,
+      );
 
       // 保存到数据库
       if (database) {

@@ -31,6 +31,7 @@ import com.chainlesschain.android.feature.project.model.ProjectSortBy
 import com.chainlesschain.android.feature.project.model.ProjectWithStats
 import com.chainlesschain.android.feature.project.ui.components.TemplateSelectionDialog
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 /**
  * 项目页面（整合任务功能）

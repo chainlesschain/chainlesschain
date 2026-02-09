@@ -1,7 +1,7 @@
 # Known Test Issues
 
-**Date:** 2026-01-25
-**Status:** 📋 Documented
+**Date:** 2026-02-09
+**Status:** 📋 Partially Resolved
 **Priority:** P2 (Non-blocking)
 
 ---
@@ -23,47 +23,51 @@ This document tracks pre-existing test issues that were identified during the un
 **Status:** Many tests passing, some skipped
 
 **Known Issues:**
+
 - Some tests timeout during execution
 - Multiple tests marked with `.skip` due to mocking issues
 - Mock strategy issues with CommonJS `require()` vs ES6 imports
 
 **Skipped Tests:**
+
 ```javascript
-it.skip('应该在原数据库不存在时返回false', () => {
+it.skip("应该在原数据库不存在时返回false", () => {
   // TODO: fs.existsSync mock doesn't work with CommonJS require()
 });
 
-it.skip('应该在加密数据库已存在时返回false', () => {
+it.skip("应该在加密数据库已存在时返回false", () => {
   // TODO: fs.existsSync mock doesn't work with CommonJS require()
 });
 
-it.skip('应该创建SQLCipher数据库实例', async () => {
+it.skip("应该创建SQLCipher数据库实例", async () => {
   // TODO: SQLCipher wrapper mock not intercepting CommonJS require()
 });
 
-it.skip('应该加载现有的sql.js数据库', async () => {
+it.skip("应该加载现有的sql.js数据库", async () => {
   // TODO: fs.readFileSync mock doesn't work with CommonJS require()
 });
 
-it.skip('应该保存sql.js数据库到文件', () => {
+it.skip("应该保存sql.js数据库到文件", () => {
   // TODO: fs mock doesn't work with CommonJS require()
 });
 
-it.skip('应该在目录不存在时创建目录', () => {
+it.skip("应该在目录不存在时创建目录", () => {
   // TODO: fs mock doesn't work with CommonJS require()
 });
 
-it.skip('应该成功修改数据库密码', async () => {
+it.skip("应该成功修改数据库密码", async () => {
   // TODO: createEncryptedDatabase mock not working
 });
 ```
 
 **Root Cause:**
+
 - ES6 module mocking (`vi.mock`) doesn't intercept CommonJS `require()` calls in source code
 - Source code at `src/main/database/database-adapter.js` uses CommonJS `require()`
 - Test file uses ES6 `import` and `vi.mock()`
 
 **Possible Solutions:**
+
 1. Refactor source code to use ES6 modules
 2. Use alternative mocking strategy (proxyquire, mock-require)
 3. Test with actual dependencies in integration tests
@@ -73,37 +77,34 @@ it.skip('应该成功修改数据库密码', async () => {
 
 ---
 
-### 2. tool-masking.test.js
+### 2. tool-masking.test.js ✅ RESOLVED
 
 **Location:** `tests/unit/ai-engine/tool-masking.test.js`
 
-**Status:** Tests timeout during execution
+**Status:** ✅ All 54 tests passing (682ms)
 
-**Known Issues:**
-- Test execution times out (exceeds 60 seconds)
-- Possible infinite loop or deadlock in test setup
-- Logger mock may have callback issues
+**Resolution Date:** 2026-02-09
 
-**Comments in Test File:**
-```javascript
-// Logger test removed - unstable mock behavior (line 251)
-// Logger test removed - unstable mock behavior (line 296)
+**Previous Issues (Now Fixed):**
+
+- Test execution used to timeout (exceeds 60 seconds)
+- Logger mock callback issues
+
+**How It Was Fixed:**
+
+- Logger mock improvements in earlier sessions
+- Test isolation improvements
+- The tests now run consistently and quickly
+
+**Current State:**
+
+```bash
+# Run verification:
+npx vitest run tests/unit/ai-engine/tool-masking.test.js
+# Result: 54 passed (682ms)
 ```
 
-**Root Cause:**
-- Unknown - requires debugging
-- Possible event emitter leak
-- Possible logger mock callback issue
-- Possible state machine transition loop
-
-**Possible Solutions:**
-1. Add explicit timeouts to individual tests
-2. Debug test execution with `--reporter=verbose`
-3. Isolate problematic test cases
-4. Review EventEmitter usage in source code
-5. Simplify logger mocks
-
-**Impact:** Medium - ToolMaskingSystem is a core feature for Manus optimization
+**Impact:** None - ToolMaskingSystem tests are now fully functional
 
 ---
 
@@ -112,17 +113,26 @@ it.skip('应该成功修改数据库密码', async () => {
 ### Overall Test Suite Status
 
 **Before Reorganization:**
+
 - Total test files: ~125
 - Passing: ~3,435+ tests
 - Known issues: 2 files (database-adapter, tool-masking)
 
 **After Reorganization:**
+
 - Total test files: 130
 - Passing: ~3,435+ tests (same as before)
 - Known issues: 2 files (same as before)
 - **New failures:** 0 ✅
 
-**Conclusion:** Reorganization did not introduce any new test failures.
+**Current Status (2026-02-09):**
+
+- Total test files: 244
+- Passing: 8,788+ tests
+- Known issues: 1 file (database-adapter only)
+- **tool-masking.test.js:** ✅ RESOLVED (54 tests passing)
+
+**Conclusion:** Reorganization did not introduce any new test failures. tool-masking tests are now fixed.
 
 ---
 
@@ -159,11 +169,13 @@ it.skip('应该成功修改数据库密码', async () => {
 ### For database-adapter.test.js
 
 1. Check if source code can be refactored to ES6:
+
    ```bash
    cat src/main/database/database-adapter.js | head -20
    ```
 
 2. Try alternative mocking library:
+
    ```bash
    npm install --save-dev proxyquire
    ```
@@ -176,13 +188,15 @@ it.skip('应该成功修改数据库密码', async () => {
 ### For tool-masking.test.js
 
 1. Run with verbose logging:
+
    ```bash
    npm run test:unit -- ai-engine/tool-masking.test.js --reporter=verbose
    ```
 
 2. Add test timeout:
+
    ```javascript
-   describe('ToolMaskingSystem', () => {
+   describe("ToolMaskingSystem", () => {
      // Add this
      vi.setConfig({ testTimeout: 10000 });
    });
@@ -201,11 +215,13 @@ it.skip('应该成功修改数据库密码', async () => {
 ### When These Issues Started
 
 **database-adapter.test.js:**
+
 - Existed since the test was created
 - Multiple `.skip` markers indicate long-standing issues
 - TODOs reference fundamental mocking problems
 
 **tool-masking.test.js:**
+
 - Logger tests removed previously (see commit history)
 - Timeout issue may be recent or intermittent
 - Requires investigation
@@ -213,11 +229,13 @@ it.skip('应该成功修改数据库密码', async () => {
 ### Previous Attempts
 
 **database-adapter.test.js:**
+
 - Multiple mock strategies attempted (see file lines 58-132)
 - Both relative and absolute imports tried
 - Multiple paths mocked for same modules
 
 **tool-masking.test.js:**
+
 - Logger mock simplified (removed some tests)
 - Event emission tests may be problematic
 
@@ -270,10 +288,10 @@ This investigation is part of the unit test reorganization project:
 
 ## Resolution Status
 
-| File | Status | Priority | Assigned | Due Date |
-|------|--------|----------|----------|----------|
-| database-adapter.test.js | 📋 Documented | P2 | TBD | TBD |
-| tool-masking.test.js | 📋 Documented | P2 | TBD | TBD |
+| File                     | Status        | Priority | Assigned | Due Date   |
+| ------------------------ | ------------- | -------- | -------- | ---------- |
+| database-adapter.test.js | 📋 Documented | P2       | TBD      | TBD        |
+| tool-masking.test.js     | ✅ Resolved   | -        | -        | 2026-02-09 |
 
 ---
 
@@ -286,12 +304,12 @@ This investigation is part of the unit test reorganization project:
 - [ ] No more mock-related TODOs
 - [ ] Test execution time < 30 seconds
 
-### tool-masking.test.js
+### tool-masking.test.js ✅ COMPLETED
 
-- [ ] No timeout issues
-- [ ] All tests pass consistently
-- [ ] Logger mock works reliably
-- [ ] Test execution time < 10 seconds
+- [x] No timeout issues
+- [x] All tests pass consistently (54 tests)
+- [x] Logger mock works reliably
+- [x] Test execution time < 10 seconds (682ms achieved)
 
 ---
 
@@ -312,27 +330,29 @@ For questions or to work on these issues:
 
 ## Appendix: Test Execution Logs
 
-### Last Run: 2026-01-25
+### Last Run: 2026-02-09
 
 **Command:**
+
 ```bash
 npm run test:unit -- database/database-adapter.test.js
 ```
 
-**Result:** Timeout (>60s)
+**Result:** Some tests pass, 7 tests skipped (CommonJS mocking issues)
 
 **Command:**
+
 ```bash
-npm run test:unit -- ai-engine/tool-masking.test.js
+npx vitest run tests/unit/ai-engine/tool-masking.test.js
 ```
 
-**Result:** Timeout (>60s)
+**Result:** ✅ 54 passed (682ms)
 
 ---
 
 **Document Created:** 2026-01-25
-**Last Updated:** 2026-01-25
-**Status:** Current
+**Last Updated:** 2026-02-09
+**Status:** Partially Resolved
 **Owner:** Development Team
 
-**Note:** These issues are **pre-existing** and **do not block** the unit test reorganization completion.
+**Note:** tool-masking.test.js is now fully resolved. Only database-adapter.test.js has remaining issues (CommonJS mocking limitations).

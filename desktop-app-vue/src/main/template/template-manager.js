@@ -203,6 +203,10 @@ class ProjectTemplateManager {
       "travel", // 旅行规划
       "cooking", // 烹饪美食
       "career", // 职业发展
+      // 新增分类（缺失修复）
+      "business", // 商业
+      "hr", // 人力资源
+      "project", // 项目管理
     ];
 
     let loadedCount = 0;
