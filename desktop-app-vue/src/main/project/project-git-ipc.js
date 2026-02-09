@@ -50,7 +50,7 @@ function registerProjectGitIPC({
         const result = await GitAPI.init(resolvedPath, remoteUrl);
 
         // 如果后端不可用，降级到本地Git
-        if (!result.success || result.status === 0) {
+        if (!result?.success || result?.status === 0) {
           logger.warn("[Main] 后端服务不可用，使用本地Git");
           const git = require("isomorphic-git");
           const fs = require("fs");
@@ -80,7 +80,7 @@ function registerProjectGitIPC({
       const result = await GitAPI.status(resolvedPath);
 
       // 如果后端不可用，降级到本地Git
-      if (!result.success || result.status === 0) {
+      if (!result?.success || result?.status === 0) {
         logger.warn("[Main] 后端服务不可用，使用本地Git");
         const git = require("isomorphic-git");
         const fs = require("fs");
@@ -182,7 +182,7 @@ function registerProjectGitIPC({
         );
 
         // 如果后端不可用，降级到本地Git
-        if (!result.success || result.status === 0) {
+        if (!result?.success || result?.status === 0) {
           logger.warn("[Main] 后端服务不可用，使用本地Git");
           const git = require("isomorphic-git");
           const status = await git.statusMatrix({ fs, dir: resolvedPath });
@@ -239,7 +239,7 @@ function registerProjectGitIPC({
         const result = await GitAPI.push(resolvedPath, remote, branch);
 
         // 如果后端不可用，降级到本地Git
-        if (!result.success || result.status === 0) {
+        if (!result?.success || result?.status === 0) {
           logger.warn("[Main] 后端服务不可用，使用本地Git");
           const git = require("isomorphic-git");
           const fs = require("fs");
@@ -287,7 +287,7 @@ function registerProjectGitIPC({
         const result = await GitAPI.pull(resolvedPath, remote, branch);
 
         // 如果后端不可用，降级到本地Git
-        if (!result.success || result.status === 0) {
+        if (!result?.success || result?.status === 0) {
           logger.warn("[Main] 后端服务不可用，使用本地Git");
           const git = require("isomorphic-git");
           const http = require("isomorphic-git/http/node");
@@ -310,7 +310,7 @@ function registerProjectGitIPC({
           mainWindow.webContents.send("git:pulled", { projectId });
         }
 
-        return result.success ? result : { success: true };
+        return result?.success ? result : { success: true };
       } catch (error) {
         logger.error("[Main] Git拉取失败:", error);
         throw error;
@@ -338,7 +338,7 @@ function registerProjectGitIPC({
         const result = await GitAPI.log(resolvedPath, limit);
 
         // 如果后端不可用，降级到本地Git
-        if (!result.success || result.status === 0) {
+        if (!result?.success || result?.status === 0) {
           logger.warn("[Main] 后端服务不可用，使用本地Git获取提交历史");
           const git = require("isomorphic-git");
           const fs = require("fs");
