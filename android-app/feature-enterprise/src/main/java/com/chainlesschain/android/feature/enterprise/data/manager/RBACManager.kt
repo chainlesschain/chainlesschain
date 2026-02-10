@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.enterprise.data.manager
 
+import com.chainlesschain.android.feature.enterprise.data.engine.AuditAction
 import com.chainlesschain.android.feature.enterprise.data.engine.AuditLogger
 import com.chainlesschain.android.feature.enterprise.data.engine.PermissionEngine
 import com.chainlesschain.android.feature.enterprise.data.repository.RBACRepository
@@ -12,7 +13,6 @@ import javax.inject.Singleton
 
 /**
  * Manager for RBAC operations
- * Coordinates between repositories and permission engine
  */
 @Singleton
 class RBACManager @Inject constructor(
@@ -23,49 +23,15 @@ class RBACManager @Inject constructor(
 ) {
     // ==================== Permission Checking ====================
 
-    /**
-     * Check if user has permission
-     */
     suspend fun hasPermission(
         userId: String,
         permission: Permission,
         resourceType: String? = null,
         resourceId: String? = null
     ): Boolean {
-        return permissionEngine.checkPermission(userId, permission, resourceType, resourceId).granted
+        return permissionEngine.checkPermission(userId, permission, resourceType, resourceId).hasPermission
     }
 
-    /**
-     * Check multiple permissions
-     */
-    suspend fun hasAllPermissions(
-        userId: String,
-        permissions: Set<Permission>,
-        resourceType: String? = null,
-        resourceId: String? = null
-    ): Boolean {
-        return permissions.all { permission ->
-            hasPermission(userId, permission, resourceType, resourceId)
-        }
-    }
-
-    /**
-     * Check if user has any of the permissions
-     */
-    suspend fun hasAnyPermission(
-        userId: String,
-        permissions: Set<Permission>,
-        resourceType: String? = null,
-        resourceId: String? = null
-    ): Boolean {
-        return permissions.any { permission ->
-            hasPermission(userId, permission, resourceType, resourceId)
-        }
-    }
-
-    /**
-     * Get all permissions for a user
-     */
     suspend fun getUserPermissions(userId: String): Set<Permission> {
         val permissions = mutableSetOf<Permission>()
 
@@ -84,7 +50,7 @@ class RBACManager @Inject constructor(
 
         // From delegations
         rbacRepository.getActiveDelegations(userId).first().forEach { delegation ->
-            permissions.addAll(delegation.permissions)
+            permissions.add(delegation.permission)
         }
 
         return permissions
@@ -105,8 +71,8 @@ class RBACManager @Inject constructor(
             name = name,
             description = description,
             permissions = permissions,
-            isSystem = false,
-            level = 10, // Custom roles have lower priority
+            isBuiltIn = false,
+            priority = 10,
             createdBy = creatorId,
             createdAt = System.currentTimeMillis()
         )
@@ -121,7 +87,7 @@ class RBACManager @Inject constructor(
 
     suspend fun updateRole(role: Role, updaterId: String): Boolean {
         val existingRole = rbacRepository.getRoleById(role.id) ?: return false
-        if (existingRole.isSystem) return false // Cannot modify system roles
+        if (existingRole.isBuiltIn) return false
 
         val success = rbacRepository.updateRole(role)
         if (success) {
@@ -181,16 +147,18 @@ class RBACManager @Inject constructor(
     // ==================== Direct Permission Grants ====================
 
     suspend fun grantPermission(
-        userId: String,
+        granteeId: String,
+        granteeType: GranteeType,
         permission: Permission,
-        resourceType: String,
-        resourceId: String,
+        resourceType: String?,
+        resourceId: String?,
         granterId: String
     ): PermissionGrant {
         val grant = PermissionGrant(
             id = "",
-            userId = userId,
             permission = permission,
+            granteeType = granteeType,
+            granteeId = granteeId,
             resourceType = resourceType,
             resourceId = resourceId,
             grantedBy = granterId,
@@ -200,12 +168,12 @@ class RBACManager @Inject constructor(
         auditLogger.log(
             action = AuditAction.PERMISSION_GRANTED,
             userId = granterId,
-            targetUserId = userId,
+            targetUserId = granteeId,
             resourceType = resourceType,
             resourceId = resourceId,
             details = mapOf("permission" to permission.name)
         )
-        permissionEngine.invalidateCache(userId)
+        permissionEngine.invalidateCache(granteeId)
         return created
     }
 
@@ -223,20 +191,20 @@ class RBACManager @Inject constructor(
 
     // ==================== Permission Delegation ====================
 
-    suspend fun delegatePermissions(
+    suspend fun delegatePermission(
         delegatorId: String,
         delegateeId: String,
-        permissions: Set<Permission>,
+        permission: Permission,
         resourceType: String? = null,
         resourceId: String? = null,
-        expiresAt: Long? = null,
+        expiresAt: Long,
         reason: String? = null
     ): PermissionDelegation {
         val delegation = PermissionDelegation(
             id = "",
+            permission = permission,
             delegatorId = delegatorId,
             delegateeId = delegateeId,
-            permissions = permissions,
             resourceType = resourceType,
             resourceId = resourceId,
             reason = reason,
@@ -250,10 +218,7 @@ class RBACManager @Inject constructor(
             targetUserId = delegateeId,
             resourceType = resourceType,
             resourceId = resourceId,
-            details = mapOf(
-                "permissions" to permissions.map { it.name },
-                "expiresAt" to (expiresAt?.toString() ?: "never")
-            )
+            details = mapOf("permission" to permission.name, "expiresAt" to expiresAt.toString())
         )
         permissionEngine.invalidateCache(delegateeId)
         return created
@@ -276,24 +241,4 @@ class RBACManager @Inject constructor(
 
     fun getDelegationsGrantedBy(userId: String): Flow<List<PermissionDelegation>> =
         rbacRepository.getDelegationsGrantedBy(userId)
-}
-
-/**
- * Audit actions for permission changes
- */
-enum class AuditAction {
-    PERMISSION_GRANTED,
-    PERMISSION_REVOKED,
-    PERMISSION_DELEGATED,
-    DELEGATION_REVOKED,
-    ROLE_ASSIGNED,
-    ROLE_REMOVED,
-    ROLE_CREATED,
-    ROLE_UPDATED,
-    ROLE_DELETED,
-    TEAM_CREATED,
-    TEAM_UPDATED,
-    TEAM_DELETED,
-    MEMBER_ADDED,
-    MEMBER_REMOVED
 }
