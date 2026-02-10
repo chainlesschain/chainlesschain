@@ -55,7 +55,7 @@ class CoworkSystemTest {
         // 验证关键能力存在
         assertTrue("应有代码生成能力", capabilities.any { it.name == "CODE_GENERATION" })
         assertTrue("应有文件访问能力", capabilities.any { it.name == "FILE_ACCESS" })
-        assertTrue("应有网络请求能力", capabilities.any { it.name == "NETWORK_REQUEST" })
+        assertTrue("应有网络搜索能力", capabilities.any { it.name == "WEB_SEARCH" })
     }
 
     // ===== CoworkAgent Tests =====
@@ -107,7 +107,7 @@ class CoworkSystemTest {
         // Then
         assertTrue("应有CODE_GENERATION", agent.hasCapability(AgentCapability.CODE_GENERATION))
         assertTrue("应有FILE_ACCESS", agent.hasCapability(AgentCapability.FILE_ACCESS))
-        assertFalse("不应有NETWORK_REQUEST", agent.hasCapability(AgentCapability.NETWORK_REQUEST))
+        assertFalse("不应有WEB_SEARCH", agent.hasCapability(AgentCapability.WEB_SEARCH))
     }
 
     @Test
@@ -335,15 +335,20 @@ class CoworkSystemTest {
         // When
         val checkpoint = TaskCheckpoint(
             taskId = "task-1",
+            name = "Test Checkpoint",
             step = 5,
-            data = mapOf("progress" to "50", "lastFile" to "file.txt"),
-            createdAt = System.currentTimeMillis()
+            totalSteps = 10,
+            stateJson = """{"progress": "50", "lastFile": "file.txt"}""",
+            metadata = mapOf("key" to "value")
         )
 
         // Then
         assertEquals("任务ID应正确", "task-1", checkpoint.taskId)
+        assertEquals("名称应正确", "Test Checkpoint", checkpoint.name)
         assertEquals("步骤应正确", 5, checkpoint.step)
-        assertEquals("进度应正确", "50", checkpoint.data["progress"])
+        assertEquals("总步骤应正确", 10, checkpoint.totalSteps)
+        assertTrue("状态JSON应包含progress", checkpoint.stateJson.contains("progress"))
+        assertEquals("进度百分比应为50%", 50.0f, checkpoint.progressPercent, 0.01f)
     }
 
     // ===== LongRunningTask Tests =====
