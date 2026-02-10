@@ -331,7 +331,7 @@ class PermissionEngine @Inject constructor(
     /**
      * Invalidate permission cache for a user
      */
-    fun invalidateCache(userId: String) {
+    suspend fun invalidateCache(userId: String) {
         permissionCache.invalidateUser(userId)
     }
 
