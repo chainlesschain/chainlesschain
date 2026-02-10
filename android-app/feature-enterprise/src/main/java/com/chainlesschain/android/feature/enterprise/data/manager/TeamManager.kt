@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.enterprise.data.manager
 
+import com.chainlesschain.android.feature.enterprise.data.engine.AuditAction
 import com.chainlesschain.android.feature.enterprise.data.engine.AuditLogger
 import com.chainlesschain.android.feature.enterprise.data.engine.PermissionEngine
 import com.chainlesschain.android.feature.enterprise.data.repository.TeamRepository
@@ -24,6 +25,8 @@ class TeamManager @Inject constructor(
 
     fun getTeamById(teamId: String): Team? = teamRepository.getTeamById(teamId)
 
+    fun getTeamWithMembers(teamId: String): Flow<TeamWithMembers?> = teamRepository.getTeamWithMembers(teamId)
+
     fun getRootTeams(): Flow<List<Team>> = teamRepository.getTeamsByParent(null)
 
     fun getChildTeams(teamId: String): Flow<List<Team>> = teamRepository.getChildTeams(teamId)
@@ -41,8 +44,8 @@ class TeamManager @Inject constructor(
             name = name,
             description = description,
             parentTeamId = parentTeamId,
-            leaderId = creatorId, // Creator becomes initial leader
-            memberCount = 1,
+            leaderId = creatorId,
+            createdBy = creatorId,
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )
@@ -54,7 +57,8 @@ class TeamManager @Inject constructor(
             teamId = created.id,
             userId = creatorId,
             role = TeamRole.LEAD,
-            joinedAt = System.currentTimeMillis()
+            joinedAt = System.currentTimeMillis(),
+            invitedBy = creatorId
         ))
 
         auditLogger.log(
@@ -81,7 +85,6 @@ class TeamManager @Inject constructor(
     suspend fun deleteTeam(teamId: String, deleterId: String): Boolean {
         val team = teamRepository.getTeamById(teamId) ?: return false
 
-        // Check for child teams
         val children = teamRepository.getChildTeams(teamId).first()
         if (children.isNotEmpty()) return false
 
@@ -104,6 +107,8 @@ class TeamManager @Inject constructor(
     fun getUserTeams(userId: String): Flow<List<Team>> =
         teamRepository.getUserTeams(userId)
 
+    fun getMemberCount(teamId: String): Int = teamRepository.getMemberCount(teamId)
+
     suspend fun addMember(
         teamId: String,
         userId: String,
@@ -116,17 +121,16 @@ class TeamManager @Inject constructor(
             userId = userId,
             role = role,
             joinedAt = System.currentTimeMillis(),
-            addedBy = addedBy
+            invitedBy = addedBy
         )
         val success = teamRepository.addTeamMember(teamId, member)
         if (success) {
             auditLogger.log(
-                action = AuditAction.MEMBER_ADDED,
+                action = AuditAction.TEAM_MEMBER_ADDED,
                 userId = addedBy,
                 targetUserId = userId,
                 details = mapOf("teamId" to teamId, "role" to role.name)
             )
-            // Invalidate permission cache for the new member
             permissionEngine.invalidateCache(userId)
         }
         return success
@@ -135,13 +139,12 @@ class TeamManager @Inject constructor(
     suspend fun removeMember(teamId: String, userId: String, removedBy: String): Boolean {
         val team = teamRepository.getTeamById(teamId) ?: return false
 
-        // Cannot remove team lead without assigning new lead first
         if (team.leaderId == userId) return false
 
         val success = teamRepository.removeTeamMember(teamId, userId)
         if (success) {
             auditLogger.log(
-                action = AuditAction.MEMBER_REMOVED,
+                action = AuditAction.TEAM_MEMBER_REMOVED,
                 userId = removedBy,
                 targetUserId = userId,
                 details = mapOf("teamId" to teamId)
@@ -160,7 +163,7 @@ class TeamManager @Inject constructor(
         val success = teamRepository.updateTeamMemberRole(teamId, userId, newRole)
         if (success) {
             auditLogger.log(
-                action = AuditAction.MEMBER_REMOVED, // Using as role update
+                action = AuditAction.TEAM_MEMBER_REMOVED,
                 userId = updatedBy,
                 targetUserId = userId,
                 details = mapOf("teamId" to teamId, "newRole" to newRole.name)
@@ -174,7 +177,7 @@ class TeamManager @Inject constructor(
         val success = teamRepository.setTeamLead(teamId, userId)
         if (success) {
             auditLogger.log(
-                action = AuditAction.TEAM_UPDATED,
+                action = AuditAction.TEAM_LEAD_CHANGED,
                 userId = setBy,
                 details = mapOf("teamId" to teamId, "newLeaderId" to userId)
             )
@@ -188,9 +191,6 @@ class TeamManager @Inject constructor(
 
     // ==================== Team Permissions ====================
 
-    /**
-     * Check if user has permission in team context
-     */
     suspend fun hasTeamPermission(
         userId: String,
         teamId: String,
@@ -201,27 +201,18 @@ class TeamManager @Inject constructor(
             permission = permission,
             resourceType = "team",
             resourceId = teamId
-        ).granted
+        ).hasPermission
     }
 
-    /**
-     * Check if user is team member
-     */
     fun isTeamMember(teamId: String, userId: String): Boolean {
         return teamRepository.getTeamMember(teamId, userId) != null
     }
 
-    /**
-     * Check if user is team lead
-     */
     fun isTeamLead(teamId: String, userId: String): Boolean {
         val member = teamRepository.getTeamMember(teamId, userId)
         return member?.role == TeamRole.LEAD
     }
 
-    /**
-     * Get user's role in team
-     */
     fun getUserRoleInTeam(teamId: String, userId: String): TeamRole? {
         return teamRepository.getTeamMember(teamId, userId)?.role
     }
