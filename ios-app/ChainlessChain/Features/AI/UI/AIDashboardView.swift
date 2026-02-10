@@ -196,8 +196,10 @@ struct DashboardStatsCard: View {
             await MainActor.run {
                 stats.engines = engineManager.getAllEngines().count
                 stats.agents = orchestrator.getAllAgents().count
-                // TODO: Get actual task count
-                stats.tasks = 0
+                let orchestratorStats = orchestrator.getStatistics()
+                let activeTasks = orchestratorStats["activeTasks"] as? Int ?? 0
+                let completedTasks = orchestratorStats["completedTasks"] as? Int ?? 0
+                stats.tasks = activeTasks + completedTasks
             }
 
             if let vectorCount = try? await vectorStore.count() {

@@ -207,10 +207,27 @@ struct TokenIcon: View {
                 .frame(width: 40, height: 40)
 
             if let logoUrl = token.logoUrl, let url = URL(string: logoUrl) {
-                // TODO: 使用AsyncImage加载logo
-                Text(String(token.symbol.prefix(1)))
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(backgroundColor)
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        ProgressView()
+                            .scaleEffect(0.7)
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    case .failure:
+                        Text(String(token.symbol.prefix(1)))
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(backgroundColor)
+                    @unknown default:
+                        Text(String(token.symbol.prefix(1)))
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(backgroundColor)
+                    }
+                }
+                .frame(width: 28, height: 28)
+                .clipShape(Circle())
             } else {
                 Text(String(token.symbol.prefix(1)))
                     .font(.system(size: 18, weight: .bold))

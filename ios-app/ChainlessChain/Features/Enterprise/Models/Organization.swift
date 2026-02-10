@@ -329,6 +329,7 @@ public enum ActivityAction: String, Codable {
 
 public enum OrganizationError: Error, LocalizedError {
     case organizationNotFound
+    case duplicateName
     case memberNotFound
     case invitationNotFound
     case invitationExpired
@@ -342,6 +343,8 @@ public enum OrganizationError: Error, LocalizedError {
         switch self {
         case .organizationNotFound:
             return "组织未找到"
+        case .duplicateName:
+            return "Organization name already exists"
         case .memberNotFound:
             return "成员未找到"
         case .invitationNotFound:

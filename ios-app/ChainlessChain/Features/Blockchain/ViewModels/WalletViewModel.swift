@@ -53,6 +53,20 @@ class WalletViewModel: ObservableObject {
     }
 
     /// 从助记词导入钱包
+    func createWalletWithMnemonic(password: String, chainId: Int = 1) async throws -> String {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let result = try await walletManager.createWallet(password: password, chainId: chainId)
+            await loadBalance(for: result.wallet)
+            return result.mnemonic
+        } catch {
+            handleError(error)
+            throw error
+        }
+    }
+
     func importFromMnemonic(mnemonic: String, password: String, chainId: Int = 1) async {
         isLoading = true
         defer { isLoading = false }

@@ -46,7 +46,7 @@ public class OrganizationManager: ObservableObject {
         // 检查名称是否存在
         let query = EnterpriseDB.organizationInfo.filter(EnterpriseDB.orgName == name)
         if try db.pluck(query) != nil {
-            throw OrganizationError.organizationNotFound  // TODO: Add duplicateName error
+            throw OrganizationError.duplicateName
         }
 
         // 生成DID

@@ -163,16 +163,17 @@ struct CreateWalletView: View {
 
     private func createWallet() {
         Task {
-            await viewModel.createWallet(
-                password: password,
-                chainId: selectedChain.rawValue
-            )
+            do {
+                let mnemonic = try await viewModel.createWalletWithMnemonic(
+                    password: password,
+                    chainId: selectedChain.rawValue
+                )
 
-            // TODO: 从WalletManager获取助记词
-            // createdMnemonic = result.mnemonic
-            // showMnemonicSheet = true
-
-            dismiss()
+                createdMnemonic = mnemonic
+                showMnemonicSheet = true
+            } catch {
+                // Error is already surfaced by viewModel state.
+            }
         }
     }
 }
