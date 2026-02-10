@@ -193,7 +193,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       });
 
       // Log activity
-      await this._logActivity(orgId, null, "create", {
+      await this._logActivity(orgId, folder.id, "create", {
         folderName: folder.name,
       });
 
