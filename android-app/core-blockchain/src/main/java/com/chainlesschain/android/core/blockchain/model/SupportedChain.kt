@@ -9,7 +9,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class SupportedChain(
     val chainId: Int,
-    val name: String,
+    val chainName: String,
     val symbol: String,
     val decimals: Int,
     val isTestnet: Boolean = false,
@@ -19,7 +19,7 @@ enum class SupportedChain(
     // Mainnet chains
     ETHEREUM(
         chainId = 1,
-        name = "Ethereum",
+        chainName = "Ethereum",
         symbol = "ETH",
         decimals = 18,
         explorerUrl = "https://etherscan.io",
@@ -28,7 +28,7 @@ enum class SupportedChain(
 
     BSC(
         chainId = 56,
-        name = "BNB Smart Chain",
+        chainName = "BNB Smart Chain",
         symbol = "BNB",
         decimals = 18,
         explorerUrl = "https://bscscan.com",
@@ -37,7 +37,7 @@ enum class SupportedChain(
 
     POLYGON(
         chainId = 137,
-        name = "Polygon",
+        chainName = "Polygon",
         symbol = "MATIC",
         decimals = 18,
         explorerUrl = "https://polygonscan.com",
@@ -46,7 +46,7 @@ enum class SupportedChain(
 
     AVALANCHE(
         chainId = 43114,
-        name = "Avalanche C-Chain",
+        chainName = "Avalanche C-Chain",
         symbol = "AVAX",
         decimals = 18,
         explorerUrl = "https://snowtrace.io",
@@ -55,7 +55,7 @@ enum class SupportedChain(
 
     ARBITRUM(
         chainId = 42161,
-        name = "Arbitrum One",
+        chainName = "Arbitrum One",
         symbol = "ETH",
         decimals = 18,
         explorerUrl = "https://arbiscan.io",
@@ -64,7 +64,7 @@ enum class SupportedChain(
 
     OPTIMISM(
         chainId = 10,
-        name = "Optimism",
+        chainName = "Optimism",
         symbol = "ETH",
         decimals = 18,
         explorerUrl = "https://optimistic.etherscan.io",
@@ -73,7 +73,7 @@ enum class SupportedChain(
 
     FANTOM(
         chainId = 250,
-        name = "Fantom",
+        chainName = "Fantom",
         symbol = "FTM",
         decimals = 18,
         explorerUrl = "https://ftmscan.com",
@@ -82,7 +82,7 @@ enum class SupportedChain(
 
     CRONOS(
         chainId = 25,
-        name = "Cronos",
+        chainName = "Cronos",
         symbol = "CRO",
         decimals = 18,
         explorerUrl = "https://cronoscan.com",
@@ -91,7 +91,7 @@ enum class SupportedChain(
 
     BASE(
         chainId = 8453,
-        name = "Base",
+        chainName = "Base",
         symbol = "ETH",
         decimals = 18,
         explorerUrl = "https://basescan.org",
@@ -100,7 +100,7 @@ enum class SupportedChain(
 
     ZKSYNC(
         chainId = 324,
-        name = "zkSync Era",
+        chainName = "zkSync Era",
         symbol = "ETH",
         decimals = 18,
         explorerUrl = "https://explorer.zksync.io",
@@ -109,7 +109,7 @@ enum class SupportedChain(
 
     LINEA(
         chainId = 59144,
-        name = "Linea",
+        chainName = "Linea",
         symbol = "ETH",
         decimals = 18,
         explorerUrl = "https://lineascan.build",
@@ -119,7 +119,7 @@ enum class SupportedChain(
     // Testnet chains
     GOERLI(
         chainId = 5,
-        name = "Goerli",
+        chainName = "Goerli",
         symbol = "ETH",
         decimals = 18,
         isTestnet = true,
@@ -129,7 +129,7 @@ enum class SupportedChain(
 
     SEPOLIA(
         chainId = 11155111,
-        name = "Sepolia",
+        chainName = "Sepolia",
         symbol = "ETH",
         decimals = 18,
         isTestnet = true,
@@ -139,7 +139,7 @@ enum class SupportedChain(
 
     MUMBAI(
         chainId = 80001,
-        name = "Polygon Mumbai",
+        chainName = "Polygon Mumbai",
         symbol = "MATIC",
         decimals = 18,
         isTestnet = true,

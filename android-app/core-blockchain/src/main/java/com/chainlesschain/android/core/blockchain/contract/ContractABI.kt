@@ -52,10 +52,7 @@ data class ContractABI(
          */
         fun fromJson(jsonString: String): ContractABI {
             val jsonArray = json.parseToJsonElement(jsonString).jsonArray
-            val entries = json.decodeFromJsonElement<List<ABIEntry>>(
-                JsonArray.serializer(),
-                jsonArray
-            )
+            val entries: List<ABIEntry> = json.decodeFromJsonElement(jsonArray)
             return ContractABI(entries)
         }
 

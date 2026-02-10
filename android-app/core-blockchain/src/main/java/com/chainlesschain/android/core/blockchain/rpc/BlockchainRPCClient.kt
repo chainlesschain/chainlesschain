@@ -433,13 +433,13 @@ class BlockchainRPCClient @Inject constructor() {
 
     private fun getCacheTtl(method: String, defaultTtl: Long): Long {
         return when (method) {
-            RPCRequest.Companion.Methods.ETH_BLOCK_NUMBER -> RPCCache.TTL.BLOCK_NUMBER
-            RPCRequest.Companion.Methods.ETH_GAS_PRICE -> RPCCache.TTL.GAS_PRICE
-            RPCRequest.Companion.Methods.ETH_MAX_PRIORITY_FEE_PER_GAS -> RPCCache.TTL.GAS_PRICE
-            RPCRequest.Companion.Methods.ETH_GET_BALANCE -> RPCCache.TTL.BALANCE
-            RPCRequest.Companion.Methods.ETH_CHAIN_ID -> RPCCache.TTL.CHAIN_ID
-            RPCRequest.Companion.Methods.ETH_GET_CODE -> RPCCache.TTL.CODE
-            RPCRequest.Companion.Methods.ETH_GET_LOGS -> RPCCache.TTL.LOGS
+            RPCRequest.Companion.Methods.ETH_BLOCK_NUMBER -> RPCCache.Companion.TTL.BLOCK_NUMBER
+            RPCRequest.Companion.Methods.ETH_GAS_PRICE -> RPCCache.Companion.TTL.GAS_PRICE
+            RPCRequest.Companion.Methods.ETH_MAX_PRIORITY_FEE_PER_GAS -> RPCCache.Companion.TTL.GAS_PRICE
+            RPCRequest.Companion.Methods.ETH_GET_BALANCE -> RPCCache.Companion.TTL.BALANCE
+            RPCRequest.Companion.Methods.ETH_CHAIN_ID -> RPCCache.Companion.TTL.CHAIN_ID
+            RPCRequest.Companion.Methods.ETH_GET_CODE -> RPCCache.Companion.TTL.CODE
+            RPCRequest.Companion.Methods.ETH_GET_LOGS -> RPCCache.Companion.TTL.LOGS
             else -> defaultTtl
         }
     }
