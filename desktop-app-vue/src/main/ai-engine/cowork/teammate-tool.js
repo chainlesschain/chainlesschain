@@ -1340,11 +1340,16 @@ class TeammateTool extends EventEmitter {
       throw new Error(`团队不存在: ${teamId}`);
     }
 
-    // 终止所有代理并从Map中删除
+    // 终止所有代理（保留在Map中用于审计）
     for (const agent of team.agents) {
       await this.terminateAgent(agent.id, "团队被销毁");
       // 更新代理状态为removed
       agent.status = "removed";
+      // 同步更新agents Map中的代理状态
+      const agentInMap = this.agents.get(agent.id);
+      if (agentInMap) {
+        agentInMap.status = "removed";
+      }
       // 更新数据库中的代理状态
       if (this.db) {
         try {
@@ -1356,11 +1361,9 @@ class TeammateTool extends EventEmitter {
           this._log(`更新代理状态失败: ${error.message}`, "error");
         }
       }
-      // 从代理Map中删除
-      this.agents.delete(agent.id);
     }
 
-    // 设置为archived状态
+    // 设置为archived状态（保留在Map中用于审计/历史查询）
     team.status = "archived";
 
     // 清理消息队列
@@ -1377,9 +1380,6 @@ class TeammateTool extends EventEmitter {
         this._log(`更新团队状态失败: ${error.message}`, "error");
       }
     }
-
-    // 从团队Map中删除
-    this.teams.delete(teamId);
 
     this._log(`团队已销毁: ${team.name}`);
     this.emit("team-destroyed", { teamId });
