@@ -74,9 +74,10 @@ describe('LLMDecisionEngine', () => {
 
   describe('基础规则决策', () => {
     beforeEach(() => {
+      // Don't use mockLLMManager to test basic rules only
       engine = new LLMDecisionEngine({
         enabled: true,
-        llmManager: mockLLMManager,
+        // No llmManager - rely on basic rules
       });
     });
 
@@ -142,10 +143,11 @@ describe('LLMDecisionEngine', () => {
       const task = {
         task_title: 'Specialized task',
         subtasks: [
-          { title: 'Build', tool: 'webpack' },
-          { title: 'Test', tool: 'jest' },
-          { title: 'Deploy', tool: 'docker' },
-          { title: 'Lint', tool: 'eslint' },
+          // Add dependencies so hasParallelTasks returns false
+          { title: 'Build', tool: 'webpack', dependencies: [] },
+          { title: 'Test', tool: 'jest', dependencies: ['Build'] },
+          { title: 'Deploy', tool: 'docker', dependencies: ['Test'] },
+          { title: 'Lint', tool: 'eslint', dependencies: ['Build'] },
         ],
         estimated_duration: 60000,
       };
@@ -155,6 +157,8 @@ describe('LLMDecisionEngine', () => {
       const decision = await engine.shouldUseMultiAgent(task, context);
 
       assert.strictEqual(decision.useMultiAgent, true, '应该使用多代理');
+      // Note: hasParallelTasks is checked before requiresSpecialization
+      // With dependencies, only 1 independent task (Build), so hasParallelTasks=false
       assert.strictEqual(decision.strategy, DecisionStrategy.SPECIALIZED_AGENTS, '策略应为专业化代理');
     });
 
@@ -431,9 +435,10 @@ describe('LLMDecisionEngine', () => {
 
   describe('统计信息', () => {
     beforeEach(() => {
+      // Don't use mockLLMManager here so basic rules are used
       engine = new LLMDecisionEngine({
         enabled: true,
-        llmManager: mockLLMManager,
+        // No llmManager - use basic rules only
       });
     });
 
