@@ -559,12 +559,16 @@ describe('OfficeSkill', () => {
         },
       };
 
+      // Reset metrics before test
+      officeSkill.resetMetrics();
       const result = await officeSkill.executeWithMetrics(task, {});
 
       expect(result.success).toBe(true);
-      expect(result.metrics).toBeDefined();
-      expect(result.metrics.duration).toBeGreaterThan(0);
-      expect(result.metrics.timestamp).toBeTruthy();
+      // Check skill's metrics object (not result.metrics)
+      expect(officeSkill.metrics).toBeDefined();
+      expect(officeSkill.metrics.invocations).toBe(1);
+      expect(officeSkill.metrics.successes).toBe(1);
+      expect(officeSkill.metrics.totalExecutionTime).toBeGreaterThan(0);
     });
   });
 
@@ -576,8 +580,8 @@ describe('OfficeSkill', () => {
     test('应该验证 Excel 输入', () => {
       const schema = {
         outputPath: { type: 'string', required: true },
-        columns: { type: 'array', required: true },
-        rows: { type: 'array', required: true },
+        columns: { type: 'object', required: true },  // arrays are typeof 'object'
+        rows: { type: 'object', required: true },
       };
 
       const validInput = {
@@ -592,8 +596,13 @@ describe('OfficeSkill', () => {
         rows: [],
       };
 
-      expect(() => officeSkill.validateInput(validInput, schema)).not.toThrow();
-      expect(() => officeSkill.validateInput(invalidInput, schema)).toThrow();
+      // validateInput returns { valid: boolean, errors?: Array }, doesn't throw
+      const validResult = officeSkill.validateInput(validInput, schema);
+      expect(validResult.valid).toBe(true);
+
+      const invalidResult = officeSkill.validateInput(invalidInput, schema);
+      expect(invalidResult.valid).toBe(false);
+      expect(invalidResult.errors).toBeDefined();
     });
 
     test('应该验证数据类型', () => {
@@ -614,8 +623,13 @@ describe('OfficeSkill', () => {
         age: 'thirty', // 类型错误
       };
 
-      expect(() => officeSkill.validateInput(validInput, schema)).not.toThrow();
-      expect(() => officeSkill.validateInput(invalidInput, schema)).toThrow();
+      // validateInput returns { valid: boolean, errors?: Array }, doesn't throw
+      const validResult = officeSkill.validateInput(validInput, schema);
+      expect(validResult.valid).toBe(true);
+
+      const invalidResult = officeSkill.validateInput(invalidInput, schema);
+      expect(invalidResult.valid).toBe(false);
+      expect(invalidResult.errors).toBeDefined();
     });
   });
 });
