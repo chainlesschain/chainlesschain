@@ -3,8 +3,10 @@ package com.chainlesschain.android.feature.enterprise.data.repository
 import com.chainlesschain.android.feature.enterprise.domain.model.Team
 import com.chainlesschain.android.feature.enterprise.domain.model.TeamMember
 import com.chainlesschain.android.feature.enterprise.domain.model.TeamRole
+import com.chainlesschain.android.feature.enterprise.domain.model.TeamWithMembers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.util.UUID
 import javax.inject.Inject
@@ -24,6 +26,14 @@ class TeamRepository @Inject constructor() {
     fun getAllTeams(): Flow<List<Team>> = _teams.map { it.values.toList() }
 
     fun getTeamById(teamId: String): Team? = _teams.value[teamId]
+
+    fun getTeamWithMembers(teamId: String): Flow<TeamWithMembers?> = combine(_teams, _teamMembers) { teams, members ->
+        teams[teamId]?.let { team ->
+            val teamMembers = members[teamId] ?: emptyList()
+            val childTeams = teams.values.filter { it.parentTeamId == teamId }
+            TeamWithMembers(team, teamMembers, childTeams)
+        }
+    }
 
     fun getTeamsByParent(parentId: String?): Flow<List<Team>> = _teams.map { teams ->
         teams.values.filter { it.parentTeamId == parentId }
@@ -79,13 +89,17 @@ class TeamRepository @Inject constructor() {
 
     fun getUserTeams(userId: String): Flow<List<Team>> = _teamMembers.map { allMembers ->
         val teamIds = allMembers.filter { (_, members) ->
-            members.any { it.userId == userId }
+            members.any { it.userId == userId && it.isActive }
         }.keys
         teamIds.mapNotNull { _teams.value[it] }
     }
 
     fun getTeamMember(teamId: String, userId: String): TeamMember? {
         return _teamMembers.value[teamId]?.find { it.userId == userId }
+    }
+
+    fun getMemberCount(teamId: String): Int {
+        return _teamMembers.value[teamId]?.count { it.isActive } ?: 0
     }
 
     suspend fun addTeamMember(teamId: String, member: TeamMember): Boolean {
@@ -100,15 +114,6 @@ class TeamRepository @Inject constructor() {
             joinedAt = System.currentTimeMillis()
         )
         _teamMembers.value = _teamMembers.value + (teamId to (currentMembers + newMember))
-
-        // Update team member count
-        _teams.value[teamId]?.let { team ->
-            _teams.value = _teams.value + (teamId to team.copy(
-                memberCount = currentMembers.size + 1,
-                updatedAt = System.currentTimeMillis()
-            ))
-        }
-
         return true
     }
 
@@ -117,15 +122,6 @@ class TeamRepository @Inject constructor() {
         val member = currentMembers.find { it.userId == userId } ?: return false
 
         _teamMembers.value = _teamMembers.value + (teamId to (currentMembers - member))
-
-        // Update team member count
-        _teams.value[teamId]?.let { team ->
-            _teams.value = _teams.value + (teamId to team.copy(
-                memberCount = currentMembers.size - 1,
-                updatedAt = System.currentTimeMillis()
-            ))
-        }
-
         return true
     }
 
@@ -144,7 +140,7 @@ class TeamRepository @Inject constructor() {
 
     suspend fun setTeamLead(teamId: String, userId: String): Boolean {
         val team = _teams.value[teamId] ?: return false
-        val member = getTeamMember(teamId, userId) ?: return false
+        getTeamMember(teamId, userId) ?: return false
 
         // Remove lead role from previous lead
         _teamMembers.value[teamId]?.forEach { m ->
