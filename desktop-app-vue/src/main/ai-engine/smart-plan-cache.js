@@ -203,12 +203,13 @@ class SmartPlanCache {
    * @private
    */
   async _getEmbedding(text) {
-    if (!this.llmManager) {
-      logger.warn('[SmartPlanCache] LLM管理器未配置，无法生成embedding');
-      return null;
-    }
-
     this.stats.embeddingCalls++;
+
+    // 如果没有LLM管理器，直接使用TF-IDF后备方案
+    if (!this.llmManager) {
+      logger.debug('[SmartPlanCache] LLM管理器未配置，使用TF-IDF后备方案');
+      return this._simpleTFIDFVector(text);
+    }
 
     try {
       // 尝试调用LLM的embedding API
@@ -219,13 +220,14 @@ class SmartPlanCache {
       }
 
       // 如果LLM管理器不支持embedding，使用简单的TF-IDF向量化作为后备
-      logger.warn('[SmartPlanCache] LLM管理器不支持embedding，使用TF-IDF后备方案');
+      logger.debug('[SmartPlanCache] LLM管理器不支持embedding，使用TF-IDF后备方案');
       return this._simpleTFIDFVector(text);
 
     } catch (error) {
       this.stats.embeddingFailures++;
       logger.error('[SmartPlanCache] Embedding生成失败:', error.message);
-      return null;
+      // 失败时也使用TF-IDF后备方案
+      return this._simpleTFIDFVector(text);
     }
   }
 
