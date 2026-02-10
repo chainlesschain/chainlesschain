@@ -706,8 +706,18 @@ public class PermanentMemoryManager: ObservableObject {
             return embedding
         }
 
-        // TODO: 使用 LLMManager 生成 embedding
-        return nil
+        // 使用 LLMManager 生成 embedding
+        do {
+            let embedding = try await LLMManager.shared.generateEmbedding(content)
+
+            // 缓存生成的 embedding
+            try await cacheEmbedding(content: content, embedding: embedding)
+
+            return embedding
+        } catch {
+            Logger.shared.warning("[PermanentMemoryManager] 生成 embedding 失败: \(error)")
+            return nil
+        }
     }
 
     /// 缓存 embedding
