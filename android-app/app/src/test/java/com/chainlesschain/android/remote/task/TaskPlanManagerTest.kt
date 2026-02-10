@@ -1,6 +1,5 @@
 package com.chainlesschain.android.remote.task
 
-import com.chainlesschain.android.remote.commands.AICommands
 import com.chainlesschain.android.remote.model.ConfirmStatus
 import com.chainlesschain.android.remote.model.IntentUnderstanding
 import com.chainlesschain.android.remote.model.InterviewQuestion
@@ -8,6 +7,7 @@ import com.chainlesschain.android.remote.model.PlanningState
 import com.chainlesschain.android.remote.model.TaskItem
 import com.chainlesschain.android.remote.model.TaskPlan
 import com.chainlesschain.android.remote.model.TaskStatus
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -22,38 +22,26 @@ import org.junit.Test
  * Unit tests for TaskPlanManager
  *
  * Tests the state management and flow logic of the planning system.
- * Uses a fake AICommands for testing without network calls.
+ * Uses reflection to set internal state for testing without network calls.
  */
 class TaskPlanManagerTest {
 
-    private lateinit var fakeAICommands: FakeAICommands
     private lateinit var manager: TaskPlanManager
 
     @Before
     fun setup() {
-        fakeAICommands = FakeAICommands()
-        manager = TaskPlanManager(fakeAICommands)
+        // Create manager with null client - we'll use reflection for state testing
+        manager = createTestManager()
     }
 
     /**
-     * Fake AICommands for testing
+     * Creates a TaskPlanManager for testing using reflection
      */
-    private class FakeAICommands : AICommands(
-        webRTCClient = null!!  // Not used in tests
-    ) {
-        override suspend fun chat(
-            message: String,
-            systemPrompt: String?,
-            conversationId: String?,
-            model: String?,
-            temperature: Float?
-        ): Result<ChatResponse> {
-            // Return a fake response
-            return Result.success(ChatResponse(
-                reply = """{"intent": "test", "confidence": 0.9}""",
-                conversationId = "test-conv"
-            ))
-        }
+    private fun createTestManager(): TaskPlanManager {
+        // Use reflection to create instance without Hilt injection
+        val constructor = TaskPlanManager::class.java.declaredConstructors[0]
+        constructor.isAccessible = true
+        return constructor.newInstance(null) as TaskPlanManager
     }
 
     // ===== Initial State Tests =====
