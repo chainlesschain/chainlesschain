@@ -40,11 +40,28 @@ function createMockDatabase() {
           const transfer = transfers.get(id);
           if (transfer) {
             // Check what's being updated based on SQL
-            if (sql.includes("status = ?") && sql.includes("progress = ?")) {
+            if (
+              sql.includes("status = ?") &&
+              sql.includes("progress = ?") &&
+              sql.includes("completed_at = ?")
+            ) {
+              // UPDATE ... SET status = ?, progress = ?, updated_at = ?, completed_at = ? WHERE id = ?
+              transfer.status = args[0];
+              transfer.progress = args[1];
+              transfer.updated_at = args[2];
+              transfer.completed_at = args[3];
+            } else if (
+              sql.includes("status = ?") &&
+              sql.includes("progress = ?")
+            ) {
               // UPDATE ... SET status = ?, progress = ?, updated_at = ? WHERE id = ?
               transfer.status = args[0];
               transfer.progress = args[1];
               transfer.updated_at = args[2];
+            } else if (sql.includes("status = 'expired'")) {
+              // UPDATE ... SET status = 'expired', updated_at = ? WHERE id = ?
+              transfer.status = "expired";
+              transfer.updated_at = args[0];
             } else if (sql.includes("status = ?")) {
               transfer.status = args[0];
               if (args.length > 2) {
@@ -65,8 +82,16 @@ function createMockDatabase() {
       }),
       all: vi.fn((...args) => {
         let results = Array.from(transfers.values());
-        // Handle status filter if present
-        if (sql.includes("status = ?") && args.length > 0) {
+        // Handle device_did filter
+        if (sql.includes("device_did = ?")) {
+          const deviceDid = args[0];
+          results = results.filter((t) => t.device_did === deviceDid);
+          // Handle status filter if present (next param)
+          if (sql.includes("AND status = ?") && args.length > 1) {
+            const status = args[1];
+            results = results.filter((t) => t.status === status);
+          }
+        } else if (sql.includes("status = ?") && args.length > 0) {
           const status = args[0];
           results = results.filter((t) => t.status === status);
         }
