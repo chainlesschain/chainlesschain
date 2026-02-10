@@ -2,6 +2,7 @@ package com.chainlesschain.android.core.blockchain.contract
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.jsonArray
@@ -52,7 +53,10 @@ data class ContractABI(
          */
         fun fromJson(jsonString: String): ContractABI {
             val jsonArray = json.parseToJsonElement(jsonString).jsonArray
-            val entries: List<ABIEntry> = json.decodeFromJsonElement(jsonArray)
+            val entries = json.decodeFromJsonElement(
+                ListSerializer(ABIEntry.serializer()),
+                jsonArray
+            )
             return ContractABI(entries)
         }
 
