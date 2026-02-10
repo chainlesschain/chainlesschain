@@ -90,10 +90,55 @@ class RemoteAIChatViewModel @Inject constructor(
 
     private fun loadAvailableFiles() {
         viewModelScope.launch {
-            // TODO: Fetch available files from PC via P2P
-            // For now, use placeholder
-            _availableFiles.value = emptyList()
+            // Wait for P2P connection
+            if (p2pClient.connectionState.value != ConnectionState.CONNECTED) {
+                Timber.d("P2P not connected, skipping file load")
+                _availableFiles.value = emptyList()
+                return@launch
+            }
+
+            try {
+                // Fetch available files from PC via P2P
+                val result = p2pClient.sendCommand<Map<String, Any>>(
+                    method = "file.list",
+                    params = mapOf(
+                        "path" to ".",
+                        "recursive" to false,
+                        "limit" to 100
+                    )
+                )
+
+                if (result.isSuccess) {
+                    val data = result.getOrNull()
+                    @Suppress("UNCHECKED_CAST")
+                    val files = (data?.get("files") as? List<Map<String, Any>>)?.map { fileMap ->
+                        FileReference(
+                            path = fileMap["path"] as? String ?: "",
+                            name = fileMap["name"] as? String ?: "",
+                            extension = fileMap["extension"] as? String,
+                            size = (fileMap["size"] as? Number)?.toLong(),
+                            isDirectory = fileMap["isDirectory"] as? Boolean ?: false
+                        )
+                    } ?: emptyList()
+
+                    _availableFiles.value = files
+                    Timber.d("Loaded ${files.size} files from PC")
+                } else {
+                    Timber.w("Failed to load files: ${result.exceptionOrNull()?.message}")
+                    _availableFiles.value = emptyList()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error loading files from PC")
+                _availableFiles.value = emptyList()
+            }
         }
+    }
+
+    /**
+     * Refresh available files from PC
+     */
+    fun refreshAvailableFiles() {
+        loadAvailableFiles()
     }
 
     /**
