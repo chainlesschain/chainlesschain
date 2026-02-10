@@ -20,75 +20,12 @@ class RBACRepository @Inject constructor() {
     private val _userRoles = MutableStateFlow<Map<String, Set<String>>>(emptyMap()) // userId -> roleIds
 
     init {
-        // Initialize with default roles
         initializeDefaultRoles()
     }
 
     private fun initializeDefaultRoles() {
-        val defaultRoles = listOf(
-            Role(
-                id = "owner",
-                name = "Owner",
-                description = "Full access to all resources",
-                permissions = Permission.entries.toSet(),
-                isSystem = true,
-                level = 0
-            ),
-            Role(
-                id = "admin",
-                name = "Administrator",
-                description = "Administrative access",
-                permissions = Permission.entries.filter {
-                    it != Permission.ORGANIZATION_DELETE && it != Permission.SYSTEM_SETTINGS
-                }.toSet(),
-                isSystem = true,
-                level = 1
-            ),
-            Role(
-                id = "manager",
-                name = "Manager",
-                description = "Team management access",
-                permissions = setOf(
-                    Permission.KNOWLEDGE_READ, Permission.KNOWLEDGE_WRITE, Permission.KNOWLEDGE_DELETE,
-                    Permission.PROJECT_READ, Permission.PROJECT_WRITE,
-                    Permission.TASK_READ, Permission.TASK_WRITE, Permission.TASK_ASSIGN,
-                    Permission.TEAM_READ, Permission.TEAM_MANAGE_MEMBERS,
-                    Permission.USER_READ
-                ),
-                isSystem = true,
-                level = 2
-            ),
-            Role(
-                id = "member",
-                name = "Member",
-                description = "Standard member access",
-                permissions = setOf(
-                    Permission.KNOWLEDGE_READ, Permission.KNOWLEDGE_WRITE,
-                    Permission.PROJECT_READ,
-                    Permission.TASK_READ, Permission.TASK_WRITE,
-                    Permission.AI_CHAT, Permission.AI_ANALYZE,
-                    Permission.SOCIAL_READ, Permission.SOCIAL_WRITE,
-                    Permission.TEAM_READ, Permission.USER_READ
-                ),
-                isSystem = true,
-                level = 3
-            ),
-            Role(
-                id = "guest",
-                name = "Guest",
-                description = "Read-only access",
-                permissions = setOf(
-                    Permission.KNOWLEDGE_READ,
-                    Permission.PROJECT_READ,
-                    Permission.TASK_READ,
-                    Permission.TEAM_READ
-                ),
-                isSystem = true,
-                level = 4
-            )
-        )
-
-        _roles.value = defaultRoles.associateBy { it.id }
+        val defaultRoles = Role.builtInRoles.associateBy { it.id }
+        _roles.value = defaultRoles
     }
 
     // ==================== Roles ====================
@@ -111,7 +48,7 @@ class RBACRepository @Inject constructor() {
 
     suspend fun deleteRole(roleId: String): Boolean {
         val role = _roles.value[roleId] ?: return false
-        if (role.isSystem) return false // Cannot delete system roles
+        if (role.isBuiltIn) return false // Cannot delete built-in roles
         _roles.value = _roles.value - roleId
         return true
     }
@@ -141,16 +78,16 @@ class RBACRepository @Inject constructor() {
 
     // ==================== Permission Grants ====================
 
-    fun getPermissionGrants(userId: String): Flow<List<PermissionGrant>> =
+    fun getPermissionGrants(granteeId: String): Flow<List<PermissionGrant>> =
         _permissionGrants.map { grants ->
-            grants.filter { it.userId == userId }
+            grants.filter { it.granteeId == granteeId && it.isValid }
         }
 
     fun getPermissionGrantsForResource(
         resourceType: String,
         resourceId: String
     ): Flow<List<PermissionGrant>> = _permissionGrants.map { grants ->
-        grants.filter { it.resourceType == resourceType && it.resourceId == resourceId }
+        grants.filter { it.resourceType == resourceType && it.resourceId == resourceId && it.isValid }
     }
 
     suspend fun grantPermission(grant: PermissionGrant): PermissionGrant {
@@ -165,29 +102,16 @@ class RBACRepository @Inject constructor() {
         return true
     }
 
-    suspend fun revokeAllPermissions(userId: String, resourceType: String, resourceId: String): Int {
-        val toRemove = _permissionGrants.value.filter {
-            it.userId == userId && it.resourceType == resourceType && it.resourceId == resourceId
-        }
-        _permissionGrants.value = _permissionGrants.value - toRemove.toSet()
-        return toRemove.size
-    }
-
     // ==================== Delegations ====================
 
-    fun getActiveDelegations(userId: String): Flow<List<PermissionDelegation>> =
+    fun getActiveDelegations(delegateeId: String): Flow<List<PermissionDelegation>> =
         _delegations.map { delegations ->
-            val now = System.currentTimeMillis()
-            delegations.filter {
-                it.delegateeId == userId &&
-                it.isActive &&
-                (it.expiresAt == null || it.expiresAt > now)
-            }
+            delegations.filter { it.delegateeId == delegateeId && it.isActive }
         }
 
-    fun getDelegationsGrantedBy(userId: String): Flow<List<PermissionDelegation>> =
+    fun getDelegationsGrantedBy(delegatorId: String): Flow<List<PermissionDelegation>> =
         _delegations.map { delegations ->
-            delegations.filter { it.delegatorId == userId }
+            delegations.filter { it.delegatorId == delegatorId }
         }
 
     suspend fun createDelegation(delegation: PermissionDelegation): PermissionDelegation {
@@ -198,17 +122,8 @@ class RBACRepository @Inject constructor() {
 
     suspend fun revokeDelegation(delegationId: String): Boolean {
         val delegation = _delegations.value.find { it.id == delegationId } ?: return false
-        val updated = delegation.copy(isActive = false, revokedAt = System.currentTimeMillis())
+        val updated = delegation.copy(isRevoked = true, revokedAt = System.currentTimeMillis())
         _delegations.value = _delegations.value.map { if (it.id == delegationId) updated else it }
         return true
-    }
-
-    suspend fun cleanupExpiredDelegations(): Int {
-        val now = System.currentTimeMillis()
-        val expired = _delegations.value.filter {
-            it.isActive && it.expiresAt != null && it.expiresAt < now
-        }
-        expired.forEach { revokeDelegation(it.id) }
-        return expired.size
     }
 }
