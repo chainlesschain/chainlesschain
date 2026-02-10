@@ -1,70 +1,218 @@
 package com.chainlesschain.android.core.performance
 
+import android.content.Context
 import android.os.Build
 import android.os.StrictMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
- * 性能监控工具
+ * Performance Monitor
  *
- * 功能:
- * 1. StrictMode检测 - 开发环境检测主线程IO和内存泄露
- * 2. 启动时间追踪
- * 3. 内存监控
- * 4. 帧率监控
+ * Comprehensive performance monitoring system for the application.
+ * Integrates FPS, CPU, battery, and thermal monitoring.
+ *
+ * Features:
+ * 1. StrictMode detection - Development mode thread/VM violation detection
+ * 2. Startup time tracking
+ * 3. Memory monitoring
+ * 4. FPS monitoring via Choreographer
+ * 5. CPU usage monitoring
+ * 6. Battery status monitoring
+ * 7. Thermal state monitoring (API 29+)
+ *
+ * Aligns with iOS implementation patterns.
  */
 object PerformanceMonitor {
 
+    private const val TAG = "PerformanceMonitor"
+    private const val UPDATE_INTERVAL_MS = 1000L
+
+    // Sub-monitors (initialized lazily)
+    private var fpsMonitor: FPSMonitor? = null
+    private var cpuMonitor: CPUMonitor? = null
+    private var batteryMonitor: BatteryMonitor? = null
+    private var thermalMonitor: ThermalMonitor? = null
+
+    // Monitoring state
+    private val _isMonitoring = MutableStateFlow(false)
+    val isMonitoring: StateFlow<Boolean> = _isMonitoring.asStateFlow()
+
+    // Aggregated metrics
+    private val _metrics = MutableStateFlow(PerformanceMetrics())
+    val metrics: StateFlow<PerformanceMetrics> = _metrics.asStateFlow()
+
+    // Coroutine scope for periodic updates
+    private var monitoringJob: Job? = null
+    private val scope = CoroutineScope(Dispatchers.Default)
+
+    // Context reference
+    private var appContext: Context? = null
+
     /**
-     * 初始化性能监控
-     * 仅在Debug模式启用
+     * Initialize performance monitoring
+     * Only enables StrictMode in debug builds
      */
-    fun init(isDebug: Boolean) {
+    fun init(context: Context, isDebug: Boolean) {
+        appContext = context.applicationContext
+
         if (isDebug) {
             enableStrictMode()
-            Timber.d("PerformanceMonitor initialized")
+        }
+
+        Timber.d("$TAG: Initialized (debug=$isDebug)")
+    }
+
+    /**
+     * Start comprehensive monitoring
+     */
+    fun startMonitoring(context: Context? = null) {
+        val ctx = context?.applicationContext ?: appContext
+        if (ctx == null) {
+            Timber.w("$TAG: Cannot start monitoring without context")
+            return
+        }
+
+        if (_isMonitoring.value) {
+            Timber.d("$TAG: Already monitoring")
+            return
+        }
+
+        appContext = ctx
+
+        // Initialize sub-monitors
+        fpsMonitor = FPSMonitor().also { it.start() }
+        cpuMonitor = CPUMonitor()
+        batteryMonitor = BatteryMonitor(ctx).also { it.start() }
+        thermalMonitor = ThermalMonitor(ctx).also { it.start() }
+
+        // Start periodic update loop
+        monitoringJob = scope.launch {
+            while (isActive) {
+                updateMetrics()
+                delay(UPDATE_INTERVAL_MS)
+            }
+        }
+
+        _isMonitoring.value = true
+        Timber.d("$TAG: Started monitoring")
+    }
+
+    /**
+     * Stop monitoring
+     */
+    fun stopMonitoring() {
+        if (!_isMonitoring.value) return
+
+        monitoringJob?.cancel()
+        monitoringJob = null
+
+        fpsMonitor?.stop()
+        fpsMonitor = null
+
+        cpuMonitor = null
+
+        batteryMonitor?.stop()
+        batteryMonitor = null
+
+        thermalMonitor?.stop()
+        thermalMonitor = null
+
+        _isMonitoring.value = false
+        Timber.d("$TAG: Stopped monitoring")
+    }
+
+    /**
+     * Update aggregated metrics
+     */
+    private suspend fun updateMetrics() {
+        try {
+            // Update CPU stats
+            cpuMonitor?.update()
+
+            // Get current values from sub-monitors
+            val fpsSnapshot = fpsMonitor?.getSnapshot()
+            val cpuSnapshot = cpuMonitor?.getSnapshot()
+            val batterySnapshot = batteryMonitor?.getSnapshot()
+            val thermalSnapshot = thermalMonitor?.getSnapshot()
+
+            // Get memory stats
+            val runtime = Runtime.getRuntime()
+            val usedMemory = (runtime.totalMemory() - runtime.freeMemory()) / (1024f * 1024f)
+            val maxMemory = runtime.maxMemory() / (1024f * 1024f)
+
+            _metrics.value = PerformanceMetrics(
+                fps = fpsSnapshot?.fps ?: 0f,
+                frameTimeMs = fpsSnapshot?.frameTimeMs ?: 0f,
+                droppedFrames = fpsSnapshot?.droppedFrames ?: 0,
+                cpuUsage = cpuSnapshot?.systemCpuUsage ?: 0f,
+                memoryUsageMB = usedMemory,
+                maxMemoryMB = maxMemory,
+                batteryLevel = batterySnapshot?.level ?: 100,
+                isCharging = batterySnapshot?.isCharging ?: false,
+                thermalState = thermalSnapshot?.state?.level ?: 0
+            )
+        } catch (e: Exception) {
+            Timber.e("$TAG: Error updating metrics: ${e.message}")
         }
     }
 
     /**
-     * 启用StrictMode检测
-     * 检测主线程IO操作、内存泄露等问题
+     * Enable StrictMode for debug builds
      */
     private fun enableStrictMode() {
         StrictMode.setThreadPolicy(
             StrictMode.ThreadPolicy.Builder()
-                .detectAll()  // 检测所有线程违规
-                .penaltyLog() // 记录到logcat
+                .detectAll()
+                .penaltyLog()
                 .build()
         )
 
         StrictMode.setVmPolicy(
             StrictMode.VmPolicy.Builder()
-                .detectAll()  // 检测所有VM违规
-                .penaltyLog() // 记录到logcat
+                .detectAll()
+                .penaltyLog()
                 .build()
         )
+
+        Timber.d("$TAG: StrictMode enabled")
     }
 
     /**
-     * 追踪启动时间
+     * Startup timer for tracking app launch time
      */
     class StartupTimer {
         private val startTime = System.currentTimeMillis()
+        private val milestones = mutableListOf<Pair<String, Long>>()
 
         fun logMilestone(milestone: String) {
             val elapsed = System.currentTimeMillis() - startTime
-            Timber.d("Startup milestone: $milestone at ${elapsed}ms")
+            milestones.add(milestone to elapsed)
+            Timber.d("$TAG: Startup milestone: $milestone at ${elapsed}ms")
         }
 
-        fun finish() {
+        fun finish(): Long {
             val totalTime = System.currentTimeMillis() - startTime
-            Timber.i("App startup completed in ${totalTime}ms")
+            Timber.i("$TAG: App startup completed in ${totalTime}ms")
+            milestones.forEach { (name, time) ->
+                Timber.d("$TAG:   - $name: ${time}ms")
+            }
+            return totalTime
         }
+
+        fun getMilestones(): List<Pair<String, Long>> = milestones.toList()
     }
 
     /**
-     * 内存监控
+     * Log current memory usage
      */
     fun logMemoryUsage(tag: String = "Memory") {
         val runtime = Runtime.getRuntime()
@@ -73,5 +221,87 @@ object PerformanceMonitor {
         val availableMemory = maxMemory - usedMemory
 
         Timber.d("$tag - Used: ${usedMemory}MB, Available: ${availableMemory}MB, Max: ${maxMemory}MB")
+    }
+
+    /**
+     * Get current FPS
+     */
+    fun getCurrentFps(): Float = fpsMonitor?.currentFps?.value ?: 0f
+
+    /**
+     * Get current CPU usage
+     */
+    fun getCurrentCpuUsage(): Float = cpuMonitor?.cpuUsage?.value ?: 0f
+
+    /**
+     * Get battery level
+     */
+    fun getBatteryLevel(): Int = batteryMonitor?.batteryLevel?.value ?: 100
+
+    /**
+     * Check if device is throttling due to thermal
+     */
+    fun isThrottling(): Boolean = thermalMonitor?.isThrottling() ?: false
+
+    /**
+     * Get current performance snapshot
+     */
+    fun getSnapshot(): PerformanceSnapshot {
+        return PerformanceSnapshot(
+            metrics = _metrics.value,
+            fpsSnapshot = fpsMonitor?.getSnapshot(),
+            cpuSnapshot = cpuMonitor?.getSnapshot(),
+            batterySnapshot = batteryMonitor?.getSnapshot(),
+            thermalSnapshot = thermalMonitor?.getSnapshot()
+        )
+    }
+}
+
+/**
+ * Complete performance snapshot
+ */
+data class PerformanceSnapshot(
+    val metrics: PerformanceMetrics,
+    val fpsSnapshot: FPSSnapshot?,
+    val cpuSnapshot: CPUSnapshot?,
+    val batterySnapshot: BatterySnapshot?,
+    val thermalSnapshot: ThermalSnapshot?
+)
+
+// ===== Utility Extensions =====
+
+/**
+ * Debounce function - limits execution rate
+ */
+fun <T> debounce(
+    delayMs: Long,
+    scope: CoroutineScope,
+    action: (T) -> Unit
+): (T) -> Unit {
+    var job: Job? = null
+    return { value: T ->
+        job?.cancel()
+        job = scope.launch {
+            delay(delayMs)
+            action(value)
+        }
+    }
+}
+
+/**
+ * Throttle function - ensures minimum interval between executions
+ */
+fun <T> throttle(
+    intervalMs: Long,
+    scope: CoroutineScope,
+    action: (T) -> Unit
+): (T) -> Unit {
+    var lastExecutionTime = 0L
+    return { value: T ->
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastExecutionTime >= intervalMs) {
+            lastExecutionTime = currentTime
+            scope.launch { action(value) }
+        }
     }
 }

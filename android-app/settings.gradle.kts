@@ -41,6 +41,7 @@ include(":core-p2p")
 include(":core-did")
 include(":core-e2ee")
 include(":core-ui")
+include(":core-blockchain")
 
 // 功能模块
 include(":feature-auth")
@@ -49,6 +50,13 @@ include(":feature-ai")
 include(":feature-p2p")
 include(":feature-project")
 include(":feature-file-browser")
+include(":feature-blockchain")
+include(":feature-enterprise")
+include(":feature-knowledge-graph")
+include(":feature-mcp")
+include(":feature-hooks")
+include(":feature-collaboration")
+include(":feature-performance")
 
 // 数据模块
 include(":data-knowledge")
