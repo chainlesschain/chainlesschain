@@ -18,6 +18,7 @@ struct SendTransactionView: View {
     @StateObject private var transactionManager = TransactionManager.shared
     @StateObject private var gasManager = GasManager.shared
     @StateObject private var walletManager = WalletManager.shared
+    @StateObject private var walletViewModel = WalletViewModel()
 
     @State private var toAddress = ""
     @State private var amount = ""
@@ -35,8 +36,7 @@ struct SendTransactionView: View {
     @State private var txHash: String?
 
     var balance: String {
-        // TODO: 从WalletManager获取实际余额
-        "1.5" // 模拟余额
+        walletViewModel.getBalance(for: wallet.id)?.formattedValue ?? "0"
     }
 
     var isValidAddress: Bool {
@@ -120,8 +120,7 @@ struct SendTransactionView: View {
                     }
 
                     Button(action: {
-                        // TODO: 计算扣除Gas后的最大金额
-                        amount = balance
+                        useMaxAmount()
                     }) {
                         Text("使用全部余额")
                             .font(.caption)
@@ -237,6 +236,9 @@ struct SendTransactionView: View {
                 }
             }
             .onAppear {
+                Task {
+                    await walletViewModel.loadBalance(for: wallet)
+                }
                 estimateGasPrice()
             }
             .sheet(isPresented: $showPasswordInput) {
@@ -246,8 +248,7 @@ struct SendTransactionView: View {
             }
             .alert("发送成功", isPresented: $showSuccess) {
                 Button("查看详情", role: .none) {
-                    // TODO: 导航到交易详情
-                    dismiss()
+                    openTransactionInExplorer()
                 }
                 Button("完成", role: .cancel) {
                     dismiss()
@@ -356,6 +357,30 @@ struct SendTransactionView: View {
             showError = true
         }
     }
+
+    private func useMaxAmount() {
+        guard let balanceDec = Decimal(string: balance) else {
+            amount = "0"
+            return
+        }
+
+        let feeDec = Decimal(string: totalCost ?? "0") ?? 0
+        let sendable = max(0, balanceDec - feeDec)
+        amount = NSDecimalNumber(decimal: sendable).stringValue
+    }
+
+    private func openTransactionInExplorer() {
+        defer { dismiss() }
+
+        guard let hash = txHash,
+              let explorer = NetworkConfig.config(for: chain).explorerUrl(for: hash),
+              let url = URL(string: explorer) else {
+            return
+        }
+
+        UIApplication.shared.open(url)
+    }
+
 }
 
 /// Gas速度选择器

@@ -18,6 +18,9 @@ public class ToolManager: ObservableObject {
     // 速率限制跟踪
     private var rateLimitCounters: [String: (count: Int, resetTime: Date)] = [:]
     private let rateLimitQueue = DispatchQueue(label: "com.chainlesschain.tool-rate-limit")
+    private var toolUsageStats: [String: Int] = [:]
+    private var toolFailureStats: [String: Int] = [:]
+    private let statsQueue = DispatchQueue(label: "com.chainlesschain.tool-stats")
 
     private init() {
         loadBuiltinTools()
@@ -66,6 +69,10 @@ public class ToolManager: ObservableObject {
         toolsById.removeValue(forKey: toolId)
         toolExecutors.removeValue(forKey: toolId)
         toolsByCategory[tool.category]?.removeAll { $0.id == toolId }
+        statsQueue.sync {
+            toolUsageStats.removeValue(forKey: toolId)
+            toolFailureStats.removeValue(forKey: toolId)
+        }
 
         updateToolsList()
 
@@ -139,6 +146,7 @@ public class ToolManager: ObservableObject {
             if tool.rateLimit != nil {
                 updateRateLimitCounter(toolId: toolId)
             }
+            recordToolExecution(toolId: toolId, success: true)
 
             return output
 
@@ -146,6 +154,7 @@ public class ToolManager: ObservableObject {
             let executionTime = Date().timeIntervalSince(startTime)
             Logger.shared.error("工具 '\(tool.name)' 执行失败: \(error.localizedDescription), 耗时: \(String(format: "%.2f", executionTime))s")
 
+            recordToolExecution(toolId: toolId, success: false)
             throw ToolError.executionFailed(tool.name, error.localizedDescription)
         }
     }
@@ -189,7 +198,21 @@ public class ToolManager: ObservableObject {
     /// 获取工具使用统计
     public func getToolStats() -> [String: Int] {
         // TODO: 实现工具使用统计
-        return [:]
+        return statsQueue.sync {
+            var stats: [String: Int] = [
+                "total_tools": toolsById.count,
+                "tools_with_usage": toolUsageStats.count,
+                "total_executions": toolUsageStats.values.reduce(0, +),
+                "total_failures": toolFailureStats.values.reduce(0, +)
+            ]
+            for (toolId, count) in toolUsageStats {
+                stats["tool.\(toolId).success"] = count
+            }
+            for (toolId, count) in toolFailureStats {
+                stats["tool.\(toolId).failure"] = count
+            }
+            return stats
+        }
     }
 
     // MARK: - 私有方法
@@ -199,6 +222,16 @@ public class ToolManager: ObservableObject {
     }
 
     /// 加载内置工具
+    private func recordToolExecution(toolId: String, success: Bool) {
+        statsQueue.sync {
+            if success {
+                toolUsageStats[toolId, default: 0] += 1
+            } else {
+                toolFailureStats[toolId, default: 0] += 1
+            }
+        }
+    }
+
     private func loadBuiltinTools() {
         isLoading = true
 
