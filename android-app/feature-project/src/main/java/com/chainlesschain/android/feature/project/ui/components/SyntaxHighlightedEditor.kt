@@ -183,6 +183,7 @@ fun SyntaxHighlightedView(
 
 /**
  * Highlight syntax based on language
+ * Supports 14+ programming languages
  */
 internal fun highlightSyntax(
     code: String,
@@ -196,9 +197,19 @@ internal fun highlightSyntax(
         "js", "javascript", "ts", "typescript", "jsx", "tsx" -> highlightJavaScript(code, colors)
         "swift" -> highlightSwift(code, colors)
         "json" -> highlightJson(code, colors)
-        "xml", "html" -> highlightXml(code, colors)
+        "xml", "html", "htm" -> highlightXml(code, colors)
         "md", "markdown" -> highlightMarkdown(code, colors)
         "yaml", "yml" -> highlightYaml(code, colors)
+        "go" -> highlightGo(code, colors)
+        "rs", "rust" -> highlightRust(code, colors)
+        "c", "h" -> highlightC(code, colors)
+        "cpp", "cc", "cxx", "hpp", "hxx" -> highlightCpp(code, colors)
+        "css", "scss", "sass", "less" -> highlightCss(code, colors)
+        "sql" -> highlightSql(code, colors)
+        "sh", "bash", "zsh" -> highlightShell(code, colors)
+        "dart" -> highlightDart(code, colors)
+        "php" -> highlightPhp(code, colors)
+        "rb", "ruby" -> highlightRuby(code, colors)
         else -> buildAnnotatedString { append(code) }
     }
 }
@@ -541,4 +552,515 @@ private fun findStringEnd(code: String, start: Int): Int {
         i++
     }
     return code.length
+}
+
+// Go syntax highlighting
+private fun highlightGo(code: String, colors: SyntaxColors): AnnotatedString {
+    val keywords = listOf(
+        "func", "var", "const", "type", "struct", "interface", "map", "chan",
+        "if", "else", "switch", "case", "default", "for", "range", "break", "continue",
+        "return", "go", "defer", "select", "package", "import", "fallthrough", "goto",
+        "true", "false", "nil", "iota"
+    )
+
+    val types = listOf(
+        "int", "int8", "int16", "int32", "int64",
+        "uint", "uint8", "uint16", "uint32", "uint64", "uintptr",
+        "float32", "float64", "complex64", "complex128",
+        "bool", "byte", "rune", "string", "error", "any"
+    )
+
+    return buildHighlightedString(code, keywords, types, colors)
+}
+
+// Rust syntax highlighting
+private fun highlightRust(code: String, colors: SyntaxColors): AnnotatedString {
+    val keywords = listOf(
+        "fn", "let", "mut", "const", "static", "struct", "enum", "trait", "impl",
+        "if", "else", "match", "loop", "while", "for", "in", "break", "continue", "return",
+        "pub", "mod", "use", "crate", "super", "self", "Self", "as", "where",
+        "async", "await", "move", "ref", "dyn", "unsafe", "extern", "type",
+        "true", "false", "None", "Some", "Ok", "Err"
+    )
+
+    val types = listOf(
+        "i8", "i16", "i32", "i64", "i128", "isize",
+        "u8", "u16", "u32", "u64", "u128", "usize",
+        "f32", "f64", "bool", "char", "str", "String",
+        "Vec", "Box", "Option", "Result", "HashMap", "HashSet"
+    )
+
+    return buildHighlightedString(code, keywords, types, colors)
+}
+
+// C syntax highlighting
+private fun highlightC(code: String, colors: SyntaxColors): AnnotatedString {
+    val keywords = listOf(
+        "auto", "break", "case", "char", "const", "continue", "default", "do",
+        "double", "else", "enum", "extern", "float", "for", "goto", "if",
+        "int", "long", "register", "return", "short", "signed", "sizeof", "static",
+        "struct", "switch", "typedef", "union", "unsigned", "void", "volatile", "while",
+        "NULL", "true", "false"
+    )
+
+    val types = listOf(
+        "int", "char", "float", "double", "void", "long", "short", "unsigned",
+        "signed", "size_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t",
+        "int8_t", "int16_t", "int32_t", "int64_t", "bool"
+    )
+
+    return buildHighlightedString(code, keywords, types, colors)
+}
+
+// C++ syntax highlighting
+private fun highlightCpp(code: String, colors: SyntaxColors): AnnotatedString {
+    val keywords = listOf(
+        "alignas", "alignof", "and", "and_eq", "asm", "auto", "bitand", "bitor",
+        "bool", "break", "case", "catch", "char", "class", "compl", "const",
+        "constexpr", "const_cast", "continue", "decltype", "default", "delete",
+        "do", "double", "dynamic_cast", "else", "enum", "explicit", "export",
+        "extern", "false", "float", "for", "friend", "goto", "if", "inline",
+        "int", "long", "mutable", "namespace", "new", "noexcept", "not", "not_eq",
+        "nullptr", "operator", "or", "or_eq", "private", "protected", "public",
+        "register", "reinterpret_cast", "return", "short", "signed", "sizeof",
+        "static", "static_assert", "static_cast", "struct", "switch", "template",
+        "this", "throw", "true", "try", "typedef", "typeid", "typename", "union",
+        "unsigned", "using", "virtual", "void", "volatile", "wchar_t", "while",
+        "xor", "xor_eq", "override", "final"
+    )
+
+    val types = listOf(
+        "string", "vector", "map", "set", "list", "deque", "queue", "stack",
+        "pair", "tuple", "array", "shared_ptr", "unique_ptr", "weak_ptr",
+        "optional", "variant", "any", "function"
+    )
+
+    return buildHighlightedString(code, keywords, types, colors)
+}
+
+// CSS syntax highlighting
+private fun highlightCss(code: String, colors: SyntaxColors): AnnotatedString {
+    return buildAnnotatedString {
+        var i = 0
+        while (i < code.length) {
+            when {
+                // Comment
+                code.substring(i).startsWith("/*") -> {
+                    val endIndex = code.indexOf("*/", i).let { if (it == -1) code.length else it + 2 }
+                    withStyle(SpanStyle(color = colors.comment)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                // Selector (starts line or after }, before {)
+                code[i] == '.' || code[i] == '#' || code[i].isLetter() -> {
+                    val braceIndex = code.indexOf('{', i)
+                    if (braceIndex != -1 && !code.substring(i, braceIndex).contains('}')) {
+                        // This is a selector
+                        withStyle(SpanStyle(color = colors.type)) {
+                            append(code.substring(i, braceIndex))
+                        }
+                        i = braceIndex
+                    } else {
+                        // Property or value
+                        val colonIndex = code.indexOf(':', i)
+                        val semiIndex = code.indexOf(';', i)
+                        if (colonIndex != -1 && (semiIndex == -1 || colonIndex < semiIndex)) {
+                            // Property name
+                            withStyle(SpanStyle(color = colors.property)) {
+                                append(code.substring(i, colonIndex))
+                            }
+                            i = colonIndex
+                        } else {
+                            append(code[i])
+                            i++
+                        }
+                    }
+                }
+                // Color value
+                code[i] == '#' && i + 1 < code.length && code[i + 1].isLetterOrDigit() -> {
+                    val start = i
+                    i++
+                    while (i < code.length && code[i].isLetterOrDigit()) i++
+                    withStyle(SpanStyle(color = colors.number)) {
+                        append(code.substring(start, i))
+                    }
+                }
+                // String
+                code[i] == '"' || code[i] == '\'' -> {
+                    val quote = code[i]
+                    val endIndex = findQuoteEnd(code, i, quote)
+                    withStyle(SpanStyle(color = colors.string)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                // Number with unit
+                code[i].isDigit() -> {
+                    val start = i
+                    while (i < code.length && (code[i].isDigit() || code[i] == '.' || code[i] == '%' ||
+                        code[i].lowercaseChar() in listOf('p', 'x', 'e', 'm', 'r', 'v', 'w', 'h', 's'))) {
+                        i++
+                    }
+                    withStyle(SpanStyle(color = colors.number)) {
+                        append(code.substring(start, i))
+                    }
+                }
+                else -> {
+                    append(code[i])
+                    i++
+                }
+            }
+        }
+    }
+}
+
+// SQL syntax highlighting
+private fun highlightSql(code: String, colors: SyntaxColors): AnnotatedString {
+    val keywords = listOf(
+        "SELECT", "FROM", "WHERE", "INSERT", "INTO", "VALUES", "UPDATE", "SET",
+        "DELETE", "CREATE", "TABLE", "DROP", "ALTER", "ADD", "INDEX", "VIEW",
+        "JOIN", "LEFT", "RIGHT", "INNER", "OUTER", "ON", "AND", "OR", "NOT",
+        "IN", "LIKE", "BETWEEN", "IS", "NULL", "AS", "ORDER", "BY", "GROUP",
+        "HAVING", "LIMIT", "OFFSET", "UNION", "ALL", "DISTINCT", "COUNT", "SUM",
+        "AVG", "MIN", "MAX", "ASC", "DESC", "PRIMARY", "KEY", "FOREIGN", "REFERENCES",
+        "CONSTRAINT", "DEFAULT", "UNIQUE", "CHECK", "CASCADE", "IF", "EXISTS",
+        "CASE", "WHEN", "THEN", "ELSE", "END", "BEGIN", "COMMIT", "ROLLBACK",
+        "TRANSACTION", "GRANT", "REVOKE", "TRUE", "FALSE"
+    )
+
+    val types = listOf(
+        "INT", "INTEGER", "BIGINT", "SMALLINT", "TINYINT", "FLOAT", "DOUBLE",
+        "DECIMAL", "NUMERIC", "REAL", "VARCHAR", "CHAR", "TEXT", "BLOB",
+        "DATE", "TIME", "DATETIME", "TIMESTAMP", "BOOLEAN", "BOOL", "SERIAL"
+    )
+
+    // Case-insensitive matching for SQL
+    return buildAnnotatedString {
+        var i = 0
+        while (i < code.length) {
+            when {
+                code.substring(i).startsWith("--") -> {
+                    val endIndex = code.indexOf('\n', i).let { if (it == -1) code.length else it }
+                    withStyle(SpanStyle(color = colors.comment)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code.substring(i).startsWith("/*") -> {
+                    val endIndex = code.indexOf("*/", i).let { if (it == -1) code.length else it + 2 }
+                    withStyle(SpanStyle(color = colors.comment)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code[i] == '\'' -> {
+                    val endIndex = findQuoteEnd(code, i, '\'')
+                    withStyle(SpanStyle(color = colors.string)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code[i].isDigit() -> {
+                    val start = i
+                    while (i < code.length && (code[i].isDigit() || code[i] == '.')) i++
+                    withStyle(SpanStyle(color = colors.number)) {
+                        append(code.substring(start, i))
+                    }
+                }
+                code[i].isLetter() || code[i] == '_' -> {
+                    val start = i
+                    while (i < code.length && (code[i].isLetterOrDigit() || code[i] == '_')) i++
+                    val word = code.substring(start, i)
+                    val color = when {
+                        word.uppercase() in keywords -> colors.keyword
+                        word.uppercase() in types -> colors.type
+                        else -> colors.default
+                    }
+                    withStyle(SpanStyle(color = color)) {
+                        append(word)
+                    }
+                }
+                else -> {
+                    append(code[i])
+                    i++
+                }
+            }
+        }
+    }
+}
+
+// Shell/Bash syntax highlighting
+private fun highlightShell(code: String, colors: SyntaxColors): AnnotatedString {
+    val keywords = listOf(
+        "if", "then", "else", "elif", "fi", "case", "esac", "for", "while", "until",
+        "do", "done", "in", "function", "return", "local", "export", "readonly",
+        "declare", "typeset", "unset", "shift", "source", "alias", "unalias",
+        "true", "false", "break", "continue", "exit"
+    )
+
+    val builtins = listOf(
+        "echo", "printf", "read", "cd", "pwd", "ls", "cp", "mv", "rm", "mkdir",
+        "rmdir", "touch", "cat", "grep", "sed", "awk", "find", "xargs", "sort",
+        "uniq", "wc", "head", "tail", "cut", "tr", "chmod", "chown", "sudo",
+        "apt", "yum", "brew", "npm", "pip", "git", "docker", "kubectl"
+    )
+
+    return buildAnnotatedString {
+        var i = 0
+        while (i < code.length) {
+            when {
+                code[i] == '#' -> {
+                    val endIndex = code.indexOf('\n', i).let { if (it == -1) code.length else it }
+                    withStyle(SpanStyle(color = colors.comment)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code[i] == '"' || code[i] == '\'' -> {
+                    val quote = code[i]
+                    val endIndex = findQuoteEnd(code, i, quote)
+                    withStyle(SpanStyle(color = colors.string)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code[i] == '$' -> {
+                    val start = i
+                    i++
+                    if (i < code.length && code[i] == '{') {
+                        val endIndex = code.indexOf('}', i).let { if (it == -1) code.length else it + 1 }
+                        withStyle(SpanStyle(color = colors.variable)) {
+                            append(code.substring(start, endIndex))
+                        }
+                        i = endIndex
+                    } else {
+                        while (i < code.length && (code[i].isLetterOrDigit() || code[i] == '_')) i++
+                        withStyle(SpanStyle(color = colors.variable)) {
+                            append(code.substring(start, i))
+                        }
+                    }
+                }
+                code[i].isLetter() || code[i] == '_' -> {
+                    val start = i
+                    while (i < code.length && (code[i].isLetterOrDigit() || code[i] == '_' || code[i] == '-')) i++
+                    val word = code.substring(start, i)
+                    val color = when {
+                        word in keywords -> colors.keyword
+                        word in builtins -> colors.function
+                        else -> colors.default
+                    }
+                    withStyle(SpanStyle(color = color)) {
+                        append(word)
+                    }
+                }
+                else -> {
+                    append(code[i])
+                    i++
+                }
+            }
+        }
+    }
+}
+
+// Dart syntax highlighting
+private fun highlightDart(code: String, colors: SyntaxColors): AnnotatedString {
+    val keywords = listOf(
+        "abstract", "as", "assert", "async", "await", "break", "case", "catch",
+        "class", "const", "continue", "covariant", "default", "deferred", "do",
+        "dynamic", "else", "enum", "export", "extends", "extension", "external",
+        "factory", "false", "final", "finally", "for", "Function", "get", "hide",
+        "if", "implements", "import", "in", "interface", "is", "late", "library",
+        "mixin", "new", "null", "on", "operator", "part", "required", "rethrow",
+        "return", "set", "show", "static", "super", "switch", "sync", "this",
+        "throw", "true", "try", "typedef", "var", "void", "while", "with", "yield"
+    )
+
+    val types = listOf(
+        "int", "double", "num", "bool", "String", "List", "Map", "Set",
+        "Future", "Stream", "Iterable", "Object", "dynamic", "void",
+        "Widget", "BuildContext", "State", "StatelessWidget", "StatefulWidget"
+    )
+
+    return buildHighlightedString(code, keywords, types, colors)
+}
+
+// PHP syntax highlighting
+private fun highlightPhp(code: String, colors: SyntaxColors): AnnotatedString {
+    val keywords = listOf(
+        "abstract", "and", "array", "as", "break", "callable", "case", "catch",
+        "class", "clone", "const", "continue", "declare", "default", "die", "do",
+        "echo", "else", "elseif", "empty", "enddeclare", "endfor", "endforeach",
+        "endif", "endswitch", "endwhile", "eval", "exit", "extends", "final",
+        "finally", "fn", "for", "foreach", "function", "global", "goto", "if",
+        "implements", "include", "include_once", "instanceof", "insteadof",
+        "interface", "isset", "list", "match", "namespace", "new", "or", "print",
+        "private", "protected", "public", "readonly", "require", "require_once",
+        "return", "static", "switch", "throw", "trait", "try", "unset", "use",
+        "var", "while", "xor", "yield", "true", "false", "null"
+    )
+
+    val types = listOf(
+        "int", "float", "bool", "string", "array", "object", "callable", "iterable",
+        "void", "mixed", "never", "null"
+    )
+
+    return buildAnnotatedString {
+        var i = 0
+        while (i < code.length) {
+            when {
+                code.substring(i).startsWith("//") -> {
+                    val endIndex = code.indexOf('\n', i).let { if (it == -1) code.length else it }
+                    withStyle(SpanStyle(color = colors.comment)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code.substring(i).startsWith("#") && !code.substring(i).startsWith("#[") -> {
+                    val endIndex = code.indexOf('\n', i).let { if (it == -1) code.length else it }
+                    withStyle(SpanStyle(color = colors.comment)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code.substring(i).startsWith("/*") -> {
+                    val endIndex = code.indexOf("*/", i).let { if (it == -1) code.length else it + 2 }
+                    withStyle(SpanStyle(color = colors.comment)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code[i] == '$' -> {
+                    val start = i
+                    i++
+                    while (i < code.length && (code[i].isLetterOrDigit() || code[i] == '_')) i++
+                    withStyle(SpanStyle(color = colors.variable)) {
+                        append(code.substring(start, i))
+                    }
+                }
+                code[i] == '"' || code[i] == '\'' -> {
+                    val quote = code[i]
+                    val endIndex = findQuoteEnd(code, i, quote)
+                    withStyle(SpanStyle(color = colors.string)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code[i].isDigit() -> {
+                    val start = i
+                    while (i < code.length && (code[i].isDigit() || code[i] == '.')) i++
+                    withStyle(SpanStyle(color = colors.number)) {
+                        append(code.substring(start, i))
+                    }
+                }
+                code[i].isLetter() || code[i] == '_' -> {
+                    val start = i
+                    while (i < code.length && (code[i].isLetterOrDigit() || code[i] == '_')) i++
+                    val word = code.substring(start, i)
+                    val color = when {
+                        word in keywords -> colors.keyword
+                        word in types -> colors.type
+                        else -> colors.default
+                    }
+                    withStyle(SpanStyle(color = color)) {
+                        append(word)
+                    }
+                }
+                else -> {
+                    append(code[i])
+                    i++
+                }
+            }
+        }
+    }
+}
+
+// Ruby syntax highlighting
+private fun highlightRuby(code: String, colors: SyntaxColors): AnnotatedString {
+    val keywords = listOf(
+        "BEGIN", "END", "alias", "and", "begin", "break", "case", "class",
+        "def", "defined?", "do", "else", "elsif", "end", "ensure", "false",
+        "for", "if", "in", "module", "next", "nil", "not", "or", "redo",
+        "rescue", "retry", "return", "self", "super", "then", "true", "undef",
+        "unless", "until", "when", "while", "yield", "__FILE__", "__LINE__",
+        "attr_reader", "attr_writer", "attr_accessor", "private", "protected",
+        "public", "require", "require_relative", "include", "extend", "raise"
+    )
+
+    val types = listOf(
+        "Array", "Hash", "String", "Integer", "Float", "Symbol", "Proc",
+        "Lambda", "Class", "Module", "Object", "NilClass", "TrueClass", "FalseClass"
+    )
+
+    return buildAnnotatedString {
+        var i = 0
+        while (i < code.length) {
+            when {
+                code[i] == '#' -> {
+                    val endIndex = code.indexOf('\n', i).let { if (it == -1) code.length else it }
+                    withStyle(SpanStyle(color = colors.comment)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code.substring(i).startsWith("=begin") -> {
+                    val endIndex = code.indexOf("=end", i).let { if (it == -1) code.length else it + 4 }
+                    withStyle(SpanStyle(color = colors.comment)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code[i] == '"' || code[i] == '\'' -> {
+                    val quote = code[i]
+                    val endIndex = findQuoteEnd(code, i, quote)
+                    withStyle(SpanStyle(color = colors.string)) {
+                        append(code.substring(i, endIndex))
+                    }
+                    i = endIndex
+                }
+                code[i] == ':' && i + 1 < code.length && code[i + 1].isLetter() -> {
+                    val start = i
+                    i++
+                    while (i < code.length && (code[i].isLetterOrDigit() || code[i] == '_')) i++
+                    withStyle(SpanStyle(color = colors.type)) {
+                        append(code.substring(start, i))
+                    }
+                }
+                code[i] == '@' -> {
+                    val start = i
+                    i++
+                    if (i < code.length && code[i] == '@') i++
+                    while (i < code.length && (code[i].isLetterOrDigit() || code[i] == '_')) i++
+                    withStyle(SpanStyle(color = colors.variable)) {
+                        append(code.substring(start, i))
+                    }
+                }
+                code[i].isDigit() -> {
+                    val start = i
+                    while (i < code.length && (code[i].isDigit() || code[i] == '.' || code[i] == '_')) i++
+                    withStyle(SpanStyle(color = colors.number)) {
+                        append(code.substring(start, i))
+                    }
+                }
+                code[i].isLetter() || code[i] == '_' -> {
+                    val start = i
+                    while (i < code.length && (code[i].isLetterOrDigit() || code[i] == '_' || code[i] == '?' || code[i] == '!')) i++
+                    val word = code.substring(start, i)
+                    val color = when {
+                        word in keywords -> colors.keyword
+                        word in types -> colors.type
+                        word.first().isUpperCase() -> colors.type
+                        else -> colors.default
+                    }
+                    withStyle(SpanStyle(color = color)) {
+                        append(word)
+                    }
+                }
+                else -> {
+                    append(code[i])
+                    i++
+                }
+            }
+        }
+    }
 }
