@@ -356,37 +356,46 @@ class EntityExtractorTest {
     @Test
     fun `技术关键词库应包含主要语言`() {
         // Then
-        assertTrue("应包含Kotlin", TechKeywords.PROGRAMMING_LANGUAGES.any {
-            it.equals("Kotlin", ignoreCase = true)
-        })
-        assertTrue("应包含Python", TechKeywords.PROGRAMMING_LANGUAGES.any {
-            it.equals("Python", ignoreCase = true)
-        })
-        assertTrue("应包含JavaScript", TechKeywords.PROGRAMMING_LANGUAGES.any {
-            it.equals("JavaScript", ignoreCase = true)
-        })
+        assertTrue("应包含kotlin", TechKeywords.languages.contains("kotlin"))
+        assertTrue("应包含python", TechKeywords.languages.contains("python"))
+        assertTrue("应包含javascript", TechKeywords.languages.contains("javascript"))
     }
 
     @Test
     fun `技术关键词库应包含主要框架`() {
         // Then
-        assertTrue("应包含TensorFlow", TechKeywords.ML_FRAMEWORKS.any {
-            it.equals("TensorFlow", ignoreCase = true)
-        })
-        assertTrue("应包含Docker", TechKeywords.DEVOPS_TOOLS.any {
-            it.equals("Docker", ignoreCase = true)
-        })
+        assertTrue("应包含tensorflow", TechKeywords.frameworks.contains("tensorflow"))
+        assertTrue("应包含docker", TechKeywords.devops.contains("docker"))
     }
 
     @Test
-    fun `所有关键词应唯一`() {
+    fun `技术关键词查找应正确`() {
+        // Given
+        val text = "Using Python and TensorFlow for machine learning"
+
         // When
-        val allKeywords = TechKeywords.getAllKeywords()
+        val found = TechKeywords.findKeywords(text)
 
         // Then
-        val uniqueKeywords = allKeywords.map { it.lowercase() }.toSet()
-        // 允许一定的重复（不同类别可能有重叠）
-        assertTrue("关键词数量应合理", allKeywords.size <= uniqueKeywords.size * 1.2)
+        assertTrue("应找到python", found.any { it.equals("python", ignoreCase = true) })
+        assertTrue("应找到tensorflow", found.any { it.equals("tensorflow", ignoreCase = true) })
+    }
+
+    @Test
+    fun `技术关键词分类应正确`() {
+        // Then
+        assertEquals("kotlin应是Language", "Language", TechKeywords.getCategory("kotlin"))
+        assertEquals("react应是Framework", "Framework", TechKeywords.getCategory("react"))
+        assertEquals("docker应是DevOps", "DevOps", TechKeywords.getCategory("docker"))
+        assertEquals("gpt应是AI/ML", "AI/ML", TechKeywords.getCategory("gpt"))
+    }
+
+    @Test
+    fun `技术关键词containsKeyword应正确`() {
+        // Then
+        assertTrue("应检测到kotlin", TechKeywords.containsKeyword("I love kotlin"))
+        assertTrue("应检测到python", TechKeywords.containsKeyword("Python is great"))
+        assertFalse("不应检测到随机词", TechKeywords.containsKeyword("random text here"))
     }
 
     // ===== Jaccard Similarity Tests =====
@@ -518,6 +527,5 @@ class EntityExtractorTest {
 
         // Then
         assertTrue("应有EMAIL实体", result.entities.any { it.type == EntityType.EMAIL })
-        // 其他类型可能不会被提取（取决于实现）
     }
 }

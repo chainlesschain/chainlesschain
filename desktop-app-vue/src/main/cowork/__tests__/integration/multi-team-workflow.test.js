@@ -10,7 +10,7 @@
  * NOTE: Skipped - source files moved to ai-engine/cowork
  */
 
-const { describe, test, expect } = require("vitest");
+import { describe, test, expect } from 'vitest';
 
 describe.skip("Multi-Team Workflow Integration Tests (skipped - source paths changed)", () => {
   test("placeholder", () => {
