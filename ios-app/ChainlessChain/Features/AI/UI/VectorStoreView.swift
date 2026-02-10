@@ -401,8 +401,8 @@ class VectorStoreViewModel: ObservableObject {
     @MainActor
     private func refreshStores() async {
         // 获取所有存储名称
-        storeNames = ["default", "knowledge", "documents"]  // TODO: 从VectorStoreManager获取
-        storeCount = storeNames.count
+        storeNames = VectorStoreManager.shared.getStoreNames()
+        storeCount = VectorStoreManager.shared.storeCount
 
         // 加载每个存储的向量
         var totalCount = 0
@@ -514,15 +514,12 @@ class VectorStoreViewModel: ObservableObject {
     }
 
     private func generateEmbedding(text: String) async throws -> Vector {
-        // TODO: 实际实现需要调用embedding模型
-        // 这里使用模拟数据
-
-        let dimensions = 384
-        let values = (0..<dimensions).map { _ in Float.random(in: -1...1) }
+        // 使用 LLMManager 生成实际 embedding
+        let embedding = try await LLMManager.shared.generateEmbedding(text)
 
         return Vector(
             id: UUID().uuidString,
-            values: values,
+            values: embedding,
             metadata: ["text": text]
         )
     }
