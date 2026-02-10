@@ -136,7 +136,7 @@ data class ContractCallResult(
 data class ContractOutput(
     val name: String?,
     val type: String,
-    val value: Any,
+    val rawValue: String, // Raw hex or serialized value
     val displayValue: String
 )
 
@@ -178,7 +178,7 @@ data class DeployContractRequest(
     val chain: SupportedChain,
     val bytecode: String,
     val abi: String? = null,
-    val constructorArgs: List<Any> = emptyList(),
+    val constructorArgs: List<String> = emptyList(), // Encoded constructor arguments
     val name: String? = null,
     val gasLimit: Long? = null,
     val value: String = "0"
