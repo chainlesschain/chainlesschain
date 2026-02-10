@@ -41,7 +41,8 @@ object DatabaseMigrations {
             MIGRATION_17_18,
             MIGRATION_18_19,
             MIGRATION_19_20,
-            MIGRATION_20_21
+            MIGRATION_20_21,
+            MIGRATION_21_22
         )
     }
 
@@ -1039,6 +1040,44 @@ object DatabaseMigrations {
             """.trimIndent())
 
             Log.i(TAG, "Migration 20 to 21 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 21 -> 22
+     *
+     * 添加向量嵌入表用于语义搜索
+     *
+     * @since v0.33.0
+     */
+    val MIGRATION_21_22 = object : Migration(21, 22) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 21 to 22")
+
+            // 创建 vector_embeddings 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `vector_embeddings` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `namespace` TEXT NOT NULL,
+                    `content` TEXT NOT NULL,
+                    `contentHash` TEXT NOT NULL,
+                    `embeddingJson` TEXT NOT NULL,
+                    `dimension` INTEGER NOT NULL,
+                    `metadataJson` TEXT,
+                    `sourceId` TEXT,
+                    `sourceType` TEXT,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_vector_embeddings_namespace` ON `vector_embeddings` (`namespace`)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_vector_embeddings_contentHash` ON `vector_embeddings` (`contentHash`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_vector_embeddings_createdAt` ON `vector_embeddings` (`createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_vector_embeddings_namespace_createdAt` ON `vector_embeddings` (`namespace`, `createdAt`)")
+
+            Log.i(TAG, "Migration 21 to 22 completed successfully")
         }
     }
 
