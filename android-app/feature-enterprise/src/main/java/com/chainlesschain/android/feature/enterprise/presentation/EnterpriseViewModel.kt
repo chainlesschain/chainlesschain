@@ -208,6 +208,8 @@ class EnterpriseViewModel @Inject constructor(
         }
     }
 
+    fun getMemberCount(teamId: String): Int = teamManager.getMemberCount(teamId)
+
     // ==================== Audit Logs ====================
 
     private fun loadAuditLogs() {
