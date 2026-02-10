@@ -19,13 +19,23 @@
 
 ---
 
-## ⭐ 当前版本: v0.32.0 (2026-02-09)
+## ⭐ 当前版本: v0.32.0 (2026-02-10)
 
-### 最新更新 - 安全认证增强 + 增量RAG索引 + SIMKey NFC检测 + 文件版本控制
+### 最新更新 - 移动端AI增强 + 工作流系统 + 语音交互
 
-**Security Auth + Incremental RAG + SIMKey NFC + File Versioning** - 生产级安全认证、智能文档索引、移动端硬件密钥支持、完整文件历史
+**Mobile AI Enhancement + Workflow System + Voice Interaction** - iOS/Android 全功能 AI 系统、工作流自动化、实时语音交互
 
-#### 新增核心功能 (2026-02-09)
+#### 新增核心功能 (2026-02-10)
+
+- ✅ **iOS 工作流系统** - WorkflowModels + WorkflowManager 完整工作流自动化
+- ✅ **iOS 语音交互** - RealtimeVoiceInput 实时语音输入、VoiceManager 语音功能管理
+- ✅ **Android MCP/Hooks/协作** - MCP 集成、Hooks 系统、Collaboration 模块、Performance 优化全部完成
+- ✅ **Android 知识图谱** - KnowledgeGraphManager + Presentation Layer、知识图谱可视化
+- ✅ **移动端 TTS** - TTSClient 语音合成、知识图谱仓库集成
+- ✅ **Android 音频处理** - AudioProcessor 音频处理引擎、语音识别增强
+- ✅ **Android 权限引擎** - PermissionEngine 企业级权限控制实现
+
+#### v0.32.0 功能回顾 (2026-02-09)
 
 - ✅ **安全认证增强** - dev/prod 模式切换、API 端点 JWT 认证、设备密钥数据库集成
 - ✅ **增量RAG索引系统** - MD5 content hash 变化检测、多文件联合检索、统一检索(向量+关键词+图谱)
