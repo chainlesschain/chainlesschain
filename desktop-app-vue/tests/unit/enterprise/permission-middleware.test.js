@@ -80,6 +80,11 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, ownerDID, memberDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_123'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_123'`).run();
+      db.prepare(`DELETE FROM permission_audit_log WHERE org_id = 'org_123'`).run();
+
       // Create test users
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
@@ -231,6 +236,10 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, ownerDID, adminDID, memberDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_456'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_456'`).run();
+
       // Create test users
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
@@ -336,6 +345,10 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, adminDID, memberDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_789'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_789'`).run();
+
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
         { setAsDefault: true }
@@ -433,6 +446,10 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, ownerDID, adminDID, memberDID, viewerDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_role'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_role'`).run();
+
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
         { setAsDefault: true }
@@ -561,6 +578,10 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, ownerDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_cache'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_cache'`).run();
+
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
         { setAsDefault: true }
@@ -665,6 +686,10 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, ownerDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_rate'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_rate'`).run();
+
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
         { setAsDefault: true }
@@ -779,6 +804,11 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, ownerDID, memberDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM permission_audit_log WHERE org_id = 'org_audit'`).run();
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_audit'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_audit'`).run();
+
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
         { setAsDefault: true }
@@ -890,6 +920,10 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, ownerDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_error'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_error'`).run();
+
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
         { setAsDefault: true }
@@ -982,6 +1016,11 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, ownerDID, memberDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM org_knowledge_folders WHERE org_id = 'org_own'`).run();
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_own'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_own'`).run();
+
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
         { setAsDefault: true }
@@ -1063,6 +1102,11 @@ describe('PermissionMiddleware Unit Tests', () => {
     let org, ownerDID, memberDID;
 
     beforeEach(async () => {
+      // Clean up any existing test data
+      db.prepare(`DELETE FROM permission_audit_log WHERE org_id = 'org_log'`).run();
+      db.prepare(`DELETE FROM organization_members WHERE org_id = 'org_log'`).run();
+      db.prepare(`DELETE FROM organization_info WHERE org_id = 'org_log'`).run();
+
       const owner = await didManager.createIdentity(
         { nickname: 'Owner', displayName: 'Owner' },
         { setAsDefault: true }
