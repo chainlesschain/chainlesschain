@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.enterprise.data.engine
 
+import com.chainlesschain.android.feature.enterprise.presentation.AuditLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
