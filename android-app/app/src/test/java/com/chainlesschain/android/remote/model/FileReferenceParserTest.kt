@@ -130,7 +130,7 @@ class FileReferenceParserTest {
 
     @Test
     fun `stripReferences removes all file references`() {
-        val input = "Check @file.kt and @"other.js" for issues"
+        val input = "Check @file.kt and @\"other.js\" for issues"
         val result = FileReferenceParser.stripReferences(input)
 
         assertEquals("Check and for issues", result)
