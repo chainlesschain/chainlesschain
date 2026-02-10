@@ -20,6 +20,7 @@ import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
 import com.chainlesschain.android.core.database.dao.social.PostEditHistoryDao
 import com.chainlesschain.android.core.database.dao.ModerationQueueDao
+import com.chainlesschain.android.core.database.dao.VectorEmbeddingDao
 import com.chainlesschain.android.core.database.migration.DatabaseMigrations
 import com.chainlesschain.android.core.security.KeyManager
 import dagger.Module
@@ -213,4 +214,13 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideModerationQueueDao(database: ChainlessChainDatabase) = database.moderationQueueDao()
+
+    /**
+     * 提供向量嵌入DAO
+     */
+    @Provides
+    @Singleton
+    fun provideVectorEmbeddingDao(database: ChainlessChainDatabase): VectorEmbeddingDao {
+        return database.vectorEmbeddingDao()
+    }
 }
