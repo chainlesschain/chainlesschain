@@ -13,8 +13,8 @@
  * - 辅助方法
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { mount } from "@vue/test-utils";
 
 // Mock ant-design-vue
 const mockMessage = vi.hoisted(() => ({
@@ -24,7 +24,7 @@ const mockMessage = vi.hoisted(() => ({
   info: vi.fn(),
 }));
 
-vi.mock('ant-design-vue', () => ({
+vi.mock("ant-design-vue", () => ({
   message: mockMessage,
 }));
 
@@ -34,7 +34,7 @@ const mockRouter = {
   back: vi.fn(),
 };
 
-vi.mock('vue-router', () => ({
+vi.mock("vue-router", () => ({
   useRouter: () => mockRouter,
   useRoute: () => ({ params: {}, query: {} }),
 }));
@@ -42,19 +42,19 @@ vi.mock('vue-router', () => ({
 // Mock dayjs with hoisted pattern
 const mockDayjs = vi.hoisted(() => {
   const dayjsFn = (timestamp) => ({
-    fromNow: () => '2天前',
+    fromNow: () => "2天前",
   });
   dayjsFn.extend = vi.fn();
   dayjsFn.locale = vi.fn();
   return dayjsFn;
 });
 
-vi.mock('dayjs', () => {
+vi.mock("dayjs", () => {
   return { default: mockDayjs };
 });
 
-vi.mock('dayjs/plugin/relativeTime', () => ({ default: {} }));
-vi.mock('dayjs/locale/zh-cn', () => ({}));
+vi.mock("dayjs/plugin/relativeTime", () => ({ default: {} }));
+vi.mock("dayjs/locale/zh-cn", () => ({}));
 
 // Hoist mock logger so it can be used directly
 const mockLogger = vi.hoisted(() => ({
@@ -64,7 +64,7 @@ const mockLogger = vi.hoisted(() => ({
 }));
 
 // Mock logger
-vi.mock('@/utils/logger', () => ({
+vi.mock("@/utils/logger", () => ({
   logger: mockLogger,
   createLogger: vi.fn(() => mockLogger),
 }));
@@ -78,39 +78,39 @@ global.window = {
   },
 };
 
-describe('OrganizationsPage', () => {
+describe("OrganizationsPage", () => {
   let wrapper;
 
   const mockOrganizations = [
     {
-      org_id: 'org-1',
-      name: 'Test Organization 1',
-      description: 'This is a test organization',
-      type: 'startup',
-      role: 'owner',
+      org_id: "org-1",
+      name: "Test Organization 1",
+      description: "This is a test organization",
+      type: "startup",
+      role: "owner",
       avatar: null,
       member_count: 5,
-      joined_at: '2026-01-20',
+      joined_at: "2026-01-20",
     },
     {
-      org_id: 'org-2',
-      name: 'Test Organization 2',
-      description: '',
-      type: 'company',
-      role: 'admin',
-      avatar: 'https://example.com/avatar.png',
+      org_id: "org-2",
+      name: "Test Organization 2",
+      description: "",
+      type: "company",
+      role: "admin",
+      avatar: "https://example.com/avatar.png",
       member_count: 15,
-      joined_at: '2026-01-15',
+      joined_at: "2026-01-15",
     },
     {
-      org_id: 'org-3',
-      name: 'Community Org',
-      description: 'Open source community',
-      type: 'community',
-      role: 'member',
+      org_id: "org-3",
+      name: "Community Org",
+      description: "Open source community",
+      type: "community",
+      role: "member",
       avatar: null,
       member_count: 50,
-      joined_at: '2026-01-10',
+      joined_at: "2026-01-10",
     },
   ];
 
@@ -181,7 +181,7 @@ describe('OrganizationsPage', () => {
           </div>
         `,
         setup() {
-          const { ref, onMounted } = require('vue');
+          const { ref, onMounted } = require("vue");
           const message = mockMessage;
           // Use mocks directly instead of requiring - vi.mock doesn't intercept require() in setup
           const logger = mockLogger;
@@ -191,26 +191,26 @@ describe('OrganizationsPage', () => {
           const showCreateModal = ref(false);
           const creating = ref(false);
           const createForm = ref({
-            name: '',
-            type: 'startup',
-            description: '',
+            name: "",
+            type: "startup",
+            description: "",
           });
 
           const loadOrganizations = async () => {
             loading.value = true;
             try {
               const result = await window.electron.ipcRenderer.invoke(
-                'org:get-user-organizations'
+                "org:get-user-organizations",
               );
 
               if (result.success) {
                 organizations.value = result.organizations;
               } else {
-                message.error(result.error || '加载组织列表失败');
+                message.error(result.error || "加载组织列表失败");
               }
             } catch (error) {
-              logger.error('加载组织列表失败:', error);
-              message.error('加载组织列表失败');
+              logger.error("加载组织列表失败:", error);
+              message.error("加载组织列表失败");
             } finally {
               loading.value = false;
             }
@@ -218,36 +218,36 @@ describe('OrganizationsPage', () => {
 
           const handleCreate = async () => {
             if (!createForm.value.name) {
-              message.warning('请输入组织名称');
+              message.warning("请输入组织名称");
               return;
             }
 
             creating.value = true;
             try {
               const result = await window.electron.ipcRenderer.invoke(
-                'org:create-organization',
-                createForm.value
+                "org:create-organization",
+                createForm.value,
               );
 
               if (result.success) {
-                message.success('组织创建成功');
+                message.success("组织创建成功");
                 showCreateModal.value = false;
 
                 createForm.value = {
-                  name: '',
-                  type: 'startup',
-                  description: '',
+                  name: "",
+                  type: "startup",
+                  description: "",
                 };
 
                 await loadOrganizations();
 
                 router.push(`/org/${result.organization.org_id}/members`);
               } else {
-                message.error(result.error || '创建组织失败');
+                message.error(result.error || "创建组织失败");
               }
             } catch (error) {
-              logger.error('创建组织失败:', error);
-              message.error('创建组织失败');
+              logger.error("创建组织失败:", error);
+              message.error("创建组织失败");
             } finally {
               creating.value = false;
             }
@@ -271,44 +271,44 @@ describe('OrganizationsPage', () => {
 
           const getOrgTypeLabel = (type) => {
             const labels = {
-              startup: '初创公司',
-              company: '企业',
-              community: '社区',
-              opensource: '开源',
-              education: '教育',
+              startup: "初创公司",
+              company: "企业",
+              community: "社区",
+              opensource: "开源",
+              education: "教育",
             };
             return labels[type] || type;
           };
 
           const getOrgTypeColor = (type) => {
             const colors = {
-              startup: 'green',
-              company: 'blue',
-              community: 'purple',
-              opensource: 'orange',
-              education: 'cyan',
+              startup: "green",
+              company: "blue",
+              community: "purple",
+              opensource: "orange",
+              education: "cyan",
             };
-            return colors[type] || 'default';
+            return colors[type] || "default";
           };
 
           const getRoleLabel = (role) => {
             const labels = {
-              owner: '所有者',
-              admin: '管理员',
-              member: '成员',
-              viewer: '访客',
+              owner: "所有者",
+              admin: "管理员",
+              member: "成员",
+              viewer: "访客",
             };
             return labels[role] || role;
           };
 
           const getRoleColor = (role) => {
             const colors = {
-              owner: 'gold',
-              admin: 'red',
-              member: 'blue',
-              viewer: 'default',
+              owner: "gold",
+              admin: "red",
+              member: "blue",
+              viewer: "default",
             };
-            return colors[role] || 'default';
+            return colors[role] || "default";
           };
 
           const formatDate = (timestamp) => {
@@ -340,7 +340,7 @@ describe('OrganizationsPage', () => {
           };
         },
       },
-      options
+      options,
     );
   };
 
@@ -352,14 +352,14 @@ describe('OrganizationsPage', () => {
     });
   });
 
-  describe('组件挂载', () => {
-    it('应该成功挂载组件', () => {
+  describe("组件挂载", () => {
+    it("应该成功挂载组件", () => {
       wrapper = createWrapper();
       expect(wrapper.exists()).toBe(true);
-      expect(wrapper.find('.organizations-page').exists()).toBe(true);
+      expect(wrapper.find(".organizations-page").exists()).toBe(true);
     });
 
-    it('应该在挂载时加载组织列表', async () => {
+    it("应该在挂载时加载组织列表", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: mockOrganizations,
@@ -370,13 +370,13 @@ describe('OrganizationsPage', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'org:get-user-organizations'
+        "org:get-user-organizations",
       );
     });
   });
 
-  describe('组织列表显示', () => {
-    it('应该显示空状态', async () => {
+  describe("组织列表显示", () => {
+    it("应该显示空状态", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: [],
@@ -386,10 +386,10 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.empty-state').exists()).toBe(true);
+      expect(wrapper.find(".empty-state").exists()).toBe(true);
     });
 
-    it('应该显示组织列表', async () => {
+    it("应该显示组织列表", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: mockOrganizations,
@@ -400,10 +400,10 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.$nextTick();
 
       expect(wrapper.vm.organizations.length).toBe(3);
-      expect(wrapper.findAll('.org-card').length).toBe(3);
+      expect(wrapper.findAll(".org-card").length).toBe(3);
     });
 
-    it('应该显示组织名称', async () => {
+    it("应该显示组织名称", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: [mockOrganizations[0]],
@@ -413,10 +413,10 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.text()).toContain('Test Organization 1');
+      expect(wrapper.text()).toContain("Test Organization 1");
     });
 
-    it('应该显示默认描述', async () => {
+    it("应该显示默认描述", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: [mockOrganizations[1]],
@@ -426,10 +426,10 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.text()).toContain('暂无描述');
+      expect(wrapper.text()).toContain("暂无描述");
     });
 
-    it('应该显示成员数量', async () => {
+    it("应该显示成员数量", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: [mockOrganizations[0]],
@@ -439,10 +439,10 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.text()).toContain('5 成员');
+      expect(wrapper.text()).toContain("5 成员");
     });
 
-    it('应该显示加入时间', async () => {
+    it("应该显示加入时间", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: [mockOrganizations[0]],
@@ -452,12 +452,12 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.text()).toContain('2天前');
+      expect(wrapper.text()).toContain("2天前");
     });
   });
 
-  describe('加载组织', () => {
-    it('应该能加载组织列表', async () => {
+  describe("加载组织", () => {
+    it("应该能加载组织列表", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
@@ -467,33 +467,35 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'org:get-user-organizations'
+        "org:get-user-organizations",
       );
       expect(wrapper.vm.organizations.length).toBe(3);
     });
 
-    it('应该能处理加载失败', async () => {
+    it("应该能处理加载失败", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: false,
-        error: 'Network error',
+        error: "Network error",
       });
 
       await wrapper.vm.loadOrganizations();
 
-      expect(mockMessage.error).toHaveBeenCalledWith('Network error');
+      expect(mockMessage.error).toHaveBeenCalledWith("Network error");
     });
 
-    it('应该能处理加载异常', async () => {
+    it("应该能处理加载异常", async () => {
       wrapper = createWrapper();
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Connection failed'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(
+        new Error("Connection failed"),
+      );
 
       await wrapper.vm.loadOrganizations();
 
-      expect(mockMessage.error).toHaveBeenCalledWith('加载组织列表失败');
+      expect(mockMessage.error).toHaveBeenCalledWith("加载组织列表失败");
     });
 
-    it('应该在加载时设置loading状态', async () => {
+    it("应该在加载时设置loading状态", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockImplementation(() => {
         expect(wrapper.vm.loading).toBe(true);
@@ -506,234 +508,260 @@ describe('OrganizationsPage', () => {
     });
   });
 
-  describe('创建组织', () => {
-    it('应该能显示创建模态框', async () => {
+  describe("创建组织", () => {
+    it("应该能显示创建模态框", async () => {
       wrapper = createWrapper();
 
       wrapper.vm.showCreateModal = true;
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.create-modal').exists()).toBe(true);
+      expect(wrapper.find(".create-modal").exists()).toBe(true);
     });
 
-    it('应该能创建组织', async () => {
+    it("应该能创建组织", async () => {
       wrapper = createWrapper();
-      window.electron.ipcRenderer.invoke.mockResolvedValue({
-        success: true,
-        organization: { org_id: 'new-org-1' },
+      // Mock different responses based on the channel name
+      window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
+        if (channel === "org:create-organization") {
+          return Promise.resolve({
+            success: true,
+            organization: { org_id: "new-org-1" },
+          });
+        }
+        // Default: return empty organizations for load
+        return Promise.resolve({
+          success: true,
+          organizations: [],
+        });
       });
 
       wrapper.vm.createForm = {
-        name: 'New Organization',
-        type: 'startup',
-        description: 'Test description',
+        name: "New Organization",
+        type: "startup",
+        description: "Test description",
       };
 
       await wrapper.vm.handleCreate();
 
       expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        'org:create-organization',
+        "org:create-organization",
         {
-          name: 'New Organization',
-          type: 'startup',
-          description: 'Test description',
-        }
+          name: "New Organization",
+          type: "startup",
+          description: "Test description",
+        },
       );
-      expect(mockMessage.success).toHaveBeenCalledWith('组织创建成功');
+      expect(mockMessage.success).toHaveBeenCalledWith("组织创建成功");
       expect(wrapper.vm.showCreateModal).toBe(false);
     });
 
-    it('应该验证组织名称', async () => {
+    it("应该验证组织名称", async () => {
       wrapper = createWrapper();
       wrapper.vm.createForm = {
-        name: '',
-        type: 'startup',
-        description: '',
+        name: "",
+        type: "startup",
+        description: "",
       };
 
       await wrapper.vm.handleCreate();
 
-      expect(mockMessage.warning).toHaveBeenCalledWith('请输入组织名称');
+      expect(mockMessage.warning).toHaveBeenCalledWith("请输入组织名称");
       expect(window.electron.ipcRenderer.invoke).not.toHaveBeenCalledWith(
-        'org:create-organization',
-        expect.any(Object)
+        "org:create-organization",
+        expect.any(Object),
       );
     });
 
-    it('应该能处理创建失败', async () => {
+    it("应该能处理创建失败", async () => {
       wrapper = createWrapper();
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: false,
-        error: 'Organization name already exists',
+        error: "Organization name already exists",
       });
 
       wrapper.vm.createForm = {
-        name: 'Existing Organization',
-        type: 'startup',
-        description: '',
+        name: "Existing Organization",
+        type: "startup",
+        description: "",
       };
 
       await wrapper.vm.handleCreate();
 
-      expect(mockMessage.error).toHaveBeenCalledWith('Organization name already exists');
+      expect(mockMessage.error).toHaveBeenCalledWith(
+        "Organization name already exists",
+      );
     });
 
-    it('应该能处理创建异常', async () => {
+    it("应该能处理创建异常", async () => {
       wrapper = createWrapper();
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Server error'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(
+        new Error("Server error"),
+      );
 
       wrapper.vm.createForm = {
-        name: 'New Organization',
-        type: 'startup',
-        description: '',
+        name: "New Organization",
+        type: "startup",
+        description: "",
       };
 
       await wrapper.vm.handleCreate();
 
-      expect(mockMessage.error).toHaveBeenCalledWith('创建组织失败');
+      expect(mockMessage.error).toHaveBeenCalledWith("创建组织失败");
     });
 
-    it('应该在创建后重置表单', async () => {
+    it("应该在创建后重置表单", async () => {
       wrapper = createWrapper();
-      window.electron.ipcRenderer.invoke.mockResolvedValue({
-        success: true,
-        organization: { org_id: 'new-org-1' },
+      // Mock different responses based on the channel name
+      window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
+        if (channel === "org:create-organization") {
+          return Promise.resolve({
+            success: true,
+            organization: { org_id: "new-org-1" },
+          });
+        }
+        return Promise.resolve({ success: true, organizations: [] });
       });
 
       wrapper.vm.createForm = {
-        name: 'New Organization',
-        type: 'company',
-        description: 'Test',
+        name: "New Organization",
+        type: "company",
+        description: "Test",
       };
 
       await wrapper.vm.handleCreate();
 
-      expect(wrapper.vm.createForm.name).toBe('');
-      expect(wrapper.vm.createForm.type).toBe('startup');
-      expect(wrapper.vm.createForm.description).toBe('');
+      expect(wrapper.vm.createForm.name).toBe("");
+      expect(wrapper.vm.createForm.type).toBe("startup");
+      expect(wrapper.vm.createForm.description).toBe("");
     });
 
-    it('应该在创建后导航到成员页面', async () => {
+    it("应该在创建后导航到成员页面", async () => {
       wrapper = createWrapper();
-      window.electron.ipcRenderer.invoke.mockResolvedValue({
-        success: true,
-        organization: { org_id: 'new-org-1' },
+      // Mock different responses based on the channel name
+      window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
+        if (channel === "org:create-organization") {
+          return Promise.resolve({
+            success: true,
+            organization: { org_id: "new-org-1" },
+          });
+        }
+        return Promise.resolve({ success: true, organizations: [] });
       });
 
       wrapper.vm.createForm = {
-        name: 'New Organization',
-        type: 'startup',
-        description: '',
+        name: "New Organization",
+        type: "startup",
+        description: "",
       };
 
       await wrapper.vm.handleCreate();
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/org/new-org-1/members');
+      expect(mockRouter.push).toHaveBeenCalledWith("/org/new-org-1/members");
     });
 
-    it('应该支持所有组织类型', () => {
+    it("应该支持所有组织类型", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.getOrgTypeLabel('startup')).toBe('初创公司');
-      expect(wrapper.vm.getOrgTypeLabel('company')).toBe('企业');
-      expect(wrapper.vm.getOrgTypeLabel('community')).toBe('社区');
-      expect(wrapper.vm.getOrgTypeLabel('opensource')).toBe('开源');
-      expect(wrapper.vm.getOrgTypeLabel('education')).toBe('教育');
+      expect(wrapper.vm.getOrgTypeLabel("startup")).toBe("初创公司");
+      expect(wrapper.vm.getOrgTypeLabel("company")).toBe("企业");
+      expect(wrapper.vm.getOrgTypeLabel("community")).toBe("社区");
+      expect(wrapper.vm.getOrgTypeLabel("opensource")).toBe("开源");
+      expect(wrapper.vm.getOrgTypeLabel("education")).toBe("教育");
     });
   });
 
-  describe('导航功能', () => {
-    it('应该能导航到组织页面', () => {
+  describe("导航功能", () => {
+    it("应该能导航到组织页面", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.navigateToOrg('org-1');
+      wrapper.vm.navigateToOrg("org-1");
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/org/org-1/members');
+      expect(mockRouter.push).toHaveBeenCalledWith("/org/org-1/members");
     });
 
-    it('应该能导航到成员页面', () => {
+    it("应该能导航到成员页面", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.navigateToMembers('org-1');
+      wrapper.vm.navigateToMembers("org-1");
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/org/org-1/members');
+      expect(mockRouter.push).toHaveBeenCalledWith("/org/org-1/members");
     });
 
-    it('应该能导航到活动页面', () => {
+    it("应该能导航到活动页面", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.navigateToActivities('org-1');
+      wrapper.vm.navigateToActivities("org-1");
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/org/org-1/activities');
+      expect(mockRouter.push).toHaveBeenCalledWith("/org/org-1/activities");
     });
 
-    it('应该能导航到设置页面', () => {
+    it("应该能导航到设置页面", () => {
       wrapper = createWrapper();
 
-      wrapper.vm.navigateToSettings('org-1');
+      wrapper.vm.navigateToSettings("org-1");
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/org/org-1/settings');
-    });
-  });
-
-  describe('组织类型', () => {
-    it('应该返回正确的类型标签', () => {
-      wrapper = createWrapper();
-
-      expect(wrapper.vm.getOrgTypeLabel('startup')).toBe('初创公司');
-      expect(wrapper.vm.getOrgTypeLabel('company')).toBe('企业');
-      expect(wrapper.vm.getOrgTypeLabel('community')).toBe('社区');
-      expect(wrapper.vm.getOrgTypeLabel('opensource')).toBe('开源');
-      expect(wrapper.vm.getOrgTypeLabel('education')).toBe('教育');
-      expect(wrapper.vm.getOrgTypeLabel('unknown')).toBe('unknown');
-    });
-
-    it('应该返回正确的类型颜色', () => {
-      wrapper = createWrapper();
-
-      expect(wrapper.vm.getOrgTypeColor('startup')).toBe('green');
-      expect(wrapper.vm.getOrgTypeColor('company')).toBe('blue');
-      expect(wrapper.vm.getOrgTypeColor('community')).toBe('purple');
-      expect(wrapper.vm.getOrgTypeColor('opensource')).toBe('orange');
-      expect(wrapper.vm.getOrgTypeColor('education')).toBe('cyan');
-      expect(wrapper.vm.getOrgTypeColor('unknown')).toBe('default');
+      expect(mockRouter.push).toHaveBeenCalledWith("/org/org-1/settings");
     });
   });
 
-  describe('角色管理', () => {
-    it('应该返回正确的角色标签', () => {
+  describe("组织类型", () => {
+    it("应该返回正确的类型标签", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.getRoleLabel('owner')).toBe('所有者');
-      expect(wrapper.vm.getRoleLabel('admin')).toBe('管理员');
-      expect(wrapper.vm.getRoleLabel('member')).toBe('成员');
-      expect(wrapper.vm.getRoleLabel('viewer')).toBe('访客');
-      expect(wrapper.vm.getRoleLabel('unknown')).toBe('unknown');
+      expect(wrapper.vm.getOrgTypeLabel("startup")).toBe("初创公司");
+      expect(wrapper.vm.getOrgTypeLabel("company")).toBe("企业");
+      expect(wrapper.vm.getOrgTypeLabel("community")).toBe("社区");
+      expect(wrapper.vm.getOrgTypeLabel("opensource")).toBe("开源");
+      expect(wrapper.vm.getOrgTypeLabel("education")).toBe("教育");
+      expect(wrapper.vm.getOrgTypeLabel("unknown")).toBe("unknown");
     });
 
-    it('应该返回正确的角色颜色', () => {
+    it("应该返回正确的类型颜色", () => {
       wrapper = createWrapper();
 
-      expect(wrapper.vm.getRoleColor('owner')).toBe('gold');
-      expect(wrapper.vm.getRoleColor('admin')).toBe('red');
-      expect(wrapper.vm.getRoleColor('member')).toBe('blue');
-      expect(wrapper.vm.getRoleColor('viewer')).toBe('default');
-      expect(wrapper.vm.getRoleColor('unknown')).toBe('default');
-    });
-  });
-
-  describe('时间格式化', () => {
-    it('应该格式化日期为相对时间', () => {
-      wrapper = createWrapper();
-
-      const formatted = wrapper.vm.formatDate('2026-01-20');
-
-      expect(formatted).toBe('2天前');
+      expect(wrapper.vm.getOrgTypeColor("startup")).toBe("green");
+      expect(wrapper.vm.getOrgTypeColor("company")).toBe("blue");
+      expect(wrapper.vm.getOrgTypeColor("community")).toBe("purple");
+      expect(wrapper.vm.getOrgTypeColor("opensource")).toBe("orange");
+      expect(wrapper.vm.getOrgTypeColor("education")).toBe("cyan");
+      expect(wrapper.vm.getOrgTypeColor("unknown")).toBe("default");
     });
   });
 
-  describe('边界情况', () => {
-    it('应该处理空组织列表', async () => {
+  describe("角色管理", () => {
+    it("应该返回正确的角色标签", () => {
+      wrapper = createWrapper();
+
+      expect(wrapper.vm.getRoleLabel("owner")).toBe("所有者");
+      expect(wrapper.vm.getRoleLabel("admin")).toBe("管理员");
+      expect(wrapper.vm.getRoleLabel("member")).toBe("成员");
+      expect(wrapper.vm.getRoleLabel("viewer")).toBe("访客");
+      expect(wrapper.vm.getRoleLabel("unknown")).toBe("unknown");
+    });
+
+    it("应该返回正确的角色颜色", () => {
+      wrapper = createWrapper();
+
+      expect(wrapper.vm.getRoleColor("owner")).toBe("gold");
+      expect(wrapper.vm.getRoleColor("admin")).toBe("red");
+      expect(wrapper.vm.getRoleColor("member")).toBe("blue");
+      expect(wrapper.vm.getRoleColor("viewer")).toBe("default");
+      expect(wrapper.vm.getRoleColor("unknown")).toBe("default");
+    });
+  });
+
+  describe("时间格式化", () => {
+    it("应该格式化日期为相对时间", () => {
+      wrapper = createWrapper();
+
+      const formatted = wrapper.vm.formatDate("2026-01-20");
+
+      expect(formatted).toBe("2天前");
+    });
+  });
+
+  describe("边界情况", () => {
+    it("应该处理空组织列表", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: [],
@@ -745,7 +773,7 @@ describe('OrganizationsPage', () => {
       expect(wrapper.vm.organizations.length).toBe(0);
     });
 
-    it('应该处理成员数量为0', async () => {
+    it("应该处理成员数量为0", async () => {
       const orgWithNoMembers = { ...mockOrganizations[0], member_count: 0 };
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
@@ -756,10 +784,10 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.text()).toContain('0 成员');
+      expect(wrapper.text()).toContain("0 成员");
     });
 
-    it('应该处理缺少member_count字段', async () => {
+    it("应该处理缺少member_count字段", async () => {
       const orgWithoutMemberCount = { ...mockOrganizations[0] };
       delete orgWithoutMemberCount.member_count;
       window.electron.ipcRenderer.invoke.mockResolvedValue({
@@ -771,11 +799,11 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.text()).toContain('0 成员');
+      expect(wrapper.text()).toContain("0 成员");
     });
 
-    it('应该处理非常长的组织名称', async () => {
-      const longName = 'A'.repeat(100);
+    it("应该处理非常长的组织名称", async () => {
+      const longName = "A".repeat(100);
       const orgWithLongName = { ...mockOrganizations[0], name: longName };
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
@@ -789,13 +817,13 @@ describe('OrganizationsPage', () => {
       expect(wrapper.vm.organizations[0].name).toBe(longName);
     });
 
-    it('应该处理非常长的描述', () => {
+    it("应该处理非常长的描述", () => {
       wrapper = createWrapper();
-      const longDescription = 'B'.repeat(500);
+      const longDescription = "B".repeat(500);
 
       wrapper.vm.createForm = {
-        name: 'Test',
-        type: 'startup',
+        name: "Test",
+        type: "startup",
         description: longDescription,
       };
 
@@ -803,8 +831,8 @@ describe('OrganizationsPage', () => {
     });
   });
 
-  describe('多组织操作', () => {
-    it('应该能显示多个不同类型的组织', async () => {
+  describe("多组织操作", () => {
+    it("应该能显示多个不同类型的组织", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: mockOrganizations,
@@ -814,12 +842,12 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.vm.organizations[0].type).toBe('startup');
-      expect(wrapper.vm.organizations[1].type).toBe('company');
-      expect(wrapper.vm.organizations[2].type).toBe('community');
+      expect(wrapper.vm.organizations[0].type).toBe("startup");
+      expect(wrapper.vm.organizations[1].type).toBe("company");
+      expect(wrapper.vm.organizations[2].type).toBe("community");
     });
 
-    it('应该能显示多个不同角色', async () => {
+    it("应该能显示多个不同角色", async () => {
       window.electron.ipcRenderer.invoke.mockResolvedValue({
         success: true,
         organizations: mockOrganizations,
@@ -829,24 +857,36 @@ describe('OrganizationsPage', () => {
       await wrapper.vm.loadOrganizations();
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.vm.organizations[0].role).toBe('owner');
-      expect(wrapper.vm.organizations[1].role).toBe('admin');
-      expect(wrapper.vm.organizations[2].role).toBe('member');
+      expect(wrapper.vm.organizations[0].role).toBe("owner");
+      expect(wrapper.vm.organizations[1].role).toBe("admin");
+      expect(wrapper.vm.organizations[2].role).toBe("member");
     });
   });
 
-  describe('creating状态', () => {
-    it('应该在创建时设置creating状态', async () => {
+  describe("creating状态", () => {
+    it("应该在创建时设置creating状态", async () => {
       wrapper = createWrapper();
-      window.electron.ipcRenderer.invoke.mockImplementation(() => {
-        expect(wrapper.vm.creating).toBe(true);
-        return Promise.resolve({ success: true, organization: { org_id: 'new-org' } });
+      let creatingStateChecked = false;
+      // Mock different responses based on the channel name
+      window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
+        if (channel === "org:create-organization") {
+          // Check creating state only when creating
+          if (!creatingStateChecked) {
+            expect(wrapper.vm.creating).toBe(true);
+            creatingStateChecked = true;
+          }
+          return Promise.resolve({
+            success: true,
+            organization: { org_id: "new-org" },
+          });
+        }
+        return Promise.resolve({ success: true, organizations: [] });
       });
 
       wrapper.vm.createForm = {
-        name: 'New Organization',
-        type: 'startup',
-        description: '',
+        name: "New Organization",
+        type: "startup",
+        description: "",
       };
 
       await wrapper.vm.handleCreate();
@@ -854,14 +894,14 @@ describe('OrganizationsPage', () => {
       expect(wrapper.vm.creating).toBe(false);
     });
 
-    it('应该在创建失败后重置creating状态', async () => {
+    it("应该在创建失败后重置creating状态", async () => {
       wrapper = createWrapper();
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error('Failed'));
+      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error("Failed"));
 
       wrapper.vm.createForm = {
-        name: 'New Organization',
-        type: 'startup',
-        description: '',
+        name: "New Organization",
+        type: "startup",
+        description: "",
       };
 
       await wrapper.vm.handleCreate();
