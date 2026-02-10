@@ -43,9 +43,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
-    // Trust Wallet Core (JNI binding for wallet operations)
-    // Note: Using wallet-core-primitives as wallet-core requires native binaries
-    implementation("com.trustwallet:wallet-core-primitives:4.0.0")
+    // Web3j for Ethereum operations (Android-compatible)
+    implementation("org.web3j:core:4.10.3")
 
     // Biometric for transaction signing
     api("androidx.biometric:biometric:1.2.0-alpha05")
