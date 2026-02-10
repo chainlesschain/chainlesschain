@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-09 (TODO 清理完成 - resolve-conflicts API + 单元测试)
+> **最后更新**: 2026-02-10 (Android 修复 - P2P验证/审核申诉/图片预览)
 
 ---
 
@@ -77,7 +77,25 @@
 
 ### 最近完成
 
-0. **TODO 清理完成** (2026-02-09 最新):
+0. **Android App 修复** (2026-02-10 最新):
+   - **P2P 设备验证导航**:
+     - `DeviceManagementScreen.kt` 添加 `onVerifyDevice` 回调
+     - `P2PNavigation.kt` 连接到 `SafetyNumbersScreen` 路由
+   - **内容审核申诉功能**:
+     - `ModerationQueueRepository.kt` 添加申诉字段 (appealStatus, appealText, appealAt, appealResult)
+     - `ModerationQueueScreen.kt` 启用 AppealSection 显示
+   - **项目导入循环依赖**:
+     - `NavGraph.kt` 获取 ProjectViewModel 项目列表
+     - 通过参数传递给 `GlobalFileBrowserScreen` 避免模块循环依赖
+   - **图片预览功能**:
+     - `FilePreviewDialog.kt` 使用 Coil 实现图片加载
+     - 支持加载状态、错误处理、全屏预览
+     - 集成 core-ui 的 `ImagePreviewDialog`
+   - **文档更新**:
+     - 更新 `后端接口完善实施完成报告.md` 添加 Android 修复章节
+   - **提交**: `19c8a2a4` fix(android): resolve P2P verification, moderation appeal, and image preview issues
+
+1. **TODO 清理完成** (2026-02-09):
    - **resolve-conflicts API 确认完成**:
      - 接口早已在 `conflict_resolver.py` 完整实现 (401 行)
      - 更新文档状态 `后端接口完善实施完成报告.md`
@@ -153,11 +171,11 @@
    - **测试结果**: 8,615 passed, 1,010 failed (pre-existing), 870 skipped
    - **提交**: 5 commits 已推送到远程仓库
 
-2. **TODO 修复完成** (2026-02-09 晚):
+1. **TODO 修复完成** (2026-02-09 晚):
    - 搜索并修复 4 个 TODO: delivered_at、UKeyVerification、Export、恢复测试
    - 提交: `e2b43e2b`, `02e7cfb2`, `532abb51` - 已推送远程
 
-3. **安全认证增强 + 增量RAG索引 + SIMKey NFC检测** (2026-02-09 下午):
+1. **安全认证增强 + 增量RAG索引 + SIMKey NFC检测** (2026-02-09 下午):
    - **后端安全认证增强** (project-service + community-forum):
      - 更新 `SecurityConfig.java` - 添加 dev-mode 环境切换
      - 生产模式: `/api/projects/**` 和 `/api/sync/**` 需要 JWT 认证
@@ -196,7 +214,7 @@
      - 添加 templateManager 到 IPC 依赖
    - **测试覆盖率状态**: ~81% 通过率，245 测试文件，~8500 测试用例
 
-4. **文件版本控制 + LLM Function Calling + Deep Link 增强** (2026-02-09 上午):
+1. **文件版本控制 + LLM Function Calling + Deep Link 增强** (2026-02-09 上午):
    - **后端文件版本控制** (project-service):
      - 新建 `FileVersion.java` - 文件版本实体（版本号、内容快照、哈希）
      - 新建 `FileVersionMapper.java` - 版本历史查询 Mapper
@@ -759,7 +777,20 @@
 
 ## 关键文件修改记录
 
-### 本次会话修改 (2026-02-09 下午) - 安全认证 + 增量RAG + SIMKey
+### 本次会话修改 (2026-02-10) - Android App 修复
+
+| 文件                            | 修改类型 | 说明                                     |
+| ------------------------------- | -------- | ---------------------------------------- |
+| `DeviceManagementScreen.kt`     | 修改     | 添加 onVerifyDevice 回调参数             |
+| `P2PNavigation.kt`              | 修改     | 连接验证到 SafetyNumbersScreen 路由      |
+| `ModerationQueueRepository.kt`  | 修改     | 添加申诉字段到 ModerationQueueItem       |
+| `ModerationQueueScreen.kt`      | 修改     | 启用 AppealSection UI 显示               |
+| `NavGraph.kt`                   | 修改     | 添加 ProjectViewModel 获取项目列表       |
+| `GlobalFileBrowserViewModel.kt` | 修改     | 更新 TODO 注释说明依赖解决方案           |
+| `FilePreviewDialog.kt`          | 修改     | +200行 Coil 图片预览、全屏查看、错误处理 |
+| `后端接口完善实施完成报告.md`   | 修改     | +86行 添加 Android 修复章节              |
+
+### 历史会话修改 (2026-02-09 下午) - 安全认证 + 增量RAG + SIMKey
 
 | 文件                                | 修改类型 | 说明                                        |
 | ----------------------------------- | -------- | ------------------------------------------- |
@@ -1012,6 +1043,19 @@ npm run test:session # Session 压缩测试
 ---
 
 ## 更新日志
+
+### 2026-02-10
+
+- **Android App 修复**:
+  - P2P 设备验证导航 - 连接 DeviceManagementScreen 到 SafetyNumbersScreen
+  - 内容审核申诉功能 - 添加申诉字段并启用 UI 显示
+  - 项目导入循环依赖 - 通过 NavGraph 参数传递解决
+  - 图片预览功能 - 使用 Coil 实现完整图片预览（加载状态/错误处理/全屏）
+  - 提交: `19c8a2a4` 已推送到远程仓库
+- **测试状态**:
+  - 232 个测试文件通过
+  - 9555 个测试通过
+  - Pre-commit/Pre-push 门禁全部通过
 
 ### 2026-02-09 (下午续)
 
