@@ -23,7 +23,9 @@ import com.chainlesschain.android.core.database.dao.ModerationQueueDao
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
 import com.chainlesschain.android.core.database.dao.TaskDao
+import com.chainlesschain.android.core.database.dao.VectorEmbeddingDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
+import com.chainlesschain.android.core.database.entity.VectorEmbeddingEntity
 import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
 import com.chainlesschain.android.core.database.entity.P2PMessageEntity
@@ -98,8 +100,10 @@ import com.chainlesschain.android.core.database.util.Converters
         ModerationQueueEntity::class,
         // 任务功能实体
         TaskEntity::class,
+        // 向量嵌入实体
+        VectorEmbeddingEntity::class,
     ],
-    version = 21,
+    version = 22,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -154,6 +158,9 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
 
     // 任务功能DAO
     abstract fun taskDao(): TaskDao
+
+    // 向量嵌入DAO
+    abstract fun vectorEmbeddingDao(): VectorEmbeddingDao
 
     companion object {
         const val DATABASE_NAME = "chainlesschain.db"
