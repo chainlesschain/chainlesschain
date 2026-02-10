@@ -326,10 +326,102 @@ public class SessionManager: ObservableObject {
             return
         }
 
-        // TODO: 集成 PermanentMemoryManager
-        // 提取重要信息并保存到 Daily Notes 和 MEMORY.md
+        // 集成 PermanentMemoryManager
+        let memoryManager = PermanentMemoryManager.shared
+
+        // 1. 格式化对话内容用于 Daily Notes
+        let timestamp = formatTime(Date())
+        let sessionTitle = session.metadata.title ?? "对话"
+
+        var dailyNoteContent = "### \(timestamp) - \(sessionTitle)\n\n"
+
+        // 提取对话要点
+        for message in recentMessages {
+            let roleLabel = message.role == .user ? "👤 用户" : "🤖 AI"
+            let contentPreview = String(message.content.prefix(150))
+            dailyNoteContent += "- \(roleLabel): \(contentPreview)\n"
+        }
+
+        // 生成对话摘要
+        if let summary = extractConversationSummary(from: recentMessages) {
+            dailyNoteContent += "\n**摘要**: \(summary)\n"
+        }
+
+        // 2. 写入 Daily Notes
+        do {
+            _ = try await memoryManager.writeDailyNote(dailyNoteContent, append: true)
+            Logger.shared.info("[SessionManager] Daily Note 已更新")
+        } catch {
+            Logger.shared.warning("[SessionManager] 写入 Daily Note 失败: \(error)")
+        }
+
+        // 3. 提取重要信息到 MEMORY.md (可选)
+        if let insight = extractImportantInsight(from: recentMessages) {
+            do {
+                let section = MemorySection.detect(from: insight)
+                try await memoryManager.appendToMemory(insight, section: section)
+                Logger.shared.info("[SessionManager] 重要信息已保存到 MEMORY.md")
+            } catch {
+                Logger.shared.warning("[SessionManager] 写入 MEMORY.md 失败: \(error)")
+            }
+        }
 
         Logger.shared.info("[SessionManager] 预压缩记忆刷新完成")
+    }
+
+    /// 格式化时间
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
+    }
+
+    /// 提取对话摘要
+    private func extractConversationSummary(from messages: [SessionMessage]) -> String? {
+        guard messages.count >= 2 else { return nil }
+
+        // 提取用户的主要问题
+        let userMessages = messages.filter { $0.role == .user }
+        guard let firstUserMessage = userMessages.first else { return nil }
+
+        let question = String(firstUserMessage.content.prefix(100))
+
+        // 提取AI的回答要点
+        let assistantMessages = messages.filter { $0.role == .assistant }
+        guard let lastAssistantMessage = assistantMessages.last else {
+            return "用户询问: \(question)"
+        }
+
+        let answer = String(lastAssistantMessage.content.prefix(100))
+
+        return "用户询问「\(question)」，AI回复「\(answer)」"
+    }
+
+    /// 提取重要信息 (用于长期记忆)
+    private func extractImportantInsight(from messages: [SessionMessage]) -> String? {
+        // 检测是否包含重要信息的关键词
+        let importantKeywords = ["决定", "决策", "解决方案", "发现", "问题", "偏好", "配置", "架构", "设计"]
+
+        for message in messages where message.role == .assistant {
+            let content = message.content.lowercased()
+            for keyword in importantKeywords {
+                if content.contains(keyword) {
+                    // 提取包含关键词的段落
+                    let preview = String(message.content.prefix(200))
+                    let dateStr = formatDate(message.timestamp)
+                    return "[\(dateStr)] \(preview)"
+                }
+            }
+        }
+
+        return nil
+    }
+
+    /// 格式化日期
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 
     // MARK: - Auto Summary
