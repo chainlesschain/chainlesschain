@@ -280,4 +280,14 @@ public class VectorStoreManager {
     public func deleteStore(name: String) {
         stores.removeValue(forKey: name)
     }
+
+    /// 获取所有存储名称
+    public func getStoreNames() -> [String] {
+        return Array(stores.keys).sorted()
+    }
+
+    /// 存储数量
+    public var storeCount: Int {
+        return stores.count
+    }
 }
