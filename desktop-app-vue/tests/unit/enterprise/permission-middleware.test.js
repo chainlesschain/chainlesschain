@@ -30,8 +30,9 @@ describe('PermissionMiddleware Unit Tests', () => {
   let testDbPath;
 
   beforeEach(async () => {
-    // Setup test database
-    testDbPath = path.join(__dirname, '../temp/test-permission-middleware.db');
+    // Setup test database with unique suffix to avoid conflicts
+    const uniqueSuffix = Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+    testDbPath = path.join(__dirname, `../temp/test-permission-middleware-${uniqueSuffix}.db`);
     const testDir = path.dirname(testDbPath);
     if (!fs.existsSync(testDir)) {
       fs.mkdirSync(testDir, { recursive: true });
@@ -61,15 +62,32 @@ describe('PermissionMiddleware Unit Tests', () => {
     middleware = new PermissionMiddleware(db, permissionManager);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Cleanup
     if (middleware) {
       middleware.destroy();
     }
 
+    // Close database connection before deleting file
+    if (db) {
+      try {
+        await db.close();
+      } catch (e) {
+        // Ignore close errors
+      }
+      db = null;
+    }
+
+    // Small delay to ensure file handles are released
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     // Cleanup test database
     if (fs.existsSync(testDbPath)) {
-      fs.unlinkSync(testDbPath);
+      try {
+        fs.unlinkSync(testDbPath);
+      } catch (e) {
+        // Ignore delete errors
+      }
     }
   });
 
