@@ -353,12 +353,14 @@ class CoworkSystemTest {
         // When
         val task = LongRunningTask(
             name = "Long Task",
+            description = "A long running task for testing",
             totalSteps = 100
         )
 
         // Then
         assertNotNull("ID不应为空", task.id)
         assertEquals("名称应正确", "Long Task", task.name)
+        assertEquals("描述应正确", "A long running task for testing", task.description)
         assertEquals("总步骤应正确", 100, task.totalSteps)
         assertEquals("初始状态应为PENDING", TaskStatus.PENDING, task.status)
         assertEquals("当前步骤应为0", 0, task.currentStep)
@@ -369,6 +371,7 @@ class CoworkSystemTest {
         // Given
         val task = LongRunningTask(
             name = "Long Task",
+            description = "A long running task for testing",
             totalSteps = 100
         )
 
@@ -377,30 +380,31 @@ class CoworkSystemTest {
 
         // Then
         assertEquals("当前步骤应更新", 50, task.currentStep)
-        assertEquals("进度应为50%", 50.0f, task.progressPercent, 0.01f)
+        assertEquals("进度应为50%", 50, task.progress)
     }
 
     // ===== LongRunningTaskManager Tests =====
 
     @Test
-    fun `TaskManager创建任务应成功`() {
+    fun `TaskManager创建任务应成功`() = runBlocking {
         // Given
         val manager = LongRunningTaskManager()
 
         // When
-        val task = manager.createTask("Test Task", 10)
+        val task = manager.createTask("Test Task", "Test task description", 10)
 
         // Then
         assertNotNull("任务不应为空", task)
         assertEquals("名称应正确", "Test Task", task.name)
+        assertEquals("描述应正确", "Test task description", task.description)
         assertEquals("总步骤应正确", 10, task.totalSteps)
     }
 
     @Test
-    fun `TaskManager获取任务应正确`() {
+    fun `TaskManager获取任务应正确`() = runBlocking {
         // Given
         val manager = LongRunningTaskManager()
-        val created = manager.createTask("Test Task", 10)
+        val created = manager.createTask("Test Task", "Test task description", 10)
 
         // When
         val retrieved = manager.getTask(created.id)
@@ -411,10 +415,11 @@ class CoworkSystemTest {
     }
 
     @Test
-    fun `TaskManager更新进度应正确`() {
+    fun `TaskManager更新进度应正确`() = runBlocking {
         // Given
         val manager = LongRunningTaskManager()
-        val task = manager.createTask("Test Task", 10)
+        val task = manager.createTask("Test Task", "Test task description", 10)
+        manager.startTask(task.id)
 
         // When
         manager.updateProgress(task.id, 5)
@@ -425,14 +430,20 @@ class CoworkSystemTest {
     }
 
     @Test
-    fun `TaskManager保存检查点应正确`() {
+    fun `TaskManager保存检查点应正确`() = runBlocking {
         // Given
         val manager = LongRunningTaskManager()
-        val task = manager.createTask("Test Task", 10)
+        val task = manager.createTask("Test Task", "Test task description", 10)
+        manager.startTask(task.id)
         manager.updateProgress(task.id, 5)
 
         // When
-        val checkpoint = manager.saveCheckpoint(task.id, mapOf("key" to "value"))
+        val checkpoint = manager.createCheckpoint(
+            taskId = task.id,
+            name = "Checkpoint 1",
+            stateJson = """{"key": "value"}""",
+            metadata = mapOf("meta" to "data")
+        )
 
         // Then
         assertNotNull("检查点不应为空", checkpoint)
