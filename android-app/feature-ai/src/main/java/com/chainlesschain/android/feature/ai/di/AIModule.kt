@@ -1,11 +1,20 @@
 package com.chainlesschain.android.feature.ai.di
 
+import com.chainlesschain.android.core.database.dao.VectorEmbeddingDao
+import com.chainlesschain.android.feature.ai.context.ContextManager
+import com.chainlesschain.android.feature.ai.cowork.CoworkOrchestrator
+import com.chainlesschain.android.feature.ai.cowork.agent.AgentPool
+import com.chainlesschain.android.feature.ai.cowork.sandbox.FileSandbox
+import com.chainlesschain.android.feature.ai.cowork.task.LongRunningTaskManager
 import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
 import com.chainlesschain.android.feature.ai.data.llm.DeepSeekAdapter
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.feature.ai.data.llm.OllamaAdapter
 import com.chainlesschain.android.feature.ai.data.llm.OpenAIAdapter
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
+import com.chainlesschain.android.feature.ai.entity.EntityExtractor
+import com.chainlesschain.android.feature.ai.vector.VectorStore
+import com.chainlesschain.android.feature.ai.vector.VectorStoreRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -93,6 +102,94 @@ object AIModule {
         @Named("Ollama") ollamaAdapter: LLMAdapter
     ): LLMAdapter {
         return ollamaAdapter // 默认使用Ollama
+    }
+
+    // ===== Context Manager =====
+
+    /**
+     * 提供上下文管理器
+     */
+    @Provides
+    @Singleton
+    fun provideContextManager(): ContextManager {
+        return ContextManager()
+    }
+
+    // ===== Vector Store =====
+
+    /**
+     * 提供向量存储仓库
+     */
+    @Provides
+    @Singleton
+    fun provideVectorStoreRepository(
+        vectorEmbeddingDao: VectorEmbeddingDao
+    ): VectorStoreRepository {
+        return VectorStoreRepository(vectorEmbeddingDao)
+    }
+
+    /**
+     * 提供向量存储
+     */
+    @Provides
+    @Singleton
+    fun provideVectorStore(
+        repository: VectorStoreRepository
+    ): VectorStore {
+        return VectorStore(repository)
+    }
+
+    // ===== Entity Extractor =====
+
+    /**
+     * 提供实体提取器
+     */
+    @Provides
+    @Singleton
+    fun provideEntityExtractor(): EntityExtractor {
+        return EntityExtractor()
+    }
+
+    // ===== Cowork System =====
+
+    /**
+     * 提供Agent池
+     */
+    @Provides
+    @Singleton
+    fun provideAgentPool(): AgentPool {
+        return AgentPool()
+    }
+
+    /**
+     * 提供长时任务管理器
+     */
+    @Provides
+    @Singleton
+    fun provideLongRunningTaskManager(): LongRunningTaskManager {
+        return LongRunningTaskManager()
+    }
+
+    /**
+     * 提供文件沙箱
+     */
+    @Provides
+    @Singleton
+    fun provideFileSandbox(): FileSandbox {
+        return FileSandbox()
+    }
+
+    /**
+     * 提供Cowork编排器
+     */
+    @Provides
+    @Singleton
+    fun provideCoworkOrchestrator(
+        agentPool: AgentPool,
+        taskManager: LongRunningTaskManager,
+        fileSandbox: FileSandbox
+    ): CoworkOrchestrator {
+        return CoworkOrchestrator(agentPool, taskManager, fileSandbox)
     }
 }
 
