@@ -9,6 +9,12 @@ public class BlockchainEngine: BaseAIEngine {
 
     public static let shared = BlockchainEngine()
 
+    // MARK: - 服务访问器
+
+    private var walletManager: WalletManager { WalletManager.shared }
+    private var chainManager: ChainManager { ChainManager.shared }
+    private var contractManager: ContractManager { ContractManager.shared }
+
     private init() {
         super.init(
             type: .blockchain,
@@ -134,46 +140,71 @@ public class BlockchainEngine: BaseAIEngine {
     /// 创建钱包
     private func createWallet(parameters: [String: Any]) async throws -> [String: Any] {
         let chainId = parameters["chainId"] as? Int ?? 1 // 1 = Ethereum Mainnet
-        let walletName = parameters["name"] as? String ?? "默认钱包"
 
-        // TODO: 集成实际的区块链钱包创建逻辑
-        // 参考: Features/Blockchain/Services/WalletManager.swift
+        guard let password = parameters["password"] as? String else {
+            throw AIEngineError.invalidParameters("缺少password参数（至少8位）")
+        }
 
-        let mockAddress = "0x\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(40))"
-        let mockMnemonic = "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12"
+        // 使用WalletManager创建钱包
+        let result = try await walletManager.createWallet(password: password, chainId: chainId)
 
         return [
-            "address": mockAddress,
-            "mnemonic": mockMnemonic,
+            "address": result.wallet.address,
+            "mnemonic": result.mnemonic,
             "chainId": chainId,
-            "name": walletName,
-            "created": Date().timeIntervalSince1970,
-            "warning": "请安全保存助记词，切勿泄露"
+            "walletId": result.wallet.id,
+            "created": result.wallet.createdAt.timeIntervalSince1970,
+            "warning": "请安全保存助记词，切勿泄露！助记词丢失将无法恢复钱包。"
         ]
     }
 
     /// 导入钱包
     private func importWallet(parameters: [String: Any]) async throws -> [String: Any] {
-        let importType = parameters["importType"] as? String ?? "mnemonic" // mnemonic, privateKey, keystore
+        let importType = parameters["importType"] as? String ?? "mnemonic" // mnemonic, privateKey
 
         guard let importData = parameters["importData"] as? String else {
             throw AIEngineError.invalidParameters("缺少importData参数")
         }
 
+        guard let password = parameters["password"] as? String else {
+            throw AIEngineError.invalidParameters("缺少password参数（至少8位）")
+        }
+
         let chainId = parameters["chainId"] as? Int ?? 1
-        let walletName = parameters["name"] as? String ?? "导入钱包"
 
-        // TODO: 集成实际的钱包导入逻辑
+        // 使用WalletManager导入钱包
+        switch importType {
+        case "mnemonic":
+            let result = try await walletManager.importFromMnemonic(
+                mnemonic: importData,
+                password: password,
+                chainId: chainId
+            )
+            return [
+                "address": result.wallet.address,
+                "chainId": chainId,
+                "walletId": result.wallet.id,
+                "importType": importType,
+                "imported": result.wallet.createdAt.timeIntervalSince1970
+            ]
 
-        let mockAddress = "0x\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(40))"
+        case "privateKey":
+            let wallet = try await walletManager.importFromPrivateKey(
+                privateKey: importData,
+                password: password,
+                chainId: chainId
+            )
+            return [
+                "address": wallet.address,
+                "chainId": chainId,
+                "walletId": wallet.id,
+                "importType": importType,
+                "imported": wallet.createdAt.timeIntervalSince1970
+            ]
 
-        return [
-            "address": mockAddress,
-            "chainId": chainId,
-            "name": walletName,
-            "importType": importType,
-            "imported": Date().timeIntervalSince1970
-        ]
+        default:
+            throw AIEngineError.invalidParameters("不支持的导入类型: \(importType)")
+        }
     }
 
     /// 查询余额
@@ -184,105 +215,153 @@ public class BlockchainEngine: BaseAIEngine {
 
         let chainId = parameters["chainId"] as? Int ?? 1
 
-        // TODO: 实际查询区块链余额
-        // 可能需要调用RPC节点或区块链浏览器API
+        // 获取对应的链配置
+        guard let chain = SupportedChain.allCases.first(where: { $0.chainId == chainId }) else {
+            throw AIEngineError.invalidParameters("不支持的链ID: \(chainId)")
+        }
 
-        // 模拟余额数据
-        let mockBalance = Double.random(in: 0.1...10.0)
-        let mockTokens: [[String: Any]] = [
-            [
-                "symbol": "USDT",
-                "balance": Double.random(in: 100...10000),
-                "decimals": 6,
-                "contractAddress": "0xdac17f958d2ee523a2206206994597c13d831ec7"
-            ],
-            [
-                "symbol": "USDC",
-                "balance": Double.random(in: 100...5000),
-                "decimals": 6,
-                "contractAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-            ]
-        ]
+        // 使用ChainManager查询实际余额
+        let balanceWei = try await chainManager.getBalance(address: address, chain: chain)
+
+        // 将Wei转换为可读格式
+        let balanceEth = formatWeiToEther(balanceWei)
 
         return [
             "address": address,
             "chainId": chainId,
-            "nativeBalance": mockBalance,
-            "nativeSymbol": chainId == 1 ? "ETH" : "BNB",
-            "tokens": mockTokens,
+            "nativeBalance": balanceEth,
+            "nativeBalanceWei": balanceWei,
+            "nativeSymbol": chain.symbol,
             "lastUpdated": Date().timeIntervalSince1970
         ]
+    }
+
+    /// 将Wei字符串转换为Ether格式
+    private func formatWeiToEther(_ wei: String) -> String {
+        guard let weiValue = Decimal(string: wei) else {
+            return "0"
+        }
+        let etherValue = weiValue / Decimal(sign: .plus, exponent: 18, significand: 1)
+        return String(describing: etherValue)
     }
 
     // MARK: - 交易操作
 
     /// 发送交易
     private func sendTransaction(parameters: [String: Any]) async throws -> [String: Any] {
-        guard let from = parameters["from"] as? String,
-              let to = parameters["to"] as? String,
+        guard let walletId = parameters["walletId"] as? String else {
+            throw AIEngineError.invalidParameters("缺少walletId参数")
+        }
+
+        guard let to = parameters["to"] as? String,
               let value = parameters["value"] as? String else {
-            throw AIEngineError.invalidParameters("缺少from、to或value参数")
+            throw AIEngineError.invalidParameters("缺少to或value参数")
         }
 
         let chainId = parameters["chainId"] as? Int ?? 1
         let gasPrice = parameters["gasPrice"] as? String
-        let gasLimit = parameters["gasLimit"] as? String ?? "21000"
-        let data = parameters["data"] as? String ?? "0x"
+        let gasLimit = parameters["gasLimit"] as? String
 
-        // TODO: 实际发送区块链交易
-        // 1. 构建交易对象
-        // 2. 签名交易
-        // 3. 广播交易
-        // 参考: Features/Blockchain/Services/TransactionService.swift
+        // 查找钱包
+        guard let wallet = walletManager.wallets.first(where: { $0.id == walletId }) else {
+            throw AIEngineError.invalidParameters("钱包不存在: \(walletId)")
+        }
 
-        let mockTxHash = "0x\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))"
+        // 检查钱包是否已解锁
+        guard walletManager.getUnlockedPrivateKey(walletId: walletId) != nil else {
+            throw AIEngineError.executionFailed("钱包未解锁，请先解锁钱包")
+        }
+
+        // 获取对应的链
+        guard let chain = SupportedChain.allCases.first(where: { $0.chainId == chainId }) else {
+            throw AIEngineError.invalidParameters("不支持的链ID: \(chainId)")
+        }
+
+        // 使用TransactionManager发送交易
+        let record = try await MainActor.run {
+            try await TransactionManager.shared.sendTransaction(
+                wallet: wallet,
+                to: to,
+                value: value,
+                gasLimit: gasLimit,
+                gasPrice: gasPrice,
+                chain: chain
+            )
+        }
 
         return [
-            "txHash": mockTxHash,
-            "from": from,
-            "to": to,
-            "value": value,
+            "txHash": record.hash ?? "",
+            "from": record.from,
+            "to": record.to,
+            "value": record.value,
             "chainId": chainId,
-            "gasPrice": gasPrice ?? "auto",
-            "gasLimit": gasLimit,
-            "status": "pending",
-            "timestamp": Date().timeIntervalSince1970
+            "gasPrice": record.gasPrice,
+            "gasLimit": record.gasLimit,
+            "nonce": record.nonce,
+            "status": record.status.rawValue,
+            "timestamp": record.createdAt.timeIntervalSince1970
         ]
     }
 
     /// 查询交易历史
     private func getTransactionHistory(parameters: [String: Any]) async throws -> [String: Any] {
-        guard let address = parameters["address"] as? String else {
-            throw AIEngineError.invalidParameters("缺少address参数")
-        }
-
-        let chainId = parameters["chainId"] as? Int ?? 1
+        let walletId = parameters["walletId"] as? String
+        let address = parameters["address"] as? String
+        let chainId = parameters["chainId"] as? Int
         let limit = parameters["limit"] as? Int ?? 20
         let offset = parameters["offset"] as? Int ?? 0
 
-        // TODO: 从数据库或区块链浏览器API查询交易历史
-        // 参考: Features/Blockchain/Database 中的交易表
+        // 使用TransactionManager查询交易历史
+        let (records, total): ([TransactionRecord], Int) = try await MainActor.run {
+            let txManager = TransactionManager.shared
+            var txRecords: [TransactionRecord]
 
-        // 模拟交易历史
-        let mockTransactions: [[String: Any]] = (0..<min(limit, 5)).map { i in
+            if let wId = walletId {
+                txRecords = try await txManager.getTransactionHistory(
+                    walletId: wId,
+                    chainId: chainId,
+                    limit: limit,
+                    offset: offset
+                )
+            } else if let addr = address {
+                txRecords = try await txManager.getTransactionsByAddress(
+                    address: addr,
+                    chainId: chainId,
+                    limit: limit
+                )
+            } else {
+                throw AIEngineError.invalidParameters("需要提供walletId或address参数")
+            }
+
+            let count = try await txManager.getTransactionCount(
+                walletId: walletId,
+                chainId: chainId
+            )
+
+            return (txRecords, count)
+        }
+
+        let transactions: [[String: Any]] = records.map { record in
             return [
-                "hash": "0x\(UUID().uuidString.replacingOccurrences(of: "-", with: ""))",
-                "from": address,
-                "to": "0x\(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(40))",
-                "value": String(format: "%.4f", Double.random(in: 0.01...1.0)),
-                "status": ["success", "pending", "failed"].randomElement()!,
-                "timestamp": Date().timeIntervalSince1970 - Double(i * 3600),
-                "blockNumber": 18000000 + i
+                "hash": record.hash ?? "",
+                "from": record.from,
+                "to": record.to,
+                "value": record.value,
+                "status": record.status.rawValue,
+                "timestamp": record.createdAt.timeIntervalSince1970,
+                "blockNumber": record.blockNumber ?? "",
+                "confirmations": record.confirmations,
+                "type": record.type.rawValue
             ]
         }
 
         return [
-            "transactions": mockTransactions,
-            "total": 50,
+            "transactions": transactions,
+            "total": total,
             "limit": limit,
             "offset": offset,
-            "address": address,
-            "chainId": chainId
+            "address": address ?? walletId ?? "",
+            "chainId": chainId ?? 1
         ]
     }
 
@@ -296,19 +375,30 @@ public class BlockchainEngine: BaseAIEngine {
         }
 
         let args = parameters["args"] as? [Any] ?? []
-        let from = parameters["from"] as? String
         let chainId = parameters["chainId"] as? Int ?? 1
+        let abi = parameters["abi"] as? String ?? ContractABI.erc20ABI
 
-        // TODO: 实际调用智能合约
-        // 1. 编码方法调用
-        // 2. 发送交易或调用视图函数
-        // 参考: Features/Blockchain/Services/ContractService.swift
+        // 获取对应的链
+        guard let chain = SupportedChain.allCases.first(where: { $0.chainId == chainId }) else {
+            throw AIEngineError.invalidParameters("不支持的链ID: \(chainId)")
+        }
+
+        // 使用ContractManager调用合约
+        let result = try await MainActor.run {
+            try await ContractManager.shared.callContractFunction(
+                contractAddress: contractAddress,
+                abi: abi,
+                functionName: method,
+                parameters: args,
+                chain: chain
+            )
+        }
 
         return [
             "contractAddress": contractAddress,
             "method": method,
             "args": args,
-            "result": "0x...", // 合约返回值
+            "result": result,
             "success": true,
             "chainId": chainId
         ]
@@ -324,23 +414,33 @@ public class BlockchainEngine: BaseAIEngine {
 
         let chainId = parameters["chainId"] as? Int ?? 1
 
-        // TODO: 查询用户的NFT资产
-        // 可以使用Alchemy、Moralis等API或直接查询合约
+        // 获取对应的链
+        guard let chain = SupportedChain.allCases.first(where: { $0.chainId == chainId }) else {
+            throw AIEngineError.invalidParameters("不支持的链ID: \(chainId)")
+        }
 
-        // 模拟NFT数据
-        let mockNFTs: [[String: Any]] = [
-            [
-                "contractAddress": "0x...",
-                "tokenId": "1234",
-                "name": "Cool NFT #1234",
-                "imageURL": "https://example.com/nft1.png",
-                "collection": "Cool Collection"
+        // 使用NFTManager获取NFT列表
+        let nfts = await MainActor.run {
+            NFTManager.shared.nfts.filter {
+                $0.ownerAddress.lowercased() == address.lowercased() && $0.chainId == chainId
+            }
+        }
+
+        let nftList: [[String: Any]] = nfts.map { nft in
+            return [
+                "contractAddress": nft.contractAddress,
+                "tokenId": nft.tokenId,
+                "name": nft.name ?? "Unknown NFT",
+                "imageURL": nft.imageUrl ?? "",
+                "collection": nft.collectionName ?? "",
+                "description": nft.description ?? "",
+                "tokenStandard": nft.standard.rawValue
             ]
-        ]
+        }
 
         return [
-            "nfts": mockNFTs,
-            "count": mockNFTs.count,
+            "nfts": nftList,
+            "count": nftList.count,
             "address": address,
             "chainId": chainId
         ]
@@ -357,22 +457,30 @@ public class BlockchainEngine: BaseAIEngine {
         let slippage = parameters["slippage"] as? Double ?? 0.5 // 0.5%
         let chainId = parameters["chainId"] as? Int ?? 1
 
-        // TODO: 集成DEX聚合器或直接调用Uniswap等合约
-        // 1. 获取最优兑换路径
-        // 2. 计算预期输出
-        // 3. 构建并发送交易
+        // 获取对应的链
+        guard let chain = SupportedChain.allCases.first(where: { $0.chainId == chainId }) else {
+            throw AIEngineError.invalidParameters("不支持的链ID: \(chainId)")
+        }
 
-        let estimatedOutput = Double(amount)! * 0.98 // 模拟2%的价格差
+        // 获取报价（暂时返回估算值，实际实现需要集成DEX聚合器）
+        // TODO: 集成1inch、0x等DEX聚合器API获取实际报价
+        let estimatedOutput: Double
+        if let amountDouble = Double(amount) {
+            estimatedOutput = amountDouble * 0.98 // 模拟2%的价格差
+        } else {
+            estimatedOutput = 0
+        }
 
         return [
             "fromToken": fromToken,
             "toToken": toToken,
             "inputAmount": amount,
-            "estimatedOutput": String(estimatedOutput),
+            "estimatedOutput": String(format: "%.6f", estimatedOutput),
             "slippage": slippage,
             "priceImpact": 0.3,
             "route": [fromToken, toToken],
-            "chainId": chainId
+            "chainId": chainId,
+            "note": "需要集成DEX聚合器API获取实际报价"
         ]
     }
 
@@ -386,23 +494,46 @@ public class BlockchainEngine: BaseAIEngine {
         }
 
         let value = parameters["value"] as? String ?? "0"
-        let data = parameters["data"] as? String ?? "0x"
+        let data = parameters["data"] as? String
         let chainId = parameters["chainId"] as? Int ?? 1
 
-        // TODO: 调用RPC的eth_estimateGas方法
+        // 获取对应的链
+        guard let chain = SupportedChain.allCases.first(where: { $0.chainId == chainId }) else {
+            throw AIEngineError.invalidParameters("不支持的链ID: \(chainId)")
+        }
 
-        // 模拟Gas估算
-        let gasLimit = data == "0x" ? 21000 : Int.random(in: 50000...200000)
-        let gasPrice = Double.random(in: 20...100) // Gwei
+        // 使用TransactionManager估算Gas
+        let (gasLimit, gasPriceHex) = try await MainActor.run {
+            let txManager = TransactionManager.shared
+            let limit = try await txManager.estimateGas(
+                from: from,
+                to: to,
+                value: value,
+                data: data,
+                chain: chain
+            )
+            let price = try await txManager.getGasPrice(chain: chain)
+            return (limit, price)
+        }
 
-        let estimatedCost = Double(gasLimit) * gasPrice / 1e9 // 转换为ETH
+        // 解析Gas价格（从十六进制Wei转换为Gwei）
+        let cleanPriceHex = gasPriceHex.hasPrefix("0x") ? String(gasPriceHex.dropFirst(2)) : gasPriceHex
+        let gasPriceWei = Int(cleanPriceHex, radix: 16) ?? 0
+        let gasPriceGwei = Double(gasPriceWei) / 1e9
+
+        let cleanLimitHex = gasLimit.hasPrefix("0x") ? String(gasLimit.dropFirst(2)) : gasLimit
+        let gasLimitInt = Int(cleanLimitHex, radix: 16) ?? 21000
+
+        // 计算估算费用
+        let estimatedCostWei = Double(gasLimitInt) * Double(gasPriceWei)
+        let estimatedCostEth = estimatedCostWei / 1e18
 
         return [
-            "gasLimit": gasLimit,
-            "gasPrice": gasPrice,
+            "gasLimit": gasLimitInt,
+            "gasPrice": gasPriceGwei,
             "gasPriceUnit": "Gwei",
-            "estimatedCost": estimatedCost,
-            "estimatedCostUnit": chainId == 1 ? "ETH" : "BNB",
+            "estimatedCost": estimatedCostEth,
+            "estimatedCostUnit": chain.symbol,
             "chainId": chainId
         ]
     }
@@ -415,29 +546,46 @@ public class BlockchainEngine: BaseAIEngine {
             throw AIEngineError.invalidParameters("缺少txHash参数")
         }
 
-        // 获取交易详情
-        // TODO: 从区块链查询交易详情
+        // 从TransactionManager获取交易详情
+        let record = try await MainActor.run {
+            try await TransactionManager.shared.getTransaction(txHash: txHash)
+        }
 
-        // 模拟交易数据
-        let txData: [String: Any] = [
-            "hash": txHash,
-            "from": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-            "to": "0xdac17f958d2ee523a2206206994597c13d831ec7",
-            "value": "0",
-            "data": "0xa9059cbb...",
-            "method": "transfer",
-            "gasUsed": 65000
-        ]
+        var txData: [String: Any]
+
+        if let record = record {
+            txData = [
+                "hash": txHash,
+                "from": record.from,
+                "to": record.to,
+                "value": record.value,
+                "data": record.data ?? "0x",
+                "type": record.type.rawValue,
+                "status": record.status.rawValue,
+                "gasUsed": record.gasUsed ?? "N/A",
+                "fee": record.fee ?? "N/A",
+                "confirmations": record.confirmations
+            ]
+        } else {
+            // 如果本地没有记录，返回基本信息
+            txData = [
+                "hash": txHash,
+                "note": "交易详情需要从区块链网络查询"
+            ]
+        }
 
         let prompt = """
         请解释以下区块链交易：
 
         交易Hash: \(txHash)
-        发送方: \(txData["from"] ?? "")
-        接收方: \(txData["to"] ?? "")
-        金额: \(txData["value"] ?? "0") ETH
-        方法: \(txData["method"] ?? "unknown")
-        Gas消耗: \(txData["gasUsed"] ?? 0)
+        发送方: \(txData["from"] ?? "未知")
+        接收方: \(txData["to"] ?? "未知")
+        金额: \(txData["value"] ?? "0") Wei
+        交易类型: \(txData["type"] ?? "unknown")
+        状态: \(txData["status"] ?? "unknown")
+        Gas消耗: \(txData["gasUsed"] ?? "N/A")
+        手续费: \(txData["fee"] ?? "N/A")
+        确认数: \(txData["confirmations"] ?? 0)
 
         请提供：
         1. 交易目的和操作说明
@@ -451,11 +599,19 @@ public class BlockchainEngine: BaseAIEngine {
             systemPrompt: "你是一个区块链安全专家，擅长分析交易并识别潜在风险。"
         )
 
+        // 简单的风险等级判断
+        var riskLevel = "low"
+        if let record = record {
+            if record.status == .failed {
+                riskLevel = "medium"
+            }
+        }
+
         return [
             "txHash": txHash,
             "explanation": explanation,
             "txData": txData,
-            "riskLevel": "low" // 可以基于AI分析结果动态设置
+            "riskLevel": riskLevel
         ]
     }
 }
