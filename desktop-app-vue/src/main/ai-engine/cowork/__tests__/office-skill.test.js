@@ -19,7 +19,7 @@ describe('OfficeSkill', () => {
 
     officeSkill = new OfficeSkill();
     skillRegistry = new SkillRegistry();
-    skillRegistry.registerSkill(officeSkill);
+    skillRegistry.register(officeSkill);
   });
 
   afterEach(async () => {
