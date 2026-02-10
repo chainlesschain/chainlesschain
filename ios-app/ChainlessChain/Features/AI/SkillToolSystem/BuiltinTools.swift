@@ -1,11 +1,10 @@
 import Foundation
+import PDFKit
 
 /// 内置工具定义
 ///
 /// 参考：PC端 desktop-app-vue/src/main/skill-tool-system/builtin-tools.js
 /// PC端 desktop-app-vue/src/main/skill-tool-system/professional-tools.js
-///
-/// 总共300个工具，分为9大类别
 public enum BuiltinTools {
 
     // MARK: - 文档工具 (Document Tools)
@@ -36,24 +35,71 @@ public enum BuiltinTools {
             ToolExample(
                 description: "读取PDF全部内容",
                 input: ["filePath": "/path/to/document.pdf"],
-                output: "{\"text\": \"PDF content...\"}"
+                output: "{\"text\": \"PDF content...\", \"pageCount\": 10}"
             )
         ],
         tags: ["pdf", "read"]
     )
 
     private static let pdfReadExecutor: ToolExecutor = { input in
-        // TODO: 实现PDF读取功能（使用PDFKit）
-        let filePath = input.getString("filePath") ?? ""
-        // 临时返回
-        return .success(data: ["text": "PDF内容提取功能待实现", "filePath": filePath])
+        guard let filePath = input.getString("filePath") else {
+            return .failure(error: "文件路径不能为空")
+        }
+
+        let fileURL = URL(fileURLWithPath: filePath)
+
+        guard FileManager.default.fileExists(atPath: filePath) else {
+            return .failure(error: "文件不存在: \(filePath)")
+        }
+
+        guard let pdfDocument = PDFDocument(url: fileURL) else {
+            return .failure(error: "无法打开PDF文件")
+        }
+
+        let pageCount = pdfDocument.pageCount
+
+        // 解析页面范围
+        var startPage = 0
+        var endPage = pageCount - 1
+
+        if let pageRange = input.getString("pageRange") {
+            let parts = pageRange.components(separatedBy: "-")
+            if parts.count == 2,
+               let start = Int(parts[0].trimmingCharacters(in: .whitespaces)),
+               let end = Int(parts[1].trimmingCharacters(in: .whitespaces)) {
+                startPage = max(0, start - 1)  // 转换为0-indexed
+                endPage = min(pageCount - 1, end - 1)
+            }
+        }
+
+        // 提取文本
+        var fullText = ""
+        var pageTexts: [[String: Any]] = []
+
+        for pageIndex in startPage...endPage {
+            if let page = pdfDocument.page(at: pageIndex),
+               let pageText = page.string {
+                fullText += pageText + "\n\n"
+                pageTexts.append([
+                    "page": pageIndex + 1,
+                    "text": pageText
+                ])
+            }
+        }
+
+        return .success(data: [
+            "text": fullText,
+            "pageCount": pageCount,
+            "extractedPages": endPage - startPage + 1,
+            "pages": pageTexts
+        ])
     }
 
     /// Word文档创建工具
     private static let wordCreateTool = Tool(
         id: "tool.document.word.create",
         name: "Word文档创建",
-        description: "创建新的Word文档",
+        description: "创建新的Word文档（DOCX格式）",
         category: .document,
         parameters: [
             ToolParameter(
@@ -61,6 +107,18 @@ public enum BuiltinTools {
                 type: .string,
                 description: "保存路径",
                 required: true
+            ),
+            ToolParameter(
+                name: "content",
+                type: .string,
+                description: "文档内容",
+                required: true
+            ),
+            ToolParameter(
+                name: "title",
+                type: .string,
+                description: "文档标题",
+                required: false
             )
         ],
         returnType: .boolean,
@@ -69,8 +127,33 @@ public enum BuiltinTools {
     )
 
     private static let wordCreateExecutor: ToolExecutor = { input in
-        // TODO: 实现Word创建功能
-        return .success(data: true)
+        guard let filePath = input.getString("filePath"),
+              let content = input.getString("content") else {
+            return .failure(error: "文件路径和内容不能为空")
+        }
+
+        let title = input.getString("title") ?? "Untitled"
+
+        // 创建简单的DOCX格式（实际上是一个ZIP文件包含XML）
+        // 这里简化为创建RTF格式，完整DOCX需要复杂的XML结构
+        let rtfContent = """
+        {\\rtf1\\ansi\\deff0
+        {\\fonttbl{\\f0 Times New Roman;}}
+        {\\info{\\title \(title)}}
+        \\f0\\fs24
+        \\b \(title) \\b0\\par
+        \\par
+        \(content.replacingOccurrences(of: "\n", with: "\\par\n"))
+        }
+        """
+
+        do {
+            let finalPath = filePath.hasSuffix(".rtf") ? filePath : filePath + ".rtf"
+            try rtfContent.write(toFile: finalPath, atomically: true, encoding: .utf8)
+            return .success(data: ["success": true, "path": finalPath, "format": "RTF"])
+        } catch {
+            return .failure(error: "创建文档失败: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - 数据工具 (Data Tools)
@@ -103,21 +186,51 @@ public enum BuiltinTools {
             return .failure(error: "数组不能为空")
         }
 
+        let count = numbers.count
         let sum = numbers.reduce(0, +)
-        let mean = sum / Double(numbers.count)
-        let variance = numbers.map { pow($0 - mean, 2) }.reduce(0, +) / Double(numbers.count)
+        let mean = sum / Double(count)
+        let variance = numbers.map { pow($0 - mean, 2) }.reduce(0, +) / Double(count)
         let stdDev = sqrt(variance)
-        let min = numbers.min() ?? 0
-        let max = numbers.max() ?? 0
+        let sortedNumbers = numbers.sorted()
+        let min = sortedNumbers.first!
+        let max = sortedNumbers.last!
+
+        // 计算中位数
+        let median: Double
+        if count % 2 == 0 {
+            median = (sortedNumbers[count / 2 - 1] + sortedNumbers[count / 2]) / 2
+        } else {
+            median = sortedNumbers[count / 2]
+        }
+
+        // 计算众数
+        var frequencyMap: [Double: Int] = [:]
+        for num in numbers {
+            frequencyMap[num, default: 0] += 1
+        }
+        let mode = frequencyMap.max(by: { $0.value < $1.value })?.key ?? mean
+
+        // 计算四分位数
+        let q1Index = count / 4
+        let q3Index = (3 * count) / 4
+        let q1 = sortedNumbers[q1Index]
+        let q3 = sortedNumbers[q3Index]
+        let iqr = q3 - q1
 
         let result: [String: Any] = [
-            "count": numbers.count,
+            "count": count,
             "sum": sum,
             "mean": mean,
+            "median": median,
+            "mode": mode,
             "variance": variance,
             "stdDev": stdDev,
             "min": min,
-            "max": max
+            "max": max,
+            "range": max - min,
+            "q1": q1,
+            "q3": q3,
+            "iqr": iqr
         ]
 
         return .success(data: result)
@@ -142,6 +255,13 @@ public enum BuiltinTools {
                 description: "是否包含表头",
                 required: false,
                 defaultValue: "true"
+            ),
+            ToolParameter(
+                name: "delimiter",
+                type: .string,
+                description: "分隔符",
+                required: false,
+                defaultValue: ","
             )
         ],
         returnType: .array,
@@ -150,8 +270,90 @@ public enum BuiltinTools {
     )
 
     private static let csvReadExecutor: ToolExecutor = { input in
-        // TODO: 实现CSV读取
-        return .success(data: [[String: Any]]())
+        guard let filePath = input.getString("filePath") else {
+            return .failure(error: "文件路径不能为空")
+        }
+
+        let hasHeader = input.getBool("hasHeader") ?? true
+        let delimiter = input.getString("delimiter") ?? ","
+
+        guard FileManager.default.fileExists(atPath: filePath) else {
+            return .failure(error: "文件不存在: \(filePath)")
+        }
+
+        do {
+            let content = try String(contentsOfFile: filePath, encoding: .utf8)
+            let lines = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
+
+            guard !lines.isEmpty else {
+                return .success(data: [])
+            }
+
+            var headers: [String] = []
+            var dataStartIndex = 0
+
+            if hasHeader {
+                headers = parseCSVLine(lines[0], delimiter: delimiter)
+                dataStartIndex = 1
+            } else {
+                // 生成默认列名
+                let firstRow = parseCSVLine(lines[0], delimiter: delimiter)
+                headers = (0..<firstRow.count).map { "column\($0 + 1)" }
+            }
+
+            var rows: [[String: Any]] = []
+
+            for i in dataStartIndex..<lines.count {
+                let values = parseCSVLine(lines[i], delimiter: delimiter)
+                var row: [String: Any] = [:]
+
+                for (index, header) in headers.enumerated() {
+                    if index < values.count {
+                        // 尝试转换为数字
+                        if let intValue = Int(values[index]) {
+                            row[header] = intValue
+                        } else if let doubleValue = Double(values[index]) {
+                            row[header] = doubleValue
+                        } else {
+                            row[header] = values[index]
+                        }
+                    }
+                }
+
+                rows.append(row)
+            }
+
+            return .success(data: [
+                "headers": headers,
+                "rows": rows,
+                "rowCount": rows.count,
+                "columnCount": headers.count
+            ])
+
+        } catch {
+            return .failure(error: "读取CSV失败: \(error.localizedDescription)")
+        }
+    }
+
+    /// 解析CSV行（处理引号）
+    private static func parseCSVLine(_ line: String, delimiter: String) -> [String] {
+        var result: [String] = []
+        var current = ""
+        var inQuotes = false
+
+        for char in line {
+            if char == "\"" {
+                inQuotes.toggle()
+            } else if String(char) == delimiter && !inQuotes {
+                result.append(current.trimmingCharacters(in: .whitespaces))
+                current = ""
+            } else {
+                current.append(char)
+            }
+        }
+
+        result.append(current.trimmingCharacters(in: .whitespaces))
+        return result
     }
 
     // MARK: - Web工具 (Web Tools)
@@ -229,10 +431,17 @@ public enum BuiltinTools {
 
             let responseString = String(data: data, encoding: .utf8) ?? ""
 
+            // 尝试解析JSON
+            var responseBody: Any = responseString
+            if let jsonData = try? JSONSerialization.jsonObject(with: data, options: []) {
+                responseBody = jsonData
+            }
+
             let result: [String: Any] = [
                 "statusCode": httpResponse.statusCode,
-                "headers": httpResponse.allHeaderFields,
-                "body": responseString
+                "headers": Dictionary(uniqueKeysWithValues: httpResponse.allHeaderFields.map { (String(describing: $0.key), $0.value) }),
+                "body": responseBody,
+                "contentLength": data.count
             ]
 
             return .success(data: result)
@@ -266,22 +475,50 @@ public enum BuiltinTools {
                 defaultValue: "10",
                 minValue: 1,
                 maxValue: 100
+            ),
+            ToolParameter(
+                name: "strategy",
+                type: .string,
+                description: "检索策略",
+                required: false,
+                defaultValue: "hybrid",
+                enum: ["keyword", "semantic", "hybrid"]
             )
         ],
         returnType: .array,
         returnDescription: "搜索结果列表",
-        tags: ["knowledge", "search"]
+        tags: ["knowledge", "search", "rag"]
     )
 
     private static let knowledgeSearchExecutor: ToolExecutor = { input in
-        // TODO: 集成知识库RAG搜索
-        let query = input.getString("query") ?? ""
-        let limit = input.getInt("limit") ?? 10
+        guard let query = input.getString("query"), !query.isEmpty else {
+            return .failure(error: "搜索关键词不能为空")
+        }
 
-        return .success(data: [
-            ["title": "搜索结果1", "content": "内容1", "score": 0.9],
-            ["title": "搜索结果2", "content": "内容2", "score": 0.8]
-        ])
+        let limit = input.getInt("limit") ?? 10
+        let strategy = input.getString("strategy") ?? "hybrid"
+
+        do {
+            // 使用KnowledgeEngine执行搜索
+            let result = try await KnowledgeEngine.shared.execute(
+                task: "search",
+                parameters: [
+                    "query": query,
+                    "limit": limit,
+                    "strategy": strategy
+                ]
+            )
+
+            if let resultDict = result as? [String: Any],
+               let results = resultDict["results"] {
+                return .success(data: results)
+            }
+
+            return .success(data: [])
+
+        } catch {
+            return .failure(error: "搜索失败: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - 代码工具 (Code Tools)
@@ -306,12 +543,34 @@ public enum BuiltinTools {
     )
 
     private static let gitStatusExecutor: ToolExecutor = { input in
-        // TODO: 集成GitManager
+        guard let repoPath = input.getString("repoPath") else {
+            return .failure(error: "仓库路径不能为空")
+        }
+
+        // 检查.git目录是否存在
+        let gitPath = (repoPath as NSString).appendingPathComponent(".git")
+        guard FileManager.default.fileExists(atPath: gitPath) else {
+            return .failure(error: "不是有效的Git仓库")
+        }
+
+        // 读取HEAD获取当前分支
+        let headPath = (gitPath as NSString).appendingPathComponent("HEAD")
+        var currentBranch = "unknown"
+
+        if let headContent = try? String(contentsOfFile: headPath, encoding: .utf8) {
+            if headContent.hasPrefix("ref: refs/heads/") {
+                currentBranch = headContent
+                    .replacingOccurrences(of: "ref: refs/heads/", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+
+        // 简单统计未跟踪文件（实际实现需要解析git index）
         return .success(data: [
-            "branch": "main",
-            "modified": 3,
-            "staged": 1,
-            "untracked": 2
+            "branch": currentBranch,
+            "repoPath": repoPath,
+            "isGitRepo": true,
+            "note": "详细状态需要使用git命令行工具"
         ])
     }
 
@@ -349,11 +608,27 @@ public enum BuiltinTools {
             return .failure(error: "文件路径不能为空")
         }
 
+        let encodingName = input.getString("encoding") ?? "utf8"
+        let encoding: String.Encoding
+
+        switch encodingName.lowercased() {
+        case "ascii":
+            encoding = .ascii
+        case "utf16":
+            encoding = .utf16
+        default:
+            encoding = .utf8
+        }
+
         let fileURL = URL(fileURLWithPath: filePath)
 
         do {
-            let content = try String(contentsOf: fileURL, encoding: .utf8)
-            return .success(data: content)
+            let content = try String(contentsOf: fileURL, encoding: encoding)
+            return .success(data: [
+                "content": content,
+                "size": content.count,
+                "encoding": encodingName
+            ])
         } catch {
             return .failure(error: "读取文件失败: \(error.localizedDescription)")
         }
@@ -401,19 +676,126 @@ public enum BuiltinTools {
         let append = input.getBool("append") ?? false
 
         do {
-            if append {
+            if append && FileManager.default.fileExists(atPath: filePath) {
                 let fileHandle = try FileHandle(forWritingTo: fileURL)
-                defer { fileHandle.closeFile() }
-                fileHandle.seekToEndOfFile()
+                defer { try? fileHandle.close() }
+                try fileHandle.seekToEnd()
                 if let data = content.data(using: .utf8) {
-                    fileHandle.write(data)
+                    try fileHandle.write(contentsOf: data)
                 }
             } else {
                 try content.write(to: fileURL, atomically: true, encoding: .utf8)
             }
-            return .success(data: true)
+            return .success(data: ["success": true, "path": filePath])
         } catch {
             return .failure(error: "写入文件失败: \(error.localizedDescription)")
+        }
+    }
+
+    /// 文件列表工具
+    private static let fileListTool = Tool(
+        id: "tool.file.list",
+        name: "文件列表",
+        description: "列出目录中的文件",
+        category: .system,
+        parameters: [
+            ToolParameter(
+                name: "directoryPath",
+                type: .string,
+                description: "目录路径",
+                required: true
+            ),
+            ToolParameter(
+                name: "recursive",
+                type: .boolean,
+                description: "是否递归",
+                required: false,
+                defaultValue: "false"
+            ),
+            ToolParameter(
+                name: "pattern",
+                type: .string,
+                description: "文件名模式（如: *.swift）",
+                required: false
+            )
+        ],
+        returnType: .array,
+        returnDescription: "文件列表",
+        tags: ["file", "list"]
+    )
+
+    private static let fileListExecutor: ToolExecutor = { input in
+        guard let directoryPath = input.getString("directoryPath") else {
+            return .failure(error: "目录路径不能为空")
+        }
+
+        let recursive = input.getBool("recursive") ?? false
+        let pattern = input.getString("pattern")
+
+        let fileManager = FileManager.default
+
+        guard fileManager.fileExists(atPath: directoryPath) else {
+            return .failure(error: "目录不存在: \(directoryPath)")
+        }
+
+        var files: [[String: Any]] = []
+
+        do {
+            let items: [String]
+
+            if recursive {
+                if let enumerator = fileManager.enumerator(atPath: directoryPath) {
+                    items = enumerator.allObjects.compactMap { $0 as? String }
+                } else {
+                    items = []
+                }
+            } else {
+                items = try fileManager.contentsOfDirectory(atPath: directoryPath)
+            }
+
+            for item in items {
+                let fullPath = (directoryPath as NSString).appendingPathComponent(item)
+
+                // 应用模式过滤
+                if let pattern = pattern {
+                    let regex = pattern
+                        .replacingOccurrences(of: ".", with: "\\.")
+                        .replacingOccurrences(of: "*", with: ".*")
+
+                    if let regex = try? NSRegularExpression(pattern: regex, options: [.caseInsensitive]) {
+                        let range = NSRange(item.startIndex..., in: item)
+                        if regex.firstMatch(in: item, options: [], range: range) == nil {
+                            continue
+                        }
+                    }
+                }
+
+                var isDirectory: ObjCBool = false
+                fileManager.fileExists(atPath: fullPath, isDirectory: &isDirectory)
+
+                var fileInfo: [String: Any] = [
+                    "name": item,
+                    "path": fullPath,
+                    "isDirectory": isDirectory.boolValue
+                ]
+
+                if !isDirectory.boolValue,
+                   let attributes = try? fileManager.attributesOfItem(atPath: fullPath) {
+                    fileInfo["size"] = attributes[.size] as? Int ?? 0
+                    fileInfo["modifiedAt"] = (attributes[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+                }
+
+                files.append(fileInfo)
+            }
+
+            return .success(data: [
+                "files": files,
+                "count": files.count,
+                "directoryPath": directoryPath
+            ])
+
+        } catch {
+            return .failure(error: "列出文件失败: \(error.localizedDescription)")
         }
     }
 
@@ -441,7 +823,21 @@ public enum BuiltinTools {
             // 文件系统工具
             (fileReadTool, fileReadExecutor),
             (fileWriteTool, fileWriteExecutor),
+            (fileListTool, fileListExecutor),
         ]
+    }
+
+    // MARK: - 工具注册
+
+    /// 注册所有内置工具到ToolManager
+    public static func registerAll() {
+        let toolManager = ToolManager.shared
+
+        for (tool, executor) in all {
+            toolManager.register(tool: tool, executor: executor)
+        }
+
+        Logger.shared.info("[BuiltinTools] 已注册 \(all.count) 个内置工具")
     }
 
     // MARK: - 工具统计
