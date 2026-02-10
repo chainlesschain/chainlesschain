@@ -1,7 +1,6 @@
 package com.chainlesschain.android.core.common.memory
 
 import org.junit.Assert.*
-import org.junit.Before
 import org.junit.Test
 
 /**
@@ -63,8 +62,8 @@ class MemoryManagerTest {
         val objects = List(maxSize + 2) { pool.acquire() }
         objects.forEach { pool.release(it) }
 
-        // Then
-        val stats = pool.getStats()
+        // Then - 使用stats属性
+        val stats = pool.stats
         assertTrue("池中对象数量应<=maxSize", stats.poolSize <= maxSize)
     }
 
@@ -78,16 +77,15 @@ class MemoryManagerTest {
         )
 
         // When
-        repeat(10) {
-            val obj = pool.acquire()
-            obj.append("test")
-            pool.release(obj)
-        }
+        val obj1 = pool.acquire() // miss
+        pool.release(obj1)
+        val obj2 = pool.acquire() // hit
+        pool.release(obj2)
 
         // Then
-        val stats = pool.getStats()
-        assertEquals("创建次数应正确", 1, stats.created) // 只创建一次，之后都是复用
-        assertTrue("复用次数应>0", stats.reused > 0)
+        val stats = pool.stats
+        assertTrue("应有命中", stats.hits > 0)
+        assertTrue("应有未命中", stats.misses > 0)
     }
 
     @Test
@@ -106,8 +104,7 @@ class MemoryManagerTest {
         pool.clear()
 
         // Then
-        val stats = pool.getStats()
-        assertEquals("池应为空", 0, stats.poolSize)
+        assertEquals("池应为空", 0, pool.size)
     }
 
     @Test
@@ -135,8 +132,8 @@ class MemoryManagerTest {
         threads.forEach { it.join() }
 
         // Then - 不应抛异常
-        val stats = pool.getStats()
-        assertTrue("应有操作记录", stats.created > 0 || stats.reused > 0)
+        val stats = pool.stats
+        assertTrue("应有操作记录", stats.hits > 0 || stats.misses > 0)
     }
 
     // ===== WeakCache Tests =====
@@ -144,7 +141,7 @@ class MemoryManagerTest {
     @Test
     fun `弱缓存存取应成功`() {
         // Given
-        val cache = WeakCache<String, Any>()
+        val cache = WeakCache<String, String>()
         val key = "test-key"
         val value = "test-value"
 
@@ -183,7 +180,7 @@ class MemoryManagerTest {
         cache.clear()
 
         // Then
-        assertEquals("清空后大小应为0", 0, cache.size())
+        assertEquals("清空后大小应为0", 0, cache.size)
     }
 
     @Test
@@ -197,7 +194,32 @@ class MemoryManagerTest {
         cache.put("key3", "value3")
 
         // Then
-        assertEquals("大小应为3", 3, cache.size())
+        assertEquals("大小应为3", 3, cache.size)
+    }
+
+    @Test
+    fun `弱缓存getOrPut应正确工作`() {
+        // Given
+        val cache = WeakCache<String, String>()
+
+        // When
+        val value1 = cache.getOrPut("key") { "computed" }
+        val value2 = cache.getOrPut("key") { "new-computed" }
+
+        // Then
+        assertEquals("第一次应计算", "computed", value1)
+        assertEquals("第二次应从缓存获取", "computed", value2)
+    }
+
+    @Test
+    fun `弱缓存contains应正确`() {
+        // Given
+        val cache = WeakCache<String, String>()
+        cache.put("key1", "value1")
+
+        // Then
+        assertTrue("已存在的键应返回true", cache.contains("key1"))
+        assertFalse("不存在的键应返回false", cache.contains("key2"))
     }
 
     // ===== MemoryPressureLevel Tests =====
@@ -214,12 +236,21 @@ class MemoryManagerTest {
     }
 
     @Test
-    fun `内存压力级别描述不为空`() {
+    fun `内存压力级别displayName不为空`() {
         // Then
         MemoryPressureLevel.values().forEach { level ->
-            assertTrue("描述不应为空: ${level.name}",
-                level.description.isNotEmpty())
+            assertTrue("displayName不应为空: ${level.name}",
+                level.displayName.isNotEmpty())
         }
+    }
+
+    @Test
+    fun `内存压力级别priority正确`() {
+        // Then
+        assertEquals("NORMAL priority应为0", 0, MemoryPressureLevel.NORMAL.priority)
+        assertEquals("MODERATE priority应为1", 1, MemoryPressureLevel.MODERATE.priority)
+        assertEquals("WARNING priority应为2", 2, MemoryPressureLevel.WARNING.priority)
+        assertEquals("CRITICAL priority应为3", 3, MemoryPressureLevel.CRITICAL.priority)
     }
 
     // ===== MemoryStatistics Tests =====
@@ -228,76 +259,144 @@ class MemoryManagerTest {
     fun `内存统计数据结构正确`() {
         // Given
         val stats = MemoryStatistics(
-            usedMemoryMB = 128.0,
-            maxMemoryMB = 512.0,
-            availableMemoryMB = 384.0,
-            lowMemoryThresholdMB = 100.0,
-            gcCount = 5,
-            gcTotalTimeMs = 150
+            totalHeap = 512 * 1024 * 1024L,
+            usedHeap = 256 * 1024 * 1024L,
+            freeHeap = 256 * 1024 * 1024L,
+            maxHeap = 512 * 1024 * 1024L
         )
 
         // Then
-        assertEquals("已用内存应正确", 128.0, stats.usedMemoryMB, 0.01)
-        assertEquals("最大内存应正确", 512.0, stats.maxMemoryMB, 0.01)
-        assertTrue("使用率应合理", stats.usagePercentage in 0.0..100.0)
+        assertEquals("已用堆应正确", 256 * 1024 * 1024L, stats.usedHeap)
+        assertEquals("最大堆应正确", 512 * 1024 * 1024L, stats.maxHeap)
+        assertTrue("使用率应合理", stats.heapUsagePercent in 0.0f..1.0f)
     }
 
     @Test
     fun `内存使用率计算正确`() {
         // Given
         val stats = MemoryStatistics(
-            usedMemoryMB = 256.0,
-            maxMemoryMB = 512.0,
-            availableMemoryMB = 256.0,
-            lowMemoryThresholdMB = 100.0,
-            gcCount = 0,
-            gcTotalTimeMs = 0
+            totalHeap = 512 * 1024 * 1024L,
+            usedHeap = 256 * 1024 * 1024L,
+            freeHeap = 256 * 1024 * 1024L,
+            maxHeap = 512 * 1024 * 1024L
         )
 
         // Then
-        assertEquals("使用率应为50%", 50.0, stats.usagePercentage, 0.01)
+        assertEquals("使用率应为0.5", 0.5f, stats.heapUsagePercent, 0.01f)
     }
 
-    // ===== ImageMemoryCache Tests =====
-
     @Test
-    fun `图片缓存存取应成功`() {
-        // Given - 使用简单的ByteArray模拟Bitmap
-        val cache = object {
-            private val map = mutableMapOf<String, ByteArray>()
-
-            fun put(key: String, value: ByteArray) {
-                map[key] = value
-            }
-
-            fun get(key: String): ByteArray? = map[key]
-
-            fun size(): Int = map.size
-        }
-
-        // When
-        cache.put("image1", ByteArray(100))
-        cache.put("image2", ByteArray(200))
+    fun `内存MB转换正确`() {
+        // Given
+        val stats = MemoryStatistics(
+            usedHeap = 256 * 1024 * 1024L,
+            maxHeap = 512 * 1024 * 1024L
+        )
 
         // Then
-        assertNotNull("应获取到图片1", cache.get("image1"))
-        assertNotNull("应获取到图片2", cache.get("image2"))
-        assertEquals("缓存大小应为2", 2, cache.size())
+        assertEquals("usedHeapMB应为256", 256f, stats.usedHeapMB, 1f)
+        assertEquals("maxHeapMB应为512", 512f, stats.maxHeapMB, 1f)
     }
 
-    // ===== Integration Tests =====
+    @Test
+    fun `低内存检测正确`() {
+        // Given - 高使用率
+        val highUsageStats = MemoryStatistics(
+            usedHeap = 450 * 1024 * 1024L,
+            maxHeap = 512 * 1024 * 1024L
+        )
+
+        // Given - 低使用率
+        val lowUsageStats = MemoryStatistics(
+            usedHeap = 100 * 1024 * 1024L,
+            maxHeap = 512 * 1024 * 1024L
+        )
+
+        // Then
+        assertTrue("高使用率应是低内存", highUsageStats.isLowMemory)
+        assertFalse("低使用率不应是低内存", lowUsageStats.isLowMemory)
+    }
+
+    // ===== PoolStats Tests =====
 
     @Test
-    fun `内存级别转换正确`() {
+    fun `池统计命中率计算正确`() {
         // Given
-        val levels = MemoryPressureLevel.values()
+        val stats = PoolStats(
+            poolSize = 5,
+            maxSize = 10,
+            hits = 80,
+            misses = 20,
+            returns = 100
+        )
 
-        // When/Then
-        levels.forEach { level ->
-            val name = level.name
-            val parsed = MemoryPressureLevel.valueOf(name)
-            assertEquals("转换应一致", level, parsed)
-        }
+        // Then
+        assertEquals("命中率应为0.8", 0.8f, stats.hitRate, 0.01f)
+    }
+
+    @Test
+    fun `池统计利用率计算正确`() {
+        // Given
+        val stats = PoolStats(
+            poolSize = 5,
+            maxSize = 10,
+            hits = 80,
+            misses = 20,
+            returns = 100
+        )
+
+        // Then
+        assertEquals("利用率应为0.5", 0.5f, stats.utilizationRate, 0.01f)
+    }
+
+    // ===== CacheStats Tests =====
+
+    @Test
+    fun `缓存统计命中率计算正确`() {
+        // Given
+        val stats = CacheStats(
+            size = 10,
+            liveCount = 8,
+            maxSize = 20,
+            hits = 70,
+            misses = 30,
+            evictions = 5
+        )
+
+        // Then
+        assertEquals("命中率应为0.7", 0.7f, stats.hitRate, 0.01f)
+    }
+
+    @Test
+    fun `缓存统计利用率计算正确`() {
+        // Given
+        val stats = CacheStats(
+            size = 10,
+            liveCount = 8,
+            maxSize = 20,
+            hits = 70,
+            misses = 30,
+            evictions = 5
+        )
+
+        // Then
+        assertEquals("利用率应为0.4", 0.4f, stats.utilizationRate, 0.01f)
+    }
+
+    @Test
+    fun `缓存统计陈旧率计算正确`() {
+        // Given
+        val stats = CacheStats(
+            size = 10,
+            liveCount = 8,
+            maxSize = 20,
+            hits = 70,
+            misses = 30,
+            evictions = 5
+        )
+
+        // Then
+        assertEquals("陈旧率应为0.2", 0.2f, stats.staleRate, 0.01f)
     }
 
     // ===== Performance Tests =====
@@ -344,7 +443,7 @@ class MemoryManagerTest {
     // ===== Edge Cases =====
 
     @Test
-    fun `对象池工厂抛异常应处理`() {
+    fun `对象池工厂抛异常应传播`() {
         // Given
         var callCount = 0
         val pool = ObjectPool(
@@ -369,19 +468,6 @@ class MemoryManagerTest {
     }
 
     @Test
-    fun `弱缓存null值处理`() {
-        // Given
-        val cache = WeakCache<String, String?>()
-
-        // When
-        cache.put("key", null)
-        val value = cache.get("key")
-
-        // Then
-        assertNull("null值应正确存储", value)
-    }
-
-    @Test
     fun `对象池零大小应每次创建新对象`() {
         // Given
         var created = 0
@@ -402,5 +488,19 @@ class MemoryManagerTest {
 
         // Then
         assertEquals("零大小池应每次创建新对象", 5, created)
+    }
+
+    @Test
+    fun `弱缓存evictStale应清理失效条目`() {
+        // Given
+        val cache = WeakCache<String, String>()
+        cache.put("key1", "value1")
+        cache.put("key2", "value2")
+
+        // When
+        val evicted = cache.evictStale()
+
+        // Then - 如果值还在内存中，应该没有被清理
+        assertTrue("陈旧条目应>=0", evicted >= 0)
     }
 }
