@@ -538,9 +538,17 @@ describe('TeammateTool', () => {
       const result = await teammateTool.destroyTeam(team.id);
 
       expect(result.success).toBe(true);
-      expect(teammateTool.teams.has(team.id)).toBe(false);
-      expect(teammateTool.agents.has('agent-1')).toBe(false);
-      expect(teammateTool.agents.has('agent-2')).toBe(false);
+      // 团队保留在Map中用于审计，但状态变为archived
+      const archivedTeam = teammateTool.teams.get(team.id);
+      expect(archivedTeam).toBeDefined();
+      expect(archivedTeam.status).toBe('archived');
+      // 代理保留在Map中用于审计，但状态变为removed
+      const agent1 = teammateTool.agents.get('agent-1');
+      const agent2 = teammateTool.agents.get('agent-2');
+      expect(agent1).toBeDefined();
+      expect(agent1.status).toBe('removed');
+      expect(agent2).toBeDefined();
+      expect(agent2.status).toBe('removed');
     });
   });
 });
