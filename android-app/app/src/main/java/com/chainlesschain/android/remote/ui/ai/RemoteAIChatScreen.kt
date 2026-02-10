@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -79,6 +80,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -1081,33 +1083,275 @@ fun ModelSelectorDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select Model") },
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    Icons.Default.Tune,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Select Model",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
         text = {
             if (availableModels.isEmpty()) {
-                Text("No models available")
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        Icons.Default.CloudOff,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        "No models available",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Make sure your PC is connected and has models configured",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
             } else {
-                LazyColumn {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     items(availableModels) { model ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onModelSelected(model) }
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = model == selectedModel,
-                                onClick = { onModelSelected(model) }
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(model)
-                        }
+                        EnhancedModelCard(
+                            model = model,
+                            isSelected = model == selectedModel,
+                            onClick = { onModelSelected(model) }
+                        )
                     }
                 }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
     )
+}
+
+@Composable
+private fun EnhancedModelCard(
+    model: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val modelInfo = parseModelInfo(model)
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            }
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 2.dp else 0.dp
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Model icon based on provider
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = modelInfo.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = modelInfo.displayName,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface
+                    )
+
+                    if (modelInfo.isRecommended) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.tertiaryContainer
+                        ) {
+                            Text(
+                                text = "Recommended",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ModelInfoChip(
+                        label = modelInfo.provider,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    ModelInfoChip(
+                        label = modelInfo.tier,
+                        color = when (modelInfo.tier) {
+                            "Pro" -> MaterialTheme.colorScheme.primary
+                            "Fast" -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.outline
+                        }
+                    )
+                }
+            }
+
+            if (isSelected) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModelInfoChip(
+    label: String,
+    color: Color
+) {
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        color = color.copy(alpha = 0.1f)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
+
+private data class ModelInfo(
+    val displayName: String,
+    val provider: String,
+    val tier: String,
+    val icon: ImageVector,
+    val isRecommended: Boolean
+)
+
+private fun parseModelInfo(model: String): ModelInfo {
+    val lowerModel = model.lowercase()
+
+    return when {
+        lowerModel.contains("gpt-4") -> ModelInfo(
+            displayName = "GPT-4",
+            provider = "OpenAI",
+            tier = "Pro",
+            icon = Icons.Default.Cloud,
+            isRecommended = true
+        )
+        lowerModel.contains("gpt-3.5") || lowerModel.contains("gpt3") -> ModelInfo(
+            displayName = "GPT-3.5 Turbo",
+            provider = "OpenAI",
+            tier = "Fast",
+            icon = Icons.Default.Cloud,
+            isRecommended = false
+        )
+        lowerModel.contains("claude") -> ModelInfo(
+            displayName = if (lowerModel.contains("opus")) "Claude Opus"
+                         else if (lowerModel.contains("sonnet")) "Claude Sonnet"
+                         else "Claude",
+            provider = "Anthropic",
+            tier = "Pro",
+            icon = Icons.Default.Cloud,
+            isRecommended = lowerModel.contains("opus")
+        )
+        lowerModel.contains("deepseek") -> ModelInfo(
+            displayName = "DeepSeek",
+            provider = "DeepSeek",
+            tier = "Fast",
+            icon = Icons.Default.Cloud,
+            isRecommended = true
+        )
+        lowerModel.contains("qwen") -> ModelInfo(
+            displayName = "Qwen",
+            provider = "Alibaba",
+            tier = "Fast",
+            icon = Icons.Default.Cloud,
+            isRecommended = false
+        )
+        lowerModel.contains("llama") -> ModelInfo(
+            displayName = model,
+            provider = "Ollama",
+            tier = "Local",
+            icon = Icons.Default.Code,
+            isRecommended = false
+        )
+        lowerModel.contains("mistral") -> ModelInfo(
+            displayName = "Mistral",
+            provider = "Mistral AI",
+            tier = "Fast",
+            icon = Icons.Default.Cloud,
+            isRecommended = false
+        )
+        lowerModel.contains("gemini") -> ModelInfo(
+            displayName = "Gemini",
+            provider = "Google",
+            tier = "Pro",
+            icon = Icons.Default.Cloud,
+            isRecommended = false
+        )
+        else -> ModelInfo(
+            displayName = model,
+            provider = "Custom",
+            tier = "Standard",
+            icon = Icons.Default.Code,
+            isRecommended = false
+        )
+    }
 }
 
 @Composable
