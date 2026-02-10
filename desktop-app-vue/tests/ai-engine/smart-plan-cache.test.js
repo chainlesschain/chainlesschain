@@ -235,8 +235,9 @@ describe('SmartPlanCache', () => {
       const similarity1 = cache._cosineSimilarity(vec1, vec2);
       const similarity2 = cache._cosineSimilarity(vec1, vec3);
 
-      assert.strictEqual(similarity1, 1, '相同向量的相似度应为1');
-      assert.strictEqual(similarity2, 0, '正交向量的相似度应为0');
+      // Use tolerance for floating point comparison
+      assert.ok(Math.abs(similarity1 - 1) < 1e-10, '相同向量的相似度应为1');
+      assert.ok(Math.abs(similarity2 - 0) < 1e-10, '正交向量的相似度应为0');
     });
 
     it('应该处理零向量', () => {
