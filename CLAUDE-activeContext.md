@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-10 (Android 修复 - P2P验证/审核申诉/图片预览)
+> **最后更新**: 2026-02-10 (iOS/Android 大规模功能增强 - 18 commits, 12000+ 行代码)
 
 ---
 
@@ -77,7 +77,37 @@
 
 ### 最近完成
 
-0. **Android App 修复** (2026-02-10 最新):
+0. **iOS/Android 大规模功能增强** (2026-02-10 最新 - 18 commits):
+   - **iOS 新模块** (~4000 行):
+     - `SessionManager.swift` - LLM 会话上下文管理
+     - `PermanentMemoryManager.swift` - Clawdbot 风格永久记忆
+     - `ContextEngineering.swift` - KV-Cache 优化
+     - `PermissionEngine.swift` - 企业级 RBAC 权限引擎
+     - `TeamManager.swift` - 组织子团队管理
+     - `HookSystem.swift` - Claude Code 风格钩子系统
+     - `PlanModeManager.swift` - 安全规划模式
+   - **iOS 增强**:
+     - `BlockchainEngine.swift` - WalletManager 集成
+     - `KnowledgeEngine.swift` - SQLite FTS5 全文搜索
+     - `SecurityEngine.swift` - 真实漏洞扫描
+     - `BuiltinTools.swift` - 增强工具实现
+   - **Android 新功能** (~3000 行):
+     - 任务规划系统 (TaskPlanManager, PlanningSession, TaskPlanCard)
+     - 10+ 语法高亮器 (Go, Rust, C/C++, SQL, Shell, Dart, PHP, Ruby)
+     - 增强 AI 聊天 UI (模型选择器, 文件引用, 思考动画)
+     - 完整单元测试和 Instrumented 测试
+   - **Desktop 修复**:
+     - teammate-tool.js 审计保留 (团队/代理销毁后保留用于审计)
+     - office-skill 测试断言修复
+   - **提交记录**:
+     - `7f3b2fbf` fix(tests): office-skill graceful error handling
+     - `087d0548` feat: HookSystem & TaskPlanCard tests
+     - `57e9c784` feat(ios): ContextEngineering KV-Cache
+     - `9d4c8576` feat(ios): PermanentMemoryManager
+     - `69b1acd0` feat: syntax highlighting, permission engine
+     - ... (共 18 个提交)
+
+1. **Android App 修复** (2026-02-10):
    - **P2P 设备验证导航**:
      - `DeviceManagementScreen.kt` 添加 `onVerifyDevice` 回调
      - `P2PNavigation.kt` 连接到 `SafetyNumbersScreen` 路由
