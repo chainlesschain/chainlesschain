@@ -57,7 +57,6 @@ fun EnterpriseScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Tab Row
             TabRow(selectedTabIndex = selectedTab.ordinal) {
                 EnterpriseTab.entries.forEach { tab ->
                     Tab(
@@ -79,7 +78,6 @@ fun EnterpriseScreen(
                 }
             }
 
-            // Content
             when {
                 uiState.isLoading -> {
                     Box(
@@ -103,7 +101,8 @@ fun EnterpriseScreen(
                             teamMembers = uiState.teamMembers,
                             onSelectTeam = viewModel::selectTeam,
                             onDeleteTeam = viewModel::deleteTeam,
-                            onRemoveMember = viewModel::removeTeamMember
+                            onRemoveMember = viewModel::removeTeamMember,
+                            getMemberCount = viewModel::getMemberCount
                         )
                         EnterpriseTab.PERMISSIONS -> PermissionsTab()
                         EnterpriseTab.AUDIT -> AuditTab(logs = uiState.auditLogs)
@@ -113,7 +112,6 @@ fun EnterpriseScreen(
         }
     }
 
-    // Dialogs
     if (showCreateRoleDialog) {
         CreateRoleDialog(
             onDismiss = { showCreateRoleDialog = false },
@@ -134,17 +132,12 @@ fun EnterpriseScreen(
         )
     }
 
-    // Snackbars
-    uiState.message?.let { message ->
-        LaunchedEffect(message) {
-            viewModel.clearMessage()
-        }
+    uiState.message?.let {
+        LaunchedEffect(it) { viewModel.clearMessage() }
     }
 
-    uiState.error?.let { error ->
-        LaunchedEffect(error) {
-            viewModel.clearError()
-        }
+    uiState.error?.let {
+        LaunchedEffect(it) { viewModel.clearError() }
     }
 }
 
@@ -202,11 +195,11 @@ private fun RoleCard(
                         text = role.name,
                         style = MaterialTheme.typography.titleMedium
                     )
-                    if (role.isSystem) {
+                    if (role.isBuiltIn) {
                         Spacer(modifier = Modifier.width(8.dp))
                         AssistChip(
                             onClick = {},
-                            label = { Text("System") },
+                            label = { Text("Built-in") },
                             modifier = Modifier.height(24.dp)
                         )
                     }
@@ -222,7 +215,7 @@ private fun RoleCard(
                     color = MaterialTheme.colorScheme.outline
                 )
             }
-            if (!role.isSystem) {
+            if (!role.isBuiltIn) {
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
@@ -242,10 +235,10 @@ private fun TeamsTab(
     teamMembers: List<TeamMember>,
     onSelectTeam: (Team?) -> Unit,
     onDeleteTeam: (String) -> Unit,
-    onRemoveMember: (String, String) -> Unit
+    onRemoveMember: (String, String) -> Unit,
+    getMemberCount: (String) -> Int
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
-        // Teams list
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -256,6 +249,7 @@ private fun TeamsTab(
             items(teams) { team ->
                 TeamCard(
                     team = team,
+                    memberCount = getMemberCount(team.id),
                     isSelected = team == selectedTeam,
                     onSelect = { onSelectTeam(team) },
                     onDelete = { onDeleteTeam(team.id) }
@@ -263,7 +257,6 @@ private fun TeamsTab(
             }
         }
 
-        // Team details
         selectedTeam?.let { team ->
             VerticalDivider()
             TeamDetailPanel(
@@ -279,6 +272,7 @@ private fun TeamsTab(
 @Composable
 private fun TeamCard(
     team: Team,
+    memberCount: Int,
     isSelected: Boolean,
     onSelect: () -> Unit,
     onDelete: () -> Unit
@@ -313,7 +307,7 @@ private fun TeamCard(
                     )
                 }
                 Text(
-                    text = "${team.memberCount} members",
+                    text = "$memberCount members",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
@@ -354,7 +348,7 @@ private fun TeamDetailPanel(
         LazyColumn {
             items(members) { member ->
                 ListItem(
-                    headlineContent = { Text(member.userId) },
+                    headlineContent = { Text(member.displayName ?: member.userId) },
                     supportingContent = { Text(member.role.name) },
                     trailingContent = {
                         if (member.role != TeamRole.LEAD) {
@@ -371,9 +365,7 @@ private fun TeamDetailPanel(
 
 @Composable
 private fun PermissionsTab() {
-    val permissionCategories = Permission.entries.groupBy { permission ->
-        permission.name.split("_").first()
-    }
+    val permissionCategories = Permission.entries.groupBy { it.category }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -383,13 +375,14 @@ private fun PermissionsTab() {
         permissionCategories.forEach { (category, permissions) ->
             item {
                 Text(
-                    text = category,
+                    text = category.displayName,
                     style = MaterialTheme.typography.titleMedium
                 )
             }
             items(permissions) { permission ->
                 ListItem(
-                    headlineContent = { Text(permission.name) },
+                    headlineContent = { Text(permission.name.replace("_", " ")) },
+                    supportingContent = { Text(permission.description) },
                     leadingContent = {
                         Icon(Icons.Default.Security, contentDescription = null)
                     }
