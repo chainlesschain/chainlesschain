@@ -17,26 +17,43 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
 
 /**
  * Unit tests for TaskPlanManager
  *
  * Tests the state management and flow logic of the planning system.
- * AI-dependent methods are tested with mocks.
+ * Uses a fake AICommands for testing without network calls.
  */
 class TaskPlanManagerTest {
 
-    @Mock
-    private lateinit var mockAICommands: AICommands
-
+    private lateinit var fakeAICommands: FakeAICommands
     private lateinit var manager: TaskPlanManager
 
     @Before
     fun setup() {
-        MockitoAnnotations.openMocks(this)
-        manager = TaskPlanManager(mockAICommands)
+        fakeAICommands = FakeAICommands()
+        manager = TaskPlanManager(fakeAICommands)
+    }
+
+    /**
+     * Fake AICommands for testing
+     */
+    private class FakeAICommands : AICommands(
+        webRTCClient = null!!  // Not used in tests
+    ) {
+        override suspend fun chat(
+            message: String,
+            systemPrompt: String?,
+            conversationId: String?,
+            model: String?,
+            temperature: Float?
+        ): Result<ChatResponse> {
+            // Return a fake response
+            return Result.success(ChatResponse(
+                reply = """{"intent": "test", "confidence": 0.9}""",
+                conversationId = "test-conv"
+            ))
+        }
     }
 
     // ===== Initial State Tests =====
