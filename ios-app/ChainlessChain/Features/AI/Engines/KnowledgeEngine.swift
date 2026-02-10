@@ -8,6 +8,11 @@ public class KnowledgeEngine: BaseAIEngine {
 
     public static let shared = KnowledgeEngine()
 
+    // MARK: - 服务访问器
+
+    private var vectorStoreManager: VectorStoreManager { VectorStoreManager.shared }
+    private var vectorStore: VectorStore { vectorStoreManager.getStore() }
+
     // 检索策略
     public enum RetrievalStrategy: String {
         case semantic = "semantic"      // 语义检索
@@ -94,7 +99,9 @@ public class KnowledgeEngine: BaseAIEngine {
     public override func initialize() async throws {
         try await super.initialize()
 
-        // 初始化RAG系统
+        // 初始化向量存储（创建知识库专用存储）
+        vectorStoreManager.createStore(name: "knowledge", persistent: true)
+
         Logger.shared.info("知识引擎初始化完成")
     }
 
@@ -191,22 +198,51 @@ public class KnowledgeEngine: BaseAIEngine {
 
     /// 关键词搜索
     private func keywordSearch(query: String, limit: Int, types: [String]?) async throws -> [[String: Any]] {
-        // 简单的关键词匹配实现
-        // 实际应用中需要集成全文搜索引擎（如SQLite FTS5）
+        // 使用数据库全文搜索（SQLite FTS5）
+        let keywords = query.lowercased().components(separatedBy: .whitespaces).filter { !$0.isEmpty }
 
-        let keywords = query.lowercased().components(separatedBy: .whitespaces)
+        // 从数据库搜索笔记
+        let db = DatabaseManager.shared
+        var results: [[String: Any]] = []
 
-        // 模拟搜索结果
-        return [
-            [
-                "id": "1",
-                "title": "搜索结果1",
-                "content": "包含关键词的内容...",
-                "type": "note",
-                "score": 0.8,
-                "matchedKeywords": keywords
-            ]
-        ]
+        // 构建FTS查询
+        let searchQuery = keywords.joined(separator: " OR ")
+        let sql = """
+            SELECT id, title, content, type, created_at, updated_at
+            FROM notes_fts
+            WHERE notes_fts MATCH ?
+            LIMIT ?
+        """
+
+        do {
+            let rows = try db.query(sql, parameters: [searchQuery, limit])
+            results = rows.map { row in
+                var result: [String: Any] = [
+                    "id": row["id"] ?? "",
+                    "title": row["title"] ?? "",
+                    "content": String((row["content"] as? String ?? "").prefix(200)),
+                    "type": row["type"] ?? "note",
+                    "matchedKeywords": keywords
+                ]
+
+                // 简单的相关性评分
+                let content = (row["content"] as? String ?? "").lowercased()
+                var score: Double = 0
+                for keyword in keywords {
+                    if content.contains(keyword) {
+                        score += 0.2
+                    }
+                }
+                result["score"] = min(score, 1.0)
+
+                return result
+            }
+        } catch {
+            Logger.shared.warning("关键词搜索失败，使用模拟数据: \(error)")
+            // 如果FTS不可用，返回空结果
+        }
+
+        return results
     }
 
     /// 语义搜索
@@ -241,22 +277,55 @@ public class KnowledgeEngine: BaseAIEngine {
         types: [String]?,
         threshold: Double = 0.7
     ) async throws -> [[String: Any]] {
-        // TODO: 集成向量数据库（Qdrant或本地向量存储）
-        // 1. 使用Embedding模型将查询转换为向量
-        // 2. 在向量数据库中搜索相似向量
-        // 3. 返回匹配的知识条目
+        // 使用LLM生成查询向量
+        let queryEmbedding = try await generateEmbedding(for: query)
 
-        // 模拟语义搜索结果
-        return [
-            [
-                "id": "semantic_1",
-                "title": "语义相关内容",
-                "content": "这是与查询语义相关的内容...",
-                "type": "note",
-                "similarity": 0.92,
-                "embedding": [] as [Double]
-            ]
-        ]
+        // 创建查询向量
+        let queryVector = Vector(id: "query", values: queryEmbedding, metadata: [:])
+
+        // 在向量存储中搜索
+        let knowledgeStore = vectorStoreManager.getStore(name: "knowledge")
+        let searchResults = try await knowledgeStore.search(
+            query: queryVector,
+            topK: limit,
+            threshold: Float(threshold)
+        )
+
+        // 转换搜索结果
+        var results: [[String: Any]] = []
+
+        for searchResult in searchResults {
+            // 从数据库获取完整内容
+            let db = DatabaseManager.shared
+            let sql = "SELECT id, title, content, type FROM notes WHERE id = ?"
+
+            do {
+                let rows = try db.query(sql, parameters: [searchResult.id])
+                if let row = rows.first {
+                    results.append([
+                        "id": searchResult.id,
+                        "title": row["title"] ?? "",
+                        "content": String((row["content"] as? String ?? "").prefix(200)),
+                        "type": row["type"] ?? "note",
+                        "similarity": searchResult.score,
+                        "metadata": searchResult.metadata
+                    ])
+                }
+            } catch {
+                Logger.shared.warning("获取知识详情失败: \(error)")
+            }
+        }
+
+        return results
+    }
+
+    /// 生成文本嵌入向量
+    private func generateEmbedding(for text: String) async throws -> [Float] {
+        // 使用LLMManager生成嵌入
+        let embedding = try await MainActor.run {
+            try await LLMManager.shared.generateEmbedding(text)
+        }
+        return embedding
     }
 
     // MARK: - 问答
@@ -291,7 +360,7 @@ public class KnowledgeEngine: BaseAIEngine {
         问题：\(question)
 
         知识库内容：
-        \(context)
+        \(context.isEmpty ? "（暂无相关知识）" : context)
 
         要求：
         1. 基于提供的知识回答，不要编造信息
@@ -344,12 +413,36 @@ public class KnowledgeEngine: BaseAIEngine {
 
         let summary = try await autoGenerateSummary(content: content)
 
-        // TODO: 实际存储到数据库
-        // 1. 生成向量嵌入
-        // 2. 存储到SQLite
-        // 3. 存储向量到向量数据库
+        // 生成向量嵌入
+        let embedding = try await generateEmbedding(for: content)
 
         let knowledgeId = UUID().uuidString
+
+        // 存储到向量数据库
+        let vector = Vector(
+            id: knowledgeId,
+            values: embedding,
+            metadata: [
+                "title": title,
+                "type": type.rawValue,
+                "tags": generatedTags.joined(separator: ",")
+            ]
+        )
+
+        let knowledgeStore = vectorStoreManager.getStore(name: "knowledge")
+        try await knowledgeStore.insert(vector: vector)
+
+        // 存储到SQLite数据库
+        let db = DatabaseManager.shared
+        let sql = """
+            INSERT INTO notes (id, title, content, type, tags, summary, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        let now = Int(Date().timeIntervalSince1970 * 1000)
+        try db.execute(sql, parameters: [
+            knowledgeId, title, content, type.rawValue,
+            generatedTags.joined(separator: ","), summary, now, now
+        ])
 
         return [
             "id": knowledgeId,
@@ -369,21 +462,45 @@ public class KnowledgeEngine: BaseAIEngine {
         }
 
         var updates: [String: Any] = [:]
+        var updateClauses: [String] = []
+        var updateParams: [Any] = []
 
         if let content = parameters["content"] as? String {
             updates["content"] = content
+            updateClauses.append("content = ?")
+            updateParams.append(content)
+
             // 重新生成向量嵌入
+            let embedding = try await generateEmbedding(for: content)
+            let knowledgeStore = vectorStoreManager.getStore(name: "knowledge")
+
+            // 删除旧向量，插入新向量
+            try await knowledgeStore.delete(id: knowledgeId)
+            let vector = Vector(id: knowledgeId, values: embedding, metadata: [:])
+            try await knowledgeStore.insert(vector: vector)
         }
 
         if let title = parameters["title"] as? String {
             updates["title"] = title
+            updateClauses.append("title = ?")
+            updateParams.append(title)
         }
 
         if let tags = parameters["tags"] as? [String] {
             updates["tags"] = tags
+            updateClauses.append("tags = ?")
+            updateParams.append(tags.joined(separator: ","))
         }
 
-        // TODO: 更新数据库
+        // 更新数据库
+        if !updateClauses.isEmpty {
+            updateClauses.append("updated_at = ?")
+            updateParams.append(Int(Date().timeIntervalSince1970 * 1000))
+            updateParams.append(knowledgeId)
+
+            let sql = "UPDATE notes SET \(updateClauses.joined(separator: ", ")) WHERE id = ?"
+            try DatabaseManager.shared.execute(sql, parameters: updateParams)
+        }
 
         return [
             "id": knowledgeId,
@@ -399,7 +516,13 @@ public class KnowledgeEngine: BaseAIEngine {
             throw AIEngineError.invalidParameters("缺少id参数")
         }
 
-        // TODO: 从数据库和向量库删除
+        // 从向量库删除
+        let knowledgeStore = vectorStoreManager.getStore(name: "knowledge")
+        try await knowledgeStore.delete(id: knowledgeId)
+
+        // 从数据库删除
+        let sql = "DELETE FROM notes WHERE id = ?"
+        try DatabaseManager.shared.execute(sql, parameters: [knowledgeId])
 
         return [
             "id": knowledgeId,
@@ -432,7 +555,7 @@ public class KnowledgeEngine: BaseAIEngine {
         let prompt = """
         请为以下内容生成简洁的摘要（不超过\(maxLength)字）：
 
-        \(content.prefix(2000))
+        \(String(content.prefix(2000)))
 
         要求：
         1. 提炼核心内容
@@ -467,7 +590,7 @@ public class KnowledgeEngine: BaseAIEngine {
         let prompt = """
         请为以下内容生成\(maxTags)个关键标签：
 
-        \(content.prefix(1000))
+        \(String(content.prefix(1000)))
 
         要求：
         1. 标签简洁（2-4个字）
@@ -500,7 +623,7 @@ public class KnowledgeEngine: BaseAIEngine {
         let prompt = """
         请分析以下内容，提取其中的实体和关系：
 
-        \(content.prefix(2000))
+        \(String(content.prefix(2000)))
 
         请以JSON格式返回：
         {
@@ -536,24 +659,29 @@ public class KnowledgeEngine: BaseAIEngine {
 
         let limit = parameters["limit"] as? Int ?? 5
 
-        // TODO: 基于知识向量相似度推荐
-        // 1. 获取当前知识的向量
-        // 2. 在向量数据库中查找相似知识
-        // 3. 返回推荐列表
+        // 获取当前知识的内容
+        let db = DatabaseManager.shared
+        let sql = "SELECT content FROM notes WHERE id = ?"
+        let rows = try db.query(sql, parameters: [knowledgeId])
 
-        // 模拟推荐结果
-        let recommendations: [[String: Any]] = [
-            [
-                "id": "rec_1",
-                "title": "相关知识1",
-                "type": "note",
-                "similarity": 0.85
-            ]
-        ]
+        guard let content = rows.first?["content"] as? String else {
+            throw AIEngineError.executionFailed("知识不存在: \(knowledgeId)")
+        }
+
+        // 使用语义搜索推荐相关知识
+        let results = try await performSemanticSearch(
+            query: content,
+            limit: limit + 1,  // 多查一个，排除自己
+            types: nil,
+            threshold: 0.6
+        )
+
+        // 过滤掉自己
+        let recommendations = results.filter { ($0["id"] as? String) != knowledgeId }
 
         return [
-            "recommendations": recommendations,
-            "count": recommendations.count,
+            "recommendations": Array(recommendations.prefix(limit)),
+            "count": min(recommendations.count, limit),
             "baseKnowledgeId": knowledgeId
         ]
     }
@@ -583,15 +711,52 @@ public class KnowledgeEngine: BaseAIEngine {
         results: [[String: Any]],
         limit: Int
     ) async throws -> [[String: Any]] {
-        // TODO: 使用reranker模型重新排序
-        // 这里简化实现，按原有分数排序
+        // 使用LLM进行重排序
+        guard !results.isEmpty else { return [] }
 
-        let sorted = results.sorted { result1, result2 in
-            let score1 = result1["similarity"] as? Double ?? 0.0
-            let score2 = result2["similarity"] as? Double ?? 0.0
-            return score1 > score2
+        let documentsText = results.enumerated().map { index, result in
+            let title = result["title"] as? String ?? ""
+            let content = result["content"] as? String ?? ""
+            return "[\(index)] \(title): \(content)"
+        }.joined(separator: "\n")
+
+        let prompt = """
+        请对以下文档按与查询的相关性进行排序：
+
+        查询：\(query)
+
+        文档：
+        \(documentsText)
+
+        请只返回排序后的文档索引号，用逗号分隔（如：2,0,1,3）
+        """
+
+        let response = try await generateWithLLM(
+            prompt: prompt,
+            systemPrompt: "你是一个文档相关性排序专家。"
+        )
+
+        // 解析排序结果
+        let indices = response
+            .components(separatedBy: CharacterSet(charactersIn: ",，"))
+            .compactMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            .filter { $0 >= 0 && $0 < results.count }
+
+        // 按新顺序重排
+        var reranked: [[String: Any]] = []
+        for index in indices {
+            if reranked.count < limit {
+                reranked.append(results[index])
+            }
         }
 
-        return Array(sorted.prefix(limit))
+        // 添加未包含的结果
+        for (index, result) in results.enumerated() {
+            if !indices.contains(index) && reranked.count < limit {
+                reranked.append(result)
+            }
+        }
+
+        return reranked
     }
 }
