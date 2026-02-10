@@ -1,79 +1,49 @@
 # Known Test Issues
 
-**Date:** 2026-02-09
-**Status:** 📋 Partially Resolved
-**Priority:** P2 (Non-blocking)
+**Date:** 2026-02-10
+**Status:** ✅ All Resolved
+**Priority:** None (All issues fixed)
 
 ---
 
 ## Overview
 
-This document tracks pre-existing test issues that were identified during the unit test reorganization project but are **not caused by the reorganization**. These tests had issues before the file moves and continue to have the same issues after.
+This document tracks pre-existing test issues that were identified during the unit test reorganization project. All previously documented issues have been **resolved**.
 
-**Important:** The test reorganization project (file moves, path fixes, validation tool) is **100% complete and successful**. The issues listed here are separate, pre-existing problems that should be addressed independently.
+**Important:** The test reorganization project (file moves, path fixes, validation tool) is **100% complete and successful**. All test files are now passing.
 
 ---
 
-## Test Files with Issues
+## Test Files - All Resolved
 
-### 1. database-adapter.test.js
+### 1. database-adapter.test.js ✅ RESOLVED
 
 **Location:** `tests/unit/database/database-adapter.test.js`
 
-**Status:** Many tests passing, some skipped
+**Status:** ✅ All 68 tests passing (601ms)
 
-**Known Issues:**
+**Resolution Date:** 2026-02-10
 
-- Some tests timeout during execution
-- Multiple tests marked with `.skip` due to mocking issues
-- Mock strategy issues with CommonJS `require()` vs ES6 imports
+**Previous Issues (Now Fixed):**
 
-**Skipped Tests:**
+- Tests were skipped due to CommonJS `require()` vs ES6 `vi.mock()` incompatibility
+- 7 tests were marked with `.skip`
 
-```javascript
-it.skip("应该在原数据库不存在时返回false", () => {
-  // TODO: fs.existsSync mock doesn't work with CommonJS require()
-});
+**How It Was Fixed:**
 
-it.skip("应该在加密数据库已存在时返回false", () => {
-  // TODO: fs.existsSync mock doesn't work with CommonJS require()
-});
+- Runtime mock strategy: Mock `require('fs')` return object directly in tests
+- Dependency injection in source code: `this._createEncryptedDatabase = options.createEncryptedDatabase || createEncryptedDatabase`
+- Direct fs module patching within test cases for specific scenarios
 
-it.skip("应该创建SQLCipher数据库实例", async () => {
-  // TODO: SQLCipher wrapper mock not intercepting CommonJS require()
-});
+**Current State:**
 
-it.skip("应该加载现有的sql.js数据库", async () => {
-  // TODO: fs.readFileSync mock doesn't work with CommonJS require()
-});
-
-it.skip("应该保存sql.js数据库到文件", () => {
-  // TODO: fs mock doesn't work with CommonJS require()
-});
-
-it.skip("应该在目录不存在时创建目录", () => {
-  // TODO: fs mock doesn't work with CommonJS require()
-});
-
-it.skip("应该成功修改数据库密码", async () => {
-  // TODO: createEncryptedDatabase mock not working
-});
+```bash
+# Run verification:
+npx vitest run tests/unit/database/database-adapter.test.js
+# Result: 68 passed (601ms)
 ```
 
-**Root Cause:**
-
-- ES6 module mocking (`vi.mock`) doesn't intercept CommonJS `require()` calls in source code
-- Source code at `src/main/database/database-adapter.js` uses CommonJS `require()`
-- Test file uses ES6 `import` and `vi.mock()`
-
-**Possible Solutions:**
-
-1. Refactor source code to use ES6 modules
-2. Use alternative mocking strategy (proxyquire, mock-require)
-3. Test with actual dependencies in integration tests
-4. Improve Vitest configuration for mixed module systems
-
-**Impact:** Low - Core functionality works, tests are defensive
+**Impact:** None - DatabaseAdapter tests are now fully functional
 
 ---
 
@@ -125,42 +95,40 @@ npx vitest run tests/unit/ai-engine/tool-masking.test.js
 - Known issues: 2 files (same as before)
 - **New failures:** 0 ✅
 
-**Current Status (2026-02-09):**
+**Current Status (2026-02-10):**
 
-- Total test files: 244
-- Passing: 8,788+ tests
-- Known issues: 1 file (database-adapter only)
+- Total test files: 244+
+- Passing: 8,850+ tests
+- Known issues: 0 files ✅
+- **database-adapter.test.js:** ✅ RESOLVED (68 tests passing)
 - **tool-masking.test.js:** ✅ RESOLVED (54 tests passing)
 
-**Conclusion:** Reorganization did not introduce any new test failures. tool-masking tests are now fixed.
+**Conclusion:** All previously documented test issues have been resolved. Both database-adapter and tool-masking tests are now fully passing.
 
 ---
 
 ## Recommendations
 
-### Short-term (P2)
+### All Issues Resolved ✅
 
-1. **database-adapter.test.js**
-   - Priority: P2
-   - Effort: Medium (2-4 hours)
-   - Action: Refactor source code to ES6 modules or improve mock strategy
+No action items remaining. Both previously problematic test files are now passing:
 
-2. **tool-masking.test.js**
-   - Priority: P2
-   - Effort: Low (1-2 hours)
-   - Action: Debug and fix timeout issue
+1. **database-adapter.test.js** ✅ - 68 tests passing
+2. **tool-masking.test.js** ✅ - 54 tests passing
 
-### Long-term (P3)
+### Best Practices Learned
 
-1. **Module System Consistency**
-   - Standardize on ES6 modules across codebase
-   - Update Vitest configuration for better mixed-module support
-   - Document mocking best practices
+1. **Runtime Mock Strategy for CommonJS**
+   - When source code uses `require()`, mock the module at runtime within tests
+   - Use dependency injection patterns in source code for testability
 
-2. **Test Infrastructure**
-   - Add explicit timeouts to all tests
-   - Add test execution monitoring
-   - Create test categorization (unit, integration, e2e)
+2. **Test Isolation**
+   - Clear mocks between tests with `vi.clearAllMocks()`
+   - Reset mock implementations in `beforeEach` hooks
+
+3. **Mixed Module Systems**
+   - ES6 `vi.mock()` works for ES modules
+   - For CommonJS, patch modules at runtime or use dependency injection
 
 ---
 
@@ -288,21 +256,21 @@ This investigation is part of the unit test reorganization project:
 
 ## Resolution Status
 
-| File                     | Status        | Priority | Assigned | Due Date   |
-| ------------------------ | ------------- | -------- | -------- | ---------- |
-| database-adapter.test.js | 📋 Documented | P2       | TBD      | TBD        |
-| tool-masking.test.js     | ✅ Resolved   | -        | -        | 2026-02-09 |
+| File                     | Status      | Tests | Resolution Date |
+| ------------------------ | ----------- | ----- | --------------- |
+| database-adapter.test.js | ✅ Resolved | 68    | 2026-02-10      |
+| tool-masking.test.js     | ✅ Resolved | 54    | 2026-02-09      |
 
 ---
 
 ## Success Criteria for Resolution
 
-### database-adapter.test.js
+### database-adapter.test.js ✅ COMPLETED
 
-- [ ] All 7 skipped tests are enabled
-- [ ] All tests pass consistently
-- [ ] No more mock-related TODOs
-- [ ] Test execution time < 30 seconds
+- [x] All 68 tests passing (no skipped tests)
+- [x] All tests pass consistently
+- [x] No more mock-related TODOs
+- [x] Test execution time < 30 seconds (601ms achieved)
 
 ### tool-masking.test.js ✅ COMPLETED
 
@@ -313,32 +281,28 @@ This investigation is part of the unit test reorganization project:
 
 ---
 
-## Contact
+## Reference Files
 
-For questions or to work on these issues:
+For future reference, the resolved test files are:
 
-1. Review this document
-2. Check related files:
-   - `tests/unit/database/database-adapter.test.js`
-   - `tests/unit/ai-engine/tool-masking.test.js`
-   - `src/main/database/database-adapter.js`
-   - `src/main/ai-engine/tool-masking.js`
-3. Create a new branch for fixes
-4. Reference this document in PR
+- `tests/unit/database/database-adapter.test.js` (68 tests)
+- `tests/unit/ai-engine/tool-masking.test.js` (54 tests)
+- `src/main/database/database-adapter.js`
+- `src/main/ai-engine/tool-masking.js`
 
 ---
 
 ## Appendix: Test Execution Logs
 
-### Last Run: 2026-02-09
+### Last Run: 2026-02-10
 
 **Command:**
 
 ```bash
-npm run test:unit -- database/database-adapter.test.js
+npx vitest run tests/unit/database/database-adapter.test.js
 ```
 
-**Result:** Some tests pass, 7 tests skipped (CommonJS mocking issues)
+**Result:** ✅ 68 passed (601ms)
 
 **Command:**
 
@@ -351,8 +315,8 @@ npx vitest run tests/unit/ai-engine/tool-masking.test.js
 ---
 
 **Document Created:** 2026-01-25
-**Last Updated:** 2026-02-09
-**Status:** Partially Resolved
+**Last Updated:** 2026-02-10
+**Status:** ✅ All Resolved
 **Owner:** Development Team
 
-**Note:** tool-masking.test.js is now fully resolved. Only database-adapter.test.js has remaining issues (CommonJS mocking limitations).
+**Note:** All previously documented test issues have been resolved. Both database-adapter.test.js (68 tests) and tool-masking.test.js (54 tests) are now fully passing.
