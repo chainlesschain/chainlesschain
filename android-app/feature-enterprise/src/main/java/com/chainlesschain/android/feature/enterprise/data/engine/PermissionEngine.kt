@@ -329,6 +329,13 @@ class PermissionEngine @Inject constructor(
     }
 
     /**
+     * Invalidate permission cache for a user
+     */
+    fun invalidateCache(userId: String) {
+        permissionCache.invalidateUser(userId)
+    }
+
+    /**
      * Get user's effective permissions
      */
     suspend fun getEffectivePermissions(userId: String): Set<Permission> {
