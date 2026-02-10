@@ -269,6 +269,10 @@ fun NavGraphBuilder.p2pGraph(
                 onDeviceClick = { deviceId ->
                     // Navigate to device details or chat
                     navController.navigate("p2p_chat/$deviceId/Device")
+                },
+                onVerifyDevice = { deviceId ->
+                    // Navigate to safety numbers verification
+                    navController.navigate("safety_numbers/$deviceId")
                 }
             )
         }

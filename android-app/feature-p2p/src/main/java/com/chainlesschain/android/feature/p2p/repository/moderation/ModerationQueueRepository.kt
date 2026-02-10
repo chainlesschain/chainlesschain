@@ -471,7 +471,12 @@ class ModerationQueueRepository @Inject constructor(
             reviewedAt = reviewedAt,
             severity = aiResult.severity ?: ModerationSeverity.MEDIUM,
             suggestion = aiResult.suggestion,
-            aiAnalysis = aiResultJson
+            aiAnalysis = aiResultJson,
+            // 申诉相关字段
+            appealStatus = appealStatus,
+            appealText = appealText,
+            appealAt = appealAt,
+            appealResult = appealResult
         )
     }
 
@@ -562,7 +567,12 @@ data class ModerationQueueItem(
     val reviewedAt: Long?,
     val severity: ModerationSeverity = ModerationSeverity.MEDIUM,
     val suggestion: String? = null,
-    val aiAnalysis: String? = null
+    val aiAnalysis: String? = null,
+    // 申诉相关字段
+    val appealStatus: AppealStatus = AppealStatus.NONE,
+    val appealText: String? = null,
+    val appealAt: Long? = null,
+    val appealResult: String? = null
 ) {
     /** 获取等待时长（小时） */
     fun getWaitingHours(): Long {
@@ -593,7 +603,11 @@ data class ModerationQueueItem(
                 reviewedAt = null,
                 severity = ModerationSeverity.MEDIUM,
                 suggestion = null,
-                aiAnalysis = null
+                aiAnalysis = null,
+                appealStatus = AppealStatus.NONE,
+                appealText = null,
+                appealAt = null,
+                appealResult = null
             )
         }
     }
