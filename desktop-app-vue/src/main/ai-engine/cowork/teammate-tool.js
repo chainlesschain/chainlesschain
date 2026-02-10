@@ -997,7 +997,13 @@ class TeammateTool extends EventEmitter {
       metadata,
     };
 
-    // 保存检查点
+    // 保存检查点到团队
+    if (!team.checkpoints) {
+      team.checkpoints = [];
+    }
+    team.checkpoints.push(checkpoint);
+
+    // 保存检查点到文件
     const checkpointFile = path.join(
       this.options.dataDir,
       "checkpoints",
@@ -1334,7 +1340,7 @@ class TeammateTool extends EventEmitter {
       throw new Error(`团队不存在: ${teamId}`);
     }
 
-    // 终止所有代理
+    // 终止所有代理并从Map中删除
     for (const agent of team.agents) {
       await this.terminateAgent(agent.id, "团队被销毁");
       // 更新代理状态为removed
@@ -1350,6 +1356,8 @@ class TeammateTool extends EventEmitter {
           this._log(`更新代理状态失败: ${error.message}`, "error");
         }
       }
+      // 从代理Map中删除
+      this.agents.delete(agent.id);
     }
 
     // 设置为archived状态
@@ -1369,6 +1377,9 @@ class TeammateTool extends EventEmitter {
         this._log(`更新团队状态失败: ${error.message}`, "error");
       }
     }
+
+    // 从团队Map中删除
+    this.teams.delete(teamId);
 
     this._log(`团队已销毁: ${team.name}`);
     this.emit("team-destroyed", { teamId });
