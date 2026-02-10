@@ -1,7 +1,6 @@
 package com.chainlesschain.android.feature.ai.vector
 
 import org.junit.Assert.*
-import org.junit.Before
 import org.junit.Test
 
 /**
@@ -124,18 +123,18 @@ class VectorStoreTest {
 
     @Test
     fun `MinHeap Top-K搜索正确`() {
-        // Given
+        // Given - VectorEntry(id, namespace, content, embedding, metadata?)
         val entries = listOf(
-            VectorEntry("1", floatArrayOf(1f, 0f, 0f), "doc1", emptyMap()),
-            VectorEntry("2", floatArrayOf(0.9f, 0.1f, 0f), "doc2", emptyMap()),
-            VectorEntry("3", floatArrayOf(0.5f, 0.5f, 0f), "doc3", emptyMap()),
-            VectorEntry("4", floatArrayOf(0f, 1f, 0f), "doc4", emptyMap()),
-            VectorEntry("5", floatArrayOf(0.8f, 0.2f, 0f), "doc5", emptyMap())
+            VectorEntry("1", "ns", "doc1", floatArrayOf(1f, 0f, 0f)),
+            VectorEntry("2", "ns", "doc2", floatArrayOf(0.9f, 0.1f, 0f)),
+            VectorEntry("3", "ns", "doc3", floatArrayOf(0.5f, 0.5f, 0f)),
+            VectorEntry("4", "ns", "doc4", floatArrayOf(0f, 1f, 0f)),
+            VectorEntry("5", "ns", "doc5", floatArrayOf(0.8f, 0.2f, 0f))
         )
         val query = floatArrayOf(1f, 0f, 0f)
 
-        // When
-        val results = VectorSearch.searchTopK(entries, query, k = 3)
+        // When - searchTopK(query, candidates, k, threshold)
+        val results = VectorSearch.searchTopK(query, entries, k = 3)
 
         // Then
         assertEquals("应返回3个结果", 3, results.size)
@@ -148,13 +147,13 @@ class VectorStoreTest {
     fun `Top-K K大于条目数应返回所有`() {
         // Given
         val entries = listOf(
-            VectorEntry("1", floatArrayOf(1f, 0f), "doc1", emptyMap()),
-            VectorEntry("2", floatArrayOf(0f, 1f), "doc2", emptyMap())
+            VectorEntry("1", "ns", "doc1", floatArrayOf(1f, 0f)),
+            VectorEntry("2", "ns", "doc2", floatArrayOf(0f, 1f))
         )
         val query = floatArrayOf(1f, 0f)
 
         // When
-        val results = VectorSearch.searchTopK(entries, query, k = 10)
+        val results = VectorSearch.searchTopK(query, entries, k = 10)
 
         // Then
         assertEquals("应返回所有条目", 2, results.size)
@@ -167,7 +166,7 @@ class VectorStoreTest {
         val query = floatArrayOf(1f, 0f, 0f)
 
         // When
-        val results = VectorSearch.searchTopK(entries, query, k = 5)
+        val results = VectorSearch.searchTopK(query, entries, k = 5)
 
         // Then
         assertTrue("空列表应返回空结果", results.isEmpty())
@@ -177,14 +176,14 @@ class VectorStoreTest {
     fun `阈值过滤正确`() {
         // Given
         val entries = listOf(
-            VectorEntry("1", floatArrayOf(1f, 0f, 0f), "doc1", emptyMap()),
-            VectorEntry("2", floatArrayOf(0.5f, 0.5f, 0f), "doc2", emptyMap()),
-            VectorEntry("3", floatArrayOf(0f, 1f, 0f), "doc3", emptyMap())
+            VectorEntry("1", "ns", "doc1", floatArrayOf(1f, 0f, 0f)),
+            VectorEntry("2", "ns", "doc2", floatArrayOf(0.5f, 0.5f, 0f)),
+            VectorEntry("3", "ns", "doc3", floatArrayOf(0f, 1f, 0f))
         )
         val query = floatArrayOf(1f, 0f, 0f)
 
         // When - 只返回相似度>0.7的结果
-        val results = VectorSearch.searchTopK(entries, query, k = 10, threshold = 0.7f)
+        val results = VectorSearch.searchTopK(query, entries, k = 10, threshold = 0.7f)
 
         // Then
         assertTrue("所有结果相似度应>0.7", results.all { it.score > 0.7f })
@@ -194,14 +193,14 @@ class VectorStoreTest {
     fun `MMR多样性搜索正确`() {
         // Given - 两个相似向量和一个不同向量
         val entries = listOf(
-            VectorEntry("1", floatArrayOf(1f, 0f, 0f), "doc1", emptyMap()),
-            VectorEntry("2", floatArrayOf(0.99f, 0.01f, 0f), "doc2", emptyMap()), // 与1非常相似
-            VectorEntry("3", floatArrayOf(0f, 1f, 0f), "doc3", emptyMap()) // 与1正交
+            VectorEntry("1", "ns", "doc1", floatArrayOf(1f, 0f, 0f)),
+            VectorEntry("2", "ns", "doc2", floatArrayOf(0.99f, 0.01f, 0f)), // 与1非常相似
+            VectorEntry("3", "ns", "doc3", floatArrayOf(0f, 1f, 0f)) // 与1正交
         )
         val query = floatArrayOf(1f, 0f, 0f)
 
         // When - MMR应该选择多样性结果
-        val results = VectorSearch.searchMMR(entries, query, k = 2, lambda = 0.5f)
+        val results = VectorSearch.searchMMR(query, entries, k = 2, lambda = 0.5f)
 
         // Then
         assertEquals("应返回2个结果", 2, results.size)
@@ -212,38 +211,42 @@ class VectorStoreTest {
     // ===== VectorEntry Tests =====
 
     @Test
-    fun `VectorEntry序列化和反序列化正确`() {
+    fun `VectorEntry创建正确`() {
         // Given
-        val original = VectorEntry(
+        val entry = VectorEntry(
             id = "test-id",
-            embedding = floatArrayOf(0.1f, 0.2f, 0.3f),
+            namespace = "test-namespace",
             content = "Test content",
-            metadata = mapOf("key" to "value"),
-            namespace = "test-namespace"
+            embedding = floatArrayOf(0.1f, 0.2f, 0.3f),
+            metadata = VectorMetadata(tags = listOf("tag1", "tag2"))
         )
 
-        // When
-        val serialized = original.serializeEmbedding()
-        val deserialized = VectorEntry.deserializeEmbedding(serialized)
-
         // Then
-        assertArrayEquals("向量应相等", original.embedding, deserialized, 0.0001f)
+        assertEquals("ID应正确", "test-id", entry.id)
+        assertEquals("命名空间应正确", "test-namespace", entry.namespace)
+        assertEquals("内容应正确", "Test content", entry.content)
+        assertEquals("向量维度应正确", 3, entry.embedding.size)
+        assertEquals("标签数量应正确", 2, entry.metadata?.tags?.size)
     }
 
     @Test
-    fun `空向量序列化正确`() {
+    fun `VectorEntry相等性基于id和embedding`() {
         // Given
-        val entry = VectorEntry(
-            id = "empty",
-            embedding = floatArrayOf(),
-            content = "Empty embedding"
+        val entry1 = VectorEntry(
+            id = "test-id",
+            namespace = "ns1",
+            content = "content1",
+            embedding = floatArrayOf(1f, 2f, 3f)
+        )
+        val entry2 = VectorEntry(
+            id = "test-id",
+            namespace = "ns2",
+            content = "content2",
+            embedding = floatArrayOf(1f, 2f, 3f)
         )
 
-        // When
-        val serialized = entry.serializeEmbedding()
-
         // Then
-        assertEquals("空向量序列化应为空字节数组大小", 0, serialized.size)
+        assertEquals("相同id和embedding应相等", entry1, entry2)
     }
 
     // ===== Metadata Filter Tests =====
@@ -252,13 +255,16 @@ class VectorStoreTest {
     fun `元数据过滤正确`() {
         // Given
         val entries = listOf(
-            VectorEntry("1", floatArrayOf(1f, 0f), "doc1", mapOf("type" to "article")),
-            VectorEntry("2", floatArrayOf(0.9f, 0.1f), "doc2", mapOf("type" to "code")),
-            VectorEntry("3", floatArrayOf(0.8f, 0.2f), "doc3", mapOf("type" to "article"))
+            VectorEntry("1", "ns", "doc1", floatArrayOf(1f, 0f),
+                metadata = VectorMetadata(category = "article")),
+            VectorEntry("2", "ns", "doc2", floatArrayOf(0.9f, 0.1f),
+                metadata = VectorMetadata(category = "code")),
+            VectorEntry("3", "ns", "doc3", floatArrayOf(0.8f, 0.2f),
+                metadata = VectorMetadata(category = "article"))
         )
 
         // When
-        val filtered = entries.filter { it.metadata["type"] == "article" }
+        val filtered = entries.filter { it.metadata?.category == "article" }
 
         // Then
         assertEquals("应有2个article", 2, filtered.size)
@@ -273,13 +279,13 @@ class VectorStoreTest {
         val count = 1000
         val entries = List(count) { i ->
             val embedding = FloatArray(dimension) { kotlin.random.Random.nextFloat() }
-            VectorEntry("id-$i", embedding, "content-$i", emptyMap())
+            VectorEntry("id-$i", "ns", "content-$i", embedding)
         }
         val query = FloatArray(dimension) { kotlin.random.Random.nextFloat() }
 
         // When
         val startTime = System.nanoTime()
-        val results = VectorSearch.searchTopK(entries, query, k = 10)
+        val results = VectorSearch.searchTopK(query, entries, k = 10)
         val duration = (System.nanoTime() - startTime) / 1_000_000.0
 
         // Then
@@ -341,9 +347,9 @@ class VectorStoreTest {
     fun `命名空间隔离正确`() {
         // Given
         val entries = listOf(
-            VectorEntry("1", floatArrayOf(1f, 0f), "doc1", emptyMap(), "ns-a"),
-            VectorEntry("2", floatArrayOf(0.9f, 0.1f), "doc2", emptyMap(), "ns-b"),
-            VectorEntry("3", floatArrayOf(0.8f, 0.2f), "doc3", emptyMap(), "ns-a")
+            VectorEntry("1", "ns-a", "doc1", floatArrayOf(1f, 0f)),
+            VectorEntry("2", "ns-b", "doc2", floatArrayOf(0.9f, 0.1f)),
+            VectorEntry("3", "ns-a", "doc3", floatArrayOf(0.8f, 0.2f))
         )
 
         // When
@@ -351,5 +357,68 @@ class VectorStoreTest {
 
         // Then
         assertEquals("ns-a应有2个条目", 2, nsAEntries.size)
+    }
+
+    @Test
+    fun `按命名空间搜索正确`() {
+        // Given
+        val entries = listOf(
+            VectorEntry("1", "ns-a", "doc1", floatArrayOf(1f, 0f, 0f)),
+            VectorEntry("2", "ns-b", "doc2", floatArrayOf(0.9f, 0.1f, 0f)),
+            VectorEntry("3", "ns-a", "doc3", floatArrayOf(0.8f, 0.2f, 0f))
+        )
+        val query = floatArrayOf(1f, 0f, 0f)
+
+        // When
+        val results = VectorSearch.searchByNamespace(query, entries, "ns-a", k = 10)
+
+        // Then
+        assertEquals("应只返回ns-a的结果", 2, results.size)
+        assertTrue("所有结果应属于ns-a", results.all { it.entry.namespace == "ns-a" })
+    }
+
+    @Test
+    fun `批量搜索正确`() {
+        // Given
+        val entries = listOf(
+            VectorEntry("1", "ns", "doc1", floatArrayOf(1f, 0f, 0f)),
+            VectorEntry("2", "ns", "doc2", floatArrayOf(0f, 1f, 0f)),
+            VectorEntry("3", "ns", "doc3", floatArrayOf(0f, 0f, 1f))
+        )
+        val queries = listOf(
+            floatArrayOf(1f, 0f, 0f),
+            floatArrayOf(0f, 1f, 0f)
+        )
+
+        // When
+        val results = VectorSearch.batchSearch(queries, entries, k = 1)
+
+        // Then
+        assertEquals("应有2个查询结果", 2, results.size)
+        assertEquals("第一个查询应匹配doc1", "1", results[0]?.firstOrNull()?.entry?.id)
+        assertEquals("第二个查询应匹配doc2", "2", results[1]?.firstOrNull()?.entry?.id)
+    }
+
+    @Test
+    fun `相似度矩阵计算正确`() {
+        // Given
+        val setA = listOf(
+            floatArrayOf(1f, 0f),
+            floatArrayOf(0f, 1f)
+        )
+        val setB = listOf(
+            floatArrayOf(1f, 0f),
+            floatArrayOf(0f, 1f),
+            floatArrayOf(0.5f, 0.5f)
+        )
+
+        // When
+        val matrix = VectorSearch.similarityMatrix(setA, setB)
+
+        // Then
+        assertEquals("矩阵行数应正确", 2, matrix.size)
+        assertEquals("矩阵列数应正确", 3, matrix[0].size)
+        assertEquals("对角线元素应为1", 1.0f, matrix[0][0], 0.01f)
+        assertEquals("对角线元素应为1", 1.0f, matrix[1][1], 0.01f)
     }
 }

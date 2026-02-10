@@ -27,6 +27,46 @@ class AuditLogger @Inject constructor() {
     }
 
     /**
+     * Log an audit event with individual parameters
+     */
+    fun log(
+        action: AuditAction,
+        userId: String,
+        targetUserId: String? = null,
+        resourceType: String? = null,
+        resourceId: String? = null,
+        details: Map<String, Any> = emptyMap()
+    ) {
+        val event = AuditEvent(
+            action = action,
+            actorId = userId,
+            targetType = resourceType ?: targetUserId?.let { "user" },
+            targetId = resourceId ?: targetUserId,
+            details = details.mapValues { it.value.toString() }
+        )
+        auditLogs.value = listOf(event) + auditLogs.value.take(9999)
+        Timber.d("Audit: ${event.action} by ${event.actorId} on ${event.targetType}/${event.targetId}")
+    }
+
+    /**
+     * Get all audit logs (alias for getAllLogs)
+     */
+    fun getLogs(): Flow<List<AuditLog>> = auditLogs.map { events ->
+        events.map { event ->
+            AuditLog(
+                id = event.id,
+                action = event.action.name,
+                userId = event.actorId,
+                targetUserId = if (event.targetType == "user") event.targetId else null,
+                resourceType = event.targetType,
+                resourceId = event.targetId,
+                details = event.details,
+                timestamp = event.timestamp
+            )
+        }
+    }
+
+    /**
      * Get all audit logs
      */
     fun getAllLogs(): Flow<List<AuditEvent>> = auditLogs
