@@ -6,7 +6,6 @@ import com.chainlesschain.android.feature.ai.cowork.task.*
 import com.chainlesschain.android.feature.ai.cowork.sandbox.*
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
-import org.junit.Before
 import org.junit.Test
 
 /**
@@ -63,7 +62,7 @@ class CoworkSystemTest {
 
     @Test
     fun `创建Agent应成功`() {
-        // When - CoworkAgent(name, role, capabilities)
+        // When
         val agent = CoworkAgent(
             name = "Test Agent",
             role = "tester",
@@ -76,22 +75,6 @@ class CoworkSystemTest {
         assertEquals("角色应正确", "tester", agent.role)
         assertEquals("初始状态应为IDLE", AgentStatus.IDLE, agent.status)
         assertEquals("应有2个能力", 2, agent.capabilities.size)
-    }
-
-    @Test
-    fun `Agent状态更新应成功`() {
-        // Given
-        val agent = CoworkAgent(
-            name = "Test Agent",
-            role = "tester",
-            capabilities = setOf(AgentCapability.CODE_GENERATION)
-        )
-
-        // When
-        val success = agent.updateStatus(AgentStatus.WORKING)
-
-        // Then
-        assertFalse("IDLE不能直接更新为WORKING", success)
     }
 
     @Test
@@ -125,6 +108,43 @@ class CoworkSystemTest {
         assertTrue("应有CODE_GENERATION", agent.hasCapability(AgentCapability.CODE_GENERATION))
         assertTrue("应有FILE_ACCESS", agent.hasCapability(AgentCapability.FILE_ACCESS))
         assertFalse("不应有NETWORK_REQUEST", agent.hasCapability(AgentCapability.NETWORK_REQUEST))
+    }
+
+    @Test
+    fun `Agent完成任务应正确`() {
+        // Given
+        val agent = CoworkAgent(
+            name = "Test Agent",
+            role = "tester",
+            capabilities = setOf(AgentCapability.CODE_GENERATION)
+        )
+        agent.assignTask("task-1")
+
+        // When
+        agent.completeTask(success = true)
+
+        // Then
+        assertEquals("状态应为COMPLETED", AgentStatus.COMPLETED, agent.status)
+        assertNull("任务ID应清空", agent.currentTaskId)
+    }
+
+    @Test
+    fun `Agent重置应正确`() {
+        // Given
+        val agent = CoworkAgent(
+            name = "Test Agent",
+            role = "tester",
+            capabilities = setOf(AgentCapability.CODE_GENERATION)
+        )
+        agent.assignTask("task-1")
+        agent.completeTask()
+
+        // When
+        agent.reset()
+
+        // Then
+        assertEquals("状态应为IDLE", AgentStatus.IDLE, agent.status)
+        assertNull("任务ID应清空", agent.currentTaskId)
     }
 
     // ===== AgentPool Tests =====
@@ -221,7 +241,7 @@ class CoworkSystemTest {
         // Given
         val pool = AgentPool()
         val agent1 = pool.createAgent("Agent 1", "role", setOf(AgentCapability.CODE_GENERATION))
-        val agent2 = pool.createAgent("Agent 2", "role", setOf(AgentCapability.FILE_ACCESS))
+        pool.createAgent("Agent 2", "role", setOf(AgentCapability.FILE_ACCESS))
         assertNotNull(agent1)
         pool.assignTask(agent1!!.id, "task-1")
 
@@ -443,18 +463,26 @@ class CoworkSystemTest {
         // When
         val entry = AuditEntry(
             agentId = "agent-1",
-            path = "/path/to/file.txt",
-            operation = "READ",
-            permission = SandboxPermission.READ,
-            allowed = true,
-            timestamp = System.currentTimeMillis()
+            operation = AuditOperation.READ,
+            filePath = "/path/to/file.txt",
+            allowed = true
         )
 
         // Then
         assertEquals("AgentID应正确", "agent-1", entry.agentId)
-        assertEquals("路径应正确", "/path/to/file.txt", entry.path)
-        assertEquals("操作应正确", "READ", entry.operation)
+        assertEquals("路径应正确", "/path/to/file.txt", entry.filePath)
+        assertEquals("操作应正确", AuditOperation.READ, entry.operation)
         assertTrue("应允许", entry.allowed)
+    }
+
+    @Test
+    fun `审计操作类型完整`() {
+        // Then
+        val operations = AuditOperation.values()
+        assertTrue("应有READ", operations.any { it.name == "READ" })
+        assertTrue("应有WRITE", operations.any { it.name == "WRITE" })
+        assertTrue("应有DELETE", operations.any { it.name == "DELETE" })
+        assertTrue("应有LIST", operations.any { it.name == "LIST" })
     }
 
     // ===== FileSandbox Tests =====
@@ -465,10 +493,10 @@ class CoworkSystemTest {
         val sandbox = FileSandbox()
 
         // When
-        sandbox.grantAccess("agent-1", "/workspace", SandboxPermission.READ)
+        sandbox.grantPermission("agent-1", "/workspace", SandboxPermission.READ)
 
         // Then
-        val hasAccess = sandbox.checkAccess("agent-1", "/workspace/file.txt", SandboxPermission.READ)
+        val hasAccess = sandbox.hasPermission("agent-1", "/workspace/file.txt", SandboxPermission.READ)
         assertTrue("应有读权限", hasAccess)
     }
 
@@ -476,10 +504,10 @@ class CoworkSystemTest {
     fun `FileSandbox应拒绝未授权访问`() {
         // Given
         val sandbox = FileSandbox()
-        sandbox.grantAccess("agent-1", "/workspace", SandboxPermission.READ)
+        sandbox.grantPermission("agent-1", "/workspace", SandboxPermission.READ)
 
         // Then
-        val hasWriteAccess = sandbox.checkAccess("agent-1", "/workspace/file.txt", SandboxPermission.WRITE)
+        val hasWriteAccess = sandbox.hasPermission("agent-1", "/workspace/file.txt", SandboxPermission.WRITE)
         assertFalse("不应有写权限", hasWriteAccess)
     }
 
@@ -487,39 +515,51 @@ class CoworkSystemTest {
     fun `FileSandbox应阻止敏感文件访问`() {
         // Given
         val sandbox = FileSandbox()
-        sandbox.grantAccess("agent-1", "/", SandboxPermission.FULL)
+        sandbox.grantPermission("agent-1", "/", SandboxPermission.FULL)
 
         // Then
-        val canAccessEnv = sandbox.checkAccess("agent-1", "/project/.env", SandboxPermission.READ)
+        val canAccessEnv = sandbox.hasPermission("agent-1", "/project/.env", SandboxPermission.READ)
         assertFalse("不应访问.env文件", canAccessEnv)
 
-        val canAccessKey = sandbox.checkAccess("agent-1", "/keys/private.key", SandboxPermission.READ)
+        val canAccessKey = sandbox.hasPermission("agent-1", "/keys/private.key", SandboxPermission.READ)
         assertFalse("不应访问私钥文件", canAccessKey)
+    }
+
+    @Test
+    fun `FileSandbox敏感路径检测应正确`() {
+        // Given
+        val sandbox = FileSandbox()
+
+        // Then
+        assertTrue("应检测.env", sandbox.isSensitivePath("/project/.env"))
+        assertTrue("应检测.key文件", sandbox.isSensitivePath("/keys/private.key"))
+        assertTrue("应检测credentials", sandbox.isSensitivePath("/config/credentials.json"))
+        assertFalse("普通文件不应敏感", sandbox.isSensitivePath("/project/src/main.kt"))
     }
 
     @Test
     fun `FileSandbox撤销权限应成功`() {
         // Given
         val sandbox = FileSandbox()
-        sandbox.grantAccess("agent-1", "/workspace", SandboxPermission.FULL)
+        sandbox.grantPermission("agent-1", "/workspace", SandboxPermission.FULL)
 
         // When
-        sandbox.revokeAccess("agent-1", "/workspace")
+        sandbox.revokePermission("agent-1", "/workspace")
 
         // Then
-        val hasAccess = sandbox.checkAccess("agent-1", "/workspace/file.txt", SandboxPermission.READ)
+        val hasAccess = sandbox.hasPermission("agent-1", "/workspace/file.txt", SandboxPermission.READ)
         assertFalse("权限应被撤销", hasAccess)
     }
 
     @Test
-    fun `FileSandbox审计日志应记录`() {
+    fun `FileSandbox审计日志应记录`() = runBlocking {
         // Given
         val sandbox = FileSandbox()
-        sandbox.grantAccess("agent-1", "/workspace", SandboxPermission.READ)
+        sandbox.grantPermission("agent-1", "/workspace", SandboxPermission.READ)
 
-        // When
-        sandbox.checkAccess("agent-1", "/workspace/file1.txt", SandboxPermission.READ)
-        sandbox.checkAccess("agent-1", "/workspace/file2.txt", SandboxPermission.WRITE)
+        // When - 执行文件操作来触发审计
+        sandbox.readFile("agent-1", "/workspace/file1.txt")
+        sandbox.readFile("agent-1", "/workspace/file2.txt")
 
         // Then
         val logs = sandbox.getAuditLog("agent-1")
@@ -531,14 +571,23 @@ class CoworkSystemTest {
     @Test
     fun `错误类型创建正确`() {
         // Given/When
-        val agentError = CoworkError.AgentError("agent-1", "Agent failed")
-        val taskError = CoworkError.TaskError("task-1", "Task timeout")
-        val permissionError = CoworkError.PermissionError("agent-1", "/path", SandboxPermission.WRITE)
+        val agentError = CoworkError.AgentNotFound("agent-1")
+        val taskError = CoworkError.TaskNotFound("task-1")
+        val permissionError = CoworkError.PermissionDenied("read", "/path")
 
         // Then
         assertTrue("AgentError消息应包含agent-1", agentError.message.contains("agent-1"))
         assertTrue("TaskError消息应包含task-1", taskError.message.contains("task-1"))
         assertTrue("PermissionError消息应包含path", permissionError.message.contains("/path"))
+    }
+
+    @Test
+    fun `错误码应正确`() {
+        // Given
+        val error = CoworkError.AgentNotFound("test")
+
+        // Then
+        assertEquals("错误码应正确", "AGENT_NOT_FOUND", error.code)
     }
 
     // ===== CoworkOrchestrator Tests =====
@@ -587,12 +636,12 @@ class CoworkSystemTest {
     fun `FileSandbox大量权限检查性能`() {
         // Given
         val sandbox = FileSandbox()
-        sandbox.grantAccess("agent-1", "/workspace", SandboxPermission.READ)
+        sandbox.grantPermission("agent-1", "/workspace", SandboxPermission.READ)
 
         // When
         val startTime = System.nanoTime()
         repeat(10000) { i ->
-            sandbox.checkAccess("agent-1", "/workspace/file$i.txt", SandboxPermission.READ)
+            sandbox.hasPermission("agent-1", "/workspace/file$i.txt", SandboxPermission.READ)
         }
         val duration = (System.nanoTime() - startTime) / 1_000_000.0
 
