@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,14 +17,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrokenImage
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -31,14 +35,26 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.compose.AsyncImagePainter
+import coil.request.ImageRequest
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.ui.components.MarkdownText
+import com.chainlesschain.android.core.ui.image.ImagePreviewDialog
+import java.io.File
 
 /**
  * 文件预览对话框
@@ -47,16 +63,33 @@ import com.chainlesschain.android.core.ui.components.MarkdownText
  * - Markdown: 渲染预览
  * - 代码文件: 语法高亮
  * - 文本文件: 纯文本显示
- * - 图片: 图片显示 (TODO)
+ * - 图片: 图片显示（支持 jpg, jpeg, png, gif, webp, bmp, svg）
  * - 其他: 显示文件信息
+ *
+ * @param file 文件实体
+ * @param projectId 项目ID（用于构建图片完整路径）
+ * @param projectRootPath 项目根目录路径（可选，用于图片预览）
+ * @param onDismiss 关闭回调
+ * @param onEdit 编辑回调
  */
 @Composable
 fun FilePreviewDialog(
     file: ProjectFileEntity,
+    projectId: String? = null,
+    projectRootPath: String? = null,
     onDismiss: () -> Unit,
     onEdit: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    // 全屏图片预览状态
+    var showFullscreenImage by remember { mutableStateOf(false) }
+    val imagePath = remember(file, projectRootPath) {
+        if (projectRootPath != null && isImageFile(file.extension)) {
+            File(projectRootPath, file.path).absolutePath
+        } else {
+            null
+        }
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
@@ -107,6 +140,11 @@ fun FilePreviewDialog(
 
                 // Content preview
                 when {
+                    isImageFile(file.extension) && imagePath != null -> ImagePreview(
+                        imagePath = imagePath,
+                        fileName = file.name,
+                        onFullscreen = { showFullscreenImage = true }
+                    )
                     file.extension == "md" -> MarkdownPreview(content = file.content ?: "")
                     isCodeFile(file.extension) -> CodePreview(
                         content = file.content ?: "",
@@ -115,6 +153,7 @@ fun FilePreviewDialog(
                     file.extension in listOf("txt", "json", "xml", "yaml", "yml") -> TextPreview(
                         content = file.content ?: ""
                     )
+                    isImageFile(file.extension) && imagePath == null -> ImagePathMissingMessage()
                     file.content.isNullOrEmpty() -> EmptyContentMessage()
                     else -> UnsupportedPreviewMessage(extension = file.extension ?: "unknown")
                 }
@@ -146,6 +185,15 @@ fun FilePreviewDialog(
             }
         }
     )
+
+    // 全屏图片预览
+    if (showFullscreenImage && imagePath != null) {
+        ImagePreviewDialog(
+            images = listOf(imagePath),
+            initialIndex = 0,
+            onDismiss = { showFullscreenImage = false }
+        )
+    }
 }
 
 /**
@@ -366,7 +414,7 @@ private fun FileTypeIcon(file: ProjectFileEntity) {
     val (icon, color) = when {
         file.extension == "md" -> Icons.Default.Description to Color(0xFF2196F3)
         isCodeFile(file.extension) -> Icons.Default.Code to Color(0xFF4CAF50)
-        file.extension in listOf("jpg", "jpeg", "png", "gif", "webp") -> Icons.Default.Image to Color(0xFFF44336)
+        isImageFile(file.extension) -> Icons.Default.Image to Color(0xFFF44336)
         else -> Icons.Default.Description to MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -388,6 +436,162 @@ private fun isCodeFile(extension: String?): Boolean {
         "go", "rs", "rb", "php", "html", "css",
         "scss", "sass", "less", "vue", "dart"
     )
+}
+
+/**
+ * 判断是否为图片文件
+ */
+private fun isImageFile(extension: String?): Boolean {
+    return extension?.lowercase() in listOf(
+        "jpg", "jpeg", "png", "gif", "webp", "bmp", "svg"
+    )
+}
+
+/**
+ * 图片预览
+ */
+@Composable
+private fun ImagePreview(
+    imagePath: String,
+    fileName: String,
+    onFullscreen: () -> Unit
+) {
+    val context = LocalContext.current
+    var loadState by remember { mutableStateOf<AsyncImagePainter.State?>(null) }
+
+    Column {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Image,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = "图片预览",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            )
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(File(imagePath))
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = fileName,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit,
+                    onState = { state -> loadState = state }
+                )
+
+                // 加载状态
+                when (loadState) {
+                    is AsyncImagePainter.State.Loading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    is AsyncImagePainter.State.Error -> {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.BrokenImage,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Text(
+                                text = "图片加载失败",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                    else -> {}
+                }
+            }
+
+            // 全屏按钮
+            if (loadState is AsyncImagePainter.State.Success) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onFullscreen) {
+                        Icon(
+                            imageVector = Icons.Default.ZoomIn,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.size(4.dp))
+                        Text("全屏查看")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 图片路径缺失消息
+ */
+@Composable
+private fun ImagePathMissingMessage() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Image,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+            Text(
+                text = "无法预览图片",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = "需要项目路径信息才能加载图片",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+        }
+    }
 }
 
 /**

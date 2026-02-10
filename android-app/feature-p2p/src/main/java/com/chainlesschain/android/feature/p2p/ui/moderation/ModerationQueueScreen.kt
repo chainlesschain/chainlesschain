@@ -316,8 +316,13 @@ private fun ModerationQueueItemCard(
                 )
             }
 
-            // 申诉信息 - Temporarily disabled
-            // TODO: Add appeal support back when needed
+            // 申诉信息
+            if (item.appealText != null && item.appealAt != null) {
+                AppealSection(
+                    appealText = item.appealText,
+                    appealAt = item.appealAt
+                )
+            }
 
             Divider()
 

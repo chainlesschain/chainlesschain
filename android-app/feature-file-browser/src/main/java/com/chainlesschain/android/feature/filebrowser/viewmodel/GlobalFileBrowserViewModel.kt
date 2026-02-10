@@ -93,8 +93,9 @@ class GlobalFileBrowserViewModel @Inject constructor(
     private val _isClassifying = MutableStateFlow(false)
     val isClassifying: StateFlow<Boolean> = _isClassifying.asStateFlow()
 
-    // TODO: Project import functionality moved to UI layer to avoid circular dependency
-    // Available projects for import should be provided by the UI layer
+    // Project import: Projects are provided by the UI/Navigation layer via the
+    // availableProjects parameter in GlobalFileBrowserScreen to avoid circular dependency
+    // with feature-project module. See NavGraph.kt for implementation.
 
     private var loadFilesJob: Job? = null
 
@@ -406,10 +407,10 @@ class GlobalFileBrowserViewModel @Inject constructor(
     /**
      * Load available projects for file import
      *
-     * TODO: This functionality has been moved to the UI layer to avoid circular dependencies.
-     * The UI should fetch projects directly and provide them when calling importFile.
+     * NOTE: This functionality is handled by the Navigation layer (NavGraph.kt).
+     * Projects are fetched via ProjectViewModel and passed to GlobalFileBrowserScreen
+     * as the availableProjects parameter, avoiding circular dependency with feature-project module.
      */
-    // Removed to avoid circular dependency with feature-project module
 
     /**
      * Clear file cache from database

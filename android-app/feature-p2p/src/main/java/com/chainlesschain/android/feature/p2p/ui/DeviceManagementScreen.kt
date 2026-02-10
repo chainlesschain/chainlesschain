@@ -27,6 +27,7 @@ import java.util.*
 fun DeviceManagementScreen(
     onBack: () -> Unit,
     onDeviceClick: (String) -> Unit,
+    onVerifyDevice: (String) -> Unit = {},
     viewModel: P2PDeviceViewModel = hiltViewModel()
 ) {
     val connectedDevices by viewModel.connectedDevices.collectAsState()
@@ -149,7 +150,8 @@ fun DeviceManagementScreen(
                                 DeviceCard(
                                     device = device,
                                     onClick = { onDeviceClick(device.deviceId) },
-                                    onDisconnect = { showDisconnectDialog = device }
+                                    onDisconnect = { showDisconnectDialog = device },
+                                    onVerify = { onVerifyDevice(device.deviceId) }
                                 )
                             }
                         }
@@ -328,7 +330,8 @@ fun DeviceStatisticsCard(
 fun DeviceCard(
     device: DeviceWithSession,
     onClick: () -> Unit,
-    onDisconnect: () -> Unit
+    onDisconnect: () -> Unit,
+    onVerify: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -454,7 +457,7 @@ fun DeviceCard(
                             text = { Text("验证设备") },
                             onClick = {
                                 showMenu = false
-                                // TODO: Navigate to verification
+                                onVerify()
                             },
                             leadingIcon = {
                                 Icon(Icons.Default.Security, contentDescription = null)

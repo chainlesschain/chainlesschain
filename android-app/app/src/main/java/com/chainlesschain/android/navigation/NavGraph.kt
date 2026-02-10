@@ -59,6 +59,8 @@ import com.chainlesschain.android.remote.ui.history.CommandHistoryScreen
 import com.chainlesschain.android.remote.ui.system.RemoteScreenshotScreen
 import com.chainlesschain.android.remote.ui.system.SystemMonitorScreen
 import com.chainlesschain.android.feature.filebrowser.ui.SafeFileBrowserScreen
+import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
+import com.chainlesschain.android.feature.project.model.ProjectListState
 import com.chainlesschain.android.feature.p2p.ui.ChatSessionListScreen
 import com.chainlesschain.android.feature.p2p.ui.P2PChatScreen
 import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
@@ -249,9 +251,19 @@ fun NavGraph(
         }
 
         composable(Screen.FileBrowser.route) {
+            // Get projects from ProjectViewModel to avoid circular dependency
+            val projectViewModel: ProjectViewModel = hiltViewModel()
+            val projectListState by projectViewModel.projectListState.collectAsState()
+
+            // Extract project entities from the state
+            val availableProjects = when (val state = projectListState) {
+                is ProjectListState.Success -> state.projects.map { it.project }
+                else -> emptyList()
+            }
+
             SafeFileBrowserScreen(
                 projectId = null,
-                availableProjects = emptyList(),
+                availableProjects = availableProjects,
                 onNavigateBack = { navController.popBackStack() },
                 onFileImported = { fileId ->
                     android.widget.Toast.makeText(
