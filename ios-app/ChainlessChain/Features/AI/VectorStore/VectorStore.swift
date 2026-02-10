@@ -140,6 +140,30 @@ public class InMemoryVectorStore: VectorStore {
             }
         }
     }
+
+    // MARK: - Serialization Support
+
+    /// 获取所有向量用于序列化
+    public func getAllVectors() async -> [Vector] {
+        return await withCheckedContinuation { continuation in
+            queue.async {
+                continuation.resume(returning: Array(self.vectors.values))
+            }
+        }
+    }
+
+    /// 从向量数组加载数据
+    public func loadVectors(_ vectors: [Vector]) async {
+        await withCheckedContinuation { continuation in
+            queue.async(flags: .barrier) {
+                self.vectors.removeAll()
+                for vector in vectors {
+                    self.vectors[vector.id] = vector
+                }
+                continuation.resume()
+            }
+        }
+    }
 }
 
 /// 持久化向量存储（基于文件）
@@ -184,13 +208,42 @@ public class PersistentVectorStore: VectorStore {
 
     // MARK: - 持久化
 
+    /// 保存向量数据到磁盘
     private func saveToDisk() async throws {
-        // TODO: 实现向量数据的持久化
-        // 可以使用JSON、SQLite或自定义二进制格式
+        let vectors = await storage.getAllVectors()
+
+        // 使用JSON格式序列化
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted
+
+        let data = try encoder.encode(vectors)
+
+        // 确保目录存在
+        let directory = fileURL.deletingLastPathComponent()
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        // 写入文件
+        try data.write(to: fileURL, options: .atomic)
     }
 
+    /// 从磁盘加载向量数据
     private func loadFromDisk() {
-        // TODO: 从磁盘加载向量数据
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            return
+        }
+
+        do {
+            let data = try Data(contentsOf: fileURL)
+            let decoder = JSONDecoder()
+            let vectors = try decoder.decode([Vector].self, from: data)
+
+            // 同步加载到内存存储
+            Task {
+                await storage.loadVectors(vectors)
+            }
+        } catch {
+            print("[PersistentVectorStore] 加载向量数据失败: \(error)")
+        }
     }
 }
 
