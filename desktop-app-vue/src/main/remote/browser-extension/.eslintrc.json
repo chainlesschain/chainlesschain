@@ -1,0 +1,13 @@
+{
+  "env": {
+    "browser": true,
+    "webextensions": true,
+    "es2021": true
+  },
+  "globals": {
+    "chrome": "readonly"
+  },
+  "rules": {
+    "no-unused-vars": "off"
+  }
+}

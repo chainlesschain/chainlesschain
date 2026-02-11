@@ -3,12 +3,15 @@
 import android.content.Context
 import com.chainlesschain.android.remote.crypto.AndroidDIDKeyStore
 import com.chainlesschain.android.remote.crypto.DIDKeyStore
+import com.chainlesschain.android.remote.crypto.NonceManager
 import com.chainlesschain.android.remote.data.CommandHistoryDao
 import com.chainlesschain.android.remote.data.CommandHistoryDatabase
 import com.chainlesschain.android.remote.data.FileTransferDao
+import com.chainlesschain.android.remote.p2p.DeviceActivityManager
 import com.chainlesschain.android.remote.p2p.DIDManager
 import com.chainlesschain.android.remote.p2p.DIDManagerImpl
 import com.chainlesschain.android.remote.webrtc.SignalClient
+import com.chainlesschain.android.remote.webrtc.WebRTCClient
 import com.chainlesschain.android.remote.webrtc.WebSocketSignalClient
 import dagger.Binds
 import dagger.Module
@@ -52,5 +55,21 @@ abstract class RemoteModule {
         fun provideFileTransferDao(
             database: CommandHistoryDatabase
         ): FileTransferDao = database.fileTransferDao()
+
+        @Provides
+        @Singleton
+        fun provideNonceManager(
+            @ApplicationContext context: Context
+        ): NonceManager = NonceManager(context).apply {
+            initialize()
+        }
+
+        @Provides
+        @Singleton
+        fun provideDeviceActivityManager(
+            webRTCClient: WebRTCClient
+        ): DeviceActivityManager = DeviceActivityManager(webRTCClient).apply {
+            initialize()
+        }
     }
 }

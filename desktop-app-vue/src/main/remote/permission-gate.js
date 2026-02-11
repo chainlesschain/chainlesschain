@@ -156,6 +156,108 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "network.resolve": PERMISSION_LEVELS.NORMAL,
   "network.getSpeed": PERMISSION_LEVELS.NORMAL,
   "network.traceroute": PERMISSION_LEVELS.ADMIN,
+  // 存储信息
+  "storage.getDisks": PERMISSION_LEVELS.PUBLIC,
+  "storage.getUsage": PERMISSION_LEVELS.PUBLIC,
+  "storage.getPartitions": PERMISSION_LEVELS.PUBLIC,
+  "storage.getDriveHealth": PERMISSION_LEVELS.PUBLIC,
+  "storage.getStats": PERMISSION_LEVELS.NORMAL,
+  "storage.getFolderSize": PERMISSION_LEVELS.NORMAL,
+  "storage.getLargeFiles": PERMISSION_LEVELS.NORMAL,
+  "storage.getRecentFiles": PERMISSION_LEVELS.NORMAL,
+  "storage.cleanup": PERMISSION_LEVELS.ADMIN,
+  "storage.emptyTrash": PERMISSION_LEVELS.ADMIN,
+
+  // 显示器信息
+  "display.getDisplays": PERMISSION_LEVELS.PUBLIC,
+  "display.getPrimary": PERMISSION_LEVELS.PUBLIC,
+  "display.getResolution": PERMISSION_LEVELS.PUBLIC,
+  "display.getBrightness": PERMISSION_LEVELS.PUBLIC,
+  "display.getScaling": PERMISSION_LEVELS.PUBLIC,
+  "display.getRefreshRate": PERMISSION_LEVELS.PUBLIC,
+  "display.getColorDepth": PERMISSION_LEVELS.PUBLIC,
+  "display.getCursorPosition": PERMISSION_LEVELS.NORMAL,
+  "display.screenshot": PERMISSION_LEVELS.NORMAL,
+  "display.getWindowList": PERMISSION_LEVELS.NORMAL,
+  "display.setBrightness": PERMISSION_LEVELS.ADMIN,
+
+  // 用户浏览器控制 (通过 CDP)
+  "userBrowser.findBrowsers": PERMISSION_LEVELS.PUBLIC,
+  "userBrowser.getStatus": PERMISSION_LEVELS.PUBLIC,
+  "userBrowser.connect": PERMISSION_LEVELS.ADMIN,
+  "userBrowser.disconnect": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.listTabs": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.getActiveTab": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.createTab": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.closeTab": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.focusTab": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.navigate": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.goBack": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.goForward": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.refresh": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.executeScript": PERMISSION_LEVELS.ADMIN,
+  "userBrowser.getPageContent": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.screenshot": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.getBookmarks": PERMISSION_LEVELS.NORMAL,
+  "userBrowser.getHistory": PERMISSION_LEVELS.NORMAL,
+
+  // 浏览器扩展控制
+  "extension.getStatus": PERMISSION_LEVELS.PUBLIC,
+  "extension.getClients": PERMISSION_LEVELS.NORMAL,
+  "extension.listTabs": PERMISSION_LEVELS.NORMAL,
+  "extension.createTab": PERMISSION_LEVELS.NORMAL,
+  "extension.closeTab": PERMISSION_LEVELS.NORMAL,
+  "extension.focusTab": PERMISSION_LEVELS.NORMAL,
+  "extension.navigate": PERMISSION_LEVELS.NORMAL,
+  "extension.reload": PERMISSION_LEVELS.NORMAL,
+  "extension.goBack": PERMISSION_LEVELS.NORMAL,
+  "extension.goForward": PERMISSION_LEVELS.NORMAL,
+  "extension.getPageContent": PERMISSION_LEVELS.NORMAL,
+  "extension.executeScript": PERMISSION_LEVELS.ADMIN,
+  "extension.screenshot": PERMISSION_LEVELS.NORMAL,
+  "extension.getBookmarks": PERMISSION_LEVELS.NORMAL,
+  "extension.searchBookmarks": PERMISSION_LEVELS.NORMAL,
+  "extension.createBookmark": PERMISSION_LEVELS.ADMIN,
+  "extension.removeBookmark": PERMISSION_LEVELS.ADMIN,
+  "extension.getHistory": PERMISSION_LEVELS.NORMAL,
+  "extension.deleteHistory": PERMISSION_LEVELS.ADMIN,
+  "extension.readClipboard": PERMISSION_LEVELS.NORMAL,
+  "extension.writeClipboard": PERMISSION_LEVELS.NORMAL,
+  "extension.showNotification": PERMISSION_LEVELS.NORMAL,
+
+  // 输入控制
+  "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
+  "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,
+  "input.sendKeyPress": PERMISSION_LEVELS.NORMAL,
+  "input.sendKeyCombo": PERMISSION_LEVELS.NORMAL,
+  "input.typeText": PERMISSION_LEVELS.NORMAL,
+  "input.mouseMove": PERMISSION_LEVELS.NORMAL,
+  "input.mouseClick": PERMISSION_LEVELS.NORMAL,
+  "input.mouseDoubleClick": PERMISSION_LEVELS.NORMAL,
+  "input.mouseScroll": PERMISSION_LEVELS.NORMAL,
+  "input.mouseDrag": PERMISSION_LEVELS.ADMIN,
+
+  // 应用程序管理
+  "app.listInstalled": PERMISSION_LEVELS.PUBLIC,
+  "app.listRunning": PERMISSION_LEVELS.PUBLIC,
+  "app.getInfo": PERMISSION_LEVELS.PUBLIC,
+  "app.search": PERMISSION_LEVELS.PUBLIC,
+  "app.getRecent": PERMISSION_LEVELS.PUBLIC,
+  "app.launch": PERMISSION_LEVELS.NORMAL,
+  "app.focus": PERMISSION_LEVELS.NORMAL,
+  "app.close": PERMISSION_LEVELS.ADMIN,
+
+  // 系统信息
+  "sysinfo.getCPU": PERMISSION_LEVELS.PUBLIC,
+  "sysinfo.getMemory": PERMISSION_LEVELS.PUBLIC,
+  "sysinfo.getBattery": PERMISSION_LEVELS.PUBLIC,
+  "sysinfo.getTemperature": PERMISSION_LEVELS.PUBLIC,
+  "sysinfo.getUptime": PERMISSION_LEVELS.PUBLIC,
+  "sysinfo.getOS": PERMISSION_LEVELS.PUBLIC,
+  "sysinfo.getHardware": PERMISSION_LEVELS.PUBLIC,
+  "sysinfo.getPerformance": PERMISSION_LEVELS.PUBLIC,
+  "sysinfo.getServices": PERMISSION_LEVELS.NORMAL,
+  "sysinfo.getLogs": PERMISSION_LEVELS.ADMIN,
 };
 
 /**
@@ -176,6 +278,12 @@ class PermissionGate {
       enableNonceCheck: options.enableNonceCheck !== false,
       nonceExpiry: options.nonceExpiry || 600000, // Nonce 有效期：10 分钟
       requireUKeyForLevel4: options.requireUKeyForLevel4 !== false,
+      // 设备自动撤销配置
+      enableAutoRevoke: options.enableAutoRevoke !== false,
+      inactivityThreshold:
+        options.inactivityThreshold || 7 * 24 * 60 * 60 * 1000, // 7 天无活动
+      autoRevokeCheckInterval:
+        options.autoRevokeCheckInterval || 60 * 60 * 1000, // 每小时检查
       ...options,
     };
 
@@ -193,6 +301,9 @@ class PermissionGate {
 
     // 定期清理定时器
     this.cleanupTimer = null;
+
+    // 自动撤销检查定时器
+    this.autoRevokeTimer = null;
   }
 
   /**
@@ -210,6 +321,11 @@ class PermissionGate {
 
       // 3. 启动定期清理
       this.startCleanup();
+
+      // 4. 启动设备自动撤销检查
+      if (this.options.enableAutoRevoke) {
+        this.startAutoRevokeCheck();
+      }
 
       logger.info("[PermissionGate] ✅ 初始化完成");
     } catch (error) {
@@ -245,6 +361,35 @@ class PermissionGate {
         timestamp INTEGER NOT NULL,
         metadata TEXT
       )
+    `);
+
+    // Nonce 持久化存储表（防止应用重启后的重放攻击）
+    this.database.exec(`
+      CREATE TABLE IF NOT EXISTS used_nonces (
+        nonce_key TEXT PRIMARY KEY,
+        did TEXT NOT NULL,
+        timestamp INTEGER NOT NULL
+      )
+    `);
+
+    // 创建索引以加速过期 Nonce 清理
+    this.database.exec(`
+      CREATE INDEX IF NOT EXISTS idx_used_nonces_timestamp ON used_nonces(timestamp)
+    `);
+
+    // 添加 last_activity 列（如果不存在）
+    try {
+      this.database.exec(`
+        ALTER TABLE device_permissions ADD COLUMN last_activity INTEGER
+      `);
+      logger.info("[PermissionGate] 已添加 last_activity 列");
+    } catch (e) {
+      // 列已存在，忽略错误
+    }
+
+    // 创建索引以加速设备活动检查
+    this.database.exec(`
+      CREATE INDEX IF NOT EXISTS idx_device_permissions_activity ON device_permissions(last_activity)
     `);
 
     logger.info("[PermissionGate] 数据库表已就绪");
@@ -290,6 +435,8 @@ class PermissionGate {
       // 3. 验证 Nonce（防重放攻击）- 使用 DID:Nonce 组合防止跨设备攻击
       if (this.options.enableNonceCheck) {
         const nonceKey = `${auth.did}:${auth.nonce}`;
+
+        // 先检查内存缓存（快速路径）
         if (this.nonceCache.has(nonceKey)) {
           logger.warn(
             `[PermissionGate] 验证失败: Nonce 已使用 (DID: ${auth.did.substring(0, 20)}...)`,
@@ -297,8 +444,38 @@ class PermissionGate {
           await this.logAudit(auth.did, method, 0, false, "Nonce reused");
           return false;
         }
-        // 记录 DID:Nonce 组合
+
+        // 再检查持久化存储（防止应用重启后的重放攻击）
+        const existingNonce = this.database
+          .prepare("SELECT nonce_key FROM used_nonces WHERE nonce_key = ?")
+          .get(nonceKey);
+
+        if (existingNonce) {
+          logger.warn(
+            `[PermissionGate] 验证失败: Nonce 已使用 (持久化, DID: ${auth.did.substring(0, 20)}...)`,
+          );
+          await this.logAudit(
+            auth.did,
+            method,
+            0,
+            false,
+            "Nonce reused (persistent)",
+          );
+          return false;
+        }
+
+        // 记录 DID:Nonce 组合到内存和数据库
         this.nonceCache.set(nonceKey, now);
+        try {
+          this.database
+            .prepare(
+              "INSERT INTO used_nonces (nonce_key, did, timestamp) VALUES (?, ?, ?)",
+            )
+            .run(nonceKey, auth.did, now);
+        } catch (dbError) {
+          logger.error("[PermissionGate] 保存 Nonce 到数据库失败:", dbError);
+          // 继续处理，内存缓存仍然有效
+        }
       }
 
       // 4. 验证 DID 签名
@@ -372,7 +549,10 @@ class PermissionGate {
         }
       }
 
-      // 10. 验证成功
+      // 10. 更新设备最后活动时间
+      this.updateDeviceActivity(auth.did);
+
+      // 11. 验证成功
       const duration = Date.now() - startTime;
       logger.info(
         `[PermissionGate] ✅ 验证成功: ${method} by ${auth.did} (${duration}ms)`,
@@ -716,13 +896,25 @@ class PermissionGate {
   cleanup() {
     const now = Date.now();
 
-    // 清理过期 Nonce
+    // 清理内存中的过期 Nonce
     let expiredNonces = 0;
     for (const [nonce, timestamp] of this.nonceCache.entries()) {
       if (now - timestamp > this.options.nonceExpiry) {
         this.nonceCache.delete(nonce);
         expiredNonces++;
       }
+    }
+
+    // 清理数据库中的过期 Nonce（持久化存储）
+    let dbExpiredNonces = 0;
+    try {
+      const expiryTime = now - this.options.nonceExpiry;
+      const result = this.database
+        .prepare("DELETE FROM used_nonces WHERE timestamp < ?")
+        .run(expiryTime);
+      dbExpiredNonces = result.changes || 0;
+    } catch (error) {
+      logger.error("[PermissionGate] 清理数据库 Nonce 失败:", error);
     }
 
     // 清理频率限制缓存
@@ -735,9 +927,9 @@ class PermissionGate {
       }
     }
 
-    if (expiredNonces > 0 || cleanedRateLimits > 0) {
+    if (expiredNonces > 0 || dbExpiredNonces > 0 || cleanedRateLimits > 0) {
       logger.debug(
-        `[PermissionGate] 清理: ${expiredNonces} nonces, ${cleanedRateLimits} rate limits`,
+        `[PermissionGate] 清理: ${expiredNonces} memory nonces, ${dbExpiredNonces} db nonces, ${cleanedRateLimits} rate limits`,
       );
     }
   }
@@ -754,15 +946,203 @@ class PermissionGate {
   }
 
   /**
+   * 更新设备最后活动时间
+   */
+  updateDeviceActivity(did) {
+    try {
+      const now = Date.now();
+      this.database
+        .prepare(
+          "UPDATE device_permissions SET last_activity = ? WHERE did = ?",
+        )
+        .run(now, did);
+    } catch (error) {
+      logger.error("[PermissionGate] 更新设备活动时间失败:", error);
+    }
+  }
+
+  /**
+   * 启动设备自动撤销检查
+   */
+  startAutoRevokeCheck() {
+    if (this.autoRevokeTimer) {
+      return;
+    }
+
+    // 立即执行一次检查
+    this.checkInactiveDevices();
+
+    // 定期检查
+    this.autoRevokeTimer = setInterval(() => {
+      this.checkInactiveDevices();
+    }, this.options.autoRevokeCheckInterval);
+
+    logger.info(
+      `[PermissionGate] 设备自动撤销检查已启动 (间隔: ${this.options.autoRevokeCheckInterval / 1000}s, 阈值: ${this.options.inactivityThreshold / (24 * 60 * 60 * 1000)}天)`,
+    );
+  }
+
+  /**
+   * 检查并降级不活跃设备
+   */
+  checkInactiveDevices() {
+    try {
+      const now = Date.now();
+      const threshold = now - this.options.inactivityThreshold;
+
+      // 查找需要降级的设备（权限 > PUBLIC 且超过阈值未活动）
+      const inactiveDevices = this.database
+        .prepare(
+          `
+          SELECT did, permission_level, device_name, last_activity
+          FROM device_permissions
+          WHERE permission_level > ?
+            AND (last_activity IS NULL OR last_activity < ?)
+        `,
+        )
+        .all(PERMISSION_LEVELS.PUBLIC, threshold);
+
+      if (inactiveDevices.length === 0) {
+        return;
+      }
+
+      logger.info(
+        `[PermissionGate] 发现 ${inactiveDevices.length} 个不活跃设备，正在降级...`,
+      );
+
+      for (const device of inactiveDevices) {
+        const inactiveDays = device.last_activity
+          ? Math.floor((now - device.last_activity) / (24 * 60 * 60 * 1000))
+          : "未知";
+
+        logger.warn(
+          `[PermissionGate] 设备自动降级: ${device.did.substring(0, 30)}... ` +
+            `(原权限: ${device.permission_level}, 不活跃: ${inactiveDays}天)`,
+        );
+
+        // 降级到 PUBLIC
+        this.database
+          .prepare(
+            "UPDATE device_permissions SET permission_level = ?, notes = ? WHERE did = ?",
+          )
+          .run(
+            PERMISSION_LEVELS.PUBLIC,
+            `Auto-revoked: inactive for ${inactiveDays} days (was level ${device.permission_level})`,
+            device.did,
+          );
+
+        // 更新缓存
+        this.devicePermissions.set(device.did, PERMISSION_LEVELS.PUBLIC);
+
+        // 记录审计日志
+        this.logAudit(
+          device.did,
+          "device.autoRevoke",
+          PERMISSION_LEVELS.PUBLIC,
+          true,
+          `Auto-revoked due to ${inactiveDays} days inactivity`,
+        );
+      }
+
+      logger.info(
+        `[PermissionGate] 已降级 ${inactiveDevices.length} 个不活跃设备到 PUBLIC 权限`,
+      );
+    } catch (error) {
+      logger.error("[PermissionGate] 检查不活跃设备失败:", error);
+    }
+  }
+
+  /**
+   * 停止设备自动撤销检查
+   */
+  stopAutoRevokeCheck() {
+    if (this.autoRevokeTimer) {
+      clearInterval(this.autoRevokeTimer);
+      this.autoRevokeTimer = null;
+      logger.info("[PermissionGate] 设备自动撤销检查已停止");
+    }
+  }
+
+  /**
    * 获取统计信息
    */
   getStats() {
+    // 获取数据库中的 Nonce 数量
+    let dbNonceCount = 0;
+    try {
+      const result = this.database
+        .prepare("SELECT COUNT(*) as count FROM used_nonces")
+        .get();
+      dbNonceCount = result?.count || 0;
+    } catch (e) {
+      // 忽略
+    }
+
     return {
       devicePermissions: this.devicePermissions.size,
       nonceCache: this.nonceCache.size,
+      nonceCacheDb: dbNonceCount,
       rateLimitCache: this.rateLimitCache.size,
       registeredCommands: Object.keys(this.commandPermissions).length,
+      autoRevokeEnabled: this.options.enableAutoRevoke,
+      inactivityThresholdDays:
+        this.options.inactivityThreshold / (24 * 60 * 60 * 1000),
     };
+  }
+
+  /**
+   * 获取不活跃设备列表
+   */
+  getInactiveDevices(days = 7) {
+    try {
+      const threshold = Date.now() - days * 24 * 60 * 60 * 1000;
+      return this.database
+        .prepare(
+          `
+          SELECT did, permission_level, device_name, last_activity, granted_at
+          FROM device_permissions
+          WHERE last_activity IS NULL OR last_activity < ?
+          ORDER BY last_activity ASC
+        `,
+        )
+        .all(threshold);
+    } catch (error) {
+      logger.error("[PermissionGate] 获取不活跃设备失败:", error);
+      return [];
+    }
+  }
+
+  /**
+   * 手动撤销设备权限
+   */
+  async revokeDevice(did, reason = "Manual revocation") {
+    try {
+      // 删除设备权限
+      this.database
+        .prepare("DELETE FROM device_permissions WHERE did = ?")
+        .run(did);
+
+      // 清除缓存
+      this.devicePermissions.delete(did);
+
+      // 记录审计日志
+      await this.logAudit(did, "device.revoke", 0, true, reason);
+
+      logger.info(`[PermissionGate] 设备已撤销: ${did} (${reason})`);
+      return { success: true };
+    } catch (error) {
+      logger.error("[PermissionGate] 撤销设备失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 停止所有定时器
+   */
+  shutdown() {
+    this.stopCleanup();
+    this.stopAutoRevokeCheck();
+    logger.info("[PermissionGate] 已关闭");
   }
 }
 

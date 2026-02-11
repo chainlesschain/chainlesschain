@@ -1,12 +1,15 @@
 package com.chainlesschain.android.remote.p2p
 
 import com.chainlesschain.android.remote.data.AuthInfo
+import com.chainlesschain.android.remote.data.CommandCancelRequest
 import com.chainlesschain.android.remote.data.CommandResponse
+import com.chainlesschain.android.remote.data.ErrorCodes
 import com.chainlesschain.android.remote.data.EventNotification
 import com.chainlesschain.android.remote.data.MessageTypes
 import com.chainlesschain.android.remote.data.P2PMessage
 import com.chainlesschain.android.remote.data.fromJson
 import com.chainlesschain.android.remote.data.toJsonString
+import com.chainlesschain.android.remote.crypto.NonceManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.lang.reflect.Type
@@ -35,7 +38,9 @@ import kotlin.random.Random
 @Singleton
 class P2PClient @Inject constructor(
     private val didManager: DIDManager,
-    private val webRTCClient: WebRTCClient
+    private val webRTCClient: WebRTCClient,
+    private val nonceManager: NonceManager,  // Nonce 持久化管理
+    private val deviceActivityManager: DeviceActivityManager  // 设备活动跟踪
 ) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
@@ -116,6 +121,10 @@ class P2PClient @Inject constructor(
 
             // Reset reconnection state on successful connect
             resetReconnectionState()
+
+            // 通知活动管理器连接成功
+            deviceActivityManager.setConnected(true)
+            deviceActivityManager.recordActivity("connected")
 
             startHeartbeat()
             startHeartbeatTimeoutMonitor()
@@ -294,6 +303,9 @@ class P2PClient @Inject constructor(
             return@withContext Result.failure(Exception("Not connected"))
         }
         try {
+            // 记录活动（命令执行）
+            deviceActivityManager.recordActivity("command_executed")
+
             val response = sendCommandInternal(method, params, timeout)
 
             if (response.isError()) {
@@ -403,6 +415,10 @@ class P2PClient @Inject constructor(
         cancelReconnect()
         stopHeartbeat()
         stopHeartbeatTimeoutMonitor()
+
+        // 通知活动管理器断开连接
+        deviceActivityManager.setConnected(false)
+
         webRTCClient.disconnect()
         pendingRequests.forEach { (_, pending) ->
             pending.deferred.completeExceptionally(Exception("Connection closed"))
@@ -445,6 +461,11 @@ class P2PClient @Inject constructor(
                     val response = message.payload.fromJson<CommandResponse>()
                     pendingRequests[response.id]?.deferred?.complete(response)
                 }
+                MessageTypes.COMMAND_CANCEL -> {
+                    // 处理来自 PC 端的取消请求
+                    val cancelRequest = message.payload.fromJson<CommandCancelRequest>()
+                    handleCommandCancel(cancelRequest)
+                }
                 MessageTypes.EVENT_NOTIFICATION -> {
                     val event = message.payload.fromJson<EventNotification>()
                     _events.emit(event)
@@ -461,10 +482,77 @@ class P2PClient @Inject constructor(
         }
     }
 
+    /**
+     * 处理来自 PC 端的命令取消请求
+     */
+    private fun handleCommandCancel(cancelRequest: CommandCancelRequest) {
+        Timber.i("[P2PClient] 收到取消请求: ${cancelRequest.id} (${cancelRequest.reason ?: "no reason"})")
+
+        val pending = pendingRequests[cancelRequest.id]
+        if (pending != null) {
+            // 取消待处理请求
+            pending.deferred.completeExceptionally(
+                CommandCancelledException(cancelRequest.reason ?: "Cancelled by server")
+            )
+            pendingRequests.remove(cancelRequest.id)
+            Timber.i("[P2PClient] 命令已取消: ${cancelRequest.id}")
+        } else {
+            Timber.w("[P2PClient] 取消请求的命令不存在或已完成: ${cancelRequest.id}")
+        }
+    }
+
+    /**
+     * 取消正在执行的命令（发送取消请求到 PC 端）
+     */
+    suspend fun cancelCommand(commandId: String, reason: String = "Cancelled by client"): Result<Unit> {
+        return try {
+            Timber.d("[P2PClient] 取消命令: $commandId")
+
+            val cancelRequest = CommandCancelRequest(
+                id = commandId,
+                reason = reason
+            )
+
+            val message = P2PMessage(
+                type = MessageTypes.COMMAND_CANCEL,
+                payload = cancelRequest.toJsonString()
+            )
+
+            webRTCClient.sendMessage(message.toJsonString())
+
+            // 同时取消本地等待
+            val pending = pendingRequests.remove(commandId)
+            pending?.deferred?.completeExceptionally(
+                CommandCancelledException(reason)
+            )
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "[P2PClient] 取消命令失败: $commandId")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * 获取当前待处理的命令列表
+     */
+    fun getPendingCommands(): List<PendingCommandInfo> {
+        val now = System.currentTimeMillis()
+        return pendingRequests.values.map { pending ->
+            PendingCommandInfo(
+                requestId = pending.requestId,
+                method = pending.method,
+                timestamp = pending.timestamp,
+                elapsedMs = now - pending.timestamp
+            )
+        }
+    }
+
     private suspend fun createAuth(method: String): AuthInfo {
         val timestamp = System.currentTimeMillis()
-        val nonce = Random.nextInt(100000, 999999).toString()
         val did = didManager.getCurrentDID()
+        // 使用 NonceManager 生成持久化的 Nonce（防重放攻击）
+        val nonce = nonceManager.generateNonce(did)
         val signature = didManager.sign("$method:$timestamp:$nonce")
         return AuthInfo(
             did = did,
@@ -575,3 +663,20 @@ sealed class ReconnectionEvent {
         val lastReceivedMs: Long
     ) : ReconnectionEvent()
 }
+
+/**
+ * 命令被取消异常
+ */
+class CommandCancelledException(
+    message: String
+) : Exception("Command cancelled: $message")
+
+/**
+ * 待处理命令信息（用于 UI 显示）
+ */
+data class PendingCommandInfo(
+    val requestId: String,
+    val method: String,
+    val timestamp: Long,
+    val elapsedMs: Long
+)
