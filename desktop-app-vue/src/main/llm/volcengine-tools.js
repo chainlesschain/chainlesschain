@@ -32,7 +32,7 @@ class VolcengineToolsClient {
     this.apiKey = config.apiKey;
     this.baseURL = config.baseURL || "https://ark.cn-beijing.volces.com/api/v3";
     this.model = config.model || "doubao-seed-1.6";
-    this.timeout = config.timeout || 120000; // 2分钟超时
+    this.timeout = config.timeout || 300000; // 5分钟超时
     this.modelSelector = getModelSelector();
   }
 
