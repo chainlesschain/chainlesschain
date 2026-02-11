@@ -1542,6 +1542,671 @@ async function clearBrowsingData(params) {
   return { success: true, cleared: Object.keys(dataToRemove) };
 }
 
+// ==================== Network Interception ====================
+
+// Network request storage per tab
+const networkRequests = new Map();
+const networkInterceptionEnabled = new Map();
+const requestBlockingPatterns = [];
+const mockResponses = new Map();
+
+async function enableNetworkInterception(tabId, _patterns = []) {
+  try {
+    await chrome.debugger.attach({ tabId }, "1.3");
+    await chrome.debugger.sendCommand({ tabId }, "Network.enable");
+
+    networkInterceptionEnabled.set(tabId, true);
+    networkRequests.set(tabId, []);
+
+    // Listen for network events
+    chrome.debugger.onEvent.addListener((source, method, params) => {
+      if (source.tabId !== tabId) {
+        return;
+      }
+
+      const requests = networkRequests.get(tabId) || [];
+
+      if (method === "Network.requestWillBeSent") {
+        requests.push({
+          id: params.requestId,
+          url: params.request.url,
+          method: params.request.method,
+          headers: params.request.headers,
+          timestamp: params.timestamp,
+          type: params.type,
+        });
+        networkRequests.set(tabId, requests.slice(-500)); // Keep last 500
+      }
+
+      if (method === "Network.responseReceived") {
+        const req = requests.find((r) => r.id === params.requestId);
+        if (req) {
+          req.status = params.response.status;
+          req.statusText = params.response.statusText;
+          req.responseHeaders = params.response.headers;
+          req.mimeType = params.response.mimeType;
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function disableNetworkInterception(tabId) {
+  try {
+    if (networkInterceptionEnabled.get(tabId)) {
+      await chrome.debugger.sendCommand({ tabId }, "Network.disable");
+      await chrome.debugger.detach({ tabId });
+      networkInterceptionEnabled.delete(tabId);
+    }
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setRequestBlocking(patterns) {
+  requestBlockingPatterns.length = 0;
+  requestBlockingPatterns.push(...patterns);
+
+  // Update declarativeNetRequest rules
+  const rules = patterns.map((pattern, index) => ({
+    id: index + 1,
+    priority: 1,
+    action: { type: "block" },
+    condition: { urlFilter: pattern, resourceTypes: ["main_frame", "sub_frame", "script", "stylesheet", "image", "xmlhttprequest"] },
+  }));
+
+  try {
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: Array.from({ length: 100 }, (_, i) => i + 1),
+      addRules: rules,
+    });
+    return { success: true, blockedPatterns: patterns };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearRequestBlocking() {
+  requestBlockingPatterns.length = 0;
+  try {
+    await chrome.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: Array.from({ length: 100 }, (_, i) => i + 1),
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getNetworkRequests(tabId) {
+  return { requests: networkRequests.get(tabId) || [] };
+}
+
+async function mockNetworkResponse(tabId, urlPattern, response) {
+  mockResponses.set(urlPattern, response);
+
+  try {
+    await chrome.debugger.attach({ tabId }, "1.3");
+    await chrome.debugger.sendCommand({ tabId }, "Fetch.enable", {
+      patterns: [{ urlPattern }],
+    });
+
+    chrome.debugger.onEvent.addListener(async (source, method, params) => {
+      if (source.tabId !== tabId || method !== "Fetch.requestPaused") {
+        return;
+      }
+
+      const mockResp = mockResponses.get(urlPattern);
+      if (mockResp && params.request.url.includes(urlPattern)) {
+        await chrome.debugger.sendCommand({ tabId }, "Fetch.fulfillRequest", {
+          requestId: params.requestId,
+          responseCode: mockResp.status || 200,
+          responseHeaders: Object.entries(mockResp.headers || {}).map(([name, value]) => ({ name, value })),
+          body: btoa(JSON.stringify(mockResp.body || {})),
+        });
+      } else {
+        await chrome.debugger.sendCommand({ tabId }, "Fetch.continueRequest", {
+          requestId: params.requestId,
+        });
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Console Capture ====================
+
+const consoleCaptures = new Map();
+
+async function enableConsoleCapture(tabId) {
+  try {
+    await chrome.debugger.attach({ tabId }, "1.3");
+    await chrome.debugger.sendCommand({ tabId }, "Runtime.enable");
+    await chrome.debugger.sendCommand({ tabId }, "Log.enable");
+
+    consoleCaptures.set(tabId, []);
+
+    chrome.debugger.onEvent.addListener((source, method, params) => {
+      if (source.tabId !== tabId) {
+        return;
+      }
+
+      const logs = consoleCaptures.get(tabId) || [];
+
+      if (method === "Runtime.consoleAPICalled") {
+        logs.push({
+          type: params.type,
+          args: params.args.map((arg) => arg.value || arg.description || arg.type),
+          timestamp: params.timestamp,
+          stackTrace: params.stackTrace,
+        });
+        consoleCaptures.set(tabId, logs.slice(-1000)); // Keep last 1000
+      }
+
+      if (method === "Log.entryAdded") {
+        logs.push({
+          type: params.entry.level,
+          text: params.entry.text,
+          url: params.entry.url,
+          lineNumber: params.entry.lineNumber,
+          timestamp: params.entry.timestamp,
+        });
+        consoleCaptures.set(tabId, logs.slice(-1000));
+      }
+
+      if (method === "Runtime.exceptionThrown") {
+        logs.push({
+          type: "error",
+          text: params.exceptionDetails.text,
+          exception: params.exceptionDetails.exception,
+          lineNumber: params.exceptionDetails.lineNumber,
+          columnNumber: params.exceptionDetails.columnNumber,
+          url: params.exceptionDetails.url,
+          timestamp: params.timestamp,
+        });
+        consoleCaptures.set(tabId, logs.slice(-1000));
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function disableConsoleCapture(tabId) {
+  try {
+    await chrome.debugger.sendCommand({ tabId }, "Runtime.disable");
+    await chrome.debugger.sendCommand({ tabId }, "Log.disable");
+    await chrome.debugger.detach({ tabId });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearConsoleLogs(tabId) {
+  consoleCaptures.set(tabId, []);
+  return { success: true };
+}
+
+// ==================== IndexedDB ====================
+
+async function getIndexedDBDatabases(tabId) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async () => {
+      try {
+        const databases = await indexedDB.databases();
+        return { databases: databases.map((db) => ({ name: db.name, version: db.version })) };
+      } catch (error) {
+        return { error: error.message };
+      }
+    },
+  });
+  return results[0]?.result || { error: "Script execution failed" };
+}
+
+async function getIndexedDBData(tabId, dbName, storeName, query = {}) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async (db, store, q) => {
+      return new Promise((resolve) => {
+        const request = indexedDB.open(db);
+
+        request.onerror = () => resolve({ error: request.error?.message });
+
+        request.onsuccess = () => {
+          const database = request.result;
+          try {
+            const tx = database.transaction(store, "readonly");
+            const objectStore = tx.objectStore(store);
+
+            let dataRequest;
+            if (q.key) {
+              dataRequest = objectStore.get(q.key);
+            } else if (q.range) {
+              const range = IDBKeyRange.bound(q.range.lower, q.range.upper);
+              dataRequest = objectStore.getAll(range, q.limit || 100);
+            } else {
+              dataRequest = objectStore.getAll(null, q.limit || 100);
+            }
+
+            dataRequest.onsuccess = () => {
+              database.close();
+              resolve({ data: dataRequest.result });
+            };
+
+            dataRequest.onerror = () => {
+              database.close();
+              resolve({ error: dataRequest.error?.message });
+            };
+          } catch (error) {
+            database.close();
+            resolve({ error: error.message });
+          }
+        };
+      });
+    },
+    args: [dbName, storeName, query],
+  });
+  return results[0]?.result || { error: "Script execution failed" };
+}
+
+async function setIndexedDBData(tabId, dbName, storeName, key, value) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async (db, store, k, v) => {
+      return new Promise((resolve) => {
+        const request = indexedDB.open(db);
+
+        request.onerror = () => resolve({ error: request.error?.message });
+
+        request.onsuccess = () => {
+          const database = request.result;
+          try {
+            const tx = database.transaction(store, "readwrite");
+            const objectStore = tx.objectStore(store);
+
+            const putRequest = objectStore.put(v, k);
+
+            putRequest.onsuccess = () => {
+              database.close();
+              resolve({ success: true });
+            };
+
+            putRequest.onerror = () => {
+              database.close();
+              resolve({ error: putRequest.error?.message });
+            };
+          } catch (error) {
+            database.close();
+            resolve({ error: error.message });
+          }
+        };
+      });
+    },
+    args: [dbName, storeName, key, value],
+  });
+  return results[0]?.result || { error: "Script execution failed" };
+}
+
+async function deleteIndexedDBData(tabId, dbName, storeName, key) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async (db, store, k) => {
+      return new Promise((resolve) => {
+        const request = indexedDB.open(db);
+
+        request.onerror = () => resolve({ error: request.error?.message });
+
+        request.onsuccess = () => {
+          const database = request.result;
+          try {
+            const tx = database.transaction(store, "readwrite");
+            const objectStore = tx.objectStore(store);
+
+            const deleteRequest = objectStore.delete(k);
+
+            deleteRequest.onsuccess = () => {
+              database.close();
+              resolve({ success: true });
+            };
+
+            deleteRequest.onerror = () => {
+              database.close();
+              resolve({ error: deleteRequest.error?.message });
+            };
+          } catch (error) {
+            database.close();
+            resolve({ error: error.message });
+          }
+        };
+      });
+    },
+    args: [dbName, storeName, key],
+  });
+  return results[0]?.result || { error: "Script execution failed" };
+}
+
+async function clearIndexedDBStore(tabId, dbName, storeName) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: async (db, store) => {
+      return new Promise((resolve) => {
+        const request = indexedDB.open(db);
+
+        request.onerror = () => resolve({ error: request.error?.message });
+
+        request.onsuccess = () => {
+          const database = request.result;
+          try {
+            const tx = database.transaction(store, "readwrite");
+            const objectStore = tx.objectStore(store);
+
+            const clearRequest = objectStore.clear();
+
+            clearRequest.onsuccess = () => {
+              database.close();
+              resolve({ success: true });
+            };
+
+            clearRequest.onerror = () => {
+              database.close();
+              resolve({ error: clearRequest.error?.message });
+            };
+          } catch (error) {
+            database.close();
+            resolve({ error: error.message });
+          }
+        };
+      });
+    },
+    args: [dbName, storeName],
+  });
+  return results[0]?.result || { error: "Script execution failed" };
+}
+
+// ==================== Performance ====================
+
+async function getPerformanceMetrics(tabId) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => {
+      const perf = performance;
+      const timing = perf.timing;
+      const navigation = perf.getEntriesByType("navigation")[0];
+
+      return {
+        // Navigation timing
+        dnsLookup: timing.domainLookupEnd - timing.domainLookupStart,
+        tcpConnection: timing.connectEnd - timing.connectStart,
+        serverResponse: timing.responseStart - timing.requestStart,
+        domContentLoaded: timing.domContentLoadedEventEnd - timing.navigationStart,
+        pageLoad: timing.loadEventEnd - timing.navigationStart,
+        domInteractive: timing.domInteractive - timing.navigationStart,
+
+        // Navigation entry
+        transferSize: navigation?.transferSize,
+        encodedBodySize: navigation?.encodedBodySize,
+        decodedBodySize: navigation?.decodedBodySize,
+
+        // Memory (if available)
+        memory: perf.memory
+          ? {
+              usedJSHeapSize: perf.memory.usedJSHeapSize,
+              totalJSHeapSize: perf.memory.totalJSHeapSize,
+              jsHeapSizeLimit: perf.memory.jsHeapSizeLimit,
+            }
+          : null,
+
+        // Resource counts
+        resourceCount: perf.getEntriesByType("resource").length,
+      };
+    },
+  });
+  return results[0]?.result || { error: "Script execution failed" };
+}
+
+async function getPerformanceEntries(tabId, type) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (entryType) => {
+      const entries = entryType
+        ? performance.getEntriesByType(entryType)
+        : performance.getEntries();
+
+      return {
+        entries: entries.slice(-100).map((entry) => ({
+          name: entry.name,
+          entryType: entry.entryType,
+          startTime: entry.startTime,
+          duration: entry.duration,
+          transferSize: entry.transferSize,
+          initiatorType: entry.initiatorType,
+        })),
+      };
+    },
+    args: [type],
+  });
+  return results[0]?.result || { error: "Script execution failed" };
+}
+
+const performanceTraces = new Map();
+
+async function startPerformanceTrace(tabId) {
+  try {
+    await chrome.debugger.attach({ tabId }, "1.3");
+    await chrome.debugger.sendCommand({ tabId }, "Tracing.start", {
+      categories: "devtools.timeline,v8.execute,disabled-by-default-devtools.timeline",
+      options: "sampling-frequency=10000",
+    });
+
+    performanceTraces.set(tabId, { startTime: Date.now(), events: [] });
+
+    chrome.debugger.onEvent.addListener((source, method, params) => {
+      if (source.tabId !== tabId || method !== "Tracing.dataCollected") {
+        return;
+      }
+
+      const trace = performanceTraces.get(tabId);
+      if (trace) {
+        trace.events.push(...params.value);
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function stopPerformanceTrace(tabId) {
+  try {
+    await chrome.debugger.sendCommand({ tabId }, "Tracing.end");
+
+    const trace = performanceTraces.get(tabId);
+    performanceTraces.delete(tabId);
+
+    await chrome.debugger.detach({ tabId });
+
+    return {
+      success: true,
+      duration: Date.now() - (trace?.startTime || 0),
+      eventCount: trace?.events?.length || 0,
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== CSS Injection ====================
+
+const injectedStyles = new Map();
+
+async function injectCSS(tabId, css, options = {}) {
+  try {
+    const cssId = `chainlesschain-css-${Date.now()}`;
+
+    await chrome.scripting.insertCSS({
+      target: { tabId },
+      css: css,
+      origin: options.origin || "USER",
+    });
+
+    const tabStyles = injectedStyles.get(tabId) || [];
+    tabStyles.push({ id: cssId, css });
+    injectedStyles.set(tabId, tabStyles);
+
+    return { success: true, cssId };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function removeInjectedCSS(tabId, cssId) {
+  try {
+    const tabStyles = injectedStyles.get(tabId) || [];
+    const style = tabStyles.find((s) => s.id === cssId);
+
+    if (style) {
+      await chrome.scripting.removeCSS({
+        target: { tabId },
+        css: style.css,
+      });
+
+      injectedStyles.set(
+        tabId,
+        tabStyles.filter((s) => s.id !== cssId),
+      );
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Accessibility ====================
+
+async function getAccessibilityTree(tabId, selector) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (sel) => {
+      const element = sel ? document.querySelector(sel) : document.body;
+      if (!element) {
+        return { error: `Element not found: ${sel}` };
+      }
+
+      function getAccessibilityInfo(el, depth = 0) {
+        if (depth > 5) {
+          return null;
+        } // Limit depth
+
+        const computedRole = el.getAttribute("role") || el.tagName.toLowerCase();
+        const ariaLabel = el.getAttribute("aria-label");
+        const ariaDescribedBy = el.getAttribute("aria-describedby");
+        const ariaLabelledBy = el.getAttribute("aria-labelledby");
+
+        const info = {
+          tagName: el.tagName,
+          role: computedRole,
+          name: ariaLabel || el.textContent?.substring(0, 50) || "",
+          ariaLabel,
+          ariaDescribedBy,
+          ariaLabelledBy,
+          ariaHidden: el.getAttribute("aria-hidden"),
+          tabIndex: el.tabIndex,
+          focusable: el.tabIndex >= 0 || ["A", "BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(el.tagName),
+          children: [],
+        };
+
+        for (const child of el.children) {
+          const childInfo = getAccessibilityInfo(child, depth + 1);
+          if (childInfo) {
+            info.children.push(childInfo);
+          }
+        }
+
+        return info;
+      }
+
+      return { tree: getAccessibilityInfo(element) };
+    },
+    args: [selector],
+  });
+  return results[0]?.result || { error: "Script execution failed" };
+}
+
+async function getElementRole(tabId, selector) {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: (sel) => {
+      const element = document.querySelector(sel);
+      if (!element) {
+        return { error: `Element not found: ${sel}` };
+      }
+
+      return {
+        role: element.getAttribute("role") || element.tagName.toLowerCase(),
+        ariaLabel: element.getAttribute("aria-label"),
+        ariaDescribedBy: element.getAttribute("aria-describedby"),
+        ariaLive: element.getAttribute("aria-live"),
+        ariaExpanded: element.getAttribute("aria-expanded"),
+        ariaSelected: element.getAttribute("aria-selected"),
+        ariaChecked: element.getAttribute("aria-checked"),
+        ariaDisabled: element.getAttribute("aria-disabled"),
+        tabIndex: element.tabIndex,
+      };
+    },
+    args: [selector],
+  });
+  return results[0]?.result || { error: "Script execution failed" };
+}
+
+// ==================== Frame Management ====================
+
+async function listFrames(tabId) {
+  try {
+    const frames = await chrome.webNavigation.getAllFrames({ tabId });
+    return {
+      frames: frames.map((frame) => ({
+        frameId: frame.frameId,
+        parentFrameId: frame.parentFrameId,
+        url: frame.url,
+        documentId: frame.documentId,
+      })),
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function executeScriptInFrame(tabId, frameId, script) {
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId, frameIds: [frameId] },
+      func: (code) => {
+        // eslint-disable-next-line no-new-func
+        const fn = new Function(code); // NOSONAR - intentional for automation
+        return fn();
+      },
+      args: [script],
+    });
+    return { result: results[0]?.result };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
 // ==================== Notifications ====================
 
 async function showNotification(params) {

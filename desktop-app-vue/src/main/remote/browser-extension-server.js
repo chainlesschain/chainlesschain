@@ -753,6 +753,158 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
+      // 网络拦截
+      case "enableNetworkInterception":
+        return await this.server.sendCommand(
+          clientId,
+          "network.enableInterception",
+          params,
+        );
+      case "disableNetworkInterception":
+        return await this.server.sendCommand(
+          clientId,
+          "network.disableInterception",
+          params,
+        );
+      case "setRequestBlocking":
+        return await this.server.sendCommand(
+          clientId,
+          "network.setRequestBlocking",
+          params,
+        );
+      case "clearRequestBlocking":
+        return await this.server.sendCommand(
+          clientId,
+          "network.clearRequestBlocking",
+          params,
+        );
+      case "getNetworkRequests":
+        return await this.server.sendCommand(
+          clientId,
+          "network.getRequests",
+          params,
+        );
+      case "mockResponse":
+        return await this.server.sendCommand(
+          clientId,
+          "network.mockResponse",
+          params,
+        );
+
+      // 控制台捕获
+      case "enableConsoleCapture":
+        return await this.server.sendCommand(
+          clientId,
+          "console.enable",
+          params,
+        );
+      case "disableConsoleCapture":
+        return await this.server.sendCommand(
+          clientId,
+          "console.disable",
+          params,
+        );
+      case "getConsoleLogs":
+        return await this.server.sendCommand(
+          clientId,
+          "console.getLogs",
+          params,
+        );
+      case "clearConsoleLogs":
+        return await this.server.sendCommand(
+          clientId,
+          "console.clear",
+          params,
+        );
+
+      // IndexedDB
+      case "getIndexedDBDatabases":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.getDatabases",
+          params,
+        );
+      case "getIndexedDBData":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.getData",
+          params,
+        );
+      case "setIndexedDBData":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.setData",
+          params,
+        );
+      case "deleteIndexedDBData":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.deleteData",
+          params,
+        );
+      case "clearIndexedDBStore":
+        return await this.server.sendCommand(
+          clientId,
+          "indexedDB.clearStore",
+          params,
+        );
+
+      // 性能
+      case "getPerformanceMetrics":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getMetrics",
+          params,
+        );
+      case "getPerformanceEntries":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getEntries",
+          params,
+        );
+      case "startPerformanceTrace":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.startTrace",
+          params,
+        );
+      case "stopPerformanceTrace":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.stopTrace",
+          params,
+        );
+
+      // CSS 注入
+      case "injectCSS":
+        return await this.server.sendCommand(clientId, "css.inject", params);
+      case "removeCSS":
+        return await this.server.sendCommand(clientId, "css.remove", params);
+
+      // 无障碍
+      case "getAccessibilityTree":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getTree",
+          params,
+        );
+      case "getElementRole":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getRole",
+          params,
+        );
+
+      // 框架管理
+      case "listFrames":
+        return await this.server.sendCommand(clientId, "frames.list", params);
+      case "executeScriptInFrame":
+        return await this.server.sendCommand(
+          clientId,
+          "frames.executeScript",
+          params,
+        );
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

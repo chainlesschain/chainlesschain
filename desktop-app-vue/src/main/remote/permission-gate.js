@@ -292,6 +292,45 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   // 扩展 - 浏览数据
   "extension.clearBrowsingData": PERMISSION_LEVELS.ROOT,
 
+  // 扩展 - 网络拦截
+  "extension.enableNetworkInterception": PERMISSION_LEVELS.ADMIN,
+  "extension.disableNetworkInterception": PERMISSION_LEVELS.ADMIN,
+  "extension.setRequestBlocking": PERMISSION_LEVELS.ADMIN,
+  "extension.clearRequestBlocking": PERMISSION_LEVELS.ADMIN,
+  "extension.getNetworkRequests": PERMISSION_LEVELS.NORMAL,
+  "extension.mockResponse": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 控制台捕获
+  "extension.enableConsoleCapture": PERMISSION_LEVELS.NORMAL,
+  "extension.disableConsoleCapture": PERMISSION_LEVELS.NORMAL,
+  "extension.getConsoleLogs": PERMISSION_LEVELS.NORMAL,
+  "extension.clearConsoleLogs": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - IndexedDB
+  "extension.getIndexedDBDatabases": PERMISSION_LEVELS.NORMAL,
+  "extension.getIndexedDBData": PERMISSION_LEVELS.NORMAL,
+  "extension.setIndexedDBData": PERMISSION_LEVELS.ADMIN,
+  "extension.deleteIndexedDBData": PERMISSION_LEVELS.ADMIN,
+  "extension.clearIndexedDBStore": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 性能监控
+  "extension.getPerformanceMetrics": PERMISSION_LEVELS.PUBLIC,
+  "extension.getPerformanceEntries": PERMISSION_LEVELS.PUBLIC,
+  "extension.startPerformanceTrace": PERMISSION_LEVELS.ADMIN,
+  "extension.stopPerformanceTrace": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - CSS 注入
+  "extension.injectCSS": PERMISSION_LEVELS.ADMIN,
+  "extension.removeCSS": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 无障碍
+  "extension.getAccessibilityTree": PERMISSION_LEVELS.PUBLIC,
+  "extension.getElementRole": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - 框架管理
+  "extension.listFrames": PERMISSION_LEVELS.NORMAL,
+  "extension.executeScriptInFrame": PERMISSION_LEVELS.ADMIN,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,
