@@ -3715,4 +3715,482 @@ describe("ExtensionBrowserHandler", () => {
       );
     });
   });
+
+  // ========== Phase 22: WebRTC & Advanced Storage ==========
+
+  describe("WebRTC Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getWebRTCPeerConnections", async () => {
+      await handler.handle("getWebRTCPeerConnections", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webrtc.getPeerConnections",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getWebRTCConnectionStats", async () => {
+      await handler.handle(
+        "getWebRTCConnectionStats",
+        { tabId: 1, connectionId: 0 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webrtc.getConnectionStats",
+        { tabId: 1, connectionId: 0 },
+      );
+    });
+
+    it("should handle getWebRTCDataChannels", async () => {
+      await handler.handle(
+        "getWebRTCDataChannels",
+        { tabId: 1, connectionId: 0 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webrtc.getDataChannels",
+        { tabId: 1, connectionId: 0 },
+      );
+    });
+
+    it("should handle getWebRTCMediaStreams", async () => {
+      await handler.handle("getWebRTCMediaStreams", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webrtc.getMediaStreams",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getICECandidates", async () => {
+      await handler.handle(
+        "getICECandidates",
+        { tabId: 1, connectionId: 0 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webrtc.getICECandidates",
+        { tabId: 1, connectionId: 0 },
+      );
+    });
+
+    it("should handle closeWebRTCConnection", async () => {
+      await handler.handle(
+        "closeWebRTCConnection",
+        { tabId: 1, connectionId: 0 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webrtc.closeConnection",
+        { tabId: 1, connectionId: 0 },
+      );
+    });
+  });
+
+  describe("Advanced IndexedDB Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle listIndexedDBDatabases", async () => {
+      await handler.handle("listIndexedDBDatabases", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexeddb.listDatabases",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getIndexedDBDatabaseInfo", async () => {
+      await handler.handle(
+        "getIndexedDBDatabaseInfo",
+        { tabId: 1, dbName: "mydb" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexeddb.getDatabaseInfo",
+        { tabId: 1, dbName: "mydb" },
+      );
+    });
+
+    it("should handle getIndexedDBObjectStores", async () => {
+      await handler.handle(
+        "getIndexedDBObjectStores",
+        { tabId: 1, dbName: "mydb" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexeddb.getObjectStores",
+        { tabId: 1, dbName: "mydb" },
+      );
+    });
+
+    it("should handle getIndexedDBStoreData", async () => {
+      await handler.handle(
+        "getIndexedDBStoreData",
+        {
+          tabId: 1,
+          dbName: "mydb",
+          storeName: "users",
+          options: { limit: 10 },
+        },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexeddb.getStoreData",
+        {
+          tabId: 1,
+          dbName: "mydb",
+          storeName: "users",
+          options: { limit: 10 },
+        },
+      );
+    });
+
+    it("should handle deleteIndexedDBDatabase", async () => {
+      await handler.handle(
+        "deleteIndexedDBDatabase",
+        { tabId: 1, dbName: "mydb" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexeddb.deleteDatabase",
+        { tabId: 1, dbName: "mydb" },
+      );
+    });
+
+    it("should handle exportIndexedDBDatabase", async () => {
+      await handler.handle(
+        "exportIndexedDBDatabase",
+        { tabId: 1, dbName: "mydb" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexeddb.exportDatabase",
+        { tabId: 1, dbName: "mydb" },
+      );
+    });
+  });
+
+  describe("Web Components Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getCustomElements", async () => {
+      await handler.handle("getCustomElements", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webcomponents.getCustomElements",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getShadowRoots", async () => {
+      await handler.handle("getShadowRoots", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webcomponents.getShadowRoots",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle queryShadowDOM", async () => {
+      await handler.handle(
+        "queryShadowDOM",
+        { tabId: 1, hostSelector: "my-element", shadowSelector: ".inner" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webcomponents.queryShadowDOM",
+        { tabId: 1, hostSelector: "my-element", shadowSelector: ".inner" },
+      );
+    });
+
+    it("should handle getSlottedContent", async () => {
+      await handler.handle(
+        "getSlottedContent",
+        { tabId: 1, selector: "my-element" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "webcomponents.getSlots",
+        { tabId: 1, selector: "my-element" },
+      );
+    });
+  });
+
+  describe("Drag and Drop Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle simulateDrag", async () => {
+      await handler.handle(
+        "simulateDrag",
+        { tabId: 1, sourceSelector: "#item", targetSelector: "#dropzone" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "dragdrop.simulateDrag",
+        { tabId: 1, sourceSelector: "#item", targetSelector: "#dropzone" },
+      );
+    });
+
+    it("should handle simulateFileDrop", async () => {
+      await handler.handle(
+        "simulateFileDrop",
+        { tabId: 1, selector: "#dropzone", files: [{ name: "test.txt" }] },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "dragdrop.simulateFileDrop",
+        { tabId: 1, selector: "#dropzone", files: [{ name: "test.txt" }] },
+      );
+    });
+
+    it("should handle getDropZones", async () => {
+      await handler.handle("getDropZones", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "dragdrop.getDropZones",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getDraggableElements", async () => {
+      await handler.handle("getDraggableElements", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "dragdrop.getDraggableElements",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Selection Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getTextSelection", async () => {
+      await handler.handle("getTextSelection", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "selection.getSelection",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle setTextSelection", async () => {
+      await handler.handle(
+        "setTextSelection",
+        { tabId: 1, selector: "#text", start: 0, end: 10 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "selection.setSelection",
+        { tabId: 1, selector: "#text", start: 0, end: 10 },
+      );
+    });
+
+    it("should handle selectAllText", async () => {
+      await handler.handle(
+        "selectAllText",
+        { tabId: 1, selector: "#content" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "selection.selectAll",
+        { tabId: 1, selector: "#content" },
+      );
+    });
+
+    it("should handle clearSelection", async () => {
+      await handler.handle("clearSelection", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "selection.clearSelection",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getSelectedHTML", async () => {
+      await handler.handle("getSelectedHTML", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "selection.getSelectedHTML",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("History Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getHistoryState", async () => {
+      await handler.handle("getHistoryState", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "history.getState",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle pushHistoryState", async () => {
+      await handler.handle(
+        "pushHistoryState",
+        { tabId: 1, state: { page: 2 }, title: "Page 2", url: "/page2" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "history.pushState",
+        { tabId: 1, state: { page: 2 }, title: "Page 2", url: "/page2" },
+      );
+    });
+
+    it("should handle historyGo", async () => {
+      await handler.handle("historyGo", { tabId: 1, delta: -1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "history.go",
+        { tabId: 1, delta: -1 },
+      );
+    });
+  });
+
+  describe("Intersection Observer Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle observeIntersection", async () => {
+      await handler.handle(
+        "observeIntersection",
+        { tabId: 1, selector: ".item", options: { threshold: 0.5 } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "intersection.observe",
+        { tabId: 1, selector: ".item", options: { threshold: 0.5 } },
+      );
+    });
+
+    it("should handle getVisibleElements", async () => {
+      await handler.handle(
+        "getVisibleElements",
+        { tabId: 1, selector: ".card" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "intersection.getVisibleElements",
+        { tabId: 1, selector: ".card" },
+      );
+    });
+
+    it("should handle checkElementVisibility", async () => {
+      await handler.handle(
+        "checkElementVisibility",
+        { tabId: 1, selector: "#banner" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "intersection.checkVisibility",
+        { tabId: 1, selector: "#banner" },
+      );
+    });
+  });
+
+  describe("Resize Observer Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle observeResize", async () => {
+      await handler.handle(
+        "observeResize",
+        { tabId: 1, selector: "#container" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "resize.observe",
+        { tabId: 1, selector: "#container" },
+      );
+    });
+
+    it("should handle getElementSizes", async () => {
+      await handler.handle(
+        "getElementSizes",
+        { tabId: 1, selectors: ["#box1", "#box2"] },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "resize.getElementSizes",
+        { tabId: 1, selectors: ["#box1", "#box2"] },
+      );
+    });
+  });
+
+  describe("Mutation Summary Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getMutationSummary", async () => {
+      await handler.handle("getMutationSummary", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "mutation.getSummary",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getMutationChangeHistory", async () => {
+      await handler.handle(
+        "getMutationChangeHistory",
+        { tabId: 1, limit: 20 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "mutation.getChangeHistory",
+        { tabId: 1, limit: 20 },
+      );
+    });
+  });
 });
