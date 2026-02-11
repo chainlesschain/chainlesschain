@@ -777,6 +777,85 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.getReports": PERMISSION_LEVELS.PUBLIC,
   "extension.clearReports": PERMISSION_LEVELS.NORMAL,
 
+  // ==================== Phase 24: Hardware & Media APIs ====================
+
+  // 扩展 - Web Bluetooth API
+  "extension.requestBluetoothDevice": PERMISSION_LEVELS.ADMIN,
+  "extension.getBluetoothDevices": PERMISSION_LEVELS.NORMAL,
+  "extension.getBluetoothAvailability": PERMISSION_LEVELS.PUBLIC,
+  "extension.connectBluetoothDevice": PERMISSION_LEVELS.ADMIN,
+  "extension.disconnectBluetoothDevice": PERMISSION_LEVELS.ADMIN,
+  "extension.getBluetoothServices": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Web USB API
+  "extension.requestUSBDevice": PERMISSION_LEVELS.ROOT,
+  "extension.getUSBDevices": PERMISSION_LEVELS.ADMIN,
+  "extension.openUSBDevice": PERMISSION_LEVELS.ROOT,
+  "extension.closeUSBDevice": PERMISSION_LEVELS.ADMIN,
+  "extension.selectUSBConfiguration": PERMISSION_LEVELS.ROOT,
+  "extension.claimUSBInterface": PERMISSION_LEVELS.ROOT,
+
+  // 扩展 - Web Serial API
+  "extension.requestSerialPort": PERMISSION_LEVELS.ROOT,
+  "extension.getSerialPorts": PERMISSION_LEVELS.ADMIN,
+  "extension.openSerialPort": PERMISSION_LEVELS.ROOT,
+  "extension.closeSerialPort": PERMISSION_LEVELS.ADMIN,
+  "extension.readSerialPort": PERMISSION_LEVELS.ADMIN,
+  "extension.writeSerialPort": PERMISSION_LEVELS.ROOT,
+
+  // 扩展 - Gamepad API
+  "extension.getGamepads": PERMISSION_LEVELS.PUBLIC,
+  "extension.getGamepadState": PERMISSION_LEVELS.PUBLIC,
+  "extension.vibrateGamepad": PERMISSION_LEVELS.NORMAL,
+  "extension.isGamepadSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Web MIDI API
+  "extension.requestMIDIAccess": PERMISSION_LEVELS.ADMIN,
+  "extension.getMIDIInputs": PERMISSION_LEVELS.NORMAL,
+  "extension.getMIDIOutputs": PERMISSION_LEVELS.NORMAL,
+  "extension.sendMIDIMessage": PERMISSION_LEVELS.ADMIN,
+  "extension.closeMIDIAccess": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Picture-in-Picture API
+  "extension.requestPictureInPicture": PERMISSION_LEVELS.NORMAL,
+  "extension.exitPictureInPicture": PERMISSION_LEVELS.NORMAL,
+  "extension.getPictureInPictureWindow": PERMISSION_LEVELS.PUBLIC,
+  "extension.isPictureInPictureEnabled": PERMISSION_LEVELS.PUBLIC,
+  "extension.isPictureInPictureSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Document Picture-in-Picture API
+  "extension.requestDocumentPictureInPicture": PERMISSION_LEVELS.NORMAL,
+  "extension.getDocumentPictureInPictureWindow": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Web Locks API
+  "extension.requestLock": PERMISSION_LEVELS.NORMAL,
+  "extension.queryLocks": PERMISSION_LEVELS.PUBLIC,
+  "extension.releaseLock": PERMISSION_LEVELS.NORMAL,
+  "extension.isLocksSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Badging API
+  "extension.setBadge": PERMISSION_LEVELS.NORMAL,
+  "extension.clearBadge": PERMISSION_LEVELS.NORMAL,
+  "extension.isBadgeSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Local Font Access API
+  "extension.queryLocalFonts": PERMISSION_LEVELS.NORMAL,
+  "extension.getFontPostscriptNames": PERMISSION_LEVELS.NORMAL,
+  "extension.isLocalFontsSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Window Management API
+  "extension.getScreenDetails": PERMISSION_LEVELS.NORMAL,
+  "extension.getCurrentScreen": PERMISSION_LEVELS.PUBLIC,
+  "extension.isMultiScreenEnvironment": PERMISSION_LEVELS.PUBLIC,
+  "extension.requestScreensPermission": PERMISSION_LEVELS.NORMAL,
+  "extension.getScreenById": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Compute Pressure API
+  "extension.observeComputePressure": PERMISSION_LEVELS.NORMAL,
+  "extension.unobserveComputePressure": PERMISSION_LEVELS.NORMAL,
+  "extension.getComputePressureState": PERMISSION_LEVELS.PUBLIC,
+  "extension.isComputePressureSupported": PERMISSION_LEVELS.PUBLIC,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,

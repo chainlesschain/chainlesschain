@@ -58,7 +58,7 @@
 
     <!-- 性能优化：资源预加载 -->
     <link rel="preload" href="logo.svg" as="image">
-    <link rel="preload" href="dist/main.min.css?v=11.0" as="style">
+    <link rel="preload" href="css/style.css?v=11.1" as="style">
     <link rel="preload" href="js/main.js" as="script">
 
     <!-- 性能优化：关键CSS内联 -->
@@ -162,7 +162,12 @@
             width: 100% !important;
         }
 
-        .hero-subtitle,
+        .hero-subtitle {
+            text-align: center !important;
+            width: 100% !important;
+            display: block !important;
+        }
+
         .version-tags,
         .trust-badges,
         .hero-cta,
@@ -437,8 +442,8 @@
     </style>
 
     <!-- 合并压缩的 CSS - 异步加载避免阻塞渲染 -->
-    <link rel="preload" href="dist/main.min.css?v=11.0" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="dist/main.min.css?v=11.0"></noscript>
+    <link rel="preload" href="css/style.css?v=11.1" as="style" onload="this.onload=null;this.rel='stylesheet';setTimeout(function(){var m=document.createElement('link');m.rel='stylesheet';m.href='mobile-optimize.css?v=11.3';document.head.appendChild(m);},100);">
+    <noscript><link rel="stylesheet" href="css/style.css?v=11.1"><link rel="stylesheet" href="mobile-optimize.css?v=11.3"></noscript>
 
     <!-- 字体优化：使用系统字体栈，无需外部请求 -->
 
@@ -2504,6 +2509,9 @@
             </div>
         </div>
     </footer>
+
+    <!-- 移动端浮动联系按钮 -->
+    <a href="tel:400-1068-687" class="mobile-contact-btn" aria-label="拨打电话">📞</a>
 
     <!-- 延迟加载JS -->
     <script src="js/main.js" defer></script>

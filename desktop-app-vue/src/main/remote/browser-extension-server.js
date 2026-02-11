@@ -2710,6 +2710,278 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
+      // ==================== Phase 24: Hardware & Media APIs ====================
+
+      // Web Bluetooth API
+      case "requestBluetoothDevice":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.requestDevice",
+          params,
+        );
+      case "getBluetoothDevices":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.getDevices",
+          params,
+        );
+      case "getBluetoothAvailability":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.getAvailability",
+          params,
+        );
+      case "connectBluetoothDevice":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.connect",
+          params,
+        );
+      case "disconnectBluetoothDevice":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.disconnect",
+          params,
+        );
+      case "getBluetoothServices":
+        return await this.server.sendCommand(
+          clientId,
+          "bluetooth.getServices",
+          params,
+        );
+
+      // Web USB API
+      case "requestUSBDevice":
+        return await this.server.sendCommand(
+          clientId,
+          "usb.requestDevice",
+          params,
+        );
+      case "getUSBDevices":
+        return await this.server.sendCommand(
+          clientId,
+          "usb.getDevices",
+          params,
+        );
+      case "openUSBDevice":
+        return await this.server.sendCommand(clientId, "usb.open", params);
+      case "closeUSBDevice":
+        return await this.server.sendCommand(clientId, "usb.close", params);
+      case "selectUSBConfiguration":
+        return await this.server.sendCommand(
+          clientId,
+          "usb.selectConfiguration",
+          params,
+        );
+      case "claimUSBInterface":
+        return await this.server.sendCommand(
+          clientId,
+          "usb.claimInterface",
+          params,
+        );
+
+      // Web Serial API
+      case "requestSerialPort":
+        return await this.server.sendCommand(
+          clientId,
+          "serial.requestPort",
+          params,
+        );
+      case "getSerialPorts":
+        return await this.server.sendCommand(
+          clientId,
+          "serial.getPorts",
+          params,
+        );
+      case "openSerialPort":
+        return await this.server.sendCommand(clientId, "serial.open", params);
+      case "closeSerialPort":
+        return await this.server.sendCommand(clientId, "serial.close", params);
+      case "readSerialPort":
+        return await this.server.sendCommand(clientId, "serial.read", params);
+      case "writeSerialPort":
+        return await this.server.sendCommand(clientId, "serial.write", params);
+
+      // Gamepad API
+      case "getGamepads":
+        return await this.server.sendCommand(
+          clientId,
+          "gamepad.getGamepads",
+          params,
+        );
+      case "getGamepadState":
+        return await this.server.sendCommand(
+          clientId,
+          "gamepad.getState",
+          params,
+        );
+      case "vibrateGamepad":
+        return await this.server.sendCommand(
+          clientId,
+          "gamepad.vibrate",
+          params,
+        );
+      case "isGamepadSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "gamepad.isSupported",
+          params,
+        );
+
+      // Web MIDI API
+      case "requestMIDIAccess":
+        return await this.server.sendCommand(
+          clientId,
+          "midi.requestAccess",
+          params,
+        );
+      case "getMIDIInputs":
+        return await this.server.sendCommand(
+          clientId,
+          "midi.getInputs",
+          params,
+        );
+      case "getMIDIOutputs":
+        return await this.server.sendCommand(
+          clientId,
+          "midi.getOutputs",
+          params,
+        );
+      case "sendMIDIMessage":
+        return await this.server.sendCommand(clientId, "midi.send", params);
+      case "closeMIDIAccess":
+        return await this.server.sendCommand(clientId, "midi.close", params);
+
+      // Picture-in-Picture API
+      case "requestPictureInPicture":
+        return await this.server.sendCommand(clientId, "pip.request", params);
+      case "exitPictureInPicture":
+        return await this.server.sendCommand(clientId, "pip.exit", params);
+      case "getPictureInPictureWindow":
+        return await this.server.sendCommand(clientId, "pip.getWindow", params);
+      case "isPictureInPictureEnabled":
+        return await this.server.sendCommand(clientId, "pip.isEnabled", params);
+      case "isPictureInPictureSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "pip.isSupported",
+          params,
+        );
+
+      // Document Picture-in-Picture API
+      case "requestDocumentPictureInPicture":
+        return await this.server.sendCommand(
+          clientId,
+          "documentPip.request",
+          params,
+        );
+      case "getDocumentPictureInPictureWindow":
+        return await this.server.sendCommand(
+          clientId,
+          "documentPip.getWindow",
+          params,
+        );
+
+      // Web Locks API
+      case "requestLock":
+        return await this.server.sendCommand(clientId, "locks.request", params);
+      case "queryLocks":
+        return await this.server.sendCommand(clientId, "locks.query", params);
+      case "releaseLock":
+        return await this.server.sendCommand(clientId, "locks.release", params);
+      case "isLocksSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "locks.isSupported",
+          params,
+        );
+
+      // Badging API
+      case "setBadge":
+        return await this.server.sendCommand(clientId, "badge.set", params);
+      case "clearBadge":
+        return await this.server.sendCommand(clientId, "badge.clear", params);
+      case "isBadgeSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "badge.isSupported",
+          params,
+        );
+
+      // Local Font Access API
+      case "queryLocalFonts":
+        return await this.server.sendCommand(clientId, "fonts.query", params);
+      case "getFontPostscriptNames":
+        return await this.server.sendCommand(
+          clientId,
+          "fonts.getPostscriptNames",
+          params,
+        );
+      case "isLocalFontsSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "fonts.isSupported",
+          params,
+        );
+
+      // Window Management API
+      case "getScreenDetails":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.getScreens",
+          params,
+        );
+      case "getCurrentScreen":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.getCurrentScreen",
+          params,
+        );
+      case "isMultiScreenEnvironment":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.isMultiScreen",
+          params,
+        );
+      case "requestScreensPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.requestPermission",
+          params,
+        );
+      case "getScreenById":
+        return await this.server.sendCommand(
+          clientId,
+          "screens.getScreenById",
+          params,
+        );
+
+      // Compute Pressure API
+      case "observeComputePressure":
+        return await this.server.sendCommand(
+          clientId,
+          "pressure.observe",
+          params,
+        );
+      case "unobserveComputePressure":
+        return await this.server.sendCommand(
+          clientId,
+          "pressure.unobserve",
+          params,
+        );
+      case "getComputePressureState":
+        return await this.server.sendCommand(
+          clientId,
+          "pressure.getState",
+          params,
+        );
+      case "isComputePressureSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "pressure.isSupported",
+          params,
+        );
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

@@ -5016,4 +5016,650 @@ describe("ExtensionBrowserHandler", () => {
       );
     });
   });
+
+  // ==================== Phase 24: Hardware & Media APIs ====================
+
+  describe("Web Bluetooth API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle requestBluetoothDevice", async () => {
+      await handler.handle(
+        "requestBluetoothDevice",
+        { tabId: 1, options: { filters: [{ services: ["battery_service"] }] } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "bluetooth.requestDevice",
+        { tabId: 1, options: { filters: [{ services: ["battery_service"] }] } },
+      );
+    });
+
+    it("should handle getBluetoothDevices", async () => {
+      await handler.handle("getBluetoothDevices", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "bluetooth.getDevices",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getBluetoothAvailability", async () => {
+      await handler.handle("getBluetoothAvailability", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "bluetooth.getAvailability",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle connectBluetoothDevice", async () => {
+      await handler.handle(
+        "connectBluetoothDevice",
+        { tabId: 1, deviceId: "dev-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "bluetooth.connect",
+        { tabId: 1, deviceId: "dev-1" },
+      );
+    });
+
+    it("should handle disconnectBluetoothDevice", async () => {
+      await handler.handle(
+        "disconnectBluetoothDevice",
+        { tabId: 1, deviceId: "dev-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "bluetooth.disconnect",
+        { tabId: 1, deviceId: "dev-1" },
+      );
+    });
+
+    it("should handle getBluetoothServices", async () => {
+      await handler.handle(
+        "getBluetoothServices",
+        { tabId: 1, deviceId: "dev-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "bluetooth.getServices",
+        { tabId: 1, deviceId: "dev-1" },
+      );
+    });
+  });
+
+  describe("Web USB API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle requestUSBDevice", async () => {
+      await handler.handle(
+        "requestUSBDevice",
+        { tabId: 1, options: { filters: [{ vendorId: 0x1234 }] } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "usb.requestDevice",
+        { tabId: 1, options: { filters: [{ vendorId: 0x1234 }] } },
+      );
+    });
+
+    it("should handle getUSBDevices", async () => {
+      await handler.handle("getUSBDevices", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "usb.getDevices",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle openUSBDevice", async () => {
+      await handler.handle(
+        "openUSBDevice",
+        { tabId: 1, deviceId: "usb_1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "usb.open", {
+        tabId: 1,
+        deviceId: "usb_1",
+      });
+    });
+
+    it("should handle closeUSBDevice", async () => {
+      await handler.handle(
+        "closeUSBDevice",
+        { tabId: 1, deviceId: "usb_1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "usb.close", {
+        tabId: 1,
+        deviceId: "usb_1",
+      });
+    });
+
+    it("should handle selectUSBConfiguration", async () => {
+      await handler.handle(
+        "selectUSBConfiguration",
+        { tabId: 1, deviceId: "usb_1", configurationValue: 1 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "usb.selectConfiguration",
+        { tabId: 1, deviceId: "usb_1", configurationValue: 1 },
+      );
+    });
+
+    it("should handle claimUSBInterface", async () => {
+      await handler.handle(
+        "claimUSBInterface",
+        { tabId: 1, deviceId: "usb_1", interfaceNumber: 0 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "usb.claimInterface",
+        { tabId: 1, deviceId: "usb_1", interfaceNumber: 0 },
+      );
+    });
+  });
+
+  describe("Web Serial API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle requestSerialPort", async () => {
+      await handler.handle("requestSerialPort", { tabId: 1, options: {} }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serial.requestPort",
+        { tabId: 1, options: {} },
+      );
+    });
+
+    it("should handle getSerialPorts", async () => {
+      await handler.handle("getSerialPorts", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serial.getPorts",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle openSerialPort", async () => {
+      await handler.handle(
+        "openSerialPort",
+        { tabId: 1, portId: "serial_1", options: { baudRate: 9600 } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serial.open",
+        { tabId: 1, portId: "serial_1", options: { baudRate: 9600 } },
+      );
+    });
+
+    it("should handle closeSerialPort", async () => {
+      await handler.handle(
+        "closeSerialPort",
+        { tabId: 1, portId: "serial_1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serial.close",
+        { tabId: 1, portId: "serial_1" },
+      );
+    });
+
+    it("should handle readSerialPort", async () => {
+      await handler.handle(
+        "readSerialPort",
+        { tabId: 1, portId: "serial_1", length: 100 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serial.read",
+        { tabId: 1, portId: "serial_1", length: 100 },
+      );
+    });
+
+    it("should handle writeSerialPort", async () => {
+      await handler.handle(
+        "writeSerialPort",
+        { tabId: 1, portId: "serial_1", data: [0x48, 0x65, 0x6c, 0x6c, 0x6f] },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serial.write",
+        { tabId: 1, portId: "serial_1", data: [0x48, 0x65, 0x6c, 0x6c, 0x6f] },
+      );
+    });
+  });
+
+  describe("Gamepad API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getGamepads", async () => {
+      await handler.handle("getGamepads", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "gamepad.getGamepads",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getGamepadState", async () => {
+      await handler.handle("getGamepadState", { tabId: 1, index: 0 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "gamepad.getState",
+        { tabId: 1, index: 0 },
+      );
+    });
+
+    it("should handle vibrateGamepad", async () => {
+      await handler.handle(
+        "vibrateGamepad",
+        { tabId: 1, index: 0, options: { duration: 200 } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "gamepad.vibrate",
+        { tabId: 1, index: 0, options: { duration: 200 } },
+      );
+    });
+
+    it("should handle isGamepadSupported", async () => {
+      await handler.handle("isGamepadSupported", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "gamepad.isSupported",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Web MIDI API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle requestMIDIAccess", async () => {
+      await handler.handle(
+        "requestMIDIAccess",
+        { tabId: 1, options: { sysex: true } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "midi.requestAccess",
+        { tabId: 1, options: { sysex: true } },
+      );
+    });
+
+    it("should handle getMIDIInputs", async () => {
+      await handler.handle("getMIDIInputs", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "midi.getInputs",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getMIDIOutputs", async () => {
+      await handler.handle("getMIDIOutputs", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "midi.getOutputs",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle sendMIDIMessage", async () => {
+      await handler.handle(
+        "sendMIDIMessage",
+        { tabId: 1, outputId: "output-1", data: [0x90, 60, 100] },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "midi.send", {
+        tabId: 1,
+        outputId: "output-1",
+        data: [0x90, 60, 100],
+      });
+    });
+
+    it("should handle closeMIDIAccess", async () => {
+      await handler.handle("closeMIDIAccess", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "midi.close",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Picture-in-Picture API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle requestPictureInPicture", async () => {
+      await handler.handle(
+        "requestPictureInPicture",
+        { tabId: 1, selector: "video" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pip.request",
+        { tabId: 1, selector: "video" },
+      );
+    });
+
+    it("should handle exitPictureInPicture", async () => {
+      await handler.handle("exitPictureInPicture", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "pip.exit", {
+        tabId: 1,
+      });
+    });
+
+    it("should handle getPictureInPictureWindow", async () => {
+      await handler.handle("getPictureInPictureWindow", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pip.getWindow",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle isPictureInPictureEnabled", async () => {
+      await handler.handle("isPictureInPictureEnabled", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pip.isEnabled",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle isPictureInPictureSupported", async () => {
+      await handler.handle("isPictureInPictureSupported", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pip.isSupported",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Document Picture-in-Picture API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle requestDocumentPictureInPicture", async () => {
+      await handler.handle(
+        "requestDocumentPictureInPicture",
+        { tabId: 1, options: { width: 400, height: 300 } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "documentPip.request",
+        { tabId: 1, options: { width: 400, height: 300 } },
+      );
+    });
+
+    it("should handle getDocumentPictureInPictureWindow", async () => {
+      await handler.handle(
+        "getDocumentPictureInPictureWindow",
+        { tabId: 1 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "documentPip.getWindow",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Web Locks API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle requestLock", async () => {
+      await handler.handle(
+        "requestLock",
+        { tabId: 1, name: "my-lock", options: { mode: "exclusive" } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "locks.request",
+        { tabId: 1, name: "my-lock", options: { mode: "exclusive" } },
+      );
+    });
+
+    it("should handle queryLocks", async () => {
+      await handler.handle("queryLocks", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "locks.query",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle releaseLock", async () => {
+      await handler.handle("releaseLock", { tabId: 1, name: "my-lock" }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "locks.release",
+        { tabId: 1, name: "my-lock" },
+      );
+    });
+
+    it("should handle isLocksSupported", async () => {
+      await handler.handle("isLocksSupported", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "locks.isSupported",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Badging API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle setBadge", async () => {
+      await handler.handle("setBadge", { tabId: 1, contents: 5 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "badge.set", {
+        tabId: 1,
+        contents: 5,
+      });
+    });
+
+    it("should handle clearBadge", async () => {
+      await handler.handle("clearBadge", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "badge.clear",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle isBadgeSupported", async () => {
+      await handler.handle("isBadgeSupported", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "badge.isSupported",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Local Font Access API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle queryLocalFonts", async () => {
+      await handler.handle("queryLocalFonts", { tabId: 1, options: {} }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fonts.query",
+        { tabId: 1, options: {} },
+      );
+    });
+
+    it("should handle getFontPostscriptNames", async () => {
+      await handler.handle("getFontPostscriptNames", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fonts.getPostscriptNames",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle isLocalFontsSupported", async () => {
+      await handler.handle("isLocalFontsSupported", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fonts.isSupported",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Window Management API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getScreenDetails", async () => {
+      await handler.handle("getScreenDetails", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "screens.getScreens",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getCurrentScreen", async () => {
+      await handler.handle("getCurrentScreen", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "screens.getCurrentScreen",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle isMultiScreenEnvironment", async () => {
+      await handler.handle("isMultiScreenEnvironment", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "screens.isMultiScreen",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle requestScreensPermission", async () => {
+      await handler.handle("requestScreensPermission", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "screens.requestPermission",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getScreenById", async () => {
+      await handler.handle(
+        "getScreenById",
+        { tabId: 1, screenId: "screen-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "screens.getScreenById",
+        { tabId: 1, screenId: "screen-1" },
+      );
+    });
+  });
+
+  describe("Compute Pressure API Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle observeComputePressure", async () => {
+      await handler.handle(
+        "observeComputePressure",
+        { tabId: 1, source: "cpu" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pressure.observe",
+        { tabId: 1, source: "cpu" },
+      );
+    });
+
+    it("should handle unobserveComputePressure", async () => {
+      await handler.handle("unobserveComputePressure", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pressure.unobserve",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getComputePressureState", async () => {
+      await handler.handle("getComputePressureState", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pressure.getState",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle isComputePressureSupported", async () => {
+      await handler.handle("isComputePressureSupported", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pressure.isSupported",
+        { tabId: 1 },
+      );
+    });
+  });
 });
