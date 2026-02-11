@@ -406,6 +406,70 @@ async function executeCommand(method, params) {
     case "browsingData.clear":
       return await clearBrowsingData(params);
 
+    // Network interception
+    case "network.enableInterception":
+      return await enableNetworkInterception(params.tabId, params.patterns);
+    case "network.disableInterception":
+      return await disableNetworkInterception(params.tabId);
+    case "network.setRequestBlocking":
+      return await setRequestBlocking(params.patterns);
+    case "network.clearRequestBlocking":
+      return await clearRequestBlocking();
+    case "network.getRequests":
+      return await getNetworkRequests(params.tabId);
+    case "network.mockResponse":
+      return await mockNetworkResponse(params.tabId, params.url, params.response);
+
+    // Console capture
+    case "console.enable":
+      return await enableConsoleCapture(params.tabId);
+    case "console.disable":
+      return await disableConsoleCapture(params.tabId);
+    case "console.getLogs":
+      return await getConsoleLogs(params.tabId);
+    case "console.clear":
+      return await clearConsoleLogs(params.tabId);
+
+    // IndexedDB
+    case "indexedDB.getDatabases":
+      return await getIndexedDBDatabases(params.tabId);
+    case "indexedDB.getData":
+      return await getIndexedDBData(params.tabId, params.dbName, params.storeName, params.query);
+    case "indexedDB.setData":
+      return await setIndexedDBData(params.tabId, params.dbName, params.storeName, params.key, params.value);
+    case "indexedDB.deleteData":
+      return await deleteIndexedDBData(params.tabId, params.dbName, params.storeName, params.key);
+    case "indexedDB.clearStore":
+      return await clearIndexedDBStore(params.tabId, params.dbName, params.storeName);
+
+    // Performance
+    case "performance.getMetrics":
+      return await getPerformanceMetrics(params.tabId);
+    case "performance.getEntries":
+      return await getPerformanceEntries(params.tabId, params.type);
+    case "performance.startTrace":
+      return await startPerformanceTrace(params.tabId);
+    case "performance.stopTrace":
+      return await stopPerformanceTrace(params.tabId);
+
+    // CSS injection
+    case "css.inject":
+      return await injectCSS(params.tabId, params.css, params.options);
+    case "css.remove":
+      return await removeInjectedCSS(params.tabId, params.cssId);
+
+    // Accessibility
+    case "accessibility.getTree":
+      return await getAccessibilityTree(params.tabId, params.selector);
+    case "accessibility.getRole":
+      return await getElementRole(params.tabId, params.selector);
+
+    // Frame management
+    case "frames.list":
+      return await listFrames(params.tabId);
+    case "frames.executeScript":
+      return await executeScriptInFrame(params.tabId, params.frameId, params.script);
+
     // Extension status
     case "status.get":
       return getStatus();
