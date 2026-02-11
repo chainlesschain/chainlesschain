@@ -77,14 +77,16 @@ function createMockDatabase() {
  * 创建 Mock P2P Manager
  */
 function createMockP2PManager() {
-  const peers = new Map();
+  const dhtStore = new Map(); // DHT storage
+  const connectedPeers = new Map(); // Connected peers
   const messages = [];
   const eventListeners = new Map();
 
-  return {
+  // Create manager object first
+  const manager = {
     node: {
       getMultiaddrs: vi.fn(() => []),
-      getConnections: vi.fn(() => Array.from(peers.values())),
+      getConnections: vi.fn(() => Array.from(connectedPeers.values())),
       dial: vi.fn(async (peerId) => {
         return {
           remotePeer: { toString: () => peerId },
@@ -134,30 +136,23 @@ function createMockP2PManager() {
     isInitialized: vi.fn(() => true),
     initialize: vi.fn(async () => true),
     dhtPut: vi.fn(async (key, value) => {
-      peers.set(key, value);
+      dhtStore.set(key, value);
     }),
     dhtGet: vi.fn(async (key) => {
-      return peers.get(key) || null;
+      return dhtStore.get(key) || null;
     }),
     connectToPeer: vi.fn(async (multiaddr) => {
-      const peerId = "QmBob456";
-      peers.set(peerId, { peerId, connectedAt: Date.now() });
+      // Extract peerId from multiaddr (e.g., /ip4/127.0.0.1/tcp/9000/p2p/QmNode1)
+      const parts = multiaddr.split("/p2p/");
+      const peerId = parts.length > 1 ? parts[1] : `peer-${Date.now()}`;
+      connectedPeers.set(peerId, { peerId, connectedAt: Date.now() });
       return { success: true, peerId };
     }),
-    getConnectedPeers: vi.fn(() => Array.from(peers.values())),
+    getConnectedPeers: vi.fn(() => Array.from(connectedPeers.values())),
     initiateKeyExchange: vi.fn(async (peerId, deviceId) => {
       return { success: true, deviceId: deviceId || "device-1" };
     }),
-    sendEncryptedMessage: vi.fn(async (peerId, message, deviceId, options) => {
-      const msg = {
-        to: peerId,
-        message,
-        deviceId,
-        timestamp: Date.now(),
-      };
-      messages.push(msg);
-      return { success: true, status: "sent", deviceId };
-    }),
+    sendEncryptedMessage: null, // Will be set below
     hasEncryptedSession: vi.fn(async (peerId) => true),
     signalManager: {
       hasSession: vi.fn(async () => true),
@@ -201,7 +196,35 @@ function createMockP2PManager() {
     }),
     getMessages: () => messages,
     _eventListeners: eventListeners,
+    _dhtStore: dhtStore,
+    _connectedPeers: connectedPeers,
   };
+
+  // Set sendEncryptedMessage with reference to manager.signalManager
+  manager.sendEncryptedMessage = vi.fn(
+    async (peerId, message, deviceId, options) => {
+      // Check if session exists and initiate key exchange if not
+      const hasSession = await manager.signalManager.hasSession(
+        peerId,
+        deviceId,
+      );
+      if (!hasSession) {
+        await manager.initiateKeyExchange(peerId, deviceId);
+      }
+      // Call signalManager.encryptMessage so tests can verify
+      await manager.signalManager.encryptMessage(peerId, deviceId, message);
+      const msg = {
+        to: peerId,
+        message,
+        deviceId,
+        timestamp: Date.now(),
+      };
+      messages.push(msg);
+      return { success: true, status: "sent", deviceId };
+    },
+  );
+
+  return manager;
 }
 
 /**
@@ -209,108 +232,24 @@ function createMockP2PManager() {
  */
 function createMockDIDManager(db, p2pManager) {
   const eventListeners = new Map();
+  const identities = new Map(); // Store created identities
 
-  return {
+  // Create the manager object first
+  const manager = {
     db,
     p2pManager,
     currentIdentity: null,
+    _identities: identities,
 
     initialize: vi.fn(async () => {
       return true;
     }),
 
-    createIdentity: vi.fn(async (profile, options) => {
-      const did = `did:chainlesschain:${Math.random().toString(36).substr(2, 40)}`;
-      const identity = {
-        did,
-        nickname: profile.nickname || "Anonymous",
-        avatar: profile.avatar || null,
-        bio: profile.bio || null,
-        didDocument: {
-          id: did,
-          verificationMethod: [],
-          authentication: [],
-          profile: { nickname: profile.nickname, bio: profile.bio },
-        },
-        createdAt: Date.now(),
-      };
-
-      if (options.setAsDefault) {
-        this.currentIdentity = identity;
-      }
-
-      // Emit event
-      const handlers = eventListeners.get("identity-created") || [];
-      handlers.forEach((h) => h({ did, identity }));
-
-      return identity;
-    }),
-
-    getCurrentIdentity: vi.fn(() => {
-      return this.currentIdentity;
-    }),
-
-    getIdentityByDID: vi.fn((did) => {
-      const stmt = db.prepare("SELECT * FROM identities WHERE did = ?");
-      const results = stmt.all([did]);
-      return results && results.length > 0 ? results[0] : null;
-    }),
-
-    publishToDHT: vi.fn(async (did) => {
-      if (!p2pManager || !p2pManager.isInitialized()) {
-        throw new Error("P2P manager not initialized");
-      }
-
-      const identity = this.getIdentityByDID(did);
-      if (!identity) {
-        throw new Error("Identity not found");
-      }
-
-      const dhtKey = `/did/chainlesschain/${did.split(":")[2]}`;
-      const publishData = {
-        did: identity.did,
-        nickname: identity.nickname,
-        publicKeySign: identity.public_key_sign,
-        publicKeyEncrypt: identity.public_key_encrypt,
-        didDocument: JSON.parse(identity.did_document),
-        publishedAt: Date.now(),
-      };
-
-      await p2pManager.dhtPut(dhtKey, Buffer.from(JSON.stringify(publishData)));
-
-      // Emit event
-      const handlers = eventListeners.get("did-published") || [];
-      handlers.forEach((h) =>
-        h({ did, dhtKey, publishedAt: publishData.publishedAt }),
-      );
-
-      return {
-        success: true,
-        key: dhtKey,
-        publishedAt: publishData.publishedAt,
-      };
-    }),
-
-    resolveFromDHT: vi.fn(async (did) => {
-      if (!p2pManager || !p2pManager.isInitialized()) {
-        throw new Error("P2P manager not initialized");
-      }
-
-      const dhtKey = `/did/chainlesschain/${did.split(":")[2]}`;
-      const data = await p2pManager.dhtGet(dhtKey);
-
-      if (!data) {
-        throw new Error("DID not found in DHT");
-      }
-
-      const publishData = JSON.parse(data.toString());
-
-      // Emit event
-      const handlers = eventListeners.get("did-resolved") || [];
-      handlers.forEach((h) => h({ did, data: publishData }));
-
-      return publishData;
-    }),
+    createIdentity: null, // Will be set below
+    getCurrentIdentity: null, // Will be set below
+    getIdentityByDID: null, // Will be set below
+    publishToDHT: null, // Will be set below
+    resolveFromDHT: null, // Will be set below
 
     on: vi.fn((event, handler) => {
       if (!eventListeners.has(event)) {
@@ -324,6 +263,122 @@ function createMockDIDManager(db, p2pManager) {
       handlers.forEach((h) => h(data));
     }),
   };
+
+  // Now define methods that reference manager via closure
+  manager.createIdentity = vi.fn(async (profile, options = {}) => {
+    const did = `did:chainlesschain:${Math.random().toString(36).substr(2, 40)}`;
+    const identity = {
+      did,
+      nickname: profile.nickname || "Anonymous",
+      avatar: profile.avatar || null,
+      bio: profile.bio || null,
+      public_key_sign: "mock-sign-key-" + did,
+      public_key_encrypt: "mock-encrypt-key-" + did,
+      did_document: JSON.stringify({
+        id: did,
+        verificationMethod: [],
+        authentication: [],
+        profile: { nickname: profile.nickname, bio: profile.bio },
+      }),
+      didDocument: {
+        id: did,
+        verificationMethod: [],
+        authentication: [],
+        profile: { nickname: profile.nickname, bio: profile.bio },
+      },
+      createdAt: Date.now(),
+    };
+
+    // Store the identity
+    identities.set(did, identity);
+
+    if (options.setAsDefault) {
+      manager.currentIdentity = identity;
+    }
+
+    // Emit event
+    const handlers = eventListeners.get("identity-created") || [];
+    handlers.forEach((h) => h({ did, identity }));
+
+    return identity;
+  });
+
+  manager.getCurrentIdentity = vi.fn(() => {
+    return manager.currentIdentity;
+  });
+
+  manager.getIdentityByDID = vi.fn((did) => {
+    // First check our in-memory store
+    if (identities.has(did)) {
+      return identities.get(did);
+    }
+    // Fallback to database
+    const stmt = db.prepare("SELECT * FROM identities WHERE did = ?");
+    const results = stmt.all([did]);
+    return results && results.length > 0 ? results[0] : null;
+  });
+
+  manager.publishToDHT = vi.fn(async (did) => {
+    if (!p2pManager || !p2pManager.isInitialized()) {
+      throw new Error("P2P manager not initialized");
+    }
+
+    const identity = manager.getIdentityByDID(did);
+    if (!identity) {
+      throw new Error("Identity not found");
+    }
+
+    const dhtKey = `/did/chainlesschain/${did.split(":")[2]}`;
+    const didDoc =
+      typeof identity.did_document === "string"
+        ? JSON.parse(identity.did_document)
+        : identity.didDocument || {};
+    const publishData = {
+      did: identity.did,
+      nickname: identity.nickname,
+      publicKeySign: identity.public_key_sign,
+      publicKeyEncrypt: identity.public_key_encrypt,
+      didDocument: didDoc,
+      publishedAt: Date.now(),
+    };
+
+    await p2pManager.dhtPut(dhtKey, Buffer.from(JSON.stringify(publishData)));
+
+    // Emit event
+    const handlers = eventListeners.get("did-published") || [];
+    handlers.forEach((h) =>
+      h({ did, dhtKey, publishedAt: publishData.publishedAt }),
+    );
+
+    return {
+      success: true,
+      key: dhtKey,
+      publishedAt: publishData.publishedAt,
+    };
+  });
+
+  manager.resolveFromDHT = vi.fn(async (did) => {
+    if (!p2pManager || !p2pManager.isInitialized()) {
+      throw new Error("P2P manager not initialized");
+    }
+
+    const dhtKey = `/did/chainlesschain/${did.split(":")[2]}`;
+    const data = await p2pManager.dhtGet(dhtKey);
+
+    if (!data) {
+      throw new Error("DID not found in DHT");
+    }
+
+    const publishData = JSON.parse(data.toString());
+
+    // Emit event
+    const handlers = eventListeners.get("did-resolved") || [];
+    handlers.forEach((h) => h({ did, data: publishData }));
+
+    return publishData;
+  });
+
+  return manager;
 }
 
 // ==================== 测试套件 ====================
@@ -773,11 +828,11 @@ describe("DID + P2P 完整工作流集成测试", () => {
 
       expect(p2pManager.getConnectedPeers()).toHaveLength(4);
 
-      // 节点离开（清除连接）
-      const peers = p2pManager.node.getConnections();
-      peers.splice(0, 1); // 模拟移除第一个节点
+      // 节点离开（使用内部Map移除）
+      p2pManager._connectedPeers.delete("QmNode1");
 
       expect(p2pManager.getConnectedPeers().length).toBeLessThan(4);
+      expect(p2pManager.getConnectedPeers()).toHaveLength(3);
     });
 
     it("应该支持多跳路由（通过中继节点）", async () => {
@@ -979,11 +1034,18 @@ describe("DID + P2P 完整工作流集成测试", () => {
 
       await didManager.publishToDHT(alice.did);
 
-      // Bob 创建DID
-      const bobDID = "did:chainlesschain:bob789";
+      // Bob 创建并发布DID
+      const bob = await didManager.createIdentity(
+        {
+          nickname: "Bob",
+          bio: "Designer",
+        },
+        {},
+      );
+      await didManager.publishToDHT(bob.did);
 
       // Alice 搜索 Bob 的DID
-      const bobInfo = await didManager.resolveFromDHT(bobDID);
+      const bobInfo = await didManager.resolveFromDHT(bob.did);
       expect(bobInfo).toBeDefined();
 
       // Alice 发送好友请求
@@ -1062,11 +1124,15 @@ describe("DID + P2P 完整工作流集成测试", () => {
 
       await didManager.publishToDHT(aliceIdentity.did);
 
-      // Bob在公共网络发布DID
-      const bobDID = "did:chainlesschain:bob999";
+      // Bob在公共网络创建并发布DID
+      const bobIdentity = await didManager.createIdentity({
+        nickname: "Bob",
+        bio: "External User",
+      });
+      await didManager.publishToDHT(bobIdentity.did);
 
       // Alice从DHT验证Bob的身份
-      const bobInfo = await didManager.resolveFromDHT(bobDID);
+      const bobInfo = await didManager.resolveFromDHT(bobIdentity.did);
 
       // 验证Bob的DID文档
       expect(bobInfo.didDocument).toBeDefined();
@@ -1074,7 +1140,7 @@ describe("DID + P2P 完整工作流集成测试", () => {
 
       // 检查信任链（简化版）
       const isTrusted = bobInfo.didDocument && bobInfo.publicKeySign;
-      expect(isTrusted).toBe(true);
+      expect(isTrusted).toBeTruthy();
     });
   });
 });

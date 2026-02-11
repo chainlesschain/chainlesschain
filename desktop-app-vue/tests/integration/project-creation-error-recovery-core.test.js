@@ -47,9 +47,10 @@ describe("项目创建错误恢复 - 核心场景", () => {
       getProjectsRootPath: () => testProjectDir,
     };
 
+    let projectCounter = 0;
     mockHttpClient = {
       createProject: vi.fn(async (data) => ({
-        id: "proj-" + Date.now(),
+        id: "proj-" + Date.now() + "-" + ++projectCounter,
         ...data,
         createdAt: new Date().toISOString(),
       })),
