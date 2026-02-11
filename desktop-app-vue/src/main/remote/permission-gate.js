@@ -451,6 +451,59 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.exportAllStorage": PERMISSION_LEVELS.ADMIN,
   "extension.importAllStorage": PERMISSION_LEVELS.ROOT,
 
+  // ==================== Phase 19: Network & Device Emulation ====================
+
+  // 扩展 - 网络节流
+  "extension.setNetworkThrottling": PERMISSION_LEVELS.ADMIN,
+  "extension.clearNetworkThrottling": PERMISSION_LEVELS.ADMIN,
+  "extension.getThrottlingProfiles": PERMISSION_LEVELS.PUBLIC,
+  "extension.setOfflineMode": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 设备模拟
+  "extension.setUserAgent": PERMISSION_LEVELS.ADMIN,
+  "extension.getUserAgent": PERMISSION_LEVELS.PUBLIC,
+  "extension.setTimezone": PERMISSION_LEVELS.ADMIN,
+  "extension.setLocale": PERMISSION_LEVELS.ADMIN,
+  "extension.setGeolocationOverride": PERMISSION_LEVELS.ADMIN,
+  "extension.clearGeolocationOverride": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 触摸模拟
+  "extension.enableTouchEmulation": PERMISSION_LEVELS.NORMAL,
+  "extension.disableTouchEmulation": PERMISSION_LEVELS.NORMAL,
+  "extension.emulateTap": PERMISSION_LEVELS.NORMAL,
+  "extension.emulateSwipe": PERMISSION_LEVELS.NORMAL,
+  "extension.emulatePinch": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 传感器模拟
+  "extension.setSensorOrientation": PERMISSION_LEVELS.ADMIN,
+  "extension.setAccelerometer": PERMISSION_LEVELS.ADMIN,
+  "extension.setAmbientLight": PERMISSION_LEVELS.ADMIN,
+  "extension.clearSensorOverrides": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 视口管理
+  "extension.setViewport": PERMISSION_LEVELS.NORMAL,
+  "extension.getViewport": PERMISSION_LEVELS.PUBLIC,
+  "extension.setDeviceMetrics": PERMISSION_LEVELS.ADMIN,
+  "extension.clearDeviceMetrics": PERMISSION_LEVELS.ADMIN,
+  "extension.getViewportPresets": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - 截图对比
+  "extension.captureScreenshot": PERMISSION_LEVELS.NORMAL,
+  "extension.captureElementScreenshot": PERMISSION_LEVELS.NORMAL,
+  "extension.compareScreenshots": PERMISSION_LEVELS.NORMAL,
+  "extension.captureFullPageScreenshot": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 高级剪贴板
+  "extension.readRichClipboard": PERMISSION_LEVELS.NORMAL,
+  "extension.writeRichClipboard": PERMISSION_LEVELS.ADMIN,
+  "extension.getClipboardFormats": PERMISSION_LEVELS.NORMAL,
+  "extension.writeImageToClipboard": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 打印/PDF
+  "extension.getPrintPreview": PERMISSION_LEVELS.NORMAL,
+  "extension.printToPDF": PERMISSION_LEVELS.ADMIN,
+  "extension.getPrintSettings": PERMISSION_LEVELS.PUBLIC,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,
