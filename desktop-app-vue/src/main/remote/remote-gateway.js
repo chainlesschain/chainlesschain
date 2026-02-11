@@ -29,6 +29,7 @@ const { DeviceManagerHandler } = require("./handlers/device-manager-handler");
 const { ClipboardHandler } = require("./handlers/clipboard-handler");
 const { NotificationHandler } = require("./handlers/notification-handler");
 const { WorkflowHandler } = require("./handlers/workflow-handler");
+const { BrowserHandler } = require("./handlers/browser-handler");
 
 /**
  * 远程网关类
@@ -263,9 +264,12 @@ class RemoteGateway extends EventEmitter {
     this.handlers.workflow.setEventEmitter(this);
     this.commandRouter.registerHandler("workflow", this.handlers.workflow);
 
+    // 11. 浏览器自动化处理器
+    this.handlers.browser = new BrowserHandler(this.options.browser || {});
+    this.commandRouter.registerHandler("browser", this.handlers.browser);
+
     // 未来扩展处理器（按需实现）:
     // - ChannelHandler: 多渠道消息处理器（微信、Telegram等）
-    // - BrowserHandler: 浏览器自动化处理器（Playwright/Puppeteer）
     // 当需要这些功能时，创建相应的Handler类并在此注册
 
     logger.info(

@@ -129,6 +129,12 @@ class FileTransferHandler {
       case "exists":
         return await this.fileExists(params, context);
 
+      case "create":
+        return await this.createFile(params, context);
+
+      case "mkdir":
+        return await this.makeDirectory(params, context);
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -1142,6 +1148,86 @@ class FileTransferHandler {
     } catch (error) {
       return { filePath, exists: false };
     }
+  }
+
+  /**
+   * 创建文件（语义更清晰的 writeFile 别名）
+   *
+   * @param {Object} params - 参数
+   * @param {string} params.filePath - 文件路径
+   * @param {string} params.content - 文件内容
+   * @param {string} params.encoding - 编码（默认 utf8）
+   * @param {boolean} params.createDir - 是否自动创建目录（默认 true）
+   */
+  async createFile(params, context) {
+    const {
+      filePath,
+      content = "",
+      encoding = "utf8",
+      createDir = true,
+    } = params;
+
+    if (!filePath) {
+      throw new Error("File path is required");
+    }
+
+    logger.info(`[FileTransferHandler] 创建文件: ${filePath}`);
+
+    const fullPath = this._resolvePath(filePath);
+
+    // 检查文件是否已存在
+    try {
+      await fs.access(fullPath);
+      throw new Error(`File already exists: ${filePath}`);
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        throw error;
+      }
+      // 文件不存在，继续创建
+    }
+
+    // 自动创建目录
+    if (createDir) {
+      await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    }
+
+    // 写入文件
+    await fs.writeFile(fullPath, content, encoding);
+
+    const stats = await fs.stat(fullPath);
+
+    return {
+      filePath,
+      size: stats.size,
+      encoding,
+      message: "File created successfully",
+    };
+  }
+
+  /**
+   * 创建目录
+   *
+   * @param {Object} params - 参数
+   * @param {string} params.dirPath - 目录路径
+   * @param {boolean} params.recursive - 是否递归创建（默认 true）
+   */
+  async makeDirectory(params, context) {
+    const { dirPath, recursive = true } = params;
+
+    if (!dirPath) {
+      throw new Error("Directory path is required");
+    }
+
+    logger.info(`[FileTransferHandler] 创建目录: ${dirPath}`);
+
+    const fullPath = this._resolvePath(dirPath);
+
+    await fs.mkdir(fullPath, { recursive });
+
+    return {
+      dirPath,
+      message: "Directory created successfully",
+    };
   }
 
   /**
