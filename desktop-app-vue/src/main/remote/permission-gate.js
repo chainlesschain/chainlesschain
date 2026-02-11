@@ -57,6 +57,17 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "channel.*.send": PERMISSION_LEVELS.NORMAL,
   "browser.navigate": PERMISSION_LEVELS.NORMAL,
   "browser.extractData": PERMISSION_LEVELS.NORMAL,
+  "browser.openUrl": PERMISSION_LEVELS.NORMAL,
+  "browser.screenshot": PERMISSION_LEVELS.NORMAL,
+  "browser.getStatus": PERMISSION_LEVELS.PUBLIC,
+  "browser.listTabs": PERMISSION_LEVELS.PUBLIC,
+  "browser.takeSnapshot": PERMISSION_LEVELS.NORMAL,
+  "browser.findElement": PERMISSION_LEVELS.NORMAL,
+  "browser.start": PERMISSION_LEVELS.ADMIN,
+  "browser.stop": PERMISSION_LEVELS.ADMIN,
+  "browser.closeTab": PERMISSION_LEVELS.NORMAL,
+  "browser.focusTab": PERMISSION_LEVELS.NORMAL,
+  "browser.act": PERMISSION_LEVELS.ADMIN,
   // 剪贴板操作
   "clipboard.get": PERMISSION_LEVELS.NORMAL,
   "clipboard.set": PERMISSION_LEVELS.NORMAL,
@@ -86,6 +97,8 @@ const DEFAULT_COMMAND_PERMISSIONS = {
 
   // Level 3: Admin - 高级操作
   "file.write": PERMISSION_LEVELS.ADMIN,
+  "file.create": PERMISSION_LEVELS.ADMIN,
+  "file.mkdir": PERMISSION_LEVELS.ADMIN,
   "file.delete": PERMISSION_LEVELS.ADMIN,
   "knowledge.deleteNote": PERMISSION_LEVELS.ADMIN,
   "system.execCommand": PERMISSION_LEVELS.ADMIN, // 暂定为 Admin，可升级到 ROOT
