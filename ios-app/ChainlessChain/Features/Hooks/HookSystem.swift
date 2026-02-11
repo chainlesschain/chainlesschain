@@ -16,7 +16,7 @@ public enum HookPriority: Int, Comparable {
 }
 
 /// 钩子类型
-public enum HookType: String, Codable {
+public enum HookType: String, Codable, CaseIterable {
     case sync = "sync"       // 同步钩子
     case async = "async"     // 异步钩子
     case command = "command" // Shell 命令钩子
@@ -62,15 +62,17 @@ public enum HookEvent: String, CaseIterable, Codable {
 }
 
 /// 钩子执行结果
-public enum HookResult: String {
+public enum HookResult: String, Codable {
     case `continue` = "continue"  // 继续执行
-    case prevent = "prevent"      // 阻止执行
+    case reject = "reject"        // 拒绝执行
+    case prevent = "prevent"      // 阻止执行 (同reject)
     case modify = "modify"        // 修改数据
     case skip = "skip"            // 跳过后续钩子
+    case error = "error"          // 执行错误
 }
 
 /// 钩子配置
-public struct HookConfig: Codable, Identifiable {
+public struct HookConfig: Codable, Identifiable, Hashable {
     public let id: String
     public let event: HookEvent
     public var name: String
@@ -80,9 +82,13 @@ public struct HookConfig: Codable, Identifiable {
     public var description: String?
     public var command: String?      // 用于 command 类型
     public var script: String?       // 用于 script 类型
-    public var timeout: TimeInterval
+    public var timeout: Int          // 超时时间（秒）
     public var metadata: [String: String]
     public let registeredAt: Date
+
+    // 条件和匹配
+    public var conditions: [String]      // 执行条件
+    public var matchTools: [String]?     // 匹配的工具（用于工具相关事件）
 
     // 运行时统计
     public var executionCount: Int
@@ -100,8 +106,10 @@ public struct HookConfig: Codable, Identifiable {
         description: String? = nil,
         command: String? = nil,
         script: String? = nil,
-        timeout: TimeInterval = 30,
-        metadata: [String: String] = [:]
+        timeout: Int = 30,
+        metadata: [String: String] = [:],
+        conditions: [String] = [],
+        matchTools: [String]? = nil
     ) {
         self.id = id
         self.event = event
@@ -114,11 +122,22 @@ public struct HookConfig: Codable, Identifiable {
         self.script = script
         self.timeout = timeout
         self.metadata = metadata
+        self.conditions = conditions
+        self.matchTools = matchTools
         self.registeredAt = Date()
         self.executionCount = 0
         self.errorCount = 0
         self.lastExecutedAt = nil
         self.avgExecutionTime = 0
+    }
+
+    // Hashable 实现
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    public static func == (lhs: HookConfig, rhs: HookConfig) -> Bool {
+        lhs.id == rhs.id
     }
 }
 
@@ -311,9 +330,9 @@ public class HookSystem: ObservableObject {
 
     /// 启用/禁用钩子
     public func setHookEnabled(hookId: String, enabled: Bool) {
-        guard var hook = hookById[hookId] else { return }
+        guard let hook = hookById[hookId] else { return }
 
-        var config = hook.config
+        let config = hook.config
         // Note: config is a struct, so we need to update in-place
         hookById[hookId] = RegisteredHook(
             config: HookConfig(
@@ -327,7 +346,9 @@ public class HookSystem: ObservableObject {
                 command: config.command,
                 script: config.script,
                 timeout: config.timeout,
-                metadata: config.metadata
+                metadata: config.metadata,
+                conditions: config.conditions,
+                matchTools: config.matchTools
             ),
             handler: hook.handler
         )
@@ -369,7 +390,7 @@ public class HookSystem: ObservableObject {
                 var hookContext = effectiveContext
                 hookContext.data = currentData
 
-                let response = try await withTimeout(seconds: hook.config.timeout) {
+                let response = try await withTimeout(seconds: TimeInterval(hook.config.timeout)) {
                     try await handler(hookContext)
                 }
 
