@@ -901,6 +901,288 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
+      // ==================== Phase 17: Advanced Debugging ====================
+
+      // WebSocket Debugging
+      case "enableWebSocketDebugging":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.enable",
+          params,
+        );
+      case "disableWebSocketDebugging":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.disable",
+          params,
+        );
+      case "getWebSocketConnections":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.getConnections",
+          params,
+        );
+      case "getWebSocketMessages":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.getMessages",
+          params,
+        );
+      case "sendWebSocketMessage":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.send",
+          params,
+        );
+      case "closeWebSocketConnection":
+        return await this.server.sendCommand(
+          clientId,
+          "websocket.close",
+          params,
+        );
+
+      // Service Worker Management
+      case "listServiceWorkers":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.list",
+          params,
+        );
+      case "getServiceWorkerInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.getInfo",
+          params,
+        );
+      case "unregisterServiceWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.unregister",
+          params,
+        );
+      case "updateServiceWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.update",
+          params,
+        );
+      case "postMessageToServiceWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "serviceWorker.postMessage",
+          params,
+        );
+
+      // Cache Storage
+      case "listCaches":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.listCaches",
+          params,
+        );
+      case "listCacheEntries":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.listEntries",
+          params,
+        );
+      case "getCacheEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.getEntry",
+          params,
+        );
+      case "deleteCacheEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.deleteEntry",
+          params,
+        );
+      case "deleteCache":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.deleteCache",
+          params,
+        );
+      case "addCacheEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "cache.addEntry",
+          params,
+        );
+
+      // Security Info
+      case "getCertificateInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getCertificate",
+          params,
+        );
+      case "getSecurityState":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getSecurityState",
+          params,
+        );
+      case "checkMixedContent":
+        return await this.server.sendCommand(
+          clientId,
+          "security.checkMixedContent",
+          params,
+        );
+      case "getSitePermissions":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getPermissions",
+          params,
+        );
+
+      // Animation Control
+      case "listAnimations":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.list",
+          params,
+        );
+      case "pauseAnimation":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.pause",
+          params,
+        );
+      case "playAnimation":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.play",
+          params,
+        );
+      case "setAnimationSpeed":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.setSpeed",
+          params,
+        );
+      case "seekAnimation":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.seekTo",
+          params,
+        );
+      case "cancelAnimation":
+        return await this.server.sendCommand(
+          clientId,
+          "animation.cancel",
+          params,
+        );
+
+      // Layout Inspection
+      case "getBoxModel":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.getBoxModel",
+          params,
+        );
+      case "getComputedLayout":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.getComputedLayout",
+          params,
+        );
+      case "highlightNode":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.highlightNode",
+          params,
+        );
+      case "hideHighlight":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.hideHighlight",
+          params,
+        );
+      case "getNodeInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.getNodeInfo",
+          params,
+        );
+      case "forceElementState":
+        return await this.server.sendCommand(
+          clientId,
+          "layout.forceElementState",
+          params,
+        );
+
+      // Coverage Analysis
+      case "startJSCoverage":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.startJSCoverage",
+          params,
+        );
+      case "stopJSCoverage":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.stopJSCoverage",
+          params,
+        );
+      case "startCSSCoverage":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.startCSSCoverage",
+          params,
+        );
+      case "stopCSSCoverage":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.stopCSSCoverage",
+          params,
+        );
+      case "getJSCoverageResults":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.getJSCoverage",
+          params,
+        );
+      case "getCSSCoverageResults":
+        return await this.server.sendCommand(
+          clientId,
+          "coverage.getCSSCoverage",
+          params,
+        );
+
+      // Memory Profiling
+      case "getMemoryInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.getInfo",
+          params,
+        );
+      case "takeHeapSnapshot":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.takeHeapSnapshot",
+          params,
+        );
+      case "startMemorySampling":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.startSampling",
+          params,
+        );
+      case "stopMemorySampling":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.stopSampling",
+          params,
+        );
+      case "forceGarbageCollection":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.forceGC",
+          params,
+        );
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

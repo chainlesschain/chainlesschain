@@ -331,6 +331,68 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.listFrames": PERMISSION_LEVELS.NORMAL,
   "extension.executeScriptInFrame": PERMISSION_LEVELS.ADMIN,
 
+  // ==================== Phase 17: Advanced Debugging ====================
+
+  // 扩展 - WebSocket 调试
+  "extension.enableWebSocketDebugging": PERMISSION_LEVELS.ADMIN,
+  "extension.disableWebSocketDebugging": PERMISSION_LEVELS.ADMIN,
+  "extension.getWebSocketConnections": PERMISSION_LEVELS.NORMAL,
+  "extension.getWebSocketMessages": PERMISSION_LEVELS.NORMAL,
+  "extension.sendWebSocketMessage": PERMISSION_LEVELS.ADMIN,
+  "extension.closeWebSocketConnection": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - Service Worker 管理
+  "extension.listServiceWorkers": PERMISSION_LEVELS.NORMAL,
+  "extension.getServiceWorkerInfo": PERMISSION_LEVELS.NORMAL,
+  "extension.unregisterServiceWorker": PERMISSION_LEVELS.ADMIN,
+  "extension.updateServiceWorker": PERMISSION_LEVELS.ADMIN,
+  "extension.postMessageToServiceWorker": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - Cache Storage
+  "extension.listCaches": PERMISSION_LEVELS.NORMAL,
+  "extension.listCacheEntries": PERMISSION_LEVELS.NORMAL,
+  "extension.getCacheEntry": PERMISSION_LEVELS.NORMAL,
+  "extension.deleteCacheEntry": PERMISSION_LEVELS.ADMIN,
+  "extension.deleteCache": PERMISSION_LEVELS.ADMIN,
+  "extension.addCacheEntry": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 安全信息
+  "extension.getCertificateInfo": PERMISSION_LEVELS.NORMAL,
+  "extension.getSecurityState": PERMISSION_LEVELS.PUBLIC,
+  "extension.checkMixedContent": PERMISSION_LEVELS.PUBLIC,
+  "extension.getSitePermissions": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 动画控制
+  "extension.listAnimations": PERMISSION_LEVELS.NORMAL,
+  "extension.pauseAnimation": PERMISSION_LEVELS.NORMAL,
+  "extension.playAnimation": PERMISSION_LEVELS.NORMAL,
+  "extension.setAnimationSpeed": PERMISSION_LEVELS.NORMAL,
+  "extension.seekAnimation": PERMISSION_LEVELS.NORMAL,
+  "extension.cancelAnimation": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 布局检查
+  "extension.getBoxModel": PERMISSION_LEVELS.PUBLIC,
+  "extension.getComputedLayout": PERMISSION_LEVELS.PUBLIC,
+  "extension.highlightNode": PERMISSION_LEVELS.NORMAL,
+  "extension.hideHighlight": PERMISSION_LEVELS.NORMAL,
+  "extension.getNodeInfo": PERMISSION_LEVELS.PUBLIC,
+  "extension.forceElementState": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 覆盖率分析
+  "extension.startJSCoverage": PERMISSION_LEVELS.ADMIN,
+  "extension.stopJSCoverage": PERMISSION_LEVELS.ADMIN,
+  "extension.startCSSCoverage": PERMISSION_LEVELS.ADMIN,
+  "extension.stopCSSCoverage": PERMISSION_LEVELS.ADMIN,
+  "extension.getJSCoverageResults": PERMISSION_LEVELS.NORMAL,
+  "extension.getCSSCoverageResults": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 内存分析
+  "extension.getMemoryInfo": PERMISSION_LEVELS.NORMAL,
+  "extension.takeHeapSnapshot": PERMISSION_LEVELS.ADMIN,
+  "extension.startMemorySampling": PERMISSION_LEVELS.ADMIN,
+  "extension.stopMemorySampling": PERMISSION_LEVELS.ADMIN,
+  "extension.forceGarbageCollection": PERMISSION_LEVELS.ADMIN,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,

@@ -418,7 +418,11 @@ async function executeCommand(method, params) {
     case "network.getRequests":
       return await getNetworkRequests(params.tabId);
     case "network.mockResponse":
-      return await mockNetworkResponse(params.tabId, params.url, params.response);
+      return await mockNetworkResponse(
+        params.tabId,
+        params.url,
+        params.response,
+      );
 
     // Console capture
     case "console.enable":
@@ -434,13 +438,33 @@ async function executeCommand(method, params) {
     case "indexedDB.getDatabases":
       return await getIndexedDBDatabases(params.tabId);
     case "indexedDB.getData":
-      return await getIndexedDBData(params.tabId, params.dbName, params.storeName, params.query);
+      return await getIndexedDBData(
+        params.tabId,
+        params.dbName,
+        params.storeName,
+        params.query,
+      );
     case "indexedDB.setData":
-      return await setIndexedDBData(params.tabId, params.dbName, params.storeName, params.key, params.value);
+      return await setIndexedDBData(
+        params.tabId,
+        params.dbName,
+        params.storeName,
+        params.key,
+        params.value,
+      );
     case "indexedDB.deleteData":
-      return await deleteIndexedDBData(params.tabId, params.dbName, params.storeName, params.key);
+      return await deleteIndexedDBData(
+        params.tabId,
+        params.dbName,
+        params.storeName,
+        params.key,
+      );
     case "indexedDB.clearStore":
-      return await clearIndexedDBStore(params.tabId, params.dbName, params.storeName);
+      return await clearIndexedDBStore(
+        params.tabId,
+        params.dbName,
+        params.storeName,
+      );
 
     // Performance
     case "performance.getMetrics":
@@ -468,11 +492,142 @@ async function executeCommand(method, params) {
     case "frames.list":
       return await listFrames(params.tabId);
     case "frames.executeScript":
-      return await executeScriptInFrame(params.tabId, params.frameId, params.script);
+      return await executeScriptInFrame(
+        params.tabId,
+        params.frameId,
+        params.script,
+      );
 
     // Extension status
     case "status.get":
       return getStatus();
+
+    // ==================== Phase 17: Advanced Debugging ====================
+
+    // WebSocket Debugging
+    case "websocket.enable":
+      return await enableWebSocketDebugging(params.tabId);
+    case "websocket.disable":
+      return await disableWebSocketDebugging(params.tabId);
+    case "websocket.getConnections":
+      return getWebSocketConnections(params.tabId);
+    case "websocket.getMessages":
+      return getWebSocketMessages(params.tabId, params.connectionId);
+    case "websocket.send":
+      return await sendWebSocketMessage(
+        params.tabId,
+        params.connectionId,
+        params.data,
+      );
+    case "websocket.close":
+      return await closeWebSocketConnection(params.tabId, params.connectionId);
+
+    // Service Worker Management
+    case "serviceWorker.list":
+      return await listServiceWorkers();
+    case "serviceWorker.getInfo":
+      return await getServiceWorkerInfo(params.registrationId);
+    case "serviceWorker.unregister":
+      return await unregisterServiceWorker(params.tabId, params.scopeUrl);
+    case "serviceWorker.update":
+      return await updateServiceWorker(params.tabId, params.scopeUrl);
+    case "serviceWorker.postMessage":
+      return await postMessageToServiceWorker(params.tabId, params.message);
+
+    // Cache Storage
+    case "cache.listCaches":
+      return await listCaches(params.tabId);
+    case "cache.listEntries":
+      return await listCacheEntries(params.tabId, params.cacheName);
+    case "cache.getEntry":
+      return await getCacheEntry(params.tabId, params.cacheName, params.url);
+    case "cache.deleteEntry":
+      return await deleteCacheEntry(params.tabId, params.cacheName, params.url);
+    case "cache.deleteCache":
+      return await deleteCache(params.tabId, params.cacheName);
+    case "cache.addEntry":
+      return await addCacheEntry(
+        params.tabId,
+        params.cacheName,
+        params.url,
+        params.response,
+      );
+
+    // Security Info
+    case "security.getCertificate":
+      return await getCertificateInfo(params.tabId);
+    case "security.getSecurityState":
+      return await getSecurityState(params.tabId);
+    case "security.checkMixedContent":
+      return await checkMixedContent(params.tabId);
+    case "security.getPermissions":
+      return await getSitePermissions(params.tabId);
+
+    // Animation Control
+    case "animation.list":
+      return await listAnimations(params.tabId);
+    case "animation.pause":
+      return await pauseAnimation(params.tabId, params.animationId);
+    case "animation.play":
+      return await playAnimation(params.tabId, params.animationId);
+    case "animation.setSpeed":
+      return await setAnimationSpeed(
+        params.tabId,
+        params.animationId,
+        params.playbackRate,
+      );
+    case "animation.seekTo":
+      return await seekAnimation(
+        params.tabId,
+        params.animationId,
+        params.currentTime,
+      );
+    case "animation.cancel":
+      return await cancelAnimation(params.tabId, params.animationId);
+
+    // Layout Inspection
+    case "layout.getBoxModel":
+      return await getBoxModel(params.tabId, params.selector);
+    case "layout.getComputedLayout":
+      return await getComputedLayout(params.tabId, params.selector);
+    case "layout.highlightNode":
+      return await highlightNode(params.tabId, params.selector, params.options);
+    case "layout.hideHighlight":
+      return await hideHighlight(params.tabId);
+    case "layout.getNodeInfo":
+      return await getNodeInfo(params.tabId, params.selector);
+    case "layout.forceElementState":
+      return await forceElementState(
+        params.tabId,
+        params.selector,
+        params.state,
+      );
+
+    // Coverage Analysis
+    case "coverage.startJSCoverage":
+      return await startJSCoverage(params.tabId, params.options);
+    case "coverage.stopJSCoverage":
+      return await stopJSCoverage(params.tabId);
+    case "coverage.startCSSCoverage":
+      return await startCSSCoverage(params.tabId);
+    case "coverage.stopCSSCoverage":
+      return await stopCSSCoverage(params.tabId);
+    case "coverage.getJSCoverage":
+      return getJSCoverageResults(params.tabId);
+    case "coverage.getCSSCoverage":
+      return getCSSCoverageResults(params.tabId);
+
+    // Memory Profiling
+    case "memory.getInfo":
+      return await getMemoryInfo(params.tabId);
+    case "memory.takeHeapSnapshot":
+      return await takeHeapSnapshot(params.tabId);
+    case "memory.startSampling":
+      return await startMemorySampling(params.tabId, params.options);
+    case "memory.stopSampling":
+      return await stopMemorySampling(params.tabId);
+    case "memory.forceGC":
+      return await forceGarbageCollection(params.tabId);
 
     default:
       throw new Error(`Unknown method: ${method}`);
@@ -1617,7 +1772,17 @@ async function setRequestBlocking(patterns) {
     id: index + 1,
     priority: 1,
     action: { type: "block" },
-    condition: { urlFilter: pattern, resourceTypes: ["main_frame", "sub_frame", "script", "stylesheet", "image", "xmlhttprequest"] },
+    condition: {
+      urlFilter: pattern,
+      resourceTypes: [
+        "main_frame",
+        "sub_frame",
+        "script",
+        "stylesheet",
+        "image",
+        "xmlhttprequest",
+      ],
+    },
   }));
 
   try {
@@ -1666,7 +1831,9 @@ async function mockNetworkResponse(tabId, urlPattern, response) {
         await chrome.debugger.sendCommand({ tabId }, "Fetch.fulfillRequest", {
           requestId: params.requestId,
           responseCode: mockResp.status || 200,
-          responseHeaders: Object.entries(mockResp.headers || {}).map(([name, value]) => ({ name, value })),
+          responseHeaders: Object.entries(mockResp.headers || {}).map(
+            ([name, value]) => ({ name, value }),
+          ),
           body: btoa(JSON.stringify(mockResp.body || {})),
         });
       } else {
@@ -1704,7 +1871,9 @@ async function enableConsoleCapture(tabId) {
       if (method === "Runtime.consoleAPICalled") {
         logs.push({
           type: params.type,
-          args: params.args.map((arg) => arg.value || arg.description || arg.type),
+          args: params.args.map(
+            (arg) => arg.value || arg.description || arg.type,
+          ),
           timestamp: params.timestamp,
           stackTrace: params.stackTrace,
         });
@@ -1766,7 +1935,12 @@ async function getIndexedDBDatabases(tabId) {
     func: async () => {
       try {
         const databases = await indexedDB.databases();
-        return { databases: databases.map((db) => ({ name: db.name, version: db.version })) };
+        return {
+          databases: databases.map((db) => ({
+            name: db.name,
+            version: db.version,
+          })),
+        };
       } catch (error) {
         return { error: error.message };
       }
@@ -1950,7 +2124,8 @@ async function getPerformanceMetrics(tabId) {
         dnsLookup: timing.domainLookupEnd - timing.domainLookupStart,
         tcpConnection: timing.connectEnd - timing.connectStart,
         serverResponse: timing.responseStart - timing.requestStart,
-        domContentLoaded: timing.domContentLoadedEventEnd - timing.navigationStart,
+        domContentLoaded:
+          timing.domContentLoadedEventEnd - timing.navigationStart,
         pageLoad: timing.loadEventEnd - timing.navigationStart,
         domInteractive: timing.domInteractive - timing.navigationStart,
 
@@ -2006,7 +2181,8 @@ async function startPerformanceTrace(tabId) {
   try {
     await chrome.debugger.attach({ tabId }, "1.3");
     await chrome.debugger.sendCommand({ tabId }, "Tracing.start", {
-      categories: "devtools.timeline,v8.execute,disabled-by-default-devtools.timeline",
+      categories:
+        "devtools.timeline,v8.execute,disabled-by-default-devtools.timeline",
       options: "sampling-frequency=10000",
     });
 
@@ -2111,7 +2287,8 @@ async function getAccessibilityTree(tabId, selector) {
           return null;
         } // Limit depth
 
-        const computedRole = el.getAttribute("role") || el.tagName.toLowerCase();
+        const computedRole =
+          el.getAttribute("role") || el.tagName.toLowerCase();
         const ariaLabel = el.getAttribute("aria-label");
         const ariaDescribedBy = el.getAttribute("aria-describedby");
         const ariaLabelledBy = el.getAttribute("aria-labelledby");
@@ -2125,7 +2302,9 @@ async function getAccessibilityTree(tabId, selector) {
           ariaLabelledBy,
           ariaHidden: el.getAttribute("aria-hidden"),
           tabIndex: el.tabIndex,
-          focusable: el.tabIndex >= 0 || ["A", "BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(el.tagName),
+          focusable:
+            el.tabIndex >= 0 ||
+            ["A", "BUTTON", "INPUT", "SELECT", "TEXTAREA"].includes(el.tagName),
           children: [],
         };
 
@@ -2218,6 +2397,1218 @@ async function showNotification(params) {
     priority: params.priority || 0,
   });
   return { id };
+}
+
+// ==================== Phase 17: WebSocket Debugging ====================
+
+// Store WebSocket debugging state per tab
+const webSocketState = new Map();
+
+async function enableWebSocketDebugging(tabId) {
+  try {
+    // Check if already attached
+    const state = webSocketState.get(tabId);
+    if (state?.enabled) {
+      return { success: true, message: "Already enabled" };
+    }
+
+    await chrome.debugger.attach({ tabId }, "1.3");
+    await chrome.debugger.sendCommand({ tabId }, "Network.enable");
+
+    // Initialize state
+    webSocketState.set(tabId, {
+      enabled: true,
+      connections: new Map(),
+      messages: new Map(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function disableWebSocketDebugging(tabId) {
+  try {
+    const state = webSocketState.get(tabId);
+    if (state?.enabled) {
+      await chrome.debugger.detach({ tabId });
+      webSocketState.delete(tabId);
+    }
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+function getWebSocketConnections(tabId) {
+  const state = webSocketState.get(tabId);
+  if (!state) {
+    return { connections: [] };
+  }
+  return {
+    connections: Array.from(state.connections.values()),
+  };
+}
+
+function getWebSocketMessages(tabId, connectionId) {
+  const state = webSocketState.get(tabId);
+  if (!state) {
+    return { messages: [] };
+  }
+  const messages = state.messages.get(connectionId) || [];
+  return { messages };
+}
+
+async function sendWebSocketMessage(tabId, connectionId, data) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (connId, payload) => {
+        const ws = window.__chainlessWS?.get(connId);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(payload);
+          return { success: true };
+        }
+        return { error: "WebSocket not found or not open" };
+      },
+      args: [connectionId, data],
+    });
+    return result[0]?.result || { error: "Failed to send" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function closeWebSocketConnection(tabId, connectionId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (connId) => {
+        const ws = window.__chainlessWS?.get(connId);
+        if (ws) {
+          ws.close();
+          return { success: true };
+        }
+        return { error: "WebSocket not found" };
+      },
+      args: [connectionId],
+    });
+    return result[0]?.result || { error: "Failed to close" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// Listen for WebSocket events via debugger
+chrome.debugger.onEvent.addListener((source, method, params) => {
+  const state = webSocketState.get(source.tabId);
+  if (!state) return;
+
+  switch (method) {
+    case "Network.webSocketCreated":
+      state.connections.set(params.requestId, {
+        id: params.requestId,
+        url: params.url,
+        initiator: params.initiator,
+        createdAt: Date.now(),
+      });
+      state.messages.set(params.requestId, []);
+      break;
+
+    case "Network.webSocketClosed":
+      const conn = state.connections.get(params.requestId);
+      if (conn) {
+        conn.closedAt = Date.now();
+      }
+      break;
+
+    case "Network.webSocketFrameSent":
+    case "Network.webSocketFrameReceived":
+      const messages = state.messages.get(params.requestId);
+      if (messages) {
+        messages.push({
+          type: method === "Network.webSocketFrameSent" ? "sent" : "received",
+          data: params.response.payloadData,
+          opcode: params.response.opcode,
+          timestamp: params.timestamp,
+        });
+      }
+      break;
+  }
+});
+
+// ==================== Phase 17: Service Worker Management ====================
+
+async function listServiceWorkers() {
+  try {
+    const registrations = await chrome.scripting.executeScript({
+      target: {
+        tabId: (
+          await chrome.tabs.query({ active: true, currentWindow: true })
+        )[0].id,
+      },
+      func: async () => {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        return regs.map((reg) => ({
+          scope: reg.scope,
+          updateViaCache: reg.updateViaCache,
+          installing: reg.installing
+            ? {
+                state: reg.installing.state,
+                scriptURL: reg.installing.scriptURL,
+              }
+            : null,
+          waiting: reg.waiting
+            ? { state: reg.waiting.state, scriptURL: reg.waiting.scriptURL }
+            : null,
+          active: reg.active
+            ? { state: reg.active.state, scriptURL: reg.active.scriptURL }
+            : null,
+        }));
+      },
+    });
+    return { registrations: registrations[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getServiceWorkerInfo(registrationId) {
+  try {
+    // Use ServiceWorker API via content script
+    const result = await chrome.scripting.executeScript({
+      target: {
+        tabId: (
+          await chrome.tabs.query({ active: true, currentWindow: true })
+        )[0].id,
+      },
+      func: async (regId) => {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        const reg = regs.find((r) => r.scope === regId);
+        if (!reg) return { error: "Registration not found" };
+        return {
+          scope: reg.scope,
+          updateViaCache: reg.updateViaCache,
+          installing: reg.installing?.state,
+          waiting: reg.waiting?.state,
+          active: reg.active?.state,
+          navigationPreload: await reg.navigationPreload?.getState?.(),
+        };
+      },
+      args: [registrationId],
+    });
+    return result[0]?.result || { error: "Failed to get info" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function unregisterServiceWorker(tabId, scopeUrl) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (scope) => {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        const reg = regs.find((r) => r.scope === scope || !scope);
+        if (reg) {
+          const success = await reg.unregister();
+          return { success, scope: reg.scope };
+        }
+        return { error: "Registration not found" };
+      },
+      args: [scopeUrl],
+    });
+    return result[0]?.result || { error: "Failed to unregister" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function updateServiceWorker(tabId, scopeUrl) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (scope) => {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        const reg = regs.find((r) => r.scope === scope || !scope);
+        if (reg) {
+          await reg.update();
+          return { success: true, scope: reg.scope };
+        }
+        return { error: "Registration not found" };
+      },
+      args: [scopeUrl],
+    });
+    return result[0]?.result || { error: "Failed to update" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function postMessageToServiceWorker(tabId, message) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (msg) => {
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage(msg);
+          return { success: true };
+        }
+        return { error: "No active service worker controller" };
+      },
+      args: [message],
+    });
+    return result[0]?.result || { error: "Failed to post message" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 17: Cache Storage ====================
+
+async function listCaches(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        const cacheNames = await caches.keys();
+        const cacheInfo = await Promise.all(
+          cacheNames.map(async (name) => {
+            const cache = await caches.open(name);
+            const keys = await cache.keys();
+            return { name, entryCount: keys.length };
+          }),
+        );
+        return { caches: cacheInfo };
+      },
+    });
+    return result[0]?.result || { caches: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function listCacheEntries(tabId, cacheName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (name) => {
+        const cache = await caches.open(name);
+        const requests = await cache.keys();
+        return {
+          entries: requests.map((req) => ({
+            url: req.url,
+            method: req.method,
+            headers: Object.fromEntries(req.headers.entries()),
+          })),
+        };
+      },
+      args: [cacheName],
+    });
+    return result[0]?.result || { entries: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getCacheEntry(tabId, cacheName, url) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (name, reqUrl) => {
+        const cache = await caches.open(name);
+        const response = await cache.match(reqUrl);
+        if (!response) return { error: "Entry not found" };
+        const text = await response.text();
+        return {
+          url: reqUrl,
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries()),
+          body: text.substring(0, 10000), // Limit body size
+          bodyTruncated: text.length > 10000,
+        };
+      },
+      args: [cacheName, url],
+    });
+    return result[0]?.result || { error: "Failed to get entry" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function deleteCacheEntry(tabId, cacheName, url) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (name, reqUrl) => {
+        const cache = await caches.open(name);
+        const deleted = await cache.delete(reqUrl);
+        return { success: deleted };
+      },
+      args: [cacheName, url],
+    });
+    return result[0]?.result || { success: false };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function deleteCache(tabId, cacheName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (name) => {
+        const deleted = await caches.delete(name);
+        return { success: deleted };
+      },
+      args: [cacheName],
+    });
+    return result[0]?.result || { success: false };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function addCacheEntry(tabId, cacheName, url, responseData) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (name, reqUrl, respData) => {
+        const cache = await caches.open(name);
+        const response = new Response(respData.body, {
+          status: respData.status || 200,
+          headers: respData.headers || {},
+        });
+        await cache.put(reqUrl, response);
+        return { success: true };
+      },
+      args: [cacheName, url, responseData],
+    });
+    return result[0]?.result || { success: false };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 17: Security Info ====================
+
+async function getCertificateInfo(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    const result = await chrome.debugger.sendCommand(
+      { tabId },
+      "Security.enable",
+    );
+    const securityState = await chrome.debugger.sendCommand(
+      { tabId },
+      "Security.getSecurityState",
+    );
+    return {
+      securityState: securityState.securityState,
+      schemeIsCryptographic: securityState.schemeIsCryptographic,
+      explanations: securityState.explanations,
+      insecureContentStatus: securityState.insecureContentStatus,
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSecurityState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          protocol: window.location.protocol,
+          isSecure: window.isSecureContext,
+          ancestorOrigins: [...(window.location.ancestorOrigins || [])],
+          origin: window.location.origin,
+        };
+      },
+    });
+    return result[0]?.result || { error: "Failed to get security state" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function checkMixedContent(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const resources = performance.getEntriesByType("resource");
+        const mixedContent = {
+          insecureResources: [],
+          secureResources: [],
+        };
+        resources.forEach((res) => {
+          if (res.name.startsWith("http://")) {
+            mixedContent.insecureResources.push({
+              url: res.name,
+              type: res.initiatorType,
+            });
+          } else if (res.name.startsWith("https://")) {
+            mixedContent.secureResources.push(res.name);
+          }
+        });
+        mixedContent.hasMixedContent =
+          mixedContent.insecureResources.length > 0;
+        return mixedContent;
+      },
+    });
+    return result[0]?.result || { error: "Failed to check mixed content" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSitePermissions(tabId) {
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    const origin = new URL(tab.url).origin;
+
+    const permissions = {};
+    const permissionNames = [
+      "geolocation",
+      "notifications",
+      "camera",
+      "microphone",
+      "clipboard-read",
+      "clipboard-write",
+      "persistent-storage",
+    ];
+
+    for (const name of permissionNames) {
+      try {
+        const result = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: async (permName) => {
+            try {
+              const status = await navigator.permissions.query({
+                name: permName,
+              });
+              return status.state;
+            } catch {
+              return "unsupported";
+            }
+          },
+          args: [name],
+        });
+        permissions[name] = result[0]?.result || "unknown";
+      } catch {
+        permissions[name] = "error";
+      }
+    }
+
+    return { origin, permissions };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// Helper function to ensure debugger is attached
+async function ensureDebuggerAttached(tabId) {
+  try {
+    await chrome.debugger.attach({ tabId }, "1.3");
+  } catch (error) {
+    // Already attached is ok
+    if (!error.message.includes("already attached")) {
+      throw error;
+    }
+  }
+}
+
+// ==================== Phase 17: Animation Control ====================
+
+async function listAnimations(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Animation.enable");
+
+    // Get current animations via page execution
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const animations = document.getAnimations();
+        return animations.map((anim, index) => ({
+          id: anim.id || `anim-${index}`,
+          playState: anim.playState,
+          currentTime: anim.currentTime,
+          playbackRate: anim.playbackRate,
+          effect: anim.effect
+            ? {
+                target: anim.effect.target?.tagName,
+                targetSelector: anim.effect.target?.id
+                  ? `#${anim.effect.target.id}`
+                  : anim.effect.target?.className
+                    ? `.${anim.effect.target.className.split(" ")[0]}`
+                    : null,
+              }
+            : null,
+        }));
+      },
+    });
+    return { animations: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function pauseAnimation(tabId, animationId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (animId) => {
+        const animations = document.getAnimations();
+        const anim = animations.find(
+          (a) => a.id === animId || animations.indexOf(a) === parseInt(animId),
+        );
+        if (anim) {
+          anim.pause();
+          return { success: true, playState: anim.playState };
+        }
+        return { error: "Animation not found" };
+      },
+      args: [animationId],
+    });
+    return result[0]?.result || { error: "Failed to pause" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function playAnimation(tabId, animationId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (animId) => {
+        const animations = document.getAnimations();
+        const anim = animations.find(
+          (a) => a.id === animId || animations.indexOf(a) === parseInt(animId),
+        );
+        if (anim) {
+          anim.play();
+          return { success: true, playState: anim.playState };
+        }
+        return { error: "Animation not found" };
+      },
+      args: [animationId],
+    });
+    return result[0]?.result || { error: "Failed to play" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setAnimationSpeed(tabId, animationId, playbackRate) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (animId, rate) => {
+        const animations = document.getAnimations();
+        const anim = animations.find(
+          (a) => a.id === animId || animations.indexOf(a) === parseInt(animId),
+        );
+        if (anim) {
+          anim.playbackRate = rate;
+          return { success: true, playbackRate: anim.playbackRate };
+        }
+        return { error: "Animation not found" };
+      },
+      args: [animationId, playbackRate],
+    });
+    return result[0]?.result || { error: "Failed to set speed" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function seekAnimation(tabId, animationId, currentTime) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (animId, time) => {
+        const animations = document.getAnimations();
+        const anim = animations.find(
+          (a) => a.id === animId || animations.indexOf(a) === parseInt(animId),
+        );
+        if (anim) {
+          anim.currentTime = time;
+          return { success: true, currentTime: anim.currentTime };
+        }
+        return { error: "Animation not found" };
+      },
+      args: [animationId, currentTime],
+    });
+    return result[0]?.result || { error: "Failed to seek" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function cancelAnimation(tabId, animationId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (animId) => {
+        const animations = document.getAnimations();
+        const anim = animations.find(
+          (a) => a.id === animId || animations.indexOf(a) === parseInt(animId),
+        );
+        if (anim) {
+          anim.cancel();
+          return { success: true };
+        }
+        return { error: "Animation not found" };
+      },
+      args: [animationId],
+    });
+    return result[0]?.result || { error: "Failed to cancel" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 17: Layout Inspection ====================
+
+async function getBoxModel(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return { error: "Element not found" };
+
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+
+        return {
+          content: {
+            x:
+              rect.left +
+              parseFloat(style.paddingLeft) +
+              parseFloat(style.borderLeftWidth),
+            y:
+              rect.top +
+              parseFloat(style.paddingTop) +
+              parseFloat(style.borderTopWidth),
+            width:
+              rect.width -
+              parseFloat(style.paddingLeft) -
+              parseFloat(style.paddingRight) -
+              parseFloat(style.borderLeftWidth) -
+              parseFloat(style.borderRightWidth),
+            height:
+              rect.height -
+              parseFloat(style.paddingTop) -
+              parseFloat(style.paddingBottom) -
+              parseFloat(style.borderTopWidth) -
+              parseFloat(style.borderBottomWidth),
+          },
+          padding: {
+            top: parseFloat(style.paddingTop),
+            right: parseFloat(style.paddingRight),
+            bottom: parseFloat(style.paddingBottom),
+            left: parseFloat(style.paddingLeft),
+          },
+          border: {
+            top: parseFloat(style.borderTopWidth),
+            right: parseFloat(style.borderRightWidth),
+            bottom: parseFloat(style.borderBottomWidth),
+            left: parseFloat(style.borderLeftWidth),
+          },
+          margin: {
+            top: parseFloat(style.marginTop),
+            right: parseFloat(style.marginRight),
+            bottom: parseFloat(style.marginBottom),
+            left: parseFloat(style.marginLeft),
+          },
+          boundingRect: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          },
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to get box model" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getComputedLayout(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return { error: "Element not found" };
+
+        const style = getComputedStyle(el);
+        return {
+          display: style.display,
+          position: style.position,
+          float: style.float,
+          clear: style.clear,
+          overflow: style.overflow,
+          overflowX: style.overflowX,
+          overflowY: style.overflowY,
+          zIndex: style.zIndex,
+          flexDirection: style.flexDirection,
+          flexWrap: style.flexWrap,
+          justifyContent: style.justifyContent,
+          alignItems: style.alignItems,
+          gridTemplateColumns: style.gridTemplateColumns,
+          gridTemplateRows: style.gridTemplateRows,
+          gap: style.gap,
+          width: style.width,
+          height: style.height,
+          minWidth: style.minWidth,
+          maxWidth: style.maxWidth,
+          minHeight: style.minHeight,
+          maxHeight: style.maxHeight,
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to get layout" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function highlightNode(tabId, selector, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, opts) => {
+        const el = document.querySelector(sel);
+        if (!el) return { error: "Element not found" };
+
+        // Remove existing highlight
+        const existing = document.getElementById("__chainless_highlight__");
+        if (existing) existing.remove();
+
+        const rect = el.getBoundingClientRect();
+        const highlight = document.createElement("div");
+        highlight.id = "__chainless_highlight__";
+        highlight.style.cssText = `
+          position: fixed;
+          left: ${rect.left}px;
+          top: ${rect.top}px;
+          width: ${rect.width}px;
+          height: ${rect.height}px;
+          background: ${opts.backgroundColor || "rgba(111, 168, 220, 0.66)"};
+          border: ${opts.border || "2px solid rgb(111, 168, 220)"};
+          pointer-events: none;
+          z-index: 999999;
+          box-sizing: border-box;
+        `;
+        document.body.appendChild(highlight);
+
+        if (opts.showInfo !== false) {
+          const info = document.createElement("div");
+          info.style.cssText = `
+            position: fixed;
+            left: ${rect.left}px;
+            top: ${Math.max(0, rect.top - 25)}px;
+            background: rgb(111, 168, 220);
+            color: white;
+            padding: 2px 6px;
+            font-size: 12px;
+            font-family: monospace;
+            z-index: 1000000;
+          `;
+          info.textContent = `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : ""}${el.className ? `.${el.className.split(" ")[0]}` : ""} | ${Math.round(rect.width)}×${Math.round(rect.height)}`;
+          highlight.appendChild(info);
+        }
+
+        return { success: true };
+      },
+      args: [selector, options],
+    });
+    return result[0]?.result || { error: "Failed to highlight" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function hideHighlight(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const highlight = document.getElementById("__chainless_highlight__");
+        if (highlight) highlight.remove();
+      },
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getNodeInfo(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return { error: "Element not found" };
+
+        return {
+          tagName: el.tagName.toLowerCase(),
+          id: el.id,
+          className: el.className,
+          attributes: Array.from(el.attributes).map((attr) => ({
+            name: attr.name,
+            value: attr.value,
+          })),
+          childElementCount: el.childElementCount,
+          textContent: el.textContent?.substring(0, 200),
+          innerHTML: el.innerHTML?.substring(0, 500),
+          outerHTML: el.outerHTML?.substring(0, 1000),
+          parentSelector: el.parentElement
+            ? `${el.parentElement.tagName.toLowerCase()}${el.parentElement.id ? `#${el.parentElement.id}` : ""}`
+            : null,
+          siblingCount: el.parentElement?.childElementCount || 0,
+          indexAmongSiblings: el.parentElement
+            ? Array.from(el.parentElement.children).indexOf(el)
+            : -1,
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to get node info" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function forceElementState(tabId, selector, state) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "DOM.enable");
+
+    // Get the node ID
+    const doc = await chrome.debugger.sendCommand({ tabId }, "DOM.getDocument");
+    const nodeResult = await chrome.debugger.sendCommand(
+      { tabId },
+      "DOM.querySelector",
+      {
+        nodeId: doc.root.nodeId,
+        selector: selector,
+      },
+    );
+
+    if (!nodeResult.nodeId) {
+      return { error: "Element not found" };
+    }
+
+    // Force the state
+    await chrome.debugger.sendCommand({ tabId }, "CSS.enable");
+    await chrome.debugger.sendCommand({ tabId }, "CSS.forcePseudoState", {
+      nodeId: nodeResult.nodeId,
+      forcedPseudoClasses: Array.isArray(state) ? state : [state],
+    });
+
+    return { success: true, forcedState: state };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 17: Coverage Analysis ====================
+
+const coverageState = new Map();
+
+async function startJSCoverage(tabId, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Profiler.enable");
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Profiler.startPreciseCoverage",
+      {
+        callCount: options.callCount !== false,
+        detailed: options.detailed !== false,
+      },
+    );
+
+    coverageState.set(`js-${tabId}`, { started: Date.now() });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function stopJSCoverage(tabId) {
+  try {
+    const result = await chrome.debugger.sendCommand(
+      { tabId },
+      "Profiler.takePreciseCoverage",
+    );
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Profiler.stopPreciseCoverage",
+    );
+
+    const state = coverageState.get(`js-${tabId}`);
+    coverageState.set(`js-${tabId}`, {
+      ...state,
+      result: result.result,
+      stopped: Date.now(),
+    });
+
+    // Calculate summary
+    let totalBytes = 0;
+    let coveredBytes = 0;
+    result.result.forEach((script) => {
+      script.functions.forEach((fn) => {
+        fn.ranges.forEach((range) => {
+          const rangeSize = range.endOffset - range.startOffset;
+          totalBytes += rangeSize;
+          if (range.count > 0) {
+            coveredBytes += rangeSize;
+          }
+        });
+      });
+    });
+
+    return {
+      success: true,
+      summary: {
+        totalScripts: result.result.length,
+        totalBytes,
+        coveredBytes,
+        coveragePercent:
+          totalBytes > 0 ? ((coveredBytes / totalBytes) * 100).toFixed(2) : 0,
+      },
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function startCSSCoverage(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "CSS.enable");
+    await chrome.debugger.sendCommand({ tabId }, "CSS.startRuleUsageTracking");
+
+    coverageState.set(`css-${tabId}`, { started: Date.now() });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function stopCSSCoverage(tabId) {
+  try {
+    const result = await chrome.debugger.sendCommand(
+      { tabId },
+      "CSS.stopRuleUsageTracking",
+    );
+
+    const state = coverageState.get(`css-${tabId}`);
+    coverageState.set(`css-${tabId}`, {
+      ...state,
+      result: result.ruleUsage,
+      stopped: Date.now(),
+    });
+
+    // Calculate summary
+    const usedRules = result.ruleUsage.filter((r) => r.used).length;
+    const totalRules = result.ruleUsage.length;
+
+    return {
+      success: true,
+      summary: {
+        totalRules,
+        usedRules,
+        unusedRules: totalRules - usedRules,
+        coveragePercent:
+          totalRules > 0 ? ((usedRules / totalRules) * 100).toFixed(2) : 0,
+      },
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+function getJSCoverageResults(tabId) {
+  const state = coverageState.get(`js-${tabId}`);
+  if (!state?.result) {
+    return { error: "No JS coverage data available" };
+  }
+  return {
+    scripts: state.result.map((script) => ({
+      scriptId: script.scriptId,
+      url: script.url,
+      functions: script.functions.length,
+    })),
+    started: state.started,
+    stopped: state.stopped,
+  };
+}
+
+function getCSSCoverageResults(tabId) {
+  const state = coverageState.get(`css-${tabId}`);
+  if (!state?.result) {
+    return { error: "No CSS coverage data available" };
+  }
+  return {
+    rules: state.result.slice(0, 100), // Limit to first 100 rules
+    totalRules: state.result.length,
+    started: state.started,
+    stopped: state.stopped,
+  };
+}
+
+// ==================== Phase 17: Memory Profiling ====================
+
+const memoryState = new Map();
+
+async function getMemoryInfo(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (performance.memory) {
+          return {
+            jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
+            totalJSHeapSize: performance.memory.totalJSHeapSize,
+            usedJSHeapSize: performance.memory.usedJSHeapSize,
+            usedPercent: (
+              (performance.memory.usedJSHeapSize /
+                performance.memory.jsHeapSizeLimit) *
+              100
+            ).toFixed(2),
+          };
+        }
+        return {
+          error:
+            "Memory info not available (requires Chrome with --enable-precise-memory-info)",
+        };
+      },
+    });
+    return result[0]?.result || { error: "Failed to get memory info" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function takeHeapSnapshot(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.enable");
+
+    let chunks = [];
+    const listener = (source, method, params) => {
+      if (
+        source.tabId === tabId &&
+        method === "HeapProfiler.addHeapSnapshotChunk"
+      ) {
+        chunks.push(params.chunk);
+      }
+    };
+
+    chrome.debugger.onEvent.addListener(listener);
+
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "HeapProfiler.takeHeapSnapshot",
+      {
+        reportProgress: false,
+      },
+    );
+
+    chrome.debugger.onEvent.removeListener(listener);
+
+    const snapshot = chunks.join("");
+    const snapshotSize = snapshot.length;
+
+    // Store snapshot reference (don't store full data due to size)
+    const snapshotId = `snapshot-${Date.now()}`;
+    memoryState.set(snapshotId, {
+      tabId,
+      size: snapshotSize,
+      timestamp: Date.now(),
+    });
+
+    return {
+      success: true,
+      snapshotId,
+      size: snapshotSize,
+      sizeFormatted: `${(snapshotSize / 1024 / 1024).toFixed(2)} MB`,
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function startMemorySampling(tabId, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.enable");
+    await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.startSampling", {
+      samplingInterval: options.samplingInterval || 32768,
+    });
+
+    memoryState.set(`sampling-${tabId}`, { started: Date.now() });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function stopMemorySampling(tabId) {
+  try {
+    const result = await chrome.debugger.sendCommand(
+      { tabId },
+      "HeapProfiler.stopSampling",
+    );
+
+    const state = memoryState.get(`sampling-${tabId}`);
+    memoryState.set(`sampling-${tabId}`, {
+      ...state,
+      result: result.profile,
+      stopped: Date.now(),
+    });
+
+    // Calculate summary
+    const samples = result.profile.samples || [];
+    const totalSize = samples.reduce((sum, s) => sum + (s.size || 0), 0);
+
+    return {
+      success: true,
+      summary: {
+        sampleCount: samples.length,
+        totalAllocatedSize: totalSize,
+        duration: state ? Date.now() - state.started : 0,
+      },
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function forceGarbageCollection(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.enable");
+    await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.collectGarbage");
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
 }
 
 // ==================== Status ====================
