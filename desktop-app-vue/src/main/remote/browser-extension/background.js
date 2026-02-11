@@ -1557,6 +1557,160 @@ async function executeCommand(method, params) {
     case "pressure.isSupported":
       return await isComputePressureSupported(params.tabId);
 
+    // ==================== Phase 25: Detection, Media & Navigation APIs ====================
+
+    // Barcode Detection API
+    case "barcode.detect":
+      return await detectBarcodes(params.tabId, params.imageSource);
+    case "barcode.getSupportedFormats":
+      return await getSupportedBarcodeFormats(params.tabId);
+    case "barcode.isSupported":
+      return await isBarcodeDetectorSupported(params.tabId);
+
+    // Shape Detection API - Face Detection
+    case "faceDetection.detect":
+      return await detectFaces(params.tabId, params.imageSource);
+    case "faceDetection.isSupported":
+      return await isFaceDetectorSupported(params.tabId);
+
+    // Shape Detection API - Text Detection
+    case "textDetection.detect":
+      return await detectText(params.tabId, params.imageSource);
+    case "textDetection.isSupported":
+      return await isTextDetectorSupported(params.tabId);
+
+    // Web Codecs API - Video
+    case "videoCodecs.getConfig":
+      return await getVideoDecoderConfig(params.tabId, params.config);
+    case "videoCodecs.isConfigSupported":
+      return await isVideoConfigSupported(params.tabId, params.config);
+    case "videoCodecs.getSupportedCodecs":
+      return await getSupportedVideoCodecs(params.tabId);
+
+    // Web Codecs API - Audio
+    case "audioCodecs.getConfig":
+      return await getAudioDecoderConfig(params.tabId, params.config);
+    case "audioCodecs.isConfigSupported":
+      return await isAudioConfigSupported(params.tabId, params.config);
+    case "audioCodecs.getSupportedCodecs":
+      return await getSupportedAudioCodecs(params.tabId);
+
+    // Media Session API
+    case "mediaSession.setMetadata":
+      return await setMediaSessionMetadata(params.tabId, params.metadata);
+    case "mediaSession.setPlaybackState":
+      return await setMediaSessionPlaybackState(params.tabId, params.state);
+    case "mediaSession.setPositionState":
+      return await setMediaSessionPositionState(params.tabId, params.state);
+    case "mediaSession.setActionHandler":
+      return await setMediaSessionActionHandler(
+        params.tabId,
+        params.action,
+        params.enabled,
+      );
+    case "mediaSession.getMetadata":
+      return await getMediaSessionMetadata(params.tabId);
+
+    // Background Fetch API
+    case "backgroundFetch.fetch":
+      return await backgroundFetch(
+        params.tabId,
+        params.id,
+        params.requests,
+        params.options,
+      );
+    case "backgroundFetch.get":
+      return await getBackgroundFetch(params.tabId, params.id);
+    case "backgroundFetch.getIds":
+      return await getBackgroundFetchIds(params.tabId);
+    case "backgroundFetch.abort":
+      return await abortBackgroundFetch(params.tabId, params.id);
+    case "backgroundFetch.isSupported":
+      return await isBackgroundFetchSupported(params.tabId);
+
+    // Compression Streams API
+    case "compression.compress":
+      return await compressData(params.tabId, params.data, params.format);
+    case "compression.decompress":
+      return await decompressData(params.tabId, params.data, params.format);
+    case "compression.getSupportedFormats":
+      return await getSupportedCompressionFormats(params.tabId);
+    case "compression.isSupported":
+      return await isCompressionSupported(params.tabId);
+
+    // Navigation API
+    case "navigation.navigate":
+      return await navigationNavigate(params.tabId, params.url, params.options);
+    case "navigation.reload":
+      return await navigationReload(params.tabId, params.options);
+    case "navigation.traverseTo":
+      return await navigationTraverseTo(params.tabId, params.key);
+    case "navigation.getEntries":
+      return await getNavigationEntries(params.tabId);
+    case "navigation.getCurrentEntry":
+      return await getCurrentNavigationEntry(params.tabId);
+    case "navigation.canGoBack":
+      return await canNavigationGoBack(params.tabId);
+    case "navigation.canGoForward":
+      return await canNavigationGoForward(params.tabId);
+
+    // View Transitions API
+    case "viewTransition.start":
+      return await startViewTransition(params.tabId, params.options);
+    case "viewTransition.getState":
+      return await getViewTransitionState(params.tabId);
+    case "viewTransition.skipTransition":
+      return await skipViewTransition(params.tabId);
+    case "viewTransition.isSupported":
+      return await isViewTransitionSupported(params.tabId);
+
+    // Sanitizer API
+    case "sanitizer.sanitize":
+      return await sanitizeHTML(params.tabId, params.input, params.options);
+    case "sanitizer.getDefaultConfig":
+      return await getSanitizerDefaultConfig(params.tabId);
+    case "sanitizer.isSupported":
+      return await isSanitizerSupported(params.tabId);
+
+    // Popover API
+    case "popover.show":
+      return await showPopover(params.tabId, params.selector);
+    case "popover.hide":
+      return await hidePopover(params.tabId, params.selector);
+    case "popover.toggle":
+      return await togglePopover(params.tabId, params.selector, params.force);
+    case "popover.isSupported":
+      return await isPopoverSupported(params.tabId);
+
+    // Highlight API
+    case "highlight.create":
+      return await createHighlight(params.tabId, params.ranges, params.name);
+    case "highlight.delete":
+      return await deleteHighlight(params.tabId, params.name);
+    case "highlight.getAll":
+      return await getAllHighlights(params.tabId);
+    case "highlight.clear":
+      return await clearAllHighlights(params.tabId);
+
+    // EditContext API
+    case "editContext.create":
+      return await createEditContext(
+        params.tabId,
+        params.selector,
+        params.options,
+      );
+    case "editContext.updateText":
+      return await updateEditContextText(
+        params.tabId,
+        params.text,
+        params.start,
+        params.end,
+      );
+    case "editContext.getState":
+      return await getEditContextState(params.tabId);
+    case "editContext.isSupported":
+      return await isEditContextSupported(params.tabId);
+
     default:
       throw new Error(`Unknown method: ${method}`);
   }
@@ -13468,6 +13622,1363 @@ async function isComputePressureSupported(tabId) {
       target: { tabId },
       func: () => {
         return { supported: !!window.PressureObserver };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Barcode Detection API ====================
+
+async function detectBarcodes(tabId, imageSource) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (imgSrc) => {
+        if (!window.BarcodeDetector) {
+          return { error: "BarcodeDetector not supported" };
+        }
+        try {
+          const detector = new BarcodeDetector();
+          let source;
+          if (typeof imgSrc === "string") {
+            // Selector
+            source = document.querySelector(imgSrc);
+            if (!source) return { error: "Image element not found" };
+          } else {
+            return { error: "Invalid image source" };
+          }
+          const barcodes = await detector.detect(source);
+          return {
+            barcodes: barcodes.map((b) => ({
+              rawValue: b.rawValue,
+              format: b.format,
+              boundingBox: b.boundingBox,
+              cornerPoints: b.cornerPoints,
+            })),
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [imageSource],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSupportedBarcodeFormats(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!window.BarcodeDetector) {
+          return { error: "BarcodeDetector not supported" };
+        }
+        try {
+          const formats = await BarcodeDetector.getSupportedFormats();
+          return { formats };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isBarcodeDetectorSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!window.BarcodeDetector };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Face Detection API ====================
+
+async function detectFaces(tabId, imageSource) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (imgSrc) => {
+        if (!window.FaceDetector) {
+          return { error: "FaceDetector not supported" };
+        }
+        try {
+          const detector = new FaceDetector();
+          let source;
+          if (typeof imgSrc === "string") {
+            source = document.querySelector(imgSrc);
+            if (!source) return { error: "Image element not found" };
+          } else {
+            return { error: "Invalid image source" };
+          }
+          const faces = await detector.detect(source);
+          return {
+            faces: faces.map((f) => ({
+              boundingBox: f.boundingBox,
+              landmarks: f.landmarks?.map((l) => ({
+                type: l.type,
+                locations: l.locations,
+              })),
+            })),
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [imageSource],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isFaceDetectorSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!window.FaceDetector };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Text Detection API ====================
+
+async function detectText(tabId, imageSource) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (imgSrc) => {
+        if (!window.TextDetector) {
+          return { error: "TextDetector not supported" };
+        }
+        try {
+          const detector = new TextDetector();
+          let source;
+          if (typeof imgSrc === "string") {
+            source = document.querySelector(imgSrc);
+            if (!source) return { error: "Image element not found" };
+          } else {
+            return { error: "Invalid image source" };
+          }
+          const texts = await detector.detect(source);
+          return {
+            texts: texts.map((t) => ({
+              rawValue: t.rawValue,
+              boundingBox: t.boundingBox,
+              cornerPoints: t.cornerPoints,
+            })),
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [imageSource],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isTextDetectorSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!window.TextDetector };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Web Codecs API - Video ====================
+
+async function getVideoDecoderConfig(tabId, config) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (cfg) => {
+        if (!window.VideoDecoder) {
+          return { error: "VideoDecoder not supported" };
+        }
+        try {
+          const support = await VideoDecoder.isConfigSupported(cfg);
+          return {
+            supported: support.supported,
+            config: support.config,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [config],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isVideoConfigSupported(tabId, config) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (cfg) => {
+        if (!window.VideoDecoder) {
+          return { error: "VideoDecoder not supported" };
+        }
+        try {
+          const support = await VideoDecoder.isConfigSupported(cfg);
+          return { supported: support.supported };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [config],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSupportedVideoCodecs(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const codecs = [
+          "vp8",
+          "vp09.00.10.08",
+          "avc1.42001E",
+          "avc1.4D001E",
+          "avc1.64001E",
+          "hev1.1.6.L93.B0",
+          "av01.0.04M.08",
+        ];
+        return {
+          videoDecoderSupported: !!window.VideoDecoder,
+          videoEncoderSupported: !!window.VideoEncoder,
+          commonCodecs: codecs,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Web Codecs API - Audio ====================
+
+async function getAudioDecoderConfig(tabId, config) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (cfg) => {
+        if (!window.AudioDecoder) {
+          return { error: "AudioDecoder not supported" };
+        }
+        try {
+          const support = await AudioDecoder.isConfigSupported(cfg);
+          return {
+            supported: support.supported,
+            config: support.config,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [config],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isAudioConfigSupported(tabId, config) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (cfg) => {
+        if (!window.AudioDecoder) {
+          return { error: "AudioDecoder not supported" };
+        }
+        try {
+          const support = await AudioDecoder.isConfigSupported(cfg);
+          return { supported: support.supported };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [config],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSupportedAudioCodecs(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const codecs = ["opus", "mp3", "aac", "flac", "vorbis", "pcm"];
+        return {
+          audioDecoderSupported: !!window.AudioDecoder,
+          audioEncoderSupported: !!window.AudioEncoder,
+          commonCodecs: codecs,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Media Session API ====================
+
+async function setMediaSessionMetadata(tabId, metadata) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (meta) => {
+        if (!navigator.mediaSession) {
+          return { error: "Media Session API not supported" };
+        }
+        try {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: meta.title,
+            artist: meta.artist,
+            album: meta.album,
+            artwork: meta.artwork,
+          });
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [metadata],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setMediaSessionPlaybackState(tabId, state) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (s) => {
+        if (!navigator.mediaSession) {
+          return { error: "Media Session API not supported" };
+        }
+        navigator.mediaSession.playbackState = s;
+        return { success: true, state: s };
+      },
+      args: [state],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setMediaSessionPositionState(tabId, state) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (s) => {
+        if (!navigator.mediaSession) {
+          return { error: "Media Session API not supported" };
+        }
+        try {
+          navigator.mediaSession.setPositionState(s);
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [state],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setMediaSessionActionHandler(tabId, action, enabled) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (act, en) => {
+        if (!navigator.mediaSession) {
+          return { error: "Media Session API not supported" };
+        }
+        try {
+          if (en) {
+            navigator.mediaSession.setActionHandler(act, () => {
+              // Store action event
+              if (!window.__mediaSessionActions)
+                window.__mediaSessionActions = [];
+              window.__mediaSessionActions.push({
+                action: act,
+                timestamp: Date.now(),
+              });
+            });
+          } else {
+            navigator.mediaSession.setActionHandler(act, null);
+          }
+          return { success: true, action: act, enabled: en };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [action, enabled],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getMediaSessionMetadata(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!navigator.mediaSession) {
+          return { error: "Media Session API not supported" };
+        }
+        const meta = navigator.mediaSession.metadata;
+        return {
+          metadata: meta
+            ? {
+                title: meta.title,
+                artist: meta.artist,
+                album: meta.album,
+                artwork: meta.artwork,
+              }
+            : null,
+          playbackState: navigator.mediaSession.playbackState,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Background Fetch API ====================
+
+async function backgroundFetch(tabId, id, requests, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (fetchId, reqs, opts) => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.backgroundFetch) {
+            return { error: "Background Fetch not supported" };
+          }
+          const bgFetch = await registration.backgroundFetch.fetch(
+            fetchId,
+            reqs,
+            opts,
+          );
+          return {
+            id: bgFetch.id,
+            uploadTotal: bgFetch.uploadTotal,
+            uploaded: bgFetch.uploaded,
+            downloadTotal: bgFetch.downloadTotal,
+            downloaded: bgFetch.downloaded,
+            result: bgFetch.result,
+            failureReason: bgFetch.failureReason,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [id, requests, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getBackgroundFetch(tabId, id) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (fetchId) => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.backgroundFetch) {
+            return { error: "Background Fetch not supported" };
+          }
+          const bgFetch = await registration.backgroundFetch.get(fetchId);
+          if (!bgFetch) {
+            return { fetch: null };
+          }
+          return {
+            fetch: {
+              id: bgFetch.id,
+              uploadTotal: bgFetch.uploadTotal,
+              uploaded: bgFetch.uploaded,
+              downloadTotal: bgFetch.downloadTotal,
+              downloaded: bgFetch.downloaded,
+              result: bgFetch.result,
+              failureReason: bgFetch.failureReason,
+            },
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [id],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getBackgroundFetchIds(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.backgroundFetch) {
+            return { error: "Background Fetch not supported" };
+          }
+          const ids = await registration.backgroundFetch.getIds();
+          return { ids };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function abortBackgroundFetch(tabId, id) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (fetchId) => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.backgroundFetch) {
+            return { error: "Background Fetch not supported" };
+          }
+          const bgFetch = await registration.backgroundFetch.get(fetchId);
+          if (!bgFetch) {
+            return { error: "Fetch not found" };
+          }
+          const aborted = await bgFetch.abort();
+          return { aborted };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [id],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isBackgroundFetchSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.serviceWorker) {
+          return { supported: false, reason: "No Service Worker" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          return { supported: !!registration.backgroundFetch };
+        } catch (e) {
+          return { supported: false, error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Compression Streams API ====================
+
+async function compressData(tabId, data, format = "gzip") {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (inputData, fmt) => {
+        if (!window.CompressionStream) {
+          return { error: "CompressionStream not supported" };
+        }
+        try {
+          const stream = new CompressionStream(fmt);
+          const writer = stream.writable.getWriter();
+          const encoder = new TextEncoder();
+          await writer.write(encoder.encode(inputData));
+          await writer.close();
+
+          const reader = stream.readable.getReader();
+          const chunks = [];
+          let done = false;
+          while (!done) {
+            const { value, done: d } = await reader.read();
+            if (value) chunks.push(value);
+            done = d;
+          }
+
+          const compressed = new Uint8Array(
+            chunks.reduce((acc, chunk) => acc + chunk.length, 0),
+          );
+          let offset = 0;
+          for (const chunk of chunks) {
+            compressed.set(chunk, offset);
+            offset += chunk.length;
+          }
+
+          return {
+            compressed: Array.from(compressed),
+            originalSize: inputData.length,
+            compressedSize: compressed.length,
+            ratio:
+              ((compressed.length / inputData.length) * 100).toFixed(2) + "%",
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [data, format],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function decompressData(tabId, data, format = "gzip") {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (compressedData, fmt) => {
+        if (!window.DecompressionStream) {
+          return { error: "DecompressionStream not supported" };
+        }
+        try {
+          const stream = new DecompressionStream(fmt);
+          const writer = stream.writable.getWriter();
+          await writer.write(new Uint8Array(compressedData));
+          await writer.close();
+
+          const reader = stream.readable.getReader();
+          const chunks = [];
+          let done = false;
+          while (!done) {
+            const { value, done: d } = await reader.read();
+            if (value) chunks.push(value);
+            done = d;
+          }
+
+          const decoder = new TextDecoder();
+          const decompressed = chunks.map((c) => decoder.decode(c)).join("");
+          return { decompressed };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [data, format],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSupportedCompressionFormats(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          compressionSupported: !!window.CompressionStream,
+          decompressionSupported: !!window.DecompressionStream,
+          formats: ["gzip", "deflate", "deflate-raw"],
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isCompressionSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          supported: !!window.CompressionStream && !!window.DecompressionStream,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Navigation API ====================
+
+async function navigationNavigate(tabId, url, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (navUrl, opts) => {
+        if (!window.navigation) {
+          return { error: "Navigation API not supported" };
+        }
+        try {
+          const result = await navigation.navigate(navUrl, opts);
+          return {
+            committed: await result.committed
+              .then(() => true)
+              .catch(() => false),
+            finished: await result.finished.then(() => true).catch(() => false),
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [url, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function navigationReload(tabId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!window.navigation) {
+          return { error: "Navigation API not supported" };
+        }
+        try {
+          const result = await navigation.reload(opts);
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function navigationTraverseTo(tabId, key) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (navKey) => {
+        if (!window.navigation) {
+          return { error: "Navigation API not supported" };
+        }
+        try {
+          const result = await navigation.traverseTo(navKey);
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [key],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getNavigationEntries(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.navigation) {
+          return { error: "Navigation API not supported" };
+        }
+        const entries = navigation.entries();
+        return {
+          entries: entries.map((e) => ({
+            key: e.key,
+            id: e.id,
+            url: e.url,
+            index: e.index,
+            sameDocument: e.sameDocument,
+          })),
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getCurrentNavigationEntry(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.navigation) {
+          return { error: "Navigation API not supported" };
+        }
+        const entry = navigation.currentEntry;
+        return {
+          entry: entry
+            ? {
+                key: entry.key,
+                id: entry.id,
+                url: entry.url,
+                index: entry.index,
+                sameDocument: entry.sameDocument,
+              }
+            : null,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function canNavigationGoBack(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.navigation) {
+          return { error: "Navigation API not supported" };
+        }
+        return { canGoBack: navigation.canGoBack };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function canNavigationGoForward(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.navigation) {
+          return { error: "Navigation API not supported" };
+        }
+        return { canGoForward: navigation.canGoForward };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: View Transitions API ====================
+
+async function startViewTransition(tabId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!document.startViewTransition) {
+          return { error: "View Transitions API not supported" };
+        }
+        try {
+          const transition = document.startViewTransition(() => {
+            // Callback for DOM update
+            if (opts.selector && opts.newContent) {
+              const el = document.querySelector(opts.selector);
+              if (el) {
+                // Use setHTML (Sanitizer API) if available, otherwise textContent for safety
+                if (el.setHTML && typeof Sanitizer !== "undefined") {
+                  el.setHTML(opts.newContent, { sanitizer: new Sanitizer() });
+                } else {
+                  el.textContent = opts.newContent;
+                }
+              }
+            }
+          });
+          window.__currentViewTransition = transition;
+          await transition.ready;
+          return { started: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getViewTransitionState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__currentViewTransition) {
+          return { active: false };
+        }
+        return { active: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function skipViewTransition(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__currentViewTransition) {
+          return { error: "No active view transition" };
+        }
+        window.__currentViewTransition.skipTransition();
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isViewTransitionSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!document.startViewTransition };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Sanitizer API ====================
+
+async function sanitizeHTML(tabId, input, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (html, opts) => {
+        if (!window.Sanitizer) {
+          // Fallback to basic sanitization
+          const div = document.createElement("div");
+          div.textContent = html;
+          return { sanitized: div.innerHTML, fallback: true };
+        }
+        try {
+          const sanitizer = new Sanitizer(opts);
+          const fragment = sanitizer.sanitizeFor("div", html);
+          return { sanitized: fragment.innerHTML };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [input, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSanitizerDefaultConfig(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.Sanitizer) {
+          return { error: "Sanitizer API not supported" };
+        }
+        try {
+          const sanitizer = new Sanitizer();
+          return {
+            defaultConfig:
+              sanitizer.getConfiguration?.() || "Configuration not accessible",
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isSanitizerSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!window.Sanitizer };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Popover API ====================
+
+async function showPopover(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const element = document.querySelector(sel);
+        if (!element) {
+          return { error: "Element not found" };
+        }
+        if (!element.showPopover) {
+          return { error: "Popover API not supported on this element" };
+        }
+        try {
+          element.showPopover();
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [selector],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function hidePopover(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const element = document.querySelector(sel);
+        if (!element) {
+          return { error: "Element not found" };
+        }
+        if (!element.hidePopover) {
+          return { error: "Popover API not supported on this element" };
+        }
+        try {
+          element.hidePopover();
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [selector],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function togglePopover(tabId, selector, force) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, f) => {
+        const element = document.querySelector(sel);
+        if (!element) {
+          return { error: "Element not found" };
+        }
+        if (!element.togglePopover) {
+          return { error: "Popover API not supported on this element" };
+        }
+        try {
+          const result = element.togglePopover(f);
+          return { success: true, showing: result };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [selector, force],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isPopoverSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: "popover" in HTMLElement.prototype };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: Highlight API ====================
+
+async function createHighlight(tabId, ranges, name) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (rangeData, highlightName) => {
+        if (!window.Highlight || !CSS.highlights) {
+          return { error: "CSS Custom Highlight API not supported" };
+        }
+        try {
+          const rangeObjects = rangeData.map((r) => {
+            const range = new Range();
+            const startNode = document.querySelector(r.startSelector);
+            const endNode = document.querySelector(r.endSelector);
+            if (!startNode || !endNode) {
+              throw new Error("Range nodes not found");
+            }
+            range.setStart(startNode, r.startOffset || 0);
+            range.setEnd(endNode, r.endOffset || endNode.textContent.length);
+            return range;
+          });
+          const highlight = new Highlight(...rangeObjects);
+          CSS.highlights.set(highlightName, highlight);
+          return { success: true, name: highlightName };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [ranges, name],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function deleteHighlight(tabId, name) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (highlightName) => {
+        if (!CSS.highlights) {
+          return { error: "CSS Custom Highlight API not supported" };
+        }
+        const deleted = CSS.highlights.delete(highlightName);
+        return { success: deleted, name: highlightName };
+      },
+      args: [name],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getAllHighlights(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!CSS.highlights) {
+          return { error: "CSS Custom Highlight API not supported" };
+        }
+        const highlights = [];
+        for (const [name] of CSS.highlights) {
+          highlights.push(name);
+        }
+        return { highlights };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearAllHighlights(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!CSS.highlights) {
+          return { error: "CSS Custom Highlight API not supported" };
+        }
+        CSS.highlights.clear();
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 25: EditContext API ====================
+
+async function createEditContext(tabId, selector, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, opts) => {
+        if (!window.EditContext) {
+          return { error: "EditContext API not supported" };
+        }
+        try {
+          const element = document.querySelector(sel);
+          if (!element) {
+            return { error: "Element not found" };
+          }
+          const editContext = new EditContext(opts);
+          element.editContext = editContext;
+          window.__editContext = editContext;
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [selector, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function updateEditContextText(tabId, text, start, end) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (txt, s, e) => {
+        if (!window.__editContext) {
+          return { error: "No active EditContext" };
+        }
+        try {
+          window.__editContext.updateText(s, e, txt);
+          return { success: true };
+        } catch (err) {
+          return { error: err.message };
+        }
+      },
+      args: [text, start, end],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getEditContextState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__editContext) {
+          return { active: false };
+        }
+        return {
+          active: true,
+          text: window.__editContext.text,
+          selectionStart: window.__editContext.selectionStart,
+          selectionEnd: window.__editContext.selectionEnd,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isEditContextSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!window.EditContext };
       },
     });
     return result[0]?.result || {};

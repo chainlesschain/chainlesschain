@@ -856,6 +856,89 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.getComputePressureState": PERMISSION_LEVELS.PUBLIC,
   "extension.isComputePressureSupported": PERMISSION_LEVELS.PUBLIC,
 
+  // ==================== Phase 25: Detection & Utility APIs ====================
+
+  // 扩展 - Barcode Detection API
+  "extension.detectBarcodes": PERMISSION_LEVELS.NORMAL,
+  "extension.getSupportedBarcodeFormats": PERMISSION_LEVELS.PUBLIC,
+  "extension.isBarcodeDetectorSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Shape Detection - Face Detection API
+  "extension.detectFaces": PERMISSION_LEVELS.NORMAL,
+  "extension.isFaceDetectorSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Shape Detection - Text Detection API
+  "extension.detectText": PERMISSION_LEVELS.NORMAL,
+  "extension.isTextDetectorSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Web Codecs - Video API
+  "extension.createVideoDecoder": PERMISSION_LEVELS.ADMIN,
+  "extension.createVideoEncoder": PERMISSION_LEVELS.ADMIN,
+  "extension.isVideoCodecSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Web Codecs - Audio API
+  "extension.createAudioDecoder": PERMISSION_LEVELS.ADMIN,
+  "extension.createAudioEncoder": PERMISSION_LEVELS.ADMIN,
+  "extension.isAudioCodecSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Media Session API
+  "extension.setMediaSessionMetadata": PERMISSION_LEVELS.NORMAL,
+  "extension.setMediaSessionPlaybackState": PERMISSION_LEVELS.NORMAL,
+  "extension.setMediaSessionPositionState": PERMISSION_LEVELS.NORMAL,
+  "extension.setMediaSessionActionHandler": PERMISSION_LEVELS.NORMAL,
+  "extension.getMediaSessionMetadata": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Background Fetch API
+  "extension.backgroundFetch": PERMISSION_LEVELS.ADMIN,
+  "extension.getBackgroundFetch": PERMISSION_LEVELS.NORMAL,
+  "extension.getBackgroundFetchIds": PERMISSION_LEVELS.NORMAL,
+  "extension.abortBackgroundFetch": PERMISSION_LEVELS.NORMAL,
+  "extension.isBackgroundFetchSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Compression Streams API
+  "extension.compressData": PERMISSION_LEVELS.NORMAL,
+  "extension.decompressData": PERMISSION_LEVELS.NORMAL,
+  "extension.getSupportedCompressionFormats": PERMISSION_LEVELS.PUBLIC,
+  "extension.isCompressionSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Navigation API
+  "extension.navigateToUrl": PERMISSION_LEVELS.NORMAL,
+  "extension.reloadNavigation": PERMISSION_LEVELS.NORMAL,
+  "extension.traverseNavigation": PERMISSION_LEVELS.NORMAL,
+  "extension.getNavigationEntries": PERMISSION_LEVELS.PUBLIC,
+  "extension.getCurrentNavigationEntry": PERMISSION_LEVELS.PUBLIC,
+  "extension.canNavigateBack": PERMISSION_LEVELS.PUBLIC,
+  "extension.canNavigateForward": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - View Transitions API
+  "extension.startViewTransition": PERMISSION_LEVELS.NORMAL,
+  "extension.skipViewTransition": PERMISSION_LEVELS.NORMAL,
+  "extension.getViewTransitionState": PERMISSION_LEVELS.PUBLIC,
+  "extension.isViewTransitionSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Sanitizer API
+  "extension.sanitizeHTML": PERMISSION_LEVELS.NORMAL,
+  "extension.getSanitizerConfig": PERMISSION_LEVELS.PUBLIC,
+  "extension.isSanitizerSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Popover API
+  "extension.showPopover": PERMISSION_LEVELS.NORMAL,
+  "extension.hidePopover": PERMISSION_LEVELS.NORMAL,
+  "extension.togglePopover": PERMISSION_LEVELS.NORMAL,
+  "extension.isPopoverSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Highlight API
+  "extension.createHighlight": PERMISSION_LEVELS.NORMAL,
+  "extension.removeHighlight": PERMISSION_LEVELS.NORMAL,
+  "extension.clearHighlights": PERMISSION_LEVELS.NORMAL,
+  "extension.isHighlightSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - EditContext API
+  "extension.createEditContext": PERMISSION_LEVELS.NORMAL,
+  "extension.updateEditContextText": PERMISSION_LEVELS.NORMAL,
+  "extension.updateEditContextSelection": PERMISSION_LEVELS.NORMAL,
+  "extension.isEditContextSupported": PERMISSION_LEVELS.PUBLIC,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,
