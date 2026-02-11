@@ -85,6 +85,17 @@ object MessageTypes {
     const val COMMAND_RESPONSE = "chainlesschain:command:response"
     const val EVENT_NOTIFICATION = "chainlesschain:event:notification"
     const val HEARTBEAT = "chainlesschain:heartbeat"
+    const val HEARTBEAT_ACK = "chainlesschain:heartbeat:ack"
+
+    // Clipboard sync events
+    const val CLIPBOARD_CHANGE = "chainlesschain:clipboard:change"
+
+    // Notification events
+    const val NOTIFICATION_RECEIVED = "chainlesschain:notification:received"
+
+    // Workflow events
+    const val WORKFLOW_PROGRESS = "chainlesschain:workflow:progress"
+    const val WORKFLOW_COMPLETED = "chainlesschain:workflow:completed"
 }
 
 /**

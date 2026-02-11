@@ -71,7 +71,21 @@ class MobileBridge extends EventEmitter {
 
     // 重连管理
     this.reconnectAttempts = new Map(); // mobilePeerId -> attempts
-    this.maxReconnectAttempts = options.maxReconnectAttempts || 3;
+    this.maxReconnectAttempts = options.maxReconnectAttempts || 5;
+
+    // 指数退避重连配置
+    this.signalingReconnectAttempts = 0;
+    this.maxSignalingReconnectAttempts =
+      options.maxSignalingReconnectAttempts || 10;
+    this.baseReconnectDelay = options.baseReconnectDelay || 1000; // 1秒基础延迟
+    this.maxReconnectDelay = options.maxReconnectDelay || 60000; // 最大60秒延迟
+    this.reconnectBackoffFactor = options.reconnectBackoffFactor || 2;
+
+    // 心跳检测
+    this.heartbeatInterval = options.heartbeatInterval || 30000; // 30秒心跳
+    this.heartbeatTimer = null;
+    this.lastPong = Date.now();
+    this.heartbeatTimeout = options.heartbeatTimeout || 90000; // 3个心跳周期
 
     // 统计信息
     this.stats = {
@@ -204,7 +218,16 @@ class MobileBridge extends EventEmitter {
     switch (type) {
       case "registered":
         logger.info("[MobileBridge] 注册成功:", message.peerId);
+        // 重置重连计数
+        this.signalingReconnectAttempts = 0;
+        // 启动心跳检测
+        this.startHeartbeat();
         this.emit("registered", message);
+        break;
+
+      case "pong":
+        // 收到心跳响应
+        this.lastPong = Date.now();
         break;
 
       case "offer":
@@ -937,21 +960,139 @@ class MobileBridge extends EventEmitter {
   }
 
   /**
-   * 安排重连
+   * 安排重连（指数退避策略）
    */
   scheduleReconnect() {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
     }
 
+    // 检查是否超过最大重试次数
+    if (this.signalingReconnectAttempts >= this.maxSignalingReconnectAttempts) {
+      logger.error(
+        `[MobileBridge] 达到最大重连次数 (${this.maxSignalingReconnectAttempts})，停止重连`,
+      );
+      this.emit("reconnect-failed", {
+        attempts: this.signalingReconnectAttempts,
+        maxAttempts: this.maxSignalingReconnectAttempts,
+      });
+      return;
+    }
+
+    // 计算指数退避延迟
+    const delay = Math.min(
+      this.baseReconnectDelay *
+        Math.pow(this.reconnectBackoffFactor, this.signalingReconnectAttempts),
+      this.maxReconnectDelay,
+    );
+
+    this.signalingReconnectAttempts++;
+
+    logger.info(
+      `[MobileBridge] 将在 ${delay}ms 后重连 (${this.signalingReconnectAttempts}/${this.maxSignalingReconnectAttempts})`,
+    );
+
     this.reconnectTimer = setTimeout(async () => {
-      logger.info("[MobileBridge] 尝试重新连接...");
+      logger.info(
+        `[MobileBridge] 尝试重新连接... (${this.signalingReconnectAttempts}/${this.maxSignalingReconnectAttempts})`,
+      );
       try {
         await this.connect();
+        // 连接成功，重置重试计数
+        this.signalingReconnectAttempts = 0;
+        logger.info("[MobileBridge] ✅ 重连成功");
       } catch (error) {
         logger.error("[MobileBridge] 重连失败:", error);
+        // 继续尝试重连
+        if (this.options.enableAutoReconnect) {
+          this.scheduleReconnect();
+        }
       }
-    }, this.options.reconnectInterval);
+    }, delay);
+  }
+
+  /**
+   * 重置重连计数（手动调用时）
+   */
+  resetReconnectAttempts() {
+    this.signalingReconnectAttempts = 0;
+    logger.info("[MobileBridge] 重连计数已重置");
+  }
+
+  /**
+   * 启动心跳检测
+   */
+  startHeartbeat() {
+    // 清除旧的心跳定时器
+    this.stopHeartbeat();
+
+    this.lastPong = Date.now();
+
+    this.heartbeatTimer = setInterval(() => {
+      this.sendHeartbeat();
+    }, this.heartbeatInterval);
+
+    logger.info(
+      `[MobileBridge] 心跳检测已启动 (间隔: ${this.heartbeatInterval}ms)`,
+    );
+  }
+
+  /**
+   * 发送心跳
+   */
+  sendHeartbeat() {
+    // 检查心跳超时
+    const timeSinceLastPong = Date.now() - this.lastPong;
+    if (timeSinceLastPong > this.heartbeatTimeout) {
+      logger.warn(
+        `[MobileBridge] 心跳超时 (${timeSinceLastPong}ms > ${this.heartbeatTimeout}ms)`,
+      );
+      this.handleHeartbeatTimeout();
+      return;
+    }
+
+    // 发送 ping
+    if (this.isConnected && this.signalingSocket) {
+      this.send({ type: "ping", timestamp: Date.now() });
+    }
+  }
+
+  /**
+   * 处理心跳超时
+   */
+  handleHeartbeatTimeout() {
+    logger.error("[MobileBridge] 心跳超时，连接可能已断开");
+
+    this.stopHeartbeat();
+    this.isConnected = false;
+
+    // 关闭 WebSocket
+    if (this.signalingSocket) {
+      try {
+        this.signalingSocket.close();
+      } catch (e) {
+        // 忽略关闭错误
+      }
+      this.signalingSocket = null;
+    }
+
+    this.emit("heartbeat-timeout");
+
+    // 尝试重连
+    if (this.options.enableAutoReconnect) {
+      this.scheduleReconnect();
+    }
+  }
+
+  /**
+   * 停止心跳检测
+   */
+  stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+      logger.info("[MobileBridge] 心跳检测已停止");
+    }
   }
 
   /**
@@ -971,6 +1112,9 @@ class MobileBridge extends EventEmitter {
    */
   async disconnect() {
     logger.info("[MobileBridge] 断开连接...");
+
+    // 停止心跳
+    this.stopHeartbeat();
 
     // 清除所有定时器
     for (const timer of this.connectionTimers.values()) {

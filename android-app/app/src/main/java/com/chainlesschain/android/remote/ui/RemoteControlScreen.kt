@@ -44,7 +44,11 @@ fun RemoteControlScreen(
     onNavigateToSystemMonitor: () -> Unit = {},
     onNavigateToCommandHistory: () -> Unit = {},
     onNavigateToRemoteDesktop: () -> Unit = {},
-    onNavigateToFileTransfer: (String) -> Unit = {}
+    onNavigateToFileTransfer: (String) -> Unit = {},
+    onNavigateToClipboardSync: () -> Unit = {},
+    onNavigateToNotificationCenter: () -> Unit = {},
+    onNavigateToWorkflow: () -> Unit = {},
+    onNavigateToConnectionStatus: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
@@ -227,6 +231,41 @@ fun RemoteControlScreen(
                     )
                 )
             }
+
+            // 5. 同步与工作流
+            item {
+                CommandShortcutsSection(
+                    title = "同步与工作流",
+                    icon = Icons.Default.Sync,
+                    enabled = connectionState == ConnectionState.CONNECTED,
+                    commands = listOf(
+                        CommandShortcut(
+                            title = "剪贴板同步",
+                            subtitle = "在 PC 和 Android 之间同步剪贴板",
+                            icon = Icons.Default.ContentPaste,
+                            onClick = onNavigateToClipboardSync
+                        ),
+                        CommandShortcut(
+                            title = "通知中心",
+                            subtitle = "管理和发送 PC 端通知",
+                            icon = Icons.Default.NotificationsActive,
+                            onClick = onNavigateToNotificationCenter
+                        ),
+                        CommandShortcut(
+                            title = "工作流自动化",
+                            subtitle = "创建和执行自动化工作流",
+                            icon = Icons.Default.PlayCircle,
+                            onClick = onNavigateToWorkflow
+                        ),
+                        CommandShortcut(
+                            title = "连接状态",
+                            subtitle = "查看详细连接状态和重连设置",
+                            icon = Icons.Default.SignalCellularAlt,
+                            onClick = onNavigateToConnectionStatus
+                        )
+                    )
+                )
+            }
         }
 
         // 错误提示
@@ -341,6 +380,7 @@ fun DeviceConnectionPanel(
                     text = when (connectionState) {
                         ConnectionState.DISCONNECTED -> "连接到 PC"
                         ConnectionState.CONNECTING -> "连接中..."
+                        ConnectionState.RECONNECTING -> "重连中..."
                         ConnectionState.CONNECTED -> "断开连接"
                         ConnectionState.ERROR -> "重新连接"
                     }
@@ -369,6 +409,7 @@ fun ConnectionStatusIndicator(
                 text = when (connectionState) {
                     ConnectionState.DISCONNECTED -> "未连接"
                     ConnectionState.CONNECTING -> "正在连接..."
+                    ConnectionState.RECONNECTING -> "正在重连..."
                     ConnectionState.CONNECTED -> connectedPeer?.peerId ?: "已连接"
                     ConnectionState.ERROR -> "连接错误"
                 },
@@ -394,6 +435,7 @@ fun ConnectionStatusIndicator(
                     when (connectionState) {
                         ConnectionState.CONNECTED -> Color(0xFF4CAF50)
                         ConnectionState.CONNECTING -> Color(0xFFFF9800)
+                        ConnectionState.RECONNECTING -> Color(0xFFFF9800)
                         ConnectionState.ERROR -> Color(0xFFF44336)
                         ConnectionState.DISCONNECTED -> Color(0xFF9E9E9E)
                     }
