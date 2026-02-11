@@ -21,7 +21,9 @@
     "downloads.open",
     "webNavigation",
     "debugger",
-    "browsingData"
+    "browsingData",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback"
   ],
 
   "host_permissions": ["<all_urls>"],
