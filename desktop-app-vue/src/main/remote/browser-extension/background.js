@@ -1414,6 +1414,149 @@ async function executeCommand(method, params) {
     case "reporting.clearReports":
       return await clearReports(params.tabId);
 
+    // ==================== Phase 24: Hardware & Media APIs ====================
+
+    // Web Bluetooth API
+    case "bluetooth.requestDevice":
+      return await requestBluetoothDevice(params.tabId, params.options);
+    case "bluetooth.getDevices":
+      return await getBluetoothDevices(params.tabId);
+    case "bluetooth.getAvailability":
+      return await getBluetoothAvailability(params.tabId);
+    case "bluetooth.connect":
+      return await connectBluetoothDevice(params.tabId, params.deviceId);
+    case "bluetooth.disconnect":
+      return await disconnectBluetoothDevice(params.tabId, params.deviceId);
+    case "bluetooth.getServices":
+      return await getBluetoothServices(params.tabId, params.deviceId);
+
+    // Web USB API
+    case "usb.requestDevice":
+      return await requestUSBDevice(params.tabId, params.options);
+    case "usb.getDevices":
+      return await getUSBDevices(params.tabId);
+    case "usb.open":
+      return await openUSBDevice(params.tabId, params.deviceId);
+    case "usb.close":
+      return await closeUSBDevice(params.tabId, params.deviceId);
+    case "usb.selectConfiguration":
+      return await selectUSBConfiguration(
+        params.tabId,
+        params.deviceId,
+        params.configurationValue,
+      );
+    case "usb.claimInterface":
+      return await claimUSBInterface(
+        params.tabId,
+        params.deviceId,
+        params.interfaceNumber,
+      );
+
+    // Web Serial API
+    case "serial.requestPort":
+      return await requestSerialPort(params.tabId, params.options);
+    case "serial.getPorts":
+      return await getSerialPorts(params.tabId);
+    case "serial.open":
+      return await openSerialPort(params.tabId, params.portId, params.options);
+    case "serial.close":
+      return await closeSerialPort(params.tabId, params.portId);
+    case "serial.read":
+      return await readSerialPort(params.tabId, params.portId, params.length);
+    case "serial.write":
+      return await writeSerialPort(params.tabId, params.portId, params.data);
+
+    // Gamepad API
+    case "gamepad.getGamepads":
+      return await getGamepads(params.tabId);
+    case "gamepad.getState":
+      return await getGamepadState(params.tabId, params.index);
+    case "gamepad.vibrate":
+      return await vibrateGamepad(params.tabId, params.index, params.options);
+    case "gamepad.isSupported":
+      return await isGamepadSupported(params.tabId);
+
+    // Web MIDI API
+    case "midi.requestAccess":
+      return await requestMIDIAccess(params.tabId, params.options);
+    case "midi.getInputs":
+      return await getMIDIInputs(params.tabId);
+    case "midi.getOutputs":
+      return await getMIDIOutputs(params.tabId);
+    case "midi.send":
+      return await sendMIDIMessage(params.tabId, params.outputId, params.data);
+    case "midi.close":
+      return await closeMIDIAccess(params.tabId);
+
+    // Picture-in-Picture API
+    case "pip.request":
+      return await requestPictureInPicture(params.tabId, params.selector);
+    case "pip.exit":
+      return await exitPictureInPicture(params.tabId);
+    case "pip.getWindow":
+      return await getPictureInPictureWindow(params.tabId);
+    case "pip.isEnabled":
+      return await isPictureInPictureEnabled(params.tabId);
+    case "pip.isSupported":
+      return await isPictureInPictureSupported(params.tabId);
+
+    // Document Picture-in-Picture API
+    case "documentPip.request":
+      return await requestDocumentPictureInPicture(
+        params.tabId,
+        params.options,
+      );
+    case "documentPip.getWindow":
+      return await getDocumentPictureInPictureWindow(params.tabId);
+
+    // Web Locks API
+    case "locks.request":
+      return await requestLock(params.tabId, params.name, params.options);
+    case "locks.query":
+      return await queryLocks(params.tabId);
+    case "locks.release":
+      return await releaseLock(params.tabId, params.name);
+    case "locks.isSupported":
+      return await isLocksSupported(params.tabId);
+
+    // Badging API
+    case "badge.set":
+      return await setBadge(params.tabId, params.contents);
+    case "badge.clear":
+      return await clearBadge(params.tabId);
+    case "badge.isSupported":
+      return await isBadgeSupported(params.tabId);
+
+    // Local Font Access API
+    case "fonts.query":
+      return await queryLocalFonts(params.tabId, params.options);
+    case "fonts.getPostscriptNames":
+      return await getFontPostscriptNames(params.tabId);
+    case "fonts.isSupported":
+      return await isLocalFontsSupported(params.tabId);
+
+    // Window Management API
+    case "screens.getScreens":
+      return await getScreenDetails(params.tabId);
+    case "screens.getCurrentScreen":
+      return await getCurrentScreen(params.tabId);
+    case "screens.isMultiScreen":
+      return await isMultiScreenEnvironment(params.tabId);
+    case "screens.requestPermission":
+      return await requestScreensPermission(params.tabId);
+    case "screens.getScreenById":
+      return await getScreenById(params.tabId, params.screenId);
+
+    // Compute Pressure API
+    case "pressure.observe":
+      return await observeComputePressure(params.tabId, params.source);
+    case "pressure.unobserve":
+      return await unobserveComputePressure(params.tabId);
+    case "pressure.getState":
+      return await getComputePressureState(params.tabId);
+    case "pressure.isSupported":
+      return await isComputePressureSupported(params.tabId);
+
     default:
       throw new Error(`Unknown method: ${method}`);
   }
@@ -11891,6 +12034,1440 @@ async function clearReports(tabId) {
         // Clear any stored reports
         window.__collectedReports = [];
         return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Web Bluetooth API ====================
+
+async function requestBluetoothDevice(tabId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!navigator.bluetooth) {
+          return { error: "Web Bluetooth API not supported" };
+        }
+        try {
+          const device = await navigator.bluetooth.requestDevice(opts);
+          // Store device for later use
+          if (!window.__bluetoothDevices) window.__bluetoothDevices = new Map();
+          window.__bluetoothDevices.set(device.id, device);
+          return {
+            device: {
+              id: device.id,
+              name: device.name,
+              gatt: !!device.gatt,
+            },
+          };
+        } catch (e) {
+          if (e.name === "NotFoundError") {
+            return { cancelled: true };
+          }
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getBluetoothDevices(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.bluetooth || !navigator.bluetooth.getDevices) {
+          return { error: "getDevices not supported" };
+        }
+        try {
+          const devices = await navigator.bluetooth.getDevices();
+          return {
+            devices: devices.map((d) => ({
+              id: d.id,
+              name: d.name,
+              connected: d.gatt?.connected || false,
+            })),
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getBluetoothAvailability(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.bluetooth) {
+          return { available: false, reason: "Web Bluetooth not supported" };
+        }
+        try {
+          const available = await navigator.bluetooth.getAvailability();
+          return { available };
+        } catch (e) {
+          return { available: false, error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function connectBluetoothDevice(tabId, deviceId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (devId) => {
+        if (
+          !window.__bluetoothDevices ||
+          !window.__bluetoothDevices.has(devId)
+        ) {
+          return { error: "Device not found" };
+        }
+        try {
+          const device = window.__bluetoothDevices.get(devId);
+          if (!device.gatt) {
+            return { error: "GATT not available" };
+          }
+          const server = await device.gatt.connect();
+          return { connected: server.connected, deviceId: devId };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [deviceId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function disconnectBluetoothDevice(tabId, deviceId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (devId) => {
+        if (
+          !window.__bluetoothDevices ||
+          !window.__bluetoothDevices.has(devId)
+        ) {
+          return { error: "Device not found" };
+        }
+        const device = window.__bluetoothDevices.get(devId);
+        if (device.gatt?.connected) {
+          device.gatt.disconnect();
+        }
+        return { success: true, disconnected: true };
+      },
+      args: [deviceId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getBluetoothServices(tabId, deviceId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (devId) => {
+        if (
+          !window.__bluetoothDevices ||
+          !window.__bluetoothDevices.has(devId)
+        ) {
+          return { error: "Device not found" };
+        }
+        try {
+          const device = window.__bluetoothDevices.get(devId);
+          if (!device.gatt?.connected) {
+            return { error: "Device not connected" };
+          }
+          const services = await device.gatt.getPrimaryServices();
+          return {
+            services: services.map((s) => ({
+              uuid: s.uuid,
+              isPrimary: s.isPrimary,
+            })),
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [deviceId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Web USB API ====================
+
+async function requestUSBDevice(tabId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!navigator.usb) {
+          return { error: "Web USB API not supported" };
+        }
+        try {
+          const device = await navigator.usb.requestDevice(opts);
+          if (!window.__usbDevices) window.__usbDevices = new Map();
+          const id = `usb_${device.vendorId}_${device.productId}_${Date.now()}`;
+          window.__usbDevices.set(id, device);
+          return {
+            device: {
+              id,
+              vendorId: device.vendorId,
+              productId: device.productId,
+              productName: device.productName,
+              manufacturerName: device.manufacturerName,
+              serialNumber: device.serialNumber,
+            },
+          };
+        } catch (e) {
+          if (e.name === "NotFoundError") {
+            return { cancelled: true };
+          }
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getUSBDevices(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.usb) {
+          return { error: "Web USB API not supported" };
+        }
+        try {
+          const devices = await navigator.usb.getDevices();
+          return {
+            devices: devices.map((d, i) => ({
+              id: `usb_${d.vendorId}_${d.productId}_${i}`,
+              vendorId: d.vendorId,
+              productId: d.productId,
+              productName: d.productName,
+              manufacturerName: d.manufacturerName,
+              opened: d.opened,
+            })),
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function openUSBDevice(tabId, deviceId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (devId) => {
+        if (!window.__usbDevices || !window.__usbDevices.has(devId)) {
+          return { error: "Device not found" };
+        }
+        try {
+          const device = window.__usbDevices.get(devId);
+          await device.open();
+          return { success: true, opened: device.opened };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [deviceId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function closeUSBDevice(tabId, deviceId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (devId) => {
+        if (!window.__usbDevices || !window.__usbDevices.has(devId)) {
+          return { error: "Device not found" };
+        }
+        try {
+          const device = window.__usbDevices.get(devId);
+          await device.close();
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [deviceId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function selectUSBConfiguration(tabId, deviceId, configurationValue) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (devId, configVal) => {
+        if (!window.__usbDevices || !window.__usbDevices.has(devId)) {
+          return { error: "Device not found" };
+        }
+        try {
+          const device = window.__usbDevices.get(devId);
+          await device.selectConfiguration(configVal);
+          return { success: true, configuration: device.configuration };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [deviceId, configurationValue],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function claimUSBInterface(tabId, deviceId, interfaceNumber) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (devId, intNum) => {
+        if (!window.__usbDevices || !window.__usbDevices.has(devId)) {
+          return { error: "Device not found" };
+        }
+        try {
+          const device = window.__usbDevices.get(devId);
+          await device.claimInterface(intNum);
+          return { success: true, interfaceNumber: intNum };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [deviceId, interfaceNumber],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Web Serial API ====================
+
+async function requestSerialPort(tabId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!navigator.serial) {
+          return { error: "Web Serial API not supported" };
+        }
+        try {
+          const port = await navigator.serial.requestPort(opts);
+          if (!window.__serialPorts) window.__serialPorts = new Map();
+          const id = `serial_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          window.__serialPorts.set(id, port);
+          const info = port.getInfo();
+          return {
+            port: {
+              id,
+              usbVendorId: info.usbVendorId,
+              usbProductId: info.usbProductId,
+            },
+          };
+        } catch (e) {
+          if (e.name === "NotFoundError") {
+            return { cancelled: true };
+          }
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSerialPorts(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.serial) {
+          return { error: "Web Serial API not supported" };
+        }
+        try {
+          const ports = await navigator.serial.getPorts();
+          return {
+            ports: ports.map((p, i) => {
+              const info = p.getInfo();
+              return {
+                index: i,
+                usbVendorId: info.usbVendorId,
+                usbProductId: info.usbProductId,
+              };
+            }),
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function openSerialPort(tabId, portId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (pId, opts) => {
+        if (!window.__serialPorts || !window.__serialPorts.has(pId)) {
+          return { error: "Port not found" };
+        }
+        try {
+          const port = window.__serialPorts.get(pId);
+          await port.open(opts);
+          return {
+            success: true,
+            readable: !!port.readable,
+            writable: !!port.writable,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [portId, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function closeSerialPort(tabId, portId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (pId) => {
+        if (!window.__serialPorts || !window.__serialPorts.has(pId)) {
+          return { error: "Port not found" };
+        }
+        try {
+          const port = window.__serialPorts.get(pId);
+          await port.close();
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [portId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function readSerialPort(tabId, portId, length = 1024) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (pId, len) => {
+        if (!window.__serialPorts || !window.__serialPorts.has(pId)) {
+          return { error: "Port not found" };
+        }
+        try {
+          const port = window.__serialPorts.get(pId);
+          if (!port.readable) {
+            return { error: "Port not readable" };
+          }
+          const reader = port.readable.getReader();
+          const { value, done } = await reader.read();
+          reader.releaseLock();
+          return {
+            data: value ? Array.from(value.slice(0, len)) : [],
+            done,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [portId, length],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function writeSerialPort(tabId, portId, data) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (pId, dataArray) => {
+        if (!window.__serialPorts || !window.__serialPorts.has(pId)) {
+          return { error: "Port not found" };
+        }
+        try {
+          const port = window.__serialPorts.get(pId);
+          if (!port.writable) {
+            return { error: "Port not writable" };
+          }
+          const writer = port.writable.getWriter();
+          await writer.write(new Uint8Array(dataArray));
+          writer.releaseLock();
+          return { success: true, bytesWritten: dataArray.length };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [portId, data],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Gamepad API ====================
+
+async function getGamepads(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const gamepads = navigator.getGamepads();
+        return {
+          gamepads: Array.from(gamepads)
+            .filter((g) => g !== null)
+            .map((g) => ({
+              index: g.index,
+              id: g.id,
+              connected: g.connected,
+              mapping: g.mapping,
+              axes: g.axes.length,
+              buttons: g.buttons.length,
+              timestamp: g.timestamp,
+            })),
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getGamepadState(tabId, index) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (idx) => {
+        const gamepads = navigator.getGamepads();
+        const gamepad = gamepads[idx];
+        if (!gamepad) {
+          return { error: "Gamepad not found" };
+        }
+        return {
+          id: gamepad.id,
+          connected: gamepad.connected,
+          axes: Array.from(gamepad.axes),
+          buttons: gamepad.buttons.map((b) => ({
+            pressed: b.pressed,
+            touched: b.touched,
+            value: b.value,
+          })),
+          timestamp: gamepad.timestamp,
+        };
+      },
+      args: [index],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function vibrateGamepad(tabId, index, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (idx, opts) => {
+        const gamepads = navigator.getGamepads();
+        const gamepad = gamepads[idx];
+        if (!gamepad) {
+          return { error: "Gamepad not found" };
+        }
+        if (!gamepad.vibrationActuator) {
+          return { error: "Vibration not supported" };
+        }
+        try {
+          await gamepad.vibrationActuator.playEffect(
+            opts.type || "dual-rumble",
+            {
+              duration: opts.duration || 200,
+              startDelay: opts.startDelay || 0,
+              strongMagnitude: opts.strongMagnitude || 1.0,
+              weakMagnitude: opts.weakMagnitude || 0.5,
+            },
+          );
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [index, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isGamepadSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!navigator.getGamepads };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Web MIDI API ====================
+
+async function requestMIDIAccess(tabId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!navigator.requestMIDIAccess) {
+          return { error: "Web MIDI API not supported" };
+        }
+        try {
+          const access = await navigator.requestMIDIAccess(opts);
+          window.__midiAccess = access;
+          return {
+            sysexEnabled: access.sysexEnabled,
+            inputs: access.inputs.size,
+            outputs: access.outputs.size,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getMIDIInputs(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__midiAccess) {
+          return { error: "MIDI access not requested" };
+        }
+        const inputs = [];
+        for (const [id, input] of window.__midiAccess.inputs) {
+          inputs.push({
+            id,
+            name: input.name,
+            manufacturer: input.manufacturer,
+            state: input.state,
+            connection: input.connection,
+          });
+        }
+        return { inputs };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getMIDIOutputs(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__midiAccess) {
+          return { error: "MIDI access not requested" };
+        }
+        const outputs = [];
+        for (const [id, output] of window.__midiAccess.outputs) {
+          outputs.push({
+            id,
+            name: output.name,
+            manufacturer: output.manufacturer,
+            state: output.state,
+            connection: output.connection,
+          });
+        }
+        return { outputs };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function sendMIDIMessage(tabId, outputId, data) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (outId, midiData) => {
+        if (!window.__midiAccess) {
+          return { error: "MIDI access not requested" };
+        }
+        const output = window.__midiAccess.outputs.get(outId);
+        if (!output) {
+          return { error: "Output not found" };
+        }
+        try {
+          output.send(midiData);
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [outputId, data],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function closeMIDIAccess(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__midiAccess) {
+          return { error: "MIDI access not requested" };
+        }
+        // Close all ports
+        for (const input of window.__midiAccess.inputs.values()) {
+          input.close();
+        }
+        for (const output of window.__midiAccess.outputs.values()) {
+          output.close();
+        }
+        window.__midiAccess = null;
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Picture-in-Picture API ====================
+
+async function requestPictureInPicture(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (sel) => {
+        const video = document.querySelector(sel);
+        if (!video || video.tagName !== "VIDEO") {
+          return { error: "Video element not found" };
+        }
+        if (!document.pictureInPictureEnabled) {
+          return { error: "Picture-in-Picture not enabled" };
+        }
+        try {
+          const pipWindow = await video.requestPictureInPicture();
+          return {
+            success: true,
+            width: pipWindow.width,
+            height: pipWindow.height,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [selector],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function exitPictureInPicture(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!document.pictureInPictureElement) {
+          return { error: "No element in Picture-in-Picture" };
+        }
+        try {
+          await document.exitPictureInPicture();
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPictureInPictureWindow(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const element = document.pictureInPictureElement;
+        if (!element) {
+          return { active: false };
+        }
+        return {
+          active: true,
+          element: element.tagName,
+          src: element.src || element.currentSrc,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isPictureInPictureEnabled(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { enabled: document.pictureInPictureEnabled };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isPictureInPictureSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          supported: "pictureInPictureEnabled" in document,
+          enabled: document.pictureInPictureEnabled,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Document Picture-in-Picture API ====================
+
+async function requestDocumentPictureInPicture(tabId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!window.documentPictureInPicture) {
+          return { error: "Document Picture-in-Picture not supported" };
+        }
+        try {
+          const pipWindow = await documentPictureInPicture.requestWindow(opts);
+          window.__documentPipWindow = pipWindow;
+          return {
+            success: true,
+            width: pipWindow.innerWidth,
+            height: pipWindow.innerHeight,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getDocumentPictureInPictureWindow(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.documentPictureInPicture) {
+          return { error: "Document Picture-in-Picture not supported" };
+        }
+        const pipWindow = documentPictureInPicture.window;
+        if (!pipWindow) {
+          return { active: false };
+        }
+        return {
+          active: true,
+          width: pipWindow.innerWidth,
+          height: pipWindow.innerHeight,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Web Locks API ====================
+
+async function requestLock(tabId, name, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (lockName, opts) => {
+        if (!navigator.locks) {
+          return { error: "Web Locks API not supported" };
+        }
+        try {
+          // Create a lock and store the release function
+          const lockPromise = new Promise((resolve) => {
+            navigator.locks.request(
+              lockName,
+              { mode: opts.mode || "exclusive", ifAvailable: opts.ifAvailable },
+              async (lock) => {
+                if (!lock) {
+                  resolve({ acquired: false, reason: "Lock not available" });
+                  return;
+                }
+                if (!window.__locks) window.__locks = new Map();
+                const releasePromise = new Promise((rel) => {
+                  window.__locks.set(lockName, rel);
+                });
+                resolve({ acquired: true, name: lock.name, mode: lock.mode });
+                await releasePromise;
+              },
+            );
+          });
+          return await lockPromise;
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [name, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function queryLocks(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.locks) {
+          return { error: "Web Locks API not supported" };
+        }
+        try {
+          const state = await navigator.locks.query();
+          return {
+            held: state.held.map((l) => ({
+              name: l.name,
+              mode: l.mode,
+              clientId: l.clientId,
+            })),
+            pending: state.pending.map((l) => ({
+              name: l.name,
+              mode: l.mode,
+              clientId: l.clientId,
+            })),
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function releaseLock(tabId, name) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (lockName) => {
+        if (!window.__locks || !window.__locks.has(lockName)) {
+          return { error: "Lock not found" };
+        }
+        const release = window.__locks.get(lockName);
+        release();
+        window.__locks.delete(lockName);
+        return { success: true, released: lockName };
+      },
+      args: [name],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isLocksSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!navigator.locks };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Badging API ====================
+
+async function setBadge(tabId, contents) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (value) => {
+        if (!navigator.setAppBadge) {
+          return { error: "Badging API not supported" };
+        }
+        try {
+          if (value === undefined || value === null) {
+            await navigator.setAppBadge();
+          } else {
+            await navigator.setAppBadge(value);
+          }
+          return { success: true, badge: value };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [contents],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearBadge(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.clearAppBadge) {
+          return { error: "Badging API not supported" };
+        }
+        try {
+          await navigator.clearAppBadge();
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isBadgeSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          supported: !!navigator.setAppBadge && !!navigator.clearAppBadge,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Local Font Access API ====================
+
+async function queryLocalFonts(tabId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!window.queryLocalFonts) {
+          return { error: "Local Font Access API not supported" };
+        }
+        try {
+          const fonts = await window.queryLocalFonts(opts);
+          return {
+            fonts: fonts.slice(0, 100).map((f) => ({
+              family: f.family,
+              fullName: f.fullName,
+              postscriptName: f.postscriptName,
+              style: f.style,
+            })),
+            total: fonts.length,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getFontPostscriptNames(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!window.queryLocalFonts) {
+          return { error: "Local Font Access API not supported" };
+        }
+        try {
+          const fonts = await window.queryLocalFonts();
+          const names = [...new Set(fonts.map((f) => f.postscriptName))];
+          return { names: names.slice(0, 200), total: names.length };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isLocalFontsSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!window.queryLocalFonts };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Window Management API ====================
+
+async function getScreenDetails(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!window.getScreenDetails) {
+          return { error: "Window Management API not supported" };
+        }
+        try {
+          const details = await window.getScreenDetails();
+          return {
+            screens: details.screens.map((s) => ({
+              label: s.label,
+              left: s.left,
+              top: s.top,
+              width: s.width,
+              height: s.height,
+              availLeft: s.availLeft,
+              availTop: s.availTop,
+              availWidth: s.availWidth,
+              availHeight: s.availHeight,
+              devicePixelRatio: s.devicePixelRatio,
+              isPrimary: s.isPrimary,
+              isInternal: s.isInternal,
+            })),
+            currentScreen: details.currentScreen?.label,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getCurrentScreen(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!window.getScreenDetails) {
+          // Fallback to basic screen info
+          return {
+            width: screen.width,
+            height: screen.height,
+            availWidth: screen.availWidth,
+            availHeight: screen.availHeight,
+            colorDepth: screen.colorDepth,
+            pixelDepth: screen.pixelDepth,
+          };
+        }
+        try {
+          const details = await window.getScreenDetails();
+          const current = details.currentScreen;
+          return {
+            label: current.label,
+            width: current.width,
+            height: current.height,
+            availWidth: current.availWidth,
+            availHeight: current.availHeight,
+            devicePixelRatio: current.devicePixelRatio,
+            isPrimary: current.isPrimary,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isMultiScreenEnvironment(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!window.getScreenDetails) {
+          return { multiScreen: false, reason: "API not supported" };
+        }
+        try {
+          const details = await window.getScreenDetails();
+          return {
+            multiScreen: details.screens.length > 1,
+            screenCount: details.screens.length,
+          };
+        } catch (e) {
+          return { multiScreen: false, error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function requestScreensPermission(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!window.getScreenDetails) {
+          return { error: "Window Management API not supported" };
+        }
+        try {
+          // Requesting getScreenDetails implicitly requests permission
+          await window.getScreenDetails();
+          return { granted: true };
+        } catch (e) {
+          if (e.name === "NotAllowedError") {
+            return { granted: false, reason: "Permission denied" };
+          }
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getScreenById(tabId, screenId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (sId) => {
+        if (!window.getScreenDetails) {
+          return { error: "Window Management API not supported" };
+        }
+        try {
+          const details = await window.getScreenDetails();
+          const screen = details.screens.find((s) => s.label === sId);
+          if (!screen) {
+            return { error: "Screen not found" };
+          }
+          return {
+            label: screen.label,
+            left: screen.left,
+            top: screen.top,
+            width: screen.width,
+            height: screen.height,
+            isPrimary: screen.isPrimary,
+            isInternal: screen.isInternal,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [screenId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 24: Compute Pressure API ====================
+
+async function observeComputePressure(tabId, source = "cpu") {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (src) => {
+        if (!window.PressureObserver) {
+          return { error: "Compute Pressure API not supported" };
+        }
+        try {
+          if (window.__pressureObserver) {
+            window.__pressureObserver.disconnect();
+          }
+          window.__pressureRecords = [];
+          const observer = new PressureObserver((records) => {
+            window.__pressureRecords = records.map((r) => ({
+              source: r.source,
+              state: r.state,
+              time: r.time,
+            }));
+          });
+          await observer.observe(src);
+          window.__pressureObserver = observer;
+          return { success: true, observing: src };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [source],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function unobserveComputePressure(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__pressureObserver) {
+          return { error: "No active observer" };
+        }
+        window.__pressureObserver.disconnect();
+        window.__pressureObserver = null;
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getComputePressureState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          observing: !!window.__pressureObserver,
+          records: window.__pressureRecords || [],
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isComputePressureSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!window.PressureObserver };
       },
     });
     return result[0]?.result || {};

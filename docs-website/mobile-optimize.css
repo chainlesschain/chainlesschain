@@ -18,6 +18,15 @@
         top: 70px !important;
         z-index: 998 !important;
     }
+
+    /* PC端隐藏移动端专属元素 */
+    .mobile-menu-toggle {
+        display: none !important;
+    }
+
+    .mobile-contact-btn {
+        display: none !important;
+    }
 }
 
 /* ==========================================
@@ -44,9 +53,117 @@
         height: 32px !important;
     }
 
-    /* 隐藏导航菜单，只保留Logo和下载按钮 */
+    /* 移动端导航菜单 - 全屏覆盖样式 */
     .nav-menu {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        align-items: stretch !important;
+        padding: 80px 0 30px 0 !important;
+        z-index: 1001 !important;
+        overflow-y: auto !important;
+        /* 默认隐藏 */
+        max-height: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: max-height 0.3s ease, opacity 0.3s ease !important;
+    }
+
+    .nav-menu.active {
+        max-height: 100vh !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+
+    /* 隐藏下拉菜单，直接显示所有链接 */
+    .nav-menu .nav-dropdown {
+        display: contents !important;
+    }
+
+    .nav-menu .dropdown-menu {
+        display: contents !important;
+        position: static !important;
+        max-height: none !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        transform: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    /* 隐藏产品/技术的父级链接，只显示子菜单 */
+    .nav-menu .nav-dropdown > .nav-link {
         display: none !important;
+    }
+
+    .nav-menu .nav-link,
+    .nav-menu .dropdown-item {
+        display: flex !important;
+        align-items: center !important;
+        padding: 20px 30px !important;
+        font-size: 17px !important;
+        font-weight: 500 !important;
+        border-bottom: 1px solid rgba(255,255,255,0.12) !important;
+        width: 100% !important;
+        text-align: left !important;
+        color: #fff !important;
+        text-decoration: none !important;
+        background: transparent !important;
+        min-height: 60px !important;
+        box-sizing: border-box !important;
+    }
+
+    .nav-menu .nav-link:active,
+    .nav-menu .dropdown-item:active {
+        background: rgba(255,255,255,0.15) !important;
+    }
+
+    .nav-menu .nav-link::after {
+        display: none !important;
+    }
+
+    .nav-menu .dropdown-item {
+        gap: 15px !important;
+    }
+
+    .nav-menu .dropdown-item .icon {
+        font-size: 24px !important;
+        width: 32px !important;
+        flex-shrink: 0 !important;
+    }
+
+    .nav-menu .dropdown-item div {
+        flex: 1 !important;
+    }
+
+    .nav-menu .dropdown-item strong {
+        color: #fff !important;
+        font-size: 16px !important;
+        display: block !important;
+    }
+
+    .nav-menu .dropdown-item p {
+        color: rgba(255,255,255,0.7) !important;
+        font-size: 13px !important;
+        margin: 4px 0 0 0 !important;
+    }
+
+    /* 关闭按钮样式优化 */
+    .mobile-menu-toggle {
+        position: fixed !important;
+        top: 15px !important;
+        right: 15px !important;
+        z-index: 1002 !important;
+    }
+
+    .mobile-menu-toggle.active span {
+        background: #fff !important;
     }
 
     /* 导航操作按钮优化 */
@@ -64,57 +181,67 @@
         white-space: nowrap !important;
     }
 
+    /* 显示移动端菜单切换按钮 */
+    .mobile-menu-toggle {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 40px !important;
+        height: 40px !important;
+        background: transparent !important;
+        border: none !important;
+        cursor: pointer !important;
+        padding: 8px !important;
+        gap: 5px !important;
+        z-index: 1002 !important;
+    }
+
+    .mobile-menu-toggle span {
+        display: block !important;
+        width: 24px !important;
+        height: 3px !important;
+        background: #333 !important;
+        border-radius: 2px !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .mobile-menu-toggle.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px) !important;
+    }
+
+    .mobile-menu-toggle.active span:nth-child(2) {
+        opacity: 0 !important;
+    }
+
+    .mobile-menu-toggle.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(6px, -6px) !important;
+    }
+
     /* 移动端：隐藏顶部联系栏，避免遮挡内容 */
     .top-contact-bar {
         display: none !important;
     }
 
-    /* 移动端：创建浮动操作按钮组 */
-    /* 联系按钮 */
-    body::after {
-        content: "☎";
-        position: fixed;
-        bottom: 80px;
-        right: 20px;
-        width: 50px;
-        height: 50px;
-        background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4),
-                    0 0 20px rgba(24, 144, 255, 0.2);
-        z-index: 999;
-        cursor: pointer;
-        animation: floatButton 3s ease-in-out infinite;
-        pointer-events: auto;
-    }
-
-    /* 菜单按钮 */
-    body::before {
-        content: "☰";
-        position: fixed;
-        bottom: 140px;
-        right: 20px;
-        width: 50px;
-        height: 50px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        font-weight: 300;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4),
-                    0 0 20px rgba(102, 126, 234, 0.2);
-        z-index: 999;
-        cursor: pointer;
-        animation: floatButton 3s ease-in-out infinite 0.5s;
-        pointer-events: auto;
+    /* 移动端：浮动联系按钮 */
+    .mobile-contact-btn {
+        position: fixed !important;
+        bottom: 80px !important;
+        right: 20px !important;
+        width: 50px !important;
+        height: 50px !important;
+        background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%) !important;
+        color: white !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 22px !important;
+        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4) !important;
+        z-index: 999 !important;
+        cursor: pointer !important;
+        text-decoration: none !important;
+        animation: floatButton 3s ease-in-out infinite !important;
     }
 
     @keyframes floatButton {
@@ -124,12 +251,6 @@
         50% {
             transform: translateY(-8px);
         }
-    }
-
-    /* 按钮点击提示 */
-    body::after:active,
-    body::before:active {
-        transform: scale(0.95);
     }
 
     /* Hero区域优化 - 因为隐藏了联系栏，减少顶部间距 */

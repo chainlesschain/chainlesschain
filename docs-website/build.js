@@ -43,6 +43,7 @@ const config = {
     "logo.svg",
     "favicon.ico",
     "style-enhancements.css",
+    "mobile-optimize.css",
     "generate-qr-code.html",
   ],
 
@@ -133,6 +134,7 @@ function build() {
     "logo.png",
     "logo.svg",
     "style-enhancements.css",
+    "mobile-optimize.css",
     "generate-qr-code.html",
   ];
 
