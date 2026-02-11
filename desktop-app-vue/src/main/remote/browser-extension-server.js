@@ -1183,6 +1183,254 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
+      // ==================== Phase 18: DOM & Input Tools ====================
+
+      // DOM Mutation Observer
+      case "observeMutations":
+        return await this.server.sendCommand(
+          clientId,
+          "dom.observeMutations",
+          params,
+        );
+      case "stopObservingMutations":
+        return await this.server.sendCommand(
+          clientId,
+          "dom.stopObserving",
+          params,
+        );
+      case "getMutations":
+        return await this.server.sendCommand(
+          clientId,
+          "dom.getMutations",
+          params,
+        );
+      case "clearMutations":
+        return await this.server.sendCommand(
+          clientId,
+          "dom.clearMutations",
+          params,
+        );
+
+      // Event Listener Inspector
+      case "getEventListeners":
+        return await this.server.sendCommand(
+          clientId,
+          "events.getListeners",
+          params,
+        );
+      case "removeEventListener":
+        return await this.server.sendCommand(
+          clientId,
+          "events.removeListener",
+          params,
+        );
+      case "monitorEvents":
+        return await this.server.sendCommand(
+          clientId,
+          "events.monitorEvents",
+          params,
+        );
+      case "stopMonitoringEvents":
+        return await this.server.sendCommand(
+          clientId,
+          "events.stopMonitoring",
+          params,
+        );
+      case "getEventLog":
+        return await this.server.sendCommand(
+          clientId,
+          "events.getLog",
+          params,
+        );
+
+      // Input Recording
+      case "startInputRecording":
+        return await this.server.sendCommand(
+          clientId,
+          "input.startRecording",
+          params,
+        );
+      case "stopInputRecording":
+        return await this.server.sendCommand(
+          clientId,
+          "input.stopRecording",
+          params,
+        );
+      case "getInputRecording":
+        return await this.server.sendCommand(
+          clientId,
+          "input.getRecording",
+          params,
+        );
+      case "replayInputs":
+        return await this.server.sendCommand(
+          clientId,
+          "input.replay",
+          params,
+        );
+      case "clearInputRecording":
+        return await this.server.sendCommand(
+          clientId,
+          "input.clearRecording",
+          params,
+        );
+
+      // Media Emulation
+      case "emulateColorScheme":
+        return await this.server.sendCommand(
+          clientId,
+          "media.emulateColorScheme",
+          params,
+        );
+      case "emulateReducedMotion":
+        return await this.server.sendCommand(
+          clientId,
+          "media.emulateReducedMotion",
+          params,
+        );
+      case "emulateForcedColors":
+        return await this.server.sendCommand(
+          clientId,
+          "media.emulateForcedColors",
+          params,
+        );
+      case "emulateVisionDeficiency":
+        return await this.server.sendCommand(
+          clientId,
+          "media.emulateVisionDeficiency",
+          params,
+        );
+      case "clearMediaEmulation":
+        return await this.server.sendCommand(
+          clientId,
+          "media.clearEmulation",
+          params,
+        );
+
+      // Page Lifecycle
+      case "getPageLifecycleState":
+        return await this.server.sendCommand(
+          clientId,
+          "lifecycle.getState",
+          params,
+        );
+      case "subscribeLifecycleChanges":
+        return await this.server.sendCommand(
+          clientId,
+          "lifecycle.onStateChange",
+          params,
+        );
+      case "freezePage":
+        return await this.server.sendCommand(
+          clientId,
+          "lifecycle.freeze",
+          params,
+        );
+      case "resumePage":
+        return await this.server.sendCommand(
+          clientId,
+          "lifecycle.resume",
+          params,
+        );
+
+      // Font Inspector
+      case "getUsedFonts":
+        return await this.server.sendCommand(
+          clientId,
+          "fonts.getUsed",
+          params,
+        );
+      case "getComputedFonts":
+        return await this.server.sendCommand(
+          clientId,
+          "fonts.getComputed",
+          params,
+        );
+      case "checkFontAvailability":
+        return await this.server.sendCommand(
+          clientId,
+          "fonts.checkAvailability",
+          params,
+        );
+
+      // Measurement Tools
+      case "measureDistance":
+        return await this.server.sendCommand(
+          clientId,
+          "measure.getDistance",
+          params,
+        );
+      case "measureElementSize":
+        return await this.server.sendCommand(
+          clientId,
+          "measure.getElementSize",
+          params,
+        );
+      case "enableRuler":
+        return await this.server.sendCommand(
+          clientId,
+          "measure.enableRuler",
+          params,
+        );
+      case "disableRuler":
+        return await this.server.sendCommand(
+          clientId,
+          "measure.disableRuler",
+          params,
+        );
+
+      // Color Picker
+      case "pickColorFromPoint":
+        return await this.server.sendCommand(
+          clientId,
+          "color.pickFromPoint",
+          params,
+        );
+      case "getElementColors":
+        return await this.server.sendCommand(
+          clientId,
+          "color.getElementColors",
+          params,
+        );
+      case "enableColorPicker":
+        return await this.server.sendCommand(
+          clientId,
+          "color.enablePicker",
+          params,
+        );
+      case "disableColorPicker":
+        return await this.server.sendCommand(
+          clientId,
+          "color.disablePicker",
+          params,
+        );
+
+      // Storage Inspector (Enhanced)
+      case "getStorageQuota":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.getQuota",
+          params,
+        );
+      case "getStorageUsage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.getUsage",
+          params,
+        );
+      case "exportAllStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.exportAll",
+          params,
+        );
+      case "importAllStorage":
+        return await this.server.sendCommand(
+          clientId,
+          "storage.importAll",
+          params,
+        );
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

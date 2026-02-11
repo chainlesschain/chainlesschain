@@ -629,6 +629,114 @@ async function executeCommand(method, params) {
     case "memory.forceGC":
       return await forceGarbageCollection(params.tabId);
 
+    // ==================== Phase 18: DOM & Input Tools ====================
+
+    // DOM Mutation Observer
+    case "dom.observeMutations":
+      return await startMutationObserver(
+        params.tabId,
+        params.selector,
+        params.options,
+      );
+    case "dom.stopObserving":
+      return await stopMutationObserver(params.tabId);
+    case "dom.getMutations":
+      return getMutationLog(params.tabId);
+    case "dom.clearMutations":
+      return clearMutationLog(params.tabId);
+
+    // Event Listener Inspector
+    case "events.getListeners":
+      return await getEventListeners(params.tabId, params.selector);
+    case "events.removeListener":
+      return await removeEventListener(
+        params.tabId,
+        params.selector,
+        params.eventType,
+      );
+    case "events.monitorEvents":
+      return await startEventMonitor(
+        params.tabId,
+        params.selector,
+        params.eventTypes,
+      );
+    case "events.stopMonitoring":
+      return await stopEventMonitor(params.tabId);
+    case "events.getLog":
+      return getEventLog(params.tabId);
+
+    // Input Recording
+    case "input.startRecording":
+      return await startInputRecording(params.tabId, params.options);
+    case "input.stopRecording":
+      return await stopInputRecording(params.tabId);
+    case "input.getRecording":
+      return getInputRecording(params.tabId);
+    case "input.replay":
+      return await replayInputs(params.tabId, params.recording, params.options);
+    case "input.clearRecording":
+      return clearInputRecording(params.tabId);
+
+    // Media Emulation
+    case "media.emulateColorScheme":
+      return await emulateColorScheme(params.tabId, params.scheme);
+    case "media.emulateReducedMotion":
+      return await emulateReducedMotion(params.tabId, params.reduce);
+    case "media.emulateForcedColors":
+      return await emulateForcedColors(params.tabId, params.forced);
+    case "media.emulateVisionDeficiency":
+      return await emulateVisionDeficiency(params.tabId, params.type);
+    case "media.clearEmulation":
+      return await clearMediaEmulation(params.tabId);
+
+    // Page Lifecycle
+    case "lifecycle.getState":
+      return await getPageLifecycleState(params.tabId);
+    case "lifecycle.onStateChange":
+      return await subscribeLifecycleChanges(params.tabId);
+    case "lifecycle.freeze":
+      return await freezePage(params.tabId);
+    case "lifecycle.resume":
+      return await resumePage(params.tabId);
+
+    // Font Inspector
+    case "fonts.getUsed":
+      return await getUsedFonts(params.tabId);
+    case "fonts.getComputed":
+      return await getComputedFonts(params.tabId, params.selector);
+    case "fonts.checkAvailability":
+      return await checkFontAvailability(params.tabId, params.fontFamily);
+
+    // Measurement Tools
+    case "measure.getDistance":
+      return await measureDistance(params.tabId, params.from, params.to);
+    case "measure.getElementSize":
+      return await measureElementSize(params.tabId, params.selector);
+    case "measure.enableRuler":
+      return await enableRuler(params.tabId);
+    case "measure.disableRuler":
+      return await disableRuler(params.tabId);
+
+    // Color Picker
+    case "color.pickFromPoint":
+      return await pickColorFromPoint(params.tabId, params.x, params.y);
+    case "color.getElementColors":
+      return await getElementColors(params.tabId, params.selector);
+    case "color.enablePicker":
+      return await enableColorPicker(params.tabId);
+    case "color.disablePicker":
+      return await disableColorPicker(params.tabId);
+
+    // Storage Inspector (Enhanced)
+    case "storage.getQuota":
+      return await getStorageQuota(params.tabId);
+    case "storage.getUsage":
+      return await getStorageUsage(params.tabId);
+    case "storage.exportAll":
+      return await exportAllStorage(params.tabId);
+    case "storage.importAll":
+      return await importAllStorage(params.tabId, params.data);
+
     default:
       throw new Error(`Unknown method: ${method}`);
   }
@@ -3606,6 +3714,1148 @@ async function forceGarbageCollection(tabId) {
     await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.enable");
     await chrome.debugger.sendCommand({ tabId }, "HeapProfiler.collectGarbage");
     return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 18: DOM Mutation Observer ====================
+
+const mutationState = new Map();
+
+async function startMutationObserver(tabId, selector, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, opts) => {
+        // Clean up existing observer
+        if (window.__chainlessMutationObserver) {
+          window.__chainlessMutationObserver.disconnect();
+        }
+        window.__chainlessMutationLog = [];
+
+        const target = sel ? document.querySelector(sel) : document.body;
+        if (!target) return { error: "Target element not found" };
+
+        const config = {
+          attributes: opts.attributes !== false,
+          childList: opts.childList !== false,
+          subtree: opts.subtree !== false,
+          characterData: opts.characterData || false,
+          attributeOldValue: opts.attributeOldValue || false,
+          characterDataOldValue: opts.characterDataOldValue || false,
+        };
+
+        window.__chainlessMutationObserver = new MutationObserver(
+          (mutations) => {
+            mutations.forEach((mutation) => {
+              window.__chainlessMutationLog.push({
+                type: mutation.type,
+                target:
+                  mutation.target.tagName +
+                  (mutation.target.id ? `#${mutation.target.id}` : ""),
+                attributeName: mutation.attributeName,
+                oldValue: mutation.oldValue,
+                addedNodes: mutation.addedNodes.length,
+                removedNodes: mutation.removedNodes.length,
+                timestamp: Date.now(),
+              });
+              // Keep log size manageable
+              if (window.__chainlessMutationLog.length > 1000) {
+                window.__chainlessMutationLog.shift();
+              }
+            });
+          },
+        );
+
+        window.__chainlessMutationObserver.observe(target, config);
+        return { success: true, targetSelector: sel || "body" };
+      },
+      args: [selector, options],
+    });
+
+    mutationState.set(tabId, { started: Date.now(), selector });
+    return result[0]?.result || { error: "Failed to start observer" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function stopMutationObserver(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (window.__chainlessMutationObserver) {
+          window.__chainlessMutationObserver.disconnect();
+          window.__chainlessMutationObserver = null;
+        }
+      },
+    });
+    mutationState.delete(tabId);
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+function getMutationLog(tabId) {
+  return chrome.scripting
+    .executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          mutations: window.__chainlessMutationLog || [],
+          count: window.__chainlessMutationLog?.length || 0,
+        };
+      },
+    })
+    .then((result) => result[0]?.result || { mutations: [] });
+}
+
+function clearMutationLog(tabId) {
+  return chrome.scripting
+    .executeScript({
+      target: { tabId },
+      func: () => {
+        window.__chainlessMutationLog = [];
+        return { success: true };
+      },
+    })
+    .then((result) => result[0]?.result || { success: false });
+}
+
+// ==================== Phase 18: Event Listener Inspector ====================
+
+const eventMonitorState = new Map();
+
+async function getEventListeners(tabId, selector) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "DOM.enable");
+
+    const doc = await chrome.debugger.sendCommand({ tabId }, "DOM.getDocument");
+    const nodeResult = await chrome.debugger.sendCommand(
+      { tabId },
+      "DOM.querySelector",
+      {
+        nodeId: doc.root.nodeId,
+        selector: selector,
+      },
+    );
+
+    if (!nodeResult.nodeId) {
+      return { error: "Element not found" };
+    }
+
+    await chrome.debugger.sendCommand({ tabId }, "DOMDebugger.enable");
+    const listeners = await chrome.debugger.sendCommand(
+      { tabId },
+      "DOMDebugger.getEventListeners",
+      {
+        objectId: (
+          await chrome.debugger.sendCommand({ tabId }, "DOM.resolveNode", {
+            nodeId: nodeResult.nodeId,
+          })
+        ).object.objectId,
+      },
+    );
+
+    return {
+      listeners: listeners.listeners.map((l) => ({
+        type: l.type,
+        useCapture: l.useCapture,
+        passive: l.passive,
+        once: l.once,
+        handler: l.handler?.description?.substring(0, 200),
+        scriptId: l.scriptId,
+        lineNumber: l.lineNumber,
+        columnNumber: l.columnNumber,
+      })),
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function removeEventListener(tabId, selector, eventType) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, type) => {
+        const el = document.querySelector(sel);
+        if (!el) return { error: "Element not found" };
+
+        // Clone and replace to remove all listeners
+        const clone = el.cloneNode(true);
+        el.parentNode.replaceChild(clone, el);
+        return { success: true, eventType: type };
+      },
+      args: [selector, eventType],
+    });
+    return result[0]?.result || { error: "Failed to remove listener" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function startEventMonitor(tabId, selector, eventTypes = []) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, types) => {
+        window.__chainlessEventLog = [];
+
+        const target = sel ? document.querySelector(sel) : document;
+        if (sel && !target) return { error: "Target element not found" };
+
+        const defaultTypes = [
+          "click",
+          "keydown",
+          "keyup",
+          "input",
+          "change",
+          "focus",
+          "blur",
+          "submit",
+        ];
+        const typesToMonitor = types.length > 0 ? types : defaultTypes;
+
+        window.__chainlessEventHandlers = {};
+        typesToMonitor.forEach((type) => {
+          const handler = (event) => {
+            window.__chainlessEventLog.push({
+              type: event.type,
+              target:
+                event.target.tagName +
+                (event.target.id ? `#${event.target.id}` : ""),
+              timestamp: Date.now(),
+              key: event.key,
+              code: event.code,
+              button: event.button,
+              clientX: event.clientX,
+              clientY: event.clientY,
+              value: event.target.value?.substring?.(0, 100),
+            });
+            if (window.__chainlessEventLog.length > 500) {
+              window.__chainlessEventLog.shift();
+            }
+          };
+          window.__chainlessEventHandlers[type] = handler;
+          target.addEventListener(type, handler, true);
+        });
+
+        return { success: true, monitoredTypes: typesToMonitor };
+      },
+      args: [selector, eventTypes],
+    });
+
+    eventMonitorState.set(tabId, { started: Date.now() });
+    return result[0]?.result || { error: "Failed to start monitor" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function stopEventMonitor(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (window.__chainlessEventHandlers) {
+          Object.entries(window.__chainlessEventHandlers).forEach(
+            ([type, handler]) => {
+              document.removeEventListener(type, handler, true);
+            },
+          );
+          window.__chainlessEventHandlers = null;
+        }
+      },
+    });
+    eventMonitorState.delete(tabId);
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+function getEventLog(tabId) {
+  return chrome.scripting
+    .executeScript({
+      target: { tabId },
+      func: () => ({
+        events: window.__chainlessEventLog || [],
+        count: window.__chainlessEventLog?.length || 0,
+      }),
+    })
+    .then((result) => result[0]?.result || { events: [] });
+}
+
+// ==================== Phase 18: Input Recording ====================
+
+const inputRecordingState = new Map();
+
+async function startInputRecording(tabId, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (opts) => {
+        window.__chainlessInputRecording = {
+          startTime: Date.now(),
+          events: [],
+          options: opts,
+        };
+
+        const recordEvent = (event) => {
+          const rec = window.__chainlessInputRecording;
+          if (!rec) return;
+
+          rec.events.push({
+            type: event.type,
+            timestamp: Date.now() - rec.startTime,
+            target: {
+              tagName: event.target.tagName,
+              id: event.target.id,
+              className: event.target.className,
+              selector: event.target.id
+                ? `#${event.target.id}`
+                : event.target.className
+                  ? `.${event.target.className.split(" ")[0]}`
+                  : event.target.tagName.toLowerCase(),
+            },
+            data: {
+              key: event.key,
+              code: event.code,
+              keyCode: event.keyCode,
+              button: event.button,
+              clientX: event.clientX,
+              clientY: event.clientY,
+              value: event.target.value,
+              checked: event.target.checked,
+            },
+          });
+        };
+
+        const eventTypes = opts.eventTypes || [
+          "click",
+          "dblclick",
+          "keydown",
+          "keyup",
+          "input",
+          "change",
+          "focus",
+          "blur",
+        ];
+        window.__chainlessInputHandlers = [];
+
+        eventTypes.forEach((type) => {
+          document.addEventListener(type, recordEvent, true);
+          window.__chainlessInputHandlers.push({ type, handler: recordEvent });
+        });
+
+        return {
+          success: true,
+          startTime: window.__chainlessInputRecording.startTime,
+        };
+      },
+      args: [options],
+    });
+
+    inputRecordingState.set(tabId, { started: Date.now() });
+    return result[0]?.result || { error: "Failed to start recording" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function stopInputRecording(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (window.__chainlessInputHandlers) {
+          window.__chainlessInputHandlers.forEach(({ type, handler }) => {
+            document.removeEventListener(type, handler, true);
+          });
+          window.__chainlessInputHandlers = null;
+        }
+
+        const rec = window.__chainlessInputRecording;
+        if (rec) {
+          rec.endTime = Date.now();
+          rec.duration = rec.endTime - rec.startTime;
+        }
+
+        return {
+          success: true,
+          eventCount: rec?.events?.length || 0,
+          duration: rec?.duration || 0,
+        };
+      },
+    });
+
+    inputRecordingState.delete(tabId);
+    return result[0]?.result || { error: "Failed to stop recording" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+function getInputRecording(tabId) {
+  return chrome.scripting
+    .executeScript({
+      target: { tabId },
+      func: () => window.__chainlessInputRecording || null,
+    })
+    .then((result) => result[0]?.result || null);
+}
+
+async function replayInputs(tabId, recording, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (rec, opts) => {
+        const speed = opts.speed || 1;
+        const events = rec.events || [];
+        let replayed = 0;
+
+        for (const event of events) {
+          const delay = event.timestamp / speed;
+          await new Promise((resolve) =>
+            setTimeout(
+              resolve,
+              delay - (events[replayed - 1]?.timestamp || 0) / speed,
+            ),
+          );
+
+          const target =
+            document.querySelector(event.target.selector) ||
+            document.querySelector(
+              event.target.id ? `#${event.target.id}` : event.target.tagName,
+            );
+
+          if (target) {
+            if (event.type === "click" || event.type === "dblclick") {
+              target.dispatchEvent(
+                new MouseEvent(event.type, {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: event.data.clientX,
+                  clientY: event.data.clientY,
+                  button: event.data.button,
+                }),
+              );
+            } else if (event.type === "keydown" || event.type === "keyup") {
+              target.dispatchEvent(
+                new KeyboardEvent(event.type, {
+                  bubbles: true,
+                  cancelable: true,
+                  key: event.data.key,
+                  code: event.data.code,
+                  keyCode: event.data.keyCode,
+                }),
+              );
+            } else if (event.type === "input" || event.type === "change") {
+              if (event.data.value !== undefined) {
+                target.value = event.data.value;
+              }
+              if (event.data.checked !== undefined) {
+                target.checked = event.data.checked;
+              }
+              target.dispatchEvent(new Event(event.type, { bubbles: true }));
+            } else if (event.type === "focus") {
+              target.focus();
+            } else if (event.type === "blur") {
+              target.blur();
+            }
+            replayed++;
+          }
+        }
+
+        return { success: true, replayed, total: events.length };
+      },
+      args: [recording, options],
+    });
+    return result[0]?.result || { error: "Failed to replay" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+function clearInputRecording(tabId) {
+  return chrome.scripting
+    .executeScript({
+      target: { tabId },
+      func: () => {
+        window.__chainlessInputRecording = null;
+        return { success: true };
+      },
+    })
+    .then((result) => result[0]?.result || { success: false });
+}
+
+// ==================== Phase 18: Media Emulation ====================
+
+async function emulateColorScheme(tabId, scheme) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-color-scheme", value: scheme }],
+    });
+    return { success: true, colorScheme: scheme };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function emulateReducedMotion(tabId, reduce) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
+      features: [
+        {
+          name: "prefers-reduced-motion",
+          value: reduce ? "reduce" : "no-preference",
+        },
+      ],
+    });
+    return { success: true, reducedMotion: reduce };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function emulateForcedColors(tabId, forced) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
+      features: [{ name: "forced-colors", value: forced ? "active" : "none" }],
+    });
+    return { success: true, forcedColors: forced };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function emulateVisionDeficiency(tabId, type) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setEmulatedVisionDeficiency",
+      {
+        type: type || "none", // none, achromatopsia, blurredVision, deuteranopia, protanopia, tritanopia
+      },
+    );
+    return { success: true, visionDeficiency: type };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearMediaEmulation(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
+      media: "",
+      features: [],
+    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setEmulatedVisionDeficiency",
+      {
+        type: "none",
+      },
+    );
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 18: Page Lifecycle ====================
+
+async function getPageLifecycleState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({
+        visibilityState: document.visibilityState,
+        hidden: document.hidden,
+        hasFocus: document.hasFocus(),
+        readyState: document.readyState,
+        wasDiscarded: document.wasDiscarded || false,
+      }),
+    });
+    return result[0]?.result || { error: "Failed to get lifecycle state" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function subscribeLifecycleChanges(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        window.__chainlessLifecycleLog = [];
+
+        const logChange = (type, data) => {
+          window.__chainlessLifecycleLog.push({
+            type,
+            timestamp: Date.now(),
+            ...data,
+          });
+        };
+
+        document.addEventListener("visibilitychange", () => {
+          logChange("visibilitychange", {
+            visibilityState: document.visibilityState,
+          });
+        });
+
+        window.addEventListener("focus", () => logChange("focus", {}));
+        window.addEventListener("blur", () => logChange("blur", {}));
+        window.addEventListener("freeze", () => logChange("freeze", {}));
+        window.addEventListener("resume", () => logChange("resume", {}));
+        window.addEventListener("pageshow", (e) =>
+          logChange("pageshow", { persisted: e.persisted }),
+        );
+        window.addEventListener("pagehide", (e) =>
+          logChange("pagehide", { persisted: e.persisted }),
+        );
+
+        return { success: true };
+      },
+    });
+    return result[0]?.result || { error: "Failed to subscribe" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function freezePage(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Page.setWebLifecycleState", {
+      state: "frozen",
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function resumePage(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Page.setWebLifecycleState", {
+      state: "active",
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 18: Font Inspector ====================
+
+async function getUsedFonts(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const fonts = new Set();
+        const elements = document.querySelectorAll("*");
+
+        elements.forEach((el) => {
+          const style = getComputedStyle(el);
+          const fontFamily = style.fontFamily;
+          if (fontFamily) {
+            fontFamily.split(",").forEach((font) => {
+              fonts.add(font.trim().replace(/['"]/g, ""));
+            });
+          }
+        });
+
+        return {
+          fonts: Array.from(fonts),
+          count: fonts.size,
+        };
+      },
+    });
+    return result[0]?.result || { fonts: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getComputedFonts(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return { error: "Element not found" };
+
+        const style = getComputedStyle(el);
+        return {
+          fontFamily: style.fontFamily,
+          fontSize: style.fontSize,
+          fontWeight: style.fontWeight,
+          fontStyle: style.fontStyle,
+          fontVariant: style.fontVariant,
+          lineHeight: style.lineHeight,
+          letterSpacing: style.letterSpacing,
+          textTransform: style.textTransform,
+          fontFeatureSettings: style.fontFeatureSettings,
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to get fonts" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function checkFontAvailability(tabId, fontFamily) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (family) => {
+        try {
+          const available = await document.fonts.check(`16px "${family}"`);
+          const loaded = document.fonts.check(`16px "${family}"`);
+          return { fontFamily: family, available, loaded };
+        } catch {
+          return {
+            fontFamily: family,
+            available: false,
+            error: "Font check failed",
+          };
+        }
+      },
+      args: [fontFamily],
+    });
+    return result[0]?.result || { error: "Failed to check font" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 18: Measurement Tools ====================
+
+async function measureDistance(tabId, fromSelector, toSelector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (from, to) => {
+        const el1 = document.querySelector(from);
+        const el2 = document.querySelector(to);
+        if (!el1 || !el2) return { error: "Element(s) not found" };
+
+        const rect1 = el1.getBoundingClientRect();
+        const rect2 = el2.getBoundingClientRect();
+
+        const center1 = {
+          x: rect1.left + rect1.width / 2,
+          y: rect1.top + rect1.height / 2,
+        };
+        const center2 = {
+          x: rect2.left + rect2.width / 2,
+          y: rect2.top + rect2.height / 2,
+        };
+
+        const dx = center2.x - center1.x;
+        const dy = center2.y - center1.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        return {
+          from: { selector: from, center: center1 },
+          to: { selector: to, center: center2 },
+          distance: Math.round(distance * 100) / 100,
+          horizontal: Math.round(Math.abs(dx) * 100) / 100,
+          vertical: Math.round(Math.abs(dy) * 100) / 100,
+        };
+      },
+      args: [fromSelector, toSelector],
+    });
+    return result[0]?.result || { error: "Failed to measure" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function measureElementSize(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return { error: "Element not found" };
+
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+
+        return {
+          selector: sel,
+          clientWidth: el.clientWidth,
+          clientHeight: el.clientHeight,
+          offsetWidth: el.offsetWidth,
+          offsetHeight: el.offsetHeight,
+          scrollWidth: el.scrollWidth,
+          scrollHeight: el.scrollHeight,
+          boundingRect: {
+            width: rect.width,
+            height: rect.height,
+            top: rect.top,
+            left: rect.left,
+          },
+          computed: {
+            width: style.width,
+            height: style.height,
+            minWidth: style.minWidth,
+            maxWidth: style.maxWidth,
+          },
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to measure" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function enableRuler(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (document.getElementById("__chainless_ruler__"))
+          return { success: true };
+
+        const ruler = document.createElement("div");
+        ruler.id = "__chainless_ruler__";
+
+        // Create horizontal ruler
+        const hRuler = document.createElement("div");
+        hRuler.style.cssText =
+          "position:fixed;top:0;left:0;width:100%;height:20px;background:linear-gradient(90deg, transparent 0%, transparent 9px, #ccc 9px, #ccc 10px);background-size:10px 100%;z-index:999998;pointer-events:none;opacity:0.7;";
+        ruler.appendChild(hRuler);
+
+        // Create vertical ruler
+        const vRuler = document.createElement("div");
+        vRuler.style.cssText =
+          "position:fixed;top:0;left:0;width:20px;height:100%;background:linear-gradient(180deg, transparent 0%, transparent 9px, #ccc 9px, #ccc 10px);background-size:100% 10px;z-index:999998;pointer-events:none;opacity:0.7;";
+        ruler.appendChild(vRuler);
+
+        // Create info display
+        const rulerInfo = document.createElement("div");
+        rulerInfo.id = "__chainless_ruler_info__";
+        rulerInfo.style.cssText =
+          "position:fixed;top:25px;left:25px;background:rgba(0,0,0,0.8);color:#fff;padding:5px 10px;font-size:12px;font-family:monospace;z-index:999999;pointer-events:none;display:none;";
+        ruler.appendChild(rulerInfo);
+
+        document.body.appendChild(ruler);
+
+        const info = document.getElementById("__chainless_ruler_info__");
+        document.addEventListener("mousemove", (e) => {
+          info.style.display = "block";
+          info.textContent = `X: ${e.clientX}px, Y: ${e.clientY}px`;
+          info.style.left = `${e.clientX + 15}px`;
+          info.style.top = `${e.clientY + 15}px`;
+        });
+
+        return { success: true };
+      },
+    });
+    return result[0]?.result || { error: "Failed to enable ruler" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function disableRuler(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const ruler = document.getElementById("__chainless_ruler__");
+        if (ruler) ruler.remove();
+      },
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 18: Color Picker ====================
+
+async function pickColorFromPoint(tabId, x, y) {
+  try {
+    // Use canvas to get pixel color
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (px, py) => {
+        // Create canvas from current view
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Try to use html2canvas if available, otherwise use a simple approach
+        const element = document.elementFromPoint(px, py);
+        if (!element) return { error: "No element at point" };
+
+        const style = getComputedStyle(element);
+        return {
+          x: px,
+          y: py,
+          element: element.tagName + (element.id ? `#${element.id}` : ""),
+          backgroundColor: style.backgroundColor,
+          color: style.color,
+          borderColor: style.borderColor,
+        };
+      },
+      args: [x, y],
+    });
+    return result[0]?.result || { error: "Failed to pick color" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getElementColors(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const el = document.querySelector(sel);
+        if (!el) return { error: "Element not found" };
+
+        const style = getComputedStyle(el);
+        return {
+          selector: sel,
+          colors: {
+            color: style.color,
+            backgroundColor: style.backgroundColor,
+            borderColor: style.borderColor,
+            borderTopColor: style.borderTopColor,
+            borderRightColor: style.borderRightColor,
+            borderBottomColor: style.borderBottomColor,
+            borderLeftColor: style.borderLeftColor,
+            outlineColor: style.outlineColor,
+            textDecorationColor: style.textDecorationColor,
+            caretColor: style.caretColor,
+          },
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to get colors" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function enableColorPicker(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (window.__chainlessColorPicker) return { success: true };
+
+        const overlay = document.createElement("div");
+        overlay.id = "__chainless_color_picker__";
+        overlay.style.cssText =
+          "position:fixed;top:0;left:0;width:100%;height:100%;z-index:999997;cursor:crosshair;";
+
+        const info = document.createElement("div");
+        info.style.cssText =
+          "position:fixed;background:rgba(0,0,0,0.9);color:#fff;padding:10px;font-size:12px;font-family:monospace;z-index:999999;display:none;border-radius:4px;";
+        overlay.appendChild(info);
+
+        overlay.addEventListener("mousemove", (e) => {
+          const el = document.elementFromPoint(e.clientX, e.clientY);
+          if (el && el !== overlay && el !== info) {
+            const style = getComputedStyle(el);
+            info.style.display = "block";
+            info.style.left = `${e.clientX + 15}px`;
+            info.style.top = `${e.clientY + 15}px`;
+            // Clear previous content using DOM API (XSS safe)
+            while (info.firstChild) info.removeChild(info.firstChild);
+            // Create color preview box
+            const colorBox = document.createElement("div");
+            colorBox.style.cssText = `width:20px;height:20px;background:${style.backgroundColor};border:1px solid #fff;margin-bottom:5px;`;
+            info.appendChild(colorBox);
+            // Create text content
+            const bgText = document.createTextNode(
+              `BG: ${style.backgroundColor}`,
+            );
+            info.appendChild(bgText);
+            info.appendChild(document.createElement("br"));
+            const colorText = document.createTextNode(`Color: ${style.color}`);
+            info.appendChild(colorText);
+          }
+        });
+
+        overlay.addEventListener("click", (e) => {
+          const el = document.elementFromPoint(e.clientX, e.clientY);
+          if (el && el !== overlay) {
+            const style = getComputedStyle(el);
+            window.__chainlessPickedColor = {
+              backgroundColor: style.backgroundColor,
+              color: style.color,
+              element: el.tagName,
+            };
+          }
+          overlay.remove();
+          window.__chainlessColorPicker = null;
+        });
+
+        document.body.appendChild(overlay);
+        window.__chainlessColorPicker = overlay;
+        return { success: true };
+      },
+    });
+    return result[0]?.result || { error: "Failed to enable picker" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function disableColorPicker(tabId) {
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const picker = document.getElementById("__chainless_color_picker__");
+        if (picker) picker.remove();
+        window.__chainlessColorPicker = null;
+      },
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 18: Storage Inspector (Enhanced) ====================
+
+async function getStorageQuota(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (navigator.storage && navigator.storage.estimate) {
+          const estimate = await navigator.storage.estimate();
+          return {
+            quota: estimate.quota,
+            usage: estimate.usage,
+            usagePercent: ((estimate.usage / estimate.quota) * 100).toFixed(2),
+            quotaFormatted: `${(estimate.quota / 1024 / 1024 / 1024).toFixed(2)} GB`,
+            usageFormatted: `${(estimate.usage / 1024 / 1024).toFixed(2)} MB`,
+          };
+        }
+        return { error: "Storage API not available" };
+      },
+    });
+    return result[0]?.result || { error: "Failed to get quota" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getStorageUsage(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const usage = {
+          localStorage: {
+            items: localStorage.length,
+            size: new Blob(Object.values(localStorage)).size,
+          },
+          sessionStorage: {
+            items: sessionStorage.length,
+            size: new Blob(Object.values(sessionStorage)).size,
+          },
+        };
+
+        // Estimate cookie size
+        usage.cookies = {
+          size: document.cookie.length,
+        };
+
+        return usage;
+      },
+    });
+    return result[0]?.result || { error: "Failed to get usage" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function exportAllStorage(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const data = {
+          localStorage: {},
+          sessionStorage: {},
+          exportedAt: Date.now(),
+          origin: window.location.origin,
+        };
+
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          data.localStorage[key] = localStorage.getItem(key);
+        }
+
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          data.sessionStorage[key] = sessionStorage.getItem(key);
+        }
+
+        return data;
+      },
+    });
+    return result[0]?.result || { error: "Failed to export" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function importAllStorage(tabId, data) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (importData) => {
+        let imported = { localStorage: 0, sessionStorage: 0 };
+
+        if (importData.localStorage) {
+          Object.entries(importData.localStorage).forEach(([key, value]) => {
+            localStorage.setItem(key, value);
+            imported.localStorage++;
+          });
+        }
+
+        if (importData.sessionStorage) {
+          Object.entries(importData.sessionStorage).forEach(([key, value]) => {
+            sessionStorage.setItem(key, value);
+            imported.sessionStorage++;
+          });
+        }
+
+        return { success: true, imported };
+      },
+      args: [data],
+    });
+    return result[0]?.result || { error: "Failed to import" };
   } catch (error) {
     return { error: error.message };
   }
