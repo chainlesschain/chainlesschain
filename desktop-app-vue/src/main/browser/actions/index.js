@@ -151,6 +151,21 @@ const {
   getNotificationManager,
 } = require("./notification-manager");
 
+// v0.33.0: Session and Console management
+const {
+  SessionManager,
+  SameSitePolicy,
+  StorageType,
+  SessionState,
+  getSessionManager,
+} = require("./session-manager");
+const {
+  ConsoleCapture,
+  LogLevel,
+  LogSource,
+  getConsoleCapture,
+} = require("./console-capture");
+
 module.exports = {
   // Scroll
   ScrollAction,
@@ -290,4 +305,17 @@ module.exports = {
   NotificationLevel,
   NotificationType,
   getNotificationManager,
+
+  // v0.33.0: Session manager
+  SessionManager,
+  SameSitePolicy,
+  StorageType,
+  SessionState,
+  getSessionManager,
+
+  // v0.33.0: Console capture
+  ConsoleCapture,
+  LogLevel,
+  LogSource,
+  getConsoleCapture,
 };
