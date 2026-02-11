@@ -83,7 +83,14 @@ describe("FollowupIntentClassifier", () => {
     test("应识别 CANCEL_TASK 意图", async () => {
       // Note: The classifier treats inputs with length <= 2 as "too short"
       // and returns CONTINUE_EXECUTION. Use longer phrases for testing.
-      const testCases = ["算了吧", "不用了", "停止吧", "取消吧", "暂停一下", "先不做了"];
+      const testCases = [
+        "算了吧",
+        "不用了",
+        "停止吧",
+        "取消吧",
+        "暂停一下",
+        "先不做了",
+      ];
 
       for (const input of testCases) {
         const result = await classifier.classify(input);
@@ -119,7 +126,7 @@ describe("FollowupIntentClassifier", () => {
       expect(mockLLMService.complete).toHaveBeenCalled();
       expect(result.intent).toBe("MODIFY_REQUIREMENT");
       expect(result.method).toBe("llm");
-      expect(result.latency).toBeGreaterThan(0);
+      expect(result.latency).toBeGreaterThanOrEqual(0); // Mock calls may complete instantly
     });
 
     test("LLM 调用失败应降级到规则结果", async () => {

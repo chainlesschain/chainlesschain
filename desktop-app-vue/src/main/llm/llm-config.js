@@ -85,7 +85,7 @@ const DEFAULT_CONFIG = {
     top_p: 0.9,
     top_k: 40,
     max_tokens: 2000,
-    timeout: 120000, // 2分钟
+    timeout: 300000, // 5分钟
   },
 
   // 系统提示词

@@ -20,7 +20,7 @@ class OpenAIClient extends EventEmitter {
     this.baseURL = config.baseURL || "https://api.openai.com/v1";
     this.model = config.model || "gpt-3.5-turbo";
     this.embeddingModel = config.embeddingModel || "text-embedding-ada-002";
-    this.timeout = config.timeout || 180000; // 3 minutes default
+    this.timeout = config.timeout || 300000; // 5 minutes default
     this.maxRetries = config.maxRetries || 2; // Retry up to 2 times on timeout
     this.organization = config.organization;
 
@@ -157,14 +157,20 @@ class OpenAIClient extends EventEmitter {
         };
       } catch (error) {
         lastError = error;
-        const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
-        const isNetworkError = error.code === 'ECONNRESET' || error.code === 'ENOTFOUND';
+        const isTimeout =
+          error.code === "ECONNABORTED" || error.message?.includes("timeout");
+        const isNetworkError =
+          error.code === "ECONNRESET" || error.code === "ENOTFOUND";
 
         // Only retry on timeout or network errors
         if ((isTimeout || isNetworkError) && attempt < maxRetries) {
-          logger.warn(`[OpenAIClient] 请求超时或网络错误，将重试: ${error.message}`);
+          logger.warn(
+            `[OpenAIClient] 请求超时或网络错误，将重试: ${error.message}`,
+          );
           // Wait before retry (exponential backoff: 2s, 4s)
-          await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, attempt)));
+          await new Promise((resolve) =>
+            setTimeout(resolve, 2000 * Math.pow(2, attempt)),
+          );
           continue;
         }
 

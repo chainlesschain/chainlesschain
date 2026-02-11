@@ -32,7 +32,7 @@ class LLaVAClient extends EventEmitter {
     super();
 
     this.baseURL = config.baseURL || "http://localhost:11434";
-    this.timeout = config.timeout || 180000; // 3分钟（视觉模型处理较慢）
+    this.timeout = config.timeout || 300000; // 5分钟（视觉模型处理较慢）
     this.model = config.model || DEFAULT_VISION_MODEL;
     this.maxImageSize = config.maxImageSize || 5 * 1024 * 1024; // 5MB
 

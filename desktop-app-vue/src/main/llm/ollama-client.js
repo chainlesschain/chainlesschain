@@ -16,7 +16,7 @@ class OllamaClient extends EventEmitter {
     super();
 
     this.baseURL = config.baseURL || "http://localhost:11434";
-    this.timeout = config.timeout || 120000; // 2分钟
+    this.timeout = config.timeout || 300000; // 5分钟
     this.model = config.model || "llama2";
 
     this.client = axios.create({

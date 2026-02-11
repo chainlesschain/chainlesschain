@@ -14,7 +14,7 @@ class AnthropicClient extends EventEmitter {
     this.apiKey = config.apiKey;
     this.baseURL = config.baseURL || "https://api.anthropic.com";
     this.model = config.model || "claude-3-opus-20240229";
-    this.timeout = config.timeout || 120000;
+    this.timeout = config.timeout || 300000; // 5分钟
     this.maxTokens = config.maxTokens || 2000;
     this.anthropicVersion = config.anthropicVersion || "2023-06-01";
 
