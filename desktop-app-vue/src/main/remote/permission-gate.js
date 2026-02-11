@@ -393,6 +393,64 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.stopMemorySampling": PERMISSION_LEVELS.ADMIN,
   "extension.forceGarbageCollection": PERMISSION_LEVELS.ADMIN,
 
+  // ==================== Phase 18: DOM & Input Tools ====================
+
+  // 扩展 - DOM 变化监控
+  "extension.observeMutations": PERMISSION_LEVELS.NORMAL,
+  "extension.stopObservingMutations": PERMISSION_LEVELS.NORMAL,
+  "extension.getMutations": PERMISSION_LEVELS.NORMAL,
+  "extension.clearMutations": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 事件监听器检查
+  "extension.getEventListeners": PERMISSION_LEVELS.NORMAL,
+  "extension.removeEventListener": PERMISSION_LEVELS.ADMIN,
+  "extension.monitorEvents": PERMISSION_LEVELS.NORMAL,
+  "extension.stopMonitoringEvents": PERMISSION_LEVELS.NORMAL,
+  "extension.getEventLog": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 输入录制
+  "extension.startInputRecording": PERMISSION_LEVELS.NORMAL,
+  "extension.stopInputRecording": PERMISSION_LEVELS.NORMAL,
+  "extension.getInputRecording": PERMISSION_LEVELS.NORMAL,
+  "extension.replayInputs": PERMISSION_LEVELS.ADMIN,
+  "extension.clearInputRecording": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 媒体模拟
+  "extension.emulateColorScheme": PERMISSION_LEVELS.NORMAL,
+  "extension.emulateReducedMotion": PERMISSION_LEVELS.NORMAL,
+  "extension.emulateForcedColors": PERMISSION_LEVELS.NORMAL,
+  "extension.emulateVisionDeficiency": PERMISSION_LEVELS.NORMAL,
+  "extension.clearMediaEmulation": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 页面生命周期
+  "extension.getPageLifecycleState": PERMISSION_LEVELS.PUBLIC,
+  "extension.subscribeLifecycleChanges": PERMISSION_LEVELS.NORMAL,
+  "extension.freezePage": PERMISSION_LEVELS.ADMIN,
+  "extension.resumePage": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 字体检查
+  "extension.getUsedFonts": PERMISSION_LEVELS.PUBLIC,
+  "extension.getComputedFonts": PERMISSION_LEVELS.PUBLIC,
+  "extension.checkFontAvailability": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - 测量工具
+  "extension.measureDistance": PERMISSION_LEVELS.PUBLIC,
+  "extension.measureElementSize": PERMISSION_LEVELS.PUBLIC,
+  "extension.enableRuler": PERMISSION_LEVELS.NORMAL,
+  "extension.disableRuler": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 颜色选取器
+  "extension.pickColorFromPoint": PERMISSION_LEVELS.NORMAL,
+  "extension.getElementColors": PERMISSION_LEVELS.PUBLIC,
+  "extension.enableColorPicker": PERMISSION_LEVELS.NORMAL,
+  "extension.disableColorPicker": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 存储检查 (增强)
+  "extension.getStorageQuota": PERMISSION_LEVELS.PUBLIC,
+  "extension.getStorageUsage": PERMISSION_LEVELS.PUBLIC,
+  "extension.exportAllStorage": PERMISSION_LEVELS.ADMIN,
+  "extension.importAllStorage": PERMISSION_LEVELS.ROOT,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,

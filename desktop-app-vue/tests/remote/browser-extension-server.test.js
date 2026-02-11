@@ -1842,4 +1842,495 @@ describe("ExtensionBrowserHandler", () => {
       );
     });
   });
+
+  // ==================== Phase 18: DOM & Input Tools Tests ====================
+
+  describe("DOM Mutation Observer Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle observeMutations", async () => {
+      await handler.handle(
+        "observeMutations",
+        { tabId: 1, selector: "#container", options: { subtree: true } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "dom.observeMutations",
+        { tabId: 1, selector: "#container", options: { subtree: true } },
+      );
+    });
+
+    it("should handle stopObservingMutations", async () => {
+      await handler.handle("stopObservingMutations", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "dom.stopObserving",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getMutations", async () => {
+      await handler.handle("getMutations", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "dom.getMutations",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle clearMutations", async () => {
+      await handler.handle("clearMutations", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "dom.clearMutations",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Event Listener Inspector Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getEventListeners", async () => {
+      await handler.handle(
+        "getEventListeners",
+        { tabId: 1, selector: "#button" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "events.getListeners",
+        { tabId: 1, selector: "#button" },
+      );
+    });
+
+    it("should handle removeEventListener", async () => {
+      await handler.handle(
+        "removeEventListener",
+        { tabId: 1, selector: "#button", eventType: "click" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "events.removeListener",
+        { tabId: 1, selector: "#button", eventType: "click" },
+      );
+    });
+
+    it("should handle monitorEvents", async () => {
+      await handler.handle(
+        "monitorEvents",
+        { tabId: 1, selector: "#form", eventTypes: ["submit", "change"] },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "events.monitorEvents",
+        { tabId: 1, selector: "#form", eventTypes: ["submit", "change"] },
+      );
+    });
+
+    it("should handle stopMonitoringEvents", async () => {
+      await handler.handle("stopMonitoringEvents", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "events.stopMonitoring",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getEventLog", async () => {
+      await handler.handle("getEventLog", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "events.getLog",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Input Recording Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle startInputRecording", async () => {
+      await handler.handle(
+        "startInputRecording",
+        { tabId: 1, options: { eventTypes: ["click", "keydown"] } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "input.startRecording",
+        { tabId: 1, options: { eventTypes: ["click", "keydown"] } },
+      );
+    });
+
+    it("should handle stopInputRecording", async () => {
+      await handler.handle("stopInputRecording", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "input.stopRecording",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getInputRecording", async () => {
+      await handler.handle("getInputRecording", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "input.getRecording",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle replayInputs", async () => {
+      const recording = { events: [{ type: "click", timestamp: 100 }] };
+      await handler.handle(
+        "replayInputs",
+        { tabId: 1, recording, options: { speed: 2 } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "input.replay",
+        { tabId: 1, recording, options: { speed: 2 } },
+      );
+    });
+
+    it("should handle clearInputRecording", async () => {
+      await handler.handle("clearInputRecording", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "input.clearRecording",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Media Emulation Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle emulateColorScheme", async () => {
+      await handler.handle(
+        "emulateColorScheme",
+        { tabId: 1, scheme: "dark" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "media.emulateColorScheme",
+        { tabId: 1, scheme: "dark" },
+      );
+    });
+
+    it("should handle emulateReducedMotion", async () => {
+      await handler.handle(
+        "emulateReducedMotion",
+        { tabId: 1, reduce: true },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "media.emulateReducedMotion",
+        { tabId: 1, reduce: true },
+      );
+    });
+
+    it("should handle emulateForcedColors", async () => {
+      await handler.handle(
+        "emulateForcedColors",
+        { tabId: 1, forced: true },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "media.emulateForcedColors",
+        { tabId: 1, forced: true },
+      );
+    });
+
+    it("should handle emulateVisionDeficiency", async () => {
+      await handler.handle(
+        "emulateVisionDeficiency",
+        { tabId: 1, type: "deuteranopia" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "media.emulateVisionDeficiency",
+        { tabId: 1, type: "deuteranopia" },
+      );
+    });
+
+    it("should handle clearMediaEmulation", async () => {
+      await handler.handle("clearMediaEmulation", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "media.clearEmulation",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Page Lifecycle Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getPageLifecycleState", async () => {
+      await handler.handle("getPageLifecycleState", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "lifecycle.getState",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle subscribeLifecycleChanges", async () => {
+      await handler.handle("subscribeLifecycleChanges", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "lifecycle.onStateChange",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle freezePage", async () => {
+      await handler.handle("freezePage", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "lifecycle.freeze",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle resumePage", async () => {
+      await handler.handle("resumePage", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "lifecycle.resume",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Font Inspector Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getUsedFonts", async () => {
+      await handler.handle("getUsedFonts", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fonts.getUsed",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getComputedFonts", async () => {
+      await handler.handle(
+        "getComputedFonts",
+        { tabId: 1, selector: "h1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fonts.getComputed",
+        { tabId: 1, selector: "h1" },
+      );
+    });
+
+    it("should handle checkFontAvailability", async () => {
+      await handler.handle(
+        "checkFontAvailability",
+        { tabId: 1, fontFamily: "Arial" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fonts.checkAvailability",
+        { tabId: 1, fontFamily: "Arial" },
+      );
+    });
+  });
+
+  describe("Measurement Tools Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle measureDistance", async () => {
+      await handler.handle(
+        "measureDistance",
+        { tabId: 1, from: "#element1", to: "#element2" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "measure.getDistance",
+        { tabId: 1, from: "#element1", to: "#element2" },
+      );
+    });
+
+    it("should handle measureElementSize", async () => {
+      await handler.handle(
+        "measureElementSize",
+        { tabId: 1, selector: "#container" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "measure.getElementSize",
+        { tabId: 1, selector: "#container" },
+      );
+    });
+
+    it("should handle enableRuler", async () => {
+      await handler.handle("enableRuler", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "measure.enableRuler",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle disableRuler", async () => {
+      await handler.handle("disableRuler", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "measure.disableRuler",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Color Picker Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle pickColorFromPoint", async () => {
+      await handler.handle(
+        "pickColorFromPoint",
+        { tabId: 1, x: 100, y: 200 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "color.pickFromPoint",
+        { tabId: 1, x: 100, y: 200 },
+      );
+    });
+
+    it("should handle getElementColors", async () => {
+      await handler.handle(
+        "getElementColors",
+        { tabId: 1, selector: ".button" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "color.getElementColors",
+        { tabId: 1, selector: ".button" },
+      );
+    });
+
+    it("should handle enableColorPicker", async () => {
+      await handler.handle("enableColorPicker", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "color.enablePicker",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle disableColorPicker", async () => {
+      await handler.handle("disableColorPicker", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "color.disablePicker",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Enhanced Storage Inspector Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getStorageQuota", async () => {
+      await handler.handle("getStorageQuota", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "storage.getQuota",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getStorageUsage", async () => {
+      await handler.handle("getStorageUsage", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "storage.getUsage",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle exportAllStorage", async () => {
+      await handler.handle("exportAllStorage", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "storage.exportAll",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle importAllStorage", async () => {
+      const data = { localStorage: { key: "value" }, sessionStorage: {} };
+      await handler.handle("importAllStorage", { tabId: 1, data }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "storage.importAll",
+        { tabId: 1, data },
+      );
+    });
+  });
 });
