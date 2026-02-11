@@ -34,6 +34,17 @@ const { PowerHandler } = require("./handlers/power-handler");
 const { ProcessHandler } = require("./handlers/process-handler");
 const { MediaHandler } = require("./handlers/media-handler");
 const { NetworkHandler } = require("./handlers/network-handler");
+const { StorageHandler } = require("./handlers/storage-handler");
+const { DisplayHandler } = require("./handlers/display-handler");
+const { InputHandler } = require("./handlers/input-handler");
+const { ApplicationHandler } = require("./handlers/application-handler");
+const { SystemInfoHandler } = require("./handlers/system-info-handler");
+const { SecurityHandler } = require("./handlers/security-handler");
+const { UserBrowserHandler } = require("./handlers/user-browser-handler");
+const {
+  BrowserExtensionServer,
+  ExtensionBrowserHandler,
+} = require("./browser-extension-server");
 
 /**
  * 远程网关类
@@ -287,6 +298,68 @@ class RemoteGateway extends EventEmitter {
     // 15. 网络信息处理器
     this.handlers.network = new NetworkHandler(this.options.network || {});
     this.commandRouter.registerHandler("network", this.handlers.network);
+
+    // 16. 存储信息处理器
+    this.handlers.storage = new StorageHandler(this.options.storage || {});
+    this.commandRouter.registerHandler("storage", this.handlers.storage);
+
+    // 17. 显示器信息处理器
+    this.handlers.display = new DisplayHandler(this.options.display || {});
+    this.commandRouter.registerHandler("display", this.handlers.display);
+
+    // 18. 输入控制处理器
+    this.handlers.input = new InputHandler(this.options.input || {});
+    this.commandRouter.registerHandler("input", this.handlers.input);
+
+    // 19. 应用程序管理处理器
+    this.handlers.app = new ApplicationHandler(this.options.app || {});
+    this.commandRouter.registerHandler("app", this.handlers.app);
+
+    // 20. 系统信息处理器
+    this.handlers.sysinfo = new SystemInfoHandler(this.options.sysinfo || {});
+    this.commandRouter.registerHandler("sysinfo", this.handlers.sysinfo);
+
+    // 21. 安全操作处理器
+    this.handlers.security = new SecurityHandler(this.options.security || {});
+    this.commandRouter.registerHandler("security", this.handlers.security);
+
+    // 22. 用户浏览器控制处理器 (通过 CDP)
+    this.handlers.userBrowser = new UserBrowserHandler(
+      this.options.userBrowser || {},
+    );
+    this.commandRouter.registerHandler(
+      "userBrowser",
+      this.handlers.userBrowser,
+    );
+
+    // 23. 浏览器扩展服务器和处理器
+    this.browserExtensionServer = new BrowserExtensionServer(
+      this.options.browserExtension || {},
+    );
+    this.handlers.extension = new ExtensionBrowserHandler(
+      this.browserExtensionServer,
+    );
+    this.commandRouter.registerHandler("extension", this.handlers.extension);
+
+    // 启动扩展服务器（异步）
+    this.browserExtensionServer.start().catch((err) => {
+      logger.warn("[RemoteGateway] 浏览器扩展服务器启动失败:", err.message);
+    });
+
+    // 监听扩展事件
+    this.browserExtensionServer.on("connection", (data) => {
+      logger.info("[RemoteGateway] 浏览器扩展已连接:", data.clientId);
+      this.emit("extension:connected", data);
+    });
+
+    this.browserExtensionServer.on("disconnection", (data) => {
+      logger.info("[RemoteGateway] 浏览器扩展已断开:", data.clientId);
+      this.emit("extension:disconnected", data);
+    });
+
+    this.browserExtensionServer.on("browserEvent", (data) => {
+      this.emit("browser:event", data);
+    });
 
     // 未来扩展处理器（按需实现）:
     // - ChannelHandler: 多渠道消息处理器（微信、Telegram等）
@@ -640,6 +713,16 @@ class RemoteGateway extends EventEmitter {
     // 停止权限验证器
     if (this.permissionGate) {
       this.permissionGate.stopCleanup();
+    }
+
+    // 停止浏览器扩展服务器
+    if (this.browserExtensionServer) {
+      await this.browserExtensionServer.stop();
+    }
+
+    // 断开用户浏览器连接
+    if (this.handlers.userBrowser) {
+      await this.handlers.userBrowser.cleanup();
     }
 
     logger.info("[RemoteGateway] 远程网关已停止");

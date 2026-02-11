@@ -60,12 +60,687 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse(getPageInfo());
       break;
 
+    // Advanced element interactions
+    case "hover":
+      sendResponse(hoverElement(message.selector));
+      break;
+
+    case "doubleClick":
+      sendResponse(doubleClickElement(message.selector));
+      break;
+
+    case "rightClick":
+      sendResponse(rightClickElement(message.selector));
+      break;
+
+    case "type":
+      sendResponse(
+        typeInElement(message.selector, message.text, message.options),
+      );
+      break;
+
+    case "selectOption":
+      sendResponse(selectOption(message.selector, message.value));
+      break;
+
+    case "checkCheckbox":
+      sendResponse(setCheckbox(message.selector, message.checked));
+      break;
+
+    case "uploadFile":
+      sendResponse(uploadFile(message.selector, message.files));
+      break;
+
+    case "getComputedStyle":
+      sendResponse(getComputedStyleProp(message.selector, message.property));
+      break;
+
+    case "queryShadowDom":
+      sendResponse(queryShadowDom(message.selectors));
+      break;
+
+    case "executeInShadowDom":
+      sendResponse(
+        executeInShadowDom(
+          message.hostSelector,
+          message.action,
+          message.params,
+        ),
+      );
+      break;
+
+    case "getTableData":
+      sendResponse(getTableData(message.selector));
+      break;
+
+    case "simulateKeyboard":
+      sendResponse(
+        simulateKeyboardEvent(
+          message.selector,
+          message.eventType,
+          message.key,
+          message.options,
+        ),
+      );
+      break;
+
+    case "waitForNavigation":
+      waitForNavigation(message.timeout).then(sendResponse);
+      return true; // Async response
+
+    case "getNetworkRequests":
+      sendResponse(getNetworkRequests());
+      break;
+
+    case "observeMutations":
+      observeMutations(message.selector, message.options, message.id).then(
+        sendResponse,
+      );
+      return true; // Async response
+
     default:
       sendResponse({ error: `Unknown message type: ${message.type}` });
   }
 
   return false;
 });
+
+// ==================== Advanced Element Interactions ====================
+
+/**
+ * Hover over element
+ */
+function hoverElement(selector) {
+  try {
+    const element = document.querySelector(selector);
+    if (!element) {
+      return { error: `Element not found: ${selector}` };
+    }
+
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    element.dispatchEvent(
+      new MouseEvent("mouseover", {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+        clientX: centerX,
+        clientY: centerY,
+      }),
+    );
+
+    element.dispatchEvent(
+      new MouseEvent("mouseenter", {
+        view: window,
+        bubbles: false,
+        cancelable: true,
+        clientX: centerX,
+        clientY: centerY,
+      }),
+    );
+
+    element.dispatchEvent(
+      new MouseEvent("mousemove", {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+        clientX: centerX,
+        clientY: centerY,
+      }),
+    );
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Double click element
+ */
+function doubleClickElement(selector) {
+  try {
+    const element = document.querySelector(selector);
+    if (!element) {
+      return { error: `Element not found: ${selector}` };
+    }
+
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    element.dispatchEvent(
+      new MouseEvent("dblclick", {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+        clientX: centerX,
+        clientY: centerY,
+      }),
+    );
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Right click element (context menu)
+ */
+function rightClickElement(selector) {
+  try {
+    const element = document.querySelector(selector);
+    if (!element) {
+      return { error: `Element not found: ${selector}` };
+    }
+
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    element.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        view: window,
+        bubbles: true,
+        cancelable: true,
+        clientX: centerX,
+        clientY: centerY,
+        button: 2,
+      }),
+    );
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Type text in element with realistic key events
+ */
+function typeInElement(selector, text, options = {}) {
+  try {
+    const element = document.querySelector(selector);
+    if (!element) {
+      return { error: `Element not found: ${selector}` };
+    }
+
+    element.focus();
+
+    if (options.clear) {
+      element.value = "";
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+
+    for (const char of text) {
+      // KeyDown
+      element.dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: char,
+          code: `Key${char.toUpperCase()}`,
+          bubbles: true,
+        }),
+      );
+
+      // KeyPress (deprecated but some sites still use it)
+      element.dispatchEvent(
+        new KeyboardEvent("keypress", {
+          key: char,
+          code: `Key${char.toUpperCase()}`,
+          bubbles: true,
+        }),
+      );
+
+      // Update value
+      if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
+        element.value += char;
+      } else if (element.isContentEditable) {
+        element.textContent += char;
+      }
+
+      // Input event
+      element.dispatchEvent(new Event("input", { bubbles: true }));
+
+      // KeyUp
+      element.dispatchEvent(
+        new KeyboardEvent("keyup", {
+          key: char,
+          code: `Key${char.toUpperCase()}`,
+          bubbles: true,
+        }),
+      );
+    }
+
+    // Change event at the end
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+
+    return { success: true, typed: text.length };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Select option from dropdown
+ */
+function selectOption(selector, value) {
+  try {
+    const element = document.querySelector(selector);
+    if (!element) {
+      return { error: `Element not found: ${selector}` };
+    }
+
+    if (element.tagName !== "SELECT") {
+      return { error: "Element is not a SELECT" };
+    }
+
+    // Find option by value or text
+    let optionFound = false;
+    for (const option of element.options) {
+      if (option.value === value || option.textContent.trim() === value) {
+        element.value = option.value;
+        optionFound = true;
+        break;
+      }
+    }
+
+    if (!optionFound) {
+      return { error: `Option not found: ${value}` };
+    }
+
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+    return { success: true, selectedValue: element.value };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Set checkbox/radio state
+ */
+function setCheckbox(selector, checked) {
+  try {
+    const element = document.querySelector(selector);
+    if (!element) {
+      return { error: `Element not found: ${selector}` };
+    }
+
+    if (element.type !== "checkbox" && element.type !== "radio") {
+      return { error: "Element is not a checkbox or radio" };
+    }
+
+    if (element.checked !== checked) {
+      element.checked = checked;
+      element.dispatchEvent(new Event("change", { bubbles: true }));
+      element.dispatchEvent(new Event("click", { bubbles: true }));
+    }
+
+    return { success: true, checked: element.checked };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Simulate file upload
+ */
+function uploadFile(selector, files) {
+  try {
+    const element = document.querySelector(selector);
+    if (!element) {
+      return { error: `Element not found: ${selector}` };
+    }
+
+    if (element.type !== "file") {
+      return { error: "Element is not a file input" };
+    }
+
+    // Note: Due to security restrictions, we can only simulate the change event
+    // Actual file data must be handled differently
+    const dataTransfer = new DataTransfer();
+
+    for (const file of files) {
+      const blob = new Blob([file.content || ""], {
+        type: file.type || "text/plain",
+      });
+      const f = new File([blob], file.name, {
+        type: file.type || "text/plain",
+      });
+      dataTransfer.items.add(f);
+    }
+
+    element.files = dataTransfer.files;
+    element.dispatchEvent(new Event("change", { bubbles: true }));
+
+    return { success: true, fileCount: files.length };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Get computed style property
+ */
+function getComputedStyleProp(selector, property) {
+  try {
+    const element = document.querySelector(selector);
+    if (!element) {
+      return { error: `Element not found: ${selector}` };
+    }
+
+    const styles = window.getComputedStyle(element);
+
+    if (property) {
+      return { value: styles.getPropertyValue(property) };
+    }
+
+    // Return all computed styles
+    const allStyles = {};
+    for (const prop of styles) {
+      allStyles[prop] = styles.getPropertyValue(prop);
+    }
+    return { styles: allStyles };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Shadow DOM Support ====================
+
+/**
+ * Query element through shadow DOM
+ * @param {string[]} selectors - Array of selectors to traverse through shadow roots
+ */
+function queryShadowDom(selectors) {
+  try {
+    let current = document;
+
+    for (let i = 0; i < selectors.length; i++) {
+      const selector = selectors[i];
+      const element = current.querySelector(selector);
+
+      if (!element) {
+        return { error: `Element not found at step ${i}: ${selector}` };
+      }
+
+      if (i < selectors.length - 1) {
+        // Not the last selector, need to go into shadow root
+        if (!element.shadowRoot) {
+          return { error: `No shadow root at step ${i}: ${selector}` };
+        }
+        current = element.shadowRoot;
+      } else {
+        // Last selector, return element info
+        const rect = element.getBoundingClientRect();
+        return {
+          found: true,
+          tagName: element.tagName,
+          id: element.id,
+          className: element.className,
+          textContent: element.textContent?.substring(0, 200),
+          rect: {
+            x: rect.x,
+            y: rect.y,
+            width: rect.width,
+            height: rect.height,
+          },
+        };
+      }
+    }
+
+    return { error: "No selectors provided" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Execute action on element inside shadow DOM
+ */
+function executeInShadowDom(hostSelector, action, params = {}) {
+  try {
+    const host = document.querySelector(hostSelector);
+    if (!host) {
+      return { error: `Shadow host not found: ${hostSelector}` };
+    }
+
+    if (!host.shadowRoot) {
+      return { error: "Element has no shadow root" };
+    }
+
+    const element = host.shadowRoot.querySelector(params.selector);
+    if (!element) {
+      return { error: `Element not found in shadow DOM: ${params.selector}` };
+    }
+
+    switch (action) {
+      case "click":
+        element.click();
+        return { success: true };
+
+      case "getValue":
+        return { value: element.value || element.textContent };
+
+      case "setValue":
+        element.value = params.value;
+        element.dispatchEvent(new Event("input", { bubbles: true }));
+        element.dispatchEvent(new Event("change", { bubbles: true }));
+        return { success: true };
+
+      case "getText":
+        return { text: element.textContent };
+
+      case "getAttribute":
+        return { value: element.getAttribute(params.attribute) };
+
+      default:
+        return { error: `Unknown action: ${action}` };
+    }
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Table Data Extraction ====================
+
+/**
+ * Extract table data as array
+ */
+function getTableData(selector) {
+  try {
+    const table = document.querySelector(selector);
+    if (!table) {
+      return { error: `Table not found: ${selector}` };
+    }
+
+    if (table.tagName !== "TABLE") {
+      return { error: "Element is not a TABLE" };
+    }
+
+    const data = {
+      headers: [],
+      rows: [],
+    };
+
+    // Extract headers
+    const headerRow =
+      table.querySelector("thead tr") || table.querySelector("tr");
+    if (headerRow) {
+      const headerCells = headerRow.querySelectorAll("th, td");
+      data.headers = Array.from(headerCells).map((cell) =>
+        cell.textContent.trim(),
+      );
+    }
+
+    // Extract rows
+    const tbody = table.querySelector("tbody") || table;
+    const rows = tbody.querySelectorAll("tr");
+
+    rows.forEach((row, index) => {
+      // Skip header row if already processed
+      if (index === 0 && !table.querySelector("thead")) {
+        return;
+      }
+
+      const cells = row.querySelectorAll("td");
+      if (cells.length > 0) {
+        data.rows.push(
+          Array.from(cells).map((cell) => cell.textContent.trim()),
+        );
+      }
+    });
+
+    return {
+      headers: data.headers,
+      rows: data.rows,
+      rowCount: data.rows.length,
+      columnCount: data.headers.length,
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Keyboard Simulation ====================
+
+/**
+ * Simulate keyboard event
+ */
+function simulateKeyboardEvent(selector, eventType, key, options = {}) {
+  try {
+    const element = selector
+      ? document.querySelector(selector)
+      : document.activeElement;
+    if (!element) {
+      return { error: `Element not found: ${selector}` };
+    }
+
+    const eventInit = {
+      key: key,
+      code: options.code || `Key${key.toUpperCase()}`,
+      keyCode: options.keyCode || key.charCodeAt(0),
+      which: options.which || key.charCodeAt(0),
+      bubbles: true,
+      cancelable: true,
+      ctrlKey: options.ctrlKey || false,
+      shiftKey: options.shiftKey || false,
+      altKey: options.altKey || false,
+      metaKey: options.metaKey || false,
+    };
+
+    element.dispatchEvent(new KeyboardEvent(eventType, eventInit));
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Navigation & Network ====================
+
+/**
+ * Wait for navigation to complete
+ */
+function waitForNavigation(timeout = 30000) {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const startUrl = window.location.href;
+
+    const checkNavigation = () => {
+      if (window.location.href !== startUrl) {
+        resolve({ success: true, url: window.location.href });
+        return;
+      }
+
+      if (Date.now() - startTime > timeout) {
+        resolve({ error: "Navigation timeout" });
+        return;
+      }
+
+      setTimeout(checkNavigation, 100);
+    };
+
+    // Also listen for load event
+    const loadHandler = () => {
+      window.removeEventListener("load", loadHandler);
+      resolve({ success: true, url: window.location.href });
+    };
+    window.addEventListener("load", loadHandler);
+
+    checkNavigation();
+  });
+}
+
+// Network request tracking
+const networkRequests = [];
+
+/**
+ * Get tracked network requests
+ */
+function getNetworkRequests() {
+  return { requests: networkRequests.slice(-100) }; // Last 100 requests
+}
+
+// ==================== Mutation Observer ====================
+
+const mutationObservers = new Map();
+
+/**
+ * Observe DOM mutations
+ */
+function observeMutations(selector, options = {}, observerId) {
+  return new Promise((resolve) => {
+    const element = selector ? document.querySelector(selector) : document.body;
+    if (!element) {
+      resolve({ error: `Element not found: ${selector}` });
+      return;
+    }
+
+    const mutations = [];
+    const timeout = options.timeout || 10000;
+
+    const observer = new MutationObserver((mutationList) => {
+      for (const mutation of mutationList) {
+        mutations.push({
+          type: mutation.type,
+          target: mutation.target.tagName,
+          addedNodes: mutation.addedNodes.length,
+          removedNodes: mutation.removedNodes.length,
+          attributeName: mutation.attributeName,
+          oldValue: mutation.oldValue,
+        });
+      }
+
+      if (options.once || mutations.length >= (options.maxMutations || 100)) {
+        observer.disconnect();
+        mutationObservers.delete(observerId);
+        resolve({ mutations, count: mutations.length });
+      }
+    });
+
+    observer.observe(element, {
+      childList: options.childList !== false,
+      attributes: options.attributes !== false,
+      characterData: options.characterData || false,
+      subtree: options.subtree !== false,
+      attributeOldValue: options.attributeOldValue || false,
+      characterDataOldValue: options.characterDataOldValue || false,
+    });
+
+    if (observerId) {
+      mutationObservers.set(observerId, observer);
+    }
+
+    // Timeout
+    setTimeout(() => {
+      observer.disconnect();
+      mutationObservers.delete(observerId);
+      resolve({ mutations, count: mutations.length, timedOut: true });
+    }, timeout);
+  });
+}
 
 /**
  * Extract content from page

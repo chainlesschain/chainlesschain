@@ -114,6 +114,7 @@ const INIT_PHASES = [
       "aiScheduler",
       "chatSkillBridge",
       "interactiveTaskPlanner",
+      "remoteGateway",
     ],
   },
   {

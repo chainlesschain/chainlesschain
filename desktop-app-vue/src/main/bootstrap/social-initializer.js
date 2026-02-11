@@ -258,6 +258,48 @@ function registerSocialInitializers(factory) {
       return deepLinkHandler;
     },
   });
+
+  // ========================================
+  // 远程网关（浏览器扩展服务器、远程控制）
+  // ========================================
+  factory.register({
+    name: "remoteGateway",
+    dependsOn: ["database", "didManager", "p2pManager", "ukeyManager"],
+    required: false, // Non-critical, app can run without remote control
+    async init(context) {
+      try {
+        const { createRemoteGateway } = require("../remote");
+
+        const gateway = await createRemoteGateway(
+          {
+            p2pManager: context.p2pManager,
+            didManager: context.didManager,
+            ukeyManager: context.ukeyManager,
+            database: context.database,
+            mainWindow: context.mainWindow, // May be null initially
+            aiEngine: context.aiEngineManager,
+            ragManager: context.ragManager,
+          },
+          {
+            enableP2P: true,
+            enableWebSocket: true,
+            browserExtension: {
+              port: 18790,
+              host: "127.0.0.1",
+            },
+          },
+        );
+
+        logger.info(
+          "[Social] ✓ RemoteGateway initialized (browser extension server started)",
+        );
+        return gateway;
+      } catch (error) {
+        logger.error("[Social] RemoteGateway initialization failed:", error);
+        return null;
+      }
+    },
+  });
 }
 
 /**

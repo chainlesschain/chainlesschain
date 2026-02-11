@@ -15,7 +15,13 @@
     "clipboardRead",
     "clipboardWrite",
     "notifications",
-    "scripting"
+    "scripting",
+    "cookies",
+    "downloads",
+    "downloads.open",
+    "webNavigation",
+    "debugger",
+    "browsingData"
   ],
 
   "host_permissions": ["<all_urls>"],

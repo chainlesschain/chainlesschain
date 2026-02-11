@@ -340,6 +340,7 @@ class ChainlessChainApp {
     this.syncEngine = instances.syncEngine;
     this.vcManager = instances.vcManager;
     this.vcTemplateManager = instances.vcTemplateManager;
+    this.remoteGateway = instances.remoteGateway;
 
     // AI 引擎
     this.webEngine = instances.webEngine;
@@ -1386,6 +1387,17 @@ class ChainlessChainApp {
         logger.info("[Main] MobileBridge cleanup completed");
       } catch (error) {
         logger.error("[Main] MobileBridge cleanup error:", error);
+      }
+    }
+
+    // 清理远程网关（包含浏览器扩展服务器）
+    if (this.remoteGateway) {
+      try {
+        await this.remoteGateway.stop();
+        this.remoteGateway = null;
+        logger.info("[Main] RemoteGateway cleanup completed");
+      } catch (error) {
+        logger.error("[Main] RemoteGateway cleanup error:", error);
       }
     }
 
