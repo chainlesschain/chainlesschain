@@ -431,6 +431,69 @@ final class HybridSearchEngineTests: XCTestCase {
     }
 }
 
+// MARK: - Search Mode Tests
+
+final class SearchModeTests: XCTestCase {
+
+    var searchEngine: HybridSearchEngine!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        searchEngine = await HybridSearchEngine.shared
+        await searchEngine.clear()
+
+        // 创建测试文档
+        let documents = [
+            SearchDocument(id: "1", content: "Swift programming language is powerful"),
+            SearchDocument(id: "2", content: "iOS development with Swift framework"),
+            SearchDocument(id: "3", content: "Machine learning with Python")
+        ]
+        await searchEngine.indexDocuments(documents)
+    }
+
+    @MainActor
+    func testSearchModeBM25Only() async {
+        // When
+        let results = await searchEngine.search("Swift", mode: .bm25Only)
+
+        // Then
+        XCTAssertFalse(results.isEmpty, "应该有搜索结果")
+        XCTAssertEqual(results.first?.searchMethod, "BM25", "搜索方法应该是 BM25")
+    }
+
+    @MainActor
+    func testSearchModeKeywordOnly() async {
+        // When
+        let results = await searchEngine.search("Swift", mode: .keywordOnly)
+
+        // Then
+        XCTAssertFalse(results.isEmpty, "应该有搜索结果")
+        XCTAssertEqual(results.first?.searchMethod, "Keyword", "搜索方法应该是 Keyword")
+    }
+
+    @MainActor
+    func testSearchModeHybrid() async {
+        // When
+        let results = await searchEngine.search("Swift programming", mode: .hybrid)
+
+        // Then
+        XCTAssertFalse(results.isEmpty, "应该有搜索结果")
+        XCTAssertEqual(results.first?.searchMethod, "Hybrid", "搜索方法应该是 Hybrid")
+    }
+
+    @MainActor
+    func testMatchedTermsExtraction() async {
+        // When
+        let results = await searchEngine.search("Swift programming", mode: .keywordOnly)
+
+        // Then
+        XCTAssertFalse(results.isEmpty, "应该有搜索结果")
+        if let firstResult = results.first {
+            XCTAssertFalse(firstResult.matchedTerms.isEmpty, "应该有匹配的词")
+        }
+    }
+}
+
 // MARK: - RRF Fusion Tests
 
 final class RRFFusionTests: XCTestCase {
@@ -439,26 +502,29 @@ final class RRFFusionTests: XCTestCase {
     func testRRFScoreCalculation() async {
         // RRF 分数验证
         // 公式: score = weight / (k + rank)
-        // 假设 k=60, vectorWeight=0.6, textWeight=0.4
+        // 假设 k=60, vectorWeight=0.4, textWeight=0.4, keywordWeight=0.2
 
         let k = 60.0
-        let vectorWeight = 0.6
+        let vectorWeight = 0.4
         let textWeight = 0.4
+        let keywordWeight = 0.2
 
-        // 如果一个文档在 Vector 排名第1，BM25 排名第2
-        let vectorScore = vectorWeight / (k + 1)  // 0.6 / 61 ≈ 0.00984
+        // 如果一个文档在 Vector 排名第1，BM25 排名第2，Keyword 排名第1
+        let vectorScore = vectorWeight / (k + 1)   // 0.4 / 61 ≈ 0.00656
         let bm25Score = textWeight / (k + 2)       // 0.4 / 62 ≈ 0.00645
-        let totalRRF = vectorScore + bm25Score     // ≈ 0.01629
+        let keywordScore = keywordWeight / (k + 1) // 0.2 / 61 ≈ 0.00328
+        let totalRRF = vectorScore + bm25Score + keywordScore
 
-        XCTAssertEqual(vectorScore, 0.6 / 61, accuracy: 0.0001)
+        XCTAssertEqual(vectorScore, 0.4 / 61, accuracy: 0.0001)
         XCTAssertEqual(bm25Score, 0.4 / 62, accuracy: 0.0001)
+        XCTAssertEqual(keywordScore, 0.2 / 61, accuracy: 0.0001)
         XCTAssertGreaterThan(totalRRF, 0, "RRF 分数应该大于0")
     }
 
     @MainActor
     func testRRFRankingBehavior() async {
         // 验证 RRF 的排名行为
-        // 在两个列表中都排名靠前的文档应该在融合后排名更高
+        // 在多个列表中都排名靠前的文档应该在融合后排名更高
 
         let searchEngine = HybridSearchEngine.shared
         await searchEngine.clear()
@@ -474,6 +540,57 @@ final class RRFFusionTests: XCTestCase {
         // 注意：由于没有 RAG Manager，只能测试 BM25
         let results = searchEngine.bm25OnlySearch("Swift", limit: 10)
 
+        XCTAssertFalse(results.isEmpty, "应该有搜索结果")
+    }
+}
+
+// MARK: - Reranking Tests
+
+final class RerankingTests: XCTestCase {
+
+    @MainActor
+    func testRerankingEnabled() async {
+        let searchEngine = HybridSearchEngine.shared
+        await searchEngine.clear()
+
+        // 启用 reranking
+        var config = HybridSearchConfig()
+        config.enableReranking = true
+        searchEngine.configure(config)
+
+        let documents = [
+            SearchDocument(id: "1", content: "Swift programming language"),
+            SearchDocument(id: "2", content: "iOS development with Swift")
+        ]
+        await searchEngine.indexDocuments(documents)
+
+        // When
+        let results = await searchEngine.search("Swift", mode: .hybrid)
+
+        // Then - 结果应该按照重排后的分数排序
+        XCTAssertFalse(results.isEmpty, "应该有搜索结果")
+    }
+
+    @MainActor
+    func testRerankingDisabled() async {
+        let searchEngine = HybridSearchEngine.shared
+        await searchEngine.clear()
+
+        // 禁用 reranking
+        var config = HybridSearchConfig()
+        config.enableReranking = false
+        searchEngine.configure(config)
+
+        let documents = [
+            SearchDocument(id: "1", content: "Swift programming language"),
+            SearchDocument(id: "2", content: "iOS development with Swift")
+        ]
+        await searchEngine.indexDocuments(documents)
+
+        // When
+        let results = await searchEngine.search("Swift", mode: .hybrid)
+
+        // Then
         XCTAssertFalse(results.isEmpty, "应该有搜索结果")
     }
 }

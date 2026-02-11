@@ -620,6 +620,101 @@ public class PermissionEngine: ObservableObject {
         return rows.compactMap { parseDelegation(from: $0) }
     }
 
+    /// 接受委派
+    public func acceptDelegation(delegationId: String, delegateDid: String) async throws -> Bool {
+        // 获取委派记录
+        let query = """
+        SELECT * FROM permission_delegations
+        WHERE id = ? AND delegate_did = ? AND status = 'pending'
+        """
+        let rows = try await database.query(query, [delegationId, delegateDid])
+
+        guard let row = rows.first else {
+            throw PermissionEngineError.delegationNotFound
+        }
+
+        let now = Int(Date().timeIntervalSince1970)
+
+        // 更新状态为 active
+        let sql = """
+        UPDATE permission_delegations
+        SET status = 'active', updated_at = ?
+        WHERE id = ?
+        """
+
+        try await database.execute(sql, [now, delegationId])
+
+        // 清除缓存
+        invalidateCache(granteeId: delegateDid)
+
+        Logger.shared.info("[PermissionEngine] 委派已接受: \(delegationId)")
+
+        return true
+    }
+
+    /// 拒绝委派
+    public func rejectDelegation(delegationId: String, delegateDid: String) async throws -> Bool {
+        // 获取委派记录
+        let query = """
+        SELECT * FROM permission_delegations
+        WHERE id = ? AND delegate_did = ? AND status = 'pending'
+        """
+        let rows = try await database.query(query, [delegationId, delegateDid])
+
+        guard rows.first != nil else {
+            throw PermissionEngineError.delegationNotFound
+        }
+
+        let now = Int(Date().timeIntervalSince1970)
+
+        // 更新状态为 rejected
+        let sql = """
+        UPDATE permission_delegations
+        SET status = 'rejected', updated_at = ?
+        WHERE id = ?
+        """
+
+        try await database.execute(sql, [now, delegationId])
+
+        Logger.shared.info("[PermissionEngine] 委派已拒绝: \(delegationId)")
+
+        return true
+    }
+
+    /// 获取用户的所有委派（支持过滤）
+    public func getDelegations(
+        userDid: String,
+        orgId: String,
+        type: DelegationType? = nil,
+        status: DelegationStatus? = nil
+    ) async throws -> [PermissionDelegation] {
+        var query = "SELECT * FROM permission_delegations WHERE org_id = ?"
+        var params: [Any] = [orgId]
+
+        switch type {
+        case .delegated:
+            query += " AND delegator_did = ?"
+            params.append(userDid)
+        case .received:
+            query += " AND delegate_did = ?"
+            params.append(userDid)
+        case .none:
+            query += " AND (delegator_did = ? OR delegate_did = ?)"
+            params.append(userDid)
+            params.append(userDid)
+        }
+
+        if let status = status {
+            query += " AND status = ?"
+            params.append(status.rawValue)
+        }
+
+        query += " ORDER BY created_at DESC"
+
+        let rows = try await database.query(query, params)
+        return rows.compactMap { parseDelegation(from: $0) }
+    }
+
     // MARK: - Audit Log
 
     /// 获取审计日志

@@ -1,23 +1,23 @@
 # ChainlessChain iOS 项目状态报告
 
-**生成日期**: 2026-01-20
-**版本**: v0.6.0
+**生成日期**: 2026-02-11
+**版本**: v0.32.0
 **完成度**: 100%
 
 ---
 
 ## 📊 项目概览
 
-| 指标             | 数值                  |
-| ---------------- | --------------------- |
-| Swift 文件总数   | 60+ 个                |
-| 代码行数（估计） | ~9,000+ 行            |
-| 核心模块         | 6 个（100% 完成）     |
-| 功能模块         | 6 个（平均 85% 完成） |
-| 文档文件         | 9 个                  |
-| 测试文件         | 7 个（新增项目测试）  |
-| 最低 iOS 版本    | 15.0                  |
-| Swift 版本       | 5.9+                  |
+| 指标             | 数值                 |
+| ---------------- | -------------------- |
+| Swift 文件总数   | 120+ 个              |
+| 代码行数（估计） | ~24,000+ 行          |
+| 核心模块         | 6 个（100% 完成）    |
+| 功能模块         | 10 个（100% 完成）   |
+| 文档文件         | 9 个                 |
+| 测试文件         | 7 个（新增项目测试） |
+| 最低 iOS 版本    | 15.0                 |
+| Swift 版本       | 5.9+                 |
 
 ---
 
@@ -148,6 +148,47 @@
      - **ExportMenuView** - 导出菜单（PDF/HTML/Markdown/TXT、主题选择）
      - **ProjectDetailView重构** - 5标签页设计（文件/对话/编辑/Git/信息）
    - 参考桌面端完整实现
+
+6. **区块链模块（100%）** ✅ 新增 v0.26.0
+   - 跨链桥完整实现（CrossChainBridgeView/BridgeTransactionView/BridgeHistoryView）
+   - 高级市场功能（AdvancedMarketplaceView/CollectionBrowserView）
+   - 价格历史图表（PriceHistoryChartView）
+   - 批量交易支持（BatchTransactionView/PendingTransactionsView）
+   - 14条链支持（Ethereum/BSC/Polygon/Arbitrum等）
+
+7. **MCP模块（100%）** ✅ 新增 v0.28.0
+   - MCPClientManager增强（Prompt支持/批量操作/健康检查/安全策略）
+   - 服务器管理（MCPServerListView/MCPServerDetailView/AddMCPServerView）
+   - 工具执行（MCPToolsListView/MCPToolExecutionView）
+   - Prompt管理（MCPPromptListView/MCPPromptExecutionView）
+   - 资源浏览（MCPResourceBrowserView）
+   - 安全设置（MCPSecuritySettingsView）
+   - MCPViewModel完整状态管理
+
+8. **插件系统（100%）** ✅ 新增 v0.30.0
+   - 核心架构（PluginManager/PluginRegistry/PluginLoader/PluginSandbox）
+   - 安全验证（PluginValidator/PluginSecurityPolicy）
+   - 插件市场（PluginMarketplaceView/InstallPluginView）
+   - 插件管理（PluginListView/PluginDetailView/PluginSettingsView）
+   - 内置插件（OfficePlugin/DataAnalysisPlugin/GitPlugin）
+   - 沙箱隔离执行
+
+9. **性能优化（100%）** ✅ 新增 v0.31.0
+   - 核心监控（PerformanceMonitor/FPSMonitor/CPUMonitor/MemoryMonitor/NetworkMonitor/ThermalMonitor）
+   - 缓存管理（CacheManager/CacheStatistics）
+   - 告警系统（AlertManager/AlertModels）
+   - 性能面板（PerformanceScreen/MetricCardView/PerformanceChartView）
+   - 启动优化（StartupOptimizer）
+   - 目标：冷启动<1.2s/内存<180MB/FPS>59
+
+10. **Hooks系统（100%）** ✅ 新增 v0.32.0
+    - 核心系统（HookSystem/HookRegistry/HookExecutor）
+    - 持久化（HookRepository - JSON配置文件）
+    - 脚本执行（HookScriptExecutor - JS/Python/Bash支持）
+    - 21种事件类型（PreToolUse/PostToolUse/SessionStart等）
+    - UI界面（HooksListView/HookDetailView/CreateHookView/HookLogsView）
+    - 4种钩子类型（Sync/Async/Command/Script）
+    - 优先级系统（SYSTEM→HIGH→NORMAL→LOW→MONITOR）
 
 ---
 
@@ -310,39 +351,44 @@ Assets.xcassets/                # 应用资源
 
 ## 📈 进度历史
 
-| 日期       | 版本   | 完成度 | 主要更新                                                                                         |
-| ---------- | ------ | ------ | ------------------------------------------------------------------------------------------------ |
-| 2026-01-19 | v0.1.0 | 40%    | 初始项目结构、核心模块                                                                           |
-| 2026-01-19 | v0.2.0 | 55%    | LLM 集成、RAG 搜索、P2P 框架                                                                     |
-| 2026-01-19 | v0.2.1 | 60%    | Xcode 项目设置、文档完善                                                                         |
-| 2026-01-20 | v0.2.2 | 65%    | AI 对话历史持久化、自动标题生成                                                                  |
-| 2026-01-20 | v0.2.3 | 70%    | P2P 消息持久化、Double Ratchet、自动重连                                                         |
-| 2026-01-20 | v0.2.4 | 75%    | 离线消息队列、向量持久化、单元测试                                                               |
-| 2026-01-20 | v0.2.5 | 78%    | 文档更新、代码质量改进                                                                           |
-| 2026-01-20 | v0.2.6 | 82%    | 消息状态同步、图片选择器、性能优化、UI增强                                                       |
-| 2026-01-20 | v0.2.7 | 88%    | 图片消息发送/显示、群组聊天完整实现                                                              |
-| 2026-01-20 | v0.2.8 | 90%    | 推送通知系统、APNs集成、通知设置界面                                                             |
-| 2026-01-20 | v0.2.9 | 91%    | App图标配置（18种尺寸）、图标生成脚本                                                            |
-| 2026-01-20 | v0.3.0 | 93%    | 会话列表数据库加载、PIN修改、搜索防抖、日志优化                                                  |
-| 2026-01-20 | v0.3.1 | 95%    | 代码安全修复、知识库分页、图片缓存集成                                                           |
-| 2026-01-20 | v0.3.2 | 96%    | 统一日志系统（10个文件替换AppLogger）、加密模块安全修复                                          |
-| 2026-01-20 | v0.3.3 | 97%    | 清除所有print()语句（5个文件）、修复LLMManager URL强制解包                                       |
-| 2026-01-20 | v0.3.4 | 98%    | 改进try?错误处理、创建AppConfig配置常量、集中管理硬编码值                                        |
-| 2026-01-20 | v0.4.0 | 100%   | 本地化支持（中英文）、性能分析工具、UI测试套件                                                   |
-| 2026-01-20 | v0.4.1 | 100%   | 内存泄漏修复、SQL注入防护、输入验证增强                                                          |
-| 2026-01-20 | v0.4.2 | 100%   | P2PContactRepository安全修复、MessageDeliveryManager内存修复、集合大小限制                       |
-| 2026-01-20 | v0.4.3 | 100%   | 项目管理模块完整实现（参考桌面端）、ProjectRepository/Manager/Views                              |
-| 2026-01-20 | v0.4.4 | 100%   | LLM上下文限制、VectorStore SIMD优化、图片压缩后台线程、安全修复                                  |
-| 2026-01-20 | v0.4.5 | 100%   | WebSocket重连、消息限流、联系人缓存、SHA256哈希、自动缓存清理                                    |
-| 2026-01-20 | v0.4.6 | 100%   | SQL注入修复（AI/Vector）、重连jitter防雷群、WebSocket取消检查、路径安全                          |
-| 2026-01-20 | v0.4.7 | 100%   | ProjectAIManager项目AI集成、项目单元测试（参考桌面端project-ai-ipc.js）                          |
-| 2026-01-20 | v0.4.8 | 100%   | IntentUnderstandingService意图理解、内容处理（润色/扩写/摘要/翻译）                              |
-| 2026-01-20 | v0.4.9 | 100%   | 代码操作（重构/解释/Bug修复/测试生成/优化）、任务执行、ProjectRAGManager                         |
-| 2026-01-20 | v0.5.0 | 100%   | 安全修复（NULL指针、强制解包）、内存泄漏修复、Timer管理、VectorStore优化                         |
-| 2026-01-20 | v0.5.1 | 100%   | 文件操作（复制/移动/导入/导出）、DocumentExportManager、PDF/HTML导出                             |
-| 2026-01-20 | v0.5.2 | 100%   | GitManager完整实现（14个操作：init/status/commit/push/pull/log/diff/分支管理）                   |
-| 2026-01-20 | v0.5.3 | 100%   | SyncManager同步恢复（syncAll/recoverProject/backup/conflict解决/自动同步）                       |
-| 2026-01-20 | v0.6.0 | 100%   | 项目详情页UI重构（ProjectChatView/FileTreeView/FileEditorView/GitOperationsView/ExportMenuView） |
+| 日期       | 版本    | 完成度 | 主要更新                                                                                                                  |
+| ---------- | ------- | ------ | ------------------------------------------------------------------------------------------------------------------------- |
+| 2026-01-19 | v0.1.0  | 40%    | 初始项目结构、核心模块                                                                                                    |
+| 2026-01-19 | v0.2.0  | 55%    | LLM 集成、RAG 搜索、P2P 框架                                                                                              |
+| 2026-01-19 | v0.2.1  | 60%    | Xcode 项目设置、文档完善                                                                                                  |
+| 2026-01-20 | v0.2.2  | 65%    | AI 对话历史持久化、自动标题生成                                                                                           |
+| 2026-01-20 | v0.2.3  | 70%    | P2P 消息持久化、Double Ratchet、自动重连                                                                                  |
+| 2026-01-20 | v0.2.4  | 75%    | 离线消息队列、向量持久化、单元测试                                                                                        |
+| 2026-01-20 | v0.2.5  | 78%    | 文档更新、代码质量改进                                                                                                    |
+| 2026-01-20 | v0.2.6  | 82%    | 消息状态同步、图片选择器、性能优化、UI增强                                                                                |
+| 2026-01-20 | v0.2.7  | 88%    | 图片消息发送/显示、群组聊天完整实现                                                                                       |
+| 2026-01-20 | v0.2.8  | 90%    | 推送通知系统、APNs集成、通知设置界面                                                                                      |
+| 2026-01-20 | v0.2.9  | 91%    | App图标配置（18种尺寸）、图标生成脚本                                                                                     |
+| 2026-01-20 | v0.3.0  | 93%    | 会话列表数据库加载、PIN修改、搜索防抖、日志优化                                                                           |
+| 2026-01-20 | v0.3.1  | 95%    | 代码安全修复、知识库分页、图片缓存集成                                                                                    |
+| 2026-01-20 | v0.3.2  | 96%    | 统一日志系统（10个文件替换AppLogger）、加密模块安全修复                                                                   |
+| 2026-01-20 | v0.3.3  | 97%    | 清除所有print()语句（5个文件）、修复LLMManager URL强制解包                                                                |
+| 2026-01-20 | v0.3.4  | 98%    | 改进try?错误处理、创建AppConfig配置常量、集中管理硬编码值                                                                 |
+| 2026-01-20 | v0.4.0  | 100%   | 本地化支持（中英文）、性能分析工具、UI测试套件                                                                            |
+| 2026-01-20 | v0.4.1  | 100%   | 内存泄漏修复、SQL注入防护、输入验证增强                                                                                   |
+| 2026-01-20 | v0.4.2  | 100%   | P2PContactRepository安全修复、MessageDeliveryManager内存修复、集合大小限制                                                |
+| 2026-01-20 | v0.4.3  | 100%   | 项目管理模块完整实现（参考桌面端）、ProjectRepository/Manager/Views                                                       |
+| 2026-01-20 | v0.4.4  | 100%   | LLM上下文限制、VectorStore SIMD优化、图片压缩后台线程、安全修复                                                           |
+| 2026-01-20 | v0.4.5  | 100%   | WebSocket重连、消息限流、联系人缓存、SHA256哈希、自动缓存清理                                                             |
+| 2026-01-20 | v0.4.6  | 100%   | SQL注入修复（AI/Vector）、重连jitter防雷群、WebSocket取消检查、路径安全                                                   |
+| 2026-01-20 | v0.4.7  | 100%   | ProjectAIManager项目AI集成、项目单元测试（参考桌面端project-ai-ipc.js）                                                   |
+| 2026-01-20 | v0.4.8  | 100%   | IntentUnderstandingService意图理解、内容处理（润色/扩写/摘要/翻译）                                                       |
+| 2026-01-20 | v0.4.9  | 100%   | 代码操作（重构/解释/Bug修复/测试生成/优化）、任务执行、ProjectRAGManager                                                  |
+| 2026-01-20 | v0.5.0  | 100%   | 安全修复（NULL指针、强制解包）、内存泄漏修复、Timer管理、VectorStore优化                                                  |
+| 2026-01-20 | v0.5.1  | 100%   | 文件操作（复制/移动/导入/导出）、DocumentExportManager、PDF/HTML导出                                                      |
+| 2026-01-20 | v0.5.2  | 100%   | GitManager完整实现（14个操作：init/status/commit/push/pull/log/diff/分支管理）                                            |
+| 2026-01-20 | v0.5.3  | 100%   | SyncManager同步恢复（syncAll/recoverProject/backup/conflict解决/自动同步）                                                |
+| 2026-01-20 | v0.6.0  | 100%   | 项目详情页UI重构（ProjectChatView/FileTreeView/FileEditorView/GitOperationsView/ExportMenuView）                          |
+| 2026-02-10 | v0.26.0 | 100%   | 区块链UI完善（CrossChainBridgeView/AdvancedMarketplaceView/PriceHistoryChartView/BatchTransactionView）                   |
+| 2026-02-10 | v0.28.0 | 100%   | MCP完整实现（MCPClientManager增强/MCPServerListView/MCPToolExecutionView/MCPPromptListView/MCPSecuritySettingsView）      |
+| 2026-02-11 | v0.30.0 | 100%   | 插件系统实现（PluginManager/PluginRegistry/PluginLoader/PluginSandbox/PluginMarketplaceView/内置插件）                    |
+| 2026-02-11 | v0.31.0 | 100%   | 性能优化（PerformanceMonitor/FPSMonitor/CPUMonitor/MemoryMonitor/ThermalMonitor/CacheManager/StartupOptimizer）           |
+| 2026-02-11 | v0.32.0 | 100%   | Hooks系统增强（HookRepository持久化/HookScriptExecutor脚本执行/HooksListView/HookDetailView/CreateHookView/HookLogsView） |
 
 ---
 
@@ -453,6 +499,6 @@ Assets.xcassets/                # 应用资源
 
 ---
 
-**最后更新**: 2026-01-20
+**最后更新**: 2026-02-11
 **维护者**: ChainlessChain Development Team
 **许可证**: MIT
