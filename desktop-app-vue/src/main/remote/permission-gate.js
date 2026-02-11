@@ -225,6 +225,73 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.writeClipboard": PERMISSION_LEVELS.NORMAL,
   "extension.showNotification": PERMISSION_LEVELS.NORMAL,
 
+  // 扩展 - Cookie 管理
+  "extension.getCookies": PERMISSION_LEVELS.NORMAL,
+  "extension.getCookie": PERMISSION_LEVELS.NORMAL,
+  "extension.setCookie": PERMISSION_LEVELS.ADMIN,
+  "extension.removeCookie": PERMISSION_LEVELS.ADMIN,
+  "extension.clearCookies": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 下载管理
+  "extension.listDownloads": PERMISSION_LEVELS.NORMAL,
+  "extension.download": PERMISSION_LEVELS.NORMAL,
+  "extension.cancelDownload": PERMISSION_LEVELS.NORMAL,
+  "extension.pauseDownload": PERMISSION_LEVELS.NORMAL,
+  "extension.resumeDownload": PERMISSION_LEVELS.NORMAL,
+  "extension.openDownload": PERMISSION_LEVELS.NORMAL,
+  "extension.showDownload": PERMISSION_LEVELS.NORMAL,
+  "extension.eraseDownloads": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 窗口管理
+  "extension.getAllWindows": PERMISSION_LEVELS.NORMAL,
+  "extension.getWindow": PERMISSION_LEVELS.NORMAL,
+  "extension.createWindow": PERMISSION_LEVELS.NORMAL,
+  "extension.updateWindow": PERMISSION_LEVELS.NORMAL,
+  "extension.removeWindow": PERMISSION_LEVELS.ADMIN,
+  "extension.getCurrentWindow": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - 存储访问
+  "extension.getLocalStorage": PERMISSION_LEVELS.NORMAL,
+  "extension.setLocalStorage": PERMISSION_LEVELS.ADMIN,
+  "extension.getSessionStorage": PERMISSION_LEVELS.NORMAL,
+  "extension.setSessionStorage": PERMISSION_LEVELS.ADMIN,
+  "extension.clearLocalStorage": PERMISSION_LEVELS.ADMIN,
+  "extension.clearSessionStorage": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 元素交互
+  "extension.hoverElement": PERMISSION_LEVELS.NORMAL,
+  "extension.focusElement": PERMISSION_LEVELS.NORMAL,
+  "extension.blurElement": PERMISSION_LEVELS.NORMAL,
+  "extension.selectText": PERMISSION_LEVELS.NORMAL,
+  "extension.getAttribute": PERMISSION_LEVELS.PUBLIC,
+  "extension.setAttribute": PERMISSION_LEVELS.ADMIN,
+  "extension.getBoundingRect": PERMISSION_LEVELS.PUBLIC,
+  "extension.isVisible": PERMISSION_LEVELS.PUBLIC,
+  "extension.waitForSelector": PERMISSION_LEVELS.NORMAL,
+  "extension.dragDrop": PERMISSION_LEVELS.ADMIN,
+  "extension.doubleClick": PERMISSION_LEVELS.NORMAL,
+  "extension.rightClick": PERMISSION_LEVELS.NORMAL,
+  "extension.type": PERMISSION_LEVELS.NORMAL,
+  "extension.selectOption": PERMISSION_LEVELS.NORMAL,
+  "extension.checkCheckbox": PERMISSION_LEVELS.NORMAL,
+  "extension.uploadFile": PERMISSION_LEVELS.ADMIN,
+  "extension.getComputedStyle": PERMISSION_LEVELS.PUBLIC,
+  "extension.queryShadowDom": PERMISSION_LEVELS.NORMAL,
+  "extension.executeInShadowDom": PERMISSION_LEVELS.ADMIN,
+  "extension.getTableData": PERMISSION_LEVELS.PUBLIC,
+  "extension.simulateKeyboard": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - 页面操作
+  "extension.printPage": PERMISSION_LEVELS.NORMAL,
+  "extension.saveToPdf": PERMISSION_LEVELS.ADMIN,
+  "extension.getConsoleLogs": PERMISSION_LEVELS.NORMAL,
+  "extension.setViewport": PERMISSION_LEVELS.ADMIN,
+  "extension.emulateDevice": PERMISSION_LEVELS.ADMIN,
+  "extension.setGeolocation": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - 浏览数据
+  "extension.clearBrowsingData": PERMISSION_LEVELS.ROOT,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,
@@ -258,6 +325,16 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "sysinfo.getPerformance": PERMISSION_LEVELS.PUBLIC,
   "sysinfo.getServices": PERMISSION_LEVELS.NORMAL,
   "sysinfo.getLogs": PERMISSION_LEVELS.ADMIN,
+
+  // 安全操作
+  "security.getStatus": PERMISSION_LEVELS.PUBLIC,
+  "security.getFirewallStatus": PERMISSION_LEVELS.PUBLIC,
+  "security.getAntivirusStatus": PERMISSION_LEVELS.PUBLIC,
+  "security.getEncryptionStatus": PERMISSION_LEVELS.PUBLIC,
+  "security.getUpdates": PERMISSION_LEVELS.PUBLIC,
+  "security.getActiveUsers": PERMISSION_LEVELS.NORMAL,
+  "security.lockWorkstation": PERMISSION_LEVELS.NORMAL,
+  "security.getLoginHistory": PERMISSION_LEVELS.ADMIN,
 };
 
 /**
