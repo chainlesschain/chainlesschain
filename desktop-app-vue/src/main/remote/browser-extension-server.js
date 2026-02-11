@@ -2322,6 +2322,394 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
+      // ==================== Phase 23: Advanced Web APIs ====================
+
+      // Web Share API
+      case "canShare":
+        return await this.server.sendCommand(
+          clientId,
+          "share.canShare",
+          params,
+        );
+      case "share":
+        return await this.server.sendCommand(clientId, "share.share", params);
+      case "shareFiles":
+        return await this.server.sendCommand(
+          clientId,
+          "share.shareFiles",
+          params,
+        );
+      case "getShareTargets":
+        return await this.server.sendCommand(
+          clientId,
+          "share.getShareTargets",
+          params,
+        );
+
+      // Credential Management API
+      case "getCredential":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.get",
+          params,
+        );
+      case "storeCredential":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.store",
+          params,
+        );
+      case "createCredential":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.create",
+          params,
+        );
+      case "preventSilentAccess":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.preventSilentAccess",
+          params,
+        );
+      case "isConditionalMediationAvailable":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.isConditionalMediationAvailable",
+          params,
+        );
+      case "getPublicKeyCredential":
+        return await this.server.sendCommand(
+          clientId,
+          "credential.getPublicKeyCredential",
+          params,
+        );
+
+      // Screen Wake Lock API
+      case "requestWakeLock":
+        return await this.server.sendCommand(
+          clientId,
+          "wakeLock.request",
+          params,
+        );
+      case "releaseWakeLock":
+        return await this.server.sendCommand(
+          clientId,
+          "wakeLock.release",
+          params,
+        );
+      case "getWakeLockState":
+        return await this.server.sendCommand(
+          clientId,
+          "wakeLock.getState",
+          params,
+        );
+      case "isWakeLockSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "wakeLock.isSupported",
+          params,
+        );
+
+      // File System Access API
+      case "showOpenFilePicker":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.showOpenFilePicker",
+          params,
+        );
+      case "showSaveFilePicker":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.showSaveFilePicker",
+          params,
+        );
+      case "showDirectoryPicker":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.showDirectoryPicker",
+          params,
+        );
+      case "getFileSystemHandle":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.getFileHandle",
+          params,
+        );
+      case "readFileFromHandle":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.readFile",
+          params,
+        );
+      case "writeFileToHandle":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.writeFile",
+          params,
+        );
+      case "getFileHandleInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.getHandleInfo",
+          params,
+        );
+      case "removeFileEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "fileSystem.removeEntry",
+          params,
+        );
+
+      // Tab Groups API
+      case "createTabGroup":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.create",
+          params,
+        );
+      case "getTabGroup":
+        return await this.server.sendCommand(clientId, "tabGroups.get", params);
+      case "getAllTabGroups":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.getAll",
+          params,
+        );
+      case "updateTabGroup":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.update",
+          params,
+        );
+      case "moveTabGroup":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.move",
+          params,
+        );
+      case "ungroupTabs":
+        return await this.server.sendCommand(
+          clientId,
+          "tabGroups.ungroup",
+          params,
+        );
+
+      // Eye Dropper API
+      case "openEyeDropper":
+        return await this.server.sendCommand(
+          clientId,
+          "eyeDropper.open",
+          params,
+        );
+      case "isEyeDropperSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "eyeDropper.isSupported",
+          params,
+        );
+
+      // Speech Synthesis API
+      case "speak":
+        return await this.server.sendCommand(clientId, "speech.speak", params);
+      case "cancelSpeech":
+        return await this.server.sendCommand(clientId, "speech.cancel", params);
+      case "pauseSpeech":
+        return await this.server.sendCommand(clientId, "speech.pause", params);
+      case "resumeSpeech":
+        return await this.server.sendCommand(clientId, "speech.resume", params);
+      case "getVoices":
+        return await this.server.sendCommand(
+          clientId,
+          "speech.getVoices",
+          params,
+        );
+      case "isSpeaking":
+        return await this.server.sendCommand(
+          clientId,
+          "speech.isSpeaking",
+          params,
+        );
+      case "isSpeechPending":
+        return await this.server.sendCommand(
+          clientId,
+          "speech.isPending",
+          params,
+        );
+      case "isSpeechPaused":
+        return await this.server.sendCommand(
+          clientId,
+          "speech.isPaused",
+          params,
+        );
+
+      // Background Sync API
+      case "registerBackgroundSync":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundSync.register",
+          params,
+        );
+      case "getBackgroundSyncTags":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundSync.getTags",
+          params,
+        );
+      case "getBackgroundSyncRegistration":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundSync.getRegistration",
+          params,
+        );
+      case "getBackgroundSyncRegistrations":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundSync.getRegistrations",
+          params,
+        );
+
+      // Periodic Background Sync API
+      case "registerPeriodicSync":
+        return await this.server.sendCommand(
+          clientId,
+          "periodicSync.register",
+          params,
+        );
+      case "unregisterPeriodicSync":
+        return await this.server.sendCommand(
+          clientId,
+          "periodicSync.unregister",
+          params,
+        );
+      case "getPeriodicSyncTags":
+        return await this.server.sendCommand(
+          clientId,
+          "periodicSync.getTags",
+          params,
+        );
+      case "getPeriodicSyncMinInterval":
+        return await this.server.sendCommand(
+          clientId,
+          "periodicSync.getMinInterval",
+          params,
+        );
+
+      // Idle Detection API
+      case "requestIdleDetectionPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "idle.requestPermission",
+          params,
+        );
+      case "startIdleDetection":
+        return await this.server.sendCommand(clientId, "idle.start", params);
+      case "stopIdleDetection":
+        return await this.server.sendCommand(clientId, "idle.stop", params);
+      case "getIdleState":
+        return await this.server.sendCommand(clientId, "idle.getState", params);
+
+      // Device Memory API (navigator.deviceMemory)
+      case "getNavigatorDeviceMemory":
+        return await this.server.sendCommand(
+          clientId,
+          "deviceMemory.get",
+          params,
+        );
+
+      // Network Information API
+      case "getNetworkInformation":
+        return await this.server.sendCommand(
+          clientId,
+          "networkInfo.get",
+          params,
+        );
+      case "onNetworkChange":
+        return await this.server.sendCommand(
+          clientId,
+          "networkInfo.onChange",
+          params,
+        );
+
+      // Vibration API
+      case "vibrate":
+        return await this.server.sendCommand(
+          clientId,
+          "vibration.vibrate",
+          params,
+        );
+      case "cancelVibration":
+        return await this.server.sendCommand(
+          clientId,
+          "vibration.cancel",
+          params,
+        );
+
+      // Screen Orientation API
+      case "getScreenOrientation":
+        return await this.server.sendCommand(
+          clientId,
+          "orientation.get",
+          params,
+        );
+      case "lockScreenOrientation":
+        return await this.server.sendCommand(
+          clientId,
+          "orientation.lock",
+          params,
+        );
+      case "unlockScreenOrientation":
+        return await this.server.sendCommand(
+          clientId,
+          "orientation.unlock",
+          params,
+        );
+
+      // Presentation API
+      case "getPresentationAvailability":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.getAvailability",
+          params,
+        );
+      case "startPresentation":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.startPresentation",
+          params,
+        );
+      case "reconnectPresentation":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.reconnect",
+          params,
+        );
+      case "getPresentationConnections":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.getConnections",
+          params,
+        );
+      case "terminatePresentation":
+        return await this.server.sendCommand(
+          clientId,
+          "presentation.terminate",
+          params,
+        );
+
+      // Reporting API
+      case "getReports":
+        return await this.server.sendCommand(
+          clientId,
+          "reporting.getReports",
+          params,
+        );
+      case "clearReports":
+        return await this.server.sendCommand(
+          clientId,
+          "reporting.clearReports",
+          params,
+        );
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

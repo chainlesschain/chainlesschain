@@ -1234,6 +1234,186 @@ async function executeCommand(method, params) {
     case "mutation.getChangeHistory":
       return await getMutationChangeHistory(params.tabId, params.limit);
 
+    // ==================== Phase 23: Advanced Web APIs ====================
+
+    // Web Share API
+    case "share.canShare":
+      return await canShare(params.tabId, params.data);
+    case "share.share":
+      return await share(params.tabId, params.data);
+    case "share.shareFiles":
+      return await shareFiles(params.tabId, params.files, params.data);
+    case "share.getShareTargets":
+      return await getShareTargets(params.tabId);
+
+    // Credential Management API
+    case "credential.get":
+      return await getCredential(params.tabId, params.options);
+    case "credential.store":
+      return await storeCredential(params.tabId, params.credential);
+    case "credential.create":
+      return await createCredential(params.tabId, params.options);
+    case "credential.preventSilentAccess":
+      return await preventSilentAccess(params.tabId);
+    case "credential.isConditionalMediationAvailable":
+      return await isConditionalMediationAvailable(params.tabId);
+    case "credential.getPublicKeyCredential":
+      return await getPublicKeyCredential(params.tabId, params.options);
+
+    // Screen Wake Lock API
+    case "wakeLock.request":
+      return await requestWakeLock(params.tabId, params.type);
+    case "wakeLock.release":
+      return await releaseWakeLock(params.tabId);
+    case "wakeLock.getState":
+      return await getWakeLockState(params.tabId);
+    case "wakeLock.isSupported":
+      return await isWakeLockSupported(params.tabId);
+
+    // File System Access API
+    case "fileSystem.showOpenFilePicker":
+      return await showOpenFilePicker(params.tabId, params.options);
+    case "fileSystem.showSaveFilePicker":
+      return await showSaveFilePicker(params.tabId, params.options);
+    case "fileSystem.showDirectoryPicker":
+      return await showDirectoryPicker(params.tabId, params.options);
+    case "fileSystem.getFileHandle":
+      return await getFileSystemHandle(
+        params.tabId,
+        params.name,
+        params.options,
+      );
+    case "fileSystem.readFile":
+      return await readFileFromHandle(params.tabId, params.handleId);
+    case "fileSystem.writeFile":
+      return await writeFileToHandle(
+        params.tabId,
+        params.handleId,
+        params.content,
+      );
+    case "fileSystem.getHandleInfo":
+      return await getFileHandleInfo(params.tabId, params.handleId);
+    case "fileSystem.removeEntry":
+      return await removeFileEntry(
+        params.tabId,
+        params.handleId,
+        params.options,
+      );
+
+    // Tab Groups API (Chrome specific)
+    case "tabGroups.create":
+      return await createTabGroup(params.tabIds, params.options);
+    case "tabGroups.get":
+      return await getTabGroup(params.groupId);
+    case "tabGroups.getAll":
+      return await getAllTabGroups(params.windowId);
+    case "tabGroups.update":
+      return await updateTabGroup(params.groupId, params.options);
+    case "tabGroups.move":
+      return await moveTabGroup(params.groupId, params.moveProperties);
+    case "tabGroups.ungroup":
+      return await ungroupTabs(params.tabIds);
+
+    // Eye Dropper API
+    case "eyeDropper.open":
+      return await openEyeDropper(params.tabId, params.options);
+    case "eyeDropper.isSupported":
+      return await isEyeDropperSupported(params.tabId);
+
+    // Speech Synthesis API
+    case "speech.speak":
+      return await speak(params.tabId, params.text, params.options);
+    case "speech.cancel":
+      return await cancelSpeech(params.tabId);
+    case "speech.pause":
+      return await pauseSpeech(params.tabId);
+    case "speech.resume":
+      return await resumeSpeech(params.tabId);
+    case "speech.getVoices":
+      return await getVoices(params.tabId);
+    case "speech.isSpeaking":
+      return await isSpeaking(params.tabId);
+    case "speech.isPending":
+      return await isSpeechPending(params.tabId);
+    case "speech.isPaused":
+      return await isSpeechPaused(params.tabId);
+
+    // Background Sync API
+    case "backgroundSync.register":
+      return await registerBackgroundSync(params.tabId, params.tag);
+    case "backgroundSync.getTags":
+      return await getBackgroundSyncTags(params.tabId);
+    case "backgroundSync.getRegistration":
+      return await getBackgroundSyncRegistration(params.tabId, params.tag);
+    case "backgroundSync.getRegistrations":
+      return await getBackgroundSyncRegistrations(params.tabId);
+
+    // Periodic Background Sync API
+    case "periodicSync.register":
+      return await registerPeriodicSync(
+        params.tabId,
+        params.tag,
+        params.options,
+      );
+    case "periodicSync.unregister":
+      return await unregisterPeriodicSync(params.tabId, params.tag);
+    case "periodicSync.getTags":
+      return await getPeriodicSyncTags(params.tabId);
+    case "periodicSync.getMinInterval":
+      return await getPeriodicSyncMinInterval(params.tabId);
+
+    // Idle Detection API
+    case "idle.requestPermission":
+      return await requestIdleDetectionPermission(params.tabId);
+    case "idle.start":
+      return await startIdleDetection(params.tabId, params.threshold);
+    case "idle.stop":
+      return await stopIdleDetection(params.tabId);
+    case "idle.getState":
+      return await getIdleState(params.tabId);
+
+    // Device Memory API
+    case "deviceMemory.get":
+      return await getDeviceMemory(params.tabId);
+
+    // Network Information API
+    case "networkInfo.get":
+      return await getNetworkInformation(params.tabId);
+    case "networkInfo.onChange":
+      return await onNetworkChange(params.tabId, params.enable);
+
+    // Vibration API
+    case "vibration.vibrate":
+      return await vibrate(params.tabId, params.pattern);
+    case "vibration.cancel":
+      return await cancelVibration(params.tabId);
+
+    // Screen Orientation API
+    case "orientation.get":
+      return await getScreenOrientation(params.tabId);
+    case "orientation.lock":
+      return await lockScreenOrientation(params.tabId, params.orientation);
+    case "orientation.unlock":
+      return await unlockScreenOrientation(params.tabId);
+
+    // Presentation API
+    case "presentation.getAvailability":
+      return await getPresentationAvailability(params.tabId, params.urls);
+    case "presentation.startPresentation":
+      return await startPresentation(params.tabId, params.urls);
+    case "presentation.reconnect":
+      return await reconnectPresentation(params.tabId, params.presentationId);
+    case "presentation.getConnections":
+      return await getPresentationConnections(params.tabId);
+    case "presentation.terminate":
+      return await terminatePresentation(params.tabId, params.connectionId);
+
+    // Reporting API
+    case "reporting.getReports":
+      return await getReports(params.tabId, params.types);
+    case "reporting.clearReports":
+      return await clearReports(params.tabId);
+
     default:
       throw new Error(`Unknown method: ${method}`);
   }
@@ -9992,6 +10172,1728 @@ async function getMutationChangeHistory(tabId, limit = 50) {
       args: [limit],
     });
     return { history: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Web Share API ====================
+
+async function canShare(tabId, data) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (shareData) => {
+        if (!navigator.share) {
+          return { supported: false, reason: "Web Share API not supported" };
+        }
+        if (!navigator.canShare) {
+          return {
+            supported: true,
+            canShare: true,
+            reason: "canShare not available, assuming true",
+          };
+        }
+        try {
+          const canShare = navigator.canShare(shareData);
+          return { supported: true, canShare };
+        } catch (e) {
+          return { supported: true, canShare: false, reason: e.message };
+        }
+      },
+      args: [data || {}],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function share(tabId, data) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (shareData) => {
+        if (!navigator.share) {
+          return { error: "Web Share API not supported" };
+        }
+        try {
+          await navigator.share(shareData);
+          return { success: true };
+        } catch (e) {
+          if (e.name === "AbortError") {
+            return { success: false, reason: "User cancelled share" };
+          }
+          return { error: e.message };
+        }
+      },
+      args: [data],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function shareFiles(tabId, files, data) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (fileDataArray, shareData) => {
+        if (!navigator.share || !navigator.canShare) {
+          return { error: "File sharing not supported" };
+        }
+        try {
+          // Convert base64 files to File objects
+          const fileObjects = fileDataArray.map((f) => {
+            const binary = atob(f.data);
+            const array = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              array[i] = binary.charCodeAt(i);
+            }
+            return new File([array], f.name, { type: f.type });
+          });
+
+          const fullData = { ...shareData, files: fileObjects };
+          if (!navigator.canShare(fullData)) {
+            return { error: "Cannot share these files" };
+          }
+          await navigator.share(fullData);
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [files, data || {}],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getShareTargets(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // Note: There's no API to enumerate share targets
+        // Return capability info instead
+        return {
+          webShareSupported: !!navigator.share,
+          canShareSupported: !!navigator.canShare,
+          fileShareSupported: navigator.canShare
+            ? navigator.canShare({ files: [new File(["test"], "test.txt")] })
+            : false,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Credential Management API ====================
+
+async function getCredential(tabId, options) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!navigator.credentials) {
+          return { error: "Credential Management API not supported" };
+        }
+        try {
+          const credential = await navigator.credentials.get(opts);
+          if (!credential) {
+            return { credential: null };
+          }
+          // Return serializable credential info
+          return {
+            credential: {
+              id: credential.id,
+              type: credential.type,
+              // PasswordCredential specific
+              name: credential.name,
+              iconURL: credential.iconURL,
+              // FederatedCredential specific
+              provider: credential.provider,
+              protocol: credential.protocol,
+            },
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [options || { password: true }],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function storeCredential(tabId, credentialData) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (data) => {
+        if (!navigator.credentials || !window.PasswordCredential) {
+          return { error: "Credential Management API not supported" };
+        }
+        try {
+          const credential = new PasswordCredential(data);
+          const stored = await navigator.credentials.store(credential);
+          return { success: true, id: stored?.id };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [credentialData],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function createCredential(tabId, options) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!navigator.credentials) {
+          return { error: "Credential Management API not supported" };
+        }
+        try {
+          const credential = await navigator.credentials.create(opts);
+          if (!credential) {
+            return { credential: null };
+          }
+          // Return serializable info
+          const info = {
+            id: credential.id,
+            type: credential.type,
+          };
+          // PublicKeyCredential specific
+          if (credential.rawId) {
+            info.rawId = Array.from(new Uint8Array(credential.rawId));
+          }
+          return { credential: info };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function preventSilentAccess(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.credentials) {
+          return { error: "Credential Management API not supported" };
+        }
+        try {
+          await navigator.credentials.preventSilentAccess();
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isConditionalMediationAvailable(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!window.PublicKeyCredential) {
+          return { available: false, reason: "WebAuthn not supported" };
+        }
+        if (!PublicKeyCredential.isConditionalMediationAvailable) {
+          return {
+            available: false,
+            reason: "Conditional mediation not supported",
+          };
+        }
+        try {
+          const available =
+            await PublicKeyCredential.isConditionalMediationAvailable();
+          return { available };
+        } catch (e) {
+          return { available: false, error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPublicKeyCredential(tabId, options) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!window.PublicKeyCredential) {
+          return { error: "WebAuthn not supported" };
+        }
+        try {
+          // Convert challenge from array to ArrayBuffer if needed
+          if (
+            opts.publicKey?.challenge &&
+            Array.isArray(opts.publicKey.challenge)
+          ) {
+            opts.publicKey.challenge = new Uint8Array(
+              opts.publicKey.challenge,
+            ).buffer;
+          }
+          const credential = await navigator.credentials.get(opts);
+          if (!credential) {
+            return { credential: null };
+          }
+          return {
+            credential: {
+              id: credential.id,
+              type: credential.type,
+              rawId: Array.from(new Uint8Array(credential.rawId)),
+              authenticatorAttachment: credential.authenticatorAttachment,
+            },
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Screen Wake Lock API ====================
+
+async function requestWakeLock(tabId, type = "screen") {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (lockType) => {
+        if (!navigator.wakeLock) {
+          return { error: "Screen Wake Lock API not supported" };
+        }
+        try {
+          const wakeLock = await navigator.wakeLock.request(lockType);
+          // Store reference for later release
+          window.__wakeLock = wakeLock;
+          wakeLock.addEventListener("release", () => {
+            window.__wakeLock = null;
+          });
+          return { success: true, type: wakeLock.type };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [type],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function releaseWakeLock(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!window.__wakeLock) {
+          return { error: "No active wake lock" };
+        }
+        try {
+          await window.__wakeLock.release();
+          window.__wakeLock = null;
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getWakeLockState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          active: !!window.__wakeLock,
+          type: window.__wakeLock?.type || null,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isWakeLockSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!navigator.wakeLock };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: File System Access API ====================
+
+async function showOpenFilePicker(tabId, options) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!window.showOpenFilePicker) {
+          return { error: "File System Access API not supported" };
+        }
+        try {
+          const handles = await window.showOpenFilePicker(opts);
+          // Store handles and return info
+          if (!window.__fileHandles) window.__fileHandles = new Map();
+          const results = [];
+          for (const handle of handles) {
+            const id = `fh_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            window.__fileHandles.set(id, handle);
+            const file = await handle.getFile();
+            results.push({
+              id,
+              name: handle.name,
+              kind: handle.kind,
+              size: file.size,
+              type: file.type,
+              lastModified: file.lastModified,
+            });
+          }
+          return { handles: results };
+        } catch (e) {
+          if (e.name === "AbortError") {
+            return { cancelled: true };
+          }
+          return { error: e.message };
+        }
+      },
+      args: [options || {}],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function showSaveFilePicker(tabId, options) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!window.showSaveFilePicker) {
+          return { error: "File System Access API not supported" };
+        }
+        try {
+          const handle = await window.showSaveFilePicker(opts);
+          if (!window.__fileHandles) window.__fileHandles = new Map();
+          const id = `fh_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          window.__fileHandles.set(id, handle);
+          return {
+            handle: {
+              id,
+              name: handle.name,
+              kind: handle.kind,
+            },
+          };
+        } catch (e) {
+          if (e.name === "AbortError") {
+            return { cancelled: true };
+          }
+          return { error: e.message };
+        }
+      },
+      args: [options || {}],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function showDirectoryPicker(tabId, options) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!window.showDirectoryPicker) {
+          return { error: "File System Access API not supported" };
+        }
+        try {
+          const handle = await window.showDirectoryPicker(opts);
+          if (!window.__fileHandles) window.__fileHandles = new Map();
+          const id = `dh_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          window.__fileHandles.set(id, handle);
+
+          // Get directory entries
+          const entries = [];
+          for await (const [name, entryHandle] of handle.entries()) {
+            entries.push({ name, kind: entryHandle.kind });
+          }
+          return {
+            handle: {
+              id,
+              name: handle.name,
+              kind: handle.kind,
+            },
+            entries,
+          };
+        } catch (e) {
+          if (e.name === "AbortError") {
+            return { cancelled: true };
+          }
+          return { error: e.message };
+        }
+      },
+      args: [options || {}],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getFileSystemHandle(tabId, name, options) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (fileName, opts) => {
+        if (!window.__fileHandles) {
+          return { error: "No file handles available" };
+        }
+        // Find directory handle
+        const dirHandle = Array.from(window.__fileHandles.values()).find(
+          (h) => h.kind === "directory",
+        );
+        if (!dirHandle) {
+          return { error: "No directory handle available" };
+        }
+        try {
+          const handle = await dirHandle.getFileHandle(fileName, opts);
+          const id = `fh_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          window.__fileHandles.set(id, handle);
+          const file = await handle.getFile();
+          return {
+            handle: {
+              id,
+              name: handle.name,
+              kind: handle.kind,
+              size: file.size,
+              type: file.type,
+            },
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [name, options || {}],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function readFileFromHandle(tabId, handleId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (hId) => {
+        if (!window.__fileHandles || !window.__fileHandles.has(hId)) {
+          return { error: "Handle not found" };
+        }
+        try {
+          const handle = window.__fileHandles.get(hId);
+          if (handle.kind !== "file") {
+            return { error: "Not a file handle" };
+          }
+          const file = await handle.getFile();
+          const content = await file.text();
+          return {
+            content,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            lastModified: file.lastModified,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [handleId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function writeFileToHandle(tabId, handleId, content) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (hId, data) => {
+        if (!window.__fileHandles || !window.__fileHandles.has(hId)) {
+          return { error: "Handle not found" };
+        }
+        try {
+          const handle = window.__fileHandles.get(hId);
+          if (handle.kind !== "file") {
+            return { error: "Not a file handle" };
+          }
+          const writable = await handle.createWritable();
+          await writable.write(data);
+          await writable.close();
+          return { success: true, bytesWritten: data.length };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [handleId, content],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getFileHandleInfo(tabId, handleId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (hId) => {
+        if (!window.__fileHandles || !window.__fileHandles.has(hId)) {
+          return { error: "Handle not found" };
+        }
+        try {
+          const handle = window.__fileHandles.get(hId);
+          const info = {
+            name: handle.name,
+            kind: handle.kind,
+          };
+          if (handle.kind === "file") {
+            const file = await handle.getFile();
+            info.size = file.size;
+            info.type = file.type;
+            info.lastModified = file.lastModified;
+          } else if (handle.kind === "directory") {
+            const entries = [];
+            for await (const [name, entryHandle] of handle.entries()) {
+              entries.push({ name, kind: entryHandle.kind });
+            }
+            info.entries = entries;
+          }
+          return info;
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [handleId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function removeFileEntry(tabId, handleId, options) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (hId, opts) => {
+        if (!window.__fileHandles || !window.__fileHandles.has(hId)) {
+          return { error: "Handle not found" };
+        }
+        try {
+          const handle = window.__fileHandles.get(hId);
+          if (!handle.remove) {
+            return { error: "Remove not supported for this handle" };
+          }
+          await handle.remove(opts);
+          window.__fileHandles.delete(hId);
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [handleId, options || {}],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Tab Groups API ====================
+
+async function createTabGroup(tabIds, options = {}) {
+  try {
+    if (!chrome.tabGroups) {
+      return { error: "Tab Groups API not supported" };
+    }
+    const groupId = await chrome.tabs.group({ tabIds });
+    if (options.title || options.color || options.collapsed !== undefined) {
+      await chrome.tabGroups.update(groupId, {
+        title: options.title,
+        color: options.color,
+        collapsed: options.collapsed,
+      });
+    }
+    const group = await chrome.tabGroups.get(groupId);
+    return {
+      groupId,
+      title: group.title,
+      color: group.color,
+      collapsed: group.collapsed,
+      windowId: group.windowId,
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getTabGroup(groupId) {
+  try {
+    if (!chrome.tabGroups) {
+      return { error: "Tab Groups API not supported" };
+    }
+    const group = await chrome.tabGroups.get(groupId);
+    const tabs = await chrome.tabs.query({ groupId });
+    return {
+      id: group.id,
+      title: group.title,
+      color: group.color,
+      collapsed: group.collapsed,
+      windowId: group.windowId,
+      tabs: tabs.map((t) => ({ id: t.id, title: t.title, url: t.url })),
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getAllTabGroups(windowId) {
+  try {
+    if (!chrome.tabGroups) {
+      return { error: "Tab Groups API not supported" };
+    }
+    const queryInfo = windowId ? { windowId } : {};
+    const groups = await chrome.tabGroups.query(queryInfo);
+    const result = [];
+    for (const group of groups) {
+      const tabs = await chrome.tabs.query({ groupId: group.id });
+      result.push({
+        id: group.id,
+        title: group.title,
+        color: group.color,
+        collapsed: group.collapsed,
+        windowId: group.windowId,
+        tabCount: tabs.length,
+      });
+    }
+    return { groups: result };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function updateTabGroup(groupId, options) {
+  try {
+    if (!chrome.tabGroups) {
+      return { error: "Tab Groups API not supported" };
+    }
+    const group = await chrome.tabGroups.update(groupId, options);
+    return {
+      id: group.id,
+      title: group.title,
+      color: group.color,
+      collapsed: group.collapsed,
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function moveTabGroup(groupId, moveProperties) {
+  try {
+    if (!chrome.tabGroups) {
+      return { error: "Tab Groups API not supported" };
+    }
+    const group = await chrome.tabGroups.move(groupId, moveProperties);
+    return {
+      id: group.id,
+      windowId: group.windowId,
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function ungroupTabs(tabIds) {
+  try {
+    await chrome.tabs.ungroup(tabIds);
+    return { success: true, ungroupedTabs: tabIds.length };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Eye Dropper API ====================
+
+async function openEyeDropper(tabId, options) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (opts) => {
+        if (!window.EyeDropper) {
+          return { error: "EyeDropper API not supported" };
+        }
+        try {
+          const eyeDropper = new EyeDropper();
+          const result = await eyeDropper.open(opts);
+          return { color: result.sRGBHex };
+        } catch (e) {
+          if (e.name === "AbortError") {
+            return { cancelled: true };
+          }
+          return { error: e.message };
+        }
+      },
+      args: [options || {}],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isEyeDropperSupported(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return { supported: !!window.EyeDropper };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Speech Synthesis API ====================
+
+async function speak(tabId, text, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (txt, opts) => {
+        if (!window.speechSynthesis) {
+          return { error: "Speech Synthesis not supported" };
+        }
+        try {
+          const utterance = new SpeechSynthesisUtterance(txt);
+          if (opts.lang) utterance.lang = opts.lang;
+          if (opts.pitch !== undefined) utterance.pitch = opts.pitch;
+          if (opts.rate !== undefined) utterance.rate = opts.rate;
+          if (opts.volume !== undefined) utterance.volume = opts.volume;
+          if (opts.voice) {
+            const voices = speechSynthesis.getVoices();
+            const voice = voices.find(
+              (v) => v.name === opts.voice || v.voiceURI === opts.voice,
+            );
+            if (voice) utterance.voice = voice;
+          }
+
+          // Store for control
+          window.__currentUtterance = utterance;
+
+          return new Promise((resolve) => {
+            utterance.onend = () => {
+              window.__currentUtterance = null;
+              resolve({ success: true, completed: true });
+            };
+            utterance.onerror = (e) => {
+              window.__currentUtterance = null;
+              resolve({ error: e.error });
+            };
+            speechSynthesis.speak(utterance);
+            // Return immediately since speech is async
+            setTimeout(() => resolve({ success: true, speaking: true }), 100);
+          });
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [text, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function cancelSpeech(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.speechSynthesis) {
+          return { error: "Speech Synthesis not supported" };
+        }
+        speechSynthesis.cancel();
+        window.__currentUtterance = null;
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function pauseSpeech(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.speechSynthesis) {
+          return { error: "Speech Synthesis not supported" };
+        }
+        speechSynthesis.pause();
+        return { success: true, paused: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function resumeSpeech(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.speechSynthesis) {
+          return { error: "Speech Synthesis not supported" };
+        }
+        speechSynthesis.resume();
+        return { success: true, resumed: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getVoices(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.speechSynthesis) {
+          return { error: "Speech Synthesis not supported" };
+        }
+        const voices = speechSynthesis.getVoices();
+        return {
+          voices: voices.map((v) => ({
+            name: v.name,
+            lang: v.lang,
+            voiceURI: v.voiceURI,
+            default: v.default,
+            localService: v.localService,
+          })),
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isSpeaking(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.speechSynthesis) {
+          return { error: "Speech Synthesis not supported" };
+        }
+        return { speaking: speechSynthesis.speaking };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isSpeechPending(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.speechSynthesis) {
+          return { error: "Speech Synthesis not supported" };
+        }
+        return { pending: speechSynthesis.pending };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function isSpeechPaused(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.speechSynthesis) {
+          return { error: "Speech Synthesis not supported" };
+        }
+        return { paused: speechSynthesis.paused };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Background Sync API ====================
+
+async function registerBackgroundSync(tabId, tag) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (syncTag) => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.sync) {
+            return { error: "Background Sync not supported" };
+          }
+          await registration.sync.register(syncTag);
+          return { success: true, tag: syncTag };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [tag],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getBackgroundSyncTags(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.sync) {
+            return { error: "Background Sync not supported" };
+          }
+          const tags = await registration.sync.getTags();
+          return { tags };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getBackgroundSyncRegistration(tabId, tag) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (syncTag) => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.sync) {
+            return { error: "Background Sync not supported" };
+          }
+          const tags = await registration.sync.getTags();
+          const exists = tags.includes(syncTag);
+          return { tag: syncTag, registered: exists };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [tag],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getBackgroundSyncRegistrations(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.sync) {
+            return { error: "Background Sync not supported" };
+          }
+          const tags = await registration.sync.getTags();
+          return { registrations: tags.map((tag) => ({ tag })) };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Periodic Background Sync API ====================
+
+async function registerPeriodicSync(tabId, tag, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (syncTag, opts) => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.periodicSync) {
+            return { error: "Periodic Background Sync not supported" };
+          }
+          await registration.periodicSync.register(syncTag, opts);
+          return { success: true, tag: syncTag, minInterval: opts.minInterval };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [tag, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function unregisterPeriodicSync(tabId, tag) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (syncTag) => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.periodicSync) {
+            return { error: "Periodic Background Sync not supported" };
+          }
+          await registration.periodicSync.unregister(syncTag);
+          return { success: true, tag: syncTag };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [tag],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPeriodicSyncTags(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.serviceWorker) {
+          return { error: "Service Worker not supported" };
+        }
+        try {
+          const registration = await navigator.serviceWorker.ready;
+          if (!registration.periodicSync) {
+            return { error: "Periodic Background Sync not supported" };
+          }
+          const tags = await registration.periodicSync.getTags();
+          return { tags };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPeriodicSyncMinInterval(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // Minimum interval is typically 12 hours (43200000 ms) for most browsers
+        return {
+          minInterval: 43200000, // 12 hours in milliseconds
+          note: "Actual minimum depends on user engagement and browser heuristics",
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Idle Detection API ====================
+
+async function requestIdleDetectionPermission(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!window.IdleDetector) {
+          return { error: "Idle Detection API not supported" };
+        }
+        try {
+          const permission = await IdleDetector.requestPermission();
+          return { permission };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function startIdleDetection(tabId, threshold = 60000) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (thresh) => {
+        if (!window.IdleDetector) {
+          return { error: "Idle Detection API not supported" };
+        }
+        try {
+          if (window.__idleDetector) {
+            window.__idleDetector.stop();
+          }
+          const detector = new IdleDetector();
+          window.__idleDetector = detector;
+
+          detector.addEventListener("change", () => {
+            window.__lastIdleState = {
+              userState: detector.userState,
+              screenState: detector.screenState,
+              timestamp: Date.now(),
+            };
+          });
+
+          await detector.start({ threshold: thresh });
+          return {
+            success: true,
+            threshold: thresh,
+            userState: detector.userState,
+            screenState: detector.screenState,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [threshold],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function stopIdleDetection(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__idleDetector) {
+          return { error: "No active idle detector" };
+        }
+        window.__idleDetector.stop();
+        window.__idleDetector = null;
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getIdleState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__idleDetector) {
+          return {
+            active: false,
+            lastState: window.__lastIdleState || null,
+          };
+        }
+        return {
+          active: true,
+          userState: window.__idleDetector.userState,
+          screenState: window.__idleDetector.screenState,
+          lastState: window.__lastIdleState || null,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Device Memory API ====================
+
+async function getDeviceMemory(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!navigator.deviceMemory) {
+          return { error: "Device Memory API not supported" };
+        }
+        return {
+          deviceMemory: navigator.deviceMemory, // in GB, rounded
+          note: "Value is rounded to protect privacy (0.25, 0.5, 1, 2, 4, 8)",
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Network Information API ====================
+
+async function getNetworkInformation(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const connection =
+          navigator.connection ||
+          navigator.mozConnection ||
+          navigator.webkitConnection;
+        if (!connection) {
+          return { error: "Network Information API not supported" };
+        }
+        return {
+          effectiveType: connection.effectiveType,
+          downlink: connection.downlink,
+          rtt: connection.rtt,
+          saveData: connection.saveData,
+          type: connection.type,
+          downlinkMax: connection.downlinkMax,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function onNetworkChange(tabId, enable) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (en) => {
+        const connection =
+          navigator.connection ||
+          navigator.mozConnection ||
+          navigator.webkitConnection;
+        if (!connection) {
+          return { error: "Network Information API not supported" };
+        }
+
+        if (en) {
+          window.__networkChangeHandler = () => {
+            window.__lastNetworkChange = {
+              effectiveType: connection.effectiveType,
+              downlink: connection.downlink,
+              rtt: connection.rtt,
+              timestamp: Date.now(),
+            };
+          };
+          connection.addEventListener("change", window.__networkChangeHandler);
+          return { success: true, monitoring: true };
+        } else {
+          if (window.__networkChangeHandler) {
+            connection.removeEventListener(
+              "change",
+              window.__networkChangeHandler,
+            );
+            window.__networkChangeHandler = null;
+          }
+          return { success: true, monitoring: false };
+        }
+      },
+      args: [enable],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Vibration API ====================
+
+async function vibrate(tabId, pattern) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (p) => {
+        if (!navigator.vibrate) {
+          return { error: "Vibration API not supported" };
+        }
+        const success = navigator.vibrate(p);
+        return { success };
+      },
+      args: [pattern],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function cancelVibration(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!navigator.vibrate) {
+          return { error: "Vibration API not supported" };
+        }
+        navigator.vibrate(0);
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Screen Orientation API ====================
+
+async function getScreenOrientation(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!screen.orientation) {
+          return { error: "Screen Orientation API not supported" };
+        }
+        return {
+          type: screen.orientation.type,
+          angle: screen.orientation.angle,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function lockScreenOrientation(tabId, orientation) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (orient) => {
+        if (!screen.orientation || !screen.orientation.lock) {
+          return { error: "Screen Orientation Lock not supported" };
+        }
+        try {
+          await screen.orientation.lock(orient);
+          return { success: true, orientation: screen.orientation.type };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [orientation],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function unlockScreenOrientation(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!screen.orientation || !screen.orientation.unlock) {
+          return { error: "Screen Orientation Unlock not supported" };
+        }
+        screen.orientation.unlock();
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Presentation API ====================
+
+async function getPresentationAvailability(tabId, urls) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (presentUrls) => {
+        if (!navigator.presentation) {
+          return { error: "Presentation API not supported" };
+        }
+        try {
+          const request = new PresentationRequest(presentUrls);
+          const availability = await request.getAvailability();
+          return { available: availability.value };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [urls],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function startPresentation(tabId, urls) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (presentUrls) => {
+        if (!navigator.presentation) {
+          return { error: "Presentation API not supported" };
+        }
+        try {
+          const request = new PresentationRequest(presentUrls);
+          const connection = await request.start();
+          // Store for later control
+          if (!window.__presentationConnections)
+            window.__presentationConnections = new Map();
+          window.__presentationConnections.set(connection.id, connection);
+          return {
+            id: connection.id,
+            state: connection.state,
+            url: connection.url,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [urls],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function reconnectPresentation(tabId, presentationId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (presId) => {
+        if (!navigator.presentation) {
+          return { error: "Presentation API not supported" };
+        }
+        try {
+          const request = new PresentationRequest([]);
+          const connection = await request.reconnect(presId);
+          if (!window.__presentationConnections)
+            window.__presentationConnections = new Map();
+          window.__presentationConnections.set(connection.id, connection);
+          return {
+            id: connection.id,
+            state: connection.state,
+            url: connection.url,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [presentationId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPresentationConnections(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.__presentationConnections) {
+          return { connections: [] };
+        }
+        const connections = [];
+        for (const [id, conn] of window.__presentationConnections) {
+          connections.push({
+            id,
+            state: conn.state,
+            url: conn.url,
+          });
+        }
+        return { connections };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function terminatePresentation(tabId, connectionId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (connId) => {
+        if (
+          !window.__presentationConnections ||
+          !window.__presentationConnections.has(connId)
+        ) {
+          return { error: "Connection not found" };
+        }
+        const connection = window.__presentationConnections.get(connId);
+        connection.terminate();
+        window.__presentationConnections.delete(connId);
+        return { success: true };
+      },
+      args: [connectionId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 23: Reporting API ====================
+
+async function getReports(tabId, types) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (reportTypes) => {
+        if (!window.ReportingObserver) {
+          return { error: "Reporting API not supported" };
+        }
+        // Note: ReportingObserver doesn't provide historical reports
+        // We can only set up observation
+        return {
+          note: "Use observer pattern - historical reports not available",
+          supportedTypes: ["deprecation", "intervention", "crash"],
+          requestedTypes: reportTypes,
+        };
+      },
+      args: [types],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearReports(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // Clear any stored reports
+        window.__collectedReports = [];
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
   } catch (error) {
     return { error: error.message };
   }

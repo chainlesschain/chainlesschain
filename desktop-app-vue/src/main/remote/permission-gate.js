@@ -678,6 +678,105 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.getMutationSummary": PERMISSION_LEVELS.PUBLIC,
   "extension.getMutationChangeHistory": PERMISSION_LEVELS.PUBLIC,
 
+  // ==================== Phase 23: Advanced Web APIs ====================
+
+  // 扩展 - Web Share API
+  "extension.canShare": PERMISSION_LEVELS.PUBLIC,
+  "extension.share": PERMISSION_LEVELS.NORMAL,
+  "extension.shareFiles": PERMISSION_LEVELS.ADMIN,
+  "extension.getShareTargets": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Credential Management API
+  "extension.getCredential": PERMISSION_LEVELS.ADMIN,
+  "extension.storeCredential": PERMISSION_LEVELS.ROOT,
+  "extension.createCredential": PERMISSION_LEVELS.ROOT,
+  "extension.preventSilentAccess": PERMISSION_LEVELS.NORMAL,
+  "extension.isConditionalMediationAvailable": PERMISSION_LEVELS.PUBLIC,
+  "extension.getPublicKeyCredential": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - Screen Wake Lock API
+  "extension.requestWakeLock": PERMISSION_LEVELS.NORMAL,
+  "extension.releaseWakeLock": PERMISSION_LEVELS.NORMAL,
+  "extension.getWakeLockState": PERMISSION_LEVELS.PUBLIC,
+  "extension.isWakeLockSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - File System Access API
+  "extension.showOpenFilePicker": PERMISSION_LEVELS.ADMIN,
+  "extension.showSaveFilePicker": PERMISSION_LEVELS.ADMIN,
+  "extension.showDirectoryPicker": PERMISSION_LEVELS.ADMIN,
+  "extension.getFileSystemHandle": PERMISSION_LEVELS.ADMIN,
+  "extension.readFileFromHandle": PERMISSION_LEVELS.ADMIN,
+  "extension.writeFileToHandle": PERMISSION_LEVELS.ROOT,
+  "extension.getFileHandleInfo": PERMISSION_LEVELS.NORMAL,
+  "extension.removeFileEntry": PERMISSION_LEVELS.ROOT,
+
+  // 扩展 - Tab Groups API
+  "extension.createTabGroup": PERMISSION_LEVELS.NORMAL,
+  "extension.getTabGroup": PERMISSION_LEVELS.PUBLIC,
+  "extension.getAllTabGroups": PERMISSION_LEVELS.PUBLIC,
+  "extension.updateTabGroup": PERMISSION_LEVELS.NORMAL,
+  "extension.moveTabGroup": PERMISSION_LEVELS.NORMAL,
+  "extension.ungroupTabs": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Eye Dropper API
+  "extension.openEyeDropper": PERMISSION_LEVELS.NORMAL,
+  "extension.isEyeDropperSupported": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Speech Synthesis API
+  "extension.speak": PERMISSION_LEVELS.NORMAL,
+  "extension.cancelSpeech": PERMISSION_LEVELS.NORMAL,
+  "extension.pauseSpeech": PERMISSION_LEVELS.NORMAL,
+  "extension.resumeSpeech": PERMISSION_LEVELS.NORMAL,
+  "extension.getVoices": PERMISSION_LEVELS.PUBLIC,
+  "extension.isSpeaking": PERMISSION_LEVELS.PUBLIC,
+  "extension.isSpeechPending": PERMISSION_LEVELS.PUBLIC,
+  "extension.isSpeechPaused": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Background Sync API
+  "extension.registerBackgroundSync": PERMISSION_LEVELS.ADMIN,
+  "extension.getBackgroundSyncTags": PERMISSION_LEVELS.NORMAL,
+  "extension.getBackgroundSyncRegistration": PERMISSION_LEVELS.NORMAL,
+  "extension.getBackgroundSyncRegistrations": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Periodic Background Sync API
+  "extension.registerPeriodicSync": PERMISSION_LEVELS.ADMIN,
+  "extension.unregisterPeriodicSync": PERMISSION_LEVELS.ADMIN,
+  "extension.getPeriodicSyncTags": PERMISSION_LEVELS.NORMAL,
+  "extension.getPeriodicSyncMinInterval": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Idle Detection API
+  "extension.requestIdleDetectionPermission": PERMISSION_LEVELS.NORMAL,
+  "extension.startIdleDetection": PERMISSION_LEVELS.NORMAL,
+  "extension.stopIdleDetection": PERMISSION_LEVELS.NORMAL,
+  "extension.getIdleState": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Device Memory API (navigator.deviceMemory)
+  "extension.getNavigatorDeviceMemory": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Network Information API
+  "extension.getNetworkInformation": PERMISSION_LEVELS.PUBLIC,
+  "extension.onNetworkChange": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Vibration API
+  "extension.vibrate": PERMISSION_LEVELS.NORMAL,
+  "extension.cancelVibration": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Screen Orientation API
+  "extension.getScreenOrientation": PERMISSION_LEVELS.PUBLIC,
+  "extension.lockScreenOrientation": PERMISSION_LEVELS.NORMAL,
+  "extension.unlockScreenOrientation": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Presentation API
+  "extension.getPresentationAvailability": PERMISSION_LEVELS.PUBLIC,
+  "extension.startPresentation": PERMISSION_LEVELS.NORMAL,
+  "extension.reconnectPresentation": PERMISSION_LEVELS.NORMAL,
+  "extension.getPresentationConnections": PERMISSION_LEVELS.PUBLIC,
+  "extension.terminatePresentation": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Reporting API
+  "extension.getReports": PERMISSION_LEVELS.PUBLIC,
+  "extension.clearReports": PERMISSION_LEVELS.NORMAL,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,
