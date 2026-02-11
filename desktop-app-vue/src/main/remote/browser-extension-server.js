@@ -1431,6 +1431,218 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
+      // ==================== Phase 19: Network & Device Emulation ====================
+
+      // Network Throttling
+      case "setNetworkThrottling":
+        return await this.server.sendCommand(
+          clientId,
+          "network.setThrottling",
+          params,
+        );
+      case "clearNetworkThrottling":
+        return await this.server.sendCommand(
+          clientId,
+          "network.clearThrottling",
+          params,
+        );
+      case "getThrottlingProfiles":
+        return await this.server.sendCommand(
+          clientId,
+          "network.getThrottlingProfiles",
+          params,
+        );
+      case "setOfflineMode":
+        return await this.server.sendCommand(
+          clientId,
+          "network.setOffline",
+          params,
+        );
+
+      // Device Emulation
+      case "setUserAgent":
+        return await this.server.sendCommand(
+          clientId,
+          "device.setUserAgent",
+          params,
+        );
+      case "getUserAgent":
+        return await this.server.sendCommand(
+          clientId,
+          "device.getUserAgent",
+          params,
+        );
+      case "setTimezone":
+        return await this.server.sendCommand(
+          clientId,
+          "device.setTimezone",
+          params,
+        );
+      case "setLocale":
+        return await this.server.sendCommand(clientId, "device.setLocale", params);
+      case "setGeolocationOverride":
+        return await this.server.sendCommand(
+          clientId,
+          "device.setGeolocation",
+          params,
+        );
+      case "clearGeolocationOverride":
+        return await this.server.sendCommand(
+          clientId,
+          "device.clearGeolocation",
+          params,
+        );
+
+      // Touch Emulation
+      case "enableTouchEmulation":
+        return await this.server.sendCommand(
+          clientId,
+          "touch.enable",
+          params,
+        );
+      case "disableTouchEmulation":
+        return await this.server.sendCommand(
+          clientId,
+          "touch.disable",
+          params,
+        );
+      case "emulateTap":
+        return await this.server.sendCommand(clientId, "touch.tap", params);
+      case "emulateSwipe":
+        return await this.server.sendCommand(clientId, "touch.swipe", params);
+      case "emulatePinch":
+        return await this.server.sendCommand(clientId, "touch.pinch", params);
+
+      // Sensor Emulation
+      case "setSensorOrientation":
+        return await this.server.sendCommand(
+          clientId,
+          "sensor.setOrientation",
+          params,
+        );
+      case "setAccelerometer":
+        return await this.server.sendCommand(
+          clientId,
+          "sensor.setAccelerometer",
+          params,
+        );
+      case "setAmbientLight":
+        return await this.server.sendCommand(
+          clientId,
+          "sensor.setAmbientLight",
+          params,
+        );
+      case "clearSensorOverrides":
+        return await this.server.sendCommand(
+          clientId,
+          "sensor.clearOverrides",
+          params,
+        );
+
+      // Viewport Management
+      case "setViewport":
+        return await this.server.sendCommand(
+          clientId,
+          "viewport.set",
+          params,
+        );
+      case "getViewport":
+        return await this.server.sendCommand(
+          clientId,
+          "viewport.get",
+          params,
+        );
+      case "setDeviceMetrics":
+        return await this.server.sendCommand(
+          clientId,
+          "viewport.setDeviceMetrics",
+          params,
+        );
+      case "clearDeviceMetrics":
+        return await this.server.sendCommand(
+          clientId,
+          "viewport.clearDeviceMetrics",
+          params,
+        );
+      case "getViewportPresets":
+        return await this.server.sendCommand(
+          clientId,
+          "viewport.getPresets",
+          params,
+        );
+
+      // Screenshot Comparison
+      case "captureScreenshot":
+        return await this.server.sendCommand(
+          clientId,
+          "screenshot.capture",
+          params,
+        );
+      case "captureElementScreenshot":
+        return await this.server.sendCommand(
+          clientId,
+          "screenshot.captureElement",
+          params,
+        );
+      case "compareScreenshots":
+        return await this.server.sendCommand(
+          clientId,
+          "screenshot.compare",
+          params,
+        );
+      case "captureFullPageScreenshot":
+        return await this.server.sendCommand(
+          clientId,
+          "screenshot.captureFullPage",
+          params,
+        );
+
+      // Clipboard Advanced
+      case "readRichClipboard":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.readRich",
+          params,
+        );
+      case "writeRichClipboard":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.writeRich",
+          params,
+        );
+      case "getClipboardFormats":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.getFormats",
+          params,
+        );
+      case "writeImageToClipboard":
+        return await this.server.sendCommand(
+          clientId,
+          "clipboard.writeImage",
+          params,
+        );
+
+      // Print/PDF Enhanced
+      case "getPrintPreview":
+        return await this.server.sendCommand(
+          clientId,
+          "print.preview",
+          params,
+        );
+      case "printToPDF":
+        return await this.server.sendCommand(
+          clientId,
+          "print.toPDF",
+          params,
+        );
+      case "getPrintSettings":
+        return await this.server.sendCommand(
+          clientId,
+          "print.getSettings",
+          params,
+        );
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

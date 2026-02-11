@@ -2333,4 +2333,445 @@ describe("ExtensionBrowserHandler", () => {
       );
     });
   });
+
+  // ==================== Phase 19: Network & Device Emulation Tests ====================
+
+  describe("Network Throttling Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle setNetworkThrottling", async () => {
+      await handler.handle(
+        "setNetworkThrottling",
+        { tabId: 1, conditions: "slow-3g" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.setThrottling",
+        { tabId: 1, conditions: "slow-3g" },
+      );
+    });
+
+    it("should handle clearNetworkThrottling", async () => {
+      await handler.handle("clearNetworkThrottling", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.clearThrottling",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getThrottlingProfiles", async () => {
+      await handler.handle("getThrottlingProfiles", {}, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.getThrottlingProfiles",
+        {},
+      );
+    });
+
+    it("should handle setOfflineMode", async () => {
+      await handler.handle("setOfflineMode", { tabId: 1, offline: true }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.setOffline",
+        { tabId: 1, offline: true },
+      );
+    });
+  });
+
+  describe("Device Emulation Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle setUserAgent", async () => {
+      await handler.handle(
+        "setUserAgent",
+        { tabId: 1, userAgent: "CustomAgent/1.0", platform: "Linux" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "device.setUserAgent",
+        { tabId: 1, userAgent: "CustomAgent/1.0", platform: "Linux" },
+      );
+    });
+
+    it("should handle getUserAgent", async () => {
+      await handler.handle("getUserAgent", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "device.getUserAgent",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle setTimezone", async () => {
+      await handler.handle(
+        "setTimezone",
+        { tabId: 1, timezoneId: "America/New_York" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "device.setTimezone",
+        { tabId: 1, timezoneId: "America/New_York" },
+      );
+    });
+
+    it("should handle setLocale", async () => {
+      await handler.handle("setLocale", { tabId: 1, locale: "zh-CN" }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "device.setLocale",
+        { tabId: 1, locale: "zh-CN" },
+      );
+    });
+
+    it("should handle setGeolocationOverride", async () => {
+      await handler.handle(
+        "setGeolocationOverride",
+        { tabId: 1, latitude: 37.7749, longitude: -122.4194, accuracy: 100 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "device.setGeolocation",
+        { tabId: 1, latitude: 37.7749, longitude: -122.4194, accuracy: 100 },
+      );
+    });
+
+    it("should handle clearGeolocationOverride", async () => {
+      await handler.handle("clearGeolocationOverride", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "device.clearGeolocation",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Touch Emulation Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle enableTouchEmulation", async () => {
+      await handler.handle(
+        "enableTouchEmulation",
+        { tabId: 1, options: { maxTouchPoints: 10 } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "touch.enable",
+        { tabId: 1, options: { maxTouchPoints: 10 } },
+      );
+    });
+
+    it("should handle disableTouchEmulation", async () => {
+      await handler.handle("disableTouchEmulation", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "touch.disable",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle emulateTap", async () => {
+      await handler.handle("emulateTap", { tabId: 1, x: 100, y: 200 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "touch.tap",
+        { tabId: 1, x: 100, y: 200 },
+      );
+    });
+
+    it("should handle emulateSwipe", async () => {
+      await handler.handle(
+        "emulateSwipe",
+        { tabId: 1, startX: 100, startY: 200, endX: 300, endY: 200 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "touch.swipe",
+        { tabId: 1, startX: 100, startY: 200, endX: 300, endY: 200 },
+      );
+    });
+
+    it("should handle emulatePinch", async () => {
+      await handler.handle(
+        "emulatePinch",
+        { tabId: 1, x: 200, y: 300, scale: 2 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "touch.pinch",
+        { tabId: 1, x: 200, y: 300, scale: 2 },
+      );
+    });
+  });
+
+  describe("Sensor Emulation Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle setSensorOrientation", async () => {
+      await handler.handle(
+        "setSensorOrientation",
+        { tabId: 1, alpha: 45, beta: 30, gamma: 15 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "sensor.setOrientation",
+        { tabId: 1, alpha: 45, beta: 30, gamma: 15 },
+      );
+    });
+
+    it("should handle setAccelerometer", async () => {
+      await handler.handle(
+        "setAccelerometer",
+        { tabId: 1, x: 0, y: 9.8, z: 0 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "sensor.setAccelerometer",
+        { tabId: 1, x: 0, y: 9.8, z: 0 },
+      );
+    });
+
+    it("should handle setAmbientLight", async () => {
+      await handler.handle(
+        "setAmbientLight",
+        { tabId: 1, illuminance: 500 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "sensor.setAmbientLight",
+        { tabId: 1, illuminance: 500 },
+      );
+    });
+
+    it("should handle clearSensorOverrides", async () => {
+      await handler.handle("clearSensorOverrides", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "sensor.clearOverrides",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Viewport Management Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle setViewport", async () => {
+      await handler.handle(
+        "setViewport",
+        { tabId: 1, width: 1920, height: 1080, options: { mobile: false } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "viewport.set",
+        { tabId: 1, width: 1920, height: 1080, options: { mobile: false } },
+      );
+    });
+
+    it("should handle getViewport", async () => {
+      await handler.handle("getViewport", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "viewport.get",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle setDeviceMetrics", async () => {
+      await handler.handle("setDeviceMetrics", { tabId: 1, metrics: "iphone-12" }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "viewport.setDeviceMetrics",
+        { tabId: 1, metrics: "iphone-12" },
+      );
+    });
+
+    it("should handle clearDeviceMetrics", async () => {
+      await handler.handle("clearDeviceMetrics", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "viewport.clearDeviceMetrics",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getViewportPresets", async () => {
+      await handler.handle("getViewportPresets", {}, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "viewport.getPresets",
+        {},
+      );
+    });
+  });
+
+  describe("Screenshot Comparison Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle captureScreenshot", async () => {
+      await handler.handle(
+        "captureScreenshot",
+        { tabId: 1, options: { format: "png" } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "screenshot.capture",
+        { tabId: 1, options: { format: "png" } },
+      );
+    });
+
+    it("should handle captureElementScreenshot", async () => {
+      await handler.handle(
+        "captureElementScreenshot",
+        { tabId: 1, selector: "#header" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "screenshot.captureElement",
+        { tabId: 1, selector: "#header" },
+      );
+    });
+
+    it("should handle compareScreenshots", async () => {
+      await handler.handle(
+        "compareScreenshots",
+        { baseline: "base64...", current: "base64...", options: { threshold: 10 } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "screenshot.compare",
+        { baseline: "base64...", current: "base64...", options: { threshold: 10 } },
+      );
+    });
+
+    it("should handle captureFullPageScreenshot", async () => {
+      await handler.handle("captureFullPageScreenshot", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "screenshot.captureFullPage",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Clipboard Advanced Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle readRichClipboard", async () => {
+      await handler.handle("readRichClipboard", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "clipboard.readRich",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle writeRichClipboard", async () => {
+      await handler.handle(
+        "writeRichClipboard",
+        { tabId: 1, data: { text: "hello", html: "<b>hello</b>" } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "clipboard.writeRich",
+        { tabId: 1, data: { text: "hello", html: "<b>hello</b>" } },
+      );
+    });
+
+    it("should handle getClipboardFormats", async () => {
+      await handler.handle("getClipboardFormats", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "clipboard.getFormats",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle writeImageToClipboard", async () => {
+      await handler.handle(
+        "writeImageToClipboard",
+        { tabId: 1, imageData: "base64..." },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "clipboard.writeImage",
+        { tabId: 1, imageData: "base64..." },
+      );
+    });
+  });
+
+  describe("Print/PDF Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getPrintPreview", async () => {
+      await handler.handle("getPrintPreview", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "print.preview",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle printToPDF", async () => {
+      await handler.handle(
+        "printToPDF",
+        { tabId: 1, options: { landscape: true, printBackground: true } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "print.toPDF",
+        { tabId: 1, options: { landscape: true, printBackground: true } },
+      );
+    });
+
+    it("should handle getPrintSettings", async () => {
+      await handler.handle("getPrintSettings", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "print.getSettings",
+        { tabId: 1 },
+      );
+    });
+  });
 });

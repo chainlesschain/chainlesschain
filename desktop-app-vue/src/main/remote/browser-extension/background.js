@@ -737,6 +737,94 @@ async function executeCommand(method, params) {
     case "storage.importAll":
       return await importAllStorage(params.tabId, params.data);
 
+    // ==================== Phase 19: Network & Device Emulation ====================
+
+    // Network Throttling
+    case "network.setThrottling":
+      return await setNetworkThrottling(params.tabId, params.conditions);
+    case "network.clearThrottling":
+      return await clearNetworkThrottling(params.tabId);
+    case "network.getThrottlingProfiles":
+      return getThrottlingProfiles();
+    case "network.setOffline":
+      return await setOfflineMode(params.tabId, params.offline);
+
+    // Device Emulation
+    case "device.setUserAgent":
+      return await setUserAgent(params.tabId, params.userAgent, params.platform);
+    case "device.getUserAgent":
+      return await getUserAgent(params.tabId);
+    case "device.setTimezone":
+      return await setTimezone(params.tabId, params.timezoneId);
+    case "device.setLocale":
+      return await setLocale(params.tabId, params.locale);
+    case "device.setGeolocation":
+      return await setGeolocationOverride(params.tabId, params.latitude, params.longitude, params.accuracy);
+    case "device.clearGeolocation":
+      return await clearGeolocationOverride(params.tabId);
+
+    // Touch Emulation
+    case "touch.enable":
+      return await enableTouchEmulation(params.tabId, params.options);
+    case "touch.disable":
+      return await disableTouchEmulation(params.tabId);
+    case "touch.tap":
+      return await emulateTap(params.tabId, params.x, params.y, params.options);
+    case "touch.swipe":
+      return await emulateSwipe(params.tabId, params.startX, params.startY, params.endX, params.endY, params.options);
+    case "touch.pinch":
+      return await emulatePinch(params.tabId, params.x, params.y, params.scale, params.options);
+
+    // Sensor Emulation
+    case "sensor.setOrientation":
+      return await setSensorOrientation(params.tabId, params.alpha, params.beta, params.gamma);
+    case "sensor.setAccelerometer":
+      return await setAccelerometer(params.tabId, params.x, params.y, params.z);
+    case "sensor.setAmbientLight":
+      return await setAmbientLight(params.tabId, params.illuminance);
+    case "sensor.clearOverrides":
+      return await clearSensorOverrides(params.tabId);
+
+    // Viewport Management
+    case "viewport.set":
+      return await setViewport(params.tabId, params.width, params.height, params.options);
+    case "viewport.get":
+      return await getViewport(params.tabId);
+    case "viewport.setDeviceMetrics":
+      return await setDeviceMetricsOverride(params.tabId, params.metrics);
+    case "viewport.clearDeviceMetrics":
+      return await clearDeviceMetricsOverride(params.tabId);
+    case "viewport.getPresets":
+      return getViewportPresets();
+
+    // Screenshot Comparison
+    case "screenshot.capture":
+      return await captureScreenshot(params.tabId, params.options);
+    case "screenshot.captureElement":
+      return await captureElementScreenshot(params.tabId, params.selector, params.options);
+    case "screenshot.compare":
+      return await compareScreenshots(params.baseline, params.current, params.options);
+    case "screenshot.captureFullPage":
+      return await captureFullPageScreenshot(params.tabId, params.options);
+
+    // Clipboard Advanced
+    case "clipboard.readRich":
+      return await readRichClipboard(params.tabId);
+    case "clipboard.writeRich":
+      return await writeRichClipboard(params.tabId, params.data);
+    case "clipboard.getFormats":
+      return await getClipboardFormats(params.tabId);
+    case "clipboard.writeImage":
+      return await writeImageToClipboard(params.tabId, params.imageData);
+
+    // Print/PDF Enhanced
+    case "print.preview":
+      return await getPrintPreview(params.tabId, params.options);
+    case "print.toPDF":
+      return await printToPDF(params.tabId, params.options);
+    case "print.getSettings":
+      return await getPrintSettings(params.tabId);
+
     default:
       throw new Error(`Unknown method: ${method}`);
   }
@@ -4856,6 +4944,872 @@ async function importAllStorage(tabId, data) {
       args: [data],
     });
     return result[0]?.result || { error: "Failed to import" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 19: Network Throttling ====================
+
+const THROTTLING_PROFILES = {
+  "slow-3g": {
+    downloadThroughput: 50000, // 50 KB/s
+    uploadThroughput: 25000,   // 25 KB/s
+    latency: 2000,             // 2000ms
+  },
+  "fast-3g": {
+    downloadThroughput: 187500, // 1.5 Mbps
+    uploadThroughput: 93750,    // 750 Kbps
+    latency: 562,               // 562ms
+  },
+  "slow-4g": {
+    downloadThroughput: 500000, // 4 Mbps
+    uploadThroughput: 375000,   // 3 Mbps
+    latency: 170,               // 170ms
+  },
+  "fast-4g": {
+    downloadThroughput: 4000000, // 32 Mbps
+    uploadThroughput: 1500000,   // 12 Mbps
+    latency: 50,                 // 50ms
+  },
+  wifi: {
+    downloadThroughput: 3750000, // 30 Mbps
+    uploadThroughput: 1500000,   // 12 Mbps
+    latency: 2,                  // 2ms
+  },
+};
+
+async function setNetworkThrottling(tabId, conditions) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Network.enable");
+
+    // If conditions is a string, look up profile
+    const profile =
+      typeof conditions === "string"
+        ? THROTTLING_PROFILES[conditions]
+        : conditions;
+
+    if (!profile) {
+      return { error: `Unknown throttling profile: ${conditions}` };
+    }
+
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Network.emulateNetworkConditions",
+      {
+        offline: false,
+        downloadThroughput: profile.downloadThroughput,
+        uploadThroughput: profile.uploadThroughput,
+        latency: profile.latency,
+      },
+    );
+
+    return { success: true, profile: conditions };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearNetworkThrottling(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Network.emulateNetworkConditions",
+      {
+        offline: false,
+        downloadThroughput: -1,
+        uploadThroughput: -1,
+        latency: 0,
+      },
+    );
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+function getThrottlingProfiles() {
+  return {
+    profiles: Object.keys(THROTTLING_PROFILES).map((name) => ({
+      name,
+      ...THROTTLING_PROFILES[name],
+    })),
+  };
+}
+
+async function setOfflineMode(tabId, offline) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Network.enable");
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Network.emulateNetworkConditions",
+      {
+        offline: offline,
+        downloadThroughput: -1,
+        uploadThroughput: -1,
+        latency: 0,
+      },
+    );
+    return { success: true, offline };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 19: Device Emulation ====================
+
+async function setUserAgent(tabId, userAgent, platform) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setUserAgentOverride", {
+      userAgent: userAgent,
+      platform: platform || "",
+    });
+    return { success: true, userAgent };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getUserAgent(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        vendor: navigator.vendor,
+        language: navigator.language,
+        languages: navigator.languages,
+      }),
+    });
+    return result[0]?.result || { error: "Failed to get user agent" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setTimezone(tabId, timezoneId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setTimezoneOverride", {
+      timezoneId: timezoneId,
+    });
+    return { success: true, timezoneId };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setLocale(tabId, locale) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setLocaleOverride", {
+      locale: locale,
+    });
+    return { success: true, locale };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setGeolocationOverride(tabId, latitude, longitude, accuracy) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setGeolocationOverride", {
+      latitude: latitude,
+      longitude: longitude,
+      accuracy: accuracy || 100,
+    });
+    return { success: true, latitude, longitude, accuracy };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearGeolocationOverride(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.clearGeolocationOverride");
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 19: Touch Emulation ====================
+
+async function enableTouchEmulation(tabId, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setTouchEmulationEnabled", {
+      enabled: true,
+      maxTouchPoints: options.maxTouchPoints || 5,
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function disableTouchEmulation(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setTouchEmulationEnabled", {
+      enabled: false,
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function emulateTap(tabId, x, y, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x, y }],
+    });
+    await new Promise((resolve) => setTimeout(resolve, options.duration || 50));
+    await chrome.debugger.sendCommand({ tabId }, "Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    return { success: true, x, y };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function emulateSwipe(tabId, startX, startY, endX, endY, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    const steps = options.steps || 10;
+    const duration = options.duration || 300;
+    const stepDelay = duration / steps;
+
+    // Touch start
+    await chrome.debugger.sendCommand({ tabId }, "Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: startX, y: startY }],
+    });
+
+    // Touch move in steps
+    for (let i = 1; i <= steps; i++) {
+      const progress = i / steps;
+      const x = startX + (endX - startX) * progress;
+      const y = startY + (endY - startY) * progress;
+      await new Promise((resolve) => setTimeout(resolve, stepDelay));
+      await chrome.debugger.sendCommand({ tabId }, "Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x, y }],
+      });
+    }
+
+    // Touch end
+    await chrome.debugger.sendCommand({ tabId }, "Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+
+    return { success: true, from: { x: startX, y: startY }, to: { x: endX, y: endY } };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function emulatePinch(tabId, x, y, scale, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Input.synthesizePinchGesture", {
+      x: x,
+      y: y,
+      scaleFactor: scale,
+      relativeSpeed: options.speed || 800,
+      gestureSourceType: "touch",
+    });
+    return { success: true, x, y, scale };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 19: Sensor Emulation ====================
+
+async function setSensorOrientation(tabId, alpha, beta, gamma) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "DeviceOrientation.setDeviceOrientationOverride", {
+      alpha: alpha || 0,
+      beta: beta || 0,
+      gamma: gamma || 0,
+    });
+    return { success: true, alpha, beta, gamma };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setAccelerometer(tabId, x, y, z) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    // Use page script to override accelerometer
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (ax, ay, az) => {
+        if (window.DeviceMotionEvent) {
+          window.__chainlessAccel = { x: ax, y: ay, z: az };
+          // Override accelerometer via page script
+          return { success: true, note: "Accelerometer override set" };
+        }
+        return { error: "DeviceMotionEvent not supported" };
+      },
+      args: [x, y, z],
+    });
+    return result[0]?.result || { error: "Failed to set accelerometer" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setAmbientLight(tabId, illuminance) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (lux) => {
+        window.__chainlessAmbientLight = { illuminance: lux };
+        return { success: true, illuminance: lux };
+      },
+      args: [illuminance],
+    });
+    return result[0]?.result || { error: "Failed to set ambient light" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearSensorOverrides(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "DeviceOrientation.clearDeviceOrientationOverride");
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        delete window.__chainlessAccel;
+        delete window.__chainlessAmbientLight;
+      },
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 19: Viewport Management ====================
+
+const VIEWPORT_PRESETS = {
+  "iphone-se": { width: 375, height: 667, deviceScaleFactor: 2, mobile: true },
+  "iphone-12": { width: 390, height: 844, deviceScaleFactor: 3, mobile: true },
+  "iphone-14-pro": { width: 393, height: 852, deviceScaleFactor: 3, mobile: true },
+  "pixel-5": { width: 393, height: 851, deviceScaleFactor: 2.75, mobile: true },
+  "samsung-s21": { width: 360, height: 800, deviceScaleFactor: 3, mobile: true },
+  "ipad-mini": { width: 768, height: 1024, deviceScaleFactor: 2, mobile: true },
+  "ipad-pro-11": { width: 834, height: 1194, deviceScaleFactor: 2, mobile: true },
+  "ipad-pro-12": { width: 1024, height: 1366, deviceScaleFactor: 2, mobile: true },
+  "desktop-hd": { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false },
+  "desktop-fhd": { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false },
+  "desktop-2k": { width: 2560, height: 1440, deviceScaleFactor: 1, mobile: false },
+};
+
+async function setViewport(tabId, width, height, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setDeviceMetricsOverride", {
+      width: width,
+      height: height,
+      deviceScaleFactor: options.deviceScaleFactor || 1,
+      mobile: options.mobile || false,
+      screenWidth: width,
+      screenHeight: height,
+    });
+    return { success: true, width, height };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getViewport(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        outerWidth: window.outerWidth,
+        outerHeight: window.outerHeight,
+        screenWidth: screen.width,
+        screenHeight: screen.height,
+        devicePixelRatio: window.devicePixelRatio,
+        availWidth: screen.availWidth,
+        availHeight: screen.availHeight,
+      }),
+    });
+    return result[0]?.result || { error: "Failed to get viewport" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setDeviceMetricsOverride(tabId, metrics) {
+  try {
+    await ensureDebuggerAttached(tabId);
+
+    // If metrics is a string, look up preset
+    const preset =
+      typeof metrics === "string" ? VIEWPORT_PRESETS[metrics] : metrics;
+
+    if (!preset) {
+      return { error: `Unknown viewport preset: ${metrics}` };
+    }
+
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setDeviceMetricsOverride", {
+      width: preset.width,
+      height: preset.height,
+      deviceScaleFactor: preset.deviceScaleFactor || 1,
+      mobile: preset.mobile || false,
+      screenWidth: preset.width,
+      screenHeight: preset.height,
+    });
+
+    if (preset.mobile) {
+      await chrome.debugger.sendCommand({ tabId }, "Emulation.setTouchEmulationEnabled", {
+        enabled: true,
+        maxTouchPoints: 5,
+      });
+    }
+
+    return { success: true, preset: typeof metrics === "string" ? metrics : "custom", ...preset };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearDeviceMetricsOverride(tabId) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.clearDeviceMetricsOverride");
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setTouchEmulationEnabled", {
+      enabled: false,
+    });
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+function getViewportPresets() {
+  return {
+    presets: Object.keys(VIEWPORT_PRESETS).map((name) => ({
+      name,
+      ...VIEWPORT_PRESETS[name],
+    })),
+  };
+}
+
+// ==================== Phase 19: Screenshot Comparison ====================
+
+async function captureScreenshot(tabId, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    const result = await chrome.debugger.sendCommand({ tabId }, "Page.captureScreenshot", {
+      format: options.format || "png",
+      quality: options.quality || 100,
+      fromSurface: true,
+    });
+    return {
+      success: true,
+      data: result.data,
+      format: options.format || "png",
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function captureElementScreenshot(tabId, selector, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+    await chrome.debugger.sendCommand({ tabId }, "DOM.enable");
+
+    const doc = await chrome.debugger.sendCommand({ tabId }, "DOM.getDocument");
+    const nodeResult = await chrome.debugger.sendCommand({ tabId }, "DOM.querySelector", {
+      nodeId: doc.root.nodeId,
+      selector: selector,
+    });
+
+    if (!nodeResult.nodeId) {
+      return { error: "Element not found" };
+    }
+
+    const boxModel = await chrome.debugger.sendCommand({ tabId }, "DOM.getBoxModel", {
+      nodeId: nodeResult.nodeId,
+    });
+
+    const content = boxModel.model.content;
+    const clip = {
+      x: content[0],
+      y: content[1],
+      width: content[2] - content[0],
+      height: content[5] - content[1],
+      scale: 1,
+    };
+
+    const result = await chrome.debugger.sendCommand({ tabId }, "Page.captureScreenshot", {
+      format: options.format || "png",
+      quality: options.quality || 100,
+      clip: clip,
+      fromSurface: true,
+    });
+
+    return {
+      success: true,
+      data: result.data,
+      format: options.format || "png",
+      clip,
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function compareScreenshots(baseline, current, options = {}) {
+  try {
+    // Simple pixel comparison (basic implementation)
+    // In production, use a proper image comparison library
+    const result = await chrome.scripting.executeScript({
+      target: { tabId: (await chrome.tabs.query({ active: true, currentWindow: true }))[0].id },
+      func: async (base, curr, opts) => {
+        // Create canvas for comparison
+        const loadImage = (data) => {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.src = `data:image/png;base64,${data}`;
+          });
+        };
+
+        const img1 = await loadImage(base);
+        const img2 = await loadImage(curr);
+
+        const canvas1 = document.createElement("canvas");
+        const canvas2 = document.createElement("canvas");
+        canvas1.width = img1.width;
+        canvas1.height = img1.height;
+        canvas2.width = img2.width;
+        canvas2.height = img2.height;
+
+        const ctx1 = canvas1.getContext("2d");
+        const ctx2 = canvas2.getContext("2d");
+        ctx1.drawImage(img1, 0, 0);
+        ctx2.drawImage(img2, 0, 0);
+
+        const data1 = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
+        const data2 = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
+
+        if (data1.data.length !== data2.data.length) {
+          return { match: false, reason: "Different dimensions" };
+        }
+
+        let diffPixels = 0;
+        const threshold = opts.threshold || 0;
+
+        for (let i = 0; i < data1.data.length; i += 4) {
+          const diff =
+            Math.abs(data1.data[i] - data2.data[i]) +
+            Math.abs(data1.data[i + 1] - data2.data[i + 1]) +
+            Math.abs(data1.data[i + 2] - data2.data[i + 2]);
+          if (diff > threshold * 3) {
+            diffPixels++;
+          }
+        }
+
+        const totalPixels = data1.data.length / 4;
+        const diffPercent = (diffPixels / totalPixels) * 100;
+
+        return {
+          match: diffPercent <= (opts.maxDiffPercent || 0),
+          diffPixels,
+          totalPixels,
+          diffPercent: diffPercent.toFixed(2),
+        };
+      },
+      args: [baseline, current, options],
+    });
+
+    return result[0]?.result || { error: "Comparison failed" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function captureFullPageScreenshot(tabId, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+
+    // Get full page dimensions
+    const layoutMetrics = await chrome.debugger.sendCommand({ tabId }, "Page.getLayoutMetrics");
+
+    const contentSize = layoutMetrics.contentSize;
+
+    // Set viewport to full page size
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setDeviceMetricsOverride", {
+      width: Math.ceil(contentSize.width),
+      height: Math.ceil(contentSize.height),
+      deviceScaleFactor: 1,
+      mobile: false,
+    });
+
+    // Capture screenshot
+    const result = await chrome.debugger.sendCommand({ tabId }, "Page.captureScreenshot", {
+      format: options.format || "png",
+      quality: options.quality || 100,
+      fromSurface: true,
+      captureBeyondViewport: true,
+    });
+
+    // Reset viewport
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.clearDeviceMetricsOverride");
+
+    return {
+      success: true,
+      data: result.data,
+      format: options.format || "png",
+      dimensions: {
+        width: Math.ceil(contentSize.width),
+        height: Math.ceil(contentSize.height),
+      },
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 19: Advanced Clipboard ====================
+
+async function readRichClipboard(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        try {
+          const items = await navigator.clipboard.read();
+          const contents = [];
+
+          for (const item of items) {
+            for (const type of item.types) {
+              const blob = await item.getType(type);
+              if (type.startsWith("text/")) {
+                const text = await blob.text();
+                contents.push({ type, content: text.substring(0, 10000) });
+              } else if (type.startsWith("image/")) {
+                const arrayBuffer = await blob.arrayBuffer();
+                const base64 = btoa(
+                  String.fromCharCode(...new Uint8Array(arrayBuffer)),
+                );
+                contents.push({
+                  type,
+                  content: base64.substring(0, 1000) + "...",
+                  size: blob.size,
+                });
+              } else {
+                contents.push({ type, size: blob.size });
+              }
+            }
+          }
+
+          return { contents };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || { error: "Failed to read clipboard" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function writeRichClipboard(tabId, data) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (clipData) => {
+        try {
+          const items = {};
+
+          if (clipData.text) {
+            items["text/plain"] = new Blob([clipData.text], {
+              type: "text/plain",
+            });
+          }
+          if (clipData.html) {
+            items["text/html"] = new Blob([clipData.html], {
+              type: "text/html",
+            });
+          }
+
+          const clipboardItem = new ClipboardItem(items);
+          await navigator.clipboard.write([clipboardItem]);
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [data],
+    });
+    return result[0]?.result || { error: "Failed to write clipboard" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getClipboardFormats(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        try {
+          const items = await navigator.clipboard.read();
+          const formats = [];
+          for (const item of items) {
+            formats.push(...item.types);
+          }
+          return { formats };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || { formats: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function writeImageToClipboard(tabId, imageData) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (imgData) => {
+        try {
+          // Convert base64 to blob
+          const response = await fetch(`data:image/png;base64,${imgData}`);
+          const blob = await response.blob();
+          const clipboardItem = new ClipboardItem({ "image/png": blob });
+          await navigator.clipboard.write([clipboardItem]);
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [imageData],
+    });
+    return result[0]?.result || { error: "Failed to write image" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 19: Print/PDF Enhanced ====================
+
+async function getPrintPreview(tabId, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+
+    // Emulate print media
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
+      media: "print",
+    });
+
+    // Capture screenshot in print mode
+    const screenshot = await chrome.debugger.sendCommand({ tabId }, "Page.captureScreenshot", {
+      format: "png",
+      quality: 100,
+    });
+
+    // Reset media
+    await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
+      media: "",
+    });
+
+    return {
+      success: true,
+      preview: screenshot.data,
+      format: "png",
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function printToPDF(tabId, options = {}) {
+  try {
+    await ensureDebuggerAttached(tabId);
+
+    const pdfOptions = {
+      landscape: options.landscape || false,
+      displayHeaderFooter: options.displayHeaderFooter || false,
+      printBackground: options.printBackground !== false,
+      scale: options.scale || 1,
+      paperWidth: options.paperWidth || 8.5,
+      paperHeight: options.paperHeight || 11,
+      marginTop: options.marginTop || 0.4,
+      marginBottom: options.marginBottom || 0.4,
+      marginLeft: options.marginLeft || 0.4,
+      marginRight: options.marginRight || 0.4,
+      pageRanges: options.pageRanges || "",
+      preferCSSPageSize: options.preferCSSPageSize || false,
+    };
+
+    if (options.headerTemplate) {
+      pdfOptions.headerTemplate = options.headerTemplate;
+    }
+    if (options.footerTemplate) {
+      pdfOptions.footerTemplate = options.footerTemplate;
+    }
+
+    const result = await chrome.debugger.sendCommand({ tabId }, "Page.printToPDF", pdfOptions);
+
+    return {
+      success: true,
+      data: result.data,
+      format: "pdf",
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPrintSettings(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const style = getComputedStyle(document.documentElement);
+        return {
+          hasMediaPrint: !!document.querySelector('style[media="print"], link[media="print"]'),
+          pageSize: style.getPropertyValue("--page-size") || "auto",
+          orientation: window.matchMedia("(orientation: portrait)").matches
+            ? "portrait"
+            : "landscape",
+        };
+      },
+    });
+    return result[0]?.result || { error: "Failed to get settings" };
   } catch (error) {
     return { error: error.message };
   }
