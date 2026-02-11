@@ -887,4 +887,333 @@ describe("ExtensionBrowserHandler", () => {
       );
     });
   });
+
+  describe("Network Interception Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle enableNetworkInterception", async () => {
+      await handler.handle(
+        "enableNetworkInterception",
+        { tabId: 1, patterns: ["*.js"] },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.enableInterception",
+        { tabId: 1, patterns: ["*.js"] },
+      );
+    });
+
+    it("should handle disableNetworkInterception", async () => {
+      await handler.handle("disableNetworkInterception", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.disableInterception",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle setRequestBlocking", async () => {
+      await handler.handle(
+        "setRequestBlocking",
+        { patterns: ["*ads*", "*tracking*"] },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.setRequestBlocking",
+        { patterns: ["*ads*", "*tracking*"] },
+      );
+    });
+
+    it("should handle getNetworkRequests", async () => {
+      await handler.handle("getNetworkRequests", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.getRequests",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle mockResponse", async () => {
+      await handler.handle(
+        "mockResponse",
+        {
+          tabId: 1,
+          url: "/api/test",
+          response: { status: 200, body: { data: "mock" } },
+        },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.mockResponse",
+        { tabId: 1, url: "/api/test", response: { status: 200, body: { data: "mock" } } },
+      );
+    });
+  });
+
+  describe("Console Capture Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle enableConsoleCapture", async () => {
+      await handler.handle("enableConsoleCapture", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "console.enable",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle disableConsoleCapture", async () => {
+      await handler.handle("disableConsoleCapture", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "console.disable",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getConsoleLogs", async () => {
+      await handler.handle("getConsoleLogs", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "console.getLogs",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle clearConsoleLogs", async () => {
+      await handler.handle("clearConsoleLogs", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "console.clear",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("IndexedDB Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getIndexedDBDatabases", async () => {
+      await handler.handle("getIndexedDBDatabases", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexedDB.getDatabases",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getIndexedDBData", async () => {
+      await handler.handle(
+        "getIndexedDBData",
+        { tabId: 1, dbName: "testDB", storeName: "users", query: { limit: 10 } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexedDB.getData",
+        { tabId: 1, dbName: "testDB", storeName: "users", query: { limit: 10 } },
+      );
+    });
+
+    it("should handle setIndexedDBData", async () => {
+      await handler.handle(
+        "setIndexedDBData",
+        { tabId: 1, dbName: "testDB", storeName: "users", key: "user1", value: { name: "John" } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexedDB.setData",
+        { tabId: 1, dbName: "testDB", storeName: "users", key: "user1", value: { name: "John" } },
+      );
+    });
+
+    it("should handle deleteIndexedDBData", async () => {
+      await handler.handle(
+        "deleteIndexedDBData",
+        { tabId: 1, dbName: "testDB", storeName: "users", key: "user1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexedDB.deleteData",
+        { tabId: 1, dbName: "testDB", storeName: "users", key: "user1" },
+      );
+    });
+
+    it("should handle clearIndexedDBStore", async () => {
+      await handler.handle(
+        "clearIndexedDBStore",
+        { tabId: 1, dbName: "testDB", storeName: "users" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "indexedDB.clearStore",
+        { tabId: 1, dbName: "testDB", storeName: "users" },
+      );
+    });
+  });
+
+  describe("Performance Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getPerformanceMetrics", async () => {
+      await handler.handle("getPerformanceMetrics", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.getMetrics",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getPerformanceEntries", async () => {
+      await handler.handle(
+        "getPerformanceEntries",
+        { tabId: 1, type: "resource" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.getEntries",
+        { tabId: 1, type: "resource" },
+      );
+    });
+
+    it("should handle startPerformanceTrace", async () => {
+      await handler.handle("startPerformanceTrace", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.startTrace",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle stopPerformanceTrace", async () => {
+      await handler.handle("stopPerformanceTrace", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.stopTrace",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("CSS Injection Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle injectCSS", async () => {
+      await handler.handle(
+        "injectCSS",
+        { tabId: 1, css: "body { background: red; }" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "css.inject", {
+        tabId: 1,
+        css: "body { background: red; }",
+      });
+    });
+
+    it("should handle removeCSS", async () => {
+      await handler.handle("removeCSS", { tabId: 1, cssId: "css-123" }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "css.remove", {
+        tabId: 1,
+        cssId: "css-123",
+      });
+    });
+  });
+
+  describe("Accessibility Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getAccessibilityTree", async () => {
+      await handler.handle(
+        "getAccessibilityTree",
+        { tabId: 1, selector: "#main" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.getTree",
+        { tabId: 1, selector: "#main" },
+      );
+    });
+
+    it("should handle getElementRole", async () => {
+      await handler.handle(
+        "getElementRole",
+        { tabId: 1, selector: "#button" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.getRole",
+        { tabId: 1, selector: "#button" },
+      );
+    });
+  });
+
+  describe("Frame Management Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle listFrames", async () => {
+      await handler.handle("listFrames", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "frames.list",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle executeScriptInFrame", async () => {
+      await handler.handle(
+        "executeScriptInFrame",
+        { tabId: 1, frameId: 0, script: "return document.title" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "frames.executeScript",
+        { tabId: 1, frameId: 0, script: "return document.title" },
+      );
+    });
+  });
 });
