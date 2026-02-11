@@ -2982,6 +2982,338 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
+      // ==================== Phase 25: Detection & Utility APIs ====================
+
+      // Barcode Detection API
+      case "detectBarcodes":
+        return await this.server.sendCommand(
+          clientId,
+          "barcode.detect",
+          params,
+        );
+      case "getSupportedBarcodeFormats":
+        return await this.server.sendCommand(
+          clientId,
+          "barcode.getSupportedFormats",
+          params,
+        );
+      case "isBarcodeDetectorSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "barcode.isSupported",
+          params,
+        );
+
+      // Shape Detection - Face Detection API
+      case "detectFaces":
+        return await this.server.sendCommand(clientId, "face.detect", params);
+      case "isFaceDetectorSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "face.isSupported",
+          params,
+        );
+
+      // Shape Detection - Text Detection API
+      case "detectText":
+        return await this.server.sendCommand(clientId, "text.detect", params);
+      case "isTextDetectorSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "text.isSupported",
+          params,
+        );
+
+      // Web Codecs - Video API
+      case "createVideoDecoder":
+        return await this.server.sendCommand(
+          clientId,
+          "videoCodec.createDecoder",
+          params,
+        );
+      case "createVideoEncoder":
+        return await this.server.sendCommand(
+          clientId,
+          "videoCodec.createEncoder",
+          params,
+        );
+      case "isVideoCodecSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "videoCodec.isSupported",
+          params,
+        );
+
+      // Web Codecs - Audio API
+      case "createAudioDecoder":
+        return await this.server.sendCommand(
+          clientId,
+          "audioCodec.createDecoder",
+          params,
+        );
+      case "createAudioEncoder":
+        return await this.server.sendCommand(
+          clientId,
+          "audioCodec.createEncoder",
+          params,
+        );
+      case "isAudioCodecSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "audioCodec.isSupported",
+          params,
+        );
+
+      // Media Session API
+      case "setMediaSessionMetadata":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.setMetadata",
+          params,
+        );
+      case "setMediaSessionPlaybackState":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.setPlaybackState",
+          params,
+        );
+      case "setMediaSessionPositionState":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.setPositionState",
+          params,
+        );
+      case "setMediaSessionActionHandler":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.setActionHandler",
+          params,
+        );
+      case "getMediaSessionMetadata":
+        return await this.server.sendCommand(
+          clientId,
+          "mediaSession.getMetadata",
+          params,
+        );
+
+      // Background Fetch API
+      case "backgroundFetch":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.fetch",
+          params,
+        );
+      case "getBackgroundFetch":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.get",
+          params,
+        );
+      case "getBackgroundFetchIds":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.getIds",
+          params,
+        );
+      case "abortBackgroundFetch":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.abort",
+          params,
+        );
+      case "isBackgroundFetchSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "backgroundFetch.isSupported",
+          params,
+        );
+
+      // Compression Streams API
+      case "compressData":
+        return await this.server.sendCommand(
+          clientId,
+          "compression.compress",
+          params,
+        );
+      case "decompressData":
+        return await this.server.sendCommand(
+          clientId,
+          "compression.decompress",
+          params,
+        );
+      case "getSupportedCompressionFormats":
+        return await this.server.sendCommand(
+          clientId,
+          "compression.getSupportedFormats",
+          params,
+        );
+      case "isCompressionSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "compression.isSupported",
+          params,
+        );
+
+      // Navigation API
+      case "navigateToUrl":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.navigate",
+          params,
+        );
+      case "reloadNavigation":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.reload",
+          params,
+        );
+      case "traverseNavigation":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.traverse",
+          params,
+        );
+      case "getNavigationEntries":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.entries",
+          params,
+        );
+      case "getCurrentNavigationEntry":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.currentEntry",
+          params,
+        );
+      case "canNavigateBack":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.canGoBack",
+          params,
+        );
+      case "canNavigateForward":
+        return await this.server.sendCommand(
+          clientId,
+          "navigation.canGoForward",
+          params,
+        );
+
+      // View Transitions API
+      case "startViewTransition":
+        return await this.server.sendCommand(
+          clientId,
+          "viewTransition.start",
+          params,
+        );
+      case "skipViewTransition":
+        return await this.server.sendCommand(
+          clientId,
+          "viewTransition.skip",
+          params,
+        );
+      case "getViewTransitionState":
+        return await this.server.sendCommand(
+          clientId,
+          "viewTransition.getState",
+          params,
+        );
+      case "isViewTransitionSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "viewTransition.isSupported",
+          params,
+        );
+
+      // Sanitizer API
+      case "sanitizeHTML":
+        return await this.server.sendCommand(
+          clientId,
+          "sanitizer.sanitize",
+          params,
+        );
+      case "getSanitizerConfig":
+        return await this.server.sendCommand(
+          clientId,
+          "sanitizer.getConfig",
+          params,
+        );
+      case "isSanitizerSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "sanitizer.isSupported",
+          params,
+        );
+
+      // Popover API
+      case "showPopover":
+        return await this.server.sendCommand(clientId, "popover.show", params);
+      case "hidePopover":
+        return await this.server.sendCommand(clientId, "popover.hide", params);
+      case "togglePopover":
+        return await this.server.sendCommand(
+          clientId,
+          "popover.toggle",
+          params,
+        );
+      case "isPopoverSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "popover.isSupported",
+          params,
+        );
+
+      // Highlight API
+      case "createHighlight":
+        return await this.server.sendCommand(
+          clientId,
+          "highlight.create",
+          params,
+        );
+      case "removeHighlight":
+        return await this.server.sendCommand(
+          clientId,
+          "highlight.remove",
+          params,
+        );
+      case "clearHighlights":
+        return await this.server.sendCommand(
+          clientId,
+          "highlight.clear",
+          params,
+        );
+      case "isHighlightSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "highlight.isSupported",
+          params,
+        );
+
+      // EditContext API
+      case "createEditContext":
+        return await this.server.sendCommand(
+          clientId,
+          "editContext.create",
+          params,
+        );
+      case "updateEditContextText":
+        return await this.server.sendCommand(
+          clientId,
+          "editContext.updateText",
+          params,
+        );
+      case "updateEditContextSelection":
+        return await this.server.sendCommand(
+          clientId,
+          "editContext.updateSelection",
+          params,
+        );
+      case "isEditContextSupported":
+        return await this.server.sendCommand(
+          clientId,
+          "editContext.isSupported",
+          params,
+        );
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
