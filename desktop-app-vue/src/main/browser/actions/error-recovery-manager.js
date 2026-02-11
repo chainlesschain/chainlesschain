@@ -12,39 +12,39 @@
  * @since v0.33.0
  */
 
-const { EventEmitter } = require('events');
+const { EventEmitter } = require("events");
 
 /**
  * 错误类型
  */
 const ErrorType = {
-  ELEMENT_NOT_FOUND: 'element_not_found',
-  ELEMENT_NOT_VISIBLE: 'element_not_visible',
-  ELEMENT_NOT_CLICKABLE: 'element_not_clickable',
-  TIMEOUT: 'timeout',
-  NAVIGATION_FAILED: 'navigation_failed',
-  NETWORK_ERROR: 'network_error',
-  STALE_ELEMENT: 'stale_element',
-  FRAME_DETACHED: 'frame_detached',
-  PAGE_CRASHED: 'page_crashed',
-  PERMISSION_DENIED: 'permission_denied',
-  UNKNOWN: 'unknown'
+  ELEMENT_NOT_FOUND: "element_not_found",
+  ELEMENT_NOT_VISIBLE: "element_not_visible",
+  ELEMENT_NOT_CLICKABLE: "element_not_clickable",
+  TIMEOUT: "timeout",
+  NAVIGATION_FAILED: "navigation_failed",
+  NETWORK_ERROR: "network_error",
+  STALE_ELEMENT: "stale_element",
+  FRAME_DETACHED: "frame_detached",
+  PAGE_CRASHED: "page_crashed",
+  PERMISSION_DENIED: "permission_denied",
+  UNKNOWN: "unknown",
 };
 
 /**
  * 恢复策略
  */
 const RecoveryStrategy = {
-  RETRY: 'retry',                    // 简单重试
-  RETRY_WITH_DELAY: 'retry_delay',   // 延迟重试
-  EXPONENTIAL_BACKOFF: 'exponential', // 指数退避
-  REFRESH_AND_RETRY: 'refresh',       // 刷新页面后重试
-  RELOCATE_AND_RETRY: 'relocate',    // 重新定位元素后重试
-  SCROLL_AND_RETRY: 'scroll',        // 滚动后重试
-  WAIT_AND_RETRY: 'wait',            // 等待后重试
-  ALTERNATIVE_ACTION: 'alternative', // 尝试替代操作
-  SKIP: 'skip',                      // 跳过
-  ABORT: 'abort'                     // 中止
+  RETRY: "retry", // 简单重试
+  RETRY_WITH_DELAY: "retry_delay", // 延迟重试
+  EXPONENTIAL_BACKOFF: "exponential", // 指数退避
+  REFRESH_AND_RETRY: "refresh", // 刷新页面后重试
+  RELOCATE_AND_RETRY: "relocate", // 重新定位元素后重试
+  SCROLL_AND_RETRY: "scroll", // 滚动后重试
+  WAIT_AND_RETRY: "wait", // 等待后重试
+  ALTERNATIVE_ACTION: "alternative", // 尝试替代操作
+  SKIP: "skip", // 跳过
+  ABORT: "abort", // 中止
 };
 
 /**
@@ -55,48 +55,42 @@ const DEFAULT_STRATEGIES = {
     RecoveryStrategy.WAIT_AND_RETRY,
     RecoveryStrategy.SCROLL_AND_RETRY,
     RecoveryStrategy.RELOCATE_AND_RETRY,
-    RecoveryStrategy.REFRESH_AND_RETRY
+    RecoveryStrategy.REFRESH_AND_RETRY,
   ],
   [ErrorType.ELEMENT_NOT_VISIBLE]: [
     RecoveryStrategy.SCROLL_AND_RETRY,
     RecoveryStrategy.WAIT_AND_RETRY,
-    RecoveryStrategy.RETRY_WITH_DELAY
+    RecoveryStrategy.RETRY_WITH_DELAY,
   ],
   [ErrorType.ELEMENT_NOT_CLICKABLE]: [
     RecoveryStrategy.WAIT_AND_RETRY,
     RecoveryStrategy.SCROLL_AND_RETRY,
-    RecoveryStrategy.RETRY_WITH_DELAY
+    RecoveryStrategy.RETRY_WITH_DELAY,
   ],
   [ErrorType.TIMEOUT]: [
     RecoveryStrategy.RETRY_WITH_DELAY,
     RecoveryStrategy.EXPONENTIAL_BACKOFF,
-    RecoveryStrategy.REFRESH_AND_RETRY
+    RecoveryStrategy.REFRESH_AND_RETRY,
   ],
   [ErrorType.NAVIGATION_FAILED]: [
     RecoveryStrategy.RETRY_WITH_DELAY,
-    RecoveryStrategy.EXPONENTIAL_BACKOFF
+    RecoveryStrategy.EXPONENTIAL_BACKOFF,
   ],
   [ErrorType.NETWORK_ERROR]: [
     RecoveryStrategy.EXPONENTIAL_BACKOFF,
-    RecoveryStrategy.RETRY_WITH_DELAY
+    RecoveryStrategy.RETRY_WITH_DELAY,
   ],
   [ErrorType.STALE_ELEMENT]: [
     RecoveryStrategy.RELOCATE_AND_RETRY,
-    RecoveryStrategy.REFRESH_AND_RETRY
+    RecoveryStrategy.REFRESH_AND_RETRY,
   ],
-  [ErrorType.FRAME_DETACHED]: [
-    RecoveryStrategy.REFRESH_AND_RETRY
-  ],
-  [ErrorType.PAGE_CRASHED]: [
-    RecoveryStrategy.REFRESH_AND_RETRY
-  ],
-  [ErrorType.PERMISSION_DENIED]: [
-    RecoveryStrategy.ABORT
-  ],
+  [ErrorType.FRAME_DETACHED]: [RecoveryStrategy.REFRESH_AND_RETRY],
+  [ErrorType.PAGE_CRASHED]: [RecoveryStrategy.REFRESH_AND_RETRY],
+  [ErrorType.PERMISSION_DENIED]: [RecoveryStrategy.ABORT],
   [ErrorType.UNKNOWN]: [
     RecoveryStrategy.RETRY_WITH_DELAY,
-    RecoveryStrategy.ABORT
-  ]
+    RecoveryStrategy.ABORT,
+  ],
 };
 
 class ErrorRecoveryManager extends EventEmitter {
@@ -113,7 +107,7 @@ class ErrorRecoveryManager extends EventEmitter {
       enableAutoRecovery: config.enableAutoRecovery !== false,
       screenshotOnError: config.screenshotOnError || false,
       logErrors: config.logErrors !== false,
-      ...config
+      ...config,
     };
 
     // 恢复历史记录
@@ -126,7 +120,7 @@ class ErrorRecoveryManager extends EventEmitter {
       successfulRecoveries: 0,
       failedRecoveries: 0,
       byErrorType: {},
-      byStrategy: {}
+      byStrategy: {},
     };
   }
 
@@ -147,7 +141,7 @@ class ErrorRecoveryManager extends EventEmitter {
   wrap(operation, context = {}) {
     const self = this;
 
-    return async function(...args) {
+    return async function (...args) {
       return self.executeWithRecovery(operation, args, context);
     };
   }
@@ -172,10 +166,10 @@ class ErrorRecoveryManager extends EventEmitter {
         // 如果之前有错误但现在成功了，记录恢复成功
         if (attempt > 0) {
           this.stats.successfulRecoveries++;
-          this.emit('recovered', {
+          this.emit("recovered", {
             attempt,
             duration: Date.now() - startTime,
-            context
+            context,
           });
         }
 
@@ -184,9 +178,8 @@ class ErrorRecoveryManager extends EventEmitter {
           result,
           attempts: attempt + 1,
           recovered: attempt > 0,
-          duration: Date.now() - startTime
+          duration: Date.now() - startTime,
         };
-
       } catch (error) {
         lastError = error;
         this.stats.totalErrors++;
@@ -194,11 +187,11 @@ class ErrorRecoveryManager extends EventEmitter {
         const errorType = this._classifyError(error);
         this._updateErrorStats(errorType);
 
-        this.emit('error', {
+        this.emit("error", {
           type: errorType,
           error: error.message,
           attempt,
-          context
+          context,
         });
 
         // 如果不启用自动恢复，直接抛出
@@ -207,7 +200,9 @@ class ErrorRecoveryManager extends EventEmitter {
         }
 
         // 获取恢复策略
-        const strategies = this.config.strategies[errorType] || [RecoveryStrategy.RETRY];
+        const strategies = this.config.strategies[errorType] || [
+          RecoveryStrategy.RETRY,
+        ];
         const strategyIndex = Math.min(attempt, strategies.length - 1);
         const strategy = strategies[strategyIndex];
 
@@ -223,7 +218,7 @@ class ErrorRecoveryManager extends EventEmitter {
             skipped: true,
             error: error.message,
             errorType,
-            attempts: attempt + 1
+            attempts: attempt + 1,
           };
         }
 
@@ -232,9 +227,9 @@ class ErrorRecoveryManager extends EventEmitter {
           await this._executeRecoveryStrategy(strategy, context, attempt);
           this._updateStrategyStats(strategy);
         } catch (recoveryError) {
-          this.emit('recoveryFailed', {
+          this.emit("recoveryFailed", {
             strategy,
-            error: recoveryError.message
+            error: recoveryError.message,
           });
         }
 
@@ -251,7 +246,7 @@ class ErrorRecoveryManager extends EventEmitter {
       attempts: attempt,
       success: false,
       context,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
 
     return {
@@ -259,7 +254,7 @@ class ErrorRecoveryManager extends EventEmitter {
       error: lastError?.message,
       errorType: this._classifyError(lastError),
       attempts: attempt,
-      duration: Date.now() - startTime
+      duration: Date.now() - startTime,
     };
   }
 
@@ -268,38 +263,48 @@ class ErrorRecoveryManager extends EventEmitter {
    * @private
    */
   _classifyError(error) {
-    if (!error) return ErrorType.UNKNOWN;
+    if (!error) {
+      return ErrorType.UNKNOWN;
+    }
 
-    const message = error.message?.toLowerCase() || '';
+    const message = error.message?.toLowerCase() || "";
 
-    if (message.includes('not found') || message.includes('no element')) {
+    if (message.includes("not found") || message.includes("no element")) {
       return ErrorType.ELEMENT_NOT_FOUND;
     }
-    if (message.includes('not visible') || message.includes('hidden')) {
+    if (message.includes("not visible") || message.includes("hidden")) {
       return ErrorType.ELEMENT_NOT_VISIBLE;
     }
-    if (message.includes('not clickable') || message.includes('intercepted')) {
+    if (message.includes("not clickable") || message.includes("intercepted")) {
       return ErrorType.ELEMENT_NOT_CLICKABLE;
     }
-    if (message.includes('timeout') || message.includes('timed out')) {
+    if (message.includes("timeout") || message.includes("timed out")) {
       return ErrorType.TIMEOUT;
     }
-    if (message.includes('navigation') || message.includes('navigate')) {
+    if (message.includes("navigation") || message.includes("navigate")) {
       return ErrorType.NAVIGATION_FAILED;
     }
-    if (message.includes('network') || message.includes('connection') || message.includes('fetch')) {
+    if (
+      message.includes("network") ||
+      message.includes("connection") ||
+      message.includes("fetch")
+    ) {
       return ErrorType.NETWORK_ERROR;
     }
-    if (message.includes('stale') || message.includes('detached')) {
+    if (message.includes("stale") || message.includes("detached")) {
       return ErrorType.STALE_ELEMENT;
     }
-    if (message.includes('frame') && message.includes('detached')) {
+    if (message.includes("frame") && message.includes("detached")) {
       return ErrorType.FRAME_DETACHED;
     }
-    if (message.includes('crash') || message.includes('target closed')) {
+    if (message.includes("crash") || message.includes("target closed")) {
       return ErrorType.PAGE_CRASHED;
     }
-    if (message.includes('permission') || message.includes('denied') || message.includes('forbidden')) {
+    if (
+      message.includes("permission") ||
+      message.includes("denied") ||
+      message.includes("forbidden")
+    ) {
       return ErrorType.PERMISSION_DENIED;
     }
 
@@ -313,11 +318,11 @@ class ErrorRecoveryManager extends EventEmitter {
   async _executeRecoveryStrategy(strategy, context, attempt) {
     const delay = this._calculateDelay(strategy, attempt);
 
-    this.emit('recovering', {
+    this.emit("recovering", {
       strategy,
       delay,
       attempt,
-      context
+      context,
     });
 
     switch (strategy) {
@@ -329,13 +334,15 @@ class ErrorRecoveryManager extends EventEmitter {
         await this._delay(delay);
         break;
 
-      case RecoveryStrategy.EXPONENTIAL_BACKOFF:
+      case RecoveryStrategy.EXPONENTIAL_BACKOFF: {
         const backoffDelay = Math.min(
-          this.config.baseDelay * Math.pow(this.config.exponentialBase, attempt),
-          this.config.maxDelay
+          this.config.baseDelay *
+            Math.pow(this.config.exponentialBase, attempt),
+          this.config.maxDelay,
         );
         await this._delay(backoffDelay);
         break;
+      }
 
       case RecoveryStrategy.WAIT_AND_RETRY:
         await this._delay(delay);
@@ -343,9 +350,11 @@ class ErrorRecoveryManager extends EventEmitter {
         if (context.waitSelector && this.browserEngine) {
           const page = this.browserEngine.getPage(context.targetId);
           if (page) {
-            await page.waitForSelector(context.waitSelector, {
-              timeout: delay
-            }).catch(() => {});
+            await page
+              .waitForSelector(context.waitSelector, {
+                timeout: delay,
+              })
+              .catch(() => {});
           }
         }
         break;
@@ -369,7 +378,7 @@ class ErrorRecoveryManager extends EventEmitter {
         if (this.browserEngine && context.targetId) {
           const page = this.browserEngine.getPage(context.targetId);
           if (page) {
-            await page.reload({ waitUntil: 'networkidle' }).catch(() => {});
+            await page.reload({ waitUntil: "networkidle" }).catch(() => {});
             await this._delay(1000);
           }
         }
@@ -394,8 +403,9 @@ class ErrorRecoveryManager extends EventEmitter {
     switch (strategy) {
       case RecoveryStrategy.EXPONENTIAL_BACKOFF:
         return Math.min(
-          this.config.baseDelay * Math.pow(this.config.exponentialBase, attempt),
-          this.config.maxDelay
+          this.config.baseDelay *
+            Math.pow(this.config.exponentialBase, attempt),
+          this.config.maxDelay,
         );
       case RecoveryStrategy.RETRY_WITH_DELAY:
       case RecoveryStrategy.WAIT_AND_RETRY:
@@ -410,7 +420,7 @@ class ErrorRecoveryManager extends EventEmitter {
    * @private
    */
   _delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -419,18 +429,20 @@ class ErrorRecoveryManager extends EventEmitter {
    */
   async _scrollToElement(context) {
     const page = this.browserEngine.getPage(context.targetId);
-    if (!page) return;
+    if (!page) {
+      return;
+    }
 
     if (context.selector) {
       await page.evaluate((sel) => {
         const element = document.querySelector(sel);
         if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
         }
       }, context.selector);
     } else if (context.y !== undefined) {
       await page.evaluate((y) => {
-        window.scrollTo({ top: Math.max(0, y - 200), behavior: 'smooth' });
+        window.scrollTo({ top: Math.max(0, y - 200), behavior: "smooth" });
       }, context.y);
     }
   }
@@ -465,7 +477,9 @@ class ErrorRecoveryManager extends EventEmitter {
     this.recoveryHistory.push(entry);
 
     if (this.recoveryHistory.length > this.maxHistorySize) {
-      this.recoveryHistory = this.recoveryHistory.slice(-this.maxHistorySize / 2);
+      this.recoveryHistory = this.recoveryHistory.slice(
+        -this.maxHistorySize / 2,
+      );
     }
   }
 
@@ -476,9 +490,13 @@ class ErrorRecoveryManager extends EventEmitter {
   getStats() {
     return {
       ...this.stats,
-      recoveryRate: this.stats.totalErrors > 0
-        ? ((this.stats.successfulRecoveries / this.stats.totalErrors) * 100).toFixed(2) + '%'
-        : '0%'
+      recoveryRate:
+        this.stats.totalErrors > 0
+          ? (
+              (this.stats.successfulRecoveries / this.stats.totalErrors) *
+              100
+            ).toFixed(2) + "%"
+          : "0%",
     };
   }
 
@@ -509,11 +527,11 @@ class ErrorRecoveryManager extends EventEmitter {
       successfulRecoveries: 0,
       failedRecoveries: 0,
       byErrorType: {},
-      byStrategy: {}
+      byStrategy: {},
     };
     this.recoveryHistory = [];
 
-    this.emit('reset');
+    this.emit("reset");
   }
 
   /**
@@ -525,10 +543,14 @@ class ErrorRecoveryManager extends EventEmitter {
    */
   async manualRecover(targetId, strategy, context = {}) {
     try {
-      await this._executeRecoveryStrategy(strategy, {
-        ...context,
-        targetId
-      }, 0);
+      await this._executeRecoveryStrategy(
+        strategy,
+        {
+          ...context,
+          targetId,
+        },
+        0,
+      );
 
       return { success: true, strategy };
     } catch (error) {
@@ -553,5 +575,5 @@ module.exports = {
   ErrorRecoveryManager,
   ErrorType,
   RecoveryStrategy,
-  getErrorRecoveryManager
+  getErrorRecoveryManager,
 };

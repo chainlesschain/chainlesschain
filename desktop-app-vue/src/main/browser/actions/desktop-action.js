@@ -15,50 +15,66 @@
  * @since v0.33.0
  */
 
-const { EventEmitter } = require('events');
-const { screen, clipboard, nativeImage, desktopCapturer, BrowserWindow } = require('electron');
-const path = require('path');
-const fs = require('fs').promises;
+const { EventEmitter } = require("events");
+const {
+  screen,
+  clipboard,
+  nativeImage,
+  desktopCapturer,
+  BrowserWindow,
+} = require("electron");
+const path = require("path");
+const fs = require("fs").promises;
 
 /**
  * 特殊按键映射
  */
 const SpecialKey = {
-  ENTER: 'enter',
-  TAB: 'tab',
-  ESCAPE: 'escape',
-  BACKSPACE: 'backspace',
-  DELETE: 'delete',
-  UP: 'up',
-  DOWN: 'down',
-  LEFT: 'left',
-  RIGHT: 'right',
-  HOME: 'home',
-  END: 'end',
-  PAGEUP: 'pageup',
-  PAGEDOWN: 'pagedown',
-  F1: 'f1', F2: 'f2', F3: 'f3', F4: 'f4', F5: 'f5', F6: 'f6',
-  F7: 'f7', F8: 'f8', F9: 'f9', F10: 'f10', F11: 'f11', F12: 'f12',
-  SPACE: 'space',
-  PRINTSCREEN: 'printscreen',
-  INSERT: 'insert',
-  NUMLOCK: 'numlock',
-  CAPSLOCK: 'capslock',
-  SCROLLLOCK: 'scrolllock',
-  PAUSE: 'pause'
+  ENTER: "enter",
+  TAB: "tab",
+  ESCAPE: "escape",
+  BACKSPACE: "backspace",
+  DELETE: "delete",
+  UP: "up",
+  DOWN: "down",
+  LEFT: "left",
+  RIGHT: "right",
+  HOME: "home",
+  END: "end",
+  PAGEUP: "pageup",
+  PAGEDOWN: "pagedown",
+  F1: "f1",
+  F2: "f2",
+  F3: "f3",
+  F4: "f4",
+  F5: "f5",
+  F6: "f6",
+  F7: "f7",
+  F8: "f8",
+  F9: "f9",
+  F10: "f10",
+  F11: "f11",
+  F12: "f12",
+  SPACE: "space",
+  PRINTSCREEN: "printscreen",
+  INSERT: "insert",
+  NUMLOCK: "numlock",
+  CAPSLOCK: "capslock",
+  SCROLLLOCK: "scrolllock",
+  PAUSE: "pause",
 };
 
 /**
  * 修饰键
  */
 const Modifier = {
-  CONTROL: 'control',
-  CTRL: 'control',
-  ALT: 'alt',
-  SHIFT: 'shift',
-  COMMAND: 'command',
-  META: 'command',
-  WIN: 'command'
+  CONTROL: "control",
+  CTRL: "control",
+  ALT: "alt",
+  SHIFT: "shift",
+  COMMAND: "command",
+  META: "command",
+  WIN: "command",
 };
 
 class DesktopAction extends EventEmitter {
@@ -91,12 +107,12 @@ class DesktopAction extends EventEmitter {
     this._robotLoaded = true;
 
     try {
-      this._robot = require('robotjs');
+      this._robot = require("robotjs");
       return this._robot;
-    } catch (error) {
+    } catch (_error) {
       this._robotError = new Error(
-        'robotjs is not installed. Run: npm install robotjs\n' +
-        'Note: robotjs requires native compilation and may need additional build tools.'
+        "robotjs is not installed. Run: npm install robotjs\n" +
+          "Note: robotjs requires native compilation and may need additional build tools.",
       );
       throw this._robotError;
     }
@@ -108,7 +124,10 @@ class DesktopAction extends EventEmitter {
    */
   getScreenInfo() {
     const now = Date.now();
-    if (this._screenCache && now - this._screenCacheTime < this._screenCacheMaxAge) {
+    if (
+      this._screenCache &&
+      now - this._screenCacheTime < this._screenCacheMaxAge
+    ) {
       return this._screenCache;
     }
 
@@ -121,17 +140,17 @@ class DesktopAction extends EventEmitter {
         bounds: primaryDisplay.bounds,
         workArea: primaryDisplay.workArea,
         size: primaryDisplay.size,
-        scaleFactor: primaryDisplay.scaleFactor
+        scaleFactor: primaryDisplay.scaleFactor,
       },
-      displays: allDisplays.map(d => ({
+      displays: allDisplays.map((d) => ({
         id: d.id,
         bounds: d.bounds,
         workArea: d.workArea,
         size: d.size,
         scaleFactor: d.scaleFactor,
-        isPrimary: d.id === primaryDisplay.id
+        isPrimary: d.id === primaryDisplay.id,
       })),
-      cursor: screen.getCursorScreenPoint()
+      cursor: screen.getCursorScreenPoint(),
     };
     this._screenCacheTime = now;
 
@@ -148,17 +167,19 @@ class DesktopAction extends EventEmitter {
 
     try {
       const sources = await desktopCapturer.getSources({
-        types: ['screen'],
-        thumbnailSize: options.thumbnailSize || { width: 1920, height: 1080 }
+        types: ["screen"],
+        thumbnailSize: options.thumbnailSize || { width: 1920, height: 1080 },
       });
 
       // 找到匹配的显示器
-      const source = sources.find(s =>
-        s.display_id === String(displayId) || s.name.includes('Screen')
-      ) || sources[0];
+      const source =
+        sources.find(
+          (s) =>
+            s.display_id === String(displayId) || s.name.includes("Screen"),
+        ) || sources[0];
 
       if (!source) {
-        throw new Error('No screen source available');
+        throw new Error("No screen source available");
       }
 
       const thumbnail = source.thumbnail;
@@ -171,14 +192,14 @@ class DesktopAction extends EventEmitter {
         await fs.writeFile(filePath, thumbnail.toPNG());
       }
 
-      this.emit('screenCaptured', { displayId, size: thumbnail.getSize() });
+      this.emit("screenCaptured", { displayId, size: thumbnail.getSize() });
 
       return {
         success: true,
         image: thumbnail.toDataURL(),
-        base64: thumbnail.toPNG().toString('base64'),
+        base64: thumbnail.toPNG().toString("base64"),
         size: thumbnail.getSize(),
-        filePath
+        filePath,
       };
     } catch (error) {
       throw new Error(`Screen capture failed: ${error.message}`);
@@ -195,7 +216,7 @@ class DesktopAction extends EventEmitter {
   async click(x, y, options = {}) {
     const robot = this._loadRobot();
 
-    const button = options.button || 'left';
+    const button = options.button || "left";
     const double = options.double || false;
 
     // 移动鼠标
@@ -203,20 +224,20 @@ class DesktopAction extends EventEmitter {
 
     // 等待（可选）
     if (options.moveDelay) {
-      await new Promise(resolve => setTimeout(resolve, options.moveDelay));
+      await new Promise((resolve) => setTimeout(resolve, options.moveDelay));
     }
 
     // 点击
     robot.mouseClick(button, double);
 
-    this.emit('desktopClick', { x, y, button, double });
+    this.emit("desktopClick", { x, y, button, double });
 
     return {
       success: true,
-      action: 'click',
+      action: "click",
       x,
       y,
-      button
+      button,
     };
   }
 
@@ -240,19 +261,19 @@ class DesktopAction extends EventEmitter {
         const currentX = current.x + (x - current.x) * progress;
         const currentY = current.y + (y - current.y) * progress;
         robot.moveMouse(Math.round(currentX), Math.round(currentY));
-        await new Promise(resolve => setTimeout(resolve, 10));
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
     } else {
       robot.moveMouse(x, y);
     }
 
-    this.emit('desktopMouseMove', { x, y });
+    this.emit("desktopMouseMove", { x, y });
 
     return {
       success: true,
-      action: 'moveMouse',
+      action: "moveMouse",
       x,
-      y
+      y,
     };
   }
 
@@ -279,10 +300,10 @@ class DesktopAction extends EventEmitter {
 
     // 移动到起始位置
     robot.moveMouse(fromX, fromY);
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     // 按下
-    robot.mouseToggle('down');
+    robot.mouseToggle("down");
 
     // 拖动
     const steps = options.steps || 20;
@@ -291,19 +312,24 @@ class DesktopAction extends EventEmitter {
       const currentX = fromX + (toX - fromX) * progress;
       const currentY = fromY + (toY - fromY) * progress;
       robot.moveMouse(Math.round(currentX), Math.round(currentY));
-      await new Promise(resolve => setTimeout(resolve, options.stepDelay || 10));
+      await new Promise((resolve) =>
+        setTimeout(resolve, options.stepDelay || 10),
+      );
     }
 
     // 释放
-    robot.mouseToggle('up');
+    robot.mouseToggle("up");
 
-    this.emit('desktopDrag', { from: { x: fromX, y: fromY }, to: { x: toX, y: toY } });
+    this.emit("desktopDrag", {
+      from: { x: fromX, y: fromY },
+      to: { x: toX, y: toY },
+    });
 
     return {
       success: true,
-      action: 'drag',
+      action: "drag",
       from: { x: fromX, y: fromY },
-      to: { x: toX, y: toY }
+      to: { x: toX, y: toY },
     };
   }
 
@@ -320,29 +346,29 @@ class DesktopAction extends EventEmitter {
     // 使用剪贴板方式更可靠
     if (options.useClipboard || this._containsNonASCII(text)) {
       clipboard.writeText(text);
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Ctrl+V / Cmd+V
-      const modifier = process.platform === 'darwin' ? 'command' : 'control';
-      robot.keyTap('v', modifier);
+      const modifier = process.platform === "darwin" ? "command" : "control";
+      robot.keyTap("v", modifier);
     } else {
       // 直接输入
       if (options.delay) {
         for (const char of text) {
           robot.typeString(char);
-          await new Promise(resolve => setTimeout(resolve, options.delay));
+          await new Promise((resolve) => setTimeout(resolve, options.delay));
         }
       } else {
         robot.typeString(text);
       }
     }
 
-    this.emit('desktopTypeText', { length: text.length });
+    this.emit("desktopTypeText", { length: text.length });
 
     return {
       success: true,
-      action: 'typeText',
-      length: text.length
+      action: "typeText",
+      length: text.length,
     };
   }
 
@@ -351,7 +377,8 @@ class DesktopAction extends EventEmitter {
    * @private
    */
   _containsNonASCII(text) {
-    return /[^\x00-\x7F]/.test(text);
+    // eslint-disable-next-line no-control-regex
+    return /[^\u0000-\u007F]/.test(text);
   }
 
   /**
@@ -364,7 +391,7 @@ class DesktopAction extends EventEmitter {
     const robot = this._loadRobot();
 
     // 规范化修饰键
-    const normalizedModifiers = modifiers.map(m => {
+    const normalizedModifiers = modifiers.map((m) => {
       const lower = m.toLowerCase();
       return Modifier[lower.toUpperCase()] || lower;
     });
@@ -375,13 +402,13 @@ class DesktopAction extends EventEmitter {
       robot.keyTap(key.toLowerCase());
     }
 
-    this.emit('desktopKeyPress', { key, modifiers: normalizedModifiers });
+    this.emit("desktopKeyPress", { key, modifiers: normalizedModifiers });
 
     return {
       success: true,
-      action: 'pressKey',
+      action: "pressKey",
       key,
-      modifiers: normalizedModifiers
+      modifiers: normalizedModifiers,
     };
   }
 
@@ -391,7 +418,7 @@ class DesktopAction extends EventEmitter {
    * @returns {Promise<Object>}
    */
   async executeShortcut(shortcut) {
-    const parts = shortcut.split('+').map(p => p.trim());
+    const parts = shortcut.split("+").map((p) => p.trim());
     const key = parts.pop();
     const modifiers = parts;
 
@@ -403,25 +430,26 @@ class DesktopAction extends EventEmitter {
    * @param {string} type - 内容类型 (text/image/html)
    * @returns {Object}
    */
-  getClipboard(type = 'text') {
+  getClipboard(type = "text") {
     switch (type) {
-      case 'text':
+      case "text":
         return { success: true, content: clipboard.readText() };
 
-      case 'html':
+      case "html":
         return { success: true, content: clipboard.readHTML() };
 
-      case 'image':
+      case "image": {
         const image = clipboard.readImage();
         if (image.isEmpty()) {
-          return { success: false, error: 'No image in clipboard' };
+          return { success: false, error: "No image in clipboard" };
         }
         return {
           success: true,
           content: image.toDataURL(),
-          base64: image.toPNG().toString('base64'),
-          size: image.getSize()
+          base64: image.toPNG().toString("base64"),
+          size: image.getSize(),
         };
+      }
 
       default:
         return { success: false, error: `Unknown clipboard type: ${type}` };
@@ -434,32 +462,33 @@ class DesktopAction extends EventEmitter {
    * @param {string} type - 内容类型
    * @returns {Object}
    */
-  setClipboard(content, type = 'text') {
+  setClipboard(content, type = "text") {
     switch (type) {
-      case 'text':
+      case "text":
         clipboard.writeText(content);
         break;
 
-      case 'html':
+      case "html":
         clipboard.writeHTML(content);
         break;
 
-      case 'image':
+      case "image": {
         // base64 或文件路径
         let image;
-        if (content.startsWith('data:')) {
+        if (content.startsWith("data:")) {
           image = nativeImage.createFromDataURL(content);
         } else {
           image = nativeImage.createFromPath(content);
         }
         clipboard.writeImage(image);
         break;
+      }
 
       default:
         return { success: false, error: `Unknown clipboard type: ${type}` };
     }
 
-    this.emit('clipboardSet', { type });
+    this.emit("clipboardSet", { type });
 
     return { success: true, type };
   }
@@ -471,7 +500,7 @@ class DesktopAction extends EventEmitter {
   getAllWindows() {
     const windows = BrowserWindow.getAllWindows();
 
-    return windows.map(win => ({
+    return windows.map((win) => ({
       id: win.id,
       title: win.getTitle(),
       bounds: win.getBounds(),
@@ -479,7 +508,7 @@ class DesktopAction extends EventEmitter {
       isFocused: win.isFocused(),
       isMinimized: win.isMinimized(),
       isMaximized: win.isMaximized(),
-      isFullScreen: win.isFullScreen()
+      isFullScreen: win.isFullScreen(),
     }));
   }
 
@@ -499,7 +528,7 @@ class DesktopAction extends EventEmitter {
     }
     win.focus();
 
-    this.emit('windowFocused', { windowId });
+    this.emit("windowFocused", { windowId });
 
     return { success: true, windowId };
   }
@@ -518,7 +547,7 @@ class DesktopAction extends EventEmitter {
 
     win.setBounds(bounds);
 
-    this.emit('windowBoundsChanged', { windowId, bounds });
+    this.emit("windowBoundsChanged", { windowId, bounds });
 
     return { success: true, windowId, bounds };
   }
@@ -541,8 +570,8 @@ class DesktopAction extends EventEmitter {
       rgb: {
         r: parseInt(color.substr(0, 2), 16),
         g: parseInt(color.substr(2, 2), 16),
-        b: parseInt(color.substr(4, 2), 16)
-      }
+        b: parseInt(color.substr(4, 2), 16),
+      },
     };
   }
 
@@ -555,9 +584,9 @@ class DesktopAction extends EventEmitter {
     const robot = this._loadRobot();
     robot.scrollMouse(0, amount);
 
-    this.emit('desktopScroll', { amount });
+    this.emit("desktopScroll", { amount });
 
-    return { success: true, action: 'scroll', amount };
+    return { success: true, action: "scroll", amount };
   }
 
   /**
@@ -569,52 +598,58 @@ class DesktopAction extends EventEmitter {
     const { action } = options;
 
     switch (action) {
-      case 'captureScreen':
+      case "captureScreen":
         return this.captureScreen(options);
 
-      case 'click':
+      case "click":
         return this.click(options.x, options.y, options);
 
-      case 'moveMouse':
+      case "moveMouse":
         return this.moveMouse(options.x, options.y, options);
 
-      case 'drag':
-        return this.drag(options.fromX, options.fromY, options.toX, options.toY, options);
+      case "drag":
+        return this.drag(
+          options.fromX,
+          options.fromY,
+          options.toX,
+          options.toY,
+          options,
+        );
 
-      case 'typeText':
+      case "typeText":
         return this.typeText(options.text, options);
 
-      case 'pressKey':
+      case "pressKey":
         return this.pressKey(options.key, options.modifiers || []);
 
-      case 'shortcut':
+      case "shortcut":
         return this.executeShortcut(options.shortcut);
 
-      case 'getClipboard':
+      case "getClipboard":
         return this.getClipboard(options.type);
 
-      case 'setClipboard':
+      case "setClipboard":
         return this.setClipboard(options.content, options.type);
 
-      case 'getScreenInfo':
+      case "getScreenInfo":
         return { success: true, ...this.getScreenInfo() };
 
-      case 'getMousePosition':
+      case "getMousePosition":
         return { success: true, ...this.getMousePosition() };
 
-      case 'getPixelColor':
+      case "getPixelColor":
         return this.getPixelColor(options.x, options.y);
 
-      case 'scroll':
+      case "scroll":
         return this.scroll(options.amount);
 
-      case 'getAllWindows':
+      case "getAllWindows":
         return { success: true, windows: this.getAllWindows() };
 
-      case 'focusWindow':
+      case "focusWindow":
         return this.focusWindow(options.windowId);
 
-      case 'setWindowBounds':
+      case "setWindowBounds":
         return this.setWindowBounds(options.windowId, options.bounds);
 
       default:
@@ -626,5 +661,5 @@ class DesktopAction extends EventEmitter {
 module.exports = {
   DesktopAction,
   SpecialKey,
-  Modifier
+  Modifier,
 };

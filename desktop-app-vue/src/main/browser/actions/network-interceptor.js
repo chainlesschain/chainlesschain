@@ -13,31 +13,76 @@
  * @since v0.33.0
  */
 
-const { EventEmitter } = require('events');
+const { EventEmitter } = require("events");
 
 /**
  * 网络条件预设
  */
 const NetworkCondition = {
-  OFFLINE: { offline: true, downloadThroughput: 0, uploadThroughput: 0, latency: 0 },
-  SLOW_2G: { offline: false, downloadThroughput: 50 * 1024, uploadThroughput: 20 * 1024, latency: 2000 },
-  GOOD_2G: { offline: false, downloadThroughput: 250 * 1024, uploadThroughput: 50 * 1024, latency: 1500 },
-  SLOW_3G: { offline: false, downloadThroughput: 500 * 1024, uploadThroughput: 100 * 1024, latency: 400 },
-  FAST_3G: { offline: false, downloadThroughput: 1.5 * 1024 * 1024, uploadThroughput: 750 * 1024, latency: 300 },
-  SLOW_4G: { offline: false, downloadThroughput: 4 * 1024 * 1024, uploadThroughput: 1 * 1024 * 1024, latency: 150 },
-  FAST_4G: { offline: false, downloadThroughput: 20 * 1024 * 1024, uploadThroughput: 5 * 1024 * 1024, latency: 50 },
-  WIFI: { offline: false, downloadThroughput: 50 * 1024 * 1024, uploadThroughput: 20 * 1024 * 1024, latency: 10 },
-  NO_THROTTLE: { offline: false, downloadThroughput: -1, uploadThroughput: -1, latency: 0 }
+  OFFLINE: {
+    offline: true,
+    downloadThroughput: 0,
+    uploadThroughput: 0,
+    latency: 0,
+  },
+  SLOW_2G: {
+    offline: false,
+    downloadThroughput: 50 * 1024,
+    uploadThroughput: 20 * 1024,
+    latency: 2000,
+  },
+  GOOD_2G: {
+    offline: false,
+    downloadThroughput: 250 * 1024,
+    uploadThroughput: 50 * 1024,
+    latency: 1500,
+  },
+  SLOW_3G: {
+    offline: false,
+    downloadThroughput: 500 * 1024,
+    uploadThroughput: 100 * 1024,
+    latency: 400,
+  },
+  FAST_3G: {
+    offline: false,
+    downloadThroughput: 1.5 * 1024 * 1024,
+    uploadThroughput: 750 * 1024,
+    latency: 300,
+  },
+  SLOW_4G: {
+    offline: false,
+    downloadThroughput: 4 * 1024 * 1024,
+    uploadThroughput: 1 * 1024 * 1024,
+    latency: 150,
+  },
+  FAST_4G: {
+    offline: false,
+    downloadThroughput: 20 * 1024 * 1024,
+    uploadThroughput: 5 * 1024 * 1024,
+    latency: 50,
+  },
+  WIFI: {
+    offline: false,
+    downloadThroughput: 50 * 1024 * 1024,
+    uploadThroughput: 20 * 1024 * 1024,
+    latency: 10,
+  },
+  NO_THROTTLE: {
+    offline: false,
+    downloadThroughput: -1,
+    uploadThroughput: -1,
+    latency: 0,
+  },
 };
 
 /**
  * 请求拦截类型
  */
 const InterceptType = {
-  ABORT: 'abort',          // 终止请求
-  CONTINUE: 'continue',    // 继续请求（可能修改）
-  FULFILL: 'fulfill',      // 直接返回响应
-  MOCK: 'mock'             // 返回模拟数据
+  ABORT: "abort", // 终止请求
+  CONTINUE: "continue", // 继续请求（可能修改）
+  FULFILL: "fulfill", // 直接返回响应
+  MOCK: "mock", // 返回模拟数据
 };
 
 class NetworkInterceptor extends EventEmitter {
@@ -90,12 +135,12 @@ class NetworkInterceptor extends EventEmitter {
 
     // 规范化 URL 模式
     let urlMatcher;
-    if (typeof rule.urlPattern === 'string') {
+    if (typeof rule.urlPattern === "string") {
       // 支持通配符
       const regexPattern = rule.urlPattern
-        .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-        .replace(/\*/g, '.*')
-        .replace(/\?/g, '.');
+        .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*/g, ".*")
+        .replace(/\?/g, ".");
       urlMatcher = new RegExp(regexPattern);
     } else if (rule.urlPattern instanceof RegExp) {
       urlMatcher = rule.urlPattern;
@@ -107,10 +152,10 @@ class NetworkInterceptor extends EventEmitter {
       ...rule,
       id: ruleId,
       urlMatcher,
-      createdAt: Date.now()
+      createdAt: Date.now(),
     });
 
-    this.emit('ruleAdded', { ruleId, rule });
+    this.emit("ruleAdded", { ruleId, rule });
 
     return ruleId;
   }
@@ -123,7 +168,7 @@ class NetworkInterceptor extends EventEmitter {
   removeRule(ruleId) {
     const removed = this.interceptRules.delete(ruleId);
     if (removed) {
-      this.emit('ruleRemoved', { ruleId });
+      this.emit("ruleRemoved", { ruleId });
     }
     return removed;
   }
@@ -133,7 +178,7 @@ class NetworkInterceptor extends EventEmitter {
    */
   clearRules() {
     this.interceptRules.clear();
-    this.emit('rulesCleared');
+    this.emit("rulesCleared");
   }
 
   /**
@@ -150,7 +195,7 @@ class NetworkInterceptor extends EventEmitter {
     }
 
     // 设置路由处理器
-    await page.route('**/*', async (route, request) => {
+    await page.route("**/*", async (route, request) => {
       const url = request.url();
       const method = request.method();
       const resourceType = request.resourceType();
@@ -163,7 +208,7 @@ class NetworkInterceptor extends EventEmitter {
         method,
         resourceType,
         headers: request.headers(),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       this._addToLog(logEntry);
 
@@ -186,14 +231,14 @@ class NetworkInterceptor extends EventEmitter {
         return;
       }
 
-      this.emit('requestIntercepted', { ...logEntry, rule: matchedRule.id });
+      this.emit("requestIntercepted", { ...logEntry, rule: matchedRule.id });
 
       try {
         switch (matchedRule.type) {
           case InterceptType.ABORT:
-            await route.abort(matchedRule.errorCode || 'failed');
+            await route.abort(matchedRule.errorCode || "failed");
             logEntry.intercepted = true;
-            logEntry.action = 'aborted';
+            logEntry.action = "aborted";
             break;
 
           case InterceptType.FULFILL:
@@ -201,11 +246,12 @@ class NetworkInterceptor extends EventEmitter {
             await route.fulfill({
               status: matchedRule.response?.status || 200,
               headers: matchedRule.response?.headers || {},
-              body: matchedRule.response?.body || '',
-              contentType: matchedRule.response?.contentType || 'application/json'
+              body: matchedRule.response?.body || "",
+              contentType:
+                matchedRule.response?.contentType || "application/json",
             });
             logEntry.intercepted = true;
-            logEntry.action = 'fulfilled';
+            logEntry.action = "fulfilled";
             logEntry.mockResponse = true;
             break;
 
@@ -218,25 +264,25 @@ class NetworkInterceptor extends EventEmitter {
               // 使用规则中的修改
               await route.continue({
                 headers: matchedRule.modifyHeaders,
-                postData: matchedRule.modifyBody
+                postData: matchedRule.modifyBody,
               });
             }
             logEntry.intercepted = true;
-            logEntry.action = 'modified';
+            logEntry.action = "modified";
             break;
 
           default:
             await route.continue();
         }
       } catch (error) {
-        this.emit('interceptError', { ...logEntry, error: error.message });
+        this.emit("interceptError", { ...logEntry, error: error.message });
         await route.continue().catch(() => {});
       }
     });
 
     this.activeInterceptors.set(targetId, new Set());
 
-    this.emit('interceptionEnabled', { targetId });
+    this.emit("interceptionEnabled", { targetId });
   }
 
   /**
@@ -247,10 +293,10 @@ class NetworkInterceptor extends EventEmitter {
   async disableInterception(targetId) {
     const page = this._getPage(targetId);
 
-    await page.unroute('**/*').catch(() => {});
+    await page.unroute("**/*").catch(() => {});
     this.activeInterceptors.delete(targetId);
 
-    this.emit('interceptionDisabled', { targetId });
+    this.emit("interceptionDisabled", { targetId });
   }
 
   /**
@@ -275,20 +321,20 @@ class NetworkInterceptor extends EventEmitter {
     let log = [...this.requestLog];
 
     if (filter.targetId) {
-      log = log.filter(entry => entry.targetId === filter.targetId);
+      log = log.filter((entry) => entry.targetId === filter.targetId);
     }
     if (filter.method) {
-      log = log.filter(entry => entry.method === filter.method);
+      log = log.filter((entry) => entry.method === filter.method);
     }
     if (filter.urlPattern) {
       const regex = new RegExp(filter.urlPattern);
-      log = log.filter(entry => regex.test(entry.url));
+      log = log.filter((entry) => regex.test(entry.url));
     }
     if (filter.interceptedOnly) {
-      log = log.filter(entry => entry.intercepted);
+      log = log.filter((entry) => entry.intercepted);
     }
     if (filter.since) {
-      log = log.filter(entry => entry.timestamp >= filter.since);
+      log = log.filter((entry) => entry.timestamp >= filter.since);
     }
     if (filter.limit) {
       log = log.slice(-filter.limit);
@@ -303,7 +349,9 @@ class NetworkInterceptor extends EventEmitter {
    */
   clearRequestLog(targetId = null) {
     if (targetId) {
-      this.requestLog = this.requestLog.filter(entry => entry.targetId !== targetId);
+      this.requestLog = this.requestLog.filter(
+        (entry) => entry.targetId !== targetId,
+      );
     } else {
       this.requestLog = [];
     }
@@ -321,7 +369,7 @@ class NetworkInterceptor extends EventEmitter {
 
     // 解析条件
     let networkCondition;
-    if (typeof condition === 'string') {
+    if (typeof condition === "string") {
       networkCondition = NetworkCondition[condition.toUpperCase()];
       if (!networkCondition) {
         throw new Error(`Unknown network condition: ${condition}`);
@@ -334,16 +382,19 @@ class NetworkInterceptor extends EventEmitter {
     const cdpSession = await context.newCDPSession(page);
 
     try {
-      await cdpSession.send('Network.emulateNetworkConditions', {
+      await cdpSession.send("Network.emulateNetworkConditions", {
         offline: networkCondition.offline || false,
         downloadThroughput: networkCondition.downloadThroughput,
         uploadThroughput: networkCondition.uploadThroughput,
-        latency: networkCondition.latency
+        latency: networkCondition.latency,
       });
 
       this.currentCondition = networkCondition;
 
-      this.emit('networkConditionChanged', { targetId, condition: networkCondition });
+      this.emit("networkConditionChanged", {
+        targetId,
+        condition: networkCondition,
+      });
     } finally {
       await cdpSession.detach().catch(() => {});
     }
@@ -366,12 +417,12 @@ class NetworkInterceptor extends EventEmitter {
    */
   blockResourceTypes(targetId, resourceTypes) {
     const ruleId = this.addRule({
-      urlPattern: '**/*',
+      urlPattern: "**/*",
       type: InterceptType.ABORT,
       resourceType: resourceTypes,
       handler: (request) => {
         return resourceTypes.includes(request.resourceType());
-      }
+      },
     });
 
     this.enableInterception(targetId).catch(() => {});
@@ -391,12 +442,13 @@ class NetworkInterceptor extends EventEmitter {
       type: InterceptType.MOCK,
       response: {
         status: response.status || 200,
-        headers: response.headers || { 'Content-Type': 'application/json' },
-        body: typeof response.body === 'string'
-          ? response.body
-          : JSON.stringify(response.body),
-        contentType: response.contentType || 'application/json'
-      }
+        headers: response.headers || { "Content-Type": "application/json" },
+        body:
+          typeof response.body === "string"
+            ? response.body
+            : JSON.stringify(response.body),
+        contentType: response.contentType || "application/json",
+      },
     });
   }
 
@@ -411,30 +463,31 @@ class NetworkInterceptor extends EventEmitter {
     const page = this._getPage(targetId);
     const timeout = options.timeout || 30000;
 
-    const urlMatcher = typeof urlPattern === 'string'
-      ? (url) => url.includes(urlPattern)
-      : (url) => urlPattern.test(url);
+    const urlMatcher =
+      typeof urlPattern === "string"
+        ? (url) => url.includes(urlPattern)
+        : (url) => urlPattern.test(url);
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        page.off('request', handler);
+        page.off("request", handler);
         reject(new Error(`Timeout waiting for request: ${urlPattern}`));
       }, timeout);
 
       const handler = (request) => {
         if (urlMatcher(request.url())) {
           clearTimeout(timer);
-          page.off('request', handler);
+          page.off("request", handler);
           resolve({
             url: request.url(),
             method: request.method(),
             headers: request.headers(),
-            postData: request.postData()
+            postData: request.postData(),
           });
         }
       };
 
-      page.on('request', handler);
+      page.on("request", handler);
     });
   }
 
@@ -449,20 +502,21 @@ class NetworkInterceptor extends EventEmitter {
     const page = this._getPage(targetId);
     const timeout = options.timeout || 30000;
 
-    const urlMatcher = typeof urlPattern === 'string'
-      ? (url) => url.includes(urlPattern)
-      : (url) => urlPattern.test(url);
+    const urlMatcher =
+      typeof urlPattern === "string"
+        ? (url) => url.includes(urlPattern)
+        : (url) => urlPattern.test(url);
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        page.off('response', handler);
+        page.off("response", handler);
         reject(new Error(`Timeout waiting for response: ${urlPattern}`));
       }, timeout);
 
       const handler = async (response) => {
         if (urlMatcher(response.url())) {
           clearTimeout(timer);
-          page.off('response', handler);
+          page.off("response", handler);
 
           let body = null;
           try {
@@ -475,12 +529,12 @@ class NetworkInterceptor extends EventEmitter {
             url: response.url(),
             status: response.status(),
             headers: response.headers(),
-            body
+            body,
           });
         }
       };
 
-      page.on('response', handler);
+      page.on("response", handler);
     });
   }
 
@@ -493,7 +547,7 @@ class NetworkInterceptor extends EventEmitter {
       rulesCount: this.interceptRules.size,
       activeInterceptors: Array.from(this.activeInterceptors.keys()),
       logSize: this.requestLog.length,
-      currentCondition: this.currentCondition
+      currentCondition: this.currentCondition,
     };
   }
 
@@ -507,43 +561,58 @@ class NetworkInterceptor extends EventEmitter {
     const { action } = options;
 
     switch (action) {
-      case 'enable':
+      case "enable":
         await this.enableInterception(targetId);
-        return { success: true, action: 'enabled' };
+        return { success: true, action: "enabled" };
 
-      case 'disable':
+      case "disable":
         await this.disableInterception(targetId);
-        return { success: true, action: 'disabled' };
+        return { success: true, action: "disabled" };
 
-      case 'addRule':
+      case "addRule": {
         const ruleId = this.addRule(options.rule);
         return { success: true, ruleId };
+      }
 
-      case 'removeRule':
+      case "removeRule": {
         const removed = this.removeRule(options.ruleId);
         return { success: removed };
+      }
 
-      case 'setCondition':
+      case "setCondition": {
         await this.setNetworkCondition(targetId, options.condition);
         return { success: true };
+      }
 
-      case 'mockAPI':
+      case "mockAPI": {
         const mockRuleId = this.mockAPI(options.urlPattern, options.response);
         return { success: true, ruleId: mockRuleId };
+      }
 
-      case 'waitForRequest':
-        const request = await this.waitForRequest(targetId, options.urlPattern, options);
+      case "waitForRequest": {
+        const request = await this.waitForRequest(
+          targetId,
+          options.urlPattern,
+          options,
+        );
         return { success: true, request };
+      }
 
-      case 'waitForResponse':
-        const response = await this.waitForResponse(targetId, options.urlPattern, options);
+      case "waitForResponse": {
+        const response = await this.waitForResponse(
+          targetId,
+          options.urlPattern,
+          options,
+        );
         return { success: true, response };
+      }
 
-      case 'getLog':
+      case "getLog": {
         const log = this.getRequestLog(options.filter || {});
         return { success: true, log };
+      }
 
-      case 'getStatus':
+      case "getStatus":
         return { success: true, ...this.getStatus() };
 
       default:
@@ -555,5 +624,5 @@ class NetworkInterceptor extends EventEmitter {
 module.exports = {
   NetworkInterceptor,
   NetworkCondition,
-  InterceptType
+  InterceptType,
 };
