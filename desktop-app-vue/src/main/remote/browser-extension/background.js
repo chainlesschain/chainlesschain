@@ -751,7 +751,11 @@ async function executeCommand(method, params) {
 
     // Device Emulation
     case "device.setUserAgent":
-      return await setUserAgent(params.tabId, params.userAgent, params.platform);
+      return await setUserAgent(
+        params.tabId,
+        params.userAgent,
+        params.platform,
+      );
     case "device.getUserAgent":
       return await getUserAgent(params.tabId);
     case "device.setTimezone":
@@ -759,7 +763,12 @@ async function executeCommand(method, params) {
     case "device.setLocale":
       return await setLocale(params.tabId, params.locale);
     case "device.setGeolocation":
-      return await setGeolocationOverride(params.tabId, params.latitude, params.longitude, params.accuracy);
+      return await setGeolocationOverride(
+        params.tabId,
+        params.latitude,
+        params.longitude,
+        params.accuracy,
+      );
     case "device.clearGeolocation":
       return await clearGeolocationOverride(params.tabId);
 
@@ -771,13 +780,31 @@ async function executeCommand(method, params) {
     case "touch.tap":
       return await emulateTap(params.tabId, params.x, params.y, params.options);
     case "touch.swipe":
-      return await emulateSwipe(params.tabId, params.startX, params.startY, params.endX, params.endY, params.options);
+      return await emulateSwipe(
+        params.tabId,
+        params.startX,
+        params.startY,
+        params.endX,
+        params.endY,
+        params.options,
+      );
     case "touch.pinch":
-      return await emulatePinch(params.tabId, params.x, params.y, params.scale, params.options);
+      return await emulatePinch(
+        params.tabId,
+        params.x,
+        params.y,
+        params.scale,
+        params.options,
+      );
 
     // Sensor Emulation
     case "sensor.setOrientation":
-      return await setSensorOrientation(params.tabId, params.alpha, params.beta, params.gamma);
+      return await setSensorOrientation(
+        params.tabId,
+        params.alpha,
+        params.beta,
+        params.gamma,
+      );
     case "sensor.setAccelerometer":
       return await setAccelerometer(params.tabId, params.x, params.y, params.z);
     case "sensor.setAmbientLight":
@@ -787,7 +814,12 @@ async function executeCommand(method, params) {
 
     // Viewport Management
     case "viewport.set":
-      return await setViewport(params.tabId, params.width, params.height, params.options);
+      return await setViewport(
+        params.tabId,
+        params.width,
+        params.height,
+        params.options,
+      );
     case "viewport.get":
       return await getViewport(params.tabId);
     case "viewport.setDeviceMetrics":
@@ -801,9 +833,17 @@ async function executeCommand(method, params) {
     case "screenshot.capture":
       return await captureScreenshot(params.tabId, params.options);
     case "screenshot.captureElement":
-      return await captureElementScreenshot(params.tabId, params.selector, params.options);
+      return await captureElementScreenshot(
+        params.tabId,
+        params.selector,
+        params.options,
+      );
     case "screenshot.compare":
-      return await compareScreenshots(params.baseline, params.current, params.options);
+      return await compareScreenshots(
+        params.baseline,
+        params.current,
+        params.options,
+      );
     case "screenshot.captureFullPage":
       return await captureFullPageScreenshot(params.tabId, params.options);
 
@@ -824,6 +864,116 @@ async function executeCommand(method, params) {
       return await printToPDF(params.tabId, params.options);
     case "print.getSettings":
       return await getPrintSettings(params.tabId);
+
+    // ==================== Phase 20: Web APIs & System Info ====================
+
+    // Web Workers
+    case "workers.list":
+      return await listWebWorkers(params.tabId);
+    case "workers.terminate":
+      return await terminateWorker(params.tabId, params.workerId);
+    case "workers.postMessage":
+      return await postMessageToWorker(
+        params.tabId,
+        params.workerId,
+        params.message,
+      );
+    case "workers.getSharedWorkers":
+      return await getSharedWorkers(params.tabId);
+
+    // Broadcast Channel
+    case "broadcast.create":
+      return await createBroadcastChannel(params.tabId, params.channelName);
+    case "broadcast.postMessage":
+      return await broadcastMessage(
+        params.tabId,
+        params.channelName,
+        params.message,
+      );
+    case "broadcast.close":
+      return await closeBroadcastChannel(params.tabId, params.channelName);
+    case "broadcast.list":
+      return await listBroadcastChannels(params.tabId);
+
+    // Web Audio
+    case "audio.getContexts":
+      return await getAudioContexts(params.tabId);
+    case "audio.suspend":
+      return await suspendAudioContext(params.tabId, params.contextId);
+    case "audio.resume":
+      return await resumeAudioContext(params.tabId, params.contextId);
+    case "audio.getNodes":
+      return await getAudioNodes(params.tabId, params.contextId);
+
+    // Canvas/WebGL
+    case "canvas.list":
+      return await listCanvasElements(params.tabId);
+    case "canvas.getContext":
+      return await getCanvasContext(params.tabId, params.selector);
+    case "canvas.toDataURL":
+      return await canvasToDataURL(
+        params.tabId,
+        params.selector,
+        params.format,
+      );
+    case "webgl.getInfo":
+      return await getWebGLInfo(params.tabId, params.selector);
+    case "webgl.getExtensions":
+      return await getWebGLExtensions(params.tabId, params.selector);
+
+    // Media Devices
+    case "media.enumerateDevices":
+      return await enumerateMediaDevices(params.tabId);
+    case "media.getSupportedConstraints":
+      return await getSupportedConstraints(params.tabId);
+    case "media.getDisplayMedia":
+      return await getDisplayMediaCapabilities(params.tabId);
+
+    // System Info APIs
+    case "system.getBattery":
+      return await getBatteryInfo(params.tabId);
+    case "system.getConnection":
+      return await getConnectionInfo(params.tabId);
+    case "system.getMemory":
+      return await getDeviceMemory(params.tabId);
+    case "system.getHardware":
+      return await getHardwareInfo(params.tabId);
+
+    // Permissions
+    case "permissions.query":
+      return await queryPermission(params.tabId, params.name);
+    case "permissions.queryAll":
+      return await queryAllPermissions(params.tabId);
+    case "permissions.request":
+      return await requestPermission(params.tabId, params.name);
+
+    // Notifications
+    case "notifications.getPermission":
+      return await getNotificationPermission(params.tabId);
+    case "notifications.requestPermission":
+      return await requestNotificationPermission(params.tabId);
+    case "notifications.create":
+      return await createNotification(
+        params.tabId,
+        params.title,
+        params.options,
+      );
+
+    // Fullscreen
+    case "fullscreen.enter":
+      return await enterFullscreen(params.tabId, params.selector);
+    case "fullscreen.exit":
+      return await exitFullscreen(params.tabId);
+    case "fullscreen.getState":
+      return await getFullscreenState(params.tabId);
+
+    // Pointer Lock
+    case "pointerLock.request":
+      return await requestPointerLock(params.tabId, params.selector);
+    case "pointerLock.exit":
+      return await exitPointerLock(params.tabId);
+    case "pointerLock.getState":
+      return await getPointerLockState(params.tabId);
 
     default:
       throw new Error(`Unknown method: ${method}`);
@@ -4954,28 +5104,28 @@ async function importAllStorage(tabId, data) {
 const THROTTLING_PROFILES = {
   "slow-3g": {
     downloadThroughput: 50000, // 50 KB/s
-    uploadThroughput: 25000,   // 25 KB/s
-    latency: 2000,             // 2000ms
+    uploadThroughput: 25000, // 25 KB/s
+    latency: 2000, // 2000ms
   },
   "fast-3g": {
     downloadThroughput: 187500, // 1.5 Mbps
-    uploadThroughput: 93750,    // 750 Kbps
-    latency: 562,               // 562ms
+    uploadThroughput: 93750, // 750 Kbps
+    latency: 562, // 562ms
   },
   "slow-4g": {
     downloadThroughput: 500000, // 4 Mbps
-    uploadThroughput: 375000,   // 3 Mbps
-    latency: 170,               // 170ms
+    uploadThroughput: 375000, // 3 Mbps
+    latency: 170, // 170ms
   },
   "fast-4g": {
     downloadThroughput: 4000000, // 32 Mbps
-    uploadThroughput: 1500000,   // 12 Mbps
-    latency: 50,                 // 50ms
+    uploadThroughput: 1500000, // 12 Mbps
+    latency: 50, // 50ms
   },
   wifi: {
     downloadThroughput: 3750000, // 30 Mbps
-    uploadThroughput: 1500000,   // 12 Mbps
-    latency: 2,                  // 2ms
+    uploadThroughput: 1500000, // 12 Mbps
+    latency: 2, // 2ms
   },
 };
 
@@ -5064,10 +5214,14 @@ async function setOfflineMode(tabId, offline) {
 async function setUserAgent(tabId, userAgent, platform) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setUserAgentOverride", {
-      userAgent: userAgent,
-      platform: platform || "",
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setUserAgentOverride",
+      {
+        userAgent: userAgent,
+        platform: platform || "",
+      },
+    );
     return { success: true, userAgent };
   } catch (error) {
     return { error: error.message };
@@ -5095,9 +5249,13 @@ async function getUserAgent(tabId) {
 async function setTimezone(tabId, timezoneId) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setTimezoneOverride", {
-      timezoneId: timezoneId,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setTimezoneOverride",
+      {
+        timezoneId: timezoneId,
+      },
+    );
     return { success: true, timezoneId };
   } catch (error) {
     return { error: error.message };
@@ -5107,9 +5265,13 @@ async function setTimezone(tabId, timezoneId) {
 async function setLocale(tabId, locale) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setLocaleOverride", {
-      locale: locale,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setLocaleOverride",
+      {
+        locale: locale,
+      },
+    );
     return { success: true, locale };
   } catch (error) {
     return { error: error.message };
@@ -5119,11 +5281,15 @@ async function setLocale(tabId, locale) {
 async function setGeolocationOverride(tabId, latitude, longitude, accuracy) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setGeolocationOverride", {
-      latitude: latitude,
-      longitude: longitude,
-      accuracy: accuracy || 100,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setGeolocationOverride",
+      {
+        latitude: latitude,
+        longitude: longitude,
+        accuracy: accuracy || 100,
+      },
+    );
     return { success: true, latitude, longitude, accuracy };
   } catch (error) {
     return { error: error.message };
@@ -5133,7 +5299,10 @@ async function setGeolocationOverride(tabId, latitude, longitude, accuracy) {
 async function clearGeolocationOverride(tabId) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.clearGeolocationOverride");
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.clearGeolocationOverride",
+    );
     return { success: true };
   } catch (error) {
     return { error: error.message };
@@ -5145,10 +5314,14 @@ async function clearGeolocationOverride(tabId) {
 async function enableTouchEmulation(tabId, options = {}) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setTouchEmulationEnabled", {
-      enabled: true,
-      maxTouchPoints: options.maxTouchPoints || 5,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setTouchEmulationEnabled",
+      {
+        enabled: true,
+        maxTouchPoints: options.maxTouchPoints || 5,
+      },
+    );
     return { success: true };
   } catch (error) {
     return { error: error.message };
@@ -5158,9 +5331,13 @@ async function enableTouchEmulation(tabId, options = {}) {
 async function disableTouchEmulation(tabId) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setTouchEmulationEnabled", {
-      enabled: false,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setTouchEmulationEnabled",
+      {
+        enabled: false,
+      },
+    );
     return { success: true };
   } catch (error) {
     return { error: error.message };
@@ -5216,7 +5393,11 @@ async function emulateSwipe(tabId, startX, startY, endX, endY, options = {}) {
       touchPoints: [],
     });
 
-    return { success: true, from: { x: startX, y: startY }, to: { x: endX, y: endY } };
+    return {
+      success: true,
+      from: { x: startX, y: startY },
+      to: { x: endX, y: endY },
+    };
   } catch (error) {
     return { error: error.message };
   }
@@ -5225,13 +5406,17 @@ async function emulateSwipe(tabId, startX, startY, endX, endY, options = {}) {
 async function emulatePinch(tabId, x, y, scale, options = {}) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Input.synthesizePinchGesture", {
-      x: x,
-      y: y,
-      scaleFactor: scale,
-      relativeSpeed: options.speed || 800,
-      gestureSourceType: "touch",
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Input.synthesizePinchGesture",
+      {
+        x: x,
+        y: y,
+        scaleFactor: scale,
+        relativeSpeed: options.speed || 800,
+        gestureSourceType: "touch",
+      },
+    );
     return { success: true, x, y, scale };
   } catch (error) {
     return { error: error.message };
@@ -5243,11 +5428,15 @@ async function emulatePinch(tabId, x, y, scale, options = {}) {
 async function setSensorOrientation(tabId, alpha, beta, gamma) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "DeviceOrientation.setDeviceOrientationOverride", {
-      alpha: alpha || 0,
-      beta: beta || 0,
-      gamma: gamma || 0,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "DeviceOrientation.setDeviceOrientationOverride",
+      {
+        alpha: alpha || 0,
+        beta: beta || 0,
+        gamma: gamma || 0,
+      },
+    );
     return { success: true, alpha, beta, gamma };
   } catch (error) {
     return { error: error.message };
@@ -5295,7 +5484,10 @@ async function setAmbientLight(tabId, illuminance) {
 async function clearSensorOverrides(tabId) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "DeviceOrientation.clearDeviceOrientationOverride");
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "DeviceOrientation.clearDeviceOrientationOverride",
+    );
     await chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
@@ -5314,28 +5506,67 @@ async function clearSensorOverrides(tabId) {
 const VIEWPORT_PRESETS = {
   "iphone-se": { width: 375, height: 667, deviceScaleFactor: 2, mobile: true },
   "iphone-12": { width: 390, height: 844, deviceScaleFactor: 3, mobile: true },
-  "iphone-14-pro": { width: 393, height: 852, deviceScaleFactor: 3, mobile: true },
+  "iphone-14-pro": {
+    width: 393,
+    height: 852,
+    deviceScaleFactor: 3,
+    mobile: true,
+  },
   "pixel-5": { width: 393, height: 851, deviceScaleFactor: 2.75, mobile: true },
-  "samsung-s21": { width: 360, height: 800, deviceScaleFactor: 3, mobile: true },
+  "samsung-s21": {
+    width: 360,
+    height: 800,
+    deviceScaleFactor: 3,
+    mobile: true,
+  },
   "ipad-mini": { width: 768, height: 1024, deviceScaleFactor: 2, mobile: true },
-  "ipad-pro-11": { width: 834, height: 1194, deviceScaleFactor: 2, mobile: true },
-  "ipad-pro-12": { width: 1024, height: 1366, deviceScaleFactor: 2, mobile: true },
-  "desktop-hd": { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false },
-  "desktop-fhd": { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false },
-  "desktop-2k": { width: 2560, height: 1440, deviceScaleFactor: 1, mobile: false },
+  "ipad-pro-11": {
+    width: 834,
+    height: 1194,
+    deviceScaleFactor: 2,
+    mobile: true,
+  },
+  "ipad-pro-12": {
+    width: 1024,
+    height: 1366,
+    deviceScaleFactor: 2,
+    mobile: true,
+  },
+  "desktop-hd": {
+    width: 1280,
+    height: 720,
+    deviceScaleFactor: 1,
+    mobile: false,
+  },
+  "desktop-fhd": {
+    width: 1920,
+    height: 1080,
+    deviceScaleFactor: 1,
+    mobile: false,
+  },
+  "desktop-2k": {
+    width: 2560,
+    height: 1440,
+    deviceScaleFactor: 1,
+    mobile: false,
+  },
 };
 
 async function setViewport(tabId, width, height, options = {}) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setDeviceMetricsOverride", {
-      width: width,
-      height: height,
-      deviceScaleFactor: options.deviceScaleFactor || 1,
-      mobile: options.mobile || false,
-      screenWidth: width,
-      screenHeight: height,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setDeviceMetricsOverride",
+      {
+        width: width,
+        height: height,
+        deviceScaleFactor: options.deviceScaleFactor || 1,
+        mobile: options.mobile || false,
+        screenWidth: width,
+        screenHeight: height,
+      },
+    );
     return { success: true, width, height };
   } catch (error) {
     return { error: error.message };
@@ -5376,23 +5607,35 @@ async function setDeviceMetricsOverride(tabId, metrics) {
       return { error: `Unknown viewport preset: ${metrics}` };
     }
 
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setDeviceMetricsOverride", {
-      width: preset.width,
-      height: preset.height,
-      deviceScaleFactor: preset.deviceScaleFactor || 1,
-      mobile: preset.mobile || false,
-      screenWidth: preset.width,
-      screenHeight: preset.height,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setDeviceMetricsOverride",
+      {
+        width: preset.width,
+        height: preset.height,
+        deviceScaleFactor: preset.deviceScaleFactor || 1,
+        mobile: preset.mobile || false,
+        screenWidth: preset.width,
+        screenHeight: preset.height,
+      },
+    );
 
     if (preset.mobile) {
-      await chrome.debugger.sendCommand({ tabId }, "Emulation.setTouchEmulationEnabled", {
-        enabled: true,
-        maxTouchPoints: 5,
-      });
+      await chrome.debugger.sendCommand(
+        { tabId },
+        "Emulation.setTouchEmulationEnabled",
+        {
+          enabled: true,
+          maxTouchPoints: 5,
+        },
+      );
     }
 
-    return { success: true, preset: typeof metrics === "string" ? metrics : "custom", ...preset };
+    return {
+      success: true,
+      preset: typeof metrics === "string" ? metrics : "custom",
+      ...preset,
+    };
   } catch (error) {
     return { error: error.message };
   }
@@ -5401,10 +5644,17 @@ async function setDeviceMetricsOverride(tabId, metrics) {
 async function clearDeviceMetricsOverride(tabId) {
   try {
     await ensureDebuggerAttached(tabId);
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.clearDeviceMetricsOverride");
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setTouchEmulationEnabled", {
-      enabled: false,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.clearDeviceMetricsOverride",
+    );
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setTouchEmulationEnabled",
+      {
+        enabled: false,
+      },
+    );
     return { success: true };
   } catch (error) {
     return { error: error.message };
@@ -5425,11 +5675,15 @@ function getViewportPresets() {
 async function captureScreenshot(tabId, options = {}) {
   try {
     await ensureDebuggerAttached(tabId);
-    const result = await chrome.debugger.sendCommand({ tabId }, "Page.captureScreenshot", {
-      format: options.format || "png",
-      quality: options.quality || 100,
-      fromSurface: true,
-    });
+    const result = await chrome.debugger.sendCommand(
+      { tabId },
+      "Page.captureScreenshot",
+      {
+        format: options.format || "png",
+        quality: options.quality || 100,
+        fromSurface: true,
+      },
+    );
     return {
       success: true,
       data: result.data,
@@ -5446,18 +5700,26 @@ async function captureElementScreenshot(tabId, selector, options = {}) {
     await chrome.debugger.sendCommand({ tabId }, "DOM.enable");
 
     const doc = await chrome.debugger.sendCommand({ tabId }, "DOM.getDocument");
-    const nodeResult = await chrome.debugger.sendCommand({ tabId }, "DOM.querySelector", {
-      nodeId: doc.root.nodeId,
-      selector: selector,
-    });
+    const nodeResult = await chrome.debugger.sendCommand(
+      { tabId },
+      "DOM.querySelector",
+      {
+        nodeId: doc.root.nodeId,
+        selector: selector,
+      },
+    );
 
     if (!nodeResult.nodeId) {
       return { error: "Element not found" };
     }
 
-    const boxModel = await chrome.debugger.sendCommand({ tabId }, "DOM.getBoxModel", {
-      nodeId: nodeResult.nodeId,
-    });
+    const boxModel = await chrome.debugger.sendCommand(
+      { tabId },
+      "DOM.getBoxModel",
+      {
+        nodeId: nodeResult.nodeId,
+      },
+    );
 
     const content = boxModel.model.content;
     const clip = {
@@ -5468,12 +5730,16 @@ async function captureElementScreenshot(tabId, selector, options = {}) {
       scale: 1,
     };
 
-    const result = await chrome.debugger.sendCommand({ tabId }, "Page.captureScreenshot", {
-      format: options.format || "png",
-      quality: options.quality || 100,
-      clip: clip,
-      fromSurface: true,
-    });
+    const result = await chrome.debugger.sendCommand(
+      { tabId },
+      "Page.captureScreenshot",
+      {
+        format: options.format || "png",
+        quality: options.quality || 100,
+        clip: clip,
+        fromSurface: true,
+      },
+    );
 
     return {
       success: true,
@@ -5491,7 +5757,11 @@ async function compareScreenshots(baseline, current, options = {}) {
     // Simple pixel comparison (basic implementation)
     // In production, use a proper image comparison library
     const result = await chrome.scripting.executeScript({
-      target: { tabId: (await chrome.tabs.query({ active: true, currentWindow: true }))[0].id },
+      target: {
+        tabId: (
+          await chrome.tabs.query({ active: true, currentWindow: true })
+        )[0].id,
+      },
       func: async (base, curr, opts) => {
         // Create canvas for comparison
         const loadImage = (data) => {
@@ -5561,28 +5831,42 @@ async function captureFullPageScreenshot(tabId, options = {}) {
     await ensureDebuggerAttached(tabId);
 
     // Get full page dimensions
-    const layoutMetrics = await chrome.debugger.sendCommand({ tabId }, "Page.getLayoutMetrics");
+    const layoutMetrics = await chrome.debugger.sendCommand(
+      { tabId },
+      "Page.getLayoutMetrics",
+    );
 
     const contentSize = layoutMetrics.contentSize;
 
     // Set viewport to full page size
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.setDeviceMetricsOverride", {
-      width: Math.ceil(contentSize.width),
-      height: Math.ceil(contentSize.height),
-      deviceScaleFactor: 1,
-      mobile: false,
-    });
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.setDeviceMetricsOverride",
+      {
+        width: Math.ceil(contentSize.width),
+        height: Math.ceil(contentSize.height),
+        deviceScaleFactor: 1,
+        mobile: false,
+      },
+    );
 
     // Capture screenshot
-    const result = await chrome.debugger.sendCommand({ tabId }, "Page.captureScreenshot", {
-      format: options.format || "png",
-      quality: options.quality || 100,
-      fromSurface: true,
-      captureBeyondViewport: true,
-    });
+    const result = await chrome.debugger.sendCommand(
+      { tabId },
+      "Page.captureScreenshot",
+      {
+        format: options.format || "png",
+        quality: options.quality || 100,
+        fromSurface: true,
+        captureBeyondViewport: true,
+      },
+    );
 
     // Reset viewport
-    await chrome.debugger.sendCommand({ tabId }, "Emulation.clearDeviceMetricsOverride");
+    await chrome.debugger.sendCommand(
+      { tabId },
+      "Emulation.clearDeviceMetricsOverride",
+    );
 
     return {
       success: true,
@@ -5736,10 +6020,14 @@ async function getPrintPreview(tabId, options = {}) {
     });
 
     // Capture screenshot in print mode
-    const screenshot = await chrome.debugger.sendCommand({ tabId }, "Page.captureScreenshot", {
-      format: "png",
-      quality: 100,
-    });
+    const screenshot = await chrome.debugger.sendCommand(
+      { tabId },
+      "Page.captureScreenshot",
+      {
+        format: "png",
+        quality: 100,
+      },
+    );
 
     // Reset media
     await chrome.debugger.sendCommand({ tabId }, "Emulation.setEmulatedMedia", {
@@ -5782,7 +6070,11 @@ async function printToPDF(tabId, options = {}) {
       pdfOptions.footerTemplate = options.footerTemplate;
     }
 
-    const result = await chrome.debugger.sendCommand({ tabId }, "Page.printToPDF", pdfOptions);
+    const result = await chrome.debugger.sendCommand(
+      { tabId },
+      "Page.printToPDF",
+      pdfOptions,
+    );
 
     return {
       success: true,
@@ -5801,7 +6093,9 @@ async function getPrintSettings(tabId) {
       func: () => {
         const style = getComputedStyle(document.documentElement);
         return {
-          hasMediaPrint: !!document.querySelector('style[media="print"], link[media="print"]'),
+          hasMediaPrint: !!document.querySelector(
+            'style[media="print"], link[media="print"]',
+          ),
           pageSize: style.getPropertyValue("--page-size") || "auto",
           orientation: window.matchMedia("(orientation: portrait)").matches
             ? "portrait"
@@ -5810,6 +6104,856 @@ async function getPrintSettings(tabId) {
       },
     });
     return result[0]?.result || { error: "Failed to get settings" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: Web Workers ====================
+
+async function listWebWorkers(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // Track workers via performance API
+        const entries = performance.getEntriesByType("resource");
+        const workerScripts = entries.filter(
+          (e) => e.initiatorType === "script" && e.name.includes("worker"),
+        );
+        return {
+          detected: workerScripts.map((w) => ({
+            name: w.name,
+            duration: w.duration,
+            startTime: w.startTime,
+          })),
+          note: "Worker detection is limited without debugger API",
+        };
+      },
+    });
+    return result[0]?.result || { detected: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function terminateWorker(tabId, workerId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (wId) => {
+        const worker = window.__chainlessWorkers?.get(wId);
+        if (worker) {
+          worker.terminate();
+          window.__chainlessWorkers.delete(wId);
+          return { success: true };
+        }
+        return { error: "Worker not found or not tracked" };
+      },
+      args: [workerId],
+    });
+    return result[0]?.result || { error: "Failed to terminate worker" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function postMessageToWorker(tabId, workerId, message) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (wId, msg) => {
+        const worker = window.__chainlessWorkers?.get(wId);
+        if (worker) {
+          worker.postMessage(msg);
+          return { success: true };
+        }
+        return { error: "Worker not found or not tracked" };
+      },
+      args: [workerId, message],
+    });
+    return result[0]?.result || { error: "Failed to post message" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSharedWorkers(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          note: "SharedWorker enumeration requires Service Worker scope",
+          supported: typeof SharedWorker !== "undefined",
+        };
+      },
+    });
+    return result[0]?.result || { error: "Failed to get shared workers" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: Broadcast Channel ====================
+
+async function createBroadcastChannel(tabId, channelName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name) => {
+        if (!window.__chainlessBroadcastChannels) {
+          window.__chainlessBroadcastChannels = new Map();
+        }
+        if (window.__chainlessBroadcastChannels.has(name)) {
+          return { error: "Channel already exists" };
+        }
+        const channel = new BroadcastChannel(name);
+        window.__chainlessBroadcastChannels.set(name, {
+          channel,
+          messages: [],
+        });
+        channel.onmessage = (event) => {
+          window.__chainlessBroadcastChannels.get(name).messages.push({
+            data: event.data,
+            timestamp: Date.now(),
+          });
+        };
+        return { success: true, channelName: name };
+      },
+      args: [channelName],
+    });
+    return result[0]?.result || { error: "Failed to create channel" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function broadcastMessage(tabId, channelName, message) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name, msg) => {
+        const entry = window.__chainlessBroadcastChannels?.get(name);
+        if (entry) {
+          entry.channel.postMessage(msg);
+          return { success: true };
+        }
+        return { error: "Channel not found" };
+      },
+      args: [channelName, message],
+    });
+    return result[0]?.result || { error: "Failed to broadcast" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function closeBroadcastChannel(tabId, channelName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name) => {
+        const entry = window.__chainlessBroadcastChannels?.get(name);
+        if (entry) {
+          entry.channel.close();
+          window.__chainlessBroadcastChannels.delete(name);
+          return { success: true };
+        }
+        return { error: "Channel not found" };
+      },
+      args: [channelName],
+    });
+    return result[0]?.result || { error: "Failed to close channel" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function listBroadcastChannels(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const channels = window.__chainlessBroadcastChannels;
+        if (!channels) {
+          return { channels: [] };
+        }
+        return {
+          channels: Array.from(channels.entries()).map(([name, entry]) => ({
+            name,
+            messageCount: entry.messages.length,
+          })),
+        };
+      },
+    });
+    return result[0]?.result || { channels: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: Web Audio ====================
+
+async function getAudioContexts(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const contexts = [];
+        // Check for tracked audio contexts
+        if (window.__chainlessAudioContexts) {
+          window.__chainlessAudioContexts.forEach((ctx, id) => {
+            contexts.push({
+              id,
+              state: ctx.state,
+              sampleRate: ctx.sampleRate,
+              currentTime: ctx.currentTime,
+              baseLatency: ctx.baseLatency,
+            });
+          });
+        }
+        return {
+          contexts,
+          audioContextSupported: typeof AudioContext !== "undefined",
+        };
+      },
+    });
+    return result[0]?.result || { contexts: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function suspendAudioContext(tabId, contextId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (ctxId) => {
+        const ctx = window.__chainlessAudioContexts?.get(ctxId);
+        if (ctx) {
+          await ctx.suspend();
+          return { success: true, state: ctx.state };
+        }
+        return { error: "Audio context not found" };
+      },
+      args: [contextId],
+    });
+    return result[0]?.result || { error: "Failed to suspend" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function resumeAudioContext(tabId, contextId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (ctxId) => {
+        const ctx = window.__chainlessAudioContexts?.get(ctxId);
+        if (ctx) {
+          await ctx.resume();
+          return { success: true, state: ctx.state };
+        }
+        return { error: "Audio context not found" };
+      },
+      args: [contextId],
+    });
+    return result[0]?.result || { error: "Failed to resume" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getAudioNodes(tabId, contextId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (ctxId) => {
+        return {
+          note: "Audio node enumeration requires custom tracking",
+          contextId: ctxId,
+        };
+      },
+      args: [contextId],
+    });
+    return result[0]?.result || { error: "Failed to get nodes" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: Canvas/WebGL ====================
+
+async function listCanvasElements(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const canvases = document.querySelectorAll("canvas");
+        return {
+          canvases: Array.from(canvases).map((canvas, index) => ({
+            index,
+            id: canvas.id || null,
+            width: canvas.width,
+            height: canvas.height,
+            selector: canvas.id
+              ? `#${canvas.id}`
+              : `canvas:nth-of-type(${index + 1})`,
+            hasWebGL:
+              !!canvas.getContext("webgl") || !!canvas.getContext("webgl2"),
+            has2D: !!canvas.getContext("2d"),
+          })),
+          count: canvases.length,
+        };
+      },
+    });
+    return result[0]?.result || { canvases: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getCanvasContext(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const canvas = document.querySelector(sel);
+        if (!canvas || canvas.tagName !== "CANVAS") {
+          return { error: "Canvas not found" };
+        }
+        const ctx2d = canvas.getContext("2d");
+        const webgl = canvas.getContext("webgl") || canvas.getContext("webgl2");
+        return {
+          has2D: !!ctx2d,
+          hasWebGL: !!webgl,
+          width: canvas.width,
+          height: canvas.height,
+          contextAttributes: webgl?.getContextAttributes?.() || null,
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to get context" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function canvasToDataURL(tabId, selector, format = "image/png") {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, fmt) => {
+        const canvas = document.querySelector(sel);
+        if (!canvas || canvas.tagName !== "CANVAS") {
+          return { error: "Canvas not found" };
+        }
+        try {
+          const dataURL = canvas.toDataURL(fmt);
+          return {
+            success: true,
+            dataURL: dataURL.substring(0, 1000) + "...",
+            fullLength: dataURL.length,
+            format: fmt,
+          };
+        } catch (e) {
+          return { error: `Canvas tainted: ${e.message}` };
+        }
+      },
+      args: [selector, format],
+    });
+    return result[0]?.result || { error: "Failed to convert" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getWebGLInfo(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const canvas = sel
+          ? document.querySelector(sel)
+          : document.createElement("canvas");
+        const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+        if (!gl) {
+          return { error: "WebGL not available" };
+        }
+        const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+        return {
+          version: gl.getParameter(gl.VERSION),
+          vendor: gl.getParameter(gl.VENDOR),
+          renderer: debugInfo
+            ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
+            : "Unknown",
+          unmaskedVendor: debugInfo
+            ? gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL)
+            : "Unknown",
+          shadingLanguageVersion: gl.getParameter(gl.SHADING_LANGUAGE_VERSION),
+          maxTextureSize: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+          maxViewportDims: gl.getParameter(gl.MAX_VIEWPORT_DIMS),
+          maxVertexAttribs: gl.getParameter(gl.MAX_VERTEX_ATTRIBS),
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to get WebGL info" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getWebGLExtensions(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const canvas = sel
+          ? document.querySelector(sel)
+          : document.createElement("canvas");
+        const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+        if (!gl) {
+          return { error: "WebGL not available" };
+        }
+        const extensions = gl.getSupportedExtensions();
+        return {
+          extensions: extensions || [],
+          count: extensions?.length || 0,
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { extensions: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: Media Devices ====================
+
+async function enumerateMediaDevices(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          return {
+            devices: devices.map((d) => ({
+              deviceId: d.deviceId.substring(0, 20) + "...",
+              kind: d.kind,
+              label: d.label || "(no permission)",
+              groupId: d.groupId.substring(0, 20) + "...",
+            })),
+            count: devices.length,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || { devices: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSupportedConstraints(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const constraints = navigator.mediaDevices.getSupportedConstraints();
+        return { constraints };
+      },
+    });
+    return result[0]?.result || { constraints: {} };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getDisplayMediaCapabilities(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          supported:
+            typeof navigator.mediaDevices.getDisplayMedia === "function",
+          note: "getDisplayMedia requires user gesture",
+        };
+      },
+    });
+    return result[0]?.result || { supported: false };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: System Info APIs ====================
+
+async function getBatteryInfo(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!navigator.getBattery) {
+          return { error: "Battery API not supported" };
+        }
+        try {
+          const battery = await navigator.getBattery();
+          return {
+            charging: battery.charging,
+            chargingTime: battery.chargingTime,
+            dischargingTime: battery.dischargingTime,
+            level: battery.level,
+            levelPercent: (battery.level * 100).toFixed(0) + "%",
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || { error: "Failed to get battery info" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getConnectionInfo(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const connection =
+          navigator.connection ||
+          navigator.mozConnection ||
+          navigator.webkitConnection;
+        if (!connection) {
+          return { error: "Network Information API not supported" };
+        }
+        return {
+          effectiveType: connection.effectiveType,
+          downlink: connection.downlink,
+          rtt: connection.rtt,
+          saveData: connection.saveData,
+          type: connection.type,
+        };
+      },
+    });
+    return result[0]?.result || { error: "Failed to get connection info" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getDeviceMemory(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          deviceMemory: navigator.deviceMemory || "Not available",
+          deviceMemoryGB: navigator.deviceMemory
+            ? `${navigator.deviceMemory} GB`
+            : "Not available",
+        };
+      },
+    });
+    return result[0]?.result || { error: "Failed to get memory info" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getHardwareInfo(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        return {
+          hardwareConcurrency: navigator.hardwareConcurrency,
+          cpuCores: navigator.hardwareConcurrency,
+          deviceMemory: navigator.deviceMemory,
+          maxTouchPoints: navigator.maxTouchPoints,
+          platform: navigator.platform,
+          userAgent: navigator.userAgent,
+        };
+      },
+    });
+    return result[0]?.result || { error: "Failed to get hardware info" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: Permissions ====================
+
+async function queryPermission(tabId, name) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (permName) => {
+        try {
+          const status = await navigator.permissions.query({ name: permName });
+          return {
+            name: permName,
+            state: status.state,
+          };
+        } catch (e) {
+          return { name: permName, error: e.message };
+        }
+      },
+      args: [name],
+    });
+    return result[0]?.result || { error: "Failed to query permission" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function queryAllPermissions(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        const permissionNames = [
+          "geolocation",
+          "notifications",
+          "camera",
+          "microphone",
+          "clipboard-read",
+          "clipboard-write",
+          "accelerometer",
+          "gyroscope",
+          "magnetometer",
+          "ambient-light-sensor",
+          "background-sync",
+          "midi",
+          "persistent-storage",
+        ];
+        const results = {};
+        for (const name of permissionNames) {
+          try {
+            const status = await navigator.permissions.query({ name });
+            results[name] = status.state;
+          } catch {
+            results[name] = "unsupported";
+          }
+        }
+        return { permissions: results };
+      },
+    });
+    return result[0]?.result || { permissions: {} };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function requestPermission(tabId, name) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (permName) => {
+        try {
+          // Some permissions can be requested directly
+          if (permName === "notifications") {
+            const permission = await Notification.requestPermission();
+            return { name: permName, result: permission };
+          }
+          return { error: "Permission request requires user gesture" };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [name],
+    });
+    return result[0]?.result || { error: "Failed to request permission" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: Notifications ====================
+
+async function getNotificationPermission(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({
+        permission: Notification.permission,
+        supported: typeof Notification !== "undefined",
+      }),
+    });
+    return result[0]?.result || { permission: "unsupported" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function requestNotificationPermission(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        try {
+          const permission = await Notification.requestPermission();
+          return { permission };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || { error: "Failed to request permission" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function createNotification(tabId, title, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (t, opts) => {
+        if (Notification.permission !== "granted") {
+          return { error: "Notification permission not granted" };
+        }
+        try {
+          new Notification(t, opts);
+          return { success: true, title: t };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [title, options],
+    });
+    return result[0]?.result || { error: "Failed to create notification" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: Fullscreen ====================
+
+async function enterFullscreen(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (sel) => {
+        try {
+          const element = sel
+            ? document.querySelector(sel)
+            : document.documentElement;
+          if (!element) {
+            return { error: "Element not found" };
+          }
+          await element.requestFullscreen();
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to enter fullscreen" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function exitFullscreen(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        try {
+          if (document.fullscreenElement) {
+            await document.exitFullscreen();
+            return { success: true };
+          }
+          return { error: "Not in fullscreen mode" };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+    });
+    return result[0]?.result || { error: "Failed to exit fullscreen" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getFullscreenState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({
+        isFullscreen: !!document.fullscreenElement,
+        fullscreenElement: document.fullscreenElement?.tagName || null,
+        fullscreenEnabled: document.fullscreenEnabled,
+      }),
+    });
+    return result[0]?.result || { isFullscreen: false };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 20: Pointer Lock ====================
+
+async function requestPointerLock(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (sel) => {
+        try {
+          const element = sel ? document.querySelector(sel) : document.body;
+          if (!element) {
+            return { error: "Element not found" };
+          }
+          await element.requestPointerLock();
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to request pointer lock" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function exitPointerLock(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        document.exitPointerLock();
+        return { success: true };
+      },
+    });
+    return result[0]?.result || { error: "Failed to exit pointer lock" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPointerLockState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({
+        isLocked: !!document.pointerLockElement,
+        lockedElement: document.pointerLockElement?.tagName || null,
+      }),
+    });
+    return result[0]?.result || { isLocked: false };
   } catch (error) {
     return { error: error.message };
   }

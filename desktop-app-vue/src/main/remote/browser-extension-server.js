@@ -1237,11 +1237,7 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
       case "getEventLog":
-        return await this.server.sendCommand(
-          clientId,
-          "events.getLog",
-          params,
-        );
+        return await this.server.sendCommand(clientId, "events.getLog", params);
 
       // Input Recording
       case "startInputRecording":
@@ -1263,11 +1259,7 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
       case "replayInputs":
-        return await this.server.sendCommand(
-          clientId,
-          "input.replay",
-          params,
-        );
+        return await this.server.sendCommand(clientId, "input.replay", params);
       case "clearInputRecording":
         return await this.server.sendCommand(
           clientId,
@@ -1335,11 +1327,7 @@ class ExtensionBrowserHandler extends EventEmitter {
 
       // Font Inspector
       case "getUsedFonts":
-        return await this.server.sendCommand(
-          clientId,
-          "fonts.getUsed",
-          params,
-        );
+        return await this.server.sendCommand(clientId, "fonts.getUsed", params);
       case "getComputedFonts":
         return await this.server.sendCommand(
           clientId,
@@ -1479,7 +1467,11 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
       case "setLocale":
-        return await this.server.sendCommand(clientId, "device.setLocale", params);
+        return await this.server.sendCommand(
+          clientId,
+          "device.setLocale",
+          params,
+        );
       case "setGeolocationOverride":
         return await this.server.sendCommand(
           clientId,
@@ -1495,17 +1487,9 @@ class ExtensionBrowserHandler extends EventEmitter {
 
       // Touch Emulation
       case "enableTouchEmulation":
-        return await this.server.sendCommand(
-          clientId,
-          "touch.enable",
-          params,
-        );
+        return await this.server.sendCommand(clientId, "touch.enable", params);
       case "disableTouchEmulation":
-        return await this.server.sendCommand(
-          clientId,
-          "touch.disable",
-          params,
-        );
+        return await this.server.sendCommand(clientId, "touch.disable", params);
       case "emulateTap":
         return await this.server.sendCommand(clientId, "touch.tap", params);
       case "emulateSwipe":
@@ -1539,19 +1523,11 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
-      // Viewport Management
-      case "setViewport":
-        return await this.server.sendCommand(
-          clientId,
-          "viewport.set",
-          params,
-        );
-      case "getViewport":
-        return await this.server.sendCommand(
-          clientId,
-          "viewport.get",
-          params,
-        );
+      // Viewport Management (Enhanced - Phase 19)
+      case "setViewportEmulation":
+        return await this.server.sendCommand(clientId, "viewport.set", params);
+      case "getViewportInfo":
+        return await this.server.sendCommand(clientId, "viewport.get", params);
       case "setDeviceMetrics":
         return await this.server.sendCommand(
           clientId,
@@ -1625,21 +1601,231 @@ class ExtensionBrowserHandler extends EventEmitter {
 
       // Print/PDF Enhanced
       case "getPrintPreview":
-        return await this.server.sendCommand(
-          clientId,
-          "print.preview",
-          params,
-        );
+        return await this.server.sendCommand(clientId, "print.preview", params);
       case "printToPDF":
-        return await this.server.sendCommand(
-          clientId,
-          "print.toPDF",
-          params,
-        );
+        return await this.server.sendCommand(clientId, "print.toPDF", params);
       case "getPrintSettings":
         return await this.server.sendCommand(
           clientId,
           "print.getSettings",
+          params,
+        );
+
+      // ==================== Phase 20: Web APIs & System Info ====================
+
+      // Web Workers
+      case "listWebWorkers":
+        return await this.server.sendCommand(clientId, "workers.list", params);
+      case "terminateWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "workers.terminate",
+          params,
+        );
+      case "postMessageToWorker":
+        return await this.server.sendCommand(
+          clientId,
+          "workers.postMessage",
+          params,
+        );
+      case "getSharedWorkers":
+        return await this.server.sendCommand(
+          clientId,
+          "workers.getSharedWorkers",
+          params,
+        );
+
+      // Broadcast Channel
+      case "createBroadcastChannel":
+        return await this.server.sendCommand(
+          clientId,
+          "broadcast.create",
+          params,
+        );
+      case "broadcastMessage":
+        return await this.server.sendCommand(
+          clientId,
+          "broadcast.postMessage",
+          params,
+        );
+      case "closeBroadcastChannel":
+        return await this.server.sendCommand(
+          clientId,
+          "broadcast.close",
+          params,
+        );
+      case "listBroadcastChannels":
+        return await this.server.sendCommand(
+          clientId,
+          "broadcast.list",
+          params,
+        );
+
+      // Web Audio
+      case "getAudioContexts":
+        return await this.server.sendCommand(
+          clientId,
+          "audio.getContexts",
+          params,
+        );
+      case "suspendAudioContext":
+        return await this.server.sendCommand(clientId, "audio.suspend", params);
+      case "resumeAudioContext":
+        return await this.server.sendCommand(clientId, "audio.resume", params);
+      case "getAudioNodes":
+        return await this.server.sendCommand(
+          clientId,
+          "audio.getNodes",
+          params,
+        );
+
+      // Canvas/WebGL
+      case "listCanvasElements":
+        return await this.server.sendCommand(clientId, "canvas.list", params);
+      case "getCanvasContext":
+        return await this.server.sendCommand(
+          clientId,
+          "canvas.getContext",
+          params,
+        );
+      case "canvasToDataURL":
+        return await this.server.sendCommand(
+          clientId,
+          "canvas.toDataURL",
+          params,
+        );
+      case "getWebGLInfo":
+        return await this.server.sendCommand(clientId, "webgl.getInfo", params);
+      case "getWebGLExtensions":
+        return await this.server.sendCommand(
+          clientId,
+          "webgl.getExtensions",
+          params,
+        );
+
+      // Media Devices
+      case "enumerateMediaDevices":
+        return await this.server.sendCommand(
+          clientId,
+          "media.enumerateDevices",
+          params,
+        );
+      case "getSupportedConstraints":
+        return await this.server.sendCommand(
+          clientId,
+          "media.getSupportedConstraints",
+          params,
+        );
+      case "getDisplayMediaCapabilities":
+        return await this.server.sendCommand(
+          clientId,
+          "media.getDisplayMedia",
+          params,
+        );
+
+      // System Info
+      case "getBatteryInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "system.getBattery",
+          params,
+        );
+      case "getConnectionInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "system.getConnection",
+          params,
+        );
+      case "getDeviceMemory":
+        return await this.server.sendCommand(
+          clientId,
+          "system.getMemory",
+          params,
+        );
+      case "getHardwareInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "system.getHardware",
+          params,
+        );
+
+      // Permissions
+      case "queryPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "permissions.query",
+          params,
+        );
+      case "queryAllPermissions":
+        return await this.server.sendCommand(
+          clientId,
+          "permissions.queryAll",
+          params,
+        );
+      case "requestPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "permissions.request",
+          params,
+        );
+
+      // Notifications
+      case "getNotificationPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "notifications.getPermission",
+          params,
+        );
+      case "requestNotificationPermission":
+        return await this.server.sendCommand(
+          clientId,
+          "notifications.requestPermission",
+          params,
+        );
+      case "createPageNotification":
+        return await this.server.sendCommand(
+          clientId,
+          "notifications.create",
+          params,
+        );
+
+      // Fullscreen
+      case "enterFullscreen":
+        return await this.server.sendCommand(
+          clientId,
+          "fullscreen.enter",
+          params,
+        );
+      case "exitFullscreen":
+        return await this.server.sendCommand(
+          clientId,
+          "fullscreen.exit",
+          params,
+        );
+      case "getFullscreenState":
+        return await this.server.sendCommand(
+          clientId,
+          "fullscreen.getState",
+          params,
+        );
+
+      // Pointer Lock
+      case "requestPointerLock":
+        return await this.server.sendCommand(
+          clientId,
+          "pointerLock.request",
+          params,
+        );
+      case "exitPointerLock":
+        return await this.server.sendCommand(
+          clientId,
+          "pointerLock.exit",
+          params,
+        );
+      case "getPointerLockState":
+        return await this.server.sendCommand(
+          clientId,
+          "pointerLock.getState",
           params,
         );
 
