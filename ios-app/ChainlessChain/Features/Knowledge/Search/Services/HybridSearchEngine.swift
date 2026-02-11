@@ -120,40 +120,40 @@ public class HybridSearchEngine: ObservableObject {
     /// - Parameters:
     ///   - query: 查询字符串
     ///   - options: 搜索选项
+    ///   - mode: 搜索模式
     /// - Returns: 融合后的搜索结果
-    public func search(_ query: String, options: SearchOptions = SearchOptions()) async -> [SearchResult] {
+    public func search(
+        _ query: String,
+        options: SearchOptions = SearchOptions(),
+        mode: SearchMode = .hybrid
+    ) async -> [SearchResult] {
         let startTime = Date()
 
-        Logger.shared.info("[HybridSearchEngine] 执行混合搜索: \"\(query)\"")
+        Logger.shared.info("[HybridSearchEngine] 执行搜索: \"\(query)\" mode=\(mode.rawValue)")
 
         let effectiveOptions = mergeOptions(options)
 
-        // 并行执行 Vector Search 和 BM25 Search
-        async let vectorTask = effectiveOptions.enableVector ? vectorSearch(query, limit: config.vectorLimit) : []
-        async let bm25Task = effectiveOptions.enableBM25 ? bm25Search.search(query, options: SearchOptions(limit: config.bm25Limit)) : []
+        var finalResults: [SearchResult]
 
-        let vectorResults = await vectorTask
-        let bm25Results = await bm25Task
-
-        Logger.shared.info("[HybridSearchEngine] 搜索结果 - Vector: \(vectorResults.count), BM25: \(bm25Results.count)")
-
-        // RRF 融合
-        var fusedResults = fusionRank(
-            vectorResults: vectorResults,
-            bm25Results: bm25Results
-        )
+        switch mode {
+        case .bm25Only:
+            finalResults = searchBM25Only(query, limit: effectiveOptions.limit)
+        case .vectorOnly:
+            finalResults = await searchVectorOnly(query, limit: effectiveOptions.limit)
+        case .keywordOnly:
+            finalResults = searchKeywordOnly(query, limit: effectiveOptions.limit)
+        case .hybrid:
+            finalResults = await searchHybrid(query, options: effectiveOptions)
+        }
 
         // 过滤低分结果
-        fusedResults = fusedResults.filter { $0.score > effectiveOptions.threshold }
-
-        // 返回 top-k
-        let finalResults = Array(fusedResults.prefix(effectiveOptions.limit))
+        finalResults = finalResults.filter { $0.score > effectiveOptions.threshold }
 
         // 记录搜索事件
         let elapsed = Date().timeIntervalSince(startTime) * 1000
         let event = SearchEvent(
             query: query,
-            source: .hybrid,
+            source: mode == .hybrid ? .hybrid : (mode == .vectorOnly ? .vector : .bm25),
             resultCount: finalResults.count,
             latencyMs: elapsed
         )
@@ -172,6 +172,86 @@ public class HybridSearchEngine: ObservableObject {
         Logger.shared.info("[HybridSearchEngine] 搜索完成，耗时=\(Int(elapsed))ms，结果数=\(finalResults.count)")
 
         return finalResults
+    }
+
+    /// 仅 BM25 搜索
+    private func searchBM25Only(_ query: String, limit: Int) -> [SearchResult] {
+        return bm25Search.search(query, options: SearchOptions(limit: limit)).map { result in
+            var r = result
+            r.searchMethod = "BM25"
+            return r
+        }
+    }
+
+    /// 仅 Vector 搜索
+    private func searchVectorOnly(_ query: String, limit: Int) async -> [SearchResult] {
+        var results = await vectorSearch(query, limit: limit)
+        results = results.map { result in
+            var r = result
+            r.searchMethod = "Vector"
+            return r
+        }
+        return results
+    }
+
+    /// 仅 Keyword 搜索
+    private func searchKeywordOnly(_ query: String, limit: Int) -> [SearchResult] {
+        let queryTerms = tokenizeQuery(query)
+
+        return documents.compactMap { doc -> SearchResult? in
+            let keywordScore = calculateKeywordScore(queryTerms: queryTerms, content: doc.content)
+            let matchedTerms = queryTerms.filter { term in
+                doc.content.lowercased().contains(term.lowercased())
+            }
+
+            guard keywordScore > 0 else { return nil }
+
+            var result = SearchResult(document: doc, score: keywordScore, source: .bm25)
+            result.keywordScore = keywordScore
+            result.matchedTerms = matchedTerms
+            result.searchMethod = "Keyword"
+            return result
+        }
+        .sorted { $0.score > $1.score }
+        .prefix(limit)
+        .map { $0 }
+    }
+
+    /// 混合搜索实现
+    private func searchHybrid(_ query: String, options: SearchOptions) async -> [SearchResult] {
+        // 并行执行各种搜索
+        async let vectorTask = options.enableVector && config.enableVector ?
+            vectorSearch(query, limit: config.vectorLimit) : []
+        async let bm25Task = options.enableBM25 && config.enableBM25 ?
+            bm25Search.search(query, options: SearchOptions(limit: config.bm25Limit)) : []
+
+        let vectorResults = await vectorTask
+        let bm25Results = await bm25Task
+
+        // Keyword 搜索
+        let keywordResults: [SearchResult]
+        if config.enableKeyword {
+            keywordResults = searchKeywordOnly(query, limit: config.bm25Limit)
+        } else {
+            keywordResults = []
+        }
+
+        Logger.shared.info("[HybridSearchEngine] 搜索结果 - Vector: \(vectorResults.count), BM25: \(bm25Results.count), Keyword: \(keywordResults.count)")
+
+        // RRF 融合
+        var fusedResults = fusionRankWithKeyword(
+            vectorResults: vectorResults,
+            bm25Results: bm25Results,
+            keywordResults: keywordResults,
+            query: query
+        )
+
+        // 可选的语义重排
+        if config.enableReranking && fusedResults.count > 1 {
+            fusedResults = await rerank(results: fusedResults, query: query)
+        }
+
+        return Array(fusedResults.prefix(options.limit))
     }
 
     /// 仅 Vector 搜索
@@ -227,21 +307,20 @@ public class HybridSearchEngine: ObservableObject {
 
     // MARK: - RRF Fusion
 
-    /// Reciprocal Rank Fusion (RRF) 算法
+    /// Reciprocal Rank Fusion (RRF) 算法 - 包含 Keyword 搜索
     ///
-    /// RRF 分数 = Σ 1 / (k + rank)
+    /// RRF 分数 = Σ weight / (k + rank)
     ///
-    /// - Parameters:
-    ///   - vectorResults: Vector 搜索结果
-    ///   - bm25Results: BM25 搜索结果
-    /// - Returns: 融合后的结果
-    private func fusionRank(
+    private func fusionRankWithKeyword(
         vectorResults: [SearchResult],
-        bm25Results: [SearchResult]
+        bm25Results: [SearchResult],
+        keywordResults: [SearchResult],
+        query: String
     ) -> [SearchResult] {
         let k = Double(config.rrfK)
         let vectorWeight = config.vectorWeight
         let textWeight = config.textWeight
+        let keywordWeight = config.keywordWeight
 
         // 构建文档 ID → 分数映射
         var scoreMap: [String: Double] = [:]
@@ -275,12 +354,27 @@ public class HybridSearchEngine: ObservableObject {
             if var existing = resultMap[docId] {
                 existing.bm25Score = result.bm25Score
                 existing.bm25Rank = rank
-                existing.source = .hybrid
                 resultMap[docId] = existing
             } else {
                 var newResult = result
                 newResult.bm25Rank = rank
                 resultMap[docId] = newResult
+            }
+        }
+
+        // Keyword Search 分数
+        for (rank, result) in keywordResults.enumerated() {
+            let docId = result.document.id
+            let score = keywordWeight / (k + Double(rank + 1))
+
+            scoreMap[docId, default: 0] += score
+
+            if var existing = resultMap[docId] {
+                existing.keywordScore = result.keywordScore
+                existing.matchedTerms = result.matchedTerms
+                resultMap[docId] = existing
+            } else {
+                resultMap[docId] = result
             }
         }
 
@@ -292,11 +386,8 @@ public class HybridSearchEngine: ObservableObject {
 
             result.rrfScore = rrfScore
             result.score = rrfScore
-
-            // 如果同时出现在两个结果中，标记为 hybrid
-            if result.vectorRank != nil && result.bm25Rank != nil {
-                result.source = .hybrid
-            }
+            result.source = .hybrid
+            result.searchMethod = "Hybrid"
 
             mergedResults.append(result)
         }
@@ -305,6 +396,105 @@ public class HybridSearchEngine: ObservableObject {
         mergedResults.sort { $0.score > $1.score }
 
         return mergedResults
+    }
+
+    /// Reciprocal Rank Fusion (RRF) 算法 - 兼容旧接口
+    private func fusionRank(
+        vectorResults: [SearchResult],
+        bm25Results: [SearchResult]
+    ) -> [SearchResult] {
+        return fusionRankWithKeyword(
+            vectorResults: vectorResults,
+            bm25Results: bm25Results,
+            keywordResults: [],
+            query: ""
+        )
+    }
+
+    // MARK: - Keyword Search Helpers
+
+    /// 查询分词
+    private func tokenizeQuery(_ query: String) -> [String] {
+        var tokens: [String] = []
+        let processedText = query.lowercased()
+            .replacingOccurrences(of: "[\\p{P}\\p{S}]", with: " ", options: .regularExpression)
+
+        // 分离中英文
+        var currentChinese = ""
+        var currentEnglish = ""
+
+        for char in processedText {
+            if char.isChineseCharacter {
+                if !currentEnglish.isEmpty {
+                    tokens.append(contentsOf: currentEnglish.split(separator: " ").map(String.init).filter { !$0.isEmpty })
+                    currentEnglish = ""
+                }
+                currentChinese.append(char)
+                tokens.append(String(char))  // 中文单字
+            } else if char.isLetter || char.isNumber {
+                if !currentChinese.isEmpty {
+                    currentChinese = ""
+                }
+                currentEnglish.append(char)
+            } else {
+                if !currentEnglish.isEmpty {
+                    tokens.append(contentsOf: currentEnglish.split(separator: " ").map(String.init).filter { !$0.isEmpty })
+                    currentEnglish = ""
+                }
+                currentChinese = ""
+            }
+        }
+
+        if !currentEnglish.isEmpty {
+            tokens.append(contentsOf: currentEnglish.split(separator: " ").map(String.init).filter { !$0.isEmpty })
+        }
+
+        return tokens.filter { !$0.isEmpty }
+    }
+
+    /// 计算 Keyword 匹配分数
+    private func calculateKeywordScore(queryTerms: [String], content: String) -> Double {
+        guard !queryTerms.isEmpty else { return 0 }
+
+        let contentLower = content.lowercased()
+        var matchCount = 0
+        var totalWeight = 0.0
+
+        for (index, term) in queryTerms.enumerated() {
+            if contentLower.contains(term.lowercased()) {
+                matchCount += 1
+                // 前面的词权重更高
+                totalWeight += 1.0 / Double(index + 1)
+            }
+        }
+
+        guard matchCount > 0 else { return 0 }
+
+        // 计算覆盖率和权重
+        let coverage = Double(matchCount) / Double(queryTerms.count)
+        let weightedScore = totalWeight / Double(queryTerms.count)
+
+        return (coverage + weightedScore) / 2.0
+    }
+
+    // MARK: - Reranking
+
+    /// 语义重排
+    private func rerank(results: [SearchResult], query: String) async -> [SearchResult] {
+        guard let ragManager = ragManager else {
+            return results
+        }
+
+        // 使用向量相似度进行二次排序
+        // 这里简化实现：结合原始分数和向量分数
+        return results.map { result in
+            var r = result
+            if r.vectorScore > 0 {
+                // 结合原始分数和向量相似度
+                r.score = r.score * 0.6 + r.vectorScore * 0.4
+            }
+            return r
+        }.sorted { $0.score > $1.score }
     }
 
     // MARK: - Options
@@ -402,4 +592,24 @@ public protocol KnowledgeItemProtocol {
     var content: String? { get }
     var type: String { get }
     var createdAt: Date { get }
+}
+
+// MARK: - Character Extension
+
+private extension Character {
+    /// 判断是否为中文字符
+    var isChineseCharacter: Bool {
+        guard let scalar = unicodeScalars.first else { return false }
+
+        // CJK Unified Ideographs
+        if (0x4E00...0x9FFF).contains(scalar.value) { return true }
+
+        // CJK Unified Ideographs Extension A
+        if (0x3400...0x4DBF).contains(scalar.value) { return true }
+
+        // CJK Unified Ideographs Extension B
+        if (0x20000...0x2A6DF).contains(scalar.value) { return true }
+
+        return false
+    }
 }
