@@ -6,8 +6,8 @@ public enum AppConstants {
     public enum App {
         public static let name = "ChainlessChain"
         public static let bundleId = "com.chainlesschain.ios"
-        public static let version = "0.1.0"
-        public static let buildNumber = "1"
+        public static let version = "0.32.0"
+        public static let buildNumber = "32"
     }
 
     /// API 端点
