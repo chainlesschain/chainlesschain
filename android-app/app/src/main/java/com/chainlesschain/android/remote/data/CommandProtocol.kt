@@ -87,6 +87,9 @@ object MessageTypes {
     const val HEARTBEAT = "chainlesschain:heartbeat"
     const val HEARTBEAT_ACK = "chainlesschain:heartbeat:ack"
 
+    // 命令取消（与 PC 端对应）
+    const val COMMAND_CANCEL = "chainlesschain:command:cancel"
+
     // Clipboard sync events
     const val CLIPBOARD_CHANGE = "chainlesschain:clipboard:change"
 
@@ -99,11 +102,21 @@ object MessageTypes {
 }
 
 /**
+ * 命令取消请求
+ */
+@Serializable
+data class CommandCancelRequest(
+    val id: String,  // 要取消的命令 ID
+    val reason: String? = null
+)
+
+/**
  * 错误码常量
  */
 object ErrorCodes {
     const val TIMEOUT = -32000
     const val PERMISSION_DENIED = -32001
+    const val CANCELLED = -32002  // 命令被取消（与 PC 端对应）
     const val INVALID_REQUEST = -32600
     const val METHOD_NOT_FOUND = -32601
     const val INVALID_PARAMS = -32602

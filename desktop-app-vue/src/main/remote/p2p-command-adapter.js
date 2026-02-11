@@ -22,6 +22,7 @@ const MESSAGE_TYPES = {
   COMMAND_RESPONSE: "chainlesschain:command:response",
   EVENT_NOTIFICATION: "chainlesschain:event:notification",
   HEARTBEAT: "chainlesschain:heartbeat",
+  COMMAND_CANCEL: "chainlesschain:command:cancel",
 };
 
 /**
@@ -30,6 +31,7 @@ const MESSAGE_TYPES = {
 const ERROR_CODES = {
   TIMEOUT: -32000,
   PERMISSION_DENIED: -32001,
+  CANCELLED: -32002,
   NOT_FOUND: -32601,
   INTERNAL_ERROR: -32603,
   INVALID_REQUEST: -32600,
@@ -58,6 +60,9 @@ class P2PCommandAdapter extends EventEmitter {
     // 待处理请求（用于匹配响应）
     this.pendingRequests = new Map();
 
+    // 运行中的命令（可取消）
+    this.runningCommands = new Map();
+
     // 已注册的移动端设备
     this.registeredDevices = new Map();
 
@@ -67,6 +72,7 @@ class P2PCommandAdapter extends EventEmitter {
       successRequests: 0,
       failedRequests: 0,
       timeoutRequests: 0,
+      cancelledRequests: 0,
       totalEvents: 0,
       startTime: Date.now(),
     };
@@ -173,6 +179,10 @@ class P2PCommandAdapter extends EventEmitter {
           this.handleCommandResponse(payload);
           break;
 
+        case MESSAGE_TYPES.COMMAND_CANCEL:
+          this.handleCommandCancel(peerId, payload);
+          break;
+
         case MESSAGE_TYPES.EVENT_NOTIFICATION:
           // 暂时忽略，PC 端作为服务端通常不接收事件
           break;
@@ -243,16 +253,38 @@ class P2PCommandAdapter extends EventEmitter {
       // 2. 记录设备信息（验证通过后才记录）
       this.registerDevice(peerId, auth.did);
 
-      // 3. 触发命令事件（由上层处理器处理）
+      // 3. 创建可取消的命令上下文
+      const abortController = new AbortController();
+      const commandContext = {
+        id,
+        method,
+        peerId,
+        startTime: Date.now(),
+        abortController,
+        signal: abortController.signal,
+      };
+
+      // 记录运行中的命令
+      this.runningCommands.set(id, commandContext);
+
+      // 4. 触发命令事件（由上层处理器处理）
       // 注意：此时不增加 successRequests，由上层处理结果决定
       this.emit("command", {
         peerId,
         request,
+        signal: abortController.signal, // 传递取消信号给处理器
         sendResponse: (response) => {
+          // 清理运行中命令记录
+          this.runningCommands.delete(id);
+
           this.sendResponse(peerId, response);
           // 根据响应结果更新统计
           if (response.error) {
-            this.stats.failedRequests++;
+            if (response.error.code === ERROR_CODES.CANCELLED) {
+              this.stats.cancelledRequests++;
+            } else {
+              this.stats.failedRequests++;
+            }
           } else {
             this.stats.successRequests++;
           }
@@ -292,6 +324,108 @@ class P2PCommandAdapter extends EventEmitter {
     } else {
       logger.warn(`[P2PCommandAdapter] 收到未匹配的响应: ${id}`);
     }
+  }
+
+  /**
+   * 处理命令取消请求
+   */
+  handleCommandCancel(peerId, payload) {
+    const { id, reason } = payload;
+
+    logger.info(
+      `[P2PCommandAdapter] 收到取消请求: ${id} (${reason || "no reason"})`,
+    );
+
+    const runningCommand = this.runningCommands.get(id);
+    if (runningCommand) {
+      // 验证请求来源（只有发起者可以取消）
+      if (runningCommand.peerId !== peerId) {
+        logger.warn(
+          `[P2PCommandAdapter] 取消请求被拒绝: 不是命令发起者 (${peerId} != ${runningCommand.peerId})`,
+        );
+        return;
+      }
+
+      // 触发取消信号
+      runningCommand.abortController.abort(reason || "Cancelled by client");
+
+      // 发送取消确认响应
+      this.sendResponse(peerId, {
+        jsonrpc: "2.0",
+        id,
+        error: {
+          code: ERROR_CODES.CANCELLED,
+          message: "Command Cancelled",
+          data: reason || "Cancelled by client request",
+        },
+      });
+
+      // 清理
+      this.runningCommands.delete(id);
+      this.stats.cancelledRequests++;
+
+      logger.info(`[P2PCommandAdapter] 命令已取消: ${id}`);
+    } else {
+      logger.warn(`[P2PCommandAdapter] 取消失败: 命令不存在或已完成 (${id})`);
+    }
+  }
+
+  /**
+   * 取消指定命令（PC 端主动取消）
+   */
+  cancelCommand(commandId, reason = "Cancelled by server") {
+    const runningCommand = this.runningCommands.get(commandId);
+    if (runningCommand) {
+      runningCommand.abortController.abort(reason);
+      this.runningCommands.delete(commandId);
+      this.stats.cancelledRequests++;
+
+      logger.info(`[P2PCommandAdapter] 服务端取消命令: ${commandId}`);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 获取运行中的命令列表
+   */
+  getRunningCommands() {
+    const commands = [];
+    const now = Date.now();
+
+    for (const [id, cmd] of this.runningCommands.entries()) {
+      commands.push({
+        id,
+        method: cmd.method,
+        peerId: cmd.peerId,
+        runningTime: now - cmd.startTime,
+      });
+    }
+
+    return commands;
+  }
+
+  /**
+   * 取消所有超时的命令
+   */
+  cancelLongRunningCommands(maxDuration = 60000) {
+    const now = Date.now();
+    let cancelledCount = 0;
+
+    for (const [id, cmd] of this.runningCommands.entries()) {
+      if (now - cmd.startTime > maxDuration) {
+        this.cancelCommand(id, `Exceeded max duration (${maxDuration}ms)`);
+        cancelledCount++;
+      }
+    }
+
+    if (cancelledCount > 0) {
+      logger.info(
+        `[P2PCommandAdapter] 已取消 ${cancelledCount} 个超时命令 (>${maxDuration}ms)`,
+      );
+    }
+
+    return cancelledCount;
   }
 
   /**
@@ -531,6 +665,7 @@ class P2PCommandAdapter extends EventEmitter {
       ...this.stats,
       connectedDevices: this.registeredDevices.size,
       pendingRequests: this.pendingRequests.size,
+      runningCommands: this.runningCommands.size,
       uptime: Date.now() - this.stats.startTime,
     };
   }
@@ -627,6 +762,12 @@ class P2PCommandAdapter extends EventEmitter {
 
     // 停止待处理请求清理
     this.stopPendingCleanup();
+
+    // 取消所有运行中的命令
+    for (const [id, cmd] of this.runningCommands.entries()) {
+      cmd.abortController.abort("Adapter cleanup");
+    }
+    this.runningCommands.clear();
 
     // 清理待处理请求
     for (const [id, pending] of this.pendingRequests.entries()) {

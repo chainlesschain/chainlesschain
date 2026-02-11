@@ -13,6 +13,7 @@ module.exports = [
       "*.min.js",
       "coverage/**",
       "browser-extension/**",
+      "src/main/remote/browser-extension/**",
     ],
   },
 

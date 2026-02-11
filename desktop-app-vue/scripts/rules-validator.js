@@ -605,6 +605,16 @@ class RulesValidator {
                 }
               }
 
+              // 特殊处理：允许 browser-extension 中使用 new Function 用于远程脚本执行
+              // 安全说明：浏览器扩展仅接受来自本地桌面应用的可信命令 (127.0.0.1:18790)
+              if (
+                pattern.source.includes("Function") &&
+                file.includes("browser-extension") &&
+                line.includes("new Function")
+              ) {
+                return;
+              }
+
               if (severity === "HIGH") {
                 this.errors.push({
                   type: "DANGEROUS_FUNCTION",
