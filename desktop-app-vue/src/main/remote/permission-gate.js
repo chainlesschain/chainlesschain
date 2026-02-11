@@ -562,6 +562,57 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.exitPointerLock": PERMISSION_LEVELS.NORMAL,
   "extension.getPointerLockState": PERMISSION_LEVELS.PUBLIC,
 
+  // ========== Phase 21: Accessibility & Performance ==========
+
+  // 扩展 - Accessibility (Enhanced)
+  // Note: extension.getAccessibilityTree already defined earlier
+  "extension.getARIAProperties": PERMISSION_LEVELS.PUBLIC,
+  "extension.checkColorContrast": PERMISSION_LEVELS.PUBLIC,
+  "extension.getFocusOrder": PERMISSION_LEVELS.PUBLIC,
+  "extension.getAccessibilityLandmarks": PERMISSION_LEVELS.PUBLIC,
+  "extension.getHeadingStructure": PERMISSION_LEVELS.PUBLIC,
+  "extension.checkAltTexts": PERMISSION_LEVELS.PUBLIC,
+  "extension.checkFormLabels": PERMISSION_LEVELS.PUBLIC,
+  "extension.simulateAccessibility": PERMISSION_LEVELS.NORMAL,
+  "extension.runAccessibilityAudit": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Performance Metrics (Enhanced)
+  // Note: extension.getPerformanceMetrics already defined earlier
+  "extension.getPerformanceTimeline": PERMISSION_LEVELS.PUBLIC,
+  "extension.getLongTasks": PERMISSION_LEVELS.PUBLIC,
+  "extension.getLayoutShifts": PERMISSION_LEVELS.PUBLIC,
+  "extension.getPaintTiming": PERMISSION_LEVELS.PUBLIC,
+  "extension.getResourceTiming": PERMISSION_LEVELS.PUBLIC,
+  "extension.getNavigationTiming": PERMISSION_LEVELS.PUBLIC,
+  "extension.measureElementPerformance": PERMISSION_LEVELS.PUBLIC,
+  "extension.createPerformanceMark": PERMISSION_LEVELS.NORMAL,
+  "extension.measureBetweenMarks": PERMISSION_LEVELS.NORMAL,
+  "extension.clearPerformanceMarks": PERMISSION_LEVELS.NORMAL,
+  // Note: extension.getPerformanceEntries already defined earlier
+
+  // 扩展 - Memory Analysis
+  "extension.getMemoryUsage": PERMISSION_LEVELS.PUBLIC,
+  "extension.measureHeapUsage": PERMISSION_LEVELS.PUBLIC,
+  "extension.getJSHeapSize": PERMISSION_LEVELS.PUBLIC,
+  "extension.detectMemoryLeaks": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Frame Analysis
+  "extension.getAllFrames": PERMISSION_LEVELS.PUBLIC,
+  "extension.getFrameInfo": PERMISSION_LEVELS.PUBLIC,
+  "extension.executeInFrame": PERMISSION_LEVELS.ADMIN,
+  "extension.getFrameTree": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Security Analysis (Enhanced)
+  "extension.getSecurityInfo": PERMISSION_LEVELS.PUBLIC,
+  "extension.getCSPInfo": PERMISSION_LEVELS.PUBLIC,
+  // Note: extension.checkMixedContent and extension.getCertificateInfo already defined earlier
+  "extension.checkCORSIssues": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Network Timing
+  "extension.getNetworkTiming": PERMISSION_LEVELS.PUBLIC,
+  "extension.getNetworkWaterfall": PERMISSION_LEVELS.PUBLIC,
+  "extension.analyzeNetworkRequests": PERMISSION_LEVELS.PUBLIC,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,

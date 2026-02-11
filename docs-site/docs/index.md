@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: v0.27.0 | 军事级安全 | 完全去中心化 | AI原生 | Cowork企业版
+  tagline: v0.33.0 | 军事级安全 | 完全去中心化 | AI原生 | Computer Use
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -51,6 +51,14 @@ features:
   - icon: 🤖
     title: Cowork多智能体协作
     details: 13个协作操作，智能任务分配，文件沙箱，长时任务管理，Skills框架，90%+代码覆盖率
+
+  - icon: 🖥️
+    title: Computer Use
+    details: 类似Claude Computer Use的电脑操作能力，68+ IPC处理器，视觉AI定位，工作流引擎，操作录制回放
+
+  - icon: 🌐
+    title: 浏览器插件
+    details: 215个远程命令，完整浏览器自动化，网页操作/数据提取/调试工具，支持Chrome/Edge/Arc
 
   - icon: 🏢
     title: 企业版
@@ -108,7 +116,7 @@ start.bat
 
 ### 1. ChainlessChain 个人AI管理系统
 
-完全去中心化的个人AI助手平台（v0.27.0 Cowork企业版），整合知识库管理、社交网络和交易辅助三大核心功能。
+完全去中心化的个人AI助手平台（v0.33.0 Computer Use企业版），整合知识库管理、社交网络和交易辅助三大核心功能。
 
 **主要特性:**
 
@@ -119,6 +127,8 @@ start.bat
 - 🔌 MCP集成 + 115技能 + 300工具
 - ⛓️ 区块链集成 (15链 + 6个智能合约)
 - 🤖 Cowork多智能体协作 (v1.0.0，200+测试用例)
+- 🖥️ Computer Use (68+ IPC处理器，视觉AI，工作流引擎)
+- 🌐 浏览器插件 (215个远程命令，完整浏览器自动化)
 
 [查看详细文档 →](/chainlesschain/overview)
 

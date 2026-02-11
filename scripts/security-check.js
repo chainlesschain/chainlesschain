@@ -64,6 +64,8 @@ const ALLOWED_FILES = [
   // iOS 文档（包含BIP39测试向量和示例密钥）
   "WALLETCORE_INTEGRATION.md",
   "TESTING_GUIDE.md",
+  // docs-site 文档（包含示例代码）
+  "computer-use.md",
 ];
 
 function checkFileForSecrets(filePath) {

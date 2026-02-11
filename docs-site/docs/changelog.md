@@ -5,6 +5,179 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.33.0] - 2026-02-11
+
+### 新增
+
+- 🖥️ **Computer Use电脑操作能力** - 类似Claude Computer Use的完整电脑操作能力
+  - CoordinateAction：像素级坐标点击、拖拽、手势操作
+  - VisionAction：Vision AI集成，支持Claude/GPT-4V/LLaVA视觉定位
+  - DesktopAction：桌面级截图、鼠标键盘控制、窗口管理
+  - NetworkInterceptor：网络请求拦截、模拟、条件控制
+  - AuditLogger：操作审计日志，风险评估，敏感信息脱敏
+  - ScreenRecorder：屏幕录制为截图序列，暂停/恢复/导出
+  - ActionReplay：操作回放引擎，变速、单步、断点调试
+  - SafeMode：安全模式，权限控制、区域限制、速率限制
+  - WorkflowEngine：工作流引擎，条件分支、循环、并行执行、子工作流
+  - ElementHighlighter：元素高亮显示，调试和演示可视化
+  - TemplateActions：预定义操作模板，快速执行常用自动化任务
+  - ComputerUseMetrics：性能指标收集和分析
+  - 68+ IPC处理器，12个AI可调用工具
+- 🌐 **浏览器插件增强** - Phase 17-19 高级调试能力
+  - 215个远程命令，完整浏览器自动化
+  - WebSocket调试、Service Worker管理、内存分析
+  - DOM变动观察、事件监听器检查
+  - 输入记录和回放
+  - 媒体查询模拟、页面生命周期控制
+  - 网络限流、设备模拟、传感器模拟
+- 📱 **Android应用管理器和安全信息UI** - 远程控制功能增强
+- 🔧 **前端组件** - ComputerUsePanel浏览器自动化面板
+
+### 改进
+
+- ⚡ Computer Use性能优化 - 95%+元素定位准确率，<200ms截图对比
+- 🔒 安全增强 - 完整的操作审计和风险评估
+- 📊 指标收集 - 全面的性能监控和分析
+
+---
+
+## [0.32.0] - 2026-02-08
+
+### 新增
+
+- 🌐 **浏览器插件 Phase 17** - 高级调试能力
+  - WebSocket调试（监控、发送、关闭）
+  - Service Worker管理（列表、注销、更新）
+  - 缓存存储操作（列出、获取、删除）
+  - 安全信息获取（SSL证书、安全状态）
+  - 动画控制（暂停、播放、设置速度）
+  - 布局检查（盒模型、计算布局）
+  - 代码覆盖率分析（JS/CSS）
+  - 内存分析（堆快照、采样、GC）
+
+### 改进
+
+- 🔧 浏览器插件代码优化 - background.js 5,900+行
+- 📚 文档更新
+
+---
+
+## [0.31.0] - 2026-02-05
+
+### 新增
+
+- 🖥️ **DesktopAction桌面操作** - 桌面级截图和控制
+- 📹 **ScreenRecorder屏幕录制** - 录制为截图序列
+- 🔄 **ActionReplay操作回放** - 支持断点调试
+
+### 改进
+
+- ⚡ 截图性能优化
+- 🔧 跨平台兼容性增强
+
+---
+
+## [0.30.0] - 2026-02-01
+
+### 新增
+
+- 👁️ **VisionAction视觉操作** - Vision AI元素定位
+  - 支持Claude Vision、GPT-4V、LLaVA
+  - 多语言OCR（10+语言）
+  - 元素验证和等待
+- 🎯 **CoordinateAction坐标操作** - 像素级精确操作
+  - 点击、拖拽、滚动、手势
+- 🛡️ **SafeMode安全模式** - 权限控制和区域限制
+
+### 改进
+
+- 🔒 安全性增强 - 操作审计和风险评估
+- 📊 性能指标收集
+
+---
+
+## [0.29.0] - 2026-01-30
+
+### 新增
+
+- 📝 **SessionManager会话管理** - 智能上下文管理
+  - 自动压缩（30-40% token节省）
+  - 搜索、标签、导出/导入
+  - 自动摘要
+  - Permanent Memory集成
+- ⚙️ **Context Engineering** - KV-Cache优化
+  - 静态/动态内容分离（60-85%缓存命中率）
+  - 工具定义序列化
+  - 任务上下文管理
+  - 可恢复压缩
+- 🎭 **Plan Mode** - Claude Code风格的安全规划模式
+  - 仅允许只读工具
+  - 计划生成和审批工作流
+- 🔧 **Skills系统** - Markdown技能定义
+  - 三层加载（bundled/managed/workspace）
+  - 门控检查（平台、依赖、环境）
+  - 内置技能（code-review、git-commit、explain-code）
+- 🌐 **浏览器自动化系统** - 完整的浏览器自动化
+  - BrowserEngine核心引擎
+  - ElementLocator多策略元素定位
+  - SnapshotEngine截图对比
+  - RecordingEngine用户操作录制
+  - SmartDiagnostics AI诊断
+- 🏢 **权限引擎** - 企业级RBAC
+  - 资源级权限
+  - 权限继承和委托
+  - 团队权限
+  - 审计日志
+- 👥 **团队管理器** - 组织子团队管理
+  - 团队CRUD
+  - 成员管理
+  - 团队层级
+  - 团队报告（日报/周报）
+- 📘 **TypeScript迁移** - 28个Pinia stores迁移到TypeScript
+
+### 改进
+
+- ⚡ 17个Context Engineering IPC处理器
+- 🔧 14个Plan Mode IPC处理器
+- 📊 17个Skills IPC处理器
+- 🧪 75%代码覆盖率，233+测试用例
+
+---
+
+## [0.28.0] - 2026-01-28
+
+### 新增
+
+- 🪝 **Hooks系统** - Claude Code风格的钩子系统
+  - 21个钩子事件（PreToolUse、PostToolUse、SessionStart等）
+  - 4种钩子类型（Sync、Async、Command、Script）
+  - 优先级系统（SYSTEM→HIGH→NORMAL→LOW→MONITOR）
+  - 中间件集成（IPC、Tool、Session、File、Agent）
+  - 脚本钩子（自动加载 `.chainlesschain/hooks/*.js`）
+- 🔍 **混合搜索引擎** - Vector + BM25融合
+  - 向量搜索（语义相似度）
+  - BM25搜索（Okapi BM25算法）
+  - RRF融合（Reciprocal Rank Fusion）
+  - <20ms搜索延迟
+- ⚠️ **IPC错误处理中间件** - 企业级错误处理
+  - 10种错误类型分类
+  - 标准化响应格式
+  - ErrorMonitor集成
+  - 统计收集
+- 🧠 **Permanent Memory系统** - Clawdbot风格持久记忆
+  - 每日笔记自动记录
+  - MEMORY.md长期知识
+  - 预压缩刷新
+  - 混合搜索
+  - 自动索引
+
+### 改进
+
+- 📚 完整的钩子系统文档
+- 🔧 中间件工厂函数
+
+---
+
 ## [0.27.0] - 2026-01-27
 
 ### 新增
@@ -25,7 +198,7 @@
 ### 改进
 
 - ⚡ 性能优化 - 所有操作达到或超过基线目标（45ms团队创建，3ms权限检查）
-- 🔗  完整集成 - 与RAG、LLM、ErrorMonitor、SessionManager无缝连接
+- 🔗 完整集成 - 与RAG、LLM、ErrorMonitor、SessionManager无缝连接
 - 📊 实时监控 - 10+种ECharts图表类型，实时数据可视化
 - ✅ 生产就绪 - 综合文档，企业级质量保证
 
