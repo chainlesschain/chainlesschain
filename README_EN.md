@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.32.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.33.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,25 +19,43 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.32.0 (2026-02-09)
+## ⭐ Current Version: v0.33.0 (2026-02-11)
 
-### Latest Updates - Security Auth + Incremental RAG + SIMKey NFC + File Versioning
+### Latest Updates - Computer Use Desktop Automation
 
-**Security Authentication Enhancement + Incremental RAG Indexing + SIMKey NFC Detection + File Version Control** - Production-grade security, intelligent document indexing, mobile hardware key support, complete file history
+**Claude Computer Use Style Desktop Automation** - Computer operation capabilities similar to Claude Computer Use, supporting browser and desktop-level automation
 
-#### New Core Features (2026-02-09)
+#### New Core Features (2026-02-11)
 
-- ✅ **Security Authentication Enhancement** - Dev/prod mode switching, JWT authentication for API endpoints, device key database integration
-- ✅ **Incremental RAG Indexing** - MD5 content hash change detection, multi-file joint retrieval, unified search (vector+keyword+graph)
-- ✅ **Project-Aware Reranker** - Context-aware result reranking, 6 new IPC handlers
-- ✅ **SIMKey NFC Detection** - NFC reading and SIM security element detection for mobile, simulator support for dev mode
-- ✅ **File Version Control** - FileVersion entity, version history, SHA-256 content hashing, restore capability
-- ✅ **LLM Function Calling** - OpenAI and DashScope chat_with_tools support, automatic capability detection
-- ✅ **Deep Link Enhancement** - Notes/clip link handling, universal navigation, focusMainWindow
-- ✅ **Browser Extension Enhancement** - Launch desktop app via chainlesschain:// protocol
-- ✅ **Test Infrastructure Optimization** - 89 Ant Design Vue component stubs, dayjs mock fixes, permission system test improvements
+- ✅ **Computer Use Agent** - Unified agent integrating all computer operation capabilities, 68+ IPC handlers
+- ✅ **CoordinateAction** - Pixel-level coordinate clicking, dragging, gesture operations
+- ✅ **VisionAction** - Vision AI integration, visual element location, supports Claude/GPT-4V/LLaVA
+- ✅ **NetworkInterceptor** - Network request interception, simulation, conditional control
+- ✅ **DesktopAction** - Desktop-level screenshots, mouse/keyboard control, window management
+- ✅ **AuditLogger** - Operation audit logging, risk assessment (LOW/MEDIUM/HIGH/CRITICAL), sensitive data masking
+- ✅ **ScreenRecorder** - Screen recording as screenshot sequences, pause/resume/export support
+- ✅ **ActionReplay** - Action replay engine, variable speed, step-by-step, breakpoint debugging
+- ✅ **SafeMode** - Safe mode with permission control, area restrictions, rate limits, confirmation prompts
+- ✅ **WorkflowEngine** - Workflow engine supporting conditional branches, loops, parallel execution, sub-workflows
+- ✅ **ElementHighlighter** - Element highlighting for debugging and demo visualization
+- ✅ **TemplateActions** - Predefined action templates for quick common automation tasks
+- ✅ **12 AI Tools** - browser_click, visual_click, browser_type, browser_key, browser_scroll, browser_screenshot, etc.
 
-#### v0.29.0-v0.31.0 Features Recap
+#### v0.32.0 Features Recap (2026-02-10)
+
+- ✅ **iOS Workflow System** - WorkflowModels + WorkflowManager complete workflow automation
+- ✅ **iOS Voice Interaction** - RealtimeVoiceInput real-time voice input, VoiceManager voice feature management
+- ✅ **Android MCP/Hooks/Collaboration** - MCP integration, Hooks system, Collaboration module, Performance optimization
+- ✅ **Android Knowledge Graph** - KnowledgeGraphManager + Presentation Layer, knowledge graph visualization
+
+#### v0.31.0 Features Recap (2026-02-09)
+
+- ✅ **Security Authentication Enhancement** - Dev/prod mode switching, JWT authentication for API endpoints
+- ✅ **Incremental RAG Indexing** - MD5 content hash change detection, unified search
+- ✅ **SIMKey NFC Detection** - NFC reading and SIM security element detection for mobile
+- ✅ **File Version Control** - FileVersion entity, version history, SHA-256 content hashing
+
+#### v0.29.0-v0.30.0 Features Recap
 
 - ✅ **DI Test Refactoring** - 102 database tests enabled via dependency injection, Browser IPC testability improved
 - ✅ **Social Notifications UI** - Social notification features, project file operations enhancement
@@ -167,9 +185,10 @@ See: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs]
 ## Core Features
 
 - 🔐 **Military-Grade Security**: SQLCipher AES-256 encryption + Cross-Platform USB Key hardware keys + Signal protocol E2E encryption ✅
+- 🖥️ **Computer Use**: Claude-style desktop automation + Vision AI locator + Workflow engine + 68+ IPC channels ✅ ⭐NEW
 - 🧠 **Permanent Memory System**: Daily Notes auto-logging + MEMORY.md long-term extraction + Hybrid Search (Vector+BM25) ✅
-- 🎯 **Context Engineering**: KV-Cache optimization + Token estimation + Recoverable compression + Task context management ✅ ⭐NEW
-- 📋 **Plan Mode**: Claude Code style plan mode + Security analysis + Approval workflow ✅ ⭐NEW
+- 🎯 **Context Engineering**: KV-Cache optimization + Token estimation + Recoverable compression + Task context management ✅
+- 📋 **Plan Mode**: Claude Code style plan mode + Security analysis + Approval workflow ✅
 - 🛡️ **Enterprise Permissions**: RBAC permission engine + Resource-level control + Permission inheritance + Delegation ✅ ⭐NEW
 - 👥 **Team Management**: Sub-team hierarchy + Member management + Daily Standup + AI report summaries ✅ ⭐NEW
 - 🪝 **Hooks System**: 21 hook events + 4 hook types + Priority system + Script hooks ✅ ⭐NEW

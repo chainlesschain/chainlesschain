@@ -48,7 +48,16 @@ fun RemoteControlScreen(
     onNavigateToClipboardSync: () -> Unit = {},
     onNavigateToNotificationCenter: () -> Unit = {},
     onNavigateToWorkflow: () -> Unit = {},
-    onNavigateToConnectionStatus: () -> Unit = {}
+    onNavigateToConnectionStatus: () -> Unit = {},
+    // Phase 17A: New navigation callbacks
+    onNavigateToPowerControl: () -> Unit = {},
+    onNavigateToProcessManager: () -> Unit = {},
+    onNavigateToMediaControl: () -> Unit = {},
+    onNavigateToInputControl: () -> Unit = {},
+    onNavigateToStorageInfo: () -> Unit = {},
+    onNavigateToNetworkInfo: () -> Unit = {},
+    onNavigateToApplicationManager: () -> Unit = {},
+    onNavigateToSecurityInfo: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
@@ -262,6 +271,76 @@ fun RemoteControlScreen(
                             subtitle = "查看详细连接状态和重连设置",
                             icon = Icons.Default.SignalCellularAlt,
                             onClick = onNavigateToConnectionStatus
+                        )
+                    )
+                )
+            }
+
+            // 6. 设备控制 (Phase 17A)
+            item {
+                CommandShortcutsSection(
+                    title = "设备控制",
+                    icon = Icons.Default.SettingsRemote,
+                    enabled = connectionState == ConnectionState.CONNECTED,
+                    commands = listOf(
+                        CommandShortcut(
+                            title = "电源控制",
+                            subtitle = "关机、重启、睡眠、休眠、锁定",
+                            icon = Icons.Default.PowerSettingsNew,
+                            onClick = onNavigateToPowerControl
+                        ),
+                        CommandShortcut(
+                            title = "进程管理",
+                            subtitle = "查看和管理运行中的进程",
+                            icon = Icons.Default.Memory,
+                            onClick = onNavigateToProcessManager
+                        ),
+                        CommandShortcut(
+                            title = "媒体控制",
+                            subtitle = "音量、静音、媒体播放控制",
+                            icon = Icons.Default.VolumeUp,
+                            onClick = onNavigateToMediaControl
+                        ),
+                        CommandShortcut(
+                            title = "输入控制",
+                            subtitle = "远程键盘、鼠标、触摸板",
+                            icon = Icons.Default.Keyboard,
+                            onClick = onNavigateToInputControl
+                        )
+                    )
+                )
+            }
+
+            // 7. 系统信息 (Phase 17A)
+            item {
+                CommandShortcutsSection(
+                    title = "系统信息",
+                    icon = Icons.Default.Info,
+                    enabled = connectionState == ConnectionState.CONNECTED,
+                    commands = listOf(
+                        CommandShortcut(
+                            title = "存储信息",
+                            subtitle = "磁盘空间、大文件、清理",
+                            icon = Icons.Default.Storage,
+                            onClick = onNavigateToStorageInfo
+                        ),
+                        CommandShortcut(
+                            title = "网络信息",
+                            subtitle = "网络状态、接口、带宽、工具",
+                            icon = Icons.Default.Wifi,
+                            onClick = onNavigateToNetworkInfo
+                        ),
+                        CommandShortcut(
+                            title = "应用管理",
+                            subtitle = "已安装应用、运行中应用",
+                            icon = Icons.Default.Apps,
+                            onClick = onNavigateToApplicationManager
+                        ),
+                        CommandShortcut(
+                            title = "安全信息",
+                            subtitle = "防火墙、杀毒、更新状态",
+                            icon = Icons.Default.Security,
+                            onClick = onNavigateToSecurityInfo
                         )
                     )
                 )
