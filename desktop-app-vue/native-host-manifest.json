@@ -1,0 +1,9 @@
+{
+  "name": "com.chainlesschain.clipper",
+  "description": "ChainlessChain Web Clipper Native Messaging Host",
+  "path": "E:\\code\\chainlesschain\\desktop-app-vue\\native-host.bat",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://lfhebnefcoiigaamapahhnjmeafhibmk/"
+  ]
+}
