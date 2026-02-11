@@ -480,9 +480,9 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.setAmbientLight": PERMISSION_LEVELS.ADMIN,
   "extension.clearSensorOverrides": PERMISSION_LEVELS.ADMIN,
 
-  // 扩展 - 视口管理
-  "extension.setViewport": PERMISSION_LEVELS.NORMAL,
-  "extension.getViewport": PERMISSION_LEVELS.PUBLIC,
+  // 扩展 - 视口管理 (Enhanced - Phase 19)
+  "extension.setViewportEmulation": PERMISSION_LEVELS.NORMAL,
+  "extension.getViewportInfo": PERMISSION_LEVELS.PUBLIC,
   "extension.setDeviceMetrics": PERMISSION_LEVELS.ADMIN,
   "extension.clearDeviceMetrics": PERMISSION_LEVELS.ADMIN,
   "extension.getViewportPresets": PERMISSION_LEVELS.PUBLIC,
@@ -503,6 +503,64 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.getPrintPreview": PERMISSION_LEVELS.NORMAL,
   "extension.printToPDF": PERMISSION_LEVELS.ADMIN,
   "extension.getPrintSettings": PERMISSION_LEVELS.PUBLIC,
+
+  // ==================== Phase 20: Web APIs & System Info ====================
+
+  // 扩展 - Web Workers
+  "extension.listWebWorkers": PERMISSION_LEVELS.NORMAL,
+  "extension.terminateWorker": PERMISSION_LEVELS.ADMIN,
+  "extension.postMessageToWorker": PERMISSION_LEVELS.ADMIN,
+  "extension.getSharedWorkers": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Broadcast Channel
+  "extension.createBroadcastChannel": PERMISSION_LEVELS.NORMAL,
+  "extension.broadcastMessage": PERMISSION_LEVELS.NORMAL,
+  "extension.closeBroadcastChannel": PERMISSION_LEVELS.NORMAL,
+  "extension.listBroadcastChannels": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Web Audio
+  "extension.getAudioContexts": PERMISSION_LEVELS.NORMAL,
+  "extension.suspendAudioContext": PERMISSION_LEVELS.NORMAL,
+  "extension.resumeAudioContext": PERMISSION_LEVELS.NORMAL,
+  "extension.getAudioNodes": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Canvas/WebGL
+  "extension.listCanvasElements": PERMISSION_LEVELS.PUBLIC,
+  "extension.getCanvasContext": PERMISSION_LEVELS.PUBLIC,
+  "extension.canvasToDataURL": PERMISSION_LEVELS.NORMAL,
+  "extension.getWebGLInfo": PERMISSION_LEVELS.PUBLIC,
+  "extension.getWebGLExtensions": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Media Devices
+  "extension.enumerateMediaDevices": PERMISSION_LEVELS.NORMAL,
+  "extension.getSupportedConstraints": PERMISSION_LEVELS.PUBLIC,
+  "extension.getDisplayMediaCapabilities": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - System Info
+  "extension.getBatteryInfo": PERMISSION_LEVELS.PUBLIC,
+  "extension.getConnectionInfo": PERMISSION_LEVELS.PUBLIC,
+  "extension.getDeviceMemory": PERMISSION_LEVELS.PUBLIC,
+  "extension.getHardwareInfo": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Permissions
+  "extension.queryPermission": PERMISSION_LEVELS.NORMAL,
+  "extension.queryAllPermissions": PERMISSION_LEVELS.NORMAL,
+  "extension.requestPermission": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - Notifications
+  "extension.getNotificationPermission": PERMISSION_LEVELS.PUBLIC,
+  "extension.requestNotificationPermission": PERMISSION_LEVELS.ADMIN,
+  "extension.createPageNotification": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - Fullscreen
+  "extension.enterFullscreen": PERMISSION_LEVELS.NORMAL,
+  "extension.exitFullscreen": PERMISSION_LEVELS.NORMAL,
+  "extension.getFullscreenState": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Pointer Lock
+  "extension.requestPointerLock": PERMISSION_LEVELS.ADMIN,
+  "extension.exitPointerLock": PERMISSION_LEVELS.NORMAL,
+  "extension.getPointerLockState": PERMISSION_LEVELS.PUBLIC,
 
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,

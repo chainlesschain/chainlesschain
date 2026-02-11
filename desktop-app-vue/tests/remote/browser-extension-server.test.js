@@ -2486,11 +2486,11 @@ describe("ExtensionBrowserHandler", () => {
 
     it("should handle emulateTap", async () => {
       await handler.handle("emulateTap", { tabId: 1, x: 100, y: 200 }, {});
-      expect(server.sendCommand).toHaveBeenCalledWith(
-        "client-1",
-        "touch.tap",
-        { tabId: 1, x: 100, y: 200 },
-      );
+      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "touch.tap", {
+        tabId: 1,
+        x: 100,
+        y: 200,
+      });
     });
 
     it("should handle emulateSwipe", async () => {
@@ -2581,9 +2581,9 @@ describe("ExtensionBrowserHandler", () => {
       vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
     });
 
-    it("should handle setViewport", async () => {
+    it("should handle setViewportEmulation", async () => {
       await handler.handle(
-        "setViewport",
+        "setViewportEmulation",
         { tabId: 1, width: 1920, height: 1080, options: { mobile: false } },
         {},
       );
@@ -2594,8 +2594,8 @@ describe("ExtensionBrowserHandler", () => {
       );
     });
 
-    it("should handle getViewport", async () => {
-      await handler.handle("getViewport", { tabId: 1 }, {});
+    it("should handle getViewportInfo", async () => {
+      await handler.handle("getViewportInfo", { tabId: 1 }, {});
       expect(server.sendCommand).toHaveBeenCalledWith(
         "client-1",
         "viewport.get",
@@ -2604,7 +2604,11 @@ describe("ExtensionBrowserHandler", () => {
     });
 
     it("should handle setDeviceMetrics", async () => {
-      await handler.handle("setDeviceMetrics", { tabId: 1, metrics: "iphone-12" }, {});
+      await handler.handle(
+        "setDeviceMetrics",
+        { tabId: 1, metrics: "iphone-12" },
+        {},
+      );
       expect(server.sendCommand).toHaveBeenCalledWith(
         "client-1",
         "viewport.setDeviceMetrics",
@@ -2666,13 +2670,21 @@ describe("ExtensionBrowserHandler", () => {
     it("should handle compareScreenshots", async () => {
       await handler.handle(
         "compareScreenshots",
-        { baseline: "base64...", current: "base64...", options: { threshold: 10 } },
+        {
+          baseline: "base64...",
+          current: "base64...",
+          options: { threshold: 10 },
+        },
         {},
       );
       expect(server.sendCommand).toHaveBeenCalledWith(
         "client-1",
         "screenshot.compare",
-        { baseline: "base64...", current: "base64...", options: { threshold: 10 } },
+        {
+          baseline: "base64...",
+          current: "base64...",
+          options: { threshold: 10 },
+        },
       );
     });
 
@@ -2770,6 +2782,548 @@ describe("ExtensionBrowserHandler", () => {
       expect(server.sendCommand).toHaveBeenCalledWith(
         "client-1",
         "print.getSettings",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  // ========== Phase 20: Web APIs & System Info ==========
+
+  describe("Web Workers Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getWebWorkers", async () => {
+      await handler.handle("getWebWorkers", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "workers.getAll",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle terminateWorker", async () => {
+      await handler.handle(
+        "terminateWorker",
+        { tabId: 1, workerId: "worker-123" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "workers.terminate",
+        { tabId: 1, workerId: "worker-123" },
+      );
+    });
+
+    it("should handle sendMessageToWorker", async () => {
+      await handler.handle(
+        "sendMessageToWorker",
+        { tabId: 1, workerId: "worker-123", message: { type: "ping" } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "workers.sendMessage",
+        { tabId: 1, workerId: "worker-123", message: { type: "ping" } },
+      );
+    });
+
+    it("should handle getWorkerState", async () => {
+      await handler.handle(
+        "getWorkerState",
+        { tabId: 1, workerId: "worker-123" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "workers.getState",
+        { tabId: 1, workerId: "worker-123" },
+      );
+    });
+  });
+
+  describe("Broadcast Channel Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle createBroadcastChannel", async () => {
+      await handler.handle(
+        "createBroadcastChannel",
+        { tabId: 1, channelName: "my-channel" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "broadcast.create",
+        { tabId: 1, channelName: "my-channel" },
+      );
+    });
+
+    it("should handle broadcastMessage", async () => {
+      await handler.handle(
+        "broadcastMessage",
+        { tabId: 1, channelName: "my-channel", message: { data: "test" } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "broadcast.send",
+        { tabId: 1, channelName: "my-channel", message: { data: "test" } },
+      );
+    });
+
+    it("should handle closeBroadcastChannel", async () => {
+      await handler.handle(
+        "closeBroadcastChannel",
+        { tabId: 1, channelName: "my-channel" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "broadcast.close",
+        { tabId: 1, channelName: "my-channel" },
+      );
+    });
+
+    it("should handle getBroadcastChannels", async () => {
+      await handler.handle("getBroadcastChannels", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "broadcast.list",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Web Audio Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getAudioContexts", async () => {
+      await handler.handle("getAudioContexts", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "audio.getContexts",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getAudioNodes", async () => {
+      await handler.handle(
+        "getAudioNodes",
+        { tabId: 1, contextId: "ctx-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "audio.getNodes",
+        { tabId: 1, contextId: "ctx-1" },
+      );
+    });
+
+    it("should handle suspendAudioContext", async () => {
+      await handler.handle(
+        "suspendAudioContext",
+        { tabId: 1, contextId: "ctx-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "audio.suspend",
+        { tabId: 1, contextId: "ctx-1" },
+      );
+    });
+
+    it("should handle resumeAudioContext", async () => {
+      await handler.handle(
+        "resumeAudioContext",
+        { tabId: 1, contextId: "ctx-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "audio.resume",
+        { tabId: 1, contextId: "ctx-1" },
+      );
+    });
+
+    it("should handle getAudioAnalysis", async () => {
+      await handler.handle(
+        "getAudioAnalysis",
+        { tabId: 1, contextId: "ctx-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "audio.analyze",
+        { tabId: 1, contextId: "ctx-1" },
+      );
+    });
+  });
+
+  describe("Canvas/WebGL Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getCanvasContexts", async () => {
+      await handler.handle("getCanvasContexts", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "canvas.getContexts",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle captureCanvasFrame", async () => {
+      await handler.handle(
+        "captureCanvasFrame",
+        { tabId: 1, selector: "#myCanvas" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "canvas.capture",
+        { tabId: 1, selector: "#myCanvas" },
+      );
+    });
+
+    it("should handle getWebGLInfo", async () => {
+      await handler.handle(
+        "getWebGLInfo",
+        { tabId: 1, selector: "#glCanvas" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "canvas.webglInfo",
+        { tabId: 1, selector: "#glCanvas" },
+      );
+    });
+
+    it("should handle getWebGLExtensions", async () => {
+      await handler.handle(
+        "getWebGLExtensions",
+        { tabId: 1, selector: "#glCanvas" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "canvas.webglExtensions",
+        { tabId: 1, selector: "#glCanvas" },
+      );
+    });
+
+    it("should handle profileCanvasPerformance", async () => {
+      await handler.handle(
+        "profileCanvasPerformance",
+        { tabId: 1, selector: "#myCanvas", duration: 5000 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "canvas.profile",
+        { tabId: 1, selector: "#myCanvas", duration: 5000 },
+      );
+    });
+  });
+
+  describe("Media Devices Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle enumerateMediaDevices", async () => {
+      await handler.handle("enumerateMediaDevices", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "media.enumerate",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getActiveMediaStreams", async () => {
+      await handler.handle("getActiveMediaStreams", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "media.getStreams",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle stopMediaStream", async () => {
+      await handler.handle(
+        "stopMediaStream",
+        { tabId: 1, streamId: "stream-123" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "media.stopStream",
+        { tabId: 1, streamId: "stream-123" },
+      );
+    });
+
+    it("should handle setMediaDevicePermission", async () => {
+      await handler.handle(
+        "setMediaDevicePermission",
+        { tabId: 1, deviceKind: "videoinput", allowed: true },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "media.setPermission",
+        { tabId: 1, deviceKind: "videoinput", allowed: true },
+      );
+    });
+  });
+
+  describe("System Info Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getNavigatorInfo", async () => {
+      await handler.handle("getNavigatorInfo", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "system.navigator",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getConnectionInfo", async () => {
+      await handler.handle("getConnectionInfo", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "system.connection",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getBatteryStatus", async () => {
+      await handler.handle("getBatteryStatus", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "system.battery",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getDeviceMemory", async () => {
+      await handler.handle("getDeviceMemory", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "system.memory",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getHardwareConcurrency", async () => {
+      await handler.handle("getHardwareConcurrency", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "system.cpuCores",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Permissions Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle queryPermission", async () => {
+      await handler.handle(
+        "queryPermission",
+        { tabId: 1, permissionName: "geolocation" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "permissions.query",
+        { tabId: 1, permissionName: "geolocation" },
+      );
+    });
+
+    it("should handle getAllPermissions", async () => {
+      await handler.handle("getAllPermissions", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "permissions.getAll",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle requestPermission", async () => {
+      await handler.handle(
+        "requestPermission",
+        { tabId: 1, permissionName: "notifications" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "permissions.request",
+        { tabId: 1, permissionName: "notifications" },
+      );
+    });
+
+    it("should handle revokePermission", async () => {
+      await handler.handle(
+        "revokePermission",
+        { tabId: 1, permissionName: "camera" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "permissions.revoke",
+        { tabId: 1, permissionName: "camera" },
+      );
+    });
+  });
+
+  describe("Notifications Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getNotificationPermission", async () => {
+      await handler.handle("getNotificationPermission", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "notifications.getPermission",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle showNotification", async () => {
+      await handler.handle(
+        "showNotification",
+        { tabId: 1, title: "Test", options: { body: "Hello" } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "notifications.show",
+        { tabId: 1, title: "Test", options: { body: "Hello" } },
+      );
+    });
+
+    it("should handle closeNotification", async () => {
+      await handler.handle(
+        "closeNotification",
+        { tabId: 1, notificationId: "notif-123" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "notifications.close",
+        { tabId: 1, notificationId: "notif-123" },
+      );
+    });
+
+    it("should handle getActiveNotifications", async () => {
+      await handler.handle("getActiveNotifications", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "notifications.list",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Fullscreen Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle requestFullscreen", async () => {
+      await handler.handle(
+        "requestFullscreen",
+        { tabId: 1, selector: "#video" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fullscreen.request",
+        { tabId: 1, selector: "#video" },
+      );
+    });
+
+    it("should handle exitFullscreen", async () => {
+      await handler.handle("exitFullscreen", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fullscreen.exit",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getFullscreenElement", async () => {
+      await handler.handle("getFullscreenElement", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fullscreen.getElement",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle isFullscreenEnabled", async () => {
+      await handler.handle("isFullscreenEnabled", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "fullscreen.isEnabled",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Pointer Lock Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle requestPointerLock", async () => {
+      await handler.handle(
+        "requestPointerLock",
+        { tabId: 1, selector: "#game-canvas" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pointerLock.request",
+        { tabId: 1, selector: "#game-canvas" },
+      );
+    });
+
+    it("should handle exitPointerLock", async () => {
+      await handler.handle("exitPointerLock", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pointerLock.exit",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getPointerLockElement", async () => {
+      await handler.handle("getPointerLockElement", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "pointerLock.getElement",
         { tabId: 1 },
       );
     });
