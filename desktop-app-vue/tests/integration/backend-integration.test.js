@@ -497,9 +497,9 @@ describe("前后端集成测试", () => {
 
   describe("网络中断恢复测试", () => {
     it("应该检测网络中断", async () => {
-      // 模拟网络检测
+      // 模拟网络检测 - 在 Node.js 环境中 navigator 不可用，使用模拟值
       const networkStatus = {
-        isOnline: navigator.onLine,
+        isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
         lastCheck: Date.now(),
       };
 

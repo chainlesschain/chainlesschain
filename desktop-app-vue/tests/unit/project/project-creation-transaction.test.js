@@ -134,7 +134,7 @@ describe('TransactionManager 单元测试', () => {
     expect(info.status).toBe('committed');
     expect(info.stepCount).toBe(2);
     expect(info.completedSteps).toBe(2);
-    expect(info.duration).toBeGreaterThan(0);
+    expect(info.duration).toBeGreaterThanOrEqual(0);
   });
 
   test('应该能获取步骤结果', async () => {

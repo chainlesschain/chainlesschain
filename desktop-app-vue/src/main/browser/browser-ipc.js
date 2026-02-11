@@ -758,8 +758,1880 @@ function registerBrowserIPC(deps = {}) {
     }),
   );
 
+  // ==================== Phase 6: Computer Use Capabilities (v0.33.0) ====================
+
+  /**
+   * Execute coordinate-level mouse action
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - Coordinate action options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:action:coordinate",
+    withErrorHandler(async (event, targetId, options = {}) => {
+      const { CoordinateAction } = require("./actions");
+      const engine = _getBrowserEngine();
+      const coordinateAction = new CoordinateAction(engine);
+      return coordinateAction.execute(targetId, options);
+    }),
+  );
+
+  /**
+   * Execute vision AI action
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - Vision action options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:action:vision",
+    withErrorHandler(async (event, targetId, options = {}) => {
+      const { VisionAction } = require("./actions");
+      const engine = _getBrowserEngine();
+
+      // 获取 LLM 服务
+      let llmService = null;
+      try {
+        const { getLLMService } = require("../llm/llm-service");
+        llmService = getLLMService();
+      } catch (e) {
+        logger.warn("[Browser IPC] LLM Service not available for vision");
+      }
+
+      const visionAction = new VisionAction(engine, llmService);
+      return visionAction.execute(targetId, options);
+    }),
+  );
+
+  /**
+   * Visual click - find element by description and click
+   * @param {string} targetId - Tab ID
+   * @param {string} description - Element description
+   * @param {Object} options - Click options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:visualClick",
+    withErrorHandler(async (event, targetId, description, options = {}) => {
+      const { VisionAction } = require("./actions");
+      const engine = _getBrowserEngine();
+
+      let llmService = null;
+      try {
+        const { getLLMService } = require("../llm/llm-service");
+        llmService = getLLMService();
+      } catch (e) {
+        throw new Error("LLM Service required for visual click");
+      }
+
+      const visionAction = new VisionAction(engine, llmService);
+      return visionAction.visualClick(targetId, description, options);
+    }),
+  );
+
+  /**
+   * Execute network interceptor action
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - Network action options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:network",
+    withErrorHandler(async (event, targetId, options = {}) => {
+      const { NetworkInterceptor } = require("./actions");
+      const engine = _getBrowserEngine();
+
+      // 使用单例模式
+      if (!engine._networkInterceptor) {
+        engine._networkInterceptor = new NetworkInterceptor(engine);
+      }
+
+      return engine._networkInterceptor.execute(targetId, options);
+    }),
+  );
+
+  /**
+   * Execute desktop-level action
+   * @param {Object} options - Desktop action options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:desktop",
+    withErrorHandler(async (event, options = {}) => {
+      const { DesktopAction } = require("./actions");
+
+      // 使用单例
+      if (!global._desktopAction) {
+        global._desktopAction = new DesktopAction();
+      }
+
+      return global._desktopAction.execute(options);
+    }),
+  );
+
+  /**
+   * Capture desktop screen
+   * @param {Object} options - Capture options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:desktop:capture",
+    withErrorHandler(async (event, options = {}) => {
+      const { DesktopAction } = require("./actions");
+
+      if (!global._desktopAction) {
+        global._desktopAction = new DesktopAction();
+      }
+
+      return global._desktopAction.captureScreen(options);
+    }),
+  );
+
+  /**
+   * Desktop click at coordinates
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @param {Object} options - Click options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:desktop:click",
+    withErrorHandler(async (event, x, y, options = {}) => {
+      const { DesktopAction } = require("./actions");
+
+      if (!global._desktopAction) {
+        global._desktopAction = new DesktopAction();
+      }
+
+      return global._desktopAction.click(x, y, options);
+    }),
+  );
+
+  /**
+   * Desktop type text
+   * @param {string} text - Text to type
+   * @param {Object} options - Type options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:desktop:type",
+    withErrorHandler(async (event, text, options = {}) => {
+      const { DesktopAction } = require("./actions");
+
+      if (!global._desktopAction) {
+        global._desktopAction = new DesktopAction();
+      }
+
+      return global._desktopAction.typeText(text, options);
+    }),
+  );
+
+  /**
+   * Desktop press key
+   * @param {string} key - Key to press
+   * @param {Array<string>} modifiers - Modifier keys
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:desktop:key",
+    withErrorHandler(async (event, key, modifiers = []) => {
+      const { DesktopAction } = require("./actions");
+
+      if (!global._desktopAction) {
+        global._desktopAction = new DesktopAction();
+      }
+
+      return global._desktopAction.pressKey(key, modifiers);
+    }),
+  );
+
+  // ==================== Phase 6: Audit Logging (v0.33.0) ====================
+
+  /**
+   * Log operation to audit log
+   * @param {Object} data - Operation data
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:audit:log",
+    withErrorHandler(async (event, data) => {
+      const { getAuditLogger } = require("./actions");
+      const auditLogger = getAuditLogger();
+      return auditLogger.log(data);
+    }),
+  );
+
+  /**
+   * Query audit logs
+   * @param {Object} filter - Query filter
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:audit:query",
+    withErrorHandler(async (event, filter = {}) => {
+      const { getAuditLogger } = require("./actions");
+      const auditLogger = getAuditLogger();
+      return auditLogger.query(filter);
+    }),
+  );
+
+  /**
+   * Get audit statistics
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:audit:stats",
+    withErrorHandler(async (event) => {
+      const { getAuditLogger } = require("./actions");
+      const auditLogger = getAuditLogger();
+      return auditLogger.getStats();
+    }),
+  );
+
+  /**
+   * Get high risk operations
+   * @param {number} limit - Limit count
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:audit:highRisk",
+    withErrorHandler(async (event, limit = 50) => {
+      const { getAuditLogger } = require("./actions");
+      const auditLogger = getAuditLogger();
+      return auditLogger.getHighRiskOperations(limit);
+    }),
+  );
+
+  /**
+   * Export audit logs
+   * @param {string} format - Export format (json/csv)
+   * @param {Object} filter - Query filter
+   * @returns {Promise<string>}
+   */
+  _ipcMain.handle(
+    "browser:audit:export",
+    withErrorHandler(async (event, format = "json", filter = {}) => {
+      const { getAuditLogger } = require("./actions");
+      const auditLogger = getAuditLogger();
+      return auditLogger.export(format, filter);
+    }),
+  );
+
+  // ==================== Phase 6: Screen Recording (v0.33.0) ====================
+
+  /**
+   * Start screen recording
+   * @param {string} targetId - Tab ID (null for desktop)
+   * @param {Object} options - Recording options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recording:start",
+    withErrorHandler(async (event, targetId = null, options = {}) => {
+      const { getScreenRecorder } = require("./actions");
+      const engine = _getBrowserEngine();
+      const recorder = getScreenRecorder(engine, options);
+      return recorder.startRecording(targetId, options);
+    }),
+  );
+
+  /**
+   * Pause screen recording
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recording:pause",
+    withErrorHandler(async (event) => {
+      const { getScreenRecorder } = require("./actions");
+      const recorder = getScreenRecorder();
+      return recorder.pauseRecording();
+    }),
+  );
+
+  /**
+   * Resume screen recording
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recording:resume",
+    withErrorHandler(async (event) => {
+      const { getScreenRecorder } = require("./actions");
+      const recorder = getScreenRecorder();
+      return recorder.resumeRecording();
+    }),
+  );
+
+  /**
+   * Stop screen recording
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recording:stop",
+    withErrorHandler(async (event) => {
+      const { getScreenRecorder } = require("./actions");
+      const recorder = getScreenRecorder();
+      return recorder.stopRecording();
+    }),
+  );
+
+  /**
+   * Get recording status
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recording:status",
+    withErrorHandler(async (event) => {
+      const { getScreenRecorder } = require("./actions");
+      const recorder = getScreenRecorder();
+      return recorder.getStatus();
+    }),
+  );
+
+  /**
+   * List all recordings
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:recording:list",
+    withErrorHandler(async (event) => {
+      const { getScreenRecorder } = require("./actions");
+      const recorder = getScreenRecorder();
+      return recorder.listRecordings();
+    }),
+  );
+
+  /**
+   * Get recording details
+   * @param {string} recordingId - Recording ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recording:get",
+    withErrorHandler(async (event, recordingId) => {
+      const { getScreenRecorder } = require("./actions");
+      const recorder = getScreenRecorder();
+      return recorder.getRecording(recordingId);
+    }),
+  );
+
+  /**
+   * Delete recording
+   * @param {string} recordingId - Recording ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recording:delete",
+    withErrorHandler(async (event, recordingId) => {
+      const { getScreenRecorder } = require("./actions");
+      const recorder = getScreenRecorder();
+      return recorder.deleteRecording(recordingId);
+    }),
+  );
+
+  /**
+   * Export recording as GIF data
+   * @param {string} recordingId - Recording ID
+   * @param {Object} options - Export options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recording:exportGif",
+    withErrorHandler(async (event, recordingId, options = {}) => {
+      const { getScreenRecorder } = require("./actions");
+      const recorder = getScreenRecorder();
+      return recorder.exportToGif(recordingId, options);
+    }),
+  );
+
+  /**
+   * Get single frame from recording
+   * @param {string} recordingId - Recording ID
+   * @param {number} frameIndex - Frame index
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recording:frame",
+    withErrorHandler(async (event, recordingId, frameIndex) => {
+      const { getScreenRecorder } = require("./actions");
+      const recorder = getScreenRecorder();
+      return recorder.getFrame(recordingId, frameIndex);
+    }),
+  );
+
+  // ==================== Phase 7: Action Replay (v0.33.0) ====================
+
+  /**
+   * Load actions for replay
+   * @param {Array} actions - Actions to load
+   * @param {Object} options - Load options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:replay:load",
+    withErrorHandler(async (event, actions, options = {}) => {
+      const { getActionReplay } = require("./actions");
+      const engine = _getBrowserEngine();
+      const replay = getActionReplay(engine);
+      return replay.load(actions, options);
+    }),
+  );
+
+  /**
+   * Start action replay
+   * @param {Object} options - Replay options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:replay:play",
+    withErrorHandler(async (event, options = {}) => {
+      const { getActionReplay } = require("./actions");
+      const replay = getActionReplay();
+      return replay.play(options);
+    }),
+  );
+
+  /**
+   * Pause action replay
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:replay:pause",
+    withErrorHandler(async (event) => {
+      const { getActionReplay } = require("./actions");
+      const replay = getActionReplay();
+      return replay.pause();
+    }),
+  );
+
+  /**
+   * Resume action replay
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:replay:resume",
+    withErrorHandler(async (event) => {
+      const { getActionReplay } = require("./actions");
+      const replay = getActionReplay();
+      return replay.resume();
+    }),
+  );
+
+  /**
+   * Step through action replay
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:replay:step",
+    withErrorHandler(async (event) => {
+      const { getActionReplay } = require("./actions");
+      const replay = getActionReplay();
+      return replay.step();
+    }),
+  );
+
+  /**
+   * Stop action replay
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:replay:stop",
+    withErrorHandler(async (event) => {
+      const { getActionReplay } = require("./actions");
+      const replay = getActionReplay();
+      return replay.stop();
+    }),
+  );
+
+  /**
+   * Get replay status
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:replay:status",
+    withErrorHandler(async (event) => {
+      const { getActionReplay } = require("./actions");
+      const replay = getActionReplay();
+      return replay.getStatus();
+    }),
+  );
+
+  /**
+   * Set replay speed
+   * @param {number} speed - Speed multiplier
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:replay:setSpeed",
+    withErrorHandler(async (event, speed) => {
+      const { getActionReplay } = require("./actions");
+      const replay = getActionReplay();
+      replay.setSpeed(speed);
+      return { success: true, speed };
+    }),
+  );
+
+  // ==================== Phase 7: Safe Mode (v0.33.0) ====================
+
+  /**
+   * Check permission for action
+   * @param {string} actionType - Action type
+   * @param {Object} params - Action params
+   * @param {Object} context - Context info
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:safeMode:checkPermission",
+    withErrorHandler(async (event, actionType, params = {}, context = {}) => {
+      const { getSafeMode } = require("./actions");
+      const safeMode = getSafeMode();
+      return safeMode.checkPermission(actionType, params, context);
+    }),
+  );
+
+  /**
+   * Set safe mode level
+   * @param {string} level - Safety level
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:safeMode:setLevel",
+    withErrorHandler(async (event, level) => {
+      const { getSafeMode } = require("./actions");
+      const safeMode = getSafeMode();
+      safeMode.setLevel(level);
+      return { success: true, level };
+    }),
+  );
+
+  /**
+   * Enable/disable safe mode
+   * @param {boolean} enabled
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:safeMode:setEnabled",
+    withErrorHandler(async (event, enabled) => {
+      const { getSafeMode } = require("./actions");
+      const safeMode = getSafeMode();
+      safeMode.setEnabled(enabled);
+      return { success: true, enabled };
+    }),
+  );
+
+  /**
+   * Get safe mode config
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:safeMode:getConfig",
+    withErrorHandler(async (event) => {
+      const { getSafeMode } = require("./actions");
+      const safeMode = getSafeMode();
+      return safeMode.getConfig();
+    }),
+  );
+
+  /**
+   * Update safe mode config
+   * @param {Object} updates - Config updates
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:safeMode:updateConfig",
+    withErrorHandler(async (event, updates) => {
+      const { getSafeMode } = require("./actions");
+      const safeMode = getSafeMode();
+      safeMode.updateConfig(updates);
+      return safeMode.getConfig();
+    }),
+  );
+
+  /**
+   * Respond to confirmation request
+   * @param {string} confirmationId - Confirmation ID
+   * @param {boolean} approved - Whether approved
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:safeMode:respond",
+    withErrorHandler(async (event, confirmationId, approved) => {
+      const { getSafeMode } = require("./actions");
+      const safeMode = getSafeMode();
+      return safeMode.respondToConfirmation(confirmationId, approved);
+    }),
+  );
+
+  /**
+   * Get pending confirmations
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:safeMode:getPending",
+    withErrorHandler(async (event) => {
+      const { getSafeMode } = require("./actions");
+      const safeMode = getSafeMode();
+      return safeMode.getPendingConfirmations();
+    }),
+  );
+
+  // ==================== Phase 7: Workflow Engine (v0.33.0) ====================
+
+  /**
+   * Create workflow
+   * @param {Object} definition - Workflow definition
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:create",
+    withErrorHandler(async (event, definition) => {
+      const { getWorkflowEngine } = require("./actions");
+      const engine = _getBrowserEngine();
+      const workflow = getWorkflowEngine(engine);
+      return workflow.createWorkflow(definition);
+    }),
+  );
+
+  /**
+   * Execute workflow
+   * @param {string} workflowId - Workflow ID
+   * @param {Object} options - Execution options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:execute",
+    withErrorHandler(async (event, workflowId, options = {}) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.execute(workflowId, options);
+    }),
+  );
+
+  /**
+   * Pause workflow
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:pause",
+    withErrorHandler(async (event) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.pause();
+    }),
+  );
+
+  /**
+   * Resume workflow
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:resume",
+    withErrorHandler(async (event) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.resume();
+    }),
+  );
+
+  /**
+   * Cancel workflow
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:cancel",
+    withErrorHandler(async (event) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.cancel();
+    }),
+  );
+
+  /**
+   * Get workflow status
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:status",
+    withErrorHandler(async (event) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.getStatus();
+    }),
+  );
+
+  /**
+   * List workflows
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:list",
+    withErrorHandler(async (event) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.listWorkflows();
+    }),
+  );
+
+  /**
+   * Get workflow details
+   * @param {string} workflowId - Workflow ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:get",
+    withErrorHandler(async (event, workflowId) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.getWorkflow(workflowId);
+    }),
+  );
+
+  /**
+   * Delete workflow
+   * @param {string} workflowId - Workflow ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:delete",
+    withErrorHandler(async (event, workflowId) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.deleteWorkflow(workflowId);
+    }),
+  );
+
+  /**
+   * Save workflow to file
+   * @param {string} workflowId - Workflow ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:save",
+    withErrorHandler(async (event, workflowId) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.saveWorkflow(workflowId);
+    }),
+  );
+
+  /**
+   * Load workflow from file
+   * @param {string} workflowId - Workflow ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:workflow:load",
+    withErrorHandler(async (event, workflowId) => {
+      const { getWorkflowEngine } = require("./actions");
+      const workflow = getWorkflowEngine();
+      return workflow.loadWorkflow(workflowId);
+    }),
+  );
+
+  // ==================== Phase 8: Element Highlighter (v0.33.0) ====================
+
+  /**
+   * Highlight element by bounds
+   * @param {string} targetId - Tab ID
+   * @param {Object} bounds - Element bounds { x, y, width, height }
+   * @param {Object} options - Highlight options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:highlight:bounds",
+    withErrorHandler(async (event, targetId, bounds, options = {}) => {
+      const { getElementHighlighter } = require("./actions");
+      const engine = _getBrowserEngine();
+      const highlighter = getElementHighlighter(engine);
+      return highlighter.highlightBounds(targetId, bounds, options);
+    }),
+  );
+
+  /**
+   * Highlight element by selector
+   * @param {string} targetId - Tab ID
+   * @param {string} selector - CSS selector
+   * @param {Object} options - Highlight options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:highlight:selector",
+    withErrorHandler(async (event, targetId, selector, options = {}) => {
+      const { getElementHighlighter } = require("./actions");
+      const engine = _getBrowserEngine();
+      const highlighter = getElementHighlighter(engine);
+      return highlighter.highlightSelector(targetId, selector, options);
+    }),
+  );
+
+  /**
+   * Highlight element by ref
+   * @param {string} targetId - Tab ID
+   * @param {string} ref - Element ref
+   * @param {Object} options - Highlight options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:highlight:ref",
+    withErrorHandler(async (event, targetId, ref, options = {}) => {
+      const { getElementHighlighter } = require("./actions");
+      const engine = _getBrowserEngine();
+      const highlighter = getElementHighlighter(engine);
+      return highlighter.highlightRef(targetId, ref, options);
+    }),
+  );
+
+  /**
+   * Show click highlight
+   * @param {string} targetId - Tab ID
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @param {Object} options - Highlight options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:highlight:click",
+    withErrorHandler(async (event, targetId, x, y, options = {}) => {
+      const { getElementHighlighter } = require("./actions");
+      const engine = _getBrowserEngine();
+      const highlighter = getElementHighlighter(engine);
+      return highlighter.showClickHighlight(targetId, x, y, options);
+    }),
+  );
+
+  /**
+   * Draw path on page
+   * @param {string} targetId - Tab ID
+   * @param {Array} points - Path points [{ x, y }, ...]
+   * @param {Object} options - Draw options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:highlight:path",
+    withErrorHandler(async (event, targetId, points, options = {}) => {
+      const { getElementHighlighter } = require("./actions");
+      const engine = _getBrowserEngine();
+      const highlighter = getElementHighlighter(engine);
+      return highlighter.drawPath(targetId, points, options);
+    }),
+  );
+
+  /**
+   * Show annotation
+   * @param {string} targetId - Tab ID
+   * @param {string} text - Annotation text
+   * @param {Object} position - Position { x, y }
+   * @param {Object} options - Annotation options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:highlight:annotate",
+    withErrorHandler(async (event, targetId, text, position, options = {}) => {
+      const { getElementHighlighter } = require("./actions");
+      const engine = _getBrowserEngine();
+      const highlighter = getElementHighlighter(engine);
+      return highlighter.showAnnotation(targetId, text, position, options);
+    }),
+  );
+
+  /**
+   * Clear all highlights
+   * @param {string} targetId - Tab ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:highlight:clear",
+    withErrorHandler(async (event, targetId) => {
+      const { getElementHighlighter } = require("./actions");
+      const engine = _getBrowserEngine();
+      const highlighter = getElementHighlighter(engine);
+      return highlighter.clearHighlights(targetId);
+    }),
+  );
+
+  /**
+   * Get active highlights
+   * @param {string} targetId - Tab ID
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:highlight:list",
+    withErrorHandler(async (event, targetId) => {
+      const { getElementHighlighter } = require("./actions");
+      const highlighter = getElementHighlighter();
+      return highlighter.getActiveHighlights(targetId);
+    }),
+  );
+
+  // ==================== Phase 8: Template Actions (v0.33.0) ====================
+
+  /**
+   * List available templates
+   * @param {string} category - Template category (optional)
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:template:list",
+    withErrorHandler(async (event, category = null) => {
+      const { getTemplateActions } = require("./actions");
+      const engine = _getBrowserEngine();
+      const templates = getTemplateActions(engine);
+      return templates.listTemplates(category);
+    }),
+  );
+
+  /**
+   * Get template details
+   * @param {string} templateId - Template ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:template:get",
+    withErrorHandler(async (event, templateId) => {
+      const { getTemplateActions } = require("./actions");
+      const templates = getTemplateActions();
+      return templates.getTemplate(templateId);
+    }),
+  );
+
+  /**
+   * Execute template
+   * @param {string} targetId - Tab ID
+   * @param {string} templateId - Template ID
+   * @param {Object} params - Template parameters
+   * @param {Object} options - Execution options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:template:execute",
+    withErrorHandler(async (event, targetId, templateId, params = {}, options = {}) => {
+      const { getTemplateActions } = require("./actions");
+      const engine = _getBrowserEngine();
+      const templates = getTemplateActions(engine);
+      return templates.executeTemplate(targetId, templateId, params, options);
+    }),
+  );
+
+  /**
+   * Register custom template
+   * @param {Object} template - Template definition
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:template:register",
+    withErrorHandler(async (event, template) => {
+      const { getTemplateActions } = require("./actions");
+      const templates = getTemplateActions();
+      return templates.registerTemplate(template);
+    }),
+  );
+
+  /**
+   * Unregister template
+   * @param {string} templateId - Template ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:template:unregister",
+    withErrorHandler(async (event, templateId) => {
+      const { getTemplateActions } = require("./actions");
+      const templates = getTemplateActions();
+      return templates.unregisterTemplate(templateId);
+    }),
+  );
+
+  /**
+   * Validate template parameters
+   * @param {string} templateId - Template ID
+   * @param {Object} params - Parameters to validate
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:template:validate",
+    withErrorHandler(async (event, templateId, params) => {
+      const { getTemplateActions } = require("./actions");
+      const templates = getTemplateActions();
+      return templates.validateParams(templateId, params);
+    }),
+  );
+
+  /**
+   * Get template categories
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:template:categories",
+    withErrorHandler(async (event) => {
+      const { getTemplateActions, TemplateCategory } = require("./actions");
+      return Object.values(TemplateCategory);
+    }),
+  );
+
+  // ==================== Phase 8: Metrics Collection (v0.33.0) ====================
+
+  /**
+   * Record operation metric
+   * @param {Object} data - Operation data
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:metrics:record",
+    withErrorHandler(async (event, data) => {
+      const { getComputerUseMetrics } = require("./actions");
+      const metrics = getComputerUseMetrics();
+      return metrics.recordOperation(data);
+    }),
+  );
+
+  /**
+   * Get session statistics
+   * @param {string} sessionId - Session ID (optional)
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:metrics:sessionStats",
+    withErrorHandler(async (event, sessionId = null) => {
+      const { getComputerUseMetrics } = require("./actions");
+      const metrics = getComputerUseMetrics();
+      return metrics.getSessionStats(sessionId);
+    }),
+  );
+
+  /**
+   * Get operation type statistics
+   * @param {string} timeRange - Time range (hour/day/week/month/all)
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:metrics:typeStats",
+    withErrorHandler(async (event, timeRange = "day") => {
+      const { getComputerUseMetrics } = require("./actions");
+      const metrics = getComputerUseMetrics();
+      return metrics.getTypeStats(timeRange);
+    }),
+  );
+
+  /**
+   * Get error statistics
+   * @param {string} timeRange - Time range
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:metrics:errorStats",
+    withErrorHandler(async (event, timeRange = "day") => {
+      const { getComputerUseMetrics } = require("./actions");
+      const metrics = getComputerUseMetrics();
+      return metrics.getErrorStats(timeRange);
+    }),
+  );
+
+  /**
+   * Get performance metrics
+   * @param {string} timeRange - Time range
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:metrics:performance",
+    withErrorHandler(async (event, timeRange = "day") => {
+      const { getComputerUseMetrics } = require("./actions");
+      const metrics = getComputerUseMetrics();
+      return metrics.getPerformanceMetrics(timeRange);
+    }),
+  );
+
+  /**
+   * Get time series data
+   * @param {string} metricName - Metric name
+   * @param {string} timeRange - Time range
+   * @param {string} granularity - Data granularity (minute/hour/day)
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:metrics:timeSeries",
+    withErrorHandler(async (event, metricName, timeRange = "day", granularity = "hour") => {
+      const { getComputerUseMetrics } = require("./actions");
+      const metrics = getComputerUseMetrics();
+      return metrics.getTimeSeries(metricName, timeRange, granularity);
+    }),
+  );
+
+  /**
+   * Get overall summary
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:metrics:summary",
+    withErrorHandler(async (event) => {
+      const { getComputerUseMetrics } = require("./actions");
+      const metrics = getComputerUseMetrics();
+      return metrics.getSummary();
+    }),
+  );
+
+  /**
+   * Export metrics
+   * @param {string} format - Export format (json/csv)
+   * @param {Object} options - Export options
+   * @returns {Promise<string>}
+   */
+  _ipcMain.handle(
+    "browser:metrics:export",
+    withErrorHandler(async (event, format = "json", options = {}) => {
+      const { getComputerUseMetrics } = require("./actions");
+      const metrics = getComputerUseMetrics();
+      return metrics.export(format, options);
+    }),
+  );
+
+  /**
+   * Reset metrics
+   * @param {boolean} confirm - Confirmation flag
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:metrics:reset",
+    withErrorHandler(async (event, confirm = false) => {
+      if (!confirm) {
+        return { success: false, message: "Confirmation required to reset metrics" };
+      }
+      const { getComputerUseMetrics } = require("./actions");
+      const metrics = getComputerUseMetrics();
+      return metrics.reset();
+    }),
+  );
+
+  // ==================== Phase 9: Smart Element Detection (v0.33.0) ====================
+
+  /**
+   * Detect element using smart strategies
+   * @param {string} targetId - Tab ID
+   * @param {Object} query - Element query
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:detect:element",
+    withErrorHandler(async (event, targetId, query) => {
+      const { getSmartElementDetector } = require("./actions");
+      const engine = _getBrowserEngine();
+      const detector = getSmartElementDetector(engine);
+      return detector.detect(targetId, query);
+    }),
+  );
+
+  /**
+   * Detect multiple elements
+   * @param {string} targetId - Tab ID
+   * @param {Array} queries - Element queries
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:detect:multiple",
+    withErrorHandler(async (event, targetId, queries) => {
+      const { getSmartElementDetector } = require("./actions");
+      const engine = _getBrowserEngine();
+      const detector = getSmartElementDetector(engine);
+      return detector.detectMultiple(targetId, queries);
+    }),
+  );
+
+  /**
+   * Wait for element to appear
+   * @param {string} targetId - Tab ID
+   * @param {Object} query - Element query
+   * @param {Object} options - Wait options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:detect:waitFor",
+    withErrorHandler(async (event, targetId, query, options = {}) => {
+      const { getSmartElementDetector } = require("./actions");
+      const engine = _getBrowserEngine();
+      const detector = getSmartElementDetector(engine);
+      return detector.waitFor(targetId, query, options);
+    }),
+  );
+
+  /**
+   * Get detector statistics
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:detect:stats",
+    withErrorHandler(async (event) => {
+      const { getSmartElementDetector } = require("./actions");
+      const detector = getSmartElementDetector();
+      return detector.getStats();
+    }),
+  );
+
+  /**
+   * Clear detector cache
+   * @param {string} targetId - Tab ID (optional)
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:detect:clearCache",
+    withErrorHandler(async (event, targetId = null) => {
+      const { getSmartElementDetector } = require("./actions");
+      const detector = getSmartElementDetector();
+      detector.clearCache(targetId);
+      return { success: true };
+    }),
+  );
+
+  // ==================== Phase 9: Error Recovery (v0.33.0) ====================
+
+  /**
+   * Execute operation with auto recovery
+   * @param {string} targetId - Tab ID
+   * @param {Object} operation - Operation config
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recovery:execute",
+    withErrorHandler(async (event, targetId, operation) => {
+      const { getErrorRecoveryManager } = require("./actions");
+      const engine = _getBrowserEngine();
+      const recovery = getErrorRecoveryManager(engine);
+
+      // Create operation function based on config
+      const operationFn = async () => {
+        // This would be replaced with actual operation logic
+        return engine.act(targetId, operation.action, operation.ref, operation.options);
+      };
+
+      return recovery.executeWithRecovery(operationFn, [], {
+        targetId,
+        ...operation
+      });
+    }),
+  );
+
+  /**
+   * Manual recovery action
+   * @param {string} targetId - Tab ID
+   * @param {string} strategy - Recovery strategy
+   * @param {Object} context - Context
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recovery:manual",
+    withErrorHandler(async (event, targetId, strategy, context = {}) => {
+      const { getErrorRecoveryManager } = require("./actions");
+      const engine = _getBrowserEngine();
+      const recovery = getErrorRecoveryManager(engine);
+      return recovery.manualRecover(targetId, strategy, context);
+    }),
+  );
+
+  /**
+   * Get recovery statistics
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recovery:stats",
+    withErrorHandler(async (event) => {
+      const { getErrorRecoveryManager } = require("./actions");
+      const recovery = getErrorRecoveryManager();
+      return recovery.getStats();
+    }),
+  );
+
+  /**
+   * Get recovery history
+   * @param {number} limit - History limit
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:recovery:history",
+    withErrorHandler(async (event, limit = 50) => {
+      const { getErrorRecoveryManager } = require("./actions");
+      const recovery = getErrorRecoveryManager();
+      return recovery.getHistory(limit);
+    }),
+  );
+
+  /**
+   * Set recovery strategies for error type
+   * @param {string} errorType - Error type
+   * @param {Array} strategies - Strategies
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:recovery:setStrategies",
+    withErrorHandler(async (event, errorType, strategies) => {
+      const { getErrorRecoveryManager } = require("./actions");
+      const recovery = getErrorRecoveryManager();
+      recovery.setStrategies(errorType, strategies);
+      return { success: true };
+    }),
+  );
+
+  // ==================== Phase 9: Context Memory (v0.33.0) ====================
+
+  /**
+   * Save page state
+   * @param {string} url - Page URL
+   * @param {Object} state - Page state
+   * @param {Object} options - Options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:savePageState",
+    withErrorHandler(async (event, url, state, options = {}) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.savePageState(url, state, options);
+    }),
+  );
+
+  /**
+   * Get page state
+   * @param {string} key - Page key
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:getPageState",
+    withErrorHandler(async (event, key) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.getPageState(key);
+    }),
+  );
+
+  /**
+   * Save element location
+   * @param {Object} query - Element query
+   * @param {Object} location - Location info
+   * @param {Object} context - Context
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:saveElement",
+    withErrorHandler(async (event, query, location, context = {}) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.saveElementLocation(query, location, context);
+    }),
+  );
+
+  /**
+   * Get element location
+   * @param {Object} query - Element query
+   * @param {Object} context - Context
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:getElement",
+    withErrorHandler(async (event, query, context = {}) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.getElementLocation(query, context);
+    }),
+  );
+
+  /**
+   * Record operation
+   * @param {string} contextKey - Context key
+   * @param {Object} operation - Operation
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:recordOperation",
+    withErrorHandler(async (event, contextKey, operation) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.recordOperation(contextKey, operation);
+    }),
+  );
+
+  /**
+   * Get operation sequence
+   * @param {string} contextKey - Context key
+   * @param {Object} options - Options
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:memory:getOperations",
+    withErrorHandler(async (event, contextKey, options = {}) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.getOperationSequence(contextKey, options);
+    }),
+  );
+
+  /**
+   * Save form data
+   * @param {string} formId - Form ID
+   * @param {Object} data - Form data
+   * @param {Object} context - Context
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:saveForm",
+    withErrorHandler(async (event, formId, data, context = {}) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.saveFormData(formId, data, context);
+    }),
+  );
+
+  /**
+   * Get form data
+   * @param {string} formId - Form ID
+   * @param {Object} context - Context
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:getForm",
+    withErrorHandler(async (event, formId, context = {}) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.getFormData(formId, context);
+    }),
+  );
+
+  /**
+   * Get memory statistics
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:stats",
+    withErrorHandler(async (event) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.getStats();
+    }),
+  );
+
+  /**
+   * Cleanup expired entries
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:cleanup",
+    withErrorHandler(async (event) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.cleanup();
+    }),
+  );
+
+  /**
+   * Clear all memory
+   * @param {boolean} confirm - Confirmation flag
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:clear",
+    withErrorHandler(async (event, confirm = false) => {
+      if (!confirm) {
+        return { success: false, message: "Confirmation required to clear memory" };
+      }
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      memory.clear();
+      return { success: true };
+    }),
+  );
+
+  /**
+   * Export memory data
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:export",
+    withErrorHandler(async (event) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      return memory.export();
+    }),
+  );
+
+  /**
+   * Import memory data
+   * @param {Object} data - Data to import
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:memory:import",
+    withErrorHandler(async (event, data) => {
+      const { getContextMemory } = require("./actions");
+      const memory = getContextMemory();
+      memory.import(data);
+      return { success: true };
+    }),
+  );
+
+  // ============================================
+  // Phase 10: AutomationPolicy IPC Handlers
+  // ============================================
+
+  /**
+   * Check if action is allowed by policy
+   * @param {Object} context - Action context
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:policy:check",
+    withErrorHandler(async (event, context) => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return await policy.check(context);
+    }),
+  );
+
+  /**
+   * Add a policy
+   * @param {Object} policyConfig - Policy configuration
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:policy:add",
+    withErrorHandler(async (event, policyConfig) => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return policy.addPolicy(policyConfig);
+    }),
+  );
+
+  /**
+   * Remove a policy
+   * @param {string} policyId - Policy ID
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:policy:remove",
+    withErrorHandler(async (event, policyId) => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return policy.removePolicy(policyId);
+    }),
+  );
+
+  /**
+   * Update a policy
+   * @param {string} policyId - Policy ID
+   * @param {Object} updates - Updates to apply
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:policy:update",
+    withErrorHandler(async (event, policyId, updates) => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return policy.updatePolicy(policyId, updates);
+    }),
+  );
+
+  /**
+   * List all policies
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:policy:list",
+    withErrorHandler(async () => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return policy.list();
+    }),
+  );
+
+  /**
+   * Get policy by ID
+   * @param {string} policyId - Policy ID
+   * @returns {Promise<Object|null>}
+   */
+  _ipcMain.handle(
+    "browser:policy:get",
+    withErrorHandler(async (event, policyId) => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return policy.get(policyId);
+    }),
+  );
+
+  /**
+   * Get policy violations
+   * @param {number} limit - Maximum number of violations
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:policy:violations",
+    withErrorHandler(async (event, limit = 50) => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return policy.getViolations(limit);
+    }),
+  );
+
+  /**
+   * Get policy stats
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:policy:stats",
+    withErrorHandler(async () => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return policy.getStats();
+    }),
+  );
+
+  /**
+   * Export policies
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:policy:export",
+    withErrorHandler(async () => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return policy.export();
+    }),
+  );
+
+  /**
+   * Import policies
+   * @param {Object} data - Import data
+   * @param {boolean} merge - Whether to merge with existing
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:policy:import",
+    withErrorHandler(async (event, data, merge = false) => {
+      const { getAutomationPolicy } = require("./actions");
+      const policy = getAutomationPolicy();
+      return policy.import(data, merge);
+    }),
+  );
+
+  // ============================================
+  // Phase 10: ScreenAnalyzer IPC Handlers
+  // ============================================
+
+  /**
+   * Analyze screen
+   * @param {string} targetId - Tab ID
+   * @param {Object} options - Analysis options
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:analyzer:analyze",
+    withErrorHandler(async (event, targetId, options = {}) => {
+      const engine = getBrowserEngine();
+      const { getScreenAnalyzer } = require("./actions");
+      const analyzer = getScreenAnalyzer(engine);
+      return await analyzer.analyze(targetId, options);
+    }),
+  );
+
+  /**
+   * Find regions matching criteria
+   * @param {string} targetId - Tab ID
+   * @param {Object} criteria - Search criteria
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:analyzer:findRegions",
+    withErrorHandler(async (event, targetId, criteria = {}) => {
+      const engine = getBrowserEngine();
+      const { getScreenAnalyzer } = require("./actions");
+      const analyzer = getScreenAnalyzer(engine);
+      return await analyzer.findRegions(targetId, criteria);
+    }),
+  );
+
+  /**
+   * Capture a region screenshot
+   * @param {string} targetId - Tab ID
+   * @param {Object} bounds - Region bounds
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:analyzer:captureRegion",
+    withErrorHandler(async (event, targetId, bounds) => {
+      const engine = getBrowserEngine();
+      const { getScreenAnalyzer } = require("./actions");
+      const analyzer = getScreenAnalyzer(engine);
+      return await analyzer.captureRegion(targetId, bounds);
+    }),
+  );
+
+  /**
+   * Compare two analyses
+   * @param {Object} before - Previous analysis
+   * @param {Object} after - Current analysis
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:analyzer:compare",
+    withErrorHandler(async (event, before, after) => {
+      const { getScreenAnalyzer } = require("./actions");
+      const analyzer = getScreenAnalyzer();
+      return analyzer.compare(before, after);
+    }),
+  );
+
+  /**
+   * Clear analyzer cache
+   * @param {string} targetId - Tab ID (optional)
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:analyzer:clearCache",
+    withErrorHandler(async (event, targetId = null) => {
+      const { getScreenAnalyzer } = require("./actions");
+      const analyzer = getScreenAnalyzer();
+      analyzer.clearCache(targetId);
+      return { success: true };
+    }),
+  );
+
+  /**
+   * Get analyzer stats
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:analyzer:stats",
+    withErrorHandler(async () => {
+      const { getScreenAnalyzer } = require("./actions");
+      const analyzer = getScreenAnalyzer();
+      return analyzer.getStats();
+    }),
+  );
+
+  // ============================================
+  // Phase 10: ActionSuggestion IPC Handlers
+  // ============================================
+
+  /**
+   * Get action suggestions
+   * @param {Object} context - Current context
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:suggestion:suggest",
+    withErrorHandler(async (event, context) => {
+      const { getActionSuggestion } = require("./actions");
+      const suggestion = getActionSuggestion();
+      return await suggestion.suggest(context);
+    }),
+  );
+
+  /**
+   * Record an action
+   * @param {Object} action - Action to record
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:suggestion:recordAction",
+    withErrorHandler(async (event, action) => {
+      const { getActionSuggestion } = require("./actions");
+      const suggestion = getActionSuggestion();
+      suggestion.recordAction(action);
+      return { success: true };
+    }),
+  );
+
+  /**
+   * Provide feedback on a suggestion
+   * @param {Object} suggestionData - Suggestion that was used
+   * @param {boolean} accepted - Whether it was accepted
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:suggestion:feedback",
+    withErrorHandler(async (event, suggestionData, accepted) => {
+      const { getActionSuggestion } = require("./actions");
+      const suggestion = getActionSuggestion();
+      suggestion.feedback(suggestionData, accepted);
+      return { success: true };
+    }),
+  );
+
+  /**
+   * Get suggestion history
+   * @param {number} limit - Maximum items
+   * @returns {Promise<Array>}
+   */
+  _ipcMain.handle(
+    "browser:suggestion:history",
+    withErrorHandler(async (event, limit = 20) => {
+      const { getActionSuggestion } = require("./actions");
+      const suggestion = getActionSuggestion();
+      return suggestion.getHistory(limit);
+    }),
+  );
+
+  /**
+   * Get suggestion stats
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:suggestion:stats",
+    withErrorHandler(async () => {
+      const { getActionSuggestion } = require("./actions");
+      const suggestion = getActionSuggestion();
+      return suggestion.getStats();
+    }),
+  );
+
+  /**
+   * Clear suggestion history
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:suggestion:clearHistory",
+    withErrorHandler(async () => {
+      const { getActionSuggestion } = require("./actions");
+      const suggestion = getActionSuggestion();
+      suggestion.clearHistory();
+      return { success: true };
+    }),
+  );
+
+  /**
+   * Clear learned patterns
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:suggestion:clearPatterns",
+    withErrorHandler(async () => {
+      const { getActionSuggestion } = require("./actions");
+      const suggestion = getActionSuggestion();
+      suggestion.clearLearnedPatterns();
+      return { success: true };
+    }),
+  );
+
+  /**
+   * Export suggestion data
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:suggestion:export",
+    withErrorHandler(async () => {
+      const { getActionSuggestion } = require("./actions");
+      const suggestion = getActionSuggestion();
+      return suggestion.export();
+    }),
+  );
+
+  /**
+   * Import suggestion data
+   * @param {Object} data - Data to import
+   * @returns {Promise<Object>}
+   */
+  _ipcMain.handle(
+    "browser:suggestion:import",
+    withErrorHandler(async (event, data) => {
+      const { getActionSuggestion } = require("./actions");
+      const suggestion = getActionSuggestion();
+      return suggestion.import(data);
+    }),
+  );
+
   logger.info(
-    "[Browser IPC] All Browser IPC handlers registered (Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5)",
+    "[Browser IPC] All Browser IPC handlers registered (Phase 1-10, including Computer Use, Audit, Recording, Replay, SafeMode, Workflow, Highlight, Templates, Metrics, Detection, Recovery, Memory, Policy, Analyzer, and Suggestion)",
   );
 }
 

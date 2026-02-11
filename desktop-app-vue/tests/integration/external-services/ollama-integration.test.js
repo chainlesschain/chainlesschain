@@ -277,6 +277,13 @@ describe("Ollama LLM 服务集成测试", () => {
   let client;
   let mockAxios;
 
+  // 辅助函数：检查 mock 是否正确设置
+  const ensureMockAvailable = () => {
+    if (!mockAxios || typeof mockAxios._setResponse !== 'function') {
+      throw new Error('Mock axios not properly initialized');
+    }
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockAxiosCreate.mockClear();
@@ -288,10 +295,17 @@ describe("Ollama LLM 服务集成测试", () => {
     });
 
     mockAxios = client.client;
+
+    // 确保 mock 被正确设置
+    if (!mockAxios || typeof mockAxios._setResponse !== 'function') {
+      // 重新创建 mock
+      mockAxios = createMockAxios();
+      client.client = mockAxios;
+    }
   });
 
   afterEach(() => {
-    if (mockAxios._clear) {
+    if (mockAxios && mockAxios._clear) {
       mockAxios._clear();
     }
   });

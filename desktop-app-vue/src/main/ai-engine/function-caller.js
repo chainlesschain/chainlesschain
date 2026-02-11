@@ -51,6 +51,9 @@ const { getImageGenTools } = require("./extended-tools-imagegen");
 // 新增：语音合成工具 (v0.27.0)
 const { getTTSTools } = require("./extended-tools-tts");
 
+// 新增：Computer Use 工具 (v0.33.0)
+const { getComputerUseTools, registerComputerUseTools } = require("./extended-tools-computeruse");
+
 class FunctionCaller {
   constructor(options = {}) {
     // 注册的工具字典
@@ -859,7 +862,15 @@ function initializeInteractions() {
       logger.error("[FunctionCaller] 语音合成工具注册失败:", error.message);
     }
 
-    logger.info("[FunctionCaller] 所有工具注册完成（包括26个新增工具）");
+    // 注册 Computer Use 工具（v0.33.0）
+    try {
+      registerComputerUseTools(this);
+      logger.info("[FunctionCaller] ✓ Computer Use工具已注册（12个工具）");
+    } catch (error) {
+      logger.error("[FunctionCaller] Computer Use工具注册失败:", error.message);
+    }
+
+    logger.info("[FunctionCaller] 所有工具注册完成（包括38个新增工具）");
   }
 
   /**

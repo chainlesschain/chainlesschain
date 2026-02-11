@@ -3,6 +3,8 @@
  * 测试PC-移动端连接可靠性
  */
 
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
+
 const EventEmitter = require("events");
 
 // Mock WebSocket
@@ -149,7 +151,7 @@ describe("MobileBridge", () => {
   let mockSignalingServer;
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
 
     bridge = new MobileBridge({
       signalingUrl: "ws://localhost:9001",
@@ -164,7 +166,7 @@ describe("MobileBridge", () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
     if (bridge) {
       bridge.disconnect();
     }
@@ -175,7 +177,7 @@ describe("MobileBridge", () => {
       const connectPromise = bridge.connect();
 
       // Simulate WebSocket open
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
 
       await connectPromise;
@@ -184,16 +186,16 @@ describe("MobileBridge", () => {
     });
 
     test("应该处理连接失败", async () => {
-      const errorHandler = jest.fn();
+      const errorHandler = vi.fn();
       bridge.on("error", errorHandler);
 
       const connectPromise = bridge.connect().catch(() => {});
 
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateError(new Error("Connection failed"));
       bridge.ws.simulateClose(1006);
 
-      await jest.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(100);
 
       expect(errorHandler).toHaveBeenCalled();
     });
@@ -201,12 +203,12 @@ describe("MobileBridge", () => {
 
   describe("指数退避重连", () => {
     test("应该使用指数退避策略重连", async () => {
-      const reconnectHandler = jest.fn();
+      const reconnectHandler = vi.fn();
       bridge.on("reconnecting", reconnectHandler);
 
       // Initial connect
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
@@ -214,7 +216,7 @@ describe("MobileBridge", () => {
       bridge.ws.simulateClose(1006);
 
       // First reconnect attempt - delay should be 1000ms (base)
-      await jest.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(1000);
       expect(reconnectHandler).toHaveBeenCalledTimes(1);
 
       // Simulate reconnect failure
@@ -222,7 +224,7 @@ describe("MobileBridge", () => {
       bridge.ws.simulateClose(1006);
 
       // Second reconnect attempt - delay should be 2000ms (1000 * 2)
-      await jest.advanceTimersByTimeAsync(2000);
+      await vi.advanceTimersByTimeAsync(2000);
       expect(reconnectHandler).toHaveBeenCalledTimes(2);
     });
 
@@ -232,14 +234,14 @@ describe("MobileBridge", () => {
       bridge.options.reconnectBackoffFactor = 2;
 
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
       // Disconnect multiple times
       for (let i = 0; i < 5; i++) {
         bridge.ws.simulateClose(1006);
-        await jest.advanceTimersByTimeAsync(60000);
+        await vi.advanceTimersByTimeAsync(60000);
         if (bridge.ws) {
           bridge.ws.simulateOpen();
         }
@@ -251,13 +253,13 @@ describe("MobileBridge", () => {
 
     test("应该在成功重连后重置延迟", async () => {
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
       // Disconnect
       bridge.ws.simulateClose(1006);
-      await jest.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(1000);
 
       // Reconnect successfully
       if (bridge.ws) {
@@ -268,20 +270,20 @@ describe("MobileBridge", () => {
     });
 
     test("应该在达到最大重试次数后停止重连", async () => {
-      const failedHandler = jest.fn();
+      const failedHandler = vi.fn();
       bridge.on("reconnect-failed", failedHandler);
 
       bridge.options.maxSignalingReconnectAttempts = 3;
 
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
       // Simulate multiple failures
       for (let i = 0; i < 5; i++) {
         bridge.ws.simulateClose(1006);
-        await jest.advanceTimersByTimeAsync(120000);
+        await vi.advanceTimersByTimeAsync(120000);
       }
 
       expect(failedHandler).toHaveBeenCalled();
@@ -291,14 +293,14 @@ describe("MobileBridge", () => {
   describe("心跳检测", () => {
     test("应该定期发送心跳", async () => {
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
-      const sendSpy = jest.spyOn(bridge.ws, "send");
+      const sendSpy = vi.spyOn(bridge.ws, "send");
 
       // Advance by heartbeat interval
-      await jest.advanceTimersByTimeAsync(30000);
+      await vi.advanceTimersByTimeAsync(30000);
 
       expect(sendSpy).toHaveBeenCalledWith(
         expect.stringContaining("heartbeat"),
@@ -307,12 +309,12 @@ describe("MobileBridge", () => {
 
     test("应该接收心跳响应并重置超时", async () => {
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
       // Advance to send heartbeat
-      await jest.advanceTimersByTimeAsync(30000);
+      await vi.advanceTimersByTimeAsync(30000);
 
       // Receive heartbeat response (pong)
       bridge.ws.simulateMessage({ type: "pong", timestamp: Date.now() });
@@ -322,16 +324,16 @@ describe("MobileBridge", () => {
     });
 
     test("应该在心跳超时时重连", async () => {
-      const timeoutHandler = jest.fn();
+      const timeoutHandler = vi.fn();
       bridge.on("heartbeat-timeout", timeoutHandler);
 
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
       // Don't respond to heartbeats, advance past timeout
-      await jest.advanceTimersByTimeAsync(100000); // 90s timeout
+      await vi.advanceTimersByTimeAsync(100000); // 90s timeout
 
       expect(timeoutHandler).toHaveBeenCalled();
     });
@@ -340,7 +342,7 @@ describe("MobileBridge", () => {
   describe("WebRTC数据通道", () => {
     test("应该建立与移动设备的数据通道", async () => {
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
@@ -354,7 +356,7 @@ describe("MobileBridge", () => {
       });
 
       // Simulate WebRTC connection
-      await jest.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(100);
       const pc = bridge.peerConnections.get("mobile-123");
       if (pc) {
         pc.simulateConnected();
@@ -364,15 +366,15 @@ describe("MobileBridge", () => {
         }
       }
 
-      await jest.advanceTimersByTimeAsync(100);
+      await vi.advanceTimersByTimeAsync(100);
     });
 
     test("应该处理数据通道断开", async () => {
-      const disconnectHandler = jest.fn();
+      const disconnectHandler = vi.fn();
       bridge.on("device-disconnected", disconnectHandler);
 
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
@@ -393,7 +395,7 @@ describe("MobileBridge", () => {
   describe("消息发送", () => {
     test("应该向设备发送消息", async () => {
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
@@ -404,7 +406,7 @@ describe("MobileBridge", () => {
       bridge.peerConnections.set("mobile-123", pc);
       bridge.dataChannels.set("mobile-123", dc);
 
-      const sendSpy = jest.spyOn(dc, "send");
+      const sendSpy = vi.spyOn(dc, "send");
 
       await bridge.sendToDevice("mobile-123", {
         method: "test.command",
@@ -416,7 +418,7 @@ describe("MobileBridge", () => {
 
     test("应该广播消息到所有设备", async () => {
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
@@ -430,7 +432,7 @@ describe("MobileBridge", () => {
         dc.simulateOpen();
         bridge.peerConnections.set(deviceId, pc);
         bridge.dataChannels.set(deviceId, dc);
-        sendSpies.push(jest.spyOn(dc, "send"));
+        sendSpies.push(vi.spyOn(dc, "send"));
       }
 
       await bridge.broadcast({ method: "broadcast.message", params: {} });
@@ -446,7 +448,7 @@ describe("MobileBridge", () => {
       expect(bridge.isConnected()).toBe(false);
 
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
@@ -458,7 +460,7 @@ describe("MobileBridge", () => {
 
     test("应该获取已连接设备列表", async () => {
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
@@ -480,7 +482,7 @@ describe("MobileBridge", () => {
   describe("清理", () => {
     test("应该正确清理所有资源", async () => {
       const connectPromise = bridge.connect();
-      await jest.advanceTimersByTimeAsync(10);
+      await vi.advanceTimersByTimeAsync(10);
       bridge.ws.simulateOpen();
       await connectPromise;
 
