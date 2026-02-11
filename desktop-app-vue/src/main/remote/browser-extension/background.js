@@ -1070,6 +1070,170 @@ async function executeCommand(method, params) {
     case "network.analyzeRequests":
       return await analyzeNetworkRequests(params.tabId);
 
+    // ==================== Phase 22: WebRTC & Advanced Storage ====================
+
+    // WebRTC
+    case "webrtc.getPeerConnections":
+      return await getWebRTCPeerConnections(params.tabId);
+    case "webrtc.getConnectionStats":
+      return await getWebRTCConnectionStats(params.tabId, params.connectionId);
+    case "webrtc.getDataChannels":
+      return await getWebRTCDataChannels(params.tabId, params.connectionId);
+    case "webrtc.getMediaStreams":
+      return await getWebRTCMediaStreams(params.tabId);
+    case "webrtc.getICECandidates":
+      return await getICECandidates(params.tabId, params.connectionId);
+    case "webrtc.getLocalDescription":
+      return await getLocalDescription(params.tabId, params.connectionId);
+    case "webrtc.getRemoteDescription":
+      return await getRemoteDescription(params.tabId, params.connectionId);
+    case "webrtc.monitorConnection":
+      return await monitorWebRTCConnection(params.tabId, params.connectionId);
+    case "webrtc.closeConnection":
+      return await closeWebRTCConnection(params.tabId, params.connectionId);
+
+    // Advanced IndexedDB
+    case "indexeddb.listDatabases":
+      return await listIndexedDBDatabases(params.tabId);
+    case "indexeddb.getDatabaseInfo":
+      return await getIndexedDBDatabaseInfo(params.tabId, params.dbName);
+    case "indexeddb.getObjectStores":
+      return await getIndexedDBObjectStores(params.tabId, params.dbName);
+    case "indexeddb.getStoreData":
+      return await getIndexedDBStoreData(
+        params.tabId,
+        params.dbName,
+        params.storeName,
+        params.options,
+      );
+    case "indexeddb.getStoreIndexes":
+      return await getIndexedDBStoreIndexes(
+        params.tabId,
+        params.dbName,
+        params.storeName,
+      );
+    case "indexeddb.queryByIndex":
+      return await queryIndexedDBByIndex(
+        params.tabId,
+        params.dbName,
+        params.storeName,
+        params.indexName,
+        params.query,
+      );
+    case "indexeddb.countRecords":
+      return await countIndexedDBRecords(
+        params.tabId,
+        params.dbName,
+        params.storeName,
+      );
+    case "indexeddb.deleteDatabase":
+      return await deleteIndexedDBDatabase(params.tabId, params.dbName);
+    case "indexeddb.clearStore":
+      return await clearIndexedDBStore(
+        params.tabId,
+        params.dbName,
+        params.storeName,
+      );
+    case "indexeddb.exportDatabase":
+      return await exportIndexedDBDatabase(params.tabId, params.dbName);
+
+    // Web Components / Shadow DOM
+    case "webcomponents.getCustomElements":
+      return await getCustomElements(params.tabId);
+    case "webcomponents.getShadowRoots":
+      return await getShadowRoots(params.tabId, params.selector);
+    case "webcomponents.queryShadowDOM":
+      return await queryShadowDOM(
+        params.tabId,
+        params.hostSelector,
+        params.shadowSelector,
+      );
+    case "webcomponents.getSlots":
+      return await getSlottedContent(params.tabId, params.selector);
+    case "webcomponents.getAdoptedStylesheets":
+      return await getAdoptedStylesheets(params.tabId, params.selector);
+
+    // Drag and Drop
+    case "dragdrop.simulateDrag":
+      return await simulateDrag(
+        params.tabId,
+        params.sourceSelector,
+        params.targetSelector,
+      );
+    case "dragdrop.simulateFileDrop":
+      return await simulateFileDrop(
+        params.tabId,
+        params.selector,
+        params.files,
+      );
+    case "dragdrop.getDropZones":
+      return await getDropZones(params.tabId);
+    case "dragdrop.getDraggableElements":
+      return await getDraggableElements(params.tabId);
+
+    // Selection & Range
+    case "selection.getSelection":
+      return await getTextSelection(params.tabId);
+    case "selection.setSelection":
+      return await setTextSelection(
+        params.tabId,
+        params.selector,
+        params.start,
+        params.end,
+      );
+    case "selection.selectAll":
+      return await selectAllText(params.tabId, params.selector);
+    case "selection.clearSelection":
+      return await clearSelection(params.tabId);
+    case "selection.getSelectedHTML":
+      return await getSelectedHTML(params.tabId);
+
+    // History & Navigation State
+    case "history.getState":
+      return await getHistoryState(params.tabId);
+    case "history.pushState":
+      return await pushHistoryState(
+        params.tabId,
+        params.state,
+        params.title,
+        params.url,
+      );
+    case "history.replaceState":
+      return await replaceHistoryState(
+        params.tabId,
+        params.state,
+        params.title,
+        params.url,
+      );
+    case "history.getLength":
+      return await getHistoryLength(params.tabId);
+    case "history.go":
+      return await historyGo(params.tabId, params.delta);
+
+    // Intersection Observer
+    case "intersection.observe":
+      return await observeIntersection(
+        params.tabId,
+        params.selector,
+        params.options,
+      );
+    case "intersection.getVisibleElements":
+      return await getVisibleElements(params.tabId, params.selector);
+    case "intersection.checkVisibility":
+      return await checkElementVisibility(params.tabId, params.selector);
+
+    // Resize Observer
+    case "resize.observe":
+      return await observeResize(params.tabId, params.selector);
+    case "resize.getElementSizes":
+      return await getElementSizes(params.tabId, params.selectors);
+
+    // Mutation Summary
+    case "mutation.getSummary":
+      return await getMutationSummary(params.tabId);
+    case "mutation.getChangeHistory":
+      return await getMutationChangeHistory(params.tabId, params.limit);
+
     default:
       throw new Error(`Unknown method: ${method}`);
   }
@@ -8431,6 +8595,1403 @@ async function analyzeNetworkRequests(tabId) {
       },
     });
     return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 22: WebRTC ====================
+
+async function getWebRTCPeerConnections(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // Check if RTCPeerConnection tracking is available
+        const connections = window.__rtcPeerConnections || [];
+        return connections.map((pc, index) => ({
+          id: index,
+          connectionState: pc.connectionState,
+          iceConnectionState: pc.iceConnectionState,
+          iceGatheringState: pc.iceGatheringState,
+          signalingState: pc.signalingState,
+          localStreams: pc.getLocalStreams?.()?.length || 0,
+          remoteStreams: pc.getRemoteStreams?.()?.length || 0,
+        }));
+      },
+    });
+    return { connections: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getWebRTCConnectionStats(tabId, connectionId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async (connId) => {
+        const connections = window.__rtcPeerConnections || [];
+        const pc = connections[connId];
+        if (!pc) return { error: "Connection not found" };
+
+        try {
+          const stats = await pc.getStats();
+          const statsArray = [];
+          stats.forEach((stat) => {
+            statsArray.push({
+              id: stat.id,
+              type: stat.type,
+              timestamp: stat.timestamp,
+              ...stat,
+            });
+          });
+          return { stats: statsArray };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [connectionId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getWebRTCDataChannels(tabId, connectionId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (connId) => {
+        const connections = window.__rtcPeerConnections || [];
+        const pc = connections[connId];
+        if (!pc) return { error: "Connection not found" };
+
+        const channels = window.__rtcDataChannels?.[connId] || [];
+        return channels.map((dc) => ({
+          label: dc.label,
+          id: dc.id,
+          readyState: dc.readyState,
+          bufferedAmount: dc.bufferedAmount,
+          ordered: dc.ordered,
+          protocol: dc.protocol,
+        }));
+      },
+      args: [connectionId],
+    });
+    return { channels: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getWebRTCMediaStreams(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const streams = [];
+        const connections = window.__rtcPeerConnections || [];
+
+        connections.forEach((pc, pcIndex) => {
+          // Local streams
+          pc.getLocalStreams?.().forEach((stream) => {
+            streams.push({
+              connectionId: pcIndex,
+              type: "local",
+              id: stream.id,
+              active: stream.active,
+              tracks: stream.getTracks().map((t) => ({
+                kind: t.kind,
+                id: t.id,
+                label: t.label,
+                enabled: t.enabled,
+                muted: t.muted,
+                readyState: t.readyState,
+              })),
+            });
+          });
+
+          // Remote streams
+          pc.getRemoteStreams?.().forEach((stream) => {
+            streams.push({
+              connectionId: pcIndex,
+              type: "remote",
+              id: stream.id,
+              active: stream.active,
+              tracks: stream.getTracks().map((t) => ({
+                kind: t.kind,
+                id: t.id,
+                label: t.label,
+                enabled: t.enabled,
+                muted: t.muted,
+                readyState: t.readyState,
+              })),
+            });
+          });
+        });
+
+        return streams;
+      },
+    });
+    return { streams: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getICECandidates(tabId, connectionId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (connId) => {
+        const candidates = window.__rtcICECandidates?.[connId] || [];
+        return candidates.map((c) => ({
+          candidate: c.candidate,
+          sdpMid: c.sdpMid,
+          sdpMLineIndex: c.sdpMLineIndex,
+          type: c.type,
+          protocol: c.protocol,
+          address: c.address,
+          port: c.port,
+        }));
+      },
+      args: [connectionId],
+    });
+    return { candidates: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getLocalDescription(tabId, connectionId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (connId) => {
+        const connections = window.__rtcPeerConnections || [];
+        const pc = connections[connId];
+        if (!pc) return { error: "Connection not found" };
+
+        const desc = pc.localDescription;
+        return desc ? { type: desc.type, sdp: desc.sdp?.slice(0, 500) } : null;
+      },
+      args: [connectionId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getRemoteDescription(tabId, connectionId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (connId) => {
+        const connections = window.__rtcPeerConnections || [];
+        const pc = connections[connId];
+        if (!pc) return { error: "Connection not found" };
+
+        const desc = pc.remoteDescription;
+        return desc ? { type: desc.type, sdp: desc.sdp?.slice(0, 500) } : null;
+      },
+      args: [connectionId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function monitorWebRTCConnection(tabId, connectionId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (connId) => {
+        const connections = window.__rtcPeerConnections || [];
+        const pc = connections[connId];
+        if (!pc) return { error: "Connection not found" };
+
+        // Set up monitoring (stores events for later retrieval)
+        if (!window.__rtcMonitoring) window.__rtcMonitoring = {};
+        window.__rtcMonitoring[connId] = {
+          events: [],
+          startTime: Date.now(),
+        };
+
+        const monitor = window.__rtcMonitoring[connId];
+
+        pc.onconnectionstatechange = () => {
+          monitor.events.push({
+            type: "connectionstatechange",
+            state: pc.connectionState,
+            timestamp: Date.now(),
+          });
+        };
+
+        pc.oniceconnectionstatechange = () => {
+          monitor.events.push({
+            type: "iceconnectionstatechange",
+            state: pc.iceConnectionState,
+            timestamp: Date.now(),
+          });
+        };
+
+        return { success: true, message: "Monitoring started" };
+      },
+      args: [connectionId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function closeWebRTCConnection(tabId, connectionId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (connId) => {
+        const connections = window.__rtcPeerConnections || [];
+        const pc = connections[connId];
+        if (!pc) return { error: "Connection not found" };
+
+        pc.close();
+        return { success: true };
+      },
+      args: [connectionId],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 22: Advanced IndexedDB ====================
+
+async function listIndexedDBDatabases(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: async () => {
+        if (!indexedDB.databases) {
+          return { error: "indexedDB.databases() not supported" };
+        }
+        const databases = await indexedDB.databases();
+        return databases.map((db) => ({
+          name: db.name,
+          version: db.version,
+        }));
+      },
+    });
+    return { databases: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getIndexedDBDatabaseInfo(tabId, dbName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name) => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open(name);
+          request.onsuccess = () => {
+            const db = request.result;
+            const info = {
+              name: db.name,
+              version: db.version,
+              objectStoreNames: Array.from(db.objectStoreNames),
+            };
+            db.close();
+            resolve(info);
+          };
+          request.onerror = () => resolve({ error: request.error?.message });
+        });
+      },
+      args: [dbName],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getIndexedDBObjectStores(tabId, dbName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name) => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open(name);
+          request.onsuccess = () => {
+            const db = request.result;
+            const stores = [];
+
+            for (const storeName of db.objectStoreNames) {
+              const tx = db.transaction(storeName, "readonly");
+              const store = tx.objectStore(storeName);
+              stores.push({
+                name: storeName,
+                keyPath: store.keyPath,
+                autoIncrement: store.autoIncrement,
+                indexNames: Array.from(store.indexNames),
+              });
+            }
+
+            db.close();
+            resolve(stores);
+          };
+          request.onerror = () => resolve({ error: request.error?.message });
+        });
+      },
+      args: [dbName],
+    });
+    return { stores: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getIndexedDBStoreData(tabId, dbName, storeName, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name, store, opts) => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open(name);
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction(store, "readonly");
+            const objectStore = tx.objectStore(store);
+
+            const limit = opts.limit || 100;
+            const offset = opts.offset || 0;
+            const data = [];
+            let count = 0;
+
+            const cursorRequest = objectStore.openCursor();
+            cursorRequest.onsuccess = (event) => {
+              const cursor = event.target.result;
+              if (cursor && data.length < limit) {
+                if (count >= offset) {
+                  data.push({
+                    key: cursor.key,
+                    value: cursor.value,
+                  });
+                }
+                count++;
+                cursor.continue();
+              } else {
+                db.close();
+                resolve({ data, total: count });
+              }
+            };
+            cursorRequest.onerror = () => {
+              db.close();
+              resolve({ error: cursorRequest.error?.message });
+            };
+          };
+          request.onerror = () => resolve({ error: request.error?.message });
+        });
+      },
+      args: [dbName, storeName, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getIndexedDBStoreIndexes(tabId, dbName, storeName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name, store) => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open(name);
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction(store, "readonly");
+            const objectStore = tx.objectStore(store);
+
+            const indexes = [];
+            for (const indexName of objectStore.indexNames) {
+              const index = objectStore.index(indexName);
+              indexes.push({
+                name: indexName,
+                keyPath: index.keyPath,
+                unique: index.unique,
+                multiEntry: index.multiEntry,
+              });
+            }
+
+            db.close();
+            resolve(indexes);
+          };
+          request.onerror = () => resolve({ error: request.error?.message });
+        });
+      },
+      args: [dbName, storeName],
+    });
+    return { indexes: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function queryIndexedDBByIndex(
+  tabId,
+  dbName,
+  storeName,
+  indexName,
+  query,
+) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name, store, idx, q) => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open(name);
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction(store, "readonly");
+            const objectStore = tx.objectStore(store);
+            const index = objectStore.index(idx);
+
+            const range =
+              q.value !== undefined
+                ? IDBKeyRange.only(q.value)
+                : q.lower !== undefined && q.upper !== undefined
+                  ? IDBKeyRange.bound(
+                      q.lower,
+                      q.upper,
+                      q.lowerOpen,
+                      q.upperOpen,
+                    )
+                  : null;
+
+            const data = [];
+            const cursorRequest = range
+              ? index.openCursor(range)
+              : index.openCursor();
+
+            cursorRequest.onsuccess = (event) => {
+              const cursor = event.target.result;
+              if (cursor && data.length < (q.limit || 50)) {
+                data.push({
+                  key: cursor.key,
+                  primaryKey: cursor.primaryKey,
+                  value: cursor.value,
+                });
+                cursor.continue();
+              } else {
+                db.close();
+                resolve({ data });
+              }
+            };
+            cursorRequest.onerror = () => {
+              db.close();
+              resolve({ error: cursorRequest.error?.message });
+            };
+          };
+          request.onerror = () => resolve({ error: request.error?.message });
+        });
+      },
+      args: [dbName, storeName, indexName, query],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function countIndexedDBRecords(tabId, dbName, storeName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name, store) => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open(name);
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction(store, "readonly");
+            const objectStore = tx.objectStore(store);
+            const countRequest = objectStore.count();
+
+            countRequest.onsuccess = () => {
+              db.close();
+              resolve({ count: countRequest.result });
+            };
+            countRequest.onerror = () => {
+              db.close();
+              resolve({ error: countRequest.error?.message });
+            };
+          };
+          request.onerror = () => resolve({ error: request.error?.message });
+        });
+      },
+      args: [dbName, storeName],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function deleteIndexedDBDatabase(tabId, dbName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name) => {
+        return new Promise((resolve) => {
+          const request = indexedDB.deleteDatabase(name);
+          request.onsuccess = () => resolve({ success: true });
+          request.onerror = () => resolve({ error: request.error?.message });
+          request.onblocked = () =>
+            resolve({ error: "Database deletion blocked" });
+        });
+      },
+      args: [dbName],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearIndexedDBStore(tabId, dbName, storeName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name, store) => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open(name);
+          request.onsuccess = () => {
+            const db = request.result;
+            const tx = db.transaction(store, "readwrite");
+            const objectStore = tx.objectStore(store);
+            const clearRequest = objectStore.clear();
+
+            clearRequest.onsuccess = () => {
+              db.close();
+              resolve({ success: true });
+            };
+            clearRequest.onerror = () => {
+              db.close();
+              resolve({ error: clearRequest.error?.message });
+            };
+          };
+          request.onerror = () => resolve({ error: request.error?.message });
+        });
+      },
+      args: [dbName, storeName],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function exportIndexedDBDatabase(tabId, dbName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (name) => {
+        return new Promise((resolve) => {
+          const request = indexedDB.open(name);
+          request.onsuccess = async () => {
+            const db = request.result;
+            const exportData = {
+              name: db.name,
+              version: db.version,
+              stores: {},
+            };
+
+            const storeNames = Array.from(db.objectStoreNames);
+
+            for (const storeName of storeNames) {
+              const tx = db.transaction(storeName, "readonly");
+              const store = tx.objectStore(storeName);
+              const data = [];
+
+              await new Promise((resolveStore) => {
+                const cursor = store.openCursor();
+                cursor.onsuccess = (e) => {
+                  const c = e.target.result;
+                  if (c) {
+                    data.push({ key: c.key, value: c.value });
+                    c.continue();
+                  } else {
+                    exportData.stores[storeName] = {
+                      keyPath: store.keyPath,
+                      autoIncrement: store.autoIncrement,
+                      data: data.slice(0, 1000), // Limit for safety
+                    };
+                    resolveStore();
+                  }
+                };
+              });
+            }
+
+            db.close();
+            resolve(exportData);
+          };
+          request.onerror = () => resolve({ error: request.error?.message });
+        });
+      },
+      args: [dbName],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 22: Web Components ====================
+
+async function getCustomElements(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const elements = document.querySelectorAll("*");
+        const customElements = [];
+
+        elements.forEach((el) => {
+          if (el.tagName.includes("-")) {
+            const existing = customElements.find(
+              (c) => c.tagName === el.tagName.toLowerCase(),
+            );
+            if (existing) {
+              existing.count++;
+            } else {
+              customElements.push({
+                tagName: el.tagName.toLowerCase(),
+                count: 1,
+                hasShadowRoot: !!el.shadowRoot,
+                attributes: Array.from(el.attributes).map((a) => a.name),
+              });
+            }
+          }
+        });
+
+        return customElements;
+      },
+    });
+    return { elements: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getShadowRoots(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const elements = sel
+          ? document.querySelectorAll(sel)
+          : document.querySelectorAll("*");
+        const shadowRoots = [];
+
+        elements.forEach((el) => {
+          if (el.shadowRoot) {
+            shadowRoots.push({
+              host: el.tagName.toLowerCase(),
+              hostId: el.id || null,
+              mode: el.shadowRoot.mode,
+              childElementCount: el.shadowRoot.childElementCount,
+              innerHTML: el.shadowRoot.innerHTML?.slice(0, 200),
+            });
+          }
+        });
+
+        return shadowRoots;
+      },
+      args: [selector],
+    });
+    return { shadowRoots: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function queryShadowDOM(tabId, hostSelector, shadowSelector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (host, shadow) => {
+        const hostElement = document.querySelector(host);
+        if (!hostElement) return { error: "Host element not found" };
+        if (!hostElement.shadowRoot) return { error: "No shadow root" };
+
+        const elements = hostElement.shadowRoot.querySelectorAll(shadow);
+        return Array.from(elements)
+          .slice(0, 50)
+          .map((el) => ({
+            tagName: el.tagName.toLowerCase(),
+            id: el.id || null,
+            className: el.className || null,
+            textContent: el.textContent?.slice(0, 100),
+          }));
+      },
+      args: [hostSelector, shadowSelector],
+    });
+    return { elements: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSlottedContent(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const element = document.querySelector(sel);
+        if (!element) return { error: "Element not found" };
+
+        const slots = element.shadowRoot?.querySelectorAll("slot") || [];
+        return Array.from(slots).map((slot) => ({
+          name: slot.name || "(default)",
+          assignedNodes: slot.assignedNodes().map((n) => ({
+            type: n.nodeType === 1 ? "element" : "text",
+            tagName: n.tagName?.toLowerCase(),
+            textContent: n.textContent?.slice(0, 50),
+          })),
+        }));
+      },
+      args: [selector],
+    });
+    return { slots: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getAdoptedStylesheets(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        let root = document;
+        if (sel) {
+          const el = document.querySelector(sel);
+          root = el?.shadowRoot || document;
+        }
+
+        const sheets = root.adoptedStyleSheets || [];
+        return sheets.map((sheet, index) => ({
+          index,
+          rulesCount: sheet.cssRules?.length || 0,
+          disabled: sheet.disabled,
+          media: sheet.media?.mediaText || "",
+        }));
+      },
+      args: [selector],
+    });
+    return { stylesheets: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 22: Drag and Drop ====================
+
+async function simulateDrag(tabId, sourceSelector, targetSelector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (source, target) => {
+        const sourceEl = document.querySelector(source);
+        const targetEl = document.querySelector(target);
+
+        if (!sourceEl) return { error: "Source element not found" };
+        if (!targetEl) return { error: "Target element not found" };
+
+        const dataTransfer = new DataTransfer();
+
+        // Dispatch drag events
+        sourceEl.dispatchEvent(
+          new DragEvent("dragstart", { bubbles: true, dataTransfer }),
+        );
+        targetEl.dispatchEvent(
+          new DragEvent("dragenter", { bubbles: true, dataTransfer }),
+        );
+        targetEl.dispatchEvent(
+          new DragEvent("dragover", { bubbles: true, dataTransfer }),
+        );
+        targetEl.dispatchEvent(
+          new DragEvent("drop", { bubbles: true, dataTransfer }),
+        );
+        sourceEl.dispatchEvent(
+          new DragEvent("dragend", { bubbles: true, dataTransfer }),
+        );
+
+        return { success: true };
+      },
+      args: [sourceSelector, targetSelector],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function simulateFileDrop(tabId, selector, files) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, fileData) => {
+        const element = document.querySelector(sel);
+        if (!element) return { error: "Element not found" };
+
+        const dataTransfer = new DataTransfer();
+
+        // Create mock files
+        fileData.forEach((f) => {
+          const file = new File([f.content || ""], f.name, {
+            type: f.type || "text/plain",
+          });
+          dataTransfer.items.add(file);
+        });
+
+        element.dispatchEvent(
+          new DragEvent("dragenter", { bubbles: true, dataTransfer }),
+        );
+        element.dispatchEvent(
+          new DragEvent("dragover", { bubbles: true, dataTransfer }),
+        );
+        element.dispatchEvent(
+          new DragEvent("drop", { bubbles: true, dataTransfer }),
+        );
+
+        return { success: true, filesDropped: fileData.length };
+      },
+      args: [selector, files],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getDropZones(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const elements = document.querySelectorAll("*");
+        const dropZones = [];
+
+        elements.forEach((el) => {
+          // Check for dragover or drop event handlers
+          const events = el.ondragover || el.ondrop;
+          const attr = el.getAttribute("dropzone");
+
+          if (events || attr) {
+            dropZones.push({
+              tagName: el.tagName.toLowerCase(),
+              id: el.id || null,
+              className: el.className || null,
+              dropzoneAttr: attr,
+            });
+          }
+        });
+
+        return dropZones;
+      },
+    });
+    return { dropZones: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getDraggableElements(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const elements = document.querySelectorAll("[draggable='true']");
+        return Array.from(elements)
+          .slice(0, 100)
+          .map((el) => ({
+            tagName: el.tagName.toLowerCase(),
+            id: el.id || null,
+            className: el.className || null,
+            textContent: el.textContent?.slice(0, 50),
+          }));
+      },
+    });
+    return { elements: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 22: Selection & Range ====================
+
+async function getTextSelection(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+          return { hasSelection: false };
+        }
+
+        const range = selection.getRangeAt(0);
+        return {
+          hasSelection: true,
+          text: selection.toString(),
+          rangeCount: selection.rangeCount,
+          isCollapsed: selection.isCollapsed,
+          startContainer: range.startContainer.nodeName,
+          startOffset: range.startOffset,
+          endContainer: range.endContainer.nodeName,
+          endOffset: range.endOffset,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function setTextSelection(tabId, selector, start, end) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, s, e) => {
+        const element = document.querySelector(sel);
+        if (!element) return { error: "Element not found" };
+
+        if (element.setSelectionRange) {
+          // Input/textarea
+          element.focus();
+          element.setSelectionRange(s, e);
+          return { success: true };
+        } else {
+          // Regular element
+          const range = document.createRange();
+          const textNode = element.firstChild;
+          if (!textNode) return { error: "No text content" };
+
+          range.setStart(textNode, Math.min(s, textNode.length));
+          range.setEnd(textNode, Math.min(e, textNode.length));
+
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          return { success: true };
+        }
+      },
+      args: [selector, start, end],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function selectAllText(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const element = sel ? document.querySelector(sel) : document.body;
+        if (!element) return { error: "Element not found" };
+
+        const range = document.createRange();
+        range.selectNodeContents(element);
+
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        return {
+          success: true,
+          selectedText: selection.toString().slice(0, 100),
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearSelection(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        window.getSelection().removeAllRanges();
+        return { success: true };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getSelectedHTML(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+          return { html: "" };
+        }
+
+        const range = selection.getRangeAt(0);
+        const div = document.createElement("div");
+        div.appendChild(range.cloneContents());
+        return { html: div.innerHTML };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 22: History & Navigation ====================
+
+async function getHistoryState(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({
+        state: window.history.state,
+        length: window.history.length,
+        scrollRestoration: window.history.scrollRestoration,
+      }),
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function pushHistoryState(tabId, state, title, url) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (s, t, u) => {
+        try {
+          window.history.pushState(s, t, u);
+          return { success: true, newLength: window.history.length };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [state, title, url],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function replaceHistoryState(tabId, state, title, url) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (s, t, u) => {
+        try {
+          window.history.replaceState(s, t, u);
+          return { success: true };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [state, title, url],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getHistoryLength(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({ length: window.history.length }),
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function historyGo(tabId, delta) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (d) => {
+        window.history.go(d);
+        return { success: true };
+      },
+      args: [delta],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 22: Intersection Observer ====================
+
+async function observeIntersection(tabId, selector, options = {}) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel, opts) => {
+        return new Promise((resolve) => {
+          const elements = document.querySelectorAll(sel);
+          if (elements.length === 0) {
+            resolve({ error: "No elements found" });
+            return;
+          }
+
+          const results = [];
+          const observer = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                results.push({
+                  target: entry.target.tagName.toLowerCase(),
+                  targetId: entry.target.id || null,
+                  isIntersecting: entry.isIntersecting,
+                  intersectionRatio: entry.intersectionRatio,
+                  boundingClientRect: {
+                    top: Math.round(entry.boundingClientRect.top),
+                    left: Math.round(entry.boundingClientRect.left),
+                    width: Math.round(entry.boundingClientRect.width),
+                    height: Math.round(entry.boundingClientRect.height),
+                  },
+                });
+              });
+
+              observer.disconnect();
+              resolve({ entries: results });
+            },
+            {
+              threshold: opts.threshold || [0, 0.5, 1],
+              rootMargin: opts.rootMargin || "0px",
+            },
+          );
+
+          elements.forEach((el) => observer.observe(el));
+
+          // Timeout fallback
+          setTimeout(() => {
+            observer.disconnect();
+            resolve({ entries: results, timeout: true });
+          }, 500);
+        });
+      },
+      args: [selector, options],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getVisibleElements(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const elements = document.querySelectorAll(sel);
+        const visible = [];
+
+        elements.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          const isVisible =
+            rect.top < window.innerHeight &&
+            rect.bottom > 0 &&
+            rect.left < window.innerWidth &&
+            rect.right > 0;
+
+          if (isVisible) {
+            visible.push({
+              tagName: el.tagName.toLowerCase(),
+              id: el.id || null,
+              className: el.className || null,
+              rect: {
+                top: Math.round(rect.top),
+                left: Math.round(rect.left),
+                width: Math.round(rect.width),
+                height: Math.round(rect.height),
+              },
+            });
+          }
+        });
+
+        return visible;
+      },
+      args: [selector],
+    });
+    return { elements: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function checkElementVisibility(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const element = document.querySelector(sel);
+        if (!element) return { error: "Element not found" };
+
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+
+        return {
+          isInViewport:
+            rect.top < window.innerHeight &&
+            rect.bottom > 0 &&
+            rect.left < window.innerWidth &&
+            rect.right > 0,
+          isDisplayed: style.display !== "none",
+          isVisible: style.visibility !== "hidden",
+          hasOpacity: parseFloat(style.opacity) > 0,
+          hasSize: rect.width > 0 && rect.height > 0,
+          rect: {
+            top: Math.round(rect.top),
+            left: Math.round(rect.left),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+          },
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 22: Resize Observer ====================
+
+async function observeResize(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        return new Promise((resolve) => {
+          const element = document.querySelector(sel);
+          if (!element) {
+            resolve({ error: "Element not found" });
+            return;
+          }
+
+          const initialSize = {
+            width: element.offsetWidth,
+            height: element.offsetHeight,
+            contentRect: element.getBoundingClientRect(),
+          };
+
+          // Just return current size since ResizeObserver is async
+          resolve({
+            element: sel,
+            size: initialSize,
+            message: "Use getElementSizes for multiple elements",
+          });
+        });
+      },
+      args: [selector],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getElementSizes(tabId, selectors) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sels) => {
+        return sels.map((sel) => {
+          const element = document.querySelector(sel);
+          if (!element) return { selector: sel, error: "Not found" };
+
+          const rect = element.getBoundingClientRect();
+          return {
+            selector: sel,
+            offsetWidth: element.offsetWidth,
+            offsetHeight: element.offsetHeight,
+            clientWidth: element.clientWidth,
+            clientHeight: element.clientHeight,
+            scrollWidth: element.scrollWidth,
+            scrollHeight: element.scrollHeight,
+            boundingRect: {
+              width: Math.round(rect.width),
+              height: Math.round(rect.height),
+            },
+          };
+        });
+      },
+      args: [selectors],
+    });
+    return { sizes: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 22: Mutation Summary ====================
+
+async function getMutationSummary(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // Return stored mutation data if available
+        const summary = window.__mutationSummary || {
+          totalMutations: 0,
+          addedNodes: 0,
+          removedNodes: 0,
+          attributeChanges: 0,
+          characterDataChanges: 0,
+        };
+        return summary;
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getMutationChangeHistory(tabId, limit = 50) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (lim) => {
+        const history = window.__mutationHistory || [];
+        return history.slice(-lim);
+      },
+      args: [limit],
+    });
+    return { history: result[0]?.result || [] };
   } catch (error) {
     return { error: error.message };
   }

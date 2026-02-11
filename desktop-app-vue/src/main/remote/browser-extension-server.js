@@ -2041,6 +2041,287 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
+      // ==================== Phase 22: WebRTC & Advanced Storage ====================
+
+      // WebRTC
+      case "getWebRTCPeerConnections":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getPeerConnections",
+          params,
+        );
+      case "getWebRTCConnectionStats":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getConnectionStats",
+          params,
+        );
+      case "getWebRTCDataChannels":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getDataChannels",
+          params,
+        );
+      case "getWebRTCMediaStreams":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getMediaStreams",
+          params,
+        );
+      case "getICECandidates":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getICECandidates",
+          params,
+        );
+      case "getLocalDescription":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getLocalDescription",
+          params,
+        );
+      case "getRemoteDescription":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.getRemoteDescription",
+          params,
+        );
+      case "monitorWebRTCConnection":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.monitorConnection",
+          params,
+        );
+      case "closeWebRTCConnection":
+        return await this.server.sendCommand(
+          clientId,
+          "webrtc.closeConnection",
+          params,
+        );
+
+      // Advanced IndexedDB
+      case "listIndexedDBDatabases":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.listDatabases",
+          params,
+        );
+      case "getIndexedDBDatabaseInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.getDatabaseInfo",
+          params,
+        );
+      case "getIndexedDBObjectStores":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.getObjectStores",
+          params,
+        );
+      case "getIndexedDBStoreData":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.getStoreData",
+          params,
+        );
+      case "getIndexedDBStoreIndexes":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.getStoreIndexes",
+          params,
+        );
+      case "queryIndexedDBByIndex":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.queryByIndex",
+          params,
+        );
+      case "countIndexedDBRecords":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.countRecords",
+          params,
+        );
+      case "deleteIndexedDBDatabase":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.deleteDatabase",
+          params,
+        );
+      // Note: clearIndexedDBStore is already defined in earlier phase
+      case "exportIndexedDBDatabase":
+        return await this.server.sendCommand(
+          clientId,
+          "indexeddb.exportDatabase",
+          params,
+        );
+
+      // Web Components / Shadow DOM
+      case "getCustomElements":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.getCustomElements",
+          params,
+        );
+      case "getShadowRoots":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.getShadowRoots",
+          params,
+        );
+      case "queryShadowDOM":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.queryShadowDOM",
+          params,
+        );
+      case "getSlottedContent":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.getSlots",
+          params,
+        );
+      case "getAdoptedStylesheets":
+        return await this.server.sendCommand(
+          clientId,
+          "webcomponents.getAdoptedStylesheets",
+          params,
+        );
+
+      // Drag and Drop
+      case "simulateDrag":
+        return await this.server.sendCommand(
+          clientId,
+          "dragdrop.simulateDrag",
+          params,
+        );
+      case "simulateFileDrop":
+        return await this.server.sendCommand(
+          clientId,
+          "dragdrop.simulateFileDrop",
+          params,
+        );
+      case "getDropZones":
+        return await this.server.sendCommand(
+          clientId,
+          "dragdrop.getDropZones",
+          params,
+        );
+      case "getDraggableElements":
+        return await this.server.sendCommand(
+          clientId,
+          "dragdrop.getDraggableElements",
+          params,
+        );
+
+      // Selection & Range
+      case "getTextSelection":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.getSelection",
+          params,
+        );
+      case "setTextSelection":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.setSelection",
+          params,
+        );
+      case "selectAllText":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.selectAll",
+          params,
+        );
+      case "clearSelection":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.clearSelection",
+          params,
+        );
+      case "getSelectedHTML":
+        return await this.server.sendCommand(
+          clientId,
+          "selection.getSelectedHTML",
+          params,
+        );
+
+      // History & Navigation
+      case "getHistoryState":
+        return await this.server.sendCommand(
+          clientId,
+          "history.getState",
+          params,
+        );
+      case "pushHistoryState":
+        return await this.server.sendCommand(
+          clientId,
+          "history.pushState",
+          params,
+        );
+      case "replaceHistoryState":
+        return await this.server.sendCommand(
+          clientId,
+          "history.replaceState",
+          params,
+        );
+      case "getHistoryLength":
+        return await this.server.sendCommand(
+          clientId,
+          "history.getLength",
+          params,
+        );
+      case "historyGo":
+        return await this.server.sendCommand(clientId, "history.go", params);
+
+      // Intersection Observer
+      case "observeIntersection":
+        return await this.server.sendCommand(
+          clientId,
+          "intersection.observe",
+          params,
+        );
+      case "getVisibleElements":
+        return await this.server.sendCommand(
+          clientId,
+          "intersection.getVisibleElements",
+          params,
+        );
+      case "checkElementVisibility":
+        return await this.server.sendCommand(
+          clientId,
+          "intersection.checkVisibility",
+          params,
+        );
+
+      // Resize Observer
+      case "observeResize":
+        return await this.server.sendCommand(
+          clientId,
+          "resize.observe",
+          params,
+        );
+      case "getElementSizes":
+        return await this.server.sendCommand(
+          clientId,
+          "resize.getElementSizes",
+          params,
+        );
+
+      // Mutation Summary
+      case "getMutationSummary":
+        return await this.server.sendCommand(
+          clientId,
+          "mutation.getSummary",
+          params,
+        );
+      case "getMutationChangeHistory":
+        return await this.server.sendCommand(
+          clientId,
+          "mutation.getChangeHistory",
+          params,
+        );
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

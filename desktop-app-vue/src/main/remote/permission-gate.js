@@ -613,6 +613,71 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "extension.getNetworkWaterfall": PERMISSION_LEVELS.PUBLIC,
   "extension.analyzeNetworkRequests": PERMISSION_LEVELS.PUBLIC,
 
+  // ========== Phase 22: WebRTC & Advanced Storage ==========
+
+  // 扩展 - WebRTC
+  "extension.getWebRTCPeerConnections": PERMISSION_LEVELS.NORMAL,
+  "extension.getWebRTCConnectionStats": PERMISSION_LEVELS.NORMAL,
+  "extension.getWebRTCDataChannels": PERMISSION_LEVELS.NORMAL,
+  "extension.getWebRTCMediaStreams": PERMISSION_LEVELS.NORMAL,
+  "extension.getICECandidates": PERMISSION_LEVELS.NORMAL,
+  "extension.getLocalDescription": PERMISSION_LEVELS.NORMAL,
+  "extension.getRemoteDescription": PERMISSION_LEVELS.NORMAL,
+  "extension.monitorWebRTCConnection": PERMISSION_LEVELS.NORMAL,
+  "extension.closeWebRTCConnection": PERMISSION_LEVELS.ADMIN,
+
+  // 扩展 - Advanced IndexedDB
+  "extension.listIndexedDBDatabases": PERMISSION_LEVELS.NORMAL,
+  "extension.getIndexedDBDatabaseInfo": PERMISSION_LEVELS.NORMAL,
+  "extension.getIndexedDBObjectStores": PERMISSION_LEVELS.NORMAL,
+  "extension.getIndexedDBStoreData": PERMISSION_LEVELS.NORMAL,
+  "extension.getIndexedDBStoreIndexes": PERMISSION_LEVELS.NORMAL,
+  "extension.queryIndexedDBByIndex": PERMISSION_LEVELS.NORMAL,
+  "extension.countIndexedDBRecords": PERMISSION_LEVELS.NORMAL,
+  "extension.deleteIndexedDBDatabase": PERMISSION_LEVELS.ROOT,
+  // Note: extension.clearIndexedDBStore already defined earlier
+  "extension.exportIndexedDBDatabase": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Web Components / Shadow DOM
+  "extension.getCustomElements": PERMISSION_LEVELS.PUBLIC,
+  "extension.getShadowRoots": PERMISSION_LEVELS.PUBLIC,
+  "extension.queryShadowDOM": PERMISSION_LEVELS.PUBLIC,
+  "extension.getSlottedContent": PERMISSION_LEVELS.PUBLIC,
+  "extension.getAdoptedStylesheets": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Drag and Drop
+  "extension.simulateDrag": PERMISSION_LEVELS.NORMAL,
+  "extension.simulateFileDrop": PERMISSION_LEVELS.ADMIN,
+  "extension.getDropZones": PERMISSION_LEVELS.PUBLIC,
+  "extension.getDraggableElements": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Selection & Range
+  "extension.getTextSelection": PERMISSION_LEVELS.PUBLIC,
+  "extension.setTextSelection": PERMISSION_LEVELS.NORMAL,
+  "extension.selectAllText": PERMISSION_LEVELS.NORMAL,
+  "extension.clearSelection": PERMISSION_LEVELS.NORMAL,
+  "extension.getSelectedHTML": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - History & Navigation
+  "extension.getHistoryState": PERMISSION_LEVELS.PUBLIC,
+  "extension.pushHistoryState": PERMISSION_LEVELS.NORMAL,
+  "extension.replaceHistoryState": PERMISSION_LEVELS.NORMAL,
+  "extension.getHistoryLength": PERMISSION_LEVELS.PUBLIC,
+  "extension.historyGo": PERMISSION_LEVELS.NORMAL,
+
+  // 扩展 - Intersection Observer
+  "extension.observeIntersection": PERMISSION_LEVELS.PUBLIC,
+  "extension.getVisibleElements": PERMISSION_LEVELS.PUBLIC,
+  "extension.checkElementVisibility": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Resize Observer
+  "extension.observeResize": PERMISSION_LEVELS.PUBLIC,
+  "extension.getElementSizes": PERMISSION_LEVELS.PUBLIC,
+
+  // 扩展 - Mutation Summary
+  "extension.getMutationSummary": PERMISSION_LEVELS.PUBLIC,
+  "extension.getMutationChangeHistory": PERMISSION_LEVELS.PUBLIC,
+
   // 输入控制
   "input.getCursorPosition": PERMISSION_LEVELS.PUBLIC,
   "input.getKeyboardLayout": PERMISSION_LEVELS.PUBLIC,
