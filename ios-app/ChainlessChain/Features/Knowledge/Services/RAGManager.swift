@@ -12,6 +12,7 @@ class RAGManager: ObservableObject {
     // Services
     private let embeddingsService: EmbeddingsService
     private let vectorStore: VectorStore
+    private let bm25Search: BM25Search
     private var llmManager: LLMManager
     private var knowledgeRepository: KnowledgeRepository?
 
@@ -48,7 +49,15 @@ class RAGManager: ObservableObject {
             similarityThreshold: 0.6,
             topK: 10
         )
+        self.bm25Search = BM25Search.shared
         self.config = RAGConfig()
+
+        // Configure BM25 with default settings
+        var bm25Config = BM25Config()
+        bm25Config.k1 = 1.5
+        bm25Config.b = 0.75
+        bm25Config.language = .auto
+        bm25Search.configure(bm25Config)
     }
 
     /// Set knowledge repository
@@ -85,7 +94,7 @@ class RAGManager: ObservableObject {
             return
         }
 
-        logger.debug("[RAGManager] Building vector index...")
+        logger.debug("[RAGManager] Building vector and BM25 index...")
 
         do {
             // Get all knowledge items
@@ -98,13 +107,26 @@ class RAGManager: ObservableObject {
 
             logger.debug("[RAGManager] Indexing \(items.count) items...")
 
-            // Rebuild index
+            // Build BM25 index
+            let searchDocuments = items.map { item in
+                SearchDocument(
+                    id: item.id,
+                    content: "\(item.title)\n\(item.content ?? "")",
+                    title: item.title,
+                    metadata: ["type": item.type],
+                    createdAt: item.createdAt
+                )
+            }
+            bm25Search.indexDocuments(searchDocuments)
+            logger.debug("[RAGManager] BM25 index built with \(items.count) documents")
+
+            // Rebuild vector index
             try await vectorStore.rebuildIndex(items: items) { text in
                 try await self.embeddingsService.generateEmbedding(text)
             }
 
             let stats = await vectorStore.getStats()
-            logger.debug("[RAGManager] Index built successfully, \(stats.count) items indexed")
+            logger.debug("[RAGManager] Vector index built successfully, \(stats.count) items indexed")
 
         } catch {
             logger.error("[RAGManager] Failed to build index: \(error)")
@@ -172,13 +194,35 @@ class RAGManager: ObservableObject {
         }
     }
 
-    /// Keyword search using knowledge repository
+    /// Keyword search using BM25 algorithm
+    /// BM25 provides better relevance scoring compared to simple FTS
     private func keywordSearch(_ query: String, topK: Int) async -> [RetrievedDocument] {
+        // Use BM25 search for better keyword matching
+        var options = SearchOptions()
+        options.limit = topK
+
+        let bm25Results = bm25Search.search(query, options: options)
+
+        // Convert BM25 results to RetrievedDocument
+        return bm25Results.map { result in
+            RetrievedDocument(
+                id: result.document.id,
+                title: result.document.title ?? "",
+                content: result.document.content,
+                type: result.document.metadata["type"] ?? "text",
+                score: Float(result.bm25Score),
+                source: .keyword
+            )
+        }
+    }
+
+    /// Legacy keyword search using knowledge repository (fallback)
+    private func legacyKeywordSearch(_ query: String, topK: Int) async -> [RetrievedDocument] {
         guard let repository = knowledgeRepository else {
             return []
         }
 
-        // Search knowledge base
+        // Search knowledge base using FTS
         let items = repository.searchItems(query: query, limit: topK)
 
         // Convert to RetrievedDocument with estimated score
@@ -194,37 +238,49 @@ class RAGManager: ObservableObject {
         }
     }
 
-    /// Merge vector and keyword search results
+    /// Merge vector and keyword search results using RRF (Reciprocal Rank Fusion)
+    /// RRF formula: score = Σ weight / (k + rank)
     private func mergeResults(vectorResults: [RetrievedDocument], keywordResults: [RetrievedDocument]) -> [RetrievedDocument] {
-        var merged: [String: RetrievedDocument] = [:]
+        let k: Float = 60.0  // RRF parameter
+        var scoreMap: [String: Float] = [:]
+        var docMap: [String: RetrievedDocument] = [:]
 
-        // Add vector results
-        for result in vectorResults {
+        // Vector Search RRF scores
+        for (rank, result) in vectorResults.enumerated() {
+            let rrfScore = config.vectorWeight / (k + Float(rank + 1))
+            scoreMap[result.id, default: 0] += rrfScore
+
             var doc = result
-            doc.vectorScore = result.score * config.vectorWeight
-            doc.keywordScore = 0
-            doc.score = doc.vectorScore
-            merged[result.id] = doc
+            doc.vectorScore = result.score
+            docMap[result.id] = doc
         }
 
-        // Merge keyword results
-        for result in keywordResults {
-            if var existing = merged[result.id] {
-                existing.keywordScore = result.score * config.keywordWeight
-                existing.score = existing.vectorScore + existing.keywordScore
+        // BM25 Search RRF scores
+        for (rank, result) in keywordResults.enumerated() {
+            let rrfScore = config.keywordWeight / (k + Float(rank + 1))
+            scoreMap[result.id, default: 0] += rrfScore
+
+            if var existing = docMap[result.id] {
+                existing.keywordScore = result.score
                 existing.source = .hybrid
-                merged[result.id] = existing
+                docMap[result.id] = existing
             } else {
                 var doc = result
-                doc.vectorScore = 0
-                doc.keywordScore = result.score * config.keywordWeight
-                doc.score = doc.keywordScore
-                merged[result.id] = doc
+                doc.keywordScore = result.score
+                docMap[result.id] = doc
             }
         }
 
-        // Sort by combined score
-        return merged.values.sorted { $0.score > $1.score }
+        // Build final results with RRF scores
+        var merged: [RetrievedDocument] = []
+        for (docId, rrfScore) in scoreMap {
+            guard var doc = docMap[docId] else { continue }
+            doc.score = rrfScore
+            merged.append(doc)
+        }
+
+        // Sort by RRF score descending
+        return merged.sorted { $0.score > $1.score }
     }
 
     /// Deduplicate results by ID, keeping higher score
@@ -291,11 +347,23 @@ class RAGManager: ObservableObject {
         }
     }
 
-    /// Add item to vector index
+    /// Add item to vector and BM25 index
     func addToIndex(_ item: KnowledgeItem) async throws {
         guard config.enableRAG else { return }
 
         let text = "\(item.title)\n\(item.content ?? "")"
+
+        // Add to BM25 index
+        let searchDoc = SearchDocument(
+            id: item.id,
+            content: text,
+            title: item.title,
+            metadata: ["type": item.type],
+            createdAt: item.createdAt
+        )
+        bm25Search.addDocument(searchDoc)
+
+        // Add to vector index
         let embedding = try await embeddingsService.generateEmbedding(text)
 
         let metadata = VectorStore.VectorMetadata(
@@ -315,9 +383,14 @@ class RAGManager: ObservableObject {
         logger.debug("[RAGManager] Added item to index: \(item.id)")
     }
 
-    /// Remove item from index
+    /// Remove item from vector and BM25 index
     func removeFromIndex(_ itemId: String) async throws {
+        // Remove from BM25 index
+        bm25Search.removeDocument(itemId)
+
+        // Remove from vector index
         try await vectorStore.deleteVector(id: itemId)
+
         logger.debug("[RAGManager] Removed item from index: \(itemId)")
     }
 
@@ -330,7 +403,14 @@ class RAGManager: ObservableObject {
     /// Rebuild entire index
     func rebuildIndex() async throws {
         logger.debug("[RAGManager] Rebuilding index...")
+
+        // Clear BM25 index
+        bm25Search.clear()
+
+        // Clear embedding cache
         embeddingsService.clearCache()
+
+        // Rebuild both indexes
         await buildVectorIndex()
     }
 
@@ -338,12 +418,15 @@ class RAGManager: ObservableObject {
     func getIndexStats() async -> IndexStats {
         let vectorStats = await vectorStore.getStats()
         let cacheStats = embeddingsService.getCacheStats()
+        let bm25Stats = bm25Search.getStats()
 
         return IndexStats(
             totalItems: vectorStats.count,
             storageMode: vectorStats.mode,
             cacheHitRate: cacheStats.hitRate,
-            cacheSize: cacheStats.size
+            cacheSize: cacheStats.size,
+            bm25DocumentCount: bm25Stats.documentCount,
+            bm25AvgDocLength: bm25Stats.avgDocLength
         )
     }
 
@@ -352,6 +435,8 @@ class RAGManager: ObservableObject {
         let storageMode: String
         let cacheHitRate: Double
         let cacheSize: Int
+        let bm25DocumentCount: Int
+        let bm25AvgDocLength: Double
     }
 }
 
