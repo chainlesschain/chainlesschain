@@ -953,7 +953,11 @@ describe("ExtensionBrowserHandler", () => {
       expect(server.sendCommand).toHaveBeenCalledWith(
         "client-1",
         "network.mockResponse",
-        { tabId: 1, url: "/api/test", response: { status: 200, body: { data: "mock" } } },
+        {
+          tabId: 1,
+          url: "/api/test",
+          response: { status: 200, body: { data: "mock" } },
+        },
       );
     });
   });
@@ -984,8 +988,8 @@ describe("ExtensionBrowserHandler", () => {
       );
     });
 
-    it("should handle getConsoleLogs", async () => {
-      await handler.handle("getConsoleLogs", { tabId: 1 }, {});
+    it("should handle getCapturedConsoleLogs", async () => {
+      await handler.handle("getCapturedConsoleLogs", { tabId: 1 }, {});
       expect(server.sendCommand).toHaveBeenCalledWith(
         "client-1",
         "console.getLogs",
@@ -1023,26 +1027,48 @@ describe("ExtensionBrowserHandler", () => {
     it("should handle getIndexedDBData", async () => {
       await handler.handle(
         "getIndexedDBData",
-        { tabId: 1, dbName: "testDB", storeName: "users", query: { limit: 10 } },
+        {
+          tabId: 1,
+          dbName: "testDB",
+          storeName: "users",
+          query: { limit: 10 },
+        },
         {},
       );
       expect(server.sendCommand).toHaveBeenCalledWith(
         "client-1",
         "indexedDB.getData",
-        { tabId: 1, dbName: "testDB", storeName: "users", query: { limit: 10 } },
+        {
+          tabId: 1,
+          dbName: "testDB",
+          storeName: "users",
+          query: { limit: 10 },
+        },
       );
     });
 
     it("should handle setIndexedDBData", async () => {
       await handler.handle(
         "setIndexedDBData",
-        { tabId: 1, dbName: "testDB", storeName: "users", key: "user1", value: { name: "John" } },
+        {
+          tabId: 1,
+          dbName: "testDB",
+          storeName: "users",
+          key: "user1",
+          value: { name: "John" },
+        },
         {},
       );
       expect(server.sendCommand).toHaveBeenCalledWith(
         "client-1",
         "indexedDB.setData",
-        { tabId: 1, dbName: "testDB", storeName: "users", key: "user1", value: { name: "John" } },
+        {
+          tabId: 1,
+          dbName: "testDB",
+          storeName: "users",
+          key: "user1",
+          value: { name: "John" },
+        },
       );
     });
 
@@ -1136,18 +1162,26 @@ describe("ExtensionBrowserHandler", () => {
         { tabId: 1, css: "body { background: red; }" },
         {},
       );
-      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "css.inject", {
-        tabId: 1,
-        css: "body { background: red; }",
-      });
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "css.inject",
+        {
+          tabId: 1,
+          css: "body { background: red; }",
+        },
+      );
     });
 
     it("should handle removeCSS", async () => {
       await handler.handle("removeCSS", { tabId: 1, cssId: "css-123" }, {});
-      expect(server.sendCommand).toHaveBeenCalledWith("client-1", "css.remove", {
-        tabId: 1,
-        cssId: "css-123",
-      });
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "css.remove",
+        {
+          tabId: 1,
+          cssId: "css-123",
+        },
+      );
     });
   });
 

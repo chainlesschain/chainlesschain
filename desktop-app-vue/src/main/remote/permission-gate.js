@@ -303,7 +303,7 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   // 扩展 - 控制台捕获
   "extension.enableConsoleCapture": PERMISSION_LEVELS.NORMAL,
   "extension.disableConsoleCapture": PERMISSION_LEVELS.NORMAL,
-  "extension.getConsoleLogs": PERMISSION_LEVELS.NORMAL,
+  "extension.getCapturedConsoleLogs": PERMISSION_LEVELS.NORMAL,
   "extension.clearConsoleLogs": PERMISSION_LEVELS.NORMAL,
 
   // 扩展 - IndexedDB

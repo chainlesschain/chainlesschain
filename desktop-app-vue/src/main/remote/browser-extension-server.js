@@ -804,18 +804,14 @@ class ExtensionBrowserHandler extends EventEmitter {
           "console.disable",
           params,
         );
-      case "getConsoleLogs":
+      case "getCapturedConsoleLogs":
         return await this.server.sendCommand(
           clientId,
           "console.getLogs",
           params,
         );
       case "clearConsoleLogs":
-        return await this.server.sendCommand(
-          clientId,
-          "console.clear",
-          params,
-        );
+        return await this.server.sendCommand(clientId, "console.clear", params);
 
       // IndexedDB
       case "getIndexedDBDatabases":
