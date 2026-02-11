@@ -1250,4 +1250,596 @@ describe("ExtensionBrowserHandler", () => {
       );
     });
   });
+
+  // ==================== Phase 17: Advanced Debugging Tests ====================
+
+  describe("WebSocket Debugging Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle enableWebSocketDebugging", async () => {
+      await handler.handle("enableWebSocketDebugging", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "websocket.enable",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle disableWebSocketDebugging", async () => {
+      await handler.handle("disableWebSocketDebugging", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "websocket.disable",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getWebSocketConnections", async () => {
+      await handler.handle("getWebSocketConnections", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "websocket.getConnections",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getWebSocketMessages", async () => {
+      await handler.handle(
+        "getWebSocketMessages",
+        { tabId: 1, connectionId: "conn-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "websocket.getMessages",
+        { tabId: 1, connectionId: "conn-1" },
+      );
+    });
+
+    it("should handle sendWebSocketMessage", async () => {
+      await handler.handle(
+        "sendWebSocketMessage",
+        { tabId: 1, connectionId: "conn-1", data: "test message" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "websocket.send",
+        { tabId: 1, connectionId: "conn-1", data: "test message" },
+      );
+    });
+
+    it("should handle closeWebSocketConnection", async () => {
+      await handler.handle(
+        "closeWebSocketConnection",
+        { tabId: 1, connectionId: "conn-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "websocket.close",
+        { tabId: 1, connectionId: "conn-1" },
+      );
+    });
+  });
+
+  describe("Service Worker Management Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle listServiceWorkers", async () => {
+      await handler.handle("listServiceWorkers", {}, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serviceWorker.list",
+        {},
+      );
+    });
+
+    it("should handle getServiceWorkerInfo", async () => {
+      await handler.handle(
+        "getServiceWorkerInfo",
+        { registrationId: "reg-1" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serviceWorker.getInfo",
+        { registrationId: "reg-1" },
+      );
+    });
+
+    it("should handle unregisterServiceWorker", async () => {
+      await handler.handle(
+        "unregisterServiceWorker",
+        { tabId: 1, scopeUrl: "https://example.com/" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serviceWorker.unregister",
+        { tabId: 1, scopeUrl: "https://example.com/" },
+      );
+    });
+
+    it("should handle updateServiceWorker", async () => {
+      await handler.handle(
+        "updateServiceWorker",
+        { tabId: 1, scopeUrl: "https://example.com/" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serviceWorker.update",
+        { tabId: 1, scopeUrl: "https://example.com/" },
+      );
+    });
+
+    it("should handle postMessageToServiceWorker", async () => {
+      await handler.handle(
+        "postMessageToServiceWorker",
+        { tabId: 1, message: { type: "sync" } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "serviceWorker.postMessage",
+        { tabId: 1, message: { type: "sync" } },
+      );
+    });
+  });
+
+  describe("Cache Storage Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle listCaches", async () => {
+      await handler.handle("listCaches", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "cache.listCaches",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle listCacheEntries", async () => {
+      await handler.handle(
+        "listCacheEntries",
+        { tabId: 1, cacheName: "v1-cache" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "cache.listEntries",
+        { tabId: 1, cacheName: "v1-cache" },
+      );
+    });
+
+    it("should handle getCacheEntry", async () => {
+      await handler.handle(
+        "getCacheEntry",
+        {
+          tabId: 1,
+          cacheName: "v1-cache",
+          url: "https://example.com/api/data",
+        },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "cache.getEntry",
+        {
+          tabId: 1,
+          cacheName: "v1-cache",
+          url: "https://example.com/api/data",
+        },
+      );
+    });
+
+    it("should handle deleteCacheEntry", async () => {
+      await handler.handle(
+        "deleteCacheEntry",
+        { tabId: 1, cacheName: "v1-cache", url: "https://example.com/old" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "cache.deleteEntry",
+        { tabId: 1, cacheName: "v1-cache", url: "https://example.com/old" },
+      );
+    });
+
+    it("should handle deleteCache", async () => {
+      await handler.handle(
+        "deleteCache",
+        { tabId: 1, cacheName: "old-cache" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "cache.deleteCache",
+        { tabId: 1, cacheName: "old-cache" },
+      );
+    });
+
+    it("should handle addCacheEntry", async () => {
+      await handler.handle(
+        "addCacheEntry",
+        {
+          tabId: 1,
+          cacheName: "v1-cache",
+          url: "https://example.com/new",
+          response: { body: "test", status: 200 },
+        },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "cache.addEntry",
+        {
+          tabId: 1,
+          cacheName: "v1-cache",
+          url: "https://example.com/new",
+          response: { body: "test", status: 200 },
+        },
+      );
+    });
+  });
+
+  describe("Security Info Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getCertificateInfo", async () => {
+      await handler.handle("getCertificateInfo", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "security.getCertificate",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getSecurityState", async () => {
+      await handler.handle("getSecurityState", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "security.getSecurityState",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle checkMixedContent", async () => {
+      await handler.handle("checkMixedContent", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "security.checkMixedContent",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getSitePermissions", async () => {
+      await handler.handle("getSitePermissions", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "security.getPermissions",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Animation Control Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle listAnimations", async () => {
+      await handler.handle("listAnimations", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "animation.list",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle pauseAnimation", async () => {
+      await handler.handle(
+        "pauseAnimation",
+        { tabId: 1, animationId: "anim-0" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "animation.pause",
+        { tabId: 1, animationId: "anim-0" },
+      );
+    });
+
+    it("should handle playAnimation", async () => {
+      await handler.handle(
+        "playAnimation",
+        { tabId: 1, animationId: "anim-0" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "animation.play",
+        { tabId: 1, animationId: "anim-0" },
+      );
+    });
+
+    it("should handle setAnimationSpeed", async () => {
+      await handler.handle(
+        "setAnimationSpeed",
+        { tabId: 1, animationId: "anim-0", playbackRate: 0.5 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "animation.setSpeed",
+        { tabId: 1, animationId: "anim-0", playbackRate: 0.5 },
+      );
+    });
+
+    it("should handle seekAnimation", async () => {
+      await handler.handle(
+        "seekAnimation",
+        { tabId: 1, animationId: "anim-0", currentTime: 500 },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "animation.seekTo",
+        { tabId: 1, animationId: "anim-0", currentTime: 500 },
+      );
+    });
+
+    it("should handle cancelAnimation", async () => {
+      await handler.handle(
+        "cancelAnimation",
+        { tabId: 1, animationId: "anim-0" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "animation.cancel",
+        { tabId: 1, animationId: "anim-0" },
+      );
+    });
+  });
+
+  describe("Layout Inspection Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getBoxModel", async () => {
+      await handler.handle(
+        "getBoxModel",
+        { tabId: 1, selector: "#container" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "layout.getBoxModel",
+        { tabId: 1, selector: "#container" },
+      );
+    });
+
+    it("should handle getComputedLayout", async () => {
+      await handler.handle(
+        "getComputedLayout",
+        { tabId: 1, selector: ".flex-item" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "layout.getComputedLayout",
+        { tabId: 1, selector: ".flex-item" },
+      );
+    });
+
+    it("should handle highlightNode", async () => {
+      await handler.handle(
+        "highlightNode",
+        {
+          tabId: 1,
+          selector: "#target",
+          options: { backgroundColor: "rgba(255,0,0,0.3)" },
+        },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "layout.highlightNode",
+        {
+          tabId: 1,
+          selector: "#target",
+          options: { backgroundColor: "rgba(255,0,0,0.3)" },
+        },
+      );
+    });
+
+    it("should handle hideHighlight", async () => {
+      await handler.handle("hideHighlight", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "layout.hideHighlight",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getNodeInfo", async () => {
+      await handler.handle(
+        "getNodeInfo",
+        { tabId: 1, selector: "#element" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "layout.getNodeInfo",
+        { tabId: 1, selector: "#element" },
+      );
+    });
+
+    it("should handle forceElementState", async () => {
+      await handler.handle(
+        "forceElementState",
+        { tabId: 1, selector: "#button", state: ["hover", "focus"] },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "layout.forceElementState",
+        { tabId: 1, selector: "#button", state: ["hover", "focus"] },
+      );
+    });
+  });
+
+  describe("Coverage Analysis Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle startJSCoverage", async () => {
+      await handler.handle(
+        "startJSCoverage",
+        { tabId: 1, options: { callCount: true, detailed: true } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "coverage.startJSCoverage",
+        { tabId: 1, options: { callCount: true, detailed: true } },
+      );
+    });
+
+    it("should handle stopJSCoverage", async () => {
+      await handler.handle("stopJSCoverage", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "coverage.stopJSCoverage",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle startCSSCoverage", async () => {
+      await handler.handle("startCSSCoverage", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "coverage.startCSSCoverage",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle stopCSSCoverage", async () => {
+      await handler.handle("stopCSSCoverage", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "coverage.stopCSSCoverage",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getJSCoverageResults", async () => {
+      await handler.handle("getJSCoverageResults", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "coverage.getJSCoverage",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getCSSCoverageResults", async () => {
+      await handler.handle("getCSSCoverageResults", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "coverage.getCSSCoverage",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Memory Profiling Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", {
+        ws: { readyState: 1 },
+      });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getMemoryInfo", async () => {
+      await handler.handle("getMemoryInfo", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "memory.getInfo",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle takeHeapSnapshot", async () => {
+      await handler.handle("takeHeapSnapshot", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "memory.takeHeapSnapshot",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle startMemorySampling", async () => {
+      await handler.handle(
+        "startMemorySampling",
+        { tabId: 1, options: { samplingInterval: 16384 } },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "memory.startSampling",
+        { tabId: 1, options: { samplingInterval: 16384 } },
+      );
+    });
+
+    it("should handle stopMemorySampling", async () => {
+      await handler.handle("stopMemorySampling", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "memory.stopSampling",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle forceGarbageCollection", async () => {
+      await handler.handle("forceGarbageCollection", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "memory.forceGC",
+        { tabId: 1 },
+      );
+    });
+  });
 });
