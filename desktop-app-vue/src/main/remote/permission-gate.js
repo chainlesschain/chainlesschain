@@ -111,6 +111,51 @@ const DEFAULT_COMMAND_PERMISSIONS = {
   "security.changePassword": PERMISSION_LEVELS.ROOT,
   "device.revoke": PERMISSION_LEVELS.ROOT,
   "ukey.verify": PERMISSION_LEVELS.ROOT,
+
+  // 电源控制
+  "power.lock": PERMISSION_LEVELS.NORMAL,
+  "power.getSchedule": PERMISSION_LEVELS.PUBLIC,
+  "power.sleep": PERMISSION_LEVELS.ADMIN,
+  "power.hibernate": PERMISSION_LEVELS.ADMIN,
+  "power.logout": PERMISSION_LEVELS.ADMIN,
+  "power.scheduleShutdown": PERMISSION_LEVELS.ADMIN,
+  "power.cancelSchedule": PERMISSION_LEVELS.ADMIN,
+  "power.shutdown": PERMISSION_LEVELS.ROOT,
+  "power.restart": PERMISSION_LEVELS.ROOT,
+  "power.confirm": PERMISSION_LEVELS.ROOT,
+
+  // 进程管理
+  "process.list": PERMISSION_LEVELS.PUBLIC,
+  "process.get": PERMISSION_LEVELS.NORMAL,
+  "process.getResources": PERMISSION_LEVELS.PUBLIC,
+  "process.search": PERMISSION_LEVELS.PUBLIC,
+  "process.kill": PERMISSION_LEVELS.ADMIN,
+  "process.start": PERMISSION_LEVELS.ADMIN,
+
+  // 媒体控制
+  "media.getVolume": PERMISSION_LEVELS.PUBLIC,
+  "media.getDevices": PERMISSION_LEVELS.PUBLIC,
+  "media.getPlaybackStatus": PERMISSION_LEVELS.PUBLIC,
+  "media.setVolume": PERMISSION_LEVELS.NORMAL,
+  "media.mute": PERMISSION_LEVELS.NORMAL,
+  "media.unmute": PERMISSION_LEVELS.NORMAL,
+  "media.toggleMute": PERMISSION_LEVELS.NORMAL,
+  "media.playSound": PERMISSION_LEVELS.NORMAL,
+  "media.stopSound": PERMISSION_LEVELS.NORMAL,
+  "media.mediaControl": PERMISSION_LEVELS.NORMAL,
+
+  // 网络信息
+  "network.getStatus": PERMISSION_LEVELS.PUBLIC,
+  "network.getInterfaces": PERMISSION_LEVELS.PUBLIC,
+  "network.getPublicIP": PERMISSION_LEVELS.PUBLIC,
+  "network.getDNS": PERMISSION_LEVELS.PUBLIC,
+  "network.getWifi": PERMISSION_LEVELS.PUBLIC,
+  "network.getConnections": PERMISSION_LEVELS.NORMAL,
+  "network.getBandwidth": PERMISSION_LEVELS.NORMAL,
+  "network.ping": PERMISSION_LEVELS.NORMAL,
+  "network.resolve": PERMISSION_LEVELS.NORMAL,
+  "network.getSpeed": PERMISSION_LEVELS.NORMAL,
+  "network.traceroute": PERMISSION_LEVELS.ADMIN,
 };
 
 /**
