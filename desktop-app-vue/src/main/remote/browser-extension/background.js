@@ -975,6 +975,101 @@ async function executeCommand(method, params) {
     case "pointerLock.getState":
       return await getPointerLockState(params.tabId);
 
+    // ==================== Phase 21: Accessibility & Performance ====================
+
+    // Accessibility
+    case "accessibility.getTree":
+      return await getAccessibilityTree(params.tabId, params.selector);
+    case "accessibility.getARIA":
+      return await getARIAProperties(params.tabId, params.selector);
+    case "accessibility.checkContrast":
+      return await checkColorContrast(params.tabId, params.selector);
+    case "accessibility.getFocusOrder":
+      return await getFocusOrder(params.tabId);
+    case "accessibility.getLandmarks":
+      return await getAccessibilityLandmarks(params.tabId);
+    case "accessibility.getHeadingStructure":
+      return await getHeadingStructure(params.tabId);
+    case "accessibility.checkAlt":
+      return await checkAltTexts(params.tabId);
+    case "accessibility.checkLabels":
+      return await checkFormLabels(params.tabId);
+    case "accessibility.simulate":
+      return await simulateAccessibility(params.tabId, params.type);
+    case "accessibility.runAudit":
+      return await runAccessibilityAudit(params.tabId);
+
+    // Performance Metrics
+    case "performance.getMetrics":
+      return await getPerformanceMetrics(params.tabId);
+    case "performance.getTimeline":
+      return await getPerformanceTimeline(params.tabId);
+    case "performance.getLongTasks":
+      return await getLongTasks(params.tabId, params.threshold);
+    case "performance.getLayoutShifts":
+      return await getLayoutShifts(params.tabId);
+    case "performance.getPaintTiming":
+      return await getPaintTiming(params.tabId);
+    case "performance.getResourceTiming":
+      return await getResourceTiming(params.tabId, params.filter);
+    case "performance.getNavigationTiming":
+      return await getNavigationTiming(params.tabId);
+    case "performance.measureElement":
+      return await measureElementPerformance(params.tabId, params.selector);
+    case "performance.startMark":
+      return await createPerformanceMark(params.tabId, params.name);
+    case "performance.measureBetweenMarks":
+      return await measureBetweenMarks(
+        params.tabId,
+        params.startMark,
+        params.endMark,
+        params.measureName,
+      );
+    case "performance.clearMarks":
+      return await clearPerformanceMarks(params.tabId, params.name);
+    case "performance.getEntries":
+      return await getPerformanceEntries(params.tabId, params.type);
+
+    // Memory Analysis
+    case "memory.getUsage":
+      return await getMemoryUsage(params.tabId);
+    case "memory.measureHeap":
+      return await measureHeapUsage(params.tabId);
+    case "memory.getJSHeapSize":
+      return await getJSHeapSize(params.tabId);
+    case "memory.detectLeaks":
+      return await detectMemoryLeaks(params.tabId);
+
+    // Frame Analysis
+    case "frames.getAll":
+      return await getAllFrames(params.tabId);
+    case "frames.getInfo":
+      return await getFrameInfo(params.tabId, params.frameId);
+    case "frames.executeInFrame":
+      return await executeInFrame(params.tabId, params.frameId, params.script);
+    case "frames.getFrameTree":
+      return await getFrameTree(params.tabId);
+
+    // Security Analysis
+    case "security.getInfo":
+      return await getSecurityInfo(params.tabId);
+    case "security.getCSP":
+      return await getCSPInfo(params.tabId);
+    case "security.checkMixedContent":
+      return await checkMixedContent(params.tabId);
+    case "security.getCertificate":
+      return await getCertificateInfo(params.tabId);
+    case "security.checkCORS":
+      return await checkCORSIssues(params.tabId);
+
+    // Network Timing
+    case "network.getTiming":
+      return await getNetworkTiming(params.tabId);
+    case "network.getWaterfall":
+      return await getNetworkWaterfall(params.tabId);
+    case "network.analyzeRequests":
+      return await analyzeNetworkRequests(params.tabId);
+
     default:
       throw new Error(`Unknown method: ${method}`);
   }
@@ -6954,6 +7049,1388 @@ async function getPointerLockState(tabId) {
       }),
     });
     return result[0]?.result || { isLocked: false };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 21: Accessibility ====================
+
+async function getAccessibilityTree(tabId, selector = "body") {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        function buildTree(element, depth = 0) {
+          if (depth > 10) return null; // Limit depth
+          const computed = window.getComputedStyle(element);
+          const isHidden =
+            computed.display === "none" || computed.visibility === "hidden";
+
+          const node = {
+            tag: element.tagName?.toLowerCase(),
+            role:
+              element.getAttribute("role") || element.tagName?.toLowerCase(),
+            name:
+              element.getAttribute("aria-label") ||
+              element.getAttribute("alt") ||
+              element.textContent?.slice(0, 50),
+            id: element.id || null,
+            isHidden,
+            tabIndex: element.tabIndex,
+            children: [],
+          };
+
+          if (!isHidden && element.children) {
+            for (const child of element.children) {
+              const childNode = buildTree(child, depth + 1);
+              if (childNode) node.children.push(childNode);
+            }
+          }
+          return node;
+        }
+
+        const root = document.querySelector(sel);
+        return root ? buildTree(root) : null;
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { error: "Failed to build tree" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getARIAProperties(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const elements = document.querySelectorAll(
+          sel || "[role], [aria-label], [aria-describedby], [aria-hidden]",
+        );
+        return Array.from(elements)
+          .slice(0, 100)
+          .map((el) => ({
+            tag: el.tagName?.toLowerCase(),
+            selector: el.id
+              ? `#${el.id}`
+              : el.className
+                ? `.${el.className.split(" ")[0]}`
+                : el.tagName?.toLowerCase(),
+            role: el.getAttribute("role"),
+            ariaLabel: el.getAttribute("aria-label"),
+            ariaDescribedby: el.getAttribute("aria-describedby"),
+            ariaHidden: el.getAttribute("aria-hidden"),
+            ariaExpanded: el.getAttribute("aria-expanded"),
+            ariaSelected: el.getAttribute("aria-selected"),
+            ariaChecked: el.getAttribute("aria-checked"),
+            ariaDisabled: el.getAttribute("aria-disabled"),
+            ariaLive: el.getAttribute("aria-live"),
+            ariaAtomic: el.getAttribute("aria-atomic"),
+            ariaRelevant: el.getAttribute("aria-relevant"),
+            ariaBusy: el.getAttribute("aria-busy"),
+            ariaControls: el.getAttribute("aria-controls"),
+            ariaOwns: el.getAttribute("aria-owns"),
+          }));
+      },
+      args: [selector],
+    });
+    return { elements: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function checkColorContrast(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        function getLuminance(r, g, b) {
+          const [rs, gs, bs] = [r, g, b].map((c) => {
+            c = c / 255;
+            return c <= 0.03928
+              ? c / 12.92
+              : Math.pow((c + 0.055) / 1.055, 2.4);
+          });
+          return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+        }
+
+        function parseColor(color) {
+          const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          if (match)
+            return {
+              r: parseInt(match[1]),
+              g: parseInt(match[2]),
+              b: parseInt(match[3]),
+            };
+          return null;
+        }
+
+        function getContrastRatio(fg, bg) {
+          const l1 = getLuminance(fg.r, fg.g, fg.b);
+          const l2 = getLuminance(bg.r, bg.g, bg.b);
+          const lighter = Math.max(l1, l2);
+          const darker = Math.min(l1, l2);
+          return (lighter + 0.05) / (darker + 0.05);
+        }
+
+        const elements = document.querySelectorAll(
+          sel ||
+            "p, span, a, h1, h2, h3, h4, h5, h6, li, td, th, label, button",
+        );
+        const issues = [];
+
+        Array.from(elements)
+          .slice(0, 100)
+          .forEach((el) => {
+            const style = window.getComputedStyle(el);
+            const fg = parseColor(style.color);
+            const bg = parseColor(style.backgroundColor);
+
+            if (fg && bg) {
+              const ratio = getContrastRatio(fg, bg);
+              const fontSize = parseFloat(style.fontSize);
+              const isBold = parseInt(style.fontWeight) >= 700;
+              const isLargeText = fontSize >= 18 || (fontSize >= 14 && isBold);
+              const minRatio = isLargeText ? 3 : 4.5;
+
+              if (ratio < minRatio) {
+                issues.push({
+                  element: el.tagName?.toLowerCase(),
+                  text: el.textContent?.slice(0, 30),
+                  foreground: style.color,
+                  background: style.backgroundColor,
+                  ratio: ratio.toFixed(2),
+                  required: minRatio,
+                  pass: false,
+                });
+              }
+            }
+          });
+
+        return { issues, totalChecked: elements.length };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || { issues: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getFocusOrder(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const focusableSelector =
+          'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+        const elements = document.querySelectorAll(focusableSelector);
+
+        return Array.from(elements).map((el, index) => ({
+          order: index + 1,
+          tag: el.tagName?.toLowerCase(),
+          type: el.type || null,
+          tabIndex: el.tabIndex,
+          id: el.id || null,
+          name: el.name || null,
+          text: (el.textContent || el.value || el.placeholder || "")?.slice(
+            0,
+            30,
+          ),
+          isVisible: el.offsetParent !== null,
+          rect: el.getBoundingClientRect
+            ? {
+                x: Math.round(el.getBoundingClientRect().x),
+                y: Math.round(el.getBoundingClientRect().y),
+              }
+            : null,
+        }));
+      },
+    });
+    return { elements: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getAccessibilityLandmarks(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const landmarks = {
+          banner: document.querySelectorAll('header, [role="banner"]'),
+          navigation: document.querySelectorAll('nav, [role="navigation"]'),
+          main: document.querySelectorAll('main, [role="main"]'),
+          complementary: document.querySelectorAll(
+            'aside, [role="complementary"]',
+          ),
+          contentinfo: document.querySelectorAll(
+            'footer, [role="contentinfo"]',
+          ),
+          search: document.querySelectorAll('[role="search"]'),
+          form: document.querySelectorAll('form, [role="form"]'),
+          region: document.querySelectorAll('[role="region"]'),
+        };
+
+        const result = {};
+        for (const [type, elements] of Object.entries(landmarks)) {
+          result[type] = Array.from(elements).map((el) => ({
+            tag: el.tagName?.toLowerCase(),
+            role: el.getAttribute("role"),
+            ariaLabel: el.getAttribute("aria-label"),
+            id: el.id || null,
+          }));
+        }
+        return result;
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getHeadingStructure(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const headings = document.querySelectorAll(
+          "h1, h2, h3, h4, h5, h6, [role='heading']",
+        );
+        const structure = [];
+        let previousLevel = 0;
+        const issues = [];
+
+        Array.from(headings).forEach((h, index) => {
+          const level =
+            parseInt(h.tagName?.charAt(1)) ||
+            parseInt(h.getAttribute("aria-level")) ||
+            0;
+          const text = h.textContent?.trim().slice(0, 50);
+
+          // Check for skipped heading levels
+          if (level > previousLevel + 1 && previousLevel > 0) {
+            issues.push({
+              type: "skipped-level",
+              message: `Heading level ${level} follows level ${previousLevel}`,
+              element: h.tagName?.toLowerCase(),
+              text,
+            });
+          }
+
+          structure.push({
+            level,
+            tag: h.tagName?.toLowerCase(),
+            text,
+            id: h.id || null,
+            index,
+          });
+
+          previousLevel = level;
+        });
+
+        // Check for missing h1
+        const hasH1 = Array.from(headings).some((h) => h.tagName === "H1");
+        if (!hasH1) {
+          issues.push({
+            type: "missing-h1",
+            message: "Page is missing an h1 heading",
+          });
+        }
+
+        // Check for multiple h1s
+        const h1Count = document.querySelectorAll("h1").length;
+        if (h1Count > 1) {
+          issues.push({
+            type: "multiple-h1",
+            message: `Page has ${h1Count} h1 headings (should have only one)`,
+          });
+        }
+
+        return { structure, issues };
+      },
+    });
+    return result[0]?.result || { structure: [], issues: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function checkAltTexts(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const images = document.querySelectorAll("img");
+        const issues = [];
+        const stats = {
+          total: images.length,
+          withAlt: 0,
+          emptyAlt: 0,
+          missingAlt: 0,
+        };
+
+        Array.from(images).forEach((img) => {
+          const alt = img.getAttribute("alt");
+          const src = img.src?.slice(0, 100);
+
+          if (alt === null) {
+            stats.missingAlt++;
+            issues.push({
+              type: "missing",
+              src,
+              message: "Image is missing alt attribute",
+            });
+          } else if (alt === "") {
+            stats.emptyAlt++;
+            // Empty alt is valid for decorative images
+          } else {
+            stats.withAlt++;
+          }
+        });
+
+        return { stats, issues };
+      },
+    });
+    return result[0]?.result || { stats: {}, issues: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function checkFormLabels(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const inputs = document.querySelectorAll("input, select, textarea");
+        const issues = [];
+        const stats = { total: inputs.length, labeled: 0, unlabeled: 0 };
+
+        Array.from(inputs).forEach((input) => {
+          if (
+            input.type === "hidden" ||
+            input.type === "submit" ||
+            input.type === "button"
+          )
+            return;
+
+          const hasLabel = input.labels?.length > 0;
+          const hasAriaLabel = input.getAttribute("aria-label");
+          const hasAriaLabelledby = input.getAttribute("aria-labelledby");
+          const hasTitle = input.title;
+          const hasPlaceholder = input.placeholder;
+
+          const isLabeled =
+            hasLabel || hasAriaLabel || hasAriaLabelledby || hasTitle;
+
+          if (isLabeled) {
+            stats.labeled++;
+          } else {
+            stats.unlabeled++;
+            issues.push({
+              type: "missing-label",
+              tag: input.tagName?.toLowerCase(),
+              inputType: input.type,
+              name: input.name,
+              id: input.id,
+              placeholder: hasPlaceholder,
+            });
+          }
+        });
+
+        return { stats, issues };
+      },
+    });
+    return result[0]?.result || { stats: {}, issues: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function simulateAccessibility(tabId, type) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (simType) => {
+        // Remove any existing simulation
+        const existingStyle = document.getElementById("a11y-simulation");
+        if (existingStyle) existingStyle.remove();
+
+        if (simType === "none" || simType === "reset") {
+          return { success: true, message: "Simulation cleared" };
+        }
+
+        const style = document.createElement("style");
+        style.id = "a11y-simulation";
+
+        const simulations = {
+          protanopia:
+            'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><filter id="p"><feColorMatrix values="0.567 0.433 0 0 0 0.558 0.442 0 0 0 0 0.242 0.758 0 0 0 0 0 1 0"/></filter></svg>#p\')',
+          deuteranopia:
+            'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><filter id="d"><feColorMatrix values="0.625 0.375 0 0 0 0.7 0.3 0 0 0 0 0.3 0.7 0 0 0 0 0 1 0"/></filter></svg>#d\')',
+          tritanopia:
+            'url(\'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><filter id="t"><feColorMatrix values="0.95 0.05 0 0 0 0 0.433 0.567 0 0 0 0.475 0.525 0 0 0 0 0 1 0"/></filter></svg>#t\')',
+          achromatopsia: "grayscale(100%)",
+          "low-contrast": "contrast(0.5)",
+          "blur-vision": "blur(2px)",
+        };
+
+        const filter = simulations[simType];
+        if (!filter) return { error: `Unknown simulation type: ${simType}` };
+
+        style.textContent = `html { filter: ${filter}; }`;
+        document.head.appendChild(style);
+
+        return { success: true, type: simType };
+      },
+      args: [type],
+    });
+    return result[0]?.result || { error: "Failed to apply simulation" };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function runAccessibilityAudit(tabId) {
+  try {
+    const [headings, labels, altTexts, landmarks, focusOrder, contrast] =
+      await Promise.all([
+        getHeadingStructure(tabId),
+        checkFormLabels(tabId),
+        checkAltTexts(tabId),
+        getAccessibilityLandmarks(tabId),
+        getFocusOrder(tabId),
+        checkColorContrast(tabId, null),
+      ]);
+
+    const issues = [];
+    let score = 100;
+
+    // Heading issues
+    if (headings.issues?.length > 0) {
+      issues.push(
+        ...headings.issues.map((i) => ({ category: "headings", ...i })),
+      );
+      score -= headings.issues.length * 5;
+    }
+
+    // Label issues
+    if (labels.issues?.length > 0) {
+      issues.push(...labels.issues.map((i) => ({ category: "forms", ...i })));
+      score -= labels.issues.length * 10;
+    }
+
+    // Alt text issues
+    if (altTexts.issues?.length > 0) {
+      issues.push(
+        ...altTexts.issues.map((i) => ({ category: "images", ...i })),
+      );
+      score -= altTexts.issues.length * 5;
+    }
+
+    // Contrast issues
+    if (contrast.issues?.length > 0) {
+      issues.push(
+        ...contrast.issues.map((i) => ({ category: "contrast", ...i })),
+      );
+      score -= contrast.issues.length * 3;
+    }
+
+    // Check for landmarks
+    const hasMain = landmarks.main?.length > 0;
+    const hasNav = landmarks.navigation?.length > 0;
+    if (!hasMain) {
+      issues.push({
+        category: "landmarks",
+        type: "missing-main",
+        message: "Page is missing main landmark",
+      });
+      score -= 10;
+    }
+    if (!hasNav) {
+      issues.push({
+        category: "landmarks",
+        type: "missing-nav",
+        message: "Page is missing navigation landmark",
+      });
+      score -= 5;
+    }
+
+    return {
+      score: Math.max(0, score),
+      issues,
+      summary: {
+        headings: headings.structure?.length || 0,
+        focusableElements: focusOrder.elements?.length || 0,
+        landmarks: Object.values(landmarks).flat().length,
+        images: altTexts.stats?.total || 0,
+        formFields: labels.stats?.total || 0,
+      },
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 21: Performance Metrics ====================
+
+async function getPerformanceMetrics(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const perf = window.performance;
+        const nav = perf.getEntriesByType("navigation")[0];
+        const paint = perf.getEntriesByType("paint");
+
+        return {
+          timing: {
+            domContentLoaded: nav?.domContentLoadedEventEnd - nav?.startTime,
+            load: nav?.loadEventEnd - nav?.startTime,
+            firstPaint: paint.find((p) => p.name === "first-paint")?.startTime,
+            firstContentfulPaint: paint.find(
+              (p) => p.name === "first-contentful-paint",
+            )?.startTime,
+            domInteractive: nav?.domInteractive - nav?.startTime,
+            domComplete: nav?.domComplete - nav?.startTime,
+          },
+          memory: window.performance.memory
+            ? {
+                usedJSHeapSize: window.performance.memory.usedJSHeapSize,
+                totalJSHeapSize: window.performance.memory.totalJSHeapSize,
+                jsHeapSizeLimit: window.performance.memory.jsHeapSizeLimit,
+              }
+            : null,
+          resources: {
+            count: perf.getEntriesByType("resource").length,
+            totalSize: perf
+              .getEntriesByType("resource")
+              .reduce((sum, r) => sum + (r.transferSize || 0), 0),
+          },
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPerformanceTimeline(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const entries = window.performance.getEntries();
+        return entries.slice(0, 200).map((entry) => ({
+          name: entry.name,
+          entryType: entry.entryType,
+          startTime: Math.round(entry.startTime),
+          duration: Math.round(entry.duration),
+        }));
+      },
+    });
+    return { entries: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getLongTasks(tabId, threshold = 50) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (thresh) => {
+        const longTasks = window.performance.getEntriesByType("longtask");
+        return longTasks
+          .filter((t) => t.duration >= thresh)
+          .map((t) => ({
+            name: t.name,
+            startTime: Math.round(t.startTime),
+            duration: Math.round(t.duration),
+            attribution: t.attribution?.map((a) => ({
+              name: a.name,
+              containerType: a.containerType,
+              containerSrc: a.containerSrc,
+            })),
+          }));
+      },
+      args: [threshold],
+    });
+    return { tasks: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getLayoutShifts(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const shifts = window.performance.getEntriesByType("layout-shift");
+        let cumulativeScore = 0;
+
+        const entries = shifts.map((s) => {
+          cumulativeScore += s.value;
+          return {
+            startTime: Math.round(s.startTime),
+            value: s.value?.toFixed(4),
+            hadRecentInput: s.hadRecentInput,
+            sources: s.sources?.map((src) => ({
+              node: src.node?.tagName,
+              previousRect: src.previousRect,
+              currentRect: src.currentRect,
+            })),
+          };
+        });
+
+        return { entries, cls: cumulativeScore.toFixed(4) };
+      },
+    });
+    return result[0]?.result || { entries: [], cls: 0 };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPaintTiming(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const paint = window.performance.getEntriesByType("paint");
+        const lcp = window.performance.getEntriesByType(
+          "largest-contentful-paint",
+        );
+
+        return {
+          firstPaint: paint.find((p) => p.name === "first-paint")?.startTime,
+          firstContentfulPaint: paint.find(
+            (p) => p.name === "first-contentful-paint",
+          )?.startTime,
+          largestContentfulPaint: lcp[lcp.length - 1]?.startTime,
+          lcpElement: lcp[lcp.length - 1]?.element?.tagName,
+          lcpSize: lcp[lcp.length - 1]?.size,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getResourceTiming(tabId, filter = null) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (filterType) => {
+        let resources = window.performance.getEntriesByType("resource");
+
+        if (filterType) {
+          resources = resources.filter((r) => r.initiatorType === filterType);
+        }
+
+        return resources.slice(0, 100).map((r) => ({
+          name: r.name.split("/").pop()?.slice(0, 50),
+          url: r.name.slice(0, 100),
+          initiatorType: r.initiatorType,
+          startTime: Math.round(r.startTime),
+          duration: Math.round(r.duration),
+          transferSize: r.transferSize,
+          encodedBodySize: r.encodedBodySize,
+          decodedBodySize: r.decodedBodySize,
+          dns: Math.round(r.domainLookupEnd - r.domainLookupStart),
+          tcp: Math.round(r.connectEnd - r.connectStart),
+          ttfb: Math.round(r.responseStart - r.requestStart),
+          download: Math.round(r.responseEnd - r.responseStart),
+        }));
+      },
+      args: [filter],
+    });
+    return { resources: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getNavigationTiming(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const nav = window.performance.getEntriesByType("navigation")[0];
+        if (!nav) return null;
+
+        return {
+          type: nav.type,
+          redirectCount: nav.redirectCount,
+          redirectTime: Math.round(nav.redirectEnd - nav.redirectStart),
+          dnsTime: Math.round(nav.domainLookupEnd - nav.domainLookupStart),
+          tcpTime: Math.round(nav.connectEnd - nav.connectStart),
+          tlsTime: Math.round(
+            nav.secureConnectionStart > 0
+              ? nav.connectEnd - nav.secureConnectionStart
+              : 0,
+          ),
+          ttfb: Math.round(nav.responseStart - nav.requestStart),
+          downloadTime: Math.round(nav.responseEnd - nav.responseStart),
+          domParsing: Math.round(nav.domInteractive - nav.responseEnd),
+          deferredScripts: Math.round(
+            nav.domContentLoadedEventStart - nav.domInteractive,
+          ),
+          domContentLoaded: Math.round(
+            nav.domContentLoadedEventEnd - nav.startTime,
+          ),
+          resourceLoading: Math.round(
+            nav.domComplete - nav.domContentLoadedEventEnd,
+          ),
+          loadEvent: Math.round(nav.loadEventEnd - nav.loadEventStart),
+          totalTime: Math.round(nav.loadEventEnd - nav.startTime),
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function measureElementPerformance(tabId, selector) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (sel) => {
+        const element = document.querySelector(sel);
+        if (!element) return { error: "Element not found" };
+
+        const rect = element.getBoundingClientRect();
+        const style = window.getComputedStyle(element);
+
+        // Measure reflow/repaint cost
+        const startMeasure = performance.now();
+        element.offsetHeight; // Force reflow
+        const reflowTime = performance.now() - startMeasure;
+
+        return {
+          selector: sel,
+          dimensions: {
+            width: Math.round(rect.width),
+            height: Math.round(rect.height),
+            x: Math.round(rect.x),
+            y: Math.round(rect.y),
+          },
+          layout: {
+            display: style.display,
+            position: style.position,
+            containsText: element.textContent?.length || 0,
+            childCount: element.children?.length || 0,
+          },
+          performance: {
+            reflowTime: reflowTime.toFixed(3),
+          },
+        };
+      },
+      args: [selector],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function createPerformanceMark(tabId, name) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (markName) => {
+        performance.mark(markName);
+        return { success: true, name: markName, timestamp: performance.now() };
+      },
+      args: [name],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function measureBetweenMarks(tabId, startMark, endMark, measureName) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (start, end, name) => {
+        try {
+          performance.measure(name, start, end);
+          const measure = performance.getEntriesByName(name, "measure")[0];
+          return {
+            name,
+            startMark: start,
+            endMark: end,
+            duration: measure?.duration,
+            startTime: measure?.startTime,
+          };
+        } catch (e) {
+          return { error: e.message };
+        }
+      },
+      args: [startMark, endMark, measureName],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function clearPerformanceMarks(tabId, name = null) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (markName) => {
+        if (markName) {
+          performance.clearMarks(markName);
+          performance.clearMeasures(markName);
+        } else {
+          performance.clearMarks();
+          performance.clearMeasures();
+        }
+        return { success: true };
+      },
+      args: [name],
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getPerformanceEntries(tabId, type = null) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (entryType) => {
+        const entries = entryType
+          ? performance.getEntriesByType(entryType)
+          : performance.getEntries();
+
+        return entries.slice(0, 100).map((e) => ({
+          name: e.name?.slice(0, 100),
+          entryType: e.entryType,
+          startTime: Math.round(e.startTime),
+          duration: Math.round(e.duration),
+        }));
+      },
+      args: [type],
+    });
+    return { entries: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 21: Memory Analysis ====================
+
+async function getMemoryUsage(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const memory = window.performance.memory;
+        if (!memory) return { error: "Memory API not available" };
+
+        return {
+          usedJSHeapSize: memory.usedJSHeapSize,
+          totalJSHeapSize: memory.totalJSHeapSize,
+          jsHeapSizeLimit: memory.jsHeapSizeLimit,
+          usedPercentage: (
+            (memory.usedJSHeapSize / memory.jsHeapSizeLimit) *
+            100
+          ).toFixed(2),
+          formatted: {
+            used: (memory.usedJSHeapSize / 1024 / 1024).toFixed(2) + " MB",
+            total: (memory.totalJSHeapSize / 1024 / 1024).toFixed(2) + " MB",
+            limit: (memory.jsHeapSizeLimit / 1024 / 1024).toFixed(2) + " MB",
+          },
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function measureHeapUsage(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const measurements = [];
+
+        // Take multiple samples
+        for (let i = 0; i < 5; i++) {
+          if (window.performance.memory) {
+            measurements.push({
+              timestamp: performance.now(),
+              used: window.performance.memory.usedJSHeapSize,
+            });
+          }
+        }
+
+        if (measurements.length === 0)
+          return { error: "Memory API not available" };
+
+        const avgUsed =
+          measurements.reduce((sum, m) => sum + m.used, 0) /
+          measurements.length;
+
+        return {
+          samples: measurements.length,
+          average: Math.round(avgUsed),
+          formatted: (avgUsed / 1024 / 1024).toFixed(2) + " MB",
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getJSHeapSize(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        if (!window.performance.memory)
+          return { error: "Memory API not available" };
+
+        const memory = window.performance.memory;
+        return {
+          used: memory.usedJSHeapSize,
+          total: memory.totalJSHeapSize,
+          limit: memory.jsHeapSizeLimit,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function detectMemoryLeaks(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const warnings = [];
+
+        // Check for detached DOM nodes (basic check)
+        const scripts = document.querySelectorAll("script");
+        const inlineScripts = Array.from(scripts).filter(
+          (s) => !s.src && s.textContent.length > 10000,
+        );
+        if (inlineScripts.length > 0) {
+          warnings.push({
+            type: "large-inline-scripts",
+            count: inlineScripts.length,
+            message: "Large inline scripts may hold memory",
+          });
+        }
+
+        // Check event listeners on window/document
+        const events = ["click", "scroll", "resize", "mousemove", "keydown"];
+        const potentialLeaks = [];
+        events.forEach((event) => {
+          // Can't directly count, but we can warn about common patterns
+        });
+
+        // Check for large arrays in global scope
+        const globalKeys = Object.keys(window).filter((k) => {
+          try {
+            const val = window[k];
+            return Array.isArray(val) && val.length > 1000;
+          } catch {
+            return false;
+          }
+        });
+
+        if (globalKeys.length > 0) {
+          warnings.push({
+            type: "large-global-arrays",
+            keys: globalKeys.slice(0, 10),
+            message: "Large arrays in global scope",
+          });
+        }
+
+        // Check DOM size
+        const domSize = document.querySelectorAll("*").length;
+        if (domSize > 1500) {
+          warnings.push({
+            type: "large-dom",
+            count: domSize,
+            message: `DOM has ${domSize} elements (>1500 may impact performance)`,
+          });
+        }
+
+        return { warnings, domSize };
+      },
+    });
+    return result[0]?.result || { warnings: [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 21: Frame Analysis ====================
+
+async function getAllFrames(tabId) {
+  try {
+    const frames = await chrome.webNavigation.getAllFrames({ tabId });
+    return {
+      frames: frames.map((f) => ({
+        frameId: f.frameId,
+        parentFrameId: f.parentFrameId,
+        url: f.url,
+        frameType: f.frameType,
+      })),
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getFrameInfo(tabId, frameId) {
+  try {
+    const frames = await chrome.webNavigation.getAllFrames({ tabId });
+    const frame = frames.find((f) => f.frameId === frameId);
+
+    if (!frame) return { error: "Frame not found" };
+
+    return {
+      frameId: frame.frameId,
+      parentFrameId: frame.parentFrameId,
+      url: frame.url,
+      frameType: frame.frameType,
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function executeInFrame(tabId, frameId, script) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId, frameIds: [frameId] },
+      func: new Function(`return (${script})`)(),
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getFrameTree(tabId) {
+  try {
+    const frames = await chrome.webNavigation.getAllFrames({ tabId });
+
+    // Build tree structure
+    const frameMap = new Map();
+    const roots = [];
+
+    frames.forEach((f) => {
+      frameMap.set(f.frameId, { ...f, children: [] });
+    });
+
+    frames.forEach((f) => {
+      const node = frameMap.get(f.frameId);
+      if (f.parentFrameId === -1) {
+        roots.push(node);
+      } else {
+        const parent = frameMap.get(f.parentFrameId);
+        if (parent) parent.children.push(node);
+      }
+    });
+
+    return { tree: roots, totalFrames: frames.length };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 21: Security Analysis ====================
+
+async function getSecurityInfo(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({
+        isSecureContext: window.isSecureContext,
+        protocol: window.location.protocol,
+        origin: window.location.origin,
+        referrerPolicy: document.referrerPolicy,
+        crossOriginIsolated: window.crossOriginIsolated,
+      }),
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getCSPInfo(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const meta = document.querySelector(
+          'meta[http-equiv="Content-Security-Policy"]',
+        );
+        return {
+          hasCSP: !!meta,
+          cspContent: meta?.content || null,
+          // Note: HTTP header CSP can't be read from content script
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function checkMixedContent(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const isHttps = window.location.protocol === "https:";
+        if (!isHttps) return { isHttps: false, mixedContent: [] };
+
+        const mixed = [];
+
+        // Check images
+        document.querySelectorAll('img[src^="http:"]').forEach((img) => {
+          mixed.push({ type: "image", url: img.src });
+        });
+
+        // Check scripts
+        document.querySelectorAll('script[src^="http:"]').forEach((script) => {
+          mixed.push({ type: "script", url: script.src });
+        });
+
+        // Check stylesheets
+        document.querySelectorAll('link[href^="http:"]').forEach((link) => {
+          if (link.rel === "stylesheet") {
+            mixed.push({ type: "stylesheet", url: link.href });
+          }
+        });
+
+        // Check iframes
+        document.querySelectorAll('iframe[src^="http:"]').forEach((iframe) => {
+          mixed.push({ type: "iframe", url: iframe.src });
+        });
+
+        return { isHttps, mixedContent: mixed };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getCertificateInfo(tabId) {
+  try {
+    // Note: Chrome extension API doesn't directly expose certificate info
+    // We can only get basic security state
+    const tab = await chrome.tabs.get(tabId);
+    return {
+      url: tab.url,
+      isSecure: tab.url?.startsWith("https://"),
+      // Full certificate info requires different approach
+      note: "Full certificate info requires native messaging or debugger API",
+    };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function checkCORSIssues(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const resources = performance.getEntriesByType("resource");
+        const crossOrigin = resources.filter((r) => {
+          try {
+            const url = new URL(r.name);
+            return url.origin !== window.location.origin;
+          } catch {
+            return false;
+          }
+        });
+
+        return {
+          totalResources: resources.length,
+          crossOriginResources: crossOrigin.length,
+          crossOriginList: crossOrigin.slice(0, 20).map((r) => ({
+            url: r.name.slice(0, 100),
+            type: r.initiatorType,
+            timing: r.transferSize > 0 ? "loaded" : "blocked-or-cached",
+          })),
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+// ==================== Phase 21: Network Timing ====================
+
+async function getNetworkTiming(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const resources = performance.getEntriesByType("resource");
+        const nav = performance.getEntriesByType("navigation")[0];
+
+        const byType = {};
+        resources.forEach((r) => {
+          if (!byType[r.initiatorType]) {
+            byType[r.initiatorType] = {
+              count: 0,
+              totalDuration: 0,
+              totalSize: 0,
+            };
+          }
+          byType[r.initiatorType].count++;
+          byType[r.initiatorType].totalDuration += r.duration;
+          byType[r.initiatorType].totalSize += r.transferSize || 0;
+        });
+
+        return {
+          navigation: nav
+            ? {
+                dns: Math.round(nav.domainLookupEnd - nav.domainLookupStart),
+                tcp: Math.round(nav.connectEnd - nav.connectStart),
+                ssl: Math.round(
+                  nav.secureConnectionStart > 0
+                    ? nav.connectEnd - nav.secureConnectionStart
+                    : 0,
+                ),
+                ttfb: Math.round(nav.responseStart - nav.requestStart),
+                download: Math.round(nav.responseEnd - nav.responseStart),
+              }
+            : null,
+          resourcesByType: byType,
+          totalResources: resources.length,
+        };
+      },
+    });
+    return result[0]?.result || {};
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function getNetworkWaterfall(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const resources = performance.getEntriesByType("resource");
+
+        return resources.slice(0, 50).map((r) => ({
+          name: r.name.split("/").pop()?.slice(0, 30) || r.name.slice(0, 30),
+          type: r.initiatorType,
+          start: Math.round(r.startTime),
+          dns: Math.round(r.domainLookupEnd - r.domainLookupStart),
+          tcp: Math.round(r.connectEnd - r.connectStart),
+          ssl: Math.round(
+            r.secureConnectionStart > 0
+              ? r.connectEnd - r.secureConnectionStart
+              : 0,
+          ),
+          request: Math.round(r.responseStart - r.requestStart),
+          response: Math.round(r.responseEnd - r.responseStart),
+          total: Math.round(r.duration),
+          size: r.transferSize,
+        }));
+      },
+    });
+    return { waterfall: result[0]?.result || [] };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+async function analyzeNetworkRequests(tabId) {
+  try {
+    const result = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const resources = performance.getEntriesByType("resource");
+
+        // Analyze
+        const analysis = {
+          total: resources.length,
+          totalSize: resources.reduce(
+            (sum, r) => sum + (r.transferSize || 0),
+            0,
+          ),
+          totalDuration: Math.round(
+            Math.max(...resources.map((r) => r.startTime + r.duration)),
+          ),
+          byType: {},
+          slowest: [],
+          largest: [],
+        };
+
+        // Group by type
+        resources.forEach((r) => {
+          if (!analysis.byType[r.initiatorType]) {
+            analysis.byType[r.initiatorType] = { count: 0, size: 0 };
+          }
+          analysis.byType[r.initiatorType].count++;
+          analysis.byType[r.initiatorType].size += r.transferSize || 0;
+        });
+
+        // Find slowest
+        analysis.slowest = [...resources]
+          .sort((a, b) => b.duration - a.duration)
+          .slice(0, 5)
+          .map((r) => ({
+            name: r.name.split("/").pop()?.slice(0, 30),
+            duration: Math.round(r.duration),
+            type: r.initiatorType,
+          }));
+
+        // Find largest
+        analysis.largest = [...resources]
+          .sort((a, b) => (b.transferSize || 0) - (a.transferSize || 0))
+          .slice(0, 5)
+          .map((r) => ({
+            name: r.name.split("/").pop()?.slice(0, 30),
+            size: r.transferSize,
+            type: r.initiatorType,
+          }));
+
+        return analysis;
+      },
+    });
+    return result[0]?.result || {};
   } catch (error) {
     return { error: error.message };
   }

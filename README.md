@@ -13,7 +13,7 @@
 
 一个完全去中心化的个人AI助手平台,整合知识库管理、社交网络和交易辅助三大核心功能。
 
-[English](./README_EN.md) | [设计文档](./docs/design/系统设计_个人移动AI管理系统.md) | [详细功能](./docs/FEATURES.md)
+[English](./README_EN.md) | [设计文档](./docs/design/系统设计_主文档.md) | [详细功能](./docs/FEATURES.md)
 
 </div>
 
@@ -103,7 +103,7 @@
 | 测试覆盖率   | ~30%   | ~80%   | **+167%**      |
 | LLM规划成本  | 基准   | -70%   | **月省$2,550** |
 
-详见: [Phase 2 测试总结](./PHASE2_FINAL_SUMMARY.md) | [永久记忆文档](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks 系统设计](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [完整版本历史](./docs/CHANGELOG.md)
+详见: [Phase 2 测试总结](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [永久记忆文档](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks 系统设计](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [完整版本历史](./docs/CHANGELOG.md)
 
 ### 项目状态 (整体完成度: 100%)
 
@@ -230,7 +230,7 @@
 - ✅ **性能基准建立** - 142K ops/s项目操作，271K ops/s文件操作
 - ✅ **测试覆盖率~80%** - 测试驱动的持续质量提升
 
-详细功能说明见 [Phase 2 测试总结](./PHASE2_FINAL_SUMMARY.md)
+详细功能说明见 [Phase 2 测试总结](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md)
 
 ### 7️⃣ 企业级权限系统 (100% 完成) ✅
 
@@ -250,7 +250,7 @@
 - ✅ **可恢复压缩** - 保留URL/路径引用、按需恢复内容
 - ✅ **17个IPC通道** - 完整前端访问接口
 
-详细功能说明见 [Context Engineering 文档](./docs/features/CONTEXT_ENGINEERING.md)
+详细功能说明见 [Context Engineering 文档](./docs/MANUS_OPTIMIZATION_GUIDE.md)
 
 ### 9️⃣ Plan Mode + Skills 系统 (100% 完成) ✅
 
@@ -484,10 +484,10 @@ chainlesschain/
 **永久记忆与测试文档**:
 
 - [🧠 永久记忆集成](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) - Daily Notes + MEMORY.md + 混合搜索
-- [🧪 Phase 2 测试总结](./PHASE2_FINAL_SUMMARY.md) - 233测试用例，99.6%通过率
-- [🔒 安全测试报告](./PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10覆盖80%
-- [📊 IPC处理器测试](./PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66个IPC处理器测试
-- [💾 数据库边界测试](./PHASE2_TASK8_DATABASE_TESTS.md) - 14个边界条件测试
+- [🧪 Phase 2 测试总结](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) - 233测试用例，99.6%通过率
+- [🔒 安全测试报告](./docs/reports/phase2/PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10覆盖80%
+- [📊 IPC处理器测试](./docs/reports/phase2/PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66个IPC处理器测试
+- [💾 数据库边界测试](./docs/reports/phase2/PHASE2_TASK8_DATABASE_TESTS.md) - 14个边界条件测试
 
 **工作流优化文档**:
 

@@ -3328,4 +3328,391 @@ describe("ExtensionBrowserHandler", () => {
       );
     });
   });
+
+  // ========== Phase 21: Accessibility & Performance ==========
+
+  describe("Accessibility Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    // Note: getAccessibilityTree test is defined in earlier section
+
+    it("should handle getARIAProperties", async () => {
+      await handler.handle(
+        "getARIAProperties",
+        { tabId: 1, selector: "[role]" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.getARIA",
+        { tabId: 1, selector: "[role]" },
+      );
+    });
+
+    it("should handle checkColorContrast", async () => {
+      await handler.handle("checkColorContrast", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.checkContrast",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getFocusOrder", async () => {
+      await handler.handle("getFocusOrder", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.getFocusOrder",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getAccessibilityLandmarks", async () => {
+      await handler.handle("getAccessibilityLandmarks", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.getLandmarks",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getHeadingStructure", async () => {
+      await handler.handle("getHeadingStructure", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.getHeadingStructure",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle checkAltTexts", async () => {
+      await handler.handle("checkAltTexts", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.checkAlt",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle checkFormLabels", async () => {
+      await handler.handle("checkFormLabels", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.checkLabels",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle simulateAccessibility", async () => {
+      await handler.handle(
+        "simulateAccessibility",
+        { tabId: 1, type: "protanopia" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.simulate",
+        { tabId: 1, type: "protanopia" },
+      );
+    });
+
+    it("should handle runAccessibilityAudit", async () => {
+      await handler.handle("runAccessibilityAudit", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "accessibility.runAudit",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Performance Metrics Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    // Note: getPerformanceMetrics test is defined in earlier section
+
+    it("should handle getPerformanceTimeline", async () => {
+      await handler.handle("getPerformanceTimeline", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.getTimeline",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getLongTasks", async () => {
+      await handler.handle("getLongTasks", { tabId: 1, threshold: 100 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.getLongTasks",
+        { tabId: 1, threshold: 100 },
+      );
+    });
+
+    it("should handle getLayoutShifts", async () => {
+      await handler.handle("getLayoutShifts", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.getLayoutShifts",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getPaintTiming", async () => {
+      await handler.handle("getPaintTiming", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.getPaintTiming",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getResourceTiming", async () => {
+      await handler.handle(
+        "getResourceTiming",
+        { tabId: 1, filter: "script" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.getResourceTiming",
+        { tabId: 1, filter: "script" },
+      );
+    });
+
+    it("should handle getNavigationTiming", async () => {
+      await handler.handle("getNavigationTiming", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.getNavigationTiming",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle measureElementPerformance", async () => {
+      await handler.handle(
+        "measureElementPerformance",
+        { tabId: 1, selector: "#app" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.measureElement",
+        { tabId: 1, selector: "#app" },
+      );
+    });
+
+    it("should handle createPerformanceMark", async () => {
+      await handler.handle(
+        "createPerformanceMark",
+        { tabId: 1, name: "my-mark" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.startMark",
+        { tabId: 1, name: "my-mark" },
+      );
+    });
+
+    it("should handle measureBetweenMarks", async () => {
+      await handler.handle(
+        "measureBetweenMarks",
+        {
+          tabId: 1,
+          startMark: "start",
+          endMark: "end",
+          measureName: "duration",
+        },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.measureBetweenMarks",
+        {
+          tabId: 1,
+          startMark: "start",
+          endMark: "end",
+          measureName: "duration",
+        },
+      );
+    });
+
+    it("should handle clearPerformanceMarks", async () => {
+      await handler.handle("clearPerformanceMarks", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "performance.clearMarks",
+        { tabId: 1 },
+      );
+    });
+
+    // Note: getPerformanceEntries test is defined in earlier section
+  });
+
+  describe("Memory Analysis Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getMemoryUsage", async () => {
+      await handler.handle("getMemoryUsage", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "memory.getUsage",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle measureHeapUsage", async () => {
+      await handler.handle("measureHeapUsage", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "memory.measureHeap",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getJSHeapSize", async () => {
+      await handler.handle("getJSHeapSize", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "memory.getJSHeapSize",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle detectMemoryLeaks", async () => {
+      await handler.handle("detectMemoryLeaks", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "memory.detectLeaks",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Frame Analysis Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getAllFrames", async () => {
+      await handler.handle("getAllFrames", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "frames.getAll",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getFrameInfo", async () => {
+      await handler.handle("getFrameInfo", { tabId: 1, frameId: 0 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "frames.getInfo",
+        { tabId: 1, frameId: 0 },
+      );
+    });
+
+    it("should handle executeInFrame", async () => {
+      await handler.handle(
+        "executeInFrame",
+        { tabId: 1, frameId: 0, script: "document.title" },
+        {},
+      );
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "frames.executeInFrame",
+        { tabId: 1, frameId: 0, script: "document.title" },
+      );
+    });
+
+    it("should handle getFrameTree", async () => {
+      await handler.handle("getFrameTree", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "frames.getFrameTree",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Security Analysis Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getSecurityInfo", async () => {
+      await handler.handle("getSecurityInfo", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "security.getInfo",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getCSPInfo", async () => {
+      await handler.handle("getCSPInfo", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "security.getCSP",
+        { tabId: 1 },
+      );
+    });
+
+    // Note: checkMixedContent and getCertificateInfo tests are defined in earlier section
+
+    it("should handle checkCORSIssues", async () => {
+      await handler.handle("checkCORSIssues", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "security.checkCORS",
+        { tabId: 1 },
+      );
+    });
+  });
+
+  describe("Network Timing Operations", () => {
+    beforeEach(() => {
+      server.clients.set("client-1", { ws: { readyState: 1 } });
+      vi.spyOn(server, "sendCommand").mockResolvedValue({ success: true });
+    });
+
+    it("should handle getNetworkTiming", async () => {
+      await handler.handle("getNetworkTiming", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.getTiming",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle getNetworkWaterfall", async () => {
+      await handler.handle("getNetworkWaterfall", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.getWaterfall",
+        { tabId: 1 },
+      );
+    });
+
+    it("should handle analyzeNetworkRequests", async () => {
+      await handler.handle("analyzeNetworkRequests", { tabId: 1 }, {});
+      expect(server.sendCommand).toHaveBeenCalledWith(
+        "client-1",
+        "network.analyzeRequests",
+        { tabId: 1 },
+      );
+    });
+  });
 });

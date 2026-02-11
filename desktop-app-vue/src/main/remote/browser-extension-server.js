@@ -1829,6 +1829,218 @@ class ExtensionBrowserHandler extends EventEmitter {
           params,
         );
 
+      // ==================== Phase 21: Accessibility & Performance ====================
+
+      // Accessibility (Enhanced)
+      // Note: getAccessibilityTree is already defined in earlier phase
+      case "getARIAProperties":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getARIA",
+          params,
+        );
+      case "checkColorContrast":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.checkContrast",
+          params,
+        );
+      case "getFocusOrder":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getFocusOrder",
+          params,
+        );
+      case "getAccessibilityLandmarks":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getLandmarks",
+          params,
+        );
+      case "getHeadingStructure":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.getHeadingStructure",
+          params,
+        );
+      case "checkAltTexts":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.checkAlt",
+          params,
+        );
+      case "checkFormLabels":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.checkLabels",
+          params,
+        );
+      case "simulateAccessibility":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.simulate",
+          params,
+        );
+      case "runAccessibilityAudit":
+        return await this.server.sendCommand(
+          clientId,
+          "accessibility.runAudit",
+          params,
+        );
+
+      // Performance Metrics (Enhanced)
+      // Note: getPerformanceMetrics is already defined in earlier phase
+      case "getPerformanceTimeline":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getTimeline",
+          params,
+        );
+      case "getLongTasks":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getLongTasks",
+          params,
+        );
+      case "getLayoutShifts":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getLayoutShifts",
+          params,
+        );
+      case "getPaintTiming":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getPaintTiming",
+          params,
+        );
+      case "getResourceTiming":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getResourceTiming",
+          params,
+        );
+      case "getNavigationTiming":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.getNavigationTiming",
+          params,
+        );
+      case "measureElementPerformance":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.measureElement",
+          params,
+        );
+      case "createPerformanceMark":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.startMark",
+          params,
+        );
+      case "measureBetweenMarks":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.measureBetweenMarks",
+          params,
+        );
+      case "clearPerformanceMarks":
+        return await this.server.sendCommand(
+          clientId,
+          "performance.clearMarks",
+          params,
+        );
+      // Note: getPerformanceEntries is already defined in earlier phase
+
+      // Memory Analysis
+      case "getMemoryUsage":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.getUsage",
+          params,
+        );
+      case "measureHeapUsage":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.measureHeap",
+          params,
+        );
+      case "getJSHeapSize":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.getJSHeapSize",
+          params,
+        );
+      case "detectMemoryLeaks":
+        return await this.server.sendCommand(
+          clientId,
+          "memory.detectLeaks",
+          params,
+        );
+
+      // Frame Analysis
+      case "getAllFrames":
+        return await this.server.sendCommand(clientId, "frames.getAll", params);
+      case "getFrameInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "frames.getInfo",
+          params,
+        );
+      case "executeInFrame":
+        return await this.server.sendCommand(
+          clientId,
+          "frames.executeInFrame",
+          params,
+        );
+      case "getFrameTree":
+        return await this.server.sendCommand(
+          clientId,
+          "frames.getFrameTree",
+          params,
+        );
+
+      // Security Analysis
+      case "getSecurityInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getInfo",
+          params,
+        );
+      case "getCSPInfo":
+        return await this.server.sendCommand(
+          clientId,
+          "security.getCSP",
+          params,
+        );
+      // Note: checkMixedContent and getCertificateInfo are already defined in earlier phase
+      case "checkCORSIssues":
+        return await this.server.sendCommand(
+          clientId,
+          "security.checkCORS",
+          params,
+        );
+
+      // Network Timing
+      case "getNetworkTiming":
+        return await this.server.sendCommand(
+          clientId,
+          "network.getTiming",
+          params,
+        );
+      case "getNetworkWaterfall":
+        return await this.server.sendCommand(
+          clientId,
+          "network.getWaterfall",
+          params,
+        );
+      case "analyzeNetworkRequests":
+        return await this.server.sendCommand(
+          clientId,
+          "network.analyzeRequests",
+          params,
+        );
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }

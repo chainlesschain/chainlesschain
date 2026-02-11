@@ -13,7 +13,7 @@
 
 A fully decentralized personal AI assistant platform integrating knowledge base management, social networking, and transaction assistance.
 
-[中文](./README.md) | [Design Document](./docs/design/系统设计_个人移动AI管理系统.md)
+[中文](./README.md) | [Design Document](./docs/design/系统设计_主文档.md) | [Features](./docs/FEATURES.md)
 
 </div>
 
@@ -98,7 +98,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 | Test Coverage         | ~30%     | ~80%   | **+167%**              |
 | LLM Planning Cost     | Baseline | -70%   | **$2,550/month saved** |
 
-See: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [Full Changelog](./docs/CHANGELOG.md)
+See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [Full Changelog](./docs/CHANGELOG.md)
 
 - ✅ **Documentation Structure Reorganization** - Reorganized documentation directory with new categories: flows/, implementation-reports/, status-reports/, test-reports/
 - ✅ **Desktop App Root Directory Reorganization** - Optimized desktop-app-vue project structure for improved code maintainability
@@ -1651,7 +1651,7 @@ Phase 2 testing improvement plan completed:
 - A04: Insecure Design (3 tests)
 - A07: Authentication Failures (4 tests)
 
-Details: [Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md)
+Details: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md)
 
 ## Technical Architecture
 
@@ -2189,10 +2189,10 @@ Core encryption libraries use **Apache 2.0** license
 **Permanent Memory & Test Documentation**:
 
 - [🧠 Permanent Memory Integration](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) - Daily Notes + MEMORY.md + Hybrid Search
-- [🧪 Phase 2 Test Summary](./PHASE2_FINAL_SUMMARY.md) - 2000+ test cases, 99.6% pass rate
-- [🔒 Security Test Report](./PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10 coverage 80%
-- [📊 IPC Handler Tests](./PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66 IPC handler tests
-- [💾 Database Boundary Tests](./PHASE2_TASK8_DATABASE_TESTS.md) - 14 boundary condition tests
+- [🧪 Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) - 2000+ test cases, 99.6% pass rate
+- [🔒 Security Test Report](./docs/reports/phase2/PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10 coverage 80%
+- [📊 IPC Handler Tests](./docs/reports/phase2/PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66 IPC handler tests
+- [💾 Database Boundary Tests](./docs/reports/phase2/PHASE2_TASK8_DATABASE_TESTS.md) - 14 boundary condition tests
 
 **Workflow Optimization Documentation**:
 
