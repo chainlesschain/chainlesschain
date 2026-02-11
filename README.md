@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.32.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.33.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -19,23 +19,36 @@
 
 ---
 
-## ⭐ 当前版本: v0.32.0 (2026-02-10)
+## ⭐ 当前版本: v0.33.0 (2026-02-11)
 
-### 最新更新 - 移动端AI增强 + 工作流系统 + 语音交互
+### 最新更新 - Computer Use 电脑操作能力
 
-**Mobile AI Enhancement + Workflow System + Voice Interaction** - iOS/Android 全功能 AI 系统、工作流自动化、实时语音交互
+**Claude Computer Use Style Desktop Automation** - 类似 Claude Computer Use 的电脑操作能力，支持浏览器和桌面级自动化操作
 
-#### 新增核心功能 (2026-02-10)
+#### 新增核心功能 (2026-02-11)
+
+- ✅ **Computer Use Agent** - 统一代理整合所有电脑操作能力，68+ IPC handlers
+- ✅ **CoordinateAction** - 像素级坐标点击、拖拽、手势操作
+- ✅ **VisionAction** - Vision AI 集成，视觉元素定位，支持 Claude/GPT-4V/LLaVA
+- ✅ **NetworkInterceptor** - 网络请求拦截、模拟、条件控制
+- ✅ **DesktopAction** - 桌面级截图、鼠标键盘控制、窗口管理
+- ✅ **AuditLogger** - 操作审计日志，风险评估(LOW/MEDIUM/HIGH/CRITICAL)，敏感信息脱敏
+- ✅ **ScreenRecorder** - 屏幕录制为截图序列，支持暂停/恢复/导出
+- ✅ **ActionReplay** - 操作回放引擎，支持变速、单步、断点调试
+- ✅ **SafeMode** - 安全模式，权限控制、区域限制、速率限制、确认提示
+- ✅ **WorkflowEngine** - 工作流引擎，支持条件分支、循环、并行执行、子工作流
+- ✅ **ElementHighlighter** - 元素高亮显示，调试和演示可视化
+- ✅ **TemplateActions** - 预定义操作模板，快速执行常用自动化任务
+- ✅ **12 AI Tools** - browser_click, visual_click, browser_type, browser_key, browser_scroll, browser_screenshot 等
+
+#### v0.32.0 功能回顾 (2026-02-10)
 
 - ✅ **iOS 工作流系统** - WorkflowModels + WorkflowManager 完整工作流自动化
 - ✅ **iOS 语音交互** - RealtimeVoiceInput 实时语音输入、VoiceManager 语音功能管理
-- ✅ **Android MCP/Hooks/协作** - MCP 集成、Hooks 系统、Collaboration 模块、Performance 优化全部完成
+- ✅ **Android MCP/Hooks/协作** - MCP 集成、Hooks 系统、Collaboration 模块、Performance 优化
 - ✅ **Android 知识图谱** - KnowledgeGraphManager + Presentation Layer、知识图谱可视化
-- ✅ **移动端 TTS** - TTSClient 语音合成、知识图谱仓库集成
-- ✅ **Android 音频处理** - AudioProcessor 音频处理引擎、语音识别增强
-- ✅ **Android 权限引擎** - PermissionEngine 企业级权限控制实现
 
-#### v0.32.0 功能回顾 (2026-02-09)
+#### v0.31.0 功能回顾 (2026-02-09)
 
 - ✅ **安全认证增强** - dev/prod 模式切换、API 端点 JWT 认证、设备密钥数据库集成
 - ✅ **增量RAG索引系统** - MD5 content hash 变化检测、多文件联合检索、统一检索(向量+关键词+图谱)
@@ -105,6 +118,7 @@
 ## 核心特性
 
 - 🔐 **军事级安全**: SQLCipher AES-256加密 + U盾硬件密钥 + Signal协议E2E加密
+- 🖥️ **Computer Use**: Claude风格电脑操作 + 视觉AI定位 + 工作流引擎 + 68+ IPC通道
 - 🧠 **永久记忆系统**: Daily Notes自动记录 + MEMORY.md长期萃取 + 混合搜索(Vector+BM25)
 - 🎯 **Context Engineering**: KV-Cache优化 + Token预估 + 可恢复压缩 + 任务上下文管理
 - 📋 **Plan Mode**: Claude Code风格计划模式 + 安全分析 + 审批工作流

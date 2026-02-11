@@ -62,6 +62,14 @@ import com.chainlesschain.android.remote.ui.clipboard.ClipboardSyncScreen
 import com.chainlesschain.android.remote.ui.notification.RemoteNotificationScreen
 import com.chainlesschain.android.remote.ui.workflow.WorkflowScreen
 import com.chainlesschain.android.remote.ui.connection.ConnectionStatusScreen
+import com.chainlesschain.android.remote.ui.power.PowerControlScreen
+import com.chainlesschain.android.remote.ui.process.ProcessManagerScreen
+import com.chainlesschain.android.remote.ui.media.MediaControlScreen
+import com.chainlesschain.android.remote.ui.input.InputControlScreen
+import com.chainlesschain.android.remote.ui.storage.StorageInfoScreen
+import com.chainlesschain.android.remote.ui.network.NetworkInfoScreen
+import com.chainlesschain.android.remote.ui.application.ApplicationManagerScreen
+import com.chainlesschain.android.remote.ui.security.SecurityInfoScreen
 import com.chainlesschain.android.feature.filebrowser.ui.SafeFileBrowserScreen
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
 import com.chainlesschain.android.feature.project.model.ProjectListState
@@ -341,7 +349,16 @@ fun NavGraph(
                 onNavigateToClipboardSync = { navController.navigate(Screen.RemoteClipboard.route) },
                 onNavigateToNotificationCenter = { navController.navigate(Screen.RemoteNotificationCenter.route) },
                 onNavigateToWorkflow = { navController.navigate(Screen.RemoteWorkflow.route) },
-                onNavigateToConnectionStatus = { navController.navigate(Screen.ConnectionStatus.route) }
+                onNavigateToConnectionStatus = { navController.navigate(Screen.ConnectionStatus.route) },
+                // Phase 17A: New navigation callbacks
+                onNavigateToPowerControl = { navController.navigate(Screen.RemotePowerControl.route) },
+                onNavigateToProcessManager = { navController.navigate(Screen.RemoteProcessManager.route) },
+                onNavigateToMediaControl = { navController.navigate(Screen.RemoteMediaControl.route) },
+                onNavigateToInputControl = { navController.navigate(Screen.RemoteInputControl.route) },
+                onNavigateToStorageInfo = { navController.navigate(Screen.RemoteStorageInfo.route) },
+                onNavigateToNetworkInfo = { navController.navigate(Screen.RemoteNetworkInfo.route) },
+                onNavigateToApplicationManager = { navController.navigate(Screen.RemoteApplicationManager.route) },
+                onNavigateToSecurityInfo = { navController.navigate(Screen.RemoteSecurityInfo.route) }
             )
         }
         composable(
@@ -369,7 +386,16 @@ fun NavGraph(
                 onNavigateToClipboardSync = { navController.navigate(Screen.RemoteClipboard.route) },
                 onNavigateToNotificationCenter = { navController.navigate(Screen.RemoteNotificationCenter.route) },
                 onNavigateToWorkflow = { navController.navigate(Screen.RemoteWorkflow.route) },
-                onNavigateToConnectionStatus = { navController.navigate(Screen.ConnectionStatus.route) }
+                onNavigateToConnectionStatus = { navController.navigate(Screen.ConnectionStatus.route) },
+                // Phase 17A: New navigation callbacks
+                onNavigateToPowerControl = { navController.navigate(Screen.RemotePowerControl.route) },
+                onNavigateToProcessManager = { navController.navigate(Screen.RemoteProcessManager.route) },
+                onNavigateToMediaControl = { navController.navigate(Screen.RemoteMediaControl.route) },
+                onNavigateToInputControl = { navController.navigate(Screen.RemoteInputControl.route) },
+                onNavigateToStorageInfo = { navController.navigate(Screen.RemoteStorageInfo.route) },
+                onNavigateToNetworkInfo = { navController.navigate(Screen.RemoteNetworkInfo.route) },
+                onNavigateToApplicationManager = { navController.navigate(Screen.RemoteApplicationManager.route) },
+                onNavigateToSecurityInfo = { navController.navigate(Screen.RemoteSecurityInfo.route) }
             )
         }
         composable(Screen.RemoteAIChat.route) {
@@ -422,6 +448,32 @@ fun NavGraph(
         // Connection Status Screen
         composable(Screen.ConnectionStatus.route) {
             ConnectionStatusScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        // Phase 17A: New Remote Control Screens
+        composable(Screen.RemotePowerControl.route) {
+            PowerControlScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteProcessManager.route) {
+            ProcessManagerScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteMediaControl.route) {
+            MediaControlScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteInputControl.route) {
+            InputControlScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteStorageInfo.route) {
+            StorageInfoScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteNetworkInfo.route) {
+            NetworkInfoScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteApplicationManager.route) {
+            ApplicationManagerScreen(onNavigateBack = { navController.popBackStack() })
+        }
+        composable(Screen.RemoteSecurityInfo.route) {
+            SecurityInfoScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         // P2P Chat Session List
@@ -541,6 +593,15 @@ sealed class Screen(val route: String) {
         fun createRoute(peerId: String, peerName: String) =
             "p2p_chat/${android.net.Uri.encode(peerId)}/${android.net.Uri.encode(peerName)}"
     }
+    // Phase 17A: New remote control screens
+    data object RemotePowerControl : Screen("remote_power_control")
+    data object RemoteProcessManager : Screen("remote_process_manager")
+    data object RemoteMediaControl : Screen("remote_media_control")
+    data object RemoteInputControl : Screen("remote_input_control")
+    data object RemoteStorageInfo : Screen("remote_storage_info")
+    data object RemoteNetworkInfo : Screen("remote_network_info")
+    data object RemoteApplicationManager : Screen("remote_application_manager")
+    data object RemoteSecurityInfo : Screen("remote_security_info")
 }
 
 @Composable
