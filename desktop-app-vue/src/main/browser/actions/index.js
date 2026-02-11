@@ -7,40 +7,149 @@
  * @updated v0.33.0 - Added Computer Use capabilities
  */
 
-const { ScrollAction, ScrollDirection, ScrollBehavior } = require('./scroll-action');
-const { KeyboardAction, ModifierKey, ShortcutPresets } = require('./keyboard-action');
-const { UploadAction, UploadMethod } = require('./upload-action');
-const { MultiTabAction, TabAction } = require('./multi-tab-action');
+const {
+  ScrollAction,
+  ScrollDirection,
+  ScrollBehavior,
+} = require("./scroll-action");
+const {
+  KeyboardAction,
+  ModifierKey,
+  ShortcutPresets,
+} = require("./keyboard-action");
+const { UploadAction, UploadMethod } = require("./upload-action");
+const { MultiTabAction, TabAction } = require("./multi-tab-action");
 
 // v0.33.0: Computer Use capabilities
-const { CoordinateAction, MouseButton, GestureType } = require('./coordinate-action');
-const { VisionAction, VisionModel, VisionTaskType } = require('./vision-action');
-const { NetworkInterceptor, NetworkCondition, InterceptType } = require('./network-interceptor');
-const { DesktopAction, SpecialKey, Modifier } = require('./desktop-action');
+const {
+  CoordinateAction,
+  MouseButton,
+  GestureType,
+} = require("./coordinate-action");
+const {
+  VisionAction,
+  VisionModel,
+  VisionTaskType,
+} = require("./vision-action");
+const {
+  NetworkInterceptor,
+  NetworkCondition,
+  InterceptType,
+} = require("./network-interceptor");
+const { DesktopAction, SpecialKey, Modifier } = require("./desktop-action");
 
 // v0.33.0: Audit and Recording
-const { AuditLogger, AuditEntry, OperationType, RiskLevel, getAuditLogger } = require('./audit-logger');
-const { ScreenRecorder, RecordingState, RecordingMode, getScreenRecorder } = require('./screen-recorder');
+const {
+  AuditLogger,
+  AuditEntry,
+  OperationType,
+  RiskLevel,
+  getAuditLogger,
+} = require("./audit-logger");
+const {
+  ScreenRecorder,
+  RecordingState,
+  RecordingMode,
+  getScreenRecorder,
+} = require("./screen-recorder");
 
 // v0.33.0: Advanced features
-const { ActionReplay, ReplayState, ReplayMode, getActionReplay } = require('./action-replay');
-const { SafeMode, SafetyLevel, ActionCategory, getSafeMode } = require('./safe-mode');
-const { WorkflowEngine, WorkflowState, StepType, getWorkflowEngine } = require('./workflow-engine');
+const {
+  ActionReplay,
+  ReplayState,
+  ReplayMode,
+  getActionReplay,
+} = require("./action-replay");
+const {
+  SafeMode,
+  SafetyLevel,
+  ActionCategory,
+  getSafeMode,
+} = require("./safe-mode");
+const {
+  WorkflowEngine,
+  WorkflowState,
+  StepType,
+  getWorkflowEngine,
+} = require("./workflow-engine");
 
 // v0.33.0: Visual feedback and templates
-const { ElementHighlighter, HighlightStyle, getElementHighlighter } = require('./element-highlighter');
-const { TemplateActions, TemplateCategory, getTemplateActions } = require('./template-actions');
-const { ComputerUseMetrics, TimeRange, MetricType, getComputerUseMetrics } = require('./computer-use-metrics');
+const {
+  ElementHighlighter,
+  HighlightStyle,
+  getElementHighlighter,
+} = require("./element-highlighter");
+const {
+  TemplateActions,
+  TemplateCategory,
+  getTemplateActions,
+} = require("./template-actions");
+const {
+  ComputerUseMetrics,
+  TimeRange,
+  MetricType,
+  getComputerUseMetrics,
+} = require("./computer-use-metrics");
 
 // v0.33.0: Smart detection and recovery
-const { SmartElementDetector, DetectionStrategy, ElementType, CONFIDENCE_THRESHOLD, getSmartElementDetector } = require('./smart-element-detector');
-const { ErrorRecoveryManager, ErrorType, RecoveryStrategy, getErrorRecoveryManager } = require('./error-recovery-manager');
-const { ContextMemory, MemoryType, PersistenceStrategy, getContextMemory } = require('./context-memory');
+const {
+  SmartElementDetector,
+  DetectionStrategy,
+  ElementType,
+  CONFIDENCE_THRESHOLD,
+  getSmartElementDetector,
+} = require("./smart-element-detector");
+const {
+  ErrorRecoveryManager,
+  ErrorType,
+  RecoveryStrategy,
+  getErrorRecoveryManager,
+} = require("./error-recovery-manager");
+const {
+  ContextMemory,
+  MemoryType,
+  PersistenceStrategy,
+  getContextMemory,
+} = require("./context-memory");
 
 // v0.33.0: Policy, Analysis, and Suggestions
-const { AutomationPolicy, PolicyType, PolicyAction, getAutomationPolicy } = require('./automation-policy');
-const { ScreenAnalyzer, RegionType, AnalysisMode, getScreenAnalyzer } = require('./screen-analyzer');
-const { ActionSuggestion, SuggestionType, SuggestionPriority, getActionSuggestion } = require('./action-suggestion');
+const {
+  AutomationPolicy,
+  PolicyType,
+  PolicyAction,
+  getAutomationPolicy,
+} = require("./automation-policy");
+const {
+  ScreenAnalyzer,
+  RegionType,
+  AnalysisMode,
+  getScreenAnalyzer,
+} = require("./screen-analyzer");
+const {
+  ActionSuggestion,
+  SuggestionType,
+  SuggestionPriority,
+  getActionSuggestion,
+} = require("./action-suggestion");
+
+// v0.33.0: Clipboard, Files, and Notifications
+const {
+  ClipboardManager,
+  ClipboardType,
+  getClipboardManager,
+} = require("./clipboard-manager");
+const {
+  FileHandler,
+  DownloadState,
+  FileCategory,
+  getFileHandler,
+} = require("./file-handler");
+const {
+  NotificationManager,
+  NotificationLevel,
+  NotificationType,
+  getNotificationManager,
+} = require("./notification-manager");
 
 module.exports = {
   // Scroll
@@ -163,5 +272,22 @@ module.exports = {
   ActionSuggestion,
   SuggestionType,
   SuggestionPriority,
-  getActionSuggestion
+  getActionSuggestion,
+
+  // v0.33.0: Clipboard manager
+  ClipboardManager,
+  ClipboardType,
+  getClipboardManager,
+
+  // v0.33.0: File handler
+  FileHandler,
+  DownloadState,
+  FileCategory,
+  getFileHandler,
+
+  // v0.33.0: Notification manager
+  NotificationManager,
+  NotificationLevel,
+  NotificationType,
+  getNotificationManager,
 };
