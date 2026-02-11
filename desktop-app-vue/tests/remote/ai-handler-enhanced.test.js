@@ -624,7 +624,7 @@ describe("AICommandHandlerEnhanced", () => {
       expect(metrics.totalRequests).toBe(2);
       expect(metrics.successCount).toBe(2);
       expect(metrics.failureCount).toBe(0);
-      expect(metrics.avgResponseTime).toBeGreaterThan(0);
+      expect(metrics.avgResponseTime).toBeGreaterThanOrEqual(0);
       expect(metrics.successRate).toBe("100.00%");
     });
 

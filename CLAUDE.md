@@ -10,7 +10,7 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 2. **Decentralized Social** - DID-based identity, P2P encrypted messaging, social forums
 3. **Decentralized Trading** - Digital asset management, marketplace, smart contracts
 
-**Current Version**: v0.32.0 (100% complete, production-ready for all features) - Updated 2026-02-09
+**Current Version**: v0.33.0 (100% complete, production-ready for all features) - Updated 2026-02-11
 
 **Primary Application**: `desktop-app-vue/` (Electron + Vue3) - This is the main development focus.
 
@@ -274,6 +274,42 @@ Complete browser automation system with workflow editing, intelligent element lo
 
 **Key Files**: `src/main/browser/browser-engine.js`, `src/main/browser/element-locator.js`, `src/main/browser/recording/recorder.js`
 
+### Computer Use Capabilities (Claude Computer Use 风格)
+
+**Status**: ✅ Implemented v0.33.0 | **Docs**: [`docs/features/COMPUTER_USE_GUIDE.md`](docs/features/COMPUTER_USE_GUIDE.md)
+
+类似 Claude Computer Use 的电脑操作能力，支持浏览器和桌面级操作（68+ IPC handlers）：
+
+- **CoordinateAction**: 像素级坐标点击、拖拽、手势操作
+- **VisionAction**: Vision AI 集成，视觉元素定位，支持 Claude/GPT-4V/LLaVA
+- **NetworkInterceptor**: 网络请求拦截、模拟、条件控制
+- **DesktopAction**: 桌面级截图、鼠标键盘控制、窗口管理
+- **ComputerUseAgent**: 统一代理，整合所有能力
+- **AuditLogger**: 操作审计日志，风险评估（LOW/MEDIUM/HIGH/CRITICAL），敏感信息自动脱敏
+- **ScreenRecorder**: 屏幕录制为截图序列，支持暂停/恢复/导出
+- **ActionReplay**: 操作回放引擎，支持变速、单步、断点调试
+- **SafeMode**: 安全模式，权限控制、区域限制、速率限制、确认提示
+- **WorkflowEngine**: 工作流引擎，支持条件分支、循环、并行执行、子工作流
+- **ElementHighlighter**: 元素高亮显示，调试和演示可视化
+- **TemplateActions**: 预定义操作模板，快速执行常用自动化任务
+- **ComputerUseMetrics**: 性能指标收集和分析
+
+**与 Claude Computer Use 对比优势**：
+- Shadow DOM 支持（Web Components 兼容）
+- 多语言 OCR（10+ 语言）
+- 完整工作流引擎（条件/循环/并行）
+- 用户录制回放与断点调试
+- 操作审计与风险评估
+- 安全模式与权限控制
+
+**AI Tools Integration**: 12 个工具可供 AI 调用（browser_click, visual_click, browser_type, browser_key, browser_scroll, browser_screenshot, analyze_page, browser_navigate, browser_wait, desktop_screenshot, desktop_click, desktop_type）
+
+**IPC Handlers**: 45+ 个 IPC 处理器（审计 5、录制 10、回放 8、安全模式 7、工作流 11）
+
+**Frontend Component**: `src/renderer/components/browser/ComputerUsePanel.vue`
+
+**Key Files**: `src/main/browser/computer-use-agent.js`, `src/main/browser/actions/coordinate-action.js`, `src/main/browser/actions/vision-action.js`, `src/main/browser/actions/network-interceptor.js`, `src/main/browser/actions/desktop-action.js`, `src/main/browser/actions/audit-logger.js`, `src/main/browser/actions/screen-recorder.js`, `src/main/browser/actions/action-replay.js`, `src/main/browser/actions/safe-mode.js`, `src/main/browser/actions/workflow-engine.js`
+
 ### TypeScript Migration
 
 **Status**: ✅ Completed v0.29.0
@@ -465,6 +501,7 @@ Example: `feat(rag): add reranker support`
 - **Error handler**: `src/main/utils/ipc-error-handler.js`
 - **P2P/WebRTC**: `src/main/p2p/webrtc-data-channel.js`
 - **Browser automation**: `src/main/browser/browser-engine.js`, `src/main/browser/element-locator.js`, `src/main/browser/recording/`
+- **Computer Use**: `src/main/browser/computer-use-agent.js`, `src/main/browser/actions/` (12+ modules: coordinate-action, vision-action, desktop-action, audit-logger, screen-recorder, action-replay, safe-mode, workflow-engine, element-highlighter, template-actions, computer-use-metrics)
 - **TypeScript stores**: `src/renderer/stores/*.ts` (28 stores)
 - **Docker**: `docker-compose.yml`, `docker-compose.cloud.yml`
 - **Hooks config**: `.chainlesschain/hooks.json`, `.chainlesschain/hooks/*.js`

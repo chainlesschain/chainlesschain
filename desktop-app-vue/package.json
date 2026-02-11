@@ -224,6 +224,7 @@
     "pptxgenjs": "^4.0.1",
     "pptxtojson": "^1.10.0",
     "qrcode": "^1.5.4",
+    "robotjs": "^0.6.0",
     "rss-parser": "^3.13.0",
     "screenshot-desktop": "^1.15.3",
     "sharedb": "^5.2.2",

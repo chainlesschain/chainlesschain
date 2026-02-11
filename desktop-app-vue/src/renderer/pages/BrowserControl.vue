@@ -213,6 +213,13 @@
       class="mt-4"
     />
 
+    <!-- Phase 6: Computer Use 控制面板 -->
+    <computer-use-panel
+      v-if="browserStatus.isRunning && activeTargetId"
+      :target-id="activeTargetId"
+      class="mt-4"
+    />
+
     <!-- 截图预览模态框 -->
     <a-modal
       v-model:open="screenshotModal.visible"
@@ -245,6 +252,7 @@ import SnapshotPanel from "../components/browser/SnapshotPanel.vue";
 import AIControlPanel from "../components/browser/AIControlPanel.vue";
 import DiagnosticsPanel from "../components/browser/DiagnosticsPanel.vue";
 import RecordingPanel from "../components/browser/RecordingPanel.vue";
+import ComputerUsePanel from "../components/browser/ComputerUsePanel.vue";
 
 // 状态管理
 const browserStatus = reactive({
