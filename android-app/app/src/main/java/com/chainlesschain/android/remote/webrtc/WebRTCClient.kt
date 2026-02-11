@@ -48,6 +48,7 @@ class WebRTCClient @Inject constructor(
     )
 
     private var onMessageReceived: ((String) -> Unit)? = null
+    private var onDisconnected: (() -> Unit)? = null
 
     private val _connectionState = MutableStateFlow(P2PConnectionState.DISCONNECTED)
     val connectionState: StateFlow<P2PConnectionState> = _connectionState.asStateFlow()
@@ -184,9 +185,11 @@ class WebRTCClient @Inject constructor(
                     when (newState) {
                         PeerConnection.PeerConnectionState.FAILED -> {
                             _connectionState.value = P2PConnectionState.FAILED
+                            notifyDisconnection()
                         }
                         PeerConnection.PeerConnectionState.DISCONNECTED -> {
                             _connectionState.value = P2PConnectionState.DISCONNECTED
+                            notifyDisconnection()
                         }
                         else -> { /* handled by other callbacks */ }
                     }
@@ -209,9 +212,11 @@ class WebRTCClient @Inject constructor(
                         }
                         PeerConnection.IceConnectionState.FAILED -> {
                             _connectionState.value = P2PConnectionState.FAILED
+                            notifyDisconnection()
                         }
                         PeerConnection.IceConnectionState.DISCONNECTED -> {
                             _connectionState.value = P2PConnectionState.DISCONNECTED
+                            notifyDisconnection()
                         }
                         else -> {}
                     }
@@ -363,6 +368,14 @@ class WebRTCClient @Inject constructor(
 
     fun setOnMessageReceived(callback: (String) -> Unit) {
         this.onMessageReceived = callback
+    }
+
+    fun setOnDisconnected(callback: () -> Unit) {
+        this.onDisconnected = callback
+    }
+
+    private fun notifyDisconnection() {
+        onDisconnected?.invoke()
     }
 
     fun disconnect() {

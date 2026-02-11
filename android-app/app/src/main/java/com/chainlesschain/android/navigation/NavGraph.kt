@@ -58,6 +58,10 @@ import com.chainlesschain.android.remote.ui.file.FileTransferScreen
 import com.chainlesschain.android.remote.ui.history.CommandHistoryScreen
 import com.chainlesschain.android.remote.ui.system.RemoteScreenshotScreen
 import com.chainlesschain.android.remote.ui.system.SystemMonitorScreen
+import com.chainlesschain.android.remote.ui.clipboard.ClipboardSyncScreen
+import com.chainlesschain.android.remote.ui.notification.RemoteNotificationScreen
+import com.chainlesschain.android.remote.ui.workflow.WorkflowScreen
+import com.chainlesschain.android.remote.ui.connection.ConnectionStatusScreen
 import com.chainlesschain.android.feature.filebrowser.ui.SafeFileBrowserScreen
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
 import com.chainlesschain.android.feature.project.model.ProjectListState
@@ -333,7 +337,11 @@ fun NavGraph(
                 onNavigateToRemoteDesktop = { navController.navigate(Screen.RemoteDesktop.route) },
                 onNavigateToFileTransfer = { did ->
                     navController.navigate(Screen.RemoteFileTransfer.createRoute(did))
-                }
+                },
+                onNavigateToClipboardSync = { navController.navigate(Screen.RemoteClipboard.route) },
+                onNavigateToNotificationCenter = { navController.navigate(Screen.RemoteNotificationCenter.route) },
+                onNavigateToWorkflow = { navController.navigate(Screen.RemoteWorkflow.route) },
+                onNavigateToConnectionStatus = { navController.navigate(Screen.ConnectionStatus.route) }
             )
         }
         composable(
@@ -357,7 +365,11 @@ fun NavGraph(
                 onNavigateToRemoteDesktop = { navController.navigate(Screen.RemoteDesktop.route) },
                 onNavigateToFileTransfer = { targetDid ->
                     navController.navigate(Screen.RemoteFileTransfer.createRoute(targetDid))
-                }
+                },
+                onNavigateToClipboardSync = { navController.navigate(Screen.RemoteClipboard.route) },
+                onNavigateToNotificationCenter = { navController.navigate(Screen.RemoteNotificationCenter.route) },
+                onNavigateToWorkflow = { navController.navigate(Screen.RemoteWorkflow.route) },
+                onNavigateToConnectionStatus = { navController.navigate(Screen.ConnectionStatus.route) }
             )
         }
         composable(Screen.RemoteAIChat.route) {
@@ -390,6 +402,26 @@ fun NavGraph(
                 deviceDid = did,
                 onNavigateBack = { navController.popBackStack() }
             )
+        }
+
+        // Clipboard Sync Screen
+        composable(Screen.RemoteClipboard.route) {
+            ClipboardSyncScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        // Remote Notification Center Screen
+        composable(Screen.RemoteNotificationCenter.route) {
+            RemoteNotificationScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        // Remote Workflow Screen
+        composable(Screen.RemoteWorkflow.route) {
+            WorkflowScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        // Connection Status Screen
+        composable(Screen.ConnectionStatus.route) {
+            ConnectionStatusScreen(onNavigateBack = { navController.popBackStack() })
         }
 
         // P2P Chat Session List
@@ -500,6 +532,10 @@ sealed class Screen(val route: String) {
     data object RemoteFileTransfer : Screen("remote_file_transfer") {
         fun createRoute(did: String) = "remote_file_transfer/$did"
     }
+    data object RemoteClipboard : Screen("remote_clipboard")
+    data object RemoteNotificationCenter : Screen("remote_notification_center")
+    data object RemoteWorkflow : Screen("remote_workflow")
+    data object ConnectionStatus : Screen("connection_status")
     data object P2PChatSessionList : Screen("p2p_chat_session_list")
     data object P2PChat : Screen("p2p_chat") {
         fun createRoute(peerId: String, peerName: String) =

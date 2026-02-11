@@ -26,6 +26,9 @@ const { RemoteDesktopHandler } = require("./handlers/remote-desktop-handler");
 const KnowledgeHandler = require("./handlers/knowledge-handler");
 const CommandHistoryHandler = require("./handlers/command-history-handler");
 const { DeviceManagerHandler } = require("./handlers/device-manager-handler");
+const { ClipboardHandler } = require("./handlers/clipboard-handler");
+const { NotificationHandler } = require("./handlers/notification-handler");
+const { WorkflowHandler } = require("./handlers/workflow-handler");
 
 /**
  * 远程网关类
@@ -221,6 +224,45 @@ class RemoteGateway extends EventEmitter {
     );
     this.commandRouter.registerHandler("device", this.handlers.device);
 
+    // 8. 剪贴板同步处理器
+    this.handlers.clipboard = new ClipboardHandler(
+      this.database,
+      this.options.clipboard || {},
+    );
+    // 设置事件发射器以便广播剪贴板变化
+    this.handlers.clipboard.setEventEmitter(this);
+    this.commandRouter.registerHandler("clipboard", this.handlers.clipboard);
+
+    // 9. 通知同步处理器
+    this.handlers.notification = new NotificationHandler(
+      this.database,
+      this.options.notification || {},
+    );
+    // 设置事件发射器以便发送通知到移动端
+    this.handlers.notification.setEventEmitter(this);
+    this.commandRouter.registerHandler(
+      "notification",
+      this.handlers.notification,
+    );
+
+    // 10. 工作流自动化处理器
+    // 创建命令执行器函数
+    const commandExecutor = async (method, params) => {
+      // 在本地执行命令
+      return await this.commandRouter.route(
+        { method, params },
+        { channel: "workflow", timestamp: Date.now() },
+      );
+    };
+
+    this.handlers.workflow = new WorkflowHandler(
+      this.database,
+      commandExecutor,
+      this.options.workflow || {},
+    );
+    this.handlers.workflow.setEventEmitter(this);
+    this.commandRouter.registerHandler("workflow", this.handlers.workflow);
+
     // 未来扩展处理器（按需实现）:
     // - ChannelHandler: 多渠道消息处理器（微信、Telegram等）
     // - BrowserHandler: 浏览器自动化处理器（Playwright/Puppeteer）
@@ -275,6 +317,29 @@ class RemoteGateway extends EventEmitter {
     logger.info(`[RemoteGateway] 处理命令: ${method} from ${peerId}`);
 
     try {
+      // 0. 验证 auth 对象存在且完整
+      if (
+        !auth ||
+        !auth.did ||
+        !auth.signature ||
+        !auth.timestamp ||
+        !auth.nonce
+      ) {
+        logger.warn(`[RemoteGateway] 认证信息不完整: ${method} from ${peerId}`);
+        const errorResponse = {
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: -32001,
+            message: "Permission Denied",
+            data: "Incomplete authentication information",
+          },
+        };
+        sendResponse(errorResponse);
+        this.stats.permissionDenied++;
+        return;
+      }
+
       // 1. 路由命令到处理器
       const response = await this.commandRouter.route(request, {
         peerId,

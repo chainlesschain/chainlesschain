@@ -10,18 +10,18 @@
  * @module remote/p2p-command-adapter
  */
 
-const { logger } = require('../utils/logger');
-const { EventEmitter } = require('events');
-const crypto = require('crypto');
+const { logger } = require("../utils/logger");
+const { EventEmitter } = require("events");
+const crypto = require("crypto");
 
 /**
  * 消息类型常量
  */
 const MESSAGE_TYPES = {
-  COMMAND_REQUEST: 'chainlesschain:command:request',
-  COMMAND_RESPONSE: 'chainlesschain:command:response',
-  EVENT_NOTIFICATION: 'chainlesschain:event:notification',
-  HEARTBEAT: 'chainlesschain:heartbeat'
+  COMMAND_REQUEST: "chainlesschain:command:request",
+  COMMAND_RESPONSE: "chainlesschain:command:response",
+  EVENT_NOTIFICATION: "chainlesschain:event:notification",
+  HEARTBEAT: "chainlesschain:heartbeat",
 };
 
 /**
@@ -32,7 +32,7 @@ const ERROR_CODES = {
   PERMISSION_DENIED: -32001,
   NOT_FOUND: -32601,
   INTERNAL_ERROR: -32603,
-  INVALID_REQUEST: -32600
+  INVALID_REQUEST: -32600,
 };
 
 /**
@@ -47,12 +47,12 @@ class P2PCommandAdapter extends EventEmitter {
 
     // 配置选项
     this.options = {
-      requestTimeout: options.requestTimeout || 30000,  // 默认 30 秒超时
+      requestTimeout: options.requestTimeout || 30000, // 默认 30 秒超时
       maxRetries: options.maxRetries || 3,
       retryDelay: options.retryDelay || 1000,
       enableHeartbeat: options.enableHeartbeat !== false,
-      heartbeatInterval: options.heartbeatInterval || 30000,  // 30 秒心跳
-      ...options
+      heartbeatInterval: options.heartbeatInterval || 30000, // 30 秒心跳
+      ...options,
     };
 
     // 待处理请求（用于匹配响应）
@@ -68,11 +68,15 @@ class P2PCommandAdapter extends EventEmitter {
       failedRequests: 0,
       timeoutRequests: 0,
       totalEvents: 0,
-      startTime: Date.now()
+      startTime: Date.now(),
     };
 
     // 心跳定时器
     this.heartbeatTimer = null;
+
+    // 待处理请求清理定时器
+    this.pendingCleanupTimer = null;
+    this.pendingCleanupInterval = options.pendingCleanupInterval || 60000; // 每分钟清理
 
     // 初始化状态
     this.initialized = false;
@@ -83,11 +87,11 @@ class P2PCommandAdapter extends EventEmitter {
    */
   async initialize() {
     if (this.initialized) {
-      logger.info('[P2PCommandAdapter] 已经初始化');
+      logger.info("[P2PCommandAdapter] 已经初始化");
       return;
     }
 
-    logger.info('[P2PCommandAdapter] 初始化 P2P 命令适配器...');
+    logger.info("[P2PCommandAdapter] 初始化 P2P 命令适配器...");
 
     try {
       // 1. 注册 P2P 消息处理器
@@ -98,12 +102,15 @@ class P2PCommandAdapter extends EventEmitter {
         this.startHeartbeat();
       }
 
-      this.initialized = true;
-      logger.info('[P2PCommandAdapter] ✅ 初始化完成');
+      // 3. 启动待处理请求清理
+      this.startPendingCleanup();
 
-      this.emit('initialized');
+      this.initialized = true;
+      logger.info("[P2PCommandAdapter] ✅ 初始化完成");
+
+      this.emit("initialized");
     } catch (error) {
-      logger.error('[P2PCommandAdapter] ❌ 初始化失败:', error);
+      logger.error("[P2PCommandAdapter] ❌ 初始化失败:", error);
       throw error;
     }
   }
@@ -113,23 +120,23 @@ class P2PCommandAdapter extends EventEmitter {
    */
   registerP2PHandlers() {
     // 监听 P2P 网络的原始消息
-    this.p2pManager.on('message', async (peerId, rawMessage) => {
+    this.p2pManager.on("message", async (peerId, rawMessage) => {
       await this.handleP2PMessage(peerId, rawMessage);
     });
 
     // 监听 P2P 连接事件
-    this.p2pManager.on('peer:connected', (peerId) => {
+    this.p2pManager.on("peer:connected", (peerId) => {
       logger.info(`[P2PCommandAdapter] 节点连接: ${peerId}`);
-      this.emit('device:connected', peerId);
+      this.emit("device:connected", peerId);
     });
 
-    this.p2pManager.on('peer:disconnected', (peerId) => {
+    this.p2pManager.on("peer:disconnected", (peerId) => {
       logger.info(`[P2PCommandAdapter] 节点断开: ${peerId}`);
       this.registeredDevices.delete(peerId);
-      this.emit('device:disconnected', peerId);
+      this.emit("device:disconnected", peerId);
     });
 
-    logger.info('[P2PCommandAdapter] P2P 消息处理器注册完成');
+    logger.info("[P2PCommandAdapter] P2P 消息处理器注册完成");
   }
 
   /**
@@ -140,17 +147,16 @@ class P2PCommandAdapter extends EventEmitter {
       // 解析消息
       let message;
       try {
-        message = typeof rawMessage === 'string'
-          ? JSON.parse(rawMessage)
-          : rawMessage;
+        message =
+          typeof rawMessage === "string" ? JSON.parse(rawMessage) : rawMessage;
       } catch (e) {
-        logger.warn('[P2PCommandAdapter] 无法解析消息，非 JSON 格式，忽略');
+        logger.warn("[P2PCommandAdapter] 无法解析消息，非 JSON 格式，忽略");
         return;
       }
 
       // 检查消息类型
       const { type, payload } = message;
-      if (!type || !type.startsWith('chainlesschain:')) {
+      if (!type || !type.startsWith("chainlesschain:")) {
         // 不是命令协议消息，忽略
         return;
       }
@@ -179,7 +185,7 @@ class P2PCommandAdapter extends EventEmitter {
           logger.warn(`[P2PCommandAdapter] 未知消息类型: ${type}`);
       }
     } catch (error) {
-      logger.error('[P2PCommandAdapter] 处理 P2P 消息失败:', error);
+      logger.error("[P2PCommandAdapter] 处理 P2P 消息失败:", error);
     }
   }
 
@@ -193,50 +199,77 @@ class P2PCommandAdapter extends EventEmitter {
     this.stats.totalRequests++;
 
     try {
-      // 1. 验证权限
+      // 0. 基础验证：检查 auth 对象完整性
+      if (
+        !auth ||
+        !auth.did ||
+        !auth.signature ||
+        !auth.timestamp ||
+        !auth.nonce
+      ) {
+        logger.warn(`[P2PCommandAdapter] 认证信息不完整: ${method}`);
+        this.sendResponse(peerId, {
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: ERROR_CODES.INVALID_REQUEST,
+            message: "Invalid Request",
+            data: "Incomplete authentication: did, signature, timestamp, and nonce are required",
+          },
+        });
+        this.stats.failedRequests++;
+        return;
+      }
+
+      // 1. 验证权限（包含重放攻击防护）
       if (this.permissionGate) {
         const hasPermission = await this.permissionGate.verify(auth, method);
         if (!hasPermission) {
           logger.warn(`[P2PCommandAdapter] 权限验证失败: ${method}`);
           this.sendResponse(peerId, {
-            jsonrpc: '2.0',
+            jsonrpc: "2.0",
             id,
             error: {
               code: ERROR_CODES.PERMISSION_DENIED,
-              message: 'Permission Denied',
-              data: `Method ${method} requires higher permission level`
-            }
+              message: "Permission Denied",
+              data: `Method ${method} requires higher permission level or authentication failed`,
+            },
           });
           this.stats.failedRequests++;
           return;
         }
       }
 
-      // 2. 记录设备信息
-      if (auth && auth.did) {
-        this.registerDevice(peerId, auth.did);
-      }
+      // 2. 记录设备信息（验证通过后才记录）
+      this.registerDevice(peerId, auth.did);
 
       // 3. 触发命令事件（由上层处理器处理）
-      this.emit('command', {
+      // 注意：此时不增加 successRequests，由上层处理结果决定
+      this.emit("command", {
         peerId,
         request,
-        sendResponse: (response) => this.sendResponse(peerId, response)
+        sendResponse: (response) => {
+          this.sendResponse(peerId, response);
+          // 根据响应结果更新统计
+          if (response.error) {
+            this.stats.failedRequests++;
+          } else {
+            this.stats.successRequests++;
+          }
+        },
       });
-
-      this.stats.successRequests++;
     } catch (error) {
-      logger.error('[P2PCommandAdapter] 处理命令请求失败:', error);
+      logger.error("[P2PCommandAdapter] 处理命令请求失败:", error);
 
       // 发送错误响应
       this.sendResponse(peerId, {
-        jsonrpc: '2.0',
+        jsonrpc: "2.0",
         id,
         error: {
           code: ERROR_CODES.INTERNAL_ERROR,
-          message: 'Internal Error',
-          data: error.message
-        }
+          message: "Internal Error",
+          data: error.message,
+        },
       });
 
       this.stats.failedRequests++;
@@ -278,13 +311,14 @@ class P2PCommandAdapter extends EventEmitter {
   async sendCommand(peerId, method, params, options = {}) {
     const requestId = this.generateRequestId();
     const timeout = options.timeout || this.options.requestTimeout;
-    const retries = options.retries !== undefined ? options.retries : this.options.maxRetries;
+    const retries =
+      options.retries !== undefined ? options.retries : this.options.maxRetries;
 
     const request = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id: requestId,
       method,
-      params: params || {}
+      params: params || {},
     };
 
     logger.info(`[P2PCommandAdapter] 发送命令: ${method} to ${peerId}`);
@@ -297,7 +331,7 @@ class P2PCommandAdapter extends EventEmitter {
           const timeoutTimer = setTimeout(() => {
             this.pendingRequests.delete(requestId);
             this.stats.timeoutRequests++;
-            reject(new Error('Request Timeout'));
+            reject(new Error("Request Timeout"));
           }, timeout);
 
           // 存储待处理请求
@@ -308,18 +342,20 @@ class P2PCommandAdapter extends EventEmitter {
             },
             reject,
             timeoutTimer,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            peerId, // 记录目标节点，用于断开连接时清理
+            method, // 记录方法名，用于日志和调试
           });
 
           // 发送消息
           this.sendMessage(peerId, {
             type: MESSAGE_TYPES.COMMAND_REQUEST,
-            payload: request
+            payload: request,
           });
         });
       },
       retries,
-      this.options.retryDelay
+      this.options.retryDelay,
     );
   }
 
@@ -329,7 +365,7 @@ class P2PCommandAdapter extends EventEmitter {
   sendResponse(peerId, response) {
     this.sendMessage(peerId, {
       type: MESSAGE_TYPES.COMMAND_RESPONSE,
-      payload: response
+      payload: response,
     });
 
     logger.debug(`[P2PCommandAdapter] 发送响应: ${response.id}`);
@@ -340,14 +376,14 @@ class P2PCommandAdapter extends EventEmitter {
    */
   broadcastEvent(method, params, targetDevices = null) {
     const notification = {
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       method,
-      params: params || {}
+      params: params || {},
     };
 
     const message = {
       type: MESSAGE_TYPES.EVENT_NOTIFICATION,
-      payload: notification
+      payload: notification,
     };
 
     // 如果指定了目标设备，只发送给这些设备
@@ -365,7 +401,9 @@ class P2PCommandAdapter extends EventEmitter {
     }
 
     this.stats.totalEvents++;
-    logger.debug(`[P2PCommandAdapter] 广播事件: ${method} to ${targetDevices ? targetDevices.length : this.registeredDevices.size} devices`);
+    logger.debug(
+      `[P2PCommandAdapter] 广播事件: ${method} to ${targetDevices ? targetDevices.length : this.registeredDevices.size} devices`,
+    );
   }
 
   /**
@@ -390,11 +428,11 @@ class P2PCommandAdapter extends EventEmitter {
         did,
         peerId,
         registeredAt: Date.now(),
-        lastHeartbeat: Date.now()
+        lastHeartbeat: Date.now(),
       });
 
       logger.info(`[P2PCommandAdapter] 设备已注册: ${peerId} (DID: ${did})`);
-      this.emit('device:registered', { peerId, did });
+      this.emit("device:registered", { peerId, did });
     }
   }
 
@@ -417,7 +455,7 @@ class P2PCommandAdapter extends EventEmitter {
       this.checkDeviceHealth();
     }, this.options.heartbeatInterval);
 
-    logger.info('[P2PCommandAdapter] 心跳已启动');
+    logger.info("[P2PCommandAdapter] 心跳已启动");
   }
 
   /**
@@ -431,7 +469,7 @@ class P2PCommandAdapter extends EventEmitter {
       if (now - device.lastHeartbeat > timeout) {
         logger.warn(`[P2PCommandAdapter] 设备心跳超时: ${peerId}`);
         this.registeredDevices.delete(peerId);
-        this.emit('device:timeout', peerId);
+        this.emit("device:timeout", peerId);
       }
     }
   }
@@ -443,7 +481,7 @@ class P2PCommandAdapter extends EventEmitter {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
-      logger.info('[P2PCommandAdapter] 心跳已停止');
+      logger.info("[P2PCommandAdapter] 心跳已停止");
     }
   }
 
@@ -460,7 +498,9 @@ class P2PCommandAdapter extends EventEmitter {
         lastError = error;
 
         if (i < retries) {
-          logger.warn(`[P2PCommandAdapter] 执行失败，${delay}ms 后重试 (${i + 1}/${retries})`);
+          logger.warn(
+            `[P2PCommandAdapter] 执行失败，${delay}ms 后重试 (${i + 1}/${retries})`,
+          );
           await this.sleep(delay);
         }
       }
@@ -473,14 +513,14 @@ class P2PCommandAdapter extends EventEmitter {
    * 睡眠函数
    */
   sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
    * 生成请求 ID
    */
   generateRequestId() {
-    return `req-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+    return `req-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
   }
 
   /**
@@ -491,23 +531,109 @@ class P2PCommandAdapter extends EventEmitter {
       ...this.stats,
       connectedDevices: this.registeredDevices.size,
       pendingRequests: this.pendingRequests.size,
-      uptime: Date.now() - this.stats.startTime
+      uptime: Date.now() - this.stats.startTime,
     };
+  }
+
+  /**
+   * 启动待处理请求定期清理
+   */
+  startPendingCleanup() {
+    if (this.pendingCleanupTimer) {
+      return;
+    }
+
+    this.pendingCleanupTimer = setInterval(() => {
+      this.cleanupStalePendingRequests();
+    }, this.pendingCleanupInterval);
+
+    logger.info(
+      `[P2PCommandAdapter] 待处理请求清理已启动 (间隔: ${this.pendingCleanupInterval}ms)`,
+    );
+  }
+
+  /**
+   * 清理过期的待处理请求
+   */
+  cleanupStalePendingRequests() {
+    const now = Date.now();
+    const staleThreshold = this.options.requestTimeout * 2; // 超时时间的2倍视为过期
+    let cleanedCount = 0;
+
+    for (const [id, pending] of this.pendingRequests.entries()) {
+      const age = now - pending.timestamp;
+      if (age > staleThreshold) {
+        // 清理超时定时器
+        if (pending.timeoutTimer) {
+          clearTimeout(pending.timeoutTimer);
+        }
+        // 拒绝请求
+        pending.reject(new Error("Request stale cleanup"));
+        // 从Map中删除
+        this.pendingRequests.delete(id);
+        cleanedCount++;
+        this.stats.timeoutRequests++;
+      }
+    }
+
+    if (cleanedCount > 0) {
+      logger.info(
+        `[P2PCommandAdapter] 清理了 ${cleanedCount} 个过期的待处理请求`,
+      );
+    }
+  }
+
+  /**
+   * 停止待处理请求清理
+   */
+  stopPendingCleanup() {
+    if (this.pendingCleanupTimer) {
+      clearInterval(this.pendingCleanupTimer);
+      this.pendingCleanupTimer = null;
+      logger.info("[P2PCommandAdapter] 待处理请求清理已停止");
+    }
+  }
+
+  /**
+   * 断开指定节点
+   */
+  async disconnectPeer(peerId) {
+    logger.info(`[P2PCommandAdapter] 断开节点: ${peerId}`);
+
+    // 清理该节点的待处理请求
+    for (const [id, pending] of this.pendingRequests.entries()) {
+      // 如果请求与该节点相关，取消它
+      if (pending.peerId === peerId) {
+        clearTimeout(pending.timeoutTimer);
+        pending.reject(new Error("Peer disconnected"));
+        this.pendingRequests.delete(id);
+      }
+    }
+
+    // 从已注册设备中删除
+    this.registeredDevices.delete(peerId);
+
+    this.emit("device:disconnected", peerId);
   }
 
   /**
    * 清理资源
    */
   async cleanup() {
-    logger.info('[P2PCommandAdapter] 清理资源...');
+    logger.info("[P2PCommandAdapter] 清理资源...");
 
     // 停止心跳
     this.stopHeartbeat();
 
+    // 停止待处理请求清理
+    this.stopPendingCleanup();
+
     // 清理待处理请求
     for (const [id, pending] of this.pendingRequests.entries()) {
-      clearTimeout(pending.timeoutTimer);
-      pending.reject(new Error('Adapter Cleanup'));
+      if (pending.timeoutTimer) {
+        clearTimeout(pending.timeoutTimer);
+      }
+      pending.reject(new Error("Adapter Cleanup"));
     }
     this.pendingRequests.clear();
 
@@ -515,12 +641,12 @@ class P2PCommandAdapter extends EventEmitter {
     this.registeredDevices.clear();
 
     this.initialized = false;
-    logger.info('[P2PCommandAdapter] 清理完成');
+    logger.info("[P2PCommandAdapter] 清理完成");
   }
 }
 
 module.exports = {
   P2PCommandAdapter,
   MESSAGE_TYPES,
-  ERROR_CODES
+  ERROR_CODES,
 };

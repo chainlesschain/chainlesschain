@@ -40,9 +40,19 @@ class P2PClient @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val pendingRequests = ConcurrentHashMap<String, PendingRequest>()
     private var heartbeatJob: Job? = null
+    private var reconnectJob: Job? = null
+    private var heartbeatTimeoutJob: Job? = null
 
     private val config = P2PClientConfig()
     private val gson = Gson()
+
+    // Reconnection state
+    private var reconnectAttempts = 0
+    private var currentReconnectDelay = config.baseReconnectDelay
+    private var lastConnectedPeerId: String? = null
+    private var lastConnectedPeerDID: String? = null
+    private var lastHeartbeatReceived = System.currentTimeMillis()
+    private var autoReconnectEnabled = true
 
     private val _events = MutableSharedFlow<EventNotification>(replay = 0, extraBufferCapacity = 16)
     val events: SharedFlow<EventNotification> = _events.asSharedFlow()
@@ -53,10 +63,17 @@ class P2PClient @Inject constructor(
     private val _connectedPeer = MutableStateFlow<PeerInfo?>(null)
     val connectedPeer: StateFlow<PeerInfo?> = _connectedPeer.asStateFlow()
 
+    // Reconnection events for UI updates
+    private val _reconnectionEvents = MutableSharedFlow<ReconnectionEvent>(replay = 0, extraBufferCapacity = 8)
+    val reconnectionEvents: SharedFlow<ReconnectionEvent> = _reconnectionEvents.asSharedFlow()
+
     init {
         webRTCClient.initialize()
         webRTCClient.setOnMessageReceived { raw ->
             scope.launch { handleIncoming(raw) }
+        }
+        webRTCClient.setOnDisconnected {
+            scope.launch { handleDisconnection() }
         }
     }
 
@@ -76,6 +93,10 @@ class P2PClient @Inject constructor(
             _connectionState.value = ConnectionState.CONNECTING
             Timber.i("[P2PClient] 状态更新为 CONNECTING")
 
+            // Store for reconnection
+            lastConnectedPeerId = pcPeerId
+            lastConnectedPeerDID = pcDID
+
             // Generate a local peerId for signaling registration
             val localPeerId = "mobile-${java.util.UUID.randomUUID().toString().take(8)}"
             Timber.i("[P2PClient] 生成本地 peerId: $localPeerId")
@@ -92,13 +113,172 @@ class P2PClient @Inject constructor(
                 did = pcDID,
                 connectedAt = System.currentTimeMillis()
             )
+
+            // Reset reconnection state on successful connect
+            resetReconnectionState()
+
             startHeartbeat()
+            startHeartbeatTimeoutMonitor()
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "P2P connect failed")
             _connectionState.value = ConnectionState.ERROR
             Result.failure(e)
         }
+    }
+
+    /**
+     * Enable or disable automatic reconnection
+     */
+    fun setAutoReconnect(enabled: Boolean) {
+        autoReconnectEnabled = enabled
+        if (!enabled) {
+            cancelReconnect()
+        }
+    }
+
+    /**
+     * Handle disconnection and trigger auto-reconnect
+     */
+    private suspend fun handleDisconnection() {
+        Timber.w("[P2PClient] Connection lost, handling disconnection...")
+
+        if (_connectionState.value == ConnectionState.DISCONNECTED) {
+            return  // Already handled
+        }
+
+        stopHeartbeat()
+        stopHeartbeatTimeoutMonitor()
+
+        _connectionState.value = ConnectionState.DISCONNECTED
+
+        if (autoReconnectEnabled && lastConnectedPeerId != null && lastConnectedPeerDID != null) {
+            scheduleReconnect()
+        }
+    }
+
+    /**
+     * Schedule a reconnection attempt with exponential backoff
+     */
+    private fun scheduleReconnect() {
+        if (reconnectAttempts >= config.maxReconnectAttempts) {
+            Timber.e("[P2PClient] Max reconnection attempts reached (${config.maxReconnectAttempts})")
+            scope.launch {
+                _reconnectionEvents.emit(ReconnectionEvent.Failed(
+                    attempts = reconnectAttempts,
+                    reason = "Max reconnection attempts exceeded"
+                ))
+            }
+            _connectionState.value = ConnectionState.ERROR
+            return
+        }
+
+        reconnectJob?.cancel()
+        reconnectJob = scope.launch {
+            val delay = currentReconnectDelay
+            Timber.i("[P2PClient] Scheduling reconnect in ${delay}ms (attempt ${reconnectAttempts + 1}/${config.maxReconnectAttempts})")
+
+            _reconnectionEvents.emit(ReconnectionEvent.Scheduled(
+                attempt = reconnectAttempts + 1,
+                delayMs = delay
+            ))
+
+            _connectionState.value = ConnectionState.RECONNECTING
+
+            delay(delay)
+
+            reconnectAttempts++
+
+            // Calculate next delay with exponential backoff
+            currentReconnectDelay = minOf(
+                (currentReconnectDelay * config.reconnectBackoffFactor).toLong(),
+                config.maxReconnectDelay
+            )
+
+            _reconnectionEvents.emit(ReconnectionEvent.Attempting(
+                attempt = reconnectAttempts
+            ))
+
+            val peerId = lastConnectedPeerId ?: return@launch
+            val peerDID = lastConnectedPeerDID ?: return@launch
+
+            Timber.i("[P2PClient] Attempting reconnect to $peerId...")
+
+            val result = connect(peerId, peerDID)
+
+            if (result.isSuccess) {
+                Timber.i("[P2PClient] Reconnection successful!")
+                _reconnectionEvents.emit(ReconnectionEvent.Success(
+                    attempts = reconnectAttempts
+                ))
+            } else {
+                Timber.w("[P2PClient] Reconnection failed: ${result.exceptionOrNull()?.message}")
+                // Will be scheduled again by handleDisconnection if still auto-reconnect enabled
+                if (autoReconnectEnabled) {
+                    scheduleReconnect()
+                }
+            }
+        }
+    }
+
+    /**
+     * Cancel any pending reconnection attempt
+     */
+    fun cancelReconnect() {
+        reconnectJob?.cancel()
+        reconnectJob = null
+    }
+
+    /**
+     * Reset reconnection state after successful connection
+     */
+    private fun resetReconnectionState() {
+        reconnectAttempts = 0
+        currentReconnectDelay = config.baseReconnectDelay
+        lastHeartbeatReceived = System.currentTimeMillis()
+    }
+
+    /**
+     * Monitor heartbeat timeout
+     */
+    private fun startHeartbeatTimeoutMonitor() {
+        heartbeatTimeoutJob?.cancel()
+        heartbeatTimeoutJob = scope.launch {
+            while (isActive && _connectionState.value == ConnectionState.CONNECTED) {
+                delay(config.heartbeatCheckInterval)
+
+                val elapsed = System.currentTimeMillis() - lastHeartbeatReceived
+                if (elapsed > config.heartbeatTimeout) {
+                    Timber.w("[P2PClient] Heartbeat timeout! Last received ${elapsed}ms ago")
+                    _reconnectionEvents.emit(ReconnectionEvent.HeartbeatTimeout(
+                        lastReceivedMs = elapsed
+                    ))
+                    handleDisconnection()
+                    break
+                }
+            }
+        }
+    }
+
+    /**
+     * Stop heartbeat timeout monitor
+     */
+    private fun stopHeartbeatTimeoutMonitor() {
+        heartbeatTimeoutJob?.cancel()
+        heartbeatTimeoutJob = null
+    }
+
+    /**
+     * Get current reconnection status
+     */
+    fun getReconnectionStatus(): ReconnectionStatus {
+        return ReconnectionStatus(
+            isReconnecting = _connectionState.value == ConnectionState.RECONNECTING,
+            attempts = reconnectAttempts,
+            maxAttempts = config.maxReconnectAttempts,
+            nextDelayMs = currentReconnectDelay,
+            autoReconnectEnabled = autoReconnectEnabled
+        )
     }
 
     /**
@@ -218,7 +398,11 @@ class P2PClient @Inject constructor(
     }
 
     fun disconnect() {
+        // Disable auto-reconnect during intentional disconnect
+        autoReconnectEnabled = false
+        cancelReconnect()
         stopHeartbeat()
+        stopHeartbeatTimeoutMonitor()
         webRTCClient.disconnect()
         pendingRequests.forEach { (_, pending) ->
             pending.deferred.completeExceptionally(Exception("Connection closed"))
@@ -226,6 +410,31 @@ class P2PClient @Inject constructor(
         pendingRequests.clear()
         _connectedPeer.value = null
         _connectionState.value = ConnectionState.DISCONNECTED
+
+        // Clear stored peer info
+        lastConnectedPeerId = null
+        lastConnectedPeerDID = null
+        resetReconnectionState()
+    }
+
+    /**
+     * Disconnect but keep auto-reconnect enabled (for temporary disconnections)
+     */
+    fun disconnectTemporary() {
+        stopHeartbeat()
+        stopHeartbeatTimeoutMonitor()
+        webRTCClient.disconnect()
+        pendingRequests.forEach { (_, pending) ->
+            pending.deferred.completeExceptionally(Exception("Connection closed temporarily"))
+        }
+        pendingRequests.clear()
+        _connectedPeer.value = null
+        _connectionState.value = ConnectionState.DISCONNECTED
+
+        // Don't clear lastConnectedPeerId/DID so auto-reconnect can work
+        if (autoReconnectEnabled && lastConnectedPeerId != null) {
+            scope.launch { scheduleReconnect() }
+        }
     }
 
     private suspend fun handleIncoming(raw: String) {
@@ -240,8 +449,10 @@ class P2PClient @Inject constructor(
                     val event = message.payload.fromJson<EventNotification>()
                     _events.emit(event)
                 }
-                MessageTypes.HEARTBEAT -> {
-                    // no-op
+                MessageTypes.HEARTBEAT, MessageTypes.HEARTBEAT_ACK, "pong" -> {
+                    // Reset heartbeat timeout on any heartbeat-related message
+                    lastHeartbeatReceived = System.currentTimeMillis()
+                    Timber.v("[P2PClient] Heartbeat received, resetting timeout")
                 }
                 else -> Timber.w("Unknown P2P message type: ${message.type}")
             }
@@ -295,6 +506,7 @@ enum class ConnectionState {
     DISCONNECTED,
     CONNECTING,
     CONNECTED,
+    RECONNECTING,
     ERROR
 }
 
@@ -314,6 +526,52 @@ data class PendingRequest(
 data class P2PClientConfig(
     val requestTimeout: Long = 30_000,
     val heartbeatInterval: Long = 30_000,
+    val heartbeatTimeout: Long = 90_000,        // 90 seconds timeout
+    val heartbeatCheckInterval: Long = 10_000,  // Check every 10 seconds
     val maxRetries: Int = 3,
-    val retryDelay: Long = 1_000
+    val retryDelay: Long = 1_000,
+
+    // Reconnection configuration (exponential backoff)
+    val baseReconnectDelay: Long = 1_000,       // Start with 1 second
+    val maxReconnectDelay: Long = 60_000,       // Max 60 seconds
+    val reconnectBackoffFactor: Double = 2.0,   // Double each time
+    val maxReconnectAttempts: Int = 10          // Max 10 attempts before giving up
 )
+
+/**
+ * Reconnection status for UI updates
+ */
+data class ReconnectionStatus(
+    val isReconnecting: Boolean,
+    val attempts: Int,
+    val maxAttempts: Int,
+    val nextDelayMs: Long,
+    val autoReconnectEnabled: Boolean
+)
+
+/**
+ * Reconnection events for observing reconnection progress
+ */
+sealed class ReconnectionEvent {
+    data class Scheduled(
+        val attempt: Int,
+        val delayMs: Long
+    ) : ReconnectionEvent()
+
+    data class Attempting(
+        val attempt: Int
+    ) : ReconnectionEvent()
+
+    data class Success(
+        val attempts: Int
+    ) : ReconnectionEvent()
+
+    data class Failed(
+        val attempts: Int,
+        val reason: String
+    ) : ReconnectionEvent()
+
+    data class HeartbeatTimeout(
+        val lastReceivedMs: Long
+    ) : ReconnectionEvent()
+}
