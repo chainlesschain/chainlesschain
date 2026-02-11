@@ -30,6 +30,10 @@ const { ClipboardHandler } = require("./handlers/clipboard-handler");
 const { NotificationHandler } = require("./handlers/notification-handler");
 const { WorkflowHandler } = require("./handlers/workflow-handler");
 const { BrowserHandler } = require("./handlers/browser-handler");
+const { PowerHandler } = require("./handlers/power-handler");
+const { ProcessHandler } = require("./handlers/process-handler");
+const { MediaHandler } = require("./handlers/media-handler");
+const { NetworkHandler } = require("./handlers/network-handler");
 
 /**
  * 远程网关类
@@ -267,6 +271,22 @@ class RemoteGateway extends EventEmitter {
     // 11. 浏览器自动化处理器
     this.handlers.browser = new BrowserHandler(this.options.browser || {});
     this.commandRouter.registerHandler("browser", this.handlers.browser);
+
+    // 12. 电源控制处理器
+    this.handlers.power = new PowerHandler(this.options.power || {});
+    this.commandRouter.registerHandler("power", this.handlers.power);
+
+    // 13. 进程管理处理器
+    this.handlers.process = new ProcessHandler(this.options.process || {});
+    this.commandRouter.registerHandler("process", this.handlers.process);
+
+    // 14. 媒体控制处理器
+    this.handlers.media = new MediaHandler(this.options.media || {});
+    this.commandRouter.registerHandler("media", this.handlers.media);
+
+    // 15. 网络信息处理器
+    this.handlers.network = new NetworkHandler(this.options.network || {});
+    this.commandRouter.registerHandler("network", this.handlers.network);
 
     // 未来扩展处理器（按需实现）:
     // - ChannelHandler: 多渠道消息处理器（微信、Telegram等）
