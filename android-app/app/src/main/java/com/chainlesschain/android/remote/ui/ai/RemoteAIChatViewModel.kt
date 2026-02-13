@@ -2,6 +2,7 @@ package com.chainlesschain.android.remote.ui.ai
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chainlesschain.android.remote.client.StreamingCommandClient
 import com.chainlesschain.android.remote.commands.AICommands
 import com.chainlesschain.android.remote.commands.TokenUsage
 import com.chainlesschain.android.remote.model.ChatMessageType
@@ -36,7 +37,8 @@ import javax.inject.Inject
 class RemoteAIChatViewModel @Inject constructor(
     private val aiCommands: AICommands,
     private val p2pClient: P2PClient,
-    private val taskPlanManager: TaskPlanManager
+    private val taskPlanManager: TaskPlanManager,
+    private val streamingClient: StreamingCommandClient
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RemoteAIChatUiState())
@@ -66,6 +68,14 @@ class RemoteAIChatViewModel @Inject constructor(
     private val _creationProgress = MutableStateFlow<CreationProgress?>(null)
     val creationProgress: StateFlow<CreationProgress?> = _creationProgress.asStateFlow()
 
+    // Streaming state
+    private val _streamingContent = MutableStateFlow("")
+    val streamingContent: StateFlow<String> = _streamingContent.asStateFlow()
+
+    private val _isStreaming = MutableStateFlow(false)
+    val isStreaming: StateFlow<Boolean> = _isStreaming.asStateFlow()
+
+    private var streamingJob: Job? = null
     private var thinkingJob: Job? = null
 
     init {
@@ -470,7 +480,191 @@ class RemoteAIChatViewModel @Inject constructor(
 
     fun retryLastMessage() {
         val last = _uiState.value.lastFailedMessage ?: return
-        sendMessage(last)
+        if (_uiState.value.useStreaming) {
+            sendMessageStreaming(last)
+        } else {
+            sendMessage(last)
+        }
+    }
+
+    /**
+     * Send message with streaming response
+     */
+    fun sendMessageStreaming(message: String) {
+        val text = message.trim()
+        if (text.isEmpty()) return
+        if (connectionState.value != ConnectionState.CONNECTED) {
+            _uiState.update { it.copy(error = "Not connected to PC") }
+            return
+        }
+
+        // Parse file references
+        val fileRefs = FileReferenceParser.parse(text)
+
+        // Create user message
+        val userMessage = EnhancedChatMessage(
+            id = System.currentTimeMillis().toString(),
+            role = MessageRole.USER,
+            content = text,
+            messageType = ChatMessageType.User,
+            contextMode = _uiState.value.contextMode,
+            referencedFiles = fileRefs
+        )
+        _messages.update { it + userMessage }
+
+        // Create placeholder assistant message for streaming
+        val assistantMessageId = "${System.currentTimeMillis()}-assistant"
+        val assistantMessage = EnhancedChatMessage(
+            id = assistantMessageId,
+            role = MessageRole.ASSISTANT,
+            content = "",
+            messageType = ChatMessageType.Assistant,
+            contextMode = _uiState.value.contextMode,
+            isStreaming = true
+        )
+        _messages.update { it + assistantMessage }
+
+        _uiState.update {
+            it.copy(
+                isLoading = true,
+                error = null,
+                lastFailedMessage = null,
+                inputText = "",
+                cursorPosition = 0
+            )
+        }
+        _isStreaming.value = true
+        _streamingContent.value = ""
+
+        streamingJob?.cancel()
+        streamingJob = viewModelScope.launch {
+            try {
+                // Build context for the message
+                val contextInfo = buildContextInfo()
+                val fileContext = if (fileRefs.isNotEmpty()) {
+                    "\n\nReferenced files: ${fileRefs.joinToString(", ") { it.path }}"
+                } else ""
+
+                val streamResult = streamingClient.chatStream(
+                    message = text + fileContext,
+                    conversationId = _uiState.value.conversationId,
+                    model = _uiState.value.selectedModel,
+                    systemPrompt = contextInfo
+                )
+
+                if (streamResult.isFailure) {
+                    handleStreamingError(assistantMessageId, streamResult.exceptionOrNull()?.message ?: "Stream failed")
+                    return@launch
+                }
+
+                val session = streamResult.getOrThrow()
+                val contentBuilder = StringBuilder()
+
+                // Collect streaming chunks
+                session.chunks.collect { chunk ->
+                    val chunkText = when (val data = chunk.data) {
+                        is String -> data
+                        is Map<*, *> -> {
+                            (data["text"] as? String)
+                                ?: (data["content"] as? String)
+                                ?: (data["chunk"] as? String)
+                                ?: ""
+                        }
+                        else -> data.toString()
+                    }
+
+                    contentBuilder.append(chunkText)
+                    _streamingContent.value = contentBuilder.toString()
+
+                    // Update message in list
+                    _messages.update { messages ->
+                        messages.map { msg ->
+                            if (msg.id == assistantMessageId) {
+                                msg.copy(content = contentBuilder.toString())
+                            } else msg
+                        }
+                    }
+
+                    if (chunk.isLast) {
+                        return@collect
+                    }
+                }
+
+                // Finalize streaming
+                _isStreaming.value = false
+                _messages.update { messages ->
+                    messages.map { msg ->
+                        if (msg.id == assistantMessageId) {
+                            msg.copy(
+                                content = contentBuilder.toString(),
+                                isStreaming = false,
+                                model = _uiState.value.selectedModel
+                            )
+                        } else msg
+                    }
+                }
+
+                _uiState.update { it.copy(isLoading = false) }
+
+            } catch (e: Exception) {
+                Timber.e(e, "Streaming chat failed")
+                handleStreamingError(assistantMessageId, e.message ?: "Streaming failed")
+            }
+        }
+    }
+
+    /**
+     * Handle streaming error
+     */
+    private fun handleStreamingError(messageId: String, error: String) {
+        _isStreaming.value = false
+        _messages.update { messages ->
+            messages.map { msg ->
+                if (msg.id == messageId) {
+                    msg.copy(
+                        content = "[Error: $error]",
+                        isStreaming = false,
+                        hasError = true
+                    )
+                } else msg
+            }
+        }
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                error = error,
+                lastFailedMessage = _messages.value.findLast { m -> m.role == MessageRole.USER }?.content
+            )
+        }
+    }
+
+    /**
+     * Cancel current streaming
+     */
+    fun cancelStreaming() {
+        streamingJob?.cancel()
+        streamingJob = null
+        _isStreaming.value = false
+        _uiState.update { it.copy(isLoading = false) }
+
+        // Mark current streaming message as cancelled
+        _messages.update { messages ->
+            messages.map { msg ->
+                if (msg.isStreaming) {
+                    msg.copy(
+                        content = msg.content + "\n[Cancelled]",
+                        isStreaming = false
+                    )
+                } else msg
+            }
+        }
+    }
+
+    /**
+     * Toggle streaming mode
+     */
+    fun setStreamingMode(enabled: Boolean) {
+        _uiState.update { it.copy(useStreaming = enabled) }
     }
 
     fun selectModel(model: String) {
@@ -518,7 +712,9 @@ data class RemoteAIChatUiState(
     val currentFile: FileReference? = null,
     val inputText: String = "",
     val cursorPosition: Int = 0,
-    val thinkingStage: ThinkingStage? = null
+    val thinkingStage: ThinkingStage? = null,
+    // Streaming mode
+    val useStreaming: Boolean = true  // Default to streaming mode
 )
 
 // Legacy support - will be deprecated

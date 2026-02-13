@@ -19,13 +19,25 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.33.0 (2026-02-11)
+## ⭐ Current Version: v0.33.0 (2026-02-13)
 
-### Latest Updates - Computer Use Desktop Automation
+### Latest Updates - Remote Control System + Browser Extension
 
-**Claude Computer Use Style Desktop Automation** - Computer operation capabilities similar to Claude Computer Use, supporting browser and desktop-level automation
+**P2P Remote Control System** - P2P network-based remote command system, enabling Android devices to remotely control PC, 24+ command handlers, 45,000+ lines of code
 
-#### New Core Features (2026-02-11)
+#### New Core Features (2026-02-13)
+
+- ✅ **Remote Control Gateway** - P2P remote gateway, command routing, permission verification (1,876 lines), logging & statistics
+- ✅ **24+ Command Handlers** - AI/System/File Transfer/Browser/Power/Process/Media/Network/Storage/Display/Input/Application/Security/Knowledge Base/Device Management/Command History/Clipboard/Notifications/Workflow comprehensive control
+- ✅ **Chrome Browser Extension** - Chrome extension integration, WebSocket server (3,326 lines), Service Worker (15,077 lines), Content Script
+- ✅ **Browser Extension APIs (Phase 11-25)** - Clipboard/Files/Notifications/Session Management/Console/Debugging/Network Emulation/Device Emulation/Web APIs/WebRTC/Advanced Storage/Chrome Features/Hardware/Media/Reader Mode/Screenshot/Annotations
+- ✅ **Remote Workflow Engine** - Remote workflow engine (812 lines), conditional branches and automated task orchestration
+- ✅ **Android Remote UIs** - Power/Process/Media/Network/Storage/Input/Application Manager/Security Info 8 remote control screens
+- ✅ **Streaming Command Client** - Streaming command client for real-time data transmission
+- ✅ **Event Subscription** - Event subscription system for real-time status push
+- ✅ **Logging System** - Command logger (614 lines)/Batched logger (457 lines)/Statistics collector (681 lines)/Performance config
+
+#### v0.33.0 Features Recap - Computer Use (2026-02-11)
 
 - ✅ **Computer Use Agent** - Unified agent integrating all computer operation capabilities, 68+ IPC handlers
 - ✅ **CoordinateAction** - Pixel-level coordinate clicking, dragging, gesture operations
@@ -185,12 +197,14 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 🟢 **Social System**: 100% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding + Message Reactions + Voice Message Recording & Playback** ⭐Completed
 - 🟢 **Trading System**: 100% Complete - **8 Modules + On-chain Contracts + NFT Transfers + Order Editing + Sharing + QR Codes** ⭐Completed
 - 🟢 **Browser Extension**: 100% Complete - **Testing Framework + Documentation** ⭐Completed
-- 🟢 **Mobile Application**: 100% Complete - **Knowledge Base + AI Chat + Trading System + Social Features + Mobile UX Optimization + P2P Sync + Android P2P UI (8 screens)** ⭐Completed
+- 🟢 **Remote Control System**: 100% Complete - **P2P Remote Gateway + 24+ Command Handlers + Chrome Extension + 45,000+ Lines** ⭐NEW
+- 🟢 **Mobile Application**: 100% Complete - **Knowledge Base + AI Chat + Trading System + Social Features + Mobile UX Optimization + P2P Sync + Android Remote Control UIs** ⭐Completed
 
 ## Core Features
 
 - 🔐 **Military-Grade Security**: SQLCipher AES-256 encryption + Cross-Platform USB Key hardware keys + Signal protocol E2E encryption ✅
-- 🖥️ **Computer Use**: Claude-style desktop automation + Vision AI locator + Workflow engine + 68+ IPC channels ✅ ⭐NEW
+- 📡 **Remote Control**: P2P remote control + 24+ command handlers + Chrome extension + 45,000+ lines ✅ ⭐NEW
+- 🖥️ **Computer Use**: Claude-style desktop automation + Vision AI locator + Workflow engine + 68+ IPC channels ✅
 - 🧠 **Permanent Memory System**: Daily Notes auto-logging + MEMORY.md long-term extraction + Hybrid Search (Vector+BM25) ✅
 - 🎯 **Context Engineering**: KV-Cache optimization + Token estimation + Recoverable compression + Task context management ✅
 - 📋 **Plan Mode**: Claude Code style plan mode + Security analysis + Approval workflow ✅
@@ -1910,7 +1924,16 @@ chainlesschain/
 │   │   │   ├── p2p/          # P2P network (libp2p)
 │   │   │   │   └── webrtc-data-channel.js  # WebRTC data channel manager
 │   │   │   ├── mcp/          # MCP integration
-│   │   │   ├── browser/      # Browser automation system (NEW)
+│   │   │   ├── remote/       # Remote Control System (NEW, 41 files, ~45,000 lines)
+│   │   │   │   ├── remote-gateway.js         # Remote gateway (core)
+│   │   │   │   ├── p2p-command-adapter.js    # P2P command adapter
+│   │   │   │   ├── permission-gate.js        # Permission verifier
+│   │   │   │   ├── command-router.js         # Command router
+│   │   │   │   ├── handlers/                 # 24+ command handlers
+│   │   │   │   ├── browser-extension/        # Chrome browser extension
+│   │   │   │   ├── workflow/                 # Workflow engine
+│   │   │   │   └── logging/                  # Logging system
+│   │   │   ├── browser/      # Browser automation system
 │   │   │   │   ├── browser-engine.js         # Browser engine (Playwright)
 │   │   │   │   ├── browser-ipc.js            # Browser IPC (12 channels)
 │   │   │   │   ├── snapshot-engine.js        # Smart snapshot engine
@@ -2078,6 +2101,7 @@ chainlesschain/
 - **Permanent Memory**: Daily Notes + MEMORY.md + Hybrid Search (Vector+BM25)
 - **Context Engineering**: KV-Cache optimization + Token estimation + Recoverable compression
 - **Enterprise Permission**: RBAC engine + Team management + Approval workflow + Permission delegation
+- **Remote Control**: P2P gateway + 24+ command handlers + Chrome extension + Workflow engine + 45,000+ lines
 - **Browser Control**: BrowserEngine + SnapshotEngine + DI testability + 18 IPC channels
 - **Claude Code Style**: 10 subsystems + 127 IPC channels (Hooks/Plan Mode/Skills, etc.)
 - **Workflow Optimization**: Smart cache + LLM decision + Agent pool + Critical path + Real-time quality

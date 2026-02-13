@@ -241,9 +241,13 @@ data class EnhancedChatMessage(
     val taskPlan: TaskPlan? = null,
     val thinkingStage: ThinkingStage? = null,
     val isStreaming: Boolean = false,
+    val hasError: Boolean = false,
     val error: String? = null,
     val parentMessageId: String? = null,
-    val metadata: Map<String, String> = emptyMap()
+    val metadata: Map<String, String> = emptyMap(),
+    // Streaming progress
+    val streamProgress: Float? = null,
+    val streamTokenCount: Int? = null
 )
 
 /**

@@ -19,13 +19,25 @@
 
 ---
 
-## ⭐ 当前版本: v0.33.0 (2026-02-11)
+## ⭐ 当前版本: v0.33.0 (2026-02-13)
 
-### 最新更新 - Computer Use 电脑操作能力
+### 最新更新 - Remote Control 远程控制系统 + Browser Extension 浏览器扩展
 
-**Claude Computer Use Style Desktop Automation** - 类似 Claude Computer Use 的电脑操作能力，支持浏览器和桌面级自动化操作
+**P2P Remote Control System** - 基于P2P网络的远程命令系统，支持Android设备远程控制PC，24+命令处理器，45,000+行代码
 
-#### 新增核心功能 (2026-02-11)
+#### 新增核心功能 (2026-02-13)
+
+- ✅ **Remote Control Gateway** - P2P远程网关，命令路由、权限验证(1,876行)、日志统计
+- ✅ **24+ Command Handlers** - AI/系统/文件传输/浏览器/电源/进程/媒体/网络/存储/显示/输入/应用管理/安全/知识库/设备管理/命令历史/剪贴板/通知/工作流 全面控制
+- ✅ **Chrome Browser Extension** - Chrome扩展集成，WebSocket服务器(3,326行)，Service Worker(15,077行)，Content Script
+- ✅ **Browser Extension APIs (Phase 11-25)** - 剪贴板/文件/通知/会话管理/控制台/调试/网络模拟/设备仿真/Web APIs/WebRTC/高级存储/Chrome特性/硬件/媒体/Reader模式/截图/标注
+- ✅ **Remote Workflow Engine** - 远程工作流引擎(812行)，支持条件分支和自动化任务编排
+- ✅ **Android Remote UIs** - 电源/进程/媒体/网络/存储/输入/应用管理/安全信息 8个远程控制界面
+- ✅ **Streaming Command Client** - 流式命令客户端，实时数据传输
+- ✅ **Event Subscription** - 事件订阅系统，实时状态推送
+- ✅ **Logging System** - 命令日志(614行)/批量日志(457行)/统计收集(681行)/性能配置
+
+#### v0.33.0 功能回顾 - Computer Use (2026-02-11)
 
 - ✅ **Computer Use Agent** - 统一代理整合所有电脑操作能力，68+ IPC handlers
 - ✅ **CoordinateAction** - 像素级坐标点击、拖拽、手势操作
@@ -113,11 +125,13 @@
 - 🟢 **Cowork多代理系统**: 100% 完成 - **智能编排+代理池+4技能+4集成+10+图表**
 - 🟢 **企业版**: 100% 完成 - **知识库协作+DID邀请链接+企业仪表板**
 - 🟢 **区块链集成**: 100% 完成 - **15链支持+RPC管理+完整UI**
-- 🟢 **移动端应用**: 100% 完成 - **完整功能+桌面同步+Android P2P UI**
+- 🟢 **远程控制系统**: 100% 完成 - **P2P远程网关+24+命令处理器+Chrome扩展+45,000+行代码**
+- 🟢 **移动端应用**: 100% 完成 - **完整功能+桌面同步+Android P2P UI+远程控制UI**
 
 ## 核心特性
 
 - 🔐 **军事级安全**: SQLCipher AES-256加密 + U盾硬件密钥 + Signal协议E2E加密
+- 📡 **Remote Control**: P2P远程控制 + 24+命令处理器 + Chrome扩展 + 45,000+行代码
 - 🖥️ **Computer Use**: Claude风格电脑操作 + 视觉AI定位 + 工作流引擎 + 68+ IPC通道
 - 🧠 **永久记忆系统**: Daily Notes自动记录 + MEMORY.md长期萃取 + 混合搜索(Vector+BM25)
 - 🎯 **Context Engineering**: KV-Cache优化 + Token预估 + 可恢复压缩 + 任务上下文管理
@@ -348,7 +362,16 @@ chainlesschain/
 │   │   │   ├── did/          # DID身份系统
 │   │   │   ├── p2p/          # P2P网络 (libp2p)
 │   │   │   ├── mcp/          # MCP集成
-│   │   │   ├── browser/      # 浏览器自动化控制 (新)
+│   │   │   ├── remote/       # 远程控制系统 (新, 41文件, ~45,000行)
+│   │   │   │   ├── remote-gateway.js         # 远程网关 (核心)
+│   │   │   │   ├── p2p-command-adapter.js    # P2P命令适配器
+│   │   │   │   ├── permission-gate.js        # 权限验证器
+│   │   │   │   ├── command-router.js         # 命令路由器
+│   │   │   │   ├── handlers/                 # 24+命令处理器
+│   │   │   │   ├── browser-extension/        # Chrome浏览器扩展
+│   │   │   │   ├── workflow/                 # 工作流引擎
+│   │   │   │   └── logging/                  # 日志系统
+│   │   │   ├── browser/      # 浏览器自动化控制
 │   │   │   │   ├── browser-engine.js         # 浏览器引擎 (Playwright)
 │   │   │   │   ├── browser-ipc.js            # 浏览器 IPC (12通道)
 │   │   │   │   ├── snapshot-engine.js        # 智能快照引擎
@@ -403,6 +426,7 @@ chainlesschain/
 - 永久记忆: Daily Notes + MEMORY.md + 混合搜索(Vector+BM25)
 - Context Engineering: KV-Cache优化 + Token预估 + 可恢复压缩
 - 企业权限: RBAC引擎 + 团队管理 + 审批工作流 + 权限委托
+- 远程控制: P2P网关 + 24+命令处理器 + Chrome扩展 + 工作流引擎 + 45,000+行
 - 浏览器控制: BrowserEngine + SnapshotEngine + DI可测性 + 18 IPC通道
 - Claude Code风格: 10子系统 + 127 IPC通道 (Hooks/Plan Mode/Skills等)
 - 工作流优化: 智能缓存 + LLM决策 + 代理池 + 关键路径 + 实时质量
@@ -505,4 +529,5 @@ chainlesschain/
 - [🎯 Context Engineering](./desktop-app-vue/src/main/llm/context-engineering-ipc.js) - KV-Cache优化IPC
 - [🪝 Hooks系统](./docs/design/HOOKS_SYSTEM_DESIGN.md) - Claude Code风格钩子系统
 - [📋 Plan Mode](./desktop-app-vue/src/main/ai-engine/plan-mode/) - 计划模式系统
+- [📡 远程控制系统](./desktop-app-vue/src/main/remote/) - P2P远程网关 + 24+命令处理器 + Chrome扩展
 - [🌐 浏览器控制](./desktop-app-vue/src/main/browser/) - BrowserEngine + SnapshotEngine
