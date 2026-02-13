@@ -5,8 +5,13 @@ import com.chainlesschain.android.remote.data.CommandCancelRequest
 import com.chainlesschain.android.remote.data.CommandResponse
 import com.chainlesschain.android.remote.data.ErrorCodes
 import com.chainlesschain.android.remote.data.EventNotification
+import com.chainlesschain.android.remote.data.FileTransferProgress
 import com.chainlesschain.android.remote.data.MessageTypes
 import com.chainlesschain.android.remote.data.P2PMessage
+import com.chainlesschain.android.remote.data.ProgressNotification
+import com.chainlesschain.android.remote.data.StreamChunkMessage
+import com.chainlesschain.android.remote.data.StreamEndMessage
+import com.chainlesschain.android.remote.data.StreamStartMessage
 import com.chainlesschain.android.remote.data.fromJson
 import com.chainlesschain.android.remote.data.toJsonString
 import com.chainlesschain.android.remote.crypto.NonceManager
@@ -61,6 +66,26 @@ class P2PClient @Inject constructor(
 
     private val _events = MutableSharedFlow<EventNotification>(replay = 0, extraBufferCapacity = 16)
     val events: SharedFlow<EventNotification> = _events.asSharedFlow()
+
+    // ==================== 流式消息支持 ====================
+    private val _streamStart = MutableSharedFlow<StreamStartMessage>(replay = 0, extraBufferCapacity = 16)
+    val streamStart: SharedFlow<StreamStartMessage> = _streamStart.asSharedFlow()
+
+    private val _streamChunks = MutableSharedFlow<StreamChunkMessage>(replay = 0, extraBufferCapacity = 64)
+    val streamChunks: SharedFlow<StreamChunkMessage> = _streamChunks.asSharedFlow()
+
+    private val _streamEnd = MutableSharedFlow<StreamEndMessage>(replay = 0, extraBufferCapacity = 16)
+    val streamEnd: SharedFlow<StreamEndMessage> = _streamEnd.asSharedFlow()
+
+    // 活跃流追踪
+    private val activeStreams = ConcurrentHashMap<String, StreamState>()
+
+    // ==================== 进度通知支持 ====================
+    private val _progressUpdates = MutableSharedFlow<ProgressNotification>(replay = 0, extraBufferCapacity = 32)
+    val progressUpdates: SharedFlow<ProgressNotification> = _progressUpdates.asSharedFlow()
+
+    private val _fileTransferProgress = MutableSharedFlow<FileTransferProgress>(replay = 0, extraBufferCapacity = 32)
+    val fileTransferProgress: SharedFlow<FileTransferProgress> = _fileTransferProgress.asSharedFlow()
 
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
@@ -469,16 +494,146 @@ class P2PClient @Inject constructor(
                 MessageTypes.EVENT_NOTIFICATION -> {
                     val event = message.payload.fromJson<EventNotification>()
                     _events.emit(event)
+                    // 处理特定类型的事件
+                    handleSpecificEvent(event)
                 }
                 MessageTypes.HEARTBEAT, MessageTypes.HEARTBEAT_ACK, "pong" -> {
                     // Reset heartbeat timeout on any heartbeat-related message
                     lastHeartbeatReceived = System.currentTimeMillis()
                     Timber.v("[P2PClient] Heartbeat received, resetting timeout")
                 }
+
+                // ==================== 流式消息处理 ====================
+                MessageTypes.STREAM_START -> {
+                    val streamStart = message.payload.fromJson<StreamStartMessage>()
+                    handleStreamStart(streamStart)
+                }
+                MessageTypes.STREAM_CHUNK -> {
+                    val streamChunk = message.payload.fromJson<StreamChunkMessage>()
+                    handleStreamChunk(streamChunk)
+                }
+                MessageTypes.STREAM_END -> {
+                    val streamEnd = message.payload.fromJson<StreamEndMessage>()
+                    handleStreamEnd(streamEnd)
+                }
+                MessageTypes.STREAM_ERROR -> {
+                    val streamEnd = message.payload.fromJson<StreamEndMessage>()
+                    handleStreamError(streamEnd)
+                }
+
+                // ==================== 文件传输进度 ====================
+                MessageTypes.FILE_TRANSFER_PROGRESS -> {
+                    val progress = message.payload.fromJson<FileTransferProgress>()
+                    _fileTransferProgress.emit(progress)
+                }
+
                 else -> Timber.w("Unknown P2P message type: ${message.type}")
             }
         } catch (e: Exception) {
             Timber.e(e, "Failed to handle incoming message")
+        }
+    }
+
+    /**
+     * 处理特定类型的事件通知
+     */
+    private suspend fun handleSpecificEvent(event: EventNotification) {
+        when (event.method) {
+            // 进度类事件转换为进度通知
+            "progress.update" -> {
+                val progress = ProgressNotification(
+                    operationId = event.params["operationId"] as? String ?: "",
+                    operationType = event.params["operationType"] as? String ?: "",
+                    progress = (event.params["progress"] as? Number)?.toFloat() ?: 0f,
+                    currentStep = event.params["currentStep"] as? String,
+                    totalSteps = (event.params["totalSteps"] as? Number)?.toInt(),
+                    currentStepIndex = (event.params["currentStepIndex"] as? Number)?.toInt(),
+                    estimatedRemainingMs = (event.params["estimatedRemainingMs"] as? Number)?.toLong()
+                )
+                _progressUpdates.emit(progress)
+            }
+            // 文件传输进度
+            "file.transfer.progress" -> {
+                val progress = FileTransferProgress(
+                    transferId = event.params["transferId"] as? String ?: "",
+                    fileName = event.params["fileName"] as? String ?: "",
+                    filePath = event.params["filePath"] as? String ?: "",
+                    direction = event.params["direction"] as? String ?: "download",
+                    bytesTransferred = (event.params["bytesTransferred"] as? Number)?.toLong() ?: 0,
+                    totalBytes = (event.params["totalBytes"] as? Number)?.toLong() ?: 0,
+                    progress = (event.params["progress"] as? Number)?.toFloat() ?: 0f,
+                    speed = (event.params["speed"] as? Number)?.toLong() ?: 0,
+                    estimatedRemainingMs = (event.params["estimatedRemainingMs"] as? Number)?.toLong(),
+                    state = event.params["state"] as? String ?: "transferring"
+                )
+                _fileTransferProgress.emit(progress)
+            }
+        }
+    }
+
+    // ==================== 流式消息处理方法 ====================
+
+    private suspend fun handleStreamStart(streamStart: StreamStartMessage) {
+        Timber.d("[P2PClient] Stream started: ${streamStart.streamId}")
+        activeStreams[streamStart.streamId] = StreamState(
+            streamId = streamStart.streamId,
+            method = streamStart.method,
+            startTime = System.currentTimeMillis(),
+            totalChunks = streamStart.totalChunks,
+            receivedChunks = 0
+        )
+        _streamStart.emit(streamStart)
+    }
+
+    private suspend fun handleStreamChunk(streamChunk: StreamChunkMessage) {
+        val state = activeStreams[streamChunk.streamId]
+        if (state != null) {
+            activeStreams[streamChunk.streamId] = state.copy(
+                receivedChunks = state.receivedChunks + 1,
+                lastChunkTime = System.currentTimeMillis()
+            )
+        }
+        _streamChunks.emit(streamChunk)
+    }
+
+    private suspend fun handleStreamEnd(streamEnd: StreamEndMessage) {
+        Timber.d("[P2PClient] Stream ended: ${streamEnd.streamId}, success=${streamEnd.success}")
+        activeStreams.remove(streamEnd.streamId)
+        _streamEnd.emit(streamEnd)
+    }
+
+    private suspend fun handleStreamError(streamEnd: StreamEndMessage) {
+        Timber.e("[P2PClient] Stream error: ${streamEnd.streamId}, error=${streamEnd.error}")
+        activeStreams.remove(streamEnd.streamId)
+        _streamEnd.emit(streamEnd.copy(success = false))
+    }
+
+    /**
+     * 获取活跃流状态
+     */
+    fun getActiveStreams(): List<StreamState> {
+        return activeStreams.values.toList()
+    }
+
+    /**
+     * 取消活跃流
+     */
+    suspend fun cancelStream(streamId: String): Result<Unit> {
+        return try {
+            val cancelRequest = mapOf(
+                "type" to "stream_cancel",
+                "streamId" to streamId
+            )
+            val message = P2PMessage(
+                type = "chainlesschain:stream:cancel",
+                payload = cancelRequest.toJsonString()
+            )
+            webRTCClient.sendMessage(message.toJsonString())
+            activeStreams.remove(streamId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Timber.e(e, "[P2PClient] 取消流失败: $streamId")
+            Result.failure(e)
         }
     }
 
@@ -680,3 +835,18 @@ data class PendingCommandInfo(
     val timestamp: Long,
     val elapsedMs: Long
 )
+
+/**
+ * 流状态信息
+ */
+data class StreamState(
+    val streamId: String,
+    val method: String,
+    val startTime: Long,
+    val totalChunks: Int? = null,
+    val receivedChunks: Int = 0,
+    val lastChunkTime: Long? = null
+) {
+    val elapsedMs: Long get() = System.currentTimeMillis() - startTime
+    val progress: Float? get() = totalChunks?.let { receivedChunks.toFloat() / it }
+}
