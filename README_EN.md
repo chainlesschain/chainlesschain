@@ -50,10 +50,15 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 #### v0.31.0 Features Recap (2026-02-09)
 
-- ✅ **Security Authentication Enhancement** - Dev/prod mode switching, JWT authentication for API endpoints
-- ✅ **Incremental RAG Indexing** - MD5 content hash change detection, unified search
-- ✅ **SIMKey NFC Detection** - NFC reading and SIM security element detection for mobile
-- ✅ **File Version Control** - FileVersion entity, version history, SHA-256 content hashing
+- ✅ **Security Authentication Enhancement** - Dev/prod mode switching, JWT authentication for API endpoints, device key database integration
+- ✅ **Incremental RAG Indexing** - MD5 content hash change detection, multi-file joint retrieval, unified search (vector+keyword+graph)
+- ✅ **Project Context-Aware Reranking** - Context-aware result reranking, 6 new IPC handlers
+- ✅ **SIMKey NFC Detection** - NFC reading and SIM security element detection for mobile, dev mode simulator support
+- ✅ **File Version Control** - FileVersion entity, version history, SHA-256 content hashing, version restore
+- ✅ **LLM Function Calling** - OpenAI and DashScope chat_with_tools support, auto capability detection
+- ✅ **Deep Link Enhancement** - notes/clip link handling, universal navigation, focusMainWindow
+- ✅ **Browser Extension Enhancement** - Launch desktop app via chainlesschain:// protocol
+- ✅ **Test Infrastructure Optimization** - 89 Ant Design Vue component stubs, dayjs mock fixes, permission system test optimization
 
 #### v0.29.0-v0.30.0 Features Recap
 
@@ -221,6 +226,128 @@ See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Pe
 - 📱 **Android P2P UI**: 8 complete screens (device discovery/pairing/security verification/DID management/message queue/QR scan) + Full P2P experience ✅ ⭐NEW
 - 🖥️ **Workspace Management**: Full CRUD + restore + permanent delete + member management ✅ ⭐NEW
 - 🔄 **Remote Sync**: Incremental sync + conflict resolution + multi-device collaboration + auto-fallback ✅ ⭐NEW
+
+More features detailed in [Features Documentation](./docs/FEATURES.md)
+
+## Three Core Functions
+
+### 1️⃣ Knowledge Base Management (100% Complete) ✅
+
+- ✅ SQLCipher AES-256 encrypted database (50+ tables)
+- ✅ Knowledge graph visualization (8 algorithms + 5 visualizations + intelligent extraction)
+- ✅ AI-enhanced retrieval (hybrid search + 3 reranking methods)
+- ✅ Multi-format import (Markdown/PDF/Word/TXT/Images)
+- ✅ Version control (Git integration + conflict resolution)
+
+### 2️⃣ Decentralized Social (100% Complete) ✅
+
+- ✅ DID identity system (W3C standard + organization DID)
+- ✅ P2P network (libp2p + Signal E2E encryption)
+- ✅ Social features (friends + posts + group chat + file transfer)
+- ✅ WebRTC voice/video calls
+- ✅ Community forum (Spring Boot + Vue3)
+
+### 3️⃣ Decentralized Trading (100% Complete) ✅
+
+- ✅ Digital asset management (Token/NFT/knowledge products)
+- ✅ Smart contract engine (5 contract types)
+- ✅ Escrow service (4 escrow types)
+- ✅ Blockchain integration (15 chains + cross-chain bridge)
+- ✅ Credit scoring system (6 dimensions + 5 levels)
+
+### 4️⃣ Cowork Multi-Agent Collaboration + Workflow Optimization (100% Complete) ✅
+
+#### Multi-Agent Collaboration Core
+
+- ✅ Smart orchestration system (AI decision + single/multi-agent task distribution)
+- ✅ Agent pool reuse (10x acquisition speed + 85% overhead reduction)
+- ✅ File sandbox (18+ sensitive file detection + path traversal protection)
+- ✅ Long-running task management (intelligent checkpoints + recovery mechanism)
+- ✅ Skills system (4 Office skills + smart matching)
+- ✅ Complete integration (RAG + LLM + error monitoring + session management)
+- ✅ Data visualization (10+ chart types + real-time monitoring)
+- ✅ Enterprise security (5-layer protection + zero trust + full audit)
+
+#### Workflow Smart Optimization (Phase 1-4, 17 items all complete)
+
+**Phase 1-2 Core Optimizations (8 items)**
+
+- ✅ RAG parallelization - 60% time reduction (3s→1s)
+- ✅ Message aggregation - 50% frontend performance boost
+- ✅ Tool caching - 15% reduction in repeated calls
+- ✅ File tree lazy loading - 80% faster large project loading
+- ✅ LLM fallback strategy - 50% success rate boost (60%→90%)
+- ✅ Dynamic concurrency control - 40% CPU utilization improvement
+- ✅ Smart retry strategy - 183% retry success rate improvement
+- ✅ Quality gate parallelization - Early error interception
+
+**Phase 3-4 Smart Optimizations (9 items)**
+
+- ✅ Smart plan cache - 70% LLM cost reduction, 60-85% hit rate
+- ✅ LLM-assisted decision - 20% multi-agent utilization boost, 92% accuracy
+- ✅ Agent pool reuse - 10x acquisition speed, 85% overhead reduction
+- ✅ Critical path optimization - 15-36% execution time reduction (CPM algorithm)
+- ✅ Real-time quality check - 1800x faster problem discovery, 50% rework reduction
+- ✅ Auto stage transition - 100% human error elimination
+- ✅ Intelligent checkpoints - 30% IO overhead reduction
+
+**Overall Improvement**: Task success rate 40%→70% (+75%) | LLM cost -70% | Execution speed +25%
+
+Detailed documentation: [Cowork Quick Start](./docs/features/COWORK_QUICK_START.md) | [Phase 3/4 Summary](./docs/features/WORKFLOW_PHASE3_COMPLETION_SUMMARY.md)
+
+### 5️⃣ Permanent Memory System (100% Complete) ✅
+
+- ✅ Daily Notes auto-logging (memory/daily/YYYY-MM-DD.md)
+- ✅ MEMORY.md long-term knowledge extraction (categorized storage + auto-update)
+- ✅ Hybrid search engine (Vector semantic + BM25 keyword dual-path search)
+- ✅ RRF fusion algorithm (Reciprocal Rank Fusion intelligent ranking)
+- ✅ Embedding cache (reduced redundant computation + file hash tracking)
+- ✅ Auto expiry cleanup (configurable retention days)
+- ✅ Metadata statistics (knowledge classification, tags, reference tracking)
+
+Detailed documentation: [Permanent Memory Integration](./docs/features/PERMANENT_MEMORY_INTEGRATION.md)
+
+### 6️⃣ Comprehensive Testing System (100% Complete) ✅
+
+- ✅ **2000+ test cases** - Covering all core modules (including 102 database tests after DI refactoring)
+- ✅ **417 test files + 50 script tests** - Unit/Integration/E2E/Performance/Security
+- ✅ **DI test refactoring** - Browser IPC, database modules with improved testability via DI
+- ✅ **80% OWASP Top 10 coverage** - XSS/SQL injection/path traversal protection verified
+- ✅ **Performance benchmarks established** - 142K ops/s project operations, 271K ops/s file operations
+- ✅ **~80% test coverage** - Test-driven continuous quality improvement
+
+Detailed documentation: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md)
+
+### 7️⃣ Enterprise Permission System (100% Complete) ✅
+
+- ✅ **Permission Engine** - Resource-level permission evaluation, conditional access, cache optimization
+- ✅ **Permission inheritance** - Parent-child resource automatic permission inheritance
+- ✅ **Permission delegation** - Temporary permission delegation, time range control
+- ✅ **Team Manager** - Sub-team creation, hierarchy structure, member management
+- ✅ **Approval workflow** - Multi-level approval, automatic approval rules
+- ✅ **Complete audit** - Full permission change audit logging
+
+### 8️⃣ Context Engineering (100% Complete) ✅
+
+- ✅ **KV-Cache optimization** - Static/dynamic content separation, 60-85% hit rate
+- ✅ **Token estimation** - Chinese/English auto-detection, precise token calculation
+- ✅ **Task context** - Task goal restatement, step tracking, progress management
+- ✅ **Error history** - Error recording for model learning, solution association
+- ✅ **Recoverable compression** - Preserve URL/path references, on-demand content recovery
+- ✅ **17 IPC channels** - Complete frontend access interface
+
+Detailed documentation: [Context Engineering Docs](./docs/MANUS_OPTIMIZATION_GUIDE.md)
+
+### 9️⃣ Plan Mode + Skills System (100% Complete) ✅
+
+- ✅ **Plan Mode** - Security analysis mode, only allows Read/Search/Analyze
+- ✅ **Plan generation** - Auto-record blocked operations to plan
+- ✅ **Approval workflow** - Full/partial approval, rejection operations
+- ✅ **Skills system** - Markdown skill definitions, three-layer loading mechanism
+- ✅ **/skill commands** - User command parsing, auto-execution
+- ✅ **Gate checks** - Platform, dependency, environment variable detection
+
+Detailed documentation: [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md)
 
 ### MCP (Model Context Protocol) Integration ⭐NEW
 
@@ -1783,9 +1910,15 @@ chainlesschain/
 │   │   │   ├── p2p/          # P2P network (libp2p)
 │   │   │   │   └── webrtc-data-channel.js  # WebRTC data channel manager
 │   │   │   ├── mcp/          # MCP integration
+│   │   │   ├── browser/      # Browser automation system (NEW)
+│   │   │   │   ├── browser-engine.js         # Browser engine (Playwright)
+│   │   │   │   ├── browser-ipc.js            # Browser IPC (12 channels)
+│   │   │   │   ├── snapshot-engine.js        # Smart snapshot engine
+│   │   │   │   ├── snapshot-ipc.js           # Snapshot IPC (6 channels)
+│   │   │   │   └── element-locator.js        # Element locator
 │   │   │   ├── utils/        # Utility modules
 │   │   │   │   └── ipc-error-handler.js    # IPC error middleware
-│   │   │   ├── ai-engine/    # AI engine and multi-agent
+│   │   │   ├── ai-engine/    # AI engine + workflow optimization
 │   │   │   │   ├── cowork/   # Cowork multi-agent collaboration system
 │   │   │   │   │   └── skills/               # Skills system
 │   │   │   │   │       ├── index.js          # Skill loader
@@ -1795,15 +1928,15 @@ chainlesschain/
 │   │   │   │       ├── index.js              # PlanModeManager
 │   │   │   │       └── plan-mode-ipc.js      # Plan Mode IPC (14 channels)
 │   │   │   └── monitoring/   # Monitoring and logging
-│   │   └── renderer/         # Renderer process (Vue3 + 358 components)
+│   │   └── renderer/         # Renderer process (Vue3 + TypeScript, 31 Pinia Stores)
 │   │       ├── components/   # Reusable components
 │   │       ├── pages/        # Page components
 │   │       ├── stores/       # Pinia state management
 │   │       ├── services/     # Frontend service layer
 │   │       └── utils/        # Utility library
 │   ├── contracts/            # Smart contracts (Hardhat + Solidity)
-│   └── tests/                # Test suite (2000+ test cases)
-│       ├── unit/             # Unit tests (IPC handlers, database, Git)
+│   └── tests/                # Test suite (2000+ test cases, 417 test files)
+│       ├── unit/             # Unit tests (IPC handlers, database, Git, browser, AI engine)
 │       ├── integration/      # Integration tests (backend integration, user journey)
 │       ├── performance/      # Performance tests (load, memory leak)
 │       └── security/         # Security tests (OWASP Top 10)
@@ -1819,42 +1952,21 @@ chainlesschain/
     ├── status-reports/       # Status reports (NEW)
     ├── test-reports/         # Test reports (NEW)
     └── ...                   # 20+ documentation categories
-│   # - Gitea (Git service)
-│
-├── docs/                    # 📚 Documentation
-│   ├── 系统设计_个人移动AI管理系统.md
-│   ├── 项目完成度报告_2025-12-18.md
-│   └── API.md (TBD)
-│
-├── desktop-app-vue/docs/   # 🚀 Performance Optimization Docs ⭐NEW
-│   ├── ADVANCED_OPTIMIZATIONS.md          # Advanced optimization techniques (578 lines)
-│   ├── DEEP_OPTIMIZATION_COMPLETE.md      # Deep optimization completion report (765 lines)
-│   ├── OPTIMIZATION_INTEGRATION_COMPLETE.md # Optimization integration complete (500 lines)
-│   ├── OPTIMIZATION_INTEGRATION_FINAL.md  # Optimization integration final (573 lines)
-│   ├── OPTIMIZATION_INTEGRATION_GUIDE.md  # Optimization integration guide (883 lines)
-│   ├── OPTIMIZATION_QUICK_START.md        # Optimization quick start (424 lines)
-│   ├── OPTIMIZATION_SUMMARY.md            # Optimization summary (571 lines)
-│   ├── OPTIMIZATION_USAGE_GUIDE.md        # Optimization usage guide (updated)
-│   └── E2E_TEST_WORK_SUMMARY.md           # E2E test work summary (306 lines)
-│
-└── scripts/                 # 🛠️ Utility scripts
-    ├── setup.sh             # Environment setup
-    └── build.sh             # Build scripts
 ```
 
 ### Project Components
 
 | Project                      | Tech Stack                | Code Size          | APIs         | Completion | Status              |
 | ---------------------------- | ------------------------- | ------------------ | ------------ | ---------- | ------------------- |
-| **desktop-app-vue**          | Electron 39 + Vue3        | 210,000+ lines     | 160+ IPC     | 100%       | ✅ Production Ready |
+| **desktop-app-vue**          | Electron 39 + Vue3        | 220,000+ lines     | 160+ IPC     | 100%       | ✅ Production Ready |
 | **contracts**                | Hardhat + Solidity        | 2,400 lines        | -            | 100%       | ✅ Complete         |
 | **browser-extension**        | Vanilla JS                | 2,000+ lines       | -            | 100%       | ✅ Complete         |
 | **backend/project-service**  | Spring Boot 3.1 + Java 17 | 5,679 lines        | 48 APIs      | 100%       | ✅ Production Ready |
 | **backend/ai-service**       | FastAPI + Python 3.9+     | 12,417 lines       | 38 APIs      | 100%       | ✅ Production Ready |
 | **community-forum/backend**  | Spring Boot 3.1 + MySQL   | 5,679 lines        | 63 APIs      | 100%       | ✅ Production Ready |
 | **community-forum/frontend** | Vue3 + Element Plus       | 10,958 lines       | -            | 100%       | ✅ Production Ready |
-| **mobile-app-uniapp**        | uni-app + Vue3            | Minimal            | -            | 100%       | ✅ Complete         |
-| **Total**                    | -                         | **240,000+ lines** | **149 APIs** | **100%**   | ✅ Production Ready |
+| **mobile-app-uniapp**        | uni-app + Vue3            | 8,000+ lines       | -            | 100%       | ✅ Complete         |
+| **Total**                    | -                         | **250,000+ lines** | **149 APIs** | **100%**   | ✅ Production Ready |
 
 ## 🗓️ Roadmap
 
@@ -1959,22 +2071,18 @@ chainlesschain/
 
 ### PC (desktop-app-vue) - Main Application
 
-- **Framework**: Electron 39.2.7 + Vue 3.4 + TypeScript 5.3
-- **UI Components**: Ant Design Vue 4.1.2
-- **State Management**: Pinia 2.1.7
-- **Router**: Vue Router 4.2.5
-- **Editors**:
-  - Milkdown 7.17.3 (Markdown)
-  - Monaco Editor (Code)
-  - Jspreadsheet (Excel)
-- **Database**: SQL.js + SQLCipher (AES-256)
-- **Git**: isomorphic-git 1.25.10
-- **P2P**: libp2p 3.1.2 + Signal Protocol
-- **Image Processing**: Sharp 0.33 + Tesseract.js 5.0
-- **Encryption**: node-forge + TweetNaCl + USB Key SDK (Koffi FFI)
-- **Vector DB**: ChromaDB 3.1.8
-- **MCP Integration**: @modelcontextprotocol/sdk (Stdio transport)
+- **Framework**: Electron 39.2.7 + Vue 3.4 + TypeScript 5.9 + Ant Design Vue 4.1
+- **State Management**: Pinia 2.1.7 (28 TypeScript stores)
+- **Database**: SQLite/SQLCipher (AES-256) + libp2p 3.1.2
+- **AI System**: 16 specialized AI engines + 17 smart optimizations + 115 skills + 300 tools
 - **Permanent Memory**: Daily Notes + MEMORY.md + Hybrid Search (Vector+BM25)
+- **Context Engineering**: KV-Cache optimization + Token estimation + Recoverable compression
+- **Enterprise Permission**: RBAC engine + Team management + Approval workflow + Permission delegation
+- **Browser Control**: BrowserEngine + SnapshotEngine + DI testability + 18 IPC channels
+- **Claude Code Style**: 10 subsystems + 127 IPC channels (Hooks/Plan Mode/Skills, etc.)
+- **Workflow Optimization**: Smart cache + LLM decision + Agent pool + Critical path + Real-time quality
+- **Visualization**: ECharts TaskMonitor dashboard + Tree-shaking optimization
+- **Firebase**: Push notifications + WebRTC enhancement
 - **Testing**: Vitest + 2000+ test cases + 417 test files + DI refactoring
 - **Build**: Vite 7.2.7 + Electron Builder
 
