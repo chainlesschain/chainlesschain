@@ -168,9 +168,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { message } from "ant-design-vue";
+import { message, Modal } from "ant-design-vue";
+import { h } from "vue";
 import {
   ArrowLeftOutlined,
   ReloadOutlined,
@@ -363,13 +364,205 @@ const handleRetry = async () => {
 };
 
 const handleViewResult = () => {
-  // 可以实现查看结果的逻辑
-  message.info("查看结果功能待实现");
+  if (!completedWorkflow.value?.results) {
+    message.warning("暂无执行结果");
+    return;
+  }
+
+  const results = completedWorkflow.value.results;
+
+  // 构建结果展示内容
+  const renderResults = () => {
+    if (typeof results === "string") {
+      return h(
+        "pre",
+        {
+          style: {
+            maxHeight: "400px",
+            overflow: "auto",
+            whiteSpace: "pre-wrap",
+          },
+        },
+        results,
+      );
+    }
+
+    if (Array.isArray(results)) {
+      return h(
+        "div",
+        { class: "result-list" },
+        results.map((item, index) =>
+          h(
+            "div",
+            {
+              key: index,
+              style: {
+                marginBottom: "12px",
+                padding: "12px",
+                background: "#f5f5f5",
+                borderRadius: "6px",
+              },
+            },
+            [
+              h(
+                "div",
+                { style: { fontWeight: "bold", marginBottom: "8px" } },
+                `步骤 ${index + 1}`,
+              ),
+              h(
+                "pre",
+                {
+                  style: {
+                    margin: 0,
+                    whiteSpace: "pre-wrap",
+                    fontSize: "12px",
+                  },
+                },
+                typeof item === "object"
+                  ? JSON.stringify(item, null, 2)
+                  : String(item),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return h(
+      "pre",
+      {
+        style: { maxHeight: "400px", overflow: "auto", whiteSpace: "pre-wrap" },
+      },
+      JSON.stringify(results, null, 2),
+    );
+  };
+
+  Modal.info({
+    title: "工作流执行结果",
+    width: 700,
+    content: h("div", { style: { maxHeight: "500px", overflow: "auto" } }, [
+      renderResults(),
+    ]),
+    okText: "关闭",
+  });
 };
 
-const handleExport = () => {
-  // 可以实现导出报告的逻辑
-  message.info("导出报告功能待实现");
+const handleExport = async () => {
+  try {
+    // 构建报告数据
+    const reportData = {
+      title: completedWorkflow.value.title || "工作流执行报告",
+      workflowId: selectedWorkflowId.value,
+      exportedAt: new Date().toISOString(),
+      summary: {
+        success: completedWorkflow.value.success,
+        duration: completedWorkflow.value.duration,
+        completedStages: completedStages.value.filter(
+          (s) => s.status === "completed",
+        ).length,
+        totalStages: completedStages.value.length,
+      },
+      stages: completedStages.value.map((stage) => ({
+        name: stage.name,
+        status: stage.status,
+        duration: stage.duration,
+      })),
+      qualityGates: completedGates.value,
+      results: completedWorkflow.value.results,
+      error: completedWorkflow.value.error || null,
+    };
+
+    // 生成 Markdown 报告
+    const markdown = generateMarkdownReport(reportData);
+
+    // 触发下载
+    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `workflow-report-${selectedWorkflowId.value}-${new Date().toISOString().split("T")[0]}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    message.success("报告导出成功");
+  } catch (error) {
+    message.error("导出失败: " + error.message);
+  }
+};
+
+const generateMarkdownReport = (data) => {
+  const lines = [
+    `# ${data.title}`,
+    "",
+    `> 导出时间: ${new Date(data.exportedAt).toLocaleString()}`,
+    "",
+    "## 执行摘要",
+    "",
+    `- **状态**: ${data.summary.success ? "成功" : "失败"}`,
+    `- **总耗时**: ${formatDuration(data.summary.duration)}`,
+    `- **完成阶段**: ${data.summary.completedStages} / ${data.summary.totalStages}`,
+    "",
+    "## 阶段详情",
+    "",
+    "| 阶段 | 状态 | 耗时 |",
+    "|------|------|------|",
+  ];
+
+  for (const stage of data.stages) {
+    const statusIcon =
+      stage.status === "completed"
+        ? "✅"
+        : stage.status === "failed"
+          ? "❌"
+          : "⏳";
+    lines.push(
+      `| ${stage.name} | ${statusIcon} ${stage.status} | ${formatDuration(stage.duration)} |`,
+    );
+  }
+
+  lines.push("");
+  lines.push("## 质量门禁");
+  lines.push("");
+
+  const gates = Object.entries(data.qualityGates || {});
+  if (gates.length > 0) {
+    lines.push("| 门禁 | 状态 | 评分 |");
+    lines.push("|------|------|------|");
+    for (const [name, gate] of gates) {
+      const passed = gate.passed || gate.status === "passed";
+      lines.push(
+        `| ${name} | ${passed ? "✅ 通过" : "❌ 未通过"} | ${gate.score || "-"} |`,
+      );
+    }
+  } else {
+    lines.push("_无质量门禁数据_");
+  }
+
+  if (data.error) {
+    lines.push("");
+    lines.push("## 错误信息");
+    lines.push("");
+    lines.push("```");
+    lines.push(data.error);
+    lines.push("```");
+  }
+
+  if (data.results) {
+    lines.push("");
+    lines.push("## 执行结果");
+    lines.push("");
+    lines.push("```json");
+    lines.push(JSON.stringify(data.results, null, 2));
+    lines.push("```");
+  }
+
+  lines.push("");
+  lines.push("---");
+  lines.push("_由 ChainlessChain 工作流系统生成_");
+
+  return lines.join("\n");
 };
 
 // 辅助方法
