@@ -138,6 +138,57 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       );
       return true; // Async response
 
+    // ==================== Reader Mode & Article Extraction ====================
+    case "extractArticle":
+      sendResponse(extractArticle(message.options));
+      break;
+
+    case "getReadableContent":
+      sendResponse(getReadableContent());
+      break;
+
+    case "extractMetadata":
+      sendResponse(extractMetadata());
+      break;
+
+    // ==================== Screenshot Support ====================
+    case "prepareScreenshot":
+      sendResponse(prepareScreenshot(message.options));
+      break;
+
+    case "getVisibleArea":
+      sendResponse(getVisibleArea());
+      break;
+
+    case "scrollForFullPage":
+      scrollForFullPage(message.options).then(sendResponse);
+      return true; // Async response
+
+    // ==================== Web Annotation ====================
+    case "highlightSelection":
+      sendResponse(highlightSelection(message.options));
+      break;
+
+    case "addAnnotation":
+      sendResponse(addAnnotation(message.options));
+      break;
+
+    case "getAnnotations":
+      sendResponse(getAnnotations());
+      break;
+
+    case "removeAnnotation":
+      sendResponse(removeAnnotation(message.annotationId));
+      break;
+
+    case "clearAnnotations":
+      sendResponse(clearAnnotations());
+      break;
+
+    case "exportAnnotations":
+      sendResponse(exportAnnotations());
+      break;
+
     default:
       sendResponse({ error: `Unknown message type: ${message.type}` });
   }
@@ -1025,6 +1076,913 @@ function getPageInfo() {
     readyState: document.readyState,
   };
 }
+
+// ==================== Reader Mode & Article Extraction ====================
+
+/**
+ * Extract article content using Readability-like algorithm
+ */
+function extractArticle(options = {}) {
+  try {
+    const article = {
+      title: "",
+      content: "",
+      textContent: "",
+      excerpt: "",
+      byline: "",
+      publishedDate: "",
+      siteName: "",
+      wordCount: 0,
+      readingTime: 0,
+    };
+
+    // Extract title
+    article.title = getArticleTitle();
+
+    // Extract author/byline
+    article.byline = getByline();
+
+    // Extract published date
+    article.publishedDate = getPublishedDate();
+
+    // Extract site name
+    article.siteName = getSiteName();
+
+    // Find main content
+    const mainContent = findMainContent();
+    if (mainContent) {
+      // Clean the content
+      const cleanedContent = cleanContent(mainContent.cloneNode(true));
+      article.content = cleanedContent.innerHTML;
+      article.textContent = cleanedContent.textContent.trim();
+
+      // Calculate word count and reading time
+      const words = article.textContent
+        .split(/\s+/)
+        .filter((w) => w.length > 0);
+      article.wordCount = words.length;
+      article.readingTime = Math.ceil(article.wordCount / 200); // 200 words per minute
+
+      // Generate excerpt
+      article.excerpt = article.textContent.substring(0, 300).trim() + "...";
+    }
+
+    // Extract images if requested
+    if (options.includeImages) {
+      article.images = extractArticleImages(mainContent);
+    }
+
+    return article;
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Get article title
+ */
+function getArticleTitle() {
+  // Try various selectors for title
+  const selectors = [
+    'meta[property="og:title"]',
+    'meta[name="twitter:title"]',
+    "h1.title",
+    "h1.post-title",
+    "h1.entry-title",
+    "h1.article-title",
+    "article h1",
+    ".post h1",
+    "h1",
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element) {
+      const content = element.content || element.textContent;
+      if (content && content.trim()) {
+        return content.trim();
+      }
+    }
+  }
+
+  return document.title;
+}
+
+/**
+ * Get author/byline
+ */
+function getByline() {
+  const selectors = [
+    'meta[name="author"]',
+    'meta[property="article:author"]',
+    '[rel="author"]',
+    ".author",
+    ".byline",
+    ".post-author",
+    '[itemprop="author"]',
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element) {
+      const content = element.content || element.textContent;
+      if (content && content.trim()) {
+        return content.trim();
+      }
+    }
+  }
+
+  return "";
+}
+
+/**
+ * Get published date
+ */
+function getPublishedDate() {
+  const selectors = [
+    'meta[property="article:published_time"]',
+    'meta[name="date"]',
+    'meta[name="DC.date"]',
+    "time[datetime]",
+    "time[pubdate]",
+    ".published",
+    ".post-date",
+    '[itemprop="datePublished"]',
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element) {
+      const content =
+        element.content ||
+        element.getAttribute("datetime") ||
+        element.textContent;
+      if (content && content.trim()) {
+        return content.trim();
+      }
+    }
+  }
+
+  return "";
+}
+
+/**
+ * Get site name
+ */
+function getSiteName() {
+  const selectors = [
+    'meta[property="og:site_name"]',
+    'meta[name="application-name"]',
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element && element.content) {
+      return element.content.trim();
+    }
+  }
+
+  return window.location.hostname;
+}
+
+/**
+ * Find main content element
+ */
+function findMainContent() {
+  // Content selectors in order of preference
+  const contentSelectors = [
+    "article",
+    '[role="main"]',
+    "main",
+    ".post-content",
+    ".entry-content",
+    ".article-content",
+    ".article-body",
+    ".post-body",
+    ".content",
+    "#content",
+    ".main-content",
+    "#main-content",
+  ];
+
+  for (const selector of contentSelectors) {
+    const element = document.querySelector(selector);
+    if (element && element.textContent.trim().length > 200) {
+      return element;
+    }
+  }
+
+  // Fallback: find element with most text content
+  return findLargestTextBlock();
+}
+
+/**
+ * Find element with largest text content
+ */
+function findLargestTextBlock() {
+  const candidates = document.querySelectorAll("div, section");
+  let best = null;
+  let bestScore = 0;
+
+  candidates.forEach((element) => {
+    // Skip navigation, header, footer, sidebar
+    const tag = element.tagName.toLowerCase();
+    const id = element.id.toLowerCase();
+    const className = element.className.toLowerCase();
+
+    const skipPatterns =
+      /nav|header|footer|sidebar|menu|comment|ad|social|share/;
+    if (
+      skipPatterns.test(tag) ||
+      skipPatterns.test(id) ||
+      skipPatterns.test(className)
+    ) {
+      return;
+    }
+
+    // Calculate score based on text density
+    const text = element.textContent.trim();
+    const links = element.querySelectorAll("a").length;
+    const paragraphs = element.querySelectorAll("p").length;
+
+    // Penalize link-heavy content
+    const linkDensity = links / (text.length || 1);
+    if (linkDensity > 0.5) return;
+
+    const score = text.length + paragraphs * 100 - links * 10;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = element;
+    }
+  });
+
+  return best;
+}
+
+/**
+ * Clean content by removing unwanted elements
+ */
+function cleanContent(element) {
+  // Elements to remove
+  const removeSelectors = [
+    "script",
+    "style",
+    "iframe",
+    "form",
+    "nav",
+    "header",
+    "footer",
+    "aside",
+    ".ad",
+    ".ads",
+    ".advertisement",
+    ".social-share",
+    ".share-buttons",
+    ".comments",
+    ".comment",
+    ".related",
+    ".recommended",
+    ".sidebar",
+    ".navigation",
+    '[role="navigation"]',
+    '[role="banner"]',
+    '[role="contentinfo"]',
+    '[aria-hidden="true"]',
+  ];
+
+  removeSelectors.forEach((selector) => {
+    element.querySelectorAll(selector).forEach((el) => el.remove());
+  });
+
+  // Remove empty elements
+  element.querySelectorAll("*").forEach((el) => {
+    if (!el.textContent.trim() && !el.querySelector("img")) {
+      el.remove();
+    }
+  });
+
+  return element;
+}
+
+/**
+ * Extract images from article
+ */
+function extractArticleImages(container) {
+  if (!container) return [];
+
+  const images = container.querySelectorAll("img");
+  return Array.from(images)
+    .filter((img) => {
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      // Filter out small images (likely icons/ads)
+      return width > 100 && height > 100;
+    })
+    .map((img) => ({
+      src: img.src,
+      alt: img.alt,
+      width: img.naturalWidth || img.width,
+      height: img.naturalHeight || img.height,
+    }));
+}
+
+/**
+ * Get readable content (simplified version)
+ */
+function getReadableContent() {
+  const article = extractArticle({ includeImages: true });
+
+  return {
+    title: article.title,
+    content: article.textContent,
+    html: article.content,
+    excerpt: article.excerpt,
+    byline: article.byline,
+    publishedDate: article.publishedDate,
+    siteName: article.siteName,
+    wordCount: article.wordCount,
+    readingTime: article.readingTime,
+    images: article.images || [],
+    url: window.location.href,
+  };
+}
+
+/**
+ * Extract page metadata
+ */
+function extractMetadata() {
+  const metadata = {
+    title: document.title,
+    description: "",
+    keywords: [],
+    author: "",
+    publishedDate: "",
+    modifiedDate: "",
+    siteName: "",
+    url: window.location.href,
+    canonical: "",
+    language: document.documentElement.lang || "",
+    ogData: {},
+    twitterData: {},
+    jsonLd: [],
+  };
+
+  // Meta description
+  const descMeta = document.querySelector('meta[name="description"]');
+  if (descMeta) metadata.description = descMeta.content;
+
+  // Keywords
+  const keywordsMeta = document.querySelector('meta[name="keywords"]');
+  if (keywordsMeta) {
+    metadata.keywords = keywordsMeta.content.split(",").map((k) => k.trim());
+  }
+
+  // Author
+  metadata.author = getByline();
+
+  // Dates
+  metadata.publishedDate = getPublishedDate();
+  const modifiedMeta = document.querySelector(
+    'meta[property="article:modified_time"]',
+  );
+  if (modifiedMeta) metadata.modifiedDate = modifiedMeta.content;
+
+  // Site name
+  metadata.siteName = getSiteName();
+
+  // Canonical URL
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) metadata.canonical = canonical.href;
+
+  // Open Graph data
+  document.querySelectorAll('meta[property^="og:"]').forEach((meta) => {
+    const property = meta.getAttribute("property").replace("og:", "");
+    metadata.ogData[property] = meta.content;
+  });
+
+  // Twitter Card data
+  document.querySelectorAll('meta[name^="twitter:"]').forEach((meta) => {
+    const name = meta.getAttribute("name").replace("twitter:", "");
+    metadata.twitterData[name] = meta.content;
+  });
+
+  // JSON-LD structured data
+  document
+    .querySelectorAll('script[type="application/ld+json"]')
+    .forEach((script) => {
+      try {
+        metadata.jsonLd.push(JSON.parse(script.textContent));
+      } catch (e) {
+        // Invalid JSON, skip
+      }
+    });
+
+  return metadata;
+}
+
+// ==================== Screenshot Support ====================
+
+/**
+ * Prepare page for screenshot
+ */
+function prepareScreenshot(options = {}) {
+  try {
+    const result = {
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      },
+      document: {
+        width: document.documentElement.scrollWidth,
+        height: document.documentElement.scrollHeight,
+      },
+      scrollPosition: {
+        x: window.scrollX,
+        y: window.scrollY,
+      },
+    };
+
+    // Hide fixed/sticky elements if requested
+    if (options.hideFixed) {
+      const fixedElements = [];
+      document.querySelectorAll("*").forEach((el) => {
+        const style = window.getComputedStyle(el);
+        if (style.position === "fixed" || style.position === "sticky") {
+          fixedElements.push({
+            element: el,
+            originalDisplay: el.style.display,
+          });
+          el.style.display = "none";
+        }
+      });
+      result.hiddenElements = fixedElements.length;
+    }
+
+    // Get element bounds if selector provided
+    if (options.selector) {
+      const element = document.querySelector(options.selector);
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        result.elementBounds = {
+          x: rect.x + window.scrollX,
+          y: rect.y + window.scrollY,
+          width: rect.width,
+          height: rect.height,
+        };
+      }
+    }
+
+    return result;
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Get visible area information
+ */
+function getVisibleArea() {
+  return {
+    viewport: {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    },
+    scroll: {
+      x: window.scrollX,
+      y: window.scrollY,
+    },
+    document: {
+      width: document.documentElement.scrollWidth,
+      height: document.documentElement.scrollHeight,
+    },
+    devicePixelRatio: window.devicePixelRatio || 1,
+  };
+}
+
+/**
+ * Scroll through page for full-page screenshot
+ */
+async function scrollForFullPage(options = {}) {
+  const totalHeight = document.documentElement.scrollHeight;
+  const viewportHeight = window.innerHeight;
+  const scrollStep = options.step || viewportHeight;
+  const delay = options.delay || 100;
+
+  const positions = [];
+  let currentScroll = 0;
+
+  // Scroll to top first
+  window.scrollTo(0, 0);
+  await sleep(delay);
+
+  while (currentScroll < totalHeight) {
+    positions.push({
+      scrollY: currentScroll,
+      captureHeight: Math.min(viewportHeight, totalHeight - currentScroll),
+    });
+
+    currentScroll += scrollStep;
+    window.scrollTo(0, currentScroll);
+    await sleep(delay);
+  }
+
+  // Return to original position
+  window.scrollTo(0, 0);
+
+  return {
+    positions,
+    totalHeight,
+    viewportHeight,
+    totalCaptures: positions.length,
+  };
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ==================== Web Annotation System ====================
+
+// Store annotations in memory (will be synced to storage)
+let annotations = [];
+let annotationIdCounter = 0;
+
+/**
+ * Highlight selected text
+ */
+function highlightSelection(options = {}) {
+  try {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed) {
+      return { error: "No text selected" };
+    }
+
+    const range = selection.getRangeAt(0);
+    const text = selection.toString().trim();
+
+    if (!text) {
+      return { error: "Selected text is empty" };
+    }
+
+    // Create highlight wrapper
+    const highlightId = `chainless-highlight-${++annotationIdCounter}`;
+    const color = options.color || "#FFEB3B";
+
+    const highlight = document.createElement("mark");
+    highlight.id = highlightId;
+    highlight.className = "chainlesschain-annotation";
+    highlight.style.cssText = `
+      background-color: ${color};
+      padding: 2px 0;
+      border-radius: 2px;
+      cursor: pointer;
+    `;
+    highlight.dataset.annotationId = highlightId;
+
+    // Wrap the selection
+    try {
+      range.surroundContents(highlight);
+    } catch (e) {
+      // Handle complex selections that cross element boundaries
+      const fragment = range.extractContents();
+      highlight.appendChild(fragment);
+      range.insertNode(highlight);
+    }
+
+    // Clear selection
+    selection.removeAllRanges();
+
+    // Create annotation object
+    const annotation = {
+      id: highlightId,
+      type: "highlight",
+      text: text,
+      color: color,
+      note: options.note || "",
+      url: window.location.href,
+      xpath: getXPath(highlight),
+      createdAt: new Date().toISOString(),
+      position: {
+        top: highlight.getBoundingClientRect().top + window.scrollY,
+        left: highlight.getBoundingClientRect().left + window.scrollX,
+      },
+    };
+
+    annotations.push(annotation);
+
+    // Add click handler for editing
+    highlight.addEventListener("click", (e) => {
+      e.preventDefault();
+      chrome.runtime.sendMessage({
+        type: "annotationClicked",
+        annotation: annotation,
+      });
+    });
+
+    // Save to storage
+    saveAnnotationsToStorage();
+
+    return { success: true, annotation };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Add annotation with note
+ */
+function addAnnotation(options = {}) {
+  try {
+    if (!options.text && !options.selector) {
+      return { error: "Text or selector required" };
+    }
+
+    let targetElement = null;
+    let text = options.text || "";
+
+    if (options.selector) {
+      targetElement = document.querySelector(options.selector);
+      if (!targetElement) {
+        return { error: `Element not found: ${options.selector}` };
+      }
+      text = targetElement.textContent.trim();
+    }
+
+    const annotationId = `chainless-annotation-${++annotationIdCounter}`;
+
+    const annotation = {
+      id: annotationId,
+      type: options.type || "note",
+      text: text.substring(0, 500),
+      note: options.note || "",
+      color: options.color || "#FFEB3B",
+      url: window.location.href,
+      selector: options.selector || "",
+      xpath: targetElement ? getXPath(targetElement) : "",
+      tags: options.tags || [],
+      createdAt: new Date().toISOString(),
+      position: targetElement
+        ? {
+            top: targetElement.getBoundingClientRect().top + window.scrollY,
+            left: targetElement.getBoundingClientRect().left + window.scrollX,
+          }
+        : null,
+    };
+
+    annotations.push(annotation);
+
+    // Add visual indicator if element exists
+    if (targetElement && options.showIndicator !== false) {
+      const indicator = document.createElement("div");
+      indicator.className = "chainlesschain-annotation-indicator";
+      indicator.dataset.annotationId = annotationId;
+      indicator.style.cssText = `
+        position: absolute;
+        left: -20px;
+        top: 0;
+        width: 16px;
+        height: 16px;
+        background: ${options.color || "#FFEB3B"};
+        border-radius: 50%;
+        cursor: pointer;
+        z-index: 999999;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      `;
+
+      // Position relative to target
+      targetElement.style.position = "relative";
+      targetElement.appendChild(indicator);
+
+      indicator.addEventListener("click", (e) => {
+        e.stopPropagation();
+        chrome.runtime.sendMessage({
+          type: "annotationClicked",
+          annotation: annotation,
+        });
+      });
+    }
+
+    saveAnnotationsToStorage();
+
+    return { success: true, annotation };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Get all annotations for current page
+ */
+function getAnnotations() {
+  return {
+    annotations: annotations.filter((a) => a.url === window.location.href),
+    total: annotations.length,
+    currentPage: annotations.filter((a) => a.url === window.location.href)
+      .length,
+  };
+}
+
+/**
+ * Remove annotation by ID
+ */
+function removeAnnotation(annotationId) {
+  try {
+    // Remove from DOM
+    const element = document.getElementById(annotationId);
+    if (element) {
+      // Unwrap highlight
+      const parent = element.parentNode;
+      while (element.firstChild) {
+        parent.insertBefore(element.firstChild, element);
+      }
+      parent.removeChild(element);
+    }
+
+    // Remove indicator
+    const indicator = document.querySelector(
+      `[data-annotation-id="${annotationId}"]`,
+    );
+    if (indicator) {
+      indicator.remove();
+    }
+
+    // Remove from array
+    const index = annotations.findIndex((a) => a.id === annotationId);
+    if (index > -1) {
+      annotations.splice(index, 1);
+    }
+
+    saveAnnotationsToStorage();
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Clear all annotations on current page
+ */
+function clearAnnotations() {
+  try {
+    // Remove all highlights
+    document.querySelectorAll(".chainlesschain-annotation").forEach((el) => {
+      const parent = el.parentNode;
+      while (el.firstChild) {
+        parent.insertBefore(el.firstChild, el);
+      }
+      parent.removeChild(el);
+    });
+
+    // Remove all indicators
+    document
+      .querySelectorAll(".chainlesschain-annotation-indicator")
+      .forEach((el) => el.remove());
+
+    // Filter out current page annotations
+    const currentUrl = window.location.href;
+    annotations = annotations.filter((a) => a.url !== currentUrl);
+
+    saveAnnotationsToStorage();
+
+    return { success: true };
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Export annotations for current page
+ */
+function exportAnnotations() {
+  const pageAnnotations = annotations.filter(
+    (a) => a.url === window.location.href,
+  );
+
+  return {
+    url: window.location.href,
+    title: document.title,
+    exportedAt: new Date().toISOString(),
+    annotations: pageAnnotations,
+    count: pageAnnotations.length,
+    // Generate markdown summary
+    markdown: generateAnnotationsMarkdown(pageAnnotations),
+  };
+}
+
+/**
+ * Generate markdown from annotations
+ */
+function generateAnnotationsMarkdown(pageAnnotations) {
+  let md = `# Annotations: ${document.title}\n\n`;
+  md += `**URL:** ${window.location.href}\n`;
+  md += `**Exported:** ${new Date().toLocaleString()}\n\n`;
+  md += `---\n\n`;
+
+  pageAnnotations.forEach((annotation, index) => {
+    md += `## ${index + 1}. ${annotation.type === "highlight" ? "Highlight" : "Note"}\n\n`;
+    md += `> ${annotation.text}\n\n`;
+    if (annotation.note) {
+      md += `**Note:** ${annotation.note}\n\n`;
+    }
+    if (annotation.tags && annotation.tags.length > 0) {
+      md += `**Tags:** ${annotation.tags.join(", ")}\n\n`;
+    }
+    md += `*Created: ${new Date(annotation.createdAt).toLocaleString()}*\n\n`;
+    md += `---\n\n`;
+  });
+
+  return md;
+}
+
+/**
+ * Get XPath for element
+ */
+function getXPath(element) {
+  if (!element) return "";
+
+  const parts = [];
+  let current = element;
+
+  while (current && current.nodeType === Node.ELEMENT_NODE) {
+    let index = 1;
+    let sibling = current.previousSibling;
+
+    while (sibling) {
+      if (
+        sibling.nodeType === Node.ELEMENT_NODE &&
+        sibling.tagName === current.tagName
+      ) {
+        index++;
+      }
+      sibling = sibling.previousSibling;
+    }
+
+    const tagName = current.tagName.toLowerCase();
+    const part = index > 1 ? `${tagName}[${index}]` : tagName;
+    parts.unshift(part);
+
+    current = current.parentNode;
+  }
+
+  return "/" + parts.join("/");
+}
+
+/**
+ * Save annotations to chrome storage
+ */
+function saveAnnotationsToStorage() {
+  try {
+    chrome.storage.local.set({ annotations: annotations });
+  } catch (e) {
+    console.error("[ChainlessChain] Failed to save annotations:", e);
+  }
+}
+
+/**
+ * Load annotations from chrome storage
+ */
+function loadAnnotationsFromStorage() {
+  try {
+    chrome.storage.local.get(["annotations"], (result) => {
+      if (result.annotations) {
+        annotations = result.annotations;
+        // Restore highlights for current page
+        restoreAnnotations();
+      }
+    });
+  } catch (e) {
+    console.error("[ChainlessChain] Failed to load annotations:", e);
+  }
+}
+
+/**
+ * Restore annotations on page load
+ */
+function restoreAnnotations() {
+  const pageAnnotations = annotations.filter(
+    (a) => a.url === window.location.href,
+  );
+
+  pageAnnotations.forEach((annotation) => {
+    if (annotation.xpath) {
+      try {
+        // Try to find element by XPath and re-apply highlight
+        // This is a simplified version; full implementation would use text matching
+        console.log(
+          "[ChainlessChain] Would restore annotation:",
+          annotation.id,
+        );
+      } catch (e) {
+        console.error("[ChainlessChain] Failed to restore annotation:", e);
+      }
+    }
+  });
+}
+
+// Load annotations when content script loads
+loadAnnotationsFromStorage();
 
 // Notify background that content script is ready
 chrome.runtime.sendMessage({

@@ -1711,6 +1711,30 @@ async function executeCommand(method, params) {
     case "editContext.isSupported":
       return await isEditContextSupported(params.tabId);
 
+    // ==================== Phase 26: Reader Mode & Article Extraction ====================
+
+    case "article.extract":
+      return await extractArticle(params.tabId);
+    case "article.getReadable":
+      return await getReadableContent(params.tabId, params.options);
+    case "article.getMetadata":
+      return await extractArticleMetadata(params.tabId);
+
+    // ==================== Phase 27: Web Annotation ====================
+
+    case "annotation.highlight":
+      return await highlightSelection(params.tabId, params.options);
+    case "annotation.add":
+      return await addAnnotation(params.tabId, params.annotation);
+    case "annotation.getAll":
+      return await getAnnotations(params.tabId);
+    case "annotation.remove":
+      return await removeAnnotation(params.tabId, params.annotationId);
+    case "annotation.clear":
+      return await clearAnnotations(params.tabId);
+    case "annotation.export":
+      return await exportAnnotations(params.tabId, params.format);
+
     default:
       throw new Error(`Unknown method: ${method}`);
   }
@@ -14984,6 +15008,414 @@ async function isEditContextSupported(tabId) {
     return result[0]?.result || {};
   } catch (error) {
     return { error: error.message };
+  }
+}
+
+// ==================== Phase 26: Reader Mode & Article Extraction ====================
+
+/**
+ * Extract article content from the page using Readability-like algorithm
+ */
+async function extractArticle(tabId) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "extractArticle",
+    });
+    return response;
+  } catch (error) {
+    // Fallback: use scripting API
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        // Simple article extraction fallback
+        const article =
+          document.querySelector("article") ||
+          document.querySelector('[role="main"]') ||
+          document.querySelector("main") ||
+          document.body;
+
+        const title =
+          document.querySelector("h1")?.textContent || document.title;
+
+        const content = article ? article.innerText : document.body.innerText;
+
+        return {
+          success: true,
+          article: {
+            title: title.trim(),
+            content: content.substring(0, 50000), // Limit content size
+            textContent: content.substring(0, 50000),
+            length: content.length,
+            siteName: window.location.hostname,
+            url: window.location.href,
+          },
+        };
+      },
+    });
+    return results[0]?.result || { error: "Failed to extract article" };
+  }
+}
+
+/**
+ * Get readable content with formatting options
+ */
+async function getReadableContent(tabId, options = {}) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "getReadableContent",
+      options,
+    });
+    return response;
+  } catch (error) {
+    // Fallback: extract basic content
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (opts) => {
+        const article =
+          document.querySelector("article") ||
+          document.querySelector('[role="main"]') ||
+          document.querySelector("main");
+
+        if (!article) {
+          return { error: "No readable content found" };
+        }
+
+        // Clean up the content
+        const clone = article.cloneNode(true);
+
+        // Remove unwanted elements
+        const removeSelectors = [
+          "script",
+          "style",
+          "nav",
+          "aside",
+          "footer",
+          "header",
+          ".ad",
+          ".advertisement",
+          ".social-share",
+          ".comments",
+        ];
+        removeSelectors.forEach((sel) => {
+          clone.querySelectorAll(sel).forEach((el) => el.remove());
+        });
+
+        const includeImages = opts?.includeImages !== false;
+        const images = [];
+
+        if (includeImages) {
+          clone.querySelectorAll("img").forEach((img) => {
+            if (img.src && img.naturalWidth > 100) {
+              images.push({
+                src: img.src,
+                alt: img.alt,
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+              });
+            }
+          });
+        }
+
+        return {
+          success: true,
+          content: {
+            html: clone.innerHTML,
+            text: clone.innerText,
+            images,
+            wordCount: clone.innerText.split(/\s+/).length,
+          },
+        };
+      },
+      args: [options],
+    });
+    return results[0]?.result || { error: "Failed to get readable content" };
+  }
+}
+
+/**
+ * Extract article metadata (author, date, description, etc.)
+ */
+async function extractArticleMetadata(tabId) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "extractMetadata",
+    });
+    return response;
+  } catch (error) {
+    // Fallback: extract basic metadata
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const getMeta = (name) => {
+          const meta =
+            document.querySelector(`meta[name="${name}"]`) ||
+            document.querySelector(`meta[property="${name}"]`) ||
+            document.querySelector(`meta[property="og:${name}"]`);
+          return meta?.content || null;
+        };
+
+        return {
+          success: true,
+          metadata: {
+            title: document.title,
+            description: getMeta("description"),
+            author: getMeta("author"),
+            publishedTime:
+              getMeta("article:published_time") || getMeta("datePublished"),
+            modifiedTime:
+              getMeta("article:modified_time") || getMeta("dateModified"),
+            siteName: getMeta("og:site_name") || window.location.hostname,
+            url: window.location.href,
+            image: getMeta("og:image"),
+            type: getMeta("og:type"),
+            keywords: getMeta("keywords"),
+            language: document.documentElement.lang,
+          },
+        };
+      },
+    });
+    return results[0]?.result || { error: "Failed to extract metadata" };
+  }
+}
+
+// ==================== Phase 27: Web Annotation ====================
+
+/**
+ * Highlight the current text selection
+ */
+async function highlightSelection(tabId, options = {}) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "highlightSelection",
+      options,
+    });
+    return response;
+  } catch (error) {
+    // Fallback: use scripting API
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (opts) => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) {
+          return { error: "No text selected" };
+        }
+
+        const range = selection.getRangeAt(0);
+        const highlight = document.createElement("mark");
+        highlight.style.backgroundColor = opts?.color || "#ffff00";
+        highlight.style.padding = "2px";
+        highlight.dataset.annotationId = `ann-${Date.now()}`;
+
+        try {
+          range.surroundContents(highlight);
+          selection.removeAllRanges();
+          return {
+            success: true,
+            annotationId: highlight.dataset.annotationId,
+            text: highlight.textContent,
+          };
+        } catch (e) {
+          return { error: "Cannot highlight across element boundaries" };
+        }
+      },
+      args: [options],
+    });
+    return results[0]?.result || { error: "Failed to highlight selection" };
+  }
+}
+
+/**
+ * Add an annotation to the page
+ */
+async function addAnnotation(tabId, annotation) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "addAnnotation",
+      annotation,
+    });
+    return response;
+  } catch (error) {
+    return { error: error.message };
+  }
+}
+
+/**
+ * Get all annotations on the page
+ */
+async function getAnnotations(tabId) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "getAnnotations",
+    });
+    return response;
+  } catch (error) {
+    // Fallback: get annotations from DOM
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const marks = document.querySelectorAll("mark[data-annotation-id]");
+        const annotations = [];
+        marks.forEach((mark) => {
+          annotations.push({
+            id: mark.dataset.annotationId,
+            text: mark.textContent,
+            color: mark.style.backgroundColor,
+            note: mark.dataset.note || null,
+          });
+        });
+        return { success: true, annotations };
+      },
+    });
+    return results[0]?.result || { annotations: [] };
+  }
+}
+
+/**
+ * Remove a specific annotation
+ */
+async function removeAnnotation(tabId, annotationId) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "removeAnnotation",
+      annotationId,
+    });
+    return response;
+  } catch (error) {
+    // Fallback: remove from DOM directly
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (annId) => {
+        const mark = document.querySelector(
+          `mark[data-annotation-id="${annId}"]`,
+        );
+        if (!mark) {
+          return { error: "Annotation not found" };
+        }
+        const parent = mark.parentNode;
+        while (mark.firstChild) {
+          parent.insertBefore(mark.firstChild, mark);
+        }
+        parent.removeChild(mark);
+        return { success: true };
+      },
+      args: [annotationId],
+    });
+    return results[0]?.result || { error: "Failed to remove annotation" };
+  }
+}
+
+/**
+ * Clear all annotations on the page
+ */
+async function clearAnnotations(tabId) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "clearAnnotations",
+    });
+    return response;
+  } catch (error) {
+    // Fallback: clear from DOM directly
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const marks = document.querySelectorAll("mark[data-annotation-id]");
+        let removed = 0;
+        marks.forEach((mark) => {
+          const parent = mark.parentNode;
+          while (mark.firstChild) {
+            parent.insertBefore(mark.firstChild, mark);
+          }
+          parent.removeChild(mark);
+          removed++;
+        });
+        return { success: true, removed };
+      },
+    });
+    return results[0]?.result || { error: "Failed to clear annotations" };
+  }
+}
+
+/**
+ * Export all annotations in specified format (json, markdown, html)
+ */
+async function exportAnnotations(tabId, format = "json") {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, {
+      type: "exportAnnotations",
+      format,
+    });
+    return response;
+  } catch (error) {
+    // Fallback: export basic format
+    const annotations = await getAnnotations(tabId);
+    if (annotations.error) {
+      return annotations;
+    }
+
+    const pageTitle =
+      (
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          func: () => document.title,
+        })
+      )[0]?.result || "Untitled";
+
+    const pageUrl =
+      (
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          func: () => window.location.href,
+        })
+      )[0]?.result || "";
+
+    if (format === "markdown") {
+      let md = `# Annotations: ${pageTitle}\n\n`;
+      md += `Source: ${pageUrl}\n\n`;
+      md += `Exported: ${new Date().toISOString()}\n\n---\n\n`;
+      annotations.annotations.forEach((ann, i) => {
+        md += `## ${i + 1}. Highlight\n\n`;
+        md += `> ${ann.text}\n\n`;
+        if (ann.note) {
+          md += `**Note:** ${ann.note}\n\n`;
+        }
+      });
+      return { success: true, format: "markdown", content: md };
+    } else if (format === "html") {
+      let html = `<!DOCTYPE html>
+<html><head><title>Annotations: ${pageTitle}</title>
+<style>
+body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+.highlight { background: #ffff00; padding: 2px 4px; }
+.note { color: #666; font-style: italic; }
+</style></head><body>
+<h1>Annotations: ${pageTitle}</h1>
+<p>Source: <a href="${pageUrl}">${pageUrl}</a></p>
+<hr>`;
+      annotations.annotations.forEach((ann) => {
+        html += `<div class="annotation">
+<p><span class="highlight">${ann.text}</span></p>
+${ann.note ? `<p class="note">${ann.note}</p>` : ""}
+</div>`;
+      });
+      html += "</body></html>";
+      return { success: true, format: "html", content: html };
+    }
+
+    // Default: JSON
+    return {
+      success: true,
+      format: "json",
+      content: JSON.stringify(
+        {
+          title: pageTitle,
+          url: pageUrl,
+          exportedAt: new Date().toISOString(),
+          annotations: annotations.annotations,
+        },
+        null,
+        2,
+      ),
+    };
   }
 }
 
