@@ -449,7 +449,7 @@ describe('StreamController', () => {
       controller.start();
 
       const errorHandler = vi.fn();
-      controller.on('error', errorHandler);
+      controller.on('stream-error', errorHandler);
 
       const testError = new Error('Test error');
       controller.error(testError);
@@ -469,7 +469,7 @@ describe('StreamController', () => {
       await controller.processChunk({ data: 'test2' });
 
       const errorHandler = vi.fn();
-      controller.on('error', errorHandler);
+      controller.on('stream-error', errorHandler);
 
       controller.error(new Error('Test'));
 

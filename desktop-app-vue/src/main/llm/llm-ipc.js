@@ -1435,7 +1435,7 @@ function registerLLMIPC({
           }
         });
 
-        controller.on("error", (data) => {
+        controller.on("stream-error", (data) => {
           if (mainWindow) {
             mainWindow.webContents.send("llm:stream-error", {
               controllerId,

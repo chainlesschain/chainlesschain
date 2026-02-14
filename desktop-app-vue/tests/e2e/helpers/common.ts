@@ -91,8 +91,19 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
 /**
  * 关闭Electron应用
  */
-export async function closeElectronApp(app: ElectronApplication): Promise<void> {
-  await app.close();
+export async function closeElectronApp(
+  app: ElectronApplication,
+  options?: { delay?: number }
+): Promise<void> {
+  try {
+    await app.close();
+  } catch (error) {
+    console.warn('[closeElectronApp] Error during close (ignoring):', (error as Error).message);
+  }
+  const delay = options?.delay ?? 0;
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
 }
 
 /**

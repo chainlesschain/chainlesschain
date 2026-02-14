@@ -59,7 +59,7 @@ class StreamControllerManager {
       // this.delete(conversationId);
     });
 
-    controller.on("error", (data) => {
+    controller.on("stream-error", (data) => {
       logger.error(
         `[StreamControllerManager] 对话 ${conversationId} 出错:`,
         data.error,

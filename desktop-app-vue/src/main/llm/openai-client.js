@@ -175,7 +175,7 @@ class OpenAIClient extends EventEmitter {
         }
 
         logger.error("[OpenAIClient] 聊天失败:", error.response?.data || error);
-        throw new Error(error.response?.data?.error?.message || error.message);
+        throw new Error(this._formatAPIError(error));
       }
     }
 
@@ -299,7 +299,7 @@ class OpenAIClient extends EventEmitter {
         "[OpenAIClient] 流式聊天失败:",
         error.response?.data || error,
       );
-      throw new Error(error.response?.data?.error?.message || error.message);
+      throw new Error(this._formatAPIError(error));
     }
   }
 
@@ -330,7 +330,7 @@ class OpenAIClient extends EventEmitter {
       };
     } catch (error) {
       logger.error("[OpenAIClient] 补全失败:", error.response?.data || error);
-      throw new Error(error.response?.data?.error?.message || error.message);
+      throw new Error(this._formatAPIError(error));
     }
   }
 
@@ -358,7 +358,7 @@ class OpenAIClient extends EventEmitter {
         "[OpenAIClient] 生成嵌入失败:",
         error.response?.data || error,
       );
-      throw new Error(error.response?.data?.error?.message || error.message);
+      throw new Error(this._formatAPIError(error));
     }
   }
 
@@ -374,7 +374,7 @@ class OpenAIClient extends EventEmitter {
         "[OpenAIClient] 列出模型失败:",
         error.response?.data || error,
       );
-      throw new Error(error.response?.data?.error?.message || error.message);
+      throw new Error(this._formatAPIError(error));
     }
   }
 
@@ -391,7 +391,44 @@ class OpenAIClient extends EventEmitter {
         "[OpenAIClient] 获取模型信息失败:",
         error.response?.data || error,
       );
-      throw new Error(error.response?.data?.error?.message || error.message);
+      throw new Error(this._formatAPIError(error));
+    }
+  }
+
+  /**
+   * 格式化 API 错误为用户友好的消息
+   * @param {Error} error - axios 错误对象
+   * @returns {string} 用户友好的错误消息
+   */
+  _formatAPIError(error) {
+    const status = error.response?.status;
+    const serverMessage = error.response?.data?.error?.message;
+    const baseURL = this.baseURL || '';
+
+    switch (status) {
+      case 401:
+        return `API 密钥无效或已过期，请在设置中检查 API Key 配置（${baseURL}）`;
+      case 403:
+        return `API 访问被拒绝，请检查 API Key 权限或账户状态（${baseURL}）`;
+      case 429:
+        return `API 请求频率超限或额度用尽，请稍后重试或检查账户余额（${baseURL}）`;
+      case 500:
+      case 502:
+      case 503:
+        return `API 服务暂时不可用（HTTP ${status}），请稍后重试（${baseURL}）`;
+      case 404:
+        return `API 端点不存在或模型不可用，请检查 API 地址和模型配置（${baseURL}）`;
+      default:
+        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+          return `API 请求超时，请检查网络连接或稍后重试（${baseURL}）`;
+        }
+        if (error.code === 'ECONNREFUSED') {
+          return `无法连接到 API 服务，请检查服务地址是否正确（${baseURL}）`;
+        }
+        if (error.code === 'ENOTFOUND') {
+          return `无法解析 API 服务地址，请检查网络连接和 API 地址配置（${baseURL}）`;
+        }
+        return serverMessage || error.message;
     }
   }
 }
