@@ -2,8 +2,8 @@
 
 > 记录项目中已验证的架构模式和解决方案，供 AI 助手和开发者参考
 >
-> **版本**: v1.0.0
-> **最后更新**: 2026-01-16
+> **版本**: v1.1.0
+> **最后更新**: 2026-02-15
 
 ---
 
@@ -345,6 +345,246 @@ class QueryCache {
   }
 }
 ```
+
+---
+
+## Android 区块链模式
+
+### Pattern: BouncyCastle secp256k1 椭圆曲线操作
+
+**问题**: Android 端需要实现以太坊兼容的 ECDSA 签名和公钥推导，不依赖原生 C 库
+
+**解决方案**:
+
+```kotlin
+// 使用 BouncyCastle CustomNamedCurves (比 ECNamedCurveTable 更高效)
+val curveParams = CustomNamedCurves.getByName("secp256k1")
+
+// 公钥推导 - 使用 FixedPointCombMultiplier (常量时间，防侧信道攻击)
+val pointQ = FixedPointCombMultiplier().multiply(curveParams.g, BigInteger(1, privateKey))
+val uncompressedPubKey = pointQ.getEncoded(false) // 65 bytes
+val compressedPubKey = pointQ.getEncoded(true)     // 33 bytes (BIP32 用)
+
+// ECDSA 签名 - 使用 HMacDSAKCalculator (RFC 6979 确定性 k)
+val signer = ECDSASigner(HMacDSAKCalculator(SHA256Digest()))
+signer.init(true, ECPrivateKeyParameters(privKeyNum, domainParams))
+val (r, s) = signer.generateSignature(hash)
+
+// EIP-2 正规化: s 必须在曲线阶的下半部分
+if (s > curveParams.n.shiftRight(1)) {
+    s = curveParams.n.subtract(s)
+}
+
+// Recovery ID 计算: 尝试 0-3 恢复公钥并与原始公钥比对
+```
+
+**关键要点**:
+- 使用 `CustomNamedCurves` 而非 `ECNamedCurveTable` (性能更好)
+- BIP32 非硬化子密钥推导必须使用 33 字节压缩公钥
+- 签名后务必做 EIP-2 s 正规化，否则交易会被以太坊节点拒绝
+- Recovery ID 用于 `ecrecover`，v = recId + 27 (Legacy) 或 recId (EIP-1559)
+
+**实现位置**: `android-app/core-blockchain/src/main/java/.../crypto/WalletCoreAdapter.kt`
+
+---
+
+### Pattern: RLP 编码 (以太坊交易序列化)
+
+**问题**: 以太坊交易需要 RLP 编码，Android 端无现成库
+
+**解决方案**:
+
+```kotlin
+object RLPEncoder {
+    // 单字节 [0x00, 0x7f] → 直接编码
+    // 短字符串 <56B → 0x80+len 前缀
+    // 长字符串 ≥56B → 0xb7+lenOfLen + len 前缀
+    // 短列表 <56B → 0xc0+len 前缀
+    // 长列表 ≥56B → 0xf7+lenOfLen + len 前缀
+
+    fun encodeBytes(input: ByteArray): ByteArray { ... }
+    fun encodeBigInteger(value: BigInteger): ByteArray { ... }
+    fun encodeList(items: List<ByteArray>): ByteArray { ... }
+}
+
+// Legacy tx: RLP([nonce, gasPrice, gasLimit, to, value, data])
+// EIP-1559: 0x02 || RLP([chainId, nonce, maxPriorityFee, maxFee, gasLimit, to, value, data, []])
+// 签名后追加 v, r, s 到列表末尾
+```
+
+**关键要点**:
+- BigInteger 编码时需要去除前导零字节（符号位）
+- 零值编码为空字节数组 `encodeBytes(ByteArray(0))`
+- EIP-1559 交易需要 `0x02` 类型前缀在 RLP 之前
+- 签名交易通过剥离 RLP 列表头、追加 v/r/s、重新包装实现
+
+**实现位置**: `android-app/core-blockchain/src/main/java/.../crypto/RLPEncoder.kt`
+
+---
+
+### Pattern: Ethereum Keystore V3 解密
+
+**问题**: 用户导入以太坊钱包 Keystore JSON 文件
+
+**解决方案**:
+
+```kotlin
+fun decryptKeystoreV3(keystoreJson: String, password: String): ByteArray {
+    // 1. 解析 JSON: crypto.cipher, crypto.kdf, crypto.ciphertext, cipherparams.iv, mac
+    // 2. KDF 派生密钥:
+    //    - scrypt: SCrypt.generate(password, salt, n, r, p, dkLen)
+    //    - pbkdf2: PBKDF2WithHmacSHA256(password, salt, iterations, dkLen)
+    // 3. MAC 验证: keccak256(derivedKey[16:32] + ciphertext) == mac
+    // 4. AES-128-CTR 解密: Cipher("AES/CTR/NoPadding", derivedKey[0:16], iv)
+}
+```
+
+**关键要点**:
+- 同时支持 `"crypto"` 和 `"Crypto"` 字段名（不同钱包生成的格式不同）
+- MAC 验证失败 = 密码错误，需要给用户友好提示
+- BouncyCastle 的 `SCrypt.generate` 直接可用，无需额外依赖
+
+**实现位置**: `android-app/feature-blockchain/src/main/java/.../manager/WalletManager.kt`
+
+---
+
+## Android UI 模式
+
+### Pattern: Compose 搜索输入防抖
+
+**问题**: 用户输入搜索词时，每次按键都触发网络请求
+
+**解决方案**:
+
+```kotlin
+var searchQuery by remember { mutableStateOf("") }
+
+// 输入框只更新 state，不直接调用搜索
+onQueryChange = { searchQuery = it }
+
+// 单独的 LaunchedEffect 处理防抖
+LaunchedEffect(Unit) {
+    snapshotFlow { searchQuery }
+        .debounce(300)
+        .distinctUntilChanged()
+        .collectLatest { query ->
+            viewModel.searchFriends(query)
+        }
+}
+```
+
+**关键要点**:
+- `snapshotFlow` 将 Compose State 转为 Flow
+- `debounce(300)` 等待 300ms 无新输入后才触发
+- `distinctUntilChanged()` 避免相同查询重复请求
+- `collectLatest` 取消前一个未完成的搜索
+
+**实现位置**: `android-app/feature-p2p/src/main/java/.../social/FriendListScreen.kt`
+
+---
+
+### Pattern: Compose 深色模式平滑过渡
+
+**问题**: 深色/浅色模式切换时颜色突变，体验生硬
+
+**解决方案**:
+
+```kotlin
+@Composable
+private fun ColorScheme.animate(durationMs: Int = 400): ColorScheme {
+    val animSpec = tween<Color>(durationMillis = durationMs)
+    return copy(
+        primary = animateColorAsState(primary, animSpec, label = "primary").value,
+        background = animateColorAsState(background, animSpec, label = "background").value,
+        surface = animateColorAsState(surface, animSpec, label = "surface").value,
+        // ... 覆盖所有关键颜色属性
+    )
+}
+
+// 在 Theme 中使用
+val animatedColorScheme = colorScheme.animate()
+MaterialTheme(colorScheme = animatedColorScheme, ...)
+```
+
+**关键要点**:
+- 使用 `ColorScheme.copy()` 扩展函数，保持原有结构
+- 每个颜色属性需要唯一的 `label` 参数（调试用）
+- 400ms tween 是视觉上舒适的过渡时长
+- 需覆盖至少 20+ 个颜色属性才能避免"部分过渡"的违和感
+
+**实现位置**: `android-app/core-ui/src/main/java/.../theme/Theme.kt`
+
+---
+
+### Pattern: Compose 点击弹跳动画
+
+**问题**: 按钮点击反馈单调，缺少物理感
+
+**解决方案**:
+
+```kotlin
+val likeScale = remember { Animatable(1f) }
+val tintColor by animateColorAsState(
+    targetValue = if (isLiked) Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurfaceVariant,
+    animationSpec = spring(stiffness = Spring.StiffnessLow)
+)
+
+// 点击时触发 scale 脉冲
+onClick = {
+    isLiked = !isLiked
+    scope.launch {
+        likeScale.animateTo(1.3f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow))
+        likeScale.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessLow))
+    }
+}
+
+// Icon 应用 scale
+Icon(modifier = Modifier.scale(likeScale.value), tint = tintColor)
+```
+
+**关键要点**:
+- `Animatable` 比 `animateFloatAsState` 更适合脉冲效果（可串联动画）
+- `spring(DampingRatioMediumBouncy)` 产生自然的弹跳感
+- 颜色用 `animateColorAsState`（单向渐变），scale 用 `Animatable`（双向脉冲）
+- 需要 `rememberCoroutineScope()` 在 onClick 中启动协程
+
+**实现位置**: `android-app/app/src/main/java/.../screens/ExploreScreen.kt`
+
+---
+
+## Android AI 集成模式
+
+### Pattern: LLM 适配器工厂 + CUSTOM Provider
+
+**问题**: 用户使用 OpenAI 兼容的第三方 API 端点，需要自定义 baseURL
+
+**解决方案**:
+
+```kotlin
+class LLMAdapterFactory {
+    fun createAdapter(provider: LLMProvider, apiKey: String): LLMAdapter {
+        // API Key 验证 - 友好错误而非崩溃
+        if (apiKey.isNullOrBlank()) {
+            throw IllegalArgumentException("${provider.displayName}的API Key未配置，请在AI设置中配置后重试")
+        }
+
+        return when (provider) {
+            LLMProvider.CUSTOM -> {
+                val config = configManager.getConfig().custom
+                OpenAIAdapter(apiKey, config.baseURL.ifBlank { "https://api.openai.com/v1" })
+            }
+            // ... 其他 providers
+        }
+    }
+}
+```
+
+**关键要点**:
+- CUSTOM provider 复用 `OpenAIAdapter`，因为大多数第三方 API 兼容 OpenAI 格式
+- `requireNotNull` 会产生不友好的 `IllegalArgumentException`，改用 if-else + 带 provider 名称的错误信息
+- ViewModel 中按异常类型给出具体错误提示 (UnknownHost → 网络, Timeout → 超时, ConnectException → 服务未启动)
+
+**实现位置**: `android-app/feature-ai/src/main/java/.../di/AIModule.kt`
 
 ---
 
