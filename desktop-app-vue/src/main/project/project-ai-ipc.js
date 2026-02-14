@@ -772,6 +772,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         }
 
         // 如果没有使用 MCP 工具，使用标准对话
+        // 🔥 注：模型回退逻辑已在 LLMManager 层实现，智能选择的模型不可用时会自动回退到用户配置的默认模型
         if (!usedMCPTools) {
           if (toolsToUse.length > 0 && toolsToUse.includes("web_search")) {
             // 使用通用联网搜索（不依赖特定LLM提供商）
@@ -1804,13 +1805,13 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
             }
           }
 
-          // 智能选择模型（仅记录推荐，不覆盖用户配置的模型）
+          // 智能选择模型（会尝试使用推荐模型，不可用时回退到用户配置的模型）
           const selectedModel = llmManager.selectVolcengineModel(scenario);
           if (selectedModel) {
+            chatOptions.model = selectedModel.modelId;
             logger.info(
-              "[Main] 项目AI对话（流式）智能推荐模型:",
+              "[Main] 项目AI对话（流式）智能选择模型:",
               selectedModel.modelName,
-              "（使用用户配置的模型）",
             );
           }
         } catch (selectError) {
@@ -1822,6 +1823,7 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
       }
 
       // 10. 调用LLM流式对话
+      // 🔥 注：模型回退逻辑已在 LLMManager 层实现，智能选择的模型不可用时会自动回退到用户配置的默认模型
       try {
         logger.info("[Main] 🚀 开始调用 llmManager.chatStream");
         const llmResult = await llmManager.chatStream(

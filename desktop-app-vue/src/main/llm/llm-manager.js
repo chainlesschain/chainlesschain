@@ -563,14 +563,23 @@ class LLMManager extends EventEmitter {
         );
       }
 
-      // 🔥 步骤 3: 调用 LLM API
+      // 🔥 步骤 3: 调用 LLM API（带模型回退）
       let result;
 
-      if (this.provider === LLMProviders.OLLAMA) {
+      try {
         result = await this.client.chat(processedMessages, options);
-      } else {
-        // OpenAI兼容的API
-        result = await this.client.chat(processedMessages, options);
+      } catch (chatError) {
+        // 🔥 如果智能选择的模型不可用，回退到用户配置的默认模型
+        if (options.model && options.model !== this.config.model) {
+          logger.warn(
+            `[LLMManager] 模型 ${options.model} 不可用（${chatError.message}），回退到默认模型 ${this.config.model}`,
+          );
+          const fallbackOptions = { ...options };
+          delete fallbackOptions.model; // 移除覆盖，使用客户端默认模型
+          result = await this.client.chat(processedMessages, fallbackOptions);
+        } else {
+          throw chatError;
+        }
       }
 
       this.emit("chat-completed", { messages: processedMessages, result });
@@ -693,19 +702,29 @@ class LLMManager extends EventEmitter {
 
       let result;
 
-      if (this.provider === LLMProviders.OLLAMA) {
+      // 🔥 调用流式 LLM API（带模型回退）
+      try {
         result = await this.client.chatStream(
           processedMessages,
           onChunk,
           options,
         );
-      } else {
-        // OpenAI兼容的API
-        result = await this.client.chatStream(
-          processedMessages,
-          onChunk,
-          options,
-        );
+      } catch (streamError) {
+        // 🔥 如果智能选择的模型不可用，回退到用户配置的默认模型
+        if (options.model && options.model !== this.config.model) {
+          logger.warn(
+            `[LLMManager] 流式模型 ${options.model} 不可用（${streamError.message}），回退到默认模型 ${this.config.model}`,
+          );
+          const fallbackOptions = { ...options };
+          delete fallbackOptions.model; // 移除覆盖，使用客户端默认模型
+          result = await this.client.chatStream(
+            processedMessages,
+            onChunk,
+            fallbackOptions,
+          );
+        } else {
+          throw streamError;
+        }
       }
 
       this.emit("chat-stream-completed", {
