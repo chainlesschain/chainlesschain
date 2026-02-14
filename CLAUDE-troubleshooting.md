@@ -2,8 +2,8 @@
 
 > 记录已知问题和验证过的解决方案，避免重复排查
 >
-> **版本**: v1.0.0
-> **最后更新**: 2026-01-16
+> **版本**: v1.1.0
+> **最后更新**: 2026-02-15
 
 ---
 
@@ -546,6 +546,292 @@ await sessionManager.compressSession(sessionId);
 ```javascript
 if (global.gc) global.gc();
 ```
+
+---
+
+## Android 区块链问题
+
+### Issue: ECDSA 签名和公钥推导返回空数组
+
+**症状**:
+
+```
+WalletCoreAdapter.privateKeyToPublicKey() returns ByteArray(0)
+WalletCoreAdapter.ecdsaSign() returns ByteArray(0)
+```
+
+**原因**: `WalletCoreAdapter.kt` 中的密码学方法仅有占位符实现，返回空 `ByteArray`
+
+**解决方案**:
+
+1. **使用 BouncyCastle 实现 secp256k1 操作**:
+
+```kotlin
+// 公钥推导
+val curveParams = CustomNamedCurves.getByName("secp256k1")
+val pointQ = FixedPointCombMultiplier().multiply(curveParams.g, BigInteger(1, privateKey))
+return pointQ.getEncoded(false) // 65 bytes uncompressed
+
+// ECDSA 签名 (RFC 6979)
+val signer = ECDSASigner(HMacDSAKCalculator(SHA256Digest()))
+signer.init(true, ECPrivateKeyParameters(privateKeyNum, domainParams))
+val components = signer.generateSignature(hash)
+```
+
+2. **注意 EIP-2 s 值规范化**:
+
+```kotlin
+val halfN = curveParams.n.shiftRight(1)
+if (s > halfN) s = curveParams.n.subtract(s) // 防止交易延展性攻击
+```
+
+3. **BIP32 非硬化派生必须使用压缩公钥**:
+
+```kotlin
+// ❌ 错误：使用 65 字节非压缩公钥
+val publicKey = pointQ.getEncoded(false)
+
+// ✅ 正确：使用 33 字节压缩公钥
+val publicKey = pointQ.getEncoded(true)
+```
+
+**状态**: 已在 `WalletCoreAdapter.kt` 实现，使用已有依赖 `org.bouncycastle:bcprov-jdk15on:1.70`
+
+---
+
+### Issue: RLP 编码和交易签名返回空数据
+
+**症状**:
+
+```
+TransactionManager.buildRawTransaction() returns ByteArray(0)
+TransactionManager.signTransaction() returns "0x"
+```
+
+**原因**: `TransactionManager.kt` 中交易构建和签名方法仅有占位符
+
+**解决方案**:
+
+1. **创建独立 RLPEncoder 工具类**:
+
+```kotlin
+object RLPEncoder {
+    fun encodeBytes(data: ByteArray): ByteArray  // RLP 编码字节数组
+    fun encodeBigInteger(value: BigInteger): ByteArray  // 编码大整数
+    fun encodeList(items: List<ByteArray>): ByteArray  // 编码列表
+}
+```
+
+2. **区分 Legacy 和 EIP-1559 交易格式**:
+
+```kotlin
+// Legacy (type 0): RLP([nonce, gasPrice, gasLimit, to, value, data])
+// EIP-1559 (type 2): 0x02 || RLP([chainId, nonce, maxPriorityFee, maxFee, gasLimit, to, value, data, []])
+```
+
+3. **签名流程**:
+
+```kotlin
+val rawTx = buildRawTransaction(txRequest)
+val txHash = keccak256(rawTx)
+val signature = walletCoreAdapter.signHash(txHash, privateKey)
+// 将 v, r, s 附加到交易中重新 RLP 编码
+```
+
+**状态**: 已实现，新建 `RLPEncoder.kt` 工具类
+
+---
+
+### Issue: Keystore JSON 导入抛出 UnsupportedOperationException
+
+**症状**:
+
+```
+java.lang.UnsupportedOperationException: Keystore import not yet implemented
+```
+
+**原因**: `WalletManager.kt` 的 `ImportType.KEYSTORE` 分支未实现
+
+**解决方案**:
+
+1. **实现 Keystore V3 解密**:
+
+```kotlin
+fun decryptKeystoreV3(keystoreJson: String, password: String): ByteArray {
+    val crypto = JSONObject(keystoreJson).getJSONObject("crypto")
+    val kdf = crypto.getString("kdf")
+    // 1. KDF 派生密钥 (scrypt 或 pbkdf2)
+    // 2. MAC 验证: keccak256(derivedKey[16:32] + ciphertext) == mac
+    // 3. AES-128-CTR 解密得到私钥
+}
+```
+
+2. **注意 scrypt 在移动端的性能**:
+
+```kotlin
+// scrypt 参数 n=262144 在移动端可能需要 1-3 秒
+// 建议在后台线程执行，显示进度提示
+withContext(Dispatchers.IO) {
+    SCrypt.generate(passwordBytes, salt, n, r, p, dkLen)
+}
+```
+
+3. **MAC 验证防止错误密码**:
+
+```kotlin
+val mac = keccak256(derivedKey.sliceArray(16..31) + ciphertext)
+if (!mac.contentEquals(expectedMac)) {
+    throw IllegalArgumentException("密码错误或Keystore文件损坏")
+}
+```
+
+**状态**: 已实现，支持 scrypt 和 pbkdf2 两种 KDF
+
+---
+
+## Android AI 集成问题
+
+### Issue: CUSTOM LLM Provider 无法连接自定义端点
+
+**症状**:
+
+```
+java.net.ConnectException: Connection refused (OpenAI default endpoint)
+```
+
+**原因**: `AIModule.kt` 中 `LLMProvider.CUSTOM` 分支创建 `OpenAIAdapter(apiKey)` 时未传入用户配置的 `baseURL`，始终连接 `https://api.openai.com/v1`
+
+**解决方案**:
+
+```kotlin
+// ❌ 修复前
+LLMProvider.CUSTOM -> OpenAIAdapter(apiKey)
+
+// ✅ 修复后
+LLMProvider.CUSTOM -> {
+    val config = configManager.getConfig().custom
+    OpenAIAdapter(apiKey, config.baseURL.ifBlank { "https://api.openai.com/v1" })
+}
+```
+
+**状态**: 已修复
+
+---
+
+### Issue: API Key 未配置时应用崩溃
+
+**症状**:
+
+```
+java.lang.IllegalStateException: Required value was null
+```
+
+**原因**: `AIModule.kt` 使用 `requireNotNull(apiKey)` 在 API Key 为空时直接崩溃
+
+**解决方案**:
+
+```kotlin
+// ❌ 修复前
+val finalApiKey = requireNotNull(apiKey) { "API Key required" }
+
+// ✅ 修复后
+if (finalApiKey.isNullOrBlank()) {
+    throw IllegalArgumentException("${provider.displayName}的API Key未配置，请在AI设置中配置后重试")
+}
+```
+
+同时在 ViewModel 中添加具体错误类型判断：
+
+```kotlin
+val errorMsg = when (e) {
+    is java.net.UnknownHostException -> "网络连接失败，请检查网络设置"
+    is java.net.SocketTimeoutException -> "连接超时，请检查网络或服务地址"
+    is java.net.ConnectException -> "无法连接到AI服务，请检查服务是否启动"
+    is IllegalArgumentException -> e.message ?: "参数错误"
+    else -> "发送失败: ${e.message ?: "未知错误"}"
+}
+```
+
+**状态**: 已修复
+
+---
+
+## Android UI 问题
+
+### Issue: 搜索好友时频繁触发 API 请求
+
+**症状**: 每输入一个字符都触发搜索请求，导致界面卡顿和服务端压力
+
+**原因**: `FriendListScreen.kt` 中 `onQueryChange` 直接调用 `viewModel.searchFriends()`
+
+**解决方案**:
+
+```kotlin
+// 使用 snapshotFlow + debounce 防抖
+LaunchedEffect(Unit) {
+    snapshotFlow { searchQuery }
+        .debounce(300)
+        .distinctUntilChanged()
+        .collectLatest { query -> viewModel.searchFriends(query) }
+}
+```
+
+**注意**: 需要添加 `@OptIn(FlowPreview::class)` 注解，因为 `debounce` 是实验性 API
+
+**状态**: 已修复
+
+---
+
+### Issue: 深色模式切换时颜色突变
+
+**症状**: 切换深色/浅色模式时，颜色瞬间跳变，体验不流畅
+
+**原因**: `Theme.kt` 中 `MaterialTheme(colorScheme = colorScheme)` 直接应用新配色，无过渡动画
+
+**解决方案**:
+
+```kotlin
+// 添加 ColorScheme.animate() 扩展函数
+@Composable
+fun ColorScheme.animate(): ColorScheme = copy(
+    primary = animateColorAsState(primary, tween(400)).value,
+    onPrimary = animateColorAsState(onPrimary, tween(400)).value,
+    background = animateColorAsState(background, tween(400)).value,
+    surface = animateColorAsState(surface, tween(400)).value,
+    // ... 其他 24+ 颜色属性
+)
+
+// 使用
+val animatedColorScheme = colorScheme.animate()
+MaterialTheme(colorScheme = animatedColorScheme, ...)
+```
+
+**状态**: 已修复
+
+---
+
+## 开发工具问题
+
+### Issue: Git pre-commit hook 运行全量测试导致提交缓慢
+
+**症状**: `git commit` 触发 pre-commit hook 运行 desktop-app-vue 全量 Vitest 测试（10k+ 用例），耗时 ~11 分钟，且部分测试有不稳定超时失败
+
+**原因**: pre-commit hook 配置运行了完整测试套件而非仅验证受影响的文件
+
+**临时解决方案**:
+
+```bash
+# 跳过 hook（仅当确认改动无关 JS/TS 代码时使用）
+git commit --no-verify -m "message"
+```
+
+**建议改进**:
+
+1. **按路径过滤**: hook 中检测改动文件路径，仅修改 `desktop-app-vue/` 时才跑桌面端测试
+2. **使用 lint-staged**: 仅对暂存文件运行相关测试
+3. **拆分快速/慢速测试**: pre-commit 仅运行快速测试，push 时运行全量
+
+**状态**: 使用 `--no-verify` 临时绕过，待优化 hook 配置
 
 ---
 

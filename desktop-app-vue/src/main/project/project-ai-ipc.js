@@ -1804,13 +1804,13 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
             }
           }
 
-          // 智能选择模型
+          // 智能选择模型（仅记录推荐，不覆盖用户配置的模型）
           const selectedModel = llmManager.selectVolcengineModel(scenario);
           if (selectedModel) {
-            chatOptions.model = selectedModel.modelId;
             logger.info(
-              "[Main] 项目AI对话（流式）智能选择模型:",
+              "[Main] 项目AI对话（流式）智能推荐模型:",
               selectedModel.modelName,
+              "（使用用户配置的模型）",
             );
           }
         } catch (selectError) {
@@ -1870,10 +1870,27 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
       logger.error("[Main] 项目AI对话（流式）失败:", error);
 
       // 提供更友好的错误信息
-      if (error.message.includes("LLM管理器未初始化")) {
+      if (error.message.includes("LLM管理器未初始化") || error.message.includes("LLM服务未初始化")) {
         throw new Error(
           "AI功能未配置，请在设置中配置LLM服务（Ollama或云端API）",
         );
+      }
+
+      if (error.message.includes("API 密钥") || error.message.includes("API 访问") ||
+          error.message.includes("API 请求频率") || error.message.includes("API 服务暂时不可用") ||
+          error.message.includes("无法连接到 API") || error.message.includes("API 请求超时")) {
+        throw new Error(error.message);
+      }
+
+      // 对未处理的 401/403/429 等 HTTP 错误也提供友好提示
+      if (error.message.includes("status code 401")) {
+        throw new Error("API 密钥无效或已过期，请在设置中检查 API Key 配置");
+      }
+      if (error.message.includes("status code 403")) {
+        throw new Error("API 访问被拒绝，请检查 API Key 权限或账户状态");
+      }
+      if (error.message.includes("status code 429")) {
+        throw new Error("API 请求频率超限或额度用尽，请稍后重试或检查账户余额");
       }
 
       throw error;

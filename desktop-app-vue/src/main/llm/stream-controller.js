@@ -208,7 +208,9 @@ class StreamController extends EventEmitter {
     this.status = StreamStatus.ERROR;
     this.endTime = Date.now();
 
-    this.emit("error", {
+    // 使用 stream-error 而非 error，避免 Node.js EventEmitter
+    // 在无监听器时抛出 ERR_UNHANDLED_ERROR
+    this.emit("stream-error", {
       error,
       timestamp: this.endTime,
       processedChunks: this.processedChunks,

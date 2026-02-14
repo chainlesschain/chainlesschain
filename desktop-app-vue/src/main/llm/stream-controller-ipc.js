@@ -47,7 +47,7 @@ function getOrCreateController(streamId, options = {}) {
 
     controller.on('complete', cleanup);
     controller.on('cancel', cleanup);
-    controller.on('error', cleanup);
+    controller.on('stream-error', cleanup);
   }
 
   return activeControllers.get(streamId);

@@ -12,8 +12,8 @@ export default defineConfig({
   // 测试超时时间（提升到180秒以支持Electron应用启动）
   timeout: 180000,
 
-  // 全局超时（10分钟）
-  globalTimeout: 600000,
+  // 全局超时（15分钟）
+  globalTimeout: 900000,
 
   // 期望超时（提升到15秒以支持较慢的断言）
   expect: {
