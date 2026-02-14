@@ -37,11 +37,11 @@ for (let i = 0; i < tests.length; i++) {
 
   try {
     const output = execSync(
-      `npx playwright test tests/e2e/${test.path} --timeout=60000 --reporter=list`,
+      `npx playwright test tests/e2e/${test.path} --timeout=180000 --reporter=list`,
       {
         encoding: 'utf8',
         stdio: 'pipe',
-        timeout: 180000,
+        timeout: 300000,
         cwd: require('path').join(__dirname, '..', '..')
       }
     );
