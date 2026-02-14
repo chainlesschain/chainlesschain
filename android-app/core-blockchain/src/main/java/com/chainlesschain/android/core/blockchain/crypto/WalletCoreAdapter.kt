@@ -4,8 +4,18 @@ import com.chainlesschain.android.core.blockchain.model.SupportedChain
 import com.chainlesschain.android.core.common.Result
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.bouncycastle.asn1.x9.X9ECParameters
+import org.bouncycastle.crypto.ec.CustomNamedCurves
+import org.bouncycastle.crypto.params.ECDomainParameters
+import org.bouncycastle.crypto.params.ECPrivateKeyParameters
+import org.bouncycastle.crypto.signers.ECDSASigner
+import org.bouncycastle.crypto.signers.HMacDSAKCalculator
+import org.bouncycastle.crypto.digests.SHA256Digest
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.math.ec.ECPoint
+import org.bouncycastle.math.ec.FixedPointCombMultiplier
 import timber.log.Timber
+import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.Security
@@ -260,7 +270,7 @@ class WalletCoreAdapter @Inject constructor() {
             val data = if (hardened) {
                 byteArrayOf(0) + key + indexToBytes(index + 0x80000000.toInt())
             } else {
-                privateKeyToPublicKey(key) + indexToBytes(index)
+                privateKeyToCompressedPublicKey(key) + indexToBytes(index)
             }
 
             val derived = hmacSha512(chainCode, data)
@@ -272,13 +282,24 @@ class WalletCoreAdapter @Inject constructor() {
     }
 
     /**
-     * Get public key from private key
+     * Get uncompressed public key from private key using secp256k1 curve (65 bytes)
      */
     private fun privateKeyToPublicKey(privateKey: ByteArray): ByteArray {
-        // Simplified - in production use proper EC point multiplication
-        // This would use secp256k1 curve
-        // Return compressed public key (33 bytes) or uncompressed (65 bytes)
-        return ByteArray(65) // Placeholder - needs actual implementation
+        val curveParams = CustomNamedCurves.getByName("secp256k1")
+        val privateKeyNum = BigInteger(1, privateKey)
+        val pointQ = FixedPointCombMultiplier().multiply(curveParams.g, privateKeyNum)
+        return pointQ.getEncoded(false) // 65 bytes uncompressed: 0x04 + x(32) + y(32)
+    }
+
+    /**
+     * Get compressed public key from private key using secp256k1 curve (33 bytes)
+     * Used for BIP32 non-hardened child key derivation
+     */
+    private fun privateKeyToCompressedPublicKey(privateKey: ByteArray): ByteArray {
+        val curveParams = CustomNamedCurves.getByName("secp256k1")
+        val privateKeyNum = BigInteger(1, privateKey)
+        val pointQ = FixedPointCombMultiplier().multiply(curveParams.g, privateKeyNum)
+        return pointQ.getEncoded(true) // 33 bytes compressed: 0x02/0x03 + x(32)
     }
 
     /**
@@ -300,11 +321,102 @@ class WalletCoreAdapter @Inject constructor() {
 
     /**
      * ECDSA sign on secp256k1
+     * Returns 65-byte signature: r (32) + s (32) + v (1)
      */
     private fun ecdsaSign(hash: ByteArray, privateKey: ByteArray): ByteArray {
-        // Placeholder - needs actual ECDSA implementation
-        // Return 65-byte signature: r (32) + s (32) + v (1)
-        return ByteArray(65)
+        val curveParams = CustomNamedCurves.getByName("secp256k1")
+        val domainParams = ECDomainParameters(
+            curveParams.curve, curveParams.g, curveParams.n, curveParams.h
+        )
+        val halfCurveOrder = curveParams.n.shiftRight(1)
+
+        val signer = ECDSASigner(HMacDSAKCalculator(SHA256Digest()))
+        val privKeyNum = BigInteger(1, privateKey)
+        signer.init(true, ECPrivateKeyParameters(privKeyNum, domainParams))
+
+        val components = signer.generateSignature(hash)
+        var r = components[0]
+        var s = components[1]
+
+        // Normalize s to lower half (EIP-2 / BIP-62)
+        if (s > halfCurveOrder) {
+            s = curveParams.n.subtract(s)
+        }
+
+        // Calculate recovery id (v)
+        val publicKey = privateKeyToPublicKey(privateKey)
+        var recId = -1
+        for (i in 0..3) {
+            val recovered = recoverPublicKey(hash, r, s, i, curveParams)
+            if (recovered != null && recovered.contentEquals(publicKey)) {
+                recId = i
+                break
+            }
+        }
+        if (recId == -1) {
+            throw IllegalStateException("Could not determine recovery id")
+        }
+
+        // Encode: r (32 bytes) + s (32 bytes) + v (1 byte, recId + 27)
+        val rBytes = bigIntTo32Bytes(r)
+        val sBytes = bigIntTo32Bytes(s)
+        val signature = ByteArray(65)
+        System.arraycopy(rBytes, 0, signature, 0, 32)
+        System.arraycopy(sBytes, 0, signature, 32, 32)
+        signature[64] = (recId + 27).toByte()
+
+        return signature
+    }
+
+    /**
+     * Recover public key from signature for recovery id calculation
+     */
+    private fun recoverPublicKey(
+        hash: ByteArray,
+        r: BigInteger,
+        s: BigInteger,
+        recId: Int,
+        curveParams: X9ECParameters
+    ): ByteArray? {
+        val n = curveParams.n
+        val curve = curveParams.curve
+        val g = curveParams.g
+
+        // Calculate the point R
+        val x = r.add(BigInteger.valueOf(recId.toLong() / 2).multiply(n))
+        if (x >= curve.field.characteristic) return null
+
+        val rPoint = try {
+            val compressedPoint = ByteArray(33)
+            compressedPoint[0] = if (recId % 2 == 0) 0x02 else 0x03
+            val xBytes = bigIntTo32Bytes(x)
+            System.arraycopy(xBytes, 0, compressedPoint, 1, 32)
+            curve.decodePoint(compressedPoint)
+        } catch (e: Exception) {
+            return null
+        }
+
+        val eInv = BigInteger(1, hash).negate().mod(n)
+        val rInv = r.modInverse(n)
+
+        val q = sumOfTwoMultiplies(g, eInv.multiply(rInv).mod(n), rPoint, s.multiply(rInv).mod(n))
+        return q.getEncoded(false)
+    }
+
+    private fun sumOfTwoMultiplies(g: ECPoint, a: BigInteger, r: ECPoint, b: BigInteger): ECPoint {
+        return ECPoint.decodePoint(g.curve, g.multiply(a).add(r.multiply(b)).getEncoded(false))
+    }
+
+    /**
+     * Convert BigInteger to exactly 32 bytes (left-padded with zeros)
+     */
+    private fun bigIntTo32Bytes(value: BigInteger): ByteArray {
+        val bytes = value.toByteArray()
+        return when {
+            bytes.size == 32 -> bytes
+            bytes.size > 32 -> bytes.copyOfRange(bytes.size - 32, bytes.size)
+            else -> ByteArray(32 - bytes.size) + bytes
+        }
     }
 
     // ==================== Crypto Primitives ====================

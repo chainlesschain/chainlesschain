@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.blockchain.data.manager
 import com.chainlesschain.android.core.blockchain.contract.ABIEncoder
 import com.chainlesschain.android.core.blockchain.contract.ContractABI
 import com.chainlesschain.android.core.blockchain.crypto.KeystoreManager
+import com.chainlesschain.android.core.blockchain.crypto.RLPEncoder
 import com.chainlesschain.android.core.blockchain.crypto.WalletCoreAdapter
 import com.chainlesschain.android.core.blockchain.model.GasEstimate
 import com.chainlesschain.android.core.blockchain.model.NetworkConfig
@@ -13,9 +14,11 @@ import com.chainlesschain.android.feature.blockchain.data.repository.Transaction
 import com.chainlesschain.android.feature.blockchain.domain.model.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonPrimitive
 import timber.log.Timber
 import java.math.BigInteger
+import java.security.MessageDigest
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -446,18 +449,178 @@ class TransactionManager @Inject constructor(
 
     // ==================== Private Helpers ====================
 
+    /**
+     * Build unsigned raw transaction bytes using RLP encoding
+     * Legacy tx: RLP([nonce, gasPrice, gasLimit, to, value, data])
+     * EIP-1559 tx: 0x02 || RLP([chainId, nonce, maxPriorityFeePerGas, maxFeePerGas, gasLimit, to, value, data, accessList])
+     */
     private fun buildRawTransaction(request: TransactionRequest): ByteArray {
-        // TODO: Implement RLP encoding
-        return ByteArray(0)
+        val nonce = RLPEncoder.encodeLong(request.nonce ?: 0L)
+        val gasLimit = RLPEncoder.encodeLong(request.gasLimit ?: 21000L)
+        val to = RLPEncoder.encodeAddress(request.to)
+        val value = RLPEncoder.encodeHexString(request.value)
+        val data = if (request.data.isNullOrEmpty() || request.data == "0x") {
+            RLPEncoder.encodeBytes(ByteArray(0))
+        } else {
+            RLPEncoder.encodeBytes(RLPEncoder.hexToBytes(request.data))
+        }
+
+        return if (request.isEip1559) {
+            // EIP-1559 transaction (type 2)
+            val chainId = RLPEncoder.encodeLong(request.chain.chainId.toLong())
+            val maxPriorityFeePerGas = RLPEncoder.encodeLong(request.maxPriorityFeePerGas ?: 0L)
+            val maxFeePerGas = RLPEncoder.encodeLong(request.maxFeePerGas ?: 0L)
+            val accessList = RLPEncoder.encodeList(emptyList()) // Empty access list
+
+            val encoded = RLPEncoder.encodeList(
+                chainId, nonce, maxPriorityFeePerGas, maxFeePerGas,
+                gasLimit, to, value, data, accessList
+            )
+            // Type 2 prefix
+            byteArrayOf(0x02) + encoded
+        } else {
+            // Legacy transaction
+            val gasPrice = RLPEncoder.encodeLong(request.gasPrice ?: 0L)
+            RLPEncoder.encodeList(nonce, gasPrice, gasLimit, to, value, data)
+        }
     }
 
+    /**
+     * Sign transaction: hash raw tx, sign with ECDSA, encode signed tx
+     */
     private fun signTransaction(
         rawTx: ByteArray,
         privateKey: ByteArray,
         chain: SupportedChain
     ): String {
-        // TODO: Implement proper signing
-        return "0x"
+        // Keccak-256 hash of the raw transaction
+        val hash = keccak256(rawTx)
+
+        // Sign the hash
+        val sigResult = runBlocking { walletCoreAdapter.signHash(hash, privateKey) }
+        if (sigResult is Result.Error) {
+            throw IllegalStateException("Failed to sign transaction: ${sigResult.message}")
+        }
+        val signature = (sigResult as Result.Success).data
+        val r = signature.sliceArray(0 until 32)
+        val s = signature.sliceArray(32 until 64)
+        val v = signature[64].toInt() and 0xFF
+
+        val rEncoded = RLPEncoder.encodeBytes(trimLeadingZeros(r))
+        val sEncoded = RLPEncoder.encodeBytes(trimLeadingZeros(s))
+
+        // Determine if we used EIP-1559 based on rawTx prefix
+        val isEip1559 = rawTx.isNotEmpty() && rawTx[0] == 0x02.toByte()
+
+        val signedTx = if (isEip1559) {
+            // EIP-1559: v is just the recovery id (0 or 1)
+            val vEip1559 = RLPEncoder.encodeLong((v - 27).toLong())
+            // Strip the 0x02 prefix, decode inner list, append v, r, s
+            val innerRlp = rawTx.sliceArray(1 until rawTx.size)
+            // Parse the inner list contents and re-encode with signature
+            // We rebuild from the request fields to keep it simple and correct
+            val nonce = RLPEncoder.encodeLong(0L) // placeholder - will use actual below
+            // Re-extract: decode is complex, just rebuild
+            val signedInner = rebuildEip1559Signed(rawTx, vEip1559, rEncoded, sEncoded, chain)
+            byteArrayOf(0x02) + signedInner
+        } else {
+            // Legacy: v = chainId * 2 + 35 + recId (EIP-155)
+            val vLegacy = RLPEncoder.encodeLong((chain.chainId.toLong() * 2 + 35 + (v - 27)).toLong())
+            // Re-parse raw tx fields and append v, r, s
+            rebuildLegacySigned(rawTx, vLegacy, rEncoded, sEncoded, chain)
+        }
+
+        return RLPEncoder.bytesToHex(signedTx)
+    }
+
+    /**
+     * Rebuild a legacy signed transaction
+     */
+    private fun rebuildLegacySigned(
+        rawTx: ByteArray,
+        vEncoded: ByteArray,
+        rEncoded: ByteArray,
+        sEncoded: ByteArray,
+        chain: SupportedChain
+    ): ByteArray {
+        // Raw tx is already an RLP list of [nonce, gasPrice, gasLimit, to, value, data]
+        // We need to decode the content and append v, r, s
+        // Instead of decoding, we strip the list header and append v, r, s
+        val listContent = stripRlpListHeader(rawTx)
+        val signedContent = listContent + vEncoded + rEncoded + sEncoded
+        return wrapRlpList(signedContent)
+    }
+
+    /**
+     * Rebuild an EIP-1559 signed transaction
+     */
+    private fun rebuildEip1559Signed(
+        rawTx: ByteArray,
+        vEncoded: ByteArray,
+        rEncoded: ByteArray,
+        sEncoded: ByteArray,
+        chain: SupportedChain
+    ): ByteArray {
+        // rawTx = 0x02 || RLP([chainId, nonce, maxPriorityFeePerGas, maxFeePerGas, gasLimit, to, value, data, accessList])
+        val innerRlp = rawTx.sliceArray(1 until rawTx.size)
+        val listContent = stripRlpListHeader(innerRlp)
+        val signedContent = listContent + vEncoded + rEncoded + sEncoded
+        return wrapRlpList(signedContent)
+    }
+
+    /**
+     * Strip the RLP list header, returning just the concatenated items
+     */
+    private fun stripRlpListHeader(rlpList: ByteArray): ByteArray {
+        if (rlpList.isEmpty()) return rlpList
+        val firstByte = rlpList[0].toInt() and 0xFF
+        return when {
+            firstByte in 0xc0..0xf7 -> {
+                // Short list: 1 byte header
+                rlpList.sliceArray(1 until rlpList.size)
+            }
+            firstByte in 0xf8..0xff -> {
+                // Long list: 1 + (firstByte - 0xf7) bytes header
+                val lenOfLen = firstByte - 0xf7
+                rlpList.sliceArray(1 + lenOfLen until rlpList.size)
+            }
+            else -> rlpList
+        }
+    }
+
+    /**
+     * Wrap content bytes in an RLP list header
+     */
+    private fun wrapRlpList(content: ByteArray): ByteArray {
+        return if (content.size < 56) {
+            byteArrayOf((0xc0 + content.size).toByte()) + content
+        } else {
+            val lenBytes = toBinaryMinimal(content.size)
+            byteArrayOf((0xf7 + lenBytes.size).toByte()) + lenBytes + content
+        }
+    }
+
+    private fun toBinaryMinimal(value: Int): ByteArray {
+        val bytes = ByteArray(4)
+        bytes[0] = (value shr 24).toByte()
+        bytes[1] = (value shr 16).toByte()
+        bytes[2] = (value shr 8).toByte()
+        bytes[3] = value.toByte()
+        var start = 0
+        while (start < 3 && bytes[start] == 0.toByte()) start++
+        return bytes.copyOfRange(start, bytes.size)
+    }
+
+    private fun trimLeadingZeros(bytes: ByteArray): ByteArray {
+        var start = 0
+        while (start < bytes.size - 1 && bytes[start] == 0.toByte()) start++
+        return if (start == 0) bytes else bytes.copyOfRange(start, bytes.size)
+    }
+
+    private fun keccak256(input: ByteArray): ByteArray {
+        val digest = MessageDigest.getInstance("KECCAK-256")
+            ?: MessageDigest.getInstance("SHA3-256")
+        return digest.digest(input)
     }
 
     private fun formatValue(hexValue: String, decimals: Int): String {

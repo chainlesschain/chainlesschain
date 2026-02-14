@@ -2,7 +2,10 @@ package com.chainlesschain.android.core.ui.theme
 
 import android.app.Activity
 import android.os.Build
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
@@ -85,9 +88,45 @@ fun ChainlessChainTheme(
         }
     }
 
+    val animatedColorScheme = colorScheme.animate()
+
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = animatedColorScheme,
         typography = Typography,
         content = content
+    )
+}
+
+/**
+ * Animate ColorScheme transitions for smooth dark/light mode switching
+ */
+@Composable
+private fun ColorScheme.animate(durationMs: Int = 400): ColorScheme {
+    val animSpec = tween<Color>(durationMillis = durationMs)
+    return copy(
+        primary = animateColorAsState(primary, animSpec, label = "primary").value,
+        onPrimary = animateColorAsState(onPrimary, animSpec, label = "onPrimary").value,
+        primaryContainer = animateColorAsState(primaryContainer, animSpec, label = "primaryContainer").value,
+        onPrimaryContainer = animateColorAsState(onPrimaryContainer, animSpec, label = "onPrimaryContainer").value,
+        secondary = animateColorAsState(secondary, animSpec, label = "secondary").value,
+        onSecondary = animateColorAsState(onSecondary, animSpec, label = "onSecondary").value,
+        secondaryContainer = animateColorAsState(secondaryContainer, animSpec, label = "secondaryContainer").value,
+        onSecondaryContainer = animateColorAsState(onSecondaryContainer, animSpec, label = "onSecondaryContainer").value,
+        tertiary = animateColorAsState(tertiary, animSpec, label = "tertiary").value,
+        onTertiary = animateColorAsState(onTertiary, animSpec, label = "onTertiary").value,
+        background = animateColorAsState(background, animSpec, label = "background").value,
+        onBackground = animateColorAsState(onBackground, animSpec, label = "onBackground").value,
+        surface = animateColorAsState(surface, animSpec, label = "surface").value,
+        onSurface = animateColorAsState(onSurface, animSpec, label = "onSurface").value,
+        surfaceVariant = animateColorAsState(surfaceVariant, animSpec, label = "surfaceVariant").value,
+        onSurfaceVariant = animateColorAsState(onSurfaceVariant, animSpec, label = "onSurfaceVariant").value,
+        error = animateColorAsState(error, animSpec, label = "error").value,
+        onError = animateColorAsState(onError, animSpec, label = "onError").value,
+        errorContainer = animateColorAsState(errorContainer, animSpec, label = "errorContainer").value,
+        onErrorContainer = animateColorAsState(onErrorContainer, animSpec, label = "onErrorContainer").value,
+        outline = animateColorAsState(outline, animSpec, label = "outline").value,
+        inverseSurface = animateColorAsState(inverseSurface, animSpec, label = "inverseSurface").value,
+        inverseOnSurface = animateColorAsState(inverseOnSurface, animSpec, label = "inverseOnSurface").value,
+        inversePrimary = animateColorAsState(inversePrimary, animSpec, label = "inversePrimary").value
     )
 }

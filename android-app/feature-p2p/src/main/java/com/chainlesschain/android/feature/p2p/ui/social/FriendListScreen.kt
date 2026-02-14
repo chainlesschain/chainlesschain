@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -21,12 +22,15 @@ import com.chainlesschain.android.feature.p2p.ui.social.components.FriendCard
 import com.chainlesschain.android.feature.p2p.ui.social.components.FriendRequestCard
 import com.chainlesschain.android.feature.p2p.viewmodel.social.FriendEvent
 import com.chainlesschain.android.feature.p2p.viewmodel.social.FriendViewModel
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * 好友列表页面
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun FriendListScreen(
     onNavigateBack: () -> Unit,
@@ -58,15 +62,22 @@ fun FriendListScreen(
         }
     }
 
+    // 搜索防抖
+    LaunchedEffect(Unit) {
+        snapshotFlow { searchQuery }
+            .debounce(300)
+            .distinctUntilChanged()
+            .collectLatest { query ->
+                viewModel.searchFriends(query)
+            }
+    }
+
     Scaffold(
         topBar = {
             if (showSearchBar) {
                 SearchBar(
                     query = searchQuery,
-                    onQueryChange = {
-                        searchQuery = it
-                        viewModel.searchFriends(it)
-                    },
+                    onQueryChange = { searchQuery = it },
                     onSearch = { viewModel.searchFriends(it) },
                     active = true,
                     onActiveChange = { if (!it) showSearchBar = false },

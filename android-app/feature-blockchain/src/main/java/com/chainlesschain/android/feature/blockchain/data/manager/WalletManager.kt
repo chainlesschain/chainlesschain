@@ -13,10 +13,17 @@ import com.chainlesschain.android.feature.blockchain.domain.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.json.JSONObject
 import timber.log.Timber
 import java.math.BigDecimal
 import java.math.BigInteger
+import java.security.MessageDigest
 import java.util.UUID
+import javax.crypto.Cipher
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.PBEKeySpec
+import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -201,11 +208,20 @@ class WalletManager @Inject constructor(
             }
 
             ImportType.KEYSTORE -> {
-                // TODO: Implement keystore decryption
-                return Result.error(
-                    UnsupportedOperationException("Keystore import not implemented"),
-                    "Keystore import coming soon"
-                )
+                // Decrypt Ethereum Keystore V3 JSON
+                val pkBytes = try {
+                    decryptKeystoreV3(options.value, options.passphrase)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to decrypt keystore")
+                    return Result.error(e, "Keystore 解密失败: ${e.message}")
+                }
+
+                val addrResult = walletCoreAdapter.privateKeyToAddress(pkBytes, options.chain)
+                if (addrResult is Result.Error) {
+                    return Result.error(addrResult.exception, "Failed to derive address")
+                }
+
+                pkBytes to (addrResult as Result.Success).data
             }
         }
 
@@ -388,6 +404,93 @@ class WalletManager @Inject constructor(
     }
 
     // ==================== Private Helpers ====================
+
+    /**
+     * Decrypt Ethereum Keystore V3 JSON format
+     * Supports both scrypt and pbkdf2 KDF
+     */
+    private fun decryptKeystoreV3(keystoreJson: String, password: String): ByteArray {
+        val json = JSONObject(keystoreJson)
+        val version = json.optInt("version", 3)
+        if (version != 3) {
+            throw IllegalArgumentException("Unsupported keystore version: $version")
+        }
+
+        val crypto = json.getJSONObject(
+            if (json.has("crypto")) "crypto" else "Crypto"
+        )
+
+        val cipher = crypto.getString("cipher")
+        if (cipher != "aes-128-ctr") {
+            throw IllegalArgumentException("Unsupported cipher: $cipher")
+        }
+
+        val ciphertext = hexToBytes(crypto.getString("ciphertext"))
+        val cipherparams = crypto.getJSONObject("cipherparams")
+        val iv = hexToBytes(cipherparams.getString("iv"))
+        val mac = hexToBytes(crypto.getString("mac"))
+
+        val kdfparams = crypto.getJSONObject("kdfparams")
+        val kdf = crypto.getString("kdf")
+
+        // Derive key using KDF
+        val derivedKey = when (kdf) {
+            "scrypt" -> {
+                val salt = hexToBytes(kdfparams.getString("salt"))
+                val n = kdfparams.getInt("n")
+                val r = kdfparams.getInt("r")
+                val p = kdfparams.getInt("p")
+                val dkLen = kdfparams.getInt("dklen")
+
+                // Use BouncyCastle's SCrypt
+                org.bouncycastle.crypto.generators.SCrypt.generate(
+                    password.toByteArray(Charsets.UTF_8),
+                    salt, n, r, p, dkLen
+                )
+            }
+            "pbkdf2" -> {
+                val salt = hexToBytes(kdfparams.getString("salt"))
+                val iterations = kdfparams.getInt("c")
+                val dkLen = kdfparams.getInt("dklen")
+                val prf = kdfparams.optString("prf", "hmac-sha256")
+
+                val alg = when (prf) {
+                    "hmac-sha256" -> "PBKDF2WithHmacSHA256"
+                    "hmac-sha512" -> "PBKDF2WithHmacSHA512"
+                    else -> throw IllegalArgumentException("Unsupported PRF: $prf")
+                }
+
+                val factory = SecretKeyFactory.getInstance(alg)
+                val spec = PBEKeySpec(password.toCharArray(), salt, iterations, dkLen * 8)
+                factory.generateSecret(spec).encoded
+            }
+            else -> throw IllegalArgumentException("Unsupported KDF: $kdf")
+        }
+
+        // Verify MAC: keccak256(derivedKey[16:32] + ciphertext) == mac
+        val macInput = derivedKey.sliceArray(16 until 32) + ciphertext
+        val computedMac = keccak256Keystore(macInput)
+        if (!computedMac.contentEquals(mac)) {
+            throw IllegalArgumentException("MAC verification failed - wrong password")
+        }
+
+        // Decrypt with AES-128-CTR using derivedKey[0:16]
+        val aesKey = SecretKeySpec(derivedKey.sliceArray(0 until 16), "AES")
+        val aesCipher = Cipher.getInstance("AES/CTR/NoPadding")
+        aesCipher.init(Cipher.DECRYPT_MODE, aesKey, IvParameterSpec(iv))
+        return aesCipher.doFinal(ciphertext)
+    }
+
+    private fun keccak256Keystore(input: ByteArray): ByteArray {
+        val digest = MessageDigest.getInstance("KECCAK-256")
+            ?: MessageDigest.getInstance("SHA3-256")
+        return digest.digest(input)
+    }
+
+    private fun hexToBytes(hex: String): ByteArray {
+        val clean = hex.removePrefix("0x")
+        return clean.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
+    }
 
     private fun formatBalance(weiBalance: BigInteger, decimals: Int): String {
         val divisor = BigDecimal.TEN.pow(decimals)
