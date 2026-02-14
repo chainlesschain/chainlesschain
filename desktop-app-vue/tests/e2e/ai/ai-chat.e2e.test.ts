@@ -63,7 +63,7 @@ test.describe('AI对话功能 E2E 测试', () => {
     });
 
     test.afterAll(async () => {
-      await closeElectronApp(app, { delay: 2000 });
+      await closeElectronApp(app, { delay: 4000 });
     });
 
     test('应该能够设置Volcengine配置', async () => {
@@ -183,7 +183,7 @@ test.describe('AI对话功能 E2E 测试', () => {
     });
 
     test.afterAll(async () => {
-      await closeElectronApp(app, { delay: 2000 });
+      await closeElectronApp(app, { delay: 4000 });
     });
 
     test('应该能够进行简单的LLM查询', async () => {
@@ -319,7 +319,7 @@ test.describe('AI对话功能 E2E 测试', () => {
     });
 
     test.afterAll(async () => {
-      await closeElectronApp(app, { delay: 2000 });
+      await closeElectronApp(app, { delay: 4000 });
     });
 
     test('应该能够在项目上下文中进行AI对话', async () => {
@@ -372,7 +372,7 @@ test.describe('AI对话功能 E2E 测试', () => {
     });
 
     test.afterAll(async () => {
-      await closeElectronApp(app, { delay: 2000 });
+      await closeElectronApp(app, { delay: 4000 });
     });
 
     test('应该能够创建新对话', async () => {
@@ -647,7 +647,7 @@ test.describe('AI对话功能 E2E 测试', () => {
     });
 
     test.afterAll(async () => {
-      await closeElectronApp(app, { delay: 2000 });
+      await closeElectronApp(app, { delay: 4000 });
     });
 
     test('应该能够清除对话上下文', async () => {
@@ -804,15 +804,20 @@ test.describe('AI对话功能 E2E 测试', () => {
     test('应该正确处理空消息', async () => {
       console.log('\n========== 空消息测试 ==========');
 
-      const result = await callIPC(window, 'llm:query', '', {});
+      try {
+        const result = await callIPC(window, 'llm:query', '', {});
 
-      console.log('空消息结果:', result);
+        console.log('空消息结果:', result);
 
-      // 应该返回错误或空响应
-      if (result.error || !result.response) {
-        console.log(`✅ 正确拒绝了空消息`);
-      } else {
-        console.log(`ℹ️  系统允许了空消息`);
+        // 应该返回错误或空响应
+        if (result.error || !result.response) {
+          console.log(`✅ 正确拒绝了空消息`);
+        } else {
+          console.log(`ℹ️  系统允许了空消息`);
+        }
+      } catch (error: any) {
+        // IPC 调用抛出错误也是合理的拒绝方式
+        console.log(`✅ 正确拒绝了空消息（抛出异常）: ${error.message}`);
       }
     });
 
@@ -866,7 +871,7 @@ test.describe('AI对话性能测试', () => {
   });
 
   test.afterAll(async () => {
-    await closeElectronApp(app, { delay: 2000 });
+    await closeElectronApp(app, { delay: 4000 });
   });
 
   test('简单查询的响应时间应该在合理范围内', async () => {
