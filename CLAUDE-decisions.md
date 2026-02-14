@@ -3,7 +3,7 @@
 > 记录项目中重要的架构决策及其背景，帮助理解"为什么这样做"
 >
 > **格式**: Architecture Decision Record (ADR)
-> **最后更新**: 2026-01-16
+> **最后更新**: 2026-02-15
 
 ---
 
@@ -286,6 +286,175 @@ const diagnosis = await llmManager.chat(
 - 诊断延迟 2-5 秒
 - 依赖 Ollama 服务
 - 诊断质量取决于模型
+
+---
+
+## ADR-009: Android 端使用 BouncyCastle 实现 secp256k1 椭圆曲线操作
+
+**状态**: 已采纳
+
+**背景**:
+Android 端 `WalletCoreAdapter.kt` 需要实现 ECDSA 签名和公钥推导，用于以太坊交易签名和地址生成。需要选择可靠的密码学库来执行 secp256k1 椭圆曲线运算。
+
+**决策**:
+使用已有依赖 BouncyCastle (`org.bouncycastle:bcprov-jdk15on:1.70`) 实现全部 secp256k1 操作，包括公钥推导、ECDSA 签名、Recovery ID 计算。
+
+**理由**:
+
+1. **零新增依赖**: BouncyCastle 已在项目 Gradle 中声明，无需引入新库
+2. **纯 Java 实现**: 无需 JNI/NDK 编译，避免多架构 `.so` 文件管理
+3. **完整 API**: `CustomNamedCurves`、`ECDSASigner`、`FixedPointCombMultiplier` 覆盖所有需求
+4. **安全**: `HMacDSAKCalculator(SHA256Digest())` 实现 RFC 6979 确定性签名，防止 k 值重用攻击
+
+**替代方案**:
+
+- **web3j**: 以太坊专用库，但会引入大量不必要的依赖（ABI编码、RPC客户端等）
+- **spongycastle**: BouncyCastle 的 Android 分支，但项目已用标准 BouncyCastle
+- **Native C (libsecp256k1)**: 性能最优但需 NDK 交叉编译，维护成本高
+- **WalletConnect/TrustWallet Core**: 依赖第三方 SDK，不够灵活
+
+**技术细节**:
+
+```kotlin
+// 公钥推导 - EC 点乘
+val curveParams = CustomNamedCurves.getByName("secp256k1")
+val pointQ = FixedPointCombMultiplier().multiply(curveParams.g, privateKeyNum)
+val publicKey = pointQ.getEncoded(false) // 65 bytes uncompressed
+
+// ECDSA 签名 - RFC 6979 确定性 k 值
+val signer = ECDSASigner(HMacDSAKCalculator(SHA256Digest()))
+signer.init(true, ECPrivateKeyParameters(privateKeyNum, domainParams))
+val components = signer.generateSignature(hash) // [r, s]
+
+// EIP-2 s 值规范化（防止交易延展性攻击）
+val halfN = curveParams.n.shiftRight(1)
+if (s > halfN) s = curveParams.n - s
+```
+
+**后果**:
+
+- BouncyCastle 纯 Java 实现比 native C 慢约 5-10x，但对钱包签名场景足够
+- 需要手动实现 Recovery ID 计算（遍历 0/1 恢复公钥比对）
+- BIP32 非硬化派生需要使用压缩公钥（33 字节），需额外提供 `privateKeyToCompressedPublicKey()`
+
+---
+
+## ADR-010: Android 端自研 RLP 编码器
+
+**状态**: 已采纳
+
+**背景**:
+以太坊交易需要 RLP (Recursive Length Prefix) 序列化后才能签名和广播。Android 端 `TransactionManager.kt` 的 `buildRawTransaction()` 需要 RLP 编码能力。
+
+**决策**:
+自研轻量级 `RLPEncoder.kt` 工具类，实现完整的 RLP 编码规范。
+
+**理由**:
+
+1. **零依赖**: 避免引入 web3j (~20MB) 仅为使用其 RLP 编码
+2. **规范简单**: RLP 编码规范仅 ~150 行代码即可完整实现
+3. **完全可控**: 支持 Legacy (type 0) 和 EIP-1559 (type 2) 两种交易格式
+4. **类型安全**: Kotlin 泛型 + sealed class 提供编译时类型检查
+
+**替代方案**:
+
+- **web3j RLP**: 功能完整但引入过多无关依赖
+- **kethereum**: 轻量但社区不够活跃
+- **手写字节拼接**: 不使用独立类，直接在 TransactionManager 中拼接，但可复用性差
+
+**实现**:
+
+```kotlin
+// RLP 编码规则
+// 单字节 [0x00, 0x7f]: 直接编码
+// 短字符串 (0-55 bytes): 0x80+len || data
+// 长字符串 (>55 bytes): 0xb7+lenOfLen || len || data
+// 短列表 (payload 0-55 bytes): 0xc0+len || items
+// 长列表 (payload >55 bytes): 0xf7+lenOfLen || len || items
+
+object RLPEncoder {
+    fun encodeBytes(data: ByteArray): ByteArray
+    fun encodeBigInteger(value: BigInteger): ByteArray
+    fun encodeList(items: List<ByteArray>): ByteArray
+}
+```
+
+**后果**:
+
+- 需要自行维护和测试 RLP 编码正确性
+- 仅实现编码（encode），未实现解码（decode），如需解析链上数据需后续扩展
+- 交易构建需区分 Legacy 和 EIP-1559 格式，EIP-1559 需要 `0x02` 类型前缀
+
+---
+
+## ADR-011: Ethereum Keystore V3 JSON 自研解密
+
+**状态**: 已采纳
+
+**背景**:
+用户需要导入以太坊 Keystore V3 JSON 文件恢复钱包，`WalletManager.kt` 中 `ImportType.KEYSTORE` 分支未实现。Keystore V3 是以太坊标准的私钥加密存储格式。
+
+**决策**:
+使用标准库 + BouncyCastle 自研 Keystore V3 解密，支持 scrypt 和 pbkdf2 两种 KDF。
+
+**理由**:
+
+1. **标准明确**: EIP-55 / Keystore V3 规范清晰，实现无歧义
+2. **安全关键**: 私钥解密属于安全敏感操作，自研可完全控制流程
+3. **已有依赖**: AES-128-CTR（Java标准库）、scrypt（BouncyCastle）、keccak256（MessageDigest）均已可用
+4. **格式兼容**: 兼容 MetaMask、Geth、MyEtherWallet 等主流工具导出的 Keystore
+
+**实现流程**:
+
+```
+Keystore JSON → 解析 crypto 字段
+    ↓
+KDF 派生密钥:
+  - scrypt: SCrypt.generate(password, salt, n, r, p, dkLen)
+  - pbkdf2: PBKDF2WithHmacSHA256(password, salt, iterations, dkLen)
+    ↓
+MAC 验证: keccak256(derivedKey[16:32] + ciphertext) == mac
+    ↓
+AES-128-CTR 解密: decrypt(ciphertext, derivedKey[0:16], iv)
+    ↓
+得到 32 字节私钥
+```
+
+**替代方案**:
+
+- **web3j Keystore**: 提供完整的 `WalletUtils.loadCredentials()`，但引入整个 web3j
+- **仅支持 scrypt**: 简化实现但不兼容 pbkdf2 格式的 Keystore
+
+**后果**:
+
+- 需要处理多种 KDF 参数组合
+- scrypt 计算在移动设备上可能需要 1-3 秒（n=262144 时）
+- MAC 验证确保密码正确性，避免用错误密码解密出垃圾数据
+
+---
+
+## ADR-012: Android AI 适配器工厂模式支持自定义端点
+
+**状态**: 已采纳
+
+**背景**:
+Android 端 AI 模块使用工厂模式创建 LLM 适配器，但 `CUSTOM` 提供商缺少 `baseURL` 配置支持，导致用户无法连接 OpenAI 兼容的自定义端点（如 vLLM、LocalAI、Azure OpenAI 等）。
+
+**决策**:
+在 `AIModule.kt` 的 `CUSTOM` 分支中从 `LLMConfiguration.custom.baseURL` 读取自定义端点，传入 `OpenAIAdapter(apiKey, baseURL)` 构造函数。
+
+**理由**:
+
+1. **用户需求**: 企业用户常用私有部署的 OpenAI 兼容服务
+2. **最小改动**: 仅需修改工厂方法中一个分支
+3. **向后兼容**: baseURL 为空时默认回退到 `https://api.openai.com/v1`
+4. **一致性**: 与桌面端 (Electron) 的 CUSTOM provider 行为保持一致
+
+**后果**:
+
+- 支持所有 OpenAI API 兼容的自托管服务
+- 需要用户在 AI 设置界面填写 baseURL 字段
+- 错误处理改为友好的中文提示而非 `requireNotNull` 崩溃
 
 ---
 
