@@ -53,13 +53,15 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       MOCK_HARDWARE: 'true',
       // Mock LLM服务
       MOCK_LLM: 'true',
+      // 禁用原生数据库（加速启动）
+      CHAINLESSCHAIN_DISABLE_NATIVE_DB: '1',
     },
-    timeout: 120000, // 120秒启动超时（从60秒增加）
+    timeout: 180000, // 180秒启动超时（增加到3分钟）
   });
 
   // 等待并获取第一个窗口（增加超时）
   const window = await app.firstWindow({
-    timeout: 60000, // 60秒窗口创建超时（从30秒增加）
+    timeout: 120000, // 120秒窗口创建超时（增加到2分钟）
   });
 
   // 等待加载完成

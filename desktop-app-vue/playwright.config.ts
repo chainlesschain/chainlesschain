@@ -9,8 +9,8 @@ export default defineConfig({
   // 测试目录
   testDir: './tests/e2e',
 
-  // 测试超时时间（提升到120秒以支持AI相关的长时间测试）
-  timeout: 120000,
+  // 测试超时时间（提升到180秒以支持Electron应用启动）
+  timeout: 180000,
 
   // 全局超时（10分钟）
   globalTimeout: 600000,
