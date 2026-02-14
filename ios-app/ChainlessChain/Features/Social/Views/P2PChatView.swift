@@ -20,6 +20,9 @@ struct P2PChatView: View {
     @State private var showingImagePicker = false
     @State private var selectedImages: [UIImage] = []
 
+    // Voice recording
+    @State private var showingVoiceRecorder = false
+
     // Toast
     @State private var showToast = false
     @State private var toastMessage = ""
@@ -99,6 +102,18 @@ struct P2PChatView: View {
                     // Handle selected images
                     sendImages(images)
                 }
+            }
+            .sheet(isPresented: $showingVoiceRecorder) {
+                VoiceMessageRecorder(
+                    onComplete: { data, duration in
+                        showingVoiceRecorder = false
+                        sendVoiceMessage(data: data, duration: duration)
+                    },
+                    onCancel: {
+                        showingVoiceRecorder = false
+                    }
+                )
+                .presentationDetents([.medium])
             }
             .toast(isPresented: $showToast, message: toastMessage, type: toastType)
             .alert("错误", isPresented: .constant(viewModel.errorMessage != nil)) {
@@ -389,6 +404,13 @@ struct P2PChatView: View {
                         .font(.title3)
                 }
 
+                // Voice recording button
+                Button(action: { showingVoiceRecorder = true }) {
+                    Image(systemName: "mic")
+                        .foregroundColor(.blue)
+                        .font(.title3)
+                }
+
                 // Text input
                 TextField("输入消息...", text: $messageText)
                     .textFieldStyle(.roundedBorder)
@@ -437,6 +459,17 @@ struct P2PChatView: View {
         Task {
             await viewModel.sendMessage(to: peer.id, content: messageText, type: .text)
             messageText = ""
+        }
+    }
+
+    private func sendVoiceMessage(data: Data, duration: TimeInterval) {
+        guard let peer = selectedPeer else { return }
+
+        showToast(message: "正在发送语音消息...", type: .info)
+
+        Task {
+            await viewModel.sendVoiceMessage(to: peer.id, audioData: data, duration: duration)
+            showToast(message: "语音消息已发送", type: .success)
         }
     }
 }
@@ -583,6 +616,12 @@ struct EnhancedMessageBubble: View {
             .padding(12)
             .background(Color(.systemGray6))
             .cornerRadius(16)
+        } else if message.isVoiceMessage {
+            // Voice message
+            VoiceMessageBubble(
+                message: message,
+                isOutgoing: message.isOutgoing
+            )
         } else if message.isImageMessage {
             // Image message
             ImageMessageView(

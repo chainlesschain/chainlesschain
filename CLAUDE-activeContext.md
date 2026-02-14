@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-10 (iOS/Android 大规模功能增强 - 18 commits, 12000+ 行代码)
+> **最后更新**: 2026-02-15 (Android 端 9 项问题修复 - 区块链核心、AI 集成、UI Bug)
 
 ---
 
@@ -10,6 +10,16 @@
 
 ### 活跃任务
 
+- [x] Android 区块链 - ECDSA 签名和公钥推导 (BouncyCastle secp256k1)
+- [x] Android 区块链 - RLP 编码和交易签名 (Legacy + EIP-1559)
+- [x] Android 区块链 - Keystore V3 JSON 导入 (scrypt/pbkdf2)
+- [x] Android AI 对话 - CUSTOM provider baseURL 支持 + 错误处理改进
+- [x] Android UI - 搜索好友输入防抖 (300ms debounce)
+- [x] Android UI - 图片加载失败占位符 (ColorPainter)
+- [x] Android UI - 点赞动画优化 (spring bounce + color transition)
+- [x] Android UI - 深色模式切换动画 (animateColorScheme)
+- [x] Android UI - 通知角标准确性 (从数据源查询)
+- [x] Android UI - 键盘遮挡底部导航 (imePadding)
 - [x] Android WebRTC 编译错误修复 (RemoteModule OkHttpClient)
 - [x] Android 离线消息队列增强 (优先级、指数退避、批量操作)
 - [x] Android 社交功能 - 点赞/收藏/分享动画
@@ -77,7 +87,35 @@
 
 ### 最近完成
 
-0. **iOS/Android 大规模功能增强** (2026-02-10 最新 - 18 commits):
+0. **Android 端 9 项问题修复** (2026-02-15 最新):
+   - **区块链核心功能实现** (CRITICAL):
+     - `WalletCoreAdapter.kt` - ECDSA 签名 (secp256k1 + BouncyCastle ECDSASigner)
+       - `privateKeyToPublicKey()`: EC 点乘，65 字节非压缩公钥
+       - `privateKeyToCompressedPublicKey()`: 33 字节压缩公钥 (BIP32 用)
+       - `ecdsaSign()`: HMacDSAKCalculator 确定性签名, EIP-2 s 正规化, recovery id 计算
+     - `RLPEncoder.kt` (新文件) - 以太坊 RLP 序列化工具类
+       - 支持 ByteArray, BigInteger, Long, hex string, address, list 编码
+       - 短/长字符串和列表编码规则完整实现
+     - `TransactionManager.kt` - 交易构建和签名
+       - `buildRawTransaction()`: Legacy (type 0) + EIP-1559 (type 2) RLP 编码
+       - `signTransaction()`: keccak256 哈希 → ECDSA 签名 → 签名交易编码
+     - `WalletManager.kt` - Keystore V3 JSON 导入
+       - `decryptKeystoreV3()`: scrypt/pbkdf2 KDF, AES-128-CTR 解密, MAC 验证
+   - **AI 对话集成改进** (HIGH):
+     - `AIModule.kt` - LLMProvider.CUSTOM 增加 baseURL 支持 (从 config.custom.baseURL 读取)
+     - `AIModule.kt` - requireNotNull 改为友好错误信息 (包含 provider 名称)
+     - `ConversationViewModel.kt` - 分类网络错误 (UnknownHost/Timeout/ConnectException)
+   - **UI 体验 Bug 修复** (P1/P2):
+     - `FriendListScreen.kt` - snapshotFlow + debounce(300ms) + distinctUntilChanged 搜索防抖
+     - `ExploreScreen.kt` - AsyncImage 添加 placeholder/error ColorPainter + crossfade
+     - `ExploreScreen.kt` - 点赞按钮 Animatable scale 脉冲 (1.0→1.3→1.0) + animateColorAsState
+     - `Theme.kt` - ColorScheme.animate() 扩展函数, 24 个颜色属性 tween(400ms) 过渡
+     - `LocalNotificationManager.kt` - refreshUnreadCount() 从 notificationCommands 查询真实未读数
+     - `MainContainer.kt` - Box 添加 .imePadding() 解决键盘遮挡
+   - **修改文件**: 10 modified + 1 new (RLPEncoder.kt), 共 671 行新增
+   - **提交**: `7dbbabe5` fix(android): implement blockchain crypto, improve AI integration, and fix UI bugs
+
+1. **iOS/Android 大规模功能增强** (2026-02-10 - 18 commits):
    - **iOS 新模块** (~4000 行):
      - `SessionManager.swift` - LLM 会话上下文管理
      - `PermanentMemoryManager.swift` - Clawdbot 风格永久记忆

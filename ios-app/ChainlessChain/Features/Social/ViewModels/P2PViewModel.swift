@@ -58,6 +58,14 @@ class P2PViewModel: ObservableObject {
         var thumbnailData: Data?
         var imageSize: CGSize?
 
+        // Audio/voice support
+        var audioData: Data?
+        var audioDuration: TimeInterval?
+        var audioFormat: String?        // "m4a"
+        var voiceTranscription: String?
+        var isPlaying: Bool = false
+        var playbackProgress: Double = 0.0
+
         enum MessageStatus {
             case sending
             case sent
@@ -71,6 +79,11 @@ class P2PViewModel: ObservableObject {
         /// Check if this is an image message
         var isImageMessage: Bool {
             return type == .image && (imageData != nil || content.hasPrefix("data:image"))
+        }
+
+        /// Check if this is a voice message
+        var isVoiceMessage: Bool {
+            return type == .audio && (audioData != nil || content.hasPrefix("data:audio"))
         }
 
         /// Get UIImage from image data
@@ -347,6 +360,96 @@ class P2PViewModel: ObservableObject {
         let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.5)
 
         return (compressedData, thumbnailData, processedImage.size)
+    }
+
+    /// Send voice message
+    func sendVoiceMessage(to peerId: String, audioData: Data, duration: TimeInterval) async {
+        // Rate limiting check
+        guard checkRateLimit(for: peerId) else {
+            errorMessage = "发送过于频繁，请稍后再试"
+            return
+        }
+
+        do {
+            // Ensure we have a conversation
+            let conversation = try messageRepository.getOrCreateConversation(with: peerId, myDid: myDid)
+            currentConversationId = conversation.id
+
+            // Encode audio as data URI
+            let base64Content = "data:audio/m4a;base64,\(audioData.base64EncodedString())"
+
+            let messageId = try await p2pManager.sendMessage(
+                to: peerId,
+                content: base64Content,
+                type: .audio,
+                priority: .normal
+            )
+
+            let timestamp = Date()
+
+            // Add to local messages with audio data
+            let message = ChatMessage(
+                id: messageId,
+                peerId: peerId,
+                content: base64Content,
+                type: .audio,
+                timestamp: timestamp,
+                isOutgoing: true,
+                status: .sending,
+                audioData: audioData,
+                audioDuration: duration,
+                audioFormat: "m4a"
+            )
+
+            messages.append(message)
+
+            // Save to database
+            let metadata = AudioMessageMetadata(
+                duration: duration,
+                format: "m4a",
+                size: audioData.count
+            )
+
+            let messageEntity = P2PMessageEntity(
+                id: messageId,
+                conversationId: conversation.id,
+                senderDid: myDid,
+                contentEncrypted: base64Content,
+                contentType: "audio",
+                status: "sending",
+                replyToId: nil,
+                metadata: try? JSONEncoder().encode(metadata).base64EncodedString(),
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+
+            try messageRepository.saveMessage(messageEntity)
+
+            // Update status to sent after a delay
+            Task {
+                do {
+                    try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+                } catch {
+                    logger.debug("[P2PViewModel] Sleep interrupted for voice message status: \(messageId)")
+                }
+                if let index = messages.firstIndex(where: { $0.id == messageId }) {
+                    var updatedMessage = messages[index]
+                    updatedMessage.status = .sent
+                    messages[index] = updatedMessage
+
+                    do {
+                        try messageRepository.updateMessageStatus(id: messageId, status: "sent")
+                    } catch {
+                        logger.error("[P2PViewModel] Failed to update voice message status: \(error)")
+                    }
+                }
+            }
+
+            logger.debug("[P2PViewModel] Voice message sent: \(messageId), duration: \(duration)s")
+
+        } catch {
+            handleError(error)
+        }
     }
 
     func sendMessage(to peerId: String, content: String, type: MessageManager.Message.MessageType = .text) async {
@@ -694,7 +797,17 @@ class P2PViewModel: ObservableObject {
             }
 
             Task { @MainActor in
-                // Create chat message
+                // Create chat message with type-specific data
+                var audioData: Data?
+                var audioDuration: TimeInterval?
+
+                if type == .audio, content.hasPrefix("data:audio") {
+                    if let base64Start = content.range(of: ";base64,") {
+                        let base64String = String(content[base64Start.upperBound...])
+                        audioData = Data(base64Encoded: base64String)
+                    }
+                }
+
                 let message = ChatMessage(
                     id: messageId,
                     peerId: peerId,
@@ -702,7 +815,9 @@ class P2PViewModel: ObservableObject {
                     type: type,
                     timestamp: timestamp,
                     isOutgoing: false,
-                    status: .delivered
+                    status: .delivered,
+                    audioData: audioData,
+                    audioDuration: audioDuration
                 )
 
                 self.messages.append(message)
@@ -1017,6 +1132,13 @@ struct ImageMessageMetadata: Codable {
     let height: Int
     let size: Int  // bytes
     let mimeType: String
+}
+
+/// Audio message metadata
+struct AudioMessageMetadata: Codable {
+    let duration: TimeInterval  // seconds
+    let format: String          // "m4a"
+    let size: Int               // bytes
 }
 
 private struct PreKeyBundleData: Codable {

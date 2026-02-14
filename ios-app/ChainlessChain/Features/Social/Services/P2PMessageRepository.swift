@@ -285,8 +285,16 @@ class P2PMessageRepository {
         guard !message.senderDid.isEmpty else {
             throw P2PRepositoryError.invalidInput("Sender DID cannot be empty")
         }
-        // Validate content size (max 10MB for image messages, 64KB for text)
-        let maxContentSize = message.contentType == "image" ? 10 * 1024 * 1024 : 64 * 1024
+        // Validate content size (max 10MB for image, 5MB for audio, 64KB for text)
+        let maxContentSize: Int
+        switch message.contentType {
+        case "image":
+            maxContentSize = 10 * 1024 * 1024
+        case "audio":
+            maxContentSize = 5 * 1024 * 1024
+        default:
+            maxContentSize = 64 * 1024
+        }
         guard message.contentEncrypted.count <= maxContentSize else {
             throw P2PRepositoryError.invalidInput("Message content exceeds maximum allowed size")
         }

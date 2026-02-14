@@ -290,6 +290,22 @@ function registerSocialInitializers(factory) {
           },
         );
 
+        // 注册远程 IPC 处理器（包括命令日志）
+        const { registerRemoteIPCHandlers } = require("../remote/remote-ipc");
+        let loggingManager = null;
+        if (context.database) {
+          try {
+            const { LoggingManager } = require("../remote/logging");
+            loggingManager = new LoggingManager(context.database);
+          } catch (err) {
+            logger.warn(
+              "[Social] LoggingManager init failed, logs IPC disabled:",
+              err.message,
+            );
+          }
+        }
+        registerRemoteIPCHandlers(gateway, loggingManager);
+
         logger.info(
           "[Social] ✓ RemoteGateway initialized (browser extension server started)",
         );

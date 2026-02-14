@@ -338,9 +338,9 @@ export interface IPCEventEmitter {
  * 需要重试逻辑的 IPC 通道（在启动时可能未就绪）
  */
 export const STARTUP_RETRY_CHANNELS: string[] = [
-  'project:get-all',
+  'project:getAll',
   'template:getAll',
-  'notification:get-all',
-  'chat:get-sessions',
-  'friend:get-friends',
+  'notification:getAll',
+  'friend:getPendingRequests',
+  'friend:getFriends',
 ];
