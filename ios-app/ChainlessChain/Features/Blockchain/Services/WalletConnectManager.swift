@@ -1,6 +1,8 @@
 import Foundation
 import Combine
-import WalletConnectSwift // WalletConnect v2 SDK
+import WalletConnectSign
+import WalletConnectPairing
+import WalletConnectNetworking
 
 /// WalletConnectManager - WalletConnect v2 Integration
 /// Phase 2.0: DApp Browser
@@ -32,9 +34,12 @@ public class WalletConnectManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private let projectId: String
-    private let metadata: AppMetadata
+    private let wcMetadata: WalletConnectSign.AppMetadata
 
-    // MARK: - Session Proposal
+    // Map SDK session topics to our request IDs for responses
+    private var requestTopicMap: [String: String] = [:]  // requestId -> sessionTopic
+
+    // MARK: - Session Proposal (bridging type)
 
     public struct SessionProposal {
         public let id: String
@@ -56,9 +61,9 @@ public class WalletConnectManager: ObservableObject {
         }
     }
 
-    // MARK: - App Metadata
+    // MARK: - App Metadata (internal bridging type)
 
-    public struct AppMetadata {
+    public struct AppMetadataInfo {
         public let name: String
         public let description: String
         public let url: String
@@ -70,11 +75,12 @@ public class WalletConnectManager: ObservableObject {
     private init() {
         self.database = Database.shared
         self.projectId = "YOUR_WALLETCONNECT_PROJECT_ID" // Configure in production
-        self.metadata = AppMetadata(
+        self.wcMetadata = WalletConnectSign.AppMetadata(
             name: "ChainlessChain",
             description: "Decentralized Personal AI Management System",
-            url: "https://chainlesschain.com",
-            icons: ["https://chainlesschain.com/icon.png"]
+            url: "chainlesschain.com",
+            icons: ["https://chainlesschain.com/icon.png"],
+            redirect: try? .init(native: "chainlesschain://", universal: nil)
         )
     }
 
@@ -85,27 +91,41 @@ public class WalletConnectManager: ObservableObject {
     public func initialize() async throws {
         guard !isInitialized else { return }
 
-        // TODO: Initialize WalletConnect v2 SDK
-        // This would use the real WalletConnect SDK in production
-        /*
         Networking.configure(projectId: projectId, socketFactory: DefaultSocketFactory())
 
-        Pair.configure(metadata: metadata)
+        Pair.configure(metadata: wcMetadata)
 
+        // Subscribe to session proposals
         Sign.instance.sessionProposalPublisher
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] proposal in
-                self?.handleSessionProposal(proposal)
+            .sink { [weak self] context in
+                self?.handleSDKSessionProposal(context)
             }
             .store(in: &cancellables)
 
+        // Subscribe to session requests
         Sign.instance.sessionRequestPublisher
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] request in
-                self?.handleSessionRequest(request)
+            .sink { [weak self] context in
+                self?.handleSDKSessionRequest(context)
             }
             .store(in: &cancellables)
-        */
+
+        // Subscribe to session deletions
+        Sign.instance.sessionDeletePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] (topic, _) in
+                self?.handleSDKSessionDelete(topic: topic)
+            }
+            .store(in: &cancellables)
+
+        // Subscribe to session settlements
+        Sign.instance.sessionSettlePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] session in
+                self?.handleSDKSessionSettle(session)
+            }
+            .store(in: &cancellables)
 
         // Load existing sessions from database
         try await loadSessions()
@@ -120,11 +140,11 @@ public class WalletConnectManager: ObservableObject {
             throw WalletConnectError.notInitialized
         }
 
-        // TODO: Implement pairing with real SDK
-        // Pair.instance.pair(uri: WalletConnectURI(string: uri))
+        guard let wcUri = WalletConnectURI(string: uri) else {
+            throw WalletConnectError.invalidUri
+        }
 
-        // For now, simulate pairing
-        print("Pairing with URI: \(uri)")
+        try await Pair.instance.pair(uri: wcUri)
     }
 
     /// Approve session proposal
@@ -138,18 +158,20 @@ public class WalletConnectManager: ObservableObject {
             throw WalletConnectError.notInitialized
         }
 
-        // TODO: Implement with real SDK
-        /*
+        // Build namespaces for SDK
         let namespaces = buildNamespaces(accounts: accounts, chainIds: chainIds)
-        try await Sign.instance.approve(proposalId: proposalId, namespaces: namespaces)
-        */
 
-        // Create session record
+        try await Sign.instance.approve(
+            proposalId: proposalId,
+            namespaces: namespaces
+        )
+
+        // Create local session record (will be updated when sessionSettlePublisher fires)
         let session = WalletConnectSession(
-            id: UUID().uuidString,
+            id: proposalId,
             pairingTopic: proposalId,
             dappName: "DApp",
-            dappUrl: "https://dapp.example.com",
+            dappUrl: "",
             accounts: accounts,
             chainIds: chainIds,
             methods: WCMethod.allMethods,
@@ -173,10 +195,10 @@ public class WalletConnectManager: ObservableObject {
             throw WalletConnectError.notInitialized
         }
 
-        // TODO: Implement with real SDK
-        // try await Sign.instance.reject(proposalId: proposalId, reason: reason)
-
-        print("Rejected session: \(proposalId), reason: \(reason)")
+        try await Sign.instance.rejectSession(
+            proposalId: proposalId,
+            reason: .userRejected
+        )
     }
 
     /// Disconnect session
@@ -186,8 +208,10 @@ public class WalletConnectManager: ObservableObject {
             throw WalletConnectError.notInitialized
         }
 
-        // TODO: Implement with real SDK
-        // try await Sign.instance.disconnect(topic: sessionId)
+        // Find the session topic
+        if let session = sessions.first(where: { $0.id == sessionId }) {
+            try await Sign.instance.disconnect(topic: session.pairingTopic)
+        }
 
         // Update database
         try await updateSessionStatus(sessionId: sessionId, isActive: false)
@@ -226,8 +250,16 @@ public class WalletConnectManager: ObservableObject {
             password: password
         )
 
-        // TODO: Respond to WalletConnect
-        // try await Sign.instance.respond(topic: sessionTopic, requestId: requestId, response: signature)
+        // Respond to WalletConnect SDK
+        if let sessionTopic = requestTopicMap[requestId] {
+            let response = RPCResult.response(AnyCodable(signature))
+            try await Sign.instance.respond(
+                topic: sessionTopic,
+                requestId: .init(value: requestId)!,
+                response: response
+            )
+            requestTopicMap.removeValue(forKey: requestId)
+        }
 
         // Update request status
         try await updateRequestStatus(requestId: requestId, status: .approved)
@@ -253,8 +285,16 @@ public class WalletConnectManager: ObservableObject {
             gasPrice: transaction.gasPrice
         )
 
-        // TODO: Respond to WalletConnect
-        // try await Sign.instance.respond(topic: sessionTopic, requestId: requestId, response: record.hash)
+        // Respond to WalletConnect SDK
+        if let sessionTopic = requestTopicMap[requestId] {
+            let response = RPCResult.response(AnyCodable(record.hash))
+            try await Sign.instance.respond(
+                topic: sessionTopic,
+                requestId: .init(value: requestId)!,
+                response: response
+            )
+            requestTopicMap.removeValue(forKey: requestId)
+        }
 
         // Update request status
         try await updateRequestStatus(requestId: requestId, status: .approved)
@@ -265,11 +305,256 @@ public class WalletConnectManager: ObservableObject {
     /// Reject request
     @MainActor
     public func rejectRequest(requestId: String, reason: String) async throws {
-        // TODO: Respond to WalletConnect
-        // try await Sign.instance.reject(topic: sessionTopic, requestId: requestId, reason: reason)
+        // Respond to WalletConnect SDK with error
+        if let sessionTopic = requestTopicMap[requestId] {
+            let response = RPCResult.error(.init(code: 4001, message: reason))
+            try await Sign.instance.respond(
+                topic: sessionTopic,
+                requestId: .init(value: requestId)!,
+                response: response
+            )
+            requestTopicMap.removeValue(forKey: requestId)
+        }
 
         // Update request status
         try await updateRequestStatus(requestId: requestId, status: .rejected)
+    }
+
+    // MARK: - SDK Event Handlers
+
+    private func handleSDKSessionProposal(_ context: Session.Proposal) {
+        let proposal = SessionProposal(
+            id: context.id,
+            proposer: SessionProposal.ProposerMetadata(
+                name: context.proposer.name,
+                description: context.proposer.description,
+                url: context.proposer.url,
+                icons: context.proposer.icons
+            ),
+            requiredNamespaces: context.requiredNamespaces.mapValues { ns in
+                SessionProposal.RequiredNamespace(
+                    chains: ns.chains?.map { $0.absoluteString } ?? [],
+                    methods: Array(ns.methods),
+                    events: Array(ns.events)
+                )
+            },
+            optionalNamespaces: context.optionalNamespaces?.mapValues { ns in
+                SessionProposal.RequiredNamespace(
+                    chains: ns.chains?.map { $0.absoluteString } ?? [],
+                    methods: Array(ns.methods),
+                    events: Array(ns.events)
+                )
+            }
+        )
+
+        sessionProposal.send(proposal)
+    }
+
+    private func handleSDKSessionRequest(_ context: Request) {
+        // Store the topic mapping for later response
+        let requestId = context.id.string
+        requestTopicMap[requestId] = context.topic
+
+        // Convert SDK request to our internal model
+        handleSessionRequest(
+            requestId: requestId,
+            topic: context.topic,
+            method: context.method,
+            params: context.params,
+            chainId: context.chainId.absoluteString
+        )
+    }
+
+    private func handleSDKSessionDelete(topic: String) {
+        Task { @MainActor in
+            if let session = sessions.first(where: { $0.pairingTopic == topic }) {
+                sessions.removeAll { $0.pairingTopic == topic }
+                try? await updateSessionStatus(sessionId: session.id, isActive: false)
+                sessionDisconnected.send(session.id)
+            }
+        }
+    }
+
+    private func handleSDKSessionSettle(_ session: Session) {
+        Task { @MainActor in
+            let wcSession = WalletConnectSession(
+                id: session.topic,
+                pairingTopic: session.pairingTopic,
+                dappName: session.peer.name,
+                dappUrl: session.peer.url,
+                dappDescription: session.peer.description,
+                dappIconUrl: session.peer.icons.first,
+                accounts: session.namespaces.values.flatMap { $0.accounts.map { $0.address } },
+                chainIds: session.namespaces.values.flatMap { ns in
+                    ns.accounts.compactMap { account in
+                        Int(account.blockchain.reference)
+                    }
+                },
+                methods: session.namespaces.values.flatMap { Array($0.methods) },
+                events: session.namespaces.values.flatMap { Array($0.events) },
+                expiryDate: session.expiryDate
+            )
+
+            // Update or add session
+            if let index = sessions.firstIndex(where: { $0.pairingTopic == session.pairingTopic }) {
+                sessions[index] = wcSession
+            } else {
+                sessions.append(wcSession)
+            }
+
+            try? await saveSession(wcSession)
+            sessionConnected.send(wcSession)
+        }
+    }
+
+    private func handleSessionRequest(
+        requestId: String,
+        topic: String,
+        method: String,
+        params: AnyCodable,
+        chainId: String
+    ) {
+        // Find session for this topic
+        let session = sessions.first { $0.pairingTopic == topic }
+        let dappName = session?.dappName ?? "Unknown DApp"
+        let dappIconUrl = session?.dappIconUrl
+
+        // Parse chain ID number from CAIP-2 format (e.g., "eip155:1" -> 1)
+        let chainIdNum = Int(chainId.split(separator: ":").last.flatMap { String($0) } ?? "1") ?? 1
+
+        // Parse method and params into our internal types
+        guard let wcMethod = WCMethod(rawValue: method) else {
+            Task {
+                try? await rejectRequest(requestId: requestId, reason: "Unsupported method: \(method)")
+            }
+            return
+        }
+
+        let requestParams = parseRequestParams(method: wcMethod, params: params)
+
+        let request = WalletConnectRequest(
+            id: requestId,
+            sessionTopic: topic,
+            dappName: dappName,
+            dappIconUrl: dappIconUrl,
+            method: wcMethod,
+            params: requestParams,
+            chainId: chainIdNum
+        )
+
+        Task { @MainActor in
+            await saveRequest(request)
+            requestReceived.send(request)
+        }
+    }
+
+    private func parseRequestParams(method: WCMethod, params: AnyCodable) -> WalletConnectRequestParams {
+        switch method {
+        case .personalSign, .ethSign:
+            if let array = params.value as? [String], array.count >= 2 {
+                let message = array[0]
+                let address = array[1]
+                return .signMessage(message: message, address: address)
+            }
+            return .signMessage(message: "", address: "")
+
+        case .ethSignTypedData, .ethSignTypedDataV4:
+            if let array = params.value as? [String], array.count >= 2 {
+                let address = array[0]
+                let typedData = array[1]
+                return .signTypedData(typedData: typedData, address: address)
+            }
+            return .signTypedData(typedData: "", address: "")
+
+        case .ethSendTransaction:
+            if let array = params.value as? [[String: Any]], let txDict = array.first {
+                let tx = TransactionParams(
+                    from: txDict["from"] as? String ?? "",
+                    to: txDict["to"] as? String,
+                    value: txDict["value"] as? String,
+                    data: txDict["data"] as? String,
+                    gas: txDict["gas"] as? String,
+                    gasPrice: txDict["gasPrice"] as? String,
+                    nonce: txDict["nonce"] as? String,
+                    chainId: (txDict["chainId"] as? String).flatMap { Int($0, radix: 16) }
+                )
+                return .sendTransaction(tx)
+            }
+            return .sendTransaction(TransactionParams(from: ""))
+
+        case .ethSignTransaction:
+            if let array = params.value as? [[String: Any]], let txDict = array.first {
+                let tx = TransactionParams(
+                    from: txDict["from"] as? String ?? "",
+                    to: txDict["to"] as? String,
+                    value: txDict["value"] as? String,
+                    data: txDict["data"] as? String,
+                    gas: txDict["gas"] as? String,
+                    gasPrice: txDict["gasPrice"] as? String,
+                    nonce: txDict["nonce"] as? String,
+                    chainId: (txDict["chainId"] as? String).flatMap { Int($0, radix: 16) }
+                )
+                return .signTransaction(tx)
+            }
+            return .signTransaction(TransactionParams(from: ""))
+
+        case .walletSwitchEthereumChain:
+            if let array = params.value as? [[String: Any]], let dict = array.first,
+               let chainId = dict["chainId"] as? String {
+                return .switchChain(chainId: chainId)
+            }
+            return .switchChain(chainId: "0x1")
+
+        case .walletAddEthereumChain:
+            if let array = params.value as? [[String: Any]], let dict = array.first {
+                let chainData = ChainData(
+                    chainId: dict["chainId"] as? String ?? "",
+                    chainName: dict["chainName"] as? String ?? "",
+                    nativeCurrency: ChainData.NativeCurrency(
+                        name: (dict["nativeCurrency"] as? [String: Any])?["name"] as? String ?? "",
+                        symbol: (dict["nativeCurrency"] as? [String: Any])?["symbol"] as? String ?? "",
+                        decimals: (dict["nativeCurrency"] as? [String: Any])?["decimals"] as? Int ?? 18
+                    ),
+                    rpcUrls: dict["rpcUrls"] as? [String] ?? [],
+                    blockExplorerUrls: dict["blockExplorerUrls"] as? [String]
+                )
+                return .addChain(chainData)
+            }
+            return .addChain(ChainData(chainId: "", chainName: "", nativeCurrency: ChainData.NativeCurrency(name: "", symbol: "", decimals: 18), rpcUrls: []))
+
+        case .walletWatchAsset:
+            if let dict = params.value as? [String: Any],
+               let options = dict["options"] as? [String: Any] {
+                let asset = WatchAssetParams(
+                    type: dict["type"] as? String ?? "ERC20",
+                    address: options["address"] as? String ?? "",
+                    symbol: options["symbol"] as? String ?? "",
+                    decimals: options["decimals"] as? Int ?? 18,
+                    image: options["image"] as? String
+                )
+                return .watchAsset(asset)
+            }
+            return .watchAsset(WatchAssetParams(type: "ERC20", address: "", symbol: "", decimals: 18))
+        }
+    }
+
+    // MARK: - Namespace Builder
+
+    private func buildNamespaces(accounts: [String], chainIds: [Int]) -> [String: SessionNamespace] {
+        let blockchains = chainIds.compactMap { Blockchain("eip155:\($0)") }
+        let wcAccounts = accounts.flatMap { account in
+            blockchains.compactMap { blockchain in
+                WalletConnectSign.Account(blockchain: blockchain, address: account)
+            }
+        }
+
+        let namespace = SessionNamespace(
+            accounts: Set(wcAccounts),
+            methods: Set(WCMethod.allMethods),
+            events: Set(["chainChanged", "accountsChanged"])
+        )
+
+        return ["eip155": namespace]
     }
 
     // MARK: - Database Operations
@@ -330,7 +615,9 @@ public class WalletConnectManager: ObservableObject {
             session.isActive ? 1 : 0
         )
 
-        sessions.append(session)
+        if !sessions.contains(where: { $0.id == session.id }) {
+            sessions.append(session)
+        }
     }
 
     @MainActor
@@ -349,30 +636,34 @@ public class WalletConnectManager: ObservableObject {
     }
 
     @MainActor
-    private func saveRequest(_ request: WalletConnectRequest) async throws {
-        let sql = """
-        INSERT INTO walletconnect_requests (
-            id, request_id, session_topic, dapp_name, dapp_icon_url,
-            method, params, chain_id, timestamp, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """
+    private func saveRequest(_ request: WalletConnectRequest) async {
+        do {
+            let sql = """
+            INSERT INTO walletconnect_requests (
+                id, request_id, session_topic, dapp_name, dapp_icon_url,
+                method, params, chain_id, timestamp, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
 
-        let paramsJson = try JSONEncoder().encode(request.params)
+            let paramsJson = try JSONEncoder().encode(request.params)
 
-        try database.execute(sql,
-            request.id,
-            request.id,
-            request.sessionTopic,
-            request.dappName,
-            request.dappIconUrl,
-            request.method.rawValue,
-            String(data: paramsJson, encoding: .utf8),
-            request.chainId,
-            Int64(request.timestamp.timeIntervalSince1970),
-            request.status.rawValue
-        )
+            try database.execute(sql,
+                request.id,
+                request.id,
+                request.sessionTopic,
+                request.dappName,
+                request.dappIconUrl,
+                request.method.rawValue,
+                String(data: paramsJson, encoding: .utf8),
+                request.chainId,
+                Int64(request.timestamp.timeIntervalSince1970),
+                request.status.rawValue
+            )
 
-        pendingRequests.append(request)
+            pendingRequests.append(request)
+        } catch {
+            Logger.shared.error("[WalletConnect] Failed to save request: \(error)")
+        }
     }
 
     @MainActor
@@ -386,20 +677,6 @@ public class WalletConnectManager: ObservableObject {
         try database.execute(sql, status.rawValue, requestId)
 
         pendingRequests.removeAll { $0.id == requestId }
-    }
-
-    // MARK: - Helper Methods
-
-    private func handleSessionProposal(_ proposal: SessionProposal) {
-        sessionProposal.send(proposal)
-    }
-
-    private func handleSessionRequest(_ request: WalletConnectRequest) {
-        Task {
-            await MainActor.run {
-                requestReceived.send(request)
-            }
-        }
     }
 }
 
@@ -451,4 +728,75 @@ extension WCMethod {
         "wallet_addEthereumChain",
         "wallet_watchAsset"
     ]
+}
+
+// MARK: - Default Socket Factory
+
+struct DefaultSocketFactory: WebSocketFactory {
+    func create(with url: URL) -> WebSocketConnecting {
+        URLSessionWebSocket(url: url)
+    }
+}
+
+/// URLSession-based WebSocket implementation
+class URLSessionWebSocket: NSObject, WebSocketConnecting {
+    var isConnected: Bool = false
+    var onConnect: (() -> Void)?
+    var onDisconnect: ((Error?) -> Void)?
+    var onText: ((String) -> Void)?
+
+    private var task: URLSessionWebSocketTask?
+    private let url: URL
+
+    init(url: URL) {
+        self.url = url
+        super.init()
+    }
+
+    func connect() {
+        let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+        task = session.webSocketTask(with: url)
+        task?.resume()
+        receiveMessage()
+    }
+
+    func disconnect() {
+        task?.cancel(with: .normalClosure, reason: nil)
+        isConnected = false
+        onDisconnect?(nil)
+    }
+
+    func write(string: String, completion: @escaping ((Error?) -> Void)) {
+        task?.send(.string(string), completionHandler: completion)
+    }
+
+    private func receiveMessage() {
+        task?.receive { [weak self] result in
+            switch result {
+            case .success(let message):
+                switch message {
+                case .string(let text):
+                    self?.onText?(text)
+                default:
+                    break
+                }
+                self?.receiveMessage()
+            case .failure(let error):
+                self?.isConnected = false
+                self?.onDisconnect?(error)
+            }
+        }
+    }
+}
+
+extension URLSessionWebSocket: URLSessionWebSocketDelegate {
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        isConnected = true
+        onConnect?()
+    }
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        isConnected = false
+        onDisconnect?(nil)
+    }
 }

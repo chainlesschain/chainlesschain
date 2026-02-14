@@ -72,6 +72,11 @@ let package = Package(
             url: "https://github.com/trustwallet/wallet-core.git",
             from: "4.0.0"
         ),
+        // WalletConnect v2 SDK
+        .package(
+            url: "https://github.com/WalletConnect/WalletConnectSwiftV2.git",
+            from: "1.9.0"
+        ),
     ],
     targets: [
         // MARK: - Core Modules
@@ -142,6 +147,9 @@ let package = Package(
                 "CoreSecurity",
                 "CoreDatabase",
                 .product(name: "WalletCore", package: "wallet-core"),
+                .product(name: "WalletConnectSign", package: "WalletConnectSwiftV2"),
+                .product(name: "WalletConnectPairing", package: "WalletConnectSwiftV2"),
+                .product(name: "WalletConnectNetworking", package: "WalletConnectSwiftV2"),
                 "CryptoSwift"
             ],
             path: "Modules/CoreBlockchain"

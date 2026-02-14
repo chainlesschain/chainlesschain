@@ -366,9 +366,7 @@ function registerAllIPC(dependencies) {
         "[IPC Registry] ✗ AI Engine IPC registration failed:",
         aiEngineError.message,
       );
-      logger.info(
-        "[IPC Registry] ⚠ Word/PPT generation will not be available",
-      );
+      logger.info("[IPC Registry] ⚠ Word/PPT generation will not be available");
     }
 
     // 🔥 Prompt Compressor 系统 (上下文压缩, 10 handlers)
@@ -515,18 +513,21 @@ function registerAllIPC(dependencies) {
       );
     }
 
-    // 🔥 Permission System (RBAC, 28 handlers)
+    // 🔥 Permission System (RBAC, 39 handlers)
     logger.info("[IPC Registry] Registering Permission System IPC...");
     try {
       const { registerPermissionIPC } = require("../permission/permission-ipc");
       registerPermissionIPC(database);
       logger.info(
-        "[IPC Registry] ✓ Permission System IPC registered (28 handlers)",
+        "[IPC Registry] ✓ Permission System IPC registered (39 handlers)",
       );
       logger.info("[IPC Registry]   - Permission Management: 8 handlers");
       logger.info("[IPC Registry]   - Approval Workflows: 8 handlers");
       logger.info("[IPC Registry]   - Delegation: 4 handlers");
       logger.info("[IPC Registry]   - Team Management: 8 handlers");
+      logger.info(
+        "[IPC Registry]   - Enterprise Permission (permission:*): 11 handlers",
+      );
     } catch (permError) {
       logger.warn(
         "[IPC Registry] ⚠️  Permission System IPC registration failed (non-fatal):",
@@ -679,7 +680,9 @@ function registerAllIPC(dependencies) {
       logger.info("[IPC Registry] Registering System IPC (early)...");
       const { registerSystemIPC } = require("../system/system-ipc");
       registerSystemIPC({ mainWindow: mainWindow || null });
-      logger.info("[IPC Registry] ✓ System IPC registered (early, 16 handlers)");
+      logger.info(
+        "[IPC Registry] ✓ System IPC registered (early, 16 handlers)",
+      );
     } catch (systemError) {
       logger.error(
         "[IPC Registry] ✗ System IPC registration failed:",
@@ -1492,40 +1495,43 @@ function registerAllIPC(dependencies) {
     // 🔥 v2.0: 整合高级特性（SessionManager, Manus, Multi-Agent, RAG等）
     try {
       logger.info("[IPC Registry] Registering Conversation IPC...");
-    const {
-      registerConversationIPC,
-    } = require("../conversation/conversation-ipc");
-    registerConversationIPC({
-      database: database || null,
-      llmManager: llmManager || null,
-      mainWindow: mainWindow || null,
-      // 🔥 高级特性依赖
-      sessionManager,
-      agentOrchestrator,
-      ragManager: ragManager || null,
-      promptCompressor,
-      responseCache,
-      tokenTracker,
-      errorMonitor,
-    });
-    if (!database) {
-      logger.info(
-        "[IPC Registry] ⚠️  Database manager not initialized (handlers registered with degraded functionality)",
-      );
-    }
-    if (!llmManager) {
-      logger.info(
-        "[IPC Registry] ⚠️  LLM manager not initialized (handlers registered with degraded functionality)",
-      );
-    }
-    // 🔥 打印高级特性状态
-      logger.info("[IPC Registry] ✓ Conversation IPC registered (17 handlers)", {
-        sessionManager: !!sessionManager,
-        agentOrchestrator: !!agentOrchestrator,
-        ragManager: !!ragManager,
-        promptCompressor: !!promptCompressor,
-        tokenTracker: !!tokenTracker,
+      const {
+        registerConversationIPC,
+      } = require("../conversation/conversation-ipc");
+      registerConversationIPC({
+        database: database || null,
+        llmManager: llmManager || null,
+        mainWindow: mainWindow || null,
+        // 🔥 高级特性依赖
+        sessionManager,
+        agentOrchestrator,
+        ragManager: ragManager || null,
+        promptCompressor,
+        responseCache,
+        tokenTracker,
+        errorMonitor,
       });
+      if (!database) {
+        logger.info(
+          "[IPC Registry] ⚠️  Database manager not initialized (handlers registered with degraded functionality)",
+        );
+      }
+      if (!llmManager) {
+        logger.info(
+          "[IPC Registry] ⚠️  LLM manager not initialized (handlers registered with degraded functionality)",
+        );
+      }
+      // 🔥 打印高级特性状态
+      logger.info(
+        "[IPC Registry] ✓ Conversation IPC registered (17 handlers)",
+        {
+          sessionManager: !!sessionManager,
+          agentOrchestrator: !!agentOrchestrator,
+          ragManager: !!ragManager,
+          promptCompressor: !!promptCompressor,
+          tokenTracker: !!tokenTracker,
+        },
+      );
     } catch (conversationError) {
       logger.error(
         "[IPC Registry] ✗ Conversation IPC registration failed:",
@@ -1557,7 +1563,9 @@ function registerAllIPC(dependencies) {
     // 配置管理 (函数模式 - 小模块，4 handlers)
     logger.info("[IPC Registry] Registering Config IPC...");
     const { registerConfigIPC } = require("../config/config-ipc");
-    const { getAppConfig: getConfigForIPC } = require("../config/database-config");
+    const {
+      getAppConfig: getConfigForIPC,
+    } = require("../config/database-config");
     registerConfigIPC({ appConfig: getConfigForIPC() });
     logger.info("[IPC Registry] ✓ Config IPC registered (4 handlers)");
 

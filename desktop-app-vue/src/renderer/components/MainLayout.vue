@@ -822,11 +822,10 @@
           </div>
 
           <!-- 面包屑导航 -->
-          <a-breadcrumb
-            v-if="breadcrumbs.length > 1"
-            class="breadcrumb-nav"
-            separator=">"
-          >
+          <a-breadcrumb v-if="breadcrumbs.length > 1" class="breadcrumb-nav">
+            <template #separator>
+              <span class="breadcrumb-separator">/</span>
+            </template>
             <a-breadcrumb-item
               v-for="(item, index) in breadcrumbs"
               :key="index"
@@ -841,7 +840,7 @@
                   v-if="item.icon"
                   class="breadcrumb-icon"
                 />
-                {{ item.title }}
+                <span class="breadcrumb-text">{{ item.title }}</span>
               </a>
               <span v-else class="breadcrumb-current">
                 <component
@@ -849,7 +848,7 @@
                   v-if="item.icon"
                   class="breadcrumb-icon"
                 />
-                {{ item.title }}
+                <span class="breadcrumb-text">{{ item.title }}</span>
               </span>
             </a-breadcrumb-item>
           </a-breadcrumb>
@@ -2902,7 +2901,7 @@ const handleSyncClick = async () => {
 
 /* 面包屑导航 */
 .breadcrumb-nav {
-  margin-left: 16px;
+  margin-left: 20px;
   font-size: 14px;
 }
 
@@ -2912,33 +2911,57 @@ const handleSyncClick = async () => {
 }
 
 .breadcrumb-link {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 6px 12px;
   color: #666;
-  transition: color 0.3s;
+  border-radius: 6px;
+  transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .breadcrumb-link:hover {
   color: #667eea;
+  background: rgba(102, 126, 234, 0.08);
 }
 
 .breadcrumb-current {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 6px 14px;
   color: #262626;
-  font-weight: 500;
+  font-weight: 600;
+  background: linear-gradient(
+    135deg,
+    rgba(102, 126, 234, 0.1) 0%,
+    rgba(118, 75, 162, 0.1) 100%
+  );
+  border-radius: 6px;
+  border: 1px solid rgba(102, 126, 234, 0.2);
 }
 
 .breadcrumb-icon {
+  font-size: 16px;
+  opacity: 0.85;
+}
+
+.breadcrumb-text {
   font-size: 14px;
+  line-height: 1.5;
+}
+
+.breadcrumb-separator {
+  color: #d9d9d9;
+  font-size: 14px;
+  margin: 0 8px;
+  opacity: 0.6;
+  font-weight: 300;
 }
 
 .breadcrumb-nav :deep(.ant-breadcrumb-separator) {
-  color: #d9d9d9;
-  margin: 0 8px;
+  margin: 0;
 }
 
 .header-right {

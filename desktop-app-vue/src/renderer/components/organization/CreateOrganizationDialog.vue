@@ -241,7 +241,7 @@ async function handleCreate() {
     loading.value = true;
 
     const result = await window.electron.ipcRenderer.invoke(
-      "organization:create",
+      "org:create-organization",
       {
         name: formState.name,
         type: formState.type,

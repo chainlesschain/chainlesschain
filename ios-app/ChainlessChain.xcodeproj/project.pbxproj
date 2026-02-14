@@ -8,6 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		07ED6D0BA69E10FCECFC6083 /* PushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D4C92583A747A6963014DC5 /* PushNotificationManager.swift */; };
+		F1E2D3C4B5A6978869706152 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* PrivacyInfo.xcprivacy */; };
+		B1C2D3E4F5A6B7C8D9E0F1A2 /* VoicePlaybackManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2D3E4F5A6B7C8D9E0F1A2B3 /* VoicePlaybackManager.swift */; };
+		B2C3D4E5F6A7B8C9D0E1F2A3 /* VoiceMessageRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A7B8C9D0E1F2A3B4 /* VoiceMessageRecorder.swift */; };
+		B3C4D5E6F7A8B9C0D1E2F3A4 /* VoiceMessageBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D5E6F7A8B9C0D1E2F3A4B5 /* VoiceMessageBubble.swift */; };
+		B4C5D6E7F8A9B0C1D2E3F4A5 /* QRScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D6E7F8A9B0C1D2E3F4A5B6 /* QRScannerView.swift */; };
+		B5C6D7E8F9A0B1C2D3E4F5A6 /* DEXAggregatorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6D7E8F9A0B1C2D3E4F5A6B7 /* DEXAggregatorService.swift */; };
 		088E9363943C38724066CC52 /* KnowledgeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0E49F458B71F2AE21495715 /* KnowledgeViewModel.swift */; };
 		0B6126A9BBB0C20195CF94BD /* VectorStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9E61A1873797813E2666320 /* VectorStore.swift */; };
 		0D4C613E2E00C737FB312010 /* ProjectRAGManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE207B983149F4C73DA62947 /* ProjectRAGManager.swift */; };
@@ -82,6 +88,11 @@
 
 /* Begin PBXFileReference section */
 		009BF35AC92B10F851AD2236 /* PerformanceManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PerformanceManager.swift; path = ./ChainlessChain/Features/Common/Services/PerformanceManager.swift; sourceTree = "<group>"; };
+		C2D3E4F5A6B7C8D9E0F1A2B3 /* VoicePlaybackManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VoicePlaybackManager.swift; path = ./ChainlessChain/Features/Social/Services/VoicePlaybackManager.swift; sourceTree = "<group>"; };
+		C3D4E5F6A7B8C9D0E1F2A3B4 /* VoiceMessageRecorder.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VoiceMessageRecorder.swift; path = ./ChainlessChain/Features/Social/Views/VoiceMessageRecorder.swift; sourceTree = "<group>"; };
+		C4D5E6F7A8B9C0D1E2F3A4B5 /* VoiceMessageBubble.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VoiceMessageBubble.swift; path = ./ChainlessChain/Features/Social/Views/VoiceMessageBubble.swift; sourceTree = "<group>"; };
+		C5D6E7F8A9B0C1D2E3F4A5B6 /* QRScannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = QRScannerView.swift; path = ./ChainlessChain/Features/Blockchain/Views/QRScannerView.swift; sourceTree = "<group>"; };
+		C6D7E8F9A0B1C2D3E4F5A6B7 /* DEXAggregatorService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DEXAggregatorService.swift; path = ./ChainlessChain/Features/Blockchain/Services/DEXAggregatorService.swift; sourceTree = "<group>"; };
 		0CB391751412456271E6E40F /* FileEditorViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FileEditorViewModel.swift; path = ./ChainlessChain/Features/Project/ViewModels/FileEditorViewModel.swift; sourceTree = "<group>"; };
 		0EC322FF4A527C4BCE04FABC /* RAGManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RAGManager.swift; path = ./ChainlessChain/Features/Knowledge/Services/RAGManager.swift; sourceTree = "<group>"; };
 		1220AC44FE697A994DB02ACC /* MessageDeliveryManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = MessageDeliveryManager.swift; path = ./ChainlessChain/Features/Social/Services/MessageDeliveryManager.swift; sourceTree = "<group>"; };
@@ -114,6 +125,7 @@
 		806D55AFAF66C178F5A56726 /* CreateProjectView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = CreateProjectView.swift; path = ./ChainlessChain/Features/Project/Views/CreateProjectView.swift; sourceTree = "<group>"; };
 		82D4F4857E5FB6FEC07307F8 /* LLMManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LLMManager.swift; path = ./ChainlessChain/Features/AI/Services/LLMManager.swift; sourceTree = "<group>"; };
 		8566053DDB3C446929224648 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; name = Info.plist; path = ./ChainlessChain/Resources/Info.plist; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = ./ChainlessChain/Resources/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		8734630F3C99D60145A54E86 /* KnowledgeDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KnowledgeDetailView.swift; path = ./ChainlessChain/Features/Knowledge/Views/KnowledgeDetailView.swift; sourceTree = "<group>"; };
 		8865AA863705E133694B068D /* FileTreeViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = FileTreeViewModel.swift; path = ./ChainlessChain/Features/Project/ViewModels/FileTreeViewModel.swift; sourceTree = "<group>"; };
 		8B115EAEFD486ED6F244AA3C /* AIConversationListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AIConversationListView.swift; path = ./ChainlessChain/Features/AI/Views/AIConversationListView.swift; sourceTree = "<group>"; };
@@ -546,6 +558,7 @@
 				4CDDF504390AC6DE30A4B044 /* en.lproj */,
 				6B01CE9088ED1A152BB777AD /* Assets.xcassets */,
 				8566053DDB3C446929224648 /* Info.plist */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* PrivacyInfo.xcprivacy */,
 			);
 			name = ChainlessChain;
 			sourceTree = "<group>";
@@ -747,6 +760,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1E2D3C4B5A6978869706152 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

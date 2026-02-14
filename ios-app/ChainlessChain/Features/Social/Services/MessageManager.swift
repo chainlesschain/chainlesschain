@@ -47,6 +47,8 @@ class MessageManager: ObservableObject {
         enum MessageType: String, Codable {
             case text
             case image
+            case audio
+            case video
             case file
             case system
         }

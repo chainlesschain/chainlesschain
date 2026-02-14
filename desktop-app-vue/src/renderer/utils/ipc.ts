@@ -12,23 +12,23 @@ const api = (window as any).electronAPI as ElectronAPI;
 
 /**
  * 需要重试逻辑的 IPC 通道（在启动时可能未就绪）
+ * 注意：使用 wrapAPIObject 生成的属性路径格式（camelCase），不是 IPC 通道名
  */
 const STARTUP_RETRY_CHANNELS: string[] = [
-  'project:get-all',
+  'project:getAll',
   'template:getAll',
-  'notification:get-all',
-  'chat:get-sessions',
-  'friend:get-list',
-  'friend:get-pending-requests',
+  'notification:getAll',
+  'friend:getPendingRequests',
+  'friend:getFriends',
 ];
 
 /**
  * IPC 重试配置
  */
 const RETRY_CONFIG: IPCRetryConfig = {
-  maxRetries: 5,          // 最大重试次数
-  initialDelay: 100,      // 初始延迟 (毫秒)
-  maxDelay: 2000,         // 最大延迟 (毫秒)
+  maxRetries: 8,          // 最大重试次数
+  initialDelay: 200,      // 初始延迟 (毫秒)
+  maxDelay: 3000,         // 最大延迟 (毫秒)
   backoffMultiplier: 2,   // 延迟倍增因子
   retryableErrors: [
     'No handler registered',

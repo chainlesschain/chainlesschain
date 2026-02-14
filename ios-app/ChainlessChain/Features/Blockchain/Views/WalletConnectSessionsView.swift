@@ -8,6 +8,7 @@ struct WalletConnectSessionsView: View {
     @State private var pairUri = ""
     @State private var showingDisconnectConfirmation = false
     @State private var sessionToDisconnect: WalletConnectSession?
+    @State private var showingQRScanner = false
     @State private var errorMessage: String?
     @State private var successMessage: String?
 
@@ -57,6 +58,16 @@ struct WalletConnectSessionsView: View {
             PairDAppSheet(pairUri: $pairUri, onPair: {
                 Task { await pairWithDApp() }
             })
+        }
+        .sheet(isPresented: $showingQRScanner) {
+            QRScannerView { scannedUri in
+                pairUri = scannedUri
+                showingQRScanner = false
+                Task { await pairWithDApp() }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .walletConnectShowQRScanner)) { _ in
+            showingQRScanner = true
         }
         .confirmationDialog("断开连接", isPresented: $showingDisconnectConfirmation, presenting: sessionToDisconnect) { session in
             Button("断开 \(session.dappName)", role: .destructive) {
@@ -236,7 +247,14 @@ struct PairDAppSheet: View {
 
                 Section {
                     Button("扫描 QR 码") {
-                        // TODO: Implement QR scanner
+                        dismiss()
+                        // Trigger QR scanner on parent view
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            NotificationCenter.default.post(
+                                name: .walletConnectShowQRScanner,
+                                object: nil
+                            )
+                        }
                     }
                 }
             }
@@ -249,6 +267,12 @@ struct PairDAppSheet: View {
             }
         }
     }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let walletConnectShowQRScanner = Notification.Name("walletConnectShowQRScanner")
 }
 
 struct WalletConnectSessionsView_Previews: PreviewProvider {

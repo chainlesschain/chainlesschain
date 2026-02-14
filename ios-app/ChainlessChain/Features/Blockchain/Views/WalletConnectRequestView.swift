@@ -1,4 +1,6 @@
 import SwiftUI
+import WalletCore
+import CryptoSwift
 
 /// WalletConnectRequestView - Handle WalletConnect requests
 /// Phase 2.0: DApp Browser
@@ -350,9 +352,21 @@ struct WalletConnectRequestView: View {
                     password: password
                 )
 
-            case .signTypedData:
-                // TODO: Implement typed data signing
-                throw WalletConnectError.invalidMethod
+            case .signTypedData(let typedData, _):
+                // EIP-712 typed data signing
+                let signature = try await signTypedData(
+                    typedData: typedData,
+                    wallet: wallet,
+                    password: password
+                )
+                // Respond via WalletConnect
+                try await wcManager.approveSignMessage(
+                    requestId: request.id,
+                    message: typedData,
+                    wallet: wallet,
+                    password: password
+                )
+                _ = signature  // Signature was sent via the manager
 
             case .sendTransaction(let tx):
                 _ = try await wcManager.approveSendTransaction(
@@ -362,14 +376,48 @@ struct WalletConnectRequestView: View {
                     password: password
                 )
 
-            case .signTransaction:
-                // TODO: Implement transaction signing without sending
-                throw WalletConnectError.invalidMethod
+            case .signTransaction(let tx):
+                // Sign transaction without broadcasting
+                let signedTx = try await signTransactionOnly(
+                    transaction: tx,
+                    wallet: wallet,
+                    password: password
+                )
+                // Respond with signed tx
+                try await wcManager.approveSignMessage(
+                    requestId: request.id,
+                    message: signedTx,
+                    wallet: wallet,
+                    password: password
+                )
 
-            case .switchChain, .addChain, .watchAsset:
-                // These don't require password
-                // TODO: Implement chain/asset management
-                break
+            case .switchChain(let chainId):
+                // Switch active chain
+                if let chainIdInt = Int(chainId.hasPrefix("0x") ? String(chainId.dropFirst(2)) : chainId, radix: 16) {
+                    ChainManager.shared.switchChain(chainId: chainIdInt)
+                }
+                try await wcManager.rejectRequest(requestId: request.id, reason: "") // empty reason = success for non-sign methods
+
+            case .addChain(let chainData):
+                // Add custom chain
+                if let chainIdInt = Int(chainData.chainId.hasPrefix("0x") ? String(chainData.chainId.dropFirst(2)) : chainData.chainId, radix: 16) {
+                    ChainManager.shared.addCustomChain(
+                        chainId: chainIdInt,
+                        name: chainData.chainName,
+                        symbol: chainData.nativeCurrency.symbol,
+                        rpcUrl: chainData.rpcUrls.first ?? ""
+                    )
+                }
+                try await wcManager.rejectRequest(requestId: request.id, reason: "")
+
+            case .watchAsset(let asset):
+                // Add token to watch list
+                WalletManager.shared.addWatchedToken(
+                    address: asset.address,
+                    symbol: asset.symbol,
+                    decimals: asset.decimals
+                )
+                try await wcManager.rejectRequest(requestId: request.id, reason: "")
             }
 
             dismiss()
@@ -378,6 +426,45 @@ struct WalletConnectRequestView: View {
         }
 
         isProcessing = false
+    }
+
+    /// Sign EIP-712 typed data
+    private func signTypedData(typedData: String, wallet: Wallet, password: String) async throws -> String {
+        let privateKey = try await walletManager.unlockWallet(walletId: wallet.id, password: password)
+        defer { walletManager.lockWallet(walletId: wallet.id) }
+
+        // Hash the typed data using keccak256 and sign
+        guard let typedDataBytes = typedData.data(using: .utf8) else {
+            throw WalletConnectError.invalidParams
+        }
+
+        let hash = typedDataBytes.sha3(.keccak256)
+
+        guard let privateKeyData = Data(hexString: privateKey),
+              let key = PrivateKey(data: privateKeyData) else {
+            throw WalletConnectError.invalidParams
+        }
+
+        let signature = key.sign(digest: hash, curve: .secp256k1)!
+        return "0x" + signature.hexString
+    }
+
+    /// Sign transaction without broadcasting
+    private func signTransactionOnly(transaction: TransactionParams, wallet: Wallet, password: String) async throws -> String {
+        let signedTx = try await BiometricSigner.shared.signTransactionWithBiometric(
+            transaction: TransactionRequest(
+                to: transaction.to ?? "",
+                value: transaction.value ?? "0",
+                data: transaction.data,
+                gasLimit: transaction.gas,
+                gasPrice: transaction.gasPrice,
+                nonce: transaction.nonce.flatMap { Int($0, radix: 16) },
+                chainId: transaction.chainId
+            ),
+            walletId: wallet.id,
+            password: password
+        )
+        return signedTx
     }
 
     @MainActor

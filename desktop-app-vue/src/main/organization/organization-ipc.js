@@ -69,10 +69,12 @@ function registerOrganizationIPC({
         throw new Error("组织管理器未初始化");
       }
 
-      return await organizationManager.createOrganization(orgData);
+      const organization =
+        await organizationManager.createOrganization(orgData);
+      return { success: true, organization };
     } catch (error) {
       logger.error("[Organization IPC] 创建组织失败:", error);
-      throw error;
+      return { success: false, error: error.message };
     }
   });
 
@@ -430,21 +432,18 @@ function registerOrganizationIPC({
    * 获取当前用户的DID邀请历史（已接受、已拒绝、已过期）
    * Channel: 'org:get-did-invitation-history'
    */
-  ipcMain.handle(
-    "org:get-did-invitation-history",
-    async (_event, options) => {
-      try {
-        if (!organizationManager) {
-          return { accepted: [], rejected: [], expired: [] };
-        }
-
-        return await organizationManager.getDIDInvitationHistory(options);
-      } catch (error) {
-        logger.error("[Organization IPC] 获取DID邀请历史失败:", error);
+  ipcMain.handle("org:get-did-invitation-history", async (_event, options) => {
+    try {
+      if (!organizationManager) {
         return { accepted: [], rejected: [], expired: [] };
       }
-    },
-  );
+
+      return await organizationManager.getDIDInvitationHistory(options);
+    } catch (error) {
+      logger.error("[Organization IPC] 获取DID邀请历史失败:", error);
+      return { accepted: [], rejected: [], expired: [] };
+    }
+  });
 
   /**
    * 获取组织的DID邀请列表

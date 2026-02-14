@@ -462,26 +462,50 @@ public class BlockchainEngine: BaseAIEngine {
             throw AIEngineError.invalidParameters("不支持的链ID: \(chainId)")
         }
 
-        // 获取报价（暂时返回估算值，实际实现需要集成DEX聚合器）
-        // TODO: 集成1inch、0x等DEX聚合器API获取实际报价
-        let estimatedOutput: Double
-        if let amountDouble = Double(amount) {
-            estimatedOutput = amountDouble * 0.98 // 模拟2%的价格差
-        } else {
-            estimatedOutput = 0
-        }
+        // 使用1inch DEX聚合器获取实际报价
+        do {
+            let quote = try await DEXAggregatorService.shared.getQuote(
+                chainId: chainId,
+                fromToken: fromToken,
+                toToken: toToken,
+                amount: amount
+            )
 
-        return [
-            "fromToken": fromToken,
-            "toToken": toToken,
-            "inputAmount": amount,
-            "estimatedOutput": String(format: "%.6f", estimatedOutput),
-            "slippage": slippage,
-            "priceImpact": 0.3,
-            "route": [fromToken, toToken],
-            "chainId": chainId,
-            "note": "需要集成DEX聚合器API获取实际报价"
-        ]
+            let routeNames = quote.protocols.flatMap { $0.map { $0.name } }
+
+            return [
+                "fromToken": fromToken,
+                "toToken": toToken,
+                "inputAmount": amount,
+                "estimatedOutput": quote.toAmount,
+                "slippage": slippage,
+                "estimatedGas": quote.estimatedGas,
+                "route": routeNames.isEmpty ? [fromToken, toToken] : routeNames,
+                "chainId": chainId,
+                "source": "1inch"
+            ]
+        } catch {
+            // Fallback to estimate if API is unavailable
+            let estimatedOutput: Double
+            if let amountDouble = Double(amount) {
+                estimatedOutput = amountDouble * 0.98
+            } else {
+                estimatedOutput = 0
+            }
+
+            return [
+                "fromToken": fromToken,
+                "toToken": toToken,
+                "inputAmount": amount,
+                "estimatedOutput": String(format: "%.6f", estimatedOutput),
+                "slippage": slippage,
+                "priceImpact": 0.3,
+                "route": [fromToken, toToken],
+                "chainId": chainId,
+                "source": "estimate",
+                "note": "DEX聚合器不可用，返回估算值: \(error.localizedDescription)"
+            ]
+        }
     }
 
     // MARK: - Gas估算

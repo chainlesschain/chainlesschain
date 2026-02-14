@@ -1,5 +1,6 @@
 import Foundation
 import LocalAuthentication
+import WalletCore
 
 /// 生物识别签名服务
 /// 使用Face ID/Touch ID进行钱包操作认证
@@ -110,15 +111,48 @@ class BiometricSigner {
             password: password
         )
 
-        // 3. 使用私钥签名交易
-        // TODO: 集成 WalletCore 或 web3.swift 进行交易签名
-        // let signedTx = try signTransaction(transaction, privateKey: privateKey)
+        // 3. 使用 WalletCore 签名交易
+        guard let privateKeyData = Data(hexString: privateKey) else {
+            WalletManager.shared.lockWallet(walletId: walletId)
+            throw BiometricError.failed("无效的私钥格式")
+        }
+
+        guard let key = PrivateKey(data: privateKeyData) else {
+            WalletManager.shared.lockWallet(walletId: walletId)
+            throw BiometricError.failed("无法创建私钥")
+        }
+
+        let chainId = transaction.chainId ?? 1
+
+        var signingInput = EthereumSigningInput()
+        signingInput.chainID = Data(hexString: String(format: "%02x", chainId)) ?? Data([0x01])
+        signingInput.nonce = Data(hexString: String(format: "%02x", transaction.nonce ?? 0)) ?? Data([0x00])
+        signingInput.toAddress = transaction.to
+        signingInput.txMode = .enveloped
+
+        var transfer = EthereumTransaction.Transfer()
+        transfer.amount = Data(hexString: transaction.value.hasPrefix("0x")
+            ? String(transaction.value.dropFirst(2))
+            : transaction.value) ?? Data([0x00])
+        var ethTx = EthereumTransaction()
+        ethTx.transfer = transfer
+        signingInput.transaction = ethTx
+
+        signingInput.gasLimit = Data(hexString: transaction.gasLimit ?? "5208") ?? Data([0x52, 0x08])
+        if let gasPrice = transaction.gasPrice {
+            signingInput.maxFeePerGas = Data(hexString: gasPrice.hasPrefix("0x")
+                ? String(gasPrice.dropFirst(2))
+                : gasPrice) ?? Data()
+        }
+        signingInput.privateKey = privateKeyData
+
+        let output: EthereumSigningOutput = AnySigner.sign(input: signingInput, coin: .ethereum)
+        let signedTx = output.encoded.hexString
 
         // 4. 签名完成后立即锁定钱包
         WalletManager.shared.lockWallet(walletId: walletId)
 
-        // 临时返回（实际需要实现签名）
-        throw WalletError.networkError("签名功能需要集成WalletCore或web3.swift")
+        return signedTx
     }
 
     /// 获取生物识别类型名称
