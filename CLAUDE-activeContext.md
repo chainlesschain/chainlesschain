@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-02-15 (Android 端 9 项问题修复 - 区块链核心、AI 集成、UI Bug)
+> **最后更新**: 2026-02-15 (Android 端 9 项修复 + Memory Bank 全量更新)
 
 ---
 
@@ -20,6 +20,10 @@
 - [x] Android UI - 深色模式切换动画 (animateColorScheme)
 - [x] Android UI - 通知角标准确性 (从数据源查询)
 - [x] Android UI - 键盘遮挡底部导航 (imePadding)
+- [x] Memory Bank 更新 - CLAUDE-activeContext.md (会话状态记录)
+- [x] Memory Bank 更新 - CLAUDE-patterns.md (v1.1.0, +7 Android 架构模式)
+- [x] Memory Bank 更新 - CLAUDE-decisions.md (ADR-009 ~ ADR-012, Android 区块链决策)
+- [x] Memory Bank 更新 - CLAUDE-troubleshooting.md (v1.1.0, +8 Android/开发工具问题)
 - [x] Android WebRTC 编译错误修复 (RemoteModule OkHttpClient)
 - [x] Android 离线消息队列增强 (优先级、指数退避、批量操作)
 - [x] Android 社交功能 - 点赞/收藏/分享动画
@@ -87,7 +91,7 @@
 
 ### 最近完成
 
-0. **Android 端 9 项问题修复** (2026-02-15 最新):
+0. **Android 修复 + Memory Bank 全量更新** (2026-02-15 最新):
    - **区块链核心功能实现** (CRITICAL):
      - `WalletCoreAdapter.kt` - ECDSA 签名 (secp256k1 + BouncyCastle ECDSASigner)
        - `privateKeyToPublicKey()`: EC 点乘，65 字节非压缩公钥
@@ -112,8 +116,17 @@
      - `Theme.kt` - ColorScheme.animate() 扩展函数, 24 个颜色属性 tween(400ms) 过渡
      - `LocalNotificationManager.kt` - refreshUnreadCount() 从 notificationCommands 查询真实未读数
      - `MainContainer.kt` - Box 添加 .imePadding() 解决键盘遮挡
+   - **Memory Bank 文档更新**:
+     - `CLAUDE-patterns.md` v1.1.0 - 新增 7 个 Android 架构模式 (secp256k1, RLP, Keystore V3, debounce, 动画等)
+     - `CLAUDE-decisions.md` - 新增 ADR-009 ~ ADR-012 (BouncyCastle, RLP 编码器, Keystore 解密, AI 适配器)
+     - `CLAUDE-troubleshooting.md` v1.1.0 - 新增 8 个问题解决方案 (区块链 3, AI 2, UI 2, 开发工具 1)
    - **修改文件**: 10 modified + 1 new (RLPEncoder.kt), 共 671 行新增
-   - **提交**: `7dbbabe5` fix(android): implement blockchain crypto, improve AI integration, and fix UI bugs
+   - **提交**:
+     - `7dbbabe5` fix(android): implement blockchain crypto, improve AI integration, and fix UI bugs
+     - `7cfd2888` docs: update CLAUDE-activeContext.md with Android fixes session
+     - `852f72c0` docs: add Android blockchain, UI, and AI patterns to CLAUDE-patterns.md
+     - `396c5a2e` docs: add ADR-009 to ADR-012 for Android blockchain architecture decisions
+     - `6c81f6b0` fix(desktop): improve error handling, fix stream event naming, and remove duplicate IPC handlers (含 CLAUDE-troubleshooting.md)
 
 1. **iOS/Android 大规模功能增强** (2026-02-10 - 18 commits):
    - **iOS 新模块** (~4000 行):
