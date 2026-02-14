@@ -212,7 +212,9 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
 
         // 其他提供商需要API Key
         val finalApiKey = apiKey ?: configManager.getApiKey(provider)
-        requireNotNull(finalApiKey.takeIf { it.isNotBlank() }) { "API Key不能为空" }
+        if (finalApiKey.isNullOrBlank()) {
+            throw IllegalArgumentException("${provider.displayName}的API Key未配置，请在AI设置中配置后重试")
+        }
 
         return when (provider) {
             LLMProvider.OPENAI -> {
@@ -298,7 +300,10 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
                     val constructor = clazz.getConstructor(String::class.java, String::class.java)
                     constructor.newInstance(apiKey, config.baseURL) as LLMAdapter
                 }
-                LLMProvider.CUSTOM -> OpenAIAdapter(apiKey)
+                LLMProvider.CUSTOM -> {
+                    val config = configManager.getConfig().custom
+                    OpenAIAdapter(apiKey, config.baseURL.ifBlank { "https://api.openai.com/v1" })
+                }
                 else -> throw IllegalArgumentException("不支持的提供商: $provider")
             }
         } catch (e: Exception) {

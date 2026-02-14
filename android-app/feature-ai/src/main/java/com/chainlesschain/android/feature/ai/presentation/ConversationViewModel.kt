@@ -244,10 +244,17 @@ class ConversationViewModel @Inject constructor(
                 android.util.Log.d("ConversationViewModel", "Stream collection completed")
             } catch (e: Exception) {
                 android.util.Log.e("ConversationViewModel", "Exception in sendMessage", e)
+                val errorMsg = when (e) {
+                    is java.net.UnknownHostException -> "网络连接失败，请检查网络设置"
+                    is java.net.SocketTimeoutException -> "连接超时，请检查网络或服务地址"
+                    is java.net.ConnectException -> "无法连接到AI服务，请检查服务是否启动"
+                    is IllegalArgumentException -> e.message ?: "参数错误"
+                    else -> "发送失败: ${e.message ?: "未知错误"}"
+                }
                 _uiState.update {
                     it.copy(
                         isSending = false,
-                        error = e.message ?: "发送失败"
+                        error = errorMsg
                     )
                 }
             }

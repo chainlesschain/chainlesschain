@@ -176,7 +176,7 @@ class LocalNotificationManager @Inject constructor(
 
         try {
             notificationManager.notify(notificationId, builder.build())
-            _unreadCount.value++
+            refreshUnreadCount()
             Timber.d("Notification shown: ${event.title}")
         } catch (e: SecurityException) {
             Timber.e(e, "Failed to show notification - permission denied")
@@ -264,6 +264,27 @@ class LocalNotificationManager @Inject constructor(
             body = body
         ).map {
             Timber.d("Notification sent to PC: $title")
+        }
+    }
+
+    /**
+     * Refresh unread count from data source
+     */
+    private fun refreshUnreadCount() {
+        scope.launch {
+            try {
+                val result = notificationCommands.getUnreadCount()
+                result.onSuccess { response ->
+                    _unreadCount.value = response.unreadCount
+                }.onFailure {
+                    // Fallback: increment locally if query fails
+                    _unreadCount.value++
+                }
+            } catch (e: Exception) {
+                // Fallback: increment locally if query fails
+                _unreadCount.value++
+                Timber.w(e, "Failed to refresh unread count, using local increment")
+            }
         }
     }
 

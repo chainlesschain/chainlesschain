@@ -16,7 +16,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -25,6 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.platform.LocalContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
@@ -265,6 +273,13 @@ fun ExploreContentCard(
 ) {
     var isLiked by remember { mutableStateOf(false) }
     var isBookmarked by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val likeScale = remember { Animatable(1f) }
+    val likeTint by animateColorAsState(
+        targetValue = if (isLiked) Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "likeTint"
+    )
 
     Card(
         onClick = onClick,
@@ -284,10 +299,15 @@ fun ExploreContentCard(
                         .height(content.height.dp)
                 ) {
                     AsyncImage(
-                        model = content.imageUrl,
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(content.imageUrl)
+                            .crossfade(true)
+                            .build(),
                         contentDescription = content.title,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant),
+                        error = ColorPainter(MaterialTheme.colorScheme.errorContainer)
                     )
 
                     // 渐变遮罩
@@ -423,19 +443,37 @@ fun ExploreContentCard(
                             )
                         }
 
-                        // 点赞
+                        // 点赞（带弹跳动画）
                         IconButton(
                             onClick = {
                                 isLiked = !isLiked
                                 onLike()
+                                scope.launch {
+                                    likeScale.animateTo(
+                                        1.3f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    )
+                                    likeScale.animateTo(
+                                        1f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                                            stiffness = Spring.StiffnessLow
+                                        )
+                                    )
+                                }
                             },
                             modifier = Modifier.size(28.dp)
                         ) {
                             Icon(
                                 imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                 contentDescription = "点赞",
-                                modifier = Modifier.size(16.dp),
-                                tint = if (isLiked) Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurfaceVariant
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .scale(likeScale.value),
+                                tint = likeTint
                             )
                         }
 

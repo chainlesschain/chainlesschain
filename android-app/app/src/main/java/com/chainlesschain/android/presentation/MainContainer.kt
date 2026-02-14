@@ -1,6 +1,7 @@
 package com.chainlesschain.android.presentation
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -83,6 +84,7 @@ fun MainContainer(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .imePadding()
         ) {
             // 使用 key 优化重组，确保正确的 Composable 对应正确的 Tab
             when (selectedTab) {
