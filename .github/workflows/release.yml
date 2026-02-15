@@ -515,42 +515,47 @@ jobs:
 
           cat release-notes.md
 
-      - name: Create or update Release
+      - name: Collect artifact files
+        id: artifacts
+        run: |
+          shopt -s globstar nullglob
+          FILES=""
+          for f in artifacts/**/*.zip artifacts/**/*.dmg artifacts/**/*.deb \
+                   artifacts/**/*.rpm artifacts/**/*.AppImage artifacts/**/*.exe \
+                   artifacts/**/*.apk artifacts/**/*.aab artifacts/**/*.ipa; do
+            if [ -f "$f" ]; then
+              echo "Found: $f"
+              FILES="$FILES $f"
+            fi
+          done
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+          echo "Found $(echo $FILES | wc -w) artifact files"
+
+      - name: Create Release with artifacts
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"
-          DRAFT_FLAG=""
-          PRERELEASE_FLAG=""
+          FILES="${{ steps.artifacts.outputs.files }}"
+          EXTRA_FLAGS=""
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            [ "${{ inputs.draft }}" == "true" ] && DRAFT_FLAG="--draft"
-            [ "${{ inputs.prerelease }}" == "true" ] && PRERELEASE_FLAG="--prerelease"
+            [ "${{ inputs.draft }}" == "true" ] && EXTRA_FLAGS="$EXTRA_FLAGS --draft"
+            [ "${{ inputs.prerelease }}" == "true" ] && EXTRA_FLAGS="$EXTRA_FLAGS --prerelease"
           fi
 
-          # Create release if it doesn't exist
-          if ! gh release view "$VERSION" > /dev/null 2>&1; then
-            echo "Creating new release ${VERSION}..."
-            gh release create "$VERSION" \
-              --title "ChainlessChain ${VERSION}" \
-              --notes-file release-notes.md \
-              $DRAFT_FLAG $PRERELEASE_FLAG
-          else
-            echo "Release ${VERSION} already exists, updating notes..."
-            gh release edit "$VERSION" --notes-file release-notes.md || true
+          # Delete existing release if any (to avoid immutable conflict)
+          if gh release view "$VERSION" > /dev/null 2>&1; then
+            echo "Deleting existing release ${VERSION} to recreate with artifacts..."
+            gh release delete "$VERSION" --yes || true
           fi
 
-          # Upload all artifacts
-          echo "Uploading artifacts to release ${VERSION}..."
-          for pattern in "artifacts/**/*.zip" "artifacts/**/*.dmg" "artifacts/**/*.deb" \
-                         "artifacts/**/*.rpm" "artifacts/**/*.AppImage" "artifacts/**/*.exe" \
-                         "artifacts/**/*.apk" "artifacts/**/*.aab" "artifacts/**/*.ipa"; do
-            for f in $pattern; do
-              if [ -f "$f" ]; then
-                echo "Uploading $f"
-                gh release upload "$VERSION" "$f" --clobber || echo "Warning: Failed to upload $f"
-              fi
-            done
-          done
+          # Create release with all artifacts in a single command
+          echo "Creating release ${VERSION} with artifacts..."
+          gh release create "$VERSION" \
+            --title "ChainlessChain ${VERSION}" \
+            --notes-file release-notes.md \
+            $EXTRA_FLAGS \
+            $FILES
 
           echo "✅ Release ${VERSION} completed!"
           echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
