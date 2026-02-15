@@ -239,24 +239,27 @@ class RemoteConnectionManager @Inject constructor(
      */
     suspend fun takeScreenshot(
         displayId: Int? = null,
-        format: String = "png",
-        quality: Int = 90
-    ): Result<DesktopCommands.ScreenCaptureResponse> {
-        return desktop.captureScreen(displayId, format, quality)
+        format: String = "png"
+    ): Result<ScreenshotResponse> {
+        return desktop.screenshot(displayId, format)
     }
 
     /**
      * 发送文本输入
      */
-    suspend fun sendText(text: String): Result<InputCommands.TypeTextResponse> {
+    suspend fun sendText(text: String): Result<TypeTextResponse> {
         return input.typeText(text)
     }
 
     /**
      * 发送按键
      */
-    suspend fun sendKey(key: String, modifiers: List<String> = emptyList()): Result<InputCommands.KeyPressResponse> {
-        return input.keyPress(key, modifiers)
+    suspend fun sendKey(key: String, modifiers: List<String> = emptyList()): Result<KeyPressResponse> {
+        if (modifiers.isNotEmpty()) {
+            val comboResult = input.sendKeyCombo(key, modifiers)
+            return comboResult.map { KeyPressResponse(it.success, it.key, it.message) }
+        }
+        return input.sendKeyPress(key)
     }
 
     /**
@@ -265,10 +268,9 @@ class RemoteConnectionManager @Inject constructor(
     suspend fun mouseClick(
         x: Int,
         y: Int,
-        button: String = "left",
-        clickCount: Int = 1
-    ): Result<InputCommands.MouseClickResponse> {
-        return input.mouseClick(x, y, button, clickCount)
+        button: String = "left"
+    ): Result<MouseClickResponse> {
+        return input.mouseClick(button, x, y)
     }
 
     /**
@@ -278,7 +280,7 @@ class RemoteConnectionManager @Inject constructor(
         message: String,
         conversationId: String? = null,
         model: String? = null
-    ): Result<AICommands.ChatResponse> {
+    ): Result<ChatResponse> {
         return ai.chat(message, conversationId, model)
     }
 
@@ -288,7 +290,7 @@ class RemoteConnectionManager @Inject constructor(
     suspend fun readFile(
         path: String,
         encoding: String = "utf-8"
-    ): Result<FileCommands.ReadFileResponse> {
+    ): Result<ReadFileResponse> {
         return file.readFile(path, encoding)
     }
 
@@ -299,7 +301,7 @@ class RemoteConnectionManager @Inject constructor(
         path: String,
         content: String,
         encoding: String = "utf-8"
-    ): Result<FileCommands.WriteFileResponse> {
+    ): Result<WriteFileResponse> {
         return file.writeFile(path, content, encoding)
     }
 
@@ -310,22 +312,22 @@ class RemoteConnectionManager @Inject constructor(
         command: String,
         args: List<String> = emptyList(),
         workingDirectory: String? = null
-    ): Result<SystemCommands.ExecuteCommandResponse> {
-        return system.executeCommand(command, args, workingDirectory)
+    ): Result<ExecCommandResponse> {
+        return system.execCommand(command, args, workingDirectory)
     }
 
     /**
      * 获取剪贴板内容
      */
-    suspend fun getClipboard(): Result<ClipboardCommands.GetContentResponse> {
-        return clipboard.getContent()
+    suspend fun getClipboard(): Result<ClipboardContent> {
+        return clipboard.get()
     }
 
     /**
      * 设置剪贴板内容
      */
-    suspend fun setClipboard(text: String): Result<ClipboardCommands.SetContentResponse> {
-        return clipboard.setContent(text)
+    suspend fun setClipboard(text: String): Result<ClipboardSetResponse> {
+        return clipboard.set(text)
     }
 }
 
@@ -346,18 +348,25 @@ data class ConnectionHealth(
 /**
  * 扩展函数：将响应转换为 Map
  */
-private fun DesktopCommands.ScreenCaptureResponse.toMap(): Map<String, Any> = mapOf(
+private fun ScreenshotResponse.toMap(): Map<String, Any> = mapOf(
     "imageData" to imageData,
     "width" to width,
     "height" to height,
     "format" to format
 )
 
-private fun SystemInfoCommands.FullSystemReportResponse.toMap(): Map<String, Any> = mapOf(
-    "os" to os,
-    "cpu" to cpu,
-    "memory" to memory,
-    "storage" to storage,
-    "network" to network,
-    "timestamp" to timestamp
-)
+private fun FullSystemReportResponse.toMap(): Map<String, Any> {
+    val result = mutableMapOf<String, Any>(
+        "success" to success,
+        "generatedAt" to generatedAt,
+        "system" to system,
+        "hardware" to hardware,
+        "cpu" to cpu,
+        "memory" to memory
+    )
+    gpus?.let { result["gpus"] = it }
+    disks?.let { result["disks"] = it }
+    network?.let { result["network"] = it }
+    battery?.let { result["battery"] = it }
+    return result
+}

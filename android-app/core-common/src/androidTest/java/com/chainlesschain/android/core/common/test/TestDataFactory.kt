@@ -115,7 +115,7 @@ object TestDataFactory {
         parentCommentId: String? = null,
         createdAt: Long = System.currentTimeMillis(),
         likeCount: Int = 0,
-        replyCount: Int = 0
+        isLiked: Boolean = false
     ) = PostCommentEntity(
         id = id,
         postId = postId,
@@ -124,7 +124,7 @@ object TestDataFactory {
         parentCommentId = parentCommentId,
         createdAt = createdAt,
         likeCount = likeCount,
-        replyCount = replyCount
+        isLiked = isLiked
     )
 
     fun createPostLikeEntity(

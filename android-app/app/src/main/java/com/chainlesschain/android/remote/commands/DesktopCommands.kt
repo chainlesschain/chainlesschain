@@ -548,7 +548,7 @@ class DesktopCommands @Inject constructor(
      *
      * @param text 文本内容
      */
-    suspend fun setClipboardText(text: String): Result<ClipboardSetResponse> {
+    suspend fun setClipboardText(text: String): Result<DesktopClipboardSetResponse> {
         return client.invoke("desktop.setClipboard", mapOf(
             "type" to "text",
             "content" to text
@@ -564,7 +564,7 @@ class DesktopCommands @Inject constructor(
     suspend fun setClipboardImage(
         imageData: String,
         format: String = "png"
-    ): Result<ClipboardSetResponse> {
+    ): Result<DesktopClipboardSetResponse> {
         return client.invoke("desktop.setClipboard", mapOf(
             "type" to "image",
             "content" to imageData,
@@ -575,7 +575,7 @@ class DesktopCommands @Inject constructor(
     /**
      * 清空剪贴板
      */
-    suspend fun clearClipboard(): Result<ClipboardSetResponse> {
+    suspend fun clearClipboard(): Result<DesktopClipboardSetResponse> {
         return client.invoke("desktop.clearClipboard", emptyMap())
     }
 
@@ -1260,7 +1260,7 @@ data class ClipboardGetResponse(
 )
 
 @Serializable
-data class ClipboardSetResponse(
+data class DesktopClipboardSetResponse(
     val success: Boolean,
     val type: String,
     val message: String? = null

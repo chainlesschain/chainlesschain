@@ -11,6 +11,12 @@ plugins {
     jacoco
 }
 
+// Detekt configuration
+detekt {
+    config.setFrom(files("${rootProject.projectDir}/detekt.yml"))
+    buildUponDefaultConfig = true
+}
+
 // Check if google-services.json exists
 val hasGoogleServices = listOf(
     "google-services.json",

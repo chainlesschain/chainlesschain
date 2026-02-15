@@ -73,6 +73,9 @@ dependencies {
     // Coil for image loading (NFT images)
     implementation("io.coil-kt:coil-compose:2.6.0")
 
+    // BouncyCastle (required for SCrypt key derivation in WalletManager)
+    implementation("org.bouncycastle:bcprov-jdk18on:1.77")
+
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
     ksp("com.google.dagger:hilt-compiler:2.50")
