@@ -2,6 +2,10 @@ package com.chainlesschain.android.remote.ui.system
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chainlesschain.android.remote.commands.BatteryStatusResponse
+import com.chainlesschain.android.remote.commands.FullSystemReportResponse
+import com.chainlesschain.android.remote.commands.GpuInfoResponse
+import com.chainlesschain.android.remote.commands.NetworkStatsResponse
 import com.chainlesschain.android.remote.commands.ProcessCommands
 import com.chainlesschain.android.remote.commands.PowerCommands
 import com.chainlesschain.android.remote.commands.SystemCommands
@@ -55,17 +59,17 @@ class SystemMonitorViewModel @Inject constructor(
     val systemInfo: StateFlow<SystemInfo?> = _systemInfo.asStateFlow()
 
     // 扩展信息
-    private val _gpuInfo = MutableStateFlow<SystemInfoCommands.GpuInfoResponse?>(null)
-    val gpuInfo: StateFlow<SystemInfoCommands.GpuInfoResponse?> = _gpuInfo.asStateFlow()
+    private val _gpuInfo = MutableStateFlow<GpuInfoResponse?>(null)
+    val gpuInfo: StateFlow<GpuInfoResponse?> = _gpuInfo.asStateFlow()
 
-    private val _batteryInfo = MutableStateFlow<PowerCommands.BatteryStatusResponse?>(null)
-    val batteryInfo: StateFlow<PowerCommands.BatteryStatusResponse?> = _batteryInfo.asStateFlow()
+    private val _batteryInfo = MutableStateFlow<BatteryStatusResponse?>(null)
+    val batteryInfo: StateFlow<BatteryStatusResponse?> = _batteryInfo.asStateFlow()
 
     private val _topProcesses = MutableStateFlow<List<ProcessInfo>>(emptyList())
     val topProcesses: StateFlow<List<ProcessInfo>> = _topProcesses.asStateFlow()
 
-    private val _networkStats = MutableStateFlow<SystemInfoCommands.NetworkStatsResponse?>(null)
-    val networkStats: StateFlow<SystemInfoCommands.NetworkStatsResponse?> = _networkStats.asStateFlow()
+    private val _networkStats = MutableStateFlow<NetworkStatsResponse?>(null)
+    val networkStats: StateFlow<NetworkStatsResponse?> = _networkStats.asStateFlow()
 
     // CPU 使用率历史（最近 60 个数据点）
     private val _cpuHistory = MutableStateFlow<List<Float>>(emptyList())
@@ -270,7 +274,7 @@ class SystemMonitorViewModel @Inject constructor(
      * 加载网络统计
      */
     private suspend fun loadNetworkStats() {
-        val result = systemInfoCommands.getNetworkStats()
+        val result = systemCommands.getNetworkStats()
         if (result.isSuccess) {
             val stats = result.getOrNull()
             _networkStats.value = stats
@@ -370,7 +374,7 @@ class SystemMonitorViewModel @Inject constructor(
      */
     fun killProcess(pid: Int, force: Boolean = false) {
         viewModelScope.launch {
-            val result = processCommands.kill(pid, force)
+            val result = processCommands.kill(pid, force = force)
             if (result.isSuccess) {
                 // 刷新进程列表
                 loadTopProcesses()
@@ -501,7 +505,7 @@ data class SystemMonitorUiState(
     val monitoredProcessCpu: Float? = null,
     val monitoredProcessMemory: Long? = null,
     val isGeneratingReport: Boolean = false,
-    val lastFullReport: SystemInfoCommands.FullSystemReportResponse? = null,
+    val lastFullReport: FullSystemReportResponse? = null,
     val isRunningBenchmark: Boolean = false,
     val lastBenchmarkScore: Int? = null
 )
