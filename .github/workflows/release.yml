@@ -116,11 +116,16 @@ jobs:
           cp -R node_modules desktop-app-vue/node_modules
           echo "Hoisted modules copied to desktop-app-vue"
 
+      - name: Ensure workspace dependencies are resolved
+        working-directory: desktop-app-vue
+        run: npm install --legacy-peer-deps --ignore-scripts
+
       - name: Package macOS (${{ matrix.arch }})
         working-directory: desktop-app-vue
         run: npm run make:mac:${{ matrix.arch }}
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+          SKIP_BACKEND_CHECK: "true"
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload macOS artifacts
@@ -174,6 +179,10 @@ jobs:
           rm -rf desktop-app-vue/node_modules
           cp -R node_modules desktop-app-vue/node_modules
           echo "Hoisted modules copied to desktop-app-vue"
+
+      - name: Ensure workspace dependencies are resolved
+        working-directory: desktop-app-vue
+        run: npm install --legacy-peer-deps --ignore-scripts
 
       - name: Package Linux
         working-directory: desktop-app-vue
