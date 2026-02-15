@@ -2,7 +2,7 @@
 
 **Source**: `src/main/llm/ollama-client.js`
 
-**Generated**: 2026-02-15T08:42:37.229Z
+**Generated**: 2026-02-15T10:10:53.411Z
 
 ---
 
