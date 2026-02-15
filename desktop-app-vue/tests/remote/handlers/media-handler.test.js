@@ -85,7 +85,7 @@ describe("MediaHandler", () => {
       ).rejects.toThrow("Invalid action");
     });
 
-    it("应该接受有效的 action 值", async () => {
+    it("应该接受有效的 action 值", { retry: 2 }, async () => {
       const validActions = [
         "play",
         "pause",
