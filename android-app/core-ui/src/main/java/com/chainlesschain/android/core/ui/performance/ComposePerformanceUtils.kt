@@ -82,10 +82,10 @@ object ComposePerformanceUtils {
  */
 @Composable
 fun <T> Flow<T>.collectAsStateDistinct(
-    initial: T,
-    context: CoroutineScope = rememberCoroutineScope()
+    initial: T
 ): State<T> {
-    return this.distinctUntilChanged().collectAsState(initial = initial)
+    val distinctFlow = remember(this) { this.distinctUntilChanged() }
+    return distinctFlow.collectAsState(initial = initial)
 }
 
 /**

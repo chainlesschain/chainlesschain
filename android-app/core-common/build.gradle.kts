@@ -23,6 +23,12 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
@@ -54,6 +60,10 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("org.robolectric:robolectric:4.11")
+
+    // Android test dependencies (TestDataFactory uses database entities)
+    androidTestImplementation(project(":core-database"))
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
 }
 
 // Apply Jacoco configuration for code coverage

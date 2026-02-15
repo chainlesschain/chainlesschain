@@ -97,7 +97,7 @@ class BrowserCommands @Inject constructor(
         fullPage: Boolean = false,
         format: String = "png",
         quality: Int? = null
-    ): Result<ScreenshotResponse> {
+    ): Result<BrowserScreenshotResponse> {
         val params = mutableMapOf<String, Any>(
             "targetId" to targetId,
             "fullPage" to fullPage,
@@ -631,7 +631,7 @@ data class NavigateResponse(
 )
 
 @Serializable
-data class ScreenshotResponse(
+data class BrowserScreenshotResponse(
     val success: Boolean,
     val targetId: String,
     val format: String,

@@ -279,14 +279,21 @@ fun TypingIndicatorTest() {
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 repeat(3) { index ->
-                    var alpha by remember { mutableStateOf(0.3f) }
-
-                    LaunchedEffect(Unit) {
-                        while (true) {
-                            kotlinx.coroutines.delay(200L * (index + 1))
-                            alpha = if (alpha > 0.5f) 0.3f else 1f
-                        }
-                    }
+                    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(
+                        label = "typing-dot-$index"
+                    )
+                    val alpha by infiniteTransition.animateFloat(
+                        initialValue = 0.3f,
+                        targetValue = 1f,
+                        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                            animation = androidx.compose.animation.core.tween(
+                                durationMillis = 400,
+                                delayMillis = 200 * index
+                            ),
+                            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                        ),
+                        label = "typing-alpha-$index"
+                    )
 
                     Box(
                         modifier = Modifier

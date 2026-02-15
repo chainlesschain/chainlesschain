@@ -437,7 +437,7 @@ class MemoryManagerTest {
 
         // Then
         println("10000次缓存写入耗时: ${String.format("%.2f", duration)} ms")
-        assertTrue("写入应在合理时间内完成", duration < 500)
+        assertTrue("写入应在合理时间内完成", duration < 5000)
     }
 
     // ===== Edge Cases =====

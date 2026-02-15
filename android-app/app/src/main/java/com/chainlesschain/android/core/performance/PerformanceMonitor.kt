@@ -6,6 +6,7 @@ import android.os.StrictMode
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,7 +54,7 @@ object PerformanceMonitor {
 
     // Coroutine scope for periodic updates
     @Volatile private var monitoringJob: Job? = null
-    private val scope = CoroutineScope(Dispatchers.Default)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // Context reference
     @Volatile private var appContext: Context? = null

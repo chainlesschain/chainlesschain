@@ -35,7 +35,7 @@ class SystemCommands @Inject constructor(
         display: Int = 0,
         format: String = "png",
         quality: Int = 80
-    ): Result<ScreenshotResponse> {
+    ): Result<SystemScreenshotResponse> {
         val params = mapOf(
             "display" to display,
             "format" to format,
@@ -701,7 +701,7 @@ data class MemoryInfo(
  * 截图响应
  */
 @Serializable
-data class ScreenshotResponse(
+data class SystemScreenshotResponse(
     val format: String,
     val data: String,  // Base64 encoded
     val width: Int,
