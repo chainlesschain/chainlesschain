@@ -22,7 +22,7 @@ class ThermalMonitor(private val context: Context) {
 
     private val powerManager: PowerManager =
         context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-            ?: throw IllegalStateException("PowerManager system service unavailable")
+            ?: error("PowerManager system service unavailable")
 
     // StateFlow for reactive updates
     private val _thermalState = MutableStateFlow(ThermalState.NONE)

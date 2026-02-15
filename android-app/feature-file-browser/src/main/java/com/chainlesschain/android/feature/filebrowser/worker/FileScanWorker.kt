@@ -9,7 +9,9 @@ import androidx.work.*
 import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 /**
@@ -273,12 +275,12 @@ object FileScanWorkManager {
      * @param context Application context
      * @return 是否已启用
      */
-    fun isAutoScanEnabled(context: Context): Boolean {
+    suspend fun isAutoScanEnabled(context: Context): Boolean = withContext(Dispatchers.IO) {
         val workInfos = WorkManager.getInstance(context)
             .getWorkInfosForUniqueWork(FileScanWorker.WORK_NAME)
             .get()
 
-        return workInfos.any { workInfo ->
+        workInfos.any { workInfo ->
             workInfo.state == WorkInfo.State.ENQUEUED ||
             workInfo.state == WorkInfo.State.RUNNING
         }

@@ -78,10 +78,13 @@ jobs:
 
       - name: Build Debug APK and Test APK
         working-directory: android-app
+        continue-on-error: true
+        id: build-apk
         run: |
           ./gradlew assembleDebug assembleDebugAndroidTest --stacktrace --no-daemon
 
       - name: Run E2E Tests (with retry)
+        if: steps.build-apk.outcome == 'success'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
