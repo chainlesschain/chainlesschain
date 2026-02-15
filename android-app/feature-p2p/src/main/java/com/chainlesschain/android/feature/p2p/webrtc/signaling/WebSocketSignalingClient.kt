@@ -27,7 +27,7 @@ import kotlin.math.pow
 class WebSocketSignalingClient @Inject constructor(
     private val okHttpClient: OkHttpClient,
     private val json: Json,
-    private val signalingConfig: com.chainlesschain.android.remote.config.SignalingConfig
+    private val signalingConfig: com.chainlesschain.android.core.p2p.config.SignalingConfig
 ) : SignalingClient {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

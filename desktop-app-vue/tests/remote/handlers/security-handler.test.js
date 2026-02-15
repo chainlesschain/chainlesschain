@@ -147,6 +147,20 @@ describe("SecurityHandler", () => {
 
   describe("getUpdates", () => {
     it("应该返回系统更新状态", async () => {
+      // Mock platform-specific methods to avoid slow system calls (e.g. Windows Update COM query)
+      vi.spyOn(handler, "_getWindowsUpdates").mockResolvedValue({
+        pendingCount: 2,
+        updates: [{ title: "KB123", kb: "123" }],
+      });
+      vi.spyOn(handler, "_getMacUpdates").mockResolvedValue({
+        pendingCount: 0,
+        updates: [],
+      });
+      vi.spyOn(handler, "_getLinuxUpdates").mockResolvedValue({
+        pendingCount: 0,
+        updates: [],
+      });
+
       const result = await handler.handle("getUpdates", {}, mockContext);
 
       expect(result.success).toBe(true);

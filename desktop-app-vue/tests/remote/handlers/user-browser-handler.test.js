@@ -6,12 +6,33 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock WebSocket
 vi.mock("ws", () => {
-  const MockWebSocket = vi.fn().mockImplementation(() => ({
-    on: vi.fn(),
-    send: vi.fn(),
-    close: vi.fn(),
-    readyState: 1, // OPEN
-  }));
+  class MockWebSocket {
+    constructor() {
+      this._listeners = {};
+      this.readyState = 1; // OPEN
+      // Auto-fire 'open' event after construction
+      setImmediate(() => this.emit("open"));
+    }
+
+    on(event, handler) {
+      if (!this._listeners[event]) {
+        this._listeners[event] = [];
+      }
+      this._listeners[event].push(handler);
+    }
+
+    emit(event, data) {
+      if (this._listeners[event]) {
+        this._listeners[event].forEach((handler) => handler(data));
+      }
+    }
+
+    send(data) {}
+
+    close() {
+      this.readyState = 3;
+    }
+  }
   MockWebSocket.OPEN = 1;
   return { default: MockWebSocket, WebSocket: MockWebSocket };
 });
@@ -261,8 +282,7 @@ describe("UserBrowserHandler", () => {
 });
 
 describe("CDPSession", () => {
-  // CDPSession is internal, but we can test via UserBrowserHandler
-  it("should be created when getting tab session", async () => {
+  it("should return cached tab session", async () => {
     const handler = new UserBrowserHandler();
     handler.connected = true;
     handler.tabs.set("tab-1", {
@@ -270,7 +290,21 @@ describe("CDPSession", () => {
       webSocketDebuggerUrl: "ws://localhost:9222/devtools/page/tab-1",
     });
 
-    // This will create a CDPSession internally
-    await expect(handler.getTabSession("tab-1")).resolves.toBeDefined();
+    // Pre-populate cdpSessions cache to avoid real WebSocket connection
+    const mockSession = { send: vi.fn(), close: vi.fn() };
+    handler.cdpSessions.set("tab-1", mockSession);
+
+    const session = await handler.getTabSession("tab-1");
+    expect(session).toBeDefined();
+    expect(session).toBe(mockSession);
+  });
+
+  it("should throw for non-existent tab", async () => {
+    const handler = new UserBrowserHandler();
+    handler.connected = true;
+
+    await expect(handler.getTabSession("nonexistent")).rejects.toThrow(
+      "Tab not found",
+    );
   });
 });

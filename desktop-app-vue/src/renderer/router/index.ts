@@ -838,6 +838,71 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/crossorg/CrossOrgAuditPage.vue'),
         meta: { title: '跨组织审计日志' },
       },
+      // ===== 企业审计与合规 (v0.34.0) =====
+      {
+        path: 'enterprise/audit',
+        name: 'EnterpriseAudit',
+        component: () => import(/* webpackChunkName: "enterprise-audit" */ '../pages/EnterpriseAuditPage.vue'),
+        meta: { title: '企业审计日志' },
+      },
+      {
+        path: 'enterprise/compliance',
+        name: 'ComplianceDashboard',
+        component: () => import(/* webpackChunkName: "compliance-dashboard" */ '../pages/ComplianceDashboard.vue'),
+        meta: { title: '合规管理仪表板' },
+      },
+      // ===== 插件市场 (v0.34.0) =====
+      {
+        path: 'marketplace',
+        name: 'PluginMarketplace',
+        component: () => import(/* webpackChunkName: "plugin-marketplace" */ '../pages/PluginMarketplacePage.vue'),
+        meta: { title: '插件市场' },
+      },
+      {
+        path: 'marketplace/installed',
+        name: 'InstalledPlugins',
+        component: () => import(/* webpackChunkName: "installed-plugins" */ '../pages/InstalledPluginsPage.vue'),
+        meta: { title: '已安装插件' },
+      },
+      // ===== 智能代理系统 (v0.34.0) =====
+      {
+        path: 'agents',
+        name: 'AgentDashboard',
+        component: () => import(/* webpackChunkName: "agent-dashboard" */ '../pages/AgentDashboardPage.vue'),
+        meta: { title: '智能代理中心' },
+      },
+      {
+        path: 'agents/templates/edit/:id?',
+        name: 'AgentTemplateEditor',
+        component: () => import(/* webpackChunkName: "agent-template-editor" */ '../pages/AgentTemplateEditorPage.vue'),
+        meta: { title: '代理模板编辑' },
+      },
+      // ===== SSO 企业认证 (v0.34.0) =====
+      {
+        path: 'sso/config',
+        name: 'SSOConfiguration',
+        component: () => import(/* webpackChunkName: "sso-config" */ '../pages/SSOConfigurationPage.vue'),
+        meta: { title: 'SSO 身份认证配置' },
+      },
+      {
+        path: 'sso/login',
+        name: 'SSOLogin',
+        component: () => import(/* webpackChunkName: "sso-login" */ '../pages/SSOLoginPage.vue'),
+        meta: { title: '企业单点登录' },
+      },
+      {
+        path: 'sso/identities',
+        name: 'IdentityLinking',
+        component: () => import(/* webpackChunkName: "identity-linking" */ '../pages/IdentityLinkingPage.vue'),
+        meta: { title: '身份关联管理' },
+      },
+      // ===== MCP 社区 (v0.34.0) =====
+      {
+        path: 'mcp/marketplace',
+        name: 'MCPServerMarketplace',
+        component: () => import(/* webpackChunkName: "mcp-marketplace" */ '../pages/MCPServerMarketplace.vue'),
+        meta: { title: 'MCP 服务器市场' },
+      },
     ],
   },
 ];

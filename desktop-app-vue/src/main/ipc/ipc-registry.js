@@ -1579,6 +1579,105 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 11: Enterprise Audit & Compliance (v0.34.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Enterprise Audit IPC...");
+      const { registerAuditIPC } = require("../audit/audit-ipc");
+      registerAuditIPC({ database: database || null });
+      logger.info(
+        "[IPC Registry] ✓ Enterprise Audit IPC registered (18 handlers)",
+      );
+      logger.info("[IPC Registry]   - Audit Logs: 4 handlers");
+      logger.info("[IPC Registry]   - Compliance: 6 handlers");
+      logger.info("[IPC Registry]   - Data Subject Requests: 6 handlers");
+      logger.info("[IPC Registry]   - Retention: 2 handlers");
+    } catch (auditError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Enterprise Audit IPC registration failed (non-fatal):",
+        auditError.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 12: Plugin Marketplace (v0.34.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Plugin Marketplace IPC...");
+      const {
+        registerMarketplaceIPC,
+      } = require("../marketplace/marketplace-ipc");
+      registerMarketplaceIPC({ database: database || null });
+      logger.info(
+        "[IPC Registry] ✓ Plugin Marketplace IPC registered (22 handlers)",
+      );
+      logger.info("[IPC Registry]   - Browse: 6 handlers");
+      logger.info("[IPC Registry]   - Install: 6 handlers");
+      logger.info("[IPC Registry]   - Installed: 3 handlers");
+      logger.info("[IPC Registry]   - Rating: 3 handlers");
+      logger.info("[IPC Registry]   - Publish: 3 handlers");
+      logger.info("[IPC Registry]   - Config: 1 handler");
+    } catch (marketplaceError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Plugin Marketplace IPC registration failed (non-fatal):",
+        marketplaceError.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 13: Specialized Multi-Agent System (v0.34.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Specialized Agents IPC...");
+      const { registerAgentsIPC } = require("../ai-engine/agents/agents-ipc");
+      registerAgentsIPC({ database: database || null });
+      logger.info(
+        "[IPC Registry] ✓ Specialized Agents IPC registered (16 handlers)",
+      );
+      logger.info("[IPC Registry]   - Templates: 5 handlers");
+      logger.info("[IPC Registry]   - Deploy: 4 handlers");
+      logger.info("[IPC Registry]   - Tasks: 3 handlers");
+      logger.info("[IPC Registry]   - Coordination: 2 handlers");
+      logger.info("[IPC Registry]   - Analytics: 2 handlers");
+    } catch (agentsError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  Specialized Agents IPC registration failed (non-fatal):",
+        agentsError.message,
+      );
+    }
+
+    // ============================================================
+    // Phase 14: SSO & Enterprise Authentication (v0.34.0)
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering SSO IPC...");
+      const { registerSSOIPC } = require("../auth/sso-ipc");
+      registerSSOIPC({ database: database || null });
+      logger.info("[IPC Registry] ✓ SSO IPC registered (20 handlers)");
+      logger.info("[IPC Registry]   - Config: 5 handlers");
+      logger.info("[IPC Registry]   - Auth: 4 handlers");
+      logger.info("[IPC Registry]   - Identity: 4 handlers");
+      logger.info("[IPC Registry]   - Session: 3 handlers");
+      logger.info("[IPC Registry]   - SAML: 2 handlers");
+      logger.info("[IPC Registry]   - OIDC: 2 handlers");
+    } catch (ssoError) {
+      logger.warn(
+        "[IPC Registry] ⚠️  SSO IPC registration failed (non-fatal):",
+        ssoError.message,
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 14 Complete: All v0.34.0 features registered!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 

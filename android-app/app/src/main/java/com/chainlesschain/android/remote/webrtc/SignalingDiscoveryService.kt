@@ -1,7 +1,7 @@
 package com.chainlesschain.android.remote.webrtc
 
 import android.util.Log
-import com.chainlesschain.android.remote.config.SignalingConfig
+import com.chainlesschain.android.core.p2p.config.SignalingConfig
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

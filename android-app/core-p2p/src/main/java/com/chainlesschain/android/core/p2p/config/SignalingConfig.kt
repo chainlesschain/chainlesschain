@@ -1,12 +1,17 @@
-﻿package com.chainlesschain.android.remote.config
+package com.chainlesschain.android.core.p2p.config
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.util.Log
-import com.chainlesschain.android.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/**
+ * Signaling server configuration.
+ *
+ * Priority: SharedPreferences > Environment variable > DEBUG_SIGNALING_URL (debug) > DEFAULT_SIGNALING_URL
+ */
 @Singleton
 class SignalingConfig @Inject constructor(
     @ApplicationContext private val context: Context
@@ -15,20 +20,9 @@ class SignalingConfig @Inject constructor(
     companion object {
         private const val TAG = "SignalingConfig"
 
-        /**
-         * 默认信令服务器 URL (生产环境)
-         *
-         * 配置优先级: SharedPreferences > 环境变量 > DEBUG_SIGNALING_URL (debug builds only) > DEFAULT_SIGNALING_URL
-         *
-         * 配置方法：
-         * 1. 环境变量: 设置 SIGNALING_SERVER_URL=wss://your-server.com
-         * 2. 运行时配置: 调用 setCustomSignalingUrl("wss://your-server.com")
-         * 3. 应用设置: 在设置界面配置自定义服务器地址
-         */
         const val DEFAULT_SIGNALING_URL = "wss://signaling.chainlesschain.com:9001"
 
         /** Debug-only fallback - use local network IP for real device testing */
-        // Note: This should match the default shown in SettingsScreen for consistency
         const val DEBUG_SIGNALING_URL = "ws://192.168.1.1:9001"
 
         const val CONNECT_TIMEOUT_MS = 10000L
@@ -40,6 +34,9 @@ class SignalingConfig @Inject constructor(
         private const val KEY_CUSTOM_URL = "custom_signaling_url"
         private const val ENV_SIGNALING_URL = "SIGNALING_SERVER_URL"
     }
+
+    private val isDebug: Boolean
+        get() = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     private val prefs by lazy {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -61,7 +58,7 @@ class SignalingConfig @Inject constructor(
         }
 
         // Priority 3: Debug builds fall back to emulator-friendly local URL
-        if (BuildConfig.DEBUG) {
+        if (isDebug) {
             Log.d(TAG, "Debug build: using local signaling server: $DEBUG_SIGNALING_URL")
             return DEBUG_SIGNALING_URL
         }
