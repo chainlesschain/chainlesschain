@@ -54,11 +54,16 @@ jobs:
         run: ls -R desktop-app-vue/out/make
 
       - name: Upload Linux artifacts to release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            desktop-app-vue/out/make/zip/linux/x64/*.zip
-            desktop-app-vue/out/make/deb/x64/*.deb
-            desktop-app-vue/out/make/rpm/x64/*.rpm
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          echo "Uploading artifacts to release ${TAG}..."
+          for f in desktop-app-vue/out/make/zip/linux/x64/*.zip \
+                   desktop-app-vue/out/make/deb/x64/*.deb \
+                   desktop-app-vue/out/make/rpm/x64/*.rpm; do
+            if [ -f "$f" ]; then
+              echo "Uploading $f"
+              gh release upload "$TAG" "$f" --clobber
+            fi
+          done
