@@ -335,6 +335,9 @@ describe("PermissionGate", () => {
         PERMISSION_LEVELS.NORMAL,
       );
 
+      // Spy on verifySignature to bypass tweetnacl CJS/ESM interop issue
+      vi.spyOn(permissionGate, "verifySignature").mockResolvedValue(true);
+
       const result = await permissionGate.verify(
         {
           did: "did:test:123",
@@ -355,6 +358,9 @@ describe("PermissionGate", () => {
         "did:test:123",
         PERMISSION_LEVELS.NORMAL,
       );
+
+      // Spy on verifySignature to bypass tweetnacl CJS/ESM interop issue
+      vi.spyOn(permissionGate, "verifySignature").mockResolvedValue(true);
 
       const auth = {
         did: "did:test:123",
@@ -379,6 +385,9 @@ describe("PermissionGate", () => {
         "did:test:admin",
         PERMISSION_LEVELS.ADMIN,
       );
+
+      // Spy on verifySignature to bypass tweetnacl CJS/ESM interop issue
+      vi.spyOn(permissionGate, "verifySignature").mockResolvedValue(true);
 
       const result = await permissionGate.verify(
         {

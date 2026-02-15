@@ -103,9 +103,10 @@ fun RemoteDesktopScreen(
                     .height(220.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                if (currentFrame != null) {
+                val frame = currentFrame
+                if (frame != null) {
                     Image(
-                        bitmap = currentFrame!!.asImageBitmap(),
+                        bitmap = frame.asImageBitmap(),
                         contentDescription = "Remote frame",
                         modifier = Modifier
                             .fillMaxSize()

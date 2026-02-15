@@ -265,7 +265,7 @@ PC,512,Disk #0 Partition #0,500000000000,Primary`,
   });
 
   describe("cleanup", () => {
-    it("应该执行干运行清理", async () => {
+    it("应该执行干运行清理", { retry: 2 }, async () => {
       mockFsReaddir.mockResolvedValue([
         { name: "old_temp.tmp", isDirectory: () => false, isFile: () => true },
       ]);

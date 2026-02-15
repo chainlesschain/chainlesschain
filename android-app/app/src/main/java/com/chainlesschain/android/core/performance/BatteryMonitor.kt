@@ -21,7 +21,9 @@ class BatteryMonitor(private val context: Context) {
         private const val TAG = "BatteryMonitor"
     }
 
-    private val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+    private val batteryManager: BatteryManager =
+        context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
+            ?: throw IllegalStateException("BatteryManager system service unavailable")
 
     // StateFlow for reactive updates
     private val _batteryLevel = MutableStateFlow(100)

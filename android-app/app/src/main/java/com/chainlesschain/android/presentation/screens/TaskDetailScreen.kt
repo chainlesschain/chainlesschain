@@ -116,9 +116,10 @@ fun TaskDetailScreen(
             }
 
             // 任务描述
-            if (!editedTask.description.isNullOrBlank()) {
+            val description = editedTask.description
+            if (!description.isNullOrBlank()) {
                 item {
-                    TaskDescriptionCard(editedTask.description!!)
+                    TaskDescriptionCard(description)
                 }
             }
 

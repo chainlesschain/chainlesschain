@@ -60,7 +60,7 @@ class RemoteCommandClient @Inject constructor(
             // 如果是取消异常，不重试
             if (lastError is CommandCancelledException) {
                 Timber.w("命令被取消，不重试: $method")
-                return Result.failure(lastError!!)
+                return Result.failure(lastError ?: Exception("Command cancelled"))
             }
 
             if (attempt < maxRetries - 1) {

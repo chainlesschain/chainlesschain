@@ -194,11 +194,14 @@ fun ConnectionStatusScreen(
 
             // Peer Info Card (when connected)
             if (uiState.isConnected && connectedPeer != null) {
-                PeerInfoCard(
-                    peerId = connectedPeer!!.peerId,
-                    peerDID = connectedPeer!!.did,
-                    connectedAt = connectedPeer!!.connectedAt
-                )
+                val peer = connectedPeer
+                if (peer != null) {
+                    PeerInfoCard(
+                        peerId = peer.peerId,
+                        peerDID = peer.did,
+                        connectedAt = peer.connectedAt
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))

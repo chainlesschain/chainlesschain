@@ -48,10 +48,11 @@ class FileTransferRepository @Inject constructor(
                 ?: return@withContext Result.failure(Exception("Cannot open file"))
 
             val tempFile = File(context.cacheDir, "upload_temp_$fileName")
-            tempFile.outputStream().use { output ->
-                inputStream.copyTo(output)
+            inputStream.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
             }
-            inputStream.close()
 
             val fileSize = tempFile.length()
 
@@ -67,7 +68,7 @@ class FileTransferRepository @Inject constructor(
 
             if (requestResult.isFailure) {
                 tempFile.delete()
-                return@withContext Result.failure(requestResult.exceptionOrNull()!!)
+                return@withContext Result.failure(requestResult.exceptionOrNull() ?: Exception("Unknown error"))
             }
 
             val uploadRequest = requestResult.getOrThrow()
@@ -112,7 +113,7 @@ class FileTransferRepository @Inject constructor(
                         error = chunkResult.exceptionOrNull()?.message
                     )
                     tempFile.delete()
-                    return@withContext Result.failure(chunkResult.exceptionOrNull()!!)
+                    return@withContext Result.failure(chunkResult.exceptionOrNull() ?: Exception("Unknown error"))
                 }
 
                 val chunkResponse = chunkResult.getOrThrow()
@@ -142,7 +143,7 @@ class FileTransferRepository @Inject constructor(
                     error = completeResult.exceptionOrNull()?.message
                 )
                 tempFile.delete()
-                return@withContext Result.failure(completeResult.exceptionOrNull()!!)
+                return@withContext Result.failure(completeResult.exceptionOrNull() ?: Exception("Unknown error"))
             }
 
             val completeResponse = completeResult.getOrThrow()
@@ -189,7 +190,7 @@ class FileTransferRepository @Inject constructor(
             )
 
             if (requestResult.isFailure) {
-                return@withContext Result.failure(requestResult.exceptionOrNull()!!)
+                return@withContext Result.failure(requestResult.exceptionOrNull() ?: Exception("Unknown error"))
             }
 
             val downloadRequest = requestResult.getOrThrow()
@@ -219,48 +220,46 @@ class FileTransferRepository @Inject constructor(
 
             // 4. 下载分块
             val totalChunks = downloadRequest.totalChunks
-            val outputStream = FileOutputStream(localFile)
 
-            for (chunkIndex in 0 until totalChunks) {
-                // 下载分块
-                val chunkResult = fileCommands.downloadChunk(
-                    transferId = downloadRequest.transferId,
-                    chunkIndex = chunkIndex
-                )
-
-                if (chunkResult.isFailure) {
-                    outputStream.close()
-                    localFile.delete()
-                    dao.updateStatus(
-                        id = downloadRequest.transferId,
-                        status = TransferStatus.FAILED,
-                        error = chunkResult.exceptionOrNull()?.message
+            FileOutputStream(localFile).use { outputStream ->
+                for (chunkIndex in 0 until totalChunks) {
+                    // 下载分块
+                    val chunkResult = fileCommands.downloadChunk(
+                        transferId = downloadRequest.transferId,
+                        chunkIndex = chunkIndex
                     )
-                    return@withContext Result.failure(chunkResult.exceptionOrNull()!!)
+
+                    if (chunkResult.isFailure) {
+                        localFile.delete()
+                        dao.updateStatus(
+                            id = downloadRequest.transferId,
+                            status = TransferStatus.FAILED,
+                            error = chunkResult.exceptionOrNull()?.message
+                        )
+                        return@withContext Result.failure(chunkResult.exceptionOrNull() ?: Exception("Unknown error"))
+                    }
+
+                    val chunkResponse = chunkResult.getOrThrow()
+
+                    // 解码并写入数据
+                    val chunkData = Base64.decode(chunkResponse.chunkData, Base64.NO_WRAP)
+                    outputStream.write(chunkData)
+
+                    // 更新进度
+                    val progress = chunkResponse.progress
+                    val bytesTransferred = ((downloadRequest.fileSize * progress) / 100).toLong()
+
+                    dao.updateProgress(
+                        id = downloadRequest.transferId,
+                        progress = progress,
+                        bytesTransferred = bytesTransferred
+                    )
+
+                    onProgress?.invoke(progress)
+
+                    Log.d(TAG, "Downloaded chunk $chunkIndex/$totalChunks (${progress}%)")
                 }
-
-                val chunkResponse = chunkResult.getOrThrow()
-
-                // 解码并写入数据
-                val chunkData = Base64.decode(chunkResponse.chunkData, Base64.NO_WRAP)
-                outputStream.write(chunkData)
-
-                // 更新进度
-                val progress = chunkResponse.progress
-                val bytesTransferred = ((downloadRequest.fileSize * progress) / 100).toLong()
-
-                dao.updateProgress(
-                    id = downloadRequest.transferId,
-                    progress = progress,
-                    bytesTransferred = bytesTransferred
-                )
-
-                onProgress?.invoke(progress)
-
-                Log.d(TAG, "Downloaded chunk $chunkIndex/$totalChunks (${progress}%)")
             }
-
-            outputStream.close()
 
             // 5. 验证校验和（如果提供）
             if (downloadRequest.checksum != null) {
@@ -309,7 +308,7 @@ class FileTransferRepository @Inject constructor(
             val cancelResult = fileCommands.cancelTransfer(transferId)
 
             if (cancelResult.isFailure) {
-                return@withContext Result.failure(cancelResult.exceptionOrNull()!!)
+                return@withContext Result.failure(cancelResult.exceptionOrNull() ?: Exception("Unknown error"))
             }
 
             // 2. 更新本地状态

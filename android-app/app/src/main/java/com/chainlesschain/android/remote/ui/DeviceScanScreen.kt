@@ -148,9 +148,10 @@ fun DeviceScanScreen(
         }
     }
 
-    if (showRegisterDialog && selectedDevice != null) {
+    val deviceToRegister = selectedDevice
+    if (showRegisterDialog && deviceToRegister != null) {
         RegisterDeviceDialog(
-            device = selectedDevice!!,
+            device = deviceToRegister,
             onDismiss = {
                 showRegisterDialog = false
                 selectedDevice = null

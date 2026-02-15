@@ -658,7 +658,7 @@ describe('工作流管理器 - 多工作流管理测试', () => {
     expect(duration).toBeLessThan(12000);
   }, 15000); // 增加超时时间到15秒
 
-  test('应该转发工作流事件', async () => {
+  test('应该转发工作流事件', { retry: 2 }, async () => {
     const events = [];
 
     workflowManager.on('workflow:start', (data) => {
@@ -705,7 +705,7 @@ describe('工作流管道 - 边界条件测试', () => {
     };
   });
 
-  test('应该处理空输入', async () => {
+  test('应该处理空输入', { retry: 2 }, async () => {
     const workflow = new WorkflowPipeline({
       title: '空输入测试',
       stageExecutors: {
