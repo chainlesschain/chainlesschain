@@ -24,13 +24,11 @@ vi.mock("../../utils/logger", () => ({
   },
 }));
 
-// Mock nacl
+// Mock nacl (CJS module, no default wrapper needed)
 vi.mock("tweetnacl", () => ({
-  default: {
-    sign: {
-      detached: {
-        verify: vi.fn().mockReturnValue(true),
-      },
+  sign: {
+    detached: {
+      verify: vi.fn().mockReturnValue(true),
     },
   },
 }));

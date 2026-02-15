@@ -60,10 +60,10 @@ dependencies {
     ksp("com.google.dagger:hilt-compiler:2.50")
 
     // Cryptography - Tink (Google's crypto library)
-    implementation("com.google.crypto.tink:tink-android:1.10.0")
+    implementation("com.google.crypto.tink:tink-android:1.15.0")
 
     // BouncyCastle (for Curve25519 support)
-    implementation("org.bouncycastle:bcprov-jdk15on:1.70")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.77")
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")

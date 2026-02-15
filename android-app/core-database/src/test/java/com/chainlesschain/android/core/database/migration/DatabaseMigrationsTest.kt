@@ -35,7 +35,7 @@ class DatabaseMigrationsTest {
         // Then
         assertNotNull(migrations)
         assertTrue(migrations.isNotEmpty())
-        assertEquals(17, migrations.size)  // 更新：当前有17个迁移 (1->18)
+        assertEquals(21, migrations.size)  // 更新：当前有21个迁移 (1->22)
     }
 
     @Test

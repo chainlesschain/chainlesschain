@@ -201,6 +201,11 @@ describe("RemoteGateway", () => {
     gateway = new RemoteGateway(mockDependencies, {
       enableP2P: true,
       enableWebSocket: false,
+      fileTransfer: {
+        uploadDir: "/tmp/test-uploads",
+        downloadDir: "/tmp/test-downloads",
+        tempDir: "/tmp/test-temp",
+      },
     });
   });
 
