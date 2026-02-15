@@ -102,6 +102,6 @@ class FileTransferConverters {
     @TypeConverter
     fun toChunkSet(value: String): Set<Int> {
         if (value.isBlank()) return emptySet()
-        return value.split(",").map { it.toInt() }.toSet()
+        return value.split(",").mapNotNull { it.trim().toIntOrNull() }.toSet()
     }
 }
