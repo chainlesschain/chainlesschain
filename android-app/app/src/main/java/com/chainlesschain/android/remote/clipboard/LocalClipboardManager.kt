@@ -32,7 +32,7 @@ class LocalClipboardManager @Inject constructor(
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val clipboardManager: ClipboardManager =
         context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-            ?: throw IllegalStateException("ClipboardManager system service unavailable")
+            ?: error("ClipboardManager system service unavailable")
 
     private var lastLocalContent: String? = null
     private var isListening = false

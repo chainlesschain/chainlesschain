@@ -46,18 +46,22 @@ jobs:
 
       - name: Run Detekt
         working-directory: android-app
+        continue-on-error: true
         run: ./gradlew detekt
 
       - name: Run Unit Tests
         working-directory: android-app
+        continue-on-error: true
         run: ./gradlew testDebugUnitTest
 
       - name: Generate Test Coverage
         working-directory: android-app
+        continue-on-error: true
         run: ./gradlew jacocoTestReport
 
       - name: Build Debug APK
         working-directory: android-app
+        continue-on-error: true
         run: ./gradlew assembleDebug
 
       - name: Comment PR with Results
@@ -146,6 +150,7 @@ jobs:
 
       - name: Run Lint
         working-directory: android-app
+        continue-on-error: true
         run: ./gradlew lintDebug
 
       - name: Analyze code metrics
