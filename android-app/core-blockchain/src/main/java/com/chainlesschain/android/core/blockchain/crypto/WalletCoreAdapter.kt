@@ -404,7 +404,7 @@ class WalletCoreAdapter @Inject constructor() {
     }
 
     private fun sumOfTwoMultiplies(g: ECPoint, a: BigInteger, r: ECPoint, b: BigInteger): ECPoint {
-        return ECPoint.decodePoint(g.curve, g.multiply(a).add(r.multiply(b)).getEncoded(false))
+        return g.curve.decodePoint(g.multiply(a).add(r.multiply(b)).getEncoded(false))
     }
 
     /**

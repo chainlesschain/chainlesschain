@@ -1,5 +1,6 @@
 package com.chainlesschain.android.core.p2p.network
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.Network
@@ -82,6 +83,7 @@ class NetworkMonitor @Inject constructor(
     /**
      * 开始监听网络状态
      */
+    @SuppressLint("MissingPermission")
     fun startMonitoring() {
         if (isRegistered) {
             Log.w(TAG, "Already monitoring network")
@@ -126,6 +128,7 @@ class NetworkMonitor @Inject constructor(
     /**
      * 检查当前网络状态
      */
+    @SuppressLint("MissingPermission")
     fun checkCurrentNetwork() {
         val activeNetwork = connectivityManager.activeNetwork
         if (activeNetwork != null) {
@@ -179,6 +182,7 @@ class NetworkMonitor @Inject constructor(
     /**
      * 获取网络信息
      */
+    @SuppressLint("MissingPermission")
     private fun getNetworkInfo(network: Network): NetworkInfo {
         val capabilities = connectivityManager.getNetworkCapabilities(network)
 
